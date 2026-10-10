@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { LIBELLES_STATUT_ORGANISATION } from "@/lib/libelles";
@@ -166,7 +167,7 @@ export default async function PageClients() {
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
         <div className="min-w-0 flex-[1_1_20rem]">
-          <h1>Agences, bailleurs et artisans</h1>
+          <TitreEcran rubrique="personnes">Agences, bailleurs et artisans</TitreEcran>
           <p className="mt-2 text-sm text-[var(--texte-secondaire)]">
             Les agences et les propriétaires bailleurs sont des clients de
             l&apos;abonnement ; les artisans sont des inscrits dont

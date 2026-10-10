@@ -78,7 +78,7 @@ export default async function PageEntreprise() {
     <div className="space-y-6">
       {/* Le nom de l'onglet en titre, comme les pages sœurs : la raison
           sociale est déjà écrite dans le bandeau, juste au-dessus (24/09). */}
-      <EnteteSousPage
+      <EnteteSousPage rubrique="entreprise"
         titre="Mon entreprise"
         mention="Vos attestations, votre facturation, votre note et votre fiche"
       />

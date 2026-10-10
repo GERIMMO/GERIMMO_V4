@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
+
+export const RubriquesDirectes = createContext(false);
 
 /** Les formulaires restent montés : refermer une rubrique conserve la saisie. */
 export function RubriqueDossier({ id, titre, resume, ouverte = false, children }: {
-  id: string; titre: string; resume: string; ouverte?: boolean; children: ReactNode;
+  id: string; titre: ReactNode; resume: string; ouverte?: boolean; children: ReactNode;
 }) {
+  const direct = useContext(RubriquesDirectes);
   const details = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     const ouvrirCible = (hash: string, defiler: boolean) => {
@@ -35,6 +38,10 @@ export function RubriqueDossier({ id, titre, resume, ouverte = false, children }
     document.addEventListener("click", clic);
     return () => { window.removeEventListener("hashchange", hashChange); document.removeEventListener("click", clic); };
   }, []);
+  if (direct) return <section id={id} className="space-y-4 scroll-mt-24">
+    <header><h3 className="font-semibold">{titre}</h3><p className="mt-1 text-sm text-muted-foreground">{resume}</p></header>
+    {children}
+  </section>;
   return <details id={id} ref={details} open={ouverte} className="dossier-rubrique">
     <summary><span className="min-w-0"><span className="dossier-rubrique-titre">{titre}</span><span className="dossier-rubrique-resume">{resume}</span></span><ChevronDown className="dossier-chevron size-5 shrink-0" aria-hidden="true" /></summary>
     <div className="dossier-rubrique-contenu space-y-4">{children}</div>

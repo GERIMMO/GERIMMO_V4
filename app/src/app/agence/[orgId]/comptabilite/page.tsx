@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, formaterDate, moisEnFrancais, aujourdhuiParis } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
@@ -175,7 +176,8 @@ export default async function PageComptabilite(props: {
     return (
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
         <div className="entete-page">
-          <h1>{titreComptabilite(role, estProprietaire)}</h1>
+          <TitreEcran rubrique="finances">{titreComptabilite(role, estProprietaire)}</TitreEcran>
+          {estProprietaire && <Link href={`/agence/${orgId}/loyers#operations`} className="lien-discret">← Finances</Link>}
         </div>
         <div className="err" role="alert">
           <p className="font-medium">
@@ -279,7 +281,8 @@ export default async function PageComptabilite(props: {
         {/* La marge sous l'en-tête est celle de `.entete-page`, commune à
             l'espace : plus de mb-4 / mb-6 posés page par page (24/09). */}
         <div className="entete-page">
-          <h1>{titreComptabilite(role, estProprietaire)}</h1>
+          <TitreEcran rubrique="finances">{titreComptabilite(role, estProprietaire)}</TitreEcran>
+          {estProprietaire && <Link href={`/agence/${orgId}/loyers#operations`} className="lien-discret">← Finances</Link>}
           <span className="mono-discret">
             {portefeuille ? "Mon portefeuille · " : ""}
             {dernierCloture ? `${moisEnFrancais(dernierCloture)} clôturé · ` : ""}

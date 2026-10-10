@@ -1,6 +1,7 @@
 import { verifierAccesEspace } from "@/lib/espace";
 import { aujourdhuiParis } from "@/lib/ged";
-import { Card, CardContent } from "@/components/ui/card";
+import { VuePersonnes } from "./vue-personnes";
+import parcours from "@/components/presentation-parcours.module.css";
 import { rolesDePersonne } from "@/lib/roles-personnes";
 import { EchecLecture } from "../documents/echec-lecture";
 import { FormulairePersonne } from "./formulaire-personne";
@@ -145,49 +146,13 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
   ].filter((q): q is string => Boolean(q));
 
   return (
-    <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
-      <div className="entete-page">
-        <h1>{role === "proprietaire_direct" ? "Locataires & garants" : "Personnes"}</h1>
-        <div className="flex items-center gap-4">
-          <span className="mono-discret">
-            {erreurPersonnes
-              ? "nombre indisponible"
-              : `${fiches.length} fiche${fiches.length > 1 ? "s" : ""}`}
-          </span>
-          {/* Le même bouton aux deux tailles (25/09) : il n'existait qu'au
-              téléphone, où la carte de création est empilée après toute la
-              liste ; au bureau il mène à la même carte, en colonne droite. */}
-          <a href="#creer-fiche" className="btn-or">
-            + Créer une fiche
-          </a>
-        </div>
-      </div>
-
+    <main className={`mx-auto w-full p-4 sm:p-7 ${parcours.pageCreation}`}>
       <EchecLecture quoi={lecturesManquees} />
-
-      <div className="grid gap-6 md:grid-cols-[1fr_20rem]">
-        <ListePersonnes
-          orgId={orgId}
-          personnes={fiches}
-          listeIllisible={Boolean(erreurPersonnes)}
-          estBailleurDirect={role === "proprietaire_direct"}
-        />
-
-        <aside id="creer-fiche" className="scroll-mt-20">
-          {/* Pas de pt-6 : la carte pose déjà sa marge interne — le titre
-              flottait à 44 px du bord, contre 20 px partout ailleurs (24/09). */}
-          <Card>
-            <CardContent>
-              <p className="mb-3 text-sm font-medium">Créer une fiche</p>
-              <FormulairePersonne
-                orgId={orgId}
-                lots={lotsRattachables}
-                estBailleurDirect={role === "proprietaire_direct"}
-              />
-            </CardContent>
-          </Card>
-        </aside>
-      </div>
+      <VuePersonnes titre={role === "proprietaire_direct" ? "Locataires & garants" : "Personnes"}
+        nombre={erreurPersonnes ? "nombre indisponible" : `${fiches.length} fiche${fiches.length > 1 ? "s" : ""}`}
+        liste={<ListePersonnes orgId={orgId} personnes={fiches} listeIllisible={Boolean(erreurPersonnes)} estBailleurDirect={role === "proprietaire_direct"} />}
+        creation={<FormulairePersonne orgId={orgId} lots={lotsRattachables} estBailleurDirect={role === "proprietaire_direct"} />}
+      />
     </main>
   );
 }

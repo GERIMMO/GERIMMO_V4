@@ -68,6 +68,8 @@ const REGLES: Regle[] = [
       "identifiant fiscal",
       "le cas échéant",
       "cave, grenier",
+      "cuisine équipée",
+      "équipements du logement",
       "autres parties du logement",
       "individuel ou collectif",
       "chauffage du logement",

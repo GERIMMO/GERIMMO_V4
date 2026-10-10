@@ -74,6 +74,8 @@ export type ContexteBail = {
     dernier_loyer: number | null;
     dernier_loyer_versement: string | null;
     dernier_loyer_revision: string | null;
+    precedente_location?: string | null;
+    precedent_loyer_revise?: boolean | null;
     meuble_etudiant: boolean;
   };
   lot: {
@@ -136,7 +138,7 @@ export async function chargerContexteBail(
          travaux_locataire, honoraires_bailleur, honoraires_locataire,
          clauses_particulieres, loyer_reference, loyer_reference_majore,
          complement_loyer, complement_justification, dernier_loyer,
-         dernier_loyer_versement, dernier_loyer_revision, meuble_etudiant,
+         dernier_loyer_versement, dernier_loyer_revision, precedente_location, precedent_loyer_revise, meuble_etudiant,
          date_conclusion_prevue, servitude_residence_principale, encadrement_loyer, zone_honoraires,
          honoraires_edl_bailleur, honoraires_edl_locataire, dpe_depenses_min, dpe_depenses_max, dpe_annees_reference,
          clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude,

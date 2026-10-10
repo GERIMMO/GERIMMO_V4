@@ -94,7 +94,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   if (erreurEtat || erreurPaiement || !etat || !paiement) {
     return (
       <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
-        <EnteteReglages titre="Mon abonnement">L&apos;état de votre compte.</EnteteReglages>
+        <EnteteReglages rubrique="abonnement" titre="Mon abonnement">L&apos;état de votre compte.</EnteteReglages>
         <EncadreLectureImpossible>
           L&apos;état de votre abonnement n&apos;a pas pu être lu. Ce n&apos;est pas un abonnement absent : rechargez
           la page dans un instant. Rien n&apos;est prélevé entre-temps.
@@ -183,7 +183,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
-      <EnteteReglages titre="Mon abonnement" mention={estAgence ? undefined : organisation.name}>
+      <EnteteReglages rubrique="abonnement" titre="Mon abonnement" mention={estAgence ? undefined : organisation.name}>
         {estAgence
           ? "Ce que vous payez, selon vos lots sous mandat, et l'état de votre compte."
           : "Ce que vous payez, selon le nombre de biens que vous gérez, et l'état de votre compte."}

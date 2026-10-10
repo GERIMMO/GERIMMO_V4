@@ -11,6 +11,7 @@ import { valeursDuFormulaire } from "@/lib/formulaires";
 export type EtatDossier = {
   erreur?: string;
   succes?: string;
+  avertissement?: string;
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
 };
@@ -33,6 +34,7 @@ export async function deposerPieceDossier(
   const titre = String(formData.get("titre") ?? "").trim();
   const remplaceId = String(formData.get("remplace_id") ?? "").trim();
   const expireLe = String(formData.get("expire_le") ?? "").trim();
+  const demandeId = String(formData.get("demande_id") ?? "").trim();
 
   if (!(fichier instanceof File) || fichier.size === 0) {
     return { erreur: "Choisissez un fichier.", valeurs };
@@ -42,6 +44,15 @@ export async function deposerPieceDossier(
   }
   if (fichier.size > TAILLE_MAX_OCTETS) {
     return { erreur: "Fichier trop volumineux (10 Mo maximum).", valeurs };
+  }
+
+  if (demandeId) {
+    const { data: demande, error: erreurDemande } = await supabase.from("pieces_demandees")
+      .select("id, type").eq("id", demandeId).eq("organization_id", orgId)
+      .eq("person_id", personId).is("satisfaite_le", null).maybeSingle();
+    if (erreurDemande || !demande || demande.type !== type) {
+      return { erreur: "La demande est introuvable, déjà satisfaite ou ne correspond pas à ce type de pièce.", valeurs };
+    }
   }
 
   // Nouvelle version : la pièce remplacée doit exister dans l'agence — et la
@@ -80,9 +91,18 @@ export async function deposerPieceDossier(
     return { erreur: `Pièce déposée mais rattachement en échec : ${sansJargon(erreurLien.message)}`, valeurs };
   }
 
+  let avertissement: string | undefined;
+  if (demandeId) {
+    const { data: soldee, error: erreurSolde } = await supabase.from("pieces_demandees")
+      .update({ document_id: resultat.documentId, satisfaite_le: new Date().toISOString() })
+      .eq("id", demandeId).eq("organization_id", orgId).eq("person_id", personId)
+      .is("satisfaite_le", null).select("id").maybeSingle();
+    if (erreurSolde || !soldee) avertissement = "La pièce est au dossier, mais le suivi de la demande n’a pas pu être confirmé. Vérifiez la demande avant un nouvel envoi.";
+    revalidatePath(`/locataire/${orgId}/documents`);
+  }
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   const base = remplaceId ? "Nouvelle version déposée." : "Pièce ajoutée au dossier.";
-  return { succes: resultat.avertissement ? `${base} ${resultat.avertissement}` : base };
+  return { succes: resultat.avertissement ? `${base} ${resultat.avertissement}` : base, avertissement };
 }
 
 // Valider l'attestation déposée par le locataire (recette 21/08) : l'agence

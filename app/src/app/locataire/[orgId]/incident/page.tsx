@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { NOTE_SIGNALEMENT_FERME, signalementOuvert } from "../types";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
@@ -40,7 +41,7 @@ export default async function PageSignalerIncident(
           dit où l'on est. « Prévenu immédiatement » n'est plus dit qu'une
           fois, dans la carte d'urgence. */}
       <div className="entete-page">
-        <h1>Signaler un problème</h1>
+        <TitreEcran rubrique="incidents">Signaler un problème</TitreEcran>
         <Link href={`/locataire/${orgId}/demandes`} className="lien-discret">
           Suivre mes demandes{enCours > 0 ? ` (${enCours} en cours)` : ""}{"\u00a0"}→
         </Link>
@@ -54,7 +55,7 @@ export default async function PageSignalerIncident(
 
       {bailActif ? (
         <>
-          <ReflexesUrgence />
+          <ReflexesUrgence surFormulaire />
           <FormulaireIncidentLocataire orgId={orgId} />
         </>
       ) : (

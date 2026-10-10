@@ -1,7 +1,8 @@
 "use client";
+import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
 import Link from "next/link";
-import { useActionState } from "react";
+
 import { definirEquipementsLot, type EtatParc } from "@/app/actions/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
@@ -21,7 +22,7 @@ export function FormulaireEquipementsLot({
   selection: string[];
 }) {
   const actionLiee = definirEquipementsLot.bind(null, orgId, bienId, lotId);
-  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionStateSuivi<EtatParc, FormData>(actionLiee, {});
   const coches = new Set(selection);
 
   if (catalogue.length === 0) {

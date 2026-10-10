@@ -13,6 +13,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { ChampFichier } from "@/components/champ-fichier";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LegendeChamps } from "@/components/titre-ecran";
 
 // min-w-0 : en flex, un select natif refuse sinon de descendre sous sa plus
 // longue option et fait déborder la ligne (audit mobile 09/09). Même chaîne
@@ -52,11 +53,12 @@ export function FormulaireIncident({
   const [categorie, setCategorie] = useState("");
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="formulaire-reperes space-y-4">
+      <LegendeChamps />
       {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
           sur la saisie (recette 22/08 — mécanique commune, lib/formulaires.ts) */}
       <div className="space-y-1.5">
-        <Label htmlFor="lot">Lot concerné *</Label>
+        <Label htmlFor="lot">Lot concerné</Label>
         <select
           id="lot"
           name="lot"
@@ -76,7 +78,7 @@ export function FormulaireIncident({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="categorie">Catégorie *</Label>
+        <Label htmlFor="categorie">Catégorie</Label>
         <select
           id="categorie"
           name="categorie"
@@ -99,7 +101,7 @@ export function FormulaireIncident({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="piece">Pièce concernée</Label>
+          <Label htmlFor="piece">Pièce concernée — Facultatif</Label>
           <select id="piece" name="piece" defaultValue={etat.valeurs?.piece ?? ""} className={classeSelect}>
             <option value="">—</option>
             {PIECES_INCIDENT.map((p) => (
@@ -124,7 +126,7 @@ export function FormulaireIncident({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="description">Description *</Label>
+        <Label htmlFor="description">Description</Label>
         <textarea
           id="description"
           name="description"
@@ -137,7 +139,7 @@ export function FormulaireIncident({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="anciennete">Depuis quand ?</Label>
+        <Label htmlFor="anciennete">Depuis quand ? — Facultatif</Label>
         <Input
           id="anciennete"
           name="anciennete"
@@ -147,7 +149,7 @@ export function FormulaireIncident({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="photos">Photos (5 max, JPEG ou PNG)</Label>
+        <Label htmlFor="photos">Photos — Facultatif (5 max, JPEG ou PNG)</Label>
         {/* Champ fichier habillé en français (25/09, D10) : le natif rendait
             « Choose Files / No file chosen » sur un navigateur en anglais. */}
         <ChampFichier
@@ -160,16 +162,15 @@ export function FormulaireIncident({
         />
       </div>
 
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-      {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
+      {etat.erreur && <p className="message-formulaire" role="alert">{etat.erreur}</p>}
+      {etat.succes && <p className="message-formulaire" data-succes role="status">{etat.succes}</p>}
       {etat.avertissement && (
         <p className="text-sm text-warning-soft-foreground">{etat.avertissement}</p>
       )}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
         <BoutonEnvoi enCoursTexte="Envoi…">
           Déclarer l&apos;incident
         </BoutonEnvoi>
-        <span className="text-sm text-muted-foreground">* champs obligatoires</span>
       </div>
     </form>
   );

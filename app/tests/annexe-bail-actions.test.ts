@@ -1,0 +1,21 @@
+import {it,expect,vi,beforeEach} from "vitest";
+import {corrigerClasseDpeBail,deposerAnnexeBail,deposerDiagnosticBail} from "@/app/actions/annexe-bail";
+const m=vi.hoisted(()=>({diagnostic:vi.fn(),acces:vi.fn(),update:vi.fn(),eq:vi.fn(),depot:vi.fn(),revalidate:vi.fn()}));
+vi.mock("@/app/actions/parc",()=>({deposerDiagnostic:m.diagnostic}));
+vi.mock("@/lib/ged-acces",()=>({verifierGerant:m.acces}));vi.mock("@/lib/ged-depot",()=>({deposerFichierGed:m.depot}));vi.mock("next/cache",()=>({revalidatePath:m.revalidate}));
+function contexte(etat="brouillon",data:unknown=[{id:"dpe"}]){const lecture={select:()=>lecture,eq:()=>lecture,maybeSingle:async()=>({data:{lot_id:"lot",lot:{bien_id:"bien"},etat},error:null})};const mutation={eq:m.eq,is:vi.fn(),select:async()=>({data,error:null})};m.eq.mockReturnValue(mutation);mutation.is.mockReturnValue(mutation);m.update.mockReturnValue(mutation);m.acces.mockResolvedValue({user:{id:"moi"},supabase:{from:(table:string)=>table==="baux"?lecture:{update:m.update}}});return mutation;}
+function f(classe="D"){const d=new FormData();d.set("classe_dpe",classe);return d;}
+beforeEach(()=>{vi.clearAllMocks();contexte();});
+it("corrige uniquement le DPE actif du logement du bail",async()=>{const q=contexte();expect(await corrigerClasseDpeBail("org","bail","dpe",{},f())).toHaveProperty("succes");expect(m.update).toHaveBeenCalledWith({classe_dpe:"D"});expect(m.eq).toHaveBeenCalledWith("organization_id","org");expect(m.eq).toHaveBeenCalledWith("lot_id","lot");expect(m.eq).toHaveBeenCalledWith("type","dpe");expect(q.is).toHaveBeenCalledWith("archived_at",null);});
+it("refuse une classe invalide sans écriture",async()=>{expect(await corrigerClasseDpeBail("org","bail","dpe",{},f("H"))).toHaveProperty("erreur");expect(m.update).not.toHaveBeenCalled();});
+it("refuse la correction à partir d’un bail signé",async()=>{contexte("actif");expect(await corrigerClasseDpeBail("org","bail","dpe",{},f())).toHaveProperty("erreur");expect(m.update).not.toHaveBeenCalled();});
+it("ne confirme pas une correction sur un autre diagnostic",async()=>{contexte("brouillon",[]);expect(await corrigerClasseDpeBail("org","bail","autre",{},f())).toHaveProperty("erreur");expect(m.revalidate).not.toHaveBeenCalled();});
+it("refuse le dépôt sans session avant de manipuler le fichier",async()=>{m.acces.mockResolvedValue({user:null});expect(await deposerAnnexeBail("org","bail",{},new FormData())).toHaveProperty("erreur");expect(m.depot).not.toHaveBeenCalled();});
+it("refuse le dépôt dans un bail signé",async()=>{contexte("actif");expect(await deposerAnnexeBail("org","bail",{},new FormData())).toHaveProperty("erreur");expect(m.depot).not.toHaveBeenCalled();});
+
+function rapport(type="dpe"){const form=new FormData();Object.entries({type,date_realisation:"2020-01-01",date_expiration:"2030-01-01",classe_dpe:"B"}).forEach(([k,v])=>form.set(k,v));return form;}
+it("dépose le diagnostic au logement du bail puis rafraîchit le dossier",async()=>{const form=rapport();m.diagnostic.mockResolvedValue({succes:"Déposé"});expect(await deposerDiagnosticBail("org","bail",{},form)).toHaveProperty("succes");expect(m.diagnostic).toHaveBeenCalledWith("org","bien","lot",{},form);expect(m.revalidate).toHaveBeenCalledWith("/agence/org/baux/bail");});
+it("ne dépose pas de rapport depuis un bail signé",async()=>{contexte("actif");expect(await deposerDiagnosticBail("org","bail",{},rapport())).toHaveProperty("erreur");expect(m.diagnostic).not.toHaveBeenCalled();});
+it("contrôle le DPE avant de stocker le fichier",async()=>{const form=rapport();form.set("classe_dpe","");expect(await deposerDiagnosticBail("org","bail",{},form)).toHaveProperty("erreur");expect(m.diagnostic).not.toHaveBeenCalled();});
+it("ne confirme pas un dépôt refusé et conserve son erreur",async()=>{m.diagnostic.mockResolvedValue({erreur:"Fichier refusé"});expect(await deposerDiagnosticBail("org","bail",{},rapport())).toEqual({erreur:"Fichier refusé"});expect(m.revalidate).not.toHaveBeenCalled();});
+it("refuse un diagnostic sans session avant tout dépôt",async()=>{m.acces.mockResolvedValue({user:null});expect(await deposerDiagnosticBail("org","bail",{},rapport())).toHaveProperty("erreur");expect(m.diagnostic).not.toHaveBeenCalled();});

@@ -70,7 +70,7 @@ export default async function PageAttestations(props: PageProps<"/artisan/attest
     <div className="space-y-6">
       <Retour href="/artisan/entreprise">Mon entreprise</Retour>
 
-      <EnteteSousPage titre="Mes attestations" mention="Valables pour toutes les agences" />
+      <EnteteSousPage rubrique="documents" titre="Mes attestations" mention="Valables pour toutes les agences" />
 
       {inscrit && (
         <Succes>

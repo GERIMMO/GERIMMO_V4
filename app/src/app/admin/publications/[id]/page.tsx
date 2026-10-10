@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -45,7 +46,7 @@ export default async function PagePublication({ params }: PageProps<"/admin/publ
         ← Tous les articles
       </Link>
       <div className="entete-page mt-2 mb-6">
-        <h1>Modifier l’article</h1>
+        <TitreEcran rubrique="journal">Modifier l’article</TitreEcran>
         <span className="mono-discret">
           {etat}
           {periode ? ` · ${periode}` : ""}

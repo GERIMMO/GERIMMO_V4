@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { CalendarDays, Clock3, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -113,7 +114,7 @@ export default async function PageAgenda({ params, searchParams }: {
     <div>
       {/* L'écart sous le filet est celui de .entete-page (24/09). */}
       <div className="entete-page">
-        <h1>Agenda</h1>
+        <TitreEcran rubrique="agenda">Agenda</TitreEcran>
         <span className="mono-discret">
           {role === "agent" ? "Mon portefeuille · " : ""}
           {agenda.vue === "mois" ? moisLong(agenda.mois.premier) : `${agenda.total} intervention${agenda.total > 1 ? "s" : ""}`}

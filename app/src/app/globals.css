@@ -2024,6 +2024,10 @@ a:focus-visible > .carte-espace {
    Un titre de section dans le même esprit que ceux de la console, puis ses
    entrées toujours visibles — plus d'accordéon. */
 .coquille-groupe { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--trait-doux); }
+.coquille-separateur-entete { flex: none; height: 1px; margin: 0 14px; background: color-mix(in srgb, var(--encre) 22%, transparent); }
+.coquille-groupe[data-sans-filet] { display: contents; }
+.coquille-groupe[data-sans-filet] > p { display: none; }
+.coquille-groupe[data-sans-filet] > div { display: contents; }
 .coquille-groupe > p { display: none; align-items: center; padding: 4px 12px 6px; font-family: var(--font-interface), system-ui, sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--texte-secondaire); }
 @media (min-width: 1024px) { .coquille-groupe > p { display: flex; } }
 .coquille-groupe > div { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
@@ -3468,3 +3472,44 @@ h2 { font-size: 1.3125rem; }
 .assistant-location .assistant-panneau > section { border-radius: 10px; }
 
 .assistant-location .fiche-informations-attendues { background: #f3f6fb; color: #50617d; border: 1px solid #e1e8f2; border-radius: 10px; }
+
+/* Fiche bien : repères visuels et dossier compact, sans modifier les fiches lot. */
+.bien-visuel-entete { border: 1px solid var(--filet); border-radius: 18px; padding: 22px; background: linear-gradient(120deg, var(--surface) 45%, color-mix(in srgb, var(--marque) 8%, var(--surface))); }
+.bien-visuel-identite { display: flex; align-items: center; gap: 18px; }
+.bien-visuel-embleme { display: grid; place-items: center; width: 76px; height: 76px; flex: none; border-radius: 20px; color: var(--marque); background: color-mix(in srgb, var(--marque) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--marque) 18%, transparent); }
+.bien-visuel-embleme svg { width: 40px; height: 40px; }
+.bien-visuel-chiffres { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; border-top: 1px solid var(--filet); margin-top: 18px; padding-top: 16px; }
+.bien-visuel-chiffres > div { display: flex; align-items: start; gap: 9px; }
+.bien-visuel-chiffres svg { width: 18px; height: 18px; flex: none; margin-top: 2px; color: var(--marque); }
+.bien-visuel-chiffres dt { font-size: 12px; color: var(--texte-secondaire); }
+.bien-visuel-chiffres dd { font-size: 16px; font-weight: 600; margin-top: 3px; }
+.bien-visuel-titre { display: flex; align-items: center; gap: 9px; }
+.bien-visuel-titre svg { width: 20px; height: 20px; flex: none; color: var(--marque); }
+.bien-visuel-vide { display: flex; align-items: center; gap: 14px; border: 1px dashed var(--filet); border-radius: 12px; padding: 16px; background: var(--filet-leger); }
+.bien-visuel-vide > span { display: grid; place-items: center; width: 42px; height: 42px; flex: none; border-radius: 12px; background: var(--surface); color: var(--texte-secondaire); }
+.bien-visuel-vide svg { width: 22px; height: 22px; }
+.bien-visuel-dossier { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; align-items: start; }
+.bien-visuel-dossier > div { min-width: 0; border: 1px solid var(--filet); border-radius: 12px; padding: 4px 16px; background: var(--surface); }
+.bien-visuel-dossier > .bien-visuel-proprietaires { padding: 16px; background: color-mix(in srgb, var(--marque) 3%, var(--surface)); }
+.bien-visuel-dossier > div:has(> button[aria-expanded="true"]) { grid-column: 1 / -1; }
+.bien-visuel #retrait { background: var(--surface); border-radius: 12px; }
+@media (max-width: 640px) {
+ .bien-visuel-entete { padding: 16px; }
+ .bien-visuel-identite { align-items: start; gap: 12px; }
+ .bien-visuel-embleme { width: 48px; height: 48px; border-radius: 12px; }
+ .bien-visuel-embleme svg { width: 28px; height: 28px; }
+ .bien-visuel-chiffres { grid-template-columns: repeat(2,minmax(0,1fr)); }
+ .bien-visuel-dossier { grid-template-columns: minmax(0,1fr); }
+}
+
+/* Dans le parcours du bail, le cadre de l’étape suffit. */
+.assistant-bail [data-slot="card"] { border: 0; box-shadow: none; background: transparent; }
+.assistant-bail [data-slot="card-header"], .assistant-bail [data-slot="card-content"] { padding-left: 0; padding-right: 0; }
+
+.assistant-etape-statut { display:block; margin-top:5px; font-size:11px; font-weight:600; color:#946016; }
+.assistant-etapes [data-statut="complet"] .assistant-etape-statut { color:#19704a; }
+.assistant-etapes [data-statut="complet"]:not([aria-current="step"]) .assistant-rond { background:#e7f6ee; color:#19704a; }
+.bail-etape-validee { padding:12px 16px; margin-bottom:20px; border-radius:10px; color:#176041; background:#edf9f2; font-size:13px; }
+.assistant-bail form > [role="status"], .assistant-bail form > .text-success-soft-foreground { border-radius:8px; background:#edf9f2; padding:10px 12px; }
+
+.assistant-bail form button[type="submit"] { min-height:44px; padding:10px 18px; border-radius:9px; font-weight:600; }

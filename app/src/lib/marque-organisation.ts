@@ -1,3 +1,4 @@
+import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
 import type { CSSProperties } from "react";
 
 export type MarqueOrganisation = {
@@ -24,9 +25,9 @@ export function couleurLisible(c: string) { let v = c; for (let n = 0; contraste
 /** Every legacy alias is set on the same element: inherited CSS aliases are otherwise resolved at :root. */
 export function styleMarque(m: MarqueOrganisation | null | undefined): CSSProperties {
   if (!m?.couleur_primaire && !m?.couleur_secondaire) return {};
-  const principale = couleurLisible(couleurValide(m.couleur_primaire) ? m.couleur_primaire : "#2457f5");
+  const principale = couleurLisible(couleurValide(m.couleur_primaire) ? m.couleur_primaire : CHARTE_GERIMMO.marque);
   const sombre = melanger(principale, "#000000", .18), clair = melanger(principale, "#ffffff", .90);
-  const encre = couleurLisible(couleurValide(m.couleur_secondaire) ? m.couleur_secondaire : "#0f2352");
+  const encre = couleurLisible(couleurValide(m.couleur_secondaire) ? m.couleur_secondaire : CHARTE_GERIMMO.encre);
   return {
     "--marque": principale, "--marque-sombre": sombre, "--marque-clair": clair,
     "--sur-marque": "#ffffff", "--primary": principale, "--primary-foreground": "#ffffff",
@@ -55,7 +56,7 @@ export function typeImageLogo(octets: Uint8Array): string | null {
 }
 export function echapperMarque(v: string) { return v.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;"); }
 export function enteteMarqueHtml(m: MarqueOrganisation) {
-  const couleur = couleurLisible(couleurValide(m.couleur_primaire) ? m.couleur_primaire : "#2457f5");
+  const couleur = couleurLisible(couleurValide(m.couleur_primaire) ? m.couleur_primaire : CHARTE_GERIMMO.marque);
   const logo = logoInlineValide(m.logo_url) ? `<img src="${m.logo_url}" alt="" style="max-width:160px;max-height:48px;object-fit:contain;vertical-align:middle;margin-right:12px"/>` : "";
   return `<div style="border-bottom:3px solid ${couleur};padding:0 0 12px;margin-bottom:18px;break-inside:avoid"><span>${logo}</span><strong style="color:${couleur};font-family:Arial,sans-serif;font-size:16px">${echapperMarque(nomMarque(m))}</strong></div>`;
 }

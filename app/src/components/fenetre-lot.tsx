@@ -2,6 +2,8 @@
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 
 import Link from "next/link";
+import { ageAu, type PersonneResume } from "@/lib/resume-location";
+import { changerEtatLot } from "@/app/actions/parc";
 import {
   createContext,
   useActionState,
@@ -41,7 +43,9 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { buttonVariants } from "@/components/ui/button";
 import { afficherToast } from "@/components/ui/toast";
-import { ETATS_LOT, TYPES_BIEN, formaterSurface } from "@/lib/parc";
+import { ETATS_LOT, formaterSurface } from "@/lib/parc";
+import { identiteLot } from "@/lib/identite-lot";
+import { totalLoyerAffiche } from "@/lib/total-loyer-affiche";
 import { TYPES_BAIL, ETATS_BAIL, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { TYPES_DOCUMENT, eur, formaterDate, moisEnFrancais } from "@/lib/ged";
 import { regrouperDocumentsLot } from "@/lib/documents-lot";
@@ -173,6 +177,16 @@ function FenetreLot({
   const [fiche, setFiche] = useState<FicheLot | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [onglet, setOnglet] = useState<Onglet>("resume");
+  const [confirmerRetrait, setConfirmerRetrait] = useState(false);
+  const retrait = useActionFormulaire(async (_etat: { erreur?: string; succes?: string }, donnees: FormData) => {
+    if (!fiche || fiche.portee === "locataire") return { erreur: "Accès refusé." };
+    const resultat = await changerEtatLot(orgId, fiche.bien_id, fiche.lot_id, {}, donnees);
+    if (resultat.succes) {
+      afficherToast("Lot retiré du parc. Son historique est conservé.");
+      fermer();
+    }
+    return resultat;
+  });
   // Le rechargement de la fiche après un geste qui change les chiffres : un
   // encaissement doit faire tomber l'impayé de l'en-tête, pas seulement du
   // tableau où l'on a cliqué.
@@ -213,21 +227,19 @@ function FenetreLot({
       fermer={fermer}
       pied={
         ficheComplete && fiche ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="mono-discret flex-1 normal-case">
-              {fiche.bien_nom} · {fiche.ville}
-            </span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {confirmerRetrait ? <>
+              <button type="button" disabled={retrait.enCours} onClick={() => setConfirmerRetrait(false)} className={buttonVariants({ variant: "outline", size: "sm" })}>Annuler</button>
+              <button type="submit" form="retrait-lot" disabled={retrait.enCours} className={buttonVariants({ variant: "destructive", size: "sm" })}>{retrait.enCours ? "Retrait en cours…" : "Confirmer le retrait"}</button>
+            </> : <>
+            {!locataire && fiche.lot_etat !== "archive" && <button type="button" onClick={() => setConfirmerRetrait(true)} className="mr-auto min-h-11 text-sm text-destructive underline-offset-4 hover:underline">Supprimer le lot</button>}
             {!locataire && (
-              <Link
-                href={`/agence/${orgId}/parc?sel=bien:${fiche.bien_id}`}
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                Fiche du bien
-              </Link>
+              <button type="button" onClick={fermer} className={buttonVariants({ variant: "outline", size: "sm" })}>Fermer</button>
             )}
             <Link href={ficheComplete} onClick={fermer} className={buttonVariants({ size: "sm" })}>
               {locataire ? "Voir les détails de mon bail" : "Ouvrir la fiche complète"}
             </Link>
+            </>}
           </div>
         ) : null
       }
@@ -243,7 +255,16 @@ function FenetreLot({
         </p>
       )}
 
-      {fiche && (
+      {fiche && (confirmerRetrait ? (
+        <form id="retrait-lot" onSubmit={retrait.soumettre} className="space-y-4 text-left">
+          <input type="hidden" name="etat" value="archive" />
+          <h4 className="text-lg font-semibold">Retirer ce lot du parc ?</h4>
+          <p className="text-sm">« {fiche.lot_nom} » sera archivé et retiré des lots actifs. Ses documents et son historique seront conservés. Le responsable pourra le réactiver depuis la fiche du bien.</p>
+          <p className="text-sm text-muted-foreground">Le bien restera dans votre parc et dans le calcul de votre abonnement. Pour retirer également le bien, utilisez sa fiche.</p>
+          {(fiche.lot_etat === "loue" || fiche.lot_etat === "preavis") && <p role="status" className="text-sm text-destructive">Ce lot est occupé : clôturez le bail avant de le retirer. Les contrôles existants empêcheront son archivage.</p>}
+          {retrait.etat.erreur && <p role="alert" className="text-sm text-destructive">{retrait.etat.erreur}</p>}
+        </form>
+      ) : (
         <>
           <BandeauAction orgId={orgId} fiche={fiche} rafraichir={rafraichir} />
 
@@ -285,7 +306,7 @@ function FenetreLot({
             ))}
           {onglet === "historique" && <OngletHistorique lotId={fiche.lot_id} />}
         </>
-      )}
+      ))}
     </Modale>
   );
 }
@@ -303,6 +324,7 @@ function EnteteLot({
 }) {
   const locataire = fiche?.portee === "locataire";
   const impaye = Number(fiche?.impaye_echu ?? 0);
+  const identite = fiche ? identiteLot(fiche) : null;
   return (
     <div className="flex min-w-0 flex-1 items-center gap-4">
       {/* LA VIGNETTE PORTE UN MONOGRAMME, PAS UNE PHOTO. Le gabarit montre une
@@ -310,16 +332,16 @@ function EnteteLot({
           d'illustration ferait croire que c'est celle de ce lot-là. */}
       <span
         aria-hidden
-        className="hidden size-14 shrink-0 items-center justify-center border border-[var(--filet)] bg-[var(--filet-leger)] font-heading text-2xl text-[var(--encre)] sm:flex"
+        className="lot-monogramme hidden size-14 shrink-0 items-center justify-center rounded-xl border border-[var(--or-filet)] bg-[var(--or-clair)] font-heading text-2xl text-[var(--or-texte)] sm:flex"
       >
         {(fiche?.ville?.[0] ?? fiche?.lot_nom?.[0] ?? "G").toUpperCase()}
       </span>
       <div className="min-w-0">
         <p className="mono-discret text-[var(--texte-secondaire)]">
-          {fiche ? `${fiche.lot_nom} · ${fiche.ville}` : locataire ? "Logement" : "Lot"}
+          {identite ? identite.repere : locataire ? "Logement" : "Lot"}
         </p>
-        <h3 className="mt-0.5 truncate text-[var(--encre)]">
-          {fiche ? `${TYPES_BIEN[fiche.bien_type] ?? "Bien"} — ${fiche.adresse}` : (libelle ?? "Chargement…")}
+        <h3 className="mt-0.5 break-words text-[var(--encre)]">
+          {identite?.titre ?? libelle ?? "Chargement…"}
         </h3>
         {fiche && (
           <>
@@ -342,7 +364,9 @@ function EnteteLot({
               {impaye > 0 ? (
                 <Pastille ton="alerte">Impayé {eur(impaye)}</Pastille>
               ) : (
-                fiche.bail_id && <Pastille ton="ok">À jour de loyer</Pastille>
+                fiche.bail_id &&
+                (fiche.bail_etat === "actif" || fiche.bail_etat === "preavis") &&
+                <Pastille ton="ok">Aucun impayé échu</Pastille>
               )}
               {!locataire &&
                 !estProprietaire &&
@@ -645,87 +669,42 @@ function OngletResume({
 }) {
   const locataire = fiche.portee === "locataire";
   const multiple = (fiche.contrats?.length ?? 0) > 1;
-  const loyer = Number(fiche.loyer_hc ?? 0) + Number(fiche.charges ?? 0);
+  const loyer = totalLoyerAffiche(fiche.loyer_hc, fiche.charges);
   const impaye = Number(fiche.impaye_echu);
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Tuile
-          libelle="Loyer + charges"
-          valeur={fiche.bail_id || multiple ? eur(loyer) : "—"}
-          sous={fiche.jour_echeance ? `le ${fiche.jour_echeance} du mois` : multiple ? "total des contrats" : "lot libre"}
-        />
-        <Tuile
-          libelle={locataire ? "Mon solde" : "Solde locataire"}
-          valeur={impaye > 0 ? `− ${eur(impaye)}` : eur(0)}
-          sous={impaye > 0 ? `${fiche.termes_impayes} terme${fiche.termes_impayes > 1 ? "s" : ""} échu${fiche.termes_impayes > 1 ? "s" : ""}` : "à jour"}
-          alerte={impaye > 0}
-        />
-        <Tuile
-          libelle="Dépôt de garantie"
-          valeur={fiche.depot_garantie ? eur(fiche.depot_garantie) : "—"}
-          sous={multiple ? "voir chaque contrat" : fiche.depot_garantie ? "restitué après l’EDL de sortie" : "non renseigné"}
-        />
-        <Tuile
-          libelle="Dans les lieux"
-          valeur={fiche.date_debut ? `depuis ${formaterDate(fiche.date_debut).slice(3)}` : "—"}
-          sous={fiche.bail_type ? (TYPES_BAIL[fiche.bail_type] ?? "Bail") : "aucun bail"}
-        />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Carte
-          titre={locataire ? "Mon bail" : "Locataire"}
-          badge={fiche.bail_etat && fiche.bail_etat !== "actif" ? (ETATS_BAIL[fiche.bail_etat] ?? "à vérifier") : "occupant"}
-          ton={fiche.bail_etat === "preavis" ? "attente" : "ok"}
-        >
-          {multiple ? <div className="space-y-3">{fiche.contrats?.map(c => <div key={c.id} className="rounded-lg border p-3">
-            <Link className="lien-discret font-medium" href={`/agence/${orgId}/baux/${c.id}`}>{c.chambre} · {c.locataire} →</Link>
-            <p className="mt-1 text-sm">{eur(Number(c.loyer_hc) + Number(c.charges))} / mois · {ETATS_BAIL[c.etat] ?? "État du contrat à vérifier"}{c.date_fin ? ` · fin le ${formaterDate(c.date_fin)}` : ""}</p>
-            {Number(c.impaye_echu) > 0 && <p className="text-sm text-destructive">{eur(Number(c.impaye_echu))} restant dû</p>}
-          </div>)}</div> : fiche.bail_id ? (
+      {fiche.erreur_resume && <p role="alert" className="text-sm text-destructive">{fiche.erreur_resume}</p>}
+      <div className="columns-1 gap-3 sm:columns-2">
+        {!locataire && <Carte titre="Informations du bien">
+          <Ligne libelle="Adresse" valeur={`${fiche.adresse}, ${fiche.code_postal} ${fiche.ville}`} />
+          <Ligne libelle="Surface" valeur={fiche.surface_m2 !== null ? formaterSurface(fiche.surface_m2) : "Non renseignée"} />
+          <Ligne libelle="Étage" valeur={fiche.etage || "Non renseigné"} />
+          <Ligne libelle="Nombre de pièces" valeur={fiche.pieces ?? "Non renseigné"} />
+          <Ligne libelle="DPE" valeur={fiche.erreur_resume ? "Lecture indisponible" : fiche.details_resume?.dpe ? `Classe ${fiche.details_resume.dpe.classe_dpe ?? "non renseignée"}` : "Non renseigné"} />
+          {fiche.details_resume?.dpe && <>
+            <Ligne libelle="Réalisé le" valeur={formaterDate(fiche.details_resume.dpe.date_realisation)} />
+            <Ligne libelle="Validité" valeur={fiche.details_resume.dpe.date_expiration ? `${fiche.details_resume.dpe.date_expiration < fiche.details_resume.aujourdHui ? "Expiré le" : "Jusqu’au"} ${formaterDate(fiche.details_resume.dpe.date_expiration)}` : "Date non renseignée"} />
+          </>}
+        </Carte>}
+        <Carte titre="Locataires">
+          {!locataire && fiche.details_resume ? <PersonnesDuResume personnes={fiche.details_resume.locataires} fiche={fiche} orgId={orgId} vide="Aucun locataire rattaché." /> : multiple ? fiche.contrats?.map(c => (
+            <Personne key={c.id} nom={c.locataire ?? "Locataire non désigné"} lignes={[c.chambre]} />
+          )) : fiche.bail_id ? (
             <>
-              {!locataire && (
-                <Personne
-                  nom={fiche.locataire ?? "Locataire non désigné"}
-                  lignes={[fiche.locataire_email, fiche.locataire_telephone]}
-                />
-              )}
-              <Ligne
-                libelle="Bail"
-                valeur={
-                  <Link href={locataire ? `/locataire/${orgId}/logement#bail` : `/agence/${orgId}/baux/${fiche.bail_id}`} className="lien-discret">
-                    {TYPES_BAIL[fiche.bail_type ?? ""] ?? fiche.bail_type}
-                    {fiche.date_debut ? ` · depuis le ${formaterDate(fiche.date_debut)}` : ""} ›
-                  </Link>
-                }
-              />
-              <Ligne libelle="Échéance" valeur={fiche.jour_echeance ? `le ${fiche.jour_echeance} du mois` : null} />
-              {!locataire && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {fiche.locataire_email && (
-                    <a href={`mailto:${fiche.locataire_email}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                      Écrire
-                    </a>
-                  )}
-                  {fiche.locataire_telephone && (
-                    <a href={`tel:${fiche.locataire_telephone}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                      Appeler
-                    </a>
-                  )}
-                  <button type="button" onClick={() => allerA("documents")} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                    Ses documents
-                  </button>
-                </div>
-              )}
+              <Personne nom={fiche.locataire ?? "Locataire non désigné"} lignes={[fiche.locataire_email, fiche.locataire_telephone]} />
+              {!locataire && <div className="mt-3 flex flex-wrap gap-2">
+                {fiche.locataire_email && <a href={`mailto:${fiche.locataire_email}`} className={buttonVariants({ variant: "outline", size: "sm" })}>Écrire</a>}
+                {fiche.locataire_telephone && <a href={`tel:${fiche.locataire_telephone}`} className={buttonVariants({ variant: "outline", size: "sm" })}>Appeler</a>}
+                <button type="button" onClick={() => allerA("documents")} className={buttonVariants({ variant: "outline", size: "sm" })}>Documents</button>
+              </div>}
             </>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Lot libre — aucun bail en cours ni en préparation.
-            </p>
-          )}
+          ) : <p className="text-sm text-muted-foreground">Aucun locataire rattaché.</p>}
         </Carte>
+
+        {!locataire && <Carte titre="Garants">
+          {fiche.details_resume ? <PersonnesDuResume personnes={fiche.details_resume.garants} fiche={fiche} orgId={orgId} vide="Aucun garant rattaché." /> : <p className="text-sm text-muted-foreground">Informations indisponibles.</p>}
+        </Carte>}
 
         {locataire ? (
           <Carte titre="Mon logement" badge="mon gestionnaire" ton="neutre">
@@ -742,19 +721,18 @@ function OngletResume({
         ) : estProprietaire ? (
           // Propriétaire en direct : pas de mandat, pas d'honoraires — la
           // carte dit seulement à qui appartient le lot.
-          <Carte titre="Propriétaire" or>
+          <Carte titre="Propriétaires">
             <Personne nom={fiche.mandant ?? fiche.proprietaires ?? "Propriétaire non renseigné"} lignes={[fiche.mandant_email]} or />
-            <Ligne libelle="Détention" valeur={fiche.proprietaires} />
+            {fiche.mandant && fiche.proprietaires !== fiche.mandant && <Ligne libelle="Détention" valeur={fiche.proprietaires} />}
           </Carte>
         ) : (
           <Carte
             titre="Propriétaire"
             badge={fiche.mandat_id ? "sous mandat" : "hors mandat"}
             ton={fiche.mandat_id ? "ok" : "attente"}
-            or
           >
             <Personne nom={fiche.mandant ?? fiche.proprietaires ?? "Propriétaire non renseigné"} lignes={[fiche.mandant_email]} or />
-            <Ligne libelle="Détention" valeur={fiche.proprietaires} />
+            {fiche.mandant && fiche.proprietaires !== fiche.mandant && <Ligne libelle="Détention" valeur={fiche.proprietaires} />}
             {fiche.mandat_id ? (
               <>
                 <Ligne libelle="Honoraires" valeur={fiche.taux_honoraires !== null ? `${Number(fiche.taux_honoraires)} %` : null} />
@@ -787,11 +765,71 @@ function OngletResume({
             )}
           </Carte>
         )}
+        <Carte titre={multiple ? "Contrats de location" : "Contrat de location"}
+          badge={!multiple && fiche.bail_etat ? ETATS_BAIL[fiche.bail_etat] : undefined}>
+          {multiple ? <div className="space-y-3">{fiche.contrats?.map(c => (
+            <div key={c.id} className="border-b border-[var(--filet)] pb-3 last:border-0">
+              <Link className="lien-discret font-medium" href={`/agence/${orgId}/baux/${c.id}`}>{c.chambre} →</Link>
+              <p className="text-sm">{ETATS_BAIL[c.etat] ?? "État à vérifier"}</p>
+              <Ligne libelle="Début" valeur={fiche.details_resume?.baux.find(b => b.id === c.id)?.date_debut ? formaterDate(fiche.details_resume.baux.find(b => b.id === c.id)!.date_debut!) : "Non renseigné"} />
+              <Ligne libelle="Loyer hors charges" valeur={c.loyer_hc !== null ? eur(c.loyer_hc) : "Non renseigné"} />
+              <Ligne libelle="Charges" valeur={c.charges !== null ? eur(c.charges) : "Non renseignées"} />
+              <Ligne libelle="Loyer + charges" valeur={totalLoyerAffiche(c.loyer_hc, c.charges) === null ? "À compléter" : eur(totalLoyerAffiche(c.loyer_hc, c.charges)!)} />
+              <Ligne libelle="Fin" valeur={c.date_fin ? formaterDate(c.date_fin) : "Non renseignée"} />
+              {Number(c.impaye_echu) > 0 && <p className="text-sm text-destructive">{eur(Number(c.impaye_echu))} restant dû</p>}
+            </div>
+          ))}</div> : fiche.bail_id ? <>
+            <p className="mb-3 text-sm font-medium">{TYPES_BAIL[fiche.bail_type ?? ""] ?? fiche.bail_type}</p>
+            <Ligne libelle="Début" valeur={fiche.date_debut ? formaterDate(fiche.date_debut) : "Non renseignée"} />
+            <Ligne libelle="Fin" valeur={fiche.date_fin ? formaterDate(fiche.date_fin) : "Non renseignée"} />
+            <Ligne libelle="Loyer hors charges" valeur={fiche.loyer_hc !== null ? eur(fiche.loyer_hc) : "Non renseigné"} />
+            <Ligne libelle="Charges" valeur={fiche.charges !== null ? eur(fiche.charges) : "Non renseignées"} />
+            <Ligne libelle="Total mensuel" valeur={loyer === null ? "À compléter" : eur(loyer)} />
+            <Ligne libelle="Dépôt de garantie" valeur={fiche.depot_garantie !== null ? eur(fiche.depot_garantie) : null} />
+            <Ligne libelle="Échéance" valeur={fiche.jour_echeance ? `Le ${fiche.jour_echeance} du mois` : null} />
+            {impaye > 0 && <p className="mt-2 text-sm text-destructive">{eur(impaye)} restant dû</p>}
+            <Link href={locataire ? `/locataire/${orgId}/logement#bail` : `/agence/${orgId}/baux/${fiche.bail_id}`} className="lien-discret mt-3 inline-flex min-h-11 items-center">Ouvrir le bail →</Link>
+          </> : <>
+            <p className="text-sm text-muted-foreground">Aucun contrat en cours ni en préparation.</p>
+            {fiche.portee === "gerant" && fiche.lot_etat !== "archive" && (
+              <Link
+                href={`/agence/${orgId}/parc/${fiche.bien_id}/lots/${fiche.lot_id}#baux`}
+                className="lien-discret mt-3 inline-flex min-h-11 items-center"
+              >
+                Préparer le bail →
+              </Link>
+            )}
+          </>}
+        </Carte>
       </div>
 
       <ActionsRapides orgId={orgId} fiche={fiche} allerA={allerA} />
     </div>
   );
+}
+
+function PersonnesDuResume({ personnes, fiche, orgId, vide }: { personnes: PersonneResume[]; fiche: FicheLot; orgId: string; vide: string }) {
+  if (!personnes.length) return <p className="text-sm text-muted-foreground">{vide}</p>;
+  return <div className="space-y-3">{personnes.map((lien) => {
+    const p = lien.personne;
+    const age = ageAu(p?.date_naissance ?? null, fiche.details_resume!.aujourdHui);
+    const contrat = fiche.contrats?.find(c => c.id === lien.bail_id);
+    const garanti = fiche.details_resume?.locataires.find(l => l.bail_id === lien.bail_id && l.person_id === lien.garant_de)?.personne;
+    return <div key={`${lien.bail_id}:${lien.person_id}`} className="border-b border-border pb-3 last:border-0 last:pb-0">
+      {!p ? <p className="text-sm text-muted-foreground">Identité non accessible.</p> : <>
+        <Ligne libelle="Nom" valeur={p.nom} />
+        <Ligne libelle="Prénoms" valeur={p.prenom || "Non renseignés"} />
+        <Ligne libelle="Date de naissance" valeur={p.date_naissance ? formaterDate(p.date_naissance) : "Non renseignée"} />
+        <Ligne libelle="Âge" valeur={age !== null ? `${age} ans` : "Non renseigné"} />
+        <Ligne libelle="Sexe" valeur={p.sexe ?? "Non renseigné"} />
+        <Ligne libelle="Téléphone" valeur={p.telephone ? <a className="lien-discret break-all" href={`tel:${p.telephone}`}>{p.telephone}</a> : "Non renseigné"} />
+        <Link href={`/agence/${orgId}/personnes/${p.id}`} className="lien-discret mt-2 inline-flex min-h-11 items-center text-sm">Voir la personne →</Link>
+      </>}
+      {lien.depart && <Ligne libelle="Départ" valeur={formaterDate(lien.depart)} />}
+      {lien.garant_de && <Ligne libelle="Garant de" valeur={garanti ? `${garanti.prenom ?? ""} ${garanti.nom}`.trim() : "Locataire non renseigné"} />}
+      {(fiche.contrats?.length ?? 0) > 1 && <Link href={`/agence/${orgId}/baux/${lien.bail_id}`} className="lien-discret text-sm">{contrat?.chambre ?? "Voir le contrat"} →</Link>}
+    </div>;
+  })}</div>;
 }
 
 function ActionsRapides({
@@ -867,43 +905,19 @@ function ActionsRapides({
 
 /* ── Briques communes ─────────────────────────────────────────────────── */
 
-function Tuile({
-  libelle,
-  valeur,
-  sous,
-  alerte = false,
-}: {
-  libelle: string;
-  valeur: string;
-  sous?: string;
-  alerte?: boolean;
-}) {
-  return (
-    <div className="bg-muted p-3">
-      <p className="eyebrow">{libelle}</p>
-      <p className={`montant font-heading text-xl leading-tight font-semibold ${alerte ? "text-destructive" : "text-[var(--encre)]"}`}>
-        {valeur}
-      </p>
-      {sous && <p className="text-[11.5px] text-muted-foreground">{sous}</p>}
-    </div>
-  );
-}
-
 function Carte({
   titre,
   badge,
   ton = "neutre",
-  or = false,
   children,
 }: {
   titre: string;
   badge?: string;
   ton?: TonStatut;
-  or?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className={`min-w-0 border p-4 ${or ? "border-[var(--or)]/40 bg-[var(--or-clair)]/20" : "border-border"}`}>
+    <div data-ton={titre.includes("location") ? "vert" : titre === "Locataires" || titre === "Garants" ? "violet" : titre === "Propriétaires" ? "or" : "bleu"} className="lot-resume-carte mb-3 min-w-0 break-inside-avoid rounded-xl border border-[var(--filet)] bg-[var(--carte)] p-3">
       <div className="mb-2 flex items-center justify-between gap-3">
         <h4 className="text-[15px] font-semibold text-[var(--encre)]">{titre}</h4>
         {badge && <BadgeStatut ton={ton}>{badge}</BadgeStatut>}
@@ -929,7 +943,7 @@ function Personne({
     .map((m) => m[0]?.toUpperCase() ?? "")
     .join("");
   return (
-    <div className="mb-3 flex items-center gap-3">
+    <div className="flex items-center gap-2">
       <span
         aria-hidden
         className={`flex size-10 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-[var(--sur-encre)] ${
@@ -939,9 +953,9 @@ function Personne({
         {initiales || "?"}
       </span>
       <span className="min-w-0">
-        <b className="block truncate font-semibold">{nom}</b>
+        <b className="block break-words font-semibold">{nom}</b>
         {lignes.filter(Boolean).map((l) => (
-          <span key={l} className="block truncate text-[12.5px] break-words text-muted-foreground">
+          <span key={l} className="block text-[12.5px] break-words text-muted-foreground">
             {l}
           </span>
         ))}
@@ -954,7 +968,7 @@ function Personne({
 function Ligne({ libelle, valeur }: { libelle: string; valeur: ReactNode }) {
   if (valeur === null || valeur === undefined || valeur === "") return null;
   return (
-    <div className="ligne-info">
+    <div className="flex items-start justify-between gap-3 border-b border-border/50 py-1 text-[13px] last:border-0">
       <span className="shrink-0 text-muted-foreground">{libelle}</span>
       <span className="min-w-0 text-right break-words">{valeur}</span>
     </div>

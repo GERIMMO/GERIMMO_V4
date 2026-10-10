@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
@@ -106,7 +107,7 @@ export default async function PageSante() {
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
         <div className="min-w-0 flex-[1_1_20rem]">
-          <h1>Santé et connexions</h1>
+          <TitreEcran rubrique="sante">Santé et connexions</TitreEcran>
           <p className="mt-2 text-sm text-muted-foreground">
             Les services reliés à Gerimmo, le travail réalisé automatiquement et,
             pour chaque point rouge, la commande qui le règle.

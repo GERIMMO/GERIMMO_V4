@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { Banknote, Building2, House, ListChecks, ShieldCheck } from "lucide-react";
 import { euros, offreParticulier } from "@/lib/tarifs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { chargerActionsDuJour, type ActionDuJour } from "@/lib/actions-du-jour";
 import { ParcoursDemarrage } from "@/components/parcours-demarrage";
+import { ArticlesAccueil } from "./articles-accueil";
+import styles from "./accueil-proprietaire.module.css";
 
 // Statut de l'organisation (enum public.organization_status) : un compte
 // suspendu ou archivé ne doit pas s'afficher « actif ».
@@ -190,8 +193,9 @@ export async function AccueilProprietaire({
   });
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-4 p-4 sm:p-7">
-      <div className="portail-hero">
+    <main className={`${styles.page} mx-auto w-full max-w-6xl space-y-4 p-4 sm:p-7`}>
+      <div className={`${styles.hero} portail-hero portail-hero-accueil`}>
+        <Building2 className={styles.heroDecor} size={120} strokeWidth={1} aria-hidden="true" />
         <p className="portail-surtitre">{aujourdhui}</p>
         {/* Même ponctuation que l'accueil d'agence (27/09) : sans virgule. */}
         <h1 className="mt-0.5">Bonjour{prenom ? ` ${prenom}` : ""}</h1>
@@ -225,8 +229,11 @@ export async function AccueilProprietaire({
               flèche comprise) : seul un lien de 13 px en dernière ligne
               réagissait, ni le chiffre ni le titre (24/09). */}
           <div className="grille-kpi">
-            <Link href={`/agence/${orgId}/loyers`} className="kpi bleu">
-              <span className="eyebrow">Encaissé en {nomMois}</span>
+            <Link href={`/agence/${orgId}/loyers`} className={`${styles.indicateur} ${styles.encaisse} kpi bleu`}>
+              <span className={styles.enteteIndicateur}>
+                <span className="eyebrow">Encaissé en {nomMois}</span>
+                <Banknote size={20} aria-hidden="true" />
+              </span>
               <span className="chiffre montant block">
                 {erreurEncaissements ? "—" : eur(encaisse)}
               </span>
@@ -241,9 +248,12 @@ export async function AccueilProprietaire({
                 entière porte le geste (un lien dans un lien n'est pas permis). */}
             <Link
               href={`/agence/${orgId}/parc${!erreurLots && nbLots === 0 ? "/nouveau" : ""}`}
-              className={`kpi ${erreurLots ? "" : vacants > 0 || nbLots === 0 ? "ambre" : "vert"}`}
+              className={`${styles.indicateur} ${styles.lots} kpi ${erreurLots ? "" : vacants > 0 || nbLots === 0 ? "ambre" : "vert"}`}
             >
-              <span className="eyebrow">Mes lots</span>
+              <span className={styles.enteteIndicateur}>
+                <span className="eyebrow">Mes lots</span>
+                <House size={20} aria-hidden="true" />
+              </span>
               <span className="chiffre block">
                 {erreurLots ? "—" : <>{loues} / {nbLots || "—"}</>}
               </span>
@@ -281,10 +291,12 @@ export async function AccueilProprietaire({
             </Link>
           </div>
 
-          <div className="loc-carte border-l-4 border-l-[var(--or)]">
+          <div className={`${styles.actions} loc-carte`} data-etat={aFaireIncertain ? "incertain" : actionsDuJour.length > 0 ? "attente" : "calme"}>
             {/* Un seul gabarit de titre de carte sur les deux accueils (24/09) */}
             <div className="entete-carte">
-              <h2 className="text-[length:var(--pas-sous-titre)]">À faire</h2>
+              <h2 className={`${styles.titreCarte} text-[length:var(--pas-sous-titre)]`}>
+                <ListChecks size={21} aria-hidden="true" />À faire
+              </h2>
               <Link href={`/agence/${orgId}/alertes`} className="lien-discret text-[13px]">
                 {plan.total > 0 ? `${plan.total} à traiter` : "Toutes mes alertes"}&nbsp;→
               </Link>
@@ -440,10 +452,12 @@ export async function AccueilProprietaire({
               dernière ligne réagissait. */}
           <Link
             href={`/agence/${orgId}/abonnement`}
-            className="loc-carte block transition-colors hover:border-[var(--marque)]"
+            className={`${styles.abonnement} loc-carte block transition-colors hover:border-[var(--marque)]`}
           >
             <div className="entete-carte !mb-1">
-              <h2 className="text-[length:var(--pas-sous-titre)]">Mon abonnement</h2>
+              <h2 className={`${styles.titreCarte} text-[length:var(--pas-sous-titre)]`}>
+                <ShieldCheck size={20} aria-hidden="true" />Mon abonnement
+              </h2>
               <span className={`loc-tag ${(STATUTS_ABONNEMENT[organisation.status] ?? STATUT_ABONNEMENT_INCONNU).ton}`}>
                 {(STATUTS_ABONNEMENT[organisation.status] ?? STATUT_ABONNEMENT_INCONNU).libelle}
               </span>
@@ -520,6 +534,7 @@ export async function AccueilProprietaire({
               Voir mon abonnement&nbsp;→
             </span>
           </Link>
+          <ArticlesAccueil supabase={supabase} />
         </div>
       </div>
     </main>

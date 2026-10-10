@@ -51,6 +51,7 @@ export async function encaisserReste(
     p_bail: bailId,
   });
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/loyers`);
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   if (erreurApres)
     return {
@@ -69,6 +70,7 @@ export async function emettreQuittanceBail(orgId: string, bailId: string): Promi
   const emission = await emettreRecusQuittances(supabase, bailId);
   if (emission.erreur) return { erreur: emission.erreur };
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/loyers`);
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   // Le déclencheur d'encaissement tient normalement les documents à jour : ne
   // rien avoir à émettre est le cas NORMAL, et « aucun reçu ni quittance à
@@ -117,6 +119,7 @@ export async function envoyerQuittancesMois(orgId: string, mois: string): Promis
     else envoyees += 1;
   }
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/loyers`);
   if (echecs.length > 0)
     return {
       erreur: `${envoyees} envoyée${envoyees > 1 ? "s" : ""}, ${echecs.length} en échec — ${[...new Set(echecs)].join(" · ")}`,

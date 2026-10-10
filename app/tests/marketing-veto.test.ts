@@ -65,7 +65,7 @@ describe.skipIf(!DB_URL)("Marketing — fenêtre de veto", () => {
   }
 
   it("calcule l'heure de Paris en base, hiver comme été", async () => {
-    const { rows: [r] } = await db.query(`select public.instant_paris('2026-10-23'::date, 9)::text as ete, public.instant_paris('2026-10-26'::date, 9)::text as hiver`);
+    const { rows: [r] } = await db.query(`select (public.instant_paris('2026-10-23'::date, 9) at time zone 'UTC')::text as ete, (public.instant_paris('2026-10-26'::date, 9) at time zone 'UTC')::text as hiver`);
     expect(r.ete).toMatch(/^2026-10-23 07:00:00/);
     expect(r.hiver).toMatch(/^2026-10-26 08:00:00/);
   });
@@ -160,7 +160,7 @@ describe.skipIf(!DB_URL)("Marketing — fenêtre de veto", () => {
     // Une heure de parution hors de la fenêtre de rattrapage du jour (de 12 h
     // avant à 3 h après), quelle que soit l'heure à laquelle le test tourne.
     const { rows: [{ h }] } = await db.query(`select ((extract(hour from now() at time zone 'Europe/Paris')::int - 6) + 24) % 24 as h`);
-    await db.query(`update public.marketing_reglages set jours_semaine = array[1,2,3,4,5]::smallint[], publications_semaine = 5, heure_preparation_paris = 0, heure_paris = $1 where singleton`, [h]);
+    await db.query(`update public.marketing_reglages set jours_semaine = array[extract(isodow from (now() at time zone 'Europe/Paris')::date + 1)::smallint], publications_semaine = 1, heure_preparation_paris = 0, heure_paris = $1 where singleton`, [h]);
     await db.query(`delete from public.publications where marketing_jour is not null`);
     await enService();
     const { rows } = await db.query(`select jour::text, rang, parution::text, rattrapage from public.cible_preparation_marketing()`);

@@ -50,7 +50,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
             </Link>
             <div className="admin-bandeau-actions w-full max-[640px]:flex-nowrap!">
               <Link href="/admin/brief" className="hidden shrink-0 max-[900px]:flex" aria-label="Accueil de la supervision">
-                <MarqueGerimmo className="[&>span]:hidden" />
+                <MarqueGerimmo className="marque-gerimmo-compacte" />
               </Link>
               <BoutonMenuSupervision />
               <RechercheSupervision masquerSousMobile />

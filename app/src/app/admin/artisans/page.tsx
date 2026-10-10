@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { METIERS, PIECES_ARTISAN } from "@/app/artisan/libelles";
@@ -18,7 +19,7 @@ export default async function InscriptionsArtisan({ searchParams }: {
 }) {
   const supabase = await createClient();
   const { data: autorise, error: erreurAcces } = await supabase.rpc("is_super_admin");
-  if (erreurAcces || autorise !== true) return <main className="mx-auto max-w-4xl p-7"><h1>Accès réservé à la supervision</h1></main>;
+  if (erreurAcces || autorise !== true) return <main className="mx-auto max-w-4xl p-7"><TitreEcran rubrique="incidents">Accès réservé à la supervision</TitreEcran></main>;
   const recherche = await searchParams;
   const pageDemandee = typeof recherche.page === "string" && /^[1-9]\d*$/.test(recherche.page)
     && Number.isSafeInteger(Number(recherche.page)) ? Number(recherche.page) : 1;
@@ -49,7 +50,7 @@ export default async function InscriptionsArtisan({ searchParams }: {
         mesure-lecture garde la mention « en attente » à droite du titre. */}
     {/* Pas de « ← Tous les clients » (audit 25/09, C14) : la page est rangée
         sous « Dossiers et décisions », le menu suffit. */}
-    <div className="entete-page mb-6"><div><h1>Artisans à valider</h1><p className="mesure-lecture mt-2 text-sm text-[var(--texte-secondaire)]">Vérifiez l’entreprise, relisez les justificatifs, puis prenez une décision motivée. La validation ne modifie ni la visibilité choisie par l’artisan, ni les contrôles d’assurance appliqués à chaque intervention.</p></div><span className="mono-discret">{file.error ? "File indisponible" : `${inscriptions.length} en attente`}</span></div>
+    <div className="entete-page mb-6"><div><TitreEcran rubrique="incidents">Artisans à valider</TitreEcran><p className="mesure-lecture mt-2 text-sm text-[var(--texte-secondaire)]">Vérifiez l’entreprise, relisez les justificatifs, puis prenez une décision motivée. La validation ne modifie ni la visibilité choisie par l’artisan, ni les contrôles d’assurance appliqués à chaque intervention.</p></div><span className="mono-discret">{file.error ? "File indisponible" : `${inscriptions.length} en attente`}</span></div>
     <p className="mb-5 text-sm">Valider un artisan n’ouvre aucune zone. <Link href="/admin/couverture" className="underline">Rattacher ses communes et décider de l’ouverture du réseau →</Link></p>
     {file.error ? <p role="alert" className="vide">Impossible de charger les inscriptions. Rechargez pour réessayer.</p> : inscriptions.length === 0 ? <div className="vide-guide"><p className="titre">Aucune inscription en attente</p><p className="explication">Les nouvelles inscriptions apparaîtront ici pour examen.</p><div className="geste"><Link href="/admin/clients" className="btn-secondaire">Voir les artisans inscrits</Link></div></div> : <div className="space-y-5">{inscriptions.map((artisan) => <section key={artisan.artisan_id} className="border border-[var(--filet)] bg-[var(--ivoire)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="font-heading text-xl text-[var(--encre)]">{artisan.raison_sociale}</h2><p className="mt-1 text-sm">{(artisan.metiers ?? []).map((m) => METIERS[m] ?? m).join(" · ") || "Métier non renseigné"}</p></div><span className="puce puce-prep">Depuis le {date(artisan.inscrit_le)}</span></div>

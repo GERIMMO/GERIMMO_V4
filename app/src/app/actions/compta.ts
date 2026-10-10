@@ -31,6 +31,7 @@ export async function genererRapport(
   const { error } = await supabase.rpc("generer_rapport", { p_mandat: mandatId, p_mois: `${mois}-01` });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/loyers`);
   revalidatePath(`/agence/${orgId}/mandats`);
   return { succes: "Rapport généré (à valider)." };
 }
@@ -48,6 +49,7 @@ export async function envoyerRapport(
   const commentaire = String(formData.get("commentaire") ?? "").trim() || null;
   const resultat = await remettreRapportMensuel(supabase, user, orgId, rapportId, commentaire, role ?? "");
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/loyers`);
   revalidatePath(`/agence/${orgId}/mandats`);
   revalidatePath(`/agence/${orgId}/documents`);
   return { ...resultat, ...(resultat.erreur ? { valeurs } : {}) };
@@ -72,6 +74,7 @@ export async function enregistrerVersement(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/loyers`);
   revalidatePath(`/agence/${orgId}/mandats`);
   return { succes: "Versement enregistré." };
 }
@@ -107,6 +110,7 @@ export async function ajouterEcriture(
   })));
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/loyers`);
   // Le journal alimente aussi le récapitulatif fiscal du propriétaire direct.
   revalidatePath(`/agence/${orgId}/comptabilite/fiscal`);
   return { succes: "Écriture enregistrée." };
@@ -125,6 +129,7 @@ export async function passerContreEcriture(
   const { error } = await supabase.rpc("contre_ecriture", { p_ecriture: ecritureId, p_motif: motif });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/loyers`);
   revalidatePath(`/agence/${orgId}/comptabilite/fiscal`);
   return { succes: "Contre-écriture passée." };
 }
@@ -154,6 +159,7 @@ export async function ventilerDepense(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/loyers`);
   revalidatePath(`/agence/${orgId}/comptabilite/fiscal`);
   return { succes: `Dépense ventilée en ${data ?? 0} écriture(s).` };
 }
@@ -171,5 +177,6 @@ export async function cloturerMois(
   const { error } = await supabase.rpc("cloturer_mois", { p_org: orgId, p_mois: `${mois}-01` });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/loyers`);
   return { succes: "Mois clôturé." };
 }

@@ -1,13 +1,17 @@
 "use client";
+import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
+import styles from "@/components/presentation-parcours.module.css";
+import { ArrowLeft, ArrowRight, Info, UserRoundCheck } from "lucide-react";
 import { CadreParcours } from "@/components/parcours-location";
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { ETAPES_LOT } from "@/lib/parcours-lot";
+import { useEffect, useId, useRef, useState } from "react";
 import { creerBien, modifierBien, type EtatParc } from "@/app/actions/parc";
 import { TYPES_BIEN, TYPES_NON_DECOUPABLES } from "@/lib/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { LabelBail as Label } from "@/components/pastille-bail";
 import { createClient } from "@/lib/supabase/client";
 import { communeEvidente, type CommuneReseau } from "@/lib/reseau";
 
@@ -41,12 +45,28 @@ export function FormulaireBien({
   orgId,
   bien,
   guide = false,
+  libelleEnregistrer = "Enregistrer",
+  champsVisibles,
+  proprietaireAutomatique = false,
 }: {
   orgId: string;
   bien?: BienFormulaire;
   guide?: boolean;
+  libelleEnregistrer?: string;
+  /** Réservé à la complétion du bail ; les valeurs masquées restent soumises. */
+  champsVisibles?: string[];
+  proprietaireAutomatique?: boolean;
 }) {
+  const masquer = (champ: string) => Boolean(bien) && champsVisibles !== undefined && !champsVisibles.includes(champ);
   const [etapeCreation, setEtapeCreation] = useState(0);
+  const formulaire = useRef<HTMLFormElement>(null);
+  const [restants, setRestants] = useState([7, 2]);
+  function actualiserReperes() {
+    requestAnimationFrame(() => {
+      if (!formulaire.current) return;
+      setRestants([0,1].map(i => Array.from(formulaire.current!.querySelectorAll<HTMLInputElement>(`[data-etape-creation="${i}"] input[required]`)).filter(c => !c.validity.valid).length));
+    });
+  }
   const groupeBien = useRef<HTMLDivElement>(null);
   const guideActif = guide && !bien;
   function changerEtape(i: number) {
@@ -55,11 +75,15 @@ export function FormulaireBien({
       for (const champ of champs ?? []) if (!champ.reportValidity()) return;
     }
     setEtapeCreation(i);
+    requestAnimationFrame(() => {
+      document.getElementById("assistant-titre")?.focus({preventScroll:true});
+      document.getElementById("assistant-lot-navigation")?.scrollIntoView({block:"start"});
+    });
   }
   const actionLiee = bien
     ? modifierBien.bind(null, orgId, bien.id)
     : creerBien.bind(null, orgId);
-  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionStateSuivi<EtatParc, FormData>(actionLiee, {});
   const erreurRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
     if (!etat.erreur) return;
@@ -144,6 +168,7 @@ export function FormulaireBien({
     setCodePostal(s.postcode);
     setVille(s.city);
     setSuggestions([]);
+    if (guideActif) actualiserReperes();
   };
 
   // Questionnaire progressif : le type choisi commande la suite. Un appartement
@@ -159,26 +184,40 @@ export function FormulaireBien({
   ]);
   const majLot = (i: number, champ: "nom" | "surface" | "pieces", valeur: string) =>
     setLots((l) => l.map((x, j) => (j === i ? { ...x, [champ]: valeur } : x)));
-  const ajouterLot = () =>
-    setLots((l) => [...l, { nom: "", surface: "", pieces: "" }]);
-  const retirerLot = (i: number) => setLots((l) => l.filter((_, j) => j !== i));
+  const [lotUnique, setLotUnique] = useState({surface: "", pieces: ""});
+  const ajouterLot = () => { setLots((l) => [...l, { nom: "", surface: "", pieces: "" }]); if (guideActif) actualiserReperes(); };
+  const retirerLot = (i: number) => { setLots((l) => l.filter((_, j) => j !== i)); if (guideActif) actualiserReperes(); };
 
-  // Changer de type remet la suite du questionnaire à zéro
+  // Les deux saisies restent en mémoire si l’utilisateur change de type ou de découpage.
   const changerType = (nouveau: string) => {
     setType(nouveau);
     setDivise(false);
-    setLots([{ nom: "", surface: "", pieces: "" }]);
+    if (guideActif) actualiserReperes();
   };
 
   const contenu = (
-    <form action={action} className="saisie-bien space-y-6" noValidate={guideActif} onSubmit={(e) => { if (!guideActif) return; const champs = e.currentTarget.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea"); for (const champ of champs) { if (!champ.validity.valid) { e.preventDefault(); setEtapeCreation(groupeBien.current?.contains(champ) ? 0 : 1); requestAnimationFrame(() => champ.reportValidity()); break; } } }}>
+    <form ref={formulaire} data-champs-cibles={bien && champsVisibles !== undefined || undefined}
+      onReset={event => { if (bien || guideActif) event.preventDefault(); }}
+      onChangeCapture={guideActif ? actualiserReperes : undefined}
+      action={action} className={`saisie-bien space-y-6 ${guideActif ? styles.creation : ""}`} noValidate={guideActif}
+      onSubmit={(e) => {
+        if (!guideActif) return;
+        // Entrée depuis la première étape fait avancer, sans créer prématurément.
+        if (etapeCreation === 0) { e.preventDefault(); changerEtape(1); return; }
+        const champs = e.currentTarget.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea");
+        for (const champ of champs) if (!champ.validity.valid) {
+          e.preventDefault(); setEtapeCreation(groupeBien.current?.contains(champ) ? 0 : 1);
+          requestAnimationFrame(() => champ.reportValidity()); break;
+        }
+      }}>
       {etat.erreur && <p ref={erreurRef} role="alert" tabIndex={-1} className="scroll-mt-24 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{etat.erreur}</p>}
-      {guideActif && <input type="hidden" name="parcours" value="1" />}
-      <div ref={groupeBien} hidden={guideActif && etapeCreation !== 0} className="space-y-6">
+      {guideActif && <><input type="hidden" name="parcours" value="1" /><p className={styles.aide}><span className={styles.legendePastille} aria-hidden="true" /> Pastille rouge : information obligatoire à compléter. Les champs indiqués « facultatif » peuvent rester vides.</p></>}
+      <div data-bien-groupes data-etape-creation="0" ref={groupeBien} hidden={guideActif && etapeCreation !== 0} className="space-y-6">
+      <div hidden={["nom", "type", "address_line1", "address_line2", "postal_code", "city", "commune_insee"].every(masquer)} data-bien-section="adresse" className="space-y-6">
       <div className="saisie-repere"><span>1</span><div><h2>Adresse et localisation</h2><p>Identifiez le bien et sa commune.</p></div></div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="bien-nom">Référence interne *</Label>
+        <div hidden={masquer("nom")} className="space-y-2">
+          <Label htmlFor="bien-nom">{guideActif ? "Nom du bien" : "Référence interne *"}</Label>
           {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
               sur la saisie (recette 22/08 — mécanique commune, lib/formulaires.ts) */}
           <Input
@@ -190,7 +229,7 @@ export function FormulaireBien({
             placeholder="ex. 12 rue des Lilas"
           />
         </div>
-        <div className="space-y-2">
+        <div hidden={masquer("type")} className="space-y-2">
           <Label htmlFor={idType}>Type</Label>
           {bien ? (
             // Le type conditionne les diagnostics attendus : figé après création
@@ -213,8 +252,8 @@ export function FormulaireBien({
         </div>
       </div>
 
-      <div className="relative space-y-2">
-        <Label htmlFor="bien-adresse1">Adresse</Label>
+      <div hidden={masquer("address_line1")} className="relative space-y-2">
+        <Label htmlFor="bien-adresse1" champ="bien.address_line1" renseigne={String(adresse).trim() !== ""}>Adresse</Label>
         <Input
           id="bien-adresse1"
           name="address_line1"
@@ -243,8 +282,8 @@ export function FormulaireBien({
           </ul>
         )}
       </div>
-      <div className="space-y-2">
-        <Label htmlFor={idComplement}>Complément d&apos;adresse</Label>
+      <div hidden={masquer("address_line2")} className="space-y-2">
+        <Label htmlFor={idComplement}>Complément d&apos;adresse{guideActif && <span className="text-xs font-normal text-muted-foreground"> — facultatif</span>}</Label>
         <Input
           id={idComplement}
           name="address_line2"
@@ -254,8 +293,8 @@ export function FormulaireBien({
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="bien-cp">Code postal *</Label>
+        <div hidden={masquer("postal_code")} className="space-y-2">
+          <Label htmlFor="bien-cp" champ="bien.postal_code" renseigne={String(codePostal).trim() !== ""}>Code postal{!guideActif && " *"}</Label>
           {/* inputMode et non type=number : tolère les CP étrangers */}
           <Input
             id="bien-cp"
@@ -268,8 +307,8 @@ export function FormulaireBien({
             onChange={(e) => setCodePostal(e.target.value)}
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="bien-ville">Ville *</Label>
+        <div hidden={masquer("city")} className="space-y-2">
+          <Label htmlFor="bien-ville" champ="bien.city" renseigne={String(ville).trim() !== ""}>Ville{!guideActif && " *"}</Label>
           <Input
             id="bien-ville"
             name="city"
@@ -281,8 +320,8 @@ export function FormulaireBien({
         </div>
       </div>
       {communesDuCodePostal.length > 0 && (
-        <div className="space-y-2">
-          <Label htmlFor="bien-commune">Commune (réseau d&apos;artisans)</Label>
+        <div hidden={masquer("commune_insee")} className="space-y-2">
+          <Label htmlFor="bien-commune">Commune (réseau d&apos;artisans){guideActif && <span className="text-xs font-normal text-muted-foreground"> — facultatif</span>}</Label>
           <select
             id="bien-commune"
             name="commune_insee"
@@ -304,10 +343,12 @@ export function FormulaireBien({
         </div>
       )}
 
+      </div>
+      <div hidden={["annee_construction", "copropriete", "zone_tendue", "parties_communes", "acces_tic"].every(masquer)} data-bien-section="batiment" className="space-y-6">
       <div className="saisie-repere">{!guideActif && <span>2</span>}<div><h2>Caractéristiques du bâtiment</h2><p>Ces informations servent à préparer le dossier et ses documents.</p></div></div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="bien-annee">Année de construction *</Label>
+        <div hidden={masquer("annee_construction")} className="space-y-2">
+          <Label htmlFor="bien-annee" champ="bien.annee_construction" renseigne={String(etat.valeurs?.annee_construction ?? bien?.annee_construction ?? "").trim() !== ""}>Année de construction{!guideActif && " *"}</Label>
           <Input
             id="bien-annee"
             name="annee_construction"
@@ -322,7 +363,7 @@ export function FormulaireBien({
             avant 1997…).
           </p>
         </div>
-        <div className="flex items-center gap-2 pt-6">
+        <div hidden={masquer("copropriete")} className="flex items-center gap-2 pt-6">
           <input
             id="bien-copro"
             name="copropriete"
@@ -335,8 +376,8 @@ export function FormulaireBien({
         {/* Audit gestion du 29/09 : trois réponses, dont « non vérifiée » —
             une case décochée valait « hors zone tendue » pour un bien que
             personne n'avait qualifié. */}
-        <div className="space-y-1">
-          <Label htmlFor="bien-zone-tendue">Zone tendue</Label>
+        <div hidden={masquer("zone_tendue")} className="space-y-1">
+          <Label htmlFor="bien-zone-tendue">Zone tendue{guideActif && <span className="text-xs font-normal text-muted-foreground"> — facultatif à cette étape</span>}</Label>
           <select
             id="bien-zone-tendue"
             name="zone_tendue"
@@ -363,8 +404,8 @@ export function FormulaireBien({
         // accès aux technologies de l'information — art. 3 loi 89-462).
         // Le formulaire les demande dès la création pour éviter un bail incomplet.
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="bien-parties-communes">Parties communes *</Label>
+          <div hidden={masquer("parties_communes")} className="space-y-2">
+            <Label htmlFor="bien-parties-communes" champ="bien.parties_communes" renseigne={String(etat.valeurs?.parties_communes ?? bien?.parties_communes ?? "").trim() !== ""}>Parties communes{!guideActif && " *"}</Label>
             <Input
               id="bien-parties-communes"
               name="parties_communes"
@@ -376,9 +417,9 @@ export function FormulaireBien({
               placeholder="Hall, ascenseur… ou « Néant » (maison)"
             />
           </div>
-          <div className="space-y-2">
+          <div hidden={masquer("acces_tic")} className="space-y-2">
             {/* « TIC » seul était du jargon (audit du 27/09). */}
-            <Label htmlFor="bien-acces-tic">Accès internet, téléphone, TV (TIC) *</Label>
+            <Label htmlFor="bien-acces-tic" champ="bien.acces_tic" renseigne={String(etat.valeurs?.acces_tic ?? bien?.acces_tic ?? "").trim() !== ""}>Accès internet, téléphone, TV{!guideActif && " (TIC) *"}</Label>
             <Input
               id="bien-acces-tic"
               name="acces_tic"
@@ -392,9 +433,10 @@ export function FormulaireBien({
       )}
 
       </div>
-      <div hidden={guideActif && etapeCreation !== 1}>
+      </div>
+      <div data-etape-creation="1" hidden={guideActif && etapeCreation !== 1}>
       {!bien && (
-        <div className="space-y-6 border-t border-border pt-6">
+        <div data-lots-section className="space-y-6 border-t border-border pt-6">
           <div className="saisie-repere"><span>{guideActif ? 2 : 3}</span><div><h2>{multiLots ? "Les lots à gérer" : "Le lot à louer"}</h2><p>Renseignez chaque unité que vous louez séparément.</p></div></div>
           {/* Types divisibles hors immeuble : la question précède la suite */}
           {!nonDecoupable && type !== "immeuble" && (
@@ -404,7 +446,7 @@ export function FormulaireBien({
                 checked={divise}
                 onChange={(e) => {
                   setDivise(e.target.checked);
-                  setLots([{ nom: "", surface: "", pieces: "" }]);
+                  if (guideActif) actualiserReperes();
                 }}
                 className="size-4"
               />
@@ -424,10 +466,10 @@ export function FormulaireBien({
                 </p>
               </div>
               {lots.map((lot, i) => (
-                <div key={i} className="flex flex-wrap items-end gap-2">
+                <div key={i} className={guideActif ? styles.lotLigne : "flex flex-wrap items-end gap-2"}>
                   <div className="space-y-1">
                     <Label htmlFor={`${idLot}-nom-${i}`} className="text-sm">
-                      Nom du lot
+                      Nom du lot{guideActif && <span className="text-xs font-normal text-muted-foreground"> — facultatif</span>}
                     </Label>
                     <Input
                       id={`${idLot}-nom-${i}`}
@@ -498,12 +540,13 @@ export function FormulaireBien({
                   step="0.01"
                   min="0.01"
                   required
-                  defaultValue={etat.valeurs?.surface_m2}
+                  value={lotUnique.surface}
+                  onChange={e => setLotUnique(l => ({...l, surface:e.target.value}))}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lot-pieces">Nombre de pièces</Label>
-                <Input id="lot-pieces" name="pieces" type="number" min={1} required defaultValue={etat.valeurs?.pieces} />
+                <Input id="lot-pieces" name="pieces" type="number" min={1} required value={lotUnique.pieces} onChange={e => setLotUnique(l => ({...l, pieces:e.target.value}))} />
               </div>
             </div>
           )}
@@ -511,20 +554,22 @@ export function FormulaireBien({
       )}
 
       </div>
+      {guideActif && etapeCreation === 1 && <div className={styles.creationNote}>{proprietaireAutomatique ? <UserRoundCheck size={17} aria-hidden="true"/> : <Info size={17} aria-hidden="true"/>}<p>{proprietaireAutomatique ? "Vous serez automatiquement rattaché comme propriétaire. Vous pourrez ensuite ajuster les propriétaires et les quotes-parts." : "Après l’enregistrement, complétez les propriétaires, les pièces, les équipements et les diagnostics du logement."}</p></div>}
       {etat.succes && (
         <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
       <div className="assistant-pied">
-      {guideActif && etapeCreation === 1 && <Button type="button" variant="outline" onClick={() => changerEtape(0)}>Étape précédente</Button>}
-      {guideActif && etapeCreation === 0 ? <Button type="button" onClick={() => changerEtape(1)}>Étape suivante</Button> : <BoutonEnvoi enCoursTexte="Enregistrement…">
-        {bien
-          ? "Enregistrer"
-          : multiLots
-            ? `Créer le bien et ses ${lots.length} lot${lots.length > 1 ? "s" : ""}`
-            : "Créer le bien et son lot unique"}
+      {guideActif ? etapeCreation === 1 ? <Button type="button" variant="outline" onClick={() => changerEtape(0)}><ArrowLeft size={16} aria-hidden="true"/>Précédent</Button> : <span/> : null}
+      {guideActif && etapeCreation === 0 ? <Button type="button" onClick={() => changerEtape(1)}>Suivant<ArrowRight size={16} aria-hidden="true"/></Button> : <BoutonEnvoi enCoursTexte="Enregistrement…">
+        {bien ? libelleEnregistrer : guideActif ? multiLots && lots.length > 1 ? `Créer les ${lots.length} lots` : "Créer le lot et continuer" : multiLots ? `Créer le bien et ses ${lots.length} lots` : "Créer le bien et son lot unique"}
+        {guideActif && <ArrowRight size={16} aria-hidden="true"/>}
       </BoutonEnvoi>}
       </div>
     </form>
   );
-  return guideActif ? <CadreParcours etape={etapeCreation} changer={changerEtape} accessibles={2} resume={<div className="space-y-2"><p>{adresse || "Adresse à renseigner"}</p><p>{codePostal} {ville}</p><p>Le bien et ses lots seront enregistrés à la fin de l’étape 2. Vous pourrez ensuite compléter chaque logement.</p></div>}><div className="assistant-carte">{contenu}</div></CadreParcours> : contenu;
+  return guideActif ? <CadreParcours etape={etapeCreation} changer={changerEtape} accessibles={2}
+    etapes={ETAPES_LOT.map((e,i) => ({...e, ...(i<2 ? {statut:restants[i] ? "incomplet" as const : "complet" as const, restant:restants[i]} : {statutLibelle:"Après création du lot"})}))}
+    resume={<><strong>{TYPES_BIEN[type] ?? type}</strong><p>{adresse || "Adresse à renseigner"}{(codePostal || ville) && ` · ${codePostal} ${ville}`}</p></>}>
+    {contenu}
+  </CadreParcours> : contenu;
 }

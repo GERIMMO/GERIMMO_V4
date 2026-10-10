@@ -121,6 +121,7 @@ export function BarreLaterale({
         </div>
       )}
 
+      {navigation.separateurEnTete && <div className="coquille-separateur-entete" aria-hidden="true" />}
       <nav className="coquille-menu" aria-label={espace}>
         {navigation.principales.map((e) => (
           <Entree key={e.href} e={e} active={e === active} />
@@ -133,7 +134,7 @@ export function BarreLaterale({
             titre disparaît (la règle `.coquille-groupe > p` de globals.css), les entrées restent ; sur téléphone
             le tiroir « Menu » liste déjà tout à plat. */}
         {navigation.secondaires.length > 0 && (
-          <div className="coquille-groupe" data-groupe="plus">
+          <div className="coquille-groupe" data-groupe="plus" data-sans-filet={navigation.separateurEnTete || undefined}>
             <p className="lib">Plus</p>
             <div>
               {navigation.secondaires.map((e) => (

@@ -6,6 +6,7 @@ import { TYPES_DEPOSABLES, TYPES_DOCUMENT } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LegendeChamps } from "@/components/titre-ecran";
 import { ChampFichier } from "@/components/champ-fichier";
 
 type Personne = { id: string; nom: string; prenom: string | null };
@@ -37,7 +38,8 @@ export function FormulaireDepot({
   }, [etat]);
 
   return (
-    <form ref={formulaire} action={action} className="space-y-4">
+    <form ref={formulaire} action={action} className="formulaire-reperes space-y-4">
+      <LegendeChamps />
       <div className="space-y-2">
         <Label htmlFor="fichier">Fichier</Label>
         <ChampFichier id="fichier" name="fichier" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required />
@@ -80,9 +82,9 @@ export function FormulaireDepot({
           ))}
         </select>
       </div>
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.erreur && <p className="message-formulaire" role="alert">{etat.erreur}</p>}
       {etat.succes && (
-        <p className="text-sm text-success-soft-foreground">
+        <p className="message-formulaire" data-succes role="status">
           {etat.succes}
         </p>
       )}

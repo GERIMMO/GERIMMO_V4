@@ -1,0 +1,111 @@
+.logement { display:grid; gap:22px; min-width:0; }
+.resume { display:flex; flex-wrap:wrap; align-items:center; gap:16px 22px; padding:16px 18px; border:1px solid #dfe6eb; border-left:3px solid var(--prestige-champagne); border-radius:12px; background:linear-gradient(115deg,#f0f5f8,#fafbfc 70%,#fcfaf5); }
+.adresse { display:flex; align-items:center; gap:12px; flex:1; min-width:210px; }
+.iconeResume { display:grid; place-items:center; width:42px; height:42px; flex-shrink:0; border-radius:10px; background:#fff; color:var(--prestige-nuit); border:1px solid #dfe6eb; }
+.adresse small { display:block; color:var(--texte-secondaire); font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; margin-bottom:3px; }
+.adresse strong { color:var(--encre); font-size:17px; line-height:1.4; }
+.adresse p { margin:3px 0 0; color:var(--texte-secondaire); font-size:12px; overflow-wrap:anywhere; }
+.chiffres { display:flex; flex-wrap:wrap; gap:8px 20px; }
+.chiffres > div { min-width:65px; }
+.chiffres dt { display:flex; align-items:center; gap:5px; color:var(--texte-secondaire); font-size:10px; margin-bottom:5px; }
+.chiffres dd { color:var(--encre); font-size:14px; font-weight:600; }
+.raccourcis { display:flex; flex-wrap:wrap; gap:6px; padding-bottom:4px; border-bottom:1px solid var(--filet-leger); }
+.raccourcis a { display:inline-flex; align-items:center; gap:7px; min-height:40px; padding:7px 12px; color:var(--texte-secondaire); font-size:12px; font-weight:500; border-radius:7px; }
+.raccourcis a:hover { color:var(--encre); background:var(--creme); }
+.raccourcis a:focus-visible { outline:2px solid var(--prestige-champagne); outline-offset:2px; }
+.section { min-width:0; scroll-margin-top:100px; }
+.section + .section { padding-top:22px; border-top:1px solid var(--filet); }
+.entete { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+.icone { display:grid; place-items:center; width:34px; height:34px; border-radius:9px; background:#edf2f6; color:#365873; flex-shrink:0; }
+.entete[data-ton="or"] .icone { background:#faf4e7; color:#92723c; }
+.entete[data-ton="vert"] .icone { background:#eef5f0; color:#477563; }
+.entete h3 { display:flex; align-items:center; gap:5px; margin:0; font-size:16px; font-weight:650; color:var(--encre); }
+.entete p { margin:3px 0 0; color:var(--texte-secondaire); font-size:12px; line-height:1.5; }
+.logement :global([data-slot="label"]) { font-size:12px; line-height:1.4; }
+.logement input:not([type="checkbox"]), .logement select, .logement textarea { background:#fff; border-radius:8px; min-height:42px; font-size:13px; }
+.logement input[type="checkbox"] { accent-color:var(--prestige-nuit); }
+.logement input:disabled { background:#f5f7f8; }
+.logement form p { font-size:11px; line-height:1.55; }
+.logement form :global(.space-y-2) { row-gap:6px; }
+.formLot > form > :global(.grid) { gap:14px 18px; }
+.formLot textarea { min-height:76px; }
+.formLot :global(.grid) > div:has(> input[name="meuble"]) { padding:9px 12px; align-self:start; border-radius:8px; border:1px solid var(--filet); background:#fafbfc; min-height:42px; }
+.formLot :global(.grid) > div:has(> input[name="meuble"]:checked) { background:#f9f5eb; border-color:#e7dcc4; }
+.formLot form > button { margin-top:16px; }
+.formBien form > [data-bien-groupes] { display:grid; gap:22px; margin:0; }
+.formBien [data-bien-section] { min-width:0; margin:0; }
+.formBien [data-bien-section] > :not(:first-child) { margin-top:14px; margin-bottom:0; }
+.formBien :global(.saisie-repere) { padding:0 0 10px; border-bottom:1px solid var(--filet-leger); }
+.formBien :global(.saisie-repere) > span, .formBien :global(.saisie-repere) p { display:none; }
+.logement .formBien [data-bien-section] :global(.saisie-repere) h2 { font-family:var(--font-interface),sans-serif; font-size:14px; letter-spacing:0; color:var(--texte-secondaire); font-weight:600; }
+.formBien :global(.grid) { gap:14px; }
+.formBien :global(.assistant-pied) { display:flex; justify-content:flex-start; padding:14px 0 0; margin:16px 0 0; border-top:1px solid var(--filet-leger); }
+.formBien form > div:empty { display:none; }
+.equipements { padding:16px; border:1px solid #dce7df; border-radius:10px; background:#f8fbf9; }
+.equipements form :global(.grid) { display:flex; flex-wrap:wrap; gap:8px; }
+.equipements form :global(.grid) > label { gap:8px; min-height:42px; padding:9px 12px; border:1px solid var(--filet); border-radius:8px; background:#fff; font-size:12px; cursor:pointer; }
+.equipements form :global(.grid) > label:has(input:checked) { background:#eaf3ed; border-color:#8bad97; color:#28523a; }
+.equipements form :global(.grid) > label:has(input:focus-visible) { outline:2px solid var(--prestige-nuit); outline-offset:2px; }
+.ajout { margin-top:16px; padding-top:14px; border-top:1px solid #dce7df; }
+.ajout > p { margin-bottom:9px; font-size:12px; color:var(--texte-secondaire); }
+.ajout form input { flex:1; min-width:150px; max-width:400px; }
+.note { display:flex; align-items:flex-start; gap:7px; color:var(--texte-secondaire); font-size:11px; line-height:1.6; }
+.note svg { flex-shrink:0; margin-top:2px; }
+@media(min-width:1100px) {
+ .formLot > form > :global(.grid) { grid-template-columns:repeat(3,minmax(0,1fr)); }
+ .formLot :global(.grid) > div:has(> input[name="nom"]) { grid-column:span 2; }
+ .formLot :global(.grid) > div:has(> input[name="locaux_privatifs"]) { grid-column:span 1; }
+ .formBien form > [data-bien-groupes] { grid-template-columns:repeat(2,minmax(0,1fr)); gap:28px; }
+ .formBien [data-bien-section="batiment"] > :global(.grid):last-child { grid-template-columns:1fr; }
+ .formBien [data-bien-section="batiment"] :global(.grid) > div:has(> select[name="zone_tendue"]) { grid-column:1 / -1; }
+ .formBien [data-bien-section="batiment"] { border-left:1px solid var(--filet-leger); padding-left:28px; }
+}
+@media(max-width:639px) {
+ .logement { gap:18px; }
+ .resume { padding:13px; gap:14px; }
+ .adresse { min-width:0; flex-basis:100%; }
+ .adresse strong { font-size:16px; }
+ .chiffres { flex-basis:100%; padding-top:12px; border-top:1px solid #dfe6eb; justify-content:space-between; gap:8px; }
+ .chiffres dd { font-size:13px; }
+ .raccourcis { gap:2px; }
+ .raccourcis a { padding:7px 8px; font-size:11px; min-height:44px; }
+ .raccourcis svg { width:14px; }
+ .entete { margin-bottom:14px; }
+ .entete h3 { font-size:15px; }
+ .logement input:not([type="checkbox"]), .logement select, .logement textarea { min-height:44px; font-size:16px; }
+ .formBien [data-bien-section="batiment"] { padding-top:8px; }
+ .equipements { padding:12px; }
+ .ajout form { align-items:stretch; }
+ .ajout form input { max-width:none; flex-basis:100%; }
+}
+
+/* Lecture du lot existant ; les formulaires ciblés conservent tous leurs champs. */
+.logement [hidden] { display:none !important; }
+.ficheReprise { border:1px solid #dfe6eb; border-radius:12px; overflow:hidden; }
+.ficheReprise .resume { border:0; border-left:3px solid var(--prestige-champagne); border-radius:0; }
+.ficheReprise .adresse small { display:flex; align-items:center; gap:4px; color:#477563; }
+.donneesReprises { padding:16px 20px; }
+.donneesReprises .chiffres { justify-content:space-between; gap:12px 24px; }
+.detailsRepris { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px 22px; margin-top:18px; padding-top:14px; border-top:1px solid var(--filet-leger); }
+.detailsRepris dt { color:var(--texte-secondaire); font-size:11px; margin-bottom:4px; }
+.detailsRepris dd { color:var(--encre); font-size:12px; line-height:1.6; overflow-wrap:anywhere; white-space:pre-wrap; }
+.champsRepris { display:grid; gap:22px; }
+.titreComplements h3 { font-size:16px; color:var(--encre); font-weight:650; }
+.titreComplements p { margin:4px 0 0; color:var(--texte-secondaire); font-size:12px; }
+.logement[data-mode="completer"] .entete h3 { font-size:14px; }
+.logement[data-mode="completer"] .section { padding-top:0; border-top:0; }
+.formBien form[data-champs-cibles] > [data-bien-groupes] { display:grid; grid-template-columns:1fr; gap:14px; }
+.formBien form[data-champs-cibles] [data-bien-section] { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 18px; border:0; padding:0; }
+.formBien form[data-champs-cibles] [data-bien-section] > * { margin:0; }
+.formBien form[data-champs-cibles] [data-bien-section] > :global(.grid) { display:contents; }
+.formBien form[data-champs-cibles] :global(.saisie-repere) { display:none; }
+.formLot form[data-champs-cibles] > :global(.grid) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.formLot form[data-champs-cibles] > :global(.grid) > div { grid-column:auto; }
+.formLot form[data-champs-cibles] > :global(.grid):not(:has(> div:not([hidden]))) { display:none; }
+@media(max-width:639px) {
+ .ficheReprise .resume > button { width:100%; }
+ .donneesReprises { padding:14px; }
+ .donneesReprises .chiffres { border:0; padding:0; justify-content:flex-start; gap:14px 22px; }
+ .detailsRepris { grid-template-columns:1fr; gap:12px; }
+ .formBien form[data-champs-cibles] [data-bien-section], .formLot form[data-champs-cibles] > :global(.grid) { grid-template-columns:1fr; }
+}

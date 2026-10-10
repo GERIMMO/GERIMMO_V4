@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { lotsDuPortefeuille, PortefeuilleIndisponible } from "@/lib/portefeuille";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -73,7 +74,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
     // collait au bord et sortait du repère de navigation.
     return (
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 sm:p-7">
-        <h1>Incidents</h1>
+        <TitreEcran rubrique="incidents">Incidents</TitreEcran>
         <EchecLecture quoi={["votre portefeuille"]} />
         <p>Votre portefeuille n’a pas pu être chargé. Réessayez pour consulter vos dossiers.</p>
       </main>
@@ -196,7 +197,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
             la mention, les actions de la liste et la phrase d'aide s'effacent,
             le titre puis « ← Tous les incidents » ouvrent l'écran. */}
         <div className="entete-page">
-          <h1>Incidents</h1>
+          <TitreEcran rubrique="incidents">Incidents</TitreEcran>
           <div
             className={`flex flex-wrap items-center gap-3${sel ? " max-[900px]:hidden" : ""}`}
           >
@@ -207,11 +208,11 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
             </span>
             {/* Le carnet a son entrée dans « Plus » ; le raccourci reste ici,
                 là où l'on affecte un artisan. */}
-            <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
+            <Link href={`/agence/${orgId}/${estProprietaire ? "reseau" : "artisans"}`} className="lien-discret">
               Carnet d&apos;artisans
             </Link>
             <Link href={`/agence/${orgId}/incidents/nouveau`} className="btn-or">
-              Ouvrir un incident
+              Déclarer un incident
             </Link>
           </div>
         </div>
@@ -253,7 +254,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
           Vue scindée mobile (socle 10/09) : `detail-actif` masque la liste
           sous 900px quand un dossier est ouvert — le dossier remplace la
           liste au lieu d'être rendu dessous, avec un lien retour en tête. */}
-      <div className={`split${sel ? " detail-actif" : ""}`}>
+      <div className={`split${sel ? " detail-actif" : ""}${!ouvert ? " split-sans-detail" : ""}`}>
         <div className="colonne-liste-split volet-liste">
           {/* Plus de « Fermer » en tête de colonne (25/09) : au bureau, la
               liste reste visible à côté du dossier et le lien fermait une
@@ -294,7 +295,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
             /* Même marge que l'échec de lecture ci-dessus : collé au cadre de
                la colonne, le pointillé doublait son trait plein (24/09). */
             <div className="p-3.5">
-              <div className="vide-guide">
+              <div className="vide-guide" data-ton="or">
                 {incidents.length === 0 ? (
                   <>
                     <p className="titre">Aucun incident déclaré</p>
@@ -310,7 +311,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                         href={`/agence/${orgId}/incidents/nouveau`}
                         className={buttonVariants({ variant: "outline", size: "sm" })}
                       >
-                        Ouvrir un incident
+                        Déclarer un incident
                       </Link>
                     </span>
                   </>

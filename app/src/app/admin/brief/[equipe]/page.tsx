@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -27,7 +28,7 @@ export default async function PageDetailPoint({ params, searchParams }: { params
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <p className="mb-3 text-sm"><Link href={`/admin/brief${jour === jourDuPoint() ? "" : `?jour=${jour}`}`} className="lien-discret text-sm">← Aujourd’hui</Link></p>
       <div className="entete-page mb-6">
-        <h1>Équipe {EQUIPES[equipe].nom}</h1>
+        <TitreEcran rubrique="suivi">Équipe {EQUIPES[equipe].nom}</TitreEcran>
         <span className="mono-discret">{dateLongue(jour)}</span>
       </div>
       {erreur && <p role="alert" className="err mb-5">Le point est indisponible. Aucun état ne peut être confirmé.</p>}

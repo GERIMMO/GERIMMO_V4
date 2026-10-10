@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ArrowRight, ChevronDown } from "lucide-react";
+import styles from "./parcours-demarrage.module.css";
 import { toutManuel, type ReglagesEnvoi } from "@/lib/envois-automatiques";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -110,21 +112,29 @@ export async function ParcoursDemarrage({
   const faites = etapes.filter((e) => e.faite).length;
   const suivante = etapes.find((e) => !e.faite);
 
-  // Plus de vignette d'intérieur en haut à droite (24/09) : seconde image de
-  // l'accueil après le bandeau, elle ne disait rien. Le compteur et les cinq
-  // étapes suffisent.
+  // Le démarrage reste disponible sans repousser les chiffres sous l’écran.
+  // La prochaine action est visible ; le détail se déplie seulement au besoin.
   return (
-    <section className="loc-carte border-l-4 border-l-[var(--or)]" aria-labelledby="parcours-titre">
-      <div className="entete-carte">
-        <h2 id="parcours-titre" className="text-[length:var(--pas-sous-titre)]">
-          Mettre votre premier {estProprietaire ? "bien" : "lot"} en location
-        </h2>
-        <span className="mono-discret">
-          {faites} / {etapes.length}
-        </span>
+    <section className={`loc-carte ${styles.carte}`} aria-labelledby="parcours-titre">
+      <div className={styles.resume}>
+        <div className={styles.principal}>
+          <h2 id="parcours-titre" className={styles.titre}>Mettre votre premier {estProprietaire ? "bien" : "lot"} en location</h2>
+          {suivante && <p className={styles.prochaine}>Prochaine étape : <strong>{libelles[suivante.etape]?.titre ?? suivante.etape}</strong></p>}
+        </div>
+        <div className={styles.actions}>
+          <div className={styles.avancement}>
+            <span>{faites} / {etapes.length} étapes</span>
+            <span className={styles.barre} role="progressbar" aria-label="Progression de la mise en location" aria-valuenow={faites} aria-valuemin={0} aria-valuemax={etapes.length}>
+              <span style={{width:`${faites / etapes.length * 100}%`}} />
+            </span>
+          </div>
+          {suivante && <Link href={lien(orgId, suivante)} className={`btn-or ${styles.action}`}>{libelles[suivante.etape]?.geste ?? "Continuer"}<ArrowRight size={14} aria-hidden="true" /></Link>}
+        </div>
       </div>
-
-      <ol className="mt-1 space-y-0">
+      <details className={styles.details}>
+        <summary><span className={styles.ferme}>Voir les étapes</span><span className={styles.ouvert}>Masquer les étapes</span><ChevronDown size={14} aria-hidden="true" /></summary>
+        <div className={styles.contenu}>
+      <ol className={styles.liste}>
         {etapes.map((e) => {
           const libelle = libelles[e.etape];
           const courante = suivante?.etape === e.etape;
@@ -165,24 +175,10 @@ export async function ParcoursDemarrage({
                     {libelle?.geste ?? "Continuer"}&nbsp;→
                   </Link>
                 )}
-                {courante && (
-                  <>
-                    <Link href={lien(orgId, e)} className="btn-or mt-2.5">
-                      {libelle?.geste ?? "Continuer"}
-                    </Link>
-                    {/* Celui qui arrive avec cinquante lots ne les saisira pas
-                        un par un : la porte de l'import est ici, à côté du
-                        geste unitaire et pas à sa place. */}
-                    {e.etape === "bien" && (
-                      <span className="mt-2 block text-xs text-muted-foreground">
-                        Un parc déjà constitué ?{" "}
-                        <Link href={`/agence/${orgId}/parc/import`} className="lien-discret">
-                          Reprenez-le depuis un tableur
-                        </Link>
-                        .
-                      </span>
-                    )}
-                  </>
+                {courante && e.etape === "bien" && (
+                  <span className="mt-2 block text-xs text-muted-foreground">
+                    Un parc déjà constitué ? <Link href={`/agence/${orgId}/parc/import`} className="lien-discret">Reprenez-le depuis un tableur</Link>.
+                  </span>
                 )}
               </span>
             </li>
@@ -216,6 +212,8 @@ export async function ParcoursDemarrage({
             : ", à lui envoyer d'un clic depuis la fiche du bail."}
         </p>
       )}
+        </div>
+      </details>
     </section>
   );
 }

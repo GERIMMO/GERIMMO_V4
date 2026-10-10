@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import {
   deposerPieceDossier,
   validerAttestation,
@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChampFichier } from "@/components/champ-fichier";
 
-export function FormulairePiece({ orgId, personId }: { orgId: string; personId: string }) {
+export function FormulairePiece({ orgId, personId, demande }: { orgId: string; personId: string; demande?: { id: string; type: string; libelle: string } }) {
+  const id = useId();
   const action = deposerPieceDossier.bind(null, orgId, personId);
   const [etat, formAction] = useActionState<EtatDossier, FormData>(action, {});
   const formulaire = useRef<HTMLFormElement>(null);
@@ -29,19 +30,21 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
       action={formAction}
       className="flex flex-wrap items-end gap-2 border-t border-border pt-4"
     >
+      {demande && <><input type="hidden" name="demande_id" value={demande.id} /><input type="hidden" name="type" value={demande.type} /></>}
       {/* Au téléphone, chaque champ prend la ligne entière (w-full) : des
           largeurs fixes s'arrêtaient à mi-écran, en dents de scie (24/09). */}
       <div className="w-full space-y-1.5 sm:w-44">
-        <Label htmlFor="piece-type" className="text-sm">
+        <Label htmlFor={`${id}-piece-type`} className="text-sm">
           Type de pièce
         </Label>
         {/* defaultValue={etat.valeurs?.…} : en erreur, la saisie est reposée
             (recette 22/08 — le fichier, lui, est à re-choisir). */}
         <select
-          id="piece-type"
+          id={`${id}-piece-type`}
           name="type"
           required
-          defaultValue={etat.valeurs?.type ?? "piece_identite"}
+          disabled={Boolean(demande)}
+          defaultValue={demande?.type ?? etat.valeurs?.type ?? "piece_identite"}
           // Même boîte que <Input> (h-8, rounded-lg) : à h-9, le sélecteur
           // décalait son libellé de 4 px au-dessus des voisins (24/09).
           className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
@@ -54,22 +57,22 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
         </select>
       </div>
       <div className="min-w-40 flex-1 space-y-1.5">
-        <Label htmlFor="piece-titre" className="text-sm">
+        <Label htmlFor={`${id}-piece-titre`} className="text-sm">
           Titre
         </Label>
-        <Input id="piece-titre" name="titre" maxLength={200} placeholder="ex. CNI recto-verso" defaultValue={etat.valeurs?.titre} />
+        <Input id={`${id}-piece-titre`} name="titre" maxLength={200} placeholder="ex. CNI recto-verso" defaultValue={etat.valeurs?.titre ?? demande?.libelle} />
       </div>
       <div className="w-full space-y-1.5 sm:w-40">
-        <Label htmlFor="piece-expire" className="text-sm">
+        <Label htmlFor={`${id}-piece-expire`} className="text-sm">
           Expire le (assurance)
         </Label>
-        <Input id="piece-expire" name="expire_le" type="date" defaultValue={etat.valeurs?.expire_le} />
+        <Input id={`${id}-piece-expire`} name="expire_le" type="date" defaultValue={etat.valeurs?.expire_le} />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="piece-fichier" className="text-sm">
+        <Label htmlFor={`${id}-piece-fichier`} className="text-sm">
           Fichier (PDF/JPG/PNG, 10 Mo)
         </Label>
-        <ChampFichier id="piece-fichier" name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
+        <ChampFichier id={`${id}-piece-fichier`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
       </div>
       {/* Sa propre ligne, à droite, de façon voulue : il retombait seul sous
           « Type de pièce », loin du fichier qu'il valide. En contour, comme
@@ -80,6 +83,7 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
           Déposer
         </BoutonEnvoi>
       </div>
+      {etat.avertissement && <p role="status" className="w-full text-sm text-warning-soft-foreground">{etat.avertissement}</p>}
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && etatModifie !== etat && (
         <p className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>

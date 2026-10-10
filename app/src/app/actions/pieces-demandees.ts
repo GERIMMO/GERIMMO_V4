@@ -40,8 +40,13 @@ export async function demanderPieceLocataire(
   const type = String(formData.get("type") ?? "justificatif");
   const note = String(formData.get("note") ?? "").trim();
   if (!libelle) return { erreur: "Nommez la pièce demandée (ex. : RIB, avis d'imposition).", valeurs };
+  if (libelle.length > 120) return { erreur: "Le nom de la pièce doit tenir sur 120 caractères.", valeurs };
   if (!["piece_identite", "justificatif", "attestation_assurance"].includes(type))
     return { erreur: "Type de pièce invalide.", valeurs };
+
+  const { data: personne, error: erreurPersonne } = await supabase.from("persons")
+    .select("id, account_id").eq("id", personId).eq("organization_id", orgId).is("archived_at", null).maybeSingle();
+  if (erreurPersonne || !personne) return { erreur: "Cette fiche est introuvable ou inaccessible.", valeurs };
 
   const { data: demande, error } = await supabase
     .from("pieces_demandees")
@@ -56,6 +61,10 @@ export async function demanderPieceLocataire(
     .select("id")
     .single();
   if (error) return { erreur: sansJargon(error.message), valeurs };
+  if (!personne.account_id) {
+    revalidatePath(`/agence/${orgId}/personnes/${personId}`);
+    return { succes: "Demande préparée — invitez la personne à son espace pour qu’elle puisse y répondre." };
+  }
   const envoi = await notifierPieceDemandee(supabase, orgId, personId, { id: demande.id, libelle, note: note || null }, false);
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   return {
@@ -73,6 +82,9 @@ export async function relancerPieceDemandee(
 ): Promise<EtatPieceDemandee> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const { data: personne } = await supabase.from("persons").select("account_id")
+    .eq("id", personId).eq("organization_id", orgId).is("archived_at", null).maybeSingle();
+  if (!personne?.account_id) return { erreur: "Invitez d’abord la personne à son espace pour qu’elle puisse répondre." };
   // 25/09 : « Relancer » envoie réellement — la date seule ne relançait personne.
   const { data: demande, error } = await supabase
     .from("pieces_demandees")

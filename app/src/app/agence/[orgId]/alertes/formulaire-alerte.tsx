@@ -7,6 +7,7 @@ import { CRITICITES } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LegendeChamps } from "@/components/titre-ecran";
 
 type Membre = { account_id: string; email: string; role: string };
 
@@ -32,7 +33,8 @@ export function FormulaireAlerte({
   }, [etat]);
 
   return (
-    <form ref={formulaire} action={action} className="space-y-4">
+    <form ref={formulaire} action={action} className="formulaire-reperes space-y-4">
+      <LegendeChamps />
       <div className="space-y-2">
         <Label htmlFor="titre-alerte">Titre</Label>
         <Input
@@ -104,7 +106,7 @@ export function FormulaireAlerte({
         </p>
       )}
       {etat.succes && (
-        <p className="text-sm text-success-soft-foreground" role="status">
+        <p className="message-formulaire" data-succes role="status">
           {etat.succes}
         </p>
       )}

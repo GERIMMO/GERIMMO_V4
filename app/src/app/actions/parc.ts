@@ -261,6 +261,7 @@ export async function creerBien(
   }
 
   revalidatePath(`/agence/${orgId}/parc`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
 
   // Relevé du 11/09 : on atterrissait sur la fiche BIEN, qui n'est qu'un écran
   // de passage — c'est la fiche du LOT qui porte tout le reste du parcours
@@ -280,7 +281,7 @@ export async function creerBien(
   const lotUniqueId = (lotsCrees ?? []).length === 1 ? (lotsCrees ?? [])[0].id : null;
   redirect(
     lotUniqueId
-      ? `/agence/${orgId}/parc/${bienId}/lots/${lotUniqueId}${formData.get("parcours") === "1" ? "?parcours=1&etape=logement" : ""}`
+      ? `/agence/${orgId}/parc/${bienId}/lots/${lotUniqueId}${formData.get("parcours") === "1" ? "?parcours=1&etape=lot" : ""}`
       : `/agence/${orgId}/parc/${bienId}`
   );
 }
@@ -330,7 +331,8 @@ export async function modifierBien(
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
-  return { succes: "Bien mis à jour." };
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
+  return { succes: "Bien mis à jour.", valeurs };
 }
 
 export async function modifierLot(
@@ -386,6 +388,7 @@ export async function modifierLot(
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Lot mis à jour." };
 }
 
@@ -412,8 +415,11 @@ export async function changerEtatLot(
   if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   revalidatePath(`/agence/${orgId}/parc`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   revalidatePath(`/agence/${orgId}`);
   return { succes: `Lot passé en « ${ETATS_LOT[cible]} ».` };
 }
@@ -457,6 +463,7 @@ export async function decouperBien(
   if (error) return { erreur: `Découpage impossible : ${sansJargon(error.message)}` };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   return {
     succes: `${lots.length} lot(s) créé(s) — la clé de répartition est à (re)valider.`,
   };
@@ -536,7 +543,9 @@ export async function ajouterDetention(
   if (error) {
     if (personneCreee) {
       revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
       revalidatePath(`/agence/${orgId}/parc/${bienId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
       return {
         erreur: `La fiche propriétaire a été créée, mais la détention n'a pas été enregistrée : ${sansJargon(error.message)} Corrigez la détention puis réessayez avec cette fiche.`,
         valeurs: { ...valeurs, person_id: personneCreee.id },
@@ -549,8 +558,11 @@ export async function ajouterDetention(
   // Les blocages « détention » s'affichent aussi sur la fiche bien, le parc et
   // le tableau de bord : mêmes chemins que changerEtatLot.
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   revalidatePath(`/agence/${orgId}/parc`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   revalidatePath(`/agence/${orgId}`);
   return { succes: "Détention enregistrée." };
 }
@@ -597,8 +609,11 @@ export async function cloreDetention(
   // Mêmes chemins que changerEtatLot : le blocage « détention » peut renaître
   // sur la fiche bien, le parc et le tableau de bord.
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   revalidatePath(`/agence/${orgId}/parc`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   revalidatePath(`/agence/${orgId}`);
   return { succes: "Détention close." };
 }
@@ -618,6 +633,7 @@ export async function supprimerDetention(
   if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Détention corrigée (supprimée)." };
 }
 
@@ -636,6 +652,7 @@ export async function rouvrirDetention(
   if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Détention rouverte." };
 }
 
@@ -705,8 +722,11 @@ export async function deposerDiagnostic(
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   if (lotId) revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   revalidatePath(`/agence/${orgId}/parc`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   revalidatePath(`/agence/${orgId}/documents`);
   const base = `${referentiel.libelle} déposé.`;
   return { succes: depot.avertissement ? `${base} ${depot.avertissement}` : base };
@@ -733,6 +753,7 @@ export async function ajouterPieceLot(
     .insert({ lot_id: lotId, organization_id: orgId, nom, ordre: await prochainOrdre(supabase, lotId) });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: `Pièce « ${nom} » ajoutée.` };
 }
 
@@ -787,6 +808,7 @@ export async function proposerPiecesLot(
   const { error } = await supabase.from("lot_pieces").insert(aCreer);
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   return {
     succes: `${aCreer.length} pièces proposées. Retirez celles qui n'existent pas, ajoutez les autres.`,
   };
@@ -807,6 +829,7 @@ export async function supprimerPieceLot(
     .eq("organization_id", orgId);
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Pièce retirée." };
 }
 
@@ -843,6 +866,7 @@ export async function enregistrerInfosPratiques(
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Informations pratiques enregistrées." };
 }
 
@@ -873,6 +897,7 @@ export async function validerCle(
   if (error) return { erreur: `Validation impossible : ${sansJargon(error.message)}` };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Clé de répartition validée." };
 }
 
@@ -906,6 +931,7 @@ export async function ajouterEquipementCatalogue(
   }
 
   revalidatePath(`/agence/${orgId}/parc`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Équipement ajouté au catalogue." };
 }
 
@@ -929,5 +955,6 @@ export async function definirEquipementsLot(
   if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Équipements du lot enregistrés." };
 }

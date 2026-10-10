@@ -35,11 +35,12 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     ]);
   });
 
-  it("ne cache plus l'agenda ni les statistiques sous « Plus », pour aucun rôle", () => {
+  it("garde l’agenda pour tous et les statistiques pour les agences", () => {
     for (const role of ["admin_agence", "agent", "proprietaire_direct"] as RoleEspace[]) {
       const libelles = nav(role).principales.map((e) => e.libelle);
       expect(libelles, role).toContain("Agenda");
-      expect(libelles, role).toContain("Statistiques");
+      if (role !== "proprietaire_direct") expect(libelles, role).toContain("Statistiques");
+      else expect(libelles).not.toContain("Statistiques");
     }
   });
 
@@ -89,7 +90,10 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     expect(chemins("proprietaire_direct")).not.toContain("/administration");
     // Le carnet d'artisans a son entrée dans « Plus » (24/09) : il n'était
     // atteignable que par le lien de l'en-tête d'Incidents.
-    expect(chemins("proprietaire_direct")).toContain("/artisans");
+    expect(chemins("proprietaire_direct")).not.toContain("/artisans");
+    expect(libelles).toContain("Finances");
+    expect(libelles).not.toContain("Fiscalité");
+    expect(libelles).not.toContain("Livre recettes-dépenses");
   });
 
   it("ne pose une pastille que sur ce qui attend, et rouge seulement si c'est critique", () => {
@@ -120,7 +124,7 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     const libelles = (role: RoleEspace) => entreesBarreBasse(nav(role)).map((e) => e.libelle);
     expect(libelles("admin_agence")).toEqual(["Tableau de bord", "Parc de l'agence", "Loyers & charges", "Alertes"]);
     expect(libelles("agent")).toEqual(["Tableau de bord", "Mon portefeuille", "Incidents", "Alertes"]);
-    expect(libelles("proprietaire_direct")).toEqual(["Tableau de bord", "Mes lots", "Loyers & charges", "Alertes"]);
+    expect(libelles("proprietaire_direct")).toEqual(["Tableau de bord", "Mes lots", "Finances", "Alertes"]);
     // La barre basse ne montre que des entrées du menu : aucun chemin qu'elle seule ouvrirait.
     for (const role of ["admin_agence", "agent", "proprietaire_direct"] as RoleEspace[]) {
       const n = nav(role);
@@ -133,9 +137,10 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
 it("la veille apparaît une seule fois et vise le public du profil",()=>{
  for(const role of ['admin_agence','agent','proprietaire_direct'] as RoleEspace[]){
   const entrees=chemins(role).filter(p=>p.startsWith('/veille'));
+  if (role === "proprietaire_direct") { expect(entrees).toHaveLength(0); continue; }
   expect(entrees).toHaveLength(1);
   const cible=new URL(entrees[0], 'https://gerimmo.app');
-  expect(cible.searchParams.get('public')).toBe(role==='proprietaire_direct'?'bailleur':'agence');
+  expect(cible.searchParams.get('public')).toBe('agence');
   expect(cible.searchParams.get('retour')).toBe(`/agence/${ORG}`);
  }
 });
@@ -143,4 +148,12 @@ it("la veille apparaît une seule fois et vise le public du profil",()=>{
 it('retrouve une destination filtrée sans confondre sa requête avec le chemin', () => {
   const lien = {href:'/veille?public=bailleur',libelle:'Les règles à connaître',icone:'livre'};
   expect(entreeActive([lien], '/veille')).toBe(lien);
+});
+
+
+it("garde Finances actif dans le livre et la déclaration du propriétaire", () => {
+  const n = nav("proprietaire_direct");
+  for (const chemin of ["/loyers", "/comptabilite", "/comptabilite/fiscal"]) {
+    expect(entreeActive(n.principales, `/agence/${ORG}${chemin}`)?.libelle).toBe("Finances");
+  }
 });

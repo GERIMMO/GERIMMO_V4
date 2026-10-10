@@ -265,7 +265,7 @@ export function FormulaireEcriture({
     {}
   );
   return (
-    <form action={action} className="flex flex-wrap items-end gap-2">
+    <form action={action} className="formulaire-finances flex flex-wrap items-end gap-2">
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08).
           Sous sm, chaque champ prend sa pleine largeur : une colonne lisible
           plutôt que des rangées irrégulières. */}
@@ -349,7 +349,7 @@ export function FormulaireVentilation({
     {}
   );
   return (
-    <form action={action} className="flex flex-wrap items-end gap-2">
+    <form action={action} className="formulaire-finances flex flex-wrap items-end gap-2">
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08).
           Même recette que la saisie d'une écriture, juste au-dessus (24/09) :
           sous sm, chaque champ prend sa pleine largeur — une colonne lisible

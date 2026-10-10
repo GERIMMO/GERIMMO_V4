@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { euros, formuleParCode, parPeriode, type Periodicite } from "@/lib/tarifs";
 import { notFound, redirect } from "next/navigation";
@@ -153,7 +154,7 @@ export default async function PageAdminOrganisation(
           </span>
           {/* Le nom passe à la ligne au lieu d'être coupé (24/09). */}
           <div className="min-w-0">
-            <h1 className="[overflow-wrap:anywhere] max-sm:text-2xl">{organisation.name}</h1>
+            <TitreEcran rubrique="entreprise">{organisation.name}</TitreEcran>
             <p className="mono-discret sans-majuscules">
               {famille === "agence" ? "Agence de gestion" : "Propriétaire bailleur"} · cliente
               depuis le {formaterDate(organisation.created_at)}

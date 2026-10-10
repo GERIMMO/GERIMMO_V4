@@ -58,7 +58,7 @@ function premiereEcheance(f: Fusion, bail: ContexteBail["bail"]): string {
 }
 
 function blocLocataire(f: Fusion, p: PersonneDocument): string {
-  return `<p>${f.champ(nomPersonne(p), "nom et prénom(s)")}, né(e) le ${f.date(p.date_naissance)}
+  return `<p>${f.champ(nomPersonne(p), "nom et prénom(s)")}, né(e) le ${f.date(p.date_naissance, "Date de naissance du locataire")}
   à ${f.champ(p.commune_naissance, "commune de naissance")}, demeurant ${f.champ(adressePersonne(p), "adresse actuelle")}.<br/>
   Adresse électronique : ${f.champ(p.email, "adresse électronique")} — Numéro de téléphone portable :
   ${facultatif(p.telephone)}.</p>`;
@@ -171,7 +171,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
 
     ${section("III — Date de prise d'effet et durée du contrat")}
     ${dateConclusion(ctx, f)}
-    <p>Date de prise d'effet : ${f.date(ctx.bail.date_debut)}.<br/>
+    <p>Date de prise d'effet : ${f.date(ctx.bail.date_debut, "Date d’entrée du bail")}.<br/>
     Durée du contrat : ${f.champ(
       // Art. 10 et 13 : 6 ans dès qu'un bailleur est une personne morale autre
       // qu'une SCI familiale, 3 ans sinon — la règle de la base (audit 29/09).

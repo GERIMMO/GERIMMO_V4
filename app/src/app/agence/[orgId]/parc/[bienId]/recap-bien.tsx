@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FaitsFiche, type Fait } from "@/components/fiche-parc";
+import { type Fait } from "@/components/fiche-parc";
 import { FormulaireBien, type BienFormulaire } from "../formulaire-bien";
 
 // Condensé du bien (consultation) + bascule vers l'édition (« Modifier le bien »).
@@ -48,7 +48,7 @@ export function RecapBien({
 
   return (
     <div className="space-y-3">
-      <FaitsFiche faits={faits} />
+      <dl className="grid gap-3 sm:grid-cols-3">{faits.map(f => <div key={f.libelle} className="rounded-lg bg-muted/50 px-3 py-2.5"><dt className="text-xs text-muted-foreground">{f.libelle}</dt><dd className="mt-1 text-sm font-semibold">{f.valeur ?? "Non renseignée"}</dd></div>)}</dl>
       <Button variant="outline" size="sm" onClick={() => setModifier(true)}>
         Modifier le bien
       </Button>

@@ -1,14 +1,17 @@
 "use client";
+import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
-import { useActionState, useEffect, useId, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useId, useRef } from "react";
 import { ajouterEquipementCatalogue, type EtatParc } from "@/app/actions/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function FormulaireEquipementCatalogue({ orgId }: { orgId: string }) {
+  const router = useRouter();
   const actionLiee = ajouterEquipementCatalogue.bind(null, orgId);
-  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionStateSuivi<EtatParc, FormData>(actionLiee, {});
   const formulaire = useRef<HTMLFormElement>(null);
   // Champ et bouton sur la même ligne : le libellé ne s'adresse qu'à la
   // synthèse vocale, pour ne pas décaler le bouton. Identifiant tiré de
@@ -16,8 +19,8 @@ export function FormulaireEquipementCatalogue({ orgId }: { orgId: string }) {
   const idNom = useId();
 
   useEffect(() => {
-    if (etat.succes) formulaire.current?.reset();
-  }, [etat]);
+    if (etat.succes) { formulaire.current?.reset(); router.refresh(); }
+  }, [etat, router]);
 
   return (
     <form ref={formulaire} action={action} className="flex flex-wrap items-center gap-2">

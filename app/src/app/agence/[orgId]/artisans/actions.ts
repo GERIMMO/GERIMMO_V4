@@ -55,8 +55,8 @@ export async function creerOuRattacherArtisan(
   _etat: EtatArtisanAction,
   formData: FormData
 ): Promise<EtatArtisanAction> {
-  const { supabase, user } = await verifierGerant(orgId);
-  if (!user) return { erreur: "Accès refusé." };
+  const { supabase, user, role } = await verifierGerant(orgId);
+  if (!user || !role || !["admin_agence", "agent"].includes(role)) return { erreur: "L’ajout d’artisans est réservé aux agences." };
 
   const valeurs = valeursDuFormulaire(formData);
   const raisonSociale = String(formData.get("raison_sociale") ?? "").trim();

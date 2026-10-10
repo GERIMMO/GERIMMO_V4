@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import type { ReactNode } from "react";
 
 // Les quatre écrans de compte de l'espace — administration, profil, abonnement,
@@ -18,17 +19,19 @@ import type { ReactNode } from "react";
 // droite du titre, n'apprenait plus rien à personne.
 export function EnteteReglages({
   titre,
+  rubrique = "profil",
   mention,
   children,
 }: {
   titre: string;
+  rubrique?: "profil" | "abonnement" | "aide";
   mention?: string;
   children?: ReactNode;
 }) {
   return (
     <header className="space-y-2">
       <div className="entete-page">
-        <h1>{titre}</h1>
+        <TitreEcran rubrique={rubrique}>{titre}</TitreEcran>
         {mention && (
           <span className="mono-discret sans-majuscules">{mention}</span>
         )}

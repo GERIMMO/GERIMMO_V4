@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
 import { TYPES_BAIL } from "@/lib/baux";
@@ -48,7 +49,7 @@ export default async function PageLogementLocataire(
     return (
       <div className="space-y-4">
         <div className="entete-page">
-          <h1>Mon logement</h1>
+          <TitreEcran rubrique="lots">Mon logement</TitreEcran>
         </div>
         <div className="loc-carte">
           {aEchoue(eBaux) ? (
@@ -82,7 +83,7 @@ export default async function PageLogementLocataire(
       {/* L'en-tête porte sa mention, comme ses pages sœurs (24/09) : la carte
           était vide à droite du titre. */}
       <div className="entete-page">
-        <h1>Mon logement</h1>
+        <TitreEcran rubrique="lots">Mon logement</TitreEcran>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span className="mono-discret">
             Bail {(TYPES_BAIL[bail.type] ?? "d'habitation").toLowerCase()}

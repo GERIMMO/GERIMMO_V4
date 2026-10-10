@@ -37,6 +37,7 @@ import {
 } from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
 import { CarteMessages } from "./carte-messages";
+import { GestionJustificatifsPersonne } from "./gestion-justificatifs";
 import { CartePiecesDemandees } from "./carte-pieces-demandees";
 import { EchecLecture, PageEchecLecture } from "../../documents/echec-lecture";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
@@ -214,7 +215,7 @@ export default async function PagePersonne(
     { data: bauxLies, error: erreurBauxLies },
   ] = await Promise.all([
       idsDossier.length
-        ? supabase.from("documents").select("id, titre, remplace_id, created_at").in("id", idsDossier)
+        ? supabase.from("documents").select("id, titre, remplace_id, created_at, deposited_by").in("id", idsDossier)
         : Promise.resolve({ data: [], error: null }),
       lotIds.length
         ? supabase
@@ -585,7 +586,7 @@ export default async function PagePersonne(
           dans un espace LOCATAIRE (24/09). Une fiche sans rôle la garde :
           c'est souvent un locataire dont le bail n'est pas encore signé. */}
       {!estSaFiche && (estLocataire || (roles.length === 0 && (detentions ?? []).length === 0)) && (
-      <Card>
+      <Card id="acces-locataire" className="scroll-mt-20">
         <CardHeader>
           <CardTitle className="text-base">Accès locataire</CardTitle>
           {/* Compte déjà créé : la ligne verte du formulaire suffit — inviter
@@ -613,7 +614,7 @@ export default async function PagePersonne(
           y atterrir en haut fait chercher le bloc (relevé du 19/09). */}
       <Card id="pieces" className="scroll-mt-20">
         <CardHeader>
-          <CardTitle className="text-base">Pièces justificatives</CardTitle>
+          <CardTitle className="text-base">Justificatifs</CardTitle>
           <CardDescription>
             {estSaFiche ? "" : "Les pièces suivent la personne, d'un bail à l'autre. "}
             Chaque nouveau dépôt d&apos;un même type crée une version — l&apos;ancienne
@@ -635,6 +636,7 @@ export default async function PagePersonne(
                   document_id: string;
                   type: string;
                   titre: string | null;
+                  depose_le: string;
                   expire_le: string | null;
                   verifie_le: string | null;
                 }) => {
@@ -679,6 +681,7 @@ export default async function PagePersonne(
                           ) : (
                             <span className="puce puce-prep">À vérifier</span>
                           ))}
+                        <span className="puce puce-loue">Reçu</span>
                         <Link
                           href={`/agence/${orgId}/documents/${p.document_id}/fichier`}
                           className={buttonVariants({ variant: "ghost", size: "sm" })}
@@ -694,6 +697,13 @@ export default async function PagePersonne(
                         )}
                         {boutonRappel}
                       </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Déposé le {formaterDate(p.depose_le)}
+                        {(() => {
+                          const auteur = (tousDocs ?? []).find(d=>d.id===p.document_id)?.deposited_by;
+                          return auteur === user.id ? " · par vous" : auteur && auteur === personne.account_id ? " · par la personne" : auteur ? " · par votre équipe" : "";
+                        })()}
+                      </p>
                       {anciennes.length > 0 && (
                         <details className="mt-1 pl-1 text-xs text-muted-foreground">
                           <summary className="cursor-pointer py-2">
@@ -736,33 +746,13 @@ export default async function PagePersonne(
               )}
             </ul>
           )}
-          <FormulairePiece orgId={orgId} personId={personId} />
+          <GestionJustificatifsPersonne
+            depot={<FormulairePiece orgId={orgId} personId={personId} />}
+            demandes={!estSaFiche && (personne.account_id || estLocataire || (roles.length === 0 && (detentions ?? []).length === 0) || demandesPieces.length > 0) ? <CartePiecesDemandees orgId={orgId} personId={personId} demandes={demandesPieces} tronquees={demandesTronquees} aUnAcces={Boolean(personne.account_id)} /> : undefined}
+            enAttente={demandesPieces.filter(d=>!d.satisfaite_le).length}
+          />
         </CardContent>
       </Card>
-
-      {/* Pièces réclamées au locataire (RM-0b.2.5) : demande, relance, dépôt
-          depuis son espace — visible dès qu'elle a un espace pour recevoir,
-          jamais sur sa propre fiche (se réclamer une pièce à soi-même, 24/09) */}
-      {personne.account_id && !estSaFiche && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Pièces réclamées</CardTitle>
-            <CardDescription>
-              Demandez une pièce : elle s&apos;affiche dans l&apos;espace de la
-              personne, qui la dépose en un geste — vous êtes alerté à la
-              réception.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CartePiecesDemandees
-              orgId={orgId}
-              personId={personId}
-              demandes={demandesPieces}
-              tronquees={demandesTronquees}
-            />
-          </CardContent>
-        </Card>
-      )}
 
       {/* Messages avec la personne (espace locataire v10) : visibles dès
           qu'un échange existe, ou qu'elle a un espace pour les recevoir —

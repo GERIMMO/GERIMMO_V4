@@ -202,7 +202,7 @@ export default async function LayoutAgence({
       ];
 
   return (
-    <div className="coquille" style={estProprietaire ? undefined : styleMarque(organisation)}>
+    <div className="coquille gerimmo-prestige" style={estProprietaire ? undefined : styleMarque(organisation)}>
       <aside className="coquille-late">
         <BarreLaterale
           orgId={orgId}

@@ -11,6 +11,7 @@ import {
 import { formaterDate } from "@/lib/ged";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { BadgeStatut } from "@/components/badge-statut";
+import { FormulaireClasseDpeLot } from "./formulaire-classe-dpe-lot";
 import { FormulaireDiagnostic } from "./formulaire-diagnostic";
 
 export type DiagnosticDepose = {
@@ -20,6 +21,7 @@ export type DiagnosticDepose = {
   date_expiration: string | null;
   diagnostiqueur: string | null;
   document_id: string | null;
+  classe_dpe?: string | null;
 };
 
 // Une ligne par diagnostic ATTENDU, déposé ou non — le manque se voit au même
@@ -41,6 +43,7 @@ export function LignesDiagnostics({
   attendus: string[];
   diagnostics: DiagnosticDepose[];
 }) {
+  const [classeOuverte, setClasseOuverte] = useState(false);
   const [ouvert, setOuvert] = useState<string | null>(null);
 
   // Les attendus d'abord, puis les diagnostics déposés hors obligation
@@ -102,6 +105,7 @@ export function LignesDiagnostics({
                 </>
               )}
 
+              {type === "dpe" && d && lotId && niveau === "lot" && <Button type="button" size="sm" variant="outline" onClick={() => setClasseOuverte(v => !v)}>{d.classe_dpe ? `Classe ${d.classe_dpe} · Modifier` : "Compléter la classe DPE"}</Button>}
               {d?.document_id && (
                 <a
                   href={`/agence/${orgId}/documents/${d.document_id}/fichier`}
@@ -128,6 +132,7 @@ export function LignesDiagnostics({
               </p>
             )}
 
+            {type === "dpe" && d && lotId && niveau === "lot" && (!d.classe_dpe || classeOuverte) && <FormulaireClasseDpeLot orgId={orgId} lotId={lotId} diagnosticId={d.id} classe={d.classe_dpe ?? null} />}
             {ouvert === type && (
               <div className="mt-2 border border-border p-3">
                 <FormulaireDiagnostic

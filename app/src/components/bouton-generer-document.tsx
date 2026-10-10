@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useContext, useState, useTransition } from "react";
 import { genererDocument, type EtatGeneration } from "@/app/actions/documents-generes";
 import type { CodeModele } from "@/lib/documents/modeles";
 import { afficherToast } from "@/components/ui/toast";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { actualiserControleGeneration } from "@/lib/documents/controle-generation";
+import { CompletudeBail } from "@/lib/suivi-enregistrement";
+import { cibleChampBail } from "@/lib/documents/champs-bail-parcours";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 
 // Bouton commun du sprint « Documents-0 » : génère le PDF, toast à la
@@ -22,6 +25,7 @@ export function BoutonGenererDocument({
   size = "sm",
   // Les choix du geste (motif d'un congé, garant d'un cautionnement…)
   options,
+  completionSurPlace = false,
 }: {
   orgId: string;
   code: CodeModele;
@@ -31,10 +35,14 @@ export function BoutonGenererDocument({
   variant?: "outline" | "ghost" | "default";
   size?: "sm" | "default";
   options?: Record<string, string>;
+  completionSurPlace?: boolean;
 }) {
+  const LienCompletion = completionSurPlace ? "a" : Link;
   const [enCours, demarrer] = useTransition();
   const [resultat, setResultat] = useState<EtatGeneration | null>(null);
 
+  const controle = useContext(CompletudeBail);
+  const affichage = completionSurPlace ? actualiserControleGeneration(resultat, controle) : resultat;
   const [montrerTous, setMontrerTous] = useState(false);
 
   function generer() {
@@ -56,9 +64,9 @@ export function BoutonGenererDocument({
       <Button type="button" size={size} variant={variant} disabled={enCours} onClick={generer}>
         {enCours ? <><Spinner /> Génération…</> : libelle}
       </Button>
-      {resultat?.documentId && (
+      {affichage?.documentId && (
         <a
-          href={`/agence/${orgId}/documents/${resultat.documentId}/fichier`}
+          href={`/agence/${orgId}/documents/${affichage.documentId}/fichier`}
           target="_blank"
           rel="noreferrer"
           className="lien-discret text-xs"
@@ -66,30 +74,30 @@ export function BoutonGenererDocument({
           Ouvrir le PDF
         </a>
       )}
-      {resultat?.erreur && <span className="text-xs text-destructive">{resultat.erreur}</span>}
-      {resultat && (resultat.manquants?.length ?? 0) > 0 && (
+      {affichage?.erreur && <span className="text-xs text-destructive">{affichage.erreur}</span>}
+      {affichage && (affichage.manquants?.length ?? 0) > 0 && (
         <span className="block w-full text-xs text-warning-soft-foreground">
           À renseigner avant de générer le PDF :{" "}
-          {resultat.manquants!.slice(0, montrerTous ? undefined : 5).map((m, i) => {
-            const cible = lienPourManquant(m, orgId, resultat.liens ?? [], code);
+          {affichage.manquants!.slice(0, montrerTous ? undefined : 5).map((m, i) => {
+            const cible = lienPourManquant(m, orgId, affichage.liens ?? [], code);
             return (
               <span key={m}>
                 {i > 0 && " · "}
                 {m}
-                {cible && (
+                {(cible || completionSurPlace) && (
                   <>
                     {" "}
-                    <Link href={cible.href} className="lien-discret">
-                      renseigner ({cible.ecran}) →
-                    </Link>
+                    <LienCompletion href={completionSurPlace ? cibleChampBail(m,orgId).href : cible!.href} className="lien-discret">
+                      {completionSurPlace ? "Compléter ici" : `renseigner (${cible!.ecran})`} →
+                    </LienCompletion>
                   </>
                 )}
               </span>
             );
           })}
-          {resultat.manquants!.length > 5 && (
+          {affichage.manquants!.length > 5 && (
             <button type="button" className="ml-2 lien-discret" aria-expanded={montrerTous} onClick={() => setMontrerTous(!montrerTous)}>
-              {montrerTous ? "Réduire la liste" : `Voir les ${resultat.manquants!.length} informations à compléter`}
+              {montrerTous ? "Réduire la liste" : `Voir les ${affichage.manquants!.length} informations à compléter`}
             </button>
           )}
         </span>

@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDateHeure } from "@/lib/ged";
@@ -27,7 +28,7 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
     return (
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
         <div className="entete-page">
-          <h1>Messages</h1>
+          <TitreEcran rubrique="messages">Messages</TitreEcran>
         </div>
         <EchecLecture quoi={["les conversations"]} />
       </main>
@@ -55,7 +56,7 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
           lu » sans aucune conversation rassurait sur du vide : la mention dit
           l'absence, comme « rien à traiter » sur les pages voisines. */}
       <div className="entete-page">
-        <h1>Messages</h1>
+        <TitreEcran rubrique="messages">Messages</TitreEcran>
         <span className="mono-discret">
           {role === "agent" ? "Mon portefeuille · " : ""}
           {fils.length === 0

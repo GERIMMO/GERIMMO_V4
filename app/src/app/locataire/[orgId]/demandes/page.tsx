@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { IncidentsLocataire, type IncidentLocataire } from "../incidents-locataire";
@@ -69,7 +70,7 @@ export default async function PageDemandesLocataire(
           souci dans le logement ? » qui ne servait qu'à le porter repoussait
           la première demande sous trois cartes. */}
       <div className="entete-page">
-        <h1>Mes demandes</h1>
+        <TitreEcran rubrique="incidents">Mes demandes</TitreEcran>
         {((!aEchoue(eIncidents) && incidents.length > 0) || boutonSignaler) && (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             {!aEchoue(eIncidents) && incidents.length > 0 && (

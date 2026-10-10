@@ -104,6 +104,7 @@ export async function enregistrerPublication(
   revalidatePath("/admin/publications");
   if (paru) {
     revalidatePath("/journal");
+    revalidatePath("/agence/[orgId]", "page");
     revalidatePath("/");
     if (actuel?.slug) revalidatePath(`/journal/${actuel.slug}`);
   }
@@ -182,6 +183,7 @@ export async function publierPublication(id: string): Promise<EtatPublication> {
   revalidatePath("/admin/publications");
   revalidatePath("/admin/brief");
   revalidatePath("/journal");
+  revalidatePath("/agence/[orgId]", "page");
   revalidatePath("/");
   return { succes: "Article paru — il est en ligne dans le journal." + trace(journal) };
 }
@@ -201,6 +203,7 @@ export async function retirerPublication(id: string): Promise<EtatPublication> {
   revalidatePath("/admin/publications");
   revalidatePath("/admin/brief");
   revalidatePath("/journal");
+  revalidatePath("/agence/[orgId]", "page");
   revalidatePath("/");
   return { succes: "Article retiré du journal — il reste consultable ici." + trace(journal) };
 }

@@ -4,7 +4,7 @@ import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { modifierLot, type EtatParc } from "@/app/actions/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { LabelBail as Label } from "@/components/pastille-bail";
 
 export type LotFormulaire = {
   id: string;
@@ -27,30 +27,38 @@ export function FormulaireLot({
   bienId,
   lot,
   verrouille,
+  copropriete,
+  libelleEnregistrer = "Enregistrer",
+  champsVisibles,
 }: {
   orgId: string;
   bienId: string;
   lot: LotFormulaire;
   verrouille: boolean;
+  copropriete?: boolean | null;
+  libelleEnregistrer?: string;
+  /** Présentation ciblée du bail : les autres champs restent montés et soumis. */
+  champsVisibles?: string[];
 }) {
+  const masquer = (champ: string) => champsVisibles !== undefined && !champsVisibles.includes(champ);
   const actionLiee = modifierLot.bind(null, orgId, bienId, lot.id);
   const { etat, soumettre: action, enCours } = useActionFormulaire<EtatParc>(actionLiee);
 
   return (
-    <form onSubmit={action} className="space-y-4">
+    <form data-champs-cibles={champsVisibles !== undefined || undefined} onSubmit={action} className="space-y-4">
       {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe sur
           la saisie, pas sur les valeurs d'origine (recette 22/08). */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
+        <div hidden={masquer("nom")} className="space-y-2">
           <Label htmlFor="lot-nom">Nom du lot</Label>
           <Input id="lot-nom" name="nom" required maxLength={120} defaultValue={etat.valeurs?.nom ?? lot.nom} />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="lot-etage">Étage</Label>
+        <div hidden={masquer("etage")} className="space-y-2">
+          <Label htmlFor="lot-etage">Étage — Facultatif</Label>
           <Input id="lot-etage" name="etage" maxLength={40} defaultValue={etat.valeurs?.etage ?? lot.etage ?? ""} />
         </div>
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="lot-fiscal">Identifiant fiscal du logement *</Label>
+        <div hidden={masquer("identifiant_fiscal")} className="space-y-2 sm:col-span-2">
+          <Label htmlFor="lot-fiscal" champ="lot.identifiant_fiscal" renseigne={String(etat.valeurs?.identifiant_fiscal ?? lot.identifiant_fiscal ?? "").trim() !== ""}>Identifiant fiscal du logement *</Label>
           <Input
             id="lot-fiscal"
             name="identifiant_fiscal"
@@ -60,8 +68,8 @@ export function FormulaireLot({
             placeholder="13 chiffres (avis de taxe foncière) — obligatoire au bail"
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="lot-surface-form">Surface (m²) *</Label>
+        <div hidden={masquer("surface_m2")} className="space-y-2">
+          <Label htmlFor="lot-surface-form" champ="lot.surface_m2" renseigne={String(etat.valeurs?.surface_m2 ?? lot.surface_m2 ?? "").trim() !== ""}>Surface (m²) *</Label>
           <Input
             id="lot-surface-form"
             name="surface_m2"
@@ -73,8 +81,8 @@ export function FormulaireLot({
             disabled={verrouille}
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="lot-carrez">Surface Carrez (m²)</Label>
+        <div hidden={masquer("surface_carrez")} className="space-y-2">
+          <Label htmlFor="lot-carrez">Surface Carrez (m²) — Facultatif</Label>
           <Input
             id="lot-carrez"
             name="surface_carrez"
@@ -88,8 +96,8 @@ export function FormulaireLot({
             Reprenez la surface privative indiquée sur l’attestation Carrez, si le logement est concerné.
           </p>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="lot-pieces-form">Pièces *</Label>
+        <div hidden={masquer("pieces")} className="space-y-2">
+          <Label htmlFor="lot-pieces-form" champ="lot.pieces" renseigne={String(etat.valeurs?.pieces ?? lot.pieces ?? "").trim() !== ""}>Pièces *</Label>
           <Input
             id="lot-pieces-form"
             name="pieces"
@@ -100,8 +108,8 @@ export function FormulaireLot({
             disabled={verrouille}
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="lot-tantieme">Tantième de copropriété</Label>
+        <div hidden={copropriete === false || masquer("tantieme")} className="space-y-2">
+          <Label htmlFor="lot-tantieme">Tantième de copropriété — Facultatif</Label>
           <Input
             id="lot-tantieme"
             name="tantieme"
@@ -113,8 +121,8 @@ export function FormulaireLot({
         </div>
         {/* Régimes de chauffage/eau chaude et accessoires : repris tels quels
             dans la désignation du bail (art. 3 loi 89-462) */}
-        <div className="space-y-2">
-          <Label htmlFor="lot-chauffage">Chauffage *</Label>
+        <div hidden={masquer("chauffage")} className="space-y-2">
+          <Label htmlFor="lot-chauffage" champ="lot.chauffage" renseigne={String(etat.valeurs?.chauffage ?? lot.chauffage ?? "").trim() !== ""}>Chauffage *</Label>
           <Input
             id="lot-chauffage"
             name="chauffage"
@@ -124,8 +132,8 @@ export function FormulaireLot({
             placeholder="Individuel — électricité"
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="lot-eau-chaude">Eau chaude *</Label>
+        <div hidden={masquer("eau_chaude")} className="space-y-2">
+          <Label htmlFor="lot-eau-chaude" champ="lot.eau_chaude" renseigne={String(etat.valeurs?.eau_chaude ?? lot.eau_chaude ?? "").trim() !== ""}>Eau chaude *</Label>
           <Input
             id="lot-eau-chaude"
             name="eau_chaude"
@@ -135,8 +143,8 @@ export function FormulaireLot({
             placeholder="Individuelle — ballon électrique"
           />
         </div>
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="lot-locaux-privatifs">Locaux privatifs *</Label>
+        <div hidden={masquer("locaux_privatifs")} className="space-y-2 sm:col-span-2">
+          <Label htmlFor="lot-locaux-privatifs" champ="lot.locaux_privatifs" renseigne={String(etat.valeurs?.locaux_privatifs ?? lot.locaux_privatifs ?? "").trim() !== ""}>Locaux privatifs *</Label>
           <Input
             id="lot-locaux-privatifs"
             name="locaux_privatifs"
@@ -146,7 +154,7 @@ export function FormulaireLot({
             placeholder="Cave n° 4, parking n° 12…"
           />
         </div>
-        <div className="flex items-center gap-2 pt-2">
+        <div hidden={masquer("meuble")} className="flex items-center gap-2 pt-2">
           <input
             id="lot-meuble"
             name="meuble"
@@ -157,8 +165,8 @@ export function FormulaireLot({
           <Label htmlFor="lot-meuble">Meublé</Label>
         </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="lot-description">Autres parties du logement *</Label>
+      <div hidden={masquer("description")} className="space-y-2">
+        <Label htmlFor="lot-description" champ="lot.description" renseigne={String(etat.valeurs?.description ?? lot.description ?? "").trim() !== ""}>Autres parties du logement *</Label>
         <textarea
           id="lot-description"
           name="description"
@@ -175,7 +183,7 @@ export function FormulaireLot({
         <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
       <BoutonEnvoi enCours={enCours} enCoursTexte="Enregistrement…">
-        Enregistrer
+        {libelleEnregistrer}
       </BoutonEnvoi>
     </form>
   );

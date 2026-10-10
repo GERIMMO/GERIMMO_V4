@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -124,7 +125,7 @@ export default async function PageFicheArtisan(
             {/* Le nom passe à la ligne au lieu d'être coupé (24/09) : c'est le
                 sujet de la page. */}
             <div className="min-w-0">
-              <h1 className="[overflow-wrap:anywhere] max-sm:text-2xl">{artisan.raison_sociale}</h1>
+              <TitreEcran rubrique="personnes">{artisan.raison_sociale}</TitreEcran>
               <p className="mono-discret sans-majuscules">
                 Artisan · inscrit le {formaterDate(artisan.created_at)}
               </p>

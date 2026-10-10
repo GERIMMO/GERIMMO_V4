@@ -13,6 +13,7 @@ import {
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { ChampFichier } from "@/components/champ-fichier";
 import { Input } from "@/components/ui/input";
+import { LegendeChamps } from "@/components/titre-ecran";
 import { Label } from "@/components/ui/label";
 
 const classeSelect =
@@ -186,7 +187,8 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
           Une ou deux photos prises sur le vif évitent souvent un déplacement
           pour rien.
         </p>
-        <form action={action} className="mt-4 space-y-4">
+        <form action={action} className="formulaire-reperes mt-4 space-y-4">
+          <LegendeChamps />
           <div className="space-y-1.5">
             <Label htmlFor="photos">Photos (jusqu&apos;à 5)</Label>
             {/* Compressées à la prise (RM-19.1.3) : une photo de téléphone
@@ -224,7 +226,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
           {/* flex + gap plutôt que space-y : la ligne d'aide, masquée sur
               bureau, ne laisse pas de marge fantôme sous le sélecteur. */}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="categorie">De quoi s&apos;agit-il ? *</Label>
+            <Label htmlFor="categorie">De quoi s&apos;agit-il ?</Label>
             <select
               id="categorie"
               name="categorie"
@@ -260,7 +262,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="piece">Dans quelle pièce ?</Label>
+            <Label htmlFor="piece">Dans quelle pièce ? (facultatif)</Label>
             <select id="piece" name="piece" value={piece} onChange={(e) => setPiece(e.target.value)} className={classeSelect}>
               <option value="">—</option>
               {PIECES_INCIDENT.map((p) => (
@@ -286,6 +288,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
             <textarea
               id="description"
               name="description"
+              required={photos.length === 0}
               rows={3}
               placeholder="Où exactement, est-ce que cela s'aggrave, qu'avez-vous déjà essayé…"
               defaultValue={etat.valeurs?.description}
@@ -294,7 +297,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="anciennete">Depuis quand ?</Label>
+            <Label htmlFor="anciennete">Depuis quand ? (facultatif)</Label>
             <Input
               id="anciennete"
               name="anciennete"

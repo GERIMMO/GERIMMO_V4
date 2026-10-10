@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -46,7 +47,7 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
   const mention = file.error ? "File indisponible" : !lignes.length && page > 1 ? null : `${total} demande${total > 1 ? "s" : ""}`;
 
   return <main className="mx-auto w-full max-w-4xl p-4 sm:p-7 space-y-5">
-    <div className="entete-page"><div><h1>Retours des utilisateurs</h1><p className="mt-2 text-sm text-muted-foreground">Répondre aux utilisateurs, qualifier les problèmes et préparer la revue des idées.</p></div>{mention && <span className="mono-discret">{mention}</span>}</div>
+    <div className="entete-page"><div><TitreEcran rubrique="messages">Retours des utilisateurs</TitreEcran><p className="mt-2 text-sm text-muted-foreground">Répondre aux utilisateurs, qualifier les problèmes et préparer la revue des idées.</p></div>{mention && <span className="mono-discret">{mention}</span>}</div>
     {/* Rien à filtrer sur une liste vide (audit 25/09, C19) : puces et
         sélecteurs n'apparaissent que s'il y a des demandes ou un filtre actif. */}
     {(total > 0 || filtreActif || file.error) && <nav aria-label="Files de retours" className="flex flex-wrap gap-2">{Object.entries(NATURES).map(([k, v]) => <Link key={k} href={adresse(1, k)} aria-current={nature === k ? "page" : undefined} className={`filtre inline-flex items-center${nature === k ? " actif" : ""}`}>{v}</Link>)}</nav>}

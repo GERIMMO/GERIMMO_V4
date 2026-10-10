@@ -17,7 +17,7 @@ import Link from "next/link";
 //  - « votre gestionnaire est prévenu immédiatement » était faux pour un
 //    signalement ordinaire : l'e-mail ne part que pour une urgence déclarée
 //    comme telle (« Est-ce urgent ? » → oui).
-export function ReflexesUrgence({ hrefSignalement }: { hrefSignalement?: string } = {}) {
+export function ReflexesUrgence({ hrefSignalement, surFormulaire = false }: { hrefSignalement?: string; surFormulaire?: boolean } = {}) {
   const suite =
     " — répondez « oui » à « Est-ce urgent ? » : votre gestionnaire est alors prévenu par e-mail.";
   return (
@@ -59,7 +59,7 @@ export function ReflexesUrgence({ hrefSignalement }: { hrefSignalement?: string 
             {suite}
           </>
         ) : (
-          `Puis signalez-le ici${suite}`
+          surFormulaire ? `Puis signalez-le ici${suite}` : "Prévenez ensuite votre gestionnaire pour organiser le suivi."
         )}
       </p>
     </div>

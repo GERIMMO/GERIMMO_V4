@@ -8,6 +8,7 @@ import {
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { ChampFichier } from "@/components/champ-fichier";
 import { Input } from "@/components/ui/input";
+import { LegendeChamps } from "@/components/titre-ecran";
 import { Label } from "@/components/ui/label";
 
 // Une attestation déjà expirée ne protège personne : la date plancher est
@@ -32,10 +33,11 @@ export function FormulaireAttestation({
   }, [etat]);
 
   return (
-    <form ref={formulaire} action={formAction} className="space-y-3 border-t border-border pt-4">
+    <form ref={formulaire} action={formAction} className="formulaire-reperes space-y-3 border-t border-border pt-4">
       <p className="text-sm font-medium">
         {renouvellement ? "Déposer une nouvelle attestation" : "Déposer mon attestation"}
       </p>
+      <LegendeChamps />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="att-fichier">Fichier (PDF/JPG/PNG)</Label>
@@ -61,11 +63,11 @@ export function FormulaireAttestation({
         </div>
       </div>
       {etat.erreur && (
-        <p className="err !mb-0" role="alert">
+        <p className="message-formulaire" role="alert">
           {etat.erreur}
         </p>
       )}
-      {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
+      {etat.succes && <p className="message-formulaire" data-succes role="status">{etat.succes}</p>}
       <BoutonEnvoi enCoursTexte="Dépôt…" size="sm">
         Déposer
       </BoutonEnvoi>

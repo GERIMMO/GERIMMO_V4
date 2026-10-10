@@ -9,6 +9,7 @@ import { valeursDuFormulaire } from "@/lib/formulaires";
 import { QUALITES_BAILLEUR, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 
 export type EtatPersonne = {
+  personneCreee?: { id: string };
   erreur?: string;
   succes?: string;
   avertissement?: string;
@@ -152,6 +153,7 @@ export async function creerPersonne(
     if (erreurDetention) {
       revalidatePath(`/agence/${orgId}/personnes`);
       return {
+        personneCreee: { id: cree.id },
         succes:
           `Fiche créée, mais le rattachement au lot a échoué : ${sansJargon(erreurDetention.message)} Faites-le depuis la fiche du lot.` +
           (doublon
@@ -159,6 +161,14 @@ export async function creerPersonne(
             : ""),
       };
     }
+  }
+
+  if (formData.get("rester_dans_parcours") === "1") {
+    revalidatePath(`/agence/${orgId}/personnes`);
+    return {
+      succes: "Fiche créée.", personneCreee: { id: cree.id },
+      ...(doublon ? { avertissement: "Une personne de mêmes nom et date de naissance existe déjà. Vérifiez votre annuaire." } : {}),
+    };
   }
 
   // Doublon = on reste sur la liste avec l'avertissement (non bloquant)

@@ -35,7 +35,7 @@ export default async function PageDevisArtisan(props: PageProps<"/artisan/devis"
 
   return (
     <div className="space-y-6">
-      <EnteteSousPage titre="Demandes de devis" mention="Toutes agences confondues" />
+      <EnteteSousPage rubrique="finances" titre="Demandes de devis" mention="Toutes agences confondues" />
 
       {envoye && <Succes>Devis envoyé. L&apos;agence le compare et vous répond.</Succes>}
 

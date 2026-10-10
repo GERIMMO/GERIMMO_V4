@@ -1,3 +1,4 @@
+import { Banknote, Files, Wrench } from "lucide-react";
 import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
 import { estARenouveler, estExpiree, eur, formaterDate } from "@/lib/ged";
@@ -284,8 +285,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="mono-discret sans-majuscules">{aujourdhui}</p>
+      <div className="portail-hero portail-hero-accueil loc-bienvenue">
+        <p className="portail-surtitre">{aujourdhui}</p>
         <h1 className="mt-0.5">
           Bonjour{personne?.prenom ? ` ${personne.prenom}` : ""},
         </h1>
@@ -403,14 +404,14 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         </div>
       ))}
 
-      <div className="loc-grille">
+      <div className="loc-grille loc-accueil-grille">
         {/* Téléphone (24/09) : une carte par ligne. À deux colonnes de 177 px,
             « Mes demandes » restait seule à demi-largeur et les liens se
             cassaient en trois lignes, flèche orpheline comprise. Le ! garde la
             main sur toute règle .grille-kpi posée hors couche. */}
         <div className="grille-kpi max-sm:!grid-cols-1">
-          <div className={CARTE_KPI}>
-            <p className="text-[13px] font-semibold text-[var(--encre)]">{enRetard ? "Loyer restant à régler" : "Prochain loyer"}</p>
+          <div className={`${CARTE_KPI} carte-rubrique`} data-ton="bleu">
+            <p className="titre-rubrique text-sm font-semibold"><Banknote size={20} aria-hidden="true" />{enRetard ? "Loyer restant à régler" : "Prochain loyer"}</p>
             {eEcheancier ? (
               <div className="mt-2">
                 <LectureImpossible quoi="votre échéancier" />
@@ -436,8 +437,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               Voir mes paiements{"\u00a0"}→
             </Link>
           </div>
-          <div className={CARTE_KPI}>
-            <p className="text-[13px] font-semibold text-[var(--encre)]">Mes documents</p>
+          <div className={`${CARTE_KPI} carte-rubrique`} data-ton="violet">
+            <p className="titre-rubrique text-sm font-semibold"><Files size={20} aria-hidden="true" />Mes documents</p>
             {ePieces || eEcheancier || eDemandes ? (
               <div className="mt-2">
                 <LectureImpossible quoi="vos documents" />
@@ -466,7 +467,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                   {nbPiecesDemandees > 0
                     ? `${nbPiecesDemandees} pièce${nbPiecesDemandees > 1 ? "s" : ""} à déposer`
                     : !bail
-                    ? attestationValide ? "✓ Assurance à jour" : assuranceEnVerification ? "Assurance en cours de vérification" : "Assurance à déposer"
+                    ? assuranceEnVerification ? "Assurance en cours de vérification" : attestationValide ? "✓ Assurance à jour" : "Documents à votre disposition"
                     : renouvellementDepose
                       ? "Renouvellement déposé — en cours de vérification"
                       : assuranceARenouveler && derniere
@@ -500,8 +501,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               Voir mes documents{"\u00a0"}→
             </Link>
           </div>
-          <div className={CARTE_KPI}>
-            <p className="text-[13px] font-semibold text-[var(--encre)]">Mes demandes</p>
+          <div className={`${CARTE_KPI} carte-rubrique`} data-ton="or">
+            <p className="titre-rubrique text-sm font-semibold"><Wrench size={20} aria-hidden="true" />Mes demandes</p>
             {eIncidents ? (
               <div className="mt-2">
                 <LectureImpossible quoi="vos demandes" />

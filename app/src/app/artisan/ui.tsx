@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TitreEcran, type RubriqueEcran } from "@/components/titre-ecran";
 import { initialesAgence } from "./libelles";
 
 /**
@@ -62,11 +63,13 @@ export const CLASSE_AIDE = "text-[0.9375rem] text-[var(--texte-secondaire)]";
  */
 export function EnteteSousPage({
   titre,
+  rubrique = "incidents",
   mention,
   action,
   children,
 }: {
   titre: React.ReactNode;
+  rubrique?: RubriqueEcran;
   mention?: React.ReactNode;
   action?: React.ReactNode;
   children?: React.ReactNode;
@@ -74,7 +77,7 @@ export function EnteteSousPage({
   return (
     <div className="entete-page">
       <div className="min-w-0">
-        <h1 className="text-[1.375rem] leading-tight text-[var(--encre)]">{titre}</h1>
+        <TitreEcran rubrique={rubrique}>{titre}</TitreEcran>
         {mention && (
           <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">{mention}</p>
         )}
@@ -89,18 +92,21 @@ export function Carte({
   children,
   className = "",
   id,
+  ton,
 }: {
   children: React.ReactNode;
   className?: string;
+  ton?: "bleu" | "or" | "vert" | "violet";
   /** Une ancre, quand un lien de la page y mène (« Déposer ma décennale »). */
   id?: string;
 }) {
   return (
     <section
       id={id}
+      data-ton={ton}
       // scroll-mt : le bandeau du haut est collant, l'ancre ne doit pas
       // s'arrêter dessous.
-      className={`artisan-carte min-w-0 space-y-3 ${id ? "scroll-mt-28" : ""} ${className}`}
+      className={`artisan-carte ${ton ? "carte-rubrique" : ""} min-w-0 space-y-3 ${id ? "scroll-mt-28" : ""} ${className}`}
     >
       {children}
     </section>

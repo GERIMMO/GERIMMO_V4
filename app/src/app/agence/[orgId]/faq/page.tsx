@@ -49,7 +49,7 @@ export default async function PageFaqProprietaire(props: PageProps<"/agence/[org
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
-      <EnteteReglages titre="Questions fréquentes" mention={organisation.name}>
+      <EnteteReglages rubrique="aide" titre="Questions fréquentes" mention={organisation.name}>
         {/* 24/09 : la phrase finissait sur « chaque réponse vérifiée contre le
             comportement réel de l'application » — le commentaire du code
             recopié à l'écran, qui laissait entendre l'inverse. */}

@@ -127,7 +127,8 @@ test.describe("Côté agence", () => {
     await expect(fenetre(page)).toBeVisible();
     expect(await debordementHorizontal(page)).toBe(0);
     // Le bouton de fermeture reste atteignable au doigt (audit mobile 10/09).
-    const fermer = fenetre(page).getByRole("button", { name: "Fermer" });
+    // Viser la croix du header : le bouton du footer apparaît après le chargement.
+    const fermer = fenetre(page).getByLabel("Fermer", { exact: true });
     const boite = await fermer.boundingBox();
     expect(boite).not.toBeNull();
     expect(boite!.x + boite!.width).toBeLessThanOrEqual(390);

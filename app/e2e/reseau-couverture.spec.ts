@@ -15,7 +15,7 @@ test.describe("Couverture du réseau depuis le bien", () => {
     await page.getByLabel("Ville").fill("Lyon");
     await page.getByLabel(/Année de construction/).fill("1998");
     await page.getByLabel(/Parties communes/).fill("Hall et local vélos");
-    await page.getByLabel(/\(TIC\)/).fill("Fibre et TNT");
+    await page.getByLabel(/Accès internet, téléphone, TV/).fill("Fibre et TNT");
     await page.getByRole("button", { name: "Suivant", exact: true }).click();
   await page.getByLabel(/Surface.*m²/).fill("42");
     await page.getByLabel("Nombre de pièces").fill("2");

@@ -32,8 +32,13 @@ test("créer un bien depuis le téléphone : formulaire → fiche du parc", asyn
   await page.getByLabel("Ville").fill("Lyon");
   await page.getByLabel(/Année de construction/).fill("2005");
   await page.getByLabel(/Parties communes/).fill("Hall et cour intérieure");
-  await page.getByLabel(/\(TIC\)/).fill("Fibre optique et TNT");
+  await page.getByLabel(/Accès internet, téléphone, TV/).fill("Fibre optique et TNT");
   await page.getByRole("button", { name: "Suivant", exact: true }).click();
+  await expect(page.getByLabel("Nom du lot", { exact: true })).toHaveValue(nom);
+  await page.getByLabel("Nom du lot", { exact: true }).fill(`${nom} — appartement`);
+  await page.getByRole("button", { name: "Précédent", exact: true }).click();
+  await page.getByRole("button", { name: "Suivant", exact: true }).click();
+  await expect(page.getByLabel("Nom du lot", { exact: true })).toHaveValue(`${nom} — appartement`);
   await page.getByLabel(/Surface.*m²/).fill("51");
   await page.getByLabel("Nombre de pièces").fill("3");
   await page.getByRole("button", { name: "Créer le lot et continuer", exact: true }).click();

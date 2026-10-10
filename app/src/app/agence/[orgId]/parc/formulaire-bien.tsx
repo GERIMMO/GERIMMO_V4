@@ -60,7 +60,7 @@ export function FormulaireBien({
   const masquer = (champ: string) => Boolean(bien) && champsVisibles !== undefined && !champsVisibles.includes(champ);
   const [etapeCreation, setEtapeCreation] = useState(0);
   const formulaire = useRef<HTMLFormElement>(null);
-  const [restants, setRestants] = useState([7, 2]);
+  const [restants, setRestants] = useState([7, 3]);
   function actualiserReperes() {
     requestAnimationFrame(() => {
       if (!formulaire.current) return;
@@ -73,6 +73,8 @@ export function FormulaireBien({
     if (i === 1) {
       const champs = groupeBien.current?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea");
       for (const champ of champs ?? []) if (!champ.reportValidity()) return;
+      const nomBien = String(new FormData(formulaire.current ?? undefined).get("nom") ?? "").trim();
+      setLotUnique(lot => lot.nom === undefined ? {...lot, nom: nomBien} : lot);
     }
     setEtapeCreation(i);
     requestAnimationFrame(() => {
@@ -184,7 +186,7 @@ export function FormulaireBien({
   ]);
   const majLot = (i: number, champ: "nom" | "surface" | "pieces", valeur: string) =>
     setLots((l) => l.map((x, j) => (j === i ? { ...x, [champ]: valeur } : x)));
-  const [lotUnique, setLotUnique] = useState({surface: "", pieces: ""});
+  const [lotUnique, setLotUnique] = useState<{nom?: string; surface: string; pieces: string}>({surface: "", pieces: ""});
   const ajouterLot = () => { setLots((l) => [...l, { nom: "", surface: "", pieces: "" }]); if (guideActif) actualiserReperes(); };
   const retirerLot = (i: number) => { setLots((l) => l.filter((_, j) => j !== i)); if (guideActif) actualiserReperes(); };
 
@@ -529,6 +531,14 @@ export function FormulaireBien({
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor={`${idLot}-unique-nom`}>Nom du lot</Label>
+                <Input id={`${idLot}-unique-nom`} maxLength={200} required={guideActif}
+                  value={lotUnique.nom ?? ""} onChange={e => setLotUnique(lot => ({...lot, nom:e.target.value}))}
+                  placeholder="Appartement, studio, maison…" />
+                <p className="text-xs text-muted-foreground">Le nom affiché dans votre parc. Vous pouvez l’adapter ici.</p>
+              </div>
+              <input type="hidden" name="lots" value={JSON.stringify([lotUnique])} />
               <div className="space-y-2">
                 <Label htmlFor="lot-surface">
                   Surface {nonDecoupable ? "" : "du lot unique "}(m²)

@@ -37,7 +37,7 @@ test("le formulaire lui répond — et le bien qu'il crée reste visible", async
   await page.getByLabel("Ville").fill("Paris");
   await page.getByLabel(/Année de construction/).fill("1998");
   await page.getByLabel(/Parties communes/).fill("Hall et local vélos");
-  await page.getByLabel(/\(TIC\)/).fill("Fibre optique et TNT");
+  await page.getByLabel(/Accès internet, téléphone, TV/).fill("Fibre optique et TNT");
   await page.getByRole("button", { name: "Suivant", exact: true }).click();
   await page.getByLabel(/Surface.*m²/).fill("42");
   await page.getByLabel("Nombre de pièces").fill("2");

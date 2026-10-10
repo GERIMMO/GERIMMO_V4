@@ -279,7 +279,7 @@ export async function creerBien(page: Page, orgId: string, nom: string) {
   await saisir(page.getByLabel("Ville"), "Lyon");
   await saisir(page.getByLabel(/Année de construction/), "2005");
   await saisir(page.getByLabel(/Parties communes/), "Hall et cour intérieure");
-  await saisir(page.getByLabel(/\(TIC\)/), "Fibre optique et TNT");
+  await saisir(page.getByLabel(/Accès internet, téléphone, TV/), "Fibre optique et TNT");
   await cliquer(page.getByRole("button", { name: "Suivant", exact: true }));
   await saisir(page.getByLabel(/Surface.*m²/), "38");
   await saisir(page.getByLabel("Nombre de pièces"), "2");

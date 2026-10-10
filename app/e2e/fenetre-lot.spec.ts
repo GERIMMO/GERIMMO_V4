@@ -44,7 +44,8 @@ test.describe("Côté agence", () => {
     // `first()` : le mandant est nommé deux fois — comme détenteur (avec sa
     // quote-part) et comme mandant. C'est voulu : les deux rôles peuvent être
     // tenus par des personnes différentes, et l'agent doit voir les deux.
-    await expect(f.getByText("E2E Locataire")).toBeVisible();
+    await expect(f.getByText("Locataire", { exact: true })).toBeVisible();
+    await expect(f.getByText("E2E", { exact: true })).toBeVisible();
     await expect(f.getByText(/E2E Mandant/).first()).toBeVisible();
     // On n'a pas changé de page : c'est une fenêtre, pas une navigation.
     expect(page.url()).toBe(urlAvant);

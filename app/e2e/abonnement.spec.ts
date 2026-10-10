@@ -35,13 +35,13 @@ test.describe("Côté propriétaire bailleur", () => {
     ).toBeVisible();
   });
 
-  test("un seul bien n'est plus gratuit : Solo est recommandée, montant affiché", async ({
+  test("les deux lots de démonstration recommandent Bailleur avec le montant affiché", async ({
     page,
   }) => {
     const recap = page.locator(".rounded-lg").filter({ hasText: "Récapitulatif avant paiement" });
     await expect(page.getByText("Recommandée : la moins chère qui couvre votre portefeuille")).toBeVisible();
-    await expect(recap).toContainText("Formule Solo");
-    await expect(recap).toContainText("5,99");
+    await expect(recap).toContainText("Formule Bailleur");
+    await expect(recap).toContainText("9,99");
     await expect(recap).toContainText("Total à payer TTC");
     await expect(page.locator("main")).not.toContainText("offert, à vie");
   });
@@ -49,7 +49,7 @@ test.describe("Côté propriétaire bailleur", () => {
   test("en annuel, le montant prélevé en une fois est affiché", async ({ page }) => {
     await page.getByText("Annuel — deux mois offerts").click();
     const recap = page.locator(".rounded-lg").filter({ hasText: "Récapitulatif avant paiement" });
-    await expect(recap).toContainText("59,90");
+    await expect(recap).toContainText("99,90");
     await expect(recap).toContainText("prélevés en une fois pour douze mois");
   });
 

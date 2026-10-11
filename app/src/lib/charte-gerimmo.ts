@@ -11,6 +11,9 @@ export const CHARTE_GERIMMO = {
   filet: "#dce2e9",
   marque: "#14304f",
   logo: "/logo/gerimmo-officiel.png",
+  logoTransparent: "/logo/gerimmo-officiel-transparent.png",
+  logoTransparentLargeur: 1410,
+  logoTransparentHauteur: 1115,
   logoLargeur: 2016,
   logoHauteur: 1594,
 } as const;

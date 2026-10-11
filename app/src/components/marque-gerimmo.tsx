@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
 
-/** Le fichier officiel est conservé entier, sans redessin ni déformation. */
+/** Le logo officiel détouré se pose sur le fond de chaque écran. */
 export function MarqueGerimmo({
   className = "",
   surEncre = false,
@@ -12,10 +12,10 @@ export function MarqueGerimmo({
   return (
     <span className={`marque-gerimmo ${surEncre ? "marque-gerimmo-sur-encre" : ""} ${className}`}>
       <Image
-        src={CHARTE_GERIMMO.logo}
+        src={CHARTE_GERIMMO.logoTransparent}
         alt="Gerimmo — L’immobilier en confiance"
-        width={CHARTE_GERIMMO.logoLargeur}
-        height={CHARTE_GERIMMO.logoHauteur}
+        width={CHARTE_GERIMMO.logoTransparentLargeur}
+        height={CHARTE_GERIMMO.logoTransparentHauteur}
         sizes="(max-width: 640px) 72px, 180px"
       />
     </span>

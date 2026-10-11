@@ -1,15 +1,19 @@
 import Link from "next/link";
+import { ChevronRight, MapPin } from "lucide-react";
 import { TitreEcran } from "@/components/titre-ecran";
 import { BoutonResumeBien } from "@/components/resume-bien";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { ROLES_RESPONSABLES, eur } from "@/lib/ged";
+import { avancementLot } from "@/lib/avancement-lot";
+import { AvancementLot } from "@/components/avancement-lot";
 import { resumerBlocage } from "@/lib/echeances";
 import { etiqueterNiveau } from "@/lib/diagnostics";
 import {
   TYPES_BIEN,
+  ETATS_LOT,
+  COULEURS_ETAT_LOT,
   formaterSurface,
-  cibleBlocage,
 } from "@/lib/parc";
 import {
   Card,
@@ -22,6 +26,7 @@ import { FormulaireEquipementCatalogue } from "./formulaire-equipement-catalogue
 import { PaneParc, lireSelection } from "./pane-parc";
 import { FenetreLotProvider, BoutonLot } from "@/components/fenetre-lot";
 import { EchecLecture } from "./echec-lecture";
+import styles from "./liste-lots.module.css";
 
 export const metadata = { title: "Parc — Gerimmo" };
 
@@ -30,15 +35,12 @@ type LotResume = {
   nom: string;
   etat: string;
   surface_m2: number | null;
-};
-
-// Un lot concerné par un motif de blocage, avec de quoi construire son lien :
-// le message d'ORIGINE de la base, pas l'étiquette raccourcie de l'affichage.
-type LotBloque = {
-  lotId: string;
-  bienId: string;
-  nom: string;
-  message: string;
+  pieces: number | null;
+  identifiant_fiscal: string | null;
+  chauffage: string | null;
+  eau_chaude: string | null;
+  locaux_privatifs: string | null;
+  description: string | null;
 };
 
 // Le parc de l'agence : chaque bien et ses lots (RM-0.1.2 : tout bien a au
@@ -69,13 +71,17 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     { data: equipements, error: erreurEquipements },
     { data: bauxActifs, error: erreurBaux },
     { data: blocagesParc, error: erreurBlocages },
+    { data: detentions, error: erreurDetentions },
+    { data: diagnostics, error: erreurDiagnostics },
+    { data: pieces, error: erreurPieces },
+    { data: chambres, error: erreurChambres },
   ] = await Promise.all([
     supabase
       .from("biens")
       // !lots_bien_id_fkey : depuis les FK composites (revue 2), deux relations
       // lient lots à biens — sans ce choix explicite, PostgREST refuse la jointure
       .select(
-        "id, nom, type, address_line1, postal_code, city, archived_at, lots!lots_bien_id_fkey(id, nom, etat, surface_m2)"
+        "id, nom, type, address_line1, postal_code, city, archived_at, lots!lots_bien_id_fkey(id, nom, etat, surface_m2, pieces, identifiant_fiscal, chauffage, eau_chaude, locaux_privatifs, description)"
       )
       .eq("organization_id", orgId)
       .order("nom"),
@@ -92,6 +98,10 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
       .in("etat", ["actif", "preavis"]),
     // Motifs de blocage de tous les lots en préparation, en un aller-retour (perf 30/08)
     supabase.rpc("lots_blocages_location", { p_org: orgId }),
+    supabase.from("detentions").select("lot_id, quote_part").eq("organization_id", orgId).is("date_fin", null),
+    supabase.from("diagnostics").select("lot_id, bien_id, type, date_expiration, classe_dpe").eq("organization_id", orgId).is("archived_at", null),
+    supabase.from("lot_pieces").select("lot_id").eq("organization_id", orgId),
+    supabase.from("lot_chambres").select("lot_id").eq("organization_id", orgId),
   ]);
 
   // Un bien RETIRÉ (archivé, 27/09) quitte le parc et l'abonnement : il ne
@@ -129,44 +139,16 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     .reduce((s, b) => s + Number(b.loyer_hc) + Number(b.charges), 0);
 
 
-  // « Éléments à compléter » (maquette) : les motifs de blocage de mise en
-  // location, agrégés sur les lots en préparation, triés du plus fréquent.
-  //
-  // Relevé du 11/09 : la carte annonçait « traitez ce qui bloque ci-dessous »
-  // puis n'offrait pas un seul lien, alors que la RPC renvoie déjà le lot_id —
-  // que l'agrégation jetait. Chaque motif garde désormais ses lots ET le
-  // message d'origine de la base : `cibleBlocage` teste ce texte brut
-  // (« erp », « surface », « détention »…), jamais l'étiquette raccourcie —
-  // agréger sur la seule étiquette renverrait tous les liens sur le cas par
-  // défaut « Mettre à jour les diagnostics ».
-  const lotsConnus = new Map(tousLots.map((l) => [l.id, l]));
-  const parMotif = new Map<string, LotBloque[]>();
-  for (const ligne of (blocagesParc ?? []) as {
-    lot_id: string;
-    blocages: string[] | null;
-  }[]) {
-    // Un lot hors du portefeuille de l'agent n'est ni listé à gauche ni
-    // ouvrable : le compter ici gonflait « X au total » de lignes invisibles,
-    // et la carte ne pourrait de toute façon pas y mener (RM-18.1.3).
-    const lot = lotsConnus.get(ligne.lot_id);
-    if (!lot) continue;
-    for (const message of ligne.blocages ?? []) {
-      // Un diagnostic est compté avec son niveau de rattachement (« au lot » /
-      // « à l'immeuble ») — même étiquette que les fiches bien et lot.
-      const cle = etiqueterNiveau(resumerBlocage(message), message);
-      const lots = parMotif.get(cle) ?? [];
-      // `resumerBlocage` ramène plusieurs messages de la base à une même
-      // étiquette : un DPE à la fois classe G ET périmé en produit deux, qui se
-      // lisent tous deux « DPE absent ». Un lot n'est retenu qu'une fois par
-      // motif — sinon la carte alignait deux pastilles identiques pour lui.
-      if (lots.some((x) => x.lotId === lot.id)) continue;
-      lots.push({ lotId: lot.id, bienId: lot.bien_id, nom: lot.nomComplet, message });
-      parMotif.set(cle, lots);
-    }
-  }
-  const motifsTries = [...parMotif.entries()].sort((a, b) => b[1].length - a[1].length);
-  const totalBlocages = motifsTries.reduce((s, [, lots]) => s + lots.length, 0);
-  const maxMotif = Math.max(1, ...motifsTries.map(([, lots]) => lots.length));
+  const lotsConnus = new Set(tousLots.map(l => l.id));
+  const totalBlocages = (blocagesParc ?? []).filter((l: { lot_id: string }) => lotsConnus.has(l.lot_id))
+    .reduce((n: number, l: { blocages: string[] | null }) => n + new Set((l.blocages ?? []).map(message => etiqueterNiveau(resumerBlocage(message), message))).size, 0);
+  const progressions = new Map(biensVisibles.flatMap(bien => bien.lotsVisibles.map(lot => [lot.id, avancementLot({
+    lot, bien,
+    quoteParts: erreurDetentions ? null : (detentions ?? []).filter(d => d.lot_id === lot.id).reduce((n, d) => n + Number(d.quote_part), 0),
+    pieces: erreurPieces || erreurChambres ? null : [...(pieces ?? []), ...(chambres ?? [])].filter(p => p.lot_id === lot.id).length,
+    diagnosticsLot: erreurDiagnostics ? null : (diagnostics ?? []).filter(d => d.lot_id === lot.id),
+    diagnosticsBien: erreurDiagnostics ? null : (diagnostics ?? []).filter(d => d.bien_id === bien.id),
+  })] as const)));
 
   // Un parc illisible ressemble trait pour trait à un parc vide : sans ce
   // relevé, l'écran invitait à « créer votre premier bien » à une agence qui
@@ -179,6 +161,10 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   noter("le catalogue d’équipements", erreurEquipements);
   noter("les baux en cours", erreurBaux);
   noter("les éléments qui bloquent la mise en location", erreurBlocages);
+  noter("les propriétaires des lots", erreurDetentions);
+  noter("les diagnostics des lots", erreurDiagnostics);
+  noter("les pièces des lots", erreurPieces);
+  noter("les chambres en colocation", erreurChambres);
 
   return (
     // Le fournisseur enveloppe l'écran : chaque rang de lot y puise de quoi
@@ -318,7 +304,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         <div
           className={`split min-[901px]:grid-cols-[minmax(0,380px)_minmax(0,1fr)] ${selectionBien ? "detail-actif" : ""}`}
         >
-          <div className="colonne-liste-split volet-liste">
+          <div className={`colonne-liste-split volet-liste ${estProprietaire ? styles.liste : ""}`} id="liste-lots">
             <div className="tete-liste">
               <span className="mono-discret">Lots</span>
               {selectionBien ? (
@@ -332,10 +318,12 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                 </span>
               )}
             </div>
+            <div className={estProprietaire ? styles.cartes : undefined}>
             {biensVisibles.map((bien) => (
-              <div key={bien.id}>
+              <div key={bien.id} className={estProprietaire ? styles.groupe : undefined}>
                 {bien.lotsVisibles.length === 0 && (
-                  <BoutonResumeBien orgId={orgId} bien={bien} className="rang-lot">
+                  <BoutonResumeBien orgId={orgId} bien={bien} className={estProprietaire ? styles.carte : "rang-lot"}>
+                    {estProprietaire ? <IdentiteLotListe nom={bien.nom} bien={bien} surface={null} /> : (
                     <span className="min-w-0 flex-1 text-left text-[13px]">
                       <b className="block break-words font-medium">{bien.nom}</b>
                       <span className="mt-1 block text-xs text-muted-foreground">
@@ -345,6 +333,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                         {bien.address_line1}, {bien.postal_code} {bien.city}
                       </span>
                     </span>
+                    )}
                   </BoutonResumeBien>
                 )}
                 {bien.lotsVisibles.map((lot) => (
@@ -353,8 +342,13 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                     lotId={lot.id}
                     libelle={`${bien.nom} · ${lot.nom}`}
                     href={`/agence/${orgId}/parc/${bien.id}/lots/${lot.id}`}
-                    className="rang-lot"
+                    className={estProprietaire ? styles.carte : "rang-lot"}
+                    data-etat={lot.etat}
                   >
+                    {estProprietaire ? <>
+                      <IdentiteLotListe nom={lot.nom === "Lot unique" ? bien.nom : lot.nom} bien={bien} surface={lot.surface_m2} etat={lot.etat} />
+                      <AvancementLot avancement={progressions.get(lot.id) ?? null} nom={lot.nom === "Lot unique" ? bien.nom : lot.nom} />
+                    </> : (
                     <span className="min-w-0 flex-1 text-left text-[13px]">
                       <b className="block break-words font-medium">{lot.nom === "Lot unique" ? bien.nom : lot.nom}</b>
                       <span className="mt-1 block text-xs text-muted-foreground">
@@ -363,7 +357,9 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                       <span className="mt-1 block break-words text-xs text-muted-foreground">
                         {bien.address_line1}, {bien.postal_code} {bien.city}
                       </span>
+                      <AvancementLot avancement={progressions.get(lot.id) ?? null} nom={lot.nom === "Lot unique" ? bien.nom : lot.nom} />
                     </span>
+                    )}
                   </BoutonLot>
                 ))}
               </div>
@@ -373,8 +369,9 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                 key={bien.id}
                 orgId={orgId}
                 bien={bien}
-                className="rang-lot rang-lot-retire"
+                className={estProprietaire ? `${styles.carte} ${styles.retire} rang-lot-retire` : "rang-lot rang-lot-retire"}
               >
+                {estProprietaire ? <IdentiteLotListe nom={bien.nom} bien={bien} surface={(bien.lots as LotResume[]).length === 1 ? (bien.lots as LotResume[])[0].surface_m2 : undefined} etat="archive" /> : (
                 <span className="min-w-0 flex-1 text-left text-[13px]">
                   <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                     <b className="min-w-0 break-words font-medium">{bien.nom}</b>
@@ -386,8 +383,10 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   </span>
                   <span className="mt-1 block break-words text-xs">{bien.address_line1}, {bien.postal_code} {bien.city}</span>
                 </span>
+                )}
               </BoutonResumeBien>
             ))}
+            </div>
           </div>
 
           {selectionBien ? (
@@ -410,7 +409,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
             <p className="text-sm text-muted-foreground max-[900px]:hidden">
               Sélectionnez un bien pour le lire ici ; un lot s&apos;ouvre dans une
               fenêtre.
-              {!erreurBlocages && totalBlocages > 0 && " Ce qui bloque la mise en location se traite ci-dessous."}
+              Chaque barre indique l’avancement de la fiche du lot, indépendamment de son bail.
             </p>
             {/* `grille-kpi` compte ses colonnes d'après la place dont elle
                 dispose : ces tuiles vivent dans le volet droit d'une vue
@@ -499,7 +498,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                     // mener (24/09) : le lien y mène.
                     <p className="text-sm text-muted-foreground">
                       Aucun lot disponible pour l&apos;instant.{" "}
-                      <a href="#preparer-lots" className="lien-discret text-[13px]">
+                      <a href="#liste-lots" className="lien-discret text-[13px]">
                         Voir {enPreparation.length > 1 ? `les ${enPreparation.length} lots` : "le lot"} en
                         préparation&nbsp;→
                       </a>
@@ -515,53 +514,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   </div>
                 </CardContent>
               </Card>
-              <Card id="preparer-lots" className="scroll-mt-20">
-                <CardContent>
-                  <div className="entete-carte">
-                    <h2 className="text-[length:var(--pas-sous-titre)]">Préparer les nouveaux lots</h2>
-                    {/* « au total » ne se rattachait à rien : même mot que la
-                        tuile et la fiche bien (24/09). */}
-                    {!erreurBlocages && enPreparation.length > 0 && (
-                      <span className="mono-discret">
-                        {totalBlocages === 0 ? "rien à régler" : `${totalBlocages} à régler`}
-                      </span>
-                    )}
-                  </div>
-                  {erreurBlocages ? (
-                    // « Rien à compléter » est un verdict : on ne le rend pas
-                    // sur une lecture qui a échoué.
-                    <p className="text-sm text-muted-foreground">
-                      Liste indisponible — voir le message en haut de page.
-                    </p>
-                  ) : motifsTries.length === 0 ? (
-                    <p className="text-sm text-success-soft-foreground">
-                      {enPreparation.length === 0
-                        ? "Aucun lot en préparation. Vérifiez les lots disponibles avant chaque nouveau bail."
-                        : "Aucun blocage relevé sur les lots en préparation. Ouvrez leur fiche pour poursuivre la mise en location."}
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {motifsTries.map(([motif, lots]) => (
-                        <div key={motif}>
-                          <div className="mb-1 flex items-baseline justify-between gap-3 text-[13px]">
-                            <span className="min-w-0 truncate">{motif}</span>
-                            <span className="mono-discret">{lots.length}</span>
-                          </div>
-                          <span className="barre block" style={{ height: 7 }}>
-                            <i
-                              style={{
-                                width: `${Math.round((lots.length / maxMotif) * 100)}%`,
-                                background: "var(--warning)",
-                              }}
-                            />
-                          </span>
-                          <LotsDuMotif orgId={orgId} lots={lots} />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+
             </div>
             )}
           </div>
@@ -622,57 +575,21 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   );
 }
 
-// Les lots concernés par un motif, chacun menant à l'endroit qui le lève
-// (`cibleBlocage`). Repliés au-delà de trois : la carte doit rester une carte.
-// Le libellé de l'action vit dans l'aria-label — la pastille, elle, n'affiche
-// que le nom du lot, seul élément qui distingue les liens entre eux.
-function LotsDuMotif({ orgId, lots }: { orgId: string; lots: LotBloque[] }) {
-  const lien = (l: LotBloque) => {
-    const cible = cibleBlocage(l.message, {
-      orgId,
-      bienId: l.bienId,
-      lotId: l.lotId,
-    });
-    return (
-      <Link
-        key={l.lotId}
-        href={cible.href}
-        aria-label={`${cible.libelle} — ${l.nom}`}
-        className="puce puce-grise max-w-full hover:underline"
-      >
-        <span className="min-w-0 truncate">{l.nom}</span>
-        <span aria-hidden>→</span>
-      </Link>
-    );
-  };
-  const visibles = lots.slice(0, 3);
-  const reste = lots.slice(3);
-  return (
-    <div className="mt-1.5 space-y-1.5">
-      <div className="flex flex-wrap gap-1.5">{visibles.map(lien)}</div>
-      {reste.length > 0 && (
-        // UNE PASTILLE QUI SE DÉPLIE (24/09), et non une légende grise de
-        // 11 px, identique au « 68 au total » qui, lui, ne se clique pas :
-        // rien n'indiquait qu'elle cachait quatorze liens. Chevron qui
-        // tourne à l'ouverture, cible tactile de la règle maison.
-        <details className="group">
-          <summary className="puce puce-grise cursor-pointer list-none pointer-coarse:min-h-[var(--cible-tactile)] [&::-webkit-details-marker]:hidden">
-            + {reste.length} autre{reste.length > 1 ? "s" : ""} lot
-            {reste.length > 1 ? "s" : ""}
-            <svg
-              aria-hidden
-              viewBox="0 0 24 24"
-              width="12"
-              height="12"
-              className="transition-transform group-open:rotate-180 motion-reduce:transition-none"
-            >
-              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2"
-                    strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </summary>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">{reste.map(lien)}</div>
-        </details>
-      )}
-    </div>
-  );
+function IdentiteLotListe({ nom, bien, surface, etat }: {
+  nom: string;
+  bien: { type: string; address_line1: string; postal_code: string; city: string };
+  surface?: number | null;
+  etat?: string;
+}) {
+  return <span className={styles.identite}>
+    <span className={styles.entete}>
+      <strong className={styles.nom}>{nom}</strong>
+      <ChevronRight size={18} className={styles.chevron} aria-hidden="true" />
+    </span>
+    <span className={styles.details}>
+      <span>{TYPES_BIEN[bien.type] ?? bien.type}{surface !== undefined && <> · {surface !== null ? formaterSurface(surface) : "Surface non renseignée"}</>}</span>
+      {etat && <span className={etat === "archive" ? "lot-etiquette-archive" : COULEURS_ETAT_LOT[etat] ?? "puce puce-grise"}>{ETATS_LOT[etat] ?? etat}</span>}
+    </span>
+    <span className={styles.adresse}><MapPin size={14} aria-hidden="true" /><span>{[bien.address_line1, [bien.postal_code, bien.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</span></span>
+  </span>;
 }

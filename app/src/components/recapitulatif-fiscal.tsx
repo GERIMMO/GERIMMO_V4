@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { csvRecapitulatifFiscal } from "@/lib/fiscal-export";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, aujourdhuiParis } from "@/lib/ged";
@@ -19,6 +20,10 @@ export async function RecapitulatifFiscal(props: {
   const { annee: anneeDemandee, bien } = await props.searchParams;
   const { supabase, user, estProprietaire } = await verifierAccesEspace(orgId);
   if (!estProprietaire) notFound();
+
+  const { data: biensDisponibles, error: erreurListeBiens } = props.compact
+    ? { data: [], error: null }
+    : await supabase.from("biens").select("id, nom").eq("organization_id", orgId).order("nom");
 
   const { data: lotsDuBien, error: erreurBien } = bien
     ? await supabase.from("lots").select("id").eq("organization_id", orgId).eq("bien_id", bien)
@@ -248,8 +253,17 @@ export async function RecapitulatifFiscal(props: {
           aide pour recopier, pas une déclaration : vérifiez chaque montant et
           complétez ce que le livre ne suit pas.
         </p>
-        {navigation}
       </div>
+      <section className="loc-carte space-y-3">
+        <h2 className="text-lg">1. Choisir l’année et les biens</h2>
+        <form action={`/agence/${orgId}/comptabilite/fiscal`} className="grid items-end gap-3 sm:grid-cols-[1fr_2fr_auto]">
+          <label className="space-y-1 text-sm">Année<select name="annee" defaultValue={annee} className="min-h-11 w-full rounded-lg border border-input bg-background px-3">{anneesProposees.map(a => <option key={a} value={a}>{a}</option>)}</select></label>
+          <label className="space-y-1 text-sm">Biens<select name="bien" defaultValue={bien ?? ""} className="min-h-11 w-full rounded-lg border border-input bg-background px-3"><option value="">Tous mes biens</option>{(biensDisponibles ?? []).map(b => <option key={b.id} value={b.id}>{b.nom}</option>)}</select></label>
+          <button type="submit" className="btn-or">Afficher</button>
+        </form>
+        {erreurListeBiens && <p role="alert" className="text-sm text-destructive">La liste des biens n’a pas pu être chargée. Rechargez la page pour affiner le périmètre.</p>}
+      </section>
+      <h2 className="text-lg">2. Vérifier les montants</h2>
 
       {anneeVide && (
         <div className="vide-guide">
@@ -392,6 +406,11 @@ export async function RecapitulatifFiscal(props: {
         </Card>
       )}
 
+      {!anneeVide && <section className="loc-carte space-y-3">
+        <h2 className="text-lg">3. Conserver le récapitulatif</h2>
+        <p className="text-sm text-muted-foreground">Exportez les rubriques affichées pour préparer votre déclaration. Les montants à compléter restent vides dans le fichier.</p>
+        <a className="btn-or inline-flex" download={`recapitulatif-fiscal-${annee}.csv`} href={`data:text/csv;charset=utf-8,${encodeURIComponent(csvRecapitulatifFiscal(recap, annee))}`}>Exporter les montants (CSV)</a>
+      </section>}
       <p className="text-xs text-muted-foreground">
         Régime micro-foncier : si vos recettes brutes n&apos;excèdent pas
         15 000 €, seule la ligne des recettes vous sert (abattement automatique

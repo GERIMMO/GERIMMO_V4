@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { formaterSurface } from "@/lib/parc";
 import { FormulaireLot, type LotFormulaire } from "./formulaire-lot";
 
-export function RecapLot({ orgId, bienId, lot, verrouille, copropriete, modifierInitial = false }: {
+export function RecapLot({ orgId, bienId, lot, verrouille, copropriete, typeBien, modifierInitial = false }: {
   orgId: string;
   bienId: string;
   lot: LotFormulaire;
   verrouille: boolean;
   copropriete?: boolean | null;
+  typeBien?: string;
   modifierInitial?: boolean;
 }) {
   const [modifier, setModifier] = useState(modifierInitial);
@@ -39,7 +40,7 @@ export function RecapLot({ orgId, bienId, lot, verrouille, copropriete, modifier
     {/* Garder le formulaire monté préserve les saisies lors d’un aller-retour au résumé. */}
     <div hidden={!modifier} className="space-y-3">
       {verrouille && <p className="text-xs text-warning-soft-foreground">Lot loué : surface et pièces verrouillées, modification par avenant au bail.</p>}
-      <FormulaireLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} copropriete={copropriete} />
+      <FormulaireLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} copropriete={copropriete} typeBien={typeBien} />
     </div>
   </div>;
 }

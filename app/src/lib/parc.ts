@@ -161,9 +161,9 @@ export function alertesDecence(lot: {
   surface_m2: number | null;
 }): string[] {
   const alertes: string[] = [];
-  if (lot.surface_m2 !== null && lot.surface_m2 < 9) {
+  if (lot.surface_m2 !== null && Number.isFinite(lot.surface_m2) && lot.surface_m2 > 0 && lot.surface_m2 < 9) {
     alertes.push(
-      "Surface habitable < 9 m² : sous le seuil de décence (location d'habitation impossible en l'état)"
+      "Pour une location d’habitation, la pièce principale doit avoir au moins 9 m² avec 2,20 m de hauteur, ou un volume habitable d’au moins 20 m³. Vérifiez également les règles locales."
     );
   }
   return alertes;

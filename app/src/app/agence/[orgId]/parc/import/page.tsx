@@ -54,7 +54,7 @@ export default async function PageImportParc(
 
       <section className="loc-carte">
         <div className="entete-carte">
-          <h3>1. Le gabarit</h3>
+          <h3>Préparer votre fichier</h3>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Partez de ce fichier, ou reprenez l&apos;export de votre outil actuel :
@@ -90,7 +90,7 @@ export default async function PageImportParc(
 
       <section className="loc-carte">
         <div className="entete-carte">
-          <h3>2. Le fichier, contrôlé puis importé</h3>
+          <h3>Importer en trois temps</h3>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Le contrôle n&apos;écrit rien : il dit, ligne par ligne, ce qui
@@ -100,11 +100,7 @@ export default async function PageImportParc(
             la carte, à la taille du texte (24/09) : en 12 px gris sous les
             cartes, c'était le texte le moins lu de la page. */}
         <p className="mt-2 mb-4 text-sm text-muted-foreground">
-          Les baux arrivent <b>en brouillon</b>, et c&apos;est voulu : activer un
-          bail passe par les contrôles de mise en location (diagnostics, état des
-          lieux, mentions obligatoires). Un import qui créerait des baux actifs
-          les contournerait en masse — ce que ces contrôles existent précisément
-          pour empêcher.
+          Les baux importés restent <b>en brouillon</b>. Vous pourrez les compléter et les activer depuis chaque lot.
         </p>
         <FormulaireImport orgId={orgId} />
       </section>

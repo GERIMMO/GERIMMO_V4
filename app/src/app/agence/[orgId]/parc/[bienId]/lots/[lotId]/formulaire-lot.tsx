@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { AlerteSurfaceLogement } from "@/components/alerte-surface-logement";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { modifierLot, type EtatParc } from "@/app/actions/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -28,6 +30,7 @@ export function FormulaireLot({
   lot,
   verrouille,
   copropriete,
+  typeBien,
   libelleEnregistrer = "Enregistrer",
   champsVisibles,
 }: {
@@ -36,6 +39,7 @@ export function FormulaireLot({
   lot: LotFormulaire;
   verrouille: boolean;
   copropriete?: boolean | null;
+  typeBien?: string;
   libelleEnregistrer?: string;
   /** Présentation ciblée du bail : les autres champs restent montés et soumis. */
   champsVisibles?: string[];
@@ -43,6 +47,7 @@ export function FormulaireLot({
   const masquer = (champ: string) => champsVisibles !== undefined && !champsVisibles.includes(champ);
   const actionLiee = modifierLot.bind(null, orgId, bienId, lot.id);
   const { etat, soumettre: action, enCours } = useActionFormulaire<EtatParc>(actionLiee);
+  const [surface, setSurface] = useState(String(lot.surface_m2 ?? ""));
 
   return (
     <form data-champs-cibles={champsVisibles !== undefined || undefined} onSubmit={action} className="space-y-4">
@@ -77,9 +82,12 @@ export function FormulaireLot({
             step="0.01"
             min="0.01"
             required
-            defaultValue={etat.valeurs?.surface_m2 ?? lot.surface_m2 ?? ""}
+            value={surface}
+            onChange={event => setSurface(event.target.value)}
+            aria-describedby="lot-surface-aide"
             disabled={verrouille}
           />
+          <AlerteSurfaceLogement id="lot-surface-aide" surface={surface} typeBien={typeBien} />
         </div>
         <div hidden={masquer("surface_carrez")} className="space-y-2">
           <Label htmlFor="lot-carrez">Surface Carrez (m²) — Facultatif</Label>

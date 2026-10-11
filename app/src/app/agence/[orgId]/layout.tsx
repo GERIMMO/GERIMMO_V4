@@ -230,7 +230,7 @@ export default async function LayoutAgence({
               (24/09) : icône seule sous 1 024 px, et sur téléphone
               (≤ 640 px) elle passe dans le tiroir « Menu » de la barre basse.
               `!` : `.lien-bandeau` (hors couche) l'emporterait sur `hidden`. */}
-          <LienAssistance title="Aide et retours" className="lien-bandeau justify-center pointer-coarse:min-w-11 max-[641px]:!hidden">
+          <LienAssistance destination={estProprietaire ? `/agence/${orgId}/faq` : undefined} title="Aide et retours" className="lien-bandeau justify-center pointer-coarse:min-w-11 max-[641px]:!hidden">
             <IconeTrait nom="quest" className="size-4 shrink-0" />
             <span className="hidden lg:inline">Aide et retours</span>
           </LienAssistance>

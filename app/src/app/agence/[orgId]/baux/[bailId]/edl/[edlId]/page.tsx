@@ -1,3 +1,4 @@
+import { EtapesSaisie } from "@/components/etapes-saisie";
 import Link from "next/link";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { notFound } from "next/navigation";
@@ -22,7 +23,7 @@ export default async function PageEdl(
 ) {
   const { orgId, bailId, edlId } = await props.params;
   exigerUuids(bailId, edlId);
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
 
   const { data: edl, error: erreurEdl } = await supabase
     .from("etats_des_lieux")
@@ -200,13 +201,13 @@ export default async function PageEdl(
               {signe ? "Signé — figé" : "En cours de saisie"}
             </span>
             {/* Documents-0 : le PDF (14/15) depuis la grille réelle */}
-            <BoutonGenererDocument
+            {(!estProprietaire || signe) && <BoutonGenererDocument
               orgId={orgId}
               code="edl"
               cibleId={edlId}
               cheminRetour={`/agence/${orgId}/baux/${bailId}/edl/${edlId}`}
               libelle="Générer le PDF"
-            />
+            />}
           </span>
         </div>
         {suiteRestitution && (
@@ -221,7 +222,13 @@ export default async function PageEdl(
 
       <EchecLecture quoi={echecs} />
 
-      <Card>
+      <EtapesSaisie activer={estProprietaire && !signe} titre="État des lieux" etapes={[
+        {titre:"Informations", detail:"Identifiez les personnes présentes et les mentions du document."},
+        {titre:"Les pièces", detail:"Examinez une pièce à la fois. Enregistrez la grille avant de poursuivre."},
+        {titre:"Compteurs et clés", detail:"Renseignez les relevés et les clés remises, puis enregistrez."},
+        {titre:"Validation", detail:"Vérifiez le dossier, préparez le PDF puis déposez la preuve de signature."},
+      ]} contenus={[
+      <Card key="mentions">
         <CardHeader>
           <CardTitle className="text-base">Mentions du document</CardTitle>
           <CardDescription>
@@ -245,9 +252,9 @@ export default async function PageEdl(
             }}
           />
         </CardContent>
-      </Card>
+      </Card>,
 
-      <Card>
+      <Card key="pieces">
         <CardHeader>
           <CardTitle className="text-base">Pièce par pièce</CardTitle>
           <CardDescription>
@@ -309,6 +316,7 @@ export default async function PageEdl(
             </div>
           )}
           <GrilleEdl
+            zoneSignatureId={estProprietaire && !signe ? "edl-validation" : undefined}
             orgId={orgId}
             bailId={bailId}
             edlId={edlId}
@@ -330,9 +338,9 @@ export default async function PageEdl(
             }
           />
         </CardContent>
-      </Card>
+      </Card>,
 
-      <Card>
+      <Card key="annexes">
         <CardHeader>
           <CardTitle className="text-base">Compteurs & clés</CardTitle>
           <CardDescription>
@@ -360,7 +368,13 @@ export default async function PageEdl(
             enregistrer={enregistrerAnnexes}
           />
         </CardContent>
-      </Card>
+      </Card>,
+      ...(estProprietaire && !signe ? [<div key="validation" className="space-y-4">
+        <div id="edl-validation" />
+        <p className="text-sm text-muted-foreground">Les mentions, les relevés et les clés enregistrés seront repris dans le document. Vérifiez-les avant de le faire signer aux parties.</p>
+        <BoutonGenererDocument orgId={orgId} code="edl" cibleId={edlId} cheminRetour={`/agence/${orgId}/baux/${bailId}/edl/${edlId}`} libelle="Générer le PDF" />
+      </div>] : []),
+      ]} />
     </main>
   );
 }

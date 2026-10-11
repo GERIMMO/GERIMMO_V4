@@ -65,14 +65,14 @@ export function FormulaireQualification({
   }, [etat.succes, apresSucces]);
 
   return (
-    <form action={action} className="space-y-3">
+    <form action={action} className="incident-formulaire-qualification space-y-3">
       <RepereJuridique slug={categorie} />
       <fieldset className="space-y-1.5">
         <legend className="libelle-champ">Qui prend en charge *</legend>
         {/* Décision opposable : rangées pleine largeur avec du padding — les
             radios natives de 13px se cochent mal au pouce */}
         {Object.entries(IMPUTATIONS_INCIDENT).map(([valeur, libelle]) => (
-          <label key={valeur} className="flex items-center gap-2.5 py-2 text-sm">
+          <label key={valeur} className="incident-choix-charge flex items-center gap-2.5 py-2 text-sm">
             <input
               type="radio"
               name="imputation"
@@ -95,7 +95,7 @@ export function FormulaireQualification({
           // et la troisième était coupée à mi-hauteur.
           rows={3}
           defaultValue={etat.valeurs?.justification ?? justification ?? undefined}
-          placeholder="Opposable au locataire — le fondement et le constat qui motivent votre décision."
+          placeholder="Décrivez le constat et la raison de votre décision."
           className={classeTextarea}
         />
       </div>

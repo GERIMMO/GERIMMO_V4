@@ -1,6 +1,11 @@
 import { expect, it } from "vitest";
 import { cibleChampBail } from "@/lib/documents/champs-bail-parcours";
 it.each([
+  ["identifiant fiscal du logement", "logement", "#completer-lot"],
+  ["autres parties du logement", "logement", "#completer-lot"],
+  ["chauffage du logement", "logement", "#completer-lot"],
+  ["eau chaude du logement", "logement", "#completer-lot"],
+  ["locaux privatifs du logement", "logement", "#completer-lot"],
   ["jour du mois", "loyer", "#etape-bail-4"],
   ["Jour d’échéance du loyer", "loyer", "#etape-bail-4"],
   ["commune de naissance", "personnes", "#completer-personnes"],

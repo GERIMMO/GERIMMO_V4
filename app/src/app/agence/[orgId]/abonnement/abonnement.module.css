@@ -1,0 +1,101 @@
+.page { max-width: 1320px; }
+.page > header { margin-bottom: 24px; }
+.synthese { padding: 24px; border: 1px solid var(--filet); border-radius: 14px; background: linear-gradient(115deg, var(--carte) 30%, var(--or-clair)); box-shadow: 0 4px 18px color-mix(in srgb, var(--encre) 3%, transparent); }
+.syntheseEntete { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.syntheseTitre { display: flex; align-items: center; gap: 12px; }
+.iconeSynthese { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid color-mix(in srgb, var(--prestige-champagne) 40%, transparent); border-radius: 12px; background: var(--or-clair); color: var(--prestige-champagne-texte); }
+.surtitre { margin-bottom: 5px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--texte-secondaire); }
+.synthese h2 { font-size: 21px; line-height: 1.3; color: var(--encre); }
+.indicateurs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin-top: 22px; }
+.indicateurs > div { display: flex; flex-direction: column; gap: 8px; border-left: 1px solid var(--filet); padding-left: 22px; min-width: 0; }
+.indicateurs > div:first-child { padding-left: 0; border: 0; }
+.indicateurs > div > span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--texte-secondaire); }
+.indicateurs strong { font-size: 24px; font-weight: 600; color: var(--encre); font-variant-numeric: tabular-nums; line-height: 1.3; }
+.indicateurs small { font-size: 11px; font-weight: 400; color: var(--texte-secondaire); }
+.indicateurs a { display: inline-flex; align-items: center; gap: 6px; align-self: start; font-size: 11px; color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
+.noteEssai { display: flex; align-items: flex-start; gap: 9px; border-top: 1px solid var(--filet); padding-top: 15px; margin-top: 20px; font-size: 11px; line-height: 1.7; color: var(--texte-secondaire); }
+.noteEssai > svg { flex-shrink: 0; color: var(--success); margin-top: 2px; }
+.noteEssai > p { flex: 1; }
+.noteEssai strong { color: var(--encre); font-weight: 600; }
+.noteEssai details { max-width: 220px; }
+.noteEssai summary, .precisions summary { cursor: pointer; color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
+.noteEssai details p { margin-top: 8px; }
+.choix { padding-top: 10px; }
+.titreSection { margin-bottom: 18px; }
+.titreSection h2, .gestion h2 { font-size: 22px; color: var(--encre); line-height: 1.3; }
+.titreSection p { margin-top: 7px; font-size: 12px; line-height: 1.65; color: var(--texte-secondaire); }
+.formulaire { display: grid; gap: 20px; }
+.periodicite legend, .formules legend { margin-bottom: 10px; font-size: 12px; color: var(--texte-secondaire); }
+.periodiciteOptions { display: inline-flex; padding: 4px; gap: 5px; border: 1px solid var(--filet); border-radius: 10px; background: var(--carte); }
+.periode { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 43px; padding: 9px 15px; border-radius: 7px; cursor: pointer; font-size: 12px; color: var(--encre); transition: background .15s; }
+.periode small { font-size: 10px; color: var(--texte-secondaire); }
+.periode[data-actif="true"] { background: var(--encre); color: var(--sur-encre); }
+.periode[data-actif="true"] small { color: inherit; opacity: .9; }
+.periode:not([data-actif="true"]):hover { background: var(--creme); }
+.periode:has(input:focus-visible), .formule:has(input:focus-visible) { outline: 3px solid var(--prestige-champagne); outline-offset: 3px; }
+.grilleFormules { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.formule { display: flex; flex-direction: column; min-width: 0; padding: 18px; border: 1px solid var(--filet); border-radius: 12px; background: var(--carte); color: var(--encre); cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.formule:hover { border-color: var(--prestige-champagne); }
+.formule[data-selectionnee="true"] { border-color: var(--prestige-champagne-texte); box-shadow: 0 0 0 1px var(--prestige-champagne-texte); background: linear-gradient(150deg, var(--or-clair), var(--carte) 75%); }
+.formuleEntete { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 18px; font-size: 10px; color: var(--texte-secondaire); }
+.formuleEntete input { width: 17px; height: 17px; flex-shrink: 0; accent-color: var(--encre); }
+.formule[data-selectionnee="true"] .formuleEntete { color: var(--prestige-champagne-texte); }
+.nomFormule { font-family: var(--font-titres); font-size: 23px; font-weight: 500; line-height: 1.3; }
+.capacite { margin-top: 4px; font-size: 12px; color: var(--texte-secondaire); }
+.prix { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 8px; margin-top: 19px; font-size: 28px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.prix small { font-size: 11px; font-weight: 400; color: var(--texte-secondaire); }
+.noteFormule { margin: 10px 0 18px; font-size: 11px; line-height: 1.65; color: var(--texte-secondaire); }
+.selectionFormule { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: auto; padding: 10px 6px; min-height: 40px; border: 1px solid var(--filet); border-radius: 7px; font-size: 11px; }
+.formule[data-selectionnee="true"] .selectionFormule { color: var(--sur-encre); background: var(--encre); border-color: var(--encre); }
+.recapitulatif { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 24px; padding: 23px; border: 1px solid var(--filet); border-radius: 12px; background: var(--carte); }
+.total { min-width: 0; }
+.recapTitre { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--encre); margin-bottom: 14px; }
+.total :global(.ligne-info) { gap: 10px; font-size: 12px; }
+.conditions { display: grid; align-content: start; gap: 10px; padding-left: 22px; margin: 0; border-left: 1px solid var(--filet); font-size: 11px; line-height: 1.75; color: var(--texte-secondaire); list-style: none; }
+.conditions li { padding-left: 13px; position: relative; }
+.conditions li::before { content: ""; position: absolute; top: 7px; left: 0; width: 4px; height: 4px; background: var(--prestige-champagne-texte); border-radius: 50%; }
+.indisponible { display: flex; align-items: center; gap: 14px; padding: 15px 18px; border: 1px solid var(--filet); border-radius: 10px; background: var(--ardoise); color: var(--encre); font-size: 12px; line-height: 1.6; }
+.indisponible > svg { flex-shrink: 0; }
+.indisponible p { flex: 1; }
+.indisponible a { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 8px 12px; background: var(--carte); border: 1px solid var(--filet); border-radius: 7px; font-size: 11px; font-weight: 550; }
+.inclus { padding-top: 14px; }
+.services { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.services > div { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-content: start; gap: 8px 10px; padding: 16px; background: var(--carte); border: 1px solid var(--filet); border-radius: 10px; }
+.services svg { grid-row: span 2; color: var(--prestige-champagne-texte); }
+.services strong { font-size: 12px; font-weight: 600; color: var(--encre); }
+.services p { font-size: 11px; line-height: 1.65; color: var(--texte-secondaire); }
+.precisions { margin-top: 18px; font-size: 11px; line-height: 1.7; color: var(--texte-secondaire); }
+.precisions p { margin-top: 10px; max-width: 800px; }
+.gestion > div:not(:first-child) { padding-top: 17px; border-top: 1px solid var(--filet); }
+@media (max-width: 760px) {
+  .page > header { margin-bottom: 18px; }
+  .synthese { padding: 18px; }
+  .syntheseEntete { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .synthese h2 { font-size: 20px; }
+  .indicateurs { gap: 16px; grid-template-columns: 1fr; margin-top: 18px; }
+  .indicateurs > div { border: 0; padding: 13px 0 0; border-top: 1px solid var(--filet); display: grid; grid-template-columns: 1fr auto; gap: 7px; }
+  .indicateurs > div:first-child { padding: 0; }
+  .indicateurs strong { font-size: 20px; text-align: right; }
+  .indicateurs > div > small, .indicateurs a { grid-column: 1 / -1; }
+  .noteEssai { flex-wrap: wrap; font-size: 12px; }
+  .noteEssai details { max-width: none; margin-left: 26px; }
+  .noteEssai summary, .precisions summary { padding: 7px 0; }
+  .periodiciteOptions { display: flex; }
+  .periode { flex: 1; flex-direction: column; gap: 5px; padding: 10px; font-size: 13px; }
+  .periode small { font-size: 11px; }
+  .grilleFormules { grid-template-columns: 1fr; }
+  .formule { padding: 18px; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; }
+  .formuleEntete { grid-column: 1 / -1; margin-bottom: 10px; }
+  .nomFormule { grid-column: 1; }
+  .capacite { grid-column: 1; }
+  .prix { grid-column: 2; grid-row: 2 / 4; flex-direction: column; align-items: flex-end; gap: 2px; margin: 0; font-size: 25px; }
+  .noteFormule { grid-column: 1 / -1; margin: 9px 0; font-size: 12px; }
+  .selectionFormule { grid-column: 1 / -1; min-height: 44px; font-size: 12px; }
+  .recapitulatif { grid-template-columns: 1fr; gap: 18px; padding: 18px; }
+  .conditions { padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--filet); font-size: 12px; }
+  .indisponible { flex-wrap: wrap; padding: 16px; align-items: flex-start; }
+  .indisponible a { margin-left: 34px; min-height: 44px; }
+  .services { grid-template-columns: 1fr; gap: 10px; }
+  .services strong, .services p, .precisions { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .formule, .periode { transition: none; } }

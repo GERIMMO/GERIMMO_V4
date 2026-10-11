@@ -272,7 +272,7 @@ export function BarreBasse({
             {/* L'aide, en dernier et à part de l'espace (24/09) : le rond
                 flottant mordait les champs et les montants alignés à droite. */}
             <div className="mt-1 border-t border-[var(--trait-doux)] pt-1">
-              <LienAssistance onClick={() => setOuvert(false)}>
+              <LienAssistance destination={toutes.find(e => e.href === `/agence/${orgId}/faq`)?.href} onClick={() => setOuvert(false)}>
                 <Icone nom="quest" />
                 <span className="lib">Aide et retours</span>
               </LienAssistance>

@@ -6,6 +6,9 @@ import { initiales } from "@/lib/roles-personnes";
 import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { EchecLecture } from "../documents/echec-lecture";
+import { MessagerieProprietaire, type FilConversation } from "./messagerie-proprietaire";
+import { ConversationProprietaire } from "./conversation-proprietaire";
+import type { MessagePersonne } from "../personnes/[personId]/carte-messages";
 
 export const metadata = { title: "Messages — Gerimmo" };
 
@@ -34,19 +37,29 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
       </main>
     );
   }
-  const fils = (data ?? []) as {
-    person_id: string;
-    nom: string;
-    prenom: string | null;
-    dernier: string | null;
-    dernier_le: string | null;
-    dernier_auteur: "locataire" | "gerant" | null;
-    non_lus: number;
-  }[];
+  const fils = (data ?? []) as FilConversation[];
   const nonLus = fils.reduce((s, f) => s + f.non_lus, 0);
   // Le propriétaire en gestion directe n'a pas d'entrée « Personnes » : son
   // menu dit « Locataires & garants » (même adaptation que personnes/page.tsx).
   const estProprietaire = role === "proprietaire_direct";
+
+  if (estProprietaire) {
+    const selection = (await props.searchParams).personne;
+    // La sélection doit appartenir à la liste autorisée par la RPC. Aucune
+    // conversation n'est lue automatiquement en ouvrant la messagerie.
+    const conversation = fils.find((fil) => fil.person_id === selection);
+    const { data: messages, error: erreurLecture } = conversation
+      ? await supabase.rpc("messages_personne", { p_org: orgId, p_person: conversation.person_id })
+      : { data: null, error: null };
+    return <MessagerieProprietaire orgId={orgId}
+      fils={fils.map((fil) => conversation?.person_id === fil.person_id && !erreurLecture ? { ...fil, non_lus: 0 } : fil)}
+      selection={conversation?.person_id}
+      conversation={conversation ? erreurLecture
+        ? <EchecLecture quoi={["cette conversation"]} />
+        : <ConversationProprietaire key={conversation.person_id} orgId={orgId} personId={conversation.person_id} prenom={conversation.prenom} messages={(messages ?? []) as MessagePersonne[]} />
+        : undefined}
+    />;
+  }
 
   return (
     // max-w-5xl comme les autres écrans de premier niveau : Messages était

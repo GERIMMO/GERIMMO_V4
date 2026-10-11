@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EchecLecture } from "../documents/echec-lecture";
 import { correspond, initiales, type RolePersonne } from "@/lib/roles-personnes";
+import { AnnuaireProprietaire } from "./annuaire-proprietaire";
 
 export type PersonneListe = {
   id: string;
@@ -39,6 +40,9 @@ export function ListePersonnes({
 }) {
   const [recherche, setRecherche] = useState("");
   const idRecherche = useId();
+  if (estBailleurDirect) {
+    return <AnnuaireProprietaire orgId={orgId} personnes={personnes} listeIllisible={listeIllisible} />;
+  }
   // 24/09 : une fiche sans rôle n'avait AUCUNE puce — le rang ne disait ni ce
   // qu'était la personne ni ce qu'il lui manquait. Même libellé que la fiche.
   const sansRole = estBailleurDirect ? "Sans bail en cours" : "Sans rôle en cours";

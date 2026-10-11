@@ -330,6 +330,7 @@ export async function modifierBien(
     .eq("organization_id", orgId);
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
+  revalidatePath(`/agence/${orgId}/parc`);
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
   revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Bien mis à jour.", valeurs };
@@ -387,6 +388,7 @@ export async function modifierLot(
     .eq("organization_id", orgId);
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
+  revalidatePath(`/agence/${orgId}/parc`);
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Lot mis à jour." };
@@ -632,6 +634,7 @@ export async function supprimerDetention(
   const { error } = await supabase.rpc("supprimer_detention", { p_detention: detentionId });
   if (error) return { erreur: sansJargon(error.message) };
 
+  revalidatePath(`/agence/${orgId}/parc`);
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Détention corrigée (supprimée)." };
@@ -651,6 +654,7 @@ export async function rouvrirDetention(
   const { error } = await supabase.rpc("rouvrir_detention", { p_detention: detentionId });
   if (error) return { erreur: sansJargon(error.message) };
 
+  revalidatePath(`/agence/${orgId}/parc`);
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Détention rouverte." };
@@ -752,6 +756,7 @@ export async function ajouterPieceLot(
     .from("lot_pieces")
     .insert({ lot_id: lotId, organization_id: orgId, nom, ordre: await prochainOrdre(supabase, lotId) });
   if (error) return { erreur: sansJargon(error.message), valeurs };
+  revalidatePath(`/agence/${orgId}/parc`);
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: `Pièce « ${nom} » ajoutée.` };
@@ -807,6 +812,7 @@ export async function proposerPiecesLot(
 
   const { error } = await supabase.from("lot_pieces").insert(aCreer);
   if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath(`/agence/${orgId}/parc`);
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   revalidatePath(`/agence/${orgId}/baux`, "layout");
   return {
@@ -828,6 +834,7 @@ export async function supprimerPieceLot(
     .eq("id", pieceId)
     .eq("organization_id", orgId);
   if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath(`/agence/${orgId}/parc`);
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Pièce retirée." };

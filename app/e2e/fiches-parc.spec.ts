@@ -56,13 +56,12 @@ test("fiche lot : la location passe avant les caractéristiques", async ({ page 
     page.locator('#location-apercu').getByRole('heading', { name: 'Locataire E2E', exact: true })
   ).toBeVisible();
 
-  const onglets = page.getByRole("navigation", { name: "Rubriques du logement" });
-  await expect(onglets.getByRole("button", { name: "Vue d’ensemble", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByRole("region", { name: "Logement", exact: true })).toBeHidden();
+  await expect(page.getByRole("navigation", { name: "Rubriques du logement" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Le logement", exact: true })).toBeVisible();
 
   // Le locataire et le loyer se lisent sans rien déplier.
   await expect(page.locator("#location-apercu").getByText("Locataire E2E", { exact: true })).toBeVisible();
-  expect(await hauteur(page, "#location-apercu")).toBeLessThan(await hauteur(page, "#titre-logement-apercu"));
+  expect(await hauteur(page, "#location-apercu")).toBeLessThan(await hauteur(page, "#caracteristiques"));
   await expect(page.getByRole("link", { name: /Ouvrir le bail/ })).toBeVisible();
 });
 
@@ -81,7 +80,6 @@ test("fiche lot : l'état n'est dit qu'une fois de trop, pas quatre", async ({ p
 
 test("fiche lot : les caractéristiques se consultent avant de modifier", async ({ page }) => {
   await page.goto(CHEMIN_LOT);
-  await page.getByRole("navigation", { name: "Rubriques du logement" }).getByRole("button", { name: "Logement", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Caractéristiques du logement" })).toBeVisible();
   await expect(page.locator("#caracteristiques").getByRole("button", { name: "Modifier", exact: true })).toHaveAttribute("aria-expanded", "false");
   // Les champs vides portent un libellé explicite plutôt qu’un tiret.
@@ -93,7 +91,6 @@ test("fiche lot : une section se déplie en touchant sa rangée, pas un bouton l
   page,
 }) => {
   await page.goto(CHEMIN_LOT);
-  await page.getByRole("navigation", { name: "Rubriques du logement" }).getByRole("button", { name: "Diagnostics", exact: true }).click();
   const rangee = page.getByRole("button", { name: /Diagnostics du lot/ });
   await expect(rangee).toHaveAttribute("aria-expanded", "true");
 

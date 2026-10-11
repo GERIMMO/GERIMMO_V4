@@ -1,6 +1,12 @@
 /** Correspondance d'affichage des mentions du PDF avec les champs existants.
  * Les règles et la liste des manquants restent celles du générateur de bail. */
 const correspondances: [RegExp, string[]][] = [
+  [/^identifiant fiscal du logement$/i, ['lot.identifiant_fiscal']],
+  [/^autres parties du logement$/i, ['lot.description']],
+  [/^équipements du logement$/i, ['lot.equipements']],
+  [/^chauffage du logement$/i, ['lot.chauffage']],
+  [/^eau chaude du logement$/i, ['lot.eau_chaude']],
+  [/^locaux privatifs du logement$/i, ['lot.locaux_privatifs']],
   [/^date prévue de conclusion/i, ['bail.date_conclusion_prevue']],
   [/^Date d’entrée|^jj\/mm\/aaaa$/i, ['bail.date_debut']],
   [/^jour du mois$|jour d[’']échéance/i, ['bail.jour_echeance']],

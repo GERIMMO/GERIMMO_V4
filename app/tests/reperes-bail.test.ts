@@ -7,6 +7,12 @@ import { CompletudeBail } from '@/lib/suivi-enregistrement';
 
 const mentions = ['individuel ou collectif, énergie', 'montant mensuel', 'application des loyers de référence à vérifier', 'dépenses annuelles minimales du DPE'];
 describe('Repères des champs du bail',()=>{
+  it('repère les libellés actuels du PDF sans confondre chauffage et eau chaude',()=>{
+    const actuels = ['identifiant fiscal du logement', 'autres parties du logement', 'équipements du logement', 'chauffage du logement', 'locaux privatifs du logement'];
+    expect(champsManquantsBail(actuels)).toEqual(new Set(['lot.identifiant_fiscal', 'lot.description', 'lot.equipements', 'lot.chauffage', 'lot.locaux_privatifs']));
+    expect(champBailManquant(actuels, 'lot.eau_chaude')).toBe(false);
+    expect(champsManquantsBail(['eau chaude du logement'])).toEqual(new Set(['lot.eau_chaude']));
+  });
   it('associe chaque champ à sa mention PDF, sans ajouter des obligations',()=>{
     expect(champsManquantsBail(mentions)).toEqual(new Set(['lot.chauffage','lot.eau_chaude','bail.loyer_hc','bail.charges','bail.encadrement_loyer','bail.dpe_depenses_min']));
     expect(champBailManquant(mentions,'bail.dpe_depenses_max')).toBe(false);

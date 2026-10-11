@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { LabelBail as Label } from "@/components/pastille-bail";
 import { createClient } from "@/lib/supabase/client";
 import { communeEvidente, type CommuneReseau } from "@/lib/reseau";
+import { AlerteSurfaceLogement } from "@/components/alerte-surface-logement";
 
 type SuggestionAdresse = {
   label: string;
@@ -495,7 +496,9 @@ export function FormulaireBien({
                       min="0.01"
                       required
                       className="w-28"
+                      aria-describedby={`${idLot}-surface-aide-${i}`}
                     />
+                    <AlerteSurfaceLogement id={`${idLot}-surface-aide-${i}`} surface={lot.surface} typeBien={type} />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor={`${idLot}-pieces-${i}`} className="text-sm">
@@ -553,7 +556,9 @@ export function FormulaireBien({
                   required
                   value={lotUnique.surface}
                   onChange={e => setLotUnique(l => ({...l, surface:e.target.value}))}
+                  aria-describedby={`${idLot}-surface-aide`}
                 />
+                <AlerteSurfaceLogement id={`${idLot}-surface-aide`} surface={lotUnique.surface} typeBien={type} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lot-pieces">Nombre de pièces</Label>

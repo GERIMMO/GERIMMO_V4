@@ -7,6 +7,8 @@
 // montants viennent de lib/tarifs.ts — le même module que le site et Stripe.
 
 import Link from "next/link";
+import { ArrowRight, Building2, CalendarDays, Check, CreditCard, ShieldCheck, Users } from "lucide-react";
+import styles from "./abonnement.module.css";
 import { notFound } from "next/navigation";
 import { BoutonPortail, BoutonResiliation, FormulaireHausse, FormulairePeriodicite } from "./boutons-abonnement";
 import { DetailMontants, FormulaireSouscription } from "./formulaire-souscription";
@@ -182,11 +184,11 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   const retour = (cle: string) => (Array.isArray(recherche[cle]) ? recherche[cle]?.[0] : recherche[cle]);
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
+    <main className={estAgence ? "mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7" : `mx-auto w-full space-y-5 p-4 sm:p-7 ${styles.page}`}>
       <EnteteReglages rubrique="abonnement" titre="Mon abonnement" mention={estAgence ? undefined : organisation.name}>
         {estAgence
           ? "Ce que vous payez, selon vos lots sous mandat, et l'état de votre compte."
-          : "Ce que vous payez, selon le nombre de biens que vous gérez, et l'état de votre compte."}
+          : "Votre formule, vos biens et votre facturation, en un coup d’œil."}
       </EnteteReglages>
 
       {retour("paiement") === "ok" && (
@@ -272,7 +274,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         </div>
       )}
 
-      {!ferme && enEssai && !souscrit && etat.essai_fin && (
+      {estAgence && !ferme && enEssai && !souscrit && etat.essai_fin && (
         <div className="loc-carte border-l-4 border-l-[var(--or)]">
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
@@ -293,7 +295,51 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
       )}
 
       {/* L'ÉTAT, TOUJOURS VISIBLE. */}
-      <div className="loc-carte">
+      <div className={estAgence ? "loc-carte" : styles.synthese}>
+        {!estAgence ? (
+          <>
+            <div className={styles.syntheseEntete}>
+              <div className={styles.syntheseTitre}>
+                <span className={styles.iconeSynthese}><ShieldCheck size={22} aria-hidden="true" /></span>
+                <div>
+                  <p className={styles.surtitre}>Votre situation actuelle</p>
+                  <h2>{souscrit && actuelle ? libelleOffre(actuelle) : enEssai && !ferme ? "Votre essai Gerimmo" : "Votre espace propriétaire"}</h2>
+                </div>
+              </div>
+              <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
+            </div>
+            <div className={styles.indicateurs}>
+              <div>
+                <span><Building2 size={16} aria-hidden="true" /> Biens en gestion</span>
+                <strong>{enGestion}{souscrit && capacite !== null && <small> / {capacite} inclus</small>}</strong>
+                <Link href={`/agence/${orgId}/parc`}>Voir mes lots <ArrowRight size={13} aria-hidden="true" /></Link>
+              </div>
+              <div>
+                <span><CalendarDays size={16} aria-hidden="true" /> {souscrit ? paiement.annulation_demandee ? "Fin de l’abonnement" : "Prochaine échéance" : enEssai ? "Fin de l’essai" : "Abonnement"}</span>
+                <strong>{souscrit ? paiement.periode_fin ? formaterDate(paiement.periode_fin) : "À confirmer" : enEssai && etat.essai_fin ? formaterDate(etat.essai_fin) : "À souscrire"}</strong>
+                <small>{!souscrit && enEssai && !ferme && etat.jours_essai_restants !== null
+                  ? etat.jours_essai_restants === 0 ? "Dernier jour de votre essai" : `${etat.jours_essai_restants} jour${etat.jours_essai_restants > 1 ? "s" : ""} restant${etat.jours_essai_restants > 1 ? "s" : ""}`
+                  : souscrit ? paiement.periodicite === "annuel" ? "Facturation annuelle" : "Facturation mensuelle" : "Vos données restent conservées"}</small>
+              </div>
+              <div>
+                <span><CreditCard size={16} aria-hidden="true" /> {souscrit ? "Montant facturé" : "Prélèvement"}</span>
+                <strong>{souscrit ? paiement.montant_periode_cents !== null ? euros(paiement.montant_periode_cents) : "À confirmer" : "Aucun"}</strong>
+                <small>{souscrit ? `TTC ${parPeriode(paiement.periodicite)}` : "Sans souscription, aucun prélèvement"}</small>
+              </div>
+            </div>
+            {!ferme && enEssai && !souscrit && (
+              <div className={styles.noteEssai}>
+                <Check size={17} aria-hidden="true" />
+                <p><strong>Profitez de tous vos jours d’essai.</strong> Souscrire maintenant ne raccourcit pas l’essai. Aucune carte n’est demandée pendant l’essai, aucun paiement sans votre accord.</p>
+                <details><summary>À la fin de l’essai</summary><p>Sans souscription, la saisie se suspend. Vos données restent consultables et exportables.</p></details>
+              </div>
+            )}
+            {actuelle && paiement.montant_periode_cents !== null && paiement.montant_periode_cents !== actuelle.montantCents && (
+              <p className="mt-3 text-xs text-muted-foreground">Le montant facturé diffère de la grille ({euros(actuelle.montantCents)}) : votre avantage ou ancienne condition est conservé.</p>
+            )}
+          </>
+        ) : (
+          <>
         <div className="entete-carte">
           <h3>{souscrit && actuelle ? libelleOffre(actuelle) : "Aucun abonnement en cours"}</h3>
           <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
@@ -333,6 +379,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           </>
         )}
 
+          </>
+        )}
+
         {souscrit && (
           <div className="mt-3 border-t border-border pt-3">
             <p className="libelle-champ mb-1">Changements programmés</p>
@@ -359,9 +408,10 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
 
       {/* SOUSCRIRE : récapitulatif avant paiement. */}
       {!souscrit && (
-        <div className="loc-carte">
-          <div className="entete-carte">
-            <h3>{ferme ? "Reprendre avec un abonnement" : "Souscrire"}</h3>
+        <section className={estAgence ? "loc-carte" : styles.choix} aria-labelledby="choisir-abonnement">
+          <div className={estAgence ? "entete-carte" : styles.titreSection}>
+            <h2 id="choisir-abonnement">{ferme ? "Reprendre avec un abonnement" : "Choisir ma formule"}</h2>
+            {!estAgence && <p>Toutes les fonctionnalités sont incluses. Choisissez simplement la capacité qui vous convient.</p>}
           </div>
           <FormulaireSouscription
             orgId={orgId}
@@ -372,7 +422,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             ferme={ferme}
             motifIndisponible={motifIndisponible}
           />
-        </div>
+        </section>
       )}
 
       {/* UNE HAUSSE : montant, date d'effet, prorata, confirmation. */}
@@ -434,9 +484,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
 
       {/* GÉRER : formules supérieures, périodicité, résiliation, factures. */}
       {souscrit && (
-        <div className="loc-carte space-y-4">
+        <div className={estAgence ? "loc-carte space-y-4" : `loc-carte space-y-4 ${styles.gestion}`}>
           <div className="entete-carte">
-            <h3>Gérer mon abonnement</h3>
+            <h2>Gérer mon abonnement</h2>
           </div>
           {!estAgence && actuelle?.public === "particulier" && (
             <div>
@@ -512,7 +562,20 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         </div>
       )}
 
-      <div className="loc-carte">
+      {!estAgence ? (
+        <section className={styles.inclus} aria-labelledby="services-inclus">
+          <div className={styles.titreSection}><h2 id="services-inclus">Inclus dans chaque formule</h2><p>La même qualité de service, quel que soit votre nombre de biens.</p></div>
+          <div className={styles.services}>
+            <div><Building2 size={20} aria-hidden="true" /><strong>Votre gestion au complet</strong><p>Toutes les fonctions disponibles pour votre profil.</p></div>
+            <div><Users size={20} aria-hidden="true" /><strong>L’espace de vos locataires</strong><p>Leurs accès sont inclus, sans supplément.</p></div>
+            <div><ShieldCheck size={20} aria-hidden="true" /><strong>Aucun frais d’installation</strong><p>Le tarif dépend du nombre de biens et de la périodicité.</p></div>
+          </div>
+          <details className={styles.precisions}>
+            <summary>Services facturés à part ou non inclus</summary>
+            <p>Les travaux et interventions d’artisans sont sur devis et facturés à part. Le réseau d’artisans dépend de la zone du bien et du métier. La signature électronique n’est pas encore proposée ; aucun envoi de SMS ni service bancaire n’est inclus.</p>
+          </details>
+        </section>
+      ) : <div className="loc-carte">
         <div className="entete-carte">
           <h3>Ce que comprend l&apos;abonnement</h3>
         </div>
@@ -536,7 +599,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             {estAgence ? " Une reprise manuelle de vos données peut vous être proposée sur devis, jamais facturée d'office." : ""}
           </li>
         </ul>
-      </div>
+      </div>}
     </main>
   );
 }

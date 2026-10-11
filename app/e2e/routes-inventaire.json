@@ -898,5 +898,29 @@
     "persona": "admin-agence",
     "label": "Réseau disponible pour les biens",
     "dynamic": "orgId"
+  },
+  {
+    "path": "/agence/ORG/journal",
+    "persona": "proprietaire",
+    "label": "Journal dans l’espace connecté",
+    "dynamic": "orgId"
+  },
+  {
+    "path": "/agence/ORG/journal/ARTICLE",
+    "persona": "proprietaire",
+    "label": "Article dans l’espace connecté",
+    "dynamic": "orgId, slug"
+  },
+  {
+    "path": "/agence/ORG/journal",
+    "persona": "agent",
+    "label": "Journal dans l’espace connecté",
+    "dynamic": "orgId"
+  },
+  {
+    "path": "/agence/ORG/journal/ARTICLE",
+    "persona": "agent",
+    "label": "Article dans l’espace connecté",
+    "dynamic": "orgId, slug"
   }
 ]

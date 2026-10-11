@@ -54,11 +54,13 @@ function abonner(rappel: () => void) {
 export function LienAssistance({
   className,
   title,
+  destination,
   onClick,
   children,
 }: {
   className?: string;
   title?: string;
+  destination?: string;
   onClick?: () => void;
   children: ReactNode;
 }) {
@@ -70,7 +72,7 @@ export function LienAssistance({
   return (
     <Link
       data-assistance
-      href={`/assistance?ecran=${encodeURIComponent(ecranSansDonnees(chemin))}&action=${action}&retour=${encodeURIComponent(chemin)}`}
+      href={`${destination ?? "/assistance"}?ecran=${encodeURIComponent(ecranSansDonnees(chemin))}&action=${action}&retour=${encodeURIComponent(chemin)}${destination ? "#nouvelle" : ""}`}
       aria-label="Aide et retours"
       title={title}
       className={className}

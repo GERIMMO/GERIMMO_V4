@@ -1,10 +1,14 @@
 "use client";
 
+import { EtapesSaisie } from "@/components/etapes-saisie";
 import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
 import type { ReactNode } from "react";
 import { MarqueOrganisation } from "@/components/marque-organisation";
 import { couleurValide, logoAffichable, styleMarque } from "@/lib/marque-organisation";
-import { useActionState } from "react";
+import { useState } from "react";
+import { CheckCircle2, CircleAlert } from "lucide-react";
+import { useActionFormulaire } from "@/lib/use-action-formulaire";
+import { afficherToast } from "@/components/ui/toast";
 import {
   modifierProfilOrganisation,
   type EtatProfilOrganisation,
@@ -97,9 +101,26 @@ function Formulaire({
   organisation: Organisation;
   estProprietaire: boolean;
 }) {
-  const [etat, action] = useActionState<EtatProfilOrganisation, FormData>(
-    modifierProfilOrganisation.bind(null, orgId),
-    {}
+  const [modifie, setModifie] = useState(false);
+  const [heureEnregistrement, setHeureEnregistrement] = useState("");
+  const { etat, enCours, soumettre } = useActionFormulaire<EtatProfilOrganisation>(async (precedent, donnees) => {
+    const retour = await modifierProfilOrganisation(orgId, precedent, donnees);
+    if (retour.succes) {
+      setModifie(false);
+      setHeureEnregistrement(new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }));
+      afficherToast("Votre profil a bien été enregistré.");
+    }
+    return retour;
+  });
+  const enregistre = Boolean(etat.succes) && !modifie;
+  const retourEnregistrement = (
+    <div aria-live="polite" aria-atomic="true" className="min-w-0 text-sm">
+      {enCours ? <p role="status">Enregistrement en cours…</p>
+        : etat.erreur ? <p role="alert" className="flex items-start gap-2 text-destructive"><CircleAlert size={18} className="mt-0.5 shrink-0" aria-hidden="true" /><span>{etat.erreur}</span></p>
+        : enregistre ? <p role="status" className="flex items-start gap-2 rounded-lg border border-success/25 bg-success-soft px-3 py-2 text-success-soft-foreground"><CheckCircle2 size={20} className="mt-0.5 shrink-0" aria-hidden="true" /><span><strong className="block">Profil enregistré à {heureEnregistrement}</strong><span className="text-xs">Vos modifications ont bien été sauvegardées.</span></span></p>
+        : modifie ? <p role="status" className="flex items-center gap-2 text-warning-soft-foreground"><CircleAlert size={16} className="shrink-0" aria-hidden="true" />Modifications non enregistrées</p>
+        : null}
+    </div>
   );
   // En erreur, la saisie est reposée via etat.valeurs (convention React 19)
   const valeur = (
@@ -120,7 +141,14 @@ function Formulaire({
   // « Galian, 120 000 € » seuls passaient pour des valeurs déjà saisies.
   // Un seul marquage des champs obligatoires, l'astérisque, et sa légende.
   return (
-    <form action={action} className="space-y-4">
+    <form onSubmit={soumettre} onInput={() => setModifie(true)} className="space-y-4" aria-busy={enCours}>
+      <fieldset disabled={enCours} className="min-w-0">
+      <EtapesSaisie activer={estProprietaire} titre="Mon profil" etapes={[
+        {titre:"Identité", detail:"Ces informations sont nécessaires pour préparer vos documents."},
+        {titre:"Paiement", detail:"Vos coordonnées pour recevoir les loyers."},
+        {titre:"Préférences", detail:"Envois et relances automatiques — facultatif. Vous choisissez ce que vous activez."},
+      ]} conclusion={<div className="flex min-w-0 flex-wrap items-center justify-end gap-3">{retourEnregistrement}<BoutonEnvoi enCours={enCours} disabled={enregistre} enCoursTexte="Enregistrement…">{enregistre ? "Profil enregistré" : "Enregistrer mon profil"}</BoutonEnvoi></div>} contenus={[
+      <div key="identite" className="space-y-4">
       <p className="text-sm text-muted-foreground">* champ obligatoire</p>
       <div className="space-y-2">
         <Label htmlFor="pr-nom">{estProprietaire ? "Nom de votre espace *" : "Nom de l'agence *"}</Label>
@@ -241,6 +269,8 @@ function Formulaire({
           </p>
         </>
       )}
+      </div>,
+      <div key="paiement" className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="pr-iban">IBAN (modalités de paiement des documents)</Label>
         <Input
@@ -292,6 +322,8 @@ function Formulaire({
           <div className="space-y-2"><Label htmlFor="pr-expediteur">Adresse d’envoi des emails</Label><Input id="pr-expediteur" name="email_expediteur" type="email" defaultValue={valeur("email_expediteur")} placeholder="ex. gestion@votre-agence.fr" /><p className="text-sm text-muted-foreground">{organisation.email_expediteur_verifie_le ? "Expéditeur vérifié et utilisable. Toute modification demandera une nouvelle vérification." : organisation.email_expediteur ? "Enregistrée, à vérifier : les messages partent encore de Gerimmo avec votre identité et votre adresse de réponse." : "Facultatif. Les messages portent déjà votre nom ; l’adresse d’envoi personnalisée nécessite une vérification."}</p></div>
         </SousSection>
       )}
+      </div>,
+      <div key="preferences" className="space-y-4">
       <SousSection titre="Avis d'échéance">
         <label
           htmlFor="pr-avis-auto"
@@ -401,17 +433,9 @@ function Formulaire({
           bail (si son e-mail est connu) est informée de l&apos;incident.
         </p>
       </SousSection>
-      {etat.erreur && (
-        <p role="alert" className="text-sm text-destructive">
-          {etat.erreur}
-        </p>
-      )}
-      {etat.succes && (
-        <p role="status" className="text-sm text-success-soft-foreground">
-          {etat.succes}
-        </p>
-      )}
-      <BoutonEnvoi enCoursTexte="Enregistrement…">Enregistrer</BoutonEnvoi>
+      </div>,
+      ]} />
+      </fieldset>
     </form>
   );
 }

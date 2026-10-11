@@ -73,12 +73,14 @@ describe("routes des outils gratuits", () => {
     expect(lire("app/page.tsx")).toContain('href="/outils"');
   });
 
-  it("l'en-tête public les montre à toutes les largeurs (30/09)", () => {
+  it("la navigation partage les mêmes destinations sur ordinateur et mobile", () => {
     const chrome = lire("components/chrome-public.tsx");
-    const entete = chrome.slice(chrome.indexOf("export function EnTetePublic"), chrome.indexOf("function BandeauPublic"));
-    // La ligne du téléphone (jusqu'à 768 px) et le lien de la navigation (au-delà).
-    expect(entete).toMatch(/aria-label="Outils gratuits"[\s\S]*md:hidden/);
-    expect(chrome).toMatch(/href="\/outils"\s+className="hidden [^"]*md:inline-flex"/);
+    expect(chrome).toContain('["/outils", "Outils gratuits"]');
+    expect(chrome).toContain('NAVIGATION.map(');
+    expect(chrome).toContain('<MenuPublicMobile liens={NAVIGATION} />');
+    const mobile = lire("components/menu-public-mobile.tsx");
+    expect(mobile).toContain('aria-label="Navigation mobile"');
+    expect(mobile).toContain('liens.map(');
   });
 
   it("l'accueil présente les outils juste sous le héros, et le héros y invite", () => {

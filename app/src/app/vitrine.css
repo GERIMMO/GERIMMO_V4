@@ -1,0 +1,253 @@
+/* Identité du site public. Tous les sélecteurs restent limités à la vitrine. */
+.site-public { flex: 1; min-height: 100%; background: #f8f7f4; }
+.public-conteneur { width: min(100% - 64px, 1200px); margin-inline: auto; }
+.site-public section[id] { scroll-margin-top: 112px; }
+.gerimmo-prestige .site-public h1 { font-size: clamp(42px, 4.8vw, 68px); line-height: 1.06; letter-spacing: -.045em; }
+.gerimmo-prestige .site-public h2 { font-size: clamp(30px, 3.1vw, 43px); line-height: 1.15; letter-spacing: -.03em; }
+.gerimmo-prestige .site-public h3 { font-size: 19px; line-height: 1.35; font-weight: 600; }
+.site-public a:focus-visible, .public-navigation a:focus-visible, .public-pied a:focus-visible, .site-public summary:focus-visible, .public-menu-mobile summary:focus-visible, .offres-choix button:focus-visible { outline: 3px solid #98773c; outline-offset: 5px; }
+.gerimmo-prestige .site-public .btn-or, .gerimmo-prestige .site-public .btn-secondaire { min-height: 48px; gap: 12px; padding: 12px 20px; font-size: 14px; border-radius: 8px; }
+.public-navigation { position: sticky; top: 0; z-index: 40; background: #fffdfaf2; backdrop-filter: blur(16px); }
+.public-navigation-interieur { width: min(100% - 64px, 1200px); margin: auto; min-height: 92px; display: flex; align-items: center; gap: 32px; }
+.public-logo { display: flex; align-items: center; flex-shrink: 0; }
+.gerimmo-prestige .public-navigation .marque-gerimmo { width: 78px; border-radius: 5px; overflow: hidden; }
+.public-nav-bureau { display: flex; align-items: center; gap: 26px; margin-inline: auto; }
+.public-nav-bureau a, .public-connexion { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 500; color: #344762; }
+.public-nav-bureau a:hover, .public-connexion:hover { color: #826838; text-decoration: underline; text-underline-offset: 6px; }
+.public-acces { display: flex; align-items: center; gap: 23px; }
+.gerimmo-prestige .public-inscription { min-height: 44px; border-radius: 7px; font-size: 13px; gap: 8px; }
+.public-menu-mobile { display: none; }
+.public-hero { background: linear-gradient(110deg, #fbf9f4 0%, #faf9f6 53%, #ebf0f0 100%); border-bottom: 1px solid #e6e3dc; }
+.public-hero-grille { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 64px; padding-block: 64px 72px; }
+.public-hero-texte { padding-block: 20px; }
+.public-hero h1 { margin: 22px 0 26px; }
+.public-hero h1 em { color: #826838; font-weight: 400; }
+.public-chapo { max-width: 480px; font-size: 18px; line-height: 1.7; color: #4b5870; }
+.public-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-block: 30px 23px; }
+.public-essai { display: inline-flex; align-items: center; gap: 9px; min-height: 32px; font-size: 13px; font-weight: 600; color: #31584f; }
+.public-point { width: 7px; height: 7px; background: #437467; border-radius: 50%; }
+.public-note { font-size: 12px; line-height: 1.7; color: #526077; margin-top: 8px; }
+.public-hero-visuel { min-width: 0; position: relative; padding-bottom: 145px; }
+.public-hero-photo { width: 100%; height: 355px; object-fit: cover; border-radius: 140px 14px 14px 14px; }
+.public-photo-legende { position: absolute; top: 24px; right: 20px; background: #fffc; backdrop-filter: blur(14px); border: 1px solid #fff; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 9px; font-size: 12px; color: #14304f; line-height: 1.6; }
+.public-hero-apercu { position: absolute; bottom: 0; left: -25px; width: 92%; max-width: 480px; }
+.public-hero-apercu > div { box-shadow: 0 22px 55px #14304f22; }
+.public-hero-apercu .rang-alerte:last-of-type { display: none; }
+.public-reperes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; padding-block: 24px; border-top: 1px solid #dcdedb; }
+.public-reperes span { display: flex; align-items: center; gap: 11px; color: #45566d; font-size: 13px; }
+.public-reperes svg { width: 19px; flex-shrink: 0; color: #826838; stroke-width: 1.6; }
+.public-lien { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 600; color: #14304f; }
+.public-lien:hover { text-decoration: underline; text-underline-offset: 5px; }
+.public-outils-rapides { padding-block: 34px; display: grid; grid-template-columns: 280px 1fr; gap: 25px; align-items: center; }
+.gerimmo-prestige .public-outils-rapides h2 { font-size: 25px; margin-top: 7px; }
+.public-outils-rapides .public-lien { font-size: 12px; }
+.public-outils-rapides ul { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.public-outils-rapides li { min-width: 0; }
+.public-outils-rapides li a { display: flex; height: 100%; flex-direction: column; align-items: flex-start; gap: 9px; border-left: 1px solid #dddcd5; padding: 4px 12px; font-size: 12px; color: #344762; font-weight: 600; }
+.public-outils-rapides li a > svg { margin-top: auto; }
+.public-outils-rapides li a:hover { background: #efeae0; border-radius: 7px; }
+.public-section { padding-block: 76px; }
+.public-section-blanche { background: #fff; border-block: 1px solid #e7e8e8; }
+.public-titre-section { display: flex; justify-content: space-between; gap: 35px; align-items: flex-end; margin-bottom: 34px; }
+.public-titre-section h2 { margin-top: 13px; }
+.public-titre-section > p { max-width: 365px; line-height: 1.7; color: #4b5870; font-size: 15px; }
+.public-fonctions, .public-espaces { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.public-ton-bleu { --accent-public: #355d87; --fond-public: #eaf0f7; }
+.public-ton-or { --accent-public: #846329; --fond-public: #f4eedf; }
+.public-ton-vert { --accent-public: #32685b; --fond-public: #e7f2ee; }
+.public-ton-rose { --accent-public: #8c5363; --fond-public: #f7ecef; }
+.public-icone { display: inline-flex; width: 48px; height: 48px; border-radius: 13px; align-items: center; justify-content: center; background: var(--fond-public); color: var(--accent-public); }
+.public-fonction { border: 1px solid #e3e6e8; border-radius: 14px; padding: 26px 23px; background: linear-gradient(160deg, white 60%, var(--fond-public)); }
+.public-fonction h3, .public-espace h3 { margin: 22px 0 12px; }
+.public-fonction p, .public-espace p { color: #4b5870; line-height: 1.75; font-size: 14px; }
+.public-parcours { margin-top: 35px; padding: 28px 0 0; border-top: 1px solid #e3e6e8; display: grid; grid-template-columns: 230px 1fr; gap: 32px; }
+.gerimmo-prestige .public-parcours h3 { font-size: 17px; margin-top: 9px; }
+.public-parcours ol { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.public-parcours li { display: flex; gap: 13px; align-items: flex-start; }
+.public-parcours li > span { color: #8a703e; font-family: Georgia, serif; font-size: 25px; line-height: 1; }
+.public-parcours strong { font-size: 14px; font-weight: 600; }
+.public-parcours li p { font-size: 12px; line-height: 1.6; margin-top: 5px; color: #526077; }
+.public-espace { display: flex; flex-direction: column; padding: 26px 23px; border: 1px solid #e0e3e5; border-top: 3px solid var(--accent-public); border-radius: 10px; background: #fff; }
+.public-espace .public-lien { margin-top: auto; padding-top: 20px; font-size: 13px; }
+.public-reseau-note { margin-top: 22px; max-width: 900px; }
+.public-suivi { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 70px; }
+.public-suivi-visuel { position: relative; padding-bottom: 26px; }
+.public-suivi-visuel > img { height: 420px; width: 100%; object-fit: cover; border-radius: 12px; }
+.public-suivi-etiquette { position: absolute; bottom: 0; left: 25px; right: 25px; background: #14304f; color: white; border-radius: 9px; padding: 20px 24px; display: flex; gap: 16px; align-items: center; box-shadow: 0 12px 25px #14304f18; }
+.public-suivi-etiquette svg { color: #e8d39b; }
+.public-suivi-etiquette span { display: block; font-size: 12px; color: #d4dfeb; margin-top: 4px; }
+.public-suivi h2 { margin-top: 14px; }
+.public-description { margin-top: 20px; line-height: 1.75; font-size: 15px; color: #4b5870; }
+.public-liste { display: grid; gap: 12px; margin-top: 23px; font-size: 14px; line-height: 1.6; }
+.public-liste li { display: flex; gap: 11px; align-items: flex-start; }
+.public-liste svg { width: 17px; height: 19px; flex-shrink: 0; color: #327363; margin-top: 2px; }
+.public-exemple { margin-top: 22px; }
+.public-exemple summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px; border-top: 1px solid #dce2e9; font-size: 14px; font-weight: 600; cursor: pointer; }
+.offres-choix { display: flex; width: fit-content; max-width: 100%; padding: 4px; background: #eaece9; border-radius: 10px; margin: 0 0 25px; gap: 4px; }
+.offres-choix button { min-height: 44px; padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 7px; color: #435168; cursor: pointer; }
+.offres-choix button[aria-pressed="true"] { background: #14304f; color: white; box-shadow: 0 2px 6px #14304f20; }
+.offres-choix span { display: inline-block; margin-left: 7px; background: #e6dbc2; color: #5c4825; border-radius: 4px; padding: 2px 6px; font-size: 11px; }
+.offres-grille { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.offre-publique { min-width: 0; background: white; padding: 26px 22px; border-radius: 12px; border: 1px solid #dce2e9; }
+.offre-nom { font-size: 18px; font-weight: 600; color: #14304f; }
+.offre-biens { color: #526077; font-size: 13px; margin-top: 4px; }
+.offre-prix { color: #14304f; font-size: 36px; font-family: Georgia, serif; letter-spacing: -.03em; margin: 24px 0 6px; }
+.offre-prix small { margin-left: 6px; font-family: var(--font-interface), sans-serif; font-size: 13px; letter-spacing: normal; color: #526077; }
+.offre-periode, .offres-note { font-size: 12px; line-height: 1.7; color: #526077; }
+.offre-publique ul { border-top: 1px solid #e5e7eb; margin: 22px 0; padding-top: 19px; display: grid; gap: 8px; }
+.offre-publique li { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; line-height: 1.6; }
+.offre-publique li svg { flex-shrink: 0; margin-top: 2px; color: #32685b; }
+.gerimmo-prestige .site-public .offre-publique .btn-secondaire { width: 100%; justify-content: space-between; font-size: 12px; padding: 10px 12px; }
+.offres-note { margin-top: 16px; }
+.public-tarif-agence { display: flex; gap: 18px; align-items: center; margin-block: 30px 15px; padding: 22px 25px; border: 1px solid #ded6c5; background: #f4eedf; border-radius: 12px; }
+.public-tarif-agence > svg { flex-shrink: 0; color: #826838; }
+.gerimmo-prestige .public-tarif-agence h3 { font-size: 17px; }
+.public-tarif-agence p { font-size: 13px; line-height: 1.6; color: #4b5870; margin-top: 5px; }
+.public-tarif-agence .public-lien { margin-left: auto; white-space: nowrap; }
+.public-journal-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.public-article { display: flex; flex-direction: column; background: white; border: 1px solid #dce2e9; border-radius: 12px; overflow: hidden; transition: box-shadow .2s, transform .2s; }
+.public-article:hover { transform: translateY(-3px); box-shadow: 0 15px 35px #14304f10; }
+.public-article > span { border: 0; border-radius: 0; }
+.public-article > div { padding: 24px; display: flex; flex: 1; flex-direction: column; }
+.public-article h3 { margin: 12px 0; }
+.public-article > div > p:not(.eyebrow) { font-size: 14px; line-height: 1.7; color: #4b5870; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.public-article .public-lien { margin-top: auto; padding-top: 20px; }
+.public-faq { display: grid; grid-template-columns: .7fr 1.3fr; gap: 80px; }
+.public-faq h2 { margin-top: 14px; }
+.public-faq details { border-top: 1px solid #d8dde0; }
+.public-faq details:last-child { border-bottom: 1px solid #d8dde0; }
+.public-faq summary { min-height: 70px; padding: 22px 0; display: flex; justify-content: space-between; gap: 25px; align-items: center; font-size: 16px; font-weight: 500; cursor: pointer; }
+.public-faq summary svg { flex-shrink: 0; }
+.public-faq summary::-webkit-details-marker, .public-exemple summary::-webkit-details-marker, .public-menu-mobile summary::-webkit-details-marker { display: none; }
+.public-faq details[open] svg, .public-exemple[open] summary svg { transform: rotate(180deg); }
+.public-faq details p { font-size: 14px; line-height: 1.8; color: #4b5870; padding-bottom: 22px; }
+.public-contact { padding-bottom: 80px; }
+.public-contact-interieur { display: grid; grid-template-columns: .9fr 1.1fr; gap: 65px; background: linear-gradient(120deg,#183653,#234c6c); padding: 48px; border-radius: 18px; color: white; }
+.gerimmo-prestige .public-contact h2 { color: white; margin: 16px 0 24px; }
+.gerimmo-prestige .public-contact .eyebrow { color: #ead69e; }
+.public-contact-interieur > div > p:not(.eyebrow) { color: #e1e8f1; font-size: 15px; line-height: 1.8; }
+.public-contact .public-liste { color: #e1e8f1; font-size: 13px; }
+.public-contact .public-liste svg { color: #e8d39b; }
+.public-contact :is(input:not([aria-hidden]),select,textarea) { background: #fff; color: #14304f; border-color: #dce2e9; min-height: 46px; font-size: 16px; }
+.public-contact form { align-content: start; }
+.gerimmo-prestige .public-contact .btn-or { background: #e8d39b; color: #14304f; width: 100%; justify-content: center; }
+.public-pied { background: #14304f; color: #d5dfeb; }
+.public-pied-grille { display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: 50px; padding-block: 55px 40px; }
+.gerimmo-prestige .public-pied .marque-gerimmo { width: 140px; }
+.public-pied-marque p { font-size: 13px; line-height: 1.8; margin-top: 18px; }
+.public-pied nav p { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .12em; color: #ead69e; margin-bottom: 13px; }
+.public-pied nav a { display: flex; align-items: center; min-height: 44px; font-size: 13px; line-height: 1.4; }
+.public-pied nav a:hover { text-decoration: underline; text-underline-offset: 5px; color: white; }
+.public-pied-bas { border-top: 1px solid #ffffff26; padding-block: 20px; display: flex; justify-content: space-between; font-size: 12px; color: #c3cedb; }
+.public-page-intro { background: linear-gradient(110deg,#f6f2e9,#edf1f3); padding: 55px 0; border-bottom: 1px solid #e0e3e5; }
+.public-page-intro h1 { margin-block: 14px 20px; }
+.public-page-intro p:not(.eyebrow) { max-width: 650px; line-height: 1.7; color: #4b5870; }
+.site-public .public-page-intro h1 { font-size: clamp(36px,4vw,54px); }
+.site-public .vitrine-hero { background: linear-gradient(110deg,#f6f2e9,#edf1f3); }
+.site-public .vitrine-carte { background: white; border-radius: 14px; }
+.public-tarifs-details { max-width: 900px; margin: 40px auto 0; display: grid; gap: 20px; }
+.gerimmo-prestige .public-tarifs-details h2 { font-size: 25px; }
+@media (max-width: 1100px) {
+  .public-navigation-interieur { gap: 20px; }
+  .public-nav-bureau { gap: 15px; }
+  .public-acces { gap: 13px; }
+  .public-hero-grille { gap: 35px; }
+  .public-hero-apercu { left: -10px; width: 100%; }
+  .public-fonctions, .public-espaces, .offres-grille { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .public-outils-rapides { grid-template-columns: 230px 1fr; }
+  .public-outils-rapides ul { gap: 5px; }
+  .public-suivi { gap: 35px; }
+  .public-contact-interieur { gap: 35px; padding: 36px; }
+  .public-parcours { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .public-nav-bureau { display: none; }
+  .public-acces { margin-left: auto; }
+  .public-menu-mobile { display: block; }
+  .public-menu-mobile summary { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 44px; min-height: 44px; border: 1px solid #dce2e9; border-radius: 7px; cursor: pointer; font-size: 12px; }
+  .public-menu-mobile summary span { display: none; }
+  .public-menu-mobile nav { position: absolute; top: 100%; right: 0; left: 0; background: #fffdfa; border-bottom: 1px solid #dce2e9; box-shadow: 0 12px 22px #14304f10; padding: 14px 32px 22px; display: grid; grid-template-columns: 1fr 1fr; }
+  .public-menu-mobile nav a { padding: 14px 10px; min-height: 48px; font-size: 14px; }
+  .public-hero-grille { grid-template-columns: 1fr; padding-block: 30px 45px; gap: 35px; }
+  .public-hero-texte { max-width: 650px; }
+  .public-chapo { max-width: 600px; }
+  .public-hero-visuel { max-width: 600px; width: 100%; justify-self: center; padding-bottom: 105px; }
+  .public-hero-photo { height: 340px; }
+  .public-hero-apercu { width: 75%; left: -5px; }
+  .public-reperes { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .public-outils-rapides { grid-template-columns: 1fr; gap: 20px; }
+  .public-outils-rapides ul { gap: 10px; }
+  .public-titre-section { align-items: flex-start; }
+  .public-titre-section > p { max-width: 310px; }
+  .public-contact-interieur { grid-template-columns: 1fr; }
+  .public-pied-grille { grid-template-columns: 1fr 1fr; gap: 30px; }
+  .public-journal-grille { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 600px) {
+  .public-conteneur, .public-navigation-interieur { width: calc(100% - 36px); }
+  .public-navigation-interieur { min-height: 76px; gap: 12px; }
+  .gerimmo-prestige .public-navigation .marque-gerimmo { width: 60px; }
+  .public-acces .public-connexion { display: none; }
+  .gerimmo-prestige .public-inscription { font-size: 12px; padding: 10px 12px; }
+  .public-menu-mobile nav { padding-inline: 18px; }
+  .public-hero-grille { padding-top: 22px; gap: 22px; }
+  .public-hero h1 { margin-block: 19px 22px; }
+  .public-chapo { font-size: 16px; }
+  .public-actions { margin-top: 25px; gap: 10px; }
+  .gerimmo-prestige .site-public .public-actions .btn-or, .gerimmo-prestige .site-public .public-actions .btn-secondaire { padding: 12px 15px; font-size: 13px; }
+  .public-hero-visuel { padding-bottom: 175px; }
+  .public-hero-photo { height: 265px; border-top-left-radius: 75px; }
+  .public-photo-legende { top: 15px; right: 12px; padding: 9px 12px; font-size: 10px; }
+  .public-hero-apercu { left: 10px; width: calc(100% - 20px); }
+  .public-hero-apercu .kpi .chiffre { font-size: 25px; }
+  .public-reperes { gap: 14px 8px; padding-block: 22px; }
+  .public-reperes span { font-size: 11px; gap: 7px; }
+  .public-outils-rapides ul { grid-template-columns: 1fr; gap: 0; }
+  .public-outils-rapides li a { flex-direction: row; align-items: center; border-left: 0; border-top: 1px solid #e2e1dc; padding: 12px 0; font-size: 13px; gap: 12px; }
+  .public-outils-rapides li a > svg { margin: 0 0 0 auto; }
+  .public-section { padding-block: 48px; }
+  .public-titre-section { flex-direction: column; gap: 18px; margin-bottom: 25px; }
+  .public-titre-section > p { max-width: none; font-size: 14px; }
+  .public-fonctions, .public-espaces { grid-template-columns: 1fr; gap: 14px; }
+  .public-fonction { padding: 21px; }
+  .public-fonction h3 { margin-top: 14px; }
+  .public-espace { padding: 23px; }
+  .public-parcours ol { grid-template-columns: 1fr; gap: 22px; }
+  .public-suivi { grid-template-columns: 1fr; gap: 30px; }
+  .public-suivi-visuel > img { height: 280px; }
+  .public-suivi-etiquette { left: 12px; right: 12px; padding: 18px; }
+  .offres-grille { grid-template-columns: 1fr; gap: 14px; }
+  .offre-publique { padding: 24px; }
+  .offre-prix { margin-top: 18px; }
+  .offres-choix button { padding-inline: 13px; }
+  .public-tarif-agence { flex-wrap: wrap; padding: 20px; }
+  .public-tarif-agence > div { flex: 1; }
+  .public-tarif-agence .public-lien { margin-left: 43px; }
+  .public-journal-grille { grid-template-columns: 1fr; }
+  .public-faq { grid-template-columns: 1fr; gap: 28px; }
+  .public-faq summary { font-size: 15px; gap: 15px; }
+  .public-contact { padding-bottom: 48px; }
+  .public-contact-interieur { padding: 27px 22px; gap: 32px; }
+  .public-pied-grille { grid-template-columns: 1fr 1fr; padding-block: 35px; gap: 25px 18px; }
+  .public-pied-marque { grid-column: 1 / -1; }
+  .public-pied-grille nav:last-child { grid-column: 1 / -1; }
+  .public-pied-bas { gap: 15px; font-size: 11px; }
+  .public-page-intro { padding-block: 35px; }
+}
+@media (prefers-reduced-motion: reduce) { .public-article { transition: none; } .public-article:hover { transform: none; } }
+@media print { .site-public { background: white; } }
+.site-public .journal-carte { padding: 0 22px 20px; height: 100%; }
+.site-public .journal-carte > span:first-child { margin: 0 -22px 20px; }
+.gerimmo-prestige .site-public .journal-carte h2 { font-family: var(--font-interface), sans-serif; font-size: 21px; font-weight: 600; }
+.site-public .journal-carte > span:last-child { margin-top: auto; padding-top: 18px; }
+@media (max-width: 600px) {
+  .public-actions { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .gerimmo-prestige .site-public .public-actions :is(.btn-or,.btn-secondaire) { padding-inline: 10px; gap: 6px; font-size: 12px; }
+  .public-hero-apercu .grid.grid-cols-2 { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .public-hero-apercu .kpi.rouge { grid-column: auto; }
+  .public-hero-apercu .kpi .chiffre { font-size: 20px; }
+  .public-hero-apercu .kpi .libelle-champ { font-size: 9px; letter-spacing: .03em; }
+  .public-hero-apercu .kpi { padding: 8px !important; }
+}
+@media (max-width: 350px) { .public-actions { grid-template-columns: 1fr; } }
+.public-journal-grille:has(> :only-child) { grid-template-columns: minmax(0,580px); }

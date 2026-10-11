@@ -33,7 +33,7 @@ export const QUESTIONS: QuestionAide[] = [
   },
   {
     "question": "Combien ça coûte ?",
-    "reponse": "Le tarif dépend du nombre de biens en gestion et de votre choix entre paiement mensuel et annuel. Les fonctionnalités restent les mêmes dans toutes les formules. Votre page Abonnement présente les prix, les jours d’essai restants et le montant exact avant paiement. Un bien retiré n’est plus comptabilisé ; une formule inférieure s’applique à la prochaine échéance lorsque votre nombre de biens le permet.",
+    "reponse": "Le tarif dépend du nombre de biens en gestion et de votre choix entre paiement mensuel et annuel. Les fonctionnalités restent les mêmes dans toutes les formules. L'essai gratuit est sans carte — 2 mois pour toute inscription jusqu'au 31 décembre 2026 (offre de lancement), 1 mois ensuite. Votre page Abonnement présente les prix, les jours d’essai restants et le montant exact avant paiement. Un bien retiré n’est plus comptabilisé ; une formule inférieure s’applique à la prochaine échéance lorsque votre nombre de biens le permet.",
     "theme": "Abonnement",
     "lien": "abonnement"
   },

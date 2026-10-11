@@ -20,6 +20,7 @@
  * La moitié base nécessite SUPABASE_DB_URL (transaction annulée à la fin).
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { QUESTIONS } from "@/app/agence/[orgId]/faq/questions";
 import { config } from "dotenv";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -158,7 +159,7 @@ describe("les écrans annoncent l'essai du jour, et l'offre de lancement", () =>
   });
 
   it("la FAQ du propriétaire dit les deux durées", () => {
-    expect(lire("app/agence/[orgId]/faq/page.tsx")).toContain(
+    expect(QUESTIONS.find((question) => question.question === "Combien ça coûte ?")?.reponse).toContain(
       "L'essai gratuit est sans carte — 2 mois pour toute inscription jusqu'au 31 décembre 2026 (offre de lancement), 1 mois ensuite"
     );
   });

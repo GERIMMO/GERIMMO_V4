@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { majGrilleEdl, type EtatEdl } from "@/app/actions/edl";
 import { formaterDate, formaterDateHeure } from "@/lib/ged";
 import {
@@ -144,6 +145,7 @@ function saisieDejaDansLeDom(
 
 export function GrilleEdl({
   orgId,
+  zoneSignatureId,
   bailId,
   edlId,
   lignes,
@@ -151,6 +153,7 @@ export function GrilleEdl({
   reference,
 }: {
   orgId: string;
+  zoneSignatureId?: string;
   bailId: string;
   edlId: string;
   lignes: Ligne[];
@@ -159,6 +162,11 @@ export function GrilleEdl({
   // ligne rappelle l'état et l'observation d'entrée (maquette v3).
   reference?: ReferenceEntree | null;
 }) {
+  const [zoneSignature, setZoneSignature] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    // Le point d’insertion fait partie des panneaux serveur : attendre leur montage.
+    if (zoneSignatureId) queueMicrotask(() => setZoneSignature(document.getElementById(zoneSignatureId)));
+  }, [zoneSignatureId]);
   const actionMaj = majGrilleEdl.bind(null, orgId, bailId, edlId);
   const [etatMaj, setEtatMaj] = useState<EtatEdl>({});
   const [enCoursMaj, setEnCoursMaj] = useState(false);
@@ -183,6 +191,7 @@ export function GrilleEdl({
       Object.fromEntries(lignes.map((l) => [l.id, l.commentaire ?? ""]))
     )
   );
+  const [pieceActive, setPieceActive] = useState(0);
   const [confirmeSignature, setConfirmeSignature] = useState(false);
   const boutonSigner = useRef<HTMLButtonElement>(null);
   // Audit gestion du 29/09 : la signature se fige sur PREUVE — l'EDL signé
@@ -418,13 +427,22 @@ export function GrilleEdl({
         className="space-y-3"
       >
         <fieldset disabled={enCoursMaj} className="space-y-3 min-w-0">
-        <AncresPieces titres={groupes.map((g) => g.titre)} />
+        {zoneSignatureId ? <nav aria-label="Pièces de l’état des lieux" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {groupes.map((g,i) => {
+            const remplis = g.lignes.filter(l => Boolean(etats[l.id])).length;
+            return <button type="button" key={g.titre} aria-current={pieceActive===i?"step":undefined} onClick={() => setPieceActive(i)} className={`rounded-xl border p-3 text-left text-sm ${pieceActive===i?"border-[var(--or)] bg-[var(--ivoire)]":"border-[var(--filet)]"}`}>
+              <span className="flex items-center justify-between gap-2 font-semibold">{g.titre}{remplis===g.lignes.length&&<span className="text-success" aria-label="Pièce renseignée">✓</span>}</span>
+              <span className="mt-1 block text-xs text-muted-foreground">{remplis}/{g.lignes.length} éléments</span>
+              <span className="mt-2 block h-1 overflow-hidden rounded-full bg-muted" aria-hidden="true"><span className="block h-full bg-[var(--or)]" style={{width:`${100*remplis/g.lignes.length}%`}}/></span>
+            </button>;
+          })}
+        </nav> : <AncresPieces titres={groupes.map(g => g.titre)} />}
         {groupes.map((g, i) => {
           const reprenables = reference
             ? g.lignes.filter((l) => referenceDe(l)?.etat)
             : [];
           return (
-          <div key={g.titre} id={ancrePiece(i)} className="scroll-mt-20 space-y-1">
+          <div key={g.titre} id={ancrePiece(i)} hidden={Boolean(zoneSignatureId) && i !== pieceActive} className="scroll-mt-20 space-y-1">
             <div className="flex flex-wrap items-center justify-between gap-2">
               {/* Le nom de la pièce est le repère de la grille : un titre, pas
                   un sur-titre gris de 11 px plus pâle que ses lignes (24/09). */}
@@ -563,6 +581,11 @@ export function GrilleEdl({
           </div>
           );
         })}
+        {zoneSignatureId && groupes.length > 1 && <div className="flex flex-wrap items-center justify-between gap-3 py-3">
+          <Button type="button" variant="outline" disabled={pieceActive===0} onClick={() => setPieceActive(i => i-1)}>Pièce précédente</Button>
+          <span className="text-xs text-muted-foreground">Pièce {pieceActive+1} / {groupes.length}</span>
+          <Button type="button" variant="outline" disabled={pieceActive===groupes.length-1} onClick={() => setPieceActive(i => i+1)}>Pièce suivante</Button>
+        </div>}
         {/* La grille se remplit debout, téléphone en main : la barre
             Enregistrer/avancement reste collée en bas de l'écran, À TOUTES LES
             LARGEURS (24/09) — sur bureau, l'action principale et l'état de
@@ -608,6 +631,12 @@ export function GrilleEdl({
                 écarts déclencheront (maquette v3). */}
             {/* La signature passe toujours par la modale : elle demande la
                 preuve (EDL signé ou constat) avant de figer la grille. */}
+            {zoneSignatureId ? zoneSignature && createPortal(<div className="space-y-4">
+              <div className="rounded-xl border bg-muted/30 p-4"><h3 className="text-lg">Votre état des lieux</h3>
+                <p className="mt-2 text-sm">{lignes.length - manquantes}/{lignes.length} éléments renseignés · {groupes.length} pièces ou rubriques</p>
+                <p className="mt-1 text-sm text-muted-foreground">{grilleVide ? "La grille doit être générée avant de continuer." : manquantes ? `${manquantes} éléments restent à examiner dans l’étape Les pièces.` : "Tous les éléments de la grille sont renseignés."}</p>
+                <p className="mt-1 text-sm">{!enLigne ? "Hors connexion — attendez le retour du réseau." : attente ? "La saisie de la grille sera enregistrée avec la preuve de signature." : "Grille synchronisée."}</p>
+              </div>
             <Button
               type="button"
               size="sm"
@@ -616,6 +645,18 @@ export function GrilleEdl({
             >
               {enCoursMaj ? "…" : "Enregistrer et signer"}
             </Button>
+
+              {etatMaj.erreur && <p role="alert" className="text-sm text-destructive">{etatMaj.erreur}</p>}
+            </div>, zoneSignature) : <>
+            <Button
+              type="button"
+              size="sm"
+              disabled={enCoursMaj || manquantes > 0 || grilleVide}
+              onClick={() => setConfirmeSignature(true)}
+            >
+              {enCoursMaj ? "…" : "Enregistrer et signer"}
+            </Button>
+            </>}
             <button type="submit" name="signer" value="1" ref={boutonSigner} hidden />
 
           </span>

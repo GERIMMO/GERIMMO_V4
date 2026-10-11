@@ -18,6 +18,7 @@ export default async function PageNouvelIncident(
   props: PageProps<"/agence/[orgId]/incidents/nouveau">
 ) {
   const { orgId } = await props.params;
+  const { lot: lotDemande } = await props.searchParams;
   const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
 
   // Les lots où un incident peut s'ouvrir : tout le parc non archivé.
@@ -77,7 +78,7 @@ export default async function PageNouvelIncident(
             {erreurLots ? (
               <EchecLecture quoi={["les lots du parc"]} />
             ) : (
-              <FormulaireIncident orgId={orgId} lots={lots} estProprietaire={estProprietaire} />
+              <FormulaireIncident orgId={orgId} lots={lots} lotInitial={lots.find(l => l.id === lotDemande)?.id} estProprietaire={estProprietaire} />
             )}
           </CardContent>
         </Card>

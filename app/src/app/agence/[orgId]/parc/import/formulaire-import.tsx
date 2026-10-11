@@ -9,7 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { ChampFichier } from "@/components/champ-fichier";
 
 export function FormulaireImport({ orgId }: { orgId: string }) {
-  const [etat, action] = useActionState<EtatImport, FormData>(
+  const [etat, action, enCours] = useActionState<EtatImport, FormData>(
     importerParc.bind(null, orgId),
     {}
   );
@@ -25,7 +25,10 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
 
   return (
     <div className="space-y-5">
-      <form action={action} className="space-y-4">
+      <ol className="grid grid-cols-3 gap-2 text-sm" aria-label="Étapes de l’import">
+        {["Fichier", "Aperçu", "Résultat"].map((label, i) => <li key={label} aria-current={i === (apresBascule ? 2 : etat.controle ? 1 : 0) ? "step" : undefined} className={`rounded-lg border p-3 ${i === (apresBascule ? 2 : etat.controle ? 1 : 0) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted/30"}`}><span className="block text-xs">{i + 1}</span>{label}</li>)}
+      </ol>
+      <form id={`${base}-import`} action={action} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor={`${base}-fichier`}>Votre fichier (CSV)</Label>
           <ChampFichier id={`${base}-fichier`} name="fichier" accept=".csv,text/csv" />
@@ -47,11 +50,7 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
           </EnvoiImport>
           {/* La bascule n'apparaît qu'APRÈS un contrôle : on ne fait pas
               basculer un parc sur un fichier que personne n'a regardé. */}
-          {etat.controle && ok.length > 0 && (
-            <EnvoiImport classe="btn-or" name="bascule" value="1" enCoursTexte="Import…">
-              Importer {ok.length} ligne{ok.length > 1 ? "s" : ""}
-            </EnvoiImport>
-          )}
+
         </div>
 
         {etat.erreur && (
@@ -130,6 +129,7 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
             })}
           </ol>
 
+          {etat.controle && ok.length > 0 && <div className="mt-4 border-t border-border pt-4"><p className="mb-3 text-sm">Après vérification de cet aperçu, importez les lignes prêtes.</p><button type="submit" form={`${base}-import`} name="bascule" value="1" disabled={enCours} className="btn-or disabled:opacity-50">{enCours ? "Import…" : "Importer"} {ok.length} ligne{ok.length > 1 ? "s" : ""}</button></div>}
           {apresBascule && baux > 0 && (
             <p className="mt-3 text-xs text-muted-foreground">
               Un bail en brouillon ne facture rien : il s&apos;active depuis la

@@ -1,5 +1,12 @@
 /** Liens communs au contrôle du dossier et aux erreurs de génération. */
 export function cibleChampBail(champ: string, orgId: string): { href: string; etape: string } {
+  const champsLogement = new Set([
+    "identifiant fiscal du logement", "autres parties du logement",
+    "chauffage du logement", "eau chaude du logement", "locaux privatifs du logement",
+  ]);
+  if (champsLogement.has(champ.trim().toLocaleLowerCase("fr"))) {
+    return { href: "#completer-lot", etape: "logement" };
+  }
   const vers = (href: string, etape: string) => ({ href, etape });
   if (/^(commune|adresse du mandataire)$|carte et CCI|garantie financière|siret/i.test(champ)) return vers(`/agence/${orgId}/profil`, "personnes");
   if (/Date d’entrée|date prévue/i.test(champ)) return vers("#etape-bail-1", "bail");

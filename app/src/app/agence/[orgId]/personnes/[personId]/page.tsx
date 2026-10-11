@@ -37,6 +37,7 @@ import {
 } from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
 import { CarteMessages } from "./carte-messages";
+import { ConversationProprietaire } from "../../messages/conversation-proprietaire";
 import { GestionJustificatifsPersonne } from "./gestion-justificatifs";
 import { CartePiecesDemandees } from "./carte-pieces-demandees";
 import { EchecLecture, PageEchecLecture } from "../../documents/echec-lecture";
@@ -746,6 +747,7 @@ export default async function PagePersonne(
               )}
             </ul>
           )}
+          {demandesPieces.length > 0 && <div className="rounded-xl bg-muted/40 p-3 text-sm" role="status"><p className="font-medium">{demandesPieces.filter(d => Boolean(d.satisfaite_le)).length} / {demandesPieces.length} demandes complétées{demandesTronquees ? " sur les demandes affichées" : ""}</p><progress className="mt-2 h-2 w-full accent-[var(--marque)]" aria-label="Demandes de justificatifs complétées" max={demandesPieces.length} value={demandesPieces.filter(d => Boolean(d.satisfaite_le)).length} /></div>}
           <GestionJustificatifsPersonne
             depot={<FormulairePiece orgId={orgId} personId={personId} />}
             demandes={!estSaFiche && (personne.account_id || estLocataire || (roles.length === 0 && (detentions ?? []).length === 0) || demandesPieces.length > 0) ? <CartePiecesDemandees orgId={orgId} personId={personId} demandes={demandesPieces} tronquees={demandesTronquees} aUnAcces={Boolean(personne.account_id)} /> : undefined}
@@ -762,17 +764,21 @@ export default async function PagePersonne(
           <CardHeader>
             <CardTitle className="text-base">Messages</CardTitle>
             <CardDescription>
-              Le fil avec cette personne — vos réponses arrivent dans son
-              espace, ouvrir cette fiche marque ses messages comme lus.
+              {estProprietaire ? "Retrouvez vos échanges et répondez directement dans son espace locataire." : "Le fil avec cette personne — vos réponses arrivent dans son espace, ouvrir cette fiche marque ses messages comme lus."}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CarteMessages
+            {estProprietaire ? <ConversationProprietaire
               orgId={orgId}
               personId={personId}
               prenom={personne.prenom}
               messages={messages}
-            />
+            /> : <CarteMessages
+              orgId={orgId}
+              personId={personId}
+              prenom={personne.prenom}
+              messages={messages}
+            />}
           </CardContent>
         </Card>
       )}

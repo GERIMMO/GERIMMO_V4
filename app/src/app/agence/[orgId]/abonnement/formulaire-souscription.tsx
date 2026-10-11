@@ -5,6 +5,9 @@
 // un montant qui aurait changé entre l'affichage et la validation est refusé.
 
 import { useActionState, useId, useMemo, useState } from "react";
+import Link from "next/link";
+import { Check, LockKeyhole, MessageCircle } from "lucide-react";
+import styles from "./abonnement.module.css";
 import { demarrerAbonnement, type EtatAbonnementAction } from "@/app/actions/abonnement";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import {
@@ -117,13 +120,13 @@ export function FormulaireSouscription({
       : `${euros(choisie.montantCents)} TTC`;
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className={estAgence ? "space-y-4" : styles.formulaire}>
       {!estAgence && (
-        <fieldset className="space-y-2">
-          <legend className="libelle-champ">Périodicité</legend>
-          <div className="flex flex-wrap gap-2" role="radiogroup">
+        <fieldset className={styles.periodicite}>
+          <legend>Choisir la périodicité</legend>
+          <div className={styles.periodiciteOptions}>
             {(["mensuel", "annuel"] as const).map((p) => (
-              <label key={p} className={`filtre cursor-pointer ${periodicite === p ? "actif" : ""}`}>
+              <label key={p} className={styles.periode} data-actif={periodicite === p}>
                 <input
                   type="radio"
                   name="periodicite"
@@ -135,7 +138,7 @@ export function FormulaireSouscription({
                   }}
                   className="sr-only"
                 />
-                {p === "mensuel" ? "Mensuel, sans engagement" : "Annuel — deux mois offerts"}
+                {p === "mensuel" ? <>Mensuel <small>Sans engagement</small></> : <>Annuel <small>2 mois offerts</small></>}
               </label>
             ))}
           </div>
@@ -144,48 +147,37 @@ export function FormulaireSouscription({
       {estAgence && <input type="hidden" name="periodicite" value="mensuel" />}
 
       {!estAgence && (
-        <fieldset className="space-y-2">
-          <legend className="libelle-champ">
-            Formule — {unites} bien{unites > 1 ? "s" : ""} en gestion
-          </legend>
-          {offres.map((o, i) => {
-            const surcout = o.montantCents - offres[0].montantCents;
-            return (
-              <label key={o.formule.code} className="ligne-info cursor-pointer items-start gap-3">
-                <span className="flex items-start gap-3">
-                  <input
-                    type="radio"
-                    name="formule"
-                    value={o.formule.code}
-                    checked={choisie.public === "particulier" && choisie.formule.code === o.formule.code}
-                    onChange={() => {
-                      setCode(o.formule.code);
-                      setConfirme(false);
-                    }}
-                    className="mt-1"
-                  />
-                  <span>
-                    {o.formule.nom} — {o.capacite > 20 ? `${o.capacite} biens` : `jusqu'à ${o.formule.biens} bien${o.formule.biens > 1 ? "s" : ""}`}
-                    <small className="block">
-                      {i === 0
-                        ? "Recommandée : la moins chère qui couvre votre portefeuille"
-                        : `Plus chère que nécessaire : +${euros(surcout)} ${parPeriode(periodicite)}`}
-                    </small>
+        <fieldset className={styles.formules}>
+          <legend>Les formules adaptées à vos {unites} bien{unites > 1 ? "s" : ""}</legend>
+          <div className={styles.grilleFormules}>
+            {offres.map((o, i) => {
+              const selectionnee = choisie.public === "particulier" && choisie.formule.code === o.formule.code;
+              const surcout = o.montantCents - offres[0].montantCents;
+              return (
+                <label key={o.formule.code} className={styles.formule} data-selectionnee={selectionnee}>
+                  <span className={styles.formuleEntete}>
+                    <span>{i === 0 ? "Adaptée à votre parc" : "Pour voir plus grand"}</span>
+                    <input type="radio" name="formule" value={o.formule.code} checked={selectionnee}
+                      onChange={() => { setCode(o.formule.code); setConfirme(false); }} />
                   </span>
-                </span>
-                <span className="montant">
-                  {euros(o.montantCents)} {parPeriode(periodicite)}
-                </span>
-              </label>
-            );
-          })}
+                  <strong className={styles.nomFormule}>{o.formule.nom}</strong>
+                  <span className={styles.capacite}>{o.capacite > 20 ? `${o.capacite} biens` : `Jusqu’à ${o.formule.biens} bien${o.formule.biens > 1 ? "s" : ""}`}</span>
+                  <span className={styles.prix}>{euros(o.montantCents)}<small>TTC {parPeriode(periodicite)}</small></span>
+                  <span className={styles.noteFormule}>{i === 0 ? "La formule la plus économique pour votre parc." : `+${euros(surcout)} ${parPeriode(periodicite)} par rapport à la formule adaptée.`}</span>
+                  <span className={styles.selectionFormule}>{selectionnee ? <><Check size={15} aria-hidden="true" /> Formule sélectionnée</> : "Choisir cette formule"}</span>
+                </label>
+              );
+            })}
+          </div>
         </fieldset>
       )}
 
-      <div className="rounded-lg border border-border p-3">
-        <p className="libelle-champ mb-2">Récapitulatif avant paiement</p>
-        <DetailMontants offre={choisie} regime={regime} />
-        <ul className="mesure-lecture mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+      <div role="region" aria-label="Récapitulatif avant paiement" className={estAgence ? "rounded-lg border border-border p-3" : styles.recapitulatif}>
+        <div className={estAgence ? undefined : styles.total}>
+          <p className={estAgence ? "libelle-champ mb-2" : styles.recapTitre}><LockKeyhole size={17} aria-hidden="true" /> Récapitulatif avant paiement</p>
+          <DetailMontants offre={choisie} regime={regime} />
+        </div>
+        <ul className={estAgence ? "mesure-lecture mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground" : styles.conditions}>
           {choisie.public === "particulier" && choisie.periodicite === "annuel" && (
             <li>
               {euros(choisie.montantCents)} prélevés en une fois pour douze mois — soit{" "}
@@ -215,7 +207,11 @@ export function FormulaireSouscription({
       </div>
 
       {motifIndisponible ? (
-        <p className="mesure-lecture text-sm text-muted-foreground">{motifIndisponible}</p>
+        <div className={estAgence ? "mesure-lecture text-sm text-muted-foreground" : styles.indisponible}>
+          <MessageCircle size={20} aria-hidden="true" />
+          <p>{motifIndisponible}</p>
+          {!estAgence && <Link href={`/assistance?ecran=${encodeURIComponent("/agence/[dossier]/abonnement")}&action=lien&retour=${encodeURIComponent(`/agence/${orgId}/abonnement`)}`}>Contacter Gerimmo</Link>}
+        </div>
       ) : (
         <>
           <input type="hidden" name="montant_attendu_cents" value={choisie.montantCents} />

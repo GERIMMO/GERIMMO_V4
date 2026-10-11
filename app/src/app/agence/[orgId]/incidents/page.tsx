@@ -1,5 +1,8 @@
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
+import { ArrowRight, CircleCheck, Clock3, Inbox, Plus, TriangleAlert, Wrench } from "lucide-react";
+import { formaterDate } from "@/lib/ged";
+import "./incidents.css";
 import { lotsDuPortefeuille, PortefeuilleIndisponible } from "@/lib/portefeuille";
 import { verifierAccesEspace } from "@/lib/espace";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
@@ -168,8 +171,8 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
       (estProprietaire ? "les membres de l'espace" : "les gestionnaires de l'agence"),
   ].filter((q): q is string => Boolean(q));
 
-  // Les liens de la vue scindée préservent l'autre paramètre : changer de
-  // vue garde le dossier ouvert, ouvrir un dossier garde la vue courante.
+  // Ouvrir un dossier conserve la vue courante. Un changement de filtre ne
+  // garde la sélection que si le dossier appartient encore à la vue cible.
   const lien = (vueCible: string, selCible: string | null) => {
     const params = new URLSearchParams();
     if (vueCible !== "en-cours") params.set("vue", vueCible);
@@ -182,46 +185,38 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
   // premier de la vue — le plus urgent, d'après le tri. Le volet ouvrait sur
   // « Sélectionnez un incident » et une coche « tout est fait » : un clic de
   // plus à chaque visite. `sel` seul garde le sens « dossier ouvert » (Fermer,
-  // retour, liste masquée sous 900 px) ; sans lui, la liste reste seule sur
+  // retour, liste masquée sous 1100 px) ; sans lui, la liste reste seule sur
   // téléphone.
   const ouvert = sel ?? visibles[0]?.id ?? null;
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
-      {/* L'en-tête standard de l'espace (tour du 24/09) : le titre, la
-          mention, l'action — sans fil d'Ariane, le menu dit déjà où l'on est.
-          La phrase d'aide passe sous le filet, comme sur « Loyers & charges ». */}
-      <div className="mb-6">
-        {/* L'écart sous le filet est celui de .entete-page, le même sur toutes
-            les pages de premier niveau (24/09). Dossier ouvert sur téléphone :
-            la mention, les actions de la liste et la phrase d'aide s'effacent,
-            le titre puis « ← Tous les incidents » ouvrent l'écran. */}
-        <div className="entete-page">
+    <main className="incidents-page mx-auto w-full max-w-7xl flex-1 p-4 sm:p-7" data-selection={sel ? "active" : undefined}>
+      <header className="incidents-entete">
+        <div>
           <TitreEcran rubrique="incidents">Incidents</TitreEcran>
-          <div
-            className={`flex flex-wrap items-center gap-3${sel ? " max-[900px]:hidden" : ""}`}
-          >
-            <span className="mono-discret">
-              {erreurVivants
-                ? "file de travail indisponible"
-                : `${enCours.length} en cours · ${aTraiter.length} à traiter`}
-            </span>
-            {/* Le carnet a son entrée dans « Plus » ; le raccourci reste ici,
-                là où l'on affecte un artisan. */}
-            <Link href={`/agence/${orgId}/${estProprietaire ? "reseau" : "artisans"}`} className="lien-discret">
-              Carnet d&apos;artisans
-            </Link>
-            <Link href={`/agence/${orgId}/incidents/nouveau`} className="btn-or">
-              Déclarer un incident
-            </Link>
-          </div>
+          <p>Du signalement à la résolution, gardez le fil de chaque intervention.</p>
         </div>
-        <p className={`text-sm text-muted-foreground${sel ? " max-[900px]:hidden" : ""}`}>
-          {estProprietaire
-            ? "Déclarés par vos locataires ou saisis par vous — décidez qui paie."
-            : "Déclarés par le locataire ou saisis par le gestionnaire — décidez qui paie."}
-        </p>
-      </div>
+        <div className={`incidents-entete-actions${sel ? " max-[1100px]:hidden" : ""}`}>
+          <Link href={`/agence/${orgId}/${estProprietaire ? "reseau" : "artisans"}`} className="btn-secondaire">
+            <Wrench size={16} aria-hidden="true" /> Carnet d&apos;artisans
+          </Link>
+          <Link href={`/agence/${orgId}/incidents/nouveau`} className="btn-or">
+            <Plus size={17} aria-hidden="true" /> Déclarer un incident
+          </Link>
+        </div>
+      </header>
+      <nav aria-label="Filtrer les incidents" className={`incidents-filtres${sel ? " max-[1100px]:hidden" : ""}`}>
+        {VUES.map((v) => {
+          const Icone = v.cle === "a-traiter" ? TriangleAlert : v.cle === "clos" ? CircleCheck : v.cle === "tous" ? Inbox : Clock3;
+          return (
+            <Link key={v.cle} href={lien(v.cle, sel && filtres[v.cle as keyof typeof filtres].some((i) => i.id === sel) ? sel : null)} aria-current={vue === v.cle ? "page" : undefined} className="incidents-filtre" data-vue={v.cle}>
+              <span className="incidents-filtre-icone"><Icone size={19} aria-hidden="true" /></span>
+              <span>{v.libelle}<strong>{compteVue(v.cle)}</strong></span>
+              <IndicateurLien />
+            </Link>
+          );
+        })}
+      </nav>
 
       <EchecLecture quoi={lecturesManquees} />
 
@@ -252,39 +247,14 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
       {/* Vue scindée maquette : la liste à gauche, le dossier sélectionné à
           droite (?sel=…) — les alertes « Traiter » pointent déjà ici.
           Vue scindée mobile (socle 10/09) : `detail-actif` masque la liste
-          sous 900px quand un dossier est ouvert — le dossier remplace la
+          sous 1100px quand un dossier est ouvert — le dossier remplace la
           liste au lieu d'être rendu dessous, avec un lien retour en tête. */}
       <div className={`split${sel ? " detail-actif" : ""}${!ouvert ? " split-sans-detail" : ""}`}>
         <div className="colonne-liste-split volet-liste">
-          {/* Plus de « Fermer » en tête de colonne (25/09) : au bureau, la
-              liste reste visible à côté du dossier et le lien fermait une
-              sélection dont on ne voyait pas ce qu'elle bloquait ; au
-              téléphone, « ← Tous les incidents » en tête du dossier fait ce
-              retour. Le compte, lui, était déjà dans l'en-tête (24/09). */}
-          {/* Quatre filtres en grille, deux par rangée : en flux, « Tous »
-              restait seul sur sa ligne, dans la colonne de 340 px comme sur
-              téléphone (tour du 24/09). Entre 640 et 900 px la colonne prend
-              toute la largeur : les quatre tiennent sur une rangée. */}
-          <div className="grid grid-cols-2 gap-1.5 border-b border-border px-3 py-2 sm:max-[900px]:grid-cols-4">
-            {/* Une vue vide ne s'aligne pas en « · 0 » (règle du 24/09) : elle
-                n'apparaît que si elle a quelque chose, ou si elle est ouverte. */}
-            {VUES.filter((v) => v.cle === "tous" || v.cle === vue || compteVue(v.cle) !== "0").map((v) => (
-              <Link
-                key={v.cle}
-                href={lien(v.cle, sel)}
-                className={`filtre inline-flex items-center justify-center gap-1.5${vue === v.cle ? " actif" : ""}`}
-              >
-                {v.libelle} · {compteVue(v.cle)}
-                {/* Changer de vue ne recharge que le contenu : l'anneau dit
-                    que le clic est pris (recette 24/08, fluidité) */}
-                <IndicateurLien />
-              </Link>
-            ))}
+          <div className="incidents-liste-entete">
+            <h2>Les signalements</h2>
+            <span>{libelleVue}</span>
           </div>
-          {/* La légende « à traiter / en cours / clos » est retirée (24/09) :
-              aucun rang ne portait ses couleurs, la puce dit l'état en toutes
-              lettres et le filtre « À traiter » fait le tri. */}
-
           {visibles.length === 0 && vueIllisible(vue) ? (
             /* Ni liste ni état vide : « aucun incident déclaré » serait faux —
                c'est la lecture qui a échoué, pas l'agence qui n'a rien. */
@@ -321,9 +291,11 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                     <p className="explication">
                       {/* comptes.tous, pas incidents.length : le second ne
                           compte que la fenêtre lue. */}
-                      {estProprietaire
-                        ? `Vos ${comptes.tous} dossiers sont dans les autres onglets.`
-                        : `Les ${comptes.tous} dossiers de l’agence sont dans les autres onglets.`}
+                      {comptes.tous === 1
+                        ? "Le dossier est disponible dans un autre filtre."
+                        : estProprietaire
+                          ? `Vos ${comptes.tous} dossiers sont dans les autres filtres.`
+                          : `Les ${comptes.tous} dossiers de l’agence sont dans les autres filtres.`}
                     </p>
                     <span className="geste">
                       <Link href={lien("en-cours", sel)} className="lien-discret">
@@ -339,7 +311,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
               const lot = premier(i.lot);
               const actif = i.id === ouvert;
               // Ouvert d'office (sans `sel`) : le dossier n'est affiché que sur
-              // bureau — sous 900 px, le rang ne se marque pas comme ouvert.
+              // bureau — sous 1100 px, le rang ne se marque pas comme ouvert.
               const actifBureauSeul = actif && !sel;
               return (
                 <Link
@@ -347,39 +319,30 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                   href={lien(vue, i.id)}
                   className={`rang${actif ? " actif" : ""}${
                     actifBureauSeul
-                      ? " max-[900px]:border-l-transparent max-[900px]:bg-transparent"
+                      ? " max-[1100px]:border-l-transparent max-[1100px]:bg-transparent"
                       : ""
                   }`}
                   aria-current={actif ? "true" : undefined}
                 >
-                  <span className="min-w-0 flex-1">
-                    <b className="block truncate">{titreIncident(i.categorie)}</b>
-                    <small className="block truncate">
-                      {i.numero} · {lot?.nom ?? "—"}
-                    </small>
+                  <span className="incident-rang-reperes">
+                    <span>{i.numero}</span>
+                    <time dateTime={i.created_at}>{formaterDate(i.created_at)}</time>
                   </span>
-                  <span className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="flex items-center gap-1.5">
-                      {/* Ouvrir un dossier ne recharge pas la liste : l'anneau
-                          sur la ligne cliquée confirme le geste */}
-                      <IndicateurLien />
-                      {i.urgence === "urgente" && (
-                        <span className="puce puce-rouge">Urgent</span>
-                      )}
-                      <span className={COULEURS_ETAT_INCIDENT[i.etat] ?? "puce puce-grise"}>
-                        {ETATS_INCIDENT[i.etat] ?? "État à vérifier"}
-                      </span>
+                  <b className="incident-rang-titre">{titreIncident(i.categorie)}</b>
+                  <span className="incident-rang-lot">{lot?.nom ?? "Lot non disponible"}</span>
+                  <span className="incident-rang-etats">
+                    {i.urgence === "urgente" && <span className="puce puce-rouge">Urgent</span>}
+                    <span className={COULEURS_ETAT_INCIDENT[i.etat] ?? "puce puce-grise"}>
+                      {ETATS_INCIDENT[i.etat] ?? "État à vérifier"}
                     </span>
-                    {/* Une adresse e-mail garde sa casse : en capitales, elle ne
-                        se relit plus (et .mono-discret capitalise d'office). */}
-                    {i.responsable_account_id ? (
-                      <span className="mono-discret sans-majuscules">
-                        {emails.get(i.responsable_account_id) ?? "—"}
-                      </span>
-                    ) : (
-                      <span className="mono-discret">Non attribué</span>
-                    )}
+                    <IndicateurLien />
+                    <ArrowRight size={16} aria-hidden="true" />
                   </span>
+                  {!estProprietaire && <span className="incident-rang-suivi">
+                    {i.responsable_account_id
+                      ? `Suivi par ${emails.get(i.responsable_account_id) ?? "un gestionnaire"}`
+                      : "À attribuer"}
+                  </span>}
                 </Link>
               );
             })
@@ -398,14 +361,15 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
         {/* Vue vide : rien à droite — l'invite « Sélectionnez un incident »
             n'avait rien à faire sélectionner. */}
         {ouvert && (
-          <div className={`min-w-0${sel ? "" : " max-[900px]:hidden"}`}>
-            {/* Visible sous 900px seulement (.retour-liste) : la liste est masquée */}
+          <div className={`min-w-0${sel ? "" : " max-[1100px]:hidden"}`}>
+            {/* Visible sous 1100px seulement (.retour-liste) : la liste est masquée */}
             {sel && (
               <Link href={lien(vue, null)} className="retour-liste mb-2">
                 ← Tous les incidents
               </Link>
             )}
             <PaneIncident
+              key={ouvert}
               orgId={orgId}
               incidentId={ouvert}
               monCompte={user.id}

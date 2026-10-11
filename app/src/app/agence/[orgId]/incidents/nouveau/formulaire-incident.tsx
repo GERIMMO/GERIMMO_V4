@@ -42,10 +42,12 @@ export function RepereJuridique({ slug, estProprietaire = false }: { slug: strin
 export function FormulaireIncident({
   orgId,
   lots,
+  lotInitial = "",
   estProprietaire = false,
 }: {
   orgId: string;
   lots: { id: string; libelle: string }[];
+  lotInitial?: string;
   estProprietaire?: boolean;
 }) {
   const actionLiee = ouvrirIncident.bind(null, orgId);
@@ -63,7 +65,7 @@ export function FormulaireIncident({
           id="lot"
           name="lot"
           required
-          defaultValue={etat.valeurs?.lot ?? ""}
+          defaultValue={etat.valeurs?.lot ?? lotInitial}
           className={classeSelect}
         >
           <option value="" disabled>

@@ -1,6 +1,7 @@
 import { FacturesIncident } from "./factures-incident";
 import { BilanContactIncident } from "@/components/bilan-contact-incident";
 import Link from "next/link";
+import { ArrowRight, Building2, Camera, Check, CircleDollarSign, History, MessageSquareText, UserRound } from "lucide-react";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
@@ -85,7 +86,7 @@ export async function PaneIncident({
   estResponsable: boolean;
   membres: MembreGerant[];
 }) {
-  const { supabase, role, user } = await verifierAccesEspace(orgId);
+  const { supabase, role, user, estProprietaire } = await verifierAccesEspace(orgId);
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
 
   const [
@@ -260,176 +261,76 @@ export async function PaneIncident({
     erreurLiens && "les photos jointes",
   ].filter((q): q is string => Boolean(q));
 
+  const peutModifierSuivi = etatIncident !== "clos" &&
+    (estResponsable || !incident.responsable_account_id || incident.responsable_account_id === monCompte);
+  const responsableAffiche = incident.responsable_account_id === monCompte ? "vous" : incident.responsable_account_id ? emails.get(incident.responsable_account_id) ?? "un gestionnaire" : "non attribué";
+
+  const prochaineAction = aQualifier && decisionRequise
+    ? { titre: "Indiquer qui prend en charge", texte: "Choisissez qui paie et expliquez votre décision avant de solliciter un artisan.", cible: "qualification", bouton: "Prendre une décision", ton: "attention" }
+    : etatIncident === "qualifie"
+      ? { titre: "Organiser la résolution", texte: "Sollicitez un artisan si nécessaire, ou clôturez le dossier si le problème est réglé.", cible: "intervention", bouton: "Voir les possibilités", ton: "info" }
+      : etatIncident === "termine"
+        ? { titre: "Vérifier et clôturer", texte: "Consultez le compte rendu de l’intervention avant de clôturer le dossier.", cible: "intervention", bouton: "Voir le compte rendu", ton: "attention" }
+        : etatIncident === "clos"
+          ? { titre: "Dossier clos", texte: "Retrouvez les décisions et les échanges dans la chronologie.", cible: "chronologie", bouton: "Voir l’historique", ton: "termine" }
+          : { titre: "Suivre l’intervention", texte: "Consultez l’avancement et les informations transmises par l’artisan.", cible: "intervention", bouton: "Voir le suivi", ton: "info" };
+
   return (
-    <div className="min-w-0 space-y-4">
-          {incident.etat === "clos" && <BilanContactIncident orgId={orgId} incidentId={incidentId} />}
-
+    <div className="incident-dossier min-w-0 space-y-4">
+      {incident.etat === "clos" && <BilanContactIncident orgId={orgId} incidentId={incidentId} />}
       <EchecLecture quoi={lecturesManquees} />
-
-      {/* En-tête du dossier (maquette pageIncident) : eyebrow mono, titre
-          court, sous-ligne lot · pièce · déclarant ; les puces à droite.
-          PAS `.entete-page` (25/09) : cette classe est celle du titre de la
-          page « Incidents », juste au-dessus — le dossier en portait une
-          seconde, avec son filet pleine largeur (« un seul bandeau par
-          écran »). Un en-tête de dossier, dans son volet. */}
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 pb-1">
-        <div className="min-w-0">
-          <p className="eyebrow">
-            {incident.numero} · {CANAUX_INCIDENT[incident.canal] ?? incident.canal} ·{" "}
-            {formaterDateHeure(incident.created_at)}
-          </p>
-          <h2 className="mt-0.5 font-heading text-xl font-semibold text-[var(--encre)]">
-            {titreIncident(incident.categorie)}
-          </h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {lot ? (
-              <Link
-                href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}`}
-                className="hover:underline"
-              >
-                {lot.nom}
-              </Link>
-            ) : (
-              "—"
-            )}
-            {incident.piece ? ` · ${incident.piece}` : ""}
-            {incident.canal === "espace_locataire" ? " · déclaré par " : " · contact du logement : "}
-            {declarant ? (
-              <>
-                {/* Vers le fil de messages de la fiche (#messages), pas vers son
-                    sommet : rappeler le locataire avant de trancher qui paie est
-                    le geste courant (RM-7.2.1 — « la cause ne se déduit pas de
-                    la catégorie ») et la carte Messages vit en bas d'une fiche
-                    longue. Même cible que la liste des messages. Le lien n'est
-                    posé que si la fiche est lisible : hors portefeuille elle
-                    répondrait 404, pas un refus gracieux. */}
-                <Link
-                  href={`/agence/${orgId}/personnes/${declarant.id}#messages`}
-                  className="hover:underline"
-                >
-                  {nomComplet(declarant)}
-                </Link>
-                {declarant.telephone && (
-                  <>
-                    {" · "}
-                    {/* Le numéro est de la saisie libre : les espaces cassent `tel:` sur
-                        certains combinés. Même nettoyage que les deux autres liens
-                        d'appel du produit (espace locataire). 24/09 : affiché par
-                        paires et en lien bleu — rappeler est le geste courant, un
-                        « 0601020304 » gris ne disait pas qu'il se compose. */}
-                    <a
-                      href={`tel:${declarant.telephone.replace(/\s/g, "")}`}
-                      className="lien-discret whitespace-nowrap"
-                    >
-                      {formaterTelephone(declarant.telephone)}
-                    </a>
-                  </>
-                )}
-              </>
-            ) : declarantIllisible ? (
-              "— (déclarant hors de votre portefeuille)"
-            ) : (
-              "— (aucun bail actif sur le lot)"
-            )}
-          </p>
-        </div>
-        <span className="flex flex-wrap items-center gap-2">
-          {incident.urgence === "urgente" && <span className="puce puce-rouge">Urgent</span>}
-          <span className={COULEURS_ETAT_INCIDENT[incident.etat] ?? "puce puce-grise"}>
-            {ETATS_INCIDENT[incident.etat] ?? incident.etat}
-          </span>
-        </span>
-      </div>
-
-      {/* Carte d'attribution en bandeau (maquette « VOTRE DOSSIER ») */}
-      <Card size="sm">
-        <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span className="eyebrow shrink-0">Votre dossier</span>
-          {incident.etat === "clos" ? (
-            <span className="text-muted-foreground">Dossier clos.</span>
-          ) : (
-            <>
-              <span className="text-muted-foreground">
-                {incident.responsable_account_id
-                  ? `Suivi par ${emails.get(incident.responsable_account_id) ?? "un gestionnaire"}`
-                  : "Non attribué : personne ne le suit."}
-              </span>
-              {/* 24/09 : côté responsable, « Me l'attribuer », le sélecteur
-                  et « Attribuer » tiennent sur une rangée au bureau. Faute de
-                  22rem à côté du texte, le bloc passe à la ligne ENTIER plutôt
-                  que de s'y tasser et d'empiler ses trois commandes. L'agent
-                  n'a qu'un bouton : il reste sur la ligne du texte. */}
-              <div
-                className={`max-w-lg flex-1 ${
-                  estResponsable ? "min-w-[min(100%,22rem)]" : "min-w-[240px]"
-                }`}
-              >
-                <FormulaireAttribution
-                  orgId={orgId}
-                  incidentId={incidentId}
-                  responsable={incident.responsable_account_id}
-                  membres={membres}
-                  monCompte={monCompte}
-                  estResponsable={estResponsable}
-                />
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Barre d'étapes du flux : segment courant laiton, faits verts, à
-          venir filet (maquette pageIncident). */}
-      <Card size="sm">
-        <CardContent>
-          <div className="flex flex-wrap gap-1.5">
-            {etapesFlux.map((f, n) => {
-              const fait = n < positionFlux;
-              const courant = n === positionFlux;
-              return (
-                // flex-auto + nowrap (24/09) : chaque segment prend au moins
-                // la largeur de son libellé — « À QUALIFIER » se pliait seul
-                // sur deux lignes à 390 px.
-                <span key={f} className="flex-auto">
-                  <span
-                    className="block h-1"
-                    style={{
-                      background: courant
-                        ? "var(--or)"
-                        : fait
-                          ? "var(--success)"
-                          : "var(--filet)",
-                    }}
-                  />
-                  <span
-                    className="mono-discret block whitespace-nowrap"
-                    style={{
-                      // 8.5px de la maquette : illisible sur téléphone (audit 09/09)
-                      fontSize: "11px",
-                      marginTop: "5px",
-                      color: courant ? "var(--encre)" : undefined,
-                    }}
-                  >
-                    {(ETAPES_FLUX[f] ?? f).toUpperCase()}
-                  </span>
-                </span>
-              );
-            })}
+      <section className="incident-entete" aria-label="Résumé du signalement">
+        <div className="incident-entete-haut">
+          <div>
+            <p className="incident-reference">{incident.numero} · <time dateTime={incident.created_at}>{formaterDateHeure(incident.created_at)}</time></p>
+            <h2>{titreIncident(incident.categorie)}</h2>
           </div>
-        </CardContent>
-      </Card>
+          <div className="incident-badges">
+            {incident.urgence === "urgente" && <span className="puce puce-rouge">Urgent</span>}
+            <span className={COULEURS_ETAT_INCIDENT[incident.etat] ?? "puce puce-grise"}>{ETATS_INCIDENT[incident.etat] ?? incident.etat}</span>
+          </div>
+        </div>
+        <div className="incident-reperes">
+          <div><Building2 size={17} aria-hidden="true" /><div><span>Logement concerné</span>
+            {lot ? <Link href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <strong>Lot non disponible</strong>}
+            {incident.piece && <small>{incident.piece}</small>}
+          </div></div>
+          <div><UserRound size={17} aria-hidden="true" /><div><span>{incident.canal === "espace_locataire" ? "Déclaré par" : "Contact du logement"}</span>
+            {declarant ? <>
+              <Link href={`/agence/${orgId}/personnes/${declarant.id}#messages`}>{nomComplet(declarant)}</Link>
+              {declarant.telephone && <a href={`tel:${declarant.telephone.replace(/\s/g, "")}`} className="incident-telephone">{formaterTelephone(declarant.telephone)}</a>}
+            </> : <strong>{declarantIllisible ? "Déclarant hors de votre portefeuille" : "Aucun bail actif sur le lot"}</strong>}
+          </div></div>
+        </div>
+        {!estProprietaire && (peutModifierSuivi ? (
+          <details className="incident-attribution" open={!incident.responsable_account_id}>
+            <summary><span>Suivi du dossier : <b>{responsableAffiche}</b></span><span>Modifier</span></summary>
+            <div><FormulaireAttribution orgId={orgId} incidentId={incidentId} responsable={incident.responsable_account_id} membres={membres} monCompte={monCompte} estResponsable={estResponsable} /></div>
+          </details>
+        ) : <p className="incident-suivi-lecture">Suivi du dossier : <b>{responsableAffiche}</b></p>)}
+        <ol className="incident-etapes" aria-label="Avancement du dossier">
+          {etapesFlux.map((f, n) => <li key={f} data-etat={n < positionFlux ? "fait" : n === positionFlux ? "courant" : "a-venir"} aria-current={n === positionFlux ? "step" : undefined}>
+            <span>{n < positionFlux ? <Check size={12} aria-hidden="true" /> : n + 1}</span>{ETAPES_FLUX[f] ?? f}
+          </li>)}
+        </ol>
+      </section>
+      <div className="incident-prochaine-action" data-ton={prochaineAction.ton}>
+        <div><span>Prochaine étape</span><strong>{prochaineAction.titre}</strong><p>{prochaineAction.texte}</p></div>
+        <a href={`#${prochaineAction.cible}`}>{prochaineAction.bouton}<ArrowRight size={16} aria-hidden="true" /></a>
+      </div>
+      <div className="incident-contenu">
 
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div className="min-w-0 space-y-4">
 
-          <Card>
+          <div className="incident-contexte">
+          <Card className="incident-signalement">
             <CardHeader>
-              <CardTitle className="text-base">
+              <CardTitle className="text-base"><MessageSquareText size={18} aria-hidden="true" />
                 {incident.canal === "espace_locataire"
                   ? "Ce qu'a dit le locataire"
                   : "Le signalement"}
               </CardTitle>
-              {categorie && <CardDescription>{categorie.libelle}</CardDescription>}
+              {categorie && <CardDescription>{categorie.libelle} · {CANAUX_INCIDENT[incident.canal] ?? incident.canal}</CardDescription>}
             </CardHeader>
             <CardContent className="space-y-4">
               {incident.description ? (
@@ -474,16 +375,46 @@ export async function PaneIncident({
             </CardContent>
           </Card>
 
-          {aQualifier && decisionRequise ? (
-            <Card className="border-l-[3px] border-l-[var(--or)]">
-              <CardHeader>
-                <p className="eyebrow" style={{ color: "var(--or-texte)" }}>
-                  Qui paie — votre décision est requise
+          <Card id="chronologie">
+            <CardHeader>
+              <CardTitle className="text-base"><History size={18} aria-hidden="true" />Chronologie</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!erreurEvenements && (evenements ?? []).length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Aucun événement enregistré — le dossier vient d&apos;être
+                  ouvert.
                 </p>
+              )}
+              <div className="chrono" tabIndex={0} role="region" aria-label="Événements du dossier">
+                {((evenements ?? []) as Evenement[]).map((e) => {
+                  const detail = detailEvenement(e);
+                  return (
+                    <div key={e.id}>
+                      <p className="libelle-champ">{formaterDateHeure(e.created_at)}</p>
+                      <p className="text-sm font-medium">
+                        {TYPES_EVENEMENT_INCIDENT[e.type] ?? e.type}
+                      </p>
+                      {detail && (
+                        <p className="text-[0.8125rem] text-muted-foreground">{detail}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          </div>
+
+          {aQualifier && decisionRequise ? (
+            <Card id="qualification" className="incident-qualification">
+              <CardHeader>
+                <CardTitle className="text-base"><CircleDollarSign size={19} aria-hidden="true" />Qui prend en charge ?</CardTitle>
                 <CardDescription>
                   {etatIncident === "qualifie"
                     ? "Déjà qualifié — requalifier répond à une contestation ou corrige la décision."
-                    : "Rien ne part tant que vous n'avez pas tranché : aucune affectation sans imputation."}
+                    : "Sélectionnez la prise en charge et précisez la raison de votre choix."}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -537,10 +468,10 @@ export async function PaneIncident({
             // Qualifié, sans contestation : la décision est prise. Même titre
             // neutre que la carte des états suivants ; la requalification
             // reste à portée, repliée et préremplie (24/09).
-            <Card>
+            <Card id="qualification">
               <CardHeader>
-                <CardTitle className="text-base">Qualification — qui paie</CardTitle>
-                <CardDescription>Décidée par le gestionnaire, opposable au locataire.</CardDescription>
+                <CardTitle className="text-base"><CircleDollarSign size={18} aria-hidden="true" />Prise en charge</CardTitle>
+                <CardDescription>La décision enregistrée dans ce dossier.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {incident.imputation && (
@@ -581,10 +512,10 @@ export async function PaneIncident({
               </CardContent>
             </Card>
           ) : (
-            <Card>
+            <Card id="qualification">
               <CardHeader>
-                <CardTitle className="text-base">Qualification — qui paie</CardTitle>
-                <CardDescription>Décidée par le gestionnaire, opposable au locataire.</CardDescription>
+                <CardTitle className="text-base"><CircleDollarSign size={18} aria-hidden="true" />Prise en charge</CardTitle>
+                <CardDescription>La décision enregistrée dans ce dossier.</CardDescription>
               </CardHeader>
               <CardContent>
                 {incident.imputation ? (
@@ -625,6 +556,7 @@ export async function PaneIncident({
               qualification et la clôture parce que c'est sa place dans le
               cycle — on ne peut pas l'ouvrir avant d'avoir tranché qui paie
               (RM-7.2.7), et la clôture attend son compte rendu (RM-7.5.1). */}
+          <div id="intervention">
           <VoletArtisan
             orgId={orgId}
             incidentId={incidentId}
@@ -634,8 +566,12 @@ export async function PaneIncident({
             lotId={incident.lot_id}
           />
 
+          </div>
+
           <FacturesIncident orgId={orgId} incidentId={incidentId} />
-          <Card id="cloture">
+          <details id="cloture" open={!estProprietaire || incident.etat === "termine" || incident.etat === "clos"} className="rounded-xl border border-border bg-card p-4">
+            <summary className="cursor-pointer font-semibold">{incident.etat === "clos" ? "Incident clos · consulter" : "Clôturer l’incident"}</summary>
+          <Card className="mt-3 border-0 shadow-none">
             <CardHeader>
               <CardTitle className="text-base">
                 {incident.etat === "clos" ? "Incident clos" : "Clôture"}
@@ -682,45 +618,15 @@ export async function PaneIncident({
                 </p>
               )}
             </CardContent>
-          </Card>
+          </Card></details>
         </div>
 
-        <div className="min-w-0 space-y-4">
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Chronologie</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!erreurEvenements && (evenements ?? []).length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  Aucun événement enregistré — le dossier vient d&apos;être
-                  ouvert.
-                </p>
-              )}
-              <div className="chrono">
-                {((evenements ?? []) as Evenement[]).map((e) => {
-                  const detail = detailEvenement(e);
-                  return (
-                    <div key={e.id}>
-                      <p className="libelle-champ">{formaterDateHeure(e.created_at)}</p>
-                      <p className="text-sm font-medium">
-                        {TYPES_EVENEMENT_INCIDENT[e.type] ?? e.type}
-                      </p>
-                      {detail && (
-                        <p className="text-[0.8125rem] text-muted-foreground">{detail}</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="incident-photos">
 
           {incident.etat !== "clos" && (
-            <Card>
+            <details open={!estProprietaire} className="rounded-xl border border-border bg-card p-4"><summary className="flex cursor-pointer items-center gap-2 font-semibold"><Camera size={18} aria-hidden="true"/>Ajouter des photos au dossier</summary><Card className="mt-3 border-0 shadow-none">
               <CardHeader>
-                <CardTitle className="text-base">Ajouter une photo</CardTitle>
+                <CardTitle className="text-base"><Camera size={18} aria-hidden="true" />Ajouter une photo</CardTitle>
                 <CardDescription>
                   Constat sur place, avant/après — elles suivent le dossier.
                 </CardDescription>
@@ -728,7 +634,7 @@ export async function PaneIncident({
               <CardContent>
                 <FormulairePhotoIncident orgId={orgId} incidentId={incidentId} />
               </CardContent>
-            </Card>
+            </Card></details>
           )}
         </div>
       </div>

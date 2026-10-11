@@ -97,6 +97,12 @@ describe("alertesDecence", () => {
     expect(alertesDecence({ surface_m2: 9 })).toHaveLength(0);
     expect(alertesDecence({ surface_m2: null })).toHaveLength(0);
   });
+  it("signale 6 m² sans oublier le critère alternatif de volume", () => {
+    expect(alertesDecence({ surface_m2: 6 })[0]).toContain("20 m³");
+  });
+  it.each([0, -1, NaN, Infinity])("ne confond pas la saisie invalide %s avec une petite surface", surface_m2 => {
+    expect(alertesDecence({ surface_m2 })).toEqual([]);
+  });
 });
 
 describe("cibleBlocage", () => {

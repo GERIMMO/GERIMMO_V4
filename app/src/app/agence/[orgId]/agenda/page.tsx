@@ -8,6 +8,7 @@ import { jourParis, TAILLE_PAGE_AGENDA } from "@/lib/agenda-gestion";
 import { premier } from "@/lib/postgrest";
 import { jourLong, creneauTexte, STATUTS_MISSION } from "@/app/artisan/libelles";
 import { EchecLecture } from "../documents/echec-lecture";
+import { AgendaProprietaire } from "./agenda-proprietaire";
 
 export const metadata = { title: "Agenda — Gerimmo" };
 
@@ -106,6 +107,10 @@ export default async function PageAgenda({ params, searchParams }: {
     }
   }
   const duJour = parJour.get(agenda.jour) ?? [];
+
+  if (role === "proprietaire_direct") {
+    return <AgendaProprietaire agenda={agenda} comptesVues={comptesVues} base={base} aujourdhui={aujourdhui} />;
+  }
 
   return <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-7">
     {/* L'en-tête standard de l'espace (tour du 24/09) : le hero bleu était

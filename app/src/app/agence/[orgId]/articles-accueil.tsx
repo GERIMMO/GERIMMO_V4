@@ -5,7 +5,7 @@ import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 import styles from "./accueil-proprietaire.module.css";
 
 /** Les mêmes articles que le Journal, publiés depuis la console super admin. */
-export async function ArticlesAccueil({ supabase }: { supabase: SupabaseClient }) {
+export async function ArticlesAccueil({ supabase, orgId }: { supabase: SupabaseClient; orgId: string }) {
   const { data, error } = await supabase
     .from("publications")
     .select("id, titre, slug, chapo, publie_le")
@@ -43,7 +43,7 @@ export async function ArticlesAccueil({ supabase }: { supabase: SupabaseClient }
         <ul className={styles.articles}>
           {articles.map((article) => (
             <li key={article.id}>
-              <Link href={`/journal/${article.slug}`} className={styles.article}>
+              <Link href={`/agence/${orgId}/journal/${article.slug}`} className={styles.article}>
                 <time dateTime={article.publie_le}>
                   {new Date(article.publie_le).toLocaleDateString("fr-FR", {
                     day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris",
@@ -58,7 +58,7 @@ export async function ArticlesAccueil({ supabase }: { supabase: SupabaseClient }
         </ul>
       )}
       {(articles.length > 0 || error) && (
-        <Link href="/journal" className={styles.toutLeJournal}>
+        <Link href={`/agence/${orgId}/journal`} className={styles.toutLeJournal}>
           Tous les articles <ArrowRight size={15} aria-hidden="true" />
         </Link>
       )}

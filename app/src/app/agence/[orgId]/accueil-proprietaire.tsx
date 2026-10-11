@@ -534,7 +534,7 @@ export async function AccueilProprietaire({
               Voir mon abonnement&nbsp;→
             </span>
           </Link>
-          <ArticlesAccueil supabase={supabase} />
+          <ArticlesAccueil supabase={supabase} orgId={orgId} />
         </div>
       </div>
     </main>

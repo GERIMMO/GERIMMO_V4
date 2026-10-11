@@ -20,6 +20,7 @@ export async function enregistrerChambre(orgId: string, lotId: string, bienId: s
     : supabase.from("lot_chambres").insert({ ...champs, organization_id: orgId, lot_id: lotId });
   const { data, error } = await requete.select("id").maybeSingle();
   if (error || !data) return { erreur: error ? sansJargon(error.message) : "Chambre inaccessible." };
+  revalidatePath(`/agence/${orgId}/parc`);
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   revalidatePath(`/agence/${orgId}/baux`, "layout");
   return { succes: "Chambre enregistrée. Vous pouvez la choisir dans un contrat individuel." };

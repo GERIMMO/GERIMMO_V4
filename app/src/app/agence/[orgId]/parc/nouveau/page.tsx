@@ -87,7 +87,7 @@ export default async function PageNouveauBien(
             sans eux, le bien ne peut pas être créé.
           </p>
           <div className="geste">
-            <Link href={`/agence/${orgId}/profil`} className="btn-or">
+            <Link href={`/agence/${orgId}/profil?retour=nouveau-lot`} className="btn-or">
               Compléter mon profil
             </Link>
           </div>

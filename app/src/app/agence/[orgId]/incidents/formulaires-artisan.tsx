@@ -176,7 +176,7 @@ export function FormulaireConsultation({
           J&apos;assume un devis unique
           <span className="block text-xs text-muted-foreground">
             Un seul artisan sollicité, donc pas de mise en concurrence. Le dossier
-            le signalera — au propriétaire aussi.
+            conservera cette décision.
           </span>
         </span>
       </label>

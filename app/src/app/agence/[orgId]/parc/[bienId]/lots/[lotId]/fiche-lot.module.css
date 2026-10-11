@@ -134,3 +134,16 @@
 
 .bailActions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:4px; }
 @media(max-width:639px) { .bailActions { flex-basis:100%; } }
+
+/* Lecture continue de la fiche : les actions restent à côté de leurs informations. */
+.apercuGrille { align-items:start; }
+.fiche .alertes { background:var(--or-clair); border-color:var(--or-filet); }
+.alertes > summary { display:flex; justify-content:space-between; align-items:center; gap:12px; cursor:pointer; list-style:none; font-size:13px; font-weight:600; min-height:28px; }
+.alertes > summary::-webkit-details-marker { display:none; }
+.alertes[open] > summary { margin-bottom:12px; }
+.alertes[open] > summary svg { transform:rotate(180deg); }
+.diagnosticsGrille { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.diagnosticsGrille > div { min-width:0; }
+.fiche .panneau { scroll-margin-top:100px; }
+.fiche :global(.rang-section) { min-height:48px; }
+@media(max-width:1100px) { .diagnosticsGrille { grid-template-columns:minmax(0,1fr); gap:12px; } }

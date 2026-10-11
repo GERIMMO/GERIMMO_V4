@@ -1,0 +1,85 @@
+/* La liste du propriétaire : chaque lot garde sa propre limite visuelle. */
+.liste.liste {
+  border: 0;
+  background: transparent;
+  padding: 3px;
+}
+
+.liste > :first-child {
+  background: transparent;
+  border: 0;
+  padding: 0 2px 12px;
+}
+
+.cartes,
+.groupe {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.carte {
+  --lot-accent: var(--marque);
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 14px 15px;
+  text-align: left;
+  color: var(--corps);
+  background: var(--carte);
+  border: 1px solid var(--filet);
+  border-left: 4px solid var(--lot-accent);
+  border-radius: 12px;
+  box-shadow: 0 3px 9px color-mix(in srgb, var(--encre) 5%, transparent);
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.carte[data-etat="brouillon"],
+.carte[data-etat="preavis"] { --lot-accent: var(--warning); }
+.carte[data-etat="loue"] { --lot-accent: var(--success); }
+.carte.retire { --lot-accent: var(--texte-secondaire); }
+.carte:hover {
+  border-color: var(--lot-accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--encre) 10%, transparent);
+}
+.carte:focus-visible {
+  outline: 2px solid var(--marque);
+  outline-offset: 2px;
+}
+.identite { display: grid; gap: 7px; }
+.entete { display: flex; align-items: flex-start; gap: 10px; }
+.nom {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.chevron { flex-shrink: 0; margin-top: 2px; color: var(--texte-secondaire); }
+.details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--texte-secondaire);
+}
+.adresse {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  color: var(--texte-secondaire);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.adresse svg { flex-shrink: 0; margin-top: 2px; }
+.retire .details,
+.retire .adresse { color: inherit; }
+
+@media (prefers-reduced-motion: reduce) {
+  .carte { transition: none; }
+}

@@ -4,9 +4,10 @@ import { UserRoundPlus, ArrowLeft } from "lucide-react";
 import parcours from "@/components/presentation-parcours.module.css";
 import styles from "./creation-personne.module.css";
 import { TitreEcran } from "@/components/titre-ecran";
+import annuaire from "./annuaire-personnes.module.css";
 
 /** La liste et la saisie restent montées lors des allers-retours. */
-export function VuePersonnes({ titre, nombre, liste, creation }: { titre: string; nombre: string; liste: ReactNode; creation: ReactNode }) {
+export function VuePersonnes({ titre, nombre, liste, creation, estProprietaire = false }: { titre: string; nombre: string; liste: ReactNode; creation: ReactNode; estProprietaire?: boolean }) {
   const [ouverte, setOuverte] = useState(false);
   useEffect(() => {
     const sync = () => setOuverte(location.hash === "#creer-fiche");
@@ -21,7 +22,16 @@ export function VuePersonnes({ titre, nombre, liste, creation }: { titre: string
   }
   return <div className={styles.vue}>
     <section hidden={ouverte} aria-label="Liste des personnes">
-      <div className="entete-page"><TitreEcran rubrique="personnes" id="annuaire-personnes-titre" tabIndex={-1}>{titre}</TitreEcran><div className="flex items-center gap-4"><span className="mono-discret">{nombre}</span><a href="#creer-fiche" className="btn-or" onClick={e => {e.preventDefault(); afficher(true);}}>+ Créer une fiche</a></div></div>
+      <div className={`entete-page ${estProprietaire ? annuaire.entete : ""}`}>
+        <div>
+          <TitreEcran rubrique="personnes" id="annuaire-personnes-titre" tabIndex={-1}>{titre}</TitreEcran>
+          {estProprietaire && <p className={annuaire.introduction}>Coordonnées, justificatifs et baux : retrouvez toutes vos fiches au même endroit.</p>}
+        </div>
+        <div className="flex items-center gap-4">
+          {!estProprietaire && <span className="mono-discret">{nombre}</span>}
+          <a href="#creer-fiche" className="btn-or" onClick={e => {e.preventDefault(); afficher(true);}}><UserRoundPlus size={17} aria-hidden="true" />Créer une fiche</a>
+        </div>
+      </div>
       {liste}
     </section>
     <section id="creer-fiche" hidden={!ouverte} aria-label="Créer une fiche">

@@ -1,0 +1,76 @@
+.entete { align-items: center; }
+.introduction { margin-top: 13px; font-size: 13px; line-height: 1.6; color: var(--texte-secondaire); }
+.annuaire { min-width: 0; }
+.outils { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 24px; padding: 20px; border: 1px solid var(--filet); border-radius: 14px; background: var(--carte); }
+.recherche { position: relative; display: flex; align-items: center; min-width: 0; max-width: 540px; }
+.recherche > svg { position: absolute; left: 14px; color: var(--texte-secondaire); pointer-events: none; }
+.recherche input { min-height: 44px; padding: 10px 44px; background: var(--creme); border-color: var(--filet-leger); box-shadow: none; font-size: 13px; }
+.recherche input::-webkit-search-cancel-button { appearance: none; }
+.recherche > button { position: absolute; right: 0; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; color: var(--texte-secondaire); }
+.repere { display: flex; align-items: center; justify-content: end; gap: 8px; font-size: 12px; color: var(--texte-secondaire); }
+.filtres { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
+.filtres button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 8px 13px; border: 1px solid var(--filet); border-radius: 9px; background: var(--carte); font-size: 12px; color: var(--texte-secondaire); transition: background .15s, border-color .15s; }
+.filtres button:hover { background: var(--creme); border-color: var(--encre); }
+.filtres button[aria-pressed="true"] { background: var(--encre); border-color: var(--encre); color: var(--sur-encre); }
+.filtres button:disabled { opacity: .55; cursor: not-allowed; }
+.point { width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: var(--ton-texte); }
+.filtres [aria-pressed="true"] .point { background: currentColor; }
+.compteur { min-width: 20px; padding: 1px 5px; border-radius: 5px; background: var(--creme); color: var(--texte-secondaire); font-size: 11px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.filtres [aria-pressed="true"] .compteur { background: color-mix(in srgb, var(--sur-encre) 18%, transparent); color: inherit; }
+.enteteListe { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 26px 2px 12px; }
+.enteteListe h2 { margin: 0; font-family: var(--font-interface); font-size: 15px; font-weight: 650; letter-spacing: 0; }
+.enteteListe > span { color: var(--texte-secondaire); font-size: 12px; }
+.liste { display: grid; gap: 12px; list-style: none; padding: 0; margin: 0; }
+.fiche { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 24px; align-items: center; min-height: 106px; padding: 20px 22px; border: 1px solid var(--filet); border-left: 3px solid var(--ton-bord); border-radius: 12px; background: var(--carte); box-shadow: 0 2px 6px color-mix(in srgb, var(--encre) 3%, transparent); text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+.fiche:hover { border-color: var(--ton-texte); box-shadow: 0 4px 14px color-mix(in srgb, var(--encre) 7%, transparent); }
+.identite { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.avatar { display: grid; place-items: center; flex: 0 0 46px; height: 46px; border: 1px solid color-mix(in srgb, var(--ton-texte) 12%, transparent); border-radius: 13px; color: var(--ton-texte); background: var(--ton-fond); font-size: 15px; font-weight: 650; }
+.nomEtRoles { display: grid; gap: 8px; min-width: 0; }
+.nomEtRoles > strong { color: var(--encre); font-size: 15px; line-height: 1.4; font-weight: 650; overflow-wrap: anywhere; }
+.roles { display: flex; flex-wrap: wrap; gap: 5px; }
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 6px; color: var(--ton-texte); background: var(--ton-fond); font-size: 11px; line-height: 1.3; }
+.coordonnees { display: grid; gap: 9px; min-width: 0; font-size: 12px; color: var(--texte-secondaire); }
+.coordonnees > span { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.coordonnees svg { flex-shrink: 0; }
+.coordonnees > span > span { overflow-wrap: anywhere; }
+.coordonnees [data-manquant="true"] { font-size: 11px; }
+.acces { display: grid; justify-items: end; gap: 10px; }
+.ouvrir { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 38px; padding: 8px 12px; border: 1px solid var(--filet-leger); border-radius: 8px; color: var(--encre); background: var(--creme); font-size: 12px; white-space: nowrap; }
+.fiche:hover .ouvrir { background: var(--ton-fond); border-color: var(--ton-bord); }
+.nonLus { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--encre); }
+.note { display: flex; align-items: flex-start; gap: 9px; margin: 18px 2px 0; font-size: 12px; line-height: 1.7; color: var(--texte-secondaire); }
+.note > svg { flex-shrink: 0; margin-top: 3px; }
+.vide { display: grid; justify-items: center; gap: 14px; padding: 36px 20px; text-align: center; border: 1px dashed var(--filet); border-radius: 14px; background: var(--carte); }
+.iconeVide { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 14px; background: var(--creme); color: var(--encre); }
+.vide h3 { font-size: 20px; }
+.vide p { max-width: 460px; font-size: 13px; line-height: 1.7; color: var(--texte-secondaire); }
+.fiche:focus-visible, .outils button:focus-visible { outline: 2px solid var(--encre); outline-offset: 3px; }
+.annuaire [data-ton="neutre"] { --ton-texte: var(--texte-secondaire); --ton-fond: var(--creme); --ton-bord: var(--filet); }
+.annuaire [data-ton="locataire"] { --ton-texte: var(--success-soft-foreground); --ton-fond: var(--success-soft); --ton-bord: var(--success); }
+.annuaire [data-ton="garant"] { --ton-texte: var(--info-texte, var(--encre)); --ton-fond: var(--info-fond, var(--ardoise)); --ton-bord: var(--info-texte, var(--encre)); }
+.annuaire [data-ton="proprietaire"] { --ton-texte: var(--prestige-champagne-texte); --ton-fond: var(--prestige-champagne-clair, var(--warning-soft)); --ton-bord: var(--prestige-champagne); }
+@media (max-width: 1100px) {
+  .fiche { grid-template-columns: minmax(0, 1fr) auto; gap: 15px; }
+  .identite { grid-column: 1; }
+  .coordonnees { grid-column: 1; padding-left: 60px; }
+  .acces { grid-column: 2; grid-row: 1 / 3; }
+}
+@media (max-width: 639px) {
+  .entete { align-items: flex-start; }
+  .introduction { font-size: 12px; }
+  .outils { padding: 14px; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .repere { display: none; }
+  .recherche { max-width: none; }
+  .recherche input { font-size: 16px; }
+  .filtres { gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding: 3px 3px 8px; }
+  .filtres button { flex-shrink: 0; min-height: 44px; padding: 8px 10px; font-size: 11px; }
+  .enteteListe { margin-top: 22px; }
+  .fiche { grid-template-columns: minmax(0, 1fr) auto; padding: 16px; gap: 16px 10px; }
+  .identite { gap: 10px; }
+  .avatar { flex-basis: 40px; height: 40px; }
+  .coordonnees { grid-column: 1 / -1; padding-left: 0; }
+  .acces { grid-column: 2; grid-row: 1; }
+  .ouvrir { padding: 10px; min-height: 44px; min-width: 44px; }
+  .libelleOuvrir { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+@media (prefers-reduced-motion: reduce) { .fiche, .filtres button { transition: none; } }

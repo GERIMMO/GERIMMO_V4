@@ -149,6 +149,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
     <main className={`mx-auto w-full p-4 sm:p-7 ${parcours.pageCreation}`}>
       <EchecLecture quoi={lecturesManquees} />
       <VuePersonnes titre={role === "proprietaire_direct" ? "Locataires & garants" : "Personnes"}
+        estProprietaire={role === "proprietaire_direct"}
         nombre={erreurPersonnes ? "nombre indisponible" : `${fiches.length} fiche${fiches.length > 1 ? "s" : ""}`}
         liste={<ListePersonnes orgId={orgId} personnes={fiches} listeIllisible={Boolean(erreurPersonnes)} estBailleurDirect={role === "proprietaire_direct"} />}
         creation={<FormulairePersonne orgId={orgId} lots={lotsRattachables} estBailleurDirect={role === "proprietaire_direct"} />}

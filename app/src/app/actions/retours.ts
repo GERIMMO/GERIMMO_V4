@@ -19,20 +19,20 @@ export async function envoyerRetour(_etat:EtatRetour,fd:FormData):Promise<EtatRe
   p_action:actionSansDonnees(String(fd.get('action_origine')??'')),
  });
  if(error||!data)return{erreur:error?sansJargon(error.message):"L’enregistrement n’a pas été confirmé. Réessayez."};
- revalidatePath('/assistance');revalidatePath('/admin/retours');revalidatePath('/admin');
+ revalidatePath('/assistance');revalidatePath('/agence/[orgId]/faq','page');revalidatePath('/admin/retours');revalidatePath('/admin');
  return{succes:"Votre demande est enregistrée. Retrouvez son suivi et les réponses ci-dessous.",id:String(data)};
 }
 export async function soutenirRetour(id:string,_etat:EtatRetour):Promise<EtatRetour>{
  const c=await createClient();const{error}=await c.rpc('soutenir_idee',{p_retour:id});
  if(error)return{erreur:sansJargon(error.message)};
- revalidatePath('/assistance');revalidatePath('/admin/retours');return{succes:"Votre soutien est enregistré."};
+ revalidatePath('/assistance');revalidatePath('/agence/[orgId]/faq','page');revalidatePath('/admin/retours');return{succes:"Votre soutien est enregistré."};
 }
 export async function deciderRetour(id:string,version:number,_etat:EtatRetour,fd:FormData):Promise<EtatRetour>{
  const c=await createClient();const{data:sa,error:acces}=await c.rpc('is_super_admin');
  if(acces||sa!==true)return{erreur:"Accès réservé à la supervision Gerimmo."};
  const{error}=await c.rpc('traiter_retour',{p_retour:id,p_version:version,p_etat:String(fd.get('etat')??''),p_gravite:String(fd.get('gravite')??''),p_reponse:String(fd.get('reponse')??''),p_reexamen:String(fd.get('reexaminer_le')??'')||null});
  if(error)return{erreur:sansJargon(error.message)};
- revalidatePath('/admin/retours');revalidatePath('/assistance');revalidatePath('/admin/publications');return{succes:"Décision enregistrée et visible dans le suivi de la demande."};
+ revalidatePath('/admin/retours');revalidatePath('/assistance');revalidatePath('/agence/[orgId]/faq','page');revalidatePath('/admin/publications');return{succes:"Décision enregistrée et visible dans le suivi de la demande."};
 }
 export async function regrouperRetours(id:string,_etat:EtatRetour,fd:FormData):Promise<EtatRetour>{
  const c=await createClient();const{data:sa,error:acces}=await c.rpc('is_super_admin');

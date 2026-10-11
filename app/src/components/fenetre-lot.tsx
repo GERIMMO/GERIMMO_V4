@@ -888,7 +888,7 @@ function ActionsRapides({
               </>
             )}
             <Link
-              href={`/agence/${orgId}/incidents?lot=${fiche.lot_id}`}
+              href={`/agence/${orgId}/incidents/nouveau?lot=${fiche.lot_id}`}
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >
               Signaler un incident

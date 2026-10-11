@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { ROLES_GERANTS, ROLES_RESPONSABLES } from "@/lib/ged";
 import { FormulaireProfilOrganisation } from "./formulaire-profil";
@@ -26,6 +27,7 @@ export const metadata = { title: "Profil — Gerimmo" };
 // les cas, et distingue les deux causes.
 export default async function PageProfil(props: PageProps<"/agence/[orgId]/profil">) {
   const { orgId } = await props.params;
+  const { retour } = await props.searchParams;
   const { supabase, role, estProprietaire, organisation } = await verifierAccesEspace(orgId);
   const responsable = ROLES_RESPONSABLES.includes(role);
   const titre = estProprietaire ? "Mon profil" : "Profil de l'agence";
@@ -129,8 +131,12 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
           </p>
         ))}
 
-      <div className="loc-carte">
-        <div className="entete-carte">
+      {retour === "nouveau-lot" && estProprietaire && <div className="rounded-xl border bg-card p-4 text-sm">
+        <p>Complétez et enregistrez votre profil pour reprendre l’ajout de votre logement.</p>
+        <Link href={`/agence/${orgId}/parc/nouveau`} className="mt-2 inline-flex min-h-11 items-center font-semibold underline">Reprendre la création du lot →</Link>
+      </div>}
+      <div className={estProprietaire ? "space-y-4" : "loc-carte"}>
+        <div className={estProprietaire ? "sr-only" : "entete-carte"}>
           <h3>Identité</h3>
           {!responsable && <span className="puce puce-grise">lecture seule</span>}
         </div>
@@ -148,7 +154,9 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
         />
       </div>
 
-      <div className="loc-carte">
+      <details className="loc-carte" open={!estProprietaire || undefined}>
+        <summary className="cursor-pointer font-semibold">Parrainage — {filleuls} filleul{filleuls > 1 ? "s" : ""}</summary>
+        <div className="mt-4">
         <div className="entete-carte">
           <h3>Parrainage</h3>
           <span className="mono-discret">
@@ -230,8 +238,11 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
           </div>
         )}
       </div>
+      </details>
 
-      <div className="loc-carte">
+      <details className="loc-carte" open={!estProprietaire || undefined}>
+        <summary className="cursor-pointer font-semibold">Signature préenregistrée — facultatif</summary>
+        <div className="mt-4">
         <div className="entete-carte">
           <h3>Signature préenregistrée</h3>
           {!responsable && <span className="puce puce-grise">lecture seule</span>}
@@ -246,6 +257,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
           lectureSeule={!responsable}
         /> : <p className="rounded-lg bg-muted p-4 text-sm">La signature reste sous le contrôle du responsable de cette organisation. L’accès de supervision ne permet ni de la remplacer ni de l’apposer sur de nouveaux documents.</p>}
       </div>
+      </details>
     </main>
   );
 }

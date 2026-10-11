@@ -38,8 +38,8 @@ test.describe("Côté propriétaire bailleur", () => {
   test("les deux lots de démonstration recommandent Bailleur avec le montant affiché", async ({
     page,
   }) => {
-    const recap = page.locator(".rounded-lg").filter({ hasText: "Récapitulatif avant paiement" });
-    await expect(page.getByText("Recommandée : la moins chère qui couvre votre portefeuille")).toBeVisible();
+    const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
+    await expect(page.getByRole("radio", { name: /Adaptée à votre parc Bailleur/ })).toBeChecked();
     await expect(recap).toContainText("Formule Bailleur");
     await expect(recap).toContainText("9,99");
     await expect(recap).toContainText("Total à payer TTC");
@@ -47,8 +47,8 @@ test.describe("Côté propriétaire bailleur", () => {
   });
 
   test("en annuel, le montant prélevé en une fois est affiché", async ({ page }) => {
-    await page.getByText("Annuel — deux mois offerts").click();
-    const recap = page.locator(".rounded-lg").filter({ hasText: "Récapitulatif avant paiement" });
+    await page.locator("label").filter({ has: page.getByRole("radio", { name: /Annuel/ }) }).click();
+    const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
     await expect(recap).toContainText("99,90");
     await expect(recap).toContainText("prélevés en une fois pour douze mois");
   });
@@ -117,7 +117,7 @@ test.describe("Côté agence", () => {
     // Une facture qu'on ne peut pas recalculer soi-même est une facture qu'on
     // appelle pour contester. Tranches cumulatives : chaque lot au prix de SA
     // tranche.
-    const recap = page.locator(".rounded-lg").filter({ hasText: "Récapitulatif avant paiement" });
+    const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
     await expect(recap).toContainText("Socle — jusqu'à 10 lots inclus");
     await expect(recap).toContainText("Lots du 11ᵉ au 50ᵉ");
     await expect(recap).toContainText("Total HT");

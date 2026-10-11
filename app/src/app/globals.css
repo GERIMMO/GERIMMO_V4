@@ -3513,3 +3513,11 @@ h2 { font-size: 1.3125rem; }
 .assistant-bail form > [role="status"], .assistant-bail form > .text-success-soft-foreground { border-radius:8px; background:#edf9f2; padding:10px 12px; }
 
 .assistant-bail form button[type="submit"] { min-height:44px; padding:10px 18px; border-radius:9px; font-weight:600; }
+
+/* Les explications du bail et les statuts restent lisibles sur téléphone. */
+.loc-logement .ligne-info > span:last-child { min-width: 0; flex: 0 1 auto; white-space: normal; overflow-wrap: anywhere; }
+.loc-logement .loc-tag { white-space: normal; text-align: left; max-width: 100%; }
+@media (max-width: 640px) {
+  .loc-logement .ligne-info { align-items: flex-start; }
+  .loc-logement .ligne-info > span:last-child { flex-basis: 100%; margin-left: 0; text-align: left; }
+}

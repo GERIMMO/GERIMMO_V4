@@ -77,7 +77,7 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
   // pas pour hier — le champ refuse les dates passées.
   const demain = new Date();
   demain.setDate(demain.getDate() + 1);
-  const minimum = demain.toISOString().slice(0, 10);
+  const minimum = `${demain.getFullYear()}-${String(demain.getMonth()+1).padStart(2,"0")}-${String(demain.getDate()).padStart(2,"0")}`;
 
   function modifier(index: number, champ: keyof Creneau, valeur: string) {
     setCreneaux((liste) =>
@@ -92,14 +92,21 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
     );
   }
 
-  const prets = creneaux
+  const prets = creneaux.filter(c => c.jour >= minimum && c.fin > c.debut)
     .map((c) => ({ debut: enInstant(c.jour, c.debut), fin: enInstant(c.jour, c.fin) }))
-    .filter((c): c is { debut: string; fin: string } => Boolean(c.debut && c.fin));
+    .filter((c): c is { debut: string; fin: string } => Boolean(c.debut && c.fin))
+    .filter((c,i,liste) => liste.findIndex(x=>x.debut===c.debut && x.fin===c.fin)===i);
 
   return (
     <form action={action} className="space-y-5">
       <input type="hidden" name="creneaux" value={JSON.stringify(prets)} />
 
+      <div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4" role="status">
+        <p className="font-semibold">{Math.min(prets.length,3)} / 3 propositions prêtes</p>
+        <p className="mt-1 text-sm text-muted-foreground">Choisissez trois horaires différents. Le locataire retiendra celui qui lui convient.</p>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true"><div className="h-full bg-[var(--or)]" style={{width:`${Math.min(prets.length/3,1)*100}%`}} /></div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
       {creneaux.map((c, i) => (
         // Le même habillage que les autres cartes de l'espace (24/09). La
         // légende reste, pour l'accessibilité, mais flotte dans la carte comme
@@ -121,9 +128,14 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
                 type="date"
                 min={minimum}
                 value={c.jour}
+                onInput={(e) => modifier(i, "jour", e.currentTarget.value)}
                 onChange={(e) => modifier(i, "jour", e.target.value)}
                 className={CLASSE_CHAMP}
               />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[{nom:"Matin",debut:"09:00",fin:"11:00"},{nom:"Après-midi",debut:"14:00",fin:"16:00"}].map(plage => <button key={plage.nom} type="button" className="rounded-lg border border-[var(--filet)] px-3 py-2 text-xs hover:bg-[var(--ivoire)]" onClick={() => setCreneaux(l => l.map((v,j)=>j===i?{...v,debut:plage.debut,fin:plage.fin}:v))}>{plage.nom}</button>)}
+              {i>0 && creneaux[i-1].debut && <button type="button" className="text-xs underline" onClick={() => setCreneaux(l => l.map((v,j)=>j===i?{...v,debut:l[i-1].debut,fin:l[i-1].fin}:v))}>Même horaire que le précédent</button>}
             </div>
             <div className="flex gap-3">
               <div className="min-w-0 flex-1 space-y-1">
@@ -137,7 +149,8 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
                   id={`${base}-debut-${i}`}
                   type="time"
                   value={c.debut}
-                  onChange={(e) => modifier(i, "debut", e.target.value)}
+                  onInput={(e) => modifier(i, "debut", e.currentTarget.value)}
+                onChange={(e) => modifier(i, "debut", e.target.value)}
                   className={CLASSE_CHAMP}
                 />
               </div>
@@ -152,12 +165,14 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
                   id={`${base}-fin-${i}`}
                   type="time"
                   value={c.fin}
-                  onChange={(e) => modifier(i, "fin", e.target.value)}
+                  onInput={(e) => modifier(i, "fin", e.currentTarget.value)}
+                onChange={(e) => modifier(i, "fin", e.target.value)}
                   className={CLASSE_CHAMP}
                 />
               </div>
             </div>
           </div>
+          {c.debut && c.fin && c.fin <= c.debut && <p className="mt-2 text-sm text-destructive">L’heure de fin doit être après l’heure de début.</p>}
           {creneaux.length > 3 && (
             <button
               type="button"
@@ -169,6 +184,7 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
           )}
         </fieldset>
       ))}
+      </div>
 
       <button
         type="button"

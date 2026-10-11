@@ -3,7 +3,6 @@ import { chargerPieces, verifierAccesArtisan } from "../acces";
 import {
   dateSimple,
   degreEcheance,
-  libelle,
   LISTE_PIECES,
   PIECES_ARTISAN,
   texteEcheance,
@@ -18,7 +17,6 @@ import {
   Retour,
   Succes,
   TitreSection,
-  Vide,
 } from "../ui";
 import { FormulairePiece } from "./formulaire-piece";
 
@@ -55,9 +53,6 @@ export default async function PageAttestations(props: PageProps<"/artisan/attest
   const pieces = await chargerPieces();
 
   const deposees = new Map(pieces.lignes.map((p) => [p.type, p]));
-  const manquantes = LISTE_PIECES.filter(
-    (t) => t !== "certification" && !deposees.has(t)
-  );
   // La pièce choisie dans « Encore attendues » arrive par l'adresse
   // (`?type=kbis#deposer`) : le formulaire s'ouvre dessus au lieu de la
   // première manquante. Une valeur inconnue est ignorée.
@@ -70,13 +65,13 @@ export default async function PageAttestations(props: PageProps<"/artisan/attest
     <div className="space-y-6">
       <Retour href="/artisan/entreprise">Mon entreprise</Retour>
 
-      <EnteteSousPage rubrique="documents" titre="Mes attestations" mention="Valables pour toutes les agences" />
+      <EnteteSousPage rubrique="documents" titre="Mes attestations" mention="Un seul dossier pour toutes vos interventions" />
 
       {inscrit && (
         <Succes>
           Votre entreprise est inscrite. Déposez maintenant votre décennale et
           votre RC pro : Gerimmo valide l&apos;inscription au vu de ces pièces, et
-          aucune agence ne peut vous solliciter avant.
+          vous pourrez recevoir de nouvelles demandes après validation.
         </Succes>
       )}
 
@@ -94,98 +89,32 @@ export default async function PageAttestations(props: PageProps<"/artisan/attest
         </Avertissement>
       )}
 
-      {/* Une carte, comme les deux blocs suivants, et des lignes plutôt que
-          des boîtes dans la carte (tour du 24/09). */}
-      <Carte>
-        <TitreSection>Déposées</TitreSection>
-        {pieces.lignes.length === 0 ? (
-          pieces.erreur ? null : (
-            // 25/09 (A4) : une seule entrée vers le formulaire — la liste
-            // « Encore attendues » juste dessous, qui règle la pièce choisie.
-            // Le bouton « Déposer ma décennale » faisait un troisième chemin.
-            <Vide>
-              Aucune attestation pour l&apos;instant. Commencez par votre
-              décennale : c&apos;est elle qui conditionne les affectations.
-            </Vide>
-          )
-        ) : (
-          <ul>
-            {pieces.lignes.map((p) => {
-              const degre = degreEcheance(p.jours_avant_echeance, p.expiree);
-              return (
-                <li
-                  key={p.piece_id}
-                  className="border-b border-[var(--filet-leger)] py-3 first:pt-0 last:border-b-0 last:pb-0"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="min-w-0 text-base font-medium text-[var(--corps)]">
-                      {libelle(PIECES_ARTISAN, p.type)}
-                    </p>
-                    <Etiquette ton={TON_ECHEANCE[degre]}>
-                      {texteEcheance(p.jours_avant_echeance, p.expiree)}
-                    </Etiquette>
-                  </div>
-                  <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">
-                    {p.emise_le ? `Émise le ${dateSimple(p.emise_le)}. ` : ""}
-                    {p.expire_le ? `Valable jusqu'au ${dateSimple(p.expire_le)}.` : ""}
-                  </p>
-                  {p.type === "decennale" && p.expiree && (
-                    <p className="mt-2 text-[0.9375rem] text-[var(--destructive-soft-foreground)]">
-                      Vous n&apos;êtes plus proposé pour les travaux qui exigent une
-                      décennale. Vos interventions en cours ne sont pas
-                      interrompues, et un nouveau dépôt vous rétablit
-                      immédiatement.
-                    </p>
-                  )}
-                  <Link
-                    href={`/artisan/attestations/${p.piece_id}/fichier`}
-                    className="mt-1 inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
-                  >
-                    Ouvrir le document
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Carte>
-
-      {/* Chaque pièce attendue mène au formulaire, déjà réglé sur elle : il
-          fallait descendre et la rechoisir dans la liste (tour du 24/09). */}
-      {manquantes.length > 0 && (
-        <Carte className="border-l-4 border-l-[var(--warning)]">
-          <TitreSection>Encore attendues</TitreSection>
-          <ul className="-mx-2">
-            {manquantes.map((t) => (
-              <li key={t}>
-                <Link
-                  href={`/artisan/attestations?type=${t}#deposer`}
-                  className="flex min-h-11 items-center justify-between gap-3 rounded-lg px-2 py-2 text-[0.9375rem] text-[var(--corps)] transition-colors hover:bg-[var(--survol)] hover:text-[var(--encre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)]"
-                >
-                  <span className="min-w-0">{PIECES_ARTISAN[t]}</span>
-                  <span className="flex shrink-0 items-center gap-1 font-medium text-[var(--encre)]">
-                    Déposer
-                    <svg viewBox="0 0 24 24" aria-hidden className="size-4 fill-none stroke-current stroke-2">
-                      <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Carte>
-      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {LISTE_PIECES.map(t => {
+          const piece = deposees.get(t);
+          const degre = piece ? degreEcheance(piece.jours_avant_echeance,piece.expiree) : null;
+          return <Carte key={t}>
+            <TitreSection>{PIECES_ARTISAN[t]}</TitreSection>
+            <Etiquette ton={degre ? TON_ECHEANCE[degre] : t === "certification" ? "neutre" : "attente"}>{piece ? texteEcheance(piece.jours_avant_echeance,piece.expiree) : pieces.erreur ? "À vérifier" : t === "certification" ? "Facultatif" : "À déposer"}</Etiquette>
+            {piece?.expire_le && <p className="mt-3 text-sm text-muted-foreground">Échéance : {dateSimple(piece.expire_le)}</p>}
+            <div className="mt-3 flex flex-wrap gap-4 text-sm">
+              {piece && <Link className="inline-flex min-h-11 items-center underline" href={`/artisan/attestations/${piece.piece_id}/fichier`}>Ouvrir le document</Link>}
+              <Link className="inline-flex min-h-11 items-center font-semibold underline" href={`/artisan/attestations?type=${t}#deposer`}>{piece ? "Renouveler" : "Déposer"} →</Link>
+            </div>
+          </Carte>;
+        })}
+      </div>
 
       {/* La `key` remet la liste « Quelle attestation » sur la pièce demandée
           quand on en choisit une autre dans « Encore attendues ». */}
-      <FormulairePiece
+      {typeDemande && <FormulairePiece
         key={typeDemande ?? "suggeree"}
-        typeSuggere={typeDemande ?? manquantes[0]}
-      />
+        typeSuggere={typeDemande}
+      />}
 
       <Carte>
         <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Ces pièces sont les vôtres, pas celles d&apos;une agence : vous les
+          Ces pièces composent votre dossier professionnel : vous les
           déposez une fois et elles valent partout. Seule la décennale
           conditionne l&apos;affectation, et seulement pour les travaux qui
           l&apos;exigent.

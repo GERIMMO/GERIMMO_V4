@@ -110,7 +110,7 @@ export default async function PageCreneaux(
         <p className="text-[0.9375rem] text-[var(--corps)]">
           Le locataire peut refuser tous vos créneaux, mais il doit alors vous en
           proposer trois à son tour. Au sixième refus, le rendez-vous se règle
-          avec l&apos;agence, par téléphone : vous n&apos;avez plus rien à proposer.
+          avec votre interlocuteur, par téléphone : vous n&apos;avez plus rien à proposer.
         </p>
       </DetailsInformation>
     </div>

@@ -1,3 +1,4 @@
+import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { eur, formaterDate } from "@/lib/ged";
@@ -86,6 +87,9 @@ export default async function PagePaiementsLocataire(
     charges?: number | null;
     prorata?: boolean | null;
   }[];
+  const disponibilites = await disponibilitesQuittances(supabase, lignesLoyer.map(l => l.quittance_id));
+  const sommesEchues = lignesLoyer.filter(l => l.statut === "impaye" || l.statut === "partiel");
+  const soldeEchu = sommesEchues.reduce((s, l) => s + Math.max(0, Math.round((Number(l.montant_du) - Number(l.montant_couvert)) * 100)), 0) / 100;
   const bail = ((bauxRows ?? []) as BailLocataire[])[0];
 
   const moisLong = (d: string) =>
@@ -94,7 +98,7 @@ export default async function PagePaiementsLocataire(
   const forfait = bail?.charges_mode === "forfait";
   // Seuls les mois SOLDÉS ont une quittance ; un paiement partiel n'a qu'un
   // reçu, et la mention le comptait comme une quittance (24/09).
-  const nbQuittances = lignesLoyer.filter((l) => l.statut === "paye" && l.quittance_id).length;
+  const nbQuittances = lignesLoyer.filter((l) => l.statut === "paye" && l.quittance_id && disponibilites[l.quittance_id] === "disponible").length;
   // Les 12 derniers mois en pastilles : payé plein, à venir cerclé laiton,
   // impayé rouge — le « parcours » du locataire en un regard.
   const douzeDerniers = lignesLoyer.slice(-12);
@@ -214,6 +218,9 @@ export default async function PagePaiementsLocataire(
                   {prochaine.prorata &&
                     " Ce mois-ci est calculé au prorata de votre date d'entrée ou de sortie."}
                 </p>
+                {sommesEchues.length > 1 && <div className="mt-4 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3">
+                  <p className="text-sm">Total restant sur les {sommesEchues.length} échéances dues</p><p className="montant text-xl font-semibold">{eur(soldeEchu)}</p>
+                </div>}
                 {pastilles}
               </>
             ) : bail ? (
@@ -230,6 +237,9 @@ export default async function PagePaiementsLocataire(
                     : `en ${moisLong(moisSuivant)}`}
                   .
                 </p>
+                {sommesEchues.length > 1 && <div className="mt-4 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3">
+                  <p className="text-sm">Total restant sur les {sommesEchues.length} échéances dues</p><p className="montant text-xl font-semibold">{eur(soldeEchu)}</p>
+                </div>}
                 {pastilles}
               </>
             ) : (
@@ -301,7 +311,7 @@ export default async function PagePaiementsLocataire(
                 );
                 return (
                   <li key={l.periode}>
-                    {l.quittance_id ? (
+                    {l.quittance_id && disponibilites[l.quittance_id] === "disponible" ? (
                       <Link href={`/quittance/${l.quittance_id}`} className="rang -mx-4 gap-2 text-sm">
                         {contenu}
                         {/* Sur téléphone, un mot reste (25/09, D45) : le chevron
@@ -318,8 +328,9 @@ export default async function PagePaiementsLocataire(
                         </span>
                       </Link>
                     ) : (
-                      <div className="-mx-4 flex items-center gap-2 border-l-[3px] border-transparent px-4 py-[13px] text-sm">
+                      <div className="-mx-4 flex flex-wrap items-center gap-2 border-l-[3px] border-transparent px-4 py-[13px] text-sm">
                         {contenu}
+                        {l.quittance_id && <span className="loc-tag ambre">{disponibilites[l.quittance_id] === "lecture_impossible" ? "Document à vérifier" : "Document en préparation"}</span>}
                       </div>
                     )}
                   </li>

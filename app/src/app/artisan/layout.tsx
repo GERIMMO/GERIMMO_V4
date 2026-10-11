@@ -43,8 +43,8 @@ export default async function LayoutArtisan({
       <div className="artisan-app flex min-h-svh flex-col bg-[var(--creme)]">
         <header className="artisan-bandeau bandeau-appli">
           <div className="mx-auto flex w-full max-w-[960px] items-center justify-between gap-3 px-4 py-2.5">
-            <Link href="/" aria-label="Accueil de Gerimmo" className="flex min-h-11 min-w-0 items-center">
-              <MarqueGerimmo />
+            <Link href="/" aria-label="Accueil de Gerimmo" className="flex min-h-11 min-w-0 items-center rounded-xl bg-[#152f4b] px-3 py-1">
+              <MarqueGerimmo surEncre />
             </Link>
             <Link
               href="/connexion?suite=%2Fartisan"
@@ -132,9 +132,9 @@ export default async function LayoutArtisan({
           <Link
             href="/artisan"
             aria-label="Accueil de mon espace artisan"
-            className="flex min-h-11 min-w-0 items-center"
+            className="flex min-h-11 min-w-0 items-center rounded-xl bg-[#152f4b] px-3 py-1"
           >
-            <MarqueGerimmo />
+            <MarqueGerimmo surEncre />
           </Link>
           {/* Icône ET libellé dès 640 px (24/09) : un bouclier ne dit pas
               « mot de passe », et l'infobulle n'apparaît pas au doigt. Sur
@@ -196,7 +196,7 @@ export default async function LayoutArtisan({
         >
           Inscription en cours de validation par Gerimmo. Retrouvez vos pièces
           déposées et les justificatifs encore attendus dans « Mes attestations ».
-          Aucune agence ne peut vous solliciter avant la validation.
+          Vous pourrez recevoir de nouvelles demandes après validation.
         </p>
       )}
       {refuse && (

@@ -1,3 +1,4 @@
+import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
 import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
@@ -91,7 +92,9 @@ export default async function PageDocumentsLocataire(
   const demandes = (demandesBrutes ?? []) as DemandePiece[];
   const pieces = (piecesBrutes ?? []) as Piece[];
   const quittances = ((echeancier ?? []) as LigneEcheancier[]).filter((l) => l.quittance_id);
-  const total = pieces.length + quittances.length;
+  const disponibilites = await disponibilitesQuittances(supabase, quittances.map(q => q.quittance_id));
+  const total = pieces.length + quittances.filter(q => disponibilites[q.quittance_id!] === "disponible").length;
+  const enPreparation = quittances.filter(q => disponibilites[q.quittance_id!] !== "disponible").length;
 
   // La DERNIÈRE attestation fait foi (recette 21/08) ; pendant la vérification
   // d'un renouvellement, la dernière VALIDÉE non expirée reste en vigueur.
@@ -127,7 +130,7 @@ export default async function PageDocumentsLocataire(
             ici, « 2 documents » sur la carte en dessous). */}
         {total > 0 && (
           <span className="mono-discret">
-            {total} document{total > 1 ? "s" : ""} à votre disposition
+            {total} document{total > 1 ? "s" : ""} disponible{total > 1 ? "s" : ""}
           </span>
         )}
       </div>
@@ -135,6 +138,10 @@ export default async function PageDocumentsLocataire(
       {aEchoue(ePieces, eEcheancier, eDemandes, eSignatures) && (
         <PanneLecture quoi="vos documents" />
       )}
+
+      {enPreparation > 0 && <p className="rounded-xl border border-[var(--filet)] bg-[var(--warning-soft)] p-4 text-sm" role="status">
+        {enPreparation} justificatif{enPreparation > 1 ? "s" : ""} de loyer en préparation ou à vérifier. Les boutons de téléchargement apparaîtront dès que les informations nécessaires seront complètes. <Link href={`/locataire/${orgId}/contact`} className="underline">Contacter mon gestionnaire</Link>
+      </p>}
 
       {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
       {aSigner.length > 0 && adhesionActive && (
@@ -292,6 +299,11 @@ export default async function PageDocumentsLocataire(
             })}
             {quittances.map((q) => {
               const libelle = `${q.statut === "paye" ? "la" : "le"} ${libelleDocumentLoyer(q.statut)} de ${moisLong(q.periode)}`;
+              if (disponibilites[q.quittance_id!] !== "disponible") return <li key={q.quittance_id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+                <div><b className="font-medium first-letter:uppercase">{libelleDocumentLoyer(q.statut)} — {moisLong(q.periode)}</b>
+                  <p className="text-xs text-muted-foreground">{disponibilites[q.quittance_id!] === "lecture_impossible" ? "Disponibilité à vérifier. Réessayez dans un instant." : "Des informations du document restent à compléter par votre gestionnaire."}</p></div>
+                <span className="loc-tag ambre">{disponibilites[q.quittance_id!] === "lecture_impossible" ? "À vérifier" : "En préparation"}</span>
+              </li>;
               return (
                 <li
                   key={q.quittance_id}

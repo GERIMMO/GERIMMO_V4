@@ -116,7 +116,7 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
         {dateExigee && (
           <p className={`-mt-2 ${CLASSE_AIDE}`}>
             C&apos;est cette date qui fait foi : elle est lue à l&apos;instant où une
-            agence cherche un artisan.
+            personne cherche un artisan.
           </p>
         )}
 

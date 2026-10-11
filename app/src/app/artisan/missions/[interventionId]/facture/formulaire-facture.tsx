@@ -90,7 +90,7 @@ export function FormulaireFacture({
         />
         <p className={CLASSE_AIDE}>
           Pré-rempli avec le montant engagé. Un autre montant reste possible :
-          expliquez alors l&apos;écart, l&apos;agence le tranchera.
+          expliquez alors l&apos;écart, votre interlocuteur le tranchera.
         </p>
       </div>
 
@@ -125,7 +125,7 @@ export function FormulaireFacture({
           }}
           className={`${CLASSE_CHAMP} min-h-13 py-2`}
         />
-        <p className={CLASSE_AIDE}>PDF ou photo. Elle rejoint le dossier de l&apos;agence.</p>
+        <p className={CLASSE_AIDE}>PDF ou photo. Elle rejoint le dossier de l’intervention.</p>
       </div>
 
       {etat.erreur && <Erreur>{etat.erreur}</Erreur>}

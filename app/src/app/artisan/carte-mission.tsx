@@ -98,7 +98,7 @@ export function CarteMission({
       <p className="mt-1 text-[0.9375rem] break-words text-[var(--texte-secondaire)]">
         {[ligne.adresse, [ligne.code_postal, ligne.ville].filter(Boolean).join(" ")]
           .filter(Boolean)
-          .join(" — ") || "Adresse communiquée par l'agence"}
+          .join(" — ") || "Adresse communiquée par votre interlocuteur"}
         {ligne.lot_nom ? ` · ${ligne.lot_nom}` : ""}
         {ligne.etage ? ` · ${ligne.etage}` : ""}
       </p>

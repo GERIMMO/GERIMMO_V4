@@ -54,13 +54,13 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
     <div className="space-y-6">
       <Retour href="/artisan/entreprise">Mon entreprise</Retour>
 
-      <EnteteSousPage titre="Ma facturation" mention="Toutes agences confondues" />
+      <EnteteSousPage titre="Ma facturation" mention="Suivi du dépôt de vos factures" />
 
       {/* La phrase qui compte le plus de la page : en texte courant, pas en
           gris secondaire ; « encore » se lisait « une fois de plus » (24/09). */}
       {facture && (
         <Succes>
-          Facture déposée. L&apos;agence est prévenue : elle la contrôle et la
+          Facture déposée. Votre interlocuteur est prévenu : il la contrôle et la
           règle selon ses délais.
         </Succes>
       )}
@@ -68,7 +68,7 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
       <p className="text-base text-[var(--corps)]">
         Cet écran suit vos interventions facturables et vos factures déposées,
         pas les paiements reçus. Une fois l&apos;intervention terminée, déposez
-        votre facture depuis la mission : elle rejoint le dossier de l&apos;agence.
+        votre facture depuis la mission : elle rejoint le dossier de l’intervention.
       </p>
 
       {agenda.erreur && <Erreur>Vos interventions n’ont pas pu être chargées. Rechargez la page avant de conclure qu’aucune intervention n’est facturable.</Erreur>}
@@ -175,7 +175,7 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
           </li>
           <li>
             Un écart entre le devis et la facture ne bloque rien : vous le
-            justifiez, l&apos;agence le tranche.
+            justifiez, votre interlocuteur le tranche.
           </li>
           <li>
             Elle ne peut être réglée qu&apos;une fois l&apos;intervention terminée,

@@ -173,7 +173,7 @@ export function MarqueAgence({
         {initialesAgence(nom)}
       </span>
       <span className="min-w-0 truncate text-[0.9375rem] font-medium text-[var(--encre)]">
-        {nom ?? "Agence"}
+        {nom ?? "Votre interlocuteur"}
       </span>
     </span>
   );

@@ -170,7 +170,7 @@ export default async function PageRepondreDevis(
           {decennaleManquante && (
             <Avertissement>
               Ces travaux exigent une décennale valide, et la vôtre ne l&apos;est plus.
-              Elle est revérifiée au moment où l&apos;agence retient un devis :{" "}
+              Elle est revérifiée au moment où votre interlocuteur retient un devis :{" "}
               <Link href="/artisan/attestations" className="font-semibold underline underline-offset-4">
                 mettez-la à jour
               </Link>

@@ -22,7 +22,7 @@ export const revalidate = 3600;
 export default function PageOutils() {
   const outils = outilsPresentes();
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-[var(--creme)]">
+    <div className="site-public flex min-h-full flex-1 flex-col bg-[var(--creme)]">
       <EnTetePublic />
       <main className="flex-1">
         <header className="vitrine-hero">

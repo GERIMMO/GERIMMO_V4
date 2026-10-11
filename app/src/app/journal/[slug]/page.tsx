@@ -69,7 +69,7 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
 
   return (
     // flex-col : sans elle, le main.flex-1 ne poussait pas le pied en bas (24/09).
-    <div className="flex min-h-full flex-1 flex-col bg-[var(--creme)]">
+    <div className="site-public flex min-h-full flex-1 flex-col bg-[var(--creme)]">
       <EnTetePublic />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-7 sm:py-14">

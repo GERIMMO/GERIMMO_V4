@@ -34,7 +34,7 @@ export function CoquilleOutil({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-[var(--creme)] print:bg-white">
+    <div className="site-public flex min-h-full flex-1 flex-col bg-[var(--creme)] print:bg-white">
       <div className="contents print:hidden">
         <EnTetePublic />
       </div>

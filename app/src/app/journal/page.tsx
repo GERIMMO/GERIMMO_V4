@@ -38,14 +38,14 @@ export default async function PageJournal() {
   return (
     // flex-col : le body est une colonne flex, et sans elle le main.flex-1 ne
     // poussait rien — le pied flottait à mi-écran, 200 px de vide dessous (24/09).
-    <div className="flex min-h-full flex-1 flex-col bg-[var(--creme)]">
+    <div className="site-public flex min-h-full flex-1 flex-col bg-[var(--creme)]">
       <EnTetePublic />
       {/* Charte v3 : le journal s'ouvre comme la vitrine, sur blanc lumineux —
           plus d'aplat marine sous le bandeau. 24/09 : plus de photo non plus.
           Celle des pages de connexion, sans rapport avec le journal, faisait
           d'une page secondaire la plus décorée du site. */}
-      <header className="vitrine-hero">
-        <div className="mx-auto w-full max-w-6xl px-4 pt-10 pb-12 sm:px-7 sm:pt-14 sm:pb-16">
+      <header className="public-page-intro">
+        <div className="public-conteneur">
           <p className="eyebrow text-[var(--or-texte)]">Journal</p>
           <h1 className="mt-2 max-w-2xl text-balance font-heading text-3xl leading-tight text-[var(--encre)] sm:text-4xl">
             Ce qu&apos;il faut savoir, au moment où ça compte
@@ -74,7 +74,7 @@ export default async function PageJournal() {
             </div>
           </div>
         ) : (
-          <div className="grid gap-x-8 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="public-journal-grille">
             {/* 24/09 : un seul lien couvre toute la carte. Seuls le titre et
                 « Lire → » réagissaient, deux liens vers la même adresse ;
                 la date et le chapo restaient inertes. */}
@@ -82,7 +82,7 @@ export default async function PageJournal() {
               <article key={a.id}>
                 <Link
                   href={`/journal/${a.slug}`}
-                  className="group -m-3 block rounded-xl p-3 hover:bg-[var(--survol)]"
+                  className="public-article journal-carte"
                 >
                   {/* 06/10 : la vignette de l'article (son illustration Facebook,
                       ou le repli de la charte). */}

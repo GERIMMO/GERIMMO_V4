@@ -128,7 +128,7 @@ describe("les écrans annoncent l'essai du jour, et l'offre de lancement", () =>
       expect(texte, f).toContain("export function generateMetadata()");
       expect(texte, f).not.toMatch(/export const metadata\b/);
     }
-    expect(lire("app/page.tsx")).toContain("Créer mon compte — {duree} d&apos;essai");
+    expect(lire("app/page.tsx")).toContain("Commencez par {duree} d’essai gratuit, sans carte bancaire.");
     expect(lire("app/inscription/page.tsx")).toContain("mention={`${duree} d'essai, sans carte bancaire`}");
     expect(lire("components/outils/coquille-outil.tsx")).toContain("{badgeEssai()}");
   });

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { EncartOutils } from "@/components/outils/encart-outils";
 import { Article } from "@/components/coquille-legale";
-import { TableauAgences, TableauParticuliers } from "@/components/grilles-tarifaires";
+import { TableauAgences } from "@/components/grilles-tarifaires";
+import { CartesOffresPubliques } from "@/components/cartes-offres-publiques";
 import { REGIME_TVA } from "@/lib/editeur";
 import { badgeEssai, dureeEssai, etiquetteTaxes, libelleOffreLancement, mentionTaxesPubliques } from "@/lib/tarifs";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
@@ -33,25 +34,20 @@ export default function PageTarifs() {
   const duree = dureeEssai();
   const offre = libelleOffreLancement();
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-[var(--creme)]">
+    <div className="site-public flex min-h-full flex-1 flex-col">
       <EnTetePublic />
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 py-6 sm:px-7 sm:py-10">
-        <div className="entete-page">
+      <main className="flex-1">
+        <header className="public-page-intro"><div className="public-conteneur">
+          <p className="eyebrow">Des prix clairs, selon votre parc</p>
           <h1>Tarifs</h1>
-        </div>
-        <p
-          className="inline-flex rounded-full border border-[var(--marque)] bg-[var(--marque-clair)] px-3 py-1 text-[13px] font-semibold text-[var(--encre)]"
-          title={offre ?? undefined}
-        >
-          {badgeEssai()}
-        </p>
-        <p className="mesure-lecture text-[15px] text-[var(--texte-secondaire)]">
-          Les fonctions de gestion sont les mêmes dans chaque formule : seul le nombre de biens, ou de lots sous mandat
-          pour une agence, fait le prix. Essai gratuit de {duree}, sans carte bancaire.
-        </p>
-
+          <p>Les mêmes fonctions de gestion, quelle que soit votre formule. Choisissez le rythme qui vous convient, après votre essai gratuit de {duree}, sans carte bancaire.</p>
+          <p className="public-essai mt-4" title={offre ?? undefined}>{badgeEssai()}</p>
+        </div></header>
+        <div className="public-conteneur public-section">
+          <CartesOffresPubliques />
+          <p className="public-note">{mentionTaxes}</p>
+          <div className="public-tarifs-details">
         <Article titre="Particuliers et SCI gérant leurs propres biens">
-          <TableauParticuliers />
           <ul className="list-disc space-y-1 pl-5">
             <li>La formule la moins chère qui couvre votre parc vous est proposée d&apos;office ; une formule plus grande ne se souscrit que si vous la choisissez, montant affiché.</li>
             <li>Mensuel : sans engagement, résiliable à tout moment pour la prochaine échéance.</li>
@@ -102,6 +98,8 @@ export default function PageTarifs() {
           <Link href="/conditions" className="btn-secondaire">
             Conditions générales d&apos;utilisation et de vente
           </Link>
+        </div>
+          </div>
         </div>
       </main>
       <PiedPublic courant="/tarifs" />

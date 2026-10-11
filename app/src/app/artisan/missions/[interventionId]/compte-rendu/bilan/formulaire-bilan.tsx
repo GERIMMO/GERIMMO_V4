@@ -119,7 +119,7 @@ export function FormulaireBilan({
           Ce que vous avez fait
         </label>
         <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Une ou deux phrases suffisent. C&apos;est ce que lira l&apos;agence avant de
+          Une ou deux phrases suffisent. C&apos;est ce que lira votre interlocuteur avant de
           facturer.
         </p>
         <textarea
@@ -156,8 +156,8 @@ export function FormulaireBilan({
         <TitreSection>Avez-vous trouvé autre chose que prévu ?</TitreSection>
         <p className="text-[0.9375rem] text-[var(--corps)]">
           Vous êtes le seul à avoir vu la cause réelle. Si elle ne correspond pas
-          à ce qu&apos;on vous avait décrit, dites-le : l&apos;agence révisera qui paie
-          avant de facturer. Vous signalez — c&apos;est elle qui tranche.
+          à ce qu&apos;on vous avait décrit, dites-le : votre interlocuteur réexaminera la prise en charge
+          avant la facturation. Vous signalez la cause, votre interlocuteur décide de l’imputation.
         </p>
 
         <label className="mt-3 flex min-h-12 items-center gap-3 text-base text-[var(--corps)]">

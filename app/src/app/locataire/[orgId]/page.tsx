@@ -1,3 +1,4 @@
+import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { Banknote, Files, Wrench } from "lucide-react";
 import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
@@ -71,6 +72,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     statut: string;
     quittance_id: string | null;
   }[];
+  const retards = lignes.filter(l => ["impaye", "partiel"].includes(l.statut));
+  const totalRetard = retards.reduce((s, l) => s + Math.max(0, Math.round(Number(l.montant_du) * 100) - Math.round(Number(l.montant_couvert) * 100)), 0) / 100;
   const prochaine = lignes.find((l) => l.statut !== "paye");
   const mesPieces = (pieces ?? []) as {
     type: string;
@@ -123,7 +126,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     attestationValide &&
     !bailFiniAvantEcheance &&
     estARenouveler(derniere?.expire_le);
-  const quittances = lignes.filter((l) => l.quittance_id);
+  const disponibilites = await disponibilitesQuittances(supabase, lignes.map(l => l.quittance_id));
+  const quittances = lignes.filter((l) => l.quittance_id && disponibilites[l.quittance_id] === "disponible");
   const quittancesDispo = quittances.length;
   // mon_echeancier_locataire trie par période croissante : la dernière ligne
   // quittancée est la quittance la plus récente.
@@ -418,8 +422,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               </div>
             ) : bail && prochaine ? (
               <>
-                <p className="v montant">{eur(resteADevoir)}</p>
-                <p className="text-xs text-muted-foreground capitalize">{moisLong(prochaine.periode)}</p>
+                <p className="v montant">{eur(enRetard ? totalRetard : resteADevoir)}</p>
+                <p className="text-xs text-muted-foreground">{enRetard && retards.length > 1 ? `${retards.length} échéances à régulariser` : moisLong(prochaine.periode)}</p>
                 <span className={`loc-tag mt-2.5 ${enRetard ? "rouge" : "vert"}`}>
                   {prochaine.statut === "impaye"
                     ? "En retard — régularisez vite"

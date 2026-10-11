@@ -227,3 +227,25 @@ export function motifQuittanceIncomplete(manquants: string[], estQuittance = tru
   const [nature, e, pronom] = estQuittance ? ["La quittance", "e", "la"] : ["Le reçu", "", "le"];
   return `${nature} n'est pas envoyé${e} : ${manquants.length > 1 ? "des informations obligatoires manquent" : "une information obligatoire manque"} (${manquants.join(" · ")}). Complétez le profil de l'organisation ou la fiche indiquée, puis renvoyez-${pronom}.`;
 }
+
+export type DisponibiliteQuittance = "disponible" | "en_preparation" | "lecture_impossible";
+
+/** Même contrôle que la page du document, avant de proposer son téléchargement.
+ * Lots de six lectures pour ne pas saturer la connexion sur un long historique. */
+export async function disponibilitesQuittances(
+  db: SupabaseClient,
+  ids: (string | null)[]
+): Promise<Record<string, DisponibiliteQuittance>> {
+  const uniques = [...new Set(ids.filter((id): id is string => Boolean(id)))];
+  const resultat: Record<string, DisponibiliteQuittance> = {};
+  for (let i = 0; i < uniques.length; i += 6) {
+    await Promise.all(uniques.slice(i, i + 6).map(async id => {
+      try {
+        const donnees = await chargerQuittanceDocument(db, id);
+        resultat[id] = !donnees ? "lecture_impossible"
+          : manquantsQuittance(assemblerQuittanceDelivree(donnees)).length ? "en_preparation" : "disponible";
+      } catch { resultat[id] = "lecture_impossible"; }
+    }));
+  }
+  return resultat;
+}

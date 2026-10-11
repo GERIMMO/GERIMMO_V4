@@ -1,6 +1,9 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { EtapesSaisie } from "@/components/etapes-saisie";
+import { calculerDevis } from "@/lib/devis-structure";
+import { euros } from "../../libelles";
 import { useFormStatus } from "react-dom";
 import {
   declinerMaSollicitation,
@@ -79,6 +82,12 @@ export function FormulaireDevis({
   return (
     <div className="space-y-6">
       <form action={action} className="space-y-5">
+        <EtapesSaisie titre="Préparer mon devis" etapes={[
+          {titre:"Prestations", detail:"Expliquez votre diagnostic et chiffrez les travaux."},
+          {titre:"Organisation", detail:"Précisez les délais et les conditions de votre intervention."},
+          {titre:"Récapitulatif", detail:"Relisez votre proposition avant de l’envoyer."},
+        ]} conclusion={<Envoyer />} contenus={[
+        <div key="prestations" className="space-y-5">
         <div className="space-y-1.5">
           <label htmlFor={idDiagnostic} className={CLASSE_LIBELLE}>
             Votre diagnostic
@@ -99,6 +108,9 @@ export function FormulaireDevis({
             chiffre juste en dessous (tour du 24/09). */}
         <LignesDevis />
 
+        </div>,
+        <div key="organisation" className="space-y-5">
+        <ResumeDevis compact />
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-1.5 text-sm"><span className={CLASSE_LIBELLE}>Délai avant intervention</span><input name="delai" required defaultValue={etat.valeurs?.delai} placeholder="Ex. : sous 5 jours" className={CLASSE_CHAMP} /></label>
           <label className="space-y-1.5 text-sm"><span className={CLASSE_LIBELLE}>Durée estimée</span><input name="duree" required defaultValue={etat.valeurs?.duree} placeholder="Ex. : une demi-journée" className={CLASSE_CHAMP} /></label>
@@ -123,6 +135,9 @@ export function FormulaireDevis({
           </p>
         </div>
 
+        </div>,
+        <div key="recapitulatif" className="space-y-5">
+        <ResumeDevis />
         <div className="space-y-1.5">
           <label htmlFor={idFichier} className={CLASSE_LIBELLE}>
             Le devis en pièce jointe{" "}
@@ -147,7 +162,8 @@ export function FormulaireDevis({
 
         {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
 
-        <Envoyer />
+        </div>,
+        ]} />
       </form>
 
       {!refusOuvert ? (
@@ -166,7 +182,7 @@ export function FormulaireDevis({
               <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span>
             </label>
             <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-              L&apos;agence sollicitera quelqu&apos;un d&apos;autre. Un mot l&apos;aide à mieux
+              Votre interlocuteur sollicitera quelqu&apos;un d&apos;autre. Un mot l&apos;aide à mieux
               vous solliciter la prochaine fois.
             </p>
             <textarea
@@ -190,4 +206,39 @@ export function FormulaireDevis({
       )}
     </div>
   );
+}
+
+
+function ResumeDevis({compact = false}: {compact?: boolean}) {
+  const bloc = useRef<HTMLDivElement>(null);
+  const [resume, setResume] = useState({ diagnostic:"", delai:"", duree:"", validite:"", total:null as number | null, prestations:[] as string[] });
+  useEffect(() => {
+    const form = bloc.current?.closest("form");
+    if (!form) return;
+    let frame = 0;
+    function lire() {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const data = new FormData(form!);
+        let total: number | null = null; let prestations: string[] = [];
+        try {
+          const lignes = JSON.parse(String(data.get("lignes_devis") || "[]"));
+          total = calculerDevis(lignes).montant_ttc_cents;
+          prestations = lignes.map((l: {libelle:string;quantite:number}) => `${l.quantite} × ${l.libelle}`);
+        } catch { /* Les validations des lignes restent applicables avant l’envoi. */ }
+        setResume({diagnostic:String(data.get("diagnostic") || ""), delai:String(data.get("delai") || ""), duree:String(data.get("duree") || ""), validite:String(data.get("valide_jusqu_au") || ""), total, prestations});
+      });
+    }
+    lire(); form.addEventListener("input", lire); form.addEventListener("change", lire); form.addEventListener("click", lire);
+    return () => { cancelAnimationFrame(frame); form.removeEventListener("input", lire); form.removeEventListener("change", lire); form.removeEventListener("click", lire); };
+  }, []);
+  if (compact) return <div ref={bloc} className="flex items-center justify-between rounded-lg bg-[var(--ivoire)] p-3 text-sm"><span>Total TTC de votre proposition</span><strong>{resume.total === null ? "À compléter" : euros(resume.total)}</strong></div>;
+  return <div ref={bloc} className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4">
+    <h3 className="text-lg">Votre proposition</h3>
+    <p className="my-3 whitespace-pre-wrap text-sm">{resume.diagnostic || "Diagnostic à compléter"}</p>
+    <ul className="space-y-1 text-sm">{resume.prestations.map((p,i) => <li key={i}>{p}</li>)}</ul>
+    <dl className="my-4 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-muted-foreground">Intervention</dt><dd>{resume.delai || "À compléter"}</dd></div><div><dt className="text-muted-foreground">Durée</dt><dd>{resume.duree || "À compléter"}</dd></div><div><dt className="text-muted-foreground">Validité</dt><dd>{resume.validite ? new Date(`${resume.validite}T12:00:00`).toLocaleDateString("fr-FR") : "Non précisée"}</dd></div></dl>
+    <p className="border-t border-[var(--filet)] pt-3 text-xl font-semibold">Total TTC : {resume.total === null ? "À compléter" : euros(resume.total)}</p>
+    <p className="mt-2 text-xs text-muted-foreground">Un devis envoyé ne peut pas être remplacé. Revenez aux étapes précédentes pour le corriger.</p>
+  </div>;
 }

@@ -184,10 +184,9 @@ export default async function PageAgendaArtisan() {
         // Un état vide qui mène quelque part (24/09) : ce sont les
         // attestations qui ouvrent les affectations.
         <Vide action={{ href: "/artisan/attestations", libelle: "Mes attestations" }}>
-          Aucune intervention à votre agenda. Les missions qu&apos;une agence vous
-          confie apparaissent ici, quelle que soit l&apos;agence.
+          Aucune intervention à votre agenda. Les missions que vos clients vous confient apparaissent ici.
           {fiche.statut_plateforme === "en_attente"
-            ? " Votre inscription est encore en cours de validation : aucune agence ne peut vous solliciter avant."
+            ? " Votre inscription est encore en cours de validation : vous pourrez recevoir de nouvelles demandes après validation."
             : ""}
         </Vide>
       )}
@@ -229,7 +228,7 @@ export default async function PageAgendaArtisan() {
 
       <Carte>
         <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Cet agenda réunit vos interventions de toutes les agences. Chacune ne
+          Cet agenda réunit toutes vos interventions. Chaque client ne
           voit, de son côté, que les siennes.
         </p>
       </Carte>

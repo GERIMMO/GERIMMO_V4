@@ -98,7 +98,7 @@ export default async function PageArtisanAccueil({
 
       {refus && (
         <Avertissement>
-          Mission refusée. L&apos;agence est prévenue et la réaffecte ; vous n&apos;avez
+          Mission refusée. Votre interlocuteur est prévenu et peut la réaffecter ; vous n&apos;avez
           rien d&apos;autre à faire.
         </Avertissement>
       )}

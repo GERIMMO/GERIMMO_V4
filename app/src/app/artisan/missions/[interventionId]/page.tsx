@@ -263,7 +263,7 @@ export default async function PageMission(
           <p className={CLASSE_AIDE}>
             Deux écrans : la photo du travail réalisé, puis ce que vous avez
             fait. Sans le compte rendu, l&apos;intervention ne peut pas être
-            terminée — et sans elle, l&apos;agence ne peut pas facturer.
+            terminée ; vous pourrez ensuite déposer votre facture.
           </p>
         </div>
       )}
@@ -272,7 +272,7 @@ export default async function PageMission(
       <Carte>
         <TitreSection>Où</TitreSection>
         <p className="text-base break-words text-[var(--corps)]">
-          {adresse || "Adresse communiquée par l'agence"}
+          {adresse || "Adresse communiquée par votre interlocuteur"}
         </p>
         {(mission.lot_nom || mission.etage || mission.piece) && (
           <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">

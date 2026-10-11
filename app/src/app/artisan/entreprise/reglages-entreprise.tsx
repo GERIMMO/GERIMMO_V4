@@ -64,8 +64,8 @@ export function ReglageVisibilite({
       <TitreSection>Qui peut me solliciter</TitreSection>
       <p className="text-[0.9375rem] text-[var(--corps)]">
         {publique
-          ? "Votre profil est visible de toutes les agences de la plateforme. N'importe laquelle peut vous demander un devis."
-          : "Votre profil est privé : seules les agences auxquelles vous êtes déjà rattaché peuvent vous solliciter."}
+          ? "Votre profil est visible des propriétaires et gestionnaires de la plateforme. Ils peuvent vous demander un devis."
+          : "Votre profil est privé : seuls les propriétaires et gestionnaires auxquels vous êtes déjà rattaché peuvent vous solliciter."}
       </p>
 
       {etat.succes && (
@@ -82,7 +82,7 @@ export function ReglageVisibilite({
       {!publique && !siretVerifie ? (
         <p className="mt-3 text-[0.9375rem] text-[var(--texte-secondaire)]">
           La publication s&apos;ouvrira quand votre SIRET aura été vérifié par
-          Gerimmo. C&apos;est une vérification, pas une décision d&apos;agence.
+          Gerimmo. C&apos;est une vérification, effectuée par Gerimmo.
         </p>
       ) : (
         <form action={action} className="mt-3">
@@ -103,7 +103,7 @@ export function ReglageVisibilite({
         </form>
       )}
       <p className={`mt-2 ${CLASSE_AIDE}`}>
-        Vous seul décidez de ce réglage : ni une agence, ni Gerimmo ne peuvent le
+        Vous seul décidez de ce réglage : ni vos clients, ni Gerimmo ne peuvent le
         changer.
       </p>
     </Carte>

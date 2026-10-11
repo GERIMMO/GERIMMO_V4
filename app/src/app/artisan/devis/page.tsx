@@ -35,9 +35,9 @@ export default async function PageDevisArtisan(props: PageProps<"/artisan/devis"
 
   return (
     <div className="space-y-6">
-      <EnteteSousPage rubrique="finances" titre="Demandes de devis" mention="Toutes agences confondues" />
+      <EnteteSousPage rubrique="finances" titre="Demandes de devis" mention="Tous vos clients" />
 
-      {envoye && <Succes>Devis envoyé. L&apos;agence le compare et vous répond.</Succes>}
+      {envoye && <Succes>Devis envoyé. Votre interlocuteur l’examine et vous répond.</Succes>}
 
       {/* Lecture en échec : le bandeau d'erreur reste seul. Un « À chiffrer (0) »
           dessous contredisait ce qu'il demande de ne pas conclure (24/09). */}
@@ -54,7 +54,7 @@ export default async function PageDevisArtisan(props: PageProps<"/artisan/devis"
               <Vide>
                 Aucune demande en attente.
                 {fiche?.statut_plateforme === "en_attente"
-                  ? " Votre inscription est encore en cours de validation : aucune agence ne peut vous solliciter avant."
+                  ? " Votre inscription est encore en cours de validation : vous ne pouvez pas encore recevoir de nouvelle demande."
                   : ""}
               </Vide>
             ) : (

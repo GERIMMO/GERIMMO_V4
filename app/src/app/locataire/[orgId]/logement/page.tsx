@@ -47,7 +47,7 @@ export default async function PageLogementLocataire(
   // doit jamais tomber sur une simple lecture ratée (relevé 11/09).
   if (!bail) {
     return (
-      <div className="space-y-4">
+      <div className="loc-logement space-y-4">
         <div className="entete-page">
           <TitreEcran rubrique="lots">Mon logement</TitreEcran>
         </div>
@@ -79,7 +79,7 @@ export default async function PageLogementLocataire(
 
   return (
     <FenetreLotProvider orgId={orgId}>
-    <div className="space-y-4">
+    <div className="loc-logement space-y-4">
       {/* L'en-tête porte sa mention, comme ses pages sœurs (24/09) : la carte
           était vide à droite du titre. */}
       <div className="entete-page">

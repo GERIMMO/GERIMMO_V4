@@ -116,7 +116,7 @@ export default async function PageEntreprise() {
       </nav>
 
       <Carte>
-        <TitreSection>Ma fiche</TitreSection>
+        <TitreSection>Identité et coordonnées</TitreSection>
         <div>
           <LigneInfo libelle="SIRET">
             <span className="font-[family-name:var(--font-libelles)] tabular-nums">
@@ -164,8 +164,7 @@ export default async function PageEntreprise() {
           >
             auprès de Gerimmo
           </Link>{" "}
-          : ils identifient votre entreprise sur toute la plateforme, pas
-          seulement chez une agence.
+          : ils identifient votre entreprise sur toute la plateforme, pour l’ensemble de vos clients.
         </p>
       </Carte>
 

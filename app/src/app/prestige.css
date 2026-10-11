@@ -365,7 +365,7 @@ body.gerimmo-prestige [role="dialog"] > div:last-child :is(a, button) { min-heig
   vertical-align: middle;
   overflow: hidden;
   border-radius: 4px;
-  background: #14304f;
+  background: transparent;
 }
 .marque-gerimmo img { display: block; width: 100%; height: auto; object-fit: contain; }
 .gerimmo-prestige :is(.coquille-marque, .loc-logo, .admin-marque) .marque-gerimmo { width: 170px; }

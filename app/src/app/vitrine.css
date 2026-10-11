@@ -10,7 +10,9 @@
 .public-navigation { position: sticky; top: 0; z-index: 40; background: #fffdfaf2; backdrop-filter: blur(16px); }
 .public-navigation-interieur { width: min(100% - 64px, 1200px); margin: auto; min-height: 92px; display: flex; align-items: center; gap: 32px; }
 .public-logo { display: flex; align-items: center; flex-shrink: 0; }
-.gerimmo-prestige .public-navigation .marque-gerimmo { width: 78px; border-radius: 5px; overflow: hidden; }
+.gerimmo-prestige .public-navigation .marque-gerimmo { width: 96px; }
+/* Renforcer la lisibilité du doré sur le fond clair de l’en-tête. */
+.public-navigation .marque-gerimmo img { filter: brightness(.67) saturate(1.25); }
 .public-nav-bureau { display: flex; align-items: center; gap: 26px; margin-inline: auto; }
 .public-nav-bureau a, .public-connexion { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 500; color: #344762; }
 .public-nav-bureau a:hover, .public-connexion:hover { color: #826838; text-decoration: underline; text-underline-offset: 6px; }

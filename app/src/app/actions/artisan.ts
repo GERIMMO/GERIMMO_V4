@@ -1,6 +1,7 @@
 "use server";
 
 import { lireLignesDevis, montantEnCentimes } from "@/lib/devis-structure";
+import { envoyerDevisValide } from "@/app/artisan/devis/actions-preparation";
 import { lireZones } from "@/lib/zone-artisan";
 import { erreurDatesAttestation } from "@/lib/dates-attestation";
 
@@ -18,11 +19,10 @@ import {
   type MimeAccepte,
 } from "@/lib/file-type";
 import { verifierArtisanAction } from "@/app/artisan/acces";
-import type { LigneAgenda, LigneSollicitation } from "@/app/artisan/acces";
+import type { LigneAgenda } from "@/app/artisan/acces";
 import { LISTE_METIERS } from "@/app/artisan/libelles";
 import {
   notifierCreneauxAChoisir,
-  notifierDevisRecu,
   notifierEnCoulisses,
   notifierMissionRefusee,
 } from "@/lib/notifications";
@@ -137,18 +137,6 @@ async function maMission(
   const { data } = await supabase.rpc("mon_agenda_artisan", { p_du: null, p_au: null });
   return (
     ((data ?? []) as LigneAgenda[]).find((l) => l.intervention_id === interventionId) ?? null
-  );
-}
-
-async function maSollicitation(
-  supabase: SupabaseClient,
-  sollicitationId: string
-): Promise<LigneSollicitation | null> {
-  const { data } = await supabase.rpc("mes_sollicitations");
-  return (
-    ((data ?? []) as LigneSollicitation[]).find(
-      (l) => l.sollicitation_id === sollicitationId
-    ) ?? null
   );
 }
 
@@ -375,80 +363,9 @@ export async function deposerMonDevis(
   _etat: EtatArtisanAction,
   formData: FormData
 ): Promise<EtatArtisanAction> {
-  const { supabase, fiche } = await verifierArtisanAction();
-  if (!fiche) return REFUS;
-
-  const valeurs = valeursDuFormulaire(formData);
-  let calcul: ReturnType<typeof lireLignesDevis>;
-  try { calcul = lireLignesDevis(formData.get("lignes_devis")); }
-  catch (error) { return { erreur: error instanceof Error ? error.message : "Vérifiez les lignes du devis.", valeurs }; }
-  const diagnostic = String(formData.get("diagnostic") ?? "").trim();
-  // Les travaux ne se saisissent plus qu'une fois, ligne par ligne (24/09) :
-  // le champ libre « Travaux proposés » doublait le détail chiffré. Le texte
-  // attendu par `deposer_devis_structure` (1 à 6 000 caractères) se déduit
-  // donc des libellés, sans toucher à la RPC.
-  const prestations = calcul.lignes
-    .map((l) => l.libelle)
-    .join(" ; ")
-    .slice(0, 6000);
-  const delai = String(formData.get("delai") ?? "").trim();
-  const duree = String(formData.get("duree") ?? "").trim();
-  const contraintes = String(formData.get("contraintes") ?? "").trim();
-  const observations = String(formData.get("observations") ?? "").trim();
-  const valideJusquAu = String(formData.get("valide_jusqu_au") ?? "").trim();
-  const fichier = formData.get("fichier");
-
-  if (!diagnostic || !delai || !duree) {
-    return { erreur: "Complétez le diagnostic, le délai et la durée estimée.", valeurs };
-  }
-
-  // Le chemin de stockage doit être sous le dossier de CETTE agence : on le
-  // déduit de la sollicitation, jamais d'un champ du formulaire.
-  const sollicitation = await maSollicitation(supabase, sollicitationId);
-  if (!sollicitation) {
-    return { erreur: "Cette demande de devis ne vous est pas adressée.", valeurs };
-  }
-
-  let piece: { chemin: string; mime: MimeAccepte; taille: number; empreinte: string } | null =
-    null;
-  if (fichier instanceof File && fichier.size > 0) {
-    const prepare = await preparerFichierArtisan(
-      supabase,
-      sollicitation.organization_id,
-      fichier,
-      ["application/pdf", "image/jpeg", "image/png"]
-    );
-    if ("erreur" in prepare) return { erreur: prepare.erreur, valeurs };
-    piece = prepare;
-  }
-
-  const { data: devisId, error } = await supabase.rpc("deposer_devis_structure", {
-    p_sollicitation: sollicitationId,
-    p_lignes: calcul.lignes,
-    p_diagnostic: diagnostic,
-    p_prestations: prestations,
-    p_delai: delai,
-    p_duree: duree,
-    p_contraintes: contraintes || null,
-    p_observations: observations || null,
-    p_valide_jusqu_au: valideJusquAu || null,
-    p_storage_path: piece?.chemin ?? null,
-    p_mime: piece?.mime ?? null,
-    p_taille: piece?.taille ?? null,
-    p_empreinte: piece?.empreinte ?? null,
-  });
-  if (error) return { erreur: sansJargon(error.message), valeurs };
-
-  if (typeof devisId === "string") {
-    const org = sollicitation.organization_id;
-    await notifierEnCoulisses(supabase, { evenement: "devis_recu", objet: devisId, org }, (service) =>
-      notifierDevisRecu(service, org, devisId)
-    );
-  }
-
-  revalidatePath("/artisan");
-  revalidatePath("/artisan/devis");
-  redirect("/artisan/devis?envoye=1");
+  // Compatibilité des anciens onglets : ils doivent eux aussi passer par
+  // le PDF relu et validé, jamais envoyer directement un formulaire brut.
+  return envoyerDevisValide(sollicitationId, _etat, formData);
 }
 
 // ══════════════════════════════════════════════════════════════════════════

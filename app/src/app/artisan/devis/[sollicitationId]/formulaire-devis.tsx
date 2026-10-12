@@ -1,217 +1,97 @@
 "use client";
-
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
+import Link from "next/link";
+import { Sparkles, CheckCircle2, Save, CircleDashed, Send, FileDown } from "lucide-react";
 import { EtapesSaisie } from "@/components/etapes-saisie";
 import { calculerDevis } from "@/lib/devis-structure";
-import { euros } from "../../libelles";
-import { useFormStatus } from "react-dom";
-import {
-  declinerMaSollicitation,
-  deposerMonDevis,
-  type EtatArtisanAction,
-} from "@/app/actions/artisan";
+import type { PreparationDevis } from "@/lib/parcours-devis-artisan";
+import { declinerMaSollicitation } from "@/app/actions/artisan";
+import { preparerPropositionDevis, enregistrerBrouillonDevis, envoyerDevisValide } from "../actions-preparation";
 import { LignesDevis } from "../../lignes-devis";
-import { ChampFichier } from "@/components/champ-fichier";
-import { compresserChampFichiers } from "@/lib/compresser-image";
-import {
-  CLASSE_AIDE,
-  CLASSE_BOUTON_PRINCIPAL,
-  CLASSE_BOUTON_REFUS,
-  CLASSE_BOUTON_SOBRE,
-  CLASSE_CHAMP,
-  CLASSE_LIBELLE,
-  CLASSE_ZONE_TEXTE,
-  Erreur,
-} from "../../ui";
+import { euros } from "../../libelles";
+import { ApercuDevis } from "./apercu-devis";
+import styles from "./devis.module.css";
+import { CLASSE_AIDE, CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SOBRE, CLASSE_CHAMP, CLASSE_LIBELLE, CLASSE_ZONE_TEXTE, Erreur } from "../../ui";
+function Envoyer({valide}: {valide:boolean}) {const {pending}=useFormStatus();return <button type="submit" disabled={!valide||pending} className={`${CLASSE_BOUTON_PRINCIPAL} ${styles.boutonEnvoi}`}><Send size={17} aria-hidden/>{pending?"Envoi…":"Envoyer le devis par e-mail"}</button>;}
 
-/**
- * Répondre à une demande de devis (9.2).
- *
- * Le fichier est FACULTATIF, et c'est un choix : sur un chantier, le montant
- * et deux lignes de description partent en trente secondes, le PDF se prépare
- * le soir au bureau. Exiger le PDF, c'est n'avoir aucun devis avant le soir —
- * et la base ne l'exige pas non plus (`p_storage_path` y est nul par défaut).
- * Quand il est joint, il entre dans la GED de l'agence : c'est une pièce
- * d'agence, elle ne franchit aucune frontière.
- *
- * Une photo est acceptée autant qu'un PDF, et compressée à la prise : un devis
- * manuscrit photographié vaut mieux qu'un devis qui n'arrive pas.
- */
-
-function Envoyer() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className={CLASSE_BOUTON_PRINCIPAL} disabled={pending}>
-      {pending ? "Envoi du devis…" : "Envoyer mon devis"}
-    </button>
-  );
+// Le sélecteur d’étape mobile n’est pas une modification du devis.
+function estSaisieDevis(cible: EventTarget) {
+  if (!(cible instanceof HTMLInputElement || cible instanceof HTMLSelectElement || cible instanceof HTMLTextAreaElement)) return false;
+  return ["diagnostic", "delai", "duree", "contraintes", "observations", "valide_jusqu_au"].includes(cible.name) || Boolean(cible.closest("[data-lignes-devis]"));
 }
-
-function Decliner() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className={CLASSE_BOUTON_REFUS} disabled={pending}>
-      {pending ? "Envoi…" : "Confirmer : je ne chiffre pas"}
-    </button>
-  );
-}
-
-export function FormulaireDevis({
-  sollicitationId,
-  echeanceParDefaut,
-}: {
-  sollicitationId: string;
-  /** Date de validité pré-remplie : trente jours, la valeur par défaut du module 9. */
-  echeanceParDefaut: string;
-}) {
-  const [etat, action] = useActionState<EtatArtisanAction, FormData>(
-    deposerMonDevis.bind(null, sollicitationId),
-    {}
-  );
-  const [etatRefus, actionRefus] = useActionState<EtatArtisanAction, FormData>(
-    declinerMaSollicitation.bind(null, sollicitationId),
-    {}
-  );
-  const [refusOuvert, setRefusOuvert] = useState(false);
-
-  const idDiagnostic = useId();
-  const idEcheance = useId();
-  const idFichier = useId();
-  const idMotif = useId();
-
-  return (
-    <div className="space-y-6">
-      <form action={action} className="space-y-5">
-        <EtapesSaisie titre="Préparer mon devis" etapes={[
-          {titre:"Prestations", detail:"Expliquez votre diagnostic et chiffrez les travaux."},
-          {titre:"Organisation", detail:"Précisez les délais et les conditions de votre intervention."},
-          {titre:"Récapitulatif", detail:"Relisez votre proposition avant de l’envoyer."},
-        ]} conclusion={<Envoyer />} contenus={[
-        <div key="prestations" className="space-y-5">
-        <div className="space-y-1.5">
-          <label htmlFor={idDiagnostic} className={CLASSE_LIBELLE}>
-            Votre diagnostic
-          </label>
-          <textarea
-            id={idDiagnostic}
-            name="diagnostic"
-            rows={3}
-            required
-            defaultValue={etat.valeurs?.diagnostic}
-            placeholder="Ex. : cartouche du mitigeur usée, joint à remplacer"
-            className={CLASSE_ZONE_TEXTE}
-          />
-        </div>
-
-        {/* Les travaux se disent une seule fois, ligne par ligne : la zone
-            « Travaux proposés » redemandait en texte libre ce que le détail
-            chiffre juste en dessous (tour du 24/09). */}
-        <LignesDevis />
-
-        </div>,
-        <div key="organisation" className="space-y-5">
-        <ResumeDevis compact />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-1.5 text-sm"><span className={CLASSE_LIBELLE}>Délai avant intervention</span><input name="delai" required defaultValue={etat.valeurs?.delai} placeholder="Ex. : sous 5 jours" className={CLASSE_CHAMP} /></label>
-          <label className="space-y-1.5 text-sm"><span className={CLASSE_LIBELLE}>Durée estimée</span><input name="duree" required defaultValue={etat.valeurs?.duree} placeholder="Ex. : une demi-journée" className={CLASSE_CHAMP} /></label>
-        </div>
-
-        <div className="space-y-1.5"><label htmlFor="devis-contraintes" className={CLASSE_LIBELLE}>Contraintes et accès <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span></label><textarea id="devis-contraintes" name="contraintes" rows={2} defaultValue={etat.valeurs?.contraintes} className={CLASSE_ZONE_TEXTE} placeholder="Coupure d’eau, stationnement, présence nécessaire…" /></div>
-        <div className="space-y-1.5"><label htmlFor="devis-observations" className={CLASSE_LIBELLE}>Observations <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span></label><textarea id="devis-observations" name="observations" rows={2} defaultValue={etat.valeurs?.observations} className={CLASSE_ZONE_TEXTE} placeholder="Ex. : robinet d’arrêt général à changer prochainement" /></div>
-
-        <div className="space-y-1.5">
-          <label htmlFor={idEcheance} className={CLASSE_LIBELLE}>
-            Valable jusqu&apos;au
-          </label>
-          <input
-            id={idEcheance}
-            name="valide_jusqu_au"
-            type="date"
-            defaultValue={etat.valeurs?.valide_jusqu_au ?? echeanceParDefaut}
-            className={CLASSE_CHAMP}
-          />
-          <p className={CLASSE_AIDE}>
-            Passée cette date, le devis est caduc et ne peut plus être retenu.
-          </p>
-        </div>
-
-        </div>,
-        <div key="recapitulatif" className="space-y-5">
-        <ResumeDevis />
-        <div className="space-y-1.5">
-          <label htmlFor={idFichier} className={CLASSE_LIBELLE}>
-            Le devis en pièce jointe{" "}
-            <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span>
-          </label>
-          {/* 25/09 (A6) : champ maison, libellé en français partout. */}
-          <ChampFichier
-            id={idFichier}
-            name="fichier"
-            accept="application/pdf,image/jpeg,image/png"
-            onChange={(e) => {
-              // Photo d'un devis manuscrit : compressée comme les autres.
-              void compresserChampFichiers(e.currentTarget);
-            }}
-            className={`${CLASSE_CHAMP} min-h-13 py-2`}
-          />
-          <p className={CLASSE_AIDE}>
-            PDF ou photo. Un seul devis par demande, et il ne se remplace pas
-            une fois envoyé : joignez le document si vous l&apos;avez déjà.
-          </p>
-        </div>
-
-        {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
-
-        </div>,
-        ]} />
-      </form>
-
-      {!refusOuvert ? (
-        <button
-          type="button"
-          className={CLASSE_BOUTON_SOBRE}
-          onClick={() => setRefusOuvert(true)}
-        >
-          Je ne peux pas chiffrer cette demande
-        </button>
-      ) : (
-        <form action={actionRefus} className="space-y-3">
-          <div className="space-y-1.5">
-            <label htmlFor={idMotif} className={CLASSE_LIBELLE}>
-              Pourquoi{" "}
-              <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span>
-            </label>
-            <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-              Votre interlocuteur sollicitera quelqu&apos;un d&apos;autre. Un mot l&apos;aide à mieux
-              vous solliciter la prochaine fois.
-            </p>
-            <textarea
-              id={idMotif}
-              name="motif"
-              rows={3}
-              defaultValue={etatRefus.valeurs?.motif}
-              className={CLASSE_ZONE_TEXTE}
-            />
+export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erreurPreparation}: {sollicitationId:string;echeanceParDefaut:string;initiale?:PreparationDevis|null;erreurPreparation?:string}) {
+  const [etat,action]=useActionState(envoyerDevisValide.bind(null,sollicitationId),{});
+  const [refus,actionRefus]=useActionState(declinerMaSollicitation.bind(null,sollicitationId),{});
+  const [refusOuvert,setRefusOuvert]=useState(false);
+  const [preparation,setPreparation]=useState(initiale??null);
+  const [revision,setRevision]=useState(initiale?.revision??0);
+  const [valide,setValide]=useState(initiale?.statut==="valide");
+  const [chargement,setChargement]=useState(!initiale&&!erreurPreparation);
+  const [erreur,setErreur]=useState(erreurPreparation??"");
+  const [sauvegarde,setSauvegarde]=useState("");
+  const [enregistrement,setEnregistrement]=useState(false);
+  const [cle,setCle]=useState(0);
+  const form=useRef<HTMLFormElement>(null);const modifie=useRef(false);const demarre=useRef(false);
+  useEffect(()=>{
+    if(demarre.current||initiale||erreurPreparation)return;
+    demarre.current=true;
+    void preparerPropositionDevis(sollicitationId).then(r=>{
+      if(r.preparation){setRevision(r.preparation.revision);if(!modifie.current){setPreparation(r.preparation);setCle(c=>c+1);}}
+      if(r.erreur)setErreur(r.erreur);
+    }).catch(()=>setErreur("La proposition automatique est indisponible. Vous pouvez saisir votre devis.")).finally(()=>setChargement(false));
+  },[initiale,sollicitationId,erreurPreparation]);
+  function modification(){const confirmation=form.current?.elements.namedItem("validation_artisan");if(confirmation instanceof HTMLInputElement)confirmation.checked=false;modifie.current=true;setValide(false);setSauvegarde("Modifications non enregistrées");}
+  async function sauver(){if(!form.current)return;setEnregistrement(true);setErreur("");try{const r=await enregistrerBrouillonDevis(sollicitationId,new FormData(form.current));if(r.erreur)setErreur(r.erreur);else if(r.revision){setRevision(r.revision);setValide(false);setSauvegarde("Brouillon enregistré");}}catch{setErreur("Le brouillon n’a pas pu être enregistré.");}finally{setEnregistrement(false);}}
+  const saisie=preparation?.saisie;const proposition=preparation?.proposition;
+  const texteSauvegarde = sauvegarde || (valide ? "PDF validé et enregistré" : initiale ? "Brouillon enregistré" : "Enregistrez pour reprendre plus tard");
+  const nonEnregistre = sauvegarde === "Modifications non enregistrées" || sauvegarde === "Modifications à valider";
+  return <div className={styles.editeur}>
+    <form ref={form} action={action} onReset={e=>e.preventDefault()} onInputCapture={e=>{if(estSaisieDevis(e.target))modification();}} onChangeCapture={e=>{if(estSaisieDevis(e.target))modification();}} onClick={e=>{const button=(e.target as HTMLElement).closest("button");if(button&&/Ajouter une prestation|Retirer cette ligne/.test(button.textContent??""))modification();}}>
+      <input type="hidden" name="revision" value={revision}/>
+      <EtapesSaisie titre="Préparer mon devis" etapes={[
+        {titre:"Proposition",statut:valide?"complet":undefined,statutLibelle:valide?"Validée":"À relire",detail:"Gerimmo prépare une base de devis. Ajustez les prestations, les quantités et les prix."},
+        {titre:"Conditions",statut:valide?"complet":undefined,statutLibelle:valide?"Validées":"À préciser",detail:"Précisez votre organisation et la durée de validité."},
+        {titre:"Validation",statut:valide?"complet":undefined,statutLibelle:valide?"PDF enregistré":"Votre accord",detail:"Relisez puis validez le devis pour générer votre PDF."},
+        {titre:"Envoi",statutLibelle:valide?"Prêt à envoyer":"Après validation",detail:"Transmettez le PDF à la personne qui vous a sollicité."},
+      ]} conclusion={<Envoyer valide={valide}/>} contenus={[
+        <div key={`prestations-${cle}`} className="space-y-5">
+          <div className={styles.aideProposition}>
+            <h3><Sparkles size={19} aria-hidden/>{chargement?"Gerimmo prépare votre proposition…":proposition?.moteur==="ia"?"Proposition préparée avec l’IA":"Proposition Gerimmo"}</h3>
+            <p>Ajustez cette base selon votre diagnostic. Vous décidez des prestations et de vos prix.</p>
+            {proposition&&<details className="mt-3 text-sm"><summary className="cursor-pointer font-semibold">Origine des prix et points à vérifier</summary><ul className="mt-2 list-disc space-y-1 pl-5">{proposition.a_verifier.map((p,i)=><li key={i}>{p}</li>)}</ul>{proposition.sources.map((s,i)=><p key={i} className="mt-3"><strong>{s.origine==="gerimmo"?"Moyenne Gerimmo":"Référence de marché"} · {s.libelle}</strong><br/>{s.detail} {s.url&&<a href={s.url} target="_blank" rel="noreferrer" className="underline">Source consultée le 12/10/2026</a>}</p>)}</details>}
           </div>
-          {etatRefus.erreur && <Erreur>{etatRefus.erreur}</Erreur>}
-          <Decliner />
-          <button
-            type="button"
-            className={CLASSE_BOUTON_SOBRE}
-            onClick={() => setRefusOuvert(false)}
-          >
-            Revenir
-          </button>
-        </form>
-      )}
-    </div>
-  );
+          <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Votre diagnostic</span><textarea name="diagnostic" required maxLength={4000} rows={2} defaultValue={saisie?.diagnostic} placeholder="Décrivez le problème constaté et les travaux que vous proposez." className={CLASSE_ZONE_TEXTE}/></label>
+          <LignesDevis initiales={saisie?.lignes}/>
+        </div>,
+        <div key={`conditions-${cle}`} className="space-y-5">
+          <ResumeDevis compact/>
+          <div className={styles.conditions}>
+            <label className="space-y-1.5"><span className={CLASSE_LIBELLE}>Délai avant intervention</span><input name="delai" required maxLength={240} defaultValue={saisie?.delai} placeholder="Ex. : sous cinq jours" className={CLASSE_CHAMP}/></label>
+            <label className="space-y-1.5"><span className={CLASSE_LIBELLE}>Durée estimée</span><input name="duree" required maxLength={240} defaultValue={saisie?.duree} placeholder="Ex. : une heure" className={CLASSE_CHAMP}/></label>
+            <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Valable jusqu’au</span><input name="valide_jusqu_au" type="date" required defaultValue={saisie?.valideJusquAu||echeanceParDefaut} className={CLASSE_CHAMP}/></label>
+          </div>
+          <div className={styles.complements}>
+            <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Contraintes et accès <span className={styles.facultatif}>Facultatif</span></span><textarea name="contraintes" rows={3} maxLength={3000} defaultValue={saisie?.contraintes} placeholder="Accès au logement, matériel à prévoir…" className={CLASSE_ZONE_TEXTE}/></label>
+            <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Observations et conditions <span className={styles.facultatif}>Facultatif</span></span><textarea name="observations" rows={3} maxLength={3000} defaultValue={saisie?.observations} placeholder="Précisions sur la prestation, les fournitures…" className={CLASSE_ZONE_TEXTE}/></label>
+          </div>
+        </div>,
+        <div key="validation" className={styles.validation}><ResumeDevis/><div className={styles.validationAction}><ApercuDevis sollicitationId={sollicitationId} valide={valide} onValide={r=>{setRevision(Math.abs(r));setValide(r>0);setSauvegarde(r>0?"PDF validé et enregistré":"Modifications à valider");}}/><p className={CLASSE_AIDE}>Vos coordonnées et votre logo proviennent de <Link href="/artisan/entreprise#documents" target="_blank" className="underline">Ma fiche entreprise</Link>.</p></div></div>,
+        <div key="envoi" className={`${styles.envoi} space-y-4`}>
+          {valide?<><div className={styles.envoiPret}><h3><CheckCircle2 size={24} aria-hidden/>Votre devis est prêt</h3><p>Le PDF validé sera joint à l’e-mail et restera disponible dans votre espace et celui du demandeur.</p></div><a href={`/api/devis/${sollicitationId}/pdf`} target="_blank" rel="noreferrer" className={`${CLASSE_BOUTON_SOBRE} gap-2`}><FileDown size={18} aria-hidden/>Ouvrir mon devis PDF</a><p className={CLASSE_AIDE}>L’envoi sera effectué uniquement après votre clic ci-dessous.</p></>:<p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-950">Validez le devis à l’étape 3 pour générer le PDF avant de l’envoyer.</p>}
+          {etat.erreur&&<Erreur>{etat.erreur}</Erreur>}
+        </div>,
+      ]}/>
+      <div className={styles.sauvegarde}><span role="status" className={styles.etatSauvegarde} data-etat={nonEnregistre?"modifie":revision?"enregistre":"nouveau"}>{nonEnregistre||!revision?<CircleDashed size={16} aria-hidden/>:<CheckCircle2 size={16} aria-hidden/>}{enregistrement?"Enregistrement en cours…":texteSauvegarde}</span><button type="button" onClick={sauver} disabled={chargement||enregistrement} className={`${CLASSE_BOUTON_SOBRE} gap-2`}><Save size={16} aria-hidden/>{enregistrement?"Enregistrement…":"Enregistrer le brouillon"}</button></div>
+      {erreur&&<div className="mt-3"><Erreur>{erreur}</Erreur></div>}
+    </form>
+    <div className={styles.refus}>{!refusOuvert?<button type="button" onClick={()=>setRefusOuvert(true)}>Je ne peux pas chiffrer cette demande</button>:<form action={actionRefus} className="space-y-3"><label className="block">Motif (facultatif)<textarea name="motif" rows={2} className={CLASSE_ZONE_TEXTE}/></label>{refus.erreur&&<Erreur>{refus.erreur}</Erreur>}<button type="submit" className={CLASSE_BOUTON_SOBRE}>Confirmer : je ne chiffre pas</button><button type="button" className={CLASSE_BOUTON_SOBRE} onClick={()=>setRefusOuvert(false)}>Revenir</button></form>}</div>
+  </div>;
 }
-
 
 function ResumeDevis({compact = false}: {compact?: boolean}) {
   const bloc = useRef<HTMLDivElement>(null);
-  const [resume, setResume] = useState({ diagnostic:"", delai:"", duree:"", validite:"", total:null as number | null, prestations:[] as string[] });
+  const [resume, setResume] = useState({ diagnostic:"", delai:"", duree:"", validite:"", contraintes:"", observations:"", total:null as number | null, prestations:[] as string[] });
   useEffect(() => {
     const form = bloc.current?.closest("form");
     if (!form) return;
@@ -224,21 +104,25 @@ function ResumeDevis({compact = false}: {compact?: boolean}) {
         try {
           const lignes = JSON.parse(String(data.get("lignes_devis") || "[]"));
           total = calculerDevis(lignes).montant_ttc_cents;
-          prestations = lignes.map((l: {libelle:string;quantite:number}) => `${l.quantite} × ${l.libelle}`);
+          prestations = lignes.map((l: {libelle:string;quantite:number;prix_unitaire_ht_cents:number;tva_bps:number}) => `${l.quantite} × ${l.libelle} · ${euros(l.prix_unitaire_ht_cents)} HT · TVA ${l.tva_bps/100} %`);
         } catch { /* Les validations des lignes restent applicables avant l’envoi. */ }
-        setResume({diagnostic:String(data.get("diagnostic") || ""), delai:String(data.get("delai") || ""), duree:String(data.get("duree") || ""), validite:String(data.get("valide_jusqu_au") || ""), total, prestations});
+        setResume({diagnostic:String(data.get("diagnostic") || ""), delai:String(data.get("delai") || ""), duree:String(data.get("duree") || ""), validite:String(data.get("valide_jusqu_au") || ""), contraintes:String(data.get("contraintes")||""), observations:String(data.get("observations")||""), total, prestations});
       });
     }
     lire(); form.addEventListener("input", lire); form.addEventListener("change", lire); form.addEventListener("click", lire);
     return () => { cancelAnimationFrame(frame); form.removeEventListener("input", lire); form.removeEventListener("change", lire); form.removeEventListener("click", lire); };
   }, []);
-  if (compact) return <div ref={bloc} className="flex items-center justify-between rounded-lg bg-[var(--ivoire)] p-3 text-sm"><span>Total TTC de votre proposition</span><strong>{resume.total === null ? "À compléter" : euros(resume.total)}</strong></div>;
-  return <div ref={bloc} className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4">
-    <h3 className="text-lg">Votre proposition</h3>
-    <p className="my-3 whitespace-pre-wrap text-sm">{resume.diagnostic || "Diagnostic à compléter"}</p>
-    <ul className="space-y-1 text-sm">{resume.prestations.map((p,i) => <li key={i}>{p}</li>)}</ul>
-    <dl className="my-4 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-muted-foreground">Intervention</dt><dd>{resume.delai || "À compléter"}</dd></div><div><dt className="text-muted-foreground">Durée</dt><dd>{resume.duree || "À compléter"}</dd></div><div><dt className="text-muted-foreground">Validité</dt><dd>{resume.validite ? new Date(`${resume.validite}T12:00:00`).toLocaleDateString("fr-FR") : "Non précisée"}</dd></div></dl>
-    <p className="border-t border-[var(--filet)] pt-3 text-xl font-semibold">Total TTC : {resume.total === null ? "À compléter" : euros(resume.total)}</p>
-    <p className="mt-2 text-xs text-muted-foreground">Un devis envoyé ne peut pas être remplacé. Revenez aux étapes précédentes pour le corriger.</p>
+  if (compact) return <div ref={bloc} className={styles.totalCompact}><span>Montant de votre devis <span className="text-muted-foreground">TTC</span></span><strong>{resume.total === null ? "À compléter" : euros(resume.total)}</strong></div>;
+  return <div ref={bloc} className={styles.resume}>
+    <div className={styles.resumeCorps}>
+      <p className={styles.surtitre}>Récapitulatif</p>
+      <h3>Votre proposition</h3>
+      <p className="whitespace-pre-wrap">{resume.diagnostic || "Diagnostic à compléter"}</p>
+      <ul>{resume.prestations.map((p,i) => <li key={i}>{p}</li>)}</ul>
+      <dl><div><dt>Intervention</dt><dd>{resume.delai || "À compléter"}</dd></div><div><dt>Durée estimée</dt><dd>{resume.duree || "À compléter"}</dd></div><div><dt>Valable jusqu’au</dt><dd>{resume.validite ? new Date(`${resume.validite}T12:00:00`).toLocaleDateString("fr-FR") : "Non précisée"}</dd></div></dl>
+      {resume.contraintes&&<p className="mt-4 whitespace-pre-wrap"><strong>Contraintes et accès :</strong> {resume.contraintes}</p>}
+      {resume.observations&&<p className="mt-4 whitespace-pre-wrap"><strong>Observations et conditions :</strong> {resume.observations}</p>}
+    </div>
+    <div className={styles.resumeTotal}><span>Total TTC</span><strong>{resume.total === null ? "À compléter" : euros(resume.total)}</strong></div>
   </div>;
 }

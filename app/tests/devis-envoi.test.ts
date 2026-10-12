@@ -1,0 +1,21 @@
+import {createHash} from "node:crypto";
+import {beforeEach,describe,expect,it,vi} from "vitest";
+const m=vi.hoisted(()=>({acces:vi.fn(),download:vi.fn(),rpc:vi.fn(),notifier:vi.fn(),update:vi.fn(),redirect:vi.fn()}));
+vi.mock("@/lib/parcours-devis-serveur",()=>({chargerPreparationDevis:m.acces}));
+vi.mock("@/app/artisan/acces",()=>({verifierArtisanAction:vi.fn()}));
+vi.mock("@/lib/supabase/service",()=>({clientDeService:vi.fn()}));
+vi.mock("@/lib/notifications",()=>({notifierDevisRecu:m.notifier}));
+vi.mock("next/cache",()=>({revalidatePath:vi.fn()}));
+vi.mock("next/navigation",()=>({redirect:m.redirect}));
+import {envoyerDevisValide} from "../src/app/artisan/devis/actions-preparation";
+const pdf=Buffer.from("%PDF-snapshot");
+let prep:{statut:string;revision:number;pdf_path:string;pdf_sha:string;reference_id:string;email_statut:string;pdf_bucket:string};
+beforeEach(()=>{vi.resetAllMocks();prep={statut:"valide",revision:2,pdf_path:"org/quote.pdf",pdf_sha:createHash("sha256").update(pdf).digest("hex"),reference_id:"11111111-aaaa",email_statut:"non_envoye",pdf_bucket:"devis-preparations"};const q={eq:vi.fn()};q.eq.mockReturnValue(q);m.update.mockReturnValue(q);m.acces.mockResolvedValue({preparation:prep,fiche:{artisan_id:"a"},demande:{organization_id:"org"},supabase:{rpc:m.rpc,storage:{from:()=>({upload:async()=>({error:null})})}},service:{from:()=>({update:m.update}),storage:{from:()=>({download:m.download})}}});m.download.mockResolvedValue({data:new Blob([pdf]),error:null});m.rpc.mockResolvedValue({data:"devis-id",error:null});m.notifier.mockResolvedValue({envoyee:true});});
+const form=()=>{const f=new FormData();f.set("revision","2");return f;};
+describe("Envoi explicite du devis validé",()=>{
+ it("refuse un brouillon, une ancienne révision ou un PDF altéré avant toute notification",async()=>{prep.statut="brouillon";expect(await envoyerDevisValide("s",{},form())).toMatchObject({erreur:expect.stringContaining("Validez")});prep.statut="valide";prep.revision=3;expect(await envoyerDevisValide("s",{},form())).toMatchObject({erreur:expect.stringContaining("changé")});prep.revision=2;prep.pdf_sha="altéré";expect(await envoyerDevisValide("s",{},form())).toMatchObject({erreur:expect.stringContaining("intégrité")});expect(m.rpc).not.toHaveBeenCalled();expect(m.notifier).not.toHaveBeenCalled();});
+ it("n’envoie pas d’e-mail si le classement échoue",async()=>{m.rpc.mockResolvedValue({error:{message:"Conflit"}});expect(await envoyerDevisValide("s",{},form())).toMatchObject({erreur:"Conflit"});expect(m.notifier).not.toHaveBeenCalled();});
+ it("joint exactement le PDF enregistré et conserve le succès d’envoi",async()=>{await envoyerDevisValide("s",{},form());expect(m.rpc).toHaveBeenCalledWith("envoyer_mon_devis_prepare",{p_sollicitation:"s",p_revision:2});expect(m.notifier.mock.calls[0].slice(1)).toEqual(["org","devis-id",{nom:"DEV-11111111.pdf",contenuBase64:pdf.toString("base64")}]);expect(m.update).toHaveBeenCalledWith(expect.objectContaining({email_statut:"envoye"}));expect(m.redirect).toHaveBeenCalledWith("/artisan/devis/s?envoye=1&email=envoye");});
+ it("archive toujours le devis si l’e-mail échoue et permet une relance",async()=>{m.notifier.mockResolvedValue({envoyee:false});await envoyerDevisValide("s",{},form());expect(m.update).toHaveBeenCalledWith(expect.objectContaining({email_statut:"echec"}));expect(m.redirect).toHaveBeenCalledWith("/artisan/devis/s?envoye=1&email=echec");});
+ it("ne renvoie pas un e-mail déjà transmis",async()=>{prep.email_statut="envoye";prep.statut="envoye";await envoyerDevisValide("s",{},form());expect(m.notifier).not.toHaveBeenCalled();});
+});

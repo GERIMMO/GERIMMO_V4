@@ -9,29 +9,29 @@ const CLASSE_CELLULE = "flex flex-col justify-end gap-1.5";
 /** Dans une carte déjà ouverte, le bloc garde sa structure mais pas son habillage. */
 const DANS_UNE_CARTE = "in-[.artisan-carte]:rounded-none in-[.artisan-carte]:border-0 in-[.artisan-carte]:bg-transparent in-[.artisan-carte]:p-0 in-[.artisan-carte]:shadow-none";
 
-type Saisie = { libelle: string; quantite: string; prix: string; tva: string };
+type Saisie = { code: string; libelle: string; quantite: string; prix: string; tva: string };
 // 25/09 (A7) : PAS de taux de TVA par défaut. « 0 % » pré-choisi partait tel
 // quel dans un devis que l'artisan n'avait pas relu ; le taux dépend de son
 // régime et des travaux, et lui seul le sait. Le choix est obligatoire.
-const vide = (): Saisie => ({ libelle: "", quantite: "1", prix: "", tva: "" });
-export function LignesDevis({ initiales = [], titre = "Détail des travaux" }: { initiales?: LigneDevis[]; titre?: string }) {
+const vide = (): Saisie => ({ code: "", libelle: "", quantite: "1", prix: "", tva: "" });
+export function LignesDevis({ initiales = [], titre = "Détail des travaux" }: { initiales?: (Omit<LigneDevis, "tva_bps" | "prix_unitaire_ht_cents"> & {code?: string; tva_bps: number | null; prix_unitaire_ht_cents: number | null})[]; titre?: string }) {
   const id = useId();
-  const [lignes, setLignes] = useState<Saisie[]>(() => initiales.length ? initiales.map(l => ({ libelle: l.libelle, quantite: String(l.quantite).replace(".", ","), prix: (l.prix_unitaire_ht_cents/100).toFixed(2).replace(".", ","), tva: String(l.tva_bps) })) : [vide()]);
-  const donnees = lignes.map(l => ({ libelle: l.libelle, quantite: Number(l.quantite.replace(",", ".")), prix_unitaire_ht_cents: montantEnCentimes(l.prix), tva_bps: l.tva === "" ? Number.NaN : Number(l.tva) }));
+  const [lignes, setLignes] = useState<Saisie[]>(() => initiales.length ? initiales.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: String(l.quantite).replace(".", ","), prix: l.prix_unitaire_ht_cents === null ? "" : (l.prix_unitaire_ht_cents/100).toFixed(2).replace(".", ","), tva: l.tva_bps === null ? "" : String(l.tva_bps) })) : [vide()]);
+  const donnees = lignes.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: Number(l.quantite.replace(",", ".")), prix_unitaire_ht_cents: montantEnCentimes(l.prix), tva_bps: l.tva === "" ? Number.NaN : Number(l.tva) }));
   let total: ReturnType<typeof calculerDevis> | null = null;
   try { total = calculerDevis(donnees); } catch { /* Le formulaire et le serveur expliquent les champs invalides. */ }
-  const modifier = (index: number, cle: keyof Saisie, valeur: string) => setLignes(ls => ls.map((l, i) => i===index ? {...l, [cle]: valeur} : l));
+  const modifier = (index: number, cle: keyof Saisie, valeur: string) => setLignes(ls => ls.map((l, i) => i===index ? {...l, [cle]: valeur, ...(cle === "libelle" ? { code: "" } : {})} : l));
   // 24/09 : le bloc prend l'habillage des autres cartes de l'espace (fond,
   // ombre, titre de section, libellés du formulaire) au lieu d'un cadre fin à
   // légende flottante. Posé dans une carte déjà ouverte (le dépassement du
   // bilan), il rend cet habillage pour ne pas empiler carte sur carte.
-  return <fieldset className={`artisan-carte min-w-0 space-y-4 ${DANS_UNE_CARTE}`}>
+  return <fieldset data-lignes-devis className={`artisan-carte min-w-0 space-y-4 ${DANS_UNE_CARTE}`}>
     {/* Légende flottée : elle quitte la bordure et se lit comme un titre de section. */}
     <legend className="float-left mb-0 w-full"><TitreSection>{titre}</TitreSection></legend>
     <input type="hidden" name="lignes_devis" value={JSON.stringify(donnees)} />
     <p className="clear-both text-[0.9375rem] text-[var(--texte-secondaire)]">Précisez chaque prestation ou fourniture. Choisissez le taux de TVA adapté à votre situation et aux travaux.</p>
     {/* 24/09 : plus de fond teinté par ligne — un filet sépare les lignes, rien pour une ligne seule. */}
-    {lignes.map((ligne, index) => <div key={`${id}-${index}`} className={`space-y-3 ${index > 0 ? "border-t border-[var(--filet-leger)] pt-4" : ""}`}>
+    {lignes.map((ligne, index) => <div data-ligne-devis key={`${id}-${index}`} className={`space-y-3 ${index > 0 ? "border-t border-[var(--filet-leger)] pt-4" : ""}`}>
       <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Prestation ou fourniture</span>
         <input required maxLength={240} aria-label={`Ligne ${index+1} : prestation`} className={CLASSE_CHAMP} value={ligne.libelle} onChange={e => modifier(index,"libelle",e.target.value)} placeholder="Ex. : remplacement du robinet" />
       </label>
@@ -43,12 +43,12 @@ export function LignesDevis({ initiales = [], titre = "Détail des travaux" }: {
           <option value="" disabled>Choisir un taux</option><option value="0">0 % / non applicable</option><option value="210">2,1 %</option><option value="550">5,5 %</option><option value="1000">10 %</option><option value="2000">20 %</option>
         </select></label>
       </div>
-      {lignes.length>1 && <button type="button" className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => ls.filter((_,i) => i!==index))}>Retirer cette ligne</button>}
+      {lignes.length>1 && <button data-retirer-ligne type="button" className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => ls.filter((_,i) => i!==index))}>Retirer cette ligne</button>}
     </div>)}
-    <button type="button" disabled={lignes.length>=100} className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => [...ls,vide()])}>Ajouter une prestation ou fourniture</button>
+    <button data-ajouter-ligne type="button" disabled={lignes.length>=100} className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => [...ls,vide()])}>Ajouter une prestation ou fourniture</button>
     {/* Le total est du texte, pas une boîte : posé dans un cadre blanc, il passait pour un champ désactivé.
         25/09 (A8) : il s'affiche à 0,00 € dès le départ — l'artisan voit le format attendu avant de saisir. */}
-    <div aria-live="polite">
+    <div data-totaux-devis aria-live="polite">
       <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Total HT : {euros(total?.montant_ht_cents ?? 0)} · TVA : {euros(total?.montant_tva_cents ?? 0)}</p>
       <p className="text-[1.0625rem] font-semibold text-[var(--encre)]">Total TTC : {euros(total?.montant_ttc_cents ?? 0)}</p>
       {!total && <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">Le total se met à jour à mesure que les lignes se complètent (prestation, prix et taux de TVA).</p>}

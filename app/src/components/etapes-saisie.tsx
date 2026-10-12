@@ -1,14 +1,14 @@
 "use client";
 
 import { useId, useRef, useState, type ReactNode } from "react";
-import { NavigationParcours } from "./navigation-parcours";
+import { NavigationParcours, type EtapeParcours } from "./navigation-parcours";
 import styles from "./presentation-parcours.module.css";
 
 /** Les panneaux restent montés : changer d’étape ne réinitialise aucun champ.
  * Les champs masqués restent soumis ; une erreur native ouvre leur panneau. */
 export function EtapesSaisie({ titre, etapes, contenus, conclusion, activer = true }: {
   titre: string;
-  etapes: { titre: string; detail: string }[];
+  etapes: EtapeParcours[];
   contenus: ReactNode[];
   conclusion?: ReactNode;
   activer?: boolean;
@@ -45,8 +45,8 @@ export function EtapesSaisie({ titre, etapes, contenus, conclusion, activer = tr
     if (premier) setErreur(premier.validationMessage);
     if (panneau) { setEtape(Number(panneau.dataset.panneau)); requestAnimationFrame(() => { premier?.focus(); }); }
   }}>
-    <NavigationParcours titre={titre} label={`Étapes : ${titre}`} etapes={etapes.map(e => ({...e, statutLibelle:""}))} etape={etape} changer={changer} />
-    <div className="rounded-2xl border border-[var(--filet)] bg-[var(--papier)] p-4 sm:p-6">
+    <NavigationParcours titre={titre} label={`Étapes : ${titre}`} etapes={etapes} etape={etape} changer={changer} />
+    <div data-corps-etapes className="rounded-2xl border border-[var(--filet)] bg-[var(--papier)] p-4 sm:p-6">
       <p className="eyebrow">Étape {etape + 1} / {etapes.length}</p>
       <h2 id={id} tabIndex={-1} className="mt-1 text-xl">{etapes[etape].titre}</h2>
       <p className="mb-5 mt-1 text-sm text-muted-foreground">{etapes[etape].detail}</p>

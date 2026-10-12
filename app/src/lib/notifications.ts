@@ -593,7 +593,7 @@ async function emetteur(db: SupabaseClient, orgId: string): Promise<string> {
  */
 async function expedier(
   db: SupabaseClient,
-  p: { orgId: string; to: string | null | undefined; message: Message; evenement: string; objet: string; role: Role }
+  p: { orgId: string; to: string | null | undefined; message: Message; evenement: string; objet: string; role: Role; pieceJointe?: { nom: string; contenuBase64: string }; cleIdempotence?: string }
 ): Promise<ResultatNotification> {
   const trace = { evenement: p.evenement, objet: p.objet, org: p.orgId, role: p.role };
   const to = (p.to ?? "").trim();
@@ -607,6 +607,8 @@ async function expedier(
       to,
       subject: p.message.sujet,
       html: p.message.html,
+      ...(p.pieceJointe ? { piecesJointes: [p.pieceJointe] } : {}),
+      ...(p.cleIdempotence ? { cleIdempotence: p.cleIdempotence } : {}),
     });
     if (envoi.erreur) {
       await journaliser(db, "notification_echec", { ...trace, erreur: envoi.erreur });
@@ -957,20 +959,29 @@ export async function notifierIncidentUrgentDeclare(
  * Le client de l'artisan ne lit ni l'organisation ni ses membres : appelée
  * depuis actions/artisan.ts via `notifierEnCoulisses`.
  */
-export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devisId: string): Promise<ResultatNotification> {
+export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devisId: string, pieceJointe?: { nom: string; contenuBase64: string }): Promise<ResultatNotification> {
   try {
     const { data: devis } = await db
       .from("incident_devis")
-      .select("id, incident_id, artisan_id, montant_ttc_cents")
+      .select("id, incident_id, artisan_id, montant_ttc_cents, sollicitation_id")
       .eq("id", devisId)
       .eq("organization_id", orgId)
       .maybeSingle();
     if (!devis) return { envoyee: false, motif: "introuvable" };
     const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, devis.incident_id), lireArtisan(db, devis.artisan_id), emetteur(db, orgId)]);
     if (!inc || !artisan) return { envoyee: false, motif: "introuvable" };
-    const to = await destinataireAgence(db, orgId, inc.responsable_account_id);
+    const { data: demande } = await db.from("incident_sollicitations").select("created_by").eq("id",devis.sollicitation_id).eq("organization_id",orgId).maybeSingle();
+    // Celui qui a demandé le devis est le destinataire prioritaire, sous réserve
+    // qu’il ait toujours accès à l’organisation. Pas d’adresse reçue du formulaire.
+    let to: string | null = null;
+    if (demande?.created_by) {
+      const { data: membre } = await db.from("memberships").select("role,accounts(email)").eq("organization_id",orgId).eq("account_id",demande.created_by).eq("status","active").in("role",["admin_agence","agent","proprietaire_direct"]).maybeSingle();
+      const compte = membre?.accounts as unknown as { email?: string } | null;
+      to = compte?.email ?? null;
+    } else to = await destinataireAgence(db, orgId, inc.responsable_account_id);
     return expedier(db, {
       orgId, to, role: "agence", evenement: "devis_recu", objet: devis.id,
+      pieceJointe, cleIdempotence: `devis-gerimmo-${devis.id}`,
       message: messageDevisRecu({ emetteur: nom, artisan: artisan.raison_sociale, montantCents: Number(devis.montant_ttc_cents), numero: inc.numero, categorie: inc.categorie, lien: lien(`/agence/${orgId}/incidents?sel=${inc.id}`) }),
     });
   } catch (e) {

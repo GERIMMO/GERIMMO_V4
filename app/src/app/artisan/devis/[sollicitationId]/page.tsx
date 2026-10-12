@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { CalendarDays, FileText, MapPin, ShieldCheck, Wrench } from "lucide-react";
+import { chargerPreparationDevis } from "@/lib/parcours-devis-serveur";
+import { RenvoyerEmail } from "./renvoyer-email";
 import { notFound } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
 import {
@@ -19,7 +22,6 @@ import {
   Avertissement,
   Carte,
   CLASSE_AIDE,
-  EnteteSousPage,
   Etiquette,
   LigneInfo,
   MarqueAgence,
@@ -27,6 +29,7 @@ import {
   TitreSection,
 } from "../../ui";
 import { FormulaireDevis } from "./formulaire-devis";
+import styles from "./devis.module.css";
 
 /** Le titre suit l'écran : un formulaire de réponse, ou le récapitulatif d'une demande close. */
 export async function generateMetadata(
@@ -82,6 +85,10 @@ export default async function PageRepondreDevis(
   // montre coupée à trois lignes, et y renvoyer laissait l'artisan sans moyen
   // de lire la description entière ni de retrouver son devis (tour du 24/09).
   const close = demande.statut !== "envoyee";
+  let preparation: Awaited<ReturnType<typeof chargerPreparationDevis>>["preparation"] = null;
+  let erreurPreparation: string | undefined;
+  try { preparation = (await chargerPreparationDevis(sollicitationId)).preparation; }
+  catch { erreurPreparation = "Le service de préparation est momentanément indisponible. Vos devis déjà envoyés restent consultables."; }
 
   // Trente jours : la validité par défaut du module 9, celle que la base
   // appliquerait si le champ restait vide.
@@ -91,56 +98,46 @@ export default async function PageRepondreDevis(
   const decennaleManquante = demande.decennale_requise && fiche?.decennale_valide === false;
 
   return (
-    <div className="space-y-5">
+    <div className={styles.page}>
       <Retour href="/artisan/devis">Demandes de devis</Retour>
-
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <MarqueAgence nom={demande.agence_nom} taille="grande" />
-        <span className="flex flex-wrap items-center gap-2">
-          {demande.urgence === "urgente" && <Etiquette ton="alerte">Urgent</Etiquette>}
-          {close && (
-            <Etiquette ton={TON_STATUT[demande.statut]}>
-              {libelle(STATUTS_SOLLICITATION, demande.statut)}
-            </Etiquette>
-          )}
-        </span>
-      </div>
-
-      <EnteteSousPage
-        titre={titreIncident(demande.categorie)}
-        mention={`Demande reçue le ${jourCourt(demande.envoyee_le)}`}
-      />
-
-      {/* « Quoi », comme sur la fiche de mission (Où / Quoi / Sur place) :
-          « Le désordre » est un mot d'expert d'assurance (24/09). */}
-      <Carte>
-        <TitreSection>Quoi</TitreSection>
-        <p className="text-base break-words text-[var(--corps)]">
-          {demande.description || "Aucune description transmise."}
-        </p>
-        <div className="mt-2">
-          <LigneInfo libelle="Nature des travaux">
-            {libelle(NATURES_TRAVAUX, demande.nature_travaux)}
-          </LigneInfo>
-          <LigneInfo libelle="Où">
-            {[demande.ville, demande.code_postal].filter(Boolean).join(" · ") ||
-              "Commune non communiquée"}
-          </LigneInfo>
-          <LigneInfo libelle="Assurance décennale">
-            {demande.decennale_requise ? "Exigée pour ces travaux" : "Non exigée"}
-          </LigneInfo>
+      <header className={styles.entete}>
+        <div className={styles.titre}>
+          <span className={styles.iconeTitre}><FileText size={24} aria-hidden /></span>
+          <div><p className={styles.surtitre}>{close ? "Votre demande de devis" : "Préparer votre devis"}</p><h1>{titreIncident(demande.categorie)}</h1></div>
         </div>
-        {!close && (
-          <p className={`mt-3 ${CLASSE_AIDE}`}>
-            L&apos;adresse exacte et le contact de l&apos;occupant vous sont communiqués si
-            votre devis est retenu.
+        <div className={styles.client}>
+          <MarqueAgence nom={demande.agence_nom} />
+          <span className="flex flex-wrap items-center gap-2">
+          {demande.urgence === "urgente" && <Etiquette ton="alerte">Urgent</Etiquette>}
+            <Etiquette ton={close ? TON_STATUT[demande.statut] : "attente"}>
+              {close ? libelle(STATUTS_SOLLICITATION, demande.statut) : "À chiffrer"}
+            </Etiquette>
+          </span>
+        </div>
+      </header>
+      <section className={styles.demande} aria-label="La demande du client">
+        <div className={styles.description}>
+          <h2>La demande du client</h2>
+          <p>
+          {demande.description || "Aucune description transmise."}
           </p>
-        )}
-      </Carte>
+        </div>
+        <ul className={styles.reperes}>
+          <li><MapPin size={16} aria-hidden /><span>{[demande.ville, demande.code_postal].filter(Boolean).join(" · ") || "Commune non communiquée"}</span></li>
+          <li><Wrench size={16} aria-hidden /><span>{libelle(NATURES_TRAVAUX, demande.nature_travaux)}</span></li>
+          <li><CalendarDays size={16} aria-hidden /><span>Reçue le {jourCourt(demande.envoyee_le)}</span></li>
+          <li><ShieldCheck size={16} aria-hidden /><span>Décennale {demande.decennale_requise ? "exigée" : "non exigée"}</span></li>
+        </ul>
+        {!close && <p className={styles.confidentialite}>L’adresse exacte et le contact de l’occupant seront disponibles si votre devis est retenu.</p>}
+      </section>
 
       {close ? (
         <Carte>
           <TitreSection>Ma réponse</TitreSection>
+          {preparation?.statut === "envoye" && <div className="mb-4 rounded-xl border border-[var(--filet)] p-4">
+            <p className="font-semibold">Devis enregistré dans les deux espaces Gerimmo</p>
+            {preparation.email_statut === "envoye" ? <p className="mt-1 text-sm text-emerald-800">E-mail avec le PDF transmis au demandeur.</p> : <><p className="mt-1 text-sm text-amber-900">Le devis est disponible sur Gerimmo, mais l’e-mail n’a pas pu être envoyé.</p><RenvoyerEmail id={sollicitationId} revision={preparation.revision}/></>}
+          </div>}
           {/* L'état est l'étiquette de l'en-tête ; ici, ce qu'il a répondu. */}
           <div>
             {demande.montant_ttc_cents !== null && (
@@ -157,7 +154,7 @@ export default async function PageRepondreDevis(
               rel="noreferrer"
               className="mt-3 inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
             >
-              Ouvrir le détail de mon devis (PDF)
+              Ouvrir mon devis PDF Gerimmo
             </a>
           ) : (
             <p className={`mt-3 ${CLASSE_AIDE}`}>
@@ -179,6 +176,8 @@ export default async function PageRepondreDevis(
           )}
 
           <FormulaireDevis
+            initiale={preparation}
+            erreurPreparation={erreurPreparation}
             sollicitationId={sollicitationId}
             echeanceParDefaut={dans30Jours.toISOString().slice(0, 10)}
           />

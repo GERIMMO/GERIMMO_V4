@@ -2,13 +2,15 @@
 
 import { useActionState, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { Eye, Globe2, LockKeyhole, MapPin, Pencil, Wrench } from "lucide-react";
+import styles from "./entreprise.module.css";
 import {
   definirMaVisibilite,
   mettreAJourMetiersZones,
   type EtatArtisanAction,
 } from "@/app/actions/artisan";
 import { LISTE_METIERS, METIERS } from "../libelles";
-import { CLASSE_AIDE,
+import {
   Carte,
   CLASSE_BOUTON_SECONDAIRE,
   CLASSE_BOUTON_SOBRE,
@@ -16,7 +18,6 @@ import { CLASSE_AIDE,
   CLASSE_LIBELLE,
   Erreur,
   Succes,
-  TitreSection,
 } from "../ui";
 
 function BoutonEnregistrer({
@@ -60,9 +61,10 @@ export function ReglageVisibilite({
   const publique = visibilite === "publique";
 
   return (
-    <Carte>
-      <TitreSection>Qui peut me solliciter</TitreSection>
-      <p className="text-[0.9375rem] text-[var(--corps)]">
+    <Carte className={styles.bloc}>
+      <div className={styles.titreBloc}><span className={styles.icone}><Eye size={19} aria-hidden/></span><div><h2>Qui peut me solliciter</h2><p>Vous choisissez votre visibilité.</p></div></div>
+      <span className={styles.visibiliteEtat} data-public={publique}>{publique ? <Globe2 size={15} aria-hidden/> : <LockKeyhole size={15} aria-hidden/>}{publique ? "Profil public" : "Profil privé"}</span>
+      <p className={styles.descriptionVisibilite}>
         {publique
           ? "Votre profil est visible des propriétaires et gestionnaires de la plateforme. Ils peuvent vous demander un devis."
           : "Votre profil est privé : seuls les propriétaires et gestionnaires auxquels vous êtes déjà rattaché peuvent vous solliciter."}
@@ -95,14 +97,14 @@ export function ReglageVisibilite({
               un contour bleu pleine largeur qui se lisait comme l'action de
               la page. */}
           <BoutonEnregistrer
-            classe={`${CLASSE_BOUTON_SOBRE} sm:w-auto`}
+            classe={`${CLASSE_BOUTON_SOBRE} ${styles.visibiliteBouton} sm:w-auto`}
             libelleBouton={
               publique ? "Repasser mon profil en privé" : "Rendre mon profil public"
             }
           />
         </form>
       )}
-      <p className={`mt-2 ${CLASSE_AIDE}`}>
+      <p className={styles.aide}>
         Vous seul décidez de ce réglage : ni vos clients, ni Gerimmo ne peuvent le
         changer.
       </p>
@@ -134,15 +136,15 @@ export function FormulaireMetiersZones({
 
   if (!ouvert) {
     return (
-      <Carte>
+      <Carte className={styles.bloc}>
         {/* 25/09 (A9) : « Modifier » en lien discret dans le titre — en bouton
             contour pleine largeur, il passait pour l'action principale de la
             page. */}
-        <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="text-[1.0625rem] font-medium text-[var(--encre)]">Mes métiers et ma zone</h2>
+        <div className={styles.titreBloc}>
+          <span className={styles.icone}><Wrench size={19} aria-hidden/></span><div><h2>Mes métiers et ma zone</h2><p>Votre activité et votre secteur.</p></div>
           <button
             type="button"
-            className="-my-2 inline-flex min-h-11 shrink-0 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
+            className={styles.modifier}
             onClick={() => {
               setMetiersChoisis(metiers);
               setZoneSaisie(codesPostaux.join(", "));
@@ -150,25 +152,19 @@ export function FormulaireMetiersZones({
               setOuvert(true);
             }}
           >
-            Modifier
+            <Pencil size={14} aria-hidden/>Modifier
           </button>
         </div>
-        <p className="text-base text-[var(--corps)]">
-          {metiers.length > 0
-            ? metiers.map((m) => METIERS[m] ?? m).join(" · ")
-            : "Aucun métier déclaré"}
-        </p>
-        <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">
-          {codesPostaux.length > 0
-            ? `Zone : ${codesPostaux.join(", ")}`
-            : "Aucune zone d'intervention déclarée — vous ne serez proposé nulle part."}
-        </p>
+        <dl className={styles.reperesMetier}>
+          <div><dt><Wrench size={14} aria-hidden/>Métiers déclarés</dt><dd className={styles.puces}>{metiers.length ? metiers.map(m => <span key={m}>{METIERS[m] ?? m}</span>) : "Aucun métier déclaré"}</dd></div>
+          <div><dt><MapPin size={14} aria-hidden/>Zone souhaitée</dt><dd className={styles.puces} data-zone>{codesPostaux.length ? codesPostaux.map((cp, i) => <span key={`${cp}-${i}`}>{cp}</span>) : "Aucune zone d’intervention déclarée — vous ne serez proposé nulle part."}</dd></div>
+        </dl>
         {etat.succes && (
           <div className="mt-3">
             <Succes>{etat.succes}</Succes>
           </div>
         )}
-        <p className={`mt-2 ${CLASSE_AIDE}`}>
+        <p className={styles.aide}>
           Vous n&apos;êtes proposé que dans vos métiers, et pour les communes de
           votre zone.
         </p>
@@ -178,8 +174,8 @@ export function FormulaireMetiersZones({
   }
 
   return (
-    <Carte>
-      <TitreSection>Mes métiers et ma zone</TitreSection>
+    <Carte className={styles.bloc}>
+      <div className={styles.titreBloc}><span className={styles.icone}><Wrench size={19} aria-hidden/></span><div><h2>Mes métiers et ma zone</h2><p>Sélectionnez vos métiers et votre secteur.</p></div></div>
       <form
         action={action}
         onSubmit={() => setAfficherResultat(true)}
@@ -191,7 +187,7 @@ export function FormulaireMetiersZones({
           <p className="mb-2 text-[0.9375rem] text-[var(--texte-secondaire)]">
             Un artisan n&apos;est proposé que dans son métier.
           </p>
-          <div className="space-y-1">
+          <div className={styles.metiers}>
             {LISTE_METIERS.map((m) => (
               <label
                 key={m}
@@ -237,14 +233,14 @@ export function FormulaireMetiersZones({
         {afficherResultat && etat.erreur && <Erreur>{etat.erreur}</Erreur>}
         {afficherResultat && etat.succes && <Succes>{etat.succes}</Succes>}
 
-        <BoutonEnregistrer libelleBouton="Enregistrer" />
+        <div className={styles.actions}><BoutonEnregistrer libelleBouton="Enregistrer" />
         <button
           type="button"
           className={CLASSE_BOUTON_SECONDAIRE}
           onClick={() => setOuvert(false)}
         >
           Annuler
-        </button>
+        </button></div>
       </form>
     </Carte>
   );

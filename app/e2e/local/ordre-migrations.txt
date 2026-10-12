@@ -282,3 +282,4 @@
 20261008140000_precedente_location_bail.sql
 20261009150000_personnes_bail_simplifie.sql
 20261010090000_supprimer_bail_brouillon.sql
+20261012090000_devis_assiste_artisan.sql

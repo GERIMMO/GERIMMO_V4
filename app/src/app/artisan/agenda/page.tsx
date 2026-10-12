@@ -108,7 +108,7 @@ export default async function PageAgendaArtisan() {
       {!agenda.erreur && (
         <Carte>
           <TitreSection>Les 7 prochains jours</TitreSection>
-          <ol className="grid grid-cols-7 gap-1.5 sm:gap-3" aria-label="Rendez-vous des sept prochains jours">
+          <ol className="artisan-semaine grid grid-cols-7 gap-1.5 sm:gap-3" aria-label="Rendez-vous des sept prochains jours">
             {semaine.map((d) => {
               const cle = jourCivil(d);
               const nombre = jours.get(cle)?.length ?? 0;
@@ -166,7 +166,7 @@ export default async function PageAgendaArtisan() {
               {cle === aujourdhui ? "Aujourd'hui — " : ""}
               {jourLong(lignes[0].debut_prevu)}
             </TitreSection>
-            <div className="space-y-3">
+            <div className="artisan-liste">
               {lignes.map((l) => (
                 <CarteMission key={l.intervention_id} ligne={l} />
               ))}
@@ -194,7 +194,7 @@ export default async function PageAgendaArtisan() {
       {sansDate.length > 0 && (
         <section>
           <TitreSection>Sans rendez-vous ({sansDate.length})</TitreSection>
-          <div className="space-y-3">
+          <div className="artisan-liste">
             {sansDate.map((l) => (
               <CarteMission
                 key={l.intervention_id}
@@ -215,7 +215,7 @@ export default async function PageAgendaArtisan() {
                 <p className="mb-3 text-[0.9375rem] font-medium text-[var(--texte-secondaire)]">
                   {jourLong(lignes[0].debut_prevu)}
                 </p>
-                <div className="space-y-3">
+                <div className="artisan-liste">
                   {lignes.map((l) => (
                     <CarteMission key={l.intervention_id} ligne={l} />
                   ))}

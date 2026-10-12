@@ -119,7 +119,11 @@ describe("portail artisan (mineurs et détails)", () => {
   });
 
   it("« Mes espaces » n'est affiché que s'il mène ailleurs", () => {
-    expect(lire("app/artisan/layout.tsx")).toMatch(/\{autresEspaces && <Link\s+href="\/espaces"/);
+    const layout = lire("app/artisan/layout.tsx");
+    // Le lien conditionnel vit désormais dans le menu du compte partagé.
+    expect(layout).toMatch(/autresEspaces\s*\?\s*\[\{ href: "\/espaces", libelle: "Mes espaces" \}\]\s*:\s*\[\]/);
+    expect(layout).toMatch(/<MenuCompte[^>]*liens=\{compteLiens\}/);
+    expect(layout).toContain('m.role !== "artisan"');
   });
 
   it("les attestations ne se contredisent plus : seule la décennale conditionne l'affectation", () => {

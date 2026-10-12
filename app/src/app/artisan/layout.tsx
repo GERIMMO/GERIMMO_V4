@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { seDeconnecter } from "@/app/actions/auth";
+import { CircleHelp, Wrench } from "lucide-react";
+import { MenuCompte } from "@/components/menu-compte";
+import { LienAssistance } from "@/components/bouton-assistance";
+import styles from "./portail-artisan.module.css";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { BandeauSessionSupervision } from "@/components/bandeau-session-supervision";
 import { NavArtisan } from "@/components/nav-artisan";
@@ -118,112 +121,62 @@ export default async function LayoutArtisan({
   const enAttente = fiche?.statut_plateforme === "en_attente";
   const refuse = fiche?.statut_plateforme === "refuse";
 
+  const nom = fiche?.raison_sociale ?? "Espace artisan";
+  const initiales = nom.split(/\s+/).filter(Boolean).slice(0, 2).map((mot) => mot[0]).join("");
+  const compteLiens = [
+    ...(fiche ? [{ href: "/artisan/entreprise", libelle: "Mon entreprise" }] : []),
+    { href: "/compte", libelle: "Sécurité du compte" },
+    ...(autresEspaces ? [{ href: "/espaces", libelle: "Mes espaces" }] : []),
+  ];
+  const navigation = { aFaireMaintenant, devisAChiffrer, piecesAAJour };
+
   return (
-    <div className="artisan-app flex min-h-svh flex-col bg-[var(--creme)]">
-      {/* Au-DESSUS du bandeau de marque, et pas dedans : quand la supervision
-          traverse, la première chose à lire n'est pas « Gerimmo », c'est
-          « vous n'êtes pas chez vous ». Rend null hors traversée. */}
+    <div className={`artisan-app ${styles.shell}`}>
       <BandeauSessionSupervision />
-      <header className="artisan-bandeau bandeau-appli">
-        <div className="mx-auto flex w-full max-w-[960px] items-center justify-between gap-3 px-4 py-2.5">
-          {/* 44 px de haut : c'est un lien de navigation, et on travaille ici
-              debout, avec une main, parfois gantée. Le sigle ne mesurait que
-              sa propre hauteur de texte. */}
-          <Link
-            href="/artisan"
-            aria-label="Accueil de mon espace artisan"
-            className="flex min-h-11 min-w-0 items-center rounded-xl bg-[#152f4b] px-3 py-1"
-          >
-            <MarqueGerimmo surEncre />
-          </Link>
-          {/* Icône ET libellé dès 640 px (24/09) : un bouclier ne dit pas
-              « mot de passe », et l'infobulle n'apparaît pas au doigt. Sur
-              téléphone, l'icône seule garde la place de la marque. */}
-          <div className="flex shrink-0 items-center gap-1">
-            {autresEspaces && <Link
-              href="/espaces"
-              title="Mes espaces"
-              aria-label="Mes espaces"
-              className="lien-bandeau min-h-11 min-w-11 justify-center sm:px-3"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden className="size-5 fill-none stroke-current stroke-[1.6]">
-                <rect x="4" y="4" width="7" height="7" rx="1.5" />
-                <rect x="13" y="4" width="7" height="7" rx="1.5" />
-                <rect x="4" y="13" width="7" height="7" rx="1.5" />
-                <rect x="13" y="13" width="7" height="7" rx="1.5" />
-              </svg>
-              <span className="hidden sm:inline">Mes espaces</span>
-            </Link>}
-            {/* Mot de passe et second facteur : l'artisan a un compte comme
-                tout le monde, et son bandeau n'en portait aucun chemin. */}
-            <Link
-              href="/compte"
-              title="Sécurité du compte"
-              aria-label="Sécurité du compte"
-              className="lien-bandeau min-h-11 min-w-11 justify-center sm:px-3"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden className="size-5 fill-none stroke-current stroke-[1.6]">
-                <path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 8.5-4.1-.9-7-4.3-7-8.5V6l7-3z" strokeLinejoin="round" />
-                <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="hidden sm:inline">Sécurité du compte</span>
+      <div className={fiche ? styles.workspace : styles.onboarding}>
+        {fiche && (
+          <aside className={styles.sidebar}>
+            <Link href="/artisan" aria-label="Accueil de mon espace artisan" className={styles.brand}>
+              <MarqueGerimmo surEncre />
+              <span>Espace artisan</span>
             </Link>
-            <form action={seDeconnecter}>
-              <button
-                type="submit"
-                title="Se déconnecter"
-                aria-label="Se déconnecter"
-                className="lien-bandeau min-h-11 min-w-11 justify-center sm:px-3"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden className="size-5 fill-none stroke-current stroke-[1.6]">
-                  <path d="M9 4h-4v16h4" strokeLinecap="round" />
-                  <path d="M13 8l4 4-4 4M17 12H8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="hidden sm:inline">Se déconnecter</span>
-              </button>
-            </form>
-          </div>
+            <NavArtisan {...navigation} presentation="bureau" />
+            <div className={styles.sidebarFoot}>
+              <LienAssistance><CircleHelp size={19} aria-hidden /> Aide et retours</LienAssistance>
+              <span>Votre activité, en confiance.</span>
+            </div>
+          </aside>
+        )}
+        <div className={styles.body}>
+          <header className={styles.topbar}>
+            <Link href="/artisan" aria-label="Accueil de mon espace artisan" className={styles.mobileBrand}>
+              <MarqueGerimmo />
+            </Link>
+            <span className={styles.spaceLabel}><Wrench size={18} aria-hidden /> Espace artisan</span>
+            <div className={styles.topbarActions}>
+              <LienAssistance className={styles.help} title="Aide et retours">
+                <CircleHelp size={19} aria-hidden /><span>Aide</span>
+              </LienAssistance>
+              <MenuCompte initiales={initiales} titre={nom} liens={compteLiens} />
+            </div>
+          </header>
+          {enAttente && (
+            <p role="status" className={styles.pending}>
+              Inscription en cours de validation par Gerimmo. Retrouvez vos pièces
+              déposées et les justificatifs encore attendus dans « Mes attestations ».
+              Vous pourrez recevoir de nouvelles demandes après validation.
+            </p>
+          )}
+          {refuse && (
+            <p role="alert" className={styles.refused}>
+              Votre inscription a été refusée.
+              {fiche?.statut_motif ? ` Motif : ${fiche.statut_motif}` : ""}
+            </p>
+          )}
+          <main className={`artisan-corps ${styles.content}`}>{children}</main>
         </div>
-        <p className="mx-auto w-full max-w-[960px] px-4 pb-2 text-[0.8125rem] text-[var(--texte-secondaire)]">
-          {fiche ? fiche.raison_sociale : "Espace artisan"}
-        </p>
-      </header>
-
-      {enAttente && (
-        <p
-          role="status"
-          className="border-b border-[var(--warning)] bg-[var(--warning-soft)] px-4 py-2.5 text-center text-[0.9375rem] text-[var(--warning-soft-foreground)]"
-        >
-          Inscription en cours de validation par Gerimmo. Retrouvez vos pièces
-          déposées et les justificatifs encore attendus dans « Mes attestations ».
-          Vous pourrez recevoir de nouvelles demandes après validation.
-        </p>
-      )}
-      {refuse && (
-        <p
-          role="alert"
-          className="border-b border-[var(--destructive)] bg-[var(--destructive-soft)] px-4 py-2.5 text-center text-[0.9375rem] text-[var(--destructive-soft-foreground)]"
-        >
-          Votre inscription a été refusée.
-          {fiche?.statut_motif ? ` Motif : ${fiche.statut_motif}` : ""}
-        </p>
-      )}
-
-      {/* pb-32 : la barre d'onglets est fixe et recouvrirait le dernier bouton
-          de la page — le compte rendu finit précisément par un bouton. Sur
-          téléphone, la marge loge aussi le rond « Aide et retours », qui ne se
-          pose qu'au bas de la page (25/09, A5). */}
-      <main className="artisan-corps mx-auto w-full max-w-[960px] flex-1 px-4 pt-6 pb-32 sm:px-7 sm:pt-8 sm:pb-28">
-        {children}
-      </main>
-
-      {fiche && (
-        <NavArtisan
-          aFaireMaintenant={aFaireMaintenant}
-          devisAChiffrer={devisAChiffrer}
-          piecesAAJour={piecesAAJour}
-        />
-      )}
+      </div>
+      {fiche && <NavArtisan {...navigation} />}
     </div>
   );
 }

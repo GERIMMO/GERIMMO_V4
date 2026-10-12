@@ -192,7 +192,7 @@ export function Vide({
   action?: { href: string; libelle: string };
 }) {
   return (
-    <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-[0.9375rem] text-[var(--texte-secondaire)]">
+    <div className="artisan-vide rounded-lg border border-dashed border-border px-4 py-8 text-center text-[0.9375rem] text-[var(--texte-secondaire)]">
       <p>{children}</p>
       {action && (
         <Link href={action.href} className={`${CLASSE_BOUTON_SOBRE} mx-auto mt-4 sm:w-fit`}>

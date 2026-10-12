@@ -46,6 +46,7 @@ export default async function PageNote() {
       <Retour href="/artisan/entreprise">Mon entreprise</Retour>
 
       <EnteteSousPage
+        rubrique="suivi"
         titre="Ma note"
         mention="Comprenez votre évaluation et retrouvez les indicateurs de vos interventions."
       />

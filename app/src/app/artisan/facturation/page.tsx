@@ -54,7 +54,7 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
     <div className="space-y-6">
       <Retour href="/artisan/entreprise">Mon entreprise</Retour>
 
-      <EnteteSousPage titre="Ma facturation" mention="Suivi du dépôt de vos factures" />
+      <EnteteSousPage rubrique="finances" titre="Ma facturation" mention="Suivi du dépôt de vos factures" />
 
       {/* La phrase qui compte le plus de la page : en texte courant, pas en
           gris secondaire ; « encore » se lisait « une fois de plus » (24/09). */}

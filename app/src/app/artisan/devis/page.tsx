@@ -58,7 +58,7 @@ export default async function PageDevisArtisan(props: PageProps<"/artisan/devis"
                   : ""}
               </Vide>
             ) : (
-              <div className="space-y-3">
+              <div className="artisan-liste">
                 {aChiffrer.map((l) => (
                   <CarteSollicitation key={l.sollicitation_id} ligne={l} />
                 ))}
@@ -69,7 +69,7 @@ export default async function PageDevisArtisan(props: PageProps<"/artisan/devis"
           {envoyes.length > 0 && (
             <section>
               <TitreSection>Devis envoyés ({envoyes.length})</TitreSection>
-              <div className="space-y-3">
+              <div className="artisan-liste">
                 {envoyes.map((l) => (
                   <CarteSollicitation key={l.sollicitation_id} ligne={l} />
                 ))}
@@ -80,7 +80,7 @@ export default async function PageDevisArtisan(props: PageProps<"/artisan/devis"
           {sansSuite.length > 0 && (
             <section>
               <TitreSection>Sans suite ({sansSuite.length})</TitreSection>
-              <div className="space-y-3">
+              <div className="artisan-liste">
                 {sansSuite.map((l) => (
                   <CarteSollicitation key={l.sollicitation_id} ligne={l} />
                 ))}

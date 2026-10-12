@@ -2,26 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Banknote, BookOpen, Building2, CalendarDays, FileCheck2, FileText, LayoutDashboard, Star, type LucideIcon } from "lucide-react";
+import styles from "@/app/artisan/portail-artisan.module.css";
 
-/**
- * Navigation du portail artisan — une barre d'onglets EN BAS de l'écran.
- *
- * Ce n'est pas une variante de la barre latérale du locataire : c'est le
- * gabarit du module 19. L'artisan travaille debout, d'une main, le téléphone
- * tenu bas ; le haut de l'écran est hors d'atteinte du pouce et se trouve
- * souvent sous le reflet du soleil. Les quatre destinations sont donc collées
- * au bord inférieur, à 64 px de haut — une cible qu'un doigt ganté atteint
- * sans viser.
- *
- * QUATRE onglets, pas huit. Les huit parcours du module 19 existent tous, mais
- * quatre d'entre eux (facture, attestations, note, visibilité) sont des
- * parcours de fin de journée, pas de chantier : ils vivent sous « Mon
- * entreprise ». Ce qui compte sur place — ce qui m'attend, où je vais, ce
- * qu'on me demande de chiffrer — tient dans les trois premiers.
- *
- * Aucun identifiant d'agence dans ces adresses : l'artisan est inter-agences
- * (RM-19.3.3), et aucune de ses RPC n'accepte d'organisation en paramètre.
- */
+/** Sur bureau, toutes les rubriques sont visibles ; sur téléphone, quatre
+ * accès restent à portée du pouce et les autres vivent dans Mon entreprise. */
 
 const IC: Record<string, string> = {
   jour: '<path d="M4 7h16M4 12h16M4 17h10"/>',
@@ -47,6 +32,7 @@ export function NavArtisan({
   aFaireMaintenant = 0,
   devisAChiffrer = 0,
   piecesAAJour = true,
+  presentation = "mobile",
 }: {
   /**
    * Ce qui attend un geste de sa part sur l'écran d'arrivée : missions à
@@ -55,6 +41,7 @@ export function NavArtisan({
    * quelque chose m'attend ? » ; en séparer un dirait à l'artisan qu'il n'a
    * rien à faire alors qu'une facture attend son compte rendu.
    */
+  presentation?: "mobile" | "bureau";
   aFaireMaintenant?: number;
   /** Demandes de devis encore à chiffrer (9.2). */
   devisAChiffrer?: number;
@@ -97,10 +84,51 @@ export function NavArtisan({
     },
   ];
 
+  if (presentation === "bureau") {
+    const groupes: { titre: string; liens: { href: string; libelle: string; icone: LucideIcon; exact?: boolean; badge?: number; aussi?: string[]; point?: boolean }[] }[] = [
+      { titre: "Mon activité", liens: [
+        { href: "/artisan", libelle: "Aujourd’hui", icone: LayoutDashboard, exact: true, badge: aFaireMaintenant },
+        { href: "/artisan/agenda", libelle: "Mon agenda", icone: CalendarDays, aussi: ["/artisan/missions"] },
+        { href: "/artisan/devis", libelle: "Demandes de devis", icone: FileText, badge: devisAChiffrer },
+        { href: "/artisan/facturation", libelle: "Ma facturation", icone: Banknote },
+      ] },
+      { titre: "Mon entreprise", liens: [
+        { href: "/artisan/entreprise", libelle: "Ma fiche entreprise", icone: Building2 },
+        { href: "/artisan/attestations", libelle: "Mes attestations", icone: FileCheck2, point: !piecesAAJour },
+        { href: "/artisan/note", libelle: "Mes évaluations", icone: Star },
+        { href: "/artisan/regles", libelle: "Les règles à connaître", icone: BookOpen },
+      ] },
+    ];
+    return (
+      <nav aria-label="Mon espace artisan" className={styles.desktopNav}>
+        {groupes.map((groupe) => (
+          <div key={groupe.titre}>
+            <p>{groupe.titre}</p>
+            <ul>
+              {groupe.liens.map((lien) => {
+                const actif = lien.exact ? pathname === lien.href : pathname.startsWith(lien.href) || (lien.aussi ?? []).some((p) => pathname.startsWith(p));
+                const IconeMenu = lien.icone;
+                return (
+                  <li key={lien.href}>
+                    <Link href={lien.href} aria-current={actif ? "page" : undefined}>
+                      <IconeMenu size={19} aria-hidden /><span>{lien.libelle}</span>
+                      {Boolean(lien.badge) && <span className={styles.navBadge}>{lien.badge}<span className="sr-only"> en attente</span></span>}
+                      {lien.point && <span className={styles.navPoint}><span className="sr-only">Attestations à déposer ou à renouveler</span></span>}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
+    );
+  }
+
   return (
     <nav
       aria-label="Mon espace artisan"
-      className="artisan-navigation fixed inset-x-0 bottom-0 z-30 border-t-2 border-[var(--filet)] bg-[var(--ivoire)] pb-[env(safe-area-inset-bottom)]"
+      className={`artisan-navigation ${styles.mobileNav} fixed inset-x-0 bottom-0 z-30 border-t border-[var(--filet)] bg-[var(--ivoire)] pb-[env(safe-area-inset-bottom)]`}
     >
       <ul className="mx-auto flex w-full max-w-[960px]">
         {entrees.map((e) => {

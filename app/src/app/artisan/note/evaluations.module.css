@@ -14,7 +14,7 @@
 .publication h2 { font-size: 25px; }
 .publication > p { font-size: 14px; line-height: 1.75; color: var(--texte-secondaire); margin-top: 12px; }
 .progression { display: flex; gap: 10px; margin-top: 22px; }
-.progression > span { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 13px; border: 1px solid #e0e5eb; border-radius: 8px; color: #8593a1; background: #f6f8fa; font-size: 12px; }
+.progression > span { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 13px; border: 1px solid #e0e5eb; border-radius: 8px; color: #536b81; background: #f6f8fa; font-size: 12px; }
 .progression > span[data-atteint="true"] { background: #eaf4ef; color: #367153; border-color: #cde1d5; }
 .publication .restant { font-size: 12px; font-weight: 550; color: #7e6536; }
 .publication .confidentialite { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; border-top: 1px solid var(--filet-leger); padding-top: 16px; margin-top: 19px; }
@@ -50,7 +50,7 @@
 .recours ul { list-style: disc; padding-left: 18px; margin: 14px 0; }
 .recours > div:last-child > p { font-size: 13px; line-height: 1.7; }
 .recours > div:last-child > a { min-height: 44px; font-size: 13px; width: fit-content; border-width: 1px; }
-.recoursVide { display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 15px; border: 1px solid #e3e8ed; background: #f6f8fa; border-radius: 10px; color: #687f92; }
+.recoursVide { display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 15px; border: 1px solid #e3e8ed; background: #f6f8fa; border-radius: 10px; color: #536b81; }
 .recoursVide svg { flex-shrink: 0; margin-top: 3px; }
 @media(max-width:1150px) { .indicateurs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media(max-width:640px) {

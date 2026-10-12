@@ -54,7 +54,7 @@ export default async function PageEntreprise() {
         <ReglageVisibilite visibilite={fiche.visibilite} siretVerifie={fiche.siret_etat === "verifie"}/>
       </div>
       <div className={styles.colonne}>
-        <FormulaireMetiersZones metiers={(fiche.metiers ?? []).filter(m => m in METIERS)} codesPostaux={fiche.codes_postaux ?? []} complement={<div className={styles.noteZone}><p>Vos codes postaux indiquent votre secteur souhaité. Gerimmo confirme vos communes d’intervention et les métiers ouverts au réseau.</p><Link href="/artisan/regles">Les règles de mon activité <ArrowUpRight size={14} aria-hidden/></Link></div>}/>
+        <FormulaireMetiersZones metiers={(fiche.metiers ?? []).filter(m => m in METIERS)} codesPostaux={fiche.codes_postaux ?? []} complement={<div className={styles.noteZone}><p>Vos codes postaux indiquent votre secteur souhaité. Gerimmo confirme vos communes d’intervention et les métiers ouverts au réseau.</p><Link href="/artisan/regles">Les règles à connaître pour mon activité <ArrowUpRight size={14} aria-hidden/></Link></div>}/>
         {documents && !documents.error ? <DocumentsEntreprise profil={documents.data ?? { adresse: "", mentions: "", logo_data: null }}/>: <Erreur>Les informations de vos documents ne sont pas disponibles pour le moment. Réessayez avant de valider un devis.</Erreur>}
       </div>
     </div>

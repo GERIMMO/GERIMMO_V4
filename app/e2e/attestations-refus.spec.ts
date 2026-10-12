@@ -4,7 +4,7 @@ import { jourAttestation } from '../src/lib/dates-attestation';
 test.use({ storageState: 'e2e/.auth/artisan.json' });
 test('attestation : date future refusée et fichier effacé clairement après un rejet', async ({ page }) => {
   await page.goto('/artisan/attestations');
-  await page.locator('a[href="/artisan/attestations?type=decennale#deposer"]').click();
+  await page.getByRole('link', { name: 'Déposer : Assurance décennale', exact: true }).click();
   const formulaire = page.locator('form').filter({ has: page.getByRole('button', { name: "Déposer l'attestation", exact: true }) });
   const emission = formulaire.locator('[name="emise_le"]');
   const demain = jourAttestation(new Date(Date.now() + 86400000));

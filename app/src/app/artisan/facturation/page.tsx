@@ -1,188 +1,73 @@
 import Link from "next/link";
+import { ArrowRight, CalendarDays, Check, CheckCircle2, ClipboardList, FileCheck2, FileUp, Info, ReceiptText } from "lucide-react";
 import { titreIncident } from "@/lib/incidents";
-import { chargerAgenda, verifierAccesArtisan } from "../acces";
+import { chargerAgenda, verifierAccesArtisan, type LigneAgenda } from "../acces";
 import { euros, jourCourt } from "../libelles";
-import {
-  Carte,
-  DetailsInformation,
-  EnteteSousPage,
-  Erreur,
-  Etiquette,
-  MarqueAgence,
-  Retour,
-  Succes,
-  TitreSection,
-  Vide,
-} from "../ui";
+import { EnteteSousPage, Erreur, Etiquette, MarqueAgence, Succes } from "../ui";
+import { classerFacturation, montantEngage } from "./suivi-facturation";
+import styles from "./facturation.module.css";
 
 export const metadata = { title: "Ma facturation — Espace artisan" };
 
-/**
- * Ma facturation (9.7).
- *
- * Depuis l'audit du 27/09, la facture SE DÉPOSE : table
- * `intervention_factures`, RPC `deposer_facture_artisan` (migration
- * 20260927123000), écran /artisan/missions/[id]/facture. Version simple du
- * wiki (concepts/Devis) : pré-remplie du montant engagé, écart justifié et
- * alerté sans blocage. La validation par l'agence et l'écriture comptable
- * restent de son côté.
- *
- * Le montant affiché est le plafond engagé — dernier avenant accepté, sinon
- * devis retenu — et non plus le seul devis initial, qui ignorait l'avenant.
- *
- * La page dit aussi CE QUI EST FACTURABLE. La règle est nette (module 9 :
- * « la facture exige intervention terminée + photo »), et les deux conditions
- * sont lisibles dans son agenda — compte rendu déposé, photo du travail
- * réalisé déposée. Une intervention terminée sans compte rendu n'est pas
- * facturable, et il vaut mieux qu'il l'apprenne ici que par un refus de
- * paiement.
- */
 export default async function PageFacturation(props: PageProps<"/artisan/facturation">) {
   await verifierAccesArtisan();
   const { facture } = await props.searchParams;
   const agenda = await chargerAgenda();
+  const { aFacturer, aCompleter, deposees } = classerFacturation(agenda.lignes);
+  const montantAFacturer = aFacturer.reduce((total, ligne) => total + (montantEngage(ligne) ?? 0), 0);
+  const montantsIncomplets = aFacturer.some(l => montantEngage(l) === null);
 
-  const terminees = agenda.lignes.filter((l) => l.statut === "terminee");
-  const aCompleter = agenda.lignes.filter(
-    (l) => l.statut === "en_cours" && (!l.compte_rendu_depose || !l.photo_apres_deposee)
-  );
-  const montant = (l: (typeof terminees)[number]) =>
-    l.montant_plafond_cents ?? l.montant_ttc_cents;
-  const total = terminees.reduce((somme, l) => somme + (montant(l) ?? 0), 0);
+  return <div className={styles.page}>
+    <EnteteSousPage rubrique="finances" titre="Ma facturation" mention="De l’intervention terminée à la facture transmise."
+      action={<Link href="/artisan/agenda" className={styles.lienAgenda}><CalendarDays size={17} aria-hidden/>Mon agenda</Link>}/>
+    {facture && <Succes>Facture déposée. Votre interlocuteur est prévenu : il la contrôle et la règle selon ses délais.</Succes>}
+    {agenda.erreur ? <Erreur>Vos interventions n’ont pas pu être chargées. Rechargez la page avant de conclure qu’aucune intervention n’est facturable.</Erreur> : <>
+      <nav className={styles.indicateurs} aria-label="Résumé de la facturation">
+        <Link href="#a-facturer" className={styles.indicateur} data-ton="bleu"><span className={styles.icone}><ReceiptText size={21} aria-hidden/></span><span><strong>{aFacturer.length}</strong><span>À facturer</span><small>Interventions prêtes</small></span><ArrowRight size={16} aria-hidden/></Link>
+        <Link href="#a-completer" className={styles.indicateur} data-ton="or"><span className={styles.icone}><ClipboardList size={21} aria-hidden/></span><span><strong>{aCompleter.length}</strong><span>Dossiers à compléter</span><small>Avant de facturer</small></span><ArrowRight size={16} aria-hidden/></Link>
+        <Link href="#factures-deposees" className={styles.indicateur} data-ton="vert"><span className={styles.icone}><FileCheck2 size={21} aria-hidden/></span><span><strong>{deposees.length}</strong><span>Factures déposées</span><small>Transmises à vos clients</small></span><ArrowRight size={16} aria-hidden/></Link>
+      </nav>
+      <div className={styles.contenu}>
+        <div className={styles.dossiers}>
+          <section id="a-facturer" className={styles.section}>
+            <div className={styles.titreSection}><div><h2>À facturer <span>{aFacturer.length}</span></h2><p>Vos interventions terminées avec un dossier complet.</p></div><ReceiptText size={21} aria-hidden/></div>
+            {aFacturer.length > 0 ? <>
+              <ul className={styles.liste}>{aFacturer.map(l => <LigneFacturation key={l.intervention_id} ligne={l}/>)}</ul>
+              <div className={styles.total}><span>{montantsIncomplets ? "Montant engagé connu" : "Montant engagé à facturer"}<small>Devis et avenants acceptés{montantsIncomplets ? " · certains montants restent à préciser" : ""}</small></span><strong>{aFacturer.every(l => montantEngage(l) === null) ? "À préciser" : <>{euros(montantAFacturer)} <small>TTC</small></>}</strong></div>
+            </> : <div className={styles.vide}><span className={styles.iconeVide}><ReceiptText size={28} aria-hidden/></span><h3>Aucune facture à déposer pour l’instant</h3><p>Terminez votre intervention et ajoutez le compte rendu ainsi qu’une photo. Vous pourrez ensuite déposer votre facture ici.</p><Link href="/artisan/agenda" className={styles.boutonPrincipal}>Voir mes interventions <ArrowRight size={16} aria-hidden/></Link></div>}
+          </section>
+          <section id="a-completer" className={styles.section}>
+            <div className={styles.titreSection}><div><h2>Dossiers à compléter <span>{aCompleter.length}</span></h2><p>Les pièces nécessaires pour débloquer la facturation.</p></div><ClipboardList size={21} aria-hidden/></div>
+            {aCompleter.length ? <ul className={styles.liste}>{aCompleter.map(l => <li key={l.intervention_id} className={styles.aCompleter}>
+              <div><h3>{titreIncident(l.categorie)}</h3><p>{l.agence_nom} · {l.incident_numero}</p><div className={styles.pieces}><span data-present={l.compte_rendu_depose}>{l.compte_rendu_depose ? <Check size={14} aria-hidden/> : <span aria-hidden>○</span>}Compte rendu {l.compte_rendu_depose ? "déposé" : "manquant"}</span><span data-present={l.photo_apres_deposee}>{l.photo_apres_deposee ? <Check size={14} aria-hidden/> : <span aria-hidden>○</span>}Photo {l.photo_apres_deposee ? "déposée" : "manquante"}</span></div></div>
+              <Link href={`/artisan/missions/${l.intervention_id}/compte-rendu`} className={styles.boutonSecondaire} aria-label={`Compléter le dossier ${l.incident_numero}`}>Compléter <ArrowRight size={15} aria-hidden/></Link>
+            </li>)}</ul> : <p className={styles.rienACompleter}><CheckCircle2 size={18} aria-hidden/>Aucun dossier en attente de compte rendu ou de photo.</p>}
+          </section>
+          <section id="factures-deposees" className={styles.section}>
+            <div className={styles.titreSection}><div><h2>Factures déposées <span>{deposees.length}</span></h2><p>Les factures transmises pour vos interventions.</p></div><FileCheck2 size={21} aria-hidden/></div>
+            {deposees.length ? <ul className={styles.liste}>{deposees.map(l => <LigneFacturation key={l.intervention_id} ligne={l}/>)}</ul> : <p className={styles.aucuneFacture}>Vos prochaines factures apparaîtront ici après leur dépôt.</p>}
+          </section>
+        </div>
+        <aside className={styles.guide} aria-label="Comment transmettre une facture">
+          <p className={styles.surtitre}>Vos repères</p><h2>Facturer en 3 étapes</h2>
+          <ol><li><span>1</span><div><h3>Terminez l’intervention</h3><p>Ajoutez le compte rendu et une photo du travail réalisé.</p></div></li><li><span>2</span><div><h3>Déposez votre facture</h3><p>Le montant est prérempli à partir du devis ou de l’avenant accepté. Vous pouvez justifier un écart.</p></div></li><li><span>3</span><div><h3>Votre client est prévenu</h3><p>Il retrouve la facture dans son espace pour la contrôler et la régler.</p></div></li></ol>
+          <div className={styles.note}><Info size={17} aria-hidden/><p>Le dépôt est suivi ici. Le règlement reste à vérifier auprès de votre client.</p></div>
+          <Link href="/artisan/entreprise#documents" className={styles.lienGuide}>Vérifier ma fiche entreprise <ArrowRight size={15} aria-hidden/></Link>
+        </aside>
+      </div>
+    </>}
+  </div>;
+}
 
-  return (
-    <div className="space-y-6">
-      <Retour href="/artisan/entreprise">Mon entreprise</Retour>
-
-      <EnteteSousPage rubrique="finances" titre="Ma facturation" mention="Suivi du dépôt de vos factures" />
-
-      {/* La phrase qui compte le plus de la page : en texte courant, pas en
-          gris secondaire ; « encore » se lisait « une fois de plus » (24/09). */}
-      {facture && (
-        <Succes>
-          Facture déposée. Votre interlocuteur est prévenu : il la contrôle et la
-          règle selon ses délais.
-        </Succes>
-      )}
-
-      <p className="text-base text-[var(--corps)]">
-        Cet écran suit vos interventions facturables et vos factures déposées,
-        pas les paiements reçus. Une fois l&apos;intervention terminée, déposez
-        votre facture depuis la mission : elle rejoint le dossier de l’intervention.
-      </p>
-
-      {agenda.erreur && <Erreur>Vos interventions n’ont pas pu être chargées. Rechargez la page avant de conclure qu’aucune intervention n’est facturable.</Erreur>}
-
-      {!agenda.erreur && aCompleter.length > 0 && (
-        <Carte className="border-l-4 border-l-[var(--warning)]">
-          <TitreSection>
-            {aCompleter.length === 1
-              ? "Une intervention n'est pas facturable"
-              : `${aCompleter.length} interventions ne sont pas facturables`}
-          </TitreSection>
-          <p className="text-[0.9375rem] text-[var(--corps)]">
-            La photo du travail réalisé et le compte rendu sont tous deux
-            nécessaires. Chaque mission ci-dessous indique ce qu&apos;il reste à
-            faire avant de pouvoir la facturer.
-          </p>
-          <ul className="mt-3 space-y-2">
-            {aCompleter.map((l) => (
-              <li key={l.intervention_id}>
-                <Link
-                  href={`/artisan/missions/${l.intervention_id}/compte-rendu`}
-                  className="inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
-                >
-                  {titreIncident(l.categorie)} — {l.agence_nom} : {l.photo_apres_deposee ? "terminer le compte rendu" : "ajouter la photo du travail réalisé"}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Carte>
-      )}
-
-      {!agenda.erreur && <section>
-        <TitreSection>Interventions terminées ({terminees.length})</TitreSection>
-        {terminees.length === 0 ? (
-          <Vide action={{ href: "/artisan/agenda", libelle: "Voir mon agenda" }}>
-            Aucune intervention terminée pour l&apos;instant. Une intervention
-            apparaît ici dès que son compte rendu et la photo du travail
-            réalisé sont déposés.
-          </Vide>
-        ) : (
-          <div className="space-y-3">
-            {terminees.map((l) => (
-              <div
-                key={l.intervention_id}
-                className="rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] p-3.5"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <MarqueAgence nom={l.agence_nom} />
-                  <Etiquette
-                    ton={l.facture_deposee ? "ok" : l.compte_rendu_depose ? "encre" : "alerte"}
-                  >
-                    {l.facture_deposee
-                      ? "Facture déposée"
-                      : l.compte_rendu_depose
-                        ? "Facturable"
-                        : "Compte rendu manquant"}
-                  </Etiquette>
-                </div>
-                <p className="mt-2.5 text-base font-medium text-[var(--corps)]">
-                  {titreIncident(l.categorie)}
-                </p>
-                <p className="mt-0.5 text-[0.9375rem] text-[var(--texte-secondaire)]">
-                  {l.incident_numero}
-                  {l.debut_prevu ? ` · ${jourCourt(l.debut_prevu)}` : ""}
-                  {l.ville ? ` · ${l.ville}` : ""}
-                </p>
-                <p className="mt-2 text-[1.0625rem] font-medium text-[var(--encre)]">
-                  {montant(l) !== null
-                    ? `${euros(montant(l))} TTC`
-                    : "Montant non chiffré"}
-                  <span className="ml-2 text-[0.8125rem] font-normal text-[var(--texte-secondaire)]">
-                    {l.montant_plafond_cents !== null &&
-                    l.montant_plafond_cents !== l.montant_ttc_cents
-                      ? "avenant accepté"
-                      : "devis retenu"}
-                  </span>
-                </p>
-                {!l.facture_deposee && l.compte_rendu_depose && l.photo_apres_deposee && (
-                  <Link
-                    href={`/artisan/missions/${l.intervention_id}/facture`}
-                    className="mt-2 inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
-                  >
-                    Déposer ma facture
-                  </Link>
-                )}
-              </div>
-            ))}
-            <p className="pt-1 text-right text-[0.9375rem] text-[var(--texte-secondaire)]">
-              Total engagé (devis et avenants acceptés) : {euros(total)} TTC
-            </p>
-          </div>
-        )}
-      </section>}
-
-      {/* Déplié tant que la page n'a rien d'autre à montrer (24/09). */}
-      <DetailsInformation
-        titre="Comment transmettre ma facture et être payé"
-        ouvert={terminees.length === 0}
-      >
-        <ul className="space-y-2 text-[0.9375rem] text-[var(--corps)]">
-          <li>
-            Déposez votre facture depuis la mission terminée : son montant est
-            pré-rempli avec le devis retenu, ou l&apos;avenant accepté.
-          </li>
-          <li>
-            Un écart entre le devis et la facture ne bloque rien : vous le
-            justifiez, votre interlocuteur le tranche.
-          </li>
-          <li>
-            Elle ne peut être réglée qu&apos;une fois l&apos;intervention terminée,
-            compte rendu et photo compris.
-          </li>
-        </ul>
-      </DetailsInformation>
+function LigneFacturation({ ligne }: { ligne: LigneAgenda }) {
+  const deposee = ligne.facture_deposee;
+  const montant = montantEngage(ligne);
+  return <li className={styles.facture}>
+    <div className={styles.client}><MarqueAgence nom={ligne.agence_nom}/><Etiquette ton={deposee ? "ok" : "encre"}>{deposee ? "Facture déposée" : "Prête à facturer"}</Etiquette></div>
+    <div className={styles.detailFacture}>
+      <div><h3>{titreIncident(ligne.categorie)}</h3><p>{[ligne.incident_numero, ligne.debut_prevu ? jourCourt(ligne.debut_prevu) : null, ligne.ville].filter(Boolean).join(" · ")}</p></div>
+      <div className={styles.montant}><strong>{montant !== null ? euros(montant) : "À préciser"}{montant !== null && <small> TTC</small>}</strong><span>{ligne.montant_plafond_cents !== null && ligne.montant_plafond_cents !== ligne.montant_ttc_cents ? "Avenant accepté" : "Devis retenu"}</span></div>
     </div>
-  );
+    <Link href={`/artisan/missions/${ligne.intervention_id}${deposee ? "" : "/facture"}`} className={deposee ? styles.boutonSecondaire : styles.boutonPrincipal}>{deposee ? <FileCheck2 size={16} aria-hidden/> : <FileUp size={16} aria-hidden/>}{deposee ? "Voir la mission" : "Déposer ma facture"}<ArrowRight size={15} aria-hidden/></Link>
+  </li>;
 }

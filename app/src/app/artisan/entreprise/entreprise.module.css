@@ -1,0 +1,99 @@
+.page { display: grid; gap: 20px; min-width: 0; }
+.page :global(.entete-page) { padding-bottom: 0; }
+.identite { display: flex; align-items: center; gap: 20px; padding: 24px; border: 1px solid #dce3eb; border-left: 3px solid var(--prestige-champagne); border-radius: 14px; background: linear-gradient(110deg, #f3f6fa, #fff 65%, #fcfaf5); }
+.logo { display: grid; place-items: center; flex: 0 0 76px; height: 76px; padding: 12px; border: 1px solid #dae3ec; border-radius: 18px; background: #fff; color: #6d8499; }
+.logo img { width: 100%; max-height: 100%; object-fit: contain; }
+.nomEntreprise { flex: 1; min-width: 0; }
+.surtitre { color: #806638; text-transform: uppercase; letter-spacing: .12em; font-size: 10px; font-weight: 650; }
+.nomEntreprise h2 { font-size: 27px; margin: 3px 0 5px; overflow-wrap: anywhere; }
+.nomEntreprise > p:last-of-type { font-size: 14px; color: var(--texte-secondaire); }
+.statuts { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.boutonDevis { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 15px; border: 1px solid #d7dfE7; border-radius: 9px; background: #fff; color: var(--encre); font-size: 13px; font-weight: 550; }
+.boutonDevis:hover { border-color: var(--or); }
+.page a:focus-visible, .page button:focus-visible { outline: 2px solid var(--or); outline-offset: 3px; }
+.raccourcis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.raccourci { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 17px; border: 1px solid var(--filet); border-radius: 12px; background: #fff; }
+.raccourci:hover { border-color: var(--or); }
+.raccourci strong { display: block; font-size: 14px; color: var(--encre); }
+.raccourci small { display: block; font-size: 12px; line-height: 1.5; color: var(--texte-secondaire); margin-top: 4px; }
+.raccourci > svg { margin-left: auto; flex-shrink: 0; color: var(--texte-secondaire); }
+.icone { display: grid; place-items: center; flex: 0 0 40px; height: 40px; border-radius: 11px; color: #58738e; background: #eaf0f7; }
+[data-ton="or"] > .icone { background: #f6ecd7; color: #80612c; }
+[data-ton="vert"] > .icone { background: #e5f2ec; color: #2f7155; }
+[data-ton="violet"] > .icone { background: #efebf7; color: #765d99; }
+.raccourci[data-attention="true"] { border-color: #e6d5b5; background: #fffdf7; }
+.alerteAttestation { display: flex; align-items: flex-start; gap: 9px; padding: 12px 16px; border: 1px solid #ebddbf; border-radius: 9px; background: #fcf7eb; color: #806233; font-size: 13px; line-height: 1.7; }
+.alerteAttestation > svg { flex-shrink: 0; margin-top: 2px; }
+.alerteAttestation a { display: inline-flex; align-items: center; gap: 4px; text-decoration: underline; text-underline-offset: 3px; font-weight: 550; }
+.grille { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.25fr); align-items: start; gap: 22px; }
+.colonne { display: grid; gap: 20px; min-width: 0; }
+.page .bloc:global(.artisan-carte) { border: 1px solid var(--filet); border-radius: 14px; padding: 22px; box-shadow: 0 3px 12px #14304f03; background: #fff; }
+.titreBloc { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--filet-leger); }
+.titreBloc > div { flex: 1; min-width: 0; }
+.titreBloc h2 { margin: 0; font-size: 22px; line-height: 1.3; }
+.titreBloc p { margin-top: 4px; font-size: 12px; line-height: 1.6; color: var(--texte-secondaire); }
+.coordonnees { display: grid; gap: 17px; }
+.coordonnees dt { display: flex; align-items: center; gap: 6px; color: var(--texte-secondaire); font-size: 12px; margin-bottom: 4px; }
+.coordonnees dd { font-size: 15px; font-weight: 550; overflow-wrap: anywhere; }
+.siret { font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.commentaire { display: grid; gap: 4px; margin-top: 20px; padding: 12px; border-radius: 8px; background: #f5f7fa; color: var(--texte-secondaire); font-size: 12px; line-height: 1.7; }
+.commentaire strong { color: var(--encre); font-weight: 550; }
+.aide { font-size: 12px; line-height: 1.7; color: var(--texte-secondaire); margin-top: 16px; }
+.aide a { color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
+.noteZone { border-top: 1px solid var(--filet-leger); padding-top: 12px; margin-top: 16px; }
+.noteZone p { color: var(--texte-secondaire); font-size: 12px; line-height: 1.7; }
+.noteZone a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: #77623b; font-size: 12px; font-weight: 600; }
+.modifier { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-size: 13px; color: var(--encre); font-weight: 550; }
+.modifier:hover { text-decoration: underline; text-underline-offset: 4px; }
+.reperesMetier { display: grid; gap: 16px; }
+.reperesMetier dt { display: flex; align-items: center; gap: 6px; color: var(--texte-secondaire); font-size: 12px; margin-bottom: 7px; }
+.puces { display: flex; flex-wrap: wrap; gap: 7px; }
+.puces span { padding: 5px 10px; border: 1px solid #dce5ee; border-radius: 7px; background: #f1f5fa; color: #365575; font-size: 13px; }
+.puces[data-zone] span { background: #faf7ef; color: #826638; border-color: #e9dfc8; }
+.metiers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.metiers label { display: flex; align-items: center; gap: 10px; padding: 10px; min-height: 48px; border: 1px solid var(--filet); border-radius: 9px; background: #fff; font-size: 14px; cursor: pointer; }
+.metiers label:has(input:checked) { background: #f0f5fa; border-color: #9fb4c8; color: #294e71; }
+.metiers input { width: 20px; height: 20px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 16px; border-top: 1px solid var(--filet-leger); }
+.page .actions button { width: auto; min-height: 44px; padding-inline: 17px; border-width: 1px; font-size: 13px; }
+.page .actions button[type="submit"] { background: var(--prestige-nuit); color: #fff; border-color: var(--prestige-nuit); }
+.page .actions button[type="button"] { background: #fff; border-color: var(--filet); color: var(--texte-secondaire); }
+.visibiliteEtat { display: inline-flex; align-items: center; gap: 7px; color: #526579; background: #f0f4f8; border: 1px solid #dce5ed; border-radius: 7px; padding: 6px 10px; font-size: 13px; font-weight: 550; }
+.visibiliteEtat[data-public="true"] { background: #edf6f0; border-color: #d3e5d9; color: #397152; }
+.descriptionVisibilite { color: var(--texte-secondaire); font-size: 14px; line-height: 1.7; }
+.page .visibiliteBouton { min-height: 44px; border-width: 1px; font-size: 13px; }
+.documents { scroll-margin-top: 96px; min-width: 0; }
+.documents form { display: grid; gap: 18px; }
+.documents textarea, .page input:not([type="checkbox"]):not([type="hidden"]) { border-width: 1px; border-color: #d5dfe8; background: #fff; border-radius: 9px; }
+.documents textarea { resize: vertical; }
+.logoDevis { display: flex; gap: 16px; align-items: center; padding: 15px; border: 1px dashed #c9d5df; border-radius: 10px; background: #f8fafc; }
+.apercuLogo { display: grid; place-items: center; flex: 0 0 70px; min-height: 70px; padding: 8px; border: 1px solid var(--filet); border-radius: 10px; background: #fff; color: #879aac; }
+.apercuLogo img { width: 100%; max-height: 70px; object-fit: contain; }
+.choixLogo { flex: 1; min-width: 0; }
+.choixLogo > span { display: block; font-size: 14px; font-weight: 550; color: var(--encre); }
+.choixLogo input { width: 100%; max-width: 100%; font-size: 12px; margin: 8px 0; padding: 5px; }
+.choixLogo input::file-selector-button { min-height: 36px; background: #edf2f7; padding: 6px 10px; border: 1px solid #d7e1ea; border-radius: 6px; color: #34516b; margin-right: 8px; cursor: pointer; }
+.choixLogo small { display: block; color: var(--texte-secondaire); font-size: 11px; line-height: 1.6; }
+.facultatif { color: var(--texte-secondaire); font-size: 11px; font-weight: 400; margin-left: 5px; }
+@media(max-width:1100px) { .identite { flex-wrap: wrap; } .boutonDevis { margin-left: 96px; } .grille { grid-template-columns: minmax(0, 1fr); } .raccourci { flex-wrap: wrap; } .raccourci > svg { display: none; } }
+@media(max-width:640px) {
+  .page { gap: 16px; }
+  .identite { gap: 13px; padding: 17px; align-items: flex-start; }
+  .logo { flex-basis: 48px; height: 48px; padding: 8px; border-radius: 12px; }
+  .nomEntreprise h2 { font-size: 23px; }
+  .nomEntreprise .statuts { margin-left: -61px; padding-top: 8px; }
+  .boutonDevis { margin-left: 0; width: 100%; min-height: 48px; }
+  .raccourcis { grid-template-columns: minmax(0, 1fr); gap: 9px; }
+  .raccourci { flex-wrap: nowrap; padding: 13px 15px; }
+  .raccourci > svg { display: block; }
+  .page .bloc:global(.artisan-carte) { padding: 17px; }
+  .titreBloc { gap: 9px; }
+  .titreBloc h2 { font-size: 20px; }
+  .titreBloc .icone { flex-basis: 34px; height: 34px; }
+  .metiers { grid-template-columns: minmax(0, 1fr); }
+  .logoDevis { align-items: flex-start; padding: 12px; flex-direction: column; }
+  .choixLogo { width: 100%; }
+  .actions { align-items: stretch; }
+  .page .actions button { min-height: 48px; flex: 1; font-size: 14px; }
+  .page .visibiliteBouton { min-height: 48px; font-size: 14px; }
+}

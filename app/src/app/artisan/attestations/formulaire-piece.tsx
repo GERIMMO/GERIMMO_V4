@@ -1,6 +1,9 @@
 "use client";
 
 import { useActionState, useId, useState } from "react";
+import Link from "next/link";
+import { FileUp } from "lucide-react";
+import styles from "./attestations.module.css";
 import { jourAttestation } from "@/lib/dates-attestation";
 import { useFormStatus } from "react-dom";
 import { deposerMaPiece, type EtatArtisanAction } from "@/app/actions/artisan";
@@ -15,7 +18,6 @@ import {
   CLASSE_LIBELLE,
   Erreur,
   Succes,
-  TitreSection,
 } from "../ui";
 
 /**
@@ -59,10 +61,10 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
 
   return (
     // `deposer` : l'ancre visée par l'état vide et par « Encore attendues ».
-    <Carte id="deposer">
-      <TitreSection>Déposer une attestation</TitreSection>
+    <Carte id="deposer" className={styles.depot}>
+      <div className={styles.enteteDepot}><span className={styles.icone}><FileUp size={21} aria-hidden/></span><div><h2>Déposer une attestation</h2><p>Choisissez votre document et renseignez sa validité.</p></div><Link href="/artisan/attestations">Annuler</Link></div>
       <form action={action} className="space-y-4">
-        <div className="space-y-1.5">
+        <div data-type-piece className="space-y-1.5">
           <label htmlFor={idType} className={CLASSE_LIBELLE}>
             Quelle attestation
           </label>
@@ -84,7 +86,7 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div data-dates-piece className="flex flex-wrap gap-3">
           <div className="min-w-[9rem] flex-1 space-y-1.5">
             <label htmlFor={idEmise} className={CLASSE_LIBELLE}>
               Émise le{" "}
@@ -114,13 +116,13 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
           </div>
         </div>
         {dateExigee && (
-          <p className={`-mt-2 ${CLASSE_AIDE}`}>
+          <p data-aide-date className={`-mt-2 ${CLASSE_AIDE}`}>
             C&apos;est cette date qui fait foi : elle est lue à l&apos;instant où une
             personne cherche un artisan.
           </p>
         )}
 
-        <div className="space-y-1.5">
+        <div data-fichier-piece className="space-y-1.5">
           <label htmlFor={idFichier} className={CLASSE_LIBELLE}>
             L&apos;attestation
           </label>
@@ -147,7 +149,7 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
         {etat.succes && <Succes>{etat.succes}</Succes>}
         {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
 
-        <Envoyer />
+        <div data-actions-piece><Envoyer /></div>
       </form>
     </Carte>
   );

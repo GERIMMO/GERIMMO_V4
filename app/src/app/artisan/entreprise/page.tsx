@@ -1,186 +1,62 @@
 import Link from "next/link";
-import { ArrowUpRight, Banknote, FileCheck2, Star } from "lucide-react";
-import styles from "../portail-artisan.module.css";
+import Image from "next/image";
+import { ArrowUpRight, Banknote, Building2, FileCheck2, FilePenLine, Mail, Phone, Star } from "lucide-react";
+import { clientDeService } from "@/lib/supabase/service";
+import { DocumentsEntreprise } from "./documents-entreprise";
 import { chargerNote, chargerPieces, verifierAccesArtisan } from "../acces";
 import { degreEcheance, formaterSiret, formaterTelephone, METIERS } from "../libelles";
-import { CLASSE_AIDE, Carte, EnteteSousPage, Etiquette, LigneInfo, TitreSection } from "../ui";
+import { Carte, EnteteSousPage, Etiquette, Erreur } from "../ui";
 import { FormulaireMetiersZones, ReglageVisibilite } from "./reglages-entreprise";
+import styles from "./entreprise.module.css";
 
 export const metadata = { title: "Mon entreprise — Espace artisan" };
+const ETATS_SIRET: Record<string, string> = { verifie: "SIRET vérifié", non_verifie: "SIRET en cours de vérification", invalide: "SIRET signalé invalide" };
+const ETATS_PLATEFORME: Record<string, string> = { en_attente: "Inscription en cours de validation", valide: "Inscription validée", refuse: "Inscription refusée" };
 
-const ETATS_SIRET: Record<string, string> = {
-  verifie: "Vérifié",
-  non_verifie: "En cours de vérification",
-  invalide: "Signalé invalide",
-};
-
-const ETATS_PLATEFORME: Record<string, string> = {
-  en_attente: "Inscription en cours de validation",
-  valide: "Inscription validée",
-  refuse: "Inscription refusée",
-};
-
-/**
- * « Mon entreprise » : ce qui ne se règle pas sur un chantier.
- *
- * Attestations, facturation, note et visibilité sont des parcours de fin de
- * journée : ils ont leur place ici plutôt que dans les onglets du bas, réservés
- * à ce qui se fait debout. Ce qui, lui, bloque le travail — une attestation
- * tombée — remonte quand même en tête de l'écran d'arrivée : on ne laisse pas
- * une décennale expirée dans un sous-menu.
- */
 export default async function PageEntreprise() {
   const { fiche } = await verifierAccesArtisan();
+  const service = clientDeService();
+  const documents = service ? await service.from("artisan_profils_documents").select("adresse,mentions,logo_data").eq("artisan_id", fiche.artisan_id).maybeSingle() : null;
   const [pieces, note] = await Promise.all([chargerPieces(), chargerNote()]);
-
-  const piecesTendues = pieces.lignes.filter((p) =>
-    ["expiree", "critique", "proche"].includes(
-      degreEcheance(p.jours_avant_echeance, p.expiree)
-    )
-  ).length;
-
-  // Aucune attestation n'est pas un compteur neutre : sans elles, l'artisan
-  // n'est proposé à personne. La ligne le dit, dans la couleur d'alerte, et
-  // l'onglet porte le même point (gabarit) — tour du 24/09.
+  const piecesTendues = pieces.lignes.filter(p => ["expiree", "critique", "proche"].includes(degreEcheance(p.jours_avant_echeance, p.expiree))).length;
   const aucunePiece = !pieces.erreur && pieces.lignes.length === 0;
+  const profilDocuments = documents && !documents.error ? documents.data : null;
   const raccourcis = [
-    {
-      href: "/artisan/attestations",
-      titre: "Mes attestations",
-      icone: FileCheck2, ton: "or",
-      detail: pieces.erreur
-        ? "Liste illisible à l'instant — ouvrez pour vérifier"
-        : aucunePiece
-          ? // Audit 27/09 : l'ancien libellé (« à déposer pour être proposé
-            // aux agences ») contredisait la page Attestations — seule la
-            // décennale conditionne l'affectation, et seulement pour les
-            // travaux qui l'exigent (RM-8.2.2/8.2.9, personas/Artisan).
-            "Aucune attestation déposée — déposez votre décennale pour être proposé sur les travaux qui l'exigent"
-          : piecesTendues > 0
-            ? `${piecesTendues} à renouveler`
-            : `${pieces.lignes.length} déposée${pieces.lignes.length > 1 ? "s" : ""}`,
-      tendu: aucunePiece || piecesTendues > 0,
-    },
-    {
-      href: "/artisan/facturation",
-      titre: "Ma facturation",
-      icone: Banknote, ton: "vert",
-      detail: "Les interventions terminées, leurs montants et vos factures",
-      tendu: false,
-    },
-    {
-      href: "/artisan/note",
-      titre: "Mes évaluations",
-      icone: Star, ton: "violet",
-      detail: note.note?.publiable
-        ? `${Number(note.note.note_publiee ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} sur 5 · ${note.note.nb_evaluations} avis`
-        : "Pas encore publiée",
-      tendu: false,
-    },
+    { href: "/artisan/attestations", titre: "Mes attestations", icone: FileCheck2, ton: "or", detail: pieces.erreur ? "Chargement indisponible" : aucunePiece ? "Aucune attestation déposée" : piecesTendues ? `${piecesTendues} à renouveler` : `${pieces.lignes.length} déposée${pieces.lignes.length > 1 ? "s" : ""}`, tendu: aucunePiece || piecesTendues > 0 },
+    { href: "/artisan/facturation", titre: "Ma facturation", icone: Banknote, ton: "vert", detail: "Interventions et factures déposées", tendu: false },
+    { href: "/artisan/note", titre: "Mes évaluations", icone: Star, ton: "violet", detail: note.erreur ? "Évaluations indisponibles" : note.note?.publiable ? `${Number(note.note.note_publiee ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} sur 5 · ${note.note.nb_evaluations} avis` : "Note pas encore publiée", tendu: false },
   ];
 
-  return (
-    <div className="space-y-6">
-      {/* Le nom de l'onglet en titre, comme les pages sœurs : la raison
-          sociale est déjà écrite dans le bandeau, juste au-dessus (24/09). */}
-      <EnteteSousPage rubrique="entreprise"
-        titre="Mon entreprise"
-        mention="Vos attestations, votre facturation, votre note et votre fiche"
-      />
-
-      <nav aria-label="Mon entreprise" className={styles.shortcuts}>
-        {raccourcis.map((r) => (
-          <Link key={r.href} href={r.href} className={styles.shortcut} data-attention={r.tendu}>
-            <span className={styles.icon} data-tone={r.ton}><r.icone size={21} aria-hidden /></span>
-            <span><strong>{r.titre}</strong><small>{r.detail}</small></span>
-            <ArrowUpRight size={18} aria-hidden />
-          </Link>
-        ))}
-      </nav>
-
-      <div className={styles.companyGrid}>
-      <Carte>
-        <TitreSection>Identité et coordonnées</TitreSection>
-        <div className={styles.companyName}>
-          <strong>{fiche.raison_sociale}</strong>
-          <span>{(fiche.metiers ?? []).map((m) => METIERS[m] ?? m).join(" · ") || "Métier à renseigner"}</span>
-        </div>
-        <div>
-          <LigneInfo libelle="SIRET">
-            <span className="font-[family-name:var(--font-libelles)] tabular-nums">
-              {formaterSiret(fiche.siret)}
-            </span>
-          </LigneInfo>
-          <LigneInfo libelle="Vérification du SIRET">
-            <Etiquette ton={fiche.siret_etat === "verifie" ? "ok" : "attente"}>
-              {ETATS_SIRET[fiche.siret_etat] ?? "Vérification à faire"}
-            </Etiquette>
-          </LigneInfo>
-          <LigneInfo libelle="Inscription">
-            <Etiquette
-              ton={
-                fiche.statut_plateforme === "valide"
-                  ? "ok"
-                  : fiche.statut_plateforme === "refuse"
-                    ? "alerte"
-                    : "attente"
-              }
-            >
-              {ETATS_PLATEFORME[fiche.statut_plateforme] ?? "Statut à vérifier"}
-            </Etiquette>
-          </LigneInfo>
-          <LigneInfo libelle="Mobile">{formaterTelephone(fiche.telephone)}</LigneInfo>
-          <LigneInfo libelle="Adresse e-mail">{fiche.email ?? "—"}</LigneInfo>
-        </div>
-        {/* « Motif » se lit comme un refus : sous une inscription validée,
-            c'est un commentaire (24/09). */}
-        {fiche.statut_motif && (
-          <p className="mt-3 text-[0.9375rem] text-[var(--texte-secondaire)]">
-            {fiche.statut_plateforme === "valide"
-              ? "Commentaire de Gerimmo"
-              : "Motif communiqué par Gerimmo"}{" "}
-            : {fiche.statut_motif}
-          </p>
-        )}
-        {/* La phrase mène à qui corrige : sans lien, l'artisan qui voyait une
-            erreur n'avait aucun moyen de la signaler (24/09). */}
-        <p className={`mt-3 ${CLASSE_AIDE}`}>
-          Raison sociale et SIRET se corrigent{" "}
-          <Link
-            href="/assistance?ecran=%2Fartisan%2Fentreprise&action=lien&retour=%2Fartisan%2Fentreprise"
-            className="font-medium text-[var(--encre)] underline underline-offset-4"
-          >
-            auprès de Gerimmo
-          </Link>{" "}
-          : ils identifient votre entreprise sur toute la plateforme, pour l’ensemble de vos clients.
-        </p>
-      </Carte>
-
-      <div className={styles.companySettings}>
-      {/* 25/09 (A9) : le lien vers les règles vit dans la carte des métiers,
-          ce sont elles qu'il concerne ; isolé entre deux cartes, il flottait. */}
-      <FormulaireMetiersZones
-        metiers={(fiche.metiers ?? []).filter((m) => m in METIERS)}
-        codesPostaux={fiche.codes_postaux ?? []}
-        complement={
-          <>
-          <p className={styles.zoneNote}>Vos codes postaux indiquent votre secteur souhaité. Gerimmo confirme séparément vos communes d’intervention et les métiers ouverts au réseau.</p>
-          <Link
-            href="/artisan/regles"
-            className="mt-2 inline-flex min-h-11 items-center gap-1 text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
-          >
-            Les règles à connaître pour mon activité
-          </Link>
-          </>
-        }
-      />
-
-      <ReglageVisibilite
-        visibilite={fiche.visibilite}
-        siretVerifie={fiche.siret_etat === "verifie"}
-      />
+  return <div className={styles.page}>
+    <EnteteSousPage rubrique="entreprise" titre="Mon entreprise" mention="Votre fiche professionnelle et les informations de vos devis."/>
+    <section className={styles.identite} aria-label="Votre entreprise">
+      <div className={styles.logo}>{profilDocuments?.logo_data ? <Image src={profilDocuments.logo_data} alt={`Logo de ${fiche.raison_sociale}`} width={72} height={72} unoptimized/> : <Building2 size={32} aria-hidden/>}</div>
+      <div className={styles.nomEntreprise}><p className={styles.surtitre}>Votre fiche professionnelle</p><h2>{fiche.raison_sociale}</h2><p>{(fiche.metiers ?? []).map(m => METIERS[m] ?? m).join(" · ") || "Métier à renseigner"}</p><div className={styles.statuts}>
+        <Etiquette ton={fiche.siret_etat === "verifie" ? "ok" : fiche.siret_etat === "invalide" ? "alerte" : "attente"}>{ETATS_SIRET[fiche.siret_etat] ?? "SIRET à vérifier"}</Etiquette>
+        <Etiquette ton={fiche.statut_plateforme === "valide" ? "ok" : fiche.statut_plateforme === "refuse" ? "alerte" : "attente"}>{ETATS_PLATEFORME[fiche.statut_plateforme] ?? "Statut à vérifier"}</Etiquette>
+      </div></div>
+      <Link href="#documents" className={styles.boutonDevis}><FilePenLine size={17} aria-hidden/>Personnaliser mes devis</Link>
+    </section>
+    <nav aria-label="Services de mon entreprise" className={styles.raccourcis}>{raccourcis.map(r => <Link key={r.href} href={r.href} className={styles.raccourci} data-ton={r.ton} data-attention={r.tendu}><span className={styles.icone}><r.icone size={21} aria-hidden/></span><span><strong>{r.titre}</strong><small>{r.detail}</small></span><ArrowUpRight size={17} aria-hidden/></Link>)}</nav>
+    {aucunePiece && <p className={styles.alerteAttestation}><FileCheck2 size={17} aria-hidden/><span>Déposez votre décennale pour être proposé sur les {"travaux qui l'exigent"}. <Link href="/artisan/attestations">Ajouter une attestation <ArrowUpRight size={13} aria-hidden/></Link></span></p>}
+    <div className={styles.grille}>
+      <div className={styles.colonne}>
+        <Carte className={styles.bloc}>
+          <div className={styles.titreBloc}><span className={styles.icone}><Building2 size={19} aria-hidden/></span><div><h2>Identité et coordonnées</h2><p>Les repères de votre entreprise.</p></div></div>
+          <dl className={styles.coordonnees}>
+            <div><dt>SIRET</dt><dd className={styles.siret}>{formaterSiret(fiche.siret)}</dd></div>
+            <div><dt><Phone size={14} aria-hidden/>Téléphone</dt><dd>{formaterTelephone(fiche.telephone)}</dd></div>
+            <div><dt><Mail size={14} aria-hidden/>Adresse e-mail</dt><dd>{fiche.email || "Non renseignée"}</dd></div>
+          </dl>
+          {fiche.statut_motif && <p className={styles.commentaire}><strong>{fiche.statut_plateforme === "valide" ? "Commentaire de Gerimmo" : "Motif communiqué par Gerimmo"}</strong>{fiche.statut_motif}</p>}
+          <p className={styles.aide}>Une correction de raison sociale ou de SIRET ? <Link href="/assistance?ecran=%2Fartisan%2Fentreprise&action=lien&retour=%2Fartisan%2Fentreprise">Contactez Gerimmo</Link>.</p>
+        </Carte>
+        <ReglageVisibilite visibilite={fiche.visibilite} siretVerifie={fiche.siret_etat === "verifie"}/>
       </div>
+      <div className={styles.colonne}>
+        <FormulaireMetiersZones metiers={(fiche.metiers ?? []).filter(m => m in METIERS)} codesPostaux={fiche.codes_postaux ?? []} complement={<div className={styles.noteZone}><p>Vos codes postaux indiquent votre secteur souhaité. Gerimmo confirme vos communes d’intervention et les métiers ouverts au réseau.</p><Link href="/artisan/regles">Les règles de mon activité <ArrowUpRight size={14} aria-hidden/></Link></div>}/>
+        {documents && !documents.error ? <DocumentsEntreprise profil={documents.data ?? { adresse: "", mentions: "", logo_data: null }}/>: <Erreur>Les informations de vos documents ne sont pas disponibles pour le moment. Réessayez avant de valider un devis.</Erreur>}
       </div>
     </div>
-  );
+  </div>;
 }

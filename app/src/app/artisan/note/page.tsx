@@ -1,172 +1,46 @@
+import Link from "next/link";
+import { ArrowRight, CalendarClock, Check, CircleHelp, Clock3, LockKeyhole, MessageSquareText, Scale, ShieldCheck, Star, XCircle } from "lucide-react";
 import { chargerNote, verifierAccesArtisan } from "../acces";
-import {
-  Carte,
-  CLASSE_AIDE,
-  DetailsInformation,
-  EnteteSousPage,
-  Erreur,
-  LigneInfo,
-  Retour,
-  TitreSection,
-} from "../ui";
+import { EnteteSousPage, Erreur, Etiquette } from "../ui";
 import { Contestation } from "./contestation";
+import styles from "./evaluations.module.css";
 
-export const metadata = { title: "Ma note — Espace artisan" };
+export const metadata = { title: "Mes évaluations — Espace artisan" };
 
-/**
- * Ma note (11.4).
- *
- * RM-11.3/11.4 : l'artisan voit sa moyenne ET le détail de sa fiabilité —
- * « le cacher serait déloyal ». Il ne voit JAMAIS qui a noté quoi, ni le
- * moindre commentaire : ceux du gérant restent privés à son agence
- * (RM-11.2.2). Ce n'est pas l'écran qui le décide : la projection de
- * `ma_note_artisan` ne contient ni évaluateur, ni commentaire, ni détail par
- * intervention. Il n'y a rien à masquer ici, il n'y a rien à afficher.
- *
- * DEUX FRANCHISES que cet écran assume plutôt que de les lisser :
- *  · la part « fiabilité » (25 %) n'est PAS intégrée au calcul. Le module 11
- *    nomme les cinq indicateurs mais ne dit nulle part comment les convertir
- *    en note sur 5 ; le barème n'a pas été inventé. La moyenne affichée est
- *    donc celle des appréciations humaines, renormalisée.
- *  · « RDV manqué » n'est pas encore mesuré : aucun geste du produit ne marque
- *    un rendez-vous comme manqué (module 10 non câblé de ce côté). L'indicateur
- *    rendrait 0 quoi qu'il arrive — on écrit « pas encore mesuré », ce qui est
- *    vrai, plutôt que « 0 », qui serait un compliment mensonger.
- */
+/** La projection ne contient que des agrégats : ni auteur, ni commentaire individuel.
+ * Les indicateurs de fiabilité ne sont pas intégrés à la note actuelle. */
 export default async function PageNote() {
   await verifierAccesArtisan();
   const { note, erreur } = await chargerNote();
+  const moyenne = note?.note_publiee !== null && note?.note_publiee !== undefined ? Number(note.note_publiee) : null;
+  const publiee = Boolean(note?.publiable && moyenne !== null);
+  const evaluations = note?.nb_evaluations ?? 0;
+  const restant = Math.max(0, 3 - evaluations);
+  const format = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-  const moyenne = note?.note_publiee !== null && note?.note_publiee !== undefined
-    ? Number(note.note_publiee)
-    : null;
-
-  return (
-    <div className="space-y-6">
-      <Retour href="/artisan/entreprise">Mon entreprise</Retour>
-
-      <EnteteSousPage
-        rubrique="suivi"
-        titre="Ma note"
-        mention="Comprenez votre évaluation et retrouvez les indicateurs de vos interventions."
-      />
-
-      {(erreur || !note) && (
-        <Erreur>
-          Votre note n&apos;a pas pu être lue à l&apos;instant. Rechargez dans un instant.
-        </Erreur>
-      )}
-
-      {!erreur && note && <Carte>
-        {note.publiable && moyenne !== null ? (
-          <>
-            <p className="font-[family-name:var(--font-titres)] text-[2.75rem] leading-none text-[var(--encre)]">
-              {moyenne.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-              <span className="text-[1.25rem] text-[var(--texte-secondaire)]"> / 5</span>
-            </p>
-            <p className="mt-2 text-[0.9375rem] text-[var(--texte-secondaire)]">
-              Sur {note.nb_evaluations} évaluation{note.nb_evaluations > 1 ? "s" : ""}.
-              C&apos;est cette note que les agences voient à côté de votre nom.
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-[1.25rem] text-[var(--encre)]">Pas encore publiée</p>
-            <p className="mt-2 text-[0.9375rem] text-[var(--texte-secondaire)]">
-              {note?.nb_evaluations ?? 0} évaluation
-              {(note?.nb_evaluations ?? 0) > 1 ? "s" : ""} reçue
-              {(note?.nb_evaluations ?? 0) > 1 ? "s" : ""}. Votre note est publiée
-              dès trois évaluations : en dessous, les agences vous voient marqué
-              « nouveau ».
-            </p>
-          </>
-        )}
-      </Carte>}
-
-      <DetailsInformation titre="Comment ma note est calculée">
-        <p className="text-[0.9375rem] text-[var(--corps)]">
-          La note actuelle repose sur les appréciations de l&apos;agence (qualité, délai et rapport qualité-prix)
-          et du locataire (son expérience sur place). Quand les deux sont disponibles,
-          elles comptent respectivement pour deux tiers et un tiers ; sinon, seule la source disponible est utilisée.
-        </p>
-        <p className="mt-3 text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Les indicateurs de fiabilité sont présentés séparément ci-dessous. Ils ne sont pas encore intégrés à la note.
-          Votre note devient visible aux agences dès trois évaluations.
-        </p>
-      </DetailsInformation>
-
-      {!erreur && note && <Carte>
-        <TitreSection>Ma fiabilité, en détail</TitreSection>
-        <div>
-          {/* 25/09 (A15) : une moyenne sur rien n'est pas « 0,0 h », c'est
-              « pas encore mesuré » — le même mot pour les trois lignes. */}
-          <LigneInfo libelle="Délai d'acceptation">
-            {Number(note?.delai_acceptation_heures ?? 0) > 0
-              ? `${Number(note.delai_acceptation_heures).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} h en moyenne`
-              : "Pas encore mesuré"}
-          </LigneInfo>
-          <LigneInfo libelle="Délai d'intervention">
-            {Number(note?.delai_intervention_jours ?? 0) > 0
-              ? `${Number(note.delai_intervention_jours).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} jour(s) après acceptation`
-              : "Pas encore mesuré"}
-          </LigneInfo>
-          <LigneInfo libelle="Taux de refus">
-            {note?.taux_refus !== null && note?.taux_refus !== undefined
-              ? `${Math.round(Number(note.taux_refus) * 100)} %`
-              : "Pas encore mesuré"}
-          </LigneInfo>
-          <LigneInfo libelle="Attestations expirées">
-            {note?.pieces_expirees ?? 0}
-          </LigneInfo>
+  return <div className={styles.page}>
+    <EnteteSousPage rubrique="suivi" titre="Mes évaluations" mention="Votre note et les repères de qualité de vos interventions." action={<Link href="/artisan/entreprise" className={styles.retour}>Ma fiche entreprise <ArrowRight size={16} aria-hidden/></Link>}/>
+    {(erreur || !note) ? <Erreur>Vos évaluations n’ont pas pu être lues à l’instant. <a href="/artisan/note" className="underline">Recharger la page</a>.</Erreur> : <>
+      <section className={styles.resume} aria-label="Votre note sur Gerimmo">
+        <div className={styles.note}><span className={styles.etoile}><Star size={26} aria-hidden/></span><span className={styles.surtitre}>Votre note Gerimmo</span>{publiee ? <><div className={styles.moyenne}>{format(moyenne!)}<span>/ 5</span></div><Etiquette ton="ok">Note publiée</Etiquette></> : <><h2>{restant > 0 ? "Votre réputation se construit" : "Publication en attente"}</h2><Etiquette ton="neutre">Pas encore publiée</Etiquette></>}<p>{evaluations} évaluation{evaluations > 1 ? "s" : ""} reçue{evaluations > 1 ? "s" : ""}</p></div>
+        <div className={styles.publication}><h2>{publiee ? "Une note visible dans le réseau" : "La publication commence à 3 évaluations"}</h2><p>{publiee ? "Cette moyenne accompagne votre nom dans les recherches. Elle reflète les appréciations des clients et des locataires." : "Avant ce seuil, votre profil apparaît comme « nouveau ». Les premières évaluations permettent de construire une moyenne représentative."}</p>
+          {!publiee && <><div className={styles.progression} aria-label={`${Math.min(evaluations, 3)} évaluations reçues sur les 3 nécessaires`}>{[1,2,3].map(i => <span key={i} data-atteint={evaluations >= i}>{evaluations >= i ? <Check size={16} aria-hidden/> : <Star size={16} aria-hidden/>}<span>{i}</span></span>)}</div><p className={styles.restant}>{restant > 0 ? `Encore ${restant} évaluation${restant > 1 ? "s" : ""} avant publication.` : "Le seuil est atteint. Votre note n’est pas encore disponible."}</p></>}
+          <p className={styles.confidentialite}><LockKeyhole size={15} aria-hidden/>Les auteurs et les commentaires individuels ne sont pas affichés.</p>
         </div>
-        <p className={`mt-3 ${CLASSE_AIDE}`}>
-          Ces mesures sont les vôtres : personne d&apos;autre que vous n&apos;y a accès
-          dans ce détail. Les rendez-vous manqués ne sont pas encore mesurés.
-        </p>
-      </Carte>}
-
-      {/* Le droit à l'intervention humaine — présenté comme un droit (RM-A2.11),
-          avec, avant le geste, l'information que Gerimmo doit à l'artisan.
-          25/09 (A16) : tant que rien n'est noté, il n'y a rien à contester —
-          une ligne le dit, sans bouton. */}
-      {!erreur && note && note.nb_evaluations === 0 ? (
-        // Dans une carte, comme tout le reste de l'écran : un paragraphe nu
-        // entre deux cartes flottait (nuit du 25/09).
-        <Carte>
-          <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-            Vous pourrez contester votre note dès qu&apos;une évaluation aura été
-            déposée : elle est alors réexaminée par une personne de Gerimmo, jamais
-            par l&apos;agence qui vous a noté.
-          </p>
-        </Carte>
-      ) : (
-      <Carte className="border-l-4 border-l-[var(--or)]">
-        <TitreSection>Contester votre note est un droit</TitreSection>
-        <p className="text-[0.9375rem] text-[var(--corps)]">
-          Votre note repose actuellement sur des appréciations humaines et
-          influence votre classement dans les recherches des agences. À ce titre, vous pouvez exiger qu&apos;une personne la réexamine :
-          c&apos;est votre droit à l&apos;intervention humaine.
-        </p>
-        <ul className="mt-3 space-y-2 text-[0.9375rem] text-[var(--corps)]">
-          <li>
-            Elle est arbitrée par un opérateur de Gerimmo —{" "}
-            <b className="font-medium">jamais par l&apos;agence qui vous a noté</b>,
-            qui serait juge et partie.
-          </li>
-          <li>
-            Une évaluation retirée sort du calcul, et votre moyenne est
-            recalculée immédiatement.
-          </li>
-          <li>
-            Contester ne bloque rien : vous continuez à recevoir des demandes
-            pendant l&apos;examen.
-          </li>
-        </ul>
-        <div className="mt-4">
-          <Contestation />
+      </section>
+      <section aria-labelledby="titre-fiabilite"><div className={styles.titreSection}><div><h2 id="titre-fiabilite">Mes indicateurs de fiabilité</h2><p>Des repères personnels, présentés séparément de votre note.</p></div><span><LockKeyhole size={13} aria-hidden/>Visibles par vous</span></div>
+        <div className={styles.indicateurs}>
+          <div className={styles.indicateur}><span className={styles.icone} data-ton="bleu"><Clock3 size={21} aria-hidden/></span><h3>Délai d’acceptation</h3><strong>{Number(note.delai_acceptation_heures ?? 0) > 0 ? `${format(Number(note.delai_acceptation_heures))} h` : "Pas encore mesuré"}</strong><p>Pour répondre à une mission.</p></div>
+          <div className={styles.indicateur}><span className={styles.icone} data-ton="violet"><CalendarClock size={21} aria-hidden/></span><h3>Délai d’intervention</h3><strong>{Number(note.delai_intervention_jours ?? 0) > 0 ? `${format(Number(note.delai_intervention_jours))} j` : "Pas encore mesuré"}</strong><p>En moyenne après acceptation.</p></div>
+          <div className={styles.indicateur}><span className={styles.icone} data-ton="or"><XCircle size={21} aria-hidden/></span><h3>Taux de refus</h3><strong>{note.taux_refus !== null && note.taux_refus !== undefined ? `${Math.round(Number(note.taux_refus) * 100)} %` : "Pas encore mesuré"}</strong><p>Part des missions refusées.</p></div>
+          <div className={styles.indicateur} data-attention={note.pieces_expirees > 0}><span className={styles.icone} data-ton="vert"><ShieldCheck size={21} aria-hidden/></span><h3>Attestations expirées</h3><strong>{note.pieces_expirees ?? 0}</strong><Link href="/artisan/attestations">{note.pieces_expirees > 0 ? "Renouveler mes documents" : "Voir mes attestations"}<ArrowRight size={14} aria-hidden/></Link></div>
         </div>
-      </Carte>
-      )}
+        <p className={styles.noteMesure}>Les rendez-vous manqués ne sont pas encore mesurés. Ces indicateurs n’entrent pas dans le calcul de votre note.</p>
+      </section>
+    </>}
+    <div className={styles.informations}>
+      <section className={styles.calcul}><div className={styles.titreCarte}><CircleHelp size={21} aria-hidden/><h2>Comprendre ma note</h2></div><p>La moyenne repose sur les appréciations humaines après les interventions.</p><div className={styles.sources}><div><span>2/3</span><div><h3>Le client</h3><p>Qualité, délai et rapport qualité-prix.</p></div></div><div><span>1/3</span><div><h3>Le locataire</h3><p>Son expérience lors de l’intervention.</p></div></div></div><p className={styles.aide}>Cette répartition s’applique lorsque les deux avis sont disponibles. Sinon, seule la source disponible est utilisée.</p></section>
+      {!erreur && note && <section className={styles.recours}><div className={styles.titreCarte}><Scale size={21} aria-hidden/><h2>Une note à faire réexaminer ?</h2></div><p>Contester votre note est un droit. Votre demande est étudiée par une personne de Gerimmo, jamais par le client qui vous a évalué.</p>{evaluations > 0 ? <><ul><li>Une évaluation retirée est exclue du calcul et la moyenne est recalculée.</li><li>Vous continuez à recevoir des demandes pendant l’examen.</li></ul><Contestation/></> : <div className={styles.recoursVide}><MessageSquareText size={19} aria-hidden/><p>Vous pourrez demander un réexamen dès la première évaluation reçue.</p></div>}</section>}
     </div>
-  );
+  </div>;
 }

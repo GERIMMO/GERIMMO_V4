@@ -1,0 +1,70 @@
+.page { display: grid; gap: 24px; min-width: 0; }
+.page :global(.entete-page) { padding-bottom: 0; }
+.retour { display: inline-flex; align-items: center; gap: 8px; justify-content: center; min-height: 44px; border: 1px solid var(--filet); border-radius: 9px; background: #fff; padding: 10px 14px; font-size: 13px; color: var(--encre); }
+.page a:focus-visible { outline: 2px solid var(--or); outline-offset: 3px; }
+.resume { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.45fr); border: 1px solid #e2d7bf; border-radius: 15px; overflow: hidden; background: #fff; }
+.note { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 28px; background: linear-gradient(145deg, #f9f2e2, #fffcf5); border-right: 1px solid #e8deca; }
+.etoile { display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid #e1ceaa; border-radius: 16px; background: #fff9eb; color: #9b7c42; margin-bottom: 16px; }
+.surtitre { color: #846d42; font-size: 10px; text-transform: uppercase; letter-spacing: .13em; font-weight: 650; }
+.note h2 { font-size: 26px; line-height: 1.25; max-width: 240px; margin: 9px 0 15px; }
+.note > p { color: #72664e; font-size: 13px; margin-top: 12px; }
+.moyenne { font-family: var(--font-titres), serif; font-size: 64px; line-height: 1.3; color: var(--encre); margin: 6px 0; }
+.moyenne span { margin-left: 8px; font-size: 24px; color: #8a7b60; }
+.publication { padding: 30px; align-self: center; }
+.publication h2 { font-size: 25px; }
+.publication > p { font-size: 14px; line-height: 1.75; color: var(--texte-secondaire); margin-top: 12px; }
+.progression { display: flex; gap: 10px; margin-top: 22px; }
+.progression > span { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 13px; border: 1px solid #e0e5eb; border-radius: 8px; color: #8593a1; background: #f6f8fa; font-size: 12px; }
+.progression > span[data-atteint="true"] { background: #eaf4ef; color: #367153; border-color: #cde1d5; }
+.publication .restant { font-size: 12px; font-weight: 550; color: #7e6536; }
+.publication .confidentialite { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; border-top: 1px solid var(--filet-leger); padding-top: 16px; margin-top: 19px; }
+.confidentialite > svg { flex-shrink: 0; margin-top: 3px; }
+.titreSection { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 3px 0 16px; }
+.titreSection h2 { font-size: 24px; }
+.titreSection p { color: var(--texte-secondaire); font-size: 13px; margin-top: 4px; }
+.titreSection > span { display: inline-flex; align-items: center; gap: 6px; color: var(--texte-secondaire); font-size: 11px; }
+.indicateurs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.indicateur { display: grid; justify-items: start; align-content: start; gap: 8px; padding: 19px; border: 1px solid var(--filet); border-radius: 12px; background: #fff; }
+.icone { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; color: #426685; background: #eaf0f7; margin-bottom: 6px; }
+.icone[data-ton="violet"] { color: #786095; background: #f0ecf7; }
+.icone[data-ton="or"] { color: #91703a; background: #f8efdf; }
+.icone[data-ton="vert"] { color: #387556; background: #e7f2eb; }
+.indicateur h3 { font-family: var(--font-interface), sans-serif; font-size: 13px; font-weight: 550; }
+.indicateur strong { display: block; color: var(--encre); font-size: 21px; font-weight: 600; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.indicateur p { color: var(--texte-secondaire); font-size: 12px; line-height: 1.7; }
+.indicateur a { display: flex; align-items: center; gap: 6px; min-height: 44px; font-size: 12px; color: #577059; }
+.indicateur[data-attention="true"] { background: #fffaf1; border-color: #e7d7b8; }
+.noteMesure { color: var(--texte-secondaire); font-size: 11px; line-height: 1.7; margin-top: 12px; }
+.informations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 20px; }
+.calcul, .recours { padding: 23px; border: 1px solid var(--filet); border-radius: 14px; background: #fff; }
+.titreCarte { display: flex; gap: 10px; align-items: center; margin-bottom: 13px; }
+.titreCarte h2 { font-size: 23px; }
+.titreCarte svg { flex-shrink: 0; color: #7e90a0; }
+.calcul > p, .recours > p, .recours li { font-size: 13px; line-height: 1.8; color: var(--texte-secondaire); }
+.sources { display: grid; gap: 12px; margin: 20px 0; }
+.sources > div { display: flex; align-items: center; gap: 13px; }
+.sources > div > span { display: grid; place-items: center; width: 46px; height: 46px; flex-shrink: 0; color: #48637c; background: #f1f5f9; border: 1px solid #dfe7ed; border-radius: 12px; font-size: 17px; font-weight: 600; }
+.sources h3 { font-family: var(--font-interface), sans-serif; font-size: 13px; font-weight: 600; }
+.sources p { margin-top: 3px; font-size: 12px; line-height: 1.6; color: var(--texte-secondaire); }
+.calcul .aide { border-top: 1px solid var(--filet-leger); padding-top: 15px; font-size: 12px; }
+.recours ul { list-style: disc; padding-left: 18px; margin: 14px 0; }
+.recours > div:last-child > p { font-size: 13px; line-height: 1.7; }
+.recours > div:last-child > a { min-height: 44px; font-size: 13px; width: fit-content; border-width: 1px; }
+.recoursVide { display: flex; align-items: flex-start; gap: 10px; margin-top: 20px; padding: 15px; border: 1px solid #e3e8ed; background: #f6f8fa; border-radius: 10px; color: #687f92; }
+.recoursVide svg { flex-shrink: 0; margin-top: 3px; }
+@media(max-width:1150px) { .indicateurs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media(max-width:640px) {
+  .page { gap: 18px; }
+  .resume { grid-template-columns: minmax(0, 1fr); }
+  .note { padding: 23px; border-right: 0; border-bottom: 1px solid #e8deca; }
+  .note h2 { max-width: none; font-size: 25px; }
+  .publication { padding: 20px; }
+  .publication h2 { font-size: 23px; }
+  .indicateurs { gap: 10px; }
+  .indicateur { padding: 15px; }
+  .indicateur strong { font-size: 18px; }
+  .indicateur a { flex-wrap: wrap; }
+  .informations { grid-template-columns: minmax(0, 1fr); }
+  .calcul, .recours { padding: 20px; }
+  .retour, .recours > div:last-child > a { min-height: 48px; }
+}

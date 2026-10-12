@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CalendarDays, ClipboardCheck, FileText, Wrench } from "lucide-react";
+import styles from "./portail-artisan.module.css";
 import {
   chargerAgenda,
   chargerPieces,
@@ -136,6 +138,22 @@ export default async function PageArtisanAccueil({
         </Carte>
       )}
 
+      {!agenda.erreur && !sollicitations.erreur && (
+        <nav className={styles.overview} aria-label="Résumé de mon activité">
+          {[
+            { href: aRendreCompte.length ? "#comptes-rendus" : "/artisan/agenda", valeur: aRendreCompte.length, libelle: "Comptes rendus à déposer", icone: ClipboardCheck, ton: "or" },
+            { href: aAccepter.length ? "#missions-a-accepter" : "/artisan/agenda", valeur: aAccepter.length, libelle: "Missions à accepter", icone: Wrench, ton: "bleu" },
+            { href: "/artisan/devis", valeur: aChiffrer.length, libelle: "Devis à chiffrer", icone: FileText, ton: "vert" },
+            { href: aPlanifier.length ? "#rendez-vous-a-fixer" : "/artisan/agenda", valeur: aPlanifier.length, libelle: "Rendez-vous à fixer", icone: CalendarDays, ton: "violet" },
+          ].map((indicateur) => (
+            <Link key={indicateur.libelle} href={indicateur.href} className={styles.metric}>
+              <span className={styles.icon} data-tone={indicateur.ton}><indicateur.icone size={20} aria-hidden /></span>
+              <span><strong>{indicateur.valeur}</strong><small>{indicateur.libelle}</small></span>
+            </Link>
+          ))}
+        </nav>
+      )}
+
       {rienAFaire && !lectureIncertaine ? (
         <Carte ton="vert">
           <TitreSection>Aucune mission à traiter maintenant</TitreSection>
@@ -155,11 +173,11 @@ export default async function PageArtisanAccueil({
       ) : rienAFaire ? null : (
         <div className="space-y-6">
           {aRendreCompte.length > 0 && (
-            <section>
+            <section id="comptes-rendus" className="scroll-mt-28">
               <TitreSection>
                 Rendre compte ({aRendreCompte.length}) — sans cela, pas de facture
               </TitreSection>
-              <div className="space-y-3">
+              <div className="artisan-liste">
                 {aRendreCompte.map((l) => (
                   <CarteMission
                     key={l.intervention_id}
@@ -173,9 +191,9 @@ export default async function PageArtisanAccueil({
           )}
 
           {aAccepter.length > 0 && (
-            <section>
+            <section id="missions-a-accepter" className="scroll-mt-28">
               <TitreSection>Missions à accepter ({aAccepter.length})</TitreSection>
-              <div className="space-y-3">
+              <div className="artisan-liste">
                 {aAccepter.map((l) => (
                   <CarteMission
                     key={l.intervention_id}
@@ -189,9 +207,9 @@ export default async function PageArtisanAccueil({
           )}
 
           {aPlanifier.length > 0 && (
-            <section>
+            <section id="rendez-vous-a-fixer" className="scroll-mt-28">
               <TitreSection>Rendez-vous à fixer ({aPlanifier.length})</TitreSection>
-              <div className="space-y-3">
+              <div className="artisan-liste">
                 {aPlanifier.map((l) => (
                   <CarteMission
                     key={l.intervention_id}
@@ -213,7 +231,7 @@ export default async function PageArtisanAccueil({
               <TitreSection>
                 Dates proposées, réponse attendue ({enAttenteDuLocataire.length})
               </TitreSection>
-              <div className="space-y-3">
+              <div className="artisan-liste">
                 {enAttenteDuLocataire.map((l) => (
                   <CarteMission
                     key={l.intervention_id}
@@ -229,7 +247,7 @@ export default async function PageArtisanAccueil({
           {aChiffrer.length > 0 && (
             <section>
               <TitreSection>Devis à chiffrer ({aChiffrer.length})</TitreSection>
-              <div className="space-y-3">
+              <div className="artisan-liste">
                 {aChiffrer.map((l) => (
                   <CarteSollicitation key={l.sollicitation_id} ligne={l} />
                 ))}
@@ -242,7 +260,7 @@ export default async function PageArtisanAccueil({
       {aVenir.length > 0 && (
         <section>
           <TitreSection>Prochaines interventions</TitreSection>
-          <div className="space-y-3">
+          <div className="artisan-liste">
             {aVenir.map((l) => (
               <CarteMission key={l.intervention_id} ligne={l} origine="aujourdhui" />
             ))}

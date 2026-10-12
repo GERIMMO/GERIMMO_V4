@@ -49,6 +49,7 @@ export default async function PageReglesArtisan(props: PageProps<"/artisan/regle
       <Retour href="/artisan/entreprise">Mon entreprise</Retour>
 
       <EnteteSousPage
+        rubrique="journal"
         titre="Les règles à connaître"
         mention={`Ce qui change pour les ${PUBLICS_VEILLE.artisan.toLowerCase()}, et les démarches à prévoir`}
       />

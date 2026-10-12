@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ArrowUpRight, Banknote, FileCheck2, Star } from "lucide-react";
+import styles from "../portail-artisan.module.css";
 import { chargerNote, chargerPieces, verifierAccesArtisan } from "../acces";
 import { degreEcheance, formaterSiret, formaterTelephone, METIERS } from "../libelles";
 import { CLASSE_AIDE, Carte, EnteteSousPage, Etiquette, LigneInfo, TitreSection } from "../ui";
@@ -45,6 +47,7 @@ export default async function PageEntreprise() {
     {
       href: "/artisan/attestations",
       titre: "Mes attestations",
+      icone: FileCheck2, ton: "or",
       detail: pieces.erreur
         ? "Liste illisible à l'instant — ouvrez pour vérifier"
         : aucunePiece
@@ -61,12 +64,14 @@ export default async function PageEntreprise() {
     {
       href: "/artisan/facturation",
       titre: "Ma facturation",
+      icone: Banknote, ton: "vert",
       detail: "Les interventions terminées, leurs montants et vos factures",
       tendu: false,
     },
     {
       href: "/artisan/note",
-      titre: "Ma note",
+      titre: "Mes évaluations",
+      icone: Star, ton: "violet",
       detail: note.note?.publiable
         ? `${Number(note.note.note_publiee ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} sur 5 · ${note.note.nb_evaluations} avis`
         : "Pas encore publiée",
@@ -83,40 +88,23 @@ export default async function PageEntreprise() {
         mention="Vos attestations, votre facturation, votre note et votre fiche"
       />
 
-      <nav aria-label="Mon entreprise" className="space-y-3">
+      <nav aria-label="Mon entreprise" className={styles.shortcuts}>
         {raccourcis.map((r) => (
-          <Link
-            key={r.href}
-            href={r.href}
-            className="flex min-h-16 items-center justify-between gap-3 rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] px-4 py-3 transition-colors hover:border-[var(--encre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)]"
-          >
-            <span className="min-w-0">
-              <span className="block text-base font-medium text-[var(--encre)]">
-                {r.titre}
-              </span>
-              <span
-                className={`block text-[0.9375rem] ${
-                  r.tendu
-                    ? "text-[var(--warning-soft-foreground)]"
-                    : "text-[var(--texte-secondaire)]"
-                }`}
-              >
-                {r.detail}
-              </span>
-            </span>
-            <svg
-              viewBox="0 0 24 24"
-              aria-hidden
-              className="size-5 shrink-0 fill-none stroke-[var(--texte-secondaire)] stroke-2"
-            >
-              <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+          <Link key={r.href} href={r.href} className={styles.shortcut} data-attention={r.tendu}>
+            <span className={styles.icon} data-tone={r.ton}><r.icone size={21} aria-hidden /></span>
+            <span><strong>{r.titre}</strong><small>{r.detail}</small></span>
+            <ArrowUpRight size={18} aria-hidden />
           </Link>
         ))}
       </nav>
 
+      <div className={styles.companyGrid}>
       <Carte>
         <TitreSection>Identité et coordonnées</TitreSection>
+        <div className={styles.companyName}>
+          <strong>{fiche.raison_sociale}</strong>
+          <span>{(fiche.metiers ?? []).map((m) => METIERS[m] ?? m).join(" · ") || "Métier à renseigner"}</span>
+        </div>
         <div>
           <LigneInfo libelle="SIRET">
             <span className="font-[family-name:var(--font-libelles)] tabular-nums">
@@ -168,19 +156,22 @@ export default async function PageEntreprise() {
         </p>
       </Carte>
 
+      <div className={styles.companySettings}>
       {/* 25/09 (A9) : le lien vers les règles vit dans la carte des métiers,
           ce sont elles qu'il concerne ; isolé entre deux cartes, il flottait. */}
-      <p className="text-sm text-muted-foreground">Vos codes postaux indiquent votre secteur souhaité. Gerimmo confirme séparément vos communes d’intervention et les métiers ouverts au réseau. Votre inscription ou sa validation n’ouvre aucune zone automatiquement.</p>
       <FormulaireMetiersZones
         metiers={(fiche.metiers ?? []).filter((m) => m in METIERS)}
         codesPostaux={fiche.codes_postaux ?? []}
         complement={
+          <>
+          <p className={styles.zoneNote}>Vos codes postaux indiquent votre secteur souhaité. Gerimmo confirme séparément vos communes d’intervention et les métiers ouverts au réseau.</p>
           <Link
             href="/artisan/regles"
             className="mt-2 inline-flex min-h-11 items-center gap-1 text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
           >
             Les règles à connaître pour mon activité
           </Link>
+          </>
         }
       />
 
@@ -188,6 +179,8 @@ export default async function PageEntreprise() {
         visibilite={fiche.visibilite}
         siretVerifie={fiche.siret_etat === "verifie"}
       />
+      </div>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,108 @@
+.shell { min-height: 100svh; background: var(--creme); color: var(--corps); }
+.workspace, .onboarding { min-height: 100svh; }
+.body { min-width: 0; }
+.sidebar { display: none; }
+.topbar { position: sticky; top: 0; z-index: 35; min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 20px; border-bottom: 1px solid var(--filet); background: var(--ivoire); }
+.topbarActions { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.help { display: inline-flex; gap: 7px; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; border-radius: 10px; color: var(--texte-secondaire); font-size: 14px; }
+.help:hover { background: var(--marque-clair); color: var(--encre); }
+.help > span, .spaceLabel { display: none; }
+.mobileBrand { flex-shrink: 0; }
+:global(.gerimmo-prestige) .mobileBrand :global(.marque-gerimmo) { width: 64px; }
+.content { width: 100%; max-width: 1240px; margin-inline: auto; padding: 24px 20px 110px; }
+.content :global(.entete-page) { padding-bottom: 20px; margin-bottom: 0; align-items: center; }
+.content :global(.artisan-liste) { display: grid; gap: 14px; }
+.content :global(.artisan-liste) > * { margin-block: 0; }
+.content :global(.artisan-mission), .content :global(.artisan-demande) { border-width: 1px; border-radius: 12px; padding: 20px; box-shadow: 0 3px 12px #14304f04; }
+.content :global(.artisan-mission):hover, .content :global(.artisan-demande):hover { border-color: var(--or); box-shadow: 0 5px 16px #14304f0a; }
+.content :global(.artisan-vide) { background: var(--ivoire); border-color: var(--filet); border-radius: 12px; padding: 30px 20px; }
+.pending, .refused { padding: 12px 24px; font-size: 14px; border-bottom: 1px solid; }
+.pending { background: var(--warning-soft); color: var(--warning-soft-foreground); border-color: var(--warning); }
+.refused { background: var(--destructive-soft); color: var(--destructive-soft-foreground); border-color: var(--destructive); }
+.shortcuts, .overview { display: grid; gap: 12px; }
+.shortcut, .metric { display: flex; min-width: 0; gap: 14px; border: 1px solid var(--filet); border-radius: 12px; padding: 18px; background: var(--ivoire); transition: border-color .15s, box-shadow .15s; }
+.shortcut:hover, .metric:hover { border-color: var(--or); box-shadow: 0 4px 14px #14304f09; }
+.shortcut strong, .shortcut small { display: block; }
+.shortcut strong { color: var(--encre); font-size: 16px; margin-bottom: 5px; }
+.shortcut small { font-size: 14px; line-height: 1.5; color: var(--texte-secondaire); }
+.shortcut > svg:last-child { flex-shrink: 0; align-self: center; color: var(--texte-secondaire); }
+.shortcut[data-attention="true"] { border-color: #e3d0a9; background: #fffcf5; }
+.shortcut[data-attention="true"] small { color: var(--warning-soft-foreground); }
+.icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 12px; background: #eaf0f8; color: #335980; }
+.icon[data-tone="or"] { background: #f6ecd7; color: #80612c; }
+.icon[data-tone="vert"] { background: #e5f2ec; color: #2f7155; }
+.icon[data-tone="violet"] { background: #efebf7; color: #765d99; }
+.companyGrid { display: grid; align-items: start; gap: 20px; }
+.companySettings { display: grid; gap: 20px; min-width: 0; }
+.companyName { padding-bottom: 18px; margin-bottom: 4px; border-bottom: 1px solid var(--filet); }
+.companyName strong { display: block; color: var(--encre); font-size: 18px; }
+.companyName span { display: block; margin-top: 4px; color: var(--texte-secondaire); font-size: 14px; }
+.zoneNote { border-top: 1px solid var(--filet); padding-top: 14px; font-size: 13px; line-height: 1.6; color: var(--texte-secondaire); }
+.overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.metric { flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px; }
+.metric strong { display: block; font-size: 26px; line-height: 1.2; font-weight: 600; color: var(--encre); font-variant-numeric: tabular-nums; }
+.metric small { display: block; color: var(--texte-secondaire); font-size: 13px; margin-top: 4px; }
+@media (min-width: 700px) {
+  .help > span { display: inline; }
+  .shortcuts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .shortcut { display: grid; grid-template-columns: minmax(0, 1fr) 20px; grid-template-rows: 42px 1fr; align-items: start; }
+  .shortcut .icon { grid-column: 1 / -1; }
+  .shortcut > svg:last-child { grid-column: 2; align-self: start; margin-top: 3px; }
+  .shortcut > span:not(.icon) { grid-column: 1; }
+  .content :global(.artisan-liste) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .overview { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 1000px) {
+  .workspace { display: grid; grid-template-columns: 246px minmax(0, 1fr); }
+  .sidebar { display: flex; flex-direction: column; position: sticky; top: 0; height: 100svh; overflow-y: auto; color: #e9eff6; background: linear-gradient(180deg, #14304f 0%, #14304ffa 22%, #14304fd1 48%, #14304fd1 82%, #14304ff2 100%), url('/illustrations/quartier-gerimmo-2026.jpg') 68% center / cover; }
+  .brand { display: flex; flex-direction: column; align-items: center; padding: 19px 24px 18px; margin-inline: 18px; border-bottom: 1px solid #ffffff25; }
+  :global(.gerimmo-prestige) .brand :global(.marque-gerimmo) { width: 158px; }
+  .brand > span:last-child { margin-top: 13px; color: #d8c69d; font-size: 11px; text-transform: uppercase; letter-spacing: .16em; }
+  .desktopNav { padding: 18px 12px; display: grid; gap: 22px; }
+  .desktopNav p { padding: 0 12px 8px; color: #b4c3d4; font-size: 10px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; }
+  .desktopNav ul { display: grid; gap: 4px; }
+  .desktopNav a { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px 12px; border: 1px solid transparent; border-radius: 8px; color: #e1e9f3; font-size: 13px; }
+  .desktopNav a > svg { flex-shrink: 0; opacity: .85; }
+  .desktopNav a:hover { background: #ffffff0d; }
+  .desktopNav a[aria-current="page"] { color: #f7e7c0; background: #ffffff12; border-color: #d3b37645; box-shadow: inset 3px 0 #d3b376; }
+  .navBadge { margin-left: auto; padding: 1px 6px; border-radius: 5px; background: #ffffff15; color: #f7e7c0; font-size: 11px; }
+  .navPoint { margin-left: auto; flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: #e4bc71; }
+  .sidebarFoot { margin-top: auto; padding: 16px 24px 22px; display: grid; gap: 18px; border-top: 1px solid #ffffff20; }
+  .sidebarFoot a { display: flex; align-items: center; gap: 10px; min-height: 44px; color: #e1e9f3; font-size: 13px; }
+  .sidebarFoot > span { color: #b4c3d4; font-size: 11px; }
+  .mobileNav, .mobileBrand { display: none; }
+  .topbar { min-height: 72px; padding: 10px 32px; }
+  .spaceLabel { display: flex; align-items: center; gap: 9px; color: var(--texte-secondaire); font-size: 14px; }
+  .topbarActions { gap: 20px; }
+  .content { padding: 28px 32px 48px; }
+  .companyGrid { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+  :global(.gerimmo-prestige) .shell :global(.artisan-carte) { padding: 22px; }
+  :global(.gerimmo-prestige) .shell :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select) { min-height: 44px; border-width: 1px; }
+  :global(.gerimmo-prestige) .shell textarea { border-width: 1px; }
+  :global(.gerimmo-prestige) .shell :is(button, a):global(.min-h-14),
+  :global(.gerimmo-prestige) .shell :is(button, a):global(.min-h-12) { min-height: 44px; border-width: 1px; font-size: 14px; }
+}
+@media (max-width: 699px) {
+  .content { padding: 20px 16px 108px; }
+  .topbar { padding-inline: 16px; }
+  .shortcut { align-items: center; padding: 16px; }
+  .shortcut > span:not(.icon) { flex: 1; }
+  .metric .icon { width: 32px; height: 32px; }
+}
+@media (prefers-reduced-motion: reduce) { .shortcut, .metric { transition: none; } }
+
+@media (min-width: 1000px) { .onboarding .mobileBrand { display: block; } .onboarding .spaceLabel { display: none; } }
+@media (max-width: 699px) {
+  .topbar { background: var(--prestige-nuit, #14304f); border-bottom-color: #ffffff20; }
+  .help { color: #e8dfcb; }
+  .help:hover { background: #ffffff12; color: white; }
+  .topbar :global(.menu-compte-bouton) { color: #f4e6c7; }
+  .topbar :global(.loc-avat) { background: #ffffff15; color: #f4e6c7; }
+}
+
+.content :global(.artisan-semaine) > li > :is(a, div) { height: 100%; }
+@media (max-width: 699px) {
+  .content :global(.artisan-semaine) { gap: 4px; }
+  .content :global(.artisan-semaine) > li > :is(a, div) { padding-inline: 0; }
+  .content :global(.artisan-semaine) span:last-child { font-size: 11px; white-space: nowrap; }
+}

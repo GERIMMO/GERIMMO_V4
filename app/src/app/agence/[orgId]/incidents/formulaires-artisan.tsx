@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   annulerMission,
   deciderAvenant,
@@ -47,12 +48,12 @@ export function FormulaireDecisionAvenant({ orgId, avenantId }: { orgId: string;
   const [etatRefuse, refuser] = useActionState<EtatIncidentAction, FormData>(deciderAvenant.bind(null, orgId, avenantId, false), {});
   return (
     <div className="space-y-2">
-      <form action={accepter} className="space-y-2">
+      <form data-saisie-confirmee action={accepter} className="space-y-2">
         <Input name="motif_decision" aria-label="Précision sur la décision" placeholder="Précision facultative" />
         <BoutonEnvoi enCoursTexte="Acceptation…">Accepter l&apos;avenant</BoutonEnvoi>
         <Retour etat={etatAccepte} />
       </form>
-      <form action={refuser} className="space-y-2">
+      <form data-saisie-confirmee action={refuser} className="space-y-2">
         <Input name="motif_decision" aria-label="Raison du refus" required minLength={10} maxLength={4000} placeholder="Expliquez le refus à l’artisan" />
         <BoutonEnvoi variant="outline" enCoursTexte="Refus…">Refuser et conserver le montant autorisé</BoutonEnvoi>
         <Retour etat={etatRefuse} />
@@ -95,7 +96,7 @@ export function FormulaireConsultation({
   const autorisee = Boolean(d && (d.etat === "ouverte" || d.nb_contacts > 0));
 
   return (
-    <div className="space-y-3"><form action={action} className="space-y-3">
+    <div className="space-y-3"><form data-saisie-confirmee action={action} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor={idMetier}>Métier recherché *</Label>
@@ -207,7 +208,7 @@ export function BoutonSolliciter({
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
 
   return (
-    <form action={action} className="space-y-1.5">
+    <form data-saisie-confirmee action={action} className="space-y-1.5">
       <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Envoi…">
         {/* Le nom de l'artisan COMPLÈTE le libellé visible, il ne le remplace
             pas : dans une liste de cinq artisans, « Demander un devis » seul ne
@@ -234,7 +235,7 @@ export function BoutonRetenirDevis({
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
 
   return (
-    <form action={action} className="space-y-1.5">
+    <form data-saisie-confirmee action={action} className="space-y-1.5">
       <BoutonEnvoi enCoursTexte="Sélection…">
         Retenir ce devis
         <span className="sr-only"> — celui de {raisonSociale}</span>
@@ -261,7 +262,7 @@ export function FormulaireRendezVous({
   const idMotif = useId();
 
   return (
-    <form action={action} className="space-y-3">
+    <form data-saisie-confirmee action={action} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor={idDebut}>Début du rendez-vous *</Label>
@@ -340,7 +341,7 @@ export function FormulaireRevisionImputation({
   const idJustification = useId();
 
   return (
-    <form action={action} className="space-y-3">
+    <form data-saisie-confirmee action={action} className="space-y-3">
       <fieldset className="space-y-1.5">
         <legend className="libelle-champ">Qui prend en charge, après diagnostic *</legend>
         {Object.entries(IMPUTATIONS_INCIDENT).map(([valeur, libelle]) => (
@@ -392,7 +393,7 @@ export function FormulaireAnnulationMission({
   const idMotif = useId();
 
   return (
-    <form action={action} className="space-y-2">
+    <form data-saisie-confirmee action={action} className="space-y-2">
       <div className="space-y-1.5">
         <Label htmlFor={idMotif}>Motif d&apos;annulation *</Label>
         <Input
@@ -435,7 +436,7 @@ export function FormulaireEvaluation({
   const idCommentaire = useId();
 
   return (
-    <form action={action} className="space-y-3">
+    <form data-saisie-confirmee action={action} className="space-y-3">
       {CRITERES.map((c) => (
         <fieldset key={c.cle} className="space-y-1">
           <legend className="libelle-champ">{c.libelle} *</legend>

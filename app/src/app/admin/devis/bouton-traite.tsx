@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { marquerDevisTraitee, type EtatDevisAdmin } from "@/app/actions/devis-admin";
 
@@ -10,7 +10,7 @@ export function BoutonDevisTraite({ id }: { id: string }) {
     {}
   );
   return (
-    <form action={action} className="flex items-center gap-2">
+    <form data-saisie-confirmee action={action} className="flex items-center gap-2">
       <BoutonEnvoi size="sm" variant="outline" enCoursTexte="…">
         Marquer traitée
       </BoutonEnvoi>

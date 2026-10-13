@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { decouperBien, type EtatParc } from "@/app/actions/parc";
 import { Button } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -41,7 +42,7 @@ export function FormulaireDecoupage({
     setLignes((prev) => prev.map((l, n) => (n === i ? { ...l, [champ]: valeur } : l)));
 
   return (
-    <form action={action} className="space-y-3">
+    <form data-saisie-confirmee action={action} className="space-y-3">
       {lignes.map((l, i) => (
         <div key={i} className="flex gap-2">
           <Label htmlFor={`${idLigne}-nom-${i}`} className="sr-only">

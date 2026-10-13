@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { inviterLocataire, annulerInvitation, type EtatInvitation } from "@/app/actions/invitations";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { etatInvitation, LIBELLES_INVITATION, type InvitationLocataire } from "@/lib/invitations-locataire";
@@ -26,8 +26,8 @@ export function FormulaireInvitation({ orgId, personId, email, dejaInvite, acces
         {statut === "en_attente" && (!derniere.envoye_le || derniere.erreur_envoi) && <p className="mt-1 text-destructive">L’envoi de l’e-mail reste à confirmer. Vous pouvez le renvoyer.</p>}
       </div>}
       <div className="flex flex-wrap gap-2">
-        <form action={action}><BoutonEnvoi size="sm" variant="outline" enCoursTexte="Invitation…">{statut === "en_attente" ? "Renvoyer l’invitation" : derniere ? "Envoyer une nouvelle invitation" : "Inviter comme locataire"}</BoutonEnvoi></form>
-        {statut === "en_attente" && <form action={annuler}><BoutonEnvoi size="sm" variant="ghost" enCoursTexte="Annulation…">Annuler l’invitation</BoutonEnvoi></form>}
+        <form data-saisie-confirmee action={action}><BoutonEnvoi size="sm" variant="outline" enCoursTexte="Invitation…">{statut === "en_attente" ? "Renvoyer l’invitation" : derniere ? "Envoyer une nouvelle invitation" : "Inviter comme locataire"}</BoutonEnvoi></form>
+        {statut === "en_attente" && <form data-saisie-confirmee action={annuler}><BoutonEnvoi size="sm" variant="ghost" enCoursTexte="Annulation…">Annuler l’invitation</BoutonEnvoi></form>}
       </div>
     </>}
     {erreurLecture && <p role="alert" className="text-sm text-destructive">L’historique des invitations n’a pas pu être chargé. Rechargez la fiche.</p>}

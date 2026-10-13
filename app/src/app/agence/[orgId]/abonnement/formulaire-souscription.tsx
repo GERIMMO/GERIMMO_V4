@@ -4,7 +4,8 @@
 // ici est recalculé par l'action serveur avec le même module (lib/tarifs.ts) :
 // un montant qui aurait changé entre l'affichage et la validation est refusé.
 
-import { useActionState, useId, useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import Link from "next/link";
 import { Check, LockKeyhole, MessageCircle } from "lucide-react";
 import styles from "./abonnement.module.css";
@@ -120,7 +121,7 @@ export function FormulaireSouscription({
       : `${euros(choisie.montantCents)} TTC`;
 
   return (
-    <form action={action} className={estAgence ? "space-y-4" : styles.formulaire}>
+    <form data-saisie-confirmee action={action} className={estAgence ? "space-y-4" : styles.formulaire}>
       {!estAgence && (
         <fieldset className={styles.periodicite}>
           <legend>Choisir la périodicité</legend>

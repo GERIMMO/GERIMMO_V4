@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import {
   deposerPhotoChantier,
@@ -74,7 +75,7 @@ export function PhotoChantier({
   const envoyee = dejaEnvoyee || Boolean(etat.succes);
 
   return (
-    <form action={action} ref={formulaire} className="space-y-3">
+    <form data-saisie-confirmee action={action} ref={formulaire} className="space-y-3">
       <input type="hidden" name="moment" value={moment} />
 
       <label

@@ -49,7 +49,7 @@ function BoutonSupprimer({ orgId, bailId, ligneId }: { orgId: string; bailId: st
   );
   return (
     <div>
-      <form action={action}><BoutonEnvoi variant="ghost" size="sm">Retirer</BoutonEnvoi></form>
+      <form data-saisie-confirmee action={action}><BoutonEnvoi variant="ghost" size="sm">Retirer</BoutonEnvoi></form>
       {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
     </div>
   );
@@ -100,7 +100,7 @@ export function FormulaireInventaire({
         </ul>
       )}
 
-      <form action={formAction} className="space-y-3 border-t border-border pt-4">
+      <form data-saisie-confirmee action={formAction} className="space-y-3 border-t border-border pt-4">
         <p className="text-sm font-medium">Ajouter un meuble</p>
         {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
         <div className="grid gap-3 sm:grid-cols-2">

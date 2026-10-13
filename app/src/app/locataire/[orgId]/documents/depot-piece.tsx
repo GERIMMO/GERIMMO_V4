@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { deposerMaPiece, type EtatPieceDemandee } from "@/app/actions/pieces-demandees";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { ChampFichier } from "@/components/champ-fichier";
@@ -35,7 +35,7 @@ export function DepotPiece({ orgId, demande }: { orgId: string; demande: Demande
   }
 
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2 py-2.5 text-sm">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-center gap-2 py-2.5 text-sm">
       <span className="min-w-0 flex-1">
         <b className="font-medium">{demande.libelle}</b>
         <small className="block text-muted-foreground">

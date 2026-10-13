@@ -31,6 +31,8 @@ test("déclarer un incident : la photo est le premier champ, l'envoi aboutit", a
   // RM-19.2.2 : DANS le formulaire de déclaration, le champ photos précède
   // la description (le repère juridique adaptatif, hors formulaire, peut
   // contenir d'autres éléments avant)
+  // Attendre le formulaire après le chargement de la copie locale.
+  await expect(page.locator("#photos")).toBeAttached();
   const ordre = await page.evaluate(() => {
     const photos = document.getElementById("photos");
     const formulaire = photos?.closest("form");

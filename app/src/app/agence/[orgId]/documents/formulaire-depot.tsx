@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { deposerDocument, type EtatDepot } from "@/app/actions/ged";
 import { TYPES_DEPOSABLES, TYPES_DOCUMENT } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -38,7 +39,7 @@ export function FormulaireDepot({
   }, [etat]);
 
   return (
-    <form ref={formulaire} action={action} className="formulaire-reperes space-y-4">
+    <form data-saisie-confirmee ref={formulaire} action={action} className="formulaire-reperes space-y-4">
       <LegendeChamps />
       <div className="space-y-2">
         <Label htmlFor="fichier">Fichier</Label>

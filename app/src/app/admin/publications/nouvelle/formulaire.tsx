@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
 import { creerArticleIA, type EtatNouvelArticle } from "./actions";
@@ -8,7 +8,7 @@ import { creerArticleIA, type EtatNouvelArticle } from "./actions";
 export function FormulaireNouvelArticle() {
   const [etat, action] = useActionState<EtatNouvelArticle, FormData>(creerArticleIA, {});
   return (
-    <form action={action} className="formulaire-reperes mt-6 space-y-5 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-5 sm:p-7">
+    <form data-saisie-confirmee action={action} className="formulaire-reperes mt-6 space-y-5 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-5 sm:p-7">
       <p className="legende-champs"><span aria-hidden="true" />Information obligatoire à compléter.</p>
       <div className="space-y-1.5">
         <Label htmlFor="sujet" className="libelle-champ">Sujet</Label>

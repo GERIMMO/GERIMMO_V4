@@ -1,7 +1,8 @@
 "use client";
 import { InputDateJour } from "@/components/input-date-jour";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import {
   ajouterDetention,
@@ -103,7 +104,7 @@ export function FormulaireDetention({
   }, [etat]);
 
   return (
-    <form ref={formulaire} onSubmit={action} className="space-y-3 border-t border-border pt-4">
+    <form data-saisie-confirmee ref={formulaire} onSubmit={action} className="space-y-3 border-t border-border pt-4">
       <fieldset disabled={enCours || Boolean(etat.succes)} className="space-y-3 min-w-0">
       <p className="text-sm font-medium">
         {premierProprietaire
@@ -338,7 +339,7 @@ export function BoutonCloreDetention({
   const actionLiee = cloreDetention.bind(null, orgId, bienId, lotId, detentionId);
   const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   return (
-    <form action={action} className="shrink-0">
+    <form data-saisie-confirmee action={action} className="shrink-0">
       <BoutonEnvoi size="sm" variant="ghost" enCoursTexte="…">
         Fermer
       </BoutonEnvoi>
@@ -373,7 +374,7 @@ export function BoutonSupprimerDetention({
   const [confirme, setConfirme] = useState(false);
   const formulaire = useRef<HTMLFormElement>(null);
   return (
-    <form ref={formulaire} action={action} className="shrink-0">
+    <form data-saisie-confirmee ref={formulaire} action={action} className="shrink-0">
       <Button type="button" size="sm" variant="ghost" onClick={() => setConfirme(true)}>
         Supprimer (erreur de saisie)
       </Button>
@@ -430,7 +431,7 @@ export function BoutonRouvrirDetention({
   const actionLiee = rouvrirDetention.bind(null, orgId, bienId, lotId, detentionId);
   const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   return (
-    <form action={action} className="shrink-0">
+    <form data-saisie-confirmee action={action} className="shrink-0">
       <BoutonEnvoi size="sm" variant="ghost" enCoursTexte="…">
         Rouvrir
       </BoutonEnvoi>

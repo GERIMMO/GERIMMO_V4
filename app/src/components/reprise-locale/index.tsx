@@ -1,0 +1,75 @@
+"use client";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { ConflitCopieLocale, lireCopieFichiers, modifierCopieFichiers, type CopieFichiers } from "@/lib/brouillon-fichiers";
+
+export function RepriseLocale<T>({ cle, valider, children }: {
+  cle: string; valider: (donnees: unknown) => T | null;
+  children: (copie: CopieFichiers<T> | null) => ReactNode;
+}) {
+  const [lecture, setLecture] = useState<{ copie: CopieFichiers<T> | null; pret: boolean; erreur?: string } | null>(null);
+  useEffect(() => {
+    let actif = true;
+    void lireCopieFichiers(cle).then(async copie => {
+      const donnees = copie && valider(copie.donnees);
+      if (copie && !donnees) await modifierCopieFichiers(cle, copie.revision, null);
+      if (actif) setLecture({ copie: copie && donnees ? { ...copie, donnees } : null, pret: !donnees });
+    }).catch(() => { if (actif) setLecture({ copie: null, pret: true, erreur: "La copie sur cet appareil est indisponible. Gardez cet onglet ouvert jusqu’à confirmation de l’enregistrement." }); });
+    return () => { actif = false; };
+  }, [cle, valider]);
+  if (!lecture) return <p role="status" className="text-sm text-muted-foreground">Recherche d’une saisie à reprendre…</p>;
+  if (!lecture.pret && lecture.copie) return <section className="rounded-xl border border-primary/20 bg-primary/5 p-5 space-y-3" aria-label="Saisie à reprendre">
+    <h2 className="font-semibold text-lg">Reprendre votre saisie</h2>
+    <p className="text-sm">Une copie du {new Date(lecture.copie.date).toLocaleString("fr-FR")} est disponible sur cet appareil, avec ses fichiers. Rien ne sera envoyé sans votre action.</p>
+    {lecture.erreur && <p role="alert">{lecture.erreur}</p>}
+    <div className="flex flex-wrap gap-3"><button type="button" className="btn-or" onClick={() => setLecture({ ...lecture, pret: true })}>Reprendre ma saisie</button>
+    <button type="button" className="btn-secondaire" onClick={() => {
+      void modifierCopieFichiers(cle, lecture.copie!.revision, null).then(() => setLecture({ copie: null, pret: true })).catch(() => setLecture({ ...lecture, erreur: "La copie a changé ou ne peut pas être effacée. Rechargez la page pour la vérifier." }));
+    }}>Effacer cette copie</button></div>
+  </section>;
+  return <>{lecture.erreur && <p role="alert" className="mb-3 text-sm text-warning-soft-foreground">{lecture.erreur}</p>}{children(lecture.copie)}</>;
+}
+
+export function useCopieFichiers<T>(cle: string, initiale: CopieFichiers<T> | null) {
+  const revision = useRef(initiale?.revision ?? null);
+  const file = useRef<Promise<unknown>>(Promise.resolve());
+  const termine = useRef(false);
+  const attente = useRef(0);
+  const [statut, setStatut] = useState<"vide" | "attente" | "conserve" | "refuse" | "conflit">(initiale ? "conserve" : "vide");
+  const enregistrer = useCallback((donnees: T | null) => {
+    if (termine.current) return Promise.resolve(false);
+    attente.current++; setStatut("attente");
+    const suite = file.current.then(async () => {
+      if (termine.current) return false;
+      try {
+        const copie = await modifierCopieFichiers(cle, revision.current, donnees);
+        revision.current = copie?.revision ?? null;
+        if (donnees === null) termine.current = true;
+        if (attente.current === 1) setStatut(donnees === null ? "vide" : "conserve");
+        return true;
+      } catch (erreur) {
+        setStatut(erreur instanceof ConflitCopieLocale ? "conflit" : "refuse");
+        return false;
+      } finally { attente.current--; }
+    });
+    file.current = suite;
+    return suite;
+  }, [cle]);
+  useEffect(() => {
+    const avertir = (e: BeforeUnloadEvent) => {
+      if (statut === "attente" || statut === "refuse" || statut === "conflit") { e.preventDefault(); e.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", avertir);
+    return () => window.removeEventListener("beforeunload", avertir);
+  }, [statut]);
+  return { enregistrer, statut };
+}
+export function StatutCopieLocale({ statut }: { statut: ReturnType<typeof useCopieFichiers>["statut"] }) {
+  const erreur = statut === "refuse" || statut === "conflit";
+  return <p role={erreur ? "alert" : "status"} className={`mb-3 text-xs ${erreur ? "text-warning-soft-foreground" : "text-muted-foreground"}`}>
+    {statut === "conflit" ? "Une autre copie a été modifiée dans un autre onglet. Votre saisie reste ici ; gardez cet onglet ouvert et vérifiez l’autre copie avant de quitter."
+      : statut === "refuse" ? "Impossible de conserver la copie sur cet appareil. Gardez cet onglet ouvert jusqu’à confirmation de l’enregistrement."
+      : statut === "attente" ? "Conservation de votre saisie sur cet appareil…"
+      : statut === "conserve" ? "Saisie et fichiers conservés sur cet appareil · non envoyés automatiquement. Les copies de plus de 7 jours sont supprimées à la prochaine utilisation."
+      : "Votre saisie et vos fichiers seront conservés sur cet appareil pendant ce parcours. Évitez un appareil partagé."}
+  </p>;
+}

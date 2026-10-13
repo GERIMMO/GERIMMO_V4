@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import { Eye, Globe2, LockKeyhole, MapPin, Pencil, Wrench } from "lucide-react";
 import styles from "./entreprise.module.css";
@@ -87,7 +88,7 @@ export function ReglageVisibilite({
           Gerimmo. C&apos;est une vérification, effectuée par Gerimmo.
         </p>
       ) : (
-        <form action={action} className="mt-3">
+        <form data-saisie-confirmee action={action} className="mt-3">
           <input
             type="hidden"
             name="visibilite"
@@ -176,7 +177,7 @@ export function FormulaireMetiersZones({
   return (
     <Carte className={styles.bloc}>
       <div className={styles.titreBloc}><span className={styles.icone}><Wrench size={19} aria-hidden/></span><div><h2>Mes métiers et ma zone</h2><p>Sélectionnez vos métiers et votre secteur.</p></div></div>
-      <form
+      <form data-saisie-confirmee
         action={action}
         onSubmit={() => setAfficherResultat(true)}
         onReset={(event) => event.preventDefault()}

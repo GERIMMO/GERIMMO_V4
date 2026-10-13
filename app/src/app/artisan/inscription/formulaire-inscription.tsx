@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import {
   inscrireMonEntreprise,
@@ -59,7 +60,7 @@ export function FormulaireInscription() {
     // `onReset` : React 19 réinitialise le formulaire à la fin de l'action ;
     // les cases « métiers » (contrôlées) se décochaient alors à l'écran même
     // quand l'état les gardait cochées (retour recette du 02/10).
-    <form action={action} onReset={(event) => event.preventDefault()} className="space-y-5">
+    <form data-saisie-confirmee action={action} onReset={(event) => event.preventDefault()} className="space-y-5">
       <div className="space-y-1.5">
         <label htmlFor={idRaison} className={CLASSE_LIBELLE}>
           Nom de votre entreprise

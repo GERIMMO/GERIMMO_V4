@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { validerCle, type EtatParc } from "@/app/actions/parc";
 import { MODES_CLE, proposerCle } from "@/lib/parc";
 import { Button } from "@/components/ui/button";
@@ -67,7 +68,7 @@ export function FormulaireCle({
 
   if (etat.succes && !nouvelleCle) return <div role="status" className="space-y-2"><p>Clé de répartition validée.</p><Button type="button" variant="outline" onClick={() => {setNouvelleCle(true); setModifier(true);}}>Préparer une nouvelle répartition</Button></div>;
   return (
-    <form action={async (data) => {setNouvelleCle(false); action(data);}} className="space-y-3 border-t border-border pt-4">
+    <form data-saisie-confirmee action={async (data) => {setNouvelleCle(false); action(data);}} className="space-y-3 border-t border-border pt-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm font-medium">
           {modifier ? "Ajuster la clé" : "Clé proposée"}

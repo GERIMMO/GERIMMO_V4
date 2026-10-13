@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useRef, useState, type FormEvent } from "react";
+import { RepriseLocale, StatutCopieLocale, useCopieFichiers } from "@/components/reprise-locale";
+import { cleCopieFichiers, type CopieFichiers } from "@/lib/brouillon-fichiers";
+import { validerBrouillonPersonne, type BrouillonPersonne } from "@/lib/brouillons-personne-incident";
+import { useActionState, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { flushSync } from "react-dom";
 import { UserRoundPlus, ContactRound, MapPin, ClipboardCheck, Files, CheckCircle2, ArrowLeft, ArrowRight, Pencil } from "lucide-react";
 import { creerPersonne } from "@/app/actions/personnes";
@@ -36,24 +39,38 @@ const ETAPES = [
 const VIDE = { nom:"", prenom:"", date_naissance:"", commune_naissance:"", email:"", telephone:"", address_line1:"", postal_code:"", city:"" };
 type Champ = keyof typeof VIDE;
 
-export function FormulairePersonne({ orgId, lots, estBailleurDirect = false, dansParcours = false }: {
-  orgId: string; lots: LotRattachable[]; estBailleurDirect?: boolean; dansParcours?: boolean;
-}) {
-  const [pieces, setPieces] = useState<JustificatifPrepare[]>([]);
-  const [etat, formAction, enCours] = useActionState<BilanCreationFiche, FormData>(
-    (precedent, data) => enregistrerFicheAvecJustificatifs(orgId, data, pieces, precedent, {
-      creer: creerPersonne, deposer: deposerPieceDossier, demander: demanderPieceLocataire,
-    }), {}
-  );
+type Props = { orgId: string; compteId: string; lots: LotRattachable[]; estBailleurDirect?: boolean; dansParcours?: boolean };
+export function FormulairePersonne(props: Props) {
+  const cle = cleCopieFichiers("personne", props.compteId, props.orgId);
+  return <RepriseLocale cle={cle} valider={validerBrouillonPersonne}>{copie => <FormulairePersonneSaisie {...props} cleLocale={cle} copie={copie} />}</RepriseLocale>;
+}
+function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dansParcours = false, cleLocale, copie }: Props & { cleLocale: string; copie: CopieFichiers<BrouillonPersonne> | null }) {
+  const initial = copie?.donnees;
+  const { enregistrer, statut } = useCopieFichiers(cleLocale, copie);
+  const [pieces, setPieces] = useState<JustificatifPrepare[]>(initial?.pieces ?? []);
   const formulaire = useRef<HTMLFormElement>(null);
   const navigation = useRef<HTMLDivElement>(null);
   const titre = useRef<HTMLHeadingElement>(null);
-  const [role, setRole] = useState<string | null>(null);
-  const [etape, setEtape] = useState(0);
-  const [morale, setMorale] = useState(false);
-  const [valeurs, setValeurs] = useState(VIDE);
-  const [emailCorrect, setEmailCorrect] = useState(false);
+  const [role, setRole] = useState<string | null>(initial?.role ?? null);
+  const [etape, setEtape] = useState(initial?.etape ?? 0);
+  const [morale, setMorale] = useState(initial?.morale ?? false);
+  const [valeurs, setValeurs] = useState(initial?.valeurs ?? VIDE);
+  const [emailCorrect, setEmailCorrect] = useState(Boolean(initial?.valeurs.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(initial.valeurs.email)));
+  const [lotId, setLotId] = useState(initial?.lotId ?? "");
   const [lotResume, setLotResume] = useState("");
+  const contenu = useMemo(() => ({ role: role as BrouillonPersonne["role"], morale, etape, valeurs, pieces, lotId }), [role, morale, etape, valeurs, pieces, lotId]);
+  const [etat, formAction, enCours] = useActionState<BilanCreationFiche, FormData>(
+    async (precedent, data) => {
+      const bilan = await enregistrerFicheAvecJustificatifs(orgId, data, pieces, precedent, {
+        creer: creerPersonne, deposer: deposerPieceDossier, demander: demanderPieceLocataire,
+        memoriser: bilan => enregistrer({ ...contenu, bilan }),
+      });
+      await enregistrer(bilan.terminee ? null : { ...contenu, bilan });
+      return bilan;
+    }, initial?.bilan ?? {}
+  );
+  const snapshot = useMemo<BrouillonPersonne>(() => ({ ...contenu, bilan: etat }), [contenu, etat]);
+  useEffect(() => { if (role && !enCours && !etat.terminee) void enregistrer(snapshot); }, [role, enCours, etat.terminee, snapshot, enregistrer]);
   const estProprio = role === "proprietaire_mandant";
   const personneMorale = estProprio && morale;
   const roles = estBailleurDirect ? ROLES.filter(r => r.cle !== "proprietaire_mandant") : ROLES;
@@ -83,7 +100,7 @@ export function FormulairePersonne({ orgId, lots, estBailleurDirect = false, dan
   }
   function soumettre(event: FormEvent<HTMLFormElement>) {
     if (etape < 4) { event.preventDefault(); changer(etape+1); return; }
-    if (!role || !valider(1) || !valider(2) || !valider(3)) { event.preventDefault(); return; }
+    if (etat.creationIncertaine || !role || !valider(1) || !valider(2) || !valider(3)) { event.preventDefault(); return; }
   }
   const nomsIdentite: Champ[] = personneMorale ? ["nom"] : ["nom","prenom","date_naissance","commune_naissance"];
   const emailValide = valeurs.email.trim() !== "" && emailCorrect;
@@ -113,11 +130,13 @@ export function FormulairePersonne({ orgId, lots, estBailleurDirect = false, dan
     </section>;
   }
   return <div ref={navigation} className={`assistant-location ${parcours.presentation} ${parcours.parcoursLot}`}>
+    <StatutCopieLocale statut={statut} />
+    {etat.creationIncertaine && <p role="alert" className="mb-4 rounded-xl bg-warning-soft p-4 text-sm">Un enregistrement a été interrompu. Vérifiez la fiche dans la liste avant de recommencer. Votre saisie et vos documents restent disponibles ici. <Link className="underline" href={`/agence/${orgId}/personnes`}>Voir les fiches</Link></p>}
     <NavigationParcours titre="Création d’une fiche" label="Étapes de la création d’une fiche" etape={etape} changer={changer} accessibles={role ? 5 : 1}
       etapes={ETAPES.map((e,i) => ({...e,...(i<3 ? {statut:restants[i] ? "incomplet" as const : "complet" as const, restant:restants[i]} : i===3 ? {statutLibelle: pieces.length ? `${pieces.length} préparé${pieces.length>1 ? "s" : ""}` : "Facultatif"} : {})}))} />
     {etat.succes && <p role="status" className="mb-4 text-sm text-success-soft-foreground">{etat.succes}</p>}
     {etat.avertissement && <p role="status" className="mb-4 text-sm text-warning-soft-foreground">{etat.avertissement}</p>}
-    <form ref={formulaire} action={formAction} noValidate onSubmit={soumettre} onReset={e=>e.preventDefault()} className={`assistant-carte ${parcours.cadre} ${styles.formulaire}`}>
+    <form data-protection-saisie="locale" ref={formulaire} action={formAction} noValidate onSubmit={soumettre} onReset={e=>e.preventDefault()} className={`assistant-carte ${parcours.cadre} ${styles.formulaire}`}>
       <input type="hidden" name="role" value={role ?? ""} />
       {personneMorale && <input type="hidden" name="morale" value="on" />}
       {dansParcours && <input type="hidden" name="rester_dans_parcours" value="1" />}
@@ -147,7 +166,7 @@ export function FormulairePersonne({ orgId, lots, estBailleurDirect = false, dan
             {champ("city","Ville",{autoComplete:"address-level2"})}
           </div>
           <fieldset hidden={!estProprio} disabled={!estProprio} className={styles.champ}>
-            <Label htmlFor="p-lot">Rattacher à un lot de l’agence — Facultatif</Label><ComboboxLot lots={lots} id="p-lot" name="lot_id" />
+            <Label htmlFor="p-lot">Rattacher à un lot de l’agence — Facultatif</Label><ComboboxLot lots={lots} id="p-lot" name="lot_id" valeurInitiale={lotId} onChoix={setLotId} />
             <p>Le propriétaire devient détenteur du lot à 100 %. Les quotes-parts se règlent dans la fiche du lot.</p>
           </fieldset>
         </fieldset>
@@ -177,7 +196,7 @@ export function FormulairePersonne({ orgId, lots, estBailleurDirect = false, dan
       </div>
       <div className={`assistant-pied ${parcours.pied}`}>
         {etape>0 && (!etat.personneCreee || etape>3) ? <Button type="button" variant="outline" disabled={enCours} onClick={()=>changer(etape-1)}><ArrowLeft size={16} aria-hidden="true" />Précédent</Button> : <span />}
-        {etape>0 && (etape<4 ? <Button type="button" disabled={enCours} onClick={()=>changer(etape+1)}>Suivant<ArrowRight size={16} aria-hidden="true" /></Button> : <BoutonEnvoi enCoursTexte="Enregistrement du dossier…">{etat.personneCreee ? "Reprendre les justificatifs" : "Créer la fiche"}</BoutonEnvoi>)}
+        {etape>0 && (etape<4 ? <Button type="button" disabled={enCours} onClick={()=>changer(etape+1)}>Suivant<ArrowRight size={16} aria-hidden="true" /></Button> : <BoutonEnvoi disabled={etat.creationIncertaine} enCoursTexte="Enregistrement du dossier…">{etat.personneCreee ? "Reprendre les justificatifs" : "Créer la fiche"}</BoutonEnvoi>)}
       </div>
     </form>
   </div>;

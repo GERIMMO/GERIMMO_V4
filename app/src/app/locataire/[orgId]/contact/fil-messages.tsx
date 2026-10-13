@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useRef } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { envoyerMessageLocataire, type EtatMessage } from "@/app/actions/messages";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
@@ -127,7 +128,7 @@ export function FilMessages({
         ))}
       </div>
 
-      <form action={action} className="mt-3">
+      <form data-saisie-confirmee action={action} className="mt-3">
         <Label htmlFor="msg-texte">Votre message</Label>
         {/* Non contrôlé, re-monté à chaque nouveau message : le champ se vide
             quand l'envoi aboutit, sans état React. En erreur, la saisie est

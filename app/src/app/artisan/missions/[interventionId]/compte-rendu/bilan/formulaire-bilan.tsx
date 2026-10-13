@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import {
   demanderMonAvenant,
@@ -100,7 +101,7 @@ export function FormulaireBilan({
           <p className="mt-4 text-[0.9375rem] text-[var(--texte-secondaire)]">
             Demandez l&apos;accord avant de terminer. Le nouveau total, la raison et la décision restent dans le dossier.
           </p>
-          <form action={actionAvenant} className="mt-4 space-y-3">
+          <form data-saisie-confirmee action={actionAvenant} className="mt-4 space-y-3">
             <p className="text-sm">Reprenez le détail complet des travaux, y compris les postes déjà prévus. Le total remplacera le montant autorisé après acceptation.</p>
             <LignesDevis titre="Nouveau détail complet" initiales={lignesInitiales} />
             <div className="space-y-1.5">
@@ -113,7 +114,7 @@ export function FormulaireBilan({
           </form>
         </details>
       )}
-      <form action={action} className="space-y-5">
+      <form data-saisie-confirmee action={action} className="space-y-5">
       <div className="space-y-1.5">
         <label htmlFor={idTravaux} className={CLASSE_LIBELLE}>
           Ce que vous avez fait

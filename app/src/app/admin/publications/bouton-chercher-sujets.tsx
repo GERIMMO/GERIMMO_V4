@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import { Spinner } from "@/components/ui/spinner";
 import { genererPropositions, type EtatPublication } from "@/app/actions/publications";
@@ -27,7 +27,7 @@ export function BoutonChercherSujets() {
     {}
   );
   return (
-    <form action={action} className="flex flex-wrap items-center gap-3">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-center gap-3">
       <Envoi />
       {etat.succes && <span className="text-[13px] text-[var(--success)]">{etat.succes}</span>}
       {etat.erreur && <span className="text-[13px] text-[var(--destructive)]">{etat.erreur}</span>}

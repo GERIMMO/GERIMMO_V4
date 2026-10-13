@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { remplacerDocument, type EtatDocumentGed } from "@/app/actions/documents-ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ export function FormulaireRemplacer({
   }
 
   return (
-    <form action={action} className="w-full space-y-3 rounded-md border border-border p-3">
+    <form data-saisie-confirmee action={action} className="w-full space-y-3 rounded-md border border-border p-3">
       <p className="text-sm text-muted-foreground">
         Le remplacement conserve l&apos;historique : l&apos;ancienne version reste
         tracée, la nouvelle reprend le type et les rattachements.

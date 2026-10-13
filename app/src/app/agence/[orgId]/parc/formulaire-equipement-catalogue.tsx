@@ -23,7 +23,7 @@ export function FormulaireEquipementCatalogue({ orgId }: { orgId: string }) {
   }, [etat, router]);
 
   return (
-    <form ref={formulaire} action={action} className="flex flex-wrap items-center gap-2">
+    <form data-saisie-confirmee ref={formulaire} action={action} className="flex flex-wrap items-center gap-2">
       {/* En erreur (doublon…), la saisie est reposée via etat.valeurs (recette 22/08) */}
       <Label htmlFor={idNom} className="sr-only">
         Nom de l&apos;équipement

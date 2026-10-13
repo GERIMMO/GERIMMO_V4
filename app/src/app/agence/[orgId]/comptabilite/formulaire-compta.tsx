@@ -4,7 +4,8 @@ import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { InputDateJour } from "@/components/input-date-jour";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   ajouterEcriture,
   passerContreEcriture,
@@ -168,7 +169,7 @@ function BoutonGenererRapport({
   const clos = moisClotures.includes(mois);
   const nomMois = mois ? moisEnFrancais(mois) : "";
   return (
-    <form action={action} className="flex flex-wrap items-end gap-2">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-end gap-2">
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08).
           Ces champs en ligne n'ont pas la place d'une étiquette visible : ils
           en portent une pour le lecteur d'écran, jamais rien du tout — un
@@ -203,7 +204,7 @@ function BoutonGenererRapport({
 function BoutonEnvoyerRapport({ orgId, rapportId, valide }: { orgId: string; rapportId: string; valide: boolean }) {
   const { etat, soumettre, enCours } = useActionFormulaire<EtatCompta>(envoyerRapport.bind(null, orgId, rapportId));
   return (
-    <form onSubmit={soumettre} aria-busy={enCours} className="flex flex-wrap items-center gap-1">
+    <form data-saisie-confirmee onSubmit={soumettre} aria-busy={enCours} className="flex flex-wrap items-center gap-1">
       {!valide && <Input
         aria-label="Commentaire joint au rapport"
         name="commentaire"
@@ -226,7 +227,7 @@ function FormVersement({ orgId, rapportId }: { orgId: string; rapportId: string 
   // écran en aligne autant qu'il y a de mois à verser.
   const idDate = `vers-date-${rapportId}`;
   return (
-    <form action={action} className="flex flex-wrap items-center gap-1">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-center gap-1">
       <Input
         aria-label="Montant versé, en euros"
         name="montant"
@@ -265,7 +266,7 @@ export function FormulaireEcriture({
     {}
   );
   return (
-    <form action={action} className="formulaire-finances flex flex-wrap items-end gap-2">
+    <form data-saisie-confirmee action={action} className="formulaire-finances flex flex-wrap items-end gap-2">
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08).
           Sous sm, chaque champ prend sa pleine largeur : une colonne lisible
           plutôt que des rangées irrégulières. */}
@@ -349,7 +350,7 @@ export function FormulaireVentilation({
     {}
   );
   return (
-    <form action={action} className="formulaire-finances flex flex-wrap items-end gap-2">
+    <form data-saisie-confirmee action={action} className="formulaire-finances flex flex-wrap items-end gap-2">
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08).
           Même recette que la saisie d'une écriture, juste au-dessus (24/09) :
           sous sm, chaque champ prend sa pleine largeur — une colonne lisible
@@ -404,7 +405,7 @@ export function FormulaireCloture({ orgId, moisCourant }: { orgId: string; moisC
   // droit au refus de la base, et surtout invitait à figer un mois incomplet.
   const dernierRevolu = dernierMoisRevolu(moisCourant);
   return (
-    <form action={action} className="flex items-end gap-2">
+    <form data-saisie-confirmee action={action} className="flex items-end gap-2">
       <div className="space-y-1">
         <Label htmlFor="clot-mois" className="text-sm">Mois</Label>
         <Input
@@ -443,7 +444,7 @@ export function BoutonContre({ orgId, ecritureId }: { orgId: string; ecritureId:
       </Button>
     );
   return (
-    <form action={action} className="flex flex-wrap items-center justify-end gap-1">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-center justify-end gap-1">
       <Input
         aria-label="Motif de l’annulation"
         name="motif"

@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { rattacherDocument, type EtatDocumentGed } from "@/app/actions/documents-ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,7 @@ export function FormulaireRattacher({
   }
 
   return (
-    <form action={action} className="space-y-3 rounded-md border border-border p-3">
+    <form data-saisie-confirmee action={action} className="space-y-3 rounded-md border border-border p-3">
       <input type="hidden" name="entite" value={ENTITE_SQL[famille]} />
       <div className="space-y-2">
         <Label htmlFor="famille-rattachement">Type de fiche</Label>

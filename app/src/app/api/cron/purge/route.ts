@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /** Au-delà, un chemin en file est considéré comme bloqué. */
-export const FILE_BLOQUEE_HEURES = 48;
+const FILE_BLOQUEE_HEURES = 48;
 /** Une passe traite au plus ce nombre de chemins (l'API Storage accepte des lots). */
 const LOT = 500;
 

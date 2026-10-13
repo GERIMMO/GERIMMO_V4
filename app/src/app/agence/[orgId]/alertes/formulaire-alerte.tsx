@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { creerAlerte, type EtatAlerte } from "@/app/actions/alertes";
 import { ASSIGNATION_TOUS } from "@/lib/alertes";
 import { CRITICITES } from "@/lib/ged";
@@ -33,7 +34,7 @@ export function FormulaireAlerte({
   }, [etat]);
 
   return (
-    <form ref={formulaire} action={action} className="formulaire-reperes space-y-4">
+    <form data-saisie-confirmee ref={formulaire} action={action} className="formulaire-reperes space-y-4">
       <LegendeChamps />
       <div className="space-y-2">
         <Label htmlFor="titre-alerte">Titre</Label>

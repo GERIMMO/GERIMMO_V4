@@ -28,7 +28,7 @@ import {
   Retour,
   TitreSection,
 } from "../../ui";
-import { FormulaireDevis } from "./formulaire-devis";
+import { FormulaireAvecReprise } from "./formulaire-avec-reprise";
 import styles from "./devis.module.css";
 
 /** Le titre suit l'écran : un formulaire de réponse, ou le récapitulatif d'une demande close. */
@@ -70,7 +70,7 @@ const TON_STATUT: Record<LigneSollicitation["statut"], "alerte" | "ok" | "encre"
 export default async function PageRepondreDevis(
   props: PageProps<"/artisan/devis/[sollicitationId]">
 ) {
-  await verifierAccesArtisan();
+  const { user } = await verifierAccesArtisan();
   const { sollicitationId } = await props.params;
 
   const [{ fiche }, sollicitations] = await Promise.all([
@@ -175,7 +175,9 @@ export default async function PageRepondreDevis(
             </Avertissement>
           )}
 
-          <FormulaireDevis
+          <FormulaireAvecReprise
+            key={`${user.id}:${sollicitationId}`}
+            compteId={user.id}
             initiale={preparation}
             erreurPreparation={erreurPreparation}
             sollicitationId={sollicitationId}

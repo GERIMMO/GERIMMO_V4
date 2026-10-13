@@ -1,5 +1,5 @@
 'use client';
-import { useActionState } from 'react';
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { enregistrerConsigne, commanderConsigne, type RetourSupervision } from '@/app/actions/consignes-vacances';
 import { MISSIONS } from '@/lib/missions';
 import { champParis } from '@/lib/dates-supervision';
@@ -8,7 +8,7 @@ export type VersionConsigne = { id: string; consigne_id: string; numero: number;
 export function MessageSupervision({ etat }: { etat: RetourSupervision }) { return <div aria-live="polite">{etat.erreur && <p role="alert" className="err mt-3">{etat.erreur}</p>}{etat.succes && <p className="mt-3 text-sm">{etat.succes}</p>}</div>; }
 export function FormulaireConsigne({ comptes, version }: { comptes: CompteResponsable[]; version?: VersionConsigne }) {
  const [etat, action, pending] = useActionState(enregistrerConsigne, {});
- return <form action={action} onReset={e=>e.preventDefault()} className="space-y-4">
+ return <form data-saisie-confirmee action={action} onReset={e=>e.preventDefault()} className="space-y-4">
  <input type="hidden" name="id" value={version?.consigne_id ?? ''}/><input type="hidden" name="version" value={version?.numero ?? 0}/>
  <label className="block">Titre<input className="champ mt-1 w-full" name="titre" required minLength={3} maxLength={120} defaultValue={version?.titre}/></label>
  <label className="block">Consigne et contexte<textarea className="champ mt-1 w-full" name="texte" required minLength={3} maxLength={4000} defaultValue={version?.texte}/></label>
@@ -25,5 +25,5 @@ export function FormulaireConsigne({ comptes, version }: { comptes: CompteRespon
 }
 export function CommandeConsigne({ id, commande, enfants }: { id: string; commande: string; enfants: string }) {
  const [etat,action,pending]=useActionState(commanderConsigne,{});
- return <form action={action}><input type="hidden" name="id" value={id}/><input type="hidden" name="commande" value={commande}/><button className="btn btn-secondaire" disabled={pending}>{pending?'Patientez…':enfants}</button><MessageSupervision etat={etat}/></form>;
+ return <form data-saisie-confirmee action={action}><input type="hidden" name="id" value={id}/><input type="hidden" name="commande" value={commande}/><button className="btn btn-secondaire" disabled={pending}>{pending?'Patientez…':enfants}</button><MessageSupervision etat={etat}/></form>;
 }

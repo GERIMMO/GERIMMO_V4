@@ -1,6 +1,7 @@
 "use client";
 import { useId, useState } from "react";
 import { calculerDevis, montantEnCentimes, type LigneDevis } from "@/lib/devis-structure";
+import type { LigneDevisSaisie } from "@/lib/brouillon-devis-local";
 import { euros } from "./libelles";
 import { CLASSE_BOUTON_SOBRE, CLASSE_CHAMP, CLASSE_LIBELLE, TitreSection } from "./ui";
 
@@ -9,14 +10,14 @@ const CLASSE_CELLULE = "flex flex-col justify-end gap-1.5";
 /** Dans une carte déjà ouverte, le bloc garde sa structure mais pas son habillage. */
 const DANS_UNE_CARTE = "in-[.artisan-carte]:rounded-none in-[.artisan-carte]:border-0 in-[.artisan-carte]:bg-transparent in-[.artisan-carte]:p-0 in-[.artisan-carte]:shadow-none";
 
-type Saisie = { code: string; libelle: string; quantite: string; prix: string; tva: string };
+type Saisie = LigneDevisSaisie;
 // 25/09 (A7) : PAS de taux de TVA par défaut. « 0 % » pré-choisi partait tel
 // quel dans un devis que l'artisan n'avait pas relu ; le taux dépend de son
 // régime et des travaux, et lui seul le sait. Le choix est obligatoire.
 const vide = (): Saisie => ({ code: "", libelle: "", quantite: "1", prix: "", tva: "" });
-export function LignesDevis({ initiales = [], titre = "Détail des travaux" }: { initiales?: (Omit<LigneDevis, "tva_bps" | "prix_unitaire_ht_cents"> & {code?: string; tva_bps: number | null; prix_unitaire_ht_cents: number | null})[]; titre?: string }) {
+export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail des travaux" }: { saisieInitiale?: LigneDevisSaisie[]; initiales?: (Omit<LigneDevis, "tva_bps" | "prix_unitaire_ht_cents"> & {code?: string; tva_bps: number | null; prix_unitaire_ht_cents: number | null})[]; titre?: string }) {
   const id = useId();
-  const [lignes, setLignes] = useState<Saisie[]>(() => initiales.length ? initiales.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: String(l.quantite).replace(".", ","), prix: l.prix_unitaire_ht_cents === null ? "" : (l.prix_unitaire_ht_cents/100).toFixed(2).replace(".", ","), tva: l.tva_bps === null ? "" : String(l.tva_bps) })) : [vide()]);
+  const [lignes, setLignes] = useState<Saisie[]>(() => saisieInitiale ?? (initiales.length ? initiales.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: String(l.quantite).replace(".", ","), prix: l.prix_unitaire_ht_cents === null ? "" : (l.prix_unitaire_ht_cents/100).toFixed(2).replace(".", ","), tva: l.tva_bps === null ? "" : String(l.tva_bps) })) : [vide()]));
   const donnees = lignes.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: Number(l.quantite.replace(",", ".")), prix_unitaire_ht_cents: montantEnCentimes(l.prix), tva_bps: l.tva === "" ? Number.NaN : Number(l.tva) }));
   let total: ReturnType<typeof calculerDevis> | null = null;
   try { total = calculerDevis(donnees); } catch { /* Le formulaire et le serveur expliquent les champs invalides. */ }
@@ -28,6 +29,7 @@ export function LignesDevis({ initiales = [], titre = "Détail des travaux" }: {
   return <fieldset data-lignes-devis className={`artisan-carte min-w-0 space-y-4 ${DANS_UNE_CARTE}`}>
     {/* Légende flottée : elle quitte la bordure et se lit comme un titre de section. */}
     <legend className="float-left mb-0 w-full"><TitreSection>{titre}</TitreSection></legend>
+    <input type="hidden" name="lignes_devis_saisie" value={JSON.stringify(lignes)} />
     <input type="hidden" name="lignes_devis" value={JSON.stringify(donnees)} />
     <p className="clear-both text-[0.9375rem] text-[var(--texte-secondaire)]">Précisez chaque prestation ou fourniture. Choisissez le taux de TVA adapté à votre situation et aux travaux.</p>
     {/* 24/09 : plus de fond teinté par ligne — un filet sépare les lignes, rien pour une ligne seule. */}

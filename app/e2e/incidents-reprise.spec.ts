@@ -44,6 +44,11 @@ test('LOC003 : réponse perdue après création puis reprise sans double inciden
   await expect(page.getByRole('alert').filter({hasText:'La réponse n’est pas arrivée'})).toBeVisible();
   const avant=(await db.query('select id from incidents where organization_id=$1 and description=$2',[org,description])).rows;expect(avant).toHaveLength(1);incident=avant[0].id;
   expect((await db.query('select count(*)::int n from depots_photos_incident where incident_id=$1 and etat=\'rattache\'',[incident])).rows[0].n).toBe(1);
+  await expect(page.getByRole('status').filter({hasText:'Saisie et fichiers conservés'})).toBeVisible();
+  const contexte=page.context();await page.close();page=await contexte.newPage();await sansSyntheseAlertes(page);await page.goto(`/locataire/${org}/incident`);
+  await page.getByRole('button',{name:'Reprendre ma saisie',exact:true}).click();
+  await expect(page.locator('#description')).toHaveValue(description);await expect(page.locator('#description')).toBeDisabled();await expect(page.getByText('1 photo jointe',{exact:false})).toBeVisible();
+  await page.screenshot({path:info.outputPath('incident-repris-apres-fermeture.png'),fullPage:true});
   await page.getByRole('button',{name:'Envoyer le signalement',exact:true}).click();await expect(page.getByText(/^Signalement envoyé —/)).toBeVisible();
   const apres=(await db.query('select id from incidents where organization_id=$1 and description=$2',[org,description])).rows;expect(apres).toEqual(avant);
   const comptes=(await db.query("select (select count(*) from commandes_incidents_locataire where incident_id=$1)::int commandes,(select count(*) from depots_photos_incident where incident_id=$1)::int depots,(select count(*) from document_liens where entite='incident' and entite_id=$1)::int liens",[incident])).rows[0];expect(comptes).toEqual({commandes:1,depots:1,liens:1});preuve.actual={incident,...comptes,reponsePerdue:perdue};preuve.status='exécuté avec succès';
@@ -77,6 +82,8 @@ test('LOC002 : photo refusée nettoyée puis reprise sur le même incident',asyn
   const ancien=(await db.query('select storage_path,etat from depots_photos_incident where incident_id=$1',[incident])).rows;expect(ancien).toHaveLength(1);expect(ancien[0].etat).toBe('abandonne');
   expect((await db.query("select count(*)::int n from storage.objects where bucket_id='documents' and name=$1",[ancien[0].storage_path])).rows[0].n).toBe(0);
   await db.query('delete from documents where id=$1',[blocage]);blocage=undefined;
+  const contexte=page.context();await page.close();page=await contexte.newPage();await sansSyntheseAlertes(page);await page.goto(`/locataire/${org}/incident`);
+  await page.getByRole('button',{name:'Reprendre ma saisie',exact:true}).click();
   await page.getByRole('button',{name:'Réessayer les photos',exact:true}).click();await expect(page.getByRole('link',{name:'Voir mes demandes maintenant',exact:true})).toBeVisible();
   expect((await db.query('select id from incidents where organization_id=$1 and description=$2',[org,description])).rows).toEqual(incidents);
   const bilan=(await db.query("select (select count(*) from commandes_incidents_locataire where incident_id=$1)::int commandes,(select count(*) from depots_photos_incident where incident_id=$1 and etat='rattache')::int photos,(select count(*) from document_liens where entite='incident' and entite_id=$1)::int liens",[incident])).rows[0];expect(bilan).toEqual({commandes:1,photos:1,liens:1});

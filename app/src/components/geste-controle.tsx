@@ -4,7 +4,7 @@
 // replié, un motif quand le geste retire un droit, une case de confirmation
 // obligatoire, et le retour de l'action en clair. Le même gabarit pour
 // l'organisation, le compte et l'invitation.
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import type { EtatControle } from "@/app/actions/controle-supervision";
 
@@ -38,7 +38,7 @@ export function GesteControle({
   return (
     <details className="border-t border-[var(--filet)] pt-3 first:border-t-0 first:pt-0">
       <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium text-[var(--encre)]">{titre}</summary>
-      <form action={envoyer} className="mt-2 space-y-3">
+      <form data-saisie-confirmee action={envoyer} className="mt-2 space-y-3">
         {geste && <input type="hidden" name="geste" value={geste} />}
         {Object.entries(champs ?? {}).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
         {jours && (

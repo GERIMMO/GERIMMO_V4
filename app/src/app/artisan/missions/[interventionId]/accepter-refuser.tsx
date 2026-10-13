@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import {
   accepterMaMission,
@@ -60,7 +61,7 @@ export function AccepterOuRefuser({ interventionId }: { interventionId: string }
     <div className="space-y-3">
       {etatAccepter.erreur && <Erreur>{etatAccepter.erreur}</Erreur>}
 
-      <form action={actionAccepter}>
+      <form data-saisie-confirmee action={actionAccepter}>
         <BoutonAction className={CLASSE_BOUTON_PRINCIPAL} enCours="Acceptation…">
           Accepter la mission
         </BoutonAction>
@@ -75,7 +76,7 @@ export function AccepterOuRefuser({ interventionId }: { interventionId: string }
           Je ne peux pas la prendre
         </button>
       ) : (
-        <form action={actionRefuser} className="space-y-3">
+        <form data-saisie-confirmee action={actionRefuser} className="space-y-3">
           <div className="space-y-1.5">
             <label htmlFor={idMotif} className={CLASSE_LIBELLE}>
               Pourquoi refusez-vous ?

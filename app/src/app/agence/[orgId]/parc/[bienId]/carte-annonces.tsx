@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useId } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { creerAnnonce, supprimerAnnonce, type EtatAnnonce } from "@/app/actions/annonces";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,7 @@ function BoutonRetirerAnnonce({
     {}
   );
   return (
-    <form action={action} className="inline-flex items-center gap-1.5">
+    <form data-saisie-confirmee action={action} className="inline-flex items-center gap-1.5">
       <BoutonEnvoi variant="ghost" size="sm" enCoursTexte="…">
         Retirer
       </BoutonEnvoi>
@@ -73,7 +74,7 @@ export function CarteAnnonces({
           ))}
         </ul>
       )}
-      <form action={action} className="space-y-2">
+      <form data-saisie-confirmee action={action} className="space-y-2">
         {/* Le placeholder n'est qu'un exemple et s'efface à la 1re frappe :
             le champ porte son propre libellé, dans le style de « Visible
             jusqu'au » juste dessous. */}

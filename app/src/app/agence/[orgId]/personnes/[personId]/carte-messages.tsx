@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useId } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { repondreMessagePersonne, type EtatMessage } from "@/app/actions/messages";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
@@ -69,7 +70,7 @@ export function CarteMessages({
           ))}
         </div>
       )}
-      <form action={action} className="flex flex-wrap items-end gap-2">
+      <form data-saisie-confirmee action={action} className="flex flex-wrap items-end gap-2">
         {/* Ligne compacte (saisie + bouton) : le libellé est pour la seule
             synthèse vocale — le placeholder disparaît à la première frappe. */}
         <Label htmlFor={idTexte} className="sr-only">

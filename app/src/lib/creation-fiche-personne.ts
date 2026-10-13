@@ -15,8 +15,10 @@ export type ResultatJustificatif = { succes?: string; erreur?: string; avertisse
 export type BilanCreationFiche = EtatPersonne & {
   pieces?: Record<string, ResultatJustificatif>;
   terminee?: boolean;
+  creationIncertaine?: boolean;
 };
 type Actions = {
+  memoriser?: (bilan: BilanCreationFiche) => Promise<unknown>;
   creer: (org: string, etat: EtatPersonne, data: FormData) => Promise<EtatPersonne>;
   deposer: (org: string, personne: string, etat: EtatDossier, data: FormData) => Promise<EtatDossier>;
   demander: (org: string, personne: string, etat: EtatPieceDemandee, data: FormData) => Promise<EtatPieceDemandee>;
@@ -39,6 +41,7 @@ export async function enregistrerFicheAvecJustificatifs(
   orgId: string, formData: FormData, pieces: JustificatifPrepare[],
   precedent: BilanCreationFiche, actions: Actions,
 ): Promise<BilanCreationFiche> {
+  if (precedent.creationIncertaine) return { ...precedent, erreur: "La création précédente n’a pas été confirmée. Vérifiez la liste des fiches avant de recommencer." };
   const resultats = { ...precedent.pieces };
   const invalide = pieces.find(p => !resultats[p.id]?.succes && erreurJustificatif(p));
   if (invalide) return { ...precedent, erreur: `${invalide.titre || "Justificatif"} : ${erreurJustificatif(invalide)}` };
@@ -48,14 +51,17 @@ export async function enregistrerFicheAvecJustificatifs(
     const identite = new FormData();
     for (const [cle, valeur] of formData) if (typeof valeur === "string") identite.set(cle, valeur);
     identite.set("rester_dans_parcours", "1");
+    await actions.memoriser?.({ ...precedent, creationIncertaine: true });
     try { creation = await actions.creer(orgId, {}, identite); }
-    catch { return { erreur: "La création n’a pas pu être confirmée. Vérifiez la liste des fiches avant de réessayer." }; }
+    catch { return { creationIncertaine: true, erreur: "La création n’a pas pu être confirmée. Vérifiez la liste des fiches avant de réessayer." }; }
+    await actions.memoriser?.(creation);
     if (!creation.personneCreee) return creation;
   }
   for (const piece of pieces) {
     if (resultats[piece.id]?.succes || resultats[piece.id]?.incertain) continue;
     const data = new FormData();
     data.set("type", piece.type);
+    await actions.memoriser?.({ ...creation, pieces: { ...resultats, [piece.id]: { incertain: true, erreur: "Envoi non confirmé. Vérifiez ce document dans la fiche avant de le renvoyer." } } });
     try {
       if (piece.mode === "depot") {
         data.set("titre", piece.titre.trim());
@@ -71,6 +77,7 @@ export async function enregistrerFicheAvecJustificatifs(
       // un e-mail : la fiche permet de vérifier le résultat avant de poursuivre.
       resultats[piece.id] = { erreur: "Envoi non confirmé. Vérifiez ce document dans la fiche avant de le renvoyer.", incertain: true };
     }
+    await actions.memoriser?.({ ...creation, pieces: { ...resultats } });
   }
   const terminee = pieces.every(p => Boolean(resultats[p.id]?.succes));
   return {

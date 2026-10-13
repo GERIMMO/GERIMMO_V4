@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useRef, useEffect, useId } from "react";
+import { useRef, useEffect, useId } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   attribuerIncident,
   cloturerIncident,
@@ -65,7 +66,7 @@ export function FormulaireQualification({
   }, [etat.succes, apresSucces]);
 
   return (
-    <form action={action} className="incident-formulaire-qualification space-y-3">
+    <form data-saisie-confirmee action={action} className="incident-formulaire-qualification space-y-3">
       <RepereJuridique slug={categorie} />
       <fieldset className="space-y-1.5">
         <legend className="libelle-champ">Qui prend en charge *</legend>
@@ -129,7 +130,7 @@ export function FormulaireCloture({
   }, [etat.succes, apresSucces]);
 
   return (
-    <form action={action} className="space-y-3">
+    <form data-saisie-confirmee action={action} className="space-y-3">
       <div className="space-y-1.5">
         <Label htmlFor="motif">Motif *</Label>
         <select
@@ -179,7 +180,7 @@ export function FormulaireReouverture({
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
 
   return (
-    <form action={action} className="space-y-3">
+    <form data-saisie-confirmee action={action} className="space-y-3">
       <div className="space-y-1.5">
         <Label htmlFor="motif-reouverture">Pourquoi rouvrir ? *</Label>
         <Input
@@ -232,7 +233,7 @@ export function FormulaireAttribution({
     // Agent : se saisir d'un dossier libre, ou rendre le sien
     if (responsable && responsable !== monCompte) return <Retour etat={etat} />;
     return (
-      <form action={action} className="space-y-2">
+      <form data-saisie-confirmee action={action} className="space-y-2">
         <input type="hidden" name="responsable" value={responsable ? "" : monCompte} />
         <Retour etat={etat} />
         <BoutonEnvoi variant="outline" size="sm">
@@ -246,7 +247,7 @@ export function FormulaireAttribution({
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
         {responsable !== monCompte && (
-          <form action={action}>
+          <form data-saisie-confirmee action={action}>
             <input type="hidden" name="responsable" value={monCompte} />
             <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
               Me l&apos;attribuer
@@ -255,7 +256,7 @@ export function FormulaireAttribution({
         )}
         {/* `key` : le sélecteur est non contrôlé — sans remontage, il
             garderait l'ancien choix affiché après « Me l'attribuer ». */}
-        <form
+        <form data-saisie-confirmee
           key={responsable ?? ""}
           action={action}
           className="flex min-w-0 flex-1 basis-[240px] flex-wrap items-center gap-2"
@@ -302,7 +303,7 @@ export function FormulairePhotoIncident({
   }, [etat]);
 
   return (
-    <form ref={formulaire} action={action} className="space-y-2">
+    <form data-saisie-confirmee ref={formulaire} action={action} className="space-y-2">
       {/* Audit 27/09 : en ligne, dans cette carte étroite, « Joindre »
           recouvrait « Choisir des fichiers » (le champ prend toute la
           largeur) et « Aucune photo choisie » était tronqué. Champ puis

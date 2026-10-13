@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { FormulairePiece } from "./formulaire-piece";
-import { useActionState, useId } from "react";
+import { useId } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   demanderPieceLocataire,
   relancerPieceDemandee,
@@ -53,12 +54,12 @@ function BoutonsDemande({
   );
   return (
     <span className="flex shrink-0 items-center gap-1">
-      {peutRelancer && <form action={actionRel}>
+      {peutRelancer && <form data-saisie-confirmee action={actionRel}>
         <BoutonEnvoi variant="outline" size="sm">
           Relancer
         </BoutonEnvoi>
       </form>}
-      <form action={actionAnn}>
+      <form data-saisie-confirmee action={actionAnn}>
         <BoutonEnvoi variant="ghost" size="sm">
           Annuler
         </BoutonEnvoi>
@@ -145,7 +146,7 @@ export function CartePiecesDemandees({
           ne sont pas listées ici.
         </p>
       )}
-      <form action={action} className="space-y-2 border-t border-border pt-3">
+      <form data-saisie-confirmee action={action} className="space-y-2 border-t border-border pt-3">
         {/* Des BOUTONS « + RIB »… sous un libellé : en pastilles grises, ils
             avaient l'apparence exacte des états « en attente » / « reçue »,
             rien ne disait qu'on pouvait cliquer (24/09). `.puce` = un état. */}

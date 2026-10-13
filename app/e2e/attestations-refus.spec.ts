@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { jourAttestation } from '../src/lib/dates-attestation';
 
 test.use({ storageState: 'e2e/.auth/artisan.json' });
-test('attestation : date future refusée et fichier effacé clairement après un rejet', async ({ page }) => {
+test('attestation : date future refusée et fichier conservé après un rejet', async ({ page }) => {
   await page.goto('/artisan/attestations');
   await page.getByRole('link', { name: 'Déposer : Assurance décennale', exact: true }).click();
   const formulaire = page.locator('form').filter({ has: page.getByRole('button', { name: "Déposer l'attestation", exact: true }) });
@@ -18,6 +18,6 @@ test('attestation : date future refusée et fichier effacé clairement après un
   await expect(formulaire.getByText('document-invalide.pdf', { exact: true })).toBeVisible();
   await formulaire.getByRole('button', { name: "Déposer l'attestation", exact: true }).click();
   await expect(formulaire.getByRole('alert')).toBeVisible();
-  await expect(formulaire.getByText('Aucun fichier choisi', { exact: true })).toBeVisible();
-  expect(await fichier.evaluate((el: HTMLInputElement) => el.files?.length)).toBe(0);
+  await expect(formulaire.getByText('document-invalide.pdf', { exact: true })).toBeVisible();
+  expect(await fichier.evaluate((el: HTMLInputElement) => el.files?.length)).toBe(1);
 });

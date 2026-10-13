@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { regenererGrilleEdl, type EtatEdl } from "@/app/actions/edl";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
@@ -22,7 +22,7 @@ export function BoutonRegenererGrille({
   const [etat, formAction] = useActionState<EtatEdl, FormData>(action, {});
 
   return (
-    <form action={formAction} className="mt-2 space-y-1">
+    <form data-saisie-confirmee action={formAction} className="mt-2 space-y-1">
       <BoutonEnvoi size="sm" enCoursTexte="Régénération…">
         {libelle}
       </BoutonEnvoi>

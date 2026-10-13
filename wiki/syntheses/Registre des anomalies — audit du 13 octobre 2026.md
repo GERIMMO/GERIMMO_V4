@@ -23,11 +23,11 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 |---|---|---|---|---|---|---|---|---|
 | **P0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
 | **P1** | 0 | 1 | 0 | 0 | 0 | 0 | 0 | **1** |
-| **P2** | 19 | 2 | 0 | 0 | 1 | 0 | 0 | **22** |
-| **P3** | 31 | 2 | 0 | 2 | 0 | 0 | 0 | **35** |
-| **Total** | 50 | 5 | 0 | 2 | 1 | 0 | 0 | **58** |
+| **P2** | 21 | 2 | 0 | 0 | 1 | 0 | 0 | **24** |
+| **P3** | 37 | 2 | 0 | 2 | 0 | 0 | 0 | **41** |
+| **Total** | 58 | 5 | 0 | 2 | 1 | 0 | 0 | **66** |
 
-Sources lues : auditeur/a, auditeur/b, coordinateur, proprietaire/s01, relecture/finance, relecture/reprises, relecture/supervision.
+Sources lues : auditeur/a, auditeur/b, auditeur/c, coordinateur, proprietaire/s01, relecture/finance, relecture/reprises, relecture/supervision.
 
 > [!warning] Couverture à ne pas surestimer
 > Ce registre ne couvre que ce que les agents ont effectivement exécuté (voir le registre d'exécution à venir).
@@ -56,7 +56,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Contrôle en production (lecture seule)** : `-- Lecture seule : documents « récapitulatif nu » produits depuis la mise en ligne (à ouvrir : rubriques à 0,00 € attendues). select d.id, d.organization_id, d.titre, d.created_at from public.documents d where d.titre = 'Récapitulatif annuel · location nue' and d.created_at >= '2026-10-12' order by d.created_at;`
 - **Statut** : corrigée en branche — commit cddf339 (tests rouges puis verts)
 
-## P2 — dégradation avec contournement (22)
+## P2 — dégradation avec contournement (24)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
@@ -67,6 +67,8 @@ Aucune anomalie de cette gravité à ce jour.
 | `AUD-B-01` | auditeur/b | E-mails de relance, d'appel et de rappel : valeurs saisies insérées sans échappement HTML | ouverte |
 | `AUD-B-02` | auditeur/b | Aucune limite de longueur à l'inscription : un nom très long rend le compte inutilisable (HTTP 431 sur tout le site) | ouverte |
 | `AUD-B-04` | auditeur/b | Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce *(hyp.)* | ouverte |
+| `AUD-C-01` | auditeur/c | Un encaissement a 3 decimales (ou 0,004 EUR) et date dans le futur est accepte et ecrit au journal comptable | ouverte — recoupe PROP-12 et PROP-13 (même défaut de validation vu par un autre agent) |
+| `AUD-C-02` | auditeur/c | Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees par Sante | ouverte — complète SUP-01 : même cause, côté sauvegarde et restauration |
 | `PROP-02` | proprietaire/s01 | Code postal à 4 chiffres et année 1500 acceptés et enregistrés à la création du bien | ouverte |
 | `PROP-03` | proprietaire/s01 | Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause | ouverte |
 | `PROP-07` | proprietaire/s01 | Fiche personne : date de naissance future, téléphone « abc » et code postal « 75 » acceptés | ouverte |
@@ -154,6 +156,26 @@ Aucune anomalie de cette gravité à ce jour.
 - **Preuve (banc)** : snap-main/app/next.config.ts:147-158 ; snap-main/app/src/lib/file-type.ts (TAILLE_MAX_OCTETS)
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Statut** : ouverte
+
+#### `AUD-C-01` — Un encaissement a 3 decimales (ou 0,004 EUR) et date dans le futur est accepte et ecrit au journal comptable
+
+- **Attendu** : Refus : un montant en euros a deux decimales au plus, une date de paiement plausible, un plafond raisonnable.
+- **Observé** : Accepte. L'ecriture de loyer recette 0.004 est creee avec date_imputation 2031-01-01. Sur le banc partage, deux ecritures a 12.345 existent deja (e768b993 et sa contre-ecriture b487429f, annulee ensuite par le proprietaire) et des encaissements dates 2027 et 2030. L'export CSV arrondit avec toFixed(2) alors que le SQL somme les sous-centimes ; un encaissement date de 2031 sort des totaux de l'annee en cours tout en marquant le terme paye sur le bail.
+- **Cause probable** : Seules contraintes : CHECK (montant > 0) sur encaissements et ecritures (aucune echelle ni borne de date) ; app/src/app/actions/loyers.ts : Number(montant) sans arrondi ni plafond, date_paiement transmise telle quelle ; comptabilite/export/route.ts montantFr toFixed(2).
+- **Correction proposée** : CHECK (montant = round(montant, 2) et montant < 1 000 000) et CHECK (date_paiement <= current_date + interval '1 day') sur encaissements ; round(montant, 2) et message d'erreur dans ajouterEncaissement ; meme echelle sur ecritures.montant. Nettoyer l'existant avant d'ajouter la contrainte (NOT VALID puis VALIDATE).
+- **Preuve (banc)** : preuves/auditeur/c/preuves-sql.txt
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : ouverte — recoupe PROP-12 et PROP-13 (même défaut de validation vu par un autre agent)
+
+#### `AUD-C-02` — Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees pa…
+
+- **Attendu** : La procedure de reprise liste la recreation des taches pg_cron et l'activation de pg_cron/pg_net ; un ecran ou une alerte signale qu'un cycle mensuel n'a pas tourne.
+- **Observé** : Apres une restauration, les appels de loyer du mois (cycle-mensuel, le 1er a 05:00 UTC), les alertes d'impayes, la retention et le declencheur marketing ne repartent pas, sans aucun signal (hypothese sur l'effet en production : seule l'exclusion du dump, l'absence de documentation et l'absence de lecteur sont prouvees). Contournement : bouton 'generer les appels' bail par bail.
+- **Cause probable** : app/scripts/sauvegarde/base.mjs (SCHEMAS) ; app/docs/sauvegarde-et-restauration.md ; app/src/lib/tache.ts (dernieresTaches ne retient que tache_*).
+- **Correction proposée** : Ajouter a la procedure l'etape 'rejouer les cron.schedule des migrations et activer pg_cron/pg_net' ; exporter select jobname, schedule, command from cron.job dans la sauvegarde ; faire consigner cycle_mensuel sous tache_cycle_mensuel (ou lire cycle_mensuel dans Sante, retard > 32 jours).
+- **Preuve (banc)** : preuves/auditeur/c/preuves-sql.txt ; inventaire-automatismes.md section 2
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : ouverte — complète SUP-01 : même cause, côté sauvegarde et restauration
 
 #### `PROP-02` — Code postal à 4 chiffres et année 1500 acceptés et enregistrés à la création du bien
 
@@ -304,7 +326,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : oui
 - **Statut** : acceptée — défaut du banc d'essai, pas du produit ; banc-up.sh vérifie la clé de service
 
-## P3 — cosmétique ou mineur (35)
+## P3 — cosmétique ou mineur (41)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
@@ -312,6 +334,12 @@ Aucune anomalie de cette gravité à ce jour.
 | `AUD-A-06` | auditeur/a | Insertion anonyme directe dans demandes_devis sans limite de débit | ouverte |
 | `AUD-B-03` | auditeur/b | Cookie de session lisible par script et marqué Secure seulement si NEXT_PUBLIC_SITE_URL commence par https:// *(hyp.)* | ouverte |
 | `AUD-B-05` | auditeur/b | Dépôt de deux fichiers identiques : un seul conservé, sans le dire | ouverte |
+| `AUD-C-03` | auditeur/c | L'ordre d'application des migrations n'est pas l'ordre des noms de fichiers *(hyp.)* | ouverte |
+| `AUD-C-04` | auditeur/c | Trois versions de PostgreSQL dans les preuves de sauvegarde, sans garde de coherence (hypothese a verifier) *(hyp.)* | ouverte |
+| `AUD-C-05` | auditeur/c | L'arret d'urgence ne couvre pas les e-mails declenches par le webhook Stripe (hypothese a verifier) *(hyp.)* | ouverte |
+| `AUD-C-06` | auditeur/c | L'export CSV du journal ne neutralise pas les formules de tableur (hypothese a verifier) *(hyp.)* | ouverte |
+| `AUD-C-07` | auditeur/c | Les routes cron directes n'ont ni verrou de mission ni reservation avant envoi (doublon d'e-mail possible, hypothese a verifier) *(hyp.)* | ouverte |
+| `AUD-C-08` | auditeur/c | Fichiers PDF orphelins possibles si le webhook Youtrust et la tache de nuit traitent le meme evenement en meme temps (hypothese a verifier) *(hyp.)* | ouverte |
 | `PROP-04` | proprietaire/s01 | Surface démesurée : message technique « numeric field overflow » affiché à l'utilisateur | ouverte |
 | `PROP-05` | proprietaire/s01 | Nom d'espace sans élision : « Parc de Éloïse … » | ouverte |
 | `PROP-08` | proprietaire/s01 | Recherche globale (⌘K) insensible à la casse mais pas aux accents ; code postal non recherchable | ouverte |

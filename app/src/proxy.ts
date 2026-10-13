@@ -176,7 +176,13 @@ export async function proxy(request: NextRequest) {
   const inactivityExpired = now - lastActivity > limits.inactivity;
 
   if (absoluteExpired || inactivityExpired) {
-    await supabase.auth.signOut();
+    const { error: erreurDeconnexion } = await supabase.auth.signOut();
+    // Une ancienne session ne doit pas interdire la consultation du site vitrine.
+    // Les mutations et les pages privées gardent la redirection de sécurité.
+    if (!erreurDeconnexion && isPublic && ["GET", "HEAD"].includes(request.method)) {
+      response.cookies.delete(ACTIVITY_COOKIE);
+      return response;
+    }
     // La destination est mémorisée ici aussi (24/09), comme pour le visiteur
     // non connecté : une session qui expire pendant qu'on rédige une demande
     // sur /assistance ramenait, après reconnexion, sur « Mes espaces » et non

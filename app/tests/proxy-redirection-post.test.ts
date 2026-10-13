@@ -6,6 +6,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { ACTIVITY_COOKIE } from "@/lib/session-policy";
 import { statutRedirection } from "@/lib/redirection";
 
 const mocks = vi.hoisted(() => ({ client: vi.fn() }));
@@ -62,5 +63,23 @@ describe("le proxy renvoie vers /connexion", () => {
     const get = await proxy(new NextRequest("https://gerimmo.test/agence/123/biens"));
     expect(get.status).toBe(307);
     expect(get.headers.get("location")).toContain("raison=session-expiree");
+  });
+});
+
+
+describe("site public après expiration", () => {
+  it.each(["/", "/tarifs", "/journal", "/outils/quittance-de-loyer"])("déconnecte puis laisse lire %s", async chemin => {
+    const signOut = sessionExpiree();
+    const reponse = await proxy(new NextRequest(`https://gerimmo.test${chemin}`));
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(reponse.headers.get("location")).toBeNull();
+    expect(reponse.cookies.get(ACTIVITY_COOKIE)?.value).toBe("");
+    expect(reponse.status).toBe(200);
+  });
+  it("un POST public expiré ne peut pas poursuivre l’action", async () => {
+    sessionExpiree();
+    const reponse = await proxy(new NextRequest("https://gerimmo.test/assistance", { method: "POST" }));
+    expect(reponse.status).toBe(303);
+    expect(reponse.headers.get("location")).toContain("raison=session-expiree");
   });
 });

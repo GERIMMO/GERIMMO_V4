@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { NOTE_SIGNALEMENT_FERME } from "./types";
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   contesterImputation,
   signalerProblemePersiste,
@@ -67,7 +68,7 @@ function PetitFormulaire({
 }) {
   const idChamp = useId();
   return (
-    <form action={action} className="mt-2 flex items-start gap-2">
+    <form data-saisie-confirmee action={action} className="mt-2 flex items-start gap-2">
       {/* Ligne compacte (zone + bouton) : libellé pour la seule synthèse vocale */}
       <Label htmlFor={idChamp} className="sr-only">
         {libelle}

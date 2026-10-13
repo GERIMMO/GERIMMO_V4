@@ -34,7 +34,7 @@ export function BoutonArchiverPersonne({
     );
   }
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    <form data-saisie-confirmee action={formAction} className="flex items-center gap-2">
       <span className="text-xs text-muted-foreground">
         La fiche disparaît des listes, rien n&apos;est supprimé.
       </span>
@@ -116,7 +116,7 @@ export function FormulaireIdentite({
   return (
     // w-full : dans la rangée d'actions, le formulaire ouvert se serrait contre
     // « Archiver la fiche » — 200 px de large au téléphone (24/09).
-    <form onReset={event => { if (integre) event.preventDefault(); }} action={formAction} className={integre ? "w-full space-y-3" : "mt-2 w-full max-w-xl space-y-3 rounded-lg border border-border bg-card p-4"}>
+    <form data-saisie-confirmee onReset={event => { if (integre) event.preventDefault(); }} action={formAction} className={integre ? "w-full space-y-3" : "mt-2 w-full max-w-xl space-y-3 rounded-lg border border-border bg-card p-4"}>
       {!integre && <p className="text-sm font-medium">Modifier la fiche</p>}
       {/* En erreur, l'action renvoie la saisie (etat.valeurs) : le reset React
           retombe sur les corrections, pas sur les valeurs d'origine. */}

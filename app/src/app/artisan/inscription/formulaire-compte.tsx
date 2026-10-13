@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useId } from "react";
+import { useId } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import { creerCompteArtisan, type EtatInscription } from "@/app/actions/auth";
 import { CLASSE_BOUTON_PRINCIPAL, CLASSE_CHAMP, CLASSE_LIBELLE, Erreur } from "../ui";
@@ -40,7 +41,7 @@ export function FormulaireCompteArtisan() {
   }
 
   return (
-    <form action={action} className="space-y-5">
+    <form data-saisie-confirmee action={action} className="space-y-5">
       <div className="space-y-1.5">
         <label htmlFor={idEmail} className={CLASSE_LIBELLE}>
           Adresse e-mail

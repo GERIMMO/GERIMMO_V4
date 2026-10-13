@@ -140,7 +140,7 @@ export function FormulaireComplementsBail({
     etat.valeurs?.[nom] ?? (defaut == null ? "" : String(defaut));
 
   return (
-    <form onReset={event => event.preventDefault()} action={formAction} className="space-y-5" onInvalidCapture={event => {
+    <form data-saisie-confirmee onReset={event => event.preventDefault()} action={formAction} className="space-y-5" onInvalidCapture={event => {
       const groupe = (event.target as HTMLElement).closest<HTMLElement>("[data-complement]");
       if (groupe?.dataset.complement) parcours?.ouvrir(groupe.dataset.complement);
     }}>

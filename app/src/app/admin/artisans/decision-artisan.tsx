@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useContext } from "react";
+import { useContext } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { traiterInscriptionArtisan } from "@/app/actions/supervision-artisans";
 import { SignalerDecisionArtisan } from "./retour-decisions";
@@ -18,7 +19,7 @@ export function DecisionArtisan({ artisanId, operation, siretVerifie = false }: 
   }, {});
   const libelles = { verifier_siret: "Enregistrer le SIRET comme vérifié", validation: "Valider l’inscription", refus: "Refuser avec ce motif", remise_en_attente: "Réexaminer l’inscription", suspension: "Suspendre la validation" };
   return (
-    <form action={action} onReset={(event) => event.preventDefault()} className="space-y-3">
+    <form data-saisie-confirmee action={action} onReset={(event) => event.preventDefault()} className="space-y-3">
       <input type="hidden" name="operation" value={operation} />
       {operation === "verifier_siret" && <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="verification_effectuee" value="oui" required className="mt-1 size-4 accent-[var(--encre)]" />J’ai vérifié l’existence et l’identité de l’entreprise correspondant à ce SIRET.</label>}
       {operation === "validation" && <>

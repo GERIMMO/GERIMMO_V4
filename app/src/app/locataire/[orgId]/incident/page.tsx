@@ -17,7 +17,7 @@ export default async function PageSignalerIncident(
   props: PageProps<"/locataire/[orgId]/incident">
 ) {
   const { orgId } = await props.params;
-  const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, adhesionActive, user } = await verifierAccesEspaceLocataire(orgId);
 
   const { data: baux, error: erreurBail } = await supabase.rpc("mon_bail_locataire", { p_org: orgId });
   const bailActif = adhesionActive && !erreurBail && signalementOuvert(baux as { etat: string }[] | null);
@@ -56,7 +56,7 @@ export default async function PageSignalerIncident(
       {bailActif ? (
         <>
           <ReflexesUrgence surFormulaire />
-          <FormulaireIncidentLocataire orgId={orgId} />
+          <FormulaireIncidentLocataire compteId={user.id} orgId={orgId} />
         </>
       ) : (
         <div className="loc-carte">

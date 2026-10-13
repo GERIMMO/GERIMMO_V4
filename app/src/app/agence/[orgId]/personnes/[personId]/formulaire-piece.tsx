@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   deposerPieceDossier,
   validerAttestation,
@@ -24,7 +25,7 @@ export function FormulairePiece({ orgId, personId, demande }: { orgId: string; p
   }, [etat]);
 
   return (
-    <form
+    <form data-saisie-confirmee
       onChange={() => setEtatModifie(etat)}
       ref={formulaire}
       action={formAction}
@@ -109,7 +110,7 @@ export function BoutonValiderAttestation({
     {}
   );
   return (
-    <form action={formAction} className="inline">
+    <form data-saisie-confirmee action={formAction} className="inline">
       <BoutonEnvoi size="sm" variant="outline" enCoursTexte="…">
         Valider
       </BoutonEnvoi>
@@ -137,7 +138,7 @@ export function FormulaireNouvelleVersion({
   const [etat, formAction] = useActionState<EtatDossier, FormData>(action, {});
 
   return (
-    <form action={formAction} className="mt-1 flex flex-wrap items-end gap-2">
+    <form data-saisie-confirmee action={formAction} className="mt-1 flex flex-wrap items-end gap-2">
       <input type="hidden" name="remplace_id" value={remplaceId} />
       <input type="hidden" name="type" value={type} />
       <div className="min-w-40 flex-1 space-y-1.5">

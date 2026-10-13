@@ -4,16 +4,8 @@ import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import Link from "next/link";
 import { ageAu, type PersonneResume } from "@/lib/resume-location";
 import { changerEtatLot } from "@/app/actions/parc";
-import {
-  createContext,
-  useActionState,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-  useRef,
-  type ReactNode,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useState, useRef, type ReactNode } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   chargerFicheLot,
   chargerDocumentsDuLot,
@@ -257,7 +249,7 @@ function FenetreLot({
       )}
 
       {fiche && (confirmerRetrait ? (
-        <form id="retrait-lot" onSubmit={retrait.soumettre} className="space-y-4 text-left">
+        <form data-saisie-confirmee id="retrait-lot" onSubmit={retrait.soumettre} className="space-y-4 text-left">
           <input type="hidden" name="etat" value="archive" />
           <h4 className="text-lg font-semibold">Retirer ce lot du parc ?</h4>
           <p className="text-sm">« {fiche.lot_nom} » sera archivé et retiré des lots actifs. Ses documents et son historique seront conservés. Le responsable pourra le réactiver depuis la fiche du bien.</p>
@@ -570,7 +562,7 @@ function GestesImpaye({
           Règlement partiel
         </button>
         {prochain && (
-          <form action={actionRelance}>
+          <form data-saisie-confirmee action={actionRelance}>
             <input type="hidden" name="niveau" value={prochain.niveau} />
             <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Enregistrement…">
               {prochain.rang === 1 ? "Relancer" : prochain.libelle}
@@ -624,7 +616,7 @@ function FormulairePartiel({
     {}
   );
   return (
-    <form action={action} className="flex flex-wrap items-end gap-2 border-t border-border pt-2">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-end gap-2 border-t border-border pt-2">
       <div className="space-y-1">
         <Label htmlFor={`part-${bailId}`} className="text-xs">
           Montant reçu (€)
@@ -1230,7 +1222,7 @@ function LigneTerme({
         </span>
       </span>
       <span className="montant shrink-0 tabular-nums">{eur(reste)}</span>
-      <form action={action} className="shrink-0">
+      <form data-saisie-confirmee action={action} className="shrink-0">
         <BoutonEnvoi size="sm" enCoursTexte="Encaissement…">
           Encaisser
         </BoutonEnvoi>
@@ -1263,7 +1255,7 @@ function FormulaireDepense({
     return r;
   }, {});
   return (
-    <form action={action} className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
       <input type="hidden" name="lot_id" value={lotId} />
       <input type="hidden" name="sens" value="depense" />
       <div className="w-full space-y-1 sm:w-auto">
@@ -1341,7 +1333,7 @@ function BlocRapport({ lotId, rapport }: { lotId: string; rapport: RapportDuLot 
   }
   const mois = moisEnFrancais(String(rapport.mois).slice(0, 7));
   return (
-    <form onSubmit={soumettre} aria-busy={enCours} className="space-y-2 border-t border-border pt-4">
+    <form data-saisie-confirmee onSubmit={soumettre} aria-busy={enCours} className="space-y-2 border-t border-border pt-4">
       <p className="eyebrow">Rapport de gestion · {mois}</p>
       <p className="text-sm text-muted-foreground">
         Adressé à {rapport.mandant}

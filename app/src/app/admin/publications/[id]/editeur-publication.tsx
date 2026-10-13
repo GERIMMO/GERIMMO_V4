@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import { ExternalLink } from "lucide-react";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -144,7 +145,7 @@ export function EditeurPublication(p: Props) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_280px] lg:items-start">
       {/* ------------------------------------------------ Colonne d'écriture */}
-      <form
+      <form data-saisie-confirmee
         id={ID_FORMULAIRE}
         action={action}
         onChange={() => setModificationsNonEnregistrees(true)}
@@ -284,7 +285,7 @@ export function EditeurPublication(p: Props) {
           {retourEnregistrement}
         </div>
         {!paru ? (
-          <form action={actionParution} className="space-y-2">
+          <form data-saisie-confirmee action={actionParution} className="space-y-2">
             <Soumettre classe="btn-or" disabled={!pret}>
               Faire paraître
             </Soumettre>
@@ -323,7 +324,7 @@ export function EditeurPublication(p: Props) {
               </div>
             )}
             {confirmation === "retrait" && (
-              <form action={actionRetrait} className="space-y-2 rounded-xl border border-[var(--warning)] bg-[var(--warning-soft)] p-3 text-[12.5px] text-[var(--warning-soft-foreground)]">
+              <form data-saisie-confirmee action={actionRetrait} className="space-y-2 rounded-xl border border-[var(--warning)] bg-[var(--warning-soft)] p-3 text-[12.5px] text-[var(--warning-soft-foreground)]">
                 <p>L’article est retiré du journal public et conservé ici, dans « Retirés ». Les modifications non enregistrées ne sont pas gardées.</p>
                 <Soumettre classe="btn-or">Confirmer le retrait</Soumettre>
                 <button type="button" className="btn-secondaire w-full justify-center" onClick={() => setConfirmation(null)}>Annuler</button>
@@ -345,7 +346,7 @@ export function EditeurPublication(p: Props) {
             {p.facebookPostId ? (
               <p className="mt-1.5 text-[13px] text-[var(--success)]">Publié par Gerimmo{p.facebookPublieLe ? ` le ${new Date(p.facebookPublieLe).toLocaleDateString("fr-FR")}` : ""}.</p>
             ) : (
-              <form action={actionFacebook} className="mt-2 space-y-2">
+              <form data-saisie-confirmee action={actionFacebook} className="mt-2 space-y-2">
                 <Soumettre classe="btn-secondaire">Publier sur Facebook</Soumettre>
                 <p className="text-[11.5px] text-[var(--texte-secondaire)]">Enregistrez d’abord le texte et le visuel si vous les modifiez.</p>
               </form>
@@ -380,7 +381,7 @@ export function EditeurPublication(p: Props) {
         {!paru && (
           <details className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3.5">
             <summary className="libelle-champ cursor-pointer">Écarter ce sujet</summary>
-            <form action={actionRefus} className="mt-2.5 space-y-2">
+            <form data-saisie-confirmee action={actionRefus} className="mt-2.5 space-y-2">
               <Input name="motif" placeholder="Pourquoi ?" aria-label="Motif du refus" required />
               <BoutonEnvoi variant="outline" size="sm" className="w-full justify-center">
                 Écarter

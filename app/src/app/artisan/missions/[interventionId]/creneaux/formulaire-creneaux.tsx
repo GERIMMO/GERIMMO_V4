@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import {
   proposerMesCreneaux,
@@ -98,7 +99,7 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
     .filter((c,i,liste) => liste.findIndex(x=>x.debut===c.debut && x.fin===c.fin)===i);
 
   return (
-    <form action={action} className="space-y-5">
+    <form data-saisie-confirmee action={action} className="space-y-5">
       <input type="hidden" name="creneaux" value={JSON.stringify(prets)} />
 
       <div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4" role="status">

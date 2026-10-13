@@ -3,7 +3,8 @@
 import { eur, formaterDate } from "@/lib/ged";
 import { InputDateJour } from "@/components/input-date-jour";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { encaisserDepot, supprimerEncaissementDepot, type EtatDepot } from "@/app/actions/depot";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
@@ -147,7 +148,7 @@ function FormEncaisser({
   );
   const idVersantLibelle = useId();
   return (
-    <form action={action} className="space-y-2 border border-dashed border-border p-3">
+    <form data-saisie-confirmee action={action} className="space-y-2 border border-dashed border-border p-3">
       <p className="text-sm font-medium">Enregistrer un encaissement</p>
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1">
@@ -248,7 +249,7 @@ function BoutonSupprimer({
       </Button>
     );
   return (
-    <form action={action} className="flex flex-wrap items-center justify-end gap-1">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-center justify-end gap-1">
       <Input
         name="motif"
         placeholder="Motif du retrait"

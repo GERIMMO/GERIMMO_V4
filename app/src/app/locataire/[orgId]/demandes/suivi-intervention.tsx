@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import {
   choisirMonCreneau,
@@ -304,7 +305,7 @@ function ChoixDuCreneau({
       {creneaux.length > 0 && (
         // Après un refus du serveur, React remet le formulaire à zéro : les
         // radios se décochent, « Confirmer » doit se désactiver avec eux.
-        <form
+        <form data-saisie-confirmee
           ref={formulaireChoix}
           action={actionChoix}
           onReset={() => setCreneauCoche(false)}
@@ -377,7 +378,7 @@ function ChoixDuCreneau({
           Aucun ne me convient — proposer mes disponibilités
         </button>
       ) : (
-        <form action={actionContre} className="mt-2.5">
+        <form data-saisie-confirmee action={actionContre} className="mt-2.5">
           <fieldset className="border-0 p-0">
             <legend className="text-sm font-medium">Vos disponibilités</legend>
             <p className="mb-2 text-xs text-muted-foreground">
@@ -511,7 +512,7 @@ function TravailFait({
           Merci, votre avis sur cette intervention est enregistré.
         </p>
       ) : peutAgir && suivi.intervention_id ? (
-        <form onSubmit={action}>
+        <form data-saisie-confirmee onSubmit={action}>
           <fieldset disabled={enCours} className="border-0 p-0">
             <legend className="text-sm font-medium">
               Votre avis sur l&apos;intervention

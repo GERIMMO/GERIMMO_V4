@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import Link from "next/link";
 import { deciderPostProgramme, type EtatCampagne } from "./actions";
 
@@ -31,7 +32,7 @@ function Geste({ post, action, libelle, classe, motifRequis, enCours, dejaValide
     return <button type="button" className={classe} onClick={() => setOuvert(true)}>{libelle}</button>;
   }
   return (
-    <form action={soumettre} className={motifRequis ? "flex w-full flex-wrap items-end gap-2" : "inline"}>
+    <form data-saisie-confirmee action={soumettre} className={motifRequis ? "flex w-full flex-wrap items-end gap-2" : "inline"}>
       <input type="hidden" name="id" value={post.id} />
       <input type="hidden" name="action" value={action} />
       {motifRequis && (

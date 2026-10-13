@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { retablirBien, retirerBien, type EtatRetraitBien } from "@/app/actions/retrait-bien";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,7 @@ export function CarteRetraitBien({
         {etatRetour.succes ? (
           <p className="mt-2 text-success-soft-foreground">{etatRetour.succes}</p>
         ) : (
-          <form action={actionRetour} className="mt-3">
+          <form data-saisie-confirmee action={actionRetour} className="mt-3">
             <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Remise au parc…" className="min-h-11">
               Remettre ce bien au parc
             </BoutonEnvoi>
@@ -95,7 +96,7 @@ export function CarteRetraitBien({
               Retirer ce bien…
             </Button>
           ) : (
-            <form action={actionRetrait} className="mt-3 flex flex-wrap items-center gap-2">
+            <form data-saisie-confirmee action={actionRetrait} className="mt-3 flex flex-wrap items-center gap-2">
               <BoutonEnvoi variant="destructive" size="sm" enCoursTexte="Retrait…" className="min-h-11">
                 Confirmer le retrait
               </BoutonEnvoi>

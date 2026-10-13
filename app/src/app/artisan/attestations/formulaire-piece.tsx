@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import Link from "next/link";
 import { FileUp } from "lucide-react";
 import styles from "./attestations.module.css";
@@ -63,7 +64,7 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
     // `deposer` : l'ancre visée par l'état vide et par « Encore attendues ».
     <Carte id="deposer" className={styles.depot}>
       <div className={styles.enteteDepot}><span className={styles.icone}><FileUp size={21} aria-hidden/></span><div><h2>Déposer une attestation</h2><p>Choisissez votre document et renseignez sa validité.</p></div><Link href="/artisan/attestations">Annuler</Link></div>
-      <form action={action} className="space-y-4">
+      <form data-saisie-confirmee action={action} className="space-y-4">
         <div data-type-piece className="space-y-1.5">
           <label htmlFor={idType} className={CLASSE_LIBELLE}>
             Quelle attestation

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   escaladerAlerte,
   fermerAlerte,
@@ -148,7 +149,7 @@ export function ModaleAlerte({
       )}
 
       {alerte.criticite !== "informative" && (
-        <form action={actionConfier} className="space-y-1.5">
+        <form data-saisie-confirmee action={actionConfier} className="space-y-1.5">
           <label htmlFor="confier-vers" className="libelle-champ">
             Confier à
           </label>
@@ -216,7 +217,7 @@ export function ModaleAlerte({
           </Button>
         </div>
       ) : (
-        <form action={actionTraiter} className="space-y-1.5">
+        <form data-saisie-confirmee action={actionTraiter} className="space-y-1.5">
           <label htmlFor="traiter-action" className="libelle-champ">
             Marquer traitée — ce qui a été fait
           </label>

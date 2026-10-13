@@ -29,15 +29,19 @@ export function ComboboxLot({
   id,
   placeholder = "Adresse, lot, ville…",
   requis = false,
+  valeurInitiale = "",
+  onChoix,
 }: {
   lots: LotOption[];
   name?: string;
   id?: string;
   placeholder?: string;
   requis?: boolean;
+  valeurInitiale?: string;
+  onChoix?: (id: string) => void;
 }) {
   const [saisie, setSaisie] = useState("");
-  const [choisi, setChoisi] = useState<LotOption | null>(null);
+  const [choisi, setChoisi] = useState<LotOption | null>(() => lots.find(l => l.id === valeurInitiale) ?? null);
   const [ouvert, setOuvert] = useState(false);
   const [actif, setActif] = useState(0);
   const fermeture = useRef<number | undefined>(undefined);
@@ -61,6 +65,7 @@ export function ComboboxLot({
   const retenir = (l: LotOption) => {
     window.clearTimeout(fermeture.current);
     setChoisi(l);
+    onChoix?.(l.id);
     setOuvert(false);
     setActif(0);
   };
@@ -82,6 +87,7 @@ export function ComboboxLot({
         placeholder={placeholder}
         onChange={(e) => {
           setChoisi(null);
+          onChoix?.("");
           setSaisie(e.target.value);
           setActif(0);
           setOuvert(true);

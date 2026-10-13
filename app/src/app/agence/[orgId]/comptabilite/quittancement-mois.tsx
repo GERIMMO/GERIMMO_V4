@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useRef } from "react";
+import { useRef } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   encaisserReste,
   type EtatEncaissementReste,
@@ -101,7 +102,7 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
             )}
           </>
         ) : (
-          <form action={actionEmi} className="relative z-10 inline-flex flex-wrap items-center gap-1.5">
+          <form data-saisie-confirmee action={actionEmi} className="relative z-10 inline-flex flex-wrap items-center gap-1.5">
             <BoutonEnvoi size="sm" variant="ghost">
               Émettre la quittance
             </BoutonEnvoi>
@@ -109,7 +110,7 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
         )
       ) : (
         <>
-          <form action={actionEnc} className="relative z-10 inline-flex flex-wrap items-center gap-1.5">
+          <form data-saisie-confirmee action={actionEnc} className="relative z-10 inline-flex flex-wrap items-center gap-1.5">
             <BoutonEnvoi size="sm" variant="outline">
               {termeServiDAbord
                 ? `Encaisser ${eur(reste)} (${moisEnFrancais(termeServiDAbord)} d'abord)`
@@ -191,7 +192,7 @@ export function QuittancementMois({
             passe sous le titre au lieu de le comprimer. */}
         <CardAction className="flex flex-wrap items-center justify-end gap-3 max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-2 max-sm:justify-self-start max-sm:justify-start">
           {envoiGroupe && nonEnvoyes.length > 0 && (
-            <form action={actionEnvoi}>
+            <form data-saisie-confirmee action={actionEnvoi}>
               <BoutonEnvoi enCoursTexte="Envoi…" size="sm" variant="outline">
                 {libelleEnvoi}
               </BoutonEnvoi>

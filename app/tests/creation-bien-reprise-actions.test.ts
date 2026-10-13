@@ -25,3 +25,14 @@ it.each([null,'[null]','[42]','[{"surface":"Infinity","pieces":"2"}]','[{"surfac
 });
 it('aucun acces ne devient une mutation et la saisie reste disponible',async()=>{m.verifier.mockResolvedValue({user:null});const r=await creerBien('org-test',{},saisie());expect(r.erreur).toBe('Accès refusé.');expect(r.valeurs?.nom).toBe('TEST Reprise');expect(m.rpc).not.toHaveBeenCalled();});
 it('cle manquante ne cree rien',async()=>{const f=saisie();f.delete('creation_id');expect((await creerBien('org-test',{},f)).erreur).toContain('référence');expect(m.rpc).not.toHaveBeenCalled();});
+
+it('le brouillon reçoit une confirmation uniquement après création réussie', async()=>{
+ const f=saisie();f.set('confirmation_creation','1');
+ m.rpc.mockResolvedValue({data:{bien_id:'bien-unique',lot_unique_id:'lot-unique',saisie_differente:false},error:null});
+ expect(await creerBien('org-test',{},f)).toEqual({succes:'Lot enregistré.',creationConfirmeeHref:'/agence/org-test/parc/bien-unique/lots/lot-unique'});
+ expect(m.redirect).not.toHaveBeenCalled();
+ m.rpc.mockResolvedValue({data:null,error:{message:'Panne TEST'}});
+ expect((await creerBien('org-test',{},f)).creationConfirmeeHref).toBeUndefined();
+ m.rpc.mockResolvedValue({data:{bien_id:'bien-unique',lot_unique_id:'lot-unique',saisie_differente:true},error:null});
+ expect((await creerBien('org-test',{},f)).creationConfirmeeHref).toBeUndefined();
+});

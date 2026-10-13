@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useId } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { reprendreSoldes, type EtatReprise } from "@/app/actions/reprise-comptable";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -34,7 +35,7 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
 
   return (
     <div className="space-y-5">
-      <form action={action} className="space-y-4">
+      <form data-saisie-confirmee action={action} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor={`${base}-date`}>Date de bascule</Label>

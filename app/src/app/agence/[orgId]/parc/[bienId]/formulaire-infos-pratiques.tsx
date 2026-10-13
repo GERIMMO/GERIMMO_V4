@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { enregistrerInfosPratiques, type EtatParc } from "@/app/actions/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
@@ -57,7 +57,7 @@ export function FormulaireInfosPratiques({
         </ul>
       </div>
 
-      <form action={formAction} className="space-y-3">
+      <form data-saisie-confirmee action={formAction} className="space-y-3">
         {CHAMPS.map((c) => (
           <div key={c.nom} className="space-y-1.5">
             <Label htmlFor={`ip-${c.nom}`}>{c.label}</Label>

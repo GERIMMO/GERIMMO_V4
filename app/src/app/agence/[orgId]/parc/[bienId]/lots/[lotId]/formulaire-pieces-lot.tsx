@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useId } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   ajouterPieceLot,
   supprimerPieceLot,
@@ -24,7 +25,7 @@ function BoutonRetirer({ orgId, bienId, lotId, pieceId }: { orgId: string; bienI
   );
   return (
     <>
-      <form action={formAction}>
+      <form data-saisie-confirmee action={formAction}>
         <BoutonEnvoi variant="ghost" size="sm">
           Retirer
         </BoutonEnvoi>
@@ -43,7 +44,7 @@ function BoutonPieceCourante({ orgId, bienId, lotId, nom }: { orgId: string; bie
     {}
   );
   return (
-    <form action={formAction} className="flex flex-wrap items-center gap-1.5">
+    <form data-saisie-confirmee action={formAction} className="flex flex-wrap items-center gap-1.5">
       <input type="hidden" name="nom" value={nom} />
       <BoutonEnvoi variant="outline" size="sm">
         + {nom}
@@ -71,7 +72,7 @@ function FormProposition({
     {}
   );
   return (
-    <form action={action} className="space-y-1">
+    <form data-saisie-confirmee action={action} className="space-y-1">
       <BoutonEnvoi size="sm" enCoursTexte="…">
         Proposer les pièces de ce logement
       </BoutonEnvoi>
@@ -138,7 +139,7 @@ export function FormulairePiecesLot({
       </div>
 
       {/* Ajout libre */}
-      <form action={formAction} className="flex items-end gap-2">
+      <form data-saisie-confirmee action={formAction} className="flex items-end gap-2">
         {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
         <Label htmlFor={idNom} className="sr-only">
           Nom de la pièce à ajouter

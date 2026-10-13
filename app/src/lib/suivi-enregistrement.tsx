@@ -1,5 +1,6 @@
 "use client";
-import { createContext, useActionState, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 
 /** Les formulaires hors assistant gardent leur comportement habituel. */
 export const CompletudeBail = createContext<{ manquants: string[]; erreur?: string } | null>(null);

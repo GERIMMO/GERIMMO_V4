@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, type ReactNode } from "react";
+import { type ReactNode } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import Link from "next/link";
 import { changerEtatLot, type EtatParc } from "@/app/actions/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -84,7 +85,7 @@ export function BoutonsEtatLot({
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {transitions.map((t) => (
-          <form key={t.cible} action={action}>
+          <form data-saisie-confirmee key={t.cible} action={action}>
             <input type="hidden" name="etat" value={t.cible} />
             <BoutonEnvoi
               size="sm"

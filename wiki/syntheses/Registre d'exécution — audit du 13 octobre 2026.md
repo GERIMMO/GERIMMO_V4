@@ -23,10 +23,12 @@ Vocabulaire de la mission : *exécuté avec succès*, *exécuté en échec*, *im
 | Lint | réussi | réussi |
 | Build de production | réussi | réussi |
 | Types (`tsc`) | réussi | réussi |
-| Tests unitaires et base (vitest), fichiers | 323 passed, 1 skipped (324) | 327 passed, 1 skipped (328) |
-| Tests unitaires et base (vitest), tests | 3333 passed, 14 skipped (3347) | 3422 passed, 14 skipped (3436) |
-| Parcours navigateur (Playwright) | 147 passed | non relevé |
+| Tests unitaires et base (vitest), fichiers | 323 passed, 1 skipped (324) | 330 passed, 1 skipped (331) |
+| Tests unitaires et base (vitest), tests | 3333 passed, 14 skipped (3347) | 3460 passed, 14 skipped (3474) |
+| Parcours navigateur (Playwright) | 147 passed | 1 skipped, 163 passed |
 | Matrice des écrans | réussi | réussi |
+| Audit des écrans à 768 px (tous profils) | non relevé | 8 passed |
+| Audit des écrans à 1440 px (tous profils) | non relevé | 8 passed |
 
 La référence est le code de `main` au commit e9f31ac, PR #177 incluse. La candidate est la tête de la branche
 de l'audit : retrait des agences du site public, correctif pg_cron du marketing, correctif du récapitulatif

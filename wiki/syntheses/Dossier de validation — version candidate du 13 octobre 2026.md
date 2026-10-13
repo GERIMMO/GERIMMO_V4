@@ -45,6 +45,24 @@ les deux fichiers dans cet ordre, puis application réelle, puis contrôles non 
 deux migrations ne modifient aucune donnée ; un retour revient à recréer les anciennes définitions de fonctions (les
 définitions antérieures sont dans les migrations d'origine ; les fonctions modifiées sont énumérées en tête du fichier).
 
+## 2 bis. Contrôles de la version candidate
+
+La version candidate est la tête de la branche après fusion de `main` (PR #178, protection et reprise des formulaires,
+fusionnée après le commit audité sans conflit textuel). Contrôles passés sur le banc local, base remise dans son état
+d'avant les parcours à la fin :
+
+| Contrôle | Résultat |
+|---|---|
+| Lint, build de production, types | réussis |
+| Tests unitaires et de base (vitest) | 3 460 réussis, 14 ignorés (référence e9f31ac : 3 333 réussis, 14 ignorés) |
+| Parcours navigateur (Playwright) | 163 réussis, 1 ignoré (référence : 147 réussis) |
+| Audit des écrans à 768 px et à 1440 px | réussi pour tous les profils |
+| Tests ajoutés par la branche | rouges avant la correction, verts après (courriers, inscription, fiches, encaissements, huit tests SQL) |
+
+Un échec d'outillage est apparu en chemin et a été corrigé : la matrice d'écrans prenait pour « parc du propriétaire »
+une organisation de test laissée par d'autres essais, d'où une redirection et une ressource 404 à l'audit des écrans
+(aucun défaut du produit).
+
 ## 3. Observation de la production (lecture seule, 13/10/2026)
 
 | Contrôle | Résultat |

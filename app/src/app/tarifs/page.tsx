@@ -2,14 +2,12 @@ import Link from "next/link";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { EncartOutils } from "@/components/outils/encart-outils";
 import { Article } from "@/components/coquille-legale";
-import { TableauAgences } from "@/components/grilles-tarifaires";
 import { CartesOffresPubliques } from "@/components/cartes-offres-publiques";
 import { REGIME_TVA } from "@/lib/editeur";
 import { badgeEssai, dureeEssai, etiquetteTaxes, libelleOffreLancement, mentionTaxesPubliques } from "@/lib/tarifs";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 const TTC = etiquetteTaxes("ttc", REGIME_TVA);
-const HT = etiquetteTaxes("ht", REGIME_TVA);
 const avec = (e: string | null) => (e ? ` ${e}` : "");
 
 // La durée de l'essai dépend du jour (offre de lancement jusqu'au 31/12/2026,
@@ -20,7 +18,7 @@ export const revalidate = 3600;
 export function generateMetadata() {
   return metadonneesPubliques({
     titre: "Tarifs — Gerimmo",
-    description: `Particuliers et SCI : de Solo (1 bien, 5,99 €${avec(TTC)}/mois) à Patrimoine (20 biens), mensuel ou annuel. Agences : dès 39 €${avec(HT)}/mois, tranches cumulatives.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, art. 293 B du CGI." : ""} Essai gratuit de ${dureeEssai()}.`,
+    description: `Particuliers et SCI : de Solo (1 bien, 5,99 €${avec(TTC)}/mois) à Patrimoine (20 biens), mensuel ou annuel.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, art. 293 B du CGI." : ""} Essai gratuit de ${dureeEssai()}.`,
     chemin: "/tarifs",
   });
 }
@@ -53,18 +51,7 @@ export default function PageTarifs() {
             <li>Mensuel : sans engagement, résiliable à tout moment pour la prochaine échéance.</li>
             <li>Annuel : payé en une fois pour douze mois (deux mois offerts), renouvelé à sa date anniversaire ; résiliable pour la prochaine échéance annuelle. Le montant annuel prélevé est affiché avant paiement.</li>
             <li>Sont comptés les biens activement gérés, occupés ou vacants. Un logement et ses annexes louées au même bail comptent pour un bien ; un parking loué séparément compte pour un bien. Un bien archivé n&apos;est plus compté et reste consultable.</li>
-            <li>Une SCI qui gère ses propres biens relève de cette grille ; une agence qui gère pour des tiers relève de la grille agences.</li>
-          </ul>
-        </Article>
-
-        <Article titre="Agences immobilières">
-          <TableauAgences />
-          <ul className="list-disc space-y-1 pl-5">
-            <li>Mensuel uniquement, sans engagement, selon les lots distincts sous mandat actif — vacants compris.</li>
-            <li>Le socle de 39 €{avec(HT)} s&apos;applique dès la souscription, même sous dix lots. Aucun abonnement ne démarre à la création du compte.</li>
-            <li>Sans supplément : les comptes de vos collaborateurs et les accès de vos locataires. Vos propriétaires reçoivent leurs rapports de gestion sans abonnement à prendre.</li>
-            <li>L&apos;essai de {duree}, sans carte, s&apos;ouvre sur demande : écrivez-nous depuis l&apos;accueil, rubrique Agences.</li>
-            <li>Aucun frais d&apos;installation pour démarrer seul ; une reprise manuelle de vos données peut vous être proposée sur devis, jamais facturée d&apos;office.</li>
+            <li>Une SCI ou une indivision qui gère ses propres biens relève de cette grille.</li>
           </ul>
         </Article>
 

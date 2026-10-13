@@ -11,7 +11,7 @@ import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 export const metadata = metadonneesPubliques({
   titre: "Journal — Gerimmo",
   description:
-    "Le journal de Gerimmo : actualités et repères sur la gestion locative, pour les propriétaires bailleurs, les agences et les locataires.",
+    "Le journal de Gerimmo : actualités et repères sur la gestion locative, pour les propriétaires bailleurs et leurs locataires.",
   chemin: "/journal",
 });
 

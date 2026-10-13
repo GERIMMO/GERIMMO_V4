@@ -104,9 +104,9 @@ describe("pages légales (mineurs)", () => {
     expect(lire("app/formulaire-devis-vitrine.tsx")).not.toContain("jamais transmises");
   });
 
-  it("l'ancre #agences garde son titre hors du bandeau et défile à l'arrivée", () => {
+  it("l'ancre #contact garde son titre hors du bandeau et défile à l'arrivée", () => {
     const accueil = lire("app/page.tsx");
-    expect(accueil).toMatch(/id="agences" className="[^"]*scroll-mt-/);
+    expect(accueil).toMatch(/id="contact" className="[^"]*scroll-mt-/);
     expect(accueil).toContain("<AncreAuChargement />");
   });
 });

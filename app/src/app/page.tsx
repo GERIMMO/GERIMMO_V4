@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, ArrowUpRight, House, FileText, Wallet, Bell, KeyRound, Building2, Wrench, Check, ShieldCheck, Smartphone, ChevronDown } from "lucide-react";
+import { ArrowRight, ArrowUpRight, House, FileText, Wallet, Bell, KeyRound, Wrench, Check, ShieldCheck, Smartphone, ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { CartesOffresPubliques } from "@/components/cartes-offres-publiques";
@@ -9,7 +9,7 @@ import { FormulaireDevisVitrine } from "./formulaire-devis-vitrine";
 import { AncreAuChargement } from "@/components/ancre-au-chargement";
 import { ApercuTableauDeBord, ApercuQuittance } from "./apercus-produit";
 import { REGIME_TVA } from "@/lib/editeur";
-import { badgeEssai, dureeEssai, etiquetteTaxes, libelleOffreLancement, mentionTaxesPubliques, offreAgence, euros } from "@/lib/tarifs";
+import { badgeEssai, dureeEssai, etiquetteTaxes, libelleOffreLancement, mentionTaxesPubliques } from "@/lib/tarifs";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 import { TuileOutil, outilsPresentes } from "@/components/outils/icones-outils";
@@ -18,12 +18,11 @@ export const revalidate = 3600;
 export function generateMetadata() {
   return metadonneesPubliques({
     titre: "Gerimmo — Vos locations, l’esprit tranquille",
-    description: `Vos biens, baux, loyers, documents et interventions réunis. La gestion locative pour propriétaires et agences, avec un espace locataire. Essai de ${dureeEssai()}, sans carte.`,
+    description: `Vos biens, baux, loyers, documents et interventions réunis. La gestion locative pour propriétaires bailleurs et SCI, avec un espace locataire. Essai de ${dureeEssai()}, sans carte.`,
     chemin: "/",
   });
 }
 const TTC = etiquetteTaxes("ttc", REGIME_TVA);
-const HT = etiquetteTaxes("ht", REGIME_TVA);
 const avec = (e: string | null) => (e ? ` ${e}` : "");
 const faq = (duree: string): [string, string][] => [
   [
@@ -36,11 +35,7 @@ const faq = (duree: string): [string, string][] => [
   ],
   [
     "Mes données sont-elles cloisonnées ?",
-    "Chaque organisation (nom propre, SCI, agence) a ses lots, son livre, sa fiscalité — étanches. Vos locataires ne voient que leur logement et leurs pièces.",
-  ],
-  [
-    "Et pour une agence ?",
-    `Mandats, honoraires, rapports de gestion, portefeuilles par agent : l'espace agence couvre la gérance complète. Mensuel${avec(HT)}, selon les lots sous mandat actif : 39 € jusqu'à 10 lots, puis 2 € du 11ᵉ au 50ᵉ, 1,50 € du 51ᵉ au 200ᵉ et 1 € au-delà — tranches cumulatives. Comptes des collaborateurs et accès des locataires inclus ; les rapports de gestion sont envoyés à vos propriétaires.`,
+    "Chaque organisation (nom propre, SCI) a ses lots, son livre, sa fiscalité — étanches. Vos locataires ne voient que leur logement et leurs pièces.",
   ],
   [
     "Que se passe-t-il si j'arrête ?",
@@ -84,7 +79,7 @@ export default async function PageVitrine() {
             </div>
           </div>
           <div className="public-conteneur public-reperes">
-            <span><House aria-hidden /> Propriétaires & SCI</span><span><Building2 aria-hidden /> Agences immobilières</span><span><Smartphone aria-hidden /> Un espace pour vos locataires</span><span><ShieldCheck aria-hidden /> Vos dossiers au même endroit</span>
+            <span><House aria-hidden /> Propriétaires & SCI</span><span><Wrench aria-hidden /> Un réseau d’artisans</span><span><Smartphone aria-hidden /> Un espace pour vos locataires</span><span><ShieldCheck aria-hidden /> Vos dossiers au même endroit</span>
           </div>
         </header>
 
@@ -113,12 +108,11 @@ export default async function PageVitrine() {
         </section>
 
         <section id="espaces" className="public-section public-conteneur">
-          <div className="public-titre-section"><div><p className="eyebrow">À chacun son espace</p><h2>Les bonnes informations.<br />Pour la bonne personne.</h2></div><p>Propriétaires, locataires, agences et artisans : chacun retrouve les éléments utiles à son rôle.</p></div>
+          <div className="public-titre-section"><div><p className="eyebrow">À chacun son espace</p><h2>Les bonnes informations.<br />Pour la bonne personne.</h2></div><p>Propriétaires, locataires et artisans : chacun retrouve les éléments utiles à son rôle.</p></div>
           <div className="public-espaces">
             {[
               { Icone: KeyRound, titre: "Propriétaires bailleurs", texte: "Pilotez vos locations en direct, seul ou en indivision. Vos documents et vos loyers restent reliés à chaque bien.", lien: "/inscription", action: "Créer mon compte", couleur: "bleu" },
               { Icone: House, titre: "Locataires", texte: "Consultez vos quittances et votre bail signé, déposez votre assurance et suivez vos demandes depuis votre téléphone.", lien: "/connexion", action: "Accéder à mon espace", couleur: "vert" },
-              { Icone: Building2, titre: "Agences immobilières", texte: "Organisez vos portefeuilles, mandats et honoraires. Coordonnez votre équipe et les rapports adressés aux propriétaires.", lien: "#agences", action: "Parlons de votre agence", couleur: "or" },
               { Icone: Wrench, titre: "Artisans", texte: "Retrouvez les demandes qui vous sont confiées, préparez vos devis et suivez vos rendez-vous et interventions.", lien: "/artisan/inscription", action: "Rejoindre le réseau", couleur: "rose" },
             ].map(({ Icone, titre, texte, lien, action, couleur }) => <article key={titre} className={`public-espace public-ton-${couleur}`}><span className="public-icone"><Icone size={24} aria-hidden /></span><h3>{titre}</h3><p>{texte}</p><Link href={lien} className="public-lien">{action}<ArrowUpRight size={16} aria-hidden /></Link></article>)}
           </div>
@@ -135,7 +129,6 @@ export default async function PageVitrine() {
         <section id="tarifs" className="public-section public-conteneur">
           <div className="public-titre-section"><div><p className="eyebrow">Particuliers & SCI</p><h2>Un tarif à la taille<br />de votre patrimoine.</h2></div><p>Les mêmes fonctions dans chaque formule. Seul le nombre de biens change. Commencez par {duree} d’essai gratuit, sans carte bancaire.</p></div>
           <CartesOffresPubliques />
-          <div className="public-tarif-agence"><Building2 aria-hidden size={25} /><div><h3>Vous gérez pour des propriétaires ?</h3><p>Agences : dès {euros(offreAgence(10).montantCents)}{avec(HT)} / mois, jusqu’à 10 lots sous mandat actif. Puis une tarification par tranches.</p></div><Link href="/tarifs" className="public-lien">Tous les tarifs <ArrowRight size={17} aria-hidden /></Link></div>
           <p className="public-note">{mentionTaxesPubliques(REGIME_TVA)} Travaux et interventions sur devis, facturés séparément.</p>
         </section>
 
@@ -143,7 +136,7 @@ export default async function PageVitrine() {
 
         <section className="public-section public-conteneur public-faq"><div><p className="eyebrow">On vous répond</p><h2>Avant de<br />vous lancer.</h2><p className="public-description">Les réponses aux questions les plus fréquentes.</p></div><div>{faq(duree).map(([q, r]) => <details key={q}><summary>{q}<ChevronDown size={18} aria-hidden /></summary><p>{r}</p></details>)}</div></section>
         <AncreAuChargement />
-        <section id="agences" className="public-conteneur scroll-mt-28 public-contact"><div className="public-contact-interieur"><div><p className="eyebrow">Votre agence, avec Gerimmo</p><h2>Parlons de votre<br />portefeuille.</h2><p>Présentez-nous votre agence et vos besoins. Nous revenons vers vous sous 48 h ouvrées pour préparer votre démarrage.</p><ul className="public-liste"><li><Check aria-hidden /> Un tarif public, sans frais d’installation.</li><li><Check aria-hidden /> Un essai de {duree} sur demande, sans carte.</li><li><Check aria-hidden /> Une reprise de vos données possible sur devis.</li></ul></div><FormulaireDevisVitrine /></div></section>
+        <section id="contact" className="public-conteneur scroll-mt-28 public-contact"><div className="public-contact-interieur"><div><p className="eyebrow">Une question ?</p><h2>Écrivez-nous,<br />on vous répond.</h2><p>Une question sur Gerimmo, sur vos données ou sur votre compte ? Dites-nous en quelques mots de quoi il s’agit. Nous répondons sous 48 h ouvrées.</p><ul className="public-liste"><li><Check aria-hidden /> Une réponse d’une personne, pas d’un robot.</li><li><Check aria-hidden /> Vos informations ne servent qu’à vous répondre.</li><li><Check aria-hidden /> Pour exercer vos droits sur vos données, indiquez-le dans votre message.</li></ul></div><FormulaireDevisVitrine /></div></section>
       </main>
       <PiedPublic />
     </div>

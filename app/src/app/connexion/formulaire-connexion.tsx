@@ -174,8 +174,8 @@ export function FormulaireConnexion() {
               Mot de passe oublié ?
             </Link>
           </p>
-          {/* 25/09 (P6) : une porte par persona sans compte — l'artisan et
-              l'agence n'en avaient aucune ici. */}
+          {/* 25/09 (P6) : une porte par persona sans compte. V1 (13/10) : propriétaire
+              et artisan ; l'agence n'est plus proposée au public. */}
           <div className="space-y-1 border-t border-border pt-2 text-center text-sm text-muted-foreground">
             <p>
               Propriétaire bailleur ?{" "}
@@ -193,15 +193,6 @@ export function FormulaireConnexion() {
                 className="inline-flex min-h-11 items-center text-foreground underline underline-offset-4"
               >
                 Inscrire mon entreprise
-              </Link>
-            </p>
-            <p>
-              Agence ?{" "}
-              <Link
-                href="/#agences"
-                className="inline-flex min-h-11 items-center text-foreground underline underline-offset-4"
-              >
-                Demander un devis
               </Link>
             </p>
           </div>

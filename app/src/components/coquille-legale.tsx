@@ -61,7 +61,7 @@ export function OuNousEcrire({ objet }: { objet?: string }) {
     <>
       depuis le{" "}
       <Link href={FORMULAIRE_ACCUEIL} className="lien-texte">
-        formulaire de l&apos;accueil, rubrique Agences
+        formulaire de contact de l&apos;accueil
       </Link>
       , en précisant l&apos;objet de votre question{objet && <> (« {objet} »)</>}
     </>

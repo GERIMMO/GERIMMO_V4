@@ -53,7 +53,7 @@ export default async function PageDevisAdmin() {
         </span>
       </div>
 
-      <p className="mb-5 text-sm text-muted-foreground">Les demandes reçues depuis le site pour devenir client de Gerimmo. Les devis d’intervention des artisans se trouvent dans les dossiers d’incident.</p>
+      <p className="mb-5 text-sm text-muted-foreground">Les messages reçus depuis le formulaire de contact du site : questions, demandes de renseignements, exercice de droits sur les données. Les devis d’intervention des artisans se trouvent dans les dossiers d’incident.</p>
       {/* Un état vide qui guide, comme les autres de la console (24/09), et
           des rangs communs : sans `.rang`, aucun filet ne séparait deux
           demandes. */}
@@ -61,11 +61,11 @@ export default async function PageDevisAdmin() {
         <div className="vide-guide">
           <p className="titre">Aucune demande commerciale</p>
           <p className="explication">
-            Les demandes arrivent depuis le formulaire «&nbsp;Agences&nbsp;» du
-            site vitrine.
+            Les demandes arrivent depuis le formulaire de contact de l&apos;accueil
+            du site vitrine.
           </p>
           <div className="geste">
-            <Link href="/#agences" target="_blank" className="btn-secondaire">
+            <Link href="/#contact" target="_blank" className="btn-secondaire">
               Voir le formulaire sur le site
             </Link>
           </div>

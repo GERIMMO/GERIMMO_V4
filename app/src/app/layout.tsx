@@ -29,7 +29,7 @@ const interface_ = localFont({
   display: "swap",
 });
 
-const DESCRIPTION = "Gestion locative pour agences et propriétaires";
+const DESCRIPTION = "Gestion locative pour propriétaires bailleurs";
 
 // Une seule identité pour les onglets, favoris et aperçus de partage.
 export const metadata: Metadata = {

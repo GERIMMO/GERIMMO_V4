@@ -55,8 +55,8 @@ export function FormulaireCompteArtisan() {
           className={CLASSE_CHAMP}
         />
         <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
-          Si une agence a déjà créé votre fiche, utilisez l&apos;adresse qu&apos;elle
-          a enregistrée pour vous : c&apos;est elle qui vous la rattache.
+          Si un gestionnaire a déjà créé votre fiche, utilisez l&apos;adresse qu&apos;il
+          a enregistrée pour vous : c&apos;est lui qui vous la rattache.
         </p>
       </div>
 

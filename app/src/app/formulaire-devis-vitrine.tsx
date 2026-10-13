@@ -4,8 +4,12 @@ import { useActionState } from "react";
 import { demanderDevis, type EtatDevis } from "@/app/actions/devis";
 import { Spinner } from "@/components/ui/spinner";
 
-// Formulaire de devis du site vitrine (agences). Champs libres volontairement
-// courts — le circuit commercial (module 16) prend le relais par e-mail.
+// Formulaire de contact du site vitrine. Jusqu'au 13/10 il servait aux demandes
+// de devis des agences ; la V1 publique n'a plus d'offre agence, c'est devenu le
+// canal de contact général (et, tant que l'adresse de l'éditeur manque, celui des
+// pages légales : voir FORMULAIRE_ACCUEIL). Champs volontairement courts ; le
+// message est obligatoire, sans quoi la demande ne dit rien. Le nom du fichier
+// et la table `demandes_devis` ne changent pas (les anciennes demandes restent).
 //
 // 24/09 : une seule convention dans les formulaires publics — « (facultatif) »
 // sur les champs optionnels, rien sur les obligatoires. Deux astérisques sans
@@ -46,15 +50,9 @@ export function FormulaireDevisVitrine() {
       </div>
       <div>
         <label htmlFor="devis-email" className={libelle}>
-          E-mail professionnel
+          Votre e-mail
         </label>
         <input id="devis-email" name="email" type="email" required maxLength={320} className={champ} />
-      </div>
-      <div>
-        <label htmlFor="devis-agence" className={libelle}>
-          Votre agence (facultatif)
-        </label>
-        <input id="devis-agence" name="agence" maxLength={200} className={champ} />
       </div>
       <div>
         <label htmlFor="devis-telephone" className={libelle}>
@@ -62,26 +60,15 @@ export function FormulaireDevisVitrine() {
         </label>
         <input id="devis-telephone" name="telephone" type="tel" maxLength={40} className={champ} />
       </div>
-      <div>
-        <label htmlFor="devis-lots" className={libelle}>
-          Lots en gestion, environ (facultatif)
-        </label>
-        <select id="devis-lots" name="nb_lots" defaultValue="" className={champ}>
-          <option value="">—</option>
-          <option value="1-50">1 à 50</option>
-          <option value="51-150">51 à 150</option>
-          <option value="151-300">151 à 300</option>
-          <option value="300+">Plus de 300</option>
-        </select>
-      </div>
       <div className="sm:col-span-2">
         <label htmlFor="devis-message" className={libelle}>
-          Un mot sur votre besoin (facultatif)
+          Votre message
         </label>
         <textarea
           id="devis-message"
           name="message"
-          rows={3}
+          rows={4}
+          required
           maxLength={4000}
           className={`${champ} h-auto py-2`}
         />
@@ -98,11 +85,11 @@ export function FormulaireDevisVitrine() {
       )}
       <div className="sm:col-span-2">
         <button type="submit" disabled={enCours} className="btn-or">
-          {enCours ? <><Spinner className="size-3" /> Envoi…</> : "Demander un devis"}
+          {enCours ? <><Spinner className="size-3" /> Envoi…</> : "Envoyer mon message"}
         </button>
         <p className="mt-2 text-[13px] text-[var(--sur-encre)]/80">
-          Ces informations servent uniquement à vous recontacter au sujet de
-          votre demande — jamais cédées ni revendues, supprimées au plus tard après
+          Ces informations servent uniquement à vous répondre au sujet de
+          votre message — jamais cédées ni revendues, supprimées au plus tard après
           24 mois.{" "}
           <a href="/confidentialite" className="underline underline-offset-2">
             En savoir plus

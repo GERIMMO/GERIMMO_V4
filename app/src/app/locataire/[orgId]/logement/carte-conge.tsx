@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { donnerMonConge, type EtatConge } from "@/app/actions/conge-locataire";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
@@ -119,7 +120,7 @@ export function CarteConge({
           </Button>
         </>
       ) : (
-        <form action={action}>
+        <form data-saisie-confirmee action={action}>
           <h3 className="text-base font-medium">Annoncer votre départ</h3>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Votre préavis sera d&apos;environ{" "}

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { HousePlus } from "lucide-react";
 import styles from "@/components/presentation-parcours.module.css";
 import { verifierAccesEspace } from "@/lib/espace";
-import { FormulaireBien } from "../formulaire-bien";
+import { FormulaireAvecBrouillon } from "./formulaire-avec-brouillon";
 import { euros, offreParticulier, parPeriode, type Periodicite } from "@/lib/tarifs";
 
 export const metadata = { title: "Créer un lot — Gerimmo" };
@@ -12,7 +12,7 @@ export default async function PageNouveauBien(
   props: PageProps<"/agence/[orgId]/parc/nouveau">
 ) {
   const { orgId } = await props.params;
-  const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
 
   // Le bailleur doit être identifiable AVANT de saisir un bien (recette de
   // production du 27/09) : l'action refuse la création tant que l'adresse et
@@ -94,7 +94,7 @@ export default async function PageNouveauBien(
           </div>
         </div>
       ) : (
-      <FormulaireBien orgId={orgId} cleCreation={randomUUID()} guide proprietaireAutomatique={role === "proprietaire_direct"} />
+      <FormulaireAvecBrouillon key={`${user.id}:${orgId}`} orgId={orgId} compteId={user.id} cleCreation={randomUUID()} proprietaireAutomatique={role === "proprietaire_direct"} />
       )}
     </main>
   );

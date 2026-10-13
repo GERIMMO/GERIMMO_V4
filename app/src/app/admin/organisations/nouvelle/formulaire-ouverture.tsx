@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { ouvrirOrganisation, type EtatOuverture } from "@/app/actions/organisations-admin";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,7 @@ export function FormulaireOuverture({
   const valeur = (n: string, defaut = "") => etat.valeurs?.[n] ?? defaut;
 
   return (
-    <form action={action} className="space-y-4">
+    <form data-saisie-confirmee action={action} className="space-y-4">
       {prefill?.demandeId && (
         <input type="hidden" name="demande_id" value={prefill.demandeId} />
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   entrerDansSessionArtisan,
   type EtatSessionArtisan,
@@ -17,7 +17,7 @@ export function BoutonEntrerSession({ artisanId, nom }: { artisanId: string; nom
   );
 
   return (
-    <form action={action} className="space-y-3">
+    <form data-saisie-confirmee action={action} className="space-y-3">
       <div className="space-y-2">
         <Label htmlFor="motif-session">Motif du diagnostic (obligatoire, inscrit au journal)</Label>
         <Input

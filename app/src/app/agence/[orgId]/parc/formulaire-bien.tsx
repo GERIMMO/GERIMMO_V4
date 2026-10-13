@@ -2,7 +2,8 @@
 import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
 import Link from "next/link";
-import { unstable_rethrow } from "next/navigation";
+import { useRouter, unstable_rethrow } from "next/navigation";
+import { champsBrouillonBien, sauverBrouillonBien, effacerBrouillonBien, type BrouillonBien } from "@/lib/brouillon-bien";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 
 import styles from "@/components/presentation-parcours.module.css";
@@ -54,6 +55,8 @@ export function FormulaireBien({
   champsVisibles,
   proprietaireAutomatique = false,
   cleCreation,
+  cleBrouillon,
+  brouillonInitial,
 }: {
   orgId: string;
   bien?: BienFormulaire;
@@ -63,9 +66,16 @@ export function FormulaireBien({
   champsVisibles?: string[];
   proprietaireAutomatique?: boolean;
   cleCreation?: string;
+  cleBrouillon?: string;
+  brouillonInitial?: BrouillonBien;
 }) {
   const masquer = (champ: string) => Boolean(bien) && champsVisibles !== undefined && !champsVisibles.includes(champ);
-  const [etapeCreation, setEtapeCreation] = useState(0);
+  const router = useRouter();
+  const [etapeCreation, setEtapeCreation] = useState<number>(brouillonInitial?.etape ?? 0);
+  const [etatBrouillon, setEtatBrouillon] = useState<"attente" | "sauve" | "indisponible">(brouillonInitial ? "sauve" : "attente");
+  const modifie = useRef(false);
+  const confirme = useRef(false);
+  const sauvegardeCourante = useRef<() => void>(() => {});
   const [creationId] = useState(cleCreation);
   const formulaire = useRef<HTMLFormElement>(null);
   const [restants, setRestants] = useState([7, 3]);
@@ -97,7 +107,14 @@ export function FormulaireBien({
   const [etat, action] = useActionStateSuivi<EtatParc, FormData>(async (precedent, contenu) => {
     if (bien) return actionLiee(precedent, contenu);
     try {
-      return await actionLiee(precedent, contenu);
+      if (cleBrouillon) { contenu.set("confirmation_creation", "1"); sauvegardeCourante.current(); }
+      const resultat = await actionLiee(precedent, contenu);
+      if (resultat.creationConfirmeeHref && cleBrouillon && creationId) {
+        confirme.current = true;
+        effacerBrouillonBien(cleBrouillon, creationId);
+        router.push(resultat.creationConfirmeeHref);
+      }
+      return resultat;
     } catch (erreur) {
       // Une redirection réussie appartient à Next. Une réponse réseau perdue,
       // elle, laisse le formulaire et sa clé prêts pour la même demande.
@@ -121,9 +138,9 @@ export function FormulaireBien({
 
   // Autocomplétion d'adresse via la Base Adresse Nationale (retour recette S2) :
   // la sélection remplit la voie, le code postal et la ville
-  const [adresse, setAdresse] = useState(bien?.address_line1 ?? "");
-  const [codePostal, setCodePostal] = useState(bien?.postal_code ?? "");
-  const [ville, setVille] = useState(bien?.city ?? "");
+  const [adresse, setAdresse] = useState(bien?.address_line1 ?? brouillonInitial?.champs.address_line1 ?? "");
+  const [codePostal, setCodePostal] = useState(bien?.postal_code ?? brouillonInitial?.champs.postal_code ?? "");
+  const [ville, setVille] = useState(bien?.city ?? brouillonInitial?.champs.city ?? "");
   const [suggestions, setSuggestions] = useState<SuggestionAdresse[]>([]);
   const adresseFocalisee = useRef(false);
   const minuterieRecherche = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -133,7 +150,7 @@ export function FormulaireBien({
   // commune possible, ou une seule qui porte le nom saisi : elle est proposée
   // d'office. La base vérifie la cohérence (reseau_controler_commune_bien).
   const [communes, setCommunes] = useState<CommuneReseau[]>([]);
-  const [commune, setCommune] = useState<string>(bien?.commune_insee ?? "");
+  const [commune, setCommune] = useState<string>(bien?.commune_insee ?? brouillonInitial?.champs.commune_insee ?? "");
   useEffect(() => {
     const cp = codePostal.trim();
     if (!/^\d{5}$/.test(cp)) return;
@@ -195,19 +212,19 @@ export function FormulaireBien({
   // Questionnaire progressif : le type choisi commande la suite. Un appartement
   // ou un parking EST l'unité locative (un seul lot, pas de question) ; un
   // immeuble est multi-lots par nature ; les autres types peuvent l'être.
-  const [type, setType] = useState(bien?.type ?? "appartement");
+  const [type, setType] = useState(bien?.type ?? (brouillonInitial?.type && Object.hasOwn(TYPES_BIEN, brouillonInitial.type) ? brouillonInitial.type : "appartement"));
   const nonDecoupable = (TYPES_NON_DECOUPABLES as readonly string[]).includes(type);
-  const [divise, setDivise] = useState(false);
+  const [divise, setDivise] = useState(brouillonInitial?.divise ?? false);
   const multiLots = !nonDecoupable && (type === "immeuble" || divise);
 
-  const [lots, setLots] = useState<{ nom: string; surface: string; pieces: string }[]>([
+  const [lots, setLots] = useState<{ nom: string; surface: string; pieces: string }[]>(brouillonInitial?.lots ?? [
     { nom: "", surface: "", pieces: "" },
   ]);
   const majLot = (i: number, champ: "nom" | "surface" | "pieces", valeur: string) =>
     setLots((l) => l.map((x, j) => (j === i ? { ...x, [champ]: valeur } : x)));
-  const [lotUnique, setLotUnique] = useState<{nom?: string; surface: string; pieces: string}>({surface: "", pieces: ""});
-  const ajouterLot = () => { setLots((l) => [...l, { nom: "", surface: "", pieces: "" }]); if (guideActif) actualiserReperes(); };
-  const retirerLot = (i: number) => { setLots((l) => l.filter((_, j) => j !== i)); if (guideActif) actualiserReperes(); };
+  const [lotUnique, setLotUnique] = useState<{nom?: string; surface: string; pieces: string}>(brouillonInitial?.lotUnique ?? {surface: "", pieces: ""});
+  const ajouterLot = () => { modifie.current = true; setLots((l) => [...l, { nom: "", surface: "", pieces: "" }]); if (guideActif) actualiserReperes(); };
+  const retirerLot = (i: number) => { modifie.current = true; setLots((l) => l.filter((_, j) => j !== i)); if (guideActif) actualiserReperes(); };
 
   // Les deux saisies restent en mémoire si l’utilisateur change de type ou de découpage.
   const changerType = (nouveau: string) => {
@@ -216,10 +233,36 @@ export function FormulaireBien({
     if (guideActif) actualiserReperes();
   };
 
+  // La saisie React et les champs non contrôlés sont relus après chaque rendu.
+  // pagehide garde aussi la toute dernière frappe lors de la fermeture.
+  useEffect(() => {
+    sauvegardeCourante.current = () => {
+      if (!cleBrouillon || !creationId || !modifie.current || confirme.current || !formulaire.current) return;
+      const ok = sauverBrouillonBien(cleBrouillon, {
+        version: 1, enregistreLe: Date.now(), creationId, etape: etapeCreation === 1 ? 1 : 0,
+        type, divise, lots, lotUnique, champs: champsBrouillonBien(new FormData(formulaire.current)),
+      });
+      setEtatBrouillon(ok ? "sauve" : "indisponible");
+    };
+    const frame = requestAnimationFrame(() => sauvegardeCourante.current());
+    return () => cancelAnimationFrame(frame);
+  }, [cleBrouillon, creationId, etapeCreation, type, divise, lots, lotUnique, adresse, codePostal, ville, commune]);
+  useEffect(() => {
+    const sauver = () => sauvegardeCourante.current();
+    window.addEventListener("pagehide", sauver);
+    return () => window.removeEventListener("pagehide", sauver);
+  }, []);
+  function saisieModifiee() {
+    modifie.current = true;
+    requestAnimationFrame(() => sauvegardeCourante.current());
+    if (guideActif) actualiserReperes();
+  }
+
   const contenu = (
-    <form ref={formulaire} data-champs-cibles={bien && champsVisibles !== undefined || undefined}
+    <form data-saisie-confirmee data-protection-saisie={!bien ? "locale" : undefined} ref={formulaire} data-champs-cibles={bien && champsVisibles !== undefined || undefined}
       onReset={event => event.preventDefault()}
-      onChangeCapture={guideActif ? actualiserReperes : undefined}
+      onInputCapture={saisieModifiee}
+      onChangeCapture={saisieModifiee}
       action={action} className={`saisie-bien space-y-6 ${guideActif ? styles.creation : ""}`} noValidate={guideActif}
       onSubmit={(e) => {
         if (!guideActif) return;
@@ -231,6 +274,9 @@ export function FormulaireBien({
           requestAnimationFrame(() => champ.reportValidity()); break;
         }
       }}>
+      {cleBrouillon && <p role="status" className={`rounded-lg border px-3 py-2 text-xs ${etatBrouillon === "indisponible" ? "border-warning/40 text-warning-foreground" : "border-primary/15 bg-primary/5 text-muted-foreground"}`}>
+        {etatBrouillon === "indisponible" ? "La sauvegarde sur cet appareil est indisponible. Gardez cet onglet ouvert jusqu’à l’enregistrement." : etatBrouillon === "sauve" ? "Brouillon conservé sur cet appareil. Reprise disponible pendant 7 jours. Le lot sera enregistré avec le bouton de création." : "Votre saisie sera conservée sur cet appareil pendant 7 jours, pour ce compte."}
+      </p>}
       {!bien && <input type="hidden" name="creation_id" value={creationId ?? ""} />}
       {etat.erreur && <p ref={erreurRef} role="alert" tabIndex={-1} className="scroll-mt-24 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{etat.erreur}</p>}
       {etat.repriseHref && <Link href={etat.repriseHref} className="btn-secondaire">Ouvrir le dossier déjà enregistré</Link>}
@@ -248,7 +294,7 @@ export function FormulaireBien({
             name="nom"
             required
             maxLength={120}
-            defaultValue={etat.valeurs?.nom ?? bien?.nom}
+            defaultValue={etat.valeurs?.nom ?? brouillonInitial?.champs.nom ?? bien?.nom}
             placeholder="ex. 12 rue des Lilas"
           />
         </div>
@@ -311,7 +357,7 @@ export function FormulaireBien({
           id={idComplement}
           name="address_line2"
           maxLength={200}
-          defaultValue={etat.valeurs?.address_line2 ?? bien?.address_line2 ?? ""}
+          defaultValue={etat.valeurs?.address_line2 ?? brouillonInitial?.champs.address_line2 ?? bien?.address_line2 ?? ""}
           placeholder="Complément (facultatif)"
         />
       </div>
@@ -374,7 +420,7 @@ export function FormulaireBien({
       <div className="saisie-repere">{!guideActif && <span>2</span>}<div><h2>Caractéristiques du bâtiment</h2><p>Ces informations servent à préparer le dossier et ses documents.</p></div></div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div hidden={masquer("annee_construction")} className="space-y-2">
-          <Label htmlFor="bien-annee" champ="bien.annee_construction" renseigne={String(etat.valeurs?.annee_construction ?? bien?.annee_construction ?? "").trim() !== ""}>Année de construction{!guideActif && " *"}</Label>
+          <Label htmlFor="bien-annee" champ="bien.annee_construction" renseigne={String(etat.valeurs?.annee_construction ?? brouillonInitial?.champs.annee_construction ?? bien?.annee_construction ?? "").trim() !== ""}>Année de construction{!guideActif && " *"}</Label>
           <Input
             id="bien-annee"
             name="annee_construction"
@@ -382,7 +428,7 @@ export function FormulaireBien({
             min={1600}
             max={2100}
             required
-            defaultValue={etat.valeurs?.annee_construction ?? bien?.annee_construction ?? ""}
+            defaultValue={etat.valeurs?.annee_construction ?? brouillonInitial?.champs.annee_construction ?? bien?.annee_construction ?? ""}
           />
           <p className="text-sm text-muted-foreground">
             Elle déduit les diagnostics attendus (plomb avant 1949, amiante
@@ -394,7 +440,7 @@ export function FormulaireBien({
             id="bien-copro"
             name="copropriete"
             type="checkbox"
-            defaultChecked={etat.valeurs ? etat.valeurs.copropriete === "on" : bien?.copropriete}
+            defaultChecked={etat.valeurs ? etat.valeurs.copropriete === "on" : brouillonInitial ? brouillonInitial.champs.copropriete === "on" : bien?.copropriete}
             className="size-4"
           />
           <Label htmlFor="bien-copro">En copropriété</Label>
@@ -408,7 +454,7 @@ export function FormulaireBien({
             id="bien-zone-tendue"
             name="zone_tendue"
             defaultValue={
-              etat.valeurs?.zone_tendue ??
+              etat.valeurs?.zone_tendue ?? brouillonInitial?.champs.zone_tendue ??
               (bien?.zone_tendue === true ? "oui" : bien?.zone_tendue === false ? "non" : "")
             }
             className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
@@ -431,13 +477,13 @@ export function FormulaireBien({
         // Le formulaire les demande dès la création pour éviter un bail incomplet.
         <div className="grid gap-4 sm:grid-cols-2">
           <div hidden={masquer("parties_communes")} className="space-y-2">
-            <Label htmlFor="bien-parties-communes" champ="bien.parties_communes" renseigne={String(etat.valeurs?.parties_communes ?? bien?.parties_communes ?? "").trim() !== ""}>Parties communes{!guideActif && " *"}</Label>
+            <Label htmlFor="bien-parties-communes" champ="bien.parties_communes" renseigne={String(etat.valeurs?.parties_communes ?? brouillonInitial?.champs.parties_communes ?? bien?.parties_communes ?? "").trim() !== ""}>Parties communes{!guideActif && " *"}</Label>
             <Input
               id="bien-parties-communes"
               name="parties_communes"
               maxLength={300}
               required
-              defaultValue={etat.valeurs?.parties_communes ?? bien?.parties_communes ?? ""}
+              defaultValue={etat.valeurs?.parties_communes ?? brouillonInitial?.champs.parties_communes ?? bien?.parties_communes ?? ""}
               // Une maison ou un parking n'en a pas (audit du 27/09) : la
               // clause du bail accepte « Néant », on le dit.
               placeholder="Hall, ascenseur… ou « Néant » (maison)"
@@ -445,13 +491,13 @@ export function FormulaireBien({
           </div>
           <div hidden={masquer("acces_tic")} className="space-y-2">
             {/* « TIC » seul était du jargon (audit du 27/09). */}
-            <Label htmlFor="bien-acces-tic" champ="bien.acces_tic" renseigne={String(etat.valeurs?.acces_tic ?? bien?.acces_tic ?? "").trim() !== ""}>Accès internet, téléphone, TV{!guideActif && " (TIC) *"}</Label>
+            <Label htmlFor="bien-acces-tic" champ="bien.acces_tic" renseigne={String(etat.valeurs?.acces_tic ?? brouillonInitial?.champs.acces_tic ?? bien?.acces_tic ?? "").trim() !== ""}>Accès internet, téléphone, TV{!guideActif && " (TIC) *"}</Label>
             <Input
               id="bien-acces-tic"
               name="acces_tic"
               maxLength={200}
               required
-              defaultValue={etat.valeurs?.acces_tic ?? bien?.acces_tic ?? ""}
+              defaultValue={etat.valeurs?.acces_tic ?? brouillonInitial?.champs.acces_tic ?? bien?.acces_tic ?? ""}
               placeholder="Fibre optique, TNT… ou « Néant »"
             />
           </div>

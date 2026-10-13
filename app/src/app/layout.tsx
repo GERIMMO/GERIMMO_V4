@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import "./prestige.css";
 import "./harmonie.css";
+import { ProtectionSaisie } from "@/components/protection-saisie";
 import { BoutonAssistance } from "@/components/bouton-assistance";
 import { OPEN_GRAPH_PAR_DEFAUT } from "@/lib/metadonnees-publiques";
 import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
@@ -54,7 +55,7 @@ export default function RootLayout({
       lang="fr"
       className={`${titres.variable} ${interface_.variable} h-full antialiased`}
     >
-      <body className="gerimmo-prestige min-h-full flex flex-col">{children}<BoutonAssistance /></body>
+      <body className="gerimmo-prestige min-h-full flex flex-col">{children}<ProtectionSaisie /><BoutonAssistance /></body>
     </html>
   );
 }

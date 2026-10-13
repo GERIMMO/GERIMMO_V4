@@ -33,6 +33,15 @@ for (const largeur of [390, 1440]) test(`creation bien : panne, reponse perdue e
     await page.getByLabel(/Accès internet, téléphone, TV/).fill('Fibre TEST conservée');
     await page.getByRole('button', { name: 'Suivant', exact: true }).click();
     await page.getByLabel(/Surface.*m²/).fill('42.25'); await page.getByLabel('Nombre de pièces').fill('2');
+    await expect(page.getByRole('status').filter({hasText:'Brouillon conservé'})).toBeVisible();
+    const contexte = page.context(); await page.close(); page = await contexte.newPage();
+    await page.setViewportSize({width:largeur,height:1000});
+    await page.goto(`/agence/${org}/parc/nouveau`);
+    await expect(page.getByRole('heading',{name:'Reprendre votre lot'})).toBeVisible();
+    await page.screenshot({path:info.outputPath('brouillon-a-reprendre.png'),fullPage:true});
+    await page.getByRole('button',{name:'Reprendre le brouillon',exact:true}).click();
+    await expect(page.locator('[name="creation_id"]')).toHaveValue(cle);
+    await expect(page.getByLabel(/Surface.*m²/)).toHaveValue('42.25');
     // Défaut ciblé sur la seule demande de ce test, après l'insertion réelle.
     await db.query(`create function public.${fonction}() returns trigger language plpgsql as $$ begin if new.creation_cle='${cle}'::uuid then raise exception 'Panne TEST après insertion'; end if; return new; end $$; create trigger ${fonction} after update on public.biens for each row execute function public.${fonction}()`);
     const envoyer = page.getByRole('button', { name: 'Créer le lot et continuer', exact: true });
@@ -51,6 +60,9 @@ for (const largeur of [390, 1440]) test(`creation bien : panne, reponse perdue e
     await envoyer.click(); await expect(page.locator('form.saisie-bien').getByRole('alert')).toContainText('La réponse n’est pas arrivée');
     const avant = (await db.query('select id,nom from biens where organization_id=$1 and creation_cle=$2', [org, cle])).rows; expect(avant).toHaveLength(1); bien = avant[0].id;
     await page.screenshot({ path: info.outputPath('reponse-perdue.png'), fullPage: true });
+    await page.reload();
+    await page.getByRole('button',{name:'Reprendre le brouillon',exact:true}).click();
+    await expect(page.locator('[name="creation_id"]')).toHaveValue(cle);
     // Une modification après une réponse perdue ne remplace pas silencieusement
     // le dossier déjà enregistré, et reste visible dans le formulaire.
     await page.getByRole('button', { name: 'Précédent', exact: true }).click();
@@ -67,6 +79,11 @@ for (const largeur of [390, 1440]) test(`creation bien : panne, reponse perdue e
     await expect(page).toHaveURL(new RegExp(`/parc/${bien}/lots/`));
     const obtenu = (await db.query('select b.nom,b.parties_communes,b.acces_tic,l.surface_m2,l.pieces,(select count(*)::int from detentions where lot_id=l.id) detentions from biens b join lots l on l.bien_id=b.id where b.id=$1', [bien])).rows;
     expect(obtenu).toEqual([{ nom, parties_communes: 'Hall TEST conservé', acces_tic: 'Fibre TEST conservée', surface_m2: '42.25', pieces: 2, detentions: 1 }]);
+    await page.goto(`/agence/${org}/parc/nouveau`);
+    await expect(page.getByLabel('Nom du bien',{exact:true})).toHaveValue('');
+    await expect(page.getByRole('heading',{name:'Reprendre votre lot'})).toHaveCount(0);
+    preuve.rechargementAvantEtApresEnvoi = true;
+    preuve.brouillonEffaceApresConfirmation = true;
     preuve.statut = 'exécuté avec succès'; preuve.obtenu = obtenu; preuve.creation_id = cle; preuve.bien_id = bien; preuve.panneAnnulee = true; preuve.reponsePerdue = perdue;
     await page.screenshot({ path: info.outputPath('reprise-confirmee.png'), fullPage: true });
   } finally {

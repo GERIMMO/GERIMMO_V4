@@ -40,7 +40,7 @@ function BoutonRetirer({ orgId, bailId, ligneId }: { orgId: string; bailId: stri
   );
   return (
     <>
-      <form action={formAction}>
+      <form data-saisie-confirmee action={formAction}>
         <BoutonEnvoi variant="ghost" size="sm">
           Retirer
         </BoutonEnvoi>
@@ -80,7 +80,7 @@ function DepartColocataire({
     );
   }
   return (
-    <form action={formAction} className="grid w-full gap-2 rounded-md border border-border p-2 sm:grid-cols-3">
+    <form data-saisie-confirmee action={formAction} className="grid w-full gap-2 rounded-md border border-border p-2 sm:grid-cols-3">
       <div className="space-y-1">
         <Label htmlFor={`depart-${ligneId}`} className="text-xs">
           Date d&apos;effet de son congé
@@ -227,7 +227,7 @@ export function FormulaireColocation({
             ))}
           </ul>
         )}
-        <form action={formColoc} className="grid gap-2 sm:grid-cols-4">
+        <form data-saisie-confirmee action={formColoc} className="grid gap-2 sm:grid-cols-4">
           <input type="hidden" name="role" value="colocataire" />
           <div className="space-y-1 sm:col-span-2">
             <Label htmlFor="coloc-person" className="text-sm">
@@ -297,7 +297,7 @@ export function FormulaireColocation({
             ))}
           </ul>
         )}
-        <form action={formGarant} className="grid gap-2 sm:grid-cols-2">
+        <form data-saisie-confirmee action={formGarant} className="grid gap-2 sm:grid-cols-2">
           <input type="hidden" name="role" value="garant" />
           <div className="space-y-1">
             <Label htmlFor="garant-person" className="text-sm">

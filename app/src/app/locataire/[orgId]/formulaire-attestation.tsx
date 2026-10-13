@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   deposerMonAttestation,
   type EtatAttestation,
@@ -33,7 +34,7 @@ export function FormulaireAttestation({
   }, [etat]);
 
   return (
-    <form ref={formulaire} action={formAction} className="formulaire-reperes space-y-3 border-t border-border pt-4">
+    <form data-saisie-confirmee ref={formulaire} action={formAction} className="formulaire-reperes space-y-3 border-t border-border pt-4">
       <p className="text-sm font-medium">
         {renouvellement ? "Déposer une nouvelle attestation" : "Déposer mon attestation"}
       </p>

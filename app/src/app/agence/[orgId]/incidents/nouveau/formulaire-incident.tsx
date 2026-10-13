@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { ouvrirIncident, type EtatIncidentAction } from "@/app/actions/incidents";
 import { compresserChampFichiers } from "@/lib/compresser-image";
 import {
@@ -55,7 +56,7 @@ export function FormulaireIncident({
   const [categorie, setCategorie] = useState("");
 
   return (
-    <form action={action} className="formulaire-reperes space-y-4">
+    <form data-saisie-confirmee action={action} className="formulaire-reperes space-y-4">
       <LegendeChamps />
       {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
           sur la saisie (recette 22/08 — mécanique commune, lib/formulaires.ts) */}

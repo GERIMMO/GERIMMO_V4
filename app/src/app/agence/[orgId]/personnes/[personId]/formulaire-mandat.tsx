@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { euros, offreAgence } from "@/lib/tarifs";
-import { useActionState, useState } from "react";
+import { useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import {
   creerMandat,
@@ -28,7 +29,7 @@ export function FormulaireMandat({ orgId, personId }: { orgId: string; personId:
   const [etat, formAction] = useActionState<EtatMandat, FormData>(action, {});
 
   return (
-    <form action={formAction} className="space-y-3 border-t border-border pt-4">
+    <form data-saisie-confirmee action={formAction} className="space-y-3 border-t border-border pt-4">
       <p className="text-sm font-medium">Nouveau mandat</p>
       <Label htmlFor="m-debut">Date de prise d’effet prévue *</Label>
       <Input id="m-debut" name="date_debut" type="date" required defaultValue={etat.valeurs?.date_debut} />
@@ -90,7 +91,7 @@ export function FormulaireLigneMandat({
   }
 
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-2 border-t border-border pt-3">
+    <form data-saisie-confirmee action={formAction} className="flex flex-wrap items-end gap-2 border-t border-border pt-3">
       <div className="min-w-40 flex-1 space-y-1.5">
         <Label htmlFor={`l-lot-${mandatId}`} className="text-sm">
           Lot
@@ -144,7 +145,7 @@ export function SelectTitulaireMandat({
   const [etat, formAction, enCours] = useActionState<EtatMandat, FormData>(action, {});
 
   return (
-    <form action={formAction} className="flex flex-wrap items-center gap-1.5">
+    <form data-saisie-confirmee action={formAction} className="flex flex-wrap items-center gap-1.5">
       <label htmlFor={`m-titulaire-${mandatId}`} className="text-xs text-muted-foreground">
         Confié à
       </label>
@@ -187,7 +188,7 @@ export function BoutonRetirerLigne({
     await supprimerLigneMandat(orgId, personId, mandatId, ligneId);
   };
   return (
-    <form action={action} className="inline">
+    <form data-saisie-confirmee action={action} className="inline">
       <BoutonRetirer />
     </form>
   );
@@ -285,7 +286,7 @@ export function BoutonsEtatMandat({
     );
   }
   return (
-    <form action={formAction} className="flex flex-wrap items-center gap-2">
+    <form data-saisie-confirmee action={formAction} className="flex flex-wrap items-center gap-2">
       {avertissement && (
         <>
           <span className="text-xs text-muted-foreground">{avertissement}</span>
@@ -306,7 +307,7 @@ export function BoutonsEtatMandat({
 
 export function FormulaireDateMandat({orgId, personId, mandatId, dateDebut}: {orgId:string; personId:string; mandatId:string; dateDebut:string|null}) {
   const [etat, action] = useActionState(modifierDateMandat.bind(null, orgId, personId, mandatId), {} as EtatMandat);
-  return <form action={action} className="space-y-2 my-3">
+  return <form data-saisie-confirmee action={action} className="space-y-2 my-3">
     <Label htmlFor={`mandat-debut-${mandatId}`}>Date de prise d’effet prévue *</Label>
     <Input id={`mandat-debut-${mandatId}`} name="date_debut" type="date" required defaultValue={etat.valeurs?.date_debut ?? dateDebut ?? ""} />
     <BoutonEnvoi variant="outline">Enregistrer la date</BoutonEnvoi>

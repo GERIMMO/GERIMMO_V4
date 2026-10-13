@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   deposerBailSigne,
   deposerReglementCopropriete,
@@ -33,7 +34,7 @@ function FormulairePieceBail({
 }) {
   const {etat, soumettre:formAction, enCours, version} = useActionFormulaire<EtatBail>(action, true);
   return (
-    <form key={version} onSubmit={formAction} className="flex flex-wrap items-end gap-2">
+    <form data-saisie-confirmee key={version} onSubmit={formAction} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
         <Label htmlFor={id} className="text-sm">
           {libelle}
@@ -121,7 +122,7 @@ export function FormulaireConge({
     par === "bailleur" ? (meuble ? 3 : 6) : meuble || zoneTendue || reduit ? 1 : 3;
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form data-saisie-confirmee action={formAction} className="space-y-3">
       <input type="hidden" name="preavis_mois" value={preavis} />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
@@ -272,7 +273,7 @@ export function FormulaireCreerEdl({
   const sortiePossible = (bailEtat === undefined || bailEtat === "preavis") && !typesExistants.includes("sortie");
   if (!entreePossible && !sortiePossible) return null;
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-2">
+    <form data-saisie-confirmee action={formAction} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
         <Label htmlFor="edl-type" className="text-sm">
           Nouvel état des lieux
@@ -301,7 +302,7 @@ export function FormulaireAnnulerConge({ orgId, bailId }: { orgId: string; bailI
   const action = annulerConge.bind(null, orgId, bailId);
   const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
   return (
-    <form action={formAction} className="space-y-2">
+    <form data-saisie-confirmee action={formAction} className="space-y-2">
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1.5">
           <Label htmlFor="annulation-motif" className="text-sm">
@@ -338,7 +339,7 @@ export function BoutonTerminerBail({ orgId, bailId }: { orgId: string; bailId: s
   const action = terminerBail.bind(null, orgId, bailId);
   const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
   return (
-    <form action={formAction} className="space-y-2">
+    <form data-saisie-confirmee action={formAction} className="space-y-2">
       <BoutonEnvoi enCoursTexte="Clôture…" size="sm" variant="outline">
         Clôturer le bail
       </BoutonEnvoi>

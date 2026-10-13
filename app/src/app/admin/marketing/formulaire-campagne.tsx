@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { programmerCampagne, type EtatCampagne } from "./actions";
 
 const ETAT: EtatCampagne = {};
@@ -16,7 +16,7 @@ const champ = "w-full rounded-md border border-input bg-background px-3 py-2 tex
 export function FormulaireCampagne({ objectifs }: { objectifs: [string, string][] }) {
   const [etat, action, attente] = useActionState(programmerCampagne, ETAT);
   return (
-    <form action={action} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+    <form data-saisie-confirmee action={action} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
       <label className="grid gap-1 sm:col-span-2 xl:col-span-1"><span className="libelle-champ">Nom de l’intention</span><input className={champ} name="nom" minLength={3} maxLength={160} required placeholder="Ex. Lancement dans le Nord" /></label>
       <label className="grid gap-1"><span className="libelle-champ">Date visée (heure de Paris)</span><input className={champ} type="datetime-local" name="publication_prevue_le" required /></label>
       <label className="grid gap-1"><span className="libelle-champ">Objectif</span><select className={champ} name="objectif" defaultValue="notoriete">{objectifs.map(([valeur, libelle]) => <option key={valeur} value={valeur}>{libelle}</option>)}</select></label>

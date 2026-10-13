@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { RepriseLocale, StatutCopieLocale, useCopieFichiers } from "@/components/reprise-locale";
+import { cleCopieFichiers, type CopieFichiers } from "@/lib/brouillon-fichiers";
+import { declarationDuBrouillon, validerBrouillonIncident, type BrouillonIncident } from "@/lib/brouillons-personne-incident";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { declarerMonIncident, type EtatIncidentAction } from "@/app/actions/incidents";
@@ -113,26 +116,46 @@ function EncartQuiPaiera({ slug, plat = false }: { slug: string; plat?: boolean 
 // La photo est le PREMIER champ, avant la description (RM-19.2.2). La
 // catégorie est pilotée : elle alimente l'encart « Qui paiera la réparation »
 // (retour de recette 24/08, alignement maquette pLocDeclarer).
-export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
-  const commande = useRef<string | null>(null);
-  const derniereDeclaration = useRef<FormData | null>(null);
-  const [etat, action] = useActionState<EtatIncidentAction, FormData>(async (precedent, formData) => {
-    const contenu = precedent.succes && precedent.avertissement && derniereDeclaration.current
-      ? derniereDeclaration.current : formData;
-    commande.current ??= crypto.randomUUID();
-    contenu.set("commande", commande.current);
+export function FormulaireIncidentLocataire({ orgId, compteId }: { orgId: string; compteId: string }) {
+  const cle = cleCopieFichiers("incident", compteId, orgId);
+  return <RepriseLocale cle={cle} valider={validerBrouillonIncident}>{copie => <SaisieIncident orgId={orgId} cleLocale={cle} copie={copie} />}</RepriseLocale>;
+}
+function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale: string; copie: CopieFichiers<BrouillonIncident> | null }) {
+  const { enregistrer, statut } = useCopieFichiers(cleLocale, copie);
+  const [saisie, setSaisie] = useState<BrouillonIncident>(() => copie?.donnees ?? {
+    commande: crypto.randomUUID(), categorie: "", piece: "", photos: [], description: "", anciennete: "", urgence: "normale", envoye: false, bilan: {},
+  });
+  const derniereDeclaration = useRef<BrouillonIncident | null>(copie?.donnees.envoye ? copie.donnees : null);
+  const [compression, setCompression] = useState(false);
+  const [etat, action, enCours] = useActionState<EtatIncidentAction, FormData>(async precedent => {
+    const contenu = derniereDeclaration.current?.envoye ? derniereDeclaration.current : { ...saisie, envoye: true };
     derniereDeclaration.current = contenu;
+    setSaisie(contenu);
+    await enregistrer(contenu);
     try {
-      return await declarerMonIncident(orgId, precedent, contenu);
+      const resultat = await declarerMonIncident(orgId, precedent, declarationDuBrouillon(contenu));
+      const suivant = { ...contenu, envoye: Boolean(resultat.succes), bilan: resultat };
+      derniereDeclaration.current = suivant;
+      setSaisie(suivant);
+      await enregistrer(resultat.succes && !resultat.avertissement ? null : suivant);
+      return resultat;
     } catch {
-      // Une réponse perdue ne signifie pas que le serveur n'a rien enregistré.
-      // Même clé et mêmes fichiers au prochain clic, jamais une nouvelle demande.
-      return { ...precedent, erreur: "La réponse n’est pas arrivée. Réessayez : votre signalement ne sera pas créé une deuxième fois." };
+      // Après réponse perdue, conserver la clé ET le contenu exact, même après
+      // fermeture de l'onglet. Une modification serait une autre demande.
+      const bilan = { ...precedent, erreur: "La réponse n’est pas arrivée. Réessayez : votre signalement ne sera pas créé une deuxième fois." };
+      const suivant = { ...contenu, bilan };
+      setSaisie(suivant); derniereDeclaration.current = suivant;
+      await enregistrer(suivant);
+      return bilan;
     }
-  }, {});
-  const [categorie, setCategorie] = useState(etat.valeurs?.categorie ?? "");
-  const [piece, setPiece] = useState("");
-  const [photos, setPhotos] = useState<File[]>([]);
+  }, copie?.donnees.bilan ?? {});
+  useEffect(() => {
+    if (!enCours && (saisie.categorie || saisie.description || saisie.photos.length) && !(etat.succes && !etat.avertissement)) void enregistrer(saisie);
+  }, [saisie, enCours, etat.succes, etat.avertissement, enregistrer]);
+  const { categorie, piece, photos } = saisie;
+  const setCategorie = (categorie: string) => setSaisie(s => ({ ...s, categorie }));
+  const setPiece = (piece: string) => setSaisie(s => ({ ...s, piece }));
+  const setPhotos = (photos: File[]) => setSaisie(s => ({ ...s, photos }));
   const champPhotos = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -199,12 +222,13 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
     // max-[860px] ci-dessous restent justes.
     <div className="loc-grille">
       <div className="loc-carte">
+        <StatutCopieLocale statut={statut} />
         <h3 className="text-base font-medium">Votre signalement</h3>
         <p className="mt-1 text-sm text-muted-foreground">
           Une ou deux photos prises sur le vif évitent souvent un déplacement
           pour rien.
         </p>
-        <form
+        <form data-protection-saisie="locale"
           action={action}
           // React remet le formulaire à zéro même après un refus. Le reset
           // natif désynchronise les selects contrôlés et le résumé de photo.
@@ -213,6 +237,8 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
           onReset={(event) => event.preventDefault()}
           className="formulaire-reperes mt-4 space-y-4"
         >
+          {saisie.envoye && <p role="status" className="rounded-lg bg-warning-soft p-3 text-sm">La réponse de votre dernier envoi reste à confirmer. Réessayez avec la même saisie pour retrouver le signalement sans doublon.</p>}
+          <fieldset disabled={enCours || saisie.envoye} className="min-w-0 space-y-4">
           <LegendeChamps />
           <div className="space-y-1.5">
             <Label htmlFor="photos">Photos (jusqu&apos;à 5)</Label>
@@ -227,12 +253,11 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
               accept="image/jpeg,image/png"
               multiple
               libelle="Choisir des photos"
-              vide="Aucune photo choisie"
+              vide={photos.length ? photos.map(p => p.name).join(", ") : "Aucune photo choisie"}
               onChange={(e) => {
                 const champ = e.currentTarget;
-                void compresserChampFichiers(champ).then(() =>
-                  setPhotos(fichiersDuChamp(champ))
-                );
+                setCompression(true);
+                void compresserChampFichiers(champ).then(() => setPhotos(fichiersDuChamp(champ))).finally(() => setCompression(false));
               }}
             />
             {/* Après un refus, dire NOIR SUR BLANC que les photos sont
@@ -316,7 +341,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
               required={photos.length === 0}
               rows={3}
               placeholder="Où exactement, est-ce que cela s'aggrave, qu'avez-vous déjà essayé…"
-              defaultValue={etat.valeurs?.description}
+              value={saisie.description} onChange={e => setSaisie(s => ({ ...s, description: e.target.value }))}
               className="w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-sm"
             />
           </div>
@@ -327,7 +352,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
               id="anciennete"
               name="anciennete"
               placeholder="« Depuis dimanche »"
-              defaultValue={etat.valeurs?.anciennete}
+              value={saisie.anciennete} onChange={e => setSaisie(s => ({ ...s, anciennete: e.target.value }))}
             />
           </div>
 
@@ -336,7 +361,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
             <select
               id="urgence"
               name="urgence"
-              defaultValue={etat.valeurs?.urgence ?? "normale"}
+              value={saisie.urgence} onChange={e => setSaisie(s => ({ ...s, urgence: e.target.value as "normale" | "urgente" }))}
               className={classeSelect}
             >
               <option value="normale">Non, cela peut attendre quelques jours</option>
@@ -344,6 +369,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
             </select>
           </div>
 
+          </fieldset>
           {/* Le refus s'affiche AU PIED du formulaire, contre le bouton qui
               vient d'échouer : six champs plus haut, sur un écran de 390 px,
               le locataire ne voyait rien et croyait l'envoi parti.
@@ -355,7 +381,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
             </div>
           )}
 
-          <BoutonEnvoi enCoursTexte="Envoi…" className="w-full">
+          <BoutonEnvoi disabled={compression} enCoursTexte="Envoi…" className="w-full">
             Envoyer le signalement
           </BoutonEnvoi>
         </form>

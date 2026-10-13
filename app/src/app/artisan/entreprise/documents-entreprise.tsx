@@ -1,5 +1,5 @@
 "use client";
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import Image from "next/image";
 import { FilePenLine, ImagePlus, Save } from "lucide-react";
@@ -17,7 +17,7 @@ export function DocumentsEntreprise({ profil }: { profil: ProfilDocumentArtisan 
   const [etat, action] = useActionState(enregistrerProfilDocuments, {});
   return <div id="documents" className={styles.documents}><Carte className={styles.bloc}>
     <div className={styles.titreBloc}><span className={styles.icone}><FilePenLine size={19} aria-hidden/></span><div><h2>Mon identité sur les devis</h2><p>Ces informations apparaîtront sur les PDF générés par Gerimmo.</p></div></div>
-    <form action={action} onReset={event => event.preventDefault()}>
+    <form data-saisie-confirmee action={action} onReset={event => event.preventDefault()}>
       <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Adresse complète de l’entreprise</span><textarea name="adresse" required maxLength={500} rows={2} defaultValue={profil.adresse} placeholder="Numéro, voie, code postal et ville" className={CLASSE_ZONE_TEXTE}/></label>
       <div className={styles.logoDevis}>
         <span className={styles.apercuLogo}>{profil.logo_data ? <Image src={profil.logo_data} alt="Logo actuel de votre entreprise" width={100} height={70} unoptimized/> : <ImagePlus size={27} aria-hidden/>}</span>

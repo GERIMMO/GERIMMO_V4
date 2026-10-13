@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import {
   accepterDateLocataire,
@@ -59,7 +60,7 @@ function RetenirDate({
       <p className="text-base font-medium text-[var(--corps)]">
         {creneauTexte(creneau.debut, creneau.fin)}
       </p>
-      <form action={action} className="mt-2">
+      <form data-saisie-confirmee action={action} className="mt-2">
         <Bouton className={CLASSE_BOUTON_PRINCIPAL} enCours="Confirmation…">
           Je retiens cette date
         </Bouton>
@@ -99,7 +100,7 @@ export function DatesLocataire({
           Aucune de ces dates ne me convient
         </button>
       ) : (
-        <form action={actionRefus} className="space-y-3">
+        <form data-saisie-confirmee action={actionRefus} className="space-y-3">
           <div className="space-y-1.5">
             <label htmlFor={idMotif} className={CLASSE_LIBELLE}>
               Pourquoi ?

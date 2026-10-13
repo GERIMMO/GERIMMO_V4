@@ -26,7 +26,8 @@ for (const persona of PERSONAS) {
     fs.mkdirSync(dossier, { recursive: true });
     const storageState =
       persona === "public" ? undefined : path.join(__dirname, ".auth", `${persona}.json`);
-    const context = await browser.newContext({ storageState });
+    const largeur = Number(process.env.E2E_AUDIT_WIDTH ?? 390);
+    const context = await browser.newContext({ storageState, viewport: { width: largeur, height: largeur > 800 ? 1000 : 844 }, isMobile: largeur < 800, hasTouch: largeur < 800 });
     const rapport: Array<Record<string, unknown>> = [];
 
     for (const ecran of ecrans) {

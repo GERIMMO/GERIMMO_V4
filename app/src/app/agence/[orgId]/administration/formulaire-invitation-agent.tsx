@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { inviterAgent, type EtatInvitationAgent } from "@/app/actions/organisation";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,7 @@ export function FormulaireInvitationAgent({ orgId }: { orgId: string }) {
   }, [etat]);
 
   return (
-    <form ref={formulaire} action={action} className="space-y-2">
+    <form data-saisie-confirmee ref={formulaire} action={action} className="space-y-2">
       <Label htmlFor="invitation-agent-email">Ajouter un agent</Label>
       <div className="flex flex-wrap items-end gap-2">
         <Input

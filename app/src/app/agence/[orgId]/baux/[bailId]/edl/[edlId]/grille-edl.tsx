@@ -388,7 +388,7 @@ export function GrilleEdl({
           </div>
         </div>
       )}
-      <form
+      <form data-protection-saisie="locale"
         ref={formulaire}
         onSubmit={async (event) => {
           event.preventDefault();

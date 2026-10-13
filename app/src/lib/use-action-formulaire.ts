@@ -1,5 +1,7 @@
 "use client";
 
+import { preparerSoumission, confirmerSoumission, retourConfirme } from "./protection-saisie";
+import { unstable_rethrow } from "next/navigation";
 import { SuiviEnregistrement } from "./suivi-enregistrement";
 import { useContext, useRef, useState, type FormEvent } from "react";
 
@@ -16,6 +18,7 @@ export function useActionFormulaire<T extends Retour>(action: (etat: T, donnees:
     if (verrou.current) return;
     const formulaire = event.currentTarget;
     const donnees = new FormData(formulaire);
+    preparerSoumission(formulaire, donnees);
     const bouton = (event.nativeEvent as SubmitEvent).submitter;
     if (bouton instanceof HTMLButtonElement && bouton.name) donnees.set(bouton.name, bouton.value);
     verrou.current = true;
@@ -24,9 +27,13 @@ export function useActionFormulaire<T extends Retour>(action: (etat: T, donnees:
     try {
       const retour = await action(etat, donnees);
       setEtat(retour);
-      if (retour.succes) notifier?.();
-      if (retour.succes && resetApresSucces) setVersion((v) => v + 1);
-    } catch {
+      if (retourConfirme(retour)) {
+        const inchange = confirmerSoumission(donnees);
+        notifier?.();
+        if (inchange && resetApresSucces) setVersion((v) => v + 1);
+      }
+    } catch (erreur) {
+      unstable_rethrow(erreur);
       setEtat({ erreur: "La confirmation n’a pas pu être reçue. Votre saisie est conservée ; rouvrez le dossier pour vérifier le résultat avant de recommencer." } as T);
     } finally {
       verrou.current = false;

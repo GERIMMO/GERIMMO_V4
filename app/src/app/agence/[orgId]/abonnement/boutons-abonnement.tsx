@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   confirmerHausse,
   demanderPeriodicite,
@@ -21,7 +22,7 @@ export function BoutonSouscrire({ orgId, libelle }: { orgId: string; libelle: st
     {}
   );
   return (
-    <form action={action} className="space-y-2">
+    <form data-saisie-confirmee action={action} className="space-y-2">
       <BoutonEnvoi enCoursTexte="Ouverture du paiement…">{libelle}</BoutonEnvoi>
       {etat.erreur && (
         <p role="alert" className="text-sm text-destructive">
@@ -38,7 +39,7 @@ export function BoutonPortail({ orgId }: { orgId: string }) {
     {}
   );
   return (
-    <form action={action} className="space-y-2">
+    <form data-saisie-confirmee action={action} className="space-y-2">
       <BoutonEnvoi variant="outline" enCoursTexte="Ouverture…">
         Gérer mon abonnement
       </BoutonEnvoi>
@@ -84,7 +85,7 @@ export function FormulaireHausse({
   const [confirme, setConfirme] = useState(false);
   const id = useId();
   return (
-    <form action={action} className="space-y-3">
+    <form data-saisie-confirmee action={action} className="space-y-3">
       <input type="hidden" name="unites" value={unites} />
       <input type="hidden" name="formule" value={formule ?? ""} />
       <input type="hidden" name="montant_attendu_cents" value={montantCents} />
@@ -107,7 +108,7 @@ export function FormulaireHausse({
 export function FormulairePeriodicite({ orgId, vers, libelle }: { orgId: string; vers: "mensuel" | "annuel"; libelle: string }) {
   const [etat, action] = useActionState<EtatAbonnementAction, FormData>(demanderPeriodicite.bind(null, orgId), {});
   return (
-    <form action={action} className="space-y-2">
+    <form data-saisie-confirmee action={action} className="space-y-2">
       <input type="hidden" name="periodicite" value={vers} />
       <BoutonEnvoi variant="outline" enCoursTexte="Enregistrement…">
         {libelle}
@@ -121,7 +122,7 @@ export function FormulairePeriodicite({ orgId, vers, libelle }: { orgId: string;
 export function BoutonResiliation({ orgId, resilier, libelle }: { orgId: string; resilier: boolean; libelle: string }) {
   const [etat, action] = useActionState<EtatAbonnementAction, FormData>(resilierAbonnement.bind(null, orgId), {});
   return (
-    <form action={action} className="space-y-2">
+    <form data-saisie-confirmee action={action} className="space-y-2">
       <input type="hidden" name="resilier" value={resilier ? "oui" : "non"} />
       <BoutonEnvoi variant="outline" enCoursTexte="Enregistrement…">
         {libelle}

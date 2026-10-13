@@ -21,7 +21,7 @@ export async function generateMetadata(props: PageProps<"/agence/[orgId]/personn
 // sinon elle n'apprend rien.
 export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/personnes">) {
   const { orgId } = await props.params;
-  const { supabase, role } = await verifierAccesEspace(orgId);
+  const { supabase, role, user } = await verifierAccesEspace(orgId);
 
   const aujourdhui = aujourdhuiParis();
   const [
@@ -152,7 +152,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
         estProprietaire={role === "proprietaire_direct"}
         nombre={erreurPersonnes ? "nombre indisponible" : `${fiches.length} fiche${fiches.length > 1 ? "s" : ""}`}
         liste={<ListePersonnes orgId={orgId} personnes={fiches} listeIllisible={Boolean(erreurPersonnes)} estBailleurDirect={role === "proprietaire_direct"} />}
-        creation={<FormulairePersonne orgId={orgId} lots={lotsRattachables} estBailleurDirect={role === "proprietaire_direct"} />}
+        creation={<FormulairePersonne compteId={user.id} orgId={orgId} lots={lotsRattachables} estBailleurDirect={role === "proprietaire_direct"} />}
       />
     </main>
   );

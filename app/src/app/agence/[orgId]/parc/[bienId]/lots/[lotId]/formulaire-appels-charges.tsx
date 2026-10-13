@@ -1,7 +1,8 @@
 "use client";
 import { InputDateJour } from "@/components/input-date-jour";
 
-import { useActionState, useId } from "react";
+import { useId } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   creerAppelCharges,
   ajouterPosteCharge,
@@ -177,7 +178,7 @@ function FormCreerAppel({
   );
   const idDocument = useId();
   return (
-    <form action={action} className="space-y-2 rounded-lg border border-dashed border-border p-3">
+    <form data-saisie-confirmee action={action} className="space-y-2 rounded-lg border border-dashed border-border p-3">
       <p className="text-sm font-medium">Saisir un appel de charges</p>
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1">
@@ -237,7 +238,7 @@ function FormAjouterPoste({
   const idLibelle = useId();
   const idMontant = useId();
   return (
-    <form action={action} className="flex flex-wrap items-end gap-2">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-end gap-2">
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
       <Label htmlFor={idLibelle} className="sr-only">
         Intitulé du poste de charge
@@ -273,7 +274,7 @@ function FormQualifierPoste({
   // Identifiant tiré de useId() : cette ligne se répète une fois par poste.
   const idNature = useId();
   return (
-    <form action={action} className="mt-1 flex flex-wrap items-center gap-2">
+    <form data-saisie-confirmee action={action} className="mt-1 flex flex-wrap items-center gap-2">
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
       {/* Le poste entre dans le libellé : la page en aligne une par ligne, et
           la liste des contrôles d'un lecteur d'écran répétait « Nature de la
@@ -321,7 +322,7 @@ function BoutonValider({
     {}
   );
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-center gap-2">
       <BoutonEnvoi size="sm" enCoursTexte="…">
         Valider la ventilation
       </BoutonEnvoi>
@@ -349,7 +350,7 @@ function BoutonSupprimerPoste({
     {}
   );
   return (
-    <form action={action}>
+    <form data-saisie-confirmee action={action}>
       <BoutonEnvoi size="sm" variant="ghost" className="h-7 text-sm text-destructive">
         Retirer
       </BoutonEnvoi>
@@ -373,7 +374,7 @@ function BoutonSupprimerAppel({
     {}
   );
   return (
-    <form action={action}>
+    <form data-saisie-confirmee action={action}>
       <BoutonEnvoi size="sm" variant="ghost" className="text-sm text-destructive">
         Supprimer
       </BoutonEnvoi>

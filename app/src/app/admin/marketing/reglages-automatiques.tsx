@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { enregistrerReglagesMarketing, type EtatCampagne } from "./actions";
 
 type Reglages = { actif: boolean; publication_automatique: boolean; publicite_active: boolean; jours_semaine: number[]; heure_paris: number; budget_mensuel_cents: number; validation_obligatoire: boolean; veille_mots_inclus: string[]; veille_mots_exclus: string[] };
@@ -19,7 +19,7 @@ const caseACocher = "flex items-start gap-2 rounded-xl border border-[var(--file
 // rien. Le réglage enregistré n'est pas perdu : il se réactive une fois la Page reliée.
 export function ReglagesAutomatiques({ reglages, comptePublicitaire, pageReliee = true }: { reglages: Reglages; comptePublicitaire: boolean; pageReliee?: boolean }) {
   const [etat, action, attente] = useActionState(enregistrerReglagesMarketing, {} as EtatCampagne);
-  return <form action={action} className="space-y-4">
+  return <form data-saisie-confirmee action={action} className="space-y-4">
     <div className="grid gap-3 sm:grid-cols-3">
       <label className={caseACocher}><input type="checkbox" name="actif" defaultChecked={reglages.actif} className="mt-1" /><span><b>Agent actif</b><small className="mt-1 block text-[var(--texte-secondaire)]">Prépare deux sujets par semaine et crée un visuel original pour chacun.</small></span></label>
       <label className={`${caseACocher}${pageReliee ? "" : " opacity-70"}`}><input type="checkbox" name="publication_automatique" defaultChecked={reglages.publication_automatique && pageReliee} disabled={!pageReliee} className="mt-1"/><span><b>Publier automatiquement</b><small className="mt-1 block text-[var(--texte-secondaire)]">{pageReliee ? "Journal et Facebook. Décochez pour conserver les prochains contenus en brouillon." : "Indisponible : la Page Facebook n’est pas reliée (voir « Canaux et contrôle »). Les contenus restent en brouillon."}</small></span></label>

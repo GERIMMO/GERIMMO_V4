@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import {
   demarrerMonIntervention,
@@ -39,14 +39,14 @@ export function BoutonDemarrer({
 
   if (discret) {
     return (
-      <form action={action} className="inline">
+      <form data-saisie-confirmee action={action} className="inline">
         {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
         <Bouton className="inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4 disabled:opacity-60" />
       </form>
     );
   }
   return (
-    <form action={action} className="space-y-2">
+    <form data-saisie-confirmee action={action} className="space-y-2">
       {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
       <Bouton className={sansRendezVous ? CLASSE_BOUTON_SOBRE : CLASSE_BOUTON_PRINCIPAL} />
       {sansRendezVous && (

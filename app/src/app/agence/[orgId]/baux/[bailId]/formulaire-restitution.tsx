@@ -3,7 +3,8 @@
 import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
 import { InputDateJour } from "@/components/input-date-jour";
 
-import { useActionState, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   demarrerRestitution,
   ajouterRetenue,
@@ -322,7 +323,7 @@ function FormDemarrer({
     {}
   );
   return (
-    <form action={action} className="space-y-3">
+    <form data-saisie-confirmee action={action} className="space-y-3">
       <p className="text-sm text-muted-foreground">
         Le délai de restitution court à compter de la remise des clés : 1 mois si
         l&apos;état des lieux de sortie est conforme à l&apos;entrée, 2 mois sinon.
@@ -380,7 +381,7 @@ function FormRetenue({
     {}
   );
   return (
-    <form action={action} className="space-y-2 border border-dashed border-border p-3">
+    <form data-saisie-confirmee action={action} className="space-y-2 border border-dashed border-border p-3">
       <p className="text-sm font-medium">Ajouter une retenue (décote de vétusté)</p>
       {/* La clé remonte les CHAMPS — pas le formulaire — dès qu'une retenue est
           enregistrée : React remet alors les champs non contrôlés à leur
@@ -558,7 +559,7 @@ function BoutonSupprimerRetenue({
     {}
   );
   return (
-    <form action={action}>
+    <form data-saisie-confirmee action={action}>
       <BoutonEnvoi size="sm" variant="ghost" className="text-sm text-destructive">
         Retirer
       </BoutonEnvoi>
@@ -584,7 +585,7 @@ function FormRafraichirMontants({
     {}
   );
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-center gap-2">
       <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Mise à jour…">
         Réarrêter les montants à aujourd&apos;hui
       </BoutonEnvoi>
@@ -610,7 +611,7 @@ function FormJustifierRetenue({
     {}
   );
   return (
-    <form action={action} className="flex w-full flex-wrap items-center gap-2 pl-1">
+    <form data-saisie-confirmee action={action} className="flex w-full flex-wrap items-center gap-2 pl-1">
       <span className="text-sm text-destructive">Sans justificatif</span>
       <ChampFichier id={`just-retenue-${retenue.id}`} name="justificatif" accept=".pdf,image/*" required aria-label={`Justificatif pour ${retenue.libelle}`} />
       <BoutonEnvoi size="sm" variant="outline">
@@ -652,7 +653,7 @@ function FormDecompteEnvoye({
           l&apos;espace locataire restent en parallèle pour la consultation.
         </p>
       )}
-    <form action={action} className="flex flex-wrap items-end gap-2">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
         <Label htmlFor="decompte-envoye-date" className="text-sm">
           Envoyé au locataire le
@@ -700,7 +701,7 @@ function BoutonFinaliser({
   const [confirme, setConfirme] = useState(false);
   const boutonEnvoyer = useRef<HTMLButtonElement>(null);
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-center gap-2">
       <Button type="button" size="sm" onClick={() => setConfirme(true)}>
         Finaliser le décompte
       </Button>

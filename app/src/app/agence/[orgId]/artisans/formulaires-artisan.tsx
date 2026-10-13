@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useId } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   blacklisterArtisanLocal,
   creerOuRattacherArtisan,
@@ -95,7 +96,7 @@ export function FormulaireNouvelArtisan({ orgId }: { orgId: string }) {
   const idEmail = useId();
 
   return (
-    <form action={action} className="space-y-3">
+    <form data-saisie-confirmee action={action} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor={idRaison}>Raison sociale *</Label>
@@ -168,7 +169,7 @@ export function FormulaireMetiersZones({
   const [etat, action] = useActionState<EtatArtisanAction, FormData>(actionLiee, {});
 
   return (
-    <form action={action} className="space-y-3">
+    <form data-saisie-confirmee action={action} className="space-y-3">
       <ChampsMetiersEtZones metiers={metiers} codes={codes} valeurs={etat.valeurs} />
       <Retour etat={etat} />
       <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Enregistrement…">
@@ -193,7 +194,7 @@ export function BoutonStatutLocal({
   const [etat, action] = useActionState<EtatArtisanAction, FormData>(actionLiee, {});
 
   return (
-    <form action={action} className="space-y-2">
+    <form data-saisie-confirmee action={action} className="space-y-2">
       <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
         {actif ? "Désactiver dans mon carnet" : "Réactiver"}
       </BoutonEnvoi>
@@ -217,7 +218,7 @@ export function FormulaireBlacklistLocale({
   const idMotif = useId();
 
   return (
-    <form action={action} className="space-y-2">
+    <form data-saisie-confirmee action={action} className="space-y-2">
       <div className="space-y-1.5">
         <Label htmlFor={idMotif}>Motif de la liste noire *</Label>
         <Input
@@ -252,7 +253,7 @@ export function BoutonLeverBlacklist({
   const [etat, action] = useActionState<EtatArtisanAction, FormData>(actionLiee, {});
 
   return (
-    <form action={action} className="space-y-2">
+    <form data-saisie-confirmee action={action} className="space-y-2">
       <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
         Lever la liste noire
       </BoutonEnvoi>

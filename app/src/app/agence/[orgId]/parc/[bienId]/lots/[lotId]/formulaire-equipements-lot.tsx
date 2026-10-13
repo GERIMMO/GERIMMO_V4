@@ -34,7 +34,7 @@ export function FormulaireEquipementsLot({
   }
 
   return (
-    <form action={action} className="space-y-3">
+    <form data-saisie-confirmee action={action} className="space-y-3">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {catalogue.map((e) => (
           <label key={e.id} className="flex items-center gap-2 text-sm">

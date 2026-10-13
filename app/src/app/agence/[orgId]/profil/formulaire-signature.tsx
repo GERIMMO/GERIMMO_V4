@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   enregistrerSignature,
   retirerSignature,
@@ -123,7 +124,7 @@ export function FormulaireSignature({
       )}
 
       {!lectureSeule && (
-        <form action={action} className="space-y-2">
+        <form data-saisie-confirmee action={action} className="space-y-2">
           <div className="space-y-1.5">
             <Label htmlFor="sig-fichier">
               {apercu ? "Remplacer la signature" : "Déposer une signature"} (PNG/JPEG, 1 Mo max)

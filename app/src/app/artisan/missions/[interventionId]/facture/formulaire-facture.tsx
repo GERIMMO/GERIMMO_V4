@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
 import { deposerMaFacture, type EtatArtisanAction } from "@/app/actions/artisan";
 import { ChampFichier } from "@/components/champ-fichier";
@@ -58,7 +59,7 @@ export function FormulaireFacture({
   const idFichier = useId();
 
   return (
-    <form action={action} className="space-y-5">
+    <form data-saisie-confirmee action={action} className="space-y-5">
       <div className="space-y-1.5">
         <label htmlFor={idNumero} className={CLASSE_LIBELLE}>
           Numéro de la facture

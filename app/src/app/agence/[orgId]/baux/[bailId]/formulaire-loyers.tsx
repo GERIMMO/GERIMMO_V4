@@ -2,7 +2,8 @@
 import { InputDateJour } from "@/components/input-date-jour";
 
 import Link from "next/link";
-import { useActionState, useId, useState } from "react";
+import { useId, useState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   genererAppels,
   ajouterEncaissement,
@@ -127,7 +128,7 @@ function BoutonEnvoiQuittance({
     {}
   );
   return (
-    <form action={action} className="flex flex-wrap items-center gap-1">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-center gap-1">
       <BoutonEnvoi variant="ghost" size="sm" className="h-6 px-2 text-xs" disabled={Boolean(etat.succes)}>
         {etat.succes
           ? estQuittance ? "Envoyée" : "Envoyé"
@@ -170,7 +171,7 @@ function BoutonRetirerEncaissement({
       </Button>
     );
   return (
-    <form action={action} className="flex flex-wrap items-center gap-1">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-center gap-1">
       <Input
         name="motif"
         placeholder="Motif du retrait"
@@ -204,7 +205,7 @@ function BoutonRetirerRelance({
     {}
   );
   return (
-    <form action={action} className="flex items-center gap-1">
+    <form data-saisie-confirmee action={action} className="flex items-center gap-1">
       <BoutonEnvoi variant="ghost" size="sm">
         Retirer
       </BoutonEnvoi>
@@ -347,7 +348,7 @@ export function FormulaireLoyers({
           En erreur, la saisie est reposée via etatEnc.valeurs (recette 22/08) */}
       <div className="space-y-2">
         <p className="text-sm font-medium">Saisir un encaissement</p>
-        <form action={formEnc} className="flex flex-wrap items-end gap-2">
+        <form data-saisie-confirmee action={formEnc} className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
             <Label htmlFor="enc-montant" className="text-sm">Montant (€)</Label>
             <Input id="enc-montant" name="montant" type="number" step="0.01" min="0.01" defaultValue={etatEnc.valeurs?.montant} className="h-9 w-28" />
@@ -552,7 +553,7 @@ export function FormulaireLoyers({
             </ul>
           )}
           {/* En erreur, la saisie est reposée via etatRev.valeurs (recette 22/08) */}
-          <form action={formRev} className="flex flex-wrap items-end gap-2">
+          <form data-saisie-confirmee action={formRev} className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
               <p className="text-xs">
                 {derniereRevision ? "IRL de référence (dernière révision)" : "IRL de référence (figé au bail)"}
@@ -658,7 +659,7 @@ export function FormulaireLoyers({
           </ul>
         )}
         {/* En erreur, la saisie est reposée via etatRel.valeurs (recette 22/08) */}
-        <form action={formRel} className="flex flex-wrap items-end gap-2">
+        <form data-saisie-confirmee action={formRel} className="flex flex-wrap items-end gap-2">
           <select name="niveau" aria-label="Niveau de relance" defaultValue={etatRel.valeurs?.niveau ?? "relance_1"} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
             <option value="relance_1">Relance 1</option>
             <option value="relance_2">Relance 2</option>
@@ -722,7 +723,7 @@ export function FormulaireLoyers({
           </ul>
         )}
         {!chargesForfait && (
-        <form action={formReg} className="flex flex-wrap items-end gap-2">
+        <form data-saisie-confirmee action={formReg} className="flex flex-wrap items-end gap-2">
           {/* En erreur, la saisie est reposée via etatReg.valeurs (recette 22/08) */}
           <div className="space-y-1">
             <Label htmlFor="reg-annee" className="text-sm">Année</Label>
@@ -811,7 +812,7 @@ function BoutonEcheancier({ orgId, bailId }: { orgId: string; bailId: string }) 
     {}
   );
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-center gap-2">
       <BoutonEnvoi size="sm" variant="outline">
         {"Générer l'échéancier"}
       </BoutonEnvoi>
@@ -829,7 +830,7 @@ function BoutonQuittances({ orgId, bailId }: { orgId: string; bailId: string }) 
     {}
   );
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2">
+    <form data-saisie-confirmee action={action} className="flex flex-wrap items-center gap-2">
       <BoutonEnvoi size="sm" variant="outline">
         Régénérer les reçus/quittances
       </BoutonEnvoi>

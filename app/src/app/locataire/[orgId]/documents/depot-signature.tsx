@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   retournerDocumentSigne,
   type EtatRetourSignature,
@@ -53,7 +53,7 @@ export function DepotSignature({
           Télécharger
         </a>
       </div>
-      <form action={action} className="mt-2 flex flex-wrap items-center gap-2">
+      <form data-saisie-confirmee action={action} className="mt-2 flex flex-wrap items-center gap-2">
         {/* Champ fichier en français (25/09, D10) */}
         <ChampFichier
           id={`signature-${demande.id}`}

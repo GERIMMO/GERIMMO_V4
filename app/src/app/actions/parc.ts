@@ -20,6 +20,7 @@ export type EtatParc = {
   erreur?: string;
   succes?: string;
   repriseHref?: string;
+  creationConfirmeeHref?: string;
   // Création de fiche réussie, mais détention refusée : reprendre cette
   // fiche précise sans en créer une seconde lors de la correction.
   personneCreee?: { id: string; nom: string; prenom: string | null };
@@ -142,6 +143,8 @@ export async function creerBien(
   revalidatePath(`/agence/${orgId}/parc`);
   revalidatePath(`/agence/${orgId}/baux`, "layout");
 
+  // Confirmation explicite pour effacer le brouillon uniquement après commit.
+  if (formData.get("confirmation_creation") === "1") return { succes: "Lot enregistré.", creationConfirmeeHref: destination };
   redirect(destination);
 }
 

@@ -1,3 +1,5 @@
+import { compteDeLaCle } from "./copies-locales";
+
 /** Copies sur cet appareil uniquement. Les File sont conservés tels quels par
  * IndexedDB : aucune nouvelle compression à la reprise, donc mêmes empreintes. */
 export const DUREE_COPIE_FICHIERS = 7 * 24 * 60 * 60 * 1000;
@@ -27,12 +29,16 @@ export async function lireCopieFichiers(cle: string): Promise<CopieFichiers<unkn
     return await new Promise((resolve, reject) => {
       const transaction = db.transaction("copies", "readwrite"), copies = transaction.objectStore("copies");
       let resultat: CopieFichiers<unknown> | null = null;
-      // Purge à la prochaine utilisation, y compris les anciennes copies des autres comptes.
+      // Purge à la prochaine utilisation : les copies périmées, et celles des AUTRES comptes (audit du 13/10, PR178-A-01 :
+      // sur un appareil partagé, la copie d'un compte ne doit pas rester pour le suivant).
+      const compteCourant = compteDeLaCle(cle);
       const curseur = copies.openCursor();
       curseur.onsuccess = () => {
         const c = curseur.result;
         if (!c) return;
-        if (!copieRecente(c.value)) c.delete();
+        const proprietaire = typeof c.key === "string" ? compteDeLaCle(c.key) : null;
+        const autreCompte = compteCourant !== null && proprietaire !== null && proprietaire !== compteCourant;
+        if (!copieRecente(c.value) || autreCompte) c.delete();
         else if (c.key === cle) resultat = c.value;
         c.continue();
       };

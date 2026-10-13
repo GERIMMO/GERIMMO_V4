@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { RepriseLocale, StatutCopieLocale, useCopieFichiers } from "@/components/reprise-locale";
+import { DELAI_COPIE_LOCALE_MS, RepriseLocale, StatutCopieLocale, useCopieFichiers } from "@/components/reprise-locale";
 import { cleCopieFichiers, type CopieFichiers } from "@/lib/brouillon-fichiers";
 import { declarationDuBrouillon, validerBrouillonIncident, type BrouillonIncident } from "@/lib/brouillons-personne-incident";
 import { useActionState, useEffect, useRef, useState } from "react";
@@ -149,8 +149,12 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
       return bilan;
     }
   }, copie?.donnees.bilan ?? {});
+  // Audit du 13/10 (PR178-A-04) : la copie est écrite une fois la frappe terminée, pas à chaque touche (les photos jointes
+  // étaient réécrites en entier à chaque caractère) ; les envois écrivent, eux, tout de suite.
   useEffect(() => {
-    if (!enCours && (saisie.categorie || saisie.description || saisie.photos.length) && !(etat.succes && !etat.avertissement)) void enregistrer(saisie);
+    if (enCours || !(saisie.categorie || saisie.description || saisie.photos.length) || (etat.succes && !etat.avertissement)) return;
+    const minuterie = setTimeout(() => { void enregistrer(saisie); }, DELAI_COPIE_LOCALE_MS);
+    return () => clearTimeout(minuterie);
   }, [saisie, enCours, etat.succes, etat.avertissement, enregistrer]);
   const { categorie, piece, photos } = saisie;
   const setCategorie = (categorie: string) => setSaisie(s => ({ ...s, categorie }));

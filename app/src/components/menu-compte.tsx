@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { seDeconnecter } from "@/app/actions/auth";
+import { PurgerCopiesALaDeconnexion } from "@/components/purger-copies-a-la-deconnexion";
 
 // LE MENU DU COMPTE — demande de l'humain, 12/09.
 //
@@ -104,7 +105,7 @@ export function MenuCompte({
           ))}
           {/* La déconnexion reste une ACTION serveur, pas un lien : elle révoque
               la session côté Supabase avant de renvoyer à l'accueil. */}
-          <form action={seDeconnecter}>
+          <form action={seDeconnecter}><PurgerCopiesALaDeconnexion />
             <button type="submit" role="menuitem" className="menu-compte-sortir">
               Se déconnecter
             </button>

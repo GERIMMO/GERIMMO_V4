@@ -29,7 +29,7 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
       <ol className="grid grid-cols-3 gap-2 text-sm" aria-label="Étapes de l’import">
         {["Fichier", "Aperçu", "Résultat"].map((label, i) => <li key={label} aria-current={i === (apresBascule ? 2 : etat.controle ? 1 : 0) ? "step" : undefined} className={`rounded-lg border p-3 ${i === (apresBascule ? 2 : etat.controle ? 1 : 0) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted/30"}`}><span className="block text-xs">{i + 1}</span>{label}</li>)}
       </ol>
-      <form data-saisie-confirmee id={`${base}-import`} action={action} className="space-y-4">
+      <form id={`${base}-import`} action={action} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor={`${base}-fichier`}>Votre fichier (CSV)</Label>
           <ChampFichier id={`${base}-fichier`} name="fichier" accept=".csv,text/csv" />

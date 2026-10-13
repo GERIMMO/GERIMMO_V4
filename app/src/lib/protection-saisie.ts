@@ -45,6 +45,10 @@ function empreinte(formulaire: HTMLFormElement): Empreinte {
 }
 function eligible(formulaire: HTMLFormElement): boolean {
   return /^\/(agence|artisan|locataire|admin|assistance|compte)(\/|$)/.test(location.pathname)
+    // Audit du 13/10 (PR178-A-02, PR178-B-05) : seuls les formulaires qui déclarent pouvoir confirmer un envoi
+    // sont suivis. Un filtre ou une recherche sans attribut method ne se « confirme » jamais : il restait
+    // « modifié » et la boîte « Quitter le site ? » s'ouvrait à chaque validation, « Rester » bloquant le filtre.
+    && formulaire.hasAttribute("data-saisie-confirmee")
     && formulaire.getAttribute("method")?.toLowerCase() !== "get"
     && formulaire.getAttribute("role") !== "search"
     && !formulaire.closest('[data-protection-saisie="locale"]');

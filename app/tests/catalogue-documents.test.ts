@@ -31,6 +31,10 @@ function fixture():Record<string,Row[]> {return {
   mandats:[{id:"mandat",person_id:"p",etat:"actif",preavis_mois:3}],mandat_lignes:[{lot_id:"lot",date_debut:"2025-01-01",date_fin:null,taux_honoraires:7}],
   rapports_gestion:[{id:"rapport",mandat_id:"mandat",mois:"2026-01-01",statut:"envoye",net:100,versement_montant:100,versement_date:"2026-02-01"}],
   mouvements_mandants:[{date_mouvement:"2026-01-01",type:"honoraires",sens:"debit",montant:70,tva:14}],
+  // Récapitulatif fiscal nu (13/10) : exercice confirmé du lot et qualification de la pièce d'origine.
+  fiscal_exercices_lots:[{lot_id:"lot",annee:2026,version:1,periodes:[{debut:"2026-01-01",fin:"2026-12-31",quote_part:100,regime:"nu"}],justification:"Lot nu détenu à 100 %",regularisation230:0,quote_part230:100,justification230:"Aucune provision de l’année précédente"}],
+  fiscal_qualifications_ecritures:[{ecriture_id:"origine",lot_id:"lot",nature:"deductible",rubrique:"224",justification:"Réparation admissible",version:1}],
+  fiscal_encaissements_composantes:[],
 };}
 function mockDb(tables=fixture(),failure?:string) {
   const calls:{table:string;ops:[string,...unknown[]][]}[]=[];
@@ -109,6 +113,34 @@ describe("Catalogue — documents issus des dossiers",()=>{
     const renseigne=succes(await assemblerComplementGestion("recap_fiscal_nu",mockDb().db,"org","lot",{annee:"2026",interets_emprunt:"123.45"}));
     expect(renseigne.document.manquants).toEqual([]);
     expect(renseigne.document.html).toContain("123,45");
+  });
+  it("le récapitulatif fiscal nu reprend les captures et les qualifications au lieu d’imprimer des zéros",async()=>{
+    // Relevé du 13/10 (FIN-01) : le document appelait le calcul sans captures ni qualifications.
+    const t=fixture();
+    const qualif=(id:string,rubrique:string,justification:string)=>({ecriture_id:id,lot_id:"lot",nature:"deductible",rubrique,justification,version:1});
+    t.ecritures=[
+      ...[1,2,3].map(m=>({id:`loyer${m}`,lot_id:"lot",bail_id:"bail",encaissement_id:`enc${m}`,categorie:"loyer",sens:"recette",montant:840,date_piece:`2026-0${m}-05`})),
+      {id:"assurance",lot_id:"lot",categorie:"assurance",sens:"depense",montant:300,date_piece:"2026-02-10"},
+      {id:"travaux",lot_id:"lot",categorie:"travaux",sens:"depense",montant:1200,date_piece:"2026-03-10"},
+      {id:"taxe",lot_id:"lot",categorie:"taxe_fonciere",sens:"depense",montant:900,date_piece:"2026-04-10"},
+    ];
+    t.fiscal_encaissements_composantes=[1,2,3].map(m=>({ecriture_id:`loyer${m}`,loyer_hc:780,charges:60,non_ventile:0}));
+    t.fiscal_qualifications_ecritures=[qualif("assurance","223","Prime d’assurance PNO"),qualif("travaux","224","Remplacement de la chaudière"),qualif("taxe","227","Taxe foncière hors TEOM")];
+    const html=succes(await assemblerComplementGestion("recap_fiscal_nu",mockDb(t).db,"org","lot",options)).document.html;
+    expect(html).toMatch(/2[\s\u202f\u00a0]340,00/); // 211 : trois loyers hors charges de 780 €
+    expect(html).toMatch(/1[\s\u202f\u00a0]200,00/); // 224
+    expect(html).toContain("300,00");                   // 223
+    expect(html).toContain("900,00");                   // 227
+    expect(html).toMatch(/180,00 € de provisions/);    // 3 × 60 € de charges, hors déclaration
+    expect(html).toContain("Périmètre : 6 écritures");
+  });
+  it("le récapitulatif fiscal nu refuse de s’imprimer tant qu’une pièce n’est pas qualifiée",async()=>{
+    const t=fixture();t.fiscal_qualifications_ecritures=[];
+    const r=await assemblerComplementGestion("recap_fiscal_nu",mockDb(t).db,"org","lot",options);
+    expect(r).toHaveProperty("erreur");
+    expect(String((r as {erreur:string}).erreur)).toContain("Préparer ma déclaration");
+    const sansExercice=fixture();sansExercice.fiscal_exercices_lots=[];
+    expect(await assemblerComplementGestion("recap_fiscal_nu",mockDb(sansExercice).db,"org","lot",options)).toHaveProperty("erreur");
   });
   it("filtre les reçus, EDL et contrats individuels avant pagination et revérifie au clic",async()=>{
     for(const [id,filtre] of [["recu_partiel",["eq","est_quittance",false]],["edl_sortie",["eq","type","sortie"]],["bail_individuel",["not","chambre_id","is",null]]] as const){

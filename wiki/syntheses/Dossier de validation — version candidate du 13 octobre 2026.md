@@ -88,7 +88,7 @@ Aucune donnée de production n'a donc été abîmée par les anomalies relevées
 | Aucune anomalie P0 ouverte | respecté : aucune P0 relevée |
 | Aucune anomalie P1 ouverte dans la version à livrer | respecté : la seule P1 (FIN-01) est corrigée en branche, avec test rouge puis vert |
 | Sauvegarde avant migration | à faire : déclenchement de « Sauvegarde quotidienne » juste avant l'application |
-| Simulation des migrations | à faire : `migrations.yml` avec `simulation` à vrai |
+| Simulation des migrations | **faite le 13/10 à 21 h 43 UTC** : `migrations.yml` (exécution n° 70) a joué les deux fichiers dans l'ordre contre la production, puis tout annulé (« SIMULATION : tout a été joué puis annulé »). Les sept blocs de `20261013120000` ont retrouvé leurs ancres dans les définitions de production, donc ces fonctions y sont bien celles que le test a vues sur le banc |
 | Contrôles en production non destructifs | faits pour l'état courant (§ 3) ; à refaire après application |
 | Autorisation explicite du dirigeant | **en attente** |
 

@@ -106,7 +106,8 @@ export function FormulaireQualification({
       </BoutonEnvoi>
       <p className="text-sm text-muted-foreground">
         Le locataire est informé immédiatement — avant toute intervention, pas à la
-        facture.
+        facture. <strong>Cette justification lui est montrée telle que vous l&apos;écrivez</strong> : gardez
+        vos notes personnelles pour vous.
       </p>
     </form>
   );

@@ -99,12 +99,18 @@ test('propriétaire : le bail reprend le lot et permet de créer puis retrouver 
   const nomLot = `E2E bail ${lotId}`;
   let nomLocataire: string | undefined;
   try {
-    await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots,
+    // Les identifiants du seed sont générés à chaque base neuve : retrouver
+    // la fixture par son organisation et son nom, puis vérifier sa présence.
+    const sources = (await db.query("select id from public.lots where organization_id=$1 and nom=$2", [ORG, 'Appartement T2 — 12 rue des Lilas'])).rows;
+    expect(sources).toHaveLength(1);
+    const sourceId = sources[0].id;
+    const copie = await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots,
       to_jsonb(l)||jsonb_build_object('id',$1::text,'nom',$2::text,'etat','disponible','created_at',now(),'updated_at',now()))).*
-      from public.lots l where l.id='44631e67-b5f9-4bf7-a06d-ef8e2f8daaf7' and l.organization_id=$3`, [lotId, nomLot, ORG]);
+      from public.lots l where l.id=$4 and l.organization_id=$3 returning id`, [lotId, nomLot, ORG, sourceId]);
+    expect(copie.rows).toEqual([{ id: lotId }]);
     await db.query(`insert into public.detentions(id,lot_id,organization_id,person_id,quote_part,date_debut,date_fin)
       select gen_random_uuid(),$1,organization_id,person_id,quote_part,date_debut,date_fin from public.detentions
-      where lot_id='44631e67-b5f9-4bf7-a06d-ef8e2f8daaf7' and organization_id=$2`, [lotId, ORG]);
+      where lot_id=$3 and organization_id=$2`, [lotId, ORG, sourceId]);
   await page.goto(`/agence/${ORG}/parc`);
   await page.getByRole('button', { name: new RegExp(nomLot) }).first().click();
   const href = await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).getAttribute('href');

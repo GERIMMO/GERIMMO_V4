@@ -7,6 +7,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { remettreRapportMensuel } from "@/lib/rapports-mensuels";
 import { aujourdhuiParis } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { lireMontant } from "@/lib/saisie-montant";
 
 export type EtatCompta = {
   erreur?: string;
@@ -89,10 +90,11 @@ export async function ajouterEcriture(
   const valeurs = valeursDuFormulaire(formData);
   const categorie = String(formData.get("categorie") ?? "").trim();
   const sens = String(formData.get("sens") ?? "");
-  const montant = Number(String(formData.get("montant") ?? "").trim());
+  const lu = lireMontant(formData.get("montant"));
   if (!categorie) return { erreur: "Catégorie obligatoire.", valeurs };
   if (sens !== "recette" && sens !== "depense") return { erreur: "Sens invalide.", valeurs };
-  if (!Number.isFinite(montant) || montant <= 0) return { erreur: "Montant invalide.", valeurs };
+  if ("erreur" in lu) return { erreur: lu.erreur, valeurs };
+  const montant = lu.montant;
   let parts;
   try {
     parts = ventilerTeom(montant, Number(String(formData.get("teom") ?? "0").replace(",", ".")), categorie, sens);
@@ -145,10 +147,11 @@ export async function ventilerDepense(
   const valeurs = valeursDuFormulaire(formData);
   const bienId = String(formData.get("bien_id") ?? "");
   const categorie = String(formData.get("categorie") ?? "").trim();
-  const montant = Number(String(formData.get("montant") ?? "").trim());
+  const lu = lireMontant(formData.get("montant"));
   if (!bienId) return { erreur: "Choisissez le bien.", valeurs };
   if (!categorie) return { erreur: "Catégorie obligatoire.", valeurs };
-  if (!montant || montant <= 0) return { erreur: "Montant invalide.", valeurs };
+  if ("erreur" in lu) return { erreur: lu.erreur, valeurs };
+  const montant = lu.montant;
   const { data, error } = await supabase.rpc("ventiler_depense_bien", {
     p_bien: bienId,
     p_categorie: categorie,

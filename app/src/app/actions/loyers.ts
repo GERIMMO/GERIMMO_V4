@@ -15,6 +15,7 @@ import {
 } from "@/lib/quittance-conforme";
 import { eur } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { lireMontant, verifierDateDejaPassee } from "@/lib/saisie-montant";
 import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
 import { compteRenduEncaissement, type EtatAppel } from "@/lib/imputation";
 import { adresseDeRetour, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
@@ -253,9 +254,12 @@ export async function ajouterEncaissement(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
-  const montant = Number(String(formData.get("montant") ?? "").trim());
-  if (!montant || montant <= 0) return { erreur: "Montant invalide.", valeurs };
+  const lu = lireMontant(formData.get("montant"));
+  if ("erreur" in lu) return { erreur: lu.erreur, valeurs };
+  const montant = lu.montant;
   const date = String(formData.get("date_paiement") ?? "").trim() || null;
+  const dateRefusee = verifierDateDejaPassee(date, "La date d'encaissement");
+  if (dateRefusee) return { erreur: dateRefusee, valeurs };
   const mode = String(formData.get("mode") ?? "").trim() || null;
   const note = String(formData.get("note") ?? "").trim() || null;
 

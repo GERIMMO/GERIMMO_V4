@@ -361,6 +361,7 @@ export function FormulaireLoyers({
               id="enc-date"
               className="h-9"
               name="date_paiement"
+              pasDansLeFutur
               valeurSoumise={etatEnc.valeurs?.date_paiement}
             />
           </div>

@@ -497,6 +497,25 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
     expect(resultat.valeurs?.date_paiement).toBe("2026-08-15");
   });
 
+  // Audit du 13/10/2026 (PROP-12, PROP-13) : 12,345 € et une date de 2027 étaient
+  // acceptés. L'action refuse, rend la saisie, et n'écrit rien au journal.
+  it.each([
+    ["12.345", "2026-08-15", /centime près/],
+    ["10", "2099-01-01", /futur/],
+  ])("REFUSE le montant %s daté du %s, sans rien écrire", async (montant, dateReleve, message) => {
+    const { ajouterEncaissement } = await import("@/app/actions/loyers");
+    const avant = await db.query("select count(*)::int as n from public.encaissements where bail_id = $1", [bail]);
+    const saisie = new FormData();
+    saisie.set("montant", montant);
+    saisie.set("date_paiement", dateReleve);
+    const resultat = await ajouterEncaissement(org, bail, {}, saisie);
+
+    expect(resultat.erreur).toMatch(message);
+    expect(resultat.valeurs?.montant).toBe(montant);
+    const apres = await db.query("select count(*)::int as n from public.encaissements where bail_id = $1", [bail]);
+    expect(apres.rows[0].n).toBe(avant.rows[0].n);
+  });
+
   it("quittancement_mois reste borné au portefeuille de l'agent restreint", async () => {
     // La fonction a été réécrite : sa garde de portefeuille explicite a disparu
     // du WHERE et ne tient plus que par celle d'etat_loyers_bail, appelée dans

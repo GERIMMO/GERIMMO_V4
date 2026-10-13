@@ -165,7 +165,7 @@ function FormEncaisser({
         </div>
         <div className="space-y-1">
           <Label htmlFor="dep-date" className="text-sm">Date</Label>
-          <InputDateJour id="dep-date"   className="h-9" name="date" />
+          <InputDateJour id="dep-date"   className="h-9" name="date" pasDansLeFutur />
         </div>
         <div className="space-y-1">
           {/* Le même sélecteur que l'encaissement du loyer (25/09) : un champ

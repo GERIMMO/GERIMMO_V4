@@ -24,8 +24,8 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 | **P0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
 | **P1** | 0 | 1 | 0 | 0 | 0 | 0 | 0 | **1** |
 | **P2** | 8 | 15 | 0 | 2 | 1 | 0 | 0 | **26** |
-| **P3** | 38 | 4 | 0 | 2 | 0 | 0 | 0 | **44** |
-| **Total** | 46 | 20 | 0 | 4 | 1 | 0 | 0 | **71** |
+| **P3** | 38 | 5 | 0 | 2 | 0 | 0 | 0 | **45** |
+| **Total** | 46 | 21 | 0 | 4 | 1 | 0 | 0 | **72** |
 
 Sources lues : auditeur/a, auditeur/b, auditeur/c, chaine/1, coordinateur, proprietaire/s01, relecture/finance, relecture/reprises, relecture/supervision, superadmin.
 
@@ -348,7 +348,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : oui
 - **Statut** : acceptée — défaut du banc d'essai, pas du produit ; banc-up.sh vérifie la clé de service
 
-## P3 — cosmétique ou mineur (44)
+## P3 — cosmétique ou mineur (45)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
@@ -391,6 +391,7 @@ Aucune anomalie de cette gravité à ce jour.
 | `SUP-09` | relecture/supervision | Chaque validation d'un devis téléverse un nouveau PDF (chemin aléatoire) dans le compartiment devis-preparations et n'efface jamais l'ancien (ni celui d'une validation perdante en cas de conflit 409) : des PDF orphelins contenant les coordonnées de l'entrepri… *(hyp.)* | ouverte |
 | `SA-02` | superadmin | Brief de direction : les montants des faits datés s'affichent avec un point décimal ('500.00 €') alors que les mesures s'affichent à la française ('4 870,00 €') | ouverte |
 | `PUB-02` | coordinateur | Offre agence présentée au public alors que les agences sont hors périmètre V1 publique : accueil (repères, espaces, bandeau tarif, FAQ), tarifs, connexion, inscription artisan, choix d'espace, pied de page, métadonnées, deux sujets éditoriaux | corrigée en branche — commit e7982a7 |
+| `PUB-04` | coordinateur | La mention de taxes de l'accueil et des tarifs citait encore les agences (« pour les particuliers comme pour les agences ») | corrigée en branche — 35b0ae8 — phrase de taxes sans agences, 4 tests |
 | `PROP-04` | proprietaire/s01 | Surface démesurée : message technique « numeric field overflow » affiché à l'utilisateur | corrigée en branche — d6ef891 — surface bornée à 9 999,99 m² avec message clair |
 | `PROP-06` | proprietaire/s01 | La page /connexion présente encore l'offre agence alors que les agences sont hors V1 publique | corrigée en branche — commit e7982a7 (/connexion sans offre agence) |
 | `SUP-08` | relecture/supervision | Quand le responsable désigné perd son habilitation, traiter_vacances passe TOUTES les alertes non accusées du plan en « non_acheminee », y compris celles déjà escaladées vers le créateur (qui, lui, est habilité) ; elles ne peuvent alors plus escalader (l'esca… | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — seules les alertes du responsable concerné son… |

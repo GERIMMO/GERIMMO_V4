@@ -1,3 +1,4 @@
+import { verifierAvantEffet } from "@/lib/controle-effets";
 // Tâche mensuelle : la ronde du territoire — mesurer, noter, décider, consigner.
 //
 // C'est la boucle de l'expansion territoriale (wiki, 19/09), dans son premier
@@ -159,6 +160,7 @@ export async function GET(request: Request) {
     }
     return ligne;
   });
+  await verifierAvantEffet(supabase, "territoire");
   const sauvegarde = await supabase.from("territory_market_data").upsert(donneesMarche, { onConflict: "departement" });
   if (sauvegarde.error) {
     await consignerTache(supabase, "territoire", { erreur: "enregistrement territorial impossible", agi: false });
@@ -182,6 +184,7 @@ export async function GET(request: Request) {
   const priorite = decision.prochain ? prioriteTerritoriale(marche.departements[decision.prochain.code]) : null;
   let recrutementPrepare = 0, preparationErreur = false;
   if (porte.ouverte && decision.prochain && priorite && priorite.public !== 'donnees') {
+    await verifierAvantEffet(supabase, "territoire");
     const preparation = await supabase.rpc('preparer_recrutement_territorial', { p_code: decision.prochain.code, p_cible: priorite.public, p_nom: decision.prochain.nom, p_raison: priorite.raison });
     preparationErreur = Boolean(preparation.error);
     recrutementPrepare = preparation.data && !preparation.error ? 1 : 0;

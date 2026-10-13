@@ -1,3 +1,4 @@
+import { ArretSupervision } from "./controle-effets";
 // L'adaptateur Stripe — et rien d'autre que l'adaptateur.
 //
 // CE QUE CE FICHIER NE DÉCIDE PAS. Ni la quantité à facturer (elle vient de
@@ -216,6 +217,7 @@ export async function assurerClientStripe(
       try {
         trouve = await stripe.customers.retrieve(params.existant);
       } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
         // « No such customer » : purgé, ou d'un autre mode. Même traitement
         // qu'un client supprimé ; toute autre erreur remonte.
         if ((e as { code?: string }).code !== "resource_missing") throw e;
@@ -239,6 +241,7 @@ export async function assurerClientStripe(
     );
     return { ok: true, customer: cree.id, remplace: Boolean(params.existant) };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }
@@ -272,6 +275,7 @@ export async function verifierClientDeLOrganisation(
     }
     return { ok: true };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }
@@ -308,6 +312,7 @@ export async function verifierAucuneSouscriptionVivante(
     }
     return { ok: true };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }
@@ -408,6 +413,7 @@ export async function creerSessionPaiement(
     }
     return { ok: true, url: session.url };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }
@@ -496,6 +502,7 @@ export async function ouvrirPortailFacturation(
     });
     return { ok: true, url: session.url };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     const erreur = lireErreurStripe(e);
     if (/no configuration provided|default configuration has not been created/i.test(erreur)) {
       return {
@@ -550,6 +557,7 @@ export async function synchroniserQuantite(
     });
     return { ok: true, quantite: params.quantite, resiliee: false };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }
@@ -589,6 +597,7 @@ export async function crediterClientStripe(
     );
     return { ok: true, reference: transaction.id };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }

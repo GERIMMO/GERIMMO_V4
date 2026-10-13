@@ -1,3 +1,4 @@
+import { verifierAvantEffet } from "@/lib/controle-effets";
 // Tâche planifiée : annoncer au locataire l'échéance qui l'attend.
 //
 // Le cycle mensuel crée l'appel le 1er du mois ; jusqu'ici il restait muet dans
@@ -130,7 +131,9 @@ export async function GET(request: Request) {
         lien: `${site}/locataire/${l.organization_id}/loyers`,
       }),
     });
+    await verifierAvantEffet(supabase, "appels");
     const envoi = await envoyerEmail({
+      avantEnvoi: () => verifierAvantEffet(supabase, "appels"),
       organisation: { db: supabase, id: l.organization_id },
       to: l.destinataire,
       ...avis(l.prenom),
@@ -143,7 +146,9 @@ export async function GET(request: Request) {
     // « Relances et mise en demeure » — la colocation solidaire vise tous les
     // colocataires). Un échec vers un colocataire se dit au bilan.
     for (const autre of l.autres_destinataires ?? []) {
+      await verifierAvantEffet(supabase, "appels");
       const copie = await envoyerEmail({
+      avantEnvoi: () => verifierAvantEffet(supabase, "appels"),
         organisation: { db: supabase, id: l.organization_id },
         to: autre,
         ...avis(null),

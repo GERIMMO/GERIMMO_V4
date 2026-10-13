@@ -68,7 +68,7 @@ async function jetonPourLaPage(pageId: string, jeton: string): Promise<string> {
   }
 }
 
-export async function envoyerSurFacebook(article: ArticleFacebook): Promise<PublicationFacebook> {
+export async function envoyerSurFacebook(article: ArticleFacebook, avantEffet?: () => Promise<void>): Promise<PublicationFacebook> {
   // Même si un secret de production est ajouté par erreur à une démonstration,
   // celle-ci ne doit jamais pouvoir publier sur la Page réelle.
   if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
@@ -95,6 +95,7 @@ export async function envoyerSurFacebook(article: ArticleFacebook): Promise<Publ
     donnees.set("link", `${site}/journal/${article.slug}`);
   }
 
+  await avantEffet?.();
   const reponse = await fetch(`${baseGraph()}/${encodeURIComponent(pageId)}/${chemin}`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },

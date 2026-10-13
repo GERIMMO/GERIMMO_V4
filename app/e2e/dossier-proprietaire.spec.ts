@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { Client } from 'pg';
+import { randomUUID } from 'node:crypto';
 import { sansSyntheseAlertes, debordementHorizontal } from './aides';
 
 const ORG = '3c1d1e95-3570-400b-8012-44530be145b1';
@@ -85,8 +87,26 @@ for (const largeur of [390, 1440]) {
 }
 
 test('propriétaire : le bail reprend le lot et permet de créer puis retrouver le locataire', async ({ page }) => {
+  const cible = process.env.SUPALOCAL_DB;
+  test.skip(!cible, 'Ce scénario exige une base API locale pour isoler son lot.');
+  const url = new URL(cible!);
+  if (!['127.0.0.1', 'localhost'].includes(url.hostname) || !/^gerimmo_ci_[a-z_]+_api$/.test(url.pathname.slice(1))) throw new Error('Base API locale de recette requise');
+  const db = new Client({ connectionString: cible });
+  await db.connect();
+  // Chaque projet, reprise et exécution a son lot : le brouillon créé par le
+  // bureau ne remplace plus le bouton attendu par le scénario mobile.
+  const lotId = randomUUID();
+  const nomLot = `E2E bail ${lotId}`;
+  let nomLocataire: string | undefined;
+  try {
+    await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots,
+      to_jsonb(l)||jsonb_build_object('id',$1::text,'nom',$2::text,'etat','disponible','created_at',now(),'updated_at',now()))).*
+      from public.lots l where l.id='44631e67-b5f9-4bf7-a06d-ef8e2f8daaf7' and l.organization_id=$3`, [lotId, nomLot, ORG]);
+    await db.query(`insert into public.detentions(id,lot_id,organization_id,person_id,quote_part,date_debut,date_fin)
+      select gen_random_uuid(),$1,organization_id,person_id,quote_part,date_debut,date_fin from public.detentions
+      where lot_id='44631e67-b5f9-4bf7-a06d-ef8e2f8daaf7' and organization_id=$2`, [lotId, ORG]);
   await page.goto(`/agence/${ORG}/parc`);
-  await page.getByRole('button', { name: /Appartement T2/ }).first().click();
+  await page.getByRole('button', { name: new RegExp(nomLot) }).first().click();
   const href = await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).getAttribute('href');
   // L’ancien lien de création de locataire rejoint désormais les baux du lot.
   await page.goto(href! + '?parcours=1&etape=locataires');
@@ -104,7 +124,8 @@ test('propriétaire : le bail reprend le lot et permet de créer puis retrouver 
   await expect(personnes.locator('.bail-personnes-proprietaires')).toContainText('Moreau');
   await personnes.getByRole('button', { name: /Choisir un locataire|Changer de locataire/ }).click();
   await personnes.getByRole('button', { name: 'Créer une personne', exact: true }).click();
-  const nom = `Guide${Date.now()}`;
+  const nom = `Guide${randomUUID()}`;
+  nomLocataire = nom;
   const formulaire = personnes.locator('form.bail-personne-formulaire');
   for (const [champ, valeur] of Object.entries({ nom, prenom:'Camille', email:`${nom.toLowerCase()}@example.invalid`, date_naissance:'1990-01-01', commune_naissance:'Lyon', address_line1:'1 rue des Essais', postal_code:'69003', city:'Lyon' })) {
     await formulaire.locator(`[name="${champ}"]`).fill(valeur);
@@ -126,4 +147,12 @@ test('propriétaire : le bail reprend le lot et permet de créer puis retrouver 
   await navigation.getByRole('button', { name: /Étape 1 : Le bail/ }).click();
   await expect(page.locator('[name="date_debut"]:visible')).toHaveValue('2026-12-01');
   expect(await debordementHorizontal(page)).toBe(0);
+  } finally {
+    // Périmètre exclusivement créé par CETTE tentative, jamais le lot du seed.
+    await db.query('delete from public.baux where lot_id=$1 and organization_id=$2', [lotId, ORG]);
+    await db.query('delete from public.detentions where lot_id=$1 and organization_id=$2', [lotId, ORG]);
+    await db.query('delete from public.lots where id=$1 and organization_id=$2', [lotId, ORG]);
+    if (nomLocataire) await db.query('delete from public.persons where organization_id=$1 and nom=$2', [ORG, nomLocataire]);
+    await db.end();
+  }
 });

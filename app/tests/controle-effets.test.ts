@@ -1,0 +1,10 @@
+import {describe,it,expect,vi} from 'vitest';import type {SupabaseClient} from '@supabase/supabase-js';
+import {verifierAvantEffet,ArretSupervision} from '@/lib/controle-effets';
+import {instantParis} from '@/lib/dates-supervision';
+describe('Points de contrôle avant effet',()=>{
+ it('effet permis puis arrêt : aucun second effet, le premier reste effectué',async()=>{const rpc=vi.fn().mockResolvedValueOnce({data:true,error:null}).mockResolvedValueOnce({data:false,error:null});const db={rpc} as unknown as SupabaseClient;const effets:string[]=[];await verifierAvantEffet(db,'marketing');effets.push('premier');await expect(verifierAvantEffet(db,'marketing')).rejects.toBeInstanceOf(ArretSupervision);expect(effets).toEqual(['premier']);expect(rpc).toHaveBeenCalledWith('verifier_arret_supervision',{p_mission:'marketing',p_plan:null});});
+ it('lecture indisponible bloque avant effet',async()=>{await expect(verifierAvantEffet({rpc:vi.fn().mockResolvedValue({data:null,error:{message:'panne'}})} as unknown as SupabaseClient,'purge')).rejects.toThrow(/indisponible/);});
+ it('une panne réseau levée conserve la distinction avec un arrêt demandé',async()=>{await expect(verifierAvantEffet({rpc:vi.fn().mockRejectedValue(new Error('détail privé'))} as unknown as SupabaseClient,'purge')).rejects.toMatchObject({raison:'indisponible',message:'Le contrôle des arrêts est indisponible. Aucun nouvel effet ne sera lancé.'});});
+ it('une réponse vide ne prétend pas être un arrêt demandé',async()=>{await expect(verifierAvantEffet({rpc:vi.fn().mockResolvedValue({data:null,error:null})} as unknown as SupabaseClient,'purge')).rejects.toMatchObject({raison:'indisponible'});});
+ it('heures Paris hiver et été ; heure inexistante ou ambiguë refusée',()=>{expect(instantParis('2026-01-12T09:00')).toBe('2026-01-12T08:00:00.000Z');expect(instantParis('2026-07-12T09:00')).toBe('2026-07-12T07:00:00.000Z');expect(instantParis('2026-03-29T02:30')).toBeNull();expect(instantParis('2026-10-25T02:30')).toBeNull();expect(instantParis('2026-02-30T09:00')).toBeNull();});
+});

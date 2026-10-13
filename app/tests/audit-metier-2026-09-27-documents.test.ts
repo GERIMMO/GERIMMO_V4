@@ -286,6 +286,7 @@ vi.mock("@/lib/site", async (importOriginal) => ({
 vi.mock("@/lib/supabase/service", () => ({
   clientDeService: () => ({
     rpc: async (nom: string, args: { p_note?: string }) => {
+      if (nom === "verifier_arret_supervision") return {data:true,error:null};
       if (nom === "relances_loyer_dues")
         return {
           data: [

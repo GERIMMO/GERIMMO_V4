@@ -1,3 +1,4 @@
+import { verifierAvantEffet } from "@/lib/controle-effets";
 // La suppression physique des fichiers purgés — chaque nuit, sans clic.
 //
 // POURQUOI (audit sécurité du 27/09). pg_cron applique chaque nuit les règles
@@ -46,6 +47,7 @@ export async function GET(request: Request) {
   let traites = 0;
   let echecs = 0;
   if (lignes.length > 0) {
+    await verifierAvantEffet(db, "purge");
     const { data: supprimes, error: erreurSuppression } = await db.storage
       .from("documents")
       .remove(lignes.map((l) => l.storage_path));

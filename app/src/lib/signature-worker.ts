@@ -1,3 +1,4 @@
+import { ArretSupervision } from "./controle-effets";
 import { createHash, randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { telechargerDocumentSigneYoutrust, telechargerPreuveYoutrust, type ConfigurationYoutrust } from "@/lib/youtrust";
@@ -10,6 +11,7 @@ export async function traiterEvenementSignature(
   supabase: SupabaseClient,
   config: ConfigurationYoutrust,
   evenement: EvenementSignature,
+  avantEffet?: () => Promise<void>,
 ): Promise<{ ok: boolean; erreur?: string }> {
   try {
     const { data: demande, error: erreurDemande } = await supabase.from("demandes_signature")
@@ -17,6 +19,8 @@ export async function traiterEvenementSignature(
       .eq("external_request_id", evenement.request_id).maybeSingle();
     if (erreurDemande || !demande) throw new Error("Demande Gerimmo inconnue");
     const d = demande as Demande;
+    // Chaque événement est contrôlé, y compris refus/expiration et classement déjà signé.
+    await avantEffet?.();
     if (evenement.event_name === "signature_request.done" && !d.signee_le) {
       if (!d.external_document_id || !d.external_signer_id) throw new Error("Identifiants Youtrust incomplets");
       const [signe, preuve] = await Promise.all([
@@ -27,6 +31,7 @@ export async function traiterEvenementSignature(
       const racine = `${d.organization_id}/signature-youtrust/${randomUUID()}`;
       const cheminSigne = `${racine}-signe.pdf`;
       const cheminPreuve = `${racine}-preuve.pdf`;
+      await avantEffet?.();
       const [depotSigne, depotPreuve] = await Promise.all([
         supabase.storage.from("documents").upload(cheminSigne, signe, { contentType: "application/pdf" }),
         supabase.storage.from("documents").upload(cheminPreuve, preuve, { contentType: "application/pdf" }),
@@ -58,6 +63,7 @@ export async function traiterEvenementSignature(
     await supabase.from("signature_evenements").update({ etat: "traite", erreur: null, traite_le: new Date().toISOString() }).eq("event_id", evenement.event_id);
     return { ok: true };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     const erreur = e instanceof Error ? e.message.slice(0, 300) : "Erreur inconnue";
     await supabase.from("signature_evenements").update({ etat: "echec", erreur, tentatives: evenement.tentatives + 1 }).eq("event_id", evenement.event_id);
     return { ok: false, erreur };

@@ -1,3 +1,4 @@
+import { verifierAvantEffet } from "@/lib/controle-effets";
 // Tâche planifiée : relancer les loyers impayés, pour qui l'a demandé.
 //
 // Le geste le plus répétitif de la gestion locative — constater l'impayé,
@@ -129,7 +130,9 @@ export async function GET(request: Request) {
         lien: `${site}/locataire/${l.organization_id}/loyers`,
       }),
     });
+    await verifierAvantEffet(supabase, "relances");
     const envoi = await envoyerEmail({
+      avantEnvoi: () => verifierAvantEffet(supabase, "relances"),
       organisation: { db: supabase, id: l.organization_id },
       to: l.destinataire,
       ...courrier(l.prenom),
@@ -142,7 +145,9 @@ export async function GET(request: Request) {
     // (wiki « Relances et mise en demeure »). Un échec vers un colocataire se
     // consigne sans empêcher la trace de la relance, partie au principal.
     for (const autre of l.autres_destinataires ?? []) {
+      await verifierAvantEffet(supabase, "relances");
       const copie = await envoyerEmail({
+      avantEnvoi: () => verifierAvantEffet(supabase, "relances"),
         organisation: { db: supabase, id: l.organization_id },
         to: autre,
         ...courrier(null),
@@ -156,7 +161,9 @@ export async function GET(request: Request) {
     const cautionsInformees: string[] = [];
     if (l.niveau === "relance_2") {
       for (const caution of l.garants ?? []) {
+        await verifierAvantEffet(supabase, "relances");
         const info = await envoyerEmail({
+      avantEnvoi: () => verifierAvantEffet(supabase, "relances"),
           organisation: { db: supabase, id: l.organization_id },
           to: caution,
           subject: sujetInformationCaution({ lot: l.lot }),

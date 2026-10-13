@@ -1,3 +1,4 @@
+import { ArretSupervision } from "./controle-effets";
 // Stripe pour la grille du 28/09/2026 — l'adaptateur des OFFRES.
 //
 // LE PRIX NE VIT PLUS CHEZ STRIPE. La grille historique confiait le prix
@@ -56,6 +57,7 @@ export async function assurerProduit(stripe: Stripe, id: string): Promise<string
     if (!p.active) await stripe.products.update(id, { active: true });
     return p.id;
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     const code = (e as { code?: string }).code;
     if (code !== "resource_missing") throw e;
     const cree = await stripe.products.create(
@@ -226,6 +228,7 @@ export async function creerSessionOffre(
     if (!session.url) return { ok: false, erreur: "Stripe n'a pas rendu d'adresse de paiement." };
     return { ok: true, url: session.url, premierPrelevement: trialEnd ?? null };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }
@@ -306,6 +309,7 @@ export async function apercuChangement(
     });
     return { ok: true, immediatCents: apercu.amount_due, prorationDate, enEssai };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }
@@ -360,6 +364,7 @@ export async function appliquerHausse(
     });
     return { ok: true, souscription: maj, echeancierLibere };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }
@@ -446,6 +451,7 @@ export async function programmerEcheance(
     });
     return { ok: true, echeancier: maj.id };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }
@@ -493,6 +499,7 @@ export async function resilierAEcheance(
     });
     return { ok: true, souscription: maj, echeancierLibere };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }
@@ -506,6 +513,7 @@ export async function libererEcheancierDe(
     const s = await stripe.subscriptions.retrieve(subscription);
     return { ok: true, echeancierLibere: await libererEcheancier(stripe, s) };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }

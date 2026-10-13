@@ -398,19 +398,20 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
   });
 
   // ── RM-10 : les créneaux ────────────────────────────────────────────────
+  // Les propositions restent futures quelle que soit la date d’exécution.
+  const trois = (dansJours: number) => {
+    const base = Date.now();
+    return JSON.stringify([1, 2, 3].map((j) => ({
+      debut: new Date(base + (dansJours + j) * 86_400_000).toISOString(),
+      fin: new Date(base + (dansJours + j) * 86_400_000 + 7_200_000).toISOString(),
+    })));
+  };
   it("trois créneaux au minimum, de part et d'autre (RM-10.1.1 / RM-10.2.2)", async () => {
-    const trois = (mois: string) =>
-      JSON.stringify(
-        [1, 2, 3].map((j) => ({
-          debut: `2026-${mois}-0${j}T08:00:00Z`,
-          fin: `2026-${mois}-0${j}T10:00:00Z`,
-        }))
-      );
     await agir(cptArtisan);
     await expect(
       essai(`select public.proposer_creneaux($1,'[]'::jsonb)`, [intervention])
     ).rejects.toThrow(/au moins trois créneaux/);
-    await db.query(`select public.proposer_creneaux($1,$2::jsonb)`, [intervention, trois("10")]);
+    await db.query(`select public.proposer_creneaux($1,$2::jsonb)`, [intervention, trois(10)]);
 
     await agir(cptLoc);
     // Un refus sec n'existe pas : refuser oblige à contre-proposer trois.
@@ -419,25 +420,18 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
     ).rejects.toThrow(/proposez-en trois/);
     await db.query(
       `select public.contre_proposer_creneaux($1,$2,$3::jsonb)`,
-      [orgA, intervention, trois("11")]
+      [orgA, intervention, trois(20)]
     );
 
     // Le locataire d'une autre agence n'a rien à faire ici.
     await agir(cptLocB);
     await expect(
       essai(`select public.contre_proposer_creneaux($1,$2,$3::jsonb)`,
-        [orgA, intervention, trois("11")])
+        [orgA, intervention, trois(20)])
     ).rejects.toThrow(/Accès refusé/);
   });
 
   it("six créneaux refusés : l'artisan ne propose plus, le gérant arbitre (RM-10.4.1)", async () => {
-    const trois = (mois: string) =>
-      JSON.stringify(
-        [1, 2, 3].map((j) => ({
-          debut: `2026-${mois}-1${j}T08:00:00Z`,
-          fin: `2026-${mois}-1${j}T10:00:00Z`,
-        }))
-      );
     // État hérité du cas précédent : les trois dates de l'artisan ont été
     // refusées, le locataire a contre-proposé les siennes.
     //
@@ -448,14 +442,14 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
     // refus, le gérant arbitre.
     await agir(cptArtisan);
     await expect(
-      essai(`select public.proposer_creneaux($1,$2::jsonb)`, [intervention, trois("12")])
+      essai(`select public.proposer_creneaux($1,$2::jsonb)`, [intervention, trois(30)])
     ).rejects.toThrow(/Le locataire vous a proposé des dates/);
     await db.query(
       `select public.refuser_creneaux_locataire($1,'Indisponible toute la période')`,
       [intervention]
     );
     await expect(
-      essai(`select public.proposer_creneaux($1,$2::jsonb)`, [intervention, trois("12")])
+      essai(`select public.proposer_creneaux($1,$2::jsonb)`, [intervention, trois(30)])
     ).rejects.toThrow(/gérant/);
 
     await enTantQuePostgres();
@@ -475,8 +469,8 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
 
     await agir(gerantA);
     await db.query(
-      `select public.fixer_creneau_arbitrage($1,$2,'2026-12-02T08:00:00Z',
-         '2026-12-02T10:00:00Z','Réglé au téléphone')`,
+      `select public.fixer_creneau_arbitrage($1,$2,now() + interval '40 days',
+         now() + interval '40 days 2 hours','Réglé au téléphone')`,
       [orgA, intervention]
     );
   });

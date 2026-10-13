@@ -1,3 +1,5 @@
+import { chargerFaitsDirection } from "@/lib/faits-direction";
+import { FaitsDeDirection } from "./faits-direction";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -29,12 +31,13 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
   const filtreEquipe: Equipe | undefined = p.equipe && estEquipe(p.equipe) ? p.equipe : undefined;
   const supabase = await createClient();
   const depuis = new Date(`${aujourdhui}T12:00:00Z`); depuis.setDate(depuis.getDate() - 14);
-  const [duJour, historique, decisions] = await Promise.all([
+  const [duJour, historique, decisions, faits] = await Promise.all([
     lirePoints(supabase, { jour, limite: 20 }),
     lirePoints(supabase, { depuis: depuis.toISOString().slice(0, 10), equipe: filtreEquipe, limite: 120 }),
     // Le même calcul que la barre haute et l'accueil (lib/decisions-attendues.ts) :
     // il porte AUSSI la liste affichée sous « À décider » (audit console 27/09).
     chargerDecisionsAttendues(supabase, process.env, faitsManquants().length),
+    chargerFaitsDirection(supabase, jour),
   ]);
 
   const points = duJour.points ?? [];
@@ -64,6 +67,9 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
       </div>
       {duJour.erreur && <p role="alert" className="err mb-5">Le point du matin est indisponible. Aucun état ne peut être confirmé.</p>}
       {lecturesEnEchec > 0 && <p role="alert" className="err mb-5">{pluriel(lecturesEnEchec, "lecture")} de cette page {lecturesEnEchec > 1 ? "ont" : "a"} échoué : ce qui manque n’est pas un zéro.</p>}
+
+      <div className="mb-5 flex flex-wrap gap-3"><Link href="/admin/consignes" className="btn-secondaire">Donner une consigne</Link><Link href="/admin/relais" className="lien-discret">Relais et absences →</Link></div>
+      <FaitsDeDirection snapshot={faits.snapshot} erreur={faits.erreur} />
 
       {/* ── Ce qui attend une décision, en premier ─────────────────────── */}
       <section className="section-ecran" id="a-decider">

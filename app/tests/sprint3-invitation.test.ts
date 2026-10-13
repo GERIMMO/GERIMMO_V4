@@ -73,7 +73,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — invitation locataire", () => {
     await db.query("rollback");
   });
 
-  it("l'agence invite un locataire : compte + adhésion + rattachement", async () => {
+  it("l'agence prépare une invitation sans accorder d’accès", async () => {
     const {
       rows: [{ id: person }],
     } = await db.query(
@@ -82,7 +82,10 @@ describe.skipIf(!DB_URL)("Sprint 3 — invitation locataire", () => {
       [orgA]
     );
 
+    // L’agent n’agit que sur son portefeuille, comme sur la fiche personne.
+    await db.query("insert into public.mandats(organization_id,person_id,etat,agent_account_id) values($1,$2,'brouillon',$3)",[orgA,person,agentA]);
     await simuler(db, agentA);
+    expect((await db.query("select public.person_hors_portefeuille($1,$2) refuse",[orgA,person])).rows[0].refuse).toBe(false);
     const {
       rows: [{ email }],
     } = await db.query(`select public.inviter_locataire($1, $2) as email`, [orgA, person]);
@@ -97,10 +100,12 @@ describe.skipIf(!DB_URL)("Sprint 3 — invitation locataire", () => {
        where account_id = $1 and organization_id = $2 and role = 'locataire'`,
       [accId, orgA]
     );
-    expect(mem.rows).toHaveLength(1);
+    expect(mem.rows).toHaveLength(0);
 
     const p = await db.query(`select account_id from public.persons where id = $1`, [person]);
-    expect(p.rows[0].account_id).toBe(accId);
+    expect(p.rows[0].account_id).toBeNull();
+    const pending = await db.query("select etat from public.invitations_locataires where person_id=$1",[person]);
+    expect(pending.rows).toEqual([{etat:"en_attente"}]);
   });
 
   it("refuse d'inviter une personne sans email", async () => {
@@ -110,7 +115,10 @@ describe.skipIf(!DB_URL)("Sprint 3 — invitation locataire", () => {
       `insert into public.persons (organization_id, nom) values ($1, 'SansMail') returning id`,
       [orgA]
     );
+    // L’agent n’agit que sur son portefeuille, comme sur la fiche personne.
+    await db.query("insert into public.mandats(organization_id,person_id,etat,agent_account_id) values($1,$2,'brouillon',$3)",[orgA,person,agentA]);
     await simuler(db, agentA);
+    expect((await db.query("select public.person_hors_portefeuille($1,$2) refuse",[orgA,person])).rows[0].refuse).toBe(false);
     await attendreEchec(db, /email/, `select public.inviter_locataire($1, $2)`, [orgA, person]);
   });
 });

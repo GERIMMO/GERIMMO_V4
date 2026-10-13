@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'..',testMatch:'invitations-cycle.spec.ts',outputDir:'../.results-invitations',timeout:120_000,expect:{timeout:20000},workers:1,retries:0,reporter:'list',use:{baseURL:process.env.E2E_BASE_URL??'http://localhost:3106',locale:'fr-FR',timezoneId:'Europe/Paris',screenshot:'only-on-failure',trace:'retain-on-failure'},projects:[{name:'mobile',use:{viewport:{width:390,height:844},isMobile:true,hasTouch:true}},{name:'desktop',use:{viewport:{width:1440,height:1000}}}]});

@@ -16,22 +16,35 @@ describe('Mesures honnêtes et accès au bon dossier',()=>{
  });
 });
 describe('Suivi des dossiers sans fausse réussite',()=>{
+ const simulation=(reponses:Record<string,unknown>={})=>vi.fn(async(nom:string)=>reponses[nom]??{data:nom==='verifier_arret_supervision'?true:0,error:null});
  it('consigne une actualisation réussie, même sans dossier modifié',async()=>{
-  const rpc=vi.fn().mockResolvedValueOnce({data:0,error:null}).mockResolvedValue({error:null});
+  const rpc=simulation();
   expect(await orchestrerDossiers({rpc} as unknown as SupabaseClient)).toEqual({dossiers:0,rapports_prepares:0,erreur:null});
   expect(rpc).toHaveBeenLastCalledWith('log_tech',expect.objectContaining({evenement:'tache_orchestrateur',details:expect.objectContaining({dossiers:0,erreur:null,rapports_prepares:0,preparation_erreur:null})}));
  });
  it('rend lisible le refus et conserve une trace d’échec',async()=>{
-  const rpc=vi.fn().mockResolvedValueOnce({data:0,error:null}).mockResolvedValueOnce({data:null,error:{message:'private database detail'}}).mockResolvedValue({error:null});
+  const rpc=simulation({actualiser_orchestration:{data:null,error:{message:'private database detail'}}});
   const result=await orchestrerDossiers({rpc} as unknown as SupabaseClient);expect(result.erreur).toMatch(/pas pu/);expect(result.erreur).not.toContain('private');
  });
  it('actualise le suivi même si la préparation des rapports est refusée',async()=>{
-  const rpc=vi.fn().mockResolvedValueOnce({data:null,error:{message:'refus'}}).mockResolvedValueOnce({data:2,error:null}).mockResolvedValue({error:null});
+  const rpc=simulation({preparer_rapports_automatiques:{data:null,error:{message:'refus'}},actualiser_orchestration:{data:2,error:null}});
   expect(await orchestrerDossiers({rpc} as unknown as SupabaseClient)).toEqual({dossiers:2,rapports_prepares:0,erreur:expect.any(String)});
   expect(rpc).toHaveBeenLastCalledWith('log_tech',expect.objectContaining({details:expect.objectContaining({preparation_erreur:expect.any(String)})}));
  });
  it('ne coupe pas le service en cas de réseau interrompu',async()=>{
   const rpc=vi.fn().mockRejectedValueOnce(new Error('connexion')).mockResolvedValue({error:null});
-  expect((await orchestrerDossiers({rpc} as unknown as SupabaseClient)).erreur).toMatch(/interrompue/);
+ expect((await orchestrerDossiers({rpc} as unknown as SupabaseClient)).erreur).toMatch(/indisponible/);
+ });
+ it('conserve les rapports déjà préparés si un arrêt intervient avant la seconde opération',async()=>{
+  let controles=0;
+  const rpc=vi.fn(async(nom:string)=>({data:nom==='verifier_arret_supervision'?++controles===1:nom==='preparer_rapports_automatiques'?3:null,error:null}));
+  expect(await orchestrerDossiers({rpc} as unknown as SupabaseClient)).toMatchObject({rapports_prepares:3,arret:'arret',compte_inconnu:true});
+  expect(rpc.mock.calls.some(([nom])=>nom==='actualiser_orchestration')).toBe(false);
+  expect(rpc).toHaveBeenLastCalledWith('log_tech',expect.objectContaining({details:expect.objectContaining({rapports_prepares:3,arret:'arret'})}));
+ });
+ it('ne prépare aucun rapport quand la lecture des arrêts est indisponible',async()=>{
+  const rpc=simulation({verifier_arret_supervision:{data:null,error:{message:'indisponible'}}});
+  expect(await orchestrerDossiers({rpc} as unknown as SupabaseClient)).toMatchObject({arret:'indisponible',compte_inconnu:true});
+  expect(rpc.mock.calls.some(([nom])=>nom==='preparer_rapports_automatiques')).toBe(false);
  });
 });

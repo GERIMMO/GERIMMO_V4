@@ -293,6 +293,26 @@ export function FormulaireRendezVous({
           placeholder="Accord téléphonique du 12/09 avec Mme Dupont et l'artisan."
         />
       </div>
+      <details className="space-y-3 rounded-lg border p-3">
+        <summary className="min-h-11 cursor-pointer text-sm font-medium">
+          Maintenir un rendez-vous malgré un chevauchement
+        </summary>
+        <p className="text-sm text-muted-foreground">
+          Les rendez-vous confirmés de l’artisan sont vérifiés à l’enregistrement,
+          y compris ses chantiers privés. Vérifiez avec lui qu’il peut honorer les
+          deux rendez-vous, par exemple avec deux équipes. La justification reste au dossier.
+        </p>
+        <label className="flex min-h-11 items-center gap-3 text-sm">
+          <input type="checkbox" name="maintenir_conflit" defaultChecked={etat.valeurs?.maintenir_conflit === "on"} />
+          Je confirme le maintien après vérification avec l’artisan
+        </label>
+        <label className="block space-y-1.5 text-sm">
+          <span>Justification du maintien (10 à 1000 caractères)</span>
+          <textarea name="conflit_motif" maxLength={1000} rows={3}
+            defaultValue={etat.valeurs?.conflit_motif}
+            className="w-full rounded-md border bg-background p-3 text-base" />
+        </label>
+      </details>
       <Retour etat={etat} />
       <BoutonEnvoi variant="outline" enCoursTexte="Enregistrement…">
         Inscrire le rendez-vous

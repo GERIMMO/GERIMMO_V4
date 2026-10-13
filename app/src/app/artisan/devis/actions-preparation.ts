@@ -14,7 +14,7 @@ import { notifierDevisRecu } from "@/lib/notifications";
 
 export async function preparerPropositionDevis(id: string): Promise<{ preparation?: PreparationDevis; erreur?: string }> {
   try {
-    const { service, fiche, demande, preparation } = await chargerPreparationDevis(id);
+    const { service, fiche, demande, preparation } = await chargerPreparationDevis(id, true);
     if (preparation) return { preparation };
     if (demande.statut !== "envoyee") throw new Error("Cette demande est close.");
     const { data: historique, error } = await service.rpc("reperes_devis_realises", { p_categorie: demande.categorie });
@@ -26,13 +26,13 @@ export async function preparerPropositionDevis(id: string): Promise<{ preparatio
       saisie: { diagnostic:proposition.diagnostic, lignes:proposition.lignes, delai:"", duree:"", contraintes:"", observations:"", valideJusquAu:validite.toISOString().slice(0,10) },
     }, { onConflict:"sollicitation_id", ignoreDuplicates:true });
     if (insertion) throw new Error("La proposition n’a pas pu être enregistrée.");
-    return { preparation:(await chargerPreparationDevis(id)).preparation! };
+    return { preparation:(await chargerPreparationDevis(id, true)).preparation! };
   } catch (e) { return { erreur:e instanceof Error ? e.message : "La proposition est indisponible." }; }
 }
 
 export async function enregistrerBrouillonDevis(id: string, form: FormData): Promise<{ revision?: number; erreur?: string }> {
   try {
-    const { service, fiche, demande, preparation } = await chargerPreparationDevis(id);
+    const { service, fiche, demande, preparation } = await chargerPreparationDevis(id, true);
     if (demande.statut !== "envoyee" || preparation?.statut === "envoye") throw new Error("Ce devis a déjà été envoyé.");
     const saisie = brouillonDepuisFormulaire(form);
     saisie.lignes = saisie.lignes.map(l => ({ ...l, code: REFERENCES_TRAVAUX.some(r=>r.code===l.code) ? l.code : "" }));
@@ -79,7 +79,7 @@ export async function enregistrerProfilDocuments(_etat: { erreur?: string; succe
 export async function envoyerDevisValide(id: string, _etat: { erreur?: string }, form: FormData): Promise<{ erreur?: string }> {
   let email = "echec";
   try {
-    const { preparation, supabase, service, fiche, demande } = await chargerPreparationDevis(id);
+    const { preparation, supabase, service, fiche, demande } = await chargerPreparationDevis(id, true);
     if (!preparation || preparation.statut==="brouillon" || !preparation.pdf_path) throw new Error("Validez d’abord votre devis pour générer le PDF.");
     if (Number(form.get("revision"))!==preparation.revision) throw new Error("Le devis a changé. Relisez et validez sa dernière version.");
     const {data:fichier,error:lecture}=await service.storage.from(preparation.pdf_bucket).download(preparation.pdf_path);

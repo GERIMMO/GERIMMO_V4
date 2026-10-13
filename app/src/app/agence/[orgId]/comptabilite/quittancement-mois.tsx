@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import {
   encaisserReste,
+  type EtatEncaissementReste,
   emettreQuittanceBail,
   envoyerQuittancesMois,
 } from "@/app/actions/quittancement";
@@ -51,8 +52,18 @@ export type LigneQuittancement = {
 // de l'arbre. Son compte rendu disparaîtrait avec lui — soit exactement le
 // défaut qu'on répare. Porté par la ligne, il survit au basculement.
 function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittancement }) {
-  const [etatEnc, actionEnc] = useActionState<EtatLoyers, FormData>(
-    async () => encaisserReste(orgId, l.bail_id, l.appel_id),
+  const commande = useRef<string | null>(null);
+  const [etatEnc, actionEnc] = useActionState<EtatEncaissementReste, FormData>(
+    async () => {
+      commande.current ??= crypto.randomUUID();
+      const resultat = await encaisserReste(orgId, l.bail_id, l.appel_id, {
+        commande: commande.current,
+        reste: Number(l.montant_du) - Number(l.montant_couvert),
+        detteAnterieure: Number(l.dette_anterieure_reste ?? 0),
+      });
+      if (resultat.commandeTerminee) commande.current = null;
+      return resultat;
+    },
     {}
   );
   const [etatEmi, actionEmi] = useActionState<EtatLoyers, FormData>(

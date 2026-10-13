@@ -88,6 +88,49 @@ test("chaque cible tactile de l'accueil fait au moins 44 px", async ({ page }) =
   expect(trop).toEqual([]);
 });
 
+test("le registre privé se télécharge seulement au clic, depuis la facturation et les clients", async ({ page }) => {
+  const demandesExport: URL[] = [];
+  const telechargements: string[] = [];
+  page.on("download", (fichier) => telechargements.push(fichier.url()));
+  page.on("request", (requete) => {
+    const url = new URL(requete.url());
+    if (url.pathname === "/api/artisan-prive/export") demandesExport.push(url);
+  });
+
+  for (const chemin of ["/artisan/facturation", "/artisan/clients"]) {
+    demandesExport.length = 0;
+    telechargements.length = 0;
+    await page.goto(chemin);
+    const lien = page.getByRole("link", { name: /Exporter mon registre/ });
+    await expect(lien).toBeVisible();
+    await lien.hover();
+    await page.waitForLoadState("networkidle");
+    // Une route de téléchargement ne doit pas devenir un préchargement RSC.
+    expect(demandesExport).toHaveLength(0);
+    expect(telechargements).toHaveLength(0);
+
+    const telechargementAttendu = page.waitForEvent("download");
+    await lien.click();
+    const telechargement = await telechargementAttendu;
+    expect(telechargement.suggestedFilename()).toBe("activite-artisan-privee.json");
+    const flux = await telechargement.createReadStream();
+    const contenu: Buffer[] = [];
+    for await (const morceau of flux) contenu.push(Buffer.from(morceau));
+    const registre = JSON.parse(Buffer.concat(contenu).toString("utf8"));
+    expect(registre.nature).toContain("Registre privé déclaratif");
+    for (const collection of ["clients", "chantiers", "factures", "reglements", "evenements"]) {
+      expect(Array.isArray(registre[collection])).toBe(true);
+    }
+    // Chromium remet un lien `download` à son gestionnaire natif : il n'émet
+    // pas nécessairement un événement page.request pour ce transfert.
+    expect(telechargements).toHaveLength(1);
+    expect(new URL(telechargement.url()).pathname).toBe("/api/artisan-prive/export");
+    expect(new URL(telechargement.url()).search).toBe("");
+    expect(demandesExport.every((url) => url.search === "")).toBe(true);
+    expect(new URL(page.url()).pathname).toBe(chemin);
+  }
+});
+
 // Audit du 27/09 (bloquant) : « Artisan ? Inscrire mon entreprise » ramenait
 // le visiteur sur /connexion — aucun écran ne créait de compte artisan.
 test.describe("visiteur sans compte", () => {

@@ -126,10 +126,10 @@ const COURRIERS: Record<MotifLien, Courrier> = {
     bouton: "Créer mon mot de passe",
   },
   invitation_locataire: {
-    sujet: "Votre espace locataire Gerimmo — créez votre mot de passe",
-    titre: "Votre espace locataire est ouvert",
+    sujet: "Votre invitation locataire Gerimmo",
+    titre: "Vous êtes invité sur Gerimmo",
     texte:
-      "Votre gestionnaire vous a ouvert un espace locataire sur Gerimmo : vous y retrouverez vos quittances et les documents de votre location. Pour y accéder, créez votre mot de passe.",
+      "Votre gestionnaire vous propose un espace locataire sur Gerimmo. Après avoir sécurisé votre compte, vous pourrez accepter ou refuser cette invitation, valable 30 jours. Aucun accès à ce nouvel espace ne sera accordé avant votre acceptation.",
     bouton: "Créer mon mot de passe",
   },
   mot_de_passe_oublie: {

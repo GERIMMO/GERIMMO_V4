@@ -3,7 +3,8 @@ import { csvRecapitulatifFiscal } from "@/lib/fiscal-export";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, aujourdhuiParis } from "@/lib/ged";
-import { recapitulatifFiscal, type EcritureFiscale } from "@/lib/fiscal";
+import { recapitulatifFiscal, type EcritureFiscale, type QualificationFiscale, type ComposantesFiscales, type ExerciceFiscalLot } from "@/lib/fiscal";
+import { QualificationPiece, ExerciceLot } from "@/components/formulaires-fiscaux";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 
@@ -18,7 +19,7 @@ export async function RecapitulatifFiscal(props: {
 }) {
   const { orgId } = await props.params;
   const { annee: anneeDemandee, bien } = await props.searchParams;
-  const { supabase, user, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
   if (!estProprietaire) notFound();
 
   const { data: biensDisponibles, error: erreurListeBiens } = props.compact
@@ -61,68 +62,19 @@ export async function RecapitulatifFiscal(props: {
   ].sort((a, b) => a - b);
 
   const [
-    { data: ecritures, error: erreurEcritures },
-    { data: detentions, error: erreurDetentions },
-    { data: lotsMeublesRows, error: erreurMeubles },
-    { data: baux, error: erreurBaux },
-    { data: appelsCopro, error: erreurAppels },
-  ] = await Promise.all([
-    supabase
-      .from("ecritures")
-      .select("categorie, sens, montant, date_piece, contre_ecriture_de, lot_id, bail_id")
-      .eq("organization_id", orgId)
-      .gte("date_piece", `${annee}-01-01`)
-      .lte("date_piece", `${annee}-12-31`),
-    // Quote-part du déclarant par lot (indivision) : ses détentions en cours
-    supabase
-      .from("detentions")
-      .select("lot_id, quote_part, person:persons!detentions_person_id_fkey!inner(account_id)")
-      .eq("organization_id", orgId)
-      .eq("person.account_id", user.id)
-      .is("date_fin", null),
-    // Lots meublés : BIC, hors récapitulatif (décision du 04/09)
-    supabase
-      .from("lots")
-      .select("id, nom")
-      .eq("organization_id", orgId)
-      .eq("meuble", true),
-    // Clé de ventilation 211/212 : l'écriture d'encaissement porte le total
-    // (loyer + provision) — la part charges se reconstitue au prorata du bail
-    supabase
-      .from("baux")
-      .select("id, loyer_hc, charges")
-      .eq("organization_id", orgId),
-    // Audit 29/09 : appels de charges de copropriété de l'exercice, ventilés —
-    // leur part récupérable sort de la ligne 229.
-    supabase
-      .from("appels_charges")
-      .select("id, lot_id")
-      .eq("organization_id", orgId)
-      .eq("exercice", annee)
-      .in("statut", ["ventile", "fige"]),
+    {data:ecritures,error:erreurEcritures},
+    {data:qualificationsRows,error:erreurQualifications},
+    {data:composantesRows,error:erreurComposantes},
+    {data:exercicesRows,error:erreurExercices},
+    {data:lotsRows,error:erreurLots},
+  ]=await Promise.all([
+    supabase.from("ecritures").select("id,categorie,sens,montant,date_piece,contre_ecriture_de,lot_id,bail_id,encaissement_id,libelle").eq("organization_id",orgId).gte("date_piece",`${annee}-01-01`).lte("date_piece",`${annee}-12-31`),
+    supabase.from("fiscal_qualifications_ecritures").select("*").eq("organization_id",orgId).order("version",{ascending:false}),
+    supabase.from("fiscal_encaissements_composantes").select("*").eq("organization_id",orgId),
+    supabase.from("fiscal_exercices_lots").select("*").eq("organization_id",orgId).eq("annee",annee).order("version",{ascending:false}),
+    supabase.from("lots").select("id,nom").eq("organization_id",orgId).order("nom"),
   ]);
-  const idsAppels = ((appelsCopro ?? []) as { id: string; lot_id: string }[]).map((a) => a.id);
-  const { data: postesRecuperables, error: erreurPostes } = idsAppels.length
-    ? await supabase
-        .from("appel_charges_postes")
-        .select("appel_id, montant")
-        .eq("nature", "recuperable")
-        .in("appel_id", idsAppels)
-    : { data: [], error: null };
-
-  // Aucune de ces quatre lectures n'est décorative : sans les détentions, la
-  // quote-part d'indivision retombe à 100 % ; sans les lots meublés, des
-  // revenus BIC se rangent en revenus fonciers ; sans les baux, la ventilation
-  // 211/212 disparaît. Un échec silencieux produirait donc des MONTANTS FAUX
-  // sur une aide à la déclaration. On refuse de chiffrer plutôt que de mentir.
-  const lecturesEnEchec = [
-    erreurBien && "les lots du bien",
-    erreurEcritures && "les écritures de l’année",
-    erreurDetentions && "vos quotes-parts de détention",
-    erreurMeubles && "la liste des lots meublés",
-    erreurBaux && "la clé de ventilation loyer / charges des baux",
-    (erreurAppels || erreurPostes) && "la part récupérable des charges de copropriété",
-  ].filter((x): x is string => Boolean(x));
+  const lecturesEnEchec=[erreurBien&&"les lots du bien",erreurEcritures&&"les écritures",erreurQualifications&&"les qualifications",erreurComposantes&&"les composantes historiques",erreurExercices&&"les exercices confirmés",erreurLots&&"les lots"].filter((x):x is string=>Boolean(x));
 
   // Le choix de l'année prend la pastille `.filtre` de l'espace, 44 px au
   // doigt : c'était une rangée de liens soulignés de 36 px (14 px de haut sur
@@ -181,46 +133,33 @@ export async function RecapitulatifFiscal(props: {
     );
   }
 
-  const quoteParts = new Map(
-    ((detentions ?? []) as { lot_id: string; quote_part: number }[]).map((d) => [
-      d.lot_id,
-      Number(d.quote_part),
-    ])
-  );
-  const lotsMeubles = ((lotsMeublesRows ?? []) as { id: string; nom: string }[]).filter(l => !perimetre || perimetre.has(l.id));
-  const ventilationLoyers = new Map(
-    ((baux ?? []) as { id: string; loyer_hc: number | null; charges: number | null }[]).map(
-      (b) => [b.id, { loyerHc: Number(b.loyer_hc) || 0, charges: Number(b.charges) || 0 }]
-    )
-  );
-  const lotParAppel = new Map(
-    ((appelsCopro ?? []) as { id: string; lot_id: string }[]).map((a) => [a.id, a.lot_id])
-  );
-  const chargesCoproRecuperables = new Map<string, number>();
-  for (const p of (postesRecuperables ?? []) as { appel_id: string; montant: number }[]) {
-    const lot = lotParAppel.get(p.appel_id);
-    if (lot) chargesCoproRecuperables.set(lot, (chargesCoproRecuperables.get(lot) ?? 0) + Number(p.montant));
-  }
-  const recap = recapitulatifFiscal(((ecritures ?? []) as EcritureFiscale[]).filter(e => !perimetre || (e.lot_id != null && perimetre.has(e.lot_id))), annee, {
-    quoteParts,
-    lotsMeubles: new Set(lotsMeubles.map((l) => l.id)),
-    ventilationLoyers,
-    chargesCoproRecuperables,
+  const qualifications=new Map<string,QualificationFiscale>();
+  for(const q of (qualificationsRows??[]) as QualificationFiscale[])if(!qualifications.has(q.ecriture_id))qualifications.set(q.ecriture_id,q);
+  const composantes=new Map(((composantesRows??[]) as ComposantesFiscales[]).map(c=>[c.ecriture_id,c]));
+  const exercices=new Map<string,ExerciceFiscalLot>();
+  for(const x of (exercicesRows??[]) as ExerciceFiscalLot[])if((!perimetre||perimetre.has(x.lot_id))&&!exercices.has(x.lot_id))exercices.set(x.lot_id,x);
+  const lots=((lotsRows??[]) as {id:string;nom:string}[]).filter(l=>!perimetre||perimetre.has(l.id));
+  const pieces=((ecritures??[]) as EcritureFiscale[]).filter(e=>{
+    const lot=e.lot_id??qualifications.get(e.contre_ecriture_de??e.id??'')?.lot_id;
+    return !perimetre||(lot!=null&&perimetre.has(lot));
   });
+  const recap=recapitulatifFiscal(pieces,annee,{qualifications,composantes,exercices,exigerPerimetre:true});
+  const lotsMeubles=lots.filter(l=>exercices.get(l.id)?.periodes.some(p=>p.regime==='meuble'));
   const recettes = recap.rubriques.filter((r) => r.sens === "recette");
   const charges = recap.rubriques.filter((r) => r.sens === "depense");
   // Une année sans écriture n'est pas un récapitulatif à zéro : c'est un
   // livre vide pour cette année, et l'écran le dit (24/09 — neuf rubriques à
   // 0,00 € et une colonne de « — » ne l'apprenaient à personne).
-  const anneeVide = recap.nbEcritures === 0 && recap.meuble.nbEcritures === 0;
+  const anneeVide = recap.nbEcritures === 0 && recap.meuble.nbEcritures === 0 && !recap.rubriques.some(r => r.code === "230" && r.montant !== 0);
 
   if (props.compact) return <div className="space-y-3">
     {anneeVide ? <p className="text-sm text-muted-foreground">Aucune écriture à récapituler pour {annee}.</p> : <>
+      {recap.incomplet&&<p role="status" className="text-sm">Récapitulatif à compléter : {recap.alertes.join(" ")}</p>}
       <dl className="grid grid-cols-3 gap-3">
         {[
-          ["Recettes brutes", recap.ventile ? recap.totalRecettesQuotePart : recap.totalRecettes],
-          ["Charges déductibles", recap.ventile ? recap.totalChargesQuotePart : recap.totalCharges],
-          ["Revenu foncier net", recap.ventile ? recap.revenuNetQuotePart : recap.revenuNet],
+          ["Recettes confirmées", recap.ventile ? recap.totalRecettesQuotePart : recap.totalRecettes],
+          ["Charges confirmées après 230", recap.ventile ? recap.totalChargesQuotePart : recap.totalCharges],
+          ["Solde des montants confirmés", recap.ventile ? recap.revenuNetQuotePart : recap.revenuNet],
         ].map(([label, montant]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-base sm:text-xl font-semibold montant">{eur(Number(montant))}</dd></div>)}
       </dl>
       {recap.ventile && <p className="text-xs text-muted-foreground">Montants selon votre quote-part de détention.</p>}
@@ -243,7 +182,7 @@ export async function RecapitulatifFiscal(props: {
               celles des lots meublés sont totalisées à part (BIC). Annoncer
               « n écritures » tout court laissait croire à l'année entière. */}
           <span className="mono-discret">
-            {recap.nbEcritures} écriture{recap.nbEcritures > 1 ? "s" : ""} retenue
+            {recap.nbEcritures} écriture{recap.nbEcritures > 1 ? "s" : ""} examinée
             {recap.nbEcritures > 1 ? "s" : ""} · date de pièce
           </span>
         </div>
@@ -264,6 +203,10 @@ export async function RecapitulatifFiscal(props: {
         {erreurListeBiens && <p role="alert" className="text-sm text-destructive">La liste des biens n’a pas pu être chargée. Rechargez la page pour affiner le périmètre.</p>}
       </section>
       <h2 className="text-lg">2. Vérifier les montants</h2>
+      {recap.incomplet&&<div role="status" className="loc-carte space-y-2"><p className="font-medium">À compléter — les totaux portent uniquement sur les montants confirmés.</p><ul className="list-disc pl-5 text-sm">{recap.alertes.map(a=><li key={a}>{a}</li>)}</ul><p className="text-sm">Montant net des pièces ou parts à qualifier : {eur(recap.aQualifier)}. Ces montants ne sont pas inclus dans les totaux confirmés.</p></div>}
+      <section className="space-y-3"><h3 className="font-medium">Périodes fiscales et régularisation 230</h3>{lots.map(l=><ExerciceLot key={`${l.id}-${exercices.get(l.id)?.version??0}`} orgId={orgId} lot={l} annee={annee} exercice={exercices.get(l.id)}/>)}</section>
+      <section className="space-y-3"><h3 className="font-medium">Qualifier les pièces</h3><p className="text-sm text-muted-foreground">Le choix est enregistré avec son auteur, sa date et sa justification. Les versions précédentes restent conservées. Les annulations reprennent la qualification de la pièce d’origine.</p>{pieces.filter(e=>e.id&&!e.contre_ecriture_de&&e.categorie!=='depot_garantie'&&(!composantes.has(e.id)||Number(composantes.get(e.id)?.non_ventile)>0)).map(e=><QualificationPiece key={`${e.id}-${qualifications.get(e.id!)?.version??0}`} orgId={orgId} ecriture={e} qualification={qualifications.get(e.id!)} lots={lots}/>)}</section>
+
 
       {anneeVide && (
         <div className="vide-guide">
@@ -284,7 +227,7 @@ export async function RecapitulatifFiscal(props: {
           (24/09 — `.kpi.or` et `.kpi.bleu` rendaient la même tuile). */}
       <div className="grid gap-3.5 sm:grid-cols-3">
         <div className="kpi vert">
-          <span className="eyebrow">Recettes brutes</span>
+          <span className="eyebrow">Recettes confirmées</span>
           <span className="chiffre montant mt-1 block">
             {eur(recap.ventile ? recap.totalRecettesQuotePart : recap.totalRecettes)}
           </span>
@@ -293,7 +236,7 @@ export async function RecapitulatifFiscal(props: {
           </span>
         </div>
         <div className="kpi">
-          <span className="eyebrow">Charges déductibles</span>
+          <span className="eyebrow">Charges confirmées après 230</span>
           <span className="chiffre montant mt-1 block">
             {eur(recap.ventile ? recap.totalChargesQuotePart : recap.totalCharges)}
           </span>
@@ -302,7 +245,7 @@ export async function RecapitulatifFiscal(props: {
           </span>
         </div>
         <div className="kpi">
-          <span className="eyebrow">Revenu foncier net</span>
+          <span className="eyebrow">Solde des montants confirmés</span>
           <span className="chiffre montant mt-1 block">
             {eur(recap.ventile ? recap.revenuNetQuotePart : recap.revenuNet)}
           </span>
@@ -350,15 +293,15 @@ export async function RecapitulatifFiscal(props: {
         <>
           <TableauRubriques
             titre="Recettes"
-            description="Lignes 211 et 212 de la 2044. Ligne 211 : loyers hors charges — la part de chaque encaissement qui correspond aux provisions de charges du bail (reconstituée au prorata du bail) n'est pas un revenu et n'y figure pas. Ligne 212 : dépenses du bailleur mises par convention à la charge du locataire, que le livre ne distingue pas — à compléter le cas échéant."
+            description="Lignes 211 à 213 confirmées. Les loyers proviennent des composantes historiques conservées ou d’une qualification justifiée. Les provisions récupérées restent hors recettes imposables. Les recettes anciennes non démontrées restent à compléter."
             rubriques={recettes}
             ventile={recap.ventile}
           />
           {/* L'organisation parle, pas la marque de l'outil (24/09) : l'espace
               est aux couleurs de son organisation. */}
           <TableauRubriques
-            titre="Charges déductibles"
-            description="Lignes 221 à 250. Taxe foncière (ligne 227) hors taxe d'enlèvement des ordures ménagères, récupérable sur le locataire. Copropriété (ligne 229) : la part récupérable des charges, quand le décompte du syndic est ventilé, est retirée ; sinon, elle se réintègre l'année suivante (ligne 230), après le décompte annuel du syndic. Les intérêts d'emprunt ne sont pas suivis dans le livre : reportez-les depuis le tableau d'amortissement de votre banque."
+            titre="Charges confirmées après 230"
+            description="Les seules dépenses qualifiées sont comptées. Ligne 229 : provisions éligibles effectivement versées, sans retirer les charges récupérables de cette même année. Ligne 230 : régularisation de l’année précédente, retranchée du total des charges. Les intérêts nécessitent leurs pièces ; le forfait 222 reste à compléter séparément."
             rubriques={charges}
             ventile={recap.ventile}
           />
@@ -384,7 +327,7 @@ export async function RecapitulatifFiscal(props: {
               {recap.coproRecuperableExclue !== 0 && (
                 <>
                   {" "}et <span className="montant">{eur(recap.coproRecuperableExclue)}</span> de
-                  charges de copropriété récupérables retirées de la ligne 229
+                  charges hors revenus fonciers
                 </>
               )}
               .
@@ -408,9 +351,10 @@ export async function RecapitulatifFiscal(props: {
 
       {!anneeVide && <section className="loc-carte space-y-3">
         <h2 className="text-lg">3. Conserver le récapitulatif</h2>
-        <p className="text-sm text-muted-foreground">Exportez les rubriques affichées pour préparer votre déclaration. Les montants à compléter restent vides dans le fichier.</p>
+        <p className="text-sm text-muted-foreground">Exportez les mêmes montants confirmés et alertes que ceux affichés. Les rubriques à compléter restent vides. Ce fichier daté ne remplace aucun export antérieur.</p>
         <a className="btn-or inline-flex" download={`recapitulatif-fiscal-${annee}.csv`} href={`data:text/csv;charset=utf-8,${encodeURIComponent(csvRecapitulatifFiscal(recap, annee))}`}>Exporter les montants (CSV)</a>
       </section>}
+      <p className="text-xs text-muted-foreground">Version des règles {recap.versionRegles}. Référence : <a className="underline" href="https://www.impots.gouv.fr/sites/default/files/formulaires/2044/2026/2044_5487.pdf">notice officielle 2044, millésime 2026 (revenus 2025)</a>. Les éditions futures, rubriques et régimes particuliers non couverts restent à vérifier. Les montants non déductibles confirmés ({eur(recap.nonDeductible)}) sont exclus.</p>
       <p className="text-xs text-muted-foreground">
         Régime micro-foncier : si vos recettes brutes n&apos;excèdent pas
         15 000 €, seule la ligne des recettes vous sert (abattement automatique

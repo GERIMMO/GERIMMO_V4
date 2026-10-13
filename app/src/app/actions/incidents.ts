@@ -9,6 +9,7 @@ import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { detecterMimeReel, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { categorieIncident, MOTIFS_CLOTURE, PIECES_INCIDENT } from "@/lib/incidents";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { joindrePhotosAvecReprise } from "@/lib/photos-incident-reprise";
 // 25/09 : les e-mails qui préviennent l'artisan et l'agence. Aucun ne fait
 // échouer le geste métier — ils journalisent et l'action rend son succès.
 import {
@@ -23,6 +24,7 @@ export type EtatIncidentAction = {
   erreur?: string;
   succes?: string;
   avertissement?: string;
+  incidentId?: string;
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
 };
@@ -193,7 +195,26 @@ export async function declarerMonIncident(
     };
   }
 
-  const { data: incidentId, error } = await supabase.rpc("declarer_mon_incident", {
+  // Les photos peuvent être la seule description : refuser leur format ou
+  // leur taille avant de créer le signalement, pour laisser corriger la
+  // saisie sans enregistrer un incident vide. joindrePhotos conserve aussi
+  // ces contrôles pour les autres parcours et les erreurs de dépôt.
+  for (const fichier of photos.fichiers ?? []) {
+    if (fichier.size > TAILLE_MAX_OCTETS) {
+      return { erreur: `« ${fichier.name} » dépasse 10 Mo.`, valeurs };
+    }
+    const mime = detecterMimeReel(new Uint8Array(await fichier.arrayBuffer()));
+    if (mime !== "image/jpeg" && mime !== "image/png") {
+      return { erreur: `« ${fichier.name} » n'est pas une image JPEG ou PNG.`, valeurs };
+    }
+  }
+
+  const commande = String(formData.get("commande") ?? "");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(commande)) {
+    return { erreur: "La tentative n’a pas pu être identifiée. Rechargez le formulaire avant l’envoi.", valeurs };
+  }
+  const { data: declaration, error } = await supabase.rpc("declarer_mon_incident_reprise", {
+    p_commande: commande,
     p_org: orgId,
     p_categorie: champs.categorie,
     p_description: champs.description,
@@ -203,12 +224,14 @@ export async function declarerMonIncident(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
-  const avertissement = await joindrePhotos(supabase, orgId, incidentId, photos.fichiers ?? []);
+  if (!declaration?.incident_id) return { erreur: "Résultat de l’envoi indisponible. Réessayez cette même tentative.", valeurs };
+  const incidentId = String(declaration.incident_id);
+  const avertissement = await joindrePhotosAvecReprise(supabase, orgId, incidentId, photos.fichiers ?? []);
 
   // 25/09 : « votre gérant est prévenu immédiatement » n'était vrai qu'à sa
   // prochaine connexion. Pour une urgence, l'agence reçoit l'e-mail maintenant.
   let emailUrgenceParti = false;
-  if (champs.urgence === "urgente") {
+  if (champs.urgence === "urgente" && !declaration.rejoue) {
     const notification = await notifierIncidentUrgentDeclare(supabase, orgId, incidentId, {
       categorie: champs.categorie ?? "",
       piece: champs.piece || null,
@@ -231,6 +254,7 @@ export async function declarerMonIncident(
   // ne part que pour une urgence, et seulement s'il est parti on le dit.
   // Sinon, le signalement attend dans l'espace du gestionnaire.
   return {
+    incidentId,
     succes: emailUrgenceParti
       ? "Signalement envoyé — urgence : votre gestionnaire est prévenu par e-mail. Suivez-le depuis votre espace."
       : "Signalement envoyé — votre gestionnaire le verra dans son espace à sa prochaine connexion. Suivez-le depuis votre espace.",
@@ -678,6 +702,8 @@ export async function fixerRendezVous(
   const debut = instantParis(String(formData.get("debut") ?? ""));
   const fin = instantParis(String(formData.get("fin") ?? ""));
   const motif = String(formData.get("motif") ?? "").trim();
+  const maintien = formData.get("maintenir_conflit") === "on";
+  const motifConflit = String(formData.get("conflit_motif") ?? "").trim();
   if (!debut || !fin) {
     return { erreur: "Indiquez le début et la fin du rendez-vous.", valeurs };
   }
@@ -685,12 +711,17 @@ export async function fixerRendezVous(
     return { erreur: "La fin du rendez-vous doit suivre son début.", valeurs };
   }
 
-  const { error } = await supabase.rpc("fixer_creneau_arbitrage", {
+  if (maintien && (motifConflit.length < 10 || motifConflit.length > 1000)) {
+    return { erreur: "Justifiez le maintien malgré le chevauchement en 10 à 1000 caractères.", valeurs };
+  }
+
+  const { error } = await supabase.rpc("fixer_creneau_arbitrage_motive", {
     p_org: orgId,
     p_intervention: interventionId,
     p_debut: debut,
     p_fin: fin,
     p_motif: motif || null,
+    p_conflit_motif: maintien ? motifConflit : null,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
 

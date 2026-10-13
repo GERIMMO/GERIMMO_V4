@@ -101,7 +101,9 @@ export default async function PageCreneaux(
           rare se lit à la demande, sous le formulaire (tour du 24/09). */}
       <p className="text-base text-[var(--corps)]">
         Trois créneaux au minimum ; le locataire en retient un ou vous en
-        propose trois à son tour.
+        propose trois à son tour. Les propositions restent des alternatives :
+        un chevauchement avec un rendez-vous déjà confirmé sera signalé au
+        moment du choix. Votre interlocuteur peut arbitrer un maintien justifié.
       </p>
 
       <FormulaireCreneaux interventionId={interventionId} />

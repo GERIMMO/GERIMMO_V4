@@ -922,5 +922,47 @@
     "persona": "agent",
     "label": "Article dans l’espace connecté",
     "dynamic": "orgId, slug"
+  },
+  {
+    "path": "/admin/consignes",
+    "persona": "superadmin",
+    "label": "Consignes versionnées",
+    "dynamic": ""
+  },
+  {
+    "path": "/artisan/clients",
+    "persona": "artisan",
+    "label": "Clients externes",
+    "dynamic": ""
+  },
+  {
+    "path": "/artisan/clients/CLIENT_EXTERNE",
+    "persona": "artisan",
+    "label": "Fiche client externe",
+    "dynamic": "client externe"
+  },
+  {
+    "path": "/artisan/chantiers/CHANTIER_EXTERNE",
+    "persona": "artisan",
+    "label": "Chantier externe",
+    "dynamic": "chantier externe"
+  },
+  {
+    "path": "/artisan/devis/nouveau",
+    "persona": "artisan",
+    "label": "Nouveau chantier et devis",
+    "dynamic": ""
+  },
+  {
+    "path": "/artisan/facturation/FACTURE_EXTERNE",
+    "persona": "artisan",
+    "label": "Règlements déclarés",
+    "dynamic": "facture externe"
+  },
+  {
+    "path": "/invitations/INVITATION",
+    "persona": "locataire",
+    "label": "Invitation à l’espace locataire — accepter ou refuser",
+    "dynamic": "invitationId"
   }
 ]

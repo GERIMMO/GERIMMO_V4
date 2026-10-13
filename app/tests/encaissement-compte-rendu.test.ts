@@ -21,6 +21,7 @@
  *  (c) la date d'un encaissement refusé était perdue — et la base date alors
  *      l'écriture du jour (date_paiement vaut CURRENT_DATE par défaut).
  */
+import { randomUUID } from "node:crypto";
 import { verifierBaseDeTest } from "./garde-base";
 import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
@@ -79,6 +80,10 @@ function supabaseSurLaBase() {
   const db = banc.db as Client;
   return {
     rpc: async (nom: string, args: Record<string, string>) => {
+      if (nom === "encaisser_reste_atomique") return {
+        data: (await db.query("select public.encaisser_reste_atomique($1,$2,$3,$4,$5,$6) as resultat", [args.p_org,args.p_bail,args.p_appel,args.p_commande,args.p_reste_attendu,args.p_dette_anterieure_attendue])).rows[0].resultat,
+        error: null,
+      };
       if (nom === "etat_loyers_bail")
         return {
           data: (
@@ -428,7 +433,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
     // dont il tirait sa phrase vaut 0 (le déclencheur a déjà tout fait), si
     // bien qu'il annonçait l'inverse de ce qui venait de se produire.
     const { encaisserReste } = await import("@/app/actions/quittancement");
-    const resultat = await encaisserReste(org, bail, await appelDuMois(moisAffiche));
+    const resultat = await encaisserReste(org, bail, await appelDuMois(moisAffiche), { commande: randomUUID(), reste: 500, detteAnterieure: 500 });
 
     expect(resultat.erreur).toBeUndefined();
     expect(resultat.succes).toContain(`${moisEnFrancais(moisAnterieur)} soldé, 500,00\u00A0€ → quittance`);
@@ -443,7 +448,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
        values ($1,$2,500,current_date,'virement')`,
       [org, bail]
     );
-    const resultat = await encaisserReste(org, bail, await appelDuMois(moisAffiche));
+    const resultat = await encaisserReste(org, bail, await appelDuMois(moisAffiche), { commande: randomUUID(), reste: 500, detteAnterieure: 0 });
 
     expect(resultat.succes).toContain(`${moisEnFrancais(moisAffiche)} soldé, 500,00\u00A0€ → quittance`);
     const [ligne] = await lire(moisAffiche);

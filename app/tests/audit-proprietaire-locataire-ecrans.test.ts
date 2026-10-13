@@ -16,6 +16,8 @@ const banc = vi.hoisted(() => ({
   notifierUrgence: vi.fn(),
 }));
 
+vi.mock("@/lib/photos-incident-reprise", () => ({ joindrePhotosAvecReprise: async () => undefined }));
+
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn(), notFound: vi.fn() }));
 vi.mock("@/lib/ged-acces", () => ({
@@ -40,11 +42,12 @@ import { contesterImputation, declarerMonIncident } from "@/app/actions/incident
 
 beforeEach(() => {
   vi.clearAllMocks();
-  banc.rpc.mockResolvedValue({ data: "incident-1", error: null });
+  banc.rpc.mockResolvedValue({ data: { incident_id: "incident-1", rejoue: false }, error: null });
 });
 
 function declaration(urgence: "normale" | "urgente") {
   const f = new FormData();
+  f.set("commande", "11111111-1111-4111-8111-111111111111");
   f.set("categorie", "plomberie_canalisation");
   f.set("description", "Fuite sous l'évier");
   f.set("urgence", urgence);

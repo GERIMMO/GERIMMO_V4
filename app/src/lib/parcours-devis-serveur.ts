@@ -1,12 +1,12 @@
 import "server-only";
-import { verifierArtisanAction, type LigneSollicitation } from "@/app/artisan/acces";
+import { verifierArtisanLecture, verifierArtisanMutation, type LigneSollicitation } from "@/app/artisan/acces";
 import { clientDeService } from "./supabase/service";
 import type { PreparationDevis, ProfilDocumentArtisan } from "./parcours-devis-artisan";
 
 /** Exception bornée au client de service : après identification de l'artisan
  * et preuve que la demande lui appartient via sa RPC, jamais depuis un ID client seul. */
-export async function accesPreparationDevis(id: string) {
-  const { fiche, supabase } = await verifierArtisanAction();
+export async function accesPreparationDevis(id: string, mutation = false) {
+  const { fiche, supabase } = await (mutation ? verifierArtisanMutation() : verifierArtisanLecture());
   if (!fiche) throw new Error("Connectez-vous à votre espace artisan.");
   const { data, error } = await supabase.rpc("mes_sollicitations");
   if (error) throw new Error("La demande ne peut pas être lue pour le moment.");
@@ -17,8 +17,8 @@ export async function accesPreparationDevis(id: string) {
   return { fiche, supabase, service, demande };
 }
 
-export async function chargerPreparationDevis(id: string) {
-  const acces = await accesPreparationDevis(id);
+export async function chargerPreparationDevis(id: string, mutation = false) {
+  const acces = await accesPreparationDevis(id, mutation);
   const [{ data: preparation, error }, { data: profil, error: erreurProfil }] = await Promise.all([
     acces.service.from("artisan_devis_preparations").select("*").eq("sollicitation_id", id).eq("artisan_id", acces.fiche.artisan_id).maybeSingle(),
     acces.service.from("artisan_profils_documents").select("adresse,mentions,logo_data").eq("artisan_id", acces.fiche.artisan_id).maybeSingle(),

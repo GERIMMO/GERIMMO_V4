@@ -32,6 +32,9 @@ jobs:
       NEXT_PUBLIC_SITE_URL: http://localhost:3100
       SUPABASE_DB_URL: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_sql
       SUPALOCAL_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_sql_api
+      GERIMMO_ARTISAN_CLIENTS_LOCAUX: "1"
+      GERIMMO_ARTISAN_REGLEMENTS_LOCAUX: "1"
+      PLANNING_CONFLITS_CONCURRENCE: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -96,7 +99,7 @@ jobs:
           export GERIMMO_CHROME="$(node -p "require('@playwright/test').chromium.executablePath()")"
           export GERIMMO_CATALOGUE_PDF_DIR="$RUNNER_TEMP/gerimmo-pdfs"
           export GERIMMO_TEST_PDF=1
-          npm test
+          npm test -- --maxWorkers=1
       - name: Préparer les parcours navigateur isolés
         run: |
           node e2e/local/seed-parcours.mjs

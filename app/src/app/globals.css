@@ -1663,7 +1663,7 @@ p a {
 /* Recherche transversale : les mêmes couleurs, un accès discret et constant. */
 .recherche-ouvrir { margin-right:auto; min-width:0; display:flex; align-items:center; gap:10px; min-height:42px; padding:8px 12px; border:1px solid var(--filet); border-radius:10px; background:var(--ivoire); color:var(--encre); font-size:13px; text-align:left; }
 .recherche-ouvrir:hover { border-color:var(--or); }
-.recherche-ouvrir kbd { margin-left:12px; font-size:10px; opacity:.65; white-space:nowrap; }
+.recherche-ouvrir kbd { margin-left:12px; font-size:10px; white-space:nowrap; }
 .recherche-dialog { padding:0; border:1px solid var(--filet); width:min(640px,calc(100vw - 24px)); max-width:none; max-height:calc(100dvh - 32px); margin:8vh auto auto; color:var(--encre); background:var(--ivoire); box-shadow:0 24px 90px color-mix(in srgb,var(--encre) 20%,transparent); border-radius:12px; overflow:hidden; }
 .recherche-dialog::backdrop { background:color-mix(in srgb,var(--encre) 50%,transparent); backdrop-filter:blur(3px); }
 .recherche-corps { display:flex; flex-direction:column; max-height:calc(84dvh - 32px); }

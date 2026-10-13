@@ -1,3 +1,4 @@
+import { verifierAvantEffet, ArretSupervision } from "@/lib/controle-effets";
 import {clientDeService} from '@/lib/supabase/service';
 import {consignerTache,porteurDuSecret} from '@/lib/tache';
 import {sujetMarketing,type SujetMarketing} from '@/lib/contenu-marketing';
@@ -65,6 +66,7 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   const a=article as Article;
   if(a.facebook_envoi_demarre_le){erreurs.push(`${a.id} : un envoi a déjà été engagé, à vérifier sur Facebook.`);continue;}
   // Parution sur le site : la base relit tout (accord, validation, texte complet, veille écartée).
+  await verifierAvantEffet(db,'marketing');
   const parution=await db.rpc('publier_article_automatique',{p_id:a.id,p_manuel:options.manuel===true});
   if(parution.error){erreurs.push(`${a.id} : ${parution.error.message}`);continue;}
   if(parution.data!==true){attentes.push(a.id);continue;}
@@ -73,12 +75,14 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   const reservation=await db.rpc('reserver_diffusion_facebook',{p_id:a.id,p_automatique:true});
   if(reservation.error||reservation.data!==true){erreurs.push(`${a.id} : paru sur le site, diffusion Facebook non réservée (plafond hebdomadaire ou pause).`);continue;}
   try{
-   const resultat=await envoyerSurFacebook({titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url});
+   await verifierAvantEffet(db,'marketing');
+   const resultat=await envoyerSurFacebook({titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},()=>verifierAvantEffet(db,'marketing'));
    const trace=await db.from('publications').update({facebook_post_id:resultat.post_id,facebook_publie_le:new Date().toISOString(),facebook_erreur:null}).eq('id',a.id);
    if(trace.error){erreurs.push(`${a.id} : Facebook a répondu, confirmation non conservée. Ne pas renvoyer.`);continue;}
    await db.from('marketing_campagnes').update({statut:'terminee',fin_le:new Date().toISOString()}).eq('publication_id',a.id);
    diffuses.push(a.id);
-  }catch{
+  }catch(e){
+   if(e instanceof ArretSupervision)throw e;
    await db.from('publications').update({facebook_erreur:'La confirmation Facebook manque. Vérifiez la Page avant de renvoyer pour éviter un doublon.'}).eq('id',a.id);
    erreurs.push(`${a.id} : confirmation Facebook manquante.`);
   }
@@ -109,9 +113,10 @@ async function choisirSujet(db:Db,r:Reglages,cible:Cible):Promise<{sujet:SujetMa
   // Rédaction ancrée dans la page officielle, lue maintenant. Échec = sujet éditorial.
   try{
    const texte=await lireSourceEtude(info.source_url);
+   await verifierAvantEffet(db,'marketing');
    const sujet=await redigerArticleVeille({id:info.id,titre:info.titre,source_url:info.source_url,source_nom:info.source_nom,publie_source_le:info.publie_source_le},texte);
    return {sujet,source:info.id,motifs};
-  }catch(e){motifs.push(`${info.titre.slice(0,60)} : ${e instanceof Error?e.message:'rédaction impossible'}`);}
+  }catch(e){if(e instanceof ArretSupervision)throw e;motifs.push(`${info.titre.slice(0,60)} : ${e instanceof Error?e.message:'rédaction impossible'}`);}
  }
  return {sujet:editorial,source:null,motifs};
 }
@@ -144,8 +149,10 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
    const apres=await db.from('publications').select(CHAMPS).eq('id',article.id).single();
    if(apres.error||!apres.data||!['brouillon','planifiee'].includes(apres.data.statut))throw new Error('Le sujet a changé.');
    article=apres.data as Article;
+   await verifierAvantEffet(db,'marketing');
    const visuel=await creerVisuelMarketing(article.id,article.titre);
    const chemin=`${article.id}/${visuel.empreinte}.jpg`;
+   await verifierAvantEffet(db,'marketing');
    const depot=await db.storage.from('marketing-visuels').upload(chemin,visuel.octets,{contentType:'image/jpeg',upsert:false,cacheControl:'31536000'});
    if(depot.error)throw new Error('Le visuel n’a pas pu être conservé.');
    const url=db.storage.from('marketing-visuels').getPublicUrl(chemin).data.publicUrl;
@@ -153,13 +160,13 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
    const sauvegarde=await db.from('publications').update({facebook_image_url:url,image_empreinte:visuel.empreinte,image_en_cours_le:null,facebook_erreur:null}).eq('id',article.id).eq('updated_at',article.updated_at).select(CHAMPS).maybeSingle();
    if(sauvegarde.error||!sauvegarde.data)throw new Error('Le sujet a changé ou le visuel existe déjà. La diffusion attend une vérification.');
    article=sauvegarde.data as Article;
-  }catch(e){const message=e instanceof Error?e.message:'Le visuel doit être repris.';await db.from('publications').update({image_en_cours_le:null,facebook_erreur:message}).eq('id',article.id);return {erreur:message,article:article.id,essais:article.image_essais,reprise};}
+  }catch(e){if(e instanceof ArretSupervision)throw e;const message=e instanceof Error?e.message:'Le visuel doit être repris.';await db.from('publications').update({image_en_cours_le:null,facebook_erreur:message}).eq('id',article.id);return {erreur:message,article:article.id,essais:article.image_essais,reprise};}
  }
  // Programmation : la base refuse un texte à trous.
  const programmation=await db.rpc('programmer_publication_marketing',{p_id:article.id,p_pour:cible.parution});
  if(programmation.error)return {erreur:programmation.error.message,article:article.id};
  if(programmation.data!==true)return {erreur:'Le post n’a pas pu être programmé (agent en pause ou visuel manquant).',article:article.id};
- const alerte=await alerterSuperviseurDuPost(db,{id:article.id,titre:article.titre,chapo:article.chapo,facebook_texte:article.facebook_texte,facebook_image_url:article.facebook_image_url,programmee_pour:cible.parution,veille:Boolean(article.veille_source_id),rattrapage:cible.rattrapage,validation_obligatoire:r.validation_obligatoire});
+ const alerte=await alerterSuperviseurDuPost(db,{id:article.id,titre:article.titre,chapo:article.chapo,facebook_texte:article.facebook_texte,facebook_image_url:article.facebook_image_url,programmee_pour:cible.parution,veille:Boolean(article.veille_source_id),rattrapage:cible.rattrapage,validation_obligatoire:r.validation_obligatoire},()=>verifierAvantEffet(db,'marketing'));
  return {agi:true,preparees:1,article:article.id,parution:cible.parution,rattrapage:cible.rattrapage,alerte:alerte.envoye,...(alerte.motif?{alerte_motif:alerte.motif}:{}),...(motifs.length?{ecartes:motifs}:{})};
 }
 

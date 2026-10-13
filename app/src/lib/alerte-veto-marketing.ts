@@ -1,3 +1,4 @@
+import { ArretSupervision } from "./controle-effets";
 // L'ALERTE DE VETO (06/10/2026) : le superviseur voit le post la veille.
 //
 // Un e-mail avec l'aperçu (titre, texte Facebook, visuel, source) et un lien
@@ -48,14 +49,16 @@ export function htmlAlerteVeto(post: ApercuPost, lienEcran: string): string {
 </div>`;
 }
 
-/** Envoie l'alerte au superviseur permanent ; ne lève jamais (la mission continue). */
-export async function alerterSuperviseurDuPost(db: SupabaseClient, post: ApercuPost): Promise<{ envoye: boolean; motif?: string }> {
+/** Envoie l'alerte au superviseur permanent ; préserve les arrêts de supervision, absorbe les erreurs ordinaires. */
+export async function alerterSuperviseurDuPost(db: SupabaseClient, post: ApercuPost, avantEffet?: () => Promise<void>): Promise<{ envoye: boolean; motif?: string }> {
   try {
     const { data: email, error } = await db.rpc("email_superviseur_permanent");
     if (error || typeof email !== "string" || !email) return { envoye: false, motif: "Adresse du superviseur introuvable." };
     const site = adresseDuSite() ?? "https://www.gerimmo.app";
     const lien = `${site}/admin/marketing#veto`;
+    await avantEffet?.();
     const res = await envoyerEmail({
+      avantEnvoi: avantEffet,
       to: email,
       subject: `À relire avant parution : ${post.titre.slice(0, 90)}`,
       html: htmlAlerteVeto(post, lien),
@@ -63,6 +66,7 @@ export async function alerterSuperviseurDuPost(db: SupabaseClient, post: ApercuP
     });
     return res.erreur ? { envoye: false, motif: res.erreur } : { envoye: true };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { envoye: false, motif: e instanceof Error ? e.message : "Envoi impossible." };
   }
 }

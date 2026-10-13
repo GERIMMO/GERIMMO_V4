@@ -1,3 +1,4 @@
+import { ChantiersDansAgenda } from "../clients/resumes";
 import Link from "next/link";
 import { chargerAgenda, verifierAccesArtisan, type LigneAgenda } from "../acces";
 import { CarteMission } from "../carte-mission";
@@ -95,6 +96,7 @@ export default async function PageAgendaArtisan() {
   return (
     <div className="space-y-6">
       <EnteteSousPage rubrique="agenda" titre="Mon agenda" mention={jourLong(new Date().toISOString())} />
+      <ChantiersDansAgenda />
 
       {agenda.erreur && (
         <Erreur>
@@ -107,7 +109,7 @@ export default async function PageAgendaArtisan() {
           mène à sa journée ; les autres ne se cliquent pas (rien dessous). */}
       {!agenda.erreur && (
         <Carte>
-          <TitreSection>Les 7 prochains jours</TitreSection>
+          <TitreSection>Gerimmo — les 7 prochains jours</TitreSection>
           <ol className="artisan-semaine grid grid-cols-7 gap-1.5 sm:gap-3" aria-label="Rendez-vous des sept prochains jours">
             {semaine.map((d) => {
               const cle = jourCivil(d);

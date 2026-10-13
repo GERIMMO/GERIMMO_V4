@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Banknote, BookOpen, Building2, CalendarDays, FileCheck2, FileText, LayoutDashboard, Star, type LucideIcon } from "lucide-react";
+import { Banknote, BookOpen, Building2, CalendarDays, FileCheck2, FileText, LayoutDashboard, Star, Users, type LucideIcon } from "lucide-react";
 import styles from "@/app/artisan/portail-artisan.module.css";
 
 /** Sur bureau, toutes les rubriques sont visibles ; sur téléphone, quatre
@@ -33,6 +33,7 @@ export function NavArtisan({
   devisAChiffrer = 0,
   piecesAAJour = true,
   presentation = "mobile",
+  clientsExternes = false,
 }: {
   /**
    * Ce qui attend un geste de sa part sur l'écran d'arrivée : missions à
@@ -42,6 +43,7 @@ export function NavArtisan({
    * rien à faire alors qu'une facture attend son compte rendu.
    */
   presentation?: "mobile" | "bureau";
+  clientsExternes?: boolean;
   aFaireMaintenant?: number;
   /** Demandes de devis encore à chiffrer (9.2). */
   devisAChiffrer?: number;
@@ -91,6 +93,7 @@ export function NavArtisan({
         { href: "/artisan/agenda", libelle: "Mon agenda", icone: CalendarDays, aussi: ["/artisan/missions"] },
         { href: "/artisan/devis", libelle: "Demandes de devis", icone: FileText, badge: devisAChiffrer },
         { href: "/artisan/facturation", libelle: "Ma facturation", icone: Banknote },
+        ...(clientsExternes ? [{ href: "/artisan/clients", libelle: "Clients externes", icone: Users, aussi: ["/artisan/chantiers"] }] : []),
       ] },
       { titre: "Mon entreprise", liens: [
         { href: "/artisan/entreprise", libelle: "Ma fiche entreprise", icone: Building2 },

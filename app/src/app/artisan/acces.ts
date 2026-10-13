@@ -255,13 +255,28 @@ export async function verifierAccesArtisan() {
   return { supabase, user, fiche };
 }
 
+/** Lecture autorisée sous l’identité diagnostiquée, après les contrôles RPC. */
+export async function verifierArtisanLecture() {
+  const { supabase, user, fiche, erreur } = await chargerFicheArtisan();
+  return { supabase, fiche: user && !erreur ? fiche : null };
+}
+
 /**
  * Garde des actions serveur. Elle ne redirige pas : une action rend un état de
  * formulaire, et c'est le formulaire qui parle. Elle ne remplace jamais la
  * garde de la base — chaque RPC appelée revérifie `mon_artisan_id()`.
  */
-export async function verifierArtisanAction() {
-  const { supabase, user, fiche } = await chargerFicheArtisan();
-  if (!user || !fiche) return { supabase, fiche: null as FicheArtisan | null };
-  return { supabase, fiche };
+export async function verifierArtisanMutation() {
+  const { supabase, user, fiche, erreur } = await chargerFicheArtisan();
+  if (!user || !fiche || erreur) return { supabase, fiche: null as FicheArtisan | null, erreur: "Accès artisan indisponible." };
+  // Contrôle frais à chaque action : cache de navigation et identité empruntée
+  // ne valent jamais autorisation de mutation.
+  const { data: artisanReel, error } = await supabase.rpc("exiger_artisan_reel");
+  if (error || artisanReel !== fiche.artisan_id) {
+    return { supabase, fiche: null as FicheArtisan | null, erreur: "Le diagnostic est en lecture seule. Cette action exige le compte réel de l’artisan." };
+  }
+  return { supabase, fiche, erreur: undefined };
 }
+
+/** Les actions existantes suivent la même garde que les nouveaux parcours. */
+export const verifierArtisanAction = verifierArtisanMutation;

@@ -156,13 +156,17 @@ export function jourDuPoint(maintenant:Date=new Date()):string{return maintenant
  */
 export async function genererPointsDuMatin(db:Lecteur,maintenant:Date=new Date()):Promise<{enregistres:number;erreur?:string}>{
  try{
-  const [passages,journaux,{attentes}]=await Promise.all([
+  const [passages,journaux,{attentes,indisponibles}]=await Promise.all([
    db.from('agent_passages').select('id,mission,debut,fin,etat,compte,bilan').gte('debut',new Date(maintenant.getTime()-24*3_600_000).toISOString()).order('debut',{ascending:false}).limit(200),
    db.from('tech_log').select('evenement,details,created_at').like('evenement','tache_%').is('account_id',null).gte('created_at',new Date(maintenant.getTime()-25*3_600_000).toISOString()).order('created_at',{ascending:false}).limit(300),
    lireAttentes(db),
   ]);
-  if(passages.error)return {enregistres:0,erreur:'Les passages sont indisponibles.'};
-  const points=assemblerPoints({passages:(passages.data??[]) as PassageLu[],journaux:(journaux.error?[]:journaux.data??[]) as LigneJournal[],attentes,maintenant});
+  // Une absence de données ne vaut pas une file vide : l'enregistrement
+  // classerait sinon les décisions encore en attente comme « sans objet ».
+  // Toutes les lectures précèdent les écritures, pour préserver le dernier point.
+  const sourcesManquantes=[...(passages.error?['passages']:[]),...(journaux.error?['journal technique']:[]),...indisponibles];
+  if(sourcesManquantes.length)return {enregistres:0,erreur:`Le point n’a pas été actualisé : données indisponibles (${sourcesManquantes.join(', ')}). Le dernier point connu est conservé. Réessayez lorsque les lectures seront rétablies.`};
+  const points=assemblerPoints({passages:(passages.data??[]) as PassageLu[],journaux:(journaux.data??[]) as LigneJournal[],attentes,maintenant});
   const jour=jourDuPoint(maintenant);let enregistres=0;
   for(const p of points){
    const {error}=await db.rpc('enregistrer_point_du_matin',{p_jour:jour,p_equipe:p.equipe,p_contenu:p.contenu,p_decisions:p.decisions});

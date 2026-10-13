@@ -36,6 +36,8 @@ try {
     await db.query(sql);
     await db.query('insert into e2e_local.migrations(name) values($1)', [fichier]);
   }
+  // Modules expérimentaux activés uniquement dans ces bases fictives locales.
+  await db.query("update public.artisan_modules_locaux set actif=true");
 } finally { await db.end(); }
 
 const adminUrl = new URL(url); adminUrl.pathname = '/postgres';

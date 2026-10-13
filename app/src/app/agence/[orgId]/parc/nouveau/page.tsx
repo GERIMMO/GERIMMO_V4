@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { HousePlus } from "lucide-react";
 import styles from "@/components/presentation-parcours.module.css";
@@ -93,7 +94,7 @@ export default async function PageNouveauBien(
           </div>
         </div>
       ) : (
-      <FormulaireBien orgId={orgId} guide proprietaireAutomatique={role === "proprietaire_direct"} />
+      <FormulaireBien orgId={orgId} cleCreation={randomUUID()} guide proprietaireAutomatique={role === "proprietaire_direct"} />
       )}
     </main>
   );

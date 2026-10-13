@@ -1,3 +1,4 @@
+import { verifierAvantEffet } from "@/lib/controle-effets";
 import { timingSafeEqual } from "node:crypto";
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache } from "@/lib/tache";
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
 
   let traites = 0; const echecs: string[] = [];
   for (const evenement of (data ?? []) as EvenementSignature[]) {
-    const resultat = await traiterEvenementSignature(supabase, config, evenement);
+    const resultat = await traiterEvenementSignature(supabase, config, evenement, () => verifierAvantEffet(supabase, "signatures"));
     if (resultat.ok) traites++;
     else echecs.push(resultat.erreur ?? "Erreur inconnue");
   }

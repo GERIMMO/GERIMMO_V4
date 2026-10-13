@@ -49,7 +49,7 @@ export type BilanRelances = {
  */
 export async function envoyerRelancesDues(
   supabase: SupabaseClient,
-  options: { org?: string } = {}
+  options: { org?: string; avantEffet?: () => Promise<void> } = {}
 ): Promise<BilanRelances> {
   const site = adresseDuSite();
   const { data, error } = await supabase.rpc("abonnements_a_relancer", { p_limite: 200 });
@@ -78,7 +78,9 @@ export async function envoyerRelancesDues(
       // que pas de lien. La lettre dit alors quoi faire sans promettre un clic.
       lien: site ? `${site}/agence/${r.organization_id}/abonnement` : null,
     };
+    await options.avantEffet?.();
     const { erreur } = await envoyerEmail({
+      avantEnvoi: options.avantEffet,
       to: r.destinataire,
       subject: sujetRelance(relance),
       html: corpsRelance(relance),

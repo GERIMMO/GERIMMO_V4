@@ -1,3 +1,4 @@
+import { ArretSupervision } from "./controle-effets";
 // Les e-mails qui préviennent quelqu'un qu'un geste l'attend (25/09).
 //
 // AVANT CE FICHIER, rien ne partait : l'artisan apprenait une demande de devis
@@ -589,11 +590,11 @@ async function emetteur(db: SupabaseClient, orgId: string): Promise<string> {
 
 /**
  * L'envoi lui-même. Tout est absorbé : pas d'adresse, refus du service,
- * exception — consigné, jamais relancé vers l'appelant.
+ * exception — consigné ; seul un arrêt de supervision remonte à la mission.
  */
 async function expedier(
   db: SupabaseClient,
-  p: { orgId: string; to: string | null | undefined; message: Message; evenement: string; objet: string; role: Role; pieceJointe?: { nom: string; contenuBase64: string }; cleIdempotence?: string }
+  p: { orgId: string; to: string | null | undefined; message: Message; evenement: string; objet: string; role: Role; pieceJointe?: { nom: string; contenuBase64: string }; cleIdempotence?: string; avantEffet?: () => Promise<void> }
 ): Promise<ResultatNotification> {
   const trace = { evenement: p.evenement, objet: p.objet, org: p.orgId, role: p.role };
   const to = (p.to ?? "").trim();
@@ -601,8 +602,10 @@ async function expedier(
     await journaliser(db, "notification_sans_adresse", trace);
     return { envoyee: false, motif: "sans_adresse" };
   }
+  await p.avantEffet?.();
   try {
     const envoi = await envoyerEmail({
+      avantEnvoi: p.avantEffet,
       organisation: { db, id: p.orgId },
       to,
       subject: p.message.sujet,
@@ -617,6 +620,7 @@ async function expedier(
     await journaliser(db, "notification_envoyee", trace);
     return { envoyee: true };
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     await journaliser(db, "notification_echec", { ...trace, erreur: e instanceof Error ? e.message : "exception" });
     return { envoyee: false, motif: "echec_envoi" };
   }
@@ -1113,7 +1117,7 @@ const PLAFOND_PAR_TYPE = 100;
  * PUIS on trace, comme les autres tâches : le pire cas est un doublon, pas un
  * silence. Une organisation dont l'écriture est fermée n'écrit plus en son nom.
  */
-export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: Date = new Date()): Promise<BilanRappelsGestes> {
+export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: Date = new Date(), avantEffet?: () => Promise<void>): Promise<BilanRappelsGestes> {
   const bilan: BilanRappelsGestes = {
     envoyes: 0, echecs: 0, sans_adresse: 0, non_consignes: 0,
     par_type: { creneau_non_choisi: 0, mission_non_acceptee: 0, piece_demandee: 0, devis_non_chiffre: 0 },
@@ -1217,7 +1221,7 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
     }
     if (!ecritureOuverte.get(c.orgId)) continue;
 
-    const resultat = await envoyerUnRappel(service, c, noms.get(c.orgId) ?? "Votre gestionnaire", maintenant);
+    const resultat = await envoyerUnRappel(service, c, noms.get(c.orgId) ?? "Votre gestionnaire", maintenant, avantEffet);
     if (!resultat.envoyee) {
       if (resultat.motif === "sans_adresse") bilan.sans_adresse += 1;
       else bilan.echecs += 1;
@@ -1236,7 +1240,7 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
   return bilan;
 }
 
-async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string, maintenant: Date): Promise<ResultatNotification> {
+async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string, maintenant: Date, avantEffet?: () => Promise<void>): Promise<ResultatNotification> {
   const jours = Math.max(1, Math.floor((maintenant.getTime() - new Date(c.depuis).getTime()) / 86_400_000));
   const role = ROLE_RAPPEL[c.type];
   try {
@@ -1263,10 +1267,11 @@ async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string
     }
 
     return expedier(service, {
-      orgId: c.orgId, to, role, evenement: `rappel_${c.type}`, objet: c.objetId,
+      avantEffet, orgId: c.orgId, to, role, evenement: `rappel_${c.type}`, objet: c.objetId,
       message: messageRappelGeste({ type: c.type, emetteur: nom, prenom, categorie, libelle: c.libelle, jours, lien: lien(c.lienChemin) }),
     });
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     console.error(`[rappels gestes] ${c.type} :`, e instanceof Error ? e.message : e);
     return NON;
   }

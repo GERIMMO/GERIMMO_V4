@@ -162,8 +162,9 @@ describe.skipIf(!DB_URL)("Supervision artisan — décisions atomiques", () => {
     await db.query(APPEL, [artisan, "suspension", "Décennale échue", false, false]);
     const { rows: [a] } = await db.query("select statut_plateforme, statut_motif from public.artisans where id=$1", [artisan]);
     expect(a).toEqual({ statut_plateforme: "en_attente", statut_motif: "Décennale échue" });
-    const { rows: decisions } = await db.query("select decision from public.artisan_validations where artisan_id=$1 order by created_at", [artisan]);
-    expect(decisions.map((r) => r.decision)).toEqual(["validation", "suspension"]);
+    // now() est identique dans toute la transaction : created_at ne départage pas ces décisions.
+    const { rows: decisions } = await db.query("select decision from public.artisan_validations where artisan_id=$1", [artisan]);
+    expect(decisions.map((r) => r.decision).sort()).toEqual(["suspension", "validation"]);
     const { rows: traces } = await db.query("select details->>'operation_demandee' as op from public.audit_log where details->>'artisan_id'=$1 order by created_at", [artisan]);
     expect(traces.map((r) => r.op)).toContain("suspension");
   });

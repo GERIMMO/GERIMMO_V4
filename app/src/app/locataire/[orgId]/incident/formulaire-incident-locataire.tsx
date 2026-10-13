@@ -114,8 +114,22 @@ function EncartQuiPaiera({ slug, plat = false }: { slug: string; plat?: boolean 
 // catégorie est pilotée : elle alimente l'encart « Qui paiera la réparation »
 // (retour de recette 24/08, alignement maquette pLocDeclarer).
 export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
-  const actionLiee = declarerMonIncident.bind(null, orgId);
-  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const commande = useRef<string | null>(null);
+  const derniereDeclaration = useRef<FormData | null>(null);
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(async (precedent, formData) => {
+    const contenu = precedent.succes && precedent.avertissement && derniereDeclaration.current
+      ? derniereDeclaration.current : formData;
+    commande.current ??= crypto.randomUUID();
+    contenu.set("commande", commande.current);
+    derniereDeclaration.current = contenu;
+    try {
+      return await declarerMonIncident(orgId, precedent, contenu);
+    } catch {
+      // Une réponse perdue ne signifie pas que le serveur n'a rien enregistré.
+      // Même clé et mêmes fichiers au prochain clic, jamais une nouvelle demande.
+      return { ...precedent, erreur: "La réponse n’est pas arrivée. Réessayez : votre signalement ne sera pas créé une deuxième fois." };
+    }
+  }, {});
   const [categorie, setCategorie] = useState(etat.valeurs?.categorie ?? "");
   const [piece, setPiece] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
@@ -155,10 +169,13 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
             {etat.avertissement}
           </p>
         )}
+        {etat.avertissement && <form action={action}>
+          <BoutonEnvoi enCoursTexte="Reprise des photos…" className="w-full">Réessayer les photos</BoutonEnvoi>
+          <p className="mt-2 text-xs text-muted-foreground">Le signalement reste le même. Les photos déjà jointes sont conservées.</p>
+          {etat.erreur && <p role="alert" className="err">{etat.erreur}</p>}
+        </form>}
         <p className="text-sm text-muted-foreground">
-          {/* Aucune promesse de rattrapage ici : le locataire n'a aucun
-              dépôt de photo sur un incident déjà ouvert — joindrePhotoIncident
-              (app/actions/incidents.ts) passe par verifierGerant. */}
+
           {etat.avertissement ? (
             <>Votre signalement, lui, est bien enregistré. </>
           ) : (
@@ -187,7 +204,15 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
           Une ou deux photos prises sur le vif évitent souvent un déplacement
           pour rien.
         </p>
-        <form action={action} className="formulaire-reperes mt-4 space-y-4">
+        <form
+          action={action}
+          // React remet le formulaire à zéro même après un refus. Le reset
+          // natif désynchronise les selects contrôlés et le résumé de photo.
+          // La confirmation remplace déjà tout ce formulaire en cas de succès :
+          // tant qu'il reste affiché, conserver la saisie et les fichiers.
+          onReset={(event) => event.preventDefault()}
+          className="formulaire-reperes mt-4 space-y-4"
+        >
           <LegendeChamps />
           <div className="space-y-1.5">
             <Label htmlFor="photos">Photos (jusqu&apos;à 5)</Label>

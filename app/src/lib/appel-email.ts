@@ -10,7 +10,7 @@
 // engage un circuit). Le vocabulaire les sépare, parce que le droit les sépare.
 
 import { eur } from "@/lib/ged";
-import { moisDeLaPeriode } from "@/lib/quittance-email";
+import { echapperHtml, moisDeLaPeriode } from "@/lib/quittance-email";
 
 export type AvisEcheance = {
   periode: string;
@@ -61,7 +61,7 @@ export function corpsAvisEcheance(a: AvisEcheance): string {
   return `
     <div style="font-family:sans-serif;font-size:14px;color:#151b2b">
       <h2 style="color:#0f2352">Avis d'échéance — ${mois}</h2>
-      <p>Bonjour${a.prenom ? " " + a.prenom : ""},</p>
+      <p>Bonjour${a.prenom ? " " + echapperHtml(a.prenom) : ""},</p>
       <p>Voici le détail de votre échéance de <strong>${mois}</strong>,
          à régler pour le <strong>${jourDeLEcheance(a.dateEcheance)}</strong> :</p>
       <ul>
@@ -71,12 +71,12 @@ export function corpsAvisEcheance(a: AvisEcheance): string {
       </ul>
       ${mentionProrata}
       ${mentionArriere}
-      <p><a href="${a.lien}">Consulter mes loyers et mes quittances</a></p>
+      <p><a href="${echapperHtml(a.lien)}">Consulter mes loyers et mes quittances</a></p>
       <p style="color:#5b6478;font-size:12px">
         Votre quittance vous sera adressée une fois le terme intégralement réglé.
         Si votre paiement s'est croisé avec cet avis, merci de ne pas en tenir
         compte.
       </p>
-      <p>— ${a.emetteur}</p>
+      <p>— ${echapperHtml(a.emetteur)}</p>
     </div>`;
 }

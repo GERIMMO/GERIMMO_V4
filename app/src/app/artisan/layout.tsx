@@ -1,3 +1,4 @@
+import { environnementArtisanLocal } from "@/lib/artisan-prive";
 import Link from "next/link";
 import { CircleHelp, Wrench } from "lucide-react";
 import { MenuCompte } from "@/components/menu-compte";
@@ -140,7 +141,7 @@ export default async function LayoutArtisan({
               <MarqueGerimmo surEncre />
               <span>Espace artisan</span>
             </Link>
-            <NavArtisan {...navigation} presentation="bureau" />
+            <NavArtisan {...navigation} presentation="bureau" clientsExternes={environnementArtisanLocal()} />
             <div className={styles.sidebarFoot}>
               <LienAssistance><CircleHelp size={19} aria-hidden /> Aide et retours</LienAssistance>
               <span>Votre activité, en confiance.</span>

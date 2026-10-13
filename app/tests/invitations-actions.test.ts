@@ -1,0 +1,20 @@
+import {beforeEach,describe,expect,it,vi} from 'vitest';
+const m=vi.hoisted(()=>({rpc:vi.fn(),getUser:vi.fn(),guard:vi.fn(),mail:vi.fn(),redirect:vi.fn(),revalidate:vi.fn()}));
+vi.mock('@/lib/ged-acces',()=>({verifierGerant:m.guard}));
+vi.mock('@/lib/supabase/server',()=>({createClient:async()=>({rpc:m.rpc,auth:{getUser:m.getUser}})}));
+vi.mock('@/lib/lien-mot-de-passe',()=>({envoyerLienMotDePasse:m.mail}));
+vi.mock('next/cache',()=>({revalidatePath:m.revalidate}));
+vi.mock('next/navigation',()=>({redirect:m.redirect,notFound:vi.fn()}));
+import {inviterLocataire,repondreInvitation,annulerInvitation} from '@/app/actions/invitations';
+const org='11111111-1111-4111-8111-111111111111',person='22222222-2222-4222-8222-222222222222',inv='33333333-3333-4333-8333-333333333333';
+beforeEach(()=>{vi.resetAllMocks();m.guard.mockResolvedValue({supabase:{rpc:m.rpc},user:{id:'owner'}});m.getUser.mockResolvedValue({data:{user:{id:'tenant'}}});m.mail.mockResolvedValue({});m.rpc.mockResolvedValue({data:{id:inv,email:'test@example.invalid',etat:'en_attente'},error:null});});
+describe('LOC008 actions : résultat sincère et consentement',()=>{
+ it('attend un accès gérant avant toute préparation ou envoi',async()=>{m.guard.mockResolvedValue({supabase:{rpc:m.rpc},user:null});expect(await inviterLocataire(org,person,{},new FormData())).toHaveProperty('erreur');expect(m.rpc).not.toHaveBeenCalled();expect(m.mail).not.toHaveBeenCalled();});
+ it('envoi échoué : erreur explicite, jamais « compte actif » ou « invitation envoyée »',async()=>{m.mail.mockResolvedValue({erreur:'Service indisponible'});const r=await inviterLocataire(org,person,{},new FormData());expect(r.erreur).toContain('n’a pas été envoyé');expect(r.succes).toBeUndefined();expect(m.rpc).toHaveBeenCalledWith('noter_envoi_invitation_locataire',{p_id:inv,p_envoye:false});});
+ it('le lien garde la destination de consentement après le mot de passe',async()=>{expect((await inviterLocataire(org,person,{},new FormData())).succes).toContain('après son acceptation');expect(m.mail).toHaveBeenCalledWith(expect.objectContaining({next:`/nouveau-mot-de-passe?suite=${encodeURIComponent('/invitations/'+inv)}`,organisation:org}));});
+ it('un accès existant ne provoque pas de nouvel e-mail',async()=>{m.rpc.mockResolvedValue({data:{etat:'deja_actif'}});expect((await inviterLocataire(org,person,{},new FormData())).succes).toContain('déjà');expect(m.mail).not.toHaveBeenCalled();});
+ it('acceptation : la base décide et seule son organisation est suivie',async()=>{const f=new FormData();f.set('decision','accepter');m.rpc.mockResolvedValue({data:{etat:'acceptee',organization_id:org}});m.redirect.mockImplementation(()=>{throw Error('redirect');});await expect(repondreInvitation(inv,{},f)).rejects.toThrow('redirect');expect(m.rpc).toHaveBeenCalledWith('repondre_invitation_locataire',{p_id:inv,p_accepter:true});expect(m.redirect).toHaveBeenCalledWith(`/locataire/${org}`);});
+ it('refus ou expiration ne redirige pas vers un accès locataire',async()=>{const f=new FormData();f.set('decision','refuser');m.rpc.mockResolvedValue({data:{etat:'refusee'}});expect((await repondreInvitation(inv,{},f)).succes).toContain('refusée');expect(m.redirect).not.toHaveBeenCalled();m.rpc.mockResolvedValue({data:{etat:'expiree',erreur:'Invitation expirée'}});expect((await repondreInvitation(inv,{},f)).erreur).toContain('expirée');});
+ it('une réponse sans décision ou sans session ne modifie rien',async()=>{expect(await repondreInvitation(inv,{},new FormData())).toHaveProperty('erreur');m.getUser.mockResolvedValue({data:{user:null}});const f=new FormData();f.set('decision','accepter');expect(await repondreInvitation(inv,{},f)).toHaveProperty('erreur');expect(m.rpc).not.toHaveBeenCalled();});
+ it('annulation gérant soumise à la vérification de la base',async()=>{m.rpc.mockResolvedValue({error:{message:'Accès refusé'}});expect((await annulerInvitation(org,person,inv,{},new FormData())).erreur).toBe('Accès refusé');});
+});

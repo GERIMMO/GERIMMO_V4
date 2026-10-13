@@ -122,6 +122,12 @@ export default async function PagePersonne(
   }
   if (!personne) notFound();
 
+  const [{ data: invitations, error: erreurInvitations }, { data: accesLocataire, error: erreurAccesLocataire }] = await Promise.all([
+    supabase.from("invitations_locataires").select("id,etat,email,expire_le,cree_le,envoye_le,erreur_envoi")
+      .eq("organization_id",orgId).eq("person_id",personId).order("cree_le",{ascending:false}),
+    personne.account_id ? supabase.rpc("statut_acces_locataire", {p_org:orgId,p_person_id:personId}) : Promise.resolve({data:null,error:null}),
+  ]);
+
   // Quatre lectures indépendantes — un seul aller-retour
   const [
     // Pièces courantes du dossier (versioning : seules les non remplacées)
@@ -604,7 +610,10 @@ export default async function PagePersonne(
             orgId={orgId}
             personId={personId}
             email={personne.email}
-            dejaInvite={Boolean(personne.account_id)}
+            dejaInvite={accesLocataire?.role === "locataire" && accesLocataire.status === "active"}
+            accesSuspendu={accesLocataire?.role === "locataire" && accesLocataire.status === "inactive"}
+            historique={invitations ?? []}
+            erreurLecture={Boolean(erreurInvitations || erreurAccesLocataire)}
           />
         </CardContent>
       </Card>

@@ -11,6 +11,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   type ReactNode,
 } from "react";
 import {
@@ -1125,7 +1126,7 @@ function OngletComptabilite({
               ) : (
                 <ul className="divide-y divide-border">
                   {dus.map((t) => (
-                    <LigneTerme key={t.appel_id} orgId={orgId} bailId={bailId} terme={t} relire={relire} />
+                    <LigneTerme key={t.appel_id} orgId={orgId} bailId={bailId} terme={t} detteAnterieure={donnees.termes.filter(x => x.periode < t.periode).reduce((total, x) => total + Number(x.montant_du) - Number(x.montant_couvert), 0)} relire={relire} />
                   ))}
                 </ul>
               )}
@@ -1195,15 +1196,24 @@ function LigneTerme({
   orgId,
   bailId,
   terme,
+  detteAnterieure,
   relire,
 }: {
   orgId: string;
   bailId: string;
   terme: TermeDuLot;
+  detteAnterieure: number;
   relire: () => void;
 }) {
+  const commande = useRef<string | null>(null);
   const [etat, action] = useActionState<EtatLoyers, FormData>(async () => {
-    const r = await encaisserReste(orgId, bailId, terme.appel_id);
+    commande.current ??= crypto.randomUUID();
+    const r = await encaisserReste(orgId, bailId, terme.appel_id, {
+      commande: commande.current,
+      reste: Number(terme.montant_du) - Number(terme.montant_couvert),
+      detteAnterieure,
+    });
+    if (r.commandeTerminee) { commande.current = null; relire(); }
     if (r.succes) {
       afficherToast(r.succes);
       relire();

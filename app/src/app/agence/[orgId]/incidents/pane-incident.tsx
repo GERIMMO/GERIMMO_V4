@@ -243,7 +243,8 @@ export async function PaneIncident({
       case "arbitrage_creneau":
         return `${formaterDateHeure(String(d.debut))} → ${formaterDateHeure(String(d.fin))}${
           d.motif ? ` — « ${d.motif} »` : ""
-        }`;
+        }${d.conflit_confirme && d.conflit_motif
+          ? ` — Chevauchement maintenu : « ${d.conflit_motif} »` : ""}`;
       case "compte_rendu":
         return d.cause_reelle ? `cause constatée : « ${d.cause_reelle} »` : null;
       case "revision_imputation":

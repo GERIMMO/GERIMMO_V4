@@ -8,6 +8,7 @@
  *  - l'avis de reconduction L215-1 part avec la passe.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ArretSupervision } from "@/lib/controle-effets";
 
 const m = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -99,7 +100,7 @@ describe("préparer l'échéance", () => {
     const corps = await passe();
     expect(m.baisse).not.toHaveBeenCalled();
     expect(m.periodicite).not.toHaveBeenCalled();
-    expect(m.avisCapacite).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ capacite: 3, aCouvrir: 5 }));
+    expect(m.avisCapacite).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ capacite: 3, aCouvrir: 5 }), expect.any(Function));
     expect(corps.echeances).toMatchObject({ avis_capacite: 1, baisses: 0 });
   });
 
@@ -133,5 +134,21 @@ describe("préparer l'échéance", () => {
     const corps = await passe();
     expect(m.avisReconduction).toHaveBeenCalled();
     expect(corps.reconduction).toMatchObject({ envoyes: 1 });
+  });
+
+  it.each(["reconduction", "capacite"])("l’arrêt pendant l’avis %s remonte à la mission", async (etape) => {
+    echeance({ formule: "bailleur", unites_souscrites: 3, unites_a_couvrir: etape === "capacite" ? 5 : 3 });
+    const arret = new ArretSupervision();
+    (etape === "capacite" ? m.avisCapacite : m.avisReconduction).mockRejectedValue(arret);
+    await expect(GET(new Request("http://localhost/api/cron/abonnements", { headers: { authorization: `Bearer ${SECRET}` } }))).rejects.toBe(arret);
+    expect(m.rpc.mock.calls.some(([nom]) => nom === "avantages_parrainage_a_appliquer")).toBe(false);
+    if (etape === "capacite") expect(m.rpc.mock.calls.some(([nom]) => nom === "abonnement_echeance_preparee")).toBe(false);
+  });
+
+  it("un refus ordinaire d’avis conserve son bilan d’échec habituel", async () => {
+    echeance({ formule: "bailleur", unites_souscrites: 3, unites_a_couvrir: 3 });
+    m.avisReconduction.mockRejectedValue(new Error("Fournisseur indisponible"));
+    const corps = await passe();
+    expect(corps.reconduction).toEqual({ envoyes: 0, sans_adresse: [], echecs: ["Fournisseur indisponible"] });
   });
 });

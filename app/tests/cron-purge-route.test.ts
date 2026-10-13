@@ -26,10 +26,11 @@ const appel = (secret = SECRET) =>
 
 type Ligne = { id: string; storage_path: string; queued_at: string };
 
-function faux(file: Ligne[], opts: { supprimes: string[]; presents?: string[]; bloques?: number }) {
+function faux(file: Ligne[], opts: { supprimes: string[]; presents?: string[]; bloques?: number; arrete?: boolean; panne?: boolean }) {
   const marques: string[][] = [];
   const retires: string[][] = [];
   const db = {
+    rpc: async (nom: string) => { expect(nom).toBe("verifier_arret_supervision"); return { data: !opts.arrete, error: opts.panne ? { message: "indisponible" } : null }; },
     from: (table: string) => {
       expect(table).toBe("purge_fichiers");
       const q: Record<string, unknown> = {};
@@ -95,6 +96,17 @@ describe("tâche de suppression physique des fichiers purgés", () => {
     const bilan = await (await GET(appel())).json();
     expect(bilan).toMatchObject({ traites: 0, echecs: 3, bloques: 3 });
   });
+
+  for (const option of [{ arrete: true }, { panne: true }]) {
+    it(`ne supprime aucun fichier quand le contrôle refuse : ${JSON.stringify(option)}`, async () => {
+      vi.stubEnv("CRON_SECRET", SECRET);
+      const f = faux([{ id: "1", storage_path: "org/a.pdf", queued_at: "2026-10-12T00:00:00Z" }], { supprimes: [], ...option });
+      mocks.client.mockReturnValue(f.db);
+      await expect(GET(appel())).rejects.toThrow(/arrêt|indisponible/);
+      expect(f.retires).toEqual([]);
+      expect(f.marques).toEqual([]);
+    });
+  }
 
   it("est planifiée, commandable depuis Équipes et suivie par Santé", () => {
     const vercel = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf-8")) as { crons: { path: string; schedule: string }[] };

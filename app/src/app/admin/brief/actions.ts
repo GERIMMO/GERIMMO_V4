@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { extraireAnalyseBrief, FORMAT_BRIEF_IA, type AnalyseBrief } from "@/lib/brief-ia";
 import { revalidatePath } from "next/cache";
 import { sansJargon } from "@/lib/erreurs";
+import { preparerFaitsDirection } from "@/lib/faits-direction";
 import { genererPointsDuMatin } from "@/lib/point-du-matin";
 import { deciderAmelioration } from "@/app/actions/autonomie";
 import { publierPublication, refuserPublication } from "@/app/actions/publications";
@@ -87,6 +88,8 @@ async function superviseurPermanent() {
 export async function preparerPointDuMatin(): Promise<EtatDecision> {
   const { supabase, ok } = await superviseurPermanent();
   if (!ok) return { erreur: "Cette action demande votre compte de supervision et sa double vérification." };
+  const faits = await preparerFaitsDirection(supabase);
+  if (faits.erreur) { revalidatePath("/admin/brief"); return { erreur: faits.erreur }; }
   const resultat = await genererPointsDuMatin(supabase);
   revalidatePath("/admin/brief");
   // Audit console 27/09 : la préparation est un geste de la console, elle se journalise.

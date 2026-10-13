@@ -29,6 +29,7 @@ function contexte(o:Options={}){
  const insertions:Record<string,unknown>[]=[],modifications:Record<string,unknown>[]=[],rpcs:[string,unknown][]=[];
  const rpc=vi.fn(async(n:string,args?:Record<string,unknown>)=>{rpcs.push([n,args]);
   switch(n){
+   case 'verifier_arret_supervision':return {data:true,error:null};
    case 'log_tech':return {data:null,error:null};
    case 'jeton_declencheur_marketing':return {data:o.jetonDb??'b'.repeat(64),error:null};
    case 'publications_marketing_echues':return {data:(o.echus??[]).map(e=>e.id),error:null};

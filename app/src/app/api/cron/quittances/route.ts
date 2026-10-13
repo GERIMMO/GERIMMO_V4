@@ -1,3 +1,4 @@
+import { verifierAvantEffet } from "@/lib/controle-effets";
 // Tâche planifiée : envoyer les quittances que personne n'a envoyées.
 //
 // Le cycle mensuel crée les appels, l'encaissement émet la quittance — et
@@ -137,7 +138,9 @@ export async function GET(request: Request) {
       });
       continue;
     }
+    await verifierAvantEffet(supabase, "quittances");
     const envoi = await envoyerEmail({
+      avantEnvoi: () => verifierAvantEffet(supabase, "quittances"),
       organisation: { db: supabase, id: l.organization_id },
       to: l.destinataire,
       subject: sujetQuittance({ estQuittance: l.est_quittance, periode: l.periode }),

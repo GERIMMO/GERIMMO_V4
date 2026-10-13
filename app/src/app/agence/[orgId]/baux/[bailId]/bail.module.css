@@ -7,7 +7,7 @@
 .chiffres dt { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--texte-secondaire); }
 .chiffres dt svg { color:var(--marque); flex-shrink:0; }
 .chiffres dd { margin:9px 0 4px; font-size:19px; font-weight:650; overflow-wrap:anywhere; }
-.chiffres small { display:block; font-size:11px; color:var(--texte-secondaire); line-height:1.6; }
+.chiffres dd.precision { display:block; margin:0; font-size:11px; font-weight:400; color:var(--texte-secondaire); line-height:1.6; }
 .attention { padding:16px 18px; border:1px solid color-mix(in srgb,var(--or) 40%,var(--trait)); border-radius:12px; background:var(--warning-soft); }
 .page :global(.dossier-nav) { gap:8px; }
 .page :global(.dossier-rubrique) { border-radius:14px; overflow:clip; }

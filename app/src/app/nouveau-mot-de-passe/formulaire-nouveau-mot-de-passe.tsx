@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 
-export function FormulaireNouveauMotDePasse() {
+export function FormulaireNouveauMotDePasse({ suite = "/espaces" }: { suite?: string }) {
   const [etat, action] = useActionState<EtatNouveauMotDePasse, FormData>(
     definirNouveauMotDePasse,
     {}
@@ -23,6 +23,7 @@ export function FormulaireNouveauMotDePasse() {
     <Card>
       <CardContent className="pt-6">
         <form action={action} className="space-y-4">
+          <input type="hidden" name="suite" value={suite} />
           <div className="space-y-2">
             <Label htmlFor="mot_de_passe">Nouveau mot de passe</Label>
             <Input

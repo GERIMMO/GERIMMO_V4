@@ -1,0 +1,12 @@
+import Link from "next/link";
+import {chargerActivitePrivee,environnementArtisanLocal,bilanReglements} from "@/lib/artisan-prive";
+import {Carte,TitreSection,Erreur} from "../ui";
+import {euros} from "../libelles";
+export async function ChantiersDansAgenda(){
+ if(!environnementArtisanLocal())return null;const {data,erreur}=await chargerActivitePrivee();if(!data)return <Erreur>{erreur}</Erreur>;
+ return <Carte><TitreSection>Mes chantiers externes</TitreSection><p><Link href="/artisan/clients" className="underline">Clients externes</Link> · <Link href="/artisan/devis/nouveau" className="underline">Nouveau chantier et devis</Link></p>{!data.chantiers.length?<p>Aucun chantier externe.</p>:<ul>{[...data.chantiers].sort((a,b)=>(data.rendez_vous.find(r=>r.chantier_id===a.id&&r.statut==="retenu")?.debut??"9999").localeCompare(data.rendez_vous.find(r=>r.chantier_id===b.id&&r.statut==="retenu")?.debut??"9999")).map(h=>{const r=data.rendez_vous.find(x=>x.chantier_id===h.id&&x.statut==="retenu");return <li key={h.id} className="py-3 border-b border-[var(--filet)]"><Link className="inline-flex min-h-12 items-center underline" href={`/artisan/chantiers/${h.id}`}>{h.titre}</Link><p>Client externe · {data.clients.find(x=>x.id===h.client_id)?.nom} · {h.statut}</p><p>{r?`${new Date(r.debut).toLocaleString("fr-FR")} — ${new Date(r.fin).toLocaleTimeString("fr-FR")}`:"Sans rendez-vous courant"}</p></li>;})}</ul>}</Carte>;
+}
+export async function ReglementsDansFacturation(){
+ if(!environnementArtisanLocal())return null;const {data,erreur}=await chargerActivitePrivee();if(!data)return <Erreur>{erreur}</Erreur>;
+ return <Carte><TitreSection>Mes règlements déclarés — Gerimmo et clients externes</TitreSection><p>Déclarations privées avec justificatifs. Aucune confirmation du client ni opération bancaire.</p><a href="/api/artisan-prive/export" download className="underline">Exporter mon registre et son historique</a>{!data.factures.length?<p>Aucune facture déposée.</p>:<ul>{data.factures.map(f=>{const b=bilanReglements(f,data.reglements);return <li key={f.id} className="py-4 border-b border-[var(--filet)]"><Link className="min-h-12 inline-flex items-center underline" href={`/artisan/facturation/${f.id}`}>{f.numero} · {f.client}</Link><p>{f.origine==="gerimmo"?"Gerimmo":"Client externe"} · {b.etat}</p><p>Facturé {euros(Number(f.montant_ttc_cents))} · Déclaré reçu {euros(b.declare)} · Solde {euros(b.solde)}</p></li>;})}</ul>}</Carte>;
+}

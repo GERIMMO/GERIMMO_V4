@@ -59,6 +59,10 @@ export default async function PageEspaces() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion");
 
+  const { data: invitations, error: erreurInvitations } = await supabase.rpc("mes_invitations_locataire");
+  const invitationsEnAttente = (invitations ?? []).filter((i: { etat: string }) => i.etat === "en_attente");
+  const doitMontrerInvitations = Boolean(erreurInvitations) || invitationsEnAttente.length > 0;
+
   // La fiche artisan se lit EN PARALLÈLE des adhésions, pas après : l'artisan
   // qui s'est inscrit lui-même (pivot du 2026-09-04) n'a AUCUNE adhésion tant
   // qu'aucune agence ne l'a sollicité — son adhésion de navigation naît avec la
@@ -127,6 +131,7 @@ export default async function PageEspaces() {
   // adhésion ni fiche tant que l'entreprise n'est pas saisie : il revient à
   // l'inscription artisan — jamais à un espace propriétaire.
   if (
+    !doitMontrerInvitations &&
     !accesIncomplets &&
     adhesions.length === 0 &&
     !estArtisan &&
@@ -140,6 +145,7 @@ export default async function PageEspaces() {
   // ici, une fois pour toutes (fonction idempotente), puis on y entre.
   let erreurOuverture: string | null = null;
   if (
+    !doitMontrerInvitations &&
     !accesIncomplets &&
     adhesions.length === 0 &&
     !estArtisan &&
@@ -162,7 +168,7 @@ export default async function PageEspaces() {
   // L'artisan n'a qu'UNE destination, même avec trois adhésions : elles mènent
   // toutes à son portail, qui réunit les agences. Une page à une seule carte
   // n'apporterait rien — on y entre directement.
-  if (!estRelais && !accesIncomplets && estArtisan && autresAdhesions.length === 0 && anciens.length === 0) {
+  if (!doitMontrerInvitations && !estRelais && !accesIncomplets && estArtisan && autresAdhesions.length === 0 && anciens.length === 0) {
     redirect("/artisan");
   }
 
@@ -170,7 +176,7 @@ export default async function PageEspaces() {
   // admin est déjà parti vers sa console plus haut.
   // `!estArtisan` : un gérant qui est aussi artisan a deux destinations, même
   // si l'une d'elles ne tient pas encore à une adhésion.
-  if (!estRelais && !accesIncomplets && adhesions.length === 1 && !estArtisan && anciens.length === 0) {
+  if (!doitMontrerInvitations && !estRelais && !accesIncomplets && adhesions.length === 1 && !estArtisan && anciens.length === 0) {
     const chemin = cheminEspace(adhesions[0]);
     if (chemin) redirect(chemin);
   }
@@ -198,17 +204,24 @@ export default async function PageEspaces() {
       <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-7">
         <p className="eyebrow mb-1.5">Un seul compte, tous vos espaces</p>
         <h1 className="mb-6">
-          {adhesions.length === 0 && anciens.length === 0 && !estArtisan && !estRelais && !accesIncomplets
+          {invitationsEnAttente.length > 0 ? "Mes invitations" : adhesions.length === 0 && anciens.length === 0 && !estArtisan && !estRelais && !accesIncomplets
             ? "Que voulez-vous faire ?"
             : "Mes espaces"}
         </h1>
 
+        {erreurInvitations && <p role="alert" className="err mb-4">Vos invitations n’ont pas pu être chargées. Rechargez la page.</p>}
+        {invitationsEnAttente.length > 0 && <section aria-label="Invitations locataires" className="mb-6 space-y-3">
+          <h2>Vos invitations</h2>
+          {invitationsEnAttente.map((i: { id: string; organisation: string; expire_le: string }) => <Link key={i.id} href={`/invitations/${i.id}`} className="carte-espace">
+            <span><strong className="block">{i.organisation}</strong><span className="block text-sm text-muted-foreground">Invitation locataire à accepter ou refuser · jusqu’au {new Date(i.expire_le).toLocaleDateString("fr-FR",{timeZone:"Europe/Paris"})}</span></span>
+          </Link>)}
+        </section>}
         {accesIncomplets && <p role="alert" className="err mb-4">Certains accès n’ont pas pu être chargés. Rechargez la page pour retrouver la liste complète de vos espaces ; les accès affichés restent disponibles.</p>}
         {/* Un compte sans espace n'est pas une impasse (24/09) : il choisit ce
             qu'il vient faire — ouvrir son espace propriétaire ici même,
             inscrire son entreprise d'artisan, ou attendre l'invitation de
             son agence. */}
-        {!estRelais && !accesIncomplets && adhesions.length === 0 && anciens.length === 0 && !estArtisan && (
+        {!doitMontrerInvitations && !estRelais && !accesIncomplets && adhesions.length === 0 && anciens.length === 0 && !estArtisan && (
           <>
             {erreurOuverture && (
               <p role="alert" className="err mb-4">

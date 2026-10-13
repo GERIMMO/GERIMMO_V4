@@ -1,17 +1,6 @@
-/**
- * Tests d'intégration — entrer dans la session d'un artisan (19/09).
- *
- * Demande du porteur du projet : « je veux pas une simple vue, je souhaite
- * entrer dans sa session comme si j'étais l'artisan ». La bascule passe par
- * `mon_artisan_id()`, la pièce maîtresse sur laquelle s'appuient les
- * cinquante-quatre points du portail — lectures, écritures, stockage.
- *
- * CE QUE CES TESTS GARDENT. Que l'identité s'emprunte VRAIMENT (les écritures
- * suivent, pas seulement les lectures) ; et qu'elle ne s'emprunte QUE par la
- * porte prévue — supervision vérifiée à chaque lecture, session unique, bornée
- * dans le temps, impossible à forger, et inscrite au journal d'audit.
- *
- * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
+/** Diagnostic artisan : lecture motivée, identité réelle et durée bornée.
+ * Les écritures autrefois empruntées sont désormais refusées (accord SA005).
+ * Nécessite une base de test ; chaque scénario est annulé.
  */
 import { verifierBaseDeTest } from "./garde-base";
 import { config } from "dotenv";
@@ -127,7 +116,7 @@ describe("chez soi, rien ne change", () => {
 });
 
 describe("entrer dans la session d'un artisan", () => {
-  it("fait emprunter son identité — et les ÉCRITURES suivent, pas seulement les lectures", async () => {
+  it("lit la cible et refuse les écritures au nom de l’artisan", async () => {
     await simuler(superviseur);
     await db.query("select public.ouvrir_session_artisan($1, $2)", [artisan, "assistance au dépôt"]);
     expect(await identite()).toBe(artisan);
@@ -136,32 +125,27 @@ describe("entrer dans la session d'un artisan", () => {
     const { rows: fiche } = await db.query("select * from public.mon_artisan()");
     expect(fiche[0].raison_sociale).toBe("Plomberie du banc");
 
-    // Et un geste d'ARTISAN passe : le dépôt d'une pièce, rattaché à LUI.
-    const { rows: depot } = await db.query(
+    expect(await refus(
       `select public.deposer_ma_piece_artisan('decennale', 'artisans/' || $1 || '/decennale.pdf',
-         'application/pdf', 1024, 'empreinte', current_date, current_date + 365) as id`,
+         'application/pdf', 1024, 'empreinte', current_date, current_date + 365)`,
       [artisan]
-    );
-    expect(depot[0].id).toBeTruthy();
+    )).toMatch(/lecture seule/);
     await db.query("reset role");
-    const { rows: piece } = await db.query(
-      "select artisan_id from public.artisan_pieces where id = $1",
-      [depot[0].id]
-    );
-    expect(piece[0].artisan_id).toBe(artisan);
+    expect((await db.query("select count(*) n from public.artisan_pieces where artisan_id=$1", [artisan])).rows[0].n).toBe("0");
+
   });
 
   it("laisse une trace : l'ouverture et la fermeture sont au journal d'audit, au nom du superviseur", async () => {
     await simuler(superviseur);
-    await db.query("select public.ouvrir_session_artisan($1)", [artisan]);
+    await db.query("select public.ouvrir_session_artisan($1, 'Diagnostic de test')", [artisan]);
     await db.query("select public.fermer_session_artisan()");
 
     await db.query("reset role");
     const { rows } = await db.query(
       `select action, account_id, details->>'artisan_id' as artisan
          from public.audit_log
-        where action in ('ouverture_session_artisan','fermeture_session_artisan')
-        order by created_at, action`
+        where account_id=$1 and action in ('ouverture_session_artisan','fermeture_session_artisan')
+        order by created_at, action`, [superviseur]
     );
     expect(rows.map((r) => r.action)).toEqual([
       "fermeture_session_artisan",
@@ -174,7 +158,7 @@ describe("entrer dans la session d'un artisan", () => {
 
   it("se referme, et rend son identité au superviseur", async () => {
     await simuler(superviseur);
-    await db.query("select public.ouvrir_session_artisan($1)", [artisan]);
+    await db.query("select public.ouvrir_session_artisan($1, 'Diagnostic de test')", [artisan]);
     expect(await identite()).toBe(artisan);
     await db.query("select public.fermer_session_artisan()");
     expect(await identite()).toBeNull();
@@ -182,8 +166,8 @@ describe("entrer dans la session d'un artisan", () => {
 
   it("n'empile pas deux identités : ouvrir ailleurs referme la précédente", async () => {
     await simuler(superviseur);
-    await db.query("select public.ouvrir_session_artisan($1)", [artisan]);
-    await db.query("select public.ouvrir_session_artisan($1)", [autreArtisan]);
+    await db.query("select public.ouvrir_session_artisan($1, 'Diagnostic de test')", [artisan]);
+    await db.query("select public.ouvrir_session_artisan($1, 'Diagnostic de test')", [autreArtisan]);
     expect(await identite()).toBe(autreArtisan);
 
     await db.query("reset role");
@@ -196,7 +180,7 @@ describe("entrer dans la session d'un artisan", () => {
 
   it("expire toute seule : une traversée oubliée ne prête plus rien", async () => {
     await simuler(superviseur);
-    await db.query("select public.ouvrir_session_artisan($1)", [artisan]);
+    await db.query("select public.ouvrir_session_artisan($1, 'Diagnostic de test')", [artisan]);
     await db.query("reset role");
     await db.query(
       "update public.supervision_sessions_artisan set expire_le = now() - interval '1 minute' where account_id = $1",
@@ -210,11 +194,11 @@ describe("entrer dans la session d'un artisan", () => {
 describe("la porte ne s'ouvre que pour la supervision", () => {
   it("refuse un gérant d'agence, et un artisan qui viserait un confrère", async () => {
     await simuler(gerant);
-    expect(await refus("select public.ouvrir_session_artisan($1)", [artisan])).toMatch(
+    expect(await refus("select public.ouvrir_session_artisan($1, 'Diagnostic de test')", [artisan])).toMatch(
       /reserve a la supervision/i
     );
     await simuler(compteArtisan);
-    expect(await refus("select public.ouvrir_session_artisan($1)", [autreArtisan])).toMatch(
+    expect(await refus("select public.ouvrir_session_artisan($1, 'Diagnostic de test')", [autreArtisan])).toMatch(
       /reserve a la supervision/i
     );
     // Et leur identité n'a pas bougé.
@@ -223,14 +207,14 @@ describe("la porte ne s'ouvre que pour la supervision", () => {
 
   it("refuse une session sans second facteur, et cesse d'en prêter une si la session retombe en AAL1", async () => {
     await simuler(superviseur, "aal1");
-    expect(await refus("select public.ouvrir_session_artisan($1)", [artisan])).toMatch(
+    expect(await refus("select public.ouvrir_session_artisan($1, 'Diagnostic de test')", [artisan])).toMatch(
       /reserve a la supervision/i
     );
 
     // Ouverte en AAL2, puis relue en AAL1 : le droit se REVÉRIFIE à la lecture,
     // la ligne ouverte ne suffit pas.
     await simuler(superviseur);
-    await db.query("select public.ouvrir_session_artisan($1)", [artisan]);
+    await db.query("select public.ouvrir_session_artisan($1, 'Diagnostic de test')", [artisan]);
     expect(await identite()).toBe(artisan);
     await simuler(superviseur, "aal1");
     expect(await identite()).toBeNull();
@@ -249,8 +233,9 @@ describe("la porte ne s'ouvre que pour la supervision", () => {
 
   it("perdre la supervision coupe l'emprunt, même la ligne encore ouverte", async () => {
     await simuler(superviseur);
-    await db.query("select public.ouvrir_session_artisan($1)", [artisan]);
+    await db.query("select public.ouvrir_session_artisan($1, 'Diagnostic de test')", [artisan]);
     await db.query("reset role");
+    await db.query("select set_config('request.jwt.claims','',true)");
     await db.query(
       "update public.memberships set status = 'inactive' where account_id = $1 and role = 'super_admin'",
       [superviseur]
@@ -261,7 +246,7 @@ describe("la porte ne s'ouvre que pour la supervision", () => {
 
   it("laisse toujours REFERMER, même sans supervision : on ne reste pas coincé dedans", async () => {
     await simuler(superviseur);
-    await db.query("select public.ouvrir_session_artisan($1)", [artisan]);
+    await db.query("select public.ouvrir_session_artisan($1, 'Diagnostic de test')", [artisan]);
     await simuler(superviseur, "aal1");
     await db.query("select public.fermer_session_artisan()");
     await db.query("reset role");
@@ -274,7 +259,7 @@ describe("la porte ne s'ouvre que pour la supervision", () => {
 
   it("dit au portail chez qui l'on est, et jusqu'à quand", async () => {
     await simuler(superviseur);
-    await db.query("select public.ouvrir_session_artisan($1)", [artisan]);
+    await db.query("select public.ouvrir_session_artisan($1, 'Diagnostic de test')", [artisan]);
     const { rows } = await db.query("select * from public.ma_session_artisan()");
     expect(rows).toHaveLength(1);
     expect(rows[0].artisan_id).toBe(artisan);

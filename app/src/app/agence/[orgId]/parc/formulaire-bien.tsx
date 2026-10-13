@@ -1,6 +1,10 @@
 "use client";
 import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
+import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
+import { valeursDuFormulaire } from "@/lib/formulaires";
+
 import styles from "@/components/presentation-parcours.module.css";
 import { ArrowLeft, ArrowRight, Info, UserRoundCheck } from "lucide-react";
 import { CadreParcours } from "@/components/parcours-location";
@@ -49,6 +53,7 @@ export function FormulaireBien({
   libelleEnregistrer = "Enregistrer",
   champsVisibles,
   proprietaireAutomatique = false,
+  cleCreation,
 }: {
   orgId: string;
   bien?: BienFormulaire;
@@ -57,9 +62,11 @@ export function FormulaireBien({
   /** Réservé à la complétion du bail ; les valeurs masquées restent soumises. */
   champsVisibles?: string[];
   proprietaireAutomatique?: boolean;
+  cleCreation?: string;
 }) {
   const masquer = (champ: string) => Boolean(bien) && champsVisibles !== undefined && !champsVisibles.includes(champ);
   const [etapeCreation, setEtapeCreation] = useState(0);
+  const [creationId] = useState(cleCreation);
   const formulaire = useRef<HTMLFormElement>(null);
   const [restants, setRestants] = useState([7, 3]);
   function actualiserReperes() {
@@ -87,7 +94,17 @@ export function FormulaireBien({
   const actionLiee = bien
     ? modifierBien.bind(null, orgId, bien.id)
     : creerBien.bind(null, orgId);
-  const [etat, action] = useActionStateSuivi<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionStateSuivi<EtatParc, FormData>(async (precedent, contenu) => {
+    if (bien) return actionLiee(precedent, contenu);
+    try {
+      return await actionLiee(precedent, contenu);
+    } catch (erreur) {
+      // Une redirection réussie appartient à Next. Une réponse réseau perdue,
+      // elle, laisse le formulaire et sa clé prêts pour la même demande.
+      unstable_rethrow(erreur);
+      return { erreur: "La réponse n’est pas arrivée. Vos saisies sont conservées. Réessayez : cette demande ne créera pas un deuxième bien.", valeurs: valeursDuFormulaire(contenu) };
+    }
+  }, {});
   const erreurRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => {
     if (!etat.erreur) return;
@@ -201,7 +218,7 @@ export function FormulaireBien({
 
   const contenu = (
     <form ref={formulaire} data-champs-cibles={bien && champsVisibles !== undefined || undefined}
-      onReset={event => { if (bien || guideActif) event.preventDefault(); }}
+      onReset={event => event.preventDefault()}
       onChangeCapture={guideActif ? actualiserReperes : undefined}
       action={action} className={`saisie-bien space-y-6 ${guideActif ? styles.creation : ""}`} noValidate={guideActif}
       onSubmit={(e) => {
@@ -214,7 +231,9 @@ export function FormulaireBien({
           requestAnimationFrame(() => champ.reportValidity()); break;
         }
       }}>
+      {!bien && <input type="hidden" name="creation_id" value={creationId ?? ""} />}
       {etat.erreur && <p ref={erreurRef} role="alert" tabIndex={-1} className="scroll-mt-24 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{etat.erreur}</p>}
+      {etat.repriseHref && <Link href={etat.repriseHref} className="btn-secondaire">Ouvrir le dossier déjà enregistré</Link>}
       {guideActif && <><input type="hidden" name="parcours" value="1" /><p className={styles.aide}><span className={styles.legendePastille} aria-hidden="true" /> Pastille rouge : information obligatoire à compléter. Les champs indiqués « facultatif » peuvent rester vides.</p></>}
       <div data-bien-groupes data-etape-creation="0" ref={groupeBien} hidden={guideActif && etapeCreation !== 0} className="space-y-6">
       <div hidden={["nom", "type", "address_line1", "address_line2", "postal_code", "city", "commune_insee"].every(masquer)} data-bien-section="adresse" className="space-y-6">

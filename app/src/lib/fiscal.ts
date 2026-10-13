@@ -1,312 +1,100 @@
-// Récapitulatif fiscal du propriétaire direct (S9a — parcours 6.4, décision
-// du 2026-07-25 : déclaration 2044, location nue, en V1 ; meublé/SCI en V2).
-//
-// Une aide à la déclaration, pas une déclaration : les écritures du livre sont
-// regroupées par rubrique de la 2044, agrégées sur la DATE DE PIÈCE (le
-// rapport mensuel, lui, suit la date d'imputation — RM-4.1.2). Les intérêts
-// d'emprunt ne sont pas suivis (rubrique vide, à compléter) ; le fonds travaux
-// ALUR est signalé à part (déductible l'année des travaux, pas du versement).
-// Les catégories du livre sont libres : le rangement se fait par mots-clés,
-// le reste tombe dans « autres » pour que rien ne disparaisse.
-//
-// Audit gestion du 29/09 — CHARGES RÉCUPÉRABLES HORS 2044. Les provisions de
-// charges remboursées par le locataire ne sont pas un revenu foncier, et les
-// charges récupérables payées par le bailleur ne sont pas déductibles (BOI-
-// RFPI-BASE-20-10 ; notice 2044). La part « provision de charges » d'un
-// encaissement de loyer (reconstituée au prorata du bail — voir
-// ventilerLoyer) sort donc des recettes, comme les régularisations et la taxe
-// d'enlèvement des ordures ménagères (TEOM, récupérable) qui sort aussi de la
-// ligne 227. Ligne 229 : seule la part NON récupérable des charges de
-// copropriété se déduit, quand le décompte du syndic la distingue.
-
-export type EcritureFiscale = {
-  categorie: string;
-  sens: string;
-  montant: number | string;
-  date_piece: string;
-  // Une contre-écriture (sens inversé, RM-A6.4) se soustrait de la rubrique
-  // de son origine — sans cela, l'annulation d'une dépense gonflerait les loyers.
-  contre_ecriture_de?: string | null;
-  // Lot rattaché : porte la quote-part (indivision) et le régime (meublé → BIC)
-  lot_id?: string | null;
-  // Bail rattaché : porte la clé de ventilation loyer/charges (lignes 211/212)
-  bail_id?: string | null;
-};
-
-export type OptionsFiscales = {
-  // Quote-part de détention du déclarant par lot, en % (absente = 100).
-  // Indivision comme SCI : le récapitulatif se ventile, les tantièmes de
-  // copropriété restent informatifs, jamais une clé de calcul.
-  quoteParts?: Map<string, number>;
-  // Lots meublés : leurs écritures relèvent des BIC, pas de la 2044 —
-  // exclues du récapitulatif et totalisées à part (décision du 2026-09-04).
-  lotsMeubles?: Set<string>;
-  // Clé de ventilation loyer / charges par bail : loyer HC et provision de
-  // charges du bail. L'écriture d'encaissement du livre porte le TOTAL
-  // (catégorie « loyer », trigger ecrire_encaissement) : la part charges se
-  // reconstitue au prorata du bail et sort des recettes (charges récupérées).
-  ventilationLoyers?: Map<string, { loyerHc: number; charges: number }>;
-  // Part RÉCUPÉRABLE des charges de copropriété de l'année, par lot (postes
-  // « récupérable » des appels ventilés) : retirée de la ligne 229.
-  chargesCoproRecuperables?: Map<string, number>;
-};
-
-export type RubriqueFiscale = {
-  code: string;
-  libelle: string;
-  sens: "recette" | "depense";
-  montant: number;
-  // La part du déclarant (indivision) — égale au montant hors ventilation
-  montantQuotePart: number;
-  // Rubrique non alimentée par le livre : à compléter par le propriétaire
-  aCompleter?: boolean;
-  categories: string[];
-};
-
-export type RecapitulatifFiscal = {
-  annee: number;
-  rubriques: RubriqueFiscale[];
-  fondsTravauxAlur: number;
-  totalRecettes: number;
-  totalCharges: number;
-  revenuNet: number;
-  // Totaux à la quote-part du déclarant
-  totalRecettesQuotePart: number;
-  totalChargesQuotePart: number;
-  revenuNetQuotePart: number;
-  // Au moins un lot est détenu à moins de 100 % : la colonne quote-part compte
-  ventile: boolean;
-  // Écritures des lots meublés, tenues hors récapitulatif (BIC)
-  meuble: { recettes: number; depenses: number; nbEcritures: number };
-  nbEcritures: number;
-  // Hors 2044 (audit 29/09) : provisions et régularisations de charges
-  // remboursées par les locataires, TEOM payée, part récupérable des charges
-  // de copropriété — ni revenus, ni charges déductibles.
-  chargesRecuperees: number;
-  teomExclue: number;
-  coproRecuperableExclue: number;
-};
-
-type Regle = {
-  code: string;
-  libelle: string;
-  sens: "recette" | "depense";
-  mots: string[];
-};
-
-// Ordre = ordre des rubriques sur l'imprimé 2044
-const REGLES: Regle[] = [
-  { code: "211", libelle: "Loyers bruts encaissés (hors provisions de charges)", sens: "recette", mots: ["loyer", "recette", "indemnit"] },
-  // Ligne 212 de la notice : dépenses du bailleur mises par convention à la
-  // charge du locataire (ex. grosses réparations) — le livre ne les distingue
-  // pas. Ce ne sont PAS les charges récupérables, qui sortent de la 2044.
-  { code: "212", libelle: "Dépenses mises par convention à la charge des locataires", sens: "recette", mots: [] },
-  { code: "221", libelle: "Frais d'administration et de gestion", sens: "depense", mots: ["honoraire", "gestion", "administration", "frais"] },
-  { code: "222", libelle: "Autres frais de gestion (forfait)", sens: "depense", mots: [] },
-  { code: "223", libelle: "Primes d'assurance (PNO, GLI…)", sens: "depense", mots: ["assurance", "pno", "gli"] },
-  { code: "224", libelle: "Dépenses de réparation, d'entretien et d'amélioration", sens: "depense", mots: ["travaux", "reparation", "réparation", "entretien", "plomb", "electric", "électric", "chauff", "peinture", "amelioration", "amélioration", "intervention", "incident", "facture"] },
-  { code: "227", libelle: "Taxe foncière et taxes annexes (hors TEOM)", sens: "depense", mots: ["taxe", "foncier", "fonciere", "foncière", "impot", "impôt"] },
-  { code: "229", libelle: "Provisions pour charges de copropriété (part non récupérable)", sens: "depense", mots: ["copro", "syndic", "appel de charges"] },
-  { code: "250", libelle: "Intérêts d'emprunt", sens: "depense", mots: [] },
-];
-
-// Hors 2044 (audit 29/09) : charges remboursées par le locataire (recettes)
-// et taxe d'enlèvement des ordures ménagères, récupérable (dépense).
-const MOTS_CHARGES_RECUPEREES = ["charge", "provision", "regularisation", "régularisation"];
-const MOTS_TEOM = ["teom", "ordures", "enlevement des ordures"];
-
-/** « hors » : l'écriture ne relève pas de la 2044 (charges récupérables, TEOM). */
-export const HORS_2044 = "hors";
-
-const MOTS_ALUR = ["fonds travaux", "fonds de travaux", "fonds alur", "alur"];
-
-function normaliser(s: string): string {
-  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+/** Aide 2044, règles 2026-10-12. Le journal reste immuable. Les mots-clés
+ * proposent une rubrique ; seuls les faits figés et choix justifiés chiffrent
+ * les totaux confirmés. Aucun prorata n'utilise le bail ou le lot actuel. */
+export type EcritureFiscale={id?:string;categorie:string;sens:string;montant:number|string;date_piece:string;contre_ecriture_de?:string|null;lot_id?:string|null;bail_id?:string|null;encaissement_id?:string|null;libelle?:string|null};
+export type QualificationFiscale={ecriture_id:string;lot_id?:string|null;nature:'recette'|'deductible'|'non_deductible'|'hors_2044'|'a_qualifier';rubrique:string|null;justification:string;loyer_hc?:number|string|null;charges?:number|string|null;version?:number;auteur?:string;cree_le?:string};
+export type ComposantesFiscales={ecriture_id:string;loyer_hc:number|string;charges:number|string;non_ventile:number|string;appels?:unknown;version_regle?:number};
+export type PeriodeFiscale={debut:string;fin:string;quote_part:number;regime:'nu'|'meuble'|'hors_perimetre'};
+export type ExerciceFiscalLot={lot_id:string;annee:number;periodes:PeriodeFiscale[];justification:string;regularisation230:number|string|null;quote_part230:number|string;justification230:string|null;version?:number};
+export type OptionsFiscales={qualifications?:Map<string,QualificationFiscale>;composantes?:Map<string,ComposantesFiscales>;exercices?:Map<string,ExerciceFiscalLot>;exigerPerimetre?:boolean;
+ /** Compatibilité des lecteurs internes ; jamais alimenté par l'état courant dans l'interface fiscale. */
+ quoteParts?:Map<string,number>;lotsMeubles?:Set<string>;ventilationLoyers?:Map<string,{loyerHc:number;charges:number}>;chargesCoproRecuperables?:Map<string,number>};
+export type RubriqueFiscale={code:string;libelle:string;sens:'recette'|'depense';montant:number;montantQuotePart:number;aCompleter?:boolean;categories:string[];reintegration?:boolean};
+export type RecapitulatifFiscal={annee:number;versionRegles:string;rubriques:RubriqueFiscale[];fondsTravauxAlur:number;totalRecettes:number;totalCharges:number;revenuNet:number;totalRecettesQuotePart:number;totalChargesQuotePart:number;revenuNetQuotePart:number;ventile:boolean;meuble:{recettes:number;depenses:number;nbEcritures:number};nbEcritures:number;chargesRecuperees:number;teomExclue:number;coproRecuperableExclue:number;aQualifier:number;nonDeductible:number;incomplet:boolean;alertes:string[];ecrituresAQualifier:string[]};
+export const RUBRIQUES_FISCALES=[
+ {code:'211',libelle:'Loyers bruts encaissés hors charges',sens:'recette'},
+ {code:'212',libelle:'Dépenses mises par convention à la charge des locataires',sens:'recette'},
+ {code:'213',libelle:'Recettes brutes diverses',sens:'recette'},
+ {code:'221',libelle:'Frais d’administration et de gestion',sens:'depense'},
+ {code:'222',libelle:'Autres frais de gestion : forfait à compléter',sens:'depense'},
+ {code:'223',libelle:'Primes d’assurance',sens:'depense'},
+ {code:'224',libelle:'Réparation, entretien et amélioration admissibles',sens:'depense'},
+ {code:'225',libelle:'Charges récupérables non récupérées au départ du locataire',sens:'depense'},
+ {code:'227',libelle:'Taxe foncière hors TEOM',sens:'depense'},
+ {code:'229',libelle:'Provisions de copropriété effectivement versées dans l’année',sens:'depense'},
+ {code:'230',libelle:'Régularisation des provisions de l’année précédente à réintégrer',sens:'depense'},
+ {code:'250',libelle:'Intérêts d’emprunt',sens:'depense'},
+] as const;
+export const HORS_2044='hors';
+const normaliser=(s:string)=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+/** Proposition seulement, jamais une validation de déductibilité. */
+export function rubriqueDe(categorie:string,sens:string):string{
+ const c=normaliser(categorie);
+ if(/construction|reconstruction|agrandissement|achat.*terrain|nouvel.*etage/.test(c))return 'non_deductible';
+ if(/teom|ordures/.test(c))return HORS_2044;
+ if(sens==='recette')return /charge|provision|regularisation/.test(c)?HORS_2044:/loyer/.test(c)?'211':'213';
+ for(const [code,mots] of [['229',/copro|syndic|appel de charges/],['221',/honoraire|gestion|administration/],['223',/assurance|pno|gli/],['224',/travaux|reparation|entretien|plomb|electric|chauff|peinture|amelioration|intervention/],['227',/taxe|foncier|impot/],['250',/interet|emprunt/]] as const)if(mots.test(c))return code;
+ return 'autres';
 }
-
-// La rubrique d'une écriture : premier mot-clé rencontré dans l'ordre des
-// règles, dans le sens de l'écriture ; sinon la rubrique « autres » du sens.
-export function rubriqueDe(categorie: string, sens: string): string {
-  const c = normaliser(categorie);
-  if (MOTS_TEOM.some((m) => c.includes(normaliser(m)))) return HORS_2044;
-  if (sens === "recette" && MOTS_CHARGES_RECUPEREES.some((m) => c.includes(normaliser(m)))) return HORS_2044;
-  for (const r of REGLES) {
-    if (r.sens !== sens) continue;
-    if (r.mots.some((m) => c.includes(normaliser(m)))) return r.code;
+export const estFondsTravauxAlur=(categorie:string)=>/fonds (de )?travaux|fonds alur|alur/.test(normaliser(categorie));
+const arrondir=(n:number)=>Math.round((n+Number.EPSILON)*100)/100;
+/** Fonction d'arrondi conservée pour les consommateurs ; ne reconstitue plus
+ * les anciennes recettes depuis un bail courant. */
+export function ventilerLoyer(montant:number,loyerHc:number,charges:number){const total=loyerHc+charges;if(!(charges>0)||!(total>0))return{part211:montant,part212:0};const part212=Math.sign(montant)*Math.round(Math.abs(montant)*charges/total*100)/100;return{part211:arrondir(montant-part212),part212};}
+export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,options:OptionsFiscales={}):RecapitulatifFiscal{
+ const montants=new Map<string,number>(),parts=new Map<string,number>(),categories=new Map<string,Set<string>>(),alertes=new Set<string>(),aQualifierIds=new Set<string>(),lots=new Set<string>();
+ let fondsTravauxAlur=0,chargesRecuperees=0,teomExclue=0,aQualifier=0,nonDeductible=0,nbEcritures=0,ventile=false;
+ const meuble={recettes:0,depenses:0,nbEcritures:0};
+ const ajouter=(code:string,montant:number,quote:number,categorie:string)=>{montants.set(code,(montants.get(code)??0)+montant);parts.set(code,(parts.get(code)??0)+montant*quote/100);if(!categories.has(code))categories.set(code,new Set());categories.get(code)!.add(categorie);};
+ const inconnue=(e:EcritureFiscale,montant:number,motif:string)=>{aQualifier+=montant;if(e.id)aQualifierIds.add(e.contre_ecriture_de??e.id);alertes.add(motif);};
+ for(const e of ecritures){
+  if(!e.date_piece?.startsWith(String(annee))||!['recette','depense'].includes(e.sens)||e.categorie==='depot_garantie')continue;
+  nbEcritures++;
+  const signe=e.contre_ecriture_de?-1:1,sens=e.contre_ecriture_de?(e.sens==='recette'?'depense':'recette'):e.sens;
+  const brut=Number(e.montant);if(!Number.isFinite(brut)||brut<=0){alertes.add('Une pièce porte un montant invalide.');continue;}
+  const montant=brut*signe;
+  const id=e.contre_ecriture_de??e.id;
+  const q=id?options.qualifications?.get(id):undefined;
+  const lot=e.lot_id??q?.lot_id;
+  if(lot)lots.add(lot);
+  const exercice=lot?options.exercices?.get(lot):undefined;
+  const periode=exercice?.periodes.find(p=>p.debut<=e.date_piece&&p.fin>=e.date_piece);
+  if(options.exigerPerimetre&&(!lot||!periode)){inconnue(e,montant,'Confirmez le lot, le régime et la quote-part à la date de chaque pièce.');continue;}
+  if(periode?.regime==='hors_perimetre')continue;
+  const quote=periode?.quote_part??(lot?options.quoteParts?.get(lot):undefined)??100;
+  if(quote!==100)ventile=true;
+  if(periode?.regime==='meuble'||(!options.exigerPerimetre&&e.lot_id&&options.lotsMeubles?.has(e.lot_id))){meuble.nbEcritures++;if(sens==='recette')meuble.recettes+=montant;else meuble.depenses+=montant;continue;}
+  const capture=(e.id?options.composantes?.get(e.id):undefined)??(id?options.composantes?.get(id):undefined);
+  if(sens==='depense'&&estFondsTravauxAlur(e.categorie)){fondsTravauxAlur+=montant;continue;}
+  if(q?.nature==='non_deductible'){nonDeductible+=montant;continue;}
+  if(q?.nature==='hors_2044'){if(sens==='recette')chargesRecuperees+=montant;else teomExclue+=montant;continue;}
+  const loyer=sens==='recette'&&(e.encaissement_id!=null||normaliser(e.categorie).includes('loyer'));
+  if(loyer&&(capture||q?.nature==='recette'&&q.rubrique==='211')){
+   const manuel=q?.loyer_hc!=null&&q?.charges!=null&&(!capture||Number(capture.non_ventile)>0);
+   const hc=Number(manuel?q.loyer_hc:capture?.loyer_hc),ch=Number(manuel?q.charges:capture?.charges),reste=manuel?0:Number(capture?.non_ventile);
+   if(![hc,ch,reste].every(Number.isFinite)||hc<0||ch<0||reste<0||Math.abs(hc+ch+reste-brut)>.005){inconnue(e,montant,'Des encaissements attendent leur ventilation historique loyer / charges.');continue;}
+   ajouter('211',hc*signe,quote,e.categorie);chargesRecuperees+=ch*signe;
+   if(reste){inconnue(e,reste*signe,'Une avance ou une part d’encaissement ne correspond pas encore à un appel historique vérifié.');}
+   continue;
   }
-  return sens === "recette" ? "211" : "autres";
-}
-
-export function estFondsTravauxAlur(categorie: string): boolean {
-  const c = normaliser(categorie);
-  return MOTS_ALUR.some((m) => c.includes(normaliser(m)));
-}
-
-// Ventilation d'un encaissement de loyer entre part loyer (211) et part
-// charges (212), au prorata du bail : charges / (loyer HC + charges) au
-// moment de l'appel. Règle retenue (anomalie P1 de l'audit du 09/09) : le
-// livre n'enregistre qu'une écriture « loyer » au montant total ; la 2044
-// distingue pourtant loyers bruts (211) et charges récupérées (212), comme
-// le bail et les reçus. La part 212 est arrondie au centime, le reliquat va
-// en 211 : 211 + 212 se réconcilie exactement avec l'encaissé, y compris
-// pour les paiements partiels (imputés au prorata, faute de mieux).
-export function ventilerLoyer(
-  montant: number,
-  loyerHc: number,
-  charges: number
-): { part211: number; part212: number } {
-  const total = loyerHc + charges;
-  if (!(charges > 0) || !(total > 0)) return { part211: montant, part212: 0 };
-  // Arrondi symétrique (valeur absolue) : une contre-écriture (montant
-  // négatif) se ventile exactement comme son origine et s'annule au centime.
-  const brut = (montant * charges) / total;
-  const part212 = (Math.sign(brut) * Math.round(Math.abs(brut) * 100)) / 100;
-  return { part211: montant - part212, part212 };
-}
-
-export function recapitulatifFiscal(
-  ecritures: EcritureFiscale[],
-  annee: number,
-  options: OptionsFiscales = {}
-): RecapitulatifFiscal {
-  const montants = new Map<string, number>();
-  const montantsQuotePart = new Map<string, number>();
-  const categories = new Map<string, Set<string>>();
-  let fondsTravauxAlur = 0;
-  let nbEcritures = 0;
-  let chargesRecuperees = 0;
-  let teomExclue = 0;
-  const meuble = { recettes: 0, depenses: 0, nbEcritures: 0 };
-  // Ligne 229 par lot : la part récupérable s'en retire en fin de calcul
-  const copro229ParLot = new Map<string, number>();
-
-  const quotePartDe = (lot: string | null | undefined) => {
-    if (!lot) return 100;
-    return options.quoteParts?.get(lot) ?? 100;
-  };
-
-  for (const e of ecritures) {
-    if (!e.date_piece?.startsWith(String(annee))) continue;
-    if (e.sens !== "recette" && e.sens !== "depense") continue;
-    // Le dépôt de garantie n'est pas un revenu : il transite (encaissement
-    // comme restitution) — ses mouvements sortent du récapitulatif 2044.
-    if (e.categorie === "depot_garantie") continue;
-    const annulation = Boolean(e.contre_ecriture_de);
-    const sensOrigine = annulation ? (e.sens === "recette" ? "depense" : "recette") : e.sens;
-    const montant = (Number(e.montant) || 0) * (annulation ? -1 : 1);
-    // Lot meublé : BIC, pas revenus fonciers — totalisé à part, jamais dans
-    // les rubriques de la 2044.
-    if (e.lot_id && options.lotsMeubles?.has(e.lot_id)) {
-      meuble.nbEcritures++;
-      if (sensOrigine === "recette") meuble.recettes += montant;
-      else meuble.depenses += montant;
-      continue;
-    }
-    nbEcritures++;
-    if (sensOrigine === "depense" && estFondsTravauxAlur(e.categorie)) {
-      fondsTravauxAlur += montant;
-      continue;
-    }
-    const code = rubriqueDe(e.categorie, sensOrigine);
-    if (code === HORS_2044) {
-      if (sensOrigine === "recette") chargesRecuperees += montant;
-      else teomExclue += montant;
-      continue;
-    }
-    // Encaissement de loyer (écriture au montant total, provision comprise) :
-    // la part provision de charges, reconstituée au prorata du bail, sort des
-    // recettes (audit 29/09) — les contre-écritures (montant négatif) se
-    // ventilent avec la même clé et s'annulent donc bien.
-    const parts: [string, number][] = [[code, montant]];
-    const cle = e.bail_id ? options.ventilationLoyers?.get(e.bail_id) : undefined;
-    if (code === "211" && cle && normaliser(e.categorie).includes("loyer")) {
-      const { part211, part212 } = ventilerLoyer(montant, cle.loyerHc, cle.charges);
-      if (part212 !== 0) {
-        parts[0] = ["211", part211];
-        chargesRecuperees += part212;
-      }
-    }
-    if (code === "229" && e.lot_id) {
-      copro229ParLot.set(e.lot_id, (copro229ParLot.get(e.lot_id) ?? 0) + montant);
-    }
-    for (const [c, m] of parts) {
-      montants.set(c, (montants.get(c) ?? 0) + m);
-      montantsQuotePart.set(
-        c,
-        (montantsQuotePart.get(c) ?? 0) + (m * quotePartDe(e.lot_id)) / 100
-      );
-      if (!categories.has(c)) categories.set(c, new Set());
-      categories.get(c)!.add(e.categorie);
-    }
-  }
-
-  // Ligne 229 : la part récupérable des charges de copropriété (décompte du
-  // syndic ventilé) se retire, lot par lot, sans rendre la ligne négative.
-  let coproRecuperableExclue = 0;
-  for (const [lot, recuperable] of options.chargesCoproRecuperables ?? []) {
-    const retrait = Math.min(Math.max(recuperable, 0), Math.max(copro229ParLot.get(lot) ?? 0, 0));
-    if (retrait <= 0) continue;
-    coproRecuperableExclue += retrait;
-    montants.set("229", (montants.get("229") ?? 0) - retrait);
-    montantsQuotePart.set("229", (montantsQuotePart.get("229") ?? 0) - (retrait * quotePartDe(lot)) / 100);
-  }
-
-  const rubriques: RubriqueFiscale[] = REGLES.map((r) => ({
-    code: r.code,
-    libelle: r.libelle,
-    sens: r.sens,
-    montant: arrondir(montants.get(r.code) ?? 0),
-    montantQuotePart: arrondir(montantsQuotePart.get(r.code) ?? 0),
-    aCompleter: r.code === "250" && !montants.has("250"),
-    categories: [...(categories.get(r.code) ?? [])],
-  }));
-  if (montants.has("autres")) {
-    rubriques.push({
-      code: "—",
-      libelle: "Autres dépenses non rangées (à qualifier)",
-      sens: "depense",
-      montant: arrondir(montants.get("autres")!),
-      montantQuotePart: arrondir(montantsQuotePart.get("autres") ?? 0),
-      categories: [...(categories.get("autres") ?? [])],
-    });
-  }
-
-  const totalRecettes = arrondir(
-    rubriques.filter((r) => r.sens === "recette").reduce((s, r) => s + r.montant, 0)
-  );
-  const totalCharges = arrondir(
-    rubriques.filter((r) => r.sens === "depense").reduce((s, r) => s + r.montant, 0)
-  );
-  const totalRecettesQuotePart = arrondir(
-    rubriques.filter((r) => r.sens === "recette").reduce((s, r) => s + r.montantQuotePart, 0)
-  );
-  const totalChargesQuotePart = arrondir(
-    rubriques.filter((r) => r.sens === "depense").reduce((s, r) => s + r.montantQuotePart, 0)
-  );
-  const ventile = [...(options.quoteParts?.values() ?? [])].some((q) => q < 100);
-  return {
-    annee,
-    rubriques,
-    fondsTravauxAlur: arrondir(fondsTravauxAlur),
-    totalRecettes,
-    totalCharges,
-    revenuNet: arrondir(totalRecettes - totalCharges),
-    totalRecettesQuotePart,
-    totalChargesQuotePart,
-    revenuNetQuotePart: arrondir(totalRecettesQuotePart - totalChargesQuotePart),
-    ventile,
-    meuble: {
-      recettes: arrondir(meuble.recettes),
-      depenses: arrondir(meuble.depenses),
-      nbEcritures: meuble.nbEcritures,
-    },
-    nbEcritures,
-    chargesRecuperees: arrondir(chargesRecuperees),
-    teomExclue: arrondir(teomExclue),
-    coproRecuperableExclue: arrondir(coproRecuperableExclue),
-  };
-}
-
-function arrondir(n: number): number {
-  return Math.round(n * 100) / 100;
+  if(loyer){inconnue(e,montant,'Des encaissements attendent leur ventilation historique loyer / charges.');continue;}
+  if(!q||q.nature==='a_qualifier'||!q.rubrique){inconnue(e,montant,'Des pièces attendent une qualification fiscale justifiée.');continue;}
+  const regle=RUBRIQUES_FISCALES.find(r=>r.code===q.rubrique&&r.sens===sens);
+  if(!regle||!['recette','deductible'].includes(q.nature)){inconnue(e,montant,'Une qualification fiscale ne correspond pas au sens de la pièce.');continue;}
+  ajouter(regle.code,montant,quote,e.categorie);
+ }
+ // 230 est une réintégration : elle diminue les charges déductibles et augmente
+ // le revenu net. Un zéro confirmé diffère d'une donnée absente.
+ let manque230=false;
+ for(const lot of new Set([...lots,...(options.exercices?.keys()??[])])){
+  const x=options.exercices?.get(lot);if(!x||x.annee!==annee||x.regularisation230===null){manque230=true;continue;}
+  const m=Number(x.regularisation230),q=Number(x.quote_part230);
+  if(!Number.isFinite(m)||m<0||!Number.isFinite(q)||q<0||q>100||!x.justification230){manque230=true;continue;}
+  ajouter('230',m,q,'Régularisation N−1 confirmée');if(q!==100)ventile=true;
+ }
+ if(manque230)alertes.add('La régularisation 230 de l’année précédente est à compléter ou à confirmer à zéro.');
+ const rubriques:RubriqueFiscale[]=RUBRIQUES_FISCALES.map(r=>({...r,montant:arrondir(montants.get(r.code)??0),montantQuotePart:arrondir(parts.get(r.code)??0),categories:[...(categories.get(r.code)??[])],aCompleter:r.code==='230'?manque230:(r.code==='222'||r.code==='250')&&!montants.has(r.code),reintegration:r.code==='230'}));
+ const somme=(sens:string,part:boolean)=>arrondir(rubriques.filter(r=>r.sens===sens).reduce((s,r)=>s+(r.reintegration?-1:1)*(part?r.montantQuotePart:r.montant),0));
+ const totalRecettes=somme('recette',false),totalCharges=somme('depense',false),totalRecettesQuotePart=somme('recette',true),totalChargesQuotePart=somme('depense',true);
+ return{annee,versionRegles:'2026-10-12-v1',rubriques,fondsTravauxAlur:arrondir(fondsTravauxAlur),totalRecettes,totalCharges,revenuNet:arrondir(totalRecettes-totalCharges),totalRecettesQuotePart,totalChargesQuotePart,revenuNetQuotePart:arrondir(totalRecettesQuotePart-totalChargesQuotePart),ventile,meuble:{recettes:arrondir(meuble.recettes),depenses:arrondir(meuble.depenses),nbEcritures:meuble.nbEcritures},nbEcritures,chargesRecuperees:arrondir(chargesRecuperees),teomExclue:arrondir(teomExclue),coproRecuperableExclue:0,aQualifier:arrondir(aQualifier),nonDeductible:arrondir(nonDeductible),incomplet:alertes.size>0,alertes:[...alertes],ecrituresAQualifier:[...aQualifierIds]};
 }

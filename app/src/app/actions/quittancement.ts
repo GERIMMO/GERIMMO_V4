@@ -16,51 +16,42 @@ import { envoyerQuittance, type EtatLoyers } from "./loyers";
 // Encaisse d'un clic ce qui reste dû sur un appel : montant = le reste,
 // date = aujourd'hui, mode virement (le cas neuf fois sur dix) — corrigeable
 // ensuite sur la fiche du bail (« Retirer » puis saisie détaillée).
+export type EtatEncaissementReste = EtatLoyers & { commandeTerminee?: boolean };
 export async function encaisserReste(
-  orgId: string,
-  bailId: string,
-  appelId: string
-): Promise<EtatLoyers> {
+  orgId: string, bailId: string, appelId: string,
+  demande: { commande: string; reste: number; detteAnterieure: number }
+): Promise<EtatEncaissementReste> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
-  const { data: lignes, error: erreurEtat } = await supabase.rpc("etat_loyers_bail", {
-    p_bail: bailId,
-  });
-  if (erreurEtat) return { erreur: sansJargon(erreurEtat.message) };
-  const avant = (lignes ?? []) as EtatAppel[];
-  const appel = avant.find((l) => l.appel_id === appelId);
-  if (!appel) return { erreur: "Appel de loyer introuvable." };
-  const reste = Number(appel.montant_du) - Number(appel.montant_couvert);
-  if (reste <= 0) return { erreur: "Cet appel est déjà couvert." };
-  const montant = Math.round(reste * 100) / 100;
-
-  const { error } = await supabase.from("encaissements").insert({
-    organization_id: orgId,
-    bail_id: bailId,
-    montant,
-    mode: "virement",
-    note: "Encaissé depuis le quittancement",
+  if (!demande?.commande) return { erreur: "Rechargez les loyers avant d’enregistrer ce règlement." };
+  const { data, error } = await supabase.rpc("encaisser_reste_atomique", {
+    p_org: orgId, p_bail: bailId, p_appel: appelId, p_commande: demande.commande,
+    p_reste_attendu: demande.reste, p_dette_anterieure_attendue: demande.detteAnterieure,
   });
   if (error) return { erreur: sansJargon(error.message) };
-  // Filet de rattrapage : le déclencheur encaissement_quittances a déjà
-  // resynchronisé les documents pendant l'INSERT. Cet appel ne sert plus qu'à
-  // un historique dérivé — et ses compteurs valent donc 0 : le compte rendu ne
-  // peut pas en venir, il se lit dans l'état des loyers d'après.
+  const resultat = data as {
+    statut: string; montant: number; rejoue: boolean; avant?: EtatAppel[]; apres?: EtatAppel[];
+  } | null;
+  for (const chemin of ["comptabilite", "loyers", `baux/${bailId}`])
+    revalidatePath(`/agence/${orgId}/${chemin}`);
+  if (!resultat) return { erreur: "Le résultat doit être vérifié dans les loyers avant de réessayer." };
+  if (resultat.statut === "deja_couvert")
+    return { succes: "Cet appel est déjà couvert. Aucun nouvel encaissement ajouté.", commandeTerminee: true };
+  if (resultat.statut === "solde_modifie")
+    return { erreur: "Un règlement a été enregistré entre-temps. Les montants ont été actualisés : vérifiez-les avant de continuer.", commandeTerminee: true };
+  if (resultat.statut === "annule")
+    return { succes: "Ce règlement a été annulé. Aucun nouvel encaissement ajouté.", commandeTerminee: true };
+  if (resultat.statut !== "enregistre" || !resultat.avant || !resultat.apres)
+    return { erreur: "Le résultat doit être vérifié dans les loyers avant de réessayer." };
+  const montant = Number(resultat.montant);
+  const compteRendu = resultat.rejoue
+    ? `${eur(montant)} déjà enregistrés pour cette demande. Aucun doublon ajouté.`
+    : compteRenduEncaissement(montant, resultat.avant, resultat.apres);
   const emission = await emettreRecusQuittances(supabase, bailId);
-  const { data: lignesApres, error: erreurApres } = await supabase.rpc("etat_loyers_bail", {
-    p_bail: bailId,
-  });
-  revalidatePath(`/agence/${orgId}/comptabilite`);
-  revalidatePath(`/agence/${orgId}/loyers`);
-  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  if (erreurApres)
-    return {
-      succes: `${eur(montant)} encaissés — l'imputation n'a pas pu être relue : ${sansJargon(erreurApres.message)}`,
-    };
-  const compteRendu = compteRenduEncaissement(montant, avant, (lignesApres ?? []) as EtatAppel[]);
-  if (emission.erreur)
-    return { succes: `${compteRendu} Rattrapage des documents en échec : ${emission.erreur}` };
-  return { succes: compteRendu };
+  return {
+    succes: emission.erreur ? `${compteRendu} Rattrapage des documents en échec : ${emission.erreur}` : compteRendu,
+    commandeTerminee: true,
+  };
 }
 
 // Émettre la quittance d'un bail dont le mois est soldé (payé sans quittance).

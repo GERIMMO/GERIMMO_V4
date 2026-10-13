@@ -1,3 +1,5 @@
+import { ArretSupervision, verifierAvantEffet } from "@/lib/controle-effets";
+import { protegerClientAutomatique } from "@/lib/client-automatique";
 // Tâche planifiée : aligner ce que Stripe facture sur ce que l'agence gère.
 //
 // POURQUOI PAS AU MOMENT DE L'AJOUT. Pousser la quantité chez Stripe quand un
@@ -121,7 +123,7 @@ export async function GET(request: Request) {
   // un courrier de la veille du quinzième jour envoyé le seizième ne sert à
   // rien. L'alignement des quantités, lui, peut attendre une journée de plus.
   // Si Stripe tombe entre les deux, les courriers sont partis.
-  const relances = await envoyerRelancesDues(supabase);
+  const relances = await envoyerRelancesDues(supabase, { avantEffet: () => verifierAvantEffet(supabase, "abonnements") });
 
   const { data, error } = await supabase.rpc("abonnements_a_synchroniser", { p_limite: 200 });
   if (error) {
@@ -129,7 +131,7 @@ export async function GET(request: Request) {
     return Response.json({ erreur: error.message }, { status: 500 });
   }
   const lignes = (data ?? []) as Ligne[];
-  const stripe = clientStripe(reglages.config);
+  const stripe = protegerClientAutomatique(clientStripe(reglages.config), () => verifierAvantEffet(supabase, "abonnements"));
 
   let alignes = 0;
   let resiliees = 0;
@@ -174,8 +176,9 @@ export async function GET(request: Request) {
   // Un envoi raté reste dû : il repartira demain, la fenêtre court deux mois.
   let reconduction: Awaited<ReturnType<typeof envoyerAvisReconduction>>;
   try {
-    reconduction = await envoyerAvisReconduction(supabase);
+    reconduction = await envoyerAvisReconduction(supabase, () => verifierAvantEffet(supabase, "abonnements"));
   } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     reconduction = { envoyes: 0, sans_adresse: [], echecs: [e instanceof Error ? e.message : "avis impossibles"] };
   }
 
@@ -314,6 +317,7 @@ async function preparerEcheances(
           if (gardee) cible = gardee;
         }
       } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
         r = { ok: false, erreur: lireErreurStripe(e) };
       }
     }
@@ -347,10 +351,11 @@ async function preparerEcheances(
           capacite: l.unites_souscrites,
           aCouvrir: l.unites_a_couvrir,
           echeance: l.periode_fin,
-        });
+        }, () => verifierAvantEffet(supabase, "abonnements"));
         if (echec) bilan.echecs.push({ organisation: l.organisation, motif: `avis de capacité : ${echec}` });
         else bilan.avis_capacite += 1;
       } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
         bilan.echecs.push({ organisation: l.organisation, motif: e instanceof Error ? e.message : "avis de capacité impossible" });
       }
     }

@@ -1,3 +1,4 @@
+import { ArretSupervision } from "./controle-effets";
 import { adresseDuSite } from "./site";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { chargerMarque } from "./marque-organisation-serveur";
@@ -28,6 +29,7 @@ export async function envoyerEmail(params: {
   html: string;
   piecesJointes?: { nom: string; contenuBase64: string }[];
   cleIdempotence?: string;
+  avantEnvoi?: () => Promise<void>;
   organisation?: { db: SupabaseClient; id: string };
 }): Promise<{ erreur?: string; id?: string }> {
   const cle = process.env.RESEND_API_KEY;
@@ -40,6 +42,7 @@ export async function envoyerEmail(params: {
     const expediteur = adresseVerifiee ? `${nom} <${adresseVerifiee}>` : nom ? EXPEDITEUR.replace(/^[^<]+(?=\s*<)/, nom + " ") : EXPEDITEUR;
     const repondreA = marque?.email_contact && emailValide(marque.email_contact) ? marque.email_contact : null;
     const html = marque ? `${enteteMarqueHtml(marque)}${liensMarque(params.html, marque, adresseDuSite())}` : params.html;
+    await params.avantEnvoi?.();
     const reponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -70,7 +73,8 @@ export async function envoyerEmail(params: {
     }
     const resultat = await reponse.json().catch(() => null);
     return { ...(typeof resultat?.id === "string" ? { id: resultat.id } : {}) };
-  } catch {
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
     return { erreur: "L’e-mail n’a pas pu partir car le service est momentanément indisponible. Réessayez dans un instant." };
   }
 }

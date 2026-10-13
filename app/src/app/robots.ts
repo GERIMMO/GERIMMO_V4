@@ -21,6 +21,7 @@ const SEGMENTS_PRIVES = [
   "/auth",
   "/compte",
   "/espaces",
+  "/invitations",
   "/locataire",
   "/quittance",
   "/relais",

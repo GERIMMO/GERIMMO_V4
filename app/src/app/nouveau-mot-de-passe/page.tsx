@@ -1,3 +1,4 @@
+import { destinationSure } from "@/lib/destination-sure";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CoquilleAuth } from "@/components/coquille-auth";
@@ -5,7 +6,8 @@ import { FormulaireNouveauMotDePasse } from "./formulaire-nouveau-mot-de-passe";
 
 export const metadata = { title: "Nouveau mot de passe — Gerimmo" };
 
-export default async function PageNouveauMotDePasse() {
+export default async function PageNouveauMotDePasse({ searchParams }: { searchParams: Promise<{ suite?: string }> }) {
+  const suite = destinationSure((await searchParams).suite);
   // Nécessite la session de récupération établie par le lien email
   const supabase = await createClient();
   const {
@@ -21,7 +23,7 @@ export default async function PageNouveauMotDePasse() {
       titre="Nouveau mot de passe"
       chapo={`Compte : ${user.email}. Choisissez un mot de passe d'au moins 12 caractères — il sera vérifié contre les fuites de données connues.`}
     >
-      <FormulaireNouveauMotDePasse />
+      <FormulaireNouveauMotDePasse suite={suite} />
     </CoquilleAuth>
   );
 }

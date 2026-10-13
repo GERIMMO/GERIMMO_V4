@@ -328,7 +328,7 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     await db.query(`select public.generer_appels_loyer($1)`, [bail]);
     const {
       rows: [appel],
-    } = await db.query(`select montant_du from public.appels_loyer where bail_id=$1 order by periode desc limit 1`, [bail]);
+    } = await db.query(`select montant_du,loyer_hc,charges from public.appels_loyer where bail_id=$1 order by periode desc limit 1`, [bail]);
     await db.query(
       `insert into public.encaissements (organization_id, bail_id, montant, date_paiement) values ($1,$2,$3,current_date)`,
       [org, bail, appel.montant_du]
@@ -373,14 +373,19 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
 
     // Le récapitulatif fiscal lit son livre : loyers en 211, assurance en 223
     const { rows: livre } = await db.query(
-      `select categorie, sens, montant, date_piece::text, contre_ecriture_de from public.ecritures where organization_id=$1`,
+      `select id,categorie,sens,montant,date_piece::text,contre_ecriture_de,encaissement_id from public.ecritures where organization_id=$1`,
       [org]
     );
-    const recap = recapitulatifFiscal(livre, new Date().getFullYear());
-    expect(recap.totalRecettes).toBe(Number(appel.montant_du));
+    const assurance=livre.find(e=>e.categorie==='Assurance PNO');
+    await db.query("select public.qualifier_ecriture_fiscale($1,'deductible','223','Prime annuelle payée : pièce test')",[assurance.id]);
+    const {rows:qualifications}=await db.query('select * from public.fiscal_qualifications_ecritures where organization_id=$1',[org]);
+    const {rows:composantes}=await db.query('select * from public.fiscal_encaissements_composantes where organization_id=$1',[org]);
+    const recap = recapitulatifFiscal(livre, new Date().getFullYear(),{qualifications:new Map(qualifications.map(q=>[q.ecriture_id,q])),composantes:new Map(composantes.map(c=>[c.ecriture_id,c]))});
+    expect(recap.totalRecettes).toBe(Number(appel.loyer_hc));
+    expect(recap.chargesRecuperees).toBe(Number(appel.charges));
     expect(recap.rubriques.find((r) => r.code === "223")?.montant).toBe(180);
     expect(recap.rubriques.find((r) => r.code === "221")?.montant).toBe(0);
-    expect(recap.revenuNet).toBe(Number(appel.montant_du) - 180);
+    expect(recap.revenuNet).toBe(Number(appel.loyer_hc) - 180);
   });
 
   it("isolation : un propriétaire direct ne voit rien d'une agence, et réciproquement", async () => {

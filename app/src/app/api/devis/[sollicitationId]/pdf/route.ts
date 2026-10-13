@@ -15,7 +15,7 @@ export async function POST(request: Request, context: { params: Promise<{sollici
   const erreur = (message: string, status: number) => Response.json({ erreur:message }, {status,headers:{"Cache-Control":"private, no-store"}});
   const { sollicitationId } = await context.params;
   let acces: Awaited<ReturnType<typeof chargerPreparationDevis>>;
-  try { acces = await chargerPreparationDevis(sollicitationId); }
+  try { acces = await chargerPreparationDevis(sollicitationId, true); }
   catch { return erreur("Connectez-vous avec le compte artisan destinataire de cette demande.",403); }
   const { fiche, service, demande, preparation, profil } = acces;
   if(demande.statut!=="envoyee") return erreur("Cette demande est close.",409);

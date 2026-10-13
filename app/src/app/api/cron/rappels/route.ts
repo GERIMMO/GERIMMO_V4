@@ -1,3 +1,4 @@
+import { ArretSupervision, verifierAvantEffet } from "@/lib/controle-effets";
 // Tâche planifiée : rappeler le rendez-vous à ceux qui doivent s'y trouver
 // (RM-10.5 — veille systématique, J-7 si posé assez tôt).
 //
@@ -94,7 +95,8 @@ export async function GET(request: Request) {
   const lignes = (data ?? []) as Ligne[];
   // Les rappels de gestes partent même sans rendez-vous à rappeler. Leur
   // échec ne prive pas les rendez-vous de leur rappel : bilan vide et compté.
-  const gestes = await envoyerRappelsGestes(supabase).catch((e): BilanRappelsGestes => {
+  const gestes = await envoyerRappelsGestes(supabase, undefined, () => verifierAvantEffet(supabase, "rappels")).catch((e): BilanRappelsGestes => {
+    if (e instanceof ArretSupervision) throw e;
     console.error("[cron rappels] rappels de gestes :", e instanceof Error ? e.message : e);
     return { envoyes: 0, echecs: -1, sans_adresse: 0, non_consignes: 0, par_type: { creneau_non_choisi: 0, mission_non_acceptee: 0, piece_demandee: 0, devis_non_chiffre: 0 } };
   });
@@ -122,7 +124,9 @@ export async function GET(request: Request) {
       incidentNumero: l.incident_numero,
       categorie: l.categorie,
     };
+    await verifierAvantEffet(supabase, "rappels");
     const envoi = await envoyerEmail({
+      avantEnvoi: () => verifierAvantEffet(supabase, "rappels"),
       organisation: { db: supabase, id: l.organization_id },
       to: l.adresse,
       subject: sujetRappel(rappel),

@@ -18,12 +18,14 @@ const un = async (sql, params = []) => (await pool.query(sql, params)).rows[0] ?
 const agence = await un("select id from organizations where type = 'agence' order by (name = 'Agence Alpha') desc, created_at limit 1");
 const pd = await un("select id from organizations where type <> 'agence' order by created_at limit 1");
 const ORG = agence?.id;
+const artisanPrive = await un("select a.id from artisans a join auth.users u on u.id=a.account_id where u.email='artisan.alpha@gerimmo-demo.fr' limit 1");
 // Préférer le dossier E2E (seed-parcours) : il porte un mandat dont l'agent
 // est titulaire, donc ses écrans profonds sont dans le « portefeuille » de
 // l'agent — un bien sans mandat rendrait un 404 légitime sous ce persona.
 const ids = {
   ORG,
   ORG_PD: pd?.id,
+  INVITATION: (await un("select i.id from invitations_locataires i join auth.users u on u.id=i.account_id where u.email='locataire.alpha@gerimmo-demo.fr' order by i.cree_le desc limit 1"))?.id,
   BIEN: (await un("select id from biens where organization_id = $1 order by (nom like 'E2E%') desc, created_at limit 1", [ORG]))?.id,
   // La fiche du locataire du bail le plus récent : elle est dans le
   // périmètre « personnes » de l'agent (locataires des baux de ses lots)
@@ -38,8 +40,8 @@ const ids = {
   PUBLICATION: (await un("select id from publications order by created_at limit 1"))?.id,
   ARTICLE: (await un("select slug from publications where statut = 'publiee' order by publie_le desc limit 1"))?.slug,
   DIAGNOSTIC: (await un("select id from diagnostics where organization_id = $1 and archived_at is null limit 1", [ORG]))?.id,
-  SOLLICITATION: (await un("select id from incident_sollicitations where statut = 'envoyee' order by envoyee_le desc limit 1"))?.id,
-  INTERVENTION: (await un("select id from incident_interventions order by confiee_le desc limit 1"))?.id,
+  SOLLICITATION: (await un("select id from incident_sollicitations where artisan_id=$1 and statut = 'envoyee' order by envoyee_le desc limit 1", [artisanPrive?.id]))?.id,
+  INTERVENTION: (await un("select id from incident_interventions where artisan_id=$1 order by confiee_le desc limit 1", [artisanPrive?.id]))?.id,
   // Les équipes du point du matin sont fixes (lib/missions.ts) : la première.
   EQUIPE: "exploitation",
   // Un compte de client (jamais la supervision) pour la fiche de débogage.
@@ -54,6 +56,12 @@ if (lot) ids.BIEN = lot.bien_id;
 const edl = ids.BAIL ? await un("select id from etats_des_lieux where bail_id = $1 limit 1", [ids.BAIL]) : null;
 ids.EDL = edl?.id;
 
+// Les dossiers privés de la matrice appartiennent au même compte artisan du seed E2E.
+// Les missions et sollicitations ci-dessus sont également bornées à ce compte.
+ids.CLIENT_EXTERNE = (await un("select id from artisan_clients where artisan_id=$1 order by created_at limit 1",[artisanPrive?.id]))?.id;
+ids.CHANTIER_EXTERNE = (await un("select id from artisan_chantiers where artisan_id=$1 order by created_at limit 1",[artisanPrive?.id]))?.id;
+ids.FACTURE_EXTERNE = (await un("select id from artisan_factures_externes where artisan_id=$1 order by created_at limit 1",[artisanPrive?.id]))?.id;
+
 const inventaire = JSON.parse(fs.readFileSync(path.join(ICI, "..", "routes-inventaire.json"), "utf8"));
 const matrice = [];
 const ecartees = [];
@@ -62,7 +70,7 @@ for (const route of inventaire) {
   // L'espace « propriétaire » réutilise les routes /agence avec l'organisation PD
   if (route.persona === "proprietaire") chemin = chemin.replace("/agence/ORG", `/agence/${ids.ORG_PD}`);
   let manquant = null;
-  chemin = chemin.replace(/\b(ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT)\b/g, (m) => {
+  chemin = chemin.replace(/\b(INVITATION|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT|CLIENT_EXTERNE|CHANTIER_EXTERNE|FACTURE_EXTERNE)\b/g, (m) => {
     if (!ids[m]) manquant = m;
     return ids[m] ?? m;
   });

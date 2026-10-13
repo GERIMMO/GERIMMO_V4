@@ -1,5 +1,7 @@
 "use server";
 
+import { destinationSure } from "@/lib/destination-sure";
+
 import { CONDITIONS_VERSION } from "@/lib/editeur";
 import { sansJargon } from "@/lib/erreurs";
 import { cookies } from "next/headers";
@@ -116,7 +118,8 @@ export async function definirNouveauMotDePasse(
   // On repart d'une connexion propre avec le nouveau mot de passe
   await supabase.auth.signOut();
   (await cookies()).delete(ACTIVITY_COOKIE);
-  redirect("/connexion?raison=mot-de-passe-modifie");
+  const suite = destinationSure(String(formData.get("suite") ?? ""));
+  redirect(`/connexion?raison=mot-de-passe-modifie${suite !== "/espaces" ? `&suite=${encodeURIComponent(suite)}` : ""}`);
 }
 
 // ============================================================

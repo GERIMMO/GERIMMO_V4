@@ -2,8 +2,8 @@
  * Le point du matin (25/09) : la fonction pure qui assemble, pour chaque
  * équipe, ce qui a été fait, ce qui a échoué et les décisions soumises.
  */
-import {describe,expect,it} from 'vitest';
-import {ATTENTES_VIDES,assemblerPoints,bilanDuPassage,jourDuPoint,type Attentes,type PassageLu} from '../src/lib/point-du-matin';
+import {describe,expect,it,vi} from 'vitest';
+import {ATTENTES_VIDES,assemblerPoints,bilanDuPassage,genererPointsDuMatin,jourDuPoint,type Attentes,type PassageLu} from '../src/lib/point-du-matin';
 import {EQUIPES,MISSIONS,missionsDeLEquipe} from '../src/lib/missions';
 
 const maintenant=new Date('2026-09-25T07:30:00Z');
@@ -64,5 +64,35 @@ describe('Le point du matin',()=>{
  it('date le point à l’heure de Paris',()=>{
   expect(jourDuPoint(new Date('2026-09-24T22:30:00Z'))).toBe('2026-09-25');
   expect(jourDuPoint(new Date('2026-01-31T23:30:00Z'))).toBe('2026-02-01');
+ });
+});
+
+describe('Génération du point — lectures incomplètes',()=>{
+ function lecteur(sourceEnPanne?:string){
+  const resultat=(source:string)=>source===sourceEnPanne
+   ? {data:null,error:{message:'Détail fournisseur privé à ne pas exposer'}}
+   : {data:[],error:null};
+  const requete=(source:string):unknown=>new Proxy({}, {get:(_cible,propriete)=>
+   propriete==='then'?Promise.resolve(resultat(source)).then.bind(Promise.resolve(resultat(source))):()=>requete(source)});
+  const rpc=vi.fn(async(nom:string)=>nom==='artisans_a_valider'?resultat(nom):{data:'point-fictif',error:null});
+  return {db:{from:(source:string)=>requete(source),rpc} as unknown as Parameters<typeof genererPointsDuMatin>[0],rpc};
+ }
+ it.each([
+  ['agent_passages','passages'],['tech_log','journal technique'],
+  ['development_proposals','évolutions'],['publications','publications'],
+  ['artisans_a_valider','artisans'],['retours_utilisateurs','retours'],['regulatory_watch','veille'],
+ ])('préserve les points et décisions si %s est indisponible',async(source,libelle)=>{
+  const {db,rpc}=lecteur(source);
+  const resultat=await genererPointsDuMatin(db,maintenant);
+  expect(resultat.enregistres).toBe(0);
+  expect(resultat.erreur).toContain(libelle);
+  expect(resultat.erreur).toContain('dernier point connu est conservé');
+  expect(resultat.erreur).not.toContain('privé');
+  expect(rpc.mock.calls.filter(([nom])=>nom==='enregistrer_point_du_matin')).toHaveLength(0);
+ });
+ it('enregistre les sept équipes quand toutes les lectures sont disponibles',async()=>{
+  const {db,rpc}=lecteur();
+  expect(await genererPointsDuMatin(db,maintenant)).toEqual({enregistres:7,erreur:undefined});
+  expect(rpc.mock.calls.filter(([nom])=>nom==='enregistrer_point_du_matin')).toHaveLength(7);
  });
 });

@@ -1,3 +1,4 @@
+import { ReglementsDansFacturation } from "../clients/resumes";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Check, CheckCircle2, ClipboardList, FileCheck2, FileUp, Info, ReceiptText } from "lucide-react";
 import { titreIncident } from "@/lib/incidents";
@@ -20,6 +21,7 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
   return <div className={styles.page}>
     <EnteteSousPage rubrique="finances" titre="Ma facturation" mention="De l’intervention terminée à la facture transmise."
       action={<Link href="/artisan/agenda" className={styles.lienAgenda}><CalendarDays size={17} aria-hidden/>Mon agenda</Link>}/>
+    <ReglementsDansFacturation />
     {facture && <Succes>Facture déposée. Votre interlocuteur est prévenu : il la contrôle et la règle selon ses délais.</Succes>}
     {agenda.erreur ? <Erreur>Vos interventions n’ont pas pu être chargées. Rechargez la page avant de conclure qu’aucune intervention n’est facturable.</Erreur> : <>
       <nav className={styles.indicateurs} aria-label="Résumé de la facturation">

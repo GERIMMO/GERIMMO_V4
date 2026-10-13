@@ -56,7 +56,7 @@ const SEGMENTS_CONNUS = new Set([
   // src/app
   "actions", "admin", "agence", "api", "artisan", "assistance", "attestation-loyer",
   "auth", "compte", "conditions", "confidentialite", "connexion", "espaces",
-  "inscription", "journal", "locataire", "mentions-legales", "mot-de-passe-oublie",
+  "inscription", "invitations", "journal", "locataire", "mentions-legales", "mot-de-passe-oublie",
   "nouveau-mot-de-passe", "outils", "polices", "quittance", "relais", "securite", "tarifs", "veille",
   // public
   "illustrations", "logo", "marketing",

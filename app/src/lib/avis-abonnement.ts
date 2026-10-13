@@ -170,12 +170,15 @@ export async function envoyerAvisFinEssai(
 /** L'avis de capacité dépassée à l'échéance. Rend un motif d'échec, ou `null`. */
 export async function envoyerAvisCapaciteDepassee(
   supabase: SupabaseClient,
-  p: { orgId: string; organisation: string; estAgence: boolean; capacite: number; aCouvrir: number; echeance: string }
+  p: { orgId: string; organisation: string; estAgence: boolean; capacite: number; aCouvrir: number; echeance: string },
+  avantEffet?: () => Promise<void>
 ): Promise<string | null> {
   const a = await destinataire(supabase, p.orgId);
   if (!a) return "sans adresse";
   const c = courrierCapaciteDepassee({ ...p, lien: lienAbonnement(p.orgId) });
+  await avantEffet?.();
   const { erreur } = await envoyerEmail({
+    avantEnvoi: avantEffet,
     to: a,
     subject: c.sujet,
     html: c.html,
@@ -200,7 +203,7 @@ export type BilanReconduction = { envoyes: number; sans_adresse: string[]; echec
  * échec réseau laisse l'avis « dû », il repartira demain (la fenêtre court
  * sur deux mois). La clé d'idempotence empêche un doublon le même jour.
  */
-export async function envoyerAvisReconduction(supabase: SupabaseClient): Promise<BilanReconduction> {
+export async function envoyerAvisReconduction(supabase: SupabaseClient, avantEffet?: () => Promise<void>): Promise<BilanReconduction> {
   const bilan: BilanReconduction = { envoyes: 0, sans_adresse: [], echecs: [] };
   const { data, error } = await supabase.rpc("abonnements_avis_reconduction_dus", { p_limite: 200 });
   if (error) {
@@ -219,7 +222,9 @@ export async function envoyerAvisReconduction(supabase: SupabaseClient): Promise
       formule: a.formule,
       lien: lienAbonnement(a.organization_id),
     });
+    await avantEffet?.();
     const { erreur } = await envoyerEmail({
+      avantEnvoi: avantEffet,
       to: a.destinataire,
       subject: c.sujet,
       html: c.html,

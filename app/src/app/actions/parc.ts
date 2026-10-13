@@ -18,6 +18,7 @@ import {
 export type EtatParc = {
   erreur?: string;
   succes?: string;
+  repriseHref?: string;
   // Création de fiche réussie, mais détention refusée : reprendre cette
   // fiche précise sans en créer une seconde lors de la correction.
   personneCreee?: { id: string; nom: string; prenom: string | null };
@@ -45,10 +46,9 @@ export async function creerBien(
   _etat: EtatParc,
   formData: FormData
 ): Promise<EtatParc> {
-  const { supabase, user, role } = await verifierGerant(orgId);
-  if (!user) return { erreur: "Accès refusé." };
-
   const valeurs = valeursDuFormulaire(formData);
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé.", valeurs };
   const nom = String(formData.get("nom") ?? "").trim();
   const type = String(formData.get("type") ?? "");
   const adresse1 = String(formData.get("address_line1") ?? "").trim();
@@ -72,27 +72,18 @@ export async function creerBien(
   if (!partiesCommunes || !accesTic) {
     return { erreur: "Les parties communes et l'accès aux technologies sont obligatoires. Indiquez « Néant » si nécessaire.", valeurs };
   }
-  let profilProprietaire: { name: string; address_line1: string | null; postal_code: string | null; city: string | null; email_contact: string | null } | null = null;
-  if (role === "proprietaire_direct") {
-    const { data: profil } = await supabase.from("organizations")
-      .select("name,address_line1,postal_code,city,email_contact")
-      .eq("id", orgId).maybeSingle();
-    profilProprietaire = profil;
-    if (!profil?.address_line1 || !profil.postal_code || !profil.city || !profil.email_contact) {
-      return { erreur: "Complétez d'abord votre identité, votre adresse et votre email dans Mon profil : ils désignent le bailleur dans les documents.", valeurs };
-    }
-  }
-
   // Questionnaire progressif : un bien divisé arrive avec sa liste de lots.
-  // Le premier lot devient le « lot unique » créé par RM-0.1.2, les suivants
-  // passent par le découpage (héritage des détentions, clé invalidée).
+  // Le serveur transmet une seule demande atomique, incluant tous les lots.
   type LotSaisi = { nom?: string; surface?: string; pieces?: string };
   let lotsSaisis: LotSaisi[] = [];
   const lotsBrut = String(formData.get("lots") ?? "").trim();
   if (lotsBrut) {
     try {
       const parse = JSON.parse(lotsBrut);
-      if (Array.isArray(parse)) lotsSaisis = parse as LotSaisi[];
+      if (!Array.isArray(parse) || parse.some(l => !l || typeof l !== "object" || Array.isArray(l))) {
+        return { erreur: "Liste des lots illisible.", valeurs };
+      }
+      lotsSaisis = parse as LotSaisi[];
     } catch {
       return { erreur: "Liste des lots illisible.", valeurs };
     }
@@ -103,187 +94,48 @@ export async function creerBien(
       valeurs,
     };
   }
-  const premier = lotsSaisis[0];
   const lotsAValider = lotsSaisis.length > 0 ? lotsSaisis : [{ surface, pieces }];
-  if (lotsAValider.some((lot) => !lot.surface || Number(lot.surface) <= 0 || !lot.pieces || Number(lot.pieces) < 1)) {
+  if (lotsAValider.some((lot) => !lot.surface || !Number.isFinite(Number(lot.surface)) || Number(lot.surface) <= 0 || !lot.pieces || !Number.isInteger(Number(lot.pieces)) || Number(lot.pieces) < 1 || (lot.nom !== undefined && typeof lot.nom !== "string"))) {
     return { erreur: "La surface habitable et le nombre de pièces sont obligatoires pour chaque lot.", valeurs };
   }
 
-  // Grille du 28/09/2026 : chaque lot loué séparément compte pour un bien.
-  // La base refuse un bien au-delà de la capacité payée ; on vérifie ici le
-  // découpage complet, pour ne jamais créer le bien et s'arrêter au deuxième
-  // lot. Le message mène au nouveau montant, à confirmer.
-  if (role === "proprietaire_direct") {
-    const { data: capaciteBrute } = await supabase.rpc("etat_abonnement", { p_org: orgId });
-    const cap = ((capaciteBrute ?? []) as { unites_a_couvrir: number | null; unites_souscrites: number | null }[])[0];
-    if (cap && cap.unites_souscrites !== null && (cap.unites_a_couvrir ?? 0) + lotsAValider.length > cap.unites_souscrites) {
-      return {
-        erreur: `Votre formule couvre ${cap.unites_souscrites} bien${cap.unites_souscrites > 1 ? "s" : ""} : ce bien en porterait ${(cap.unites_a_couvrir ?? 0) + lotsAValider.length} en gestion. Ouvrez « Mon abonnement » pour voir le nouveau montant et le confirmer ; rien n'a été enregistré.`,
-        valeurs,
-      };
-    }
+  const creation = String(formData.get("creation_id") ?? _etat.valeurs?.creation_id ?? "");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(creation)) {
+    return { erreur: "La référence de cette demande manque. Rechargez le formulaire avant de créer le bien.", valeurs };
   }
-
-  // Créer un bien = créer son lot unique (RM-0.1.2), atomique en base
-  const { data: bienId, error } = await supabase.rpc("creer_bien_avec_lot", {
-    p_org: orgId,
-    p_nom: nom,
-    p_type: type,
-    p_address_line1: adresse1,
-    p_address_line2: adresse2 || null,
-    p_postal_code: codePostal,
-    p_city: ville,
-    p_annee: annee ? Number(annee) : null,
-    p_copropriete: formData.get("copropriete") === "on",
-    p_surface: premier?.surface ? Number(premier.surface) : surface ? Number(surface) : null,
-    p_pieces: premier?.pieces ? Number(premier.pieces) : pieces ? Number(pieces) : null,
-  });
-  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}`, valeurs };
-
-  // Revue 23/08 : la case « zone tendue » cochée à la création était ignorée
-  // en silence (le RPC ne la connaît pas) — or elle décide du préavis du
-  // congé locataire (1 mois vs 3). Posée juste après la création.
-  if (bienId) {
-    const { error: erreurZone } = await supabase
-      .from("biens")
-      .update({
-        zone_tendue: zoneTendueSaisie(formData),
-        parties_communes: partiesCommunes,
-        acces_tic: accesTic,
-      })
-      .eq("id", bienId)
-      .eq("organization_id", orgId);
-    if (erreurZone) {
-      return {
-        erreur: `Bien créé, mais ses informations complémentaires n'ont pas pu être enregistrées : ${sansJargon(erreurZone.message)} — complétez-les depuis la fiche du bien.`,
-      };
+  valeurs.creation_id = creation;
+  let resultat: { bien_id: string; lot_unique_id: string | null; saisie_differente: boolean };
+  try {
+    const { data, error } = await supabase.rpc("creer_bien_complet", {
+      p_org: orgId, p_creation: creation,
+      p_saisie: {
+        nom, type, address_line1: adresse1, address_line2: adresse2 || null,
+        postal_code: codePostal, city: ville, annee_construction: Number(annee),
+        copropriete: formData.get("copropriete") === "on", zone_tendue: zoneTendueSaisie(formData),
+        parties_communes: partiesCommunes, acces_tic: accesTic, commune_insee: communeSaisie(formData),
+        lots: lotsAValider.map(l => ({ nom: l.nom?.trim() || null, surface_m2: Number(l.surface), pieces: Number(l.pieces) })),
+      },
+    });
+    if (error || !data?.bien_id) {
+      return { erreur: `La création n’a pas pu être confirmée : ${sansJargon(error?.message ?? "réponse indisponible")}. Vos saisies sont conservées. Réessayez pour reprendre la même demande.`, valeurs };
     }
-    // Commune choisie à la création (réseau d'artisans, audit 29/09). Un
-    // refus (ville saisie différente de la commune choisie) ne bloque pas la
-    // création : la commune reste à confirmer depuis « Réseau d'artisans ».
-    const commune = communeSaisie(formData);
-    if (commune) {
-      await supabase.rpc("reseau_confirmer_commune", { p_org: orgId, p_bien: bienId, p_commune: commune });
-    }
+    resultat = data;
+  } catch {
+    return { erreur: "La confirmation est indisponible. Vos saisies sont conservées. Réessayez pour reprendre la même demande.", valeurs };
   }
-
-  // Espace propriétaire direct (recette 08/08) : le propriétaire d'un bien,
-  // c'est lui — le champ propriétaire est masqué à l'écran mais la détention
-  // est bel et bien posée en base, sur sa propre fiche (créée au besoin).
-  // Posée AVANT le découpage : les lots supplémentaires en héritent.
-  if (role === "proprietaire_direct" && bienId) {
-    let { data: fiche } = await supabase
-      .from("persons")
-      .select("id")
-      .eq("organization_id", orgId)
-      .eq("account_id", user.id)
-      .is("archived_at", null)
-      .maybeSingle();
-    if (!fiche) {
-      const { data: creee, error: erreurFiche } = await supabase
-        .from("persons")
-        .insert({
-          organization_id: orgId,
-          account_id: user.id,
-          nom: profilProprietaire?.name ?? user.email?.split("@")[0] ?? "Propriétaire",
-          email: profilProprietaire?.email_contact ?? user.email ?? null,
-          address_line1: profilProprietaire?.address_line1 ?? null,
-          postal_code: profilProprietaire?.postal_code ?? null,
-          city: profilProprietaire?.city ?? null,
-          qualite: "Personne morale",
-        })
-        .select("id")
-        .single();
-      if (erreurFiche) {
-        return {
-          erreur: `Bien créé, mais votre fiche propriétaire a échoué : ${sansJargon(erreurFiche.message)}`,
-          valeurs,
-        };
-      }
-      fiche = creee;
-    }
-    if (fiche) {
-      const { data: lotUnique } = await supabase
-        .from("lots")
-        .select("id")
-        .eq("bien_id", bienId)
-        .eq("organization_id", orgId)
-        .maybeSingle();
-      if (lotUnique) {
-        const { error: erreurDetention } = await supabase.from("detentions").insert({
-          lot_id: lotUnique.id,
-          organization_id: orgId,
-          person_id: fiche.id,
-          quote_part: 100,
-        });
-        if (erreurDetention) {
-          return {
-            erreur: `Bien créé, mais la détention n'a pas pu être posée : ${sansJargon(erreurDetention.message)}`,
-            valeurs,
-          };
-        }
-      }
-    }
-  }
-
-  if (lotsSaisis.length > 0 && bienId) {
-    // Le lot d'origine porte le nom saisi pour le premier lot
-    if (premier?.nom?.trim()) {
-      const { error: erreurNom } = await supabase
-        .from("lots")
-        .update({ nom: premier.nom.trim() })
-        .eq("bien_id", bienId)
-        .eq("organization_id", orgId);
-      if (erreurNom) {
-        return {
-          erreur: `Bien créé, mais le nom du premier lot n'a pas pu être posé : ${sansJargon(erreurNom.message)}`,
-          valeurs,
-        };
-      }
-    }
-    const suivants = lotsSaisis.slice(1).map((l, i) => ({
-      nom: l.nom?.trim() || `Lot ${i + 2}`,
-      surface_m2: l.surface ?? "",
-      pieces: l.pieces ?? "",
-    }));
-    if (suivants.length > 0) {
-      const { error: erreurDecoupe } = await supabase.rpc("decouper_bien", {
-        p_bien: bienId,
-        p_lots: suivants,
-      });
-      if (erreurDecoupe) {
-        return {
-          erreur: `Bien créé, mais les lots supplémentaires ont échoué : ${sansJargon(erreurDecoupe.message)}`,
-          valeurs,
-        };
-      }
-    }
+  const bienId = resultat.bien_id;
+  const lotUniqueId = resultat.lot_unique_id;
+  const destination = lotUniqueId
+    ? `/agence/${orgId}/parc/${bienId}/lots/${lotUniqueId}${formData.get("parcours") === "1" ? "?parcours=1&etape=lot" : ""}`
+    : `/agence/${orgId}/parc/${bienId}`;
+  if (resultat.saisie_differente) {
+    return { erreur: "Cette demande a déjà créé le bien avec les saisies précédentes. Vos nouvelles saisies restent dans ce formulaire. Ouvrez le dossier enregistré pour y reporter vos modifications.", valeurs, repriseHref: destination };
   }
 
   revalidatePath(`/agence/${orgId}/parc`);
   revalidatePath(`/agence/${orgId}/baux`, "layout");
 
-  // Relevé du 11/09 : on atterrissait sur la fiche BIEN, qui n'est qu'un écran
-  // de passage — c'est la fiche du LOT qui porte tout le reste du parcours
-  // (surface, DPE, ERP, mise en location, et l'unique formulaire de création de
-  // bail), et qui rend l'encart des blocages DÉJÀ OUVERT avec ses liens
-  // d'action. Sur un bien à lot unique — RM-0.3.4 : « l'interface masque la
-  // notion de lot tant qu'il est unique » (wiki concepts/Lot.md) — on y va
-  // directement. Un bien créé d'emblée en plusieurs lots garde sa fiche bien :
-  // il n'y a alors pas de « le » lot où aller.
-  const { data: lotsCrees } = await supabase
-    .from("lots")
-    .select("id")
-    .eq("bien_id", bienId)
-    .eq("organization_id", orgId)
-    .neq("etat", "archive")
-    .limit(2);
-  const lotUniqueId = (lotsCrees ?? []).length === 1 ? (lotsCrees ?? [])[0].id : null;
-  redirect(
-    lotUniqueId
-      ? `/agence/${orgId}/parc/${bienId}/lots/${lotUniqueId}${formData.get("parcours") === "1" ? "?parcours=1&etape=lot" : ""}`
-      : `/agence/${orgId}/parc/${bienId}`
-  );
+  redirect(destination);
 }
 
 export async function modifierBien(

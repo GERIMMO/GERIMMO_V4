@@ -29,6 +29,8 @@ Vocabulaire de la mission : *exécuté avec succès*, *exécuté en échec*, *im
 | Matrice des écrans | réussi | réussi |
 | Audit des écrans à 768 px (tous profils) | non relevé | 8 passed |
 | Audit des écrans à 1440 px (tous profils) | non relevé | 8 passed |
+| CI GitHub Actions (Postgres 18, lint, types, tests, build, parcours) | non relevé | réussie : exécution n° 636, tête 8b558c8, après fusion de la PR #178 |
+| Simulation des deux migrations contre la production (tout annulé) | sans objet | réussie : exécution n° 70 de « Migrations Supabase », 13/10 à 21 h 43 UTC |
 
 La référence est le code de `main` au commit e9f31ac, PR #177 incluse. La candidate est la tête de la branche
 de l'audit : retrait des agences du site public, correctif pg_cron du marketing, correctif du récapitulatif

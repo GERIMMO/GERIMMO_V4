@@ -23,9 +23,9 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 |---|---|---|---|---|---|---|---|---|
 | **P0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
 | **P1** | 0 | 1 | 0 | 0 | 0 | 0 | 0 | **1** |
-| **P2** | 17 | 2 | 0 | 0 | 1 | 0 | 0 | **20** |
-| **P3** | 29 | 2 | 0 | 2 | 0 | 0 | 0 | **33** |
-| **Total** | 46 | 5 | 0 | 2 | 1 | 0 | 0 | **54** |
+| **P2** | 19 | 2 | 0 | 0 | 1 | 0 | 0 | **22** |
+| **P3** | 31 | 2 | 0 | 2 | 0 | 0 | 0 | **35** |
+| **Total** | 50 | 5 | 0 | 2 | 1 | 0 | 0 | **58** |
 
 Sources lues : auditeur/a, auditeur/b, coordinateur, proprietaire/s01, relecture/finance, relecture/reprises, relecture/supervision.
 
@@ -56,7 +56,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Contrôle en production (lecture seule)** : `-- Lecture seule : documents « récapitulatif nu » produits depuis la mise en ligne (à ouvrir : rubriques à 0,00 € attendues). select d.id, d.organization_id, d.titre, d.created_at from public.documents d where d.titre = 'Récapitulatif annuel · location nue' and d.created_at >= '2026-10-12' order by d.created_at;`
 - **Statut** : corrigée en branche — commit cddf339 (tests rouges puis verts)
 
-## P2 — dégradation avec contournement (20)
+## P2 — dégradation avec contournement (22)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
@@ -65,6 +65,8 @@ Aucune anomalie de cette gravité à ce jour.
 | `AUD-A-03` | auditeur/a | L'annulation d'une mission artisan (annuler_mission) ne garde ni auteur ni événement | ouverte |
 | `AUD-A-04` | auditeur/a | La suppression d'une détention (quote-part de propriété d'un lot) ne laisse aucune trace | ouverte |
 | `AUD-B-01` | auditeur/b | E-mails de relance, d'appel et de rappel : valeurs saisies insérées sans échappement HTML | ouverte |
+| `AUD-B-02` | auditeur/b | Aucune limite de longueur à l'inscription : un nom très long rend le compte inutilisable (HTTP 431 sur tout le site) | ouverte |
+| `AUD-B-04` | auditeur/b | Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce *(hyp.)* | ouverte |
 | `PROP-02` | proprietaire/s01 | Code postal à 4 chiffres et année 1500 acceptés et enregistrés à la création du bien | ouverte |
 | `PROP-03` | proprietaire/s01 | Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause | ouverte |
 | `PROP-07` | proprietaire/s01 | Fiche personne : date de naissance future, téléphone « abc » et code postal « 75 » acceptés | ouverte |
@@ -126,11 +128,31 @@ Aucune anomalie de cette gravité à ce jour.
 #### `AUD-B-01` — E-mails de relance, d'appel et de rappel : valeurs saisies insérées sans échappement HTML
 
 - **Attendu** : Texte échappé (&lt;a&gt;…) comme dans quittance-email.ts (echapperHtml) et notifications.ts (echapperMarque)
-- **Observé** : corpsRelanceLoyer et corpsInformationCaution (lib/relance-loyer-email.ts) insèrent prenom, lot, emetteur, locataire tels quels dans le HTML du message ; appel-email.ts, rappel-email.ts, relance-paiement-email.ts n'ont aucun échappement non plus. Exécution de la fonction avec prenom='<img src=x onerror=...>', lot='<a href="https://evil.example">', emetteur='<script>': le HTML sortant contient ces balises intactes. Les valeurs viennent de la RPC relances_loyer_dues : lot=lots.nom, prenom/locataire=persons.prenom/nom, emetteur=organizations.name, tous saisis par le propriétaire ou l'agence (et possiblement par le locataire pour son propre nom : hypothèse à vérifier). Le message part du domaine…
-- **Cause probable** : snap-main/app/src/lib/relance-loyer-email.ts:54,60,77-98 ; lib/appel-email.ts:64,80 ; absence d'appel à echapperMarque
-- **Correction proposée** : Passer chaque valeur interpolée par echapperMarque() (déjà dans marque-organisation.ts) dans relance-loyer-email.ts, appel-email.ts, rappel-email.ts, relance-paiement-email.ts ; ajouter un test unitaire avec entrée '<b>'.
+- **Observé** : corpsRelanceLoyer et corpsInformationCaution (lib/relance-loyer-email.ts) insèrent prenom, lot, emetteur, locataire tels quels dans le HTML du message ; appel-email.ts (prenom, emetteur, lien) et rappel-email.ts (lot, adresseBien, prenom, emetteur) interpolent aussi les valeurs sans échappement ; relance-paiement-email.ts n'a aucun échappement mais je n'y ai pas relevé d'insertion de donnée saisie (non vérifié ligne à ligne). Exécution de la fonction avec prenom='<img src=x onerror=...>', lot='<a href="https://evil.example">', emetteur='<script>': le HTML sortant contient ces balises intactes. Les valeurs viennent de la RPC relances_loyer_dues : lot=lots.nom, prenom/locataire=persons.prenom…
+- **Cause probable** : snap-main/app/src/lib/relance-loyer-email.ts:54,60,77-98 ; lib/appel-email.ts:64,80 ; lib/rappel-email.ts:69,80,91,93 ; aucun appel à echapperMarque (marque-organisation.ts:57)
+- **Correction proposée** : Passer chaque valeur interpolée par echapperMarque() (déjà dans marque-organisation.ts) dans relance-loyer-email.ts, appel-email.ts, rappel-email.ts (et relire relance-paiement-email.ts) ; ajouter un test unitaire avec entrée '<b>'.
 - **Preuve (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/t-relance-sortie.txt (exécution de la fonction réelle du snapshot avec entrées hostiles ; seuls eur/formaterDate/moisDeLaPeriode sont substitués)
 - **Correction sans aval** : oui
+- **Statut** : ouverte
+
+#### `AUD-B-02` — Aucune limite de longueur à l'inscription : un nom très long rend le compte inutilisable (HTTP 431 sur tout le site)
+
+- **Attendu** : Refus lisible au-delà d'une longueur raisonnable (nom, adresse, ville ≤ 100–200 caractères), côté serveur et par maxlength
+- **Observé** : Inscription avec un nom de ~24 000 caractères : acceptée (raw_user_meta_data de 24 249 caractères, e-mail confirmé, aucune organisation créée). À la connexion, les cookies de session pèsent 77 824 octets sur 25 cookies ; /espaces répond 431 puis toute adresse du site (y compris /connexion) répond 431 tant que les cookies ne sont pas effacés. Une nouvelle connexion remet les mêmes cookies : le compte est inutilisable et le navigateur est bloqué sur le site. Seuil estimé ~5 000 caractères (extrapolation 3,2 octets par caractère contre 16 Kio d'en-têtes : à confirmer). Aucune validation de longueur dans app/actions/auth.ts ni lib/inscription.ts.
+- **Cause probable** : snap-main/app/src/app/actions/auth.ts (inscription) et app/inscription/formulaire-inscription.tsx : pas de borne ; les métadonnées sont recopiées dans le jeton/cookie de session
+- **Correction proposée** : Borner nom, prénom, adresse, ville, téléphone (maxLength HTML + contrôle serveur) ; ne pas faire transiter ces champs par les métadonnées de session ou les tronquer ; vérifier de même les noms saisis par un propriétaire pour un tiers invité.
+- **Preuve (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/long-inscription-mobile.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/long-login-431.png ; SQL : longueur du raw_user_meta_data du compte auditeur.b.long.* = 24249
+- **Correction sans aval** : oui
+- **Statut** : ouverte
+
+#### `AUD-B-04` — Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce
+
+- **Attendu** : Dépôt accepté jusqu'à 10 Mo ou message clair
+- **Observé** : next.config.ts règle bodySizeLimit à 55 Mo pour toutes les actions et l'application annonce 10 Mo par fichier (TAILLE_MAX_OCTETS). Sur Vercel, une requête de plus de 4,5 Mo vers une fonction est refusée par la plateforme avant le code de l'application ; un bail ou un diagnostic scanné de 5 à 10 Mo échouerait alors avec une page d'erreur de plateforme et non le message de l'application. Non observable sur le banc local (pas de plateforme) ; la limite de 4,5 Mo vient de ma connaissance de la documentation Vercel et n'a pas été relue ici.
+- **Cause probable** : Dépôts de fichiers par action serveur (comme le note le commentaire S11 du fichier de configuration)
+- **Correction proposée** : Aligner la limite annoncée sur la limite de la plateforme, ou déposer via URL signée de stockage ; mesurer en préproduction
+- **Preuve (banc)** : snap-main/app/next.config.ts:147-158 ; snap-main/app/src/lib/file-type.ts (TAILLE_MAX_OCTETS)
+- **Correction sans aval** : non (aval du dirigeant requis)
 - **Statut** : ouverte
 
 #### `PROP-02` — Code postal à 4 chiffres et année 1500 acceptés et enregistrés à la création du bien
@@ -282,12 +304,14 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : oui
 - **Statut** : acceptée — défaut du banc d'essai, pas du produit ; banc-up.sh vérifie la clé de service
 
-## P3 — cosmétique ou mineur (33)
+## P3 — cosmétique ou mineur (35)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
 | `AUD-A-05` | auditeur/a | Écart documentation/code : la piste d'audit générique documentée n'existe pas | ouverte |
 | `AUD-A-06` | auditeur/a | Insertion anonyme directe dans demandes_devis sans limite de débit | ouverte |
+| `AUD-B-03` | auditeur/b | Cookie de session lisible par script et marqué Secure seulement si NEXT_PUBLIC_SITE_URL commence par https:// *(hyp.)* | ouverte |
+| `AUD-B-05` | auditeur/b | Dépôt de deux fichiers identiques : un seul conservé, sans le dire | ouverte |
 | `PROP-04` | proprietaire/s01 | Surface démesurée : message technique « numeric field overflow » affiché à l'utilisateur | ouverte |
 | `PROP-05` | proprietaire/s01 | Nom d'espace sans élision : « Parc de Éloïse … » | ouverte |
 | `PROP-08` | proprietaire/s01 | Recherche globale (⌘K) insensible à la casse mais pas aux accents ; code postal non recherchable | ouverte |

@@ -8,6 +8,7 @@ import { deposerFichierGed } from "@/lib/ged-depot";
 import { aujourdhuiParis, formaterDate, motifLitteral } from "@/lib/ged";
 import { piecesHabituelles } from "@/lib/pieces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { verifierAnneeConstruction, verifierCodePostalBien, verifierSurface } from "@/lib/validation-fiches";
 import {
   TYPES_BIEN,
   TYPES_DIAGNOSTIC,
@@ -69,6 +70,10 @@ export async function creerBien(
   if (!annee || !Number.isInteger(Number(annee)) || Number(annee) < 1000 || Number(annee) > 2100) {
     return { erreur: "L'année de construction est obligatoire pour déterminer les mentions et diagnostics du logement.", valeurs };
   }
+  const refusBien =
+    verifierCodePostalBien(codePostal) ??
+    verifierAnneeConstruction(Number(annee), new Date().getFullYear());
+  if (refusBien) return { erreur: refusBien, valeurs };
   if (!partiesCommunes || !accesTic) {
     return { erreur: "Les parties communes et l'accès aux technologies sont obligatoires. Indiquez « Néant » si nécessaire.", valeurs };
   }
@@ -98,6 +103,8 @@ export async function creerBien(
   if (lotsAValider.some((lot) => !lot.surface || !Number.isFinite(Number(lot.surface)) || Number(lot.surface) <= 0 || !lot.pieces || !Number.isInteger(Number(lot.pieces)) || Number(lot.pieces) < 1 || (lot.nom !== undefined && typeof lot.nom !== "string"))) {
     return { erreur: "La surface habitable et le nombre de pièces sont obligatoires pour chaque lot.", valeurs };
   }
+  const surfaceTropGrande = lotsAValider.map((lot) => verifierSurface(Number(lot.surface), "La surface d'un lot")).find(Boolean);
+  if (surfaceTropGrande) return { erreur: surfaceTropGrande, valeurs };
 
   const creation = String(formData.get("creation_id") ?? _etat.valeurs?.creation_id ?? "");
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(creation)) {
@@ -158,6 +165,10 @@ export async function modifierBien(
   if (!annee || !Number.isInteger(Number(annee)) || Number(annee) < 1000 || Number(annee) > 2100) {
     return { erreur: "L'année de construction est obligatoire.", valeurs };
   }
+  const refusBien =
+    verifierCodePostalBien(codePostal) ??
+    verifierAnneeConstruction(Number(annee), new Date().getFullYear());
+  if (refusBien) return { erreur: refusBien, valeurs };
 
   // L'adresse est verrouillée en base si un lot est loué (trigger RM-0.5.1)
   const { error } = await supabase
@@ -231,6 +242,10 @@ export async function modifierLot(
     if (formData.has(champ)) {
       const valeur = String(formData.get(champ) ?? "").trim();
       maj[champ] = valeur ? Number(valeur) : null;
+      if (champ !== "pieces") {
+        const refus = verifierSurface(Number(valeur), champ === "surface_carrez" ? "La surface Carrez" : "La surface habitable");
+        if (refus) return { erreur: refus, valeurs };
+      }
     }
   }
   const { error } = await supabase

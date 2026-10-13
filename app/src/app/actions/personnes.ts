@@ -4,7 +4,8 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
-import { motifLitteral } from "@/lib/ged";
+import { aujourdhuiParis, motifLitteral } from "@/lib/ged";
+import { verifierCodePostalPersonne, verifierDateNaissance, verifierTelephone } from "@/lib/validation-fiches";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { QUALITES_BAILLEUR, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 
@@ -80,6 +81,11 @@ export async function creerPersonne(
   if (!adresse || !codePostal || !ville) {
     return { erreur: "L'adresse complète (voie, code postal et ville) est obligatoire pour les documents.", valeurs };
   }
+  const refusFiche =
+    verifierTelephone(telephone) ??
+    verifierCodePostalPersonne(codePostal) ??
+    (morale ? null : verifierDateNaissance(dateNaissance, aujourdhuiParis()));
+  if (refusFiche) return { erreur: refusFiche, valeurs };
   if (await emailDejaPris(supabase, orgId, email)) {
     return {
       erreur:
@@ -311,6 +317,11 @@ export async function modifierPersonne(
   if (!adresse || !codePostal || !ville) {
     return { erreur: "L'adresse complète (voie, code postal et ville) est obligatoire pour les documents.", valeurs };
   }
+  const refusFiche =
+    verifierTelephone(telephone) ??
+    verifierCodePostalPersonne(codePostal) ??
+    verifierDateNaissance(dateNaissance, aujourdhuiParis());
+  if (refusFiche) return { erreur: refusFiche, valeurs };
   if (await emailDejaPris(supabase, orgId, email, personId)) {
     return {
       erreur:

@@ -8,7 +8,8 @@ import { detecterMimeReel, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
 import { abandonnerPieceGed, deposerFichierGed, preparerFichierGed } from "@/lib/ged-depot";
 import { cibleBlocage } from "@/lib/parc";
-import { motifLitteral, eur } from "@/lib/ged";
+import { aujourdhuiParis, motifLitteral, eur } from "@/lib/ged";
+import { verifierCodePostalPersonne, verifierDateNaissance } from "@/lib/validation-fiches";
 import { TYPES_BAIL, mentionsObligatoiresManquantes } from "@/lib/baux";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { envoyerEmail } from "@/lib/email";
@@ -172,6 +173,9 @@ async function resoudreLocatairePrincipal(
   if (!nom || !prenom || !email || !dateNaissance || !communeNaissance || !adresse || !codePostal || !ville) {
     return { erreur: "Nouveau locataire : l'identité, la naissance, l'adresse complète et l'email sont obligatoires." };
   }
+  const refusIdentite =
+    verifierDateNaissance(dateNaissance, aujourdhuiParis()) ?? verifierCodePostalPersonne(codePostal);
+  if (refusIdentite) return { erreur: `Nouveau locataire : ${refusIdentite[0].toLowerCase()}${refusIdentite.slice(1)}` };
   const { data: existante } = await supabase
     .from("persons")
     .select("id")

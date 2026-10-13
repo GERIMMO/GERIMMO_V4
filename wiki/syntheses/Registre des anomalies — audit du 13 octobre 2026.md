@@ -23,11 +23,11 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 |---|---|---|---|---|---|---|---|---|
 | **P0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
 | **P1** | 0 | 1 | 0 | 0 | 0 | 0 | 0 | **1** |
-| **P2** | 8 | 15 | 0 | 2 | 1 | 0 | 0 | **26** |
-| **P3** | 38 | 5 | 0 | 2 | 0 | 0 | 0 | **45** |
-| **Total** | 46 | 21 | 0 | 4 | 1 | 0 | 0 | **72** |
+| **P2** | 12 | 21 | 0 | 4 | 1 | 0 | 0 | **38** |
+| **P3** | 46 | 8 | 0 | 2 | 0 | 0 | 0 | **56** |
+| **Total** | 58 | 30 | 0 | 6 | 1 | 0 | 0 | **95** |
 
-Sources lues : auditeur/a, auditeur/b, auditeur/c, chaine/1, coordinateur, proprietaire/s01, relecture/finance, relecture/reprises, relecture/supervision, superadmin.
+Sources lues : auditeur/a, auditeur/b, auditeur/c, chaine/1, chaine/1b, coordinateur, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, superadmin.
 
 > [!warning] Couverture à ne pas surestimer
 > Ce registre ne couvre que ce que les agents ont effectivement exécuté (voir le registre d'exécution à venir).
@@ -56,16 +56,20 @@ Aucune anomalie de cette gravité à ce jour.
 - **Contrôle en production (lecture seule)** : `-- Lecture seule : documents « récapitulatif nu » produits depuis la mise en ligne (à ouvrir : rubriques à 0,00 € attendues). select d.id, d.organization_id, d.titre, d.created_at from public.documents d where d.titre = 'Récapitulatif annuel · location nue' and d.created_at >= '2026-10-12' order by d.created_at;`
 - **Statut** : corrigée en branche — commit cddf339 (tests rouges puis verts)
 
-## P2 — dégradation avec contournement (26)
+## P2 — dégradation avec contournement (38)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
 | `AUD-B-04` | auditeur/b | Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce *(hyp.)* | ouverte |
 | `AUD-C-02` | auditeur/c | Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees par Sante | ouverte — complète SUP-01 : même cause, côté sauvegarde et restauration |
+| `ART-13` | chaine/1b | L'artisan ne peut pas déposer une version 2 de son devis : la demande close devient lecture seule, sans « réviser mon devis » | ouverte |
+| `PRO2-12` | chaine/1b | Un devis reçu ne peut être que retenu : ni refus motivé, ni demande de révision (écart avec le référentiel : déposé, validé, refusé ou expiré) | ouverte |
+| `PRO2-13` | chaine/1b | Réception d'un devis : aucune alerte dans l'application, seulement un e-mail ; l'incident n'est pas compté « À traiter » | ouverte |
 | `PROP-03` | proprietaire/s01 | Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause | ouverte |
 | `PROP-14` | proprietaire/s01 | Entrée en cours de mois : le premier terme (prorata) est exigible le 1er du mois, avant l'entrée, et passe tout de suite en « Impayé » | ouverte |
 | `FIN-07` | relecture/finance | Le filtre par mot-clé « fonds travaux / alur » écarte la pièce avant de consulter la qualification justifiée du propriétaire : une dépense qualifiée « déductible 224 » reste exclue des charges et la qualification est enregistrée mais sans effet. | ouverte |
 | `FIN-11` | relecture/finance | Les migrations ne rétro-capturent aucun loyer existant et la reprise « retrouver_ventilation_fiscale » refuse tout bail qui a plus d'un appel : sur les données réelles déjà en production, le récapitulatif 2044 passe à 0 € de loyers et chaque pièce doit être q… | ouverte |
+| `PR178-A-03` | relecture/pr178/a | Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seule issue : effacer la copie et tout ressaisir | ouverte — 36219ec corrige le cas de la session expirée ; le cas de la réponse perdue demande une décision (reprendre la… |
 | `SUP-01` | relecture/supervision | L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision. | ouverte |
 | `SUP-05` | relecture/supervision | Les « faits de direction » copient, pour toutes les organisations, des données personnelles (titres d'alertes contenant le nom du locataire, ex. « État des lieux d'entrée — Lot 1 · Marie Durand ») dans brief_direction_snapshots, sans aucune trace d'audit par… | ouverte |
 | `AUD-A-01` | auditeur/a | Un agent restreint modifie les équipements d'un lot hors de son portefeuille (RPC definir_equipements_lot) | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — garde de portefeuille, test rouge puis vert |
@@ -81,9 +85,17 @@ Aucune anomalie de cette gravité à ce jour.
 | `PROP-07` | proprietaire/s01 | Fiche personne : date de naissance future, téléphone « abc » et code postal « 75 » acceptés | corrigée en branche — d6ef891 — date de naissance, téléphone et code postal contrôlés côté serveur |
 | `PROP-12` | proprietaire/s01 | Encaissement à 3 décimales accepté et stocké tel quel : totaux affichés incohérents au centime | corrigée en branche — 0555f43 — montant au centime près refusé côté serveur (la colonne numeric(12,2) n'est pas modifié… |
 | `PROP-13` | proprietaire/s01 | Un encaissement daté dans le futur (01/01/2027) est accepté et compté comme déjà reçu | corrigée en branche — 0555f43 — date d'encaissement dans le futur refusée côté serveur, sélecteur plafonné à aujourd'hui |
+| `PR178-A-01` | relecture/pr178/a | Les brouillons de fiche personne et d'incident (identité, naissance, adresse, e-mail, téléphone, pièces jointes) restent en clair dans IndexedDB 7 jours, ne sont pas effacés à la déconnexion et restent lisibles depuis la session d'un autre compte sur le même… | corrigée en branche — 36219ec — copies effacées à la déconnexion et entre comptes, message mis à jour ; la durée de 7 j… |
+| `PR178-A-02` | relecture/pr178/a | Les formulaires de filtre GET sans attribut method (Finances, catalogue de documents, récapitulatif fiscal) sont suivis comme des saisies à protéger : « Afficher » ou Entrée déclenche la boîte native « Quitter le site ? » et « Rester » bloque le filtre | corrigée en branche — 36219ec — seuls les formulaires qui confirment un envoi sont suivis |
+| `PR178-A-04` | relecture/pr178/a | Chaque frappe dans la fiche personne réécrit tous les fichiers joints dans IndexedDB : 3 pièces de 9 Mo + 40 caractères = 1,2 Go d'écritures disque transitoires (copie de 27 Mo) | corrigée en branche — 36219ec — copie écrite 500 ms après la dernière frappe (les pièces sont encore réécrites une fois… |
+| `PR178-A-05` | relecture/pr178/a | Session expirée : un envoi refusé par redirection est présenté comme « confirmation non reçue » (aucune mention de la session, aucun lien de reconnexion) ; sur la fiche personne il verrouille en plus le formulaire (création « incertaine » alors que rien n'est… | corrigée en branche — 36219ec — message « session expirée » dédié ; reconnexion par un autre onglet |
+| `PR178-B-01` | relecture/pr178/b | Session expirée pendant la saisie : l'envoi échoue avec « La confirmation n'a pas pu être reçue… Votre saisie est conservée » sans jamais dire que la session a expiré ; le renvoi échoue de la même façon ; la saisie est perdue à la reconnexion | corrigée en branche — 36219ec — même correction que PR178-A-05 |
+| `PR178-B-05` | relecture/pr178/b | Les formulaires de recherche ou de filtre sans attribut method="get" sont suivis comme des saisies à protéger : chaque recherche déclenche l'avertissement « Quitter le site ? » et reste bloquée si l'on refuse | corrigée en branche — 36219ec — même correction que PR178-A-02 |
 | `REP-01` | relecture/reprises | contre_proposer_creneaux n'est pas rejouable : un second envoi (reponse perdue, double envoi) marque comme REFUSEES les propositions du locataire lui-meme, porte le compteur a 6 et declenche une alerte critique d'arbitrage fantome | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — second envoi sans effet, liste corrigée = anci… |
 | `SUP-02` | relecture/supervision | Pendant une session de diagnostic artisan ouverte (30 min), le trigger de lecture seule est pose sur TOUTES les tables de public, y compris supervision_arrets / supervision_operations : l'arret d'urgence est refuse. | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — l'arrêt d'urgence ne dépend plus d'un diagnost… |
 | `PRO2-01` | chaine/1 | Un propriétaire dont la commune n'est pas ouverte au réseau ne peut solliciter aucun artisan, même un artisan connu : le carnet ne se remplit que par une intervention déjà confiée | à trancher — choix produit : réseau fermé pour la commune du propriétaire, carnet sans formulaire d'ajout |
+| `PR178-B-04` | relecture/pr178/b | Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires | à trancher — clic avant hydratation sans effet visible : désactiver le bouton jusqu'à l'hydratation, formulaire par for… |
+| `PR178-B-06` | relecture/pr178/b | Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté) | à trancher — rejeu possible d'un encaissement après réponse perdue : demande une clé d'idempotence et une contrainte en… |
 | `SA-01` | superadmin | Traversée de la supervision dans un espace client : écriture financière possible sans motif ni durée, et la ligne d'audit 'traversee_action' ne dit ni quelle action, ni sur quel objet, ni avec quel résultat | à trancher — limite déjà actée au wiki (audit du 25/09) : entrée dans un espace client sans motif ni durée ; l'écriture… |
 | `PROP-BANC-01` | proprietaire/s01 | Banc : serveur :3100 démarré sans SUPABASE_SERVICE_ROLE_KEY (inscription et liens bloqués) | acceptée — défaut du banc d'essai, pas du produit ; banc-up.sh vérifie la clé de service |
 
@@ -108,6 +120,36 @@ Aucune anomalie de cette gravité à ce jour.
 - **Preuve (banc)** : preuves/auditeur/c/preuves-sql.txt ; inventaire-automatismes.md section 2
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Statut** : ouverte — complète SUP-01 : même cause, côté sauvegarde et restauration
+
+#### `ART-13` — L'artisan ne peut pas déposer une version 2 de son devis : la demande close devient lecture seule, sans « réviser mon devis »
+
+- **Attendu** : Un moyen explicite de déposer une version 2 (numérotée, v1 conservée) quand le propriétaire le demande
+- **Observé** : L'écran affiche « Ma réponse » (montant, validité, lien PDF) sans action. L'appel RPC renvoie « Cette demande n'attend plus de devis (état : devis_depose) ». Corollaire de PRO2-12 : aucune numérotation de versions n'existe (un seul incident_devis par sollicitation).
+- **Cause probable** : deposer_devis n'accepte que les sollicitations à l'état envoyee ; pas de notion de version.
+- **Correction proposée** : Voir PRO2-12 (décision produit préalable).
+- **Preuve (banc)** : chaine/1b/sql/permissions-api.txt (ligne A.deposer_devis_structure) ; chaine/1b/captures/a7-02-apres-envoi.png
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : ouverte
+
+#### `PRO2-12` — Un devis reçu ne peut être que retenu : ni refus motivé, ni demande de révision (écart avec le référentiel : déposé, validé, refusé ou expiré)
+
+- **Attendu** : Possibilité de refuser le devis (motif conservé et transmis) ou de demander une révision, l'artisan pouvant alors déposer une version 2 (wiki concepts/Devis : déposé, validé, refusé ou expiré)
+- **Observé** : Les seules actions sont « Télécharger le détail du devis (PDF) », « Ouvrir le devis » et « Retenir ce devis ». Aucun refus, aucun motif, aucune révision. Le statut devis_statut du schéma ne compte que depose, retenu, non_retenu, expire, annule. Pour obtenir une autre offre il faut ouvrir une nouvelle consultation avec un autre artisan, déjà exclu ici car « tous les artisans qui correspondent sont déjà sollicités ». Parcours étapes 3 et 4 de la mission (refus v1, dépôt v2) impossible. À trancher : choix produit V1 ou fonction manquante.
+- **Cause probable** : Le code n'implémente que retenir_devis (app/actions/incidents.ts retenirDevis) ; wiki 'Divergences code et référentiel V3' signale déjà l'écart d'états.
+- **Correction proposée** : Décision produit : soit documenter que la V1 ne propose que « retenir » (et le dire à l'écran), soit ajouter un refus motivé + une demande de révision qui rouvre la sollicitation à l'artisan.
+- **Preuve (banc)** : chaine/1b/captures/o2-01-devis-recu.png ; liste des boutons dans la sortie du script scripts/o3.mjs ; énumération devis_statut en base
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : ouverte
+
+#### `PRO2-13` — Réception d'un devis : aucune alerte dans l'application, seulement un e-mail ; l'incident n'est pas compté « À traiter »
+
+- **Attendu** : Une alerte « Devis reçu — à décider » (comme pour « Incident à qualifier » ou « Nouveau message »), l'incident compté dans « À traiter »
+- **Observé** : Le compteur d'alertes reste à 6, aucune ligne alerts de type devis, « À traiter » reste à 2 (INC-0001 et INC-0003 à qualifier) alors que INC-0002 attend la décision du propriétaire. Seule trace : l'événement « Devis déposé » dans la chronologie de l'incident et l'e-mail devis_recu (échec tracé dans tech_log faute de fournisseur). Si l'e-mail est perdu, le dossier dort.
+- **Cause probable** : notifierDevisRecu (lib/notifications.ts) n'envoie que l'e-mail ; aucune insertion dans alerts à la création du devis.
+- **Correction proposée** : Créer une alerte (type devis_recu, criticité normale) dans la même transaction que le dépôt du devis et compter l'incident dans « À traiter » tant qu'un devis attend la décision.
+- **Preuve (banc)** : chaine/1b/captures/o2-01-devis-recu.png ; chaine/1b/sql/notifications-tech-log.txt (notification_echec, evenement devis_recu)
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : ouverte
 
 #### `PROP-03` — Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause
 
@@ -148,6 +190,16 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Contrôle en production (lecture seule)** : `-- Lecture seule : combien de loyers existants sont sans capture, par organisation (c'est le nombre de pièces à qualifier à la main). select e.organization_id, count(*) filter (where c.ecriture_id is null) as loyers_sans_capture, count(*) as loyers_total, min(e.date_piece) premiere, max(e.date_piece) derniere from public.ecritures e left join public.fiscal_encaissements_composantes c on c.ecriture_id=e.id where e.categorie='loyer' and e.sens='recette' and e.contre_ecriture_de is null group by 1 order by 2 desc;`
 - **Statut** : ouverte
+
+#### `PR178-A-03` — Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seu…
+
+- **Attendu** : Le garde-fou anti-doublon est réaffirmé (la fiche n'est pas recréée), mais l'utilisateur doit pouvoir poursuivre : par exemple vérifier la fiche puis rattacher les pièces préparées à la fiche existante, ou relancer la création après confirmation explicite.
+- **Observé** : Une seule ligne persons est créée en base (aucun rejeu : bon point). L'écran affiche « Un enregistrement a été interrompu… Votre saisie et vos documents restent disponibles ici » mais le bouton « Créer la fiche » est désactivé (disabled=true) ; après rechargement et « Reprendre ma saisie », même état : la copie locale contient bilan.creationIncertaine=true et rien ne permet de lever ce drapeau. La seule issue est « Effacer cette copie » (écran de reprise), donc ressaisie complète et nouveau choix des fichiers, ou ajout des pièces à la main depuis la fiche. Le même drapeau est posé AVANT l'appel serveur (creation-fiche-personne.ts:54) : si l'utilisateur ferme l'onglet pendant l'envoi alors q…
+- **Cause probable** : src/lib/creation-fiche-personne.ts:44 (retour immédiat si precedent.creationIncertaine), :54 (drapeau posé avant l'appel), :61 (pièces incertaines jamais renvoyées) ; src/app/agence/[orgId]/personnes/formulaire-personne.tsx:199 (BoutonEnvoi disabled={etat.creationIncertaine}) ; aucun bouton « J'ai vérifié, la fiche n'existe pas, réessayer » ni « Rattacher à la fiche existante ».
+- **Correction proposée** : Ajouter dans le bandeau d'incertitude deux actions explicites : « La fiche existe : continuer avec elle » (rechercher la personne par e-mail côté serveur puis envoyer les pièces) et « La fiche n'existe pas : réessayer » ; ou donner à creerPersonne une clé d'idempotence stockée avec la copie (comme la commande d'incident) pour rejouer sans risque de doublon.
+- **Preuve (banc)** : preuves/relecture/pr178/a/a03-s1-sortie.txt, a03-s2-sortie.txt, captures/A-03-S1-apres-reponse-perdue.png, captures/A-03-S2-apres-reponse-perdue.png, t5.mjs ; SQL : 1 ligne persons pour test-pr178-s1-23092@example.test
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : ouverte — 36219ec corrige le cas de la session expirée ; le cas de la réponse perdue demande une décision (reprendre la fiche trouvée par son e-mail ou réessayer)
 
 #### `SUP-01` — L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision.
 
@@ -298,6 +350,66 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : oui
 - **Statut** : corrigée en branche — 0555f43 — date d'encaissement dans le futur refusée côté serveur, sélecteur plafonné à aujourd'hui
 
+#### `PR178-A-01` — Les brouillons de fiche personne et d'incident (identité, naissance, adresse, e-mail, téléphone, pièces jointes) restent en clair dans IndexedDB 7 jours, ne sont pas effacés à la déconnexion et reste…
+
+- **Attendu** : Données personnelles de tiers (identité, naissance, adresse, pièce d'identité) non conservées sur le poste après la déconnexion, ou chiffrées/liées à la session ; avertissement explicite sur poste partagé à chaque affichage de l'état « conservé ».
+- **Observé** : 1) La déconnexion s'exécute en 210 ms sans aucune confirmation ni nettoyage. 2) La copie « gerimmo:personne:v1:<id compte>:<id org> » reste dans IndexedDB (nom, prénom, date de naissance, commune de naissance, e-mail, téléphone, adresse, code postal, ville, fichier File de la pièce d'identité), lisible en JavaScript depuis la session du locataire (même origine) : 1 copie visible. 3) Sur disque, le journal LevelDB du profil contient les valeurs en clair (UTF-16 : 21 occurrences de « Camille », 17 de « Nantes », 11 de « Lilas ») et le fichier de la pièce est dans le dossier .blob. 4) Une fois la copie enregistrée, le texte affiché ne dit plus « Évitez un appareil partagé » (cette mise en gard…
+- **Cause probable** : seDeconnecter() (app/actions/auth.ts:25) est une action serveur sans purge côté client ; aucune écoute de la déconnexion ni de SIGNED_OUT ne vide la base « gerimmo-reprises » (brouillon-fichiers.ts) ni les clés localStorage « gerimmo:bien:v1 » et « gerimmo:devis:v1 ». Durée de 7 jours et purge « à la prochaine utilisation » seulement (lireCopieFichiers).
+- **Correction proposée** : Vider les trois stockages (IndexedDB gerimmo-reprises, clés gerimmo:*) dans le geste de déconnexion (formulaire du menu et de /compte) et à l'expiration de session ; afficher « Évitez un appareil partagé » dans tous les états ; ramener la durée à 24-48 h ; ne pas stocker les fichiers d'identité (ne garder que les champs texte) ou les chiffrer avec une clé de session.
+- **Preuve (banc)** : preuves/relecture/pr178/a/t2.mjs (sortie : copies=1 après déconnexion et depuis la session locataire), captures/A-01-poste-partage-locataire.png, a01-disque-sortie.txt (comptage d'occurrences dans le journal LevelDB du profil), src/lib/brouillon-fichiers.ts:1-65, src/components/reprise-locale/index.tsx:66-75, src/app/actions/auth.ts:25-30, a01-incident-sortie.txt (copie incident avant/après déconnexion), a01-devis-sortie.txt (clé devis avant/après déconnexion)
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : corrigée en branche — 36219ec — copies effacées à la déconnexion et entre comptes, message mis à jour ; la durée de 7 jours reste à trancher
+
+#### `PR178-A-02` — Les formulaires de filtre GET sans attribut method (Finances, catalogue de documents, récapitulatif fiscal) sont suivis comme des saisies à protéger : « Afficher » ou Entrée déclenche la boîte native…
+
+- **Attendu** : Un filtre (formulaire GET, sans effet d'écriture) n'est jamais traité comme une saisie non enregistrée ; le filtre s'applique sans boîte de confirmation (le brief demande que les formulaires de recherche soient exclus).
+- **Observé** : Une boîte beforeunload s'ouvre à chaque validation du filtre. Réponse « Rester » : l'URL reste /agence/<org>/loyers (filtre non appliqué, page inchangée) ; réponse « Quitter » : navigation vers ?bien=&annee=2025&mois=10. Même comportement sur le catalogue (URL inchangée en refusant, ?q=bail en acceptant). Le message natif n'explique rien (Chromium ignore le texte), l'utilisateur croit perdre une saisie alors qu'il ne fait que filtrer. Contrôle témoin : le sélecteur d'année de /comptabilite/fiscal n'a qu'une option, non testable. Même défaut côté artisan : /artisan/clients (recherche de clients, <form className="flex gap-3"> sans method) : saisir « Dupont » puis Entrée ouvre aussi une boîte…
+- **Cause probable** : src/lib/protection-saisie.ts:46-51 (eligible) : `formulaire.getAttribute("method")?.toLowerCase() !== "get"` est vrai quand l'attribut est absent alors que la méthode par défaut du navigateur est GET ; role="search" n'est pas posé sur ces formulaires. Et avantSortie (l.128-130) ne tient pas compte d'une soumission en cours (le WeakSet enSoumission ne sert qu'au gestionnaire formdata).
+- **Correction proposée** : Dans eligible, utiliser la propriété normalisée `formulaire.method !== "get"` (ou `formulaire.matches('form:not([method=post i])')`), ignorer aussi tout formulaire dont l'action est une URL (pas d'action serveur) ; dans avantSortie, ne pas bloquer quand un formulaire GET vient d'être soumis (poser departAutorise dans le gestionnaire submit).
+- **Preuve (banc)** : preuves/relecture/pr178/a/a02-sortie.txt (lignes « réponse=Rester » / « réponse=Quitter » et catalogue), captures/A-02-loyers-filtre-bloque.png, formulaires : src/components/page-finances.tsx:41, src/app/agence/[orgId]/documents/catalogue/page.tsx:61, src/components/recapitulatif-fiscal.tsx:198, a02b-sortie.txt (artisan/clients)
+- **Correction sans aval** : oui
+- **Statut** : corrigée en branche — 36219ec — seuls les formulaires qui confirment un envoi sont suivis
+
+#### `PR178-A-04` — Chaque frappe dans la fiche personne réécrit tous les fichiers joints dans IndexedDB : 3 pièces de 9 Mo + 40 caractères = 1,2 Go d'écritures disque transitoires (copie de 27 Mo)
+
+- **Attendu** : Les fichiers déjà conservés ne sont pas réécrits quand seul un champ texte change ; l'occupation disque reste voisine de la taille des fichiers (≈27 Mo).
+- **Observé** : Dossier IndexedDB du profil : 55 432 Ko après les trois fichiers, puis 1 244 536 Ko (≈1,2 Go) après 40 frappes, retombé à 28 052 Ko seulement à la fermeture du navigateur. Cause constatée : chaque changement de snapshot appelle enregistrer(...) qui fait copies.put({revision, date, donnees}) avec les objets File dans donnees, donc une nouvelle copie de chaque blob par frappe ; le ramasse-miettes du navigateur n'intervient pas à temps. La latence de saisie reste correcte (40 frappes : 322 ms avec fichiers), le risque est l'usure disque, le dépassement de quota (surtout iOS Safari, quota par origine plus bas) et l'état « refuse » qui déclenche alors une alerte de sortie. Non mesuré hors Chromi…
+- **Cause probable** : Un seul enregistrement monolithique (texte + File) réécrit à chaque modification du snapshot, sans temporisation ni séparation des fichiers du texte.
+- **Correction proposée** : Séparer les enregistrements (clé texte et clé par fichier, écrite une seule fois à l'ajout), et temporiser l'écriture du texte (500 ms) ; ou ne conserver que le texte et exiger la re-sélection des fichiers.
+- **Preuve (banc)** : preuves/relecture/pr178/a/a06-sortie.txt (sortie de t11.mjs), t11.mjs ; src/app/agence/[orgId]/personnes/formulaire-personne.tsx:72-73 (useEffect sur snapshot, à chaque frappe), src/lib/brouillon-fichiers.ts:58 (put complet), src/components/reprise-locale/index.tsx:38-56
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : corrigée en branche — 36219ec — copie écrite 500 ms après la dernière frappe (les pièces sont encore réécrites une fois par pause, à découper si besoin)
+
+#### `PR178-A-05` — Session expirée : un envoi refusé par redirection est présenté comme « confirmation non reçue » (aucune mention de la session, aucun lien de reconnexion) ; sur la fiche personne il verrouille en plus…
+
+- **Attendu** : Message explicite « Votre session a expiré, reconnectez-vous (nouvel onglet) puis réessayez » avec lien ; saisie conservée ; aucun verrou sur un envoi qui n'a pas atteint l'action.
+- **Observé** : A) La réponse de l'action est un 303 (redirection vers la connexion) ; l'écran reste sur /alertes avec « La confirmation n'a pas pu être reçue. Votre saisie reste dans cette page. Vérifiez le dossier avant de recommencer l'envoi. » ; aucun lien vers la connexion (0 lien) ; le titre est conservé ; chaque nouvel essai donne le même message. Un rechargement renvoie à la connexion et fait perdre la saisie, contrairement à « reste dans cette page ». B) Même cause : le bilan passe à creationIncertaine=true (« Un enregistrement a été interrompu… La création n'a pas pu être confirmée »), le bouton « Créer la fiche » est désactivé et la copie locale (1) garde ce drapeau : après reconnexion le formul…
+- **Cause probable** : src/lib/use-action-state-protegee.ts:18-24 et use-action-formulaire.ts:35-38 : tout rejet (sauf redirect/notFound reconnus par unstable_rethrow) devient le même message générique ; src/lib/creation-fiche-personne.ts:54-56 : toute exception de creer() pose creationIncertaine. La redirection du proxy vers /connexion arrive comme réponse HTML inattendue, pas comme redirect() reconnu.
+- **Correction proposée** : Dans les deux hooks, tester `erreur` (réponse non RSC / redirection) ou ping /api/session avant d'afficher le message ; afficher « session expirée » avec lien ouvert dans un nouvel onglet ; dans creation-fiche-personne, ne pas poser creationIncertaine quand l'échec précède l'envoi (session expirée, hors ligne).
+- **Preuve (banc)** : preuves/relecture/pr178/a/a07b-sortie.txt (cas A : 303, message, 0 lien), a07-sortie.txt (cas B), captures/A-06-session-expiree-alerte.png, captures/A-05-session-expiree.png ; SQL : count(persons où email like 'test-pr178-exp%') = 0
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : corrigée en branche — 36219ec — message « session expirée » dédié ; reconnexion par un autre onglet
+
+#### `PR178-B-01` — Session expirée pendant la saisie : l'envoi échoue avec « La confirmation n'a pas pu être reçue… Votre saisie est conservée » sans jamais dire que la session a expiré ; le renvoi échoue de la même fa…
+
+- **Attendu** : Un message qui dit que la session a expiré, qu'il faut se reconnecter, avec un lien vers /connexion ; ou une redirection vers la connexion ; la saisie n'est pas annoncée « conservée » si elle ne survit pas à la reconnexion.
+- **Observé** : Étapes 3 et 4 : le même bandeau « La confirmation n'a pas pu être reçue. Votre saisie est conservée ; rouvrez le dossier pour vérifier le résultat avant de recommencer. » (aucun lien vers /connexion, 0 occurrence), les cookies sont déjà supprimés par le proxy (303 vers /connexion suivi par fetch). Étape 5 : redirection vers /connexion?suite=… ; étape 6 : retour sur la page, champ titre vide (saisie perdue). Aucune ligne créée.
+- **Cause probable** : src/lib/use-action-formulaire.ts (catch : message unique) et src/lib/use-action-state-protegee.ts : toute exception de l'appel d'action est traitée comme « réponse perdue ». Le 303 vers /connexion du proxy (src/proxy.ts, bloc session expirée) donne une réponse HTML que le client Next rejette ; le hook ne distingue pas ce cas d'une coupure réseau. Précision : le même message existait déjà dans use-action-formulaire.ts (formulaires en onSubmit) avant la PR ; la PR l'a étendu aux formulaires en useActionState (une soixantaine), qui affichaient auparavant la page d'erreur.
+- **Correction proposée** : Dans les deux hooks, tester l'état de session (ou le type de réponse, ou un en-tête dédié posé par le proxy sur les actions serveur) et afficher « Votre session a expiré. Reconnectez-vous : cette saisie n'a pas été enregistrée » avec un lien /connexion?suite=<page>. Ne pas écrire « saisie conservée » pour un formulaire sans copie locale.
+- **Preuve (banc)** : preuves/relecture/pr178/b/PR178-B-session-expiree-envoi.png ; scripts/expire2.mjs (sortie console reproduite deux fois)
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : corrigée en branche — 36219ec — même correction que PR178-A-05
+
+#### `PR178-B-05` — Les formulaires de recherche ou de filtre sans attribut method="get" sont suivis comme des saisies à protéger : chaque recherche déclenche l'avertissement « Quitter le site ? » et reste bloquée si l'…
+
+- **Attendu** : La recherche s'exécute sans fenêtre : un formulaire GET n'est pas une saisie à conserver.
+- **Observé** : Une boîte beforeunload s'ouvre (type constaté : beforeunload, dismiss par défaut du banc) ; en choisissant de rester, l'URL ne change pas et le filtre n'est pas appliqué. Il faut accepter de « quitter » pour chercher.
+- **Cause probable** : src/lib/protection-saisie.ts, fonction eligible : formulaire.getAttribute("method")?.toLowerCase() !== "get" vaut true quand l'attribut est absent (null?.toLowerCase() = undefined), alors que la méthode par défaut est GET. Les tests de la PR (e2e/protection-saisie.spec.ts, « recherche et champs techniques ») n'essaient que <form method="get">. Le champ q est suivi, la soumission n'est jamais « confirmée » (pas d'attribut data-saisie-confirmee), donc avantSortie bloque.
+- **Correction proposée** : Dans eligible, ne suivre que les formulaires qui déclarent une action serveur ou onSubmit : par exemple exiger data-saisie-confirmee ou un attribut posé par useActionFormulaire ; au minimum exclure aussi les formulaires dont la propriété form.method vaut « get » sans attribut action React. Ajouter un cas de test avec un formulaire sans method.
+- **Preuve (banc)** : preuves/relecture/pr178/b/PR178-B-recherche-bloquee.png ; scripts/recherche1.mjs
+- **Correction sans aval** : oui
+- **Statut** : corrigée en branche — 36219ec — même correction que PR178-A-02
+
 #### `REP-01` — contre_proposer_creneaux n'est pas rejouable : un second envoi (reponse perdue, double envoi) marque comme REFUSEES les propositions du locataire lui-meme, porte le compteur a 6 et declenche une aler…
 
 - **Observé** : Le locataire (bail actif, mission 'acceptee', 3 creneaux de l'artisan en attente) envoie ses 3 disponibilites ; la reponse reseau se perd (la page n'affiche pas le succes) et il renvoie le meme formulaire - ou double envoi. Le 2e appel passe (la mission est toujours 'acceptee', aucune garde 'mes propositions sont deja en attente') : l'UPDATE vise TOUS les creneaux statut='propose', y compris ceux proposes par le locataire au 1er appel -> 3 'refuse/locataire' + 3 'refuse/artisan' = 6 refus (RM-10.4.1) alors que le locataire n'a refuse que 3 creneaux. Consequences observees : (a) alerte 'creneaux_arbitrage' de criticite 'critique' ouverte pour le gerant ('6 creneaux refuses : reglez le rendez…
@@ -328,6 +440,26 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Statut** : à trancher — choix produit : réseau fermé pour la commune du propriétaire, carnet sans formulaire d'ajout
 
+#### `PR178-B-04` — Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires
+
+- **Attendu** : L'envoi aboutit comme sur /inscription (POST natif de l'action serveur).
+- **Observé** : Formulaire protégé : rien ne se passe (action HTML = javascript:throw new Error('React form unexpectedly submitted.'), aucun message). Témoin : le serveur répond et affiche son message. Contournement : attendre la fin du chargement et recliquer.
+- **Cause probable** : src/lib/use-action-state-protegee.ts : l'action passée à useActionState devient une fonction cliente (async) enveloppant l'action serveur ; React ne peut plus sérialiser une référence d'action serveur dans le HTML rendu côté serveur. 70 formulaires concernés (grep use-action-state-protegee).
+- **Correction proposée** : Documenter le compromis ; ou désactiver visuellement le bouton d'envoi tant que la page n'est pas hydratée (état « chargement ») pour que le clic précoce ne soit pas silencieux ; ou conserver l'action serveur en action du formulaire et poser la protection par écouteurs (formdata) plutôt que par enveloppe.
+- **Preuve (banc)** : preuves/relecture/pr178/b/scripts/sansjs.mjs (sortie console des deux cas)
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : à trancher — clic avant hydratation sans effet visible : désactiver le bouton jusqu'à l'hydratation, formulaire par formulaire
+
+#### `PR178-B-06` — Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté)
+
+- **Attendu** : Un seul encaissement ; ou impossibilité de renvoyer sans avoir rouvert le dossier.
+- **Observé** : Après l'étape 2 : l'encaissement est déjà enregistré, le formulaire garde 2 et le bouton reste actif ; l'étape 3 crée un second encaissement de 2,00 € (2 lignes en base). L'invitation « Vérifiez le dossier avant de recommencer » n'est pas actionnable sans quitter la page, et quitter la page déclenche en plus l'avertissement « modifications non enregistrées ». Corrigeable ensuite par « Retirer » (journal), mais le déclencheur a pu émettre un reçu en trop. Avant la PR, la même panne affichait la page d'erreur (formulaire perdu), pas un formulaire prêt à rejouer.
+- **Cause probable** : src/app/actions/loyers.ts:ajouterEncaissement (insert sans clé) ; idem encaisserDepot (depot.ts) et ajouterEcriture (compta.ts), lecture seule, non reproduits pour ces deux-là. Seules parc.ts (creation_id), auth.ts et retours.ts (cle_envoi) portent une clé. src/lib/use-action-state-protegee.ts conserve la saisie et ne désactive pas l'envoi après l'échec.
+- **Correction proposée** : Ajouter un champ caché cle_envoi (UUID par formulaire monté, régénéré après succès confirmé) et une contrainte d'unicité sur l'encaissement ; à défaut, après une réponse perdue, remplacer le bouton par « Vérifier l'encaissement » qui relit l'état du bail avant de réarmer l'envoi. À arbitrer P1 si l'on juge l'avertissement insuffisant face à l'effet comptable et au reçu envoyé au locataire.
+- **Preuve (banc)** : preuves/relecture/pr178/b/PR178-B-encaissement-reponse-perdue.png ; scripts/rejeu1.mjs
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : à trancher — rejeu possible d'un encaissement après réponse perdue : demande une clé d'idempotence et une contrainte en base (migration)
+
 #### `SA-01` — Traversée de la supervision dans un espace client : écriture financière possible sans motif ni durée, et la ligne d'audit 'traversee_action' ne dit ni quelle action, ni sur quel objet, ni avec quel r…
 
 - **Attendu** : Action sensible attribuable : auteur, cible (bail/montant), date, résultat ; l'entrée dans un espace client motivée (motif) et bornée (durée) comme l'exige la mission ; l'écriture financière rattachée à son auteur
@@ -348,7 +480,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : oui
 - **Statut** : acceptée — défaut du banc d'essai, pas du produit ; banc-up.sh vérifie la clé de service
 
-## P3 — cosmétique ou mineur (45)
+## P3 — cosmétique ou mineur (56)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
@@ -364,6 +496,9 @@ Aucune anomalie de cette gravité à ce jour.
 | `AUD-C-08` | auditeur/c | Fichiers PDF orphelins possibles si le webhook Youtrust et la tache de nuit traitent le meme evenement en meme temps (hypothese a verifier) *(hyp.)* | ouverte |
 | `LOC-01` | chaine/1 | Dépôt d'une attestation déjà déposée : message technique générique au lieu de « ce fichier est déjà dans votre dossier » | ouverte |
 | `LOC-02` | chaine/1 | Élision manquante : « Dernier document — quittance de octobre 2026 » | ouverte |
+| `ART-11` | chaine/1b | PDF du devis : quantité et taux de TVA écrits avec un point décimal (« 2.5 », « 5.5 % ») alors que montants et écran sont en virgule | ouverte |
+| `ART-12` | chaine/1b | Quantité ou prix invalide (0, « abc », 12,345, -5) : le total reste à 0,00 € sans dire quel champ est en cause | ouverte |
+| `PRO2-11` | chaine/1b | Élision manquante dans le nom de parc généré : « Parc de Éloïse … » (même famille que LOC-02) | ouverte |
 | `PROP-05` | proprietaire/s01 | Nom d'espace sans élision : « Parc de Éloïse … » | ouverte |
 | `PROP-08` | proprietaire/s01 | Recherche globale (⌘K) insensible à la casse mais pas aux accents ; code postal non recherchable | ouverte |
 | `PROP-09` | proprietaire/s01 | Libellés d'agence ou de permission dans l'espace propriétaire direct | ouverte |
@@ -380,6 +515,10 @@ Aucune anomalie de cette gravité à ce jour.
 | `FIN-10` | relecture/finance | Le wiki métier n'a pas été mis à jour : il décrit encore la ligne 229 comme « part non récupérable seulement, postes récupérables retirés lot par lot », alors que le code ne retire plus rien (coproRecuperableExclue vaut toujours 0) et traite la réintégration… *(hyp.)* | ouverte |
 | `FIN-12` | relecture/finance | Hypothèse à vérifier : les lectures de qualifications, de captures et d'écritures n'ont ni filtre d'année (captures, qualifications) ni garde contre la limite de 1 000 lignes de l'API, alors que d'autres écrans du dépôt la connaissent (« trop de lignes »). *(hyp.)* | ouverte |
 | `FIN-13` | relecture/finance | Hypothèse à vérifier : l'encaissement en un clic prend la date par défaut de la base (current_date, fuseau UTC), pas la date de Paris ; entre 00 h 00 et 01 h 59 (heure de Paris) un règlement est daté de la veille, y compris le 31 décembre pour un 1er janvier. *(hyp.)* | ouverte |
+| `PR178-A-06` | relecture/pr178/a | Accessibilité des copies locales : la région role=status change de phrase à chaque frappe (25 changements pour 12 caractères) et le focus tombe sur le body après « Reprendre ma saisie » | ouverte |
+| `PR178-A-09` | relecture/pr178/a | Sans API Navigation (hypothèse Safari/iOS et Firefox), le geste Retour abandonne silencieusement un formulaire modifié *(hyp.)* | ouverte |
+| `PR178-B-03` | relecture/pr178/b | Encaissement de 0,01 € accepté par le nouveau contrôle au centime mais refusé par la base avec le message générique « Gerimmo n'a pas pu terminer cette action » | ouverte |
+| `PR178-B-07` | relecture/pr178/b | Les parcours navigateur ajoutés n'auraient détecté aucun des constats B-01 à B-06 : les tests du garde sont en partie synthétiques et aucun ne couvre les succès financiers, la session expirée ou les formulaires de recherche sans method | ouverte |
 | `REP-02` | relecture/reprises | Le courriel d'urgence au gestionnaire n'est envoye qu'a la premiere execution : si la premiere tentative a cree l'incident puis s'est arretee avant l'e-mail, la reprise (rejoue:true) ne l'envoie jamais *(hyp.)* | ouverte |
 | `REP-03` | relecture/reprises | Clients externes (module desactive en production) : apres un refus de validation, le meme justificatif ne peut plus etre remplace par un autre fichier de meme type tant que le formulaire n'est pas recharge, et un devis re-genere ne peut pas etre redepose *(hyp.)* | ouverte |
 | `REP-04` | relecture/reprises | choisir_creneau et accepter_creneau_locataire ne sont pas rejouables : une reponse perdue suivie d'un nouvel envoi affiche une erreur alors que le rendez-vous est confirme | ouverte |
@@ -390,10 +529,14 @@ Aucune anomalie de cette gravité à ce jour.
 | `SUP-07` | relecture/supervision | Le périmètre d'arrêt « Sauvegarde » est proposé au superviseur et accepté par la base, mais aucun code (workflow GitHub de sauvegarde, scripts app/scripts/sauvegarde/*) ne lit verifier_arret_supervision('sauvegarde') : l'arrêt n'arrête rien. *(hyp.)* | ouverte |
 | `SUP-09` | relecture/supervision | Chaque validation d'un devis téléverse un nouveau PDF (chemin aléatoire) dans le compartiment devis-preparations et n'efface jamais l'ancien (ni celui d'une validation perdante en cas de conflit 409) : des PDF orphelins contenant les coordonnées de l'entrepri… *(hyp.)* | ouverte |
 | `SA-02` | superadmin | Brief de direction : les montants des faits datés s'affichent avec un point décimal ('500.00 €') alors que les mesures s'affichent à la française ('4 870,00 €') | ouverte |
+| `SA-03` | superadmin | Une consigne ambiguë (sans aucune tâche) peut être « autorisée » : l'écran dit « Aucune tâche proposée. Précisez les lectures » mais propose quand même « Autoriser la version 1 », et la base enregistre l'accord | ouverte |
 | `PUB-02` | coordinateur | Offre agence présentée au public alors que les agences sont hors périmètre V1 publique : accueil (repères, espaces, bandeau tarif, FAQ), tarifs, connexion, inscription artisan, choix d'espace, pied de page, métadonnées, deux sujets éditoriaux | corrigée en branche — commit e7982a7 |
 | `PUB-04` | coordinateur | La mention de taxes de l'accueil et des tarifs citait encore les agences (« pour les particuliers comme pour les agences ») | corrigée en branche — 35b0ae8 — phrase de taxes sans agences, 4 tests |
 | `PROP-04` | proprietaire/s01 | Surface démesurée : message technique « numeric field overflow » affiché à l'utilisateur | corrigée en branche — d6ef891 — surface bornée à 9 999,99 m² avec message clair |
 | `PROP-06` | proprietaire/s01 | La page /connexion présente encore l'offre agence alors que les agences sont hors V1 publique | corrigée en branche — commit e7982a7 (/connexion sans offre agence) |
+| `PR178-A-07` | relecture/pr178/a | Les copies de devis (une clé localStorage par demande) ne sont jamais purgées si l'artisan ne rouvre pas la même demande : l'expiration de 7 jours n'est contrôlée qu'à la lecture de la clé *(hyp.)* | corrigée en branche — 36219ec — copies effacées à la déconnexion et entre comptes ; les copies d'un même compte expiren… |
+| `PR178-A-08` | relecture/pr178/a | Quand le stockage local est refusé, l'écran « La fiche est créée » affiche encore l'alerte « Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement » et chaque sortie déclenche la boîte « Quitter le site ? » alors qu'il n'y a plus rien à perdre | corrigée en branche — 36219ec — l'effacement qui échoue après un envoi confirmé ne laisse plus ni alerte ni boîte de so… |
+| `PR178-B-02` | relecture/pr178/b | Import du parc : la confirmation de sortie « modifications non enregistrées » se déclenche encore après un import réussi (l'état de retour n'a pas de clé succes) | corrigée en branche — 36219ec — l'import du parc n'est plus suivi |
 | `SUP-08` | relecture/supervision | Quand le responsable désigné perd son habilitation, traiter_vacances passe TOUTES les alertes non accusées du plan en « non_acheminee », y compris celles déjà escaladées vers le créateur (qui, lui, est habilité) ; elles ne peuvent alors plus escalader (l'esca… | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — seules les alertes du responsable concerné son… |
 | `EDI-01` | coordinateur | La ligne éditoriale de la veille accepte « agence » comme public valide (PUBLICS_JOURNAL) : un article visant seulement les agences passerait le filtre de pertinence en V1 | à trancher — ligne éditoriale |
 | `PUB-03` | coordinateur | Les textes juridiques (conditions générales, mentions légales, confidentialité) décrivent encore l'offre et la tarification agence | à trancher — textes juridiques non modifiés |

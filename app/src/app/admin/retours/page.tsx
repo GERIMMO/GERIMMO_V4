@@ -1,4 +1,5 @@
 import { TitreEcran } from "@/components/titre-ecran";
+import { formaterDateHeureParis, formaterDateParis } from "@/lib/heure-paris";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -53,7 +54,7 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
     {(total > 0 || filtreActif || file.error) && <nav aria-label="Files de retours" className="flex flex-wrap gap-2">{Object.entries(NATURES).map(([k, v]) => <Link key={k} href={adresse(1, k)} aria-current={nature === k ? "page" : undefined} className={`filtre inline-flex items-center${nature === k ? " actif" : ""}`}>{v}</Link>)}</nav>}
     {nature === "idee" && <section className="rounded-xl border border-[var(--or)] bg-[var(--ivoire)] p-4 text-sm">
       <h2 className="font-heading text-lg">Revue de {new Date(mois + "T12:00:00").toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</h2>
-      {revue.error ? <p>Le bilan de la revue est indisponible.</p> : revue.data ? <><p className="mt-2">Revue terminée le {new Date(revue.data.cree_le).toLocaleDateString("fr-FR")}.</p><p className="mt-2 whitespace-pre-wrap">{revue.data.bilan}</p></> : <><p className="mt-2">La revue mensuelle est à faire. Examinez les idées et leurs dates de réexamen, puis consignez le bilan.</p><CloreRevue /></>}
+      {revue.error ? <p>Le bilan de la revue est indisponible.</p> : revue.data ? <><p className="mt-2">Revue terminée le {formaterDateParis(revue.data.cree_le)}.</p><p className="mt-2 whitespace-pre-wrap">{revue.data.bilan}</p></> : <><p className="mt-2">La revue mensuelle est à faire. Examinez les idées et leurs dates de réexamen, puis consignez le bilan.</p><CloreRevue /></>}
       {!reexamens.error && Number(reexamens.count) > 0 && <p className="mt-3 font-medium">{reexamens.count} idée(s) ont atteint leur date de réexamen.</p>}
       <p className="mt-3 text-xs text-muted-foreground">Classement sur tout l’historique : organisations distinctes, soutiens uniques, puis ancienneté. Regrouper des idées conserve la confidentialité de leurs descriptions.</p>
     </section>}
@@ -72,14 +73,14 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
         : <div className="vide-guide"><p className="titre">Aucune demande en attente</p><p className="explication">Les problèmes, questions, idées et contestations envoyés depuis « Aide et retours » arrivent ici.</p></div>)}
     {lignes.map(({ retour: r, organisation, soutiens, organisations: nbOrg }) => <article key={r.id} className="loc-carte">
       <div className="flex flex-wrap justify-between gap-2"><h2 className="font-heading text-xl">{r.titre}</h2><span className="puce puce-prep">{ETATS_RETOUR[r.etat]}</span></div>
-      <p className="mt-2 text-xs text-muted-foreground">{NATURES[r.nature]} · Gravité : {GRAVITES_RETOUR[r.gravite] ?? r.gravite} · {new Date(r.cree_le).toLocaleString("fr-FR")} · Réf. {r.id.slice(0, 8).toUpperCase()} · {organisation ?? (r.nature === "contestation" ? "Espace artisan privé" : "Compte personnel")}</p>
+      <p className="mt-2 text-xs text-muted-foreground">{NATURES[r.nature]} · Gravité : {GRAVITES_RETOUR[r.gravite] ?? r.gravite} · {formaterDateHeureParis(r.cree_le)} · Réf. {r.id.slice(0, 8).toUpperCase()} · {organisation ?? (r.nature === "contestation" ? "Espace artisan privé" : "Compte personnel")}</p>
       <p className="mt-4 whitespace-pre-wrap text-sm">{r.description}</p>
       {r.attendu && <p className="mt-3 whitespace-pre-wrap text-sm"><strong>Attendu : </strong>{r.attendu}</p>}
       <p className="mt-3 text-xs text-muted-foreground">Écran : {nomEcran(r.ecran)} · {ACTIONS_RETOUR[r.action_origine]}</p>
       {r.nature === "idee" && <p className="mt-3 text-sm">{nbOrg} organisation(s) · {soutiens} soutien(s)</p>}
       {r.reexaminer_le && <p className="mt-3 text-sm">À réexaminer le {new Date(r.reexaminer_le + "T12:00:00").toLocaleDateString("fr-FR")}.</p>}
       {r.publication_id && <Link href={`/admin/publications/${r.publication_id}`} className="mt-3 inline-block text-sm underline">Préparer l’article lié à cette idée</Link>}
-      <details className="mt-4 text-sm"><summary className="cursor-pointer font-medium">Historique des réponses</summary><ol className="mt-3 space-y-3">{(historique.data ?? []).filter(h => h.retour_id === r.id).map(h => <li key={h.id} className="border-l-2 border-[var(--filet)] pl-3"><time className="text-xs text-muted-foreground">{new Date(h.cree_le).toLocaleString("fr-FR")}</time><p className="whitespace-pre-wrap">{h.message}</p></li>)}</ol></details>
+      <details className="mt-4 text-sm"><summary className="cursor-pointer font-medium">Historique des réponses</summary><ol className="mt-3 space-y-3">{(historique.data ?? []).filter(h => h.retour_id === r.id).map(h => <li key={h.id} className="border-l-2 border-[var(--filet)] pl-3"><time className="text-xs text-muted-foreground">{formaterDateHeureParis(h.cree_le)}</time><p className="whitespace-pre-wrap">{h.message}</p></li>)}</ol></details>
       <DecisionRetour retour={r} />{r.nature === "idee" && <RegrouperIdees retour={r} idees={idees} />}
     </article>)}
     {/* Pas de pagination sur une liste vide ; le total est dans l'en-tête (24/09). */}

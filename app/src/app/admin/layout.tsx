@@ -11,6 +11,7 @@ import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { RechercheSupervision } from "@/components/recherche-supervision";
 import { chargerDecisionsAttendues } from "@/lib/decisions-attendues";
 import { faitsManquants } from "@/lib/editeur";
+import { BandeauArretSupervision } from "@/components/bandeau-arret-supervision";
 
 // La supervision reprend le repère latéral des espaces métier. Les actions de
 // sécurité restent dans l'en-tête, visibles sur chaque écran.
@@ -24,10 +25,13 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
   const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");
   if (!estSuperAdmin) redirect("/espaces");
 
-  const [alertes, decisions, { data: utilisateur }] = await Promise.all([
+  const [alertes, decisions, { data: utilisateur }, arrets, relais] = await Promise.all([
     chargerSyntheseAlertes(supabase, { toutes: true }),
     chargerDecisionsAttendues(supabase, process.env, faitsManquants().length),
     supabase.auth.getUser(),
+    // Audit du 13/10 (SA-04) : un arrêt d'urgence ou un relais en cours se voit sur toute la console. Lecture en échec : pas de bandeau.
+    supabase.from("supervision_arrets").select("cle,motif,modifie_le").eq("arrete", true),
+    supabase.from("supervision_vacances").select("fin").eq("etat", "actif"),
   ]);
   const courriel = utilisateur.user?.email ?? "";
   // Lecture en échec : pas de pastille plutôt qu'un zéro affirmé.
@@ -80,7 +84,10 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           {/* Le bas de page passe au-dessus du bouton flottant « Aide et
               retours » (24/09) : sans cette réserve, la dernière ligne restait
               dessous. */}
-          <div className="portail-ecrans min-w-0 flex-1 pb-[calc(72px+env(safe-area-inset-bottom,0px))]">{children}</div>
+          <div className="portail-ecrans min-w-0 flex-1 pb-[calc(72px+env(safe-area-inset-bottom,0px))]">
+            <BandeauArretSupervision arrets={arrets.error ? [] : (arrets.data ?? [])} relais={relais.error ? [] : (relais.data ?? [])} />
+            {children}
+          </div>
         </div>
       </div>
     </MenuSupervisionProvider>

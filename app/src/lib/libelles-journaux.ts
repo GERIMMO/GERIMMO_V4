@@ -19,6 +19,18 @@ const ACTIONS: Record<string, string> = {
   detention_rouverte: "Détention d’un lot rouverte",
   // Audit du 13/10 (migration 20261013120000) : ces deux gestes laissent désormais une trace.
   detention_supprimee: "Détention d’un lot supprimée",
+  // Audit du 13/10 (SA-08) : neuf codes écrits au journal n'avaient aucun libellé, dont l'octroi d'un accès et la
+  // suppression d'un encaissement, que le repli par expression régulière présentait comme un nettoyage de données.
+  adhesion_creee: "Accès à une organisation accordé (le rôle est indiqué)",
+  adhesion_retiree: "Accès à une organisation retiré",
+  decision_retour: "Décision sur un retour d’utilisateur",
+  bien_retabli: "Bien rétabli après son retrait",
+  bien_retire: "Bien retiré du parc",
+  invitation_locataire: "Invitation d’un locataire envoyée",
+  invitation_locataire_acceptee: "Invitation d’un locataire acceptée",
+  invitation_locataire_envoi_echec: "Envoi d’une invitation de locataire en échec",
+  suppression_encaissement: "Encaissement supprimé, contre-écritures passées",
+  suppression_encaissement_depot: "Encaissement de dépôt de garantie supprimé",
   contre_ecriture: "Écriture comptable annulée par une contre-écriture",
   mois_reouvert: "Mois comptable rouvert",
   inscription_proprietaire: "Inscription d’un propriétaire bailleur",
@@ -49,7 +61,8 @@ const TACHES: Record<string, string> = Object.fromEntries(
 export function libelleActionAudit(action: string | null | undefined): string {
   if (!action) return "Action de supervision";
   if (Object.hasOwn(ACTIONS, action)) return ACTIONS[action];
-  if (/purge|retention|suppression/i.test(action)) return "Nettoyage de données arrivé à échéance";
+  // Plus de repli sur « suppression » : un geste humain de suppression n'est pas un nettoyage automatique (audit du 13/10, SA-08).
+  if (/purge|retention/i.test(action)) return "Nettoyage de données arrivé à échéance";
   if (/consult|lecture|voir|open/i.test(action)) return "Consultation d’une information protégée";
   if (/modif|update|change/i.test(action)) return "Modification d’une information protégée";
   if (/creat|ajout|insert/i.test(action)) return "Création d’une information protégée";

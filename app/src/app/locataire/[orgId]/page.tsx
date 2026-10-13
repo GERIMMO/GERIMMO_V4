@@ -1,4 +1,5 @@
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
+import { deElide } from "@/lib/elision";
 import { Banknote, Files, Wrench } from "lucide-react";
 import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
@@ -214,7 +215,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   if (bail && enRetard && prochaine) {
     aFaire.push({
       cle: "loyer",
-      titre: `Loyer de ${moisLong(prochaine.periode)} à régler`,
+      titre: `Loyer ${deElide(moisLong(prochaine.periode))} à régler`,
       detail:
         prochaine.statut === "partiel"
           ? `Il reste ${eur(resteADevoir)} à régler par virement à votre gestionnaire.`
@@ -498,7 +499,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 href={`/quittance/${derniereQuittance.quittance_id}`}
                 className={`${LIEN_KPI_SECONDAIRE} mt-3 block`}
               >
-                Dernier document — {libelleDocumentLoyer(derniereQuittance.statut)} de {moisLong(derniereQuittance.periode)}{"\u00a0"}→
+                Dernier document — {libelleDocumentLoyer(derniereQuittance.statut)} {deElide(moisLong(derniereQuittance.periode))}{"\u00a0"}→
               </Link>
             )}
             <Link href={`/locataire/${orgId}/documents`} className={`${LIEN_ETIRE} mt-3 block`}>

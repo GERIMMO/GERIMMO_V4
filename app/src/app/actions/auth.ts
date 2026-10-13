@@ -11,6 +11,7 @@ import { normaliserCode } from "@/lib/parrainage";
 import { ACTIVITY_COOKIE } from "@/lib/session-policy";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { classerErreurInscription, MESSAGE_BOITE_MAIL } from "@/lib/inscription";
+import { champTropLong, valeursBornees } from "@/lib/limites-saisie";
 import { envoyerLienMotDePasse, inscrireEtEnvoyerConfirmation } from "@/lib/lien-mot-de-passe";
 import { estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 
@@ -148,11 +149,18 @@ export async function inscrireProprietaire(
   const prenom = String(formData.get("prenom") ?? "").trim();
   const nom = String(formData.get("nom") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const telephone = String(formData.get("telephone") ?? "").trim();
+  const adresse = String(formData.get("adresse") ?? "").trim();
+  const codePostal = String(formData.get("code_postal") ?? "").trim();
+  const ville = String(formData.get("ville") ?? "").trim();
   const motDePasse = String(formData.get("mot_de_passe") ?? "");
   const confirmation = String(formData.get("confirmation") ?? "");
 
   if (!nom) return { erreur: "Le nom est obligatoire.", valeurs };
   if (!email) return { erreur: "L'adresse e-mail est obligatoire.", valeurs };
+  // Ces champs voyagent dans le jeton de session : une borne, dite en clair (audit du 13/10, AUD-B-02).
+  const tropLong = champTropLong({ nom, prenom, email, telephone, adresse, code_postal: codePostal, ville });
+  if (tropLong) return { erreur: tropLong, valeurs: valeursBornees(valeurs) };
   if (motDePasse.length < 12) {
     return { erreur: "Le mot de passe doit compter au moins 12 caractères.", valeurs };
   }
@@ -187,10 +195,10 @@ export async function inscrireProprietaire(
       nom,
       prenom,
       espace: "proprietaire_direct",
-      telephone: String(formData.get("telephone") ?? "").trim(),
-      adresse: String(formData.get("adresse") ?? "").trim(),
-      code_postal: String(formData.get("code_postal") ?? "").trim(),
-      ville: String(formData.get("ville") ?? "").trim(),
+      telephone,
+      adresse,
+      code_postal: codePostal,
+      ville,
       qualite: qualiteDeLaListe(formData.get("qualite")),
       // Ce qui a été accepté. Les métadonnées restent modifiables par le
       // titulaire du compte (audit du 27/09) : la PREUVE est la ligne que
@@ -267,6 +275,8 @@ export async function creerCompteArtisan(
   const confirmation = String(formData.get("confirmation") ?? "");
 
   if (!email) return { erreur: "L'adresse e-mail est obligatoire.", valeurs };
+  const emailTropLong = champTropLong({ email });
+  if (emailTropLong) return { erreur: emailTropLong, valeurs: valeursBornees(valeurs) };
   if (motDePasse.length < 12) {
     return { erreur: "Le mot de passe doit compter au moins 12 caractères.", valeurs };
   }
@@ -315,6 +325,8 @@ export async function ouvrirEspaceProprietaire(
   const nom = String(formData.get("nom") ?? "").trim();
   const prenom = String(formData.get("prenom") ?? "").trim();
   if (!nom) return { erreur: "Le nom est obligatoire.", valeurs };
+  const tropLong = champTropLong({ nom, prenom });
+  if (tropLong) return { erreur: tropLong, valeurs: valeursBornees(valeurs) };
   if (!formData.get("cgu")) {
     return { erreur: "Acceptez les conditions d'utilisation pour continuer.", valeurs };
   }

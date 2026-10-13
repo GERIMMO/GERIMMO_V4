@@ -55,6 +55,7 @@ export function FormulaireInscription({
               <Input
                 id="prenom"
                 name="prenom"
+                maxLength={100}
                 autoComplete="given-name"
                 defaultValue={etat.valeurs?.prenom}
               />
@@ -64,6 +65,7 @@ export function FormulaireInscription({
               <Input
                 id="nom"
                 name="nom"
+                maxLength={100}
                 autoComplete="family-name"
                 required
                 defaultValue={etat.valeurs?.nom}
@@ -72,7 +74,7 @@ export function FormulaireInscription({
           </div>
           <div className="space-y-2">
             <Label htmlFor="ins-adresse">Adresse postale (facultatif)</Label>
-            <Input id="ins-adresse" name="adresse" autoComplete="street-address" defaultValue={etat.valeurs?.adresse} placeholder="ex. 12 rue des Lilas" />
+            <Input id="ins-adresse" name="adresse" maxLength={200} autoComplete="street-address" defaultValue={etat.valeurs?.adresse} placeholder="ex. 12 rue des Lilas" />
             <p className="text-xs text-muted-foreground">
               Elle signera vos documents (baux, quittances…).
             </p>
@@ -80,17 +82,17 @@ export function FormulaireInscription({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="ins-cp">Code postal (facultatif)</Label>
-              <Input id="ins-cp" name="code_postal" inputMode="numeric" autoComplete="postal-code" defaultValue={etat.valeurs?.code_postal} />
+              <Input id="ins-cp" name="code_postal" maxLength={10} inputMode="numeric" autoComplete="postal-code" defaultValue={etat.valeurs?.code_postal} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="ins-ville">Ville (facultatif)</Label>
-              <Input id="ins-ville" name="ville" autoComplete="address-level2" defaultValue={etat.valeurs?.ville} />
+              <Input id="ins-ville" name="ville" maxLength={100} autoComplete="address-level2" defaultValue={etat.valeurs?.ville} />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="ins-tel">Téléphone (facultatif)</Label>
-              <Input id="ins-tel" name="telephone" type="tel" autoComplete="tel" defaultValue={etat.valeurs?.telephone} />
+              <Input id="ins-tel" name="telephone" maxLength={30} type="tel" autoComplete="tel" defaultValue={etat.valeurs?.telephone} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="ins-qualite">Vous louez en tant que</Label>

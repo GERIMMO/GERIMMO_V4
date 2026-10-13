@@ -58,11 +58,11 @@ export function ChoixEspace({
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="ouv-prenom">Prénom</Label>
-                <Input id="ouv-prenom" name="prenom" autoComplete="given-name" defaultValue={v.prenom ?? prenomInitial} />
+                <Input id="ouv-prenom" name="prenom" maxLength={100} autoComplete="given-name" defaultValue={v.prenom ?? prenomInitial} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="ouv-nom">Nom</Label>
-                <Input id="ouv-nom" name="nom" required autoComplete="family-name" defaultValue={v.nom ?? nomInitial} />
+                <Input id="ouv-nom" name="nom" required maxLength={100} autoComplete="family-name" defaultValue={v.nom ?? nomInitial} />
               </div>
             </div>
             <div className="space-y-1.5">

@@ -50,6 +50,20 @@ beforeEach(() => {
 });
 
 describe("inscrireProprietaire", () => {
+  // Audit du 13/10/2026 (AUD-B-02) : un nom de 24 000 caractères était accepté,
+  // puis tous les cookies de session pesaient 77 Ko et le site répondait 431.
+  it.each([
+    ["nom", "x".repeat(24_000), /nom est trop long/],
+    ["prenom", "y".repeat(101), /prénom est trop long/],
+    ["adresse", "z".repeat(201), /adresse est trop longue/],
+    ["ville", "v".repeat(101), /ville est trop longue/],
+  ])("refuse un champ « %s » démesuré, sans créer de compte ni renvoyer 24 000 caractères", async (champ, valeur, message) => {
+    const r = await inscrireProprietaire({}, formulaire({ [champ]: valeur }));
+    expect(r.erreur).toMatch(message);
+    expect(mocks.inscrire).not.toHaveBeenCalled();
+    expect([...(r.valeurs?.[champ] ?? "")].length).toBeLessThanOrEqual(300);
+  });
+
   it("crée le compte par la fabrique de liens, avec les métadonnées que les déclencheurs lisent", async () => {
     const r = await inscrireProprietaire({}, formulaire({ code_parrainage: "3fa2b9c0" }));
     expect(r).toEqual({ message: MESSAGE_BOITE_MAIL });

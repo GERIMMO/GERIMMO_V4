@@ -5770,3 +5770,16 @@ Date de mandat enfin renseignable avant génération PDF ; correction des confir
   « marketing-declencheur » toutes les cinq minutes, jeton généré). Pages :
   [[Guide de ton du journal]],
   [[Réécriture des six articles parus (propositions du 7 octobre 2026)]].
+
+## [2026-10-13] audit | Mission opérationnelle Gerimmo (audit des six rôles, du visuel et de la PR #177)
+Mission du 12/10 exécutée en local et sans effet réel (banc : Postgres 16, émulateur de l'API Supabase, build
+de production, aucun service externe). Relectures adverses de la PR #177 (déjà en production), auditeur
+transversal en trois volets, rôles propriétaire, locataire, super-administrateur et artisan par agents
+séparés. Registre vivant : [[Registre des anomalies — audit du 13 octobre 2026]] (71 anomalies au dernier
+relevé : 0 P0, 1 P1, 26 P2, 44 P3) ; registre d'exécution :
+[[Registre d'exécution — audit du 13 octobre 2026]]. Livré en branche, non déployé : agences retirées du
+site public de la V1 (code conservé), correctif de la préparation du soir du marketing (le déclencheur
+pg_cron n'avait jamais pu l'appeler), récapitulatif fiscal « location nue » qui imprimait des zéros (P1),
+contrôles de saisie, échappement HTML des courriers, migration `20261013120000`. Deux migrations restent à
+appliquer en production (`20261013110000`, `20261013120000`), après sauvegarde et simulation. Vague 2 des
+rôles interrompue par la limite de session de l'outil ; reprise prévue.

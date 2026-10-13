@@ -258,6 +258,32 @@ describe.skipIf(!DB_URL)("Validation SQL des créneaux — mission du12/10", () 
     await db.query(`select accepter_creneau_locataire($1)`,[rows[0].creneau_id]);
     expect((await etat(mission)).mission.statut).toBe('planifiee');
   });
+  // Audit du 13/10/2026 (REP-01) : un second envoi (réponse perdue, double clic) marquait
+  // refusées les propositions du locataire lui-même, portait le compte à six et ouvrait
+  // une alerte d'arbitrage critique fantôme.
+  const repartition=async(mission:string)=>{
+    await enTantQuePostgres();
+    const {rows}=await db.query(`select propose_par::text as par,statut::text as statut,count(*)::int as n from intervention_creneaux where intervention_id=$1 group by 1,2`,[mission]);
+    return rows.sort((a:{par:string;statut:string},b:{par:string;statut:string})=>(a.par+a.statut).localeCompare(b.par+b.statut));
+  };
+  it('un second envoi de la même contre-proposition ne change rien : ni refus fantôme, ni arbitrage',async()=>{
+    const mission=await missionAvecCreneaux();await agir(cptLoc);
+    const liste=creneauxA([10,11,12]);
+    expect((await db.query(`select public.contre_proposer_creneaux($1,$2,$3::jsonb) n`,[org,mission,liste])).rows[0].n).toBe(3);
+    expect((await db.query(`select public.contre_proposer_creneaux($1,$2,$3::jsonb) n`,[org,mission,liste])).rows[0].n).toBe(3);
+    expect(await repartition(mission)).toEqual([{par:'artisan',statut:'refuse',n:3},{par:'locataire',statut:'propose',n:3}]);
+    expect((await db.query(`select id from alerts where type='creneaux_arbitrage' and origine_id=$1`,[mission])).rowCount).toBe(0);
+    expect((await db.query(`select 1 from incident_evenements where type='creneaux_proposes' and details->>'intervention_id'=$1 and details->>'par'='locataire'`,[mission])).rowCount).toBe(1);
+  });
+  it('une liste corrigée remplace la précédente : l’ancienne devient caduque, elle n’est pas comptée comme refusée',async()=>{
+    const mission=await missionAvecCreneaux();await agir(cptLoc);
+    await db.query(`select public.contre_proposer_creneaux($1,$2,$3::jsonb)`,[org,mission,creneauxA([10,11,12])]);
+    await db.query(`select public.contre_proposer_creneaux($1,$2,$3::jsonb)`,[org,mission,creneauxA([14,15,16])]);
+    expect(await repartition(mission)).toEqual([{par:'artisan',statut:'refuse',n:3},{par:'locataire',statut:'caduc',n:3},{par:'locataire',statut:'propose',n:3}]);
+    expect((await db.query(`select id from alerts where type='creneaux_arbitrage' and origine_id=$1`,[mission])).rowCount).toBe(0);
+    const {rows}=await db.query(`select (details->>'refuses_cumules')::int as refuses from incident_evenements where type='creneaux_proposes' and details->>'par'='locataire' and details->>'intervention_id'=$1 order by created_at`,[mission]);
+    expect(rows.map((r:{refuses:number})=>r.refuses)).toEqual([3,3]);
+  });
   it('report artisan : un rendez-vous planifié redevient accepté avec trois nouvelles dates',async()=>{
     const mission=await missionAvecCreneaux();await agir(cptLoc);
     const {rows}=await db.query(`select * from mes_creneaux_locataire($1) where intervention_id=$2`,[org,mission]);

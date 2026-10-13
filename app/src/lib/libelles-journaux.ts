@@ -17,6 +17,9 @@ const ACTIONS: Record<string, string> = {
   // (migrations `…rouvrir_detention`, `…s6_ecritures_fondation`,
   // `…s9a_proprietaire_direct` et suivantes).
   detention_rouverte: "Détention d’un lot rouverte",
+  // Audit du 13/10 (migration 20261013120000) : ces deux gestes laissent désormais une trace.
+  detention_supprimee: "Détention d’un lot supprimée",
+  contre_ecriture: "Écriture comptable annulée par une contre-écriture",
   mois_reouvert: "Mois comptable rouvert",
   inscription_proprietaire: "Inscription d’un propriétaire bailleur",
   organisation_ouverte: "Ouverture d’une organisation",

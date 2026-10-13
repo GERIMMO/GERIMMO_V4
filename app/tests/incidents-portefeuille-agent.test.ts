@@ -148,6 +148,47 @@ describe.skipIf(!DB_URL)("Incidents dans le portefeuille de l'agent", () => {
     expect((await db.query("select statut from public.incident_interventions where id=$1", [intervention])).rows[0].statut).toBe("annulee");
   });
 
+  // Audit du 13/10/2026 : trois gestes d'agence sans garde de portefeuille ou sans trace.
+  it("AUD-A-01 : un agent restreint ne redéfinit pas les équipements d'un lot hors de son portefeuille", async () => {
+    await devenir(agentB);
+    await expect(db.query("select public.definir_equipements_lot($1,'{}'::uuid[])", [lot])).rejects.toThrow("Accès refusé");
+    await db.query("rollback to savepoint cas");
+    await devenir(agentA);
+    await db.query("select public.definir_equipements_lot($1,'{}'::uuid[])", [lot]);
+  });
+
+  it("AUD-A-03 : annuler une mission laisse au fil de l'incident un événement attribué à son auteur", async () => {
+    await devenir(agentA);
+    await db.query("select public.annuler_mission($1,$2,'Report demandé')", [org, intervention]);
+    await postgres();
+    const { rows } = await db.query(
+      "select acteur_account_id, details from public.incident_evenements where incident_id=$1 and type='mission_annulee'",
+      [incident]
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].acteur_account_id).toBe(agentA);
+    // Le motif reste sur l'intervention : le fil est lu par le locataire et l'artisan.
+    expect(rows[0].details).toEqual({ intervention_id: intervention });
+  });
+
+  it("AUD-A-04 : supprimer une détention laisse une trace d'audit, sans nom ni adresse", async () => {
+    await postgres();
+    const bienId = (await db.query("select bien_id from public.lots where id=$1", [lot])).rows[0].bien_id;
+    const lotSansBail = await id("insert into public.lots(organization_id,bien_id,nom,etat) values($1,$2,'Lot sans bail','loue') returning id", [org, bienId]);
+    const personne = await id("insert into public.persons(organization_id,nom) values($1,'Détenteur fictif') returning id", [org]);
+    const detention = await id("insert into public.detentions(organization_id,lot_id,person_id,quote_part) values($1,$2,$3,60) returning id", [org, lotSansBail, personne]);
+    await devenir(admin);
+    await db.query("select public.supprimer_detention($1)", [detention]);
+    await postgres();
+    expect((await db.query("select id from public.detentions where id=$1", [detention])).rows).toHaveLength(0);
+    const { rows } = await db.query("select account_id, organization_id, details from public.audit_log where action='detention_supprimee'");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].account_id).toBe(admin);
+    expect(rows[0].organization_id).toBe(org);
+    expect(rows[0].details).toMatchObject({ detention_id: detention, lot_id: lotSansBail, person_id: personne, quote_part: 60 });
+    expect(JSON.stringify(rows[0].details)).not.toContain("Détenteur fictif");
+  });
+
   it.each(["admin", "super_admin"])("%s conserve la qualification sans mandat personnel", async (role) => {
     await devenir(role === "admin" ? admin : sa);
     expect((await db.query("select id from public.incidents where id=$1", [incident])).rows).toHaveLength(1);

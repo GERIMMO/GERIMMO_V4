@@ -23,11 +23,11 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 |---|---|---|---|---|---|---|---|---|
 | **P0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
 | **P1** | 0 | 1 | 0 | 0 | 0 | 0 | 0 | **1** |
-| **P2** | 12 | 21 | 0 | 4 | 1 | 0 | 0 | **38** |
-| **P3** | 46 | 8 | 0 | 2 | 0 | 0 | 0 | **56** |
-| **Total** | 58 | 30 | 0 | 6 | 1 | 0 | 0 | **95** |
+| **P2** | 9 | 24 | 0 | 11 | 1 | 0 | 0 | **45** |
+| **P3** | 53 | 12 | 0 | 2 | 0 | 0 | 0 | **67** |
+| **Total** | 62 | 37 | 0 | 13 | 1 | 0 | 0 | **113** |
 
-Sources lues : auditeur/a, auditeur/b, auditeur/c, chaine/1, chaine/1b, coordinateur, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, superadmin.
+Sources lues : auditeur/a, auditeur/b, auditeur/c, chaine/1, chaine/1b, chaine/2, coordinateur, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, superadmin.
 
 > [!warning] Couverture à ne pas surestimer
 > Ce registre ne couvre que ce que les agents ont effectivement exécuté (voir le registre d'exécution à venir).
@@ -56,15 +56,12 @@ Aucune anomalie de cette gravité à ce jour.
 - **Contrôle en production (lecture seule)** : `-- Lecture seule : documents « récapitulatif nu » produits depuis la mise en ligne (à ouvrir : rubriques à 0,00 € attendues). select d.id, d.organization_id, d.titre, d.created_at from public.documents d where d.titre = 'Récapitulatif annuel · location nue' and d.created_at >= '2026-10-12' order by d.created_at;`
 - **Statut** : corrigée en branche — commit cddf339 (tests rouges puis verts)
 
-## P2 — dégradation avec contournement (38)
+## P2 — dégradation avec contournement (45)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
 | `AUD-B-04` | auditeur/b | Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce *(hyp.)* | ouverte |
 | `AUD-C-02` | auditeur/c | Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees par Sante | ouverte — complète SUP-01 : même cause, côté sauvegarde et restauration |
-| `ART-13` | chaine/1b | L'artisan ne peut pas déposer une version 2 de son devis : la demande close devient lecture seule, sans « réviser mon devis » | ouverte |
-| `PRO2-12` | chaine/1b | Un devis reçu ne peut être que retenu : ni refus motivé, ni demande de révision (écart avec le référentiel : déposé, validé, refusé ou expiré) | ouverte |
-| `PRO2-13` | chaine/1b | Réception d'un devis : aucune alerte dans l'application, seulement un e-mail ; l'incident n'est pas compté « À traiter » | ouverte |
 | `PROP-03` | proprietaire/s01 | Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause | ouverte |
 | `PROP-14` | proprietaire/s01 | Entrée en cours de mois : le premier terme (prorata) est exigible le 1er du mois, avant l'entrée, et passe tout de suite en « Impayé » | ouverte |
 | `FIN-07` | relecture/finance | Le filtre par mot-clé « fonds travaux / alur » écarte la pièce avant de consulter la qualification justifiée du propriétaire : une dépense qualifiée « déductible 224 » reste exclue des charges et la qualification est enregistrée mais sans effet. | ouverte |
@@ -79,6 +76,7 @@ Aucune anomalie de cette gravité à ce jour.
 | `AUD-B-01` | auditeur/b | E-mails de relance, d'appel et de rappel : valeurs saisies insérées sans échappement HTML | corrigée en branche — 35b2501 — les valeurs saisies sont échappées dans les quatre courriers, 7 tests rouges puis verts |
 | `AUD-B-02` | auditeur/b | Aucune limite de longueur à l'inscription : un nom très long rend le compte inutilisable (HTTP 431 sur tout le site) | corrigée en branche — bf73fdc — garde de longueur côté serveur et maxLength, 2 familles de tests |
 | `AUD-C-01` | auditeur/c | Un encaissement a 3 decimales (ou 0,004 EUR) et date dans le futur est accepte et ecrit au journal comptable | corrigée en branche — 0555f43 pour la saisie ; les contraintes CHECK en base ne sont pas ajoutées (données de productio… |
+| `PRO2-14` | chaine/1b | La justification de la qualification, rédigée comme note de décision, est affichée mot pour mot au locataire sans que le formulaire le dise | corrigée en branche — 611dce2 — le formulaire dit que la justification est montrée au locataire |
 | `MKT-01` | coordinateur | La préparation du soir du marketing n'a jamais été déclenchée par pg_cron : pas de fenêtre de veto la veille, seul le rattrapage de la matinée préparait les posts | corrigée en branche — commit 9d5ed9d ; migration 20261013110000 à appliquer en production |
 | `PUB-01` | coordinateur | Le formulaire « Agences » de l'accueil était le seul canal de contact des pages légales (exercice des droits sur les données) tant que l'adresse de l'éditeur manque ; il restait une demande de devis commerciale | corrigée en branche — commit e7982a7 |
 | `PROP-02` | proprietaire/s01 | Code postal à 4 chiffres et année 1500 acceptés et enregistrés à la création du bien | corrigée en branche — d6ef891 — code postal du bien sur cinq chiffres, année de construction de 1600 à année+5 |
@@ -93,7 +91,16 @@ Aucune anomalie de cette gravité à ce jour.
 | `PR178-B-05` | relecture/pr178/b | Les formulaires de recherche ou de filtre sans attribut method="get" sont suivis comme des saisies à protéger : chaque recherche déclenche l'avertissement « Quitter le site ? » et reste bloquée si l'on refuse | corrigée en branche — 36219ec — même correction que PR178-A-02 |
 | `REP-01` | relecture/reprises | contre_proposer_creneaux n'est pas rejouable : un second envoi (reponse perdue, double envoi) marque comme REFUSEES les propositions du locataire lui-meme, porte le compteur a 6 et declenche une alerte critique d'arbitrage fantome | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — second envoi sans effet, liste corrigée = anci… |
 | `SUP-02` | relecture/supervision | Pendant une session de diagnostic artisan ouverte (30 min), le trigger de lecture seule est pose sur TOUTES les tables de public, y compris supervision_arrets / supervision_operations : l'arret d'urgence est refuse. | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — l'arrêt d'urgence ne dépend plus d'un diagnost… |
+| `SA-04` | superadmin | Mode relais actif et arrêt d'urgence invisibles hors de /admin/relais : aucun bandeau dans la console, les pages Équipes et Brief ne signalent pas l'arrêt | corrigée en branche — 9978efa — bandeau d'arrêt d'urgence et de relais sur toute la console |
+| `SA-08` | superadmin | Journal d'audit : 9 types d'actions sans libellé (« Action enregistrée (libellé manquant) »), dont l'octroi du rôle de super-administrateur et les décisions de support, et la suppression d'un encaissement présentée comme « Nettoyage de données arrivé à échéan… | corrigée en branche — 9978efa — neuf codes nommés, plus de repli « suppression = nettoyage » |
 | `PRO2-01` | chaine/1 | Un propriétaire dont la commune n'est pas ouverte au réseau ne peut solliciter aucun artisan, même un artisan connu : le carnet ne se remplit que par une intervention déjà confiée | à trancher — choix produit : réseau fermé pour la commune du propriétaire, carnet sans formulaire d'ajout |
+| `ART-13` | chaine/1b | L'artisan ne peut pas déposer une version 2 de son devis : la demande close devient lecture seule, sans « réviser mon devis » | à trancher — fonction manquante : l'artisan ne peut pas déposer une version 2 de son devis |
+| `PRO2-12` | chaine/1b | Un devis reçu ne peut être que retenu : ni refus motivé, ni demande de révision (écart avec le référentiel : déposé, validé, refusé ou expiré) | à trancher — fonction manquante : un devis reçu ne peut pas être refusé ni renvoyé en révision |
+| `PRO2-13` | chaine/1b | Réception d'un devis : aucune alerte dans l'application, seulement un e-mail ; l'incident n'est pas compté « À traiter » | à trancher — aucune alerte dans l'application à la réception d'un devis (e-mail seul) : création d'une alerte en base à… |
+| `ART-21` | chaine/2 | Rien n'empêche de démarrer, de terminer et de facturer plusieurs jours avant le rendez-vous confirmé avec le locataire | à trancher — règle métier : démarrer, terminer et facturer avant le rendez-vous confirmé |
+| `CHN-01` | chaine/2 | Les créneaux non retenus sont enregistrés « refusés » : après trois reports, l'artisan est bloqué et l'écran impute au locataire des refus qu'il n'a jamais faits | à trancher — règle métier : les créneaux non retenus comptent aujourd'hui comme refusés (six refus = arbitrage) ; une c… |
+| `LOC-21` | chaine/2 | Le locataire ne peut ni reporter ni annuler un rendez-vous confirmé : aucun geste après la confirmation | à trancher — fonction manquante : le locataire ne peut ni reporter ni annuler un rendez-vous confirmé |
+| `PRO2-21` | chaine/2 | Le règlement de la facture de l'artisan n'est pas un geste de l'application : l'écriture du journal n'est liée à rien et la facture ne passe jamais à « réglée » | à trancher — fonction manquante : le règlement d'une facture d'artisan n'est lié ni à la facture ni à l'incident |
 | `PR178-B-04` | relecture/pr178/b | Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires | à trancher — clic avant hydratation sans effet visible : désactiver le bouton jusqu'à l'hydratation, formulaire par for… |
 | `PR178-B-06` | relecture/pr178/b | Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté) | à trancher — rejeu possible d'un encaissement après réponse perdue : demande une clé d'idempotence et une contrainte en… |
 | `SA-01` | superadmin | Traversée de la supervision dans un espace client : écriture financière possible sans motif ni durée, et la ligne d'audit 'traversee_action' ne dit ni quelle action, ni sur quel objet, ni avec quel résultat | à trancher — limite déjà actée au wiki (audit du 25/09) : entrée dans un espace client sans motif ni durée ; l'écriture… |
@@ -120,36 +127,6 @@ Aucune anomalie de cette gravité à ce jour.
 - **Preuve (banc)** : preuves/auditeur/c/preuves-sql.txt ; inventaire-automatismes.md section 2
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Statut** : ouverte — complète SUP-01 : même cause, côté sauvegarde et restauration
-
-#### `ART-13` — L'artisan ne peut pas déposer une version 2 de son devis : la demande close devient lecture seule, sans « réviser mon devis »
-
-- **Attendu** : Un moyen explicite de déposer une version 2 (numérotée, v1 conservée) quand le propriétaire le demande
-- **Observé** : L'écran affiche « Ma réponse » (montant, validité, lien PDF) sans action. L'appel RPC renvoie « Cette demande n'attend plus de devis (état : devis_depose) ». Corollaire de PRO2-12 : aucune numérotation de versions n'existe (un seul incident_devis par sollicitation).
-- **Cause probable** : deposer_devis n'accepte que les sollicitations à l'état envoyee ; pas de notion de version.
-- **Correction proposée** : Voir PRO2-12 (décision produit préalable).
-- **Preuve (banc)** : chaine/1b/sql/permissions-api.txt (ligne A.deposer_devis_structure) ; chaine/1b/captures/a7-02-apres-envoi.png
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Statut** : ouverte
-
-#### `PRO2-12` — Un devis reçu ne peut être que retenu : ni refus motivé, ni demande de révision (écart avec le référentiel : déposé, validé, refusé ou expiré)
-
-- **Attendu** : Possibilité de refuser le devis (motif conservé et transmis) ou de demander une révision, l'artisan pouvant alors déposer une version 2 (wiki concepts/Devis : déposé, validé, refusé ou expiré)
-- **Observé** : Les seules actions sont « Télécharger le détail du devis (PDF) », « Ouvrir le devis » et « Retenir ce devis ». Aucun refus, aucun motif, aucune révision. Le statut devis_statut du schéma ne compte que depose, retenu, non_retenu, expire, annule. Pour obtenir une autre offre il faut ouvrir une nouvelle consultation avec un autre artisan, déjà exclu ici car « tous les artisans qui correspondent sont déjà sollicités ». Parcours étapes 3 et 4 de la mission (refus v1, dépôt v2) impossible. À trancher : choix produit V1 ou fonction manquante.
-- **Cause probable** : Le code n'implémente que retenir_devis (app/actions/incidents.ts retenirDevis) ; wiki 'Divergences code et référentiel V3' signale déjà l'écart d'états.
-- **Correction proposée** : Décision produit : soit documenter que la V1 ne propose que « retenir » (et le dire à l'écran), soit ajouter un refus motivé + une demande de révision qui rouvre la sollicitation à l'artisan.
-- **Preuve (banc)** : chaine/1b/captures/o2-01-devis-recu.png ; liste des boutons dans la sortie du script scripts/o3.mjs ; énumération devis_statut en base
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Statut** : ouverte
-
-#### `PRO2-13` — Réception d'un devis : aucune alerte dans l'application, seulement un e-mail ; l'incident n'est pas compté « À traiter »
-
-- **Attendu** : Une alerte « Devis reçu — à décider » (comme pour « Incident à qualifier » ou « Nouveau message »), l'incident compté dans « À traiter »
-- **Observé** : Le compteur d'alertes reste à 6, aucune ligne alerts de type devis, « À traiter » reste à 2 (INC-0001 et INC-0003 à qualifier) alors que INC-0002 attend la décision du propriétaire. Seule trace : l'événement « Devis déposé » dans la chronologie de l'incident et l'e-mail devis_recu (échec tracé dans tech_log faute de fournisseur). Si l'e-mail est perdu, le dossier dort.
-- **Cause probable** : notifierDevisRecu (lib/notifications.ts) n'envoie que l'e-mail ; aucune insertion dans alerts à la création du devis.
-- **Correction proposée** : Créer une alerte (type devis_recu, criticité normale) dans la même transaction que le dépôt du devis et compter l'incident dans « À traiter » tant qu'un devis attend la décision.
-- **Preuve (banc)** : chaine/1b/captures/o2-01-devis-recu.png ; chaine/1b/sql/notifications-tech-log.txt (notification_echec, evenement devis_recu)
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Statut** : ouverte
 
 #### `PROP-03` — Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause
 
@@ -291,6 +268,16 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Statut** : corrigée en branche — 0555f43 pour la saisie ; les contraintes CHECK en base ne sont pas ajoutées (données de production à contrôler d'abord)
 
+#### `PRO2-14` — La justification de la qualification, rédigée comme note de décision, est affichée mot pour mot au locataire sans que le formulaire le dise
+
+- **Attendu** : Le formulaire précise que le texte sera lu par le locataire, ou le locataire ne voit qu'une formule neutre
+- **Observé** : Le formulaire invite à « Décrivez le constat et la raison de votre décision » et indique seulement « Le locataire est informé immédiatement ». Chez le locataire : « Qui prend en charge · Le propriétaire — vous n'avancez rien ([justification complète]) ». Un propriétaire qui note un jugement sur le locataire ou une stratégie le lui publie.
+- **Cause probable** : imputation_justification rendue telle quelle dans incidents-locataire.tsx.
+- **Correction proposée** : Ajouter sous le champ « Cette justification est visible du locataire » ou la scinder en motif visible et note interne.
+- **Preuve (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/l1-01-demandes-apres-mission.png (affichage locataire, observé) ; code lu dans la photographie snap-main-178 : app/agence/[orgId]/incidents/[incidentId]/actions-incident.tsx lignes 90-110 (libellé du champ) et app/locataire/[orgId]/incidents-locataire.tsx lignes 195-215 (affichage)
+- **Correction sans aval** : oui
+- **Statut** : corrigée en branche — 611dce2 — le formulaire dit que la justification est montrée au locataire
+
 #### `MKT-01` — La préparation du soir du marketing n'a jamais été déclenchée par pg_cron : pas de fenêtre de veto la veille, seul le rattrapage de la matinée préparait les posts
 
 - **Attendu** : à 18 h (Paris) la veille d'un jour de publication, pg_cron juge la préparation due et déclenche /api/cron/equipes?mission=marketing
@@ -430,6 +417,26 @@ Aucune anomalie de cette gravité à ce jour.
 - **Contrôle en production (lecture seule)** : `select count(*) from public.supervision_sessions_artisan where fermee_le is null and expire_le>now(); -- sessions pendant lesquelles un arrêt d'urgence serait refusé`
 - **Statut** : corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — l'arrêt d'urgence ne dépend plus d'un diagnostic ouvert
 
+#### `SA-04` — Mode relais actif et arrêt d'urgence invisibles hors de /admin/relais : aucun bandeau dans la console, les pages Équipes et Brief ne signalent pas l'arrêt
+
+- **Attendu** : L'état 'arrêt d'urgence en cours' et 'relais actif jusqu'à …' sont visibles de partout dans la console (bandeau), et la page Équipes ne promet pas de 'Prochain passage' pendant un arrêt global
+- **Observé** : Aucune mention sur les 5 pages (seuls /admin/relais, section 'Arrêt avant les prochains effets', en bas de page, et le lien 'Relais et absences →' du brief). La page Équipes continue d'afficher 'Premier passage attendu' et 'Prochain passage : vers 9 h' pendant un arrêt global. Dans le code, executerMission revient 503 avant commencer_mission quand l'arrêt est actif (src/lib/execution-mission.ts) : aucun passage n'est écrit, donc un arrêt oublié ne laisse aucune trace dans Équipes ni dans le brief (lecture de code, non exécuté sur le banc faute de CRON_SECRET : hypothèse à vérifier). Aucun lieu n'affiche non plus qui a arrêté ni quand ; seul le motif apparaît.
+- **Cause probable** : src/app/admin/layout.tsx et src/app/admin/equipes/page.tsx ne lisent jamais supervision_arrets / supervision_vacances (grep) ; src/lib/execution-mission.ts:8-9
+- **Correction proposée** : Afficher dans le bandeau de la console 'Arrêt d'urgence en cours depuis … par … (motif)' et 'Relais actif jusqu'à …' ; sur Équipes, remplacer 'Prochain passage' par 'Arrêté' ; écrire un passage 'arrêté' (ou une opération) quand une exécution planifiée est refusée par l'arrêt
+- **Preuve (banc)** : sql2/s10_arret_sortie.txt (lignes 'bandeau/indicateur d'arrêt visible sur … AUCUN') ; captures2/08-arret-global-actif.png
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : corrigée en branche — 9978efa — bandeau d'arrêt d'urgence et de relais sur toute la console
+
+#### `SA-08` — Journal d'audit : 9 types d'actions sans libellé (« Action enregistrée (libellé manquant) »), dont l'octroi du rôle de super-administrateur et les décisions de support, et la suppression d'un encaiss…
+
+- **Attendu** : Chaque action sensible a un libellé lisible, un auteur, une cible, une date et un résultat (ex. 'Droit de supervision accordé à X par Y')
+- **Observé** : Les lignes existent en base (adhesion_creee {role: super_admin, statut: active}), mais l'écran affiche 'Action enregistrée (libellé manquant)' sans cible. Sans aucune correspondance ni repli : adhesion_creee, adhesion_retiree, decision_retour (auteur et heure visibles, ni cible ni résultat), bien_retabli, bien_retire, point_du_matin_prepare, invitation_locataire, invitation_locataire_acceptee, invitation_locataire_envoi_echec (9 types, 9 lignes dans la première page du journal). Libellés trompeurs par expressions régulières de repli : suppression_encaissement et suppression_encaissement_depot -> 'Nettoyage de données arrivé à échéance' (alors que c'est un geste humain sur la comptabilité, a…
+- **Cause probable** : src/lib/libelles-journaux.ts:50-58 (table ACTIONS incomplète ; replis par expressions régulières /purge\|retention\|suppression/, /modif\|update\|change/, /creat\|ajout\|insert/ ; défaut 'libellé manquant')
+- **Correction proposée** : Ajouter les libellés explicites avec cible (compte, rôle, retour, encaissement) ; retirer le repli /suppression/ ; mettre en évidence tout octroi du rôle super_admin ; test qui échoue si une action écrite au journal n'a pas de libellé explicite
+- **Preuve (banc)** : sql2/ecran-journaux-2.txt ; sql2/s23 (sortie console) ; sql2/s20_retours_sortie.txt ; requête audit_log par action (13/10 00:24 adhesion_creee super_admin)
+- **Correction sans aval** : oui
+- **Statut** : corrigée en branche — 9978efa — neuf codes nommés, plus de repli « suppression = nettoyage »
+
 #### `PRO2-01` — Un propriétaire dont la commune n'est pas ouverte au réseau ne peut solliciter aucun artisan, même un artisan connu : le carnet ne se remplit que par une intervention déjà confiée
 
 - **Attendu** : Soit un moyen de confier le dossier à un artisan connu du propriétaire (invitation, ajout au carnet), soit un chemin explicite vers la clôture ou l'attente ; à confirmer par la décision produit sur l'ouverture progressive du réseau
@@ -439,6 +446,76 @@ Aucune anomalie de cette gravité à ce jour.
 - **Preuve (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures/p3-05-ouverture-consultation.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures/p3-07-carnet-artisans.png
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Statut** : à trancher — choix produit : réseau fermé pour la commune du propriétaire, carnet sans formulaire d'ajout
+
+#### `ART-13` — L'artisan ne peut pas déposer une version 2 de son devis : la demande close devient lecture seule, sans « réviser mon devis »
+
+- **Attendu** : Un moyen explicite de déposer une version 2 (numérotée, v1 conservée) quand le propriétaire le demande
+- **Observé** : L'écran affiche « Ma réponse » (montant, validité, lien PDF) sans action. L'appel RPC renvoie « Cette demande n'attend plus de devis (état : devis_depose) ». Corollaire de PRO2-12 : aucune numérotation de versions n'existe (un seul incident_devis par sollicitation).
+- **Cause probable** : deposer_devis n'accepte que les sollicitations à l'état envoyee ; pas de notion de version.
+- **Correction proposée** : Voir PRO2-12 (décision produit préalable).
+- **Preuve (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/sql/permissions-api.txt (ligne A.deposer_devis_structure) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/a7-02-apres-envoi.png
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : à trancher — fonction manquante : l'artisan ne peut pas déposer une version 2 de son devis
+
+#### `PRO2-12` — Un devis reçu ne peut être que retenu : ni refus motivé, ni demande de révision (écart avec le référentiel : déposé, validé, refusé ou expiré)
+
+- **Attendu** : Possibilité de refuser le devis (motif conservé et transmis) ou de demander une révision, l'artisan pouvant alors déposer une version 2 (wiki concepts/Devis : déposé, validé, refusé ou expiré)
+- **Observé** : Les seules actions sont « Télécharger le détail du devis (PDF) », « Ouvrir le devis » et « Retenir ce devis ». Aucun refus, aucun motif, aucune révision. Le statut devis_statut du schéma ne compte que depose, retenu, non_retenu, expire, annule. Pour obtenir une autre offre il faut ouvrir une nouvelle consultation avec un autre artisan, déjà exclu ici car « tous les artisans qui correspondent sont déjà sollicités ». Parcours étapes 3 et 4 de la mission (refus v1, dépôt v2) impossible. À trancher : choix produit V1 ou fonction manquante.
+- **Cause probable** : Le code n'implémente que retenir_devis (app/actions/incidents.ts retenirDevis) ; wiki 'Divergences code et référentiel V3' signale déjà l'écart d'états.
+- **Correction proposée** : Décision produit : soit documenter que la V1 ne propose que « retenir » (et le dire à l'écran), soit ajouter un refus motivé + une demande de révision qui rouvre la sollicitation à l'artisan.
+- **Preuve (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/o2-01-devis-recu.png ; liste des boutons dans la sortie du script scripts/o3.mjs ; énumération devis_statut en base
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : à trancher — fonction manquante : un devis reçu ne peut pas être refusé ni renvoyé en révision
+
+#### `PRO2-13` — Réception d'un devis : aucune alerte dans l'application, seulement un e-mail ; l'incident n'est pas compté « À traiter »
+
+- **Attendu** : Une alerte « Devis reçu — à décider » (comme pour « Incident à qualifier » ou « Nouveau message »), l'incident compté dans « À traiter »
+- **Observé** : Le compteur d'alertes reste à 6, aucune ligne alerts de type devis, « À traiter » reste à 2 (INC-0001 et INC-0003 à qualifier) alors que INC-0002 attend la décision du propriétaire. Seule trace : l'événement « Devis déposé » dans la chronologie de l'incident et l'e-mail devis_recu (échec tracé dans tech_log faute de fournisseur). Si l'e-mail est perdu, le dossier dort.
+- **Cause probable** : notifierDevisRecu (lib/notifications.ts) n'envoie que l'e-mail ; aucune insertion dans alerts à la création du devis.
+- **Correction proposée** : Créer une alerte (type devis_recu, criticité normale) dans la même transaction que le dépôt du devis et compter l'incident dans « À traiter » tant qu'un devis attend la décision.
+- **Preuve (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/o2-01-devis-recu.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/sql/notifications-tech-log.txt (notification_echec, evenement devis_recu)
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : à trancher — aucune alerte dans l'application à la réception d'un devis (e-mail seul) : création d'une alerte en base à décider
+
+#### `ART-21` — Rien n'empêche de démarrer, de terminer et de facturer plusieurs jours avant le rendez-vous confirmé avec le locataire
+
+- **Attendu** : Au minimum un avertissement (ou une garde) quand la mission est démarrée/terminée avant le début du rendez-vous confirmé, ou une confirmation par le locataire avant facturation
+- **Observé** : demarrer_intervention n'accepte que les statuts acceptee/planifiee et ne compare pas la date : la mission passe en cours puis terminée cinq jours avant le rendez-vous, la facture est déposée, le propriétaire reçoit « facture déposée » alors que le locataire attend encore l'artisan ; la photo « après » et le compte rendu ne sont pas vérifiables par le système (une photo quelconque suffit)
+- **Cause probable** : supabase/migrations: demarrer_intervention (aucune comparaison avec debut_prevu) ; terminer/deposer_compte_rendu idem
+- **Correction proposée** : Avertir (non bloquant) l'artisan qui démarre avant debut_prevu - 2 h, journaliser l'écart dans la chronologie, et faire figurer « rendez-vous prévu le … / intervention terminée le … » sur la fiche de validation du propriétaire
+- **Preuve (banc)** : sql/etat-apres-facture.txt, captures/d5-01-intervention-terminee.png
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : à trancher — règle métier : démarrer, terminer et facturer avant le rendez-vous confirmé
+
+#### `CHN-01` — Les créneaux non retenus sont enregistrés « refusés » : après trois reports, l'artisan est bloqué et l'écran impute au locataire des refus qu'il n'a jamais faits
+
+- **Attendu** : Seuls les créneaux réellement refusés par le locataire (« Aucun ne me convient ») comptent pour l'arbitrage à six refus ; les créneaux non choisis sont « caducs » ou « non retenus »
+- **Observé** : Chaque choix passe les 2 autres créneaux proposés à « refuse » (choisir_creneau) ; le décompte de l'arbitrage compte tous les « refuse ». Après 3 tours : 6 refus, 0 proposition du locataire, l'artisan reçoit « Six créneaux ont déjà été refusés : le rendez-vous se règle désormais avec le gérant » et ne peut plus déplacer ; la fiche du propriétaire affiche « Refusé » en face de créneaux que le locataire n'a pas refusés ; le texte « refus persistant du locataire tracé et opposable » (RM-10.4.4) s'appuie donc sur des données fausses
+- **Cause probable** : app/supabase/migrations/20261013102000_planning_conflits.sql:86 (choisir_creneau : set statut='refuse', refuse_le=now() sur les autres créneaux 'propose') et 20261012190000_validation_creneaux.sql:73 (garde 'six refus' sur count statut='refuse'), 20260927160000_creneaux_passes_non_retenables.sql:222 (drapeau arbitrage)
+- **Correction proposée** : Passer les créneaux non choisis à 'caduc' (statut existant) ou distinguer le refus par un champ dédié, et ne compter que les créneaux refusés par refuser_creneaux_locataire. Prévoir un test : 3 cycles choix/report ne déclenchent pas l'arbitrage.
+- **Preuve (banc)** : sql/creneaux-faux-refus.txt, captures/c4-01-deplacement-erreur.png
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : à trancher — règle métier : les créneaux non retenus comptent aujourd'hui comme refusés (six refus = arbitrage) ; une correction en base les rendrait « caducs »
+
+#### `LOC-21` — Le locataire ne peut ni reporter ni annuler un rendez-vous confirmé : aucun geste après la confirmation
+
+- **Attendu** : Un geste « Je ne peux plus » (reporter avec nouvelles disponibilités, ou prévenir) comme le prévoit la machine à états du rendez-vous (confirmé → reporté → proposé) du wiki Planification d'intervention ; le brief de la chaîne l'attend aussi
+- **Observé** : La fiche ne montre plus que « Prévoyez d'être présent, ou de faire ouvrir — nous vous le rappellerons la veille » ; les gestes de report n'existent que côté artisan (« Déplacer le rendez-vous ») et d'annulation que côté propriétaire (« Retirer la mission à cet artisan ») ; le seul contournement est d'écrire un message libre à « Mon gestionnaire »
+- **Cause probable** : app/src/app/locataire/[orgId]/demandes/suivi-intervention.tsx (aucun formulaire à l'étape planifiee) ; pas de RPC locataire de report (refuser_creneaux_locataire n'agit qu'avant le choix)
+- **Correction proposée** : Ajouter à l'étape planifiée « Je ne peux pas être là » : ouvre la contre-proposition (trois disponibilités), invalide le créneau retenu et prévient l'artisan et le propriétaire ; à défaut, un lien direct vers le message au gestionnaire pré-rempli
+- **Preuve (banc)** : captures/l2-01-rdv-planifie-locataire.png
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : à trancher — fonction manquante : le locataire ne peut ni reporter ni annuler un rendez-vous confirmé
+
+#### `PRO2-21` — Le règlement de la facture de l'artisan n'est pas un geste de l'application : l'écriture du journal n'est liée à rien et la facture ne passe jamais à « réglée »
+
+- **Attendu** : Un geste « Marquer comme réglée » (déclaratif, sans paiement réel) qui crée l'écriture liée à la facture et à l'incident, et met à jour l'état visible par le propriétaire, l'artisan et le super-administrateur
+- **Observé** : Le formulaire d'écriture n'a ni champ facture ni champ incident ; l'écriture (id cc2e2c0f…) est libre (catégorie, lot, libellé), la facture reste validee sans date de règlement ; le seul « payé » du produit est le registre privé de l'artisan (déclaratif, non confirmé par le client) : les deux états peuvent diverger sans que personne ne le voie
+- **Cause probable** : app/src/app/agence/[orgId]/comptabilite (saisie libre) ; intervention_factures n'a pas de colonne de règlement (id, numero, montant, validee_le, decision_motif, imputation_validee)
+- **Correction proposée** : Ajouter à la validation (ou après) « Enregistrer le règlement » : date, moyen, référence, qui crée l'écriture de dépense avec lien intervention_factures.id et trace d'audit ; afficher « réglée le … » côté propriétaire et artisan
+- **Preuve (banc)** : sql/ecriture-reglement.txt, captures/o6-01-saisie-ecriture.png
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Statut** : à trancher — fonction manquante : le règlement d'une facture d'artisan n'est lié ni à la facture ni à l'incident
 
 #### `PR178-B-04` — Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires
 
@@ -480,7 +557,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : oui
 - **Statut** : acceptée — défaut du banc d'essai, pas du produit ; banc-up.sh vérifie la clé de service
 
-## P3 — cosmétique ou mineur (56)
+## P3 — cosmétique ou mineur (67)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
@@ -495,10 +572,13 @@ Aucune anomalie de cette gravité à ce jour.
 | `AUD-C-07` | auditeur/c | Les routes cron directes n'ont ni verrou de mission ni reservation avant envoi (doublon d'e-mail possible, hypothese a verifier) *(hyp.)* | ouverte |
 | `AUD-C-08` | auditeur/c | Fichiers PDF orphelins possibles si le webhook Youtrust et la tache de nuit traitent le meme evenement en meme temps (hypothese a verifier) *(hyp.)* | ouverte |
 | `LOC-01` | chaine/1 | Dépôt d'une attestation déjà déposée : message technique générique au lieu de « ce fichier est déjà dans votre dossier » | ouverte |
-| `LOC-02` | chaine/1 | Élision manquante : « Dernier document — quittance de octobre 2026 » | ouverte |
-| `ART-11` | chaine/1b | PDF du devis : quantité et taux de TVA écrits avec un point décimal (« 2.5 », « 5.5 % ») alors que montants et écran sont en virgule | ouverte |
+| `ART-11` | chaine/1b | Quantité et taux de TVA écrits avec un point décimal (« 2.5 », « 5.5 % ») sur le PDF du devis et dans le détail vu par le propriétaire, alors que les montants et le sélecteur sont en virgule | ouverte |
 | `ART-12` | chaine/1b | Quantité ou prix invalide (0, « abc », 12,345, -5) : le total reste à 0,00 € sans dire quel champ est en cause | ouverte |
+| `ART-15` | chaine/1b | La photo jointe par le locataire n'est visible de l'artisan ni au stade du devis ni sur la fiche de mission | ouverte |
 | `PRO2-11` | chaine/1b | Élision manquante dans le nom de parc généré : « Parc de Éloïse … » (même famille que LOC-02) | ouverte |
+| `CHN-02` | chaine/2 | La validation de la facture, l'écriture de règlement et la clôture de l'incident ne laissent aucune ligne au journal d'audit : seule la chronologie de l'incident les garde | ouverte |
+| `LOC-22` | chaine/2 | Un locataire connecté qui ouvre /artisan arrive sur le formulaire d'inscription artisan | ouverte |
+| `PRO2-22` | chaine/2 | Un propriétaire direct lit « privé à votre agence » sur la notation de l'artisan, et l'artisan lit « l'agence le tranchera » sur l'écart de facture (recoupe PROP-09) | ouverte |
 | `PROP-05` | proprietaire/s01 | Nom d'espace sans élision : « Parc de Éloïse … » | ouverte |
 | `PROP-08` | proprietaire/s01 | Recherche globale (⌘K) insensible à la casse mais pas aux accents ; code postal non recherchable | ouverte |
 | `PROP-09` | proprietaire/s01 | Libellés d'agence ou de permission dans l'espace propriétaire direct | ouverte |
@@ -530,6 +610,12 @@ Aucune anomalie de cette gravité à ce jour.
 | `SUP-09` | relecture/supervision | Chaque validation d'un devis téléverse un nouveau PDF (chemin aléatoire) dans le compartiment devis-preparations et n'efface jamais l'ancien (ni celui d'une validation perdante en cas de conflit 409) : des PDF orphelins contenant les coordonnées de l'entrepri… *(hyp.)* | ouverte |
 | `SA-02` | superadmin | Brief de direction : les montants des faits datés s'affichent avec un point décimal ('500.00 €') alors que les mesures s'affichent à la française ('4 870,00 €') | ouverte |
 | `SA-03` | superadmin | Une consigne ambiguë (sans aucune tâche) peut être « autorisée » : l'écran dit « Aucune tâche proposée. Précisez les lectures » mais propose quand même « Autoriser la version 1 », et la base enregistre l'accord | ouverte |
+| `SA-07` | superadmin | En diagnostic artisan, le bouton d'enregistrement de la fiche entreprise répond « Connectez-vous à votre espace artisan. » au lieu d'expliquer la lecture seule | ouverte |
+| `SA-09` | superadmin | La recherche de la console ne trouve ni un bien, ni un lot, ni un incident : le brief du support demande de retrouver « un dossier (utilisateur, bien, incident) » | ouverte |
+| `SA-10` | superadmin | Hypothèse à vérifier : aucun plafond de dépense applicatif pour les appels IA, et l'arrêt d'urgence ne couvre pas les appels IA déclenchés à la main (analyse du brief, rédaction de publications) *(hyp.)* | ouverte |
+| `SA-11` | superadmin | Journal du blocage d'un compte : « Compte bloqué » est écrit avant l'effet ; si le blocage échoue, le journal garde « Compte bloqué » suivi d'une ligne d'échec sans cause | ouverte |
+| `LOC-02` | chaine/1 | Élision manquante : « Dernier document — quittance de octobre 2026 » | corrigée en branche — 9978efa — « d'octobre » (espace locataire) |
+| `ART-14` | chaine/1b | Mobile 390 px : la fiche d'une demande de devis close et l'accueil artisan débordent horizontalement avec un nom de client long | corrigée en branche — 611dce2 — en-tête du devis : min-width et retour à la ligne |
 | `PUB-02` | coordinateur | Offre agence présentée au public alors que les agences sont hors périmètre V1 publique : accueil (repères, espaces, bandeau tarif, FAQ), tarifs, connexion, inscription artisan, choix d'espace, pied de page, métadonnées, deux sujets éditoriaux | corrigée en branche — commit e7982a7 |
 | `PUB-04` | coordinateur | La mention de taxes de l'accueil et des tarifs citait encore les agences (« pour les particuliers comme pour les agences ») | corrigée en branche — 35b0ae8 — phrase de taxes sans agences, 4 tests |
 | `PROP-04` | proprietaire/s01 | Surface démesurée : message technique « numeric field overflow » affiché à l'utilisateur | corrigée en branche — d6ef891 — surface bornée à 9 999,99 m² avec message clair |
@@ -538,6 +624,8 @@ Aucune anomalie de cette gravité à ce jour.
 | `PR178-A-08` | relecture/pr178/a | Quand le stockage local est refusé, l'écran « La fiche est créée » affiche encore l'alerte « Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement » et chaque sortie déclenche la boîte « Quitter le site ? » alors qu'il n'y a plus rien à perdre | corrigée en branche — 36219ec — l'effacement qui échoue après un envoi confirmé ne laisse plus ni alerte ni boîte de so… |
 | `PR178-B-02` | relecture/pr178/b | Import du parc : la confirmation de sortie « modifications non enregistrées » se déclenche encore après un import réussi (l'état de retour n'a pas de clé succes) | corrigée en branche — 36219ec — l'import du parc n'est plus suivi |
 | `SUP-08` | relecture/supervision | Quand le responsable désigné perd son habilitation, traiter_vacances passe TOUTES les alertes non accusées du plan en « non_acheminee », y compris celles déjà escaladées vers le créateur (qui, lui, est habilité) ; elles ne peuvent alors plus escalader (l'esca… | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — seules les alertes du responsable concerné son… |
+| `SA-05` | superadmin | Les dates des retours utilisateurs s'affichent en UTC, sans mention de fuseau : 2 h de décalage (et parfois un jour) avec l'heure de Paris utilisée partout ailleurs dans la console | corrigée en branche — 9978efa — dates des retours à l'heure de Paris |
+| `SA-06` | superadmin | Pluriels fautifs dans les écrans de relais et de consignes : 'après 1 minutes', 'Plafonds : 1 lectures au total, 1 par mois' | corrigée en branche — 9978efa — pluriels accordés |
 | `EDI-01` | coordinateur | La ligne éditoriale de la veille accepte « agence » comme public valide (PUBLICS_JOURNAL) : un article visant seulement les agences passerait le filtre de pertinence en V1 | à trancher — ligne éditoriale |
 | `PUB-03` | coordinateur | Les textes juridiques (conditions générales, mentions légales, confidentialité) décrivent encore l'offre et la tarification agence | à trancher — textes juridiques non modifiés |
 

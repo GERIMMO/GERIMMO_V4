@@ -28,12 +28,12 @@ Version candidate contrôlée : commit `375af42` (journaux `cand4`). Les correct
 | Lint | réussi | réussi |
 | Build de production | réussi | réussi |
 | Types (`tsc`) | réussi | réussi |
-| Tests unitaires et base (vitest), fichiers | 323 passed, 1 skipped (324) | non relevé |
-| Tests unitaires et base (vitest), tests | 3333 passed, 14 skipped (3347) | non relevé |
-| Parcours navigateur (Playwright) | 147 passed | non relevé |
+| Tests unitaires et base (vitest), fichiers | 323 passed, 1 skipped (324) | 355 passed, 1 skipped (356) |
+| Tests unitaires et base (vitest), tests | 3333 passed, 14 skipped (3347) | 3776 passed, 14 skipped (3790) |
+| Parcours navigateur (Playwright) | 147 passed | 7 failed, 1 skipped, 156 passed |
 | Matrice des écrans | réussi | réussi |
-| Audit des écrans à 768 px (tous profils) | non relevé | non relevé |
-| Audit des écrans à 1440 px (tous profils) | non relevé | non relevé |
+| Audit des écrans à 768 px (tous profils) | non relevé | 8 passed |
+| Audit des écrans à 1440 px (tous profils) | non relevé | 8 passed |
 | CI GitHub Actions (Postgres 18, lint, types, tests, build, parcours) | non relevé | réussie : exécution n° 636, tête 8b558c8, après fusion de la PR #178 |
 | Simulation des deux migrations contre la production (tout annulé) | sans objet | réussie : exécution n° 70 de « Migrations Supabase », 13/10 à 21 h 43 UTC |
 
@@ -42,7 +42,7 @@ La référence est le code de `main` au commit e9f31ac, PR #177 incluse. Banc lo
 
 ## 2. Scénarios exécutés par les agents
 
-233 scénarios consignés : 173 exécutés avec succès, 43 exécutés en partie, 16 exécutés en échec, 1 non exécutés (consignés comme tels). Le détail est dans
+287 scénarios consignés : 215 exécutés avec succès, 53 exécutés en partie, 18 exécutés en échec, 1 non exécutés (consignés comme tels). Le détail est dans
 [[Registre d'exécution — scénarios, audit du 13 octobre 2026]].
 
 ## 3. Ce qui n'a pas été exécuté
@@ -187,6 +187,44 @@ La référence est le code de `main` au commit e9f31ac, PR #177 incluse. Banc lo
 | Vérificateur adverse — corrections de la PR #178 | Formulaires à attribut dont l'action ne renvoie pas { succes } (boîte « Quitter » parasite après un envoi réussi) : un seul échantillon vérifié (alerte, EX-04) ; les ~90 autres non rejoués faute de pouvoir écrire sur les données de démonstration. | non exécuté |
 | Vérificateur adverse — corrections de la PR #178 | Effet de bord d'une requête HEAD sur une page privée (sessionExpiree) : non mesuré côté serveur ; la page est rendue comme pour un GET. | bloqué par accès ou par la limite de session |
 | Vérificateur adverse — corrections de la PR #178 | proxy.ts : inchangé par les corrections (identique à snap-main-178) ; son comportement (redirection 307 pour HEAD, 303 pour POST) a servi de base aux essais de session expirée. | bloqué par accès ou par la limite de session |
+| Propriétaire et locataire — sortie de bail | Connexion du nouvel occupant (bail B) et vérification qu il ne voit rien de l ancien locataire (quittances, documents, messages) : seule la lecture directe avec le jeton de l ancien locataire a été faite | non exécuté |
+| Propriétaire et locataire — sortie de bail | Invitation expirée (expire_le dépassé) : non rejouée ; le lien d une invitation annulée affiche « Chargement… » à l ouverture, texte final non relu (capture e4-invitation-annulee.png) | non exécuté |
+| Propriétaire et locataire — sortie de bail | Fichier refusé : format interdit (.exe), faux PDF, fichier vide, plus de 10 Mo non rejoués (seul le doublon exact a été rencontré) | bloqué par accès ou par la limite de session |
+| Propriétaire et locataire — sortie de bail | Rejeu après réponse perdue et reprise après perte de session : non joués | bloqué par accès ou par la limite de session |
+| Propriétaire et locataire — sortie de bail | PDF : avis d échéance, reçu partiel, notice, bail PDF, EDL PDF, avenant PDF et congé PDF non générés ; contenu du décompte PDF lu en partie seulement (début) | non exécuté |
+| Propriétaire et locataire — sortie de bail | Dernière quittance / régularisation des charges (Régulariser) et révision IRL acceptée (nécessite la date anniversaire 01/08/2027) : non jouées | non exécuté |
+| Propriétaire et locataire — sortie de bail | Congé du bailleur valide enregistré (seuls les refus ont été prouvés) ; renouvellement / reconduction : aucune fonction dédiée dans la V1 constatée (le bail nu court 3 ans, terme 31/07/2029 affiché, pas d écran de reconduction) | bloqué par accès ou par la limite de session |
+| Propriétaire et locataire — sortie de bail | Archivage du lot : le lot repasse « disponible » à la clôture ; archivage explicite du lot (état archive) et marquage « décompte envoyé » non joués ; affichage du décompte dans l espace locataire après envoi non vérifié | non exécuté |
+| Propriétaire et locataire — sortie de bail | Création d un incident par le locataire sortant en appel direct : colonne incorrecte dans mon test, non rejoué (l écran le bloque) | non exécuté |
+| Propriétaire et locataire — sortie de bail | Mobile 390 px : non joué (bureau 1280 seulement) | non exécuté |
+| Propriétaire — charges, comptabilité, fiscalité | Toute confrontation à une source officielle : service-public.fr et impots.gouv.fr injoignables (getaddrinfo ENOTFOUND), legifrance.gouv.fr, anil.org non essayés (politique réseau annoncée) ; WebSearch ne rend que titres et URL. Chaque règle porte « source officielle non consultée » (regles-confrontees.md). | non exécuté |
+| Propriétaire — charges, comptabilité, fiscalité | Création du bail actif par l'interface (diagnostics, EDL, bail signé) : amorcé en SQL, parcours couvert par le rôle propriétaire. | non exécuté |
+| Propriétaire — charges, comptabilité, fiscalité | Prescription triennale du complément et régularisation tardive avec étalement en douze mensualités (exigent des exercices clos depuis plus de trois ans ou après le 31/12 de l'année suivante) ; charges au forfait ; colocation individuelle ; copropriété (appels de charges ventilés). | non exécuté |
+| Propriétaire — charges, comptabilité, fiscalité | Clôture mensuelle du livre, rapport de gestion et versement au mandant (agences, hors V1 publique). | non exécuté |
+| Propriétaire — charges, comptabilité, fiscalité | Contre-écriture inter-exercices (CHF-07) ; micro-foncier (aucun calcul dans le produit) ; régimes meublé/LMNP et SCI (V2 annoncée). | non exécuté |
+| Propriétaire — charges, comptabilité, fiscalité | Justificatif de dépense : le formulaire du livre n'a pas de pièce jointe, seule la justification textuelle de la qualification existe ; aucun contrôle de présence d'un fichier n'a donc pu être rejoué. | non exécuté |
+| Propriétaire — charges, comptabilité, fiscalité | Import de reprise comptable (/comptabilite/reprise) et export FEC : non ouverts. | non exécuté |
+| Propriétaire — charges, comptabilité, fiscalité | Véracité des valeurs IRL : indices fictifs employés (T2 2025 = 144,00 ; T2 2026 = 145,50), plafonnement légal non vérifié. | non exécuté |
+| Auditeur — performances, erreurs et liens | Production réelle (CDN, compression Brotli, démarrages à froid, latence réelle de la base) : seul le banc local a été mesuré, sur une machine partagée de 4 cœurs ; les durées sont relatives. | non testable sur le banc local |
+| Auditeur — performances, erreurs et liens | Interactions après chargement (INP, clics, saisie, listes longues) et temps des actions serveur : non mesurés. | non exécuté |
+| Auditeur — performances, erreurs et liens | Volumétrie : le jeu de démonstration est petit (5 organisations, 13 personnes) ; aucun test avec des centaines de baux, de quittances ou de documents. | non exécuté |
+| Auditeur — performances, erreurs et liens | Visites répétées avec cache chaud : non mesurées (toutes les mesures sont à froid, cache désactivé). | non exécuté |
+| Auditeur — performances, erreurs et liens | Liens sortants : forme vérifiée seulement (consigne) ; leur disponibilité réelle (404 externes) n'est pas vérifiée. | non exécuté |
+| Auditeur — performances, erreurs et liens | 102 des 105 liens ?action= de la page d'assistance non ouverts (consigne de prudence) ; liens uniquement visibles après une interaction (fenêtres, onglets, menus ouverts) non relevés au-delà de ce que le DOM initial contient. | non exécuté |
+| Auditeur — performances, erreurs et liens | Liens du profil « multi » et des écrans hors matrice ; /compte pour propriétaire et artisan (absent de la matrice). | non exécuté |
+| Auditeur — performances, erreurs et liens | Adresse de contact de l'éditeur : non configurée sur le banc, donc mailto de contact non vérifiable (PRF-08). | non testable sur le banc local |
+| Auditeur — performances, erreurs et liens | Autres navigateurs (Safari mobile, Firefox) et largeurs 768 et 1440 px : non mesurés. | non exécuté |
+| Auditeur — performances, erreurs et liens | Effets de bord éventuels des consultations en base (compteurs « lu », journaux de lecture) : non vérifiés. | non exécuté |
+| Auditeur — retour arrière et restauration | État réel des sauvegardes de production (dernière réussite de « Sauvegarde quotidienne », règle de cycle de vie Scaleway de 90 jours, présence de la copie) : accès à GitHub Actions, Scaleway et Supabase interdit | non exécuté |
+| Auditeur — retour arrière et restauration | Restauration d'une copie de production, dans un projet Supabase de secours ou ailleurs : hors de portée du banc ; aucun essai de restauration de production postérieur au 27/09 n'a pu être consulté | non testable sur le banc local |
+| Auditeur — retour arrière et restauration | Essais du 27/09 cités dans app/docs/sauvegarde-et-restauration.md (liens d'exécutions GitHub) : lus, non revérifiés | non testable sur le banc local |
+| Auditeur — retour arrière et restauration | Bascule des services Supabase Auth et Storage vers un projet de secours, réimportation par leur API, remise en service en moins de 4 h : jamais éprouvées, non essayées ici | non exécuté |
+| Auditeur — retour arrière et restauration | Scripts de retour arrière sur PostgreSQL 17 (version annoncée en production) et sur le volume réel ; durée mesurée seulement sur le banc (< 0,1 s) | non testable sur le banc local |
+| Auditeur — retour arrière et restauration | Application candidate servie sur une base revenue à l'état antérieur (parcours navigateur) : seul le SQL a été éprouvé ; le serveur du port 3100 n'a pas été touché | non exécuté |
+| Auditeur — retour arrière et restauration | Contenu réel de cron.job en production (écart éventuel avec les cron.schedule des migrations) et existence de migrations postérieures qui réécriraient les mêmes fonctions | non exécuté |
+| Auditeur — retour arrière et restauration | Sauvegarde du Storage : la copie des fichiers (fichiers.mjs sauvegarder) n'a pas été jouée, le banc ne porte aucun objet Storage dans la base de l'essai ; seul le code a été lu | non testable sur le banc local |
+| Auditeur — retour arrière et restauration | Secrets : emplacement et copie hors comptes GitHub/Vercel non vérifiables ; aucun secret lu ni recopié (la clé d'essai de chiffrement était jetable et n'a pas été écrite) | non exécuté |
+| Auditeur — retour arrière et restauration | Mesures de la matrice d'accès sur la version candidate : la matrice citée (auditeur/a) date de e9f31ac, lue et non rejouée | non exécuté |
 | Designer — public, propriétaire, locataire | Écrans propriétaire/locataire nécessitant des données absentes du banc : baux actifs, loyers appelés/encaissés, quittances réelles, états des lieux, devis et interventions (les écrans listés existent mais en état vide ou sans bail) ; la passe automatique les a ouverts, le regard humain n'a pas jugé leur contenu rempli | non testable sur le banc local |
 | Designer — public, propriétaire, locataire | Regard humain non fait écran par écran sur : fiscal, reprise comptable, import, catalogue de documents, agenda, statistiques, messages, journal connecté, fiche personne, attestation de loyer, quittance imprimable, FAQ et assistance (relevés automatiques seulement) | non exécuté |
 | Designer — public, propriétaire, locataire | Mode sombre, impression, zoom 200 %, lecteur d'écran réel (VoiceOver/TalkBack), iOS Safari réel : non testés (Chromium seul) | non exécuté |

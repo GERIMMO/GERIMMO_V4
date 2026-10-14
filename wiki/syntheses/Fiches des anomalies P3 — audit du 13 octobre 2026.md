@@ -9,64 +9,7 @@ sources: []
 
 # Fiches des anomalies P3 — audit du 13 octobre 2026
 
-Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies — audit du 13 octobre 2026]] (les fiches P0, P1 et P2 sont dans le registre). Les champs vides n'ont pas été relevés par l'agent.
-
-#### `ARC-04` — Numéro de facture externe : unicité sensible à la casse (« art-2026-0001 » accepté en doublon de « ART-2026-0001 »), aucune continuité contrôlée
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Chantier externe terminé, devis accepté, facture ART-2026-0001 déjà déposée pour un autre chantier
-- **Étapes** : Déposer, sur un second chantier terminé, une facture portant le numéro « art-2026-0001 » (ou « ART-2026-0001 » avec espaces)
-- **Attendu** : Refus : deux factures du même artisan ne peuvent pas porter le même numéro, quelle que soit la casse ; contrôle ou avertissement sur un saut de numérotation
-- **Observé** : La facture « art-2026-0001 » est acceptée et listée à côté de « ART-2026-0001 » sur la page Facturation ; les espaces autour sont retirés (btrim) mais pas la casse ; le message du vrai doublon est « Ce dossier ou cette facture existe déjà. Rechargez avant de recommencer » (voir ARC-06)
-- **Preuve expurgée (banc)** : captures/c19-numeros-facture-casse.png ; sql/s05-chantiers-4-3.txt
-- **Cause probable** : supabase/migrations/20261012220000_artisan_clients_externes.sql : unique(artisan_id,numero) sur le texte brut ; la RPC artisan_externe_ecrire ne normalise que btrim
-- **Correction proposée** : Index unique sur (artisan_id, lower(btrim(numero))) étendu aux numéros des factures Gerimmo du même artisan, et message dédié « Ce numéro de facture existe déjà »
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `AUD-A-05` — Écart documentation/code : la piste d'audit générique documentée n'existe pas
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : auditeur (auditeur/a) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Lecture de wiki/regles-metier/Archivage plutôt que suppression.md et de la base.
-- **Étapes** : select count(*) from pg_proc where proname='audit_table_changes' ; select count(*) from pg_tables where tablename='audit_logs'.
-- **Attendu** : Table centrale audit_logs append-only alimentée par le déclencheur audit_table_changes(), DELETE réservé au super admin (wiki).
-- **Observé** : Aucune des deux (0 et 0). La table réelle s'appelle audit_log et ne contient que 8 types d'actions (adhesion_creee, adhesion_retiree, suppression_encaissement, bien_retire, bien_retabli, invitation_locataire, invitation_locataire_envoi_echec, inscription_proprietaire) ; plusieurs suppressions sont ouvertes aux propriétaires (detentions, retenues, encaissements).
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/securite.md (section Constats) et requête SQL ci-dessus
-- **Cause probable** : Règle du wiki jamais livrée ou remplacée par des journaux par module ; à trancher.
-- **Correction proposée** : Mettre le wiki en cohérence avec le code, ou livrer un déclencheur d'audit sur les tables sensibles (ecritures, detentions, baux, retenues).
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `AUD-A-06` — Insertion anonyme directe dans demandes_devis sans limite de débit
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : auditeur (auditeur/a) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Clé publique (anon) du site.
-- **Étapes** : 30 POST /rest/v1/demandes_devis en rafale avec nom, e-mail (jeton anon uniquement).
-- **Attendu** : Limite de débit au niveau de l'API ou captcha ; l'action serveur app/src/app/actions/devis.ts en prévoit une.
-- **Observé** : 30 insertions sur 30 acceptées ; un message de 2 Mo est refusé par la contrainte CHECK demandes_devis_longueurs (taille bornée à 4000 caractères). Le contournement de l'action serveur est admis par le commentaire du code (ligne 17).
-- **Preuve expurgée (banc)** : sortie console de la session (insertions anonymes) ; table demandes_devis de la copie
-- **Cause probable** : Politique demandes_devis_insert_public (with check true) + droit d'insertion par colonne accordé à anon.
-- **Correction proposée** : Limite de débit en périphérie (Vercel/Supabase) ou insertion réservée à la clé de service via l'action serveur.
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `AUD-B-03` — Cookie de session lisible par script et marqué Secure seulement si NEXT_PUBLIC_SITE_URL commence par https://
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : auditeur-b (auditeur/b) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Production avec variable mal posée (hypothèse)
-- **Étapes** : Lire lib/supabase/cookies.ts ; vérifier la variable côté Vercel
-- **Attendu** : Secure garanti en production indépendamment de la variable
-- **Observé** : Le cookie de session Supabase n'est pas HttpOnly (choix documenté) ; son drapeau Secure dépend d'une variable d'environnement : absente ou en http, la session circulerait en clair sans alerte. script-src garde 'unsafe-inline' (choix documenté faute de nonce). Aucun script exécutable n'a été trouvé (B-XSS-RENDU, B-XSS-ROLES) : risque résiduel, pas une faille démontrée.
-- **Preuve expurgée (banc)** : snap-main/app/src/lib/supabase/cookies.ts ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/entetes.txt ; état de session du banc
-- **Cause probable** : snap-main/app/src/lib/supabase/cookies.ts:15
-- **Correction proposée** : Dériver Secure de VERCEL_ENV === 'production' en plus de la variable ; ajouter un test de configuration au démarrage
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Reproduction** : hypothèse à vérifier, non reproduite
+Fiches complètes des 141 anomalies de gravité P3 du [[Registre des anomalies — audit du 13 octobre 2026]] (les fiches P0, P1 et P2 sont dans le registre). Les champs vides n'ont pas été relevés par l'agent.
 
 #### `AUD-B-05` — Dépôt de deux fichiers identiques : un seul conservé, sans le dire
 
@@ -77,7 +20,7 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Étapes** : Signaler un problème avec deux fois la même photo
 - **Attendu** : Mention « une photo identique n'a été jointe qu'une fois » ou refus
 - **Observé** : Trois photos envoyées dont deux PNG de contenu identique (l'une au nom hostile) : le signalement INC-2026-0003 n'a que deux documents, et l'écran de suivi ne mentionne aucun doublon écarté. Le comportement est voulu côté GED (empreinte anti-doublon) mais silencieux dans ce parcours.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/incident-accepte.png ; SQL : 2 documents photo_incident pour INC-2026-0003
+- **Preuve expurgée (banc)** : preuves/auditeur/b/incident-accepte.png ; SQL : 2 documents photo_incident pour INC-2026-0003
 - **Cause probable** : lib/photos-incident-reprise.ts / app/actions/incidents.ts (dédoublonnage par empreinte)
 - **Correction proposée** : Afficher le nombre de pièces réellement jointes dans la confirmation
 - **Correction sans aval** : oui
@@ -112,21 +55,6 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction sans aval** : oui
 - **Reproduction** : hypothèse à vérifier, non reproduite
 
-#### `AUD-C-05` — L'arret d'urgence ne couvre pas les e-mails declenches par le webhook Stripe (hypothese a verifier)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : auditeur-c (auditeur/c) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Un arret demande dans la supervision ; evenement Stripe reçu ensuite
-- **Étapes** : Lire api/stripe/webhook/route.ts : envoyerAvisFinEssai et envoyerRelancesDues sont appeles sans verifierAvantEffet ; lib/email.ts n'a pas de garde. Les missions, l'orchestrateur et les routes cron en ont une.
-- **Attendu** : Aucun nouvel effet sortant apres un arret ('Aucun nouvel effet ne sera lance').
-- **Observé** : Code lu seulement ; non atteignable sur le banc (webhook non configure).
-- **Preuve expurgée (banc)** : app/src/app/api/stripe/webhook/route.ts lignes 297 et 348 ; app/src/lib/controle-effets.ts
-- **Cause probable** : Garde posee dans les missions, pas dans les chemins evenementiels.
-- **Correction proposée** : Appeler verifierAvantEffet(db, 'abonnements') avant ces deux envois, ou documenter que l'arret ne couvre que les missions.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Reproduction** : hypothèse à vérifier, non reproduite
-
 #### `AUD-C-06` — L'export CSV du journal ne neutralise pas les formules de tableur (hypothese a verifier)
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -142,36 +70,6 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction sans aval** : oui
 - **Reproduction** : hypothèse à vérifier, non reproduite
 
-#### `AUD-C-07` — Les routes cron directes n'ont ni verrou de mission ni reservation avant envoi (doublon d'e-mail possible, hypothese a verifier)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : auditeur-c (auditeur/c) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Detenteur du CRON_SECRET appelant /api/cron/appels (ou quittances, relances, rappels) pendant que le repartiteur tourne
-- **Étapes** : Lire appels/route.ts : appels_a_envoyer (sans reservation) puis envoi puis marquer_appel_envoye ; le verrou commencer_mission n'existe que dans le repartiteur equipes.
-- **Attendu** : Une seule passe a la fois ou reservation des lignes avant envoi.
-- **Observé** : Code lu ; le chemin autorise n'est pas atteignable sur le banc (secret absent). Vercel n'appelle que le repartiteur.
-- **Preuve expurgée (banc)** : app/src/app/api/cron/appels/route.ts, app/src/lib/execution-mission.ts
-- **Cause probable** : Routes historiques conservees apres l'ajout du repartiteur.
-- **Correction proposée** : Retirer l'export direct ou le faire passer par executerMission.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Reproduction** : hypothèse à vérifier, non reproduite
-
-#### `AUD-C-08` — Fichiers PDF orphelins possibles si le webhook Youtrust et la tache de nuit traitent le meme evenement en meme temps (hypothese a verifier)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : auditeur-c (auditeur/c) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Youtrust production configure ; evenement signature_request.done en cours de traitement par le webhook et repris par la tache
-- **Étapes** : Lire lib/signature-worker.ts : controle !signee_le non atomique, deux depots Storage avec UUID aleatoire, puis finaliser_signature_youtrust ; la 2e finalisation rend l'existant sans erreur donc sans suppression des fichiers deposes.
-- **Attendu** : Aucun fichier orphelin.
-- **Observé** : Aucun effet financier ni juridique (un seul document signe en base, verrou for update) ; fichiers en double dans le bucket documents. Non atteignable sur le banc.
-- **Preuve expurgée (banc)** : app/src/lib/signature-worker.ts lignes 24-50 ; migration finaliser_signature_youtrust
-- **Cause probable** : Pas de reservation de l'evenement avant telechargement.
-- **Correction proposée** : Passer l'evenement a 'en_cours' par update conditionnel avant le telechargement.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Reproduction** : hypothèse à vérifier, non reproduite
-
 #### `LOC-01` — Dépôt d'une attestation déjà déposée : message technique générique au lieu de « ce fichier est déjà dans votre dossier »
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -181,7 +79,7 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Étapes** : 1. /locataire/<org>/documents. 2. Choisir exactement le même fichier PDF déjà déposé. 3. Date d'expiration 30/06/2027. 4. Déposer.
 - **Attendu** : Message explicite : ce document est déjà enregistré (ou remplacement silencieux)
 - **Observé** : « Gerimmo n'a pas pu terminer cette action. Réessayez dans un instant ; si le problème continue, signalez-le depuis Aide et retours. » (l'index unique documents_empreinte_unique (organization_id, empreinte) rejette l'insertion et sansJargon masque la cause). Réessayer ne servira jamais. Reproduit 3 fois (simple clic, double clic, fichier déjà déposé par le propriétaire). Même racine que PROP-11 côté propriétaire.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures/loc-01-doublon-fichier-message-generique.png ; SQL : index documents_empreinte_unique
+- **Preuve expurgée (banc)** : preuves/chaine/1/captures/loc-01-doublon-fichier-message-generique.png ; SQL : index documents_empreinte_unique
 - **Cause probable** : src/app/actions/attestation-locataire.ts : erreurRpc passé à sansJargon() sans traiter l'erreur 23505 ; index unique sur (organization_id, empreinte)
 - **Correction proposée** : Capturer le code 23505 sur l'insertion et répondre « Ce fichier est déjà dans votre dossier » ; ou chercher l'empreinte avant le dépôt
 - **Correction sans aval** : oui
@@ -195,7 +93,7 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Étapes** : 1. Saisir 2,5 en quantité et choisir TVA 5,5 %. 2. Valider et générer le PDF. 3. Ouvrir la fiche de l'incident côté propriétaire avant de retenir le devis.
 - **Attendu** : « 2,5 » et « 5,5 % » (typographie française, comme « 58,40 € » et le sélecteur de TVA)
 - **Observé** : PDF : « 2.5 », « 5.5 % ». Côté propriétaire : « 2.5 × 58,40 € HT — TVA 10,00 % — 160,60 € TTC » (la quantité garde le point ; le taux est en virgule). Le texte vient de la description construite en SQL (deposer_devis_structure : quantité concaténée en texte brut).
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/fichiers/devis-v1-artisan.pdf (texte extrait) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/o2-01-devis-recu.png
+- **Preuve expurgée (banc)** : preuves/chaine/1b/fichiers/devis-v1-artisan.pdf (texte extrait) ; preuves/chaine/1b/captures/o2-01-devis-recu.png
 - **Cause probable** : supabase : fonction deposer_devis_structure (concaténation de (l->>'quantite')) et gabarit PDF app/api/devis/[sollicitationId]/pdf/route.ts : formatage fr-FR absent. Hypothèse de fichier, non vérifiée.
 - **Correction proposée** : Formater la quantité et le taux en fr-FR dans le gabarit PDF et dans la description du devis.
 - **Correction sans aval** : oui
@@ -209,24 +107,10 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Étapes** : 1. Saisir quantité 0 puis « abc », prix 12,345 puis -5. 2. Observer le total.
 - **Attendu** : Message sous le champ (ex. « deux décimales au plus », « quantité supérieure à zéro »)
 - **Observé** : Total inchangé à 0,00 € et phrase générique « Le total se met à jour à mesure que les lignes se complètent » ; aucune erreur de champ avant la validation du PDF
-- **Preuve expurgée (banc)** : sortie console du script scripts/a4.mjs (totaux 0,00 € pour chaque saisie invalide) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/a4-01-ligne-sans-tva.png
+- **Preuve expurgée (banc)** : sortie console du script scripts/a4.mjs (totaux 0,00 € pour chaque saisie invalide) ; preuves/chaine/1b/captures/a4-01-ligne-sans-tva.png
 - **Cause probable** : app/artisan/lignes-devis.tsx : le calcul de calculerDevis échoue dans un try/catch vide quand une ligne est invalide (total laissé à 0,00 €).
 - **Correction proposée** : Afficher une erreur de champ (aria-invalid + texte) dès que montantEnCentimes ou la quantité est invalide.
 - **Correction sans aval** : oui
-
-#### `ART-15` — La photo jointe par le locataire n'est visible de l'artisan ni au stade du devis ni sur la fiche de mission
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : artisan (chaine/1b) · **Version testée** : candidate 5d15b4d (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Incident déclaré avec photo (« Photo jointe. »)
-- **Étapes** : 1. Ouvrir la demande de devis de l'artisan. 2. Ouvrir la fiche de la mission après la sélection du devis.
-- **Attendu** : Photo disponible au moins après sélection du devis (pour préparer l'intervention), ou mention explicite qu'elle n'est pas transmise
-- **Observé** : La description dit « Photo jointe » mais aucune photo n'apparaît dans les deux écrans (le propriétaire, lui, la voit). L'artisan chiffre à l'aveugle. À trancher : choix de confidentialité ou lacune.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/a1-02-demande-detail.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/a9-01-detail-mission.png
-- **Cause probable** : mes_sollicitations ne renvoie aucun identifiant de pièce ; la photo est classée dans documents de l'organisation (non lisible par l'artisan). Hypothèse de fichier, non vérifiée.
-- **Correction proposée** : Décision produit : exposer la photo à l'artisan retenu via une URL signée, ou masquer la mention « Photo jointe » dans la description transmise.
-- **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `PRO2-11` — Élision manquante dans le nom de parc généré : « Parc de Éloïse … » (même famille que LOC-02)
 
@@ -237,24 +121,10 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Étapes** : Ouvrir l'écran artisan de la demande de devis ou le PDF : le client est nommé « Parc de Éloïse [TEST-proprietaire] Durand-Lévêque ».
 - **Attendu** : « Parc d'Éloïse … »
 - **Observé** : « Parc de Éloïse … » dans l'espace artisan et sur le PDF du devis
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/a1-02-demande-detail.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/fichiers/devis-v1-artisan.pdf
+- **Preuve expurgée (banc)** : preuves/chaine/1b/captures/a1-02-demande-detail.png ; preuves/chaine/1b/fichiers/devis-v1-artisan.pdf
 - **Cause probable** : Génération du nom d'organisation par concaténation « Parc de » + prénom à l'inscription. Hypothèse de fichier, non vérifiée.
 - **Correction proposée** : Appliquer l'élision (de / d') avant voyelle ou h muet.
 - **Correction sans aval** : oui
-
-#### `CHN-02` — La validation de la facture, l'écriture de règlement et la clôture de l'incident ne laissent aucune ligne au journal d'audit : seule la chronologie de l'incident les garde
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : chaine (propriétaire n°2, super-administrateur) (chaine/2) · **Version testée** : candidate 5d15b4d (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Chaîne complète sur le propriétaire n°2
-- **Étapes** : Valider la facture (22:53), saisir l'écriture de 239,68 € (22:55), clôturer l'incident (22:56), puis lire le journal d'audit de l'organisation
-- **Attendu** : Les décisions financières (validation d'une facture, écriture de règlement) figurent au journal d'audit « actions sensibles », au même titre que l'annulation d'une écriture
-- **Observé** : audit_log de l'organisation n°2 entre 22:35 et 23:05 : aucune ligne ; la validation est seulement dans incident_evenements (facture_validee, avec l'acteur) ; l'annulation d'écriture, elle, est journalisée (contre_ecriture) : la correction est tracée, la décision initiale ne l'est pas
-- **Preuve expurgée (banc)** : sql/audit-log-chaine2.txt
-- **Cause probable** : valider_facture_artisan et la saisie d'écriture n'insèrent pas dans audit_log (seule contre_ecriture l'a depuis la migration 20261013120000)
-- **Correction proposée** : Journaliser facture_validee et ecriture_creee (montant, catégorie, lien facture) dans audit_log ; à rapprocher des lacunes de traçabilité AUD-A déjà au registre
-- **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `LOC-22` — Un locataire connecté qui ouvre /artisan arrive sur le formulaire d'inscription artisan
 
@@ -284,6 +154,35 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Adapter les libellés au type d'organisation (ou « votre interlocuteur »), en même temps que PROP-09
 - **Correction sans aval** : oui
 
+#### `CHF-05` — Le wiki « Fiscalité » ne s'appuie sur aucune source officielle (quatre sites commerciaux seulement) et affirme encore « non implémentée » pour des fonctions livrées ; le wiki « Régularisation des cha…
+
+- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Lecture de wiki/concepts/Fiscalité.md et wiki/processus/Régularisation des charges.md.
+- **Étapes** : 1. Lire l'encadré « Décision produit — non implémentée » en tête des deux pages. 2. Lire leurs sections postérieures (« Phase 1 livrée », « Audit de gestion du 29/09/2026 »). 3. Lire la section « Sources web ».
+- **Attendu** : Wiki cohérent, chaque règle fiscale rattachée à une source officielle datée (CLAUDE.md : traçabilité des affirmations).
+- **Observé** : Encadré « Aucune implémentation dans le code » contredit par les sections suivantes ; sources de la matrice des régimes = Finalib, Maslow, jedeclaremonmeuble, Manda. À ajouter à FIN-10 (wiki non mis à jour sur 229/230).
+- **Preuve expurgée (banc)** : wiki/concepts/Fiscalité.md (sources web) ; wiki/processus/Régularisation des charges.md (encadré de tête)
+- **Cause probable** : Mise à jour du wiki non faite après les livraisons
+- **Correction proposée** : Remplacer les encadrés, citer service-public.fr / impots.gouv.fr / legifrance.gouv.fr avec date de consultation.
+- **Correction sans aval** : oui
+
+#### `CHF-08` — Hypothèse à vérifier : le lien « notice officielle 2044, millésime 2026 (revenus 2025) » affiché sous un récapitulatif des revenus 2026 pointe vers …/2044_5487.pdf, alors que la recherche renvoie le…
+
+- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Récapitulatif fiscal 2026.
+- **Étapes** : Lire le pied de page de l'écran fiscal ; comparer à l'URL renvoyée par la recherche.
+- **Attendu** : Lien vers la notice des revenus concernés, vérifié.
+- **Observé** : Lien non ouvrable ici (impots.gouv.fr bloqué) ; numéro de fichier différent de celui renvoyé par la recherche.
+- **Preuve expurgée (banc)** : preuves/charges-fiscalite/captures/fiscal-final.txt ; preuves/charges-fiscalite/web-consultation.txt
+- **Cause probable** : app/src/components/recapitulatif-fiscal.tsx:357
+- **Correction proposée** : Ouvrir le lien depuis un poste non filtré et corriger si besoin.
+- **Correction sans aval** : oui
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
 #### `DES-A-03` — Espace locataire : les titres de carte sont des <h3> directement sous le <h1> (aucun <h2>) sur toutes les pages
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -298,34 +197,6 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Passer ces <h3> en <h2> en conservant les classes (vérifier d'abord qu'aucune règle CSS ne cible `.entete-carte h3` ou `.loc-carte h3` ; sinon dupliquer le sélecteur pour h2).
 - **Correction sans aval** : oui
 
-#### `DES-A-06` — Hors ligne : la navigation interne bascule sur la page d'erreur du navigateur (en anglais) et n'en sort pas au retour du réseau
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte propriétaire ou locataire connecté, 390×844, réseau coupé juste avant un clic sur un onglet du menu
-- **Étapes** : 1. Ouvrir le tableau de bord. 2. Couper le réseau. 3. Toucher « Finances » (propriétaire) ou « Paiements » (locataire). 4. Rétablir le réseau sans rien toucher.
-- **Attendu** : Un message de l'application (« Connexion perdue, réessayez ») et un retour automatique ou un bouton « Réessayer » ; l'utilisateur reste dans l'application
-- **Observé** : Le navigateur affiche « No internet / ERR_INTERNET_DISCONNECTED » (page non française), l'onglet reste sur cette page d'erreur, et après retour du réseau la page reste en erreur tant que l'utilisateur ne recharge pas. En revanche, au chargement lent (latence 1,8 s, 60 ko/s) un squelette de chargement s'affiche, et quand les requêtes RSC reçoivent un 500 la navigation retombe sur un chargement complet qui réussit.
-- **Preuve expurgée (banc)** : etats/prop-hors-ligne-390.png ; etats/loc-hors-ligne-390.png ; etats/etats-journal-prop.json ; etats/etats-journal-loc.json (relancés sur la candidate)
-- **Cause probable** : Aucune page de repli hors ligne ni service worker : la navigation Next retombe sur une navigation document qui échoue.
-- **Correction proposée** : Ajouter un repli hors ligne (service worker + page /hors-ligne en français) ; c'est une décision produit, pas une retouche.
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `DES-A-08` — Toutes les pages du propriétaire direct vivent sous l'adresse /agence/<id>/… (adresse visible, partagée, mise en favori)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte propriétaire direct
-- **Étapes** : Ouvrir n'importe quel écran propriétaire et lire l'URL
-- **Attendu** : Une adresse sans le mot « agence » dans une V1 qui ne présente plus les agences
-- **Observé** : URL de la forme /agence/3c1d…/parc, /agence/3c1d…/loyers, etc. pour les 35 écrans propriétaire relevés
-- **Preuve expurgée (banc)** : journaux/auto-proprietaire-390.json (cheminFinal)
-- **Cause probable** : Le segment de route app/src/app/agence/[orgId] est partagé entre agences et propriétaires directs
-- **Correction proposée** : Refonte : alias /espace/<id>/… avec redirections 301 depuis /agence/<id>/…, à décider avec l'équipe ; ne pas toucher sans aval.
-- **Correction sans aval** : non (aval du dirigeant requis)
-
 #### `DES-A-10` — Le logo doré posé à nu sur fond clair est quasi illisible sur mobile (≈ 1,5:1), alors que la page d'inscription artisan le présente dans une tuile bleu nuit (≈ 13,6:1)
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -339,20 +210,6 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Cause probable** : app/src/components/coquille-auth.tsx:43 et app/src/app/agence/[orgId]/layout.tsx:219 (.coquille-marque-mobile, prestige.css:413 : logo 64 px sans fond) ; l'en-tête artisan/public utilise déjà la tuile
 - **Correction proposée** : Réutiliser la tuile existante (fond var(--marque), rayon 10 px, padding 4 px 8 px) autour du logo dans .coquille-marque-mobile et dans la coquille d'authentification ; aucune refonte d'identité.
 - **Correction sans aval** : oui
-
-#### `DES-A-11` — L'adresse est « facultative » à l'inscription propriétaire mais bloque ensuite la création du premier bien
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte propriétaire neuf créé par /inscription sans adresse, code postal ni ville (champs marqués « facultatif »)
-- **Étapes** : 1. S'inscrire sans adresse. 2. Sur « Mes lots » vide, toucher « Créer mon premier bien ». 3. Lire la page « Créer un lot ».
-- **Attendu** : Même exigence à l'inscription et à l'usage : soit adresse/code postal/ville demandés (et marqués obligatoires) à l'inscription, soit le premier bien créable sans détour
-- **Observé** : La page « Créer un lot » est remplacée par « Complétez d'abord votre profil — Il manque votre adresse. Ils vous désignent comme bailleur dans le bail… sans eux, le bien ne peut pas être créé » avec un bouton vers /profil. Le message est clair et le détour fonctionne (profil enregistré en double clic : 1 seule requête, bouton « Profil enregistré », assistant de 6 étapes disponible ensuite), mais l'inscription a annoncé ces champs comme facultatifs et le CTA principal de « Mes lots » mène à un écran d'attente.
-- **Preuve expurgée (banc)** : etats/neuf/ajout-bien-390.png ; etats/neuf/lots-390.png ; etats/neuf/profil-enregistre-390.png ; etats/neuf/assistant-lot-390.png ; avant/public/inscription-390.png
-- **Cause probable** : Écrans /inscription (champs « Adresse postale (facultatif) ») et app/src/app/agence/[orgId]/parc/nouveau (porte « Complétez d'abord votre profil »)
-- **Correction proposée** : Retirer « (facultatif) » des trois champs d'adresse de l'inscription et les rendre obligatoires, ou, sur « Mes lots » vide, remplacer le CTA par « Compléter mon profil pour créer un bien ». Choix produit ; les textes seuls sont sans aval.
-- **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `DES-B-10` — Logo doré quasi illisible sur l'en-tête blanc : artisan à 768 px et super-admin à 390 et 768 px (même défaut que DES-A-10)
 
@@ -382,48 +239,6 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Appliquer le correctif de DES-A-01 ; `.recherche-ouvrir { min-height: 44px }` ; libellé « Dépôt de garantie » à la place du code dans l'aide de saisie
 - **Correction sans aval** : oui
 
-#### `IA-06` — L'arrêt d'urgence ne couvre pas le traitement immédiat du webhook Yousign ; la clé 'sauvegarde' n'a aucun lecteur (confirmation par lecture de SUP-07)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Arrêt global actif
-- **Étapes** : 1. Lire youtrust/webhook/route.ts:49-57 et signatures/route.ts:45 ; 2. Rechercher verifier_arret dans .github et app/scripts
-- **Attendu** : Aucun nouvel effet après un arrêt d'urgence
-- **Observé** : Constat statique : le webhook appelle traiterEvenementSignature sans avantEffet (téléverse des PDF signés et finalise la signature) alors que le cron le passe ; aucune occurrence de verifier_arret dans le workflow de sauvegarde ni dans ses scripts. Complète AUD-C-05 et SUP-07 ; le webhook Yousign est inactif tant que Youtrust n'est pas en production.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-06)
-- **Cause probable** : app/src/app/api/youtrust/webhook/route.ts:51-56 ; .github/workflows/sauvegarde.yml
-- **Correction proposée** : Passer () => verifierAvantEffet(supabase, 'signatures') au traitement immédiat ; faire lire la clé 'sauvegarde' par le workflow ou retirer la clé de l'écran (D2)
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `IA-07` — Des éléments d'automatisation existent sans écrivain ni appelant : automation_events, log_automation_event, automation_stats_30d, autoriser_orchestration
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Code au commit 83ba492
-- **Étapes** : Rechercher ces noms dans app/src et dans les migrations postérieures à 20260922120000
-- **Attendu** : Une automatisation annoncée est branchée, ou son état 'préparé' est dit
-- **Observé** : Constat statique : aucune occurrence dans app/src ; aucun écrivain en SQL après la migration d'origine ; le taux d'automatisation affiché vient de tech_log (automatisation.ts). mode='automatique' d'orchestration_cases est un libellé : la file n'exécute rien.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-07)
-- **Cause probable** : app/supabase/migrations/20260922120000_autonomie_v3.sql:48-110,143-158
-- **Correction proposée** : Décider : alimenter automation_events par les passages (utile pour le registre d'exécution des équipes IA) ou documenter 'préparé, non alimenté'
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `IA-09` — La tâche territoire peut préparer une campagne-idée 'essai avec des agences', alors que les agences sont hors du périmètre public V1
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Un département avec au moins 20 agences, un ratio agences/logements >= 0,001, la porte de santé ouverte
-- **Étapes** : 1. Lire score-territoire.ts:65-73 et territoire/route.ts:185-191 ; 2. Lire 20260922223000_preparer_recrutement_territorial.sql
-- **Attendu** : Aucune préparation visant un public hors V1 sans aval
-- **Observé** : Constat statique : prioriteTerritoriale peut rendre 'agences' ; preparer_recrutement_territorial crée alors une ligne marketing_campagnes au statut 'idee', budget 0 (brouillon interne, aucune diffusion). Effet non rejoué. Voir EDI-01.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-08/09)
-- **Cause probable** : app/src/lib/score-territoire.ts:69-70
-- **Correction proposée** : Exclure 'agences' de la priorité tant que le périmètre V1 l'exclut, ou la garder explicitement marquée 'hors V1' (décision du dirigeant)
-- **Correction sans aval** : non (aval du dirigeant requis)
-
 #### `IA-10` — La page wiki 'Gerimmo en autonomie' est périmée : 4 tâches quotidiennes, 'vercel.json ne fixe aucune région', ronde quotidienne 'à armer'
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -433,38 +248,52 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Étapes** : 1. Lire wiki/syntheses/Gerimmo en autonomie.md (lignes 77, 163-169, 225) ; 2. Lire app/vercel.json:3-5 et 6-51 ; 3. Lire wiki/regles-metier/Registre des traitements.md (région cdg1 fixée le 20/09)
 - **Attendu** : Le wiki décrit l'état du code ou signale ce qui a changé
 - **Observé** : La page (statut draft, mise à jour 29/09) contredit le code (11 tâches, région cdg1) et le Registre des traitements.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-10)
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-10)
 - **Cause probable** : Page non remise à jour après les évolutions des 20 au 29/09
 - **Correction proposée** : Mettre à jour la page ou la marquer 'historique', avec renvoi vers propositions.md une fois le dirigeant d'accord
 - **Correction sans aval** : oui
 
-#### `IA-11` — Aucun registre d'exécution n'a de règle de rétention (agent_passages, supervision_operations, points_du_matin, decisions_du_matin, brief_direction_snapshots)
+#### `PRF-01` — Page de connexion : décalage de mise en page (CLS 0,212) sur mobile avec réseau lent
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Code au commit 83ba492
-- **Étapes** : 1. Rechercher les suppressions de ces tables dans les migrations ; 2. Lire appliquer_retention (20260927142000_conservation_depuis_fin_du_contrat.sql:160-266)
-- **Attendu** : Chaque journal a une durée de conservation écrite (Registre des traitements)
-- **Observé** : Constat statique : seuls tech_log, acces_pieces_log, audit_log, alertes fermées et certains documents sont purgés. Les nouveaux registres des équipes IA devraient avoir une règle dès leur création. Voir SUP-05 pour les instantanés (données nominatives).
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-11)
-- **Cause probable** : app/supabase/migrations/20260728_sprint1_ged_alertes_retention.sql:155-172 (règles) ; fonction appliquer_retention
-- **Correction proposée** : Ajouter une règle par registre (par exemple 12 mois) validée avec le dirigeant ; source CNIL des durées : non consultée
-- **Correction sans aval** : non (aval du dirigeant requis)
+- **Préconditions** : Visiteur anonyme ; Chromium 390×844 mobile ; cache vide ; réseau émulé 1,6 Mbit/s, 150 ms (ou processeur ×4) ; version candidate sur 3100. Sans étranglement, CLS = 0.
+- **Étapes** : 1. Ouvrir /connexion avec le réseau émulé. 2. Relever les layout-shift (PerformanceObserver) et capturer l'écran à 1,3 s puis à la fin du chargement.
+- **Attendu** : CLS ≤ 0,1 ; le titre « Connexion » ne bouge pas pendant que le formulaire arrive.
+- **Observé** : CLS 0,212 sur 3 essais sur 3 avec réseau lent seul, 1 essai sur 3 avec processeur ×4 seul, 0 sans étranglement. Au premier affichage (FCP ≈ 1,15 s) seuls le titre et le chapeau sont affichés, centrés à mi-hauteur (y ≈ 430) ; vers 2,3 s le logo, le formulaire et les liens arrivent et le bloc remonte (carte [25,325,340,194] → [25,105,340,633]). Seule page publique concernée sur 18 testées sous réseau lent.
+- **Preuve expurgée (banc)** : preuves/perf-liens/cls-connexion-sortie.txt ; preuves/perf-liens/cls-connexion2-sortie.txt ; preuves/perf-liens/cls-connexion-intermediaire-5.png ; preuves/perf-liens/cls-connexion-final.png ; preuves/perf-liens/cls-public-reseau-lent-390.json
+- **Cause probable** : Arbre de travail (à confirmer sur le commit servi) : app/src/app/connexion/page.tsx:24-27, <Suspense> sans repli autour de FormulaireConnexion (useSearchParams) ; conteneur centré verticalement app/src/components/coquille-auth.tsx:62 (flex items-center justify-center). Le formulaire n'est pas dans le premier flux et le contenu déjà affiché est recentré à son arrivée.
+- **Correction proposée** : Donner au <Suspense> un repli de même hauteur (squelette du formulaire), ou lire les paramètres d'URL côté serveur pour rendre le formulaire dans le premier flux ; à défaut aligner le bloc en haut sur mobile. Revérifier avec le même profil réseau.
+- **Correction sans aval** : oui
 
-#### `IA-12` — Hypothèse à vérifier : les textes et visuels produits avec l'IA et publiés sur le site et Facebook ne portent aucune mention d'origine
+#### `PRF-06` — Page « Compte » : le lien « le lien reçu par email » renvoie l'utilisateur connecté à son accueil sans explication
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Un post de veille ou un visuel généré est publié
-- **Étapes** : 1. Rechercher une mention d'origine IA dans app/src/app/journal, app/src/app/veille, facebook.ts, contenu-marketing.ts ; 2. Lire § 7 de propositions.md (règlement 2024/1689, art. 50)
-- **Attendu** : L'obligation de transparence éventuellement applicable est qualifiée et respectée
-- **Observé** : Constat statique : aucune mention. Selon la Commission européenne (page non ouverte, résultat de recherche), les obligations de l'article 50 s'appliquent à partir du 2 août 2026, avec un délai de grâce pour le marquage évoqué dans le paquet 'Omnibus IA' dont le statut est à vérifier. Qualification juridique non faite.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-12) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/propositions.md § 7
-- **Cause probable** : Conception : aucun libellé 'illustration générée' dans components/image-journal.tsx ni dans la page article
-- **Correction proposée** : Faire qualifier l'obligation (D9), puis ajouter si nécessaire une mention et un marquage lisible par machine
-- **Correction sans aval** : non (aval du dirigeant requis)
+- **Préconditions** : Sessions locataire et agent (écran /compte de la matrice).
+- **Étapes** : 1. Ouvrir /compte. 2. Cliquer « le lien reçu par email » dans la phrase « Mot de passe perdu et session fermée ? Il reste le lien reçu par email. » (href=/mot-de-passe-oublie).
+- **Attendu** : Le lien aboutit à un écran utile, ou n'est pas un lien tant que la session est ouverte.
+- **Observé** : /mot-de-passe-oublie renvoie un utilisateur connecté vers son accueil (locataire : /locataire/<org>, agent : /agence/<org>) : le clic n'a aucun effet visible. Constaté pour locataire et agent ; propriétaire et artisan non relevés (/compte absent de la matrice pour eux).
+- **Preuve expurgée (banc)** : preuves/perf-liens/lien-compte-lien-mdp.png ; preuves/perf-liens/liens-resultats.json (entrées /mot-de-passe-oublie) ; preuves/perf-liens/liens.md
+- **Cause probable** : Page /compte (texte du lien) ; la redirection est faite par app/src/app/mot-de-passe-oublie/page.tsx pour tout utilisateur connecté (non relu en détail).
+- **Correction proposée** : Retirer le lien de la phrase (texte seul) ou le remplacer par une consigne (« déconnectez-vous puis utilisez Mot de passe oublié »).
+- **Correction sans aval** : oui
+
+#### `PRF-09` — Lien factice href="#" « Retour à mes fiches » (annuaire des personnes)
+
+- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Profils propriétaire, administrateur, agent ; /agence/<id>/personnes ; section « Créer une fiche ».
+- **Étapes** : 1. Relever les liens de /personnes. 2. Observer le lien « Retour à mes fiches » (masqué tant que « Créer une fiche » n'est pas ouvert).
+- **Attendu** : Un vrai lien (ou un bouton) pour revenir à la liste.
+- **Observé** : Lien <a href="#"> avec gestionnaire JavaScript : fonctionne avec JavaScript, mais sans JavaScript, avec un clic du milieu ou une lecture par lecteur d'écran, il ne mène nulle part. Non constaté comme panne par un utilisateur : lien masqué par défaut (non visible à 390 et 1280 px dans l'état initial).
+- **Preuve expurgée (banc)** : preuves/perf-liens/exp6-sortie.txt ; preuves/perf-liens/liens.md
+- **Cause probable** : app/src/app/agence/[orgId]/personnes/vue-personnes.tsx:38.
+- **Correction proposée** : Remplacer par <button type="button"> ou par un lien vers l'URL de la liste.
+- **Correction sans aval** : oui
 - **Reproduction** : hypothèse à vérifier, non reproduite
 
 #### `PROP-05` — Nom d'espace sans élision : « Parc de Éloïse … »
@@ -523,34 +352,6 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : formater en français dans l'action
 - **Correction sans aval** : oui
 
-#### `PROP-11` — Un même PDF ne peut pas être déposé pour deux lots (DPE collectif) et la consigne n'est pas réalisable depuis le formulaire
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : deux lots d'un même immeuble
-- **Étapes** : déposer DPE-fictif.pdf sur le lot 1A puis le même fichier sur le lot 2B
-- **Attendu** : possibilité de rattacher la même pièce (DPE collectif) ou consigne réalisable
-- **Observé** : « Un fichier au contenu strictement identique existe déjà dans la GED, sous le nom « DPE — 13/10/2026 ». Rattachez cette pièce existante plutôt que de la déposer en double. » ; aucune action « rattacher une pièce existante » dans le formulaire de dépôt de diagnostic
-- **Preuve expurgée (banc)** : sortie de s4c.mjs (sql/s4c.out.txt)
-- **Cause probable** : unicité (organization_id, empreinte) sur documents (documents_empreinte_unique) + deposerFichierGed
-- **Correction proposée** : proposer « utiliser cette pièce pour ce lot » dans le formulaire
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `PROP-16` — Hypothèse à vérifier : aucune cohérence contrôlée entre loyer, loyer de référence et loyer de référence majoré
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : bail, étape « Autres et clauses », encadrement des loyers = Oui
-- **Étapes** : loyer de référence 30 €/m² et majoré 25 €/m² ; puis majoré 15,60 €/m² alors que le loyer est 850 € / 45,5 m² = 18,68 €/m²
-- **Attendu** : alerte si référence > majoré ou si loyer hors complément > majoré × surface (règle de l'encadrement ; à confirmer avec le texte légal, le wiki ne la décrit pas)
-- **Observé** : les trois jeux de valeurs sont enregistrés (« Étape enregistrée »)
-- **Preuve expurgée (banc)** : sortie de s7j.mjs (sql/s7j.out.txt)
-- **Cause probable** : lireEtapeBail (src/lib/champs-etape-bail.ts) ne vérifie que forme et plafonds de dépôt/honoraires
-- **Correction proposée** : avertissement non bloquant si loyer/m² > majoré
-- **Correction sans aval** : non (aval du dirigeant requis)
-
 #### `FIN-02` — Sur une organisation dont l'abonnement est suspendu, « Encaisser » répond « Accès refusé. » au lieu du message d'abonnement suspendu renvoyé par toutes les autres écritures.
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -562,30 +363,6 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Séparer les deux gardes : « Accès refusé. » pour le rôle, et lever le message standard « Abonnement suspendu… » quand org_ecriture_ouverte est faux (le même texte que refuser_ecriture_si_fermee).
 - **Correction sans aval** : oui
 - **Contrôle en production (lecture seule)** : `-- Lecture seule : organisations dont l'écriture est fermée et qui ont encore des appels impayés (les seules concernées) : select o.id, o.name, o.status from public.organizations o where not coalesce(public.org_ecriture_ouverte(o.id), false) and exists (select 1 from public.appels_loyer a where a.organization_id=o.id);`
-
-#### `FIN-03` — Aucune contrainte de centime sur encaissements.montant / ecritures.montant : un paiement à 3 décimales est capturé avec un écart de 0,005 et ne peut plus jamais être qualifié (les parts doivent récon…
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/finance) · **Version testée** : e9f31ac (lecture du code)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : Un encaissement de 100,005 € (requête directe, le formulaire impose step=0,01) pour un appel 500 + 40 : composantes 92,60 + 7,41 = 100,01 (écart 0,005). Le récapitulatif refuse la pièce (« attendent leur ventilation ») et qualifier_ecriture_fiscale rejette toute saisie manuelle à deux décimales (« doivent réconcilier exactement »). La pièce reste bloquée sans issue. Hypothèse de faible probabilité : seul un client contournant la validation HTML5 peut y arriver ; non reproduit par l'interface.
-- **Preuve expurgée (banc)** : preuves/relecture/finance/sql/t10_trois_decimales.sql + ts/t4.mts (reproduit en base et dans la fonction TypeScript ; non reproduit via le navigateur : step=0,01)
-- **Cause probable** : app/supabase/migrations/20261012224000_fiscalite_historique_qualifiee.sql:56-95 et 113
-- **Correction proposée** : Arrondir au centime à l'écriture (ajouterEncaissement) et ajouter une contrainte check (montant = round(montant,2)) en NOT VALID pour ne pas toucher l'existant ; ou faire capturer au déclencheur le montant arrondi.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Contrôle en production (lecture seule)** : `-- Lecture seule : montants hors centime déjà présents. select 'encaissements' t, count(*) from public.encaissements where montant <> round(montant,2) union all select 'ecritures', count(*) from public.ecritures where montant <> round(montant,2) union all select 'composantes_incoherentes', count(*) from public.fiscal_encaissements_composantes c join public.ecritures e on e.id=c.ecriture_id where abs(c.loyer_hc+c.charges+c.non_ventile-e.montant) > 0;`
-
-#### `FIN-04` — La régularisation 230 reste exigée (et est réintégrée si saisie) pour les lots passés en meublé ou hors périmètre, alors que leurs pièces sont exclues de la 2044.
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/finance) · **Version testée** : e9f31ac (lecture du code)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : Un lot confirmé « meublé » toute l'année : ses pièces sont comptées en BIC, mais le lot reste dans l'ensemble des lots de la boucle 230. Sans régularisation saisie, l'alerte « La régularisation 230… est à compléter » et la rubrique 230 « à compléter » ne disparaissent jamais ; si le propriétaire saisit un montant, il vient en déduction des charges 2044 d'un lot qui n'y figure pas.
-- **Preuve expurgée (banc)** : preuves/relecture/finance/ts/t1.mts (sortie : alertes contenant la 230, aCompleter:true avec lot meublé seul)
-- **Cause probable** : app/src/lib/fiscal.ts:68-71, 93-99 (boucle des lots / régularisation 230)
-- **Correction proposée** : Ne retenir dans la boucle 230 que les lots ayant au moins une période en location nue sur l'année ; ne pas compter 230 pour un lot meublé.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Contrôle en production (lecture seule)** : `-- Lecture seule : exercices dont tous les régimes sont hors 2044 mais qui portent un montant 230. select id, organization_id, lot_id, annee, regularisation230 from public.fiscal_exercices_lots x where regularisation230 is not null and not exists (select 1 from jsonb_array_elements(x.periodes) p where p->>'regime'='nu');`
 
 #### `FIN-05` — « Montant net à qualifier » additionne recettes et dépenses non qualifiées en valeurs positives : ce n'est pas un net.
 
@@ -620,18 +397,6 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Cause probable** : app/src/lib/fiscal.ts et app/src/components/recapitulatif-fiscal.tsx:fiscal.ts 66 ; composant 309-327
 - **Correction proposée** : Ajouter les natures « TEOM » et « charges récupérées » à la qualification, ou intituler la carte « Montants exclus de la 2044 » avec le détail par pièce.
 - **Correction sans aval** : oui
-
-#### `FIN-09` — La capture fiscale calcule « déjà encaissé avant » en sommant tous les AUTRES encaissements du bail présents en fin d'ordre : un INSERT à plusieurs lignes pour un même bail répartit faux (hypothèse :…
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/finance) · **Version testée** : e9f31ac (lecture du code)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : Appel de 840 € (780 + 60), deux paiements 500 + 500 € insérés par un seul INSERT (requête PostgREST en tableau, import ou script de support) : les deux écritures sont captées 315,71 + 24,29 avec 160 € non ventilés, soit 680 € affectés au lieu de 840 € et 320 € non ventilés au lieu de 160 € ; en deux INSERT successifs, le résultat est correct (464,29/35,71 puis 315,71/24,29 + 160). La pièce figée ne peut pas être remplacée tant que non_ventile = 0 ; ici il reste > 0, la saisie manuelle est possible, mais le chiffre automatique est faux et muet.
-- **Preuve expurgée (banc)** : preuves/relecture/finance/sql/t13_insert_multilignes.sql (sortie : preuves/relecture/finance/sql/t13_sortie.txt). Reproduit en base ; aucun appelant applicatif multi-lignes trouvé : seul le INSERT … SELECT de reprise_soldes (une ligne par bail) s'en approche.
-- **Cause probable** : app/supabase/migrations/20261012224000_fiscalite_historique_qualifiee.sql:56-95 (déclencheur AFTER INSERT par ligne, calcul de « avant » à la ligne 75-76)
-- **Correction proposée** : Rendre le déclencheur indépendant de l'ordre : filtrer « avant » sur les encaissements antérieurs à celui-ci ((created_at, id) strictement inférieurs) au lieu de « tous les autres », ou calculer la ventilation dans la même fonction que l'insertion ; ou refuser les INSERT multi-lignes sur encaissements.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Contrôle en production (lecture seule)** : `-- Lecture seule : écritures de loyer captées dont le total affecté d'un bail dépasse min(total encaissé, total dû) — indice d'une capture faussée. select e.bail_id, sum(c.loyer_hc+c.charges) as affecte, (select sum(montant) from public.encaissements k where k.bail_id=e.bail_id) as encaisse, (select sum(montant_du) from public.appels_loyer a where a.bail_id=e.bail_id) as du from public.ecritures e join public.fiscal_encaissements_composantes c on c.ecriture_id=e.id where e.contre_ecriture_de is null group by e.bail_id having abs(sum(c.loyer_hc+c.charges) - least((select sum(montant) from publ…`
 
 #### `FIN-10` — Le wiki métier n'a pas été mis à jour : il décrit encore la ligne 229 comme « part non récupérable seulement, postes récupérables retirés lot par lot », alors que le code ne retire plus rien (coproRe…
 
@@ -700,20 +465,6 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction sans aval** : oui
 - **Reproduction** : hypothèse à vérifier, non reproduite
 
-#### `PR178-B-03` — Encaissement de 0,01 € accepté par le nouveau contrôle au centime mais refusé par la base avec le message générique « Gerimmo n'a pas pu terminer cette action »
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecteur adverse PR178 (côté serveur et régressions) (relecture/pr178/b) · **Version testée** : f283439 (main après PR #178, lecture) et candidate 5d15b4d (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Bail de l'Agence Alpha géré sous mandat (honoraires > 0) ; admin.alpha.
-- **Étapes** : 1. /agence/<org>/baux/<bail>. 2. Saisir un encaissement de 0,01 €. 3. « Encaisser ».
-- **Attendu** : Encaissement enregistré, ou message précis (montant minimal).
-- **Observé** : Message générique « Gerimmo n'a pas pu terminer cette action. Réessayez dans un instant… ». La base refuse : insertion de l'écriture d'honoraires à 0,00 → ecritures_montant_check (reproduit par insertion en transaction annulée). Aucun encaissement créé. Saisie conservée.
-- **Preuve expurgée (banc)** : preuves/relecture/pr178/b/scripts/enc1.mjs (sortie console) ; essai SQL en transaction annulée (rollback)
-- **Cause probable** : src/lib/saisie-montant.ts accepte tout montant > 0 au centime près ; le déclencheur qui écrit les honoraires arrondit à 0,00 pour un très petit montant et viole ecritures_montant_check ; sansJargon masque la cause.
-- **Correction proposée** : Soit refuser sous un plancher en lireMontant avec un message clair, soit ne pas écrire d'écriture d'honoraires à 0,00 dans le déclencheur. Hors PR178 : interaction avec les contrôles de l'audit.
-- **Correction sans aval** : non (aval du dirigeant requis)
-
 #### `PR178-B-07` — Les parcours navigateur ajoutés n'auraient détecté aucun des constats B-01 à B-06 : les tests du garde sont en partie synthétiques et aucun ne couvre les succès financiers, la session expirée ou les…
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -728,19 +479,6 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Ajouter : (1) un parcours « encaissement : erreur puis succès puis sortie sans avertissement » ; (2) un test qui parcourt les types Etat* des actions et exige succes ou une déclaration explicite ; (3) un formulaire sans method dans le banc ; (4) un test proxy qui vérifie Set-Cookie de suppression de sb-*.
 - **Correction sans aval** : oui
 
-#### `REP-02` — Le courriel d'urgence au gestionnaire n'est envoye qu'a la premiere execution : si la premiere tentative a cree l'incident puis s'est arretee avant l'e-mail, la reprise (rejoue:true) ne l'envoie jama…
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/reprises) · **Version testée** : e9f31ac (lecture du code)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : Locataire, incident 'urgente' (degat des eaux). Tentative 1 : declarer_mon_incident_reprise valide (incident + commande enregistres) mais la reponse n'arrive pas au serveur d'actions (erreur reseau Supabase apres commit, ou action interrompue pendant l'envoi des photos qui precede l'e-mail). L'action rend une erreur et le formulaire invite a 'reessayer la meme tentative'. Tentative 2 (meme cle) : la RPC renvoie rejoue:true -> les photos sont reprises mais l'e-mail 'incident_urgent' est saute par '!declaration.rejoue' ; le message dit meme 'votre gestionnaire le verra ... a sa prochaine connexion'. Rien dans commandes_incidents_locataire ne memorise si l'e-mail est parti, donc ni la reprise ni une tache ne peut le renvoyer. Contournement : incident_creer cree deja une alerte 'critique' (Incident urgent a qualifier) dans l'espace du gerant ; seul le courriel immediat est perdu.
-- **Preuve expurgée (banc)** : Moitie SQL reproduite : t3a-incident.sortie.txt et psql-incident-A/B.sortie.txt (2e appel, meme cle, depuis une 2e session psql : {rejoue:true, meme incident_id}). Moitie TypeScript en lecture seule (app/src/app/actions/incidents.ts:234). L'interruption entre le commit de la RPC et l'e-mail n'a pas ete provoquee de bout en bout (parcours navigateur en ecriture interdits sur la base du banc). Hypothese a verifier.
-- **Cause probable** : app/src/app/actions/incidents.ts:234 (if (champs.urgence === "urgente" && !declaration.rejoue)) ; 226-229
-- **Correction proposée** : Memoriser l'envoi : ajouter une colonne notifie_le a commandes_incidents_locataire (ou envoyer l'e-mail AVANT les photos), et envoyer l'e-mail d'urgence a la reprise tant que notifie_le est nul. Test : simuler une action qui s'arrete apres la RPC, rejouer, verifier un seul e-mail.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Reproduction** : hypothèse à vérifier, non reproduite
-- **Contrôle en production (lecture seule)** : `select i.id, i.numero, i.created_at from public.incidents i join public.commandes_incidents_locataire c on c.incident_id = i.id where i.urgence = 'urgente' and not exists (select 1 from public.tech_log t where t.evenement = 'notification_envoyee' and t.details->>'evenement' = 'incident_urgent' and t.details->>'objet' = i.id::text) order by i.created_at desc;`
-
 #### `REP-03` — Clients externes (module desactive en production) : apres un refus de validation, le meme justificatif ne peut plus etre remplace par un autre fichier de meme type tant que le formulaire n'est pas re…
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -753,54 +491,6 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction sans aval** : oui
 - **Reproduction** : hypothèse à vérifier, non reproduite
 - **Contrôle en production (lecture seule)** : `-- sans objet : module desactive en production (artisan_modules_locaux.actif=false par defaut)`
-
-#### `REP-04` — choisir_creneau et accepter_creneau_locataire ne sont pas rejouables : une reponse perdue suivie d'un nouvel envoi affiche une erreur alors que le rendez-vous est confirme
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/reprises) · **Version testée** : e9f31ac (lecture du code)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : Le locataire confirme un creneau, la reponse se perd, il reclique : le 2e appel trouve le creneau en 'retenu' et leve 'Ce creneau n'est plus propose'. Etat correct en base (1 rendez-vous), mais le locataire croit a un echec et peut contacter le gerant ; meme comportement attendu pour l'artisan qui retient une date du locataire (accepter_creneau_locataire : 'Cette date n'est plus proposee', lecture seule, non rejoue). Contrairement a l'incident, au bien et a l'invitation, aucune reprise n'a ete prevue pour ce geste.
-- **Preuve expurgée (banc)** : preuves/relecture/reprises/t14-rejeu-choisir.sortie.txt : 1er appel OK ; rejeu -> ERREUR 'Ce creneau n'est plus propose' ; etat final planifiee/retenu
-- **Cause probable** : app/supabase/migrations/20261013102000_planning_conflits.sql:choisir_creneau : 'if v.statut <> propose then raise ... plus propose' ; accepter_creneau_locataire idem
-- **Correction proposée** : Dans les deux fonctions, retourner sans erreur si le creneau est deja 'retenu' ET que la mission est 'planifiee' sur ce meme creneau et que l'appelant est le meme acteur.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Contrôle en production (lecture seule)** : `-- sans objet (aucune donnee alteree)`
-
-#### `REP-05` — Ecart au wiki : l'expiration J+30 et le refus trace sont livres, mais les relances J+3 / J+10 prevues par le module 16 n'existent nulle part
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/reprises) · **Version testée** : e9f31ac (lecture du code)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : Le wiki (RM-16, 'L'invitation ... relances J+3/J+10, expiration J+30, refus trace') decrit des relances. Dans le code livre, 'invitations_locataires' n'est lue que par la fiche personne, l'espace /espaces, l'action invitations.ts et le courrier ; aucun cron (src/app/api/cron/*) ni aucune fonction SQL ne relance une invitation en attente. Un locataire qui n'ouvre pas le premier courriel n'est jamais relance ; l'invitation expire en silence au bout de 30 jours (le gerant doit la renvoyer a la main).
-- **Preuve expurgée (banc)** : grep sur la photographie : 'invitations_locataires' / 'invitation_locataire' absents de src/app/api et src/lib hors lien-mot-de-passe.ts (courrier initial) ; aucune planification dans vercel.json. Absence verifiee par lecture, pas un defaut d'execution.
-- **Cause probable** : app/supabase/migrations/20261013101000_invitations_locataire_cycle.sql (+ wiki/concepts/Compte, personne et adhésion.md l.81-83):table invitations_locataires ; aucune tache planifiee
-- **Correction proposée** : Soit livrer les relances (tache de rappel J+3/J+10 limitee par organisation, comme rappels gestes), soit amender le wiki pour dire que les relances sont differees. Decision produit.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Contrôle en production (lecture seule)** : `-- lecture seule : invitations expirees sans reponse (jamais relancees) select count(*) filter (where etat='en_attente' and expire_le<=now()) as expirees_non_marquees, count(*) filter (where etat='expiree') as expirees from public.invitations_locataires;`
-
-#### `SUP-03` — N'importe quel super-administrateur permanent peut accuser réception d'une alerte de relais adressée à un autre responsable : la fonction ne compare pas auth.uid() au destinataire (message d'erreur a…
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/supervision) · **Version testée** : e9f31ac (lecture du code)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : Le plan désigne sa2 comme responsable ; une alerte lui est adressée. sa1 (créateur du plan, ou tout autre superviseur) clique « Accuser la prise en compte » : statut passe à accusee, accusee_par=sa1, sans que sa2 l'ait vue ni que l'escalade ait lieu. L'écran n'affiche que « Accusé reçu le … » sans dire par qui. Aucun effet financier ou de données ; la trace accusee_par/supervision_operations existe.
-- **Preuve expurgée (banc)** : preuves/relecture/supervision/80-accuse-autoapprobation-activation.sortie.txt (T1)
-- **Cause probable** : 20261012221100:accuser_alerte_vacances : update ... where id=p_id and statut<>'accusee' sans filtre destinataire=auth.uid().
-- **Correction proposée** : Ajouter `and (destinataire=auth.uid() or statut in ('escalade','non_acheminee'))` (ou exiger destinataire/créateur selon l'état) et afficher accusee_par dans l'écran.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Contrôle en production (lecture seule)** : `select a.id,a.destinataire,a.accusee_par,a.statut from public.supervision_alertes_internes a where a.statut='accusee' and a.accusee_par is distinct from a.destinataire;`
-
-#### `SUP-04` — Pas de séparation des rôles pour une consigne : le même superviseur peut la rédiger, se désigner responsable et l'approuver (alors que enregistrer_vacances impose « un autre responsable »). L'« appro…
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/supervision) · **Version testée** : e9f31ac (lecture du code)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : sa1 appelle enregistrer_consigne(... p_responsable=sa1 ...) puis decider_consigne(version, true) : OK, auteur=responsable=approbateur=sa1. Portée réelle limitée : seules deux lectures de compteurs (lecture_missions, lecture_passages) sont possibles, aucun envoi ni droit.
-- **Preuve expurgée (banc)** : preuves/relecture/supervision/80-accuse-autoapprobation-activation.sortie.txt (T3)
-- **Cause probable** : decider_consigne ne compare pas auth.uid() à v.auteur ni à v.responsable.
-- **Correction proposée** : Décision à confirmer : exiger un approbateur distinct de l'auteur (ou le responsable désigné) si l'intention est une double vérification ; sinon renommer « approbation » en « activation ».
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Contrôle en production (lecture seule)** : `select v.id,v.numero from public.supervision_consignes_versions v join public.supervision_consignes_accords a on a.version_id=v.id where a.auteur=v.auteur;`
 
 #### `SUP-06` — Ces trois lectures font db.from('accounts').select('id,email') sans filtre puis filtrent en JavaScript : au-delà de la limite de lignes de l'API (1 000 par défaut chez Supabase), la liste des respons…
 
@@ -828,18 +518,33 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Reproduction** : hypothèse à vérifier, non reproduite
 - **Contrôle en production (lecture seule)** : `select cle,arrete,modifie_le from public.supervision_arrets where cle='sauvegarde';`
 
-#### `SUP-09` — Chaque validation d'un devis téléverse un nouveau PDF (chemin aléatoire) dans le compartiment devis-preparations et n'efface jamais l'ancien (ni celui d'une validation perdante en cas de conflit 409)…
+#### `RET-03` — La page du wiki Plan de reprise d'activité cite une base de connaissance qui n'existe pas dans V4 (docs/plan-reprise-activite.md, table backup_registry) et décrit une sauvegarde Supabase alors que la…
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/supervision) · **Version testée** : e9f31ac (lecture du code)
+- **Rôle / source** : retour-arriere (retour-arriere) · **Version testée** : non relevée
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : L'artisan valide, modifie, revalide 3 fois avant l'envoi : 3 objets restent dans le compartiment, un seul est référencé par artisan_devis_preparations.pdf_path. Deux onglets validant en parallèle : le perdant a déjà téléversé son PDF. Non reproduit (le banc n'a pas de Storage réel sur ce chemin) : lecture seule.
-- **Preuve expurgée (banc)** : lecture seule : route.ts, aucune occurrence de storage.remove dans le fichier ; purge_fichiers ne concerne que le compartiment documents
-- **Cause probable** : Absence de nettoyage de l'ancien pdf_path et du chemin perdant.
-- **Correction proposée** : Après update réussi, supprimer l'ancien pdf_path ; en cas d'échec d'enregistrement, supprimer le nouveau chemin.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Reproduction** : hypothèse à vérifier, non reproduite
-- **Contrôle en production (lecture seule)** : `-- Comparer les objets storage.objects(bucket_id='devis-preparations') aux pdf_path référencés : select count(*) from storage.objects o where o.bucket_id='devis-preparations' and not exists (select 1 from public.artisan_devis_preparations p where p.pdf_path=o.name and p.pdf_bucket='devis-preparations');`
+- **Préconditions** : Lecture de wiki/regles-metier/Plan de reprise d'activité.md et du dépôt.
+- **Étapes** : 1. Lire « Fondement » et « Paramètres » de la page. 2. git ls-files \| grep plan-reprise ; grep -rl backup_registry app.
+- **Attendu** : La page décrit le dispositif V4 (workflow Sauvegarde quotidienne, app/docs/sauvegarde-et-restauration.md, tech_log tache_sauvegarde).
+- **Observé** : docs/plan-reprise-activite.md n'existe que dans raw/Gerimmo-V3 ; backup_registry : 0 occurrence dans app/ ; la page parle de « sauvegarde quotidienne (Supabase) » et d'un test trimestriel/annuel sans calendrier tenu (contradiction déjà signalée par la page).
+- **Preuve expurgée (banc)** : wiki/regles-metier/Plan de reprise d'activité.md (non modifié : hors périmètre) ; grep dans le dépôt.
+- **Cause probable** : Page migrée de V3 sans mise à jour du dispositif V4.
+- **Correction proposée** : Mettre la page à jour (liens vers app/docs/sauvegarde-et-restauration.md et les deux workflows, retirer backup_registry, renvoyer à app/supabase/retours-arriere/).
+- **Correction sans aval** : oui
+
+#### `SOR-01` — Clé de répartition par surface : « NaN % » et validation impossible (peut venir de l émulateur du banc)
+
+- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Bien en immeuble avec 2 lots dont la surface est saisie (45,50 et 30 m²), aucune clé validée
+- **Étapes** : Fiche du bien > Clé de répartition > lire la proposition par surface > Valider la clé par surface
+- **Attendu** : Proposition 60,26 % / 39,74 % validable
+- **Observé** : Chaque lot affiche NaN %, total 0 %, et Valider renvoie « Validation impossible : Gerimmo n a pas pu terminer cette action ». Les lots ne peuvent donc pas passer en disponible avant une saisie manuelle des pourcentages (60/40 validés ensuite sans souci). Sur le banc l API renvoie les numeric en chaînes ("45.50") ; PostgREST réel les renvoie en nombres : hypothèse à vérifier en réel avant tout correctif
+- **Preuve expurgée (banc)** : captures/c5 (sortie texte du script c5.mjs), valeur API : surface_m2 renvoyée en chaîne
+- **Cause probable** : app/src/app/agence/[orgId]/parc/[bienId]/formulaire-cle.tsx (proposerCle somme des surfaces non converties en nombres) + émulateur du banc
+- **Correction proposée** : Convertir Number(l.surface_m2) avant le calcul (sûr et sans effet si déjà nombre)
+- **Correction sans aval** : oui
 
 #### `SA-02` — Brief de direction : les montants des faits datés s'affichent avec un point décimal ('500.00 €') alors que les mesures s'affichent à la française ('4 870,00 €')
 
@@ -882,92 +587,6 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Cause probable** : src/app/artisan/devis/actions-preparation.ts:55 et src/lib/parcours-devis-serveur.ts:10 : la fiche artisan est cherchée par le compte connecté (le superviseur n'a pas de fiche), pas par la session de diagnostic
 - **Correction proposée** : Désactiver les formulaires d'écriture et afficher 'Lecture seule' quand ma_session_artisan_diagnostic() renvoie une session
 - **Correction sans aval** : oui
-
-#### `SA-09` — La recherche de la console ne trouve ni un bien, ni un lot, ni un incident : le brief du support demande de retrouver « un dossier (utilisateur, bien, incident) »
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : super-administrateur (superadmin) · **Version testée** : candidate 5d15b4d (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Super-admin aal2 ; incident INC-2026-0003 et lot 'E2E Lot 1' existants
-- **Étapes** : 1) Ctrl+K. 2) Saisir 'INC-2026-0003' puis 'Lot 1'.
-- **Attendu** : Le dossier est proposé (avec lien et périmètre) ou l'écran indique où chercher
-- **Observé** : 'Aucun client trouvé.' pour les deux. La recherche ne couvre que Organisation, Artisan, Compte ; un incident ne s'atteint que par une alerte ou en entrant dans l'espace de l'organisation (traversée, SA-01).
-- **Preuve expurgée (banc)** : sql2/s21_recherche_sortie.txt
-- **Cause probable** : src/app/actions/recherche-supervision.ts (3 sources : organizations, artisans, rechercher_comptes_supervision)
-- **Correction proposée** : Ajouter une recherche par référence d'incident et par bien, limitée au besoin (résultat = lien vers la fiche de l'organisation concernée, sans contenu)
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `SA-10` — Hypothèse à vérifier : aucun plafond de dépense applicatif pour les appels IA, et l'arrêt d'urgence ne couvre pas les appels IA déclenchés à la main (analyse du brief, rédaction de publications)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : super-administrateur (superadmin) · **Version testée** : candidate 5d15b4d (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Clé OpenAI posée en production (absente du banc)
-- **Étapes** : Lecture du code : src/lib/brief-ia.ts, analyse-veille.ts, redaction-veille.ts, proposition-devis-ia.ts, visuel-marketing.ts ; src/app/admin/brief/actions.ts et src/app/admin/publications/nouvelle/actions.ts n'appellent pas verifierAvantEffet.
-- **Attendu** : Un plafond (appels ou coût) propre à Gerimmo et un arrêt d'urgence couvrant tout appel IA payant
-- **Observé** : Seuls existent un max_output_tokens et un délai par appel ; le plafond de dépenses est celui du compte OpenAI (erreur-ia.ts le traduit en message). Les appels IA initiés par un administrateur ne consultent pas l'arrêt d'urgence. Non exécuté faute de clé : hypothèse à vérifier.
-- **Preuve expurgée (banc)** : Lecture de code (grep verifierAvantEffet absent de brief/actions.ts et publications/nouvelle/actions.ts)
-- **Cause probable** : src/app/admin/brief/actions.ts ; src/app/admin/publications/nouvelle/actions.ts
-- **Correction proposée** : Compter les appels IA par jour dans une table et refuser au-delà d'un plafond réglable ; consulter verifierAvantEffet('consignes' ou une mission dédiée) avant chaque appel payant
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Reproduction** : hypothèse à vérifier, non reproduite
-
-#### `SA-11` — Journal du blocage d'un compte : « Compte bloqué » est écrit avant l'effet ; si le blocage échoue, le journal garde « Compte bloqué » suivi d'une ligne d'échec sans cause
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : super-administrateur (superadmin) · **Version testée** : candidate 5d15b4d (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Super-admin aal2 ; compte de test ; appel d'administration en échec (ici l'émulateur du banc : 404 'non géré')
-- **Étapes** : 1) Fiche d'un compte > Bloquer le compte, motif, confirmation. 2) Lire le journal d'audit.
-- **Attendu** : Le journal dit clairement 'blocage demandé' puis 'blocage appliqué' ou 'blocage échoué (cause)'
-- **Observé** : Lignes compte_bloque (motif, cible, auteur) puis controle_compte_echec ({geste, compte}) sans cause ni libellé de résultat sur la première ; la lecture rapide du journal laisse croire que le compte est bloqué. Choix délibéré du code (journaliser avant d'appliquer) : à trancher.
-- **Preuve expurgée (banc)** : sql2/s25_blocage_msg.txt ; requête audit_log (00:46:50 compte_bloque puis controle_compte_echec)
-- **Cause probable** : src/app/actions/controle-supervision.ts:132-154
-- **Correction proposée** : Libeller 'Blocage demandé' / 'Blocage échoué' et conserver la cause technique expurgée dans details
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `VER-PR178-06` — Hypothèse à vérifier : le brouillon local de la grille d'état des lieux (gerimmo-edl-brouillon-<id>) n'est ni effacé à la déconnexion ni rattaché à un compte ni limité dans le temps
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Appareil partagé ; EDL ouvert par un compte puis par un autre ayant accès au même état des lieux (hors V1 publique : agence)
-- **Étapes** : Lecture du code uniquement : edl-brouillon.ts cle() et copies-locales.ts PREFIXE_COPIES_LOCALES = « gerimmo: »
-- **Attendu** : Même traitement que les autres copies de saisie (PR178-A-01)
-- **Observé** : Non reproduit dans le navigateur (aucun EDL créé pour ne pas modifier de données). Clé à tiret : ignorée volontairement par compteDeLaCle (tests/copies-locales.test.ts) ; RM-19.1.8 « localStorage, assumé »
-- **Preuve expurgée (banc)** : app/src/lib/edl-brouillon.ts (cle, chargerBrouillon) ; app/src/lib/copies-locales.ts:12
-- **Cause probable** : Périmètre de la correction limité aux clés gerimmo:<type>:v1:<compte>:…
-- **Correction proposée** : Décision de rétention à prendre (aval du dirigeant) : soit préfixer et purger comme les autres copies, soit documenter que l'EDL fait exception.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Reproduction** : hypothèse à vérifier, non reproduite
-
-#### `VER-SECURITE-02` — Un artisan ayant une mission (ou une sollicitation ouverte) dans une organisation peut écrire n'importe quel chemin sous le dossier de cette organisation dans le compartiment documents
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : securite (vérificateur adverse) (verification/securite) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte artisan (artisan.alpha) avec une intervention ou une sollicitation ouverte dans l'organisation X
-- **Étapes** : Insérer dans storage.objects (bucket documents) un nom '<orgX>/<nom libre>.pdf' avec le rôle authenticated de cet artisan ; même geste vers une organisation sans lien, puis vers devis-preparations et marketing-visuels
-- **Attendu** : Dépôt limité aux chemins attendus du parcours (dossier de la mission ou de la facture) ; refus ailleurs
-- **Observé** : Dépôt dans l'organisation avec mission : ADMIS (chemin libre) ; dans une organisation sans lien : refusé par la politique ; compartiments devis-preparations et marketing-visuels : refusés. Effet : objets orphelins invisibles (la lecture exige une ligne documents ou chemins_fichiers_artisan), plafonnés à 10 Mo l'unité mais sans plafond de nombre, dans le dossier d'un client ; pas de lecture, pas d'écrasement (aucune politique UPDATE permissive), pas de squat utile car les chemins applicatifs contiennent un UUID aléatoire (ged-depot.ts:111). Réserve : l'émulateur maison n'est pas Supabase ; la politique ged_insert_artisan est lue et exécutée dans Postgres, l'application de ces politiques par le vrai service Storage n'est pas testée.
-- **Preuve expurgée (banc)** : preuves/verification/securite/storage-artisan.sql ; preuves/verification/securite/storage-artisan.sortie.txt ; preuves/verification/securite/storage-policies.txt
-- **Cause probable** : Politique storage.objects ged_insert_artisan : seul le premier segment du chemin (organisation) est contrôlé via orgs_de_mes_missions() / orgs_de_mes_sollicitations_ouvertes()
-- **Correction proposée** : Restreindre le with check au gabarit '<org>/<intervention\|sollicitation>/%' ou à la fonction dossiers_de_mes_factures_a_deposer ; test : insertion hors gabarit refusée
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `VER-TS-05` — Récapitulatif fiscal nu : à partir de 1 000 lignes fiscales dans l'organisation, le document est refusé avec un message trompeur (« Réduisez la période »), même pour un lot de 3 loyers
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Organisation dont fiscal_encaissements_composantes (toutes années, tous lots) ou fiscal_qualifications_ecritures (toutes versions) atteint 1 000 lignes
-- **Étapes** : Harnais : 3 loyers pour le lot + 997 composantes d'autres pièces ; ou 1 000 qualifications d'autres lots
-- **Attendu** : Le document du lot se génère (la lecture se borne au lot et à l'année)
-- **Observé** : Refus « Ce dossier contient trop de lignes pour un export intégral. Réduisez la période avant de générer le document. » alors qu'aucune période ne se règle pour ce document. Avant la correction (e9f31ac), le document lisait seulement les écritures du lot
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/resultats-vitest.json (G6.*)
-- **Cause probable** : app/src/lib/documents/modeles/catalogue-gestion.ts (bloc recap_fiscal_nu) : lire('fiscal_qualifications_ecritures') et lire('fiscal_encaissements_composantes') sans filtre de lot ni d'année, sous la garde lireLignes (≥ 1000)
-- **Correction proposée** : Borner ces deux lectures aux ecriture_id du lot et de l'année (filtre in sur les identifiants déjà lus) ; seuil atteint seulement pour de grands comptes, donc non bloquant en V1
-- **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `ARC-01` — Échec du rendu PDF du devis externe : message technique brut (variable d environnement) montré à l artisan
 
@@ -1062,7 +681,7 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Étapes** : Ouvrir l'accueil du locataire après une quittance d'octobre.
 - **Attendu** : « quittance d'octobre 2026 »
 - **Observé** : « quittance de octobre 2026 » sur la tuile Mes documents de l'accueil (même défaut d'élision que PROP-05 pour « Parc de Éloïse »).
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures/l1-mobile-accueil.png
+- **Preuve expurgée (banc)** : preuves/chaine/1/captures/l1-mobile-accueil.png
 - **Cause probable** : Gabarit de la tuile documents de l'accueil locataire (« quittance de {mois} »)
 - **Correction proposée** : Utiliser une fonction d'élision (d'octobre / de mars)
 - **Correction sans aval** : oui
@@ -1076,9 +695,23 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Étapes** : 1. Ouvrir /artisan puis /artisan/devis/<sollicitation> en mobile. 2. Mesurer scrollWidth.
 - **Attendu** : Aucun défilement horizontal, nom du client renvoyé à la ligne
 - **Observé** : scrollWidth 473 px (fiche de demande close) et 448 px (accueil) pour 390 px de fenêtre ; l'en-tête .devis-module__entete (456 px) et la carte mission débordent. À rapprocher du nom très long : réel mais dépendant de la donnée (non reproduit avec « Agence Alpha »).
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/m2-01-artisan-accueil-debordement-mobile.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/m1-01-artisan-devis-lecture-mobile.png
+- **Preuve expurgée (banc)** : preuves/chaine/1b/captures/m2-01-artisan-accueil-debordement-mobile.png ; preuves/chaine/1b/captures/m1-01-artisan-devis-lecture-mobile.png
 - **Cause probable** : Rangée flex de l'en-tête sans min-width:0 ni retour à la ligne (app/artisan/devis/[sollicitationId]/devis.module.css .entete / .client). Hypothèse de fichier, non vérifiée.
 - **Correction proposée** : min-width:0 et flex-wrap sur .entete/.client, overflow-wrap:anywhere sur le nom du client.
+- **Correction sans aval** : oui
+
+#### `CHF-04` — L'export CSV du livre recettes-dépenses ne neutralise pas les cellules commençant par =, +, - ou @ : un libellé « =1+1 » est exporté tel quel et sera évalué par le tableur.
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — src/lib/csv-sur.ts + export du journal (commit 2235d73), tests/csv-sur.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Écriture dont le libellé commence par « = ».
+- **Étapes** : 1. Livre > Ajouter une écriture, libellé « =1+1 ». 2. Ouvrir /comptabilite/export. 3. Lire la ligne.
+- **Attendu** : Cellule préfixée (apostrophe ou espace) pour rester du texte.
+- **Observé** : Ligne exportée : « 2026-10-14;2026-10-14;…;Divers formule;depense;1,00;=1+1;non; ». Risque limité au propriétaire direct (ses propres saisies), plus sérieux pour les journaux d'agence qui reprennent des libellés de tiers.
+- **Preuve expurgée (banc)** : preuves/charges-fiscalite/captures/export-livre.csv
+- **Cause probable** : app/src/app/agence/[orgId]/comptabilite/export/route.ts (fonction champ(), ne retire que ; et sauts de ligne)
+- **Correction proposée** : Préfixer d'une apostrophe tout champ texte commençant par = + - @ ou tabulation.
 - **Correction sans aval** : oui
 
 #### `PUB-02` — Offre agence présentée au public alors que les agences sont hors périmètre V1 publique : accueil (repères, espaces, bandeau tarif, FAQ), tarifs, connexion, inscription artisan, choix d'espace, pied d…
@@ -1295,7 +928,7 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Étapes** : Lire territoire/route.ts:2-9, vercel.json:27-30, sante-service.ts:344
 - **Attendu** : Un commentaire de tête décrit la planification réelle
 - **Observé** : Constat statique : planification '0 5 * * *' (quotidienne) ; Santé la classe quotidienne ; la clé de préparation (YYYY-MM:département:public) rend l'effet mensuel.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-08/09)
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-08/09)
 - **Cause probable** : app/src/app/api/cron/territoire/route.ts:2-9
 - **Correction proposée** : Corriger le commentaire : 'quotidienne ; la préparation est limitée à une par mois, département et public'
 - **Correction sans aval** : oui
@@ -1382,6 +1015,20 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Ajouter `and destinataire=p.responsable` à cet update.
 - **Correction sans aval** : oui
 - **Contrôle en production (lecture seule)** : `select id,statut,destinataire from public.supervision_alertes_internes where statut='non_acheminee' and escalade_le is not null;`
+
+#### `RET-01` — migrations.yml laisse passer un nom de fichier portant un chemin (« ../retours-arriere/… »), alors que la saisie annonce « Noms seuls (pas de chemin) »
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — .github/workflows/migrations.yml : garde de nom de fichier (commit 2235d73), testée en shell sur 9 noms · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : retour-arriere (retour-arriere) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Un script à transaction propre (begin/commit) ou un fichier hors de app/supabase/migrations/ est nommé dans l'entrée « fichiers » du chantier.
+- **Étapes** : 1. Rejouer en local la boucle de garde de migrations.yml (lignes 78-117) avec fichiers = ../retours-arriere/20261013120000_correctifs_audit_13_octobre.retour.sql et un historique contenant 20261013120000. 2. Comparer avec le même nom sans chemin.
+- **Attendu** : Refus net de tout nom contenant « / ».
+- **Observé** : Avec chemin : la version lue est « ../retours-arriere/20261013120000 », absente de l'historique, la garde « version déjà enregistrée » est franchie, le fichier est lu, une ligne de version fantaisiste serait inscrite ; un script qui fait son propre commit validerait le lot entier, simulation comprise. Sans chemin : « déjà enregistrée » (refus). Seule la logique shell a été rejouée, pas le chantier GitHub réel. Mitigation posée : les deux scripts de retour refusent de se jouer dans un lot (observé, RET-EX-06).
+- **Preuve expurgée (banc)** : preuves/retour-arriere/migrations-yml/R_migrations_yml_chemin.txt
+- **Cause probable** : Le contrôle repose sur « ${f%%_*} » sans interdire « / » (.github/workflows/migrations.yml, boucle de garde).
+- **Correction proposée** : Ajouter en tête de boucle : case "$f" in */*\|*..*) echo "✗ nom seul attendu : $f" >&2; exit 1;; esac.
+- **Correction sans aval** : oui
 
 #### `SA-05` — Les dates des retours utilisateurs s'affichent en UTC, sans mention de fuseau : 2 h de décalage (et parfois un jour) avec l'heure de Paris utilisée partout ailleurs dans la console
 
@@ -1547,7 +1194,7 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Étapes** : 1. Ouvrir /agence/<org>/personnes/<id> puis « Modifier la fiche ». 2. Compléter adresse, code postal, ville, commune. 3. Passer le champ date en texte et saisir 2024-13-45. 4. Enregistrer.
 - **Attendu** : « La date de naissance n'est pas valide. » sous le champ, saisie conservée
 - **Observé** : POST 500 ; l'écran affiche « La confirmation n'a pas pu être reçue. Votre saisie reste dans cette page. Vérifiez le dossier avant de recommencer l'envoi. » ; le champ date est vidé ; aucune écriture (fiche inchangée en base). Au niveau fonction : RangeError: Invalid time value pour 2024-13-45, 2024-00-00, 1990-99-99
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-naissance.mjs ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-naissance-2024-13-45.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-naissance-etat-base.txt ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/resultats-vitest.json (C.naissance)
+- **Preuve expurgée (banc)** : preuves/verification/ts/e2e-naissance.mjs ; preuves/verification/ts/e2e-naissance-2024-13-45.png ; preuves/verification/ts/e2e-naissance-etat-base.txt ; preuves/verification/ts/resultats-vitest.json (C.naissance)
 - **Cause probable** : app/src/lib/validation-fiches.ts, verifierDateNaissance : new Date(`${d}T00:00:00Z`).toISOString() sans contrôle Number.isNaN ; verifierDateDejaPassee (saisie-montant.ts) a ce contrôle, pas celle-ci
 - **Correction proposée** : Calculer const t = new Date(...) puis exiger !Number.isNaN(t.getTime()) avant toISOString ; ajouter les cas 2024-13-45 et 1990-99-99 à tests/validation-fiches.test.ts
 - **Correction sans aval** : oui
@@ -1561,7 +1208,7 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Étapes** : Rendre sujetRelanceLoyer, corpsQuittance, corpsAvisEcheance, corpsRelanceLoyer, corpsInformationCaution pour 2026-10-01 et 2026-04-01
 - **Attendu** : « Loyer d’octobre 2026 », « votre échéance d’avril 2026 »
 - **Observé** : 12 occurrences fautives sur 2 périodes : « Loyer de octobre 2026 — un règlement semble en attente » (sujet), « loyer de octobre 2026 », « quittance de loyer de avril 2026 », « échéance de avril 2026 ». Même motif dans le code (non vérifié au navigateur) : locataire/[orgId]/documents/page.tsx:301 (« la quittance de octobre 2026 »), agenda/page.tsx:155 et agenda-proprietaire.tsx:78,87 (aria-label), lib/documents/modeles/decompte-restitution.ts:211 (« Terme de octobre 2026 » dans le PDF), fil-activite.tsx:174 et mandats/page.tsx:204 (agence). PROP-05 (nom d'espace « Parc de Éloïse », construit en SQL) reste ouverte et l'en-tête de elision.ts la présente comme traitée
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/resultats-vitest.json (I.*) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/zz-verif-ts.test.ts.copie
+- **Preuve expurgée (banc)** : preuves/verification/ts/resultats-vitest.json (I.*) ; preuves/verification/ts/zz-verif-ts.test.ts.copie
 - **Cause probable** : app/src/lib/relance-loyer-email.ts:59,71,72,78 ; quittance-email.ts:65 ; appel-email.ts:65 (« de ${mois} » écrit à la main) ; deElide n'est importé que par app/locataire/[orgId]/page.tsx
 - **Correction proposée** : Utiliser deElide(mois) dans ces gabarits (chaîne « de » + mois) et dans les autres sites listés ; corriger le commentaire de elision.ts ; PROP-05 reste à traiter dans la fonction SQL de création du parc
 - **Correction sans aval** : oui
@@ -1575,10 +1222,169 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Étapes** : Générer recap_fiscal_nu pour l'année
 - **Attendu** : Mention de ce qui est exclu, ou périmètre égal aux pièces comptées
 - **Observé** : 211 = 4 680 (6 loyers de 780), mais le texte dit « Périmètre : 12 écritures enregistrées » et ne mentionne pas les 6 mois exclus ; le lecteur ne voit pas que la moitié des loyers est hors du tableau
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/resultats-vitest.json (G5.*)
+- **Preuve expurgée (banc)** : preuves/verification/ts/resultats-vitest.json (G5.*)
 - **Cause probable** : app/src/lib/documents/modeles/catalogue-gestion.ts, ligne du contenu « Périmètre : ${ecritures.length} écritures » : ecritures.length compte toutes les écritures du lot, pas fiscal.nbEcritures
 - **Correction proposée** : Afficher fiscal.nbEcritures et, si fiscal.meuble.nbEcritures > 0 ou des périodes hors périmètre existent, une phrase les citant
 - **Correction sans aval** : oui
+
+#### `ARC-04` — Numéro de facture externe : unicité sensible à la casse (« art-2026-0001 » accepté en doublon de « ART-2026-0001 »), aucune continuité contrôlée
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Chantier externe terminé, devis accepté, facture ART-2026-0001 déjà déposée pour un autre chantier
+- **Étapes** : Déposer, sur un second chantier terminé, une facture portant le numéro « art-2026-0001 » (ou « ART-2026-0001 » avec espaces)
+- **Attendu** : Refus : deux factures du même artisan ne peuvent pas porter le même numéro, quelle que soit la casse ; contrôle ou avertissement sur un saut de numérotation
+- **Observé** : La facture « art-2026-0001 » est acceptée et listée à côté de « ART-2026-0001 » sur la page Facturation ; les espaces autour sont retirés (btrim) mais pas la casse ; le message du vrai doublon est « Ce dossier ou cette facture existe déjà. Rechargez avant de recommencer » (voir ARC-06)
+- **Preuve expurgée (banc)** : captures/c19-numeros-facture-casse.png ; sql/s05-chantiers-4-3.txt
+- **Cause probable** : supabase/migrations/20261012220000_artisan_clients_externes.sql : unique(artisan_id,numero) sur le texte brut ; la RPC artisan_externe_ecrire ne normalise que btrim
+- **Correction proposée** : Index unique sur (artisan_id, lower(btrim(numero))) étendu aux numéros des factures Gerimmo du même artisan, et message dédié « Ce numéro de facture existe déjà »
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `AUD-A-05` — Écart documentation/code : la piste d'audit générique documentée n'existe pas
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : auditeur (auditeur/a) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Lecture de wiki/regles-metier/Archivage plutôt que suppression.md et de la base.
+- **Étapes** : select count(*) from pg_proc where proname='audit_table_changes' ; select count(*) from pg_tables where tablename='audit_logs'.
+- **Attendu** : Table centrale audit_logs append-only alimentée par le déclencheur audit_table_changes(), DELETE réservé au super admin (wiki).
+- **Observé** : Aucune des deux (0 et 0). La table réelle s'appelle audit_log et ne contient que 8 types d'actions (adhesion_creee, adhesion_retiree, suppression_encaissement, bien_retire, bien_retabli, invitation_locataire, invitation_locataire_envoi_echec, inscription_proprietaire) ; plusieurs suppressions sont ouvertes aux propriétaires (detentions, retenues, encaissements).
+- **Preuve expurgée (banc)** : preuves/auditeur/a/securite.md (section Constats) et requête SQL ci-dessus
+- **Cause probable** : Règle du wiki jamais livrée ou remplacée par des journaux par module ; à trancher.
+- **Correction proposée** : Mettre le wiki en cohérence avec le code, ou livrer un déclencheur d'audit sur les tables sensibles (ecritures, detentions, baux, retenues).
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `AUD-A-06` — Insertion anonyme directe dans demandes_devis sans limite de débit
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : auditeur (auditeur/a) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Clé publique (anon) du site.
+- **Étapes** : 30 POST /rest/v1/demandes_devis en rafale avec nom, e-mail (jeton anon uniquement).
+- **Attendu** : Limite de débit au niveau de l'API ou captcha ; l'action serveur app/src/app/actions/devis.ts en prévoit une.
+- **Observé** : 30 insertions sur 30 acceptées ; un message de 2 Mo est refusé par la contrainte CHECK demandes_devis_longueurs (taille bornée à 4000 caractères). Le contournement de l'action serveur est admis par le commentaire du code (ligne 17).
+- **Preuve expurgée (banc)** : sortie console de la session (insertions anonymes) ; table demandes_devis de la copie
+- **Cause probable** : Politique demandes_devis_insert_public (with check true) + droit d'insertion par colonne accordé à anon.
+- **Correction proposée** : Limite de débit en périphérie (Vercel/Supabase) ou insertion réservée à la clé de service via l'action serveur.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `AUD-B-03` — Cookie de session lisible par script et marqué Secure seulement si NEXT_PUBLIC_SITE_URL commence par https://
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : auditeur-b (auditeur/b) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Production avec variable mal posée (hypothèse)
+- **Étapes** : Lire lib/supabase/cookies.ts ; vérifier la variable côté Vercel
+- **Attendu** : Secure garanti en production indépendamment de la variable
+- **Observé** : Le cookie de session Supabase n'est pas HttpOnly (choix documenté) ; son drapeau Secure dépend d'une variable d'environnement : absente ou en http, la session circulerait en clair sans alerte. script-src garde 'unsafe-inline' (choix documenté faute de nonce). Aucun script exécutable n'a été trouvé (B-XSS-RENDU, B-XSS-ROLES) : risque résiduel, pas une faille démontrée.
+- **Preuve expurgée (banc)** : snap-main/app/src/lib/supabase/cookies.ts ; preuves/auditeur/b/entetes.txt ; état de session du banc
+- **Cause probable** : snap-main/app/src/lib/supabase/cookies.ts:15
+- **Correction proposée** : Dériver Secure de VERCEL_ENV === 'production' en plus de la variable ; ajouter un test de configuration au démarrage
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `AUD-C-05` — L'arret d'urgence ne couvre pas les e-mails declenches par le webhook Stripe (hypothese a verifier)
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : auditeur-c (auditeur/c) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Un arret demande dans la supervision ; evenement Stripe reçu ensuite
+- **Étapes** : Lire api/stripe/webhook/route.ts : envoyerAvisFinEssai et envoyerRelancesDues sont appeles sans verifierAvantEffet ; lib/email.ts n'a pas de garde. Les missions, l'orchestrateur et les routes cron en ont une.
+- **Attendu** : Aucun nouvel effet sortant apres un arret ('Aucun nouvel effet ne sera lance').
+- **Observé** : Code lu seulement ; non atteignable sur le banc (webhook non configure).
+- **Preuve expurgée (banc)** : app/src/app/api/stripe/webhook/route.ts lignes 297 et 348 ; app/src/lib/controle-effets.ts
+- **Cause probable** : Garde posee dans les missions, pas dans les chemins evenementiels.
+- **Correction proposée** : Appeler verifierAvantEffet(db, 'abonnements') avant ces deux envois, ou documenter que l'arret ne couvre que les missions.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `AUD-C-07` — Les routes cron directes n'ont ni verrou de mission ni reservation avant envoi (doublon d'e-mail possible, hypothese a verifier)
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : auditeur-c (auditeur/c) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Detenteur du CRON_SECRET appelant /api/cron/appels (ou quittances, relances, rappels) pendant que le repartiteur tourne
+- **Étapes** : Lire appels/route.ts : appels_a_envoyer (sans reservation) puis envoi puis marquer_appel_envoye ; le verrou commencer_mission n'existe que dans le repartiteur equipes.
+- **Attendu** : Une seule passe a la fois ou reservation des lignes avant envoi.
+- **Observé** : Code lu ; le chemin autorise n'est pas atteignable sur le banc (secret absent). Vercel n'appelle que le repartiteur.
+- **Preuve expurgée (banc)** : app/src/app/api/cron/appels/route.ts, app/src/lib/execution-mission.ts
+- **Cause probable** : Routes historiques conservees apres l'ajout du repartiteur.
+- **Correction proposée** : Retirer l'export direct ou le faire passer par executerMission.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `AUD-C-08` — Fichiers PDF orphelins possibles si le webhook Youtrust et la tache de nuit traitent le meme evenement en meme temps (hypothese a verifier)
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : auditeur-c (auditeur/c) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Youtrust production configure ; evenement signature_request.done en cours de traitement par le webhook et repris par la tache
+- **Étapes** : Lire lib/signature-worker.ts : controle !signee_le non atomique, deux depots Storage avec UUID aleatoire, puis finaliser_signature_youtrust ; la 2e finalisation rend l'existant sans erreur donc sans suppression des fichiers deposes.
+- **Attendu** : Aucun fichier orphelin.
+- **Observé** : Aucun effet financier ni juridique (un seul document signe en base, verrou for update) ; fichiers en double dans le bucket documents. Non atteignable sur le banc.
+- **Preuve expurgée (banc)** : app/src/lib/signature-worker.ts lignes 24-50 ; migration finaliser_signature_youtrust
+- **Cause probable** : Pas de reservation de l'evenement avant telechargement.
+- **Correction proposée** : Passer l'evenement a 'en_cours' par update conditionnel avant le telechargement.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `ART-15` — La photo jointe par le locataire n'est visible de l'artisan ni au stade du devis ni sur la fiche de mission
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : artisan (chaine/1b) · **Version testée** : candidate 5d15b4d (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Incident déclaré avec photo (« Photo jointe. »)
+- **Étapes** : 1. Ouvrir la demande de devis de l'artisan. 2. Ouvrir la fiche de la mission après la sélection du devis.
+- **Attendu** : Photo disponible au moins après sélection du devis (pour préparer l'intervention), ou mention explicite qu'elle n'est pas transmise
+- **Observé** : La description dit « Photo jointe » mais aucune photo n'apparaît dans les deux écrans (le propriétaire, lui, la voit). L'artisan chiffre à l'aveugle. À trancher : choix de confidentialité ou lacune.
+- **Preuve expurgée (banc)** : preuves/chaine/1b/captures/a1-02-demande-detail.png ; preuves/chaine/1b/captures/a9-01-detail-mission.png
+- **Cause probable** : mes_sollicitations ne renvoie aucun identifiant de pièce ; la photo est classée dans documents de l'organisation (non lisible par l'artisan). Hypothèse de fichier, non vérifiée.
+- **Correction proposée** : Décision produit : exposer la photo à l'artisan retenu via une URL signée, ou masquer la mention « Photo jointe » dans la description transmise.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `CHN-02` — La validation de la facture, l'écriture de règlement et la clôture de l'incident ne laissent aucune ligne au journal d'audit : seule la chronologie de l'incident les garde
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : chaine (propriétaire n°2, super-administrateur) (chaine/2) · **Version testée** : candidate 5d15b4d (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Chaîne complète sur le propriétaire n°2
+- **Étapes** : Valider la facture (22:53), saisir l'écriture de 239,68 € (22:55), clôturer l'incident (22:56), puis lire le journal d'audit de l'organisation
+- **Attendu** : Les décisions financières (validation d'une facture, écriture de règlement) figurent au journal d'audit « actions sensibles », au même titre que l'annulation d'une écriture
+- **Observé** : audit_log de l'organisation n°2 entre 22:35 et 23:05 : aucune ligne ; la validation est seulement dans incident_evenements (facture_validee, avec l'acteur) ; l'annulation d'écriture, elle, est journalisée (contre_ecriture) : la correction est tracée, la décision initiale ne l'est pas
+- **Preuve expurgée (banc)** : sql/audit-log-chaine2.txt
+- **Cause probable** : valider_facture_artisan et la saisie d'écriture n'insèrent pas dans audit_log (seule contre_ecriture l'a depuis la migration 20261013120000)
+- **Correction proposée** : Journaliser facture_validee et ecriture_creee (montant, catégorie, lien facture) dans audit_log ; à rapprocher des lacunes de traçabilité AUD-A déjà au registre
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `CHF-07` — Hypothèse à vérifier : une contre-écriture est datée du jour de l'annulation, non de la pièce d'origine ; annuler en janvier un encaissement de décembre déplace le correctif sur l'exercice suivant.
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Encaissement annulé après le changement d'année.
+- **Étapes** : Observé seulement dans la même année : paiement du 07/09/2026 annulé le 14/10/2026, contre-écriture datée du 14/10/2026.
+- **Attendu** : Règle de rattachement à l'exercice à confirmer avec une source officielle.
+- **Observé** : Date de la contre-écriture = date du jour ; le cas inter-exercices n'a pas été rejoué.
+- **Preuve expurgée (banc)** : preuves/charges-fiscalite/sql (requête ecritures, contre_ecriture_de non nul)
+- **Cause probable** : SQL contre_ecriture / supprimer_encaissement (date_piece = jour)
+- **Correction proposée** : Si le rattachement à l'exercice d'origine est exigé, dater la contre-écriture de la pièce annulée.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `CHF-09` — Un encaissement saisi par erreur puis retiré (net 0,00 €) reste « à qualifier » et empêche de générer le PDF du lot tant qu'il n'est pas qualifié à la main.
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Lot nu avec exercice confirmé et récapitulatif complet ; bail dont tous les appels sont soldés.
+- **Étapes** : 1. Encaisser 1,00 € sur le bail B (aucun appel à solder : avance). 2. Le retirer avec un motif (contre-écriture). 3. Ouvrir le récapitulatif fiscal 2026. 4. Générer le PDF « Récapitulatif annuel · location nue » du lot B.
+- **Attendu** : La paire pièce + contre-écriture s'annule : rien à qualifier, PDF généré.
+- **Observé** : L'écran garde « Divers/loyer · 1.00 € — à qualifier » et l'alerte « Une avance… » ; le PDF répond « Le récapitulatif 2026 de ce lot n'est pas complet… ». La pièce annulée doit être qualifiée pour débloquer le document.
+- **Preuve expurgée (banc)** : preuves/charges-fiscalite/captures/fiscal-apres-depot.txt ; preuves/charges-fiscalite/captures/doc-b-apres-annulation-resultat.png
+- **Cause probable** : app/src/lib/fiscal.ts : la fonction inconnue() est appelée pour la pièce et pour sa contre-écriture sans compenser les deux ; la liste « à qualifier » est gardée par identifiant d'origine.
+- **Correction proposée** : Ne pas signaler une pièce dont la contre-écriture l'annule exactement dans l'exercice. Logique fiscale : validation spécialisée recommandée.
+- **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `EDI-01` — La ligne éditoriale de la veille accepte « agence » comme public valide (PUBLICS_JOURNAL) : un article visant seulement les agences passerait le filtre de pertinence en V1
 
@@ -1602,6 +1408,20 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : non modifiés : décision à prendre (retirer ou conserver les paragraphes agence)
 - **Correction sans aval** : non (aval du dirigeant requis)
 
+#### `DES-A-06` — Hors ligne : la navigation interne bascule sur la page d'erreur du navigateur (en anglais) et n'en sort pas au retour du réseau
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte propriétaire ou locataire connecté, 390×844, réseau coupé juste avant un clic sur un onglet du menu
+- **Étapes** : 1. Ouvrir le tableau de bord. 2. Couper le réseau. 3. Toucher « Finances » (propriétaire) ou « Paiements » (locataire). 4. Rétablir le réseau sans rien toucher.
+- **Attendu** : Un message de l'application (« Connexion perdue, réessayez ») et un retour automatique ou un bouton « Réessayer » ; l'utilisateur reste dans l'application
+- **Observé** : Le navigateur affiche « No internet / ERR_INTERNET_DISCONNECTED » (page non française), l'onglet reste sur cette page d'erreur, et après retour du réseau la page reste en erreur tant que l'utilisateur ne recharge pas. En revanche, au chargement lent (latence 1,8 s, 60 ko/s) un squelette de chargement s'affiche, et quand les requêtes RSC reçoivent un 500 la navigation retombe sur un chargement complet qui réussit.
+- **Preuve expurgée (banc)** : etats/prop-hors-ligne-390.png ; etats/loc-hors-ligne-390.png ; etats/etats-journal-prop.json ; etats/etats-journal-loc.json (relancés sur la candidate)
+- **Cause probable** : Aucune page de repli hors ligne ni service worker : la navigation Next retombe sur une navigation document qui échoue.
+- **Correction proposée** : Ajouter un repli hors ligne (service worker + page /hors-ligne en français) ; c'est une décision produit, pas une retouche.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
 #### `DES-A-07` — Vocabulaire d'agence encore visible dans les parcours propriétaire et locataire de la V1
 
 - **Sévérité** : P3 · **Statut** : à trancher — partiellement corrigée en branche ; reste à trancher : 4) veille réglementaire — Masquer l'audience « Agences et agents immobiliers » demande de savoir si le lecteur est un gérant d'agence : la page ne le sait pas (le paramètre retour /agence/<id> sert aussi aux propriétaires dire · **Propriétaire** : dirigeant (décision)
@@ -1616,6 +1436,484 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : formulaire-retour.tsx:53 → « … de l’équipe Gerimmo et, le cas échéant, de votre gestionnaire. » ; modale-alerte.tsx:43 → « toute l’équipe » ; reprise-soldes.ts:29 → « Détenteur du dépôt (vous ou votre gestionnaire) » ; masquer l'audience « agence » des onglets de /veille pour les profils non agence.
 - **Correction sans aval** : oui
 
+#### `DES-A-08` — Toutes les pages du propriétaire direct vivent sous l'adresse /agence/<id>/… (adresse visible, partagée, mise en favori)
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte propriétaire direct
+- **Étapes** : Ouvrir n'importe quel écran propriétaire et lire l'URL
+- **Attendu** : Une adresse sans le mot « agence » dans une V1 qui ne présente plus les agences
+- **Observé** : URL de la forme /agence/3c1d…/parc, /agence/3c1d…/loyers, etc. pour les 35 écrans propriétaire relevés
+- **Preuve expurgée (banc)** : journaux/auto-proprietaire-390.json (cheminFinal)
+- **Cause probable** : Le segment de route app/src/app/agence/[orgId] est partagé entre agences et propriétaires directs
+- **Correction proposée** : Refonte : alias /espace/<id>/… avec redirections 301 depuis /agence/<id>/…, à décider avec l'équipe ; ne pas toucher sans aval.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `DES-A-11` — L'adresse est « facultative » à l'inscription propriétaire mais bloque ensuite la création du premier bien
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte propriétaire neuf créé par /inscription sans adresse, code postal ni ville (champs marqués « facultatif »)
+- **Étapes** : 1. S'inscrire sans adresse. 2. Sur « Mes lots » vide, toucher « Créer mon premier bien ». 3. Lire la page « Créer un lot ».
+- **Attendu** : Même exigence à l'inscription et à l'usage : soit adresse/code postal/ville demandés (et marqués obligatoires) à l'inscription, soit le premier bien créable sans détour
+- **Observé** : La page « Créer un lot » est remplacée par « Complétez d'abord votre profil — Il manque votre adresse. Ils vous désignent comme bailleur dans le bail… sans eux, le bien ne peut pas être créé » avec un bouton vers /profil. Le message est clair et le détour fonctionne (profil enregistré en double clic : 1 seule requête, bouton « Profil enregistré », assistant de 6 étapes disponible ensuite), mais l'inscription a annoncé ces champs comme facultatifs et le CTA principal de « Mes lots » mène à un écran d'attente.
+- **Preuve expurgée (banc)** : etats/neuf/ajout-bien-390.png ; etats/neuf/lots-390.png ; etats/neuf/profil-enregistre-390.png ; etats/neuf/assistant-lot-390.png ; avant/public/inscription-390.png
+- **Cause probable** : Écrans /inscription (champs « Adresse postale (facultatif) ») et app/src/app/agence/[orgId]/parc/nouveau (porte « Complétez d'abord votre profil »)
+- **Correction proposée** : Retirer « (facultatif) » des trois champs d'adresse de l'inscription et les rendre obligatoires, ou, sur « Mes lots » vide, remplacer le CTA par « Compléter mon profil pour créer un bien ». Choix produit ; les textes seuls sont sans aval.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-06` — L'arrêt d'urgence ne couvre pas le traitement immédiat du webhook Yousign ; la clé 'sauvegarde' n'a aucun lecteur (confirmation par lecture de SUP-07)
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Arrêt global actif
+- **Étapes** : 1. Lire youtrust/webhook/route.ts:49-57 et signatures/route.ts:45 ; 2. Rechercher verifier_arret dans .github et app/scripts
+- **Attendu** : Aucun nouvel effet après un arrêt d'urgence
+- **Observé** : Constat statique : le webhook appelle traiterEvenementSignature sans avantEffet (téléverse des PDF signés et finalise la signature) alors que le cron le passe ; aucune occurrence de verifier_arret dans le workflow de sauvegarde ni dans ses scripts. Complète AUD-C-05 et SUP-07 ; le webhook Yousign est inactif tant que Youtrust n'est pas en production.
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-06)
+- **Cause probable** : app/src/app/api/youtrust/webhook/route.ts:51-56 ; .github/workflows/sauvegarde.yml
+- **Correction proposée** : Passer () => verifierAvantEffet(supabase, 'signatures') au traitement immédiat ; faire lire la clé 'sauvegarde' par le workflow ou retirer la clé de l'écran (D2)
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-07` — Des éléments d'automatisation existent sans écrivain ni appelant : automation_events, log_automation_event, automation_stats_30d, autoriser_orchestration
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Code au commit 83ba492
+- **Étapes** : Rechercher ces noms dans app/src et dans les migrations postérieures à 20260922120000
+- **Attendu** : Une automatisation annoncée est branchée, ou son état 'préparé' est dit
+- **Observé** : Constat statique : aucune occurrence dans app/src ; aucun écrivain en SQL après la migration d'origine ; le taux d'automatisation affiché vient de tech_log (automatisation.ts). mode='automatique' d'orchestration_cases est un libellé : la file n'exécute rien.
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-07)
+- **Cause probable** : app/supabase/migrations/20260922120000_autonomie_v3.sql:48-110,143-158
+- **Correction proposée** : Décider : alimenter automation_events par les passages (utile pour le registre d'exécution des équipes IA) ou documenter 'préparé, non alimenté'
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-09` — La tâche territoire peut préparer une campagne-idée 'essai avec des agences', alors que les agences sont hors du périmètre public V1
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Un département avec au moins 20 agences, un ratio agences/logements >= 0,001, la porte de santé ouverte
+- **Étapes** : 1. Lire score-territoire.ts:65-73 et territoire/route.ts:185-191 ; 2. Lire 20260922223000_preparer_recrutement_territorial.sql
+- **Attendu** : Aucune préparation visant un public hors V1 sans aval
+- **Observé** : Constat statique : prioriteTerritoriale peut rendre 'agences' ; preparer_recrutement_territorial crée alors une ligne marketing_campagnes au statut 'idee', budget 0 (brouillon interne, aucune diffusion). Effet non rejoué. Voir EDI-01.
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-08/09)
+- **Cause probable** : app/src/lib/score-territoire.ts:69-70
+- **Correction proposée** : Exclure 'agences' de la priorité tant que le périmètre V1 l'exclut, ou la garder explicitement marquée 'hors V1' (décision du dirigeant)
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-11` — Aucun registre d'exécution n'a de règle de rétention (agent_passages, supervision_operations, points_du_matin, decisions_du_matin, brief_direction_snapshots)
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Code au commit 83ba492
+- **Étapes** : 1. Rechercher les suppressions de ces tables dans les migrations ; 2. Lire appliquer_retention (20260927142000_conservation_depuis_fin_du_contrat.sql:160-266)
+- **Attendu** : Chaque journal a une durée de conservation écrite (Registre des traitements)
+- **Observé** : Constat statique : seuls tech_log, acces_pieces_log, audit_log, alertes fermées et certains documents sont purgés. Les nouveaux registres des équipes IA devraient avoir une règle dès leur création. Voir SUP-05 pour les instantanés (données nominatives).
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-11)
+- **Cause probable** : app/supabase/migrations/20260728_sprint1_ged_alertes_retention.sql:155-172 (règles) ; fonction appliquer_retention
+- **Correction proposée** : Ajouter une règle par registre (par exemple 12 mois) validée avec le dirigeant ; source CNIL des durées : non consultée
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-12` — Hypothèse à vérifier : les textes et visuels produits avec l'IA et publiés sur le site et Facebook ne portent aucune mention d'origine
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Un post de veille ou un visuel généré est publié
+- **Étapes** : 1. Rechercher une mention d'origine IA dans app/src/app/journal, app/src/app/veille, facebook.ts, contenu-marketing.ts ; 2. Lire § 7 de propositions.md (règlement 2024/1689, art. 50)
+- **Attendu** : L'obligation de transparence éventuellement applicable est qualifiée et respectée
+- **Observé** : Constat statique : aucune mention. Selon la Commission européenne (page non ouverte, résultat de recherche), les obligations de l'article 50 s'appliquent à partir du 2 août 2026, avec un délai de grâce pour le marquage évoqué dans le paquet 'Omnibus IA' dont le statut est à vérifier. Qualification juridique non faite.
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-12) ; preuves/equipes-ia/propositions.md § 7
+- **Cause probable** : Conception : aucun libellé 'illustration générée' dans components/image-journal.tsx ni dans la page article
+- **Correction proposée** : Faire qualifier l'obligation (D9), puis ajouter si nécessaire une mention et un marquage lisible par machine
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `PRF-02` — Lien de nouveau mot de passe sans session : réponse 200 puis redirection côté client, avec décalage visible (CLS 0,346 à 390 px)
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Visiteur sans session (cas d'un lien de récupération expiré ou déjà utilisé) ; aucun étranglement ; version candidate.
+- **Étapes** : 1. GET /nouveau-mot-de-passe (curl, puis Chromium 390 et 1280). 2. Lire le statut, le corps et les layout-shift.
+- **Attendu** : Refus avant rendu : 307 vers /connexion?raison=lien-invalide, comme /admin, /assistance ou /agence/<id> pour un anonyme ; aucun décalage.
+- **Observé** : HTTP 200 ; le corps contient NEXT_REDIRECT;replace;/connexion?raison=lien-invalide;307 ; la redirection est faite par le navigateur ; CLS 0,346 à 390 px et 0,106 à 1280 px, identique sur 3 + 3 chargements répétés et sur les 2 passes ; le bloc « Connexion » saute de [25,325,340,194] à [0,24,390,820] (390 px). Même mécanisme que PRF-01 une fois sur /connexion.
+- **Preuve expurgée (banc)** : preuves/perf-liens/cls-nouveau-mot-de-passe-390.png ; preuves/perf-liens/exp1-sortie.txt ; preuves/perf-liens/corps-nmdp.html ; preuves/perf-liens/mesures.csv (lignes /nouveau-mot-de-passe)
+- **Cause probable** : app/src/app/nouveau-mot-de-passe/page.tsx:15 : redirect("/connexion?raison=lien-invalide") appelé dans la page après le flush de la coquille de app/src/app/loading.tsx ; le statut est déjà 200. Le décalage vient de /connexion (PRF-01).
+- **Correction proposée** : Décider l'absence de session avant le rendu (proxy) pour renvoyer un vrai 307 ; corriger PRF-01 pour supprimer le décalage.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `PRF-03` — Accès interdits ou objets inexistants : le document répond 200 (redirection ou 404 faites côté client), seul le visiteur anonyme reçoit un vrai 307
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Sessions des 5 profils ; 157 écrans de la matrice ; version candidate.
+- **Étapes** : 1. Demander en GET chaque écran de la matrice avec la session d'un autre profil (631 requêtes) et avec un visiteur anonyme. 2. Sondes d'erreurs : identifiants nuls, non-UUID, autre organisation, /journal/inexistant. 3. Lire statut et corps.
+- **Attendu** : Statut de document cohérent : 307/401/403 pour un accès interdit, 404 pour un objet inexistant.
+- **Observé** : Anonyme : 138 réponses 307 sur 138 écrans protégés (la 139e, /artisan/inscription, est une page publique : 200 attendu). Profils connectés : 490 réponses 200 sur 492 dont le corps contient NEXT_REDIRECT (retour vers /espaces ou accueil) ; 2 vrais 404 (/quittance/<id> pour propriétaire et artisan). Objets inexistants : /agence/<org>/parc/<0…0>, /agence/<org>/baux/pas-un-uuid, /artisan/missions/<0…0>, /journal/inexistant répondent 200 avec « Erreur 404 Cette page est introuvable » (le journal porte meta robots noindex). Les routes sans correspondance (/page-inexistante, /outils/inconnu) et /quittance/<id> renvoient un vrai 404. Aucune donnée d'autre organisation constatée dans ces réponses (voir PRF-04). Effets : supervision et journaux d'accès ne distinguent pas refus et succès ; vérificateurs de liens et robots voient des « soft 404 ».
+- **Preuve expurgée (banc)** : preuves/perf-liens/authz-scan.json ; preuves/perf-liens/authz-scan2-sortie.txt ; preuves/perf-liens/sondes-erreurs.json ; preuves/perf-liens/sondes-corps.json ; preuves/perf-liens/exp6-sortie.txt ; preuves/perf-liens/introuvable-mission-200.png
+- **Cause probable** : Frontière de streaming racine app/src/app/loading.tsx : tout redirect() ou notFound() exécuté dans un layout ou une page après l'envoi de la coquille devient une instruction côté client sous un statut 200 ; seuls les contrôles du proxy (anonyme) répondent 307.
+- **Correction proposée** : Prendre la décision d'accès (appartenance à l'organisation, rôle) dans le proxy avant tout rendu, ou limiter la frontière de chargement aux segments sans contrôle d'accès ; pour /journal/[slug], valider l'existence avant le flush. À arbitrer : changement de comportement global de navigation.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `PRF-04` — Défense en profondeur : la garde des pages /admin vit dans le layout ; la page s'exécute pour un non-super-administrateur et sa charge utile part avant la redirection (bornée par la RLS)
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte locataire (Agence Alpha) ; version candidate.
+- **Étapes** : 1. GET /admin/marque-blanche avec la session du locataire. 2. Chercher dans le corps le nom d'organisation. 3. Étendre à 631 requêtes croisées avec 34 jetons (noms d'organisations, noms et e-mails du jeu de démonstration).
+- **Attendu** : Aucun contenu de la page d'administration dans la réponse d'un non-super-administrateur.
+- **Observé** : HTTP 200, 21 536 octets ; le flux RSC contient le contenu propre de la page (<h2> « Agence Alpha » et sa pastille de la liste des organisations) avant la redirection vers /espaces. Sur 631 requêtes croisées, seuls les noms de l'organisation de l'acteur lui-même apparaissent (menu ou liste filtrée par RLS) ; aucun nom d'une autre organisation (Agence Beta, Parc de Fisc, Parc de Éloïse), aucune adresse e-mail. Aucune fuite constatée aujourd'hui. Aucun client à clé de service dans app/src/app/admin (recherche textuelle).
+- **Preuve expurgée (banc)** : preuves/perf-liens/fuite-verif-sortie.txt ; preuves/perf-liens/authz-scan2-sortie.txt ; preuves/perf-liens/tokens-donnees.json (liste des jetons de recherche, données de démonstration)
+- **Cause probable** : app/src/app/admin/layout.tsx : `if (!estSuperAdmin) redirect("/espaces")` ; les pages n'ont pas leur propre garde (commentaires « Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond » dans admin/page.tsx:61, devis/page.tsx:14, sante/page.tsx:63). Un layout n'empêche pas la page de s'exécuter en parallèle.
+- **Correction proposée** : Ajouter la garde is_super_admin au proxy pour /admin/* (avant rendu) ou dans chaque page ; ajouter un test automatisé de non-fuite par jetons sur les accès croisés ; garder la RLS comme filet. Reste valable tant qu'aucune page /admin n'utilise un client à clé de service.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `PRF-05` — Poids et mise en cache : logo de 292 Ko (2016×1594) et illustration de 298 Ko chargés sur chaque écran d'espace, servis avec max-age=0 ; ils portent le LCP des écrans d'agence
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Bureau 1280 px, cache vide ; profils agent, administrateur, propriétaire ; version candidate.
+- **Étapes** : 1. Charger l'accueil agent et la fiche diagnostics. 2. Lister les ressources (PerformanceResourceTiming) et le LCP. 3. curl -I sur /logo/gerimmo-officiel.png et /illustrations/quartier-gerimmo-2026.jpg ; requête conditionnelle If-None-Match.
+- **Attendu** : Images dimensionnées à leur usage (via next/image ou fichiers réduits) et cache longue durée comme /_next/static (immutable).
+- **Observé** : /logo/gerimmo-officiel.png : PNG RGBA 2016×1594, 292 196 octets ; /illustrations/quartier-gerimmo-2026.jpg : 298 659 octets (fond de la colonne latérale, découverte tardivement par la feuille de style, début ≈ 500 ms) ; ensemble ≈ 580 Ko sur 0,95 à 2 Mo transférés par écran de bureau (médiane 944 Ko, maximum 2 039 Ko). En-tête Cache-Control: public, max-age=0 (revalidation à chaque page, 304 confirmé) contre public, max-age=31536000, immutable pour /_next/static. Le logo transparent passé par /_next/image pèse 1,2 Ko à 96 px. LCP de ces écrans = <aside class="coquille-late"> ≈ 0,6 s sur banc. Aucun dépassement de budget sur banc : LCP maximal mesuré 644 ms (1280) et 668 ms (390) ; sous réseau 1,6 Mbit/s + processeur ×4, LCP 1,2 à 2,0 s, sous 2,5 s.
+- **Preuve expurgée (banc)** : preuves/perf-liens/mesures.md ; preuves/perf-liens/mesures.csv ; preuves/perf-liens/etranglement-390.json ; preuves/perf-liens/synthese-par-ecran.json
+- **Cause probable** : app/src/app/prestige.css:474 et :485 (url("/illustrations/quartier-gerimmo-2026.jpg")), app/src/lib/charte-gerimmo.ts:13 (logo: "/logo/gerimmo-officiel.png") ; absence d'en-têtes de cache pour /logo et /illustrations dans next.config.ts (headers() ne traite que /auth/*).
+- **Correction proposée** : Servir le logo et l'illustration en formats réduits (WebP/AVIF, largeur utile) via next/image ou fichiers dédiés ; ajouter des en-têtes Cache-Control longue durée pour /logo/* et /illustrations/* (noms versionnés) ; précharger l'image de fond ou la déclarer en priorité. Décision de charte graphique à valider.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `PRF-07` — Console de supervision : « Voir le formulaire sur le site » n'affiche pas le formulaire pour un super-administrateur connecté
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Super-administrateur connecté ; écran /admin/devis (aucune demande commerciale).
+- **Étapes** : 1. Ouvrir /admin/devis. 2. Cliquer « Voir le formulaire sur le site » (href="/#contact", target=_blank).
+- **Attendu** : L'accueil public s'ouvre à l'ancre #contact.
+- **Observé** : Le nouvel onglet atterrit sur /admin/brief « Aujourd'hui » : l'accueil « / » redirige tout utilisateur connecté vers /espaces puis vers son espace ; l'ancre #contact existe pourtant sur l'accueil public (id="contact").
+- **Preuve expurgée (banc)** : preuves/perf-liens/lien-admin-devis-formulaire.png ; preuves/perf-liens/liens.md
+- **Cause probable** : Redirection de « / » pour les sessions ouvertes ; lien rédigé sans tenir compte de cette règle (écran /admin/devis).
+- **Correction proposée** : Indiquer « à ouvrir dans une fenêtre de navigation privée », ou prévoir un aperçu public accessible aux sessions ouvertes (paramètre explicite). À arbitrer avec le propriétaire du produit.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `PRF-08` — Page de confidentialité : « Aide et retours » mène un visiteur sans compte à la page de connexion ; contact éditeur « (à venir) » sur le banc
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Visiteur anonyme ; page publique /confidentialite ; banc sans coordonnées d'éditeur configurées.
+- **Étapes** : 1. Ouvrir /confidentialite. 2. Cliquer « « Aide et retours » » (href=/assistance). 3. Lire la page /confidentialite, /mentions-legales et /conditions pour le moyen de contact.
+- **Attendu** : Un visiteur sans compte dispose d'un moyen de contact pour ses demandes de données personnelles.
+- **Observé** : Le lien renvoie en 307 vers /connexion?suite=%2Fassistance (constaté). Sur le banc l'adresse de contact de l'éditeur est un espace réservé « adresse de contact (à venir) » sur les trois pages (aucun mailto affiché) : un visiteur sans compte n'a pas de canal. En production l'adresse est peut-être renseignée : hypothèse à vérifier pour la partie contact.
+- **Preuve expurgée (banc)** : preuves/perf-liens/lien-confidentialite-aide.png ; preuves/perf-liens/liens.md
+- **Cause probable** : app/src/app/confidentialite/page.tsx:352-361 (lien « Aide et retours » ; mailto affiché seulement si courrielDeContact() de app/src/lib/editeur.ts:106 renvoie une adresse).
+- **Correction proposée** : Vérifier que l'adresse de contact est bien configurée en production avant ouverture ; préciser dans le texte que « Aide et retours » exige un compte.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `PRF-10` — Journal serveur : erreur « The destination stream closed early » (digest 2041379235) non attribuée ; 69 % des préchargements de liens sont annulés
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Serveur 3100 (next start) ; campagne de ≈ 1 000 chargements ; journal /tmp/gerimmo-web.log.
+- **Étapes** : 1. Comparer le journal avant et après la campagne. 2. Provoquer 30 annulations côté client de réponses RSC préchargées. 3. Chronométrer les préchargements de l'accueil agent.
+- **Attendu** : Aucune erreur de niveau « error » pour une annulation de lecture par le navigateur ; préchargements menés à terme.
+- **Observé** : Une ligne d'erreur nouvelle pendant la campagne (4 au total dans le journal, 3 antérieures) ; non reproduite par 30 annulations provoquées (0 ligne nouvelle) : écran d'origine inconnu. Observation liée : sur l'accueil agent, 24 des 35 URL préchargées (RSC) sont annulées par le navigateur environ 70 ms après l'ouverture, sans réussite ultérieure ; 6 366 requêtes ERR_ABORTED sur 507 chargements, 0 autre type d'échec. Lien de cause non établi : hypothèse à vérifier (annulation normale du routeur ou gaspillage de préchargements).
+- **Preuve expurgée (banc)** : preuves/perf-liens/journal-serveur-avant.log ; preuves/perf-liens/exp1-sortie.txt ; preuves/perf-liens/mesures.csv (colonne requetes_annulees_ERR_ABORTED)
+- **Cause probable** : Hypothèse : lecture de flux RSC annulée par le client (routeur Next 16) ; non vérifié.
+- **Correction proposée** : Reproduire avec journaux horodatés ; si l'annulation est normale, filtrer ce message du niveau « error » dans la supervision.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `PROP-11` — Un même PDF ne peut pas être déposé pour deux lots (DPE collectif) et la consigne n'est pas réalisable depuis le formulaire
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : deux lots d'un même immeuble
+- **Étapes** : déposer DPE-fictif.pdf sur le lot 1A puis le même fichier sur le lot 2B
+- **Attendu** : possibilité de rattacher la même pièce (DPE collectif) ou consigne réalisable
+- **Observé** : « Un fichier au contenu strictement identique existe déjà dans la GED, sous le nom « DPE — 13/10/2026 ». Rattachez cette pièce existante plutôt que de la déposer en double. » ; aucune action « rattacher une pièce existante » dans le formulaire de dépôt de diagnostic
+- **Preuve expurgée (banc)** : sortie de s4c.mjs (sql/s4c.out.txt)
+- **Cause probable** : unicité (organization_id, empreinte) sur documents (documents_empreinte_unique) + deposerFichierGed
+- **Correction proposée** : proposer « utiliser cette pièce pour ce lot » dans le formulaire
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `PROP-16` — Hypothèse à vérifier : aucune cohérence contrôlée entre loyer, loyer de référence et loyer de référence majoré
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : bail, étape « Autres et clauses », encadrement des loyers = Oui
+- **Étapes** : loyer de référence 30 €/m² et majoré 25 €/m² ; puis majoré 15,60 €/m² alors que le loyer est 850 € / 45,5 m² = 18,68 €/m²
+- **Attendu** : alerte si référence > majoré ou si loyer hors complément > majoré × surface (règle de l'encadrement ; à confirmer avec le texte légal, le wiki ne la décrit pas)
+- **Observé** : les trois jeux de valeurs sont enregistrés (« Étape enregistrée »)
+- **Preuve expurgée (banc)** : sortie de s7j.mjs (sql/s7j.out.txt)
+- **Cause probable** : lireEtapeBail (src/lib/champs-etape-bail.ts) ne vérifie que forme et plafonds de dépôt/honoraires
+- **Correction proposée** : avertissement non bloquant si loyer/m² > majoré
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `FIN-03` — Aucune contrainte de centime sur encaissements.montant / ecritures.montant : un paiement à 3 décimales est capturé avec un écart de 0,005 et ne peut plus jamais être qualifié (les parts doivent récon…
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/finance) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : Un encaissement de 100,005 € (requête directe, le formulaire impose step=0,01) pour un appel 500 + 40 : composantes 92,60 + 7,41 = 100,01 (écart 0,005). Le récapitulatif refuse la pièce (« attendent leur ventilation ») et qualifier_ecriture_fiscale rejette toute saisie manuelle à deux décimales (« doivent réconcilier exactement »). La pièce reste bloquée sans issue. Hypothèse de faible probabilité : seul un client contournant la validation HTML5 peut y arriver ; non reproduit par l'interface.
+- **Preuve expurgée (banc)** : preuves/relecture/finance/sql/t10_trois_decimales.sql + ts/t4.mts (reproduit en base et dans la fonction TypeScript ; non reproduit via le navigateur : step=0,01)
+- **Cause probable** : app/supabase/migrations/20261012224000_fiscalite_historique_qualifiee.sql:56-95 et 113
+- **Correction proposée** : Arrondir au centime à l'écriture (ajouterEncaissement) et ajouter une contrainte check (montant = round(montant,2)) en NOT VALID pour ne pas toucher l'existant ; ou faire capturer au déclencheur le montant arrondi.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Contrôle en production (lecture seule)** : `-- Lecture seule : montants hors centime déjà présents. select 'encaissements' t, count(*) from public.encaissements where montant <> round(montant,2) union all select 'ecritures', count(*) from public.ecritures where montant <> round(montant,2) union all select 'composantes_incoherentes', count(*) from public.fiscal_encaissements_composantes c join public.ecritures e on e.id=c.ecriture_id where abs(c.loyer_hc+c.charges+c.non_ventile-e.montant) > 0;`
+
+#### `FIN-04` — La régularisation 230 reste exigée (et est réintégrée si saisie) pour les lots passés en meublé ou hors périmètre, alors que leurs pièces sont exclues de la 2044.
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/finance) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : Un lot confirmé « meublé » toute l'année : ses pièces sont comptées en BIC, mais le lot reste dans l'ensemble des lots de la boucle 230. Sans régularisation saisie, l'alerte « La régularisation 230… est à compléter » et la rubrique 230 « à compléter » ne disparaissent jamais ; si le propriétaire saisit un montant, il vient en déduction des charges 2044 d'un lot qui n'y figure pas.
+- **Preuve expurgée (banc)** : preuves/relecture/finance/ts/t1.mts (sortie : alertes contenant la 230, aCompleter:true avec lot meublé seul)
+- **Cause probable** : app/src/lib/fiscal.ts:68-71, 93-99 (boucle des lots / régularisation 230)
+- **Correction proposée** : Ne retenir dans la boucle 230 que les lots ayant au moins une période en location nue sur l'année ; ne pas compter 230 pour un lot meublé.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Contrôle en production (lecture seule)** : `-- Lecture seule : exercices dont tous les régimes sont hors 2044 mais qui portent un montant 230. select id, organization_id, lot_id, annee, regularisation230 from public.fiscal_exercices_lots x where regularisation230 is not null and not exists (select 1 from jsonb_array_elements(x.periodes) p where p->>'regime'='nu');`
+
+#### `FIN-09` — La capture fiscale calcule « déjà encaissé avant » en sommant tous les AUTRES encaissements du bail présents en fin d'ordre : un INSERT à plusieurs lignes pour un même bail répartit faux (hypothèse :…
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/finance) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : Appel de 840 € (780 + 60), deux paiements 500 + 500 € insérés par un seul INSERT (requête PostgREST en tableau, import ou script de support) : les deux écritures sont captées 315,71 + 24,29 avec 160 € non ventilés, soit 680 € affectés au lieu de 840 € et 320 € non ventilés au lieu de 160 € ; en deux INSERT successifs, le résultat est correct (464,29/35,71 puis 315,71/24,29 + 160). La pièce figée ne peut pas être remplacée tant que non_ventile = 0 ; ici il reste > 0, la saisie manuelle est possible, mais le chiffre automatique est faux et muet.
+- **Preuve expurgée (banc)** : preuves/relecture/finance/sql/t13_insert_multilignes.sql (sortie : preuves/relecture/finance/sql/t13_sortie.txt). Reproduit en base ; aucun appelant applicatif multi-lignes trouvé : seul le INSERT … SELECT de reprise_soldes (une ligne par bail) s'en approche.
+- **Cause probable** : app/supabase/migrations/20261012224000_fiscalite_historique_qualifiee.sql:56-95 (déclencheur AFTER INSERT par ligne, calcul de « avant » à la ligne 75-76)
+- **Correction proposée** : Rendre le déclencheur indépendant de l'ordre : filtrer « avant » sur les encaissements antérieurs à celui-ci ((created_at, id) strictement inférieurs) au lieu de « tous les autres », ou calculer la ventilation dans la même fonction que l'insertion ; ou refuser les INSERT multi-lignes sur encaissements.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Contrôle en production (lecture seule)** : `-- Lecture seule : écritures de loyer captées dont le total affecté d'un bail dépasse min(total encaissé, total dû) — indice d'une capture faussée. select e.bail_id, sum(c.loyer_hc+c.charges) as affecte, (select sum(montant) from public.encaissements k where k.bail_id=e.bail_id) as encaisse, (select sum(montant_du) from public.appels_loyer a where a.bail_id=e.bail_id) as du from public.ecritures e join public.fiscal_encaissements_composantes c on c.ecriture_id=e.id where e.contre_ecriture_de is null group by e.bail_id having abs(sum(c.loyer_hc+c.charges) - least((select sum(montant) from publ…`
+
+#### `PR178-B-03` — Encaissement de 0,01 € accepté par le nouveau contrôle au centime mais refusé par la base avec le message générique « Gerimmo n'a pas pu terminer cette action »
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecteur adverse PR178 (côté serveur et régressions) (relecture/pr178/b) · **Version testée** : f283439 (main après PR #178, lecture) et candidate 5d15b4d (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Bail de l'Agence Alpha géré sous mandat (honoraires > 0) ; admin.alpha.
+- **Étapes** : 1. /agence/<org>/baux/<bail>. 2. Saisir un encaissement de 0,01 €. 3. « Encaisser ».
+- **Attendu** : Encaissement enregistré, ou message précis (montant minimal).
+- **Observé** : Message générique « Gerimmo n'a pas pu terminer cette action. Réessayez dans un instant… ». La base refuse : insertion de l'écriture d'honoraires à 0,00 → ecritures_montant_check (reproduit par insertion en transaction annulée). Aucun encaissement créé. Saisie conservée.
+- **Preuve expurgée (banc)** : preuves/relecture/pr178/b/scripts/enc1.mjs (sortie console) ; essai SQL en transaction annulée (rollback)
+- **Cause probable** : src/lib/saisie-montant.ts accepte tout montant > 0 au centime près ; le déclencheur qui écrit les honoraires arrondit à 0,00 pour un très petit montant et viole ecritures_montant_check ; sansJargon masque la cause.
+- **Correction proposée** : Soit refuser sous un plancher en lireMontant avec un message clair, soit ne pas écrire d'écriture d'honoraires à 0,00 dans le déclencheur. Hors PR178 : interaction avec les contrôles de l'audit.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `REP-02` — Le courriel d'urgence au gestionnaire n'est envoye qu'a la premiere execution : si la premiere tentative a cree l'incident puis s'est arretee avant l'e-mail, la reprise (rejoue:true) ne l'envoie jama…
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/reprises) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : Locataire, incident 'urgente' (degat des eaux). Tentative 1 : declarer_mon_incident_reprise valide (incident + commande enregistres) mais la reponse n'arrive pas au serveur d'actions (erreur reseau Supabase apres commit, ou action interrompue pendant l'envoi des photos qui precede l'e-mail). L'action rend une erreur et le formulaire invite a 'reessayer la meme tentative'. Tentative 2 (meme cle) : la RPC renvoie rejoue:true -> les photos sont reprises mais l'e-mail 'incident_urgent' est saute par '!declaration.rejoue' ; le message dit meme 'votre gestionnaire le verra ... a sa prochaine connexion'. Rien dans commandes_incidents_locataire ne memorise si l'e-mail est parti, donc ni la reprise ni une tache ne peut le renvoyer. Contournement : incident_creer cree deja une alerte 'critique' (Incident urgent a qualifier) dans l'espace du gerant ; seul le courriel immediat est perdu.
+- **Preuve expurgée (banc)** : Moitie SQL reproduite : t3a-incident.sortie.txt et psql-incident-A/B.sortie.txt (2e appel, meme cle, depuis une 2e session psql : {rejoue:true, meme incident_id}). Moitie TypeScript en lecture seule (app/src/app/actions/incidents.ts:234). L'interruption entre le commit de la RPC et l'e-mail n'a pas ete provoquee de bout en bout (parcours navigateur en ecriture interdits sur la base du banc). Hypothese a verifier.
+- **Cause probable** : app/src/app/actions/incidents.ts:234 (if (champs.urgence === "urgente" && !declaration.rejoue)) ; 226-229
+- **Correction proposée** : Memoriser l'envoi : ajouter une colonne notifie_le a commandes_incidents_locataire (ou envoyer l'e-mail AVANT les photos), et envoyer l'e-mail d'urgence a la reprise tant que notifie_le est nul. Test : simuler une action qui s'arrete apres la RPC, rejouer, verifier un seul e-mail.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+- **Contrôle en production (lecture seule)** : `select i.id, i.numero, i.created_at from public.incidents i join public.commandes_incidents_locataire c on c.incident_id = i.id where i.urgence = 'urgente' and not exists (select 1 from public.tech_log t where t.evenement = 'notification_envoyee' and t.details->>'evenement' = 'incident_urgent' and t.details->>'objet' = i.id::text) order by i.created_at desc;`
+
+#### `REP-04` — choisir_creneau et accepter_creneau_locataire ne sont pas rejouables : une reponse perdue suivie d'un nouvel envoi affiche une erreur alors que le rendez-vous est confirme
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/reprises) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : Le locataire confirme un creneau, la reponse se perd, il reclique : le 2e appel trouve le creneau en 'retenu' et leve 'Ce creneau n'est plus propose'. Etat correct en base (1 rendez-vous), mais le locataire croit a un echec et peut contacter le gerant ; meme comportement attendu pour l'artisan qui retient une date du locataire (accepter_creneau_locataire : 'Cette date n'est plus proposee', lecture seule, non rejoue). Contrairement a l'incident, au bien et a l'invitation, aucune reprise n'a ete prevue pour ce geste.
+- **Preuve expurgée (banc)** : preuves/relecture/reprises/t14-rejeu-choisir.sortie.txt : 1er appel OK ; rejeu -> ERREUR 'Ce creneau n'est plus propose' ; etat final planifiee/retenu
+- **Cause probable** : app/supabase/migrations/20261013102000_planning_conflits.sql:choisir_creneau : 'if v.statut <> propose then raise ... plus propose' ; accepter_creneau_locataire idem
+- **Correction proposée** : Dans les deux fonctions, retourner sans erreur si le creneau est deja 'retenu' ET que la mission est 'planifiee' sur ce meme creneau et que l'appelant est le meme acteur.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Contrôle en production (lecture seule)** : `-- sans objet (aucune donnee alteree)`
+
+#### `REP-05` — Ecart au wiki : l'expiration J+30 et le refus trace sont livres, mais les relances J+3 / J+10 prevues par le module 16 n'existent nulle part
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/reprises) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : Le wiki (RM-16, 'L'invitation ... relances J+3/J+10, expiration J+30, refus trace') decrit des relances. Dans le code livre, 'invitations_locataires' n'est lue que par la fiche personne, l'espace /espaces, l'action invitations.ts et le courrier ; aucun cron (src/app/api/cron/*) ni aucune fonction SQL ne relance une invitation en attente. Un locataire qui n'ouvre pas le premier courriel n'est jamais relance ; l'invitation expire en silence au bout de 30 jours (le gerant doit la renvoyer a la main).
+- **Preuve expurgée (banc)** : grep sur la photographie : 'invitations_locataires' / 'invitation_locataire' absents de src/app/api et src/lib hors lien-mot-de-passe.ts (courrier initial) ; aucune planification dans vercel.json. Absence verifiee par lecture, pas un defaut d'execution.
+- **Cause probable** : app/supabase/migrations/20261013101000_invitations_locataire_cycle.sql (+ wiki/concepts/Compte, personne et adhésion.md l.81-83):table invitations_locataires ; aucune tache planifiee
+- **Correction proposée** : Soit livrer les relances (tache de rappel J+3/J+10 limitee par organisation, comme rappels gestes), soit amender le wiki pour dire que les relances sont differees. Decision produit.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Contrôle en production (lecture seule)** : `-- lecture seule : invitations expirees sans reponse (jamais relancees) select count(*) filter (where etat='en_attente' and expire_le<=now()) as expirees_non_marquees, count(*) filter (where etat='expiree') as expirees from public.invitations_locataires;`
+
+#### `SUP-03` — N'importe quel super-administrateur permanent peut accuser réception d'une alerte de relais adressée à un autre responsable : la fonction ne compare pas auth.uid() au destinataire (message d'erreur a…
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/supervision) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : Le plan désigne sa2 comme responsable ; une alerte lui est adressée. sa1 (créateur du plan, ou tout autre superviseur) clique « Accuser la prise en compte » : statut passe à accusee, accusee_par=sa1, sans que sa2 l'ait vue ni que l'escalade ait lieu. L'écran n'affiche que « Accusé reçu le … » sans dire par qui. Aucun effet financier ou de données ; la trace accusee_par/supervision_operations existe.
+- **Preuve expurgée (banc)** : preuves/relecture/supervision/80-accuse-autoapprobation-activation.sortie.txt (T1)
+- **Cause probable** : 20261012221100:accuser_alerte_vacances : update ... where id=p_id and statut<>'accusee' sans filtre destinataire=auth.uid().
+- **Correction proposée** : Ajouter `and (destinataire=auth.uid() or statut in ('escalade','non_acheminee'))` (ou exiger destinataire/créateur selon l'état) et afficher accusee_par dans l'écran.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Contrôle en production (lecture seule)** : `select a.id,a.destinataire,a.accusee_par,a.statut from public.supervision_alertes_internes a where a.statut='accusee' and a.accusee_par is distinct from a.destinataire;`
+
+#### `SUP-04` — Pas de séparation des rôles pour une consigne : le même superviseur peut la rédiger, se désigner responsable et l'approuver (alors que enregistrer_vacances impose « un autre responsable »). L'« appro…
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/supervision) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : sa1 appelle enregistrer_consigne(... p_responsable=sa1 ...) puis decider_consigne(version, true) : OK, auteur=responsable=approbateur=sa1. Portée réelle limitée : seules deux lectures de compteurs (lecture_missions, lecture_passages) sont possibles, aucun envoi ni droit.
+- **Preuve expurgée (banc)** : preuves/relecture/supervision/80-accuse-autoapprobation-activation.sortie.txt (T3)
+- **Cause probable** : decider_consigne ne compare pas auth.uid() à v.auteur ni à v.responsable.
+- **Correction proposée** : Décision à confirmer : exiger un approbateur distinct de l'auteur (ou le responsable désigné) si l'intention est une double vérification ; sinon renommer « approbation » en « activation ».
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Contrôle en production (lecture seule)** : `select v.id,v.numero from public.supervision_consignes_versions v join public.supervision_consignes_accords a on a.version_id=v.id where a.auteur=v.auteur;`
+
+#### `SUP-09` — Chaque validation d'un devis téléverse un nouveau PDF (chemin aléatoire) dans le compartiment devis-preparations et n'efface jamais l'ancien (ni celui d'une validation perdante en cas de conflit 409)…
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/supervision) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : L'artisan valide, modifie, revalide 3 fois avant l'envoi : 3 objets restent dans le compartiment, un seul est référencé par artisan_devis_preparations.pdf_path. Deux onglets validant en parallèle : le perdant a déjà téléversé son PDF. Non reproduit (le banc n'a pas de Storage réel sur ce chemin) : lecture seule.
+- **Preuve expurgée (banc)** : lecture seule : route.ts, aucune occurrence de storage.remove dans le fichier ; purge_fichiers ne concerne que le compartiment documents
+- **Cause probable** : Absence de nettoyage de l'ancien pdf_path et du chemin perdant.
+- **Correction proposée** : Après update réussi, supprimer l'ancien pdf_path ; en cas d'échec d'enregistrement, supprimer le nouveau chemin.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+- **Contrôle en production (lecture seule)** : `-- Comparer les objets storage.objects(bucket_id='devis-preparations') aux pdf_path référencés : select count(*) from storage.objects o where o.bucket_id='devis-preparations' and not exists (select 1 from public.artisan_devis_preparations p where p.pdf_path=o.name and p.pdf_bucket='devis-preparations');`
+
+#### `RET-02` — La sauvegarde est faite avec --no-comments : les 152 commentaires SQL, dont celui qui porte la convention de sécurité de fermer_fonctions_a_anon(), disparaissent à la restauration
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : retour-arriere (retour-arriere) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Sauvegarde par app/scripts/sauvegarde/base.mjs puis restauration (pg_restore) dans une base neuve.
+- **Étapes** : 1. base.mjs exporter sur la base du banc (état B). 2. pg_restore --no-owner dans gerimmo_restauration_retour. 3. Comparer pg_dump --schema-only -n public de la source et de la copie.
+- **Attendu** : Une copie restaurée porte les mêmes commentaires que la source (ou l'omission est documentée).
+- **Observé** : 152 COMMENT ON dans la source, 0 dans la copie ; le commentaire « À APPELER EN FIN DE TOUTE MIGRATION… » de fermer_fonctions_a_anon() est perdu. Aucun droit, aucune donnée touchés ; effet : une équipe qui reprend sur la copie perd la documentation des conventions de sécurité.
+- **Preuve expurgée (banc)** : preuves/retour-arriere/restauration/R3_diff_schema_public.txt ; preuves/retour-arriere/restauration/R2_restauration.txt
+- **Cause probable** : app/scripts/sauvegarde/base.mjs, ligne de construction des arguments de pg_dump (« --no-comments »).
+- **Correction proposée** : Retirer --no-comments (ou documenter l'omission dans app/docs/sauvegarde-et-restauration.md) ; valider par l'exercice de restauration avant d'adopter.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `SOR-02` — Remise des clés acceptée à une date future (01/03/2027) : le délai légal de restitution est calculé sur un événement qui n a pas eu lieu, et la restitution ne se corrige pas
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Bail en préavis (congé enregistré), EDL de sortie signé, date du jour 14/10/2026
+- **Étapes** : Fiche du bail > Restitution du dépôt de garantie > Remise des clés = 01/03/2027 > Démarrer la restitution
+- **Attendu** : Refus (« la remise des clés ne peut pas être dans le futur ») comme pour la date d envoi du décompte (jamais dans le futur, wiki Restitution du dépôt de garantie)
+- **Observé** : La restitution est créée (statut en_cours, délai 2 mois, date_remise_cles = 2027-03-01) ; le formulaire disparaît, aucun moyen de corriger la date ensuite depuis l écran
+- **Preuve expurgée (banc)** : sql/restitution-date-future.txt ; captures/l3-restitution.png
+- **Cause probable** : app/src/app/actions/restitution.ts demarrerRestitution + RPC demarrer_restitution : pas de contrôle de borne supérieure sur date_remise_cles (à vérifier dans la RPC)
+- **Correction proposée** : Refuser une date postérieure à aujourd hui dans la RPC (message clair) et prévoir une correction de la date tant que le décompte n est pas finalisé
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `SOR-04` — Clôture du bail avant la fin du préavis : date_fin reste à la date théorique et rien n avertit des loyers non appelés
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Congé du locataire enregistré le 14/10/2026 (préavis 3 mois, effet 14/01/2027), EDL de sortie signé
+- **Étapes** : Fiche du bail > Clôturer le bail le 14/10/2026
+- **Attendu** : Avertissement de clôture anticipée, date de fin réelle enregistrée (ou clôture refusée tant que la date d effet n est pas atteinte sans accord noté)
+- **Observé** : Bail termine, date_fin conserve 2027-01-14, aucun avertissement ; les loyers de novembre à janvier (dus jusqu au terme du préavis sauf accord) ne figurent ni dans les appels ni dans le solde. Hypothèse à vérifier : décision de gestion voulue (départ anticipé amiable)
+- **Preuve expurgée (banc)** : captures/n1-bail-cloture.png ; sortie n1.mjs
+- **Cause probable** : RPC terminer_bail : exige préavis + EDL de sortie signé, sans contrôle de date ni mise à jour de date_fin
+- **Correction proposée** : Afficher une confirmation « clôture avant le 14/01/2027 : loyers restant dus ? » et enregistrer la date de sortie réelle
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `SOR-05` — Espace du locataire sortant : « Rien à régler » alors que le décompte arrêté établit une créance de 561,43 EUR
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Bail terminé, décompte finalisé (solde -561,43 EUR), locataire sortant connecté
+- **Étapes** : Ouvrir /locataire/<org> et /documents après la finalisation
+- **Attendu** : Le décompte arrêté est consultable (wiki Restitution : décompte envoyé par e-mail et espace, retenues visibles dès l arrêté)
+- **Observé** : L accueil affiche « Rien à régler pour l instant », l historique montre octobre 700,00 EUR Impayé, aucune pièce « décompte » dans Mes documents ; pourtant la RPC ma_restitution_locataire renvoie solde -561,43 et les retenues. Affichage manquant ou volontairement différé jusqu au marquage « envoyé » (à vérifier)
+- **Preuve expurgée (banc)** : sortie q1.mjs (RPC) ; captures/n1-locataire-sortant-documents.png
+- **Cause probable** : app/src/app/locataire/[orgId] (accueil et documents) ne lit pas la restitution arrêtée
+- **Correction proposée** : Afficher le décompte arrêté (ou un message « décompte en préparation ») dans le logement et les documents du locataire sortant
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `SOR-06` — Comparatif d EDL : un passage de « bon » à « usagé » (usure normale) compte comme écart et porte le délai de restitution à 2 mois
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : EDL de sortie : Salle de bain/Sols bon -> usage (commentaire « Usure normale »), Cuisine/Murs bon -> mauvais
+- **Étapes** : Fiche du bail > Comparatif entrée / sortie, puis Restitution
+- **Attendu** : Seule une dégradation imputable est un écart ; l usure normale ne devrait pas allonger le délai (1 mois si sortie conforme, wiki Restitution du dépôt de garantie)
+- **Observé** : « 2 écarts » dont l usure ; délai légal passé à 2 mois. Hypothèse à vérifier : règle produit voulue (tout écart d état)
+- **Preuve expurgée (banc)** : captures/l3-restitution.png
+- **Cause probable** : fonction comparatif_edl / règle de délai (à vérifier)
+- **Correction proposée** : Distinguer écart d usure (sans effet sur le délai) et dégradation, ou confirmer la règle dans le wiki
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `SA-09` — La recherche de la console ne trouve ni un bien, ni un lot, ni un incident : le brief du support demande de retrouver « un dossier (utilisateur, bien, incident) »
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : super-administrateur (superadmin) · **Version testée** : candidate 5d15b4d (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Super-admin aal2 ; incident INC-2026-0003 et lot 'E2E Lot 1' existants
+- **Étapes** : 1) Ctrl+K. 2) Saisir 'INC-2026-0003' puis 'Lot 1'.
+- **Attendu** : Le dossier est proposé (avec lien et périmètre) ou l'écran indique où chercher
+- **Observé** : 'Aucun client trouvé.' pour les deux. La recherche ne couvre que Organisation, Artisan, Compte ; un incident ne s'atteint que par une alerte ou en entrant dans l'espace de l'organisation (traversée, SA-01).
+- **Preuve expurgée (banc)** : sql2/s21_recherche_sortie.txt
+- **Cause probable** : src/app/actions/recherche-supervision.ts (3 sources : organizations, artisans, rechercher_comptes_supervision)
+- **Correction proposée** : Ajouter une recherche par référence d'incident et par bien, limitée au besoin (résultat = lien vers la fiche de l'organisation concernée, sans contenu)
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `SA-10` — Hypothèse à vérifier : aucun plafond de dépense applicatif pour les appels IA, et l'arrêt d'urgence ne couvre pas les appels IA déclenchés à la main (analyse du brief, rédaction de publications)
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : super-administrateur (superadmin) · **Version testée** : candidate 5d15b4d (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Clé OpenAI posée en production (absente du banc)
+- **Étapes** : Lecture du code : src/lib/brief-ia.ts, analyse-veille.ts, redaction-veille.ts, proposition-devis-ia.ts, visuel-marketing.ts ; src/app/admin/brief/actions.ts et src/app/admin/publications/nouvelle/actions.ts n'appellent pas verifierAvantEffet.
+- **Attendu** : Un plafond (appels ou coût) propre à Gerimmo et un arrêt d'urgence couvrant tout appel IA payant
+- **Observé** : Seuls existent un max_output_tokens et un délai par appel ; le plafond de dépenses est celui du compte OpenAI (erreur-ia.ts le traduit en message). Les appels IA initiés par un administrateur ne consultent pas l'arrêt d'urgence. Non exécuté faute de clé : hypothèse à vérifier.
+- **Preuve expurgée (banc)** : Lecture de code (grep verifierAvantEffet absent de brief/actions.ts et publications/nouvelle/actions.ts)
+- **Cause probable** : src/app/admin/brief/actions.ts ; src/app/admin/publications/nouvelle/actions.ts
+- **Correction proposée** : Compter les appels IA par jour dans une table et refuser au-delà d'un plafond réglable ; consulter verifierAvantEffet('consignes' ou une mission dédiée) avant chaque appel payant
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `SA-11` — Journal du blocage d'un compte : « Compte bloqué » est écrit avant l'effet ; si le blocage échoue, le journal garde « Compte bloqué » suivi d'une ligne d'échec sans cause
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : super-administrateur (superadmin) · **Version testée** : candidate 5d15b4d (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Super-admin aal2 ; compte de test ; appel d'administration en échec (ici l'émulateur du banc : 404 'non géré')
+- **Étapes** : 1) Fiche d'un compte > Bloquer le compte, motif, confirmation. 2) Lire le journal d'audit.
+- **Attendu** : Le journal dit clairement 'blocage demandé' puis 'blocage appliqué' ou 'blocage échoué (cause)'
+- **Observé** : Lignes compte_bloque (motif, cible, auteur) puis controle_compte_echec ({geste, compte}) sans cause ni libellé de résultat sur la première ; la lecture rapide du journal laisse croire que le compte est bloqué. Choix délibéré du code (journaliser avant d'appliquer) : à trancher.
+- **Preuve expurgée (banc)** : sql2/s25_blocage_msg.txt ; requête audit_log (00:46:50 compte_bloque puis controle_compte_echec)
+- **Cause probable** : src/app/actions/controle-supervision.ts:132-154
+- **Correction proposée** : Libeller 'Blocage demandé' / 'Blocage échoué' et conserver la cause technique expurgée dans details
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `VER-PR178-06` — Hypothèse à vérifier : le brouillon local de la grille d'état des lieux (gerimmo-edl-brouillon-<id>) n'est ni effacé à la déconnexion ni rattaché à un compte ni limité dans le temps
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Appareil partagé ; EDL ouvert par un compte puis par un autre ayant accès au même état des lieux (hors V1 publique : agence)
+- **Étapes** : Lecture du code uniquement : edl-brouillon.ts cle() et copies-locales.ts PREFIXE_COPIES_LOCALES = « gerimmo: »
+- **Attendu** : Même traitement que les autres copies de saisie (PR178-A-01)
+- **Observé** : Non reproduit dans le navigateur (aucun EDL créé pour ne pas modifier de données). Clé à tiret : ignorée volontairement par compteDeLaCle (tests/copies-locales.test.ts) ; RM-19.1.8 « localStorage, assumé »
+- **Preuve expurgée (banc)** : app/src/lib/edl-brouillon.ts (cle, chargerBrouillon) ; app/src/lib/copies-locales.ts:12
+- **Cause probable** : Périmètre de la correction limité aux clés gerimmo:<type>:v1:<compte>:…
+- **Correction proposée** : Décision de rétention à prendre (aval du dirigeant) : soit préfixer et purger comme les autres copies, soit documenter que l'EDL fait exception.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
 #### `VER-SECURITE-01` — La purge de déconnexion annoncée par la correction PR178-A-01 laisse les brouillons d'état des lieux (et la quittance de l'outil public) sur l'appareil, et le changement de compte ne les purge pas no…
 
 - **Sévérité** : P3 · **Statut** : à trancher — partiellement corrigée en branche (quittance de l'outil public purgée à la déconnexion) ; reste à trancher : brouillon d'état des lieux (RM-19.1.1/2/6/8 en font la copie de travail hors ligne de l'agent) · **Propriétaire** : dirigeant (décision)
@@ -1629,5 +1927,33 @@ Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies �
 - **Cause probable** : src/lib/copies-locales.ts : purgerCopiesLocales filtre k.startsWith('gerimmo:') ; src/lib/edl-brouillon.ts:51 clé 'gerimmo-edl-brouillon-'; src/lib/outils/quittance.ts:93 clé 'gerimmo_quittance'
 - **Correction proposée** : Minimale : dans purgerCopiesLocales, purger toute clé commençant par 'gerimmo' (':' , '-' ou '_') et supprimer aussi 'gerimmo-edl-brouillon-*' au changement de compte (ou ajouter le compte à la clé EDL) ; test : après purge, aucune clé 'gerimmo*' ne subsiste
 - **Correction sans aval** : oui
+
+#### `VER-SECURITE-02` — Un artisan ayant une mission (ou une sollicitation ouverte) dans une organisation peut écrire n'importe quel chemin sous le dossier de cette organisation dans le compartiment documents
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : securite (vérificateur adverse) (verification/securite) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte artisan (artisan.alpha) avec une intervention ou une sollicitation ouverte dans l'organisation X
+- **Étapes** : Insérer dans storage.objects (bucket documents) un nom '<orgX>/<nom libre>.pdf' avec le rôle authenticated de cet artisan ; même geste vers une organisation sans lien, puis vers devis-preparations et marketing-visuels
+- **Attendu** : Dépôt limité aux chemins attendus du parcours (dossier de la mission ou de la facture) ; refus ailleurs
+- **Observé** : Dépôt dans l'organisation avec mission : ADMIS (chemin libre) ; dans une organisation sans lien : refusé par la politique ; compartiments devis-preparations et marketing-visuels : refusés. Effet : objets orphelins invisibles (la lecture exige une ligne documents ou chemins_fichiers_artisan), plafonnés à 10 Mo l'unité mais sans plafond de nombre, dans le dossier d'un client ; pas de lecture, pas d'écrasement (aucune politique UPDATE permissive), pas de squat utile car les chemins applicatifs contiennent un UUID aléatoire (ged-depot.ts:111). Réserve : l'émulateur maison n'est pas Supabase ; la politique ged_insert_artisan est lue et exécutée dans Postgres, l'application de ces politiques par le vrai service Storage n'est pas testée.
+- **Preuve expurgée (banc)** : preuves/verification/securite/storage-artisan.sql ; preuves/verification/securite/storage-artisan.sortie.txt ; preuves/verification/securite/storage-policies.txt
+- **Cause probable** : Politique storage.objects ged_insert_artisan : seul le premier segment du chemin (organisation) est contrôlé via orgs_de_mes_missions() / orgs_de_mes_sollicitations_ouvertes()
+- **Correction proposée** : Restreindre le with check au gabarit '<org>/<intervention\|sollicitation>/%' ou à la fonction dossiers_de_mes_factures_a_deposer ; test : insertion hors gabarit refusée
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `VER-TS-05` — Récapitulatif fiscal nu : à partir de 1 000 lignes fiscales dans l'organisation, le document est refusé avec un message trompeur (« Réduisez la période »), même pour un lot de 3 loyers
+
+- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Organisation dont fiscal_encaissements_composantes (toutes années, tous lots) ou fiscal_qualifications_ecritures (toutes versions) atteint 1 000 lignes
+- **Étapes** : Harnais : 3 loyers pour le lot + 997 composantes d'autres pièces ; ou 1 000 qualifications d'autres lots
+- **Attendu** : Le document du lot se génère (la lecture se borne au lot et à l'année)
+- **Observé** : Refus « Ce dossier contient trop de lignes pour un export intégral. Réduisez la période avant de générer le document. » alors qu'aucune période ne se règle pour ce document. Avant la correction (e9f31ac), le document lisait seulement les écritures du lot
+- **Preuve expurgée (banc)** : preuves/verification/ts/resultats-vitest.json (G6.*)
+- **Cause probable** : app/src/lib/documents/modeles/catalogue-gestion.ts (bloc recap_fiscal_nu) : lire('fiscal_qualifications_ecritures') et lire('fiscal_encaissements_composantes') sans filtre de lot ni d'année, sous la garde lireLignes (≥ 1000)
+- **Correction proposée** : Borner ces deux lectures aux ecriture_id du lot et de l'année (filtre in sur les identifiants déjà lus) ; seuil atteint seulement pour de grands comptes, donc non bloquant en V1
+- **Correction sans aval** : non (aval du dirigeant requis)
 
 Voir aussi : [[Registre des anomalies — audit du 13 octobre 2026]].

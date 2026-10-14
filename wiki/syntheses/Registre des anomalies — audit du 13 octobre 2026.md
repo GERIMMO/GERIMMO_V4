@@ -9,13 +9,15 @@ sources: []
 
 # Registre des anomalies — audit du 13 octobre 2026
 
-Registre vivant de la mission opérationnelle du 12/10/2026, tenu au fil des résultats. Version testée :
-commit `e9f31ac` de `main` (PR #177 incluse), banc local isolé et gratuit, aucun effet réel. **Chaque ligne vient d'une
-observation ou d'une preuve citée par l'agent qui l'a relevée** ; une ligne « hypothèse » n'a pas été reproduite.
+Registre vivant de la mission opérationnelle du 12/10/2026, tenu au fil des résultats. Version de départ de l'audit :
+commit `e9f31ac` de `main` (PR #177 incluse) ; la version testée par chaque volet figure sur chaque fiche (la branche
+candidate a été reconstruite et rejouée plusieurs fois). Banc local isolé et gratuit, aucun effet réel. **Chaque ligne vient
+d'une observation ou d'une preuve citée par l'agent qui l'a relevée** ; une ligne « hypothèse » n'a pas été reproduite.
 
 Gravité : **P0** sécurité critique, perte de données ou service indisponible ; **P1** parcours essentiel bloqué ou calcul
-erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts : *ouverte*, *corrigée en branche* (commit poussé, non déployé), *déployée* (en production), *à trancher*
-(aval du dirigeant), *acceptée*, *hypothèse* (à vérifier), *réfutée*.
+erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts : *ouverte*, *corrigée en branche* (commit poussé, non déployé),
+*déployée* (en production), *à trancher* (aval du dirigeant requis, y compris pour une correction déjà préparée), *acceptée*,
+*hypothèse* (à vérifier), *réfutée*. Une correction partielle est écrite « à trancher » avec ce qui est fait et ce qui reste.
 
 ## Synthèse
 
@@ -23,15 +25,15 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 |---|---|---|---|---|---|---|---|---|
 | **P0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
 | **P1** | 0 | 1 | 0 | 0 | 0 | 0 | 0 | **1** |
-| **P2** | 16 | 32 | 0 | 13 | 1 | 0 | 0 | **62** |
-| **P3** | 70 | 44 | 0 | 4 | 0 | 0 | 0 | **118** |
-| **Total** | 86 | 77 | 0 | 17 | 1 | 0 | 0 | **181** |
+| **P2** | 4 | 32 | 0 | 30 | 1 | 0 | 0 | **67** |
+| **P3** | 42 | 46 | 0 | 53 | 0 | 0 | 0 | **141** |
+| **Total** | 46 | 79 | 0 | 83 | 1 | 0 | 0 | **209** |
 
-Sources lues : artisan, auditeur/a, auditeur/b, auditeur/c, chaine/1, chaine/1b, chaine/2, coordinateur, designer/a, designer/b, equipes-ia, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, superadmin, verification/pr178, verification/securite, verification/sql, verification/ts.
+Sources lues : artisan, auditeur/a, auditeur/b, auditeur/c, chaine/1, chaine/1b, chaine/2, charges-fiscalite, coordinateur, designer/a, designer/b, equipes-ia, perf-liens, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, retour-arriere, sortie-de-bail, superadmin, verification/pr178, verification/securite, verification/sql, verification/ts.
 
 > [!warning] Couverture à ne pas surestimer
-> Ce registre ne couvre que ce que les agents ont effectivement exécuté (voir le registre d'exécution à venir).
-> Les rôles ou volets absents de la colonne « Sources lues » n'ont pas encore rendu de rapport : leur absence n'est
+> Ce registre ne couvre que ce que les agents ont effectivement exécuté (voir [[Registre d'exécution — audit du 13 octobre 2026]]).
+> Les rôles ou volets absents de la colonne « Sources lues » n'ont pas rendu de rapport : leur absence n'est
 > pas une preuve d'absence d'anomalie.
 
 ## P0 — sécurité critique, perte de données, service indisponible (0)
@@ -58,26 +60,14 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Contrôle en production (lecture seule)** : `-- Lecture seule : documents « récapitulatif nu » produits depuis la mise en ligne (à ouvrir : rubriques à 0,00 € attendues). select d.id, d.organization_id, d.titre, d.created_at from public.documents d where d.titre = 'Récapitulatif annuel · location nue' and d.created_at >= '2026-10-12' order by d.created_at;`
 
-## P2 — dégradation avec contournement (62)
+## P2 — dégradation avec contournement (67)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
-| `ARC-07` | artisan | Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé | ouverte |
-| `ARC-08` | artisan | Un artisan refusé par la plateforme et sur liste noire globale garde l outil clients externes, devis et factures | ouverte |
-| `AUD-B-04` | auditeur/b | Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce *(hyp.)* | ouverte |
 | `AUD-C-02` | auditeur/c | Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees par Sante | ouverte — complète SUP-01 : même cause, côté sauvegarde et restauration |
-| `IA-01` | equipes-ia | Les règles 'Ce qui peut continuer seul' (dont incident urgent et correction à faible risque en 'agir_seul') sont affichées au dirigeant mais aucun code ne les applique | ouverte |
-| `IA-02` | equipes-ia | Mode vacances : l'urgence et l'escalade restent internes à la console, sans alerte vers un responsable absent, et ne s'alimentent ni d'un incident urgent ni d'un impayé | ouverte |
-| `IA-03` | equipes-ia | Aucune alerte active sur l'échec ou l'absence d'une tâche : la santé ne se lit que si le dirigeant ouvre l'écran ; la seule alerte e-mail du produit est le veto marketing | ouverte |
-| `IA-04` | equipes-ia | Hypothèse à vérifier : quittances, avis d'échéance, relances et rappels s'envoient puis se marquent, sans clé d'idempotence côté fournisseur d'e-mail *(hyp.)* | ouverte |
 | `IA-05` | equipes-ia | Hypothèse à vérifier : envoyerEmail n'a aucun délai maximal, un blocage du fournisseur retient toute la passe *(hyp.)* | ouverte |
 | `PROP-03` | proprietaire/s01 | Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause | ouverte |
-| `PROP-14` | proprietaire/s01 | Entrée en cours de mois : le premier terme (prorata) est exigible le 1er du mois, avant l'entrée, et passe tout de suite en « Impayé » | ouverte |
-| `FIN-07` | relecture/finance | Le filtre par mot-clé « fonds travaux / alur » écarte la pièce avant de consulter la qualification justifiée du propriétaire : une dépense qualifiée « déductible 224 » reste exclue des charges et la qualification est enregistrée mais sans effet. | ouverte |
-| `FIN-11` | relecture/finance | Les migrations ne rétro-capturent aucun loyer existant et la reprise « retrouver_ventilation_fiscale » refuse tout bail qui a plus d'un appel : sur les données réelles déjà en production, le récapitulatif 2044 passe à 0 € de loyers et chaque pièce doit être q… | ouverte |
 | `PR178-A-03` | relecture/pr178/a | Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seule issue : effacer la copie et tout ressaisir | ouverte — 36219ec corrige le cas de la session expirée ; le cas de la réponse perdue demande une décision (reprendre la… |
-| `SUP-01` | relecture/supervision | L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision. | ouverte |
-| `SUP-05` | relecture/supervision | Les « faits de direction » copient, pour toutes les organisations, des données personnelles (titres d'alertes contenant le nom du locataire, ex. « État des lieux d'entrée — Lot 1 · Marie Durand ») dans brief_direction_snapshots, sans aucune trace d'audit par… | ouverte |
 | `ARC-02` | artisan | Chantiers externes : heures de rendez-vous et d historique affichées en UTC (2 h d écart avec l heure de Paris saisie et avec les interventions Gerimmo) | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-affichage.test.ts |
 | `AUD-A-01` | auditeur/a | Un agent restreint modifie les équipements d'un lot hors de son portefeuille (RPC definir_equipements_lot) | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — garde de portefeuille, test rouge puis vert |
 | `AUD-A-02` | auditeur/a | L'annulation d'une écriture comptable (contre_ecriture) n'enregistre pas son auteur | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — ligne d'audit avec auteur |
@@ -110,6 +100,9 @@ Aucune anomalie de cette gravité à ce jour.
 | `SA-04` | superadmin | Mode relais actif et arrêt d'urgence invisibles hors de /admin/relais : aucun bandeau dans la console, les pages Équipes et Brief ne signalent pas l'arrêt | corrigée en branche — 9978efa — bandeau d'arrêt d'urgence et de relais sur toute la console |
 | `SA-08` | superadmin | Journal d'audit : 9 types d'actions sans libellé (« Action enregistrée (libellé manquant) »), dont l'octroi du rôle de super-administrateur et les décisions de support, et la suppression d'un encaissement présentée comme « Nettoyage de données arrivé à échéan… | corrigée en branche — 9978efa — neuf codes nommés, plus de repli « suppression = nettoyage » |
 | `VER-PR178-01` | verification/pr178 | Régression : la correction PR178-A-02 désactive la protection « Quitter la page ? » pour une quarantaine de formulaires de saisie (profil, bail, lot, EDL, messages, assistance…) | corrigée en branche — vague 5 ; tests : tests/protection-saisie-formulaires.test.ts |
+| `ARC-07` | artisan | Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé | à trancher |
+| `ARC-08` | artisan | Un artisan refusé par la plateforme et sur liste noire globale garde l outil clients externes, devis et factures | à trancher |
+| `AUD-B-04` | auditeur/b | Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce *(hyp.)* | à trancher |
 | `PRO2-01` | chaine/1 | Un propriétaire dont la commune n'est pas ouverte au réseau ne peut solliciter aucun artisan, même un artisan connu : le carnet ne se remplit que par une intervention déjà confiée | à trancher — choix produit : réseau fermé pour la commune du propriétaire, carnet sans formulaire d'ajout |
 | `ART-13` | chaine/1b | L'artisan ne peut pas déposer une version 2 de son devis : la demande close devient lecture seule, sans « réviser mon devis » | à trancher — fonction manquante : l'artisan ne peut pas déposer une version 2 de son devis |
 | `PRO2-12` | chaine/1b | Un devis reçu ne peut être que retenu : ni refus motivé, ni demande de révision (écart avec le référentiel : déposé, validé, refusé ou expiré) | à trancher — fonction manquante : un devis reçu ne peut pas être refusé ni renvoyé en révision |
@@ -118,57 +111,28 @@ Aucune anomalie de cette gravité à ce jour.
 | `CHN-01` | chaine/2 | Les créneaux non retenus sont enregistrés « refusés » : après trois reports, l'artisan est bloqué et l'écran impute au locataire des refus qu'il n'a jamais faits | à trancher — règle métier : les créneaux non retenus comptent aujourd'hui comme refusés (six refus = arbitrage) ; une c… |
 | `LOC-21` | chaine/2 | Le locataire ne peut ni reporter ni annuler un rendez-vous confirmé : aucun geste après la confirmation | à trancher — fonction manquante : le locataire ne peut ni reporter ni annuler un rendez-vous confirmé |
 | `PRO2-21` | chaine/2 | Le règlement de la facture de l'artisan n'est pas un geste de l'application : l'écriture du journal n'est liée à rien et la facture ne passe jamais à « réglée » | à trancher — fonction manquante : le règlement d'une facture d'artisan n'est lié ni à la facture ni à l'incident |
+| `CHF-01` | charges-fiscalite | Le PDF « Récapitulatif annuel · location nue » imprime la ligne 250 (intérêts d'emprunt) d'après un champ de génération qui vaut 0 par défaut, et non d'après la rubrique 250 qualifiée de l'écran : 0,00 € au lieu de 2 345,67 €, sans alerte. | à trancher |
+| `CHF-02` | charges-fiscalite | La régularisation de charges est acceptée pour l'exercice en cours : 10 mois de provisions sont comparés à des charges réelles d'une année pleine, et le résultat « complément dû » ne peut plus être corrigé. | à trancher |
+| `CHF-03` | charges-fiscalite | Le « Décompte annuel des charges » et le « Courrier de régularisation » sont impossibles à générer pour une régularisation créée depuis l'interface : ils exigent un champ « note » que le formulaire ne propose pas. | à trancher |
+| `CHF-06` | charges-fiscalite | Une régularisation de charges n'écrit rien au livre ni aux appels : le complément dû ou le trop-perçu à rendre n'apparaît dans aucun écran de suivi financier. | à trancher |
 | `AUT-01` | coordinateur | maintenance_artisans() n'est appelée par aucune tâche : les devis déposés ne deviennent jamais « expirés » et les motifs de liste noire ne sont jamais purgés | à trancher — correction préparable (tâche pg_cron + version interne), aval requis : active un automatisme en production |
+| `IA-01` | equipes-ia | Les règles 'Ce qui peut continuer seul' (dont incident urgent et correction à faible risque en 'agir_seul') sont affichées au dirigeant mais aucun code ne les applique | à trancher |
+| `IA-02` | equipes-ia | Mode vacances : l'urgence et l'escalade restent internes à la console, sans alerte vers un responsable absent, et ne s'alimentent ni d'un incident urgent ni d'un impayé | à trancher |
+| `IA-03` | equipes-ia | Aucune alerte active sur l'échec ou l'absence d'une tâche : la santé ne se lit que si le dirigeant ouvre l'écran ; la seule alerte e-mail du produit est le veto marketing | à trancher |
+| `IA-04` | equipes-ia | Hypothèse à vérifier : quittances, avis d'échéance, relances et rappels s'envoient puis se marquent, sans clé d'idempotence côté fournisseur d'e-mail *(hyp.)* | à trancher |
+| `PROP-14` | proprietaire/s01 | Entrée en cours de mois : le premier terme (prorata) est exigible le 1er du mois, avant l'entrée, et passe tout de suite en « Impayé » | à trancher |
+| `FIN-07` | relecture/finance | Le filtre par mot-clé « fonds travaux / alur » écarte la pièce avant de consulter la qualification justifiée du propriétaire : une dépense qualifiée « déductible 224 » reste exclue des charges et la qualification est enregistrée mais sans effet. | à trancher |
+| `FIN-11` | relecture/finance | Les migrations ne rétro-capturent aucun loyer existant et la reprise « retrouver_ventilation_fiscale » refuse tout bail qui a plus d'un appel : sur les données réelles déjà en production, le récapitulatif 2044 passe à 0 € de loyers et chaque pièce doit être q… | à trancher |
 | `PR178-B-04` | relecture/pr178/b | Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires | à trancher — clic avant hydratation sans effet visible : désactiver le bouton jusqu'à l'hydratation, formulaire par for… |
 | `PR178-B-06` | relecture/pr178/b | Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté) | à trancher — rejeu possible d'un encaissement après réponse perdue : demande une clé d'idempotence et une contrainte en… |
+| `SUP-01` | relecture/supervision | L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision. | à trancher |
+| `SUP-05` | relecture/supervision | Les « faits de direction » copient, pour toutes les organisations, des données personnelles (titres d'alertes contenant le nom du locataire, ex. « État des lieux d'entrée — Lot 1 · Marie Durand ») dans brief_direction_snapshots, sans aucune trace d'audit par… | à trancher |
+| `SOR-03` | sortie-de-bail | Un second bail est activé sur un lot avec une période qui recouvre celle du bail précédent | à trancher |
 | `SA-01` | superadmin | Traversée de la supervision dans un espace client : écriture financière possible sans motif ni durée, et la ligne d'audit 'traversee_action' ne dit ni quelle action, ni sur quel objet, ni avec quel résultat | à trancher — limite déjà actée au wiki (audit du 25/09) : entrée dans un espace client sans motif ni durée ; l'écriture… |
 | `VER-TS-02` | verification/ts | Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises | à trancher — partiellement corrigée en branche ; reste à trancher : montant très supérieur au dû — Décision métier non… |
 | `PROP-BANC-01` | proprietaire/s01 | Banc : serveur :3100 démarré sans SUPABASE_SERVICE_ROLE_KEY (inscription et liens bloqués) | acceptée — défaut du banc d'essai, pas du produit ; banc-up.sh vérifie la clé de service |
 
 ### Fiches P2
-
-#### `ARC-07` — Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Chantier externe terminé, facture déposée
-- **Étapes** : 1. Ouvrir le chantier facturé : seuls « Voir la facture » et « Suivre mes règlements déclarés » sont proposés 2. Tenter, par la RPC, d annuler le chantier ou de déposer une seconde facture
-- **Attendu** : Une voie de correction tracée (annulation avec motif et avoir, ou remplacement de la facture) ; à défaut, avertissement avant dépôt
-- **Observé** : annuler : « Ce chantier est terminé ou annulé » ; seconde facture : « Ce dossier ou cette facture existe déjà. Rechargez avant de recommencer » ; une faute de frappe dans le numéro ou une mauvaise pièce est définitive (et le numéro erroné reste réservé)
-- **Preuve expurgée (banc)** : captures/c10-facture.png ; sql/s07-verifs-api.txt
-- **Cause probable** : supabase/migrations/20261012220000_artisan_clients_externes.sql : artisan_factures_externes unique(chantier_id), aucune action de correction ou d avoir dans artisan_externe_ecrire
-- **Correction proposée** : À trancher : action « annuler_facture » motivée (statut annulée, pièce conservée) autorisant une nouvelle facture, ou écran de relecture avant dépôt
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `ARC-08` — Un artisan refusé par la plateforme et sur liste noire globale garde l outil clients externes, devis et factures
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Module clients externes activé ; fiche artisan au statut refusé avec blacklist_globale renseignée (fixture SQL sur ma propre fiche de test, remise ensuite en en_attente)
-- **Étapes** : 1. Se connecter avec ce compte 2. Ouvrir /artisan/clients et créer un client (ou appeler artisan_externe_ecrire)
-- **Attendu** : Décision explicite : soit accès coupé (au moins l émission de documents à l en-tête Gerimmo), soit accès conservé et documenté
-- **Observé** : Bandeau « Votre inscription a été refusée. Motif : … » puis carnet complet, création de client acceptée (HTTP 200) ; un artisan non validé (en_attente) l utilise aussi ; la garde de l offre ne regarde que l existence de la fiche (exiger_artisan_reel) et l interrupteur global (hypothèse à vérifier, non constatée faute de rendu PDF sur le banc : les devis qu il produirait porteraient le gabarit de documents Gerimmo)
-- **Preuve expurgée (banc)** : captures/c21-artisan-refuse-clients.png
-- **Cause probable** : supabase/migrations/20261012220000_artisan_clients_externes.sql et 20261012225000 : artisan_module_actif ne contrôle ni statut_plateforme ni blacklist_globale_le ; exiger_artisan_reel non plus
-- **Correction proposée** : Décision métier à prendre ; si coupure : exiger statut_plateforme<>refuse et blacklist_globale_le is null pour les écritures (lecture et export conservés)
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `AUD-B-04` — Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : auditeur-b (auditeur/b) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Déploiement Vercel
-- **Étapes** : En production : déposer un PDF de 6 Mo dans la GED
-- **Attendu** : Dépôt accepté jusqu'à 10 Mo ou message clair
-- **Observé** : next.config.ts règle bodySizeLimit à 55 Mo pour toutes les actions et l'application annonce 10 Mo par fichier (TAILLE_MAX_OCTETS). Sur Vercel, une requête de plus de 4,5 Mo vers une fonction est refusée par la plateforme avant le code de l'application ; un bail ou un diagnostic scanné de 5 à 10 Mo échouerait alors avec une page d'erreur de plateforme et non le message de l'application. Non observable sur le banc local (pas de plateforme) ; la limite de 4,5 Mo vient de ma connaissance de la documentation Vercel et n'a pas été relue ici.
-- **Preuve expurgée (banc)** : snap-main/app/next.config.ts:147-158 ; snap-main/app/src/lib/file-type.ts (TAILLE_MAX_OCTETS)
-- **Cause probable** : Dépôts de fichiers par action serveur (comme le note le commentaire S11 du fichier de configuration)
-- **Correction proposée** : Aligner la limite annoncée sur la limite de la plateforme, ou déposer via URL signée de stockage ; mesurer en préproduction
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Reproduction** : hypothèse à vérifier, non reproduite
 
 #### `AUD-C-02` — Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees pa…
 
@@ -184,63 +148,6 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Ajouter a la procedure l'etape 'rejouer les cron.schedule des migrations et activer pg_cron/pg_net' ; exporter select jobname, schedule, command from cron.job dans la sauvegarde ; faire consigner cycle_mensuel sous tache_cycle_mensuel (ou lire cycle_mensuel dans Sante, retard > 32 jours).
 - **Correction sans aval** : non (aval du dirigeant requis)
 
-#### `IA-01` — Les règles 'Ce qui peut continuer seul' (dont incident urgent et correction à faible risque en 'agir_seul') sont affichées au dirigeant mais aucun code ne les applique
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Code au commit 83ba492
-- **Étapes** : 1. Lire app/src/app/admin/relais/page.tsx:20 et :31 ; 2. Rechercher continuity_rules / agir_seul / delegue_requis dans app/src et app/supabase/migrations
-- **Attendu** : Une règle affichée comme 'agir seul' doit avoir un exécutant, ou l'écran doit dire qu'elle n'est pas appliquée
-- **Observé** : Constat statique : la table est lue pour l'affichage seulement ; aucun code ne lit decision, delai_heures ou active. Pour l'incident urgent, seul un e-mail à l'agent part (notifications.ts:930-963). Aucune publication de correction n'existe (l'atelier ne fait qu'une PR en brouillon). Le dirigeant peut croire qu'un incident urgent est 'sécurisé' seul pendant son absence.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-01) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/propositions.md § 3.7
-- **Cause probable** : app/supabase/migrations/20260922120000_autonomie_v3.sql:481-500 (données sans consommateur) ; app/src/app/admin/relais/page.tsx:20,31 (affichage)
-- **Correction proposée** : Soit brancher chaque règle avec un périmètre précis et un test, soit retirer ou reformuler l'écran ('décision enregistrée, non appliquée automatiquement'). Décision D7.
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `IA-02` — Mode vacances : l'urgence et l'escalade restent internes à la console, sans alerte vers un responsable absent, et ne s'alimentent ni d'un incident urgent ni d'un impayé
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Plan de vacances actif avec un responsable désigné
-- **Étapes** : 1. Lire 20261012221100_vacances_arret.sql:62-74, 100-107, 115 ; 2. Rechercher les appelants de signaler_urgence_vacances et de supervision_alertes_internes dans app/src ; 3. Lire notifications.ts:930-963
-- **Attendu** : L'ordre de mission (section 13) demande un canal d'alerte défini et une escalade validée ; un responsable absent doit être joint
-- **Observé** : Constat statique : la seule alimentation automatique est un passage 'à reprendre'/'interrompu' ou une lecture de consigne bloquée ; le journal écrit canal 'interne' ; l'alerte ne se lit que dans /admin/relais et /admin/brief. Un incident urgent envoie un e-mail à l'agent de l'organisation, pas au responsable du relais. Confirmé sur le banc par un autre rôle (D-URGENCE-ESCALADE : aucun envoi externe, aucune nouvelle tâche).
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-02) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/propositions.md § 3.6 ; registre d'exécution scénarios D-URGENCE-ESCALADE
-- **Cause probable** : app/supabase/migrations/20261012221100_vacances_arret.sql:100-107,115 ; choix explicite 'Aucun fournisseur' en ligne 1 du fichier
-- **Correction proposée** : Choisir canal, horaire et fuseau avec le dirigeant (D3) ; alimenter l'alerte par les événements urgents (incident urgent, passage critique) ; notifier le responsable par e-mail via le service existant ; tester T7 (responsable non habilité)
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `IA-03` — Aucune alerte active sur l'échec ou l'absence d'une tâche : la santé ne se lit que si le dirigeant ouvre l'écran ; la seule alerte e-mail du produit est le veto marketing
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Une tâche planifiée échoue ou ne passe pas
-- **Étapes** : 1. Rechercher les appelants de email_superviseur_permanent ; 2. Lire sante-service.ts:411-447 et /api/sante ; 3. Vérifier qu'aucun moniteur externe n'est configuré dans le dépôt
-- **Attendu** : Mission section 12 : surveillance et erreur remontée au responsable ; une tâche qui ne consigne pas à l'heure est le signal attendu (tache.ts:5-9)
-- **Observé** : Constat statique : email_superviseur_permanent n'a qu'un appelant (alerte-veto-marketing.ts:55). L'écran Santé et /api/sante donnent l'état à qui les ouvre ; absence de passage > 26 h = 'retard' affiché, jamais envoyé. Moniteur externe : aucun dans le dépôt (hypothèse : peut exister hors dépôt).
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-03) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/propositions.md § 4.1
-- **Cause probable** : Conception : sante-service.ts calcule l'état à la lecture ; aucune tâche sentinelle
-- **Correction proposée** : Tâche sentinelle (pg_cron ou Vercel) qui lit les battements tache_* et cycle_mensuel et envoie un e-mail au superviseur sur retard ou échec, avec limitation de fréquence (phase 0 du socle, D1/D3)
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `IA-04` — Hypothèse à vérifier : quittances, avis d'échéance, relances et rappels s'envoient puis se marquent, sans clé d'idempotence côté fournisseur d'e-mail
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Le marquage échoue après l'envoi, ou le passage est interrompu entre l'envoi et le marquage
-- **Étapes** : 1. Lire appels/route.ts:135-167, quittances/route.ts:142-171, relances/route.ts:134-198, rappels/route.ts:128-156 ; 2. Comparer avec avis-abonnement.ts:166,185,231, rapports-mensuels.ts:104, notifications.ts:988 et alerte-veto-marketing.ts:65, qui passent une clé
-- **Attendu** : Mission section 12 : tâches idempotentes ; un même événement ne doit pas produire deux envois
-- **Observé** : Constat statique : les quatre routes n'appellent pas envoyerEmail avec cleIdempotence. L'effet (double e-mail au prochain passage) n'a pas été rejoué ; les commentaires des routes reconnaissent ce compromis ('le pire cas est un double envoi'). Relation avec AUD-C-07 (hypothèse).
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-04) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/propositions.md § 4.1
-- **Cause probable** : app/src/app/api/cron/{appels,quittances,relances,rappels}/route.ts (envoi avant marquage, sans clé)
-- **Correction proposée** : Passer une clé stable par objet (par exemple quittance/<id>) comme le font déjà les avis d'abonnement ; ajouter un test de rejeu avec marquage en échec
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Reproduction** : hypothèse à vérifier, non reproduite
-
 #### `IA-05` — Hypothèse à vérifier : envoyerEmail n'a aucun délai maximal, un blocage du fournisseur retient toute la passe
 
 - **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -250,7 +157,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : 1. Lire app/src/lib/email.ts:46-61 ; 2. Comparer avec les autres appels sortants (OpenAI, Facebook, devis assisté) qui ont un AbortSignal ; 3. Lire execution-mission.ts:13-19
 - **Attendu** : Tout appel sortant d'une tâche a un délai et une reprise bornés (mission section 12)
 - **Observé** : Constat statique : fetch vers Resend sans signal. La passe est limitée seulement par maxDuration (180 s) ; l'échec devient 'interrompu' avec effets partiels (execution-mission.ts:18), puis l'envoi-puis-marquage de IA-04 peut produire des doublons. Non rejoué.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-05)
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-05)
 - **Cause probable** : app/src/lib/email.ts:46-61 (absence d'AbortSignal)
 - **Correction proposée** : Ajouter AbortSignal.timeout (par exemple 15 s) et classer l'échec comme erreur ordinaire du fournisseur
 - **Correction sans aval** : oui
@@ -270,44 +177,6 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : contrôler la taille côté client avant l'envoi (File.size) avec message explicite ; régler proxyClientMaxBodySize ; traduire le 500 en « fichier trop lourd »
 - **Correction sans aval** : oui
 
-#### `PROP-14` — Entrée en cours de mois : le premier terme (prorata) est exigible le 1er du mois, avant l'entrée, et passe tout de suite en « Impayé »
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : bail nu actif, date d'entrée 16/10/2026, jour d'échéance 1, paiement à échoir, activation le 13/10/2026
-- **Étapes** : Générer l'échéancier ; lire la carte Loyers & paiements
-- **Attendu** : première échéance au plus tôt à la date d'entrée (16/10/2026) : pas d'impayé avant le début du bail ni de relance possible
-- **Observé** : appels_loyer : période 2026-10-01, loyer 438.71, charges 46.45, total 485.16 (prorata correct), date_echeance = 2026-10-01 (15 jours avant l'entrée) ; l'écran affiche « Impayé » et « impayé en cours » avant tout paiement ; le bloc Relances est actif
-- **Preuve expurgée (banc)** : captures/s8-03-echeancier.png ; sql: select periode,date_echeance from appels_loyer
-- **Cause probable** : supabase/migrations/20260927102000_appels_terme_echu.sql (generer_appels_loyer_interne) : date_echeance = début de mois + jour_echeance − 1, sans max(date_debut)
-- **Correction proposée** : date_echeance = greatest(date_echeance calculée, date_debut) pour le premier terme
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `FIN-07` — Le filtre par mot-clé « fonds travaux / alur » écarte la pièce avant de consulter la qualification justifiée du propriétaire : une dépense qualifiée « déductible 224 » reste exclue des charges et la…
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/finance) · **Version testée** : e9f31ac (lecture du code)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : Le propriétaire saisit « Appel de fonds travaux ravalement 2026 » (800 €, travaux votés payés dans l'année), la qualifie « Dépense déductible vérifiée », rubrique 224, justification « facture approuvée en assemblée ». La base accepte et versionne la qualification (audit_log inclus) ; le récapitulatif compte 224 = 0 et 800 € dans « Fonds travaux ALUR — à part » (« ne sont pas comptés dans les charges »). Aucun message n'explique que son choix est ignoré, et le libellé du journal étant immuable, seul un contournement par contre-écriture et ressaisie sous un autre libellé est possible. Contredit le principe posé en tête du fichier : « seuls les faits figés et choix justifiés chiffrent les totaux confirmés ». La règle existait avant la PR (mots-clés ALUR) mais la PR ajoute le formulaire de qualification qui devrait la primer.
-- **Preuve expurgée (banc)** : preuves/relecture/finance/ts/t6.mts (224 = 0 et fondsTravauxAlur = 800 pour « Appel de fonds travaux… » et « Cotisation fonds de travaux » malgré la qualification ; « travaux plomberie » donne 224 = 800)
-- **Cause probable** : app/src/lib/fiscal.ts:60 (test estFondsTravauxAlur avant la lecture de la qualification), 22 (regex)
-- **Correction proposée** : Ne mettre à part que les pièces sans qualification (ou ajouter une nature « fonds_travaux_alur » qualifiable) et laisser une qualification « deductible » l'emporter ; resserrer l'expression (« fonds (de )?travaux.*alur » ou « fonds alur ») pour ne plus attraper « appel de fonds travaux ».
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Contrôle en production (lecture seule)** : `-- Lecture seule : dépenses au libellé « fonds travaux / alur » et leur qualification éventuelle. select e.organization_id, e.id, e.date_piece, e.categorie, e.montant, q.nature, q.rubrique, q.version from public.ecritures e left join lateral (select * from public.fiscal_qualifications_ecritures x where x.ecriture_id=e.id order by version desc limit 1) q on true where e.sens='depense' and e.contre_ecriture_de is null and lower(e.categorie) ~ 'fonds (de )?travaux\|fonds alur\|alur' order by e.organization_id, e.date_piece;`
-
-#### `FIN-11` — Les migrations ne rétro-capturent aucun loyer existant et la reprise « retrouver_ventilation_fiscale » refuse tout bail qui a plus d'un appel : sur les données réelles déjà en production, le récapitu…
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/finance) · **Version testée** : e9f31ac (lecture du code)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : Bail régulier, trois appels de 840 € (780 + 60) et trois paiements de 840 € antérieurs à la migration : la fonction répond trois fois « Plusieurs échéances ou aucune échéance : la ventilation doit être justifiée », 0 capture. Avec exigerPerimetre, le récapitulatif ne compte rien tant que l'exercice du lot n'est pas confirmé, puis refuse chaque loyer ancien (« attendent leur ventilation historique ») tant qu'il n'a pas reçu une qualification justifiée (nature, lot, parts HC et charges, justification, case de confirmation) : une pièce par mois et par lot. Le comportement précédent (ventilation au prorata du bail) affichait des totaux. Le choix de « ne rien réécrire » est assumé dans les commentaires, mais l'effet sur les propriétaires réels n'est ni mesuré ni annoncé dans l'interface. Contournement : qualification manuelle pièce par pièce.
-- **Preuve expurgée (banc)** : preuves/relecture/finance/sql/t14_historique_reel.sql (sortie : sql/t14_sortie.txt : trois refus, 0 capture ; état d'avant-migration simulé par session_replication_role=replica dans une transaction annulée) ; ts/t2.mts pour le contraste avec l'ancien calcul
-- **Cause probable** : app/supabase/migrations/20261012224000_fiscalite_historique_qualifiee.sql et app/src/lib/fiscal.ts:migration 56-97 (capture seulement à l'INSERT), 155-183 (reprise limitée à un seul appel) ; fiscal.ts 54-60 et 76-84
-- **Correction proposée** : Offrir une reprise explicite par lot (action unique, auditée, non silencieuse) pour les baux dont les appels sont cohérents (montant_du = loyer_hc + charges), dont chaque paiement s'impute sans avance sur les appels existants, et qui n'ont ni annulation ni anomalie ; la même règle FIFO que le déclencheur peut être rejouée en SQL sur les paiements existants dans l'ordre (created_at, id). Annoncer dans l'interface le nombre de pièces à qualifier.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Contrôle en production (lecture seule)** : `-- Lecture seule : combien de loyers existants sont sans capture, par organisation (c'est le nombre de pièces à qualifier à la main). select e.organization_id, count(*) filter (where c.ecriture_id is null) as loyers_sans_capture, count(*) as loyers_total, min(e.date_piece) premiere, max(e.date_piece) derniere from public.ecritures e left join public.fiscal_encaissements_composantes c on c.ecriture_id=e.id where e.categorie='loyer' and e.sens='recette' and e.contre_ecriture_de is null group by 1 order by 2 desc;`
-
 #### `PR178-A-03` — Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seu…
 
 - **Sévérité** : P2 · **Statut** : ouverte — 36219ec corrige le cas de la session expirée ; le cas de la réponse perdue demande une décision (reprendre la fiche trouvée par son e-mail ou réessayer) · **Propriétaire** : à désigner par le dirigeant
@@ -321,30 +190,6 @@ Aucune anomalie de cette gravité à ce jour.
 - **Cause probable** : src/lib/creation-fiche-personne.ts:44 (retour immédiat si precedent.creationIncertaine), :54 (drapeau posé avant l'appel), :61 (pièces incertaines jamais renvoyées) ; src/app/agence/[orgId]/personnes/formulaire-personne.tsx:199 (BoutonEnvoi disabled={etat.creationIncertaine}) ; aucun bouton « J'ai vérifié, la fiche n'existe pas, réessayer » ni « Rattacher à la fiche existante ».
 - **Correction proposée** : Ajouter dans le bandeau d'incertitude deux actions explicites : « La fiche existe : continuer avec elle » (rechercher la personne par e-mail côté serveur puis envoyer les pièces) et « La fiche n'existe pas : réessayer » ; ou donner à creerPersonne une clé d'idempotence stockée avec la copie (comme la commande d'incident) pour rejouer sans risque de doublon.
 - **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `SUP-01` — L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision.
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/supervision) · **Version testée** : e9f31ac (lecture du code)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : La supervision enregistre un arret 'global' (ou 'purge', 'quittances', 'appels'). verifier_arret_supervision(...) renvoie false pour les 13 cles, les routes /api/cron/* s'arretent. Mais pg_cron continue : retention-quotidienne (appliquer_retention : DELETE sur tech_log, audit_log, demandes_devis, intentions_conge, demandes_signature, purge/anonymisation de documents), cycle-mensuel (generation des appels de loyer et quittances), alertes-*, propositions-publication-hebdo.
-- **Preuve expurgée (banc)** : preuves/relecture/supervision/20-arret-pgcron.sortie.txt (arret global actif ; appliquer_retention() appelee en contexte cron supprime la ligne de test : avant=1, apres=0) + requete pg_proc : seules 4 fonctions referencent supervision_arrets/verifier_arret_supervision (commander_, executer_tache_consigne, traiter_vacances, verifier_).
-- **Cause probable** : verifier_arret_supervision exige auth.role()='service_role' ou un superviseur ; pg_cron s'exécute sans JWT, donc les fonctions planifiées (appliquer_retention, cycle_mensuel_interne, generer_alertes_*, proposer_publications_interne) ne l'appellent pas.
-- **Correction proposée** : Ajouter un prédicat interne (sans exigence de JWT) lu en tête de chaque fonction planifiée par pg_cron, ou documenter dans l'écran de relais que l'arrêt ne couvre pas les 8 tâches SQL. Décision métier requise.
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Contrôle en production (lecture seule)** : `select jobname, schedule, command from cron.job where active order by jobname; select cle, arrete, motif, modifie_le from public.supervision_arrets where arrete;`
-
-#### `SUP-05` — Les « faits de direction » copient, pour toutes les organisations, des données personnelles (titres d'alertes contenant le nom du locataire, ex. « État des lieux d'entrée — Lot 1 · Marie Durand ») da…
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecture (relecture/supervision) · **Version testée** : e9f31ac (lecture du code)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Observé** : Un superviseur clique « Préparer le point maintenant » : preparer_faits_direction lit alerts.titre de toutes les organisations et stocke la copie dans sources->echeances->donnees->faits (jusqu'à 20 faits x 5 sources par clic, un instantané par clic, conservé indéfiniment). Delta audit_log = 0 et supervision_operations = 0 pour l'appel SQL ; côté TypeScript une seule ligne générique point_du_matin_prepare (sans organisation, écrite après coup et non transactionnelle). La lecture de l'écran /admin/brief (lire_faits_direction) n'est jamais tracée. Écart à la règle documentée « traversée par le Super Admin autorisée mais journalisée » (wiki/regles-metier/Isolation multi-organisation.md, RM-A1.11) et à la minimisation des données.
-- **Preuve expurgée (banc)** : preuves/relecture/supervision/94-faits-donnees-personnelles-trace.sortie.txt (delta journaux 0/0, nom présent dans la copie durable, 0 fonction de rétention citant la table)
-- **Cause probable** : 20261012222000 : collecter_source_direction('echeances') renvoie le titre brut ; aucune écriture log_sa_access ; aucune clause de rétention dans appliquer_retention().
-- **Correction proposée** : Ne stocker que des identifiants et libellés génériques (type d'alerte + href) au lieu de alerts.titre ; journaliser via log_sa_access(org,'consultation_faits_direction') pour chaque organisation citée ou une ligne d'audit par préparation dans la même transaction ; ajouter une purge à 90 jours dans appliquer_retention().
-- **Correction sans aval** : non (aval du dirigeant requis)
-- **Contrôle en production (lecture seule)** : `select count(*) nb, min(jour), max(jour), pg_size_pretty(pg_total_relation_size('public.brief_direction_snapshots')) taille from public.brief_direction_snapshots; -- puis, pour voir si des noms y figurent : select jour, jsonb_path_query_array(sources,'$.echeances.donnees.faits[*].titre') from public.brief_direction_snapshots order by genere_le desc limit 3;`
 
 #### `ARC-02` — Chantiers externes : heures de rendez-vous et d historique affichées en UTC (2 h d écart avec l heure de Paris saisie et avec les interventions Gerimmo)
 
@@ -369,7 +214,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : 1) En SQL superuser (transaction annulée), poser un équipement sur le lot. 2) Sous role authenticated avec les claims de agent.alpha : select definir_equipements_lot('<lot>', '{}'::uuid[]). 3) Relire lot_equipements.
 - **Attendu** : Refus 'hors de votre portefeuille' comme pour demarrer_restitution, enregistrer_conge, generer_grille_edl (garde_portefeuille_agent).
 - **Observé** : Appel accepté sans erreur ; équipements du lot passés de 1 à 0. L'agent voit 0 ligne de ce lot (lots visibles : 1 sur 18). Les 32 autres tables rattachées aux lots portent le déclencheur garde_portefeuille_agent, pas lot_equipements.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/travail/preuve-agent-definir-equipements-lot.txt
+- **Preuve expurgée (banc)** : preuves/auditeur/a/travail/preuve-agent-definir-equipements-lot.txt
 - **Cause probable** : app/supabase/migrations/20260909190000_correctifs_audit_hors_documents.sql:460 (fonction SECURITY DEFINER qui ne teste que le rôle) ; app/supabase/migrations/20260909230000_perimetre_agent_serveur_et_base.sql:~244 (liste des tables gardées sans lot_equipements).
 - **Correction proposée** : Dans definir_equipements_lot, refuser si public.lot_hors_portefeuille(v_org, p_lot) ; ou ajouter lot_equipements à la liste des tables du déclencheur garde_portefeuille_agent (via lot_id).
 - **Correction sans aval** : non (aval du dirigeant requis)
@@ -383,7 +228,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : Transaction annulée : select contre_ecriture('<écriture>', 'Erreur'). Comparer l'empreinte de toutes les tables avant/après.
 - **Attendu** : Auteur, cible, date, motif, résultat tracés (audit_log ou colonne auteur), comme supprimer_encaissement qui écrit audit_log.
 - **Observé** : Seule la table ecritures change (20 -> 21 lignes) : la contre-écriture porte motif, contre_ecriture_de et created_at, mais ecritures n'a aucune colonne auteur/created_by et audit_log ne reçoit rien. Dans une agence à plusieurs gestionnaires, qui a annulé l'écriture est introuvable.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/travail/trace-5.txt
+- **Preuve expurgée (banc)** : preuves/auditeur/a/travail/trace-5.txt
 - **Cause probable** : app/supabase/migrations/20260927182000_contre_ecriture_ecritures_liees.sql:56 (aucun insert dans audit_log) ; colonnes de public.ecritures sans auteur.
 - **Correction proposée** : Insérer dans audit_log (action 'contre_ecriture', account_id = auth.uid(), organisation, détails : écriture annulée, nouvelle écriture, montant, motif) dans la fonction.
 - **Correction sans aval** : non (aval du dirigeant requis)
@@ -397,7 +242,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : Transaction annulée : select annuler_mission('<org>','<mission>','Motif'). Diff des tables.
 - **Attendu** : Événement d'incident avec acteur (comme demarrer_intervention qui écrit incident_evenements.acteur_account_id) ou ligne audit_log.
 - **Observé** : Quatre tables changent (incident_interventions, incident_devis passé 'annule', intervention_creneaux 'caduc', incidents requalifié) mais ni incident_evenements ni audit_log ne reçoivent de ligne ; la mission garde annulee_le et annulation_motif sans annulee_par. L'artisan perd son devis retenu sans trace de qui a décidé.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/travail/trace-3.txt
+- **Preuve expurgée (banc)** : preuves/auditeur/a/travail/trace-3.txt
 - **Cause probable** : app/supabase/migrations/20260911240000_module8_correctifs_bloquants.sql:146 (update sans insert d'événement).
 - **Correction proposée** : Ajouter un insert dans incident_evenements (type 'mission_annulee', acteur_account_id = auth.uid(), détails : intervention, motif) comme demarrer_intervention.
 - **Correction sans aval** : oui
@@ -411,7 +256,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : Transaction annulée : select supprimer_detention('<détention>'). Diff des tables.
 - **Attendu** : Trace de la suppression d'un droit de propriété (auteur, cible, date), ou archivage plutôt que suppression (wiki 'Archivage plutôt que suppression').
 - **Observé** : La table detentions passe de 22 à 21 lignes ; audit_log et tous les autres journaux inchangés.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/travail/trace-4.txt
+- **Preuve expurgée (banc)** : preuves/auditeur/a/travail/trace-4.txt
 - **Cause probable** : fonction supprimer_detention (delete sans audit_log) ; migration non localisée dans l'extrait lu (hypothèse sur le fichier).
 - **Correction proposée** : Journaliser dans audit_log (détails : lot, personne, quote-part supprimée) ou archiver la ligne.
 - **Correction sans aval** : non (aval du dirigeant requis)
@@ -425,7 +270,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : 1. Nommer un lot '<a href="https://evil.example">Lot</a>'. 2. Laisser la relance automatique (cron relances) composer le message. 3. Lire le corps HTML transmis à envoyerEmail.
 - **Attendu** : Texte échappé (&lt;a&gt;…) comme dans quittance-email.ts (echapperHtml) et notifications.ts (echapperMarque)
 - **Observé** : corpsRelanceLoyer et corpsInformationCaution (lib/relance-loyer-email.ts) insèrent prenom, lot, emetteur, locataire tels quels dans le HTML du message ; appel-email.ts (prenom, emetteur, lien) et rappel-email.ts (lot, adresseBien, prenom, emetteur) interpolent aussi les valeurs sans échappement ; relance-paiement-email.ts n'a aucun échappement mais je n'y ai pas relevé d'insertion de donnée saisie (non vérifié ligne à ligne). Exécution de la fonction avec prenom='<img src=x onerror=...>', lot='<a href="https://evil.example">', emetteur='<script>': le HTML sortant contient ces balises intactes. Les valeurs viennent de la RPC relances_loyer_dues : lot=lots.nom, prenom/locataire=persons.prenom/nom, emetteur=organizations.name, tous saisis par le propriétaire ou l'agence (le locataire n'a aucune politique UPDATE sur persons : seul persons_select_locataire existe, vérifié dans pg_policies).…
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/t-relance-sortie.txt (exécution de la fonction réelle du snapshot avec entrées hostiles ; seuls eur/formaterDate/moisDeLaPeriode sont substitués)
+- **Preuve expurgée (banc)** : preuves/auditeur/b/t-relance-sortie.txt (exécution de la fonction réelle du snapshot avec entrées hostiles ; seuls eur/formaterDate/moisDeLaPeriode sont substitués)
 - **Cause probable** : snap-main/app/src/lib/relance-loyer-email.ts:54,60,77-98 ; lib/appel-email.ts:64,80 ; lib/rappel-email.ts:69,80,91,93 ; aucun appel à echapperMarque (marque-organisation.ts:57)
 - **Correction proposée** : Passer chaque valeur interpolée par echapperMarque() (déjà dans marque-organisation.ts) dans relance-loyer-email.ts, appel-email.ts, rappel-email.ts (et relire relance-paiement-email.ts) ; ajouter un test unitaire avec entrée '<b>'.
 - **Correction sans aval** : oui
@@ -439,7 +284,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : 1. /inscription, nom = 24 000 caractères. 2. Valider. 3. Se connecter avec ce compte. 4. Ouvrir n'importe quelle page.
 - **Attendu** : Refus lisible au-delà d'une longueur raisonnable (nom, adresse, ville ≤ 100–200 caractères), côté serveur et par maxlength
 - **Observé** : Inscription avec un nom de ~24 000 caractères : acceptée (raw_user_meta_data de 24 249 caractères, e-mail confirmé, aucune organisation créée). À la connexion, les cookies de session pèsent 77 824 octets sur 25 cookies ; /espaces répond 431 puis toute adresse du site (y compris /connexion) répond 431 tant que les cookies ne sont pas effacés. Une nouvelle connexion remet les mêmes cookies : le compte est inutilisable et le navigateur est bloqué sur le site. Seuil estimé ~5 000 caractères (extrapolation 3,2 octets par caractère contre 16 Kio d'en-têtes : à confirmer). Aucune validation de longueur dans app/actions/auth.ts ni lib/inscription.ts.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/long-inscription-mobile.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/long-login-431.png ; SQL : longueur du raw_user_meta_data du compte auditeur.b.long.* = 24249
+- **Preuve expurgée (banc)** : preuves/auditeur/b/long-inscription-mobile.png ; preuves/auditeur/b/long-login-431.png ; SQL : longueur du raw_user_meta_data du compte auditeur.b.long.* = 24249
 - **Cause probable** : snap-main/app/src/app/actions/auth.ts (inscription) et app/inscription/formulaire-inscription.tsx : pas de borne ; les métadonnées sont recopiées dans le jeton/cookie de session
 - **Correction proposée** : Borner nom, prénom, adresse, ville, téléphone (maxLength HTML + contrôle serveur) ; ne pas faire transiter ces champs par les métadonnées de session ou les tronquer ; vérifier de même les noms saisis par un propriétaire pour un tiers invité.
 - **Correction sans aval** : oui
@@ -467,7 +312,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : 1. Le propriétaire qualifie l'incident « charge propriétaire » et écrit sa justification. 2. Le locataire ouvre « Mes demandes ».
 - **Attendu** : Le formulaire précise que le texte sera lu par le locataire, ou le locataire ne voit qu'une formule neutre
 - **Observé** : Le formulaire invite à « Décrivez le constat et la raison de votre décision » et indique seulement « Le locataire est informé immédiatement ». Chez le locataire : « Qui prend en charge · Le propriétaire — vous n'avancez rien ([justification complète]) ». Un propriétaire qui note un jugement sur le locataire ou une stratégie le lui publie.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/l1-01-demandes-apres-mission.png (affichage locataire, observé) ; code lu dans la photographie snap-main-178 : app/agence/[orgId]/incidents/[incidentId]/actions-incident.tsx lignes 90-110 (libellé du champ) et app/locataire/[orgId]/incidents-locataire.tsx lignes 195-215 (affichage)
+- **Preuve expurgée (banc)** : preuves/chaine/1b/captures/l1-01-demandes-apres-mission.png (affichage locataire, observé) ; code lu dans la photographie snap-main-178 : app/agence/[orgId]/incidents/[incidentId]/actions-incident.tsx lignes 90-110 (libellé du champ) et app/locataire/[orgId]/incidents-locataire.tsx lignes 195-215 (affichage)
 - **Cause probable** : imputation_justification rendue telle quelle dans incidents-locataire.tsx.
 - **Correction proposée** : Ajouter sous le champ « Cette justification est visible du locataire » ou la scinder en motif visible et note interne.
 - **Correction sans aval** : oui
@@ -785,6 +630,49 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Soit ajouter data-saisie-confirmee aux formulaires qui utilisent useActionFormulaire/useActionStateProtegee (et un test qui échoue si un <form> branché sur ces hooks n'a pas l'attribut), soit inverser la règle : suivre par défaut et exclure explicitement les filtres (method=get, role=search, ou attribut data-saisie-ignoree). Ne change aucune règle métier.
 - **Correction sans aval** : oui
 
+#### `ARC-07` — Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Chantier externe terminé, facture déposée
+- **Étapes** : 1. Ouvrir le chantier facturé : seuls « Voir la facture » et « Suivre mes règlements déclarés » sont proposés 2. Tenter, par la RPC, d annuler le chantier ou de déposer une seconde facture
+- **Attendu** : Une voie de correction tracée (annulation avec motif et avoir, ou remplacement de la facture) ; à défaut, avertissement avant dépôt
+- **Observé** : annuler : « Ce chantier est terminé ou annulé » ; seconde facture : « Ce dossier ou cette facture existe déjà. Rechargez avant de recommencer » ; une faute de frappe dans le numéro ou une mauvaise pièce est définitive (et le numéro erroné reste réservé)
+- **Preuve expurgée (banc)** : captures/c10-facture.png ; sql/s07-verifs-api.txt
+- **Cause probable** : supabase/migrations/20261012220000_artisan_clients_externes.sql : artisan_factures_externes unique(chantier_id), aucune action de correction ou d avoir dans artisan_externe_ecrire
+- **Correction proposée** : À trancher : action « annuler_facture » motivée (statut annulée, pièce conservée) autorisant une nouvelle facture, ou écran de relecture avant dépôt
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `ARC-08` — Un artisan refusé par la plateforme et sur liste noire globale garde l outil clients externes, devis et factures
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Module clients externes activé ; fiche artisan au statut refusé avec blacklist_globale renseignée (fixture SQL sur ma propre fiche de test, remise ensuite en en_attente)
+- **Étapes** : 1. Se connecter avec ce compte 2. Ouvrir /artisan/clients et créer un client (ou appeler artisan_externe_ecrire)
+- **Attendu** : Décision explicite : soit accès coupé (au moins l émission de documents à l en-tête Gerimmo), soit accès conservé et documenté
+- **Observé** : Bandeau « Votre inscription a été refusée. Motif : … » puis carnet complet, création de client acceptée (HTTP 200) ; un artisan non validé (en_attente) l utilise aussi ; la garde de l offre ne regarde que l existence de la fiche (exiger_artisan_reel) et l interrupteur global (hypothèse à vérifier, non constatée faute de rendu PDF sur le banc : les devis qu il produirait porteraient le gabarit de documents Gerimmo)
+- **Preuve expurgée (banc)** : captures/c21-artisan-refuse-clients.png
+- **Cause probable** : supabase/migrations/20261012220000_artisan_clients_externes.sql et 20261012225000 : artisan_module_actif ne contrôle ni statut_plateforme ni blacklist_globale_le ; exiger_artisan_reel non plus
+- **Correction proposée** : Décision métier à prendre ; si coupure : exiger statut_plateforme<>refuse et blacklist_globale_le is null pour les écritures (lecture et export conservés)
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `AUD-B-04` — Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : auditeur-b (auditeur/b) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Déploiement Vercel
+- **Étapes** : En production : déposer un PDF de 6 Mo dans la GED
+- **Attendu** : Dépôt accepté jusqu'à 10 Mo ou message clair
+- **Observé** : next.config.ts règle bodySizeLimit à 55 Mo pour toutes les actions et l'application annonce 10 Mo par fichier (TAILLE_MAX_OCTETS). Sur Vercel, une requête de plus de 4,5 Mo vers une fonction est refusée par la plateforme avant le code de l'application ; un bail ou un diagnostic scanné de 5 à 10 Mo échouerait alors avec une page d'erreur de plateforme et non le message de l'application. Non observable sur le banc local (pas de plateforme) ; la limite de 4,5 Mo vient de ma connaissance de la documentation Vercel et n'a pas été relue ici.
+- **Preuve expurgée (banc)** : snap-main/app/next.config.ts:147-158 ; snap-main/app/src/lib/file-type.ts (TAILLE_MAX_OCTETS)
+- **Cause probable** : Dépôts de fichiers par action serveur (comme le note le commentaire S11 du fichier de configuration)
+- **Correction proposée** : Aligner la limite annoncée sur la limite de la plateforme, ou déposer via URL signée de stockage ; mesurer en préproduction
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
 #### `PRO2-01` — Un propriétaire dont la commune n'est pas ouverte au réseau ne peut solliciter aucun artisan, même un artisan connu : le carnet ne se remplit que par une intervention déjà confiée
 
 - **Sévérité** : P2 · **Statut** : à trancher — choix produit : réseau fermé pour la commune du propriétaire, carnet sans formulaire d'ajout · **Propriétaire** : dirigeant (décision)
@@ -794,7 +682,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : 1. Ouvrir /agence/<org>/incidents/<id> d'un incident qualifié. 2. Section « Confier à un artisan » : plomberie, entretien courant, cocher « J'assume un devis unique ». 3. Observer le bouton. 4. Ouvrir « Carnet d'artisans » : « Votre carnet se complète automatiquement lorsqu'une intervention est confiée à un artisan ».
 - **Attendu** : Soit un moyen de confier le dossier à un artisan connu du propriétaire (invitation, ajout au carnet), soit un chemin explicite vers la clôture ou l'attente ; à confirmer par la décision produit sur l'ouverture progressive du réseau
 - **Observé** : Bouton « Ouvrir la mise en concurrence » désactivé, message « Le réseau d'artisans Gerimmo n'est pas encore disponible pour ce métier dans cette zone », bouton secondaire « Signaler mon intérêt » (n'envoie rien). Le carnet est vide et sans formulaire d'ajout. Seuls le super-administrateur (ouverture de communes, rattachement d'artisans) ou une insertion en base (artisan_agences) débloquent le parcours. Pour poursuivre la chaîne il a fallu une fixture SQL (zone 75011 pour artisan.alpha qui ne couvrait que 75012, et lien carnet). Peut être un choix produit voulu de la V1 (réseau fermé par défaut) : non recoupé avec le wiki.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures/p3-05-ouverture-consultation.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures/p3-07-carnet-artisans.png
+- **Preuve expurgée (banc)** : preuves/chaine/1/captures/p3-05-ouverture-consultation.png ; preuves/chaine/1/captures/p3-07-carnet-artisans.png
 - **Cause probable** : src/app/agence/[orgId]/incidents/formulaires-artisan.tsx:188 (disabled={!autorisee}) ; migrations reseau_disponibilite / reseau_contact_personnel (contact personnel = ligne artisan_agences active, créée seulement par le rattachement)
 - **Correction proposée** : Décision produit : permettre à un propriétaire d'inviter ou d'ajouter un artisan à son carnet personnel, ou afficher la voie de sortie (clôturer, appeler soi-même) à côté du message de réseau fermé
 - **Correction sans aval** : non (aval du dirigeant requis)
@@ -808,7 +696,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : 1. Rouvrir /artisan/devis/<sollicitation>. 2. Chercher un moyen de corriger ou de remplacer le devis. 3. Appeler deposer_devis_structure une seconde fois avec la session de l'artisan.
 - **Attendu** : Un moyen explicite de déposer une version 2 (numérotée, v1 conservée) quand le propriétaire le demande
 - **Observé** : L'écran affiche « Ma réponse » (montant, validité, lien PDF) sans action. L'appel RPC renvoie « Cette demande n'attend plus de devis (état : devis_depose) ». Corollaire de PRO2-12 : aucune numérotation de versions n'existe (un seul incident_devis par sollicitation).
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/sql/permissions-api.txt (ligne A.deposer_devis_structure) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/a7-02-apres-envoi.png
+- **Preuve expurgée (banc)** : preuves/chaine/1b/sql/permissions-api.txt (ligne A.deposer_devis_structure) ; preuves/chaine/1b/captures/a7-02-apres-envoi.png
 - **Cause probable** : deposer_devis n'accepte que les sollicitations à l'état envoyee ; pas de notion de version.
 - **Correction proposée** : Voir PRO2-12 (décision produit préalable).
 - **Correction sans aval** : non (aval du dirigeant requis)
@@ -822,7 +710,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : 1. Ouvrir la fiche de l'incident. 2. Chercher une action pour refuser le devis avec un motif ou demander une nouvelle version. 3. Lister les boutons de la fiche.
 - **Attendu** : Possibilité de refuser le devis (motif conservé et transmis) ou de demander une révision, l'artisan pouvant alors déposer une version 2 (wiki concepts/Devis : déposé, validé, refusé ou expiré)
 - **Observé** : Les seules actions sont « Télécharger le détail du devis (PDF) », « Ouvrir le devis » et « Retenir ce devis ». Aucun refus, aucun motif, aucune révision. Le statut devis_statut du schéma ne compte que depose, retenu, non_retenu, expire, annule. Pour obtenir une autre offre il faut ouvrir une nouvelle consultation avec un autre artisan, déjà exclu ici car « tous les artisans qui correspondent sont déjà sollicités ». Parcours étapes 3 et 4 de la mission (refus v1, dépôt v2) impossible. À trancher : choix produit V1 ou fonction manquante.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/o2-01-devis-recu.png ; liste des boutons dans la sortie du script scripts/o3.mjs ; énumération devis_statut en base
+- **Preuve expurgée (banc)** : preuves/chaine/1b/captures/o2-01-devis-recu.png ; liste des boutons dans la sortie du script scripts/o3.mjs ; énumération devis_statut en base
 - **Cause probable** : Le code n'implémente que retenir_devis (app/actions/incidents.ts retenirDevis) ; wiki 'Divergences code et référentiel V3' signale déjà l'écart d'états.
 - **Correction proposée** : Décision produit : soit documenter que la V1 ne propose que « retenir » (et le dire à l'écran), soit ajouter un refus motivé + une demande de révision qui rouvre la sollicitation à l'artisan.
 - **Correction sans aval** : non (aval du dirigeant requis)
@@ -836,7 +724,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : 1. L'artisan envoie son devis. 2. Le propriétaire ouvre son tableau de bord / ses alertes / la liste des incidents.
 - **Attendu** : Une alerte « Devis reçu — à décider » (comme pour « Incident à qualifier » ou « Nouveau message »), l'incident compté dans « À traiter »
 - **Observé** : Le compteur d'alertes reste à 6, aucune ligne alerts de type devis, « À traiter » reste à 2 (INC-0001 et INC-0003 à qualifier) alors que INC-0002 attend la décision du propriétaire. Seule trace : l'événement « Devis déposé » dans la chronologie de l'incident et l'e-mail devis_recu (échec tracé dans tech_log faute de fournisseur). Si l'e-mail est perdu, le dossier dort.
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/captures/o2-01-devis-recu.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/sql/notifications-tech-log.txt (notification_echec, evenement devis_recu)
+- **Preuve expurgée (banc)** : preuves/chaine/1b/captures/o2-01-devis-recu.png ; preuves/chaine/1b/sql/notifications-tech-log.txt (notification_echec, evenement devis_recu)
 - **Cause probable** : notifierDevisRecu (lib/notifications.ts) n'envoie que l'e-mail ; aucune insertion dans alerts à la création du devis.
 - **Correction proposée** : Créer une alerte (type devis_recu, criticité normale) dans la même transaction que le dépôt du devis et compter l'incident dans « À traiter » tant qu'un devis attend la décision.
 - **Correction sans aval** : non (aval du dirigeant requis)
@@ -897,6 +785,62 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Ajouter à la validation (ou après) « Enregistrer le règlement » : date, moyen, référence, qui crée l'écriture de dépense avec lien intervention_factures.id et trace d'audit ; afficher « réglée le … » côté propriétaire et artisan
 - **Correction sans aval** : non (aval du dirigeant requis)
 
+#### `CHF-01` — Le PDF « Récapitulatif annuel · location nue » imprime la ligne 250 (intérêts d'emprunt) d'après un champ de génération qui vaut 0 par défaut, et non d'après la rubrique 250 qualifiée de l'écran : 0,…
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Lot nu dont une dépense « Intérêts d'emprunt » de 2 345,67 € est qualifiée en rubrique 250, exercice confirmé, récapitulatif complet (écran et CSV : 250 = 2 345,67).
+- **Étapes** : 1. Ouvrir Documents > Préparer un document > Récapitulatif annuel · location nue. 2. Choisir le lot, année 2026. 3. Laisser « Intérêts d'emprunt de l'année (€) » à sa valeur par défaut 0. 4. Générer le PDF. 5. Relire la ligne 250.
+- **Attendu** : Ligne 250 = 2 345,67 € comme l'écran et le CSV, ou refus invitant à reporter le montant.
+- **Observé** : PDF : « 250 Intérêts d'emprunt 0,00 € » (avec 2345,67 saisis : 2 345,67 €). Le texte d'aide du champ dit que Gerimmo ne peut pas déduire ce montant du livre, ce qui est faux depuis la rubrique 250 qualifiable. Les autres lignes sont exactes.
+- **Preuve expurgée (banc)** : preuves/charges-fiscalite/captures/recap-nu-lotA-interets0.txt (250 = 0,00) ; preuves/charges-fiscalite/captures/recap-nu-lotA.txt (250 = 2 345,67 saisi) ; preuves/charges-fiscalite/captures/fiscal-final.csv ; preuves/charges-fiscalite/captures/doc-a-zero-resultat.png
+- **Cause probable** : app/src/lib/documents/modeles/catalogue-gestion.ts:170 (montant:r.code==="250"?interetsEmprunt:r.montant) ; app/src/lib/documents/catalogue-options.ts:23 (champ à 0 par défaut, aide périmée)
+- **Correction proposée** : Reprendre le montant de la rubrique 250 qualifiée comme valeur du champ (ou imprimer le montant qualifié et refuser une valeur différente) ; corriger l'aide. Touche un montant déclaratif : validation spécialisée recommandée.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `CHF-02` — La régularisation de charges est acceptée pour l'exercice en cours : 10 mois de provisions sont comparés à des charges réelles d'une année pleine, et le résultat « complément dû » ne peut plus être c…
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Bail nu actif depuis 2025 à 60 € de provisions par mois ; nous sommes en octobre 2026 (10 appels en 2026).
+- **Étapes** : 1. Bail > Loyers & paiements > Régulariser. 2. Année 2026, charges réelles 640,00, justificatif PDF. 3. Valider.
+- **Attendu** : Refus ou avertissement tant que l'exercice n'est pas clos ; sinon comparaison à provisions de même période.
+- **Observé** : « Complément de 40,00 € dû par le locataire » (provisions 600,00 sur 10 mois contre 640,00 d'une année pleine). Sur 12 mois de provisions (720,00), l'écart serait +80,00 en faveur du locataire : le signe s'inverse. La ligne est enregistrée, émise et, d'après la fonction, ne se modifie plus.
+- **Preuve expurgée (banc)** : preuves/charges-fiscalite/tableau-attendu-obtenu.md (lignes « Régularisation A 2026 ») ; preuves/charges-fiscalite/ref.json (regul_A_2026_si_annee_pleine)
+- **Cause probable** : app/supabase/migrations/20260929130000_audit_gestion.sql:86 (seule garde : annee > année courante)
+- **Correction proposée** : Refuser, ou avertir et exiger une confirmation, tant que make_date(annee,12,31) n'est pas passé. Règle de droit non confirmée par une source officielle : validation spécialisée recommandée.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `CHF-03` — Le « Décompte annuel des charges » et le « Courrier de régularisation » sont impossibles à générer pour une régularisation créée depuis l'interface : ils exigent un champ « note » que le formulaire n…
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Régularisation émise par le formulaire « Régulariser » (justificatif déposé).
+- **Étapes** : 1. Documents > Préparer un document > Décompte annuel des charges (puis Courrier de régularisation). 2. Choisir la régularisation. 3. Générer le PDF.
+- **Attendu** : PDF de décompte généré, ou champ permettant de saisir le détail des dépenses.
+- **Observé** : « Encore 1 information à compléter : détail des dépenses par nature et clé de répartition. Complétez le dossier, puis revenez générer le PDF. » Aucun écran ne permet de renseigner cette note, et la régularisation émise ne se modifie plus. Seul « Consultation des justificatifs » se génère. Le décompte remis au locataire doit donc être fait hors application.
+- **Preuve expurgée (banc)** : preuves/charges-fiscalite/captures/doc-decompte-A2025.png ; preuves/charges-fiscalite/captures/doc-regularisation_charges.png ; preuves/charges-fiscalite/captures/doc-consultation_charges.png
+- **Cause probable** : app/src/lib/documents/modeles/catalogue-gestion.ts:81 (exige r.note) ; formulaire « Régulariser » de app/src/app/agence/[orgId]/baux/[bailId]/formulaire-loyers.tsx:729-754 (aucun champ note) alors que app/src/app/actions/loyers.ts lit formData.get("note")
+- **Correction proposée** : Ajouter au formulaire de régularisation un champ « détail des dépenses par nature et clé de répartition » (transmis à p_note), ou permettre de le saisir au moment de générer le document.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `CHF-06` — Une régularisation de charges n'écrit rien au livre ni aux appels : le complément dû ou le trop-perçu à rendre n'apparaît dans aucun écran de suivi financier.
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Régularisations émises : A 2025 (+10,36 trop-perçu), B 2025 (-50,40 complément).
+- **Étapes** : 1. Émettre les régularisations. 2. Compter les écritures et appels créés. 3. Relire le livre et la page Loyers.
+- **Attendu** : Le solde figure au livre ou à un appel complémentaire (le wiki prévoit « appel complémentaire ou avoir »).
+- **Observé** : 0 écriture, 0 appel créé ; le montant ne vit que dans la table des régularisations et sur la fiche du bail. Limite déjà écrite dans le wiki (29/09) mais non suivie au registre.
+- **Preuve expurgée (banc)** : preuves/charges-fiscalite/captures/regul-A2025.png (message) ; preuves/charges-fiscalite/sql/regularisations-sans-trace.txt (0 écriture de régularisation, 0 appel créé après les régularisations)
+- **Cause probable** : app/src/app/actions/loyers.ts:222-230 (commentaire : « la régularisation n'écrit PAS au journal »)
+- **Correction proposée** : Décision produit : générer l'appel complémentaire ou l'avoir à l'émission, ou alerter le propriétaire. Effet financier : validation spécialisée recommandée.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
 #### `AUT-01` — maintenance_artisans() n'est appelée par aucune tâche : les devis déposés ne deviennent jamais « expirés » et les motifs de liste noire ne sont jamais purgés
 
 - **Sévérité** : P2 · **Statut** : à trancher — correction préparable (tâche pg_cron + version interne), aval requis : active un automatisme en production · **Propriétaire** : dirigeant (décision)
@@ -908,6 +852,101 @@ Aucune anomalie de cette gravité à ce jour.
 - **Cause probable** : La planification annoncée par le commentaire n'a jamais été créée ; la fonction n'est pas appelable sans JWT de super-administrateur, donc pas par pg_cron.
 - **Correction proposée** : Tâche pg_cron quotidienne appelant une version interne sans garde (même schéma que la préparation du soir du marketing, MKT-01), fermée à tous les rôles ; soumise à l'aval car elle active un automatisme sur la production.
 - **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-01` — Les règles 'Ce qui peut continuer seul' (dont incident urgent et correction à faible risque en 'agir_seul') sont affichées au dirigeant mais aucun code ne les applique
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Code au commit 83ba492
+- **Étapes** : 1. Lire app/src/app/admin/relais/page.tsx:20 et :31 ; 2. Rechercher continuity_rules / agir_seul / delegue_requis dans app/src et app/supabase/migrations
+- **Attendu** : Une règle affichée comme 'agir seul' doit avoir un exécutant, ou l'écran doit dire qu'elle n'est pas appliquée
+- **Observé** : Constat statique : la table est lue pour l'affichage seulement ; aucun code ne lit decision, delai_heures ou active. Pour l'incident urgent, seul un e-mail à l'agent part (notifications.ts:930-963). Aucune publication de correction n'existe (l'atelier ne fait qu'une PR en brouillon). Le dirigeant peut croire qu'un incident urgent est 'sécurisé' seul pendant son absence.
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-01) ; preuves/equipes-ia/propositions.md § 3.7
+- **Cause probable** : app/supabase/migrations/20260922120000_autonomie_v3.sql:481-500 (données sans consommateur) ; app/src/app/admin/relais/page.tsx:20,31 (affichage)
+- **Correction proposée** : Soit brancher chaque règle avec un périmètre précis et un test, soit retirer ou reformuler l'écran ('décision enregistrée, non appliquée automatiquement'). Décision D7.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-02` — Mode vacances : l'urgence et l'escalade restent internes à la console, sans alerte vers un responsable absent, et ne s'alimentent ni d'un incident urgent ni d'un impayé
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Plan de vacances actif avec un responsable désigné
+- **Étapes** : 1. Lire 20261012221100_vacances_arret.sql:62-74, 100-107, 115 ; 2. Rechercher les appelants de signaler_urgence_vacances et de supervision_alertes_internes dans app/src ; 3. Lire notifications.ts:930-963
+- **Attendu** : L'ordre de mission (section 13) demande un canal d'alerte défini et une escalade validée ; un responsable absent doit être joint
+- **Observé** : Constat statique : la seule alimentation automatique est un passage 'à reprendre'/'interrompu' ou une lecture de consigne bloquée ; le journal écrit canal 'interne' ; l'alerte ne se lit que dans /admin/relais et /admin/brief. Un incident urgent envoie un e-mail à l'agent de l'organisation, pas au responsable du relais. Confirmé sur le banc par un autre rôle (D-URGENCE-ESCALADE : aucun envoi externe, aucune nouvelle tâche).
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-02) ; preuves/equipes-ia/propositions.md § 3.6 ; registre d'exécution scénarios D-URGENCE-ESCALADE
+- **Cause probable** : app/supabase/migrations/20261012221100_vacances_arret.sql:100-107,115 ; choix explicite 'Aucun fournisseur' en ligne 1 du fichier
+- **Correction proposée** : Choisir canal, horaire et fuseau avec le dirigeant (D3) ; alimenter l'alerte par les événements urgents (incident urgent, passage critique) ; notifier le responsable par e-mail via le service existant ; tester T7 (responsable non habilité)
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-03` — Aucune alerte active sur l'échec ou l'absence d'une tâche : la santé ne se lit que si le dirigeant ouvre l'écran ; la seule alerte e-mail du produit est le veto marketing
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Une tâche planifiée échoue ou ne passe pas
+- **Étapes** : 1. Rechercher les appelants de email_superviseur_permanent ; 2. Lire sante-service.ts:411-447 et /api/sante ; 3. Vérifier qu'aucun moniteur externe n'est configuré dans le dépôt
+- **Attendu** : Mission section 12 : surveillance et erreur remontée au responsable ; une tâche qui ne consigne pas à l'heure est le signal attendu (tache.ts:5-9)
+- **Observé** : Constat statique : email_superviseur_permanent n'a qu'un appelant (alerte-veto-marketing.ts:55). L'écran Santé et /api/sante donnent l'état à qui les ouvre ; absence de passage > 26 h = 'retard' affiché, jamais envoyé. Moniteur externe : aucun dans le dépôt (hypothèse : peut exister hors dépôt).
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-03) ; preuves/equipes-ia/propositions.md § 4.1
+- **Cause probable** : Conception : sante-service.ts calcule l'état à la lecture ; aucune tâche sentinelle
+- **Correction proposée** : Tâche sentinelle (pg_cron ou Vercel) qui lit les battements tache_* et cycle_mensuel et envoie un e-mail au superviseur sur retard ou échec, avec limitation de fréquence (phase 0 du socle, D1/D3)
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-04` — Hypothèse à vérifier : quittances, avis d'échéance, relances et rappels s'envoient puis se marquent, sans clé d'idempotence côté fournisseur d'e-mail
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Le marquage échoue après l'envoi, ou le passage est interrompu entre l'envoi et le marquage
+- **Étapes** : 1. Lire appels/route.ts:135-167, quittances/route.ts:142-171, relances/route.ts:134-198, rappels/route.ts:128-156 ; 2. Comparer avec avis-abonnement.ts:166,185,231, rapports-mensuels.ts:104, notifications.ts:988 et alerte-veto-marketing.ts:65, qui passent une clé
+- **Attendu** : Mission section 12 : tâches idempotentes ; un même événement ne doit pas produire deux envois
+- **Observé** : Constat statique : les quatre routes n'appellent pas envoyerEmail avec cleIdempotence. L'effet (double e-mail au prochain passage) n'a pas été rejoué ; les commentaires des routes reconnaissent ce compromis ('le pire cas est un double envoi'). Relation avec AUD-C-07 (hypothèse).
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-04) ; preuves/equipes-ia/propositions.md § 4.1
+- **Cause probable** : app/src/app/api/cron/{appels,quittances,relances,rappels}/route.ts (envoi avant marquage, sans clé)
+- **Correction proposée** : Passer une clé stable par objet (par exemple quittance/<id>) comme le font déjà les avis d'abonnement ; ajouter un test de rejeu avec marquage en échec
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `PROP-14` — Entrée en cours de mois : le premier terme (prorata) est exigible le 1er du mois, avant l'entrée, et passe tout de suite en « Impayé »
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : bail nu actif, date d'entrée 16/10/2026, jour d'échéance 1, paiement à échoir, activation le 13/10/2026
+- **Étapes** : Générer l'échéancier ; lire la carte Loyers & paiements
+- **Attendu** : première échéance au plus tôt à la date d'entrée (16/10/2026) : pas d'impayé avant le début du bail ni de relance possible
+- **Observé** : appels_loyer : période 2026-10-01, loyer 438.71, charges 46.45, total 485.16 (prorata correct), date_echeance = 2026-10-01 (15 jours avant l'entrée) ; l'écran affiche « Impayé » et « impayé en cours » avant tout paiement ; le bloc Relances est actif
+- **Preuve expurgée (banc)** : captures/s8-03-echeancier.png ; sql: select periode,date_echeance from appels_loyer
+- **Cause probable** : supabase/migrations/20260927102000_appels_terme_echu.sql (generer_appels_loyer_interne) : date_echeance = début de mois + jour_echeance − 1, sans max(date_debut)
+- **Correction proposée** : date_echeance = greatest(date_echeance calculée, date_debut) pour le premier terme
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `FIN-07` — Le filtre par mot-clé « fonds travaux / alur » écarte la pièce avant de consulter la qualification justifiée du propriétaire : une dépense qualifiée « déductible 224 » reste exclue des charges et la…
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/finance) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : Le propriétaire saisit « Appel de fonds travaux ravalement 2026 » (800 €, travaux votés payés dans l'année), la qualifie « Dépense déductible vérifiée », rubrique 224, justification « facture approuvée en assemblée ». La base accepte et versionne la qualification (audit_log inclus) ; le récapitulatif compte 224 = 0 et 800 € dans « Fonds travaux ALUR — à part » (« ne sont pas comptés dans les charges »). Aucun message n'explique que son choix est ignoré, et le libellé du journal étant immuable, seul un contournement par contre-écriture et ressaisie sous un autre libellé est possible. Contredit le principe posé en tête du fichier : « seuls les faits figés et choix justifiés chiffrent les totaux confirmés ». La règle existait avant la PR (mots-clés ALUR) mais la PR ajoute le formulaire de qualification qui devrait la primer.
+- **Preuve expurgée (banc)** : preuves/relecture/finance/ts/t6.mts (224 = 0 et fondsTravauxAlur = 800 pour « Appel de fonds travaux… » et « Cotisation fonds de travaux » malgré la qualification ; « travaux plomberie » donne 224 = 800)
+- **Cause probable** : app/src/lib/fiscal.ts:60 (test estFondsTravauxAlur avant la lecture de la qualification), 22 (regex)
+- **Correction proposée** : Ne mettre à part que les pièces sans qualification (ou ajouter une nature « fonds_travaux_alur » qualifiable) et laisser une qualification « deductible » l'emporter ; resserrer l'expression (« fonds (de )?travaux.*alur » ou « fonds alur ») pour ne plus attraper « appel de fonds travaux ».
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Contrôle en production (lecture seule)** : `-- Lecture seule : dépenses au libellé « fonds travaux / alur » et leur qualification éventuelle. select e.organization_id, e.id, e.date_piece, e.categorie, e.montant, q.nature, q.rubrique, q.version from public.ecritures e left join lateral (select * from public.fiscal_qualifications_ecritures x where x.ecriture_id=e.id order by version desc limit 1) q on true where e.sens='depense' and e.contre_ecriture_de is null and lower(e.categorie) ~ 'fonds (de )?travaux\|fonds alur\|alur' order by e.organization_id, e.date_piece;`
+
+#### `FIN-11` — Les migrations ne rétro-capturent aucun loyer existant et la reprise « retrouver_ventilation_fiscale » refuse tout bail qui a plus d'un appel : sur les données réelles déjà en production, le récapitu…
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/finance) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : Bail régulier, trois appels de 840 € (780 + 60) et trois paiements de 840 € antérieurs à la migration : la fonction répond trois fois « Plusieurs échéances ou aucune échéance : la ventilation doit être justifiée », 0 capture. Avec exigerPerimetre, le récapitulatif ne compte rien tant que l'exercice du lot n'est pas confirmé, puis refuse chaque loyer ancien (« attendent leur ventilation historique ») tant qu'il n'a pas reçu une qualification justifiée (nature, lot, parts HC et charges, justification, case de confirmation) : une pièce par mois et par lot. Le comportement précédent (ventilation au prorata du bail) affichait des totaux. Le choix de « ne rien réécrire » est assumé dans les commentaires, mais l'effet sur les propriétaires réels n'est ni mesuré ni annoncé dans l'interface. Contournement : qualification manuelle pièce par pièce.
+- **Preuve expurgée (banc)** : preuves/relecture/finance/sql/t14_historique_reel.sql (sortie : sql/t14_sortie.txt : trois refus, 0 capture ; état d'avant-migration simulé par session_replication_role=replica dans une transaction annulée) ; ts/t2.mts pour le contraste avec l'ancien calcul
+- **Cause probable** : app/supabase/migrations/20261012224000_fiscalite_historique_qualifiee.sql et app/src/lib/fiscal.ts:migration 56-97 (capture seulement à l'INSERT), 155-183 (reprise limitée à un seul appel) ; fiscal.ts 54-60 et 76-84
+- **Correction proposée** : Offrir une reprise explicite par lot (action unique, auditée, non silencieuse) pour les baux dont les appels sont cohérents (montant_du = loyer_hc + charges), dont chaque paiement s'impute sans avance sur les appels existants, et qui n'ont ni annulation ni anomalie ; la même règle FIFO que le déclencheur peut être rejouée en SQL sur les paiements existants dans l'ordre (created_at, id). Annoncer dans l'interface le nombre de pièces à qualifier.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Contrôle en production (lecture seule)** : `-- Lecture seule : combien de loyers existants sont sans capture, par organisation (c'est le nombre de pièces à qualifier à la main). select e.organization_id, count(*) filter (where c.ecriture_id is null) as loyers_sans_capture, count(*) as loyers_total, min(e.date_piece) premiere, max(e.date_piece) derniere from public.ecritures e left join public.fiscal_encaissements_composantes c on c.ecriture_id=e.id where e.categorie='loyer' and e.sens='recette' and e.contre_ecriture_de is null group by 1 order by 2 desc;`
 
 #### `PR178-B-04` — Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires
 
@@ -937,6 +976,44 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Ajouter un champ caché cle_envoi (UUID par formulaire monté, régénéré après succès confirmé) et une contrainte d'unicité sur l'encaissement ; à défaut, après une réponse perdue, remplacer le bouton par « Vérifier l'encaissement » qui relit l'état du bail avant de réarmer l'envoi. À arbitrer P1 si l'on juge l'avertissement insuffisant face à l'effet comptable et au reçu envoyé au locataire.
 - **Correction sans aval** : non (aval du dirigeant requis)
 
+#### `SUP-01` — L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision.
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/supervision) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : La supervision enregistre un arret 'global' (ou 'purge', 'quittances', 'appels'). verifier_arret_supervision(...) renvoie false pour les 13 cles, les routes /api/cron/* s'arretent. Mais pg_cron continue : retention-quotidienne (appliquer_retention : DELETE sur tech_log, audit_log, demandes_devis, intentions_conge, demandes_signature, purge/anonymisation de documents), cycle-mensuel (generation des appels de loyer et quittances), alertes-*, propositions-publication-hebdo.
+- **Preuve expurgée (banc)** : preuves/relecture/supervision/20-arret-pgcron.sortie.txt (arret global actif ; appliquer_retention() appelee en contexte cron supprime la ligne de test : avant=1, apres=0) + requete pg_proc : seules 4 fonctions referencent supervision_arrets/verifier_arret_supervision (commander_, executer_tache_consigne, traiter_vacances, verifier_).
+- **Cause probable** : verifier_arret_supervision exige auth.role()='service_role' ou un superviseur ; pg_cron s'exécute sans JWT, donc les fonctions planifiées (appliquer_retention, cycle_mensuel_interne, generer_alertes_*, proposer_publications_interne) ne l'appellent pas.
+- **Correction proposée** : Ajouter un prédicat interne (sans exigence de JWT) lu en tête de chaque fonction planifiée par pg_cron, ou documenter dans l'écran de relais que l'arrêt ne couvre pas les 8 tâches SQL. Décision métier requise.
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Contrôle en production (lecture seule)** : `select jobname, schedule, command from cron.job where active order by jobname; select cle, arrete, motif, modifie_le from public.supervision_arrets where arrete;`
+
+#### `SUP-05` — Les « faits de direction » copient, pour toutes les organisations, des données personnelles (titres d'alertes contenant le nom du locataire, ex. « État des lieux d'entrée — Lot 1 · Marie Durand ») da…
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecture (relecture/supervision) · **Version testée** : e9f31ac (lecture du code)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Observé** : Un superviseur clique « Préparer le point maintenant » : preparer_faits_direction lit alerts.titre de toutes les organisations et stocke la copie dans sources->echeances->donnees->faits (jusqu'à 20 faits x 5 sources par clic, un instantané par clic, conservé indéfiniment). Delta audit_log = 0 et supervision_operations = 0 pour l'appel SQL ; côté TypeScript une seule ligne générique point_du_matin_prepare (sans organisation, écrite après coup et non transactionnelle). La lecture de l'écran /admin/brief (lire_faits_direction) n'est jamais tracée. Écart à la règle documentée « traversée par le Super Admin autorisée mais journalisée » (wiki/regles-metier/Isolation multi-organisation.md, RM-A1.11) et à la minimisation des données.
+- **Preuve expurgée (banc)** : preuves/relecture/supervision/94-faits-donnees-personnelles-trace.sortie.txt (delta journaux 0/0, nom présent dans la copie durable, 0 fonction de rétention citant la table)
+- **Cause probable** : 20261012222000 : collecter_source_direction('echeances') renvoie le titre brut ; aucune écriture log_sa_access ; aucune clause de rétention dans appliquer_retention().
+- **Correction proposée** : Ne stocker que des identifiants et libellés génériques (type d'alerte + href) au lieu de alerts.titre ; journaliser via log_sa_access(org,'consultation_faits_direction') pour chaque organisation citée ou une ligne d'audit par préparation dans la même transaction ; ajouter une purge à 90 jours dans appliquer_retention().
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Contrôle en production (lecture seule)** : `select count(*) nb, min(jour), max(jour), pg_size_pretty(pg_total_relation_size('public.brief_direction_snapshots')) taille from public.brief_direction_snapshots; -- puis, pour voir si des noms y figurent : select jour, jsonb_path_query_array(sources,'$.echeances.donnees.faits[*].titre') from public.brief_direction_snapshots order by genere_le desc limit 3;`
+
+#### `SOR-03` — Un second bail est activé sur un lot avec une période qui recouvre celle du bail précédent
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Lot A : bail A 01/08/2026 -> 14/01/2027 (clôturé le 14/10/2026) ; brouillon B créé pendant le bail A avec date d entrée 01/09/2026
+- **Étapes** : 1) clôturer A 2) bail B > étape 7 > Déposer le bail signé
+- **Attendu** : Refus : la période de B recouvre celle de A (wiki Bail / Occupation d un bien ; mission : chevauchement refusé côté serveur)
+- **Observé** : B passe actif (date_debut 01/09/2026) et le lot redevient loué. Seule la règle « un seul bail vivant à la fois » existe (états actif/préavis), sans comparaison des dates ; deux baux du même lot couvrent donc septembre 2026 à janvier 2027 et pourraient appeler deux loyers pour la même période
+- **Preuve expurgée (banc)** : captures/p1-bail-B-chevauchement.png ; sortie p1.mjs (avant/après)
+- **Cause probable** : RPC activer_bail / controler_mise_en_location : le contrôle ne teste que l état des autres baux du lot, pas date_debut/date_fin
+- **Correction proposée** : Refuser l activation si date_debut < max(date_fin) des baux terminés ou en préavis du lot, ou contrainte d exclusion sur daterange(date_debut, date_fin)
+- **Correction sans aval** : non (aval du dirigeant requis)
+
 #### `SA-01` — Traversée de la supervision dans un espace client : écriture financière possible sans motif ni durée, et la ligne d'audit 'traversee_action' ne dit ni quelle action, ni sur quel objet, ni avec quel r…
 
 - **Sévérité** : P2 · **Statut** : à trancher — limite déjà actée au wiki (audit du 25/09) : entrée dans un espace client sans motif ni durée ; l'écriture complète la prolonge · **Propriétaire** : dirigeant (décision)
@@ -960,7 +1037,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Étapes** : 1. Connecté en propriétaire direct, ouvrir un bail dont 2 termes de 840 € sont appelés. 2. Taper au clavier 840,00 dans Montant (date du jour). 3. Valider.
 - **Attendu** : 840,00 € encaissés, ou au minimum une alerte devant un montant 100 fois supérieur au dû
 - **Observé** : Le navigateur lit la virgule comme séparateur de milliers : valeur envoyée « 84000 ». Le serveur l'accepte (borne 9 999 999,99 sans rapport avec le dû) : « 84 000,00 € encaissés … septembre 2026 soldé → quittance ; octobre 2026 soldé → quittance · 82 320,00 € en avance sur le prochain appel ». Base : 1 encaissement de 84000, 2 quittances. La suppression de l'encaissement (contre-écritures) permet de revenir en arrière. Un double clic n'a créé qu'un seul encaissement
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-encaissement-succes.mjs ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-encaissement-succes.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/etat-banc-final.txt
+- **Preuve expurgée (banc)** : preuves/verification/ts/e2e-encaissement-succes.mjs ; preuves/verification/ts/e2e-encaissement-succes.png ; preuves/verification/ts/etat-banc-final.txt
 - **Cause probable** : Champs name="montant" en type="number" (formulaire-loyers.tsx:354, formulaire-depot.tsx:159, fenetre-lot.tsx:626 et :1279…) : le navigateur normalise la saisie avant que lireMontant (qui sait lire la virgule) ne la voie ; aucun contrôle de plausibilité par rapport au dû
 - **Correction proposée** : Passer ces champs en type="text" inputMode="decimal" (le serveur lit déjà « 840,00 » et « 840.00 ») ; ajouter côté serveur une confirmation explicite quand le montant dépasse largement le dû (ordre de grandeur à fixer par le dirigeant)
 - **Correction sans aval** : non (aval du dirigeant requis)
@@ -979,80 +1056,52 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : relancer le serveur du banc avec la clé de service (hors périmètre de ce rôle)
 - **Correction sans aval** : oui
 
-## P3 — cosmétique ou mineur (118)
+## P3 — cosmétique ou mineur (141)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
-| `ARC-04` | artisan | Numéro de facture externe : unicité sensible à la casse (« art-2026-0001 » accepté en doublon de « ART-2026-0001 »), aucune continuité contrôlée | ouverte |
-| `AUD-A-05` | auditeur/a | Écart documentation/code : la piste d'audit générique documentée n'existe pas | ouverte |
-| `AUD-A-06` | auditeur/a | Insertion anonyme directe dans demandes_devis sans limite de débit | ouverte |
-| `AUD-B-03` | auditeur/b | Cookie de session lisible par script et marqué Secure seulement si NEXT_PUBLIC_SITE_URL commence par https:// *(hyp.)* | ouverte |
 | `AUD-B-05` | auditeur/b | Dépôt de deux fichiers identiques : un seul conservé, sans le dire | ouverte |
 | `AUD-C-03` | auditeur/c | L'ordre d'application des migrations n'est pas l'ordre des noms de fichiers *(hyp.)* | ouverte |
 | `AUD-C-04` | auditeur/c | Trois versions de PostgreSQL dans les preuves de sauvegarde, sans garde de coherence (hypothese a verifier) *(hyp.)* | ouverte |
-| `AUD-C-05` | auditeur/c | L'arret d'urgence ne couvre pas les e-mails declenches par le webhook Stripe (hypothese a verifier) *(hyp.)* | ouverte |
 | `AUD-C-06` | auditeur/c | L'export CSV du journal ne neutralise pas les formules de tableur (hypothese a verifier) *(hyp.)* | ouverte |
-| `AUD-C-07` | auditeur/c | Les routes cron directes n'ont ni verrou de mission ni reservation avant envoi (doublon d'e-mail possible, hypothese a verifier) *(hyp.)* | ouverte |
-| `AUD-C-08` | auditeur/c | Fichiers PDF orphelins possibles si le webhook Youtrust et la tache de nuit traitent le meme evenement en meme temps (hypothese a verifier) *(hyp.)* | ouverte |
 | `LOC-01` | chaine/1 | Dépôt d'une attestation déjà déposée : message technique générique au lieu de « ce fichier est déjà dans votre dossier » | ouverte |
 | `ART-11` | chaine/1b | Quantité et taux de TVA écrits avec un point décimal (« 2.5 », « 5.5 % ») sur le PDF du devis et dans le détail vu par le propriétaire, alors que les montants et le sélecteur sont en virgule | ouverte |
 | `ART-12` | chaine/1b | Quantité ou prix invalide (0, « abc », 12,345, -5) : le total reste à 0,00 € sans dire quel champ est en cause | ouverte |
-| `ART-15` | chaine/1b | La photo jointe par le locataire n'est visible de l'artisan ni au stade du devis ni sur la fiche de mission | ouverte |
 | `PRO2-11` | chaine/1b | Élision manquante dans le nom de parc généré : « Parc de Éloïse … » (même famille que LOC-02) | ouverte |
-| `CHN-02` | chaine/2 | La validation de la facture, l'écriture de règlement et la clôture de l'incident ne laissent aucune ligne au journal d'audit : seule la chronologie de l'incident les garde | ouverte |
 | `LOC-22` | chaine/2 | Un locataire connecté qui ouvre /artisan arrive sur le formulaire d'inscription artisan | ouverte |
 | `PRO2-22` | chaine/2 | Un propriétaire direct lit « privé à votre agence » sur la notation de l'artisan, et l'artisan lit « l'agence le tranchera » sur l'écart de facture (recoupe PROP-09) | ouverte |
+| `CHF-05` | charges-fiscalite | Le wiki « Fiscalité » ne s'appuie sur aucune source officielle (quatre sites commerciaux seulement) et affirme encore « non implémentée » pour des fonctions livrées ; le wiki « Régularisation des charges » fait de même. | ouverte |
+| `CHF-08` | charges-fiscalite | Hypothèse à vérifier : le lien « notice officielle 2044, millésime 2026 (revenus 2025) » affiché sous un récapitulatif des revenus 2026 pointe vers …/2044_5487.pdf, alors que la recherche renvoie le formulaire 2026 sous …/2044_5483.pdf. *(hyp.)* | ouverte |
 | `DES-A-03` | designer/a | Espace locataire : les titres de carte sont des <h3> directement sous le <h1> (aucun <h2>) sur toutes les pages | ouverte |
-| `DES-A-06` | designer/a | Hors ligne : la navigation interne bascule sur la page d'erreur du navigateur (en anglais) et n'en sort pas au retour du réseau | ouverte |
-| `DES-A-08` | designer/a | Toutes les pages du propriétaire direct vivent sous l'adresse /agence/<id>/… (adresse visible, partagée, mise en favori) | ouverte |
 | `DES-A-10` | designer/a | Le logo doré posé à nu sur fond clair est quasi illisible sur mobile (≈ 1,5:1), alors que la page d'inscription artisan le présente dans une tuile bleu nuit (≈ 13,6:1) | ouverte |
-| `DES-A-11` | designer/a | L'adresse est « facultative » à l'inscription propriétaire mais bloque ensuite la création du premier bien | ouverte |
 | `DES-B-10` | designer/b | Logo doré quasi illisible sur l'en-tête blanc : artisan à 768 px et super-admin à 390 et 768 px (même défaut que DES-A-10) | ouverte |
 | `DES-B-12` | designer/b | HORS V1 PUBLIQUE — espaces administrateur d'agence et agent : défauts transversaux déjà connus et petites cibles sur la recherche | ouverte |
-| `IA-06` | equipes-ia | L'arrêt d'urgence ne couvre pas le traitement immédiat du webhook Yousign ; la clé 'sauvegarde' n'a aucun lecteur (confirmation par lecture de SUP-07) | ouverte |
-| `IA-07` | equipes-ia | Des éléments d'automatisation existent sans écrivain ni appelant : automation_events, log_automation_event, automation_stats_30d, autoriser_orchestration | ouverte |
-| `IA-09` | equipes-ia | La tâche territoire peut préparer une campagne-idée 'essai avec des agences', alors que les agences sont hors du périmètre public V1 | ouverte |
 | `IA-10` | equipes-ia | La page wiki 'Gerimmo en autonomie' est périmée : 4 tâches quotidiennes, 'vercel.json ne fixe aucune région', ronde quotidienne 'à armer' | ouverte |
-| `IA-11` | equipes-ia | Aucun registre d'exécution n'a de règle de rétention (agent_passages, supervision_operations, points_du_matin, decisions_du_matin, brief_direction_snapshots) | ouverte |
-| `IA-12` | equipes-ia | Hypothèse à vérifier : les textes et visuels produits avec l'IA et publiés sur le site et Facebook ne portent aucune mention d'origine *(hyp.)* | ouverte |
+| `PRF-01` | perf-liens | Page de connexion : décalage de mise en page (CLS 0,212) sur mobile avec réseau lent | ouverte |
+| `PRF-06` | perf-liens | Page « Compte » : le lien « le lien reçu par email » renvoie l'utilisateur connecté à son accueil sans explication | ouverte |
+| `PRF-09` | perf-liens | Lien factice href="#" « Retour à mes fiches » (annuaire des personnes) *(hyp.)* | ouverte |
 | `PROP-05` | proprietaire/s01 | Nom d'espace sans élision : « Parc de Éloïse … » | ouverte |
 | `PROP-08` | proprietaire/s01 | Recherche globale (⌘K) insensible à la casse mais pas aux accents ; code postal non recherchable | ouverte |
 | `PROP-09` | proprietaire/s01 | Libellés d'agence ou de permission dans l'espace propriétaire direct | ouverte |
 | `PROP-10` | proprietaire/s01 | Message serveur de la clé de répartition avec point décimal : « fait 99.99 » | ouverte |
-| `PROP-11` | proprietaire/s01 | Un même PDF ne peut pas être déposé pour deux lots (DPE collectif) et la consigne n'est pas réalisable depuis le formulaire | ouverte |
-| `PROP-16` | proprietaire/s01 | Hypothèse à vérifier : aucune cohérence contrôlée entre loyer, loyer de référence et loyer de référence majoré | ouverte |
 | `FIN-02` | relecture/finance | Sur une organisation dont l'abonnement est suspendu, « Encaisser » répond « Accès refusé. » au lieu du message d'abonnement suspendu renvoyé par toutes les autres écritures. | ouverte |
-| `FIN-03` | relecture/finance | Aucune contrainte de centime sur encaissements.montant / ecritures.montant : un paiement à 3 décimales est capturé avec un écart de 0,005 et ne peut plus jamais être qualifié (les parts doivent réconcilier exactement un montant que deux décimales ne peuvent p… | ouverte |
-| `FIN-04` | relecture/finance | La régularisation 230 reste exigée (et est réintégrée si saisie) pour les lots passés en meublé ou hors périmètre, alors que leurs pièces sont exclues de la 2044. | ouverte |
 | `FIN-05` | relecture/finance | « Montant net à qualifier » additionne recettes et dépenses non qualifiées en valeurs positives : ce n'est pas un net. | ouverte |
 | `FIN-06` | relecture/finance | « Retrouver la ventilation historique » annonce un succès sans rien changer quand la pièce a déjà une capture avec une part non ventilée (avance). | ouverte |
 | `FIN-08` | relecture/finance | Toute dépense qualifiée « Hors revenus fonciers » est présentée au propriétaire comme de la taxe d'enlèvement des ordures ménagères, et toute recette « hors 2044 » comme des provisions de charges encaissées. | ouverte |
-| `FIN-09` | relecture/finance | La capture fiscale calcule « déjà encaissé avant » en sommant tous les AUTRES encaissements du bail présents en fin d'ordre : un INSERT à plusieurs lignes pour un même bail répartit faux (hypothèse : aucun chemin actuel de l'application n'insère plusieurs pai… | ouverte |
 | `FIN-10` | relecture/finance | Le wiki métier n'a pas été mis à jour : il décrit encore la ligne 229 comme « part non récupérable seulement, postes récupérables retirés lot par lot », alors que le code ne retire plus rien (coproRecuperableExclue vaut toujours 0) et traite la réintégration… *(hyp.)* | ouverte |
 | `FIN-12` | relecture/finance | Hypothèse à vérifier : les lectures de qualifications, de captures et d'écritures n'ont ni filtre d'année (captures, qualifications) ni garde contre la limite de 1 000 lignes de l'API, alors que d'autres écrans du dépôt la connaissent (« trop de lignes »). *(hyp.)* | ouverte |
 | `FIN-13` | relecture/finance | Hypothèse à vérifier : l'encaissement en un clic prend la date par défaut de la base (current_date, fuseau UTC), pas la date de Paris ; entre 00 h 00 et 01 h 59 (heure de Paris) un règlement est daté de la veille, y compris le 31 décembre pour un 1er janvier. *(hyp.)* | ouverte |
 | `PR178-A-06` | relecture/pr178/a | Accessibilité des copies locales : la région role=status change de phrase à chaque frappe (25 changements pour 12 caractères) et le focus tombe sur le body après « Reprendre ma saisie » | ouverte |
 | `PR178-A-09` | relecture/pr178/a | Sans API Navigation (hypothèse Safari/iOS et Firefox), le geste Retour abandonne silencieusement un formulaire modifié *(hyp.)* | ouverte |
-| `PR178-B-03` | relecture/pr178/b | Encaissement de 0,01 € accepté par le nouveau contrôle au centime mais refusé par la base avec le message générique « Gerimmo n'a pas pu terminer cette action » | ouverte |
 | `PR178-B-07` | relecture/pr178/b | Les parcours navigateur ajoutés n'auraient détecté aucun des constats B-01 à B-06 : les tests du garde sont en partie synthétiques et aucun ne couvre les succès financiers, la session expirée ou les formulaires de recherche sans method | ouverte |
-| `REP-02` | relecture/reprises | Le courriel d'urgence au gestionnaire n'est envoye qu'a la premiere execution : si la premiere tentative a cree l'incident puis s'est arretee avant l'e-mail, la reprise (rejoue:true) ne l'envoie jamais *(hyp.)* | ouverte |
 | `REP-03` | relecture/reprises | Clients externes (module desactive en production) : apres un refus de validation, le meme justificatif ne peut plus etre remplace par un autre fichier de meme type tant que le formulaire n'est pas recharge, et un devis re-genere ne peut pas etre redepose *(hyp.)* | ouverte |
-| `REP-04` | relecture/reprises | choisir_creneau et accepter_creneau_locataire ne sont pas rejouables : une reponse perdue suivie d'un nouvel envoi affiche une erreur alors que le rendez-vous est confirme | ouverte |
-| `REP-05` | relecture/reprises | Ecart au wiki : l'expiration J+30 et le refus trace sont livres, mais les relances J+3 / J+10 prevues par le module 16 n'existent nulle part | ouverte |
-| `SUP-03` | relecture/supervision | N'importe quel super-administrateur permanent peut accuser réception d'une alerte de relais adressée à un autre responsable : la fonction ne compare pas auth.uid() au destinataire (message d'erreur annonce pourtant « Responsable habilité requis »), et l'écran… | ouverte |
-| `SUP-04` | relecture/supervision | Pas de séparation des rôles pour une consigne : le même superviseur peut la rédiger, se désigner responsable et l'approuver (alors que enregistrer_vacances impose « un autre responsable »). L'« approbation » n'est donc pas une double vérification humaine. | ouverte |
 | `SUP-06` | relecture/supervision | Ces trois lectures font db.from('accounts').select('id,email') sans filtre puis filtrent en JavaScript : au-delà de la limite de lignes de l'API (1 000 par défaut chez Supabase), la liste des responsables habilités et les noms des destinataires sont tronqués… *(hyp.)* | ouverte |
 | `SUP-07` | relecture/supervision | Le périmètre d'arrêt « Sauvegarde » est proposé au superviseur et accepté par la base, mais aucun code (workflow GitHub de sauvegarde, scripts app/scripts/sauvegarde/*) ne lit verifier_arret_supervision('sauvegarde') : l'arrêt n'arrête rien. *(hyp.)* | ouverte |
-| `SUP-09` | relecture/supervision | Chaque validation d'un devis téléverse un nouveau PDF (chemin aléatoire) dans le compartiment devis-preparations et n'efface jamais l'ancien (ni celui d'une validation perdante en cas de conflit 409) : des PDF orphelins contenant les coordonnées de l'entrepri… *(hyp.)* | ouverte |
+| `RET-03` | retour-arriere | La page du wiki Plan de reprise d'activité cite une base de connaissance qui n'existe pas dans V4 (docs/plan-reprise-activite.md, table backup_registry) et décrit une sauvegarde Supabase alors que la copie réelle est un dump chiffré chez Scaleway | ouverte |
+| `SOR-01` | sortie-de-bail | Clé de répartition par surface : « NaN % » et validation impossible (peut venir de l émulateur du banc) | ouverte |
 | `SA-02` | superadmin | Brief de direction : les montants des faits datés s'affichent avec un point décimal ('500.00 €') alors que les mesures s'affichent à la française ('4 870,00 €') | ouverte |
 | `SA-03` | superadmin | Une consigne ambiguë (sans aucune tâche) peut être « autorisée » : l'écran dit « Aucune tâche proposée. Précisez les lectures » mais propose quand même « Autoriser la version 1 », et la base enregistre l'accord | ouverte |
 | `SA-07` | superadmin | En diagnostic artisan, le bouton d'enregistrement de la fiche entreprise répond « Connectez-vous à votre espace artisan. » au lieu d'expliquer la lecture seule | ouverte |
-| `SA-09` | superadmin | La recherche de la console ne trouve ni un bien, ni un lot, ni un incident : le brief du support demande de retrouver « un dossier (utilisateur, bien, incident) » | ouverte |
-| `SA-10` | superadmin | Hypothèse à vérifier : aucun plafond de dépense applicatif pour les appels IA, et l'arrêt d'urgence ne couvre pas les appels IA déclenchés à la main (analyse du brief, rédaction de publications) *(hyp.)* | ouverte |
-| `SA-11` | superadmin | Journal du blocage d'un compte : « Compte bloqué » est écrit avant l'effet ; si le blocage échoue, le journal garde « Compte bloqué » suivi d'une ligne d'échec sans cause | ouverte |
-| `VER-PR178-06` | verification/pr178 | Hypothèse à vérifier : le brouillon local de la grille d'état des lieux (gerimmo-edl-brouillon-<id>) n'est ni effacé à la déconnexion ni rattaché à un compte ni limité dans le temps *(hyp.)* | ouverte |
-| `VER-SECURITE-02` | verification/securite | Un artisan ayant une mission (ou une sollicitation ouverte) dans une organisation peut écrire n'importe quel chemin sous le dossier de cette organisation dans le compartiment documents | ouverte |
-| `VER-TS-05` | verification/ts | Récapitulatif fiscal nu : à partir de 1 000 lignes fiscales dans l'organisation, le document est refusé avec un message trompeur (« Réduisez la période »), même pour un lot de 3 loyers | ouverte |
 | `ARC-01` | artisan | Échec du rendu PDF du devis externe : message technique brut (variable d environnement) montré à l artisan | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-erreurs.test.ts |
 | `ARC-03` | artisan | Agenda : l état du chantier externe est affiché avec son code interne (« planifie ») | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-affichage.test.ts |
 | `ARC-05` | artisan | Agenda artisan sur mobile 390 px : défilement horizontal (448 px) causé par la carte d une mission Gerimmo au nom de parc long | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
@@ -1061,6 +1110,7 @@ Aucune anomalie de cette gravité à ce jour.
 | `ARC-10` | artisan | Clients externes : entre minuit et 2 h à Paris (heure d été), la date du jour est refusée et la date par défaut est celle de la veille (jour UTC) | corrigée en branche — vague 5 ; tests : tests/artisan-dates-paris.test.ts : 21 cas SQL, tests/artisan-devis-jour-paris.… |
 | `LOC-02` | chaine/1 | Élision manquante : « Dernier document — quittance de octobre 2026 » | corrigée en branche — 9978efa — « d'octobre » (espace locataire) |
 | `ART-14` | chaine/1b | Mobile 390 px : la fiche d'une demande de devis close et l'accueil artisan débordent horizontalement avec un nom de client long | corrigée en branche — 611dce2 — en-tête du devis : min-width et retour à la ligne |
+| `CHF-04` | charges-fiscalite | L'export CSV du livre recettes-dépenses ne neutralise pas les cellules commençant par =, +, - ou @ : un libellé « =1+1 » est exporté tel quel et sera évalué par le tableur. | corrigée en branche — src/lib/csv-sur.ts + export du journal (commit 2235d73), tests/csv-sur.test.ts |
 | `PUB-02` | coordinateur | Offre agence présentée au public alors que les agences sont hors périmètre V1 publique : accueil (repères, espaces, bandeau tarif, FAQ), tarifs, connexion, inscription artisan, choix d'espace, pied de page, métadonnées, deux sujets éditoriaux | corrigée en branche — commit e7982a7 |
 | `PUB-04` | coordinateur | La mention de taxes de l'accueil et des tarifs citait encore les agences (« pour les particuliers comme pour les agences ») | corrigée en branche — 35b0ae8 — phrase de taxes sans agences, 4 tests |
 | `DES-A-02` | designer/a | La page de confirmation de lien e-mail (/auth/confirmer) annonce encore « pour les agences », alors que /connexion a été nettoyée | corrigée en branche — vague 5 ; tests : tests/vocabulaire-v1-parcours.test.ts |
@@ -1083,6 +1133,7 @@ Aucune anomalie de cette gravité à ce jour.
 | `PR178-A-08` | relecture/pr178/a | Quand le stockage local est refusé, l'écran « La fiche est créée » affiche encore l'alerte « Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement » et chaque sortie déclenche la boîte « Quitter le site ? » alors qu'il n'y a plus rien à perdre | corrigée en branche — 36219ec — l'effacement qui échoue après un envoi confirmé ne laisse plus ni alerte ni boîte de so… |
 | `PR178-B-02` | relecture/pr178/b | Import du parc : la confirmation de sortie « modifications non enregistrées » se déclenche encore après un import réussi (l'état de retour n'a pas de clé succes) | corrigée en branche — 36219ec — l'import du parc n'est plus suivi |
 | `SUP-08` | relecture/supervision | Quand le responsable désigné perd son habilitation, traiter_vacances passe TOUTES les alertes non accusées du plan en « non_acheminee », y compris celles déjà escaladées vers le créateur (qui, lui, est habilité) ; elles ne peuvent alors plus escalader (l'esca… | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — seules les alertes du responsable concerné son… |
+| `RET-01` | retour-arriere | migrations.yml laisse passer un nom de fichier portant un chemin (« ../retours-arriere/… »), alors que la saisie annonce « Noms seuls (pas de chemin) » | corrigée en branche — .github/workflows/migrations.yml : garde de nom de fichier (commit 2235d73), testée en shell sur… |
 | `SA-05` | superadmin | Les dates des retours utilisateurs s'affichent en UTC, sans mention de fuseau : 2 h de décalage (et parfois un jour) avec l'heure de Paris utilisée partout ailleurs dans la console | corrigée en branche — 9978efa — dates des retours à l'heure de Paris |
 | `SA-06` | superadmin | Pluriels fautifs dans les écrans de relais et de consignes : 'après 1 minutes', 'Plafonds : 1 lectures au total, 1 par mois' | corrigée en branche — 9978efa — pluriels accordés |
 | `VER-PR178-02` | verification/pr178 | Session expirée puis autre compte dans le même navigateur : les copies du compte précédent (identité, brouillon de lot) restent sur l'appareil tant que le nouveau compte n'ouvre pas la fiche personne ou le formulaire d'incident | corrigée en branche — vague 5 ; tests : tests/copies-locales-arrivee.test.ts, tests/copies-locales.test.ts |
@@ -1097,10 +1148,59 @@ Aucune anomalie de cette gravité à ce jour.
 | `VER-TS-01` | verification/ts | Une date de naissance de forme AAAA-MM-JJ impossible (2024-13-45) fait lever l'action serveur : erreur 500 et message sans rapport au lieu de « date de naissance non valide » | corrigée en branche — vague 5 ; tests : tests/validation-fiches.test.ts |
 | `VER-TS-03` | verification/ts | L'élision « d’octobre » n'est appliquée que sur la page d'accueil locataire : e-mails, page Documents du locataire, PDF de décompte et libellés d'agenda disent encore « de octobre », « de avril », « de août » | corrigée en branche — vague 5 ; tests : tests/elision-courriers.test.ts, tests/elision.test.ts |
 | `VER-TS-04` | verification/ts | Récapitulatif fiscal nu : « Périmètre : N écritures » compte des pièces écartées (période meublé ou hors de mes droits) sans le dire | corrigée en branche — vague 5 ; tests : tests/fiscal-perimetre.test.ts, tests/catalogue-documents.test.ts |
+| `ARC-04` | artisan | Numéro de facture externe : unicité sensible à la casse (« art-2026-0001 » accepté en doublon de « ART-2026-0001 »), aucune continuité contrôlée | à trancher |
+| `AUD-A-05` | auditeur/a | Écart documentation/code : la piste d'audit générique documentée n'existe pas | à trancher |
+| `AUD-A-06` | auditeur/a | Insertion anonyme directe dans demandes_devis sans limite de débit | à trancher |
+| `AUD-B-03` | auditeur/b | Cookie de session lisible par script et marqué Secure seulement si NEXT_PUBLIC_SITE_URL commence par https:// *(hyp.)* | à trancher |
+| `AUD-C-05` | auditeur/c | L'arret d'urgence ne couvre pas les e-mails declenches par le webhook Stripe (hypothese a verifier) *(hyp.)* | à trancher |
+| `AUD-C-07` | auditeur/c | Les routes cron directes n'ont ni verrou de mission ni reservation avant envoi (doublon d'e-mail possible, hypothese a verifier) *(hyp.)* | à trancher |
+| `AUD-C-08` | auditeur/c | Fichiers PDF orphelins possibles si le webhook Youtrust et la tache de nuit traitent le meme evenement en meme temps (hypothese a verifier) *(hyp.)* | à trancher |
+| `ART-15` | chaine/1b | La photo jointe par le locataire n'est visible de l'artisan ni au stade du devis ni sur la fiche de mission | à trancher |
+| `CHN-02` | chaine/2 | La validation de la facture, l'écriture de règlement et la clôture de l'incident ne laissent aucune ligne au journal d'audit : seule la chronologie de l'incident les garde | à trancher |
+| `CHF-07` | charges-fiscalite | Hypothèse à vérifier : une contre-écriture est datée du jour de l'annulation, non de la pièce d'origine ; annuler en janvier un encaissement de décembre déplace le correctif sur l'exercice suivant. *(hyp.)* | à trancher |
+| `CHF-09` | charges-fiscalite | Un encaissement saisi par erreur puis retiré (net 0,00 €) reste « à qualifier » et empêche de générer le PDF du lot tant qu'il n'est pas qualifié à la main. | à trancher |
 | `EDI-01` | coordinateur | La ligne éditoriale de la veille accepte « agence » comme public valide (PUBLICS_JOURNAL) : un article visant seulement les agences passerait le filtre de pertinence en V1 | à trancher — ligne éditoriale |
 | `PUB-03` | coordinateur | Les textes juridiques (conditions générales, mentions légales, confidentialité) décrivent encore l'offre et la tarification agence | à trancher — textes juridiques non modifiés |
+| `DES-A-06` | designer/a | Hors ligne : la navigation interne bascule sur la page d'erreur du navigateur (en anglais) et n'en sort pas au retour du réseau | à trancher |
 | `DES-A-07` | designer/a | Vocabulaire d'agence encore visible dans les parcours propriétaire et locataire de la V1 | à trancher — partiellement corrigée en branche ; reste à trancher : 4) veille réglementaire — Masquer l'audience « Agen… |
+| `DES-A-08` | designer/a | Toutes les pages du propriétaire direct vivent sous l'adresse /agence/<id>/… (adresse visible, partagée, mise en favori) | à trancher |
+| `DES-A-11` | designer/a | L'adresse est « facultative » à l'inscription propriétaire mais bloque ensuite la création du premier bien | à trancher |
+| `IA-06` | equipes-ia | L'arrêt d'urgence ne couvre pas le traitement immédiat du webhook Yousign ; la clé 'sauvegarde' n'a aucun lecteur (confirmation par lecture de SUP-07) | à trancher |
+| `IA-07` | equipes-ia | Des éléments d'automatisation existent sans écrivain ni appelant : automation_events, log_automation_event, automation_stats_30d, autoriser_orchestration | à trancher |
+| `IA-09` | equipes-ia | La tâche territoire peut préparer une campagne-idée 'essai avec des agences', alors que les agences sont hors du périmètre public V1 | à trancher |
+| `IA-11` | equipes-ia | Aucun registre d'exécution n'a de règle de rétention (agent_passages, supervision_operations, points_du_matin, decisions_du_matin, brief_direction_snapshots) | à trancher |
+| `IA-12` | equipes-ia | Hypothèse à vérifier : les textes et visuels produits avec l'IA et publiés sur le site et Facebook ne portent aucune mention d'origine *(hyp.)* | à trancher |
+| `PRF-02` | perf-liens | Lien de nouveau mot de passe sans session : réponse 200 puis redirection côté client, avec décalage visible (CLS 0,346 à 390 px) | à trancher |
+| `PRF-03` | perf-liens | Accès interdits ou objets inexistants : le document répond 200 (redirection ou 404 faites côté client), seul le visiteur anonyme reçoit un vrai 307 | à trancher |
+| `PRF-04` | perf-liens | Défense en profondeur : la garde des pages /admin vit dans le layout ; la page s'exécute pour un non-super-administrateur et sa charge utile part avant la redirection (bornée par la RLS) | à trancher |
+| `PRF-05` | perf-liens | Poids et mise en cache : logo de 292 Ko (2016×1594) et illustration de 298 Ko chargés sur chaque écran d'espace, servis avec max-age=0 ; ils portent le LCP des écrans d'agence | à trancher |
+| `PRF-07` | perf-liens | Console de supervision : « Voir le formulaire sur le site » n'affiche pas le formulaire pour un super-administrateur connecté | à trancher |
+| `PRF-08` | perf-liens | Page de confidentialité : « Aide et retours » mène un visiteur sans compte à la page de connexion ; contact éditeur « (à venir) » sur le banc | à trancher |
+| `PRF-10` | perf-liens | Journal serveur : erreur « The destination stream closed early » (digest 2041379235) non attribuée ; 69 % des préchargements de liens sont annulés *(hyp.)* | à trancher |
+| `PROP-11` | proprietaire/s01 | Un même PDF ne peut pas être déposé pour deux lots (DPE collectif) et la consigne n'est pas réalisable depuis le formulaire | à trancher |
+| `PROP-16` | proprietaire/s01 | Hypothèse à vérifier : aucune cohérence contrôlée entre loyer, loyer de référence et loyer de référence majoré | à trancher |
+| `FIN-03` | relecture/finance | Aucune contrainte de centime sur encaissements.montant / ecritures.montant : un paiement à 3 décimales est capturé avec un écart de 0,005 et ne peut plus jamais être qualifié (les parts doivent réconcilier exactement un montant que deux décimales ne peuvent p… | à trancher |
+| `FIN-04` | relecture/finance | La régularisation 230 reste exigée (et est réintégrée si saisie) pour les lots passés en meublé ou hors périmètre, alors que leurs pièces sont exclues de la 2044. | à trancher |
+| `FIN-09` | relecture/finance | La capture fiscale calcule « déjà encaissé avant » en sommant tous les AUTRES encaissements du bail présents en fin d'ordre : un INSERT à plusieurs lignes pour un même bail répartit faux (hypothèse : aucun chemin actuel de l'application n'insère plusieurs pai… | à trancher |
+| `PR178-B-03` | relecture/pr178/b | Encaissement de 0,01 € accepté par le nouveau contrôle au centime mais refusé par la base avec le message générique « Gerimmo n'a pas pu terminer cette action » | à trancher |
+| `REP-02` | relecture/reprises | Le courriel d'urgence au gestionnaire n'est envoye qu'a la premiere execution : si la premiere tentative a cree l'incident puis s'est arretee avant l'e-mail, la reprise (rejoue:true) ne l'envoie jamais *(hyp.)* | à trancher |
+| `REP-04` | relecture/reprises | choisir_creneau et accepter_creneau_locataire ne sont pas rejouables : une reponse perdue suivie d'un nouvel envoi affiche une erreur alors que le rendez-vous est confirme | à trancher |
+| `REP-05` | relecture/reprises | Ecart au wiki : l'expiration J+30 et le refus trace sont livres, mais les relances J+3 / J+10 prevues par le module 16 n'existent nulle part | à trancher |
+| `SUP-03` | relecture/supervision | N'importe quel super-administrateur permanent peut accuser réception d'une alerte de relais adressée à un autre responsable : la fonction ne compare pas auth.uid() au destinataire (message d'erreur annonce pourtant « Responsable habilité requis »), et l'écran… | à trancher |
+| `SUP-04` | relecture/supervision | Pas de séparation des rôles pour une consigne : le même superviseur peut la rédiger, se désigner responsable et l'approuver (alors que enregistrer_vacances impose « un autre responsable »). L'« approbation » n'est donc pas une double vérification humaine. | à trancher |
+| `SUP-09` | relecture/supervision | Chaque validation d'un devis téléverse un nouveau PDF (chemin aléatoire) dans le compartiment devis-preparations et n'efface jamais l'ancien (ni celui d'une validation perdante en cas de conflit 409) : des PDF orphelins contenant les coordonnées de l'entrepri… *(hyp.)* | à trancher |
+| `RET-02` | retour-arriere | La sauvegarde est faite avec --no-comments : les 152 commentaires SQL, dont celui qui porte la convention de sécurité de fermer_fonctions_a_anon(), disparaissent à la restauration | à trancher |
+| `SOR-02` | sortie-de-bail | Remise des clés acceptée à une date future (01/03/2027) : le délai légal de restitution est calculé sur un événement qui n a pas eu lieu, et la restitution ne se corrige pas | à trancher |
+| `SOR-04` | sortie-de-bail | Clôture du bail avant la fin du préavis : date_fin reste à la date théorique et rien n avertit des loyers non appelés | à trancher |
+| `SOR-05` | sortie-de-bail | Espace du locataire sortant : « Rien à régler » alors que le décompte arrêté établit une créance de 561,43 EUR | à trancher |
+| `SOR-06` | sortie-de-bail | Comparatif d EDL : un passage de « bon » à « usagé » (usure normale) compte comme écart et porte le délai de restitution à 2 mois | à trancher |
+| `SA-09` | superadmin | La recherche de la console ne trouve ni un bien, ni un lot, ni un incident : le brief du support demande de retrouver « un dossier (utilisateur, bien, incident) » | à trancher |
+| `SA-10` | superadmin | Hypothèse à vérifier : aucun plafond de dépense applicatif pour les appels IA, et l'arrêt d'urgence ne couvre pas les appels IA déclenchés à la main (analyse du brief, rédaction de publications) *(hyp.)* | à trancher |
+| `SA-11` | superadmin | Journal du blocage d'un compte : « Compte bloqué » est écrit avant l'effet ; si le blocage échoue, le journal garde « Compte bloqué » suivi d'une ligne d'échec sans cause | à trancher |
+| `VER-PR178-06` | verification/pr178 | Hypothèse à vérifier : le brouillon local de la grille d'état des lieux (gerimmo-edl-brouillon-<id>) n'est ni effacé à la déconnexion ni rattaché à un compte ni limité dans le temps *(hyp.)* | à trancher |
 | `VER-SECURITE-01` | verification/securite | La purge de déconnexion annoncée par la correction PR178-A-01 laisse les brouillons d'état des lieux (et la quittance de l'outil public) sur l'appareil, et le changement de compte ne les purge pas non plus | à trancher — partiellement corrigée en branche (quittance de l'outil public purgée à la déconnexion) ; reste à trancher… |
+| `VER-SECURITE-02` | verification/securite | Un artisan ayant une mission (ou une sollicitation ouverte) dans une organisation peut écrire n'importe quel chemin sous le dossier de cette organisation dans le compartiment documents | à trancher |
+| `VER-TS-05` | verification/ts | Récapitulatif fiscal nu : à partir de 1 000 lignes fiscales dans l'organisation, le document est refusé avec un message trompeur (« Réduisez la période »), même pour un lot de 3 loyers | à trancher |
 
 Les fiches complètes des anomalies P3 sont dans [[Fiches des anomalies P3 — audit du 13 octobre 2026]].
 

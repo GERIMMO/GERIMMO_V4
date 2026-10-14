@@ -118,7 +118,7 @@ leur risque.** Sources officielles : non consultées ; validation spécialisée 
 
 ## 8. Corrections déjà présentes en branche, à ratifier
 
-Mêmes règles que R1 à R6 : ces corrections sont en branche (rien n'est déployé) alors que le périmètre de la mission demande
+Mêmes règles que R1 à R6 : ces corrections étaient en branche (rien n'était déployé à la rédaction ; **R7 à R10 ont été ratifiées par le « oui » du dirigeant le 14/10/2026 puis déployées**) alors que le périmètre de la mission demande
 un aval pour tout changement majeur ; ratifier = les garder dans la question d'autorisation, refuser = les retirer. R7 à R10
 sont classées « sans aval » par leurs fiches, mais l'agent **ne présume pas** qu'elles le soient : R7 touche la chaîne de mise
 en production (« toute mise en production exige une autorisation explicite »), R9 ajoute des scripts qui modifieraient le

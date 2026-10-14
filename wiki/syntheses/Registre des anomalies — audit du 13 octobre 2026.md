@@ -19,6 +19,9 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 *déployée* (en production), *à trancher* (aval du dirigeant requis, y compris pour une correction déjà préparée), *acceptée*,
 *hypothèse* (à vérifier), *réfutée*. Une correction partielle est écrite « à trancher » avec ce qui est fait et ce qui reste.
 
+> [!info] Mise à jour du 14/10/2026 — déploiement
+> Le dirigeant a autorisé le déploiement de la version contrôlée `0ad658a` : fusion (PR #179, `c99e2c6`), déploiement Vercel et migrations `20261013110000` et `20261013120000` appliquées en production. Les lignes de ce registre marquées *corrigée en branche* sont donc **déployées**, sauf mention contraire ; leur statut ligne par ligne n'a pas été réécrit (il reflète la rédaction du 13–14/10). Détail, contrôles faits et limites : [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.
+
 ## Synthèse
 
 | Gravité | ouverte | corrigée en branche | déployée | à trancher | acceptée | hypothèse | réfutée | Total |

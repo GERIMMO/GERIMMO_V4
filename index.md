@@ -132,7 +132,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 
 ## Synthèses
 
-- [[Dossier de validation — version candidate du 13 octobre 2026]] — **dossier de livraison** : contenu, migrations, contrôles sur le SHA figé, observation de la production en lecture seule, porte de validation, dix critères de clôture cochés séparément (tous les critères d'aval, d'automatisation et de production sont NON remplis), question d'autorisation. Rien n'est déployé.
+- [[Dossier de validation — version candidate du 13 octobre 2026]] — **dossier de livraison** : contenu, migrations, contrôles sur le SHA figé, observation de la production en lecture seule, porte de validation, dix critères de clôture cochés séparément (les critères d'aval et d'automatisation sont NON remplis ; « version autorisée déployée » est rempli, « production vérifiée » partiel), question d'autorisation et **mise en production du 14/10/2026** (PR #179, migrations appliquées, contrôles non destructifs et limites, § 5 bis).
 - [[Registre des anomalies — audit du 13 octobre 2026]] — **13/10, mission opérationnelle** : registre vivant de 233 anomalies (P0 0, P1 1, P2 69, P3 163 ; 99 corrigées en branche, 100 à trancher), fiches P0 à P2 complètes ; version testée par fiche.
 - [[Fiches des anomalies P3 — audit du 13 octobre 2026]] — fiches complètes des anomalies P3 (préconditions, étapes, attendu, observé, preuve, cause, correction, propriétaire, statut).
 - [[Registre d'exécution — audit du 13 octobre 2026]] — ce qui a réellement été exécuté : contrôles automatiques de la référence et de la candidate, totaux des scénarios, ce qui n'a pas été exécuté, état des livrables.

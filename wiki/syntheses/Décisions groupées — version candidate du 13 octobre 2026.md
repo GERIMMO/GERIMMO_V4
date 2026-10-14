@@ -115,7 +115,7 @@ les lignes D18, D22 et D23 y renvoient.
 
 ## 8. Corrections déjà présentes en branche, à ratifier
 
-Ces corrections ont été livrées en branche (rien n'est déployé) alors que leur fiche indiquait « aval du dirigeant
+Ces corrections ont été livrées en branche (au moment de la rédaction, rien n'était déployé ; **R1 à R10 ont été ratifiées par le « oui » du dirigeant le 14/10/2026 puis déployées**, voir [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis) alors que leur fiche indiquait « aval du dirigeant
 requis » (mission, section 02 : un changement de calcul financier, de permission ou de règle est « majeur »).
 Ratifier = les garder dans la question d'autorisation ; refuser = les retirer de la version candidate.
 

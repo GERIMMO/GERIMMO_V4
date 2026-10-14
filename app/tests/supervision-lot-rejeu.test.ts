@@ -1,6 +1,6 @@
 /**
- * Les trois migrations du lot « supervision » (14/10/2026 : D08 traversée, D09 alerte de relais, D10 consigne)
- * se rejouent sans effet, s'arrêtent sur une définition inattendue et, appliquées à l'état d'avant, redonnent
+ * Les quatre migrations du lot « supervision » (14/10/2026 : D08 traversée, D09 alerte de relais puis sa reprise,
+ * D10 consigne) se rejouent sans effet, s'arrêtent sur une définition inattendue et, appliquées à l'état d'avant, redonnent
  * exactement l'état d'après. Même méthode que tests/correctifs-audit-13-octobre-rejeu.test.ts : chaque bloc
  * cherche, dans la définition en vigueur, la marque de son propre correctif et, si elle y est, ne fait rien.
  *
@@ -19,13 +19,18 @@ verifierBaseDeTest(DB_URL);
 const lire = (nom: string) => readFileSync(`supabase/migrations/${nom}`, "utf8");
 const TRAVERSEE = lire("20261014220000_traversee_trace_precise.sql");
 const ALERTE = lire("20261014221000_alerte_relais_destinataire.sql");
+const REPRISE = lire("20261014223000_alerte_relais_reprise_destinataire_parti.sql");
 const CONSIGNE = lire("20261014222000_consigne_activation_approbateur_distinct.sql");
+// Dans l'ordre du manifeste (e2e/local/ordre-migrations.txt).
+const MIGRATIONS = [TRAVERSEE, ALERTE, CONSIGNE, REPRISE];
 
 const FONCTIONS: [string, string][] = [
   ["public.log_sa_access(uuid,text,jsonb)", "Audit du 14/10 (SA-01)"],
   ["public.accuser_alerte_vacances(uuid)", "Audit du 14/10 (SUP-03)"],
   ["public.decider_consigne(uuid,boolean)", "Audit du 14/10 (SUP-04)"],
 ];
+// La reprise (relecture de D09) ajoute sa propre marque à la fonction de 20261014221000, sans retirer la sienne.
+const MARQUE_REPRISE = "Audit du 14/10 (SUP-03, reprise)";
 
 // Les définitions d'AVANT les migrations, telles que les posent 20260927201000 (log_sa_access),
 // 20261012221100 (accuser_alerte_vacances) et 20261012221000 (decider_consigne).
@@ -110,11 +115,17 @@ describe.skipIf(!DB_URL)("Migrations du lot supervision du 14/10 — rejeu", () 
     expect(r).toEqual({ anon: false, connecte: false });
   });
 
+  it("la reprise de l'alerte porte sa marque et garde celle de 20261014221000 (leurs retours restent jouables)", async () => {
+    const def = await definition("public.accuser_alerte_vacances(uuid)");
+    expect(def).toContain(MARQUE_REPRISE);
+    expect(def).toContain("Audit du 14/10 (SUP-03)");
+  });
+
   it("rejouées sur une base déjà migrée, elles ne changent rien (deux fois de suite)", async () => {
     const avant = await empreinte();
-    for (const migration of [TRAVERSEE, ALERTE, CONSIGNE]) await db.query(migration);
+    for (const migration of MIGRATIONS) await db.query(migration);
     expect(await empreinte()).toEqual(avant);
-    for (const migration of [TRAVERSEE, ALERTE, CONSIGNE]) await db.query(migration);
+    for (const migration of MIGRATIONS) await db.query(migration);
     expect(await empreinte()).toEqual(avant);
   });
 
@@ -122,8 +133,10 @@ describe.skipIf(!DB_URL)("Migrations du lot supervision du 14/10 — rejeu", () 
     const apres = await empreinte();
     for (const avant of [AVANT_LOG, AVANT_ACCUSER, AVANT_DECIDER]) await db.query(avant);
     for (const [signature, marque] of FONCTIONS) expect(await definition(signature), signature).not.toContain(marque);
-    for (const migration of [TRAVERSEE, ALERTE, CONSIGNE]) await db.query(migration);
+    expect(await definition("public.accuser_alerte_vacances(uuid)")).not.toContain(MARQUE_REPRISE);
+    for (const migration of MIGRATIONS) await db.query(migration);
     for (const [signature, marque] of FONCTIONS) expect(await definition(signature), signature).toContain(marque);
+    expect(await definition("public.accuser_alerte_vacances(uuid)")).toContain(MARQUE_REPRISE);
     expect(await empreinte()).toEqual(apres);
   });
 
@@ -137,6 +150,18 @@ describe.skipIf(!DB_URL)("Migrations du lot supervision du 14/10 — rejeu", () 
     await db.query("create or replace function public.accuser_alerte_vacances(p_id uuid) returns void language plpgsql security definer set search_path to '' as $f$ begin null; end $f$");
     await expect(db.query(ALERTE)).rejects.toThrow(/SUP-03 : définition inattendue/);
     await db.query("rollback to savepoint avant_accuser");
+
+    // La reprise exige 20261014221000 : sur l'ancienne définition (sans sa marque), elle s'arrête sans rien changer.
+    await db.query("savepoint avant_reprise");
+    await db.query(AVANT_ACCUSER);
+    await expect(db.query(REPRISE)).rejects.toThrow(/SUP-03 \(reprise\) : 20261014221000 doit être appliquée avant/);
+    await db.query("rollback to savepoint avant_reprise");
+
+    // Avec la marque de 20261014221000 mais sans la condition attendue, elle s'arrête aussi.
+    await db.query("savepoint avant_reprise_ancre");
+    await db.query("create or replace function public.accuser_alerte_vacances(p_id uuid) returns void language plpgsql security definer set search_path to '' as $f$ begin /* Audit du 14/10 (SUP-03) */ null; end $f$");
+    await expect(db.query(REPRISE)).rejects.toThrow(/SUP-03 \(reprise\) : définition inattendue/);
+    await db.query("rollback to savepoint avant_reprise_ancre");
 
     await db.query("savepoint avant_decider");
     await db.query("create or replace function public.decider_consigne(p_version uuid, p_accepter boolean) returns void language plpgsql security definer set search_path to '' as $f$ begin null; end $f$");

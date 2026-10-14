@@ -6,9 +6,10 @@
  * mode vacances passait à « accusée » sans que le responsable l'ait vue, et l'écran ne disait pas par qui.
  *
  * Maintenant : le destinataire seulement. Après une escalade, `destinataire` est changé pour la personne vers
- * qui l'alerte est escaladée : c'est elle, et elle seule, qui peut l'accuser. Une alerte « non acheminée »
- * (son destinataire n'est plus habilité, donc ne peut rien faire) peut être reprise par un autre superviseur
- * permanent — sans cela elle ne pourrait jamais être refermée.
+ * qui l'alerte est escaladée : c'est elle, et elle seule, qui peut l'accuser. EXCEPTION (écart à D09-A, présenté
+ * au dirigeant) : dès que le destinataire n'est plus habilité — il ne peut plus rien faire —, un autre superviseur
+ * permanent reprend l'alerte, QUEL QUE SOIT son statut (ouverte, escaladée, non acheminée) ; sans cela elle ne
+ * pourrait jamais être refermée (migrations 20261014221000 puis 20261014223000).
  *
  * Tout est joué dans une transaction annulée à la fin.
  */
@@ -170,6 +171,58 @@ describe.skipIf(!DB_URL)("D09 — accuser réception d'une alerte de relais", ()
     await agir(responsable);
     await db.query("select accuser_alerte_vacances($1)", [a.id]);
     expect((await etat(a.id)).accusee_par).toBe(responsable);
+  });
+
+  // Relecture (D09) : la reprise ne dépend PAS du statut. Une alerte escaladée vers le créateur du plan, qui perd
+  // ensuite son habilitation, restait inaccusable par quiconque : `traiter_vacances` ne la requalifie « non
+  // acheminée » que dans la branche où le RESPONSABLE du plan n'est plus habilité, et la reprise n'était permise
+  // que pour ce statut. Le seul critère est donc : le destinataire peut-il encore agir ?
+  it("escalade puis départ du créateur : l'alerte escaladée est reprise par un superviseur habilité", async () => {
+    const { alerte } = await alerteOuverte();
+    await ecrire("update supervision_alertes_internes set echeance=now()-interval '1 minute' where id=$1", [alerte]);
+    await service();
+    await db.query("select traiter_vacances()");
+    expect(await etat(alerte)).toEqual({ statut: "escalade", destinataire: createur, accusee_par: null });
+    // Tant que le créateur est habilité, lui seul l'accuse (D09-A).
+    await agir(tiers);
+    await expect(essai("select accuser_alerte_vacances($1)", [alerte])).rejects.toThrow(/autre responsable/);
+    // Il perd son habilitation : l'alerte n'a plus de destinataire qui puisse agir.
+    await ecrire("update memberships set status='inactive' where account_id=$1", [createur]);
+    expect(await etat(alerte)).toMatchObject({ statut: "escalade", destinataire: createur });
+    await agir(tiers);
+    await db.query("select accuser_alerte_vacances($1)", [alerte]);
+    expect(await etat(alerte)).toEqual({ statut: "accusee", destinataire: createur, accusee_par: tiers });
+    expect(await operations(alerte)).toEqual([{ auteur: tiers }]);
+  });
+
+  it("le responsable du plan, resté habilité, reprend lui aussi l'alerte escaladée vers un créateur parti", async () => {
+    const { alerte } = await alerteOuverte();
+    await ecrire("update supervision_alertes_internes set echeance=now()-interval '1 minute' where id=$1", [alerte]);
+    await service();
+    await db.query("select traiter_vacances()");
+    await ecrire("update memberships set status='inactive' where account_id=$1", [createur]);
+    await agir(responsable);
+    await db.query("select accuser_alerte_vacances($1)", [alerte]);
+    expect((await etat(alerte)).accusee_par).toBe(responsable);
+  });
+
+  it("une alerte ouverte dont le destinataire vient de perdre son habilitation est reprenable avant même le passage suivant", async () => {
+    const { alerte } = await alerteOuverte();
+    await ecrire("update memberships set status='inactive' where account_id=$1", [responsable]);
+    expect(await etat(alerte)).toMatchObject({ statut: "ouverte", destinataire: responsable });
+    await agir(tiers);
+    await db.query("select accuser_alerte_vacances($1)", [alerte]);
+    expect((await etat(alerte)).accusee_par).toBe(tiers);
+  });
+
+  it("un compte sans second facteur ou sans rôle ne reprend rien, même quand le destinataire est parti", async () => {
+    const { alerte } = await alerteOuverte();
+    await ecrire("update memberships set status='inactive' where account_id=$1", [responsable]);
+    await agir(tiers, "aal1");
+    await expect(essai("select accuser_alerte_vacances($1)", [alerte])).rejects.toThrow(/double vérification/);
+    await agir(etranger);
+    await expect(essai("select accuser_alerte_vacances($1)", [alerte])).rejects.toThrow(/double vérification/);
+    expect((await etat(alerte)).statut).toBe("ouverte");
   });
 
   it("les gardes d'avant restent : second facteur et rôle de supervision exigés", async () => {

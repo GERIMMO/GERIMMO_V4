@@ -2,7 +2,8 @@
  * D09 (audit du 13/10, SUP-03) — l'écran « Alertes et accusés » de /admin/relais :
  * - dit PAR QUI une alerte a été accusée ;
  * - ne propose le bouton « Accuser la prise en compte » qu'à celui qui peut s'en servir (le destinataire ;
- *   pour une alerte non acheminée dont le destinataire n'est plus habilité, un autre superviseur permanent) ;
+ *   dès que le destinataire n'est plus habilité, QUEL QUE SOIT le statut de l'alerte — ouverte, escaladée ou
+ *   non acheminée —, un autre superviseur permanent, et l'écran le DIT : c'est un écart à D09-A) ;
  * - sinon, dit pourquoi il n'y a pas de bouton.
  * La base tient la règle (tests/alerte-relais-destinataire.test.ts) ; l'écran ne promet pas ce qu'elle refuserait.
  */
@@ -62,6 +63,9 @@ beforeEach(() => {
       alerte("A5", "non_acheminee", AUTRE),
       alerte("A6", "escalade", MOI, { escalade_le: "2026-10-14T09:00:00Z" }),
       alerte("A7", "accusee", MOI, { accusee_le: "2026-10-14T09:31:00Z", accusee_par: null }),
+      // Relecture : escaladée vers un créateur qui a ensuite perdu son habilitation ; ouverte dont le responsable est parti.
+      alerte("A8", "escalade", ANCIEN, { escalade_le: "2026-10-14T09:00:00Z" }),
+      alerte("A9", "ouverte", ANCIEN),
     ],
   };
 });
@@ -95,12 +99,31 @@ describe("D09 — l'écran des alertes de relais", () => {
     const html = await ecran();
     expect(bloc(html, "A4")).toContain("Non acheminée : responsable non habilité");
     expect(bloc(html, "A4")).toContain("Accuser la prise en compte");
+    expect(bloc(html, "A4")).toContain("vous pouvez en accuser réception à sa place");
   });
 
   it("une alerte non acheminée dont le destinataire est de nouveau habilité n'est pas reprenable par un autre", async () => {
     const html = await ecran();
     expect(bloc(html, "A5")).not.toContain("Accuser la prise en compte");
     expect(bloc(html, "A5")).toContain("Seul le destinataire");
+  });
+
+  it("une alerte escaladée vers quelqu'un qui n'est plus habilité est reprenable, et l'écran dit pourquoi", async () => {
+    const html = await ecran();
+    expect(bloc(html, "A8")).toContain("Délai dépassé — escaladée");
+    expect(bloc(html, "A8")).toContain("Accuser la prise en compte");
+    expect(bloc(html, "A8")).toContain("Son destinataire n’a plus d’habilitation : vous pouvez en accuser réception à sa place.");
+  });
+
+  it("une alerte ouverte dont le destinataire a perdu son habilitation est reprenable aussi", async () => {
+    const html = await ecran();
+    expect(bloc(html, "A9")).toContain("Accuser la prise en compte");
+    expect(bloc(html, "A9")).toContain("vous pouvez en accuser réception à sa place");
+  });
+
+  it("la note ne s'affiche que pour une reprise : jamais pour son propre destinataire ni pour un autre habilité", async () => {
+    const html = await ecran();
+    for (const id of ["A1", "A2", "A5", "A6"]) expect(bloc(html, id), id).not.toContain("à sa place");
   });
 
   it("vu par le destinataire d'une alerte, l'autre superviseur n'a pas de bouton", async () => {

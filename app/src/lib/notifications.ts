@@ -443,17 +443,29 @@ export const ROLE_RAPPEL: Record<TypeRappel, Role> = {
   devis_non_chiffre: "artisan",
 };
 
+/**
+ * Le message d'un rappel de geste.
+ *
+ * SON TEXTE NE DÉPEND PAS DU JOUR OÙ IL PART. Il disait « depuis N jours » avec
+ * N recalculé chaque matin : un rappel accepté par le service d'e-mail mais non
+ * tracé était repris le lendemain avec un autre texte, sous la même clé
+ * anti-doublon, et le service refusait (409) la reprise — un faux échec, puis un
+ * second rappel au texte différent une fois la clé oubliée (relecture du 14/10,
+ * décision D47). Le texte dit maintenant le délai du type de rappel : « depuis
+ * au moins N jours », vrai à chaque envoi puisqu'un rappel ne part qu'une fois
+ * ce délai écoulé (`DELAIS_RAPPEL`), et identique d'une passe à l'autre.
+ */
 export function messageRappelGeste(p: {
   type: TypeRappel;
   emetteur: string;
   prenom?: string | null;
   categorie?: string | null;
   libelle?: string | null;
-  jours: number;
   lien: string | null;
 }): Message {
   const cat = p.categorie ? categorieLisible(p.categorie) : "votre dossier";
-  const depuis = `depuis ${p.jours} jour${p.jours > 1 ? "s" : ""}`;
+  const delai = DELAIS_RAPPEL[p.type];
+  const depuis = `depuis au moins ${delai} jour${delai > 1 ? "s" : ""}`;
   switch (p.type) {
     case "creneau_non_choisi":
       return {
@@ -1222,7 +1234,7 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
     }
     if (!ecritureOuverte.get(c.orgId)) continue;
 
-    const resultat = await envoyerUnRappel(service, c, noms.get(c.orgId) ?? "Votre gestionnaire", maintenant, avantEffet);
+    const resultat = await envoyerUnRappel(service, c, noms.get(c.orgId) ?? "Votre gestionnaire", avantEffet);
     if (!resultat.envoyee) {
       if (resultat.motif === "sans_adresse") bilan.sans_adresse += 1;
       else bilan.echecs += 1;
@@ -1241,8 +1253,7 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
   return bilan;
 }
 
-async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string, maintenant: Date, avantEffet?: () => Promise<void>): Promise<ResultatNotification> {
-  const jours = Math.max(1, Math.floor((maintenant.getTime() - new Date(c.depuis).getTime()) / 86_400_000));
+async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string, avantEffet?: () => Promise<void>): Promise<ResultatNotification> {
   const role = ROLE_RAPPEL[c.type];
   try {
     let to: string | null | undefined;
@@ -1269,11 +1280,16 @@ async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string
 
     // La clé de la trace sert aussi de clé anti-doublon auprès du service
     // d'e-mail (décision D47) : un rappel accepté mais non tracé (marquage
-    // échoué, ou attente coupée par le délai maximal) ne repart pas en double.
+    // échoué, ou attente coupée par le délai maximal) ne repart pas en double
+    // tant que le service retient la clé. Il la retient 24 h seulement
+    // (hypothèse, voir lib/email.ts) et la ronde ne passe qu'une fois par jour :
+    // la reprise du lendemain n'est PAS garantie. Le texte du rappel est le même
+    // d'une passe à l'autre (`messageRappelGeste`), sans quoi le service
+    // refuserait la reprise même dans la fenêtre.
     return expedier(service, {
       avantEffet, orgId: c.orgId, to, role, evenement: `rappel_${c.type}`, objet: c.objetId,
       cleIdempotence: cleRappelGeste(c.cle),
-      message: messageRappelGeste({ type: c.type, emetteur: nom, prenom, categorie, libelle: c.libelle, jours, lien: lien(c.lienChemin) }),
+      message: messageRappelGeste({ type: c.type, emetteur: nom, prenom, categorie, libelle: c.libelle, lien: lien(c.lienChemin) }),
     });
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;

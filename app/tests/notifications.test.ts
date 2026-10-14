@@ -112,8 +112,8 @@ describe("marque blanche et discrétion", () => {
     messagePieceDemandee({ emetteur: AGENCE, prenom: "Marc", libelle: "RIB", relance: true, lien: LIEN }),
     messageSignatureDemandee({ emetteur: AGENCE, prenom: "Marc", titreDocument: "Bail", lien: LIEN }),
     messageRendezVousFixe({ destinataire: "locataire", emetteur: AGENCE, prenom: "Marc", categorie: "plomberie_canalisation", debut: "2026-07-06T07:00:00Z", fin: null, adresse: null, artisan: "Plomberie Durand", lien: LIEN }),
-    messageRappelGeste({ type: "creneau_non_choisi", emetteur: AGENCE, prenom: "Marc", categorie: "plomberie_canalisation", jours: 3, lien: LIEN }),
-    messageRappelGeste({ type: "piece_demandee", emetteur: AGENCE, prenom: "Marc", libelle: "RIB", jours: 7, lien: LIEN }),
+    messageRappelGeste({ type: "creneau_non_choisi", emetteur: AGENCE, prenom: "Marc", categorie: "plomberie_canalisation", lien: LIEN }),
+    messageRappelGeste({ type: "piece_demandee", emetteur: AGENCE, prenom: "Marc", libelle: "RIB", lien: LIEN }),
   ];
 
   it("aucun message au locataire ne dit « Gerimmo » : c'est l'organisation qui parle", () => {
@@ -194,14 +194,14 @@ describe("les rappels de gestes", () => {
 
   it("chaque type a son propre texte, et ne dit pas « Gerimmo »", () => {
     const types: TypeRappel[] = ["creneau_non_choisi", "mission_non_acceptee", "piece_demandee", "devis_non_chiffre"];
-    const messages = types.map((type) => messageRappelGeste({ type, emetteur: AGENCE, prenom: "Marc", categorie: "plomberie_canalisation", libelle: "RIB", jours: DELAIS_RAPPEL[type], lien: LIEN }));
+    const messages = types.map((type) => messageRappelGeste({ type, emetteur: AGENCE, prenom: "Marc", categorie: "plomberie_canalisation", libelle: "RIB", lien: LIEN }));
     expect(new Set(messages.map((m) => m.sujet)).size).toBe(4);
     for (const m of messages) {
       expect(m.sujet + m.html).not.toMatch(/gerimmo/i);
       expect(m.html).toContain(`href="${LIEN}"`);
     }
-    expect(messages[0].html).toContain("depuis 3 jours");
-    expect(messages[1].html).toContain("depuis 2 jours");
+    expect(messages[0].html).toContain("depuis au moins 3 jours");
+    expect(messages[1].html).toContain("depuis au moins 2 jours");
     expect(messages[2].html).toContain("RIB");
     expect(messages[3].sujet).toMatch(/devis/i);
   });

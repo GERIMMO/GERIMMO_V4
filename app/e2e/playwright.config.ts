@@ -20,7 +20,7 @@ export default defineConfig({
   workers: 2,
   retries: 1,
   // Dans GitHub Actions, les échecs sont aussi annotés sur le job (lisibles par l'API, sans télécharger l'artefact).
-  reporter: process.env.GITHUB_ACTIONS ? [["list"], ["github"]] : [["list"]],
+  reporter: process.env.E2E_CI ? [["list"], ["github"]] : [["list"]],
   use: {
     // Environnements à Chromium pré-installé (Claude Code web) : pointer
     // PLAYWRIGHT_CHROMIUM sur le binaire ; sur un poste normal, laisser vide.

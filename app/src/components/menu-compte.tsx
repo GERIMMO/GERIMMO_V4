@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { seDeconnecter } from "@/app/actions/auth";
+import { FormulaireDeconnexion } from "@/components/formulaire-deconnexion";
 import { PurgerCopiesAutresComptes } from "@/components/purger-copies-autres-comptes";
 
 // LE MENU DU COMPTE — demande de l'humain, 12/09.
@@ -109,11 +109,9 @@ export function MenuCompte({
           ))}
           {/* La déconnexion reste une ACTION serveur, pas un lien : elle révoque
               la session côté Supabase avant de renvoyer à l'accueil. */}
-          <form data-saisie-libre action={seDeconnecter}>
-            <button type="submit" role="menuitem" className="menu-compte-sortir">
-              Se déconnecter
-            </button>
-          </form>
+          <FormulaireDeconnexion role="menuitem" className="menu-compte-sortir">
+            Se déconnecter
+          </FormulaireDeconnexion>
         </div>
       )}
     </div>

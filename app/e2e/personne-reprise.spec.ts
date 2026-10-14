@@ -66,3 +66,20 @@ test('fiche personne : réponse de création perdue puis reprise sans nouvelle c
   expect((await db.query('select id from persons where email=$1',[email])).rows).toHaveLength(1);await page.screenshot({path:info.outputPath('creation-non-confirmee.png'),fullPage:true});
  }finally{await db.query('delete from persons where email=$1',[email]);await db.end();}
 });
+// Vérification du 14/10 (VFL-03) : copie locale refusée, la saisie n'existe plus qu'à l'écran. Un lien interne (navigation
+// côté client, que beforeunload ne voit pas) l'abandonnait sans avertissement ; il demande maintenant la même confirmation
+// que les autres formulaires (lib/garde-copie-locale.ts).
+test('fiche personne : copie refusée, un lien interne demande confirmation avant d’abandonner la saisie',async({page})=>{
+ await sansSyntheseAlertes(page);const org=await entrerDansEspace(page,'agence');
+ await page.addInitScript(()=>{Object.defineProperty(IDBFactory.prototype,'open',{value:()=>{throw new DOMException('Test stockage refusé','SecurityError');}});});
+ await page.goto(`/agence/${org}/personnes#creer-fiche`);
+ await page.getByRole('button',{name:'Locataire Occupe un logement',exact:true}).click();await page.locator('#p-nom').fill('Saisie sans copie');
+ await expect(page.getByRole('alert').filter({hasText:'Impossible de conserver la copie'})).toBeVisible();
+ const dialogues:string[]=[];let accepter=false;
+ page.on('dialog',d=>{dialogues.push(`${d.type()}: ${d.message()}`);void(accepter?d.accept():d.dismiss());});
+ const lien=page.locator('a[href$="/parc"]:visible').first();
+ await lien.click();
+ expect(dialogues).toEqual(['confirm: Des modifications ne sont pas encore enregistrées. Quitter cette page et les abandonner ?']);
+ await expect(page).toHaveURL(/\/personnes/);await expect(page.locator('#p-nom')).toHaveValue('Saisie sans copie');
+ accepter=true;await lien.click();await expect(page).toHaveURL(/\/parc$/);
+});

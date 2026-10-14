@@ -106,6 +106,27 @@ for (const p of PERSONAS) {
       await page.goto("/espaces");
       await expect(page).toHaveURL(/\/connexion/);
     });
+
+    // Vérification du 14/10 (VFL-02) : hors ligne, la déconnexion remplaçait la page par l'écran d'erreur générique, et la
+    // saisie à l'écran disparaissait avec elle. Elle doit dire pourquoi, et laisser la page et la session telles quelles.
+    test("hors ligne, se déconnecter le dit sans quitter la page ni la session", async ({ page, context }) => {
+      await entrerDansEspace(page, p.espace);
+      await bouton(page).click();
+      const sortir = page.getByRole("menuitem", { name: "Se déconnecter" });
+      await expect(sortir).toBeVisible();
+      const adresse = page.url();
+
+      await context.setOffline(true);
+      await sortir.click();
+      await expect(page.getByRole("alert").filter({ hasText: "Déconnexion impossible hors ligne ; votre saisie est conservée" })).toBeVisible();
+      await expect(page.getByText("Cette page n'a pas pu s'afficher")).toHaveCount(0);
+      expect(page.url()).toBe(adresse);
+
+      // La session est intacte : une fois la connexion revenue, l'espace s'ouvre encore.
+      await context.setOffline(false);
+      await page.goto("/espaces");
+      await expect(page).not.toHaveURL(/\/connexion/);
+    });
   });
 }
 

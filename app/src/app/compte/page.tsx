@@ -3,7 +3,7 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { seDeconnecter } from "@/app/actions/auth";
+import { FormulaireDeconnexion } from "@/components/formulaire-deconnexion";
 import { PurgerCopiesAutresComptes } from "@/components/purger-copies-autres-comptes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { MarqueOrganisation } from "@/components/marque-organisation";
@@ -125,11 +125,9 @@ export default async function PageCompte() {
               </Link>
             )}
             <PurgerCopiesAutresComptes compteId={user.id} />
-            <form data-saisie-libre action={seDeconnecter}>
-              <button type="submit" className="lien-bandeau whitespace-nowrap">
-                Se déconnecter
-              </button>
-            </form>
+            <FormulaireDeconnexion className="lien-bandeau whitespace-nowrap">
+              Se déconnecter
+            </FormulaireDeconnexion>
           </div>
         </div>
       </header>

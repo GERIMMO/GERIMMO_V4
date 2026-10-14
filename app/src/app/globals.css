@@ -904,6 +904,26 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
 /* La déconnexion se distingue : c'est la seule qui ne revient pas d'un clic. */
 .menu-compte-sortir { color: var(--destructive); }
 .menu-compte-volet button.menu-compte-sortir:hover { background: var(--destructive-soft); }
+/* Déconnexion refusée (hors ligne, VFL-02) : la page et la saisie restent, le message se pose sous le bouton. */
+.deconnexion { position: relative; }
+.deconnexion-echec {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  width: max-content;
+  max-width: min(20rem, calc(100vw - 2rem));
+  padding: 9px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+  color: var(--destructive);
+  background: var(--carte);
+  border: 1px solid var(--destructive);
+  border-radius: var(--radius-md);
+  box-shadow: 0 14px 40px color-mix(in srgb, var(--encre) 22%, transparent);
+}
 
 .loc-avat {
   width: 34px;
@@ -1462,7 +1482,9 @@ p a {
   /* Le nom de l'espace (« Parc de Claire Moreau ») ne tient pas dans la
      cellule de 48 px et s'y lisait « Par… » (DES-A-14) : les initiales, avec
      le nom entier en infobulle. Même rendu que le rail du propriétaire. */
-  .loc-logo [data-initiales] { font-size: 0; }
+  /* !important : le span porte la classe utilitaire `text-base` (couche utilities, plus forte que cette couche components) —
+     sans lui la tuile affichait « PDP… » au lieu des initiales (audit du 14/10, VUI-02). */
+  .loc-logo [data-initiales] { font-size: 0 !important; }
   .loc-logo [data-initiales]::before { content: attr(data-initiales); font-size: 1rem; }
 }
 
@@ -2179,7 +2201,10 @@ a:focus-visible > .carte-espace {
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
-    overflow-wrap: anywhere;
+    /* Coupure par césure (fr) plutôt qu'au milieu d'un mot : « Administra-tion » (audit du 14/10, VUI-03) ; `break-word` ne sert
+       que si la césure est impossible. */
+    hyphens: auto;
+    overflow-wrap: break-word;
     font-size: 10.5px;
     line-height: 1.15;
     letter-spacing: 0.01em;

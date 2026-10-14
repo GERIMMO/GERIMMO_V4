@@ -5814,3 +5814,8 @@ Réglages modifiés en SQL (`heure_preparation_paris` 18 → 13 ; jours {mardi, 
 tick `pg_cron` de 13 h 15 Paris : post du jeudi 15/10 préparé (`agi`, `alerte` vrais), programmé à 09:00 Paris, publication automatique sans validation obligatoire (veto possible dans
 `/admin/marketing`). Plafond Facebook de deux envois par semaine : le post du vendredi 16/10 paraîtra sur le site sans diffusion Facebook. Détail et conséquences :
 [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.
+
+## [2026-10-14] audit | Constat après déploiement — le point du matin est figé depuis la PR #177
+Vercel : 5 erreurs « point du matin … données indisponibles (artisans) ». Cause : `artisans_a_valider()` exige `is_super_admin()` (session humaine au second facteur), le point est généré avec le client de service ;
+depuis le commit `d4f3b59` (13/10) une source illisible bloque tout l'enregistrement. Dernière décision créée le 13/10 à 09 h 11 UTC, 236 en attente. Antérieur à la mise en production du 14/10. Non corrigé (hors autorisation) ;
+pistes et recommandation dans [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.

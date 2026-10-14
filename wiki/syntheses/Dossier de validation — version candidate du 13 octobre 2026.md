@@ -120,6 +120,14 @@ Question à vous poser, dans les termes de la mission, **quand vous aurez tranch
 - Le réseau de l'environnement de l'audit refuse l'accès direct à `gerimmo.app` (réponse 403 du proxy) : les pages ont été lues par l'outil Vercel, sans navigateur ni captures.
 - Retour arrière du code : revert de la fusion `c99e2c6` (ou promotion du déploiement précédent) ; de la base : `app/supabase/retours-arriere/LISEZ-MOI.md`, en ordre inverse, après sauvegarde.
 
+### Constat après déploiement, non corrigé : le point du matin ne s'actualise plus (14/10/2026)
+
+- **Observé** : Vercel regroupe 5 erreurs `[point du matin] Le point n'a pas été actualisé : données indisponibles (artisans)` (route `/api/cron/equipes`, première le 13/10 vers 09 h 40 UTC, dernière le 14/10 à 11 h 15 UTC). La dernière décision du point a été créée le 13/10 à 09 h 11 UTC ; **236 décisions restent « en attente »** dans `decisions_du_matin`.
+- **Cause établie (lecture du code et de la base)** : le point est regénéré après chaque mission avec le client de service (`genererPointsDuMatin`), qui lit `artisans_a_valider()`. Cette fonction exige `is_super_admin()`, c'est-à-dire une session humaine au second facteur : appelée par le client de service, elle répond « Accès refusé » à chaque fois. Avant la PR #177, l'échec était avalé (liste des artisans vide, sans bruit) ; depuis le commit `d4f3b59` (13/10), une source illisible **bloque tout l'enregistrement** pour ne pas classer des décisions en attente comme « sans objet ». Le point est donc figé depuis le déploiement de la PR #177, **avant** la version de ce dossier : ni la fusion du 14/10 ni les migrations n'y sont pour quelque chose.
+- **Effets** : la file de décisions du matin n'est plus mise à jour (y compris pour les nouveaux posts du marketing : leur alerte part bien par e-mail, mais n'apparaît pas dans le point). Le veto reste possible dans `/admin/marketing`. Les validations d'artisans en attente n'ont, de leur côté, jamais figuré dans le point (liste vide silencieuse avant le 13/10).
+- **Pistes** (rien n'est fait, hors de l'autorisation reçue) : (a) lire les artisans en attente par une requête de service dans `lireAttentes` (changement de code seul, un déploiement) ; (b) une migration autorisant explicitement le rôle de service dans `artisans_a_valider` (changement de droit, aval requis). Recommandation : (a), puis relancer une mission pour vérifier que le point se régénère.
+- **Registre** : cette anomalie n'est pas encore ajoutée au [[Registre des anomalies — audit du 13 octobre 2026]] (237ᵉ) ; à faire avec la décision.
+
 ### Passage forcé de la préparation du soir, 14/10/2026
 
 À la demande du dirigeant (« change l'heure et fais-le maintenant », option « forcer un passage maintenant » choisie après avoir été prévenu des effets), pour constater la correction en production sans attendre jeudi :

@@ -7,6 +7,7 @@ import { estARenouveler, estExpiree, eur, formaterDate } from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { CarteGestionnaire, type Gestionnaire } from "./cartes-laterales";
+import { CarteDepotGarantie, type RestitutionLocataire } from "./carte-depot-garantie";
 import { aEchoue, LectureImpossible, PanneLecture } from "./panne-lecture";
 import type { IncidentLocataire } from "./incidents-locataire";
 import { ReflexesUrgence } from "./reflexes-urgence";
@@ -43,6 +44,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     { data: piecesDemandees, error: eDemandes },
     { data: signatures, error: eSignatures },
     { data: creneaux, error: eCreneaux },
+    { data: restitutions, error: eRestitution },
   ] = await Promise.all([
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
@@ -60,8 +62,12 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     // n'ouvre pas cet écran ne sait pas qu'on attend sa disponibilité, et le
     // dossier s'arrête là (RM-19.2.3, constat du 11/09).
     supabase.rpc("mes_creneaux_locataire", { p_org: orgId }),
+    // Décision D36 : le dépôt de garantie en cours de restitution, ou son décompte
+    // établi, se lit dès l'accueil — la page « Mes paiements » le portait seule.
+    supabase.rpc("ma_restitution_locataire", { p_org: orgId }),
   ]);
   const bail = ((baux ?? []) as BailLocataire[])[0];
+  const restitution = ((restitutions ?? []) as RestitutionLocataire[])[0];
   // Recette 03/10 : la porte vers le signalement ne s'ouvre que sur un bail
   // actif ; en brouillon, la page d'en face refusait et le locataire tournait
   // en rond entre l'accueil et « Signaler un problème ».
@@ -178,6 +184,9 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     timeZone: "Europe/Paris",
   });
   const enRetard = prochaine && (prochaine.statut === "impaye" || prochaine.statut === "partiel");
+  // Décision D36 : la carte « Votre dépôt de garantie » prend la place de « Rien à
+  // régler » — jamais celle d'un loyer à suivre, ni d'un échéancier illisible.
+  const afficherCarteDepot = !eEcheancier && !(bail && prochaine);
   const resteADevoir = prochaine
     ? Number(prochaine.montant_du) - Number(prochaine.montant_couvert)
     : 0;
@@ -415,6 +424,18 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
             cassaient en trois lignes, flèche orpheline comprise. Le ! garde la
             main sur toute règle .grille-kpi posée hors couche. */}
         <div className="grille-kpi max-sm:!grid-cols-1">
+          {/* Décision D36 : tant qu'une restitution existe (en cours ou décompte établi) et
+              qu'il n'y a pas de loyer à suivre, la carte dit où en est le dépôt de garantie
+              — « Rien à régler » aurait menti à un locataire dont le décompte établit une
+              créance. Un loyer encore à suivre garde sa carte. */}
+          {afficherCarteDepot && restitution ? (
+            <CarteDepotGarantie
+              orgId={orgId}
+              restitution={restitution}
+              classeCarte={CARTE_KPI}
+              classeLien={LIEN_ETIRE}
+            />
+          ) : (
           <div className={`${CARTE_KPI} carte-rubrique`} data-ton="bleu">
             <p className="titre-rubrique text-sm font-semibold"><Banknote size={20} aria-hidden="true" />{enRetard ? "Loyer restant à régler" : "Prochain loyer"}</p>
             {eEcheancier ? (
@@ -433,6 +454,11 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                       : "✓ À jour"}
                 </span>
               </>
+            ) : eRestitution ? (
+              // Sans cette lecture, « Rien à régler » pourrait cacher un décompte établi
+              <div className="mt-2">
+                <LectureImpossible quoi="votre dépôt de garantie" />
+              </div>
             ) : (
               <p className="mt-2 text-sm text-muted-foreground">
                 Rien à régler pour l&apos;instant.
@@ -442,6 +468,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               Voir mes paiements{"\u00a0"}→
             </Link>
           </div>
+          )}
           <div className={`${CARTE_KPI} carte-rubrique`} data-ton="violet">
             <p className="titre-rubrique text-sm font-semibold"><Files size={20} aria-hidden="true" />Mes documents</p>
             {ePieces || eEcheancier || eDemandes ? (

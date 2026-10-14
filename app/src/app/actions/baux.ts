@@ -13,6 +13,7 @@ import { aujourdhuiParis, motifLitteral, eur } from "@/lib/ged";
 import { verifierCodePostalPersonne, verifierDateNaissance } from "@/lib/validation-fiches";
 import { TYPES_BAIL, mentionsObligatoiresManquantes } from "@/lib/baux";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { CODE_CONFIRMATION_CLOTURE, lireDateSortie } from "@/lib/cloture-bail";
 import { envoyerEmail } from "@/lib/email";
 import { echapperHtml } from "@/lib/quittance-email";
 import { moisDepotGarantie } from "@/lib/depot-garantie";
@@ -27,6 +28,10 @@ export type EtatBail = {
   blocages?: BlocageActionable[];
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
+  // La base demande une confirmation (clôture avant la fin du préavis, D34) :
+  // le formulaire affiche alors la case à cocher, même si son propre calcul
+  // n'avait pas vu l'écart.
+  confirmationRequise?: boolean;
 };
 
 // Créer un bail (brouillon) sur un lot.
@@ -615,11 +620,13 @@ export async function enregistrerConge(
   // son prix (il vaut offre), un congé pour reprise son bénéficiaire. La base
   // les exige selon le motif ; l'action les transmet.
   if (par === "bailleur") {
-    const prixSaisi = String(formData.get("prix_vente") ?? "").trim().replace(/\s/g, "").replace(",", ".");
-    const prix = prixSaisi ? Number(prixSaisi) : null;
-    if (prix !== null && (!Number.isFinite(prix) || prix <= 0))
+    // Lu sur le texte tel que tapé (« 250000,50 » vaut 250000,5) : stricte comme tous les montants (VER-TS-02). Ni
+    // espace ni point de milliers, ni exposant : `Number("1e5")` valait 100000.
+    const prixLu = lireMontantFacultatif(formData.get("prix_vente"));
+    if ("erreur" in prixLu) return { erreur: erreurDuChamp("Prix de vente proposé", prixLu.erreur), valeurs };
+    if (prixLu.montant !== null && prixLu.montant <= 0)
       return { erreur: "Le prix de vente proposé est invalide.", valeurs };
-    conge.p_prix_vente = prix;
+    conge.p_prix_vente = prixLu.montant;
     conge.p_beneficiaire = String(formData.get("beneficiaire") ?? "").trim() || null;
   }
 
@@ -676,18 +683,40 @@ export async function annulerConge(
   return { succes: "Congé annulé — le bail reprend son cours." };
 }
 
-// Clôture du bail (module 3.11) : préavis échu, EDL de sortie signé — le
-// bail passe à « terminé », le lot redevient disponible, l'espace du
-// locataire sorti passe en lecture (le RPC exige l'EDL signé).
+// Clôture du bail (module 3.11) : EDL de sortie signé — le bail passe à
+// « terminé », le lot redevient disponible, l'espace du locataire sorti passe
+// en lecture (le RPC exige l'EDL signé). Décision D34 : la date de sortie
+// réelle est enregistrée ; avant la fin du préavis, la clôture se confirme
+// (la base refuse sinon, code GRC01). Aucun montant ni la date de fin du bail
+// ne changent.
 export async function terminerBail(
   orgId: string,
-  bailId: string
+  bailId: string,
+  _etat: EtatBail,
+  formData: FormData
 ): Promise<EtatBail> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
-  const { error } = await supabase.rpc("terminer_bail", { p_bail: bailId });
-  if (error) return { erreur: sansJargon(error.message) };
+  const valeurs = valeursDuFormulaire(formData);
+  const brute = String(formData.get("date_sortie") ?? "").trim();
+  const dateSortie = lireDateSortie(brute);
+  if (brute && !dateSortie) {
+    return { erreur: "La date de sortie réelle n'est pas une date valide.", valeurs };
+  }
+  const { error } = await supabase.rpc("terminer_bail", {
+    p_bail: bailId,
+    // Vide : la base prend le jour de Paris
+    p_date_sortie: dateSortie,
+    p_confirmer_anticipee: formData.get("confirmer_anticipee") === "on",
+  });
+  if (error) {
+    return {
+      erreur: sansJargon(error.message),
+      valeurs,
+      ...(error.code === CODE_CONFIRMATION_CLOTURE ? { confirmationRequise: true } : {}),
+    };
+  }
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   revalidatePath(`/agence/${orgId}/parc`);
   return {
@@ -777,11 +806,29 @@ export async function ajouterBailPersonne(
   if (!personId) return { erreur: "Choisissez la personne.", valeurs };
   if (role !== "colocataire" && role !== "garant") return { erreur: "Rôle invalide.", valeurs };
 
-  const qp = String(formData.get("quote_part") ?? "").trim();
-  const surf = String(formData.get("surface_privative") ?? "").trim();
   const garantDe = String(formData.get("garant_de") ?? "").trim();
   if (role === "garant" && !garantDe) {
     return { erreur: "Indiquez le colocataire couvert par ce garant.", valeurs };
+  }
+  // Quote-part et surface privative d'un colocataire, lues sur le texte tel que tapé (« 33,5 » vaut 33,5) : les
+  // champs sont en `type="text"`, jamais `type="number"` qui donne 335 à un navigateur non francophone (VER-TS-02).
+  // Un texte illisible est refusé : converti en NaN, il serait parti en JSON comme « non renseigné ».
+  let quotePart: number | null = null;
+  let surfacePrivative: number | null = null;
+  if (role === "colocataire") {
+    const qpLue = lireDecimalFacultatif(formData.get("quote_part"));
+    if ("erreur" in qpLue) return { erreur: erreurDuChamp("Quote-part", qpLue.erreur), valeurs };
+    const surfLue = lireDecimalFacultatif(formData.get("surface_privative"));
+    if ("erreur" in surfLue) return { erreur: erreurDuChamp("Surface privative", surfLue.erreur), valeurs };
+    quotePart = qpLue.valeur;
+    surfacePrivative = surfLue.valeur;
+    // Les bornes que le champ numérique portait (min 0,01, max 100) : le serveur les dit, la base les garde aussi.
+    if (quotePart !== null && !(quotePart > 0 && quotePart <= 100)) {
+      return { erreur: "La quote-part doit être comprise entre 0 et 100 %.", valeurs };
+    }
+    if (surfacePrivative !== null && !(surfacePrivative > 0)) {
+      return { erreur: "La surface privative doit être supérieure à zéro.", valeurs };
+    }
   }
 
   const { error } = await supabase.from("bail_personnes").insert({
@@ -789,8 +836,8 @@ export async function ajouterBailPersonne(
     bail_id: bailId,
     person_id: personId,
     role,
-    quote_part: role === "colocataire" && qp ? Number(qp) : null,
-    surface_privative: role === "colocataire" && surf ? Number(surf) : null,
+    quote_part: quotePart,
+    surface_privative: surfacePrivative,
     garant_de: role === "garant" ? garantDe : null,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };

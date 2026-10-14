@@ -5819,3 +5819,20 @@ tick `pg_cron` de 13 h 15 Paris : post du jeudi 15/10 préparé (`agi`, `alerte`
 Vercel : 5 erreurs « point du matin … données indisponibles (artisans) ». Cause : `artisans_a_valider()` exige `is_super_admin()` (session humaine au second facteur), le point est généré avec le client de service ;
 depuis le commit `d4f3b59` (13/10) une source illisible bloque tout l'enregistrement. Dernière décision créée le 13/10 à 09 h 11 UTC, 236 en attente. Antérieur à la mise en production du 14/10. Non corrigé (hors autorisation) ;
 pistes et recommandation dans [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.
+
+## [2026-10-14] deploy | Point du matin — correction fusionnée et déployée (PR #180)
+Autorisation du dirigeant (« oui corrige », puis « oui fusionne et déploie »). `lireAttentes` lit les artisans en attente et leurs justificatifs par les tables, en une requête, au lieu de `artisans_a_valider()` que le client de service
+se voit refuser (point figé depuis le 13/10). Relecture indépendante à trois angles, tests rouge puis vert, sept altérations du code détectées, CI verte ; fusion `0f7dbd5`, déploiement `dpl_6R5gZqMyEQE1KWWtpWbMkVDxnURy` en production, sans migration.
+Registre : PDM-01 (P2, déployée), 237 anomalies. À constater : la régénération du point au prochain passage de mission (contrôle programmé jeudi 15/10 à 09 h 20 Paris). Détail : [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.
+
+## [2026-10-14] decision | Réponses du dirigeant aux décisions groupées
+« P1 bloquants, pour le reste faire en fonction des recommandations. » Q3 et Q5 : P1 bloquants (VER-TS-02, PR178-B-06, CHF-01, CHF-02 reclassés, ouverts dans la version déployée). Toutes les autres décisions : recommandation suivie, avec ce qui reste différé (avis spécialisé : D02-B, D03-B,
+D38-B, D40-B, D41, D45-B, D46-B), à votre choix (D17-B, D42, canal et responsable du relais) ou à autoriser (essais de restauration D07/D43 et de stockage D11, mesure D12) ; D32 attend l'identité de l'éditeur. Vague 1 lancée (encaissement, fiscal et charges, bail et sortie).
+Voir [[Décisions groupées — version candidate du 13 octobre 2026]] et [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 ter.
+
+## [2026-10-14] query | Conseils au propriétaire pour choisir son locataire selon les assurances loyers impayés
+Demande du dirigeant (ajouter des conseils à l'écran du propriétaire, sans savoir quoi y mettre). Recherche en quatre angles et recontrôle : aucune page ni aucun PDF n'a pu être ouvert depuis l'environnement (réseau), tous les faits viennent de résumés de moteur de recherche.
+Page [[Choisir son locataire selon les conditions des assurances loyers impayés]] (brouillon), 12 conseils d'écran proposés, 9 questions au dirigeant, contradiction signalée sur [[Garantie]] (RM-2.3.2 et RM-2.3.3). Rien n'est ajouté à l'application.
+
+## [2026-10-14] decision | Autorisation de déployer les vagues (message du dirigeant : « tu as l'autorisation »)
+Réponse à l'engagement de l'agent de ne déployer qu'avec un feu vert nommé par commit. Portée retenue par l'agent : fusion, déploiement Vercel et migrations (sauvegarde, simulation, application réelle) des vagues 1 à 4 des décisions du 14/10, **chacune seulement après** : relecture indépendante sans constat bloquant ouvert, batterie complète verte sur le commit intégré (lint, types, build, tests, parcours navigateur), simulation des migrations réussie, aucune anomalie P0 ou P1 ouverte dans ce qui est livré. Hors portée : activation de fonctions désactivées (ex. module « clients externes »), ouverture de D17-B, essais de restauration et de stockage (D07, D11, D43), parties soumises à un avis spécialisé, mention de l'identité de l'éditeur. Chaque déploiement est suivi de contrôles non destructifs et consigné ici.

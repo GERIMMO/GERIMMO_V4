@@ -20,17 +20,17 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 *hypothèse* (à vérifier), *réfutée*. Une correction partielle est écrite « à trancher » avec ce qui est fait et ce qui reste.
 
 > [!info] Mise à jour du 14/10/2026 — déploiement
-> Le dirigeant a autorisé le déploiement de la version contrôlée `0ad658a` : fusion (PR #179, `c99e2c6`), déploiement Vercel et migrations `20261013110000` et `20261013120000` appliquées en production. Les lignes de ce registre marquées *corrigée en branche* sont donc **déployées**, sauf mention contraire ; leur statut ligne par ligne n'a pas été réécrit (il reflète la rédaction du 13–14/10). Détail, contrôles faits et limites : [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.
+> Le dirigeant a autorisé le déploiement de la version contrôlée `0ad658a` : fusion (PR #179, `c99e2c6`), déploiement Vercel et migrations `20261013110000` et `20261013120000` appliquées en production. Les lignes de ce registre marquées *corrigée en branche* sont donc **déployées**, sauf mention contraire ; leur statut ligne par ligne n'a pas été réécrit (il reflète la rédaction du 13–14/10). PDM-01, relevée après le déploiement, est corrigée par la PR #180 (`0f7dbd5`), déployée le même jour. Détail, contrôles faits et limites : [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.
 
 ## Synthèse
 
 | Gravité | ouverte | corrigée en branche | déployée | à trancher | acceptée | hypothèse | réfutée | Total |
 |---|---|---|---|---|---|---|---|---|
 | **P0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
-| **P1** | 0 | 1 | 0 | 0 | 0 | 0 | 0 | **1** |
-| **P2** | 0 | 34 | 0 | 34 | 1 | 0 | 0 | **69** |
+| **P1** | 4 | 1 | 0 | 0 | 0 | 0 | 0 | **5** |
+| **P2** | 0 | 34 | 1 | 30 | 1 | 0 | 0 | **66** |
 | **P3** | 20 | 74 | 0 | 70 | 1 | 0 | 1 | **166** |
-| **Total** | 20 | 109 | 0 | 104 | 2 | 0 | 1 | **236** |
+| **Total** | 24 | 109 | 1 | 100 | 2 | 0 | 1 | **237** |
 
 Sources lues : artisan, auditeur/a, auditeur/b, auditeur/c, cartographie, chaine/1, chaine/1b, chaine/2, charges-fiscalite, coordinateur, designer/a, designer/b, equipes-ia, perf-liens, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, retour-arriere, sortie-de-bail, superadmin, verification/flux-finale, verification/pr178, verification/securite, verification/sql, verification/ts, verification/ui-finale, verification/vague10-finale.
 
@@ -43,13 +43,73 @@ Sources lues : artisan, auditeur/a, auditeur/b, auditeur/c, cartographie, chaine
 
 Aucune anomalie de cette gravité à ce jour.
 
-## P1 — parcours essentiel bloqué ou calcul erroné (1)
+## P1 — parcours essentiel bloqué ou calcul erroné (5)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
+| `CHF-01` | charges-fiscalite | Le PDF « Récapitulatif annuel · location nue » imprime la ligne 250 (intérêts d'emprunt) d'après un champ de génération qui vaut 0 par défaut, et non d'après la rubrique 250 qualifiée de l'écran : 0,00 € au lieu de 2 345,67 €, sans alerte. | ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correc… |
+| `CHF-02` | charges-fiscalite | La régularisation de charges est acceptée pour l'exercice en cours : 10 mois de provisions sont comparés à des charges réelles d'une année pleine, et le résultat « complément dû » ne peut plus être corrigé. | ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correc… |
+| `PR178-B-06` | relecture/pr178/b | Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté) | ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correc… |
+| `VER-TS-02` | verification/ts | Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises | ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correc… |
 | `FIN-01` | relecture/finance | Le document « Récapitulatif annuel · location nue » appelle le nouveau recapitulatifFiscal sans qualifications, composantes ni exercices : toutes les rubriques s'impriment à 0,00 €. | corrigée en branche — commit cddf339 (tests rouges puis verts) |
 
 ### Fiches P1
+
+#### `CHF-01` — Le PDF « Récapitulatif annuel · location nue » imprime la ligne 250 (intérêts d'emprunt) d'après un champ de génération qui vaut 0 par défaut, et non d'après la rubrique 250 qualifiée de l'écran : 0,…
+
+- **Sévérité** : P1 · **Statut** : ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correction recommandée en cours (vague 1) — D37 option B : ligne 250 préremplie avec le montant qualifié, écart signalé sur le PDF · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Lot nu dont une dépense « Intérêts d'emprunt » de 2 345,67 € est qualifiée en rubrique 250, exercice confirmé, récapitulatif complet (écran et CSV : 250 = 2 345,67).
+- **Étapes** : 1. Ouvrir Documents > Préparer un document > Récapitulatif annuel · location nue. 2. Choisir le lot, année 2026. 3. Laisser « Intérêts d'emprunt de l'année (€) » à sa valeur par défaut 0. 4. Générer le PDF. 5. Relire la ligne 250.
+- **Attendu** : Ligne 250 = 2 345,67 € comme l'écran et le CSV, ou refus invitant à reporter le montant.
+- **Observé** : PDF : « 250 Intérêts d'emprunt 0,00 € » (avec 2345,67 saisis : 2 345,67 €). Le texte d'aide du champ dit que Gerimmo ne peut pas déduire ce montant du livre, ce qui est faux depuis la rubrique 250 qualifiable. Les autres lignes sont exactes.
+- **Preuve expurgée (banc)** : preuves/charges-fiscalite/captures/recap-nu-lotA-interets0.txt (250 = 0,00) ; preuves/charges-fiscalite/captures/recap-nu-lotA.txt (250 = 2 345,67 saisi) ; preuves/charges-fiscalite/captures/fiscal-final.csv ; preuves/charges-fiscalite/captures/doc-a-zero-resultat.png
+- **Cause probable** : app/src/lib/documents/modeles/catalogue-gestion.ts:170 (montant:r.code==="250"?interetsEmprunt:r.montant) ; app/src/lib/documents/catalogue-options.ts:23 (champ à 0 par défaut, aide périmée)
+- **Correction proposée** : Reprendre le montant de la rubrique 250 qualifiée comme valeur du champ (ou imprimer le montant qualifié et refuser une valeur différente) ; corriger l'aide. Touche un montant déclaratif : validation spécialisée recommandée.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `CHF-02` — La régularisation de charges est acceptée pour l'exercice en cours : 10 mois de provisions sont comparés à des charges réelles d'une année pleine, et le résultat « complément dû » ne peut plus être c…
+
+- **Sévérité** : P1 · **Statut** : ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correction recommandée en cours (vague 1) — D38 option A : avertissement fort et confirmation explicite pour un exercice en cours (l'option B attend l'avis spécialisé) · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Bail nu actif depuis 2025 à 60 € de provisions par mois ; nous sommes en octobre 2026 (10 appels en 2026).
+- **Étapes** : 1. Bail > Loyers & paiements > Régulariser. 2. Année 2026, charges réelles 640,00, justificatif PDF. 3. Valider.
+- **Attendu** : Refus ou avertissement tant que l'exercice n'est pas clos ; sinon comparaison à provisions de même période.
+- **Observé** : « Complément de 40,00 € dû par le locataire » (provisions 600,00 sur 10 mois contre 640,00 d'une année pleine). Sur 12 mois de provisions (720,00), l'écart serait +80,00 en faveur du locataire : le signe s'inverse. La ligne est enregistrée, émise et, d'après la fonction, ne se modifie plus.
+- **Preuve expurgée (banc)** : preuves/charges-fiscalite/tableau-attendu-obtenu.md (lignes « Régularisation A 2026 ») ; preuves/charges-fiscalite/ref.json (regul_A_2026_si_annee_pleine)
+- **Cause probable** : app/supabase/migrations/20260929130000_audit_gestion.sql:86 (seule garde : annee > année courante)
+- **Correction proposée** : Refuser, ou avertir et exiger une confirmation, tant que make_date(annee,12,31) n'est pas passé. Règle de droit non confirmée par une source officielle : validation spécialisée recommandée.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `PR178-B-06` — Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté)
+
+- **Sévérité** : P1 · **Statut** : ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correction recommandée en cours (vague 1) — D05 option A : clé d'envoi unique (encaissement de loyer d'abord, puis dépôt de garantie et écriture libre) · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : relecteur adverse PR178 (côté serveur et régressions) (relecture/pr178/b) · **Version testée** : f283439 (main après PR #178, lecture) et candidate 5d15b4d (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte gérant (admin.alpha ou propriétaire) sur un bail avec appels ; réseau qui coupe la réponse après traitement par le serveur (simulé : route.fetch puis abort).
+- **Étapes** : 1. Saisir 2 € dans « Saisir un encaissement », « Encaisser ». 2. La réponse est perdue : lire le message. 3. Cliquer de nouveau sur « Encaisser ».
+- **Attendu** : Un seul encaissement ; ou impossibilité de renvoyer sans avoir rouvert le dossier.
+- **Observé** : Après l'étape 2 : l'encaissement est déjà enregistré, le formulaire garde 2 et le bouton reste actif ; l'étape 3 crée un second encaissement de 2,00 € (2 lignes en base). L'invitation « Vérifiez le dossier avant de recommencer » n'est pas actionnable sans quitter la page, et quitter la page déclenche en plus l'avertissement « modifications non enregistrées ». Corrigeable ensuite par « Retirer » (journal), mais le déclencheur a pu émettre un reçu en trop. Avant la PR, la même panne affichait la page d'erreur (formulaire perdu), pas un formulaire prêt à rejouer.
+- **Preuve expurgée (banc)** : preuves/relecture/pr178/b/PR178-B-encaissement-reponse-perdue.png ; scripts/rejeu1.mjs
+- **Cause probable** : src/app/actions/loyers.ts:ajouterEncaissement (insert sans clé) ; idem encaisserDepot (depot.ts) et ajouterEcriture (compta.ts), lecture seule, non reproduits pour ces deux-là. Seules parc.ts (creation_id), auth.ts et retours.ts (cle_envoi) portent une clé. src/lib/use-action-state-protegee.ts conserve la saisie et ne désactive pas l'envoi après l'échec.
+- **Correction proposée** : Ajouter un champ caché cle_envoi (UUID par formulaire monté, régénéré après succès confirmé) et une contrainte d'unicité sur l'encaissement ; à défaut, après une réponse perdue, remplacer le bouton par « Vérifier l'encaissement » qui relit l'état du bail avant de réarmer l'envoi. À arbitrer P1 si l'on juge l'avertissement insuffisant face à l'effet comptable et au reçu envoyé au locataire.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `VER-TS-02` — Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises
+
+- **Sévérité** : P1 · **Statut** : ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correction recommandée en cours (vague 1) — D04 : lecture de la virgule achevée sur les champs restants et confirmation au-delà de 2 × (reste dû + un terme) ; acquis déjà déployé : 36 champs en texte décimal (vagues 5b et 10) · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Navigateur dont la langue d'interface n'est pas le français (le Chromium du banc est en anglais, quel que soit le contexte « fr-FR » de la page), champ Montant en type=number (formulaire d'encaissement du bail ; les autres formulaires de montant sont identiques)
+- **Étapes** : 1. Connecté en propriétaire direct, ouvrir un bail dont 2 termes de 840 € sont appelés. 2. Taper au clavier 840,00 dans Montant (date du jour). 3. Valider.
+- **Attendu** : 840,00 € encaissés, ou au minimum une alerte devant un montant 100 fois supérieur au dû
+- **Observé** : Le navigateur lit la virgule comme séparateur de milliers : valeur envoyée « 84000 ». Le serveur l'accepte (borne 9 999 999,99 sans rapport avec le dû) : « 84 000,00 € encaissés … septembre 2026 soldé → quittance ; octobre 2026 soldé → quittance · 82 320,00 € en avance sur le prochain appel ». Base : 1 encaissement de 84000, 2 quittances. La suppression de l'encaissement (contre-écritures) permet de revenir en arrière. Un double clic n'a créé qu'un seul encaissement
+- **Preuve expurgée (banc)** : preuves/verification/ts/e2e-encaissement-succes.mjs ; preuves/verification/ts/e2e-encaissement-succes.png ; preuves/verification/ts/etat-banc-final.txt
+- **Cause probable** : Champs name="montant" en type="number" (formulaire-loyers.tsx:354, formulaire-depot.tsx:159, fenetre-lot.tsx:626 et :1279…) : le navigateur normalise la saisie avant que lireMontant (qui sait lire la virgule) ne la voie ; aucun contrôle de plausibilité par rapport au dû
+- **Correction proposée** : Passer ces champs en type="text" inputMode="decimal" (le serveur lit déjà « 840,00 » et « 840.00 ») ; ajouter côté serveur une confirmation explicite quand le montant dépasse largement le dû (ordre de grandeur à fixer par le dirigeant)
+- **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `FIN-01` — Le document « Récapitulatif annuel · location nue » appelle le nouveau recapitulatifFiscal sans qualifications, composantes ni exercices : toutes les rubriques s'impriment à 0,00 €.
 
@@ -63,7 +123,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Contrôle en production (lecture seule)** : `-- Lecture seule : documents « récapitulatif nu » produits depuis la mise en ligne (à ouvrir : rubriques à 0,00 € attendues). select d.id, d.organization_id, d.titre, d.created_at from public.documents d where d.titre = 'Récapitulatif annuel · location nue' and d.created_at >= '2026-10-12' order by d.created_at;`
 
-## P2 — dégradation avec contournement (69)
+## P2 — dégradation avec contournement (66)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
@@ -101,6 +161,7 @@ Aucune anomalie de cette gravité à ce jour.
 | `VFL-03` | verification/flux-finale | Copie locale refusée : un lien interne efface la saisie de la fiche personne sans avertissement, malgré « Gardez cet onglet ouvert » | corrigée en branche — vague 10 (commit 0ad658a) ; tests : tests/garde-copie-locale.test.ts, e2e/personne-reprise.spec.t… |
 | `VFL-07` | verification/flux-finale | Montants restés en type=number : « 840,00 » devient 84 000 dans un navigateur non francophone (charges réelles à régulariser, indice IRL, loyer/charges/dépôt du bail) | corrigée en branche — vague 10 (commit 0ad658a) ; tests : tests/montants-actions-lecture.test.ts : 209 tests, 22 couple… |
 | `VER-PR178-01` | verification/pr178 | Régression : la correction PR178-A-02 désactive la protection « Quitter la page ? » pour une quarantaine de formulaires de saisie (profil, bail, lot, EDL, messages, assistance…) | corrigée en branche — vague 5-7 ; tests : tests/protection-saisie-formulaires.test.ts |
+| `PDM-01` | coordinateur | Le point du matin ne s'actualise plus depuis le 13/10 : la lecture des artisans en attente passe par une fonction que le client de service se voit toujours refuser | déployée — PR #180 fusionnée (0f7dbd5) et déployée le 14/10/2026 après autorisation du dirigeant ; tests rouge puis ver… |
 | `ARC-07` | artisan | Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé | à trancher |
 | `ARC-08` | artisan | Un artisan refusé par la plateforme et sur liste noire globale garde l outil clients externes, devis et factures | à trancher |
 | `AUD-B-04` | auditeur/b | Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce *(hyp.)* | à trancher |
@@ -113,8 +174,6 @@ Aucune anomalie de cette gravité à ce jour.
 | `CHN-01` | chaine/2 | Les créneaux non retenus sont enregistrés « refusés » : après trois reports, l'artisan est bloqué et l'écran impute au locataire des refus qu'il n'a jamais faits | à trancher — règle métier : les créneaux non retenus comptent aujourd'hui comme refusés (six refus = arbitrage) ; une c… |
 | `LOC-21` | chaine/2 | Le locataire ne peut ni reporter ni annuler un rendez-vous confirmé : aucun geste après la confirmation | à trancher — fonction manquante : le locataire ne peut ni reporter ni annuler un rendez-vous confirmé |
 | `PRO2-21` | chaine/2 | Le règlement de la facture de l'artisan n'est pas un geste de l'application : l'écriture du journal n'est liée à rien et la facture ne passe jamais à « réglée » | à trancher — fonction manquante : le règlement d'une facture d'artisan n'est lié ni à la facture ni à l'incident |
-| `CHF-01` | charges-fiscalite | Le PDF « Récapitulatif annuel · location nue » imprime la ligne 250 (intérêts d'emprunt) d'après un champ de génération qui vaut 0 par défaut, et non d'après la rubrique 250 qualifiée de l'écran : 0,00 € au lieu de 2 345,67 €, sans alerte. | à trancher |
-| `CHF-02` | charges-fiscalite | La régularisation de charges est acceptée pour l'exercice en cours : 10 mois de provisions sont comparés à des charges réelles d'une année pleine, et le résultat « complément dû » ne peut plus être corrigé. | à trancher |
 | `CHF-03` | charges-fiscalite | Le « Décompte annuel des charges » et le « Courrier de régularisation » sont impossibles à générer pour une régularisation créée depuis l'interface : ils exigent un champ « note » que le formulaire ne propose pas. | à trancher |
 | `CHF-06` | charges-fiscalite | Une régularisation de charges n'écrit rien au livre ni aux appels : le complément dû ou le trop-perçu à rendre n'apparaît dans aucun écran de suivi financier. | à trancher |
 | `AUT-01` | coordinateur | maintenance_artisans() n'est appelée par aucune tâche : les devis déposés ne deviennent jamais « expirés » et les motifs de liste noire ne sont jamais purgés | à trancher — correction préparable (tâche pg_cron + version interne), aval requis : active un automatisme en production |
@@ -129,12 +188,10 @@ Aucune anomalie de cette gravité à ce jour.
 | `FIN-11` | relecture/finance | Les migrations ne rétro-capturent aucun loyer existant et la reprise « retrouver_ventilation_fiscale » refuse tout bail qui a plus d'un appel : sur les données réelles déjà en production, le récapitulatif 2044 passe à 0 € de loyers et chaque pièce doit être q… | à trancher |
 | `PR178-A-03` | relecture/pr178/a | Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seule issue : effacer la copie et tout ressaisir | à trancher — décision D31 de la page de décisions groupées |
 | `PR178-B-04` | relecture/pr178/b | Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires | à trancher — clic avant hydratation sans effet visible : désactiver le bouton jusqu'à l'hydratation, formulaire par for… |
-| `PR178-B-06` | relecture/pr178/b | Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté) | à trancher — rejeu possible d'un encaissement après réponse perdue : demande une clé d'idempotence et une contrainte en… |
 | `SUP-01` | relecture/supervision | L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision. | à trancher |
 | `SUP-05` | relecture/supervision | Les « faits de direction » copient, pour toutes les organisations, des données personnelles (titres d'alertes contenant le nom du locataire, ex. « État des lieux d'entrée — Lot 1 · Marie Durand ») dans brief_direction_snapshots, sans aucune trace d'audit par… | à trancher |
 | `SOR-03` | sortie-de-bail | Un second bail est activé sur un lot avec une période qui recouvre celle du bail précédent | à trancher |
 | `SA-01` | superadmin | Traversée de la supervision dans un espace client : écriture financière possible sans motif ni durée, et la ligne d'audit 'traversee_action' ne dit ni quelle action, ni sur quel objet, ni avec quel résultat | à trancher — limite déjà actée au wiki (audit du 25/09) : entrée dans un espace client sans motif ni durée ; l'écriture… |
-| `VER-TS-02` | verification/ts | Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises | à trancher — 17 champs corrigés (vague 5b) puis 19 autres (vague 10) ; restent à décider : intérêts d'emprunt et plafon… |
 | `PROP-BANC-01` | proprietaire/s01 | Banc : serveur :3100 démarré sans SUPABASE_SERVICE_ROLE_KEY (inscription et liens bloqués) | acceptée — défaut du banc d'essai, pas du produit ; banc-up.sh vérifie la clé de service |
 
 ### Fiches P2
@@ -606,6 +663,18 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Soit ajouter data-saisie-confirmee aux formulaires qui utilisent useActionFormulaire/useActionStateProtegee (et un test qui échoue si un <form> branché sur ces hooks n'a pas l'attribut), soit inverser la règle : suivre par défaut et exclure explicitement les filtres (method=get, role=search, ou attribut data-saisie-ignoree). Ne change aucune règle métier.
 - **Correction sans aval** : oui
 
+#### `PDM-01` — Le point du matin ne s'actualise plus depuis le 13/10 : la lecture des artisans en attente passe par une fonction que le client de service se voit toujours refuser
+
+- **Sévérité** : P2 · **Statut** : déployée — PR #180 fusionnée (0f7dbd5) et déployée le 14/10/2026 après autorisation du dirigeant ; tests rouge puis vert, sept mutations détectées, équivalence rejouée sur le banc, relecture indépendante à trois angles ; reste à constater en production la régénération du point au prochain passage de mission (chemin du client de service non rejouable depuis l'environnement) · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : super-administrateur (coordinateur) · **Version testée** : main au 14/10/2026 (c99e2c6, déploiement de la PR #179) ; correction en 0f7dbd5 (PR #180)
+- **Environnement** : production en lecture seule (journaux d'exécution de Vercel, tables de la base) pour le constat ; banc local isolé (Postgres 16, émulateur Supabase) pour le rejeu
+- **Attendu** : Après chaque passage de mission, le point du jour de chaque équipe est enregistré avec les décisions à prendre (publications, veille, artisans, retours).
+- **Observé** : Vercel regroupe 5 erreurs « [point du matin] Le point n'a pas été actualisé : données indisponibles (artisans) » (première le 13/10 vers 09 h 40 UTC, dernière le 14/10 à 11 h 15 UTC). La dernière décision a été créée le 13/10 à 09 h 11 UTC ; 236 décisions restent en attente. Depuis le commit d4f3b59 (PR #177), une source illisible bloque tout l'enregistrement ; avant, l'échec était avalé et la liste des artisans restait vide sans bruit.
+- **Preuve expurgée (banc)** : Lecture du code (genererPointsDuMatin, lireAttentes, execution-mission) ; définition en production de artisans_a_valider() (« if not public.is_super_admin() then raise exception 'Accès refusé' ») et de is_super_admin() (aal2 et adhésion super_admin) ; rejeu sur le banc, transaction annulée : session de supervision AAL2 → lignes, service_role → « Accès refusé » ; get_runtime_errors de Vercel ; table decisions_du_matin (max cree_le).
+- **Cause probable** : artisans_a_valider() n'a jamais pu être appelée par le client de service qui génère le point ; la PR #177 a rendu l'échec bloquant sans prévoir cette source.
+- **Correction proposée** : Lire les artisans en attente et leurs justificatifs directement dans lireAttentes (une requête, justificatifs imbriqués), contenu identique à la fonction SQL ; aucune migration, aucun droit modifié.
+- **Correction sans aval** : oui
+
 #### `ARC-07` — Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé
 
 - **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
@@ -773,34 +842,6 @@ Aucune anomalie de cette gravité à ce jour.
 - **Preuve expurgée (banc)** : sql/ecriture-reglement.txt, captures/o6-01-saisie-ecriture.png
 - **Cause probable** : app/src/app/agence/[orgId]/comptabilite (saisie libre) ; intervention_factures n'a pas de colonne de règlement (id, numero, montant, validee_le, decision_motif, imputation_validee)
 - **Correction proposée** : Ajouter à la validation (ou après) « Enregistrer le règlement » : date, moyen, référence, qui crée l'écriture de dépense avec lien intervention_factures.id et trace d'audit ; afficher « réglée le … » côté propriétaire et artisan
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `CHF-01` — Le PDF « Récapitulatif annuel · location nue » imprime la ligne 250 (intérêts d'emprunt) d'après un champ de génération qui vaut 0 par défaut, et non d'après la rubrique 250 qualifiée de l'écran : 0,…
-
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Lot nu dont une dépense « Intérêts d'emprunt » de 2 345,67 € est qualifiée en rubrique 250, exercice confirmé, récapitulatif complet (écran et CSV : 250 = 2 345,67).
-- **Étapes** : 1. Ouvrir Documents > Préparer un document > Récapitulatif annuel · location nue. 2. Choisir le lot, année 2026. 3. Laisser « Intérêts d'emprunt de l'année (€) » à sa valeur par défaut 0. 4. Générer le PDF. 5. Relire la ligne 250.
-- **Attendu** : Ligne 250 = 2 345,67 € comme l'écran et le CSV, ou refus invitant à reporter le montant.
-- **Observé** : PDF : « 250 Intérêts d'emprunt 0,00 € » (avec 2345,67 saisis : 2 345,67 €). Le texte d'aide du champ dit que Gerimmo ne peut pas déduire ce montant du livre, ce qui est faux depuis la rubrique 250 qualifiable. Les autres lignes sont exactes.
-- **Preuve expurgée (banc)** : preuves/charges-fiscalite/captures/recap-nu-lotA-interets0.txt (250 = 0,00) ; preuves/charges-fiscalite/captures/recap-nu-lotA.txt (250 = 2 345,67 saisi) ; preuves/charges-fiscalite/captures/fiscal-final.csv ; preuves/charges-fiscalite/captures/doc-a-zero-resultat.png
-- **Cause probable** : app/src/lib/documents/modeles/catalogue-gestion.ts:170 (montant:r.code==="250"?interetsEmprunt:r.montant) ; app/src/lib/documents/catalogue-options.ts:23 (champ à 0 par défaut, aide périmée)
-- **Correction proposée** : Reprendre le montant de la rubrique 250 qualifiée comme valeur du champ (ou imprimer le montant qualifié et refuser une valeur différente) ; corriger l'aide. Touche un montant déclaratif : validation spécialisée recommandée.
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `CHF-02` — La régularisation de charges est acceptée pour l'exercice en cours : 10 mois de provisions sont comparés à des charges réelles d'une année pleine, et le résultat « complément dû » ne peut plus être c…
-
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Bail nu actif depuis 2025 à 60 € de provisions par mois ; nous sommes en octobre 2026 (10 appels en 2026).
-- **Étapes** : 1. Bail > Loyers & paiements > Régulariser. 2. Année 2026, charges réelles 640,00, justificatif PDF. 3. Valider.
-- **Attendu** : Refus ou avertissement tant que l'exercice n'est pas clos ; sinon comparaison à provisions de même période.
-- **Observé** : « Complément de 40,00 € dû par le locataire » (provisions 600,00 sur 10 mois contre 640,00 d'une année pleine). Sur 12 mois de provisions (720,00), l'écart serait +80,00 en faveur du locataire : le signe s'inverse. La ligne est enregistrée, émise et, d'après la fonction, ne se modifie plus.
-- **Preuve expurgée (banc)** : preuves/charges-fiscalite/tableau-attendu-obtenu.md (lignes « Régularisation A 2026 ») ; preuves/charges-fiscalite/ref.json (regul_A_2026_si_annee_pleine)
-- **Cause probable** : app/supabase/migrations/20260929130000_audit_gestion.sql:86 (seule garde : annee > année courante)
-- **Correction proposée** : Refuser, ou avertir et exiger une confirmation, tant que make_date(annee,12,31) n'est pas passé. Règle de droit non confirmée par une source officielle : validation spécialisée recommandée.
 - **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `CHF-03` — Le « Décompte annuel des charges » et le « Courrier de régularisation » sont impossibles à générer pour une régularisation créée depuis l'interface : ils exigent un champ « note » que le formulaire n…
@@ -995,20 +1036,6 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Documenter le compromis ; ou désactiver visuellement le bouton d'envoi tant que la page n'est pas hydratée (état « chargement ») pour que le clic précoce ne soit pas silencieux ; ou conserver l'action serveur en action du formulaire et poser la protection par écouteurs (formdata) plutôt que par enveloppe.
 - **Correction sans aval** : non (aval du dirigeant requis)
 
-#### `PR178-B-06` — Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté)
-
-- **Sévérité** : P2 · **Statut** : à trancher — rejeu possible d'un encaissement après réponse perdue : demande une clé d'idempotence et une contrainte en base (migration) · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : relecteur adverse PR178 (côté serveur et régressions) (relecture/pr178/b) · **Version testée** : f283439 (main après PR #178, lecture) et candidate 5d15b4d (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte gérant (admin.alpha ou propriétaire) sur un bail avec appels ; réseau qui coupe la réponse après traitement par le serveur (simulé : route.fetch puis abort).
-- **Étapes** : 1. Saisir 2 € dans « Saisir un encaissement », « Encaisser ». 2. La réponse est perdue : lire le message. 3. Cliquer de nouveau sur « Encaisser ».
-- **Attendu** : Un seul encaissement ; ou impossibilité de renvoyer sans avoir rouvert le dossier.
-- **Observé** : Après l'étape 2 : l'encaissement est déjà enregistré, le formulaire garde 2 et le bouton reste actif ; l'étape 3 crée un second encaissement de 2,00 € (2 lignes en base). L'invitation « Vérifiez le dossier avant de recommencer » n'est pas actionnable sans quitter la page, et quitter la page déclenche en plus l'avertissement « modifications non enregistrées ». Corrigeable ensuite par « Retirer » (journal), mais le déclencheur a pu émettre un reçu en trop. Avant la PR, la même panne affichait la page d'erreur (formulaire perdu), pas un formulaire prêt à rejouer.
-- **Preuve expurgée (banc)** : preuves/relecture/pr178/b/PR178-B-encaissement-reponse-perdue.png ; scripts/rejeu1.mjs
-- **Cause probable** : src/app/actions/loyers.ts:ajouterEncaissement (insert sans clé) ; idem encaisserDepot (depot.ts) et ajouterEcriture (compta.ts), lecture seule, non reproduits pour ces deux-là. Seules parc.ts (creation_id), auth.ts et retours.ts (cle_envoi) portent une clé. src/lib/use-action-state-protegee.ts conserve la saisie et ne désactive pas l'envoi après l'échec.
-- **Correction proposée** : Ajouter un champ caché cle_envoi (UUID par formulaire monté, régénéré après succès confirmé) et une contrainte d'unicité sur l'encaissement ; à défaut, après une réponse perdue, remplacer le bouton par « Vérifier l'encaissement » qui relit l'état du bail avant de réarmer l'envoi. À arbitrer P1 si l'on juge l'avertissement insuffisant face à l'effet comptable et au reçu envoyé au locataire.
-- **Correction sans aval** : non (aval du dirigeant requis)
-
 #### `SUP-01` — L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision.
 
 - **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
@@ -1059,20 +1086,6 @@ Aucune anomalie de cette gravité à ce jour.
 - **Preuve expurgée (banc)** : sql/brief_snapshot_faits.txt ; captures/05-dossier-depuis-brief.png ; captures/06-encaisser-formulaire.png ; sortie SQL : audit_log (traversee_action, details={}) et ecritures da8357d8… (sans auteur)
 - **Cause probable** : src/lib/ged-acces.ts:56 (log_sa_access sans détails) ; src/lib/espace.ts:44 ; fonction SQL log_sa_access (insert avec details vide par défaut)
 - **Correction proposée** : Passer en détails l'objet et le geste (route ou action, identifiant de l'objet, résultat) ; émettre traversee_action seulement sur les écritures ; demander un motif court et borner la traversée en écriture (30 min, comme pour l'artisan) ; ajouter l'auteur aux écritures financières
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `VER-TS-02` — Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises
-
-- **Sévérité** : P2 · **Statut** : à trancher — 17 champs corrigés (vague 5b) puis 19 autres (vague 10) ; restent à décider : intérêts d'emprunt et plafond de caution du catalogue de documents (valeur passée en argument, pas en formulaire), champs non monétaires (taux d'honoraires « 7,5 » → 75 passe la borne 0-100), confirmation d'un montant très supérieur au dû · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Navigateur dont la langue d'interface n'est pas le français (le Chromium du banc est en anglais, quel que soit le contexte « fr-FR » de la page), champ Montant en type=number (formulaire d'encaissement du bail ; les autres formulaires de montant sont identiques)
-- **Étapes** : 1. Connecté en propriétaire direct, ouvrir un bail dont 2 termes de 840 € sont appelés. 2. Taper au clavier 840,00 dans Montant (date du jour). 3. Valider.
-- **Attendu** : 840,00 € encaissés, ou au minimum une alerte devant un montant 100 fois supérieur au dû
-- **Observé** : Le navigateur lit la virgule comme séparateur de milliers : valeur envoyée « 84000 ». Le serveur l'accepte (borne 9 999 999,99 sans rapport avec le dû) : « 84 000,00 € encaissés … septembre 2026 soldé → quittance ; octobre 2026 soldé → quittance · 82 320,00 € en avance sur le prochain appel ». Base : 1 encaissement de 84000, 2 quittances. La suppression de l'encaissement (contre-écritures) permet de revenir en arrière. Un double clic n'a créé qu'un seul encaissement
-- **Preuve expurgée (banc)** : preuves/verification/ts/e2e-encaissement-succes.mjs ; preuves/verification/ts/e2e-encaissement-succes.png ; preuves/verification/ts/etat-banc-final.txt
-- **Cause probable** : Champs name="montant" en type="number" (formulaire-loyers.tsx:354, formulaire-depot.tsx:159, fenetre-lot.tsx:626 et :1279…) : le navigateur normalise la saisie avant que lireMontant (qui sait lire la virgule) ne la voie ; aucun contrôle de plausibilité par rapport au dû
-- **Correction proposée** : Passer ces champs en type="text" inputMode="decimal" (le serveur lit déjà « 840,00 » et « 840.00 ») ; ajouter côté serveur une confirmation explicite quand le montant dépasse largement le dû (ordre de grandeur à fixer par le dirigeant)
 - **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `PROP-BANC-01` — Banc : serveur :3100 démarré sans SUPABASE_SERVICE_ROLE_KEY (inscription et liens bloqués)

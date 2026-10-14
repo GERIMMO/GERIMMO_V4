@@ -92,3 +92,7 @@ bailleur reçoit notification de la résiliation. »
 > (simple / solidaire) et **durée** (déterminée / indéterminée). Le texte de la mention
 > légale doit suivre la **réforme 2022** (ordonnance 2021-1192), pas l'ancien « lu et
 > approuvé ». Voir [[Documents a generer et automatisation WhatsApp]].
+
+> [!warning] Points à trancher / contradictions (14/10/2026)
+> - **Pluralité des garanties (RM-2.3.2)** : « plusieurs garanties peuvent coexister sur un même bail » contredit, d'après les sources lues, l'article 22-1 de la loi du 6 juillet 1989 (pas de cautionnement quand une assurance ou une autre garantie couvre les obligations locatives, sauf locataire étudiant ou apprenti) et la règle de non-cumul de Visale avec une assurance loyers impayés. Sources et réserves : [[Choisir son locataire selon les conditions des assurances loyers impayés]] (brouillon : textes non relus sur leur version en vigueur).
+> - **Visale et dépôt de garantie (RM-2.3.3)** : « Visale peut se substituer au dépôt de garantie » est à nuancer d'après la même synthèse ; à confirmer sur la page officielle de Visale avant toute évolution de l'écran.

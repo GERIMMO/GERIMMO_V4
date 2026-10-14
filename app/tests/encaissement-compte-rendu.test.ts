@@ -104,6 +104,25 @@ function supabaseSurLaBase() {
       throw new Error(`Appel non prévu par le banc d'essai : ${nom}`);
     },
     from: (table: string) => ({
+      // D05 / D04 : l'action lit si la clé d'envoi a déjà servi, et le loyer du bail quand rien n'est appelé.
+      select: (colonnes: string) => {
+        const filtres: [string, unknown][] = [];
+        const requete = {
+          eq: (colonne: string, valeur: unknown) => {
+            filtres.push([colonne, valeur]);
+            return requete;
+          },
+          maybeSingle: async () => {
+            const where = filtres.map(([c], i) => `${c} = $${i + 1}`).join(" and ");
+            const { rows } = await db.query(
+              `select ${colonnes} from public.${table} where ${where} limit 1`,
+              filtres.map(([, v]) => v)
+            );
+            return { data: rows[0] ?? null, error: null };
+          },
+        };
+        return requete;
+      },
       insert: async (v: Record<string, unknown>) => {
         // Fidélité au vrai client : PostgREST sérialise en JSON, donc une clé
         // `undefined` n'est PAS transmise et la colonne garde son défaut — ce
@@ -466,6 +485,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
     saisie.set("montant", "500");
     saisie.set("date_paiement", dateReleve);
     saisie.set("mode", "virement");
+    saisie.set("cle_envoi", randomUUID());
     const resultat = await ajouterEncaissement(org, bail, {}, saisie);
 
     expect(resultat.erreur).toBeUndefined();

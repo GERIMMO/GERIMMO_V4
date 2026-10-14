@@ -133,6 +133,32 @@ describe("acte de cautionnement", () => {
     expect(RESILIATION_CAUTION_DUREE_INDETERMINEE).toMatch(/^Lorsque le cautionnement d'obligations résultant d'un contrat de location/);
     expect(RESILIATION_CAUTION_DUREE_INDETERMINEE).toMatch(/au cours duquel le bailleur reçoit notification de la résiliation\.$/);
   });
+
+  // D04 (1), VER-TS-02 : le plafond saisi se lit comme tous les montants — « 15000,50 » vaut 15000,5 (jamais 1500050),
+  // « 15 000,50 » reste admis (zone de texte d'un document), « 1e4 » ne vaut plus 10000 : le plafond manque alors,
+  // car il est exigé à peine de nullité (art. 2297).
+  it.each([
+    ["15000,50", /15[\s  ]000,50/],
+    ["15000.50", /15[\s  ]000,50/],
+    ["15 000,50", /15[\s  ]000,50/],
+    ["15 000,50 €", /15[\s  ]000,50/],
+  ])("plafond « %s » est lu tel que tapé", async (saisie, attendu) => {
+    const ctx = contexte();
+    ctx.garants = [{ ...personne({ id: "g1", nom: "Leblanc", prenom: "Marc" }), garant_de: null }];
+    vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
+    const doc = await assemblerCautionnement({} as SupabaseClient, "org", "b1", { garant: "g1", montant_max: saisie });
+    expect(html(doc)).toMatch(attendu);
+  });
+
+  it.each(["1e4", "0x10", "abc", "-500", "0", "15.000,50"])("plafond « %s » est illisible : il manque, il n'est pas deviné", async (saisie) => {
+    const ctx = contexte();
+    ctx.garants = [{ ...personne({ id: "g1", nom: "Leblanc", prenom: "Marc" }), garant_de: null }];
+    vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
+    const doc = await assemblerCautionnement({} as SupabaseClient, "org", "b1", { garant: "g1", montant_max: saisie });
+    expect(html(doc)).not.toMatch(/10[\s  ]000,00/);
+    expect(html(doc)).not.toMatch(/500,00/);
+    expect("document" in doc && doc.document.manquants.length).toBeGreaterThan(0);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -197,6 +223,19 @@ describe("congé du bailleur (PDF)", () => {
     expect(congeBailleurDansLesDelais("2029-03-02", "2029-08-31", 6)).toBe(false);
     expect(prixDepuisOptions("245 000,50")).toBe(245000.5);
     expect(prixDepuisOptions("0")).toBeNull();
+  });
+
+  // D04 (1), VER-TS-02 : le prix se lit comme tous les montants — jamais deviné à partir d'un exposant ou d'un point de milliers.
+  it("prix de vente : la virgule, le point et les espaces sont lus ; l'exposant et le point de milliers ne le sont plus", () => {
+    expect(prixDepuisOptions("245000,50")).toBe(245000.5);
+    expect(prixDepuisOptions("245000.50")).toBe(245000.5);
+    expect(prixDepuisOptions("245 000,50 €")).toBe(245000.5);
+    expect(prixDepuisOptions("245 000,50")).toBe(245000.5);
+    expect(prixDepuisOptions("1e5")).toBeNull();
+    expect(prixDepuisOptions("0x10")).toBeNull();
+    expect(prixDepuisOptions("245.000,50")).toBeNull();
+    expect(prixDepuisOptions("-5")).toBeNull();
+    expect(prixDepuisOptions("")).toBeNull();
   });
 });
 

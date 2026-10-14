@@ -114,6 +114,20 @@ describe("Catalogue — documents issus des dossiers",()=>{
     expect(renseigne.document.manquants).toEqual([]);
     expect(renseigne.document.html).toContain("123,45");
   });
+  it("lit les intérêts d’emprunt tels que tapés : « 1234,50 » vaut 1 234,50 (D04 1, VER-TS-02)",async()=>{
+    for(const saisie of ["1234,50","1234.50"]){
+      const r=succes(await assemblerComplementGestion("recap_fiscal_nu",mockDb().db,"org","lot",{annee:"2026",interets_emprunt:saisie}));
+      expect(r.document.html).toMatch(/1[\s  ]234,50/);
+    }
+    expect(succes(await assemblerComplementGestion("recap_fiscal_nu",mockDb().db,"org","lot",{annee:"2026",interets_emprunt:"0"})).document.manquants).toEqual([]);
+  });
+  it("refuse des intérêts d’emprunt illisibles au lieu de les deviner : exposant, espaces, point de milliers, négatif",async()=>{
+    for(const saisie of ["1e3","1 234,50","1.234,50","-5","abc","0x10"]){
+      const r=await assemblerComplementGestion("recap_fiscal_nu",mockDb().db,"org","lot",{annee:"2026",interets_emprunt:saisie});
+      // D37 : une saisie illisible est refusée avec la lecture stricte des montants (message du champ) ; une saisie vide reprend le montant du livre.
+      expect(r,saisie).toEqual({erreur:expect.stringMatching(/^Intérêts d’emprunt de l’année : /)});
+    }
+  });
   it("le récapitulatif fiscal nu reprend les captures et les qualifications au lieu d’imprimer des zéros",async()=>{
     // Relevé du 13/10 (FIN-01) : le document appelait le calcul sans captures ni qualifications.
     const t=fixture();

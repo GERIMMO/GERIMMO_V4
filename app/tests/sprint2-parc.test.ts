@@ -408,7 +408,8 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
       [edlSortie]
     );
     await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edlSortie]);
-    await db.query(`select public.terminer_bail($1)`, [bail]);
+    // Clôture le jour du congé, avant la fin du préavis : à confirmer (décision D34 du 14/10).
+    await db.query(`select public.terminer_bail($1, null, true)`, [bail]);
     const libere = await db.query(`select etat from public.lots where id = $1`, [lot]);
     expect(libere.rows[0].etat).toBe("disponible");
     await db.query(`update public.lots set etat = 'archive' where id = $1`, [lot]);

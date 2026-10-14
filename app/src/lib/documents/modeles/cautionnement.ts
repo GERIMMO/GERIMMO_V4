@@ -8,6 +8,7 @@
 // Acte des parties : cadres de signature, jamais de signature d'émetteur.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { lireMontantAvecEspaces } from "@/lib/saisie-montant";
 import {
   Fusion,
   assemblerPage,
@@ -37,8 +38,9 @@ import type { Assemblage } from "./index";
 // car le montant maximal est exigé à peine de nullité (art. 2297).
 function montantMaxDepuisOptions(brut: string | undefined): number | null {
   if (!brut) return null;
-  const n = Number(brut.replace(/\s/g, "").replace(",", "."));
-  return Number.isFinite(n) && n > 0 ? n : null;
+  // Lu comme tous les montants (VER-TS-02) : « 12 000,50 » reste admis ; « 1e4 » ne vaut plus 10000.
+  const lu = lireMontantAvecEspaces(brut);
+  return "montant" in lu ? lu.montant : null;
 }
 
 // Art. 22-1, avant-dernier alinéa (texte légal exact) : un cautionnement sans

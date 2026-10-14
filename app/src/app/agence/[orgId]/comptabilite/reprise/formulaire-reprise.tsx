@@ -58,7 +58,7 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
               defaultValue={etat.tresorerieAnnoncee ?? ""}
               // Un exemple se dit exemple : « 42000 » seul passait pour une
               // valeur déjà saisie (24/09).
-              placeholder="ex. 42 000"
+              placeholder="ex. 42000"
             />
             <p className="text-sm text-muted-foreground">
               Ce que vous recevez réellement. Le détail du fichier devra le

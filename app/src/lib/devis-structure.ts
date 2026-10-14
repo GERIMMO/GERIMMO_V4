@@ -51,15 +51,30 @@ export function descriptionDevisLisible(description: string): string {
 // ART-12 : un champ de ligne invalide laissait le total à 0,00 € sans dire
 // lequel. Ces deux fonctions donnent la raison, champ par champ ; elles
 // refusent exactement ce que calculerDevis refuserait (un test le vérifie).
+/**
+ * Lit la quantité tapée, telle que tapée : « 2 », « 2,5 » et « 2.125 » (trois décimales au plus). Illisible, nulle ou
+ * hors borne : `null`. Comme les montants (lib/saisie-montant.ts), jamais par `Number()` : « 1e2 » valait 100, « 0x10 »
+ * valait 16 et le vide valait 0 (D04 (1), VER-TS-02).
+ */
+export function lireQuantite(brut: string): number | null {
+  const texte = brut.trim().replace(",", ".");
+  if (!/^\d+(\.\d+)?$/.test(texte)) return null;
+  // Le texte ne porte que des chiffres et un point : cette conversion n'a aucune forme surprenante à lire.
+  const quantite = Number(texte);
+  // Les mêmes bornes que calculerDevis : positive, un million au plus, trois décimales au plus (zéros finaux admis).
+  const bornee = quantite > 0 && quantite <= 1_000_000 && /^\d+(\.\d{1,3})?$/.test(String(quantite));
+  return bornee ? quantite : null;
+}
+
 /** Raison du refus d'une quantité saisie, ou null (valide, ou pas encore saisie). */
 export function erreurQuantiteSaisie(brut: string): string | null {
-  const texte = brut.trim();
+  const texte = brut.trim().replace(",", ".");
   if (texte === "") return null;
-  const q = Number(texte.replace(",", "."));
-  if (!Number.isFinite(q)) return "La quantité doit être un nombre, par exemple 2 ou 2,5.";
+  if (!/^-?\d+(\.\d+)?$/.test(texte)) return "La quantité doit être un nombre, par exemple 2 ou 2,5, sans espace ni exposant.";
+  const q = Number(texte);
   if (q <= 0) return "La quantité doit être supérieure à zéro.";
   if (q > 1_000_000) return "La quantité ne peut pas dépasser 1 000 000.";
-  if (!/^\d+(\.\d{1,3})?$/.test(String(q))) return "La quantité accepte trois décimales au plus, par exemple 2,125.";
+  if (lireQuantite(texte) === null) return "La quantité accepte trois décimales au plus, par exemple 2,125.";
   return null;
 }
 

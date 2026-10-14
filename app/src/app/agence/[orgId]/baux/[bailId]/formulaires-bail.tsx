@@ -18,6 +18,9 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChampFichier } from "@/components/champ-fichier";
+import { InputDateJour } from "@/components/input-date-jour";
+import { clotureAnticipee, confirmationAAfficher } from "@/lib/cloture-bail";
+import { formaterDate } from "@/lib/ged";
 
 // Une pièce PDF du bail : champ fichier + bouton, même gabarit pour le bail
 // signé et le règlement de copropriété.
@@ -335,18 +338,82 @@ export function FormulaireAnnulerConge({ orgId, bailId }: { orgId: string; bailI
 // Clôture du bail (module 3.11) — visible quand le bail est en préavis et que
 // l'EDL de sortie est signé (le RPC revérifie). Le locataire sorti garde son
 // espace en lecture : quittances, décompte, justificatifs.
-export function BoutonTerminerBail({ orgId, bailId }: { orgId: string; bailId: string }) {
+//
+// Décision D34 : la clôture enregistre le jour où le locataire a réellement
+// quitté le logement (aujourd'hui par défaut). Avant la date d'effet du préavis,
+// elle demande une confirmation ; la date de fin du bail et les montants ne
+// changent pas.
+export function BoutonTerminerBail({
+  orgId,
+  bailId,
+  dateEffet,
+}: {
+  orgId: string;
+  bailId: string;
+  // Date d'effet du préavis (AAAA-MM-JJ) : la date de fin du bail en préavis
+  dateEffet: string | null;
+}) {
   const action = terminerBail.bind(null, orgId, bailId);
   const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
+  const [dateSortie, setDateSortie] = useState(etat.valeurs?.date_sortie ?? "");
+  // Le calcul de l'écran prévient avant l'envoi ; la base reste juge (GRC01) : si elle a
+  // réclamé la confirmation, la case s'affiche pour la date qu'elle a refusée, même quand
+  // l'écran croyait le préavis échu.
+  const anticipee = confirmationAAfficher({
+    dateSortie,
+    dateEffet,
+    confirmationRequise: etat.confirmationRequise,
+    dateRefusee: etat.valeurs?.date_sortie,
+  });
+  const ecartVuParLEcran = clotureAnticipee(dateSortie, dateEffet);
+  const idDate = useId();
   return (
-    <form data-saisie-confirmee action={formAction} className="space-y-2">
+    <form data-saisie-confirmee action={formAction} className="space-y-3">
+      <div className="space-y-1">
+        <Label htmlFor={idDate} className="text-sm">
+          Date de sortie réelle du locataire
+        </Label>
+        <InputDateJour
+          id={idDate}
+          name="date_sortie"
+          className="h-9 w-44"
+          required
+          pasDansLeFutur
+          valeurSoumise={etat.valeurs?.date_sortie}
+          surChangement={setDateSortie}
+        />
+        <p className="text-sm text-muted-foreground">
+          Le jour où le locataire a réellement quitté le logement. Le bail suivant
+          de ce lot ne pourra pas commencer avant cette date.
+        </p>
+      </div>
+      {anticipee && (
+        <div className="space-y-2 border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
+          <p>
+            {dateEffet && ecartVuParLEcran ? (
+              <>
+                Le préavis court jusqu&apos;au <b>{formaterDate(dateEffet)}</b> : cette
+                sortie est antérieure.
+              </>
+            ) : (
+              <>Cette sortie est antérieure à la fin du préavis.</>
+            )}{" "}
+            La clôture ne change ni la date de fin du bail ni les montants appelés. Si un
+            départ anticipé a été convenu avec le locataire, gardez-en la trace au dossier.
+          </p>
+          <label className="flex items-start gap-2">
+            <input type="checkbox" name="confirmer_anticipee" required className="mt-0.5 size-4" />
+            <span>Je confirme la clôture avant la fin du préavis.</span>
+          </label>
+        </div>
+      )}
       <BoutonEnvoi enCoursTexte="Clôture…" size="sm" variant="outline">
         Clôturer le bail
       </BoutonEnvoi>
       <p className="text-sm text-muted-foreground">
-        Préavis échu et état des lieux de sortie signé : le bail passe à
-        « terminé », le lot redevient disponible et l&apos;espace du locataire
-        reste consultable (quittances, décompte de restitution).
+        État des lieux de sortie signé : le bail passe à « terminé », le lot
+        redevient disponible et l&apos;espace du locataire reste consultable
+        (quittances, décompte de restitution).
       </p>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}

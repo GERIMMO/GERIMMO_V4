@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { preparerFichierGed, type FichierPrepareGed } from "@/lib/ged-depot";
 import { valeursDuFormulaire } from "@/lib/formulaires";
-import { lireMontant } from "@/lib/saisie-montant";
+import { erreurDuChamp, lireDecimalFacultatif, lireMontant } from "@/lib/saisie-montant";
 
 // Le Storage n'est pas transactionnel : quand la règle métier refuse la
 // retenue, l'octet est déjà monté. Sans fiche il est déjà illisible (la policy
@@ -46,7 +46,14 @@ export async function demarrerRestitution(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: "Restitution démarrée." };
+  // Décision D35 (1) : tant que la restitution est « en cours », le même geste la corrige —
+  // la base ne réarrête alors aucun montant.
+  return {
+    succes:
+      formData.get("correction") === "1"
+        ? "Remise des clés corrigée — les montants arrêtés ne changent pas."
+        : "Restitution démarrée.",
+  };
 }
 
 export async function ajouterRetenue(
@@ -65,8 +72,12 @@ export async function ajouterRetenue(
   const coutLu = lireMontant(formData.get("cout"));
   if ("erreur" in coutLu) return { erreur: coutLu.erreur, valeurs };
   const cout = coutLu.montant;
-  const dureeStr = String(formData.get("duree_vie") ?? "").trim();
-  const ageStr = String(formData.get("age") ?? "").trim();
+  // Durée de vie et âge (en années) lus sur le texte tel que tapé (« 7,5 » vaut 7,5) : champs en `type="text"`,
+  // jamais `type="number"` qui donne 75 à un navigateur non francophone (VER-TS-02). Vide : « non renseigné ».
+  const dureeLue = lireDecimalFacultatif(formData.get("duree_vie"));
+  if ("erreur" in dureeLue) return { erreur: erreurDuChamp("Durée de vie", dureeLue.erreur), valeurs };
+  const ageLu = lireDecimalFacultatif(formData.get("age"));
+  if ("erreur" in ageLu) return { erreur: erreurDuChamp("Âge", ageLu.erreur), valeurs };
 
   // Le justificatif ne doit exister en GED que si la retenue existe. Refuser
   // une retenue est courant et légitime — « Élément entièrement amorti »
@@ -90,8 +101,8 @@ export async function ajouterRetenue(
         p_restitution: restitutionId,
         p_libelle: libelle,
         p_cout: cout,
-        p_duree_vie: dureeStr ? Number(dureeStr) : null,
-        p_age: ageStr ? Number(ageStr) : null,
+        p_duree_vie: dureeLue.valeur,
+        p_age: ageLu.valeur,
         p_storage_path: piece.chemin,
         p_mime: piece.mime,
         p_taille: piece.taille,
@@ -101,8 +112,8 @@ export async function ajouterRetenue(
         p_restitution: restitutionId,
         p_libelle: libelle,
         p_cout: cout,
-        p_duree_vie: dureeStr ? Number(dureeStr) : null,
-        p_age: ageStr ? Number(ageStr) : null,
+        p_duree_vie: dureeLue.valeur,
+        p_age: ageLu.valeur,
         p_justificatif: null,
       });
   if (error) {
@@ -206,6 +217,9 @@ export async function marquerDecompteEnvoye(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  // Décision D36 : l'envoi n'est qu'un envoi. La mise à disposition du décompte au locataire
+  // (« Mes documents », option C) est reportée : c'est un geste distinct (partager_document_locataire,
+  // RM-12), et l'effet d'une créance publiée n'a pas encore été examiné.
   return { succes: "Décompte marqué envoyé — l'alerte d'envoi est fermée." };
 }
 

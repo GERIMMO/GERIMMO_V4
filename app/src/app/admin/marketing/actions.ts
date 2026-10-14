@@ -6,6 +6,7 @@ import { journaliserSupervision, JOURNAL_A_VERIFIER } from "@/lib/journal-superv
 import { lireMots } from "@/lib/pertinence-veille";
 import { adresseDuSite } from "@/lib/site";
 import { sansJargon } from "@/lib/erreurs";
+import { erreurDuChamp, lireMontantFacultatif } from "@/lib/saisie-montant";
 
 export type EtatCampagne = { erreur?: string; succes?: string };
 
@@ -16,10 +17,14 @@ export async function enregistrerReglagesMarketing(_etat: EtatCampagne, donnees:
   const jour1 = Number(donnees.get("jour_1"));
   const jour2 = Number(donnees.get("jour_2"));
   const heure = Number(donnees.get("heure_paris"));
-  const budget = Number(String(donnees.get("budget") ?? "10").replace(",", "."));
+  // Le seuil se lit sur le texte tel que tapé (« 50,50 » vaut 50,5) : champ en `type="text"` (VER-TS-02). Absent du
+  // formulaire : 10 € ; vidé : zéro (pas de seuil d'alerte) ; illisible : refusé en disant quoi écrire.
+  const budgetLu = donnees.has("budget") ? lireMontantFacultatif(donnees.get("budget")) : { montant: 10 };
+  if ("erreur" in budgetLu) return { erreur: erreurDuChamp("Seuil d’alerte mensuel", budgetLu.erreur) };
+  const budget = budgetLu.montant ?? 0;
   if (![jour1, jour2].every((j) => Number.isInteger(j) && j >= 1 && j <= 7) || jour1 === jour2) return { erreur: "Choisissez deux jours différents." };
   if (!Number.isInteger(heure) || heure < 0 || heure > 23) return { erreur: "Heure de préparation invalide." };
-  if (!Number.isFinite(budget) || budget < 0 || budget > 1000) return { erreur: "Le seuil d’alerte mensuel doit être compris entre 0 et 1 000 €." };
+  if (budget > 1000) return { erreur: "Le seuil d’alerte mensuel doit être compris entre 0 et 1 000 €." };
   const { data: utilisateur } = await supabase.auth.getUser();
   // 06/10 : fenêtre de veto. Mots-clés de la veille et validation obligatoire.
   const motsInclus = lireMots(String(donnees.get("veille_mots_inclus") ?? ""));

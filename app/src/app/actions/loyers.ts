@@ -13,7 +13,8 @@ import {
   motifQuittanceIncomplete,
   parties,
 } from "@/lib/quittance-conforme";
-import { eur } from "@/lib/ged";
+import { aujourdhuiParis, eur } from "@/lib/ged";
+import { avertissementExerciceNonTermine, etatDecompteSortie, exerciceNonTermine, messageSoldeNonAppele, type EtatDecompteSortie } from "@/lib/baux";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import {
   erreurDuChamp,
@@ -25,12 +26,25 @@ import {
 import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
 import { compteRenduEncaissement, type EtatAppel } from "@/lib/imputation";
 import { adresseDeRetour, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
+import { estRejeuCleEnvoi, lireCleEnvoi, messageDejaEnregistre } from "@/lib/cle-envoi";
+import {
+  CHAMP_CONFIRMATION_MONTANT,
+  confirmationDonnee,
+  evaluerEncaissement,
+  type ConfirmationEncaissement,
+  type LigneTerme,
+} from "@/lib/garde-encaissement";
 
 export type EtatLoyers = {
   erreur?: string;
   succes?: string;
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
+  // D04 (2), VER-TS-02 : le montant dépasse largement le dû. RIEN n'est enregistré ; le formulaire propose de
+  // confirmer (bouton qui renvoie `confirmation_montant`) ou de corriger. Jamais un refus.
+  confirmation?: ConfirmationEncaissement;
+  // D05, PR178-B-06 : cet envoi (même clé) était déjà enregistré. `succes` le dit ; rien n'a été écrit de plus.
+  dejaEnregistre?: boolean;
 };
 
 // Envoyer une quittance ou un reçu partiel par email au locataire (API Resend).
@@ -176,6 +190,13 @@ export async function supprimerRelance(
   return { succes: "Relance supprimée." };
 }
 
+// D40 : « repris au décompte de sortie » ne se dit que si le décompte de sortie du bail n'est pas finalisé (voir `etatDecompteSortie`).
+// Une lecture qui échoue ne bloque rien : le texte cesse alors d'affirmer.
+async function lireEtatDecompteSortie(supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"], orgId: string, bailId: string): Promise<EtatDecompteSortie> {
+  const { data, error } = await supabase.from("restitutions").select("statut").eq("organization_id", orgId).eq("bail_id", bailId).maybeSingle();
+  return etatDecompteSortie(data, error);
+}
+
 // Régularisation annuelle des charges (justificatif obligatoire déposé en GED).
 export async function regulariserCharges(
   orgId: string,
@@ -198,6 +219,14 @@ export async function regulariserCharges(
   const fichier = formData.get("justificatif");
   if (!(fichier instanceof File) || fichier.size === 0)
     return { erreur: "Le justificatif est obligatoire (décompte remis au locataire).", valeurs };
+  // D38 (CHF-02, option A) : un exercice non terminé (le 31/12, jour de Paris, n'est pas passé) se régularise sur confirmation explicite.
+  // La vérification est ICI, côté serveur : une requête directe sans la case cochée est refusée, avant tout dépôt de pièce.
+  const exerciceEnCours = exerciceNonTermine(annee, aujourdhuiParis());
+  if (exerciceEnCours && String(formData.get("confirmer_exercice_en_cours") ?? "") !== "oui")
+    return {
+      erreur: `${avertissementExerciceNonTermine(annee, await lireEtatDecompteSortie(supabase, orgId, bailId))} Cochez la confirmation pour l’enregistrer malgré tout.`,
+      valeurs,
+    };
   // Audit agence 27/09 : le décompte n'existe en GED que si la régularisation
   // existe. Déposé avant la fonction, chaque refus (exercice déjà régularisé,
   // forfait, exercice hors bail…) laissait une pièce rattachée à rien, dont
@@ -226,12 +255,14 @@ export async function regulariserCharges(
     return { erreur: sansJargon(error.message), valeurs };
   }
   const ecart = Number(data);
+  const etale = formData.get("etaler") === "on";
+  // Trop-perçu : « en faveur du locataire », sans verbe d'action — le texte dit juste après que ce solde n'est pas appelé mais repris.
   const msg =
     ecart > 0
-      ? `Trop-perçu de ${eur(ecart)} à rembourser au locataire.`
+      ? `Trop-perçu de ${eur(ecart)} en faveur du locataire.`
       : ecart < 0
-        ? formData.get("etaler") === "on"
-          ? `Complément de ${eur(Math.abs(ecart))} dû par le locataire, étalé sur 12 mensualités.`
+        ? etale
+          ? `Complément de ${eur(Math.abs(ecart))} dû par le locataire, qui a demandé à le régler en 12 mensualités (échéancier enregistré).`
           : `Complément de ${eur(Math.abs(ecart))} dû par le locataire.`
         : "Charges équilibrées (aucun écart).";
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
@@ -239,7 +270,39 @@ export async function regulariserCharges(
   // ni avoir n'est encore généré) ; son solde est repris au décompte de
   // restitution à la sortie (montants_reels_bail).
   revalidatePath(`/agence/${orgId}/comptabilite`);
-  return { succes: prep.avertissement ? `${msg} ${prep.avertissement}` : msg };
+  // D40 (CHF-06, option A) : on le dit à l'émission, et une alerte garde la trace du solde non appelé (mécanisme d'alertes existant).
+  // L'alerte est posée après la régularisation, qui ne se défait pas si elle échoue : le message le dit alors.
+  // Le décompte de sortie est lu ICI, après l'enregistrement : « repris au décompte de sortie » est faux s'il est déjà finalisé.
+  const soldeNonAppele = ecart !== 0;
+  const decompte = soldeNonAppele ? await lireEtatDecompteSortie(supabase, orgId, bailId) : "non_finalise";
+  const phraseSolde = soldeNonAppele ? messageSoldeNonAppele(decompte, etale && ecart < 0) : "";
+  let alerteManquante = false;
+  if (soldeNonAppele) {
+    const suffixeFinalise = decompte === "finalise" ? ", décompte de sortie déjà finalisé" : "";
+    const { error: erreurAlerte } = await supabase.from("alerts").insert({
+      organization_id: orgId,
+      type: "regularisation_non_appelee",
+      criticite: "normale",
+      titre:
+        (ecart < 0
+          ? `Régularisation des charges ${annee} : complément de ${eur(-ecart)} dû par le locataire`
+          : `Régularisation des charges ${annee} : trop-perçu de ${eur(ecart)} en faveur du locataire`) + suffixeFinalise,
+      details: { bail_id: bailId, annee, ecart, libelle: phraseSolde },
+    });
+    if (erreurAlerte) {
+      console.error("[regularisation] alerte du solde non appelé non enregistrée", erreurAlerte.message);
+      alerteManquante = true;
+    } else {
+      revalidatePath(`/agence/${orgId}/alertes`);
+    }
+  }
+  const complements = [
+    phraseSolde,
+    exerciceEnCours ? "Enregistrée sur un exercice non terminé : comparaison non homogène, elle ne se modifie plus." : "",
+    alerteManquante ? "Attention : l’alerte n’a pas pu être créée, notez ce solde pour ne pas l’oublier." : "",
+    prep.avertissement ?? "",
+  ].filter(Boolean);
+  return { succes: [msg, ...complements].join(" ") };
 }
 
 // Générer les appels de loyer manquants (échéancier) jusqu'au mois courant.
@@ -252,7 +315,36 @@ export async function genererAppels(orgId: string, bailId: string): Promise<Etat
   return { succes: `${data ?? 0} appel(s) de loyer généré(s).` };
 }
 
+/** Un encaissement déjà enregistré par cet envoi : de quoi le dire à l'écran. */
+type EncaissementDeLEnvoi = { bail_id: string; montant: number; date_paiement: string };
+
+/**
+ * Cherche l'encaissement que cette clé d'envoi a déjà écrit (D05). La lecture passe par la RLS : elle ne voit que les
+ * encaissements de l'organisation (et, pour un agent restreint, de son portefeuille).
+ */
+async function encaissementDeLEnvoi(
+  supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
+  orgId: string,
+  cle: string
+): Promise<{ ligne: EncaissementDeLEnvoi | null } | { erreur: string }> {
+  const { data, error } = await supabase
+    .from("encaissements")
+    .select("bail_id, montant, date_paiement")
+    .eq("organization_id", orgId)
+    .eq("cle_envoi", cle)
+    .maybeSingle();
+  if (error) return { erreur: "Impossible de vérifier que cet encaissement n'est pas déjà enregistré. Réessayez." };
+  return { ligne: (data as EncaissementDeLEnvoi | null) ?? null };
+}
+
 // Saisir un encaissement (imputé automatiquement du plus ancien au plus récent).
+//
+// D05 (PR178-B-06) : le formulaire envoie une clé (`cle_envoi`), la même à chaque nouvel envoi du même formulaire. Un
+// envoi déjà reçu n'écrit rien (ni encaissement, ni reçu, ni quittance) et l'écran dit « déjà enregistré ». La clé
+// est reconnue AVANT tout calcul, et l'index unique de la base reste le garde-fou quand deux envois se croisent.
+//
+// D04 (2) (VER-TS-02) : au-delà de 2 × (reste dû + un terme), l'action n'écrit pas ; elle renvoie un état
+// « confirmation requise ». Le formulaire se ressoumet avec `confirmation_montant`, qui porte le montant confirmé.
 export async function ajouterEncaissement(
   orgId: string,
   bailId: string,
@@ -270,6 +362,33 @@ export async function ajouterEncaissement(
   if (dateRefusee) return { erreur: dateRefusee, valeurs };
   const mode = String(formData.get("mode") ?? "").trim() || null;
   const note = String(formData.get("note") ?? "").trim() || null;
+  const cleLue = lireCleEnvoi(formData.get("cle_envoi"));
+  if ("erreur" in cleLue) return { erreur: cleLue.erreur, valeurs };
+  const cle = cleLue.cle;
+
+  // Un envoi déjà reçu (réponse perdue, double clic, nouvel essai) : on le dit, on n'écrit rien.
+  const dejaEnregistre = (ligne: EncaissementDeLEnvoi): EtatLoyers => {
+    if (ligne.bail_id !== bailId) {
+      return {
+        erreur: "Cette référence d'envoi a déjà servi pour un autre dossier. Rechargez la page avant d'enregistrer.",
+        valeurs,
+      };
+    }
+    revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+    revalidatePath(`/agence/${orgId}/comptabilite`);
+    return {
+      succes: messageDejaEnregistre({
+        objet: "Cet encaissement",
+        montant: Number(ligne.montant),
+        date: ligne.date_paiement,
+        montantSaisi: montant,
+      }),
+      dejaEnregistre: true,
+    };
+  };
+  const connu = await encaissementDeLEnvoi(supabase, orgId, cle);
+  if ("erreur" in connu) return { erreur: connu.erreur, valeurs };
+  if (connu.ligne) return dejaEnregistre(connu.ligne);
 
   // L'état d'AVANT, lu avant l'écriture : la couverture des termes n'est
   // stockée nulle part (etat_loyers_bail la recalcule depuis le total
@@ -279,6 +398,23 @@ export async function ajouterEncaissement(
   });
   if (erreurAvant) return { erreur: sansJargon(erreurAvant.message), valeurs };
 
+  // D04 (2) : le montant est-il plausible au regard du dû ? Sans terme appelé, le terme est celui du bail.
+  const termes = (lignesAvant ?? []) as LigneTerme[];
+  let termeDuBail = 0;
+  if (termes.length === 0) {
+    const { data: bail } = await supabase
+      .from("baux")
+      .select("loyer_hc, charges")
+      .eq("id", bailId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    termeDuBail = Math.round(Number(bail?.loyer_hc ?? 0) * 100 + Number(bail?.charges ?? 0) * 100) / 100;
+  }
+  const verdict = evaluerEncaissement(montant, termes, termeDuBail);
+  if (verdict.confirmationRequise && !confirmationDonnee(formData.get(CHAMP_CONFIRMATION_MONTANT), montant)) {
+    return { confirmation: verdict.confirmation, valeurs };
+  }
+
   const { error } = await supabase.from("encaissements").insert({
     organization_id: orgId,
     bail_id: bailId,
@@ -286,8 +422,20 @@ export async function ajouterEncaissement(
     date_paiement: date ?? undefined,
     mode,
     note,
+    cle_envoi: cle,
   });
-  if (error) return { erreur: sansJargon(error.message), valeurs };
+  if (error) {
+    // Deux envois de la même clé se sont croisés : l'autre a gagné, celui-ci n'a rien écrit.
+    if (estRejeuCleEnvoi(error)) {
+      const gagnant = await encaissementDeLEnvoi(supabase, orgId, cle);
+      if ("ligne" in gagnant && gagnant.ligne) return dejaEnregistre(gagnant.ligne);
+      return {
+        succes: "Cet encaissement est déjà enregistré : il n'a pas été enregistré une seconde fois.",
+        dejaEnregistre: true,
+      };
+    }
+    return { erreur: sansJargon(error.message), valeurs };
+  }
   // L'encaissement déclenche tout : reçu du montant réglé sur un paiement
   // partiel, promu en quittance quand le mois se solde — sans clic de plus.
   // (Le déclencheur en base l'a déjà fait pendant l'INSERT : cet appel est un

@@ -3,7 +3,7 @@ import { csvRecapitulatifFiscal } from "@/lib/fiscal-export";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, aujourdhuiParis } from "@/lib/ged";
-import { recapitulatifFiscal, LIBELLE_CUMUL_A_QUALIFIER, LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, type EcritureFiscale, type QualificationFiscale, type ComposantesFiscales, type ExerciceFiscalLot } from "@/lib/fiscal";
+import { recapitulatifFiscal, fondsTravauxAlurQualificationIgnoree, phrasePiecesAQualifier, LIBELLE_CUMUL_A_QUALIFIER, LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, type EcritureFiscale, type QualificationFiscale, type ComposantesFiscales, type ExerciceFiscalLot } from "@/lib/fiscal";
 import { QualificationPiece, ExerciceLot } from "@/components/formulaires-fiscaux";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -144,6 +144,16 @@ export async function RecapitulatifFiscal(props: {
     return !perimetre||(lot!=null&&perimetre.has(lot));
   });
   const recap=recapitulatifFiscal(pieces,annee,{qualifications,composantes,exercices,exigerPerimetre:true});
+  // D02 : le nombre de pièces à qualifier, dit en clair. D03 : les pièces rangées d'office en fonds de travaux ALUR dont le choix est ignoré.
+  const phrasePieces = phrasePiecesAQualifier(recap);
+  const alurIgnorees = fondsTravauxAlurQualificationIgnoree(recap, qualifications)
+    .map((id) => pieces.find((e) => e.id === id))
+    .filter((e): e is EcritureFiscale => Boolean(e));
+  const libelleQualification = (q: QualificationFiscale | undefined) => {
+    if (!q) return "";
+    const nature = ({ deductible: "déductible", recette: "recette imposable", non_deductible: "non déductible", hors_2044: "hors revenus fonciers", a_qualifier: "à qualifier" } as const)[q.nature];
+    return q.rubrique ? `${nature} ${q.rubrique}` : nature;
+  };
   const lotsMeubles=lots.filter(l=>exercices.get(l.id)?.periodes.some(p=>p.regime==='meuble'));
   const recettes = recap.rubriques.filter((r) => r.sens === "recette");
   const charges = recap.rubriques.filter((r) => r.sens === "depense");
@@ -154,7 +164,7 @@ export async function RecapitulatifFiscal(props: {
 
   if (props.compact) return <div className="space-y-3">
     {anneeVide ? <p className="text-sm text-muted-foreground">Aucune écriture à récapituler pour {annee}.</p> : <>
-      {recap.incomplet&&<p role="status" className="text-sm">Récapitulatif à compléter : {recap.alertes.join(" ")}</p>}
+      {recap.incomplet&&<p role="status" className="text-sm">Récapitulatif à compléter : {recap.alertes.join(" ")}{phrasePieces&&<> {phrasePieces}</>}</p>}
       <dl className="grid grid-cols-3 gap-3">
         {[
           ["Recettes confirmées", recap.ventile ? recap.totalRecettesQuotePart : recap.totalRecettes],
@@ -203,7 +213,7 @@ export async function RecapitulatifFiscal(props: {
         {erreurListeBiens && <p role="alert" className="text-sm text-destructive">La liste des biens n’a pas pu être chargée. Rechargez la page pour affiner le périmètre.</p>}
       </section>
       <h2 className="text-lg">2. Vérifier les montants</h2>
-      {recap.incomplet&&<div role="status" className="loc-carte space-y-2"><p className="font-medium">À compléter — les totaux portent uniquement sur les montants confirmés.</p><ul className="list-disc pl-5 text-sm">{recap.alertes.map(a=><li key={a}>{a}</li>)}</ul><p className="text-sm">Cumul des pièces ou parts à qualifier ({LIBELLE_CUMUL_A_QUALIFIER}) : {eur(recap.aQualifier)}. Ces montants ne sont pas inclus dans les totaux confirmés.</p></div>}
+      {recap.incomplet&&<div role="status" className="loc-carte space-y-2"><p className="font-medium">À compléter — les totaux portent uniquement sur les montants confirmés.</p><ul className="list-disc pl-5 text-sm">{recap.alertes.map(a=><li key={a}>{a}</li>)}</ul>{phrasePieces&&<p className="text-sm font-medium">{phrasePieces}</p>}<p className="text-sm">Cumul des pièces ou parts à qualifier ({LIBELLE_CUMUL_A_QUALIFIER}) : {eur(recap.aQualifier)}. Ces montants ne sont pas inclus dans les totaux confirmés.</p></div>}
       <section className="space-y-3"><h3 className="font-medium">Périodes fiscales et régularisation 230</h3>{lots.map(l=><ExerciceLot key={`${l.id}-${exercices.get(l.id)?.version??0}`} orgId={orgId} lot={l} annee={annee} exercice={exercices.get(l.id)}/>)}</section>
       <section className="space-y-3"><h3 className="font-medium">Qualifier les pièces</h3><p className="text-sm text-muted-foreground">Le choix est enregistré avec son auteur, sa date et sa justification. Les versions précédentes restent conservées. Les annulations reprennent la qualification de la pièce d’origine.</p>{pieces.filter(e=>e.id&&!e.contre_ecriture_de&&e.categorie!=='depot_garantie'&&(!composantes.has(e.id)||Number(composantes.get(e.id)?.non_ventile)>0)).map(e=><QualificationPiece key={`${e.id}-${qualifications.get(e.id!)?.version??0}`} orgId={orgId} ecriture={e} qualification={qualifications.get(e.id!)} lots={lots} capture={composantes.get(e.id!)}/>)}</section>
 
@@ -344,7 +354,26 @@ export async function RecapitulatifFiscal(props: {
               <span className="montant">{eur(recap.fondsTravauxAlur)}</span> versés cette année. Ils
               se déduisent l&apos;année où les travaux sont réalisés, pas celle du
               versement : ils ne sont pas comptés dans les charges ci-dessus.
+              {alurIgnorees.length > 0 && (
+                <>
+                  {" "}
+                  <strong>
+                    Votre choix de qualification n’est pas appliqué à {alurIgnorees.length > 1 ? `ces ${alurIgnorees.length} pièces` : "cette pièce"}
+                  </strong>
+                  {" "}: le classement automatique en fonds de travaux ALUR, fait d’après le libellé, l’emporte. La qualification reste conservée, sans effet sur les montants ci-dessus.
+                </>
+              )}
             </CardDescription>
+            {alurIgnorees.length > 0 && (
+              <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground">
+                {alurIgnorees.map((e) => (
+                  <li key={e.id}>
+                    {e.date_piece} · {e.libelle || e.categorie} · <span className="montant">{eur(Number(e.montant))}</span> — qualification enregistrée :{" "}
+                    {libelleQualification(qualifications.get(e.id!))}, non appliquée
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardHeader>
         </Card>
       )}

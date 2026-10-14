@@ -6,6 +6,11 @@ import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { abandonnerPieceGed, preparerFichierGed } from "@/lib/ged-depot";
+import { lireDecimal, lireDecimalFacultatif } from "@/lib/saisie-montant";
+
+// Un relevé de compteur illisible se refuse en le disant (jamais « non renseigné »). Le message existait avant la
+// lecture du texte tapé : il est gardé tel quel.
+const MESSAGE_RELEVE_INVALIDE = "Relevé de compteur invalide.";
 
 export type EtatEdl = {
   compteur?: { id: string; type: string; numero: string | null; releve: number | null };
@@ -244,9 +249,11 @@ export async function enregistrerAnnexesEdl(
       p_compteurs.push({ id: l.id, releve: null });
       continue;
     }
-    const valeur = Number(brut);
-    if (!Number.isFinite(valeur)) return { erreur: "Relevé de compteur invalide.", valeurs };
-    p_compteurs.push({ id: l.id, releve: valeur });
+    // Lu sur le texte tel que tapé (« 1234,5 » vaut 1234,5) : champ en `type="text"`, jamais `type="number"` qui
+    // donne 12345 à un navigateur non francophone (VER-TS-02).
+    const lu = lireDecimal(brut);
+    if ("erreur" in lu) return { erreur: MESSAGE_RELEVE_INVALIDE, valeurs };
+    p_compteurs.push({ id: l.id, releve: lu.valeur });
   }
 
   // Une clé laissée sans nombre ne signifie pas zéro clé rendue : la ligne
@@ -299,8 +306,10 @@ export async function ajouterCompteur(
   const type = String(formData.get("type") ?? "").trim();
   if (!type) return { erreur: "Choisissez le type de compteur.", valeurs };
   const numero = String(formData.get("numero") ?? "").trim() || null;
-  const releveStr = String(formData.get("releve") ?? "").trim();
-  const compteur = { id: crypto.randomUUID(), type, numero, releve: releveStr ? Number(releveStr) : null };
+  // Relevé facultatif, lu sur le texte tel que tapé (« 1234,5 » vaut 1234,5) : champ en `type="text"` (VER-TS-02).
+  const releveLu = lireDecimalFacultatif(formData.get("releve"));
+  if ("erreur" in releveLu) return { erreur: MESSAGE_RELEVE_INVALIDE, valeurs };
+  const compteur = { id: crypto.randomUUID(), type, numero, releve: releveLu.valeur };
   const { error } = await supabase.from("edl_compteurs").insert({
     ...compteur, edl_id: edlId, organization_id: orgId,
   });

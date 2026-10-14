@@ -227,7 +227,8 @@ describe.skipIf(!DB_URL)("Contrats individuels sur un même logement", () => {
     await db.query('select public.generer_grille_edl($1)',[edl.id]);
     await db.query("update public.edl_lignes set etat='bon' where edl_id=$1",[edl.id]);
     await db.query("select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)",[edl.id]);
-    await db.query('select public.terminer_bail($1)',[premier]);
+    // Clôture le jour du congé, avant la fin du préavis : à confirmer (décision D34 du 14/10).
+    await db.query('select public.terminer_bail($1,null,true)',[premier]);
     expect((await db.query('select etat from public.lots where id=$1',[lot])).rows[0].etat).toBe('loue');
     expect((await db.query('select etat from public.baux where id=$1',[second])).rows[0].etat).toBe('actif');
     await db.query('set constraints all immediate');

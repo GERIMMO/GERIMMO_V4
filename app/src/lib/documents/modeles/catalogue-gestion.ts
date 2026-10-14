@@ -7,6 +7,7 @@ import { chargerContexteBail, nomsLocataires, adresseLogement, referenceCourte }
 import { LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, phrasePerimetreFiscal, recapitulatifFiscal, type ComposantesFiscales, type EcritureFiscale, type ExerciceFiscalLot, type QualificationFiscale, type RecapitulatifFiscal } from "@/lib/fiscal";
 import type { Assemblage, LienDocument } from "./index";
 import { aujourdhuiParis } from "@/lib/ged";
+import { lireMontantFacultatif } from "@/lib/saisie-montant";
 
 export const CODES_COMPLEMENTS_GESTION = ["regularisation_charges", "decompte_charges", "consultation_charges", "restitution_cles", "ordre_intervention", "comparatif_devis", "compte_rendu_intervention", "recap_incident", "cloture_mensuelle", "ecriture_rectificative", "recap_fiscal_nu", "recap_fiscal_meuble", "avenant_mandat", "avenant_perimetre", "rapport_gestion", "bordereau_versement", "resiliation_mandat", "recap_fiscal_agence"] as const;
 
@@ -134,7 +135,9 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const lot = await lotConcerne(cibleId);
       if ((code === "recap_fiscal_meuble") !== Boolean(lot.meuble)) throw new RefusDocument("Choisissez le récapitulatif correspondant au caractère nu ou meublé du lot.");
       const annee = anneeDocument(options);
-      const interetsEmprunt = Number(options.interets_emprunt);
+      // Lus sur le texte tel que tapé (« 1234,50 » vaut 1234,5) : stricte comme tous les montants (VER-TS-02).
+      const interetsLus = lireMontantFacultatif(options.interets_emprunt);
+      const interetsEmprunt = "montant" in interetsLus ? interetsLus.montant ?? Number.NaN : Number.NaN;
       if (code === "recap_fiscal_nu" && (!options.interets_emprunt?.trim() || !Number.isFinite(interetsEmprunt) || interetsEmprunt < 0)) {
         throw new RefusDocument("Indiquez les intérêts d’emprunt de l’année, ou 0 si le logement n’a aucun emprunt.");
       }

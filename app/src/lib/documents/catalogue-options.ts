@@ -1,4 +1,4 @@
-export type ChampCatalogue = { cle: string; libelle: string; type?: "date" | "number" | "month" | "textarea"; aide?: string; choix?: {valeur:string;libelle:string}[] };
+export type ChampCatalogue = { cle: string; libelle: string; type?: "date" | "number" | "montant" | "month" | "textarea"; aide?: string; choix?: {valeur:string;libelle:string}[] };
 const conditions: ChampCatalogue = {cle:"conditions",libelle:"Conditions convenues",type:"textarea"};
 const effet: ChampCatalogue = {cle:"date_effet",libelle:"Date d’effet",type:"date"};
 const modifications: ChampCatalogue = {cle:"modifications",libelle:"Modifications convenues",type:"textarea"};
@@ -6,7 +6,7 @@ const annee: ChampCatalogue = {cle:"annee",libelle:"Année",type:"number"};
 const consultation: ChampCatalogue = {cle:"consultation",libelle:"Consultation des justificatifs",type:"textarea",aide:"Lieu ou lien, horaires et personne à contacter."};
 export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
   avenant:[{cle:"objet",libelle:"Objet de l’avenant"},modifications],
-  cautionnement:[{cle:"garant",libelle:"Garant du dossier",aide:"Choisissez un garant déjà rattaché au bail."},{cle:"forme",libelle:"Forme de caution",choix:[{valeur:"solidaire",libelle:"Solidaire"},{valeur:"simple",libelle:"Simple"}]},{cle:"montant_max",libelle:"Plafond de l’engagement (€)",type:"number"}],
+  cautionnement:[{cle:"garant",libelle:"Garant du dossier",aide:"Choisissez un garant déjà rattaché au bail."},{cle:"forme",libelle:"Forme de caution",choix:[{valeur:"solidaire",libelle:"Solidaire"},{valeur:"simple",libelle:"Simple"}]},{cle:"montant_max",libelle:"Plafond de l’engagement (€)",type:"montant"}],
   conge_bailleur:[{cle:"motif",libelle:"Motif du congé",choix:[{valeur:"reprise",libelle:"Reprise"},{valeur:"vente",libelle:"Vente"},{valeur:"motif_legitime",libelle:"Motif légitime et sérieux"}]},effet,{cle:"beneficiaire_nom",libelle:"Bénéficiaire de la reprise"},{cle:"beneficiaire_lien",libelle:"Lien avec le bailleur"},{cle:"motif_detail",libelle:"Motivation et justificatifs",type:"textarea"}],
   inventaire_entree:[{cle:"date_constat",libelle:"Date du constat",type:"date"}],
   inventaire_sortie:[{cle:"date_constat",libelle:"Date du constat",type:"date"},{cle:"constat",libelle:"Constat du mobilier à la sortie",type:"textarea"}],
@@ -20,7 +20,7 @@ export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
   ordre_intervention:[{cle:"acces",libelle:"Accès et contact sur place",type:"textarea"}],
   cloture_mensuelle:[{cle:"mois",libelle:"Mois",type:"month"}],
   facture_honoraires:[{cle:"mois",libelle:"Mois facturé",type:"month",aide:"Un mois révolu. Le numéro de facture est attribué définitivement à l’émission."}],
-  recap_fiscal_nu:[annee,{cle:"interets_emprunt",libelle:"Intérêts d’emprunt de l’année (€)",type:"number",aide:"Indiquez 0 si le logement n’a aucun emprunt. Gerimmo ne peut pas déduire ce montant du livre locatif."}],recap_fiscal_meuble:[annee],recap_fiscal_agence:[annee],
+  recap_fiscal_nu:[annee,{cle:"interets_emprunt",libelle:"Intérêts d’emprunt de l’année (€)",type:"montant",aide:"Indiquez 0 si le logement n’a aucun emprunt. Gerimmo ne peut pas déduire ce montant du livre locatif."}],recap_fiscal_meuble:[annee],recap_fiscal_agence:[annee],
   avenant_mandat:[effet,modifications],avenant_perimetre:[effet,modifications],
   resiliation_mandat:[effet,{cle:"motif",libelle:"Motif et fondement",type:"textarea"},{cle:"remise",libelle:"Remise du dossier et du solde",type:"textarea"}],
 };

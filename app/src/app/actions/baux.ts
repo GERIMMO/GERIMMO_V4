@@ -615,11 +615,13 @@ export async function enregistrerConge(
   // son prix (il vaut offre), un congé pour reprise son bénéficiaire. La base
   // les exige selon le motif ; l'action les transmet.
   if (par === "bailleur") {
-    const prixSaisi = String(formData.get("prix_vente") ?? "").trim().replace(/\s/g, "").replace(",", ".");
-    const prix = prixSaisi ? Number(prixSaisi) : null;
-    if (prix !== null && (!Number.isFinite(prix) || prix <= 0))
+    // Lu sur le texte tel que tapé (« 250000,50 » vaut 250000,5) : stricte comme tous les montants (VER-TS-02). Ni
+    // espace ni point de milliers, ni exposant : `Number("1e5")` valait 100000.
+    const prixLu = lireMontantFacultatif(formData.get("prix_vente"));
+    if ("erreur" in prixLu) return { erreur: erreurDuChamp("Prix de vente proposé", prixLu.erreur), valeurs };
+    if (prixLu.montant !== null && prixLu.montant <= 0)
       return { erreur: "Le prix de vente proposé est invalide.", valeurs };
-    conge.p_prix_vente = prix;
+    conge.p_prix_vente = prixLu.montant;
     conge.p_beneficiaire = String(formData.get("beneficiaire") ?? "").trim() || null;
   }
 

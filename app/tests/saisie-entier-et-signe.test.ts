@@ -5,7 +5,30 @@
  * découvert). `Number("")` valait 0 et passait : un champ vide était lu « 0 ».
  */
 import { describe, expect, it } from "vitest";
-import { MESSAGE_MONTANT_INVALIDE, lireMontantSigne } from "../src/lib/saisie-montant";
+import { MESSAGE_MONTANT_INVALIDE, lireMontantAvecEspaces, lireMontantSigne } from "../src/lib/saisie-montant";
+
+describe("lireMontantAvecEspaces : le montant d'une zone de texte qui sert à produire un document", () => {
+  it.each([
+    ["245000,50", 245000.5],
+    ["245000.50", 245000.5],
+    ["245 000,50", 245000.5],
+    ["245 000,50", 245000.5],
+    ["245 000,50", 245000.5],
+    ["245000,50 €", 245000.5],
+    ["15000", 15000],
+  ])("accepte « %s »", (saisie, attendu) => {
+    expect(lireMontantAvecEspaces(saisie)).toEqual({ montant: attendu });
+  });
+
+  it.each(["", " ", "1e5", "0x10", "abc", "-5", "0", "245.000,50", "12,345"])("refuse « %s »", (saisie) => {
+    expect("erreur" in lireMontantAvecEspaces(saisie)).toBe(true);
+  });
+
+  it("une valeur absente est refusée", () => {
+    expect("erreur" in lireMontantAvecEspaces(null)).toBe(true);
+    expect("erreur" in lireMontantAvecEspaces(undefined)).toBe(true);
+  });
+});
 
 describe("lireMontantSigne", () => {
   it.each([

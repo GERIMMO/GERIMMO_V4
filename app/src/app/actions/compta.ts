@@ -7,7 +7,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { remettreRapportMensuel } from "@/lib/rapports-mensuels";
 import { aujourdhuiParis } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
-import { lireMontant } from "@/lib/saisie-montant";
+import { erreurDuChamp, lireMontant, lireMontantFacultatif } from "@/lib/saisie-montant";
 import { estRejeuCleEnvoi, lireCleEnvoi, messageDejaEnregistre } from "@/lib/cle-envoi";
 
 export type EtatCompta = {
@@ -102,9 +102,13 @@ export async function ajouterEcriture(
   if (sens !== "recette" && sens !== "depense") return { erreur: "Sens invalide.", valeurs };
   if ("erreur" in lu) return { erreur: lu.erreur, valeurs };
   const montant = lu.montant;
+  // La part de TEOM se lit sur le texte tel que tapé (« 168,50 » vaut 168,5) : champ en `type="text"` (VER-TS-02).
+  // Vide : pas de TEOM, zéro. Un texte illisible est refusé en disant quoi écrire.
+  const teomLue = lireMontantFacultatif(formData.get("teom"));
+  if ("erreur" in teomLue) return { erreur: erreurDuChamp("Part de TEOM", teomLue.erreur), valeurs };
   let parts;
   try {
-    parts = ventilerTeom(montant, Number(String(formData.get("teom") ?? "0").replace(",", ".")), categorie, sens);
+    parts = ventilerTeom(montant, teomLue.montant ?? 0, categorie, sens);
   } catch (erreur) {
     return { erreur: (erreur as Error).message, valeurs };
   }

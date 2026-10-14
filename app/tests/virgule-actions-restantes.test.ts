@@ -63,16 +63,23 @@ vi.mock("@/lib/ged-depot", () => ({
   }),
 }));
 vi.mock("@/lib/ged-acces", () => ({
-  verifierGerant: async () => ({ user: { id: "gerant-test" }, role: "admin", supabase: banc.supabase }),
+  verifierGerant: async () => ({ user: { id: "gerant-test" }, role: "proprietaire_direct", supabase: banc.supabase }),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => banc.supabase }));
 
 import { ajouterLigneMandat } from "@/app/actions/mandats";
-import { ajouterBailPersonne } from "@/app/actions/baux";
+import { ajouterBailPersonne, enregistrerConge } from "@/app/actions/baux";
+import { modifierProfilOrganisation } from "@/app/actions/organisation";
+import { ajouterEcriture } from "@/app/actions/compta";
+import { enregistrerEtude } from "@/app/actions/etudes-territoriales";
+import { enregistrerReglagesMarketing } from "@/app/admin/marketing/actions";
+import { reprendreSoldes } from "@/app/actions/reprise-comptable";
 import { enregistrerChambre } from "@/app/actions/chambres";
 import { creerBien, decouperBien, modifierLot, ajouterDetention, validerCle } from "@/app/actions/parc";
 import { ajouterCompteur, enregistrerAnnexesEdl } from "@/app/actions/edl";
 import { ajouterRetenue } from "@/app/actions/restitution";
+import { lireEtapeBail } from "@/lib/champs-etape-bail";
+import { lireMentionsContrat } from "@/lib/mentions-contrat";
 
 const ORG = "org-test";
 
@@ -111,6 +118,8 @@ type Cas = {
   format?: RegExp;
   /** Saisies en plus à refuser (hors format) : bornes propres au champ. */
   bornes?: string[];
+  /** Les saisies illisibles à refuser, quand la liste habituelle ne convient pas (un champ qui admet un négatif). */
+  refus?: string[];
 };
 
 function ecritureDe(table: string): Record<string, unknown> | undefined {
@@ -400,6 +409,116 @@ const CAS: Cas[] = [
     zero: "accepte",
     format: FORMAT_DECIMAL,
   },
+
+  // ───────── Montants restés en Number() : prix de vente, seuils, TEOM, dépenses, budgets, trésorerie ─────────
+  {
+    action: "enregistrerConge",
+    champ: "prix_vente",
+    jouer: async (saisie) => {
+      const resultat = await enregistrerConge(ORG, "bail-test", {}, formulaire({ par: "bailleur", date_presentation: "2026-10-01", prix_vente: saisie }));
+      const args = rpcDe("enregistrer_conge");
+      return observer(resultat, args?.p_prix_vente, Boolean(args));
+    },
+    attendu: 840,
+    formes: ["840,00", "840.00", "840"],
+    vide: { lu: null },
+    zero: "refuse",
+    format: FORMAT_MONTANT,
+  },
+  {
+    action: "modifierProfilOrganisation",
+    champ: "relance_seuil_montant",
+    jouer: async (saisie) => {
+      const resultat = await modifierProfilOrganisation(ORG, {}, formulaire({
+        name: "Mon parc", address_line1: "1 rue de Test", postal_code: "75001", city: "Paris", email_contact: "contact@exemple.fr",
+        relance_seuil_montant: saisie,
+      }));
+      const ecrit = ecritureDe("organizations");
+      return observer(resultat, ecrit?.relance_seuil_montant, Boolean(ecrit));
+    },
+    attendu: 840,
+    formes: ["840,00", "840.00", "840"],
+    // Vide : le seuil par défaut, 5 € (comme avant).
+    vide: { lu: 5 },
+    zero: "accepte",
+    format: FORMAT_MONTANT,
+    bornes: ["1000,01", "84000"],
+  },
+  {
+    action: "ajouterEcriture",
+    champ: "teom",
+    jouer: async (saisie) => {
+      const resultat = await ajouterEcriture(ORG, {}, formulaire({
+        categorie: "Taxe foncière", sens: "depense", montant: "1124", teom: saisie, cle_envoi: "6f1f0c1e-6c1a-4f3e-9d57-2b1d3c4e5f60",
+      }));
+      const lignes = banc.etat.ecritures.find((e) => e.table === "ecritures")?.valeur;
+      const teom = Array.isArray(lignes) ? lignes.find((l) => l.categorie === "TEOM") : undefined;
+      return observer(resultat, teom?.montant ?? 0, Boolean(lignes));
+    },
+    attendu: 168,
+    formes: ["168,00", "168.00", "168"],
+    // Vide : pas de part de TEOM, une seule ligne (comme avant).
+    vide: { lu: 0 },
+    zero: "accepte",
+    format: FORMAT_MONTANT,
+  },
+  {
+    action: "enregistrerEtude",
+    champ: "depense (en centimes)",
+    jouer: async (saisie) => {
+      banc.etat.reponsesRpc.is_permanent_super_admin = true;
+      const resultat = await enregistrerEtude({}, formulaire({
+        departement: "75", indicateur: "acquisition", nombre: "3", depense: saisie, debut: "2026-01-01", fin: "2026-06-30", source: "Étude", methode: "Relevé",
+      }));
+      const args = rpcDe("enregistrer_etude_territoriale");
+      return observer(resultat, args?.p_depense_cents, Boolean(args));
+    },
+    attendu: 84000,
+    formes: ["840,00", "840.00", "840"],
+    // Vide : une étude de concurrence n'a pas de dépense, elle vaut zéro (comme avant).
+    vide: { lu: 0 },
+    zero: "accepte",
+    format: FORMAT_MONTANT,
+  },
+  {
+    action: "enregistrerReglagesMarketing",
+    champ: "budget (en centimes)",
+    jouer: async (saisie) => {
+      banc.etat.reponsesRpc.is_permanent_super_admin = true;
+      const resultat = await enregistrerReglagesMarketing({}, formulaire({
+        jour_1: "1", jour_2: "4", heure_paris: "7", budget: saisie, veille_mots_inclus: "loyer",
+      }));
+      const ecrit = ecritureDe("marketing_reglages");
+      return observer(resultat, ecrit?.budget_mensuel_cents, Boolean(ecrit));
+    },
+    attendu: 84000,
+    formes: ["840,00", "840.00", "840"],
+    // Un champ vidé vaut zéro (pas de seuil d'alerte), comme avant ; un champ absent vaut 10 €.
+    vide: { lu: 0 },
+    zero: "accepte",
+    format: FORMAT_MONTANT,
+    bornes: ["1000,01", "84000"],
+  },
+  {
+    action: "reprendreSoldes",
+    champ: "tresorerie",
+    jouer: async (saisie) => {
+      banc.etat.reponsesRpc.reprendre_soldes = [];
+      const resultat = await reprendreSoldes(ORG, {}, formulaire({
+        contenu: "type,montant\ndepot_garantie,100", date_bascule: "2026-10-01", tresorerie: saisie,
+      }));
+      const args = rpcDe("ouvrir_reprise");
+      return observer(resultat, args?.p_tresorerie, Boolean(args));
+    },
+    attendu: 840,
+    formes: ["840,00", "840.00", "840"],
+    // Vide : refusé (il était lu « 0 » et passait).
+    vide: { erreur: /indiquez la trésorerie que vous reprenez/i },
+    // La trésorerie d'une agence peut être à découvert : le négatif est admis, lu tel que tapé.
+    zero: "accepte",
+    format: FORMAT_MONTANT,
+    refus: ["abc", "1 234,50", "1.234,50", "1e2"],
+  },
 ];
 
 const NOM = (c: Cas) => `${c.action} : ${c.champ}`;
@@ -414,7 +533,7 @@ describe.each(CAS.map((c) => [NOM(c), c] as const))("%s", (_nom, cas) => {
     expect(lu).toBe(cas.attendu);
   });
 
-  it.each(["abc", "-5", "1 234,50", "1.234,50", "1e2"])("refuse « %s » avant toute écriture, en disant le format attendu", async (saisie) => {
+  it.each(cas.refus ?? ["abc", "-5", "1 234,50", "1.234,50", "1e2"])("refuse « %s » avant toute écriture, en disant le format attendu", async (saisie) => {
     const { resultat, ecrit } = await cas.jouer(saisie);
     expect(resultat.erreur).toBeDefined();
     expect(resultat.succes).toBeUndefined();
@@ -493,5 +612,75 @@ describe("règles inchangées : « 7,5 » n'est ni 75 ni 7 500", () => {
     const r = await modifierLot(ORG, "bien-test", "lot-test", {}, formulaire({ ...LOT_MODIFIE, surface_m2: "10000,5" }));
     expect(r.erreur).toMatch(/dépasse/);
     expect(ecritureDe("lots")).toBeUndefined();
+  });
+});
+
+// ───────────────────────── Parcours de bail et mentions du contrat : lecture stricte ─────────────────────────
+// `Number(brut.replace(",", "."))` acceptait l'exposant (« 1e3 » valait 1000), l'hexadécimal (« 0x10 » valait 16),
+// « Infinity » et les espaces. Les montants du parcours de bail se lisent comme tous les autres.
+describe("lireEtapeBail et lireMentionsContrat : les montants du contrat se lisent strictement", () => {
+  const actuel = { type: "nu", loyer_hc: 500, charges: 40, depot_garantie: 400, charges_mode: "provision", locataire_principal: "locataire", jour_echeance: 1 };
+  const loyer = { loyer_hc: "500", charges: "40", depot_garantie: "400", jour_echeance: "1", charges_mode: "provision", revision_irl: "true", paiement_echeance: "echoir" };
+  const lireLoyer = (champs: Record<string, string>) => lireEtapeBail("loyer", formulaire({ ...loyer, ...champs }), actuel, { meuble: false, surface: 46 });
+
+  it.each([["840,00", 840], ["840.00", 840], ["840", 840], ["0", 0]])("loyer « %s » vaut %s", (saisie, attendu) => {
+    const r = lireLoyer({ loyer_hc: saisie, depot_garantie: "0" });
+    expect(r.erreur).toBeUndefined();
+    expect(r.patch?.loyer_hc).toBe(attendu);
+  });
+
+  it.each(["1e3", "0x10", "Infinity", "1 000", "-5", "abc", "12,345", "1.234,50"])("refuse « %s » avec le message qui dit quoi écrire", (saisie) => {
+    const r = lireLoyer({ loyer_hc: saisie });
+    expect(r.erreur).toMatch(/montant invalide|centime près/i);
+    expect(r.patch).toBeNull();
+  });
+
+  it("le jour d'échéance reste un entier de 1 à 28", () => {
+    expect(lireLoyer({ jour_echeance: "15" }).erreur).toBeUndefined();
+    expect(lireLoyer({ jour_echeance: "5,5" }).erreur).toMatch(/entre 1 et 28/);
+    expect(lireLoyer({ jour_echeance: "29" }).erreur).toMatch(/entre 1 et 28/);
+  });
+
+  it.each(["honoraires_edl_bailleur", "honoraires_edl_locataire", "dpe_depenses_min", "dpe_depenses_max"])("mentions : %s lit « 840,00 » comme 840 et refuse « 1e3 »", (champ) => {
+    const ok = lireMentionsContrat(formulaire({ [champ]: "840,00" }));
+    expect(ok.erreur).toBeUndefined();
+    expect((ok.mentions as Record<string, unknown>)[champ]).toBe(840);
+    const refus = lireMentionsContrat(formulaire({ [champ]: "1e3" }));
+    expect(refus.erreur).toMatch(/montant invalide/i);
+    expect(lireMentionsContrat(formulaire({ [champ]: "" })).mentions).toMatchObject({ [champ]: null });
+  });
+});
+
+describe("montants dont la règle propre reste inchangée", () => {
+  it("la trésorerie reprise peut être à découvert : « -1500,50 » vaut -1500,5", async () => {
+    banc.etat.reponsesRpc.reprendre_soldes = [];
+    const r = await reprendreSoldes(ORG, {}, formulaire({ contenu: "type,montant\ndepot_garantie,100", date_bascule: "2026-10-01", tresorerie: "-1500,50" }));
+    expect(r.erreur).toBeUndefined();
+    expect(rpcDe("ouvrir_reprise")?.p_tresorerie).toBe(-1500.5);
+  });
+
+  it("la trésorerie vide n'est plus lue « 0 » : la reprise ne s'ouvre pas", async () => {
+    const r = await reprendreSoldes(ORG, {}, formulaire({ contenu: "type,montant\ndepot_garantie,100", date_bascule: "2026-10-01", tresorerie: "" }));
+    expect(r.erreur).toMatch(/trésorerie/);
+    expect(rpcDe("ouvrir_reprise")).toBeUndefined();
+  });
+
+  it("le seuil d'alerte marketing absent du formulaire vaut 10 €, vidé vaut 0", async () => {
+    banc.etat.reponsesRpc.is_permanent_super_admin = true;
+    const sans = formulaire({ jour_1: "1", jour_2: "4", heure_paris: "7", veille_mots_inclus: "loyer" });
+    expect((await enregistrerReglagesMarketing({}, sans)).erreur).toBeUndefined();
+    expect(ecritureDe("marketing_reglages")?.budget_mensuel_cents).toBe(1000);
+  });
+
+  it("le prix de vente du congé est facultatif pour un congé du locataire", async () => {
+    const r = await enregistrerConge(ORG, "bail-test", {}, formulaire({ par: "locataire", date_presentation: "2026-10-01", prix_vente: "abc" }));
+    expect(r.erreur).toBeUndefined();
+    expect(rpcDe("enregistrer_conge")).not.toHaveProperty("p_prix_vente");
+  });
+
+  it("la TEOM supérieure au total reste refusée sur la valeur lue", async () => {
+    const r = await ajouterEcriture(ORG, {}, formulaire({ categorie: "Taxe foncière", sens: "depense", montant: "100", teom: "168,00", cle_envoi: "6f1f0c1e-6c1a-4f3e-9d57-2b1d3c4e5f60" }));
+    expect(r.erreur).toMatch(/part de TEOM/);
+    expect(ecritureDe("ecritures")).toBeUndefined();
   });
 });

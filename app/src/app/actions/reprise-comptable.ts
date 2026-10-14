@@ -5,6 +5,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { sansJargon } from "@/lib/erreurs";
 import { lireCsv, tresorerieDuFichier } from "@/lib/reprise-soldes";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
+import { erreurDuChamp, lireMontantSigne } from "@/lib/saisie-montant";
 
 export type ResultatSolde = {
   ligne: number;
@@ -99,17 +100,21 @@ export async function reprendreSoldes(
   // Sans total annoncé, on prendrait celui du fichier — et l'écart serait nul
   // par construction, ce qui viderait le contrôle de son sens. C'est l'agence
   // qui annonce ce qu'elle reçoit, le fichier qui doit le justifier.
-  const tresorerieAnnoncee = Number(tresorerieSaisie.replace(/\s/g, "").replace(",", "."));
-  if (!Number.isFinite(tresorerieAnnoncee)) {
+  // Lue sur le texte tel que tapé (« 42000,50 » vaut 42000,5), comme tous les montants (VER-TS-02) : elle peut être
+  // négative (découvert) ou nulle, jamais vide (`Number("")` valait 0 et passait), ni « 1e4 » ou « 42 000 ».
+  const tresorerieLue = lireMontantSigne(tresorerieSaisie);
+  if ("erreur" in tresorerieLue) {
     return {
-      erreur:
-        "Indiquez la trésorerie que vous reprenez : c'est elle que le détail du fichier doit justifier.",
+      erreur: tresorerieSaisie
+        ? erreurDuChamp("Trésorerie reprise", tresorerieLue.erreur)
+        : "Indiquez la trésorerie que vous reprenez : c'est elle que le détail du fichier doit justifier.",
       contenu,
       fichier,
       dateBascule,
       tresorerieFichier,
     };
   }
+  const tresorerieAnnoncee = tresorerieLue.montant;
   if (!dateBascule) {
     return { erreur: "Indiquez la date de bascule.", contenu, fichier, tresorerieFichier };
   }

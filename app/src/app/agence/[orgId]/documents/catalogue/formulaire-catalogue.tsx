@@ -22,7 +22,7 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[]}:{orgId:str
       {c.cle==="garant"?<select key={cible} name={c.cle} className={style} required defaultValue=""><option value="" disabled>Choisir un garant rattaché au dossier</option>{garants.filter(g=>g.bailId===cible).map(g=><option key={g.id} value={g.id}>{g.libelle}</option>)}</select>:
       c.choix?<select name={c.cle} className={style} required>{c.choix.map(v=><option value={v.valeur} key={v.valeur}>{v.libelle}</option>)}</select>:
       c.type==="textarea"?<textarea name={c.cle} rows={3} maxLength={6000} className={style} required/>:
-      <input name={c.cle} type={c.type??"text"} step={c.type==="number"?"any":undefined} maxLength={500} className={style} required defaultValue={c.cle==="annee"?new Date().getFullYear():c.cle==="interets_emprunt"?"0":undefined}/>}
+      <input name={c.cle} type={c.type==="montant"?"text":(c.type??"text")} inputMode={c.type==="montant"?"decimal":undefined} step={c.type==="number"?"any":undefined} maxLength={500} className={style} required defaultValue={c.cle==="annee"?new Date().getFullYear():c.cle==="interets_emprunt"?"0":undefined}/>}
       {c.aide&&<span className="block text-xs font-normal text-muted-foreground">{c.aide}</span>}</label>)}</div>
     <p className="text-sm text-muted-foreground">Le PDF sera enregistré dans Documents. Aucun envoi automatique.</p>
     <Button disabled={enCours||!cible||!choix.length} type="submit">{enCours?"Préparation du PDF…":"Générer le PDF"}</Button>

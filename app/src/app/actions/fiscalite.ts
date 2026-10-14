@@ -2,10 +2,12 @@
 import {revalidatePath} from 'next/cache';
 import {verifierGerant} from '@/lib/ged-acces';
 import {sansJargon} from '@/lib/erreurs';
-import {lireMontantFacultatif} from '@/lib/saisie-montant';
+import {erreurDuChamp,lireDecimal,lireDecimalFacultatif,lireMontantFacultatif} from '@/lib/saisie-montant';
 export type EtatFiscal={erreur?:string;succes?:string};
 const texte=(f:FormData,k:string)=>String(f.get(k)??'').trim();
-const nombreOptionnel=(f:FormData,k:string)=>texte(f,k)===''?null:Number(texte(f,k).replace(',','.'));
+// Un pourcentage se lit sur le texte tel que tapé (« 33,5 » vaut 33,5, jamais 335) : champ en type="text" (VER-TS-02).
+// Vide : « non renseigné » ; illisible : refusé en disant quoi écrire.
+const decimalOptionnel=(f:FormData,k:string,nom:string)=>{const lu=lireDecimalFacultatif(f.get(k));return 'erreur' in lu?{erreur:erreurDuChamp(nom,lu.erreur)}:lu;};
 // Les champs en euros sont du texte (virgule ou point, cf. lireMontant) : un texte illisible se refuse, il ne devient pas « à compléter ».
 const montantOptionnel=(f:FormData,k:string,nom:string)=>{const lu=lireMontantFacultatif(f.get(k));return 'erreur' in lu?{erreur:`${nom} : ${lu.erreur.charAt(0).toLowerCase()}${lu.erreur.slice(1)}`}:lu;};
 async function acces(orgId:string){const a=await verifierGerant(orgId);return {...a,autorise:!!a.user&&a.role==='proprietaire_direct'};}
@@ -32,7 +34,16 @@ export async function enregistrerExerciceFiscal(orgId:string,lotId:string,annee:
  const {supabase,autorise}=await acces(orgId);if(!autorise)return{erreur:'Accès refusé.'};
  if(texte(f,'confirme')!=='oui')return{erreur:'Confirmez les périodes et les pièces de cet exercice.'};
  let periodes:unknown;try{periodes=JSON.parse(texte(f,'periodes'));}catch{return{erreur:'Vérifiez les périodes.'};}
+ // La part de chaque période arrive comme le texte tapé (« 33,5 ») ou comme un nombre : elle est lue ici, une fois, avant la base.
+ if(Array.isArray(periodes))for(const p of periodes){
+  if(p&&typeof p==='object'&&!Array.isArray(p)&&'quote_part' in p){
+   const lue=lireDecimal(String((p as {quote_part:unknown}).quote_part??''));
+   if('erreur' in lue)return{erreur:erreurDuChamp('Vos droits sur une période',lue.erreur)};
+   (p as {quote_part:number}).quote_part=lue.valeur;
+  }
+ }
  const regularisation230=montantOptionnel(f,'regularisation230','Montant de la ligne 230');if('erreur' in regularisation230)return{erreur:regularisation230.erreur};
- const {error}=await supabase.rpc('enregistrer_exercice_fiscal_lot',{p_lot:lotId,p_annee:annee,p_periodes:periodes,p_justification:texte(f,'justification'),p_regularisation230:regularisation230.montant,p_quote_part230:nombreOptionnel(f,'quote_part230'),p_justification230:texte(f,'justification230')||null});
+ const quotePart230=decimalOptionnel(f,'quote_part230','Vos droits sur la régularisation');if('erreur' in quotePart230)return{erreur:quotePart230.erreur};
+ const {error}=await supabase.rpc('enregistrer_exercice_fiscal_lot',{p_lot:lotId,p_annee:annee,p_periodes:periodes,p_justification:texte(f,'justification'),p_regularisation230:regularisation230.montant,p_quote_part230:quotePart230.valeur,p_justification230:texte(f,'justification230')||null});
  if(error)return{erreur:sansJargon(error.message)};actualiser(orgId);return{succes:'Exercice enregistré dans une nouvelle version. Les précédentes sont conservées.'};
 }

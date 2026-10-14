@@ -74,6 +74,7 @@ import { ajouterEcriture } from "@/app/actions/compta";
 import { enregistrerEtude } from "@/app/actions/etudes-territoriales";
 import { enregistrerReglagesMarketing } from "@/app/admin/marketing/actions";
 import { reprendreSoldes } from "@/app/actions/reprise-comptable";
+import { enregistrerExerciceFiscal } from "@/app/actions/fiscalite";
 import { enregistrerChambre } from "@/app/actions/chambres";
 import { creerBien, decouperBien, modifierLot, ajouterDetention, validerCle } from "@/app/actions/parc";
 import { ajouterCompteur, enregistrerAnnexesEdl } from "@/app/actions/edl";
@@ -143,6 +144,8 @@ const LOT_MODIFIE = {
   nom: "Lot 1", identifiant_fiscal: "1234567890123", description: "Appartement", chauffage: "Collectif", eau_chaude: "Collective",
   locaux_privatifs: "Cave", surface_m2: "40", pieces: "2",
 };
+
+const PERIODES_FISCALES = JSON.stringify([{ debut: "2026-01-01", fin: "2026-12-31", quote_part: 100, regime: "nu" }]);
 
 const CAS: Cas[] = [
   {
@@ -519,6 +522,22 @@ const CAS: Cas[] = [
     format: FORMAT_MONTANT,
     refus: ["abc", "1 234,50", "1.234,50", "1e2"],
   },
+  {
+    action: "enregistrerExerciceFiscal",
+    champ: "quote_part230",
+    jouer: async (saisie) => {
+      const resultat = await enregistrerExerciceFiscal(ORG, "lot-test", 2026, {}, formulaire({
+        confirme: "oui", periodes: PERIODES_FISCALES, justification: "Droits confirmés", regularisation230: "0", quote_part230: saisie,
+      }));
+      const args = rpcDe("enregistrer_exercice_fiscal_lot");
+      return observer(resultat, args?.p_quote_part230, Boolean(args));
+    },
+    attendu: 33.5,
+    formes: ["33,5", "33.5", "33.50"],
+    vide: { lu: null },
+    zero: "accepte",
+    format: FORMAT_DECIMAL,
+  },
 ];
 
 const NOM = (c: Cas) => `${c.action} : ${c.champ}`;
@@ -648,6 +667,45 @@ describe("lireEtapeBail et lireMentionsContrat : les montants du contrat se lise
     const refus = lireMentionsContrat(formulaire({ [champ]: "1e3" }));
     expect(refus.erreur).toMatch(/montant invalide/i);
     expect(lireMentionsContrat(formulaire({ [champ]: "" })).mentions).toMatchObject({ [champ]: null });
+  });
+});
+
+describe("exercice fiscal : les parts de chaque période se lisent comme le texte tapé", () => {
+  const jouer = (periodes: unknown) =>
+    enregistrerExerciceFiscal(ORG, "lot-test", 2026, {}, formulaire({
+      confirme: "oui", periodes: JSON.stringify(periodes), justification: "Droits confirmés", regularisation230: "0", quote_part230: "100",
+    }));
+  const periode = (quote_part: unknown) => [{ debut: "2026-01-01", fin: "2026-12-31", quote_part, regime: "nu" }];
+
+  it.each([["33,5", 33.5], ["33.5", 33.5], ["100", 100], [100, 100], [33.5, 33.5], ["0", 0]])("« %s » vaut %s, jamais 335", async (saisie, attendu) => {
+    const r = await jouer(periode(saisie));
+    expect(r.erreur).toBeUndefined();
+    const lues = rpcDe("enregistrer_exercice_fiscal_lot")?.p_periodes as { quote_part: number }[];
+    expect(lues[0].quote_part).toBe(attendu);
+  });
+
+  it.each(["abc", "-5", "1e2", "33,5 %", "", "1 000"])("refuse « %s » avant toute écriture", async (saisie) => {
+    const r = await jouer(periode(saisie));
+    expect(r.erreur).toMatch(/valeur invalide : écrivez 145,17/i);
+    expect(rpcDe("enregistrer_exercice_fiscal_lot")).toBeUndefined();
+  });
+
+  it("chaque période est lue ; les autres champs de la période ne sont pas touchés", async () => {
+    const r = await jouer([
+      { debut: "2026-01-01", fin: "2026-06-30", quote_part: "50,5", regime: "nu" },
+      { debut: "2026-07-01", fin: "2026-12-31", quote_part: "49,5", regime: "meuble" },
+    ]);
+    expect(r.erreur).toBeUndefined();
+    expect(rpcDe("enregistrer_exercice_fiscal_lot")?.p_periodes).toEqual([
+      { debut: "2026-01-01", fin: "2026-06-30", quote_part: 50.5, regime: "nu" },
+      { debut: "2026-07-01", fin: "2026-12-31", quote_part: 49.5, regime: "meuble" },
+    ]);
+  });
+
+  it("un JSON qui n'est pas une liste de périodes est transmis tel quel : la base le refuse avec sa règle", async () => {
+    const r = await jouer({ pas: "une liste" });
+    expect(r.erreur).toBeUndefined();
+    expect(rpcDe("enregistrer_exercice_fiscal_lot")?.p_periodes).toEqual({ pas: "une liste" });
   });
 });
 

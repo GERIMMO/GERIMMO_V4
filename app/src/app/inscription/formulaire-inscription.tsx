@@ -211,7 +211,7 @@ export function FormulaireInscription({
             </Link>
             .
           </p>
-          <BoutonEnvoi enCoursTexte="Ouverture…" className="w-full">
+          <BoutonEnvoi envoiNatif enCoursTexte="Ouverture…" className="w-full">
             Ouvrir mon espace
           </BoutonEnvoi>
           {/* Cible de 44 px au doigt (24/09), sans changer l'allure du texte. */}

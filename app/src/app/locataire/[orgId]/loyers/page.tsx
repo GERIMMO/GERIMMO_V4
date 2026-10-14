@@ -7,6 +7,7 @@ import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
+import { ANCRE_DEPOT_GARANTIE } from "../carte-depot-garantie";
 import { tagLocataire } from "../pastille-locataire";
 import type { BailLocataire } from "../types";
 import { BoutonCopierIban } from "./bouton-copier-iban";
@@ -409,7 +410,7 @@ export default async function PagePaiementsLocataire(
       {/* Restitution du dépôt de garantie (module 2.7) : le suivi dès la
           remise des clés, le décompte détaillé seulement une fois établi */}
       {restitution && (
-        <div className="loc-carte">
+        <div className="loc-carte scroll-mt-20" id={ANCRE_DEPOT_GARANTIE}>
           <div className="entete-carte !mb-1">
             <h2 className="titre-carte text-base font-medium">Votre dépôt de garantie</h2>
             <span className={`loc-tag ${restitution.statut === "finalise" ? "vert" : "bleu"}`}>

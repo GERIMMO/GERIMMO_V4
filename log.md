@@ -5808,3 +5808,9 @@ Autorisation explicite du dirigeant (« oui » à la question de [[Dossier de va
 0 erreur d'exécution, pages publiques sans le mot « agence », migrations enregistrées, 8 tâches `pg_cron` actives sans échec, 0 ligne `mission_annulee`. Non vérifié : parcours connectés
 (aucune écriture en production), première préparation du soir (attendue jeudi 15/10 à 18 h Paris), alertes de sécurité Supabase non comparées à un relevé antérieur. Mission non terminée
 (critères d'aval, d'automatisation, de fonctions majeures et de restauration non remplis). Détail : § 5 bis du dossier de validation.
+
+## [2026-10-14] deploy | Marketing — première préparation du soir en production, passage forcé à la demande du dirigeant
+Réglages modifiés en SQL (`heure_preparation_paris` 18 → 13 ; jours {mardi, vendredi} → {mardi, jeudi} le temps du passage, puis rétablis ; l'heure reste à 13). `preparation_marketing_due()` vrai,
+tick `pg_cron` de 13 h 15 Paris : post du jeudi 15/10 préparé (`agi`, `alerte` vrais), programmé à 09:00 Paris, publication automatique sans validation obligatoire (veto possible dans
+`/admin/marketing`). Plafond Facebook de deux envois par semaine : le post du vendredi 16/10 paraîtra sur le site sans diffusion Facebook. Détail et conséquences :
+[[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.

@@ -41,7 +41,7 @@ Bilan du registre : **236 anomalies** (P0 : 0 ; P1 : 1 ; P2 : 69 ; P3 : 166) ; *
 
 **Appliquées le 14/10/2026** (exécution n° 72, après sauvegarde n° 23 ; voir § 5 bis). État relevé en lecture seule *avant* application : la dernière migration appliquée était `20261013107000`.
 
-1. `20261013110000_marketing_preparation_du_soir_cron.sql` — crée une fonction interne sans garde, fermée à tous les rôles, et une enveloppe qui garde la garde `service_role` ; `preparation_marketing_due()` lit la version interne. **Effet réel : à partir du premier passage de la tâche après application (jeudi 15/10, 18 h Paris, si l'accord arrive avant), la préparation de la publication du lendemain redevient possible depuis `pg_cron`** (automatisme déjà approuvé avec sa fenêtre de veto, mais jamais exécuté jusqu'ici).
+1. `20261013110000_marketing_preparation_du_soir_cron.sql` — crée une fonction interne sans garde, fermée à tous les rôles, et une enveloppe qui garde la garde `service_role` ; `preparation_marketing_due()` lit la version interne. **Effet réel : à partir du premier passage de la tâche après application (jeudi 15/10, 18 h Paris, si l'accord arrive avant), la préparation de la publication du lendemain redevient possible depuis `pg_cron`** (automatisme déjà approuvé avec sa fenêtre de veto, mais jamais exécuté jusqu'ici). *Constaté en production le 14/10/2026 : voir « Passage forcé de la préparation du soir » au § 5 bis.*
 2. `20261013120000_correctifs_audit_13_octobre.sql` — modifie **neuf** fonctions en relisant leur définition en vigueur (`pg_get_functiondef`), chacune avec une marque de rejeu ; si la définition n'est pas celle attendue, la migration s'arrête et ne change rien. Elle ajoute `mission_annulee` à la liste des types d'événement d'incident. Aucune ligne existante n'est touchée.
 
 **Simulation** : exécution n° 71 de `migrations.yml` (14/10, 02 h 52 UTC, tête `2235d73`) : les deux fichiers joués dans l'ordre contre la production, puis `ROLLBACK`. Les fichiers de migration n'ont **pas changé depuis** cette exécution.
@@ -116,9 +116,24 @@ Question à vous poser, dans les termes de la mission, **quand vous aurez tranch
 **Ce qui n'est pas vérifié, et pourquoi :**
 
 - Aucun parcours connecté en production (propriétaire, locataire, artisan, super-administrateur) : aucune écriture n'a été faite en production, et les corrections financières restent éprouvées seulement sur le banc (la production ne contient aucune écriture comptable).
-- **La préparation du soir du marketing n'a pas encore tourné** : son premier passage réel est attendu **jeudi 15/10 à 18 h (Paris)**, pour la publication du vendredi 16/10 à 9 h. À contrôler le 15/10 au soir (publication en brouillon ou planifiée, e-mail de veto envoyé) ; si la préparation ne part pas, le retour arrière de la migration `20261013110000` est dans `app/supabase/retours-arriere/`.
+- **La préparation du soir du marketing a tourné pour la première fois le 14/10/2026, à la demande du dirigeant** (voir « Passage forcé du 14/10 » ci-dessous). Ce passage a été provoqué par un changement de réglages ; le déroulement sans intervention (jeudi 15/10 à 13 h Paris, pour la publication du vendredi 16/10) reste à observer. Retour arrière de la migration `20261013110000` : `app/supabase/retours-arriere/`.
 - Le réseau de l'environnement de l'audit refuse l'accès direct à `gerimmo.app` (réponse 403 du proxy) : les pages ont été lues par l'outil Vercel, sans navigateur ni captures.
 - Retour arrière du code : revert de la fusion `c99e2c6` (ou promotion du déploiement précédent) ; de la base : `app/supabase/retours-arriere/LISEZ-MOI.md`, en ordre inverse, après sauvegarde.
+
+### Passage forcé de la préparation du soir, 14/10/2026
+
+À la demande du dirigeant (« change l'heure et fais-le maintenant », option « forcer un passage maintenant » choisie après avoir été prévenu des effets), pour constater la correction en production sans attendre jeudi :
+
+1. **Réglages modifiés** (`marketing_reglages`, 13 h 11 Paris) : `heure_preparation_paris` 18 → **13** ; `jours_semaine` {mardi, vendredi} → {mardi, **jeudi**} (la base impose exactement deux jours, `publications_semaine = 2`) afin que le lendemain, jeudi 15/10, soit un jour visé.
+2. **Constat avant déclenchement** : `preparation_marketing_due()` renvoyait **vrai** (cible : jeudi 15/10, rang 1, parution 09:00 Paris). C'est la première fois que la fonction corrigée par la migration `20261013110000` désigne une cible depuis la base.
+3. **Déclenchement par `pg_cron`** (tick de 13 h 15 Paris, sans appel manuel) : la tâche `marketing` a consigné `agi: true`, `preparees: 1`, `alerte: true`, `rattrapage: false`. Le côté HTTP de `pg_net` a affiché un dépassement de 15 s ; le traitement serveur, lui, est allé au bout (post programmé et alerte envoyée dans la même minute).
+4. **Résultat** : publication `6a624ae5-b0ee-42b7-8054-6ecfbcc36ae1`, « Un agenda qui vous prévient avant l'échéance », sujet éditorial (aucune veille relayée), visuel créé, statut `programmee` pour **jeudi 15/10 à 09:00 Paris**, non validée (`validation_obligatoire` est faux). Elle paraîtra sur le site puis sur Facebook sans autre geste, **sauf refus ou report** par le superviseur dans `/admin/marketing` avant 09:00 ; l'e-mail d'alerte est parti à l'adresse du superviseur permanent.
+5. **Réglages rétablis** : `jours_semaine` {mardi, vendredi}. `heure_preparation_paris` **reste à 13** (c'était la demande) ; la remettre à 18 est un réglage en base, l'écran `/admin/marketing` ne la modifie pas.
+
+**Conséquences à connaître**
+- Le plafond hebdomadaire de diffusion Facebook est de deux envois par semaine (`reserver_diffusion_facebook`) : mardi 13/10 (1) + jeudi 15/10 (2). **Le post de vendredi 16/10 sera préparé jeudi à partir de 13 h et paraîtra sur le site, mais sa diffusion Facebook sera refusée par le plafond** (message « diffusion Facebook non réservée » dans le bilan de la tâche, qui passera en erreur 503 pour ce passage). À trancher : laisser ainsi, ou refuser/reporter le post de jeudi, ou relever le plafond (changement de règle, non fait).
+- Coût réel du passage : rédaction du texte éditorial (sans veille) et création du visuel ; non mesuré.
+- Les réglages ont été modifiés en SQL direct, hors de l'écran et de son journal de supervision (`modifie_par` inchangé) : cette page et le journal du wiki en tiennent lieu de trace.
 
 ## 6. Ce qui attend une décision du dirigeant
 
@@ -149,7 +164,7 @@ Tout critère non rempli interdit une affirmation globale de fin de mission. **A
 | Automatisations installées et testées | **non rempli** | Aucune équipe IA n'est installée : les propositions des six équipes sont rédigées pour aval. Les tâches planifiées existantes (11 Vercel, 8 pg_cron) n'ont pas pu être exécutées sur le banc ; elles sont observées en production en lecture seule (aucun échec sur trois jours). |
 | Sécurité et restauration vérifiées | **partiel** | Isolation : 631 requêtes croisées entre profils refusées, 0 fuite, 0 P0 et 0 P1 ; retour arrière des deux migrations essayé (état revenu identique, 13 catalogues). Non rempli : aucune restauration d'une sauvegarde de production, pg_cron absent des sauvegardes (AUD-C-02), arrêt d'urgence incomplet (SUP-01). |
 | Version autorisée déployée | **rempli** | Autorisation explicite du dirigeant le 14/10/2026 ; version `0ad658a` (code) fusionnée en `c99e2c6`, déployée sur Vercel (`READY`), migrations `20261013110000` et `20261013120000` appliquées après sauvegarde (§ 5 bis). Portée : uniquement ce que l'autorisation nomme. |
-| Production vérifiée | **partiel** | Contrôles non destructifs faits après déploiement : 0 erreur d'exécution, pages publiques, migrations enregistrées, tâches `pg_cron`, alertes Supabase (§ 5 bis). Non fait : aucun parcours connecté ni écriture en production, première préparation du soir non encore exécutée (jeudi 15/10, 18 h Paris), alertes de sécurité non comparées à un relevé antérieur. Les corrections financières n'ont pas été éprouvées sur des données réelles (aucune écriture comptable en production). |
+| Production vérifiée | **partiel** | Contrôles non destructifs faits après déploiement : 0 erreur d'exécution, pages publiques, migrations enregistrées, tâches `pg_cron`, alertes Supabase (§ 5 bis). Non fait : aucun parcours connecté ni écriture en production, la préparation du soir n'a tourné qu'une fois, provoquée le 14/10 par un changement de réglages (voir « Passage forcé »), pas encore en fonctionnement normal, alertes de sécurité non comparées à un relevé antérieur. Les corrections financières n'ont pas été éprouvées sur des données réelles (aucune écriture comptable en production). |
 
 ## 9. Écarts de livrable relevés par la critique de complétude
 

@@ -1,4 +1,4 @@
--- VÉRIFIER L'ÉTAT des deux migrations 20261013110000 et 20261013120000 (lecture seule, ne modifie rien).
+-- VÉRIFIER L'ÉTAT des migrations 20261013110000, 20261013120000 et 20261014210000 (lecture seule, ne modifie rien).
 -- À jouer avant un retour arrière (on doit lire « migrée (B) »), après (on doit lire « antérieure (A) »),
 -- et en cas de doute : psql "$URL" -f verifier-etat.sql
 -- « migrée (B) » : la marque du correctif figure dans la définition en vigueur ; « antérieure (A) » : elle est absente.
@@ -16,7 +16,8 @@ with f(migration, signature, marque) as (values
   ('20261013120000', 'public.traiter_vacances()', 'Audit du 13/10 (SUP-08)'),
   ('20261013120000', 'public.contre_proposer_creneaux(uuid,uuid,jsonb)', 'Audit du 13/10 (REP-01)'),
   ('20261013120000', 'public.artisan_reglement_ecrire(text,text,uuid,jsonb,uuid)', 'Audit du 13/10 (ARC-10)'),
-  ('20261013120000', 'public.artisan_externe_ecrire(text,uuid,integer,jsonb,uuid)', 'Audit du 13/10 (ARC-10)'))
+  ('20261013120000', 'public.artisan_externe_ecrire(text,uuid,integer,jsonb,uuid)', 'Audit du 13/10 (ARC-10)'),
+  ('20261014210000', 'public.maintenance_artisans()', 'maintenance_artisans_interne'))
 select migration, signature as objet,
        case when to_regprocedure(signature) is null then 'ABSENTE (anormal)'
             when position(marque in pg_get_functiondef(to_regprocedure(signature))) > 0 then 'migrée (B)'
@@ -42,7 +43,16 @@ select '20261013120000', 'déclencheurs diagnostic_artisan_lecture sur supervisi
 union all
 select '20261013120000', 'lignes audit_log contre_ecriture / detention_supprimee (jamais défaites par le retour)',
        (select count(*) from public.audit_log where action = 'contre_ecriture')::text || ' / ' || (select count(*) from public.audit_log where action = 'detention_supprimee')::text
+union all
+select '20261014210000', 'public.maintenance_artisans_interne()',
+       case when to_regprocedure('public.maintenance_artisans_interne()') is null then 'antérieure (A) : absente' else 'migrée (B) : présente' end
+union all
+select '20261014210000', 'tâche pg_cron maintenance-artisans',
+       coalesce((select 'migrée (B) : ' || schedule || ' — ' || command from cron.job where jobname = 'maintenance-artisans'), 'antérieure (A) : absente')
+union all
+select '20261014210000', 'devis « expire » / sollicitations « expiree » (jamais restaurés par le retour)',
+       (select count(*) from public.incident_devis where statut = 'expire')::text || ' / ' || (select count(*) from public.incident_sollicitations where statut = 'expiree')::text
 order by 1, 2;
 
--- Historique des migrations : doit citer les deux versions si elles sont appliquées, aucune si le retour a été fait.
-select version from supabase_migrations.schema_migrations where version in ('20261013110000', '20261013120000') order by 1;
+-- Historique des migrations : doit citer les trois versions si elles sont appliquées, aucune si le retour a été fait.
+select version from supabase_migrations.schema_migrations where version in ('20261013110000', '20261013120000', '20261014210000') order by 1;

@@ -12,8 +12,13 @@
  */
 import { config } from "dotenv";
 import { Client } from "pg";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
+
+// La trace réelle (lib/traversee.ts) est jouée sur la base : seul l'en-tête de la requête est simulé.
+const requete = vi.hoisted(() => ({ entetes: {} as Record<string, string> }));
+vi.mock("next/headers", () => ({ headers: async () => new Headers(requete.entetes) }));
+import { tracerTraversee } from "../src/lib/traversee";
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
@@ -134,4 +139,71 @@ describe.skipIf(!DB_URL)("D08 — log_sa_access : une page, une ligne par minute
     const { rows: [r] } = await db.query("select has_function_privilege('anon','public.log_sa_access(uuid,text,jsonb)','execute') as ok");
     expect(r.ok).toBe(false);
   });
+
+  /** Un client dont `rpc` joue la vraie fonction SQL sous la session ouverte (une erreur est rendue, comme supabase-js). */
+  function clientBase() {
+    return {
+      rpc: async (fn: string, args: Record<string, unknown> = {}) => {
+        await db.query("savepoint rpc_trace");
+        try {
+          await db.query(`select public.${fn}($1::uuid,$2::text,$3::jsonb)`, [args.org ?? null, args.sa_action, JSON.stringify(args.sa_details ?? {})]);
+          await db.query("release savepoint rpc_trace");
+          return { error: null };
+        } catch (e) {
+          await db.query("rollback to savepoint rpc_trace");
+          return { error: { message: e instanceof Error ? e.message : String(e) } };
+        }
+      },
+    };
+  }
+  async function lignesSansOrganisation(compte: string) {
+    await db.query("reset role");
+    const { rows } = await db.query(
+      "select action, details from public.audit_log where organization_id is null and account_id=$1 order by created_at, id", [compte]
+    );
+    return rows as { action: string; details: Record<string, unknown> }[];
+  }
+
+  describe("le refus « organisation introuvable » s'écrit VRAIMENT (audit_log.organization_id est une clé étrangère)", () => {
+    const INCONNUE = "22222222-2222-4222-8222-222222222222";
+
+    it("la page : une ligne sans organisation, avec l'identifiant demandé en détail", async () => {
+      await agir(sa);
+      requete.entetes = { "x-gerimmo-chemin": `/agence/${INCONNUE}/parc`, "x-gerimmo-methode": "GET" };
+      const ecrite = await tracerTraversee(clientBase(), { orgId: INCONNUE, nature: "espace", resultat: "refuse", motif: "organisation_introuvable" });
+      expect(ecrite).toBe(true);
+      expect(await lignesSansOrganisation(sa)).toEqual([{
+        action: "traversee_espace",
+        details: { resultat: "refuse", requete: "page", motif: "organisation_introuvable", rubrique: "parc", route: `/agence/${INCONNUE}/parc`, org_demandee: INCONNUE },
+      }]);
+    });
+
+    it("le geste : « traversee_action », même chose, et chaque tentative est une ligne", async () => {
+      await agir(sa);
+      requete.entetes = { "x-gerimmo-chemin": `/agence/${INCONNUE}/loyers`, "x-gerimmo-methode": "POST", "next-action": "7f3a9c0d2e4b5a69c8d7e6f5" };
+      for (let i = 0; i < 2; i++) {
+        expect(await tracerTraversee(clientBase(), { orgId: INCONNUE, nature: "geste", resultat: "refuse", motif: "organisation_introuvable" })).toBe(true);
+      }
+      const lignes = await lignesSansOrganisation(sa);
+      expect(lignes).toHaveLength(2);
+      expect(lignes[0]).toMatchObject({ action: "traversee_action", details: { resultat: "refuse", org_demandee: INCONNUE } });
+    });
+
+    it("une adresse dont l'organisation n'est même pas un identifiant s'écrit aussi (sans la recopier dans les détails de recherche)", async () => {
+      await agir(sa);
+      requete.entetes = { "x-gerimmo-chemin": "/agence/pas-un-uuid/parc", "x-gerimmo-methode": "GET" };
+      expect(await tracerTraversee(clientBase(), { orgId: "pas-un-uuid", nature: "espace", resultat: "refuse", motif: "organisation_introuvable" })).toBe(true);
+      const [ligne] = await lignesSansOrganisation(sa);
+      expect(ligne.details).toMatchObject({ resultat: "refuse", org_demandee: "invalide" });
+    });
+
+    it("l'accès autorisé, lui, reste rattaché à son organisation", async () => {
+      await agir(sa);
+      requete.entetes = { "x-gerimmo-chemin": `/agence/${org}/parc`, "x-gerimmo-methode": "GET" };
+      expect(await tracerTraversee(clientBase(), { orgId: org, nature: "espace", resultat: "autorise" })).toBe(true);
+      expect(await lignes(org, "traversee_espace")).toHaveLength(1);
+      expect(await lignesSansOrganisation(sa)).toEqual([]);
+    });
+  });
+
 });

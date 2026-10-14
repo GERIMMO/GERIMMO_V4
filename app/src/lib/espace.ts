@@ -55,7 +55,8 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
         };
       }
       // Le super-administrateur a demandé une organisation qui n'existe pas :
-      // la tentative se lit au journal (résultat « refusé »).
+      // la tentative se lit au journal (résultat « refusé », ligne sans
+      // organisation, l'identifiant demandé en détail).
       await tracerTraversee(supabase, { orgId, nature: "espace", resultat: "refuse", motif: "organisation_introuvable" });
     }
     redirect("/espaces");

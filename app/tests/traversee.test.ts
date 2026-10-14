@@ -54,6 +54,7 @@ import { verifierGerant } from "../src/lib/ged-acces";
 
 const ORG = "f2cb7540-d6f9-471d-bd6e-44b6d9e7ea39";
 const BAIL = "0b6e1d6e-7c1a-4b5e-9a3d-5f2f3d9a1c11";
+const INCONNUE = "22222222-2222-4222-8222-222222222222";
 const ACTION = "7f3a9c0d2e4b5a69c8d7e6f5a4b3c2d1e0f9a8b7";
 
 const appelsTrace = () => mocks.rpc.mock.calls.filter(([nom]) => nom === "log_sa_access");
@@ -130,9 +131,15 @@ describe("D08 — les détails de la ligne d'audit", () => {
     expect(detailsTraversee({ orgId: ORG, nature: "geste", resultat: "autorise" }, contexte()).action).toBe("traversee_espace");
   });
 
-  it("un refus dit pourquoi", () => {
-    expect(detailsTraversee({ orgId: ORG, nature: "espace", resultat: "refuse", motif: "organisation_introuvable" }, contexte()).details)
-      .toMatchObject({ resultat: "refuse", motif: "organisation_introuvable" });
+  it("un refus dit pourquoi et quelle organisation était demandée (un identifiant valide, sinon « invalide »)", () => {
+    expect(detailsTraversee({ orgId: INCONNUE.toUpperCase(), nature: "espace", resultat: "refuse", motif: "organisation_introuvable" }, contexte()).details)
+      .toMatchObject({ resultat: "refuse", motif: "organisation_introuvable", org_demandee: INCONNUE });
+    expect(detailsTraversee({ orgId: "<script>alert(1)</script>", nature: "espace", resultat: "refuse", motif: "organisation_introuvable" }, contexte()).details)
+      .toMatchObject({ org_demandee: "invalide" });
+  });
+
+  it("un accès autorisé ne porte pas d'organisation demandée : elle est la clé de la ligne", () => {
+    expect(detailsTraversee({ orgId: ORG, nature: "espace", resultat: "autorise" }, contexte()).details).not.toHaveProperty("org_demandee");
   });
 
   it("n'embarque jamais de paramètre d'adresse ni de texte libre", () => {
@@ -178,13 +185,13 @@ describe("D08 — l'entrée dans un espace client par la page (verifierAccesEspa
     ]]);
   });
 
-  it("une organisation inexistante laisse une ligne « refusé » puis renvoie vers les espaces", async () => {
+  it("une organisation inexistante laisse une ligne « refusé » SANS organisation (clé étrangère), puis renvoie vers les espaces", async () => {
     mocks.organisation = null;
-    mocks.entetes = { "x-gerimmo-chemin": `/agence/${ORG}-inconnue/parc`, "x-gerimmo-methode": "GET" };
-    await expect(verifierAccesEspace(ORG + "-inconnue")).rejects.toThrow("REDIRECT:/espaces");
+    mocks.entetes = { "x-gerimmo-chemin": `/agence/${INCONNUE}/parc`, "x-gerimmo-methode": "GET" };
+    await expect(verifierAccesEspace(INCONNUE)).rejects.toThrow("REDIRECT:/espaces");
     expect(appelsTrace()).toEqual([[
       "log_sa_access",
-      { org: ORG + "-inconnue", sa_action: "traversee_espace", sa_details: { resultat: "refuse", requete: "page", motif: "organisation_introuvable", rubrique: "parc", route: `/agence/${ORG}-inconnue/parc` } },
+      { org: null, sa_action: "traversee_espace", sa_details: { resultat: "refuse", requete: "page", motif: "organisation_introuvable", rubrique: "parc", route: `/agence/${INCONNUE}/parc`, org_demandee: INCONNUE } },
     ]]);
   });
 
@@ -242,12 +249,12 @@ describe("D08 — un geste dans un espace client (verifierGerant)", () => {
     expect(appelsTrace()[0][1]).toMatchObject({ sa_action: "traversee_action", sa_details: { requete: "formulaire", rubrique: "loyers" } });
   });
 
-  it("une organisation inexistante : refusé, trace « refusé », aucun accès", async () => {
+  it("une organisation inexistante : refusé, trace « refusé » sans organisation (l'identifiant demandé en détail), aucun accès", async () => {
     mocks.organisation = null;
-    mocks.entetes = { "x-gerimmo-chemin": `/agence/${ORG}-inconnue/loyers`, "x-gerimmo-methode": "POST", "next-action": ACTION };
-    const acces = await verifierGerant(ORG + "-inconnue");
+    mocks.entetes = { "x-gerimmo-chemin": `/agence/${INCONNUE}/loyers`, "x-gerimmo-methode": "POST", "next-action": ACTION };
+    const acces = await verifierGerant(INCONNUE);
     expect(acces.user).toBeNull();
-    expect(appelsTrace()[0][1]).toMatchObject({ sa_action: "traversee_action", sa_details: { resultat: "refuse", motif: "organisation_introuvable" } });
+    expect(appelsTrace()[0][1]).toMatchObject({ org: null, sa_action: "traversee_action", sa_details: { resultat: "refuse", motif: "organisation_introuvable", org_demandee: INCONNUE } });
   });
 
   it("un compte qui n'est pas super-administrateur n'écrit aucune ligne et n'entre pas", async () => {

@@ -137,7 +137,7 @@ const CLES_MASQUEES = new Set(["digest", "depuis", "empreinte", "action_ref"]);
 const CLES_LIBELLES: Record<string, string> = {
   espace: "espace", ecran: "écran", avant: "état précédent", apres: "nouvel état", avant_active: "active avant", jours: "jours", essai_fin: "fin d’essai",
   // Traversée d'un espace client par la supervision (D08) : résultat de l'accès, nature de la requête, rubrique ouverte.
-  resultat: "résultat", requete: "requête", rubrique: "rubrique", motif: "motif",
+  resultat: "résultat", requete: "requête", rubrique: "rubrique", motif: "motif", org_demandee: "organisation demandée",
 };
 // Les valeurs de ces clés se disent en français ; les autres s'affichent telles quelles (codes courts).
 const VALEURS_LIBELLES: Record<string, Record<string, string>> = {

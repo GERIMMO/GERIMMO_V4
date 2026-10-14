@@ -16,7 +16,10 @@ import { ENTETE_CHEMIN, ENTETE_METHODE } from "@/lib/entetes-traversee";
  *   — jamais à l'ouverture d'une page ni au téléchargement d'un fichier) ;
  * - l'OBJET : l'adresse, la rubrique de l'espace et l'identifiant de l'objet ouvert (bail, lot,
  *   incident…) quand l'adresse en porte un ;
- * - le RÉSULTAT : la décision d'accès — `autorise`, ou `refuse` (organisation introuvable).
+ * - le RÉSULTAT : la décision d'accès — `autorise`, ou `refuse` (organisation introuvable). Une demande
+ *   vers une organisation qui n'existe pas s'écrit SANS organisation (`audit_log.organization_id` est une clé
+ *   étrangère : l'identifiant d'une organisation absente ne peut pas y figurer) ; l'identifiant demandé est
+ *   alors dans les détails (`org_demandee`), pour retrouver qui a essayé quoi.
  *
  * Limite assumée : la trace est posée par la porte d'entrée, AVANT le geste. Elle dit « le
  * super-administrateur est autorisé à agir ici », pas « le geste a réussi » : le résultat d'un geste
@@ -106,6 +109,11 @@ export type DemandeTrace = {
   motif?: "organisation_introuvable";
 };
 
+/** Faux quand la demande vise une organisation qui n'existe pas : la ligne d'audit n'a alors aucune organisation à citer. */
+function organisationConnue(demande: DemandeTrace): boolean {
+  return demande.motif !== "organisation_introuvable";
+}
+
 /** Les détails de la ligne d'audit : sans texte libre ni donnée personnelle, bornés. */
 export function detailsTraversee(demande: DemandeTrace, contexte: ContexteRequete): { action: "traversee_espace" | "traversee_action"; details: Record<string, string> } {
   const objet = decrireObjet(contexte.chemin, demande.orgId);
@@ -118,6 +126,9 @@ export function detailsTraversee(demande: DemandeTrace, contexte: ContexteRequet
     requete: contexte.actionServeur ? "action_serveur" : contexte.ecriture ? "formulaire" : "page",
   };
   if (demande.motif) details.motif = demande.motif;
+  // L'organisation demandée n'existe pas : elle ne peut pas être la clé de la ligne, on la dit ici (un identifiant
+  // valide, sinon « invalide » : une adresse trafiquée n'écrit pas de texte libre dans le journal).
+  if (!organisationConnue(demande)) details.org_demandee = UUID.test(demande.orgId) ? demande.orgId.toLowerCase() : "invalide";
   if (objet.rubrique) details.rubrique = objet.rubrique;
   if (objet.objet_id) details.objet_id = objet.objet_id;
   if (objet.route) details.route = objet.route;
@@ -133,7 +144,10 @@ export async function tracerTraversee(db: ClientQuiTrace, demande: DemandeTrace)
   const contexte = await lireContexteRequete();
   const { action, details } = detailsTraversee(demande, contexte);
   try {
-    const { error } = await db.rpc("log_sa_access", { org: demande.orgId, sa_action: action, sa_details: details });
+    // Sans organisation connue, la ligne est écrite sans organisation (voir plus haut) : sinon la clé étrangère
+    // refuserait l'écriture et la tentative ne laisserait aucune trace.
+    const org = organisationConnue(demande) ? demande.orgId : null;
+    const { error } = await db.rpc("log_sa_access", { org, sa_action: action, sa_details: details });
     if (error) console.error(`[traversée] ${action} non journalisée:`, error.message);
     return !error;
   } catch (e) {

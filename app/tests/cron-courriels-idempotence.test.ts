@@ -11,6 +11,18 @@
  *  2. le délai maximal coupe l'attente d'un envoi pourtant accepté : l'échec
  *     est consigné sans marquer l'objet, et la passe suivante n'envoie rien de
  *     plus (le délai seul aurait provoqué le doublon).
+ *
+ * LA CLÉ SUIT LE CONTENU (relecture du 14/10). Quand l'état de l'objet change
+ * entre deux passes — un reçu partiel promu en quittance, un règlement qui
+ * réduit le montant dû — le courrier n'est plus le même : le service refuse
+ * (409) une clé réutilisée avec un autre contenu, et l'envoi serait bloqué
+ * jusqu'à l'oubli de la clé. La clé porte donc ce qui fait le contenu.
+ *
+ * LA LIMITE DE 24 H. La clé n'est retenue que 24 h (hypothèse, voir le faux
+ * fournisseur), et ces tâches tournent une fois par jour : une reprise « le
+ * lendemain » tombe au bord de la fenêtre. Les tests « dans les 24 h » et
+ * « au-delà de 24 h » montrent les deux côtés ; le second est un DOUBLON
+ * ATTENDU, risque résiduel connu de la décision D47, pas un comportement voulu.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { quittanceDocumentComplete } from "./fixtures/quittance-document";
@@ -78,14 +90,77 @@ describe("quittances", () => {
     });
   }
 
-  it("la clé est « quittance/<id> » : une quittance non marquée, reprise le lendemain, n'est envoyée qu'une fois", async () => {
+  it("une quittance non marquée, reprise dans les 24 h (relance manuelle, seconde passe), n'est envoyée qu'une fois", async () => {
+    const { GET } = await import("../src/app/api/cron/quittances/route");
+    banc({ erreur: true });
+    await GET(appel("quittances"));
+    const premiere = fournisseur.cles();
+    expect(premiere).toHaveLength(1);
+    expect(premiere[0]).toMatch(/^quittance\/q-1\/q\/70000\/[0-9a-f]{64}$/);
+    expect(premiere[0]).not.toContain("@");
+    fournisseur.avancer(23 * 3_600_000);
+    await GET(appel("quittances"));
+    expect(fournisseur.cles()).toEqual([premiere[0], premiere[0]]);
+    expect(fournisseur.acceptes).toHaveLength(1);
+    expect(fournisseur.appels.every((a) => a.avecDelai)).toBe(true);
+  });
+
+  it("à la cadence réelle (une passe par jour), la reprise est au bord de la fenêtre de 24 h : un peu avant, pas de doublon", async () => {
+    const { GET } = await import("../src/app/api/cron/quittances/route");
+    banc({ erreur: true });
+    await GET(appel("quittances"));
+    // 07:00:03 un jour, 07:00:01 le suivant : 23 h 59 min 58 s.
+    fournisseur.avancer(24 * 3_600_000 - 2_000);
+    await GET(appel("quittances"));
+    expect(fournisseur.acceptes).toHaveLength(1);
+  });
+
+  it("RISQUE RÉSIDUEL DE D47 : un peu après les 24 h, la clé est oubliée et la reprise renvoie la quittance", async () => {
+    const { GET } = await import("../src/app/api/cron/quittances/route");
+    banc({ erreur: true });
+    await GET(appel("quittances"));
+    // 07:00:03 un jour, 07:00:05 le suivant : 24 h et 2 s. La gigue de lancement
+    // d'une tâche quotidienne suffit à passer de l'autre côté de la limite.
+    fournisseur.avancer(24 * 3_600_000 + 2_000);
+    await GET(appel("quittances"));
+    expect(fournisseur.acceptes).toHaveLength(2);
+    expect(fournisseur.acceptes.map((m) => m.to[0])).toEqual(["locataire@exemple.fr", "locataire@exemple.fr"]);
+  });
+
+  it("un reçu partiel envoyé, puis la MÊME ligne promue en quittance : la quittance part à la passe suivante, sans refus du service", async () => {
+    const { GET } = await import("../src/app/api/cron/quittances/route");
+    // `resynchroniser_quittances` révise la même ligne (même id) quand l'encaissé
+    // change : elle passe de reçu à quittance, change de montant et redevient « à envoyer ».
+    let courante = { ...ligne, est_quittance: false, montant: 400 };
+    rpc.mockImplementation(async (fn: string) => {
+      if (fn === "quittances_a_envoyer") return { data: [courante], error: null };
+      if (fn === "quittance_document") return { data: quittanceDocumentComplete(), error: null };
+      return { data: null, error: null };
+    });
+    await GET(appel("quittances"));
+    expect(bilanConsigne()).toMatchObject({ envoyees: 1, echecs: 0 });
+
+    courante = { ...courante, est_quittance: true, montant: 700 };
+    fournisseur.avancer(3_600_000);
+    await GET(appel("quittances"));
+    expect(bilanConsigne()).toMatchObject({ envoyees: 1, echecs: 0 });
+    expect(bilanConsigne().echecs_detail).toBeUndefined();
+    expect(fournisseur.acceptes).toHaveLength(2);
+    const [recu, quittance] = fournisseur.acceptes;
+    expect(recu.subject).not.toBe(quittance.subject);
+    expect(new Set(fournisseur.cles()).size).toBe(2);
+    expect(recu.cle).toMatch(/^quittance\/q-1\/r\/40000\//);
+    expect(quittance.cle).toMatch(/^quittance\/q-1\/q\/70000\//);
+  });
+
+  it("la même ligne, inchangée, reste un seul courrier même si une passe la reprend (la clé ne bouge pas sans raison)", async () => {
     const { GET } = await import("../src/app/api/cron/quittances/route");
     banc({ erreur: true });
     await GET(appel("quittances"));
     await GET(appel("quittances"));
-    expect(fournisseur.cles()).toEqual(["quittance/q-1", "quittance/q-1"]);
+    await GET(appel("quittances"));
+    expect(new Set(fournisseur.cles()).size).toBe(1);
     expect(fournisseur.acceptes).toHaveLength(1);
-    expect(fournisseur.appels.every((a) => a.avecDelai)).toBe(true);
   });
 
   it("un envoi accepté mais coupé par le délai : échec consigné, rien de marqué, pas de doublon à la passe suivante", async () => {
@@ -128,12 +203,46 @@ describe("avis d'échéance", () => {
     expect(premiere).toHaveLength(2);
     expect(new Set(premiere).size).toBe(2);
     for (const cle of premiere) {
-      expect(cle).toMatch(/^avis-echeance\/a-1\/[0-9a-f]{64}$/);
+      expect(cle).toMatch(/^avis-echeance\/a-1\/75000\/0\/[0-9a-f]{64}$/);
       expect(cle).not.toContain("@");
     }
     await GET(appel("appels"));
     expect(fournisseur.cles().slice(2)).toEqual(premiere);
     expect(fournisseur.acceptes.map((m) => m.to[0]).sort()).toEqual(["colocataire@exemple.fr", "locataire@exemple.fr"]);
+  });
+
+  it("le montant dû change entre deux passes (un règlement est arrivé) : le nouvel avis part, le service ne refuse pas", async () => {
+    const { GET } = await import("../src/app/api/cron/appels/route");
+    // Marquage en échec à la première passe : l'avis reste « à envoyer ».
+    let courante: typeof ligne = { ...ligne, autres_destinataires: [] };
+    let marquageEnErreur = true;
+    rpc.mockImplementation(async (fn: string) => {
+      if (fn === "appels_a_envoyer") return { data: [courante], error: null };
+      if (fn === "marquer_appel_envoye") return { error: marquageEnErreur ? { message: "verrou" } : null };
+      return { data: null, error: null };
+    });
+    await GET(appel("appels"));
+    expect(fournisseur.acceptes).toHaveLength(1);
+
+    marquageEnErreur = false;
+    courante = { ...courante, reste_du: 250, arriere: 0 };
+    fournisseur.avancer(3_600_000);
+    await GET(appel("appels"));
+    expect(bilanConsigne()).toMatchObject({ envoyes: 1, echecs: 0 });
+    expect(bilanConsigne().echecs_detail).toBeUndefined();
+    expect(appelsDe("marquer_appel_envoye")).toHaveLength(2);
+    expect(fournisseur.acceptes).toHaveLength(2);
+    expect(new Set(fournisseur.cles()).size).toBe(2);
+  });
+
+  it("le montant dû ne change pas : la reprise ne double rien (la clé ne bouge pas sans raison)", async () => {
+    const { GET } = await import("../src/app/api/cron/appels/route");
+    banc({ erreur: true });
+    await GET(appel("appels"));
+    fournisseur.avancer(3_600_000);
+    await GET(appel("appels"));
+    expect(new Set(fournisseur.cles()).size).toBe(2);
+    expect(fournisseur.acceptes).toHaveLength(2);
   });
 
   it("un envoi accepté mais coupé par le délai : avis non marqué, repris sans doublon", async () => {
@@ -177,13 +286,52 @@ describe("relances de loyer", () => {
     expect(premiere).toHaveLength(3);
     expect(new Set(premiere).size).toBe(3);
     for (const cle of premiere) {
-      expect(cle).toMatch(/^relance\/bail-1\/relance_2\/2026-09-05\/(locataire|caution)\/[0-9a-f]{64}$/);
+      expect(cle).toMatch(/^relance\/bail-1\/relance_2\/2026-09-05\/(locataire\/70000\/70000|caution\/70000)\/[0-9a-f]{64}$/);
       expect(cle).not.toContain("@");
     }
     expect(premiere.filter((c) => c.includes("/caution/"))).toHaveLength(1);
     await GET(appel("relances"));
     expect(fournisseur.cles().slice(3)).toEqual(premiere);
     expect(fournisseur.acceptes).toHaveLength(3);
+  });
+
+  it("le reste dû change entre deux passes (un règlement partiel est arrivé) : la relance part au bon montant, le service ne refuse pas", async () => {
+    const { GET } = await import("../src/app/api/cron/relances/route");
+    let courante = { ...ligne, autres_destinataires: [], garants: [] };
+    let consignationEnErreur = true;
+    rpc.mockImplementation(async (fn: string) => {
+      if (fn === "relances_loyer_dues") return { data: [courante], error: null };
+      if (fn === "relance_loyer_consigner") return { error: consignationEnErreur ? { message: "verrou" } : null };
+      return { data: null, error: null };
+    });
+    await GET(appel("relances"));
+    expect(fournisseur.acceptes).toHaveLength(1);
+
+    consignationEnErreur = false;
+    courante = { ...courante, reste: "400.00", total_du: "400.00" };
+    fournisseur.avancer(3_600_000);
+    await GET(appel("relances"));
+    expect(bilanConsigne()).toMatchObject({ envoyees: 1, echecs: 0 });
+    expect(bilanConsigne().echecs_detail).toBeUndefined();
+    expect(appelsDe("relance_loyer_consigner")).toHaveLength(2);
+    expect(fournisseur.acceptes).toHaveLength(2);
+    expect(new Set(fournisseur.cles()).size).toBe(2);
+  });
+
+  it("l'information de la caution suit aussi le total dû qu'elle annonce", async () => {
+    const { GET } = await import("../src/app/api/cron/relances/route");
+    let courante = { ...ligne, autres_destinataires: [] };
+    rpc.mockImplementation(async (fn: string) => {
+      if (fn === "relances_loyer_dues") return { data: [courante], error: null };
+      if (fn === "relance_loyer_consigner") return { error: { message: "verrou" } };
+      return { data: null, error: null };
+    });
+    await GET(appel("relances"));
+    courante = { ...courante, total_du: "1400.00" };
+    await GET(appel("relances"));
+    const caution = fournisseur.acceptes.filter((m) => m.to[0] === "caution@exemple.fr");
+    expect(caution).toHaveLength(2);
+    expect(caution[0].cle).not.toBe(caution[1].cle);
   });
 
   it("un envoi accepté mais coupé par le délai : rien n'est consigné, la reprise ne double pas", async () => {

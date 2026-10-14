@@ -14,9 +14,12 @@ import { verifierAvantEffet } from "@/lib/controle-effets";
 // « fait »), alors qu'un double envoi n'est que désagréable — et la base le
 // refuse de toute façon le même jour. Il est aussi borné côté service d'e-mail :
 // chaque envoi porte une clé d'idempotence stable (par bail, niveau, terme
-// relancé et destinataire, lib/cles-idempotence-courriels.ts) ; le service,
-// revoyant la même clé, rend la réponse du premier envoi au lieu d'en émettre
-// un second (décision D47). Il la retient 24 h seulement (voir lib/email.ts).
+// relancé, destinataire et montants annoncés, lib/cles-idempotence-courriels.ts) ;
+// le service, revoyant la même clé, rend la réponse du premier envoi au lieu
+// d'en émettre un second (décision D47). Un règlement partiel entre deux passes
+// change les montants du courrier, donc sa clé : c'est un autre courrier, il part.
+// Le service ne retient la clé que 24 h (hypothèse, voir lib/email.ts) et cette
+// tâche ne passe qu'une fois par jour : la reprise du lendemain n'est pas garantie.
 // L'appel a aussi un délai maximal (15 s) : les deux vont ENSEMBLE, un délai
 // seul ferait reprendre à la passe suivante une relance déjà acceptée.
 //
@@ -137,9 +140,18 @@ export async function GET(request: Request) {
         lien: `${site}/locataire/${l.organization_id}/loyers`,
       }),
     });
-    // Une clé par destinataire : le terme relancé et le niveau identifient la relance.
+    // Une clé par destinataire : le terme relancé et le niveau identifient la
+    // relance, les montants annoncés la suivent si un règlement les change.
     const cle = (destinataire: string, role: "locataire" | "caution") =>
-      cleRelanceLoyer({ bailId: l.bail_id, niveau: l.niveau, dateEcheance: l.date_echeance, destinataire, role });
+      cleRelanceLoyer({
+        bailId: l.bail_id,
+        niveau: l.niveau,
+        dateEcheance: l.date_echeance,
+        destinataire,
+        role,
+        reste: l.reste,
+        totalDu: l.total_du,
+      });
     await verifierAvantEffet(supabase, "relances");
     const envoi = await envoyerEmail({
       avantEnvoi: () => verifierAvantEffet(supabase, "relances"),

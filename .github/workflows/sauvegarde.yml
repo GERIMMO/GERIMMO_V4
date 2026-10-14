@@ -4,6 +4,8 @@
 # exporte la base de production (pg_dump des schémas public, auth, storage,
 # DROITS COMPRIS depuis le 27/09 : sans GRANT/REVOKE, une restauration
 # rouvrait toutes les fonctions à anon)
+# (14/10, D07 : avec la liste des tâches planifiées pg_cron, `cron.job`, que pg_dump
+# ne copie pas — si elle ne se lit pas, le chantier échoue plutôt que de la taire)
 # et copie les fichiers du Storage, chiffre le tout avec AES-256-GCM
 # (scripts/sauvegarde/), vérifie les archives, les dépose dans un compartiment
 # Scaleway Object Storage, puis les relit depuis Scaleway pour vérifier que la
@@ -159,6 +161,8 @@ jobs:
           echo "$BASE"; echo "$FICHIERS"
           echo "octets=$(node -pe 'JSON.parse(process.argv[1]).octets' "$BASE")" >> "$GITHUB_OUTPUT"
           echo "fichiers=$(node -pe 'JSON.parse(process.argv[1]).fichiers' "$FICHIERS")" >> "$GITHUB_OUTPUT"
+          # D07 : le nombre de tâches pg_cron (cron.job) présentes dans la copie relue ; 0 sur un projet sans pg_cron.
+          echo "taches=$(node -pe 'JSON.parse(process.argv[1]).taches_planifiees ?? 0' "$BASE")" >> "$GITHUB_OUTPUT"
           echo "✓ sauvegarde ${JOUR} déposée et relue"
 
       # L'ALERTE VIT DANS GERIMMO, PAS DANS UNE BOÎTE MAIL (demande du porteur,
@@ -175,11 +179,12 @@ jobs:
           ISSUE: ${{ job.status }}
           OCTETS: ${{ steps.relecture.outputs.octets }}
           FICHIERS: ${{ steps.relecture.outputs.fichiers }}
+          TACHES: ${{ steps.relecture.outputs.taches }}
         run: |
           set -u
           if [ -z "${SERVICE:-}" ]; then echo "clé de service absente : rien à consigner"; exit 0; fi
           if [ "$ISSUE" = "success" ]; then
-            BILAN="{\"echecs\":0,\"octets\":${OCTETS:-0},\"fichiers\":${FICHIERS:-0},\"prefixe\":\"${JOUR:-}\"}"
+            BILAN="{\"echecs\":0,\"octets\":${OCTETS:-0},\"fichiers\":${FICHIERS:-0},\"taches\":${TACHES:-0},\"prefixe\":\"${JOUR:-}\"}"
           else
             BILAN="{\"echecs\":1,\"etape\":\"$ISSUE\",\"prefixe\":\"${JOUR:-}\"}"
           fi

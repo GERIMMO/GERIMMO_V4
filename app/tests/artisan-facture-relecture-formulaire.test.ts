@@ -5,7 +5,7 @@
  * gestionnaire d'envoi de `FormulairePrive` sans navigateur : on observe ce qu'il range dans l'état et si l'action
  * serveur est appelée. Ordre des états : 0 résultat affiché, 1 envoi en cours, 2 relecture ouverte, 3 saisie relue.
  */
-import { createElement } from "react";
+import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -122,10 +122,12 @@ describe("second envoi, depuis la relecture : il dépose", () => {
 describe("rendu des deux étapes", () => {
   const html = (avecRelecture = true) => {
     sim.indice = 0;
-    return renderToStaticMarkup(createElement(FormulairePrive, {
+    // Les enfants passent en troisième argument (règle react/no-children-prop) : le type du composant les exige dans les propriétés.
+    const proprietes = {
       action: "facture", id: "h1", revision: 7, libelle: "Confirmer et déposer ma facture",
       ...(avecRelecture ? { relectureFacture: { devisTtcCents: 5500 } } : {}),
-    }, createElement("input", { name: "numero" })));
+    } as ComponentProps<typeof FormulairePrive>;
+    return renderToStaticMarkup(createElement(FormulairePrive, proprietes, createElement("input", { name: "numero" })));
   };
 
   it("à la saisie : un seul bouton, « Relire avant de déposer » ; les champs sont visibles", () => {

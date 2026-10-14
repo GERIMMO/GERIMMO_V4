@@ -3,10 +3,10 @@
  * elles se rejouent sans effet, s'arrêtent sur une définition inattendue, et leurs retours arrière retirent
  * exactement ce qu'elles ajoutent.
  *
- * La base visée est déjà migrée. Tout est joué dans une transaction annulée à la fin. L'instruction
- * `create unique index` est écartée du rejeu : elle demande un verrou de table que d'autres fichiers de test,
- * qui gardent une transaction ouverte sur les tables artisan_*, feraient attendre. L'index est vérifié dans le
- * catalogue, et le retour arrière joué à la main sur une copie (voir supabase/retours-arriere/LISEZ-MOI.md).
+ * La base visée est déjà migrée. Tout est joué dans une transaction annulée à la fin. Deux instructions sont écartées du
+ * rejeu (voir `rejouable`) : elles demandent des verrous que d'autres fichiers de test, qui gardent une transaction
+ * ouverte, feraient attendre. L'index est vérifié dans le catalogue, et le retour arrière joué à la main sur une copie
+ * (voir supabase/retours-arriere/LISEZ-MOI.md).
  */
 import { readFileSync } from "node:fs";
 import { config } from "dotenv";
@@ -23,7 +23,13 @@ const M311 = readFileSync("supabase/migrations/20261014311000_artisan_exclusion_
 const R310 = readFileSync("supabase/retours-arriere/20261014310000_artisan_facture_numero_unique.retour.sql", "utf8");
 const R311 = readFileSync("supabase/retours-arriere/20261014311000_artisan_exclusion_ecritures.retour.sql", "utf8");
 
-const sansIndex = (sql: string) => sql.replace(/create unique index if not exists[\s\S]*?;\n/, "");
+/**
+ * Le rejeu écarte les instructions qui touchent au-delà des objets du lot : l'index (verrou de table) et la fermeture
+ * à anon, qui réécrit les droits de TOUTES les fonctions de `public` et ferait attendre les autres fichiers de test
+ * (leur présence en fin de migration est vérifiée plus haut, leurs effets plus bas dans le catalogue).
+ */
+const rejouable = (sql: string) =>
+  sql.replace(/create unique index if not exists[\s\S]*?;\n/, "").replace(/^select public\.fermer_fonctions_a_anon\(\);$/m, "");
 
 const EXTERNE = "public.artisan_externe_ecrire(text,uuid,integer,jsonb,uuid)";
 const LECTURE = "public.mon_activite_artisan_privee()";
@@ -126,7 +132,7 @@ describe.skipIf(!DB_URL)("Lot artisan-externe — rejeu sur une base déjà migr
   it("rejouées deux fois de suite, dans l'un ou l'autre ordre, elles ne changent rien", async () => {
     const avant = await empreinte();
     for (const migration of [M310, M311, M311, M310, M310, M311]) {
-      await db.query(sansIndex(migration));
+      await db.query(rejouable(migration));
       expect(await empreinte()).toEqual(avant);
     }
   });
@@ -146,7 +152,7 @@ describe.skipIf(!DB_URL)("Lot artisan-externe — rejeu sur une base déjà migr
       `create or replace function public.artisan_externe_ecrire(p_action text, p_id uuid, p_revision integer, p_donnees jsonb, p_cle uuid)
        returns uuid language plpgsql security definer set search_path to '' as $f$ begin return null; end $f$`
     );
-    await expect(db.query(sansIndex(M310))).rejects.toThrow(/ARC-04 : définition inattendue/);
+    await expect(db.query(rejouable(M310))).rejects.toThrow(/ARC-04 : définition inattendue/);
   });
 
   it("D25 : une définition inattendue l'arrête, pour l'écriture comme pour la lecture", async () => {
@@ -172,7 +178,7 @@ describe.skipIf(!DB_URL)("Lot artisan-externe — rejeu sur une base déjà migr
     expect(sans).not.toContain("ARC-04");
     await db.query(sans);
     expect(await definition(EXTERNE)).not.toContain("ARC-04");
-    await db.query(sansIndex(M310));
+    await db.query(rejouable(M310));
     expect(await definition(EXTERNE)).toBe(avec);
   });
 
@@ -185,7 +191,7 @@ describe.skipIf(!DB_URL)("Lot artisan-externe — rejeu sur une base déjà migr
     await db.query(avecLecture.replace(",'exclusion',public.artisan_exclusion_plateforme()", ""));
     expect(await definition(EXTERNE)).not.toContain("ARC-08");
     expect(await definition(LECTURE)).not.toContain("exclusion");
-    await db.query(M311);
+    await db.query(rejouable(M311));
     expect(await definition(EXTERNE)).toBe(avecEcriture);
     expect(await definition(LECTURE)).toBe(avecLecture);
   });

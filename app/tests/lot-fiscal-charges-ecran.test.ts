@@ -8,22 +8,20 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { baseSimulee, filtresDe, lecturesSansFiltreOrganisation, type BaseSimulee, type Ligne } from "./fixtures/base-simulee";
 
+// La base est SIMULÉE avec ses filtres (fixtures/base-simulee) : les lignes d'une autre organisation, d'une autre année ou d'un autre lot
+// que le jeu de données mélange à celles du dossier ne sont écartées QUE par les filtres du code testé.
 const banc = vi.hoisted(() => ({
-  donnees: {} as Record<string, unknown[]>,
+  base: null as unknown,
   rpc: vi.fn(),
   role: "proprietaire_direct",
 }));
-
-function requete(table: string) {
-  const q: Record<string, unknown> = {};
-  for (const methode of ["select", "eq", "order", "limit", "gte", "lte", "in"]) q[methode] = () => q;
-  q.maybeSingle = async () => ({ data: (banc.donnees[table] ?? [])[0] ?? null, error: null });
-  q.then = (suite: (r: { data: unknown[]; error: null }) => unknown) =>
-    Promise.resolve({ data: banc.donnees[table] ?? [], error: null }).then(suite);
-  return q;
-}
-const supabase = { from: requete, rpc: (...args: unknown[]) => banc.rpc(...args) };
+const baseCourante = () => banc.base as BaseSimulee;
+const supabase = {
+  from: (table: string) => baseCourante().client.from(table),
+  rpc: (...args: unknown[]) => banc.rpc(...args),
+};
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ notFound: vi.fn(), redirect: vi.fn(), unstable_rethrow: vi.fn() }));
@@ -57,6 +55,12 @@ const ecriture = (id: string, categorie: string, sens: string, montant: number, 
   ({ id, categorie, sens, montant, date_piece: "2026-10-12", lot_id: "lot", bail_id: null, encaissement_id: null, libelle: null, ...extra });
 const qualification = (ecriture_id: string, nature: string, rubrique: string | null) =>
   ({ ecriture_id, lot_id: "lot", nature, rubrique, justification: "Facture approuvée en assemblée", version: 1 });
+const AUTRE_ORGANISATION = "autre-org";
+// Le même libellé « fonds de travaux ALUR » ou son contraire : la jumelle d'une autre organisation dit l'inverse de la pièce du dossier.
+const jumelleEtrangere = (e: Ligne): Ligne => ({
+  ...e, organization_id: AUTRE_ORGANISATION,
+  categorie: String(e.categorie).toLowerCase().includes("fonds") ? "Travaux plomberie" : "Appel de fonds travaux ravalement",
+});
 
 async function page(compact = false) {
   return texteDe(renderToStaticMarkup(await PageRecap({
@@ -64,14 +68,30 @@ async function page(compact = false) {
   })));
 }
 function fixture(ecritures: unknown[], qualifications: unknown[] = [], composantes: unknown[] = []) {
-  banc.donnees = {
-    ecritures,
-    fiscal_qualifications_ecritures: qualifications,
-    fiscal_encaissements_composantes: composantes,
-    fiscal_exercices_lots: [EXERCICE],
-    lots: [{ id: "lot", nom: "Lot A" }],
+  const deLOrganisation = (lignes: unknown[]) => lignes.map((l) => ({ organization_id: "org", ...(l as Ligne) }));
+  const lignesEcritures = deLOrganisation(ecritures);
+  banc.base = baseSimulee({
+    // Avant les bonnes lignes : une pièce de même identifiant dans une autre organisation, une pièce de l'an dernier.
+    ecritures: [
+      ...lignesEcritures.map(jumelleEtrangere),
+      { ...ecriture("ancienne", "Travaux plomberie", "depense", 321, { date_piece: "2025-10-12" }), organization_id: "org" },
+      ...lignesEcritures,
+    ],
+    fiscal_qualifications_ecritures: [
+      ...(qualifications as Ligne[]).map((q) => ({ ...q, organization_id: AUTRE_ORGANISATION, nature: "non_deductible", rubrique: null, version: 9 })),
+      ...deLOrganisation(qualifications),
+    ],
+    fiscal_encaissements_composantes: deLOrganisation(composantes),
+    // Exercices plus récents que le bon : l'an dernier (hors périmètre), un autre lot, une autre organisation.
+    fiscal_exercices_lots: [
+      { ...EXERCICE, organization_id: "org", annee: 2025, version: 3, periodes: [{ debut: "2025-01-01", fin: "2025-12-31", quote_part: 100, regime: "hors_perimetre" }] },
+      { ...EXERCICE, organization_id: "org", lot_id: "lot-tiers", version: 4, periodes: [{ debut: "2026-01-01", fin: "2026-12-31", quote_part: 100, regime: "hors_perimetre" }] },
+      { ...EXERCICE, organization_id: AUTRE_ORGANISATION, version: 5, periodes: [{ debut: "2026-01-01", fin: "2026-12-31", quote_part: 100, regime: "hors_perimetre" }] },
+      { ...EXERCICE, organization_id: "org" },
+    ],
+    lots: [{ organization_id: AUTRE_ORGANISATION, id: "lot", nom: "Lot d'une autre agence" }, { organization_id: "org", id: "lot", nom: "Lot A" }],
     biens: [],
-  };
+  });
 }
 const exercices = new Map([["lot", EXERCICE as never]]);
 
@@ -207,5 +227,45 @@ describe("D02 (FIN-11, option A) : le récapitulatif annonce le nombre de pièce
     const texte = await page();
     expect(texte).not.toContain("restent à qualifier");
     expect(texte).not.toContain("reste à qualifier");
+  });
+});
+
+describe("lecture du livre : bornée à l'organisation et à l'année affichées (base simulée avec ses filtres)", () => {
+  const appel = ecriture("alur", "Appel de fonds travaux ravalement 2026", "depense", 800);
+
+  it("toutes les lectures de l'écran portent l'organisation ; les écritures sont bornées à l'année, l'exercice est celui de l'année", async () => {
+    fixture([appel], [qualification("alur", "deductible", "224")]);
+    await page();
+    const base = baseCourante();
+    expect(lecturesSansFiltreOrganisation(base, "org")).toEqual([]);
+    expect(filtresDe(base, "ecritures")).toEqual(expect.arrayContaining([
+      { op: "gte", col: "date_piece", val: "2026-01-01" },
+      { op: "lte", col: "date_piece", val: "2026-12-31" },
+    ]));
+    expect(filtresDe(base, "fiscal_exercices_lots")).toContainEqual({ op: "eq", col: "annee", val: 2026 });
+  });
+
+  it("une pièce de l'an dernier, d'une autre organisation ou d'un exercice qui n'est pas celui de l'année n'entre pas dans le récapitulatif", async () => {
+    fixture([appel], [qualification("alur", "deductible", "224")]);
+    const texte = await page();
+    // Une seule pièce du dossier, 800 € : ni les 321 € de l'an dernier, ni la jumelle d'une autre organisation (qui dirait l'inverse).
+    expect(texte).toContain("800,00 €");
+    expect(texte).not.toContain("321,00 €");
+    expect(texte).toContain("Votre choix de qualification n'est pas appliqué");
+    expect(texte).not.toContain("Travaux plomberie");
+  });
+
+  it("le message de succès d'une qualification lit la pièce de l'organisation, pas sa jumelle d'une autre (dans les deux sens)", async () => {
+    fixture([appel, ecriture("tx", "Travaux plomberie", "depense", 300)]);
+    const saisie = (piece: string) => {
+      const f = new FormData();
+      f.set("confirme", "oui"); f.set("nature", "deductible"); f.set("rubrique", "224");
+      f.set("lot_id", "lot"); f.set("justification", "Facture approuvée en assemblée");
+      return qualifierPieceFiscale("org", piece, {}, f).then((r) => ({ ...r, piece }));
+    };
+    expect((await saisie("alur")).succes).toContain("fonds de travaux ALUR");
+    expect((await saisie("tx")).succes).toBe("Qualification conservée dans une nouvelle version. Le journal reste inchangé.");
+    const lectures = filtresDe(baseCourante(), "ecritures").filter((f) => f.col === "organization_id");
+    expect(lectures.every((f) => f.val === "org")).toBe(true);
   });
 });

@@ -9,8 +9,8 @@
  * Jeu de référence : intérêts d'emprunt de 2 345,67 € qualifiés en rubrique 250 (fiche CHF-01).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { contexte } from "./fixtures/contexte-document";
+import { baseSimulee, filtresDe, lecturesSansFiltreOrganisation, type BaseSimulee } from "./fixtures/base-simulee";
 import { assemblerComplementGestion } from "@/lib/documents/modeles/catalogue-gestion";
 import { OPTIONS_CATALOGUE } from "@/lib/documents/catalogue-options";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
@@ -24,31 +24,58 @@ vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({ ...(awai
 type Row = Record<string, unknown>;
 let ctx = contexte();
 
+/**
+ * Le dossier de référence (organisation « org ») ENTOURÉ de lignes qui ne doivent jamais compter, placées AVANT les bonnes : une autre agence
+ * qui porte les mêmes identifiants, une autre année, un autre lot. La base est simulée avec ses filtres (fixtures/base-simulee) : un filtre
+ * retiré ou mal rempli laisse passer une de ces lignes et le document change.
+ */
 function fixture(): Record<string, Row[]> {
-  const loyer = (m: number) => ({ id: `loyer${m}`, lot_id: "lot", bail_id: "bail", encaissement_id: `enc${m}`, categorie: "loyer", sens: "recette", montant: 840, date_piece: `2026-0${m}-05` });
+  const o = { organization_id: "org" };
+  const loyer = (m: number) => ({ ...o, id: `loyer${m}`, lot_id: "lot", bail_id: "bail", encaissement_id: `enc${m}`, categorie: "loyer", sens: "recette", montant: 840, date_piece: `2026-0${m}-05` });
+  const periodes = (annee: number, regime = "nu") => [{ debut: `${annee}-01-01`, fin: `${annee}-12-31`, quote_part: 100, regime }];
+  const exercice = (organization_id: string, lot_id: string, annee: number, version: number, regime = "nu") => ({ organization_id, lot_id, annee, version, periodes: periodes(annee, regime), justification: "Lot nu détenu à 100 %", regularisation230: 0, quote_part230: 100, justification230: "Aucune provision de l’année précédente" });
   return {
     organizations: [{ id: "org", ...ctx.organisation, type: "agence" }],
-    lots: [{ id: "lot", nom: "Appartement Jardin", bien_id: "bien", meuble: false }],
-    biens: [{ id: "bien", address_line1: "12 rue du Parc", postal_code: "75012", city: "Paris" }],
-    baux: [{ id: "bail", lot_id: "lot", locataire_principal: "p", loyer_hc: 780, charges: 60 }],
-    persons: [{ id: "p", nom: "Leblanc", prenom: "Julie" }],
-    ecritures: [
-      loyer(1), loyer(2), loyer(3),
-      { id: "interets", lot_id: "lot", categorie: "Intérêts d'emprunt", sens: "depense", montant: 2345.67, date_piece: "2026-03-10" },
+    lots: [
+      { organization_id: "autre-org", id: "lot", nom: "Lot d'une autre agence", bien_id: "bien", meuble: true },
+      { ...o, id: "lot", nom: "Appartement Jardin", bien_id: "bien", meuble: false },
     ],
-    fiscal_encaissements_composantes: [1, 2, 3].map((m) => ({ ecriture_id: `loyer${m}`, loyer_hc: 780, charges: 60, non_ventile: 0 })),
-    fiscal_qualifications_ecritures: [{ ecriture_id: "interets", lot_id: "lot", nature: "deductible", rubrique: "250", justification: "Tableau d'amortissement de la banque", version: 1 }],
-    fiscal_exercices_lots: [{ lot_id: "lot", annee: 2026, version: 1, periodes: [{ debut: "2026-01-01", fin: "2026-12-31", quote_part: 100, regime: "nu" }], justification: "Lot nu détenu à 100 %", regularisation230: 0, quote_part230: 100, justification230: "Aucune provision de l’année précédente" }],
-    regularisations_charges: [{ id: "reg", bail_id: "bail", annee: 2025, provisions: 1000, charges_reelles: 1200, ecart: -200, note: null, justificatif_document: "doc", date_emission: "2026-01-01" }],
+    biens: [{ ...o, id: "bien", address_line1: "12 rue du Parc", postal_code: "75012", city: "Paris" }],
+    baux: [{ ...o, id: "bail", lot_id: "lot", locataire_principal: "p", loyer_hc: 780, charges: 60 }],
+    persons: [{ ...o, id: "p", nom: "Leblanc", prenom: "Julie" }],
+    ecritures: [
+      // Une autre agence, mêmes identifiants de lot et de pièce ; une pièce de l'an dernier et une de l'an prochain sur le même lot.
+      { organization_id: "autre-org", id: "interets-etranger", lot_id: "lot", categorie: "Intérêts d'emprunt", sens: "depense", montant: 999, date_piece: "2026-03-10" },
+      { ...o, id: "interets-2025", lot_id: "lot", categorie: "Intérêts d'emprunt", sens: "depense", montant: 777, date_piece: "2025-03-10" },
+      { ...o, id: "interets-2027", lot_id: "lot", categorie: "Intérêts d'emprunt", sens: "depense", montant: 555, date_piece: "2027-03-10" },
+      loyer(1), loyer(2), loyer(3),
+      { ...o, id: "interets", lot_id: "lot", categorie: "Intérêts d'emprunt", sens: "depense", montant: 2345.67, date_piece: "2026-03-10" },
+    ],
+    fiscal_encaissements_composantes: [1, 2, 3].map((m) => ({ ...o, ecriture_id: `loyer${m}`, loyer_hc: 780, charges: 60, non_ventile: 0 })),
+    fiscal_qualifications_ecritures: [
+      // Qualification plus récente de la MÊME pièce, mais d'une autre agence : elle ne doit pas prendre le pas.
+      { organization_id: "autre-org", ecriture_id: "interets", lot_id: "lot", nature: "deductible", rubrique: "224", justification: "Autre agence", version: 9 },
+      { ...o, ecriture_id: "interets", lot_id: "lot", nature: "deductible", rubrique: "250", justification: "Tableau d'amortissement de la banque", version: 1 },
+      { ...o, ecriture_id: "interets-2025", lot_id: "lot", nature: "deductible", rubrique: "250", justification: "Tableau d'amortissement de la banque", version: 1 },
+    ],
+    fiscal_exercices_lots: [
+      // Plus récents que le bon, mais d'une autre année, d'un autre lot, d'une autre agence : aucun ne doit lui être substitué.
+      exercice("org", "lot", 2025, 4),
+      exercice("org", "lot-tiers", 2026, 5, "hors_perimetre"),
+      exercice("autre-org", "lot", 2026, 6, "meuble"),
+      exercice("org", "lot", 2026, 1),
+    ],
+    regularisations_charges: [
+      { organization_id: "autre-org", id: "reg", bail_id: "bail", annee: 2019, provisions: 10, charges_reelles: 20, ecart: -10, note: "Détail d'une autre agence", justificatif_document: "doc", date_emission: "2020-01-01" },
+      { ...o, id: "reg", bail_id: "bail", annee: 2025, provisions: 1000, charges_reelles: 1200, ecart: -200, note: null, justificatif_document: "doc", date_emission: "2026-01-01" },
+    ],
   };
 }
+let base: BaseSimulee;
+/** La base simulée de ce test : `base` garde les lectures et les écritures pour les assertions. */
 function mockDb(tables = fixture()) {
-  const query = (table: string) => {
-    const q: Record<string, unknown> = { then: (resolve: (x: unknown) => unknown) => Promise.resolve({ data: tables[table] ?? [], error: null }).then(resolve) };
-    for (const op of ["select", "eq", "is", "in", "not", "or", "order", "limit", "range", "gte", "lt"]) q[op] = () => q;
-    return q;
-  };
-  return { from: query, rpc: (nom: string) => query(nom) } as unknown as SupabaseClient;
+  base = baseSimulee(tables);
+  return base.client;
 }
 const texteDe = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&#x27;|&#39;|&apos;|’/g, "'").replace(/[  ]/g, " ").replace(/\s+/g, " ");
 function succes(r: Assemblage) {
@@ -152,6 +179,55 @@ describe("D37 (CHF-01, option B) : la ligne 250 reprend le montant qualifié du 
   });
 });
 
+describe("D37 : le livre lu est celui de l'organisation, de l'année et du lot demandés (base simulée avec ses filtres)", () => {
+  it("ni l'autre agence, ni l'autre année, ni l'autre lot, ni un exercice plus récent d'ailleurs ne changent la ligne 250 ni le périmètre", async () => {
+    const html = succes(await recap({ interets_emprunt: "" })).document.html;
+    expect(ligne250(html)).toBe("2 345,67 €");
+    expect(texteDe(html)).toContain("Périmètre : 4 écritures de 2026 examinées");
+    expect(texteDe(html)).not.toContain("Écart sur la ligne 250");
+  });
+
+  it("l'année demandée est celle du livre lu : 2025 reprend la pièce de 2025 et son exercice, non celle de 2026", async () => {
+    const t = fixture();
+    // L'exercice 2025 du lot est le plus récent des exercices : seul le filtre d'année distingue 2025 de 2026.
+    const html = succes(await recap({ annee: "2025", interets_emprunt: "" }, t)).document.html;
+    expect(ligne250(html)).toBe("777,00 €");
+    expect(texteDe(html)).toContain("Périmètre : 1 écriture de 2025 examinée");
+  });
+
+  it("les lectures posent leurs filtres : organisation partout, année de l'exercice, bornes de date des écritures, lot du document", async () => {
+    succes(await recap({ interets_emprunt: "" }));
+    expect(lecturesSansFiltreOrganisation(base, "org")).toEqual([]);
+    expect(filtresDe(base, "fiscal_exercices_lots")).toContainEqual({ op: "eq", col: "annee", val: 2026 });
+    expect(filtresDe(base, "ecritures")).toEqual(expect.arrayContaining([
+      { op: "gte", col: "date_piece", val: "2026-01-01" },
+      { op: "lt", col: "date_piece", val: "2027-01-01" },
+    ]));
+    expect(filtresDe(base, "lots")).toContainEqual({ op: "eq", col: "id", val: "lot" });
+  });
+
+  it("un livre chargé d'autres années n'est pas lu en entier : sans les bornes de date, le dossier serait refusé comme « trop volumineux »", async () => {
+    const t = fixture();
+    for (let i = 0; i < 1001; i++) t.ecritures.push({ organization_id: "org", id: `ancienne${i}`, lot_id: "lot", categorie: "Divers", sens: "depense", montant: 10, date_piece: "2024-06-15" });
+    expect(ligne250(succes(await recap({ interets_emprunt: "" }, t)).document.html)).toBe("2 345,67 €");
+  });
+
+  it("la lecture des dossiers du catalogue et du décompte annuel est elle aussi bornée à l'organisation", async () => {
+    await chargerCiblesCatalogue(mockDb(), "org", CATALOGUE_DOCUMENTS.find((m) => m.id === "decompte_charges")!);
+    expect(base.lectures.map((l) => l.table)).toEqual(expect.arrayContaining(["regularisations_charges", "baux", "lots", "persons"]));
+    expect(lecturesSansFiltreOrganisation(base, "org")).toEqual([]);
+    succes(await assemblerComplementGestion("decompte_charges", mockDb(), "org", "reg", { consultation: "Au bureau", detail_depenses: "Eau : 300 €" }));
+    expect(lecturesSansFiltreOrganisation(base, "org")).toEqual([]);
+  });
+
+  it("le décompte annuel lit la régularisation de l'organisation (même identifiant ailleurs : ignoré)", async () => {
+    const texte = texteDe(succes(await assemblerComplementGestion("decompte_charges", mockDb(), "org", "reg", { consultation: "Au bureau", detail_depenses: "Eau : 300 €" })).document.html);
+    expect(texte).toContain("Charges de l'exercice 2025");
+    expect(texte).not.toContain("Détail d'une autre agence");
+    expect(texte).not.toContain("2019");
+  });
+});
+
 describe("D39 (CHF-03, option B) : le détail des dépenses se saisit à la génération", () => {
   const generer = (code: "regularisation_charges" | "decompte_charges" | "consultation_charges", options: Record<string, string> = {}, tables = fixture()) =>
     assemblerComplementGestion(code, mockDb(tables), "org", "reg", { consultation: "Au bureau, sur rendez-vous", ...options });
@@ -180,7 +256,7 @@ describe("D39 (CHF-03, option B) : le détail des dépenses se saisit à la gén
 
   it("un détail déjà porté par la régularisation sert de repli ; la saisie du jour l'emporte", async () => {
     const t = fixture();
-    t.regularisations_charges[0].note = "Détail enregistré à l'émission";
+    t.regularisations_charges.find((r) => r.organization_id === "org")!.note = "Détail enregistré à l'émission";
     const repli = succes(await generer("regularisation_charges", {}, t));
     expect(repli.document.manquants).toEqual([]);
     expect(texteDe(repli.document.html)).toContain("Détail enregistré à l'émission");
@@ -198,17 +274,9 @@ describe("D39 (CHF-03, option B) : le détail des dépenses se saisit à la gén
   });
 
   it("la régularisation émise n'est pas modifiée : le document ne fait que lire", async () => {
-    const ecritures: string[] = [];
-    const base = mockDb();
-    const db = new Proxy(base, { get: (cible, prop, recepteur) => {
-      if (prop === "from") return (table: string) => {
-        const q = (cible as unknown as { from: (t: string) => Record<string, unknown> }).from(table);
-        return new Proxy(q, { get: (c, p, r) => (["insert", "update", "upsert", "delete"].includes(String(p)) ? (() => { ecritures.push(`${table}.${String(p)}`); return q; }) : Reflect.get(c, p, r)) });
-      };
-      return Reflect.get(cible, prop, recepteur);
-    } }) as unknown as SupabaseClient;
-    succes(await assemblerComplementGestion("decompte_charges", db, "org", "reg", { consultation: "Au bureau", detail_depenses: "Eau : 300 €" }));
-    expect(ecritures).toEqual([]);
+    succes(await assemblerComplementGestion("decompte_charges", mockDb(), "org", "reg", { consultation: "Au bureau", detail_depenses: "Eau : 300 €" }));
+    expect(base.lectures.length).toBeGreaterThan(0);
+    expect(base.ecritures).toEqual([]);
   });
 
   it("le détail manquant n'envoie plus vers la fiche du bail, où rien ne se saisit", () => {
@@ -217,7 +285,7 @@ describe("D39 (CHF-03, option B) : le détail des dépenses se saisit à la gén
 
   it("la liste des dossiers dit si la régularisation porte déjà un détail (le champ n'est alors plus obligatoire)", async () => {
     const t = fixture();
-    t.regularisations_charges.push({ id: "reg2", bail_id: "bail", annee: 2024, provisions: 1000, charges_reelles: 900, ecart: 100, note: "Déjà documenté", justificatif_document: "doc", date_emission: "2025-01-01" });
+    t.regularisations_charges.push({ organization_id: "org", id: "reg2", bail_id: "bail", annee: 2024, provisions: 1000, charges_reelles: 900, ecart: 100, note: "Déjà documenté", justificatif_document: "doc", date_emission: "2025-01-01" });
     const modele = CATALOGUE_DOCUMENTS.find((m) => m.id === "decompte_charges")!;
     const { choix } = await chargerCiblesCatalogue(mockDb(t), "org", modele);
     expect(choix.find((c) => c.id === "reg")!.detailEnregistre).toBe(false);

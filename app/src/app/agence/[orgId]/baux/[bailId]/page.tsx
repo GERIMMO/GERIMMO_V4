@@ -42,6 +42,7 @@ import { FormulaireComplementsBail } from "./formulaire-complements-bail";
 import { GenererCongeBailleur } from "./generer-conge-bailleur";
 import { GenererAvenant } from "./generer-avenant";
 import { CarteCautionnement } from "./carte-cautionnement";
+import { ConseilsChoixLocataire } from "@/components/conseils-choix-locataire";
 import { CarteBailSigne } from "./carte-bail-signe";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { FormulaireInventaire, type LigneInventaire } from "./formulaire-inventaire";
@@ -69,8 +70,13 @@ export const metadata = { title: "Bail — Gerimmo" };
 export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[bailId]">) {
   const { orgId, bailId } = await props.params;
   exigerUuids(bailId);
-  const { supabase, organisation } = await verifierAccesEspace(orgId);
+  const { supabase, organisation, estProprietaire } = await verifierAccesEspace(orgId);
   const agence = organisation.type === "agence";
+  // Rappel « Conseils pour choisir votre locataire », à côté des garants : le
+  // propriétaire en gestion directe seulement. L'agence (hors site public V1)
+  // garde la fiche telle qu'elle était. Le même bloc, replié, que dans le
+  // parcours de création (étape « Personnes »).
+  const rappelConseilsLocataire = estProprietaire ? <ConseilsChoixLocataire emplacement="garanties-bail" className="mt-4" /> : null;
 
   const { data: bail, error: erreurBail } = await supabase
     .from("baux")
@@ -716,6 +722,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               colocation
               etatBail={bail.etat}
             />
+            {rappelConseilsLocataire}
           </CardContent>
         </Card>
       )}
@@ -746,6 +753,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               colocation={false}
               etatBail={bail.etat}
             />
+            {rappelConseilsLocataire}
           </CardContent>
         </Card>
       )}

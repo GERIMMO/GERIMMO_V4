@@ -35,7 +35,7 @@ Version candidate contrôlée : commit `375af42` (journaux `cand4`). Les correct
 | Audit des écrans à 768 px (tous profils) | non relevé | 8 passed |
 | Audit des écrans à 1440 px (tous profils) | non relevé | 8 passed |
 | CI GitHub Actions (Postgres 18, lint, types, tests, build, parcours) | non relevé | réussie : exécution n° 636, tête 8b558c8, après fusion de la PR #178 |
-| Simulation des deux migrations contre la production (tout annulé) | sans objet | réussie : exécution n° 70 de « Migrations Supabase », 13/10 à 21 h 43 UTC |
+| Simulation des deux migrations contre la production (tout annulé) | sans objet | réussie sur la version finale des fichiers : exécution n° 71 de « Migrations Supabase », 14/10 à 02 h 52 UTC, tête 2235d73 (13 blocs DO, 3 suppressions de déclencheurs, ROLLBACK final) ; l'exécution n° 70 du 13/10 portait sur une version antérieure du fichier 20261013120000 |
 
 La référence est le code de `main` au commit e9f31ac, PR #177 incluse. Banc local : Postgres 16, émulateur de l'API Supabase,
 `next start`, aucun service externe (ni Resend, ni Stripe, ni signature, ni modèle de langage, ni `pg_cron`).

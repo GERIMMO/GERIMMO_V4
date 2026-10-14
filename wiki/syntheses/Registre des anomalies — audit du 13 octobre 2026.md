@@ -25,11 +25,11 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 |---|---|---|---|---|---|---|---|---|
 | **P0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
 | **P1** | 0 | 1 | 0 | 0 | 0 | 0 | 0 | **1** |
-| **P2** | 0 | 32 | 0 | 34 | 1 | 0 | 0 | **67** |
-| **P3** | 14 | 66 | 0 | 60 | 0 | 0 | 1 | **141** |
-| **Total** | 14 | 99 | 0 | 94 | 1 | 0 | 1 | **209** |
+| **P2** | 0 | 32 | 0 | 36 | 1 | 0 | 0 | **69** |
+| **P3** | 32 | 66 | 0 | 64 | 0 | 0 | 1 | **163** |
+| **Total** | 32 | 99 | 0 | 100 | 1 | 0 | 1 | **233** |
 
-Sources lues : artisan, auditeur/a, auditeur/b, auditeur/c, chaine/1, chaine/1b, chaine/2, charges-fiscalite, coordinateur, designer/a, designer/b, equipes-ia, perf-liens, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, retour-arriere, sortie-de-bail, superadmin, verification/pr178, verification/securite, verification/sql, verification/ts.
+Sources lues : artisan, auditeur/a, auditeur/b, auditeur/c, cartographie, chaine/1, chaine/1b, chaine/2, charges-fiscalite, coordinateur, designer/a, designer/b, equipes-ia, perf-liens, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, retour-arriere, sortie-de-bail, superadmin, verification/flux-finale, verification/pr178, verification/securite, verification/sql, verification/ts, verification/ui-finale.
 
 > [!warning] Couverture à ne pas surestimer
 > Ce registre ne couvre que ce que les agents ont effectivement exécuté (voir [[Registre d'exécution — audit du 13 octobre 2026]]).
@@ -60,7 +60,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Contrôle en production (lecture seule)** : `-- Lecture seule : documents « récapitulatif nu » produits depuis la mise en ligne (à ouvrir : rubriques à 0,00 € attendues). select d.id, d.organization_id, d.titre, d.created_at from public.documents d where d.titre = 'Récapitulatif annuel · location nue' and d.created_at >= '2026-10-12' order by d.created_at;`
 
-## P2 — dégradation avec contournement (67)
+## P2 — dégradation avec contournement (69)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
@@ -129,6 +129,8 @@ Aucune anomalie de cette gravité à ce jour.
 | `SUP-05` | relecture/supervision | Les « faits de direction » copient, pour toutes les organisations, des données personnelles (titres d'alertes contenant le nom du locataire, ex. « État des lieux d'entrée — Lot 1 · Marie Durand ») dans brief_direction_snapshots, sans aucune trace d'audit par… | à trancher |
 | `SOR-03` | sortie-de-bail | Un second bail est activé sur un lot avec une période qui recouvre celle du bail précédent | à trancher |
 | `SA-01` | superadmin | Traversée de la supervision dans un espace client : écriture financière possible sans motif ni durée, et la ligne d'audit 'traversee_action' ne dit ni quelle action, ni sur quel objet, ni avec quel résultat | à trancher — limite déjà actée au wiki (audit du 25/09) : entrée dans un espace client sans motif ni durée ; l'écriture… |
+| `VFL-03` | verification/flux-finale | Copie locale refusée : un lien interne efface la saisie de la fiche personne sans avertissement, malgré « Gardez cet onglet ouvert » | à trancher |
+| `VFL-07` | verification/flux-finale | Montants restés en type=number : « 840,00 » devient 84 000 dans un navigateur non francophone (charges réelles à régulariser, indice IRL, loyer/charges/dépôt du bail) | à trancher |
 | `VER-TS-02` | verification/ts | Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises | à trancher — partiellement corrigée en branche ; reste à trancher : montant très supérieur au dû — Décision métier non… |
 | `PROP-BANC-01` | proprietaire/s01 | Banc : serveur :3100 démarré sans SUPABASE_SERVICE_ROLE_KEY (inscription et liens bloqués) | acceptée — défaut du banc d'essai, pas du produit ; banc-up.sh vérifie la clé de service |
 
@@ -1028,6 +1030,34 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Passer en détails l'objet et le geste (route ou action, identifiant de l'objet, résultat) ; émettre traversee_action seulement sur les écritures ; demander un motif court et borner la traversée en écriture (30 min, comme pour l'artisan) ; ajouter l'auteur aux écritures financières
 - **Correction sans aval** : non (aval du dirigeant requis)
 
+#### `VFL-03` — Copie locale refusée : un lien interne efface la saisie de la fiche personne sans avertissement, malgré « Gardez cet onglet ouvert »
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : flux (verification/flux-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : IndexedDB refusé (navigation privée stricte, stockage bloqué) ; propriétaire connecté
+- **Étapes** : 1. addInitScript refusant IDBFactory.open et sessionStorage. 2. /agence/<org>/personnes#creer-fiche, rôle Locataire, saisir un nom, attendre 0,9 s : alerte « La copie sur cet appareil est indisponible. Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement ». 3. Cliquer « Mes lots » dans le menu latéral. 4. Revenir sur la fiche.
+- **Attendu** : Une boîte « Quitter cette page ? » (comme pour les formulaires protégés) ou au moins l'avertissement équivalent à celui de la fermeture d'onglet
+- **Observé** : Aucune boîte, navigation immédiate vers /parc, saisie perdue, aucune bannière « Reprendre votre saisie » au retour. En comparaison, page.close(runBeforeUnload) ouvre bien une boîte beforeunload dans le même état.
+- **Preuve expurgée (banc)** : preuves/verification/flux-finale/copies-f2.mjs (sortie : A dialogues [] navigué true ; B dialogues [beforeunload])
+- **Cause probable** : app/src/lib/protection-saisie.ts:66 exclut les formulaires data-protection-saisie="locale" du garde de liens ; app/src/components/reprise-locale/index.tsx:114-120 n'écoute que beforeunload (non déclenché par une navigation client Next Link)
+- **Correction proposée** : Dans le garde de clic, traiter un formulaire « locale » dont le statut est refuse/conflit/attente comme modifié (exposer l'état de la copie par un attribut data-copie-statut sur le formulaire), ou faire confirmer la navigation interne dans reprise-locale.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `VFL-07` — Montants restés en type=number : « 840,00 » devient 84 000 dans un navigateur non francophone (charges réelles à régulariser, indice IRL, loyer/charges/dépôt du bail)
+
+- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : flux (verification/flux-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Navigateur à interface non française (ici Chromium en-US), propriétaire sur la page d'un bail
+- **Étapes** : 1. /agence/<org>/baux/<id>, bloc « Régulariser » (charges_reelles). 2. Taper « 840,00 » au clavier. 3. Lire la valeur du champ avant envoi. Idem irl_nouveau « 145,17 ».
+- **Attendu** : 840 (ou refus avec message), comme pour les 17 champs convertis en texte décimal par VER-TS-02
+- **Observé** : Le champ affiche 84000 (et 14517 pour l'indice IRL) : la virgule est absorbée. Recoupe la fiche existante VER-TS-02 (a_trancher) : le défaut est confirmé en navigateur sur ces champs, le risque est financier (régularisation de charges) si la valeur n'est pas relue avant l'envoi.
+- **Preuve expurgée (banc)** : preuves/verification/flux-finale/residuels-number.json
+- **Cause probable** : app/src/app/agence/[orgId]/baux/[bailId]/formulaire-loyers.tsx (charges_reelles, irl_nouveau) et app/src/components/champs-bail.tsx:272-322 : input type=number lus par Number() dans app/src/app/actions/baux.ts:90-105 et loyers.ts:185
+- **Correction proposée** : Faire lire ces actions comme lireMontant (une ligne par action, test unitaire) puis passer les champs en texte décimal, comme décidé pour les 17 autres (rapport saisie, section a_trancher).
+- **Correction sans aval** : non (aval du dirigeant requis)
+
 #### `VER-TS-02` — Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises
 
 - **Sévérité** : P2 · **Statut** : à trancher — partiellement corrigée en branche ; reste à trancher : montant très supérieur au dû — Décision métier non prise : demander une confirmation explicite quand un encaissement dépasse largement le dû (quel multiple du dû ou du solde ? 2 ×, 10 × ?), ou un refus au-delà d'un seuil. Le passag · **Propriétaire** : dirigeant (décision)
@@ -1056,12 +1086,21 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : relancer le serveur du banc avec la clé de service (hors périmètre de ce rôle)
 - **Correction sans aval** : oui
 
-## P3 — cosmétique ou mineur (141)
+## P3 — cosmétique ou mineur (163)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
 | `AUD-C-03` | auditeur/c | L'ordre d'application des migrations n'est pas l'ordre des noms de fichiers *(hyp.)* | ouverte |
 | `AUD-C-04` | auditeur/c | Trois versions de PostgreSQL dans les preuves de sauvegarde, sans garde de coherence (hypothese a verifier) *(hyp.)* | ouverte |
+| `CAR-01` | cartographie | La référence de tests candidate porte sur b9a7107, non sur la tête 9396669, et son parcours navigateur n'est pas vert | ouverte |
+| `CAR-02` | cartographie | La matrice de droits du super-administrateur cite une ligne de code qui ne contient pas ce qu'elle désigne | ouverte |
+| `CAR-03` | cartographie | `.env.example` annonce « Neuf missions quotidiennes » alors que le code et vercel.json en comptent dix | ouverte |
+| `CAR-04` | cartographie | Aucun journal de parcours navigateur ni d'audit des écrans pour la référence e9f31ac : la comparaison avec la candidate est impossible hors lint, types, build, vitest | ouverte |
+| `CAR-07` | cartographie | Lacunes de couverture : 4 pages jamais ouvertes, 43 écrans ouverts ni exercés ni regardés, 43 actions serveur sans aucune trace | ouverte |
+| `CAR-08` | cartographie | Matrice des droits du super-administrateur : l'autorisation positive en aal2 n'est pas rejouée sur les 99 fonctions (profil aal1 seulement) *(hyp.)* | ouverte |
+| `CAR-09` | cartographie | Les relevés d'audit par écran sont écrasés à chaque largeur : seule la passe 1440 px est détaillée, les passes 390 et 768 px ne survivent que par leurs totaux | ouverte |
+| `CAR-10` | cartographie | La matrice du super-administrateur décrit la politique d'écriture de `memberships` de façon incomplète | ouverte |
+| `CAR-11` | cartographie | Le serveur du banc hérite d'un jeton GitHub du shell de lancement alors que l'application ne l'utilise pas | ouverte |
 | `PRO2-11` | chaine/1b | Élision manquante dans le nom de parc généré : « Parc de Éloïse … » (même famille que LOC-02) | ouverte |
 | `CHF-08` | charges-fiscalite | Hypothèse à vérifier : le lien « notice officielle 2044, millésime 2026 (revenus 2025) » affiché sous un récapitulatif des revenus 2026 pointe vers …/2044_5487.pdf, alors que la recherche renvoie le formulaire 2026 sous …/2044_5483.pdf. *(hyp.)* | ouverte |
 | `DES-B-12` | designer/b | HORS V1 PUBLIQUE — espaces administrateur d'agence et agent : défauts transversaux déjà connus et petites cibles sur la recherche | ouverte |
@@ -1074,6 +1113,15 @@ Aucune anomalie de cette gravité à ce jour.
 | `REP-03` | relecture/reprises | Clients externes (module desactive en production) : apres un refus de validation, le meme justificatif ne peut plus etre remplace par un autre fichier de meme type tant que le formulaire n'est pas recharge, et un devis re-genere ne peut pas etre redepose *(hyp.)* | ouverte |
 | `SUP-06` | relecture/supervision | Ces trois lectures font db.from('accounts').select('id,email') sans filtre puis filtrent en JavaScript : au-delà de la limite de lignes de l'API (1 000 par défaut chez Supabase), la liste des responsables habilités et les noms des destinataires sont tronqués… *(hyp.)* | ouverte |
 | `SA-02` | superadmin | Brief de direction : les montants des faits datés s'affichent avec un point décimal ('500.00 €') alors que les mesures s'affichent à la française ('4 870,00 €') | ouverte |
+| `VFL-02` | verification/flux-finale | Déconnexion hors ligne : écran d'erreur générique au lieu d'un message « vous êtes hors ligne » | ouverte |
+| `VFL-04` | verification/flux-finale | « 1 234,50 » et « 1.234,50 » refusés avec le seul message « Montant invalide. » (format usuel français non expliqué) | ouverte |
+| `VFL-05` | verification/flux-finale | Reprise des soldes : « date de bascule » par défaut calculée en UTC (la veille entre 00 h et 02 h à Paris l'été) | ouverte |
+| `VFL-06` | verification/flux-finale | Hypothèse à vérifier : attestation d'assurance locataire, date plancher et contrôle serveur calculés en jour UTC *(hyp.)* | ouverte |
+| `VUI-01` | verification/ui-finale | Résiduel de DES-A-01/DES-B-02 : deux champs multilignes restent masqués en partie (24 % et 51 %) par la barre du bas quand ils reçoivent le focus au clavier à 390 px | ouverte |
+| `VUI-02` | verification/ui-finale | Rail tablette locataire (641-860 px) : la cellule du nom d espace affiche « PDP… » (initiales suivies du début du nom tronqué) au lieu des seules initiales ; la correction DES-A-14 ne tient pas sur la construction finale | ouverte |
+| `VUI-03` | verification/ui-finale | Agence (hors V1 publique) : l entrée « Administration » du rail tablette est coupée en « Administrati/on » à 641, 768 et 860 px | ouverte |
+| `VUI-04` | verification/ui-finale | Reprise des soldes (propriétaire direct) : le libellé « Détenteur du dépôt (agence = votre gestionnaire / proprietaire = vous) » garde le mot « agence » et une faute (« proprietaire » sans accent) : DES-A-07 point 3 corrigé à moitié | ouverte |
+| `VUI-05` | verification/ui-finale | Veille réglementaire : l audience « Agences et agents immobiliers » est toujours proposée aux propriétaires et aux locataires (DES-A-07 point 4 non corrigé) | ouverte |
 | `ARC-01` | artisan | Échec du rendu PDF du devis externe : message technique brut (variable d environnement) montré à l artisan | corrigée en branche — vague 5-7 ; tests : app/tests/artisan-prive-erreurs.test.ts |
 | `ARC-03` | artisan | Agenda : l état du chantier externe est affiché avec son code interne (« planifie ») | corrigée en branche — vague 5-7 ; tests : app/tests/artisan-prive-affichage.test.ts |
 | `ARC-05` | artisan | Agenda artisan sur mobile 390 px : défilement horizontal (448 px) causé par la carte d une mission Gerimmo au nom de parc long | corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts |
@@ -1147,6 +1195,8 @@ Aucune anomalie de cette gravité à ce jour.
 | `AUD-C-05` | auditeur/c | L'arret d'urgence ne couvre pas les e-mails declenches par le webhook Stripe (hypothese a verifier) *(hyp.)* | à trancher |
 | `AUD-C-07` | auditeur/c | Les routes cron directes n'ont ni verrou de mission ni reservation avant envoi (doublon d'e-mail possible, hypothese a verifier) *(hyp.)* | à trancher |
 | `AUD-C-08` | auditeur/c | Fichiers PDF orphelins possibles si le webhook Youtrust et la tache de nuit traitent le meme evenement en meme temps (hypothese a verifier) *(hyp.)* | à trancher |
+| `CAR-05` | cartographie | Privilèges de table et politiques RLS ne se recouvrent pas : 17 tables ont des privilèges d'écriture sans politique, 12 tables ont des politiques sans privilège | à trancher |
+| `CAR-06` | cartographie | Deux valeurs de `membership_role` (`proprietaire_mandant`, `garant`) n'ont ni fonction d'attribution repérée ni espace dédié *(hyp.)* | à trancher |
 | `ART-15` | chaine/1b | La photo jointe par le locataire n'est visible de l'artisan ni au stade du devis ni sur la fiche de mission | à trancher |
 | `CHN-02` | chaine/2 | La validation de la facture, l'écriture de règlement et la clôture de l'incident ne laissent aucune ligne au journal d'audit : seule la chronologie de l'incident les garde | à trancher |
 | `CHF-05` | charges-fiscalite | Le wiki « Fiscalité » ne s'appuie sur aucune source officielle (quatre sites commerciaux seulement) et affirme encore « non implémentée » pour des fonctions livrées ; le wiki « Régularisation des charges » fait de même. | à trancher — avertissement ajouté à la page Fiscalité ; les sources officielles n'ont pu être consultées (réseau bloqué… |
@@ -1196,10 +1246,12 @@ Aucune anomalie de cette gravité à ce jour.
 | `SA-09` | superadmin | La recherche de la console ne trouve ni un bien, ni un lot, ni un incident : le brief du support demande de retrouver « un dossier (utilisateur, bien, incident) » | à trancher |
 | `SA-10` | superadmin | Hypothèse à vérifier : aucun plafond de dépense applicatif pour les appels IA, et l'arrêt d'urgence ne couvre pas les appels IA déclenchés à la main (analyse du brief, rédaction de publications) *(hyp.)* | à trancher |
 | `SA-11` | superadmin | Journal du blocage d'un compte : « Compte bloqué » est écrit avant l'effet ; si le blocage échoue, le journal garde « Compte bloqué » suivi d'une ligne d'échec sans cause | à trancher |
+| `VFL-01` | verification/flux-finale | La région role=status de la copie locale affiche « conservés » alors que l'écriture n'a pas eu lieu (seul le texte visible dit « Conservation… ») | à trancher |
 | `VER-PR178-06` | verification/pr178 | Hypothèse à vérifier : le brouillon local de la grille d'état des lieux (gerimmo-edl-brouillon-<id>) n'est ni effacé à la déconnexion ni rattaché à un compte ni limité dans le temps *(hyp.)* | à trancher |
 | `VER-SECURITE-01` | verification/securite | La purge de déconnexion annoncée par la correction PR178-A-01 laisse les brouillons d'état des lieux (et la quittance de l'outil public) sur l'appareil, et le changement de compte ne les purge pas non plus | à trancher — partiellement corrigée en branche (quittance de l'outil public purgée à la déconnexion) ; reste à trancher… |
 | `VER-SECURITE-02` | verification/securite | Un artisan ayant une mission (ou une sollicitation ouverte) dans une organisation peut écrire n'importe quel chemin sous le dossier de cette organisation dans le compartiment documents | à trancher |
 | `VER-TS-05` | verification/ts | Récapitulatif fiscal nu : à partir de 1 000 lignes fiscales dans l'organisation, le document est refusé avec un message trompeur (« Réduisez la période »), même pour un lot de 3 loyers | à trancher |
+| `VUI-06` | verification/ui-finale | Pages juridiques publiques (CGU, confidentialité, mentions légales) : les agences y sont encore présentées (tarif mensuel agences, marque blanche, « votre agence ») alors que le code agence n est plus présenté au public | à trancher |
 | `SOR-01` | sortie-de-bail | Clé de répartition par surface : « NaN % » et validation impossible (peut venir de l émulateur du banc) | réfutée — défaut de l'émulateur du banc (numeric rendu en chaînes, ligne 453 de serveur-supabase-local.mjs), pas du pro… |
 
 Les fiches complètes des anomalies P3 sont dans [[Fiches des anomalies P3 — audit du 13 octobre 2026]].

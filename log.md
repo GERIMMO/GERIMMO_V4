@@ -5783,3 +5783,11 @@ pg_cron n'avait jamais pu l'appeler), récapitulatif fiscal « location nue » q
 contrôles de saisie, échappement HTML des courriers, migration `20261013120000`. Deux migrations restent à
 appliquer en production (`20261013110000`, `20261013120000`), après sauvegarde et simulation. Vague 2 des
 rôles interrompue par la limite de session de l'outil ; reprise prévue.
+
+## [2026-10-14] audit | Mission opérationnelle Gerimmo — suite : vérification adverse, corrections, scénarios, dossier de validation
+Suite de la mission du 12/10 (banc local, aucun effet réel). Registre porté à 233 anomalies (P0 0, P1 1, P2 69, P3 163) ; 99 corrigées en branche,
+100 à trancher. Vérification adverse des corrections (migrations, saisie, sécurité, PR #178), critique de complétude face au texte de la mission,
+scénarios sortie de bail, charges et fiscalité, performances et liens, retour arrière des deux migrations (essayé), cartographie vérifiable.
+Simulation des deux migrations rejouée sur leur version finale (exécution n° 71, tout annulé). Sources officielles inaccessibles depuis l'environnement
+(réseau) : règles fiscales non confrontées. Rien n'est déployé ; aucune autorisation reçue. Pages : [[Dossier de validation — version candidate du 13 octobre 2026]],
+[[Décisions groupées — version candidate du 13 octobre 2026]], [[Registre des anomalies — audit du 13 octobre 2026]].

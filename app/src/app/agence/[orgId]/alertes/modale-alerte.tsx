@@ -143,7 +143,7 @@ export function ModaleAlerte({
           </Link>
           <p className="mt-2 mb-0 text-[13px] text-muted-foreground">
             {geste.seFermeSeule
-              ? "Faites-le et l’alerte se refermera d’elle-même : c’est le dépôt qui la clôt, pas cette fenêtre."
+              ? "Faites-le et l’alerte se refermera d’elle-même : c’est le geste lui-même qui la clôt, pas cette fenêtre."
               : "Vous reviendrez clore l’alerte ici une fois le geste fait."}
           </p>
         </div>

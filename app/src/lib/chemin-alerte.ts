@@ -63,12 +63,16 @@ const ANCRES_BAIL = new Map<string, string>([
  * document remplacé, diagnostic archivé, impayé soldé, écart régularisé,
  * état des lieux signé, décompte envoyé, versement rapproché, justificatif
  * déposé. Pour ceux-là, le geste SUFFIT.
+ * S'y ajoute `devis_a_decider` (audit du 13/10, D19) : elle ne passe pas par
+ * `fermer_alertes_origine` mais par le déclencheur `fermer_alerte_devis_a_decider`,
+ * qui la ferme dès que le devis est retenu, écarté, annulé ou expiré.
  */
 const SE_FERMENT_SEULES = new Set([
   "assurance_expiration",
   "attestation_a_verifier",
   "decompte",
   "decompte_lrar",
+  "devis_a_decider",
   "diagnostic_expiration",
   "ecart_versement",
   "edl_entree",
@@ -94,6 +98,9 @@ const LIBELLES = new Map<string, string>([
   ["incident_a_qualifier", "Qualifier l’incident"],
   ["incident_conteste", "Reprendre l’imputation contestée"],
   ["incident_imputation_a_reviser", "Réviser l’imputation"],
+  // Audit du 13/10 (PRO2-13, D19) : un devis reçu attend la décision du gérant
+  // ou du propriétaire ; la retenir ferme l'alerte (déclencheur de base).
+  ["devis_a_decider", "Examiner le devis reçu"],
   // Audit du 27/09 : les deux alertes nées du cycle artisan ouvrent le
   // dossier d'incident, où se lisent la facture et les créneaux.
   ["facture_artisan_a_valider", "Contrôler la facture de l’artisan"],
@@ -164,6 +171,7 @@ export function cheminFicheAlerte(a: Alerte, orgId: string): string | null {
     type === "incident_a_qualifier" ||
     type === "incident_conteste" ||
     type === "incident_imputation_a_reviser" ||
+    type === "devis_a_decider" ||
     type === "facture_artisan_a_valider" ||
     type === "creneaux_arbitrage"
   ) {

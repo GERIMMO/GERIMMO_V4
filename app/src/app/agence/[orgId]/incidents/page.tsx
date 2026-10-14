@@ -1,7 +1,7 @@
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { ArrowRight, CircleCheck, Clock3, Inbox, Plus, TriangleAlert, Wrench } from "lucide-react";
-import { formaterDate } from "@/lib/ged";
+import { aujourdhuiParis, formaterDate } from "@/lib/ged";
 import "./incidents.css";
 import { lotsDuPortefeuille, PortefeuilleIndisponible } from "@/lib/portefeuille";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -10,6 +10,7 @@ import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import {
   COULEURS_ETAT_INCIDENT,
   ETATS_INCIDENT,
+  incidentsATraiter,
   titreIncident,
 } from "@/lib/incidents";
 import { buttonVariants } from "@/components/ui/button";
@@ -36,8 +37,8 @@ type Rang = {
   declarant: UnOuPlusieurs<{ nom: string; prenom: string | null }>;
 };
 
-// Les états qui attendent une action de l'agence — la file de travail
-const ETATS_A_TRAITER = ["declare", "rouvert", "termine"];
+// La file « À traiter » (états qui attendent l'agence, et devis reçus à décider)
+// se calcule par incidentsATraiter (lib/incidents.ts).
 // Ordre de tri : ce qui attend l'agence d'abord, le clos en dernier
 const ORDRE_ETAT: Record<string, number> = {
   declare: 0,
@@ -102,6 +103,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
     { data: closBruts, error: erreurClos, count: totalClosBrut },
     { data: donneesMembres, error: erreurMembres },
     { data: aEvaluerBrut },
+    { data: devisADeciderBruts, error: erreurDevisADecider },
   ] = await Promise.all([
       vivantsQuery,
       closQuery,
@@ -112,6 +114,11 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
       // interrogeable : la file des interventions terminées que l'agence n'a
       // pas encore notées. Sans cet appel, la fonction n'aurait aucun écran.
       supabase.rpc("interventions_a_evaluer", { p_org: orgId }),
+      // D19 (PRO2-13) : un devis reçu, encore valable et pas encore retenu, met
+      // l'incident dans « À traiter » — l'e-mail seul ne suffisait pas.
+      supabase.from("incident_devis").select("incident_id")
+        .eq("organization_id", orgId).eq("statut", "depose")
+        .gte("valide_jusqu_au", aujourdhuiParis()),
     ]);
 
   const incidents = [
@@ -128,7 +135,10 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
   const emails = new Map(membres.map((m) => [m.account_id, m.email.split("@")[0]]));
 
   const enCours = incidents.filter((i) => i.etat !== "clos");
-  const aTraiter = enCours.filter((i) => ETATS_A_TRAITER.includes(i.etat));
+  const idsAvecDevisADecider = new Set(
+    ((devisADeciderBruts ?? []) as { incident_id: string }[]).map((d) => d.incident_id)
+  );
+  const aTraiter = incidentsATraiter(enCours, idsAvecDevisADecider);
   const filtres = {
     "en-cours": enCours,
     "a-traiter": aTraiter,
@@ -161,12 +171,15 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
       ? Boolean(erreurClos)
       : cle === "tous"
         ? Boolean(erreurVivants || erreurClos)
-        : Boolean(erreurVivants);
+        : cle === "a-traiter"
+          ? Boolean(erreurVivants || erreurDevisADecider)
+          : Boolean(erreurVivants);
   const compteVue = (cle: string) => (vueIllisible(cle) ? "—" : String(comptes[cle]));
 
   const lecturesManquees = [
     erreurVivants && "les incidents en cours",
     erreurClos && "les incidents clos",
+    erreurDevisADecider && "les devis reçus à décider",
     erreurMembres &&
       (estProprietaire ? "les membres de l'espace" : "les gestionnaires de l'agence"),
   ].filter((q): q is string => Boolean(q));
@@ -332,6 +345,9 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                   <span className="incident-rang-lot">{lot?.nom ?? "Lot non disponible"}</span>
                   <span className="incident-rang-etats">
                     {i.urgence === "urgente" && <span className="puce puce-rouge">Urgent</span>}
+                    {i.etat !== "clos" && idsAvecDevisADecider.has(i.id) && (
+                      <span className="puce puce-rouge">Devis à décider</span>
+                    )}
                     <span className={COULEURS_ETAT_INCIDENT[i.etat] ?? "puce puce-grise"}>
                       {ETATS_INCIDENT[i.etat] ?? "État à vérifier"}
                     </span>

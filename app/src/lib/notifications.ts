@@ -44,6 +44,7 @@ import { ArretSupervision } from "./controle-effets";
 // base et envoie.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cleRappelGeste } from "./cles-idempotence-courriels";
 import { envoyerEmail } from "./email";
 import { eur } from "./ged";
 import { titreIncident } from "./incidents";
@@ -1266,8 +1267,12 @@ async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string
       to = artisan?.email; categorie = inc?.categorie ?? null;
     }
 
+    // La clé de la trace sert aussi de clé anti-doublon auprès du service
+    // d'e-mail (décision D47) : un rappel accepté mais non tracé (marquage
+    // échoué, ou attente coupée par le délai maximal) ne repart pas en double.
     return expedier(service, {
       avantEffet, orgId: c.orgId, to, role, evenement: `rappel_${c.type}`, objet: c.objetId,
+      cleIdempotence: cleRappelGeste(c.cle),
       message: messageRappelGeste({ type: c.type, emetteur: nom, prenom, categorie, libelle: c.libelle, jours, lien: lien(c.lienChemin) }),
     });
   } catch (e) {

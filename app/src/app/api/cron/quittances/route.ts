@@ -19,7 +19,14 @@ import { verifierAvantEffet } from "@/lib/controle-effets";
 // L'ORDRE DES OPÉRATIONS COMPTE. On envoie, PUIS on marque. L'inverse
 // perdrait une quittance au premier échec réseau : marquée partie, jamais
 // reçue, et plus aucune tâche ne la reprendrait. Dans ce sens-ci, le pire cas
-// est un double envoi — désagréable, pas préjudiciable.
+// serait un double envoi — désagréable, pas préjudiciable — et il est borné :
+// l'envoi porte une clé d'idempotence stable (`quittance/<id>`), si bien que le
+// service d'e-mail, revoyant la même clé, rend la réponse du premier envoi au
+// lieu d'en émettre un second (décision D47). Le service retient la clé 24 h
+// seulement (voir lib/email.ts) : passé ce délai, une reprise renverrait l'e-mail.
+// L'appel au service a aussi un délai maximal (15 s, lib/email.ts). Les deux
+// vont ENSEMBLE : un délai seul ferait reprendre à la passe suivante un envoi
+// que le service avait pourtant accepté.
 //
 // LES ÉCHECS SE LISENT EN BASE (audit 25/09, R2). Deux quittances échouaient
 // chaque matin depuis deux jours et le bilan consigné ne disait que
@@ -29,6 +36,7 @@ import { verifierAvantEffet } from "@/lib/controle-effets";
 // déjà exempt d'adresse et de contenu. Une quittance envoyée mais non marquée
 // est consignée à part : elle repartira demain, et il faut le savoir.
 
+import { cleQuittance } from "@/lib/cles-idempotence-courriels";
 import { envoyerEmail } from "@/lib/email";
 import { corpsQuittance, sujetQuittance } from "@/lib/quittance-email";
 import {
@@ -142,6 +150,7 @@ export async function GET(request: Request) {
     const envoi = await envoyerEmail({
       avantEnvoi: () => verifierAvantEffet(supabase, "quittances"),
       organisation: { db: supabase, id: l.organization_id },
+      cleIdempotence: cleQuittance(l.quittance_id),
       to: l.destinataire,
       subject: sujetQuittance({ estQuittance: l.est_quittance, periode: l.periode }),
       html: corpsQuittance({

@@ -9,7 +9,16 @@ import { verifierAvantEffet } from "@/lib/controle-effets";
 // Elle suit trait pour trait la route des quittances, mêmes verrous et même
 // ordre des opérations — on envoie, PUIS on marque, parce qu'un avis marqué
 // parti mais jamais reçu ne serait plus jamais repris, alors qu'un double envoi
-// n'est que désagréable.
+// n'est que désagréable — et il est borné : chaque envoi porte une clé
+// d'idempotence stable (par avis, par destinataire et par montants annoncés,
+// lib/cles-idempotence-courriels.ts), de sorte que le service d'e-mail, revoyant
+// la même clé, rend la réponse du premier envoi au lieu d'en émettre un second
+// (décision D47). Un règlement entre deux passes change les montants de l'avis,
+// donc sa clé : c'est un autre courrier, il part. Le service ne retient la clé que
+// 24 h (hypothèse, voir lib/email.ts) et cette tâche ne passe qu'une fois par
+// jour : la reprise du lendemain n'est pas garantie. L'appel a aussi un délai
+// maximal (15 s) : les deux vont ENSEMBLE, un délai seul ferait reprendre à la
+// passe suivante un avis que le service avait pourtant accepté.
 //
 // TROIS VERROUS, parce que la route porte la clé de service.
 //  1. `CRON_SECRET` : sans elle, la route s'arrête — elle ne passe pas en mode
@@ -24,6 +33,7 @@ import { verifierAvantEffet } from "@/lib/controle-effets";
 // 25/09, R2), comme pour les quittances : `echecs: n` seul ne permettait pas
 // de savoir quel avis reprendre ni pourquoi.
 
+import { cleAvisEcheance } from "@/lib/cles-idempotence-courriels";
 import { envoyerEmail } from "@/lib/email";
 import { corpsAvisEcheance, sujetAvisEcheance } from "@/lib/appel-email";
 import { clientDeService } from "@/lib/supabase/service";
@@ -131,11 +141,15 @@ export async function GET(request: Request) {
         lien: `${site}/locataire/${l.organization_id}/loyers`,
       }),
     });
+    // Une clé par destinataire, qui suit les montants que l'avis annonce.
+    const cle = (destinataire: string) =>
+      cleAvisEcheance({ appelId: l.appel_id, destinataire, resteDu: l.reste_du, arriere: l.arriere });
     await verifierAvantEffet(supabase, "appels");
     const envoi = await envoyerEmail({
       avantEnvoi: () => verifierAvantEffet(supabase, "appels"),
       organisation: { db: supabase, id: l.organization_id },
       to: l.destinataire,
+      cleIdempotence: cle(l.destinataire),
       ...avis(l.prenom),
     });
     if (envoi.erreur) {
@@ -151,6 +165,7 @@ export async function GET(request: Request) {
       avantEnvoi: () => verifierAvantEffet(supabase, "appels"),
         organisation: { db: supabase, id: l.organization_id },
         to: autre,
+        cleIdempotence: cle(autre),
         ...avis(null),
       });
       if (copie.erreur)

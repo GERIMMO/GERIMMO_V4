@@ -4,6 +4,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { abandonnerPieceGed, preparerFichierGed } from "@/lib/ged-depot";
+import { cleQuittance } from "@/lib/cles-idempotence-courriels";
 import { envoyerEmail } from "@/lib/email";
 import { corpsQuittance, sujetQuittance } from "@/lib/quittance-email";
 import {
@@ -126,7 +127,17 @@ export async function envoyerQuittance(
   };
   const html = corpsQuittance(message);
 
-  const envoi = await envoyerEmail({ organisation: { db: supabase, id: orgId }, to: loc.email, subject: sujetQuittance(message), html });
+  // La même clé que la tâche d'envoi (D47) : si l'e-mail est accepté mais que sa
+  // mémorisation échoue, un second clic ne le double pas, et la tâche qui
+  // reprendrait la quittance non marquée non plus — tant que le service retient
+  // la clé (24 h, voir lib/email.ts).
+  const envoi = await envoyerEmail({
+    organisation: { db: supabase, id: orgId },
+    to: loc.email,
+    cleIdempotence: cleQuittance({ quittanceId, estQuittance: q.est_quittance, montant: q.montant, destinataire: loc.email }),
+    subject: sujetQuittance(message),
+    html,
+  });
   if (envoi.erreur) {
     console.error("[quittance email] échec:", envoi.erreur);
     return { erreur: envoi.erreur };

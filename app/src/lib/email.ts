@@ -23,12 +23,60 @@ import { emailValide, enteteMarqueHtml, liensMarque, nomMarque } from "./marque-
  */
 const EXPEDITEUR = process.env.RESEND_EXPEDITEUR?.trim() || "Gerimmo <no-reply@gerimmo.app>";
 
+/**
+ * Le délai maximal d'un appel au service d'e-mail (décision D47, fiche IA-05).
+ *
+ * Sans lui, un service qui ne répond pas retenait la tâche jusqu'à la coupure
+ * de la fonction, qui la laissait « interrompue » avec des effets partiels.
+ *
+ * LE DÉLAI NE VA JAMAIS SEUL. Il peut couper l'attente d'un envoi que le
+ * service a pourtant accepté : l'objet reste alors « non marqué » et la passe
+ * suivante le reprend. Sans clé d'idempotence, ce serait un second e-mail au
+ * destinataire. Il s'applique à tout appelant, mais la clé n'est posée que là
+ * où un envoi non marqué peut être repris ; voir `lib/cles-idempotence-courriels.ts`.
+ *  - AVEC une `cleIdempotence` : les quatre tâches planifiées (quittances, avis
+ *    d'échéance, relances de loyer, rappels de rendez-vous), les rappels de
+ *    gestes, les relances de paiement d'abonnement (`lib/relances-paiement.ts`),
+ *    l'envoi manuel d'une quittance (`actions/loyers.ts`, même clé que la tâche),
+ *    ainsi que les avis d'abonnement, les rapports mensuels et l'alerte de veto.
+ *  - SANS clé : les envois déclenchés par une personne et jamais repris par une
+ *    tâche (liens de mot de passe, invitation d'un agent, bail signé, notifications
+ *    de coulisses). Un délai dépassé y rend l'erreur « envoi non confirmé, vérifiez
+ *    avant de le renvoyer » ; c'est la personne qui décide de recommencer.
+ * Le service, revoyant la même clé, rend la réponse du premier envoi sans en
+ * émettre un second — tant qu'il la retient.
+ *
+ * LA LIMITE, À NE PAS OUBLIER. On suppose que le service retient une clé 24 h :
+ * c'est l'hypothèse d'un commentaire de `lib/rapports-mensuels.ts`, la
+ * documentation du prestataire n'a pas été consultée ici et le refus (409) d'une
+ * clé réutilisée avec un autre contenu n'a pas été rejoué. Or les tâches
+ * tournent UNE FOIS PAR JOUR (`vercel.json`) : la reprise d'un envoi non marqué
+ * arrive à environ 24 h du premier, au bord de cette fenêtre, et selon la gigue
+ * de lancement la clé est encore valide (pas de doublon) ou oubliée (doublon).
+ * La garantie vaut donc pour les reprises rapprochées (relance manuelle, seconde
+ * passe le même jour), pas pour celle du lendemain. La supprimer demanderait un
+ * marqueur posé en base AVANT l'envoi, ou une reprise dans la même passe :
+ * option différée de D47, hors de ce lot.
+ */
+export const DELAI_MAX_FOURNISSEUR_MS = 15_000;
+
+/** Le délai écoulé n'est pas un refus : l'envoi est inconnu, il a pu avoir lieu. */
+const ERREUR_DELAI =
+  "Le service d’e-mail n’a pas répondu à temps. L’envoi n’est pas confirmé et a peut-être eu lieu : vérifiez avant de le renvoyer.";
+
+function delaiDepasse(e: unknown): boolean {
+  return e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+}
+
 export async function envoyerEmail(params: {
   to: string;
   subject: string;
   html: string;
   piecesJointes?: { nom: string; contenuBase64: string }[];
+  /** Une clé stable par objet : le service n'envoie pas deux fois le même message pour la même clé. */
   cleIdempotence?: string;
+  /** Délai maximal de l'appel, en millisecondes (15 s par défaut) ; réglable surtout pour les tests. */
+  delaiMaxMs?: number;
   avantEnvoi?: () => Promise<void>;
   organisation?: { db: SupabaseClient; id: string };
 }): Promise<{ erreur?: string; id?: string }> {
@@ -45,6 +93,8 @@ export async function envoyerEmail(params: {
     await params.avantEnvoi?.();
     const reponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
+      // Posé ici, après le contrôle d'arrêt : le délai ne couvre que l'appel au service.
+      signal: AbortSignal.timeout(params.delaiMaxMs ?? DELAI_MAX_FOURNISSEUR_MS),
       headers: {
         Authorization: `Bearer ${cle}`,
         "Content-Type": "application/json",
@@ -60,7 +110,9 @@ export async function envoyerEmail(params: {
       }),
     });
     if (!reponse.ok) {
-      const txt = await reponse.text();
+      // Un statut d'erreur reçu est un refus : si le corps ne vient pas à temps,
+      // ce n'est pas pour autant un « envoi inconnu ».
+      const txt = await reponse.text().catch(() => "");
       // Le refus le plus fréquent, et le plus opaque : le domaine de
       // l'expéditeur n'est pas vérifié chez Resend. Le message brut parle de
       // « domain », jamais de ce qu'il faut faire. On le traduit.
@@ -75,6 +127,7 @@ export async function envoyerEmail(params: {
     return { ...(typeof resultat?.id === "string" ? { id: resultat.id } : {}) };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
+    if (delaiDepasse(e)) return { erreur: ERREUR_DELAI };
     return { erreur: "L’e-mail n’a pas pu partir car le service est momentanément indisponible. Réessayez dans un instant." };
   }
 }

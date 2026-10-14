@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
 import { envoyerSurFacebook } from "@/lib/facebook";
 import { journaliserSupervision, JOURNAL_A_VERIFIER } from "@/lib/journal-supervision";
+import { TACHES_SQL } from "@/lib/nom-arret-supervision";
 
 // Audit console 27/09 : chaque geste sur un article (proposer, modifier, faire
 // paraître, retirer, refuser, diffuser sur Facebook) laisse sa ligne au
@@ -46,6 +47,25 @@ export async function genererPropositions(): Promise<EtatPublication> {
 
   revalidatePath("/admin/publications");
   const n = Number(data ?? 0);
+
+  // D06 : un arrêt d'urgence (« global » ou « marketing ») retient le moteur, qui rend alors 0 comme s'il n'y avait rien
+  // de neuf. Zéro est donc ambigu : on lit l'arrêt avant d'affirmer que la file est à jour. Les clés sont celles que la
+  // base associe à la tâche planifiée (même table de correspondance), plus « global » qui les arrête toutes.
+  if (n === 0) {
+    const cles = ["global", ...TACHES_SQL["propositions-publication-hebdo"].cles];
+    const { data: arrets, error: erreurArrets } = await supabase
+      .from("supervision_arrets")
+      .select("cle")
+      .eq("arrete", true)
+      .in("cle", cles);
+    if (erreurArrets) {
+      return { erreur: "Aucune proposition n’a été ajoutée. La liste des arrêts d’urgence n’a pas pu être lue : vérifiez « Relais et arrêts » avant de conclure que la file est à jour." };
+    }
+    if ((arrets ?? []).length > 0) {
+      return { erreur: "Un arrêt d’urgence est en cours : rien n’a été proposé. Levez l’arrêt dans « Relais et arrêts » avant de relancer la recherche de sujets." };
+    }
+  }
+
   const journal = await journaliserSupervision(supabase, "publications_proposees", { propositions: n });
   return {
     succes:

@@ -18,6 +18,7 @@ import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
 import { couvrirParMandat } from "./fixtures/mandat";
+import { TACHES_SQL } from "../src/lib/nom-arret-supervision";
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
@@ -378,6 +379,42 @@ describe.skipIf(!DB_URL)("arrêt d'urgence et tâches planifiées (D06)", () => 
     const { rows: [{ n: reprise }] } = await db.query(`select public.proposer_publications_interne($1::date) as n`, [jour]);
     expect(Number(reprise)).toBeGreaterThan(0);
     expect(await propositions()).toBe(avant + Number(reprise));
+  });
+
+  it("bouton « Chercher des sujets » : sous arrêt le point d'entrée humain rend 0, et le superviseur peut lire l'arrêt qui l'explique", async () => {
+    // L'action genererPropositions ne doit pas confondre ce 0 avec « la file est à jour » : elle lit l'arrêt avec les clés
+    // de la table de correspondance (miroir TS TACHES_SQL) ; ce test vérifie, sur la vraie base, que cette lecture voit l'arrêt.
+    await db.query("reset role");
+    await db.query("delete from public.publications");
+    const sa = await creerUtilisateur();
+    await db.query(`insert into public.memberships (account_id, organization_id, role) values ($1, null, 'super_admin')`, [sa]);
+    const cles = ["global", ...TACHES_SQL["propositions-publication-hebdo"].cles];
+    const arretsLus = async () => {
+      await simuler(sa);
+      const { rows } = await db.query<{ cle: string }>(`select cle from public.supervision_arrets where arrete = true and cle = any($1::text[]) order by cle`, [cles]);
+      return rows.map((r) => r.cle);
+    };
+    const proposer = async () => {
+      await simuler(sa);
+      const { rows: [{ n }] } = await db.query(`select public.proposer_publications('2027-01-15'::date) as n`);
+      return Number(n);
+    };
+    // Aucun arrêt : des propositions, aucun arrêt lu.
+    expect(await arretsLus()).toEqual([]);
+    expect(await proposer()).toBeGreaterThan(0);
+    // « marketing » puis « global » : le moteur rend 0 (rien n'est proposé) et l'arrêt se lit.
+    for (const cle of ["marketing", "global"]) {
+      await db.query("reset role");
+      await db.query("delete from public.publications");
+      await arreter(cle);
+      expect(await proposer(), cle).toBe(0);
+      expect(await arretsLus(), cle).toEqual([cle]);
+      await arreter(cle, false);
+    }
+    // Un arrêt d'une autre clé n'est pas lu : le 0 ne vient pas de lui, et il ne retient pas le moteur.
+    await arreter("appels");
+    expect(await arretsLus()).toEqual([]);
+    expect(await proposer()).toBeGreaterThan(0);
   });
 
   it("déclencheur marketing : l'arrêt « marketing » n'appelle pas le serveur ; la levée l'appelle", async () => {

@@ -8,7 +8,18 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 |---|---|---|
 | `20261013120000_correctifs_audit_13_octobre.retour.sql` | `20261013120000_correctifs_audit_13_octobre.sql` | 9 fonctions, 3 déclencheurs `diagnostic_artisan_lecture`, la contrainte `incident_evenements_type_check`, 1 ligne d'historique |
 | `20261013110000_marketing_preparation_du_soir_cron.retour.sql` | `20261013110000_marketing_preparation_du_soir_cron.sql` | 2 fonctions, 1 fonction supprimée, 1 ligne d'historique |
+| `20261014102000_cle_envoi_ecriture_libre.retour.sql` | `20261014102000_cle_envoi_ecriture_libre.sql` | la colonne `ecritures.cle_envoi` (et son droit d'insertion), 1 index unique partiel, 1 ligne d'historique. Aucune fonction. |
+| `20261014101000_cle_envoi_depot_garantie.retour.sql` | `20261014101000_cle_envoi_depot_garantie.sql` | la fonction `encaisser_depot` à sept paramètres (remplacée par celle à six), la colonne `depot_encaissements.cle_envoi`, 1 index unique partiel, 1 ligne d'historique |
+| `20261014100000_cle_envoi_encaissement_loyer.retour.sql` | `20261014100000_cle_envoi_encaissement_loyer.sql` | la colonne `encaissements.cle_envoi`, 1 index unique partiel, 1 ligne d'historique. Aucune fonction. |
 | `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » |
+
+**Clés d'envoi des encaissements (14/10, D05).** Les trois migrations `20261014100000`, `20261014101000` et `20261014102000` n'ajoutent
+qu'une colonne facultative et un index unique partiel chacune (plus, pour le dépôt, un septième paramètre facultatif à `encaisser_depot`) ;
+elles ne réécrivent aucune donnée financière. Leurs retours sont indépendants et se jouent dans l'ordre inverse (102000, 101000, 100000) ;
+chacun dit combien de clés disparaissent (ce sont des références techniques : les encaissements, dépôts et écritures restent). Le retour
+**réintroduit** le défaut PR178-B-06 (un encaissement rejouable après une réponse perdue) et **ne défait pas le code de l'application** :
+l'application candidate écrit `cle_envoi` (et appelle `encaisser_depot` avec `p_cle_envoi`) ; sur une base revenue en arrière, ces saisies
+échoueraient. Revenir au code précédent **avant** de jouer ces scripts. Ils se rejouent sans effet.
 
 Les deux migrations ne partagent aucune fonction : leurs retours sont indépendants (essayé dans les deux ordres et un par un).
 L'ordre inverse (120000 puis 110000) reste l'ordre recommandé.

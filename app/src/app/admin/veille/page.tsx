@@ -4,7 +4,7 @@ import {createClient} from '@/lib/supabase/server';
 import {sourceVeille} from '@/lib/veille-reglementaire';
 import {DecisionVeille} from './decision';
 import {formaterDateHeureParis} from '@/lib/heure-paris';
-export const metadata={title:'Veille réglementaire — Gerimmo'};
+export const metadata={title:'Veille réglementaire'};
 export default async function Page({searchParams}:{searchParams:Promise<{etat?:string;page?:string}>}){
  const p=await searchParams;const etat=['a_examiner','publie','ecarte'].includes(p.etat??'')?p.etat!:'a_examiner';const page=Math.max(1,Math.min(1000,Number.parseInt(p.page??'1')||1));
  const db=await createClient();const [infos,passage]=await Promise.all([db.from('regulatory_watch').select('*',{count:'exact'}).eq('statut',etat).order('reperage_le',{ascending:false}).order('id').range((page-1)*15,page*15-1),db.from('agent_passages').select('debut,etat').eq('mission','veille').order('debut',{ascending:false}).limit(1)]);

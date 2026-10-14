@@ -85,6 +85,18 @@ body.gerimmo-prestige,
 .gerimmo-prestige h1 { font-size: clamp(29px, 3vw, 38px); }
 .gerimmo-prestige h2 { font-size: 24px; }
 .gerimmo-prestige h3 { font-family: var(--font-interface), sans-serif; font-size: 16px; }
+/* Audit du 13/10 (DES-A-03) : les titres de carte des espaces locataire et propriétaire étaient des <h3> sous le <h1>,
+   sans <h2> (WCAG 1.3.1, règle axe heading-order). Ils sont des <h2> et gardent le dessin d'un <h3> : sans cette règle,
+   `.gerimmo-prestige h2` (Georgia, 24 px, graisse 400) l'emporterait sur leurs classes utilitaires, qui sont étagées.
+   `revert-layer` rend la graisse et l'interligne aux classes posées (`font-medium`, `text-base`, `leading-…`), à défaut aux
+   titres de base. */
+.gerimmo-prestige h2.titre-carte {
+  font-family: var(--font-interface), sans-serif;
+  font-size: 16px;
+  font-weight: revert-layer;
+  letter-spacing: -0.015em;
+  line-height: revert-layer;
+}
 .gerimmo-prestige :is(.eyebrow, .dossier-surtitre) {
   color: var(--prestige-champagne-texte);
   font-size: 11px;
@@ -278,14 +290,18 @@ body.gerimmo-prestige :is(input, select, textarea, button, a, summary):focus-vis
   .gerimmo-prestige { --largeur-late: 76px; }
   .gerimmo-prestige .coquille-late .coquille-marque { padding: 12px 6px; }
   .gerimmo-prestige .coquille-late .coquille-marque > a { padding: 8px; }
-  .gerimmo-prestige .coquille-late .coquille-menu { padding: 10px 8px; }
-  .gerimmo-prestige .coquille-late .coquille-menu a { padding: 12px; }
+  /* Rail à libellés sous les icônes (DES-A-13) : 76 px - 2 x 4 px de marge
+     - 2 x 2 px de remplissage laissent 64 px au mot le plus long du menu
+     (« Abonnement », 62 px à 10,5 px). Même gabarit que le rail locataire. */
+  .gerimmo-prestige .coquille-late .coquille-menu { padding: 10px 4px; }
+  .gerimmo-prestige .coquille-late .coquille-menu a { padding: 9px 2px; }
 }
 @media (min-width: 641px) and (max-width: 860px) {
   .gerimmo-prestige.loc-app { grid-template-columns: 76px minmax(0, 1fr); }
   .gerimmo-prestige .loc-logo { padding: 16px 6px; }
   .gerimmo-prestige .loc-logo > a { padding: 8px; }
-  .gerimmo-prestige .loc-menu { padding: 10px 8px; }
+  .gerimmo-prestige .loc-menu { padding: 10px 4px; }
+  .gerimmo-prestige .loc-late .loc-menu a { padding: 9px 2px; }
 }
 @media (max-width: 640px) {
   .gerimmo-prestige.loc-app { grid-template-columns: minmax(0, 1fr); }
@@ -298,8 +314,10 @@ body.gerimmo-prestige :is(input, select, textarea, button, a, summary):focus-vis
   .gerimmo-prestige .assistant-etapes button { flex: 0 0 185px; }
   .gerimmo-prestige h2 { font-size: 22px; }
   .gerimmo-prestige .loc-late { background: #fff; border-bottom: 1px solid var(--filet); }
-  .gerimmo-prestige .loc-logo { padding: 10px 12px; border: 0; }
-  .gerimmo-prestige .loc-logo > a { padding: 0; }
+  /* Le lien d'accueil de l'en-tête (le nom de l'espace) ne faisait que 24 px de
+     haut : une cible tactile de 44 px, sans grandir l'en-tête (DES-A-05). */
+  .gerimmo-prestige .loc-logo { padding: 6px 12px; border: 0; }
+  .gerimmo-prestige .loc-logo > a { display: flex; align-items: center; min-height: 44px; padding: 0; }
   .gerimmo-prestige .loc-haut { background: transparent; border: 0; }
   .gerimmo-prestige .assistant-pied { gap: 10px; }
   .gerimmo-prestige .assistant-pied > :is(button, a) { flex: 1; }

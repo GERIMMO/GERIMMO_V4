@@ -192,7 +192,7 @@ function FormCreerAppel({
         </div>
         <div className="space-y-1">
           <Label htmlFor="ac-total" className="text-sm">Total de l&apos;appel (€)</Label>
-          <Input id="ac-total" name="total" type="number" step="0.01" min="0.01" defaultValue={etat.valeurs?.total} className="h-9 w-32" />
+          <Input id="ac-total" name="total" type="text" inputMode="decimal" defaultValue={etat.valeurs?.total} className="h-9 w-32" />
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-2">
@@ -247,7 +247,7 @@ function FormAjouterPoste({
       <Label htmlFor={idMontant} className="sr-only">
         Montant du poste, en euros
       </Label>
-      <Input id={idMontant} name="montant" type="number" step="0.01" min="0.01" placeholder="€" defaultValue={etat.valeurs?.montant} className="h-9 w-24" />
+      <Input id={idMontant} name="montant" type="text" inputMode="decimal" placeholder="€" defaultValue={etat.valeurs?.montant} className="h-9 w-24" />
       <BoutonEnvoi size="sm" variant="outline" enCoursTexte="…">
         Ajouter le poste
       </BoutonEnvoi>

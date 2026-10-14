@@ -6,7 +6,7 @@ import { DecisionArtisan } from "./decision-artisan";
 import { RetourDecisionsArtisan } from "./retour-decisions";
 
 // Le nom de l'entrée de menu (audit 25/09, C8).
-export const metadata = { title: "Artisans à valider — Gerimmo" };
+export const metadata = { title: "Artisans à valider" };
 
 type Inscription = { artisan_id: string; raison_sociale: string; siret: string; siret_etat: string; telephone: string | null; email: string | null; metiers: string[] | null; nb_pieces: number; decennale_valide: boolean; rc_pro_deposee: boolean; inscrit_le: string; purge_prevue_le: string | null };
 type Piece = { id: string; artisan_id: string; type: string; expire_le: string | null };

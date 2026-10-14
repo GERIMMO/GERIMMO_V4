@@ -71,9 +71,8 @@ function LigneGarant({
           </Label>
           <Input
             id={`caut-plafond-${garant.id}`}
-            type="number"
-            min="0"
-            step="0.01"
+            type="text"
+            inputMode="decimal"
             placeholder="ex. 15000"
             value={montantMax}
             onChange={(e) => setMontantMax(e.target.value)}

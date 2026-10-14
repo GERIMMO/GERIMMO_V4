@@ -6,6 +6,10 @@ import {createClient} from '@supabase/supabase-js';
 import {entrerDansEspace,sansSyntheseAlertes,debordementHorizontal} from './aides';
 test.use({storageState:'e2e/.auth/proprietaire.json',actionTimeout:10000});
 async function conserve(page:Page){await expect(page.getByRole('status').filter({hasText:'Saisie et fichiers conservés'})).toBeVisible();}
+// La copie est écrite une fois la frappe terminée (délai de 500 ms) : le statut « conservés » affiché AVANT l'action est celui de
+// l'écriture précédente. On attend donc qu'une NOUVELLE révision soit réellement dans IndexedDB, puis le statut (audit du 14/10).
+async function revisionsCopies(page:Page):Promise<string[]>{return page.evaluate(()=>new Promise<string[]>(fin=>{const o=indexedDB.open('gerimmo-reprises');o.onerror=()=>fin([]);o.onsuccess=()=>{const db=o.result;if(!db.objectStoreNames.contains('copies')){db.close();fin([]);return;}const q=db.transaction('copies').objectStore('copies').getAll();q.onsuccess=()=>{db.close();fin((q.result as {revision:string}[]).map(c=>c.revision).sort());};q.onerror=()=>{db.close();fin([]);};};}));}
+async function conserveApres(page:Page,action:()=>Promise<unknown>){const avant=(await revisionsCopies(page)).join();await action();await expect.poll(async()=>(await revisionsCopies(page)).join(),{timeout:15000}).not.toBe(avant);await conserve(page);}
 for(const largeur of [390,1440])test(`fiche personne et justificatif : fermeture et création à ${largeur}px`,async({page},info)=>{
  test.setTimeout(90000);const url=process.env.SUPALOCAL_DB,api=process.env.NEXT_PUBLIC_SUPABASE_URL;
  test.skip(!url||!/^postgres(?:ql)?:\/\/[^@]*@(?:localhost|127\.0\.0\.1):\d{1,5}\/gerimmo_ci_[a-z_]+_api$/.test(url)||!api||!/^http:\/\/(localhost|127\.0\.0\.1):\d{1,5}$/.test(api),'Base/API fictives locales requises');
@@ -18,8 +22,8 @@ for(const largeur of [390,1440])test(`fiche personne et justificatif : fermeture
   for(const [n,v] of Object.entries({email,telephone:'0600000000',address_line1:'10 rue TEST',postal_code:'75001',city:'Paris'}))await page.locator(`#p-${n}`).fill(v);
   await page.getByRole('button',{name:'Suivant',exact:true}).click();await page.getByRole('button',{name:'Pièce d’identité',exact:true}).click();
   const contenu=Buffer.from('%PDF-1.7\n% JUSTIFICATIF FICTIF '+randomUUID()+'\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF');
-  await page.locator('input[type="file"]').setInputFiles({name:'justificatif-fictif.pdf',mimeType:'application/pdf',buffer:contenu});await conserve(page);
-  await page.getByRole('button',{name:'Suivant',exact:true}).click();await conserve(page);
+  await conserveApres(page,()=>page.locator('input[type="file"]').setInputFiles({name:'justificatif-fictif.pdf',mimeType:'application/pdf',buffer:contenu}));
+  await conserveApres(page,()=>page.getByRole('button',{name:'Suivant',exact:true}).click());
   const contexte=page.context();await page.close();page=await contexte.newPage();await page.setViewportSize({width:largeur,height:1000});await sansSyntheseAlertes(page);await page.goto(href);
   await expect(page.getByRole('heading',{name:'Reprendre votre saisie',exact:true})).toBeVisible();expect(await debordementHorizontal(page)).toBe(0);
   await page.screenshot({path:info.outputPath('fiche-a-reprendre.png'),fullPage:true});await page.getByRole('button',{name:'Reprendre ma saisie',exact:true}).click();
@@ -61,4 +65,21 @@ test('fiche personne : réponse de création perdue puis reprise sans nouvelle c
   const contexte=page.context();await page.close();page=await contexte.newPage();await sansSyntheseAlertes(page);await page.goto(href);await page.getByRole('button',{name:'Reprendre ma saisie',exact:true}).click();await expect(page.getByRole('button',{name:'Créer la fiche',exact:true})).toBeDisabled();await expect(page.locator('#p-email')).toHaveValue(email);
   expect((await db.query('select id from persons where email=$1',[email])).rows).toHaveLength(1);await page.screenshot({path:info.outputPath('creation-non-confirmee.png'),fullPage:true});
  }finally{await db.query('delete from persons where email=$1',[email]);await db.end();}
+});
+// Vérification du 14/10 (VFL-03) : copie locale refusée, la saisie n'existe plus qu'à l'écran. Un lien interne (navigation
+// côté client, que beforeunload ne voit pas) l'abandonnait sans avertissement ; il demande maintenant la même confirmation
+// que les autres formulaires (lib/garde-copie-locale.ts).
+test('fiche personne : copie refusée, un lien interne demande confirmation avant d’abandonner la saisie',async({page})=>{
+ await sansSyntheseAlertes(page);const org=await entrerDansEspace(page,'agence');
+ await page.addInitScript(()=>{Object.defineProperty(IDBFactory.prototype,'open',{value:()=>{throw new DOMException('Test stockage refusé','SecurityError');}});});
+ await page.goto(`/agence/${org}/personnes#creer-fiche`);
+ await page.getByRole('button',{name:'Locataire Occupe un logement',exact:true}).click();await page.locator('#p-nom').fill('Saisie sans copie');
+ await expect(page.getByRole('alert').filter({hasText:'Impossible de conserver la copie'})).toBeVisible();
+ const dialogues:string[]=[];let accepter=false;
+ page.on('dialog',d=>{dialogues.push(`${d.type()}: ${d.message()}`);void(accepter?d.accept():d.dismiss());});
+ const lien=page.locator('a[href$="/parc"]:visible').first();
+ await lien.click();
+ expect(dialogues).toEqual(['confirm: Des modifications ne sont pas encore enregistrées. Quitter cette page et les abandonner ?']);
+ await expect(page).toHaveURL(/\/personnes/);await expect(page.locator('#p-nom')).toHaveValue('Saisie sans copie');
+ accepter=true;await lien.click();await expect(page).toHaveURL(/\/parc$/);
 });

@@ -3,7 +3,8 @@ import { aujourdhuiParis } from "@/lib/ged";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normaliserCode } from "@/lib/parrainage";
-import { seDeconnecter } from "@/app/actions/auth";
+import { FormulaireDeconnexion } from "@/components/formulaire-deconnexion";
+import { PurgerCopiesAutresComptes } from "@/components/purger-copies-autres-comptes";
 import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
@@ -192,11 +193,10 @@ export default async function PageEspaces() {
           <MarqueGerimmo />
           <div className="flex items-center gap-2">
             <SyntheseAlertes alertes={alertes} rappel aujourdhui={aujourdhuiParis()} />
-            <form action={seDeconnecter}>
-              <button type="submit" className="lien-bandeau">
-                Se déconnecter
-              </button>
-            </form>
+            <PurgerCopiesAutresComptes compteId={user.id} />
+            <FormulaireDeconnexion className="lien-bandeau">
+              Se déconnecter
+            </FormulaireDeconnexion>
           </div>
         </div>
       </header>

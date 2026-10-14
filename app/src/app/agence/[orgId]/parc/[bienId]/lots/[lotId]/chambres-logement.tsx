@@ -11,7 +11,7 @@ type Cible = { orgId: string; lotId: string; bienId: string };
 
 function FormulaireChambre({ cible, chambre }: { cible: Cible; chambre?: Chambre }) {
   const { etat, soumettre, enCours } = useActionFormulaire<EtatChambre>(enregistrerChambre.bind(null, cible.orgId, cible.lotId, cible.bienId));
-  return <form onSubmit={soumettre} className="grid gap-3 sm:grid-cols-2">
+  return <form data-saisie-confirmee onSubmit={soumettre} className="grid gap-3 sm:grid-cols-2">
     {chambre && <input type="hidden" name="id" value={chambre.id} />}
     <label className="space-y-1 text-sm">Nom de la chambre<PastilleBail champ="chambre.nom" renseigne={Boolean(chambre?.nom)}/><Input name="nom" required maxLength={100} defaultValue={chambre?.nom} placeholder="Chambre côté jardin" /></label>
     <label className="space-y-1 text-sm">Surface privative (m²)<PastilleBail champ="chambre.surface_m2" renseigne={Boolean(chambre?.surface_m2)}/><Input name="surface_m2" type="number" min="9" step="0.01" required defaultValue={chambre?.surface_m2} /></label>
@@ -30,8 +30,8 @@ export function ChambresLogement({ orgId, lotId, bienId, chambres, plafond, mode
   const cible = { orgId, lotId, bienId };
   return <div className="space-y-5">
     <p className="text-sm text-muted-foreground">Préparez une chambre par contrat. Le logement, ses propriétaires et ses diagnostics restent communs. Chaque locataire conserve son propre échéancier, son dépôt et son congé.</p>
-    {mode !== "chambres" && <form onSubmit={soumettre} className="space-y-2">
-      <label className="space-y-1 text-sm">Loyer de référence du logement entier, hors charges (€ / mois)<PastilleBail champ="chambre.plafond" renseigne={plafond != null}/><Input name="plafond" type="number" min="0.01" step="0.01" required defaultValue={plafond ?? ""} /></label>
+    {mode !== "chambres" && <form data-saisie-confirmee onSubmit={soumettre} className="space-y-2">
+      <label className="space-y-1 text-sm">Loyer de référence du logement entier, hors charges (€ / mois)<PastilleBail champ="chambre.plafond" renseigne={plafond != null}/><Input name="plafond" type="text" inputMode="decimal" required defaultValue={plafond ?? ""} /></label>
       <p className="text-xs text-muted-foreground">Retenez le montant applicable après vérification de l’encadrement local. La somme des loyers individuels ne pourra pas le dépasser.</p>
       {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}

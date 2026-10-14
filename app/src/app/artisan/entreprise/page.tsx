@@ -9,7 +9,7 @@ import { Carte, EnteteSousPage, Etiquette, Erreur } from "../ui";
 import { FormulaireMetiersZones, ReglageVisibilite } from "./reglages-entreprise";
 import styles from "./entreprise.module.css";
 
-export const metadata = { title: "Mon entreprise — Espace artisan" };
+export const metadata = { title: "Mon entreprise" };
 const ETATS_SIRET: Record<string, string> = { verifie: "SIRET vérifié", non_verifie: "SIRET en cours de vérification", invalide: "SIRET signalé invalide" };
 const ETATS_PLATEFORME: Record<string, string> = { en_attente: "Inscription en cours de validation", valide: "Inscription validée", refuse: "Inscription refusée" };
 

@@ -36,7 +36,7 @@ export function CarteConge({
   if (enPreavis) {
     return (
       <div className="loc-carte">
-        <h3 className="text-base font-medium">Votre congé est enregistré</h3>
+        <h2 className="titre-carte text-base font-medium">Votre congé est enregistré</h2>
         <div className="mt-2.5">
           <div className="loc-etape f">
             <span className="pt" />
@@ -67,7 +67,7 @@ export function CarteConge({
   if (intentionDu || etat.succes) {
     return (
       <div className="loc-carte">
-        <h3 className="text-base font-medium">Votre départ est annoncé</h3>
+        <h2 className="titre-carte text-base font-medium">Votre départ est annoncé</h2>
         <div className="mt-2.5">
           <div className="loc-etape f">
             <span className="pt" />
@@ -103,7 +103,7 @@ export function CarteConge({
     <div className="loc-carte">
       {!ouvert ? (
         <>
-          <h3 className="text-base font-medium">Vous quittez le logement ?</h3>
+          <h2 className="titre-carte text-base font-medium">Vous quittez le logement ?</h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Prévenez votre gestionnaire ici, puis envoyez votre congé par lettre
             recommandée — tout ce qui suit (état des lieux, dépôt de garantie)
@@ -121,7 +121,7 @@ export function CarteConge({
         </>
       ) : (
         <form data-saisie-confirmee action={action}>
-          <h3 className="text-base font-medium">Annoncer votre départ</h3>
+          <h2 className="titre-carte text-base font-medium">Annoncer votre départ</h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Votre préavis sera d&apos;environ{" "}
             <b className="font-semibold">{preavisMois} mois</b>

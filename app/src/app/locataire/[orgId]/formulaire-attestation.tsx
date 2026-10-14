@@ -11,12 +11,11 @@ import { ChampFichier } from "@/components/champ-fichier";
 import { Input } from "@/components/ui/input";
 import { LegendeChamps } from "@/components/titre-ecran";
 import { Label } from "@/components/ui/label";
+import { aujourdhuiParis } from "@/lib/ged";
 
 // Une attestation déjà expirée ne protège personne : la date plancher est
-// aujourd'hui (le serveur revérifie).
-function aujourdhuiISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+// aujourd'hui, jour de Paris (le serveur revérifie, avec le même jour : le jour
+// UTC donnait la veille entre minuit et 2 h à Paris — VFL-06).
 
 export function FormulaireAttestation({
   orgId,
@@ -54,7 +53,7 @@ export function FormulaireAttestation({
             name="expire_le"
             type="date"
             required
-            min={aujourdhuiISO()}
+            min={aujourdhuiParis()}
             defaultValue={etat.valeurs?.expire_le}
           />
         </div>

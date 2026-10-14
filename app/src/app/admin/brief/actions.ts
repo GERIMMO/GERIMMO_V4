@@ -11,6 +11,7 @@ import { publierPublication, refuserPublication } from "@/app/actions/publicatio
 import { traiterInscriptionArtisan } from "@/app/actions/supervision-artisans";
 import { journaliserSupervision, JOURNAL_A_VERIFIER } from "@/lib/journal-supervision";
 import { sourceAttendEncore } from "@/lib/decisions-attendues";
+import { aujourdhuiParis } from "@/lib/ged";
 
 export type EtatBriefIA = { erreur?: string; analyse?: AnalyseBrief; genereLe?: string };
 
@@ -41,7 +42,7 @@ export async function analyserBriefIA(): Promise<EtatBriefIA> {
   // donnée de personne n'est envoyé à l'API. Le modèle ne reçoit que huit
   // compteurs et la date, sans outil de lecture ou d'écriture dans Gerimmo.
   const donnees = {
-    date: new Date().toISOString().slice(0, 10),
+    date: aujourdhuiParis(),
     bugs_critiques_ouverts: bugsN1.count,
     bugs_ouverts: bugs.count,
     idees_a_examiner: idees.count,

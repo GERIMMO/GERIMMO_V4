@@ -121,7 +121,7 @@ export function FormulaireIncidentLocataire({ orgId, compteId }: { orgId: string
   return <RepriseLocale cle={cle} valider={validerBrouillonIncident}>{copie => <SaisieIncident orgId={orgId} cleLocale={cle} copie={copie} />}</RepriseLocale>;
 }
 function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale: string; copie: CopieFichiers<BrouillonIncident> | null }) {
-  const { enregistrer, statut } = useCopieFichiers(cleLocale, copie);
+  const { enregistrer, differer, statut } = useCopieFichiers(cleLocale, copie);
   const [saisie, setSaisie] = useState<BrouillonIncident>(() => copie?.donnees ?? {
     commande: crypto.randomUUID(), categorie: "", piece: "", photos: [], description: "", anciennete: "", urgence: "normale", envoye: false, bilan: {},
   });
@@ -149,9 +149,12 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
       return bilan;
     }
   }, copie?.donnees.bilan ?? {});
+  // Audit du 13/10 (PR178-A-04) : la copie est écrite une fois la frappe terminée (`differer`), pas à chaque touche (les photos
+  // jointes étaient réécrites en entier à chaque caractère) ; les envois écrivent, eux, tout de suite.
   useEffect(() => {
-    if (!enCours && (saisie.categorie || saisie.description || saisie.photos.length) && !(etat.succes && !etat.avertissement)) void enregistrer(saisie);
-  }, [saisie, enCours, etat.succes, etat.avertissement, enregistrer]);
+    if (enCours || !(saisie.categorie || saisie.description || saisie.photos.length) || (etat.succes && !etat.avertissement)) return;
+    differer(saisie);
+  }, [saisie, enCours, etat.succes, etat.avertissement, differer]);
   const { categorie, piece, photos } = saisie;
   const setCategorie = (categorie: string) => setSaisie(s => ({ ...s, categorie }));
   const setPiece = (piece: string) => setSaisie(s => ({ ...s, piece }));
@@ -192,7 +195,7 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
             {etat.avertissement}
           </p>
         )}
-        {etat.avertissement && <form action={action}>
+        {etat.avertissement && <form data-saisie-libre action={action}>
           <BoutonEnvoi enCoursTexte="Reprise des photos…" className="w-full">Réessayer les photos</BoutonEnvoi>
           <p className="mt-2 text-xs text-muted-foreground">Le signalement reste le même. Les photos déjà jointes sont conservées.</p>
           {etat.erreur && <p role="alert" className="err">{etat.erreur}</p>}
@@ -223,7 +226,7 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
     <div className="loc-grille">
       <div className="loc-carte">
         <StatutCopieLocale statut={statut} />
-        <h3 className="text-base font-medium">Votre signalement</h3>
+        <h2 className="titre-carte text-base font-medium" tabIndex={-1} data-titre-reprise>Votre signalement</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Une ou deux photos prises sur le vif évitent souvent un déplacement
           pour rien.

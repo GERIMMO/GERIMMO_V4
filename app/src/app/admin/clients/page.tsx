@@ -12,7 +12,7 @@ import {
 } from "@/lib/clients-supervision";
 
 // Le nom de l'entrée de menu (audit 25/09, C8).
-export const metadata = { title: "Agences, bailleurs et artisans — Gerimmo" };
+export const metadata = { title: "Agences, bailleurs et artisans" };
 
 /**
  * LES CLIENTS, EN UN SEUL ÉCRAN (demande du porteur du projet, 19/09).

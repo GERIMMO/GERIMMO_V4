@@ -31,6 +31,7 @@ import { BoutonsEtatLot } from "./lots/[lotId]/boutons-etat-lot";
 import { SectionLot } from "./lots/[lotId]/section-lot";
 import { FenetreLotProvider } from "@/components/fenetre-lot";
 import { RecapBien } from "./recap-bien";
+import { ChiffresBien } from "./chiffres-bien";
 import { LignesDiagnostics, type DiagnosticDepose } from "./lignes-diagnostics";
 import { FormulaireDecoupage } from "./formulaire-decoupage";
 import { FormulaireCle } from "./formulaire-cle";
@@ -277,14 +278,12 @@ export default async function PageBien(
           <a href="#diagnostics" className={buttonVariants({variant:"outline",size:"sm"})}>Diagnostics</a>
           <Link href={estProprietaire ? `/agence/${orgId}/loyers?bien=${bienId}` : `/agence/${orgId}/loyers`} className={buttonVariants({variant:"outline",size:"sm"})}>{estProprietaire ? "Voir les finances" : "Loyers et charges"}</Link>
         </nav>
-        <dl className="bien-visuel-chiffres">
-          {[
+        <ChiffresBien chiffres={[
             {icone:"cle",label:"Lots actifs",valeur:erreurLots ? "Indisponible" : String(lotsActifs.length)},
             {icone:"maison",label:"Lots loués",valeur:erreurLots ? "Indisponible" : lotsActifs.length ? `${loues} / ${lotsActifs.length}` : "Aucun"},
             {icone:"parc",label:"Surface des lots actifs",valeur:!erreurLots && lotsActifs.length > 0 && lotsActifs.every(l=>l.surface_m2 != null) ? formaterSurface(lotsActifs.reduce((total,l)=>total+Number(l.surface_m2),0)) : "Non renseignée"},
             {icone:"doc",label:"Diagnostics du bien",valeur:erreurDiagnostics ? "Indisponible" : `${(diagnostics ?? []).length} déposé${(diagnostics ?? []).length > 1 ? "s" : ""}`},
-          ].map(f=><div key={f.label}><IconeTrait nom={f.icone} /><div><dt>{f.label}</dt><dd>{f.valeur}</dd></div></div>)}
-        </dl>
+          ]} />
       </header>
 
       <EchecLecture quoi={echecs} />
@@ -399,6 +398,7 @@ export default async function PageBien(
                     etat={lot.etat}
                     bloque={blocages.length > 0}
                     compact
+                    estBailleurDirect={estProprietaire}
                   />
                 </li>
               );

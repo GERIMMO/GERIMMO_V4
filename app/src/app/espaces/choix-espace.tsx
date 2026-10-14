@@ -13,9 +13,9 @@ import { dureeEssai } from "@/lib/tarifs";
  *
  * Trois situations, trois cartes, dans l'ordre de fréquence : je gère mes
  * propres biens (on ouvre l'espace ici, en une étape) ; je suis artisan (on
- * inscrit l'entreprise) ; je suis locataire ou mon bien est confié à une
- * agence (c'est l'agence qui invite — on le dit, sans bouton). Avant le 24/09,
- * la page ne disait que « rapprochez-vous de votre agence » : une impasse.
+ * inscrit l'entreprise) ; je suis locataire (c'est le bailleur qui invite — on
+ * le dit, sans bouton). Avant le 24/09, la page ne disait que « rapprochez-vous
+ * de votre agence » : une impasse. V1 (13/10) : plus d'offre agence au public.
  */
 export function ChoixEspace({
   nomInitial,
@@ -54,15 +54,15 @@ export function ChoixEspace({
           {!ouvert && <span className="text-sm font-medium text-[var(--marque-sombre)]">Ouvrir →</span>}
         </button>
         {ouvert && (
-          <form action={action} className="space-y-3 border-t border-[var(--filet)] pt-3">
+          <form data-saisie-libre action={action} className="space-y-3 border-t border-[var(--filet)] pt-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="ouv-prenom">Prénom</Label>
-                <Input id="ouv-prenom" name="prenom" autoComplete="given-name" defaultValue={v.prenom ?? prenomInitial} />
+                <Input id="ouv-prenom" name="prenom" maxLength={100} autoComplete="given-name" defaultValue={v.prenom ?? prenomInitial} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="ouv-nom">Nom</Label>
-                <Input id="ouv-nom" name="nom" required autoComplete="family-name" defaultValue={v.nom ?? nomInitial} />
+                <Input id="ouv-nom" name="nom" required maxLength={100} autoComplete="family-name" defaultValue={v.nom ?? nomInitial} />
               </div>
             </div>
             <div className="space-y-1.5">
@@ -120,29 +120,21 @@ export function ChoixEspace({
         <span className="text-sm font-medium text-[var(--marque-sombre)]">Inscrire →</span>
       </Link>
 
-      {/* 3. Locataire, ou propriétaire dont le bien est confié à une agence :
-          rien à faire ici, c'est l'agence qui invite. Pas de bouton, donc pas
-          de fausse promesse. */}
+      {/* 3. Locataire : rien à faire ici, c'est le bailleur (ou son gestionnaire)
+          qui invite. Pas de bouton, donc pas de fausse promesse. */}
       <div className="carte-espace indisponible cursor-default">
         <span className="pastille-marque flex size-9.5 shrink-0 items-center justify-center rounded-full text-[13px]">
-          AG
+          LO
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-medium">Je suis locataire, ou mon bien est confié à une agence</span>
+          <span className="block font-medium">Je suis locataire</span>
           <span className="block text-xs text-muted-foreground">
-            C&apos;est votre agence qui vous envoie l&apos;invitation, à cette adresse e-mail. Vérifiez vos
-            courriers, ou demandez-la-lui.
+            C&apos;est votre bailleur, ou son gestionnaire, qui vous envoie l&apos;invitation, à cette adresse
+            e-mail. Vérifiez vos courriers, ou demandez-la-lui.
           </span>
         </span>
       </div>
 
-      <p className="pt-1 text-xs text-muted-foreground">
-        Vous êtes une agence ?{" "}
-        <Link href="/#agences" className="underline underline-offset-4">
-          Demandez un devis
-        </Link>{" "}
-        : nous ouvrons votre espace avec vous.
-      </p>
     </div>
   );
 }

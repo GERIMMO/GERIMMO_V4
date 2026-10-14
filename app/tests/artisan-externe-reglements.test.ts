@@ -7,7 +7,8 @@ const url=process.env.SUPABASE_DB_URL;verifierBaseDeTest(url);
 const migrations=["20261012220000_artisan_clients_externes.sql","20261012220100_artisan_reglements_manuels.sql"];
 describe.skipIf(!url)("Clients externes et règlements privés — domaine local",()=>{
  let db:Client,uid:string,autre:string,sansArtisan:string,artisan:string,artisanB:string,pdf:string,photo:string,client:string,chantier:string;
- const jour=new Date().toISOString().slice(0,10);const validite=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+ // Le jour de Paris, celui que la base compare (ARC-10) : le jour d'UTC en diffère la veille au soir (22 h-minuit UTC l'été, 23 h-minuit l'hiver).
+ const jour=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Paris"});const validite=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
  const lignes=[{libelle:"Réparation TEST",quantite:2,prix_unitaire_ht_cents:2500,tva_bps:1000}];
  async function identite(id:string){await db.query("reset role");await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated','aal','aal2')::text,true)",[id]);await db.query("set local role authenticated");}
  async function compte(){const id=randomUUID();await db.query("insert into auth.users(id,email,encrypted_password,email_confirmed_at) values($1,$2,'x',now())",[id,`prive-${id}@example.invalid`]);return id;}

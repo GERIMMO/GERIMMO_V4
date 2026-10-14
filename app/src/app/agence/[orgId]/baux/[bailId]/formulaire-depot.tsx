@@ -157,16 +157,15 @@ function FormEncaisser({
           <Input
             id="dep-montant"
             name="montant"
-            type="number"
-            step="0.01"
-            min="0.01"
+            type="text"
+            inputMode="decimal"
             defaultValue={etat.valeurs?.montant ?? reste}
             className="h-9 w-28"
           />
         </div>
         <div className="space-y-1">
           <Label htmlFor="dep-date" className="text-sm">Date</Label>
-          <InputDateJour id="dep-date"   className="h-9" name="date" />
+          <InputDateJour id="dep-date"   className="h-9" name="date" pasDansLeFutur />
         </div>
         <div className="space-y-1">
           {/* Le même sélecteur que l'encaissement du loyer (25/09) : un champ

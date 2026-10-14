@@ -31,6 +31,16 @@ export const CLASSE_BOUTON_PRINCIPAL =
 export const CLASSE_BOUTON_SECONDAIRE =
   "flex min-h-14 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--marque)] bg-[var(--ivoire)] px-4 text-center text-[1.0625rem] font-medium text-[var(--marque-sombre)] transition-colors hover:bg-[var(--marque-clair)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
 
+/**
+ * Le bouton secondaire posé à côté d'un champ (« Rechercher », « Choisir »),
+ * ou sous une phrase qui le précède : sa largeur est celle de son libellé,
+ * pas toute la ligne — deux `w-full` côte à côte se partageraient la rangée.
+ * Même hauteur de 56 px, même contour, même survol que le secondaire plein
+ * largeur : un seul langage de boutons dans le portail.
+ */
+export const CLASSE_BOUTON_SECONDAIRE_EN_LIGNE =
+  "flex min-h-14 w-auto shrink-0 items-center justify-center gap-2 rounded-lg border-2 border-[var(--marque)] bg-[var(--ivoire)] px-5 text-center text-[1.0625rem] font-medium text-[var(--marque-sombre)] transition-colors hover:bg-[var(--marque-clair)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
+
 export const CLASSE_BOUTON_SOBRE =
   "flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] px-4 text-center text-base font-medium text-[var(--texte-secondaire)] transition-colors hover:border-[var(--marque)] hover:text-[var(--marque-sombre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
 

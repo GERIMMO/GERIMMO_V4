@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import { TitreEcran } from "@/components/titre-ecran";
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, formaterDate, moisEnFrancais, aujourdhuiParis } from "@/lib/ged";
@@ -396,7 +397,7 @@ export default async function PageComptabilite(props: {
         <Link href={`/agence/${orgId}/loyers`} className="block rounded-[14px]">
           <Card>
             <CardHeader>
-              <CardTitle>Quittancement de {moisEnFrancais(moisQuittancement)}</CardTitle>
+              <CardTitle>Quittancement {deElide(moisEnFrancais(moisQuittancement))}</CardTitle>
               {/* col-start-1 : sur téléphone, l'affordance passe sous la phrase
                   et la phrase reste sous le titre (sinon la grille la logeait
                   dans la colonne de droite, à côté du titre). */}

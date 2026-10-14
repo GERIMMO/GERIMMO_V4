@@ -15,7 +15,7 @@ import {
 import { LancerMission } from "./lancer-mission";
 
 // Le nom de l'entrée de menu (audit 25/09, C8).
-export const metadata = { title: "Santé et connexions — Gerimmo" };
+export const metadata = { title: "Santé et connexions" };
 
 // Ce qui est posé, ce qui tourne, ce qui manque — sur un seul écran.
 //

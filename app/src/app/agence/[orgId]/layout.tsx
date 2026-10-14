@@ -246,6 +246,7 @@ export default async function LayoutAgence({
               estProprietaire ? undefined : role === "admin_agence" ? "Admin d'agence" : "Agent"
             }
             liens={liensCompte}
+            compteId={user.id}
           />
         </header>
         {/* L'essai terminé se dit en clair, une fois, en tête — mais seulement

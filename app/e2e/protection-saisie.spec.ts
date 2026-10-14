@@ -45,7 +45,7 @@ test('superadmin : texte préparé protégé sans programmer de publication',asy
 // Contrats du garde-fou dans le vrai moteur navigateur, sans route de test dans le produit.
 const gardeCompile=ts.transpileModule(readFileSync('src/lib/protection-saisie.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 async function banc(page:Page){
- await page.route('**/agence/test-protection',route=>route.fulfill({contentType:'text/html; charset=utf-8',body:`<form data-saisie-confirmee id="a"><input name="nom" value="initial"><input name="cache" type="hidden" value="secret"><input name="document" type="file"><textarea name="texte">premier</textarea><fieldset id="inactif"><input name="autre" value="ancien"></fieldset><button type="reset">Annuler</button></form><form id="b"><input name="nom" value="second"></form><form method="get"><input name="q"></form><a id="suite" href="/agence/suite">Sortir</a><a href="#a">Étape</a><a target="_blank" href="/agence/suite">Nouvel onglet</a>`}));
+ await page.route('**/agence/test-protection',route=>route.fulfill({contentType:'text/html; charset=utf-8',body:`<form data-saisie-confirmee id="a"><input name="nom" value="initial"><input name="cache" type="hidden" value="secret"><input name="document" type="file"><textarea name="texte">premier</textarea><fieldset id="inactif"><input name="autre" value="ancien"></fieldset><button type="reset">Annuler</button></form><form data-saisie-confirmee id="b"><input name="nom" value="second"></form><form method="get"><input name="q"></form><form data-saisie-confirmee data-saisie-libre id="c"><input name="libre"></form><a id="suite" href="/agence/suite">Sortir</a><a href="#a">Étape</a><a target="_blank" href="/agence/suite">Nouvel onglet</a>`}));
  await page.goto('/agence/test-protection');await page.addScriptTag({content:`var exports={};${gardeCompile};window.garde=exports;exports.installerProtectionSaisie();`});
 }
 const compte=()=> (window as unknown as {garde:{saisiesModifiees:()=>HTMLFormElement[]}}).garde.saisiesModifiees().length;
@@ -65,7 +65,7 @@ test('un reset automatique après erreur conserve texte et vrais octets du fichi
  await expect(page.locator('#a textarea')).toHaveValue('premier');expect(await page.evaluate(compte)).toBe(0);
 });
 test('recherche et champs techniques ne déclenchent pas de faux avertissement',async({page})=>{
- await banc(page);await page.locator('[name="q"]').fill('recherche');await page.locator('#a [name="nom"]').focus();await page.locator('[name="cache"]').evaluate((i:HTMLInputElement)=>{i.value='autre';i.dispatchEvent(new Event('change',{bubbles:true}));});expect(await page.evaluate(compte)).toBe(0);
+ await banc(page);await page.locator('[name="q"]').fill('recherche');await page.locator('#c [name="libre"]').fill('code à usage unique');await page.locator('#a [name="nom"]').focus();await page.locator('[name="cache"]').evaluate((i:HTMLInputElement)=>{i.value='autre';i.dispatchEvent(new Event('change',{bubbles:true}));});expect(await page.evaluate(compte)).toBe(0);
  await page.locator('#a [name="nom"]').fill('modifié');await dialogueAbsent(page,()=>page.getByRole('link',{name:'Étape',exact:true}).click());expect(await page.evaluate(compte)).toBe(1);
 });
 test('un fichier choisi sans focus est suivi et une saisie abandonnée demande confirmation',async({page})=>{

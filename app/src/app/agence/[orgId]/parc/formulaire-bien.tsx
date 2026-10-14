@@ -364,12 +364,15 @@ export function FormulaireBien({
       <div className="grid gap-4 sm:grid-cols-2">
         <div hidden={masquer("postal_code")} className="space-y-2">
           <Label htmlFor="bien-cp" champ="bien.postal_code" renseigne={String(codePostal).trim() !== ""}>Code postal{!guideActif && " *"}</Label>
-          {/* inputMode et non type=number : tolère les CP étrangers */}
+          {/* inputMode et non type=number : un code postal garde son zéro initial
+              (01000). Un bien est en France : cinq chiffres (audit du 13/10, PROP-02). */}
           <Input
             id="bien-cp"
             name="postal_code"
             required
-            maxLength={12}
+            maxLength={5}
+            pattern="[0-9]{5}"
+            title="Cinq chiffres, par exemple 75011"
             inputMode="numeric"
             autoComplete="postal-code"
             value={codePostal}
@@ -422,7 +425,7 @@ export function FormulaireBien({
             id="bien-annee"
             name="annee_construction"
             type="number"
-            min={1000}
+            min={1600}
             max={2100}
             required
             defaultValue={etat.valeurs?.annee_construction ?? brouillonInitial?.champs.annee_construction ?? bien?.annee_construction ?? ""}

@@ -565,6 +565,7 @@ export async function PaneIncident({
             categorie={incident.categorie}
             imputation={incident.imputation}
             lotId={incident.lot_id}
+            estProprietaire={estProprietaire}
           />
 
           </div>

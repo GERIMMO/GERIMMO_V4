@@ -34,7 +34,7 @@ export async function BandeauSessionSupervision() {
         <b>{session.raison_sociale}</b>, jusqu&apos;à {fin} (Paris).<br />
         Motif : {session.motif}. Aucune modification ni aucun envoi autorisé.
       </span>
-      <form action={quitterSessionArtisan}>
+      <form data-saisie-libre action={quitterSessionArtisan}>
         <input type="hidden" name="artisan_id" value={session.artisan_id} />
         <button
           type="submit"

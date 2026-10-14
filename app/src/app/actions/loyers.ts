@@ -15,6 +15,13 @@ import {
 } from "@/lib/quittance-conforme";
 import { eur } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import {
+  erreurDuChamp,
+  lireDecimal,
+  lireMontant,
+  lireMontantFacultatif,
+  verifierDateDejaPassee,
+} from "@/lib/saisie-montant";
 import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
 import { compteRenduEncaissement, type EtatAppel } from "@/lib/imputation";
 import { adresseDeRetour, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
@@ -180,12 +187,14 @@ export async function regulariserCharges(
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const annee = Number(String(formData.get("annee") ?? "").trim());
-  const reellesSaisies = String(formData.get("charges_reelles") ?? "").trim();
-  const reelles = Number(reellesSaisies);
   if (!annee) return { erreur: "Année invalide.", valeurs };
-  if (!reellesSaisies)
+  // Lu sur le texte tel que tapé (« 840,00 » vaut 840) : le champ est en `type="text"`, jamais `type="number"`
+  // qui donne 84000 à un navigateur non francophone (VFL-07). Zéro admis : des charges nulles se saisissent.
+  const reellesLues = lireMontantFacultatif(formData.get("charges_reelles"));
+  if ("erreur" in reellesLues) return { erreur: reellesLues.erreur, valeurs };
+  if (reellesLues.montant === null)
     return { erreur: "Indiquez les charges réelles de l'exercice — saisissez 0 si elles sont nulles.", valeurs };
-  if (!Number.isFinite(reelles) || reelles < 0) return { erreur: "Charges réelles invalides.", valeurs };
+  const reelles = reellesLues.montant;
   const fichier = formData.get("justificatif");
   if (!(fichier instanceof File) || fichier.size === 0)
     return { erreur: "Le justificatif est obligatoire (décompte remis au locataire).", valeurs };
@@ -253,9 +262,12 @@ export async function ajouterEncaissement(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
-  const montant = Number(String(formData.get("montant") ?? "").trim());
-  if (!montant || montant <= 0) return { erreur: "Montant invalide.", valeurs };
+  const lu = lireMontant(formData.get("montant"));
+  if ("erreur" in lu) return { erreur: lu.erreur, valeurs };
+  const montant = lu.montant;
   const date = String(formData.get("date_paiement") ?? "").trim() || null;
+  const dateRefusee = verifierDateDejaPassee(date, "La date d'encaissement");
+  if (dateRefusee) return { erreur: dateRefusee, valeurs };
   const mode = String(formData.get("mode") ?? "").trim() || null;
   const note = String(formData.get("note") ?? "").trim() || null;
 
@@ -344,7 +356,11 @@ export async function reviserLoyer(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
-  const nouv = Number(String(formData.get("irl_nouveau") ?? "").trim().replace(",", "."));
+  // L'indice se lit sur le texte tel que tapé (« 145,17 » vaut 145,17) : champ en `type="text"` (VFL-07).
+  const indiceSaisi = String(formData.get("irl_nouveau") ?? "").trim();
+  const indiceLu = indiceSaisi ? lireDecimal(indiceSaisi) : { valeur: 0 };
+  if ("erreur" in indiceLu) return { erreur: erreurDuChamp("Indice IRL", indiceLu.erreur), valeurs };
+  const nouv = indiceLu.valeur;
   // Audit 29/09 : on saisit la date de la DEMANDE, pas la date d'effet. La
   // base en déduit l'effet — l'anniversaire si la demande tombe ce jour-là,
   // sinon la date de la demande, sans rétroactivité (art. 17-1 I).

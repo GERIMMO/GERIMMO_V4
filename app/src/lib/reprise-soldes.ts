@@ -26,7 +26,7 @@ export const COLONNES = [
   ["bien", "Nom du bien", false],
   ["lot", "Nom du lot", false],
   ["proprietaire_email", "Email du propriétaire", false],
-  ["detenteur", "Détenteur du dépôt (agence ou proprietaire)", false],
+  ["detenteur", "Détenteur du dépôt (agence = votre gestionnaire / proprietaire = vous)", false],
   ["reference", "Référence (facultatif)", false],
 ] as const satisfies readonly Colonne[];
 

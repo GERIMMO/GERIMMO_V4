@@ -38,9 +38,10 @@ export function nomAssignation(
   alerte: { assigned_all: boolean; assignee_account_id: string | null },
   membres: Membre[]
 ): string {
-  // « Toute l’agence », le mot des mandats (audit 27/09 : « confiée à tout
-  // le monde » était un jargon propre aux alertes).
-  if (alerte.assigned_all) return "toute l’agence";
+  // « Toute l’équipe » : ni « tout le monde » (audit 27/09, jargon propre aux
+  // alertes) ni « toute l’agence », que lit aussi un propriétaire sans équipe
+  // ni agence (relevé du 13/10, DES-A-07).
+  if (alerte.assigned_all) return "toute l’équipe";
   return (
     membres.find((m) => m.account_id === alerte.assignee_account_id)?.email ?? "—"
   );

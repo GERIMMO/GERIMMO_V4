@@ -62,7 +62,7 @@ function BoutonRetirer({ onAction }: { onAction: () => Promise<EtatEdl> }) {
   const { etat, soumettre: formAction, enCours } = useActionFormulaire<EtatEdl>(() => onAction());
   return (
     <>
-      <form onSubmit={formAction}>
+      <form data-saisie-libre onSubmit={formAction}>
         <BoutonEnvoi enCours={enCours} variant="ghost" size="sm">
           Retirer
         </BoutonEnvoi>
@@ -190,7 +190,7 @@ export function EdlAnnexes({
           </ul>
         )}
         {!signe && (
-          <form key={versionC} onSubmit={formCompteur}><fieldset disabled={enCoursC} className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
+          <form data-saisie-confirmee key={versionC} onSubmit={formCompteur}><fieldset disabled={enCoursC} className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
             {/* En erreur, la saisie est reposée via etatC.valeurs (recette 22/08).
                 Deux colonnes régulières sur téléphone (les largeurs fixes,
                 pensées pour une seule ligne, cassaient en rangées bancales),
@@ -275,7 +275,7 @@ export function EdlAnnexes({
           </ul>
         )}
         {!signe && (
-          <form key={versionK} onSubmit={formCle}><fieldset disabled={enCoursK} className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
+          <form data-saisie-confirmee key={versionK} onSubmit={formCle}><fieldset disabled={enCoursK} className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
             {/* En erreur, la saisie est reposée via etatK.valeurs (recette 22/08).
                 Même grille que l'ajout d'un compteur (24/09). */}
             <Label htmlFor={idTypeCle} className="sr-only">
@@ -315,6 +315,7 @@ export function EdlAnnexes({
           place — les faire partir un par un coûtait huit envois. */}
       {aEnregistrer && (
         <form
+          data-saisie-confirmee
           id={idFormAnnexes}
           onSubmit={formAnnexes}
           onReset={(event) => event.preventDefault()}

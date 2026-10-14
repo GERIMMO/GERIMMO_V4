@@ -12,7 +12,7 @@ import { CarteSollicitation } from "./carte-sollicitation";
 import { degreEcheance, jourLong, PIECES_ARTISAN, texteEcheance, libelle } from "./libelles";
 import { Avertissement, Carte, CLASSE_BOUTON_SECONDAIRE, Erreur, TitreSection } from "./ui";
 
-export const metadata = { title: "Aujourd'hui — Espace artisan" };
+export const metadata = { title: "Aujourd'hui — Gerimmo" };
 
 /**
  * L'écran d'arrivée : CE QUI M'ATTEND, dans l'ordre où il faut s'en occuper.

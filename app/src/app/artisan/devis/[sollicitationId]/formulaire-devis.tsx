@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Sparkles, CheckCircle2, Save, CircleDashed, Send, FileDown } from "lucide-react";
 import { EtapesSaisie } from "@/components/etapes-saisie";
 import { contenuDevisLocal, sauverDevisLocal, effacerDevisLocal, type BrouillonDevisLocal } from "@/lib/brouillon-devis-local";
-import { calculerDevis } from "@/lib/devis-structure";
+import { calculerDevis, libelleQuantite, libelleTauxTva } from "@/lib/devis-structure";
 import type { PreparationDevis } from "@/lib/parcours-devis-artisan";
 import { declinerMaSollicitation } from "@/app/actions/artisan";
 import { preparerPropositionDevis, enregistrerBrouillonDevis, envoyerDevisValide } from "../actions-preparation";
@@ -151,7 +151,7 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
       {copieLocale&&<p role="status" className="mt-2 text-sm text-muted-foreground">{copieLocale}</p>}
       {erreur&&<div className="mt-3"><Erreur>{erreur}</Erreur></div>}
     </form>
-    <div className={styles.refus}>{!refusOuvert?<button type="button" onClick={()=>setRefusOuvert(true)}>Je ne peux pas chiffrer cette demande</button>:<form action={actionRefus} className="space-y-3"><label className="block">Motif (facultatif)<textarea name="motif" rows={2} className={CLASSE_ZONE_TEXTE}/></label>{refus.erreur&&<Erreur>{refus.erreur}</Erreur>}<button type="submit" className={CLASSE_BOUTON_SOBRE}>Confirmer : je ne chiffre pas</button><button type="button" className={CLASSE_BOUTON_SOBRE} onClick={()=>setRefusOuvert(false)}>Revenir</button></form>}</div>
+    <div className={styles.refus}>{!refusOuvert?<button type="button" onClick={()=>setRefusOuvert(true)}>Je ne peux pas chiffrer cette demande</button>:<form data-saisie-libre action={actionRefus} className="space-y-3"><label className="block">Motif (facultatif)<textarea name="motif" rows={2} className={CLASSE_ZONE_TEXTE}/></label>{refus.erreur&&<Erreur>{refus.erreur}</Erreur>}<button type="submit" className={CLASSE_BOUTON_SOBRE}>Confirmer : je ne chiffre pas</button><button type="button" className={CLASSE_BOUTON_SOBRE} onClick={()=>setRefusOuvert(false)}>Revenir</button></form>}</div>
   </div>;
 }
 
@@ -170,7 +170,7 @@ function ResumeDevis({compact = false}: {compact?: boolean}) {
         try {
           const lignes = JSON.parse(String(data.get("lignes_devis") || "[]"));
           total = calculerDevis(lignes).montant_ttc_cents;
-          prestations = lignes.map((l: {libelle:string;quantite:number;prix_unitaire_ht_cents:number;tva_bps:number}) => `${l.quantite} × ${l.libelle} · ${euros(l.prix_unitaire_ht_cents)} HT · TVA ${l.tva_bps/100} %`);
+          prestations = lignes.map((l: {libelle:string;quantite:number;prix_unitaire_ht_cents:number;tva_bps:number}) => `${libelleQuantite(l.quantite)} × ${l.libelle} · ${euros(l.prix_unitaire_ht_cents)} HT · TVA ${libelleTauxTva(l.tva_bps)}`);
         } catch { /* Les validations des lignes restent applicables avant l’envoi. */ }
         setResume({diagnostic:String(data.get("diagnostic") || ""), delai:String(data.get("delai") || ""), duree:String(data.get("duree") || ""), validite:String(data.get("valide_jusqu_au") || ""), contraintes:String(data.get("contraintes")||""), observations:String(data.get("observations")||""), total, prestations});
       });

@@ -4,6 +4,8 @@ import { chargerPreparationDevis } from "@/lib/parcours-devis-serveur";
 import { RenvoyerEmail } from "./renvoyer-email";
 import { notFound } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
+import { decalerJour } from "@/lib/agenda-gestion";
+import { aujourdhuiParis } from "@/lib/ged";
 import {
   chargerFicheArtisan,
   chargerSollicitations,
@@ -39,7 +41,7 @@ export async function generateMetadata(
   const sollicitations = await chargerSollicitations();
   const demande = sollicitations.lignes.find((l) => l.sollicitation_id === sollicitationId);
   return {
-    title: `${demande && demande.statut !== "envoyee" ? "Demande de devis" : "Répondre à une demande"} — Espace artisan`,
+    title: demande && demande.statut !== "envoyee" ? "Demande de devis" : "Répondre à une demande",
   };
 }
 
@@ -91,9 +93,10 @@ export default async function PageRepondreDevis(
   catch { erreurPreparation = "Le service de préparation est momentanément indisponible. Vos devis déjà envoyés restent consultables."; }
 
   // Trente jours : la validité par défaut du module 9, celle que la base
-  // appliquerait si le champ restait vide.
-  const dans30Jours = new Date();
-  dans30Jours.setDate(dans30Jours.getDate() + 30);
+  // appliquerait si le champ restait vide. Le jour est celui de Paris : le
+  // serveur est en UTC, et entre minuit et 2 h (heure d'été) le jour UTC est
+  // celui de la veille.
+  const echeanceParDefaut = decalerJour(aujourdhuiParis(), 30);
 
   const decennaleManquante = demande.decennale_requise && fiche?.decennale_valide === false;
 
@@ -181,7 +184,7 @@ export default async function PageRepondreDevis(
             initiale={preparation}
             erreurPreparation={erreurPreparation}
             sollicitationId={sollicitationId}
-            echeanceParDefaut={dans30Jours.toISOString().slice(0, 10)}
+            echeanceParDefaut={echeanceParDefaut}
           />
         </>
       )}

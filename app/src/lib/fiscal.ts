@@ -10,7 +10,7 @@ export type OptionsFiscales={qualifications?:Map<string,QualificationFiscale>;co
  /** Compatibilité des lecteurs internes ; jamais alimenté par l'état courant dans l'interface fiscale. */
  quoteParts?:Map<string,number>;lotsMeubles?:Set<string>;ventilationLoyers?:Map<string,{loyerHc:number;charges:number}>;chargesCoproRecuperables?:Map<string,number>};
 export type RubriqueFiscale={code:string;libelle:string;sens:'recette'|'depense';montant:number;montantQuotePart:number;aCompleter?:boolean;categories:string[];reintegration?:boolean};
-export type RecapitulatifFiscal={annee:number;versionRegles:string;rubriques:RubriqueFiscale[];fondsTravauxAlur:number;totalRecettes:number;totalCharges:number;revenuNet:number;totalRecettesQuotePart:number;totalChargesQuotePart:number;revenuNetQuotePart:number;ventile:boolean;meuble:{recettes:number;depenses:number;nbEcritures:number};nbEcritures:number;chargesRecuperees:number;teomExclue:number;coproRecuperableExclue:number;aQualifier:number;nonDeductible:number;incomplet:boolean;alertes:string[];ecrituresAQualifier:string[]};
+export type RecapitulatifFiscal={annee:number;versionRegles:string;rubriques:RubriqueFiscale[];fondsTravauxAlur:number;totalRecettes:number;totalCharges:number;revenuNet:number;totalRecettesQuotePart:number;totalChargesQuotePart:number;revenuNetQuotePart:number;ventile:boolean;meuble:{recettes:number;depenses:number;nbEcritures:number};nbEcritures:number;nbRetenues:number;nbHorsPerimetre:number;chargesRecuperees:number;teomExclue:number;coproRecuperableExclue:number;aQualifier:number;nonDeductible:number;incomplet:boolean;alertes:string[];ecrituresAQualifier:string[]};
 export const RUBRIQUES_FISCALES=[
  {code:'211',libelle:'Loyers bruts encaissés hors charges',sens:'recette'},
  {code:'212',libelle:'Dépenses mises par convention à la charge des locataires',sens:'recette'},
@@ -26,6 +26,14 @@ export const RUBRIQUES_FISCALES=[
  {code:'250',libelle:'Intérêts d’emprunt',sens:'depense'},
 ] as const;
 export const HORS_2044='hors';
+/** Ce que recouvrent vraiment les deux totaux « hors déclaration » (FIN-08). `chargesRecuperees` cumule les parts de charges des loyers
+ * encaissés ET toute recette qualifiée « hors revenus fonciers » ; `teomExclue` cumule toute dépense qualifiée ainsi, pas seulement
+ * la TEOM. Les écrans et les documents s'appuient sur ces deux phrases pour ne pas prêter une nature que le choix de l'utilisateur
+ * ne dit pas. */
+export const LIBELLE_RECETTES_EXCLUES='recettes exclues (provisions et régularisations de charges encaissées, ou recettes que vous avez qualifiées « hors revenus fonciers »)';
+export const LIBELLE_DEPENSES_EXCLUES='dépenses que vous avez qualifiées « hors revenus fonciers » (par exemple la taxe d’enlèvement des ordures ménagères)';
+/** Le cumul des pièces à qualifier additionne recettes et dépenses en valeurs positives : ce n'est pas un net (FIN-05). */
+export const LIBELLE_CUMUL_A_QUALIFIER='recettes et dépenses additionnées, sans compensation';
 const normaliser=(s:string)=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 /** Proposition seulement, jamais une validation de déductibilité. */
 export function rubriqueDe(categorie:string,sens:string):string{
@@ -43,7 +51,7 @@ const arrondir=(n:number)=>Math.round((n+Number.EPSILON)*100)/100;
 export function ventilerLoyer(montant:number,loyerHc:number,charges:number){const total=loyerHc+charges;if(!(charges>0)||!(total>0))return{part211:montant,part212:0};const part212=Math.sign(montant)*Math.round(Math.abs(montant)*charges/total*100)/100;return{part211:arrondir(montant-part212),part212};}
 export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,options:OptionsFiscales={}):RecapitulatifFiscal{
  const montants=new Map<string,number>(),parts=new Map<string,number>(),categories=new Map<string,Set<string>>(),alertes=new Set<string>(),aQualifierIds=new Set<string>(),lots=new Set<string>();
- let fondsTravauxAlur=0,chargesRecuperees=0,teomExclue=0,aQualifier=0,nonDeductible=0,nbEcritures=0,ventile=false;
+ let fondsTravauxAlur=0,chargesRecuperees=0,teomExclue=0,aQualifier=0,nonDeductible=0,nbEcritures=0,nbRetenues=0,nbHorsPerimetre=0,ventile=false;
  const meuble={recettes:0,depenses:0,nbEcritures:0};
  const ajouter=(code:string,montant:number,quote:number,categorie:string)=>{montants.set(code,(montants.get(code)??0)+montant);parts.set(code,(parts.get(code)??0)+montant*quote/100);if(!categories.has(code))categories.set(code,new Set());categories.get(code)!.add(categorie);};
  const inconnue=(e:EcritureFiscale,montant:number,motif:string)=>{aQualifier+=montant;if(e.id)aQualifierIds.add(e.contre_ecriture_de??e.id);alertes.add(motif);};
@@ -60,7 +68,7 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
   const exercice=lot?options.exercices?.get(lot):undefined;
   const periode=exercice?.periodes.find(p=>p.debut<=e.date_piece&&p.fin>=e.date_piece);
   if(options.exigerPerimetre&&(!lot||!periode)){inconnue(e,montant,'Confirmez le lot, le régime et la quote-part à la date de chaque pièce.');continue;}
-  if(periode?.regime==='hors_perimetre')continue;
+  if(periode?.regime==='hors_perimetre'){nbHorsPerimetre++;continue;}
   const quote=periode?.quote_part??(lot?options.quoteParts?.get(lot):undefined)??100;
   if(quote!==100)ventile=true;
   if(periode?.regime==='meuble'||(!options.exigerPerimetre&&e.lot_id&&options.lotsMeubles?.has(e.lot_id))){meuble.nbEcritures++;if(sens==='recette')meuble.recettes+=montant;else meuble.depenses+=montant;continue;}
@@ -73,7 +81,7 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
    const manuel=q?.loyer_hc!=null&&q?.charges!=null&&(!capture||Number(capture.non_ventile)>0);
    const hc=Number(manuel?q.loyer_hc:capture?.loyer_hc),ch=Number(manuel?q.charges:capture?.charges),reste=manuel?0:Number(capture?.non_ventile);
    if(![hc,ch,reste].every(Number.isFinite)||hc<0||ch<0||reste<0||Math.abs(hc+ch+reste-brut)>.005){inconnue(e,montant,'Des encaissements attendent leur ventilation historique loyer / charges.');continue;}
-   ajouter('211',hc*signe,quote,e.categorie);chargesRecuperees+=ch*signe;
+   ajouter('211',hc*signe,quote,e.categorie);nbRetenues++;chargesRecuperees+=ch*signe;
    if(reste){inconnue(e,reste*signe,'Une avance ou une part d’encaissement ne correspond pas encore à un appel historique vérifié.');}
    continue;
   }
@@ -81,7 +89,7 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
   if(!q||q.nature==='a_qualifier'||!q.rubrique){inconnue(e,montant,'Des pièces attendent une qualification fiscale justifiée.');continue;}
   const regle=RUBRIQUES_FISCALES.find(r=>r.code===q.rubrique&&r.sens===sens);
   if(!regle||!['recette','deductible'].includes(q.nature)){inconnue(e,montant,'Une qualification fiscale ne correspond pas au sens de la pièce.');continue;}
-  ajouter(regle.code,montant,quote,e.categorie);
+  ajouter(regle.code,montant,quote,e.categorie);nbRetenues++;
  }
  // 230 est une réintégration : elle diminue les charges déductibles et augmente
  // le revenu net. Un zéro confirmé diffère d'une donnée absente.
@@ -96,5 +104,22 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
  const rubriques:RubriqueFiscale[]=RUBRIQUES_FISCALES.map(r=>({...r,montant:arrondir(montants.get(r.code)??0),montantQuotePart:arrondir(parts.get(r.code)??0),categories:[...(categories.get(r.code)??[])],aCompleter:r.code==='230'?manque230:(r.code==='222'||r.code==='250')&&!montants.has(r.code),reintegration:r.code==='230'}));
  const somme=(sens:string,part:boolean)=>arrondir(rubriques.filter(r=>r.sens===sens).reduce((s,r)=>s+(r.reintegration?-1:1)*(part?r.montantQuotePart:r.montant),0));
  const totalRecettes=somme('recette',false),totalCharges=somme('depense',false),totalRecettesQuotePart=somme('recette',true),totalChargesQuotePart=somme('depense',true);
- return{annee,versionRegles:'2026-10-12-v1',rubriques,fondsTravauxAlur:arrondir(fondsTravauxAlur),totalRecettes,totalCharges,revenuNet:arrondir(totalRecettes-totalCharges),totalRecettesQuotePart,totalChargesQuotePart,revenuNetQuotePart:arrondir(totalRecettesQuotePart-totalChargesQuotePart),ventile,meuble:{recettes:arrondir(meuble.recettes),depenses:arrondir(meuble.depenses),nbEcritures:meuble.nbEcritures},nbEcritures,chargesRecuperees:arrondir(chargesRecuperees),teomExclue:arrondir(teomExclue),coproRecuperableExclue:0,aQualifier:arrondir(aQualifier),nonDeductible:arrondir(nonDeductible),incomplet:alertes.size>0,alertes:[...alertes],ecrituresAQualifier:[...aQualifierIds]};
+ return{annee,versionRegles:'2026-10-12-v1',rubriques,fondsTravauxAlur:arrondir(fondsTravauxAlur),totalRecettes,totalCharges,revenuNet:arrondir(totalRecettes-totalCharges),totalRecettesQuotePart,totalChargesQuotePart,revenuNetQuotePart:arrondir(totalRecettesQuotePart-totalChargesQuotePart),ventile,meuble:{recettes:arrondir(meuble.recettes),depenses:arrondir(meuble.depenses),nbEcritures:meuble.nbEcritures},nbEcritures,nbRetenues,nbHorsPerimetre,chargesRecuperees:arrondir(chargesRecuperees),teomExclue:arrondir(teomExclue),coproRecuperableExclue:0,aQualifier:arrondir(aQualifier),nonDeductible:arrondir(nonDeductible),incomplet:alertes.size>0,alertes:[...alertes],ecrituresAQualifier:[...aQualifierIds]};
+}
+/**
+ * Le périmètre d'un récapitulatif, dit en clair (vérification du 14/10, VER-TS-04) : « 12 écritures enregistrées »
+ * laissait croire que les 12 loyers étaient dans le tableau, alors que six relevaient d'une période meublée. On dit
+ * ce qui est examiné, ce qui est compté dans le tableau, et ce qui en est écarté, avec la raison.
+ * `tableau: false` : le récapitulatif n'a pas de tableau 2044 (lot meublé), on ne dit que ce qui est examiné.
+ */
+export function phrasePerimetreFiscal(r:RecapitulatifFiscal,options:{tableau?:boolean}={}):string{
+ const n=r.nbEcritures,examinees=`${n} écriture${n>1?'s':''} de ${r.annee} examinée${n>1?'s':''}`;
+ if(options.tableau===false)return `Périmètre : ${examinees}.`;
+ const autres=n-r.nbRetenues-r.meuble.nbEcritures-r.nbHorsPerimetre;
+ const ecartees:string[]=[];
+ if(r.meuble.nbEcritures>0)ecartees.push(`${r.meuble.nbEcritures} en période meublée (hors revenus fonciers)`);
+ if(r.nbHorsPerimetre>0)ecartees.push(`${r.nbHorsPerimetre} sur une période hors de vos droits`);
+ if(autres>0)ecartees.push(`${autres} classée${autres>1?'s':''} à part (fonds de travaux ALUR, charges récupérables ou dépenses non déductibles)`);
+ if(!ecartees.length)return `Périmètre : ${examinees}, ${n>1?'toutes comptées':'toute comptée'} dans le tableau.`;
+ return `Périmètre : ${examinees}, dont ${r.nbRetenues} comptée${r.nbRetenues>1?'s':''} dans le tableau. Écartées du tableau : ${ecartees.join(' ; ')}.`;
 }

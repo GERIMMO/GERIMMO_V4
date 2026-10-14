@@ -6,14 +6,11 @@ import { reprendreSoldes, type EtatReprise } from "@/app/actions/reprise-comptab
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { eur } from "@/lib/ged";
+import { aujourdhuiParis, eur } from "@/lib/ged";
 import { ChampFichier } from "@/components/champ-fichier";
 
-/** « 2026-10-01 » — la date du jour, pour partir de quelque chose de plausible. */
-function aujourdhui(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
+// Le jour de Paris, pas le jour UTC : entre minuit et 2 h à Paris (heure d'été), `toISOString()` donne la
+// veille et la date de bascule proposée par défaut serait celle d'hier (VFL-05).
 export function FormulaireReprise({ orgId }: { orgId: string }) {
   const [etat, action] = useActionState<EtatReprise, FormData>(
     reprendreSoldes.bind(null, orgId),
@@ -44,7 +41,7 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
               name="date_bascule"
               type="date"
               required
-              defaultValue={etat.dateBascule ?? aujourdhui()}
+              defaultValue={etat.dateBascule ?? aujourdhuiParis()}
             />
             <p className="text-sm text-muted-foreground">
               Le jour où les comptes passent chez vous. Les dépôts et les

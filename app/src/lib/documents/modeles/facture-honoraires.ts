@@ -33,6 +33,7 @@ import {
 import { lireLignes, montant, texte, RefusDocument } from "./catalogue-bail";
 import { referenceCourte } from "./communs";
 import type { Assemblage, LienDocument } from "./index";
+import { deElide } from "@/lib/elision";
 
 // Le taux de droit commun applicable aux prestations de gestion locative.
 export const TAUX_TVA_HONORAIRES = 20;
@@ -150,8 +151,8 @@ export function construireFactureHonoraires(d: DonneesFactureHonoraires): string
 
     ${section("Règlement")}
     <p>Conformément au mandat de gestion, ces honoraires sont prélevés sur les sommes encaissées
-    pour le compte du mandant lors de la reddition de comptes : le rapport de gestion de
-    ${echapper(periode)} en présente le décompte et le solde versé. À défaut de prélèvement, le
+    pour le compte du mandant lors de la reddition de comptes : le rapport de gestion
+    ${echapper(deElide(periode))} en présente le décompte et le solde versé. À défaut de prélèvement, le
     règlement est exigible à réception de la présente facture, par virement au compte
     ${facultatif(o.iban)}.</p>
     <p class="mentions">Tout retard de paiement donne lieu à des pénalités exigibles le jour suivant

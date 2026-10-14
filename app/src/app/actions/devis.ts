@@ -8,8 +8,8 @@ export type EtatDevis = {
   succes?: string;
 };
 
-// Demande de devis d'une agence depuis le site vitrine — le seul geste ouvert
-// au visiteur non connecté (insert seul, lecture réservée au super admin).
+// Message du formulaire de contact du site vitrine (13/10 : ce n'est plus la
+// demande de devis d'une agence) — le seul geste ouvert au visiteur non connecté (insert seul, lecture réservée au super admin).
 // Le champ « site » est un pot de miel : rempli = robot, on répond succès
 // sans rien écrire.
 //
@@ -32,11 +32,12 @@ export async function demanderDevis(
 
   const succes = {
     succes:
-      "Merci ! Votre demande est bien transmise — nous revenons vers vous sous 48 h ouvrées.",
+      "Merci ! Votre message est bien transmis — nous revenons vers vous sous 48 h ouvrées.",
   };
   if (potDeMiel) return succes;
 
   if (!nom) return { erreur: "Indiquez votre nom." };
+  if (!message) return { erreur: "Écrivez votre message : sans lui, nous ne saurions pas quoi vous répondre." };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { erreur: "Indiquez une adresse email valide — c'est là que nous répondrons." };
   }

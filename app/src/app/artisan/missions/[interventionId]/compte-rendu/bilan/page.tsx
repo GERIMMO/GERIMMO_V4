@@ -6,7 +6,7 @@ import { euros } from "../../../../libelles";
 import { EnteteSousPage, Erreur, Etiquette, MarqueAgence, Retour, Succes } from "../../../../ui";
 import { FormulaireBilan } from "./formulaire-bilan";
 
-export const metadata = { title: "Le bilan — Espace artisan" };
+export const metadata = { title: "Le bilan" };
 
 /**
  * COMPTE RENDU — ÉCRAN 2 SUR 2 (RM-19.3.1).

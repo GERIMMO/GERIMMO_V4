@@ -54,7 +54,7 @@ export default async function PageImportParc(
 
       <section className="loc-carte">
         <div className="entete-carte">
-          <h3>Préparer votre fichier</h3>
+          <h2 className="titre-carte leading-[inherit]">Préparer votre fichier</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Partez de ce fichier, ou reprenez l&apos;export de votre outil actuel :
@@ -90,7 +90,7 @@ export default async function PageImportParc(
 
       <section className="loc-carte">
         <div className="entete-carte">
-          <h3>Importer en trois temps</h3>
+          <h2 className="titre-carte leading-[inherit]">Importer en trois temps</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Le contrôle n&apos;écrit rien : il dit, ligne par ligne, ce qui

@@ -137,7 +137,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
       </div>}
       <div className={estProprietaire ? "space-y-4" : "loc-carte"}>
         <div className={estProprietaire ? "sr-only" : "entete-carte"}>
-          <h3>Identité</h3>
+          <h2 className="titre-carte leading-[inherit]">Identité</h2>
           {!responsable && <span className="puce puce-grise">lecture seule</span>}
         </div>
         {!responsable && (
@@ -158,7 +158,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
         <summary className="cursor-pointer font-semibold">Parrainage — {filleuls} filleul{filleuls > 1 ? "s" : ""}</summary>
         <div className="mt-4">
         <div className="entete-carte">
-          <h3>Parrainage</h3>
+          <h2 className="titre-carte leading-[inherit]">Parrainage</h2>
           <span className="mono-discret">
             {filleuls} filleul{filleuls > 1 ? "s" : ""}
           </span>
@@ -244,7 +244,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
         <summary className="cursor-pointer font-semibold">Signature préenregistrée — facultatif</summary>
         <div className="mt-4">
         <div className="entete-carte">
-          <h3>Signature préenregistrée</h3>
+          <h2 className="titre-carte leading-[inherit]">Signature préenregistrée</h2>
           {!responsable && <span className="puce puce-grise">lecture seule</span>}
         </div>
         <p className="mesure-lecture mb-4 text-sm text-muted-foreground">

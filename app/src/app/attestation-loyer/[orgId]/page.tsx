@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import { MarqueOrganisation } from "@/components/marque-organisation";
 import { nomMarque, styleMarque } from "@/lib/marque-organisation";
 import type { Metadata } from "next";
@@ -68,14 +69,13 @@ export default async function PageAttestationLoyer(
 
   const aujourdhui = aujourdhuiParis();
   // « de juillet 2026 à septembre 2026 » — avec l'élision devant voyelle
-  // (« d'août », « d'avril », « d'octobre »), audit 09/09
+  // (« d’août », « d’avril », « d’octobre », audit 09/09) : `deElide`.
   const moisLong = (periode: string) =>
     new Date(periode).toLocaleDateString("fr-FR", {
       month: "long",
       year: "numeric",
       timeZone: "UTC",
     });
-  const deMois = (mois: string) => (/^[aeiouyàâéèêëîï]/i.test(mois) ? `d'${mois}` : `de ${mois}`);
   // À jour = aucun mois échu impayé ou partiel (le mois « à échoir » ne compte pas)
   const moisEchus = lignes.filter((l) => l.statut !== "attendu");
   const enSouffrance = moisEchus.filter((l) => l.statut === "impaye" || l.statut === "partiel");
@@ -172,7 +172,7 @@ export default async function PageAttestationLoyer(
             <span>
               {moisPayes.length} mois
               {moisPayes.length > 0 &&
-                ` (${deMois(moisLong(moisPayes[0].periode))} à ${moisLong(
+                ` (${deElide(moisLong(moisPayes[0].periode))} à ${moisLong(
                   moisPayes[moisPayes.length - 1].periode
                 )})`}
             </span>

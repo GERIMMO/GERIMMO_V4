@@ -82,6 +82,17 @@ jobs:
             exit 1
           fi
 
+          # Garde-fou : des noms de fichiers SEULS. La saisie l'annonce, mais « ${f%%_*} » laissait passer un chemin
+          # (« ../retours-arriere/… ») : la version lue est alors fantaisiste, la garde « déjà enregistrée » est franchie, et
+          # un fichier hors de migrations/ serait joué puis inscrit à l'historique (audit du 13/10, RET-01).
+          for f in $LISTE; do
+            case "$f" in
+              *[!A-Za-z0-9._-]*|*..*|.*|-*) echo "✗ nom de fichier seul attendu (lettres, chiffres, _ . -) : $f" >&2; exit 1;;
+              *.sql) ;;
+              *) echo "✗ un fichier .sql de app/supabase/migrations attendu : $f" >&2; exit 1;;
+            esac
+          done
+
           # Garde-fou : refuser une version DÉJÀ enregistrée. Si elle est là,
           # la migration a déjà été appliquée — la rejouer, au mieux ne fait
           # rien, au pire écrase une correction posée depuis.

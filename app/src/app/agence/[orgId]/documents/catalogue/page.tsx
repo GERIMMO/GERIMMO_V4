@@ -58,7 +58,7 @@ export default async function PageCatalogue({params,searchParams}:{params:Promis
           « Rechercher », réservé à la recherche globale de la barre haute.
           Champ et bouton à la même hauteur (h-10). */}
       <div className="space-y-4 rounded-xl border bg-card p-4">
-        <form className="flex flex-wrap items-end gap-3">{bail&&<input type="hidden" name="bail" value={bail}/>}<label className="min-w-56 flex-1 text-sm font-medium">Filtrer les modèles<input name="q" defaultValue={recherche} placeholder="Bail, charges, intervention…" className="mt-2 h-10 w-full rounded-lg border bg-background px-3"/></label><button type="submit" className={buttonVariants({variant:"secondary",className:"h-10"})}>Filtrer</button>{recherche&&<Link href={base} className="text-sm underline">Effacer le filtre</Link>}</form>
+        <form data-saisie-libre className="flex flex-wrap items-end gap-3">{bail&&<input type="hidden" name="bail" value={bail}/>}<label className="min-w-56 flex-1 text-sm font-medium">Filtrer les modèles<input name="q" defaultValue={recherche} placeholder="Bail, charges, intervention…" className="mt-2 h-10 w-full rounded-lg border bg-background px-3"/></label><button type="submit" className={buttonVariants({variant:"secondary",className:"h-10"})}>Filtrer</button>{recherche&&<Link href={base} className="text-sm underline">Effacer le filtre</Link>}</form>
         {!estProprietaire&&familles.length>1&&<nav aria-label="Aller à une situation"><p className="mb-2 text-sm font-medium">Aller à une situation</p><div className="flex flex-wrap gap-2">{familles.map(f=><a key={f} href={`#${ancre(f)}`} className="filtre">{f}</a>)}</div></nav>}
       </div>
       {estProprietaire && !montrerModeles && <section>

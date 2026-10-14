@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -246,12 +247,35 @@ export const chargerCreneauxMission = cache(async function chargerCreneauxMissio
   return { lignes: (data ?? []) as CreneauMission[], erreur: Boolean(error) };
 });
 
+/**
+ * Un compte sans fiche artisan, mais déjà rattaché à un autre espace (locataire, propriétaire,
+ * gérant…), n'a rien à faire sur le formulaire d'inscription artisan : il y arrivait en ouvrant
+ * `/artisan` à la main (LOC-22). Les rattachements « artisan » ne comptent pas — ils naissent
+ * avec une première sollicitation, avant même que la fiche soit réclamée. Une lecture en échec
+ * ne renvoie personne ailleurs : l'inscription reste ouverte, comme avant.
+ */
+async function aUnAutreEspaceActif(supabase: SupabaseClient, compte: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("account_id", compte)
+    .eq("status", "active")
+    .neq("role", "artisan")
+    .limit(1);
+  return !error && (data ?? []).length > 0;
+}
+
 /** Garde des pages du portail : session, puis fiche artisan. */
 export async function verifierAccesArtisan() {
   const { supabase, user, fiche, erreur } = await chargerFicheArtisan();
   if (!user) redirect("/connexion?suite=%2Fartisan");
+  const compte = user.id;
   if (erreur) redirect("/artisan/panne");
-  if (!fiche) redirect("/artisan/inscription");
+  if (!fiche) {
+    // /espaces mène seul à l'espace du compte (entrée directe quand il n'en a qu'un).
+    if (await aUnAutreEspaceActif(supabase, compte)) redirect("/espaces");
+    redirect("/artisan/inscription");
+  }
   return { supabase, user, fiche };
 }
 

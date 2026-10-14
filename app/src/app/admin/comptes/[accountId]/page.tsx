@@ -9,7 +9,7 @@ import { formaterDateHeureParis } from "@/lib/heure-paris";
 import { GesteControle } from "@/components/geste-controle";
 import { controlerCompte } from "@/app/actions/controle-supervision";
 
-export const metadata = { title: "Fiche d’un compte — Supervision Gerimmo" };
+export const metadata = { title: "Fiche d’un compte" };
 
 /**
  * LA FICHE DE DÉBOGAGE D'UN COMPTE (25/09).

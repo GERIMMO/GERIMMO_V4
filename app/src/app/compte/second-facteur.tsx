@@ -198,7 +198,7 @@ export function SecondFacteur({ obligatoire }: { obligatoire: boolean }) {
   return (
     <div className="loc-carte" aria-busy={chargement || enCours}>
       <div className="entete-carte">
-        <h3>Double authentification</h3>
+        <h2 className="titre-carte leading-[inherit]">Double authentification</h2>
         <span className={`puce ${etat === "aucun" ? "puce-grise" : "puce-loue"}`}>
           {etat === "aucun" ? "inactive" : "active"}
         </span>
@@ -320,7 +320,7 @@ export function SecondFacteur({ obligatoire }: { obligatoire: boolean }) {
           )}
 
           {(inscription || etat !== "aucun") && (
-            <form onSubmit={valider} className="mt-4 max-w-xs space-y-3">
+            <form data-saisie-libre onSubmit={valider} className="mt-4 max-w-xs space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="code-second-facteur">Code à six chiffres</Label>
                 <Input

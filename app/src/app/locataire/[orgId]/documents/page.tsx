@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
 import { libelleDocumentLoyer } from "@/lib/documents-loyer";
@@ -147,9 +148,9 @@ export default async function PageDocumentsLocataire(
       {aSigner.length > 0 && adhesionActive && (
         <div className="loc-carte border-l-4 border-l-[var(--or)]">
           <div className="entete-carte !mb-1">
-            <h3 className="text-base font-medium">
+            <h2 className="titre-carte text-base font-medium">
               {aSigner.length > 1 ? "Documents à signer" : "Un document à signer"}
-            </h3>
+            </h2>
             <span className="loc-tag ambre">à signer</span>
           </div>
           <div className="divide-y divide-border">
@@ -163,9 +164,9 @@ export default async function PageDocumentsLocataire(
       {demandes.length > 0 && (
         <div className="loc-carte border-l-4 border-l-[var(--or)]">
           <div className="entete-carte !mb-0">
-            <h3 className="text-base font-medium">
+            <h2 className="titre-carte text-base font-medium">
               {demandes.length > 1 ? "Des pièces vous sont demandées" : "Une pièce vous est demandée"}
-            </h3>
+            </h2>
             <span className="loc-tag ambre">à déposer</span>
           </div>
           <div className="divide-y divide-border">
@@ -187,7 +188,7 @@ export default async function PageDocumentsLocataire(
         className={`loc-carte scroll-mt-24 ${lecturePiecesKO || (assurance && assurance.verifie_le && !estExpiree(assurance.expire_le)) ? "" : "border-l-4 border-l-[var(--or)]"}`}
       >
         <div className="entete-carte !mb-1">
-          <h3 className="text-base font-medium">Votre assurance habitation</h3>
+          <h2 className="titre-carte text-base font-medium">Votre assurance habitation</h2>
           {/* Filet doré et badge du menu disaient « à faire » ; l'en-tête,
               lui, ne disait rien — contrairement à ses voisines (24/09). */}
           {!lecturePiecesKO && !assurance && adhesionActive && (
@@ -236,7 +237,7 @@ export default async function PageDocumentsLocataire(
 
       <div className="loc-carte">
         <div className="entete-carte">
-          <h3 className="text-base font-medium">Conservés pour vous</h3>
+          <h2 className="titre-carte text-base font-medium">Conservés pour vous</h2>
         </div>
         {aEchoue(ePieces, eEcheancier) ? (
           <LectureImpossible quoi="les pièces conservées pour vous" />
@@ -298,7 +299,7 @@ export default async function PageDocumentsLocataire(
               );
             })}
             {quittances.map((q) => {
-              const libelle = `${q.statut === "paye" ? "la" : "le"} ${libelleDocumentLoyer(q.statut)} de ${moisLong(q.periode)}`;
+              const libelle = `${q.statut === "paye" ? "la" : "le"} ${libelleDocumentLoyer(q.statut)} ${deElide(moisLong(q.periode))}`;
               if (disponibilites[q.quittance_id!] !== "disponible") return <li key={q.quittance_id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                 <div><b className="font-medium first-letter:uppercase">{libelleDocumentLoyer(q.statut)} — {moisLong(q.periode)}</b>
                   <p className="text-xs text-muted-foreground">{disponibilites[q.quittance_id!] === "lecture_impossible" ? "Disponibilité à vérifier. Réessayez dans un instant." : "Des informations du document restent à compléter par votre gestionnaire."}</p></div>

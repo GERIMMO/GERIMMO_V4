@@ -3,6 +3,7 @@
 import { preparerSoumission, confirmerSoumission, retourConfirme } from "./protection-saisie";
 import { unstable_rethrow } from "next/navigation";
 import { SuiviEnregistrement } from "./suivi-enregistrement";
+import { messageApresEchec } from "./session-expiree";
 import { useContext, useRef, useState, type FormEvent } from "react";
 
 type Retour = { erreur?: string; succes?: string };
@@ -34,7 +35,8 @@ export function useActionFormulaire<T extends Retour>(action: (etat: T, donnees:
       }
     } catch (erreur) {
       unstable_rethrow(erreur);
-      setEtat({ erreur: "La confirmation n’a pas pu être reçue. Votre saisie est conservée ; rouvrez le dossier pour vérifier le résultat avant de recommencer." } as T);
+      // Session expirée (redirigée par le proxy) ou réponse perdue : le message n'est pas le même (audit du 13/10).
+      setEtat({ erreur: await messageApresEchec("La confirmation n’a pas pu être reçue. Votre saisie est conservée ; rouvrez le dossier pour vérifier le résultat avant de recommencer.") } as T);
     } finally {
       verrou.current = false;
       setEnCours(false);

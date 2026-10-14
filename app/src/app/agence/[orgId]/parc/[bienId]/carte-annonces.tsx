@@ -5,7 +5,8 @@ import { useActionStateProtegee as useActionState } from "@/lib/use-action-state
 import { creerAnnonce, supprimerAnnonce, type EtatAnnonce } from "@/app/actions/annonces";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
-import { formaterDate } from "@/lib/ged";
+import { aujourdhuiParis, formaterDate } from "@/lib/ged";
+import { decalerJour } from "@/lib/agenda-gestion";
 
 export type Annonce = {
   id: string;
@@ -36,8 +37,9 @@ function BoutonRetirerAnnonce({
   );
 }
 
-// Défaut du champ date : visible une semaine
-const dansUneSemaine = () => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+// Défaut du champ date : visible une semaine, à compter du jour de Paris (le jour UTC est la veille entre minuit
+// et 2 h à Paris).
+const dansUneSemaine = () => decalerJour(aujourdhuiParis(), 7);
 
 // Annonce aux locataires du bien (espace locataire v10) : coupure d'eau,
 // travaux, passage du syndic — affichée sur leur accueil jusqu'à la date

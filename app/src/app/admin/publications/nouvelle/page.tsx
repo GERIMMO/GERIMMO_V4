@@ -2,7 +2,7 @@ import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { FormulaireNouvelArticle } from "./formulaire";
 
-export const metadata = { title: "Nouvel article — Gerimmo" };
+export const metadata = { title: "Nouvel article" };
 
 export default function PageNouvelArticle() {
   return (

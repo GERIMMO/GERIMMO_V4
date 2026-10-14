@@ -163,7 +163,7 @@ export default async function PagePaiementsLocataire(
         <div className="space-y-4">
           <div className="loc-carte">
             <div className="entete-carte !mb-1">
-              <h3 className="text-base font-medium">{prochaine && ["impaye", "partiel"].includes(prochaine.statut) ? "Loyer restant à régler" : "Prochain loyer"}</h3>
+              <h2 className="titre-carte text-base font-medium">{prochaine && ["impaye", "partiel"].includes(prochaine.statut) ? "Loyer restant à régler" : "Prochain loyer"}</h2>
               {aEchoue(eEcheancier, eBaux) ? null : prochaine ? (
                 <span className="loc-tag bleu capitalize">{moisLong(prochaine.periode)}</span>
               ) : bail ? (
@@ -253,7 +253,7 @@ export default async function PagePaiementsLocataire(
           {bail && (
             <div className="loc-carte">
               <div className="entete-carte !mb-1">
-                <h3 className="text-base font-medium">Vos charges</h3>
+                <h2 className="titre-carte text-base font-medium">Vos charges</h2>
               </div>
               <p className="text-[13px] text-muted-foreground">
                 {forfait
@@ -266,7 +266,7 @@ export default async function PagePaiementsLocataire(
 
         <div className="loc-carte">
           <div className="entete-carte">
-            <h3 className="text-base font-medium">Historique des loyers</h3>
+            <h2 className="titre-carte text-base font-medium">Historique des loyers</h2>
             {/* La liste montre TOUS les mois de l'échéancier : dire seulement
                 « N émises » laissait croire à un compte tronqué. Et la mention
                 nomme ce qu'elle compte (24/09). */}
@@ -383,7 +383,7 @@ export default async function PagePaiementsLocataire(
       {/* Relances reçues (module 3.12) — sans les notes internes de l'agence */}
       {relances.length > 0 && (
         <div className="loc-carte border-l-4 border-l-[var(--warning)]">
-          <h3 className="text-base font-medium">Relances reçues</h3>
+          <h2 className="titre-carte text-base font-medium">Relances reçues</h2>
           <ul className="mt-2 divide-y divide-border">
             {relances.map((r, ix) => (
               <li key={ix} className="flex flex-wrap items-center gap-2 py-2 text-sm">
@@ -411,7 +411,7 @@ export default async function PagePaiementsLocataire(
       {restitution && (
         <div className="loc-carte">
           <div className="entete-carte !mb-1">
-            <h3 className="text-base font-medium">Votre dépôt de garantie</h3>
+            <h2 className="titre-carte text-base font-medium">Votre dépôt de garantie</h2>
             <span className={`loc-tag ${restitution.statut === "finalise" ? "vert" : "bleu"}`}>
               {restitution.statut === "finalise" ? "Décompte établi" : "Restitution en cours"}
             </span>

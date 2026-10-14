@@ -7,6 +7,7 @@ import Link from "next/link";
 import { CRITICITES, ORDRE_CRITICITE } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
+import { ecrireSession, lireSession } from "@/lib/stockage-session";
 import { ModaleAlerte } from "@/app/agence/[orgId]/alertes/modale-alerte";
 
 // Pop-up de synthèse des alertes à la connexion (S2, revue recette 08/08) :
@@ -81,7 +82,7 @@ export function SyntheseAlertes({
   useEffect(() => {
     if (ouvertureExaminee.current) return;
     ouvertureExaminee.current = true;
-    if (alertes.length === 0 || sessionStorage.getItem(CLE_SESSION_ALERTES)) return;
+    if (alertes.length === 0 || lireSession(CLE_SESSION_ALERTES)) return;
     // Ouverture différée d'un tick : évite un re-rendu en cascade à l'hydratation
     const minuterie = setTimeout(() => setOuverte(true), 0);
     return () => clearTimeout(minuterie);
@@ -96,7 +97,7 @@ export function SyntheseAlertes({
   }, []);
 
   const fermer = useCallback(() => {
-    sessionStorage.setItem(CLE_SESSION_ALERTES, "1");
+    ecrireSession(CLE_SESSION_ALERTES, "1");
     setOuverte(false);
   }, []);
 

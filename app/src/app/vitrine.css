@@ -53,7 +53,9 @@
 .public-titre-section { display: flex; justify-content: space-between; gap: 35px; align-items: flex-end; margin-bottom: 34px; }
 .public-titre-section h2 { margin-top: 13px; }
 .public-titre-section > p { max-width: 365px; line-height: 1.7; color: #4b5870; font-size: 15px; }
-.public-fonctions, .public-espaces { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.public-fonctions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+/* Trois espaces (propriétaires, locataires, artisans) : les colonnes vides se replient. */
+.public-espaces { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
 .public-ton-bleu { --accent-public: #355d87; --fond-public: #eaf0f7; }
 .public-ton-or { --accent-public: #846329; --fond-public: #f4eedf; }
 .public-ton-vert { --accent-public: #32685b; --fond-public: #e7f2ee; }
@@ -101,11 +103,6 @@
 .offre-publique li svg { flex-shrink: 0; margin-top: 2px; color: #32685b; }
 .gerimmo-prestige .site-public .offre-publique .btn-secondaire { width: 100%; justify-content: space-between; font-size: 12px; padding: 10px 12px; }
 .offres-note { margin-top: 16px; }
-.public-tarif-agence { display: flex; gap: 18px; align-items: center; margin-block: 30px 15px; padding: 22px 25px; border: 1px solid #ded6c5; background: #f4eedf; border-radius: 12px; }
-.public-tarif-agence > svg { flex-shrink: 0; color: #826838; }
-.gerimmo-prestige .public-tarif-agence h3 { font-size: 17px; }
-.public-tarif-agence p { font-size: 13px; line-height: 1.6; color: #4b5870; margin-top: 5px; }
-.public-tarif-agence .public-lien { margin-left: auto; white-space: nowrap; }
 .public-journal-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
 .public-article { display: flex; flex-direction: column; background: white; border: 1px solid #dce2e9; border-radius: 12px; overflow: hidden; transition: box-shadow .2s, transform .2s; }
 .public-article:hover { transform: translateY(-3px); box-shadow: 0 15px 35px #14304f10; }
@@ -155,7 +152,7 @@
   .public-acces { gap: 13px; }
   .public-hero-grille { gap: 35px; }
   .public-hero-apercu { left: -10px; width: 100%; }
-  .public-fonctions, .public-espaces, .offres-grille { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .public-fonctions, .offres-grille { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .public-outils-rapides { grid-template-columns: 230px 1fr; }
   .public-outils-rapides ul { gap: 5px; }
   .public-suivi { gap: 35px; }
@@ -222,9 +219,6 @@
   .offre-publique { padding: 24px; }
   .offre-prix { margin-top: 18px; }
   .offres-choix button { padding-inline: 13px; }
-  .public-tarif-agence { flex-wrap: wrap; padding: 20px; }
-  .public-tarif-agence > div { flex: 1; }
-  .public-tarif-agence .public-lien { margin-left: 43px; }
   .public-journal-grille { grid-template-columns: 1fr; }
   .public-faq { grid-template-columns: 1fr; gap: 28px; }
   .public-faq summary { font-size: 15px; gap: 15px; }

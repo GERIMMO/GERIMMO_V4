@@ -94,12 +94,13 @@ export function documentsIncomplets(editeur: Record<string, FaitEditeur> = EDITE
 // ── Où écrire à l'éditeur ──────────────────────────────────────────────────
 //
 // Tant que `EDITEUR.email` manque, la seule voie ouverte au public est le
-// formulaire de l'accueil, rubrique Agences. Les pages légales l'appelaient
-// « formulaire de contact » : un locataire venu exercer ses droits tombait sur
-// une demande de devis commerciale (relevé du 24/09). Elles le nomment
-// désormais tel qu'il est, et l'adresse prend le relais dès qu'elle est
-// fournie ci-dessus.
-export const FORMULAIRE_ACCUEIL = "/#agences";
+// formulaire de contact de l'accueil. Jusqu'au 13/10 c'était le formulaire de
+// devis des agences (rubrique Agences) : un locataire venu exercer ses droits
+// tombait sur une demande commerciale (relevé du 24/09). La V1 publique ne
+// propose plus d'offre agence : la même rubrique est devenue un formulaire de
+// contact ordinaire (« Une question ? »), et l'adresse prend le relais dès
+// qu'elle est fournie ci-dessus.
+export const FORMULAIRE_ACCUEIL = "/#contact";
 
 /** L'adresse à laquelle écrire, ou `null` : il faut alors passer par le formulaire. */
 export function courrielDeContact(editeur: Record<string, FaitEditeur> = EDITEUR): string | null {

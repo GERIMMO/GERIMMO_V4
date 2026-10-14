@@ -2,6 +2,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { formaterDate } from "@/lib/ged";
+import { neutraliserFormule } from "@/lib/csv-sur";
 
 // Export CSV du journal de gestion (pas de FEC) — RM-A6 : mention « journal de gestion ».
 //
@@ -33,9 +34,12 @@ function montantFr(v: number | string): string {
   return Number(v).toFixed(2).replace(".", ",");
 }
 
-/** Un champ CSV ne doit contenir ni séparateur ni saut de ligne. */
+/**
+ * Un champ CSV ne doit contenir ni séparateur ni saut de ligne, ni commencer comme une formule de tableur (audit du 13/10, CHF-04 :
+ * un libellé « =1+1 » était exporté tel quel et évalué à l'ouverture). Réservé aux colonnes de texte : jamais aux montants.
+ */
 function champ(v: unknown): string {
-  return String(v ?? "").replace(/[;\n\r]/g, " ").trim();
+  return neutraliserFormule(String(v ?? "").replace(/[;\n\r]/g, " ").trim());
 }
 
 export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }> }) {

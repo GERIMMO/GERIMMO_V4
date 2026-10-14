@@ -6,8 +6,11 @@ import type { PreparationDevis, ProfilDocumentArtisan } from "./parcours-devis-a
 /** Exception bornée au client de service : après identification de l'artisan
  * et preuve que la demande lui appartient via sa RPC, jamais depuis un ID client seul. */
 export async function accesPreparationDevis(id: string, mutation = false) {
-  const { fiche, supabase } = await (mutation ? verifierArtisanMutation() : verifierArtisanLecture());
-  if (!fiche) throw new Error("Connectez-vous à votre espace artisan.");
+  const acces = await (mutation ? verifierArtisanMutation() : verifierArtisanLecture());
+  const { fiche, supabase } = acces;
+  // SA-07 : la garde de mutation donne la vraie raison (diagnostic en lecture
+  // seule, accès indisponible) ; « Connectez-vous » n'est que le dernier repli.
+  if (!fiche) throw new Error((acces as { erreur?: string }).erreur ?? "Connectez-vous à votre espace artisan.");
   const { data, error } = await supabase.rpc("mes_sollicitations");
   if (error) throw new Error("La demande ne peut pas être lue pour le moment.");
   const demande = (data as LigneSollicitation[] | null)?.find(d => d.sollicitation_id === id);

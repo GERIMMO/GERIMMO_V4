@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { eur } from "@/lib/ged";
@@ -171,7 +172,7 @@ export async function FilActivite({
     evenements.push({
       cle: `rap-${r.id}`,
       ts: r.envoye_le,
-      titre: `Rapport de gestion de ${mois} validé pour ${nom}`,
+      titre: `Rapport de gestion ${deElide(mois)} validé pour ${nom}`,
       detail:
         r.net != null ? `Versement de ${eur(Number(r.net))} à enregistrer` : "Versement à suivre",
       initiales: initialesDe(nom),

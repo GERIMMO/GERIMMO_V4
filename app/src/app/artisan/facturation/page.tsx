@@ -8,7 +8,7 @@ import { EnteteSousPage, Erreur, Etiquette, MarqueAgence, Succes } from "../ui";
 import { classerFacturation, montantEngage } from "./suivi-facturation";
 import styles from "./facturation.module.css";
 
-export const metadata = { title: "Ma facturation — Espace artisan" };
+export const metadata = { title: "Ma facturation" };
 
 export default async function PageFacturation(props: PageProps<"/artisan/facturation">) {
   await verifierAccesArtisan();

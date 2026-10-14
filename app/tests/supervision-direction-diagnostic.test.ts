@@ -76,6 +76,16 @@ describe.skipIf(!url)("SA004/005 — vrais appels sous rôles, transaction annul
     expect(await failed("select public.exiger_artisan_reel()")).toMatch(/lecture seule/);
     await admin(); expect((await db.query("select count(*) n from public.artisan_pieces where artisan_id=$1",[artisan])).rows[0].n).toBe("0");
   });
+  // Audit du 13/10/2026 (SUP-02) : la lecture seule d'une session de diagnostic était posée aussi
+  // sur les tables de l'arrêt d'urgence, qui se trouvait refusé pendant le diagnostic.
+  it("diagnostic ouvert : l'arrêt d'urgence reste possible, la lecture seule couvre toujours les données", async () => {
+    await as(sa); await open();
+    await db.query("select public.commander_arret_supervision('global',null,true,'Arrêt d''urgence pendant un diagnostic')");
+    expect((await db.query("select public.verifier_arret_supervision('quittances') ok")).rows[0].ok).toBe(false);
+    expect(await failed("update public.artisans set raison_sociale='Ne doit pas changer' where id=$1", [artisan])).toMatch(/lecture seule|permission denied/);
+    await db.query("select public.commander_arret_supervision('global',null,false,'Reprise après le diagnostic')");
+    expect((await db.query("select public.verifier_arret_supervision('quittances') ok")).rows[0].ok).toBe(true);
+  });
   it("diagnostic : dépôt Storage direct refusé, aucun objet orphelin", async () => {
     await as(sa); await open();
     expect(await failed("insert into storage.objects(bucket_id,name) values('documents','artisans/'||$1||'/test-diagnostic.pdf')",[artisan])).toMatch(/lecture seule|row-level/);

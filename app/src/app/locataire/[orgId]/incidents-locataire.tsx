@@ -168,7 +168,7 @@ function CarteIncident({
       className={`loc-carte scroll-mt-24 space-y-1.5 border-l-4 text-sm ${liser}`}
     >
       <div className="entete-carte !mb-0">
-        <h3 className="text-base font-medium">{titreIncident(incident.categorie)}</h3>
+        <h2 className="titre-carte text-base font-medium">{titreIncident(incident.categorie)}</h2>
         <span className={pastille}>{textePastille}</span>
       </div>
       {incident.description && (

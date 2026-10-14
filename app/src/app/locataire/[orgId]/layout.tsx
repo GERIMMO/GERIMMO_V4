@@ -45,7 +45,7 @@ export default async function LayoutLocataire({
   params,
 }: LayoutProps<"/locataire/[orgId]">) {
   const { orgId } = await params;
-  const { supabase, organisation, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, user, organisation, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
   const apparence = await lireApparence(orgId);
 
   const [
@@ -136,6 +136,7 @@ export default async function LayoutLocataire({
               { href: "/compte#donnees-personnelles", libelle: "Mes données personnelles" },
               { href: "/espaces", libelle: "Mes espaces" },
             ]}
+            compteId={user.id}
           />
         </header>
         {comptesIncertains && (

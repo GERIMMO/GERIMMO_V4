@@ -6,6 +6,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { proposerNature, type NatureCharge } from "@/lib/charges";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { lireMontant } from "@/lib/saisie-montant";
 
 export type EtatAppel = {
   erreur?: string;
@@ -29,9 +30,11 @@ export async function creerAppelCharges(
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const exercice = Number(String(formData.get("exercice") ?? "").trim());
-  const total = Number(String(formData.get("total") ?? "").trim());
   if (!exercice || exercice < 2000 || exercice > 2100) return { erreur: "Exercice invalide.", valeurs };
-  if (!total || total <= 0) return { erreur: "Total de l'appel invalide.", valeurs };
+  // Montant lu sur le texte tel que tapé (« 840,00 » vaut 840) : champ en `type="text"` (VFL-07).
+  const totalLu = lireMontant(formData.get("total"));
+  if ("erreur" in totalLu) return { erreur: totalLu.erreur, valeurs };
+  const total = totalLu.montant;
   const dateReception = String(formData.get("date_reception") ?? "").trim() || null;
 
   let documentId: string | null = null;
@@ -71,9 +74,10 @@ export async function ajouterPosteCharge(
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const libelle = String(formData.get("libelle") ?? "").trim();
-  const montant = Number(String(formData.get("montant") ?? "").trim());
   if (!libelle) return { erreur: "Libellé du poste obligatoire.", valeurs };
-  if (!montant || montant <= 0) return { erreur: "Montant du poste invalide.", valeurs };
+  const montantLu = lireMontant(formData.get("montant"));
+  if ("erreur" in montantLu) return { erreur: montantLu.erreur, valeurs };
+  const montant = montantLu.montant;
 
   // La grille décret 87-713 propose la nature ; l'agent corrigera si besoin.
   const proposition = proposerNature(libelle);

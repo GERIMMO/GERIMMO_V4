@@ -16,7 +16,8 @@ const un = async (sql, params = []) => (await pool.query(sql, params)).rows[0] ?
 // tests SQL, d'autres agences peuvent être plus anciennes : prendre simplement
 // la première amputait alors la matrice de tous les écrans bien/lot/bail/EDL.
 const agence = await un("select id from organizations where type = 'agence' order by (name = 'Agence Alpha') desc, created_at limit 1");
-const pd = await un("select id from organizations where type <> 'agence' order by created_at limit 1");
+// Le propriétaire de démonstration d'abord : des organisations laissées par d'autres essais ne doivent pas devenir « son » espace.
+const pd = await un("select id from organizations where type <> 'agence' order by (name = 'Parc de Claire Moreau') desc, created_at limit 1");
 const ORG = agence?.id;
 const artisanPrive = await un("select a.id from artisans a join auth.users u on u.id=a.account_id where u.email='artisan.alpha@gerimmo-demo.fr' limit 1");
 // Préférer le dossier E2E (seed-parcours) : il porte un mandat dont l'agent

@@ -2,6 +2,7 @@ import type { EtatPersonne } from "@/app/actions/personnes";
 import type { EtatDossier } from "@/app/actions/dossier";
 import type { EtatPieceDemandee } from "@/app/actions/pieces-demandees";
 import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { MESSAGE_SESSION_EXPIREE, sessionExpiree } from "@/lib/session-expiree";
 
 export type JustificatifPrepare = {
   id: string;
@@ -53,7 +54,15 @@ export async function enregistrerFicheAvecJustificatifs(
     identite.set("rester_dans_parcours", "1");
     await actions.memoriser?.({ ...precedent, creationIncertaine: true });
     try { creation = await actions.creer(orgId, {}, identite); }
-    catch { return { creationIncertaine: true, erreur: "La création n’a pas pu être confirmée. Vérifiez la liste des fiches avant de réessayer." }; }
+    catch {
+      // Audit du 13/10 (PR178-A-03, PR178-A-05) : une session expirée est refusée par le proxy AVANT l'action : la fiche
+      // n'existe pas. On retire la marque « incertaine » posée avant l'envoi, sans quoi le bouton restait désactivé pour toujours.
+      if (await sessionExpiree()) {
+        await actions.memoriser?.({ ...precedent });
+        return { ...precedent, erreur: MESSAGE_SESSION_EXPIREE };
+      }
+      return { creationIncertaine: true, erreur: "La création n’a pas pu être confirmée. Vérifiez la liste des fiches avant de réessayer." };
+    }
     await actions.memoriser?.(creation);
     if (!creation.personneCreee) return creation;
   }

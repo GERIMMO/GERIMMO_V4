@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { detecterMimeReel, pdfComplet, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { aujourdhuiParis } from "@/lib/ged";
 
 export type EtatAttestation = {
   erreur?: string;
@@ -55,7 +56,8 @@ export async function deposerMonAttestation(
   if (!expire) {
     return { erreur: "Indiquez la date d'expiration figurant sur l'attestation.", valeurs };
   }
-  if (expire < new Date().toISOString().slice(0, 10)) {
+  // Le jour de Paris : Vercel tourne en UTC, dont le jour est la veille entre minuit et 2 h à Paris (VFL-06).
+  if (expire < aujourdhuiParis()) {
     return {
       erreur: "Cette attestation est déjà expirée — déposez l'attestation en cours de validité.",
       valeurs,
@@ -95,7 +97,20 @@ export async function deposerMonAttestation(
     p_titre: titre,
     p_expire: expire,
   });
-  if (erreurRpc) return { erreur: sansJargon(erreurRpc.message), valeurs };
+  if (erreurRpc) {
+    // L'index d'unicité (organisation, empreinte) refuse le même contenu deux fois : le
+    // dire, plutôt que « réessayez dans un instant » — un nouvel essai ne servira jamais
+    // (LOC-01). Une autre contrainte d'unicité (version déjà remplacée) garde son message.
+    const message = erreurRpc.message ?? "";
+    if (/empreinte/.test(message) && (erreurRpc.code === "23505" || /duplicate key|unique/i.test(message))) {
+      return {
+        erreur:
+          "Ce document est déjà enregistré dans votre dossier : inutile de le déposer une seconde fois. S’il s’agit d’une nouvelle attestation, choisissez le nouveau fichier.",
+        valeurs,
+      };
+    }
+    return { erreur: sansJargon(erreurRpc.message), valeurs };
+  }
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/documents`);

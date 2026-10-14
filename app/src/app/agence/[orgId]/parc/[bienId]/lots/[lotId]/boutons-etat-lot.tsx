@@ -19,7 +19,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 // départ se constate sur le bail — état des lieux de sortie signé puis
 // « Clôturer le bail » (RM-3.11.2) — et le lot repasse en disponible tout seul.
 // La base refuse désormais l'incohérence (20260910176000).
-const TRANSITIONS: Record<string, { cible: string; libelle: string }[]> = {
+const TRANSITIONS: Record<string, { cible: string; libelle: string; reserveAuResponsable?: boolean }[]> = {
   brouillon: [
     { cible: "disponible", libelle: "Mettre en location" },
     { cible: "archive", libelle: "Archiver" },
@@ -30,8 +30,18 @@ const TRANSITIONS: Record<string, { cible: string; libelle: string }[]> = {
   ],
   loue: [],
   preavis: [],
-  archive: [{ cible: "brouillon", libelle: "Réactiver (réservé au responsable)" }],
+  archive: [{ cible: "brouillon", libelle: "Réactiver", reserveAuResponsable: true }],
 };
+
+// Le propriétaire direct EST le responsable de son espace : lui dire que le geste
+// est « réservé au responsable » est une mention de permission qui ne le concerne
+// pas (PROP-09). La mention reste dans l'espace agence, où un agent n'a pas ce droit.
+function transitionsDe(etat: string, estBailleurDirect: boolean) {
+  return (TRANSITIONS[etat] ?? []).map((t) => ({
+    cible: t.cible,
+    libelle: t.reserveAuResponsable && !estBailleurDirect ? `${t.libelle} (réservé au responsable)` : t.libelle,
+  }));
+}
 
 // Ce que l'agent doit faire à la place, quand l'état ne se change pas à la main.
 // UNE PHRASE QUI DIT OÙ ALLER Y MÈNE (24/09) : « passez par le bail » n'avait
@@ -58,6 +68,7 @@ export function BoutonsEtatLot({
   bloque = false,
   compact = false,
   bailHref,
+  estBailleurDirect = false,
 }: {
   orgId: string;
   bienId: string;
@@ -73,10 +84,12 @@ export function BoutonsEtatLot({
   compact?: boolean;
   // Le bail en cours, quand la page le connaît : la phrase y mène.
   bailHref?: string;
+  // Propriétaire direct : pas de vocabulaire de permission d'agence (PROP-09).
+  estBailleurDirect?: boolean;
 }) {
   const actionLiee = changerEtatLot.bind(null, orgId, bienId, lotId);
   const [retour, action] = useActionState<EtatParc, FormData>(actionLiee, {});
-  const transitions = TRANSITIONS[etat] ?? [];
+  const transitions = transitionsDe(etat, estBailleurDirect);
   const phrase = AILLEURS[etat] && !(compact && etat === "loue") ? AILLEURS[etat] : null;
   // Rien à proposer ni à dire : pas de bloc vide sous le rang du lot.
   if (transitions.length === 0 && !phrase && !retour.erreur && !retour.succes) return null;

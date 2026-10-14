@@ -4,7 +4,7 @@ import { Carte, TitreSection } from "../ui";
 import { FormulaireInscription } from "./formulaire-inscription";
 import { FormulaireCompteArtisan } from "./formulaire-compte";
 
-export const metadata = { title: "Inscrire mon entreprise — Gerimmo" };
+export const metadata = { title: "Inscrire mon entreprise" };
 
 /**
  * La porte d'entrée de l'artisan qui n'a pas encore de fiche.
@@ -38,8 +38,8 @@ export default async function PageInscriptionArtisan() {
           Inscrire mon entreprise
         </h1>
         <p className="mt-2 text-base text-[var(--corps)]">
-          Une seule inscription vous ouvre les demandes de toutes les agences de
-          la plateforme.
+          Une seule inscription vous ouvre les demandes qui vous sont confiées sur
+          la plateforme, selon votre métier et votre zone.
         </p>
       </div>
 
@@ -52,7 +52,7 @@ export default async function PageInscriptionArtisan() {
           </li>
           <li>
             <b className="font-medium">2.</b> Gerimmo vérifie votre SIRET et
-            valide votre inscription. Aucune agence ne peut vous solliciter
+            valide votre inscription. Personne ne peut vous solliciter
             avant.
           </li>
           <li>
@@ -78,8 +78,8 @@ function PremiereMarche() {
         <p className="portail-surtitre">Espace artisan</p>
         <h1 className="mt-0.5">Inscrire mon entreprise</h1>
         <p className="mt-2 text-base text-[var(--corps)]">
-          Une seule inscription vous ouvre les demandes de toutes les agences de
-          la plateforme. Commencez par votre compte ; votre entreprise vient
+          Une seule inscription vous ouvre les demandes qui vous sont confiées sur
+          la plateforme, selon votre métier et votre zone. Commencez par votre compte ; votre entreprise vient
           juste après.
         </p>
       </div>
@@ -91,7 +91,7 @@ function PremiereMarche() {
 
       <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
         Ensuite : votre SIRET, vos métiers et votre mobile, puis vos
-        attestations. Gerimmo valide votre inscription avant qu&apos;une agence
+        attestations. Gerimmo valide votre inscription avant que l&apos;on
         puisse vous solliciter.
       </p>
     </div>

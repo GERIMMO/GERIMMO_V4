@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { formaterDateHeureParis, formaterDateParis } from '@/lib/heure-paris';
 import { ETATS_DEVELOPPEMENT, ETATS_DOSSIER, TYPES_DOSSIER, lienDossier } from '@/lib/pilotage';
 import { ActualiserDossiers, DecisionAmelioration } from './formulaire-delegation';
-export const metadata={title:'Développement du site — Gerimmo'};
+export const metadata={title:'Développement du site'};
 // La carte commune de la console (nuit du 25/09).
 const carte='loc-carte';
 const filtres:Record<string,string>={tous:'Tous les dossiers',bail:'Locations',loyer:'Loyers en retard',incident:'Incidents',intervention:'Interventions',document:'Documents',rapport:'Finance et rapports'};

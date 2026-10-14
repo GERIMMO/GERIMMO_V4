@@ -24,7 +24,7 @@ export function FormulaireRetour({ecran,action,cle,organisations,contestation=fa
   <a className="underline" href={`${cheminAssistance}${contexte?`?${contexte}`:''}#nouvelle`}>Nouvelle demande</a>
   {retour&&<Link className="underline" href={retour}>← Retour à la page précédente</Link>}</p>
  </div>;
- return <form onSubmit={soumettre} className={styles.formulaire} aria-busy={enCours}>
+ return <form data-saisie-confirmee onSubmit={soumettre} className={styles.formulaire} aria-busy={enCours}>
   <input type="hidden" name="cle_envoi" value={cleEnvoi}/><input type="hidden" name="ecran" value={ecran}/><input type="hidden" name="action_origine" value={action}/>
   <fieldset className={styles.natures}><legend>Quel est votre besoin ?</legend><div>
    {Object.entries(NATURES_RETOUR).filter(([k])=>k!=='contestation'||contestation).map(([k,v])=>{
@@ -50,13 +50,13 @@ export function FormulaireRetour({ecran,action,cle,organisations,contestation=fa
   </div>
   {nature==='bug'&&<p className="text-xs text-muted-foreground">Les signalements de problème et leurs réponses sont conservés six mois, puis supprimés.</p>}
   {nature==='idee'?<label className="flex items-start gap-2 text-sm"><input type="checkbox" name="partage" required className="mt-1"/>Je comprends que cette idée sera visible des membres de l’espace choisi et de l’équipe Gerimmo. Sans organisation, elle reste visible de moi et de l’équipe Gerimmo.</label>:
-   <p className="text-xs text-muted-foreground">{nature==='contestation'?'Cette demande est examinée uniquement par l’équipe Gerimmo, jamais par l’agence qui a évalué votre travail.':'Votre demande est visible de vous, de l’équipe Gerimmo et de l’administrateur de l’agence concernée.'}</p>}
+   <p className="text-xs text-muted-foreground">{nature==='contestation'?'Cette demande est examinée uniquement par l’équipe Gerimmo, jamais par le gestionnaire qui a évalué votre travail.':'Votre demande est visible de vous, de l’équipe Gerimmo et, le cas échéant, du gestionnaire concerné.'}</p>}
   {etat.erreur&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
   <div className={styles.envoi}><span>Les champs affichés sont obligatoires, sauf le choix d’un espace.</span><BoutonEnvoi enCours={enCours} enCoursTexte="Envoi…"><Send size={15} aria-hidden="true"/> Envoyer ma demande</BoutonEnvoi></div>
  </form>;
 }
 export function SoutenirIdee({id}:{id:string}){
  const {etat,soumettre,enCours}=useActionRetour(soutenirRetour.bind(null,id));
- return <form onSubmit={soumettre} className="mt-3"><BoutonEnvoi size="sm" variant="outline" enCours={enCours} disabled={Boolean(etat.succes)}>Soutenir cette idée</BoutonEnvoi>
+ return <form data-saisie-libre onSubmit={soumettre} className="mt-3"><BoutonEnvoi size="sm" variant="outline" enCours={enCours} disabled={Boolean(etat.succes)}>Soutenir cette idée</BoutonEnvoi>
  {etat.succes&&<p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}{etat.erreur&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}</form>;
 }

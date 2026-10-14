@@ -6,7 +6,7 @@ import { PlanContinuite } from '../equipes/continuite';
 
 import { Vacances } from './vacances';
 
-export const metadata={title:'Relais en mon absence — Gerimmo'};
+export const metadata={title:'Relais en mon absence'};
 
 // RELAIS EN MON ABSENCE (26/09) : sorti de « Dossiers et évolutions » pour
 // rejoindre la rubrique Veille, à la demande du porteur. Même contenu, même

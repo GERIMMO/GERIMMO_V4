@@ -3,7 +3,8 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { seDeconnecter } from "@/app/actions/auth";
+import { FormulaireDeconnexion } from "@/components/formulaire-deconnexion";
+import { PurgerCopiesAutresComptes } from "@/components/purger-copies-autres-comptes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { MarqueOrganisation } from "@/components/marque-organisation";
 import { nomMarque, styleMarque, type MarqueOrganisation as Marque } from "@/lib/marque-organisation";
@@ -123,11 +124,10 @@ export default async function PageCompte() {
                 Mes espaces
               </Link>
             )}
-            <form action={seDeconnecter}>
-              <button type="submit" className="lien-bandeau whitespace-nowrap">
-                Se déconnecter
-              </button>
-            </form>
+            <PurgerCopiesAutresComptes compteId={user.id} />
+            <FormulaireDeconnexion className="lien-bandeau whitespace-nowrap">
+              Se déconnecter
+            </FormulaireDeconnexion>
           </div>
         </div>
       </header>
@@ -140,7 +140,7 @@ export default async function PageCompte() {
 
         <div className="loc-carte">
           <div className="entete-carte">
-            <h3>Identifiants</h3>
+            <h2 className="titre-carte leading-[inherit]">Identifiants</h2>
           </div>
           <dl className="grid gap-x-8 sm:grid-cols-2">
             <div className="ligne-info">
@@ -154,14 +154,14 @@ export default async function PageCompte() {
           </dl>
           <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
             {estArtisan
-              ? "L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte auprès de toutes les agences. Pour la modifier, écrivez-nous depuis Aide et retours."
+              ? "L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte auprès de tous vos clients. Pour la modifier, écrivez-nous depuis Aide et retours."
               : "L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte dans toutes vos organisations. Demandez-la à votre gestionnaire, ou à l’assistance pour un compte propriétaire."}
           </p>
         </div>
 
         <div className="loc-carte">
           <div className="entete-carte">
-            <h3>Mot de passe</h3>
+            <h2 className="titre-carte leading-[inherit]">Mot de passe</h2>
           </div>
           <p className="mesure-lecture text-sm text-muted-foreground">
             Le mot de passe actuel est demandé : sans lui, un poste laissé
@@ -181,7 +181,7 @@ export default async function PageCompte() {
             lui-même, l'assistance. */}
         <div className="loc-carte" id="donnees-personnelles">
           <div className="entete-carte">
-            <h3>Mes données personnelles</h3>
+            <h2 className="titre-carte leading-[inherit]">Mes données personnelles</h2>
           </div>
           <p className="mesure-lecture text-sm text-muted-foreground">
             Vous pouvez demander à consulter vos données, à les recevoir, à les faire
@@ -214,13 +214,10 @@ export default async function PageCompte() {
         </div>
 
         <p className="text-sm text-muted-foreground">
-          Mot de passe perdu et session fermée ? Il reste{" "}
-          <Link href="/mot-de-passe-oublie" className="lien-discret">
-            le lien reçu par email
-          </Link>
-          . Second facteur perdu sans code valable, en revanche, personne ne
-          peut rouvrir le compte depuis l’application : il faut passer par
-          l’assistance.
+          Mot de passe perdu et session fermée ? Depuis la page de connexion,
+          « Mot de passe oublié » vous envoie un lien par email. Second facteur
+          perdu sans code valable, en revanche, personne ne peut rouvrir le
+          compte depuis l’application : il faut passer par l’assistance.
         </p>
       </main>
     </div>

@@ -7,6 +7,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { remettreRapportMensuel } from "@/lib/rapports-mensuels";
 import { aujourdhuiParis } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { lireMontant } from "@/lib/saisie-montant";
 
 export type EtatCompta = {
   erreur?: string;
@@ -64,12 +65,16 @@ export async function enregistrerVersement(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
-  const montant = Number(String(formData.get("montant") ?? "").trim());
+  const montantSaisi = String(formData.get("montant") ?? "").trim();
   const date = String(formData.get("date") ?? "").trim();
-  if (!montant || !date) return { erreur: "Montant et date du versement obligatoires.", valeurs };
+  if (!montantSaisi || !date) return { erreur: "Montant et date du versement obligatoires.", valeurs };
+  // Lu sur le texte tel que tapé (« 840,00 » vaut 840) : le champ est en `type="text"`, jamais `type="number"`
+  // qui donne 84000 à un navigateur non francophone (VFL-07).
+  const lu = lireMontant(montantSaisi);
+  if ("erreur" in lu) return { erreur: lu.erreur, valeurs };
   const { error } = await supabase.rpc("enregistrer_versement", {
     p_rapport: rapportId,
-    p_montant: montant,
+    p_montant: lu.montant,
     p_date: date,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
@@ -89,10 +94,11 @@ export async function ajouterEcriture(
   const valeurs = valeursDuFormulaire(formData);
   const categorie = String(formData.get("categorie") ?? "").trim();
   const sens = String(formData.get("sens") ?? "");
-  const montant = Number(String(formData.get("montant") ?? "").trim());
+  const lu = lireMontant(formData.get("montant"));
   if (!categorie) return { erreur: "Catégorie obligatoire.", valeurs };
   if (sens !== "recette" && sens !== "depense") return { erreur: "Sens invalide.", valeurs };
-  if (!Number.isFinite(montant) || montant <= 0) return { erreur: "Montant invalide.", valeurs };
+  if ("erreur" in lu) return { erreur: lu.erreur, valeurs };
+  const montant = lu.montant;
   let parts;
   try {
     parts = ventilerTeom(montant, Number(String(formData.get("teom") ?? "0").replace(",", ".")), categorie, sens);
@@ -145,10 +151,11 @@ export async function ventilerDepense(
   const valeurs = valeursDuFormulaire(formData);
   const bienId = String(formData.get("bien_id") ?? "");
   const categorie = String(formData.get("categorie") ?? "").trim();
-  const montant = Number(String(formData.get("montant") ?? "").trim());
+  const lu = lireMontant(formData.get("montant"));
   if (!bienId) return { erreur: "Choisissez le bien.", valeurs };
   if (!categorie) return { erreur: "Catégorie obligatoire.", valeurs };
-  if (!montant || montant <= 0) return { erreur: "Montant invalide.", valeurs };
+  if ("erreur" in lu) return { erreur: lu.erreur, valeurs };
+  const montant = lu.montant;
   const { data, error } = await supabase.rpc("ventiler_depense_bien", {
     p_bien: bienId,
     p_categorie: categorie,

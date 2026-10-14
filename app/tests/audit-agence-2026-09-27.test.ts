@@ -380,6 +380,30 @@ describe.skipIf(!DB_URL)("Audit agence 27/09 — en base", () => {
       } = await db.query(`select public.contre_ecriture($1,'Erreur de saisie') as contre`, [e.id]);
       await refuse(/déjà une annulation/, `select public.contre_ecriture($1,'annule l''annulation')`, [contre]);
     });
+
+    // Audit du 13/10/2026 (AUD-A-02) : l'annulation d'une écriture gardait son motif
+    // mais pas son auteur. Elle laisse maintenant une ligne d'audit.
+    it("l'annulation d'une écriture garde son auteur au journal d'audit", async () => {
+      await devenir(admin);
+      const {
+        rows: [e],
+      } = await db.query<{ id: string }>(
+        `insert into public.ecritures (organization_id, categorie, sens, montant, date_piece, date_imputation, libelle)
+         values ($1,'divers','depense',42,current_date,current_date,'Saisie à annuler') returning id`,
+        [org]
+      );
+      const {
+        rows: [{ contre }],
+      } = await db.query(`select public.contre_ecriture($1,'Erreur de saisie') as contre`, [e.id]);
+      await db.query("reset role");
+      const { rows } = await db.query(
+        "select account_id, organization_id, details from public.audit_log where action='contre_ecriture'"
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0].account_id).toBe(admin);
+      expect(rows[0].organization_id).toBe(org);
+      expect(rows[0].details).toMatchObject({ ecriture_annulee: e.id, contre_ecriture: contre, sens: "depense", montant: 42 });
+    });
   });
 
   describe("4. Un refus ne laisse pas de pièce orpheline en GED", () => {

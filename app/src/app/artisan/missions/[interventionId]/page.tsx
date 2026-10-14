@@ -27,7 +27,7 @@ import { AccepterOuRefuser } from "./accepter-refuser";
 import { BoutonDemarrer } from "./bouton-demarrer";
 import { DatesLocataire } from "./dates-locataire";
 
-export const metadata = { title: "Ma mission — Espace artisan" };
+export const metadata = { title: "Ma mission" };
 
 /**
  * La mission : tout ce qu'il faut pour y aller, et le geste attendu maintenant.

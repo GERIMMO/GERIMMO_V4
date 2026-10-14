@@ -4,7 +4,9 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
-import { motifLitteral } from "@/lib/ged";
+import { deLEspaceDeGestion } from "@/lib/libelles";
+import { aujourdhuiParis, motifLitteral } from "@/lib/ged";
+import { verifierCodePostalPersonne, verifierDateNaissance, verifierTelephone } from "@/lib/validation-fiches";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { QUALITES_BAILLEUR, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 
@@ -47,7 +49,7 @@ export async function creerPersonne(
   _etat: EtatPersonne,
   formData: FormData
 ): Promise<EtatPersonne> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role: roleGerant } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
@@ -80,10 +82,15 @@ export async function creerPersonne(
   if (!adresse || !codePostal || !ville) {
     return { erreur: "L'adresse complète (voie, code postal et ville) est obligatoire pour les documents.", valeurs };
   }
+  const refusFiche =
+    verifierTelephone(telephone) ??
+    verifierCodePostalPersonne(codePostal) ??
+    (morale ? null : verifierDateNaissance(dateNaissance, aujourdhuiParis()));
+  if (refusFiche) return { erreur: refusFiche, valeurs };
   if (await emailDejaPris(supabase, orgId, email)) {
     return {
       erreur:
-        "Cette adresse email est déjà portée par une autre fiche de l'agence — une adresse ne peut appartenir qu'à une seule personne.",
+        `Cette adresse email est déjà portée par une autre fiche ${deLEspaceDeGestion(roleGerant)} — une adresse ne peut appartenir qu'à une seule personne.`,
       valeurs,
     };
   }
@@ -273,7 +280,7 @@ export async function modifierPersonne(
   _etat: EtatPersonne,
   formData: FormData
 ): Promise<EtatPersonne> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
@@ -311,10 +318,15 @@ export async function modifierPersonne(
   if (!adresse || !codePostal || !ville) {
     return { erreur: "L'adresse complète (voie, code postal et ville) est obligatoire pour les documents.", valeurs };
   }
+  const refusFiche =
+    verifierTelephone(telephone) ??
+    verifierCodePostalPersonne(codePostal) ??
+    verifierDateNaissance(dateNaissance, aujourdhuiParis());
+  if (refusFiche) return { erreur: refusFiche, valeurs };
   if (await emailDejaPris(supabase, orgId, email, personId)) {
     return {
       erreur:
-        "Cette adresse email est déjà portée par une autre fiche de l'agence.",
+        `Cette adresse email est déjà portée par une autre fiche ${deLEspaceDeGestion(role)}.`,
       valeurs,
     };
   }

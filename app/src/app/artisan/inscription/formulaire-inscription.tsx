@@ -91,9 +91,9 @@ export function FormulaireInscription() {
         />
         <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
           Quatorze chiffres. Il identifie votre entreprise sur toute la
-          plateforme : si une agence a déjà créé votre fiche, elle vous est
+          plateforme : si un gestionnaire a déjà créé votre fiche, elle vous est
           rattachée au lieu d&apos;être dupliquée — à condition que votre
-          compte porte l&apos;adresse e-mail qu&apos;elle a enregistrée pour vous.
+          compte porte l&apos;adresse e-mail qu&apos;il a enregistrée pour vous.
         </p>
       </div>
 

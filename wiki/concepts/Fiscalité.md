@@ -3,7 +3,7 @@ type: concept
 tags: [fiscalite, revenus-fonciers, proprietaire]
 status: draft
 created: 2026-07-22
-updated: 2026-09-29
+updated: 2026-10-14
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite]]"]
 ---
 
@@ -12,10 +12,18 @@ sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-6-rappo
 **Définition :** aide à la déclaration fiscale des revenus locatifs, destinée au
 **[[Propriétaire bailleur]]** (et à lui seul — pas aux agences).
 
-> [!note] Décision produit (humain, 2026-07-22) — non implémentée
+> [!note] Décision produit (humain, 2026-07-22) — implémentée en partie (mise à jour du 14/10/2026)
 > Fonctionnalité **actée au périmètre** suite à l'[[Analyse concurrentielle]] (Rentila et
-> GérerSeul en font un argument fort côté bailleur). **Aucune implémentation dans le code à
-> ce jour** — page cible.
+> GérerSeul en font un argument fort côté bailleur). L'inventaire de l'audit du 14/10 (lecture du code de la version candidate) relève, pour la
+> **location nue**, un récapitulatif fiscal (déclaration 2044) avec captures fiscales des paiements, qualification des pièces (versionnée), exercice par
+> lot, ligne 230, export CSV et document PDF. Les régimes **meublé (LMNP), SCI et micro-foncier** n'y sont pas calculés. Détail et jeu de référence :
+> [[Charges et fiscalité — jeu de référence et sources officielles (audit du 13 octobre 2026)]].
+
+> [!warning] Sources non officielles — à reconfirmer
+> La matrice ci-dessous vient de recherches sur des sites **commerciaux** (Finalib, Maslow, jedeclaremonmeuble, Manda), pas des textes officiels. L'audit du 14/10
+> n'a pas pu consulter service-public.fr, impots.gouv.fr ni legifrance.gouv.fr (accès réseau bloqué dans l'environnement de l'audit) : **aucune règle n'est confrontée à une
+> source officielle**, et le traitement exact des lignes 229/230 et des cotisations de fonds de travaux reste à trancher avec le dirigeant, avec validation spécialisée
+> (FIN-07, FIN-10, CHF-05 au [[Registre des anomalies — audit du 13 octobre 2026]]).
 
 ## Périmètre décidé (humain, 2026-07-22) : tous les cas de figure
 - Bénéficiaire : le **propriétaire bailleur indépendant** uniquement (audience `owner`).

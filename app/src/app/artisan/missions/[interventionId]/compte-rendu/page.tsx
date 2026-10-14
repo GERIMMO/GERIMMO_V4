@@ -18,7 +18,7 @@ import {
 import { BoutonDemarrer } from "../bouton-demarrer";
 import { PhotoChantier } from "./photo-chantier";
 
-export const metadata = { title: "Photo du travail — Espace artisan" };
+export const metadata = { title: "Photo du travail" };
 
 /**
  * COMPTE RENDU — ÉCRAN 1 SUR 2 (RM-19.3.1) : LA PHOTO.

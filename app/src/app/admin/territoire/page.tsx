@@ -13,7 +13,7 @@ import { depuisHeures, dernieresTaches, type PasseConsignee } from '@/lib/tache'
 import { empreinteParDepartement, empreinteParRegion, type LigneBail, type LigneBien, type LigneLot, type LigneOrganisation } from '@/lib/territoire';
 
 // Le nom de l'entrée de barre, partout (24/09).
-export const metadata = { title: 'Développement territorial — Gerimmo' };
+export const metadata = { title: 'Développement territorial' };
 export const dynamic = 'force-dynamic';
 const nombre = (n: number | null | undefined) => n == null ? 'À mesurer' : n.toLocaleString('fr-FR');
 const euros = (n: number | null | undefined) => n == null ? 'À mesurer' : (n / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });

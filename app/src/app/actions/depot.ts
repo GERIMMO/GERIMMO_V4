@@ -4,6 +4,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { lireMontant, verifierDateDejaPassee } from "@/lib/saisie-montant";
 
 export type EtatDepot = {
   erreur?: string;
@@ -21,9 +22,12 @@ export async function encaisserDepot(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
-  const montant = Number(String(formData.get("montant") ?? "").trim());
-  if (!montant || montant <= 0) return { erreur: "Montant invalide.", valeurs };
+  const lu = lireMontant(formData.get("montant"));
+  if ("erreur" in lu) return { erreur: lu.erreur, valeurs };
+  const montant = lu.montant;
   const date = String(formData.get("date") ?? "").trim() || null;
+  const dateRefusee = verifierDateDejaPassee(date, "La date d'encaissement");
+  if (dateRefusee) return { erreur: dateRefusee, valeurs };
   const moyen = String(formData.get("moyen") ?? "").trim() || null;
   const versantPerson = String(formData.get("versant_person") ?? "").trim() || null;
   const versantLibelle = String(formData.get("versant_libelle") ?? "").trim() || null;

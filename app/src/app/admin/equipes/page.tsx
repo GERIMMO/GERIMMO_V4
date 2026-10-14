@@ -7,7 +7,7 @@ import {formaterDateHeureParis,NOTE_FUSEAU} from '@/lib/heure-paris';
 import {AtelierQualite} from './qualite';
 import {Commandes} from './commandes';
 // Le nom de l'entrée de menu (audit 25/09, C8).
-export const metadata={title:'Travail des équipes — Gerimmo'};
+export const metadata={title:'Travail des équipes'};
 const noms:Record<string,string>={reussi:'Passage terminé',a_reprendre:'À vérifier',interrompu:'Passage interrompu',en_cours:'En cours'};
 // Audit console 27/09 : l'état de chaque carte vient de LA lecture partagée
 // avec Santé (`chargerEtatTaches` : mêmes passages, même seuil de 26 heures,

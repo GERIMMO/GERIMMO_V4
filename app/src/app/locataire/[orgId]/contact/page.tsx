@@ -70,7 +70,7 @@ export default async function PageContactLocataire(
         <div className="space-y-4">
           {g && (
             <div className="loc-carte">
-              <h3 className="text-base font-medium">{g.agence}</h3>
+              <h2 className="titre-carte text-base font-medium">{g.agence}</h2>
               <p className="mt-1 text-[13px] text-muted-foreground">{libelleBailleur}</p>
               <div className="mt-2">
                 <Interlocuteur gestionnaire={g} />

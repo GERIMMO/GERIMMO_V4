@@ -4,7 +4,7 @@ import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, secti
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
 import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument } from "./catalogue-bail";
 import { chargerContexteBail, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
-import { recapitulatifFiscal, type EcritureFiscale } from "@/lib/fiscal";
+import { LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, phrasePerimetreFiscal, recapitulatifFiscal, type ComposantesFiscales, type EcritureFiscale, type ExerciceFiscalLot, type QualificationFiscale, type RecapitulatifFiscal } from "@/lib/fiscal";
 import type { Assemblage, LienDocument } from "./index";
 import { aujourdhuiParis } from "@/lib/ged";
 
@@ -138,13 +138,37 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       if (code === "recap_fiscal_nu" && (!options.interets_emprunt?.trim() || !Number.isFinite(interetsEmprunt) || interetsEmprunt < 0)) {
         throw new RefusDocument("Indiquez les intérêts d’emprunt de l’année, ou 0 si le logement n’a aucun emprunt.");
       }
-      const ecritures = await lireLignes(lire("ecritures").eq("lot_id",cibleId).gte("date_piece",`${annee}-01-01`).lt("date_piece",`${annee+1}-01-01`).order("date_piece"));
-      const baux = await lireLignes(lire("baux").eq("lot_id",cibleId));
-      const fiscal = recapitulatifFiscal(ecritures as EcritureFiscale[],annee,{lotsMeubles:lot.meuble?new Set([cibleId]):new Set(),ventilationLoyers:new Map(baux.map(b=>[texte(b.id),{loyerHc:montant(b.loyer_hc),charges:montant(b.charges)}]))});
-      contenu = `${section(`Exercice ${annee}`)}<p>Récapitulatif du lot à 100 %, avant ventilation entre propriétaires. Les dépôts de garantie sont exclus et les contre-écritures déduites. Périmètre : ${ecritures.length} écritures enregistrées.</p>`;
+      const debutAnnee = `${annee}-01-01`, debutSuivante = `${annee+1}-01-01`;
+      let ecritures: Record<string,unknown>[], fiscal: RecapitulatifFiscal;
+      if (code === "recap_fiscal_nu") {
+        // Même lecture que l'écran « Préparer ma déclaration » : les montants de
+        // l'aide 2044 ne viennent que des captures d'encaissement, des
+        // qualifications justifiées et de l'exercice confirmé du lot. Sans cela le
+        // document imprimait 0,00 € partout (relevé du 13/10, FIN-01) : il refuse
+        // plutôt que de faire recopier des zéros sur une déclaration.
+        const [lignesQualif, lignesComposantes, lignesExercices, anneeOrg] = await Promise.all([
+          lireLignes(lire("fiscal_qualifications_ecritures").order("version",{ascending:false})),
+          lireLignes(lire("fiscal_encaissements_composantes")),
+          lireLignes(lire("fiscal_exercices_lots").eq("annee",annee).order("version",{ascending:false})),
+          lireLignes(lire("ecritures").gte("date_piece",debutAnnee).lt("date_piece",debutSuivante).order("date_piece")),
+        ]);
+        const qualifications = new Map<string,QualificationFiscale>();
+        for (const q of lignesQualif as unknown as QualificationFiscale[]) if (!qualifications.has(q.ecriture_id)) qualifications.set(q.ecriture_id,q);
+        const composantes = new Map((lignesComposantes as unknown as ComposantesFiscales[]).map(c=>[c.ecriture_id,c]));
+        const exercices = new Map<string,ExerciceFiscalLot>();
+        for (const x of lignesExercices as unknown as ExerciceFiscalLot[]) if (x.lot_id === cibleId && !exercices.has(x.lot_id)) exercices.set(x.lot_id,x);
+        ecritures = anneeOrg.filter(e => (texte(e.lot_id) || qualifications.get(texte(e.contre_ecriture_de) || texte(e.id))?.lot_id) === cibleId);
+        fiscal = recapitulatifFiscal(ecritures as unknown as EcritureFiscale[],annee,{qualifications,composantes,exercices,exigerPerimetre:true});
+        if (fiscal.incomplet) throw new RefusDocument(`Le récapitulatif ${annee} de ce lot n’est pas complet : ${fiscal.alertes.join(" ")} Complétez l’écran « Préparer ma déclaration » du lot, puis relancez la génération.`);
+      } else {
+        ecritures = await lireLignes(lire("ecritures").eq("lot_id",cibleId).gte("date_piece",debutAnnee).lt("date_piece",debutSuivante).order("date_piece"));
+        const baux = await lireLignes(lire("baux").eq("lot_id",cibleId));
+        fiscal = recapitulatifFiscal(ecritures as unknown as EcritureFiscale[],annee,{lotsMeubles:lot.meuble?new Set([cibleId]):new Set(),ventilationLoyers:new Map(baux.map(b=>[texte(b.id),{loyerHc:montant(b.loyer_hc),charges:montant(b.charges)}]))});
+      }
+      contenu = `${section(`Exercice ${annee}`)}<p>Récapitulatif du lot à 100 %, avant ventilation entre propriétaires. Les dépôts de garantie sont exclus et les contre-écritures déduites. ${phrasePerimetreFiscal(fiscal,{tableau:code==="recap_fiscal_nu"})}</p>`;
       if (lot.meuble) contenu += `<p>Recettes enregistrées : ${eur(fiscal.meuble.recettes)} ; dépenses enregistrées : ${eur(fiscal.meuble.depenses)}.</p><p>Les amortissements, emprunts et retraitements BIC sont à établir avec le comptable ; aucun résultat fiscal n’est certifié ici.</p>`;
-      else contenu += lignesTableau(f,fiscal.rubriques.map(r=>({...r,montant:r.code==="250"?interetsEmprunt:r.montant})),[["Rubrique","code","texte"],["Libellé","libelle","texte"],["Montant enregistré","montant","montant"]])+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p><p>Hors déclaration (charges récupérables) : ${eur(fiscal.chargesRecuperees)} de provisions et régularisations de charges encaissées${fiscal.teomExclue ? `, ${eur(fiscal.teomExclue)} de taxe d’enlèvement des ordures ménagères` : ""} — ni revenus, ni charges déductibles.</p>`;
-      contenu += "<p>Aide à la préparation de la déclaration. Vérifiez les pièces, la quote-part, les intérêts d’emprunt et les dépenses externes avant déclaration. Les loyers et provisions sont ventilés selon les montants du bail enregistrés lors de la génération.</p>";
+      else contenu += lignesTableau(f,fiscal.rubriques.map(r=>({...r,montant:r.code==="250"?interetsEmprunt:r.montant})),[["Rubrique","code","texte"],["Libellé","libelle","texte"],["Montant enregistré","montant","montant"]])+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p><p>Hors déclaration : ${eur(fiscal.chargesRecuperees)} de ${LIBELLE_RECETTES_EXCLUES}${fiscal.teomExclue ? `, ${eur(fiscal.teomExclue)} de ${LIBELLE_DEPENSES_EXCLUES}` : ""} — ni revenus, ni charges déductibles.</p>`;
+      contenu += `<p>Aide à la préparation de la déclaration. Vérifiez les pièces, la quote-part, les intérêts d’emprunt et les dépenses externes avant déclaration. ${code==="recap_fiscal_nu"?"Les loyers et provisions sont ventilés selon la capture faite à chaque encaissement ou la ventilation historique que vous avez justifiée.":"Les loyers et provisions sont ventilés selon les montants du bail enregistrés lors de la génération."}</p>`;
     } else if (code === "ecriture_rectificative" || code === "cloture_mensuelle") {
       if (code === "ecriture_rectificative") {
         const e = await unique("ecritures",cibleId);

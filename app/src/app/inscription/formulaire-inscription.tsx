@@ -8,6 +8,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { AlerteFormulaire } from "@/components/alerte-formulaire";
 
 // `dureeEssai` vient de la page (calculé côté serveur, à la date du jour) :
 // le texte du formulaire suit l'offre de lancement sans écart d'hydratation.
@@ -48,13 +49,14 @@ export function FormulaireInscription({
             24/09 : « (facultatif) » sur chaque champ optionnel, rien sur les
             obligatoires — seul le code de parrainage le disait, et neuf champs
             paraissaient requis quand cinq ne le sont pas. */}
-        <form action={action} className="space-y-4">
+        <form data-saisie-libre action={action} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="prenom">Prénom (facultatif)</Label>
               <Input
                 id="prenom"
                 name="prenom"
+                maxLength={100}
                 autoComplete="given-name"
                 defaultValue={etat.valeurs?.prenom}
               />
@@ -64,6 +66,7 @@ export function FormulaireInscription({
               <Input
                 id="nom"
                 name="nom"
+                maxLength={100}
                 autoComplete="family-name"
                 required
                 defaultValue={etat.valeurs?.nom}
@@ -72,7 +75,7 @@ export function FormulaireInscription({
           </div>
           <div className="space-y-2">
             <Label htmlFor="ins-adresse">Adresse postale (facultatif)</Label>
-            <Input id="ins-adresse" name="adresse" autoComplete="street-address" defaultValue={etat.valeurs?.adresse} placeholder="ex. 12 rue des Lilas" />
+            <Input id="ins-adresse" name="adresse" maxLength={200} autoComplete="street-address" defaultValue={etat.valeurs?.adresse} placeholder="ex. 12 rue des Lilas" />
             <p className="text-xs text-muted-foreground">
               Elle signera vos documents (baux, quittances…).
             </p>
@@ -80,17 +83,17 @@ export function FormulaireInscription({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="ins-cp">Code postal (facultatif)</Label>
-              <Input id="ins-cp" name="code_postal" inputMode="numeric" autoComplete="postal-code" defaultValue={etat.valeurs?.code_postal} />
+              <Input id="ins-cp" name="code_postal" maxLength={10} inputMode="numeric" autoComplete="postal-code" defaultValue={etat.valeurs?.code_postal} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="ins-ville">Ville (facultatif)</Label>
-              <Input id="ins-ville" name="ville" autoComplete="address-level2" defaultValue={etat.valeurs?.ville} />
+              <Input id="ins-ville" name="ville" maxLength={100} autoComplete="address-level2" defaultValue={etat.valeurs?.ville} />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="ins-tel">Téléphone (facultatif)</Label>
-              <Input id="ins-tel" name="telephone" type="tel" autoComplete="tel" defaultValue={etat.valeurs?.telephone} />
+              <Input id="ins-tel" name="telephone" maxLength={30} type="tel" autoComplete="tel" defaultValue={etat.valeurs?.telephone} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="ins-qualite">Vous louez en tant que</Label>
@@ -197,11 +200,7 @@ export function FormulaireInscription({
               remplace pas votre relevé bancaire.
             </p>
           </div>
-          {etat.erreur && (
-            <p className="text-sm text-destructive" role="alert">
-              {etat.erreur}
-            </p>
-          )}
+          {etat.erreur && <AlerteFormulaire signal={etat}>{etat.erreur}</AlerteFormulaire>}
           {/* Information RGPD au moment de la collecte (art. 13) : une phrase
               et le lien, au plus près du bouton qui envoie les données. */}
           <p className="text-xs text-muted-foreground">

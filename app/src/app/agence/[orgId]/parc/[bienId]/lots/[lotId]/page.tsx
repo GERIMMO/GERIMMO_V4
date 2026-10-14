@@ -739,7 +739,7 @@ export default async function PageLot(
       </section>}
     <details className={styles.gestionStatut}><summary>Gérer le statut du lot <ChevronDown size={16} aria-hidden="true" /></summary><div>
       {lot.etat === "brouillon" && !erreurBlocages && <BlocagesLocation motifs={(blocages ?? []) as string[]} ctx={{orgId,bienId,lotId}} pageCourante={`/agence/${orgId}/parc/${bienId}/lots/${lotId}`} titre="Ce qui empêche la mise en location" />}
-      <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} bailHref={bailEnCours ? `/agence/${orgId}/baux/${bailEnCours.id}` : undefined} />
+      <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} estBailleurDirect={role === "proprietaire_direct"} bailHref={bailEnCours ? `/agence/${orgId}/baux/${bailEnCours.id}` : undefined} />
     </div></details>
 
 

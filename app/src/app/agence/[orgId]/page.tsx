@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { identiteDuCompte } from "@/lib/identite-compte";
@@ -481,7 +482,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           }`}
         >
           <span className="ico"><IconeTrait nom="euro" /></span>
-          <span className="lib">Loyers de {nomMois}</span>
+          <span className="lib">Loyers {deElide(nomMois)}</span>
           <span className="val montant whitespace-nowrap">
             {erreurEncaissements ? "—" : eur(totalEncaisse)}
           </span>

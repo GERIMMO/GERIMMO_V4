@@ -3,7 +3,7 @@ import { CarteSollicitation } from "../carte-sollicitation";
 import { EnteteSousPage, Erreur, Succes, TitreSection, Vide } from "../ui";
 
 // Un seul nom pour cet écran : « Demandes de devis », comme son titre (24/09).
-export const metadata = { title: "Demandes de devis — Espace artisan" };
+export const metadata = { title: "Demandes de devis" };
 
 // Une demande close n'est pas forcément une demande à laquelle il a répondu :
 // une expirée ou une annulée ne rejoint pas ses devis (tour du 24/09).

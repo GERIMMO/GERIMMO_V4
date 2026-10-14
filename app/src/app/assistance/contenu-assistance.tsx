@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formaterDateHeureParis, formaterDateParis } from '@/lib/heure-paris';
 import { ArrowLeft, ArrowRight, BookOpen, Inbox, LifeBuoy, Lightbulb, MessageCircle, Plus, ShieldCheck } from "lucide-react";
 import styles from "./assistance.module.css";
 import { redirect } from "next/navigation";
@@ -49,10 +50,10 @@ export async function ContenuAssistance({searchParams, orgIdIntegre}:{searchPara
       const etapes=(traces.data??[]).filter(t=>t.retour_id===r.id);const derniere=etapes.at(-1);const anterieures=etapes.slice(0,-1);
       return <article id={`${prefixe}-${r.id}`} key={r.id} className={styles.demande} data-selectionnee={params.sel===r.id}>
        <div className={styles.demandeEntete}><h3>{r.titre}</h3><span className={`puce ${PUCE_ETAT[r.etat]??'puce-prep'}`}>{ETATS_RETOUR[r.etat]}</span></div>
-       <p className={styles.reference}><time dateTime={r.cree_le}>{new Date(r.cree_le).toLocaleDateString('fr-FR')}</time> · Réf. {r.id.slice(0,8).toUpperCase()}</p><p className={styles.description}>{r.description}</p>
+       <p className={styles.reference}><time dateTime={r.cree_le}>{formaterDateParis(r.cree_le)}</time> · Réf. {r.id.slice(0,8).toUpperCase()}</p><p className={styles.description}>{r.description}</p>
        {r.reexaminer_le&&<p className="mt-3 text-sm">Réexamen prévu le {new Date(r.reexaminer_le+'T12:00:00').toLocaleDateString('fr-FR')}.</p>}
-       {derniere&&<div className={styles.reponse}><p>{derniere.evenement==='creation'?'Suivi':'Réponse de Gerimmo'} · <time dateTime={derniere.cree_le}>{new Date(derniere.cree_le).toLocaleString('fr-FR')}</time></p><p>{derniere.message}</p></div>}
-       {anterieures.length>0&&<details open={params.sel===r.id} className={styles.historique}><summary>Étapes précédentes ({anterieures.length})</summary><ol>{anterieures.map(t=><li key={t.id}><time>{new Date(t.cree_le).toLocaleString('fr-FR')}</time><p>{t.message}</p></li>)}</ol></details>}
+       {derniere&&<div className={styles.reponse}><p>{derniere.evenement==='creation'?'Suivi':'Réponse de Gerimmo'} · <time dateTime={derniere.cree_le}>{formaterDateHeureParis(derniere.cree_le)}</time></p><p>{derniere.message}</p></div>}
+       {anterieures.length>0&&<details open={params.sel===r.id} className={styles.historique}><summary>Étapes précédentes ({anterieures.length})</summary><ol>{anterieures.map(t=><li key={t.id}><time>{formaterDateHeureParis(t.cree_le)}</time><p>{t.message}</p></li>)}</ol></details>}
        {r.nature==='idee'&&<SoutenirIdee id={r.id}/>}
       </article>;
      });

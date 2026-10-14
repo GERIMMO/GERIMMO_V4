@@ -9,7 +9,7 @@ import { MarquerLu } from "../marquer-lu";
 import { PreparerPoint } from "../preparer-point";
 import { dateLongue, heureParis, lirePoints } from "../lecture";
 
-export const metadata = { title: "Le point du matin — détail — Gerimmo" };
+export const metadata = { title: "Point du matin d’une équipe" };
 
 const ETATS: Record<string, string> = { reussi: "Terminé", a_reprendre: "À vérifier", interrompu: "Interrompu", en_cours: "En cours" };
 

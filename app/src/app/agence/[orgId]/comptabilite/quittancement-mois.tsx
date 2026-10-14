@@ -1,5 +1,6 @@
 "use client";
 
+import { deElide } from "@/lib/elision";
 import Link from "next/link";
 import { useRef } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
@@ -184,7 +185,7 @@ export function QuittancementMois({
       <CardHeader>
         {/* Niveau 2 : la page ne porte qu'un h1 — un h3 y sautait un niveau. */}
         <CardTitle role="heading" aria-level={2}>
-          Quittancement de {moisLabel}
+          Quittancement {deElide(moisLabel)}
         </CardTitle>
         {/* « réglé en entier » : la formule de la tuile Encaissé de la page.
             « 0 / 1 encaissée », au féminin et collé au bouton d'envoi,

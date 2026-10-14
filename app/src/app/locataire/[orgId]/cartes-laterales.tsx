@@ -59,7 +59,7 @@ export function CarteGestionnaire({
     .join("");
   return (
     <div className="loc-carte">
-      <h3 className="text-base font-medium">Mon gestionnaire</h3>
+      <h2 className="titre-carte text-base font-medium">Mon gestionnaire</h2>
       <div className="mt-3 flex items-center gap-3">
         <span className="loc-avat loc-avat--gestionnaire" aria-hidden>
           {initiales || "◇"}

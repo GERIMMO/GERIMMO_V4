@@ -106,3 +106,18 @@ it.each(["documents_courants", "incidents", "artisan_agences", "encaissements"])
   preparer({ persons: [{ id: "p", nom: "Test" }] }, [table]);
   expect(await rechercherDansEspace("org", "test")).toMatchObject({ resultats: [expect.objectContaining({ type: "Personne" })], erreur: expect.any(String) });
 });
+
+// PROP-08 : « 75011 » ne trouvait rien — le code postal n'était pas dans les champs cherchés d'un bien.
+it("retrouve un logement par le code postal de son bien et l'affiche dans le détail", async () => {
+  const c = preparer({
+    lots: [{ id: "lot-visible", nom: "Appartement B", bien_id: "bien", bien: { nom: "Résidence des Lilas", address_line1: "8 rue de l'Hôtel-de-Ville", postal_code: "75011", city: "Paris" } }],
+    biens: [{ id: "bien" }],
+  });
+  const r = await rechercherDansEspace("org", "75011");
+  expect(c.lectures.find(q => q.table === "biens")!.appels.find(a => a[0] === "or")![1]).toContain('postal_code.ilike."%75011%"');
+  expect(r.resultats).toHaveLength(1);
+  expect(r.resultats[0]).toMatchObject({ type: "Logement", href: "/agence/org/parc?sel=lot:lot-visible" });
+  expect(r.resultats[0].detail).toBe("Résidence des Lilas · 8 rue de l'Hôtel-de-Ville · 75011 Paris");
+  const selection = String(c.lectures.find(q => q.table === "lots")!.appels.find(a => a[0] === "select")![1]);
+  expect(selection).toContain("postal_code");
+});

@@ -30,7 +30,7 @@ export async function generateMetadata(
   const { interventionId } = await props.params;
   const agenda = await chargerAgenda();
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
-  return { title: `${titreEcran(mission)} — Espace artisan` };
+  return { title: titreEcran(mission) };
 }
 
 /**

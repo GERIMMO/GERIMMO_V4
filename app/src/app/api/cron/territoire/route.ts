@@ -1,9 +1,10 @@
 import { verifierAvantEffet } from "@/lib/controle-effets";
-// Tâche mensuelle : la ronde du territoire — mesurer, noter, décider, consigner.
+// Tâche planifiée chaque jour (05 h UTC, vercel.json) dont l'effet est mensuel : la ronde du territoire — mesurer, noter,
+// décider, consigner. Audit du 13/10 (IA-08) : le commentaire disait « le 1er de chaque mois » ; la clé de préparation
+// (AAAA-MM:département:public) limite l'écriture d'une campagne à une par mois, département et public, pas la planification.
 //
 // C'est la boucle de l'expansion territoriale (wiki, 19/09), dans son premier
-// état : elle CALCULE et CONSIGNE, elle n'agit pas encore. Le 1er de chaque
-// mois, elle relève l'empreinte (où l'on est), le score des candidats (où
+// état : elle CALCULE et CONSIGNE, elle n'agit pas encore. Chaque mois, elle relève l'empreinte (où l'on est), le score des candidats (où
 // aller), la décision (le prochain département, et s'il faut changer de
 // région) et la porte de santé (peut-on ouvrir sans exporter des problèmes),
 // puis écrit le tout, daté, dans `tech_log` sous `tache_territoire`. La page

@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -221,7 +222,7 @@ export function regrouperActionsDuJour({
       // Le retard se lit à l'échéance et au groupe, pas au fond de la rangée :
       // le rouge reste réservé à ce qui est critique, sinon il n'alerte plus.
       criticite: "normale",
-      titre: `Rapport de ${new Date(r.mois).toLocaleDateString("fr-FR", { month: "long", timeZone: "UTC" })}`,
+      titre: `Rapport ${deElide(new Date(r.mois).toLocaleDateString("fr-FR", { month: "long", timeZone: "UTC" }))}`,
       detail: `${p ? nomComplet(p) : "Mandant"} · à valider avant envoi`,
       echeance,
       href: `/agence/${orgId}/comptabilite`,

@@ -46,7 +46,7 @@ export function FormulairePersonne(props: Props) {
 }
 function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dansParcours = false, cleLocale, copie }: Props & { cleLocale: string; copie: CopieFichiers<BrouillonPersonne> | null }) {
   const initial = copie?.donnees;
-  const { enregistrer, statut } = useCopieFichiers(cleLocale, copie);
+  const { enregistrer, differer, statut } = useCopieFichiers(cleLocale, copie);
   const [pieces, setPieces] = useState<JustificatifPrepare[]>(initial?.pieces ?? []);
   const formulaire = useRef<HTMLFormElement>(null);
   const navigation = useRef<HTMLDivElement>(null);
@@ -70,7 +70,9 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
     }, initial?.bilan ?? {}
   );
   const snapshot = useMemo<BrouillonPersonne>(() => ({ ...contenu, bilan: etat }), [contenu, etat]);
-  useEffect(() => { if (role && !enCours && !etat.terminee) void enregistrer(snapshot); }, [role, enCours, etat.terminee, snapshot, enregistrer]);
+  // Audit du 13/10 (PR178-A-04) : écrire à chaque frappe réécrivait tous les fichiers joints (1,2 Go d'écritures pour
+  // 40 frappes avec trois pièces de 9 Mo). La copie est écrite une fois la frappe terminée (`differer`) ; les envois écrivent tout de suite.
+  useEffect(() => { if (role && !enCours && !etat.terminee) differer(snapshot); }, [role, enCours, etat.terminee, snapshot, differer]);
   const estProprio = role === "proprietaire_mandant";
   const personneMorale = estProprio && morale;
   const roles = estBailleurDirect ? ROLES.filter(r => r.cle !== "proprietaire_mandant") : ROLES;
@@ -140,7 +142,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
       <input type="hidden" name="role" value={role ?? ""} />
       {personneMorale && <input type="hidden" name="morale" value="on" />}
       {dansParcours && <input type="hidden" name="rester_dans_parcours" value="1" />}
-      <header className={parcours.entete}><span className={parcours.icone}><Icone size={23} aria-hidden="true" /></span><div><span className={parcours.surtitre}>Étape {String(etape+1).padStart(2,"0")} / 5</span><h2 ref={titre} tabIndex={-1}>{ETAPES[etape].titre}</h2><p>{ETAPES[etape].detail}.</p></div>{role && <div className={parcours.resumeLot}><strong>{ROLES.find(r=>r.cle===role)?.libelle}</strong><p>{personneMorale ? valeurs.nom : [valeurs.prenom,valeurs.nom].filter(Boolean).join(" ")}</p></div>}</header>
+      <header className={parcours.entete}><span className={parcours.icone}><Icone size={23} aria-hidden="true" /></span><div><span className={parcours.surtitre}>Étape {String(etape+1).padStart(2,"0")} / 5</span><h2 ref={titre} tabIndex={-1} data-titre-reprise>{ETAPES[etape].titre}</h2><p>{ETAPES[etape].detail}.</p></div>{role && <div className={parcours.resumeLot}><strong>{ROLES.find(r=>r.cle===role)?.libelle}</strong><p>{personneMorale ? valeurs.nom : [valeurs.prenom,valeurs.nom].filter(Boolean).join(" ")}</p></div>}</header>
       <div className={parcours.corps}>
         {(etape===1 || etape===2) && <p className={parcours.aide}><span className={parcours.legendePastille} aria-hidden="true" />Pastille rouge : information obligatoire à compléter.</p>}
         <div hidden={etape!==0}>
@@ -166,7 +168,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
             {champ("city","Ville",{autoComplete:"address-level2"})}
           </div>
           <fieldset hidden={!estProprio} disabled={!estProprio} className={styles.champ}>
-            <Label htmlFor="p-lot">Rattacher à un lot de l’agence — Facultatif</Label><ComboboxLot lots={lots} id="p-lot" name="lot_id" valeurInitiale={lotId} onChoix={setLotId} />
+            <Label htmlFor="p-lot">{estBailleurDirect ? "Rattacher à un lot" : "Rattacher à un lot de l’agence"} — Facultatif</Label><ComboboxLot lots={lots} id="p-lot" name="lot_id" valeurInitiale={lotId} onChoix={setLotId} />
             <p>Le propriétaire devient détenteur du lot à 100 %. Les quotes-parts se règlent dans la fiche du lot.</p>
           </fieldset>
         </fieldset>

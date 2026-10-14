@@ -50,7 +50,7 @@ export function FormulaireLot({
   const [surface, setSurface] = useState(String(lot.surface_m2 ?? ""));
 
   return (
-    <form data-champs-cibles={champsVisibles !== undefined || undefined} onSubmit={action} className="space-y-4">
+    <form data-saisie-confirmee data-champs-cibles={champsVisibles !== undefined || undefined} onSubmit={action} className="space-y-4">
       {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe sur
           la saisie, pas sur les valeurs d'origine (recette 22/08). */}
       <div className="grid gap-4 sm:grid-cols-2">

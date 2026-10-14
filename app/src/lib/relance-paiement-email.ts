@@ -17,6 +17,7 @@
 // partir un client.
 
 import { eur } from "@/lib/ged";
+import { echapperHtml } from "@/lib/quittance-email";
 
 export type Palier = 0 | 1 | 2 | 3;
 
@@ -95,7 +96,7 @@ export function corpsRelance(r: RelancePaiement): string {
       ${
         r.lien
           ? `<p style="margin:22px 0">
-        <a href="${r.lien}"
+        <a href="${echapperHtml(r.lien)}"
            style="background:#12263f;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;display:inline-block">
           ${geste}
         </a>
@@ -109,6 +110,6 @@ export function corpsRelance(r: RelancePaiement): string {
         exportable, même compte suspendu. Seules les nouvelles saisies attendent le
         règlement.
       </p>
-      <p style="color:#555">— Gerimmo, pour ${r.organisation}</p>
+      <p style="color:#555">— Gerimmo, pour ${echapperHtml(r.organisation)}</p>
     </div>`;
 }

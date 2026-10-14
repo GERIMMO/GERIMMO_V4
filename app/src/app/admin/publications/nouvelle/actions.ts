@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { journaliserSupervision } from "@/lib/journal-supervision";
 import { couperAuMot } from "@/lib/utils";
+import { aujourdhuiParis } from "@/lib/ged";
 
 export type EtatNouvelArticle = { erreur?: string; valeurs?: Record<string, string> };
 
@@ -74,7 +75,7 @@ export async function creerArticleIA(
   }
 
   const { data, error } = await supabase.from("publications").insert({
-    periode: new Date().toISOString().slice(0, 10), statut: "brouillon",
+    periode: aujourdhuiParis(), statut: "brouillon",
     titre: document.titre.trim().slice(0, 180), chapo: document.chapo.trim(), corps: document.corps.trim(),
     seo_description: couperAuMot(document.seo_description, 160),
     facebook_texte: document.facebook_texte.trim().slice(0, 4500),

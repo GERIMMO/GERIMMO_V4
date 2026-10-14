@@ -36,7 +36,7 @@ function BandeauPublic() {
 
 const GROUPES_PIED = [
   { titre: "Découvrir", liens: [["/#fonctionnalites", "La solution"], ["/tarifs", "Tarifs"], ["/outils", "Outils gratuits"], ["/journal", "Journal"]] },
-  { titre: "Votre espace", liens: [["/inscription", "Créer mon compte"], ["/connexion", "Se connecter"], ["/#agences", "Nous écrire (agence)"], ["/artisan/inscription", "Rejoindre le réseau d’artisans"]] },
+  { titre: "Votre espace", liens: [["/inscription", "Créer mon compte"], ["/connexion", "Se connecter"], ["/#contact", "Nous écrire"], ["/artisan/inscription", "Rejoindre le réseau d’artisans"]] },
   { titre: "Informations", liens: [["/mentions-legales", "Mentions légales"], ["/conditions", "Conditions générales"], ["/confidentialite", "Confidentialité"]] },
 ];
 

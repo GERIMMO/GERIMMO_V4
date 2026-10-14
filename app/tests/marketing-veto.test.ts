@@ -156,16 +156,57 @@ describe.skipIf(!DB_URL)("Marketing — fenêtre de veto", () => {
     expect(jeton).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it("la préparation du soir vise le lendemain si c'est un jour de publication", async () => {
+  /** Demain est un jour de publication, parution hors de la fenêtre de rattrapage du jour. */
+  async function demainEstJourDePublication() {
     // Une heure de parution hors de la fenêtre de rattrapage du jour (de 12 h
     // avant à 3 h après), quelle que soit l'heure à laquelle le test tourne.
     const { rows: [{ h }] } = await db.query(`select ((extract(hour from now() at time zone 'Europe/Paris')::int - 6) + 24) % 24 as h`);
     await db.query(`update public.marketing_reglages set jours_semaine = array[extract(isodow from (now() at time zone 'Europe/Paris')::date + 1)::smallint], publications_semaine = 1, heure_preparation_paris = 0, heure_paris = $1 where singleton`, [h]);
     await db.query(`delete from public.publications where marketing_jour is not null`);
+  }
+
+  it("la préparation du soir vise le lendemain si c'est un jour de publication", async () => {
+    await demainEstJourDePublication();
     await enService();
     const { rows } = await db.query(`select jour::text, rang, parution::text, rattrapage from public.cible_preparation_marketing()`);
     expect(rows).toHaveLength(1);
     expect(rows[0].rattrapage).toBe(false);
     expect(rows[0].jour).toBe((await db.query(`select ((now() at time zone 'Europe/Paris')::date + 1)::text as j`)).rows[0].j);
+  });
+  // 13/10/2026 : pg_cron appelle `declencher_marketing()` avec le rôle de la
+  // base, sans jeton JWT. Garde sur `auth.role()` : la préparation n'était
+  // jamais jugée due et seule la diffusion partait. Ce test rejoue l'appel de
+  // pg_cron tel qu'il est, pas celui de la route de traitement.
+  it("pg_cron, sans jeton, juge la préparation du soir due ; la lecture reste fermée aux rôles d'API", async () => {
+    await demainEstJourDePublication();
+    await db.query("reset role");
+    await db.query(`select set_config('request.jwt.claims', '', true)`);
+    expect((await db.query(`select public.preparation_marketing_due() as due`)).rows[0].due).toBe(true);
+    // La version publique garde sa garde : sans le rôle de traitement, rien.
+    expect((await db.query(`select * from public.cible_preparation_marketing()`)).rows).toHaveLength(0);
+    // Un créneau déjà programmé ferme la préparation, pour pg_cron aussi.
+    const { rows: [{ jour }] } = await db.query(`select ((now() at time zone 'Europe/Paris')::date + 1)::text as jour`);
+    const id = await brouillon({ jour });
+    await enService();
+    await db.query(`select public.programmer_publication_marketing($1, now() + interval '20 hours')`, [id]);
+    await db.query("reset role");
+    await db.query(`select set_config('request.jwt.claims', '', true)`);
+    expect((await db.query(`select public.preparation_marketing_due() as due`)).rows[0].due).toBe(false);
+  });
+
+  it("la version interne de la cible n'est exécutable par aucun rôle d'API, la lecture « due » ni par anon ni par un connecté", async () => {
+    await demainEstJourDePublication();
+    for (const role of ["anon", "authenticated", "service_role"]) {
+      await db.query("reset role");
+      await db.query(`select set_config('request.jwt.claims', json_build_object('role', $1::text)::text, true)`, [role]);
+      await db.query(`set local role ${role}`);
+      await doitEchouer(`select * from public.cible_preparation_marketing_interne()`, [], /permission denied/);
+    }
+    for (const role of ["anon", "authenticated"]) {
+      await db.query("reset role");
+      await db.query(`select set_config('request.jwt.claims', json_build_object('role', $1::text)::text, true)`, [role]);
+      await db.query(`set local role ${role}`);
+      await doitEchouer(`select public.preparation_marketing_due()`, [], /permission denied/);
+    }
   });
 });

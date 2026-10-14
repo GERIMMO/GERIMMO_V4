@@ -69,7 +69,7 @@ function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false,
     { name: "postal_code", label: "Code postal", required: true, max: 12 },
     { name: "city", label: "Ville", required: true, max: 120 },
   ];
-  return <form onSubmit={soumettre} className="bail-personne-formulaire space-y-4">
+  return <form data-saisie-confirmee onSubmit={soumettre} className="bail-personne-formulaire space-y-4">
     <p className="font-semibold">{personne ? `Compléter la fiche de ${nom(personne)}` : "Créer une personne"}</p>
     {!personne && proprietaire && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={morale} onChange={e => setMorale(e.target.checked)} />Il s’agit d’une société</label>}
     {morale && <input type="hidden" name="morale" value="on" />}
@@ -106,7 +106,7 @@ function ChoisirPersonne({ orgId, bailId, role, personnes, principalId, couvrabl
     setAvertissement(message); enregistrerLocal(p); setCreee(p); setSelection(p.id); setNouvelle(false);
   }} annuler={() => setNouvelle(false)} />;
   const choix = creee && !personnes.some(p => p.id === creee.id) ? [...personnes, creee] : personnes;
-  return <form onSubmit={soumettre} className="bail-personne-formulaire space-y-3">
+  return <form data-saisie-confirmee onSubmit={soumettre} className="bail-personne-formulaire space-y-3">
     <input type="hidden" name="role" value={role} /><input type="hidden" name="principal_attendu" value={principalId ?? ""} />
     <div className="flex flex-wrap items-end gap-2"><div className="min-w-0 flex-1 basis-60 space-y-1.5">
       <Label htmlFor={`choix-bail-${role}`}>Choisir un {libelle} enregistré</Label>

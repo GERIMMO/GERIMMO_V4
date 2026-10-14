@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import Link from "next/link";
 import { ArrowRight, CalendarCheck2, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Info, MapPin, SearchCheck, Wrench } from "lucide-react";
 import { TitreEcran } from "@/components/titre-ecran";
@@ -75,7 +76,7 @@ export function AgendaProprietaire({ agenda, comptesVues, base, aujourdhui }: {
     </nav>
 
     {agenda.erreur ? <EchecLecture quoi={["vos rendez-vous"]} /> : agenda.vue === "mois" ? <div className={styles.disposition}>
-      <section className={styles.calendrier} aria-label={`Calendrier de ${moisAffiche}`}>
+      <section className={styles.calendrier} aria-label={`Calendrier ${deElide(moisAffiche)}`}>
         <header className={styles.enteteMois}>
           <div><h2>{moisAffiche}</h2><p>{agenda.total} rendez-vous ce mois-ci</p></div>
           <nav className={styles.navigationMois} aria-label="Changer de mois">
@@ -84,7 +85,7 @@ export function AgendaProprietaire({ agenda, comptesVues, base, aujourdhui }: {
             <Link href={lienMois(agenda.mois.suivant.slice(0, 7))} aria-label="Mois suivant" scroll={false}><ChevronRight size={18} aria-hidden="true" /></Link>
           </nav>
         </header>
-        <div className={styles.grille} role="group" aria-label={`Rendez-vous de ${moisAffiche}`}>
+        <div className={styles.grille} role="group" aria-label={`Rendez-vous ${deElide(moisAffiche)}`}>
           {JOURS.map((jour) => <span key={jour} className={styles.nomJour} aria-hidden="true">{jour}</span>)}
           {Array.from({ length: agenda.mois.decalage }, (_, i) => <span key={`avant-${i}`} className={styles.horsMois} aria-hidden="true">{Number(decalerJour(agenda.mois.premier, i - agenda.mois.decalage).slice(8))}</span>)}
           {agenda.mois.jours.map((jour, i) => {

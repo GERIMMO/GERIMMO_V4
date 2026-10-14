@@ -15,7 +15,7 @@ import { PreparerPoint } from "./preparer-point";
 import { dateLongue, lirePoints, type PointLu } from "./lecture";
 
 // Le nom de l'entrée de menu (audit 25/09, C8) : « Aujourd'hui ».
-export const metadata = { title: "Aujourd’hui — Gerimmo" };
+export const metadata = { title: "Aujourd’hui" };
 
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 

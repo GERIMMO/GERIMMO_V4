@@ -6,11 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { destinationSure } from "@/lib/destination-sure";
 import { CLE_SESSION_ALERTES } from "@/components/synthese-alertes";
+import { oublierSession } from "@/lib/stockage-session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent } from "@/components/ui/card";
+import { AlerteFormulaire } from "@/components/alerte-formulaire";
 
 type Message = {
   texte: string;
@@ -73,7 +75,7 @@ export function FormulaireConnexion() {
   // la synthèse d'alertes déjà vue, sinon une reconnexion dans le même onglet
   // ne la rouvrirait jamais (le sessionStorage survit à la déconnexion).
   useEffect(() => {
-    sessionStorage.removeItem(CLE_SESSION_ALERTES);
+    oublierSession(CLE_SESSION_ALERTES);
   }, []);
 
   async function seConnecter(e: React.FormEvent) {
@@ -132,7 +134,7 @@ export function FormulaireConnexion() {
             )}
           </p>
         )}
-        <form onSubmit={seConnecter} className="space-y-4">
+        <form data-saisie-libre onSubmit={seConnecter} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Adresse e-mail</Label>
             <Input
@@ -155,11 +157,7 @@ export function FormulaireConnexion() {
               onChange={(e) => setMotDePasse(e.target.value)}
             />
           </div>
-          {erreur && (
-            <p className="text-sm text-destructive" role="alert">
-              {erreur}
-            </p>
-          )}
+          {erreur && <AlerteFormulaire>{erreur}</AlerteFormulaire>}
           <Button type="submit" className="w-full" disabled={enCours}>
             {enCours ? <><Spinner /> Connexion…</> : "Se connecter"}
           </Button>
@@ -174,8 +172,8 @@ export function FormulaireConnexion() {
               Mot de passe oublié ?
             </Link>
           </p>
-          {/* 25/09 (P6) : une porte par persona sans compte — l'artisan et
-              l'agence n'en avaient aucune ici. */}
+          {/* 25/09 (P6) : une porte par persona sans compte. V1 (13/10) : propriétaire
+              et artisan ; l'agence n'est plus proposée au public. */}
           <div className="space-y-1 border-t border-border pt-2 text-center text-sm text-muted-foreground">
             <p>
               Propriétaire bailleur ?{" "}
@@ -193,15 +191,6 @@ export function FormulaireConnexion() {
                 className="inline-flex min-h-11 items-center text-foreground underline underline-offset-4"
               >
                 Inscrire mon entreprise
-              </Link>
-            </p>
-            <p>
-              Agence ?{" "}
-              <Link
-                href="/#agences"
-                className="inline-flex min-h-11 items-center text-foreground underline underline-offset-4"
-              >
-                Demander un devis
               </Link>
             </p>
           </div>

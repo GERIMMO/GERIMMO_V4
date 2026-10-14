@@ -7,6 +7,8 @@
 // Envoyer le même texte aux deux, c'est obliger chacun à trier ce qui le
 // concerne dans un message écrit pour l'autre.
 
+import { echapperHtml } from "@/lib/quittance-email";
+
 export type Rappel = {
   /** « veille » ou « j7 » — ce que le message annonce n'est pas la même chose. */
   echeance: "veille" | "j7";
@@ -66,9 +68,9 @@ export function corpsRappel(r: Rappel): string {
   const pourLeLocataire = `
       <p>${annonce}</p>
       <ul>
-        <li>Logement : ${r.lot} — ${r.adresseBien}</li>
-        <li>Motif : ${r.categorie}</li>
-        <li>Intervenant : ${r.artisan}</li>
+        <li>Logement : ${echapperHtml(r.lot)} — ${echapperHtml(r.adresseBien)}</li>
+        <li>Motif : ${echapperHtml(r.categorie)}</li>
+        <li>Intervenant : ${echapperHtml(r.artisan)}</li>
       </ul>
       <p>Merci de permettre l'accès au logement sur ce créneau. Si vous ne
          pouvez pas être présent, prévenez-nous au plus tôt : un rendez-vous
@@ -77,9 +79,9 @@ export function corpsRappel(r: Rappel): string {
   const pourLArtisan = `
       <p>${annonce}</p>
       <ul>
-        <li>Adresse : ${r.adresseBien} — ${r.lot}</li>
-        <li>Désordre signalé : ${r.categorie}</li>
-        <li>Dossier : ${r.incidentNumero}</li>
+        <li>Adresse : ${echapperHtml(r.adresseBien)} — ${echapperHtml(r.lot)}</li>
+        <li>Désordre signalé : ${echapperHtml(r.categorie)}</li>
+        <li>Dossier : ${echapperHtml(r.incidentNumero)}</li>
       </ul>
       <p>Le locataire a été prévenu du même créneau. En cas d'empêchement,
          signalez-le depuis votre espace : une absence non prévenue pèse sur
@@ -88,8 +90,8 @@ export function corpsRappel(r: Rappel): string {
   return `
     <div style="font-family:sans-serif;font-size:14px;color:#151b2b">
       <h2 style="color:#0f2352">${r.echeance === "veille" ? "Intervention demain" : "Intervention la semaine prochaine"}</h2>
-      <p>Bonjour${r.prenom ? " " + r.prenom : ""},</p>
+      <p>Bonjour${r.prenom ? " " + echapperHtml(r.prenom) : ""},</p>
       ${r.destinataire === "locataire" ? pourLeLocataire : pourLArtisan}
-      <p>— ${r.emetteur}</p>
+      <p>— ${echapperHtml(r.emetteur)}</p>
     </div>`;
 }

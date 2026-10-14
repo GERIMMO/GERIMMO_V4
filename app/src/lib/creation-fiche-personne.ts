@@ -37,12 +37,18 @@ export function erreurJustificatif(piece: JustificatifPrepare): string | undefin
 
 /** Orchestration côté client : un envoi par fichier, sans recréer la personne
  * ni renvoyer une pièce déjà confirmée lors d'une reprise après un refus. Les
- * actions existantes revérifient chacune les droits et le contenu côté serveur. */
+ * actions existantes revérifient chacune les droits et le contenu côté serveur.
+ *
+ * Décision D31 (PR178-A-03) : la demande de création porte une clé (`creation_id`, tirée par l'écran et conservée
+ * avec sa copie locale). Après une réponse perdue, renvoyer la même demande est sans risque : le serveur retrouve
+ * la fiche déjà créée au lieu d'en créer une seconde. Sans clé (copie enregistrée avant cette décision), on ne peut
+ * pas le prouver : l'ancienne protection reste, la fiche est à vérifier dans la liste avant de recommencer. */
 export async function enregistrerFicheAvecJustificatifs(
   orgId: string, formData: FormData, pieces: JustificatifPrepare[],
   precedent: BilanCreationFiche, actions: Actions,
 ): Promise<BilanCreationFiche> {
-  if (precedent.creationIncertaine) return { ...precedent, erreur: "La création précédente n’a pas été confirmée. Vérifiez la liste des fiches avant de recommencer." };
+  const avecCle = Boolean(formData.get("creation_id"));
+  if (precedent.creationIncertaine && !avecCle) return { ...precedent, erreur: "La création précédente n’a pas été confirmée. Vérifiez la liste des fiches avant de recommencer." };
   const resultats = { ...precedent.pieces };
   const invalide = pieces.find(p => !resultats[p.id]?.succes && erreurJustificatif(p));
   if (invalide) return { ...precedent, erreur: `${invalide.titre || "Justificatif"} : ${erreurJustificatif(invalide)}` };
@@ -61,7 +67,12 @@ export async function enregistrerFicheAvecJustificatifs(
         await actions.memoriser?.({ ...precedent });
         return { ...precedent, erreur: MESSAGE_SESSION_EXPIREE };
       }
-      return { creationIncertaine: true, erreur: "La création n’a pas pu être confirmée. Vérifiez la liste des fiches avant de réessayer." };
+      return {
+        creationIncertaine: true,
+        erreur: avecCle
+          ? "La création n’a pas pu être confirmée. Vous pouvez relancer l’envoi : si la fiche a bien été créée, elle sera retrouvée et ne sera pas créée une seconde fois."
+          : "La création n’a pas pu être confirmée. Vérifiez la liste des fiches avant de réessayer.",
+      };
     }
     await actions.memoriser?.(creation);
     if (!creation.personneCreee) return creation;

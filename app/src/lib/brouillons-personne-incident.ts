@@ -5,9 +5,11 @@ const court = z.string().max(2000);
 const resultat = z.object({ succes: court.optional(), erreur: court.optional(), avertissement: court.optional(), incertain: z.boolean().optional() });
 const schemaPersonne = z.object({
   role: z.enum(["locataire", "garant", "proprietaire_mandant"]).nullable(), morale: z.boolean(), etape: z.number().int().min(0).max(4), lotId: z.string().max(100),
+  // Décision D31 : la clé de la demande de création suit la copie, pour qu'un renvoi après une réponse perdue retrouve la fiche.
+  creationId: z.string().uuid().optional(),
   valeurs: z.object({ nom: court, prenom: court, date_naissance: court, commune_naissance: court, email: court, telephone: court, address_line1: court, postal_code: court, city: court }),
   pieces: z.array(z.object({ id: z.string().uuid(), type: z.enum(["piece_identite", "justificatif", "attestation_assurance"]), titre: court, mode: z.enum(["depot", "demande"]), fichier: fichier.optional(), expireLe: court.optional() })).max(30),
-  bilan: z.object({ personneCreee: z.object({ id: z.string().uuid() }).optional(), creationIncertaine: z.boolean().optional(), pieces: z.record(z.string(), resultat).optional(), terminee: z.boolean().optional(), erreur: court.optional(), succes: court.optional(), avertissement: court.optional() }),
+  bilan: z.object({ personneCreee: z.object({ id: z.string().uuid() }).optional(), ficheExistante: z.object({ id: z.string().uuid() }).optional(), creationIncertaine: z.boolean().optional(), pieces: z.record(z.string(), resultat).optional(), terminee: z.boolean().optional(), erreur: court.optional(), succes: court.optional(), avertissement: court.optional() }),
 });
 const schemaIncident = z.object({
   commande: z.string().uuid(), categorie: court, piece: court, description: z.string().max(20000), anciennete: court, urgence: z.enum(["normale", "urgente"]), photos: z.array(fichier).max(5),

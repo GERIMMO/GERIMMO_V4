@@ -58,7 +58,12 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
   const [emailCorrect, setEmailCorrect] = useState(Boolean(initial?.valeurs.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(initial.valeurs.email)));
   const [lotId, setLotId] = useState(initial?.lotId ?? "");
   const [lotResume, setLotResume] = useState("");
-  const contenu = useMemo(() => ({ role: role as BrouillonPersonne["role"], morale, etape, valeurs, pieces, lotId }), [role, morale, etape, valeurs, pieces, lotId]);
+  // Décision D31 (PR178-A-03) : la clé de la demande de création, tirée une fois et conservée avec la copie. Un renvoi
+  // après une réponse perdue la réutilise : le serveur retrouve la fiche déjà créée au lieu d'en créer une seconde.
+  // Une copie d'avant cette décision, déjà marquée « création incertaine », n'a pas de clé : rien ne prouve qu'un
+  // renvoi ne créerait pas de doublon, elle garde l'ancienne protection (bouton fermé, fiche à vérifier dans la liste).
+  const [creationId] = useState<string | undefined>(() => initial?.creationId ?? (initial?.bilan.creationIncertaine ? undefined : crypto.randomUUID()));
+  const contenu = useMemo(() => ({ role: role as BrouillonPersonne["role"], morale, etape, valeurs, pieces, lotId, creationId }), [role, morale, etape, valeurs, pieces, lotId, creationId]);
   const [etat, formAction, enCours] = useActionState<BilanCreationFiche, FormData>(
     async (precedent, data) => {
       const bilan = await enregistrerFicheAvecJustificatifs(orgId, data, pieces, precedent, {
@@ -73,6 +78,8 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
   // Audit du 13/10 (PR178-A-04) : écrire à chaque frappe réécrivait tous les fichiers joints (1,2 Go d'écritures pour
   // 40 frappes avec trois pièces de 9 Mo). La copie est écrite une fois la frappe terminée (`differer`) ; les envois écrivent tout de suite.
   useEffect(() => { if (role && !enCours && !etat.terminee) differer(snapshot); }, [role, enCours, etat.terminee, snapshot, differer]);
+  // Sans clé, une création incertaine ne peut pas être renvoyée sans risque de doublon (copie d'avant la décision D31).
+  const envoiBloque = Boolean(etat.creationIncertaine) && !creationId;
   const estProprio = role === "proprietaire_mandant";
   const personneMorale = estProprio && morale;
   const roles = estBailleurDirect ? ROLES.filter(r => r.cle !== "proprietaire_mandant") : ROLES;
@@ -102,7 +109,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
   }
   function soumettre(event: FormEvent<HTMLFormElement>) {
     if (etape < 4) { event.preventDefault(); changer(etape+1); return; }
-    if (etat.creationIncertaine || !role || !valider(1) || !valider(2) || !valider(3)) { event.preventDefault(); return; }
+    if (envoiBloque || !role || !valider(1) || !valider(2) || !valider(3)) { event.preventDefault(); return; }
   }
   const nomsIdentite: Champ[] = personneMorale ? ["nom"] : ["nom","prenom","date_naissance","commune_naissance"];
   const emailValide = valeurs.email.trim() !== "" && emailCorrect;
@@ -133,13 +140,16 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
   }
   return <div ref={navigation} className={`assistant-location ${parcours.presentation} ${parcours.parcoursLot}`}>
     <StatutCopieLocale statut={statut} />
-    {etat.creationIncertaine && <p role="alert" className="mb-4 rounded-xl bg-warning-soft p-4 text-sm">Un enregistrement a été interrompu. Vérifiez la fiche dans la liste avant de recommencer. Votre saisie et vos documents restent disponibles ici. <Link className="underline" href={`/agence/${orgId}/personnes`}>Voir les fiches</Link></p>}
+    {etat.creationIncertaine && (creationId
+      ? <p role="alert" className="mb-4 rounded-xl bg-warning-soft p-4 text-sm">Un enregistrement a été interrompu. Vous pouvez relancer l’envoi : si la fiche a bien été créée, elle sera retrouvée et ne sera pas créée une seconde fois. Votre saisie et vos documents restent disponibles ici. <Link className="underline" href={`/agence/${orgId}/personnes`}>Voir les fiches</Link></p>
+      : <p role="alert" className="mb-4 rounded-xl bg-warning-soft p-4 text-sm">Un enregistrement a été interrompu. Vérifiez la fiche dans la liste avant de recommencer. Votre saisie et vos documents restent disponibles ici. <Link className="underline" href={`/agence/${orgId}/personnes`}>Voir les fiches</Link></p>)}
     <NavigationParcours titre="Création d’une fiche" label="Étapes de la création d’une fiche" etape={etape} changer={changer} accessibles={role ? 5 : 1}
       etapes={ETAPES.map((e,i) => ({...e,...(i<3 ? {statut:restants[i] ? "incomplet" as const : "complet" as const, restant:restants[i]} : i===3 ? {statutLibelle: pieces.length ? `${pieces.length} préparé${pieces.length>1 ? "s" : ""}` : "Facultatif"} : {})}))} />
     {etat.succes && <p role="status" className="mb-4 text-sm text-success-soft-foreground">{etat.succes}</p>}
     {etat.avertissement && <p role="status" className="mb-4 text-sm text-warning-soft-foreground">{etat.avertissement}</p>}
     <form data-protection-saisie="locale" ref={formulaire} action={formAction} noValidate onSubmit={soumettre} onReset={e=>e.preventDefault()} className={`assistant-carte ${parcours.cadre} ${styles.formulaire}`}>
       <input type="hidden" name="role" value={role ?? ""} />
+      {creationId && <input type="hidden" name="creation_id" value={creationId} />}
       {personneMorale && <input type="hidden" name="morale" value="on" />}
       {dansParcours && <input type="hidden" name="rester_dans_parcours" value="1" />}
       <header className={parcours.entete}><span className={parcours.icone}><Icone size={23} aria-hidden="true" /></span><div><span className={parcours.surtitre}>Étape {String(etape+1).padStart(2,"0")} / 5</span><h2 ref={titre} tabIndex={-1} data-titre-reprise>{ETAPES[etape].titre}</h2><p>{ETAPES[etape].detail}.</p></div>{role && <div className={parcours.resumeLot}><strong>{ROLES.find(r=>r.cle===role)?.libelle}</strong><p>{personneMorale ? valeurs.nom : [valeurs.prenom,valeurs.nom].filter(Boolean).join(" ")}</p></div>}</header>
@@ -193,12 +203,12 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
           </section>
           {!estProprio && <p className={parcours.creationNote}>{role==="locataire" ? "Vous pourrez choisir cette personne comme locataire lors de la création du bail." : "Vous pourrez choisir ce garant dans le bail du locataire qu’il cautionne."}</p>}
         </div>
-        {etat.personneCreee && <p className="mt-4 text-sm"><Link className="underline underline-offset-4" href={`/agence/${orgId}/personnes/${etat.personneCreee.id}#pieces`}>Ouvrir la fiche déjà créée</Link></p>}
+        {(etat.personneCreee ?? etat.ficheExistante) && <p className="mt-4 text-sm"><Link className="underline underline-offset-4" href={`/agence/${orgId}/personnes/${(etat.personneCreee ?? etat.ficheExistante)!.id}#pieces`}>Ouvrir la fiche déjà créée</Link></p>}
         {etat.erreur && <p role="alert" className="mt-4 text-sm text-destructive">{etat.erreur}</p>}
       </div>
       <div className={`assistant-pied ${parcours.pied}`}>
         {etape>0 && (!etat.personneCreee || etape>3) ? <Button type="button" variant="outline" disabled={enCours} onClick={()=>changer(etape-1)}><ArrowLeft size={16} aria-hidden="true" />Précédent</Button> : <span />}
-        {etape>0 && (etape<4 ? <Button type="button" disabled={enCours} onClick={()=>changer(etape+1)}>Suivant<ArrowRight size={16} aria-hidden="true" /></Button> : <BoutonEnvoi disabled={etat.creationIncertaine} enCoursTexte="Enregistrement du dossier…">{etat.personneCreee ? "Reprendre les justificatifs" : "Créer la fiche"}</BoutonEnvoi>)}
+        {etape>0 && (etape<4 ? <Button type="button" disabled={enCours} onClick={()=>changer(etape+1)}>Suivant<ArrowRight size={16} aria-hidden="true" /></Button> : <BoutonEnvoi disabled={envoiBloque} enCoursTexte="Enregistrement du dossier…">{etat.personneCreee ? "Reprendre les justificatifs" : "Créer la fiche"}</BoutonEnvoi>)}
       </div>
     </form>
   </div>;

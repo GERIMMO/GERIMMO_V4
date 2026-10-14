@@ -3,6 +3,7 @@ import {revalidatePath} from 'next/cache';
 import {verifierGerant} from '@/lib/ged-acces';
 import {sansJargon} from '@/lib/erreurs';
 import {lireMontantFacultatif} from '@/lib/saisie-montant';
+import {estFondsTravauxAlur} from '@/lib/fiscal';
 export type EtatFiscal={erreur?:string;succes?:string};
 const texte=(f:FormData,k:string)=>String(f.get(k)??'').trim();
 const nombreOptionnel=(f:FormData,k:string)=>texte(f,k)===''?null:Number(texte(f,k).replace(',','.'));
@@ -16,7 +17,15 @@ export async function qualifierPieceFiscale(orgId:string,ecritureId:string,_etat
  const loyerHc=montantOptionnel(f,'loyer_hc','Part loyer hors charges'),charges=montantOptionnel(f,'charges','Part charges');
  if('erreur' in loyerHc)return{erreur:loyerHc.erreur};if('erreur' in charges)return{erreur:charges.erreur};
  const {error}=await supabase.rpc('qualifier_ecriture_fiscale',{p_ecriture:ecritureId,p_nature:texte(f,'nature'),p_rubrique:texte(f,'rubrique')||null,p_justification:texte(f,'justification'),p_loyer_hc:loyerHc.montant,p_charges:charges.montant,p_lot:texte(f,'lot_id')||null});
- if(error)return{erreur:sansJargon(error.message)};actualiser(orgId);return{succes:'Qualification conservée dans une nouvelle version. Le journal reste inchangé.'};
+ if(error)return{erreur:sansJargon(error.message)};actualiser(orgId);
+ const succes='Qualification conservée dans une nouvelle version. Le journal reste inchangé.';
+ // D03 (FIN-07, option A) : une dépense au libellé « fonds de travaux ALUR » reste rangée à part quoi qu'on choisisse. On le dit ici,
+ // au moment du choix, au lieu d'enregistrer en silence une qualification sans effet. Une lecture qui échoue ne retire rien à l'enregistrement.
+ if(texte(f,'nature')!=='a_qualifier'){
+  const {data:piece}=await supabase.from('ecritures').select('categorie,sens').eq('organization_id',orgId).eq('id',ecritureId).maybeSingle();
+  if(piece&&piece.sens==='depense'&&estFondsTravauxAlur(String(piece.categorie??'')))return{succes:`${succes} Attention : cette dépense est rangée d’office en « fonds de travaux ALUR » d’après son libellé ; votre choix est conservé mais il n’est pas appliqué au récapitulatif.`};
+ }
+ return{succes};
 }
 export async function retrouverVentilation(orgId:string,ecritureId:string,_etat:EtatFiscal,_f:FormData):Promise<EtatFiscal>{
  const {supabase,autorise}=await acces(orgId);if(!autorise)return{erreur:'Accès refusé.'};

@@ -1,4 +1,4 @@
-import { LIBELLE_CUMUL_A_QUALIFIER, type recapitulatifFiscal } from "./fiscal";
+import { LIBELLE_CUMUL_A_QUALIFIER, phrasePiecesAQualifier, type recapitulatifFiscal } from "./fiscal";
 
 /** Export des seuls montants affichés, à la quote-part du déclarant si nécessaire. */
 export function csvRecapitulatifFiscal(recap: ReturnType<typeof recapitulatifFiscal>, annee: number) {
@@ -6,6 +6,8 @@ export function csvRecapitulatifFiscal(recap: ReturnType<typeof recapitulatifFis
     ["État", recap.incomplet ? "À compléter : montants confirmés uniquement" : "Montants qualifiés ; rubriques complémentaires à vérifier", "Règles", recap.versionRegles],
     ["Export préparé le", new Date().toISOString(), "", ""],
     ...recap.alertes.map(a => ["À compléter",a,"",""]),
+    // D02 (FIN-11) : le nombre de pièces à qualifier, comme à l'écran.
+    ...(phrasePiecesAQualifier(recap) ? [["À compléter",phrasePiecesAQualifier(recap)!,"",""]] : []),
     ["Année", "Rubrique", "Libellé", "Montant affiché (EUR)"],
     ...recap.rubriques.map(r => [String(annee), r.code, r.libelle,
       r.aCompleter ? "" : (recap.ventile ? r.montantQuotePart : r.montant).toFixed(2).replace(".", ",")]),

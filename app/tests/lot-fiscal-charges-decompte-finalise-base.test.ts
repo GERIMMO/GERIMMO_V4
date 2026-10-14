@@ -144,6 +144,16 @@ describe.skipIf(!DB_URL)("Régularisation après un décompte de sortie finalis�
     const { n } = await un(`select count(*)::int as n from pg_proc p join pg_namespace s on s.oid=p.pronamespace where s.nspname='public' and p.proname ilike '%rectificatif%'`);
     expect(Number(n)).toBe(0);
 
+    // Ce que l'action lit puis écrit après l'enregistrement, avec les droits du gérant (et non ceux de l'administrateur de la base) :
+    // l'état du décompte de CE bail dans CETTE organisation, puis l'alerte du solde non appelé.
+    await enGerant();
+    const lu = await db.query(`select statut from public.restitutions where organization_id=$1 and bail_id=$2`, [org, bail]);
+    expect(lu.rows).toEqual([{ statut: "finalise" }]);
+    await db.query(
+      `insert into public.alerts (organization_id, type, criticite, titre, details) values ($1,'regularisation_non_appelee','normale',$2,$3::jsonb)`,
+      [org, `Régularisation des charges ${annee - 1} : complément de 40,00 € dû par le locataire, décompte de sortie déjà finalisé`, JSON.stringify({ bail_id: bail, annee: annee - 1, ecart: -40 })]
+    );
+
     // La réalité du bail, elle, a bougé : 40 € sont dus. Le décompte finalisé ne les porte pas.
     const { impayes } = await un(`select impayes from public.montants_restitution_a_jour($1)`, [bail]);
     expect(Number(impayes)).toBe(40);

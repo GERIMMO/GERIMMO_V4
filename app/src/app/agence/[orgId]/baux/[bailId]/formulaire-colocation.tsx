@@ -254,13 +254,15 @@ export function FormulaireColocation({
             <Label htmlFor="coloc-qp" className="text-sm">
               Quote-part %
             </Label>
-            <Input id="coloc-qp" name="quote_part" type="number" min="0.01" max="100" step="0.01" defaultValue={etatC.valeurs?.quote_part} />
+            {/* Texte décimal, jamais type="number" : un navigateur non francophone lit « 33,5 » comme 335
+                (VER-TS-02) ; l'action lit le texte tapé et borne la quote-part entre 0 et 100. */}
+            <Input id="coloc-qp" name="quote_part" type="text" inputMode="decimal" defaultValue={etatC.valeurs?.quote_part} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="coloc-surf" className="text-sm">
               Surface privée (m²)
             </Label>
-            <Input id="coloc-surf" name="surface_privative" type="number" min="0.01" step="0.01" defaultValue={etatC.valeurs?.surface_privative} />
+            <Input id="coloc-surf" name="surface_privative" type="text" inputMode="decimal" defaultValue={etatC.valeurs?.surface_privative} />
           </div>
           <div className="sm:col-span-4">
             <BoutonEnvoi enCoursTexte="Ajout…" size="sm" variant="outline">

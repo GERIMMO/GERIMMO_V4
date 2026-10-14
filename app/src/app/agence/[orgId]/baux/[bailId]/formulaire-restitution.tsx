@@ -488,11 +488,11 @@ function ChampsRetenue({
         </div>
         <div className="space-y-1">
           <Label htmlFor="ret-duree" className="text-sm">Durée de vie (ans)</Label>
-          <Input id="ret-duree" name="duree_vie" type="number" step="1" min="1" list="bareme-vetuste" defaultValue={valeurs?.duree_vie} className="h-9 w-28" />
+          <Input id="ret-duree" name="duree_vie" type="text" inputMode="decimal" list="bareme-vetuste" defaultValue={valeurs?.duree_vie} className="h-9 w-28" />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ret-age" className="text-sm">Âge (ans)</Label>
-          <Input id="ret-age" name="age" type="number" step="1" min="0" defaultValue={valeurs?.age} className="h-9 w-20" />
+          <Input id="ret-age" name="age" type="text" inputMode="decimal" defaultValue={valeurs?.age} className="h-9 w-20" />
         </div>
       </div>
       <datalist id="bareme-vetuste">

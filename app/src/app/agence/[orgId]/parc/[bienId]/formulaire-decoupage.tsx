@@ -63,9 +63,8 @@ export function FormulaireDecoupage({
           <Input
             id={`${idLigne}-surface-${i}`}
             name="lot_surface"
-            type="number"
-            step="0.01"
-            min="0.01"
+            type="text"
+            inputMode="decimal"
             placeholder="m²"
             className="w-24"
             value={l.surface}

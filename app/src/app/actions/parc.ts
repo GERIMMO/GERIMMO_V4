@@ -10,6 +10,7 @@ import { aujourdhuiParis, formaterDate, motifLitteral } from "@/lib/ged";
 import { piecesHabituelles } from "@/lib/pieces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { verifierAnneeConstruction, verifierCodePostalBien, verifierSurface } from "@/lib/validation-fiches";
+import { erreurDuChamp, lireDecimal, lireDecimalFacultatif } from "@/lib/saisie-montant";
 import {
   TYPES_BIEN,
   TYPES_DIAGNOSTIC,
@@ -102,10 +103,19 @@ export async function creerBien(
     };
   }
   const lotsAValider = lotsSaisis.length > 0 ? lotsSaisis : [{ surface, pieces }];
-  if (lotsAValider.some((lot) => !lot.surface || !Number.isFinite(Number(lot.surface)) || Number(lot.surface) <= 0 || !lot.pieces || !Number.isInteger(Number(lot.pieces)) || Number(lot.pieces) < 1 || (lot.nom !== undefined && typeof lot.nom !== "string"))) {
+  // La surface se lit sur le texte tel que tapé (« 45,5 » vaut 45,5) : le champ est en `type="text"`, jamais
+  // `type="number"` qui donne 455 à un navigateur non francophone (VER-TS-02). Illisible, elle est refusée en le disant.
+  const surfaces: number[] = [];
+  for (const lot of lotsAValider) {
+    const brute = String(lot.surface ?? "").trim();
+    const lue = brute ? lireDecimal(brute) : null;
+    if (lue && "erreur" in lue) return { erreur: erreurDuChamp("Surface habitable", lue.erreur), valeurs };
+    surfaces.push(lue ? lue.valeur : 0);
+  }
+  if (lotsAValider.some((lot, i) => surfaces[i] <= 0 || !lot.pieces || !Number.isInteger(Number(lot.pieces)) || Number(lot.pieces) < 1 || (lot.nom !== undefined && typeof lot.nom !== "string"))) {
     return { erreur: "La surface habitable et le nombre de pièces sont obligatoires pour chaque lot.", valeurs };
   }
-  const surfaceTropGrande = lotsAValider.map((lot) => verifierSurface(Number(lot.surface), "La surface d'un lot")).find(Boolean);
+  const surfaceTropGrande = surfaces.map((valeur) => verifierSurface(valeur, "La surface d'un lot")).find(Boolean);
   if (surfaceTropGrande) return { erreur: surfaceTropGrande, valeurs };
 
   const creation = String(formData.get("creation_id") ?? _etat.valeurs?.creation_id ?? "");
@@ -122,7 +132,7 @@ export async function creerBien(
         postal_code: codePostal, city: ville, annee_construction: Number(annee),
         copropriete: formData.get("copropriete") === "on", zone_tendue: zoneTendueSaisie(formData),
         parties_communes: partiesCommunes, acces_tic: accesTic, commune_insee: communeSaisie(formData),
-        lots: lotsAValider.map(l => ({ nom: l.nom?.trim() || null, surface_m2: Number(l.surface), pieces: Number(l.pieces) })),
+        lots: lotsAValider.map((l, i) => ({ nom: l.nom?.trim() || null, surface_m2: surfaces[i], pieces: Number(l.pieces) })),
       },
     });
     if (error || !data?.bien_id) {
@@ -215,7 +225,9 @@ export async function modifierLot(
 
   const valeurs = valeursDuFormulaire(formData);
   const nom = String(formData.get("nom") ?? "").trim();
-  const tantieme = String(formData.get("tantieme") ?? "").trim();
+  // Tantième lu sur le texte tel que tapé (« 125,5 » vaut 125,5) : champ en `type="text"` (VER-TS-02).
+  const tantiemeLu = lireDecimalFacultatif(formData.get("tantieme"));
+  if ("erreur" in tantiemeLu) return { erreur: erreurDuChamp("Tantième", tantiemeLu.erreur), valeurs };
   if (!nom) return { erreur: "Le nom du lot est obligatoire.", valeurs };
   for (const champ of ["identifiant_fiscal", "description", "chauffage", "eau_chaude", "locaux_privatifs"]) {
     if (!String(formData.get(champ) ?? "").trim()) {
@@ -235,7 +247,7 @@ export async function modifierLot(
     meuble: formData.get("meuble") === "on",
     etage: String(formData.get("etage") ?? "").trim() || null,
     description: String(formData.get("description") ?? "").trim() || null,
-    tantieme: tantieme ? Number(tantieme) : null,
+    tantieme: tantiemeLu.valeur,
     identifiant_fiscal: String(formData.get("identifiant_fiscal") ?? "").trim() || null,
     // Désignation du bail (art. 3 loi 89-462) : chauffage, eau chaude, accessoires
     chauffage: String(formData.get("chauffage") ?? "").trim() || null,
@@ -243,13 +255,23 @@ export async function modifierLot(
     locaux_privatifs: String(formData.get("locaux_privatifs") ?? "").trim() || null,
   };
   for (const champ of ["surface_m2", "surface_carrez", "pieces"]) {
-    if (formData.has(champ)) {
+    if (!formData.has(champ)) continue;
+    if (champ === "pieces") {
       const valeur = String(formData.get(champ) ?? "").trim();
       maj[champ] = valeur ? Number(valeur) : null;
-      if (champ !== "pieces") {
-        const refus = verifierSurface(Number(valeur), champ === "surface_carrez" ? "La surface Carrez" : "La surface habitable");
-        if (refus) return { erreur: refus, valeurs };
-      }
+      continue;
+    }
+    // Les surfaces se lisent sur le texte tel que tapé (« 45,5 » vaut 45,5) : champs en `type="text"`, jamais
+    // `type="number"` qui donne 455 à un navigateur non francophone (VER-TS-02).
+    const nomSurface = champ === "surface_carrez" ? "Surface Carrez" : "Surface habitable";
+    const lue = lireDecimalFacultatif(formData.get(champ));
+    if ("erreur" in lue) return { erreur: erreurDuChamp(nomSurface, lue.erreur), valeurs };
+    maj[champ] = lue.valeur;
+    if (lue.valeur !== null) {
+      // Le minimum que le champ numérique portait (min 0,01) : le serveur le dit, la base le garde aussi.
+      if (lue.valeur <= 0) return { erreur: `La ${nomSurface.charAt(0).toLowerCase()}${nomSurface.slice(1)} doit être supérieure à zéro.`, valeurs };
+      const refus = verifierSurface(lue.valeur, champ === "surface_carrez" ? "La surface Carrez" : "La surface habitable");
+      if (refus) return { erreur: refus, valeurs };
     }
   }
   const { error } = await supabase
@@ -324,9 +346,16 @@ export async function decouperBien(
 
   const noms = formData.getAll("lot_nom").map((n) => String(n).trim());
   const surfaces = formData.getAll("lot_surface").map((s) => String(s).trim());
-  const lots = noms
-    .map((nom, i) => ({ nom, surface_m2: surfaces[i] || "" }))
-    .filter((l) => l.nom.length > 0);
+  // La surface, facultative, se lit sur le texte tel que tapé (« 45,5 » vaut 45,5) : champ en `type="text"`, jamais
+  // `type="number"` qui donne 455 à un navigateur non francophone (VER-TS-02). Vide, elle reste vide pour la base.
+  const lots: { nom: string; surface_m2: number | "" }[] = [];
+  for (const [i, nom] of noms.entries()) {
+    if (nom.length === 0) continue;
+    const lue = lireDecimalFacultatif(surfaces[i] ?? "");
+    if ("erreur" in lue) return { erreur: erreurDuChamp("Surface d'un lot", lue.erreur) };
+    if (lue.valeur !== null && lue.valeur <= 0) return { erreur: "La surface d'un lot doit être supérieure à zéro." };
+    lots.push({ nom, surface_m2: lue.valeur ?? "" });
+  }
   if (lots.length === 0) return { erreur: "Renseigner au moins un lot à créer." };
 
   const { error } = await supabase.rpc("decouper_bien", {
@@ -353,7 +382,12 @@ export async function ajouterDetention(
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
-  const quotePart = Number(String(formData.get("quote_part") ?? ""));
+  // Quote-part lue sur le texte tel que tapé (« 33,5 » vaut 33,5) : champ en `type="text"`, jamais `type="number"`
+  // qui donne 335 à un navigateur non francophone (VER-TS-02). Vide, elle ne passe pas la borne ci-dessous.
+  const quotePartBrute = String(formData.get("quote_part") ?? "").trim();
+  const quotePartLue = quotePartBrute ? lireDecimal(quotePartBrute) : { valeur: 0 };
+  if ("erreur" in quotePartLue) return { erreur: erreurDuChamp("Quote-part", quotePartLue.erreur), valeurs };
+  const quotePart = quotePartLue.valeur;
   const dateDebut = String(formData.get("date_debut") ?? "");
   if (!(quotePart > 0 && quotePart <= 100)) {
     return { erreur: "La quote-part doit être comprise entre 0 et 100.", valeurs };
@@ -762,10 +796,15 @@ export async function validerCle(
   const mode = String(formData.get("mode") ?? "surface");
   const lotIds = formData.getAll("ligne_lot_id").map(String);
   const pourcentages = formData.getAll("ligne_pourcentage").map(String);
-  const lignes = lotIds.map((lot_id, i) => ({
-    lot_id,
-    pourcentage: Number(pourcentages[i] ?? 0),
-  }));
+  // Chaque pourcentage est lu sur le texte tel que tapé (« 33,5 » vaut 33,5) : le champ est en `type="text"`, jamais
+  // `type="number"` qui donne 335 à un navigateur non francophone (VER-TS-02). Un champ vide ou illisible est refusé,
+  // plus lu « 0 » : la base valide ensuite le 100,00 exact.
+  const lignes: { lot_id: string; pourcentage: number }[] = [];
+  for (const [i, lot_id] of lotIds.entries()) {
+    const lue = lireDecimal(pourcentages[i] ?? "");
+    if ("erreur" in lue) return { erreur: erreurDuChamp("Pourcentage d'un lot", lue.erreur) };
+    lignes.push({ lot_id, pourcentage: lue.valeur });
+  }
 
   const { error } = await supabase.rpc("valider_cle_repartition", {
     p_bien: bienId,

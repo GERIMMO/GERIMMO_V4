@@ -4,7 +4,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
-import { lireMontantFacultatif } from "@/lib/saisie-montant";
+import { erreurDuChamp, lireDecimal, lireMontantFacultatif } from "@/lib/saisie-montant";
 
 export type EtatMandat = {
   erreur?: string;
@@ -64,8 +64,12 @@ export async function ajouterLigneMandat(
   if (!lotId) return { erreur: "Choisissez un lot.", valeurs };
   // Recette 22/08 : le taux est contractuel — pas de valeur posée en silence.
   if (!tauxRaw) return { erreur: "Indiquez le taux d'honoraires du lot.", valeurs };
-  const taux = Number(tauxRaw);
-  if (!Number.isFinite(taux) || taux < 0 || taux > 100) {
+  // Lu sur le texte tel que tapé (« 7,5 » vaut 7,5) : le champ est en `type="text"`, jamais `type="number"` qui
+  // donne 75 à un navigateur non francophone — et 75 passe la borne 0-100 (VER-TS-02).
+  const tauxLu = lireDecimal(tauxRaw);
+  if ("erreur" in tauxLu) return { erreur: erreurDuChamp("Taux d'honoraires", tauxLu.erreur), valeurs };
+  const taux = tauxLu.valeur;
+  if (taux < 0 || taux > 100) {
     return { erreur: "Le taux d'honoraires doit être un pourcentage entre 0 et 100.", valeurs };
   }
 

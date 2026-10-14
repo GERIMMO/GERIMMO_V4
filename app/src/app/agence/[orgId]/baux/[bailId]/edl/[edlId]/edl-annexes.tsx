@@ -174,8 +174,8 @@ export function EdlAnnexes({
                       disabled={enCoursA}
                       form={idFormAnnexes}
                       name={`releve_${c.id}`}
-                      type="number"
-                      step="0.001"
+                      type="text"
+                      inputMode="decimal"
                       defaultValue={c.releve ?? ""}
                       aria-label={`Relevé de ${c.type}${c.numero ? ` n° ${c.numero}` : ""}`}
                       className="h-9 w-28 shrink-0"
@@ -214,7 +214,7 @@ export function EdlAnnexes({
               ))}
             </select>
             <Input name="numero" aria-label="Numéro du compteur" placeholder="N° compteur" defaultValue={etatC.valeurs?.numero} className="h-9 w-full sm:w-36" />
-            <Input name="releve" aria-label="Relevé du compteur" type="number" step="0.001" placeholder="Relevé" defaultValue={etatC.valeurs?.releve} className="h-9 w-full sm:w-28" />
+            <Input name="releve" aria-label="Relevé du compteur" type="text" inputMode="decimal" placeholder="Relevé" defaultValue={etatC.valeurs?.releve} className="h-9 w-full sm:w-28" />
             <BoutonEnvoi enCours={enCoursC} enCoursTexte="Ajout…" size="sm" variant="outline" className="h-9">
               Ajouter
             </BoutonEnvoi>

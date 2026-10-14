@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { validerCle, type EtatParc } from "@/app/actions/parc";
 import { MODES_CLE, proposerCle } from "@/lib/parc";
+import { lireDecimal } from "@/lib/saisie-montant";
 import { Button } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -61,7 +62,11 @@ export function FormulaireCle({
     );
   };
 
-  const total = Object.values(parts).reduce((s, p) => s + (Number(p) || 0), 0);
+  // Le total se lit comme le serveur lira chaque part : « 33,5 » vaut 33,5 ; une part illisible ne compte pour rien.
+  const total = Object.values(parts).reduce((s, p) => {
+    const lu = lireDecimal(p);
+    return s + ("valeur" in lu ? lu.valeur : 0);
+  }, 0);
   const totalArrondi = Math.round(total * 100) / 100;
   // Sans surface saisie sur les lots, la proposition par surface n'a pas de sens
   const surfacesConnues = lots.every((l) => l.surface_m2 !== null && l.surface_m2 > 0);
@@ -131,10 +136,8 @@ export function FormulaireCle({
                 <Input
                   id={`${idPart}-${lot.id}`}
                   name="ligne_pourcentage"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
+                  type="text"
+                  inputMode="decimal"
                   required
                   value={parts[lot.id] ?? ""}
                   onChange={(e) =>

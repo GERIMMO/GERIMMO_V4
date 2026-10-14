@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
-import { chargerAgenda, chargerCreneauxMission, verifierAccesArtisan } from "../../acces";
+import { chargerAgenda, chargerCreneauxMission, chargerPhotosDemande, verifierAccesArtisan } from "../../acces";
+import { PhotosDeLaDemande } from "../../photos-demande";
 import {
   creneauTexte,
   euros,
@@ -53,7 +54,8 @@ export default async function PageMission(
   // « Aujourd'hui » et depuis l'agenda (tour du 24/09).
   const depuisAujourdhui = de === "aujourdhui";
 
-  const agenda = await chargerAgenda();
+  // D16 (14/10) : les photos jointes par le locataire, que la base ne rend que pour une mission encore vivante.
+  const [agenda, photos] = await Promise.all([chargerAgenda(), chargerPhotosDemande(null, interventionId)]);
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
 
@@ -325,6 +327,8 @@ export default async function PageMission(
             )}
         </div>
       </Carte>
+
+      <PhotosDeLaDemande photos={photos.photos} erreur={photos.erreur} base={`/artisan/missions/${mission.intervention_id}/photos`} />
 
       {vivante && (occupant || mission.occupant_telephone) && (
         <Carte>

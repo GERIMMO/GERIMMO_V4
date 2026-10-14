@@ -11,6 +11,7 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 | `20261014232000_effacement_instantanes_faits_direction.retour.sql` | `20261014232000_effacement_instantanes_faits_direction.sql` | **rien** : les instantanés effacés ne reviennent que d'une sauvegarde ; le script ne retire que la ligne d'historique |
 | `20261014231000_retention_registres_execution.retour.sql` | `20261014231000_retention_registres_execution.sql` | 1 fonction rétablie (`appliquer_retention`), 1 fonction supprimée, 5 règles de conservation, 1 ligne d'historique |
 | `20261014230000_faits_direction_sans_noms.retour.sql` | `20261014230000_faits_direction_sans_noms.sql` | 3 fonctions rétablies, 2 fonctions supprimées, 1 ligne d'historique |
+| `20261014233000_photos_demande_devis_artisan.retour.sql` | `20261014233000_photos_demande_devis_artisan.sql` | 2 fonctions supprimées (rien d'antérieur à rétablir), 1 ligne d'historique |
 | `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » (migrations du 13/10 seulement) |
 
 Les deux migrations ne partagent aucune fonction : leurs retours sont indépendants (essayé dans les deux ordres et un par un).
@@ -96,10 +97,14 @@ et les retours joués sur une copie **restaurée** de la sauvegarde. Dossier de 
 Limites : base de banc (quelques centaines de lignes), PostgreSQL 16 (la production est en 17 : les scripts ne comparent jamais de texte pour décider, seulement la
 présence de la marque du correctif) ; durée de chaque script < 0,1 s sur le banc, non mesurée sur le volume de production ; aucun essai sur la production.
 
-## Lot « données personnelles » (14 octobre 2026) : trois migrations, un ordre, une étape sans retour
+## Lot « données personnelles » (14 octobre 2026) : quatre migrations, un ordre, une étape sans retour
 
-Décisions D13 (fiche SUP-05) et D48 (fiche IA-11). Ordre d'application : `230000` (faits sans noms), `231000` (règles de conservation),
-puis `232000` (effacement, **étape irréversible**, seulement après une sauvegarde). Ordre de retour : l'inverse (`232000`, `231000`, `230000`).
+Décisions D13 (fiche SUP-05), D48 (fiche IA-11) et D16 (fiche ART-15). Ordre d'application : `230000` (faits sans noms), `231000` (règles de
+conservation), puis `232000` (effacement, **étape irréversible**, seulement après une sauvegarde) ; `233000` (photos du locataire visibles de
+l'artisan) est indépendante des trois autres. Ordre de retour : l'inverse (`233000`, `232000`, `231000`, `230000`).
+`233000` ne touche aucune politique de stockage ni aucune table : son retour ne fait que supprimer ses deux fonctions, mais le code de
+l'application qui les appelle doit être retiré avec elles (sinon les écrans de la demande de devis et de la mission disent que les photos
+n'ont pas pu être chargées).
 
 - **`232000` n'a pas de retour arrière pour les données.** Avant de l'appliquer en production : lancer « Sauvegarde quotidienne » à la main,
   attendre son succès, puis jouer l'étape dans une session qui commence par `set local gerimmo.sauvegarde_confirmee = 'oui';` (voir l'en-tête de la

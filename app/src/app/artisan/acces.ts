@@ -247,6 +247,27 @@ export const chargerCreneauxMission = cache(async function chargerCreneauxMissio
   return { lignes: (data ?? []) as CreneauMission[], erreur: Boolean(error) };
 });
 
+/** Une photo jointe par le locataire que l'artisan a le droit de voir : ni chemin, ni nom de fichier, ni auteur. */
+export type PhotoDemande = { document_id: string; mime_type: string; rang: number };
+
+/**
+ * Les photos jointes par le locataire à la demande de devis (D16, 14/10/2026), ou à la mission : la liste que la base lui
+ * ouvre, dans l'ordre de dépôt. Chaque photo s'ouvre ensuite par une route qui revérifie le droit, trace l'accès et signe une
+ * lecture de 60 secondes (lib/photos-demande-artisan.ts). Un échec de lecture se distingue de « aucune photo ».
+ */
+export const chargerPhotosDemande = cache(async function chargerPhotosDemande(
+  sollicitationId: string | null,
+  interventionId: string | null
+) {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { photos: [] as PhotoDemande[], erreur: false };
+  const { data, error } = await supabase.rpc("mes_photos_incident_artisan", {
+    p_sollicitation: sollicitationId,
+    p_intervention: interventionId,
+  });
+  return { photos: (data ?? []) as PhotoDemande[], erreur: Boolean(error) };
+});
+
 /**
  * Un compte sans fiche artisan, mais déjà rattaché à un autre espace (locataire, propriétaire,
  * gérant…), n'a rien à faire sur le formulaire d'inscription artisan : il y arrivait en ouvrant

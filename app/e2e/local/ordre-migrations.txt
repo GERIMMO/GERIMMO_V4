@@ -307,3 +307,4 @@
 20261013110000_marketing_preparation_du_soir_cron.sql
 20261013120000_correctifs_audit_13_octobre.sql
 20261014210000_maintenance_artisans_expiration_cron.sql
+20261014211000_maintenance_artisans_arret_urgence.sql

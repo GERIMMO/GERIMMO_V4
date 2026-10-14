@@ -26,6 +26,9 @@ verifierBaseDeTest(DB_URL);
 const MIGRATION = readFileSync("supabase/migrations/20261014210000_maintenance_artisans_expiration_cron.sql", "utf8");
 const RETOUR = readFileSync("supabase/retours-arriere/20261014210000_maintenance_artisans_expiration_cron.retour.sql", "utf8");
 const RELEVE = readFileSync("supabase/retours-arriere/releve-devis-perimes.sql", "utf8");
+// La seconde migration (l'arrêt d'urgence, D06) et son retour sont lus à la demande : seuls les cas qui en dépendent échouent si l'un manque.
+const lireMigrationArret = () => readFileSync("supabase/migrations/20261014211000_maintenance_artisans_arret_urgence.sql", "utf8");
+const lireRetourArret = () => readFileSync("supabase/retours-arriere/20261014211000_maintenance_artisans_arret_urgence.retour.sql", "utf8");
 
 let db: Client;
 
@@ -494,6 +497,139 @@ describe.skipIf(!DB_URL)("AUT-01 — le relevé de production à faire avant la 
   });
 });
 
+/**
+ * Le lot « arrêt d'urgence » (D06, migration 20261014200000 : table `supervision_taches_arret` et prédicat
+ * `tache_planifiee_autorisee`) n'est pas dans cette branche. Quand il y est (après intégration), ses objets RÉELS sont
+ * utilisés ; sinon une doublure du même contrat est posée le temps du test (transaction annulée). Dans les deux cas la
+ * migration de l'arrêt est rejouée par-dessus, comme sur une base où le lot de l'arrêt d'urgence est passé en premier.
+ */
+async function integrerLeLotArret(): Promise<"reel" | "doublure"> {
+  await db.query("reset role");
+  const { rows: [{ present }] } = await db.query<{ present: boolean }>(
+    `select to_regprocedure('public.tache_planifiee_autorisee(text)') is not null as present`
+  );
+  if (!present) {
+    await db.query(`create table public.supervision_taches_arret (tache text not null, cle text not null, primary key (tache, cle))`);
+    await db.query(`insert into public.supervision_taches_arret values ('retention-quotidienne', 'purge'), ('cycle-mensuel', 'appels'), ('cycle-mensuel', 'quittances')`);
+    await db.query(
+      `create function public.tache_planifiee_autorisee(p_tache text) returns boolean language plpgsql stable security definer set search_path = '' as $f$
+       begin
+         if p_tache is null or not exists (select 1 from public.supervision_taches_arret where tache = p_tache) then
+           raise exception 'Tâche planifiée inconnue de la table d''arrêt : %', coalesce(p_tache, '(vide)');
+         end if;
+         return not exists (select 1 from public.supervision_arrets a where a.arrete
+           and (a.cle = 'global' or a.cle in (select t.cle from public.supervision_taches_arret t where t.tache = p_tache)));
+       end $f$`
+    );
+    await db.query(`revoke all on function public.tache_planifiee_autorisee(text) from public, anon, authenticated, service_role`);
+  }
+  await db.query(lireMigrationArret());
+  return present ? "reel" : "doublure";
+}
+
+/** Pose (ou lève) un arrêt d'urgence, comme le ferait commander_arret_supervision. */
+async function arreter(cle: string, arrete = true) {
+  await db.query("reset role");
+  const auteur = await compte("arret");
+  await db.query(
+    `insert into public.supervision_arrets (cle, arrete, motif, auteur) values ($1, $2, 'Essai de contrôle', $3)
+     on conflict (cle) do update set arrete = excluded.arrete`,
+    [cle, arrete, auteur]
+  );
+}
+
+const drapeauSysteme = async () => {
+  await db.query("reset role");
+  return (await db.query<{ v: string }>(`select coalesce(current_setting('gerimmo.systeme', true), '') as v`)).rows[0].v;
+};
+
+describe.skipIf(!DB_URL)("AUT-01 — l'arrêt d'urgence (D06) arrête aussi la caducité des devis", () => {
+  it.each(["global", "rappels"])("arrêt « %s » : la tâche n'expire rien et ne pose pas le drapeau système ; levé, le même passage expire", async (cle) => {
+    await integrerLeLotArret();
+    const d = await monterDossier();
+    const p = await sollicitéAvecDevis(d, "Périmé", -2);
+    await arreter(cle);
+    const drapeau = await drapeauSysteme();
+
+    await jouerLaTache();
+    expect(await statuts({ devis: [p.devis!], sollicitations: [p.sollicitation] })).toEqual({
+      devis: { [p.devis!]: "depose" },
+      sollicitations: { [p.sollicitation]: "devis_depose" },
+    });
+    expect(await drapeauSysteme()).toBe(drapeau);
+    expect((await db.query(`select public.maintenance_artisans_interne() as n`)).rows[0].n).toBe(0);
+
+    // La même base, la même donnée, la même tâche : l'arrêt levé, elle fait son travail (le test n'est pas vide).
+    await arreter(cle, false);
+    expect((await db.query(`select public.maintenance_artisans_interne() as n`)).rows[0].n).toBe(1);
+    expect(await statuts({ devis: [p.devis!], sollicitations: [p.sollicitation] })).toEqual({
+      devis: { [p.devis!]: "expire" },
+      sollicitations: { [p.sollicitation]: "expiree" },
+    });
+  });
+
+  it.each(["marketing", "purge", "relances", "territoire"])("l'arrêt « %s » n'est pas le sien : la tâche passe", async (cle) => {
+    await integrerLeLotArret();
+    const d = await monterDossier();
+    const p = await sollicitéAvecDevis(d, "Périmé", -2);
+    await arreter(cle);
+    await jouerLaTache();
+    expect((await statuts({ devis: [p.devis!] })).devis).toEqual({ [p.devis!]: "expire" });
+  });
+
+  it("la version publique du super-administrateur obéit au même arrêt pour la caducité (elle passe par la version interne)", async () => {
+    await integrerLeLotArret();
+    const d = await monterDossier();
+    const p = await sollicitéAvecDevis(d, "Périmé", -2);
+    await db.query("reset role");
+    const sa = await compte("sa");
+    await db.query(`insert into public.memberships (account_id, organization_id, role) values ($1,null,'super_admin')`, [sa]);
+    await arreter("global");
+    await agir(sa, { aal: "aal2" });
+    expect((await db.query(`select devis_expires from public.maintenance_artisans()`)).rows).toEqual([{ devis_expires: 0 }]);
+    expect((await statuts({ devis: [p.devis!] })).devis).toEqual({ [p.devis!]: "depose" });
+    await arreter("global", false);
+    await agir(sa, { aal: "aal2" });
+    expect((await db.query(`select devis_expires from public.maintenance_artisans()`)).rows).toEqual([{ devis_expires: 1 }]);
+  });
+
+  it("la version interne lit l'arrêt AVANT d'écrire quoi que ce soit (ni drapeau système, ni mise à jour)", async () => {
+    const { rows: [{ def }] } = await db.query<{ def: string }>(`select pg_get_functiondef('public.maintenance_artisans_interne()'::regprocedure) as def`);
+    const lecture = def.indexOf("tache_planifiee_autorisee");
+    expect(lecture).toBeGreaterThan(0);
+    expect(lecture).toBeLessThan(def.indexOf("tache_systeme()"));
+    expect(lecture).toBeLessThan(def.indexOf("update public.incident_devis"));
+    expect(def).toContain("'maintenance-artisans'");
+  });
+
+  it("la migration inscrit la tâche dans la table de correspondance de l'arrêt, avec la clé « rappels », une seule fois", async () => {
+    await integrerLeLotArret();
+    const lire = async () => (await db.query(`select tache, cle from public.supervision_taches_arret where tache = 'maintenance-artisans'`)).rows;
+    expect(await lire()).toEqual([{ tache: "maintenance-artisans", cle: "rappels" }]);
+    const avant = (await db.query(`select count(*)::int as n from public.supervision_taches_arret`)).rows[0].n;
+    await db.query(lireMigrationArret());
+    expect(await lire()).toEqual([{ tache: "maintenance-artisans", cle: "rappels" }]);
+    expect((await db.query(`select count(*)::int as n from public.supervision_taches_arret`)).rows[0].n).toBe(avant);
+    // Les lignes des autres tâches ne sont pas touchées.
+    expect((await db.query(`select count(*)::int as n from public.supervision_taches_arret where tache <> 'maintenance-artisans'`)).rows[0].n).toBeGreaterThan(0);
+  });
+
+  it("tant que le lot de l'arrêt d'urgence n'est pas là, la migration se joue sans erreur, ne crée rien et la tâche passe", async ({ skip }) => {
+    const { rows: [{ present }] } = await db.query<{ present: boolean }>(`select to_regprocedure('public.tache_planifiee_autorisee(text)') is not null as present`);
+    if (present) skip(); // lot intégré : ce cas n'existe plus, les cas ci-dessus jouent sur les objets réels
+    await db.query(lireMigrationArret());
+    const { rows: [{ table, fonction }] } = await db.query(
+      `select to_regclass('public.supervision_taches_arret') as table, to_regprocedure('public.tache_planifiee_autorisee(text)') as fonction`
+    );
+    expect({ table, fonction }).toEqual({ table: null, fonction: null });
+    const d = await monterDossier();
+    const p = await sollicitéAvecDevis(d, "Périmé", -2);
+    await arreter("global"); // sans le lot de l'arrêt d'urgence, aucune tâche pg_cron n'est arrêtée (état du reste des tâches aujourd'hui)
+    await jouerLaTache();
+    expect((await statuts({ devis: [p.devis!] })).devis).toEqual({ [p.devis!]: "expire" });
+  });
+});
+
 describe.skipIf(!DB_URL)("AUT-01 — rejeu et retour arrière", () => {
   async function empreinte() {
     await db.query("reset role");
@@ -506,20 +642,22 @@ describe.skipIf(!DB_URL)("AUT-01 — rejeu et retour arrière", () => {
     return { rows, taches };
   }
 
-  it("rejouée (deux fois), la migration ne change rien : mêmes définitions, mêmes droits, même tâche", async () => {
+  it("rejouées (deux fois, dans l'ordre), les migrations ne changent rien : mêmes définitions, mêmes droits, même tâche", async () => {
     const avant = await empreinte();
     expect(avant.taches.filter((t) => t.jobname === "maintenance-artisans")).toHaveLength(1);
-    await db.query(MIGRATION);
-    expect(await empreinte()).toEqual(avant);
-    await db.query(MIGRATION);
-    expect(await empreinte()).toEqual(avant);
+    for (let i = 0; i < 2; i++) {
+      await db.query(MIGRATION);
+      await db.query(lireMigrationArret());
+      expect(await empreinte()).toEqual(avant);
+    }
   });
 
-  it("rejouée, elle ne touche à aucune donnée : devis et sollicitations gardent leur état", async () => {
+  it("rejouées, elles ne touchent à aucune donnée : devis et sollicitations gardent leur état", async () => {
     const d = await monterDossier();
     const a = await sollicitéAvecDevis(d, "Périmé", -2);
     await db.query("reset role");
     await db.query(MIGRATION);
+    await db.query(lireMigrationArret());
     expect(await statuts({ devis: [a.devis!], sollicitations: [a.sollicitation] })).toEqual({
       devis: { [a.devis!]: "depose" },
       sollicitations: { [a.sollicitation]: "devis_depose" },
@@ -540,13 +678,13 @@ describe.skipIf(!DB_URL)("AUT-01 — rejeu et retour arrière", () => {
    * enveloppe (garde, begin, commit) pour le rejouer dans la transaction du test, annulée à la fin. Tout le reste est
    * le texte du script. Le test lui donne aussi la fonction `cron.unschedule` que l'outil de test local ne fournit pas.
    */
-  async function jouerLeRetour() {
+  async function jouerLeRetour(script: string = RETOUR) {
     await db.query("reset role");
     await db.query(
       `create or replace function cron.unschedule(p_nom text) returns boolean language sql as $$
          with s as (delete from cron.job where jobname = p_nom returning 1) select exists (select from s) $$`
     );
-    const corps = RETOUR
+    const corps = script
       .replace(/do \$retour_arriere\$\s*begin\s*if statement_timestamp\(\) <> transaction_timestamp\(\)[\s\S]*?end \$retour_arriere\$;/, "")
       .replace(/^begin;$/m, "")
       .replace(/^commit;$/m, "");
@@ -588,5 +726,71 @@ describe.skipIf(!DB_URL)("AUT-01 — rejeu et retour arrière", () => {
     await jouerLeRetour();
     const { rows: [{ def }] } = await db.query(`select pg_get_functiondef('public.maintenance_artisans()'::regprocedure) as def`);
     expect(def).toContain("select 0, 0");
+  });
+
+  describe("le retour de la lecture de l'arrêt d'urgence (20261014211000)", () => {
+    const interne = async () =>
+      (await db.query<{ def: string }>(`select pg_get_functiondef('public.maintenance_artisans_interne()'::regprocedure) as def`)).rows[0].def;
+
+    it("rétablit la caducité sans lecture de l'arrêt, garde la tâche et retire la ligne de correspondance", async () => {
+      await integrerLeLotArret();
+      await jouerLeRetour(lireRetourArret());
+      await db.query("reset role");
+      const def = await interne();
+      expect(def).not.toContain("tache_planifiee_autorisee");
+      expect(def).toContain("set statut = 'expire'");
+      expect((await db.query(`select count(*)::int as n from cron.job where jobname = 'maintenance-artisans'`)).rows[0].n).toBe(1);
+      expect((await db.query(`select count(*)::int as n from public.supervision_taches_arret where tache = 'maintenance-artisans'`)).rows[0].n).toBe(0);
+      // Les lignes des autres tâches restent.
+      expect((await db.query(`select count(*)::int as n from public.supervision_taches_arret`)).rows[0].n).toBeGreaterThan(0);
+      // Effet : l'arrêt global n'arrête plus la caducité (le défaut revient, comme le script le dit), le travail se fait.
+      const d = await monterDossier();
+      const p = await sollicitéAvecDevis(d, "Périmé", -2);
+      await arreter("global");
+      await jouerLaTache();
+      expect((await statuts({ devis: [p.devis!] })).devis).toEqual({ [p.devis!]: "expire" });
+      // Droits d'origine : la version interne reste fermée.
+      const { rows: [{ anon, service }] } = await db.query(
+        `select has_function_privilege('anon', 'public.maintenance_artisans_interne()', 'EXECUTE') as anon,
+                has_function_privilege('service_role', 'public.maintenance_artisans_interne()', 'EXECUTE') as service`
+      );
+      expect({ anon, service }).toEqual({ anon: false, service: false });
+    });
+
+    it("est rejouable sans effet, et la migration se rejoue ensuite (marche avant)", async () => {
+      await integrerLeLotArret();
+      await jouerLeRetour(lireRetourArret());
+      const apresUn = (await db.query(`select md5(pg_get_functiondef('public.maintenance_artisans_interne()'::regprocedure)) as m`)).rows;
+      await jouerLeRetour(lireRetourArret());
+      expect((await db.query(`select md5(pg_get_functiondef('public.maintenance_artisans_interne()'::regprocedure)) as m`)).rows).toEqual(apresUn);
+      await db.query(lireMigrationArret());
+      expect(await interne()).toContain("tache_planifiee_autorisee");
+      expect((await db.query(`select cle from public.supervision_taches_arret where tache = 'maintenance-artisans'`)).rows).toEqual([{ cle: "rappels" }]);
+    });
+
+    it("n'écrase pas une fonction réécrite depuis (la marque du correctif est absente)", async () => {
+      await db.query(
+        `create or replace function public.maintenance_artisans_interne() returns integer
+         language plpgsql security definer set search_path to '' as $f$ begin return 42; end $f$`
+      );
+      await jouerLeRetour(lireRetourArret());
+      expect(await interne()).toContain("return 42");
+    });
+
+    it("ne casse pas quand le retour de 20261014210000 a déjà supprimé la fonction", async () => {
+      await integrerLeLotArret();
+      await db.query(`drop function public.maintenance_artisans_interne()`);
+      await jouerLeRetour(lireRetourArret());
+      expect((await db.query(`select to_regprocedure('public.maintenance_artisans_interne()') as f`)).rows[0].f).toBeNull();
+      expect((await db.query(`select count(*)::int as n from public.supervision_taches_arret where tache = 'maintenance-artisans'`)).rows[0].n).toBe(0);
+    });
+
+    it("ne casse pas quand le lot de l'arrêt d'urgence n'est pas là (pas de table de correspondance)", async ({ skip }) => {
+      const { rows: [{ present }] } = await db.query<{ present: boolean }>(`select to_regprocedure('public.tache_planifiee_autorisee(text)') is not null as present`);
+      if (present) skip(); // lot intégré : la table existe, les cas ci-dessus jouent sur les objets réels
+      await jouerLeRetour(lireRetourArret());
+      expect((await db.query(`select to_regclass('public.supervision_taches_arret') as t`)).rows[0].t).toBeNull();
+      expect((await interne())).not.toContain("tache_planifiee_autorisee");
+    });
   });
 });

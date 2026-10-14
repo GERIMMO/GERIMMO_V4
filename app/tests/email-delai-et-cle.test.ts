@@ -9,11 +9,19 @@
  *
  * Aucun appel réel : `fetch` est remplacé par un faux fournisseur
  * (tests/fixtures/faux-fournisseur-email.ts).
+ *
+ * LA LIMITE : le service ne retient une clé que pendant une durée bornée (24 h,
+ * d'après un commentaire de `lib/rapports-mensuels.ts`, non vérifié auprès du
+ * prestataire). Les tâches tournent une fois par jour : la reprise d'un envoi
+ * non marqué arrive à environ 24 h, au bord de cette fenêtre. Le dernier groupe
+ * de tests montre les deux côtés ; le doublon au-delà est un RISQUE RÉSIDUEL
+ * connu de la décision D47, que seul un marqueur posé en base avant l'envoi
+ * (option différée) supprimerait.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ArretSupervision } from "../src/lib/controle-effets";
 import { DELAI_MAX_FOURNISSEUR_MS, envoyerEmail } from "../src/lib/email";
-import { fauxFournisseurEmail } from "./fixtures/faux-fournisseur-email";
+import { CONSERVATION_CLE_MS, fauxFournisseurEmail } from "./fixtures/faux-fournisseur-email";
 
 beforeEach(() => {
   vi.stubEnv("RESEND_API_KEY", "cle-de-test");
@@ -141,5 +149,47 @@ describe("la clé et le délai, ensemble (IA-04 + IA-05)", () => {
     await envoyerEmail({ ...courrier, cleIdempotence: "quittance/q-1" });
     await envoyerEmail({ ...courrier, subject: "Autre", cleIdempotence: "quittance/q-2" });
     expect(fournisseur.acceptes.map((m) => m.cle)).toEqual(["quittance/q-1", "quittance/q-2"]);
+  });
+});
+
+describe("la durée de conservation de la clé : les deux côtés de la limite de 24 h", () => {
+  it("la limite supposée est de 24 heures", () => {
+    expect(CONSERVATION_CLE_MS).toBe(24 * 3_600_000);
+  });
+
+  it("reprise avant 24 h (23 h 59 min 58 s) : le service rend la réponse du premier envoi, un seul message", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    vi.stubGlobal("fetch", fournisseur.fetch);
+    fournisseur.definirMode("accepte-puis-muet");
+    await envoyerEmail({ ...courrier, cleIdempotence: "quittance/q-1", delaiMaxMs: 25 });
+    fournisseur.definirMode("normal");
+    fournisseur.avancer(CONSERVATION_CLE_MS - 2_000);
+    const reprise = await envoyerEmail({ ...courrier, cleIdempotence: "quittance/q-1" });
+    expect(reprise).toEqual({ id: "message-1" });
+    expect(fournisseur.acceptes).toHaveLength(1);
+  });
+
+  it("RISQUE RÉSIDUEL : reprise après 24 h (24 h et 2 s), la clé est oubliée et le même message repart", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    vi.stubGlobal("fetch", fournisseur.fetch);
+    fournisseur.definirMode("accepte-puis-muet");
+    await envoyerEmail({ ...courrier, cleIdempotence: "quittance/q-1", delaiMaxMs: 25 });
+    fournisseur.definirMode("normal");
+    fournisseur.avancer(CONSERVATION_CLE_MS + 2_000);
+    const reprise = await envoyerEmail({ ...courrier, cleIdempotence: "quittance/q-1" });
+    expect(reprise).toEqual({ id: "message-2" });
+    expect(fournisseur.acceptes).toHaveLength(2);
+  });
+
+  it("la durée de conservation est réglable sur le faux (pour tester une autre hypothèse)", async () => {
+    const fournisseur = fauxFournisseurEmail({ conservationMs: 60_000 });
+    vi.stubGlobal("fetch", fournisseur.fetch);
+    await envoyerEmail({ ...courrier, cleIdempotence: "k" });
+    fournisseur.avancer(59_000);
+    await envoyerEmail({ ...courrier, cleIdempotence: "k" });
+    expect(fournisseur.acceptes).toHaveLength(1);
+    fournisseur.avancer(2_000);
+    await envoyerEmail({ ...courrier, cleIdempotence: "k" });
+    expect(fournisseur.acceptes).toHaveLength(2);
   });
 });

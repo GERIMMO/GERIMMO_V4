@@ -152,6 +152,44 @@ describe.skipIf(!DB_URL)("D16 — photos du locataire visibles de l'artisan : la
       expect(await photosDeLaDemande()).toHaveLength(0);
     });
 
+    // Défense en profondeur : un déclencheur (`document_liens_meme_agence`) interdit déjà qu'un lien relie un document à une autre
+    // organisation. Si des données incohérentes existaient malgré tout (import, correction à la main), la fonction ne doit pas les
+    // rendre : le document, le lien et l'incident doivent appartenir à la MÊME organisation.
+    it("un document ou un lien d'une AUTRE organisation, même rattaché à l'incident, n'est jamais rendu", async () => {
+      await postgres();
+      const autreOrg = await id("insert into public.organizations(name,status,type) values('Autre agence D16','active','agence') returning id");
+      await db.query("set local session_replication_role = replica");
+      // (1) le document appartient à l'autre organisation, le lien à celle de l'incident
+      const docEtranger = await id(`insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte,deposited_by)
+        values($1,'photo_incident','Photo étrangère',$2,'image/jpeg',1000,md5(random()::text),$3) returning id`, [autreOrg, `${autreOrg}/etrangere.jpg`, compteLocataire]);
+      await db.query("insert into public.document_liens(document_id,organization_id,entite,entite_id) values($1,$2,'incident',$3)", [docEtranger, org, incident]);
+      // (2) le document appartient à l'organisation de l'incident, mais le lien porte l'autre organisation
+      const docLienEtranger = await document("photo_incident", compteLocataire, "lien-etranger");
+      await db.query("insert into public.document_liens(document_id,organization_id,entite,entite_id) values($1,$2,'incident',$3)", [docLienEtranger, autreOrg, incident]);
+      await agir(compteArtisan);
+      const ids = (await photosDeLaDemande()).map((p) => p.document_id);
+      expect(ids).toEqual([photo1, photo2]);
+      expect(ids).not.toContain(docEtranger);
+      expect(ids).not.toContain(docLienEtranger);
+      // Et la lecture d'une telle photo est refusée, sans trace.
+      for (const doc of [docEtranger, docLienEtranger]) {
+        expect(await refus("select public.lire_photo_incident_artisan($1, $2, null)", [doc, sollicitation])).toMatch(/Accès refusé/);
+      }
+      await postgres();
+      expect(await accesLog()).toHaveLength(0);
+    });
+
+    it("la demande ou la mission d'une autre organisation que celle de l'incident ne donne rien", async () => {
+      await postgres();
+      const autreOrg = await id("insert into public.organizations(name,status,type) values('Autre agence D16 bis','active','agence') returning id");
+      await db.query("set local session_replication_role = replica");
+      await db.query("update public.incident_sollicitations set organization_id=$2 where id=$1", [sollicitation, autreOrg]);
+      await db.query("update public.incident_interventions set organization_id=$2 where id=$1", [intervention, autreOrg]);
+      await agir(compteArtisan);
+      expect(await photosDeLaDemande()).toHaveLength(0);
+      expect((await db.query("select * from public.mes_photos_incident_artisan(null, $1)", [intervention])).rows).toHaveLength(0);
+    });
+
     it("sans locataire déclarant identifié, aucune photo n'est attribuée au locataire", async () => {
       await db.query("set local session_replication_role = replica");
       await db.query("update public.incidents set declarant_person_id=null where id=$1", [incident]);

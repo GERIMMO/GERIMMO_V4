@@ -41,7 +41,7 @@ function sansCommentaires(source: string): string {
 }
 
 /** Toutes les balises ouvrantes `<form …>`, y compris sur plusieurs lignes et avec des accolades imbriquées. */
-export function balisesForm(source: string, fichier: string): Balise[] {
+function balisesForm(source: string, fichier: string): Balise[] {
   const code = sansCommentaires(source);
   const resultat: Balise[] = [];
   for (const m of code.matchAll(/<form(?=[\s>])/g)) {

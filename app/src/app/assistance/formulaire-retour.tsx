@@ -50,7 +50,7 @@ export function FormulaireRetour({ecran,action,cle,organisations,contestation=fa
   </div>
   {nature==='bug'&&<p className="text-xs text-muted-foreground">Les signalements de problème et leurs réponses sont conservés six mois, puis supprimés.</p>}
   {nature==='idee'?<label className="flex items-start gap-2 text-sm"><input type="checkbox" name="partage" required className="mt-1"/>Je comprends que cette idée sera visible des membres de l’espace choisi et de l’équipe Gerimmo. Sans organisation, elle reste visible de moi et de l’équipe Gerimmo.</label>:
-   <p className="text-xs text-muted-foreground">{nature==='contestation'?'Cette demande est examinée uniquement par l’équipe Gerimmo, jamais par l’agence qui a évalué votre travail.':'Votre demande est visible de vous, de l’équipe Gerimmo et de l’administrateur de l’agence concernée.'}</p>}
+   <p className="text-xs text-muted-foreground">{nature==='contestation'?'Cette demande est examinée uniquement par l’équipe Gerimmo, jamais par le gestionnaire qui a évalué votre travail.':'Votre demande est visible de vous, de l’équipe Gerimmo et, le cas échéant, du gestionnaire concerné.'}</p>}
   {etat.erreur&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
   <div className={styles.envoi}><span>Les champs affichés sont obligatoires, sauf le choix d’un espace.</span><BoutonEnvoi enCours={enCours} enCoursTexte="Envoi…"><Send size={15} aria-hidden="true"/> Envoyer ma demande</BoutonEnvoi></div>
  </form>;

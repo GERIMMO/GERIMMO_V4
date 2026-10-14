@@ -156,7 +156,7 @@ export default async function PageCompte() {
           </dl>
           <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
             {estArtisan
-              ? "L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte auprès de toutes les agences. Pour la modifier, écrivez-nous depuis Aide et retours."
+              ? "L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte auprès de tous vos clients. Pour la modifier, écrivez-nous depuis Aide et retours."
               : "L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte dans toutes vos organisations. Demandez-la à votre gestionnaire, ou à l’assistance pour un compte propriétaire."}
           </p>
         </div>

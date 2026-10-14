@@ -1,7 +1,7 @@
 -- Correctifs de l'audit du 13 octobre 2026 (registre des anomalies) : traces,
 -- portefeuille, reprise et arrêt d'urgence.
 --
--- Rien ici ne touche une ligne existante. Sept fonctions sont modifiées EN
+-- Rien ici ne touche une ligne existante. Neuf fonctions sont modifiées EN
 -- RELISANT leur définition en vigueur (pg_get_functiondef) puis en y ajoutant
 -- un morceau, comme le fait déjà 20260913150000 pour les gardes de portefeuille :
 -- une fonction réécrite à la main écraserait les gardes injectées par les
@@ -22,6 +22,7 @@
 --   SUP-02    poser_gardes_diagnostic_artisan : l'arrêt d'urgence reste possible pendant un diagnostic
 --   SUP-08    traiter_vacances        : une alerte déjà escaladée n'est pas requalifiée
 --   REP-01    contre_proposer_creneaux : un second envoi ne refuse pas les créneaux du locataire
+--   ARC-10    artisan_reglement_ecrire, artisan_externe_ecrire : « aujourd'hui » est le jour de Paris
 
 -- AUD-A-03 (1/2) : le fil de l'incident sait dire l'annulation d'une mission.
 -- Déjà posée (la liste cite mission_annulee) : on ne touche pas la table, ce qui
@@ -230,5 +231,75 @@ $ancre$, $nouveau$  -- Audit du 13/10 (REP-01) : la même liste déjà en attent
   set statut = 'caduc'
   where intervention_id = p_intervention and statut = 'propose' and propose_par = 'locataire';
 $nouveau$);
+  execute v_def;
+end $correctif$;
+
+-- ARC-10 (1/2) : la date du règlement est comparée au jour de Paris. Le jour de la
+-- session est celui d'UTC chez Supabase : entre minuit et 2 h à Paris (heure d'été), la
+-- date réelle du jour était refusée « sans date future ». L'expression est explicite : le
+-- fuseau de la base (et celui de la session) n'a plus aucune importance.
+do $correctif$
+declare v_def text; v_ancre text;
+begin
+  select pg_get_functiondef('public.artisan_reglement_ecrire(text,text,uuid,jsonb,uuid)'::regprocedure) into v_def;
+  if position('Audit du 13/10 (ARC-10)' in v_def) > 0 then return; end if;
+  v_ancre := $ancre$if (p_donnees->>'date')::date is null or (p_donnees->>'date')::date>current_date then$ancre$;
+  if (length(v_def) - length(replace(v_def, v_ancre, ''))) <> length(v_ancre) then
+    raise exception 'Correctif ARC-10 (règlement) : définition inattendue (ancre 1 absente ou répétée)';
+  end if;
+  v_def := replace(v_def, v_ancre, $nouveau$-- Audit du 13/10 (ARC-10) : le jour de référence est celui de Paris, pas celui du
+  -- fuseau de la session (UTC chez Supabase) : entre minuit et 2 h à Paris en heure d'été,
+  -- la date réelle du jour était refusée comme future.
+  if (p_donnees->>'date')::date is null or (p_donnees->>'date')::date>(now() at time zone 'Europe/Paris')::date then$nouveau$);
+  if position('current_date' in v_def) > 0 then
+    raise exception 'Correctif ARC-10 (règlement) : un jour de session subsiste dans la définition';
+  end if;
+  execute v_def;
+end $correctif$;
+
+-- ARC-10 (2/2) : validité du devis (création, relecture, décision), date d'accord du
+-- client et jour de création du devis, tous au jour de Paris. Quatre morceaux, tous
+-- relus avant d'écrire quoi que ce soit : si l'un manque, rien ne change.
+do $correctif$
+declare v_def text; v_ancre text;
+begin
+  select pg_get_functiondef('public.artisan_externe_ecrire(text,uuid,integer,jsonb,uuid)'::regprocedure) into v_def;
+  if position('Audit du 13/10 (ARC-10)' in v_def) > 0 then return; end if;
+
+  v_ancre := $ancre$if (p_donnees->>'valide_jusqu_au')::date<current_date or (p_donnees->>'valide_jusqu_au')::date>current_date+365 then$ancre$;
+  if (length(v_def) - length(replace(v_def, v_ancre, ''))) <> length(v_ancre) then
+    raise exception 'Correctif ARC-10 (externe) : définition inattendue (ancre 1 absente ou répétée)';
+  end if;
+  v_def := replace(v_def, v_ancre, $nouveau$-- Audit du 13/10 (ARC-10) : « aujourd'hui » est le jour de Paris, pas celui du fuseau
+   -- de la session (UTC chez Supabase) : entre minuit et 2 h à Paris en heure d'été, la date
+   -- réelle du jour était refusée comme future. Même règle pour les trois contrôles suivants.
+   if (p_donnees->>'valide_jusqu_au')::date<(now() at time zone 'Europe/Paris')::date or (p_donnees->>'valide_jusqu_au')::date>(now() at time zone 'Europe/Paris')::date+365 then$nouveau$);
+
+  v_ancre := $ancre$if d.statut<>'brouillon' or d.valide_jusqu_au<current_date or$ancre$;
+  if (length(v_def) - length(replace(v_def, v_ancre, ''))) <> length(v_ancre) then
+    raise exception 'Correctif ARC-10 (externe) : définition inattendue (ancre 2 absente ou répétée)';
+  end if;
+  v_def := replace(v_def, v_ancre, $nouveau$-- Audit du 13/10 (ARC-10) : devis encore valable aujourd'hui, à Paris.
+    if d.statut<>'brouillon' or d.valide_jusqu_au<(now() at time zone 'Europe/Paris')::date or$nouveau$);
+
+  v_ancre := $ancre$if d.statut<>'valide' or d.valide_jusqu_au<current_date then$ancre$;
+  if (length(v_def) - length(replace(v_def, v_ancre, ''))) <> length(v_ancre) then
+    raise exception 'Correctif ARC-10 (externe) : définition inattendue (ancre 3 absente ou répétée)';
+  end if;
+  v_def := replace(v_def, v_ancre, $nouveau$-- Audit du 13/10 (ARC-10) : devis encore valable aujourd'hui, à Paris.
+    if d.statut<>'valide' or d.valide_jusqu_au<(now() at time zone 'Europe/Paris')::date then$nouveau$);
+
+  -- Le jour de création du devis se lit aussi à Paris : l'accord du client ne peut pas être
+  -- daté d'avant, et un devis créé à 1 h du matin à Paris l'a été « aujourd'hui ».
+  v_ancre := $ancre$if (p_donnees->>'date')::date is null or (p_donnees->>'date')::date>current_date or (p_donnees->>'date')::date<d.created_at::date then$ancre$;
+  if (length(v_def) - length(replace(v_def, v_ancre, ''))) <> length(v_ancre) then
+    raise exception 'Correctif ARC-10 (externe) : définition inattendue (ancre 4 absente ou répétée)';
+  end if;
+  v_def := replace(v_def, v_ancre, $nouveau$-- Audit du 13/10 (ARC-10) : date d'accord et jour de création, tous deux à Paris.
+     if (p_donnees->>'date')::date is null or (p_donnees->>'date')::date>(now() at time zone 'Europe/Paris')::date or (p_donnees->>'date')::date<(d.created_at at time zone 'Europe/Paris')::date then$nouveau$);
+
+  if position('current_date' in v_def) > 0 or position('d.created_at::date' in v_def) > 0 then
+    raise exception 'Correctif ARC-10 (externe) : un jour de session subsiste dans la définition';
+  end if;
   execute v_def;
 end $correctif$;

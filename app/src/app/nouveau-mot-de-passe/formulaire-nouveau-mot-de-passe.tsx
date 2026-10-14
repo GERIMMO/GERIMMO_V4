@@ -9,6 +9,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { AlerteFormulaire } from "@/components/alerte-formulaire";
 
 export function FormulaireNouveauMotDePasse({ suite = "/espaces" }: { suite?: string }) {
   const [etat, action] = useActionState<EtatNouveauMotDePasse, FormData>(
@@ -55,9 +56,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces" }: { suite?: st
               minLength={12}
             />
           </div>
-          {etat.erreur && (
-            <p className="text-sm text-destructive">{etat.erreur}</p>
-          )}
+          {etat.erreur && <AlerteFormulaire signal={etat}>{etat.erreur}</AlerteFormulaire>}
           <BoutonEnvoi enCoursTexte="Enregistrement…" className="w-full">
             Changer le mot de passe
           </BoutonEnvoi>

@@ -8,6 +8,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { AlerteFormulaire } from "@/components/alerte-formulaire";
 
 // `dureeEssai` vient de la page (calculé côté serveur, à la date du jour) :
 // le texte du formulaire suit l'offre de lancement sans écart d'hydratation.
@@ -199,11 +200,7 @@ export function FormulaireInscription({
               remplace pas votre relevé bancaire.
             </p>
           </div>
-          {etat.erreur && (
-            <p className="text-sm text-destructive" role="alert">
-              {etat.erreur}
-            </p>
-          )}
+          {etat.erreur && <AlerteFormulaire signal={etat}>{etat.erreur}</AlerteFormulaire>}
           {/* Information RGPD au moment de la collecte (art. 13) : une phrase
               et le lien, au plus près du bouton qui envoie les données. */}
           <p className="text-xs text-muted-foreground">

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent } from "@/components/ui/card";
+import { AlerteFormulaire } from "@/components/alerte-formulaire";
 
 type Message = {
   texte: string;
@@ -156,11 +157,7 @@ export function FormulaireConnexion() {
               onChange={(e) => setMotDePasse(e.target.value)}
             />
           </div>
-          {erreur && (
-            <p className="text-sm text-destructive" role="alert">
-              {erreur}
-            </p>
-          )}
+          {erreur && <AlerteFormulaire>{erreur}</AlerteFormulaire>}
           <Button type="submit" className="w-full" disabled={enCours}>
             {enCours ? <><Spinner /> Connexion…</> : "Se connecter"}
           </Button>

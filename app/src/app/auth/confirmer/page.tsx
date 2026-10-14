@@ -47,7 +47,7 @@ export default async function PageConfirmerLien({ searchParams }: { searchParams
   return (
     <CoquilleAuth
       promesse="La gestion locative, tenue au carré."
-      sousPromesse="Baux, quittances, régularisations, rapports de gestion et interventions — pour les agences, les propriétaires bailleurs, leurs locataires et les artisans."
+      sousPromesse="Baux, quittances, régularisations, rapports de gestion et interventions — pour les propriétaires bailleurs, leurs locataires et les artisans."
       mention="Un seul compte, tous vos espaces"
       titre={inscription ? "Confirmez votre adresse" : motDePasse ? "Votre mot de passe" : "Accéder à votre compte"}
       chapo={

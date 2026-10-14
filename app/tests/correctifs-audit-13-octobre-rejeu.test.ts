@@ -21,7 +21,7 @@ verifierBaseDeTest(DB_URL);
 
 const MIGRATION = readFileSync("supabase/migrations/20261013120000_correctifs_audit_13_octobre.sql", "utf8");
 
-// Les sept fonctions que la migration réécrit, et la marque que chacune garde de son correctif.
+// Les neuf fonctions que la migration réécrit, et la marque que chacune garde de son correctif.
 const FONCTIONS: [string, string][] = [
   ["public.definir_equipements_lot(uuid,uuid[])", "Audit du 13/10 (AUD-A-01)"],
   ["public.contre_ecriture(uuid,text)", "Audit du 13/10 (AUD-A-02)"],
@@ -30,6 +30,8 @@ const FONCTIONS: [string, string][] = [
   ["public.poser_gardes_diagnostic_artisan()", "'supervision_arrets','supervision_operations','supervision_vacances'"],
   ["public.traiter_vacances()", "Audit du 13/10 (SUP-08)"],
   ["public.contre_proposer_creneaux(uuid,uuid,jsonb)", "Audit du 13/10 (REP-01)"],
+  ["public.artisan_reglement_ecrire(text,text,uuid,jsonb,uuid)", "Audit du 13/10 (ARC-10)"],
+  ["public.artisan_externe_ecrire(text,uuid,integer,jsonb,uuid)", "Audit du 13/10 (ARC-10)"],
 ];
 
 describe.skipIf(!DB_URL)("Migration 20261013120000 — rejeu", () => {
@@ -86,5 +88,39 @@ describe.skipIf(!DB_URL)("Migration 20261013120000 — rejeu", () => {
        language plpgsql security definer set search_path to '' as $f$ begin null; end $f$`
     );
     await expect(db.query(MIGRATION)).rejects.toThrow(/AUD-A-04 : définition inattendue/);
+  });
+
+  it("ARC-10 : sur les définitions d'avant le correctif, elle pose le jour de Paris", async () => {
+    // On reconstitue l'état précédent depuis la définition en vigueur : le jour de session à la place du jour de Paris,
+    // sans la marque. C'est la base du banc, migrée par la première version du fichier.
+    for (const [signature, marque] of FONCTIONS.filter(([, m]) => m.includes("ARC-10"))) {
+      const { rows } = await db.query("select pg_get_functiondef($1::text::regprocedure) as def", [signature]);
+      const ancienne = (rows[0].def as string)
+        .replaceAll("(d.created_at at time zone 'Europe/Paris')::date", "d.created_at::date")
+        .replaceAll("(now() at time zone 'Europe/Paris')::date", "current_date")
+        .replaceAll(marque, "Audit du 13/10 (avant)");
+      await db.query(ancienne);
+    }
+    await db.query(MIGRATION);
+    for (const [signature, marque] of FONCTIONS.filter(([, m]) => m.includes("ARC-10"))) {
+      const { rows } = await db.query("select pg_get_functiondef($1::text::regprocedure) as def", [signature]);
+      expect(rows[0].def, signature).toContain(marque);
+      expect(rows[0].def, signature).not.toMatch(/current_date|d\.created_at::date/);
+    }
+  });
+
+  it("ARC-10 : une définition inattendue l'arrête, pour le règlement comme pour le chantier externe", async () => {
+    await db.query("savepoint avant_reglement");
+    await db.query(
+      `create or replace function public.artisan_reglement_ecrire(p_action text, p_origine text, p_facture uuid, p_donnees jsonb, p_cle uuid)
+       returns uuid language plpgsql security definer set search_path to '' as $f$ begin return null; end $f$`
+    );
+    await expect(db.query(MIGRATION)).rejects.toThrow(/ARC-10 \(règlement\) : définition inattendue/);
+    await db.query("rollback to savepoint avant_reglement");
+    await db.query(
+      `create or replace function public.artisan_externe_ecrire(p_action text, p_id uuid, p_revision integer, p_donnees jsonb, p_cle uuid)
+       returns uuid language plpgsql security definer set search_path to '' as $f$ begin return null; end $f$`
+    );
+    await expect(db.query(MIGRATION)).rejects.toThrow(/ARC-10 \(externe\) : définition inattendue/);
   });
 });

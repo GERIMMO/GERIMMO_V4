@@ -48,7 +48,8 @@ function rendre() {
 
 async function envoyer() {
   const formulaire = rendre() as unknown as { props: { onSubmit: (e: unknown) => Promise<void> } };
-  await formulaire.props.onSubmit({ preventDefault() {}, currentTarget: {} });
+  // `elements` : le gestionnaire confie le formulaire à la protection de saisie (preparerSoumission), qui lit ses champs.
+  await formulaire.props.onSubmit({ preventDefault() {}, currentTarget: { elements: [] } });
 }
 
 beforeEach(() => {

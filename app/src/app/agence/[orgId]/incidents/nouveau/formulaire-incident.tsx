@@ -116,15 +116,23 @@ export function FormulaireIncident({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="urgence">Urgence</Label>
+          {/* Un <select> ne retourne pas à la ligne : à 390 px, « Normal — peut attendre
+              quelques jours » (285 px) et « Urgent — dégât en cours ou logement
+              inutilisable » (357 px) dépassaient les 270 px utiles et perdaient leur fin
+              (relevé du 13/10, DES-A-15). Les libellés tiennent, le détail passe dessous. */}
           <select
             id="urgence"
             name="urgence"
             defaultValue={etat.valeurs?.urgence ?? "normale"}
             className={classeSelect}
+            aria-describedby="urgence-aide"
           >
-            <option value="normale">Normal — peut attendre quelques jours</option>
-            <option value="urgente">Urgent — dégât en cours ou logement inutilisable</option>
+            <option value="normale">Normal — sous quelques jours</option>
+            <option value="urgente">Urgent — dégât en cours</option>
           </select>
+          <p id="urgence-aide" className="text-xs text-muted-foreground">
+            Urgent : un dégât est en cours ou le logement est inutilisable.
+          </p>
         </div>
       </div>
 

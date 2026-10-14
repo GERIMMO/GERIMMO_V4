@@ -132,7 +132,17 @@ describe("Catalogue — documents issus des dossiers",()=>{
     expect(html).toContain("300,00");                   // 223
     expect(html).toContain("900,00");                   // 227
     expect(html).toMatch(/180,00 € de provisions/);    // 3 × 60 € de charges, hors déclaration
-    expect(html).toContain("Périmètre : 6 écritures");
+    expect(html).toContain("Périmètre : 6 écritures de 2026 examinées, toutes comptées dans le tableau.");
+  });
+  it("le récapitulatif fiscal nu dit ce que le tableau écarte (VER-TS-04 : nu puis meublé)",async()=>{
+    const t=fixture();
+    t.fiscal_exercices_lots=[{lot_id:"lot",annee:2026,version:1,periodes:[{debut:"2026-01-01",fin:"2026-02-28",quote_part:100,regime:"nu"},{debut:"2026-03-01",fin:"2026-12-31",quote_part:100,regime:"meuble"}],justification:"Lot nu puis meublé",regularisation230:0,quote_part230:100,justification230:"Aucune provision de l’année précédente"}];
+    t.ecritures=[1,2,3].map(m=>({id:`loyer${m}`,lot_id:"lot",bail_id:"bail",encaissement_id:`enc${m}`,categorie:"loyer",sens:"recette",montant:840,date_piece:`2026-0${m}-05`}));
+    t.fiscal_encaissements_composantes=[1,2,3].map(m=>({ecriture_id:`loyer${m}`,loyer_hc:780,charges:60,non_ventile:0}));
+    t.fiscal_qualifications_ecritures=[];
+    const html=succes(await assemblerComplementGestion("recap_fiscal_nu",mockDb(t).db,"org","lot",options)).document.html;
+    expect(html).toMatch(/1[\s\u202f\u00a0]560,00/); // deux loyers nus seulement : le troisième (mars) est meublé
+    expect(html).toContain("Périmètre : 3 écritures de 2026 examinées, dont 2 comptées dans le tableau. Écartées du tableau : 1 en période meublée (hors revenus fonciers).");
   });
   it("le récapitulatif fiscal nu refuse de s’imprimer tant qu’une pièce n’est pas qualifiée",async()=>{
     const t=fixture();t.fiscal_qualifications_ecritures=[];

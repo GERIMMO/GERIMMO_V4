@@ -4,7 +4,7 @@ import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, secti
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
 import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument } from "./catalogue-bail";
 import { chargerContexteBail, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
-import { recapitulatifFiscal, type ComposantesFiscales, type EcritureFiscale, type ExerciceFiscalLot, type QualificationFiscale, type RecapitulatifFiscal } from "@/lib/fiscal";
+import { phrasePerimetreFiscal, recapitulatifFiscal, type ComposantesFiscales, type EcritureFiscale, type ExerciceFiscalLot, type QualificationFiscale, type RecapitulatifFiscal } from "@/lib/fiscal";
 import type { Assemblage, LienDocument } from "./index";
 import { aujourdhuiParis } from "@/lib/ged";
 
@@ -165,7 +165,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         const baux = await lireLignes(lire("baux").eq("lot_id",cibleId));
         fiscal = recapitulatifFiscal(ecritures as unknown as EcritureFiscale[],annee,{lotsMeubles:lot.meuble?new Set([cibleId]):new Set(),ventilationLoyers:new Map(baux.map(b=>[texte(b.id),{loyerHc:montant(b.loyer_hc),charges:montant(b.charges)}]))});
       }
-      contenu = `${section(`Exercice ${annee}`)}<p>Récapitulatif du lot à 100 %, avant ventilation entre propriétaires. Les dépôts de garantie sont exclus et les contre-écritures déduites. Périmètre : ${ecritures.length} écritures enregistrées.</p>`;
+      contenu = `${section(`Exercice ${annee}`)}<p>Récapitulatif du lot à 100 %, avant ventilation entre propriétaires. Les dépôts de garantie sont exclus et les contre-écritures déduites. ${phrasePerimetreFiscal(fiscal,{tableau:code==="recap_fiscal_nu"})}</p>`;
       if (lot.meuble) contenu += `<p>Recettes enregistrées : ${eur(fiscal.meuble.recettes)} ; dépenses enregistrées : ${eur(fiscal.meuble.depenses)}.</p><p>Les amortissements, emprunts et retraitements BIC sont à établir avec le comptable ; aucun résultat fiscal n’est certifié ici.</p>`;
       else contenu += lignesTableau(f,fiscal.rubriques.map(r=>({...r,montant:r.code==="250"?interetsEmprunt:r.montant})),[["Rubrique","code","texte"],["Libellé","libelle","texte"],["Montant enregistré","montant","montant"]])+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p><p>Hors déclaration (charges récupérables) : ${eur(fiscal.chargesRecuperees)} de provisions et régularisations de charges encaissées${fiscal.teomExclue ? `, ${eur(fiscal.teomExclue)} de taxe d’enlèvement des ordures ménagères` : ""} — ni revenus, ni charges déductibles.</p>`;
       contenu += `<p>Aide à la préparation de la déclaration. Vérifiez les pièces, la quote-part, les intérêts d’emprunt et les dépenses externes avant déclaration. ${code==="recap_fiscal_nu"?"Les loyers et provisions sont ventilés selon la capture faite à chaque encaissement ou la ventilation historique que vous avez justifiée.":"Les loyers et provisions sont ventilés selon les montants du bail enregistrés lors de la génération."}</p>`;

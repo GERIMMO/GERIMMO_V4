@@ -62,7 +62,7 @@ describe("courriers : « de » s'élide devant un mois qui commence par une voye
   it("le corps garde le mois en gras, derrière l'apostrophe", () => {
     expect(corpsRelanceLoyer(relance("2026-10-01"))).toContain("le loyer d’<strong>octobre 2026</strong>");
     expect(corpsInformationCaution(caution("2026-08-01"))).toContain("le loyer d’<strong>août 2026</strong>");
-    expect(corpsQuittance(quittance("2026-04-01"))).toContain("quittance d’<strong>avril 2026</strong>");
+    expect(corpsQuittance(quittance("2026-04-01"))).toContain("quittance de loyer d’<strong>avril 2026</strong>");
     expect(corpsAvisEcheance(avis("2026-10-01"))).toContain("votre échéance d’<strong>octobre 2026</strong>");
   });
 

@@ -11,6 +11,8 @@ import { detecterMimeReel } from "@/lib/file-type";
 import { createHash } from "node:crypto";
 import { redirect } from "next/navigation";
 import { notifierDevisRecu } from "@/lib/notifications";
+import { decalerJour } from "@/lib/agenda-gestion";
+import { aujourdhuiParis } from "@/lib/ged";
 
 export async function preparerPropositionDevis(id: string): Promise<{ preparation?: PreparationDevis; erreur?: string }> {
   try {
@@ -20,10 +22,11 @@ export async function preparerPropositionDevis(id: string): Promise<{ preparatio
     const { data: historique, error } = await service.rpc("reperes_devis_realises", { p_categorie: demande.categorie });
     if (error) throw new Error("Les références de prix ne sont pas disponibles. Vous pouvez saisir votre devis.");
     const proposition = await proposerDevis(demande.categorie, demande.description, (historique ?? []).map((h: RepereHistorique) => ({ ...h, nombre:Number(h.nombre), artisans:Number(h.artisans), moyenne_ht_cents:Number(h.moyenne_ht_cents) })));
-    const validite = new Date(); validite.setDate(validite.getDate()+30);
+    // Trente jours à partir du jour de Paris (le serveur est en UTC : son jour est celui de la veille entre minuit et 2 h).
+    const validite = decalerJour(aujourdhuiParis(), 30);
     const { error: insertion } = await service.from("artisan_devis_preparations").upsert({
       sollicitation_id:id, artisan_id:fiche.artisan_id, proposition,
-      saisie: { diagnostic:proposition.diagnostic, lignes:proposition.lignes, delai:"", duree:"", contraintes:"", observations:"", valideJusquAu:validite.toISOString().slice(0,10) },
+      saisie: { diagnostic:proposition.diagnostic, lignes:proposition.lignes, delai:"", duree:"", contraintes:"", observations:"", valideJusquAu:validite },
     }, { onConflict:"sollicitation_id", ignoreDuplicates:true });
     if (insertion) throw new Error("La proposition n’a pas pu être enregistrée.");
     return { preparation:(await chargerPreparationDevis(id, true)).preparation! };

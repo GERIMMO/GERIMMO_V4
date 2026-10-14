@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { AlerteFormulaire } from "@/components/alerte-formulaire";
 
 export function FormulaireReinitialisation() {
   const [etat, action] = useActionState<EtatReinitialisation, FormData>(
@@ -44,11 +45,7 @@ export function FormulaireReinitialisation() {
                 required
               />
             </div>
-            {etat.erreur && (
-              <p className="text-sm text-destructive" role="alert">
-                {etat.erreur}
-              </p>
-            )}
+            {etat.erreur && <AlerteFormulaire signal={etat}>{etat.erreur}</AlerteFormulaire>}
             <BoutonEnvoi enCoursTexte="Envoi…" className="w-full">
               Envoyer le lien
             </BoutonEnvoi>

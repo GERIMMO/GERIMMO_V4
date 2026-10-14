@@ -99,36 +99,50 @@ declare
   r record;
   v_def text;
   v_garde text;
+  v_ancre text;
+  v_cand text;
 begin
   for r in
     select * from (values
       ('public.appliquer_retention()', 'retention-quotidienne',
-       E'    raise exception ''appliquer_retention: reserve au super admin'';\n  end if;\n',
+       array[E'    raise exception ''appliquer_retention: reserve au super admin'';\n  end if;\n'],
        $neutre$jsonb_build_object('arret_en_cours', true, 'journaux', '{}'::jsonb, 'documents_purges', 0, 'documents_anonymises', 0)$neutre$),
       ('public.cycle_mensuel_interne()', 'cycle-mensuel',
-       E'    raise exception ''cycle_mensuel_interne: reserve au cron et au super admin'';\n  end if;\n',
+       array[E'    raise exception ''cycle_mensuel_interne: reserve au cron et au super admin'';\n  end if;\n'],
        $neutre$jsonb_build_object('arret_en_cours', true, 'baux', 0, 'appels_crees', 0, 'quittances', 0, 'recus', 0, 'echecs', '[]'::jsonb)$neutre$),
       ('public.generer_alertes_impayes()', 'alertes-impayes-quotidiennes',
-       E'    raise exception ''generer_alertes_impayes: reserve au cron et au super admin'';\n  end if;\n',
+       array[E'    raise exception ''generer_alertes_impayes: reserve au cron et au super admin'';\n  end if;\n'],
        '0'),
       ('public.generer_alertes_diagnostics()', 'alertes-diagnostics-quotidiennes',
-       E'    raise exception ''generer_alertes_diagnostics: reserve au cron et au super admin'';\n  end if;\n',
+       array[E'    raise exception ''generer_alertes_diagnostics: reserve au cron et au super admin'';\n  end if;\n',
+         E'then raise exception ''generer_alertes_diagnostics: reserve au cron et au super admin''; end if;\n'],
        '0'),
       ('public.generer_alertes_assurance()', 'alertes-assurance-quotidiennes',
-       E'    raise exception ''generer_alertes_assurance: reserve au cron et au super admin'';\n  end if;\n',
+       array[E'    raise exception ''generer_alertes_assurance: reserve au cron et au super admin'';\n  end if;\n',
+         E'then raise exception ''generer_alertes_assurance: reserve au cron et au super admin''; end if;\n'],
        '0'),
       ('public.generer_alertes_restitution()', 'alertes-restitutions-quotidiennes',
-       E'    raise exception ''generer_alertes_restitution: reserve au cron et au super admin'';\n  end if;\n',
+       array[E'    raise exception ''generer_alertes_restitution: reserve au cron et au super admin'';\n  end if;\n',
+         E'then raise exception ''generer_alertes_restitution: reserve au cron et au super admin''; end if;\n'],
        '0'),
       -- Sans contrôle d'appelant (fermée à anon et authenticated) : la garde suit directement « begin ».
-      ('public.proposer_publications_interne(date)', 'propositions-publication-hebdo', E'\nbegin\n', '0'),
-      ('public.declencher_marketing()', 'marketing-declencheur', E'\nbegin\n', '')
-    ) as t(signature, tache, ancre, neutre)
+      ('public.proposer_publications_interne(date)', 'propositions-publication-hebdo', array[E'\nbegin\n'], '0'),
+      ('public.declencher_marketing()', 'marketing-declencheur', array[E'\nbegin\n'], '')
+    ) as t(signature, tache, ancres, neutre)
   loop
     select pg_get_functiondef(r.signature::regprocedure) into v_def;
     -- Rejeu : la marque du correctif est déjà là, il n'y a rien à refaire.
     if position('Audit du 14/10 (SUP-01)' in v_def) > 0 then continue; end if;
-    if (length(v_def) - length(replace(v_def, r.ancre, ''))) <> length(r.ancre) then
+    -- Une seule ancre doit convenir, exactement une fois : la forme sur plusieurs lignes (le dépôt) ou celle sur une
+    -- seule ligne (production, trois fonctions d'alertes). Aucune ne convient, ou plusieurs : on s'arrête.
+    v_ancre := null;
+    foreach v_cand in array r.ancres loop
+      if (length(v_def) - length(replace(v_def, v_cand, ''))) = length(v_cand) then
+        v_ancre := v_cand;
+        exit;
+      end if;
+    end loop;
+    if v_ancre is null then
       raise exception 'Correctif SUP-01 (%) : définition inattendue (ancre absente ou répétée)', r.signature;
     end if;
     v_garde := format($garde$  -- Audit du 14/10 (SUP-01) : l'arrêt d'urgence couvre aussi cette tâche pg_cron. Arrêt actif : aucun effet.
@@ -136,7 +150,7 @@ begin
     %s;
   end if;
 $garde$, r.tache, btrim('return ' || r.neutre));
-    v_def := replace(v_def, r.ancre, r.ancre || v_garde);
+    v_def := replace(v_def, v_ancre, v_ancre || v_garde);
     execute v_def;
   end loop;
 end $correctif$;

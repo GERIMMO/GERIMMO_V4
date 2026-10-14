@@ -528,6 +528,35 @@ describe.skipIf(!DB_URL)("arrêt d'urgence et tâches planifiées (D06)", () => 
     expect(await empreinte()).toEqual(avant);
   });
 
+  it("la production écrit le contrôle d'accès de trois alertes sur une seule ligne : la garde s'y pose aussi, une seule fois", async () => {
+    // Relevé du 14/10 : en production, generer_alertes_{diagnostics,assurance,restitution} portent
+    // `... then raise exception '…: reserve au cron et au super admin'; end if;` sur UNE ligne (le dépôt l'écrit sur
+    // plusieurs). La simulation de la migration s'y arrêtait (« ancre absente ou répétée »).
+    await db.query("reset role");
+    const fonctions = ["generer_alertes_diagnostics", "generer_alertes_assurance", "generer_alertes_restitution"];
+    for (const fn of fonctions) {
+      const { rows: [{ def }] } = await db.query<{ def: string }>(`select pg_get_functiondef('public.${fn}()'::regprocedure) as def`);
+      const sansGarde = def.replace(/  -- Audit du 14\/10 \(SUP-01\)[^\n]*\n  if not public\.tache_planifiee_autorisee\([^\n]*\n    [^\n]*\n  end if;\n/, "");
+      const multi = `then\n    raise exception '${fn}: reserve au cron et au super admin';\n  end if;\n`;
+      expect(sansGarde, `${fn} : forme du dépôt attendue avant la mise en forme de production`).toContain(multi);
+      const compacte = sansGarde.replace(multi, `then raise exception '${fn}: reserve au cron et au super admin'; end if;\n`);
+      expect(compacte).not.toContain(MARQUE);
+      await db.query(compacte);
+    }
+    await db.query(MIGRATION);
+    for (const fn of fonctions) {
+      const { rows: [{ def }] } = await db.query<{ def: string }>(`select pg_get_functiondef('public.${fn}()'::regprocedure) as def`);
+      expect(def.split(MARQUE).length - 1, `${fn} : la garde est posée une seule fois`).toBe(1);
+      // Le contrôle d'accès de production est conservé tel quel, et la garde le suit immédiatement.
+      expect(def).toContain(`then raise exception '${fn}: reserve au cron et au super admin'; end if;\n  -- ${MARQUE}`);
+    }
+    await db.query(MIGRATION); // rejeu : rien à refaire
+    for (const fn of fonctions) {
+      const { rows: [{ def }] } = await db.query<{ def: string }>(`select pg_get_functiondef('public.${fn}()'::regprocedure) as def`);
+      expect(def.split(MARQUE).length - 1).toBe(1);
+    }
+  });
+
   it("une définition inattendue l'arrête : la marque ne dispense pas de l'ancre, et l'ancre manquante se dit", async () => {
     await db.query("reset role");
     await db.query(

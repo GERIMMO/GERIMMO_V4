@@ -197,6 +197,19 @@ describe.skipIf(!DB_URL)("D08 — log_sa_access : une page, une ligne par minute
       expect(ligne.details).toMatchObject({ resultat: "refuse", org_demandee: "invalide" });
     });
 
+    it("un encaissement saisi depuis la fenêtre de lot dit son geste et son bail, chaque geste est une ligne", async () => {
+      const bail = "0b6e1d6e-7c1a-4b5e-9a3d-5f2f3d9a1c11";
+      await agir(sa);
+      requete.entetes = { "x-gerimmo-chemin": `/agence/${org}/parc`, "x-gerimmo-methode": "POST", "next-action": "7f3a9c0d2e4b5a69c8d7" };
+      for (let i = 0; i < 2; i++) {
+        expect(await tracerTraversee(clientBase(), { orgId: org, nature: "geste", resultat: "autorise", geste: { geste: "encaissement", cible: bail } })).toBe(true);
+      }
+      expect(await lignes(org, "traversee_action")).toEqual([
+        { action: "traversee_action", details: { resultat: "autorise", requete: "action_serveur", geste: "encaissement", rubrique: "parc", objet_id: bail, route: `/agence/${org}/parc`, action_ref: "7f3a9c0d2e4b5a69" } },
+        { action: "traversee_action", details: { resultat: "autorise", requete: "action_serveur", geste: "encaissement", rubrique: "parc", objet_id: bail, route: `/agence/${org}/parc`, action_ref: "7f3a9c0d2e4b5a69" } },
+      ]);
+    });
+
     it("l'accès autorisé, lui, reste rattaché à son organisation", async () => {
       await agir(sa);
       requete.entetes = { "x-gerimmo-chemin": `/agence/${org}/parc`, "x-gerimmo-methode": "GET" };

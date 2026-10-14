@@ -33,7 +33,7 @@ export async function demarrerRestitution(
   _etat: EtatRestit,
   formData: FormData
 ): Promise<EtatRestit> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "demarrage_restitution", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const date = String(formData.get("date_remise_cles") ?? "").trim();
@@ -56,7 +56,7 @@ export async function ajouterRetenue(
   _etat: EtatRestit,
   formData: FormData
 ): Promise<EtatRestit> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "ajout_retenue", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const libelle = String(formData.get("libelle") ?? "").trim();
@@ -118,7 +118,7 @@ export async function supprimerRetenue(
   bailId: string,
   retenueId: string
 ): Promise<EtatRestit> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "suppression_retenue", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   // Revue 29/08 : le DELETE direct ne supprimait rien (aucune policy DELETE)
   // tout en affichant « Retenue retirée » — on passe par la fonction, qui
@@ -138,7 +138,7 @@ export async function justifierRetenue(
   _etat: EtatRestit,
   formData: FormData
 ): Promise<EtatRestit> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "justification_retenue", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const fichier = formData.get("justificatif");
   if (!(fichier instanceof File) || fichier.size === 0) return { erreur: "Choisissez le devis ou la facture." };
@@ -175,7 +175,7 @@ export async function rafraichirMontantsRestitution(
   bailId: string,
   restitutionId: string
 ): Promise<EtatRestit> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "actualisation_restitution", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const { data, error } = await supabase.rpc("rafraichir_montants_restitution", {
     p_restitution: restitutionId,
@@ -195,7 +195,7 @@ export async function marquerDecompteEnvoye(
   _etat: EtatRestit,
   formData: FormData
 ): Promise<EtatRestit> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "decompte_envoye", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const date = String(formData.get("date") ?? "").trim();
@@ -214,7 +214,7 @@ export async function finaliserDecompte(
   bailId: string,
   restitutionId: string
 ): Promise<EtatRestit> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "finalisation_decompte", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const { data, error } = await supabase.rpc("finaliser_decompte", { p_restitution: restitutionId });
   if (error) return { erreur: sansJargon(error.message) };

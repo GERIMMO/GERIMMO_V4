@@ -24,7 +24,7 @@ export async function genererRapport(
   _etat: EtatCompta,
   formData: FormData
 ): Promise<EtatCompta> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "generation_rapport", cible: mandatId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const mois = String(formData.get("mois") ?? "").trim();
@@ -44,7 +44,7 @@ export async function envoyerRapport(
   _etat: EtatCompta,
   formData: FormData
 ): Promise<EtatCompta> {
-  const { supabase, user, role } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId, { geste: "envoi_rapport", cible: rapportId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const commentaire = String(formData.get("commentaire") ?? "").trim() || null;
@@ -62,7 +62,7 @@ export async function enregistrerVersement(
   _etat: EtatCompta,
   formData: FormData
 ): Promise<EtatCompta> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "versement_proprietaire", cible: rapportId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const montantSaisi = String(formData.get("montant") ?? "").trim();
@@ -89,7 +89,7 @@ export async function ajouterEcriture(
   _etat: EtatCompta,
   formData: FormData
 ): Promise<EtatCompta> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "ecriture_comptable" });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const categorie = String(formData.get("categorie") ?? "").trim();
@@ -128,7 +128,7 @@ export async function passerContreEcriture(
   _etat: EtatCompta,
   formData: FormData
 ): Promise<EtatCompta> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "contre_ecriture", cible: ecritureId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const motif = String(formData.get("motif") ?? "").trim();
@@ -146,7 +146,7 @@ export async function ventilerDepense(
   _etat: EtatCompta,
   formData: FormData
 ): Promise<EtatCompta> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "ventilation_depense" });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const bienId = String(formData.get("bien_id") ?? "");
@@ -176,7 +176,7 @@ export async function cloturerMois(
   _etat: EtatCompta,
   formData: FormData
 ): Promise<EtatCompta> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "cloture_mois" });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const mois = String(formData.get("mois") ?? "").trim();

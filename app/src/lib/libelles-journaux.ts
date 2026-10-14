@@ -1,5 +1,6 @@
 import { TACHES_SUIVIES } from "./missions";
 import { ACTIONS_SUPERVISION } from "./journal-supervision";
+import { GESTES_TRACE } from "./gestes-trace";
 
 const ACTIONS: Record<string, string> = {
   consultation_organisation: "Consultation d’une organisation",
@@ -136,13 +137,15 @@ export function codesConnusJournaux(): { audit: string[]; technique: string[] } 
 const CLES_MASQUEES = new Set(["digest", "depuis", "empreinte", "action_ref"]);
 const CLES_LIBELLES: Record<string, string> = {
   espace: "espace", ecran: "écran", avant: "état précédent", apres: "nouvel état", avant_active: "active avant", jours: "jours", essai_fin: "fin d’essai",
-  // Traversée d'un espace client par la supervision (D08) : résultat de l'accès, nature de la requête, rubrique ouverte.
-  resultat: "résultat", requete: "requête", rubrique: "rubrique", motif: "motif", org_demandee: "organisation demandée",
+  // Traversée d'un espace client par la supervision (D08) : décision d'accès, nature de la requête, geste, rubrique
+  // ouverte. « accès » et non « résultat » : la ligne est posée AVANT le geste, elle ne dit pas qu'il a réussi.
+  resultat: "accès", requete: "requête", geste: "geste", rubrique: "rubrique", motif: "motif", org_demandee: "organisation demandée",
 };
 // Les valeurs de ces clés se disent en français ; les autres s'affichent telles quelles (codes courts).
 const VALEURS_LIBELLES: Record<string, Record<string, string>> = {
   resultat: { autorise: "autorisé", refuse: "refusé" },
   requete: { page: "page", action_serveur: "action", formulaire: "formulaire" },
+  geste: GESTES_TRACE,
   motif: { organisation_introuvable: "organisation introuvable" },
 };
 

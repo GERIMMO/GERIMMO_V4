@@ -53,16 +53,38 @@ describe("libellés des journaux", () => {
         resultat: "autorise", requete: "action_serveur", rubrique: "baux",
         objet_id: "0b6e1d6e-7c1a-4b5e-9a3d-5f2f3d9a1c11", route: "/agence/f2cb7540-d6f9-471d-bd6e-44b6d9e7ea39/baux/0b6e1d6e-7c1a-4b5e-9a3d-5f2f3d9a1c11", action_ref: "7f3a9c0d2e4b5a69",
       })
-    ).toBe("résultat : autorisé · requête : action · rubrique : baux");
+    ).toBe("accès : autorisé · requête : action · rubrique : baux");
     expect(detailsExpurges({ resultat: "refuse", requete: "page", motif: "organisation_introuvable", rubrique: "parc" })).toBe(
-      "résultat : refusé · requête : page · motif : organisation introuvable · rubrique : parc"
+      "accès : refusé · requête : page · motif : organisation introuvable · rubrique : parc"
     );
-    expect(detailsExpurges({ resultat: "autorise", requete: "formulaire" })).toBe("résultat : autorisé · requête : formulaire");
+    expect(detailsExpurges({ resultat: "autorise", requete: "formulaire" })).toBe("accès : autorisé · requête : formulaire");
+  });
+
+  // Relecture : « résultat : autorisé » à côté d'un geste se lisait comme « le geste a réussi » ; or la trace est
+  // posée avant le geste. L'écran dit donc « accès », et nomme le geste en français.
+  it("nomme le geste en français et dit « accès » (la décision d'accès), jamais l'identifiant de la cible", () => {
+    expect(
+      detailsExpurges({
+        resultat: "autorise", requete: "action_serveur", geste: "encaissement", rubrique: "parc",
+        objet_id: "0b6e1d6e-7c1a-4b5e-9a3d-5f2f3d9a1c11", route: "/agence/f2cb7540-d6f9-471d-bd6e-44b6d9e7ea39/parc", action_ref: "7f3a9c0d2e4b5a69",
+      })
+    ).toBe("accès : autorisé · requête : action · geste : encaissement d’un loyer · rubrique : parc");
+    expect(detailsExpurges({ geste: "cloture_mois" })).toBe("geste : clôture d’un mois comptable");
+  });
+
+  it("un geste inconnu s'affiche tel quel (code court), sans casser l'écran", () => {
+    expect(detailsExpurges({ geste: "geste_futur" })).toBe("geste : geste_futur");
+    expect(detailsExpurges({ geste: "constructor" })).toBe("geste : constructor");
+  });
+
+  it("lit une organisation demandée mais absente : l'identifiant reste à la base, un texte invalide se dit", () => {
+    expect(detailsExpurges({ resultat: "refuse", org_demandee: "22222222-2222-4222-8222-222222222222" })).toBe("accès : refusé");
+    expect(detailsExpurges({ resultat: "refuse", org_demandee: "invalide" })).toBe("accès : refusé · organisation demandée : invalide");
   });
 
   it("une valeur inconnue d'une clé traduite s'affiche telle quelle, jamais un code interne inventé", () => {
-    expect(detailsExpurges({ resultat: "inconnu_x" })).toBe("résultat : inconnu_x");
-    expect(detailsExpurges({ resultat: "constructor" })).toBe("résultat : constructor");
+    expect(detailsExpurges({ resultat: "inconnu_x" })).toBe("accès : inconnu_x");
+    expect(detailsExpurges({ resultat: "constructor" })).toBe("accès : constructor");
   });
 
   it("explique les accès aux documents", () => {

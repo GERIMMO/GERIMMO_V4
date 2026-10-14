@@ -131,6 +131,52 @@ describe("D08 — les détails de la ligne d'audit", () => {
     expect(detailsTraversee({ orgId: ORG, nature: "geste", resultat: "autorise" }, contexte()).action).toBe("traversee_espace");
   });
 
+  describe("le geste nommé et sa cible (relecture : un encaissement saisi depuis la fenêtre de lot)", () => {
+    // La fenêtre de lot, qui porte les formulaires d'encaissement, est montée sur /agence/<org>/parc : l'adresse
+    // ne porte aucun identifiant de bail. Avant, la ligne disait « geste, rubrique parc » et rien d'autre.
+    const fenetreDeLot = contexte({ chemin: `/agence/${ORG}/parc`, actionServeur: true, ecriture: true, actionRef: "7f3a9c0d2e4b5a69" });
+
+    it("l'action dit son nom et le bail visé, même quand la page n'en porte aucun", () => {
+      const { action, details } = detailsTraversee(
+        { orgId: ORG, nature: "geste", resultat: "autorise", geste: { geste: "encaissement", cible: BAIL } }, fenetreDeLot
+      );
+      expect(action).toBe("traversee_action");
+      expect(details).toEqual({
+        resultat: "autorise", requete: "action_serveur", geste: "encaissement", rubrique: "parc", objet_id: BAIL, route: `/agence/${ORG}/parc`, action_ref: "7f3a9c0d2e4b5a69",
+      });
+    });
+
+    it("la cible du geste l'emporte sur l'objet de la page d'où il part", () => {
+      const AUTRE = "11111111-1111-4111-8111-111111111111";
+      const { details } = detailsTraversee(
+        { orgId: ORG, nature: "geste", resultat: "autorise", geste: { geste: "suppression_encaissement", cible: AUTRE } },
+        contexte({ actionServeur: true, ecriture: true })
+      );
+      expect(details).toMatchObject({ geste: "suppression_encaissement", objet_id: AUTRE, route: `/agence/${ORG}/baux/${BAIL}` });
+    });
+
+    it("sans cible, l'objet de la page reste celui de l'adresse ; sans geste, rien n'est inventé", () => {
+      const { details } = detailsTraversee({ orgId: ORG, nature: "geste", resultat: "autorise", geste: { geste: "cloture_mois" } }, contexte({ ecriture: true }));
+      expect(details).toMatchObject({ geste: "cloture_mois", objet_id: BAIL });
+      expect(detailsTraversee({ orgId: ORG, nature: "geste", resultat: "autorise" }, fenetreDeLot).details).not.toHaveProperty("geste");
+    });
+
+    it("une cible qui n'est pas un identifiant, ou un nom hors liste, n'est jamais écrite", () => {
+      const faux = { geste: "<script>" as never, cible: "bail'; drop table x;--" };
+      const { details } = detailsTraversee({ orgId: ORG, nature: "geste", resultat: "autorise", geste: faux }, fenetreDeLot);
+      expect(details).not.toHaveProperty("geste");
+      expect(details).not.toHaveProperty("objet_id");
+      const mauvaiseCible = detailsTraversee({ orgId: ORG, nature: "geste", resultat: "autorise", geste: { geste: "encaissement", cible: "pas-un-identifiant" } }, fenetreDeLot).details;
+      expect(mauvaiseCible).toMatchObject({ geste: "encaissement" });
+      expect(mauvaiseCible).not.toHaveProperty("objet_id");
+    });
+
+    it("un identifiant de cible en majuscules est écrit en minuscules", () => {
+      const { details } = detailsTraversee({ orgId: ORG, nature: "geste", resultat: "autorise", geste: { geste: "encaissement", cible: BAIL.toUpperCase() } }, fenetreDeLot);
+      expect(details.objet_id).toBe(BAIL);
+    });
+  });
+
   it("un refus dit pourquoi et quelle organisation était demandée (un identifiant valide, sinon « invalide »)", () => {
     expect(detailsTraversee({ orgId: INCONNUE.toUpperCase(), nature: "espace", resultat: "refuse", motif: "organisation_introuvable" }, contexte()).details)
       .toMatchObject({ resultat: "refuse", motif: "organisation_introuvable", org_demandee: INCONNUE });
@@ -228,6 +274,22 @@ describe("D08 — un geste dans un espace client (verifierGerant)", () => {
       "log_sa_access",
       { org: ORG, sa_action: "traversee_action", sa_details: { resultat: "autorise", requete: "action_serveur", rubrique: "baux", objet_id: BAIL, route: `/agence/${ORG}/baux/${BAIL}`, action_ref: ACTION.slice(0, 16) } },
     ]]);
+  });
+
+  it("une action financière dit son nom et sa cible, depuis la fenêtre de lot (adresse sans bail)", async () => {
+    mocks.entetes = { "x-gerimmo-chemin": `/agence/${ORG}/parc`, "x-gerimmo-methode": "POST", "next-action": ACTION };
+    await verifierGerant(ORG, { geste: "encaissement", cible: BAIL });
+    expect(appelsTrace()).toEqual([[
+      "log_sa_access",
+      { org: ORG, sa_action: "traversee_action", sa_details: { resultat: "autorise", requete: "action_serveur", geste: "encaissement", rubrique: "parc", objet_id: BAIL, route: `/agence/${ORG}/parc`, action_ref: ACTION.slice(0, 16) } },
+    ]]);
+  });
+
+  it("un refus (organisation inexistante) garde aussi le nom du geste tenté", async () => {
+    mocks.organisation = null;
+    mocks.entetes = { "x-gerimmo-chemin": `/agence/${INCONNUE}/parc`, "x-gerimmo-methode": "POST", "next-action": ACTION };
+    await verifierGerant(INCONNUE, { geste: "encaissement", cible: BAIL });
+    expect(appelsTrace()[0][1]).toMatchObject({ org: null, sa_details: { resultat: "refuse", geste: "encaissement", org_demandee: INCONNUE } });
   });
 
   it("le contrôle d'un dossier au rendu de la page (GET, aucune action) n'écrit PLUS « traversee_action »", async () => {

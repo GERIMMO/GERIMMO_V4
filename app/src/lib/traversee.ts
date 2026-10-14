@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { ENTETE_CHEMIN, ENTETE_METHODE } from "@/lib/entetes-traversee";
+import { estCodeGeste, type GesteTrace } from "@/lib/gestes-trace";
 
 /**
  * Trace de l'entrée du super-administrateur dans un espace client (audit du 13/10, SA-01 et SA-09,
@@ -15,17 +16,22 @@ import { ENTETE_CHEMIN, ENTETE_METHODE } from "@/lib/entetes-traversee";
  *   (`traversee_action`, seulement quand la requête peut écrire : action serveur ou formulaire en POST
  *   — jamais à l'ouverture d'une page ni au téléchargement d'un fichier) ;
  * - l'OBJET : l'adresse, la rubrique de l'espace et l'identifiant de l'objet ouvert (bail, lot,
- *   incident…) quand l'adresse en porte un ;
+ *   incident…) quand l'adresse en porte un. Pour une action FINANCIÈRE, l'action dit elle-même son nom
+ *   (`geste`) et la cible qu'elle modifie (l'identifiant du bail, du rapport, de l'écriture…) : la cible l'emporte
+ *   sur l'objet de la page d'où part le geste, qui n'en porte souvent aucun (la fenêtre de lot est sur
+ *   `/agence/<org>/parc`) — voir lib/gestes-trace.ts ;
  * - le RÉSULTAT : la décision d'accès — `autorise`, ou `refuse` (organisation introuvable). Une demande
  *   vers une organisation qui n'existe pas s'écrit SANS organisation (`audit_log.organization_id` est une clé
  *   étrangère : l'identifiant d'une organisation absente ne peut pas y figurer) ; l'identifiant demandé est
  *   alors dans les détails (`org_demandee`), pour retrouver qui a essayé quoi.
  *
  * Limite assumée : la trace est posée par la porte d'entrée, AVANT le geste. Elle dit « le
- * super-administrateur est autorisé à agir ici », pas « le geste a réussi » : le résultat d'un geste
- * financier est lisible dans ses propres écritures et lignes d'audit (`contre_ecriture`,
- * `suppression_encaissement`…). Une action serveur n'a pas de nom lisible côté serveur : on garde son
- * empreinte technique (`action_ref`) pour la rapprocher de la version déployée.
+ * super-administrateur est autorisé à agir ici », pas « le geste a réussi » : la console l'écrit « accès :
+ * autorisé » (et non « résultat »), et le résultat d'un geste financier est lisible dans ses propres écritures
+ * et lignes d'audit (`contre_ecriture`, `suppression_encaissement`…). Les actions non financières n'ont pas de
+ * nom lisible côté serveur : on garde l'empreinte technique de l'action (`action_ref`) pour la rapprocher de la
+ * version déployée. Faire écrire la ligne par les fonctions financières elles-mêmes (auteur, montant, résultat)
+ * relève de l'option B ou C de D08, non appliquées.
  *
  * Limite constatée sur un vrai serveur (Next.js 16.3, `next start`) : une page liée que le navigateur
  * charge à l'avance (préchargement, sans que personne ne l'ouvre) est rendue par le serveur, sous la
@@ -107,6 +113,8 @@ export type DemandeTrace = {
   resultat: "autorise" | "refuse";
   /** Pourquoi, quand le résultat est un refus. */
   motif?: "organisation_introuvable";
+  /** Pour une action financière : son nom et la cible qu'elle modifie (lib/gestes-trace.ts). */
+  geste?: GesteTrace;
 };
 
 /** Faux quand la demande vise une organisation qui n'existe pas : la ligne d'audit n'a alors aucune organisation à citer. */
@@ -131,6 +139,13 @@ export function detailsTraversee(demande: DemandeTrace, contexte: ContexteRequet
   if (!organisationConnue(demande)) details.org_demandee = UUID.test(demande.orgId) ? demande.orgId.toLowerCase() : "invalide";
   if (objet.rubrique) details.rubrique = objet.rubrique;
   if (objet.objet_id) details.objet_id = objet.objet_id;
+  // Le nom du geste et sa cible viennent de l'action, pas de l'adresse : seuls un nom de la liste et un
+  // identifiant valide sont écrits. La cible l'emporte sur l'objet de la page d'où part le geste.
+  if (demande.geste && estCodeGeste(demande.geste.geste)) {
+    details.geste = demande.geste.geste;
+    const cible = demande.geste.cible;
+    if (typeof cible === "string" && UUID.test(cible)) details.objet_id = cible.toLowerCase();
+  }
   if (objet.route) details.route = objet.route;
   if (contexte.actionRef) details.action_ref = contexte.actionRef;
   return { action: geste ? "traversee_action" : "traversee_espace", details };

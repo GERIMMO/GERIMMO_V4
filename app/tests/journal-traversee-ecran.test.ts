@@ -1,7 +1,7 @@
 /**
  * D08 (audit du 13/10, SA-01) — le journal d'audit de la console montre, pour une entrée du super-administrateur
- * dans un espace client, la page, la rubrique et le résultat, en français : « résultat : autorisé · requête :
- * action · rubrique : baux ». Jamais l'identifiant de l'objet, l'adresse ni l'empreinte technique de l'action.
+ * dans un espace client, la page, la rubrique, le geste et la décision d'accès, en français : « accès : autorisé ·
+ * requête : action · geste : encaissement d’un loyer · rubrique : parc ». Jamais l'identifiant de l'objet, l'adresse ni l'empreinte technique de l'action.
  * Les autres lignes d'audit gardent leur lecture d'avant (mois, fin d'essai, motif).
  */
 import { createElement } from "react";
@@ -45,16 +45,16 @@ const texte = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " 
 beforeEach(() => { mocks.audit = []; });
 
 describe("D08 — le journal d'audit lit la trace d'une traversée", () => {
-  it("montre le résultat, la requête et la rubrique, sans identifiant ni adresse ni empreinte", async () => {
+  it("montre l’accès, la requête et la rubrique, sans identifiant ni adresse ni empreinte", async () => {
     mocks.audit = [
       ligne("traversee_action", { resultat: "autorise", requete: "action_serveur", rubrique: "baux", objet_id: BAIL, route: `/agence/${ORG}/baux/${BAIL}`, action_ref: "7f3a9c0d2e4b5a69" }),
       ligne("traversee_espace", { resultat: "refuse", requete: "page", motif: "organisation_introuvable", rubrique: "parc", route: `/agence/${ORG}/parc` }),
     ];
     const t = texte(await ecran());
     expect(t).toContain("Action dans un espace client par la supervision (écriture possible)");
-    expect(t).toContain("résultat : autorisé · requête : action · rubrique : baux");
+    expect(t).toContain("accès : autorisé · requête : action · rubrique : baux");
     expect(t).toContain("Consultation d’un espace client par la supervision");
-    expect(t).toContain("résultat : refusé · requête : page · motif : organisation introuvable · rubrique : parc");
+    expect(t).toContain("accès : refusé · requête : page · motif : organisation introuvable · rubrique : parc");
     expect(t).not.toContain(BAIL);
     expect(t).not.toContain(ORG);
     expect(t).not.toContain("7f3a9c0d2e4b5a69");
@@ -66,7 +66,7 @@ describe("D08 — le journal d'audit lit la trace d'une traversée", () => {
     mocks.audit = [ligne("traversee_espace", {})];
     const t = texte(await ecran());
     expect(t).toContain("Consultation d’un espace client par la supervision");
-    expect(t).not.toContain("résultat");
+    expect(t).not.toContain("accès :");
   });
 
   it("les autres lignes d'audit gardent leur lecture (motif, mois)", async () => {

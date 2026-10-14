@@ -84,6 +84,7 @@ const LIBELLES_BILAN: Record<string, string> = {
   facebook: "publication sur Facebook",
   octets: "octets de base",
   fichiers: "fichiers copiés",
+  taches: "tâches planifiées copiées",
   prefixe: "dossier",
   etape: "arrêt à l’étape",
   publiciteActive: "publicité autorisée",
@@ -617,6 +618,98 @@ export async function chargerEtatTaches(
   return etatTaches(dernieres, maintenant, enPause);
 }
 
+// ── Le cycle mensuel (tâche pg_cron, D07) ────────────────────────────────────
+// Le cycle mensuel des appels de loyer (le 1er à 5 h UTC) ne tourne pas sur Vercel : pg_cron l'appelle dans la base
+// et sa fonction écrit une ligne `cycle_mensuel` dans le journal technique, jamais `tache_…`. Santé ne lisait que
+// les `tache_…` : après une restauration dans un projet neuf (ni pg_cron, ni tâches), ou un arrêt silencieux de
+// pg_cron, rien ne disait qu'aucun appel de loyer n'était plus généré. Le dernier passage est lu ici, sans fenêtre
+// (la fenêtre du journal est de 30 jours, le cycle est mensuel), et jugé en retard au-delà de 32 jours.
+
+/**
+ * `ok` : passage de moins de 32 jours. `retard` : plus de 32 jours, compté parmi les points bloquants.
+ * `jamais` : aucun passage dans l'historique (environnement neuf), à vérifier mais non compté.
+ * `suspendu` : un arrêt d'urgence couvre le cycle (D06) ; ce n'est pas une panne, rien n'est compté.
+ */
+export type EtatCycleMensuel = "ok" | "retard" | "jamais" | "suspendu";
+
+export type CycleMensuel = {
+  etat: EtatCycleMensuel;
+  /** L'instant du dernier passage, ISO, ou null. */
+  le: string | null;
+  /** Jours entiers écoulés depuis ce passage, ou null. */
+  joursDepuis: number | null;
+  /** Le résultat du dernier passage, en français. */
+  bilan: string;
+  /** Un arrêt d'urgence (global, « appels » ou « quittances ») est en cours. */
+  arretEnCours: boolean;
+};
+
+/** Au-delà de ce délai sans passage, le cycle mensuel est en retard : un mois et sa marge. */
+export const SEUIL_CYCLE_MENSUEL_JOURS = 32;
+
+function bilanCycle(details: unknown): string {
+  if (!details || typeof details !== "object" || Array.isArray(details)) return "résultat détaillé indisponible";
+  const d = details as Record<string, unknown>;
+  const n = (cle: string): number | null => (typeof d[cle] === "number" && Number.isSafeInteger(d[cle]) && (d[cle] as number) >= 0 ? (d[cle] as number) : null);
+  const morceaux = [
+    n("baux") !== null && ((n("baux") as number) > 1 ? `${n("baux")} baux examinés` : `${n("baux")} bail examiné`),
+    n("appels_crees") !== null && `appels créés : ${n("appels_crees")}`,
+    n("quittances") !== null && `quittances : ${n("quittances")}`,
+    n("recus") !== null && `reçus : ${n("recus")}`,
+    n("echecs") !== null && `actions à reprendre : ${n("echecs")}`,
+  ].filter(Boolean);
+  return morceaux.length ? morceaux.join(", ") : "résultat détaillé indisponible";
+}
+
+/** L'état du cycle mensuel à partir de son dernier passage consigné — pur, vérifiable. */
+export function etatCycleMensuel(
+  derniere: { le: string; details: unknown } | null,
+  arretEnCours: boolean,
+  maintenant: Date
+): CycleMensuel {
+  if (!derniere) {
+    return { etat: arretEnCours ? "suspendu" : "jamais", le: null, joursDepuis: null, bilan: "aucun passage enregistré", arretEnCours };
+  }
+  const age = maintenant.getTime() - new Date(derniere.le).getTime();
+  const enRetard = age > SEUIL_CYCLE_MENSUEL_JOURS * 24 * HEURE;
+  return {
+    etat: enRetard ? (arretEnCours ? "suspendu" : "retard") : "ok",
+    le: derniere.le,
+    joursDepuis: Math.max(0, Math.floor(age / (24 * HEURE))),
+    bilan: bilanCycle(derniere.details),
+    arretEnCours,
+  };
+}
+
+/**
+ * Lit le dernier passage du cycle mensuel (journal technique, écrit par le service seulement) et les arrêts qui le
+ * couvrent. `null` quand le journal est illisible : l'écran le dit, il n'affiche pas un état inventé.
+ */
+export async function chargerCycleMensuel(db: ClientQuiLitLeJournal, maintenant: Date = new Date()): Promise<CycleMensuel | null> {
+  try {
+    const [journal, arrets] = await Promise.all([
+      (db.from("tech_log") as ChaineJournal)
+        .select("evenement, details, created_at")
+        .in("evenement", ["cycle_mensuel"])
+        .is("account_id", null)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      (db.from("supervision_arrets") as ChaineJournal).select("cle, arrete").in("cle", ["global", "appels", "quittances"]).limit(10),
+    ]);
+    if (journal.error) return null;
+    const passages = (Array.isArray(journal.data) ? journal.data : [])
+      .filter((l): l is LigneJournal => Boolean(l) && typeof l === "object" && (l as LigneJournal).evenement === "cycle_mensuel" && typeof (l as LigneJournal).created_at === "string")
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    // Un arrêt illisible ne masque pas le cycle : sans lecture, on ne prétend pas qu'il est suspendu.
+    const arretEnCours = !arrets.error && (Array.isArray(arrets.data) ? arrets.data : []).some(
+      (a) => Boolean(a) && typeof a === "object" && (a as { arrete?: unknown }).arrete === true && ["global", "appels", "quittances"].includes(String((a as { cle?: unknown }).cle))
+    );
+    return etatCycleMensuel(passages[0] ? { le: passages[0].created_at, details: passages[0].details } : null, arretEnCours, maintenant);
+  } catch {
+    return null;
+  }
+}
+
 // ── Le crédit du compte IA ───────────────────────────────────────────────────
 // Le porteur ne lit pas ses mails (25/09) : un crédit OpenAI à zéro doit se
 // voir dans Gerimmo, en clair, pas seulement comme « en échec » sur deux
@@ -690,6 +783,8 @@ export type Sante = {
    */
   bloquants: number;
   tachesIllisibles: boolean;
+  /** Le cycle mensuel (pg_cron) ; `null` : son journal n'a pas pu être lu. Compté dans `bloquants` seulement en retard. */
+  cycleMensuel: CycleMensuel | null;
 };
 
 /**
@@ -704,14 +799,16 @@ export async function chargerSante(
   maintenant: Date = new Date(),
   regimeTva: RegimeTva | null = REGIME_TVA
 ): Promise<Sante> {
-  const [taches, evenementsIA] = await Promise.all([chargerEtatTaches(db, maintenant), lireEvenementsIA(db, maintenant)]);
+  const [taches, evenementsIA, cycleMensuel] = await Promise.all([chargerEtatTaches(db, maintenant), lireEvenementsIA(db, maintenant), chargerCycleMensuel(db, maintenant)]);
   const clePosee = Boolean(valeur(env, "OPENAI_API_KEY") || valeur(env, "OPEN_AI_KEY"));
   const configuration = [...etatConfiguration(env, regimeTva), ...(evenementsIA ? [verificationCreditIA(evenementsIA, clePosee)] : [])];
   return {
     configuration,
     taches,
     faitsEditeurManquants,
-    bloquants: pointsBloquants(configuration, taches ?? [], faitsEditeurManquants),
+    // Un cycle mensuel en retard (D07) est un point bloquant de plus : plus aucun appel de loyer n'est généré.
+    bloquants: pointsBloquants(configuration, taches ?? [], faitsEditeurManquants) + (cycleMensuel?.etat === "retard" ? 1 : 0),
     tachesIllisibles: taches === null,
+    cycleMensuel,
   };
 }

@@ -8,10 +8,12 @@ import { decalerJour } from "@/lib/agenda-gestion";
 import { aujourdhuiParis } from "@/lib/ged";
 import {
   chargerFicheArtisan,
+  chargerPhotosDemande,
   chargerSollicitations,
   verifierAccesArtisan,
   type LigneSollicitation,
 } from "../../acces";
+import { PhotosDeLaDemande } from "../../photos-demande";
 import {
   dateSimple,
   euros,
@@ -75,9 +77,11 @@ export default async function PageRepondreDevis(
   const { user } = await verifierAccesArtisan();
   const { sollicitationId } = await props.params;
 
-  const [{ fiche }, sollicitations] = await Promise.all([
+  // D16 (14/10) : les photos jointes par le locataire, que la base ne rend que pour une demande encore vivante.
+  const [{ fiche }, sollicitations, photos] = await Promise.all([
     chargerFicheArtisan(),
     chargerSollicitations(),
+    chargerPhotosDemande(sollicitationId, null),
   ]);
   const demande = sollicitations.lignes.find(
     (l) => l.sollicitation_id === sollicitationId
@@ -133,6 +137,8 @@ export default async function PageRepondreDevis(
         </ul>
         {!close && <p className={styles.confidentialite}>L’adresse exacte et le contact de l’occupant seront disponibles si votre devis est retenu.</p>}
       </section>
+
+      <PhotosDeLaDemande photos={photos.photos} erreur={photos.erreur} base={`/artisan/devis/${sollicitationId}/photos`} />
 
       {close ? (
         <Carte>

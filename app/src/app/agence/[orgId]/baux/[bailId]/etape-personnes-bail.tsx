@@ -1,5 +1,6 @@
 import { lienLotDepuisBail } from "@/lib/parcours-lot";
 import { verifierAccesEspace } from "@/lib/espace";
+import { ConseilsChoixLocataire } from "@/components/conseils-choix-locataire";
 import { PersonnesBail, type PersonneBail, type DetentionBail, type ParticipantBail } from "./personnes-bail";
 
 export async function EtapePersonnesBail({ orgId, bailId, lotId, principalId, colocation }: {
@@ -19,5 +20,7 @@ export async function EtapePersonnesBail({ orgId, bailId, lotId, principalId, co
   const moi = estProprietaire ? annuaire.data?.find(p => p.account_id === user.id && !p.archived_at)?.id ?? null : null;
   const personnes: PersonneBail[] = (annuaire.data ?? []).map(({ account_id: _compte, ...p }) => p);
   return <PersonnesBail orgId={orgId} bailId={bailId} personnes={personnes} detentions={(detentions.data as DetentionBail[]).map(d => ({ ...d, quote_part: Number(d.quote_part) }))}
-    participants={participants.data as ParticipantBail[]} principalId={principalId} personneConnecteeId={moi} colocation={colocation} proprietairesHref={lienLotDepuisBail(orgId, lot.data.bien_id, lotId, bailId, "proprietaires", 2)} />;
+    participants={participants.data as ParticipantBail[]} principalId={principalId} personneConnecteeId={moi} colocation={colocation} proprietairesHref={lienLotDepuisBail(orgId, lot.data.bien_id, lotId, bailId, "proprietaires", 2)}
+    // Les conseils pour choisir son locataire s'adressent au propriétaire en gestion directe ; l'agence ne les voit pas (V1 publique).
+    conseils={estProprietaire ? <ConseilsChoixLocataire emplacement="creation-bail" /> : null} />;
 }

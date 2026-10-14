@@ -27,7 +27,7 @@ export async function enregistrerConsigne(_etat: RetourSupervision, f: FormData)
 async function exigerUneTache(db: Base, version: string): Promise<string | null> {
  const { data, error } = await db.from('supervision_consignes_taches').select('id').eq('version_id', version).limit(1);
  if (error) return 'Les tâches de cette version ne peuvent pas être vérifiées. Réessayez dans un instant.';
- return data && data.length > 0 ? null : 'Cette version ne propose aucune tâche : il n’y a rien à autoriser. Précisez les lectures dans une nouvelle version.';
+ return data && data.length > 0 ? null : 'Cette version ne propose aucune tâche : il n’y a rien à activer. Précisez les lectures dans une nouvelle version.';
 }
 export async function commanderConsigne(_etat: RetourSupervision, f: FormData): Promise<RetourSupervision> {
  const commande = texte(f,'commande'), id = texte(f,'id');
@@ -46,6 +46,8 @@ export async function commanderRelais(_etat: RetourSupervision, f: FormData): Pr
  if (commande === 'actualiser') return appel('traiter_vacances', {});
  if (commande === 'accuser') return appel('accuser_alerte_vacances', { p_id: texte(f,'id') });
  if (commande === 'urgence') return appel('signaler_urgence_vacances', { p_plan: texte(f,'plan'), p_cle: texte(f,'cle'), p_titre: texte(f,'titre') });
+ // D46 (IA-06) : la sauvegarde ne lit aucun arrêt ; en enregistrer un donnerait l'illusion d'une protection. La lever reste possible.
+ if (commande === 'arreter' && texte(f,'portee') === 'sauvegarde') return { erreur: 'Cet arrêt n’aurait aucun effet : la sauvegarde nocturne ne lit pas l’arrêt d’urgence et continue. Il n’est plus proposé.' };
  if (commande === 'arreter' || commande === 'reprendre') return appel('commander_arret_supervision', { p_cle: texte(f,'portee'), p_plan: texte(f,'plan') || null, p_arreter: commande === 'arreter', p_motif: texte(f,'motif') });
  return { erreur: 'Commande inconnue.' };
 }

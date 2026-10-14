@@ -235,6 +235,23 @@ describe("Email de quittance : distinguer un envoi refusé d'un envoi déjà par
     expect(String(banc.email.mock.calls[0]?.[0]?.html)).toContain("https://www.gerimmo.app/quittance/quittance-test");
   });
 
+  it("l'envoi manuel porte la même clé anti-doublon que la tâche (D47) : un clic répété après un envoi non mémorisé ne double pas le courrier", async () => {
+    await envoyerQuittance("org-test", "bail-test", "quittance-test");
+    const cle = String(banc.email.mock.calls[0]?.[0]?.cleIdempotence ?? "");
+    // quittance/<id>/<q = quittance, r = reçu>/<montant en centimes>/<empreinte de l'adresse>
+    expect(cle).toMatch(/^quittance\/quittance-test\/q\/50000\/[0-9a-f]{64}$/);
+    expect(cle).not.toContain("@");
+  });
+
+  it("un reçu partiel et la quittance qui le remplace n'ont pas la même clé", async () => {
+    await envoyerQuittance("org-test", "bail-test", "quittance-test");
+    detail = { data: [{ ...(detail.data as object[])[0], est_quittance: false, montant: 300 }], error: null };
+    await envoyerQuittance("org-test", "bail-test", "quittance-test");
+    const [quittance, recu] = banc.email.mock.calls.map(([p]) => String(p.cleIdempotence));
+    expect(recu).toMatch(/^quittance\/quittance-test\/r\/30000\//);
+    expect(recu).not.toBe(quittance);
+  });
+
   it("sans adresse publique configurée, refuse d'envoyer plutôt qu'un lien relatif (audit 30/09, B4)", async () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
     vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "");

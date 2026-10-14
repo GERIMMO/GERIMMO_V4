@@ -12,7 +12,16 @@ import { verifierAvantEffet } from "@/lib/controle-effets";
 // ordre des opérations — on envoie, PUIS on consigne, parce qu'une relance
 // consignée mais jamais reçue ne serait plus jamais reprise (le niveau serait
 // « fait »), alors qu'un double envoi n'est que désagréable — et la base le
-// refuse de toute façon le même jour.
+// refuse de toute façon le même jour. Il est aussi borné côté service d'e-mail :
+// chaque envoi porte une clé d'idempotence stable (par bail, niveau, terme
+// relancé, destinataire et montants annoncés, lib/cles-idempotence-courriels.ts) ;
+// le service, revoyant la même clé, rend la réponse du premier envoi au lieu
+// d'en émettre un second (décision D47). Un règlement partiel entre deux passes
+// change les montants du courrier, donc sa clé : c'est un autre courrier, il part.
+// Le service ne retient la clé que 24 h (hypothèse, voir lib/email.ts) et cette
+// tâche ne passe qu'une fois par jour : la reprise du lendemain n'est pas garantie.
+// L'appel a aussi un délai maximal (15 s) : les deux vont ENSEMBLE, un délai
+// seul ferait reprendre à la passe suivante une relance déjà acceptée.
 //
 // TROIS VERROUS, parce que la route porte la clé de service.
 //  1. `CRON_SECRET` : sans elle, la route s'arrête — elle ne passe pas en mode
@@ -26,6 +35,7 @@ import { verifierAvantEffet } from "@/lib/controle-effets";
 // Les échecs se consignent avec leur motif et l'identifiant du bail (audit
 // 25/09, R2) : le bilan portait déjà un `details` en texte libre, il porte
 // désormais la même structure que les quittances et les avis d'échéance.
+import { cleRelanceLoyer } from "@/lib/cles-idempotence-courriels";
 import { envoyerEmail } from "@/lib/email";
 import {
   corpsInformationCaution,
@@ -130,11 +140,24 @@ export async function GET(request: Request) {
         lien: `${site}/locataire/${l.organization_id}/loyers`,
       }),
     });
+    // Une clé par destinataire : le terme relancé et le niveau identifient la
+    // relance, les montants annoncés la suivent si un règlement les change.
+    const cle = (destinataire: string, role: "locataire" | "caution") =>
+      cleRelanceLoyer({
+        bailId: l.bail_id,
+        niveau: l.niveau,
+        dateEcheance: l.date_echeance,
+        destinataire,
+        role,
+        reste: l.reste,
+        totalDu: l.total_du,
+      });
     await verifierAvantEffet(supabase, "relances");
     const envoi = await envoyerEmail({
       avantEnvoi: () => verifierAvantEffet(supabase, "relances"),
       organisation: { db: supabase, id: l.organization_id },
       to: l.destinataire,
+      cleIdempotence: cle(l.destinataire, "locataire"),
       ...courrier(l.prenom),
     });
     if (envoi.erreur) {
@@ -150,6 +173,7 @@ export async function GET(request: Request) {
       avantEnvoi: () => verifierAvantEffet(supabase, "relances"),
         organisation: { db: supabase, id: l.organization_id },
         to: autre,
+        cleIdempotence: cle(autre, "locataire"),
         ...courrier(null),
       });
       if (copie.erreur)
@@ -166,6 +190,7 @@ export async function GET(request: Request) {
       avantEnvoi: () => verifierAvantEffet(supabase, "relances"),
           organisation: { db: supabase, id: l.organization_id },
           to: caution,
+          cleIdempotence: cle(caution, "caution"),
           subject: sujetInformationCaution({ lot: l.lot }),
           html: corpsInformationCaution({
             emetteur: l.emetteur,

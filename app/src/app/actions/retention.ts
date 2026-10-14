@@ -26,6 +26,12 @@ export async function lancerPurge(): Promise<ResultatPurge> {
   const { data, error } = await supabase.rpc("appliquer_retention");
   if (error) return { erreur: `Purge en échec : ${sansJargon(error.message)}` };
 
+  // D06 : un arrêt d'urgence couvre la purge, aussi quand on la lance à la main. La base n'a rien supprimé ;
+  // les fichiers en attente ne doivent pas l'être non plus, sans quoi l'arrêt ne retiendrait que la moitié du geste.
+  if (data?.arret_en_cours === true) {
+    return { erreur: "Un arrêt d’urgence est en cours : rien n’a été supprimé. Levez l’arrêt dans « Relais et arrêts » avant de relancer le nettoyage." };
+  }
+
   // Suppression physique des fichiers en file. On ne marque « supprimé » que
   // ce que l'API a réellement supprimé : un chemin resté en file sera retenté
   // au prochain passage plutôt que perdu de vue.

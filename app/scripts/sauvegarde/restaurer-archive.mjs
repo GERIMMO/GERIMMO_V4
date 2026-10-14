@@ -11,6 +11,7 @@ import { pathToFileURL } from 'node:url';
 import pg from 'pg';
 import { extraire as extraireBase, argumentsConnexion } from './base.mjs';
 import { extraire as extraireFichiers, verifier as verifierFichiers, lireCle } from './fichiers.mjs';
+import { FICHIER_TACHES_CLAIR, genererRejeu, normaliserTaches } from './taches-planifiees.mjs';
 
 export function verifierDestination(texte) {
   const url = new URL(texte);
@@ -27,6 +28,38 @@ export function verifierDestination(texte) {
 export function verifierPrefixe(prefixe) {
   if (!/^\d{8}-\d{4}$/.test(prefixe ?? '')) throw new Error('Préfixe de sauvegarde invalide.');
   return prefixe;
+}
+
+/**
+ * D07 (AUD-C-02) : les tâches planifiées de la copie sont rejouées par le script que `extraire` a généré, sur un planificateur
+ * de FAÇADE (schéma `cron` minimal, créé puis retiré) — la base jetable n'a ni pg_cron ni pg_net. Cela prouve que la liste
+ * sauvegardée se rejoue en entier, sans doublon et à l'identique ; cela ne prouve PAS que pg_cron les exécute (extension
+ * de la plateforme, à activer avec pg_net sur le projet de secours). Le schéma `cron` ne doit pas déjà exister.
+ */
+export async function verifierRejeuTaches(cible, taches) {
+  const attendues = normaliserTaches(taches);
+  await cible.query(`create schema cron;
+    create table cron.job (jobid bigserial primary key, jobname text unique, schedule text, command text, active boolean not null default true);
+    create function cron.schedule(text, text, text) returns bigint language sql as $f$
+      insert into cron.job (jobname, schedule, command) values ($1, $2, $3)
+      on conflict (jobname) do update set schedule = excluded.schedule, command = excluded.command returning jobid $f$;
+    create function cron.alter_job(job_id bigint, active boolean default null) returns void language sql as $f$
+      update cron.job set active = coalesce($2, active) where jobid = $1 $f$;`);
+  try {
+    const script = genererRejeu(attendues, { verifierExtensions: false });
+    // Deux fois : rejouer le script ne crée aucun doublon.
+    await cible.query(script);
+    await cible.query(script);
+    // Triées en JavaScript, comme `normaliserTaches` : l'ordre d'un `order by` dépend de la collation de la base.
+    const { rows } = await cible.query('select jobname, schedule, command, active from cron.job');
+    rows.sort((a, b) => (a.jobname < b.jobname ? -1 : a.jobname > b.jobname ? 1 : 0));
+    if (JSON.stringify(rows) !== JSON.stringify(attendues.map(t => ({ jobname: t.jobname, schedule: t.schedule, command: t.command, active: t.active })))) {
+      throw new Error('Le rejeu des tâches planifiées ne redonne pas la liste sauvegardée.');
+    }
+    return rows.length;
+  } finally {
+    await cible.query('drop schema cron cascade').catch(() => {});
+  }
 }
 
 export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
@@ -100,10 +133,17 @@ export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
     const manquants = [...dansBase].filter(n => !dansArchive.has(n)).length;
     const nonReferences = [...dansArchive].filter(n => !dansBase.has(n)).length;
     if (manquants || nonReferences) throw new Error('La liste des fichiers restaurés ne correspond pas à la base sauvegardée.');
+    // Les copies d'avant le 14/10/2026 n'ont pas de liste de tâches (`taches_planifiees: null`) : elles se restaurent
+    // comme avant, et le bilan le dit au lieu de l'omettre.
+    let tachesPlanifiees = 'absentes de cette copie (antérieure à leur sauvegarde)';
+    if (infoBase.taches_planifiees !== null) {
+      const taches = JSON.parse(await fs.readFile(path.join(travail, 'base', FICHIER_TACHES_CLAIR), 'utf8')).taches;
+      tachesPlanifiees = await verifierRejeuTaches(cible, taches);
+    }
     return { reussi: true, date: new Date().toISOString(), sauvegarde: prefixe, date_sauvegarde: infoBase.date,
       tables: tables.length, lignes, fichiers: manifeste.objets.length, fichiers_manquants: manquants,
-      octets_base: infoBase.octets, protections: 'validées', duree_secondes: Math.ceil((Date.now() - debut) / 1000),
-      portee: 'Base PostgreSQL et fichiers restaurés localement ; bascule des services Supabase non effectuée.' };
+      octets_base: infoBase.octets, protections: 'validées', taches_planifiees: tachesPlanifiees, duree_secondes: Math.ceil((Date.now() - debut) / 1000),
+      portee: 'Base PostgreSQL et fichiers restaurés localement ; bascule des services Supabase non effectuée. Tâches pg_cron : liste et script de rejeu contrôlés sur un planificateur de façade ; pg_cron et pg_net non activés.' };
   } finally {
     if (cible) await cible.end().catch(() => {});
     try { if (creee) await admin.query(`drop database "${base}"`); }

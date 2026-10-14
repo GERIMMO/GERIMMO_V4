@@ -21,7 +21,7 @@ export async function encaisserReste(
   orgId: string, bailId: string, appelId: string,
   demande: { commande: string; reste: number; detteAnterieure: number }
 ): Promise<EtatEncaissementReste> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "encaissement_reste", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   if (!demande?.commande) return { erreur: "Rechargez les loyers avant d’enregistrer ce règlement." };
   const { data, error } = await supabase.rpc("encaisser_reste_atomique", {
@@ -56,7 +56,7 @@ export async function encaisserReste(
 
 // Émettre la quittance d'un bail dont le mois est soldé (payé sans quittance).
 export async function emettreQuittanceBail(orgId: string, bailId: string): Promise<EtatLoyers> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "emission_quittance_bail", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const emission = await emettreRecusQuittances(supabase, bailId);
   if (emission.erreur) return { erreur: emission.erreur };
@@ -74,7 +74,7 @@ export async function emettreQuittanceBail(orgId: string, bailId: string): Promi
 // Envoi groupé : toutes les quittances du mois pas encore parties, chacune au
 // bon locataire (e-mail + lien vers le document).
 export async function envoyerQuittancesMois(orgId: string, mois: string): Promise<EtatLoyers> {
-  const { supabase, user, role } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId, { geste: "envoi_quittances_mois" });
   if (!user) return { erreur: "Accès refusé." };
   // « Mon portefeuille » : l'envoi groupé d'un agent ne concerne que les baux
   // de ses mandats — sans portefeuille, comportement inchangé (tout part).

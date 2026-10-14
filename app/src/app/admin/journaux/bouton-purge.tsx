@@ -14,6 +14,12 @@ const JOURNAUX: Record<string, string> = {
   demandes_devis: "demandes de devis",
   intentions_conge: "intentions de congé",
   demandes_signature: "demandes de signature",
+  // D48 (IA-11) : les registres d'exécution des automatismes et du pilotage.
+  agent_passages: "passages des équipes IA",
+  supervision_operations: "gestes de la supervision",
+  points_du_matin: "points du matin",
+  decisions_du_matin: "décisions du point du matin",
+  brief_direction_snapshots: "faits de direction",
 };
 
 // 25/09 (audit C11) : le nettoyage est un geste destructif. Il n'est plus le

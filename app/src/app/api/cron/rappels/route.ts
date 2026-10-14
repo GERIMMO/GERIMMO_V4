@@ -18,7 +18,16 @@ import { ArretSupervision, verifierAvantEffet } from "@/lib/controle-effets";
 // fonctions accordées au seul `service_role`.
 //
 // On envoie, PUIS on trace — un rappel tracé mais jamais reçu ne serait plus
-// jamais repris, alors qu'un double rappel n'est que redondant.
+// jamais repris, alors qu'un double rappel n'est que redondant. Il est aussi
+// borné côté service d'e-mail : chaque envoi porte une clé d'idempotence stable
+// (par intervention, échéance, destinataire et début du rendez-vous, lib/cles-
+// idempotence-courriels.ts) ; le service, revoyant la même clé, rend la réponse
+// du premier envoi au lieu d'en émettre un second (décision D47). Il la retient
+// 24 h seulement (hypothèse, voir lib/email.ts) et cette tâche ne passe qu'une
+// fois par jour : la reprise du lendemain n'est pas garantie. L'appel a aussi
+// un délai maximal (15 s) : les deux vont ENSEMBLE, un délai seul ferait
+// reprendre à la passe suivante un rappel déjà accepté. Les rappels de gestes
+// (ci-dessous) portent la leur, avec un texte identique d'un matin à l'autre.
 //
 // DEPUIS LE 25/09, LA MÊME RONDE RAPPELLE AUSSI LES GESTES QUI N'ONT PAS ÉTÉ
 // FAITS : créneau non choisi (locataire, J+3), mission non acceptée (artisan,
@@ -26,6 +35,7 @@ import { ArretSupervision, verifierAvantEffet } from "@/lib/controle-effets";
 // (artisan, J+3). Une seule relance par objet, tracée dans `tech_log` — voir
 // `envoyerRappelsGestes`. Mêmes verrous, même journal, même clé de service.
 
+import { cleRappelRendezVous } from "@/lib/cles-idempotence-courriels";
 import { envoyerEmail } from "@/lib/email";
 import { envoyerRappelsGestes, type BilanRappelsGestes } from "@/lib/notifications";
 import { corpsRappel, sujetRappel } from "@/lib/rappel-email";
@@ -129,6 +139,12 @@ export async function GET(request: Request) {
       avantEnvoi: () => verifierAvantEffet(supabase, "rappels"),
       organisation: { db: supabase, id: l.organization_id },
       to: l.adresse,
+      cleIdempotence: cleRappelRendezVous({
+        interventionId: l.intervention_id,
+        echeance: l.echeance,
+        destinataire: l.destinataire,
+        debutPrevu: l.debut_prevu,
+      }),
       subject: sujetRappel(rappel),
       html: corpsRappel(rappel),
     });

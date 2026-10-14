@@ -23,7 +23,7 @@ export default async function PageEdl(
 ) {
   const { orgId, bailId, edlId } = await props.params;
   exigerUuids(bailId, edlId);
-  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, estProprietaire, user } = await verifierAccesEspace(orgId);
 
   const { data: edl, error: erreurEdl } = await supabase
     .from("etats_des_lieux")
@@ -320,6 +320,7 @@ export default async function PageEdl(
             orgId={orgId}
             bailId={bailId}
             edlId={edlId}
+            compteId={user.id}
             signe={signe}
             lignes={lignes ?? []}
             reference={

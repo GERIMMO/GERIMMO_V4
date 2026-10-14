@@ -246,7 +246,9 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
                 {audit.map((l, i) => {
                   const organisation = nomDe(l.organisation, "name");
                   const auteur = nomDe(l.compte, "email");
-                  const precision = detailsAudit(l.details);
+                  // D08 (audit du 13/10, SA-01) : l'entrée dans un espace client dit sa page, son objet et son résultat
+                  // (détails expurgés, en français, sans identifiant ni adresse).
+                  const precision = l.action.startsWith("traversee_") ? detailsExpurges(l.details) : detailsAudit(l.details);
                   return (
                     <li key={i} className="py-3 text-sm">
                       <span className="font-medium">{libelleActionAudit(l.action)}</span>

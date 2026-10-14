@@ -26,7 +26,7 @@ export async function creerAppelCharges(
   _etat: EtatAppel,
   formData: FormData
 ): Promise<EtatAppel> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "creation_appel_charges", cible: lotId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const exercice = Number(String(formData.get("exercice") ?? "").trim());
@@ -70,7 +70,7 @@ export async function ajouterPosteCharge(
   _etat: EtatAppel,
   formData: FormData
 ): Promise<EtatAppel> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "ajout_poste_charge", cible: appelId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const libelle = String(formData.get("libelle") ?? "").trim();
@@ -103,7 +103,7 @@ export async function modifierPosteCharge(
   _etat: EtatAppel,
   formData: FormData
 ): Promise<EtatAppel> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "modification_poste_charge", cible: posteId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const nature = String(formData.get("nature") ?? "") as NatureCharge;
@@ -128,7 +128,7 @@ export async function supprimerPosteCharge(
   lotId: string,
   posteId: string
 ): Promise<EtatAppel> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "suppression_poste_charge", cible: posteId });
   if (!user) return { erreur: "Accès refusé." };
   const { error } = await supabase
     .from("appel_charges_postes")
@@ -146,7 +146,7 @@ export async function validerVentilation(
   lotId: string,
   appelId: string
 ): Promise<EtatAppel> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "validation_ventilation", cible: appelId });
   if (!user) return { erreur: "Accès refusé." };
   const { error } = await supabase.rpc("valider_ventilation", { p_appel: appelId });
   if (error) return { erreur: sansJargon(error.message) };
@@ -160,7 +160,7 @@ export async function supprimerAppelCharges(
   lotId: string,
   appelId: string
 ): Promise<EtatAppel> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "suppression_appel_charges", cible: appelId });
   if (!user) return { erreur: "Accès refusé." };
   const { error } = await supabase
     .from("appels_charges")

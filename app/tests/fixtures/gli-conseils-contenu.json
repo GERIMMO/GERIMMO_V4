@@ -1,0 +1,65 @@
+{
+ "mention_generale": "Ces conseils sont donnés à titre indicatif : ils résument des pratiques courantes d'assureurs et des règles générales, et peuvent différer de votre contrat. Seules les conditions générales et particulières de votre contrat d'assurance font foi, et ces conseils ne remplacent pas un conseil juridique personnalisé.",
+ "conseils": [
+  {
+   "titre": "Calculez le taux d'effort du dossier",
+   "conseil": "Divisez le loyer charges comprises par les revenus nets du candidat. Les contrats fixent souvent un maximum entre 33 et 37 % ; le seuil exact varie : à vérifier dans votre contrat.",
+   "niveau_certitude": "variable selon le contrat"
+  },
+  {
+   "titre": "Vérifiez le type de contrat de travail",
+   "conseil": "Le CDI hors période d'essai est le profil le plus souvent couvert. Pour un CDD (8 à 12 mois restants), un indépendant (souvent 2 ans d'activité) ou l'intérim : à vérifier dans votre contrat.",
+   "niveau_certitude": "variable selon le contrat"
+  },
+  {
+   "titre": "Garantie souscrite : pas de caution à exiger",
+   "conseil": "Si vous avez souscrit une assurance loyers impayés (ou une autre garantie), vous ne pouvez pas exiger de caution. Exception : locataire étudiant ou apprenti. Une caution exigée à tort est nulle.",
+   "niveau_certitude": "règle légale"
+  },
+  {
+   "titre": "Étudiant ou apprenti : vérifiez si un garant est requis",
+   "conseil": "Plusieurs contrats (MAIF, Matmut, Garantme) exigent une caution pour un étudiant ou un apprenti ; chez certains, les revenus du garant ne s'ajoutent pas à ceux du locataire. À vérifier dans votre contrat.",
+   "niveau_certitude": "variable selon le contrat"
+  },
+  {
+   "titre": "Demandez uniquement les pièces de la liste légale",
+   "conseil": "Seules les pièces du décret du 5 novembre 2015 sont exigibles (identité, domicile, activité, ressources). Exemple interdit : relevé de compte. Amende administrative possible : jusqu'à 3 000 € pour un particulier.",
+   "niveau_certitude": "règle légale"
+  },
+  {
+   "titre": "Contrôlez l'authenticité des justificatifs",
+   "conseil": "Certains contrats font perdre la garantie si les justificatifs ne sont pas vérifiés. Contrôlez l'avis d'imposition via le service officiel en ligne ou son code 2D-Doc, et conservez le dossier avec le bail.",
+   "niveau_certitude": "variable selon le contrat"
+  },
+  {
+   "titre": "Mêmes critères pour tous les candidats",
+   "conseil": "Appliquez à tous les mêmes critères objectifs, liés à la solvabilité. Refuser un dossier pour un motif discriminatoire (origine, handicap, âge, lieu de résidence…) est interdit et peut être puni pénalement.",
+   "niveau_certitude": "règle légale"
+  },
+  {
+   "titre": "Revenus hors salaire : examinez le dossier",
+   "conseil": "Refuser un dossier à cause de la seule nature des revenus (allocation handicap, pension d'invalidité…), sans examen concret, peut être jugé discriminatoire (Défenseur des droits, 2025). Vérifiez aussi votre contrat.",
+   "niveau_certitude": "règle légale"
+  },
+  {
+   "titre": "Locataire déjà en retard : vérifiez les exclusions",
+   "conseil": "Plusieurs contrats excluent un locataire déjà en incident de paiement à la prise d'effet, ou exigent une ancienneté sans retard (4 mois chez Crédit Agricole). À vérifier dans votre contrat.",
+   "niveau_certitude": "variable selon le contrat"
+  },
+  {
+   "titre": "Logement et bail : vérifiez les conditions du contrat",
+   "conseil": "Les contrats visent la résidence principale (résidence secondaire et saisonnier exclus) et demandent souvent une clause résolutoire. Certains excluent les baux de moins de 12 mois. À vérifier dans votre contrat.",
+   "niveau_certitude": "pratique courante des assureurs"
+  },
+  {
+   "titre": "Colocation : anticipez le départ d'un colocataire",
+   "conseil": "Si un colocataire part alors que ses revenus étaient nécessaires, la garantie peut cesser à la fin de sa solidarité ; son remplaçant peut devoir être réévalué. À vérifier dans votre contrat.",
+   "niveau_certitude": "variable selon le contrat"
+  },
+  {
+   "titre": "Visale : une alternative, pas un cumul avec la GLI",
+   "conseil": "Si un profil n'entre pas dans votre contrat, Visale (gratuite pour le bailleur) peut être une option, mais elle ne se cumule pas avec une assurance loyers impayés sur un même bail. Demande avant la signature.",
+   "niveau_certitude": "règle légale"
+  }
+ ]
+}

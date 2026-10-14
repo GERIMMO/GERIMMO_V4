@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formaterDateHeureParis } from "@/lib/heure-paris";
-import { nomArret } from "@/lib/nom-arret-supervision";
+import { arretSansEffet, nomArret } from "@/lib/nom-arret-supervision";
 
 export type ArretEnCours = { cle: string; motif: string | null; modifie_le: string | null };
 export type RelaisEnCours = { fin: string };
@@ -18,14 +18,17 @@ export function BandeauArretSupervision({ arrets, relais }: { arrets: ArretEnCou
     <div role="status" className="mb-4 space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
       {arrets.map((a) => (
         <p key={a.cle}>
-          <strong>Arrêt d’urgence en cours : {nomArret(a.cle)}</strong>
+          <strong>{arretSansEffet(a.cle) ? `Arrêt enregistré sans effet : ${nomArret(a.cle)}` : `Arrêt d’urgence en cours : ${nomArret(a.cle)}`}</strong>
           {a.modifie_le ? ` depuis le ${formaterDateHeureParis(a.modifie_le)}` : ""}
-          {a.motif ? ` — « ${a.motif} »` : ""}. Les traitements concernés sont suspendus tant que l’arrêt n’est pas levé.
+          {a.motif ? ` — « ${a.motif} »` : ""}.{" "}
+          {arretSansEffet(a.cle)
+            ? "Rien n’est suspendu : la sauvegarde ne lit pas cet arrêt et continue. À lever pour retirer ce bandeau."
+            : "Les traitements concernés sont suspendus tant que l’arrêt n’est pas levé."}
         </p>
       ))}
       {relais.map((r) => (
         <p key={r.fin}>
-          <strong>Mode relais actif</strong> jusqu’au {formaterDateHeureParis(r.fin)} : seules les lectures autorisées dans une consigne s’exécutent.
+          <strong>Mode relais actif</strong> jusqu’au {formaterDateHeureParis(r.fin)} : seules les lectures activées dans une consigne s’exécutent.
         </p>
       ))}
       <p>

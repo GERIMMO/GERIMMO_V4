@@ -6,7 +6,7 @@ import { GrilleEdl } from "@/app/agence/[orgId]/baux/[bailId]/edl/[edlId]/grille
 
 it("garde toutes les pièces d’un état des lieux signé consultables", () => {
   const html = renderToStaticMarkup(createElement(GrilleEdl, {
-    orgId: "org", bailId: "bail", edlId: "edl", signe: true,
+    orgId: "org", bailId: "bail", edlId: "edl", compteId: "compte", signe: true,
     lignes: ["Cuisine", "Chambre", "Séjour"].map((piece, i) => ({
       id: `ligne-${i}`, piece, categorie: "general", libelle: "Sols", etat: "bon", commentaire: null,
     })),

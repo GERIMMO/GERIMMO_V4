@@ -1,0 +1,161 @@
+/* « Conseils pour choisir votre locataire » — un bloc replié, posé dans une
+   carte ou une section de l'espace propriétaire. Il ne porte que les jetons de
+   la charte (globals.css) : aucune couleur en dur.
+
+   Contrastes mesurés (WCAG 1.4.3, minimum 4,5) : encre sur fond blanc 15,2 ;
+   texte secondaire sur fond blanc 7,2 ; texte secondaire sur gris perle 6,2 ;
+   encre sur bleu clair 12,5. */
+
+.conseils {
+  /* Dans une grille ou une colonne flexible, un enfant garde sa largeur de
+     contenu par défaut : sans ceci, un mot long fait déborder la page à 390 px. */
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--filet);
+  border-radius: 12px;
+  background: var(--ivoire);
+  color: var(--corps);
+}
+
+/* La ligne qui replie ou déplie : 52 px de haut, donc au-dessus des 44 px
+   d'une cible tactile. Le focus clavier est dessiné à l'intérieur (décalage
+   négatif) pour ne pas être rogné par une carte à débordement masqué. */
+.conseils > .entete {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 14px;
+  list-style: none;
+  cursor: pointer;
+  border-radius: 12px;
+}
+.conseils > .entete::-webkit-details-marker { display: none; }
+.conseils > .entete:hover { background: var(--survol); }
+.conseils > .entete:focus-visible {
+  outline: 2px solid var(--marque);
+  outline-offset: -2px;
+}
+.conseils[open] > .entete {
+  border-bottom: 1px solid var(--filet);
+  border-radius: 12px 12px 0 0;
+  background: var(--survol);
+}
+
+.icone {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--marque-clair);
+  color: var(--marque-sombre);
+}
+
+.titres {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 2px;
+}
+.titre {
+  color: var(--encre);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.sousTitre {
+  color: var(--texte-secondaire);
+  font-size: 12.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--texte-secondaire);
+  transition: transform var(--duree) var(--courbe);
+}
+.conseils[open] .chevron { transform: rotate(180deg); }
+
+.corps {
+  display: grid;
+  gap: 18px;
+  padding: 16px 14px 18px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.intro {
+  margin: 0;
+  color: var(--texte-secondaire);
+}
+
+.groupe {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.niveau { margin: 0; }
+/* La pastille de la charte ne se coupe pas : « Pratique courante des
+   assureurs » doit pouvoir passer à la ligne sur un petit écran. */
+.niveau > :global(.puce) {
+  white-space: normal;
+  text-align: left;
+}
+.explication {
+  margin: 0;
+  color: var(--texte-secondaire);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.liste {
+  display: grid;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--filet-leger);
+}
+.liste > li {
+  display: grid;
+  gap: 3px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--filet-leger);
+}
+.conseilTitre {
+  color: var(--encre);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.conseilTexte {
+  display: block;
+  color: var(--corps);
+  overflow-wrap: anywhere;
+}
+
+.mention {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--marque);
+  border-radius: 0 10px 10px 0;
+  background: var(--survol);
+  color: var(--corps);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.mention > strong { color: var(--encre); }
+
+@media (min-width: 640px) {
+  .conseils > .entete { padding-inline: 18px; }
+  .corps { padding: 18px 18px 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron { transition: none; }
+}

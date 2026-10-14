@@ -62,8 +62,10 @@ export function CoquilleAuth({
       <div className="flex items-center justify-center p-6 sm:p-8">
         <div className="w-full" style={{ maxWidth: largeur }}>
           <div className="mb-6 md:hidden">
-            <Link href="/" aria-label="Gerimmo — accueil" className="inline-flex min-h-11 items-center">
-              <MarqueGerimmo />
+            {/* Sur le fond clair du formulaire, le logo doré se pose dans la tuile bleu nuit (D28 A, DES-A-10) :
+                nu, il se lisait à ≈ 1,5:1 sur le tout premier écran de connexion. */}
+            <Link href="/" aria-label="Gerimmo — accueil" className="inline-flex min-h-11 items-center rounded-xl">
+              <MarqueGerimmo tuile />
             </Link>
           </div>
           <h1>{titre}</h1>

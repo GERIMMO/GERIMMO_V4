@@ -103,6 +103,8 @@
   .help:hover { background: #ffffff12; color: white; }
   .topbar :global(.menu-compte-bouton) { color: #f4e6c7; }
   .topbar :global(.loc-avat) { background: #ffffff15; color: #f4e6c7; }
+  /* L'en-tête est déjà bleu nuit : la tuile du logo (D28 A, posée de 700 à 999 px où il est blanc) s'efface ici. */
+  .topbar .mobileBrand :global(.marque-gerimmo-tuile) { padding: 0; background: transparent; }
 }
 
 .content :global(.artisan-semaine) > li > :is(a, div) { height: 100%; }

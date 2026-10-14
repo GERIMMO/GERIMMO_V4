@@ -217,7 +217,8 @@ export default async function LayoutAgence({
         <header className="coquille-haut">
           {/* Sur téléphone la colonne n'existe plus : la marque monte ici. */}
           <span className="coquille-marque-mobile min-w-0 max-w-[160px]">
-            <MarqueOrganisation marque={estProprietaire ? undefined : organisation} />
+            {/* En-tête clair : sans marque propre, le logo Gerimmo se pose dans la tuile bleu nuit (D28 A, DES-A-10). */}
+            <MarqueOrganisation marque={estProprietaire ? undefined : organisation} tuile />
           </span>
           <RechercheEspace orgId={orgId} />
           <SyntheseAlertes

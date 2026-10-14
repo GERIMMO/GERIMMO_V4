@@ -108,7 +108,7 @@ export default async function PageCompte() {
           {/* overflow-hidden : à 390 px, la marque débordait de sa boîte et
               touchait « Mes espaces » (audit du 27/09). */}
           <div className="min-w-0 max-w-[180px] overflow-hidden">
-            {marque ? <MarqueOrganisation marque={marque} /> : <MarqueGerimmo />}
+            {marque ? <MarqueOrganisation marque={marque} tuile /> : <MarqueGerimmo tuile />}
           </div>
           <div className="flex shrink-0 items-center gap-3">
             {estArtisan ? (

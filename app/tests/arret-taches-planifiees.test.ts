@@ -26,7 +26,7 @@ verifierBaseDeTest(DB_URL);
 
 const MIGRATION = readFileSync("supabase/migrations/20261014200000_arret_urgence_taches_planifiees.sql", "utf8");
 
-/** Les 8 tâches pg_cron, et la clé d'arrêt (en plus de « global ») qui arrête chacune. */
+/** Les 9 tâches pg_cron (la 9ᵉ, « maintenance-artisans », vient du lot maintenance des artisans), et la clé d'arrêt (en plus de « global ») qui arrête chacune. */
 const CORRESPONDANCE: Record<string, string[]> = {
   "retention-quotidienne": ["purge"],
   "cycle-mensuel": ["appels", "quittances"],
@@ -36,6 +36,7 @@ const CORRESPONDANCE: Record<string, string[]> = {
   "alertes-restitutions-quotidiennes": ["rappels"],
   "propositions-publication-hebdo": ["marketing"],
   "marketing-declencheur": ["marketing"],
+  "maintenance-artisans": ["rappels"],
 };
 const FONCTIONS: [tache: string, signature: string][] = [
   ["retention-quotidienne", "public.appliquer_retention()"],

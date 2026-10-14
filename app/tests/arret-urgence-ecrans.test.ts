@@ -34,7 +34,8 @@ function client(tables: Record<string, unknown[]>, rpc: (nom: string, args?: Rec
     q.then = (ok: (r: unknown) => unknown) => Promise.resolve({ data: tables[table] ?? [], error: null }).then(ok);
     return q;
   };
-  return { from, rpc: async (nom: string, args?: Record<string, unknown>) => { appels.push([nom, args]); return rpc(nom, args); }, appels };
+  const auth = { getUser: async () => ({ data: { user: { id: "admin-test" } }, error: null }) };
+  return { from, auth, rpc: async (nom: string, args?: Record<string, unknown>) => { appels.push([nom, args]); return rpc(nom, args); }, appels };
 }
 
 beforeEach(() => { mocks.createClient.mockReset(); mocks.revalidate.mockReset(); });

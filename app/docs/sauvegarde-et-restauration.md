@@ -40,7 +40,7 @@ Les copies prises avant la correction du 27 septembre ne contenaient pas les dro
    1. Dans le projet restauré, activer les extensions `pg_cron` et `pg_net` (tableau de bord Supabase, Database → Extensions).
    2. Contrôler `public.declencheur_marketing` : `site_url` doit être l'adresse du site qui reprend, et `actif` doit refléter le choix voulu. La tâche `marketing-declencheur` appelle ce site avec le jeton restauré avec la base ; vers l'ancien site, elle déclencherait ses publications.
    3. Jouer `rejouer-pg-cron.sql`, produit avec la copie par `node scripts/sauvegarde/base.mjs extraire <dossier de la copie> <dossier neuf>` (il refuse de s'exécuter si `pg_cron` n'est pas activée). À défaut de ce fichier, les mêmes tâches se recréent en rejouant les `cron.schedule` des migrations (liste ci-dessous).
-   4. Vérifier : `select jobname, schedule, active from cron.job order by jobname;` doit rendre les huit lignes.
+   4. Vérifier : `select jobname, schedule, active from cron.job order by jobname;` doit rendre les neuf lignes.
    5. Rien ne rejoue ce qu'une tâche aurait fait pendant l'arrêt : le prochain cycle mensuel crée les appels de tous les mois manquants ; d'ici là, le bouton « Générer l'échéancier » de chaque bail (page du bail, rubrique loyers) rattrape un bail à la fois.
    6. **Si l'arrêt a couvert un 1er du mois**, ce rattrapage a un effet à surveiller : les avis d'échéance créés pour les mois manquants ont une échéance déjà passée, et la mission « Relances de loyers » (07:45 UTC, un quart d'heure après les avis, 07:30 UTC) les lit comme des loyers en retard. Sans précaution, un locataire peut recevoir le même matin l'avis d'échéance et une relance pour le même loyer. Pour l'éviter : garder la mission « Relances de loyers » arrêtée jusqu'à l'envoi des avis du rattrapage (écran « Relais et arrêts »), puis lever cet arrêt ; ou, pour une seule agence, lui faire décocher « Relancer automatiquement les loyers impayés par e-mail » (rubrique Profil) le temps du rattrapage. Une règle côté base (ne relancer un terme qu'après l'envoi de son avis) reste à décider ; elle n'est pas faite.
 
@@ -61,7 +61,7 @@ Huit tâches SQL tournent dans la base, appelées par pg_cron sans passer par le
 
 Ce qu'une restauration ne fait pas : elle ne recrée pas ces tâches ni les extensions `pg_cron` et `pg_net`. Sans l'étape 7 de la procédure, aucun signal immédiat ; c'est pourquoi l'écran **Santé** lit le dernier passage du cycle mensuel (ligne `cycle_mensuel` du journal technique) et passe en alerte au-delà de **32 jours** : un point bloquant, compté dans « À décider ». Un arrêt d'urgence qui couvre le cycle (arrêt global, « appels » ou « quittances ») l'affiche « suspendu » et non en retard.
 
-L'arrêt d'urgence couvre ces huit tâches (migration `20261014200000`) : voir l'écran « Relais et arrêts » pour le périmètre de chaque clé.
+L'arrêt d'urgence couvre ces neuf tâches (migration `20261014200000`) : voir l'écran « Relais et arrêts » pour le périmètre de chaque clé.
 
 ## Ce qui reste à éprouver
 

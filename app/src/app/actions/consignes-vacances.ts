@@ -46,6 +46,8 @@ export async function commanderRelais(_etat: RetourSupervision, f: FormData): Pr
  if (commande === 'actualiser') return appel('traiter_vacances', {});
  if (commande === 'accuser') return appel('accuser_alerte_vacances', { p_id: texte(f,'id') });
  if (commande === 'urgence') return appel('signaler_urgence_vacances', { p_plan: texte(f,'plan'), p_cle: texte(f,'cle'), p_titre: texte(f,'titre') });
+ // D46 (IA-06) : la sauvegarde ne lit aucun arrêt ; en enregistrer un donnerait l'illusion d'une protection. La lever reste possible.
+ if (commande === 'arreter' && texte(f,'portee') === 'sauvegarde') return { erreur: 'Cet arrêt n’aurait aucun effet : la sauvegarde nocturne ne lit pas l’arrêt d’urgence et continue. Il n’est plus proposé.' };
  if (commande === 'arreter' || commande === 'reprendre') return appel('commander_arret_supervision', { p_cle: texte(f,'portee'), p_plan: texte(f,'plan') || null, p_arreter: commande === 'arreter', p_motif: texte(f,'motif') });
  return { erreur: 'Commande inconnue.' };
 }

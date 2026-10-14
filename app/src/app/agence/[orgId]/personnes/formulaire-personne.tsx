@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { DELAI_COPIE_LOCALE_MS, RepriseLocale, StatutCopieLocale, useCopieFichiers } from "@/components/reprise-locale";
+import { RepriseLocale, StatutCopieLocale, useCopieFichiers } from "@/components/reprise-locale";
 import { cleCopieFichiers, type CopieFichiers } from "@/lib/brouillon-fichiers";
 import { validerBrouillonPersonne, type BrouillonPersonne } from "@/lib/brouillons-personne-incident";
 import { useActionState, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
@@ -46,7 +46,7 @@ export function FormulairePersonne(props: Props) {
 }
 function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dansParcours = false, cleLocale, copie }: Props & { cleLocale: string; copie: CopieFichiers<BrouillonPersonne> | null }) {
   const initial = copie?.donnees;
-  const { enregistrer, statut } = useCopieFichiers(cleLocale, copie);
+  const { enregistrer, differer, statut } = useCopieFichiers(cleLocale, copie);
   const [pieces, setPieces] = useState<JustificatifPrepare[]>(initial?.pieces ?? []);
   const formulaire = useRef<HTMLFormElement>(null);
   const navigation = useRef<HTMLDivElement>(null);
@@ -71,12 +71,8 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
   );
   const snapshot = useMemo<BrouillonPersonne>(() => ({ ...contenu, bilan: etat }), [contenu, etat]);
   // Audit du 13/10 (PR178-A-04) : écrire à chaque frappe réécrivait tous les fichiers joints (1,2 Go d'écritures pour
-  // 40 frappes avec trois pièces de 9 Mo). La copie est écrite une fois la frappe terminée ; les envois, eux, écrivent tout de suite.
-  useEffect(() => {
-    if (!role || enCours || etat.terminee) return;
-    const minuterie = setTimeout(() => { void enregistrer(snapshot); }, DELAI_COPIE_LOCALE_MS);
-    return () => clearTimeout(minuterie);
-  }, [role, enCours, etat.terminee, snapshot, enregistrer]);
+  // 40 frappes avec trois pièces de 9 Mo). La copie est écrite une fois la frappe terminée (`differer`) ; les envois écrivent tout de suite.
+  useEffect(() => { if (role && !enCours && !etat.terminee) differer(snapshot); }, [role, enCours, etat.terminee, snapshot, differer]);
   const estProprio = role === "proprietaire_mandant";
   const personneMorale = estProprio && morale;
   const roles = estBailleurDirect ? ROLES.filter(r => r.cle !== "proprietaire_mandant") : ROLES;

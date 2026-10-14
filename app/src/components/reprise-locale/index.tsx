@@ -53,8 +53,11 @@ export function useCopieFichiers<T>(cle: string, initiale: CopieFichiers<T> | nu
   const attente = useRef(0);
   const signalerConfirmation = useContext(EnvoiConfirme);
   const [statut, setStatut] = useState<"vide" | "attente" | "conserve" | "refuse" | "conflit">(initiale ? "conserve" : "vide");
+  const differee = useRef<{ donnees: T; minuterie: ReturnType<typeof setTimeout> } | null>(null);
   const enregistrer = useCallback((donnees: T | null) => {
     if (termine.current) return Promise.resolve(false);
+    // Un effacement (envoi confirmé) l'emporte sur une écriture encore en attente de la fin de frappe.
+    if (donnees === null && differee.current) { clearTimeout(differee.current.minuterie); differee.current = null; }
     attente.current++; setStatut("attente");
     const suite = file.current.then(async () => {
       if (termine.current) return false;
@@ -75,6 +78,31 @@ export function useCopieFichiers<T>(cle: string, initiale: CopieFichiers<T> | nu
     file.current = suite;
     return suite;
   }, [cle, signalerConfirmation]);
+  const vider = useCallback(() => {
+    const prevue = differee.current;
+    if (!prevue) return;
+    clearTimeout(prevue.minuterie); differee.current = null;
+    void enregistrer(prevue.donnees);
+  }, [enregistrer]);
+  /**
+   * Écrit la copie une fois la frappe terminée (audit du 13/10, PR178-A-04 : une écriture par frappe réécrivait toutes les
+   * pièces jointes). Pendant l'attente, le statut passe tout de suite à « attente » : il ne doit pas affirmer « conservés »
+   * pour une saisie ou un fichier qui ne l'est pas encore, et la boîte « quitter la page » protège ce délai (constaté au
+   * parcours « fiche et justificatif » : fichier ajouté puis onglet fermé avant la fin du délai, copie sans le fichier).
+   * La copie est aussi écrite sans attendre quand la page se masque ou que le formulaire se démonte.
+   */
+  const differer = useCallback((donnees: T) => {
+    if (termine.current) return;
+    if (differee.current) clearTimeout(differee.current.minuterie);
+    setStatut("attente");
+    differee.current = { donnees, minuterie: setTimeout(vider, DELAI_COPIE_LOCALE_MS) };
+  }, [vider]);
+  useEffect(() => {
+    const masquee = () => { if (document.visibilityState === "hidden") vider(); };
+    document.addEventListener("visibilitychange", masquee);
+    window.addEventListener("pagehide", vider);
+    return () => { document.removeEventListener("visibilitychange", masquee); window.removeEventListener("pagehide", vider); vider(); };
+  }, [vider]);
   useEffect(() => {
     const avertir = (e: BeforeUnloadEvent) => {
       if (statut === "attente" || statut === "refuse" || statut === "conflit") { e.preventDefault(); e.returnValue = ""; }
@@ -82,7 +110,7 @@ export function useCopieFichiers<T>(cle: string, initiale: CopieFichiers<T> | nu
     window.addEventListener("beforeunload", avertir);
     return () => window.removeEventListener("beforeunload", avertir);
   }, [statut]);
-  return { enregistrer, statut };
+  return { enregistrer, differer, statut };
 }
 export function StatutCopieLocale({ statut }: { statut: ReturnType<typeof useCopieFichiers>["statut"] }) {
   const erreur = statut === "refuse" || statut === "conflit";

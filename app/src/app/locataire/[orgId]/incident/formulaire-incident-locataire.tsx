@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { DELAI_COPIE_LOCALE_MS, RepriseLocale, StatutCopieLocale, useCopieFichiers } from "@/components/reprise-locale";
+import { RepriseLocale, StatutCopieLocale, useCopieFichiers } from "@/components/reprise-locale";
 import { cleCopieFichiers, type CopieFichiers } from "@/lib/brouillon-fichiers";
 import { declarationDuBrouillon, validerBrouillonIncident, type BrouillonIncident } from "@/lib/brouillons-personne-incident";
 import { useActionState, useEffect, useRef, useState } from "react";
@@ -121,7 +121,7 @@ export function FormulaireIncidentLocataire({ orgId, compteId }: { orgId: string
   return <RepriseLocale cle={cle} valider={validerBrouillonIncident}>{copie => <SaisieIncident orgId={orgId} cleLocale={cle} copie={copie} />}</RepriseLocale>;
 }
 function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale: string; copie: CopieFichiers<BrouillonIncident> | null }) {
-  const { enregistrer, statut } = useCopieFichiers(cleLocale, copie);
+  const { enregistrer, differer, statut } = useCopieFichiers(cleLocale, copie);
   const [saisie, setSaisie] = useState<BrouillonIncident>(() => copie?.donnees ?? {
     commande: crypto.randomUUID(), categorie: "", piece: "", photos: [], description: "", anciennete: "", urgence: "normale", envoye: false, bilan: {},
   });
@@ -149,13 +149,12 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
       return bilan;
     }
   }, copie?.donnees.bilan ?? {});
-  // Audit du 13/10 (PR178-A-04) : la copie est écrite une fois la frappe terminée, pas à chaque touche (les photos jointes
-  // étaient réécrites en entier à chaque caractère) ; les envois écrivent, eux, tout de suite.
+  // Audit du 13/10 (PR178-A-04) : la copie est écrite une fois la frappe terminée (`differer`), pas à chaque touche (les photos
+  // jointes étaient réécrites en entier à chaque caractère) ; les envois écrivent, eux, tout de suite.
   useEffect(() => {
     if (enCours || !(saisie.categorie || saisie.description || saisie.photos.length) || (etat.succes && !etat.avertissement)) return;
-    const minuterie = setTimeout(() => { void enregistrer(saisie); }, DELAI_COPIE_LOCALE_MS);
-    return () => clearTimeout(minuterie);
-  }, [saisie, enCours, etat.succes, etat.avertissement, enregistrer]);
+    differer(saisie);
+  }, [saisie, enCours, etat.succes, etat.avertissement, differer]);
   const { categorie, piece, photos } = saisie;
   const setCategorie = (categorie: string) => setSaisie(s => ({ ...s, categorie }));
   const setPiece = (piece: string) => setSaisie(s => ({ ...s, piece }));

@@ -647,6 +647,130 @@ describe.skipIf(!DB_URL)("Lot bail-sortie — D01, D34, D35 en base", () => {
       await echec(/Restitution déjà finalisée/, `select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 6, false)`, [b]);
     });
 
+    // ----- L'alerte « à rendre avant le … » suit la correction (constat de relecture du 14/10) -----
+
+    /** Le passage du cron (aucun compte connecté) qui pose ou met à jour les alertes de délai légal. */
+    async function passageDuCron(): Promise<number> {
+      await db.query("reset role");
+      await db.query(`select set_config('request.jwt.claims', '', true)`);
+      const {
+        rows: [{ n }],
+      } = await db.query(`select public.generer_alertes_restitution() as n`);
+      return Number(n);
+    }
+
+    async function alertes(restitutionId: string) {
+      await db.query("reset role");
+      const { rows } = await db.query(
+        `select statut::text, criticite::text, titre, to_char(echeance,'YYYY-MM-DD') as echeance,
+                details->>'seuil' as seuil, closed_action
+           from public.alerts
+          where type = 'restitution_echeance' and details->>'restitution_id' = $1
+          order by created_at, id`,
+        [restitutionId]
+      );
+      return rows as {
+        statut: string; criticite: string; titre: string; echeance: string; seuil: string; closed_action: string | null;
+      }[];
+    }
+
+    /** La date limite légale, calculée par la base comme le fait le cron. */
+    async function limite(remiseSql: string, delai: number): Promise<{ iso: string; fr: string }> {
+      const iso = await jour(`public.restitution_date_limite(${remiseSql}, ${delai})`);
+      return { iso, fr: iso.split("-").reverse().join("/") };
+    }
+
+    it("une correction qui avance la date limite met l'alerte « à rendre avant le … » à la bonne date, sans attendre le cron", async () => {
+      const b = await bailEnPreavis();
+      await enGerant();
+      // Remise il y a 25 jours, sortie conforme : limite dans quelques jours (alerte J-7)
+      const { rows: [{ id }] } = await db.query(`select public.demarrer_restitution($1, current_date - 25, true) as id`, [b]);
+      expect(await passageDuCron()).toBe(1);
+      const avant = await limite("current_date - 25", 1);
+      expect(await alertes(id)).toEqual([
+        expect.objectContaining({ statut: "ouverte", seuil: "J-7", echeance: avant.iso, titre: expect.stringContaining(`à rendre avant le ${avant.fr}`) }),
+      ]);
+
+      // Correction de la remise des clés : deux jours plus tôt, la limite recule d'autant
+      await enGerant();
+      await db.query(`select public.demarrer_restitution($1, current_date - 27, true)`, [b]);
+      const apres = await limite("current_date - 27", 1);
+      expect(apres.iso).not.toBe(avant.iso);
+      const juste = [
+        expect.objectContaining({ statut: "ouverte", seuil: "J-7", criticite: "normale", echeance: apres.iso, titre: expect.stringContaining(`à rendre avant le ${apres.fr}`) }),
+      ];
+      expect(await alertes(id)).toEqual(juste);
+      // Le passage suivant du cron ne change rien et ne pose pas de seconde alerte
+      expect(await passageDuCron()).toBe(0);
+      expect(await alertes(id)).toEqual(juste);
+      expect((await alertes(id))[0].titre).not.toContain(avant.fr);
+    });
+
+    it("une correction qui dépasse la limite rend l'alerte critique, avec la date du délai dépassé", async () => {
+      const b = await bailEnPreavis();
+      await enGerant();
+      const { rows: [{ id }] } = await db.query(`select public.demarrer_restitution($1, current_date - 25, true) as id`, [b]);
+      await passageDuCron();
+      await enGerant();
+      await db.query(`select public.demarrer_restitution($1, current_date - 40, true)`, [b]);
+      const apres = await limite("current_date - 40", 1);
+      const lignes = await alertes(id);
+      expect(lignes).toHaveLength(1);
+      expect(lignes[0]).toMatchObject({ statut: "ouverte", seuil: "J+0", criticite: "critique", echeance: apres.iso });
+      expect(lignes[0].titre).toContain(`délai légal dépassé depuis le ${apres.fr}`);
+    });
+
+    it("une correction qui repousse la limite hors de la fenêtre ferme l'alerte, et le cron en repose une quand la limite se rapproche", async () => {
+      const b = await bailEnPreavis();
+      await enGerant();
+      const { rows: [{ id }] } = await db.query(`select public.demarrer_restitution($1, current_date - 25, true) as id`, [b]);
+      await passageDuCron();
+      // La sortie n'était pas conforme : le délai est de deux mois, la limite est loin
+      await enGerant();
+      await db.query(`select public.demarrer_restitution($1, current_date - 25, false)`, [b]);
+      const loin = await limite("current_date - 25", 2);
+      let lignes = await alertes(id);
+      expect(lignes).toHaveLength(1);
+      expect(lignes[0].statut).toBe("fermee");
+      expect(lignes[0].closed_action).toContain(`à rendre avant le ${loin.fr}`);
+      expect(await passageDuCron()).toBe(0);
+
+      // Deux mois plus tard, la limite revient dans la fenêtre : une alerte neuve est posée
+      await db.query("reset role");
+      await db.query(`update public.restitutions set date_remise_cles = current_date - 57 where id = $1`, [id]);
+      expect(await passageDuCron()).toBe(1);
+      lignes = await alertes(id);
+      expect(lignes.map((a) => a.statut)).toEqual(["fermee", "ouverte"]);
+      expect(lignes[1].seuil).toBe("J-7");
+    });
+
+    it("sans alerte ouverte, une correction n'en pose aucune (le cron reste seul à les poser) ; une alerte déjà fermée n'est pas rouverte", async () => {
+      const b = await bailEnPreavis();
+      await enGerant();
+      const { rows: [{ id }] } = await db.query(`select public.demarrer_restitution($1, current_date - 25, true) as id`, [b]);
+      await passageDuCron();
+      await db.query("reset role");
+      await db.query(
+        `update public.alerts set statut='fermee', closed_at=now(), closed_action='Vue' where type='restitution_echeance' and details->>'restitution_id'=$1`,
+        [id]
+      );
+      await enGerant();
+      await db.query(`select public.demarrer_restitution($1, current_date - 27, true)`, [b]);
+      const lignes = await alertes(id);
+      expect(lignes).toHaveLength(1);
+      expect(lignes[0]).toMatchObject({ statut: "fermee", closed_action: "Vue" });
+    });
+
+    it("la fonction qui rafraîchit l'alerte est interne : fermée aux comptes", async () => {
+      await db.query("reset role");
+      const { rows } = await db.query(
+        `select has_function_privilege('anon', 'public.rafraichir_alerte_restitution(uuid)', 'execute') as anon,
+                has_function_privilege('authenticated', 'public.rafraichir_alerte_restitution(uuid)', 'execute') as comptes,
+                has_function_privilege('service_role', 'public.rafraichir_alerte_restitution(uuid)', 'execute') as service`
+      );
+      expect(rows[0]).toEqual({ anon: false, comptes: false, service: true });
+    });
+
     it("une correction vers une date future est refusée comme le premier envoi, la restitution reste intacte", async () => {
       const b = await bailEnPreavis();
       await enGerant();

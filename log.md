@@ -5791,3 +5791,12 @@ scénarios sortie de bail, charges et fiscalité, performances et liens, retour 
 Simulation des deux migrations rejouée sur leur version finale (exécution n° 71, tout annulé). Sources officielles inaccessibles depuis l'environnement
 (réseau) : règles fiscales non confrontées. Rien n'est déployé ; aucune autorisation reçue. Pages : [[Dossier de validation — version candidate du 13 octobre 2026]],
 [[Décisions groupées — version candidate du 13 octobre 2026]], [[Registre des anomalies — audit du 13 octobre 2026]].
+
+## [2026-10-14] audit | Mission opérationnelle Gerimmo — version figée 0ad658a, dossier de validation final
+Version candidate figée au commit `0ad658a` : lint, build et types réussis ; 4 207 tests unitaires (référence : 3 333) ; 168 parcours navigateur sans échec ; audits
+des écrans à 768 et 1440 px ; CI GitHub réussie (exécution n° 637) ; simulation des deux migrations sur la version finale (exécution n° 71, tout annulé). Deux vérifications
+en navigateur sur la construction finale (dernière : 0 P1, 0 P2). Registre : 236 anomalies (P0 0, P1 1 corrigée en branche, P2 69, P3 166), fiche complète pour chacune. Les sites
+officiels français sont inaccessibles depuis l'environnement : aucune règle fiscale n'est confrontée à un texte officiel. La production ne contient aucune écriture comptable. Aucun
+critère de clôture lié à l'aval, aux automatisations, au déploiement ou à la production n'est rempli ; rien n'est déployé, aucune autorisation reçue. Pages :
+[[Dossier de validation — version candidate du 13 octobre 2026]], [[Décisions groupées — version candidate du 13 octobre 2026]],
+[[Cartographie vérifiable de Gerimmo (pages, actions, base, stockage, authentification, intégrations, rôles)]].

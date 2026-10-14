@@ -13,7 +13,7 @@ Ce dossier dit **ce que contient la livraison**, **ce qui a été vérifié**, *
 autorisation explicite**. Rien n'est déployé à ce jour : la branche `claude/compassionate-euler-qpqjp6` n'est ni fusionnée ni déployée, et aucune migration n'a été
 appliquée en production. État : **version prête pour validation, production non déployée** — pas « mission terminée » (voir § 8).
 
-Version contrôlée : commit `b9a7107` (batterie complète du 14/10/2026). Tête de la branche au moment de la génération : `7d57f2f`.
+Version contrôlée : commit `0ad658a` (batterie complète du 14/10/2026). Tête de la branche au moment de la génération : `0ad658a`.
 Aucun fichier de code, de test ni de migration n'a changé depuis le commit contrôlé (seuls le wiki et les registres changent).
 
 Compagnons : [[Registre des anomalies — audit du 13 octobre 2026]], [[Fiches des anomalies P3 — audit du 13 octobre 2026]], [[Registre d'exécution — audit du 13 octobre 2026]],
@@ -35,7 +35,7 @@ Compagnons : [[Registre des anomalies — audit du 13 octobre 2026]], [[Fiches d
 | Chantier de migrations et export | RET-01, CHF-04, AUD-C-06 | garde de nom de fichier ; formules neutralisées dans le CSV | non |
 | Retours arrière des deux migrations | — | `app/supabase/retours-arriere/` : scripts essayés (état revenu identique à l'état d'origine) | non appliqués par le chantier |
 
-Bilan du registre : **233 anomalies** (P0 : 0 ; P1 : 1 ; P2 : 69 ; P3 : 163) ; **99 corrigées en branche**, **100 à trancher**, 32 ouvertes, 2 réfutées/acceptées.
+Bilan du registre : **236 anomalies** (P0 : 0 ; P1 : 1 ; P2 : 69 ; P3 : 166) ; **109 corrigées en branche**, **104 à trancher**, 20 ouvertes, 3 réfutées/acceptées.
 
 ## 2. Migrations à appliquer en production
 
@@ -50,19 +50,20 @@ Bilan du registre : **233 anomalies** (P0 : 0 ; P1 : 1 ; P2 : 69 ; P3 : 163) ; *
 
 ## 3. Contrôles de la version candidate
 
-| Contrôle | Résultat sur `b9a7107` |
+| Contrôle | Résultat sur `0ad658a` |
 |---|---|
 | Lint, build de production, types | réussi, réussi, réussi |
-| Tests unitaires et de base (vitest) | 365 passed, 1 skipped (366) ; 3889 passed, 14 skipped (3903) (référence `e9f31ac` : 3 333 réussis, 14 ignorés) |
-| Parcours navigateur (Playwright) | 1 failed, 1 flaky, 1 skipped, 161 passed — voir la note ci-dessous |
+| Tests unitaires et de base (vitest) | 370 passed, 1 skipped (371) ; 4207 passed, 14 skipped (4221) (référence `e9f31ac` : 3 333 réussis, 14 ignorés) |
+| Parcours navigateur (Playwright) | 1 skipped, 168 passed — voir la note ci-dessous |
 | Matrice des écrans | réussi |
 | Audit des écrans à 768 px et à 1440 px (tous profils) | réussi, réussi |
 | Simulation des migrations contre la production | réussie (n° 71, tout annulé) |
-| CI GitHub Actions (Postgres 18) | réussie le 13/10 sur `8b558c8` ; **non rejouée sur la tête** (à relancer avant l'autorisation) |
+| CI GitHub Actions (Postgres 18, lint, types, tests, build, parcours) | réussie : exécution n° 637, 14/10, tête `0ad658a` |
 | Vérification en navigateur des corrections d'interface (construction finale) | 12 cas réussis, 2 partiels, 6 constats P3, 0 P1/P2 ; 291 captures « après » ; voir [[Registre d'exécution — scénarios, audit du 13 octobre 2026]] |
-| Vérification en navigateur de la saisie et de la protection (construction finale) | 46 formulaires examinés, 0 écart au classement ; 2 P2 relevés puis corrigés ou décidés (VFL-03, VFL-07) |
+| Vérification en navigateur de la saisie et de la protection (construction finale) | 46 formulaires examinés, 0 écart au classement ; 2 P2 relevés (VFL-03, VFL-07) puis corrigés |
+| Dernière vérification en navigateur de ces corrections et de la déconnexion hors ligne (SHA figé) | 0 P0, 0 P1, 0 P2 ; 3 écarts P3 consignés (V10-01 à 03) : lecture des montants du parcours de bail, point décimal dans un message de révision IRL, « Administration » coupé dans le rail de l'agence (hors V1) |
 
-Note sur les parcours : sur `b9a7107`, un parcours (« fiche personne et justificatif », 1440 px) est en échec et un autre instable. Le test attendait un statut « conservé » périmé avant de fermer l'onglet ; il attend maintenant une nouvelle révision réellement écrite (commit `9396669`) et a passé 3 fois de suite seul (5 tests sur 5). **La suite complète n'a pas été rejouée sur ce commit.**
+Note sur les parcours : sur la tête contrôlée, les 168 parcours passent, dont les deux cas ajoutés pour la déconnexion hors ligne et la copie locale refusée. La batterie précédente (`b9a7107`) avait un parcours « fiche personne et justificatif » en échec : le test attendait un statut « conservé » périmé avant de fermer l'onglet ; il attend maintenant une nouvelle révision réellement écrite, et le statut affiché est véridique pendant le délai d'écriture.
 
 ## 4. Observation de la production (lecture seule, 14/10/2026)
 
@@ -117,9 +118,9 @@ Tout critère non rempli interdit une affirmation globale de fin de mission. **A
 | Audit couvert | **partiel** | Les six rôles, la sécurité, les automatismes, le design, la chaîne d'intervention, la sortie de bail, les charges et la fiscalité ont été parcourus sur le banc. Non couverts : lecteur d'écran réel, Safari et Firefox, mode sombre, impression, volumétrie, pg_cron, envoi réel d'e-mails, Stripe, signature, restauration d'une sauvegarde de production, renouvellement de bail (fonction absente), la plupart des variantes de la sortie de bail (invitation expirée, fichiers refusés, rejeu). Voir [[Registre d'exécution — audit du 13 octobre 2026]] § 3. |
 | Six rôles testés | **partiel** | Les six rôles (propriétaire, locataire, artisan, super-administrateur, designer, auditeur) ont chacun un rapport, mais ils sont joués par des agents (sessions séparées d'un même modèle), pas par de vrais utilisateurs. Le locataire n'a pas de passe dédiée complète : il est couvert par la chaîne d'intervention, la sortie de bail et les vérifications d'isolation. |
 | Scénarios inter-rôles réussis | **partiel** | Chaîne locataire → propriétaire → artisan → facture → trace : 18 scénarios réussis, 6 partiels, 1 en échec sur la première passe ; la chaîne a révélé des manques de fonction (devis refusable, règlement de facture, report de rendez-vous : propositions D18, D22, D23) qui empêchent un scénario « refus puis révision » complet. Sortie de bail : jouée, un P2 (SOR-03) et cinq P3. |
-| Corrections sûres confirmées | **partiel** | Chaque correction a un test vu rouge puis vert ; 3 889 tests passent sur la tête contrôlée et 161 parcours sur 163. Les effets d'interface sont revérifiés en navigateur sur la construction finale (vague 8, voir § 3). Plusieurs corrections ne sont que partielles et restent « à trancher » (VER-TS-02, VER-SECURITE-01, DES-A-07…). Les corrections dont la fiche demandait l'aval (R1 à R10) ne sont pas ratifiées. |
+| Corrections sûres confirmées | **partiel** | Chaque correction a un test vu rouge puis vert ; sur le SHA figé `0ad658a` : 4 207 tests unitaires, 168 parcours navigateur (0 échec), audits des écrans à 768 et 1440 px, CI GitHub réussie (n° 637). Les effets d'interface et de saisie ont été revérifiés en navigateur sur la construction finale (deux vagues de vérification : 0 P1, 0 P2 non traité) ; trois écarts P3 résiduels sont consignés (V10-01 à 03). Plusieurs corrections ne sont que partielles et restent « à trancher » (VER-TS-02, VER-SECURITE-01, DES-A-07…). Les corrections dont la fiche demandait l'aval (R1 à R10) ne sont pas ratifiées : c'est pourquoi ce critère est « partiel ». |
 | Fonctions majeures approuvées réalisées | **non rempli** | Aucune fonction majeure n'a été approuvée par le dirigeant : zéro aval enregistré. Trois propositions concrètes sont rédigées (devis révisable et refusable, règlement de la facture, report de rendez-vous) ; rien n'est implémenté. |
-| Design vérifié | **partiel** | Passes automatiques (axe-core, mesures) à 390, 768 et 1280 px sur les écrans de tous les profils, regard sur les écrans clés, 21 défauts P2 de design corrigés puis revérifiés en navigateur. Non couvert : lecteur d'écran réel, appareils réels, écrans demandant des données absentes du banc. |
+| Design vérifié | **partiel** | Passes automatiques (axe-core, mesures) à 390, 768 et 1280 px sur les écrans de tous les profils, regard sur les écrans clés, défauts P2 de design corrigés puis revérifiés en navigateur sur la construction finale (291 captures « après »). Non couvert : lecteur d'écran réel, appareils réels, Safari et Firefox, mode sombre, impression, écrans demandant des données absentes du banc ; décisions de marque en attente (logo, adresse /agence, repli hors ligne). |
 | Automatisations installées et testées | **non rempli** | Aucune équipe IA n'est installée : les propositions des six équipes sont rédigées pour aval. Les tâches planifiées existantes (11 Vercel, 8 pg_cron) n'ont pas pu être exécutées sur le banc ; elles sont observées en production en lecture seule (aucun échec sur trois jours). |
 | Sécurité et restauration vérifiées | **partiel** | Isolation : 631 requêtes croisées entre profils refusées, 0 fuite, 0 P0 et 0 P1 ; retour arrière des deux migrations essayé (état revenu identique, 13 catalogues). Non rempli : aucune restauration d'une sauvegarde de production, pg_cron absent des sauvegardes (AUD-C-02), arrêt d'urgence incomplet (SUP-01). |
 | Version autorisée déployée | **non rempli** | Aucune autorisation reçue : rien n'est déployé, aucune migration n'est appliquée en production. |
@@ -134,10 +135,10 @@ Une relecture indépendante (agent « critique de complétude ») a confronté l
 | 01 | Observations de production sans pièce, production presque vide non dite | fait | Relevé du 14/10 archivé ; le § 4 dit que la production ne contient ni écriture comptable ni encaissement. |
 | 02 | Version à autoriser non figée, tests refaits | fait | SHA figé et batterie complète rejouée (voir § 3). |
 | 03 | Dossier de validation périmé | fait | Dossier régénéré (cette page). |
-| 04 | Registre des anomalies incomplet (55 anomalies absentes, fiches incomplètes) | fait | 209 anomalies, fiche complète pour chacune. |
+| 04 | Registre des anomalies incomplet (55 anomalies absentes, fiches incomplètes) | fait | 236 anomalies, fiche complète pour chacune. |
 | 05 | Registre d'exécution hors format | fait | Douze colonnes de la mission, vocabulaire de la mission, annexe des scénarios. |
 | 06 | Preuves seulement dans le dossier temporaire de la session | partiel | Archive textuelle expurgée et scannée (voir § 10) ; les captures complètes restent dans le dossier de la session. |
-| 07 | Cartographie, matrice globale, inventaire de couverture absents | VAGUE9 | VAGUE9 |
+| 07 | Cartographie, matrice globale, inventaire de couverture absents | fait | Quatre pages publiées (cartographie, matrice fonctions × rôles × droits, inventaire de couverture, référence des tests), générées par scripts rejouables. Couverture : 157 écrans sur 157 ouverts par la passe automatique, 88 à 99 exercés ; 43 actions serveur sur 259 sans aucune trace dans les tests. |
 | 08 | Sortie de bail, renouvellement, accès après départ jamais testés | partiel | Sortie de bail jouée ; le renouvellement n'existe pas dans la V1 ; variantes non jouées (invitation expirée, fichiers refusés, rejeu). |
 | 09 | Aucun PDF généré sur le banc | partiel | Moteur PDF branché : devis (3), quittances et décompte de restitution, 8 PDF du jeu de référence ; bail, notice et états des lieux non relus. |
 | 10 | Charges, fiscalité non exercées ni confrontées aux sources officielles | partiel | Jeu de référence calculé à part : 74 montants sur 77 égaux au centime (3 écarts = variante FIN-07) ; confrontation aux textes officiels impossible (accès réseau bloqué), toutes les règles portent « source officielle non consultée ». |
@@ -148,7 +149,7 @@ Une relecture indépendante (agent « critique de complétude ») a confronté l
 | 15 | Variantes et jeu de données de la mission non satisfaits | partiel | Variantes jouées : doublons, concurrence, reprise, refus d'accès. Non jouées : invitation expirée, échec fournisseur, document absent. Pas de script de graine commun. |
 | 16 | Performances et liens jamais mesurés | fait | 507 chargements mesurés, 733 liens internes explorés : [[Performances et liens — mesures du 14 octobre 2026]]. |
 | 17 | Secret du banc dans une pièce de preuve | fait | L'archive est expurgée et scannée (0 motif restant). Le fichier d'origine, dans le dossier de travail non versionné, contient la clé de service jetable de l'émulateur. |
-| 18 | Captures « après » et test clavier non refaits | VAGUE8 | VAGUE8 |
+| 18 | Captures « après » et test clavier non refaits | fait | 291 captures « après » (97 écrans × 3 largeurs, 5 profils) et test clavier sur 24 écrans (aucun arrêt entièrement masqué) ; 2 vérifications supplémentaires en navigateur sur la construction finale. |
 | 19 | Question d'autorisation inexacte sur l'activation marketing | fait | La question nomme l'effet réel de la migration 20261013110000 (voir § 5). |
 
 ## 10. Preuves

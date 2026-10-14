@@ -9,7 +9,7 @@ sources: []
 
 # Fiches des anomalies P3 — audit du 13 octobre 2026
 
-Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies — audit du 13 octobre 2026]] (les fiches P0, P1 et P2 sont dans le registre). Les champs vides n'ont pas été relevés par l'agent.
+Fiches complètes des 166 anomalies de gravité P3 du [[Registre des anomalies — audit du 13 octobre 2026]] (les fiches P0, P1 et P2 sont dans le registre). Les champs vides n'ont pas été relevés par l'agent.
 
 #### `AUD-C-03` — L'ordre d'application des migrations n'est pas l'ordre des noms de fichiers
 
@@ -41,24 +41,10 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction sans aval** : oui
 - **Reproduction** : hypothèse à vérifier, non reproduite
 
-#### `CAR-01` — La référence de tests candidate porte sur b9a7107, non sur la tête 9396669, et son parcours navigateur n'est pas vert
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : cartographe (cartographie) · **Version testée** : non relevée
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Journaux /tmp/cand5-*.log produits par scratchpad/outils/candidat5.sh ; dépôt en lecture seule.
-- **Étapes** : 1. head -1 /tmp/cand5-etat.log (SHA de la chaîne) ; 2. git -C /home/user/GERIMMO_V4 rev-parse --short HEAD ; 3. git diff --stat b9a7107 HEAD ; 4. grep -E '^e2e:' /tmp/cand5-etat.log ; tail -6 /tmp/cand5-e2e.log
-- **Attendu** : La référence qui accompagne la livraison est verte et porte sur le SHA livré.
-- **Observé** : Chaîne exécutée sur b9a7107 (« arbre-propre:0 ») ; tête actuelle 9396669 ; la différence est app/e2e/personne-reprise.spec.ts seul (6 insertions, 2 suppressions). Le parcours navigateur de la chaîne se termine par « e2e:1 » : 161 réussis, 1 en échec (« fiche personne et justificatif : fermeture et création à 1440px »), 1 instable (même parcours à 390px), 1 ignoré. Le commit 9396669 corrige ce parcours mais aucun journal ne montre qu'il a été rejoué.
-- **Preuve expurgée (banc)** : preuves/cartographie/donnees/tests.json (candidat5.etat, candidat5.e2e, diff_depuis_la_chaine) ; /tmp/cand5-etat.log ; /tmp/cand5-e2e.log
-- **Cause probable** : Le correctif du parcours (commit 9396669) a été posé après la fin de la chaîne (04:02) ; aucun rejeu planifié.
-- **Correction proposée** : Rejouer personne-reprise.spec.ts aux deux largeurs puis la suite complète au SHA final, et citer ce SHA dans la référence.
-- **Correction sans aval** : oui
-
 #### `CAR-02` — La matrice de droits du super-administrateur cite une ligne de code qui ne contient pas ce qu'elle désigne
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : cartographe (cartographie) · **Version testée** : non relevée
+- **Rôle / source** : cartographe (cartographie) · **Version testée** : tête 9396669 (lecture et catalogue SQL)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : preuves/superadmin/matrice-droits.md §1 ; code de la tête.
 - **Étapes** : 1. grep -n 'admin/layout.tsx:24' preuves/superadmin/matrice-droits.md ; 2. sed -n 24p app/src/app/admin/layout.tsx ; 3. grep -n 'is_super_admin' app/src/app/admin/layout.tsx
@@ -69,24 +55,10 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Remplacer :24 par :32 dans la matrice, ou citer la fonction plutôt que la ligne.
 - **Correction sans aval** : oui
 
-#### `CAR-03` — `.env.example` annonce « Neuf missions quotidiennes » alors que le code et vercel.json en comptent dix
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : cartographe (cartographie) · **Version testée** : non relevée
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Dépôt en lecture seule.
-- **Étapes** : 1. sed -n 50p app/.env.example ; 2. grep -c 'mission=' app/vercel.json ; 3. sed -n 16,29p app/src/lib/missions.ts
-- **Attendu** : Le commentaire donne le nombre réel de missions passant par /api/cron/equipes?mission=.
-- **Observé** : Commentaire : « Neuf missions quotidiennes ». lib/missions.ts définit 10 missions (veille, appels, quittances, relances, rappels, abonnements, signatures, marketing, territoire, purge) et vercel.json en planifie 10 (+ l'orchestrateur = 11 crons). Aucune mission non planifiée, aucune planifiée inconnue.
-- **Preuve expurgée (banc)** : preuves/cartographie/donnees/tests.json › missions_crons
-- **Cause probable** : La dixième mission (veille) a été ajoutée sans mettre le commentaire à jour.
-- **Correction proposée** : Écrire « Dix missions » (ou ne plus donner de nombre).
-- **Correction sans aval** : oui
-
 #### `CAR-04` — Aucun journal de parcours navigateur ni d'audit des écrans pour la référence e9f31ac : la comparaison avec la candidate est impossible hors lint, types, build, vitest
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : cartographe (cartographie) · **Version testée** : non relevée
+- **Rôle / source** : cartographe (cartographie) · **Version testée** : tête 9396669 (lecture et catalogue SQL)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : /tmp/ref-*.log.
 - **Étapes** : 1. ls -la /tmp/ref-*.log ; 2. wc -c /tmp/ref-global.log
@@ -100,7 +72,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `CAR-07` — Lacunes de couverture : 4 pages jamais ouvertes, 43 écrans ouverts ni exercés ni regardés, 43 actions serveur sans aucune trace
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : cartographe (cartographie) · **Version testée** : non relevée
+- **Rôle / source** : cartographe (cartographie) · **Version testée** : tête 9396669 (lecture et catalogue SQL)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : app/e2e/matrice-ecrans.json (157 écrans), e2e/.audit/rapport-*.json (passe 1440 px), tests vitest et parcours Playwright.
 - **Étapes** : 1. python3 scripts/06_couverture.py ; 2. lire donnees/couverture.json › taux_ecrans, pages_du_code_absentes_de_la_matrice, actions
@@ -114,7 +86,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `CAR-08` — Matrice des droits du super-administrateur : l'autorisation positive en aal2 n'est pas rejouée sur les 99 fonctions (profil aal1 seulement)
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : cartographe (cartographie) · **Version testée** : non relevée
+- **Rôle / source** : cartographe (cartographie) · **Version testée** : tête 9396669 (lecture et catalogue SQL)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : preuves/superadmin/scripts2/matrice_rpc_candidate.py ; sql2/matrice_rpc_negative_candidate.json.
 - **Étapes** : 1. lire la table `personas` de matrice_rpc_candidate.py (7 profils + anon) ; 2. python3 scripts/05_matrice.py : champ exerce_super_admin_aal2_par_scripts
@@ -129,7 +101,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `CAR-09` — Les relevés d'audit par écran sont écrasés à chaque largeur : seule la passe 1440 px est détaillée, les passes 390 et 768 px ne survivent que par leurs totaux
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : cartographe (cartographie) · **Version testée** : non relevée
+- **Rôle / source** : cartographe (cartographie) · **Version testée** : tête 9396669 (lecture et catalogue SQL)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : e2e/audit-ecrans.spec.ts écrit rapport-<profil>.json dans E2E_AUDIT_DIR (défaut e2e/.audit) ; candidat5.sh lance les trois largeurs sans changer ce dossier.
 - **Étapes** : 1. ls -la --time-style=full-iso app/e2e/.audit/rapport-*.json ; 2. comparer la somme des boutonsVisibles de chaque rapport aux totaux de /tmp/cand5-audit-768.log et -1440.log
@@ -143,7 +115,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `CAR-10` — La matrice du super-administrateur décrit la politique d'écriture de `memberships` de façon incomplète
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : cartographe (cartographie) · **Version testée** : non relevée
+- **Rôle / source** : cartographe (cartographie) · **Version testée** : tête 9396669 (lecture et catalogue SQL)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : preuves/superadmin/matrice-droits.md §4 ; catalogue de gerimmo_ci_integ.
 - **Étapes** : 1. grep -n 'memberships' preuves/superadmin/matrice-droits.md ; 2. psql gerimmo_ci_integ : select policyname, cmd, with_check from pg_policies where tablename='memberships' ; 3. select has_table_privilege('authenticated','public.memberships','insert\|update\|delete')
@@ -154,38 +126,10 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Corriger la ligne : « INSERT/UPDATE : politiques (admin d'agence, super-admin) sans effet faute de privilège ; DELETE : super-admin » ; supprimer les politiques sans effet lors d'une migration relue.
 - **Correction sans aval** : oui
 
-#### `CAR-11` — Le serveur du banc hérite d'un jeton GitHub du shell de lancement alors que l'application ne l'utilise pas
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : cartographe (cartographie) · **Version testée** : non relevée
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Serveur `next start` du banc (port 3100) ; lecture de /proc/<pid>/environ limitée aux NOMS et à l'état défini/vide (aucune valeur lue ni écrite).
-- **Étapes** : 1. python3 scripts/04_transverse.py (env_du_serveur_banc) ; 2. lire donnees/transverse.json › variables[nom=GITHUB_TOKEN].definie_serveur_banc ; 3. grep -rn GITHUB_TOKEN app/src app/scripts
-- **Attendu** : Le serveur de l'application ne porte que les variables que le code de src/ lit (Supabase, adresse du site, variables du banc).
-- **Observé** : GITHUB_TOKEN est défini dans l'environnement du processus du serveur du banc ; il n'est lu que par scripts/deploiement/publier.mjs (publication contrôlée), jamais par app/src. Aucun chemin de l'application qui l'expose n'a été trouvé : c'est un défaut d'hygiène du banc, pas une fuite constatée. Hypothèse à vérifier : aucune page d'erreur ni journal du serveur n'imprime l'environnement.
-- **Preuve expurgée (banc)** : preuves/cartographie/donnees/transverse.json › variables (GITHUB_TOKEN : definie_serveur_banc = true) ; scripts/deploiement/publier.mjs:7
-- **Cause probable** : Le serveur a été lancé depuis un shell qui exportait le jeton ; aucun nettoyage d'environnement au lancement (banc-up.sh).
-- **Correction proposée** : Lancer le serveur du banc avec une liste blanche de variables (`env -i` + variables nécessaires) ; ne jamais poser de jeton d'écriture dans le shell du banc.
-- **Correction sans aval** : oui
-
-#### `PRO2-11` — Élision manquante dans le nom de parc généré : « Parc de Éloïse … » (même famille que LOC-02)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : proprietaire (chaine/1b) · **Version testée** : candidate 5d15b4d (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Propriétaire dont le prénom commence par une voyelle
-- **Étapes** : Ouvrir l'écran artisan de la demande de devis ou le PDF : le client est nommé « Parc de Éloïse [TEST-proprietaire] Durand-Lévêque ».
-- **Attendu** : « Parc d'Éloïse … »
-- **Observé** : « Parc de Éloïse … » dans l'espace artisan et sur le PDF du devis
-- **Preuve expurgée (banc)** : preuves/chaine/1b/captures/a1-02-demande-detail.png ; preuves/chaine/1b/fichiers/devis-v1-artisan.pdf
-- **Cause probable** : Génération du nom d'organisation par concaténation « Parc de » + prénom à l'inscription. Hypothèse de fichier, non vérifiée.
-- **Correction proposée** : Appliquer l'élision (de / d') avant voyelle ou h muet.
-- **Correction sans aval** : oui
-
 #### `CHF-08` — Hypothèse à vérifier : le lien « notice officielle 2044, millésime 2026 (revenus 2025) » affiché sous un récapitulatif des revenus 2026 pointe vers …/2044_5487.pdf, alors que la recherche renvoie le…
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Récapitulatif fiscal 2026.
 - **Étapes** : Lire le pied de page de l'écran fiscal ; comparer à l'URL renvoyée par la recherche.
@@ -209,34 +153,6 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Preuve expurgée (banc)** : journaux/auto-admin-390.json ; journaux/auto-agent-390.json (clavier.masques, mesure.ciblesMoins44Ex)
 - **Cause probable** : globals.css (barre basse de .coquille-basse, sans scroll-padding, cf. DES-A-01) ; bouton .recherche-ouvrir (min-height 43 px) ; app/src/lib/reprise-soldes.ts (libellé de code)
 - **Correction proposée** : Appliquer le correctif de DES-A-01 ; `.recherche-ouvrir { min-height: 44px }` ; libellé « Dépôt de garantie » à la place du code dans l'aide de saisie
-- **Correction sans aval** : oui
-
-#### `PROP-05` — Nom d'espace sans élision : « Parc de Éloïse … »
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : inscription avec prénom commençant par une voyelle ou un H muet
-- **Étapes** : créer le compte avec prénom « Éloïse »
-- **Attendu** : « Parc d’Éloïse … »
-- **Observé** : organizations.name = « Parc de Éloïse [TEST-proprietaire] Durand-Lévêque » ; affiché dans le bandeau d'accueil
-- **Preuve expurgée (banc)** : captures/s1-12-espace-ouvert-bureau.png ; SQL organizations.name
-- **Cause probable** : construction de la chaîne « Parc de ${prénom} ${nom} » sans règle d'élision
-- **Correction proposée** : utiliser « d’ » devant voyelle/h
-- **Correction sans aval** : oui
-
-#### `PROP-10` — Message serveur de la clé de répartition avec point décimal : « fait 99.99 »
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : clé de répartition en mode ajusté
-- **Étapes** : saisir 42,03 et 57,96 puis Valider la clé ajustée
-- **Attendu** : « La somme des pourcentages fait 99,99 % : il faut exactement 100 % » (format français)
-- **Observé** : « Validation impossible : La somme des pourcentages fait 99.99, il faut exactement 100 » (refus correct, la clé n'est pas créée)
-- **Preuve expurgée (banc)** : sortie de s4g.mjs ; SQL count cles_repartition = 0 après refus
-- **Cause probable** : message produit par la fonction SQL valider_cle_repartition sans formatage
-- **Correction proposée** : formater en français dans l'action
 - **Correction sans aval** : oui
 
 #### `FIN-12` — Hypothèse à vérifier : les lectures de qualifications, de captures et d'écritures n'ont ni filtre d'année (captures, qualifications) ni garde contre la limite de 1 000 lignes de l'API, alors que d'au…
@@ -320,80 +236,9 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Reproduction** : hypothèse à vérifier, non reproduite
 - **Contrôle en production (lecture seule)** : `select count(*) from public.accounts; -- si > 1000, le défaut est atteignable`
 
-#### `SA-02` — Brief de direction : les montants des faits datés s'affichent avec un point décimal ('500.00 €') alors que les mesures s'affichent à la française ('4 870,00 €')
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : super-administrateur (superadmin) · **Version testée** : candidate 5d15b4d (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Faits de direction préparés (échéances en retard)
-- **Étapes** : Ouvrir /admin/brief, préparer le point, déplier 'Dossiers concernés' de 'Échéances de loyers'
-- **Attendu** : Format français partout ('500,00 €')
-- **Observé** : 'Échéance en retard · 500.00 €', '840.00 €', '750.00 €' dans les titres de faits, contre '4 870,00 €' dans la mesure agrégée
-- **Preuve expurgée (banc)** : captures/04-brief-dossiers-ouverts.png ; sql/brief_snapshot_faits.txt
-- **Cause probable** : fonction SQL collecter_source_direction (to_char(..., 'FM999999999990.00') dans le titre du fait)
-- **Correction proposée** : Formater le montant côté affichage (composant des faits) à partir d'une valeur numérique plutôt que dans la chaîne SQL
-- **Correction sans aval** : oui
-
-#### `VFL-02` — Déconnexion hors ligne : écran d'erreur générique au lieu d'un message « vous êtes hors ligne »
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : flux (verification/flux-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Propriétaire connecté, fiche personne en cours avec pièce jointe conservée, réseau coupé (context.setOffline)
-- **Étapes** : 1. Ouvrir le menu compte. 2. Cliquer « Se déconnecter » hors ligne. 3. Attendre 6 s.
-- **Attendu** : La session reste ouverte, la copie reste (OK) et un message explicite dit que la déconnexion n'a pas pu aboutir
-- **Observé** : La page est remplacée par « Cette page n'a pas pu s'afficher. L'incident est noté — la page, pas vos données… Réessayer » ; la saisie à l'écran n'est plus visible (la copie locale et la session sont intactes, vérifié).
-- **Preuve expurgée (banc)** : preuves/verification/flux-finale/captures/copies-e-deconnexion-hors-ligne.png
-- **Cause probable** : app/src/app/actions/auth.ts:27-35 (seDeconnecter) : l'échec réseau de l'action serveur remonte à la limite d'erreur ; app/src/components/menu-compte.tsx:112 (formulaire action={seDeconnecter} sans gestion d'échec)
-- **Correction proposée** : Intercepter l'échec côté client (navigator.onLine / catch) et afficher « Déconnexion impossible hors ligne ; votre saisie est conservée ».
-- **Correction sans aval** : oui
-
-#### `VFL-04` — « 1 234,50 » et « 1.234,50 » refusés avec le seul message « Montant invalide. » (format usuel français non expliqué)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : flux (verification/flux-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Propriétaire, bail actif avec loyer impayé, navigateur en-US ou fr-FR
-- **Étapes** : 1. /agence/<org>/baux/<id>, bloc « Saisir un encaissement ». 2. Saisir « 1 234,50 » (puis « 1.234,50 »), valider.
-- **Attendu** : Accepté (1234,50) ou refus avec message qui nomme le format attendu (ex. « Saisissez le montant sans séparateur de milliers : 1234,50 »)
-- **Observé** : Aucune ligne créée (aucun montant faux : conforme à la consigne), message « Montant invalide. » seul. Un séparateur de milliers est pourtant courant pour des loyers ou dépôts élevés.
-- **Preuve expurgée (banc)** : preuves/verification/flux-finale/montants-enus2.json ; preuves/verification/flux-finale/captures/montant-loyer-123450.png
-- **Cause probable** : app/src/lib/saisie-montant.ts (lireMontant : refus de tout séparateur de milliers) et app/src/app/actions/loyers.ts:257 (ajouterEncaissement, message « Montant invalide. »)
-- **Correction proposée** : Soit tolérer l'espace (fine, insécable ou normale) comme séparateur de milliers, soit enrichir le message : « Montant invalide : écrivez 1234,50 (sans espace ni point de milliers). »
-- **Correction sans aval** : oui
-
-#### `VFL-05` — Reprise des soldes : « date de bascule » par défaut calculée en UTC (la veille entre 00 h et 02 h à Paris l'été)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : flux (verification/flux-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Propriétaire connecté ; horloge navigateur émulée au 14/10/2026 01:47 Europe/Paris
-- **Étapes** : 1. context.clock.setFixedTime(2026-10-14T01:47+02:00). 2. Ouvrir /agence/<org>/comptabilite/reprise. 3. Lire le champ date_bascule.
-- **Attendu** : 2026-10-14 (jour de Paris, comme le corrige ARC-10 ailleurs)
-- **Observé** : 2026-10-13
-- **Preuve expurgée (banc)** : preuves/verification/flux-finale/dates-paris.json (reprise.dates)
-- **Cause probable** : app/src/app/agence/[orgId]/comptabilite/reprise/formulaire-reprise.tsx:12-14 (new Date().toISOString().slice(0, 10)) ; helper correct disponible : aujourdhuiParis() dans app/src/lib/ged.ts:155
-- **Correction proposée** : Remplacer par aujourdhuiParis() (même fichier que les champs corrigés par ARC-10) et ajouter un test de source interdisant toISOString().slice(0,10) dans les formulaires.
-- **Correction sans aval** : oui
-
-#### `VFL-06` — Hypothèse à vérifier : attestation d'assurance locataire, date plancher et contrôle serveur calculés en jour UTC
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : flux (verification/flux-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Locataire connecté ; entre 00 h et 02 h à Paris (heure d'été)
-- **Étapes** : Lecture du code : formulaire-attestation.tsx:17-19 (min de expire_le) et attestation-locataire.ts:58 (refus si expire < jour UTC).
-- **Attendu** : Une attestation expirée la veille (jour de Paris) est refusée
-- **Observé** : Non reproduit : le min est rendu au serveur (2026-10-14 mesuré à 01:47 émulé côté navigateur) et l'horloge réelle du banc (≈ 06 h Paris) ne permet pas de reproduire la fenêtre 00 h-02 h côté serveur. Par lecture du code, une attestation expirée le jour précédent (Paris) serait acceptée pendant ces deux heures.
-- **Preuve expurgée (banc)** : preuves/verification/flux-finale/dates-paris.json (locataireAttestation)
-- **Cause probable** : app/src/app/locataire/[orgId]/formulaire-attestation.tsx:17-19 ; app/src/app/actions/attestation-locataire.ts:58
-- **Correction proposée** : Utiliser aujourdhuiParis() aux deux endroits ; test unitaire avec horloge simulée à 23:47 UTC.
-- **Correction sans aval** : oui
-- **Reproduction** : hypothèse à vérifier, non reproduite
-
 #### `VUI-01` — Résiduel de DES-A-01/DES-B-02 : deux champs multilignes restent masqués en partie (24 % et 51 %) par la barre du bas quand ils reçoivent le focus au clavier à 390 px
 
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
+- **Sévérité** : P3 · **Statut** : ouverte — 2 champs multilignes en partie masqués par la barre du bas à 390 px au focus clavier (curseur et début du champ visibles) ; pas de correctif sûr trouvé sans refonte du défilement · **Propriétaire** : à désigner par le dirigeant
 - **Rôle / source** : verification-ui (verification/ui-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : 390x844 tactile, propriétaire /agence/<org>/incidents/nouveau ; artisan /artisan/entreprise
@@ -405,23 +250,9 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Ajouter un scroll-margin-bottom ou un espace réservé sous les champs multilignes de bas de formulaire, ou réduire la hauteur de zone visible via visual viewport ; à valider en navigateur
 - **Correction sans aval** : oui
 
-#### `VUI-02` — Rail tablette locataire (641-860 px) : la cellule du nom d espace affiche « PDP… » (initiales suivies du début du nom tronqué) au lieu des seules initiales ; la correction DES-A-14 ne tient pas sur l…
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : verification-ui (verification/ui-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Connexion locataire.pd@gerimmo-demo.fr (espace « Parc de Claire Moreau »), viewport 641 à 860 px
-- **Étapes** : Ouvrir /locataire/<org> à 768x900 ; regarder la tuile blanche en haut du rail ; inspecter span[data-initiales]
-- **Attendu** : « PD » seul, avec le nom entier en infobulle (DES-A-14, même rendu que le rail du propriétaire/agence)
-- **Observé** : Texte rendu « PDP… » ; getComputedStyle(span).fontSize = 16px (devrait être 0) ; ::before content « PD » appliqué ; title « Parc de Claire Moreau » présent ; scrollWidth 199 pour clientWidth 48. Diagnostic : deux règles de taille de police s appliquent, `.loc-logo [data-initiales]{font-size:0}` dans la couche components et `.text-base` dans la couche utilities, qui l emporte. En injectant font-size:0!important la tuile n affiche plus que les initiales. Le rail agence (coquille) rend bien « AA » (font-size 0px)
-- **Preuve expurgée (banc)** : preuves/verification/ui-finale/etats/rail-locataire-logo-768.png ; etats/rail-locataire-768.png ; journaux/rail-mots-coupes.json (marque.fs=16px aux 3 largeurs) ; etats/rail-locataire-logo-768-diagnostic-important.png (diagnostic par injection, hors preuve de correction) ; scripts/s4d-diag-logo.mjs ; apres-finale/locataire/768/locataire-c14c3187.png (locataire.alpha : tuile « AA… »)
-- **Cause probable** : app/src/app/globals.css:1465 (règle en @layer components) battue par la classe text-base posée sur le span rendu par MarqueOrganisation (app/src/app/locataire/[orgId]/layout.tsx:104) ; la règle jumelle de la coquille (.coquille-late .coquille-marque [data-initiales]) fonctionne parce que son span n a pas text-base
-- **Correction proposée** : Passer la règle en font-size:0!important (ou la sortir des couches, ou retirer text-base du span quand data-initiales est actif) et ajouter un test visuel à 768 px sur le rail locataire
-- **Correction sans aval** : oui
-
 #### `VUI-03` — Agence (hors V1 publique) : l entrée « Administration » du rail tablette est coupée en « Administrati/on » à 641, 768 et 860 px
 
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
+- **Sévérité** : P3 · **Statut** : ouverte — correction CSS (césure) sans effet dans le Chromium du banc (pas de dictionnaire de césure) : « Administration » reste coupé dans le rail tablette de l'agence ; à confirmer sur un Chrome de bureau ; hors V1 publique, cosmétique · **Propriétaire** : à désigner par le dirigeant
 - **Rôle / source** : verification-ui (verification/ui-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Connexion admin.alpha@gerimmo-demo.fr (agence), viewport 641 à 860 px
@@ -433,32 +264,32 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Raccourcir le libellé du rail (« Admin. » ou « Équipe ») ou réduire à 10 px le seul libellé trop long ; hors V1 publique
 - **Correction sans aval** : oui
 
-#### `VUI-04` — Reprise des soldes (propriétaire direct) : le libellé « Détenteur du dépôt (agence = votre gestionnaire / proprietaire = vous) » garde le mot « agence » et une faute (« proprietaire » sans accent) :…
+#### `V10-01` — Parcours de bail : les montants ne passent pas par lireMontant ; message generique pour '1 234,50' et '1e3' / '0x10' acceptes en silence
+
+- **Sévérité** : P3 · **Statut** : ouverte — le parcours de bail lit encore ses montants par Number() : « 1e3 » est enregistré 1000 et « 0x10 » 16 sans message ; à brancher sur lireMontant dans une prochaine passe · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : auditeur transversal (verification finale vague 10) (verification/vague10-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Proprietaire connecte (locale en-US ou fr-FR), bail brouillon ('Commencer le bail' sur un lot), etape 4 Loyer du parcours.
+- **Étapes** : 1. Ouvrir le brouillon, etape 'Loyer'. 2. Saisir '1 234,50' dans Loyer hors charges, Charges ou Depot ; Enregistrer cette etape. 3. Saisir '1e3' puis '0x10' dans Charges ; Enregistrer.
+- **Attendu** : '1 234,50' refuse avec 'Montant invalide : ecrivez 1234,50, sans espace ni point de milliers.' (VFL-04). '1e3' et '0x10' refuses comme les autres textes illisibles.
+- **Observé** : '1 234,50' est bien refuse mais avec 'Saisissez des montants positifs ou nuls, avec au plus deux decimales.' (message qui ne dit pas quoi ecrire). '1e3' est enregistre comme 1000.00 et '0x10' comme 16.00 (charges), sans message.
+- **Preuve expurgée (banc)** : preuves/verification/vague10-finale/journaux/s3d-parcours.json ; preuves/verification/vague10-finale/journaux/s3i-extras.json
+- **Cause probable** : app/src/lib/champs-etape-bail.ts:36-38 : Number(brut.replace(',', '.')) au lieu de lireMontantFacultatif/lireDecimalFacultatif de lib/saisie-montant.ts (la vague 10 a migre baux.ts, loyers.ts, etc., mais pas lireEtapeBail, qui sert le parcours de bail brouillon).
+- **Correction proposée** : Lire les champs montant de lireEtapeBail avec lireMontantFacultatif (irl_valeur avec lireDecimalFacultatif) et nommer le champ avec erreurDuChamp ; ajouter un test sur '1e3', '0x10' et '1 234,50'.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `V10-03` — Rail tablette de l'agence : 'Administration' reste coupe en 'Administrati-on' (sans trait d'union) dans Chromium
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : verification-ui (verification/ui-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Rôle / source** : designer UX/UI (verification finale vague 10) (verification/vague10-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Connexion proprietaire@gerimmo-demo.fr (propriétaire direct)
-- **Étapes** : Ouvrir /agence/<org>/comptabilite/reprise ; lire le formulaire de reprise des soldes
-- **Attendu** : Vocabulaire du propriétaire direct, sans « agence », avec accents (par exemple « Qui détient le dépôt : votre gestionnaire / vous »)
-- **Observé** : Texte visible : « Détenteur du dépôt (agence = votre gestionnaire / proprietaire = vous) » (span, 1280 px) ; page hors matrice-ecrans.json, relevée par le complément de balayage
-- **Preuve expurgée (banc)** : preuves/verification/ui-finale/etats/vocab-reprise-detenteur-1280.png ; journaux/vocabulaire-complement.json ; journaux/vocabulaire-agence-tableau.md
-- **Cause probable** : app/src/lib/reprise-soldes.ts:29 : libellé statique du champ detenteur, non adapté au type d organisation
-- **Correction proposée** : Remplacer par « Qui détient le dépôt de garantie (votre gestionnaire / vous) » pour le propriétaire direct, avec accents ; conserver « agence » côté agence
-- **Correction sans aval** : oui
-
-#### `VUI-05` — Veille réglementaire : l audience « Agences et agents immobiliers » est toujours proposée aux propriétaires et aux locataires (DES-A-07 point 4 non corrigé)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : verification-ui (verification/ui-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Connexion propriétaire puis locataire (matrice : /veille?public=bailleur et /veille?public=locataire)
-- **Étapes** : Ouvrir /veille?public=bailleur (puis =locataire) ; lire le sélecteur d audiences
-- **Attendu** : Aucune audience « Agences et agents immobiliers » dans la V1 publique
-- **Observé** : Le sélecteur affiche « Tout voir · Propriétaires bailleurs · Agences et agents immobiliers · Locataires » sur les deux pages (2 occurrences par page dans le texte visible)
-- **Preuve expurgée (banc)** : preuves/verification/ui-finale/etats/vocab-veille-audiences-1280.png ; journaux/vocabulaire-agence.json (/veille?public=bailleur et =locataire) ; journaux/vocabulaire-agence-tableau.md
-- **Cause probable** : app/src/lib/veille-reglementaire.ts:1 : PUBLICS_VEILLE contient agence:Agences et agents immobiliers sans filtrage selon le périmètre V1
-- **Correction proposée** : Masquer la clé agence du sélecteur hors supervision et espace agence ; conserver la donnée
+- **Préconditions** : Compte agence (admin.alpha), fenetre de 641 a 860 px, Chromium de Playwright (pas de dictionnaire de cesure fr).
+- **Étapes** : 1. Ouvrir /agence/<id> a 768 px. 2. Lire le dernier item du rail.
+- **Attendu** : Mot non coupe, ou cesure 'Administra-tion' avec trait d'union
+- **Observé** : Deux lignes 'Administrati' / 'on', sans trait d'union (mesure par Range sur le noeud texte ; capture jointe).
+- **Preuve expurgée (banc)** : preuves/verification/vague10-finale/journaux/s5-rail.txt ; preuves/verification/vague10-finale/captures/s5-rail-agence-768.png
+- **Cause probable** : app/src/app/globals.css (bloc rail agence, ~l.2204) : hyphens: auto depend du dictionnaire de cesure du navigateur ; en son absence overflow-wrap: break-word coupe n'importe ou. Le comportement dans un Chrome de bureau avec dictionnaire fr reste une hypothese a verifier.
+- **Correction proposée** : Inserer une cesure douce dans le libelle (Adminis&shy;tration) ou reduire la taille/espacement de la lettre de ce seul item, au lieu de compter sur hyphens: auto ; agence hors V1 publique, donc priorite basse.
 - **Correction sans aval** : oui
 
 #### `ARC-01` — Échec du rendu PDF du devis externe : message technique brut (variable d environnement) montré à l artisan
@@ -574,6 +405,48 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction sans aval** : oui
 - **Reproduction** : hypothèse à vérifier, non reproduite
 
+#### `CAR-01` — La référence de tests candidate porte sur b9a7107, non sur la tête 9396669, et son parcours navigateur n'est pas vert
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — batterie complète rejouée sur le SHA figé 0ad658a (4 207 tests, 168 parcours, audits 768 et 1440 px) · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : cartographe (cartographie) · **Version testée** : tête 9396669 (lecture et catalogue SQL)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Journaux /tmp/cand5-*.log produits par scratchpad/outils/candidat5.sh ; dépôt en lecture seule.
+- **Étapes** : 1. head -1 /tmp/cand5-etat.log (SHA de la chaîne) ; 2. git -C /home/user/GERIMMO_V4 rev-parse --short HEAD ; 3. git diff --stat b9a7107 HEAD ; 4. grep -E '^e2e:' /tmp/cand5-etat.log ; tail -6 /tmp/cand5-e2e.log
+- **Attendu** : La référence qui accompagne la livraison est verte et porte sur le SHA livré.
+- **Observé** : Chaîne exécutée sur b9a7107 (« arbre-propre:0 ») ; tête actuelle 9396669 ; la différence est app/e2e/personne-reprise.spec.ts seul (6 insertions, 2 suppressions). Le parcours navigateur de la chaîne se termine par « e2e:1 » : 161 réussis, 1 en échec (« fiche personne et justificatif : fermeture et création à 1440px »), 1 instable (même parcours à 390px), 1 ignoré. Le commit 9396669 corrige ce parcours mais aucun journal ne montre qu'il a été rejoué.
+- **Preuve expurgée (banc)** : preuves/cartographie/donnees/tests.json (candidat5.etat, candidat5.e2e, diff_depuis_la_chaine) ; /tmp/cand5-etat.log ; /tmp/cand5-e2e.log
+- **Cause probable** : Le correctif du parcours (commit 9396669) a été posé après la fin de la chaîne (04:02) ; aucun rejeu planifié.
+- **Correction proposée** : Rejouer personne-reprise.spec.ts aux deux largeurs puis la suite complète au SHA final, et citer ce SHA dans la référence.
+- **Correction sans aval** : oui
+
+#### `CAR-03` — `.env.example` annonce « Neuf missions quotidiennes » alors que le code et vercel.json en comptent dix
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — app/.env.example : « Dix missions » · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : cartographe (cartographie) · **Version testée** : tête 9396669 (lecture et catalogue SQL)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Dépôt en lecture seule.
+- **Étapes** : 1. sed -n 50p app/.env.example ; 2. grep -c 'mission=' app/vercel.json ; 3. sed -n 16,29p app/src/lib/missions.ts
+- **Attendu** : Le commentaire donne le nombre réel de missions passant par /api/cron/equipes?mission=.
+- **Observé** : Commentaire : « Neuf missions quotidiennes ». lib/missions.ts définit 10 missions (veille, appels, quittances, relances, rappels, abonnements, signatures, marketing, territoire, purge) et vercel.json en planifie 10 (+ l'orchestrateur = 11 crons). Aucune mission non planifiée, aucune planifiée inconnue.
+- **Preuve expurgée (banc)** : preuves/cartographie/donnees/tests.json › missions_crons
+- **Cause probable** : La dixième mission (veille) a été ajoutée sans mettre le commentaire à jour.
+- **Correction proposée** : Écrire « Dix missions » (ou ne plus donner de nombre).
+- **Correction sans aval** : oui
+
+#### `CAR-11` — Le serveur du banc hérite d'un jeton GitHub du shell de lancement alors que l'application ne l'utilise pas
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — scratchpad : serveur du banc lancé sans GITHUB_TOKEN (hygiène du banc, hors dépôt) · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : cartographe (cartographie) · **Version testée** : tête 9396669 (lecture et catalogue SQL)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Serveur `next start` du banc (port 3100) ; lecture de /proc/<pid>/environ limitée aux NOMS et à l'état défini/vide (aucune valeur lue ni écrite).
+- **Étapes** : 1. python3 scripts/04_transverse.py (env_du_serveur_banc) ; 2. lire donnees/transverse.json › variables[nom=GITHUB_TOKEN].definie_serveur_banc ; 3. grep -rn GITHUB_TOKEN app/src app/scripts
+- **Attendu** : Le serveur de l'application ne porte que les variables que le code de src/ lit (Supabase, adresse du site, variables du banc).
+- **Observé** : GITHUB_TOKEN est défini dans l'environnement du processus du serveur du banc ; il n'est lu que par scripts/deploiement/publier.mjs (publication contrôlée), jamais par app/src. Aucun chemin de l'application qui l'expose n'a été trouvé : c'est un défaut d'hygiène du banc, pas une fuite constatée. Hypothèse à vérifier : aucune page d'erreur ni journal du serveur n'imprime l'environnement.
+- **Preuve expurgée (banc)** : preuves/cartographie/donnees/transverse.json › variables (GITHUB_TOKEN : definie_serveur_banc = true) ; scripts/deploiement/publier.mjs:7
+- **Cause probable** : Le serveur a été lancé depuis un shell qui exportait le jeton ; aucun nettoyage d'environnement au lancement (banc-up.sh).
+- **Correction proposée** : Lancer le serveur du banc avec une liste blanche de variables (`env -i` + variables nécessaires) ; ne jamais poser de jeton d'écriture dans le shell du banc.
+- **Correction sans aval** : oui
+
 #### `LOC-01` — Dépôt d'une attestation déjà déposée : message technique générique au lieu de « ce fichier est déjà dans votre dossier »
 
 - **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5-7 ; tests : app/tests/textes-parcours-locataire-compte.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
@@ -675,7 +548,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `CHF-04` — L'export CSV du livre recettes-dépenses ne neutralise pas les cellules commençant par =, +, - ou @ : un libellé « =1+1 » est exporté tel quel et sera évalué par le tableur.
 
 - **Sévérité** : P3 · **Statut** : corrigée en branche — src/lib/csv-sur.ts + export du journal (commit 2235d73), tests/csv-sur.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
-- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Écriture dont le libellé commence par « = ».
 - **Étapes** : 1. Livre > Ajouter une écriture, libellé « =1+1 ». 2. Ouvrir /comptabilite/export. 3. Lire la ligne.
@@ -908,7 +781,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `IA-08` — Le commentaire de la tâche territoire dit 'mensuelle, le 1er' alors qu'elle est planifiée chaque jour
 
 - **Sévérité** : P3 · **Statut** : corrigée en branche — commentaire de app/src/app/api/cron/territoire/route.ts corrigé (vague 6) · **Propriétaire** : mission (coordinateur) — livré en branche
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : tête 83ba492 (lecture)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Code au commit 83ba492
 - **Étapes** : Lire territoire/route.ts:2-9, vercel.json:27-30, sante-service.ts:344
@@ -922,7 +795,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `IA-10` — La page wiki 'Gerimmo en autonomie' est périmée : 4 tâches quotidiennes, 'vercel.json ne fixe aucune région', ronde quotidienne 'à armer'
 
 - **Sévérité** : P3 · **Statut** : corrigée en branche — wiki : page Gerimmo en autonomie marquée historique, renvoi vers l'inventaire à jour (commit de la vague 7) · **Propriétaire** : mission (coordinateur) — livré en branche
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : tête 83ba492 (lecture)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Wiki au commit 83ba492
 - **Étapes** : 1. Lire wiki/syntheses/Gerimmo en autonomie.md (lignes 77, 163-169, 225) ; 2. Lire app/vercel.json:3-5 et 6-51 ; 3. Lire wiki/regles-metier/Registre des traitements.md (région cdg1 fixée le 20/09)
@@ -936,7 +809,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `PRF-01` — Page de connexion : décalage de mise en page (CLS 0,212) sur mobile avec réseau lent
 
 - **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5-7 ; tests : app/tests/connexion-squelette-cls.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
-- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Visiteur anonyme ; Chromium 390×844 mobile ; cache vide ; réseau émulé 1,6 Mbit/s, 150 ms (ou processeur ×4) ; version candidate sur 3100. Sans étranglement, CLS = 0.
 - **Étapes** : 1. Ouvrir /connexion avec le réseau émulé. 2. Relever les layout-shift (PerformanceObserver) et capturer l'écran à 1,3 s puis à la fin du chargement.
@@ -950,7 +823,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `PRF-06` — Page « Compte » : le lien « le lien reçu par email » renvoie l'utilisateur connecté à son accueil sans explication
 
 - **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5-7 ; tests : app/tests/textes-parcours-locataire-compte.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
-- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Sessions locataire et agent (écran /compte de la matrice).
 - **Étapes** : 1. Ouvrir /compte. 2. Cliquer « le lien reçu par email » dans la phrase « Mot de passe perdu et session fermée ? Il reste le lien reçu par email. » (href=/mot-de-passe-oublie).
@@ -964,7 +837,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `PRF-09` — Lien factice href="#" « Retour à mes fiches » (annuaire des personnes)
 
 - **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5-7 ; tests : app/tests/textes-parcours-locataire-compte.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
-- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Profils propriétaire, administrateur, agent ; /agence/<id>/personnes ; section « Créer une fiche ».
 - **Étapes** : 1. Relever les liens de /personnes. 2. Observer le lien « Retour à mes fiches » (masqué tant que « Créer une fiche » n'est pas ouvert).
@@ -1124,7 +997,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `RET-01` — migrations.yml laisse passer un nom de fichier portant un chemin (« ../retours-arriere/… »), alors que la saisie annonce « Noms seuls (pas de chemin) »
 
 - **Sévérité** : P3 · **Statut** : corrigée en branche — .github/workflows/migrations.yml : garde de nom de fichier (commit 2235d73), testée en shell sur 9 noms · **Propriétaire** : mission (coordinateur) — livré en branche
-- **Rôle / source** : retour-arriere (retour-arriere) · **Version testée** : non relevée
+- **Rôle / source** : retour-arriere (retour-arriere) · **Version testée** : bases jetables reconstruites depuis le manifeste (migrations de la branche)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Un script à transaction propre (begin/commit) ou un fichier hors de app/supabase/migrations/ est nommé dans l'entrée « fichiers » du chantier.
 - **Étapes** : 1. Rejouer en local la boucle de garde de migrations.yml (lignes 78-117) avec fichiers = ../retours-arriere/20261013120000_correctifs_audit_13_octobre.retour.sql et un historique contenant 20261013120000. 2. Comparer avec le même nom sans chemin.
@@ -1138,7 +1011,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `RET-03` — La page du wiki Plan de reprise d'activité cite une base de connaissance qui n'existe pas dans V4 (docs/plan-reprise-activite.md, table backup_registry) et décrit une sauvegarde Supabase alors que la…
 
 - **Sévérité** : P3 · **Statut** : corrigée en branche — wiki : page Plan de reprise d'activité mise à jour (V4, retours arrière, état vérifié) · **Propriétaire** : mission (coordinateur) — livré en branche
-- **Rôle / source** : retour-arriere (retour-arriere) · **Version testée** : non relevée
+- **Rôle / source** : retour-arriere (retour-arriere) · **Version testée** : bases jetables reconstruites depuis le manifeste (migrations de la branche)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Lecture de wiki/regles-metier/Plan de reprise d'activité.md et du dépôt.
 - **Étapes** : 1. Lire « Fondement » et « Paramètres » de la page. 2. git ls-files \| grep plan-reprise ; grep -rl backup_registry app.
@@ -1204,6 +1077,63 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Cause probable** : src/app/artisan/devis/actions-preparation.ts:55 et src/lib/parcours-devis-serveur.ts:10 : la fiche artisan est cherchée par le compte connecté (le superviseur n'a pas de fiche), pas par la session de diagnostic
 - **Correction proposée** : Désactiver les formulaires d'écriture et afficher 'Lecture seule' quand ma_session_artisan_diagnostic() renvoie une session
 - **Correction sans aval** : oui
+
+#### `VFL-02` — Déconnexion hors ligne : écran d'erreur générique au lieu d'un message « vous êtes hors ligne »
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 10 (commit 0ad658a) ; tests : tests/deconnexion-hors-ligne.test.ts, e2e/menu-compte.spec.ts : « hors ligne, se déconnecter le dit sans quitter la page ni la session » · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : flux (verification/flux-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Propriétaire connecté, fiche personne en cours avec pièce jointe conservée, réseau coupé (context.setOffline)
+- **Étapes** : 1. Ouvrir le menu compte. 2. Cliquer « Se déconnecter » hors ligne. 3. Attendre 6 s.
+- **Attendu** : La session reste ouverte, la copie reste (OK) et un message explicite dit que la déconnexion n'a pas pu aboutir
+- **Observé** : La page est remplacée par « Cette page n'a pas pu s'afficher. L'incident est noté — la page, pas vos données… Réessayer » ; la saisie à l'écran n'est plus visible (la copie locale et la session sont intactes, vérifié).
+- **Preuve expurgée (banc)** : preuves/verification/flux-finale/captures/copies-e-deconnexion-hors-ligne.png
+- **Cause probable** : app/src/app/actions/auth.ts:27-35 (seDeconnecter) : l'échec réseau de l'action serveur remonte à la limite d'erreur ; app/src/components/menu-compte.tsx:112 (formulaire action={seDeconnecter} sans gestion d'échec)
+- **Correction proposée** : Intercepter l'échec côté client (navigator.onLine / catch) et afficher « Déconnexion impossible hors ligne ; votre saisie est conservée ».
+- **Correction sans aval** : oui
+
+#### `VFL-04` — « 1 234,50 » et « 1.234,50 » refusés avec le seul message « Montant invalide. » (format usuel français non expliqué)
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 10 (commit 0ad658a) ; tests : tests/saisie-montant.test.ts : « 1 234,50 », « 1.234,50 », espace insécable, espace fine, « 1 234.50 », « 1,234.50 » donnent exactement « Montant inva · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : flux (verification/flux-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Propriétaire, bail actif avec loyer impayé, navigateur en-US ou fr-FR
+- **Étapes** : 1. /agence/<org>/baux/<id>, bloc « Saisir un encaissement ». 2. Saisir « 1 234,50 » (puis « 1.234,50 »), valider.
+- **Attendu** : Accepté (1234,50) ou refus avec message qui nomme le format attendu (ex. « Saisissez le montant sans séparateur de milliers : 1234,50 »)
+- **Observé** : Aucune ligne créée (aucun montant faux : conforme à la consigne), message « Montant invalide. » seul. Un séparateur de milliers est pourtant courant pour des loyers ou dépôts élevés.
+- **Preuve expurgée (banc)** : preuves/verification/flux-finale/montants-enus2.json ; preuves/verification/flux-finale/captures/montant-loyer-123450.png
+- **Cause probable** : app/src/lib/saisie-montant.ts (lireMontant : refus de tout séparateur de milliers) et app/src/app/actions/loyers.ts:257 (ajouterEncaissement, message « Montant invalide. »)
+- **Correction proposée** : Soit tolérer l'espace (fine, insécable ou normale) comme séparateur de milliers, soit enrichir le message : « Montant invalide : écrivez 1234,50 (sans espace ni point de milliers). »
+- **Correction sans aval** : oui
+
+#### `VFL-05` — Reprise des soldes : « date de bascule » par défaut calculée en UTC (la veille entre 00 h et 02 h à Paris l'été)
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 10 (commit 0ad658a) ; tests : tests/jour-paris-formulaires.test.ts : rendu serveur de FormulaireReprise avec serveur UTC et horloge au 13/10/2026 23:47 UTC · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : flux (verification/flux-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Propriétaire connecté ; horloge navigateur émulée au 14/10/2026 01:47 Europe/Paris
+- **Étapes** : 1. context.clock.setFixedTime(2026-10-14T01:47+02:00). 2. Ouvrir /agence/<org>/comptabilite/reprise. 3. Lire le champ date_bascule.
+- **Attendu** : 2026-10-14 (jour de Paris, comme le corrige ARC-10 ailleurs)
+- **Observé** : 2026-10-13
+- **Preuve expurgée (banc)** : preuves/verification/flux-finale/dates-paris.json (reprise.dates)
+- **Cause probable** : app/src/app/agence/[orgId]/comptabilite/reprise/formulaire-reprise.tsx:12-14 (new Date().toISOString().slice(0, 10)) ; helper correct disponible : aujourdhuiParis() dans app/src/lib/ged.ts:155
+- **Correction proposée** : Remplacer par aujourdhuiParis() (même fichier que les champs corrigés par ARC-10) et ajouter un test de source interdisant toISOString().slice(0,10) dans les formulaires.
+- **Correction sans aval** : oui
+
+#### `VFL-06` — Hypothèse à vérifier : attestation d'assurance locataire, date plancher et contrôle serveur calculés en jour UTC
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 10 (commit 0ad658a) ; tests : tests/jour-paris-formulaires.test.ts : à 01:47 Paris, le champ expire_le a min=2026-10-14 ; deposerMonAttestation refuse une attestation expirée le 13 · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : flux (verification/flux-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Locataire connecté ; entre 00 h et 02 h à Paris (heure d'été)
+- **Étapes** : Lecture du code : formulaire-attestation.tsx:17-19 (min de expire_le) et attestation-locataire.ts:58 (refus si expire < jour UTC).
+- **Attendu** : Une attestation expirée la veille (jour de Paris) est refusée
+- **Observé** : Non reproduit : le min est rendu au serveur (2026-10-14 mesuré à 01:47 émulé côté navigateur) et l'horloge réelle du banc (≈ 06 h Paris) ne permet pas de reproduire la fenêtre 00 h-02 h côté serveur. Par lecture du code, une attestation expirée le jour précédent (Paris) serait acceptée pendant ces deux heures.
+- **Preuve expurgée (banc)** : preuves/verification/flux-finale/dates-paris.json (locataireAttestation)
+- **Cause probable** : app/src/app/locataire/[orgId]/formulaire-attestation.tsx:17-19 ; app/src/app/actions/attestation-locataire.ts:58
+- **Correction proposée** : Utiliser aujourdhuiParis() aux deux endroits ; test unitaire avec horloge simulée à 23:47 UTC.
+- **Correction sans aval** : oui
+- **Reproduction** : hypothèse à vérifier, non reproduite
 
 #### `VER-PR178-02` — Session expirée puis autre compte dans le même navigateur : les copies du compte précédent (identité, brouillon de lot) restent sur l'appareil tant que le nouveau compte n'ouvre pas la fiche personne…
 
@@ -1374,6 +1304,20 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Afficher fiscal.nbEcritures et, si fiscal.meuble.nbEcritures > 0 ou des périodes hors périmètre existent, une phrase les citant
 - **Correction sans aval** : oui
 
+#### `VUI-02` — Rail tablette locataire (641-860 px) : la cellule du nom d espace affiche « PDP… » (initiales suivies du début du nom tronqué) au lieu des seules initiales ; la correction DES-A-14 ne tient pas sur l…
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — globals.css : font-size:0 !important sur les initiales du rail ; tests/rail-initiales-et-cesure.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : verification-ui (verification/ui-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Connexion locataire.pd@gerimmo-demo.fr (espace « Parc de Claire Moreau »), viewport 641 à 860 px
+- **Étapes** : Ouvrir /locataire/<org> à 768x900 ; regarder la tuile blanche en haut du rail ; inspecter span[data-initiales]
+- **Attendu** : « PD » seul, avec le nom entier en infobulle (DES-A-14, même rendu que le rail du propriétaire/agence)
+- **Observé** : Texte rendu « PDP… » ; getComputedStyle(span).fontSize = 16px (devrait être 0) ; ::before content « PD » appliqué ; title « Parc de Claire Moreau » présent ; scrollWidth 199 pour clientWidth 48. Diagnostic : deux règles de taille de police s appliquent, `.loc-logo [data-initiales]{font-size:0}` dans la couche components et `.text-base` dans la couche utilities, qui l emporte. En injectant font-size:0!important la tuile n affiche plus que les initiales. Le rail agence (coquille) rend bien « AA » (font-size 0px)
+- **Preuve expurgée (banc)** : preuves/verification/ui-finale/etats/rail-locataire-logo-768.png ; etats/rail-locataire-768.png ; journaux/rail-mots-coupes.json (marque.fs=16px aux 3 largeurs) ; etats/rail-locataire-logo-768-diagnostic-important.png (diagnostic par injection, hors preuve de correction) ; scripts/s4d-diag-logo.mjs ; apres-finale/locataire/768/locataire-c14c3187.png (locataire.alpha : tuile « AA… »)
+- **Cause probable** : app/src/app/globals.css:1465 (règle en @layer components) battue par la classe text-base posée sur le span rendu par MarqueOrganisation (app/src/app/locataire/[orgId]/layout.tsx:104) ; la règle jumelle de la coquille (.coquille-late .coquille-marque [data-initiales]) fonctionne parce que son span n a pas text-base
+- **Correction proposée** : Passer la règle en font-size:0!important (ou la sortir des couches, ou retirer text-base du span quand data-initiales est actif) et ajouter un test visuel à 768 px sur le rail locataire
+- **Correction sans aval** : oui
+
 #### `ARC-04` — Numéro de facture externe : unicité sensible à la casse (« art-2026-0001 » accepté en doublon de « ART-2026-0001 »), aucune continuité contrôlée
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
@@ -1479,7 +1423,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `CAR-05` — Privilèges de table et politiques RLS ne se recouvrent pas : 17 tables ont des privilèges d'écriture sans politique, 12 tables ont des politiques sans privilège
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : cartographe (cartographie) · **Version testée** : non relevée
+- **Rôle / source** : cartographe (cartographie) · **Version testée** : tête 9396669 (lecture et catalogue SQL)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Catalogue de gerimmo_ci_integ (amorçage local, droits par défaut propres à l'amorçage) ; RLS active sur 145/145 tables.
 - **Étapes** : 1. psql gerimmo_ci_integ : has_table_privilege('authenticated', oid, 'insert\|update\|delete') croisé avec pg_policies.cmd par table ; 2. python3 scripts/03_base.py puis lire donnees/base.json › catalogue.tables / politiques
@@ -1493,7 +1437,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `CAR-06` — Deux valeurs de `membership_role` (`proprietaire_mandant`, `garant`) n'ont ni fonction d'attribution repérée ni espace dédié
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : cartographe (cartographie) · **Version testée** : non relevée
+- **Rôle / source** : cartographe (cartographie) · **Version testée** : tête 9396669 (lecture et catalogue SQL)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Énumération membership_role du catalogue ; fonctions qui écrivent dans memberships.
 - **Étapes** : 1. python3 scripts/03_base.py ; lire catalogue.fonctions[*].tables_ecrites contenant memberships ; 2. python3 scripts/04_transverse.py ; lire roles_usage
@@ -1519,6 +1463,20 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Décision produit : exposer la photo à l'artisan retenu via une URL signée, ou masquer la mention « Photo jointe » dans la description transmise.
 - **Correction sans aval** : non (aval du dirigeant requis)
 
+#### `PRO2-11` — Élision manquante dans le nom de parc généré : « Parc de Éloïse … » (même famille que LOC-02)
+
+- **Sévérité** : P3 · **Statut** : à trancher — texte produit par une fonction SQL : demande une migration supplémentaire (les deux migrations de la livraison sont figées et simulées) ; à regrouper dans une prochaine migration · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : proprietaire (chaine/1b) · **Version testée** : candidate 5d15b4d (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Propriétaire dont le prénom commence par une voyelle
+- **Étapes** : Ouvrir l'écran artisan de la demande de devis ou le PDF : le client est nommé « Parc de Éloïse [TEST-proprietaire] Durand-Lévêque ».
+- **Attendu** : « Parc d'Éloïse … »
+- **Observé** : « Parc de Éloïse … » dans l'espace artisan et sur le PDF du devis
+- **Preuve expurgée (banc)** : preuves/chaine/1b/captures/a1-02-demande-detail.png ; preuves/chaine/1b/fichiers/devis-v1-artisan.pdf
+- **Cause probable** : Génération du nom d'organisation par concaténation « Parc de » + prénom à l'inscription. Hypothèse de fichier, non vérifiée.
+- **Correction proposée** : Appliquer l'élision (de / d') avant voyelle ou h muet.
+- **Correction sans aval** : oui
+
 #### `CHN-02` — La validation de la facture, l'écriture de règlement et la clôture de l'incident ne laissent aucune ligne au journal d'audit : seule la chronologie de l'incident les garde
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
@@ -1536,7 +1494,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `CHF-05` — Le wiki « Fiscalité » ne s'appuie sur aucune source officielle (quatre sites commerciaux seulement) et affirme encore « non implémentée » pour des fonctions livrées ; le wiki « Régularisation des cha…
 
 - **Sévérité** : P3 · **Statut** : à trancher — avertissement ajouté à la page Fiscalité ; les sources officielles n'ont pu être consultées (réseau bloqué) : à compléter quand l'accès est ouvert · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Lecture de wiki/concepts/Fiscalité.md et wiki/processus/Régularisation des charges.md.
 - **Étapes** : 1. Lire l'encadré « Décision produit — non implémentée » en tête des deux pages. 2. Lire leurs sections postérieures (« Phase 1 livrée », « Audit de gestion du 29/09/2026 »). 3. Lire la section « Sources web ».
@@ -1550,7 +1508,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `CHF-07` — Hypothèse à vérifier : une contre-écriture est datée du jour de l'annulation, non de la pièce d'origine ; annuler en janvier un encaissement de décembre déplace le correctif sur l'exercice suivant.
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Encaissement annulé après le changement d'année.
 - **Étapes** : Observé seulement dans la même année : paiement du 07/09/2026 annulé le 14/10/2026, contre-écriture datée du 14/10/2026.
@@ -1565,7 +1523,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `CHF-09` — Un encaissement saisi par erreur puis retiré (net 0,00 €) reste « à qualifier » et empêche de générer le PDF du lot tant qu'il n'est pas qualifié à la main.
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : non relevée
+- **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Lot nu avec exercice confirmé et récapitulatif complet ; bail dont tous les appels sont soldés.
 - **Étapes** : 1. Encaisser 1,00 € sur le bail B (aucun appel à solder : avance). 2. Le retirer avec un motif (contre-écriture). 3. Ouvrir le récapitulatif fiscal 2026. 4. Générer le PDF « Récapitulatif annuel · location nue » du lot B.
@@ -1685,7 +1643,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `IA-06` — L'arrêt d'urgence ne couvre pas le traitement immédiat du webhook Yousign ; la clé 'sauvegarde' n'a aucun lecteur (confirmation par lecture de SUP-07)
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : tête 83ba492 (lecture)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Arrêt global actif
 - **Étapes** : 1. Lire youtrust/webhook/route.ts:49-57 et signatures/route.ts:45 ; 2. Rechercher verifier_arret dans .github et app/scripts
@@ -1699,7 +1657,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `IA-07` — Des éléments d'automatisation existent sans écrivain ni appelant : automation_events, log_automation_event, automation_stats_30d, autoriser_orchestration
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : tête 83ba492 (lecture)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Code au commit 83ba492
 - **Étapes** : Rechercher ces noms dans app/src et dans les migrations postérieures à 20260922120000
@@ -1713,7 +1671,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `IA-09` — La tâche territoire peut préparer une campagne-idée 'essai avec des agences', alors que les agences sont hors du périmètre public V1
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : tête 83ba492 (lecture)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Un département avec au moins 20 agences, un ratio agences/logements >= 0,001, la porte de santé ouverte
 - **Étapes** : 1. Lire score-territoire.ts:65-73 et territoire/route.ts:185-191 ; 2. Lire 20260922223000_preparer_recrutement_territorial.sql
@@ -1727,7 +1685,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `IA-11` — Aucun registre d'exécution n'a de règle de rétention (agent_passages, supervision_operations, points_du_matin, decisions_du_matin, brief_direction_snapshots)
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : tête 83ba492 (lecture)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Code au commit 83ba492
 - **Étapes** : 1. Rechercher les suppressions de ces tables dans les migrations ; 2. Lire appliquer_retention (20260927142000_conservation_depuis_fin_du_contrat.sql:160-266)
@@ -1741,7 +1699,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `IA-12` — Hypothèse à vérifier : les textes et visuels produits avec l'IA et publiés sur le site et Facebook ne portent aucune mention d'origine
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : tête 83ba492 (lecture)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Un post de veille ou un visuel généré est publié
 - **Étapes** : 1. Rechercher une mention d'origine IA dans app/src/app/journal, app/src/app/veille, facebook.ts, contenu-marketing.ts ; 2. Lire § 7 de propositions.md (règlement 2024/1689, art. 50)
@@ -1756,7 +1714,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `PRF-02` — Lien de nouveau mot de passe sans session : réponse 200 puis redirection côté client, avec décalage visible (CLS 0,346 à 390 px)
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Visiteur sans session (cas d'un lien de récupération expiré ou déjà utilisé) ; aucun étranglement ; version candidate.
 - **Étapes** : 1. GET /nouveau-mot-de-passe (curl, puis Chromium 390 et 1280). 2. Lire le statut, le corps et les layout-shift.
@@ -1770,7 +1728,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `PRF-03` — Accès interdits ou objets inexistants : le document répond 200 (redirection ou 404 faites côté client), seul le visiteur anonyme reçoit un vrai 307
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Sessions des 5 profils ; 157 écrans de la matrice ; version candidate.
 - **Étapes** : 1. Demander en GET chaque écran de la matrice avec la session d'un autre profil (631 requêtes) et avec un visiteur anonyme. 2. Sondes d'erreurs : identifiants nuls, non-UUID, autre organisation, /journal/inexistant. 3. Lire statut et corps.
@@ -1784,7 +1742,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `PRF-04` — Défense en profondeur : la garde des pages /admin vit dans le layout ; la page s'exécute pour un non-super-administrateur et sa charge utile part avant la redirection (bornée par la RLS)
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Compte locataire (Agence Alpha) ; version candidate.
 - **Étapes** : 1. GET /admin/marque-blanche avec la session du locataire. 2. Chercher dans le corps le nom d'organisation. 3. Étendre à 631 requêtes croisées avec 34 jetons (noms d'organisations, noms et e-mails du jeu de démonstration).
@@ -1798,7 +1756,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `PRF-05` — Poids et mise en cache : logo de 292 Ko (2016×1594) et illustration de 298 Ko chargés sur chaque écran d'espace, servis avec max-age=0 ; ils portent le LCP des écrans d'agence
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Bureau 1280 px, cache vide ; profils agent, administrateur, propriétaire ; version candidate.
 - **Étapes** : 1. Charger l'accueil agent et la fiche diagnostics. 2. Lister les ressources (PerformanceResourceTiming) et le LCP. 3. curl -I sur /logo/gerimmo-officiel.png et /illustrations/quartier-gerimmo-2026.jpg ; requête conditionnelle If-None-Match.
@@ -1812,7 +1770,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `PRF-07` — Console de supervision : « Voir le formulaire sur le site » n'affiche pas le formulaire pour un super-administrateur connecté
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Super-administrateur connecté ; écran /admin/devis (aucune demande commerciale).
 - **Étapes** : 1. Ouvrir /admin/devis. 2. Cliquer « Voir le formulaire sur le site » (href="/#contact", target=_blank).
@@ -1826,7 +1784,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `PRF-08` — Page de confidentialité : « Aide et retours » mène un visiteur sans compte à la page de connexion ; contact éditeur « (à venir) » sur le banc
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Visiteur anonyme ; page publique /confidentialite ; banc sans coordonnées d'éditeur configurées.
 - **Étapes** : 1. Ouvrir /confidentialite. 2. Cliquer « « Aide et retours » » (href=/assistance). 3. Lire la page /confidentialite, /mentions-legales et /conditions pour le moyen de contact.
@@ -1840,7 +1798,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `PRF-10` — Journal serveur : erreur « The destination stream closed early » (digest 2041379235) non attribuée ; 69 % des préchargements de liens sont annulés
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : non relevée
+- **Rôle / source** : perf-liens (perf-liens) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Serveur 3100 (next start) ; campagne de ≈ 1 000 chargements ; journal /tmp/gerimmo-web.log.
 - **Étapes** : 1. Comparer le journal avant et après la campagne. 2. Provoquer 30 annulations côté client de réponses RSC préchargées. 3. Chronométrer les préchargements de l'accueil agent.
@@ -1851,6 +1809,20 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Reproduire avec journaux horodatés ; si l'annulation est normale, filtrer ce message du niveau « error » dans la supervision.
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `PROP-05` — Nom d'espace sans élision : « Parc de Éloïse … »
+
+- **Sévérité** : P3 · **Statut** : à trancher — texte produit par une fonction SQL : demande une migration supplémentaire (les deux migrations de la livraison sont figées et simulées) ; à regrouper dans une prochaine migration · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : inscription avec prénom commençant par une voyelle ou un H muet
+- **Étapes** : créer le compte avec prénom « Éloïse »
+- **Attendu** : « Parc d’Éloïse … »
+- **Observé** : organizations.name = « Parc de Éloïse [TEST-proprietaire] Durand-Lévêque » ; affiché dans le bandeau d'accueil
+- **Preuve expurgée (banc)** : captures/s1-12-espace-ouvert-bureau.png ; SQL organizations.name
+- **Cause probable** : construction de la chaîne « Parc de ${prénom} ${nom} » sans règle d'élision
+- **Correction proposée** : utiliser « d’ » devant voyelle/h
+- **Correction sans aval** : oui
 
 #### `PROP-08` — Recherche globale (⌘K) insensible à la casse mais pas aux accents ; code postal non recherchable
 
@@ -1864,6 +1836,20 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Preuve expurgée (banc)** : sortie de s2k.mjs (sql/s2k.out.txt) ; captures/s2-31-recherche-globale-lilas.png
 - **Cause probable** : recherche par ILIKE sans normalisation des accents (unaccent absent)
 - **Correction proposée** : normaliser accents des deux côtés (extension unaccent ou colonne normalisée)
+- **Correction sans aval** : oui
+
+#### `PROP-10` — Message serveur de la clé de répartition avec point décimal : « fait 99.99 »
+
+- **Sévérité** : P3 · **Statut** : à trancher — texte produit par une fonction SQL : demande une migration supplémentaire (les deux migrations de la livraison sont figées et simulées) ; à regrouper dans une prochaine migration · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : clé de répartition en mode ajusté
+- **Étapes** : saisir 42,03 et 57,96 puis Valider la clé ajustée
+- **Attendu** : « La somme des pourcentages fait 99,99 % : il faut exactement 100 % » (format français)
+- **Observé** : « Validation impossible : La somme des pourcentages fait 99.99, il faut exactement 100 » (refus correct, la clé n'est pas créée)
+- **Preuve expurgée (banc)** : sortie de s4g.mjs ; SQL count cles_repartition = 0 après refus
+- **Cause probable** : message produit par la fonction SQL valider_cle_repartition sans formatage
+- **Correction proposée** : formater en français dans l'action
 - **Correction sans aval** : oui
 
 #### `PROP-11` — Un même PDF ne peut pas être déposé pour deux lots (DPE collectif) et la consigne n'est pas réalisable depuis le formulaire
@@ -2058,7 +2044,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `RET-02` — La sauvegarde est faite avec --no-comments : les 152 commentaires SQL, dont celui qui porte la convention de sécurité de fermer_fonctions_a_anon(), disparaissent à la restauration
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : retour-arriere (retour-arriere) · **Version testée** : non relevée
+- **Rôle / source** : retour-arriere (retour-arriere) · **Version testée** : bases jetables reconstruites depuis le manifeste (migrations de la branche)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Sauvegarde par app/scripts/sauvegarde/base.mjs puis restauration (pg_restore) dans une base neuve.
 - **Étapes** : 1. base.mjs exporter sur la base du banc (état B). 2. pg_restore --no-owner dans gerimmo_restauration_retour. 3. Comparer pg_dump --schema-only -n public de la source et de la copie.
@@ -2072,7 +2058,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `SOR-02` — Remise des clés acceptée à une date future (01/03/2027) : le délai légal de restitution est calculé sur un événement qui n a pas eu lieu, et la restitution ne se corrige pas
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : non relevée
+- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Bail en préavis (congé enregistré), EDL de sortie signé, date du jour 14/10/2026
 - **Étapes** : Fiche du bail > Restitution du dépôt de garantie > Remise des clés = 01/03/2027 > Démarrer la restitution
@@ -2086,7 +2072,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `SOR-04` — Clôture du bail avant la fin du préavis : date_fin reste à la date théorique et rien n avertit des loyers non appelés
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : non relevée
+- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Congé du locataire enregistré le 14/10/2026 (préavis 3 mois, effet 14/01/2027), EDL de sortie signé
 - **Étapes** : Fiche du bail > Clôturer le bail le 14/10/2026
@@ -2100,7 +2086,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `SOR-05` — Espace du locataire sortant : « Rien à régler » alors que le décompte arrêté établit une créance de 561,43 EUR
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : non relevée
+- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Bail terminé, décompte finalisé (solde -561,43 EUR), locataire sortant connecté
 - **Étapes** : Ouvrir /locataire/<org> et /documents après la finalisation
@@ -2114,7 +2100,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 #### `SOR-06` — Comparatif d EDL : un passage de « bon » à « usagé » (usure normale) compte comme écart et porte le délai de restitution à 2 mois
 
 - **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
-- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : non relevée
+- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : EDL de sortie : Salle de bain/Sols bon -> usage (commentaire « Usure normale »), Cuisine/Murs bon -> mauvais
 - **Étapes** : Fiche du bail > Comparatif entrée / sortie, puis Restitution
@@ -2124,6 +2110,20 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Cause probable** : fonction comparatif_edl / règle de délai (à vérifier)
 - **Correction proposée** : Distinguer écart d usure (sans effet sur le délai) et dégradation, ou confirmer la règle dans le wiki
 - **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `SA-02` — Brief de direction : les montants des faits datés s'affichent avec un point décimal ('500.00 €') alors que les mesures s'affichent à la française ('4 870,00 €')
+
+- **Sévérité** : P3 · **Statut** : à trancher — texte produit par une fonction SQL : demande une migration supplémentaire (les deux migrations de la livraison sont figées et simulées) ; à regrouper dans une prochaine migration · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : super-administrateur (superadmin) · **Version testée** : candidate 5d15b4d (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Faits de direction préparés (échéances en retard)
+- **Étapes** : Ouvrir /admin/brief, préparer le point, déplier 'Dossiers concernés' de 'Échéances de loyers'
+- **Attendu** : Format français partout ('500,00 €')
+- **Observé** : 'Échéance en retard · 500.00 €', '840.00 €', '750.00 €' dans les titres de faits, contre '4 870,00 €' dans la mesure agrégée
+- **Preuve expurgée (banc)** : captures/04-brief-dossiers-ouverts.png ; sql/brief_snapshot_faits.txt
+- **Cause probable** : fonction SQL collecter_source_direction (to_char(..., 'FM999999999990.00') dans le titre du fait)
+- **Correction proposée** : Formater le montant côté affichage (composant des faits) à partir d'une valeur numérique plutôt que dans la chaîne SQL
+- **Correction sans aval** : oui
 
 #### `SA-09` — La recherche de la console ne trouve ni un bien, ni un lot, ni un incident : le brief du support demande de retrouver « un dossier (utilisateur, bien, incident) »
 
@@ -2170,7 +2170,7 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 
 #### `VFL-01` — La région role=status de la copie locale affiche « conservés » alors que l'écriture n'a pas eu lieu (seul le texte visible dit « Conservation… »)
 
-- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P3 · **Statut** : à trancher — décision de conception : exactitude de la région annoncée (role=status) contre bruit d'annonces ; texte visible exact, boîte « quitter la page » conforme · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : flux (verification/flux-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Propriétaire connecté, fiche personne en création, saisie déjà « conservée » (état stable)
@@ -2239,9 +2239,23 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Borner ces deux lectures aux ecriture_id du lot et de l'année (filtre in sur les identifiants déjà lus) ; seuil atteint seulement pour de grands comptes, donc non bloquant en V1
 - **Correction sans aval** : non (aval du dirigeant requis)
 
+#### `VUI-05` — Veille réglementaire : l audience « Agences et agents immobiliers » est toujours proposée aux propriétaires et aux locataires (DES-A-07 point 4 non corrigé)
+
+- **Sévérité** : P3 · **Statut** : à trancher — décision D33 (ligne éditoriale de la veille) · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : verification-ui (verification/ui-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Connexion propriétaire puis locataire (matrice : /veille?public=bailleur et /veille?public=locataire)
+- **Étapes** : Ouvrir /veille?public=bailleur (puis =locataire) ; lire le sélecteur d audiences
+- **Attendu** : Aucune audience « Agences et agents immobiliers » dans la V1 publique
+- **Observé** : Le sélecteur affiche « Tout voir · Propriétaires bailleurs · Agences et agents immobiliers · Locataires » sur les deux pages (2 occurrences par page dans le texte visible)
+- **Preuve expurgée (banc)** : preuves/verification/ui-finale/etats/vocab-veille-audiences-1280.png ; journaux/vocabulaire-agence.json (/veille?public=bailleur et =locataire) ; journaux/vocabulaire-agence-tableau.md
+- **Cause probable** : app/src/lib/veille-reglementaire.ts:1 : PUBLICS_VEILLE contient agence:Agences et agents immobiliers sans filtrage selon le périmètre V1
+- **Correction proposée** : Masquer la clé agence du sélecteur hors supervision et espace agence ; conserver la donnée
+- **Correction sans aval** : oui
+
 #### `VUI-06` — Pages juridiques publiques (CGU, confidentialité, mentions légales) : les agences y sont encore présentées (tarif mensuel agences, marque blanche, « votre agence ») alors que le code agence n est plu…
 
-- **Sévérité** : P3 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P3 · **Statut** : à trancher — décision D32 (textes juridiques) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : verification-ui (verification/ui-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Visiteur non connecté
@@ -2253,10 +2267,38 @@ Fiches complètes des 163 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Faire valider par le porteur la version V1 des CGU, de la politique de confidentialité et des mentions légales (retrait ou conservation des clauses agence)
 - **Correction sans aval** : non (aval du dirigeant requis)
 
+#### `V10-02` — Message de succes de la revision IRL : montant avec un point decimal ('671.18 EUR HC')
+
+- **Sévérité** : P3 · **Statut** : à trancher — message de succès de la révision IRL formaté avec un point (« 671.18 € HC ») : texte produit par la base, même famille que PROP-10 et SA-02 (migration supplémentaire) · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : auditeur transversal (verification finale vague 10) (verification/vague10-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Bail actif avec revision IRL, proprietaire ou agence.
+- **Étapes** : Saisir un indice IRL valide (145,17), trimestre, annee, date de demande ; envoyer.
+- **Attendu** : 'Loyer revise a 671,18 EUR HC.' (format francais)
+- **Observé** : 'Loyer revise a 671.18 EUR HC.' (point decimal brut, y compris en locale fr-FR puisque le texte est construit cote serveur)
+- **Preuve expurgée (banc)** : preuves/verification/vague10-finale/journaux/s3l-irl.json
+- **Cause probable** : app/src/app/actions/loyers.ts:384 : `Loyer revise a ${data} EUR HC.` avec le nombre brut renvoye par la RPC.
+- **Correction proposée** : Utiliser eur(data) de lib/ged comme les autres messages.
+- **Correction sans aval** : oui
+
+#### `VUI-04` — Reprise des soldes (propriétaire direct) : le libellé « Détenteur du dépôt (agence = votre gestionnaire / proprietaire = vous) » garde le mot « agence » et une faute (« proprietaire » sans accent) :…
+
+- **Sévérité** : P3 · **Statut** : acceptée — « agence » et « proprietaire » sont les valeurs techniques de la colonne du fichier à fournir, sans accent ; le libellé les explique (tests/vocabulaire-v1-parcours.test.ts) · **Propriétaire** : clos par décision
+- **Rôle / source** : verification-ui (verification/ui-finale) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Connexion proprietaire@gerimmo-demo.fr (propriétaire direct)
+- **Étapes** : Ouvrir /agence/<org>/comptabilite/reprise ; lire le formulaire de reprise des soldes
+- **Attendu** : Vocabulaire du propriétaire direct, sans « agence », avec accents (par exemple « Qui détient le dépôt : votre gestionnaire / vous »)
+- **Observé** : Texte visible : « Détenteur du dépôt (agence = votre gestionnaire / proprietaire = vous) » (span, 1280 px) ; page hors matrice-ecrans.json, relevée par le complément de balayage
+- **Preuve expurgée (banc)** : preuves/verification/ui-finale/etats/vocab-reprise-detenteur-1280.png ; journaux/vocabulaire-complement.json ; journaux/vocabulaire-agence-tableau.md
+- **Cause probable** : app/src/lib/reprise-soldes.ts:29 : libellé statique du champ detenteur, non adapté au type d organisation
+- **Correction proposée** : Remplacer par « Qui détient le dépôt de garantie (votre gestionnaire / vous) » pour le propriétaire direct, avec accents ; conserver « agence » côté agence
+- **Correction sans aval** : oui
+
 #### `SOR-01` — Clé de répartition par surface : « NaN % » et validation impossible (peut venir de l émulateur du banc)
 
 - **Sévérité** : P3 · **Statut** : réfutée — défaut de l'émulateur du banc (numeric rendu en chaînes, ligne 453 de serveur-supabase-local.mjs), pas du produit : un PostgREST réel rend un nombre · **Propriétaire** : clos par décision
-- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : non relevée
+- **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Bien en immeuble avec 2 lots dont la surface est saisie (45,50 et 30 m²), aucune clé validée
 - **Étapes** : Fiche du bien > Clé de répartition > lire la proposition par surface > Valider la clé par surface

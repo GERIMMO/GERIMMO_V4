@@ -50,6 +50,16 @@ describe("D06 : le périmètre des tâches SQL affiché est celui de la migratio
     expect(ecran).toEqual(sql);
   });
 
+  it("le périmètre « purge » dit qu'il retient aussi la purge des données, pas seulement celle des fichiers", () => {
+    expect(nomArret("purge")).toBe("Purge des données échues et suppression des fichiers");
+    const liste = renderToStaticMarkup(createElement(FormulaireArret, {}));
+    expect(liste).toContain("Purge des données échues et suppression des fichiers");
+    expect(liste).not.toContain("Suppression des fichiers purgés");
+    // Les autres périmètres gardent le nom de leur mission.
+    expect(nomArret("quittances")).toBe("Quittances");
+    expect(liste).toContain("Avis d’échéance");
+  });
+
   it("l'arrêt global les arrête toutes ; une clé n'arrête que les siennes", () => {
     expect(tachesSqlArretees("global")).toHaveLength(8);
     expect(tachesSqlArretees("purge")).toEqual(["Purge quotidienne des données dont la durée de conservation est échue"]);

@@ -2,6 +2,8 @@ import { MISSIONS, estMission } from "@/lib/missions";
 
 /** Le nom, en français, de ce qu'un arrêt d'urgence suspend. */
 export function nomArret(cle: string): string {
+  // D06 : la clé « purge » arrête aussi la rétention quotidienne de la base (suppressions de lignes), pas seulement les fichiers.
+  if (cle === "purge") return "Purge des données échues et suppression des fichiers";
   if (estMission(cle)) return MISSIONS[cle].nom;
   return ({ global: "Tous les traitements contrôlés", consignes: "Lectures de consignes", orchestrateur: "Suivi des dossiers", sauvegarde: "Sauvegarde" } as Record<string, string>)[cle] ?? "Traitement contrôlé";
 }

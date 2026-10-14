@@ -251,7 +251,7 @@ export default async function PageSante() {
                   </span>
                   {cycle.etat === "retard" && (
                     <span className="mt-2 block text-sm text-[var(--encre)]">
-                      Aucun passage depuis {cycle.joursDepuis} jours (seuil : 32). Plus aucun appel de loyer n’est généré tant que la tâche ne repart pas.
+                      Aucun passage depuis {cycle.joursDepuis} jours (seuil : 32). Les appels de loyer ne sont plus générés automatiquement tant que la tâche ne repart pas.
                       Vérifier que la tâche planifiée « cycle-mensuel » existe dans la base de données et que les extensions <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">pg_cron</code> et{" "}
                       <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">pg_net</code> sont actives ; sinon la recréer en suivant la procédure de
                       reprise (<code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">app/docs/sauvegarde-et-restauration.md</code>). En attendant, « Générer l’échéancier » rattrape un bail à la fois (page du bail).

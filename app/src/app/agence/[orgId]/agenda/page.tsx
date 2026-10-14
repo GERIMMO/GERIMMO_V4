@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { CalendarDays, Clock3, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
@@ -152,7 +153,7 @@ export default async function PageAgenda({ params, searchParams }: {
 
       {/* Un groupe de liens, pas une grille ARIA : une grille exige des rangées
           et une navigation aux flèches. Chaque jour porte son nom complet. */}
-      <div className="agenda-calendrier" role="group" aria-label={`Rendez-vous de ${moisLong(agenda.mois.premier)}`}>
+      <div className="agenda-calendrier" role="group" aria-label={`Rendez-vous ${deElide(moisLong(agenda.mois.premier).toLowerCase())}`}>
         {JOURS_SEMAINE.map((n) => <div key={n} aria-hidden="true" className="agenda-nom-jour">{n}</div>)}
         {Array.from({ length: agenda.mois.decalage }, (_, i) => <div key={`vide-${i}`} aria-hidden="true" />)}
         {agenda.mois.jours.map((j) => {

@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import { TitreEcran } from "@/components/titre-ecran";
 import { formaterDateHeureParis, formaterDateParis } from "@/lib/heure-paris";
 import Link from "next/link";
@@ -53,7 +54,7 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
         sélecteurs n'apparaissent que s'il y a des demandes ou un filtre actif. */}
     {(total > 0 || filtreActif || file.error) && <nav aria-label="Files de retours" className="flex flex-wrap gap-2">{Object.entries(NATURES).map(([k, v]) => <Link key={k} href={adresse(1, k)} aria-current={nature === k ? "page" : undefined} className={`filtre inline-flex items-center${nature === k ? " actif" : ""}`}>{v}</Link>)}</nav>}
     {nature === "idee" && <section className="rounded-xl border border-[var(--or)] bg-[var(--ivoire)] p-4 text-sm">
-      <h2 className="font-heading text-lg">Revue de {new Date(mois + "T12:00:00").toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</h2>
+      <h2 className="font-heading text-lg">Revue {deElide(new Date(mois + "T12:00:00").toLocaleDateString("fr-FR", { month: "long", year: "numeric" }))}</h2>
       {revue.error ? <p>Le bilan de la revue est indisponible.</p> : revue.data ? <><p className="mt-2">Revue terminée le {formaterDateParis(revue.data.cree_le)}.</p><p className="mt-2 whitespace-pre-wrap">{revue.data.bilan}</p></> : <><p className="mt-2">La revue mensuelle est à faire. Examinez les idées et leurs dates de réexamen, puis consignez le bilan.</p><CloreRevue /></>}
       {!reexamens.error && Number(reexamens.count) > 0 && <p className="mt-3 font-medium">{reexamens.count} idée(s) ont atteint leur date de réexamen.</p>}
       <p className="mt-3 text-xs text-muted-foreground">Classement sur tout l’historique : organisations distinctes, soutiens uniques, puis ancienneté. Regrouper des idées conserve la confidentialité de leurs descriptions.</p>

@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
 import { libelleDocumentLoyer } from "@/lib/documents-loyer";

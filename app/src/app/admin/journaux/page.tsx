@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -67,7 +68,7 @@ function detailsAudit(details: unknown): string | null {
   const d = details as Record<string, unknown>;
   const morceaux: string[] = [];
   if (typeof d.mois === "string" && Number.isFinite(Date.parse(d.mois))) {
-    morceaux.push(`mois de ${new Date(d.mois).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" })}`);
+    morceaux.push(`mois ${deElide(new Date(d.mois).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" }))}`);
   }
   if (typeof d.essai_fin === "string" && Number.isFinite(Date.parse(d.essai_fin))) {
     morceaux.push(`essai jusqu'au ${new Date(d.essai_fin).toLocaleDateString("fr-FR", { timeZone: "UTC" })}`);

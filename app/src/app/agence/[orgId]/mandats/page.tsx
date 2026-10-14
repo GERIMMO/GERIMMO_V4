@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -201,7 +202,7 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
                   </span>
                   <span className="montant block text-xs text-muted-foreground">
                     {r
-                      ? `Rapport de ${moisEnFrancais(r.mois)} — ${
+                      ? `Rapport ${deElide(moisEnFrancais(r.mois))} — ${
                           r.versement_date
                             ? `versé ${r.versement_montant != null ? eur(Number(r.versement_montant)) : ""} le ${formaterDate(r.versement_date)}`
                             : r.envoye_le

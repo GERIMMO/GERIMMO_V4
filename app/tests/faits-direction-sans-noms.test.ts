@@ -24,6 +24,11 @@ const migration = (nom: string) => readFileSync(`supabase/migrations/${nom}`, "u
 const MIGRATION_RETENTION = "20261014231000_retention_registres_execution.sql";
 const MIGRATION_EFFACEMENT = "20261014232000_effacement_instantanes_faits_direction.sql";
 
+// « Aujourd'hui » est le jour de PARIS, comme dans la base (`preparer_faits_direction`) et dans l'écran, jamais `current_date` : la
+// base de test est en UTC, et entre 22 h et 24 h UTC (minuit à 2 h à Paris en été) les deux jours diffèrent. Relevé à la relecture
+// du 14/10 : sans cela, le test échouait chaque soir (et dans tout fuseau de session qui n'est pas celui de Paris).
+const PARIS = "(now() at time zone 'Europe/Paris')::date";
+
 const NOM = "Marie Durand";
 const TITRE_ALERTE = `État des lieux d'entrée — Lot 1 · ${NOM}`;
 
@@ -45,7 +50,7 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
   const compte = async () => (await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current)
     values('00000000-0000-0000-0000-000000000000',gen_random_uuid(),'authenticated','authenticated','test-d13-'||gen_random_uuid()||'@example.invalid','x',now(),'{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','') returning id`)).rows[0].id;
   const preparer = async () => (await db.query("select public.preparer_faits_direction() d")).rows[0].d;
-  const lire = async () => (await db.query("select public.lire_faits_direction(current_date) d")).rows[0].d;
+  const lire = async () => (await db.query(`select public.lire_faits_direction(${PARIS}) d`)).rows[0].d;
   const traces = async (action: string) => (await db.query("select organization_id, details from public.audit_log where account_id=$1 and action=$2 order by created_at", [sa, action])).rows;
   // Panne simulée de la source « échéances » SANS toucher au schéma des tables : pas de verrou exclusif, donc pas d'interblocage avec les autres fichiers de test.
   const casserLaSourceEcheances = () => db.query("create or replace function public.libelle_generique_alerte(p_type text) returns text language plpgsql immutable set search_path = '' as $$ begin raise exception 'panne simulée'; end $$");
@@ -56,7 +61,7 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
     sa = await compte(); autre = await compte();
     org = (await db.query("insert into public.organizations(name,status) values('TEST D13','active') returning id")).rows[0].id;
     await db.query("insert into public.memberships(account_id,organization_id,role) values($1,null,'super_admin'),($2,$3,'proprietaire_direct')", [sa, autre, org]);
-    alerte = (await db.query("insert into public.alerts(organization_id,type,criticite,titre,echeance) values($1,'edl_entree','normale',$2,current_date+2) returning id", [org, TITRE_ALERTE])).rows[0].id;
+    alerte = (await db.query(`insert into public.alerts(organization_id,type,criticite,titre,echeance) values($1,'edl_entree','normale',$2,${PARIS}+2) returning id`, [org, TITRE_ALERTE])).rows[0].id;
   });
   beforeEach(async () => { await admin(); await db.query("savepoint scenario"); });
   afterEach(async () => { await db.query("rollback to savepoint scenario"); });
@@ -69,7 +74,7 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
       expect(fait).toBeTruthy();
       expect(fait.titre).toBe("Alerte · État des lieux d’entrée à faire");
       expect(fait.href).toBe(`/agence/${org}/alertes`);
-      expect(fait.date).toBe((await db.query("select (current_date + 2)::text as d")).rows[0].d);
+      expect(fait.date).toBe((await db.query(`select (${PARIS} + 2)::text as d`)).rows[0].d);
       const brut = JSON.stringify(s);
       expect(brut).not.toContain("Marie");
       expect(brut).not.toContain("Durand");
@@ -79,7 +84,7 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
 
     it("un type d'alerte inconnu, ou libre, ne donne qu'un libellé neutre : la valeur brute n'est jamais recopiée", async () => {
       await admin();
-      await db.query("insert into public.alerts(organization_id,type,criticite,titre,echeance) values($1,'type_libre_Jean_Martin','normale','Titre libre Jean Martin',current_date+1)", [org]);
+      await db.query(`insert into public.alerts(organization_id,type,criticite,titre,echeance) values($1,'type_libre_Jean_Martin','normale','Titre libre Jean Martin',${PARIS}+1)`, [org]);
       await as(sa); const s = await preparer();
       const brut = JSON.stringify(s);
       expect(brut).not.toContain("Jean");
@@ -100,7 +105,7 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
       await admin();
       await db.query("delete from public.brief_direction_snapshots");
       const ancien = { statut: "disponible", observe_le: new Date().toISOString(), donnees: { mesures: { alertes_en_retard: 0, alertes_prochains_7_jours: 1, alertes_critiques: 0 }, faits: [{ titre: TITRE_ALERTE, date: null, href: "/x" }] } };
-      await db.query("insert into public.brief_direction_snapshots(jour,genere_le,auteur_reel,sources,version_regles) values(current_date,now()-interval '1 hour',$1,jsonb_build_object('echeances',$2::jsonb),1)", [sa, JSON.stringify(ancien)]);
+      await db.query(`insert into public.brief_direction_snapshots(jour,genere_le,auteur_reel,sources,version_regles) values(${PARIS},now()-interval '1 hour',$1,jsonb_build_object('echeances',$2::jsonb),1)`, [sa, JSON.stringify(ancien)]);
       await casserLaSourceEcheances();
       await as(sa); const s = await preparer();
       expect(s.indisponibles).toContain("echeances");
@@ -145,15 +150,15 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
 
     it("lire un jour sans instantané ne trace rien et ne renvoie rien", async () => {
       await admin(); await db.query("delete from public.brief_direction_snapshots");
-      await as(sa); expect((await db.query("select public.lire_faits_direction(current_date) d")).rows[0].d).toBeNull(); await admin();
+      await as(sa); expect((await db.query(`select public.lire_faits_direction(${PARIS}) d`)).rows[0].d).toBeNull(); await admin();
       expect(await traces("consultation_faits_direction")).toHaveLength(0);
     });
 
     it("un compte ordinaire ou sans double vérification ne lit ni ne prépare, et ne laisse aucune trace", async () => {
       await as(sa); await preparer(); await admin();
       await db.query("delete from public.audit_log where account_id in ($1,$2)", [sa, autre]);
-      await as(autre); expect(await failed("select public.lire_faits_direction(current_date)")).toMatch(/vérification/);
-      await as(sa, "aal1"); expect(await failed("select public.lire_faits_direction(current_date)")).toMatch(/vérification/);
+      await as(autre); expect(await failed(`select public.lire_faits_direction(${PARIS})`)).toMatch(/vérification/);
+      await as(sa, "aal1"); expect(await failed(`select public.lire_faits_direction(${PARIS})`)).toMatch(/vérification/);
       expect(await failed("select public.preparer_faits_direction()")).toMatch(/vérification/);
       await admin();
       expect(await nombre("select count(*) n from public.audit_log where account_id in ($1,$2) and action like '%faits_direction'", [sa, autre])).toBe(0);
@@ -167,7 +172,7 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
   });
 
   describe("D13 — effacement des instantanés existants (étape séparée, irréversible)", () => {
-    const poserAncien = async () => (await db.query("insert into public.brief_direction_snapshots(jour,genere_le,auteur_reel,sources,version_regles) values(current_date,now()-interval '2 hours',$1,jsonb_build_object('echeances',jsonb_build_object('statut','disponible','donnees',jsonb_build_object('mesures','{}'::jsonb,'faits',jsonb_build_array(jsonb_build_object('titre',$2::text))))),1) returning id", [sa, TITRE_ALERTE])).rows[0].id;
+    const poserAncien = async () => (await db.query(`insert into public.brief_direction_snapshots(jour,genere_le,auteur_reel,sources,version_regles) values(${PARIS},now()-interval '2 hours',$1,jsonb_build_object('echeances',jsonb_build_object('statut','disponible','donnees',jsonb_build_object('mesures','{}'::jsonb,'faits',jsonb_build_array(jsonb_build_object('titre',$2::text))))),1) returning id`, [sa, TITRE_ALERTE])).rows[0].id;
 
     it("refuse d'effacer sans la confirmation d'une sauvegarde, et ne touche à rien", async () => {
       await db.query("delete from public.brief_direction_snapshots");
@@ -212,8 +217,8 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
       for (const [cible, age] of [[ancien, "7 months"], [recent, "5 months"]] as const) {
         cible.agent_passages = (await db.query("insert into public.agent_passages(mission,debut,etat) values($1,now()-$2::interval,'reussi') returning id", [mission, age])).rows[0].id;
         cible.supervision_operations = (await db.query("insert into public.supervision_operations(action,auteur,cree_le) values('consigne_executee',$1,now()-$2::interval) returning id", [sa, age])).rows[0].id;
-        cible.brief_direction_snapshots = (await db.query("insert into public.brief_direction_snapshots(jour,genere_le,auteur_reel,sources,version_regles) values(current_date,now()-$2::interval,$1,'{}',2) returning id", [sa, age])).rows[0].id;
-        const point = (await db.query("insert into public.points_du_matin(jour,equipe,genere_le) values(current_date,'test_d48_'||substr(gen_random_uuid()::text,1,8),now()-$1::interval) returning id", [age])).rows[0].id;
+        cible.brief_direction_snapshots = (await db.query(`insert into public.brief_direction_snapshots(jour,genere_le,auteur_reel,sources,version_regles) values(${PARIS},now()-$2::interval,$1,'{}',2) returning id`, [sa, age])).rows[0].id;
+        const point = (await db.query(`insert into public.points_du_matin(jour,equipe,genere_le) values(${PARIS},'test_d48_'||substr(gen_random_uuid()::text,1,8),now()-$1::interval) returning id`, [age])).rows[0].id;
         cible.points_du_matin = point;
         cible.decisions_du_matin = (await db.query("insert into public.decisions_du_matin(point_id,cle,titre,pourquoi,source,cree_le) values($1,'test-d48','Décision de test','Pour le test','retour',now()-$2::interval) returning id", [point, age])).rows[0].id;
       }

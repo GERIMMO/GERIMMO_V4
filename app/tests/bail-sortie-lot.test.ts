@@ -522,6 +522,169 @@ describe.skipIf(!DB_URL)("Lot bail-sortie — D01, D34, D35 en base", () => {
       expect((await etatDuBail(suivant)).etat).toBe("actif");
     });
 
+    // ----- Accès à terminer_bail (fonction SECURITY DEFINER) -----
+
+    /** Un compte de plus, dans l'organisation donnée, avec le rôle donné. */
+    async function compteDans(organisation: string, role: string): Promise<string> {
+      await db.query("reset role");
+      const {
+        rows: [{ id }],
+      } = await db.query(
+        `insert into auth.users (instance_id, id, aud, role, email, encrypted_password,
+           email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+           confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current)
+         values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(),'authenticated','authenticated',
+           'sortie-'||gen_random_uuid()||'@test.local','x', now(), '{}'::jsonb,'{}'::jsonb, now(), now(),'','','','','')
+         returning id`
+      );
+      await db.query(
+        `insert into public.memberships (account_id, organization_id, role) values ($1,$2,$3::public.membership_role)`,
+        [id, organisation, role]
+      );
+      return id;
+    }
+
+    async function en(compte: string) {
+      await db.query("reset role");
+      await db.query(
+        `select set_config('request.jwt.claims', json_build_object('sub',$1::text,'role','authenticated')::text, true)`,
+        [compte]
+      );
+      await db.query("set local role authenticated");
+    }
+
+    it("terminer_bail : un gérant d'une autre organisation, un locataire ou un visiteur sans compte sont refusés, rien n'est écrit", async () => {
+      const { bail: b } = await bailEnPreavis("(current_date - interval '4 months')::date");
+      const avant = await etatDuBail(b);
+      const etatDuLot = async () => {
+        await db.query("reset role");
+        const { rows } = await db.query(`select etat::text from public.lots where id = (select lot_id from public.baux where id = $1)`, [b]);
+        return rows[0].etat as string;
+      };
+      const lotAvant = await etatDuLot();
+      await db.query("reset role");
+      const {
+        rows: [{ id: autreOrg }],
+      } = await db.query(`insert into public.organizations (name, status) values ('Autre agence','active') returning id`);
+      const etranger = await compteDans(autreOrg, "admin_agence");
+      const locataireDeLOrg = await compteDans(org, "locataire");
+
+      for (const compte of [etranger, locataireDeLOrg]) {
+        await en(compte);
+        const erreur = await erreurDe(`select public.terminer_bail($1, null, true)`, [b]);
+        expect(erreur.message).toMatch(/Accès refusé/);
+      }
+      // Sans compte connecté (aucune identité dans la requête)
+      await db.query("reset role");
+      await db.query(`select set_config('request.jwt.claims', '', true)`);
+      await db.query("set local role authenticated");
+      expect((await erreurDe(`select public.terminer_bail($1, null, true)`, [b])).message).toMatch(/Accès refusé/);
+
+      expect(await etatDuBail(b)).toEqual(avant);
+      expect(await etatDuLot()).toBe(lotAvant);
+      // Le gérant de l'organisation, lui, clôture
+      await enGerant();
+      await db.query(`select public.terminer_bail($1, null, true)`, [b]);
+      expect((await etatDuBail(b)).etat).toBe("termine");
+    });
+
+    it("terminer_bail : un bail inconnu est dit introuvable", async () => {
+      await enGerant();
+      await echec(/Bail introuvable/, `select public.terminer_bail(gen_random_uuid(), null, true)`);
+    });
+
+    // ----- Bail précédent : quel bail terminé fait foi -----
+
+    /** Un bail terminé du lot, avec sa sortie réelle (ou, à défaut, sa date de fin). */
+    async function bailTermine(
+      leLot: string,
+      champs: { debut: string; sortie?: string | null; fin?: string | null; chambre?: string | null }
+    ): Promise<string> {
+      await db.query("reset role");
+      const {
+        rows: [{ id }],
+      } = await db.query(
+        `insert into public.baux (organization_id, lot_id, locataire_principal, etat, type, chambre_id, loyer_hc, charges, jour_echeance,
+                                  date_debut, date_sortie_reelle, date_fin)
+         values ($1,$2,$3,'termine',$4::public.bail_type,$5,450,50,1,$6::date,$7::date,$8::date) returning id`,
+        [org, leLot, locataire, champs.chambre ? "colocation" : "nu", champs.chambre ?? null, champs.debut, champs.sortie ?? null, champs.fin ?? null]
+      );
+      return id;
+    }
+
+    it("bail suivant : avec plusieurs baux terminés, la sortie la plus récente fait foi", async () => {
+      const l = await lotLouable();
+      await bailTermine(l, { debut: await jour("current_date - 700"), sortie: await jour("current_date - 300") });
+      await bailTermine(l, { debut: await jour("current_date - 299"), sortie: await jour("current_date - 2") });
+      const recent = await jour("current_date - 2");
+      // Une entrée après la plus ancienne sortie mais avant la plus récente : refusée
+      const trop_tot = await brouillon(l, await jour("current_date - 100"));
+      await enGerant();
+      const erreur = await erreurDe(`select public.controler_mise_en_location($1)`, [trop_tot]);
+      expect(erreur.message).toMatch(/bail précédent/);
+      expect(erreur.message).toContain(recent.split("-").reverse().join("/"));
+      expect(erreur.message).not.toContain((await jour("current_date - 300")).split("-").reverse().join("/"));
+      // Une entrée le jour de la plus récente sortie : acceptée
+      await db.query("reset role");
+      await db.query(`update public.baux set date_debut = $2::date where id = $1`, [trop_tot, recent]);
+      await enGerant();
+      await db.query(`select public.controler_mise_en_location($1)`, [trop_tot]);
+    });
+
+    it("bail suivant : un brouillon concurrent portant une date de fin ne bloque pas le bail qui s'active", async () => {
+      const l = await lotLouable();
+      await bailTermine(l, { debut: await jour("current_date - 400"), sortie: await jour("current_date - 30") });
+      // Un autre brouillon du même lot, avec une date de fin lointaine : ce n'est pas un bail terminé
+      const concurrent = await brouillon(l, await jour("current_date + 200"));
+      await db.query("reset role");
+      await db.query(`update public.baux set date_fin = current_date + 400 where id = $1`, [concurrent]);
+      const suivant = await brouillon(l, await jour("current_date - 10"));
+      await enGerant();
+      await db.query(`select public.controler_mise_en_location($1)`, [suivant]);
+    });
+
+    // ----- Colocation : bail de lot entier et bail de chambre se croisent -----
+
+    async function lotEnColocation(): Promise<{ lot: string; chambres: string[] }> {
+      const l = await lotLouable();
+      await db.query("reset role");
+      await db.query("update public.lots set colocation_loyer_reference = 1000 where id = $1", [l]);
+      const { rows } = await db.query(
+        `insert into public.lot_chambres (organization_id, lot_id, nom, surface_m2, volume_m3, description, espaces_partages)
+         values ($1,$2,'Jardin',12,30,'Chambre au calme','Cuisine, séjour'),
+                ($1,$2,'Cour',10,25,'Chambre sur cour','Cuisine, séjour') returning id`,
+        [org, l]
+      );
+      return { lot: l, chambres: rows.map((r: { id: string }) => r.id) };
+    }
+
+    it("colocation : un bail du lot entier attend la sortie de toutes les chambres déjà louées", async () => {
+      const { lot: l, chambres } = await lotEnColocation();
+      await bailTermine(l, { debut: await jour("current_date - 400"), sortie: await jour("current_date + 20"), chambre: chambres[0] });
+      const entier = await brouillon(l, await jour("current_date + 5"));
+      await enGerant();
+      const erreur = await erreurDe(`select public.controler_mise_en_location($1)`, [entier]);
+      expect(erreur.message).toMatch(/bail précédent/);
+      // Une fois la sortie passée, le bail du lot entier s'active
+      await db.query("reset role");
+      await db.query(`update public.baux set date_debut = current_date + 20 where id = $1`, [entier]);
+      await enGerant();
+      await db.query(`select public.controler_mise_en_location($1)`, [entier]);
+    });
+
+    it("colocation : un bail de chambre attend la sortie du bail du lot entier qui la couvrait", async () => {
+      const { lot: l, chambres } = await lotEnColocation();
+      await bailTermine(l, { debut: await jour("current_date - 400"), sortie: await jour("current_date + 20") });
+      const chambre = await brouillon(l, await jour("current_date + 5"), chambres[1]);
+      await enGerant();
+      const erreur = await erreurDe(`select public.controler_mise_en_location($1)`, [chambre]);
+      expect(erreur.message).toMatch(/bail précédent/);
+      await db.query("reset role");
+      await db.query(`update public.baux set date_debut = current_date + 20 where id = $1`, [chambre]);
+      await enGerant();
+      await db.query(`select public.controler_mise_en_location($1)`, [chambre]);
+    });
+
     it("colocation : seule la chambre du bail précédent est concernée", async () => {
       const l = await lotLouable();
       await db.query("reset role");

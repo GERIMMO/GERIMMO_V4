@@ -124,7 +124,8 @@ describe("Catalogue — documents issus des dossiers",()=>{
   it("refuse des intérêts d’emprunt illisibles au lieu de les deviner : exposant, espaces, point de milliers, négatif",async()=>{
     for(const saisie of ["1e3","1 234,50","1.234,50","-5","abc","0x10"]){
       const r=await assemblerComplementGestion("recap_fiscal_nu",mockDb().db,"org","lot",{annee:"2026",interets_emprunt:saisie});
-      expect(r,saisie).toEqual({erreur:"Indiquez les intérêts d’emprunt de l’année, ou 0 si le logement n’a aucun emprunt."});
+      // D37 : une saisie illisible est refusée avec la lecture stricte des montants (message du champ) ; une saisie vide reprend le montant du livre.
+      expect(r,saisie).toEqual({erreur:expect.stringMatching(/^Intérêts d’emprunt de l’année : /)});
     }
   });
   it("le récapitulatif fiscal nu reprend les captures et les qualifications au lieu d’imprimer des zéros",async()=>{

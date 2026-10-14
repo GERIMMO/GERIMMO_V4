@@ -112,8 +112,9 @@ describe("catalogue de documents : les montants d'un document sont du texte à c
   });
 
   it("un champ « montant » est rendu en texte à clavier décimal", () => {
-    expect(formulaire).toContain('type={c.type==="montant"?"text":(c.type??"text")}');
-    expect(formulaire).toContain('inputMode={c.type==="montant"?"decimal":undefined}');
+    // D37 : le champ « montant » du catalogue est un champ contrôlé (prérempli avec le montant du livre) ; il reste du texte à clavier décimal.
+    expect(formulaire).toContain('c.type==="montant"?<input name={c.cle} type="text" inputMode="decimal"');
+    expect(formulaire).not.toMatch(/c\.type==="montant"[^\n]{0,80}type="number"/);
   });
 });
 

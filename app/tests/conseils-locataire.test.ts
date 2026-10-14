@@ -5,7 +5,10 @@
  *
  * Quatre blocs :
  *  1. le contenu est celui du fichier de contenu fourni (tests/fixtures/
- *     gli-conseils-contenu.json), sans chiffre ni règle ajoutés ;
+ *     gli-conseils-contenu.json), sans chiffre ni règle ajoutés — et SANS les noms
+ *     d'assureurs ni les seuils d'assureurs, que le wiki interdit d'afficher tant
+ *     qu'ils n'ont pas été relus sur les documents d'origine (voir
+ *     `RETRAITS_SOURCES_NON_RELUES` et le bloc « réserve du wiki ») ;
  *  2. le composant : replié par défaut, tous les conseils, groupés par niveau
  *     de certitude, mention générale, aucun verdict ni score ;
  *  3. l'étape « Personnes » du bail en préparation (là où le locataire est
@@ -102,6 +105,41 @@ const contenu: Contenu = JSON.parse(
 const CORRECTIONS_DE_FRANCAIS: [avant: string, apres: string][] = [
   ["Demande avant la signature.", "La demande se fait avant la signature du bail."],
 ];
+/**
+ * Ce qui est RETIRÉ du fichier de contenu fourni, parce que la page du wiki
+ * « Choisir son locataire… » exige de relire chaque seuil sur le document cité,
+ * dans sa version en vigueur, avant de l'afficher (« Aucune condition générale
+ * n'a été relue », § 8) et que cette relecture n'a pas pu être faite : noms
+ * d'assureurs, durées et taux propres à un contrat. Le sens du conseil reste, et
+ * le renvoi à « votre contrat » aussi. Aucune de ces substitutions n'ajoute un
+ * chiffre : elles en retirent.
+ */
+const RETRAITS_SOURCES_NON_RELUES: [avant: string, apres: string][] = [
+  [
+    "Les contrats fixent souvent un maximum entre 33 et 37 % ; le seuil exact varie : à vérifier dans votre contrat.",
+    "Les contrats fixent souvent un taux d'effort maximal ; le seuil exact varie : à vérifier dans votre contrat.",
+  ],
+  [
+    "Pour un CDD (8 à 12 mois restants), un indépendant (souvent 2 ans d'activité) ou l'intérim : à vérifier dans votre contrat.",
+    "Pour un CDD (durée restante minimale), un indépendant (ancienneté d'activité minimale) ou l'intérim : à vérifier dans votre contrat.",
+  ],
+  [
+    "Plusieurs contrats (MAIF, Matmut, Garantme) exigent une caution",
+    "Plusieurs contrats exigent une caution",
+  ],
+  [
+    "ou exigent une ancienneté sans retard (4 mois chez Crédit Agricole). À vérifier",
+    "ou exigent une ancienneté minimale sans retard de paiement. À vérifier",
+  ],
+  [
+    "Certains excluent les baux de moins de 12 mois. À vérifier",
+    "Certains imposent une durée minimale de bail. À vérifier",
+  ],
+];
+/** La date de l'établissement du contenu, ajoutée à la mention générale. */
+const PHRASE_DATE_CONTENU = "Contenu établi le 14 octobre 2026.";
+const MENTION_ATTENDUE = `${contenu.mention_generale} ${PHRASE_DATE_CONTENU}`;
+
 const NIVEAU_DU_FICHIER: Record<string, NiveauCertitude> = {
   "règle légale": "regle-legale",
   "pratique courante des assureurs": "pratique-courante",
@@ -113,7 +151,8 @@ const normaliser = (s: string) => s.replace(/[  \s]+/g, " ").trim();
 const texteVisible = (html: string) =>
   normaliser(html.replace(/<[^>]+>/g, " ").replace(/&#x27;|&apos;|&quot;|&amp;|&lt;|&gt;|&nbsp;/g, (e) => ENTITES[e]));
 const chiffres = (s: string) => (s.match(/\d+/g) ?? []).sort();
-const corrige = (s: string) => CORRECTIONS_DE_FRANCAIS.reduce((t, [avant, apres]) => t.replace(avant, apres), s);
+const corrige = (s: string) =>
+  [...CORRECTIONS_DE_FRANCAIS, ...RETRAITS_SOURCES_NON_RELUES].reduce((t, [avant, apres]) => t.replace(avant, apres), s);
 
 const rendre = (emplacement: "creation-bail" | "garanties-bail" = "creation-bail") =>
   renderToStaticMarkup(createElement(ConseilsChoixLocataire, { emplacement }));
@@ -131,15 +170,28 @@ describe("contenu des conseils", () => {
     });
   });
 
-  it("la mention générale est celle du fichier de contenu", () => {
-    expect(normaliser(MENTION_GENERALE_CONSEILS)).toBe(normaliser(contenu.mention_generale));
+  it("la mention générale est celle du fichier de contenu, suivie de la date d'établissement du contenu", () => {
+    expect(normaliser(MENTION_GENERALE_CONSEILS)).toBe(normaliser(MENTION_ATTENDUE));
   });
 
-  it("les corrections de français sont les seules différences, et chacune sert", () => {
+  it("les corrections de français sont des différences, et chacune sert sans changer un chiffre", () => {
     for (const [avant, apres] of CORRECTIONS_DE_FRANCAIS) {
       const sources = contenu.conseils.filter((c) => c.conseil.includes(avant));
       expect(sources).toHaveLength(1);
       expect(chiffres(avant)).toEqual(chiffres(apres));
+    }
+  });
+
+  it("les retraits de sources non relues sont les seules autres différences : chacun sert, et n'ajoute aucun chiffre", () => {
+    for (const [avant, apres] of RETRAITS_SOURCES_NON_RELUES) {
+      expect(contenu.conseils.filter((c) => c.conseil.includes(avant))).toHaveLength(1);
+      // Les chiffres restants sont un sous-ensemble de ceux du fichier fourni.
+      const restants = [...chiffres(avant)];
+      for (const n of chiffres(apres)) {
+        const i = restants.indexOf(n);
+        expect(i, `« ${n} » n'existe pas dans « ${avant} »`).toBeGreaterThan(-1);
+        restants.splice(i, 1);
+      }
     }
   });
 
@@ -219,16 +271,50 @@ describe("composant « Conseils pour choisir votre locataire »", () => {
 
   it("termine par la mention générale, après le dernier conseil", () => {
     const apres = html.slice(html.lastIndexOf("</ul>"));
-    expect(texteVisible(apres)).toContain(normaliser(contenu.mention_generale));
+    expect(texteVisible(apres)).toContain(normaliser(MENTION_ATTENDUE));
     expect(apres).toContain('role="note"');
-    expect(texte.indexOf(normaliser(contenu.mention_generale))).toBeGreaterThan(texte.indexOf("Colocation : anticipez"));
+    expect(texte.indexOf(normaliser(MENTION_ATTENDUE))).toBeGreaterThan(texte.indexOf("Colocation : anticipez"));
   });
 
-  it("n'ajoute aucune valeur chiffrée par rapport au fichier de contenu", () => {
-    const attendu = chiffres([contenu.mention_generale, ...contenu.conseils.flatMap((c) => [c.titre, corrige(c.conseil)])].join(" "));
+  it("n'ajoute aucune valeur chiffrée par rapport au fichier de contenu (et à la date du contenu)", () => {
+    const attendu = chiffres([MENTION_ATTENDUE, ...contenu.conseils.flatMap((c) => [c.titre, corrige(c.conseil)])].join(" "));
     expect(chiffres(texte)).toEqual(attendu);
-    // Les mêmes seuils, rien de plus : 33 et 37 %, 3 000 €, 4 mois, 12 mois…
-    expect(attendu.length).toBeGreaterThan(10);
+  });
+
+  // La réserve du wiki (« Relire chaque seuil dans le document cité, dans sa
+  // version en vigueur, avant de l'afficher à un propriétaire ») : cette relecture
+  // n'a pas pu être faite, donc rien de ce qui en dépend n'est affiché.
+  describe("réserve du wiki : rien qui vienne d'un contrat d'assureur non relu", () => {
+    // Du début du premier groupe à la fin de la dernière liste : les conseils, sans la mention.
+    const conseilsSeuls = texteVisible(
+      html.slice(html.lastIndexOf("<div", html.indexOf('role="group"')), html.lastIndexOf("</ul>"))
+    );
+
+    it("n'affiche le nom d'aucun assureur ni courtier", () => {
+      const noms = /\b(MAIF|Matmut|Garantme|Cr[ée]dit Agricole|Pacifica|Macif|Allianz|Galian|Solly Azar|Seyna|Smartloc|Groupama|Cautioneo|AMF Assurances)\b/i;
+      expect(texte).not.toMatch(noms);
+      for (const c of CONSEILS_CHOIX_LOCATAIRE) expect(`${c.titre} ${c.conseil}`).not.toMatch(noms);
+    });
+
+    it("n'affiche aucun taux ni aucune durée propres à un contrat : seuls restent les repères de la loi et des décisions publiques", () => {
+      // Ne restent que : 2D-Doc (2), décret du 5 novembre 2015 (5, 2015), amende de
+      // 3 000 € (3, 000) et décision du Défenseur des droits de 2025.
+      expect(chiffres(conseilsSeuls)).toEqual(["000", "2", "2015", "2025", "3", "5"]);
+      expect(conseilsSeuls).not.toMatch(/\b(33|37|35|25|8|12|6)\s*(%|mois|ans)|\d+\s*(mois|ans)\b|\d\s*à\s*\d+\s*mois/);
+    });
+
+    it("garde le sens des conseils et le renvoi à « votre contrat » là où le seuil a été retiré", () => {
+      for (const id of ["taux-effort", "type-contrat-travail", "etudiant-apprenti-garant", "locataire-deja-en-retard", "logement-et-bail"]) {
+        const c = CONSEILS_CHOIX_LOCATAIRE.find((x) => x.id === id);
+        expect(c, id).toBeDefined();
+        expect(c!.conseil.toLowerCase(), id).toContain("à vérifier dans votre contrat");
+      }
+    });
+
+    it("la mention générale donne la date d'établissement du contenu", () => {
+      expect(MENTION_GENERALE_CONSEILS).toContain(PHRASE_DATE_CONTENU);
+      expect(texte).toContain(PHRASE_DATE_CONTENU);
+    });
   });
 
   it("ne note ni ne juge personne : ni champ, ni bouton, ni zone mise à jour en direct", () => {

@@ -23,11 +23,11 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 |---|---|---|---|---|---|---|---|---|
 | **P0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
 | **P1** | 0 | 1 | 0 | 0 | 0 | 0 | 0 | **1** |
-| **P2** | 20 | 24 | 0 | 11 | 1 | 0 | 0 | **56** |
-| **P3** | 97 | 12 | 0 | 2 | 0 | 0 | 0 | **111** |
-| **Total** | 117 | 37 | 0 | 13 | 1 | 0 | 0 | **168** |
+| **P2** | 16 | 32 | 0 | 13 | 1 | 0 | 0 | **62** |
+| **P3** | 70 | 44 | 0 | 4 | 0 | 0 | 0 | **118** |
+| **Total** | 86 | 77 | 0 | 17 | 1 | 0 | 0 | **181** |
 
-Sources lues : artisan, auditeur/a, auditeur/b, auditeur/c, chaine/1, chaine/1b, chaine/2, coordinateur, designer/a, designer/b, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, superadmin, verification/pr178, verification/securite, verification/sql, verification/ts.
+Sources lues : artisan, auditeur/a, auditeur/b, auditeur/c, chaine/1, chaine/1b, chaine/2, coordinateur, designer/a, designer/b, equipes-ia, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, superadmin, verification/pr178, verification/securite, verification/sql, verification/ts.
 
 > [!warning] Couverture à ne pas surestimer
 > Ce registre ne couvre que ce que les agents ont effectivement exécuté (voir le registre d'exécution à venir).
@@ -58,21 +58,19 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Contrôle en production (lecture seule)** : `-- Lecture seule : documents « récapitulatif nu » produits depuis la mise en ligne (à ouvrir : rubriques à 0,00 € attendues). select d.id, d.organization_id, d.titre, d.created_at from public.documents d where d.titre = 'Récapitulatif annuel · location nue' and d.created_at >= '2026-10-12' order by d.created_at;`
 
-## P2 — dégradation avec contournement (56)
+## P2 — dégradation avec contournement (62)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
-| `ARC-02` | artisan | Chantiers externes : heures de rendez-vous et d historique affichées en UTC (2 h d écart avec l heure de Paris saisie et avec les interventions Gerimmo) | ouverte |
 | `ARC-07` | artisan | Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé | ouverte |
 | `ARC-08` | artisan | Un artisan refusé par la plateforme et sur liste noire globale garde l outil clients externes, devis et factures | ouverte |
 | `AUD-B-04` | auditeur/b | Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce *(hyp.)* | ouverte |
 | `AUD-C-02` | auditeur/c | Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees par Sante | ouverte — complète SUP-01 : même cause, côté sauvegarde et restauration |
-| `DES-A-01` | designer/a | Au clavier, sur mobile (≤640 px), le champ ou le bouton qui reçoit le focus est entièrement masqué par la barre d'onglets fixe du bas | ouverte |
-| `DES-A-09` | designer/a | Menu « Plus » mobile (tiroir modal) : le focus ne passe pas dans le tiroir à l'ouverture et la touche Tab en sort vers la page cachée derrière | ouverte |
-| `DES-A-13` | designer/a | Tablette (≤ 1023 px) : le menu du propriétaire est un rail d'icônes sans libellé, alors que celui du locataire garde les libellés sous les icônes | ouverte |
-| `DES-B-01` | designer/b | Artisan : sur 390 px, Agenda, Demandes de devis et le détail d'une demande débordent horizontalement dès qu'un nom d'organisation est long (recoupe ARC-05, étendu à trois écrans) | ouverte |
-| `DES-B-02` | designer/b | Artisan : le focus clavier passe sous la barre d'onglets fixe du bas (390 et 768 px), même défaut que DES-A-01 côté propriétaire | ouverte |
-| `DES-B-03` | designer/b | Artisan : aucun écran de chargement entre deux pages — sur réseau lent, le clic sur un onglet ne produit rien pendant plusieurs secondes | ouverte |
+| `IA-01` | equipes-ia | Les règles 'Ce qui peut continuer seul' (dont incident urgent et correction à faible risque en 'agir_seul') sont affichées au dirigeant mais aucun code ne les applique | ouverte |
+| `IA-02` | equipes-ia | Mode vacances : l'urgence et l'escalade restent internes à la console, sans alerte vers un responsable absent, et ne s'alimentent ni d'un incident urgent ni d'un impayé | ouverte |
+| `IA-03` | equipes-ia | Aucune alerte active sur l'échec ou l'absence d'une tâche : la santé ne se lit que si le dirigeant ouvre l'écran ; la seule alerte e-mail du produit est le veto marketing | ouverte |
+| `IA-04` | equipes-ia | Hypothèse à vérifier : quittances, avis d'échéance, relances et rappels s'envoient puis se marquent, sans clé d'idempotence côté fournisseur d'e-mail *(hyp.)* | ouverte |
+| `IA-05` | equipes-ia | Hypothèse à vérifier : envoyerEmail n'a aucun délai maximal, un blocage du fournisseur retient toute la passe *(hyp.)* | ouverte |
 | `PROP-03` | proprietaire/s01 | Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause | ouverte |
 | `PROP-14` | proprietaire/s01 | Entrée en cours de mois : le premier terme (prorata) est exigible le 1er du mois, avant l'entrée, et passe tout de suite en « Impayé » | ouverte |
 | `FIN-07` | relecture/finance | Le filtre par mot-clé « fonds travaux / alur » écarte la pièce avant de consulter la qualification justifiée du propriétaire : une dépense qualifiée « déductible 224 » reste exclue des charges et la qualification est enregistrée mais sans effet. | ouverte |
@@ -80,8 +78,7 @@ Aucune anomalie de cette gravité à ce jour.
 | `PR178-A-03` | relecture/pr178/a | Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seule issue : effacer la copie et tout ressaisir | ouverte — 36219ec corrige le cas de la session expirée ; le cas de la réponse perdue demande une décision (reprendre la… |
 | `SUP-01` | relecture/supervision | L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision. | ouverte |
 | `SUP-05` | relecture/supervision | Les « faits de direction » copient, pour toutes les organisations, des données personnelles (titres d'alertes contenant le nom du locataire, ex. « État des lieux d'entrée — Lot 1 · Marie Durand ») dans brief_direction_snapshots, sans aucune trace d'audit par… | ouverte |
-| `VER-PR178-01` | verification/pr178 | Régression : la correction PR178-A-02 désactive la protection « Quitter la page ? » pour une quarantaine de formulaires de saisie (profil, bail, lot, EDL, messages, assistance…) | ouverte |
-| `VER-TS-02` | verification/ts | Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises | ouverte |
+| `ARC-02` | artisan | Chantiers externes : heures de rendez-vous et d historique affichées en UTC (2 h d écart avec l heure de Paris saisie et avec les interventions Gerimmo) | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-affichage.test.ts |
 | `AUD-A-01` | auditeur/a | Un agent restreint modifie les équipements d'un lot hors de son portefeuille (RPC definir_equipements_lot) | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — garde de portefeuille, test rouge puis vert |
 | `AUD-A-02` | auditeur/a | L'annulation d'une écriture comptable (contre_ecriture) n'enregistre pas son auteur | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — ligne d'audit avec auteur |
 | `AUD-A-03` | auditeur/a | L'annulation d'une mission artisan (annuler_mission) ne garde ni auteur ni événement | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — événement « mission annulée » au fil de l'inci… |
@@ -92,6 +89,12 @@ Aucune anomalie de cette gravité à ce jour.
 | `PRO2-14` | chaine/1b | La justification de la qualification, rédigée comme note de décision, est affichée mot pour mot au locataire sans que le formulaire le dise | corrigée en branche — 611dce2 — le formulaire dit que la justification est montrée au locataire |
 | `MKT-01` | coordinateur | La préparation du soir du marketing n'a jamais été déclenchée par pg_cron : pas de fenêtre de veto la veille, seul le rattrapage de la matinée préparait les posts | corrigée en branche — commit 9d5ed9d ; migration 20261013110000 à appliquer en production |
 | `PUB-01` | coordinateur | Le formulaire « Agences » de l'accueil était le seul canal de contact des pages légales (exercice des droits sur les données) tant que l'adresse de l'éditeur manque ; il restait une demande de devis commerciale | corrigée en branche — commit e7982a7 |
+| `DES-A-01` | designer/a | Au clavier, sur mobile (≤640 px), le champ ou le bouton qui reçoit le focus est entièrement masqué par la barre d'onglets fixe du bas | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-A-09` | designer/a | Menu « Plus » mobile (tiroir modal) : le focus ne passe pas dans le tiroir à l'ouverture et la touche Tab en sort vers la page cachée derrière | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-A-13` | designer/a | Tablette (≤ 1023 px) : le menu du propriétaire est un rail d'icônes sans libellé, alors que celui du locataire garde les libellés sous les icônes | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-B-01` | designer/b | Artisan : sur 390 px, Agenda, Demandes de devis et le détail d'une demande débordent horizontalement dès qu'un nom d'organisation est long (recoupe ARC-05, étendu à trois écrans) | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-B-02` | designer/b | Artisan : le focus clavier passe sous la barre d'onglets fixe du bas (390 et 768 px), même défaut que DES-A-01 côté propriétaire | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-B-03` | designer/b | Artisan : aucun écran de chargement entre deux pages — sur réseau lent, le clic sur un onglet ne produit rien pendant plusieurs secondes | corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-03 |
 | `PROP-02` | proprietaire/s01 | Code postal à 4 chiffres et année 1500 acceptés et enregistrés à la création du bien | corrigée en branche — d6ef891 — code postal du bien sur cinq chiffres, année de construction de 1600 à année+5 |
 | `PROP-07` | proprietaire/s01 | Fiche personne : date de naissance future, téléphone « abc » et code postal « 75 » acceptés | corrigée en branche — d6ef891 — date de naissance, téléphone et code postal contrôlés côté serveur |
 | `PROP-12` | proprietaire/s01 | Encaissement à 3 décimales accepté et stocké tel quel : totaux affichés incohérents au centime | corrigée en branche — 0555f43 — montant au centime près refusé côté serveur (la colonne numeric(12,2) n'est pas modifié… |
@@ -106,6 +109,7 @@ Aucune anomalie de cette gravité à ce jour.
 | `SUP-02` | relecture/supervision | Pendant une session de diagnostic artisan ouverte (30 min), le trigger de lecture seule est pose sur TOUTES les tables de public, y compris supervision_arrets / supervision_operations : l'arret d'urgence est refuse. | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — l'arrêt d'urgence ne dépend plus d'un diagnost… |
 | `SA-04` | superadmin | Mode relais actif et arrêt d'urgence invisibles hors de /admin/relais : aucun bandeau dans la console, les pages Équipes et Brief ne signalent pas l'arrêt | corrigée en branche — 9978efa — bandeau d'arrêt d'urgence et de relais sur toute la console |
 | `SA-08` | superadmin | Journal d'audit : 9 types d'actions sans libellé (« Action enregistrée (libellé manquant) »), dont l'octroi du rôle de super-administrateur et les décisions de support, et la suppression d'un encaissement présentée comme « Nettoyage de données arrivé à échéan… | corrigée en branche — 9978efa — neuf codes nommés, plus de repli « suppression = nettoyage » |
+| `VER-PR178-01` | verification/pr178 | Régression : la correction PR178-A-02 désactive la protection « Quitter la page ? » pour une quarantaine de formulaires de saisie (profil, bail, lot, EDL, messages, assistance…) | corrigée en branche — vague 5 ; tests : tests/protection-saisie-formulaires.test.ts |
 | `PRO2-01` | chaine/1 | Un propriétaire dont la commune n'est pas ouverte au réseau ne peut solliciter aucun artisan, même un artisan connu : le carnet ne se remplit que par une intervention déjà confiée | à trancher — choix produit : réseau fermé pour la commune du propriétaire, carnet sans formulaire d'ajout |
 | `ART-13` | chaine/1b | L'artisan ne peut pas déposer une version 2 de son devis : la demande close devient lecture seule, sans « réviser mon devis » | à trancher — fonction manquante : l'artisan ne peut pas déposer une version 2 de son devis |
 | `PRO2-12` | chaine/1b | Un devis reçu ne peut être que retenu : ni refus motivé, ni demande de révision (écart avec le référentiel : déposé, validé, refusé ou expiré) | à trancher — fonction manquante : un devis reçu ne peut pas être refusé ni renvoyé en révision |
@@ -114,26 +118,14 @@ Aucune anomalie de cette gravité à ce jour.
 | `CHN-01` | chaine/2 | Les créneaux non retenus sont enregistrés « refusés » : après trois reports, l'artisan est bloqué et l'écran impute au locataire des refus qu'il n'a jamais faits | à trancher — règle métier : les créneaux non retenus comptent aujourd'hui comme refusés (six refus = arbitrage) ; une c… |
 | `LOC-21` | chaine/2 | Le locataire ne peut ni reporter ni annuler un rendez-vous confirmé : aucun geste après la confirmation | à trancher — fonction manquante : le locataire ne peut ni reporter ni annuler un rendez-vous confirmé |
 | `PRO2-21` | chaine/2 | Le règlement de la facture de l'artisan n'est pas un geste de l'application : l'écriture du journal n'est liée à rien et la facture ne passe jamais à « réglée » | à trancher — fonction manquante : le règlement d'une facture d'artisan n'est lié ni à la facture ni à l'incident |
+| `AUT-01` | coordinateur | maintenance_artisans() n'est appelée par aucune tâche : les devis déposés ne deviennent jamais « expirés » et les motifs de liste noire ne sont jamais purgés | à trancher — correction préparable (tâche pg_cron + version interne), aval requis : active un automatisme en production |
 | `PR178-B-04` | relecture/pr178/b | Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires | à trancher — clic avant hydratation sans effet visible : désactiver le bouton jusqu'à l'hydratation, formulaire par for… |
 | `PR178-B-06` | relecture/pr178/b | Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté) | à trancher — rejeu possible d'un encaissement après réponse perdue : demande une clé d'idempotence et une contrainte en… |
 | `SA-01` | superadmin | Traversée de la supervision dans un espace client : écriture financière possible sans motif ni durée, et la ligne d'audit 'traversee_action' ne dit ni quelle action, ni sur quel objet, ni avec quel résultat | à trancher — limite déjà actée au wiki (audit du 25/09) : entrée dans un espace client sans motif ni durée ; l'écriture… |
+| `VER-TS-02` | verification/ts | Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises | à trancher — partiellement corrigée en branche ; reste à trancher : montant très supérieur au dû — Décision métier non… |
 | `PROP-BANC-01` | proprietaire/s01 | Banc : serveur :3100 démarré sans SUPABASE_SERVICE_ROLE_KEY (inscription et liens bloqués) | acceptée — défaut du banc d'essai, pas du produit ; banc-up.sh vérifie la clé de service |
 
 ### Fiches P2
-
-#### `ARC-02` — Chantiers externes : heures de rendez-vous et d historique affichées en UTC (2 h d écart avec l heure de Paris saisie et avec les interventions Gerimmo)
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Artisan avec un chantier externe planifié
-- **Étapes** : 1. Planifier un chantier externe le 22/10/2026 de 09:00 à 11:00 (heure de Paris) 2. Ouvrir la fiche du chantier puis /artisan/agenda
-- **Attendu** : « 22/10/2026 09:00 — 11:00 » (fuseau Europe/Paris), comme les interventions Gerimmo de la même page (« lun. 19 oct. · 09:00 – 11:00 »)
-- **Observé** : « 22/10/2026 07:00:00 — 09:00:00 » sur la fiche et sur l agenda ; l historique « 13/10/2026 23:14:14 · Chantier créé » est lui aussi en UTC (le créé a eu lieu le 14/10 à 01:14 à Paris). En base le créneau est correct (07:00Z-09:00Z) ; même décalage sur la fiche facture (« Enregistré le 13/10/2026 23:33:15 » pour 01:33 le 14/10 à Paris)
-- **Preuve expurgée (banc)** : captures/c07-planifie.png ; captures/c08-agenda.png ; captures/c12-reglement-solde.png
-- **Cause probable** : app/src/app/artisan/chantiers/[chantierId]/page.tsx (5 appels toLocaleString("fr-FR") sans timeZone dans un composant serveur, donc fuseau du serveur = UTC) et la section « Mes chantiers externes » de l agenda ; même famille que SA-05 corrigé ailleurs en 9978efa
-- **Correction proposée** : Formater avec timeZone: "Europe/Paris" (helper commun de lib/libelles) et sans les secondes
-- **Correction sans aval** : oui
 
 #### `ARC-07` — Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé
 
@@ -192,89 +184,77 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Ajouter a la procedure l'etape 'rejouer les cron.schedule des migrations et activer pg_cron/pg_net' ; exporter select jobname, schedule, command from cron.job dans la sauvegarde ; faire consigner cycle_mensuel sous tache_cycle_mensuel (ou lire cycle_mensuel dans Sante, retard > 32 jours).
 - **Correction sans aval** : non (aval du dirigeant requis)
 
-#### `DES-A-01` — Au clavier, sur mobile (≤640 px), le champ ou le bouton qui reçoit le focus est entièrement masqué par la barre d'onglets fixe du bas
+#### `IA-01` — Les règles 'Ce qui peut continuer seul' (dont incident urgent et correction à faible risque en 'agir_seul') sont affichées au dirigeant mais aucun code ne les applique
 
 - **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte propriétaire direct (proprietaire@gerimmo-demo.fr), viewport 390×844, clavier physique ou lecteur d'écran (Tab)
-- **Étapes** : 1. Ouvrir /agence/<id>/profil à 390 px. 2. Fermer la synthèse des alertes. 3. Appuyer sur Tab jusqu'au champ « Adresse » puis jusqu'au bouton « Suivant → ».
-- **Attendu** : L'élément focalisé reste visible : la page défile pour le placer au-dessus de la barre fixe (WCAG 2.2, critère 2.4.11 Focus non masqué).
-- **Observé** : Le champ #pr-adresse (top 792, bottom 836) et le bouton « Suivant → » (800–844) sont masqués à 100 % par la barre du bas (top 787) ; mesure sur 45 arrêts Tab. Même défaut relevé par la passe automatique sur 8 autres écrans propriétaire à 390 px (tableau de bord, fiscal, incident/nouveau, fiche bien, fiche lot, fiche personne, import, /espaces).
-- **Preuve expurgée (banc)** : etats/focus-masque-profil-390.png ; etats/focus-masque-profil-journal.json ; journaux/auto-proprietaire-390.json (champ clavier.masques)
-- **Cause probable** : app/src/app/globals.css:2168 (.coquille-basse fixe, 56 px + safe-area) sans scroll-padding-bottom sur la racine : le navigateur aligne l'élément focalisé sur le bord bas du viewport, sous la barre. Le padding-bottom de .coquille-corps (l.2166) ne sert pas au défilement automatique du focus.
-- **Correction proposée** : Dans le bloc @media (max-width: 640px) de globals.css (l.2159), ajouter : html { scroll-padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); } (même correctif pour la barre basse artisan, nav-artisan.tsx:134, hors périmètre ici).
-- **Correction sans aval** : oui
+- **Préconditions** : Code au commit 83ba492
+- **Étapes** : 1. Lire app/src/app/admin/relais/page.tsx:20 et :31 ; 2. Rechercher continuity_rules / agir_seul / delegue_requis dans app/src et app/supabase/migrations
+- **Attendu** : Une règle affichée comme 'agir seul' doit avoir un exécutant, ou l'écran doit dire qu'elle n'est pas appliquée
+- **Observé** : Constat statique : la table est lue pour l'affichage seulement ; aucun code ne lit decision, delai_heures ou active. Pour l'incident urgent, seul un e-mail à l'agent part (notifications.ts:930-963). Aucune publication de correction n'existe (l'atelier ne fait qu'une PR en brouillon). Le dirigeant peut croire qu'un incident urgent est 'sécurisé' seul pendant son absence.
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-01) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/propositions.md § 3.7
+- **Cause probable** : app/supabase/migrations/20260922120000_autonomie_v3.sql:481-500 (données sans consommateur) ; app/src/app/admin/relais/page.tsx:20,31 (affichage)
+- **Correction proposée** : Soit brancher chaque règle avec un périmètre précis et un test, soit retirer ou reformuler l'écran ('décision enregistrée, non appliquée automatiquement'). Décision D7.
+- **Correction sans aval** : non (aval du dirigeant requis)
 
-#### `DES-A-09` — Menu « Plus » mobile (tiroir modal) : le focus ne passe pas dans le tiroir à l'ouverture et la touche Tab en sort vers la page cachée derrière
+#### `IA-02` — Mode vacances : l'urgence et l'escalade restent internes à la console, sans alerte vers un responsable absent, et ne s'alimentent ni d'un incident urgent ni d'un impayé
 
 - **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte propriétaire (barre basse) ou locataire, 390×844, navigation clavier ou lecteur d'écran
-- **Étapes** : 1. Ouvrir le tableau de bord. 2. Activer le bouton « Menu » de la barre basse. 3. Lire le focus. 4. Appuyer 25 fois sur Tab.
-- **Attendu** : Un dialogue aria-modal prend le focus à l'ouverture (premier contrôle ou titre), le garde (Tab/Maj+Tab bouclent) et le rend au bouton à la fermeture
-- **Observé** : Le tiroir s'ouvre (role=dialog, aria-modal=true) mais document.activeElement reste le bouton « Menu » derrière le voile ; 12 des 25 arrêts Tab (propriétaire) et 15 sur 25 (locataire) sont hors du dialogue. Échap ferme bien le tiroir. À l'inverse, la recherche globale (« Retrouvez le bon dossier ») et la confirmation « Retirer ce bien » se comportent correctement (focus dans le dialogue, Échap ferme).
-- **Preuve expurgée (banc)** : etats/menu-focus-journal.json ; etats/menu-plus-390.png
-- **Cause probable** : app/src/components/ui/tiroir.tsx:31-41 : le useEffect n'installe que la fermeture par Échap et le blocage du défilement ; aucun déplacement de focus ni piège à focus
-- **Correction proposée** : Dans tiroir.tsx : mémoriser document.activeElement à l'ouverture, donner le focus au bouton « Fermer » (ou au dialogue avec tabIndex={-1}), boucler Tab/Maj+Tab dans le dialogue (ou poser `inert` sur les frères du portail) et rendre le focus au bouton « Menu » au démontage.
-- **Correction sans aval** : oui
+- **Préconditions** : Plan de vacances actif avec un responsable désigné
+- **Étapes** : 1. Lire 20261012221100_vacances_arret.sql:62-74, 100-107, 115 ; 2. Rechercher les appelants de signaler_urgence_vacances et de supervision_alertes_internes dans app/src ; 3. Lire notifications.ts:930-963
+- **Attendu** : L'ordre de mission (section 13) demande un canal d'alerte défini et une escalade validée ; un responsable absent doit être joint
+- **Observé** : Constat statique : la seule alimentation automatique est un passage 'à reprendre'/'interrompu' ou une lecture de consigne bloquée ; le journal écrit canal 'interne' ; l'alerte ne se lit que dans /admin/relais et /admin/brief. Un incident urgent envoie un e-mail à l'agent de l'organisation, pas au responsable du relais. Confirmé sur le banc par un autre rôle (D-URGENCE-ESCALADE : aucun envoi externe, aucune nouvelle tâche).
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-02) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/propositions.md § 3.6 ; registre d'exécution scénarios D-URGENCE-ESCALADE
+- **Cause probable** : app/supabase/migrations/20261012221100_vacances_arret.sql:100-107,115 ; choix explicite 'Aucun fournisseur' en ligne 1 du fichier
+- **Correction proposée** : Choisir canal, horaire et fuseau avec le dirigeant (D3) ; alimenter l'alerte par les événements urgents (incident urgent, passage critique) ; notifier le responsable par e-mail via le service existant ; tester T7 (responsable non habilité)
+- **Correction sans aval** : non (aval du dirigeant requis)
 
-#### `DES-A-13` — Tablette (≤ 1023 px) : le menu du propriétaire est un rail d'icônes sans libellé, alors que celui du locataire garde les libellés sous les icônes
+#### `IA-03` — Aucune alerte active sur l'échec ou l'absence d'une tâche : la santé ne se lit que si le dirigeant ouvre l'écran ; la seule alerte e-mail du produit est le veto marketing
 
 - **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte propriétaire direct, viewport 768×1024 tactile (sans survol)
-- **Étapes** : Ouvrir /agence/<id> à 768 px et lire la colonne de gauche
-- **Attendu** : Onze entrées de navigation lisibles sans survol (libellés sous les icônes, comme le rail locataire de 641 à 860 px), car une tablette tactile n'a pas d'infobulle
-- **Observé** : Rail de 60 px : 11 icônes (maison, clé, personnes, €, outil, cloche, calendrier, bulle, document, carte, ?) sans aucun texte ; seul l'attribut title (survol) donne le mot, inexistant au toucher. Les noms accessibles existent (aucune commande sans nom relevée par la passe automatique). Le rail locataire a, lui, été corrigé pour garder ses libellés (commentaire globals.css:1445).
-- **Preuve expurgée (banc)** : avant/proprietaire/accueil-768.png ; avant/proprietaire/fiche-lot-768.png ; planches/p768-a.png
-- **Cause probable** : app/src/app/globals.css:2140-2155 (@media max-width 1023px : .coquille-late .coquille-menu .lib { display: none }, --largeur-late: 60px) ; barre-laterale.tsx:51 (title seul)
-- **Correction proposée** : Reprendre la règle du rail locataire pour .coquille-late entre 641 et 1023 px : largeur 78 px, flex-direction: column, .lib affiché à 10,5 px centré (globals.css:1445-1455 en modèle) ; au-dessus de 1024 px rien ne change.
-- **Correction sans aval** : oui
+- **Préconditions** : Une tâche planifiée échoue ou ne passe pas
+- **Étapes** : 1. Rechercher les appelants de email_superviseur_permanent ; 2. Lire sante-service.ts:411-447 et /api/sante ; 3. Vérifier qu'aucun moniteur externe n'est configuré dans le dépôt
+- **Attendu** : Mission section 12 : surveillance et erreur remontée au responsable ; une tâche qui ne consigne pas à l'heure est le signal attendu (tache.ts:5-9)
+- **Observé** : Constat statique : email_superviseur_permanent n'a qu'un appelant (alerte-veto-marketing.ts:55). L'écran Santé et /api/sante donnent l'état à qui les ouvre ; absence de passage > 26 h = 'retard' affiché, jamais envoyé. Moniteur externe : aucun dans le dépôt (hypothèse : peut exister hors dépôt).
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-03) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/propositions.md § 4.1
+- **Cause probable** : Conception : sante-service.ts calcule l'état à la lecture ; aucune tâche sentinelle
+- **Correction proposée** : Tâche sentinelle (pg_cron ou Vercel) qui lit les battements tache_* et cycle_mensuel et envoie un e-mail au superviseur sur retard ou échec, avec limitation de fréquence (phase 0 du socle, D1/D3)
+- **Correction sans aval** : non (aval du dirigeant requis)
 
-#### `DES-B-01` — Artisan : sur 390 px, Agenda, Demandes de devis et le détail d'une demande débordent horizontalement dès qu'un nom d'organisation est long (recoupe ARC-05, étendu à trois écrans)
+#### `IA-04` — Hypothèse à vérifier : quittances, avis d'échéance, relances et rappels s'envoient puis se marquent, sans clé d'idempotence côté fournisseur d'e-mail
 
 - **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte artisan.alpha@gerimmo-demo.fr, organisation « Parc de Éloïse [TEST-proprietaire] Durand-Lévêque » (49 caractères), viewport 390x844
-- **Étapes** : 1. Ouvrir /artisan/agenda, /artisan/devis puis /artisan/devis/017f6829-…. 2. Observer la largeur de la page.
-- **Attendu** : Aucun défilement horizontal : le nom est tronqué (la classe truncate est déjà posée sur le span)
-- **Observé** : scrollWidth 448 px (agenda), 448 px (liste des devis), 472 px (détail) pour un viewport de 390 px : la carte de la demande fait 432 px, l'en-tête du détail 456 px, le badge « Devis retenu » sort à droite de l'écran. La page entière se déplace latéralement avec le doigt. La passe automatique ne le voit pas en émulation mobile (le viewport s'élargit) : détecté sur la largeur des captures (448, 448, 473 px). Recoupe ARC-05 (agenda seul, P3) : le défaut touche aussi /artisan/devis et /artisan/devis/<id>, et sa cause racine est une règle CSS commune (grille sans minmax).
-- **Preuve expurgée (banc)** : etats/debordement-journal.json ; etats/debordement-artisan-agenda-390.png ; auto/artisan/artisan-agenda-390.png (448 px de large) ; auto/artisan/artisan-devis-390.png ; auto/artisan/artisan-devis-017f6829-ac6b-4467-9901-04048bd1e5bd-390.png (473 px)
-- **Cause probable** : app/src/app/artisan/portail-artisan.module.css:14 (.artisan-liste { display: grid } sans grid-template-columns : la piste automatique prend la largeur min-content du texte nowrap) ; app/src/app/artisan/devis/[sollicitationId]/devis.module.css:1 (.page { display: grid } idem)
-- **Correction proposée** : portail-artisan.module.css:14 → `.content :global(.artisan-liste) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }` ; devis.module.css:1 → `.page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; min-width: 0; }`
-- **Correction sans aval** : oui
+- **Préconditions** : Le marquage échoue après l'envoi, ou le passage est interrompu entre l'envoi et le marquage
+- **Étapes** : 1. Lire appels/route.ts:135-167, quittances/route.ts:142-171, relances/route.ts:134-198, rappels/route.ts:128-156 ; 2. Comparer avec avis-abonnement.ts:166,185,231, rapports-mensuels.ts:104, notifications.ts:988 et alerte-veto-marketing.ts:65, qui passent une clé
+- **Attendu** : Mission section 12 : tâches idempotentes ; un même événement ne doit pas produire deux envois
+- **Observé** : Constat statique : les quatre routes n'appellent pas envoyerEmail avec cleIdempotence. L'effet (double e-mail au prochain passage) n'a pas été rejoué ; les commentaires des routes reconnaissent ce compromis ('le pire cas est un double envoi'). Relation avec AUD-C-07 (hypothèse).
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-04) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/propositions.md § 4.1
+- **Cause probable** : app/src/app/api/cron/{appels,quittances,relances,rappels}/route.ts (envoi avant marquage, sans clé)
+- **Correction proposée** : Passer une clé stable par objet (par exemple quittance/<id>) comme le font déjà les avis d'abonnement ; ajouter un test de rejeu avec marquage en échec
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
 
-#### `DES-B-02` — Artisan : le focus clavier passe sous la barre d'onglets fixe du bas (390 et 768 px), même défaut que DES-A-01 côté propriétaire
+#### `IA-05` — Hypothèse à vérifier : envoyerEmail n'a aucun délai maximal, un blocage du fournisseur retient toute la passe
 
 - **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte artisan, viewport 390x844 ou 768x1024, clavier ou lecteur d'écran
-- **Étapes** : 1. Ouvrir /artisan/attestations à 390 px et appuyer 6 fois sur Tab. 2. Ouvrir /artisan/entreprise à 768 px et appuyer 9 fois sur Tab.
-- **Attendu** : L'élément focalisé reste visible (WCAG 2.2, 2.4.11)
-- **Observé** : « Déposer : Responsabilité civile professionnelle » est à 796-844 alors que la barre commence à 779 ; « Contactez Gerimmo » est à 1010-1024 alors que la barre commence à 959 (à 768 px la barre basse existe encore). La passe automatique relève aussi /artisan/facturation (390) et /artisan/note (768).
-- **Preuve expurgée (banc)** : etats/focus-masque-artisan-journal.json ; etats/focus-masque-artisan-attestations-390.png ; etats/focus-masque-artisan-entreprise-768.png
-- **Cause probable** : app/src/components/nav-artisan.tsx:134 (nav fixed bottom-0, 64 px + safe-area) sans scroll-padding-bottom sur la racine ; voir DES-A-01
-- **Correction proposée** : Dans portail-artisan.module.css (règle .mobileNav / contenu) ou globals.css : `html:has(.artisan-navigation) { scroll-padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }` — même correctif que DES-A-01
+- **Préconditions** : Le service d'e-mail ne répond pas
+- **Étapes** : 1. Lire app/src/lib/email.ts:46-61 ; 2. Comparer avec les autres appels sortants (OpenAI, Facebook, devis assisté) qui ont un AbortSignal ; 3. Lire execution-mission.ts:13-19
+- **Attendu** : Tout appel sortant d'une tâche a un délai et une reprise bornés (mission section 12)
+- **Observé** : Constat statique : fetch vers Resend sans signal. La passe est limitée seulement par maxDuration (180 s) ; l'échec devient 'interrompu' avec effets partiels (execution-mission.ts:18), puis l'envoi-puis-marquage de IA-04 peut produire des doublons. Non rejoué.
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-05)
+- **Cause probable** : app/src/lib/email.ts:46-61 (absence d'AbortSignal)
+- **Correction proposée** : Ajouter AbortSignal.timeout (par exemple 15 s) et classer l'échec comme erreur ordinaire du fournisseur
 - **Correction sans aval** : oui
-
-#### `DES-B-03` — Artisan : aucun écran de chargement entre deux pages — sur réseau lent, le clic sur un onglet ne produit rien pendant plusieurs secondes
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte artisan, 390x844, réseau dégradé (latence 1,8 s, 60 ko/s) — le cas du chantier en zone mal couverte
-- **Étapes** : 1. Ouvrir /artisan. 2. Activer l'onglet « Agenda » de la barre basse. 3. Observer l'écran 700 ms puis 6 s après le clic.
-- **Attendu** : Comme dans les espaces propriétaire, locataire et super-admin : un squelette (ou au moins l'onglet visé allumé) dès le clic
-- **Observé** : À 700 ms, la page « Aujourd'hui » est inchangée, l'onglet « Agenda » n'est pas allumé, aucun squelette ni indicateur (aucun élément aria-busy) ; la page « Mon agenda » n'arrive qu'à 6 s. L'artisan peut croire que le clic n'a pas été pris en compte et recliquer. Le super-admin et le propriétaire affichent un squelette dans la même condition.
-- **Preuve expurgée (banc)** : etats/art-chargement-lent-390.png ; etats/etats-journal-art.json ; comparaison : etats/etats-journal-sa.json (busy=true)
-- **Cause probable** : Aucun app/artisan/loading.tsx : seuls app/loading.tsx, app/admin/loading.tsx, app/agence/[orgId]/loading.tsx et app/locataire/[orgId]/loading.tsx existent ; la limite racine ne s'affiche pas quand seul l'enfant du gabarit artisan change
-- **Correction proposée** : Créer app/artisan/loading.tsx sur le modèle de app/locataire/[orgId]/loading.tsx (11 lignes) : <div className="space-y-4" role="status" aria-busy="true" aria-label="Chargement de la page"> avec un bloc .squelette h-24 (héros) et deux .squelette h-[132px] !rounded-[14px] (cartes)
-- **Correction sans aval** : oui
+- **Reproduction** : hypothèse à vérifier, non reproduite
 
 #### `PROP-03` — Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause
 
@@ -366,33 +346,19 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Contrôle en production (lecture seule)** : `select count(*) nb, min(jour), max(jour), pg_size_pretty(pg_total_relation_size('public.brief_direction_snapshots')) taille from public.brief_direction_snapshots; -- puis, pour voir si des noms y figurent : select jour, jsonb_path_query_array(sources,'$.echeances.donnees.faits[*].titre') from public.brief_direction_snapshots order by genere_le desc limit 3;`
 
-#### `VER-PR178-01` — Régression : la correction PR178-A-02 désactive la protection « Quitter la page ? » pour une quarantaine de formulaires de saisie (profil, bail, lot, EDL, messages, assistance…)
+#### `ARC-02` — Chantiers externes : heures de rendez-vous et d historique affichées en UTC (2 h d écart avec l heure de Paris saisie et avec les interventions Gerimmo)
 
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-affichage.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Build candidat servi sur 3100 ; compte propriétaire ; aucun envoi n'est nécessaire
-- **Étapes** : 1. Ouvrir /agence/<org>/profil (ou /assistance) ; 2. Saisir un caractère dans « Ville » (ou un texte dans « Description ») ; 3. Cliquer un lien de la barre latérale
-- **Attendu** : Boîte « Des modifications ne sont pas encore enregistrées. Quitter cette page… ? », comme en main-178 (formulaires suivis dès la première frappe) et comme pour un formulaire portant l'attribut (témoin EX-01)
-- **Observé** : Navigation immédiate, aucun confirm() ni beforeunload ; la saisie est perdue sans avertissement (EX-02 profil, EX-03 /assistance). protection-saisie.ts:eligible() exige désormais hasAttribute('data-saisie-confirmee') ; sur 256 balises <form> du code, 61 ne l'ont pas : environ 35 vrais formulaires de saisie branchés sur useActionFormulaire/onSubmit ou useActionStateProtegee (profil, bail : parcours/édition/annexe/personnes, lot, diagnostic, DPE, chambres, EDL annexes, messages propriétaire, catalogue de documents, clients artisan, retours /assistance, décisions admin) ; le reste = connexion, mots de passe, déconnexion, filtres GET. Les tests ne le voient pas : e2e/protection-saisie.spec.ts:48 sert une page synthétique qui porte déjà l'attribut. Non reproduit mais probable : confirmerSoumission renvoie vrai sans suivi, donc les formulaires à réinitialisation après succès dont les champs r…
-- **Preuve expurgée (banc)** : preuves/verification/pr178/sortie-candidate.txt ; preuves/verification/pr178/forms-sans-attribut.txt (liste des 61 formulaires) ; témoin avec attribut : même fichier, premier bloc
-- **Cause probable** : app/src/lib/protection-saisie.ts:47-52 (eligible) : l'attribut a été érigé en liste blanche, alors que preparerSoumission/confirmerSoumission (use-action-formulaire.ts, use-action-state-protegee.ts) savaient déjà confirmer ces formulaires. Seuls les filtres GET sans method posaient problème (PR178-A-02).
-- **Correction proposée** : Soit ajouter data-saisie-confirmee aux formulaires qui utilisent useActionFormulaire/useActionStateProtegee (et un test qui échoue si un <form> branché sur ces hooks n'a pas l'attribut), soit inverser la règle : suivre par défaut et exclure explicitement les filtres (method=get, role=search, ou attribut data-saisie-ignoree). Ne change aucune règle métier.
+- **Préconditions** : Artisan avec un chantier externe planifié
+- **Étapes** : 1. Planifier un chantier externe le 22/10/2026 de 09:00 à 11:00 (heure de Paris) 2. Ouvrir la fiche du chantier puis /artisan/agenda
+- **Attendu** : « 22/10/2026 09:00 — 11:00 » (fuseau Europe/Paris), comme les interventions Gerimmo de la même page (« lun. 19 oct. · 09:00 – 11:00 »)
+- **Observé** : « 22/10/2026 07:00:00 — 09:00:00 » sur la fiche et sur l agenda ; l historique « 13/10/2026 23:14:14 · Chantier créé » est lui aussi en UTC (le créé a eu lieu le 14/10 à 01:14 à Paris). En base le créneau est correct (07:00Z-09:00Z) ; même décalage sur la fiche facture (« Enregistré le 13/10/2026 23:33:15 » pour 01:33 le 14/10 à Paris)
+- **Preuve expurgée (banc)** : captures/c07-planifie.png ; captures/c08-agenda.png ; captures/c12-reglement-solde.png
+- **Cause probable** : app/src/app/artisan/chantiers/[chantierId]/page.tsx (5 appels toLocaleString("fr-FR") sans timeZone dans un composant serveur, donc fuseau du serveur = UTC) et la section « Mes chantiers externes » de l agenda ; même famille que SA-05 corrigé ailleurs en 9978efa
+- **Correction proposée** : Formater avec timeZone: "Europe/Paris" (helper commun de lib/libelles) et sans les secondes
 - **Correction sans aval** : oui
-
-#### `VER-TS-02` — Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Navigateur dont la langue d'interface n'est pas le français (le Chromium du banc est en anglais, quel que soit le contexte « fr-FR » de la page), champ Montant en type=number (formulaire d'encaissement du bail ; les autres formulaires de montant sont identiques)
-- **Étapes** : 1. Connecté en propriétaire direct, ouvrir un bail dont 2 termes de 840 € sont appelés. 2. Taper au clavier 840,00 dans Montant (date du jour). 3. Valider.
-- **Attendu** : 840,00 € encaissés, ou au minimum une alerte devant un montant 100 fois supérieur au dû
-- **Observé** : Le navigateur lit la virgule comme séparateur de milliers : valeur envoyée « 84000 ». Le serveur l'accepte (borne 9 999 999,99 sans rapport avec le dû) : « 84 000,00 € encaissés … septembre 2026 soldé → quittance ; octobre 2026 soldé → quittance · 82 320,00 € en avance sur le prochain appel ». Base : 1 encaissement de 84000, 2 quittances. La suppression de l'encaissement (contre-écritures) permet de revenir en arrière. Un double clic n'a créé qu'un seul encaissement
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-encaissement-succes.mjs ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-encaissement-succes.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/etat-banc-final.txt
-- **Cause probable** : Champs name="montant" en type="number" (formulaire-loyers.tsx:354, formulaire-depot.tsx:159, fenetre-lot.tsx:626 et :1279…) : le navigateur normalise la saisie avant que lireMontant (qui sait lire la virgule) ne la voie ; aucun contrôle de plausibilité par rapport au dû
-- **Correction proposée** : Passer ces champs en type="text" inputMode="decimal" (le serveur lit déjà « 840,00 » et « 840.00 ») ; ajouter côté serveur une confirmation explicite quand le montant dépasse largement le dû (ordre de grandeur à fixer par le dirigeant)
-- **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `AUD-A-01` — Un agent restreint modifie les équipements d'un lot hors de son portefeuille (RPC definir_equipements_lot)
 
@@ -527,6 +493,90 @@ Aucune anomalie de cette gravité à ce jour.
 - **Observé** : FORMULAIRE_ACCUEIL = /#agences ; formulaire à champs « Votre agence » et « lots en gestion » ; relevé déjà fait le 24/09 (lib/editeur.ts). Le retrait des agences du site public aurait supprimé ce canal.
 - **Preuve expurgée (banc)** : app/src/lib/editeur.ts, app/src/components/coquille-legale.tsx, app/src/app/page.tsx (avant correction)
 - **Correction proposée** : formulaire de contact général (ancre #contact, message obligatoire), pages légales renvoyées vers lui ; l'adresse e-mail de l'éditeur reste à fournir (src/lib/editeur.ts)
+- **Correction sans aval** : oui
+
+#### `DES-A-01` — Au clavier, sur mobile (≤640 px), le champ ou le bouton qui reçoit le focus est entièrement masqué par la barre d'onglets fixe du bas
+
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte propriétaire direct (proprietaire@gerimmo-demo.fr), viewport 390×844, clavier physique ou lecteur d'écran (Tab)
+- **Étapes** : 1. Ouvrir /agence/<id>/profil à 390 px. 2. Fermer la synthèse des alertes. 3. Appuyer sur Tab jusqu'au champ « Adresse » puis jusqu'au bouton « Suivant → ».
+- **Attendu** : L'élément focalisé reste visible : la page défile pour le placer au-dessus de la barre fixe (WCAG 2.2, critère 2.4.11 Focus non masqué).
+- **Observé** : Le champ #pr-adresse (top 792, bottom 836) et le bouton « Suivant → » (800–844) sont masqués à 100 % par la barre du bas (top 787) ; mesure sur 45 arrêts Tab. Même défaut relevé par la passe automatique sur 8 autres écrans propriétaire à 390 px (tableau de bord, fiscal, incident/nouveau, fiche bien, fiche lot, fiche personne, import, /espaces).
+- **Preuve expurgée (banc)** : etats/focus-masque-profil-390.png ; etats/focus-masque-profil-journal.json ; journaux/auto-proprietaire-390.json (champ clavier.masques)
+- **Cause probable** : app/src/app/globals.css:2168 (.coquille-basse fixe, 56 px + safe-area) sans scroll-padding-bottom sur la racine : le navigateur aligne l'élément focalisé sur le bord bas du viewport, sous la barre. Le padding-bottom de .coquille-corps (l.2166) ne sert pas au défilement automatique du focus.
+- **Correction proposée** : Dans le bloc @media (max-width: 640px) de globals.css (l.2159), ajouter : html { scroll-padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); } (même correctif pour la barre basse artisan, nav-artisan.tsx:134, hors périmètre ici).
+- **Correction sans aval** : oui
+
+#### `DES-A-09` — Menu « Plus » mobile (tiroir modal) : le focus ne passe pas dans le tiroir à l'ouverture et la touche Tab en sort vers la page cachée derrière
+
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte propriétaire (barre basse) ou locataire, 390×844, navigation clavier ou lecteur d'écran
+- **Étapes** : 1. Ouvrir le tableau de bord. 2. Activer le bouton « Menu » de la barre basse. 3. Lire le focus. 4. Appuyer 25 fois sur Tab.
+- **Attendu** : Un dialogue aria-modal prend le focus à l'ouverture (premier contrôle ou titre), le garde (Tab/Maj+Tab bouclent) et le rend au bouton à la fermeture
+- **Observé** : Le tiroir s'ouvre (role=dialog, aria-modal=true) mais document.activeElement reste le bouton « Menu » derrière le voile ; 12 des 25 arrêts Tab (propriétaire) et 15 sur 25 (locataire) sont hors du dialogue. Échap ferme bien le tiroir. À l'inverse, la recherche globale (« Retrouvez le bon dossier ») et la confirmation « Retirer ce bien » se comportent correctement (focus dans le dialogue, Échap ferme).
+- **Preuve expurgée (banc)** : etats/menu-focus-journal.json ; etats/menu-plus-390.png
+- **Cause probable** : app/src/components/ui/tiroir.tsx:31-41 : le useEffect n'installe que la fermeture par Échap et le blocage du défilement ; aucun déplacement de focus ni piège à focus
+- **Correction proposée** : Dans tiroir.tsx : mémoriser document.activeElement à l'ouverture, donner le focus au bouton « Fermer » (ou au dialogue avec tabIndex={-1}), boucler Tab/Maj+Tab dans le dialogue (ou poser `inert` sur les frères du portail) et rendre le focus au bouton « Menu » au démontage.
+- **Correction sans aval** : oui
+
+#### `DES-A-13` — Tablette (≤ 1023 px) : le menu du propriétaire est un rail d'icônes sans libellé, alors que celui du locataire garde les libellés sous les icônes
+
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte propriétaire direct, viewport 768×1024 tactile (sans survol)
+- **Étapes** : Ouvrir /agence/<id> à 768 px et lire la colonne de gauche
+- **Attendu** : Onze entrées de navigation lisibles sans survol (libellés sous les icônes, comme le rail locataire de 641 à 860 px), car une tablette tactile n'a pas d'infobulle
+- **Observé** : Rail de 60 px : 11 icônes (maison, clé, personnes, €, outil, cloche, calendrier, bulle, document, carte, ?) sans aucun texte ; seul l'attribut title (survol) donne le mot, inexistant au toucher. Les noms accessibles existent (aucune commande sans nom relevée par la passe automatique). Le rail locataire a, lui, été corrigé pour garder ses libellés (commentaire globals.css:1445).
+- **Preuve expurgée (banc)** : avant/proprietaire/accueil-768.png ; avant/proprietaire/fiche-lot-768.png ; planches/p768-a.png
+- **Cause probable** : app/src/app/globals.css:2140-2155 (@media max-width 1023px : .coquille-late .coquille-menu .lib { display: none }, --largeur-late: 60px) ; barre-laterale.tsx:51 (title seul)
+- **Correction proposée** : Reprendre la règle du rail locataire pour .coquille-late entre 641 et 1023 px : largeur 78 px, flex-direction: column, .lib affiché à 10,5 px centré (globals.css:1445-1455 en modèle) ; au-dessus de 1024 px rien ne change.
+- **Correction sans aval** : oui
+
+#### `DES-B-01` — Artisan : sur 390 px, Agenda, Demandes de devis et le détail d'une demande débordent horizontalement dès qu'un nom d'organisation est long (recoupe ARC-05, étendu à trois écrans)
+
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte artisan.alpha@gerimmo-demo.fr, organisation « Parc de Éloïse [TEST-proprietaire] Durand-Lévêque » (49 caractères), viewport 390x844
+- **Étapes** : 1. Ouvrir /artisan/agenda, /artisan/devis puis /artisan/devis/017f6829-…. 2. Observer la largeur de la page.
+- **Attendu** : Aucun défilement horizontal : le nom est tronqué (la classe truncate est déjà posée sur le span)
+- **Observé** : scrollWidth 448 px (agenda), 448 px (liste des devis), 472 px (détail) pour un viewport de 390 px : la carte de la demande fait 432 px, l'en-tête du détail 456 px, le badge « Devis retenu » sort à droite de l'écran. La page entière se déplace latéralement avec le doigt. La passe automatique ne le voit pas en émulation mobile (le viewport s'élargit) : détecté sur la largeur des captures (448, 448, 473 px). Recoupe ARC-05 (agenda seul, P3) : le défaut touche aussi /artisan/devis et /artisan/devis/<id>, et sa cause racine est une règle CSS commune (grille sans minmax).
+- **Preuve expurgée (banc)** : etats/debordement-journal.json ; etats/debordement-artisan-agenda-390.png ; auto/artisan/artisan-agenda-390.png (448 px de large) ; auto/artisan/artisan-devis-390.png ; auto/artisan/artisan-devis-017f6829-ac6b-4467-9901-04048bd1e5bd-390.png (473 px)
+- **Cause probable** : app/src/app/artisan/portail-artisan.module.css:14 (.artisan-liste { display: grid } sans grid-template-columns : la piste automatique prend la largeur min-content du texte nowrap) ; app/src/app/artisan/devis/[sollicitationId]/devis.module.css:1 (.page { display: grid } idem)
+- **Correction proposée** : portail-artisan.module.css:14 → `.content :global(.artisan-liste) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }` ; devis.module.css:1 → `.page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; min-width: 0; }`
+- **Correction sans aval** : oui
+
+#### `DES-B-02` — Artisan : le focus clavier passe sous la barre d'onglets fixe du bas (390 et 768 px), même défaut que DES-A-01 côté propriétaire
+
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte artisan, viewport 390x844 ou 768x1024, clavier ou lecteur d'écran
+- **Étapes** : 1. Ouvrir /artisan/attestations à 390 px et appuyer 6 fois sur Tab. 2. Ouvrir /artisan/entreprise à 768 px et appuyer 9 fois sur Tab.
+- **Attendu** : L'élément focalisé reste visible (WCAG 2.2, 2.4.11)
+- **Observé** : « Déposer : Responsabilité civile professionnelle » est à 796-844 alors que la barre commence à 779 ; « Contactez Gerimmo » est à 1010-1024 alors que la barre commence à 959 (à 768 px la barre basse existe encore). La passe automatique relève aussi /artisan/facturation (390) et /artisan/note (768).
+- **Preuve expurgée (banc)** : etats/focus-masque-artisan-journal.json ; etats/focus-masque-artisan-attestations-390.png ; etats/focus-masque-artisan-entreprise-768.png
+- **Cause probable** : app/src/components/nav-artisan.tsx:134 (nav fixed bottom-0, 64 px + safe-area) sans scroll-padding-bottom sur la racine ; voir DES-A-01
+- **Correction proposée** : Dans portail-artisan.module.css (règle .mobileNav / contenu) ou globals.css : `html:has(.artisan-navigation) { scroll-padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }` — même correctif que DES-A-01
+- **Correction sans aval** : oui
+
+#### `DES-B-03` — Artisan : aucun écran de chargement entre deux pages — sur réseau lent, le clic sur un onglet ne produit rien pendant plusieurs secondes
+
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-03 · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte artisan, 390x844, réseau dégradé (latence 1,8 s, 60 ko/s) — le cas du chantier en zone mal couverte
+- **Étapes** : 1. Ouvrir /artisan. 2. Activer l'onglet « Agenda » de la barre basse. 3. Observer l'écran 700 ms puis 6 s après le clic.
+- **Attendu** : Comme dans les espaces propriétaire, locataire et super-admin : un squelette (ou au moins l'onglet visé allumé) dès le clic
+- **Observé** : À 700 ms, la page « Aujourd'hui » est inchangée, l'onglet « Agenda » n'est pas allumé, aucun squelette ni indicateur (aucun élément aria-busy) ; la page « Mon agenda » n'arrive qu'à 6 s. L'artisan peut croire que le clic n'a pas été pris en compte et recliquer. Le super-admin et le propriétaire affichent un squelette dans la même condition.
+- **Preuve expurgée (banc)** : etats/art-chargement-lent-390.png ; etats/etats-journal-art.json ; comparaison : etats/etats-journal-sa.json (busy=true)
+- **Cause probable** : Aucun app/artisan/loading.tsx : seuls app/loading.tsx, app/admin/loading.tsx, app/agence/[orgId]/loading.tsx et app/locataire/[orgId]/loading.tsx existent ; la limite racine ne s'affiche pas quand seul l'enfant du gabarit artisan change
+- **Correction proposée** : Créer app/artisan/loading.tsx sur le modèle de app/locataire/[orgId]/loading.tsx (11 lignes) : <div className="space-y-4" role="status" aria-busy="true" aria-label="Chargement de la page"> avec un bloc .squelette h-24 (héros) et deux .squelette h-[132px] !rounded-[14px] (cartes)
 - **Correction sans aval** : oui
 
 #### `PROP-02` — Code postal à 4 chiffres et année 1500 acceptés et enregistrés à la création du bien
@@ -721,6 +771,20 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Ajouter les libellés explicites avec cible (compte, rôle, retour, encaissement) ; retirer le repli /suppression/ ; mettre en évidence tout octroi du rôle super_admin ; test qui échoue si une action écrite au journal n'a pas de libellé explicite
 - **Correction sans aval** : oui
 
+#### `VER-PR178-01` — Régression : la correction PR178-A-02 désactive la protection « Quitter la page ? » pour une quarantaine de formulaires de saisie (profil, bail, lot, EDL, messages, assistance…)
+
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : tests/protection-saisie-formulaires.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Build candidat servi sur 3100 ; compte propriétaire ; aucun envoi n'est nécessaire
+- **Étapes** : 1. Ouvrir /agence/<org>/profil (ou /assistance) ; 2. Saisir un caractère dans « Ville » (ou un texte dans « Description ») ; 3. Cliquer un lien de la barre latérale
+- **Attendu** : Boîte « Des modifications ne sont pas encore enregistrées. Quitter cette page… ? », comme en main-178 (formulaires suivis dès la première frappe) et comme pour un formulaire portant l'attribut (témoin EX-01)
+- **Observé** : Navigation immédiate, aucun confirm() ni beforeunload ; la saisie est perdue sans avertissement (EX-02 profil, EX-03 /assistance). protection-saisie.ts:eligible() exige désormais hasAttribute('data-saisie-confirmee') ; sur 256 balises <form> du code, 61 ne l'ont pas : environ 35 vrais formulaires de saisie branchés sur useActionFormulaire/onSubmit ou useActionStateProtegee (profil, bail : parcours/édition/annexe/personnes, lot, diagnostic, DPE, chambres, EDL annexes, messages propriétaire, catalogue de documents, clients artisan, retours /assistance, décisions admin) ; le reste = connexion, mots de passe, déconnexion, filtres GET. Les tests ne le voient pas : e2e/protection-saisie.spec.ts:48 sert une page synthétique qui porte déjà l'attribut. Non reproduit mais probable : confirmerSoumission renvoie vrai sans suivi, donc les formulaires à réinitialisation après succès dont les champs r…
+- **Preuve expurgée (banc)** : preuves/verification/pr178/sortie-candidate.txt ; preuves/verification/pr178/forms-sans-attribut.txt (liste des 61 formulaires) ; témoin avec attribut : même fichier, premier bloc
+- **Cause probable** : app/src/lib/protection-saisie.ts:47-52 (eligible) : l'attribut a été érigé en liste blanche, alors que preparerSoumission/confirmerSoumission (use-action-formulaire.ts, use-action-state-protegee.ts) savaient déjà confirmer ces formulaires. Seuls les filtres GET sans method posaient problème (PR178-A-02).
+- **Correction proposée** : Soit ajouter data-saisie-confirmee aux formulaires qui utilisent useActionFormulaire/useActionStateProtegee (et un test qui échoue si un <form> branché sur ces hooks n'a pas l'attribut), soit inverser la règle : suivre par défaut et exclure explicitement les filtres (method=get, role=search, ou attribut data-saisie-ignoree). Ne change aucune règle métier.
+- **Correction sans aval** : oui
+
 #### `PRO2-01` — Un propriétaire dont la commune n'est pas ouverte au réseau ne peut solliciter aucun artisan, même un artisan connu : le carnet ne se remplit que par une intervention déjà confiée
 
 - **Sévérité** : P2 · **Statut** : à trancher — choix produit : réseau fermé pour la commune du propriétaire, carnet sans formulaire d'ajout · **Propriétaire** : dirigeant (décision)
@@ -833,6 +897,18 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Ajouter à la validation (ou après) « Enregistrer le règlement » : date, moyen, référence, qui crée l'écriture de dépense avec lien intervention_factures.id et trace d'audit ; afficher « réglée le … » côté propriétaire et artisan
 - **Correction sans aval** : non (aval du dirigeant requis)
 
+#### `AUT-01` — maintenance_artisans() n'est appelée par aucune tâche : les devis déposés ne deviennent jamais « expirés » et les motifs de liste noire ne sont jamais purgés
+
+- **Sévérité** : P2 · **Statut** : à trancher — correction préparable (tâche pg_cron + version interne), aval requis : active un automatisme en production · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : auditeur (coordinateur) · **Version testée** : e9f31ac puis candidate
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Attendu** : RM-9.2.3 : un devis dont la validité est dépassée devient caduc ; matrice A2 : les motifs de liste noire sont purgés à 3 ans (local) et 5 ans (global)
+- **Observé** : La fonction (migration 20260911180000, ligne 2540) exige is_super_admin() et est annoncée « appelée par une planification, pas par un écran ». Aucune tâche pg_cron, aucune route de cron Vercel et aucun écran ne l'appelle (recherche dans app/src, vercel.json et les migrations). Un super-administrateur peut la lancer à la main seulement par une requête directe.
+- **Preuve expurgée (banc)** : grep maintenance_artisans app/src app/vercel.json app/supabase/migrations : seule la définition et la liste de contrôle des droits ; confirme DEC-11 (hypothèse du rédacteur de décisions, vérifiée par lecture du code, non rejouée sur le banc faute de planificateur)
+- **Cause probable** : La planification annoncée par le commentaire n'a jamais été créée ; la fonction n'est pas appelable sans JWT de super-administrateur, donc pas par pg_cron.
+- **Correction proposée** : Tâche pg_cron quotidienne appelant une version interne sans garde (même schéma que la préparation du soir du marketing, MKT-01), fermée à tous les rôles ; soumise à l'aval car elle active un automatisme sur la production.
+- **Correction sans aval** : non (aval du dirigeant requis)
+
 #### `PR178-B-04` — Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires
 
 - **Sévérité** : P2 · **Statut** : à trancher — clic avant hydratation sans effet visible : désactiver le bouton jusqu'à l'hydratation, formulaire par formulaire · **Propriétaire** : dirigeant (décision)
@@ -875,6 +951,20 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Passer en détails l'objet et le geste (route ou action, identifiant de l'objet, résultat) ; émettre traversee_action seulement sur les écritures ; demander un motif court et borner la traversée en écriture (30 min, comme pour l'artisan) ; ajouter l'auteur aux écritures financières
 - **Correction sans aval** : non (aval du dirigeant requis)
 
+#### `VER-TS-02` — Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises
+
+- **Sévérité** : P2 · **Statut** : à trancher — partiellement corrigée en branche ; reste à trancher : montant très supérieur au dû — Décision métier non prise : demander une confirmation explicite quand un encaissement dépasse largement le dû (quel multiple du dû ou du solde ? 2 ×, 10 × ?), ou un refus au-delà d'un seuil. Le passag · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Navigateur dont la langue d'interface n'est pas le français (le Chromium du banc est en anglais, quel que soit le contexte « fr-FR » de la page), champ Montant en type=number (formulaire d'encaissement du bail ; les autres formulaires de montant sont identiques)
+- **Étapes** : 1. Connecté en propriétaire direct, ouvrir un bail dont 2 termes de 840 € sont appelés. 2. Taper au clavier 840,00 dans Montant (date du jour). 3. Valider.
+- **Attendu** : 840,00 € encaissés, ou au minimum une alerte devant un montant 100 fois supérieur au dû
+- **Observé** : Le navigateur lit la virgule comme séparateur de milliers : valeur envoyée « 84000 ». Le serveur l'accepte (borne 9 999 999,99 sans rapport avec le dû) : « 84 000,00 € encaissés … septembre 2026 soldé → quittance ; octobre 2026 soldé → quittance · 82 320,00 € en avance sur le prochain appel ». Base : 1 encaissement de 84000, 2 quittances. La suppression de l'encaissement (contre-écritures) permet de revenir en arrière. Un double clic n'a créé qu'un seul encaissement
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-encaissement-succes.mjs ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-encaissement-succes.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/etat-banc-final.txt
+- **Cause probable** : Champs name="montant" en type="number" (formulaire-loyers.tsx:354, formulaire-depot.tsx:159, fenetre-lot.tsx:626 et :1279…) : le navigateur normalise la saisie avant que lireMontant (qui sait lire la virgule) ne la voie ; aucun contrôle de plausibilité par rapport au dû
+- **Correction proposée** : Passer ces champs en type="text" inputMode="decimal" (le serveur lit déjà « 840,00 » et « 840.00 ») ; ajouter côté serveur une confirmation explicite quand le montant dépasse largement le dû (ordre de grandeur à fixer par le dirigeant)
+- **Correction sans aval** : non (aval du dirigeant requis)
+
 #### `PROP-BANC-01` — Banc : serveur :3100 démarré sans SUPABASE_SERVICE_ROLE_KEY (inscription et liens bloqués)
 
 - **Sévérité** : P2 · **Statut** : acceptée — défaut du banc d'essai, pas du produit ; banc-up.sh vérifie la clé de service · **Propriétaire** : clos par décision
@@ -889,17 +979,11 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : relancer le serveur du banc avec la clé de service (hors périmètre de ce rôle)
 - **Correction sans aval** : oui
 
-## P3 — cosmétique ou mineur (111)
+## P3 — cosmétique ou mineur (118)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
-| `ARC-01` | artisan | Échec du rendu PDF du devis externe : message technique brut (variable d environnement) montré à l artisan | ouverte |
-| `ARC-03` | artisan | Agenda : l état du chantier externe est affiché avec son code interne (« planifie ») | ouverte |
 | `ARC-04` | artisan | Numéro de facture externe : unicité sensible à la casse (« art-2026-0001 » accepté en doublon de « ART-2026-0001 »), aucune continuité contrôlée | ouverte |
-| `ARC-05` | artisan | Agenda artisan sur mobile 390 px : défilement horizontal (448 px) causé par la carte d une mission Gerimmo au nom de parc long | ouverte |
-| `ARC-06` | artisan | Clients externes : messages d erreur génériques inadaptés (client en doublon : « cette facture » ; champ vide : « joignez votre justificatif ») | ouverte |
-| `ARC-09` | artisan | Formulaires privés artisan : session perdue présentée comme « connexion interrompue », sans lien de reconnexion | ouverte |
-| `ARC-10` | artisan | Clients externes : entre minuit et 2 h à Paris (heure d été), la date du jour est refusée et la date par défaut est celle de la veille (jour UTC) | ouverte |
 | `AUD-A-05` | auditeur/a | Écart documentation/code : la piste d'audit générique documentée n'existe pas | ouverte |
 | `AUD-A-06` | auditeur/a | Insertion anonyme directe dans demandes_devis sans limite de débit | ouverte |
 | `AUD-B-03` | auditeur/b | Cookie de session lisible par script et marqué Secure seulement si NEXT_PUBLIC_SITE_URL commence par https:// *(hyp.)* | ouverte |
@@ -918,27 +1002,19 @@ Aucune anomalie de cette gravité à ce jour.
 | `CHN-02` | chaine/2 | La validation de la facture, l'écriture de règlement et la clôture de l'incident ne laissent aucune ligne au journal d'audit : seule la chronologie de l'incident les garde | ouverte |
 | `LOC-22` | chaine/2 | Un locataire connecté qui ouvre /artisan arrive sur le formulaire d'inscription artisan | ouverte |
 | `PRO2-22` | chaine/2 | Un propriétaire direct lit « privé à votre agence » sur la notation de l'artisan, et l'artisan lit « l'agence le tranchera » sur l'écart de facture (recoupe PROP-09) | ouverte |
-| `DES-A-02` | designer/a | La page de confirmation de lien e-mail (/auth/confirmer) annonce encore « pour les agences », alors que /connexion a été nettoyée | ouverte |
 | `DES-A-03` | designer/a | Espace locataire : les titres de carte sont des <h3> directement sous le <h1> (aucun <h2>) sur toutes les pages | ouverte |
-| `DES-A-04` | designer/a | Fiche d'un bien : la liste de définitions des chiffres clés est mal formée (dl > div > div > dt) | ouverte |
-| `DES-A-05` | designer/a | Tablette (641-860 px) : les libellés du rail du menu locataire sont à 9,5 px, sous la métrique commune de 11 px de la charte | ouverte |
 | `DES-A-06` | designer/a | Hors ligne : la navigation interne bascule sur la page d'erreur du navigateur (en anglais) et n'en sort pas au retour du réseau | ouverte |
-| `DES-A-07` | designer/a | Vocabulaire d'agence encore visible dans les parcours propriétaire et locataire de la V1 | ouverte |
 | `DES-A-08` | designer/a | Toutes les pages du propriétaire direct vivent sous l'adresse /agence/<id>/… (adresse visible, partagée, mise en favori) | ouverte |
 | `DES-A-10` | designer/a | Le logo doré posé à nu sur fond clair est quasi illisible sur mobile (≈ 1,5:1), alors que la page d'inscription artisan le présente dans une tuile bleu nuit (≈ 13,6:1) | ouverte |
 | `DES-A-11` | designer/a | L'adresse est « facultative » à l'inscription propriétaire mais bloque ensuite la création du premier bien | ouverte |
-| `DES-A-12` | designer/a | Après une erreur de formulaire, le focus tombe sur <body> et les deux mots de passe sont vidés ; deux pages d'authentification partagent le même titre ; la 404 publique propose « Retour à mon espace » | ouverte |
-| `DES-A-14` | designer/a | Tablette (641-860 px) : le nom de l'espace du locataire est tronqué en « Par… » dans la cellule de logo du rail | ouverte |
-| `DES-A-15` | designer/a | Formulaire « Déclarer un incident » (propriétaire) : l'option d'urgence est coupée à 390 px (« …attendre quelques jour ») | ouverte |
-| `DES-B-04` | designer/b | Clients externes : « Archiver ce client » s'exécute au premier clic, sans confirmation, avec le style du bouton principal | ouverte |
-| `DES-B-05` | designer/b | Modules clients externes et règlements déclarés : composants hors charte (liens soulignés en guise de boutons, pastilles redondantes, liens de liste de 19 px) | ouverte |
-| `DES-B-06` | designer/b | Artisan qui vient de s'inscrire : trois bandeaux au même sens et trois appels au dépôt d'une pièce sur la même page | ouverte |
-| `DES-B-07` | designer/b | Titres de page (<title>) incohérents dans l'espace artisan et la supervision | ouverte |
-| `DES-B-08` | designer/b | Super-admin sur mobile : résumés repliables de 20 à 28 px de haut, barre d'enregistrement collante qui masque le champ focalisé, bouton flottant hors repère | ouverte |
-| `DES-B-09` | designer/b | Compte artisan : « toutes les agences » dans la page Sécurité du compte (vocabulaire d'agence dans la V1) | ouverte |
 | `DES-B-10` | designer/b | Logo doré quasi illisible sur l'en-tête blanc : artisan à 768 px et super-admin à 390 et 768 px (même défaut que DES-A-10) | ouverte |
-| `DES-B-11` | designer/b | Super-admin, Relais : le bandeau « Habilitation perdue : tâches bloquées » est posé en ligne sur le texte qui le précède, et chevauche l'adresse du responsable à 390 px | ouverte |
 | `DES-B-12` | designer/b | HORS V1 PUBLIQUE — espaces administrateur d'agence et agent : défauts transversaux déjà connus et petites cibles sur la recherche | ouverte |
+| `IA-06` | equipes-ia | L'arrêt d'urgence ne couvre pas le traitement immédiat du webhook Yousign ; la clé 'sauvegarde' n'a aucun lecteur (confirmation par lecture de SUP-07) | ouverte |
+| `IA-07` | equipes-ia | Des éléments d'automatisation existent sans écrivain ni appelant : automation_events, log_automation_event, automation_stats_30d, autoriser_orchestration | ouverte |
+| `IA-09` | equipes-ia | La tâche territoire peut préparer une campagne-idée 'essai avec des agences', alors que les agences sont hors du périmètre public V1 | ouverte |
+| `IA-10` | equipes-ia | La page wiki 'Gerimmo en autonomie' est périmée : 4 tâches quotidiennes, 'vercel.json ne fixe aucune région', ronde quotidienne 'à armer' | ouverte |
+| `IA-11` | equipes-ia | Aucun registre d'exécution n'a de règle de rétention (agent_passages, supervision_operations, points_du_matin, decisions_du_matin, brief_direction_snapshots) | ouverte |
+| `IA-12` | equipes-ia | Hypothèse à vérifier : les textes et visuels produits avec l'IA et publiés sur le site et Facebook ne portent aucune mention d'origine *(hyp.)* | ouverte |
 | `PROP-05` | proprietaire/s01 | Nom d'espace sans élision : « Parc de Éloïse … » | ouverte |
 | `PROP-08` | proprietaire/s01 | Recherche globale (⌘K) insensible à la casse mais pas aux accents ; code postal non recherchable | ouverte |
 | `PROP-09` | proprietaire/s01 | Libellés d'agence ou de permission dans l'espace propriétaire direct | ouverte |
@@ -974,26 +1050,33 @@ Aucune anomalie de cette gravité à ce jour.
 | `SA-09` | superadmin | La recherche de la console ne trouve ni un bien, ni un lot, ni un incident : le brief du support demande de retrouver « un dossier (utilisateur, bien, incident) » | ouverte |
 | `SA-10` | superadmin | Hypothèse à vérifier : aucun plafond de dépense applicatif pour les appels IA, et l'arrêt d'urgence ne couvre pas les appels IA déclenchés à la main (analyse du brief, rédaction de publications) *(hyp.)* | ouverte |
 | `SA-11` | superadmin | Journal du blocage d'un compte : « Compte bloqué » est écrit avant l'effet ; si le blocage échoue, le journal garde « Compte bloqué » suivi d'une ligne d'échec sans cause | ouverte |
-| `VER-PR178-02` | verification/pr178 | Session expirée puis autre compte dans le même navigateur : les copies du compte précédent (identité, brouillon de lot) restent sur l'appareil tant que le nouveau compte n'ouvre pas la fiche personne ou le formulaire d'incident | ouverte |
-| `VER-PR178-03` | verification/pr178 | Stockage IndexedDB refusé : après une fiche créée et confirmée, l'alerte « Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement » reste affichée (résidu de PR178-A-08) | ouverte |
-| `VER-PR178-04` | verification/pr178 | Reprise d'une saisie après session expirée : l'ancien message « Votre session a expiré… » est réaffiché alors que la personne s'est reconnectée | ouverte |
-| `VER-PR178-05` | verification/pr178 | La purge des copies locales part au clic sur « Se déconnecter », avant que la déconnexion ait réussi : hors ligne, la copie est effacée alors que la session reste ouverte | ouverte |
 | `VER-PR178-06` | verification/pr178 | Hypothèse à vérifier : le brouillon local de la grille d'état des lieux (gerimmo-edl-brouillon-<id>) n'est ni effacé à la déconnexion ni rattaché à un compte ni limité dans le temps *(hyp.)* | ouverte |
-| `VER-PR178-07` | verification/pr178 | Si sessionStorage est refusé par le navigateur, toute l'application et la page de connexion affichent « Cette page n'a pas pu s'afficher » (code antérieur aux corrections, relevé en testant l'indisponibilité du stockage) | ouverte |
-| `VER-SECURITE-01` | verification/securite | La purge de déconnexion annoncée par la correction PR178-A-01 laisse les brouillons d'état des lieux (et la quittance de l'outil public) sur l'appareil, et le changement de compte ne les purge pas non plus | ouverte |
 | `VER-SECURITE-02` | verification/securite | Un artisan ayant une mission (ou une sollicitation ouverte) dans une organisation peut écrire n'importe quel chemin sous le dossier de cette organisation dans le compartiment documents | ouverte |
-| `VER-SQL-01` | verification/sql | 20261013120000 n'est pas rejouable sans effet : un rejeu hors transaction duplique la garde de definir_equipements_lot puis s'arrête sur AUD-A-02 | ouverte |
-| `VER-SQL-02` | verification/sql | supprimer_detention : deux suppressions simultanées de la même détention laissent deux lignes d'audit pour une seule suppression | ouverte |
-| `VER-SQL-03` | verification/sql | REP-01 : un second envoi identique est sans effet en base mais l'action TypeScript renvoie un succès et prévient de nouveau l'artisan *(hyp.)* | ouverte |
-| `VER-SQL-04` | verification/sql | SUP-08 : si le créateur du plan perd lui aussi son habilitation, l'alerte escaladée vers lui reste « escalade » alors qu'elle n'est acheminée à personne | ouverte |
-| `VER-TS-01` | verification/ts | Une date de naissance de forme AAAA-MM-JJ impossible (2024-13-45) fait lever l'action serveur : erreur 500 et message sans rapport au lieu de « date de naissance non valide » | ouverte |
-| `VER-TS-03` | verification/ts | L'élision « d’octobre » n'est appliquée que sur la page d'accueil locataire : e-mails, page Documents du locataire, PDF de décompte et libellés d'agenda disent encore « de octobre », « de avril », « de août » | ouverte |
-| `VER-TS-04` | verification/ts | Récapitulatif fiscal nu : « Périmètre : N écritures » compte des pièces écartées (période meublé ou hors de mes droits) sans le dire | ouverte |
 | `VER-TS-05` | verification/ts | Récapitulatif fiscal nu : à partir de 1 000 lignes fiscales dans l'organisation, le document est refusé avec un message trompeur (« Réduisez la période »), même pour un lot de 3 loyers | ouverte |
+| `ARC-01` | artisan | Échec du rendu PDF du devis externe : message technique brut (variable d environnement) montré à l artisan | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-erreurs.test.ts |
+| `ARC-03` | artisan | Agenda : l état du chantier externe est affiché avec son code interne (« planifie ») | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-affichage.test.ts |
+| `ARC-05` | artisan | Agenda artisan sur mobile 390 px : défilement horizontal (448 px) causé par la carte d une mission Gerimmo au nom de parc long | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `ARC-06` | artisan | Clients externes : messages d erreur génériques inadaptés (client en doublon : « cette facture » ; champ vide : « joignez votre justificatif ») | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-erreurs.test.ts |
+| `ARC-09` | artisan | Formulaires privés artisan : session perdue présentée comme « connexion interrompue », sans lien de reconnexion | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-session-expiree.test.ts |
+| `ARC-10` | artisan | Clients externes : entre minuit et 2 h à Paris (heure d été), la date du jour est refusée et la date par défaut est celle de la veille (jour UTC) | corrigée en branche — vague 5 ; tests : tests/artisan-dates-paris.test.ts : 21 cas SQL, tests/artisan-devis-jour-paris.… |
 | `LOC-02` | chaine/1 | Élision manquante : « Dernier document — quittance de octobre 2026 » | corrigée en branche — 9978efa — « d'octobre » (espace locataire) |
 | `ART-14` | chaine/1b | Mobile 390 px : la fiche d'une demande de devis close et l'accueil artisan débordent horizontalement avec un nom de client long | corrigée en branche — 611dce2 — en-tête du devis : min-width et retour à la ligne |
 | `PUB-02` | coordinateur | Offre agence présentée au public alors que les agences sont hors périmètre V1 publique : accueil (repères, espaces, bandeau tarif, FAQ), tarifs, connexion, inscription artisan, choix d'espace, pied de page, métadonnées, deux sujets éditoriaux | corrigée en branche — commit e7982a7 |
 | `PUB-04` | coordinateur | La mention de taxes de l'accueil et des tarifs citait encore les agences (« pour les particuliers comme pour les agences ») | corrigée en branche — 35b0ae8 — phrase de taxes sans agences, 4 tests |
+| `DES-A-02` | designer/a | La page de confirmation de lien e-mail (/auth/confirmer) annonce encore « pour les agences », alors que /connexion a été nettoyée | corrigée en branche — vague 5 ; tests : tests/vocabulaire-v1-parcours.test.ts |
+| `DES-A-04` | designer/a | Fiche d'un bien : la liste de définitions des chiffres clés est mal formée (dl > div > div > dt) | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-A-05` | designer/a | Tablette (641-860 px) : les libellés du rail du menu locataire sont à 9,5 px, sous la métrique commune de 11 px de la charte | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-A-12` | designer/a | Après une erreur de formulaire, le focus tombe sur <body> et les deux mots de passe sont vidés ; deux pages d'authentification partagent le même titre ; la 404 publique propose « Retour à mon espace » | corrigée en branche — vague 5 ; tests : tests/formulaires-auth-focus-titres.test.ts |
+| `DES-A-14` | designer/a | Tablette (641-860 px) : le nom de l'espace du locataire est tronqué en « Par… » dans la cellule de logo du rail | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-A-15` | designer/a | Formulaire « Déclarer un incident » (propriétaire) : l'option d'urgence est coupée à 390 px (« …attendre quelques jour ») | corrigée en branche — vague 5 ; tests : tests/libelles-courts-et-bandeau-390.test.ts |
+| `DES-B-04` | designer/b | Clients externes : « Archiver ce client » s'exécute au premier clic, sans confirmation, avec le style du bouton principal | corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-04 |
+| `DES-B-05` | designer/b | Modules clients externes et règlements déclarés : composants hors charte (liens soulignés en guise de boutons, pastilles redondantes, liens de liste de 19 px) | corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-05, app/tests/titres-de-page.… |
+| `DES-B-06` | designer/b | Artisan qui vient de s'inscrire : trois bandeaux au même sens et trois appels au dépôt d'une pièce sur la même page | corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-06 |
+| `DES-B-07` | designer/b | Titres de page (<title>) incohérents dans l'espace artisan et la supervision | corrigée en branche — vague 5 ; tests : app/tests/titres-de-page.test.ts : 2 × |
+| `DES-B-08` | designer/b | Super-admin sur mobile : résumés repliables de 20 à 28 px de haut, barre d'enregistrement collante qui masque le champ focalisé, bouton flottant hors repère | corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-08 |
+| `DES-B-09` | designer/b | Compte artisan : « toutes les agences » dans la page Sécurité du compte (vocabulaire d'agence dans la V1) | corrigée en branche — vague 5 ; tests : tests/vocabulaire-v1-parcours.test.ts |
+| `DES-B-11` | designer/b | Super-admin, Relais : le bandeau « Habilitation perdue : tâches bloquées » est posé en ligne sur le texte qui le précède, et chevauche l'adresse du responsable à 390 px | corrigée en branche — vague 5 ; tests : tests/libelles-courts-et-bandeau-390.test.ts |
+| `IA-08` | equipes-ia | Le commentaire de la tâche territoire dit 'mensuelle, le 1er' alors qu'elle est planifiée chaque jour | corrigée en branche — commentaire de app/src/app/api/cron/territoire/route.ts corrigé (vague 6) |
 | `PROP-04` | proprietaire/s01 | Surface démesurée : message technique « numeric field overflow » affiché à l'utilisateur | corrigée en branche — d6ef891 — surface bornée à 9 999,99 m² avec message clair |
 | `PROP-06` | proprietaire/s01 | La page /connexion présente encore l'offre agence alors que les agences sont hors V1 publique | corrigée en branche — commit e7982a7 (/connexion sans offre agence) |
 | `PR178-A-07` | relecture/pr178/a | Les copies de devis (une clé localStorage par demande) ne sont jamais purgées si l'artisan ne rouvre pas la même demande : l'expiration de 7 jours n'est contrôlée qu'à la lecture de la clé *(hyp.)* | corrigée en branche — 36219ec — copies effacées à la déconnexion et entre comptes ; les copies d'un même compte expiren… |
@@ -1002,8 +1085,22 @@ Aucune anomalie de cette gravité à ce jour.
 | `SUP-08` | relecture/supervision | Quand le responsable désigné perd son habilitation, traiter_vacances passe TOUTES les alertes non accusées du plan en « non_acheminee », y compris celles déjà escaladées vers le créateur (qui, lui, est habilité) ; elles ne peuvent alors plus escalader (l'esca… | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — seules les alertes du responsable concerné son… |
 | `SA-05` | superadmin | Les dates des retours utilisateurs s'affichent en UTC, sans mention de fuseau : 2 h de décalage (et parfois un jour) avec l'heure de Paris utilisée partout ailleurs dans la console | corrigée en branche — 9978efa — dates des retours à l'heure de Paris |
 | `SA-06` | superadmin | Pluriels fautifs dans les écrans de relais et de consignes : 'après 1 minutes', 'Plafonds : 1 lectures au total, 1 par mois' | corrigée en branche — 9978efa — pluriels accordés |
+| `VER-PR178-02` | verification/pr178 | Session expirée puis autre compte dans le même navigateur : les copies du compte précédent (identité, brouillon de lot) restent sur l'appareil tant que le nouveau compte n'ouvre pas la fiche personne ou le formulaire d'incident | corrigée en branche — vague 5 ; tests : tests/copies-locales-arrivee.test.ts, tests/copies-locales.test.ts |
+| `VER-PR178-03` | verification/pr178 | Stockage IndexedDB refusé : après une fiche créée et confirmée, l'alerte « Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement » reste affichée (résidu de PR178-A-08) | corrigée en branche — vague 5 |
+| `VER-PR178-04` | verification/pr178 | Reprise d'une saisie après session expirée : l'ancien message « Votre session a expiré… » est réaffiché alors que la personne s'est reconnectée | corrigée en branche — vague 5 ; tests : tests/copies-locales-arrivee.test.ts |
+| `VER-PR178-05` | verification/pr178 | La purge des copies locales part au clic sur « Se déconnecter », avant que la déconnexion ait réussi : hors ligne, la copie est effacée alors que la session reste ouverte | corrigée en branche — vague 5 ; tests : tests/copies-locales-arrivee.test.ts |
+| `VER-PR178-07` | verification/pr178 | Si sessionStorage est refusé par le navigateur, toute l'application et la page de connexion affichent « Cette page n'a pas pu s'afficher » (code antérieur aux corrections, relevé en testant l'indisponibilité du stockage) | corrigée en branche — vague 5 ; tests : tests/stockage-session.test.ts |
+| `VER-SQL-01` | verification/sql | 20261013120000 n'est pas rejouable sans effet : un rejeu hors transaction duplique la garde de definir_equipements_lot puis s'arrête sur AUD-A-02 | corrigée en branche — vague 5 ; tests : tests/correctifs-audit-13-octobre-rejeu.test.ts : 7 marques présentes, rejeu do… |
+| `VER-SQL-02` | verification/sql | supprimer_detention : deux suppressions simultanées de la même détention laissent deux lignes d'audit pour une seule suppression | corrigée en branche — vague 5 ; tests : tests/incidents-portefeuille-agent.test.ts : « VER-SQL-02 : une suppression qui… |
+| `VER-SQL-03` | verification/sql | REP-01 : un second envoi identique est sans effet en base mais l'action TypeScript renvoie un succès et prévient de nouveau l'artisan *(hyp.)* | corrigée en branche — vague 5 ; tests : tests/validation-creneaux.test.ts : le second envoi identique renvoie 0, tests/… |
+| `VER-SQL-04` | verification/sql | SUP-08 : si le créateur du plan perd lui aussi son habilitation, l'alerte escaladée vers lui reste « escalade » alors qu'elle n'est acheminée à personne | corrigée en branche — vague 5 ; tests : tests/consignes-vacances.test.ts : « perte de droit du remplaçant puis du créat… |
+| `VER-TS-01` | verification/ts | Une date de naissance de forme AAAA-MM-JJ impossible (2024-13-45) fait lever l'action serveur : erreur 500 et message sans rapport au lieu de « date de naissance non valide » | corrigée en branche — vague 5 ; tests : tests/validation-fiches.test.ts |
+| `VER-TS-03` | verification/ts | L'élision « d’octobre » n'est appliquée que sur la page d'accueil locataire : e-mails, page Documents du locataire, PDF de décompte et libellés d'agenda disent encore « de octobre », « de avril », « de août » | corrigée en branche — vague 5 ; tests : tests/elision-courriers.test.ts, tests/elision.test.ts |
+| `VER-TS-04` | verification/ts | Récapitulatif fiscal nu : « Périmètre : N écritures » compte des pièces écartées (période meublé ou hors de mes droits) sans le dire | corrigée en branche — vague 5 ; tests : tests/fiscal-perimetre.test.ts, tests/catalogue-documents.test.ts |
 | `EDI-01` | coordinateur | La ligne éditoriale de la veille accepte « agence » comme public valide (PUBLICS_JOURNAL) : un article visant seulement les agences passerait le filtre de pertinence en V1 | à trancher — ligne éditoriale |
 | `PUB-03` | coordinateur | Les textes juridiques (conditions générales, mentions légales, confidentialité) décrivent encore l'offre et la tarification agence | à trancher — textes juridiques non modifiés |
+| `DES-A-07` | designer/a | Vocabulaire d'agence encore visible dans les parcours propriétaire et locataire de la V1 | à trancher — partiellement corrigée en branche ; reste à trancher : 4) veille réglementaire — Masquer l'audience « Agen… |
+| `VER-SECURITE-01` | verification/securite | La purge de déconnexion annoncée par la correction PR178-A-01 laisse les brouillons d'état des lieux (et la quittance de l'outil public) sur l'appareil, et le changement de compte ne les purge pas non plus | à trancher — partiellement corrigée en branche (quittance de l'outil public purgée à la déconnexion) ; reste à trancher… |
 
 Les fiches complètes des anomalies P3 sont dans [[Fiches des anomalies P3 — audit du 13 octobre 2026]].
 

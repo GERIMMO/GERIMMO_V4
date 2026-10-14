@@ -9,35 +9,7 @@ sources: []
 
 # Fiches des anomalies P3 — audit du 13 octobre 2026
 
-Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies — audit du 13 octobre 2026]] (les fiches P0, P1 et P2 sont dans le registre). Les champs vides n'ont pas été relevés par l'agent.
-
-#### `ARC-01` — Échec du rendu PDF du devis externe : message technique brut (variable d environnement) montré à l artisan
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Module clients externes activé ; chantier externe avec devis v1 brouillon ; serveur sans Chrome (banc)
-- **Étapes** : 1. /artisan/chantiers/<id> 2. Cliquer « Valider cette version et générer le PDF »
-- **Attendu** : Message métier compréhensible avec référence de support (comme les autres générations de documents : « La génération du document a échoué (réf. DOC-…) »)
-- **Observé** : « Chrome introuvable pour le rendu PDF : installez Google Chrome ou renseignez GERIMMO_CHROME. » affiché tel quel (nom de variable d environnement) ; toute autre erreur du rendu serait aussi recopiée brute
-- **Preuve expurgée (banc)** : scripts/p9.mjs (sortie du message) ; captures/c03-devis-v1.png
-- **Cause probable** : app/src/app/artisan/clients/actions.ts : le catch final renvoie e.message sans filtrer ; app/src/lib/documents/rendu.ts lève ce texte technique
-- **Correction proposée** : Dans enregistrerActivitePrivee, intercepter les erreurs de rendu (rendrePdf) et renvoyer un message métier avec référence, comme le reste des documents
-- **Correction sans aval** : oui
-
-#### `ARC-03` — Agenda : l état du chantier externe est affiché avec son code interne (« planifie »)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Chantier externe planifié
-- **Étapes** : Ouvrir /artisan/agenda
-- **Attendu** : Libellé français accentué (« Planifié »), comme sur la fiche du chantier
-- **Observé** : « Client externe · <nom> · planifie »
-- **Preuve expurgée (banc)** : captures/c08-agenda.png
-- **Cause probable** : Section « Mes chantiers externes » de l agenda n applique pas libelleEtatPrive (clients/elements.tsx)
-- **Correction proposée** : Appliquer libelleEtatPrive au statut
-- **Correction sans aval** : oui
+Fiches complètes des 118 anomalies de gravité P3 du [[Registre des anomalies — audit du 13 octobre 2026]] (les fiches P0, P1 et P2 sont dans le registre). Les champs vides n'ont pas été relevés par l'agent.
 
 #### `ARC-04` — Numéro de facture externe : unicité sensible à la casse (« art-2026-0001 » accepté en doublon de « ART-2026-0001 »), aucune continuité contrôlée
 
@@ -51,62 +23,6 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Preuve expurgée (banc)** : captures/c19-numeros-facture-casse.png ; sql/s05-chantiers-4-3.txt
 - **Cause probable** : supabase/migrations/20261012220000_artisan_clients_externes.sql : unique(artisan_id,numero) sur le texte brut ; la RPC artisan_externe_ecrire ne normalise que btrim
 - **Correction proposée** : Index unique sur (artisan_id, lower(btrim(numero))) étendu aux numéros des factures Gerimmo du même artisan, et message dédié « Ce numéro de facture existe déjà »
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `ARC-05` — Agenda artisan sur mobile 390 px : défilement horizontal (448 px) causé par la carte d une mission Gerimmo au nom de parc long
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Artisan avec une intervention Gerimmo dans les 7 jours dont le nom du client est long (« Parc de Éloïse [TEST-proprietaire] Durand-Lévêque »)
-- **Étapes** : Ouvrir /artisan/agenda en 390x844
-- **Attendu** : Aucun défilement horizontal, le nom est tronqué dans sa carte
-- **Observé** : scrollWidth 448 pour 390 : la carte (lien .artisan-mission) mesure 432 px et dépasse du bord droit de 58 px. Même famille que ART-14 (corrigé ailleurs), non traité sur l agenda
-- **Preuve expurgée (banc)** : captures/c18-mobile-agenda-debordement.png
-- **Cause probable** : Carte de mission de l agenda sans min-w-0/overflow-hidden dans la grille des jours (composant .artisan-mission)
-- **Correction proposée** : Ajouter min-w-0 et overflow-hidden à la carte et à son conteneur de jour
-- **Correction sans aval** : oui
-
-#### `ARC-06` — Clients externes : messages d erreur génériques inadaptés (client en doublon : « cette facture » ; champ vide : « joignez votre justificatif »)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Page /artisan/clients
-- **Étapes** : 1. Recréer un client déjà existant (même nom, e-mail, adresse) 2. Créer un client dont le nom ne contient que des espaces
-- **Attendu** : « Ce client existe déjà » / « Indiquez le nom du client »
-- **Observé** : 1. « Ce dossier ou cette facture existe déjà. Rechargez avant de recommencer » 2. « Complétez tous les champs et joignez votre justificatif. » alors que le formulaire n a aucun justificatif
-- **Preuve expurgée (banc)** : captures/c20-message-doublon-client.png
-- **Cause probable** : app/src/app/artisan/clients/actions.ts (traduction unique des erreurs « violates » / « null value ») et exception unique_violation générique de artisan_externe_ecrire
-- **Correction proposée** : Messages par action (client, chantier, facture) et par contrainte
-- **Correction sans aval** : oui
-
-#### `ARC-09` — Formulaires privés artisan : session perdue présentée comme « connexion interrompue », sans lien de reconnexion
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Session expirée ou cookies effacés pendant la saisie
-- **Étapes** : Remplir « Créer le client », effacer les cookies, cliquer « Créer le client »
-- **Attendu** : « Votre session a expiré, reconnectez-vous (nouvel onglet) puis réessayez », comme corrigé en 36219ec pour les fiches personnes (PR178-A-05, PR178-B-01)
-- **Observé** : « La connexion a été interrompue. Réessayez avec la même saisie. » ; la page reste sur /artisan/clients, nouvel essai identique ; saisie conservée
-- **Preuve expurgée (banc)** : captures/c22-session-perdue.png
-- **Cause probable** : app/src/app/artisan/clients/formulaire.tsx : FormulairePrive intercepte toute erreur de l action par un message unique ; la correction 36219ec ne l a pas couvert
-- **Correction proposée** : Réutiliser le contrôle de session des formulaires de fiche personne et afficher le message de session expirée avec lien
-- **Correction sans aval** : oui
-
-#### `ARC-10` — Clients externes : entre minuit et 2 h à Paris (heure d été), la date du jour est refusée et la date par défaut est celle de la veille (jour UTC)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Heure de Paris entre 00:00 et 02:00 (01:47 le 14/10/2026 lors du test), facture avec solde
-- **Étapes** : 1. Ouvrir /artisan/facturation/<facture> 2. Observer le champ « Date du règlement » 3. Saisir la date du jour à Paris (14/10/2026) en levant le plafond du champ
-- **Attendu** : Date proposée = jour de Paris ; saisie du jour acceptée
-- **Observé** : Valeur par défaut 2026-10-13 et plafond 2026-10-13 ; envoi du 14/10 refusé par le serveur : « Indiquez la date réelle du règlement, sans date future ». Même calcul UTC pour la date d accord du client (chantier). Recoupe l hypothèse FIN-13 (autre écran)
-- **Preuve expurgée (banc)** : captures/c23-date-paris-vs-utc.png
-- **Cause probable** : pages artisan/facturation/[factureId] et chantiers/[chantierId] : toISOString().slice(0,10) ; RPC artisan_reglement_ecrire et artisan_externe_ecrire : current_date (UTC)
-- **Correction proposée** : Calculer la date du jour en Europe/Paris côté page et côté base ((now() at time zone Europe/Paris)::date)
 - **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `AUD-A-05` — Écart documentation/code : la piste d'audit générique documentée n'existe pas
@@ -368,20 +284,6 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Adapter les libellés au type d'organisation (ou « votre interlocuteur »), en même temps que PROP-09
 - **Correction sans aval** : oui
 
-#### `DES-A-02` — La page de confirmation de lien e-mail (/auth/confirmer) annonce encore « pour les agences », alors que /connexion a été nettoyée
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Aucune session ; largeur ≥ 768 px (panneau de marque visible)
-- **Étapes** : 1. Ouvrir /auth/confirmer. 2. Lire la phrase sous la promesse du panneau de gauche. 3. Comparer à /connexion.
-- **Attendu** : Même formulation V1 sur toutes les pages d'authentification : « … pour les propriétaires bailleurs, leurs locataires et les artisans. »
-- **Observé** : /auth/confirmer : « Baux, quittances, régularisations, rapports de gestion et interventions — pour les agences, les propriétaires bailleurs, leurs locataires et les artisans. » ; /connexion : même phrase sans « les agences ». Le site public est par ailleurs sans mention d'agence hors pages juridiques (relevé automatique des 21 pages publiques × 3 largeurs).
-- **Preuve expurgée (banc)** : journaux/auto-public-1280.json (mesure.mentionsAgence de /auth/confirmer) ; auto/public/auth-confirmer-1280.png
-- **Cause probable** : app/src/app/auth/confirmer/page.tsx:50 (sousPromesse) non alignée sur app/src/app/connexion/page.tsx:17
-- **Correction proposée** : Remplacer « pour les agences, les propriétaires bailleurs » par « pour les propriétaires bailleurs » dans app/src/app/auth/confirmer/page.tsx:50.
-- **Correction sans aval** : oui
-
 #### `DES-A-03` — Espace locataire : les titres de carte sont des <h3> directement sous le <h1> (aucun <h2>) sur toutes les pages
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -394,34 +296,6 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Preuve expurgée (banc)** : journaux/auto-locataire+locataire_pd-1280.json (champ axe) ; journaux/auto-proprietaire-1280.json
 - **Cause probable** : app/src/app/locataire/[orgId]/page.tsx:365, loyers/page.tsx:165,255,268,413 etc. : <h3 className="text-base font-medium"> dans .entete-carte
 - **Correction proposée** : Passer ces <h3> en <h2> en conservant les classes (vérifier d'abord qu'aucune règle CSS ne cible `.entete-carte h3` ou `.loc-carte h3` ; sinon dupliquer le sélecteur pour h2).
-- **Correction sans aval** : oui
-
-#### `DES-A-04` — Fiche d'un bien : la liste de définitions des chiffres clés est mal formée (dl > div > div > dt)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte propriétaire, fiche d'un bien avec au moins un lot
-- **Étapes** : axe-core sur /agence/<id>/parc/<bienId>
-- **Attendu** : <dl> dont les groupes <div> ne contiennent que des <dt>/<dd> : le lecteur d'écran annonce « terme / définition »
-- **Observé** : axe : definition-list (1 nœud) + dlitem (8 nœuds), impact « serious » : « dl element has direct children that are not allowed: div > div » ; le <div> de groupe contient l'icône SVG et un <div> enveloppant dt/dd.
-- **Preuve expurgée (banc)** : journaux/auto-proprietaire-1280.json (/parc/<id>, axe.definition-list et dlitem)
-- **Cause probable** : app/src/app/agence/[orgId]/parc/[bienId]/page.tsx:280-288 : `<div key><IconeTrait/><div><dt/><dd/></div></div>`
-- **Correction proposée** : Aplatir : `<div key={f.label}><dt><IconeTrait nom={f.icone}/>{f.label}</dt><dd>{f.valeur}</dd></div>` et ajuster .bien-visuel-chiffres si la mise en page dépend du <div> intermédiaire.
-- **Correction sans aval** : oui
-
-#### `DES-A-05` — Tablette (641-860 px) : les libellés du rail du menu locataire sont à 9,5 px, sous la métrique commune de 11 px de la charte
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte locataire, viewport 768×1024
-- **Étapes** : Ouvrir /locataire/<id> à 768 px et lire le rail de gauche (Accueil, Documents, Paiements…)
-- **Attendu** : Libellés ≥ 10,5 px comme la barre basse mobile du propriétaire (.coquille-basse : 10,5 px) et le commentaire de la charte (« jamais sous 11 px »)
-- **Observé** : span.lib 9,5 px (« Accueil », « Mon logement ») relevé sur 18 écrans locataire ; en 390 px la barre basse locataire utilise 10,5 px. Cible tactile voisine : le lien « Accueil de mon espace » de l'en-tête locataire fait 111×24 et 177×24 px à 390 px (< 44 px).
-- **Preuve expurgée (banc)** : journaux/auto-locataire+locataire_pd-768.json (mesure.textesPetitsEx) ; journaux/auto-locataire+locataire_pd-390.json (ciblesMoins44Ex)
-- **Cause probable** : app/src/app/globals.css:1450-1455 (.loc-menu .lib { font-size: 9.5px })
-- **Correction proposée** : font-size: 10.5px à globals.css:1452 (vérifier que « Mon logement » tient dans le rail de 78 px) ; donner au lien d'accueil de l'en-tête locataire un min-height de 44 px (padding vertical).
 - **Correction sans aval** : oui
 
 #### `DES-A-06` — Hors ligne : la navigation interne bascule sur la page d'erreur du navigateur (en anglais) et n'en sort pas au retour du réseau
@@ -437,20 +311,6 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Cause probable** : Aucune page de repli hors ligne ni service worker : la navigation Next retombe sur une navigation document qui échoue.
 - **Correction proposée** : Ajouter un repli hors ligne (service worker + page /hors-ligne en français) ; c'est une décision produit, pas une retouche.
 - **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `DES-A-07` — Vocabulaire d'agence encore visible dans les parcours propriétaire et locataire de la V1
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Comptes proprietaire@gerimmo-demo.fr (propriétaire direct) et locataire.pd@gerimmo-demo.fr
-- **Étapes** : Ouvrir /assistance (formulaire d'aide) ; /agence/<id>/alertes (alerte confiée à tous) ; /agence/<id>/comptabilite/reprise ; /veille?public=bailleur et ?public=locataire
-- **Attendu** : Aucune notion d'agence, d'administrateur d'agence ou de mandat dans les écrans d'un propriétaire direct et de son locataire
-- **Observé** : (1) /assistance et FAQ propriétaire : « Votre demande est visible de vous, de l’équipe Gerimmo et de l’administrateur de l’agence concernée. » ; (2) alerte : « confiée à toute l’agence » ; (3) reprise comptable : « Détenteur du dépôt (agence ou proprietaire) » (et « proprietaire » sans accent) ; (4) veille réglementaire : l'audience « Agences et agents immobiliers » est listée pour bailleurs et locataires. À noter côté positif : /locataire/<id>/contact utilise bien « Votre gestionnaire » pour un propriétaire direct (contact/page.tsx:36-42).
-- **Preuve expurgée (banc)** : journaux/auto-proprietaire-1280.json et journaux/auto-locataire+locataire_pd-1280.json (mesure.mentionsAgence) ; journaux/auto-proprietaire-390.json
-- **Cause probable** : app/src/app/assistance/formulaire-retour.tsx:53 ; app/src/app/agence/[orgId]/alertes/modale-alerte.tsx:43 (assigned_all → « toute l’agence ») ; app/src/lib/reprise-soldes.ts:29 ; app/src/lib/veille-reglementaire.ts:1 (PUBLICS_VEILLE.agence) listée par app/src/app/veille/page.tsx
-- **Correction proposée** : formulaire-retour.tsx:53 → « … de l’équipe Gerimmo et, le cas échéant, de votre gestionnaire. » ; modale-alerte.tsx:43 → « toute l’équipe » ; reprise-soldes.ts:29 → « Détenteur du dépôt (vous ou votre gestionnaire) » ; masquer l'audience « agence » des onglets de /veille pour les profils non agence.
-- **Correction sans aval** : oui
 
 #### `DES-A-08` — Toutes les pages du propriétaire direct vivent sous l'adresse /agence/<id>/… (adresse visible, partagée, mise en favori)
 
@@ -494,132 +354,6 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Retirer « (facultatif) » des trois champs d'adresse de l'inscription et les rendre obligatoires, ou, sur « Mes lots » vide, remplacer le CTA par « Compléter mon profil pour créer un bien ». Choix produit ; les textes seuls sont sans aval.
 - **Correction sans aval** : non (aval du dirigeant requis)
 
-#### `DES-A-12` — Après une erreur de formulaire, le focus tombe sur <body> et les deux mots de passe sont vidés ; deux pages d'authentification partagent le même titre ; la 404 publique propose « Retour à mon espace »
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Visiteur non connecté, 390×844
-- **Étapes** : 1. /inscription : saisir deux mots de passe différents et envoyer. 2. /connexion : mauvais mot de passe. 3. Ouvrir /nouveau-mot-de-passe et /page-inexistante-x.
-- **Attendu** : Le focus va sur le message d'erreur ou le premier champ en défaut ; les champs sans erreur sont conservés ; chaque page a un titre propre ; la 404 d'un visiteur propose « Retour à l'accueil »
-- **Observé** : Inscription : alerte role=alert « Les deux saisies ne correspondent pas. » (bien annoncée), mais document.activeElement = BODY et les champs mot de passe/confirmation sont vides (nom, e-mail et CGU conservés). Connexion en échec : « Identifiants invalides. » et focus sur BODY. <title> « Connexion — Gerimmo » identique sur /connexion et /nouveau-mot-de-passe. 404 publique : bouton « Retour à mon espace ».
-- **Preuve expurgée (banc)** : etats/inscription-confirmation-differente-390.png ; etats/public-journal.json ; journaux/auto-public-390.json (titres identiques) ; avant/public/page-introuvable-390.png
-- **Cause probable** : Formulaires d'authentification (actions serveur sans gestion du focus) ; titres définis dans app/src/app/nouveau-mot-de-passe/page.tsx ; page not-found partagée
-- **Correction proposée** : Après erreur : focus() sur le conteneur role=alert (tabIndex -1) ; metadata.title = « Nouveau mot de passe — Gerimmo » ; libellé « Retour à l'accueil » quand il n'y a pas de session.
-- **Correction sans aval** : oui
-
-#### `DES-A-14` — Tablette (641-860 px) : le nom de l'espace du locataire est tronqué en « Par… » dans la cellule de logo du rail
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte locataire d'un propriétaire direct (« Parc de Claire Moreau »), viewport 768×1024
-- **Étapes** : Ouvrir /locataire/<id> à 768 px, lire le coin supérieur gauche
-- **Attendu** : Le nom de l'espace lisible ou remplacé par des initiales/le logo
-- **Observé** : Tuile blanche de 56 px avec « Par… » ; le nom complet n'apparaît nulle part sur l'écran (l'en-tête affiche seulement le nom du locataire). Même nom complet visible à 390 px et 1280 px.
-- **Preuve expurgée (banc)** : avant/locataire/accueil-768.png ; planches/p768-a.png
-- **Cause probable** : app/src/app/globals.css:1011-1013 (.loc-logo dans la bande tablette : le libellé n'est masqué que par endroits, le nom reste affiché sur 56 px)
-- **Correction proposée** : Dans la bande 641-860 px masquer le nom (display: none) comme à 1011-1013 et afficher les initiales, ou autoriser le nom en en-tête de page.
-- **Correction sans aval** : oui
-
-#### `DES-A-15` — Formulaire « Déclarer un incident » (propriétaire) : l'option d'urgence est coupée à 390 px (« …attendre quelques jour »)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte propriétaire, 390×844
-- **Étapes** : Ouvrir /agence/<id>/incidents/nouveau et lire le champ « Urgence » fermé
-- **Attendu** : Valeur affichée lisible en entier (un <select> ne retourne pas à la ligne)
-- **Observé** : « Normal — peut attendre quelques jour » : la fin du libellé est masquée par le chevron, le « s » de « jours » disparaît
-- **Preuve expurgée (banc)** : auto/proprietaire/agence-3c1d1e95-3570-400b-8012-44530be145b1-incidents-nouveau-390.png ; planches/p390-fin-inc.png
-- **Cause probable** : app/src/app/agence/[orgId]/incidents/nouveau/formulaire-incident.tsx:125 (libellé long) ; même schéma côté locataire formulaire-incident-locataire.tsx:371
-- **Correction proposée** : Raccourcir : « Normal — sous quelques jours » (ou « Normal — quelques jours ») ; garder le détail dans une aide sous le champ.
-- **Correction sans aval** : oui
-
-#### `DES-B-04` — Clients externes : « Archiver ce client » s'exécute au premier clic, sans confirmation, avec le style du bouton principal
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte artisan.alpha, module clients externes actif (banc), client de test « [TEST-designer-b] Client Nettoyage »
-- **Étapes** : 1. Ouvrir la fiche du client (390 px). 2. Appuyer une fois sur « Archiver ce client ».
-- **Attendu** : Action de rangement distinguée du bouton « Enregistrer les coordonnées » (secondaire ou danger) et confirmée, ou au minimum annonçant clairement sa réversibilité
-- **Observé** : Les deux boutons sont deux bandeaux bleu nuit pleine largeur identiques (min-h-14). Un clic envoie immédiatement l'archivage (1 POST, aucune boîte de confirmation) ; la fiche affiche « Archivé » et « Réactiver ce client » : l'action est réversible, mais rien ne le dit avant le clic.
-- **Preuve expurgée (banc)** : etats/client-fiche-avant-archivage-390.png ; etats/client-apres-archivage-390.png ; etats/clients-archive-journal.json
-- **Cause probable** : app/src/app/artisan/clients/[clientId]/page.tsx:11 (bouton d'archivage rendu avec la même classe que le bouton principal, sans confirmation)
-- **Correction proposée** : Passer « Archiver ce client » en secondaire (btn contour) et ajouter la phrase « Vous pourrez le réactiver à tout moment. » au-dessus ; une confirmation modale n'est utile que si la réactivation n'est pas immédiate
-- **Correction sans aval** : oui
-
-#### `DES-B-05` — Modules clients externes et règlements déclarés : composants hors charte (liens soulignés en guise de boutons, pastilles redondantes, liens de liste de 19 px)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte artisan.alpha, modules actifs (banc), 390 et 1280 px
-- **Étapes** : Ouvrir /artisan/clients, /artisan/devis/nouveau, /artisan/clients/<id>, /artisan/facturation
-- **Attendu** : Boutons, liens et en-têtes de la charte (cartes à icône, .btn-secondaire, cibles 44 px) ; une seule navigation
-- **Observé** : (1) Cinq pastilles « Clients externes · Nouveau chantier et devis · Agenda · Facturation · Exporter mon registre » en tête de chaque sous-page : elles répètent le menu latéral (1280 px) et la page courante y figure comme un lien comme un autre ; (2) « Rechercher » et « Choisir » sont des boutons-liens soulignés, sans fond ni bordure ; (3) les noms de clients de la liste sont des <a> en ligne : la classe min-h-12 est sans effet, hauteur mesurée 19 px (« [TEST-artisan] Idempotence ») ; (4) en tête de /artisan/facturation, le bloc « Mes règlements déclarés » liste les factures en liens soulignés cernés d'un filet, sans l'iconographie des autres cartes de la page ; (5) /artisan/clients est titré « Clients externes — Artisan » alors que le reste du portail dit « — Espace artisan », et /artisan/devis/nouveau et /artisan/clients/<id> gardent le titre générique « Espace artisan — Gerimmo ». Rec…
-- **Preuve expurgée (banc)** : etats/mesures-clients.json ; auto/artisan/artisan-clients-390.png ; auto/artisan/artisan-clients-1280.png ; auto/artisan/artisan-facturation-1280.png ; auto/artisan/artisan-agenda-390.png ; journaux/auto-artisan-1280.json (mesure.titre)
-- **Cause probable** : app/src/app/artisan/clients/elements.tsx:9-11 (NavigationPrivee) ; app/src/app/artisan/clients/page.tsx:7 (metadata) et :11 (liens min-h-12 en ligne, boutons underline) ; app/src/app/artisan/devis/nouveau/page.tsx (pas de metadata)
-- **Correction proposée** : Masquer NavigationPrivee à partir de 1024 px (le rail latéral suffit) ; remplacer `min-h-12 underline` par `inline-flex min-h-12 items-center underline` sur les liens de liste (cible 48 px) ; boutons « Rechercher » et « Choisir » en classe de bouton secondaire de la charte ; metadata « Clients externes — Espace artisan » et titres propres pour /devis/nouveau et /clients/<id>
-- **Correction sans aval** : oui
-
-#### `DES-B-06` — Artisan qui vient de s'inscrire : trois bandeaux au même sens et trois appels au dépôt d'une pièce sur la même page
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte neuf « [TEST-designer-b] Plomberie Neuve » (inscription par l'interface), 390x844
-- **Étapes** : 1. Terminer /artisan/inscription (fiche). 2. Observer /artisan/attestations à l'arrivée.
-- **Attendu** : Un seul message d'état, un seul appel principal
-- **Observé** : Bandeau orange du haut « Inscription en cours de validation par Gerimmo… », bandeau vert « Votre entreprise est inscrite. Déposez maintenant votre décennale… », bandeau orange « Votre inscription est examinée par Gerimmo. Elle ne sera validée qu'au vu de vos justificatifs. » ; puis le bouton « Déposer un document », cinq boutons « Déposer » et la carte « Prochaine action » : sept chemins pour la même action sur 2 400 px de page.
-- **Preuve expurgée (banc)** : etats/neuf/apres-inscription-390.png ; etats/neuf/inscription3-journal.json
-- **Cause probable** : app/src/app/artisan/layout.tsx:166 (bandeau d'attente de la coquille) ; app/src/app/artisan/attestations/page.tsx:32 (« Votre entreprise est inscrite… ») et :33 (« Votre inscription est examinée… »)
-- **Correction proposée** : Garder le bandeau de la coquille (valable sur toutes les pages) et le message de bienvenue de attestations/page.tsx:32 ; supprimer l'avertissement redondant de attestations/page.tsx:33
-- **Correction sans aval** : oui
-
-#### `DES-B-07` — Titres de page (<title>) incohérents dans l'espace artisan et la supervision
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Comptes artisan.alpha et superadmin, 1280 px
-- **Étapes** : Relever document.title des écrans de la matrice
-- **Attendu** : Un suffixe unique par espace
-- **Observé** : Super-admin : « — Gerimmo », « — Supervision », « — Supervision Gerimmo », « — Console Gerimmo » ; le détail d'une organisation (H1 « Agence Alpha ») s'intitule « Client — Gerimmo » ; /admin/brief/exploitation « Le point du matin — détail — Gerimmo ». Artisan : voir DES-B-05 (5).
-- **Preuve expurgée (banc)** : journaux/auto-superadmin-1280.json (mesure.titre) ; journaux/auto-artisan-1280.json
-- **Cause probable** : export const metadata de chaque page sous app/admin (suffixes écrits à la main)
-- **Correction proposée** : Un gabarit title `%s — Gerimmo` dans app/admin/layout.tsx (metadata.title.template) et suppression des suffixes locaux
-- **Correction sans aval** : oui
-
-#### `DES-B-08` — Super-admin sur mobile : résumés repliables de 20 à 28 px de haut, barre d'enregistrement collante qui masque le champ focalisé, bouton flottant hors repère
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte superadmin, 390x844
-- **Étapes** : 1. Ouvrir /admin/artisans, /admin/journaux, /admin/relais (résumés repliables, pagination). 2. Ouvrir /admin/publications/16606eda-… et appuyer sur Tab jusqu'à « Titre ».
-- **Attendu** : Cibles >= 44 px ; champ focalisé visible
-- **Observé** : (1) 11 écrans d'administration à 390 px portent des <summary> de 20 à 28 px de haut (« Refuser cette inscription » 324x20, « Suspendre la validation » 324x20, « Historique des réponses » 324x20, « Comprendre ces chiffres » 324x24) ; « Suivant » de la pagination du journal fait 47x20 et les liens de communes de /admin/couverture 14 px de haut. (2) Sur /admin/publications/<id>, le champ « Titre » (706-750) est entièrement recouvert par la barre collante « Enregistrer » (688-800, position sticky) quand il reçoit le focus au clavier : l'élément à son centre est button.btn-or de cette barre. (3) Le bouton fixe « Aide et retours » (a.fixed.z-30.size-11, 44x44) est hors de tout repère de page : axe signale la règle « region » (modérée) sur 81 relevés.
-- **Preuve expurgée (banc)** : journaux/auto-superadmin-390.json (mesure.ciblesMoins44Ex, clavier.masques) ; etats/sa-focus-titre-publication-390.png ; etats/sa-synthese-journal.json (bouton « Aide et retours »)
-- **Cause probable** : app/src/app/admin/publications/[id]/editeur-publication.tsx:230 (sticky bottom-[calc(72px+safe-area)] : le décalage de 72 px prévu pour une barre basse inexistante en administration) ; <summary class="cursor-pointer"> sans hauteur minimale (app/src/app/admin/**) ; bouton flottant sans repère
-- **Correction proposée** : editeur-publication.tsx:230 → ajouter `scroll-mt`/`scroll-padding-bottom` : sur le formulaire `scroll-padding-bottom: 140px` (hauteur de la barre + marge) pour que le focus s'aligne au-dessus ; `summary { min-height: 44px; display: flex; align-items: center }` dans la feuille d'admin ; envelopper le bouton flottant dans <aside aria-label="Aide">
-- **Correction sans aval** : oui
-
-#### `DES-B-09` — Compte artisan : « toutes les agences » dans la page Sécurité du compte (vocabulaire d'agence dans la V1)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte artisan.alpha
-- **Étapes** : Ouvrir /compte
-- **Attendu** : Aucune notion d'agence dans le parcours artisan de la V1 (propriétaires bailleurs et artisans)
-- **Observé** : « L'adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte auprès de toutes les agences. » ; /assistance affiche aussi « l'administrateur de l'agence concernée » (DES-A-07). Les cartes d'intervention montrent le nom de l'organisation cliente (« Agence Alpha ») : c'est une donnée du banc, pas un libellé.
-- **Preuve expurgée (banc)** : journaux/auto-artisan-1280.json (mesure.mentionsAgence, /compte et /assistance)
-- **Cause probable** : app/src/app/compte/page.tsx:158 (branche estArtisan)
-- **Correction proposée** : « … elle identifie votre compte auprès de tous vos clients. Pour la modifier, écrivez-nous depuis Aide et retours. »
-- **Correction sans aval** : oui
-
 #### `DES-B-10` — Logo doré quasi illisible sur l'en-tête blanc : artisan à 768 px et super-admin à 390 et 768 px (même défaut que DES-A-10)
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -632,20 +366,6 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Preuve expurgée (banc)** : auto/artisan/artisan-devis-768.png ; auto/superadmin/admin-768.png ; auto/superadmin/admin-390.png
 - **Cause probable** : En-têtes blancs des coquilles artisan (≥ 641 px) et admin (≤ 900 px) avec le logo doré posé à nu ; voir DES-A-10
 - **Correction proposée** : Même tuile bleu nuit que l'inscription artisan : `rounded-xl bg-[#152f4b] px-3 py-1` autour de <MarqueGerimmo surEncre /> (cf. artisan/layout.tsx:47, déjà utilisée pour la version sans session)
-- **Correction sans aval** : oui
-
-#### `DES-B-11` — Super-admin, Relais : le bandeau « Habilitation perdue : tâches bloquées » est posé en ligne sur le texte qui le précède, et chevauche l'adresse du responsable à 390 px
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte superadmin, 390x844, un plan de vacances dont le responsable a perdu son habilitation (donnée du banc)
-- **Étapes** : Ouvrir /admin/relais et lire la carte du plan « [TEST-superadmin] Vacances essai — version 1 »
-- **Attendu** : Le signalement forme sa propre ligne sous « Responsable : … »
-- **Observé** : L'adresse sa.relais.test@gerimmo-demo.fr passe à la ligne ; le filet rouge de gauche et le fond rosé du <strong class="err"> en ligne viennent se placer contre « demo.fr » et sur sa ligne (recadrage 2x). Plus bas, la phrase « …remontée au créateur du plan après 1 minutes » est affichée au pluriel sur la build servie ; la source actuelle (vacances.tsx:12) gère déjà le singulier : à revérifier sur la prochaine build.
-- **Preuve expurgée (banc)** : auto/superadmin/admin-relais-390.png ; etats/relais-recadrage-390.png
-- **Cause probable** : app/src/app/admin/relais/vacances.tsx:12 (<strong className="err"> … Habilitation perdue : tâches bloquées</strong> rendu dans la même ligne, classe .err avec filet et fond)
-- **Correction proposée** : vacances.tsx:12 → `<strong className="err block mt-1">Habilitation perdue : tâches bloquées</strong>` (sans le tiret cadratin)
 - **Correction sans aval** : oui
 
 #### `DES-B-12` — HORS V1 PUBLIQUE — espaces administrateur d'agence et agent : défauts transversaux déjà connus et petites cibles sur la recherche
@@ -661,6 +381,91 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Cause probable** : globals.css (barre basse de .coquille-basse, sans scroll-padding, cf. DES-A-01) ; bouton .recherche-ouvrir (min-height 43 px) ; app/src/lib/reprise-soldes.ts (libellé de code)
 - **Correction proposée** : Appliquer le correctif de DES-A-01 ; `.recherche-ouvrir { min-height: 44px }` ; libellé « Dépôt de garantie » à la place du code dans l'aide de saisie
 - **Correction sans aval** : oui
+
+#### `IA-06` — L'arrêt d'urgence ne couvre pas le traitement immédiat du webhook Yousign ; la clé 'sauvegarde' n'a aucun lecteur (confirmation par lecture de SUP-07)
+
+- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Arrêt global actif
+- **Étapes** : 1. Lire youtrust/webhook/route.ts:49-57 et signatures/route.ts:45 ; 2. Rechercher verifier_arret dans .github et app/scripts
+- **Attendu** : Aucun nouvel effet après un arrêt d'urgence
+- **Observé** : Constat statique : le webhook appelle traiterEvenementSignature sans avantEffet (téléverse des PDF signés et finalise la signature) alors que le cron le passe ; aucune occurrence de verifier_arret dans le workflow de sauvegarde ni dans ses scripts. Complète AUD-C-05 et SUP-07 ; le webhook Yousign est inactif tant que Youtrust n'est pas en production.
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-06)
+- **Cause probable** : app/src/app/api/youtrust/webhook/route.ts:51-56 ; .github/workflows/sauvegarde.yml
+- **Correction proposée** : Passer () => verifierAvantEffet(supabase, 'signatures') au traitement immédiat ; faire lire la clé 'sauvegarde' par le workflow ou retirer la clé de l'écran (D2)
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-07` — Des éléments d'automatisation existent sans écrivain ni appelant : automation_events, log_automation_event, automation_stats_30d, autoriser_orchestration
+
+- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Code au commit 83ba492
+- **Étapes** : Rechercher ces noms dans app/src et dans les migrations postérieures à 20260922120000
+- **Attendu** : Une automatisation annoncée est branchée, ou son état 'préparé' est dit
+- **Observé** : Constat statique : aucune occurrence dans app/src ; aucun écrivain en SQL après la migration d'origine ; le taux d'automatisation affiché vient de tech_log (automatisation.ts). mode='automatique' d'orchestration_cases est un libellé : la file n'exécute rien.
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-07)
+- **Cause probable** : app/supabase/migrations/20260922120000_autonomie_v3.sql:48-110,143-158
+- **Correction proposée** : Décider : alimenter automation_events par les passages (utile pour le registre d'exécution des équipes IA) ou documenter 'préparé, non alimenté'
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-09` — La tâche territoire peut préparer une campagne-idée 'essai avec des agences', alors que les agences sont hors du périmètre public V1
+
+- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Un département avec au moins 20 agences, un ratio agences/logements >= 0,001, la porte de santé ouverte
+- **Étapes** : 1. Lire score-territoire.ts:65-73 et territoire/route.ts:185-191 ; 2. Lire 20260922223000_preparer_recrutement_territorial.sql
+- **Attendu** : Aucune préparation visant un public hors V1 sans aval
+- **Observé** : Constat statique : prioriteTerritoriale peut rendre 'agences' ; preparer_recrutement_territorial crée alors une ligne marketing_campagnes au statut 'idee', budget 0 (brouillon interne, aucune diffusion). Effet non rejoué. Voir EDI-01.
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-08/09)
+- **Cause probable** : app/src/lib/score-territoire.ts:69-70
+- **Correction proposée** : Exclure 'agences' de la priorité tant que le périmètre V1 l'exclut, ou la garder explicitement marquée 'hors V1' (décision du dirigeant)
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-10` — La page wiki 'Gerimmo en autonomie' est périmée : 4 tâches quotidiennes, 'vercel.json ne fixe aucune région', ronde quotidienne 'à armer'
+
+- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Wiki au commit 83ba492
+- **Étapes** : 1. Lire wiki/syntheses/Gerimmo en autonomie.md (lignes 77, 163-169, 225) ; 2. Lire app/vercel.json:3-5 et 6-51 ; 3. Lire wiki/regles-metier/Registre des traitements.md (région cdg1 fixée le 20/09)
+- **Attendu** : Le wiki décrit l'état du code ou signale ce qui a changé
+- **Observé** : La page (statut draft, mise à jour 29/09) contredit le code (11 tâches, région cdg1) et le Registre des traitements.
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-10)
+- **Cause probable** : Page non remise à jour après les évolutions des 20 au 29/09
+- **Correction proposée** : Mettre à jour la page ou la marquer 'historique', avec renvoi vers propositions.md une fois le dirigeant d'accord
+- **Correction sans aval** : oui
+
+#### `IA-11` — Aucun registre d'exécution n'a de règle de rétention (agent_passages, supervision_operations, points_du_matin, decisions_du_matin, brief_direction_snapshots)
+
+- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Code au commit 83ba492
+- **Étapes** : 1. Rechercher les suppressions de ces tables dans les migrations ; 2. Lire appliquer_retention (20260927142000_conservation_depuis_fin_du_contrat.sql:160-266)
+- **Attendu** : Chaque journal a une durée de conservation écrite (Registre des traitements)
+- **Observé** : Constat statique : seuls tech_log, acces_pieces_log, audit_log, alertes fermées et certains documents sont purgés. Les nouveaux registres des équipes IA devraient avoir une règle dès leur création. Voir SUP-05 pour les instantanés (données nominatives).
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-11)
+- **Cause probable** : app/supabase/migrations/20260728_sprint1_ged_alertes_retention.sql:155-172 (règles) ; fonction appliquer_retention
+- **Correction proposée** : Ajouter une règle par registre (par exemple 12 mois) validée avec le dirigeant ; source CNIL des durées : non consultée
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `IA-12` — Hypothèse à vérifier : les textes et visuels produits avec l'IA et publiés sur le site et Facebook ne portent aucune mention d'origine
+
+- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Un post de veille ou un visuel généré est publié
+- **Étapes** : 1. Rechercher une mention d'origine IA dans app/src/app/journal, app/src/app/veille, facebook.ts, contenu-marketing.ts ; 2. Lire § 7 de propositions.md (règlement 2024/1689, art. 50)
+- **Attendu** : L'obligation de transparence éventuellement applicable est qualifiée et respectée
+- **Observé** : Constat statique : aucune mention. Selon la Commission européenne (page non ouverte, résultat de recherche), les obligations de l'article 50 s'appliquent à partir du 2 août 2026, avec un délai de grâce pour le marquage évoqué dans le paquet 'Omnibus IA' dont le statut est à vérifier. Qualification juridique non faite.
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-12) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/propositions.md § 7
+- **Cause probable** : Conception : aucun libellé 'illustration générée' dans components/image-journal.tsx ni dans la page article
+- **Correction proposée** : Faire qualifier l'obligation (D9), puis ajouter si nécessaire une mention et un marquage lisible par machine
+- **Correction sans aval** : non (aval du dirigeant requis)
+- **Reproduction** : hypothèse à vérifier, non reproduite
 
 #### `PROP-05` — Nom d'espace sans élision : « Parc de Éloïse … »
 
@@ -1121,62 +926,6 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Libeller 'Blocage demandé' / 'Blocage échoué' et conserver la cause technique expurgée dans details
 - **Correction sans aval** : non (aval du dirigeant requis)
 
-#### `VER-PR178-02` — Session expirée puis autre compte dans le même navigateur : les copies du compte précédent (identité, brouillon de lot) restent sur l'appareil tant que le nouveau compte n'ouvre pas la fiche personne…
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Deux comptes propriétaires créés par l'interface ; A a saisi une fiche personne (IndexedDB) et un brouillon de lot (localStorage) ; la session de A expire sans clic sur « Se déconnecter » (cookies supprimés)
-- **Étapes** : 1. Connecter B dans le même navigateur ; 2. Lire localStorage et indexedDB sur la page d'arrivée de B, puis sur /parc/nouveau ; 3. Ouvrir /personnes#creer-fiche
-- **Attendu** : « Un compte qui ouvre un formulaire efface celles des autres comptes » (message et commentaire de copies-locales.ts) : les copies de A disparaissent dès la première page de B
-- **Observé** : Copies de A présentes à l'arrivée de B et sur parc/nouveau ; effacées seulement à l'ouverture de la fiche personne. Le texte affiché « sinon elles sont supprimées au bout de 7 jours » est inexact pour le brouillon de lot et le devis (l'expiration n'est évaluée qu'à la relecture de la même clé). Recoupe PR178-A-01 et PR178-A-07 (marquées corrigées) : la correction ne couvre que le chemin « déconnexion cliquée »
-- **Preuve expurgée (banc)** : preuves/verification/pr178/purge2.txt
-- **Cause probable** : app/src/components/reprise-locale/index.tsx:17 est le seul appelant de purgerCopiesAutresComptes ; brouillon-bien (formulaire-avec-brouillon.tsx) et devis (formulaire-avec-reprise.tsx) ne purgent rien
-- **Correction proposée** : Appeler purgerCopiesAutresComptes(compteCourant) et l'équivalent IndexedDB depuis un composant présent sur toutes les pages connectées (menu du compte), pas seulement depuis RepriseLocale ; ou corriger le texte. La durée de conservation reste à trancher (déjà au registre).
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `VER-PR178-03` — Stockage IndexedDB refusé : après une fiche créée et confirmée, l'alerte « Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement » reste affichée (résidu de PR178-A-08)
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : IndexedDB refusée (simulation) ; fiche personne créée avec succès
-- **Étapes** : 1. Ouvrir /agence/<org>/personnes#creer-fiche avec indexedDB.open en erreur ; 2. Créer une fiche jusqu'au bout ; 3. Lire les alertes de la page
-- **Attendu** : Plus aucune alerte « jusqu'à confirmation » une fois la fiche confirmée (correction A-08)
-- **Observé** : Le statut de la copie est bien remis à zéro, mais l'alerte de lecture « La copie sur cet appareil est indisponible. Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement. » (role alert) persiste après « 3 fiches »
-- **Preuve expurgée (banc)** : preuves/verification/pr178/idb-refuse.txt
-- **Cause probable** : app/src/components/reprise-locale/index.tsx:41 : lecture.erreur est affichée tant que RepriseLocale est monté, indépendamment de l'état « terminée » de la fiche
-- **Correction proposée** : Effacer lecture.erreur dès que useCopieFichiers passe à « vide » après un envoi confirmé (callback ou état remonté depuis le formulaire).
-- **Correction sans aval** : oui
-
-#### `VER-PR178-04` — Reprise d'une saisie après session expirée : l'ancien message « Votre session a expiré… » est réaffiché alors que la personne s'est reconnectée
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte A ; fiche personne au récapitulatif ; cookies supprimés ; clic sur « Créer la fiche » ; reconnexion dans un autre onglet
-- **Étapes** : 1. Recharger l'onglet ; 2. « Reprendre ma saisie » ; 3. Aller au récapitulatif
-- **Attendu** : Saisie reprise sans message d'erreur périmé
-- **Observé** : Le récapitulatif affiche encore « Votre session a expiré : cette saisie n'a pas été enregistrée… » ; le bouton fonctionne et un seul envoi crée une seule fiche (persons 1 -> 2)
-- **Preuve expurgée (banc)** : preuves/verification/pr178/fiche-expire2.txt
-- **Cause probable** : app/src/app/agence/[orgId]/personnes/formulaire-personne.tsx : le snapshot de copie locale embarque l'état (bilan avec erreur) ; la reprise le rejoue tel quel
-- **Correction proposée** : Ne pas persister (ou retirer à la reprise) l'erreur MESSAGE_SESSION_EXPIREE du bilan mémorisé.
-- **Correction sans aval** : oui
-
-#### `VER-PR178-05` — La purge des copies locales part au clic sur « Se déconnecter », avant que la déconnexion ait réussi : hors ligne, la copie est effacée alors que la session reste ouverte
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte A, fiche personne en cours de saisie, copie IndexedDB présente, réseau coupé juste avant le clic
-- **Étapes** : 1. Saisir nom et prénom (copie écrite) ; 2. Ouvrir le menu du compte, couper le réseau (Playwright setOffline) ; 3. Cliquer « Se déconnecter »
-- **Attendu** : La copie n'est effacée qu'une fois la déconnexion confirmée ; en cas d'échec la personne garde sa saisie et sa copie
-- **Observé** : indexedDB.databases() vide, URL inchangée (session toujours ouverte), écran « Cette page n'a pas pu s'afficher » : la saisie est perdue en mémoire et sur l'appareil. Avant la correction (main-178) la copie aurait survécu. L'écran d'erreur sur échec de seDeconnecter existait déjà ; c'est l'effacement préalable qui rend la perte définitive
-- **Preuve expurgée (banc)** : preuves/verification/pr178/logout-hors-ligne.txt ; preuves/verification/pr178/logout-hors-ligne.png
-- **Cause probable** : app/src/components/purger-copies-a-la-deconnexion.tsx:13-16 écoute « submit » du formulaire de déconnexion et purge immédiatement
-- **Correction proposée** : Purger après réussite : faire rediriger seDeconnecter vers /connexion?raison=deconnecte et purger à l'arrivée sur cette adresse (aucun effet si l'action échoue ; couvre aussi une déconnexion faite depuis un autre onglet).
-- **Correction sans aval** : oui
-
 #### `VER-PR178-06` — Hypothèse à vérifier : le brouillon local de la grille d'état des lieux (gerimmo-edl-brouillon-<id>) n'est ni effacé à la déconnexion ni rattaché à un compte ni limité dans le temps
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -1192,34 +941,6 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Reproduction** : hypothèse à vérifier, non reproduite
 
-#### `VER-PR178-07` — Si sessionStorage est refusé par le navigateur, toute l'application et la page de connexion affichent « Cette page n'a pas pu s'afficher » (code antérieur aux corrections, relevé en testant l'indispo…
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Chromium, propriété window.sessionStorage qui lève SecurityError (simulation de « bloquer tous les cookies et données de site ») ; non reproduit dans une vraie fenêtre privée, où le stockage est disponible
-- **Étapes** : 1. Définir le refus avant le chargement ; 2. Ouvrir /connexion ou n'importe quelle page de l'espace connecté
-- **Attendu** : Une page dégradée mais utilisable, comme avec localStorage ou IndexedDB refusés (EX-12)
-- **Observé** : Écran d'erreur partout, connexion impossible ; localStorage seul et indexedDB seul refusés : aucun problème
-- **Preuve expurgée (banc)** : preuves/verification/pr178/stockage-refuse2.txt ; preuves/verification/pr178/stockage-refuse-connexion.png
-- **Cause probable** : app/src/components/synthese-alertes.tsx:84 et :99 (sessionStorage.getItem/setItem sans try/catch dans un effet) ; app/src/app/connexion/formulaire-connexion.tsx:76 (removeItem sans protection)
-- **Correction proposée** : Envelopper ces trois accès dans try/catch (le drapeau « alertes déjà vues » devient alors non mémorisé). Sévérité à réévaluer si un navigateur réel reproduit le refus.
-- **Correction sans aval** : oui
-
-#### `VER-SECURITE-01` — La purge de déconnexion annoncée par la correction PR178-A-01 laisse les brouillons d'état des lieux (et la quittance de l'outil public) sur l'appareil, et le changement de compte ne les purge pas no…
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : securite (vérificateur adverse) (verification/securite) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Navigateur partagé ; un utilisateur saisit une grille d'état des lieux (auto-sauvegarde locale, RM-19.1.1) puis se déconnecte par le menu compte
-- **Étapes** : 1) saisir des états et commentaires dans la grille EDL ; 2) cliquer « Se déconnecter » (le formulaire déclenche purgerCopiesLocales) ; 3) lire localStorage ; 4) ouvrir un formulaire avec un autre compte (purgerCopiesAutresComptes)
-- **Attendu** : Toutes les copies de saisie gardées sur l'appareil disparaissent à la déconnexion (promesse de src/lib/copies-locales.ts, en-tête) ; les copies d'un autre compte sont purgées à l'ouverture d'un formulaire
-- **Observé** : Reproduit avec les vraies fonctions du dépôt sur un stockage simulé : avant = 4 clés (brouillon de bien, devis, EDL, gerimmo_quittance) ; après déconnexion il reste 'gerimmo-edl-brouillon-<edlId>' et 'gerimmo_quittance' ; après purgerCopiesAutresComptes('compteB') : 0 purgée, mêmes 2 clés. Cause : la purge ne cible que le préfixe 'gerimmo:' ; l'EDL utilise 'gerimmo-edl-brouillon-' (tiret, sans compte dans la clé) et l'outil public 'gerimmo_quittance' (souligné). Contenu EDL : états par ligne + commentaires libres (observations sur le logement, parfois des noms) ; le brouillon est relu tel quel par le compte suivant qui ouvre le même EDL. Autres chemins de fin de session sans purge : changement de mot de passe (auth.ts:120), suppression de compte (compte.ts:66), expiration de session (proxy.ts:179) — la purge n'est branchée que sur 4 formulaires de déconnexion.
-- **Preuve expurgée (banc)** : preuves/verification/securite/purge-deconnexion.sortie.txt (test temporaire tests/zz-verif-securite.test.ts, supprimé) ; lecture de src/lib/edl-brouillon.ts:51, src/lib/outils/quittance.ts:93, src/lib/copies-locales.ts
-- **Cause probable** : src/lib/copies-locales.ts : purgerCopiesLocales filtre k.startsWith('gerimmo:') ; src/lib/edl-brouillon.ts:51 clé 'gerimmo-edl-brouillon-'; src/lib/outils/quittance.ts:93 clé 'gerimmo_quittance'
-- **Correction proposée** : Minimale : dans purgerCopiesLocales, purger toute clé commençant par 'gerimmo' (':' , '-' ou '_') et supprimer aussi 'gerimmo-edl-brouillon-*' au changement de compte (ou ajouter le compte à la clé EDL) ; test : après purge, aucune clé 'gerimmo*' ne subsiste
-- **Correction sans aval** : oui
-
 #### `VER-SECURITE-02` — Un artisan ayant une mission (ou une sollicitation ouverte) dans une organisation peut écrire n'importe quel chemin sous le dossier de cette organisation dans le compartiment documents
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -1234,105 +955,6 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Restreindre le with check au gabarit '<org>/<intervention\|sollicitation>/%' ou à la fonction dossiers_de_mes_factures_a_deposer ; test : insertion hors gabarit refusée
 - **Correction sans aval** : non (aval du dirigeant requis)
 
-#### `VER-SQL-01` — 20261013120000 n'est pas rejouable sans effet : un rejeu hors transaction duplique la garde de definir_equipements_lot puis s'arrête sur AUD-A-02
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse sql (verification/sql) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Base déjà migrée par 20261013120000.
-- **Étapes** : psql -v ON_ERROR_STOP=1 -f 20261013120000_correctifs_audit_13_octobre.sql sur la base migrée (sans begin/commit).
-- **Attendu** : Rejeu sans effet, ou refus avant toute modification (l'en-tête promet « la migration s'arrête et ne change rien »).
-- **Observé** : Le bloc AUD-A-01 ne reconnaît pas qu'il est déjà appliqué (son ancre « raise exception 'Accès refusé'; end if; if exists ( » est encore présente une fois, à la fin du texte ajouté) : il réécrit la fonction avec une seconde garde de portefeuille (hachage de définition différent), puis AUD-A-02 s'arrête (« ancre 1 absente ou répétée »). Dans la transaction unique de migrations.yml, rien ne subsiste (vérifié) et la version déjà enregistrée est refusée en amont : le risque est limité à un rejeu manuel.
-- **Preuve expurgée (banc)** : preuves/verification/sql/cat_rejeu_120.txt ; rejeu_atomique.txt ; rejeu_derive.txt
-- **Cause probable** : 20261013120000_correctifs_audit_13_octobre.sql, bloc AUD-A-01 : l'ancre ne contient pas de marqueur propre au correctif (les autres blocs, eux, s'arrêtent au rejeu).
-- **Correction proposée** : Dans chaque bloc, ajouter en tête « if position('Audit du 13/10 (AUD-A-01)' in v_def) > 0 then return; end if; » (rejeu sans effet) ; ou corriger l'en-tête (« ne change rien » vaut pour la transaction du chantier, pas pour un psql nu).
-- **Correction sans aval** : oui
-
-#### `VER-SQL-02` — supprimer_detention : deux suppressions simultanées de la même détention laissent deux lignes d'audit pour une seule suppression
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse sql (verification/sql) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Une détention sans bail ; deux gestionnaires (ou un double clic) appellent supprimer_detention en même temps.
-- **Étapes** : Session A : begin ; select supprimer_detention(d). Session B (autre compte) : select supprimer_detention(d) (attend le verrou de ligne) ; A : commit.
-- **Attendu** : Une seule trace pour une seule suppression (ou un refus « Détention introuvable » pour B).
-- **Observé** : B réussit sans erreur et a écrit sa propre ligne 'detention_supprimee' : 2 lignes d'audit, 1 détention supprimée. Le select initial et l'insert d'audit ne verrouillent pas la ligne ; seul le delete attend, puis supprime 0 ligne.
-- **Preuve expurgée (banc)** : preuves/verification/sql/harness_apres.jsonl (A04-concurrence-deux-suppressions)
-- **Cause probable** : 20261013120000, bloc AUD-A-04 : insert ... select ... from detentions where id = p_detention, puis delete, sans verrou ni test du nombre de lignes supprimées.
-- **Correction proposée** : Remplacer les deux ordres par un seul : with d as (delete from public.detentions where id = p_detention returning *) insert into public.audit_log (...) select ... from d — la trace ne s'écrit que pour une ligne réellement supprimée.
-- **Correction sans aval** : oui
-
-#### `VER-SQL-03` — REP-01 : un second envoi identique est sans effet en base mais l'action TypeScript renvoie un succès et prévient de nouveau l'artisan
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse sql (verification/sql) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Locataire avec une contre-proposition déjà en attente ; il renvoie la même liste (réponse perdue, double clic).
-- **Étapes** : 1. contre_proposer_creneaux(L) deux fois de suite (harnais REP01-double-envoi-identique) : les deux appels renvoient 3, aucun indice du « sans effet ». 2. Lecture de proposerMesCreneaux (incidents-locataire.ts:130-150) : après la RPC, notifierEnCoulisses(... notifierContrePropositionLocataire) est appelée sans condition ; expedier() est appelée sans cleIdempotence.
-- **Attendu** : Le second envoi ne déclenche pas de second e-mail à l'artisan (le but de REP-01 est qu'il ne se passe « rien »).
-- **Observé** : Base : conforme (REP01-double-envoi-identique). Notification : l'e-mail « Le locataire propose d'autres créneaux » repart à chaque envoi — déduit du code, non exécuté (aucune clé Resend sur le banc).
-- **Preuve expurgée (banc)** : preuves/verification/sql/harness_apres.jsonl (REP01-double-envoi-identique : retours=3,3) ; lecture src/app/actions/incidents-locataire.ts:130-150 et src/lib/notifications.ts:1032-1060
-- **Cause probable** : La fonction SQL renvoie v_nb dans les deux cas ; l'action TypeScript ne peut pas distinguer le rejeu.
-- **Correction proposée** : Faire renvoyer à la fonction une valeur distincte pour le rejeu (par exemple 0, ou un second champ) et ne notifier que si un nouveau tour a été créé ; ou passer une cleIdempotence dérivée de (intervention, tour) à expedier().
-- **Correction sans aval** : oui
-- **Reproduction** : hypothèse à vérifier, non reproduite
-
-#### `VER-SQL-04` — SUP-08 : si le créateur du plan perd lui aussi son habilitation, l'alerte escaladée vers lui reste « escalade » alors qu'elle n'est acheminée à personne
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse sql (verification/sql) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Plan de vacances actif (responsable R, créateur C) ; alerte ouverte puis escaladée vers C ; R puis C perdent leur habilitation ; traiter_vacances() est rappelée.
-- **Étapes** : harness_sup08.mjs sur gerimmo_verif_sql_s8avant et gerimmo_verif_sql_s8apres.
-- **Attendu** : Une alerte dont le destinataire n'est plus habilité devient « non_acheminee » (c'était le cas avant, par effet de bord du filtre trop large).
-- **Observé** : Avant : étape 3 -> non_acheminee ; après : étape 3 -> escalade (le filtre « destinataire is not distinct from p.responsable » ne vise plus le créateur, et la boucle finale ne revisite que les alertes « ouverte »).
-- **Preuve expurgée (banc)** : preuves/verification/sql/sup08_avant_apres.txt
-- **Cause probable** : 20261013120000, bloc SUP-08 : condition destinataire = responsable ; aucune condition sur l'habilitation du destinataire.
-- **Correction proposée** : Étendre la condition : « and (destinataire is not distinct from p.responsable or not public.responsable_supervision_habilite(destinataire)) ». Cas rare (deux perdent leur droit en même temps), borné au journal interne de la direction.
-- **Correction sans aval** : oui
-
-#### `VER-TS-01` — Une date de naissance de forme AAAA-MM-JJ impossible (2024-13-45) fait lever l'action serveur : erreur 500 et message sans rapport au lieu de « date de naissance non valide »
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Propriétaire direct connecté, fiche d'un locataire ouverte (« Modifier la fiche »), champ date modifié par outil de développement (le sélecteur de date du navigateur n'envoie jamais cette forme) ; mêmes appels : création de personne, résolution du locataire d'un bail
-- **Étapes** : 1. Ouvrir /agence/<org>/personnes/<id> puis « Modifier la fiche ». 2. Compléter adresse, code postal, ville, commune. 3. Passer le champ date en texte et saisir 2024-13-45. 4. Enregistrer.
-- **Attendu** : « La date de naissance n'est pas valide. » sous le champ, saisie conservée
-- **Observé** : POST 500 ; l'écran affiche « La confirmation n'a pas pu être reçue. Votre saisie reste dans cette page. Vérifiez le dossier avant de recommencer l'envoi. » ; le champ date est vidé ; aucune écriture (fiche inchangée en base). Au niveau fonction : RangeError: Invalid time value pour 2024-13-45, 2024-00-00, 1990-99-99
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-naissance.mjs ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-naissance-2024-13-45.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-naissance-etat-base.txt ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/resultats-vitest.json (C.naissance)
-- **Cause probable** : app/src/lib/validation-fiches.ts, verifierDateNaissance : new Date(`${d}T00:00:00Z`).toISOString() sans contrôle Number.isNaN ; verifierDateDejaPassee (saisie-montant.ts) a ce contrôle, pas celle-ci
-- **Correction proposée** : Calculer const t = new Date(...) puis exiger !Number.isNaN(t.getTime()) avant toISOString ; ajouter les cas 2024-13-45 et 1990-99-99 à tests/validation-fiches.test.ts
-- **Correction sans aval** : oui
-
-#### `VER-TS-03` — L'élision « d’octobre » n'est appliquée que sur la page d'accueil locataire : e-mails, page Documents du locataire, PDF de décompte et libellés d'agenda disent encore « de octobre », « de avril », «…
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Période d'octobre, d'avril ou d'août ; e-mails de relance, de quittance, d'avis d'échéance, d'information de la caution
-- **Étapes** : Rendre sujetRelanceLoyer, corpsQuittance, corpsAvisEcheance, corpsRelanceLoyer, corpsInformationCaution pour 2026-10-01 et 2026-04-01
-- **Attendu** : « Loyer d’octobre 2026 », « votre échéance d’avril 2026 »
-- **Observé** : 12 occurrences fautives sur 2 périodes : « Loyer de octobre 2026 — un règlement semble en attente » (sujet), « loyer de octobre 2026 », « quittance de loyer de avril 2026 », « échéance de avril 2026 ». Même motif dans le code (non vérifié au navigateur) : locataire/[orgId]/documents/page.tsx:301 (« la quittance de octobre 2026 »), agenda/page.tsx:155 et agenda-proprietaire.tsx:78,87 (aria-label), lib/documents/modeles/decompte-restitution.ts:211 (« Terme de octobre 2026 » dans le PDF), fil-activite.tsx:174 et mandats/page.tsx:204 (agence). PROP-05 (nom d'espace « Parc de Éloïse », construit en SQL) reste ouverte et l'en-tête de elision.ts la présente comme traitée
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/resultats-vitest.json (I.*) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/zz-verif-ts.test.ts.copie
-- **Cause probable** : app/src/lib/relance-loyer-email.ts:59,71,72,78 ; quittance-email.ts:65 ; appel-email.ts:65 (« de ${mois} » écrit à la main) ; deElide n'est importé que par app/locataire/[orgId]/page.tsx
-- **Correction proposée** : Utiliser deElide(mois) dans ces gabarits (chaîne « de » + mois) et dans les autres sites listés ; corriger le commentaire de elision.ts ; PROP-05 reste à traiter dans la fonction SQL de création du parc
-- **Correction sans aval** : oui
-
-#### `VER-TS-04` — Récapitulatif fiscal nu : « Périmètre : N écritures » compte des pièces écartées (période meublé ou hors de mes droits) sans le dire
-
-- **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Exercice du lot avec deux périodes, nu de janvier à juin puis meublé de juillet à décembre ; 12 loyers encaissés
-- **Étapes** : Générer recap_fiscal_nu pour l'année
-- **Attendu** : Mention de ce qui est exclu, ou périmètre égal aux pièces comptées
-- **Observé** : 211 = 4 680 (6 loyers de 780), mais le texte dit « Périmètre : 12 écritures enregistrées » et ne mentionne pas les 6 mois exclus ; le lecteur ne voit pas que la moitié des loyers est hors du tableau
-- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/resultats-vitest.json (G5.*)
-- **Cause probable** : app/src/lib/documents/modeles/catalogue-gestion.ts, ligne du contenu « Périmètre : ${ecritures.length} écritures » : ecritures.length compte toutes les écritures du lot, pas fiscal.nbEcritures
-- **Correction proposée** : Afficher fiscal.nbEcritures et, si fiscal.meuble.nbEcritures > 0 ou des périodes hors périmètre existent, une phrase les citant
-- **Correction sans aval** : oui
-
 #### `VER-TS-05` — Récapitulatif fiscal nu : à partir de 1 000 lignes fiscales dans l'organisation, le document est refusé avec un message trompeur (« Réduisez la période »), même pour un lot de 3 loyers
 
 - **Sévérité** : P3 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
@@ -1345,6 +967,90 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/resultats-vitest.json (G6.*)
 - **Cause probable** : app/src/lib/documents/modeles/catalogue-gestion.ts (bloc recap_fiscal_nu) : lire('fiscal_qualifications_ecritures') et lire('fiscal_encaissements_composantes') sans filtre de lot ni d'année, sous la garde lireLignes (≥ 1000)
 - **Correction proposée** : Borner ces deux lectures aux ecriture_id du lot et de l'année (filtre in sur les identifiants déjà lus) ; seuil atteint seulement pour de grands comptes, donc non bloquant en V1
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `ARC-01` — Échec du rendu PDF du devis externe : message technique brut (variable d environnement) montré à l artisan
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-erreurs.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Module clients externes activé ; chantier externe avec devis v1 brouillon ; serveur sans Chrome (banc)
+- **Étapes** : 1. /artisan/chantiers/<id> 2. Cliquer « Valider cette version et générer le PDF »
+- **Attendu** : Message métier compréhensible avec référence de support (comme les autres générations de documents : « La génération du document a échoué (réf. DOC-…) »)
+- **Observé** : « Chrome introuvable pour le rendu PDF : installez Google Chrome ou renseignez GERIMMO_CHROME. » affiché tel quel (nom de variable d environnement) ; toute autre erreur du rendu serait aussi recopiée brute
+- **Preuve expurgée (banc)** : scripts/p9.mjs (sortie du message) ; captures/c03-devis-v1.png
+- **Cause probable** : app/src/app/artisan/clients/actions.ts : le catch final renvoie e.message sans filtrer ; app/src/lib/documents/rendu.ts lève ce texte technique
+- **Correction proposée** : Dans enregistrerActivitePrivee, intercepter les erreurs de rendu (rendrePdf) et renvoyer un message métier avec référence, comme le reste des documents
+- **Correction sans aval** : oui
+
+#### `ARC-03` — Agenda : l état du chantier externe est affiché avec son code interne (« planifie »)
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-affichage.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Chantier externe planifié
+- **Étapes** : Ouvrir /artisan/agenda
+- **Attendu** : Libellé français accentué (« Planifié »), comme sur la fiche du chantier
+- **Observé** : « Client externe · <nom> · planifie »
+- **Preuve expurgée (banc)** : captures/c08-agenda.png
+- **Cause probable** : Section « Mes chantiers externes » de l agenda n applique pas libelleEtatPrive (clients/elements.tsx)
+- **Correction proposée** : Appliquer libelleEtatPrive au statut
+- **Correction sans aval** : oui
+
+#### `ARC-05` — Agenda artisan sur mobile 390 px : défilement horizontal (448 px) causé par la carte d une mission Gerimmo au nom de parc long
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Artisan avec une intervention Gerimmo dans les 7 jours dont le nom du client est long (« Parc de Éloïse [TEST-proprietaire] Durand-Lévêque »)
+- **Étapes** : Ouvrir /artisan/agenda en 390x844
+- **Attendu** : Aucun défilement horizontal, le nom est tronqué dans sa carte
+- **Observé** : scrollWidth 448 pour 390 : la carte (lien .artisan-mission) mesure 432 px et dépasse du bord droit de 58 px. Même famille que ART-14 (corrigé ailleurs), non traité sur l agenda
+- **Preuve expurgée (banc)** : captures/c18-mobile-agenda-debordement.png
+- **Cause probable** : Carte de mission de l agenda sans min-w-0/overflow-hidden dans la grille des jours (composant .artisan-mission)
+- **Correction proposée** : Ajouter min-w-0 et overflow-hidden à la carte et à son conteneur de jour
+- **Correction sans aval** : oui
+
+#### `ARC-06` — Clients externes : messages d erreur génériques inadaptés (client en doublon : « cette facture » ; champ vide : « joignez votre justificatif »)
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-erreurs.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Page /artisan/clients
+- **Étapes** : 1. Recréer un client déjà existant (même nom, e-mail, adresse) 2. Créer un client dont le nom ne contient que des espaces
+- **Attendu** : « Ce client existe déjà » / « Indiquez le nom du client »
+- **Observé** : 1. « Ce dossier ou cette facture existe déjà. Rechargez avant de recommencer » 2. « Complétez tous les champs et joignez votre justificatif. » alors que le formulaire n a aucun justificatif
+- **Preuve expurgée (banc)** : captures/c20-message-doublon-client.png
+- **Cause probable** : app/src/app/artisan/clients/actions.ts (traduction unique des erreurs « violates » / « null value ») et exception unique_violation générique de artisan_externe_ecrire
+- **Correction proposée** : Messages par action (client, chantier, facture) et par contrainte
+- **Correction sans aval** : oui
+
+#### `ARC-09` — Formulaires privés artisan : session perdue présentée comme « connexion interrompue », sans lien de reconnexion
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-session-expiree.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Session expirée ou cookies effacés pendant la saisie
+- **Étapes** : Remplir « Créer le client », effacer les cookies, cliquer « Créer le client »
+- **Attendu** : « Votre session a expiré, reconnectez-vous (nouvel onglet) puis réessayez », comme corrigé en 36219ec pour les fiches personnes (PR178-A-05, PR178-B-01)
+- **Observé** : « La connexion a été interrompue. Réessayez avec la même saisie. » ; la page reste sur /artisan/clients, nouvel essai identique ; saisie conservée
+- **Preuve expurgée (banc)** : captures/c22-session-perdue.png
+- **Cause probable** : app/src/app/artisan/clients/formulaire.tsx : FormulairePrive intercepte toute erreur de l action par un message unique ; la correction 36219ec ne l a pas couvert
+- **Correction proposée** : Réutiliser le contrôle de session des formulaires de fiche personne et afficher le message de session expirée avec lien
+- **Correction sans aval** : oui
+
+#### `ARC-10` — Clients externes : entre minuit et 2 h à Paris (heure d été), la date du jour est refusée et la date par défaut est celle de la veille (jour UTC)
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/artisan-dates-paris.test.ts : 21 cas SQL, tests/artisan-devis-jour-paris.test.ts : 3 cas, tests/correctifs-audit-13-octobre-rejeu.test.ts : 13 cas dont 2 fonctions ARC-10, 'sur les définitions d · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Heure de Paris entre 00:00 et 02:00 (01:47 le 14/10/2026 lors du test), facture avec solde
+- **Étapes** : 1. Ouvrir /artisan/facturation/<facture> 2. Observer le champ « Date du règlement » 3. Saisir la date du jour à Paris (14/10/2026) en levant le plafond du champ
+- **Attendu** : Date proposée = jour de Paris ; saisie du jour acceptée
+- **Observé** : Valeur par défaut 2026-10-13 et plafond 2026-10-13 ; envoi du 14/10 refusé par le serveur : « Indiquez la date réelle du règlement, sans date future ». Même calcul UTC pour la date d accord du client (chantier). Recoupe l hypothèse FIN-13 (autre écran)
+- **Preuve expurgée (banc)** : captures/c23-date-paris-vs-utc.png
+- **Cause probable** : pages artisan/facturation/[factureId] et chantiers/[chantierId] : toISOString().slice(0,10) ; RPC artisan_reglement_ecrire et artisan_externe_ecrire : current_date (UTC)
+- **Correction proposée** : Calculer la date du jour en Europe/Paris côté page et côté base ((now() at time zone Europe/Paris)::date)
 - **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `LOC-02` — Élision manquante : « Dernier document — quittance de octobre 2026 »
@@ -1396,6 +1102,202 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Preuve expurgée (banc)** : preuves/apres/rapport-apres.json et captures preuves/avant, preuves/apres ; app/src/lib/tarifs.ts mentionTaxesPubliques
 - **Cause probable** : app/src/lib/tarifs.ts : phrase partagée entre accueil et tarifs, écrite pour les deux publics
 - **Correction proposée** : La phrase ne nomme plus les agences par défaut ; option agences pour une réactivation
+- **Correction sans aval** : oui
+
+#### `DES-A-02` — La page de confirmation de lien e-mail (/auth/confirmer) annonce encore « pour les agences », alors que /connexion a été nettoyée
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/vocabulaire-v1-parcours.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Aucune session ; largeur ≥ 768 px (panneau de marque visible)
+- **Étapes** : 1. Ouvrir /auth/confirmer. 2. Lire la phrase sous la promesse du panneau de gauche. 3. Comparer à /connexion.
+- **Attendu** : Même formulation V1 sur toutes les pages d'authentification : « … pour les propriétaires bailleurs, leurs locataires et les artisans. »
+- **Observé** : /auth/confirmer : « Baux, quittances, régularisations, rapports de gestion et interventions — pour les agences, les propriétaires bailleurs, leurs locataires et les artisans. » ; /connexion : même phrase sans « les agences ». Le site public est par ailleurs sans mention d'agence hors pages juridiques (relevé automatique des 21 pages publiques × 3 largeurs).
+- **Preuve expurgée (banc)** : journaux/auto-public-1280.json (mesure.mentionsAgence de /auth/confirmer) ; auto/public/auth-confirmer-1280.png
+- **Cause probable** : app/src/app/auth/confirmer/page.tsx:50 (sousPromesse) non alignée sur app/src/app/connexion/page.tsx:17
+- **Correction proposée** : Remplacer « pour les agences, les propriétaires bailleurs » par « pour les propriétaires bailleurs » dans app/src/app/auth/confirmer/page.tsx:50.
+- **Correction sans aval** : oui
+
+#### `DES-A-04` — Fiche d'un bien : la liste de définitions des chiffres clés est mal formée (dl > div > div > dt)
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte propriétaire, fiche d'un bien avec au moins un lot
+- **Étapes** : axe-core sur /agence/<id>/parc/<bienId>
+- **Attendu** : <dl> dont les groupes <div> ne contiennent que des <dt>/<dd> : le lecteur d'écran annonce « terme / définition »
+- **Observé** : axe : definition-list (1 nœud) + dlitem (8 nœuds), impact « serious » : « dl element has direct children that are not allowed: div > div » ; le <div> de groupe contient l'icône SVG et un <div> enveloppant dt/dd.
+- **Preuve expurgée (banc)** : journaux/auto-proprietaire-1280.json (/parc/<id>, axe.definition-list et dlitem)
+- **Cause probable** : app/src/app/agence/[orgId]/parc/[bienId]/page.tsx:280-288 : `<div key><IconeTrait/><div><dt/><dd/></div></div>`
+- **Correction proposée** : Aplatir : `<div key={f.label}><dt><IconeTrait nom={f.icone}/>{f.label}</dt><dd>{f.valeur}</dd></div>` et ajuster .bien-visuel-chiffres si la mise en page dépend du <div> intermédiaire.
+- **Correction sans aval** : oui
+
+#### `DES-A-05` — Tablette (641-860 px) : les libellés du rail du menu locataire sont à 9,5 px, sous la métrique commune de 11 px de la charte
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte locataire, viewport 768×1024
+- **Étapes** : Ouvrir /locataire/<id> à 768 px et lire le rail de gauche (Accueil, Documents, Paiements…)
+- **Attendu** : Libellés ≥ 10,5 px comme la barre basse mobile du propriétaire (.coquille-basse : 10,5 px) et le commentaire de la charte (« jamais sous 11 px »)
+- **Observé** : span.lib 9,5 px (« Accueil », « Mon logement ») relevé sur 18 écrans locataire ; en 390 px la barre basse locataire utilise 10,5 px. Cible tactile voisine : le lien « Accueil de mon espace » de l'en-tête locataire fait 111×24 et 177×24 px à 390 px (< 44 px).
+- **Preuve expurgée (banc)** : journaux/auto-locataire+locataire_pd-768.json (mesure.textesPetitsEx) ; journaux/auto-locataire+locataire_pd-390.json (ciblesMoins44Ex)
+- **Cause probable** : app/src/app/globals.css:1450-1455 (.loc-menu .lib { font-size: 9.5px })
+- **Correction proposée** : font-size: 10.5px à globals.css:1452 (vérifier que « Mon logement » tient dans le rail de 78 px) ; donner au lien d'accueil de l'en-tête locataire un min-height de 44 px (padding vertical).
+- **Correction sans aval** : oui
+
+#### `DES-A-12` — Après une erreur de formulaire, le focus tombe sur <body> et les deux mots de passe sont vidés ; deux pages d'authentification partagent le même titre ; la 404 publique propose « Retour à mon espace »
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/formulaires-auth-focus-titres.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Visiteur non connecté, 390×844
+- **Étapes** : 1. /inscription : saisir deux mots de passe différents et envoyer. 2. /connexion : mauvais mot de passe. 3. Ouvrir /nouveau-mot-de-passe et /page-inexistante-x.
+- **Attendu** : Le focus va sur le message d'erreur ou le premier champ en défaut ; les champs sans erreur sont conservés ; chaque page a un titre propre ; la 404 d'un visiteur propose « Retour à l'accueil »
+- **Observé** : Inscription : alerte role=alert « Les deux saisies ne correspondent pas. » (bien annoncée), mais document.activeElement = BODY et les champs mot de passe/confirmation sont vides (nom, e-mail et CGU conservés). Connexion en échec : « Identifiants invalides. » et focus sur BODY. <title> « Connexion — Gerimmo » identique sur /connexion et /nouveau-mot-de-passe. 404 publique : bouton « Retour à mon espace ».
+- **Preuve expurgée (banc)** : etats/inscription-confirmation-differente-390.png ; etats/public-journal.json ; journaux/auto-public-390.json (titres identiques) ; avant/public/page-introuvable-390.png
+- **Cause probable** : Formulaires d'authentification (actions serveur sans gestion du focus) ; titres définis dans app/src/app/nouveau-mot-de-passe/page.tsx ; page not-found partagée
+- **Correction proposée** : Après erreur : focus() sur le conteneur role=alert (tabIndex -1) ; metadata.title = « Nouveau mot de passe — Gerimmo » ; libellé « Retour à l'accueil » quand il n'y a pas de session.
+- **Correction sans aval** : oui
+
+#### `DES-A-14` — Tablette (641-860 px) : le nom de l'espace du locataire est tronqué en « Par… » dans la cellule de logo du rail
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte locataire d'un propriétaire direct (« Parc de Claire Moreau »), viewport 768×1024
+- **Étapes** : Ouvrir /locataire/<id> à 768 px, lire le coin supérieur gauche
+- **Attendu** : Le nom de l'espace lisible ou remplacé par des initiales/le logo
+- **Observé** : Tuile blanche de 56 px avec « Par… » ; le nom complet n'apparaît nulle part sur l'écran (l'en-tête affiche seulement le nom du locataire). Même nom complet visible à 390 px et 1280 px.
+- **Preuve expurgée (banc)** : avant/locataire/accueil-768.png ; planches/p768-a.png
+- **Cause probable** : app/src/app/globals.css:1011-1013 (.loc-logo dans la bande tablette : le libellé n'est masqué que par endroits, le nom reste affiché sur 56 px)
+- **Correction proposée** : Dans la bande 641-860 px masquer le nom (display: none) comme à 1011-1013 et afficher les initiales, ou autoriser le nom en en-tête de page.
+- **Correction sans aval** : oui
+
+#### `DES-A-15` — Formulaire « Déclarer un incident » (propriétaire) : l'option d'urgence est coupée à 390 px (« …attendre quelques jour »)
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/libelles-courts-et-bandeau-390.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte propriétaire, 390×844
+- **Étapes** : Ouvrir /agence/<id>/incidents/nouveau et lire le champ « Urgence » fermé
+- **Attendu** : Valeur affichée lisible en entier (un <select> ne retourne pas à la ligne)
+- **Observé** : « Normal — peut attendre quelques jour » : la fin du libellé est masquée par le chevron, le « s » de « jours » disparaît
+- **Preuve expurgée (banc)** : auto/proprietaire/agence-3c1d1e95-3570-400b-8012-44530be145b1-incidents-nouveau-390.png ; planches/p390-fin-inc.png
+- **Cause probable** : app/src/app/agence/[orgId]/incidents/nouveau/formulaire-incident.tsx:125 (libellé long) ; même schéma côté locataire formulaire-incident-locataire.tsx:371
+- **Correction proposée** : Raccourcir : « Normal — sous quelques jours » (ou « Normal — quelques jours ») ; garder le détail dans une aide sous le champ.
+- **Correction sans aval** : oui
+
+#### `DES-B-04` — Clients externes : « Archiver ce client » s'exécute au premier clic, sans confirmation, avec le style du bouton principal
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-04 · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte artisan.alpha, module clients externes actif (banc), client de test « [TEST-designer-b] Client Nettoyage »
+- **Étapes** : 1. Ouvrir la fiche du client (390 px). 2. Appuyer une fois sur « Archiver ce client ».
+- **Attendu** : Action de rangement distinguée du bouton « Enregistrer les coordonnées » (secondaire ou danger) et confirmée, ou au minimum annonçant clairement sa réversibilité
+- **Observé** : Les deux boutons sont deux bandeaux bleu nuit pleine largeur identiques (min-h-14). Un clic envoie immédiatement l'archivage (1 POST, aucune boîte de confirmation) ; la fiche affiche « Archivé » et « Réactiver ce client » : l'action est réversible, mais rien ne le dit avant le clic.
+- **Preuve expurgée (banc)** : etats/client-fiche-avant-archivage-390.png ; etats/client-apres-archivage-390.png ; etats/clients-archive-journal.json
+- **Cause probable** : app/src/app/artisan/clients/[clientId]/page.tsx:11 (bouton d'archivage rendu avec la même classe que le bouton principal, sans confirmation)
+- **Correction proposée** : Passer « Archiver ce client » en secondaire (btn contour) et ajouter la phrase « Vous pourrez le réactiver à tout moment. » au-dessus ; une confirmation modale n'est utile que si la réactivation n'est pas immédiate
+- **Correction sans aval** : oui
+
+#### `DES-B-05` — Modules clients externes et règlements déclarés : composants hors charte (liens soulignés en guise de boutons, pastilles redondantes, liens de liste de 19 px)
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-05, app/tests/titres-de-page.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte artisan.alpha, modules actifs (banc), 390 et 1280 px
+- **Étapes** : Ouvrir /artisan/clients, /artisan/devis/nouveau, /artisan/clients/<id>, /artisan/facturation
+- **Attendu** : Boutons, liens et en-têtes de la charte (cartes à icône, .btn-secondaire, cibles 44 px) ; une seule navigation
+- **Observé** : (1) Cinq pastilles « Clients externes · Nouveau chantier et devis · Agenda · Facturation · Exporter mon registre » en tête de chaque sous-page : elles répètent le menu latéral (1280 px) et la page courante y figure comme un lien comme un autre ; (2) « Rechercher » et « Choisir » sont des boutons-liens soulignés, sans fond ni bordure ; (3) les noms de clients de la liste sont des <a> en ligne : la classe min-h-12 est sans effet, hauteur mesurée 19 px (« [TEST-artisan] Idempotence ») ; (4) en tête de /artisan/facturation, le bloc « Mes règlements déclarés » liste les factures en liens soulignés cernés d'un filet, sans l'iconographie des autres cartes de la page ; (5) /artisan/clients est titré « Clients externes — Artisan » alors que le reste du portail dit « — Espace artisan », et /artisan/devis/nouveau et /artisan/clients/<id> gardent le titre générique « Espace artisan — Gerimmo ». Rec…
+- **Preuve expurgée (banc)** : etats/mesures-clients.json ; auto/artisan/artisan-clients-390.png ; auto/artisan/artisan-clients-1280.png ; auto/artisan/artisan-facturation-1280.png ; auto/artisan/artisan-agenda-390.png ; journaux/auto-artisan-1280.json (mesure.titre)
+- **Cause probable** : app/src/app/artisan/clients/elements.tsx:9-11 (NavigationPrivee) ; app/src/app/artisan/clients/page.tsx:7 (metadata) et :11 (liens min-h-12 en ligne, boutons underline) ; app/src/app/artisan/devis/nouveau/page.tsx (pas de metadata)
+- **Correction proposée** : Masquer NavigationPrivee à partir de 1024 px (le rail latéral suffit) ; remplacer `min-h-12 underline` par `inline-flex min-h-12 items-center underline` sur les liens de liste (cible 48 px) ; boutons « Rechercher » et « Choisir » en classe de bouton secondaire de la charte ; metadata « Clients externes — Espace artisan » et titres propres pour /devis/nouveau et /clients/<id>
+- **Correction sans aval** : oui
+
+#### `DES-B-06` — Artisan qui vient de s'inscrire : trois bandeaux au même sens et trois appels au dépôt d'une pièce sur la même page
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-06 · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte neuf « [TEST-designer-b] Plomberie Neuve » (inscription par l'interface), 390x844
+- **Étapes** : 1. Terminer /artisan/inscription (fiche). 2. Observer /artisan/attestations à l'arrivée.
+- **Attendu** : Un seul message d'état, un seul appel principal
+- **Observé** : Bandeau orange du haut « Inscription en cours de validation par Gerimmo… », bandeau vert « Votre entreprise est inscrite. Déposez maintenant votre décennale… », bandeau orange « Votre inscription est examinée par Gerimmo. Elle ne sera validée qu'au vu de vos justificatifs. » ; puis le bouton « Déposer un document », cinq boutons « Déposer » et la carte « Prochaine action » : sept chemins pour la même action sur 2 400 px de page.
+- **Preuve expurgée (banc)** : etats/neuf/apres-inscription-390.png ; etats/neuf/inscription3-journal.json
+- **Cause probable** : app/src/app/artisan/layout.tsx:166 (bandeau d'attente de la coquille) ; app/src/app/artisan/attestations/page.tsx:32 (« Votre entreprise est inscrite… ») et :33 (« Votre inscription est examinée… »)
+- **Correction proposée** : Garder le bandeau de la coquille (valable sur toutes les pages) et le message de bienvenue de attestations/page.tsx:32 ; supprimer l'avertissement redondant de attestations/page.tsx:33
+- **Correction sans aval** : oui
+
+#### `DES-B-07` — Titres de page (<title>) incohérents dans l'espace artisan et la supervision
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/titres-de-page.test.ts : 2 × · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Comptes artisan.alpha et superadmin, 1280 px
+- **Étapes** : Relever document.title des écrans de la matrice
+- **Attendu** : Un suffixe unique par espace
+- **Observé** : Super-admin : « — Gerimmo », « — Supervision », « — Supervision Gerimmo », « — Console Gerimmo » ; le détail d'une organisation (H1 « Agence Alpha ») s'intitule « Client — Gerimmo » ; /admin/brief/exploitation « Le point du matin — détail — Gerimmo ». Artisan : voir DES-B-05 (5).
+- **Preuve expurgée (banc)** : journaux/auto-superadmin-1280.json (mesure.titre) ; journaux/auto-artisan-1280.json
+- **Cause probable** : export const metadata de chaque page sous app/admin (suffixes écrits à la main)
+- **Correction proposée** : Un gabarit title `%s — Gerimmo` dans app/admin/layout.tsx (metadata.title.template) et suppression des suffixes locaux
+- **Correction sans aval** : oui
+
+#### `DES-B-08` — Super-admin sur mobile : résumés repliables de 20 à 28 px de haut, barre d'enregistrement collante qui masque le champ focalisé, bouton flottant hors repère
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-08 · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte superadmin, 390x844
+- **Étapes** : 1. Ouvrir /admin/artisans, /admin/journaux, /admin/relais (résumés repliables, pagination). 2. Ouvrir /admin/publications/16606eda-… et appuyer sur Tab jusqu'à « Titre ».
+- **Attendu** : Cibles >= 44 px ; champ focalisé visible
+- **Observé** : (1) 11 écrans d'administration à 390 px portent des <summary> de 20 à 28 px de haut (« Refuser cette inscription » 324x20, « Suspendre la validation » 324x20, « Historique des réponses » 324x20, « Comprendre ces chiffres » 324x24) ; « Suivant » de la pagination du journal fait 47x20 et les liens de communes de /admin/couverture 14 px de haut. (2) Sur /admin/publications/<id>, le champ « Titre » (706-750) est entièrement recouvert par la barre collante « Enregistrer » (688-800, position sticky) quand il reçoit le focus au clavier : l'élément à son centre est button.btn-or de cette barre. (3) Le bouton fixe « Aide et retours » (a.fixed.z-30.size-11, 44x44) est hors de tout repère de page : axe signale la règle « region » (modérée) sur 81 relevés.
+- **Preuve expurgée (banc)** : journaux/auto-superadmin-390.json (mesure.ciblesMoins44Ex, clavier.masques) ; etats/sa-focus-titre-publication-390.png ; etats/sa-synthese-journal.json (bouton « Aide et retours »)
+- **Cause probable** : app/src/app/admin/publications/[id]/editeur-publication.tsx:230 (sticky bottom-[calc(72px+safe-area)] : le décalage de 72 px prévu pour une barre basse inexistante en administration) ; <summary class="cursor-pointer"> sans hauteur minimale (app/src/app/admin/**) ; bouton flottant sans repère
+- **Correction proposée** : editeur-publication.tsx:230 → ajouter `scroll-mt`/`scroll-padding-bottom` : sur le formulaire `scroll-padding-bottom: 140px` (hauteur de la barre + marge) pour que le focus s'aligne au-dessus ; `summary { min-height: 44px; display: flex; align-items: center }` dans la feuille d'admin ; envelopper le bouton flottant dans <aside aria-label="Aide">
+- **Correction sans aval** : oui
+
+#### `DES-B-09` — Compte artisan : « toutes les agences » dans la page Sécurité du compte (vocabulaire d'agence dans la V1)
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/vocabulaire-v1-parcours.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte artisan.alpha
+- **Étapes** : Ouvrir /compte
+- **Attendu** : Aucune notion d'agence dans le parcours artisan de la V1 (propriétaires bailleurs et artisans)
+- **Observé** : « L'adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte auprès de toutes les agences. » ; /assistance affiche aussi « l'administrateur de l'agence concernée » (DES-A-07). Les cartes d'intervention montrent le nom de l'organisation cliente (« Agence Alpha ») : c'est une donnée du banc, pas un libellé.
+- **Preuve expurgée (banc)** : journaux/auto-artisan-1280.json (mesure.mentionsAgence, /compte et /assistance)
+- **Cause probable** : app/src/app/compte/page.tsx:158 (branche estArtisan)
+- **Correction proposée** : « … elle identifie votre compte auprès de tous vos clients. Pour la modifier, écrivez-nous depuis Aide et retours. »
+- **Correction sans aval** : oui
+
+#### `DES-B-11` — Super-admin, Relais : le bandeau « Habilitation perdue : tâches bloquées » est posé en ligne sur le texte qui le précède, et chevauche l'adresse du responsable à 390 px
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/libelles-courts-et-bandeau-390.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte superadmin, 390x844, un plan de vacances dont le responsable a perdu son habilitation (donnée du banc)
+- **Étapes** : Ouvrir /admin/relais et lire la carte du plan « [TEST-superadmin] Vacances essai — version 1 »
+- **Attendu** : Le signalement forme sa propre ligne sous « Responsable : … »
+- **Observé** : L'adresse sa.relais.test@gerimmo-demo.fr passe à la ligne ; le filet rouge de gauche et le fond rosé du <strong class="err"> en ligne viennent se placer contre « demo.fr » et sur sa ligne (recadrage 2x). Plus bas, la phrase « …remontée au créateur du plan après 1 minutes » est affichée au pluriel sur la build servie ; la source actuelle (vacances.tsx:12) gère déjà le singulier : à revérifier sur la prochaine build.
+- **Preuve expurgée (banc)** : auto/superadmin/admin-relais-390.png ; etats/relais-recadrage-390.png
+- **Cause probable** : app/src/app/admin/relais/vacances.tsx:12 (<strong className="err"> … Habilitation perdue : tâches bloquées</strong> rendu dans la même ligne, classe .err avec filet et fond)
+- **Correction proposée** : vacances.tsx:12 → `<strong className="err block mt-1">Habilitation perdue : tâches bloquées</strong>` (sans le tiret cadratin)
+- **Correction sans aval** : oui
+
+#### `IA-08` — Le commentaire de la tâche territoire dit 'mensuelle, le 1er' alors qu'elle est planifiée chaque jour
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — commentaire de app/src/app/api/cron/territoire/route.ts corrigé (vague 6) · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Code au commit 83ba492
+- **Étapes** : Lire territoire/route.ts:2-9, vercel.json:27-30, sante-service.ts:344
+- **Attendu** : Un commentaire de tête décrit la planification réelle
+- **Observé** : Constat statique : planification '0 5 * * *' (quotidienne) ; Santé la classe quotidienne ; la clé de préparation (YYYY-MM:département:public) rend l'effet mensuel.
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/equipes-ia/preuves-recherches.txt (section IA-08/09)
+- **Cause probable** : app/src/app/api/cron/territoire/route.ts:2-9
+- **Correction proposée** : Corriger le commentaire : 'quotidienne ; la préparation est limitée à une par mois, département et public'
 - **Correction sans aval** : oui
 
 #### `PROP-04` — Surface démesurée : message technique « numeric field overflow » affiché à l'utilisateur
@@ -1509,6 +1411,175 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Correction proposée** : Accorder le pluriel (1 minute / 1 lecture)
 - **Correction sans aval** : oui
 
+#### `VER-PR178-02` — Session expirée puis autre compte dans le même navigateur : les copies du compte précédent (identité, brouillon de lot) restent sur l'appareil tant que le nouveau compte n'ouvre pas la fiche personne…
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/copies-locales-arrivee.test.ts, tests/copies-locales.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Deux comptes propriétaires créés par l'interface ; A a saisi une fiche personne (IndexedDB) et un brouillon de lot (localStorage) ; la session de A expire sans clic sur « Se déconnecter » (cookies supprimés)
+- **Étapes** : 1. Connecter B dans le même navigateur ; 2. Lire localStorage et indexedDB sur la page d'arrivée de B, puis sur /parc/nouveau ; 3. Ouvrir /personnes#creer-fiche
+- **Attendu** : « Un compte qui ouvre un formulaire efface celles des autres comptes » (message et commentaire de copies-locales.ts) : les copies de A disparaissent dès la première page de B
+- **Observé** : Copies de A présentes à l'arrivée de B et sur parc/nouveau ; effacées seulement à l'ouverture de la fiche personne. Le texte affiché « sinon elles sont supprimées au bout de 7 jours » est inexact pour le brouillon de lot et le devis (l'expiration n'est évaluée qu'à la relecture de la même clé). Recoupe PR178-A-01 et PR178-A-07 (marquées corrigées) : la correction ne couvre que le chemin « déconnexion cliquée »
+- **Preuve expurgée (banc)** : preuves/verification/pr178/purge2.txt
+- **Cause probable** : app/src/components/reprise-locale/index.tsx:17 est le seul appelant de purgerCopiesAutresComptes ; brouillon-bien (formulaire-avec-brouillon.tsx) et devis (formulaire-avec-reprise.tsx) ne purgent rien
+- **Correction proposée** : Appeler purgerCopiesAutresComptes(compteCourant) et l'équivalent IndexedDB depuis un composant présent sur toutes les pages connectées (menu du compte), pas seulement depuis RepriseLocale ; ou corriger le texte. La durée de conservation reste à trancher (déjà au registre).
+- **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `VER-PR178-03` — Stockage IndexedDB refusé : après une fiche créée et confirmée, l'alerte « Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement » reste affichée (résidu de PR178-A-08)
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : IndexedDB refusée (simulation) ; fiche personne créée avec succès
+- **Étapes** : 1. Ouvrir /agence/<org>/personnes#creer-fiche avec indexedDB.open en erreur ; 2. Créer une fiche jusqu'au bout ; 3. Lire les alertes de la page
+- **Attendu** : Plus aucune alerte « jusqu'à confirmation » une fois la fiche confirmée (correction A-08)
+- **Observé** : Le statut de la copie est bien remis à zéro, mais l'alerte de lecture « La copie sur cet appareil est indisponible. Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement. » (role alert) persiste après « 3 fiches »
+- **Preuve expurgée (banc)** : preuves/verification/pr178/idb-refuse.txt
+- **Cause probable** : app/src/components/reprise-locale/index.tsx:41 : lecture.erreur est affichée tant que RepriseLocale est monté, indépendamment de l'état « terminée » de la fiche
+- **Correction proposée** : Effacer lecture.erreur dès que useCopieFichiers passe à « vide » après un envoi confirmé (callback ou état remonté depuis le formulaire).
+- **Correction sans aval** : oui
+
+#### `VER-PR178-04` — Reprise d'une saisie après session expirée : l'ancien message « Votre session a expiré… » est réaffiché alors que la personne s'est reconnectée
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/copies-locales-arrivee.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte A ; fiche personne au récapitulatif ; cookies supprimés ; clic sur « Créer la fiche » ; reconnexion dans un autre onglet
+- **Étapes** : 1. Recharger l'onglet ; 2. « Reprendre ma saisie » ; 3. Aller au récapitulatif
+- **Attendu** : Saisie reprise sans message d'erreur périmé
+- **Observé** : Le récapitulatif affiche encore « Votre session a expiré : cette saisie n'a pas été enregistrée… » ; le bouton fonctionne et un seul envoi crée une seule fiche (persons 1 -> 2)
+- **Preuve expurgée (banc)** : preuves/verification/pr178/fiche-expire2.txt
+- **Cause probable** : app/src/app/agence/[orgId]/personnes/formulaire-personne.tsx : le snapshot de copie locale embarque l'état (bilan avec erreur) ; la reprise le rejoue tel quel
+- **Correction proposée** : Ne pas persister (ou retirer à la reprise) l'erreur MESSAGE_SESSION_EXPIREE du bilan mémorisé.
+- **Correction sans aval** : oui
+
+#### `VER-PR178-05` — La purge des copies locales part au clic sur « Se déconnecter », avant que la déconnexion ait réussi : hors ligne, la copie est effacée alors que la session reste ouverte
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/copies-locales-arrivee.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte A, fiche personne en cours de saisie, copie IndexedDB présente, réseau coupé juste avant le clic
+- **Étapes** : 1. Saisir nom et prénom (copie écrite) ; 2. Ouvrir le menu du compte, couper le réseau (Playwright setOffline) ; 3. Cliquer « Se déconnecter »
+- **Attendu** : La copie n'est effacée qu'une fois la déconnexion confirmée ; en cas d'échec la personne garde sa saisie et sa copie
+- **Observé** : indexedDB.databases() vide, URL inchangée (session toujours ouverte), écran « Cette page n'a pas pu s'afficher » : la saisie est perdue en mémoire et sur l'appareil. Avant la correction (main-178) la copie aurait survécu. L'écran d'erreur sur échec de seDeconnecter existait déjà ; c'est l'effacement préalable qui rend la perte définitive
+- **Preuve expurgée (banc)** : preuves/verification/pr178/logout-hors-ligne.txt ; preuves/verification/pr178/logout-hors-ligne.png
+- **Cause probable** : app/src/components/purger-copies-a-la-deconnexion.tsx:13-16 écoute « submit » du formulaire de déconnexion et purge immédiatement
+- **Correction proposée** : Purger après réussite : faire rediriger seDeconnecter vers /connexion?raison=deconnecte et purger à l'arrivée sur cette adresse (aucun effet si l'action échoue ; couvre aussi une déconnexion faite depuis un autre onglet).
+- **Correction sans aval** : oui
+
+#### `VER-PR178-07` — Si sessionStorage est refusé par le navigateur, toute l'application et la page de connexion affichent « Cette page n'a pas pu s'afficher » (code antérieur aux corrections, relevé en testant l'indispo…
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/stockage-session.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Chromium, propriété window.sessionStorage qui lève SecurityError (simulation de « bloquer tous les cookies et données de site ») ; non reproduit dans une vraie fenêtre privée, où le stockage est disponible
+- **Étapes** : 1. Définir le refus avant le chargement ; 2. Ouvrir /connexion ou n'importe quelle page de l'espace connecté
+- **Attendu** : Une page dégradée mais utilisable, comme avec localStorage ou IndexedDB refusés (EX-12)
+- **Observé** : Écran d'erreur partout, connexion impossible ; localStorage seul et indexedDB seul refusés : aucun problème
+- **Preuve expurgée (banc)** : preuves/verification/pr178/stockage-refuse2.txt ; preuves/verification/pr178/stockage-refuse-connexion.png
+- **Cause probable** : app/src/components/synthese-alertes.tsx:84 et :99 (sessionStorage.getItem/setItem sans try/catch dans un effet) ; app/src/app/connexion/formulaire-connexion.tsx:76 (removeItem sans protection)
+- **Correction proposée** : Envelopper ces trois accès dans try/catch (le drapeau « alertes déjà vues » devient alors non mémorisé). Sévérité à réévaluer si un navigateur réel reproduit le refus.
+- **Correction sans aval** : oui
+
+#### `VER-SQL-01` — 20261013120000 n'est pas rejouable sans effet : un rejeu hors transaction duplique la garde de definir_equipements_lot puis s'arrête sur AUD-A-02
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/correctifs-audit-13-octobre-rejeu.test.ts : 7 marques présentes, rejeu double sans effet · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse sql (verification/sql) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Base déjà migrée par 20261013120000.
+- **Étapes** : psql -v ON_ERROR_STOP=1 -f 20261013120000_correctifs_audit_13_octobre.sql sur la base migrée (sans begin/commit).
+- **Attendu** : Rejeu sans effet, ou refus avant toute modification (l'en-tête promet « la migration s'arrête et ne change rien »).
+- **Observé** : Le bloc AUD-A-01 ne reconnaît pas qu'il est déjà appliqué (son ancre « raise exception 'Accès refusé'; end if; if exists ( » est encore présente une fois, à la fin du texte ajouté) : il réécrit la fonction avec une seconde garde de portefeuille (hachage de définition différent), puis AUD-A-02 s'arrête (« ancre 1 absente ou répétée »). Dans la transaction unique de migrations.yml, rien ne subsiste (vérifié) et la version déjà enregistrée est refusée en amont : le risque est limité à un rejeu manuel.
+- **Preuve expurgée (banc)** : preuves/verification/sql/cat_rejeu_120.txt ; rejeu_atomique.txt ; rejeu_derive.txt
+- **Cause probable** : 20261013120000_correctifs_audit_13_octobre.sql, bloc AUD-A-01 : l'ancre ne contient pas de marqueur propre au correctif (les autres blocs, eux, s'arrêtent au rejeu).
+- **Correction proposée** : Dans chaque bloc, ajouter en tête « if position('Audit du 13/10 (AUD-A-01)' in v_def) > 0 then return; end if; » (rejeu sans effet) ; ou corriger l'en-tête (« ne change rien » vaut pour la transaction du chantier, pas pour un psql nu).
+- **Correction sans aval** : oui
+
+#### `VER-SQL-02` — supprimer_detention : deux suppressions simultanées de la même détention laissent deux lignes d'audit pour une seule suppression
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/incidents-portefeuille-agent.test.ts : « VER-SQL-02 : une suppression qui ne retire aucune ligne ne laisse aucune trace d'audit » · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse sql (verification/sql) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Une détention sans bail ; deux gestionnaires (ou un double clic) appellent supprimer_detention en même temps.
+- **Étapes** : Session A : begin ; select supprimer_detention(d). Session B (autre compte) : select supprimer_detention(d) (attend le verrou de ligne) ; A : commit.
+- **Attendu** : Une seule trace pour une seule suppression (ou un refus « Détention introuvable » pour B).
+- **Observé** : B réussit sans erreur et a écrit sa propre ligne 'detention_supprimee' : 2 lignes d'audit, 1 détention supprimée. Le select initial et l'insert d'audit ne verrouillent pas la ligne ; seul le delete attend, puis supprime 0 ligne.
+- **Preuve expurgée (banc)** : preuves/verification/sql/harness_apres.jsonl (A04-concurrence-deux-suppressions)
+- **Cause probable** : 20261013120000, bloc AUD-A-04 : insert ... select ... from detentions where id = p_detention, puis delete, sans verrou ni test du nombre de lignes supprimées.
+- **Correction proposée** : Remplacer les deux ordres par un seul : with d as (delete from public.detentions where id = p_detention returning *) insert into public.audit_log (...) select ... from d — la trace ne s'écrit que pour une ligne réellement supprimée.
+- **Correction sans aval** : oui
+
+#### `VER-SQL-03` — REP-01 : un second envoi identique est sans effet en base mais l'action TypeScript renvoie un succès et prévient de nouveau l'artisan
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/validation-creneaux.test.ts : le second envoi identique renvoie 0, tests/contre-proposition-locataire-action.test.ts : 4 tests de l'action · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse sql (verification/sql) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Locataire avec une contre-proposition déjà en attente ; il renvoie la même liste (réponse perdue, double clic).
+- **Étapes** : 1. contre_proposer_creneaux(L) deux fois de suite (harnais REP01-double-envoi-identique) : les deux appels renvoient 3, aucun indice du « sans effet ». 2. Lecture de proposerMesCreneaux (incidents-locataire.ts:130-150) : après la RPC, notifierEnCoulisses(... notifierContrePropositionLocataire) est appelée sans condition ; expedier() est appelée sans cleIdempotence.
+- **Attendu** : Le second envoi ne déclenche pas de second e-mail à l'artisan (le but de REP-01 est qu'il ne se passe « rien »).
+- **Observé** : Base : conforme (REP01-double-envoi-identique). Notification : l'e-mail « Le locataire propose d'autres créneaux » repart à chaque envoi — déduit du code, non exécuté (aucune clé Resend sur le banc).
+- **Preuve expurgée (banc)** : preuves/verification/sql/harness_apres.jsonl (REP01-double-envoi-identique : retours=3,3) ; lecture src/app/actions/incidents-locataire.ts:130-150 et src/lib/notifications.ts:1032-1060
+- **Cause probable** : La fonction SQL renvoie v_nb dans les deux cas ; l'action TypeScript ne peut pas distinguer le rejeu.
+- **Correction proposée** : Faire renvoyer à la fonction une valeur distincte pour le rejeu (par exemple 0, ou un second champ) et ne notifier que si un nouveau tour a été créé ; ou passer une cleIdempotence dérivée de (intervention, tour) à expedier().
+- **Correction sans aval** : oui
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `VER-SQL-04` — SUP-08 : si le créateur du plan perd lui aussi son habilitation, l'alerte escaladée vers lui reste « escalade » alors qu'elle n'est acheminée à personne
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/consignes-vacances.test.ts : « perte de droit du remplaçant puis du créateur : l'alerte escaladée vers le créateur devient non acheminée » · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse sql (verification/sql) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Plan de vacances actif (responsable R, créateur C) ; alerte ouverte puis escaladée vers C ; R puis C perdent leur habilitation ; traiter_vacances() est rappelée.
+- **Étapes** : harness_sup08.mjs sur gerimmo_verif_sql_s8avant et gerimmo_verif_sql_s8apres.
+- **Attendu** : Une alerte dont le destinataire n'est plus habilité devient « non_acheminee » (c'était le cas avant, par effet de bord du filtre trop large).
+- **Observé** : Avant : étape 3 -> non_acheminee ; après : étape 3 -> escalade (le filtre « destinataire is not distinct from p.responsable » ne vise plus le créateur, et la boucle finale ne revisite que les alertes « ouverte »).
+- **Preuve expurgée (banc)** : preuves/verification/sql/sup08_avant_apres.txt
+- **Cause probable** : 20261013120000, bloc SUP-08 : condition destinataire = responsable ; aucune condition sur l'habilitation du destinataire.
+- **Correction proposée** : Étendre la condition : « and (destinataire is not distinct from p.responsable or not public.responsable_supervision_habilite(destinataire)) ». Cas rare (deux perdent leur droit en même temps), borné au journal interne de la direction.
+- **Correction sans aval** : oui
+
+#### `VER-TS-01` — Une date de naissance de forme AAAA-MM-JJ impossible (2024-13-45) fait lever l'action serveur : erreur 500 et message sans rapport au lieu de « date de naissance non valide »
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/validation-fiches.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Propriétaire direct connecté, fiche d'un locataire ouverte (« Modifier la fiche »), champ date modifié par outil de développement (le sélecteur de date du navigateur n'envoie jamais cette forme) ; mêmes appels : création de personne, résolution du locataire d'un bail
+- **Étapes** : 1. Ouvrir /agence/<org>/personnes/<id> puis « Modifier la fiche ». 2. Compléter adresse, code postal, ville, commune. 3. Passer le champ date en texte et saisir 2024-13-45. 4. Enregistrer.
+- **Attendu** : « La date de naissance n'est pas valide. » sous le champ, saisie conservée
+- **Observé** : POST 500 ; l'écran affiche « La confirmation n'a pas pu être reçue. Votre saisie reste dans cette page. Vérifiez le dossier avant de recommencer l'envoi. » ; le champ date est vidé ; aucune écriture (fiche inchangée en base). Au niveau fonction : RangeError: Invalid time value pour 2024-13-45, 2024-00-00, 1990-99-99
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-naissance.mjs ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-naissance-2024-13-45.png ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/e2e-naissance-etat-base.txt ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/resultats-vitest.json (C.naissance)
+- **Cause probable** : app/src/lib/validation-fiches.ts, verifierDateNaissance : new Date(`${d}T00:00:00Z`).toISOString() sans contrôle Number.isNaN ; verifierDateDejaPassee (saisie-montant.ts) a ce contrôle, pas celle-ci
+- **Correction proposée** : Calculer const t = new Date(...) puis exiger !Number.isNaN(t.getTime()) avant toISOString ; ajouter les cas 2024-13-45 et 1990-99-99 à tests/validation-fiches.test.ts
+- **Correction sans aval** : oui
+
+#### `VER-TS-03` — L'élision « d’octobre » n'est appliquée que sur la page d'accueil locataire : e-mails, page Documents du locataire, PDF de décompte et libellés d'agenda disent encore « de octobre », « de avril », «…
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/elision-courriers.test.ts, tests/elision.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Période d'octobre, d'avril ou d'août ; e-mails de relance, de quittance, d'avis d'échéance, d'information de la caution
+- **Étapes** : Rendre sujetRelanceLoyer, corpsQuittance, corpsAvisEcheance, corpsRelanceLoyer, corpsInformationCaution pour 2026-10-01 et 2026-04-01
+- **Attendu** : « Loyer d’octobre 2026 », « votre échéance d’avril 2026 »
+- **Observé** : 12 occurrences fautives sur 2 périodes : « Loyer de octobre 2026 — un règlement semble en attente » (sujet), « loyer de octobre 2026 », « quittance de loyer de avril 2026 », « échéance de avril 2026 ». Même motif dans le code (non vérifié au navigateur) : locataire/[orgId]/documents/page.tsx:301 (« la quittance de octobre 2026 »), agenda/page.tsx:155 et agenda-proprietaire.tsx:78,87 (aria-label), lib/documents/modeles/decompte-restitution.ts:211 (« Terme de octobre 2026 » dans le PDF), fil-activite.tsx:174 et mandats/page.tsx:204 (agence). PROP-05 (nom d'espace « Parc de Éloïse », construit en SQL) reste ouverte et l'en-tête de elision.ts la présente comme traitée
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/resultats-vitest.json (I.*) ; /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/zz-verif-ts.test.ts.copie
+- **Cause probable** : app/src/lib/relance-loyer-email.ts:59,71,72,78 ; quittance-email.ts:65 ; appel-email.ts:65 (« de ${mois} » écrit à la main) ; deElide n'est importé que par app/locataire/[orgId]/page.tsx
+- **Correction proposée** : Utiliser deElide(mois) dans ces gabarits (chaîne « de » + mois) et dans les autres sites listés ; corriger le commentaire de elision.ts ; PROP-05 reste à traiter dans la fonction SQL de création du parc
+- **Correction sans aval** : oui
+
+#### `VER-TS-04` — Récapitulatif fiscal nu : « Périmètre : N écritures » compte des pièces écartées (période meublé ou hors de mes droits) sans le dire
+
+- **Sévérité** : P3 · **Statut** : corrigée en branche — vague 5 ; tests : tests/fiscal-perimetre.test.ts, tests/catalogue-documents.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Exercice du lot avec deux périodes, nu de janvier à juin puis meublé de juillet à décembre ; 12 loyers encaissés
+- **Étapes** : Générer recap_fiscal_nu pour l'année
+- **Attendu** : Mention de ce qui est exclu, ou périmètre égal aux pièces comptées
+- **Observé** : 211 = 4 680 (6 loyers de 780), mais le texte dit « Périmètre : 12 écritures enregistrées » et ne mentionne pas les 6 mois exclus ; le lecteur ne voit pas que la moitié des loyers est hors du tableau
+- **Preuve expurgée (banc)** : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/verification/ts/resultats-vitest.json (G5.*)
+- **Cause probable** : app/src/lib/documents/modeles/catalogue-gestion.ts, ligne du contenu « Périmètre : ${ecritures.length} écritures » : ecritures.length compte toutes les écritures du lot, pas fiscal.nbEcritures
+- **Correction proposée** : Afficher fiscal.nbEcritures et, si fiscal.meuble.nbEcritures > 0 ou des périodes hors périmètre existent, une phrase les citant
+- **Correction sans aval** : oui
+
 #### `EDI-01` — La ligne éditoriale de la veille accepte « agence » comme public valide (PUBLICS_JOURNAL) : un article visant seulement les agences passerait le filtre de pertinence en V1
 
 - **Sévérité** : P3 · **Statut** : à trancher — ligne éditoriale · **Propriétaire** : dirigeant (décision)
@@ -1530,5 +1601,33 @@ Fiches complètes des 111 anomalies de gravité P3 du [[Registre des anomalies �
 - **Preuve expurgée (banc)** : lecture du code, app/src/app/conditions/page.tsx lignes 57, 62, 127, 272, 278
 - **Correction proposée** : non modifiés : décision à prendre (retirer ou conserver les paragraphes agence)
 - **Correction sans aval** : non (aval du dirigeant requis)
+
+#### `DES-A-07` — Vocabulaire d'agence encore visible dans les parcours propriétaire et locataire de la V1
+
+- **Sévérité** : P3 · **Statut** : à trancher — partiellement corrigée en branche ; reste à trancher : 4) veille réglementaire — Masquer l'audience « Agences et agents immobiliers » demande de savoir si le lecteur est un gérant d'agence : la page ne le sait pas (le paramètre retour /agence/<id> sert aussi aux propriétaires dire · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Comptes proprietaire@gerimmo-demo.fr (propriétaire direct) et locataire.pd@gerimmo-demo.fr
+- **Étapes** : Ouvrir /assistance (formulaire d'aide) ; /agence/<id>/alertes (alerte confiée à tous) ; /agence/<id>/comptabilite/reprise ; /veille?public=bailleur et ?public=locataire
+- **Attendu** : Aucune notion d'agence, d'administrateur d'agence ou de mandat dans les écrans d'un propriétaire direct et de son locataire
+- **Observé** : (1) /assistance et FAQ propriétaire : « Votre demande est visible de vous, de l’équipe Gerimmo et de l’administrateur de l’agence concernée. » ; (2) alerte : « confiée à toute l’agence » ; (3) reprise comptable : « Détenteur du dépôt (agence ou proprietaire) » (et « proprietaire » sans accent) ; (4) veille réglementaire : l'audience « Agences et agents immobiliers » est listée pour bailleurs et locataires. À noter côté positif : /locataire/<id>/contact utilise bien « Votre gestionnaire » pour un propriétaire direct (contact/page.tsx:36-42).
+- **Preuve expurgée (banc)** : journaux/auto-proprietaire-1280.json et journaux/auto-locataire+locataire_pd-1280.json (mesure.mentionsAgence) ; journaux/auto-proprietaire-390.json
+- **Cause probable** : app/src/app/assistance/formulaire-retour.tsx:53 ; app/src/app/agence/[orgId]/alertes/modale-alerte.tsx:43 (assigned_all → « toute l’agence ») ; app/src/lib/reprise-soldes.ts:29 ; app/src/lib/veille-reglementaire.ts:1 (PUBLICS_VEILLE.agence) listée par app/src/app/veille/page.tsx
+- **Correction proposée** : formulaire-retour.tsx:53 → « … de l’équipe Gerimmo et, le cas échéant, de votre gestionnaire. » ; modale-alerte.tsx:43 → « toute l’équipe » ; reprise-soldes.ts:29 → « Détenteur du dépôt (vous ou votre gestionnaire) » ; masquer l'audience « agence » des onglets de /veille pour les profils non agence.
+- **Correction sans aval** : oui
+
+#### `VER-SECURITE-01` — La purge de déconnexion annoncée par la correction PR178-A-01 laisse les brouillons d'état des lieux (et la quittance de l'outil public) sur l'appareil, et le changement de compte ne les purge pas no…
+
+- **Sévérité** : P3 · **Statut** : à trancher — partiellement corrigée en branche (quittance de l'outil public purgée à la déconnexion) ; reste à trancher : brouillon d'état des lieux (RM-19.1.1/2/6/8 en font la copie de travail hors ligne de l'agent) · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : securite (vérificateur adverse) (verification/securite) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Navigateur partagé ; un utilisateur saisit une grille d'état des lieux (auto-sauvegarde locale, RM-19.1.1) puis se déconnecte par le menu compte
+- **Étapes** : 1) saisir des états et commentaires dans la grille EDL ; 2) cliquer « Se déconnecter » (le formulaire déclenche purgerCopiesLocales) ; 3) lire localStorage ; 4) ouvrir un formulaire avec un autre compte (purgerCopiesAutresComptes)
+- **Attendu** : Toutes les copies de saisie gardées sur l'appareil disparaissent à la déconnexion (promesse de src/lib/copies-locales.ts, en-tête) ; les copies d'un autre compte sont purgées à l'ouverture d'un formulaire
+- **Observé** : Reproduit avec les vraies fonctions du dépôt sur un stockage simulé : avant = 4 clés (brouillon de bien, devis, EDL, gerimmo_quittance) ; après déconnexion il reste 'gerimmo-edl-brouillon-<edlId>' et 'gerimmo_quittance' ; après purgerCopiesAutresComptes('compteB') : 0 purgée, mêmes 2 clés. Cause : la purge ne cible que le préfixe 'gerimmo:' ; l'EDL utilise 'gerimmo-edl-brouillon-' (tiret, sans compte dans la clé) et l'outil public 'gerimmo_quittance' (souligné). Contenu EDL : états par ligne + commentaires libres (observations sur le logement, parfois des noms) ; le brouillon est relu tel quel par le compte suivant qui ouvre le même EDL. Autres chemins de fin de session sans purge : changement de mot de passe (auth.ts:120), suppression de compte (compte.ts:66), expiration de session (proxy.ts:179) — la purge n'est branchée que sur 4 formulaires de déconnexion.
+- **Preuve expurgée (banc)** : preuves/verification/securite/purge-deconnexion.sortie.txt (test temporaire tests/zz-verif-securite.test.ts, supprimé) ; lecture de src/lib/edl-brouillon.ts:51, src/lib/outils/quittance.ts:93, src/lib/copies-locales.ts
+- **Cause probable** : src/lib/copies-locales.ts : purgerCopiesLocales filtre k.startsWith('gerimmo:') ; src/lib/edl-brouillon.ts:51 clé 'gerimmo-edl-brouillon-'; src/lib/outils/quittance.ts:93 clé 'gerimmo_quittance'
+- **Correction proposée** : Minimale : dans purgerCopiesLocales, purger toute clé commençant par 'gerimmo' (':' , '-' ou '_') et supprimer aussi 'gerimmo-edl-brouillon-*' au changement de compte (ou ajouter le compte à la clé EDL) ; test : après purge, aucune clé 'gerimmo*' ne subsiste
+- **Correction sans aval** : oui
 
 Voir aussi : [[Registre des anomalies — audit du 13 octobre 2026]].

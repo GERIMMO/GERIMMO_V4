@@ -306,3 +306,4 @@
 20261013107000_invitation_statut_et_perimetre.sql
 20261013110000_marketing_preparation_du_soir_cron.sql
 20261013120000_correctifs_audit_13_octobre.sql
+20261014221000_alerte_relais_destinataire.sql

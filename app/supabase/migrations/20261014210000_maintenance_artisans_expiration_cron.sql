@@ -48,8 +48,9 @@ declare
 begin
   -- Tâche de plateforme : sans identité (pg_cron), la garde d'abonnement refuse toute écriture sur une agence
   -- suspendue ; une seule agence dans ce cas ferait échouer le passage pour TOUTES. La caducité d'un devis ne
-  -- dépend pas de la situation commerciale de l'agence (même raison que pour la rétention). Le drapeau ne vaut
-  -- que pour la transaction en cours, et il est rendu à sa valeur d'avant avant de sortir (appel manuel inclus).
+  -- dépend pas de la situation commerciale de l'agence (c'est l'usage prévu de tache_systeme(), « à appeler en tête
+  -- d'une tâche planifiée »). Le drapeau ne vaut que pour la transaction en cours, et il est rendu à sa valeur
+  -- d'avant avant de sortir (appel manuel inclus).
   perform public.tache_systeme();
 
   update public.incident_devis set statut = 'expire'

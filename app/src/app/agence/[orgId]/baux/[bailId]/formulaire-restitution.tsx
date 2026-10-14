@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modale } from "@/components/ui/modale";
 import { ChampFichier } from "@/components/champ-fichier";
+import { REGLE_ECART_EDL } from "@/lib/regle-ecart-edl";
 
 export type Restitution = {
   id: string;
@@ -306,38 +307,77 @@ export function FormulaireRestitution({
           )}
         </div>
       ) : (
-        <BoutonFinaliser
-          orgId={orgId}
-          bailId={bailId}
-          restitutionId={restitution.id}
-          solde={soldeProjete}
-          impayes={Number(restitution.impayes)}
-          arretesLe={restitution.montants_arretes_le}
-          nbRetenues={retenues.length}
-          ecartMontants={ecartMontants}
-        />
+        <>
+          {/* Décision D35 (1) : tant que la restitution est « en cours », la remise des
+              clés et le délai se corrigent (la base accepte déjà ce nouvel envoi). */}
+          <details className="rounded-md border border-border px-3 py-2">
+            <summary className="cursor-pointer text-sm font-medium">
+              Corriger la remise des clés ou le délai
+            </summary>
+            <div className="mt-3">
+              <FormDemarrer
+                orgId={orgId}
+                bailId={bailId}
+                nbEcarts={ecarts.length}
+                comparatifDisponible={comparatifDisponible}
+                existante={{
+                  dateRemiseCles: restitution.date_remise_cles,
+                  delaiMois: restitution.delai_mois,
+                  montantsArretesLe: restitution.montants_arretes_le,
+                }}
+              />
+            </div>
+          </details>
+          <BoutonFinaliser
+            orgId={orgId}
+            bailId={bailId}
+            restitutionId={restitution.id}
+            solde={soldeProjete}
+            impayes={Number(restitution.impayes)}
+            arretesLe={restitution.montants_arretes_le}
+            nbRetenues={retenues.length}
+            ecartMontants={ecartMontants}
+          />
+        </>
       )}
     </div>
   );
 }
 
+// Démarrage de la restitution, et — tant qu'elle est « en cours » (décision D35) —
+// correction de la remise des clés et du délai : c'est le même geste côté base
+// (demarrer_restitution accepte un nouvel envoi), sans effet sur les montants.
 function FormDemarrer({
   orgId,
   bailId,
   nbEcarts,
   comparatifDisponible,
+  existante,
 }: {
   orgId: string;
   bailId: string;
   nbEcarts: number;
   comparatifDisponible: boolean;
+  // Restitution déjà démarrée : la saisie repart de ses valeurs
+  existante?: { dateRemiseCles: string; delaiMois: number; montantsArretesLe: string };
 }) {
   const [etat, action] = useActionState<EtatRestit, FormData>(
     demarrerRestitution.bind(null, orgId, bailId),
     {}
   );
+  const idDate = useId();
   return (
     <form data-saisie-confirmee action={action} className="space-y-3">
+      {existante ? (
+        <>
+          <input type="hidden" name="correction" value="1" />
+          <p className="text-sm text-muted-foreground">
+            Une date de remise des clés ou un délai mal saisi se corrige ici, tant que le décompte
+            n&apos;est pas finalisé. Ces deux réponses ne changent aucun montant : le dépôt et les
+            impayés restent ceux arrêtés le {formaterDateHeure(existante.montantsArretesLe)}.
+          </p>
+        </>
+      ) : null}
       <p className="text-sm text-muted-foreground">
         Le délai de restitution court à compter de la remise des clés : 1 mois si
         l&apos;état des lieux de sortie est conforme à l&apos;entrée, 2 mois sinon.
@@ -355,21 +395,40 @@ function FormDemarrer({
             ? "Le comparatif d’état des lieux ne relève aucun écart entre l’entrée et la sortie."
             : `Le comparatif d’état des lieux relève ${nbEcarts} écart${nbEcarts > 1 ? "s" : ""} entre l’entrée et la sortie — le délai est alors de 2 mois.` /* RM-2.4.2 */}
       </p>
+      {/* Décision D35 (2), option C : la règle actuelle est dite telle qu'elle est */}
+      {comparatifDisponible && nbEcarts > 0 && (
+        <p className="text-sm text-muted-foreground">{REGLE_ECART_EDL}</p>
+      )}
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
-          <Label htmlFor="rst-date" className="text-sm">Remise des clés</Label>
-          <InputDateJour id="rst-date"   className="h-9" name="date_remise_cles" />
+          <Label htmlFor={idDate} className="text-sm">Remise des clés</Label>
+          {/* Décision D35 (1) : la remise des clés est un fait passé, jamais datée de demain
+              (la base le refuse aussi). Une restitution déjà démarrée repart de sa date. */}
+          <InputDateJour
+            id={idDate}
+            className="h-9"
+            name="date_remise_cles"
+            required
+            pasDansLeFutur
+            valeurSoumise={etat.valeurs?.date_remise_cles ?? existante?.dateRemiseCles}
+          />
         </div>
         <label className="flex items-center gap-2 pb-2 text-sm">
           {/* En erreur, la case cochée est reposée via etat.valeurs (recette 22/08) */}
-          <input type="checkbox" name="conforme" defaultChecked={etat.valeurs ? etat.valeurs.conforme === "on" : false} className="size-4" />
+          <input
+            type="checkbox"
+            name="conforme"
+            defaultChecked={etat.valeurs ? etat.valeurs.conforme === "on" : existante?.delaiMois === 1}
+            className="size-4"
+          />
           Sortie conforme à l&apos;entrée (délai 1 mois)
         </label>
-        <BoutonEnvoi size="sm">
-          Démarrer la restitution
+        <BoutonEnvoi size="sm" variant={existante ? "outline" : "default"}>
+          {existante ? "Corriger" : "Démarrer la restitution"}
         </BoutonEnvoi>
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.succes && existante && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
     </form>
   );
 }

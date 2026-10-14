@@ -46,7 +46,14 @@ export async function demarrerRestitution(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: "Restitution démarrée." };
+  // Décision D35 (1) : tant que la restitution est « en cours », le même geste la corrige —
+  // la base ne réarrête alors aucun montant.
+  return {
+    succes:
+      formData.get("correction") === "1"
+        ? "Remise des clés corrigée — les montants arrêtés ne changent pas."
+        : "Restitution démarrée.",
+  };
 }
 
 export async function ajouterRetenue(
@@ -210,6 +217,9 @@ export async function marquerDecompteEnvoye(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  // Décision D36 : l'envoi n'est qu'un envoi. La mise à disposition du décompte au locataire
+  // (« Mes documents », option C) est reportée : c'est un geste distinct (partager_document_locataire,
+  // RM-12), et l'effet d'une créance publiée n'a pas encore été examiné.
   return { succes: "Décompte marqué envoyé — l'alerte d'envoi est fermée." };
 }
 

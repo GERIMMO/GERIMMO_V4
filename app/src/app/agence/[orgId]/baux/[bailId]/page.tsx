@@ -30,6 +30,7 @@ import { actionsAttendues } from "@/lib/actions-attendues";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { ETATS_ELEMENT, COULEURS_ETAT_ELEMENT } from "./edl/[edlId]/grille-edl";
+import { REGLE_ECART_EDL } from "@/lib/regle-ecart-edl";
 import {
   FormulaireBailSigne,
   FormulaireReglementCopropriete,
@@ -77,7 +78,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     .from("baux")
     // Colonnes du cycle de vie + « Compléments du contrat » (bail 100 % rempli, 09/09)
     .select(
-      "id, chambre_id, type, etat, zone_tendue, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, signe_envoye_le, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre, fixation_loyer, paiement_echeance, lieu_paiement, irl_valeur, duree_reduite_evenement, travaux_recents, travaux_recents_montant, travaux_locataire, honoraires_bailleur, honoraires_locataire, clauses_particulieres, loyer_reference, loyer_reference_majore, complement_loyer, complement_justification, dernier_loyer, dernier_loyer_versement, dernier_loyer_revision, precedente_location, precedent_loyer_revise, meuble_etudiant, date_conclusion_prevue, servitude_residence_principale, encadrement_loyer, zone_honoraires, honoraires_edl_bailleur, honoraires_edl_locataire, dpe_depenses_min, dpe_depenses_max, dpe_annees_reference, clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude"
+      "id, chambre_id, type, etat, zone_tendue, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, signe_envoye_le, date_debut, date_fin, date_sortie_reelle, revision_irl, charges_mode, irl_trimestre, fixation_loyer, paiement_echeance, lieu_paiement, irl_valeur, duree_reduite_evenement, travaux_recents, travaux_recents_montant, travaux_locataire, honoraires_bailleur, honoraires_locataire, clauses_particulieres, loyer_reference, loyer_reference_majore, complement_loyer, complement_justification, dernier_loyer, dernier_loyer_versement, dernier_loyer_revision, precedente_location, precedent_loyer_revise, meuble_etudiant, date_conclusion_prevue, servitude_residence_principale, encadrement_loyer, zone_honoraires, honoraires_edl_bailleur, honoraires_edl_locataire, dpe_depenses_min, dpe_depenses_max, dpe_annees_reference, clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude"
     )
     .eq("id", bailId)
     .eq("organization_id", orgId)
@@ -956,7 +957,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       </header>
       {bail.etat !== "brouillon" && <dl className={styles.chiffres}>
         <div><dt><Wallet size={17} aria-hidden="true" /> Loyer mensuel</dt><dd>{bail.loyer_hc == null || bail.charges == null ? "À compléter" : eur(Number(bail.loyer_hc) + Number(bail.charges))}</dd><dd className={styles.precision}>{bail.loyer_hc == null ? "Loyer à définir" : `${eur(Number(bail.loyer_hc))} hors charges`}{bail.charges != null && ` + ${eur(Number(bail.charges))} de charges`}</dd></div>
-        <div><dt><CalendarDays size={17} aria-hidden="true" /> Dates du bail</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "Entrée à renseigner"}</dd><dd className={styles.precision}>{bail.date_fin ? `Fin le ${formaterDate(bail.date_fin)}` : "Fin non renseignée"}</dd></div>
+        <div><dt><CalendarDays size={17} aria-hidden="true" /> Dates du bail</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "Entrée à renseigner"}</dd><dd className={styles.precision}>{bail.date_fin ? `Fin le ${formaterDate(bail.date_fin)}` : "Fin non renseignée"}{bail.date_sortie_reelle ? ` · sortie réelle le ${formaterDate(bail.date_sortie_reelle)}` : ""}</dd></div>
         <div><dt><ShieldCheck size={17} aria-hidden="true" /> Dépôt de garantie</dt><dd>{bail.depot_garantie == null ? "À renseigner" : eur(Number(bail.depot_garantie))}</dd><dd className={styles.precision}>Montant prévu au contrat</dd></div>
         <div><dt><CalendarDays size={17} aria-hidden="true" /> Échéance du loyer</dt><dd>{bail.jour_echeance == null ? "À renseigner" : `Le ${bail.jour_echeance} du mois`}</dd><dd className={styles.precision}>{bail.charges_mode === "forfait" ? "Charges au forfait" : bail.charges_mode === "provision" ? "Provisions sur charges" : "Conditions du contrat"}</dd></div>
       </dl>}
@@ -1102,7 +1103,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             ))}
             {bail.etat === "preavis" && (
               <div className="space-y-3 border-t border-border pt-3">
-                {edlSortieSigne && <BoutonTerminerBail orgId={orgId} bailId={bailId} />}
+                {edlSortieSigne && <BoutonTerminerBail orgId={orgId} bailId={bailId} dateEffet={bail.date_fin} />}
                 <FormulaireAnnulerConge orgId={orgId} bailId={bailId} />
               </div>
             )}
@@ -1119,7 +1120,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           <CardHeader>
             <CardTitle className="text-base">Comparatif entrée / sortie</CardTitle>
             <CardDescription>
-              Les écarts d&apos;état entre l&apos;entrée et la sortie sont mis en évidence.
+              Les écarts d&apos;état entre l&apos;entrée et la sortie sont mis en évidence.{" "}
+              {REGLE_ECART_EDL}
             </CardDescription>
           </CardHeader>
           <CardContent>

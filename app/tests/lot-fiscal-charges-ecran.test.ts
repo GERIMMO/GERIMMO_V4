@@ -101,7 +101,7 @@ describe("D03 (FIN-07, option A) : l'écran dit que le choix de qualification n'
     const qualifications = new Map<string, QualificationFiscale>(qualifiee.map((q) => [q.ecriture_id, q as never]));
     expect(recap.ecrituresFondsTravauxAlur.sort()).toEqual(["alur", "alur2"]);
     expect(fondsTravauxAlurQualificationIgnoree(recap, qualifications)).toEqual(["alur"]);
-    qualifications.set("alur", { ...(qualifiee[0] as never), nature: "a_qualifier", rubrique: null });
+    qualifications.set("alur", { ...qualifiee[0], nature: "a_qualifier", rubrique: null } as never);
     expect(fondsTravauxAlurQualificationIgnoree(recap, qualifications)).toEqual([]);
   });
 

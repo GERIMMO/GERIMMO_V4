@@ -145,6 +145,10 @@ export function lienPourManquant(
     return null;
   };
 
+  // D39 : le détail des dépenses d'une régularisation se saisit dans le formulaire de génération lui-même. Aucun écran du dossier ne le porte :
+  // l'envoyer à la fiche du bail (repli ci-dessous) ferait chercher un champ qui n'y existe pas.
+  if (l.includes("détail des dépenses par nature")) return null;
+
   // « nombre » (pièces principales du bail type) est un libellé d'un seul mot :
   // en fragment il matcherait trop large, on le prend en égalité stricte
   if (l === "nombre") return vers("lot", CARACTERISTIQUES);

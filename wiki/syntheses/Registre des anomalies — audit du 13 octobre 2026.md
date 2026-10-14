@@ -20,7 +20,7 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 *hypothèse* (à vérifier), *réfutée*. Une correction partielle est écrite « à trancher » avec ce qui est fait et ce qui reste.
 
 > [!info] Mise à jour du 14/10/2026 — déploiement
-> Le dirigeant a autorisé le déploiement de la version contrôlée `0ad658a` : fusion (PR #179, `c99e2c6`), déploiement Vercel et migrations `20261013110000` et `20261013120000` appliquées en production. Les lignes de ce registre marquées *corrigée en branche* sont donc **déployées**, sauf mention contraire ; leur statut ligne par ligne n'a pas été réécrit (il reflète la rédaction du 13–14/10). Détail, contrôles faits et limites : [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.
+> Le dirigeant a autorisé le déploiement de la version contrôlée `0ad658a` : fusion (PR #179, `c99e2c6`), déploiement Vercel et migrations `20261013110000` et `20261013120000` appliquées en production. Les lignes de ce registre marquées *corrigée en branche* sont donc **déployées**, sauf mention contraire ; leur statut ligne par ligne n'a pas été réécrit (il reflète la rédaction du 13–14/10). PDM-01, relevée après le déploiement, est corrigée par la PR #180 (`0f7dbd5`), déployée le même jour. Détail, contrôles faits et limites : [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.
 
 ## Synthèse
 
@@ -28,9 +28,9 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 |---|---|---|---|---|---|---|---|---|
 | **P0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
 | **P1** | 0 | 1 | 0 | 0 | 0 | 0 | 0 | **1** |
-| **P2** | 0 | 34 | 0 | 34 | 1 | 0 | 0 | **69** |
+| **P2** | 0 | 34 | 1 | 34 | 1 | 0 | 0 | **70** |
 | **P3** | 20 | 74 | 0 | 70 | 1 | 0 | 1 | **166** |
-| **Total** | 20 | 109 | 0 | 104 | 2 | 0 | 1 | **236** |
+| **Total** | 20 | 109 | 1 | 104 | 2 | 0 | 1 | **237** |
 
 Sources lues : artisan, auditeur/a, auditeur/b, auditeur/c, cartographie, chaine/1, chaine/1b, chaine/2, charges-fiscalite, coordinateur, designer/a, designer/b, equipes-ia, perf-liens, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, retour-arriere, sortie-de-bail, superadmin, verification/flux-finale, verification/pr178, verification/securite, verification/sql, verification/ts, verification/ui-finale, verification/vague10-finale.
 
@@ -63,7 +63,7 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Contrôle en production (lecture seule)** : `-- Lecture seule : documents « récapitulatif nu » produits depuis la mise en ligne (à ouvrir : rubriques à 0,00 € attendues). select d.id, d.organization_id, d.titre, d.created_at from public.documents d where d.titre = 'Récapitulatif annuel · location nue' and d.created_at >= '2026-10-12' order by d.created_at;`
 
-## P2 — dégradation avec contournement (69)
+## P2 — dégradation avec contournement (70)
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
@@ -101,6 +101,7 @@ Aucune anomalie de cette gravité à ce jour.
 | `VFL-03` | verification/flux-finale | Copie locale refusée : un lien interne efface la saisie de la fiche personne sans avertissement, malgré « Gardez cet onglet ouvert » | corrigée en branche — vague 10 (commit 0ad658a) ; tests : tests/garde-copie-locale.test.ts, e2e/personne-reprise.spec.t… |
 | `VFL-07` | verification/flux-finale | Montants restés en type=number : « 840,00 » devient 84 000 dans un navigateur non francophone (charges réelles à régulariser, indice IRL, loyer/charges/dépôt du bail) | corrigée en branche — vague 10 (commit 0ad658a) ; tests : tests/montants-actions-lecture.test.ts : 209 tests, 22 couple… |
 | `VER-PR178-01` | verification/pr178 | Régression : la correction PR178-A-02 désactive la protection « Quitter la page ? » pour une quarantaine de formulaires de saisie (profil, bail, lot, EDL, messages, assistance…) | corrigée en branche — vague 5-7 ; tests : tests/protection-saisie-formulaires.test.ts |
+| `PDM-01` | coordinateur | Le point du matin ne s'actualise plus depuis le 13/10 : la lecture des artisans en attente passe par une fonction que le client de service se voit toujours refuser | déployée — PR #180 fusionnée (0f7dbd5) et déployée le 14/10/2026 après autorisation du dirigeant ; tests rouge puis ver… |
 | `ARC-07` | artisan | Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé | à trancher |
 | `ARC-08` | artisan | Un artisan refusé par la plateforme et sur liste noire globale garde l outil clients externes, devis et factures | à trancher |
 | `AUD-B-04` | auditeur/b | Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce *(hyp.)* | à trancher |
@@ -604,6 +605,18 @@ Aucune anomalie de cette gravité à ce jour.
 - **Preuve expurgée (banc)** : preuves/verification/pr178/sortie-candidate.txt ; preuves/verification/pr178/forms-sans-attribut.txt (liste des 61 formulaires) ; témoin avec attribut : même fichier, premier bloc
 - **Cause probable** : app/src/lib/protection-saisie.ts:47-52 (eligible) : l'attribut a été érigé en liste blanche, alors que preparerSoumission/confirmerSoumission (use-action-formulaire.ts, use-action-state-protegee.ts) savaient déjà confirmer ces formulaires. Seuls les filtres GET sans method posaient problème (PR178-A-02).
 - **Correction proposée** : Soit ajouter data-saisie-confirmee aux formulaires qui utilisent useActionFormulaire/useActionStateProtegee (et un test qui échoue si un <form> branché sur ces hooks n'a pas l'attribut), soit inverser la règle : suivre par défaut et exclure explicitement les filtres (method=get, role=search, ou attribut data-saisie-ignoree). Ne change aucune règle métier.
+- **Correction sans aval** : oui
+
+#### `PDM-01` — Le point du matin ne s'actualise plus depuis le 13/10 : la lecture des artisans en attente passe par une fonction que le client de service se voit toujours refuser
+
+- **Sévérité** : P2 · **Statut** : déployée — PR #180 fusionnée (0f7dbd5) et déployée le 14/10/2026 après autorisation du dirigeant ; tests rouge puis vert, sept mutations détectées, équivalence rejouée sur le banc, relecture indépendante à trois angles ; reste à constater en production la régénération du point au prochain passage de mission (chemin du client de service non rejouable depuis l'environnement) · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Rôle / source** : super-administrateur (coordinateur) · **Version testée** : main au 14/10/2026 (c99e2c6, déploiement de la PR #179) ; correction en 0f7dbd5 (PR #180)
+- **Environnement** : production en lecture seule (journaux d'exécution de Vercel, tables de la base) pour le constat ; banc local isolé (Postgres 16, émulateur Supabase) pour le rejeu
+- **Attendu** : Après chaque passage de mission, le point du jour de chaque équipe est enregistré avec les décisions à prendre (publications, veille, artisans, retours).
+- **Observé** : Vercel regroupe 5 erreurs « [point du matin] Le point n'a pas été actualisé : données indisponibles (artisans) » (première le 13/10 vers 09 h 40 UTC, dernière le 14/10 à 11 h 15 UTC). La dernière décision a été créée le 13/10 à 09 h 11 UTC ; 236 décisions restent en attente. Depuis le commit d4f3b59 (PR #177), une source illisible bloque tout l'enregistrement ; avant, l'échec était avalé et la liste des artisans restait vide sans bruit.
+- **Preuve expurgée (banc)** : Lecture du code (genererPointsDuMatin, lireAttentes, execution-mission) ; définition en production de artisans_a_valider() (« if not public.is_super_admin() then raise exception 'Accès refusé' ») et de is_super_admin() (aal2 et adhésion super_admin) ; rejeu sur le banc, transaction annulée : session de supervision AAL2 → lignes, service_role → « Accès refusé » ; get_runtime_errors de Vercel ; table decisions_du_matin (max cree_le).
+- **Cause probable** : artisans_a_valider() n'a jamais pu être appelée par le client de service qui génère le point ; la PR #177 a rendu l'échec bloquant sans prévoir cette source.
+- **Correction proposée** : Lire les artisans en attente et leurs justificatifs directement dans lireAttentes (une requête, justificatifs imbriqués), contenu identique à la fonction SQL ; aucune migration, aucun droit modifié.
 - **Correction sans aval** : oui
 
 #### `ARC-07` — Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé

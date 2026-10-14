@@ -35,7 +35,7 @@ Compagnons : [[Registre des anomalies — audit du 13 octobre 2026]], [[Fiches d
 | Chantier de migrations et export | RET-01, CHF-04, AUD-C-06 | garde de nom de fichier ; formules neutralisées dans le CSV | non |
 | Retours arrière des deux migrations | — | `app/supabase/retours-arriere/` : scripts essayés (état revenu identique à l'état d'origine) | non appliqués par le chantier |
 
-Bilan du registre : **236 anomalies** (P0 : 0 ; P1 : 1 ; P2 : 69 ; P3 : 166) ; **109 corrigées en branche**, **104 à trancher**, 20 ouvertes, 3 réfutées/acceptées.
+Bilan du registre : **237 anomalies** (P0 : 0 ; P1 : 1 ; P2 : 70 ; P3 : 166) ; **109 corrigées en branche**, **1 déployée** (PDM-01, § 5 bis), **104 à trancher**, 20 ouvertes, 3 réfutées/acceptées. Les lignes « corrigée en branche » sont déployées depuis le 14/10 (note en tête du registre).
 
 ## 2. Migrations à appliquer en production
 
@@ -120,13 +120,14 @@ Question à vous poser, dans les termes de la mission, **quand vous aurez tranch
 - Le réseau de l'environnement de l'audit refuse l'accès direct à `gerimmo.app` (réponse 403 du proxy) : les pages ont été lues par l'outil Vercel, sans navigateur ni captures.
 - Retour arrière du code : revert de la fusion `c99e2c6` (ou promotion du déploiement précédent) ; de la base : `app/supabase/retours-arriere/LISEZ-MOI.md`, en ordre inverse, après sauvegarde.
 
-### Constat après déploiement, non corrigé : le point du matin ne s'actualise plus (14/10/2026)
+### Constat après déploiement : le point du matin ne s'actualisait plus (14/10/2026) — corrigé par la PR #180
 
 - **Observé** : Vercel regroupe 5 erreurs `[point du matin] Le point n'a pas été actualisé : données indisponibles (artisans)` (route `/api/cron/equipes`, première le 13/10 vers 09 h 40 UTC, dernière le 14/10 à 11 h 15 UTC). La dernière décision du point a été créée le 13/10 à 09 h 11 UTC ; **236 décisions restent « en attente »** dans `decisions_du_matin`.
 - **Cause établie (lecture du code et de la base)** : le point est regénéré après chaque mission avec le client de service (`genererPointsDuMatin`), qui lit `artisans_a_valider()`. Cette fonction exige `is_super_admin()`, c'est-à-dire une session humaine au second facteur : appelée par le client de service, elle répond « Accès refusé » à chaque fois. Avant la PR #177, l'échec était avalé (liste des artisans vide, sans bruit) ; depuis le commit `d4f3b59` (13/10), une source illisible **bloque tout l'enregistrement** pour ne pas classer des décisions en attente comme « sans objet ». Le point est donc figé depuis le déploiement de la PR #177, **avant** la version de ce dossier : ni la fusion du 14/10 ni les migrations n'y sont pour quelque chose.
 - **Effets** : la file de décisions du matin n'est plus mise à jour (y compris pour les nouveaux posts du marketing : leur alerte part bien par e-mail, mais n'apparaît pas dans le point). Le veto reste possible dans `/admin/marketing`. Les validations d'artisans en attente n'ont, de leur côté, jamais figuré dans le point (liste vide silencieuse avant le 13/10).
-- **Pistes** (rien n'est fait, hors de l'autorisation reçue) : (a) lire les artisans en attente par une requête de service dans `lireAttentes` (changement de code seul, un déploiement) ; (b) une migration autorisant explicitement le rôle de service dans `artisans_a_valider` (changement de droit, aval requis). Recommandation : (a), puis relancer une mission pour vérifier que le point se régénère.
-- **Registre** : cette anomalie n'est pas encore ajoutée au [[Registre des anomalies — audit du 13 octobre 2026]] (237ᵉ) ; à faire avec la décision.
+- **Correction** (autorisée par le dirigeant le 14/10, PR #180 fusionnée en `0f7dbd5`, déployée sur Vercel `dpl_6R5gZqMyEQE1KWWtpWbMkVDxnURy`) : `lireAttentes` lit désormais `artisans` avec ses justificatifs imbriqués, en une seule requête, avec le contenu de la fonction SQL ; aucune migration, aucun droit modifié. Contrôles : tests rouge puis vert (5 échecs avant), sept altérations du code détectées par les tests, équivalence rejouée sur le banc en transaction annulée, requête imbriquée essayée contre l'émulateur local, suite complète en local (3 998 réussis, 230 ignorés faute de base) et CI GitHub verte, relecture indépendante à trois angles sans défaut bloquant. Un écart voulu : l'échéance se compare au jour de Paris, la fonction SQL au jour UTC (1 à 2 h par nuit).
+- **Pas encore constaté en production** : la régénération du point par le client de service (prochain passage de mission, cette nuit vers 03 h UTC) ; la requête imbriquée n'a pas pu être essayée sur l'API de production depuis l'environnement (accès réseau refusé). Les 236 décisions déjà en attente ne sont pas touchées ; le prochain passage crée les 7 points du jour (environ 32 décisions neuves), sans e-mail ni notification.
+- **Registre** : [[Registre des anomalies — audit du 13 octobre 2026]], fiche `PDM-01` (P2, statut « déployée »).
 
 ### Passage forcé de la préparation du soir, 14/10/2026
 

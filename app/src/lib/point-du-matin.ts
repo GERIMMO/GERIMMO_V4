@@ -130,11 +130,38 @@ export function assemblerPoints(entree:{passages:PassageLu[];journaux:LigneJourn
 
 // ── Lecture des tables et enregistrement ───────────────────────────────────
 type Lecteur=Pick<SupabaseClient,'from'|'rpc'>;
-export async function lireAttentes(db:Lecteur):Promise<{attentes:Attentes;indisponibles:string[]}>{
+/**
+ * Les artisans qui attendent une décision. Lecture directe des tables : la fonction
+ * `artisans_a_valider()` exige une session humaine au second facteur
+ * (`is_super_admin()`) et refuse donc toujours le client de service qui génère le
+ * point après chaque mission (constat du 14/10/2026 : le point était figé). Même
+ * contenu que la fonction : artisans « en_attente » par ancienneté, justificatifs
+ * non retirés, décennale non échue (une échéance inconnue ne compte pas), RC pro
+ * sans échéance ou non échue. Le droit de lecture ne change pas : le client de service
+ * contourne la sécurité de ligne, une session de supervision lit par `artisan_lisible`.
+ */
+async function lireArtisansEnAttente(db:Lecteur,maintenant:Date):Promise<{data:Attentes['artisans']|null;error:unknown}>{
+ const artisans=await db.from('artisans').select('id,raison_sociale,siret_etat').eq('statut_plateforme','en_attente').order('created_at',{ascending:true});
+ if(artisans.error||!Array.isArray(artisans.data))return {data:null,error:artisans.error??new Error('Les artisans en attente sont illisibles.')};
+ if(!artisans.data.length)return {data:[],error:null};
+ const ids=artisans.data.map(a=>a.id as string);
+ const pieces=await db.from('artisan_pieces').select('artisan_id,type,expire_le').in('artisan_id',ids).is('retiree_le',null);
+ if(pieces.error||!Array.isArray(pieces.data))return {data:null,error:pieces.error??new Error('Les justificatifs sont illisibles.')};
+ const jour=jourDuPoint(maintenant);
+ const lignes=pieces.data as {artisan_id:string;type:string;expire_le:string|null}[];
+ return {error:null,data:artisans.data.map(a=>{
+  const siennes=lignes.filter(l=>l.artisan_id===a.id);
+  return {artisan_id:a.id as string,raison_sociale:a.raison_sociale as string,siret_etat:a.siret_etat as string,
+   decennale_valide:siennes.some(l=>l.type==='decennale'&&l.expire_le!=null&&l.expire_le>=jour),
+   rc_pro_deposee:siennes.some(l=>l.type==='rc_pro'&&(l.expire_le==null||l.expire_le>=jour)),
+   nb_pieces:siennes.length};
+ })};
+}
+export async function lireAttentes(db:Lecteur,maintenant:Date=new Date()):Promise<{attentes:Attentes;indisponibles:string[]}>{
  const [dev,pub,art,ret,vei]=await Promise.all([
   db.from('development_proposals').select('id,titre,probleme,risque,statut,revision').eq('statut','autorisation').order('updated_at',{ascending:false}).limit(30),
   db.from('publications').select('id,titre,statut,corps,programmee_pour,valide_le').in('statut',['proposition','brouillon','programmee']).order('propose_le',{ascending:false}).limit(30),
-  db.rpc('artisans_a_valider'),
+  lireArtisansEnAttente(db,maintenant),
   db.from('retours_utilisateurs').select('id,titre,nature,gravite,etat').in('etat',['nouveau','en_examen']).or('nature.eq.idee,and(nature.eq.bug,gravite.eq.N1)').order('cree_le',{ascending:false}).limit(30),
   db.from('regulatory_watch').select('id,titre,source_nom,etude').eq('statut','a_examiner').not('analyse_le','is',null).order('reperage_le',{ascending:false}).limit(30),
  ]);
@@ -142,7 +169,7 @@ export async function lireAttentes(db:Lecteur):Promise<{attentes:Attentes;indisp
  return {indisponibles,attentes:{
   developpements:(dev.error?[]:dev.data??[]) as Attentes['developpements'],
   publications:(pub.error?[]:pub.data??[]) as Attentes['publications'],
-  artisans:(art.error||!Array.isArray(art.data)?[]:art.data) as Attentes['artisans'],
+  artisans:(art.error||!art.data?[]:art.data) as Attentes['artisans'],
   retours:(ret.error?[]:ret.data??[]) as Attentes['retours'],
   veille:(vei.error?[]:vei.data??[]) as Attentes['veille'],
  }};
@@ -159,7 +186,7 @@ export async function genererPointsDuMatin(db:Lecteur,maintenant:Date=new Date()
   const [passages,journaux,{attentes,indisponibles}]=await Promise.all([
    db.from('agent_passages').select('id,mission,debut,fin,etat,compte,bilan').gte('debut',new Date(maintenant.getTime()-24*3_600_000).toISOString()).order('debut',{ascending:false}).limit(200),
    db.from('tech_log').select('evenement,details,created_at').like('evenement','tache_%').is('account_id',null).gte('created_at',new Date(maintenant.getTime()-25*3_600_000).toISOString()).order('created_at',{ascending:false}).limit(300),
-   lireAttentes(db),
+   lireAttentes(db,maintenant),
   ]);
   // Une absence de données ne vaut pas une file vide : l'enregistrement
   // classerait sinon les décisions encore en attente comme « sans objet ».

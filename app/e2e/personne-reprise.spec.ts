@@ -6,6 +6,10 @@ import {createClient} from '@supabase/supabase-js';
 import {entrerDansEspace,sansSyntheseAlertes,debordementHorizontal} from './aides';
 test.use({storageState:'e2e/.auth/proprietaire.json',actionTimeout:10000});
 async function conserve(page:Page){await expect(page.getByRole('status').filter({hasText:'Saisie et fichiers conservés'})).toBeVisible();}
+// La copie est écrite une fois la frappe terminée (délai de 500 ms) : le statut « conservés » affiché AVANT l'action est celui de
+// l'écriture précédente. On attend donc qu'une NOUVELLE révision soit réellement dans IndexedDB, puis le statut (audit du 14/10).
+async function revisionsCopies(page:Page):Promise<string[]>{return page.evaluate(()=>new Promise<string[]>(fin=>{const o=indexedDB.open('gerimmo-reprises');o.onerror=()=>fin([]);o.onsuccess=()=>{const db=o.result;if(!db.objectStoreNames.contains('copies')){db.close();fin([]);return;}const q=db.transaction('copies').objectStore('copies').getAll();q.onsuccess=()=>{db.close();fin((q.result as {revision:string}[]).map(c=>c.revision).sort());};q.onerror=()=>{db.close();fin([]);};};}));}
+async function conserveApres(page:Page,action:()=>Promise<unknown>){const avant=(await revisionsCopies(page)).join();await action();await expect.poll(async()=>(await revisionsCopies(page)).join(),{timeout:15000}).not.toBe(avant);await conserve(page);}
 for(const largeur of [390,1440])test(`fiche personne et justificatif : fermeture et création à ${largeur}px`,async({page},info)=>{
  test.setTimeout(90000);const url=process.env.SUPALOCAL_DB,api=process.env.NEXT_PUBLIC_SUPABASE_URL;
  test.skip(!url||!/^postgres(?:ql)?:\/\/[^@]*@(?:localhost|127\.0\.0\.1):\d{1,5}\/gerimmo_ci_[a-z_]+_api$/.test(url)||!api||!/^http:\/\/(localhost|127\.0\.0\.1):\d{1,5}$/.test(api),'Base/API fictives locales requises');
@@ -18,8 +22,8 @@ for(const largeur of [390,1440])test(`fiche personne et justificatif : fermeture
   for(const [n,v] of Object.entries({email,telephone:'0600000000',address_line1:'10 rue TEST',postal_code:'75001',city:'Paris'}))await page.locator(`#p-${n}`).fill(v);
   await page.getByRole('button',{name:'Suivant',exact:true}).click();await page.getByRole('button',{name:'Pièce d’identité',exact:true}).click();
   const contenu=Buffer.from('%PDF-1.7\n% JUSTIFICATIF FICTIF '+randomUUID()+'\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF');
-  await page.locator('input[type="file"]').setInputFiles({name:'justificatif-fictif.pdf',mimeType:'application/pdf',buffer:contenu});await conserve(page);
-  await page.getByRole('button',{name:'Suivant',exact:true}).click();await conserve(page);
+  await conserveApres(page,()=>page.locator('input[type="file"]').setInputFiles({name:'justificatif-fictif.pdf',mimeType:'application/pdf',buffer:contenu}));
+  await conserveApres(page,()=>page.getByRole('button',{name:'Suivant',exact:true}).click());
   const contexte=page.context();await page.close();page=await contexte.newPage();await page.setViewportSize({width:largeur,height:1000});await sansSyntheseAlertes(page);await page.goto(href);
   await expect(page.getByRole('heading',{name:'Reprendre votre saisie',exact:true})).toBeVisible();expect(await debordementHorizontal(page)).toBe(0);
   await page.screenshot({path:info.outputPath('fiche-a-reprendre.png'),fullPage:true});await page.getByRole('button',{name:'Reprendre ma saisie',exact:true}).click();

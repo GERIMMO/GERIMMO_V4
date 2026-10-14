@@ -27,6 +27,13 @@ l'application candidate écrit `cle_envoi` (et appelle `encaisser_depot` avec `p
 
 Les deux migrations ne partagent aucune fonction : leurs retours sont indépendants (essayé dans les deux ordres et un par un).
 L'ordre inverse (120000 puis 110000) reste l'ordre recommandé.
+| `20261014200000_arret_urgence_taches_planifiees.retour.sql` | `20261014200000_arret_urgence_taches_planifiees.sql` (D06 : l'arrêt d'urgence couvre les 8 tâches `pg_cron`) | 8 fonctions planifiées (l'appel au prédicat est retiré), 1 fonction et 1 table supprimées, 1 ligne d'historique. Refuse de s'exécuter si une autre fonction appelle encore le prédicat. Aucune donnée métier touchée. |
+| `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » |
+
+Les deux premières migrations ne partagent aucune fonction : leurs retours sont indépendants (essayé dans les deux ordres et un par un).
+L'ordre inverse (120000 puis 110000) reste l'ordre recommandé. Le retour de `20261014200000` ne touche aucune de leurs fonctions : il se joue seul,
+avec la même procédure (essayé sur une copie de la base de recette : fonctions rétablies à l'identique, rejeu sans effet, marche avant
+redonnant exactement l'état migré, refus dans un lot ouvert).
 
 ## Les quatre retours du 14 octobre 2026 (lot « bail-sortie »)
 

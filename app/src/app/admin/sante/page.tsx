@@ -8,6 +8,7 @@ import {
   adoptionAutomatique,
   chargerSante,
   type Etat,
+  type EtatCycleMensuel,
   type EtatTache,
   type OrganisationPourAdoption,
   type Prestataire,
@@ -46,6 +47,14 @@ const PUCE_TACHE: Record<EtatTache, { classe: string; libelle: string }> = {
   pause: { classe: "puce-grise", libelle: "en pause" },
 };
 
+// Le cycle mensuel (D07) : « jamais » n'est pas une panne annoncée (environnement neuf), « suspendu » est un arrêt voulu.
+const PUCE_CYCLE: Record<EtatCycleMensuel, { classe: string; libelle: string }> = {
+  ok: { classe: "puce-loue", libelle: "à l'heure" },
+  retard: { classe: "puce-rouge", libelle: "en retard" },
+  jamais: { classe: "puce-prep", libelle: "aucun passage — à vérifier" },
+  suspendu: { classe: "puce-grise", libelle: "arrêt d'urgence" },
+};
+
 // Où la valeur s'obtient, sans lien inventé : le tableau de bord du prestataire
 // la fournit, et elle se pose dans les variables d'environnement du projet
 // Vercel (production), puis redéploiement.
@@ -71,7 +80,7 @@ export default async function PageSante() {
       .select("status, quittances_envoi_auto, appels_envoi_auto, relances_envoi_auto"),
   ]);
 
-  const { configuration, taches } = sante;
+  const { configuration, taches, cycleMensuel: cycle } = sante;
   const adoption = orgs.error
     ? null
     : adoptionAutomatique((orgs.data ?? []) as OrganisationPourAdoption[]);
@@ -92,6 +101,7 @@ export default async function PageSante() {
     nbJamais > 0 && `${nbJamais} tâche${nbJamais > 1 ? "s" : ""} sans passage enregistré`,
     nbEchec > 0 && `${nbEchec} tâche${nbEchec > 1 ? "s" : ""} en échec`,
     nbRetard > 0 && `${nbRetard} tâche${nbRetard > 1 ? "s" : ""} en retard`,
+    cycle?.etat === "retard" && "cycle mensuel en retard",
     manquants.length > 0 && "documents légaux incomplets",
   ].filter(Boolean).join(", ");
   const aVerifier = [
@@ -215,10 +225,59 @@ export default async function PageSante() {
             ))}
           </ul>
         )}
+        {/* Le cycle mensuel (D07) : tâche de la base de données, hors Vercel — lue à part, son dernier passage a plus de 30 jours d'âge. */}
+        <ul className="colonne-liste mt-3">
+          <li className="rang w-full flex-wrap items-start gap-y-2">
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-baseline gap-x-2">
+                <span className="font-medium text-[var(--encre)]">Cycle mensuel des loyers</span>
+                <span className="mono-discret sans-majuscules">Équipe {EQUIPES.exploitation.nom} · le 1er de chaque mois, au matin</span>
+              </span>
+              <span className="block text-sm text-[var(--texte-secondaire)]">
+                Génère les appels de loyer du mois et les quittances qui en découlent. Tâche de la base de données : elle ne se relance pas depuis cet écran.
+              </span>
+              {cycle === null ? (
+                <span className="mt-0.5 block text-sm text-[var(--texte-secondaire)]">
+                  Le dernier passage du cycle mensuel n’a pas pu être lu. Rechargez la page.
+                </span>
+              ) : (
+                <>
+                  <span className="mt-0.5 block text-sm text-[var(--texte-secondaire)]">
+                    {cycle.le ? (
+                      <>Dernière passe le <time dateTime={cycle.le}>{formaterDateHeureParis(cycle.le)}</time> — {cycle.bilan}</>
+                    ) : (
+                      "Aucun passage enregistré dans l’historique."
+                    )}
+                  </span>
+                  {cycle.etat === "retard" && (
+                    <span className="mt-2 block text-sm text-[var(--encre)]">
+                      Aucun passage depuis {cycle.joursDepuis} jours (seuil : 32). Les appels de loyer ne sont plus générés automatiquement tant que la tâche ne repart pas.
+                      Vérifier que la tâche planifiée « cycle-mensuel » existe dans la base de données et que les extensions <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">pg_cron</code> et{" "}
+                      <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">pg_net</code> sont actives ; sinon la recréer en suivant la procédure de
+                      reprise (<code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">app/docs/sauvegarde-et-restauration.md</code>). En attendant, « Générer l’échéancier » rattrape un bail à la fois (page du bail).
+                    </span>
+                  )}
+                  {cycle.etat === "suspendu" && (
+                    <span className="mt-2 block text-sm text-[var(--encre)]">
+                      Un arrêt d’urgence couvre le cycle mensuel : il ne se lance pas tant que l’arrêt n’est pas levé.{" "}
+                      <Link href="/admin/relais" className="lien-discret">Ouvrir « Relais et arrêts » →</Link>
+                    </span>
+                  )}
+                </>
+              )}
+            </span>
+            <span className={`puce ${PUCE_CYCLE[cycle?.etat ?? "jamais"].classe}`}>{cycle ? PUCE_CYCLE[cycle.etat].libelle : "à vérifier"}</span>
+          </li>
+        </ul>
         <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
           Une pastille verte confirme un passage récent. Une pastille rouge
           demande une vérification. L&apos;historique est conservé pendant six mois.
           {" "}{NOTE_FUSEAU} <Link href="/admin/equipes" className="lien-discret">Pause et reprise des missions →</Link>
+        </p>
+        {/* IA-03 / D46 : dire vrai — cet écran se consulte, il n'avertit personne. */}
+        <p className="mesure-lecture mt-1.5 text-sm text-muted-foreground">
+          Cet écran ne prévient personne : une tâche en retard ou en échec ne se voit que si vous l’ouvrez, ou par le
+          compteur « À décider » de la console. Le seul e-mail d’alerte de Gerimmo concerne le veto d’une publication marketing.
         </p>
       </section>
 

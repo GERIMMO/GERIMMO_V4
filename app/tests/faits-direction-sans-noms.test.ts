@@ -47,6 +47,8 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
   const preparer = async () => (await db.query("select public.preparer_faits_direction() d")).rows[0].d;
   const lire = async () => (await db.query("select public.lire_faits_direction(current_date) d")).rows[0].d;
   const traces = async (action: string) => (await db.query("select organization_id, details from public.audit_log where account_id=$1 and action=$2 order by created_at", [sa, action])).rows;
+  // Panne simulée de la source « échéances » SANS toucher au schéma des tables : pas de verrou exclusif, donc pas d'interblocage avec les autres fichiers de test.
+  const casserLaSourceEcheances = () => db.query("create or replace function public.libelle_generique_alerte(p_type text) returns text language plpgsql immutable set search_path = '' as $$ begin raise exception 'panne simulée'; end $$");
   const nombre = async (sql: string, args: unknown[] = []) => Number((await db.query(sql, args)).rows[0].n);
 
   beforeAll(async () => {
@@ -99,7 +101,7 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
       await db.query("delete from public.brief_direction_snapshots");
       const ancien = { statut: "disponible", observe_le: new Date().toISOString(), donnees: { mesures: { alertes_en_retard: 0, alertes_prochains_7_jours: 1, alertes_critiques: 0 }, faits: [{ titre: TITRE_ALERTE, date: null, href: "/x" }] } };
       await db.query("insert into public.brief_direction_snapshots(jour,genere_le,auteur_reel,sources,version_regles) values(current_date,now()-interval '1 hour',$1,jsonb_build_object('echeances',$2::jsonb),1)", [sa, JSON.stringify(ancien)]);
-      await db.query("alter table public.alerts rename column echeance to echeance_indisponible_test");
+      await casserLaSourceEcheances();
       await as(sa); const s = await preparer();
       expect(s.indisponibles).toContain("echeances");
       expect(s.sources.echeances).toMatchObject({ statut: "indisponible", donnees: null, observe_le: null });
@@ -109,7 +111,7 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
     it("le dernier état connu d'un instantané récent (format 2) reste repris, sans nom", async () => {
       await admin(); await db.query("delete from public.brief_direction_snapshots");
       await as(sa); const initial = await preparer(); await admin();
-      await db.query("alter table public.alerts rename column echeance to echeance_indisponible_test");
+      await casserLaSourceEcheances();
       await as(sa); const apres = await preparer();
       expect(apres.indisponibles).toContain("echeances");
       expect(apres.sources.echeances.statut).toBe("indisponible");

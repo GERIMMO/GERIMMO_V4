@@ -122,7 +122,7 @@ describe.skipIf(!DB_URL)("D16 — photos du locataire visibles de l'artisan : la
     it.each([["proposee", 2], ["acceptee", 2], ["planifiee", 2], ["en_cours", 2], ["terminee", 0], ["refusee", 0], ["annulee", 0]])(
       "mission « %s » : %i photo(s)", async (statut, attendu) => {
         await postgres();
-        await db.query("alter table public.incident_interventions disable trigger user");
+        await db.query("set local session_replication_role = replica");
         // Les motifs et dates que les contraintes exigent selon l'état (refus motivé, annulation motivée, fin).
         await db.query(
           `update public.incident_interventions set statut=$2::public.intervention_statut,
@@ -146,14 +146,14 @@ describe.skipIf(!DB_URL)("D16 — photos du locataire visibles de l'artisan : la
     });
 
     it("un incident clos ne montre plus de photo", async () => {
-      await db.query("alter table public.incidents disable trigger user");
+      await db.query("set local session_replication_role = replica");
       await db.query("update public.incidents set etat='clos', clos_le=now(), cloture_motif='sans_suite' where id=$1", [incident]);
       await agir(compteArtisan);
       expect(await photosDeLaDemande()).toHaveLength(0);
     });
 
     it("sans locataire déclarant identifié, aucune photo n'est attribuée au locataire", async () => {
-      await db.query("alter table public.incidents disable trigger user");
+      await db.query("set local session_replication_role = replica");
       await db.query("update public.incidents set declarant_person_id=null where id=$1", [incident]);
       await agir(compteArtisan);
       expect(await photosDeLaDemande()).toHaveLength(0);
@@ -202,14 +202,9 @@ describe.skipIf(!DB_URL)("D16 — photos du locataire visibles de l'artisan : la
       expect(await refus("select public.lire_photo_incident_artisan($1, $2, $3)", [photo1, sollicitation, intervention])).toMatch(/Indiquez/);
     });
 
-    it("sans trace possible, pas de chemin : la fonction échoue entièrement", async () => {
-      await postgres();
-      await db.query("alter table public.acces_pieces_log rename column action to action_indisponible_test");
-      await agir(compteArtisan);
-      expect(await refus("select public.lire_photo_incident_artisan($1, $2, null)", [photo1, sollicitation])).not.toBe("");
-    });
-
-    it("pendant un diagnostic de la supervision (session en lecture seule), la liste se lit mais aucune photo n'est servie", async () => {
+    // Sans trace possible, pas de chemin : ici la trace est refusée par la garde de lecture seule d'une session de diagnostic
+    // (le journal d'accès ne s'écrit pas), et la fonction échoue entièrement.
+    it("pendant un diagnostic de la supervision (session en lecture seule), la liste se lit mais aucune photo n'est servie, faute de trace", async () => {
       await agir(compteSa);
       await db.query("select public.ouvrir_session_artisan($1,'Diagnostic de la demande de devis D16')", [artisan]);
       expect(await photosDeLaDemande()).toHaveLength(2);

@@ -3,7 +3,7 @@ type: synthesis
 tags: [audit, execution, registre, v1, mission-operationnelle]
 status: in-progress
 created: 2026-10-13
-updated: 2026-10-13
+updated: 2026-10-14
 sources: []
 ---
 
@@ -12,234 +12,42 @@ sources: []
 Ce registre dit **ce qui a réellement été exécuté**, avec quel résultat, et ce qui ne l'a pas été. Il complète le
 [[Registre des anomalies — audit du 13 octobre 2026]] (ce qui est cassé) par ce qui a été regardé. Il est régénéré
 à chaque résultat ; aucune ligne n'est écrite sans un fichier de preuve ou un journal de commande derrière elle.
+Le détail des scénarios (douze colonnes de la mission : ID, fonction, rôle, environnement, version, scénario, attendu, obtenu,
+statut, horodatage, preuve, anomalie liée) est dans [[Registre d'exécution — scénarios, audit du 13 octobre 2026]].
 
 Vocabulaire de la mission : *exécuté avec succès*, *exécuté en échec*, *implémenté non vérifié*, *préparé*,
-*en attente d'aval*, *bloqué par accès*, *hors V1*.
+*en attente d'aval*, *bloqué par accès*, *hors V1*. Une ligne « exécuté en partie » dit qu'une partie seulement a pu l'être ;
+le reste est repris dans la liste des éléments non exécutés (§ 3).
 
 ## 1. Contrôles automatiques
 
-| Contrôle | Version de référence (`main` e9f31ac) | Version candidate (branche) |
+Version candidate contrôlée : commit `375af42` (journaux `cand4`). Les corrections et ajouts postérieurs à ce commit ne sont pas couverts.
+
+| Contrôle | Version de référence (`main` e9f31ac) | Version candidate |
 |---|---|---|
 | Lint | réussi | réussi |
 | Build de production | réussi | réussi |
 | Types (`tsc`) | réussi | réussi |
-| Tests unitaires et base (vitest), fichiers | 323 passed, 1 skipped (324) | 330 passed, 1 skipped (331) |
-| Tests unitaires et base (vitest), tests | 3333 passed, 14 skipped (3347) | 3460 passed, 14 skipped (3474) |
-| Parcours navigateur (Playwright) | 147 passed | 1 skipped, 163 passed |
+| Tests unitaires et base (vitest), fichiers | 323 passed, 1 skipped (324) | non relevé |
+| Tests unitaires et base (vitest), tests | 3333 passed, 14 skipped (3347) | non relevé |
+| Parcours navigateur (Playwright) | 147 passed | non relevé |
 | Matrice des écrans | réussi | réussi |
-| Audit des écrans à 768 px (tous profils) | non relevé | 8 passed |
-| Audit des écrans à 1440 px (tous profils) | non relevé | 8 passed |
+| Audit des écrans à 768 px (tous profils) | non relevé | non relevé |
+| Audit des écrans à 1440 px (tous profils) | non relevé | non relevé |
 | CI GitHub Actions (Postgres 18, lint, types, tests, build, parcours) | non relevé | réussie : exécution n° 636, tête 8b558c8, après fusion de la PR #178 |
 | Simulation des deux migrations contre la production (tout annulé) | sans objet | réussie : exécution n° 70 de « Migrations Supabase », 13/10 à 21 h 43 UTC |
 
-La référence est le code de `main` au commit e9f31ac, PR #177 incluse. La candidate est la tête de la branche
-de l'audit : retrait des agences du site public, correctif pg_cron du marketing, correctif du récapitulatif
-fiscal et corrections de l'audit. Banc local : Postgres 16, émulateur de l'API Supabase, `next start`,
-aucun service externe (ni Resend, ni Stripe, ni signature, ni modèle de langage).
+La référence est le code de `main` au commit e9f31ac, PR #177 incluse. Banc local : Postgres 16, émulateur de l'API Supabase,
+`next start`, aucun service externe (ni Resend, ni Stripe, ni signature, ni modèle de langage, ni `pg_cron`).
 
 ## 2. Scénarios exécutés par les agents
 
-### Propriétaire (scénario A, 1re passe)
-
-| N° | Scénario | Statut | Preuve |
-|---|---|---|---|
-| A2-parc | A2 création d'un bien (immeuble) et de deux lots, archivage puis restauration d'un bien de test, recherche | exécuté avec succès | captures/s2-12-apres-creation.png ; sql/s2k.out.txt |
-| A3-bail | A3 personne locataire, invitation, bail brouillon → activation par dépôt du bail signé | exécuté avec succès | captures/s7-12-bail-signe-depose.png |
-| A5-loyers | A5 échéance, encaissement partiel puis total, trop-perçu, annulation avec motif, quittance/reçu | exécuté avec succès | captures/s8-04-apres-partiel.png ; captures/s8-08-solde-regle.png ; captures/s8-10-quittance-html.png |
-| A8-acces-croises | A8 accès croisés propriétaire n°2 vers Claire Moreau (n°1), Agence Alpha et une organisation propriétaire tierce : URL directe, API REST, RPC, stockage, routes sans session, IDOR (mon org + objet étranger) | exécuté avec succès | sql/s10a-urls-v2.json ; sql/s10c.out.json ; sql/s10d.out.txt ; sql/s10e.out.json ; sql/s10f-routes-sans-sessi… |
-
-### Chaîne locataire → propriétaire (1/2, première passe)
-
-| N° | Scénario | Statut | Preuve |
-|---|---|---|---|
-| E1-01 | Locataire : lien d'invitation avant connexion et avec un autre compte | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures… |
-| E1-02 | Locataire : acceptation de l'invitation avec double clic | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures… |
-| E1-03 | Locataire : parcours de l'espace en mobile 390x844 (accueil, logement, paiements, documents, demandes, messages, signalement, FAQ) et quittance en bureau | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures… |
-| E1-04 | Locataire : dépôt d'attestation d'assurance (formats, taille, date, doublon) | exécuté, résultat partiel | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures… |
-| E1-05 | Locataire : message au gestionnaire avec double clic et contenu HTML | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures… |
-| E1-06 | Locataire : signalement d'incident avec photo — champ omis, réseau coupé, réponse perdue après traitement serveur, double clic, actualisation, urgence | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures… |
-| E1-07 | Propriétaire n°2 : examen et qualification de l'incident INC-2026-0002 (double clic) | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures… |
-| E1-08 | Propriétaire n°2 : ouverture de la consultation (devis unique assumé, métier plomberie, entretien courant, validité 30 j) avec double clic | exécuté, résultat partiel | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1/captures… |
-| E1-09 | Demande de devis à artisan.alpha, vision de l'artisan, devis v1, refus, v2, acceptation, validation de la réalisation, isolation locataire par API | non exécuté |  |
-
-### Chaîne devis → réalisation (1/2, reprise)
-
-| N° | Scénario | Statut | Preuve |
-|---|---|---|---|
-| E1b-01 | Propriétaire n°2 : demande de devis à E2E Plomberie Dubois (artisan.alpha) depuis la fiche de l'incident INC-2026-0002 | exécuté, résultat partiel | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/capture… |
-| E1b-02 | Artisan (artisan.alpha) : ce que montre la demande de devis du propriétaire n°2 (écran /artisan, /artisan/devis, /artisan/devis/<sollicitation>) | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/capture… |
-| E1b-03 | Artisan : devis v1 structuré (diagnostic, 5 lignes à 2 taux de TVA, délai, durée, validité, contraintes, observations), validation, génération du PDF, envoi avec double clic | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/capture… |
-| E1b-04 | Propriétaire n°2 : lecture du devis v1 reçu, actions offertes, notification de réception | exécuté, résultat partiel | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/capture… |
-| E1b-05 | Contrôles de permission par API (sessions réelles locataire, artisan, second artisan non validé) avant la décision du propriétaire | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/sql/per… |
-| E1b-06 | Propriétaire n°2 : « Retenir ce devis » avec double clic, puis actualisation | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/capture… |
-| E1b-07 | Ce que l'artisan voit une fois son devis retenu (accueil et fiche de la mission) et ce que le locataire voit du suivi | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/capture… |
-| E1b-08 | Contrôles de permission après la décision (locataire, artisan, second artisan, propriétaire n°1 d'une autre organisation) par API avec sessions réelles et par URL | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/sql/per… |
-| E1b-09 | Humain : mobile 390x844, retour sur l'envoi d'e-mail, double clic sur « Réessayer l'envoi » | exécuté, résultat partiel | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/capture… |
-| E1b-10 | Contrôle complémentaire du calcul du devis (écran contre base) : test différentiel sur 400 devis aléatoires et bornes de la fonction SQL | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/chaine/1b/sql/dif… |
-
-### Chaîne intervention, facture, trace (2/2)
-
-| N° | Scénario | Statut | Preuve |
-|---|---|---|---|
-| E2-01 | Artisan : accepte la mission 6e870972 (double clic sur « Accepter la mission »), puis propose trois créneaux (double clic sur « Envoyer ») | exécuté avec succès | captures/a1-02-mission-acceptee.png, captures/c2-01-creneaux-envoyes.png, captures/c1-01-creneaux-invalides.p… |
-| E2-02 | Locataire : choisit un créneau (double clic sur « Confirmer ce rendez-vous ») | exécuté avec succès | captures/l2-01-rdv-planifie-locataire.png, captures/o0-01-fiche-incident-planifie.png |
-| E2-03 | Report du rendez-vous : l'artisan « Déplace le rendez-vous » (3 nouveaux créneaux), le locataire rechoisit ; répété jusqu'à la limite | exécuté, résultat partiel | sql/creneaux-faux-refus.txt, captures/c4-01-deplacement-erreur.png |
-| E2-04 | Locataire : reporter ou annuler lui-même un rendez-vous confirmé | exécuté, en échec | captures/l2-01-rdv-planifie-locataire.png |
-| E2-05 | Artisan : démarre l'intervention (double clic), photo de fin de chantier, compte rendu (quatre questions : ce que j'ai fait, dépassement du devis, autre cause constatée, autre intervention nécessaire), puis « Terminer » | exécuté avec succès | captures/d2-01-photo-fin-chantier.png, captures/d4-01-bilan-montant-superieur.png, captures/d5-01-interventio… |
-| E2-06 | Artisan : dépose la facture (destinataire, montant, fichier) avec saisies invalides puis double clic | exécuté avec succès | captures/f3-01-facture-deposee.png, captures/f3-02-ma-facturation.png, captures/f2-01-facture-essais.png |
-| E2-07 | Artisan : tente de marquer la facture payée / validée / de modifier sa facture, la mission et l'incident (UI, RPC, écritures directes) | exécuté avec succès | sql/artisan-refus-paiement.txt |
-| E2-08 | Propriétaire n°2 : contrôle puis valide la facture (sans motif, puis avec motif, double clic) | exécuté avec succès | captures/o4-01-facture-validee.png, captures/o2-01-valider-facture.png |
-| E2-09 | Propriétaire n°2 : règle la facture (déclaratif) en saisissant une écriture de dépense au journal, puis clôture l'incident (« Résolu ») | exécuté, résultat partiel | captures/o7-01-ecriture-reglement.png, captures/o8-01-incident-clos.png, sql/ecriture-reglement.txt |
-| E2-10 | Locataire : lit la fiche de l'incident clos (compte rendu, photo), envoie son avis (note 4/5 + mot) avec double clic | exécuté avec succès | captures/l3-01-demande-cloturee-locataire.png, captures/l4-01-avis-locataire.png |
-| E2-11 | Locataire : ouvre un second incident de test (serrurerie, INC-2026-0004), le propriétaire le qualifie et le clôture, le locataire clique « Le problème persiste » (sans puis avec précisions, double clic) | exécuté avec succès | captures/n2-01-second-incident.png, captures/n5-01-probleme-persiste.png, captures/n6-01-contestation-rouvert… |
-| E2-12 | ISOLATION avec la session du locataire : lecture directe de 32 tables, 23 RPC de lecture sur 5 organisations (la sienne, propriétaire n°1, Agence Alpha, Agence Beta, un parc d'auditeur), 7 documents de natures diverses, 26 RPC de décision/écriture (devis, fac… | exécuté avec succès | sql/isolation-locataire-lecture.txt, sql/isolation-locataire-rpc-lecture.txt, sql/isolation-locataire-ecritur… |
-| E2-13 | Locataire en mobile 390x844 : 8 écrans, mentions d'agence, liens, boutons sans action, hors ligne | exécuté avec succès | sql/locataire-etats-ux.txt, captures/ux1-01-hors-ligne-contact.png |
-| E2-14 | Super-administrateur (aal2, sas MFA franchi comme e2e/auth.setup.ts) : traversée de l'espace du propriétaire n°2 et lecture de la trace complète de l'incident INC-2026-0002 ; comparaison des montants à mon calcul indépendant | exécuté avec succès | captures/sa4-01-incident-vu-par-supervision.png, captures/sa3-01-organisation-O2.png, sql/audit-log-chaine2.t… |
-| E2-15 | Nouvelles traces de la version candidate : contre_ecriture (le propriétaire annule une écriture de test), mission_annulee, detention_supprimee | exécuté, résultat partiel | sql/audit-log-chaine2.txt, captures/sa5-01-journal-contre-ecriture.png, captures/o10-01-contre-ecriture-journ… |
-
-### Super-administrateur
-
-| N° | Scénario | Statut | Preuve |
-|---|---|---|---|
-| M1-RPC | Matrice des droits : 99 fonctions SQL citant super_admin appelées en transaction annulée par 7 profils (propriétaire, locataire, artisan, agent, admin d'agence, multi, super-admin en aal1) + anon | exécuté avec succès | sql/matrice_rpc_negative.json ; sql/valeurs_rpc_ok.txt ; sql/fonctions_super_admin.txt ; scripts/matrice_rpc.… |
-| M1-TAB | Matrice des droits : 19 tables de supervision (consignes, vacances, arrêts, journal d'audit, points du matin, sessions artisan, retours…) en lecture/écriture directe par 7 profils | exécuté avec succès | sql/tables_negatif.json ; sql/tables_admin_rls.txt ; scripts/tables_neg.py |
-| M1-UI | Matrice des droits : 21 URLs /admin/** + route de pièces artisan + replay d'action serveur, par propriétaire, locataire, artisan, agent, admin d'agence, anonyme, super-admin en aal1 (navigateur) | exécuté avec succès | sql/negatifs_ui_v2.json ; scripts/t04b_negatifs_ui.mjs |
-| M1-LOGIN | Super-admin : connexion + sas MFA comme auth.setup.ts, puis /admin/brief | exécuté avec succès | captures/01-brief-initial.png |
-| M3a-BRIEF | Scénario D(a) : brief quotidien depuis événements réels du banc — fixture '[TEST-superadmin] Parc brief' (3 loyers échus de 750 € couverts à 1 000 €, 1 loyer à venir, incident urgent, passage de mission interrompu), puis 'Préparer le point maintenant' dans /a… | exécuté avec succès | sql/verite_avant.txt ; sql/verite_apres_fixture.txt ; sql/brief_snapshot_faits.txt ; captures/03-brief-faits-… |
-| D-CONSIGNES-SAISIE | Scénario D(b), version candidate : /admin/consignes au navigateur, super-admin aal2 : 3 consignes ([TEST-superadmin] D1 lecture claire, D2 ambiguë sans tâche, D3 avec injection + balises script/img) + 3 saisies invalides (fin avant début, heure répétée du cha… | exécuté avec succès | sql2/s02_consignes_sortie.txt ; captures2/02-consignes-saisie.png |
-| D-CONSIGNES-DECISION | Scénario D(b) : autorisation d'une version précise, exécution de la lecture, plafond, suspension, reprise | exécuté avec succès | sql2/s03_decisions_sortie.txt ; sql2/s04_negatifs_consignes_sortie.txt ; sql2/s05_negatifs_bis_sortie.txt ; c… |
-| D-CONSIGNES-HORS-DR… | Scénario D(b) : appels directs à enregistrer_consigne par un super-admin aal2 simulé avec des paramètres hors droits (transaction annulée) | exécuté avec succès | sql2/s04_negatifs_consignes_sortie.txt ; sql2/s05_negatifs_bis_sortie.txt |
-| D-CONSIGNES-REVISION | Scénario D(b) : révision d'une consigne dans deux onglets (versionnage et conflit) | exécuté avec succès | captures2/04-revision-conflit.png ; sortie console dans sql2/s04_* |
-| D-VACANCES-PLAN | Scénario D(c), candidate : /admin/relais, programmation d'une absence ([TEST-superadmin] Vacances essai) avec second superviseur habilité (fixture SQL : membership super_admin ajoutée au compte sa.relais.test, retirée en fin d'essai), consigne D8 autorisée, d… | exécuté avec succès | sql2/s07_vacances_sortie.txt ; sql2/s08_actif_sortie.txt ; captures2/05-vacances-programme.png ; captures2/06… |
-| D-URGENCE-ESCALADE | Scénario D(c) : tâche ordinaire traitée puis urgence interne escaladée, sans élargir les permissions | exécuté avec succès | sql2/s08_actif_sortie.txt ; captures2/06-vacances-actives-urgence.png |
-| D-ARRET-URGENCE | Scénario D(c) : arrêt d'urgence global, par mission, par plan, puis reprise ; effet pendant l'arrêt | exécuté avec succès | sql2/s10_arret_sortie.txt ; captures2/08-arret-global-actif.png |
-| SUP-02-VERIF | Version candidate : l'arrêt d'urgence reste possible pendant un diagnostic artisan ouvert (SUP-02) | exécuté avec succès | sql2/s16_sup02_sortie.txt ; sql2/s18_diag_garde_db_sortie.txt ; captures2/09-diagnostic-artisan.png |
-| SUP-08-VERIF | Version candidate : une alerte déjà escaladée n'est pas requalifiée quand le responsable perd son habilitation (SUP-08) | exécuté avec succès | sql2/s09_sup08_sortie.txt ; captures2/07-sup08-habilitation-perdue.png |
-| S-DIAGNOSTIC-ARTISAN | Support : diagnostic de l'espace d'un artisan inscrit par moi ([TEST-superadmin] Plomberie Essai, compte sa.artisan.test@…) | exécuté avec succès | sql2/s15_diag3_sortie.txt ; sql2/s16_sup02_sortie.txt ; captures2/10-diagnostic-ecriture-refusee.png |
-| S-RETOURS | Support : un utilisateur (artisan de test) envoie un signalement via /assistance, la supervision le qualifie, y répond et le résout | exécuté avec succès | sql2/s20_retours_sortie.txt ; captures2/11-retour-traite.png |
-| M1-RPC-CANDIDATE | Régression de la matrice RPC sur la version candidate (migration 20261013120000 appliquée) : mêmes 99 fonctions, mêmes 7 profils + anon, transaction annulée | exécuté avec succès | sql2/matrice_rpc_negative_candidate.json ; sql2/matrice_rpc_candidate_sortie.txt ; scripts2/matrice_rpc_candi… |
-| S-RECHERCHE | Support : recherche de la console (Ctrl+K) sur un utilisateur, une organisation, un artisan, un incident, un lot, une saisie malveillante | exécuté, résultat partiel | sql2/s21_recherche_sortie.txt ; captures2/12-recherche.png |
-| S-SECRETS | Support : balayage des écrans de supervision (fiches de compte, Santé, Paramètres, Journaux, Relais, Consignes, Équipes, Retours, Clients) à la recherche de secrets | exécuté avec succès | sql2/ecran-*.txt (textes bruts des écrans) ; captures2/13-fiche-compte.png |
-| S-CONTROLE-COMPTE | Support : geste 'Bloquer le compte' sur mon compte de test (sa.artisan.test@…) ; attribution dans le journal | exécuté, résultat partiel | sql2/s25_blocage_msg.txt ; sql2/emul_ban.txt ; captures2/15-blocage-compte.png |
-| S-MOBILE | Support : /admin/relais, /consignes, /brief, /retours, /equipes, /journaux en 390×844 | exécuté avec succès | sql2/s26_mobile_sortie.txt ; captures2/16-relais-mobile.png |
-| A-AUTOMATISMES | Mission 5 : état des lieux honnête des équipes IA et automatismes (lecture du code + écrans Équipes/Santé + base du banc) | exécuté, résultat partiel | sql2/ecran-equipes.txt ; sql2/ecran-sante.txt ; vercel.json ; supabase/migrations (cron.schedule) ; sql2/s10_… |
-
-### Artisan (clients externes)
-
-Aucun scénario consigné au rapport : rien n'est revendiqué.
-
-### Auditeur — autorisations et isolation
-
-| N° | Scénario | Statut | Preuve |
-|---|---|---|---|
-| A1-1 | Inventaire RLS/politiques/vues/fonctions/droits anon | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/securi… |
-| A1-2 | Fuzz des 354 fonctions exécutables par authenticated, 5 intrus hors organisation + 3 rôles internes + agent à portefeuille vidé | exécuté, résultat partiel | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/travai… |
-| A1-3 | Stockage : buckets, politiques, téléchargement par l'API avec 7 comptes et anonyme | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/securi… |
-| A2-1 | Matrice de lecture API : 9 comptes x 141 relations | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/matric… |
-| A2-2 | Écritures croisées par l'API : PATCH, DELETE, POST sur toutes les tables, 8 comptes vers Alpha et Claire | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/ecritu… |
-| A2-3 | Droits d'écriture directs par rôle dans sa propre organisation | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/ecritu… |
-| A2-4 | Locataire<->locataire, artisan<->artisan, agent<->autre agence, compte multi | exécuté, résultat partiel | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/matric… |
-| A3-1 | Traçabilité : supprimer_encaissement, annuler_mission, contre_ecriture, supprimer_detention (diff de toutes les tables) | exécuté, résultat partiel | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/travai… |
-| A3-2 | Révocation, décision IA, consigne, mode vacances, suppression de bail brouillon | exécuté, résultat partiel | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/a/securi… |
-
-### Auditeur — web, fichiers, secrets
-
-| N° | Scénario | Statut | Preuve |
-|---|---|---|---|
-| B-ENTETES | En-têtes de sécurité et CSP (curl -sI) sur /, /connexion, /inscription, /api/sante, 404 | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/entete… |
-| B-REDIRECTIONS | Redirections ouvertes : /auth/confirm?next=, ?code=&next=, /connexion?suite\|retour\|next=, /inscription?retour= | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/redire… |
-| B-SECRETS | Recherche de secrets dans snap-main (hors node_modules) et dans .next/static, et présence de la clé de service du banc dans bundles/HTML | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/secret… |
-| B-FICHIERS-ACCES | Routes de téléchargement agence/locataire/documents/[id]/fichier avec 6 identités (anonyme, propriétaire, locataire, artisan, agent ; session admin périmée) sur 6 couples org/document | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/fichie… |
-| B-ACTIONS-SERVEUR | Server actions de supervision (renvoyerInvitation, controlerCompte) appelées par identifiant : sans session, avec 4 sessions sans droit (propriétaire, locataire, artisan, agent), et avec Origin étranger/null/absent | exécuté, résultat partiel | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/action… |
-| B-ROUTES-API | Routes /api/devis/[id]/pdf, /api/artisan-prive/*, /admin/artisans/pieces/*, /artisan/attestations/*, /agence/*/comptabilite/export, /quittance/[id] avec identifiant inconnu et 5 identités | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/routes… |
-| B-XSS-RENDU | Inscription propriétaire par l'interface avec prénom '"><img src=x onerror=…>', nom '<script>…</script>{{7*7}}' + RTL/emoji/apostrophe, adresse et ville avec HTML et SQL ; relecture de /espaces et /compte | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/xss-in… |
-| B-XSS-ROLES | Script stocké cross-rôle : description d'incident hostile (img onerror, script, {{7*7}}, SQL, emoji) déclarée par le locataire Alpha puis relue par l'agent Alpha, le locataire et l'artisan | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/xss-re… |
-| B-UPLOADS | Téléversement de photos d'incident par le locataire : HTML déguisé en .jpg, SVG actif, PNG de 11 Mo, JPEG valide contenant du script (polyglotte), PNG nommé shell.php.png et nommé '"><img onerror>.png' | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/incide… |
-| B-SUITE-LOGIN | Connexion réelle avec /connexion?suite= valant //evil.example/x, https://evil.example, /\evil.example, javascript:alert(1), /assistance?x=1 | exécuté avec succès | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/suite-… |
-| B-SURFACE | Cartes sources dans .next/static, fichiers de public/, robots.txt, routes cron et webhooks sans secret ou avec secret faux | exécuté, résultat partiel | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/divers… |
-| B-LIMITATION-CONNEX… | 12 mots de passe faux puis le bon sur l'API d'authentification émulée | exécuté, résultat partiel | /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/preuves/auditeur/b/host-h… |
-| B-COOKIES | Drapeaux des cookies de session (état Playwright du propriétaire) | exécuté avec succès | lecture du fichier d'état e2e/.auth/proprietaire.json (valeurs non recopiées) |
-
-### Auditeur — automatismes, résilience, cohérence
-
-| N° | Scénario | Statut | Preuve |
-|---|---|---|---|
-| C-01 | 13 routes cron + /api/sante sans jeton, jeton faux, 'Bearer ' vide, schema sans Bearer (60 appels) ; HEAD/POST/PUT/OPTIONS sur /api/cron/purge | exécuté avec succès | sorties de session consignees dans inventaire-automatismes.md |
-| C-02 | Chemin autorise du cron marketing avec le jeton pg_cron genere en base (2 appels doubles, jeton tronque, jeton sur mission=purge et /api/cron/purge) | exécuté avec succès | preuves/auditeur/c/cron-marketing-jeton-pgcron.txt |
-| C-03 | Exercice de restauration local (export chiffre, verification, pg_restore dans base neuve, comparaison tables/politiques/droits) | exécuté avec succès | preuves/auditeur/c/restauration-exercice.log |
-| C-04 | Archive de sauvegarde alteree d'un octet / tronquee / mauvaise cle / manifeste absent -> verifier | exécuté avec succès | sortie de session (scripts/sauvegarde/base.mjs verifier) |
-| C-05 | Idempotence des fonctions des 8 taches pg_cron (cycle_mensuel_interne x3, alertes impayes/diagnostics/assurance/restitutions x2, retention x2, propositions publication x2) sur la copie | exécuté, résultat partiel | inventaire-automatismes.md section 2 |
-| C-06 | Dedoublonnage du webhook Stripe (abonnement_evenement_a_traiter x2, rejouable, a_traiter) et verrou de mission (commencer_mission x2) | exécuté, résultat partiel | sorties de session (psql sur la copie) |
-| C-07 | Encaissement atomique concurrent (2 demandes simultanees, la 1re retenue 2 s) et rejeu de commande, sur la copie | exécuté avec succès | coherence-regressions.md |
-| D-01 | Coherence SQL / ecran admin / ecran locataire / ecran artisan / export CSV : 1 bail (E2E Lot 1, Agence Alpha), 2 incidents (INC-2026-0001 et -0002), 2 ecritures (loyer 300,00 et honoraires 18,00) | exécuté avec succès | coherence-ecrans.json, compta-ecran.txt, compta-export.csv, coherence-regressions.md |
-| D-02 | Invariants SQL sur tout le banc partage (lecture) + calcul de prorata sur 5 cas limites (rollback) | exécuté avec succès | preuves-sql.txt, coherence-regressions.md |
-| C-08 | Lecture des 10 workflows GitHub, vercel.json, 306 migrations vs ordre-migrations.txt, 22 migrations de la PR #177 | exécuté, résultat partiel | inventaire-automatismes.md sections 4 a 6 |
-
-### Relecteur — finance et fiscalité
-
-Relecture adverse du code livré : 13 constats au registre des anomalies. Périmètre : finance (migrations 20261012223000, 20261012224000, 20261012224100, 20261012224200 ; lib/fiscal*.ts, documents catalogue-gestion, actions quittancement/fiscalite, composants fiscaux)
-
-### Relecteur — reprises et idempotence
-
-Relecture adverse du code livré : 5 constats au registre des anomalies. Périmètre : reprises (migrations 20261012190000 .. 20261013107000 hors finance ; actions incidents/invitations/creation de bien/planning ; app/invitations ; locataire incident ; artisan agenda et creneaux ; lib reprise/idempotence)
-
-### Relecteur PR #178 — navigateur (protection de sortie, brouillons)
-
-| N° | Scénario | Statut | Preuve |
-|---|---|---|---|
-| PR178-A-E01 | Confirmation de sortie : formulaire modifié (alertes), clic sur un lien de la barre latérale, annuler puis accepter | exécuté avec succès | preuves/relecture/pr178/a/a05-sortie.txt |
-| PR178-A-E02 | Retour arrière navigateur avec formulaire modifié après navigation douce (API Navigation) | exécuté avec succès | preuves/relecture/pr178/a/a05b-sortie.txt |
-| PR178-A-E03 | Rechargement de page avec formulaire modifié | exécuté avec succès | preuves/relecture/pr178/a/a05-sortie.txt |
-| PR178-A-E04 | Déconnexion (menu du compte) avec une fiche personne en cours de saisie | exécuté, résultat partiel | preuves/relecture/pr178/a/t2.mjs (sortie dans la fiche PR178-A-01) |
-| PR178-A-E05 | Double clic rapide sur « Créer l'alerte » (action non idempotente) | exécuté avec succès | preuves/relecture/pr178/a/t6.mjs |
-| PR178-A-E06 | Refus serveur (titre d'espaces), correction, nouvel envoi, sortie | exécuté avec succès | preuves/relecture/pr178/a/a12-sortie.txt |
-| PR178-A-E07 | Formulaires de connexion, d'inscription et de mot de passe oublié : exclus de la confirmation de sortie | exécuté avec succès | preuves/relecture/pr178/a/a11-sortie.txt, a10-sortie.txt |
-| PR178-A-E08 | Création d'une fiche personne avec une pièce, sans incident réseau | exécuté avec succès | preuves/relecture/pr178/a/t5.mjs (scénario S0), SQL documents |
-| PR178-A-E09 | Création d'une fiche personne, réponse perdue (S1) puis rechargement et reprise | exécuté, en échec | preuves/relecture/pr178/a/a03-s1-sortie.txt |
-| PR178-A-E10 | Filtres GET (Finances, catalogue de documents, recherche de clients artisan) | exécuté, en échec | preuves/relecture/pr178/a/a02-sortie.txt, a02b-sortie.txt |
-| PR178-A-E11 | Session expirée pendant une saisie (alerte, fiche personne) | exécuté, en échec | preuves/relecture/pr178/a/a07b-sortie.txt, a07-sortie.txt |
-| PR178-A-E12 | Coût de stockage de la copie locale avec 3 fichiers de 9 Mo | exécuté, en échec | preuves/relecture/pr178/a/a06-sortie.txt |
-| PR178-A-E13 | Poste partagé : propriétaire déconnecté puis locataire connecté dans le même profil | exécuté, en échec | preuves/relecture/pr178/a/t2.mjs, captures/A-01-poste-partage-locataire.png |
-| PR178-A-E14 | Création d'un client externe par l'artisan (gestionnaire d'envoi propre à ce formulaire, hors hooks de la PR) | exécuté avec succès | preuves/relecture/pr178/a/a09-sortie.txt |
-| PR178-A-E15 | Reprise de la fiche personne à 390 x 844 | exécuté avec succès | preuves/relecture/pr178/a/a07-sortie.txt, captures/A-05-reprise-390.png |
-| PR178-A-E16 | Dépôt de document (champ fichier) : refus serveur (contenu identique déjà présent) puis succès avec un autre fichier | exécuté avec succès | preuves/relecture/pr178/a/a15-sortie.txt, a15b-sortie.txt |
-| PR178-A-E17 | Stockage local refusé (indexedDB.open en erreur) : la fiche personne reste-t-elle utilisable ? | exécuté, résultat partiel | preuves/relecture/pr178/a/a14-sortie.txt |
-
-### Relecteur PR #178 — serveur, régressions, qualité des tests
-
-| N° | Scénario | Statut | Preuve |
-|---|---|---|---|
-| PR178-B-E01 | proxy.ts : session expirée (last_sign_in_at vieilli de 2 jours sur mon compte de test propriétaire) puis GET/HEAD/POST sur pages publiques et privées, requêtes directes avec cookies de session | exécuté avec succès | preuves/relecture/pr178/b/proxy1.json |
-| PR178-B-E02 | Encaissement de loyer et encaissement de dépôt de garantie (Agence Alpha, admin.alpha, bail démo) : montant trop élevé (10 000 000), montant valide, sortie par lien interne après chaque cas ; contexte isolé par cas | exécuté avec succès | preuves/relecture/pr178/b/scripts/enc1.mjs, scripts/enc2.mjs (sorties console) |
-| PR178-B-E03 | Création de bien (propriétaire de test) : code postal « 7501 » et année 1500, d'abord avec la validation du navigateur, puis avec noValidate et attributs retirés (appel direct simulé) | exécuté avec succès | preuves/relecture/pr178/b/PR178-B-bien-erreurs-serveur.png ; scripts/bien1.mjs |
-| PR178-B-E04 | Import CSV du parc (propriétaire de test) : contrôle puis import réel d'une ligne, puis sortie par lien interne | exécuté, en échec | preuves/relecture/pr178/b/PR178-B-import-apres-succes.png ; scripts/import1.mjs |
-| PR178-B-E05 | Inscription artisan (/artisan/inscription, formulaire-compte puis formulaire-inscription) : confirmation de mot de passe différente, puis compte créé | exécuté avec succès | preuves/relecture/pr178/b/PR178-B-artisan-inscription.png ; scripts/artins.mjs |
-| PR178-B-E06 | Fiche personne (propriétaire de test) : téléphone « abc » puis date de naissance 2030-01-01 jusqu'au récapitulatif | exécuté avec succès | preuves/relecture/pr178/b/PR178-B-personne-erreur-telephone.png ; scripts/pers1.mjs |
-| PR178-B-E07 | Double clic sur « Envoyer le message » (locataire.alpha) et « Déclarer l'incident » (admin.alpha, Agence Alpha) | exécuté avec succès | preuves/relecture/pr178/b/scripts/dbl1.mjs (sortie console) |
-| PR178-B-E08 | Envoi avant hydratation (fichiers JS bloqués par route) : témoin /inscription (useActionState de React) contre /artisan/inscription (useActionStateProtegee) | exécuté, en échec | preuves/relecture/pr178/b/scripts/sansjs.mjs (sortie console) |
-| PR178-B-E09 | Formulaires de recherche/filtre sans attribut method (GET par défaut) : /artisan/clients (artisan.alpha) et /agence/<org>/documents/catalogue (admin.alpha) : saisie d'un terme puis Entrée / « Filtrer » | exécuté, en échec | preuves/relecture/pr178/b/PR178-B-recherche-bloquee.png ; scripts/recherche1.mjs |
-| PR178-B-E10 | Encaissement de loyer (admin.alpha, bail démo), réponse perdue APRÈS écriture serveur (route.fetch puis abort), puis second clic sur « Encaisser » avec la même saisie (2 €) | exécuté, en échec | preuves/relecture/pr178/b/PR178-B-encaissement-reponse-perdue.png ; scripts/rejeu1.mjs ; requête SQL sur enca… |
-| PR178-B-E11 | proxy.ts : GET /auth/confirm?token_hash=…&type=recovery avec session expirée (cookies d'un compte de test) | exécuté avec succès | preuves/relecture/pr178/b/proxy2.json |
-| PR178-B-E12 | Artisan : zone d'intervention invalide « abcde, 7501 » (/artisan/entreprise, artisan.alpha) ; locataire : description d'incident d'un caractère | exécuté, résultat partiel | preuves/relecture/pr178/b/scripts/autres1.mjs (sortie console) |
-| PR178-B-E13 | Relecture statique des parcours navigateur ajoutés par la PR (e2e/protection-saisie, creation-bien-reprise, devis-reprise, personne-reprise ×3, incidents-reprise, attestations-refus, demonstration, audit-ecrans, parcours-locataire) et du test proxy-redirectio… | exécuté, résultat partiel | preuves/relecture/pr178/b/lecture de pr178.diff (e2e/*.spec.ts, tests/proxy-redirection-post.test.ts) et de s… |
-
-### Designer — public, propriétaire, locataire
-
-| N° | Scénario | Statut | Preuve |
-|---|---|---|---|
-| DES-A-EX-01 | Reprise : relecture du dossier de preuves et vérification des sessions (proprietaire, locataire, locataire_pd) sur la candidate rebuild | exécuté avec succès | scripts/verif-sessions.mjs (sortie console) |
-
-### Designer — artisan, super-administrateur, agence (hors V1)
-
-Aucun rapport lisible : rien n'est revendiqué pour ce rôle.
-
-### Relecteur — supervision
-
-Relecture adverse du code livré : 9 constats au registre des anomalies. Périmètre : supervision
+233 scénarios consignés : 173 exécutés avec succès, 43 exécutés en partie, 16 exécutés en échec, 1 non exécutés (consignés comme tels). Le détail est dans
+[[Registre d'exécution — scénarios, audit du 13 octobre 2026]].
 
 ## 3. Ce qui n'a pas été exécuté
 
-| Volet | Élément | Raison |
+| Volet | Élément | Statut |
 |---|---|---|
 | Propriétaire (scénario A, 1re passe) | Inscription valide par le formulaire /inscription, double clic sur « Ouvrir mon espace » et actualisation pendant la création du compte : le serveur :3100 n'a pas la clé de service (PROP-BANC-01), le compte a été posé par l'API d'administration de l'émulateur (contournement_par_fixture) | non testable sur le banc local |
 | Propriétaire (scénario A, 1re passe) | Consommation du lien de récupération de mot de passe et du lien d'invitation : l'émulateur répond 400 « verify non géré en mode local » (serveur-supabase-local.mjs) ; seule la demande côté écran a pu être vérifiée | non exécuté |
@@ -278,6 +86,15 @@ Relecture adverse du code livré : 9 constats au registre des anomalies. Périm�
 | Super-administrateur | Changement d'heure (25/10 02:30) : seule la saisie d'une heure répétée a été testée (refusée) ; le passage réel d'un plan de vacances à cette date n'a pas été simulé | bloqué par accès ou par la limite de session |
 | Super-administrateur | Deux superviseurs actifs en même temps (double accusé d'une même alerte, SUP-03 déjà au registre) ; réseau lent (throttling) ; session expirée en cours de saisie d'une consigne | bloqué par accès ou par la limite de session |
 | Super-administrateur | Partie 'analyse IA' du brief et envoi externe d'une urgence : aucun canal externe n'existe par conception (alertes internes seulement) | non exécuté |
+| Artisan (clients externes) | Contenu réel du PDF de devis généré par le produit (Chrome absent du banc : rendu impossible ; un PDF de test a été déposé par l API artisan pour poursuivre le parcours). Limite du banc BANC-PDF déjà relevée par le rôle propriétaire. | bloqué par accès ou par la limite de session |
+| Artisan (clients externes) | Conflit de rendez-vous entre un chantier externe et une intervention Gerimmo PLANIFIÉE : aucune intervention planifiée de l artisan A n existe sur le banc (la seule est terminée, l autre sans date) ; conflit externe/externe testé, conflit externe/Gerimmo lu dans conflit_planning_artisan sans être exécuté. | non testable sur le banc local |
+| Artisan (clients externes) | Échec de livraison, envoi du devis, signature électronique, validation par lien : inexistants dans le produit (transmission manuelle, aucun canal) ; rien à tester côté livraison. | non testable sur le banc local |
+| Artisan (clients externes) | Validation d une adresse (existence, code postal, ville) : aucun contrôle de forme au-delà du non-vide (« 1 rue X » accepté pour un client) ; observé, non classé en anomalie. | non exécuté |
+| Artisan (clients externes) | Interface avec le module désactivé (bandeau « Saisie désactivée ») : dépend de la variable d environnement du serveur, que je n ai pas le droit de relancer ; seule la garde base de données a été exercée (transaction annulée) et le code de l application lu. | non exécuté |
+| Artisan (clients externes) | Production réelle : aucune vérification (interdit) ; l activation du module en production n a été prouvée que par la lecture des migrations 20261012220000 et 20261012225000 et par le comportement base module coupé. | non exécuté |
+| Artisan (clients externes) | Limites liées à l abonnement du propriétaire (expiration, plafond de biens) sur les missions Gerimmo de l artisan : l artisan n a pas d offre propre ; les effets de l abonnement propriétaire n ont pas été rejoués ici. | bloqué par accès ou par la limite de session |
+| Artisan (clients externes) | Réseau lent (throttling), volume (centaines de clients/chantiers), validation du 2e artisan par le super-administrateur : non joués ; l artisan B est resté en_attente. | non exécuté |
+| Artisan (clients externes) | Scénario B côté artisan (demande du propriétaire n°2, créneaux, intervention, facture Gerimmo) : joué par la chaîne, non refait. | non exécuté |
 | Auditeur — autorisations et isolation | Volets B (entrées/sorties, CSP, cookies, téléversements), C (automatismes, webhooks, sauvegardes, migrations) et D (cohérence 3 baux/3 incidents/3 écritures) : hors périmètre de ce volet a. | hors du périmètre de ce volet |
 | Auditeur — autorisations et isolation | Fonctions de supervision exécutées avec MFA aal2 (consignes, vacances, décision du matin, révocation de relais) : refus constaté pour comptes ordinaires, exécution non faite. | bloqué par accès ou par la limite de session |
 | Auditeur — autorisations et isolation | Isolation locataire<->locataire et artisan<->artisan en exécution (un seul compte de chaque par organisation) ; compte multi@ (cumul admin Beta + agent Alpha). | non exécuté |
@@ -336,6 +153,55 @@ Relecture adverse du code livré : 9 constats au registre des anomalies. Périm�
 | Relecteur PR #178 — serveur, régressions, qualité des tests | Accessibilité de la fenêtre confirm (focus, lecteur d'écran) : boîte native du navigateur, non évaluée. | non exécuté |
 | Relecteur PR #178 — serveur, régressions, qualité des tests | Locataire : dépôt d'attestation, incident avec photos, formulaire de congé : non exécutés. | non exécuté |
 | Relecteur PR #178 — serveur, régressions, qualité des tests | Effet des contrôles de saisie sur les écritures de compta manuelles (compta.ts lireMontant) : lu dans le diff de 0555f43, non exécuté. | non exécuté |
+| Vérificateur adverse — migrations SQL | Schéma et données RÉELS de production : non lus (interdit) ; « avant » reconstruit depuis e2e/local/ordre-migrations.txt. Si la production a été retouchée à la main, les ancres pg_get_functiondef pourraient ne pas correspondre : la migration s'arrêterait alors net (comportement vérifié), sans rien changer. | non exécuté |
+| Vérificateur adverse — migrations SQL | pg_cron et pg_net réels (absents du banc) : declencher_marketing n'a pas été exécutée de bout en bout ; seule preparation_marketing_due() a été jouée sous le rôle postgres sans jeton. | non testable sur le banc local |
+| Vérificateur adverse — migrations SQL | Envoi réel d'e-mail lors d'un double envoi de contre-proposition (VER-SQL-03) : déduit du code, aucune clé Resend sur le banc. | non testable sur le banc local |
+| Vérificateur adverse — migrations SQL | Écrans (navigateur) : aucun écran n'a été ouvert pour mission_annulee, caduc, detention_supprimee ; lecture de code seulement. | non exécuté |
+| Vérificateur adverse — migrations SQL | Durée du verrou de l'ALTER TABLE incident_evenements sur le volume réel de production. | non exécuté |
+| Vérificateur adverse — migrations SQL | Conflit éventuel avec d'autres migrations de production postérieures au manifeste (non visibles du banc). | non testable sur le banc local |
+| Vérificateur adverse — saisie et courriers | Version texte brut des courriers : lib/email.ts n'envoie que le champ html (pas de champ text) ; la génération automatique d'une version texte par le prestataire n'est vérifiable sans clé d'envoi (aucune clé sur le banc, aucun e-mail réel n'est parti). Les corps ont été vérifiés comme chaînes produites par les fonctions pures,… | non testable sur le banc local |
+| Vérificateur adverse — saisie et courriers | Bandeau d'arrêt de supervision en navigateur (super-administrateur, double authentification) : non fait, car lever ou poser un arrêt modifie un réglage du banc partagé avec les autres agents ; rendu et échappement vérifiés en test unitaire seulement. Fraîcheur du bandeau après la levée d'un arrêt (le bandeau vit dans app/admin/… | non testable sur le banc local |
+| Vérificateur adverse — saisie et courriers | Page locataire/[orgId]/documents (élision, VER-TS-03) et accueil locataire : non ouvertes dans le navigateur, le locataire de démonstration n'a aucun bail sur le banc remis à neuf ; constat appuyé sur le code et sur les courriers. | non testable sur le banc local |
+| Vérificateur adverse — saisie et courriers | Fuseau et changement d'heure côté navigateur (min/max de l'input date) : horloge du navigateur non simulée ; seuls la date de Paris côté serveur (16 instants) et la valeur réelle du jour ont été contrôlées. | non exécuté |
+| Vérificateur adverse — saisie et courriers | Codes postaux de Corse et d'outre-mer dans l'écran de création de bien : acceptés au niveau de la fonction (20000, 20200, 20600, 97400, 98000, 98714, 98800), non rejoués dans l'interface. | non exécuté |
+| Vérificateur adverse — saisie et courriers | Cookies de session avec 800 caractères échappés par le serveur d'authentification (par exemple des « < ») : l'émulateur du banc n'est pas le vrai serveur d'authentification ; hypothèse à vérifier. Au maximum des bornes ordinaires les cookies pèsent 4,2 Ko. | bloqué par accès ou par la limite de session |
+| Vérificateur adverse — saisie et courriers | Hypothèse à vérifier (non reproduite) : formulaire-depot.tsx:163 préremplit le montant avec « dû − encaissé » en flottant (par exemple 1000,14 − 250,30 donne 749.8399999999999) ; le champ a step 0,01, donc la validation native du navigateur bloque l'envoi, et le serveur refuserait aussi (au centime près). Antérieur à la correct… | bloqué par accès ou par la limite de session |
+| Vérificateur adverse — saisie et courriers | Montants encore lus par Number() sans lireMontant, hors du périmètre de la correction : enregistrerVersement (actions/compta.ts:68, aucun contrôle de signe ni de date futur, fonction réservée aux agences), postes d'appel de charges (appels-charges.ts:74, 3 décimales acceptées), loyer, charges et dépôt à la création d'un bail (b… | non exécuté |
+| Vérificateur adverse — saisie et courriers | Écrans agence (hors V1 publique) : versement de rapport, rapports de gestion ; non exercés. | non exécuté |
+| Vérificateur adverse — saisie et courriers | Données laissées sur le banc par ce passage : compte ts-verif-853581@gerimmo-demo.fr (espace « Parc de P… N… » aux bornes maximales), bien, lot, locataire et bail préfixés [TEST-ts], 1 encaissement de 84 000 € et 2 quittances (conséquence de VER-TS-02) ; aucune donnée des autres rôles modifiée ; fiche de Lucas Bernard inchangée… | non testable sur le banc local |
+| Vérificateur adverse — sécurité | Application réelle des politiques de stockage et du chiffrement par le service Supabase Storage de production : l'émulateur maison exécute les politiques Postgres mais n'est pas le vrai service ; seule la lecture et l'exécution des politiques en base ont été faites | non exécuté |
+| Vérificateur adverse — sécurité | Session super-administrateur dans le navigateur : la session enregistrée est expirée (MFA aal2 exigé) ; les gestes du super-administrateur ont été exercés en SQL avec des revendications aal2 sur la base jetable, pas par l'écran | bloqué par accès ou par la limite de session |
+| Vérificateur adverse — sécurité | Exécution réelle de pg_cron et pg_net : absents du banc (schéma cron simulé, aucune extension pg_net) ; l'inventaire des 8 tâches et la lecture de l'arrêt par leurs fonctions sont prouvés, pas le déclenchement planifié ni l'appel sortant vers le site | non testable sur le banc local |
+| Vérificateur adverse — sécurité | État de production (tâches cron actives, instantanés brief_direction_snapshots, communes ouvertes au réseau, arrêts posés) : interdit ; requêtes de contrôle en lecture seule données dans les fiches SUP-01, SUP-05 et à construire pour PRO2-01 | non exécuté |
+| Vérificateur adverse — sécurité | Parcours navigateur de CHN-01, ART-21, LOC-21, PRO2-21 : reproduits en SQL sur les fonctions réelles (choisir_creneau, demarrer_intervention) ou lus dans le code ; pas rejoués sur les écrans | non exécuté |
+| Vérificateur adverse — sécurité | Injection CSV (formules) dans l'export comptable : champ() ne neutralise pas = + - @ mais aucun texte d'un tiers n'atteint les libellés (persons non modifiable par le locataire) ; non retenu comme anomalie | non exécuté |
+| Vérificateur adverse — sécurité | En-têtes en production Vercel (vercel.json, en-têtes ajoutés par la plateforme) : seul le serveur local next start a été interrogé | non exécuté |
+| Vérificateur adverse — sécurité | Limitation de débit des connexions et des inscriptions, expiration de session et cookies Secure : cookie Secure dépend de NEXT_PUBLIC_SITE_URL en https, non vérifiable sur le banc http | bloqué par accès ou par la limite de session |
+| Vérificateur adverse — sécurité | Les 228 actions serveur passant par createClient + RPC : non relues une à une ; couvertes par les tests de RLS et le contrôle des fonctions SQL | non exécuté |
+| Vérificateur adverse — corrections de la PR #178 | Course de 500 ms entre dernière frappe et déconnexion (copie différée réécrite après la purge) : le menu du compte n'existe dans le DOM qu'une fois ouvert, donc inatteignable à vitesse humaine ; le minuteur est annulé au démontage. Hypothèse à vérifier seulement par script. | non exécuté |
+| Vérificateur adverse — corrections de la PR #178 | Fenêtre de 500 ms de la copie différée (A-04) : dernière frappe perdue de la copie en cas de fermeture ou de plantage de l'onglet pendant ce délai ; non mesurée. | non exécuté |
+| Vérificateur adverse — corrections de la PR #178 | Effet secondaire possible de VER-PR178-01 : confirmerSoumission renvoie vrai sans suivi, donc un formulaire à réinitialisation après succès (useActionFormulaire(..., true)) dont les champs restent modifiables pendant l'envoi, par exemple formulaire-annexe-bail.tsx, perdrait une saisie plus récente ; non reproduit (aucun bail br… | non testable sur le banc local |
+| Vérificateur adverse — corrections de la PR #178 | Parcours réels d'une navigation privée Safari ou Firefox : seule la simulation par script du refus de stockage a été faite. | bloqué par accès ou par la limite de session |
+| Vérificateur adverse — corrections de la PR #178 | Rôles locataire (formulaire d'incident avec photos), artisan (devis avec copie locale) et super-administrateur (MFA) : purge et protection non rejouées avec ces comptes ; lecture du code seulement. | non exécuté |
+| Vérificateur adverse — corrections de la PR #178 | Envoi réellement perdu après réponse perdue (PR178-A-03 partie « réponse perdue », B-06) : décisions ouvertes au registre, non rejouées. | non exécuté |
+| Vérificateur adverse — corrections de la PR #178 | Formulaires à attribut dont l'action ne renvoie pas { succes } (boîte « Quitter » parasite après un envoi réussi) : un seul échantillon vérifié (alerte, EX-04) ; les ~90 autres non rejoués faute de pouvoir écrire sur les données de démonstration. | non exécuté |
+| Vérificateur adverse — corrections de la PR #178 | Effet de bord d'une requête HEAD sur une page privée (sessionExpiree) : non mesuré côté serveur ; la page est rendue comme pour un GET. | bloqué par accès ou par la limite de session |
+| Vérificateur adverse — corrections de la PR #178 | proxy.ts : inchangé par les corrections (identique à snap-main-178) ; son comportement (redirection 307 pour HEAD, 303 pour POST) a servi de base aux essais de session expirée. | bloqué par accès ou par la limite de session |
+| Designer — public, propriétaire, locataire | Écrans propriétaire/locataire nécessitant des données absentes du banc : baux actifs, loyers appelés/encaissés, quittances réelles, états des lieux, devis et interventions (les écrans listés existent mais en état vide ou sans bail) ; la passe automatique les a ouverts, le regard humain n'a pas jugé leur contenu rempli | non testable sur le banc local |
+| Designer — public, propriétaire, locataire | Regard humain non fait écran par écran sur : fiscal, reprise comptable, import, catalogue de documents, agenda, statistiques, messages, journal connecté, fiche personne, attestation de loyer, quittance imprimable, FAQ et assistance (relevés automatiques seulement) | non exécuté |
+| Designer — public, propriétaire, locataire | Mode sombre, impression, zoom 200 %, lecteur d'écran réel (VoiceOver/TalkBack), iOS Safari réel : non testés (Chromium seul) | non exécuté |
+| Designer — public, propriétaire, locataire | Hypothèse à vérifier (non reproduite, donc non consignée comme anomalie) : /outils/calcul-irl a rendu une page vide d'un texte de 11 caractères pendant 8,5 s à 390 px lors de la passe automatique sous charge (deux navigateurs en parallèle) ; 4 rechargements ultérieurs normaux | non exécuté |
+| Designer — public, propriétaire, locataire | Écrans d'agence (admin, agent) et artisan/super-administrateur : hors de mon périmètre ; signal relevé dans les captures du coordinateur : la page /artisan à 390 px déborde de 58 px à l'horizontale, avant et après correction (à confirmer par le designer de l'artisan) | non exécuté |
+| Designer — public, propriétaire, locataire | Contraste de l'ensemble des textes : seul axe-core a été utilisé ; les jours hors mois de l'agenda (3,33:1) sont le seul échec relevé ; aucune conformité d'accessibilité complète n'est revendiquée | non exécuté |
+| Designer — public, propriétaire, locataire | Pages dont les identifiants ne s'ouvrent qu'avec un parcours à données spécifiques (nouveau mot de passe avec jeton valide, /auth/confirmer avec lien réel) : ouvertes sans jeton uniquement | non exécuté |
+| Designer — artisan, super-administrateur, agence (hors V1) | Lecteur d'écran réel (NVDA, VoiceOver, TalkBack) : seules des mesures programmatiques (axe-core 4, noms accessibles calculés, Tab sur 10 contrôles) ont été faites ; aucune conformité d'accessibilité complète n'est revendiquée | non exécuté |
+| Designer — artisan, super-administrateur, agence (hors V1) | Navigateurs autres que Chromium (Safari iOS, Firefox) et appareils réels : émulation de viewport seulement ; le libellé anglais « Choose File / No file chosen » vu sur les champs fichier vient du Chromium sans localisation et n'est pas retenu | non exécuté |
+| Designer — artisan, super-administrateur, agence (hors V1) | Boutons à effet du super-administrateur non déclenchés : « Enregistrer la décision » de l'arrêt avant effets, « Programmer cette absence », « Valider l'inscription », « Refuser cette inscription », « Diagnostiquer l'espace » (effets réels sur le banc partagé, rôle SA) ; seule la présentation de leurs écrans et leur confirmation… | bloqué par accès ou par la limite de session |
+| Designer — artisan, super-administrateur, agence (hors V1) | Artisan : accepter/refuser une mission et proposer des créneaux (aucune mission à accepter sur le banc), dépôt réel d'une attestation avec fichier, envoi d'un devis valide (donnée d'un autre rôle), bouton « Rendre mon profil public » (absent pour un compte non validé, et le compte validé appartient au rôle artisan) : écrans vus… | bloqué par accès ou par la limite de session |
+| Designer — artisan, super-administrateur, agence (hors V1) | Artisan : pages /artisan/missions/<id>/compte-rendu, /bilan et /facture redirigent vers la fiche de mission (mission terminée) : leur rendu avec une mission ouverte n'a pas été vu | non exécuté |
+| Designer — artisan, super-administrateur, agence (hors V1) | Admin d'agence et agent (hors V1 publique) : passe automatique seule ; aucun regard humain sur leurs captures ni état vide, lent ou erreur | non exécuté |
+| Designer — artisan, super-administrateur, agence (hors V1) | Réseau très dégradé au-delà d'un scénario (1,8 s, 60 ko/s) ; hors ligne : seule la page du navigateur a été constatée (même défaut que DES-A-06) | non exécuté |
+| Designer — artisan, super-administrateur, agence (hors V1) | Écrans du super-administrateur avec jeux de données volumineux (journal de 12 900 px de haut vu une fois, sans test de pagination) | non exécuté |
 | Relecteur — supervision | api/cron/{relances,appels,rappels,territoire,marketing,veille,signatures,abonnements}/route.ts : seulement les appels de verifierAvantEffet (grep), pas la logique complète | non lu |
 | Relecteur — supervision | app/src/app/admin/relais/page.tsx et admin/brief/page.tsx, decision-matin.tsx, preparer-point.tsx, ouvrir-alertes.tsx : survolés par grep | non lu |
 | Relecteur — supervision | artisan/clients/{page,elements,formulaire,resumes}.tsx et [clientId]/page.tsx | non lu |
@@ -346,21 +212,20 @@ Relecture adverse du code livré : 9 constats au registre des anomalies. Périm�
 | Relecteur — supervision | Dépôts Storage réels d'un PDF de devis et orphelins (SUP-09) | non exécuté |
 | Relecteur — supervision | Plafond de 1 000 lignes de l'API (SUP-06) : émulateur sans ce plafond | non exécuté |
 
-## 4. Totaux des scénarios consignés
-
-123 scénarios : 87 exécutés avec succès, 25 à résultat partiel, 10 en échec, 1 non exécutés (consignés comme tels).
-
-## 5. Ce qui a été livré en branche, et son état
+## 4. Ce qui a été livré en branche, et son état
 
 | Élément | Statut |
 |---|---|
 | Retrait des agences du site public V1 (composants et code conservés) | implémenté et vérifié (tests, parcours navigateur) ; non déployé |
-| Correctif de la préparation du soir du marketing (migration 20261013110000) | préparé ; testé sur la base locale ; **non appliqué en production** |
-| Récapitulatif fiscal « location nue » (FIN-01, P1) | implémenté et vérifié (tests rouges puis verts) ; non déployé |
-| Courriers, inscription, fiches, encaissements (AUD-B-01, AUD-B-02, PROP-02/04/07/12/13) | implémenté et vérifié (tests rouges puis verts) ; non déployé |
-| Migration 20261013120000 (AUD-A-01 à A-04, SUP-02, SUP-08, REP-01) | préparée ; 8 tests rouges avant, verts après ; **non appliquée en production** |
-| Sauvegarde avant migration, simulation `migrations.yml`, application | en attente d'autorisation |
+| Correctif de la préparation du soir du marketing (migration 20261013110000) | préparé ; testé sur la base locale et vérifié par un second agent ; non appliqué en production |
+| Récapitulatif fiscal « location nue » (FIN-01, P1) | implémenté et vérifié (tests rouges puis verts, oracle SQL) ; non déployé |
+| Corrections de saisie, courriers, inscription, fiches, encaissements, élisions, vocabulaire | implémenté et vérifié par tests ; effets navigateur à revérifier sur la dernière construction ; non déployé |
+| Migration 20261013120000 (portefeuille, traces, arrêt d'urgence, créneaux, jour de Paris) | préparée ; testée sur base reconstruite et vérifiée par un second agent ; non appliquée en production |
+| Protection de sortie des formulaires et copies locales (corrections de la PR #178) | implémenté ; vérification navigateur en cours |
+| Retour arrière des deux migrations | préparé ; essai sur base jetable en cours |
+| Sauvegarde avant migration, simulation `migrations.yml` de la version finale, application | en attente d'autorisation |
 | Déploiement en production | en attente d'autorisation explicite du dirigeant |
+| Équipes IA et automatisations (section 12) | préparé : propositions rédigées pour aval ; rien d'installé |
 
 > [!warning] Ce que ce registre ne dit pas
 > Il ne prouve pas l'absence d'anomalie dans ce qui n'a pas été exécuté. Les tâches planifiées (`pg_cron`), l'envoi réel
@@ -368,4 +233,4 @@ Relecture adverse du code livré : 9 constats au registre des anomalies. Périm�
 > testables sur le banc local. Les rôles sont joués par des agents (sessions séparées d'un même modèle), pas par de vrais
 > utilisateurs : ils ne remplacent ni un test utilisateur ni une recette par le dirigeant.
 
-Voir aussi : [[Registre des anomalies — audit du 13 octobre 2026]], [[Audit d'acquisition du 3 octobre 2026]].
+Voir aussi : [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de validation — version candidate du 13 octobre 2026]], [[Audit d'acquisition du 3 octobre 2026]].

@@ -13,7 +13,8 @@ import {
   motifQuittanceIncomplete,
   parties,
 } from "@/lib/quittance-conforme";
-import { eur } from "@/lib/ged";
+import { aujourdhuiParis, eur } from "@/lib/ged";
+import { avertissementExerciceNonTermine, exerciceNonTermine, MESSAGE_SOLDE_NON_APPELE } from "@/lib/baux";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import {
   erreurDuChamp,
@@ -198,6 +199,14 @@ export async function regulariserCharges(
   const fichier = formData.get("justificatif");
   if (!(fichier instanceof File) || fichier.size === 0)
     return { erreur: "Le justificatif est obligatoire (décompte remis au locataire).", valeurs };
+  // D38 (CHF-02, option A) : un exercice non terminé (le 31/12, jour de Paris, n'est pas passé) se régularise sur confirmation explicite.
+  // La vérification est ICI, côté serveur : une requête directe sans la case cochée est refusée, avant tout dépôt de pièce.
+  const exerciceEnCours = exerciceNonTermine(annee, aujourdhuiParis());
+  if (exerciceEnCours && String(formData.get("confirmer_exercice_en_cours") ?? "") !== "oui")
+    return {
+      erreur: `${avertissementExerciceNonTermine(annee)} Cochez la confirmation pour l’enregistrer malgré tout.`,
+      valeurs,
+    };
   // Audit agence 27/09 : le décompte n'existe en GED que si la régularisation
   // existe. Déposé avant la fonction, chaque refus (exercice déjà régularisé,
   // forfait, exercice hors bail…) laissait une pièce rattachée à rien, dont
@@ -239,7 +248,35 @@ export async function regulariserCharges(
   // ni avoir n'est encore généré) ; son solde est repris au décompte de
   // restitution à la sortie (montants_reels_bail).
   revalidatePath(`/agence/${orgId}/comptabilite`);
-  return { succes: prep.avertissement ? `${msg} ${prep.avertissement}` : msg };
+  // D40 (CHF-06, option A) : on le dit à l'émission, et une alerte garde la trace du solde non appelé (mécanisme d'alertes existant).
+  // L'alerte est posée après la régularisation, qui ne se défait pas si elle échoue : le message le dit alors.
+  const soldeNonAppele = ecart !== 0;
+  let alerteManquante = false;
+  if (soldeNonAppele) {
+    const { error: erreurAlerte } = await supabase.from("alerts").insert({
+      organization_id: orgId,
+      type: "regularisation_non_appelee",
+      criticite: "normale",
+      titre:
+        ecart < 0
+          ? `Régularisation des charges ${annee} : complément de ${eur(-ecart)} dû par le locataire`
+          : `Régularisation des charges ${annee} : trop-perçu de ${eur(ecart)} à rendre au locataire`,
+      details: { bail_id: bailId, annee, ecart, libelle: MESSAGE_SOLDE_NON_APPELE },
+    });
+    if (erreurAlerte) {
+      console.error("[regularisation] alerte du solde non appelé non enregistrée", erreurAlerte.message);
+      alerteManquante = true;
+    } else {
+      revalidatePath(`/agence/${orgId}/alertes`);
+    }
+  }
+  const complements = [
+    soldeNonAppele ? MESSAGE_SOLDE_NON_APPELE : "",
+    exerciceEnCours ? "Enregistrée sur un exercice non terminé : comparaison non homogène, elle ne se modifie plus." : "",
+    alerteManquante ? "Attention : l’alerte n’a pas pu être créée, notez ce solde pour ne pas l’oublier." : "",
+    prep.avertissement ?? "",
+  ].filter(Boolean);
+  return { succes: [msg, ...complements].join(" ") };
 }
 
 // Générer les appels de loyer manquants (échéancier) jusqu'au mois courant.

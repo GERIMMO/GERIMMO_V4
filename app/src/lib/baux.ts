@@ -106,6 +106,25 @@ export function exerciceRegularisationParDefaut(
   return annee;
 }
 
+// D38 (CHF-02, option A) : un exercice n'est terminé qu'une fois le 31/12 passé. Avant, les provisions appelées ne couvrent qu'une partie
+// de l'année alors que les charges réelles saisies sont celles de l'année entière : la comparaison n'est pas homogène (le solde peut même
+// changer de sens), et la régularisation émise ne se modifie plus (RM-3.9.7). Elle reste possible, sur confirmation explicite.
+// `aujourdhui` : le jour de Paris (AAAA-MM-JJ). L'option B (refus avant le 31/12) est différée : avis spécialisé.
+export function exerciceNonTermine(annee: number, aujourdhui: string): boolean {
+  return annee >= Number(aujourdhui.slice(0, 4));
+}
+
+export function avertissementExerciceNonTermine(annee: number): string {
+  return `Exercice ${annee} non terminé : comparaison non homogène. Les provisions ne couvrent que les mois déjà appelés, alors que les charges réelles saisies portent sur l’année entière : le solde calculé peut changer de sens (un complément dû au lieu d’un trop-perçu, ou l’inverse). Une régularisation enregistrée ne se modifie plus, et son solde sera repris au décompte de sortie.`;
+}
+
+export const LIBELLE_CONFIRMATION_EXERCICE_NON_TERMINE =
+  "Exercice non terminé : comparaison non homogène. Je confirme l’enregistrement de cette régularisation, qui ne pourra plus être modifiée.";
+
+// D40 (CHF-06, option A) : une régularisation émise en cours de bail n'écrit ni appel ni écriture au livre. Son solde est repris au décompte
+// de sortie (montants_reels_bail). L'appel complémentaire ou l'avoir (option B) est différé : avis spécialisé.
+export const MESSAGE_SOLDE_NON_APPELE = "Ce solde n’est pas appelé : il sera repris au décompte de sortie.";
+
 // Dernière date anniversaire du bail atteinte à `aujourdhui` (AAAA-MM-JJ), ou
 // null avant le premier anniversaire : la révision IRL prend effet à une date
 // anniversaire (wiki « Révision annuelle IRL »). Le 29/02 se replie au 28/02

@@ -28,6 +28,9 @@ import {
   datesRevisionIrl,
   numeroTrimestreIrl,
   exerciceRegularisationParDefaut,
+  exerciceNonTermine,
+  avertissementExerciceNonTermine,
+  LIBELLE_CONFIRMATION_EXERCICE_NON_TERMINE,
 } from "@/lib/baux";
 import { ChampFichier } from "@/components/champ-fichier";
 
@@ -272,6 +275,10 @@ export function FormulaireLoyers({
   const impaye = echeancier.some((l) => l.statut === "impaye");
   // Audit du 27/09 : l'exercice proposé est couvert par le bail.
   const anneeDefaut = exerciceRegularisationParDefaut(dateDebut, dateFin, aujourdhui);
+  // D38 : l'année choisie pilote l'avertissement « exercice non terminé » et la case de confirmation (le serveur revérifie).
+  const [anneeReg, setAnneeReg] = useState(String(anneeDefaut));
+  const exerciceReg = Number(anneeReg);
+  const exerciceEnCours = /^\d{4}$/.test(anneeReg) && exerciceNonTermine(exerciceReg, aujourdhui);
   // Révision IRL : l'indice de référence est celui de la dernière révision,
   // à défaut celui figé au bail (RM-3.8.7). Audit 29/09 : l'effet vaut
   // max(anniversaire, date de la demande) — jamais rétroactif (art. 17-1 I).
@@ -727,7 +734,7 @@ export function FormulaireLoyers({
           {/* En erreur, la saisie est reposée via etatReg.valeurs (recette 22/08) */}
           <div className="space-y-1">
             <Label htmlFor="reg-annee" className="text-sm">Année</Label>
-            <Input id="reg-annee" name="annee" type="number" required defaultValue={etatReg.valeurs?.annee ?? anneeDefaut} className="h-9 w-24" />
+            <Input id="reg-annee" name="annee" type="number" required value={anneeReg} onChange={(e) => setAnneeReg(e.target.value)} className="h-9 w-24" />
           </div>
           <div className="space-y-1">
             {copropriete ? (
@@ -761,6 +768,23 @@ export function FormulaireLoyers({
             <input type="checkbox" name="etaler" className="size-4" defaultChecked={etatReg.valeurs?.etaler === "on"} />
             Régularisation tardive : le locataire demande l&apos;étalement sur 12 mois
           </label>
+          {/* D38 (CHF-02, option A) : exercice non terminé = avertissement fort + confirmation explicite. Le serveur refuse sans elle. */}
+          {exerciceEnCours && (
+            <div role="alert" className="w-full space-y-2 rounded-lg border border-[var(--or-filet)] bg-[var(--or-clair)] p-3 text-sm">
+              <p className="font-medium">{avertissementExerciceNonTermine(exerciceReg)}</p>
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  name="confirmer_exercice_en_cours"
+                  value="oui"
+                  required
+                  className="mt-0.5 size-4"
+                  defaultChecked={etatReg.valeurs?.confirmer_exercice_en_cours === "oui"}
+                />
+                <span>{LIBELLE_CONFIRMATION_EXERCICE_NON_TERMINE}</span>
+              </label>
+            </div>
+          )}
           <BoutonEnvoi size="sm" variant="outline">
             Régulariser
           </BoutonEnvoi>
@@ -776,6 +800,7 @@ export function FormulaireLoyers({
             justificatif obligatoire, joint au décompte du locataire. Contrat individuel de
             colocation : seule la part de la chambre (sa surface sur celle des chambres) est
             imputée. Un complément ne se réclame plus au-delà de trois ans (art. 7-1).
+            Le solde d&apos;une régularisation n&apos;est pas appelé : il est repris au décompte de sortie.
           </p>
         )}
       </div>

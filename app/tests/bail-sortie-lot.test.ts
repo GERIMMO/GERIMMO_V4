@@ -564,13 +564,14 @@ describe.skipIf(!DB_URL)("Lot bail-sortie — D01, D34, D35 en base", () => {
         rows: [r],
       } = await db.query(
         `select id, to_char(date_remise_cles,'YYYY-MM-DD') as remise, delai_mois, depot::text as depot,
-                impayes::text as impayes, trop_percu::text as trop_percu, statut, montants_arretes_le::text as arrete
+                impayes::text as impayes, trop_percu::text as trop_percu, statut, montants_arretes_le::text as arrete,
+                sans_edl_entree
            from public.restitutions where bail_id = $1`,
         [b]
       );
       return r as {
         id: string; remise: string; delai_mois: number; depot: string; impayes: string;
-        trop_percu: string; statut: string; arrete: string;
+        trop_percu: string; statut: string; arrete: string; sans_edl_entree: boolean;
       };
     }
 
@@ -611,13 +612,20 @@ describe.skipIf(!DB_URL)("Lot bail-sortie — D01, D34, D35 en base", () => {
       expect(rows[0].n).toBe(1);
     });
 
-    it("une correction de la date ne réarrête aucun montant : dépôt, impayés et date d'arrêté restent ceux du démarrage", async () => {
+    it("une correction ne réarrête aucun montant : dépôt, impayés, trop-perçu et date d'arrêté restent ceux du démarrage", async () => {
       const b = await bailEnPreavis();
       await enGerant();
       await db.query(`select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 5, false)`, [b]);
-      const avant = await restitution(b);
-      // Entre-temps la réalité bouge : un impayé de 700 €
+      // Les montants arrêtés au démarrage ne sont pas ceux que la base relirait aujourd'hui : un dépôt de 123 €
+      // et un trop-perçu de 45 € (la réalité en donne 0), arrêtés il y a trois jours (et non « maintenant »,
+      // sans quoi l'égalité des dates d'arrêté serait vide dans une même transaction).
       await db.query("reset role");
+      await db.query(
+        `update public.restitutions set depot = 123, trop_percu = 45, montants_arretes_le = now() - interval '3 days'
+          where bail_id = $1`,
+        [b]
+      );
+      // Entre-temps la réalité bouge aussi : un impayé de 700 €
       await db.query(
         `insert into public.appels_loyer (organization_id, bail_id, periode, loyer_hc, charges, montant_du, date_echeance)
          values ($1,$2,date_trunc('month', current_date - 40)::date,650,50,700,current_date - 40)`,
@@ -625,8 +633,12 @@ describe.skipIf(!DB_URL)("Lot bail-sortie — D01, D34, D35 en base", () => {
       );
       const {
         rows: [reel],
-      } = await db.query(`select impayes::text from public.montants_reels_bail($1)`, [b]);
+      } = await db.query(`select depot::text, impayes::text, trop_percu::text from public.montants_reels_bail($1)`, [b]);
       expect(Number(reel.impayes)).toBeGreaterThan(0);
+      expect(Number(reel.depot)).not.toBe(123);
+      expect(Number(reel.trop_percu)).not.toBe(45);
+      const avant = await restitution(b);
+      expect([Number(avant.depot), Number(avant.trop_percu)]).toEqual([123, 45]);
 
       await enGerant();
       await db.query(`select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 8, false)`, [b]);
@@ -635,6 +647,22 @@ describe.skipIf(!DB_URL)("Lot bail-sortie — D01, D34, D35 en base", () => {
       expect({ depot: apres.depot, impayes: apres.impayes, trop_percu: apres.trop_percu, arrete: apres.arrete }).toEqual({
         depot: avant.depot, impayes: avant.impayes, trop_percu: avant.trop_percu, arrete: avant.arrete,
       });
+    });
+
+    it("une correction relit seulement le constat « sans état des lieux d'entrée » : signé entre-temps, il est levé", async () => {
+      const b = await bailEnPreavis();
+      await enGerant();
+      await db.query(`select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 5, false)`, [b]);
+      expect((await restitution(b)).sans_edl_entree).toBe(true);
+      await db.query("reset role");
+      await db.query(
+        `insert into public.etats_des_lieux (organization_id, bail_id, type, etat, date_edl)
+         values ($1,$2,'entree','signe', current_date - 400)`,
+        [org, b]
+      );
+      await enGerant();
+      await db.query(`select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 6, false)`, [b]);
+      expect((await restitution(b)).sans_edl_entree).toBe(false);
     });
 
     it("la correction reste refusée une fois le décompte finalisé", async () => {
@@ -666,7 +694,7 @@ describe.skipIf(!DB_URL)("Lot bail-sortie — D01, D34, D35 en base", () => {
                 details->>'seuil' as seuil, closed_action
            from public.alerts
           where type = 'restitution_echeance' and details->>'restitution_id' = $1
-          order by created_at, id`,
+          order by (statut = 'ouverte'), id`,
         [restitutionId]
       );
       return rows as {

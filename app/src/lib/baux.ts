@@ -114,16 +114,47 @@ export function exerciceNonTermine(annee: number, aujourdhui: string): boolean {
   return annee >= Number(aujourdhui.slice(0, 4));
 }
 
-export function avertissementExerciceNonTermine(annee: number): string {
-  return `Exercice ${annee} non terminé : comparaison non homogène. Les provisions ne couvrent que les mois déjà appelés, alors que les charges réelles saisies portent sur l’année entière : le solde calculé peut changer de sens (un complément dû au lieu d’un trop-perçu, ou l’inverse). Une régularisation enregistrée ne se modifie plus, et son solde sera repris au décompte de sortie.`;
+// D40 : « sera repris au décompte de sortie » n'est vrai que tant que le décompte de sortie (la restitution du dépôt) n'est pas finalisé. Un
+// décompte finalisé est figé (`rafraichir_montants_restitution` refuse, `finaliser_decompte` garde les montants arrêtés) et aucun décompte
+// rectificatif n'existe : le solde d'une régularisation émise après coup n'est repris nulle part, il se traite hors application.
+// `inconnu` : la lecture de la restitution a échoué ; on ne promet alors rien.
+export type EtatDecompteSortie = "non_finalise" | "finalise" | "inconnu";
+
+export function etatDecompteSortie(restitution: { statut?: unknown } | null | undefined, erreur?: unknown): EtatDecompteSortie {
+  if (erreur) return "inconnu";
+  return restitution?.statut === "finalise" ? "finalise" : "non_finalise";
+}
+
+export function avertissementExerciceNonTermine(annee: number, decompte: EtatDecompteSortie = "non_finalise"): string {
+  const debut = `Exercice ${annee} non terminé : comparaison non homogène. Les provisions ne couvrent que les mois déjà appelés, alors que les charges réelles saisies portent sur l’année entière : le solde calculé peut changer de sens (un complément dû au lieu d’un trop-perçu, ou l’inverse). Une régularisation enregistrée ne se modifie plus`;
+  if (decompte === "finalise") return `${debut}. Le décompte de sortie de ce bail est déjà finalisé : son solde n’y sera pas repris, à traiter hors application.`;
+  if (decompte === "inconnu") return `${debut}. Son solde sera repris au décompte de sortie, sauf si celui-ci est déjà finalisé (il se traite alors hors application).`;
+  return `${debut}, et son solde sera repris au décompte de sortie.`;
 }
 
 export const LIBELLE_CONFIRMATION_EXERCICE_NON_TERMINE =
   "Exercice non terminé : comparaison non homogène. Je confirme l’enregistrement de cette régularisation, qui ne pourra plus être modifiée.";
 
 // D40 (CHF-06, option A) : une régularisation émise en cours de bail n'écrit ni appel ni écriture au livre. Son solde est repris au décompte
-// de sortie (montants_reels_bail). L'appel complémentaire ou l'avoir (option B) est différé : avis spécialisé.
+// de sortie (montants_reels_bail), tant qu'il n'est pas finalisé. L'appel complémentaire ou l'avoir (option B) est différé : avis spécialisé.
 export const MESSAGE_SOLDE_NON_APPELE = "Ce solde n’est pas appelé : il sera repris au décompte de sortie.";
+
+// La phrase dite à l'émission. `etale` : le locataire a demandé les douze mensualités ; l'échéancier est enregistré mais aucune mensualité
+// n'est appelée, ce que la phrase dit au lieu de juxtaposer « étalé » et « pas appelé ».
+export function messageSoldeNonAppele(decompte: EtatDecompteSortie = "non_finalise", etale = false): string {
+  const sujet = etale ? "Aucune mensualité n’est appelée par l’application" : "Ce solde n’est pas appelé";
+  const solde = etale ? "le solde" : "il";
+  if (decompte === "finalise") return `${sujet}, et le décompte de sortie est déjà finalisé : ${solde} n’y sera pas repris, à traiter hors application.`;
+  if (decompte === "inconnu") return `${sujet}. L’état du décompte de sortie n’a pas pu être lu : s’il est déjà finalisé, ${solde} n’y sera pas repris et se traite hors application.`;
+  return `${sujet} : ${solde} sera repris au décompte de sortie.`;
+}
+
+// La note sous le formulaire « Régulariser » : même fait, dit avant l'émission.
+export function aideSoldeNonAppele(decompte: EtatDecompteSortie = "non_finalise"): string {
+  if (decompte === "finalise") return "Le solde d’une régularisation n’est pas appelé. Le décompte de sortie de ce bail est déjà finalisé : le solde d’une nouvelle régularisation n’y sera pas repris, à traiter hors application.";
+  if (decompte === "inconnu") return "Le solde d’une régularisation n’est pas appelé. L’état du décompte de sortie n’a pas pu être lu : s’il est déjà finalisé, le solde d’une nouvelle régularisation n’y sera pas repris.";
+  return "Le solde d’une régularisation n’est pas appelé : il est repris au décompte de sortie.";
+}
 
 // Dernière date anniversaire du bail atteinte à `aujourdhui` (AAAA-MM-JJ), ou
 // null avant le premier anniversaire : la révision IRL prend effet à une date

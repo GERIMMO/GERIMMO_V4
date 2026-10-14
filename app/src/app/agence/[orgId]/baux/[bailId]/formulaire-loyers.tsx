@@ -30,7 +30,9 @@ import {
   exerciceRegularisationParDefaut,
   exerciceNonTermine,
   avertissementExerciceNonTermine,
+  aideSoldeNonAppele,
   LIBELLE_CONFIRMATION_EXERCICE_NON_TERMINE,
+  type EtatDecompteSortie,
 } from "@/lib/baux";
 import { ChampFichier } from "@/components/champ-fichier";
 
@@ -234,6 +236,7 @@ export function FormulaireLoyers({
   dateFin = null,
   copropriete = false,
   aujourdhui = aujourdhuiParis(),
+  decompteSortie = "non_finalise",
 }: {
   orgId: string;
   bailId: string;
@@ -254,6 +257,8 @@ export function FormulaireLoyers({
   copropriete?: boolean;
   /** Jour de Paris (AAAA-MM-JJ), fourni par la page serveur. */
   aujourdhui?: string;
+  /** État du décompte de sortie du bail (D40) : « repris au décompte de sortie » ne se dit que s'il n'est pas finalisé. */
+  decompteSortie?: EtatDecompteSortie;
 }) {
   const [etatEnc, formEnc] = useActionState<EtatLoyers, FormData>(
     ajouterEncaissement.bind(null, orgId, bailId),
@@ -771,7 +776,7 @@ export function FormulaireLoyers({
           {/* D38 (CHF-02, option A) : exercice non terminé = avertissement fort + confirmation explicite. Le serveur refuse sans elle. */}
           {exerciceEnCours && (
             <div role="alert" className="w-full space-y-2 rounded-lg border border-[var(--or-filet)] bg-[var(--or-clair)] p-3 text-sm">
-              <p className="font-medium">{avertissementExerciceNonTermine(exerciceReg)}</p>
+              <p className="font-medium">{avertissementExerciceNonTermine(exerciceReg, decompteSortie)}</p>
               <label className="flex items-start gap-2">
                 <input
                   type="checkbox"
@@ -800,7 +805,7 @@ export function FormulaireLoyers({
             justificatif obligatoire, joint au décompte du locataire. Contrat individuel de
             colocation : seule la part de la chambre (sa surface sur celle des chambres) est
             imputée. Un complément ne se réclame plus au-delà de trois ans (art. 7-1).
-            Le solde d&apos;une régularisation n&apos;est pas appelé : il est repris au décompte de sortie.
+            {aideSoldeNonAppele(decompteSortie)}
           </p>
         )}
       </div>

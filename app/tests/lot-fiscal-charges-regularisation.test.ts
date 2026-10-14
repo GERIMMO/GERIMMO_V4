@@ -11,6 +11,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const banc = vi.hoisted(() => ({
+  base: null as unknown,
   rpc: vi.fn(),
   insert: vi.fn(),
   depot: vi.fn(),
@@ -26,12 +27,10 @@ vi.mock("@/lib/ged-depot", () => ({
 }));
 vi.mock("@/lib/email", () => ({ envoyerEmail: vi.fn() }));
 vi.mock("@/lib/ged-acces", () => ({
-  verifierGerant: async () => ({
-    user: { id: "gerant-test" },
-    supabase: { rpc: banc.rpc, from: (table: string) => ({ insert: (valeurs: unknown) => banc.insert(table, valeurs) }) },
-  }),
+  verifierGerant: async () => ({ user: { id: "gerant-test" }, supabase: (banc.base as BaseSimulee).client }),
 }));
 
+import { baseSimulee, filtresDe, type BaseSimulee, type Ligne } from "./fixtures/base-simulee";
 import { regulariserCharges } from "@/app/actions/loyers";
 import { cheminFicheAlerte, gesteAlerte } from "@/lib/chemin-alerte";
 import { avertissementExerciceNonTermine, exerciceNonTermine } from "@/lib/baux";
@@ -47,9 +46,21 @@ function saisie(annee: string, extra: Record<string, string> = {}) {
   return f;
 }
 const maintenant = (iso: string) => vi.setSystemTime(new Date(iso));
+const baseCourante = () => banc.base as BaseSimulee;
+
+// La base simulée applique ses filtres (fixtures/base-simulee) : seule une restitution DE CE BAIL, dans CETTE organisation, compte.
+const decompte = (statut: string, extra: Ligne = {}): Ligne => ({ organization_id: "org-test", bail_id: "bail-test", statut, ...extra });
+function poserBase(restitutions: Ligne[] = [], lecturesEnErreur?: Record<string, string>) {
+  banc.base = baseSimulee({ restitutions }, {
+    rpc: { regulariser_charges_avec_justificatif: (args) => banc.rpc("regulariser_charges_avec_justificatif", args) },
+    inserer: (table, valeurs) => banc.insert(table, valeurs),
+    lecturesEnErreur,
+  });
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
+  poserBase();
   vi.useFakeTimers({ toFake: ["Date"] });
   maintenant("2026-10-14T10:00:00Z");
   banc.rpc.mockResolvedValue({ data: -40, error: null });
@@ -149,13 +160,7 @@ describe("D40 (CHF-06, option A) : le solde non appelé est dit à l'émission e
     expect(r.succes).toContain(MESSAGE_SOLDE);
     const valeurs = banc.insert.mock.calls[0][1] as Record<string, unknown>;
     expect(valeurs.details).toMatchObject({ ecart: 80 });
-    expect(String(valeurs.titre)).toMatch(/trop-perçu de 80,00\s*€ à rendre au locataire/);
-  });
-
-  it("étalement sur douze mois : le message garde sa mention et ajoute la même phrase", async () => {
-    const r = await regulariserCharges("org-test", "bail-test", {}, saisie("2025", { etaler: "on" }));
-    expect(r.succes).toContain("étalé sur 12 mensualités");
-    expect(r.succes).toContain(MESSAGE_SOLDE);
+    expect(String(valeurs.titre)).toMatch(/trop-perçu de 80,00\s*€ en faveur du locataire/);
   });
 
   it("charges équilibrées : rien n'est dû, ni phrase ni alerte", async () => {
@@ -186,5 +191,125 @@ describe("D40 (CHF-06, option A) : le solde non appelé est dit à l'émission e
     expect(cheminFicheAlerte(alerte, "agence")).toBe("/agence/agence/baux/bail#loyers");
     expect(gesteAlerte(alerte, "agence")).toMatchObject({ seFermeSeule: false });
     expect(cheminFicheAlerte({ type: "regularisation_non_appelee", details: null }, "agence")).toBeNull();
+  });
+});
+
+describe("D40 : « repris au décompte de sortie » n'est dit que si le décompte de sortie n'est pas finalisé", () => {
+  const FINALISE = "Ce solde n’est pas appelé, et le décompte de sortie est déjà finalisé : il n’y sera pas repris, à traiter hors application.";
+
+  it("décompte de sortie finalisé : le message ne promet pas une reprise qui n'aura pas lieu", async () => {
+    poserBase([decompte("finalise")]);
+    const r = await regulariserCharges("org-test", "bail-test", {}, saisie("2025"));
+    expect(r.erreur).toBeUndefined();
+    expect(r.succes).toContain("Complément de 40,00");
+    expect(r.succes).toContain(FINALISE);
+    expect(r.succes).not.toContain("sera repris au décompte de sortie");
+  });
+
+  it("décompte de sortie finalisé : l'alerte le dit dans son titre et dans son libellé", async () => {
+    poserBase([decompte("finalise")]);
+    await regulariserCharges("org-test", "bail-test", {}, saisie("2025"));
+    const valeurs = banc.insert.mock.calls[0][1] as { titre: string; details: Record<string, unknown> };
+    expect(valeurs.titre).toMatch(/complément de 40,00\s*€ dû par le locataire, décompte de sortie déjà finalisé$/);
+    expect(valeurs.details).toMatchObject({ bail_id: "bail-test", annee: 2025, ecart: -40, libelle: FINALISE });
+    expect(JSON.stringify(valeurs)).not.toContain("sera repris au décompte de sortie");
+  });
+
+  it("décompte de sortie finalisé, trop-perçu : même nuance, titre au bon sens", async () => {
+    poserBase([decompte("finalise")]);
+    banc.rpc.mockResolvedValue({ data: 80, error: null });
+    const r = await regulariserCharges("org-test", "bail-test", {}, saisie("2025"));
+    expect(r.succes).toContain(FINALISE);
+    const valeurs = banc.insert.mock.calls[0][1] as { titre: string };
+    expect(valeurs.titre).toMatch(/trop-perçu de 80,00\s*€ en faveur du locataire, décompte de sortie déjà finalisé$/);
+  });
+
+  it.each([
+    ["aucun décompte n'est démarré", []],
+    ["le décompte est en cours", [decompte("en_cours")]],
+    ["le décompte finalisé est celui d'un autre bail", [decompte("finalise", { bail_id: "autre-bail" })]],
+    ["le décompte finalisé est celui d'une autre organisation", [decompte("finalise", { organization_id: "autre-org" })]],
+  ])("%s : la phrase d'avant, inchangée", async (_cas, restitutions) => {
+    poserBase(restitutions as Ligne[]);
+    const r = await regulariserCharges("org-test", "bail-test", {}, saisie("2025"));
+    expect(r.succes).toContain(MESSAGE_SOLDE);
+    expect(r.succes).not.toContain("déjà finalisé");
+    expect(String((banc.insert.mock.calls[0][1] as { titre: string }).titre)).not.toContain("finalisé");
+  });
+
+  it("le décompte est lu pour CE bail et cette organisation, après l'enregistrement, et seulement s'il y a un solde à dire", async () => {
+    poserBase([decompte("finalise")]);
+    await regulariserCharges("org-test", "bail-test", {}, saisie("2025"));
+    const filtres = filtresDe(baseCourante(), "restitutions");
+    expect(filtres).toEqual(expect.arrayContaining([
+      { op: "eq", col: "organization_id", val: "org-test" },
+      { op: "eq", col: "bail_id", val: "bail-test" },
+    ]));
+    poserBase([decompte("finalise")]);
+    banc.rpc.mockResolvedValue({ data: 0, error: null });
+    await regulariserCharges("org-test", "bail-test", {}, saisie("2025"));
+    expect(baseCourante().lectures).toEqual([]);
+  });
+
+  it("décompte illisible : le message n'affirme rien, il dit ce qui est certain et ce qu'il reste à vérifier", async () => {
+    poserBase([decompte("finalise")], { restitutions: "indisponible" });
+    const r = await regulariserCharges("org-test", "bail-test", {}, saisie("2025"));
+    expect(r.erreur).toBeUndefined();
+    expect(r.succes).toContain("Ce solde n’est pas appelé. L’état du décompte de sortie n’a pas pu être lu : s’il est déjà finalisé, il n’y sera pas repris et se traite hors application.");
+    expect(r.succes).not.toContain("sera repris au décompte de sortie");
+    expect(String((banc.insert.mock.calls[0][1] as { details: { libelle: string } }).details.libelle)).toContain("n’a pas pu être lu");
+  });
+
+  it("étalement sur douze mois : le message ne dit pas « étalé » puis « pas appelé » ; il dit qu'aucune mensualité n'est appelée", async () => {
+    const r = await regulariserCharges("org-test", "bail-test", {}, saisie("2025", { etaler: "on" }));
+    expect(r.succes).toMatch(
+      /^Complément de 40,00\s*€ dû par le locataire, qui a demandé à le régler en 12 mensualités \(échéancier enregistré\)\. Aucune mensualité n’est appelée par l’application : le solde sera repris au décompte de sortie\.$/,
+    );
+    expect(r.succes).not.toContain("étalé sur 12 mensualités");
+    expect(r.succes).not.toContain("Ce solde n’est pas appelé");
+  });
+
+  it("étalement sur douze mois et décompte finalisé : aucune mensualité n'est appelée et le solde n'est repris nulle part", async () => {
+    poserBase([decompte("finalise")]);
+    const r = await regulariserCharges("org-test", "bail-test", {}, saisie("2025", { etaler: "on" }));
+    expect(r.succes).toContain("Aucune mensualité n’est appelée par l’application, et le décompte de sortie est déjà finalisé : le solde n’y sera pas repris, à traiter hors application.");
+    expect(r.succes).not.toContain("sera repris au décompte de sortie");
+  });
+
+  it("trop-perçu : la phrase ne dit pas « à rembourser » juste avant « repris au décompte de sortie »", async () => {
+    banc.rpc.mockResolvedValue({ data: 80, error: null });
+    const r = await regulariserCharges("org-test", "bail-test", {}, saisie("2025"));
+    expect(r.succes).toMatch(/^Trop-perçu de 80,00\s*€ en faveur du locataire\. Ce solde n’est pas appelé : il sera repris au décompte de sortie\.$/);
+    expect(r.succes).not.toContain("à rembourser");
+  });
+
+  it("exercice non terminé refusé faute de confirmation, décompte finalisé : l'avertissement ne promet pas la reprise", async () => {
+    poserBase([decompte("finalise")]);
+    const r = await regulariserCharges("org-test", "bail-test", {}, saisie("2026"));
+    expect(r.erreur).toContain("Exercice 2026 non terminé : comparaison non homogène.");
+    expect(r.erreur).toContain("Le décompte de sortie de ce bail est déjà finalisé : son solde n’y sera pas repris, à traiter hors application.");
+    expect(r.erreur).not.toContain("sera repris au décompte de sortie");
+    expect(banc.rpc).not.toHaveBeenCalled();
+    expect(banc.depot).not.toHaveBeenCalled();
+  });
+
+  it("exercice non terminé refusé, décompte non finalisé : l'avertissement d'avant", async () => {
+    const r = await regulariserCharges("org-test", "bail-test", {}, saisie("2026"));
+    expect(r.erreur).toContain("son solde sera repris au décompte de sortie.");
+    expect(r.erreur).not.toContain("déjà finalisé");
+  });
+
+  it("l'avertissement nomme les trois états du décompte de sortie", () => {
+    expect(avertissementExerciceNonTermine(2026)).toBe(avertissementExerciceNonTermine(2026, "non_finalise"));
+    expect(avertissementExerciceNonTermine(2026, "finalise")).toContain("déjà finalisé");
+    expect(avertissementExerciceNonTermine(2026, "inconnu")).toContain("sauf si celui-ci est déjà finalisé");
+  });
+
+  it("exercice confirmé sur un décompte finalisé : la mise en garde et la phrase du solde se lisent ensemble sans se contredire", async () => {
+    poserBase([decompte("finalise")]);
+    const r = await regulariserCharges("org-test", "bail-test", {}, saisie("2026", { confirmer_exercice_en_cours: "oui" }));
+    expect(r.succes).toContain(FINALISE);
+    expect(r.succes).toContain("exercice non terminé");
+    expect(r.succes).not.toContain("sera repris au décompte de sortie");
   });
 });

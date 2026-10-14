@@ -24,7 +24,9 @@ export type OptionsBase = {
   /** Fonctions SQL appelables (`supabase.rpc`). Toute autre est refusée. */
   rpc?: Record<string, (args: Record<string, unknown>) => Reponse | Promise<Reponse>>;
   /** Remplace l'ajout par défaut (la ligne est ajoutée à la table) : utile pour simuler un refus. */
-  inserer?: (table: string, valeurs: unknown) => { error: { message: string } | null } | void;
+  inserer?: (table: string, valeurs: unknown) => { error: { message: string } | null } | void | Promise<{ error: { message: string } | null } | void>;
+  /** Tables dont la LECTURE échoue (table → message) : pour vérifier ce que devient l'écran quand une lecture tombe. */
+  lecturesEnErreur?: Record<string, string>;
 };
 
 const NON_SIMULEES = ["or", "ilike", "like", "contains", "containedBy", "overlaps", "textSearch", "match", "filter", "csv", "returns", "abortSignal"];
@@ -85,24 +87,32 @@ export function baseSimulee(tables: Record<string, Ligne[]>, options: OptionsBas
       range(de: number, a: number) { lecture.plage = [de, a]; return requete; },
       not(col: string, op: string, val: unknown) { lecture.filtres.push({ op: `not.${op}`, col, val }); return requete; },
       maybeSingle: async (): Promise<Reponse> => {
+        const panne = options.lecturesEnErreur?.[table];
+        if (panne) { executer(); return { data: null, error: { message: panne } }; }
         const lignes = executer();
         if (lignes.length > 1) return { data: null, error: { message: "JSON object requested, multiple (or no) rows returned" } };
         return { data: lignes[0] ?? null, error: null };
       },
       single: async (): Promise<Reponse> => {
+        const panne = options.lecturesEnErreur?.[table];
+        if (panne) { executer(); return { data: null, error: { message: panne } }; }
         const lignes = executer();
         if (lignes.length !== 1) return { data: null, error: { message: "JSON object requested, multiple (or no) rows returned" } };
         return { data: lignes[0], error: null };
       },
       then(resolve: (r: Reponse) => unknown, rejeter?: (e: unknown) => unknown) {
-        try { return Promise.resolve({ data: executer(), error: null } as Reponse).then(resolve, rejeter); }
+        try {
+          const panne = options.lecturesEnErreur?.[table];
+          if (panne) { executer(); return Promise.resolve({ data: null, error: { message: panne } } as Reponse).then(resolve, rejeter); }
+          return Promise.resolve({ data: executer(), error: null } as Reponse).then(resolve, rejeter);
+        }
         catch (e) { return Promise.reject(e).then(resolve, rejeter); }
       },
-      insert(valeurs: unknown) {
+      async insert(valeurs: unknown) {
         ecritures.push({ table, op: "insert", valeurs });
-        const surcharge = options.inserer?.(table, valeurs);
+        const surcharge = await options.inserer?.(table, valeurs);
         if (!surcharge) (tables[table] ??= []).push(...(Array.isArray(valeurs) ? valeurs : [valeurs]) as Ligne[]);
-        return Promise.resolve({ data: null, error: surcharge?.error ?? null });
+        return { data: null, error: surcharge?.error ?? null };
       },
     };
     for (const op of ["eq", "neq", "is", "in", "gt", "gte", "lt", "lte"]) {

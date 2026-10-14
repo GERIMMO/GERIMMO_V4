@@ -10,6 +10,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { EtatLoyers } from "@/app/actions/loyers";
+import fs from "node:fs";
+import path from "node:path";
+import { etatDecompteSortie, type EtatDecompteSortie } from "@/lib/baux";
 
 const etatSimule = vi.hoisted(() => ({ valeur: {} as EtatLoyers }));
 vi.mock("react", async (importOriginal) => {
@@ -34,7 +37,7 @@ beforeEach(() => { etatSimule.valeur = {}; });
 
 const texteDe = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&#x27;|&#39;|&apos;|’/g, "'").replace(/\s+/g, " ");
 
-function rendre(extra: { dateDebut?: string | null; chargesForfait?: boolean } = {}) {
+function rendre(extra: { dateDebut?: string | null; chargesForfait?: boolean; decompteSortie?: EtatDecompteSortie } = {}) {
   return renderToStaticMarkup(createElement(FormulaireLoyers, {
     orgId: "org-test",
     bailId: "bail-test",
@@ -50,6 +53,7 @@ function rendre(extra: { dateDebut?: string | null; chargesForfait?: boolean } =
     chargesForfait: extra.chargesForfait ?? false,
     dateDebut: extra.dateDebut ?? "2026-09-01",
     aujourdhui: "2026-10-14",
+    ...(extra.decompteSortie ? { decompteSortie: extra.decompteSortie } : {}),
   }));
 }
 const champ = (html: string, nom: string) => html.match(/<input\b[^>]*>/g)?.find((input) => input.includes(`name="${nom}"`)) ?? "";
@@ -92,7 +96,48 @@ describe("D40 : la note du formulaire dit que le solde n'est pas appelé", () =>
     expect(texteDe(rendre())).toContain("Le solde d'une régularisation n'est pas appelé : il est repris au décompte de sortie.");
   });
 
+  it("décompte de sortie déjà finalisé : la note le dit au lieu de promettre une reprise qui n'aura pas lieu", () => {
+    const texte = texteDe(rendre({ decompteSortie: "finalise" }));
+    expect(texte).toContain("Le solde d'une régularisation n'est pas appelé. Le décompte de sortie de ce bail est déjà finalisé : le solde d'une nouvelle régularisation n'y sera pas repris, à traiter hors application.");
+    expect(texte).not.toContain("il est repris au décompte de sortie");
+  });
+
+  it("décompte de sortie illisible : la note n'affirme pas la reprise", () => {
+    const texte = texteDe(rendre({ decompteSortie: "inconnu" }));
+    expect(texte).toContain("L'état du décompte de sortie n'a pas pu être lu : s'il est déjà finalisé, le solde d'une nouvelle régularisation n'y sera pas repris.");
+    expect(texte).not.toContain("il est repris au décompte de sortie");
+  });
+
+  it("décompte de sortie déjà finalisé : l'avertissement d'exercice non terminé ne promet pas non plus la reprise", () => {
+    const texte = texteDe(rendre({ decompteSortie: "finalise" }));
+    expect(texte).toContain("Exercice 2026 non terminé : comparaison non homogène.");
+    expect(texte).toContain("Le décompte de sortie de ce bail est déjà finalisé : son solde n'y sera pas repris, à traiter hors application.");
+    expect(texte).not.toContain("son solde sera repris au décompte de sortie");
+  });
+
+  it("sans indication (décompte non finalisé), l'avertissement garde sa phrase d'avant", () => {
+    expect(texteDe(rendre())).toContain("Une régularisation enregistrée ne se modifie plus, et son solde sera repris au décompte de sortie.");
+  });
+
   it("au forfait, aucune régularisation n'est proposée, donc aucune note", () => {
     expect(texteDe(rendre({ chargesForfait: true }))).not.toContain("n'est pas appelé");
+  });
+});
+
+describe("D40 : l'état du décompte de sortie lu par la page arrive jusqu'au formulaire", () => {
+  it("restitution finalisée : « finalise » ; en cours ou absente : « non_finalise » ; lecture en échec : « inconnu » (on n'affirme rien)", () => {
+    expect(etatDecompteSortie({ statut: "finalise" }, null)).toBe("finalise");
+    expect(etatDecompteSortie({ statut: "en_cours" }, null)).toBe("non_finalise");
+    expect(etatDecompteSortie(null, null)).toBe("non_finalise");
+    expect(etatDecompteSortie(undefined, undefined)).toBe("non_finalise");
+    expect(etatDecompteSortie(null, { message: "indisponible" })).toBe("inconnu");
+    expect(etatDecompteSortie({ statut: "finalise" }, { message: "indisponible" })).toBe("inconnu");
+  });
+
+  // La page est un composant serveur de plusieurs milliers de lignes, sans banc de rendu : on vérifie le branchement dans sa source,
+  // comme les autres tests d'écrans du dépôt (lecture de la source).
+  it("la page du bail passe la restitution et l'erreur de sa lecture au formulaire des loyers", () => {
+    const page = fs.readFileSync(path.join(__dirname, "../src/app/agence/[orgId]/baux/[bailId]/page.tsx"), "utf8");
+    expect(page).toMatch(/<FormulaireLoyers[\s\S]*?decompteSortie=\{etatDecompteSortie\(restitution, erreurRestitution\)\}[\s\S]*?\/>/);
   });
 });

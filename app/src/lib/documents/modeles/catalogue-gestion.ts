@@ -4,9 +4,10 @@ import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, secti
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
 import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument } from "./catalogue-bail";
 import { chargerContexteBail, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
-import { LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, phrasePerimetreFiscal, recapitulatifFiscal, type ComposantesFiscales, type EcritureFiscale, type ExerciceFiscalLot, type QualificationFiscale, type RecapitulatifFiscal } from "@/lib/fiscal";
+import { LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, phrasePerimetreFiscal, phrasePiecesAQualifier, recapitulatifFiscal, type ComposantesFiscales, type EcritureFiscale, type ExerciceFiscalLot, type QualificationFiscale, type RecapitulatifFiscal } from "@/lib/fiscal";
 import type { Assemblage, LienDocument } from "./index";
 import { aujourdhuiParis } from "@/lib/ged";
+import { erreurDuChamp, lireMontantFacultatif } from "@/lib/saisie-montant";
 
 export const CODES_COMPLEMENTS_GESTION = ["regularisation_charges", "decompte_charges", "consultation_charges", "restitution_cles", "ordre_intervention", "comparatif_devis", "compte_rendu_intervention", "recap_incident", "cloture_mensuelle", "ecriture_rectificative", "recap_fiscal_nu", "recap_fiscal_meuble", "avenant_mandat", "avenant_perimetre", "rapport_gestion", "bordereau_versement", "resiliation_mandat", "recap_fiscal_agence"] as const;
 
@@ -27,6 +28,48 @@ export function moisEnToutesLettres(mois: string): string {
   const [a, m] = mois.slice(0, 7).split("-").map(Number);
   if (!a || !m) return mois;
   return new Date(Date.UTC(a, m - 1, 15)).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
+}
+
+// Le récapitulatif du lot nu pour une année, lu comme l'écran « Préparer ma déclaration » : les montants de l'aide 2044 ne viennent que des
+// captures d'encaissement, des qualifications justifiées et de l'exercice confirmé du lot. Partagé par le document et par la proposition
+// du champ « intérêts d'emprunt » (D37), pour que les deux lisent le même livre.
+export async function chargerRecapitulatifNu(db: SupabaseClient, orgId: string, lotId: string, annee: number): Promise<RecapitulatifFiscal> {
+  const lire = (table:string) => db.from(table).select("*").eq("organization_id", orgId);
+  const debutAnnee = `${annee}-01-01`, debutSuivante = `${annee+1}-01-01`;
+  const [lignesQualif, lignesComposantes, lignesExercices, anneeOrg] = await Promise.all([
+    lireLignes(lire("fiscal_qualifications_ecritures").order("version",{ascending:false})),
+    lireLignes(lire("fiscal_encaissements_composantes")),
+    lireLignes(lire("fiscal_exercices_lots").eq("annee",annee).order("version",{ascending:false})),
+    lireLignes(lire("ecritures").gte("date_piece",debutAnnee).lt("date_piece",debutSuivante).order("date_piece")),
+  ]);
+  const qualifications = new Map<string,QualificationFiscale>();
+  for (const q of lignesQualif as unknown as QualificationFiscale[]) if (!qualifications.has(q.ecriture_id)) qualifications.set(q.ecriture_id,q);
+  const composantes = new Map((lignesComposantes as unknown as ComposantesFiscales[]).map(c=>[c.ecriture_id,c]));
+  const exercices = new Map<string,ExerciceFiscalLot>();
+  for (const x of lignesExercices as unknown as ExerciceFiscalLot[]) if (x.lot_id === lotId && !exercices.has(x.lot_id)) exercices.set(x.lot_id,x);
+  const ecritures = anneeOrg.filter(e => (texte(e.lot_id) || qualifications.get(texte(e.contre_ecriture_de) || texte(e.id))?.lot_id) === lotId);
+  return recapitulatifFiscal(ecritures as unknown as EcritureFiscale[],annee,{qualifications,composantes,exercices,exigerPerimetre:true});
+}
+
+// La ligne 250 (intérêts d'emprunt) telle que le livre la porte : le montant des dépenses qualifiées en 250, ou `null` quand aucune ne l'est
+// (la rubrique reste « à compléter »). D37 : c'est ce montant que le champ du document propose, et auquel la saisie est comparée.
+export function interetsQualifies(fiscal: RecapitulatifFiscal): number | null {
+  const ligne = fiscal.rubriques.find(r => r.code === "250");
+  return !ligne || ligne.aCompleter ? null : ligne.montant;
+}
+
+// D37 (CHF-01, option B) : si le montant saisi diffère de celui que le livre porte en ligne 250, l'écart se lit SUR le PDF, sous le tableau.
+// Le tableau reprend la valeur saisie (modifiable) ; l'écart n'est jamais silencieux. Comparaison au centime.
+export function ecartInterets(saisi: number, qualifie: number | null): string {
+  const livre = qualifie ?? 0, ecart = Math.abs(Math.round(saisi * 100) - Math.round(livre * 100)) / 100;
+  if (ecart === 0) return "";
+  const constat = qualifie === null ? "Le livre ne porte aucune dépense qualifiée en ligne 250" : `Le livre porte ${eur(qualifie)} qualifiés en ligne 250`;
+  return `<div class="encadre"><p><strong>Écart sur la ligne 250 (intérêts d’emprunt).</strong> ${constat} ; le montant saisi à la génération du document est de ${eur(saisi)}, soit un écart de ${eur(ecart)}. Le tableau reprend le montant saisi : vérifiez-le avant de le recopier sur la déclaration.</p></div>`;
+}
+
+// Un montant remis dans un champ de saisie : virgule, deux décimales, sans séparateur de milliers (ce que `lireMontant` relit).
+export function montantPourSaisie(montant: number): string {
+  return (Math.round(montant * 100) / 100).toFixed(2).replace(".", ",");
 }
 
 export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_GESTION[number], db: SupabaseClient, orgId: string, cibleId: string, options: Record<string,string> = {}): Promise<Assemblage> {
@@ -77,8 +120,12 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
               ? `<p>Régularisation effectuée après le terme de l’année civile suivant l’exercice : le locataire peut demander à régler ce complément par douzièmes (art. 23 de la loi du 6 juillet 1989).</p>`
               : ""
         }`;
+      // D39 (CHF-03, option B) : le détail des dépenses se saisit au moment de générer le document, comme la consultation des justificatifs.
+      // La régularisation émise ne se modifie pas (RM-3.9.7) : rien n'est écrit. Un détail déjà porté par la régularisation sert de repli.
+      const detailSaisi = (options.detail_depenses ?? "").trim();
+      if (detailSaisi.length > 6000) throw new RefusDocument("Le détail des dépenses est trop long : 6 000 caractères au plus.");
       if (code !== "consultation_charges") contenu += `${section("Décompte et répartition")}
-        <p>${f.champ(texte(r.note)||null,"détail des dépenses par nature et clé de répartition")}</p>
+        <p>${f.champ(detailSaisi||texte(r.note)||null,"détail des dépenses par nature et clé de répartition")}</p>
         <p>Justificatif annexé : ${r.justificatif_document ? "pièce enregistrée dans le dossier, à joindre" : f.champ(null,"décompte justificatif à déposer et joindre")}.</p>`;
       contenu += `${section("Consultation des justificatifs")}<p>Modalités : ${champ("consultation","lieu ou accès, horaires et contact pour consulter les justificatifs")}.</p>
         <p>Le décompte par nature de charges et le mode de répartition sont communiqués un mois avant la régularisation. Les justificatifs restent à disposition pendant six mois à compter de l’envoi du décompte.</p>
@@ -134,40 +181,28 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const lot = await lotConcerne(cibleId);
       if ((code === "recap_fiscal_meuble") !== Boolean(lot.meuble)) throw new RefusDocument("Choisissez le récapitulatif correspondant au caractère nu ou meublé du lot.");
       const annee = anneeDocument(options);
-      const interetsEmprunt = Number(options.interets_emprunt);
-      if (code === "recap_fiscal_nu" && (!options.interets_emprunt?.trim() || !Number.isFinite(interetsEmprunt) || interetsEmprunt < 0)) {
-        throw new RefusDocument("Indiquez les intérêts d’emprunt de l’année, ou 0 si le logement n’a aucun emprunt.");
-      }
+      // D37 : le montant est lu sur le texte tel que tapé (« 2345,67 » vaut 2345,67), jamais par Number(). Vide : le montant qualifié du livre.
+      const interetsLus = code === "recap_fiscal_nu" ? lireMontantFacultatif(options.interets_emprunt ?? "") : { montant: null };
+      if ("erreur" in interetsLus) throw new RefusDocument(erreurDuChamp("Intérêts d’emprunt de l’année", interetsLus.erreur));
       const debutAnnee = `${annee}-01-01`, debutSuivante = `${annee+1}-01-01`;
-      let ecritures: Record<string,unknown>[], fiscal: RecapitulatifFiscal;
+      let fiscal: RecapitulatifFiscal, interetsEmprunt = 0, qualifie: number | null = null;
       if (code === "recap_fiscal_nu") {
-        // Même lecture que l'écran « Préparer ma déclaration » : les montants de
-        // l'aide 2044 ne viennent que des captures d'encaissement, des
-        // qualifications justifiées et de l'exercice confirmé du lot. Sans cela le
-        // document imprimait 0,00 € partout (relevé du 13/10, FIN-01) : il refuse
-        // plutôt que de faire recopier des zéros sur une déclaration.
-        const [lignesQualif, lignesComposantes, lignesExercices, anneeOrg] = await Promise.all([
-          lireLignes(lire("fiscal_qualifications_ecritures").order("version",{ascending:false})),
-          lireLignes(lire("fiscal_encaissements_composantes")),
-          lireLignes(lire("fiscal_exercices_lots").eq("annee",annee).order("version",{ascending:false})),
-          lireLignes(lire("ecritures").gte("date_piece",debutAnnee).lt("date_piece",debutSuivante).order("date_piece")),
-        ]);
-        const qualifications = new Map<string,QualificationFiscale>();
-        for (const q of lignesQualif as unknown as QualificationFiscale[]) if (!qualifications.has(q.ecriture_id)) qualifications.set(q.ecriture_id,q);
-        const composantes = new Map((lignesComposantes as unknown as ComposantesFiscales[]).map(c=>[c.ecriture_id,c]));
-        const exercices = new Map<string,ExerciceFiscalLot>();
-        for (const x of lignesExercices as unknown as ExerciceFiscalLot[]) if (x.lot_id === cibleId && !exercices.has(x.lot_id)) exercices.set(x.lot_id,x);
-        ecritures = anneeOrg.filter(e => (texte(e.lot_id) || qualifications.get(texte(e.contre_ecriture_de) || texte(e.id))?.lot_id) === cibleId);
-        fiscal = recapitulatifFiscal(ecritures as unknown as EcritureFiscale[],annee,{qualifications,composantes,exercices,exigerPerimetre:true});
-        if (fiscal.incomplet) throw new RefusDocument(`Le récapitulatif ${annee} de ce lot n’est pas complet : ${fiscal.alertes.join(" ")} Complétez l’écran « Préparer ma déclaration » du lot, puis relancez la génération.`);
+        // Sans captures ni qualifications, le document imprimait 0,00 € partout (relevé du 13/10, FIN-01) : il refuse plutôt que de faire
+        // recopier des zéros sur une déclaration.
+        fiscal = await chargerRecapitulatifNu(db,orgId,cibleId,annee);
+        if (fiscal.incomplet) throw new RefusDocument(`Le récapitulatif ${annee} de ce lot n’est pas complet : ${[...fiscal.alertes,phrasePiecesAQualifier(fiscal)].filter(Boolean).join(" ")} Complétez l’écran « Préparer ma déclaration » du lot, puis relancez la génération.`);
+        qualifie = interetsQualifies(fiscal);
+        if (interetsLus.montant !== null) interetsEmprunt = interetsLus.montant;
+        else if (qualifie !== null) interetsEmprunt = qualifie;
+        else throw new RefusDocument("Indiquez les intérêts d’emprunt de l’année, ou 0 si le logement n’a aucun emprunt.");
       } else {
-        ecritures = await lireLignes(lire("ecritures").eq("lot_id",cibleId).gte("date_piece",debutAnnee).lt("date_piece",debutSuivante).order("date_piece"));
+        const ecritures = await lireLignes(lire("ecritures").eq("lot_id",cibleId).gte("date_piece",debutAnnee).lt("date_piece",debutSuivante).order("date_piece"));
         const baux = await lireLignes(lire("baux").eq("lot_id",cibleId));
         fiscal = recapitulatifFiscal(ecritures as unknown as EcritureFiscale[],annee,{lotsMeubles:lot.meuble?new Set([cibleId]):new Set(),ventilationLoyers:new Map(baux.map(b=>[texte(b.id),{loyerHc:montant(b.loyer_hc),charges:montant(b.charges)}]))});
       }
       contenu = `${section(`Exercice ${annee}`)}<p>Récapitulatif du lot à 100 %, avant ventilation entre propriétaires. Les dépôts de garantie sont exclus et les contre-écritures déduites. ${phrasePerimetreFiscal(fiscal,{tableau:code==="recap_fiscal_nu"})}</p>`;
       if (lot.meuble) contenu += `<p>Recettes enregistrées : ${eur(fiscal.meuble.recettes)} ; dépenses enregistrées : ${eur(fiscal.meuble.depenses)}.</p><p>Les amortissements, emprunts et retraitements BIC sont à établir avec le comptable ; aucun résultat fiscal n’est certifié ici.</p>`;
-      else contenu += lignesTableau(f,fiscal.rubriques.map(r=>({...r,montant:r.code==="250"?interetsEmprunt:r.montant})),[["Rubrique","code","texte"],["Libellé","libelle","texte"],["Montant enregistré","montant","montant"]])+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p><p>Hors déclaration : ${eur(fiscal.chargesRecuperees)} de ${LIBELLE_RECETTES_EXCLUES}${fiscal.teomExclue ? `, ${eur(fiscal.teomExclue)} de ${LIBELLE_DEPENSES_EXCLUES}` : ""} — ni revenus, ni charges déductibles.</p>`;
+      else contenu += lignesTableau(f,fiscal.rubriques.map(r=>({...r,montant:r.code==="250"?interetsEmprunt:r.montant})),[["Rubrique","code","texte"],["Libellé","libelle","texte"],["Montant enregistré","montant","montant"]])+ecartInterets(interetsEmprunt,qualifie)+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p><p>Hors déclaration : ${eur(fiscal.chargesRecuperees)} de ${LIBELLE_RECETTES_EXCLUES}${fiscal.teomExclue ? `, ${eur(fiscal.teomExclue)} de ${LIBELLE_DEPENSES_EXCLUES}` : ""} — ni revenus, ni charges déductibles.</p>`;
       contenu += `<p>Aide à la préparation de la déclaration. Vérifiez les pièces, la quote-part, les intérêts d’emprunt et les dépenses externes avant déclaration. ${code==="recap_fiscal_nu"?"Les loyers et provisions sont ventilés selon la capture faite à chaque encaissement ou la ventilation historique que vous avez justifiée.":"Les loyers et provisions sont ventilés selon les montants du bail enregistrés lors de la génération."}</p>`;
     } else if (code === "ecriture_rectificative" || code === "cloture_mensuelle") {
       if (code === "ecriture_rectificative") {

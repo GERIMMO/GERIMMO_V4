@@ -55,6 +55,9 @@ const ANCRES_BAIL = new Map<string, string>([
   // Audit gestion du 29/09 : alerte_zone_tendue_inconnue / enregistrer_conge
   // (20260929130000) posent {bail_id, lot_id[, conge_id]}.
   ["zone_tendue_a_verifier", ""],
+  // D40 (CHF-06) : le solde d'une régularisation émise en cours de bail n'est pas appelé ; l'alerte (posée par l'action de régularisation,
+  // {bail_id, annee, ecart}) mène à la carte des loyers, où la régularisation se lit.
+  ["regularisation_non_appelee", "#loyers"],
 ]);
 
 /**
@@ -100,6 +103,7 @@ const LIBELLES = new Map<string, string>([
   ["creneaux_arbitrage", "Fixer le rendez-vous"],
   ["loyer_impaye", "Ouvrir les loyers du bail"],
   ["zone_tendue_a_verifier", "Vérifier la zone tendue du bail"],
+  ["regularisation_non_appelee", "Ouvrir les loyers et régularisations du bail"],
   ["message_locataire", "Lire et répondre au message"],
   ["piece_deposee", "Contrôler la pièce déposée"],
   ["restitution_echeance", "Ouvrir la restitution"],

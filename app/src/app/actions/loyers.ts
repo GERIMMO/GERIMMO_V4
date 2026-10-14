@@ -13,7 +13,8 @@ import {
   motifQuittanceIncomplete,
   parties,
 } from "@/lib/quittance-conforme";
-import { eur } from "@/lib/ged";
+import { aujourdhuiParis, eur } from "@/lib/ged";
+import { avertissementExerciceNonTermine, etatDecompteSortie, exerciceNonTermine, messageSoldeNonAppele, type EtatDecompteSortie } from "@/lib/baux";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import {
   erreurDuChamp,
@@ -176,6 +177,13 @@ export async function supprimerRelance(
   return { succes: "Relance supprimée." };
 }
 
+// D40 : « repris au décompte de sortie » ne se dit que si le décompte de sortie du bail n'est pas finalisé (voir `etatDecompteSortie`).
+// Une lecture qui échoue ne bloque rien : le texte cesse alors d'affirmer.
+async function lireEtatDecompteSortie(supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"], orgId: string, bailId: string): Promise<EtatDecompteSortie> {
+  const { data, error } = await supabase.from("restitutions").select("statut").eq("organization_id", orgId).eq("bail_id", bailId).maybeSingle();
+  return etatDecompteSortie(data, error);
+}
+
 // Régularisation annuelle des charges (justificatif obligatoire déposé en GED).
 export async function regulariserCharges(
   orgId: string,
@@ -198,6 +206,14 @@ export async function regulariserCharges(
   const fichier = formData.get("justificatif");
   if (!(fichier instanceof File) || fichier.size === 0)
     return { erreur: "Le justificatif est obligatoire (décompte remis au locataire).", valeurs };
+  // D38 (CHF-02, option A) : un exercice non terminé (le 31/12, jour de Paris, n'est pas passé) se régularise sur confirmation explicite.
+  // La vérification est ICI, côté serveur : une requête directe sans la case cochée est refusée, avant tout dépôt de pièce.
+  const exerciceEnCours = exerciceNonTermine(annee, aujourdhuiParis());
+  if (exerciceEnCours && String(formData.get("confirmer_exercice_en_cours") ?? "") !== "oui")
+    return {
+      erreur: `${avertissementExerciceNonTermine(annee, await lireEtatDecompteSortie(supabase, orgId, bailId))} Cochez la confirmation pour l’enregistrer malgré tout.`,
+      valeurs,
+    };
   // Audit agence 27/09 : le décompte n'existe en GED que si la régularisation
   // existe. Déposé avant la fonction, chaque refus (exercice déjà régularisé,
   // forfait, exercice hors bail…) laissait une pièce rattachée à rien, dont
@@ -226,12 +242,14 @@ export async function regulariserCharges(
     return { erreur: sansJargon(error.message), valeurs };
   }
   const ecart = Number(data);
+  const etale = formData.get("etaler") === "on";
+  // Trop-perçu : « en faveur du locataire », sans verbe d'action — le texte dit juste après que ce solde n'est pas appelé mais repris.
   const msg =
     ecart > 0
-      ? `Trop-perçu de ${eur(ecart)} à rembourser au locataire.`
+      ? `Trop-perçu de ${eur(ecart)} en faveur du locataire.`
       : ecart < 0
-        ? formData.get("etaler") === "on"
-          ? `Complément de ${eur(Math.abs(ecart))} dû par le locataire, étalé sur 12 mensualités.`
+        ? etale
+          ? `Complément de ${eur(Math.abs(ecart))} dû par le locataire, qui a demandé à le régler en 12 mensualités (échéancier enregistré).`
           : `Complément de ${eur(Math.abs(ecart))} dû par le locataire.`
         : "Charges équilibrées (aucun écart).";
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
@@ -239,7 +257,39 @@ export async function regulariserCharges(
   // ni avoir n'est encore généré) ; son solde est repris au décompte de
   // restitution à la sortie (montants_reels_bail).
   revalidatePath(`/agence/${orgId}/comptabilite`);
-  return { succes: prep.avertissement ? `${msg} ${prep.avertissement}` : msg };
+  // D40 (CHF-06, option A) : on le dit à l'émission, et une alerte garde la trace du solde non appelé (mécanisme d'alertes existant).
+  // L'alerte est posée après la régularisation, qui ne se défait pas si elle échoue : le message le dit alors.
+  // Le décompte de sortie est lu ICI, après l'enregistrement : « repris au décompte de sortie » est faux s'il est déjà finalisé.
+  const soldeNonAppele = ecart !== 0;
+  const decompte = soldeNonAppele ? await lireEtatDecompteSortie(supabase, orgId, bailId) : "non_finalise";
+  const phraseSolde = soldeNonAppele ? messageSoldeNonAppele(decompte, etale && ecart < 0) : "";
+  let alerteManquante = false;
+  if (soldeNonAppele) {
+    const suffixeFinalise = decompte === "finalise" ? ", décompte de sortie déjà finalisé" : "";
+    const { error: erreurAlerte } = await supabase.from("alerts").insert({
+      organization_id: orgId,
+      type: "regularisation_non_appelee",
+      criticite: "normale",
+      titre:
+        (ecart < 0
+          ? `Régularisation des charges ${annee} : complément de ${eur(-ecart)} dû par le locataire`
+          : `Régularisation des charges ${annee} : trop-perçu de ${eur(ecart)} en faveur du locataire`) + suffixeFinalise,
+      details: { bail_id: bailId, annee, ecart, libelle: phraseSolde },
+    });
+    if (erreurAlerte) {
+      console.error("[regularisation] alerte du solde non appelé non enregistrée", erreurAlerte.message);
+      alerteManquante = true;
+    } else {
+      revalidatePath(`/agence/${orgId}/alertes`);
+    }
+  }
+  const complements = [
+    phraseSolde,
+    exerciceEnCours ? "Enregistrée sur un exercice non terminé : comparaison non homogène, elle ne se modifie plus." : "",
+    alerteManquante ? "Attention : l’alerte n’a pas pu être créée, notez ce solde pour ne pas l’oublier." : "",
+    prep.avertissement ?? "",
+  ].filter(Boolean);
+  return { succes: [msg, ...complements].join(" ") };
 }
 
 // Générer les appels de loyer manquants (échéancier) jusqu'au mois courant.

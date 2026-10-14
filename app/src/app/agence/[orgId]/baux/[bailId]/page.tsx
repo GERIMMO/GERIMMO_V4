@@ -22,6 +22,7 @@ import {
   COULEURS_ETAT_BAIL,
   COULEURS_ETAT_EDL,
   mentionsObligatoiresManquantes,
+  etatDecompteSortie,
 } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
 import { premier } from "@/lib/postgrest";
@@ -886,6 +887,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               dateFin={bail.date_fin}
               copropriete={Boolean(premier(lot?.bien ?? null)?.copropriete)}
               aujourdhui={aujourdhuiParis()}
+              decompteSortie={etatDecompteSortie(restitution, erreurRestitution)}
             />
           </CardContent>
         </Card>

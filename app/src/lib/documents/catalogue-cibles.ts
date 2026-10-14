@@ -2,7 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EntreeCatalogue } from "./catalogue";
 import { lireLignes, texte, RefusDocument } from "./modeles/catalogue-bail";
 import { formaterDateFr } from "./gabarit";
-export type ChoixDossier = {id:string;libelle:string;bailId?:string};
+// `detailEnregistre` (régularisations de charges) : la régularisation porte déjà son détail des dépenses ; la saisie du détail à la génération
+// est alors facultative (D39).
+export type ChoixDossier = {id:string;libelle:string;bailId?:string;detailEnregistre?:boolean};
 export const TABLES_CATALOGUE = {bail:"baux",lot:"lots",appel:"appels_loyer",quittance:"quittances",depot:"depot_encaissements",revision:"revisions_loyer",attestation:"documents",edl:"etats_des_lieux",regularisation:"regularisations_charges",incident:"incidents",intervention:"incident_interventions",ecriture:"ecritures",mandat:"mandats",rapport:"rapports_gestion"} as const;
 export function filtrerCibles<T>(q:T, modele:EntreeCatalogue):T {
   // Les filtres sont appliqués avant la pagination, dans la requête SQL.
@@ -40,7 +42,7 @@ export async function chargerCiblesCatalogue(db:SupabaseClient,orgId:string,mode
     const dossier=b?[lotsMap.get(b.lot_id),personnesMap.get(b.locataire_principal)].filter(Boolean).join(" · "):lotsMap.get(r.lot_id)||personnesMap.get(r.person_id)||"";
     const date=texte(r.periode||r.mois||r.date_edl||r.date_echeance||r.date_emission||r.date_effet||r.date_piece);
     const etat = modele.cible === "rapport" ? (r.statut === "envoye" ? "Validé" : "À valider") : texte(r.etat||r.statut);
-    return {id:texte(r.id),bailId:b?texte(b.id):undefined,libelle:[dossier,texte(r.nom||r.titre||r.nature_travaux||r.libelle||(r.numero?`Incident ${r.numero}`:"")),date?formaterDateFr(date):r.annee,etat,`réf. ${texte(r.id).slice(0,8)}`].filter(Boolean).join(" · ")};
+    return {id:texte(r.id),bailId:b?texte(b.id):undefined,...(modele.cible==="regularisation"?{detailEnregistre:Boolean(texte(r.note).trim())}:{}),libelle:[dossier,texte(r.nom||r.titre||r.nature_travaux||r.libelle||(r.numero?`Incident ${r.numero}`:"")),date?formaterDateFr(date):r.annee,etat,`réf. ${texte(r.id).slice(0,8)}`].filter(Boolean).join(" · ")};
   })};
 }
 export async function verifierCibleCatalogue(db:SupabaseClient,orgId:string,modele:EntreeCatalogue,cibleId:string) {

@@ -8,6 +8,7 @@ import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { nomComplet } from "@/lib/roles-personnes";
 import { formaterTelephone } from "@/app/artisan/libelles";
+import { mentionEcartChronologie } from "@/lib/rendez-vous-anticipe";
 import {
   CANAUX_INCIDENT,
   COULEURS_ETAT_INCIDENT,
@@ -237,16 +238,25 @@ export async function PaneIncident({
       case "creneaux_refuses":
         return d.motif ? `« ${d.motif} »` : null;
       case "facture_deposee":
-        return d.montant_ttc_cents != null
-          ? `${d.numero ? `n° ${d.numero} · ` : ""}${eur(centsEnEuros(Number(d.montant_ttc_cents)))}`
-          : null;
+        return [
+          d.montant_ttc_cents != null
+            ? `${d.numero ? `n° ${d.numero} · ` : ""}${eur(centsEnEuros(Number(d.montant_ttc_cents)))}`
+            : null,
+          mentionEcartChronologie(d, formaterDateHeure),
+        ].filter(Boolean).join(" · ") || null;
+      // D20 (ART-21) : un geste fait plus de 2 h avant le rendez-vous confirmé est inscrit avec son écart.
+      case "intervention_demarree":
+        return mentionEcartChronologie(d, formaterDateHeure);
       case "arbitrage_creneau":
         return `${formaterDateHeure(String(d.debut))} → ${formaterDateHeure(String(d.fin))}${
           d.motif ? ` — « ${d.motif} »` : ""
         }${d.conflit_confirme && d.conflit_motif
           ? ` — Chevauchement maintenu : « ${d.conflit_motif} »` : ""}`;
       case "compte_rendu":
-        return d.cause_reelle ? `cause constatée : « ${d.cause_reelle} »` : null;
+        return [
+          d.cause_reelle ? `cause constatée : « ${d.cause_reelle} »` : null,
+          mentionEcartChronologie(d, formaterDateHeure),
+        ].filter(Boolean).join(" · ") || null;
       case "revision_imputation":
         return `${IMPUTATIONS_INCIDENT[String(d.imputation)] ?? d.imputation} — « ${d.justification} »`;
       default:

@@ -24,6 +24,7 @@ import {
   TitreSection,
 } from "../../ui";
 import { AccepterOuRefuser } from "./accepter-refuser";
+import { AvertissementRendezVousAnticipe } from "./avertissement-rendez-vous";
 import { BoutonDemarrer } from "./bouton-demarrer";
 import { DatesLocataire } from "./dates-locataire";
 
@@ -242,6 +243,8 @@ export default async function PageMission(
 
       {mission.statut === "planifiee" && (
         <div className="space-y-3">
+          {/* D20 (ART-21) : démarrer plus de 2 h avant le rendez-vous confirmé reste possible ; on le dit. */}
+          <AvertissementRendezVousAnticipe debutPrevu={mission.debut_prevu} finPrevue={mission.fin_prevue} geste="demarrer" />
           <BoutonDemarrer interventionId={mission.intervention_id} />
           <Link
             href={`/artisan/missions/${mission.intervention_id}/creneaux`}
@@ -254,6 +257,7 @@ export default async function PageMission(
 
       {mission.statut === "en_cours" && (
         <div className="space-y-3">
+          <AvertissementRendezVousAnticipe debutPrevu={mission.debut_prevu} finPrevue={mission.fin_prevue} geste="terminer" />
           <Link
             href={`/artisan/missions/${mission.intervention_id}/compte-rendu`}
             className={CLASSE_BOUTON_PRINCIPAL}

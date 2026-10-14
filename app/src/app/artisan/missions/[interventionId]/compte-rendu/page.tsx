@@ -15,6 +15,7 @@ import {
   TitreSection,
   Vide,
 } from "../../../ui";
+import { AvertissementRendezVousAnticipe } from "../avertissement-rendez-vous";
 import { BoutonDemarrer } from "../bouton-demarrer";
 import { PhotoChantier } from "./photo-chantier";
 
@@ -78,6 +79,7 @@ export default async function PageComptePhoto(
             Démarrez l&apos;intervention avant d&apos;en rendre compte : les photos
             et le bilan s&apos;ouvrent ensuite.
           </Avertissement>
+          <AvertissementRendezVousAnticipe debutPrevu={mission.debut_prevu} finPrevue={mission.fin_prevue} geste="demarrer" />
           <BoutonDemarrer interventionId={interventionId} />
           <Link href={`/artisan/missions/${interventionId}`} className={CLASSE_BOUTON_SOBRE}>
             Revenir à la mission
@@ -93,6 +95,9 @@ export default async function PageComptePhoto(
               qu&apos;une fois qu&apos;elle est envoyée.
             </Avertissement>
           )}
+
+          {/* D20 (ART-21) : rendre compte plus de 2 h avant le rendez-vous confirmé reste possible ; on le dit. */}
+          <AvertissementRendezVousAnticipe debutPrevu={mission.debut_prevu} finPrevue={mission.fin_prevue} geste="terminer" />
 
           <PhotoChantier
             interventionId={interventionId}

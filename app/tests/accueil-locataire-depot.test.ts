@@ -1,11 +1,10 @@
 /**
- * Décision D36 (SOR-05), options B puis C — le locataire sortant voit son dépôt
- * de garantie :
- *   B  l'accueil porte la carte « Votre dépôt de garantie » à la place de « Rien
- *      à régler pour l'instant » quand une restitution existe (en cours ou
- *      décompte établi), avec un lien ;
- *   C  à l'envoi du décompte, une pièce « décompte » est mise à disposition dans
- *      « Mes documents » (action marquerDecompteEnvoye).
+ * Décision D36 (SOR-05), option B — le locataire sortant voit son dépôt de
+ * garantie : l'accueil porte la carte « Votre dépôt de garantie » à la place de
+ * « Rien à régler pour l'instant » quand une restitution existe (en cours ou
+ * décompte établi), avec un lien.
+ * L'option C (pièce « décompte » dans « Mes documents » à l'envoi) est reportée :
+ * l'envoi du décompte ne publie rien au locataire (dernier bloc).
  * Les montants affichés sont ceux que la base rend : rien n'est recalculé ici.
  */
 import { createElement } from "react";
@@ -182,63 +181,33 @@ describe("D36 (B) — l'accueil du locataire", () => {
   });
 });
 
-describe("D36 (C) — la pièce « décompte » dans Mes documents, à l'envoi", () => {
+describe("D36 — l'envoi du décompte n'est qu'un envoi (option C reportée)", () => {
+  // La page « Complément » range D36 C parmi les options reportées : la mise à disposition du
+  // décompte au locataire est un geste distinct (RM-12, partager_document_locataire), et
+  // l'effet juridique d'une créance publiée n'a pas été examiné. L'envoi ne publie donc rien.
   function envoi() {
     const f = new FormData();
     f.set("date", "2026-10-14");
     return marquerDecompteEnvoye(ORG, "bail-1", "rst-1", {}, f);
   }
 
-  it("envoyé : le décompte PDF est généré puis mis à disposition du locataire", async () => {
+  it("envoyé : seul l'envoi est enregistré, le décompte n'est ni généré ni mis à disposition du locataire", async () => {
     banc.generer.mockResolvedValue({ documentId: "doc-decompte", succes: "ok" });
     const r = await envoi();
-    expect(banc.rpc).toHaveBeenNthCalledWith(1, "marquer_decompte_envoye", { p_restitution: "rst-1", p_date: "2026-10-14" });
-    expect(banc.generer).toHaveBeenCalledWith(ORG, "decompte_restitution", "bail-1", `/agence/${ORG}/baux/bail-1`);
-    expect(banc.rpc).toHaveBeenNthCalledWith(2, "partager_document_locataire", {
-      p_org: ORG,
-      p_doc: "doc-decompte",
-      p_partager: true,
-    });
+    expect(banc.rpc).toHaveBeenCalledTimes(1);
+    expect(banc.rpc).toHaveBeenCalledWith("marquer_decompte_envoye", { p_restitution: "rst-1", p_date: "2026-10-14" });
+    expect(banc.rpc).not.toHaveBeenCalledWith("partager_document_locataire", expect.anything());
+    expect(banc.generer).not.toHaveBeenCalled();
     expect(r.erreur).toBeUndefined();
-    expect(r.succes).toContain("Décompte marqué envoyé");
-    expect(r.succes).toContain("à disposition du locataire dans « Mes documents »");
+    expect(r.succes).toBe("Décompte marqué envoyé — l'alerte d'envoi est fermée.");
+    expect(r.succes).not.toContain("Mes documents");
   });
 
-  it("l'envoi refusé par la base ne génère ni ne partage rien", async () => {
+  it("l'envoi refusé par la base remonte tel quel et ne génère rien", async () => {
     banc.rpc.mockResolvedValue({ error: { message: "Décompte déjà envoyé le 13/10/2026" } });
     const r = await envoi();
     expect(r.erreur).toContain("déjà envoyé");
     expect(banc.generer).not.toHaveBeenCalled();
     expect(banc.rpc).toHaveBeenCalledTimes(1);
-  });
-
-  it("PDF impossible à générer : l'envoi reste enregistré, la pièce manquante est dite et le geste manuel indiqué", async () => {
-    banc.generer.mockResolvedValue({ erreur: "Document incomplet : adresse du bailleur manquante" });
-    const r = await envoi();
-    expect(r.erreur).toBeUndefined();
-    expect(r.succes).toContain("Décompte marqué envoyé");
-    expect(r.succes).toContain("n'a pas pu être mis à disposition");
-    expect(r.succes).toContain("adresse du bailleur manquante");
-    expect(r.succes).toContain("depuis Documents");
-    expect(banc.rpc).toHaveBeenCalledTimes(1);
-  });
-
-  it("mise à disposition refusée par la base : même message honnête", async () => {
-    banc.generer.mockResolvedValue({ documentId: "doc-decompte" });
-    banc.rpc
-      .mockResolvedValueOnce({ error: null })
-      .mockResolvedValueOnce({ error: { message: "Rattachez d'abord le document à la fiche de la personne concernée" } });
-    const r = await envoi();
-    expect(r.succes).toContain("n'a pas pu être mis à disposition");
-    expect(r.succes).toContain("Rattachez d'abord le document");
-  });
-
-  it("une erreur technique de la génération ne fait pas perdre l'envoi", async () => {
-    banc.generer.mockRejectedValue(new Error("moteur PDF indisponible"));
-    const r = await envoi();
-    expect(r.erreur).toBeUndefined();
-    expect(r.succes).toContain("Décompte marqué envoyé");
-    expect(r.succes).toContain("n'a pas pu être mis à disposition");
-    expect(r.succes).not.toContain("moteur PDF");
   });
 });

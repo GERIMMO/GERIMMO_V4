@@ -6,7 +6,6 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { preparerFichierGed, type FichierPrepareGed } from "@/lib/ged-depot";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { lireMontant } from "@/lib/saisie-montant";
-import { genererDocument } from "./documents-generes";
 
 // Le Storage n'est pas transactionnel : quand la règle métier refuse la
 // retenue, l'octet est déjà monté. Sans fiche il est déjà illisible (la policy
@@ -213,51 +212,11 @@ export async function marquerDecompteEnvoye(
     p_date: date,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
-
-  // Décision D36 (option C) : à l'envoi, le décompte devient une pièce de « Mes
-  // documents » du locataire sortant. L'envoi est déjà enregistré : si la pièce
-  // ne peut pas être mise à disposition, on le dit, on ne l'annule pas.
-  const miseADisposition = await mettreDecompteADisposition(supabase, orgId, bailId);
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  revalidatePath(`/agence/${orgId}/documents`);
-  const base = "Décompte marqué envoyé — l'alerte d'envoi est fermée.";
-  return {
-    succes: miseADisposition.ok
-      ? `${base} Il est à disposition du locataire dans « Mes documents ».`
-      : `${base} En revanche, le décompte n'a pas pu être mis à disposition du locataire dans « Mes documents » (${miseADisposition.raison}). Générez le décompte PDF, puis mettez-le à disposition depuis Documents.`,
-  };
-}
-
-// Génère le décompte de restitution (PDF rangé en GED, rattaché au bail et aux
-// locataires) puis le met à disposition du locataire : c'est la pièce
-// « décompte » de son espace (D36). Le geste de mise à disposition est celui de
-// partager_document_locataire (RM-12) ; ici il est déclenché par l'envoi, que
-// l'écran annonce avant la validation.
-async function mettreDecompteADisposition(
-  supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
-  orgId: string,
-  bailId: string
-): Promise<{ ok: true } | { ok: false; raison: string }> {
-  try {
-    const generation = await genererDocument(
-      orgId,
-      "decompte_restitution",
-      bailId,
-      `/agence/${orgId}/baux/${bailId}`
-    );
-    if (!generation.documentId || generation.erreur) {
-      return { ok: false, raison: generation.erreur ?? "le PDF n'a pas pu être généré" };
-    }
-    const { error } = await supabase.rpc("partager_document_locataire", {
-      p_org: orgId,
-      p_doc: generation.documentId,
-      p_partager: true,
-    });
-    if (error) return { ok: false, raison: sansJargon(error.message) };
-    return { ok: true };
-  } catch {
-    return { ok: false, raison: "une erreur technique est survenue" };
-  }
+  // Décision D36 : l'envoi n'est qu'un envoi. La mise à disposition du décompte au locataire
+  // (« Mes documents », option C) est reportée : c'est un geste distinct (partager_document_locataire,
+  // RM-12), et l'effet d'une créance publiée n'a pas encore été examiné.
+  return { succes: "Décompte marqué envoyé — l'alerte d'envoi est fermée." };
 }
 
 export async function finaliserDecompte(

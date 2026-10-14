@@ -719,13 +719,9 @@ function FormDecompteEnvoye({
         </Label>
         <InputDateJour id="decompte-envoye-date" name="date" required />
       </div>
-      <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Envoi du décompte…">
+      <BoutonEnvoi size="sm" variant="outline">
         Décompte envoyé
       </BoutonEnvoi>
-      {/* Décision D36 (C) : dit AVANT la validation, car la mise à disposition est un geste (RM-12) */}
-      <p className="w-full text-sm text-muted-foreground">
-        En validant, le décompte est aussi mis à disposition du locataire dans « Mes documents ».
-      </p>
       {etat.erreur && <span className="w-full text-sm text-destructive">{etat.erreur}</span>}
       {etat.succes && <span className="w-full text-sm text-success-soft-foreground">{etat.succes}</span>}
     </form>

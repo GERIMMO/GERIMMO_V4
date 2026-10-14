@@ -197,3 +197,13 @@ describe("D35 (2) — la règle des écarts est dite (option C, aucun changement
     expect(source).toMatch(/Comparatif entrée \/ sortie[\s\S]{0,400}\{REGLE_ECART_EDL\}/);
   });
 });
+
+describe("D36 — l'envoi du décompte ne promet aucune mise à disposition (option C reportée)", () => {
+  it("le formulaire « Décompte envoyé » n'annonce rien dans « Mes documents » du locataire", () => {
+    const html = ecran(restitution({ statut: "finalise", solde: -561.43, date_emission: "2026-10-10" }));
+    expect(html).toContain("Envoyé au locataire le");
+    expect(html).toContain("Décompte envoyé");
+    expect(html).not.toContain("Mes documents");
+    expect(html).not.toContain("mis à disposition");
+  });
+});

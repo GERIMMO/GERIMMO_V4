@@ -493,7 +493,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
     saisie.set("date_paiement", "2026-08-15");
     const resultat = await ajouterEncaissement(org, bail, {}, saisie);
 
-    expect(resultat.erreur).toBe("Montant invalide.");
+    expect(resultat.erreur).toBe("Montant invalide : écrivez 1234,50, sans espace ni point de milliers.");
     expect(resultat.valeurs?.date_paiement).toBe("2026-08-15");
   });
 

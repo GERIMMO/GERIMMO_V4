@@ -9,6 +9,10 @@
  *
  * Nécessite SUPABASE_DB_URL (base locale jetable). Les essais s'exécutent dans une transaction annulée, sauf les
  * essais de concurrence, qui exigent deux sessions et gardent donc une fixture fictive.
+ *
+ * Ce fichier tourne dans le groupe « serie » de vitest.config.ts (après les autres fichiers, seul sur la base) : sa fixture
+ * validée serait visible des autres fichiers (reprise-comptable.test.ts compte toute la table des dépôts) et le rejeu des
+ * migrations (ALTER TABLE) croiserait leurs écritures en blocage mutuel.
  */
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";

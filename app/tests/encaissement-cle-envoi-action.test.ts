@@ -10,7 +10,8 @@
  *        le serveur renvoie un état « confirmation requise » ; le formulaire se ressoumet avec le drapeau
  *        `confirmation_montant` qui porte le montant confirmé. Rejouer la requête sans le drapeau ne contourne rien.
  *
- * Nécessite SUPABASE_DB_URL (base locale jetable).
+ * Nécessite SUPABASE_DB_URL (base locale jetable). Ce fichier tourne dans le groupe « serie » de vitest.config.ts (seul
+ * sur la base) : ses essais de concurrence valident une fixture, visible sinon des autres fichiers.
  */
 import { randomUUID } from "node:crypto";
 import { config } from "dotenv";

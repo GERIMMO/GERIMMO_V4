@@ -2,9 +2,11 @@
  * D05 et D04 (2) côté ÉCRAN : les quatre formulaires d'encaissement portent la clé d'envoi, l'écran dit « déjà
  * enregistré », et la demande de confirmation propose de confirmer ou de corriger.
  *
- * Le comportement du navigateur (champ rempli après l'affichage, clé qui change après un succès) ne se rejoue pas en
- * vitest : la règle « quand la clé est-elle libérée ? » est donc une fonction pure (`cleLiberee`) testée ici, et le
- * rendu serveur montre ce que l'utilisateur voit pour chaque retour de l'action.
+ * Ce fichier ne voit que le HTML du serveur (`useActionState` y est remplacé par un état constant) : la règle « quand la
+ * clé est-elle libérée ? » est une fonction pure (`cleLiberee`) testée ici, et le rendu serveur montre ce que
+ * l'utilisateur voit pour chaque retour de l'action. Le comportement dans le navigateur (clé tirée après l'affichage,
+ * conservée après une réponse perdue, renouvelée après un succès ; confirmation, « Corriger », retapage) est rejoué dans
+ * un vrai Chromium par `cle-envoi-navigateur.test.ts`.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

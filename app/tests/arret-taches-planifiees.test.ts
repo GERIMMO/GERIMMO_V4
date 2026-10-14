@@ -301,6 +301,51 @@ describe.skipIf(!DB_URL)("arrêt d'urgence et tâches planifiées (D06)", () => 
     expect(await passages()).toBe(avant + 1);
   });
 
+  it("constat : après un cycle sauté par l'arrêt, le rattrapage rend, le même matin, l'avis d'échéance ET la relance du même terme", async () => {
+    // C'est la raison de la consigne affichée à l'écran « Arrêt avant les prochains effets » : si l'arrêt a couvert un
+    // 1er du mois, garder « Relances de loyers » arrêtée jusqu'à l'envoi des avis du rattrapage. Ce test constate le
+    // comportement actuel des deux listes que lisent les tâches Vercel (avis à 07:30 UTC, relances à 07:45 UTC) ; il
+    // n'approuve pas ce comportement. Si `relances_loyer_dues` est un jour conditionnée à l'avis envoyé (décision
+    // technique à prendre hors de ce lot), ce test échouera : retirer alors la consigne de l'écran et de la documentation.
+    const { org, gerant } = await organisation();
+    const { bail } = await bailActif(org, gerant, 2);
+    await db.query("reset role");
+    await db.query(`update public.organizations set appels_envoi_auto = true, relances_envoi_auto = true where id = $1`, [org]);
+    await db.query(`update public.persons set email = 'locataire-rattrapage@test.local' where id = (select locataire_principal from public.baux where id = $1)`, [bail]);
+    // Le 1er du mois d'il y a deux mois est passé pendant l'arrêt : le cycle n'a rien créé.
+    await arreter("appels");
+    await commeCron();
+    await db.query(`select public.cycle_mensuel_interne()`);
+    expect(await compter(`select count(*) as n from public.appels_loyer where bail_id = $1`, [bail])).toBe(0);
+    // Arrêt levé : le cycle suivant crée les appels de tous les mois manquants (rattrapage).
+    await arreter("appels", false);
+    await commeCron();
+    await db.query(`select public.cycle_mensuel_interne()`);
+    expect(await compter(`select count(*) as n from public.appels_loyer where bail_id = $1`, [bail])).toBe(3);
+    // Les avis du rattrapage ne sont pas partis.
+    expect(await compter(`select count(*) as n from public.appels_loyer where bail_id = $1 and email_envoye_at is not null`, [bail])).toBe(0);
+    // Mission « Avis d'échéance » : les avis des mois manquants sont à envoyer (créés à l'instant, dans la fenêtre de 45 jours).
+    await simuler(null, "service_role");
+    const { rows: avis } = await db.query<{ periode: string }>(`select to_char(periode, 'YYYY-MM-DD') as periode from public.appels_a_envoyer(500) where bail_id = $1 order by periode`, [bail]);
+    // Mission « Relances de loyers » : la même matinée, le terme le plus ancien est déjà relancé, avant que son avis soit parti.
+    const { rows: relances } = await db.query<{ niveau: string; periode: string; jours_retard: number }>(
+      `select niveau, to_char(periode, 'YYYY-MM-DD') as periode, jours_retard from public.relances_loyer_dues(500) where bail_id = $1`, [bail]
+    );
+    expect(avis.length).toBeGreaterThanOrEqual(2);
+    expect(relances).toHaveLength(1);
+    expect(relances[0].niveau).toBe("relance_1");
+    expect(relances[0].jours_retard).toBeGreaterThan(30);
+    expect(avis.map((a) => a.periode)).toContain(relances[0].periode);
+    // La consigne fonctionne : tant que « relances » est arrêtée, le contrôle que la route des relances lit avant chaque envoi
+    // refuse, alors que celui de la route des avis d'échéance (« appels ») laisse passer.
+    await arreter("relances");
+    await db.query(`select set_config('request.jwt.claims', '{"role":"service_role"}', true)`);
+    await db.query("set local role service_role");
+    const controle = async (cle: string) => (await db.query(`select public.verifier_arret_supervision($1) as ok`, [cle])).rows[0].ok;
+    expect(await controle("relances")).toBe(false);
+    expect(await controle("appels")).toBe(true);
+  });
+
   it("alertes d'impayés : l'arrêt « relances » ne pose aucune alerte, la levée reprend", async () => {
     const { org, gerant } = await organisation();
     const { bail } = await bailActif(org, gerant, 3);

@@ -130,6 +130,28 @@ describe("D06 / D46 : l'écran « Arrêt avant les prochains effets » et le mod
     expect(html).toContain("traitement immédiat des signatures");
   });
 
+  it("rattrapage d'un 1er du mois sauté : garder « Relances de loyers » arrêtée jusqu'à l'envoi des avis, sans quoi un locataire reçoit avis et relance le même matin", async () => {
+    // Constat vérifié sur la base (arret-taches-planifiees.test.ts, « constat : après un cycle sauté… ») : les appels créés au
+    // rattrapage portent l'échéance du 1er du mois manqué ; la mission des relances les lit comme des impayés anciens.
+    const html = (await rendreVacances()).replace(/\s+/g, " ");
+    expect(html).toContain("Si l’arrêt a couvert un 1er du mois");
+    expect(html).toContain("l’avis d’échéance et une relance pour le même loyer");
+    expect(html).toContain("gardez « Relances de loyers » arrêtée jusqu’à l’envoi des avis du rattrapage");
+    expect(html).toContain("décocher « Relancer automatiquement les loyers impayés par e-mail » (rubrique Profil) le temps du rattrapage");
+    // Les deux noms sont ceux des missions affichées partout ailleurs, et la case citée est celle du profil de l'agence.
+    expect(html).toContain(`« ${nomArret("appels")} »`);
+    expect(html).toContain(`« ${nomArret("relances")} »`);
+    expect(readFileSync("src/app/agence/[orgId]/profil/formulaire-profil.tsx", "utf8")).toContain("Relancer automatiquement les loyers impayés par e-mail");
+  });
+
+  it("la documentation de reprise donne la même consigne que l'écran", () => {
+    const doc = readFileSync("docs/sauvegarde-et-restauration.md", "utf8").replace(/\s+/g, " ");
+    expect(doc).toContain("Si l'arrêt a couvert un 1er du mois");
+    expect(doc).toContain("l'avis d'échéance et une relance pour le même loyer");
+    expect(doc).toContain("garder la mission « Relances de loyers » arrêtée jusqu'à l'envoi des avis du rattrapage");
+    expect(doc).toContain("décocher « Relancer automatiquement les loyers impayés par e-mail » (rubrique Profil) le temps du rattrapage");
+  });
+
   it("IA-02 : l'alerte est interne seulement, sans e-mail ni message, et un incident urgent ne la déclenche pas", async () => {
     const html = await rendreVacances();
     expect(html).toContain("Alerte interne seulement.");

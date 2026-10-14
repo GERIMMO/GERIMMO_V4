@@ -18,6 +18,7 @@ import {
 } from "@/app/actions/compta";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
+import { CleEnvoi } from "@/components/cle-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { eur, moisEnFrancais } from "@/lib/ged";
@@ -266,6 +267,8 @@ export function FormulaireEcriture({
   );
   return (
     <form data-saisie-confirmee action={action} className="formulaire-finances flex flex-wrap items-end gap-2">
+      {/* D05 : la clé de CET envoi, rejouée telle quelle tant que le serveur n'a pas confirmé l'enregistrement. */}
+      <CleEnvoi etat={etat} />
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08).
           Sous sm, chaque champ prend sa pleine largeur : une colonne lisible
           plutôt que des rangées irrégulières. */}
@@ -333,6 +336,10 @@ export function FormulaireEcriture({
             : "Sans lot, l’écriture n’entre dans aucun rapport de gestion ni dans le portefeuille d’un agent."}
       </p>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
+      {/* « Écriture enregistrée. » ou « … est déjà enregistrée » (D05) : l'écran le dit, au lieu de se taire. */}
+      {!etat.erreur && etat.succes && (
+        <p role="status" className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>
+      )}
     </form>
   );
 }

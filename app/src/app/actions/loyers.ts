@@ -25,12 +25,25 @@ import {
 import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
 import { compteRenduEncaissement, type EtatAppel } from "@/lib/imputation";
 import { adresseDeRetour, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
+import { estRejeuCleEnvoi, lireCleEnvoi, messageDejaEnregistre } from "@/lib/cle-envoi";
+import {
+  CHAMP_CONFIRMATION_MONTANT,
+  confirmationDonnee,
+  evaluerEncaissement,
+  type ConfirmationEncaissement,
+  type LigneTerme,
+} from "@/lib/garde-encaissement";
 
 export type EtatLoyers = {
   erreur?: string;
   succes?: string;
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
+  // D04 (2), VER-TS-02 : le montant dépasse largement le dû. RIEN n'est enregistré ; le formulaire propose de
+  // confirmer (bouton qui renvoie `confirmation_montant`) ou de corriger. Jamais un refus.
+  confirmation?: ConfirmationEncaissement;
+  // D05, PR178-B-06 : cet envoi (même clé) était déjà enregistré. `succes` le dit ; rien n'a été écrit de plus.
+  dejaEnregistre?: boolean;
 };
 
 // Envoyer une quittance ou un reçu partiel par email au locataire (API Resend).
@@ -252,7 +265,36 @@ export async function genererAppels(orgId: string, bailId: string): Promise<Etat
   return { succes: `${data ?? 0} appel(s) de loyer généré(s).` };
 }
 
+/** Un encaissement déjà enregistré par cet envoi : de quoi le dire à l'écran. */
+type EncaissementDeLEnvoi = { bail_id: string; montant: number; date_paiement: string };
+
+/**
+ * Cherche l'encaissement que cette clé d'envoi a déjà écrit (D05). La lecture passe par la RLS : elle ne voit que les
+ * encaissements de l'organisation (et, pour un agent restreint, de son portefeuille).
+ */
+async function encaissementDeLEnvoi(
+  supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
+  orgId: string,
+  cle: string
+): Promise<{ ligne: EncaissementDeLEnvoi | null } | { erreur: string }> {
+  const { data, error } = await supabase
+    .from("encaissements")
+    .select("bail_id, montant, date_paiement")
+    .eq("organization_id", orgId)
+    .eq("cle_envoi", cle)
+    .maybeSingle();
+  if (error) return { erreur: "Impossible de vérifier que cet encaissement n'est pas déjà enregistré. Réessayez." };
+  return { ligne: (data as EncaissementDeLEnvoi | null) ?? null };
+}
+
 // Saisir un encaissement (imputé automatiquement du plus ancien au plus récent).
+//
+// D05 (PR178-B-06) : le formulaire envoie une clé (`cle_envoi`), la même à chaque nouvel envoi du même formulaire. Un
+// envoi déjà reçu n'écrit rien (ni encaissement, ni reçu, ni quittance) et l'écran dit « déjà enregistré ». La clé
+// est reconnue AVANT tout calcul, et l'index unique de la base reste le garde-fou quand deux envois se croisent.
+//
+// D04 (2) (VER-TS-02) : au-delà de 2 × (reste dû + un terme), l'action n'écrit pas ; elle renvoie un état
+// « confirmation requise ». Le formulaire se ressoumet avec `confirmation_montant`, qui porte le montant confirmé.
 export async function ajouterEncaissement(
   orgId: string,
   bailId: string,
@@ -270,6 +312,33 @@ export async function ajouterEncaissement(
   if (dateRefusee) return { erreur: dateRefusee, valeurs };
   const mode = String(formData.get("mode") ?? "").trim() || null;
   const note = String(formData.get("note") ?? "").trim() || null;
+  const cleLue = lireCleEnvoi(formData.get("cle_envoi"));
+  if ("erreur" in cleLue) return { erreur: cleLue.erreur, valeurs };
+  const cle = cleLue.cle;
+
+  // Un envoi déjà reçu (réponse perdue, double clic, nouvel essai) : on le dit, on n'écrit rien.
+  const dejaEnregistre = (ligne: EncaissementDeLEnvoi): EtatLoyers => {
+    if (ligne.bail_id !== bailId) {
+      return {
+        erreur: "Cette référence d'envoi a déjà servi pour un autre dossier. Rechargez la page avant d'enregistrer.",
+        valeurs,
+      };
+    }
+    revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+    revalidatePath(`/agence/${orgId}/comptabilite`);
+    return {
+      succes: messageDejaEnregistre({
+        objet: "Cet encaissement",
+        montant: Number(ligne.montant),
+        date: ligne.date_paiement,
+        montantSaisi: montant,
+      }),
+      dejaEnregistre: true,
+    };
+  };
+  const connu = await encaissementDeLEnvoi(supabase, orgId, cle);
+  if ("erreur" in connu) return { erreur: connu.erreur, valeurs };
+  if (connu.ligne) return dejaEnregistre(connu.ligne);
 
   // L'état d'AVANT, lu avant l'écriture : la couverture des termes n'est
   // stockée nulle part (etat_loyers_bail la recalcule depuis le total
@@ -279,6 +348,23 @@ export async function ajouterEncaissement(
   });
   if (erreurAvant) return { erreur: sansJargon(erreurAvant.message), valeurs };
 
+  // D04 (2) : le montant est-il plausible au regard du dû ? Sans terme appelé, le terme est celui du bail.
+  const termes = (lignesAvant ?? []) as LigneTerme[];
+  let termeDuBail = 0;
+  if (termes.length === 0) {
+    const { data: bail } = await supabase
+      .from("baux")
+      .select("loyer_hc, charges")
+      .eq("id", bailId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    termeDuBail = Math.round(Number(bail?.loyer_hc ?? 0) * 100 + Number(bail?.charges ?? 0) * 100) / 100;
+  }
+  const verdict = evaluerEncaissement(montant, termes, termeDuBail);
+  if (verdict.confirmationRequise && !confirmationDonnee(formData.get(CHAMP_CONFIRMATION_MONTANT), montant)) {
+    return { confirmation: verdict.confirmation, valeurs };
+  }
+
   const { error } = await supabase.from("encaissements").insert({
     organization_id: orgId,
     bail_id: bailId,
@@ -286,8 +372,20 @@ export async function ajouterEncaissement(
     date_paiement: date ?? undefined,
     mode,
     note,
+    cle_envoi: cle,
   });
-  if (error) return { erreur: sansJargon(error.message), valeurs };
+  if (error) {
+    // Deux envois de la même clé se sont croisés : l'autre a gagné, celui-ci n'a rien écrit.
+    if (estRejeuCleEnvoi(error)) {
+      const gagnant = await encaissementDeLEnvoi(supabase, orgId, cle);
+      if ("ligne" in gagnant && gagnant.ligne) return dejaEnregistre(gagnant.ligne);
+      return {
+        succes: "Cet encaissement est déjà enregistré : il n'a pas été enregistré une seconde fois.",
+        dejaEnregistre: true,
+      };
+    }
+    return { erreur: sansJargon(error.message), valeurs };
+  }
   // L'encaissement déclenche tout : reçu du montant réglé sur un paiement
   // partiel, promu en quittance quand le mois se solde — sans clic de plus.
   // (Le déclencheur en base l'a déjà fait pendant l'INSERT : cet appel est un

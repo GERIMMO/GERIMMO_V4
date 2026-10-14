@@ -8,6 +8,7 @@ import { remettreRapportMensuel } from "@/lib/rapports-mensuels";
 import { aujourdhuiParis } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { lireMontant } from "@/lib/saisie-montant";
+import { estRejeuCleEnvoi, lireCleEnvoi, messageDejaEnregistre } from "@/lib/cle-envoi";
 
 export type EtatCompta = {
   erreur?: string;
@@ -15,6 +16,8 @@ export type EtatCompta = {
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
   documentId?: string;
+  // D05, PR178-B-06 : cet envoi (même clé) était déjà enregistré. `succes` le dit ; rien n'a été écrit de plus.
+  dejaEnregistre?: boolean;
 };
 
 // Générer le rapport de gestion d'un mandat pour un mois (clôture requise).
@@ -105,7 +108,42 @@ export async function ajouterEcriture(
   } catch (erreur) {
     return { erreur: (erreur as Error).message, valeurs };
   }
-  const { error } = await supabase.from("ecritures").insert(parts.map((part) => ({
+  // D05 (PR178-B-06) : la même saisie ne s'écrit qu'une fois. La clé du formulaire est posée sur la PREMIÈRE ligne
+  // (une saisie ventilée en écrit deux, dans une seule instruction : le rejeu est refusé tout entier).
+  const cleLue = lireCleEnvoi(formData.get("cle_envoi"));
+  if ("erreur" in cleLue) return { erreur: cleLue.erreur, valeurs };
+  const cle = cleLue.cle;
+  const dejaEnregistree = async (): Promise<EtatCompta> => {
+    const { data: ligne } = await supabase
+      .from("ecritures")
+      .select("montant, date_piece")
+      .eq("organization_id", orgId)
+      .eq("cle_envoi", cle)
+      .maybeSingle();
+    revalidatePath(`/agence/${orgId}/comptabilite`);
+    revalidatePath(`/agence/${orgId}/loyers`);
+    return {
+      succes: messageDejaEnregistre({
+        objet: "Cette écriture",
+        feminin: true,
+        // Une saisie ventilée porte la clé sur sa première ligne seulement : son montant n'est pas celui de la saisie.
+        montant: ligne && parts.length === 1 ? Number(ligne.montant) : null,
+        date: ligne && parts.length === 1 ? ligne.date_piece : null,
+      }),
+      dejaEnregistre: true,
+    };
+  };
+  const { data: connue, error: erreurLecture } = await supabase
+    .from("ecritures")
+    .select("montant")
+    .eq("organization_id", orgId)
+    .eq("cle_envoi", cle)
+    .maybeSingle();
+  if (erreurLecture) {
+    return { erreur: "Impossible de vérifier que cette écriture n'est pas déjà enregistrée. Réessayez.", valeurs };
+  }
+  if (connue) return dejaEnregistree();
+  const { error } = await supabase.from("ecritures").insert(parts.map((part, rang) => ({
     organization_id: orgId,
     ...part,
     sens,
@@ -113,8 +151,13 @@ export async function ajouterEcriture(
     date_imputation: String(formData.get("date_imputation") ?? "").trim() || undefined,
     libelle: String(formData.get("libelle") ?? "").trim() || null,
     lot_id: String(formData.get("lot_id") ?? "").trim() || null,
+    cle_envoi: rang === 0 ? cle : null,
   })));
-  if (error) return { erreur: sansJargon(error.message), valeurs };
+  if (error) {
+    // Deux envois de la même clé se sont croisés : l'autre a gagné, celui-ci n'a rien écrit.
+    if (estRejeuCleEnvoi(error)) return dejaEnregistree();
+    return { erreur: sansJargon(error.message), valeurs };
+  }
   revalidatePath(`/agence/${orgId}/comptabilite`);
   revalidatePath(`/agence/${orgId}/loyers`);
   // Le journal alimente aussi le récapitulatif fiscal du propriétaire direct.

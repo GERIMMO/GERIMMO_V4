@@ -33,6 +33,8 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CleEnvoi } from "@/components/cle-envoi";
+import { ConfirmationEncaissement } from "@/components/confirmation-encaissement";
 import { Spinner } from "@/components/ui/spinner";
 import { buttonVariants } from "@/components/ui/button";
 import { afficherToast } from "@/components/ui/toast";
@@ -617,6 +619,8 @@ function FormulairePartiel({
   );
   return (
     <form data-saisie-confirmee action={action} className="flex flex-wrap items-end gap-2 border-t border-border pt-2">
+      {/* D05 : la clé de CET envoi, rejouée telle quelle tant que le serveur n'a pas confirmé l'enregistrement. */}
+      <CleEnvoi etat={etat} />
       <div className="space-y-1">
         <Label htmlFor={`part-${bailId}`} className="text-xs">
           Montant reçu (€)
@@ -626,12 +630,15 @@ function FormulairePartiel({
           name="montant"
           type="text"
           inputMode="decimal"
+          defaultValue={etat.valeurs?.montant}
           className="h-9 w-32"
         />
       </div>
       <BoutonEnvoi size="sm" enCoursTexte="Enregistrement…">
         Enregistrer
       </BoutonEnvoi>
+      {/* D04 (2) : un montant très supérieur au dû n'est pas enregistré tant qu'il n'est pas confirmé. */}
+      <ConfirmationEncaissement confirmation={etat.confirmation} idChampMontant={`part-${bailId}`} />
       <p className="w-full text-[11.5px] text-muted-foreground">
         Tant que le terme n’est pas soldé, le locataire reçoit un <b>reçu</b>, pas une
         quittance.
@@ -1254,6 +1261,8 @@ function FormulaireDepense({
   }, {});
   return (
     <form data-saisie-confirmee action={action} className="flex flex-wrap items-end gap-2 border-t border-border pt-4">
+      {/* D05 : la clé de CET envoi, rejouée telle quelle tant que le serveur n'a pas confirmé l'enregistrement. */}
+      <CleEnvoi etat={etat} />
       <input type="hidden" name="lot_id" value={lotId} />
       <input type="hidden" name="sens" value="depense" />
       <div className="w-full space-y-1 sm:w-auto">

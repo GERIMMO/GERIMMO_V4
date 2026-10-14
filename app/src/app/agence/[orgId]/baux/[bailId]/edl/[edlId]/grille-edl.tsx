@@ -148,6 +148,7 @@ export function GrilleEdl({
   zoneSignatureId,
   bailId,
   edlId,
+  compteId,
   lignes,
   signe,
   reference,
@@ -156,6 +157,8 @@ export function GrilleEdl({
   zoneSignatureId?: string;
   bailId: string;
   edlId: string;
+  // D15 (14/10) : le brouillon local est rattaché à ce compte ; un autre compte du même appareil ne le relit pas.
+  compteId: string;
   lignes: Ligne[];
   signe: boolean;
   // EDL d'entrée signé du même bail (saisie de sortie uniquement) : chaque
@@ -236,13 +239,23 @@ export function GrilleEdl({
   // depuis (le brouillon est strictement plus récent) ; signalée sinon — un
   // EDL ouvert ailleurs se signale, ne se verrouille pas (RM-19.1.9).
   useEffect(() => {
-    if (signe) return;
-    const b = chargerBrouillon(edlId);
+    if (signe) {
+      // Un état des lieux signé est figé : un brouillon resté sur l'appareil n'a plus de ligne à envoyer (D15).
+      effacerBrouillon(compteId, edlId);
+      return;
+    }
+    const b = chargerBrouillon(compteId, edlId);
     if (!b) return;
     // Restauration APRÈS l'hydratation : le HTML serveur ne connaît pas le
     // brouillon de l'appareil, le report d'un rendu est structurel ici.
     queueMicrotask(() => {
       if (b.empreinteServeur === empreinteGrille(lignes)) {
+        // D15 : un brouillon qui ne diffère plus de la version synchronisée ne protège plus rien, il est effacé
+        // (sans quoi la déconnexion le garderait et en avertirait à tort).
+        if (lignesEnAttente({ etats: { ...etats, ...b.etats }, commentaires: { ...commentaires, ...b.commentaires } }, synchronise) === 0) {
+          effacerBrouillon(compteId, edlId);
+          return;
+        }
         setEtats((prev) => ({ ...prev, ...b.etats }));
         setCommentaires((prev) => ({ ...prev, ...b.commentaires }));
       } else {
@@ -254,18 +267,30 @@ export function GrilleEdl({
   }, []);
 
   // RM-19.1.1 : chaque saisie part sur l'appareil, sans action de l'agent.
+  // D15 : le brouillon annonce combien de lignes il garde sans les avoir envoyées (`enAttente`), et disparaît dès qu'il n'y en a
+  // plus (saisie remise à l'identique de la version synchronisée) : la déconnexion n'efface que ce qui ne protège rien.
+  const brouillonEcrit = useRef(false);
   useEffect(() => {
-    if (signe || attente === 0) return;
+    if (signe) return;
+    if (attente === 0) {
+      if (brouillonEcrit.current) {
+        effacerBrouillon(compteId, edlId);
+        brouillonEcrit.current = false;
+      }
+      return;
+    }
     const minuteur = setTimeout(() => {
-      sauverBrouillon(edlId, {
+      sauverBrouillon(compteId, edlId, {
         etats,
         commentaires,
         enregistreLe: new Date().toISOString(),
         empreinteServeur: empreinte,
+        enAttente: attente,
       });
+      brouillonEcrit.current = true;
     }, 400);
     return () => clearTimeout(minuteur);
-  }, [signe, edlId, etats, commentaires, empreinte, attente]);
+  }, [signe, compteId, edlId, etats, commentaires, empreinte, attente]);
 
   // RM-19.1.7 : fermer l'onglet avec des lignes non synchronisées se confirme.
   useEffect(() => {
@@ -379,7 +404,7 @@ export function GrilleEdl({
               size="sm"
               variant="outline"
               onClick={() => {
-                effacerBrouillon(edlId);
+                effacerBrouillon(compteId, edlId);
                 setConflit(null);
               }}
             >
@@ -413,7 +438,7 @@ export function GrilleEdl({
             if (retour.succes) {
               setSynchronise(soumis);
               setConflit(null);
-              effacerBrouillon(edlId);
+              effacerBrouillon(compteId, edlId);
               // Après signature, relire le dossier figé avant toute autre action.
               if (donnees.get("signer") === "1") window.location.reload();
             }

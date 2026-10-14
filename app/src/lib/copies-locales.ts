@@ -11,6 +11,7 @@
 // quand la déconnexion a réussi, (2) à l'arrivée sur toute page connectée pour les copies d'un autre compte ou périmées
 // (session expirée puis autre compte), (3) y compris pour la quittance mémorisée par l'outil public.
 
+import { purgerBrouillonsEdl, type BilanBrouillonsEdl } from "./edl-brouillon";
 import { CLE_STOCKAGE_QUITTANCE } from "./outils/quittance";
 
 export const PREFIXE_COPIES_LOCALES = "gerimmo:";
@@ -39,16 +40,23 @@ function cles(stockage: Stockage): string[] {
  * Les clés effacées à la déconnexion : les copies de saisie (« gerimmo:… ») et la quittance que l'outil public retient
  * sur l'appareil à la demande de la personne (identités, adresses, montants).
  *
- * Le brouillon d'état des lieux (« gerimmo-edl-brouillon-<id> ») n'en fait PAS partie : RM-19.1.1, 19.1.2 et 19.1.6 en
- * font la copie de travail hors ligne de l'agent, synchronisée au retour du réseau, avec un indicateur « données non
- * remontées ». L'effacer à la déconnexion détruirait des relevés jamais envoyés. À trancher (VER-SECURITE-01).
+ * Le brouillon d'état des lieux (« gerimmo-edl-brouillon:<compte>:<id> ») n'en fait PAS partie : RM-19.1.1, 19.1.2 et 19.1.6
+ * en font la copie de travail hors ligne de l'agent, synchronisée au retour du réseau, avec un indicateur « données non
+ * remontées ». L'effacer à l'aveugle détruirait des relevés jamais envoyés. D15 (décision du 14/10/2026) : il est effacé à
+ * la déconnexion seulement s'il n'a aucune ligne non synchronisée, sinon conservé et signalé (`purgerBrouillonsEdl`), et sa
+ * clé est rattachée au compte.
  */
 export function estCleDeCopie(cle: string): boolean {
   return cle.startsWith(PREFIXE_COPIES_LOCALES) || cle === CLE_STOCKAGE_QUITTANCE;
 }
 
-/** Efface toutes les copies locales de saisie (déconnexion). Au mieux : jamais d'erreur, jamais d'attente. */
-export function purgerCopiesLocales(): void {
+/**
+ * Efface les copies locales de saisie (déconnexion). Au mieux : jamais d'erreur, jamais d'attente.
+ *
+ * Les brouillons d'état des lieux suivent leur propre règle (D15) : effacés s'ils n'ont aucune ligne non synchronisée, gardés
+ * sinon. Le bilan dit combien sont gardés, pour que la page de connexion en avertisse la personne.
+ */
+export function purgerCopiesLocales(): BilanBrouillonsEdl {
   for (const nom of ["localStorage", "sessionStorage"] as const) {
     try {
       const stockage = globalThis[nom] as Stockage | undefined;
@@ -56,6 +64,7 @@ export function purgerCopiesLocales(): void {
     } catch { /* stockage refusé : rien à effacer */ }
   }
   try { globalThis.indexedDB?.deleteDatabase(BASE_COPIES_FICHIERS); } catch { /* idem */ }
+  return purgerBrouillonsEdl();
 }
 
 /**

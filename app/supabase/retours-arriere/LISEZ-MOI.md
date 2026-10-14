@@ -8,6 +8,8 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 |---|---|---|
 | `20261013120000_correctifs_audit_13_octobre.retour.sql` | `20261013120000_correctifs_audit_13_octobre.sql` | 9 fonctions, 3 déclencheurs `diagnostic_artisan_lecture`, la contrainte `incident_evenements_type_check`, 1 ligne d'historique |
 | `20261013110000_marketing_preparation_du_soir_cron.retour.sql` | `20261013110000_marketing_preparation_du_soir_cron.sql` | 2 fonctions, 1 fonction supprimée, 1 ligne d'historique |
+| `20261014310000_artisan_facture_numero_unique.retour.sql` | `20261014310000_artisan_facture_numero_unique.sql` (D24-B, ARC-04) | 1 bloc retiré de `artisan_externe_ecrire`, 1 index unique supprimé, 1 ligne d'historique (voir la section « Lot artisan-externe » plus bas) |
+| `20261014311000_artisan_exclusion_ecritures.retour.sql` | `20261014311000_artisan_exclusion_ecritures.sql` (D25-B, ARC-08) | 1 bloc retiré de `artisan_externe_ecrire`, 1 clé retirée de `mon_activite_artisan_privee`, 1 fonction supprimée, 1 ligne d'historique |
 | `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » |
 
 Les deux migrations ne partagent aucune fonction : leurs retours sont indépendants (essayé dans les deux ordres et un par un).
@@ -92,3 +94,43 @@ et les retours joués sur une copie **restaurée** de la sauvegarde. Dossier de 
 
 Limites : base de banc (quelques centaines de lignes), PostgreSQL 16 (la production est en 17 : les scripts ne comparent jamais de texte pour décider, seulement la
 présence de la marque du correctif) ; durée de chaque script < 0,1 s sur le banc, non mesurée sur le volume de production ; aucun essai sur la production.
+
+## Lot artisan-externe — migrations du 14 octobre 2026 (D24-B et D25-B)
+
+Deux migrations du lot « clients externes » (module désactivé en production), avec leur retour arrière dans ce dossier. Même procédure que ci-dessus
+(préparer, simuler, exécuter, vérifier, consigner), avec ces particularités.
+
+| Migration | Ajoute | Le retour retire |
+|---|---|---|
+| `20261014310000` (D24-B, ARC-04) | l'index unique `artisan_factures_externes_numero_normalise_key` sur `(artisan_id, lower(btrim(numero)))` ; un bloc entre `-- >> Audit du 14/10 (ARC-04)` et `-- << Audit du 14/10 (ARC-04)` dans `artisan_externe_ecrire` | exactement ce bloc et cet index |
+| `20261014311000` (D25-B, ARC-08) | la fonction `artisan_exclusion_plateforme()` ; un bloc entre `-- >> Audit du 14/10 (ARC-08)` et `-- << Audit du 14/10 (ARC-08)` dans `artisan_externe_ecrire` ; la clé `'exclusion'` dans `mon_activite_artisan_privee` | exactement ces trois ajouts |
+
+**Méthode chirurgicale.** Ces retours ne recopient pas une ancienne définition : ils relisent la définition **d'aujourd'hui** (`pg_get_functiondef`) et en retirent le bloc
+marqué que la migration avait ajouté. Ils n'effacent donc pas ce qu'une autre migration aurait modifié dans la même fonction depuis. Si une marque est présente
+mais que le bloc n'est plus intact (marque retouchée, répétée), le script s'arrête **sans rien modifier** (`Retour arrière refusé… le bloc … n'est plus intact`).
+Sans marque, il ne fait rien (rejouable). Les deux retours sont indépendants : dans l'un ou l'autre ordre, la base revient au même état.
+
+**Aucune donnée n'est touchée**, ni par les migrations ni par les retours : pas de facture modifiée, pas de statut d'artisan lu ou changé. Ce que le retour réintroduit :
+après `…310000.retour`, deux factures de numéros « ART-1 » et « art-1 » peuvent de nouveau coexister (celles déjà déposées restent ce qu'elles sont) ; après
+`…311000.retour`, un artisan refusé ou sur liste noire globale peut de nouveau créer clients, chantiers, devis et factures. Avant de jouer le retour de `…311000`, le script vérifie
+qu'**aucune autre fonction** ne cite `artisan_exclusion_plateforme()` (sinon il refuse : la supprimer la casserait).
+
+**Migration `…310000` et numéros déjà en double.** Si deux factures d'un même artisan ne différaient que par la casse ou les espaces de bord, la migration **s'arrête avant de créer l'index**,
+sans rien modifier, en donnant le nombre de numéros concernés : garder l'une ou l'autre est une décision du dirigeant (fiche ARC-04). Le module étant désactivé en production, aucune facture externe n'est attendue.
+
+Vérifier l'état (lecture seule) : « vrai » = migrée (B), « faux » = antérieure (A).
+
+```sql
+select position('-- >> Audit du 14/10 (ARC-04)' in pg_get_functiondef('public.artisan_externe_ecrire(text,uuid,integer,jsonb,uuid)'::regprocedure)) > 0 as arc04_bloc_dans_la_fonction,
+       to_regclass('public.artisan_factures_externes_numero_normalise_key') is not null as arc04_index_unique,
+       position('-- >> Audit du 14/10 (ARC-08)' in pg_get_functiondef('public.artisan_externe_ecrire(text,uuid,integer,jsonb,uuid)'::regprocedure)) > 0 as arc08_bloc_dans_la_fonction,
+       position('''exclusion'',public.artisan_exclusion_plateforme()' in pg_get_functiondef('public.mon_activite_artisan_privee()'::regprocedure)) > 0 as arc08_cle_de_lecture,
+       to_regprocedure('public.artisan_exclusion_plateforme()') is not null as arc08_fonction;
+select version from supabase_migrations.schema_migrations where version in ('20261014310000', '20261014311000') order by 1;
+```
+
+Essais du 14/10/2026 (base de banc jetable, copie de la base migrée) : état A mesuré avant les migrations (empreinte md5 des définitions et ACL), migrations, retours dans les **deux** ordres →
+définitions et droits **identiques** à l'état A ; marche avant (migrations rejouées) → identique à l'état B ; rejeu de chaque retour → « rien à faire » ; refus dans un lot
+(`psql --single-transaction`) ; marque de fin retouchée → refus et base inchangée ; numéros déjà en double → la migration s'arrête, aucune ligne modifiée. Les tests
+`tests/artisan-externe-migrations-rejeu.test.ts` (rejeu, définitions inattendues, cohérence des marques entre migration et retour) et
+`tests/artisan-externe-numero-et-exclusion.test.ts` (comportement) couvrent le reste. Limites : base de banc, PostgreSQL 16 ; aucun essai sur la production.

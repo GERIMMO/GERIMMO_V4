@@ -43,8 +43,11 @@ begin
   execute v_def;
 end $correctif$;
 
--- Droits : inchangés (la fonction est appelée par le cycle mensuel et par son enveloppe).
-revoke all on function public.generer_appels_loyer_interne(uuid) from public, anon;
-grant execute on function public.generer_appels_loyer_interne(uuid) to authenticated, service_role;
+-- Droits : inchangés. C'est une fonction INTERNE (20260911200000 l'a retirée aux comptes :
+-- elle n'a aucun contrôle d'appartenance) ; seuls le cycle mensuel et l'enveloppe publique
+-- generer_appels_loyer, qui contrôle l'accès, l'appellent. `create or replace` conserve les
+-- droits en vigueur ; on les redit ici pour qu'un rejeu ne les élargisse jamais.
+revoke all on function public.generer_appels_loyer_interne(uuid) from public, anon, authenticated;
+grant execute on function public.generer_appels_loyer_interne(uuid) to service_role;
 
 select public.fermer_fonctions_a_anon();

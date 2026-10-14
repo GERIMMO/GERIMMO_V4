@@ -265,6 +265,16 @@ describe.skipIf(!DB_URL)("Lot bail-sortie — D01, D34, D35 en base", () => {
       expect(encore[0].n).toBe(0);
       expect((await appels(b))[0].echeance).toBe(await jour(MOIS_PRECEDENT));
     });
+
+    it("les droits ne changent pas : la fonction interne reste fermée aux comptes, seule son enveloppe contrôlée est ouverte", async () => {
+      const { rows } = await db.query(
+        `select has_function_privilege('anon', 'public.generer_appels_loyer_interne(uuid)', 'execute') as anon,
+                has_function_privilege('authenticated', 'public.generer_appels_loyer_interne(uuid)', 'execute') as comptes,
+                has_function_privilege('service_role', 'public.generer_appels_loyer_interne(uuid)', 'execute') as service,
+                has_function_privilege('authenticated', 'public.generer_appels_loyer(uuid)', 'execute') as enveloppe`
+      );
+      expect(rows[0]).toEqual({ anon: false, comptes: false, service: true, enveloppe: true });
+    });
   });
 
   // ------------------------------------------------------------------------

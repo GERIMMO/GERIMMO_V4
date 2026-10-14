@@ -5824,3 +5824,8 @@ pistes et recommandation dans [[Dossier de validation — version candidate du 1
 Autorisation du dirigeant (« oui corrige », puis « oui fusionne et déploie »). `lireAttentes` lit les artisans en attente et leurs justificatifs par les tables, en une requête, au lieu de `artisans_a_valider()` que le client de service
 se voit refuser (point figé depuis le 13/10). Relecture indépendante à trois angles, tests rouge puis vert, sept altérations du code détectées, CI verte ; fusion `0f7dbd5`, déploiement `dpl_6R5gZqMyEQE1KWWtpWbMkVDxnURy` en production, sans migration.
 Registre : PDM-01 (P2, déployée), 237 anomalies. À constater : la régénération du point au prochain passage de mission (contrôle programmé jeudi 15/10 à 09 h 20 Paris). Détail : [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.
+
+## [2026-10-14] decision | Réponses du dirigeant aux décisions groupées
+« P1 bloquants, pour le reste faire en fonction des recommandations. » Q3 et Q5 : P1 bloquants (VER-TS-02, PR178-B-06, CHF-01, CHF-02 reclassés, ouverts dans la version déployée). Toutes les autres décisions : recommandation suivie, avec ce qui reste différé (avis spécialisé : D02-B, D03-B,
+D38-B, D40-B, D41, D45-B, D46-B), à votre choix (D17-B, D42, canal et responsable du relais) ou à autoriser (essais de restauration D07/D43 et de stockage D11, mesure D12) ; D32 attend l'identité de l'éditeur. Vague 1 lancée (encaissement, fiscal et charges, bail et sortie).
+Voir [[Décisions groupées — version candidate du 13 octobre 2026]] et [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 ter.

@@ -9,7 +9,10 @@ sources: ["[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Fiches d
 
 # Décisions groupées — version candidate du 13 octobre 2026
 
-> [!warning] Tout est proposé, non décidé
+> [!success] Réponses du dirigeant, 14/10/2026
+> **Q3 et Q5 : P1 bloquants** (B). **Toutes les autres décisions : la recommandation de l'agent est suivie** ; le détail, y compris ce qui reste à votre choix ou à autoriser, est dans « Réponses du dirigeant » ci-dessous.
+
+> [!warning] État antérieur à ces réponses — tout était proposé, non décidé
 > Chaque ligne ci-dessous est une **proposition de l'agent**. Aucune décision n'est présumée acceptée, aucune ne
 > l'est par silence (mission, section 02 : « l'absence de réponse ne vaut jamais approbation »). Les coûts sont des
 > **estimations de l'agent en jours de travail** (ordre de grandeur, non mesuré, validations externes exclues). Rien
@@ -25,6 +28,68 @@ les lignes D18, D22 et D23 y renvoient.
 
 > [!info] Complément
 > Les décisions D34 à D49, le point de procédure Q5 et les ratifications R7 à R10 (fiches de la vague 6) sont dans [[Complément à la page « Décisions groupées » — fiches de la vague 6]]. Les mises à jour de chiffres à reporter ici y sont listées (section « 0 bis »).
+
+## Réponses du dirigeant (14/10/2026)
+
+Message du dirigeant : « P1 bloquants, pour le reste faire en fonction des recommandations. » Lecture de l'agent, décision par décision. **Option retenue** = l'option recommandée dans la fiche ci-dessous. **À faire** = en cours ou à venir dans une vague de travail ; **différé** = la recommandation elle-même subordonne cette partie à un avis spécialisé, à une validation ou à un essai ; **à votre choix** = la recommandation vous laisse la décision et aucune option n'est présumée.
+
+| Décision | Option retenue | État |
+|---|---|---|
+| **Q1, Q2, Q4** | Q1 A (version figée `0ad658a`), Q2 A (effet réel nommé), Q4 : R1 à R10 ratifiées (« oui » du 14/10) | fait |
+| **Q3, Q5** | **B : P1 bloquants** (D04, D05, D37, D38 : VER-TS-02, PR178-B-06, CHF-01, CHF-02) | reclassés P1 dans le registre ; **ces quatre anomalies sont dans la version déjà déployée** ; correction en vague 1 |
+| D01 | A | à faire (vague 1) |
+| D02 | A (B « à prévoir avant le printemps 2027 ») | A à faire (vague 1) ; B différé |
+| D03 | A (B après validation fiscale) | A à faire (vague 1) ; B différé |
+| D04 | (1) oui ; (2) confirmation au-delà de 2 × (reste dû + un terme) | à faire (vague 1) |
+| D05 | A (clé d'envoi unique, encaissement d'abord) | à faire (vague 1) |
+| D06 | A, avec la correspondance proposée | à faire (vague 2) |
+| D07 | A | à faire (vague 2) ; **l'essai de restauration sur cible isolée reste à autoriser** |
+| D08 | A tout de suite, puis C | A (vague 2), C ensuite |
+| D09 | A | à faire (vague 2) |
+| D10 | C | à faire (vague 2) |
+| D11 | A, « avec un essai sur le vrai service de stockage » | **en attente d'un moyen d'essai** (le banc est un émulateur) |
+| D12 | A (mesurer) puis B si confirmé | **en attente d'une mesure** hors banc |
+| D13 | A, durée 6 mois « sauf avis contraire » | à faire (vague 2) |
+| D14 | A (7 jours), à consigner au registre des traitements | à faire (vague 2) |
+| D15 | option 2, avec rattachement au compte | à faire (vague 2) |
+| D16 | A | à faire (vague 2) |
+| D17 | A tout de suite ; « votre choix entre A seul et A+B » | A à faire (vague 3) ; **B à votre choix** |
+| D18 | A, en deux livraisons (B d'abord) | à faire (vague 4) |
+| D19 | A | à faire (vague 3) |
+| D20 | B | à faire (vague 3) |
+| D21 | A (C seulement si un relevé de production le justifie) | à faire (vague 3) |
+| D22 | B (délai minimal avant le rendez-vous : 24 h) | à faire (vague 4) |
+| D23 | A | à faire (vague 4) |
+| D24 | B maintenant, C avant d'activer le module « clients externes » | B à faire (vague 3) ; C avant activation |
+| D25 | B | à faire (vague 3) |
+| D26 | B | à faire (vague 3) |
+| D27 | B | à faire (vague 3) |
+| D28 | A | à faire (vague 3) |
+| D29 | B | à faire (vague 3) |
+| D30 | B | à faire (vague 3) |
+| D31 | B | à faire (vague 3) |
+| D32 | A, « une fois l'identité de l'éditeur fournie » | **bloquée tant que l'identité de l'éditeur manque (H1)** ; relecture juridique recommandée |
+| D33 | A et C | à faire (vague 3) |
+| D34 | B | à faire (vague 1) |
+| D35 | (1) A ; (2) C | à faire (vague 1) |
+| D36 | B, puis C | à faire (vague 1) |
+| D37 | B | à faire (vague 1) — P1 |
+| D38 | A maintenant (B après avis) | A à faire (vague 1) — P1 ; B différé |
+| D39 | B | à faire (vague 1) |
+| D40 | A maintenant (B après avis) | A à faire (vague 1) ; B différé |
+| D41 | (a) B après validation ; (b) attendre l'avis | **différé** (avis spécialisé) |
+| D42 | « A ou B, à votre choix » | **à votre choix** ; l'agent propose B (expiration des devis maintenant, purge des motifs avant septembre 2029) |
+| D43 | A, dans le même essai que D07 | à faire (vague 2) ; **essai à autoriser** |
+| D44 | A | à faire (vague 2) |
+| D45 | A maintenant (B après votre validation visuelle) | A à faire (vague 3) ; B différé |
+| D46 | C : A avant le lancement, B par étapes | A à faire (vague 2) ; B différé ; **canal d'alerte, horaire, fuseau et responsable humain du relais à votre choix** |
+| D47 | A | à faire (vague 2) |
+| D48 | A, avec la durée de D13 | à faire (vague 2) |
+| D49 | (1) A ; (2) A (qualification juridique d'abord, aucun code) | (1) à faire (vague 3) ; (2) qualification à faire |
+| X01 à X21 | recommandation suivie | à faire (vague 4) ; X22 est repris en D42 |
+| H1 | rappel | **à fournir** : identité de l'éditeur, durée du code à usage unique, suppression de deux dossiers de stockage, validation des six articles |
+
+**Règle de livraison.** Rien de ce qui est produit n'est déployé sans une nouvelle autorisation explicite du dirigeant, au commit nommé (voir [[Dossier de validation — version candidate du 13 octobre 2026]]). Toute migration passe par sauvegarde, simulation puis application réelle.
 
 ## 0. Ce qui conditionne la suite
 

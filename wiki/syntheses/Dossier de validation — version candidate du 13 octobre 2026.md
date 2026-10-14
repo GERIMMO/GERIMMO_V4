@@ -35,7 +35,7 @@ Compagnons : [[Registre des anomalies — audit du 13 octobre 2026]], [[Fiches d
 | Chantier de migrations et export | RET-01, CHF-04, AUD-C-06 | garde de nom de fichier ; formules neutralisées dans le CSV | non |
 | Retours arrière des deux migrations | — | `app/supabase/retours-arriere/` : scripts essayés (état revenu identique à l'état d'origine) | non appliqués par le chantier |
 
-Bilan du registre : **237 anomalies** (P0 : 0 ; P1 : 1 ; P2 : 70 ; P3 : 166) ; **109 corrigées en branche**, **1 déployée** (PDM-01, § 5 bis), **104 à trancher**, 20 ouvertes, 3 réfutées/acceptées. Les lignes « corrigée en branche » sont déployées depuis le 14/10 (note en tête du registre).
+Bilan du registre : **237 anomalies** (P0 : 0 ; P1 : 5 ; P2 : 66 ; P3 : 166) ; **109 corrigées en branche**, **1 déployée** (PDM-01, § 5 bis), **100 à trancher**, 24 ouvertes (dont 4 P1), 3 réfutées/acceptées. Les lignes « corrigée en branche » sont déployées depuis le 14/10 (note en tête du registre).
 
 ## 2. Migrations à appliquer en production
 
@@ -86,8 +86,8 @@ Instructions `SELECT` uniquement ; pièce : `preuves/production-lecture-seule/re
 | Critère de la mission | État |
 |---|---|
 | Aucune anomalie P0 ouverte | respecté : 0 P0 |
-| Aucune anomalie P1 ouverte dans la version à livrer | respecté : la seule P1 (FIN-01) est corrigée en branche, test rouge puis vert, oracle SQL ; **elle demandait l'aval du dirigeant (R1)** |
-| Risques « montant faux » classés P2 | à confirmer par vous : Q3 (VER-TS-02 résiduel, PR178-B-06) et Q5 (CHF-01, CHF-02) — si vous les jugez bloquants, ils passent P1 |
+| Aucune anomalie P1 ouverte dans la version à livrer | **non respecté dans la version déployée le 14/10** : le dirigeant a classé P1 bloquants les quatre risques « montant faux » (VER-TS-02, PR178-B-06, CHF-01, CHF-02) ; FIN-01 (P1) est corrigée et déployée. La correction des quatre est la vague 1 ; **aucun nouveau déploiement ne passe la porte tant qu'elles ne sont pas corrigées** |
+| Risques « montant faux » | **classés P1 par le dirigeant le 14/10/2026** (Q3 et Q5, réponse B) ; ouverts en production ; exposition réelle limitée aujourd'hui : la production ne contient aucune écriture comptable (relevé du 13/10, revérifié le 14/10) |
 | Sauvegarde avant migration | à faire juste avant l'application |
 | Simulation des migrations | faite sur la version finale (n° 71) |
 | Contrôles en production non destructifs | faits pour l'état courant (§ 4) ; à refaire après application |
@@ -143,6 +143,10 @@ Question à vous poser, dans les termes de la mission, **quand vous aurez tranch
 - Le plafond hebdomadaire de diffusion Facebook est de deux envois par semaine (`reserver_diffusion_facebook`) : mardi 13/10 (1) + jeudi 15/10 (2). **Le post de vendredi 16/10 sera préparé jeudi à partir de 13 h et paraîtra sur le site, mais sa diffusion Facebook sera refusée par le plafond** (message « diffusion Facebook non réservée » dans le bilan de la tâche, qui passera en erreur 503 pour ce passage). À trancher : laisser ainsi, ou refuser/reporter le post de jeudi, ou relever le plafond (changement de règle, non fait).
 - Coût réel du passage : rédaction du texte éditorial (sans veille) et création du visuel ; non mesuré.
 - Les réglages ont été modifiés en SQL direct, hors de l'écran et de son journal de supervision (`modifie_par` inchangé) : cette page et le journal du wiki en tiennent lieu de trace.
+
+## 5 ter. Décisions du dirigeant du 14/10/2026
+
+**Q3 et Q5 : P1 bloquants. Toutes les autres décisions : la recommandation de l'agent est suivie.** Le tableau décision par décision, avec ce qui reste différé (avis spécialisé), à votre choix ou à autoriser (essais de restauration et de stockage), est dans [[Décisions groupées — version candidate du 13 octobre 2026]], section « Réponses du dirigeant ». Le travail est conduit par vagues, chacune en branche, relue par des agents indépendants, rejouée sur le banc, puis soumise à une question d'autorisation avec le commit nommé. **Vague 1 (P1 et finance)** en cours ; vagues 2 (supervision, sécurité, données), 3 (chaîne d'intervention, interface, juridique) et 4 (fonctions majeures, points X) ensuite.
 
 ## 6. Ce qui attend une décision du dirigeant
 

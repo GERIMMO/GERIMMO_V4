@@ -139,6 +139,19 @@ describe.skipIf(!DB_URL)("D16 — photos du locataire visibles de l'artisan : la
       }
     );
 
+    // Le serveur appelle ces fonctions par PostgREST, qui passe les arguments PAR NOM : un paramètre renommé d'un côté ferait
+    // répondre « fonction introuvable » et l'écran dirait que les photos n'ont pas pu être chargées.
+    it("les paramètres se nomment p_sollicitation, p_intervention et p_document : appel par nom, comme PostgREST", async () => {
+      await agir(compteArtisan);
+      expect((await db.query("select * from public.mes_photos_incident_artisan(p_sollicitation => $1)", [sollicitation])).rows).toHaveLength(2);
+      expect((await db.query("select * from public.mes_photos_incident_artisan(p_intervention => $1)", [intervention])).rows).toHaveLength(2);
+      expect((await db.query("select * from public.mes_photos_incident_artisan(p_sollicitation => $1, p_intervention => null)", [sollicitation])).rows).toHaveLength(2);
+      expect((await db.query("select public.lire_photo_incident_artisan(p_document => $1, p_sollicitation => $2, p_intervention => null) as chemin", [photo1, sollicitation])).rows[0].chemin).toBe(`${org}/loc-1.jpg`);
+      expect((await db.query("select public.lire_photo_incident_artisan(p_document => $1, p_sollicitation => null, p_intervention => $2) as chemin", [photo2, intervention])).rows[0].chemin).toBe(`${org}/loc-2.jpg`);
+      // Et les noms d'avant (ou d'ailleurs) n'existent pas : l'appel échoue plutôt que de viser une autre signature.
+      expect(await refus("select * from public.mes_photos_incident_artisan(p_sollicitation_id => $1)", [sollicitation])).toMatch(/does not exist|n'existe pas/);
+    });
+
     it("la mission d'un autre artisan ne donne rien", async () => {
       await agir(compteAutreArtisan);
       expect((await db.query("select * from public.mes_photos_incident_artisan(null, $1)", [intervention])).rows).toHaveLength(0);
@@ -412,6 +425,25 @@ describe("D16 — photos du locataire visibles de l'artisan : le serveur", () =>
     expect(c.rpc).toHaveLength(0);
   });
 
+  it.each([
+    ["l'identifiant de la photo", "devis", { sollicitationId: UUID_DEMANDE, documentId: "pas-un-uuid" }],
+    ["l'identifiant de la photo (vide)", "devis", { sollicitationId: UUID_DEMANDE, documentId: "" }],
+    ["l'identifiant de la mission", "mission", { interventionId: "pas-un-uuid", documentId: UUID_PHOTO }],
+    ["l'identifiant de la photo d'une mission", "mission", { interventionId: UUID_MISSION, documentId: "12345" }],
+  ] as const)("%s mal formé : 404 sans interroger la base ni le stockage", async (_quoi, nom, params) => {
+    vi.resetModules();
+    const c = clients();
+    vi.doMock("@/lib/supabase/server", () => ({ createClient: async () => c.supabase }));
+    vi.doMock("@/lib/supabase/service", () => ({ clientDeService: () => c.service }));
+    const routeModule = nom === "devis"
+      ? await import("../src/app/artisan/devis/[sollicitationId]/photos/[documentId]/route")
+      : await import("../src/app/artisan/missions/[interventionId]/photos/[documentId]/route");
+    const r = await (routeModule.GET as (r: Request, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>)(new Request("https://gerimmo.test/x"), { params: Promise.resolve({ ...params }) });
+    expect(r.status).toBe(404);
+    expect(c.rpc).toHaveLength(0);
+    expect(c.signatures).toHaveLength(0);
+  });
+
   it("la clé de service ne sert qu'à signer, après le contrôle : lecture seule, durée courte, bucket des documents", () => {
     const source = readFileSync("src/lib/photos-demande-artisan.ts", "utf8");
     expect(source).toMatch(/DUREE_LIEN_PHOTO_SECONDES = 60/);
@@ -460,5 +492,71 @@ describe("D16 — photos du locataire visibles de l'artisan : l'écran", () => {
     expect(mission).toMatch(/chargerPhotosDemande\(null, interventionId\)/);
     expect(mission).toMatch(/<PhotosDeLaDemande photos=\{photos\.photos\} erreur=\{photos\.erreur\} base=\{`\/artisan\/missions\/\$\{mission\.intervention_id\}\/photos`\}/);
     expect(readFileSync("src/app/artisan/acces.ts", "utf8")).toMatch(/rpc\("mes_photos_incident_artisan"/);
+  });
+});
+
+// ── 4. Le chargement de la liste côté écran (acces.ts) : appel exact, échec distinct de « aucune photo » ────────────────
+describe("D16 — chargerPhotosDemande : ce que l'écran demande à la base, et ce qu'il comprend de la réponse", () => {
+  type Reponse = { data: unknown; error: { message: string } | null };
+  function client(options: { utilisateur?: boolean; fiche?: boolean; photos?: Reponse } = {}) {
+    const appels: { fn: string; args?: Record<string, unknown> }[] = [];
+    return {
+      appels,
+      supabase: {
+        auth: { getUser: async () => ({ data: { user: options.utilisateur === false ? null : { id: "compte-artisan" } } }) },
+        rpc: async (fn: string, args?: Record<string, unknown>): Promise<Reponse> => {
+          appels.push({ fn, args });
+          if (fn === "mon_artisan") return { data: options.fiche === false ? [] : [{ artisan_id: "artisan-1" }], error: null };
+          return options.photos ?? { data: [], error: null };
+        },
+      },
+    };
+  }
+  async function charger(c: ReturnType<typeof client>, sollicitationId: string | null, interventionId: string | null) {
+    vi.resetModules();
+    vi.doMock("@/lib/supabase/server", () => ({ createClient: async () => c.supabase }));
+    const { chargerPhotosDemande } = await import("../src/app/artisan/acces");
+    vi.doUnmock("@/lib/supabase/server");
+    return chargerPhotosDemande(sollicitationId, interventionId);
+  }
+  const PHOTOS = [{ document_id: UUID_PHOTO, mime_type: "image/jpeg", rang: 1 }];
+  afterEach(() => vi.doUnmock("@/lib/supabase/server"));
+
+  it("demande de devis : appelle mes_photos_incident_artisan avec EXACTEMENT { p_sollicitation, p_intervention: null } et rend la liste", async () => {
+    const c = client({ photos: { data: PHOTOS, error: null } });
+    expect(await charger(c, UUID_DEMANDE, null)).toEqual({ photos: PHOTOS, erreur: false });
+    expect(c.appels.at(-1)).toEqual({ fn: "mes_photos_incident_artisan", args: { p_sollicitation: UUID_DEMANDE, p_intervention: null } });
+  });
+
+  it("mission : EXACTEMENT { p_sollicitation: null, p_intervention }", async () => {
+    const c = client({ photos: { data: PHOTOS, error: null } });
+    expect(await charger(c, null, UUID_MISSION)).toEqual({ photos: PHOTOS, erreur: false });
+    expect(c.appels.at(-1)).toEqual({ fn: "mes_photos_incident_artisan", args: { p_sollicitation: null, p_intervention: UUID_MISSION } });
+  });
+
+  it("échec de la base : erreur vraie ET aucune photo (l'écran dit que le chargement a échoué, pas « aucune photo »)", async () => {
+    const c = client({ photos: { data: null, error: { message: "fonction introuvable" } } });
+    expect(await charger(c, UUID_DEMANDE, null)).toEqual({ photos: [], erreur: true });
+  });
+
+  it("aucune photo et pas d'erreur : liste vide, erreur fausse", async () => {
+    expect(await charger(client({ photos: { data: null, error: null } }), UUID_DEMANDE, null)).toEqual({ photos: [], erreur: false });
+    expect(await charger(client({ photos: { data: [], error: null } }), UUID_DEMANDE, null)).toEqual({ photos: [], erreur: false });
+  });
+
+  it("sans fiche artisan ou sans session : liste vide, PAS d'erreur, et la base des photos n'est pas interrogée", async () => {
+    for (const options of [{ fiche: false }, { utilisateur: false }]) {
+      const c = client(options);
+      expect(await charger(c, UUID_DEMANDE, null)).toEqual({ photos: [], erreur: false });
+      expect(c.appels.some((a) => a.fn === "mes_photos_incident_artisan")).toBe(false);
+    }
+  });
+
+  it("identifiant d'URL qui n'est pas un UUID : aucune photo, aucune erreur, et la base n'est pas interrogée (la page répondra introuvable)", async () => {
+    for (const [demande, mission] of [["pas-un-uuid", null], [null, "pas-un-uuid"], ["", null], [null, "12345"]] as const) {
+      const c = client({ photos: { data: PHOTOS, error: null } });
+      expect(await charger(c, demande, mission), JSON.stringify([demande, mission])).toEqual({ photos: [], erreur: false });
+      expect(c.appels.some((a) => a.fn === "mes_photos_incident_artisan")).toBe(false);
+    }
   });
 });

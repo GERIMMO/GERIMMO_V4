@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { estUuid } from "@/lib/identifiants";
 
 /**
  * LE MODÈLE D'ACCÈS DU PORTAIL ARTISAN — pourquoi il est sûr.
@@ -254,11 +255,17 @@ export type PhotoDemande = { document_id: string; mime_type: string; rang: numbe
  * Les photos jointes par le locataire à la demande de devis (D16, 14/10/2026), ou à la mission : la liste que la base lui
  * ouvre, dans l'ordre de dépôt. Chaque photo s'ouvre ensuite par une route qui revérifie le droit, trace l'accès et signe une
  * lecture de 60 secondes (lib/photos-demande-artisan.ts). Un échec de lecture se distingue de « aucune photo ».
+ *
+ * Un identifiant d'URL qui n'a pas la forme d'un UUID ne désigne rien : la base n'est pas interrogée (elle répondrait par une
+ * erreur de syntaxe, que l'écran prendrait pour une panne) et la page, qui ne retrouve pas la demande, répond « introuvable ».
  */
 export const chargerPhotosDemande = cache(async function chargerPhotosDemande(
   sollicitationId: string | null,
   interventionId: string | null
 ) {
+  if ((sollicitationId !== null && !estUuid(sollicitationId)) || (interventionId !== null && !estUuid(interventionId))) {
+    return { photos: [] as PhotoDemande[], erreur: false };
+  }
   const { supabase, fiche } = await chargerFicheArtisan();
   if (!fiche) return { photos: [] as PhotoDemande[], erreur: false };
   const { data, error } = await supabase.rpc("mes_photos_incident_artisan", {

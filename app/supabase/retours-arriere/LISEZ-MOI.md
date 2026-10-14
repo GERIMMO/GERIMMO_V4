@@ -8,7 +8,10 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 |---|---|---|
 | `20261013120000_correctifs_audit_13_octobre.retour.sql` | `20261013120000_correctifs_audit_13_octobre.sql` | 9 fonctions, 3 déclencheurs `diagnostic_artisan_lecture`, la contrainte `incident_evenements_type_check`, 1 ligne d'historique |
 | `20261013110000_marketing_preparation_du_soir_cron.retour.sql` | `20261013110000_marketing_preparation_du_soir_cron.sql` | 2 fonctions, 1 fonction supprimée, 1 ligne d'historique |
-| `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » |
+| `20261014232000_effacement_instantanes_faits_direction.retour.sql` | `20261014232000_effacement_instantanes_faits_direction.sql` | **rien** : les instantanés effacés ne reviennent que d'une sauvegarde ; le script ne retire que la ligne d'historique |
+| `20261014231000_retention_registres_execution.retour.sql` | `20261014231000_retention_registres_execution.sql` | 1 fonction rétablie (`appliquer_retention`), 1 fonction supprimée, 5 règles de conservation, 1 ligne d'historique |
+| `20261014230000_faits_direction_sans_noms.retour.sql` | `20261014230000_faits_direction_sans_noms.sql` | 3 fonctions rétablies, 2 fonctions supprimées, 1 ligne d'historique |
+| `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » (migrations du 13/10 seulement) |
 
 Les deux migrations ne partagent aucune fonction : leurs retours sont indépendants (essayé dans les deux ordres et un par un).
 L'ordre inverse (120000 puis 110000) reste l'ordre recommandé.
@@ -92,3 +95,20 @@ et les retours joués sur une copie **restaurée** de la sauvegarde. Dossier de 
 
 Limites : base de banc (quelques centaines de lignes), PostgreSQL 16 (la production est en 17 : les scripts ne comparent jamais de texte pour décider, seulement la
 présence de la marque du correctif) ; durée de chaque script < 0,1 s sur le banc, non mesurée sur le volume de production ; aucun essai sur la production.
+
+## Lot « données personnelles » (14 octobre 2026) : trois migrations, un ordre, une étape sans retour
+
+Décisions D13 (fiche SUP-05) et D48 (fiche IA-11). Ordre d'application : `230000` (faits sans noms), `231000` (règles de conservation),
+puis `232000` (effacement, **étape irréversible**, seulement après une sauvegarde). Ordre de retour : l'inverse (`232000`, `231000`, `230000`).
+
+- **`232000` n'a pas de retour arrière pour les données.** Avant de l'appliquer en production : lancer « Sauvegarde quotidienne » à la main,
+  attendre son succès, puis jouer l'étape dans une session qui commence par `set local gerimmo.sauvegarde_confirmee = 'oui';` (voir l'en-tête de la
+  migration). Sans cette confirmation, et s'il existe au moins un instantané de version 1, l'étape s'arrête par une erreur et rien n'est effacé.
+- **`231000` : les règles naissent actives, la première purge est irrécupérable.** Le premier passage d'`appliquer_retention` après la migration
+  supprime ce qui a plus de six mois dans les cinq registres (`agent_passages`, `supervision_operations`, `points_du_matin`, `decisions_du_matin`,
+  `brief_direction_snapshots`). Sauvegarde d'abord. Pour différer la purge sans retirer les règles : `update public.retention_rules set actif = false where data_type = 'journal:…'`.
+- Les trois scripts partagent la même garde (refus dans un lot ouvert), le même outil `pg_temp.restaurer_fonction` et la même marque de rejeu que ceux du 13/10.
+  Définitions antérieures lues sur une base reconstruite sans ces migrations, recopiées par un générateur. Essayés sur une copie : définitions et droits des
+  4 fonctions identiques à l'état antérieur après les trois retours ; rejeu sans effet ; marche avant ; refus dans un lot.
+- `verifier-etat.sql` ne couvre pas ce lot : le contrôle se fait par `select pg_get_functiondef(…)` (marque « D13 (SUP-05) » ou « purger_registres_execution »)
+  et `select data_type from public.retention_rules where data_type like 'journal:%'`.

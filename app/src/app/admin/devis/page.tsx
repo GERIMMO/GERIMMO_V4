@@ -4,7 +4,7 @@ import { formaterDateHeure } from "@/lib/ged";
 import { createClient } from "@/lib/supabase/server";
 import { BoutonDevisTraite } from "./bouton-traite";
 
-export const metadata = { title: "Demandes commerciales — Gerimmo" };
+export const metadata = { title: "Demandes commerciales" };
 
 // Les demandes de devis déposées sur le site vitrine (agences). La vitrine
 // promet une réponse sous 48 h ouvrées : cette page est l'endroit où la

@@ -4,7 +4,7 @@ import { PUBLICS_VEILLE, sourceVeille } from "@/lib/veille-reglementaire";
 import { dateSimple } from "../libelles";
 import { Carte, CLASSE_AIDE, EnteteSousPage, Erreur, Retour, TitreSection, Vide } from "../ui";
 
-export const metadata = { title: "Les règles à connaître — Espace artisan" };
+export const metadata = { title: "Les règles à connaître" };
 
 const PAR_PAGE = 20;
 

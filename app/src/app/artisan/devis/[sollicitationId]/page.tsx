@@ -41,7 +41,7 @@ export async function generateMetadata(
   const sollicitations = await chargerSollicitations();
   const demande = sollicitations.lignes.find((l) => l.sollicitation_id === sollicitationId);
   return {
-    title: `${demande && demande.statut !== "envoyee" ? "Demande de devis" : "Répondre à une demande"} — Espace artisan`,
+    title: demande && demande.statut !== "envoyee" ? "Demande de devis" : "Répondre à une demande",
   };
 }
 

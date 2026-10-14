@@ -7,7 +7,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { libellePeriode } from "@/lib/periode-publication";
 
 // Un article existant se MODIFIE (audit 25/09, C18) ; « Écrire » est la page « nouvelle ».
-export const metadata = { title: "Modifier l’article — Supervision" };
+export const metadata = { title: "Modifier l’article" };
 
 const ETATS: Record<string, string> = {
   proposition: "Proposition",

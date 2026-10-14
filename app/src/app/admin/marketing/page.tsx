@@ -11,7 +11,7 @@ import { FormulaireCampagne } from "./formulaire-campagne";
 import { ReglagesAutomatiques } from "./reglages-automatiques";
 import { VetoPost, type PostProgramme } from "./veto-post";
 
-export const metadata = { title: "Agent marketing — Gerimmo" };
+export const metadata = { title: "Agent marketing" };
 export const dynamic = "force-dynamic";
 
 type Campagne = { id: string; nom: string; description: string | null; canal: string; nature: string; objectif: string; statut: string; publication_prevue_le: string | null; budget_cents: number | null; cree_le: string };

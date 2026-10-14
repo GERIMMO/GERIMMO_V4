@@ -7,7 +7,7 @@ import { BoutonChercherSujets } from "./bouton-chercher-sujets";
 // Le nom de l'entrée de barre (24/09) : « Journal » seul se confondait avec
 // « Journaux et conservation », et l'onglet disait encore « Console
 // d'administration ».
-export const metadata = { title: "Articles du site — Supervision" };
+export const metadata = { title: "Articles du site" };
 
 type Publication = {
   id: string;

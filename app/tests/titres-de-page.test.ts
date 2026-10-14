@@ -28,7 +28,11 @@ function fichiers(dossier: string, nom: string): string[] {
   });
 }
 
-/** Le premier `title:` après la déclaration des métadonnées, `${…}` remplacé par une ellipse. */
+/**
+ * Le premier `title:` après la déclaration des métadonnées, `${…}` remplacé par une ellipse. Quand le titre est une
+ * expression (generateMetadata), on rend le texte de l'expression : seule la présence d'un suffixe écrit à la main y
+ * est contrôlée.
+ */
 function titreDeclare(source: string): string | null {
   const debut = Math.min(
     ...["export const metadata", "export async function generateMetadata", "export function generateMetadata"]
@@ -36,9 +40,13 @@ function titreDeclare(source: string): string | null {
       .filter((i) => i >= 0),
   );
   if (!Number.isFinite(debut)) return null;
-  const m = source.slice(debut).match(/\btitle\s*:\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|`((?:[^`\\]|\\.)*)`)/);
-  const brut = m?.[1] ?? m?.[2] ?? m?.[3];
-  return brut === undefined ? null : brut.replace(/\$\{[^}]*\}/g, "…");
+  const apres = source.slice(debut);
+  const cle = /\btitle\s*:\s*/.exec(apres);
+  if (!cle) return null;
+  const reste = apres.slice(cle.index + cle[0].length);
+  const litteral = reste.match(/^(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|`((?:[^`\\]|\\.)*)`)/);
+  if (litteral) return (litteral[1] ?? litteral[2] ?? litteral[3]).replace(/\$\{[^}]*\}/g, "…");
+  return reste.split("\n")[0].replace(/["'`]/g, "");
 }
 
 const segments = [

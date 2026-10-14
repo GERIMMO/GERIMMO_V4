@@ -5,7 +5,7 @@ import { EnteteSousPage, Erreur, Etiquette } from "../ui";
 import { Contestation } from "./contestation";
 import styles from "./evaluations.module.css";
 
-export const metadata = { title: "Mes évaluations — Espace artisan" };
+export const metadata = { title: "Mes évaluations" };
 
 /** La projection ne contient que des agrégats : ni auteur, ni commentaire individuel.
  * Les indicateurs de fiabilité ne sont pas intégrés à la note actuelle. */

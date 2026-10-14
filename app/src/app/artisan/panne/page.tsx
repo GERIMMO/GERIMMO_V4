@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CLASSE_BOUTON_PRINCIPAL, Erreur } from "../ui";
 
-export const metadata = { title: "Lecture impossible — Espace artisan" };
+export const metadata = { title: "Lecture impossible" };
 
 /**
  * La lecture de la fiche artisan a échoué.

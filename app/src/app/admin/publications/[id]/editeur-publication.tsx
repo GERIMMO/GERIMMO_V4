@@ -226,8 +226,11 @@ export function EditeurPublication(p: Props) {
         </section>
 
         {/* Au téléphone, le bouton reste collé en bas de l'écran (audit C18) :
-            il arrivait à 2 000 px sous le formulaire. */}
-        <div className="sticky bottom-[calc(72px+env(safe-area-inset-bottom,0px))] z-10 space-y-2 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3 shadow-[var(--ombre-portee)] sm:max-w-xs lg:hidden">
+            il arrivait à 2 000 px sous le formulaire. Le marqueur réserve
+            sa hauteur au défilement du focus (globals.css) : sans lui, Tab
+            laissait « Titre », « Adresse » et « Chapeau » sous la barre
+            (audit du 13/10, DES-B-08). */}
+        <div data-barre-collante className="sticky bottom-[calc(72px+env(safe-area-inset-bottom,0px))] z-10 space-y-2 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3 shadow-[var(--ombre-portee)] sm:max-w-xs lg:hidden">
           {boutonEnregistrer}
           {retourEnregistrement}
         </div>

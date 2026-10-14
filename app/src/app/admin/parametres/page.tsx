@@ -2,7 +2,7 @@ import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { faitsManquants } from "@/lib/editeur";
 
-export const metadata = { title: "Paramètres — Gerimmo" };
+export const metadata = { title: "Paramètres" };
 
 /**
  * PARAMÈTRES (26/09) : la dernière entrée du plan dessiné par le porteur.

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { TitreEcran } from '@/components/titre-ecran';
 import { formaterDateHeureParis, NOTE_FUSEAU } from '@/lib/heure-paris';
 import { FormulaireConsigne, CommandeConsigne, type VersionConsigne } from './formulaires';
-export const metadata={title:'Consignes — Gerimmo'};
+export const metadata={title:'Consignes'};
 const noms: Record<string,string>={lecture_missions:'Lire l’état de la mission',lecture_passages:'Compter les passages',proposee:'À approuver',approuvee:'Autorisée',reussie:'Exécutée',annulee:'Annulée'};
 const operations: Record<string,string>={consigne_version:'Nouvelle version de consigne',consigne_decision:'Décision sur une version',consigne_suspension:'Suspension ou reprise de consigne',consigne_executee:'Lecture effectuée et résultat conservé',vacances_version:'Période de relais enregistrée',vacances_activation:'Relais activé',vacances_fin:'Période de relais terminée',arret_supervision:'Décision d’arrêt ou de reprise',urgence_interne:'Urgence signalée',alerte_escalade:'Alerte remontée',alerte_accusee:'Alerte prise en compte'};
 function PreuveLecture({preuve}:{preuve:Record<string,unknown>}){

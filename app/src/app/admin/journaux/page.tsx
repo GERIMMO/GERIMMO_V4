@@ -31,7 +31,7 @@ function pageDe(valeur: string | undefined): number {
 }
 
 // Le nom de l'entrée de menu (audit 25/09, C8).
-export const metadata = { title: "Historique et conservation — Gerimmo" };
+export const metadata = { title: "Historique et conservation" };
 
 const SORTS: Record<string, string> = {
   suppression: "Suppression",

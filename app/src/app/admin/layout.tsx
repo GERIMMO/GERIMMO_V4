@@ -13,6 +13,13 @@ import { chargerDecisionsAttendues } from "@/lib/decisions-attendues";
 import { faitsManquants } from "@/lib/editeur";
 import { BandeauArretSupervision } from "@/components/bandeau-arret-supervision";
 
+// Un seul suffixe d'onglet pour toute la supervision (audit du 13/10, DES-B-07) :
+// les pages ne donnent que le nom de l'écran, le gabarit y ajoute « — Gerimmo »
+// (il en existait quatre : Gerimmo, Supervision, Supervision Gerimmo, Console
+// Gerimmo). Il ne s'applique pas à la page du même segment (app/admin/page.tsx),
+// qui garde son suffixe écrit.
+export const metadata = { title: { default: "Supervision — Gerimmo", template: "%s — Gerimmo" } };
+
 // La supervision reprend le repère latéral des espaces métier. Les actions de
 // sécurité restent dans l'en-tête, visibles sur chaque écran.
 // 24/09 : « Sécurité du compte » et « Se déconnecter » passent dans le menu du

@@ -18,7 +18,7 @@ export function AlerteFormulaire({
   signal,
   className = "text-sm text-destructive",
 }: {
-  children: ReactNode;
+  children?: ReactNode;
   signal?: unknown;
   className?: string;
 }) {

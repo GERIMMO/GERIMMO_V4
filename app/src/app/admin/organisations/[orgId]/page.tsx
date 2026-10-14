@@ -9,7 +9,7 @@ import { familleOrganisation, initiales } from "@/lib/clients-supervision";
 import { GesteControle } from "@/components/geste-controle";
 import { controlerOrganisation, renvoyerInvitation } from "@/app/actions/controle-supervision";
 
-export const metadata = { title: "Client — Gerimmo" };
+export const metadata = { title: "Client" };
 
 /**
  * LA FICHE D'UN CLIENT — agence ou propriétaire bailleur.

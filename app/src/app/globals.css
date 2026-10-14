@@ -2904,6 +2904,24 @@ select[id^="m-titulaire-"] { scroll-margin-top: 96px; }
   .admin-corps { padding-bottom: 72px; }
 }
 
+/* Audit du 13/10 (DES-B-08), supervision sur téléphone.
+   · Les résumés repliables (« Refuser cette inscription », « Historique… »)
+     mesuraient 20 à 28 px : 44 px minimum au doigt. `align-content` centre le
+     libellé sans toucher au triangle ni aux résumés déjà plus hauts. */
+@media (max-width: 900px) {
+  .admin-corps summary { min-height: 44px; align-content: center; }
+}
+/* · Une barre collante en bas d'écran masquait le champ qui recevait le focus
+     au clavier : le navigateur le jugeait visible (il l'était, derrière la
+     barre) et ne défilait pas. Le défilement du focus se mesure au viewport
+     (`scroll-padding` sur la racine, pas sur le formulaire) : on lui réserve
+     le décalage de la barre (72 px, cf. bottom ci-dessus), sa hauteur
+     (≈ 112 px, bouton + message) et une marge. À partir de 1024 px la barre
+     n'existe plus (lg:hidden). */
+@media (max-width: 1023px) {
+  html:has([data-barre-collante]) { scroll-padding-bottom: calc(72px + 112px + 16px + env(safe-area-inset-bottom, 0px)); }
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    RESPIRATION (25/09 au soir). Le porteur, devant la version en ligne : « le
    visuel est trop strict, pas assez respirant ». Un seul bloc, en fin de

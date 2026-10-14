@@ -16,7 +16,7 @@ import {
   LIBELLES_VISIBILITE,
 } from "@/lib/clients-supervision";
 
-export const metadata = { title: "Artisan — Console Gerimmo" };
+export const metadata = { title: "Artisan" };
 
 /**
  * LA FICHE D'UN ARTISAN, CÔTÉ SUPERVISION.

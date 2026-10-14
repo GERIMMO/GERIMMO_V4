@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { FormulaireOuverture } from "./formulaire-ouverture";
 
-export const metadata = { title: "Ouvrir une organisation — Gerimmo" };
+export const metadata = { title: "Ouvrir une organisation" };
 
 /**
  * L'ouverture d'une organisation, réservée au super admin (RM-16.1.1 : la

@@ -8,7 +8,7 @@ import { ACTIONS_RETOUR, ETATS_RETOUR, GRAVITES_RETOUR, moisRevue, nomEcran, pag
 import { CloreRevue, DecisionRetour, RegrouperIdees } from "./decisions-retour";
 
 // Même nom que l'entrée de la barre (24/09) : les contestations artisan restent une puce de la file.
-export const metadata = { title: "Retours des utilisateurs — Gerimmo" };
+export const metadata = { title: "Retours des utilisateurs" };
 const NATURES: Record<string, string> = { tous: "Tous", bug: "Problèmes", question: "Questions", idee: "Idées", contestation: "Contestations artisan" };
 type Ligne = { retour: RetourUtilisateur; organisation: string | null; soutiens: number; organisations: number; premiere: string | null; total: number };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

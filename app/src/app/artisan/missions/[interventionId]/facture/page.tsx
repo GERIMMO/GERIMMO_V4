@@ -5,7 +5,7 @@ import { euros } from "../../../libelles";
 import { Carte, EnteteSousPage, LigneInfo, MarqueAgence, Retour } from "../../../ui";
 import { FormulaireFacture } from "./formulaire-facture";
 
-export const metadata = { title: "Déposer ma facture — Espace artisan" };
+export const metadata = { title: "Déposer ma facture" };
 
 /**
  * Déposer la facture d'une intervention (module 9.7 — audit du 27/09).

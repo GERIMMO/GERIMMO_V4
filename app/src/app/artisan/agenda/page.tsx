@@ -5,7 +5,7 @@ import { CarteMission } from "../carte-mission";
 import { jourCivil, jourLong } from "../libelles";
 import { Carte, EnteteSousPage, Erreur, TitreSection, Vide } from "../ui";
 
-export const metadata = { title: "Mon agenda — Espace artisan" };
+export const metadata = { title: "Mon agenda" };
 
 /**
  * L'AGENDA TOUTES AGENCES CONFONDUES (RM-19.3.3, RM-10.7.3).

@@ -4,7 +4,7 @@ import { Carte, TitreSection } from "../ui";
 import { FormulaireInscription } from "./formulaire-inscription";
 import { FormulaireCompteArtisan } from "./formulaire-compte";
 
-export const metadata = { title: "Inscrire mon entreprise — Gerimmo" };
+export const metadata = { title: "Inscrire mon entreprise" };
 
 /**
  * La porte d'entrée de l'artisan qui n'a pas encore de fiche.

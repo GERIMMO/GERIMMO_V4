@@ -15,7 +15,12 @@ import {
 } from "./acces";
 import { degreEcheance } from "./libelles";
 
-export const metadata = { title: "Espace artisan — Gerimmo" };
+// Un seul suffixe pour tout l'espace (audit du 13/10, DES-B-07) : les pages ne
+// donnent que le nom de l'écran, le gabarit y ajoute « — Gerimmo ». Il ne
+// s'applique pas à la page du même segment (app/artisan/page.tsx), qui porte
+// donc son suffixe en toutes lettres ; le titre par défaut sert aux écrans qui
+// n'en déclarent pas.
+export const metadata = { title: { default: "Espace artisan — Gerimmo", template: "%s — Gerimmo" } };
 
 /**
  * Coquille du portail artisan.

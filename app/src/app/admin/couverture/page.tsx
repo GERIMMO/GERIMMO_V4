@@ -6,7 +6,7 @@ import { METIERS_ARTISAN } from "@/app/agence/[orgId]/artisans/referentiel";
 import { statutCandidat, type CandidatReseau, type LignePilotageReseau } from "@/lib/reseau";
 import { ReglagesReseau } from "./reglages-reseau";
 
-export const metadata = { title: "Réseau d’artisans — Gerimmo" };
+export const metadata = { title: "Réseau d’artisans" };
 const champ = "min-h-11 w-full rounded-md border border-input bg-background px-3 text-sm";
 const projection = "id,raison_sociale,statut_plateforme,siret_etat,visibilite,account_id,blacklist_globale_le";
 export default async function Couverture({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

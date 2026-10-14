@@ -9,6 +9,7 @@ import {formaterDateHeureParis,formaterHeureParis} from "@/lib/heure-paris";
 import {Carte,EnteteSousPage,Erreur,TitreSection} from "../../ui";
 import {FormulairePrive,LignesDevis} from "../../clients/formulaire";
 import {Champ,Texte,Piece,LienPiece,NavigationPrivee,LectureSeule,libelleEtatPrive,libelleActionPrive} from "../../clients/elements";
+export const metadata={title:"Fiche du chantier"};
 export default async function Page({params}:{params:Promise<{chantierId:string}>}){
  await verifierAccesArtisan();const {data,erreur}=await chargerActivitePrivee();if(!data)return <Erreur>{erreur}</Erreur>;
  const {chantierId}=await params;const h=data.chantiers.find(x=>x.id===chantierId);if(!h)notFound();const client=data.clients.find(x=>x.id===h.client_id)!;

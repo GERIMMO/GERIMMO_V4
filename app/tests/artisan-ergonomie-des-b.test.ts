@@ -79,8 +79,8 @@ beforeEach(() => {
 
 describe("DES-B-03 — l'espace artisan annonce le chargement entre deux pages", () => {
   it("app/artisan/loading.tsx existe, au niveau du gabarit : il couvre toutes les sous-pages", async () => {
-    const module = await import("../src/app/artisan/loading");
-    const page = renderToStaticMarkup(createElement(module.default));
+    const chargement = await import("../src/app/artisan/loading");
+    const page = renderToStaticMarkup(createElement(chargement.default));
     expect(page).toContain('role="status"');
     expect(page).toContain('aria-busy="true"');
     expect(page).toContain('aria-label="Chargement de la page"');
@@ -88,8 +88,8 @@ describe("DES-B-03 — l'espace artisan annonce le chargement entre deux pages",
   });
 
   it("le squelette ne rend pas de <main> : le gabarit artisan en pose déjà un", async () => {
-    const module = await import("../src/app/artisan/loading");
-    expect(renderToStaticMarkup(createElement(module.default))).not.toContain("<main");
+    const chargement = await import("../src/app/artisan/loading");
+    expect(renderToStaticMarkup(createElement(chargement.default))).not.toContain("<main");
   });
 });
 
@@ -186,11 +186,6 @@ describe("DES-B-06 — un artisan qui vient de s'inscrire ne reçoit qu'un seul 
 
 describe("DES-B-08 — supervision sur téléphone (contrat de la feuille de style)", () => {
   const css = lire("src/app/globals.css");
-  /** Le corps de la première règle dont le sélecteur est exactement `selecteur`. */
-  const regle = (selecteur: string) => {
-    const i = css.indexOf(`${selecteur} {`);
-    return i < 0 ? "" : css.slice(i, css.indexOf("}", i));
-  };
 
   it("les résumés repliables de la supervision font au moins 44 px sous 900 px", () => {
     const bloc = css.match(/@media \(max-width: 900px\) \{[^@]*?\.admin-corps summary \{[^}]*\}/)?.[0] ?? "";
@@ -200,7 +195,6 @@ describe("DES-B-08 — supervision sur téléphone (contrat de la feuille de sty
   it("une page à barre collante basse réserve cet espace au défilement du focus (scroll-padding-bottom)", () => {
     const bloc = css.match(/@media \(max-width: 1023px\) \{[^@]*?html:has\(\[data-barre-collante\]\) \{[^}]*\}/)?.[0] ?? "";
     expect(bloc).toMatch(/scroll-padding-bottom:\s*calc\(/);
-    expect(regle("html:has([data-barre-collante])")).toBeDefined();
   });
 
   it("la barre « Enregistrer » de l'éditeur d'article porte le marqueur", () => {

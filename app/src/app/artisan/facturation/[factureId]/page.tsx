@@ -8,6 +8,7 @@ import {formaterDateHeureParis} from "@/lib/heure-paris";
 import {Carte,EnteteSousPage,Erreur,TitreSection,CLASSE_CHAMP} from "../../ui";
 import {FormulairePrive} from "../../clients/formulaire";
 import {Champ,Texte,Piece,LienPiece,NavigationPrivee,LectureSeule} from "../../clients/elements";
+export const metadata={title:"Suivi de la facture"};
 export default async function Page({params}:{params:Promise<{factureId:string}>}){
  await verifierAccesArtisan();const {data,erreur}=await chargerActivitePrivee();if(!data)return <Erreur>{erreur}</Erreur>;const {factureId}=await params;const f=data.factures.find(x=>x.id===factureId);if(!f)notFound();const b=bilanReglements(f,data.reglements);const active=activationArtisanLocale("reglements")&&data.activation.reglements;
  // La date du jour est celle de Paris, pas d'UTC (ARC-10) : le plafond du champ et la valeur proposée suivent le calendrier de l'artisan.

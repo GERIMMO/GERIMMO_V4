@@ -4,6 +4,7 @@ import "./globals.css";
 import "./prestige.css";
 import "./harmonie.css";
 import { ProtectionSaisie } from "@/components/protection-saisie";
+import { RepliHorsLigne } from "@/components/repli-hors-ligne";
 import { BoutonAssistance } from "@/components/bouton-assistance";
 import { OPEN_GRAPH_PAR_DEFAUT } from "@/lib/metadonnees-publiques";
 import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
@@ -55,7 +56,7 @@ export default function RootLayout({
       lang="fr"
       className={`${titres.variable} ${interface_.variable} h-full antialiased`}
     >
-      <body className="gerimmo-prestige min-h-full flex flex-col">{children}<ProtectionSaisie /><BoutonAssistance /></body>
+      <body className="gerimmo-prestige min-h-full flex flex-col">{children}<ProtectionSaisie /><RepliHorsLigne /><BoutonAssistance /></body>
     </html>
   );
 }

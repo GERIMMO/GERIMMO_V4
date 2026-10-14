@@ -5,7 +5,7 @@ import { formaterDateHeureParis } from "@/lib/heure-paris";
 export function FaitsDeDirection({ snapshot, erreur }: { snapshot: FaitsDirection | null; erreur: boolean }) {
   return <section className="section-ecran" aria-labelledby="faits-direction">
     <h2 id="faits-direction" className="font-heading text-[length:var(--pas-section)]">Faits de direction</h2>
-    <p className="mt-2 mb-4 text-sm text-muted-foreground">Préparés à la demande, sans envoi. Les montants portent sur les échéances déjà appelées ; ils ne constituent pas une prévision de trésorerie.</p>
+    <p className="mt-2 mb-4 text-sm text-muted-foreground">Préparés à la demande, sans envoi. Les montants portent sur les échéances déjà appelées ; ils ne constituent pas une prévision de trésorerie. Aucun nom de personne n’est copié : une alerte est désignée par son type et un lien vers l’organisation concernée.</p>
     {erreur ? <p role="alert" className="err">La lecture des faits est indisponible. Aucun compte n’est confirmé.</p>
       : !snapshot ? <p className="text-sm text-muted-foreground">Aucun relevé préparé pour ce jour. Utilisez « Préparer le point maintenant » pour réunir les sources.</p>
       : <><p className="mb-4 text-sm">Préparation du {formaterDateHeureParis(snapshot.genere_le)} · version {snapshot.version_regles}.</p>

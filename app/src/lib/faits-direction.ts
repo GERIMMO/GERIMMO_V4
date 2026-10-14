@@ -8,7 +8,9 @@ export const SOURCES_DIRECTION = {
   service: "Passages du service",
 } as const;
 export type SourceDirection = keyof typeof SOURCES_DIRECTION;
-export type FaitDirection = { titre: string; date: string | null; href: string };
+// D13 (SUP-05, 14/10) : un fait ne copie jamais un titre d'alerte, qui contient parfois un nom de locataire. Une alerte se désigne
+// par son identifiant (`id`), un libellé générique tiré de son type (`titre`) et un lien (`href`).
+export type FaitDirection = { id?: string; titre: string; date: string | null; href: string };
 export type SourceFactuelle = {
   statut: "disponible" | "indisponible";
   observe_le: string | null;

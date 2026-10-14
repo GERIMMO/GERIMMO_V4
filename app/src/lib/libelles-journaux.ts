@@ -50,6 +50,10 @@ const ACTIONS: Record<string, string> = {
   // Les gestes de la console (audit console du 27/09) : chacun a sa ligne.
   point_du_matin_decide: "Décision prise depuis le point du matin",
   examen_inscription_artisan: "Examen d’une inscription d’artisan",
+  // D13 (SUP-05, 14/10) : les faits de direction traversent toutes les organisations, chaque traversée est tracée.
+  preparation_faits_direction: "Préparation des faits de direction",
+  consultation_faits_direction: "Consultation des faits de direction (une ligne par organisation citée)",
+  effacement_instantanes_faits_direction: "Effacement des anciens faits de direction, qui pouvaient contenir des noms",
   ...ACTIONS_SUPERVISION,
 };
 
@@ -93,6 +97,8 @@ const EVENEMENTS: Record<string, string> = {
   reponse_gestionnaire: "Réponse du gestionnaire",
   notification_rappel: "Rappel envoyé",
   incident_urgent: "Incident urgent signalé",
+  // D48 (IA-11, 14/10) : le nettoyage des registres d'exécution ne garde que des nombres.
+  purge_registres_execution: "Nettoyage des registres d’exécution arrivés à échéance",
 };
 
 export function libelleEvenement(evenement: string | null | undefined): string {

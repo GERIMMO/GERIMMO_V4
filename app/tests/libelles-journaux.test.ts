@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detailsExpurges, libelleAccesDocument, libelleActionAudit, libelleEvenement } from "../src/lib/libelles-journaux";
+import { codesConnusJournaux, detailsExpurges, libelleAccesDocument, libelleActionAudit, libelleEvenement } from "../src/lib/libelles-journaux";
 
 describe("libellés des journaux", () => {
   it("traduit les tâches automatiques", () => {
@@ -85,6 +85,16 @@ describe("libellés des journaux", () => {
   it("une valeur inconnue d'une clé traduite s'affiche telle quelle, jamais un code interne inventé", () => {
     expect(detailsExpurges({ resultat: "inconnu_x" })).toBe("accès : inconnu_x");
     expect(detailsExpurges({ resultat: "constructor" })).toBe("accès : constructor");
+  });
+
+  // D13 (SUP-05) et D48 (IA-11), 14/10/2026 : les traces des faits de direction et du nettoyage des registres se lisent en français.
+  it("nomme les traces des faits de direction et le nettoyage des registres d'exécution", () => {
+    for (const code of ["preparation_faits_direction", "consultation_faits_direction", "effacement_instantanes_faits_direction"]) {
+      expect(libelleActionAudit(code)).not.toMatch(/libellé manquant|protégée/);
+    }
+    expect(libelleActionAudit("consultation_faits_direction")).toBe("Consultation des faits de direction (une ligne par organisation citée)");
+    expect(libelleEvenement("purge_registres_execution")).toBe("Nettoyage des registres d’exécution arrivés à échéance");
+    expect(codesConnusJournaux().audit).toContain("consultation_faits_direction");
   });
 
   it("explique les accès aux documents", () => {

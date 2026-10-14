@@ -23,6 +23,11 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 | `20261014222000_consigne_activation_approbateur_distinct.retour.sql` | `20261014222000_consigne_activation_approbateur_distinct.sql` (D10, SUP-04) | 1 fonction (`decider_consigne`), 1 fonction supprimée (`tache_consigne_lecture_seule`), 1 ligne d'historique. Réintroduit : plus aucun approbateur distinct exigé, même le jour où une tâche agira. Aucune donnée défaite |
 | `20261014223000_alerte_relais_reprise_destinataire_parti.retour.sql` | `20261014223000_alerte_relais_reprise_destinataire_parti.sql` (D09, relecture de SUP-03) | 1 fonction (`accuser_alerte_vacances`, qui retrouve la définition de 221000), 1 ligne d'historique. Réintroduit : une alerte escaladée vers un créateur qui a perdu son habilitation n'a plus personne pour l'accuser (la reprise redevient limitée au statut « non acheminée »). **À jouer AVANT le retour de 221000.** Aucune donnée défaite |
 | `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » |
+| `20261014232000_effacement_instantanes_faits_direction.retour.sql` | `20261014232000_effacement_instantanes_faits_direction.sql` | **rien** : les instantanés effacés ne reviennent que d'une sauvegarde ; le script ne retire que la ligne d'historique |
+| `20261014231000_retention_registres_execution.retour.sql` | `20261014231000_retention_registres_execution.sql` | 1 bloc retiré d'`appliquer_retention` (retrait chirurgical : le reste de la fonction n'est pas touché), 1 fonction supprimée, 5 règles de conservation, 1 ligne d'historique |
+| `20261014230000_faits_direction_sans_noms.retour.sql` | `20261014230000_faits_direction_sans_noms.sql` | 3 fonctions rétablies, 2 fonctions supprimées, 1 ligne d'historique |
+| `20261014233000_photos_demande_devis_artisan.retour.sql` | `20261014233000_photos_demande_devis_artisan.sql` | 2 fonctions supprimées (rien d'antérieur à rétablir), 1 ligne d'historique |
+| `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » (migrations du 13/10 seulement) |
 
 **Clés d'envoi des encaissements (14/10, D05).** Les trois migrations `20261014100000`, `20261014101000` et `20261014102000` n'ajoutent
 qu'une colonne facultative et un index unique partiel chacune (plus, pour le dépôt, un septième paramètre facultatif à `encaisser_depot`) ;
@@ -202,3 +207,46 @@ et les retours joués sur une copie **restaurée** de la sauvegarde. Dossier de 
 
 Limites : base de banc (quelques centaines de lignes), PostgreSQL 16 (la production est en 17 : les scripts ne comparent jamais de texte pour décider, seulement la
 présence de la marque du correctif) ; durée de chaque script < 0,1 s sur le banc, non mesurée sur le volume de production ; aucun essai sur la production.
+
+## Lot « données personnelles » (14 octobre 2026) : quatre migrations, un ordre, une étape sans retour
+
+Décisions D13 (fiche SUP-05), D48 (fiche IA-11) et D16 (fiche ART-15). Ordre d'application : `230000` (faits sans noms), `231000` (règles de
+conservation), puis `232000` (effacement, **étape irréversible**, seulement après une sauvegarde) ; `233000` (photos du locataire visibles de
+l'artisan) est indépendante des trois autres. Ordre de retour : l'inverse (`233000`, `232000`, `231000`, `230000`).
+`233000` ne touche aucune politique de stockage ni aucune table : son retour ne fait que supprimer ses deux fonctions, mais le code de
+l'application qui les appelle doit être retiré avec elles (sinon les écrans de la demande de devis et de la mission disent que les photos
+n'ont pas pu être chargées).
+
+- **`232000` n'a pas de retour arrière pour les données.** Avant de l'appliquer en production : lancer « Sauvegarde quotidienne » à la main,
+  attendre son succès, puis jouer l'étape dans une session qui commence par `set local gerimmo.sauvegarde_confirmee = 'oui';` (voir l'en-tête de la
+  migration). Sans cette confirmation, et s'il existe au moins un instantané de version 1, l'étape s'arrête par une erreur et rien n'est effacé.
+- **`231000` : les règles naissent actives, la première purge est irrécupérable.** Le premier passage d'`appliquer_retention` après la migration
+  supprime ce qui a plus de six mois dans les cinq registres (`agent_passages`, `supervision_operations`, `points_du_matin`, `decisions_du_matin`,
+  `brief_direction_snapshots`). Sauvegarde d'abord. Pour différer la purge sans retirer les règles : `update public.retention_rules set actif = false where data_type = 'journal:…'`.
+- Les trois scripts qui rétablissent des fonctions (`230000`, `231000`, `233000`) partagent la même garde (refus dans un lot ouvert) et la même marque
+  de rejeu que ceux du 13/10. `230000` utilise le même outil `pg_temp.restaurer_fonction` (définitions antérieures lues sur une base reconstruite sans
+  ces migrations, recopiées par un générateur). `231000` utilise un outil différent, `pg_temp.retirer_bloc`, voir ci-dessous. Essayés sur une copie :
+  définitions et droits des 4 fonctions identiques à l'état antérieur après les trois retours ; rejeu sans effet ; marche avant ; refus dans un lot.
+- `verifier-etat.sql` ne couvre pas ce lot : le contrôle se fait par `select pg_get_functiondef(…)` (marque « D13 (SUP-05) » ou « purger_registres_execution »)
+  et `select data_type from public.retention_rules where data_type like 'journal:%'`.
+
+### Fusion avec l'arrêt d'urgence des tâches planifiées (`20261014200000`, branche `lot-arret-taches`)
+
+Les deux lots modifient la **même fonction**, `appliquer_retention` : `231000` y ajoute l'appel à la purge des registres, `200000` y ajoute la garde de
+l'arrêt d'urgence (« Audit du 14/10 (SUP-01) »). Dans le sens aller, les deux ajouts se font par ancre sur la définition en vigueur et se composent dans
+les deux ordres (essayé). Dans le sens retour :
+
+- **Le retour de `231000` est chirurgical.** Il ne rétablit pas une ancienne définition : il retire de la définition en vigueur le seul bloc que `231000`
+  y a posé (commentaire « D48 / D13 » et appel `purger_registres_execution`). La garde de l'arrêt d'urgence reste donc en place (essayé : garde présente,
+  appel à la purge absent, définition identique à celle d'une base qui n'aurait jamais reçu `231000`). Si la marque est là mais que le bloc ne figure pas
+  exactement une fois (fonction réécrite à la main), le script s'arrête par une erreur et ne supprime rien, pas même la fonction de purge.
+  (Avant la relecture du 14/10, ce retour rétablissait la définition d'avant la migration et supprimait la garde en silence si `200000` était en place.)
+- **Le retour de `200000`, lui, rétablit des définitions entières** (ce lot est livré séparément). Rejoué AVANT celui de `231000`, il supprimerait aussi
+  l'appel à la purge des registres de `appliquer_retention` sans que ce retour ait été décidé. **Ordre de retour à respecter si les deux lots sont
+  appliqués : `231000` d'abord, puis `200000`** ; ou, mieux, rendre le retour de `200000` chirurgical à son tour (retirer la garde par son texte exact
+  dans les huit fonctions) avant de le jouer. Cette modification relève du lot `lot-arret-taches` et n'est pas faite ici.
+- **Avant tout retour**, l'étape 1 de la procédure demande de vérifier les migrations postérieures à `20261013120000` : pour ce lot, chercher dans
+  `app/supabase/migrations/` toute autre migration qui réécrit `appliquer_retention`, `preparer_faits_direction`, `lire_faits_direction`,
+  `collecter_source_direction`, `organisations_citees_faits_direction`, `libelle_generique_alerte` (230000) ou `mes_photos_incident_artisan` (233000).
+  Au 14/10, seule `200000` touche `appliquer_retention` ; aucune autre branche ne réécrit les fonctions de `230000` ni de `233000`. Le retour de `230000`
+  rétablit des définitions entières : il écraserait une réécriture ultérieure de ces fonctions.

@@ -22,7 +22,8 @@ type Racine = typeof import("react");
 type Nettoyage = void | (() => void);
 type Effet = { deps: readonly unknown[] | undefined; nettoyage: Nettoyage };
 
-class Instance<P> {
+// Ce que les hooks lisent et écrivent : séparé de `Instance<P>` pour que `courante` n'ait pas à connaître le type des props.
+class Etat {
   etats: unknown[] = [];
   refs: { current: unknown }[] = [];
   memos: { deps: readonly unknown[] | undefined; valeur: unknown }[] = [];
@@ -30,19 +31,25 @@ class Instance<P> {
   aExecuter: { rang: number; fn: () => Nettoyage; deps: readonly unknown[] | undefined }[] = [];
   compteurs = { etat: 0, ref: 0, memo: 0, effet: 0, id: 0 };
   sale = false;
+  constructor(readonly numero: number) {}
+}
+
+class Instance<P> extends Etat {
   rendus = 0;
   arbre: ReactNode = null;
-  constructor(readonly composant: (props: P) => ReactNode, readonly props: P, readonly numero: number) {}
+  constructor(readonly composant: (props: P) => ReactNode, readonly props: P, numero: number) {
+    super(numero);
+  }
 
   rendre() {
     this.compteurs = { etat: 0, ref: 0, memo: 0, effet: 0, id: 0 };
     this.aExecuter = [];
     this.sale = false;
-    courante = this;
+    activer(this);
     try {
       this.arbre = this.composant(this.props);
     } finally {
-      courante = null;
+      activer(null);
     }
     this.rendus++;
     // « Commit » : les effets dont les dépendances ont changé se rejouent, nettoyage du précédent d'abord.
@@ -56,7 +63,10 @@ class Instance<P> {
   }
 }
 
-let courante: Instance<never> | null = null;
+let courante: Etat | null = null;
+const activer = (etat: Etat | null) => {
+  courante = etat;
+};
 let instances = 0;
 
 const memeDeps = (a: readonly unknown[] | undefined, b: readonly unknown[] | undefined) =>
@@ -89,15 +99,16 @@ export function reactAvecHooksSimules(react: Racine): Racine {
     const i = inst.compteurs.ref++;
     return (inst.refs[i] ??= { current: initial });
   }) as unknown as Racine["useRef"];
-  const useMemo = ((fn: () => unknown, deps?: readonly unknown[]) => {
+  const memoiser = (fn: () => unknown, deps?: readonly unknown[]) => {
     const inst = courante;
     if (!inst) return react.useMemo(fn, deps as never);
     const i = inst.compteurs.memo++;
     const m = inst.memos[i];
     if (m && memeDeps(m.deps, deps)) return m.valeur;
     return (inst.memos[i] = { deps, valeur: fn() }).valeur;
-  }) as unknown as Racine["useMemo"];
-  const useCallback = ((fn: unknown, deps?: readonly unknown[]) => useMemo(() => fn, deps)) as unknown as Racine["useCallback"];
+  };
+  const useMemo = memoiser as unknown as Racine["useMemo"];
+  const useCallback = ((fn: unknown, deps?: readonly unknown[]) => memoiser(() => fn, deps)) as unknown as Racine["useCallback"];
   const useId = (() => {
     const inst = courante;
     if (!inst) return react.useId();

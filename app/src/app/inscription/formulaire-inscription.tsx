@@ -48,7 +48,7 @@ export function FormulaireInscription({
             24/09 : « (facultatif) » sur chaque champ optionnel, rien sur les
             obligatoires — seul le code de parrainage le disait, et neuf champs
             paraissaient requis quand cinq ne le sont pas. */}
-        <form action={action} className="space-y-4">
+        <form data-saisie-libre action={action} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="prenom">Prénom (facultatif)</Label>

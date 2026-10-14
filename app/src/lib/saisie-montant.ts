@@ -16,6 +16,11 @@ export type MontantLu = { montant: number } | { erreur: string };
  * Lit un montant saisi, au centime près. « 12,5 » et « 12.5 » valent la même
  * chose ; « 12.345 » est refusé plutôt qu'arrondi en silence (le journal
  * comptable doit dire ce que la banque a dit).
+ *
+ * Le champ qui envoie ce texte est `type="text" inputMode="decimal"`, jamais
+ * `type="number"` : un navigateur dont la langue n'est pas le français lit la
+ * virgule de « 840,00 » comme un séparateur de milliers et envoie « 84000 »
+ * (VER-TS-02). Seul le texte brut permet à cette fonction de voir la virgule.
  */
 export function lireMontant(brut: FormDataEntryValue | null): MontantLu {
   const texte = String(brut ?? "").trim().replace(",", ".");
@@ -29,6 +34,19 @@ export function lireMontant(brut: FormDataEntryValue | null): MontantLu {
     return { erreur: "Le montant s'exprime au centime près : deux décimales au plus." };
   }
   return { erreur: "Montant invalide." };
+}
+
+/**
+ * Un montant facultatif : vide vaut « non renseigné » (`null`), zéro est admis,
+ * le reste se lit comme `lireMontant`. Un texte illisible est refusé, jamais
+ * pris pour « non renseigné » : converti en NaN, il deviendrait `null` dans
+ * l'appel à la base et la saisie disparaîtrait sans que personne ne le voie.
+ */
+export function lireMontantFacultatif(brut: FormDataEntryValue | null): { montant: number | null } | { erreur: string } {
+  const texte = String(brut ?? "").trim();
+  if (texte === "") return { montant: null };
+  if (/^0+([.,]0{1,2})?$/.test(texte)) return { montant: 0 };
+  return lireMontant(texte);
 }
 
 /**

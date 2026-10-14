@@ -320,7 +320,7 @@ export function SecondFacteur({ obligatoire }: { obligatoire: boolean }) {
           )}
 
           {(inscription || etat !== "aucun") && (
-            <form onSubmit={valider} className="mt-4 max-w-xs space-y-3">
+            <form data-saisie-libre onSubmit={valider} className="mt-4 max-w-xs space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="code-second-facteur">Code à six chiffres</Label>
                 <Input

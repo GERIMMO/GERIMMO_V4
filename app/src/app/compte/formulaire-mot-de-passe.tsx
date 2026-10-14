@@ -14,7 +14,7 @@ export function FormulaireMotDePasse() {
   const [etat, action] = useActionState<EtatMotDePasse, FormData>(changerMonMotDePasse, {});
 
   return (
-    <form action={action} className="mt-4 space-y-4">
+    <form data-saisie-libre action={action} className="mt-4 space-y-4">
       <div className="space-y-2">
         <Label htmlFor="mot_de_passe_actuel">Mot de passe actuel</Label>
         <Input

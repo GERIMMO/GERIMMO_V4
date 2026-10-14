@@ -63,7 +63,7 @@ export default async function PageConfirmerLien({ searchParams }: { searchParams
       <Card>
         <CardContent className="pt-6">
           {jeton && type && confirmation ? (
-            <form method="post" action="/auth/confirm" className="space-y-4">
+            <form data-saisie-libre method="post" action="/auth/confirm" className="space-y-4">
               <input type="hidden" name="token_hash" value={jeton} />
               <input type="hidden" name="type" value={type} />
               <input type="hidden" name="next" value={next} />

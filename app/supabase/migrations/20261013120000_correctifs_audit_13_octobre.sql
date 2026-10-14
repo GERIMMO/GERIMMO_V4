@@ -7,8 +7,12 @@
 -- une fonction réécrite à la main écraserait les gardes injectées par les
 -- migrations suivantes (c'est ce que le test « incidents dans le portefeuille
 -- de l'agent » a montré pour annuler_mission). Si la définition en vigueur n'est
--- pas celle attendue, la migration s'arrête et ne change rien.
+-- pas celle attendue, la migration s'arrête (dans la transaction du chantier
+-- `migrations.yml`, rien ne subsiste).
 -- La liste des types d'événement d'incident gagne une valeur.
+-- Elle se rejoue sans effet, y compris hors transaction : chaque bloc cherche dans
+-- la définition en vigueur la marque de son propre correctif et, si elle y est, ne
+-- fait rien. L'ancre (le morceau à relire) n'est exigée que si la marque est absente.
 -- À appliquer par `migrations.yml` (simulation d'abord), comme toute migration.
 --
 --   AUD-A-01  definir_equipements_lot : un agent restreint ne touche que son portefeuille
@@ -20,22 +24,36 @@
 --   REP-01    contre_proposer_creneaux : un second envoi ne refuse pas les créneaux du locataire
 
 -- AUD-A-03 (1/2) : le fil de l'incident sait dire l'annulation d'une mission.
-alter table public.incident_evenements drop constraint if exists incident_evenements_type_check;
-alter table public.incident_evenements add constraint incident_evenements_type_check
-  check (type = any (array[
-    'declaration', 'qualification', 'contestation', 'cloture', 'reouverture',
-    'attribution', 'photo', 'consultation', 'sollicitation', 'devis',
-    'selection_devis', 'mission_confiee', 'mission_acceptee', 'mission_refusee',
-    'creneaux_proposes', 'creneau_retenu', 'arbitrage_creneau',
-    'intervention_demarree', 'compte_rendu', 'revision_imputation', 'evaluation',
-    'creneaux_refuses', 'facture_deposee', 'facture_validee', 'mission_annulee'
-  ]::text[]));
+-- Déjà posée (la liste cite mission_annulee) : on ne touche pas la table, ce qui
+-- lui épargne un verrou exclusif et une revalidation de toutes ses lignes au rejeu.
+do $correctif$
+begin
+  if exists (select 1 from pg_constraint
+             where conrelid = 'public.incident_evenements'::regclass
+               and conname = 'incident_evenements_type_check'
+               and pg_get_constraintdef(oid) like '%mission_annulee%') then
+    return;
+  end if;
+  alter table public.incident_evenements drop constraint if exists incident_evenements_type_check;
+  alter table public.incident_evenements add constraint incident_evenements_type_check
+    check (type = any (array[
+      'declaration', 'qualification', 'contestation', 'cloture', 'reouverture',
+      'attribution', 'photo', 'consultation', 'sollicitation', 'devis',
+      'selection_devis', 'mission_confiee', 'mission_acceptee', 'mission_refusee',
+      'creneaux_proposes', 'creneau_retenu', 'arbitrage_creneau',
+      'intervention_demarree', 'compte_rendu', 'revision_imputation', 'evaluation',
+      'creneaux_refuses', 'facture_deposee', 'facture_validee', 'mission_annulee'
+    ]::text[]));
+end $correctif$;
 
 -- AUD-A-01
 do $correctif$
 declare v_def text;
 begin
   select pg_get_functiondef('public.definir_equipements_lot(uuid,uuid[])'::regprocedure) into v_def;
+  -- Rejeu : la marque du correctif est déjà dans la définition, il n'y a rien à refaire
+  -- (sans elle, l'ancre ci-dessous reste présente une fois et la garde serait doublée).
+  if position('Audit du 13/10 (AUD-A-01)' in v_def) > 0 then return; end if;
   if (length(v_def) - length(replace(v_def, $ancre$    raise exception 'Accès refusé';
   end if;
   if exists ($ancre$, ''))) <> length($ancre$    raise exception 'Accès refusé';
@@ -61,6 +79,7 @@ do $correctif$
 declare v_def text;
 begin
   select pg_get_functiondef('public.contre_ecriture(uuid,text)'::regprocedure) into v_def;
+  if position('Audit du 13/10 (AUD-A-02)' in v_def) > 0 then return; end if;
   if (length(v_def) - length(replace(v_def, $ancre$  returning id into v_new;
   return v_new;$ancre$, ''))) <> length($ancre$  returning id into v_new;
   return v_new;$ancre$) then
@@ -82,6 +101,7 @@ do $correctif$
 declare v_def text;
 begin
   select pg_get_functiondef('public.annuler_mission(uuid,uuid,text)'::regprocedure) into v_def;
+  if position('Audit du 13/10 (AUD-A-03)' in v_def) > 0 then return; end if;
   if (length(v_def) - length(replace(v_def, $ancre$  where id = v.incident_id and etat in ('affecte', 'en_cours');
 $ancre$, ''))) <> length($ancre$  where id = v.incident_id and etat in ('affecte', 'en_cours');
 $ancre$) then
@@ -105,6 +125,7 @@ do $correctif$
 declare v_def text;
 begin
   select pg_get_functiondef('public.supprimer_detention(uuid)'::regprocedure) into v_def;
+  if position('Audit du 13/10 (AUD-A-04)' in v_def) > 0 then return; end if;
   if (length(v_def) - length(replace(v_def, $ancre$  delete from public.detentions where id = p_detention;
 $ancre$, ''))) <> length($ancre$  delete from public.detentions where id = p_detention;
 $ancre$) then
@@ -112,13 +133,18 @@ $ancre$) then
   end if;
   v_def := replace(v_def, $ancre$  delete from public.detentions where id = p_detention;
 $ancre$, $nouveau$  -- Audit du 13/10 (AUD-A-04) : une quote-part de propriété qui disparaît laisse
-  -- une trace (identifiants seulement : aucun nom, aucune adresse).
+  -- une trace (identifiants seulement : aucun nom, aucune adresse). Une seule
+  -- instruction : la trace suit la ligne réellement supprimée. Écrite avant, sans
+  -- verrou, elle doublait quand deux suppressions de la même détention se croisaient
+  -- (la seconde ne supprime rien et n'écrit plus rien).
+  with supprimee as (
+    delete from public.detentions where id = p_detention returning *
+  )
   insert into public.audit_log (account_id, organization_id, action, details)
   select (select auth.uid()), d.organization_id, 'detention_supprimee',
          jsonb_build_object('detention_id', d.id, 'lot_id', d.lot_id, 'person_id', d.person_id,
                             'quote_part', d.quote_part, 'date_debut', d.date_debut, 'date_fin', d.date_fin)
-  from public.detentions d where d.id = p_detention;
-  delete from public.detentions where id = p_detention;
+  from supprimee d;
 $nouveau$);
   execute v_def;
 end $correctif$;
@@ -130,6 +156,7 @@ do $correctif$
 declare v_def text;
 begin
   select pg_get_functiondef('public.poser_gardes_diagnostic_artisan()'::regprocedure) into v_def;
+  if position($marque$'supervision_arrets','supervision_operations','supervision_vacances'$marque$ in v_def) > 0 then return; end if;
   if (length(v_def) - length(replace(v_def, $ancre$tablename not in ('supervision_sessions_artisan','audit_log')$ancre$, ''))) <> length($ancre$tablename not in ('supervision_sessions_artisan','audit_log')$ancre$) then
     raise exception 'Correctif SUP-02 : définition inattendue (ancre 1 absente ou répétée)';
   end if;
@@ -145,13 +172,14 @@ do $correctif$
 declare v_def text;
 begin
   select pg_get_functiondef('public.traiter_vacances()'::regprocedure) into v_def;
+  if position('Audit du 13/10 (SUP-08)' in v_def) > 0 then return; end if;
   if (length(v_def) - length(replace(v_def, $ancre$update public.supervision_alertes_internes set statut='non_acheminee' where plan_id=p.id and statut in ('ouverte','escalade');continue;$ancre$, ''))) <> length($ancre$update public.supervision_alertes_internes set statut='non_acheminee' where plan_id=p.id and statut in ('ouverte','escalade');continue;$ancre$) then
     raise exception 'Correctif SUP-08 : définition inattendue (ancre 1 absente ou répétée)';
   end if;
-  v_def := replace(v_def, $ancre$update public.supervision_alertes_internes set statut='non_acheminee' where plan_id=p.id and statut in ('ouverte','escalade');continue;$ancre$, $nouveau$-- Audit du 13/10 (SUP-08) : seules les alertes adressées au responsable qui a
-   -- perdu son habilitation ; une alerte déjà escaladée vers le créateur du plan,
-   -- lui habilité, garde son statut.
-   update public.supervision_alertes_internes set statut='non_acheminee' where plan_id=p.id and statut in ('ouverte','escalade') and destinataire is not distinct from p.responsable;continue;$nouveau$);
+  v_def := replace(v_def, $ancre$update public.supervision_alertes_internes set statut='non_acheminee' where plan_id=p.id and statut in ('ouverte','escalade');continue;$ancre$, $nouveau$-- Audit du 13/10 (SUP-08) : seules les alertes adressées à quelqu'un qui n'est plus
+   -- habilité : le responsable, ou le créateur du plan s'il l'est devenu à son tour
+   -- (VER-SQL-04). Une alerte déjà escaladée vers un créateur habilité garde son statut.
+   update public.supervision_alertes_internes set statut='non_acheminee' where plan_id=p.id and statut in ('ouverte','escalade') and (destinataire is not distinct from p.responsable or not public.responsable_supervision_habilite(destinataire));continue;$nouveau$);
   execute v_def;
 end $correctif$;
 
@@ -160,6 +188,7 @@ do $correctif$
 declare v_def text;
 begin
   select pg_get_functiondef('public.contre_proposer_creneaux(uuid,uuid,jsonb)'::regprocedure) into v_def;
+  if position('Audit du 13/10 (REP-01)' in v_def) > 0 then return; end if;
   if (length(v_def) - length(replace(v_def, $ancre$  update public.intervention_creneaux
   set statut = 'refuse', refuse_le = now()
   where intervention_id = p_intervention and statut = 'propose';
@@ -173,7 +202,9 @@ $ancre$) then
   set statut = 'refuse', refuse_le = now()
   where intervention_id = p_intervention and statut = 'propose';
 $ancre$, $nouveau$  -- Audit du 13/10 (REP-01) : la même liste déjà en attente (réponse perdue,
-  -- double envoi) ne change rien : ni refus fantôme, ni alerte d'arbitrage.
+  -- double envoi) ne change rien : ni refus fantôme, ni alerte d'arbitrage. Elle
+  -- renvoie 0 (aucun créneau enregistré par cet appel) pour que l'action ne
+  -- prévienne pas l'artisan une seconde fois (VER-SQL-03).
   if exists (select 1 from public.intervention_creneaux
              where intervention_id = p_intervention and propose_par = 'locataire' and statut = 'propose')
      and not exists (
@@ -186,7 +217,7 @@ $ancre$, $nouveau$  -- Audit du 13/10 (REP-01) : la même liste déjà en attent
         except
         select debut, fin from public.intervention_creneaux
         where intervention_id = p_intervention and propose_par = 'locataire' and statut = 'propose')) then
-    return v_nb;
+    return 0;
   end if;
 
   -- Seules les propositions de l'artisan sont refusées par cette contre-proposition ;

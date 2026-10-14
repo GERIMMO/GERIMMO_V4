@@ -195,7 +195,7 @@ export async function RecapitulatifFiscal(props: {
       </div>
       <section className="loc-carte space-y-3">
         <h2 className="text-lg">1. Choisir l’année et les biens</h2>
-        <form action={`/agence/${orgId}/comptabilite/fiscal`} className="grid items-end gap-3 sm:grid-cols-[1fr_2fr_auto]">
+        <form data-saisie-libre action={`/agence/${orgId}/comptabilite/fiscal`} className="grid items-end gap-3 sm:grid-cols-[1fr_2fr_auto]">
           <label className="space-y-1 text-sm">Année<select name="annee" defaultValue={annee} className="min-h-11 w-full rounded-lg border border-input bg-background px-3">{anneesProposees.map(a => <option key={a} value={a}>{a}</option>)}</select></label>
           <label className="space-y-1 text-sm">Biens<select name="bien" defaultValue={bien ?? ""} className="min-h-11 w-full rounded-lg border border-input bg-background px-3"><option value="">Tous mes biens</option>{(biensDisponibles ?? []).map(b => <option key={b.id} value={b.id}>{b.nom}</option>)}</select></label>
           <button type="submit" className="btn-or">Afficher</button>

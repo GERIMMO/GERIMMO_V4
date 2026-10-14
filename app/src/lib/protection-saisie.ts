@@ -43,12 +43,24 @@ function valeur(champ: Champ): string {
 function empreinte(formulaire: HTMLFormElement): Empreinte {
   return new Map(champs(formulaire).map(c => [c, valeur(c)]));
 }
-function eligible(formulaire: HTMLFormElement): boolean {
+/**
+ * Quels formulaires sont suivis. Chaque `<form` du code dit lequel il est (tests/protection-saisie-formulaires.test.ts) :
+ *   - `data-saisie-confirmee` : saisie à protéger. Le formulaire confirme ses envois (useActionFormulaire,
+ *     useActionStateProtegee) ; il n'avertit plus une fois la saisie enregistrée.
+ *   - `data-saisie-libre` : volontairement jamais suivi. Déconnexion, code à usage unique, mot de passe, bouton seul
+ *     sans champ, formulaire d'une page publique, formulaire qui ne peut pas se confirmer. L'attribut l'emporte sur
+ *     `data-saisie-confirmee`.
+ *   - un filtre (`method="get"`, `role="search"`) n'est jamais suivi non plus.
+ */
+export function eligible(formulaire: HTMLFormElement): boolean {
   return /^\/(agence|artisan|locataire|admin|assistance|compte)(\/|$)/.test(location.pathname)
     // Audit du 13/10 (PR178-A-02, PR178-B-05) : seuls les formulaires qui déclarent pouvoir confirmer un envoi
     // sont suivis. Un filtre ou une recherche sans attribut method ne se « confirme » jamais : il restait
     // « modifié » et la boîte « Quitter le site ? » s'ouvrait à chaque validation, « Rester » bloquant le filtre.
+    // Audit du 13/10 (VER-PR178-01) : cette liste blanche avait désarmé une trentaine de vrais formulaires de saisie ;
+    // les filtres sont maintenant marqués `data-saisie-libre`, et un test refuse tout `<form` sans marqueur.
     && formulaire.hasAttribute("data-saisie-confirmee")
+    && !formulaire.hasAttribute("data-saisie-libre")
     && formulaire.getAttribute("method")?.toLowerCase() !== "get"
     && formulaire.getAttribute("role") !== "search"
     && !formulaire.closest('[data-protection-saisie="locale"]');

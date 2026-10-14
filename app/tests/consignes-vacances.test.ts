@@ -51,6 +51,20 @@ describe.skipIf(!url)('SA002/SA003 — consignes versionnées et vacances en bas
   // L'alerte propre à la perte d'habilitation, elle, reste adressée au responsable et non acheminée.
   expect((await db.query("select statut from supervision_alertes_internes where plan_id=$1 and cle='responsable_non_habilite'",[p])).rows[0].statut).toBe('non_acheminee');
  });
+ // Vérification adverse du 13/10/2026 (VER-SQL-04) : si le créateur perd lui aussi son habilitation,
+ // l'alerte escaladée vers lui n'est plus acheminée à personne ; elle ne doit pas rester « escalade ».
+ it('perte de droit du remplaçant puis du créateur : l\'alerte escaladée vers le créateur devient non acheminée',async()=>{
+  const p=await plan();await db.query('select traiter_vacances()');
+  const id=(await db.query("select signaler_urgence_vacances($1,'incident-test','Urgence fictive à examiner') id",[p])).rows[0].id;
+  await ecrire("update supervision_alertes_internes set echeance=now()-interval '1 minute' where id=$1",[id]);
+  await service();await db.query('select traiter_vacances()');
+  await ecrire("update memberships set status='inactive' where account_id=$1",[responsable]);
+  await service();await db.query('select traiter_vacances()');
+  expect((await ecrire('select statut,destinataire from supervision_alertes_internes where id=$1',[id])).rows[0]).toEqual({statut:'escalade',destinataire:sa});
+  await ecrire("update memberships set status='inactive' where account_id=$1",[sa]);
+  await service();await db.query('select traiter_vacances()');
+  expect((await ecrire('select statut,destinataire from supervision_alertes_internes where id=$1',[id])).rows[0]).toEqual({statut:'non_acheminee',destinataire:sa});
+ });
  it('arrêt du plan ne touche pas les missions financières ; arrêt global reste explicite',async()=>{const p=await plan();await db.query('select traiter_vacances()');await db.query("select commander_arret_supervision('plan',$1,true,'Arrêt test local')",[p]);await service();expect((await db.query("select verifier_arret_supervision('consignes',$1) ok",[p])).rows[0].ok).toBe(false);expect((await db.query("select verifier_arret_supervision('quittances') ok")).rows[0].ok).toBe(true);await agir(sa);await db.query("select commander_arret_supervision('global',null,true,'Arrêt global test')");await service();expect((await db.query("select verifier_arret_supervision('quittances') ok")).rows[0].ok).toBe(false);await agir(sa);await db.query("select commander_arret_supervision('global',null,false,'Reprise explicite test')");expect((await db.query("select verifier_arret_supervision('quittances') ok")).rows[0].ok).toBe(true);});
  it('fin de vacances conserve historique et ne reprend pas un arrêt explicite',async()=>{const p=await plan();await db.query('select traiter_vacances()');await db.query("select commander_arret_supervision('consignes',null,true,'Pause maintenue')");await ecrire("update supervision_vacances set debut=now()-interval '2 days',fin=now()-interval '1 day' where id=$1",[p]);await service();await db.query('select traiter_vacances()');expect((await db.query("select verifier_arret_supervision('consignes') ok")).rows[0].ok).toBe(false);await agir(sa);expect((await db.query('select etat from supervision_vacances where id=$1',[p])).rows[0].etat).toBe('termine');});
  it('réviser un plan arrêté ne constitue pas une reprise implicite',async()=>{const p=await plan();await db.query("select commander_arret_supervision('plan',$1,true,'Pause explicite')",[p]);const p2=(await db.query("select enregistrer_vacances($1,'Révision arrêtée',now(),now()+interval '2 days','Europe/Paris',$2,null,30) id",[p,responsable])).rows[0].id;expect((await db.query('select arrete from supervision_vacances where id=$1',[p2])).rows[0].arrete).toBe(true);});

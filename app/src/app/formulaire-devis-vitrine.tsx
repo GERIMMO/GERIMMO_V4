@@ -32,7 +32,7 @@ export function FormulaireDevisVitrine() {
     "h-10 w-full rounded-lg border border-[var(--sur-encre)]/25 bg-[var(--sur-encre)]/5 px-3 text-sm text-[var(--sur-encre)] placeholder:text-[var(--sur-encre)]/40";
 
   return (
-    <form action={action} className="grid gap-3 sm:grid-cols-2">
+    <form data-saisie-libre action={action} className="grid gap-3 sm:grid-cols-2">
       {/* Pot de miel anti-robot : invisible, doit rester vide */}
       <input
         type="text"

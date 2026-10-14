@@ -11,7 +11,12 @@
 :global(.gerimmo-prestige) .mobileBrand :global(.marque-gerimmo) { width: 64px; }
 .content { width: 100%; max-width: 1240px; margin-inline: auto; padding: 24px 20px 110px; }
 .content :global(.entete-page) { padding-bottom: 20px; margin-bottom: 0; align-items: center; }
-.content :global(.artisan-liste) { display: grid; gap: 14px; }
+/* `minmax(0, 1fr)` et pas la piste automatique : une piste `auto` prend la largeur de
+   contenu minimale de sa carte, et le nom d'organisation (`truncate` = sur une ligne)
+   la poussait à 432 px dans un écran de 390 — l'agenda et les demandes de devis
+   défilaient de côté (audit du 13/10, DES-B-01, ARC-05). La piste ne dépasse plus
+   le conteneur ; le `min-w-0` de la carte fait le reste, le nom est tronqué par « … ». */
+.content :global(.artisan-liste) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .content :global(.artisan-liste) > * { margin-block: 0; }
 .content :global(.artisan-mission), .content :global(.artisan-demande) { border-width: 1px; border-radius: 12px; padding: 20px; box-shadow: 0 3px 12px #14304f04; }
 .content :global(.artisan-mission):hover, .content :global(.artisan-demande):hover { border-color: var(--or); box-shadow: 0 5px 16px #14304f0a; }

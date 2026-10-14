@@ -124,7 +124,7 @@ export default async function PageCompte() {
                 Mes espaces
               </Link>
             )}
-            <form action={seDeconnecter}><PurgerCopiesALaDeconnexion />
+            <form data-saisie-libre action={seDeconnecter}><PurgerCopiesALaDeconnexion />
               <button type="submit" className="lien-bandeau whitespace-nowrap">
                 Se déconnecter
               </button>

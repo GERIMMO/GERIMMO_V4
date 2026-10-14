@@ -624,10 +624,8 @@ function FormulairePartiel({
         <Input
           id={`part-${bailId}`}
           name="montant"
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
-          min="0.01"
           className="h-9 w-32"
         />
       </div>
@@ -1277,10 +1275,8 @@ function FormulaireDepense({
         <Input
           id={`dep-montant-${lotId}`}
           name="montant"
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
-          min="0.01"
           defaultValue={etat.valeurs?.montant}
           className="h-9 w-full sm:w-28"
         />

@@ -86,7 +86,7 @@ export function FormulaireDiagnostic({
   }, [etat]);
 
   return (
-    <form onChange={() => setEtatModifie(etat)} ref={formulaire} onSubmit={action} className="space-y-3 border-t border-border pt-4">
+    <form data-saisie-confirmee onChange={() => setEtatModifie(etat)} ref={formulaire} onSubmit={action} className="space-y-3 border-t border-border pt-4">
       <p className="text-sm font-medium">
         {typeInitial
           ? `Déposer : ${TYPES_DIAGNOSTIC[typeInitial]?.libelle ?? typeInitial}`

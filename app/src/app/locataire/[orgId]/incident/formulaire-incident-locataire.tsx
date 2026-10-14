@@ -196,7 +196,7 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
             {etat.avertissement}
           </p>
         )}
-        {etat.avertissement && <form action={action}>
+        {etat.avertissement && <form data-saisie-libre action={action}>
           <BoutonEnvoi enCoursTexte="Reprise des photos…" className="w-full">Réessayer les photos</BoutonEnvoi>
           <p className="mt-2 text-xs text-muted-foreground">Le signalement reste le même. Les photos déjà jointes sont conservées.</p>
           {etat.erreur && <p role="alert" className="err">{etat.erreur}</p>}

@@ -3527,9 +3527,14 @@ h2 { font-size: 1.3125rem; }
 .bien-visuel-embleme { display: grid; place-items: center; width: 76px; height: 76px; flex: none; border-radius: 20px; color: var(--marque); background: color-mix(in srgb, var(--marque) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--marque) 18%, transparent); }
 .bien-visuel-embleme svg { width: 40px; height: 40px; }
 .bien-visuel-chiffres { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; border-top: 1px solid var(--filet); margin-top: 18px; padding-top: 16px; }
-.bien-visuel-chiffres > div { display: flex; align-items: start; gap: 9px; }
-.bien-visuel-chiffres svg { width: 18px; height: 18px; flex: none; margin-top: 2px; color: var(--marque); }
-.bien-visuel-chiffres dt { font-size: 12px; color: var(--texte-secondaire); }
+/* Chaque chiffre = <div><dt>icône + libellé</dt><dd>valeur</dd></div> : une liste de définitions
+   bien formée (audit du 13/10, DES-A-04 ; axe : « dl > div > div » n'est pas permis). L'icône vit
+   donc DANS le <dt> et se pose à gauche, hors du texte, comme avant ; le libellé et la valeur
+   partagent le même retrait (18 px d'icône + 9 px d'écart). */
+.bien-visuel-chiffres > div { min-width: 0; }
+.bien-visuel-chiffres svg { position: absolute; left: 0; top: 2px; width: 18px; height: 18px; color: var(--marque); }
+.bien-visuel-chiffres dt, .bien-visuel-chiffres dd { padding-left: 27px; }
+.bien-visuel-chiffres dt { position: relative; font-size: 12px; color: var(--texte-secondaire); }
 .bien-visuel-chiffres dd { font-size: 16px; font-weight: 600; margin-top: 3px; }
 .bien-visuel-titre { display: flex; align-items: center; gap: 9px; }
 .bien-visuel-titre svg { width: 20px; height: 20px; flex: none; color: var(--marque); }

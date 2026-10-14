@@ -16,7 +16,7 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[]}:{orgId:str
   });
   const champs=OPTIONS_CATALOGUE[modeleId]??[];
   const style="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
-  return <form onSubmit={soumettre} aria-busy={enCours} className="space-y-5">
+  return <form data-saisie-confirmee onSubmit={soumettre} aria-busy={enCours} className="space-y-5">
     <label className="block space-y-2 text-sm font-medium"><span>Dossier concerné</span><select name="cible" required className={style} value={cible} onChange={e=>setCible(e.target.value)}><option value="">Choisir un dossier</option>{choix.map(c=><option key={c.id} value={c.id}>{c.libelle}</option>)}</select></label>
     <div className="grid gap-4 sm:grid-cols-2">{champs.map(c=><label key={c.cle} className={`block space-y-2 text-sm font-medium ${c.type==="textarea"?"sm:col-span-2":""}`}><span>{c.libelle}</span>
       {c.cle==="garant"?<select key={cible} name={c.cle} className={style} required defaultValue=""><option value="" disabled>Choisir un garant rattaché au dossier</option>{garants.filter(g=>g.bailId===cible).map(g=><option key={g.id} value={g.id}>{g.libelle}</option>)}</select>:

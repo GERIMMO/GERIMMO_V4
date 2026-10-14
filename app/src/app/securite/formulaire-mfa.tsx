@@ -101,7 +101,7 @@ export function FormulaireMfa({ suite }: { suite: string }) {
         <p className="text-sm text-muted-foreground">Cette étape est nécessaire pour ouvrir la supervision. Elle se termine après validation d’un premier code.</p>
         <Button type="button" onClick={configurer} disabled={enCours || Boolean(erreur)}>{enCours ? 'Préparation…' : 'Configurer mon application'}</Button>
       </>}
-      {(inscription || facteurs.length > 0) && <form onSubmit={verifier} className="space-y-4">
+      {(inscription || facteurs.length > 0) && <form data-saisie-libre onSubmit={verifier} className="space-y-4">
         {!inscription && facteurs.length > 1 && <div className="space-y-2"><Label htmlFor="mfa-facteur">Application</Label><select id="mfa-facteur" value={facteurId} onChange={e => { setFacteurId(e.target.value); setCode(''); }} className="w-full rounded border border-input bg-background p-2">{facteurs.map((f,i) => <option key={f.id} value={f.id}>{f.friendly_name || `Application ${i+1}`}</option>)}</select></div>}
         <div className="space-y-2"><Label htmlFor="mfa-code">Code à six chiffres</Label><Input id="mfa-code" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0,6))} autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required className="text-center text-xl tracking-widest" disabled={enCours} /></div>
         <div className="flex flex-wrap gap-3"><Button type="submit" disabled={enCours || !codeTotpValide(code)}>{enCours ? 'Vérification…' : inscription ? 'Activer et continuer' : 'Vérifier et continuer'}</Button>{inscription && <Button type="button" variant="outline" onClick={annulerConfiguration} disabled={enCours}>Annuler la configuration</Button>}</div>

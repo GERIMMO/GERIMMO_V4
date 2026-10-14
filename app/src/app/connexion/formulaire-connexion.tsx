@@ -132,7 +132,7 @@ export function FormulaireConnexion() {
             )}
           </p>
         )}
-        <form onSubmit={seConnecter} className="space-y-4">
+        <form data-saisie-libre onSubmit={seConnecter} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Adresse e-mail</Label>
             <Input

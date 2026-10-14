@@ -1,4 +1,4 @@
-.page { display: grid; gap: 18px; min-width: 0; }
+.page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; min-width: 0; }
 .page > a:first-child { justify-self: start; }
 .entete { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-width: 0; flex-wrap: wrap; }
 .titre { display: flex; align-items: center; gap: 14px; min-width: 0; }

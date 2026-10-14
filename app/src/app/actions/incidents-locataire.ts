@@ -127,16 +127,21 @@ export async function proposerMesCreneaux(
     creneaux.push({ debut, fin });
   }
 
-  const { error } = await supabase.rpc("contre_proposer_creneaux", {
+  const { data: enregistres, error } = await supabase.rpc("contre_proposer_creneaux", {
     p_org: orgId,
     p_intervention: interventionId,
     p_creneaux: creneaux,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
-  await notifierEnCoulisses(supabase, { evenement: "creneaux_contre_proposes", objet: interventionId, org: orgId }, (service) =>
-    notifierContrePropositionLocataire(service, orgId, interventionId)
-  );
+  // La base renvoie le nombre de créneaux qu'elle a enregistrés : 0 quand la même liste
+  // était déjà en attente (réponse perdue, double clic). Rien n'a changé, et l'artisan a
+  // déjà été prévenu au premier envoi : le locataire garde son succès, sans second e-mail.
+  if (enregistres !== 0) {
+    await notifierEnCoulisses(supabase, { evenement: "creneaux_contre_proposes", objet: interventionId, org: orgId }, (service) =>
+      notifierContrePropositionLocataire(service, orgId, interventionId)
+    );
+  }
 
   revaliderSuivi(orgId);
   return {

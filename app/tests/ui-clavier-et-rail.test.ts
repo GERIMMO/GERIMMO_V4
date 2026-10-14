@@ -5,6 +5,7 @@
  * navigateur (rapport du correcteur). Ce fichier garde ce qui se teste sans DOM :
  *  · DES-A-09 : la règle qui boucle Tab dans le tiroir « Menu » (fonction pure) ;
  *  · DES-A-14 : les initiales mises à la place du nom tronqué dans le rail ;
+ *  · DES-A-04 : la liste de définitions des chiffres clés d'un bien est bien formée ;
  *  · DES-A-01, DES-B-02, DES-A-13, DES-A-05 : le contrat de la feuille de style
  *    (le texte de la règle, pas son rendu).
  */
@@ -16,6 +17,7 @@ import { describe, expect, it } from "vitest";
 import { initialesMarque } from "../src/lib/marque-organisation";
 import { cibleDeTabulation } from "../src/lib/piege-focus";
 import { MarqueOrganisation } from "../src/components/marque-organisation";
+import { ChiffresBien } from "../src/app/agence/[orgId]/parc/[bienId]/chiffres-bien";
 
 const css = (nom: string) => readFileSync(path.join(__dirname, "../src/app", nom), "utf8");
 
@@ -79,6 +81,32 @@ describe("initialesMarque — la cellule étroite du rail (DES-A-14)", () => {
   it("pas d'initiales quand c'est le logo Gerimmo qui s'affiche", () => {
     const html = renderToStaticMarkup(createElement(MarqueOrganisation, { marque: null }));
     expect(html).not.toContain("data-initiales");
+  });
+});
+
+describe("ChiffresBien — la liste de définitions de la fiche d'un bien (DES-A-04)", () => {
+  const html = renderToStaticMarkup(
+    createElement(ChiffresBien, {
+      chiffres: [
+        { icone: "cle", label: "Lots actifs", valeur: "2" },
+        { icone: "doc", label: "Diagnostics du bien", valeur: "0 déposé" },
+      ],
+    })
+  );
+
+  it("un <dl> dont chaque groupe <div> ne contient que <dt> puis <dd> (l'icône est dans le <dt>)", () => {
+    expect(html).toMatch(
+      /^<dl class="bien-visuel-chiffres">(<div><dt><svg[^>]*>.*?<\/svg>[^<]+<\/dt><dd>[^<]+<\/dd><\/div>){2}<\/dl>$/
+    );
+  });
+
+  it("garde les libellés et les valeurs", () => {
+    expect(html).toContain("Lots actifs</dt><dd>2</dd>");
+    expect(html).toContain("Diagnostics du bien</dt><dd>0 déposé</dd>");
+  });
+
+  it("l'icône est décorative : aria-hidden, elle ne s'ajoute pas au nom du terme", () => {
+    expect(html.match(/<svg[^>]*aria-hidden="true"/g)).toHaveLength(2);
   });
 });
 

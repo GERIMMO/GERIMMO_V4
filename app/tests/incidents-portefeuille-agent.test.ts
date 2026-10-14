@@ -189,6 +189,26 @@ describe.skipIf(!DB_URL)("Incidents dans le portefeuille de l'agent", () => {
     expect(JSON.stringify(rows[0].details)).not.toContain("Détenteur fictif");
   });
 
+  // Vérification adverse du 13/10 (VER-SQL-02) : la trace s'écrivait avant la suppression, sans
+  // verrou. Deux suppressions simultanées de la même détention laissaient deux lignes d'audit pour
+  // une seule détention disparue. La trace doit suivre la ligne réellement supprimée : on rejoue
+  // ici la seconde session (sa suppression ne trouve plus la ligne) avec un déclencheur qui écarte
+  // la suppression, sans avoir besoin de deux connexions.
+  it("VER-SQL-02 : une suppression qui ne retire aucune ligne ne laisse aucune trace d'audit", async () => {
+    await postgres();
+    const bienId = (await db.query("select bien_id from public.lots where id=$1", [lot])).rows[0].bien_id;
+    const lotSansBail = await id("insert into public.lots(organization_id,bien_id,nom,etat) values($1,$2,'Lot sans bail 2','loue') returning id", [org, bienId]);
+    const personne = await id("insert into public.persons(organization_id,nom) values($1,'Détenteur fictif 2') returning id", [org]);
+    const detention = await id("insert into public.detentions(organization_id,lot_id,person_id,quote_part) values($1,$2,$3,40) returning id", [org, lotSansBail, personne]);
+    await db.query("create function public.ecarter_suppression_recette() returns trigger language plpgsql as $f$ begin return null; end $f$");
+    await db.query("create trigger ecarter_suppression_recette before delete on public.detentions for each row execute function public.ecarter_suppression_recette()");
+    await devenir(admin);
+    await db.query("select public.supprimer_detention($1)", [detention]);
+    await postgres();
+    expect((await db.query("select id from public.detentions where id=$1", [detention])).rows).toHaveLength(1);
+    expect((await db.query("select id from public.audit_log where action='detention_supprimee'")).rows).toHaveLength(0);
+  });
+
   it.each(["admin", "super_admin"])("%s conserve la qualification sans mandat personnel", async (role) => {
     await devenir(role === "admin" ? admin : sa);
     expect((await db.query("select id from public.incidents where id=$1", [incident])).rows).toHaveLength(1);

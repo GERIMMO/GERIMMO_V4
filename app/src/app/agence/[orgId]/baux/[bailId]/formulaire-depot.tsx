@@ -157,9 +157,8 @@ function FormEncaisser({
           <Input
             id="dep-montant"
             name="montant"
-            type="number"
-            step="0.01"
-            min="0.01"
+            type="text"
+            inputMode="decimal"
             defaultValue={etat.valeurs?.montant ?? reste}
             className="h-9 w-28"
           />

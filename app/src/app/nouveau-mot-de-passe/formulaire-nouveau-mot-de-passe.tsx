@@ -22,7 +22,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces" }: { suite?: st
   return (
     <Card>
       <CardContent className="pt-6">
-        <form action={action} className="space-y-4">
+        <form data-saisie-libre action={action} className="space-y-4">
           <input type="hidden" name="suite" value={suite} />
           <div className="space-y-2">
             <Label htmlFor="mot_de_passe">Nouveau mot de passe</Label>

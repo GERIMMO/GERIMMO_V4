@@ -351,7 +351,7 @@ export function FormulaireLoyers({
         <form data-saisie-confirmee action={formEnc} className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
             <Label htmlFor="enc-montant" className="text-sm">Montant (€)</Label>
-            <Input id="enc-montant" name="montant" type="number" step="0.01" min="0.01" defaultValue={etatEnc.valeurs?.montant} className="h-9 w-28" />
+            <Input id="enc-montant" name="montant" type="text" inputMode="decimal" defaultValue={etatEnc.valeurs?.montant} className="h-9 w-28" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="enc-date" className="text-sm">Date</Label>

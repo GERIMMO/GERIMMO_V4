@@ -26,7 +26,7 @@ export function FormulaireEditionBail({
   const { etat, soumettre: formAction, enCours } = useActionFormulaire<EtatBail>(action);
 
   return (
-    <form onSubmit={formAction} className="space-y-3">
+    <form data-saisie-confirmee onSubmit={formAction} className="space-y-3">
       {/* etat.valeurs prime sur les défauts du brouillon : un refus ne doit pas
           écraser les corrections saisies (recette 22/08). */}
       <ChampsBail personnesDansEtape chambres={chambres} personnes={personnes} defauts={defauts} prefixe="edition" valeurs={etat.valeurs} />

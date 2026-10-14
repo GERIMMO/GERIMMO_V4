@@ -33,7 +33,7 @@ export function FormulaireReinitialisation() {
             />
           </div>
         ) : (
-          <form action={action} className="space-y-4">
+          <form data-saisie-libre action={action} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Adresse e-mail</Label>
               <Input

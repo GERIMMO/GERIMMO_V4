@@ -24,7 +24,7 @@ export function FormulaireRetour({ecran,action,cle,organisations,contestation=fa
   <a className="underline" href={`${cheminAssistance}${contexte?`?${contexte}`:''}#nouvelle`}>Nouvelle demande</a>
   {retour&&<Link className="underline" href={retour}>← Retour à la page précédente</Link>}</p>
  </div>;
- return <form onSubmit={soumettre} className={styles.formulaire} aria-busy={enCours}>
+ return <form data-saisie-confirmee onSubmit={soumettre} className={styles.formulaire} aria-busy={enCours}>
   <input type="hidden" name="cle_envoi" value={cleEnvoi}/><input type="hidden" name="ecran" value={ecran}/><input type="hidden" name="action_origine" value={action}/>
   <fieldset className={styles.natures}><legend>Quel est votre besoin ?</legend><div>
    {Object.entries(NATURES_RETOUR).filter(([k])=>k!=='contestation'||contestation).map(([k,v])=>{
@@ -57,6 +57,6 @@ export function FormulaireRetour({ecran,action,cle,organisations,contestation=fa
 }
 export function SoutenirIdee({id}:{id:string}){
  const {etat,soumettre,enCours}=useActionRetour(soutenirRetour.bind(null,id));
- return <form onSubmit={soumettre} className="mt-3"><BoutonEnvoi size="sm" variant="outline" enCours={enCours} disabled={Boolean(etat.succes)}>Soutenir cette idée</BoutonEnvoi>
+ return <form data-saisie-libre onSubmit={soumettre} className="mt-3"><BoutonEnvoi size="sm" variant="outline" enCours={enCours} disabled={Boolean(etat.succes)}>Soutenir cette idée</BoutonEnvoi>
  {etat.succes&&<p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}{etat.erreur&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}</form>;
 }

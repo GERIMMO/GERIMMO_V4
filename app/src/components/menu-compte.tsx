@@ -105,7 +105,7 @@ export function MenuCompte({
           ))}
           {/* La déconnexion reste une ACTION serveur, pas un lien : elle révoque
               la session côté Supabase avant de renvoyer à l'accueil. */}
-          <form action={seDeconnecter}><PurgerCopiesALaDeconnexion />
+          <form data-saisie-libre action={seDeconnecter}><PurgerCopiesALaDeconnexion />
             <button type="submit" role="menuitem" className="menu-compte-sortir">
               Se déconnecter
             </button>

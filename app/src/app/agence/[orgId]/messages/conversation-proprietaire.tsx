@@ -30,7 +30,7 @@ export function ConversationProprietaire({ orgId, personId, prenom, messages }: 
         </Fragment>;
       })}
     </div> : <div className={styles.premierMessage}><MessageCircle size={25} strokeWidth={1.5} aria-hidden="true" /><div><strong>Commencez votre échange{prenom ? ` avec ${prenom}` : ""}</strong><p>Votre message sera disponible dans son espace locataire.</p></div></div>}
-    <form key={version} onSubmit={soumettre} className={styles.redaction} aria-busy={enCours}>
+    <form data-saisie-confirmee key={version} onSubmit={soumettre} className={styles.redaction} aria-busy={enCours}>
       <fieldset disabled={enCours}>
         <Label htmlFor={idTexte}>Votre message</Label>
         <textarea id={idTexte} name="texte" required maxLength={4000} rows={3}

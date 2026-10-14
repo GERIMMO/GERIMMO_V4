@@ -151,7 +151,7 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
       {copieLocale&&<p role="status" className="mt-2 text-sm text-muted-foreground">{copieLocale}</p>}
       {erreur&&<div className="mt-3"><Erreur>{erreur}</Erreur></div>}
     </form>
-    <div className={styles.refus}>{!refusOuvert?<button type="button" onClick={()=>setRefusOuvert(true)}>Je ne peux pas chiffrer cette demande</button>:<form action={actionRefus} className="space-y-3"><label className="block">Motif (facultatif)<textarea name="motif" rows={2} className={CLASSE_ZONE_TEXTE}/></label>{refus.erreur&&<Erreur>{refus.erreur}</Erreur>}<button type="submit" className={CLASSE_BOUTON_SOBRE}>Confirmer : je ne chiffre pas</button><button type="button" className={CLASSE_BOUTON_SOBRE} onClick={()=>setRefusOuvert(false)}>Revenir</button></form>}</div>
+    <div className={styles.refus}>{!refusOuvert?<button type="button" onClick={()=>setRefusOuvert(true)}>Je ne peux pas chiffrer cette demande</button>:<form data-saisie-libre action={actionRefus} className="space-y-3"><label className="block">Motif (facultatif)<textarea name="motif" rows={2} className={CLASSE_ZONE_TEXTE}/></label>{refus.erreur&&<Erreur>{refus.erreur}</Erreur>}<button type="submit" className={CLASSE_BOUTON_SOBRE}>Confirmer : je ne chiffre pas</button><button type="button" className={CLASSE_BOUTON_SOBRE} onClick={()=>setRefusOuvert(false)}>Revenir</button></form>}</div>
   </div>;
 }
 

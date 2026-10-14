@@ -38,7 +38,7 @@ export async function PageFinances({ orgId, recherche }: {
   const bouton = buttonVariants({ variant: "outline", size: "sm" });
   return <main className="mx-auto w-full max-w-5xl space-y-4 p-4 sm:p-7">
     <div className="entete-page"><TitreEcran rubrique="finances">Finances</TitreEcran><span className="mono-discret">Loyers · Recettes et dépenses · Déclaration</span></div>
-    <form key={`${annee}:${bien}:${numeroMois}`} action={`${base}/loyers`} className="barre-filtres flex flex-wrap items-end gap-3">
+    <form data-saisie-libre key={`${annee}:${bien}:${numeroMois}`} action={`${base}/loyers`} className="barre-filtres flex flex-wrap items-end gap-3">
       <label className="min-w-0 basis-full sm:basis-0 sm:flex-1 text-sm">Bien<select name="bien" defaultValue={bien} className="mt-1 block min-h-11 w-full rounded-lg border border-border bg-background px-3"><option value="">Tous les biens</option>{(biens ?? []).map(b => <option key={b.id} value={b.id}>{b.nom}{b.archived_at ? " (retiré)" : ""}</option>)}</select></label>
       <label className="text-sm">Année<input name="annee" type="number" min="1970" max={anneeCourante + 1} defaultValue={annee} className="mt-1 block min-h-11 w-24 rounded-lg border border-border bg-background px-3" /></label>
       <input type="hidden" name="mois" value={numeroMois} /><button className={bouton} type="submit">Afficher</button>

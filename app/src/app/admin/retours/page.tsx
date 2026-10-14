@@ -59,7 +59,7 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
       <p className="mt-3 text-xs text-muted-foreground">Classement sur tout l’historique : organisations distinctes, soutiens uniques, puis ancienneté. Regrouper des idées conserve la confidentialité de leurs descriptions.</p>
     </section>}
     {/* Libellé au-dessus du sélecteur : à 390 px, État et Organisation tiennent sur une ligne et « Filtrer » prend la suivante (24/09). */}
-    {(total > 0 || filtreActif || file.error) && <form className="flex flex-wrap items-end gap-3 text-sm">
+    {(total > 0 || filtreActif || file.error) && <form data-saisie-libre className="flex flex-wrap items-end gap-3 text-sm">
       <input type="hidden" name="nature" value={nature} />
       <label className="flex min-w-[10rem] flex-1 flex-col gap-1"><span>État</span><select name="etat" defaultValue={etat} className="w-full rounded border bg-white p-2"><option value="">Tous</option>{Object.entries(ETATS_RETOUR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label className="flex min-w-[10rem] flex-1 flex-col gap-1"><span>Organisation</span><select name="org" defaultValue={org} className="w-full rounded border bg-white p-2"><option value="">Toutes</option>{(organisations.data ?? []).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>

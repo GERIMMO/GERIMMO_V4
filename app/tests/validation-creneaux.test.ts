@@ -270,7 +270,8 @@ describe.skipIf(!DB_URL)("Validation SQL des créneaux — mission du12/10", () 
     const mission=await missionAvecCreneaux();await agir(cptLoc);
     const liste=creneauxA([10,11,12]);
     expect((await db.query(`select public.contre_proposer_creneaux($1,$2,$3::jsonb) n`,[org,mission,liste])).rows[0].n).toBe(3);
-    expect((await db.query(`select public.contre_proposer_creneaux($1,$2,$3::jsonb) n`,[org,mission,liste])).rows[0].n).toBe(3);
+    // VER-SQL-03 : le second envoi dit qu'il n'a rien enregistré (0), pour que l'action ne prévienne pas l'artisan une deuxième fois.
+    expect((await db.query(`select public.contre_proposer_creneaux($1,$2,$3::jsonb) n`,[org,mission,liste])).rows[0].n).toBe(0);
     expect(await repartition(mission)).toEqual([{par:'artisan',statut:'refuse',n:3},{par:'locataire',statut:'propose',n:3}]);
     expect((await db.query(`select id from alerts where type='creneaux_arbitrage' and origine_id=$1`,[mission])).rowCount).toBe(0);
     expect((await db.query(`select 1 from incident_evenements where type='creneaux_proposes' and details->>'intervention_id'=$1 and details->>'par'='locataire'`,[mission])).rowCount).toBe(1);

@@ -141,7 +141,7 @@ function Formulaire({
   // « Galian, 120 000 € » seuls passaient pour des valeurs déjà saisies.
   // Un seul marquage des champs obligatoires, l'astérisque, et sa légende.
   return (
-    <form onSubmit={soumettre} onInput={() => setModifie(true)} className="space-y-4" aria-busy={enCours}>
+    <form data-saisie-confirmee onSubmit={soumettre} onInput={() => setModifie(true)} className="space-y-4" aria-busy={enCours}>
       <fieldset disabled={enCours} className="min-w-0">
       <EtapesSaisie activer={estProprietaire} titre="Mon profil" etapes={[
         {titre:"Identité", detail:"Ces informations sont nécessaires pour préparer vos documents."},
@@ -412,11 +412,9 @@ function Formulaire({
             <span className="block text-xs text-muted-foreground">Ne pas relancer une dette inférieure à (€)</span>
             <Input
               id="pr-relance-seuil"
-              type="number"
+              type="text"
+              inputMode="decimal"
               name="relance_seuil_montant"
-              min={0}
-              max={1000}
-              step="0.01"
               defaultValue={organisation.relance_seuil_montant ?? 5}
               className="mt-1"
             />

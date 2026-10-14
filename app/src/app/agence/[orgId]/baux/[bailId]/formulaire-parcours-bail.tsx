@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { LabelBail as Label } from "@/components/pastille-bail";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
-type Champ = { nom:string; titre:string; type?:"number"|"date"|"textarea"; options?:[string,string][]; requis?:boolean; aide?:string; visible?:(v:Record<string,string>)=>boolean; min?:number; max?:number; entier?:boolean };
+type Champ = { nom:string; titre:string; type?:"number"|"montant"|"date"|"textarea"; options?:[string,string][]; requis?:boolean; aide?:string; visible?:(v:Record<string,string>)=>boolean; min?:number; max?:number; entier?:boolean };
 type Groupe = { etapes:string[]; titre:string; aide?:string; agence?:boolean; champs:Champ[] };
 const ouiNon:[string,string][]=[["","À confirmer"],["true","Oui"],["false","Non"]];
 const choix:[string,string][]=[["true","Oui"],["false","Non"]];
@@ -25,15 +25,15 @@ const groupes:Groupe[]=[
  {etapes:["loyer"],titre:"Échéance mensuelle",champs:[{nom:"jour_echeance",titre:"Jour d’échéance du loyer",type:"number",requis:true,min:1,max:28,entier:true,aide:"Jour du mois auquel le loyer est dû, entre 1 et 28."}]},
  {etapes:["loyer"],titre:"La précédente location",champs:[
   {nom:"precedente_location",titre:"Situation du logement",options:[["","À confirmer"],["premiere","Première location"],["ancienne","Ancien locataire parti depuis au moins 18 mois"],["recente","Ancien locataire parti depuis moins de 18 mois"]]},
-  {nom:"dernier_loyer",titre:"Précédent loyer hors charges (€)",type:"number",visible:recent},
+  {nom:"dernier_loyer",titre:"Précédent loyer hors charges (€)",type:"montant",visible:recent},
   {nom:"dernier_loyer_versement",titre:"Date du dernier versement",type:"date",visible:recent},
   {nom:"precedent_loyer_revise",titre:"Ce loyer a-t-il été révisé ?",options:ouiNon,visible:recent},
   {nom:"dernier_loyer_revision",titre:"Date de la dernière révision",type:"date",visible:v=>recent(v)&&v.precedent_loyer_revise==="true"},
  ]},
  {etapes:["loyer"],titre:"Les montants du nouveau bail",aide:"Saisissez 0 lorsqu’un montant est nul.",champs:[
-  {nom:"loyer_hc",titre:"Loyer hors charges (€)",type:"number",requis:true},
-  {nom:"charges",titre:"Charges mensuelles (€)",type:"number",requis:true},
-  {nom:"depot_garantie",titre:"Dépôt de garantie (€)",type:"number",requis:true,aide:"Le plafond est vérifié selon le type de bail et le caractère meublé du logement."},
+  {nom:"loyer_hc",titre:"Loyer hors charges (€)",type:"montant",requis:true},
+  {nom:"charges",titre:"Charges mensuelles (€)",type:"montant",requis:true},
+  {nom:"depot_garantie",titre:"Dépôt de garantie (€)",type:"montant",requis:true,aide:"Le plafond est vérifié selon le type de bail et le caractère meublé du logement."},
   {nom:"charges_mode",titre:"Mode de charges",options:[["provision","Provision avec régularisation annuelle"],["forfait","Forfait sans régularisation"]]},
  ]},
  {etapes:["loyer"],titre:"La révision et le paiement",champs:[
@@ -46,22 +46,22 @@ const groupes:Groupe[]=[
  ]},
  {etapes:["loyer"],titre:"Les honoraires",agence:true,aide:"À renseigner pour une location gérée par une agence. Indiquez 0 si aucun honoraire n’est facturé.",champs:[
   {nom:"zone_honoraires",titre:"Zone des honoraires",options:[["","À confirmer"],["tres_tendue","Très tendue"],["tendue","Tendue"],["autre","Autre zone"]]},
-  {nom:"honoraires_bailleur",titre:"Visite, dossier, bail — bailleur (€ TTC)",type:"number"},
-  {nom:"honoraires_locataire",titre:"Visite, dossier, bail — locataire (€ TTC)",type:"number"},
-  {nom:"honoraires_edl_bailleur",titre:"État des lieux — bailleur (€ TTC)",type:"number"},
-  {nom:"honoraires_edl_locataire",titre:"État des lieux — locataire (€ TTC)",type:"number"},
+  {nom:"honoraires_bailleur",titre:"Visite, dossier, bail — bailleur (€ TTC)",type:"montant"},
+  {nom:"honoraires_locataire",titre:"Visite, dossier, bail — locataire (€ TTC)",type:"montant"},
+  {nom:"honoraires_edl_bailleur",titre:"État des lieux — bailleur (€ TTC)",type:"montant"},
+  {nom:"honoraires_edl_locataire",titre:"État des lieux — locataire (€ TTC)",type:"montant"},
  ]},
  {etapes:["documents"],titre:"Les informations du DPE",aide:"Recopiez ces trois informations depuis votre DPE. Les rapports déjà déposés sont repris ci-dessous.",champs:[
-  {nom:"dpe_depenses_min",titre:"Dépenses annuelles minimales (€)",type:"number"},
-  {nom:"dpe_depenses_max",titre:"Dépenses annuelles maximales (€)",type:"number"},
+  {nom:"dpe_depenses_min",titre:"Dépenses annuelles minimales (€)",type:"montant"},
+  {nom:"dpe_depenses_max",titre:"Dépenses annuelles maximales (€)",type:"montant"},
   {nom:"dpe_annees_reference",titre:"Année(s) des prix de l’énergie",aide:"Par exemple : 2021, 2022 et 2023, selon le DPE."},
  ]},
  {etapes:["clauses"],titre:"Les règles locales",champs:[
   {nom:"encadrement_loyer",titre:"Loyers de référence imposés par arrêté local",options:ouiNon,aide:"Une zone tendue n’est pas nécessairement soumise aux loyers de référence."},
-  {nom:"loyer_reference",titre:"Loyer de référence (€/m²)",type:"number",visible:v=>v.encadrement_loyer==="true"},
-  {nom:"loyer_reference_majore",titre:"Loyer de référence majoré (€/m²)",type:"number",visible:v=>v.encadrement_loyer==="true"},
-  {nom:"complement_loyer",titre:"Complément de loyer (€) — Facultatif",type:"number",visible:v=>v.encadrement_loyer==="true"},
-  {nom:"complement_justification",titre:"Justification du complément",visible:v=>v.encadrement_loyer==="true"&&Number(v.complement_loyer)>0,aide:"À préciser si un complément est appliqué."},
+  {nom:"loyer_reference",titre:"Loyer de référence (€/m²)",type:"montant",visible:v=>v.encadrement_loyer==="true"},
+  {nom:"loyer_reference_majore",titre:"Loyer de référence majoré (€/m²)",type:"montant",visible:v=>v.encadrement_loyer==="true"},
+  {nom:"complement_loyer",titre:"Complément de loyer (€) — Facultatif",type:"montant",visible:v=>v.encadrement_loyer==="true"},
+  {nom:"complement_justification",titre:"Justification du complément",visible:v=>v.encadrement_loyer==="true"&&Number((v.complement_loyer??"").replace(",","."))>0,aide:"À préciser si un complément est appliqué."},
   {nom:"servitude_residence_principale",titre:"Servitude de résidence principale",options:ouiNon,aide:"À vérifier dans les règles d’urbanisme applicables au logement."},
  ]},
  {etapes:["clauses"],titre:"Les clauses de résiliation",champs:[
@@ -72,7 +72,7 @@ const groupes:Groupe[]=[
  ]},
  {etapes:["clauses"],titre:"Les travaux et les autres accords",champs:[
   {nom:"travaux_recents",titre:"Travaux récents du bailleur — Facultatif",type:"textarea"},
-  {nom:"travaux_recents_montant",titre:"Montant de ces travaux (€)",type:"number",visible:v=>Boolean(v.travaux_recents.trim()),aide:"À renseigner si des travaux sont indiqués."},
+  {nom:"travaux_recents_montant",titre:"Montant de ces travaux (€)",type:"montant",visible:v=>Boolean(v.travaux_recents.trim()),aide:"À renseigner si des travaux sont indiqués."},
   {nom:"travaux_locataire",titre:"Travaux à la charge du locataire — Facultatif",type:"textarea"},
   {nom:"clauses_particulieres",titre:"Clauses particulières — Facultatif",type:"textarea"},
  ]},
@@ -98,7 +98,7 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
    return res;
  });
  const visible=["bail","loyer","documents","clauses"].includes(etape);
- return <form id="form-parcours-bail" hidden={!visible} onSubmit={soumettre} className="bail-formulaire-etape space-y-5" onChange={()=>setModifie(true)}>
+ return <form data-saisie-confirmee id="form-parcours-bail" hidden={!visible} onSubmit={soumettre} className="bail-formulaire-etape space-y-5" onChange={()=>setModifie(true)}>
   {groupes.filter(g=>!g.agence||agence).map(g=><fieldset key={g.titre} id={g.etapes[0]==="documents"?"complements-energie":undefined} hidden={!g.etapes.includes(etape)} disabled={!g.etapes.includes(etape)||enCours} className="bail-groupe-champs">
    <legend className="text-base font-semibold">{g.titre}</legend>
    {g.aide&&<p className="mb-3 text-sm text-muted-foreground">{g.aide}</p>}
@@ -109,7 +109,7 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
      <Label htmlFor={id} champ={`bail.${c.nom}`} renseigne={Boolean(valeurs[c.nom]?.trim())}>{c.titre}{c.requis||!/facultati[fv]/i.test(c.titre)?" *":""}</Label>
      {opts?<select id={id} name={c.nom} value={valeurs[c.nom]??""} required={c.requis&&affiche} disabled={!affiche} onChange={e=>setValeurs(v=>({...v,[c.nom]:e.target.value}))} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{opts.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
       :c.type==="textarea"?<textarea id={id} name={c.nom} value={valeurs[c.nom]??""} rows={3} maxLength={c.nom==="clauses_particulieres"?4000:2000} onChange={e=>setValeurs(v=>({...v,[c.nom]:e.target.value}))} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"/>
-      :<Input id={id} name={c.nom} type={c.type??"text"} disabled={!affiche} value={valeurs[c.nom]??""} required={c.requis&&affiche} min={c.type==="number"?(c.min??0):undefined} max={c.max} step={c.type==="number"?(c.entier?1:"0.01"):undefined} maxLength={c.nom==="dpe_annees_reference"?100:500} onChange={e=>setValeurs(v=>({...v,[c.nom]:e.target.value}))}/>}
+      :<Input id={id} name={c.nom} type={c.type==="montant"?"text":(c.type??"text")} inputMode={c.type==="montant"?"decimal":undefined} disabled={!affiche} value={valeurs[c.nom]??""} required={c.requis&&affiche} min={c.type==="number"?(c.min??0):undefined} max={c.max} step={c.type==="number"?(c.entier?1:"0.01"):undefined} maxLength={c.nom==="dpe_annees_reference"?100:500} onChange={e=>setValeurs(v=>({...v,[c.nom]:e.target.value}))}/>}
      {c.aide&&<p className="text-xs text-muted-foreground">{c.aide}</p>}
     </div>;
    })}</div>

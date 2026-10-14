@@ -193,7 +193,7 @@ export default async function PageEspaces() {
           <MarqueGerimmo />
           <div className="flex items-center gap-2">
             <SyntheseAlertes alertes={alertes} rappel aujourdhui={aujourdhuiParis()} />
-            <form action={seDeconnecter}><PurgerCopiesALaDeconnexion />
+            <form data-saisie-libre action={seDeconnecter}><PurgerCopiesALaDeconnexion />
               <button type="submit" className="lien-bandeau">
                 Se déconnecter
               </button>

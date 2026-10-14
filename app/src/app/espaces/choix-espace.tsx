@@ -54,7 +54,7 @@ export function ChoixEspace({
           {!ouvert && <span className="text-sm font-medium text-[var(--marque-sombre)]">Ouvrir →</span>}
         </button>
         {ouvert && (
-          <form action={action} className="space-y-3 border-t border-[var(--filet)] pt-3">
+          <form data-saisie-libre action={action} className="space-y-3 border-t border-[var(--filet)] pt-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="ouv-prenom">Prénom</Label>

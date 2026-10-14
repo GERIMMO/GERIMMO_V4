@@ -535,4 +535,115 @@ describe.skipIf(!DB_URL)("Lot bail-sortie — D01, D34, D35 en base", () => {
       await db.query(`select public.controler_mise_en_location($1)`, [autreChambre]);
     });
   });
+
+  // ------------------------------------------------------------------------
+  // D35 (1) (SOR-02) — option A : une remise des clés n'est jamais datée d'après
+  // aujourd'hui, et la correction reste ouverte tant que la restitution est « en
+  // cours ». Le délai légal et les montants arrêtés ne changent pas.
+  // ------------------------------------------------------------------------
+  describe("D35 (1) — remise des clés : jamais dans le futur, corrigeable tant que la restitution est en cours", () => {
+    const AUJOURDHUI_PARIS = "(now() at time zone 'Europe/Paris')::date";
+
+    async function bailEnPreavis(): Promise<string> {
+      return bail({ etat: "preavis", date_debut: await jour("current_date - 400"), date_fin: await jour("current_date + 60") });
+    }
+
+    async function restitution(b: string) {
+      await db.query("reset role");
+      const {
+        rows: [r],
+      } = await db.query(
+        `select id, to_char(date_remise_cles,'YYYY-MM-DD') as remise, delai_mois, depot::text as depot,
+                impayes::text as impayes, trop_percu::text as trop_percu, statut, montants_arretes_le::text as arrete
+           from public.restitutions where bail_id = $1`,
+        [b]
+      );
+      return r as {
+        id: string; remise: string; delai_mois: number; depot: string; impayes: string;
+        trop_percu: string; statut: string; arrete: string;
+      };
+    }
+
+    it("une remise des clés datée de demain est refusée, avec un message clair", async () => {
+      const b = await bailEnPreavis();
+      await enGerant();
+      const demain = await jour(`${AUJOURDHUI_PARIS} + 1`);
+      const erreur = await erreurDe(`select public.demarrer_restitution($1, $2::date, false)`, [b, demain]);
+      expect(erreur.message).toMatch(/remise des clés ne peut pas être datée après aujourd'hui/);
+      expect(erreur.message).toContain(await jour(AUJOURDHUI_PARIS).then((d) => d.split("-").reverse().join("/")));
+      expect(await restitution(b)).toBeUndefined();
+    });
+
+    it("la date d'aujourd'hui (Paris) et une date passée sont acceptées", async () => {
+      const b = await bailEnPreavis();
+      const c = await bailEnPreavis();
+      await enGerant();
+      await db.query(`select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS}, false)`, [b]);
+      await db.query(`select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 20, true)`, [c]);
+      expect((await restitution(b)).remise).toBe(await jour(AUJOURDHUI_PARIS));
+      expect((await restitution(c)).delai_mois).toBe(1);
+    });
+
+    it("tant que la restitution est en cours, un nouvel envoi corrige la date et le délai, sans créer de seconde restitution", async () => {
+      const b = await bailEnPreavis();
+      await enGerant();
+      await db.query(`select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 5, false)`, [b]);
+      const avant = await restitution(b);
+      expect(avant).toMatchObject({ statut: "en_cours", delai_mois: 2 });
+      // Correction : la bonne date est plus ancienne, la sortie était conforme
+      await db.query(`select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 12, true)`, [b]);
+      const apres = await restitution(b);
+      expect(apres.id).toBe(avant.id);
+      expect(apres.remise).toBe(await jour(`${AUJOURDHUI_PARIS} - 12`));
+      expect(apres.delai_mois).toBe(1);
+      await db.query("reset role");
+      const { rows } = await db.query(`select count(*)::int as n from public.restitutions where bail_id = $1`, [b]);
+      expect(rows[0].n).toBe(1);
+    });
+
+    it("une correction de la date ne réarrête aucun montant : dépôt, impayés et date d'arrêté restent ceux du démarrage", async () => {
+      const b = await bailEnPreavis();
+      await enGerant();
+      await db.query(`select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 5, false)`, [b]);
+      const avant = await restitution(b);
+      // Entre-temps la réalité bouge : un impayé de 700 €
+      await db.query("reset role");
+      await db.query(
+        `insert into public.appels_loyer (organization_id, bail_id, periode, loyer_hc, charges, montant_du, date_echeance)
+         values ($1,$2,date_trunc('month', current_date - 40)::date,650,50,700,current_date - 40)`,
+        [org, b]
+      );
+      const {
+        rows: [reel],
+      } = await db.query(`select impayes::text from public.montants_reels_bail($1)`, [b]);
+      expect(Number(reel.impayes)).toBeGreaterThan(0);
+
+      await enGerant();
+      await db.query(`select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 8, false)`, [b]);
+      const apres = await restitution(b);
+      expect(apres.remise).toBe(await jour(`${AUJOURDHUI_PARIS} - 8`));
+      expect({ depot: apres.depot, impayes: apres.impayes, trop_percu: apres.trop_percu, arrete: apres.arrete }).toEqual({
+        depot: avant.depot, impayes: avant.impayes, trop_percu: avant.trop_percu, arrete: avant.arrete,
+      });
+    });
+
+    it("la correction reste refusée une fois le décompte finalisé", async () => {
+      const b = await bailEnPreavis();
+      await enGerant();
+      await db.query(`select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 5, false)`, [b]);
+      const r = await restitution(b);
+      await enGerant();
+      await db.query(`select public.finaliser_decompte($1)`, [r.id]);
+      await echec(/Restitution déjà finalisée/, `select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 6, false)`, [b]);
+    });
+
+    it("une correction vers une date future est refusée comme le premier envoi, la restitution reste intacte", async () => {
+      const b = await bailEnPreavis();
+      await enGerant();
+      await db.query(`select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} - 5, false)`, [b]);
+      const avant = await restitution(b);
+      await echec(/ne peut pas être datée après aujourd'hui/, `select public.demarrer_restitution($1, ${AUJOURDHUI_PARIS} + 30, false)`, [b]);
+      expect(await restitution(b)).toEqual(avant);
+    });
+  });
 });

@@ -46,7 +46,14 @@ export async function demarrerRestitution(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: "Restitution démarrée." };
+  // Décision D35 (1) : tant que la restitution est « en cours », le même geste la corrige —
+  // la base ne réarrête alors aucun montant.
+  return {
+    succes:
+      formData.get("correction") === "1"
+        ? "Remise des clés corrigée — les montants arrêtés ne changent pas."
+        : "Restitution démarrée.",
+  };
 }
 
 export async function ajouterRetenue(

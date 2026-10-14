@@ -1,4 +1,4 @@
-# Retours arrière des migrations du 13 octobre 2026
+# Retours arrière des migrations des 13 et 14 octobre 2026
 
 Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `migrations.yml` se place dans
 `app/supabase/migrations/` et n'applique que les fichiers qu'on lui nomme (aucune occurrence de `retours-arriere` dans
@@ -8,10 +8,35 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 |---|---|---|
 | `20261013120000_correctifs_audit_13_octobre.retour.sql` | `20261013120000_correctifs_audit_13_octobre.sql` | 9 fonctions, 3 déclencheurs `diagnostic_artisan_lecture`, la contrainte `incident_evenements_type_check`, 1 ligne d'historique |
 | `20261013110000_marketing_preparation_du_soir_cron.retour.sql` | `20261013110000_marketing_preparation_du_soir_cron.sql` | 2 fonctions, 1 fonction supprimée, 1 ligne d'historique |
+| `20261014120000_premier_terme_apres_entree.retour.sql` | `20261014120000_premier_terme_apres_entree.sql` (D01, PROP-14) | 1 fonction (`generer_appels_loyer_interne`), 1 ligne d'historique |
+| `20261014121000_sortie_reelle_bail.retour.sql` | `20261014121000_sortie_reelle_bail.sql` (D34, SOR-03 et SOR-04) | 2 fonctions (`terminer_bail`, `controler_mise_en_location`), 1 ligne d'historique ; la colonne `baux.date_sortie_reelle` est **conservée** |
+| `20261014122000_restitution_remise_cles.retour.sql` | `20261014122000_restitution_remise_cles.sql` (D35 (1), SOR-02) | 1 fonction (`demarrer_restitution`), 1 ligne d'historique |
 | `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » |
 
 Les deux migrations ne partagent aucune fonction : leurs retours sont indépendants (essayé dans les deux ordres et un par un).
 L'ordre inverse (120000 puis 110000) reste l'ordre recommandé.
+
+## Les trois retours du 14 octobre 2026 (lot « bail-sortie »)
+
+`verifier-etat.sql` ne couvre que les deux migrations du 13/10. Pour celles du 14/10, la marque du correctif se lit dans la définition
+en vigueur : `select pg_get_functiondef('public.generer_appels_loyer_interne(uuid)'::regprocedure) like '%Décision D01 du 14/10 (PROP-14)%';`
+(de même `Décision D34 du 14/10 (SOR-04)` pour `terminer_bail(uuid,date,boolean)`, `Décision D34 du 14/10 (SOR-03)` pour `controler_mise_en_location(uuid)`,
+`Décision D35 (1) du 14/10 (SOR-02)` pour `demarrer_restitution(uuid,date,boolean)`). Les trois migrations ne touchent aucune fonction en commun :
+leurs retours sont indépendants, dans n'importe quel ordre (essayé dans les deux sens, 122000 → 121000 → 120000 et 120000 → 121000 → 122000).
+
+| Script | Défaut qui revient | Ce que le retour ne défait pas |
+|---|---|---|
+| `20261014120000` | PROP-14 : le premier terme d'un bail qui entre en cours de mois redevient exigible le jour d'échéance du mois, donc avant l'entrée | Les appels générés pendant que la migration était en place gardent leur échéance (le 16, par exemple) : le script ne touche **aucun appel** |
+| `20261014121000` | SOR-03 : un bail peut être activé avec une entrée antérieure à la sortie du bail précédent du même lot. SOR-04 : la clôture avant la fin du préavis ne demande plus de confirmation et n'enregistre plus de sortie réelle. `terminer_bail` retrouve son seul argument : **l'écran de clôture du code applicatif candidat appelle la version à trois arguments et échouera tant que le code n'est pas revenu lui aussi** | La colonne `baux.date_sortie_reelle` et les dates déjà saisies (données de gestion : elles restent, sans effet une fois les fonctions revenues). La supprimer relève d'une décision écrite du dirigeant, hors de ce script |
+| `20261014122000` | SOR-02 : `demarrer_restitution` accepte de nouveau une remise des clés datée du futur, et un nouvel envoi tant que la restitution est « en cours » relit de nouveau, en silence, le dépôt, les impayés et le trop-perçu | Aucune restitution existante : dates et montants déjà enregistrés restent tels quels |
+
+Les droits des fonctions ne changent dans aucun sens (`generer_appels_loyer_interne` reste fermée aux comptes : seul `service_role` l'exécute).
+
+**Preuves de l'essai** (banc local, base jetable reconstruite depuis `ordre-migrations.txt`) : A = les migrations d'origine **sans** les trois du 14/10 ; B = avec ; C = B puis les trois retours.
+Comparés entre A et C : définition, drapeaux, droits et propriétaire de chacune des fonctions de `public`, contraintes, déclencheurs, politiques RLS et colonnes. **Seule différence : la colonne
+`baux.date_sortie_reelle`, conservée à dessein.** Essayés en plus : simulation par `sed` (base inchangée, empreinte identique à B), rejeu des trois retours (« marque du correctif absente, rien à faire »,
+empreinte identique), marche avant (les trois migrations rejouées sur C redonnent exactement B) et rejeu des migrations (sans effet). Limites : base de banc, PostgreSQL 16, aucun essai sur la production,
+ni sur une copie restaurée de sauvegarde, ni avec des baux portant une sortie réelle (le script se borne alors à dire leur nombre).
 
 ## Comment ces scripts ont été écrits
 

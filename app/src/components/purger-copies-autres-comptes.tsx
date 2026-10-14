@@ -17,8 +17,9 @@ export function PurgerCopiesAutresComptes({ compteId }: { compteId: string }) {
   useEffect(() => {
     purgerCopiesAutresComptes(compteId);
     purgerCopiesPerimees();
-    // D15 (14/10) : ni l'ancienne clé sans compte ni un brouillon d'état des lieux sans ligne non envoyée ne subsistent ;
-    // ceux qui gardent des relevés non envoyés restent, rattachés à leur compte (le compte courant ne relit que les siens).
+    // D15 (14/10) : un brouillon d'état des lieux sans ligne non envoyée ne subsiste pas ; ceux qui gardent des relevés non
+    // envoyés restent, rattachés à leur compte (le compte courant ne relit que les siens), et l'ancienne clé sans compte aussi
+    // tant qu'elle porte des relevés (le compte qui rouvre cet état des lieux la reprend).
     purgerBrouillonsEdl();
     void purgerCopiesFichiersObsoletes(compteId);
   }, [compteId]);

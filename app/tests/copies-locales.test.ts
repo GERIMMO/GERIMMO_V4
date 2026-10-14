@@ -39,7 +39,8 @@ describe("purge", () => {
       [cleCopieFichiers("personne", "A", "org")]: "{}",
       [cleDevisLocal("A", "d1")]: "{}",
       [cleDevisLocal("B", "d2")]: "{}",
-      "gerimmo-edl-brouillon-42": "{}",
+      // L'ancien format (sans compte) qui porte des relevés : ne s'efface jamais à l'aveugle (D15).
+      "gerimmo-edl-brouillon-42": JSON.stringify({ etats: { l1: "bon" }, commentaires: { l1: "Rayure" }, enregistreLe: "2026-10-10T08:00:00.000Z", empreinteServeur: "x" }),
       "gerimmo_quittance": "{}",
       "theme": "sombre",
     });
@@ -54,9 +55,8 @@ describe("purge", () => {
   it("à la déconnexion : toutes les copies de saisie partent (dont la quittance de l'outil public), rien d'autre", () => {
     purgerCopiesLocales();
     // Le brouillon d'état des lieux suit sa propre règle (D15, 14/10/2026 ; voir edl-brouillon-compte.test.ts) : l'ancienne clé
-    // sans compte, qui ne peut plus être rattachée à personne, part aussi. Une copie d'état des lieux portant des relevés
-    // non envoyés resterait (copie de travail hors ligne de l'agent, RM-19.1.1, 19.1.2, 19.1.6).
-    expect([...local.map.keys()].sort()).toEqual(["theme"]);
+    // sans compte reste tant qu'elle porte des relevés (copie de travail hors ligne de l'agent, RM-19.1.1, 19.1.2, 19.1.6).
+    expect([...local.map.keys()].sort()).toEqual(["gerimmo-edl-brouillon-42", "theme"]);
     expect([...session.map.keys()]).toEqual(["autre"]);
     expect(supprimees).toEqual(["gerimmo-reprises"]);
   });

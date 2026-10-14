@@ -44,7 +44,7 @@ function cles(stockage: Stockage): string[] {
  * en font la copie de travail hors ligne de l'agent, synchronisée au retour du réseau, avec un indicateur « données non
  * remontées ». L'effacer à l'aveugle détruirait des relevés jamais envoyés. D15 (décision du 14/10/2026) : il est effacé à
  * la déconnexion seulement s'il n'a aucune ligne non synchronisée, sinon conservé et signalé (`purgerBrouillonsEdl`), et sa
- * clé est rattachée au compte.
+ * clé est rattachée au compte. L'ancienne clé (sans compte) suit la même règle : conservée tant qu'elle porte des relevés.
  */
 export function estCleDeCopie(cle: string): boolean {
   return cle.startsWith(PREFIXE_COPIES_LOCALES) || cle === CLE_STOCKAGE_QUITTANCE;

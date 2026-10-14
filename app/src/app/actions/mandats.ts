@@ -4,6 +4,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { lireMontantFacultatif } from "@/lib/saisie-montant";
 
 export type EtatMandat = {
   erreur?: string;
@@ -26,7 +27,9 @@ export async function creerMandat(
   const dateDebut = String(formData.get("date_debut") ?? "");
   if (!dateMandatValide(dateDebut)) return { erreur: "Renseignez une date de prise d’effet valide.", valeurs };
   const dateRapport = Number(formData.get("date_rapport") ?? 10);
-  const seuilRaw = String(formData.get("seuil_delegation") ?? "").trim();
+  // Seuil facultatif (vide : le défaut de la base), lu sur le texte tel que tapé : champ en `type="text"` (VFL-07).
+  const seuil = lireMontantFacultatif(formData.get("seuil_delegation"));
+  if ("erreur" in seuil) return { erreur: seuil.erreur, valeurs };
 
   const { error } = await supabase.from("mandats").insert({
     organization_id: orgId,
@@ -34,7 +37,7 @@ export async function creerMandat(
     etat: "brouillon",
     date_debut: dateDebut,
     date_rapport: dateRapport >= 1 && dateRapport <= 28 ? dateRapport : 10,
-    seuil_delegation: seuilRaw ? Number(seuilRaw) : null,
+    seuil_delegation: seuil.montant,
     created_by: user.id,
   });
   if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}`, valeurs };

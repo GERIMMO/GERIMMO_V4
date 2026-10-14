@@ -39,7 +39,7 @@ const groupes:Groupe[]=[
  {etapes:["loyer"],titre:"La révision et le paiement",champs:[
   {nom:"revision_irl",titre:"Révision annuelle du loyer (IRL) — Facultatif",options:choix},
   {nom:"irl_trimestre",titre:"Trimestre IRL",options:[["","À confirmer"],["T1","T1"],["T2","T2"],["T3","T3"],["T4","T4"]],visible:v=>v.revision_irl==="true"},
-  {nom:"irl_valeur",titre:"Valeur de l’IRL de référence",type:"number",visible:v=>v.revision_irl==="true"},
+  {nom:"irl_valeur",titre:"Valeur de l’IRL de référence",type:"montant",visible:v=>v.revision_irl==="true"},
   {nom:"fixation_loyer",titre:"Fixation initiale du loyer",options:[["","À confirmer"],["libre","Librement fixé"],["plafonnement","Plafonnement en zone d’encadrement"],["reevaluation","Réévaluation après travaux"]]},
   {nom:"paiement_echeance",titre:"Paiement du loyer",options:[["echoir","À échoir (d’avance)"],["echu","À terme échu"]]},
   {nom:"lieu_paiement",titre:"Lieu ou modalités de paiement",aide:"Exemple : virement au bailleur."},

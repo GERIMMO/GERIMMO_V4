@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { sansJargon } from "@/lib/erreurs";
+import { lireMontant } from "@/lib/saisie-montant";
 
 export type EtatChambre = { erreur?: string; succes?: string };
 
@@ -29,8 +30,11 @@ export async function enregistrerChambre(orgId: string, lotId: string, bienId: s
 export async function enregistrerPlafondColocation(orgId: string, lotId: string, bienId: string, _etat: EtatChambre, form: FormData): Promise<EtatChambre> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
-  const plafond = Number(form.get("plafond"));
-  if (!Number.isFinite(plafond) || plafond <= 0) return { erreur: "Indiquez le loyer hors charges applicable au logement entier." };
+  if (!String(form.get("plafond") ?? "").trim()) return { erreur: "Indiquez le loyer hors charges applicable au logement entier." };
+  // Montant lu sur le texte tel que tapé (« 840,00 » vaut 840) : champ en `type="text"` (VFL-07).
+  const plafondLu = lireMontant(form.get("plafond"));
+  if ("erreur" in plafondLu) return { erreur: plafondLu.erreur };
+  const plafond = plafondLu.montant;
   const { data, error } = await supabase.from("lots").update({ colocation_loyer_reference: plafond }).eq("id", lotId).eq("organization_id", orgId).select("id").maybeSingle();
   if (error || !data) return { erreur: error ? sansJargon(error.message) : "Logement inaccessible." };
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);

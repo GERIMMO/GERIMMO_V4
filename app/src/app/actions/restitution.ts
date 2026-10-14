@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { preparerFichierGed, type FichierPrepareGed } from "@/lib/ged-depot";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { lireMontant } from "@/lib/saisie-montant";
 
 // Le Storage n'est pas transactionnel : quand la règle métier refuse la
 // retenue, l'octet est déjà monté. Sans fiche il est déjà illisible (la policy
@@ -59,9 +60,11 @@ export async function ajouterRetenue(
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const libelle = String(formData.get("libelle") ?? "").trim();
-  const cout = Number(String(formData.get("cout") ?? "").trim());
   if (!libelle) return { erreur: "Libellé obligatoire.", valeurs };
-  if (!cout || cout <= 0) return { erreur: "Coût invalide.", valeurs };
+  // Montant lu sur le texte tel que tapé (« 840,00 » vaut 840) : champ en `type="text"` (VFL-07).
+  const coutLu = lireMontant(formData.get("cout"));
+  if ("erreur" in coutLu) return { erreur: coutLu.erreur, valeurs };
+  const cout = coutLu.montant;
   const dureeStr = String(formData.get("duree_vie") ?? "").trim();
   const ageStr = String(formData.get("age") ?? "").trim();
 

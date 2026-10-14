@@ -17,6 +17,7 @@ import { envoyerEmail } from "@/lib/email";
 import { echapperHtml } from "@/lib/quittance-email";
 import { moisDepotGarantie } from "@/lib/depot-garantie";
 import { adresseDeRetour, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
+import { erreurDuChamp, lireDecimalFacultatif, lireMontantFacultatif } from "@/lib/saisie-montant";
 
 export type BlocageActionable = { message: string; href: string; libelle: string };
 export type EtatBail = {
@@ -82,15 +83,27 @@ async function lireLogementPourDepot(
   return { meuble: data.meuble === true };
 }
 
+// Un montant obligatoire du bail, lu sur le texte tel que tapé (« 840,00 » vaut 840, voir lireMontant) : le champ
+// est en `type="text"`, jamais `type="number"` qui donne 84000 à un navigateur non francophone (VFL-07). Vide :
+// « obligatoire » ; zéro : admis, il se saisit quand le montant est nul.
+function montantObligatoireDuBail(
+  formData: FormData,
+  champ: string,
+  libelle: string,
+  obligatoire: string
+): { montant: number } | { erreur: string } {
+  const lu = lireMontantFacultatif(formData.get(champ));
+  if ("erreur" in lu) return { erreur: erreurDuChamp(libelle, lu.erreur) };
+  if (lu.montant === null) return { erreur: obligatoire };
+  return { montant: lu.montant };
+}
+
 function lireChampsBail(
   formData: FormData,
   logementMeuble: boolean
 ): { erreur: string } | { valeurs: Record<string, unknown> } {
   const locataire = String(formData.get("locataire_principal") ?? "");
   if (!locataire) return { erreur: "Choisissez le locataire principal." };
-  const loyer = String(formData.get("loyer_hc") ?? "").trim();
-  const charges = String(formData.get("charges") ?? "").trim();
-  const depot = String(formData.get("depot_garantie") ?? "").trim();
   const jour = String(formData.get("jour_echeance") ?? "1").trim();
   const choixType = String(formData.get("type") ?? "nu");
   if (!["nu", "meuble", "colocation", "colocation_individuelle"].includes(choixType)) return { erreur: "Choisissez un type de bail proposé." };
@@ -101,9 +114,15 @@ function lireChampsBail(
 
   const dateDebut = String(formData.get("date_debut") ?? "").trim();
   if (!dateDebut) return { erreur: "La date d'entrée est obligatoire." };
-  if (!loyer || !Number.isFinite(Number(loyer)) || Number(loyer) < 0) return { erreur: "Le loyer hors charges est obligatoire." };
-  if (!charges || !Number.isFinite(Number(charges)) || Number(charges) < 0) return { erreur: "Le montant des charges est obligatoire. Saisissez 0 s'il n'y en a pas." };
-  if (!depot || !Number.isFinite(Number(depot)) || Number(depot) < 0) return { erreur: "Le dépôt de garantie est obligatoire. Saisissez 0 s'il n'y en a pas." };
+  const loyerLu = montantObligatoireDuBail(formData, "loyer_hc", "Loyer hors charges", "Le loyer hors charges est obligatoire.");
+  if ("erreur" in loyerLu) return loyerLu;
+  const chargesLu = montantObligatoireDuBail(formData, "charges", "Charges", "Le montant des charges est obligatoire. Saisissez 0 s'il n'y en a pas.");
+  if ("erreur" in chargesLu) return chargesLu;
+  const depotLu = montantObligatoireDuBail(formData, "depot_garantie", "Dépôt de garantie", "Le dépôt de garantie est obligatoire. Saisissez 0 s'il n'y en a pas.");
+  if ("erreur" in depotLu) return depotLu;
+  const loyer = loyerLu.montant;
+  const charges = chargesLu.montant;
+  const depot = depotLu.montant;
   if (!/^\d+$/.test(jour) || Number(jour) < 1 || Number(jour) > 28) return { erreur: "Le jour d'échéance doit être compris entre 1 et 28." };
 
   // Plafond légal du dépôt de garantie (audit 09/09, RM-2.1.1 / RM-2.1.2 —
@@ -111,16 +130,14 @@ function lireChampsBail(
   // En colocation, le caractère du logement détermine le plafond du bail
   // entier (Service Public F34661/F31269, vérification du 14/09). Le contrôle
   // n'attendait que l'activation, un bail nu acceptait n'importe quel dépôt.
-  if (loyer && depot) {
-    const mois = moisDepotGarantie(type, logementMeuble);
-    const plafond = mois * Number(loyer);
-    if (Number(depot) > plafond) {
-      return {
-        erreur: `Dépôt de garantie trop élevé : le plafond légal d'un bail ${
-          (TYPES_BAIL[type] ?? type).toLowerCase()
-        } est de ${mois} mois de loyer hors charges, soit ${eur(plafond)}.`,
-      };
-    }
+  const mois = moisDepotGarantie(type, logementMeuble);
+  const plafond = mois * loyer;
+  if (depot > plafond) {
+    return {
+      erreur: `Dépôt de garantie trop élevé : le plafond légal d'un bail ${
+        (TYPES_BAIL[type] ?? type).toLowerCase()
+      } est de ${mois} mois de loyer hors charges, soit ${eur(plafond)}.`,
+    };
   }
 
   // Audit métier du 27/09 — wiki « Régularisation des charges » : sur un bail
@@ -139,11 +156,11 @@ function lireChampsBail(
       chambre_id: individuel ? chambre : null,
       locataire_principal: locataire,
       date_debut: dateDebut,
-      loyer_hc: Number(loyer),
-      charges: Number(charges),
+      loyer_hc: loyer,
+      charges,
       // Provision (régularisable) ou forfait (définitif — RM-3.9.8)
       charges_mode: formData.get("charges_mode") === "forfait" ? "forfait" : "provision",
-      depot_garantie: Number(depot),
+      depot_garantie: depot,
       jour_echeance: Number(jour),
       irl_trimestre: String(formData.get("irl_trimestre") ?? "").trim() || null,
       revision_irl: formData.get("revision_irl") === "on",
@@ -254,6 +271,18 @@ export async function modifierBail(
   return { succes: "Brouillon corrigé." };
 }
 
+// Les nombres du complément de contrat, et le libellé qui les nomme dans un refus (le formulaire en porte huit).
+const NOMBRES_COMPLEMENTS_BAIL: [string, string][] = [
+  ["irl_valeur", "Valeur de l'IRL"],
+  ["travaux_recents_montant", "Montant des travaux récents"],
+  ["honoraires_bailleur", "Honoraires du bailleur"],
+  ["honoraires_locataire", "Honoraires du locataire"],
+  ["loyer_reference", "Loyer de référence"],
+  ["loyer_reference_majore", "Loyer de référence majoré"],
+  ["complement_loyer", "Complément de loyer"],
+  ["dernier_loyer", "Dernier loyer de l'ancien locataire"],
+];
+
 // Compléments du contrat (bail 100 % rempli, 09/09) : les conditions
 // détaillées que le contrat type imprime — fixation et paiement du loyer,
 // travaux, honoraires, encadrement en zone tendue, clauses particulières.
@@ -271,10 +300,6 @@ export async function modifierComplementsBail(
 
   const valeurs = valeursDuFormulaire(formData);
   const texte = (nom: string) => String(formData.get(nom) ?? "").trim() || null;
-  const nombre = (nom: string) => {
-    const brut = String(formData.get(nom) ?? "").trim();
-    return brut ? Number(brut) : null;
-  };
 
   const situation = texte("precedente_location");
   if (situation && !["premiere", "ancienne", "recente"].includes(situation)) return { erreur: "Choisissez la situation de la précédente location.", valeurs };
@@ -282,10 +307,16 @@ export async function modifierComplementsBail(
   if (revision && !["true", "false"].includes(revision)) return { erreur: "Précisez si le précédent loyer a été révisé.", valeurs };
   const { mentions, erreur: erreurMentions } = lireMentionsContrat(formData);
   if (erreurMentions) return { erreur: erreurMentions, valeurs };
-  for (const champ of ['irl_valeur', 'travaux_recents_montant', 'honoraires_bailleur', 'honoraires_locataire', 'loyer_reference', 'loyer_reference_majore', 'complement_loyer', 'dernier_loyer']) {
-    const n = nombre(champ);
-    if (n !== null && (!Number.isFinite(n) || n < 0)) return { erreur: "Saisissez des montants positifs ou nuls.", valeurs };
+  // Chaque nombre est lu sur le texte tel que tapé (« 840,00 » vaut 840, « 145,17 » vaut 145,17) : ces champs sont
+  // en `type="text"`, jamais `type="number"` qui donne 84000 à un navigateur non francophone (VFL-07). Vide : NULL.
+  const nombres: Record<string, number | null> = {};
+  for (const [champ, libelle] of NOMBRES_COMPLEMENTS_BAIL) {
+    const brut = formData.get(champ);
+    const lu = champ === "irl_valeur" ? lireDecimalFacultatif(brut) : lireMontantFacultatif(brut);
+    if ("erreur" in lu) return { erreur: erreurDuChamp(libelle, lu.erreur), valeurs };
+    nombres[champ] = "valeur" in lu ? lu.valeur : lu.montant;
   }
+  const nombre = (nom: string) => nombres[nom] ?? null;
   const { data: contrat, error: erreurLecture } = await supabase.from("baux")
     .select("lot:lots!baux_lot_meme_org_fk(surface_m2)")
     .eq("id", bailId).eq("organization_id", orgId).eq("etat", "brouillon").maybeSingle();

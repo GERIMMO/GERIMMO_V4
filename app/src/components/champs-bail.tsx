@@ -277,15 +277,16 @@ export function ChampsBail({
         />
       </div>
       {/* Sans loyer, charges et dépôt explicites, les appels et le contrat
-          seraient ambigus : 0 doit être saisi lorsque le montant est nul. */}
+          seraient ambigus : 0 doit être saisi lorsque le montant est nul.
+          Texte décimal, jamais type="number" : un navigateur non francophone
+          lit « 840,00 » comme 84000 (VFL-07) ; l'action lit le texte tapé. */}
       <div className="space-y-1.5">
         <Label htmlFor={`${prefixe}-loyer`}>Loyer hors charges (€) *</Label>
         <Input
           id={`${prefixe}-loyer`}
           name="loyer_hc"
-          type="number"
-          step="0.01"
-          min="0"
+          type="text"
+          inputMode="decimal"
           required
           defaultValue={valeurs?.loyer_hc ?? defauts.loyer_hc ?? ""}
         />
@@ -295,9 +296,8 @@ export function ChampsBail({
         <Input
           id={`${prefixe}-charges`}
           name="charges"
-          type="number"
-          step="0.01"
-          min="0"
+          type="text"
+          inputMode="decimal"
           required
           defaultValue={valeurs?.charges ?? defauts.charges ?? ""}
         />
@@ -319,9 +319,8 @@ export function ChampsBail({
         <Input
           id={`${prefixe}-depot`}
           name="depot_garantie"
-          type="number"
-          step="0.01"
-          min="0"
+          type="text"
+          inputMode="decimal"
           required
           defaultValue={valeurs?.depot_garantie ?? defauts.depot_garantie ?? ""}
         />

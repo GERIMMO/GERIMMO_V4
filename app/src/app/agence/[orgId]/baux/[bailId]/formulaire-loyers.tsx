@@ -569,7 +569,7 @@ export function FormulaireLoyers({
             </div>
             <div className="space-y-1">
               <Label htmlFor="irl-nouv" className="text-sm">IRL nouveau</Label>
-              <Input id="irl-nouv" name="irl_nouveau" type="number" step="0.01" defaultValue={etatRev.valeurs?.irl_nouveau} className="h-9 w-28" />
+              <Input id="irl-nouv" name="irl_nouveau" type="text" inputMode="decimal" placeholder="ex. 145,17" defaultValue={etatRev.valeurs?.irl_nouveau} className="h-9 w-28" />
             </div>
             {/* Constat 21 : l'indice nouveau est celui du MÊME trimestre que
                 l'indice de référence du bail, publié pour l'année suivante. */}
@@ -745,7 +745,7 @@ export function FormulaireLoyers({
                 <Label htmlFor="reg-reel" className="text-sm">
                   Charges réelles de l&apos;exercice, logement entier (€)
                 </Label>
-                <Input id="reg-reel" name="charges_reelles" type="number" step="0.01" min="0" required defaultValue={etatReg.valeurs?.charges_reelles} className="h-9 w-32" />
+                <Input id="reg-reel" name="charges_reelles" type="text" inputMode="decimal" required defaultValue={etatReg.valeurs?.charges_reelles} className="h-9 w-32" />
               </>
             )}
           </div>

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { detecterMimeReel, pdfComplet, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { aujourdhuiParis } from "@/lib/ged";
 
 export type EtatAttestation = {
   erreur?: string;
@@ -55,7 +56,8 @@ export async function deposerMonAttestation(
   if (!expire) {
     return { erreur: "Indiquez la date d'expiration figurant sur l'attestation.", valeurs };
   }
-  if (expire < new Date().toISOString().slice(0, 10)) {
+  // Le jour de Paris : Vercel tourne en UTC, dont le jour est la veille entre minuit et 2 h à Paris (VFL-06).
+  if (expire < aujourdhuiParis()) {
     return {
       erreur: "Cette attestation est déjà expirée — déposez l'attestation en cours de validité.",
       valeurs,

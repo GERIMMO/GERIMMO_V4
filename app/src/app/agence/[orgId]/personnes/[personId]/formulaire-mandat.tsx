@@ -49,7 +49,7 @@ export function FormulaireMandat({ orgId, personId }: { orgId: string; personId:
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="m-seuil">Seuil de délégation (€)</Label>
-          <Input id="m-seuil" name="seuil_delegation" type="number" min="0" placeholder="500 (défaut)" defaultValue={etat.valeurs?.seuil_delegation} />
+          <Input id="m-seuil" name="seuil_delegation" type="text" inputMode="decimal" placeholder="500 (défaut)" defaultValue={etat.valeurs?.seuil_delegation} />
         </div>
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}

@@ -116,7 +116,8 @@ describe("Régularisation : une absence de montant ne crée pas de remboursement
 
   it.each(["-1", "Infinity", "NaN"])("refuse un montant invalide %s sans déposer de pièce", async (montant) => {
     const resultat = await regulariserCharges("org-test", "bail-test", {}, saisieCharges(montant));
-    expect(resultat.erreur).toBe("Charges réelles invalides.");
+    // VFL-04 : le message central dit le format attendu (la lecture est celle de lireMontant, VFL-07).
+    expect(resultat.erreur).toBe("Montant invalide : écrivez 1234,50, sans espace ni point de milliers.");
     expect(banc.depot).not.toHaveBeenCalled();
     expect(banc.rpc).not.toHaveBeenCalled();
   });

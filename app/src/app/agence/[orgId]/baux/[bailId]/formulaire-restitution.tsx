@@ -484,7 +484,7 @@ function ChampsRetenue({
         </div>
         <div className="space-y-1">
           <Label htmlFor="ret-cout" className="text-sm">Coût (€)</Label>
-          <Input id="ret-cout" name="cout" type="number" step="0.01" min="0.01" defaultValue={valeurs?.cout} className="h-9 w-24" />
+          <Input id="ret-cout" name="cout" type="text" inputMode="decimal" defaultValue={valeurs?.cout} className="h-9 w-24" />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ret-duree" className="text-sm">Durée de vie (ans)</Label>

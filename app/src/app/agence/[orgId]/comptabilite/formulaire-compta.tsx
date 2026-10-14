@@ -231,9 +231,8 @@ function FormVersement({ orgId, rapportId }: { orgId: string; rapportId: string 
       <Input
         aria-label="Montant versé, en euros"
         name="montant"
-        type="number"
+        type="text"
         inputMode="decimal"
-        step="0.01"
         placeholder="versé €"
         defaultValue={etat.valeurs?.montant}
         className="h-8 w-24 text-xs"

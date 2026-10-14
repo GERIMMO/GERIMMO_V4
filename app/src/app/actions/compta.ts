@@ -65,12 +65,16 @@ export async function enregistrerVersement(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
-  const montant = Number(String(formData.get("montant") ?? "").trim());
+  const montantSaisi = String(formData.get("montant") ?? "").trim();
   const date = String(formData.get("date") ?? "").trim();
-  if (!montant || !date) return { erreur: "Montant et date du versement obligatoires.", valeurs };
+  if (!montantSaisi || !date) return { erreur: "Montant et date du versement obligatoires.", valeurs };
+  // Lu sur le texte tel que tapé (« 840,00 » vaut 840) : le champ est en `type="text"`, jamais `type="number"`
+  // qui donne 84000 à un navigateur non francophone (VFL-07).
+  const lu = lireMontant(montantSaisi);
+  if ("erreur" in lu) return { erreur: lu.erreur, valeurs };
   const { error } = await supabase.rpc("enregistrer_versement", {
     p_rapport: rapportId,
-    p_montant: montant,
+    p_montant: lu.montant,
     p_date: date,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };

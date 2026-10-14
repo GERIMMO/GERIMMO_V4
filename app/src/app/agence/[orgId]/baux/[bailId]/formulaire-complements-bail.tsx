@@ -187,9 +187,8 @@ export function FormulaireComplementsBail({
           <Input
             id="comp-irl-valeur"
             name="irl_valeur"
-            type="number"
-            step="0.01"
-            min="0"
+            type="text"
+            inputMode="decimal"
             placeholder="ex. 145,17"
             defaultValue={d("irl_valeur", defauts.irl_valeur)}
           />
@@ -223,9 +222,8 @@ export function FormulaireComplementsBail({
           <Input
             id="comp-travaux-montant"
             name="travaux_recents_montant"
-            type="number"
-            step="0.01"
-            min="0"
+            type="text"
+            inputMode="decimal"
             defaultValue={d("travaux_recents_montant", defauts.travaux_recents_montant)}
           />
         </div>
@@ -248,9 +246,8 @@ export function FormulaireComplementsBail({
               <Input
                 id="comp-hono-bailleur"
                 name="honoraires_bailleur"
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 defaultValue={d("honoraires_bailleur", defauts.honoraires_bailleur)}
               />
             </div>
@@ -259,9 +256,8 @@ export function FormulaireComplementsBail({
               <Input
                 id="comp-hono-locataire"
                 name="honoraires_locataire"
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 defaultValue={d("honoraires_locataire", defauts.honoraires_locataire)}
               />
             </div>
@@ -290,9 +286,8 @@ export function FormulaireComplementsBail({
               <Input
                 id="comp-loyer-ref"
                 name="loyer_reference"
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 defaultValue={d("loyer_reference", defauts.loyer_reference)}
               />
             </div>
@@ -301,9 +296,8 @@ export function FormulaireComplementsBail({
               <Input
                 id="comp-loyer-ref-majore"
                 name="loyer_reference_majore"
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 defaultValue={d("loyer_reference_majore", defauts.loyer_reference_majore)}
               />
             </div>
@@ -312,9 +306,8 @@ export function FormulaireComplementsBail({
               <Input
                 id="comp-complement"
                 name="complement_loyer"
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 defaultValue={d("complement_loyer", defauts.complement_loyer)}
               />
             </div>
@@ -343,9 +336,8 @@ export function FormulaireComplementsBail({
               <Input
                 id="comp-dernier-loyer"
                 name="dernier_loyer"
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 defaultValue={d("dernier_loyer", defauts.dernier_loyer)}
               />
             </div>

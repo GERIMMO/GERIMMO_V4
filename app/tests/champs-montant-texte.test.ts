@@ -9,9 +9,9 @@
  * reçoit ce qui a été tapé. Ce test lit les sources, comme `inventaire-ecrans.test.ts` : le
  * comportement du navigateur ne se rejoue pas en vitest.
  *
- * Les champs dont l'action serveur lit `Number(valeur)` sans la virgule restent en
- * `type="number"` tant que leur lecture n'est pas changée : les passer en texte ferait
- * refuser « 840,00 » (voir le rapport du correcteur « saisie », constat VER-TS-02).
+ * Un champ ne passe en texte que si l'action serveur qui le reçoit sait lire la virgule. Les champs
+ * qui lisaient `Number(valeur)` (refus de « 840,00 » une fois en texte) ont d'abord changé de lecture
+ * (VFL-07, voir `montants-actions-lecture.test.ts`), puis de type : ils sont dans la seconde moitié de la liste.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -49,6 +49,26 @@ const CHAMPS_EN_TEXTE: [string, string, string][] = [
   ["src/app/artisan/clients/formulaire.tsx", "value={x.prix}", "devis : montantEnCentimes avant l'envoi"],
   ["src/app/admin/marketing/reglages-automatiques.tsx", 'name="budget"', "enregistrerReglagesMarketing (replace de la virgule)"],
   ["src/app/admin/territoire/etude.tsx", 'name="depense"', "enregistrerEtude (replace de la virgule)"],
+  // VFL-07 : champs restés en type="number" jusque-là, dont l'action lit maintenant le texte tapé.
+  ["src/components/champs-bail.tsx", 'name="loyer_hc"', "creerBail / modifierBail (lireMontantFacultatif)"],
+  ["src/components/champs-bail.tsx", 'name="charges"', "creerBail / modifierBail (lireMontantFacultatif)"],
+  ["src/components/champs-bail.tsx", 'name="depot_garantie"', "creerBail / modifierBail (lireMontantFacultatif)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-loyers.tsx", 'id="irl-nouv"', "reviserLoyer (lireDecimal)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-loyers.tsx", 'id="reg-reel"', "regulariserCharges (lireMontantFacultatif)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-complements-bail.tsx", 'id="comp-irl-valeur"', "modifierComplementsBail (lireDecimalFacultatif)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-complements-bail.tsx", 'id="comp-travaux-montant"', "modifierComplementsBail (lireMontantFacultatif)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-complements-bail.tsx", 'id="comp-hono-bailleur"', "modifierComplementsBail (lireMontantFacultatif)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-complements-bail.tsx", 'id="comp-hono-locataire"', "modifierComplementsBail (lireMontantFacultatif)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-complements-bail.tsx", 'id="comp-loyer-ref"', "modifierComplementsBail (lireMontantFacultatif)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-complements-bail.tsx", 'id="comp-loyer-ref-majore"', "modifierComplementsBail (lireMontantFacultatif)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-complements-bail.tsx", 'id="comp-complement"', "modifierComplementsBail (lireMontantFacultatif)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-complements-bail.tsx", 'id="comp-dernier-loyer"', "modifierComplementsBail (lireMontantFacultatif)"],
+  ["src/app/agence/[orgId]/comptabilite/formulaire-compta.tsx", 'aria-label="Montant versé, en euros"', "enregistrerVersement (lireMontant)"],
+  ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-appels-charges.tsx", 'id="ac-total"', "creerAppelCharges (lireMontant)"],
+  ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-appels-charges.tsx", "id={idMontant}", "ajouterPosteCharge (lireMontant)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-restitution.tsx", 'id="ret-cout"', "ajouterRetenue (lireMontant)"],
+  ["src/app/agence/[orgId]/personnes/[personId]/formulaire-mandat.tsx", 'id="m-seuil"', "creerMandat (lireMontantFacultatif)"],
+  ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/chambres-logement.tsx", 'name="plafond"', "enregistrerPlafondColocation (lireMontant)"],
 ];
 
 describe("champs de montant : du texte brut, pas un champ numérique du navigateur", () => {
@@ -83,6 +103,16 @@ describe("étape « loyer » du parcours de bail : les montants sont déclarés 
 
   it("le complément de loyer saisi avec une virgule fait apparaître sa justification", () => {
     expect(source).toContain('Number((v.complement_loyer??"").replace(",","."))>0');
+  });
+});
+
+describe("l'indice IRL du parcours de bail : lu avec la virgule par le serveur, donc saisi en texte (VFL-07)", () => {
+  const source = lire("src/app/agence/[orgId]/baux/[bailId]/formulaire-parcours-bail.tsx");
+  it("irl_valeur est déclaré en « montant » (texte décimal) et non plus en « number »", () => {
+    const ligne = source.split("\n").find((l) => l.includes('{nom:"irl_valeur"'));
+    expect(ligne).toBeDefined();
+    expect(ligne).toContain('type:"montant"');
+    expect(ligne).not.toContain('type:"number"');
   });
 });
 

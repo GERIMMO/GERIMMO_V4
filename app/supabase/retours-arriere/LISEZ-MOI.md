@@ -15,6 +15,9 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 | `20261014121000_sortie_reelle_bail.retour.sql` | `20261014121000_sortie_reelle_bail.sql` (D34, SOR-03 et SOR-04) | 2 fonctions (`terminer_bail`, `controler_mise_en_location`), 1 ligne d'historique ; la colonne `baux.date_sortie_reelle` est **conservée** |
 | `20261014122000_restitution_remise_cles.retour.sql` | `20261014122000_restitution_remise_cles.sql` (D35 (1), SOR-02) | 1 fonction (`demarrer_restitution`), 1 ligne d'historique |
 | `20261014123000_restitution_alerte_apres_correction.retour.sql` | `20261014123000_restitution_alerte_apres_correction.sql` (relecture du lot, D35 (1)) | 1 fonction (`demarrer_restitution`, celle de 122000), 1 fonction interne supprimée (`rafraichir_alerte_restitution`), 1 ligne d'historique |
+| `20261014210000_maintenance_artisans_expiration_cron.retour.sql` | `20261014210000_maintenance_artisans_expiration_cron.sql` | 1 tâche `pg_cron` retirée, 1 fonction rétablie, 1 fonction supprimée, 1 ligne d'historique |
+| `20261014211000_maintenance_artisans_arret_urgence.retour.sql` | `20261014211000_maintenance_artisans_arret_urgence.sql` | 1 fonction rétablie (`maintenance_artisans_interne()` sans lecture de l'arrêt d'urgence), la ligne de la tâche dans `supervision_taches_arret` si le lot D06 est là, 1 ligne d'historique |
+| `releve-devis-perimes.sql` | rien (lecture seule) | **à jouer AVANT la première exécution** de la tâche `maintenance-artisans` : liste ce qu'elle va passer à « expiré » |
 | `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » |
 
 **Clés d'envoi des encaissements (14/10, D05).** Les trois migrations `20261014100000`, `20261014101000` et `20261014102000` n'ajoutent
@@ -63,6 +66,11 @@ Comparés entre A et C : définition, drapeaux, droits et propriétaire de chacu
 `baux.date_sortie_reelle`, conservée à dessein.** Essayés en plus : simulation par `sed` (base inchangée, empreinte identique à B), rejeu des trois retours (« marque du correctif absente, rien à faire »,
 empreinte identique), marche avant (les trois migrations rejouées sur C redonnent exactement B) et rejeu des migrations (sans effet). Limites : base de banc, PostgreSQL 16, aucun essai sur la production,
 ni sur une copie restaurée de sauvegarde, ni avec des baux portant une sortie réelle (le script se borne alors à dire leur nombre).
+L'ordre inverse (120000 puis 110000) reste l'ordre recommandé. `20261014210000` (caducité des devis d'artisan) ne partage aucune
+fonction avec elles : son retour est indépendant des deux autres, dans n'importe quel ordre.
+`20261014211000` (lecture de l'arrêt d'urgence par la caducité des devis) réécrit la même fonction interne que `20261014210000` : son retour se joue
+**avant** celui de `20261014210000` (l'ordre inverse reste sans erreur : la fonction étant déjà supprimée, le script ne fait que retirer la ligne de
+correspondance et l'historique).
 
 ## Comment ces scripts ont été écrits
 
@@ -81,6 +89,9 @@ migration) est plus lente ou plus risquée. Un retour arrière **réintroduit** 
 |---|---|
 | 120000 | AUD-A-01 (un agent restreint peut modifier les équipements de tout lot), AUD-A-02 et AUD-A-04 (annulation d'écriture et suppression de détention sans trace d'audit), AUD-A-03 (pas d'événement d'incident à l'annulation d'une mission), SUP-02 (l'arrêt d'urgence est refusé pendant une session de diagnostic), SUP-08 (alerte déjà escaladée requalifiée), REP-01 (second envoi de créneaux du locataire refusé), ARC-10 (« aujourd'hui » au jour UTC : date du jour refusée entre minuit et 2 h à Paris) |
 | 110000 | La préparation du soir de la publication marketing ne part plus depuis `pg_cron` (elle ne se fait plus que par le rattrapage du matin, sans fenêtre de veto la veille) |
+| 20261014210000 | AUT-01 : plus rien ne passe les devis périmés à « expiré » ; leur sollicitation reste « vivante » et garde l'une des deux places de la mise en concurrence (RM-9.1.1) ; l'artisan ne peut ni décliner ni redéposer ; `maintenance_artisans()` redevient la seule voie (à la main, super-administrateur, jour du serveur et non jour de Paris) |
+
+| 20261014211000 | L'arrêt d'urgence (global ou « rappels ») n'arrête plus la caducité des devis d'artisan, une fois le lot D06 intégré : la tâche continue de passer des devis à « expiré » pendant un arrêt. Sans le lot D06, aucun effet visible. |
 
 Si un seul défaut gêne, préférer un retour d'**une** fonction (copier son bloc `select pg_temp.restaurer_fonction(...)`) ou une correction en avant.
 
@@ -90,6 +101,9 @@ Si un seul défaut gêne, préférer un retour d'**une** fonction (copier son bl
 - Les **lignes d'audit** déjà écrites : `audit_log` (`contre_ecriture`, `detention_supprimee`). Elles restent lisibles, jamais supprimées.
 - Les créneaux passés à `caduc` par la nouvelle `contre_proposer_creneaux` (le type existe déjà dans l'énumération d'origine).
 - Les journaux et notifications partis entre-temps.
+- Les devis passés à `expire` et les sollicitations passées à `expiree` par la tâche `maintenance-artisans` (20261014210000) : la base ne garde
+  pas l'état d'avant, le retour ne les touche pas (ils restent « expirés », ce qui est exact). Voir « Avant la première exécution de la tâche
+  `maintenance-artisans` » ci-dessous.
 - Le **code de l'application** : la compatibilité d'une application candidate servie sur une base revenue à l'état antérieur n'a pas été essayée.
 
 ## Procédure
@@ -101,6 +115,8 @@ Si un seul défaut gêne, préférer un retour d'**une** fonction (copier son bl
 2. **Simuler.** `sed 's/^commit;$/rollback;/' <script> | psql "$URL" -v ON_ERROR_STOP=1` : tout est joué puis annulé.
 3. **Exécuter**, dans l'ordre inverse :
    ```
+   psql "$URL" -v ON_ERROR_STOP=1 -f 20261014211000_maintenance_artisans_arret_urgence.retour.sql     # seulement si cette migration est en cause (avant 210000)
+   psql "$URL" -v ON_ERROR_STOP=1 -f 20261014210000_maintenance_artisans_expiration_cron.retour.sql   # seulement si cette migration est en cause
    psql "$URL" -v ON_ERROR_STOP=1 -f 20261013120000_correctifs_audit_13_octobre.retour.sql
    psql "$URL" -v ON_ERROR_STOP=1 -f 20261013110000_marketing_preparation_du_soir_cron.retour.sql
    ```
@@ -109,11 +125,50 @@ Si un seul défaut gêne, préférer un retour d'**une** fonction (copier son bl
    (`begin;` de `migrations.yml`, `psql --single-transaction`) : son `commit` validerait alors le lot entier et la simulation ne simulerait plus rien.
    **Ne jamais le passer à `migrations.yml`** (ce chantier laisse d'ailleurs passer un nom avec chemin, `../retours-arriere/...`, et inscrirait une version fantaisiste).
 4. **Vérifier.** `verifier-etat.sql` : tout doit se lire « antérieure (A) » et la liste des versions doit être vide. Les scripts retirent eux-mêmes les versions
-   `20261013110000` et `20261013120000` de `supabase_migrations.schema_migrations`, sans quoi `migrations.yml` refuserait de les rejouer (« version déjà enregistrée »).
+   `20261013110000`, `20261013120000`, `20261014210000` et `20261014211000` de `supabase_migrations.schema_migrations`, sans quoi `migrations.yml` refuserait de les rejouer (« version déjà enregistrée »).
 5. **Consigner** la décision, l'heure, l'opérateur et le résultat (journal du wiki).
 
 Rejeu : relancer un script sur une base déjà revenue ne change rien (chaque fonction répond « marque du correctif absente, rien à faire »).
 Marche avant : après un retour, `migrations.yml` réapplique les deux migrations et redonne exactement l'état migré (essayé).
+
+## Avant la première exécution de la tâche `maintenance-artisans` (20261014210000)
+
+La migration ne réécrit **aucune donnée** : c'est le premier passage de la tâche (04 h 30 UTC, le lendemain de l'application) qui passe d'un coup à « expiré »
+tous les devis encore « déposés » dont la validité est dépassée, et à « expirée » leur sollicitation. Ces statuts ne se restaurent pas automatiquement.
+Un relevé de production, **en lecture seule**, doit donc être pris **avant** d'appliquer la migration (il n'a pas été fait par l'agent : la production n'a pas été consultée) :
+
+1. `psql "$URL" -v ON_ERROR_STOP=1 -f releve-devis-perimes.sql` (le mot de passe par `PGPASSWORD`). Le fichier ne contient que des `select`.
+2. Il répond à cinq questions : combien de devis « déposés » sont périmés (et dans combien d'agences et d'incidents) ; la liste exacte, avec l'état de leur sollicitation
+   et de leur mise en concurrence ; les incidents dont les deux places sont tenues par des devis périmés (ceux que la tâche débloque) ; combien de sollicitations restées
+   sans réponse la tâche ne traitera pas ; et si une tâche `maintenance-artisans` existe déjà hors dépôt.
+3. Garder la liste (2e requête) avec la décision : `\copy (…) to 'releve-devis-perimes.csv' csv header`. Elle ne contient que des identifiants et des dates.
+4. Si le nombre de devis est élevé ou si une date de validité paraît mal saisie, **décider avant** d'appliquer la migration : la tâche applique la règle RM-9.2.3 sans exception.
+
+Pour défaire après coup (cas exceptionnel, décision humaine, identifiant par identifiant) : remettre `incident_devis.statut = 'depose'` et
+`incident_sollicitations.statut = 'devis_depose'` pour les identifiants du relevé, **seulement si** le devis est toujours `expire` et que la sollicitation est toujours `expiree`
+(un autre artisan a pu être sollicité sur la place libérée, un autre devis retenu). Jamais en masse, jamais sans le relevé.
+
+La tâche n'appelle **pas** la purge des motifs de liste noire (reportée avant septembre 2029, durées à faire valider) ; elle ne traite pas non plus les sollicitations
+restées sans réponse (voir le rapport du lot).
+
+## Avec le lot « arrêt d'urgence » (D06, migration `20261014200000`) : ordre et points à reprendre à l'intégration
+
+`20261014211000` fait lire l'arrêt d'urgence à la caducité des devis (décision D42, point 5, avec D06 option A). Elle n'a besoin d'aucun objet du lot D06 pour
+s'appliquer : sans le prédicat `tache_planifiee_autorisee`, la fonction ne lit rien et la migration n'inscrit rien. Dès que le lot D06 est là, l'arrêt agit.
+
+- **Ordre.** `20261014200000` (D06) d'abord, puis `20261014210000`, puis `20261014211000` : c'est l'ordre de `ordre-migrations.txt`. Si D06 arrive
+  **après** `20261014211000`, la tâche manque dans la table de correspondance et le prédicat refuse la tâche (« Tâche planifiée inconnue de la table
+  d'arrêt ») : elle échoue à chaque passage. Inscrire alors la ligne avant le prochain passage (04 h 30 UTC) :
+  `insert into public.supervision_taches_arret (tache, cle) values ('maintenance-artisans', 'rappels') on conflict do nothing;`
+- **Clé « rappels » : à confirmer par le dirigeant** (« Rendez-vous et suivi des dossiers », équipe « Incidents et artisans »). Aucune clé d'arrêt n'est propre à la
+  tâche ; l'arrêt « global » l'arrête dans tous les cas. Changer la clé = changer la ligne de la table.
+- **La tâche est la neuvième.** Dans le lot D06, à mettre à jour à l'intégration (vérifié sur une fusion d'essai : tout passe ensuite) :
+  `tests/arret-taches-planifiees.test.ts` (table `CORRESPONDANCE`, 9 tâches), `tests/sauvegarde-taches-planifiees.test.ts` (deux cas : 9 tâches, `taches_planifiees` à 9),
+  `src/lib/nom-arret-supervision.ts` (`TACHES_SQL` : l'écran « Relais et arrêts » doit citer la caducité des devis parmi les tâches arrêtées) et les tests qui comptent
+  ces tâches (`tests/arret-urgence-ecrans.test.ts`), `docs/sauvegarde-et-restauration.md` (« Huit tâches SQL »). Deux conflits d'ajout en fin de fichier à résoudre :
+  `ordre-migrations.txt` (garder `200000`, `210000`, `211000` dans cet ordre) et ce LISEZ-MOI.
+- **Ce que l'arrêt ne couvre pas ici** : la purge manuelle des motifs de liste noire de `maintenance_artisans()` (usage manuel du super-administrateur, non planifiée).
+  Appelée pendant un arrêt, la version publique rend `devis_expires = 0` (la caducité est arrêtée) et fait sa purge.
 
 ## Lignes `mission_annulee` : comportement et procédure
 

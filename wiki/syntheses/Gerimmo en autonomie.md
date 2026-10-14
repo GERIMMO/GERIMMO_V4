@@ -3,11 +3,17 @@ type: synthesis
 tags: [autonomie, exploitation, debogage, evolution, routines, securite, france, rgpd]
 status: draft
 created: 2026-09-19
-updated: 2026-09-29
+updated: 2026-10-14
 sources: ["[[2026-09-28-reseau-national-ouvertures-locales]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]"]
 ---
 
 # Gerimmo en autonomie — exploitation, débogage, évolution
+
+> [!warning] Page historique — état au 29/09/2026
+> Cette page décrit l'état et les intentions du 29/09. Depuis, le code a changé : l'audit du 14/10 relève **11 tâches planifiées côté Vercel** (région `cdg1`) et
+> **8 tâches `pg_cron`**, et non les « quatre tâches quotidiennes » ni l'absence de région décrites plus bas.
+> L'inventaire à jour des automatismes, ce qui est installé ou seulement préparé, et les propositions d'équipes IA sont dans
+> [[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]] (écart IA-10 du [[Registre des anomalies — audit du 13 octobre 2026]]).
 
 > [!note] Précision du 28/09/2026 — gestion nationale, réseau local
 > La **gestion locative est nationale** : un propriétaire ou une agence peut gérer

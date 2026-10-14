@@ -25,9 +25,9 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 |---|---|---|---|---|---|---|---|---|
 | **P0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
 | **P1** | 0 | 1 | 0 | 0 | 0 | 0 | 0 | **1** |
-| **P2** | 4 | 32 | 0 | 30 | 1 | 0 | 0 | **67** |
-| **P3** | 42 | 46 | 0 | 53 | 0 | 0 | 0 | **141** |
-| **Total** | 46 | 79 | 0 | 83 | 1 | 0 | 0 | **209** |
+| **P2** | 0 | 32 | 0 | 34 | 1 | 0 | 0 | **67** |
+| **P3** | 14 | 66 | 0 | 60 | 0 | 0 | 1 | **141** |
+| **Total** | 14 | 99 | 0 | 94 | 1 | 0 | 1 | **209** |
 
 Sources lues : artisan, auditeur/a, auditeur/b, auditeur/c, chaine/1, chaine/1b, chaine/2, charges-fiscalite, coordinateur, designer/a, designer/b, equipes-ia, perf-liens, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, retour-arriere, sortie-de-bail, superadmin, verification/pr178, verification/securite, verification/sql, verification/ts.
 
@@ -64,11 +64,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
-| `AUD-C-02` | auditeur/c | Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees par Sante | ouverte — complète SUP-01 : même cause, côté sauvegarde et restauration |
-| `IA-05` | equipes-ia | Hypothèse à vérifier : envoyerEmail n'a aucun délai maximal, un blocage du fournisseur retient toute la passe *(hyp.)* | ouverte |
-| `PROP-03` | proprietaire/s01 | Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause | ouverte |
-| `PR178-A-03` | relecture/pr178/a | Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seule issue : effacer la copie et tout ressaisir | ouverte — 36219ec corrige le cas de la session expirée ; le cas de la réponse perdue demande une décision (reprendre la… |
-| `ARC-02` | artisan | Chantiers externes : heures de rendez-vous et d historique affichées en UTC (2 h d écart avec l heure de Paris saisie et avec les interventions Gerimmo) | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-affichage.test.ts |
+| `ARC-02` | artisan | Chantiers externes : heures de rendez-vous et d historique affichées en UTC (2 h d écart avec l heure de Paris saisie et avec les interventions Gerimmo) | corrigée en branche — vague 5-7 ; tests : app/tests/artisan-prive-affichage.test.ts |
 | `AUD-A-01` | auditeur/a | Un agent restreint modifie les équipements d'un lot hors de son portefeuille (RPC definir_equipements_lot) | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — garde de portefeuille, test rouge puis vert |
 | `AUD-A-02` | auditeur/a | L'annulation d'une écriture comptable (contre_ecriture) n'enregistre pas son auteur | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — ligne d'audit avec auteur |
 | `AUD-A-03` | auditeur/a | L'annulation d'une mission artisan (annuler_mission) ne garde ni auteur ni événement | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — événement « mission annulée » au fil de l'inci… |
@@ -79,12 +75,12 @@ Aucune anomalie de cette gravité à ce jour.
 | `PRO2-14` | chaine/1b | La justification de la qualification, rédigée comme note de décision, est affichée mot pour mot au locataire sans que le formulaire le dise | corrigée en branche — 611dce2 — le formulaire dit que la justification est montrée au locataire |
 | `MKT-01` | coordinateur | La préparation du soir du marketing n'a jamais été déclenchée par pg_cron : pas de fenêtre de veto la veille, seul le rattrapage de la matinée préparait les posts | corrigée en branche — commit 9d5ed9d ; migration 20261013110000 à appliquer en production |
 | `PUB-01` | coordinateur | Le formulaire « Agences » de l'accueil était le seul canal de contact des pages légales (exercice des droits sur les données) tant que l'adresse de l'éditeur manque ; il restait une demande de devis commerciale | corrigée en branche — commit e7982a7 |
-| `DES-A-01` | designer/a | Au clavier, sur mobile (≤640 px), le champ ou le bouton qui reçoit le focus est entièrement masqué par la barre d'onglets fixe du bas | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
-| `DES-A-09` | designer/a | Menu « Plus » mobile (tiroir modal) : le focus ne passe pas dans le tiroir à l'ouverture et la touche Tab en sort vers la page cachée derrière | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
-| `DES-A-13` | designer/a | Tablette (≤ 1023 px) : le menu du propriétaire est un rail d'icônes sans libellé, alors que celui du locataire garde les libellés sous les icônes | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
-| `DES-B-01` | designer/b | Artisan : sur 390 px, Agenda, Demandes de devis et le détail d'une demande débordent horizontalement dès qu'un nom d'organisation est long (recoupe ARC-05, étendu à trois écrans) | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
-| `DES-B-02` | designer/b | Artisan : le focus clavier passe sous la barre d'onglets fixe du bas (390 et 768 px), même défaut que DES-A-01 côté propriétaire | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
-| `DES-B-03` | designer/b | Artisan : aucun écran de chargement entre deux pages — sur réseau lent, le clic sur un onglet ne produit rien pendant plusieurs secondes | corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-03 |
+| `DES-A-01` | designer/a | Au clavier, sur mobile (≤640 px), le champ ou le bouton qui reçoit le focus est entièrement masqué par la barre d'onglets fixe du bas | corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-A-09` | designer/a | Menu « Plus » mobile (tiroir modal) : le focus ne passe pas dans le tiroir à l'ouverture et la touche Tab en sort vers la page cachée derrière | corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-A-13` | designer/a | Tablette (≤ 1023 px) : le menu du propriétaire est un rail d'icônes sans libellé, alors que celui du locataire garde les libellés sous les icônes | corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-B-01` | designer/b | Artisan : sur 390 px, Agenda, Demandes de devis et le détail d'une demande débordent horizontalement dès qu'un nom d'organisation est long (recoupe ARC-05, étendu à trois écrans) | corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-B-02` | designer/b | Artisan : le focus clavier passe sous la barre d'onglets fixe du bas (390 et 768 px), même défaut que DES-A-01 côté propriétaire | corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-B-03` | designer/b | Artisan : aucun écran de chargement entre deux pages — sur réseau lent, le clic sur un onglet ne produit rien pendant plusieurs secondes | corrigée en branche — vague 5-7 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-03 |
 | `PROP-02` | proprietaire/s01 | Code postal à 4 chiffres et année 1500 acceptés et enregistrés à la création du bien | corrigée en branche — d6ef891 — code postal du bien sur cinq chiffres, année de construction de 1600 à année+5 |
 | `PROP-07` | proprietaire/s01 | Fiche personne : date de naissance future, téléphone « abc » et code postal « 75 » acceptés | corrigée en branche — d6ef891 — date de naissance, téléphone et code postal contrôlés côté serveur |
 | `PROP-12` | proprietaire/s01 | Encaissement à 3 décimales accepté et stocké tel quel : totaux affichés incohérents au centime | corrigée en branche — 0555f43 — montant au centime près refusé côté serveur (la colonne numeric(12,2) n'est pas modifié… |
@@ -99,10 +95,11 @@ Aucune anomalie de cette gravité à ce jour.
 | `SUP-02` | relecture/supervision | Pendant une session de diagnostic artisan ouverte (30 min), le trigger de lecture seule est pose sur TOUTES les tables de public, y compris supervision_arrets / supervision_operations : l'arret d'urgence est refuse. | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — l'arrêt d'urgence ne dépend plus d'un diagnost… |
 | `SA-04` | superadmin | Mode relais actif et arrêt d'urgence invisibles hors de /admin/relais : aucun bandeau dans la console, les pages Équipes et Brief ne signalent pas l'arrêt | corrigée en branche — 9978efa — bandeau d'arrêt d'urgence et de relais sur toute la console |
 | `SA-08` | superadmin | Journal d'audit : 9 types d'actions sans libellé (« Action enregistrée (libellé manquant) »), dont l'octroi du rôle de super-administrateur et les décisions de support, et la suppression d'un encaissement présentée comme « Nettoyage de données arrivé à échéan… | corrigée en branche — 9978efa — neuf codes nommés, plus de repli « suppression = nettoyage » |
-| `VER-PR178-01` | verification/pr178 | Régression : la correction PR178-A-02 désactive la protection « Quitter la page ? » pour une quarantaine de formulaires de saisie (profil, bail, lot, EDL, messages, assistance…) | corrigée en branche — vague 5 ; tests : tests/protection-saisie-formulaires.test.ts |
+| `VER-PR178-01` | verification/pr178 | Régression : la correction PR178-A-02 désactive la protection « Quitter la page ? » pour une quarantaine de formulaires de saisie (profil, bail, lot, EDL, messages, assistance…) | corrigée en branche — vague 5-7 ; tests : tests/protection-saisie-formulaires.test.ts |
 | `ARC-07` | artisan | Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé | à trancher |
 | `ARC-08` | artisan | Un artisan refusé par la plateforme et sur liste noire globale garde l outil clients externes, devis et factures | à trancher |
 | `AUD-B-04` | auditeur/b | Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce *(hyp.)* | à trancher |
+| `AUD-C-02` | auditeur/c | Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees par Sante | à trancher — décision D07 de la page de décisions groupées |
 | `PRO2-01` | chaine/1 | Un propriétaire dont la commune n'est pas ouverte au réseau ne peut solliciter aucun artisan, même un artisan connu : le carnet ne se remplit que par une intervention déjà confiée | à trancher — choix produit : réseau fermé pour la commune du propriétaire, carnet sans formulaire d'ajout |
 | `ART-13` | chaine/1b | L'artisan ne peut pas déposer une version 2 de son devis : la demande close devient lecture seule, sans « réviser mon devis » | à trancher — fonction manquante : l'artisan ne peut pas déposer une version 2 de son devis |
 | `PRO2-12` | chaine/1b | Un devis reçu ne peut être que retenu : ni refus motivé, ni demande de révision (écart avec le référentiel : déposé, validé, refusé ou expiré) | à trancher — fonction manquante : un devis reçu ne peut pas être refusé ni renvoyé en révision |
@@ -120,9 +117,12 @@ Aucune anomalie de cette gravité à ce jour.
 | `IA-02` | equipes-ia | Mode vacances : l'urgence et l'escalade restent internes à la console, sans alerte vers un responsable absent, et ne s'alimentent ni d'un incident urgent ni d'un impayé | à trancher |
 | `IA-03` | equipes-ia | Aucune alerte active sur l'échec ou l'absence d'une tâche : la santé ne se lit que si le dirigeant ouvre l'écran ; la seule alerte e-mail du produit est le veto marketing | à trancher |
 | `IA-04` | equipes-ia | Hypothèse à vérifier : quittances, avis d'échéance, relances et rappels s'envoient puis se marquent, sans clé d'idempotence côté fournisseur d'e-mail *(hyp.)* | à trancher |
+| `IA-05` | equipes-ia | Hypothèse à vérifier : envoyerEmail n'a aucun délai maximal, un blocage du fournisseur retient toute la passe *(hyp.)* | à trancher — décision D47 de la page de décisions groupées |
+| `PROP-03` | proprietaire/s01 | Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause | à trancher — voir D12 : la limite réelle est celle des fonctions Vercel (4,5 Mo), à mesurer avant de choisir le seuil d… |
 | `PROP-14` | proprietaire/s01 | Entrée en cours de mois : le premier terme (prorata) est exigible le 1er du mois, avant l'entrée, et passe tout de suite en « Impayé » | à trancher |
 | `FIN-07` | relecture/finance | Le filtre par mot-clé « fonds travaux / alur » écarte la pièce avant de consulter la qualification justifiée du propriétaire : une dépense qualifiée « déductible 224 » reste exclue des charges et la qualification est enregistrée mais sans effet. | à trancher |
 | `FIN-11` | relecture/finance | Les migrations ne rétro-capturent aucun loyer existant et la reprise « retrouver_ventilation_fiscale » refuse tout bail qui a plus d'un appel : sur les données réelles déjà en production, le récapitulatif 2044 passe à 0 € de loyers et chaque pièce doit être q… | à trancher |
+| `PR178-A-03` | relecture/pr178/a | Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seule issue : effacer la copie et tout ressaisir | à trancher — décision D31 de la page de décisions groupées |
 | `PR178-B-04` | relecture/pr178/b | Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires | à trancher — clic avant hydratation sans effet visible : désactiver le bouton jusqu'à l'hydratation, formulaire par for… |
 | `PR178-B-06` | relecture/pr178/b | Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté) | à trancher — rejeu possible d'un encaissement après réponse perdue : demande une clé d'idempotence et une contrainte en… |
 | `SUP-01` | relecture/supervision | L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision. | à trancher |
@@ -134,66 +134,9 @@ Aucune anomalie de cette gravité à ce jour.
 
 ### Fiches P2
 
-#### `AUD-C-02` — Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees pa…
-
-- **Sévérité** : P2 · **Statut** : ouverte — complète SUP-01 : même cause, côté sauvegarde et restauration · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : auditeur-c (auditeur/c) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Restauration de la base dans un projet neuf, ou arret silencieux de pg_cron / pg_net
-- **Étapes** : 1. Lire scripts/sauvegarde/base.mjs : SCHEMAS = public, auth, storage. 2. Exporter la copie (qui contient un schema cron avec 8 taches) et lister le dump avec pg_restore -l : 0 entree contenant 'cron'. 3. grep cron / pg_net dans docs/sauvegarde-et-restauration.md : 0 mention. 4. grep cycle_mensuel dans app/src : 0 lecteur ; Sante ne lit que les evenements tache_*.
-- **Attendu** : La procedure de reprise liste la recreation des taches pg_cron et l'activation de pg_cron/pg_net ; un ecran ou une alerte signale qu'un cycle mensuel n'a pas tourne.
-- **Observé** : Apres une restauration, les appels de loyer du mois (cycle-mensuel, le 1er a 05:00 UTC), les alertes d'impayes, la retention et le declencheur marketing ne repartent pas, sans aucun signal (hypothese sur l'effet en production : seule l'exclusion du dump, l'absence de documentation et l'absence de lecteur sont prouvees). Contournement : bouton 'generer les appels' bail par bail.
-- **Preuve expurgée (banc)** : preuves/auditeur/c/preuves-sql.txt ; inventaire-automatismes.md section 2
-- **Cause probable** : app/scripts/sauvegarde/base.mjs (SCHEMAS) ; app/docs/sauvegarde-et-restauration.md ; app/src/lib/tache.ts (dernieresTaches ne retient que tache_*).
-- **Correction proposée** : Ajouter a la procedure l'etape 'rejouer les cron.schedule des migrations et activer pg_cron/pg_net' ; exporter select jobname, schedule, command from cron.job dans la sauvegarde ; faire consigner cycle_mensuel sous tache_cycle_mensuel (ou lire cycle_mensuel dans Sante, retard > 32 jours).
-- **Correction sans aval** : non (aval du dirigeant requis)
-
-#### `IA-05` — Hypothèse à vérifier : envoyerEmail n'a aucun délai maximal, un blocage du fournisseur retient toute la passe
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Le service d'e-mail ne répond pas
-- **Étapes** : 1. Lire app/src/lib/email.ts:46-61 ; 2. Comparer avec les autres appels sortants (OpenAI, Facebook, devis assisté) qui ont un AbortSignal ; 3. Lire execution-mission.ts:13-19
-- **Attendu** : Tout appel sortant d'une tâche a un délai et une reprise bornés (mission section 12)
-- **Observé** : Constat statique : fetch vers Resend sans signal. La passe est limitée seulement par maxDuration (180 s) ; l'échec devient 'interrompu' avec effets partiels (execution-mission.ts:18), puis l'envoi-puis-marquage de IA-04 peut produire des doublons. Non rejoué.
-- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-05)
-- **Cause probable** : app/src/lib/email.ts:46-61 (absence d'AbortSignal)
-- **Correction proposée** : Ajouter AbortSignal.timeout (par exemple 15 s) et classer l'échec comme erreur ordinaire du fournisseur
-- **Correction sans aval** : oui
-- **Reproduction** : hypothèse à vérifier, non reproduite
-
-#### `PROP-03` — Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause
-
-- **Sévérité** : P2 · **Statut** : ouverte · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : lot avec DPE déjà déposé, bouton « Remplacer »
-- **Étapes** : déposer un PDF valide de 10,2 Mio (10 695 473 octets), puis 12 Mio, puis 26 Mio
-- **Attendu** : message « Fichier trop volumineux (10 Mo max) » (le formulaire annonce « 10 Mo maximum »)
-- **Observé** : POST renvoie HTTP 500 ; message affiché : « La confirmation n’a pas pu être reçue. Votre saisie est conservée ; rouvrez le dossier pour vérifier le résultat avant de recommencer. » ; aucun diagnostic créé. Un fichier de 9,95 Mio (10 433 329 octets) est accepté.
-- **Preuve expurgée (banc)** : captures/s4-07-fichier-12Mo-erreur-vague.png ; sql: diagnostics inchangé (1 ligne active)
-- **Cause probable** : le message de taille (src/app/actions/parc.ts → deposerFichierGed, TAILLE_MAX_OCTETS=10 Mio dans src/lib/file-type.ts:57) n'est jamais atteint : la requête échoue avant l'action, très probablement à la mise en mémoire tampon du corps par le proxy Next (limite par défaut de 10 Mo, indépendante de serverActions.bodySizeLimit 55mb, next.config.ts:157) — hypothèse à vérifier
-- **Correction proposée** : contrôler la taille côté client avant l'envoi (File.size) avec message explicite ; régler proxyClientMaxBodySize ; traduire le 500 en « fichier trop lourd »
-- **Correction sans aval** : oui
-
-#### `PR178-A-03` — Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seu…
-
-- **Sévérité** : P2 · **Statut** : ouverte — 36219ec corrige le cas de la session expirée ; le cas de la réponse perdue demande une décision (reprendre la fiche trouvée par son e-mail ou réessayer) · **Propriétaire** : à désigner par le dirigeant
-- **Rôle / source** : relecteur-pr178-navigateur (relecture/pr178/a) · **Version testée** : f283439 (main après PR #178, lecture) et candidate 5d15b4d (banc)
-- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
-- **Préconditions** : Compte proprietaire@gerimmo-demo.fr, version candidate. Réseau simulé : la requête POST de l'action serveur de création est transmise au serveur mais sa réponse est coupée (route.fetch puis abort connectionreset).
-- **Étapes** : 1. /agence/<org>/personnes puis « Créer une fiche », rôle Locataire, remplir identité et coordonnées, ajouter une « Pièce d'identité » avec un fichier, aller au récapitulatif. 2. Cliquer « Créer la fiche » (réponse coupée). 3. Constater l'état. 4. Recharger la page, choisir « Reprendre ma saisie ».
-- **Attendu** : Le garde-fou anti-doublon est réaffirmé (la fiche n'est pas recréée), mais l'utilisateur doit pouvoir poursuivre : par exemple vérifier la fiche puis rattacher les pièces préparées à la fiche existante, ou relancer la création après confirmation explicite.
-- **Observé** : Une seule ligne persons est créée en base (aucun rejeu : bon point). L'écran affiche « Un enregistrement a été interrompu… Votre saisie et vos documents restent disponibles ici » mais le bouton « Créer la fiche » est désactivé (disabled=true) ; après rechargement et « Reprendre ma saisie », même état : la copie locale contient bilan.creationIncertaine=true et rien ne permet de lever ce drapeau. La seule issue est « Effacer cette copie » (écran de reprise), donc ressaisie complète et nouveau choix des fichiers, ou ajout des pièces à la main depuis la fiche. Le même drapeau est posé AVANT l'appel serveur (creation-fiche-personne.ts:54) : si l'utilisateur ferme l'onglet pendant l'envoi alors que le serveur n'a rien reçu, il retrouve le même blocage pour une fiche qui n'existe pas. Variante S2 (réponse perdue au dépôt d'une pièce, fiche créée) : la pièce est marquée incertaine, le bouton «…
-- **Preuve expurgée (banc)** : preuves/relecture/pr178/a/a03-s1-sortie.txt, a03-s2-sortie.txt, captures/A-03-S1-apres-reponse-perdue.png, captures/A-03-S2-apres-reponse-perdue.png, t5.mjs ; SQL : 1 ligne persons pour test-pr178-s1-23092@example.test
-- **Cause probable** : src/lib/creation-fiche-personne.ts:44 (retour immédiat si precedent.creationIncertaine), :54 (drapeau posé avant l'appel), :61 (pièces incertaines jamais renvoyées) ; src/app/agence/[orgId]/personnes/formulaire-personne.tsx:199 (BoutonEnvoi disabled={etat.creationIncertaine}) ; aucun bouton « J'ai vérifié, la fiche n'existe pas, réessayer » ni « Rattacher à la fiche existante ».
-- **Correction proposée** : Ajouter dans le bandeau d'incertitude deux actions explicites : « La fiche existe : continuer avec elle » (rechercher la personne par e-mail côté serveur puis envoyer les pièces) et « La fiche n'existe pas : réessayer » ; ou donner à creerPersonne une clé d'idempotence stockée avec la copie (comme la commande d'incident) pour rejouer sans risque de doublon.
-- **Correction sans aval** : non (aval du dirigeant requis)
-
 #### `ARC-02` — Chantiers externes : heures de rendez-vous et d historique affichées en UTC (2 h d écart avec l heure de Paris saisie et avec les interventions Gerimmo)
 
-- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-affichage.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5-7 ; tests : app/tests/artisan-prive-affichage.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
 - **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Artisan avec un chantier externe planifié
@@ -342,7 +285,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `DES-A-01` — Au clavier, sur mobile (≤640 px), le champ ou le bouton qui reçoit le focus est entièrement masqué par la barre d'onglets fixe du bas
 
-- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
 - **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Compte propriétaire direct (proprietaire@gerimmo-demo.fr), viewport 390×844, clavier physique ou lecteur d'écran (Tab)
@@ -356,7 +299,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `DES-A-09` — Menu « Plus » mobile (tiroir modal) : le focus ne passe pas dans le tiroir à l'ouverture et la touche Tab en sort vers la page cachée derrière
 
-- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
 - **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Compte propriétaire (barre basse) ou locataire, 390×844, navigation clavier ou lecteur d'écran
@@ -370,7 +313,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `DES-A-13` — Tablette (≤ 1023 px) : le menu du propriétaire est un rail d'icônes sans libellé, alors que celui du locataire garde les libellés sous les icônes
 
-- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
 - **Rôle / source** : designer (designer/a) · **Version testée** : candidate dfbc19a (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Compte propriétaire direct, viewport 768×1024 tactile (sans survol)
@@ -384,7 +327,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `DES-B-01` — Artisan : sur 390 px, Agenda, Demandes de devis et le détail d'une demande débordent horizontalement dès qu'un nom d'organisation est long (recoupe ARC-05, étendu à trois écrans)
 
-- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
 - **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Compte artisan.alpha@gerimmo-demo.fr, organisation « Parc de Éloïse [TEST-proprietaire] Durand-Lévêque » (49 caractères), viewport 390x844
@@ -398,7 +341,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `DES-B-02` — Artisan : le focus clavier passe sous la barre d'onglets fixe du bas (390 et 768 px), même défaut que DES-A-01 côté propriétaire
 
-- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
 - **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Compte artisan, viewport 390x844 ou 768x1024, clavier ou lecteur d'écran
@@ -412,7 +355,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `DES-B-03` — Artisan : aucun écran de chargement entre deux pages — sur réseau lent, le clic sur un onglet ne produit rien pendant plusieurs secondes
 
-- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-03 · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5-7 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-03 · **Propriétaire** : mission (coordinateur) — livré en branche
 - **Rôle / source** : designer (designer/b) · **Version testée** : candidate dfbc19a (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Compte artisan, 390x844, réseau dégradé (latence 1,8 s, 60 ko/s) — le cas du chantier en zone mal couverte
@@ -618,7 +561,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `VER-PR178-01` — Régression : la correction PR178-A-02 désactive la protection « Quitter la page ? » pour une quarantaine de formulaires de saisie (profil, bail, lot, EDL, messages, assistance…)
 
-- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5 ; tests : tests/protection-saisie-formulaires.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
+- **Sévérité** : P2 · **Statut** : corrigée en branche — vague 5-7 ; tests : tests/protection-saisie-formulaires.test.ts · **Propriétaire** : mission (coordinateur) — livré en branche
 - **Rôle / source** : vérificateur adverse PR #178 (corrections) (verification/pr178) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Build candidat servi sur 3100 ; compte propriétaire ; aucun envoi n'est nécessaire
@@ -672,6 +615,20 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Aligner la limite annoncée sur la limite de la plateforme, ou déposer via URL signée de stockage ; mesurer en préproduction
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `AUD-C-02` — Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees pa…
+
+- **Sévérité** : P2 · **Statut** : à trancher — décision D07 de la page de décisions groupées · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : auditeur-c (auditeur/c) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Restauration de la base dans un projet neuf, ou arret silencieux de pg_cron / pg_net
+- **Étapes** : 1. Lire scripts/sauvegarde/base.mjs : SCHEMAS = public, auth, storage. 2. Exporter la copie (qui contient un schema cron avec 8 taches) et lister le dump avec pg_restore -l : 0 entree contenant 'cron'. 3. grep cron / pg_net dans docs/sauvegarde-et-restauration.md : 0 mention. 4. grep cycle_mensuel dans app/src : 0 lecteur ; Sante ne lit que les evenements tache_*.
+- **Attendu** : La procedure de reprise liste la recreation des taches pg_cron et l'activation de pg_cron/pg_net ; un ecran ou une alerte signale qu'un cycle mensuel n'a pas tourne.
+- **Observé** : Apres une restauration, les appels de loyer du mois (cycle-mensuel, le 1er a 05:00 UTC), les alertes d'impayes, la retention et le declencheur marketing ne repartent pas, sans aucun signal (hypothese sur l'effet en production : seule l'exclusion du dump, l'absence de documentation et l'absence de lecteur sont prouvees). Contournement : bouton 'generer les appels' bail par bail.
+- **Preuve expurgée (banc)** : preuves/auditeur/c/preuves-sql.txt ; inventaire-automatismes.md section 2
+- **Cause probable** : app/scripts/sauvegarde/base.mjs (SCHEMAS) ; app/docs/sauvegarde-et-restauration.md ; app/src/lib/tache.ts (dernieresTaches ne retient que tache_*).
+- **Correction proposée** : Ajouter a la procedure l'etape 'rejouer les cron.schedule des migrations et activer pg_cron/pg_net' ; exporter select jobname, schedule, command from cron.job dans la sauvegarde ; faire consigner cycle_mensuel sous tache_cycle_mensuel (ou lire cycle_mensuel dans Sante, retard > 32 jours).
+- **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `PRO2-01` — Un propriétaire dont la commune n'est pas ouverte au réseau ne peut solliciter aucun artisan, même un artisan connu : le carnet ne se remplit que par une intervention déjà confiée
 
@@ -910,6 +867,35 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Reproduction** : hypothèse à vérifier, non reproduite
 
+#### `IA-05` — Hypothèse à vérifier : envoyerEmail n'a aucun délai maximal, un blocage du fournisseur retient toute la passe
+
+- **Sévérité** : P2 · **Statut** : à trancher — décision D47 de la page de décisions groupées · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : non relevée
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Le service d'e-mail ne répond pas
+- **Étapes** : 1. Lire app/src/lib/email.ts:46-61 ; 2. Comparer avec les autres appels sortants (OpenAI, Facebook, devis assisté) qui ont un AbortSignal ; 3. Lire execution-mission.ts:13-19
+- **Attendu** : Tout appel sortant d'une tâche a un délai et une reprise bornés (mission section 12)
+- **Observé** : Constat statique : fetch vers Resend sans signal. La passe est limitée seulement par maxDuration (180 s) ; l'échec devient 'interrompu' avec effets partiels (execution-mission.ts:18), puis l'envoi-puis-marquage de IA-04 peut produire des doublons. Non rejoué.
+- **Preuve expurgée (banc)** : preuves/equipes-ia/preuves-recherches.txt (section IA-05)
+- **Cause probable** : app/src/lib/email.ts:46-61 (absence d'AbortSignal)
+- **Correction proposée** : Ajouter AbortSignal.timeout (par exemple 15 s) et classer l'échec comme erreur ordinaire du fournisseur
+- **Correction sans aval** : oui
+- **Reproduction** : hypothèse à vérifier, non reproduite
+
+#### `PROP-03` — Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause
+
+- **Sévérité** : P2 · **Statut** : à trancher — voir D12 : la limite réelle est celle des fonctions Vercel (4,5 Mo), à mesurer avant de choisir le seuil du contrôle · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : lot avec DPE déjà déposé, bouton « Remplacer »
+- **Étapes** : déposer un PDF valide de 10,2 Mio (10 695 473 octets), puis 12 Mio, puis 26 Mio
+- **Attendu** : message « Fichier trop volumineux (10 Mo max) » (le formulaire annonce « 10 Mo maximum »)
+- **Observé** : POST renvoie HTTP 500 ; message affiché : « La confirmation n’a pas pu être reçue. Votre saisie est conservée ; rouvrez le dossier pour vérifier le résultat avant de recommencer. » ; aucun diagnostic créé. Un fichier de 9,95 Mio (10 433 329 octets) est accepté.
+- **Preuve expurgée (banc)** : captures/s4-07-fichier-12Mo-erreur-vague.png ; sql: diagnostics inchangé (1 ligne active)
+- **Cause probable** : le message de taille (src/app/actions/parc.ts → deposerFichierGed, TAILLE_MAX_OCTETS=10 Mio dans src/lib/file-type.ts:57) n'est jamais atteint : la requête échoue avant l'action, très probablement à la mise en mémoire tampon du corps par le proxy Next (limite par défaut de 10 Mo, indépendante de serverActions.bodySizeLimit 55mb, next.config.ts:157) — hypothèse à vérifier
+- **Correction proposée** : contrôler la taille côté client avant l'envoi (File.size) avec message explicite ; régler proxyClientMaxBodySize ; traduire le 500 en « fichier trop lourd »
+- **Correction sans aval** : oui
+
 #### `PROP-14` — Entrée en cours de mois : le premier terme (prorata) est exigible le 1er du mois, avant l'entrée, et passe tout de suite en « Impayé »
 
 - **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
@@ -947,6 +933,20 @@ Aucune anomalie de cette gravité à ce jour.
 - **Correction proposée** : Offrir une reprise explicite par lot (action unique, auditée, non silencieuse) pour les baux dont les appels sont cohérents (montant_du = loyer_hc + charges), dont chaque paiement s'impute sans avance sur les appels existants, et qui n'ont ni annulation ni anomalie ; la même règle FIFO que le déclencheur peut être rejouée en SQL sur les paiements existants dans l'ordre (created_at, id). Annoncer dans l'interface le nombre de pièces à qualifier.
 - **Correction sans aval** : non (aval du dirigeant requis)
 - **Contrôle en production (lecture seule)** : `-- Lecture seule : combien de loyers existants sont sans capture, par organisation (c'est le nombre de pièces à qualifier à la main). select e.organization_id, count(*) filter (where c.ecriture_id is null) as loyers_sans_capture, count(*) as loyers_total, min(e.date_piece) premiere, max(e.date_piece) derniere from public.ecritures e left join public.fiscal_encaissements_composantes c on c.ecriture_id=e.id where e.categorie='loyer' and e.sens='recette' and e.contre_ecriture_de is null group by 1 order by 2 desc;`
+
+#### `PR178-A-03` — Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seu…
+
+- **Sévérité** : P2 · **Statut** : à trancher — décision D31 de la page de décisions groupées · **Propriétaire** : dirigeant (décision)
+- **Rôle / source** : relecteur-pr178-navigateur (relecture/pr178/a) · **Version testée** : f283439 (main après PR #178, lecture) et candidate 5d15b4d (banc)
+- **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
+- **Préconditions** : Compte proprietaire@gerimmo-demo.fr, version candidate. Réseau simulé : la requête POST de l'action serveur de création est transmise au serveur mais sa réponse est coupée (route.fetch puis abort connectionreset).
+- **Étapes** : 1. /agence/<org>/personnes puis « Créer une fiche », rôle Locataire, remplir identité et coordonnées, ajouter une « Pièce d'identité » avec un fichier, aller au récapitulatif. 2. Cliquer « Créer la fiche » (réponse coupée). 3. Constater l'état. 4. Recharger la page, choisir « Reprendre ma saisie ».
+- **Attendu** : Le garde-fou anti-doublon est réaffirmé (la fiche n'est pas recréée), mais l'utilisateur doit pouvoir poursuivre : par exemple vérifier la fiche puis rattacher les pièces préparées à la fiche existante, ou relancer la création après confirmation explicite.
+- **Observé** : Une seule ligne persons est créée en base (aucun rejeu : bon point). L'écran affiche « Un enregistrement a été interrompu… Votre saisie et vos documents restent disponibles ici » mais le bouton « Créer la fiche » est désactivé (disabled=true) ; après rechargement et « Reprendre ma saisie », même état : la copie locale contient bilan.creationIncertaine=true et rien ne permet de lever ce drapeau. La seule issue est « Effacer cette copie » (écran de reprise), donc ressaisie complète et nouveau choix des fichiers, ou ajout des pièces à la main depuis la fiche. Le même drapeau est posé AVANT l'appel serveur (creation-fiche-personne.ts:54) : si l'utilisateur ferme l'onglet pendant l'envoi alors que le serveur n'a rien reçu, il retrouve le même blocage pour une fiche qui n'existe pas. Variante S2 (réponse perdue au dépôt d'une pièce, fiche créée) : la pièce est marquée incertaine, le bouton «…
+- **Preuve expurgée (banc)** : preuves/relecture/pr178/a/a03-s1-sortie.txt, a03-s2-sortie.txt, captures/A-03-S1-apres-reponse-perdue.png, captures/A-03-S2-apres-reponse-perdue.png, t5.mjs ; SQL : 1 ligne persons pour test-pr178-s1-23092@example.test
+- **Cause probable** : src/lib/creation-fiche-personne.ts:44 (retour immédiat si precedent.creationIncertaine), :54 (drapeau posé avant l'appel), :61 (pièces incertaines jamais renvoyées) ; src/app/agence/[orgId]/personnes/formulaire-personne.tsx:199 (BoutonEnvoi disabled={etat.creationIncertaine}) ; aucun bouton « J'ai vérifié, la fiche n'existe pas, réessayer » ni « Rattacher à la fiche existante ».
+- **Correction proposée** : Ajouter dans le bandeau d'incertitude deux actions explicites : « La fiche existe : continuer avec elle » (rechercher la personne par e-mail côté serveur puis envoyer les pièces) et « La fiche n'existe pas : réessayer » ; ou donner à creerPersonne une clé d'idempotence stockée avec la copie (comme la commande d'incident) pour rejouer sans risque de doublon.
+- **Correction sans aval** : non (aval du dirigeant requis)
 
 #### `PR178-B-04` — Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires
 
@@ -1060,94 +1060,86 @@ Aucune anomalie de cette gravité à ce jour.
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
-| `AUD-B-05` | auditeur/b | Dépôt de deux fichiers identiques : un seul conservé, sans le dire | ouverte |
 | `AUD-C-03` | auditeur/c | L'ordre d'application des migrations n'est pas l'ordre des noms de fichiers *(hyp.)* | ouverte |
 | `AUD-C-04` | auditeur/c | Trois versions de PostgreSQL dans les preuves de sauvegarde, sans garde de coherence (hypothese a verifier) *(hyp.)* | ouverte |
-| `AUD-C-06` | auditeur/c | L'export CSV du journal ne neutralise pas les formules de tableur (hypothese a verifier) *(hyp.)* | ouverte |
-| `LOC-01` | chaine/1 | Dépôt d'une attestation déjà déposée : message technique générique au lieu de « ce fichier est déjà dans votre dossier » | ouverte |
-| `ART-11` | chaine/1b | Quantité et taux de TVA écrits avec un point décimal (« 2.5 », « 5.5 % ») sur le PDF du devis et dans le détail vu par le propriétaire, alors que les montants et le sélecteur sont en virgule | ouverte |
-| `ART-12` | chaine/1b | Quantité ou prix invalide (0, « abc », 12,345, -5) : le total reste à 0,00 € sans dire quel champ est en cause | ouverte |
 | `PRO2-11` | chaine/1b | Élision manquante dans le nom de parc généré : « Parc de Éloïse … » (même famille que LOC-02) | ouverte |
-| `LOC-22` | chaine/2 | Un locataire connecté qui ouvre /artisan arrive sur le formulaire d'inscription artisan | ouverte |
-| `PRO2-22` | chaine/2 | Un propriétaire direct lit « privé à votre agence » sur la notation de l'artisan, et l'artisan lit « l'agence le tranchera » sur l'écart de facture (recoupe PROP-09) | ouverte |
-| `CHF-05` | charges-fiscalite | Le wiki « Fiscalité » ne s'appuie sur aucune source officielle (quatre sites commerciaux seulement) et affirme encore « non implémentée » pour des fonctions livrées ; le wiki « Régularisation des charges » fait de même. | ouverte |
 | `CHF-08` | charges-fiscalite | Hypothèse à vérifier : le lien « notice officielle 2044, millésime 2026 (revenus 2025) » affiché sous un récapitulatif des revenus 2026 pointe vers …/2044_5487.pdf, alors que la recherche renvoie le formulaire 2026 sous …/2044_5483.pdf. *(hyp.)* | ouverte |
-| `DES-A-03` | designer/a | Espace locataire : les titres de carte sont des <h3> directement sous le <h1> (aucun <h2>) sur toutes les pages | ouverte |
-| `DES-A-10` | designer/a | Le logo doré posé à nu sur fond clair est quasi illisible sur mobile (≈ 1,5:1), alors que la page d'inscription artisan le présente dans une tuile bleu nuit (≈ 13,6:1) | ouverte |
-| `DES-B-10` | designer/b | Logo doré quasi illisible sur l'en-tête blanc : artisan à 768 px et super-admin à 390 et 768 px (même défaut que DES-A-10) | ouverte |
 | `DES-B-12` | designer/b | HORS V1 PUBLIQUE — espaces administrateur d'agence et agent : défauts transversaux déjà connus et petites cibles sur la recherche | ouverte |
-| `IA-10` | equipes-ia | La page wiki 'Gerimmo en autonomie' est périmée : 4 tâches quotidiennes, 'vercel.json ne fixe aucune région', ronde quotidienne 'à armer' | ouverte |
-| `PRF-01` | perf-liens | Page de connexion : décalage de mise en page (CLS 0,212) sur mobile avec réseau lent | ouverte |
-| `PRF-06` | perf-liens | Page « Compte » : le lien « le lien reçu par email » renvoie l'utilisateur connecté à son accueil sans explication | ouverte |
-| `PRF-09` | perf-liens | Lien factice href="#" « Retour à mes fiches » (annuaire des personnes) *(hyp.)* | ouverte |
 | `PROP-05` | proprietaire/s01 | Nom d'espace sans élision : « Parc de Éloïse … » | ouverte |
-| `PROP-08` | proprietaire/s01 | Recherche globale (⌘K) insensible à la casse mais pas aux accents ; code postal non recherchable | ouverte |
-| `PROP-09` | proprietaire/s01 | Libellés d'agence ou de permission dans l'espace propriétaire direct | ouverte |
 | `PROP-10` | proprietaire/s01 | Message serveur de la clé de répartition avec point décimal : « fait 99.99 » | ouverte |
-| `FIN-02` | relecture/finance | Sur une organisation dont l'abonnement est suspendu, « Encaisser » répond « Accès refusé. » au lieu du message d'abonnement suspendu renvoyé par toutes les autres écritures. | ouverte |
-| `FIN-05` | relecture/finance | « Montant net à qualifier » additionne recettes et dépenses non qualifiées en valeurs positives : ce n'est pas un net. | ouverte |
-| `FIN-06` | relecture/finance | « Retrouver la ventilation historique » annonce un succès sans rien changer quand la pièce a déjà une capture avec une part non ventilée (avance). | ouverte |
-| `FIN-08` | relecture/finance | Toute dépense qualifiée « Hors revenus fonciers » est présentée au propriétaire comme de la taxe d'enlèvement des ordures ménagères, et toute recette « hors 2044 » comme des provisions de charges encaissées. | ouverte |
-| `FIN-10` | relecture/finance | Le wiki métier n'a pas été mis à jour : il décrit encore la ligne 229 comme « part non récupérable seulement, postes récupérables retirés lot par lot », alors que le code ne retire plus rien (coproRecuperableExclue vaut toujours 0) et traite la réintégration… *(hyp.)* | ouverte |
 | `FIN-12` | relecture/finance | Hypothèse à vérifier : les lectures de qualifications, de captures et d'écritures n'ont ni filtre d'année (captures, qualifications) ni garde contre la limite de 1 000 lignes de l'API, alors que d'autres écrans du dépôt la connaissent (« trop de lignes »). *(hyp.)* | ouverte |
 | `FIN-13` | relecture/finance | Hypothèse à vérifier : l'encaissement en un clic prend la date par défaut de la base (current_date, fuseau UTC), pas la date de Paris ; entre 00 h 00 et 01 h 59 (heure de Paris) un règlement est daté de la veille, y compris le 31 décembre pour un 1er janvier. *(hyp.)* | ouverte |
-| `PR178-A-06` | relecture/pr178/a | Accessibilité des copies locales : la région role=status change de phrase à chaque frappe (25 changements pour 12 caractères) et le focus tombe sur le body après « Reprendre ma saisie » | ouverte |
 | `PR178-A-09` | relecture/pr178/a | Sans API Navigation (hypothèse Safari/iOS et Firefox), le geste Retour abandonne silencieusement un formulaire modifié *(hyp.)* | ouverte |
 | `PR178-B-07` | relecture/pr178/b | Les parcours navigateur ajoutés n'auraient détecté aucun des constats B-01 à B-06 : les tests du garde sont en partie synthétiques et aucun ne couvre les succès financiers, la session expirée ou les formulaires de recherche sans method | ouverte |
 | `REP-03` | relecture/reprises | Clients externes (module desactive en production) : apres un refus de validation, le meme justificatif ne peut plus etre remplace par un autre fichier de meme type tant que le formulaire n'est pas recharge, et un devis re-genere ne peut pas etre redepose *(hyp.)* | ouverte |
 | `SUP-06` | relecture/supervision | Ces trois lectures font db.from('accounts').select('id,email') sans filtre puis filtrent en JavaScript : au-delà de la limite de lignes de l'API (1 000 par défaut chez Supabase), la liste des responsables habilités et les noms des destinataires sont tronqués… *(hyp.)* | ouverte |
-| `SUP-07` | relecture/supervision | Le périmètre d'arrêt « Sauvegarde » est proposé au superviseur et accepté par la base, mais aucun code (workflow GitHub de sauvegarde, scripts app/scripts/sauvegarde/*) ne lit verifier_arret_supervision('sauvegarde') : l'arrêt n'arrête rien. *(hyp.)* | ouverte |
-| `RET-03` | retour-arriere | La page du wiki Plan de reprise d'activité cite une base de connaissance qui n'existe pas dans V4 (docs/plan-reprise-activite.md, table backup_registry) et décrit une sauvegarde Supabase alors que la copie réelle est un dump chiffré chez Scaleway | ouverte |
-| `SOR-01` | sortie-de-bail | Clé de répartition par surface : « NaN % » et validation impossible (peut venir de l émulateur du banc) | ouverte |
 | `SA-02` | superadmin | Brief de direction : les montants des faits datés s'affichent avec un point décimal ('500.00 €') alors que les mesures s'affichent à la française ('4 870,00 €') | ouverte |
-| `SA-03` | superadmin | Une consigne ambiguë (sans aucune tâche) peut être « autorisée » : l'écran dit « Aucune tâche proposée. Précisez les lectures » mais propose quand même « Autoriser la version 1 », et la base enregistre l'accord | ouverte |
-| `SA-07` | superadmin | En diagnostic artisan, le bouton d'enregistrement de la fiche entreprise répond « Connectez-vous à votre espace artisan. » au lieu d'expliquer la lecture seule | ouverte |
-| `ARC-01` | artisan | Échec du rendu PDF du devis externe : message technique brut (variable d environnement) montré à l artisan | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-erreurs.test.ts |
-| `ARC-03` | artisan | Agenda : l état du chantier externe est affiché avec son code interne (« planifie ») | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-affichage.test.ts |
-| `ARC-05` | artisan | Agenda artisan sur mobile 390 px : défilement horizontal (448 px) causé par la carte d une mission Gerimmo au nom de parc long | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
-| `ARC-06` | artisan | Clients externes : messages d erreur génériques inadaptés (client en doublon : « cette facture » ; champ vide : « joignez votre justificatif ») | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-erreurs.test.ts |
-| `ARC-09` | artisan | Formulaires privés artisan : session perdue présentée comme « connexion interrompue », sans lien de reconnexion | corrigée en branche — vague 5 ; tests : app/tests/artisan-prive-session-expiree.test.ts |
-| `ARC-10` | artisan | Clients externes : entre minuit et 2 h à Paris (heure d été), la date du jour est refusée et la date par défaut est celle de la veille (jour UTC) | corrigée en branche — vague 5 ; tests : tests/artisan-dates-paris.test.ts : 21 cas SQL, tests/artisan-devis-jour-paris.… |
+| `ARC-01` | artisan | Échec du rendu PDF du devis externe : message technique brut (variable d environnement) montré à l artisan | corrigée en branche — vague 5-7 ; tests : app/tests/artisan-prive-erreurs.test.ts |
+| `ARC-03` | artisan | Agenda : l état du chantier externe est affiché avec son code interne (« planifie ») | corrigée en branche — vague 5-7 ; tests : app/tests/artisan-prive-affichage.test.ts |
+| `ARC-05` | artisan | Agenda artisan sur mobile 390 px : défilement horizontal (448 px) causé par la carte d une mission Gerimmo au nom de parc long | corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `ARC-06` | artisan | Clients externes : messages d erreur génériques inadaptés (client en doublon : « cette facture » ; champ vide : « joignez votre justificatif ») | corrigée en branche — vague 5-7 ; tests : app/tests/artisan-prive-erreurs.test.ts |
+| `ARC-09` | artisan | Formulaires privés artisan : session perdue présentée comme « connexion interrompue », sans lien de reconnexion | corrigée en branche — vague 5-7 ; tests : app/tests/artisan-prive-session-expiree.test.ts |
+| `ARC-10` | artisan | Clients externes : entre minuit et 2 h à Paris (heure d été), la date du jour est refusée et la date par défaut est celle de la veille (jour UTC) | corrigée en branche — vague 5-7 ; tests : tests/artisan-dates-paris.test.ts : 21 cas SQL, tests/artisan-devis-jour-pari… |
+| `AUD-B-05` | auditeur/b | Dépôt de deux fichiers identiques : un seul conservé, sans le dire | corrigée en branche — vague 5-7 ; tests : app/tests/textes-parcours-locataire-compte.test.ts |
+| `AUD-C-06` | auditeur/c | L'export CSV du journal ne neutralise pas les formules de tableur (hypothese a verifier) *(hyp.)* | corrigée en branche — même défaut que CHF-04 : src/lib/csv-sur.ts + export du journal, tests/csv-sur.test.ts |
+| `LOC-01` | chaine/1 | Dépôt d'une attestation déjà déposée : message technique générique au lieu de « ce fichier est déjà dans votre dossier » | corrigée en branche — vague 5-7 ; tests : app/tests/textes-parcours-locataire-compte.test.ts |
 | `LOC-02` | chaine/1 | Élision manquante : « Dernier document — quittance de octobre 2026 » | corrigée en branche — 9978efa — « d'octobre » (espace locataire) |
+| `ART-11` | chaine/1b | Quantité et taux de TVA écrits avec un point décimal (« 2.5 », « 5.5 % ») sur le PDF du devis et dans le détail vu par le propriétaire, alors que les montants et le sélecteur sont en virgule | corrigée en branche — vague 5-7 ; tests : app/tests/devis-affichage-fr.test.ts |
+| `ART-12` | chaine/1b | Quantité ou prix invalide (0, « abc », 12,345, -5) : le total reste à 0,00 € sans dire quel champ est en cause | corrigée en branche — vague 5-7 ; tests : app/tests/devis-affichage-fr.test.ts |
 | `ART-14` | chaine/1b | Mobile 390 px : la fiche d'une demande de devis close et l'accueil artisan débordent horizontalement avec un nom de client long | corrigée en branche — 611dce2 — en-tête du devis : min-width et retour à la ligne |
+| `LOC-22` | chaine/2 | Un locataire connecté qui ouvre /artisan arrive sur le formulaire d'inscription artisan | corrigée en branche — vague 5-7 ; tests : app/tests/textes-parcours-locataire-compte.test.ts |
+| `PRO2-22` | chaine/2 | Un propriétaire direct lit « privé à votre agence » sur la notation de l'artisan, et l'artisan lit « l'agence le tranchera » sur l'écart de facture (recoupe PROP-09) | corrigée en branche — vague 5-7 ; tests : app/tests/vocabulaire-proprietaire-direct.test.ts |
 | `CHF-04` | charges-fiscalite | L'export CSV du livre recettes-dépenses ne neutralise pas les cellules commençant par =, +, - ou @ : un libellé « =1+1 » est exporté tel quel et sera évalué par le tableur. | corrigée en branche — src/lib/csv-sur.ts + export du journal (commit 2235d73), tests/csv-sur.test.ts |
 | `PUB-02` | coordinateur | Offre agence présentée au public alors que les agences sont hors périmètre V1 publique : accueil (repères, espaces, bandeau tarif, FAQ), tarifs, connexion, inscription artisan, choix d'espace, pied de page, métadonnées, deux sujets éditoriaux | corrigée en branche — commit e7982a7 |
 | `PUB-04` | coordinateur | La mention de taxes de l'accueil et des tarifs citait encore les agences (« pour les particuliers comme pour les agences ») | corrigée en branche — 35b0ae8 — phrase de taxes sans agences, 4 tests |
-| `DES-A-02` | designer/a | La page de confirmation de lien e-mail (/auth/confirmer) annonce encore « pour les agences », alors que /connexion a été nettoyée | corrigée en branche — vague 5 ; tests : tests/vocabulaire-v1-parcours.test.ts |
-| `DES-A-04` | designer/a | Fiche d'un bien : la liste de définitions des chiffres clés est mal formée (dl > div > div > dt) | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
-| `DES-A-05` | designer/a | Tablette (641-860 px) : les libellés du rail du menu locataire sont à 9,5 px, sous la métrique commune de 11 px de la charte | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
-| `DES-A-12` | designer/a | Après une erreur de formulaire, le focus tombe sur <body> et les deux mots de passe sont vidés ; deux pages d'authentification partagent le même titre ; la 404 publique propose « Retour à mon espace » | corrigée en branche — vague 5 ; tests : tests/formulaires-auth-focus-titres.test.ts |
-| `DES-A-14` | designer/a | Tablette (641-860 px) : le nom de l'espace du locataire est tronqué en « Par… » dans la cellule de logo du rail | corrigée en branche — vague 5 ; tests : app/tests/ui-clavier-et-rail.test.ts |
-| `DES-A-15` | designer/a | Formulaire « Déclarer un incident » (propriétaire) : l'option d'urgence est coupée à 390 px (« …attendre quelques jour ») | corrigée en branche — vague 5 ; tests : tests/libelles-courts-et-bandeau-390.test.ts |
-| `DES-B-04` | designer/b | Clients externes : « Archiver ce client » s'exécute au premier clic, sans confirmation, avec le style du bouton principal | corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-04 |
-| `DES-B-05` | designer/b | Modules clients externes et règlements déclarés : composants hors charte (liens soulignés en guise de boutons, pastilles redondantes, liens de liste de 19 px) | corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-05, app/tests/titres-de-page.… |
-| `DES-B-06` | designer/b | Artisan qui vient de s'inscrire : trois bandeaux au même sens et trois appels au dépôt d'une pièce sur la même page | corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-06 |
-| `DES-B-07` | designer/b | Titres de page (<title>) incohérents dans l'espace artisan et la supervision | corrigée en branche — vague 5 ; tests : app/tests/titres-de-page.test.ts : 2 × |
-| `DES-B-08` | designer/b | Super-admin sur mobile : résumés repliables de 20 à 28 px de haut, barre d'enregistrement collante qui masque le champ focalisé, bouton flottant hors repère | corrigée en branche — vague 5 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-08 |
-| `DES-B-09` | designer/b | Compte artisan : « toutes les agences » dans la page Sécurité du compte (vocabulaire d'agence dans la V1) | corrigée en branche — vague 5 ; tests : tests/vocabulaire-v1-parcours.test.ts |
-| `DES-B-11` | designer/b | Super-admin, Relais : le bandeau « Habilitation perdue : tâches bloquées » est posé en ligne sur le texte qui le précède, et chevauche l'adresse du responsable à 390 px | corrigée en branche — vague 5 ; tests : tests/libelles-courts-et-bandeau-390.test.ts |
+| `DES-A-02` | designer/a | La page de confirmation de lien e-mail (/auth/confirmer) annonce encore « pour les agences », alors que /connexion a été nettoyée | corrigée en branche — vague 5-7 ; tests : tests/vocabulaire-v1-parcours.test.ts |
+| `DES-A-03` | designer/a | Espace locataire : les titres de carte sont des <h3> directement sous le <h1> (aucun <h2>) sur toutes les pages | corrigée en branche — vague 5-7 ; tests : app/tests/titres-hierarchie-espaces.test.ts |
+| `DES-A-04` | designer/a | Fiche d'un bien : la liste de définitions des chiffres clés est mal formée (dl > div > div > dt) | corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-A-05` | designer/a | Tablette (641-860 px) : les libellés du rail du menu locataire sont à 9,5 px, sous la métrique commune de 11 px de la charte | corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-A-12` | designer/a | Après une erreur de formulaire, le focus tombe sur <body> et les deux mots de passe sont vidés ; deux pages d'authentification partagent le même titre ; la 404 publique propose « Retour à mon espace » | corrigée en branche — vague 5-7 ; tests : tests/formulaires-auth-focus-titres.test.ts |
+| `DES-A-14` | designer/a | Tablette (641-860 px) : le nom de l'espace du locataire est tronqué en « Par… » dans la cellule de logo du rail | corrigée en branche — vague 5-7 ; tests : app/tests/ui-clavier-et-rail.test.ts |
+| `DES-A-15` | designer/a | Formulaire « Déclarer un incident » (propriétaire) : l'option d'urgence est coupée à 390 px (« …attendre quelques jour ») | corrigée en branche — vague 5-7 ; tests : tests/libelles-courts-et-bandeau-390.test.ts |
+| `DES-B-04` | designer/b | Clients externes : « Archiver ce client » s'exécute au premier clic, sans confirmation, avec le style du bouton principal | corrigée en branche — vague 5-7 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-04 |
+| `DES-B-05` | designer/b | Modules clients externes et règlements déclarés : composants hors charte (liens soulignés en guise de boutons, pastilles redondantes, liens de liste de 19 px) | corrigée en branche — vague 5-7 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-05, app/tests/titres-de-pag… |
+| `DES-B-06` | designer/b | Artisan qui vient de s'inscrire : trois bandeaux au même sens et trois appels au dépôt d'une pièce sur la même page | corrigée en branche — vague 5-7 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-06 |
+| `DES-B-07` | designer/b | Titres de page (<title>) incohérents dans l'espace artisan et la supervision | corrigée en branche — vague 5-7 ; tests : app/tests/titres-de-page.test.ts : 2 × |
+| `DES-B-08` | designer/b | Super-admin sur mobile : résumés repliables de 20 à 28 px de haut, barre d'enregistrement collante qui masque le champ focalisé, bouton flottant hors repère | corrigée en branche — vague 5-7 ; tests : app/tests/artisan-ergonomie-des-b.test.ts > DES-B-08 |
+| `DES-B-09` | designer/b | Compte artisan : « toutes les agences » dans la page Sécurité du compte (vocabulaire d'agence dans la V1) | corrigée en branche — vague 5-7 ; tests : tests/vocabulaire-v1-parcours.test.ts |
+| `DES-B-11` | designer/b | Super-admin, Relais : le bandeau « Habilitation perdue : tâches bloquées » est posé en ligne sur le texte qui le précède, et chevauche l'adresse du responsable à 390 px | corrigée en branche — vague 5-7 ; tests : tests/libelles-courts-et-bandeau-390.test.ts |
 | `IA-08` | equipes-ia | Le commentaire de la tâche territoire dit 'mensuelle, le 1er' alors qu'elle est planifiée chaque jour | corrigée en branche — commentaire de app/src/app/api/cron/territoire/route.ts corrigé (vague 6) |
+| `IA-10` | equipes-ia | La page wiki 'Gerimmo en autonomie' est périmée : 4 tâches quotidiennes, 'vercel.json ne fixe aucune région', ronde quotidienne 'à armer' | corrigée en branche — wiki : page Gerimmo en autonomie marquée historique, renvoi vers l'inventaire à jour (commit de l… |
+| `PRF-01` | perf-liens | Page de connexion : décalage de mise en page (CLS 0,212) sur mobile avec réseau lent | corrigée en branche — vague 5-7 ; tests : app/tests/connexion-squelette-cls.test.ts |
+| `PRF-06` | perf-liens | Page « Compte » : le lien « le lien reçu par email » renvoie l'utilisateur connecté à son accueil sans explication | corrigée en branche — vague 5-7 ; tests : app/tests/textes-parcours-locataire-compte.test.ts |
+| `PRF-09` | perf-liens | Lien factice href="#" « Retour à mes fiches » (annuaire des personnes) *(hyp.)* | corrigée en branche — vague 5-7 ; tests : app/tests/textes-parcours-locataire-compte.test.ts |
 | `PROP-04` | proprietaire/s01 | Surface démesurée : message technique « numeric field overflow » affiché à l'utilisateur | corrigée en branche — d6ef891 — surface bornée à 9 999,99 m² avec message clair |
 | `PROP-06` | proprietaire/s01 | La page /connexion présente encore l'offre agence alors que les agences sont hors V1 publique | corrigée en branche — commit e7982a7 (/connexion sans offre agence) |
+| `PROP-09` | proprietaire/s01 | Libellés d'agence ou de permission dans l'espace propriétaire direct | corrigée en branche — vague 5-7 ; tests : app/tests/vocabulaire-proprietaire-direct.test.ts |
+| `FIN-05` | relecture/finance | « Montant net à qualifier » additionne recettes et dépenses non qualifiées en valeurs positives : ce n'est pas un net. | corrigée en branche — vague 5-7 ; tests : app/tests/finance-textes-fiscal.test.ts |
+| `FIN-06` | relecture/finance | « Retrouver la ventilation historique » annonce un succès sans rien changer quand la pièce a déjà une capture avec une part non ventilée (avance). | corrigée en branche — vague 5-7 ; tests : app/tests/finance-textes-fiscal.test.ts |
+| `FIN-08` | relecture/finance | Toute dépense qualifiée « Hors revenus fonciers » est présentée au propriétaire comme de la taxe d'enlèvement des ordures ménagères, et toute recette « hors 2044 » comme des provisions de charges encaissées. | corrigée en branche — vague 5-7 ; tests : app/tests/finance-textes-fiscal.test.ts, app/tests/catalogue-documents.test.ts |
+| `PR178-A-06` | relecture/pr178/a | Accessibilité des copies locales : la région role=status change de phrase à chaque frappe (25 changements pour 12 caractères) et le focus tombe sur le body après « Reprendre ma saisie » | corrigée en branche — vague 5-7 ; tests : app/tests/copie-locale-annonces.test.ts |
 | `PR178-A-07` | relecture/pr178/a | Les copies de devis (une clé localStorage par demande) ne sont jamais purgées si l'artisan ne rouvre pas la même demande : l'expiration de 7 jours n'est contrôlée qu'à la lecture de la clé *(hyp.)* | corrigée en branche — 36219ec — copies effacées à la déconnexion et entre comptes ; les copies d'un même compte expiren… |
 | `PR178-A-08` | relecture/pr178/a | Quand le stockage local est refusé, l'écran « La fiche est créée » affiche encore l'alerte « Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement » et chaque sortie déclenche la boîte « Quitter le site ? » alors qu'il n'y a plus rien à perdre | corrigée en branche — 36219ec — l'effacement qui échoue après un envoi confirmé ne laisse plus ni alerte ni boîte de so… |
 | `PR178-B-02` | relecture/pr178/b | Import du parc : la confirmation de sortie « modifications non enregistrées » se déclenche encore après un import réussi (l'état de retour n'a pas de clé succes) | corrigée en branche — 36219ec — l'import du parc n'est plus suivi |
 | `SUP-08` | relecture/supervision | Quand le responsable désigné perd son habilitation, traiter_vacances passe TOUTES les alertes non accusées du plan en « non_acheminee », y compris celles déjà escaladées vers le créateur (qui, lui, est habilité) ; elles ne peuvent alors plus escalader (l'esca… | corrigée en branche — 725f994 · migration 20261013120000 (à appliquer) — seules les alertes du responsable concerné son… |
 | `RET-01` | retour-arriere | migrations.yml laisse passer un nom de fichier portant un chemin (« ../retours-arriere/… »), alors que la saisie annonce « Noms seuls (pas de chemin) » | corrigée en branche — .github/workflows/migrations.yml : garde de nom de fichier (commit 2235d73), testée en shell sur… |
+| `RET-03` | retour-arriere | La page du wiki Plan de reprise d'activité cite une base de connaissance qui n'existe pas dans V4 (docs/plan-reprise-activite.md, table backup_registry) et décrit une sauvegarde Supabase alors que la copie réelle est un dump chiffré chez Scaleway | corrigée en branche — wiki : page Plan de reprise d'activité mise à jour (V4, retours arrière, état vérifié) |
+| `SA-03` | superadmin | Une consigne ambiguë (sans aucune tâche) peut être « autorisée » : l'écran dit « Aucune tâche proposée. Précisez les lectures » mais propose quand même « Autoriser la version 1 », et la base enregistre l'accord | corrigée en branche — vague 5-7 ; tests : app/tests/consigne-sans-tache.test.ts |
 | `SA-05` | superadmin | Les dates des retours utilisateurs s'affichent en UTC, sans mention de fuseau : 2 h de décalage (et parfois un jour) avec l'heure de Paris utilisée partout ailleurs dans la console | corrigée en branche — 9978efa — dates des retours à l'heure de Paris |
 | `SA-06` | superadmin | Pluriels fautifs dans les écrans de relais et de consignes : 'après 1 minutes', 'Plafonds : 1 lectures au total, 1 par mois' | corrigée en branche — 9978efa — pluriels accordés |
-| `VER-PR178-02` | verification/pr178 | Session expirée puis autre compte dans le même navigateur : les copies du compte précédent (identité, brouillon de lot) restent sur l'appareil tant que le nouveau compte n'ouvre pas la fiche personne ou le formulaire d'incident | corrigée en branche — vague 5 ; tests : tests/copies-locales-arrivee.test.ts, tests/copies-locales.test.ts |
-| `VER-PR178-03` | verification/pr178 | Stockage IndexedDB refusé : après une fiche créée et confirmée, l'alerte « Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement » reste affichée (résidu de PR178-A-08) | corrigée en branche — vague 5 |
-| `VER-PR178-04` | verification/pr178 | Reprise d'une saisie après session expirée : l'ancien message « Votre session a expiré… » est réaffiché alors que la personne s'est reconnectée | corrigée en branche — vague 5 ; tests : tests/copies-locales-arrivee.test.ts |
-| `VER-PR178-05` | verification/pr178 | La purge des copies locales part au clic sur « Se déconnecter », avant que la déconnexion ait réussi : hors ligne, la copie est effacée alors que la session reste ouverte | corrigée en branche — vague 5 ; tests : tests/copies-locales-arrivee.test.ts |
-| `VER-PR178-07` | verification/pr178 | Si sessionStorage est refusé par le navigateur, toute l'application et la page de connexion affichent « Cette page n'a pas pu s'afficher » (code antérieur aux corrections, relevé en testant l'indisponibilité du stockage) | corrigée en branche — vague 5 ; tests : tests/stockage-session.test.ts |
-| `VER-SQL-01` | verification/sql | 20261013120000 n'est pas rejouable sans effet : un rejeu hors transaction duplique la garde de definir_equipements_lot puis s'arrête sur AUD-A-02 | corrigée en branche — vague 5 ; tests : tests/correctifs-audit-13-octobre-rejeu.test.ts : 7 marques présentes, rejeu do… |
-| `VER-SQL-02` | verification/sql | supprimer_detention : deux suppressions simultanées de la même détention laissent deux lignes d'audit pour une seule suppression | corrigée en branche — vague 5 ; tests : tests/incidents-portefeuille-agent.test.ts : « VER-SQL-02 : une suppression qui… |
-| `VER-SQL-03` | verification/sql | REP-01 : un second envoi identique est sans effet en base mais l'action TypeScript renvoie un succès et prévient de nouveau l'artisan *(hyp.)* | corrigée en branche — vague 5 ; tests : tests/validation-creneaux.test.ts : le second envoi identique renvoie 0, tests/… |
-| `VER-SQL-04` | verification/sql | SUP-08 : si le créateur du plan perd lui aussi son habilitation, l'alerte escaladée vers lui reste « escalade » alors qu'elle n'est acheminée à personne | corrigée en branche — vague 5 ; tests : tests/consignes-vacances.test.ts : « perte de droit du remplaçant puis du créat… |
-| `VER-TS-01` | verification/ts | Une date de naissance de forme AAAA-MM-JJ impossible (2024-13-45) fait lever l'action serveur : erreur 500 et message sans rapport au lieu de « date de naissance non valide » | corrigée en branche — vague 5 ; tests : tests/validation-fiches.test.ts |
-| `VER-TS-03` | verification/ts | L'élision « d’octobre » n'est appliquée que sur la page d'accueil locataire : e-mails, page Documents du locataire, PDF de décompte et libellés d'agenda disent encore « de octobre », « de avril », « de août » | corrigée en branche — vague 5 ; tests : tests/elision-courriers.test.ts, tests/elision.test.ts |
-| `VER-TS-04` | verification/ts | Récapitulatif fiscal nu : « Périmètre : N écritures » compte des pièces écartées (période meublé ou hors de mes droits) sans le dire | corrigée en branche — vague 5 ; tests : tests/fiscal-perimetre.test.ts, tests/catalogue-documents.test.ts |
+| `SA-07` | superadmin | En diagnostic artisan, le bouton d'enregistrement de la fiche entreprise répond « Connectez-vous à votre espace artisan. » au lieu d'expliquer la lecture seule | corrigée en branche — vague 5-7 ; tests : app/tests/diagnostic-devis-raison.test.ts |
+| `VER-PR178-02` | verification/pr178 | Session expirée puis autre compte dans le même navigateur : les copies du compte précédent (identité, brouillon de lot) restent sur l'appareil tant que le nouveau compte n'ouvre pas la fiche personne ou le formulaire d'incident | corrigée en branche — vague 5-7 ; tests : tests/copies-locales-arrivee.test.ts, tests/copies-locales.test.ts |
+| `VER-PR178-03` | verification/pr178 | Stockage IndexedDB refusé : après une fiche créée et confirmée, l'alerte « Gardez cet onglet ouvert jusqu'à confirmation de l'enregistrement » reste affichée (résidu de PR178-A-08) | corrigée en branche — vague 5-7 |
+| `VER-PR178-04` | verification/pr178 | Reprise d'une saisie après session expirée : l'ancien message « Votre session a expiré… » est réaffiché alors que la personne s'est reconnectée | corrigée en branche — vague 5-7 ; tests : tests/copies-locales-arrivee.test.ts |
+| `VER-PR178-05` | verification/pr178 | La purge des copies locales part au clic sur « Se déconnecter », avant que la déconnexion ait réussi : hors ligne, la copie est effacée alors que la session reste ouverte | corrigée en branche — vague 5-7 ; tests : tests/copies-locales-arrivee.test.ts |
+| `VER-PR178-07` | verification/pr178 | Si sessionStorage est refusé par le navigateur, toute l'application et la page de connexion affichent « Cette page n'a pas pu s'afficher » (code antérieur aux corrections, relevé en testant l'indisponibilité du stockage) | corrigée en branche — vague 5-7 ; tests : tests/stockage-session.test.ts |
+| `VER-SQL-01` | verification/sql | 20261013120000 n'est pas rejouable sans effet : un rejeu hors transaction duplique la garde de definir_equipements_lot puis s'arrête sur AUD-A-02 | corrigée en branche — vague 5-7 ; tests : tests/correctifs-audit-13-octobre-rejeu.test.ts : 7 marques présentes, rejeu… |
+| `VER-SQL-02` | verification/sql | supprimer_detention : deux suppressions simultanées de la même détention laissent deux lignes d'audit pour une seule suppression | corrigée en branche — vague 5-7 ; tests : tests/incidents-portefeuille-agent.test.ts : « VER-SQL-02 : une suppression q… |
+| `VER-SQL-03` | verification/sql | REP-01 : un second envoi identique est sans effet en base mais l'action TypeScript renvoie un succès et prévient de nouveau l'artisan *(hyp.)* | corrigée en branche — vague 5-7 ; tests : tests/validation-creneaux.test.ts : le second envoi identique renvoie 0, test… |
+| `VER-SQL-04` | verification/sql | SUP-08 : si le créateur du plan perd lui aussi son habilitation, l'alerte escaladée vers lui reste « escalade » alors qu'elle n'est acheminée à personne | corrigée en branche — vague 5-7 ; tests : tests/consignes-vacances.test.ts : « perte de droit du remplaçant puis du cré… |
+| `VER-TS-01` | verification/ts | Une date de naissance de forme AAAA-MM-JJ impossible (2024-13-45) fait lever l'action serveur : erreur 500 et message sans rapport au lieu de « date de naissance non valide » | corrigée en branche — vague 5-7 ; tests : tests/validation-fiches.test.ts |
+| `VER-TS-03` | verification/ts | L'élision « d’octobre » n'est appliquée que sur la page d'accueil locataire : e-mails, page Documents du locataire, PDF de décompte et libellés d'agenda disent encore « de octobre », « de avril », « de août » | corrigée en branche — vague 5-7 ; tests : tests/elision-courriers.test.ts, tests/elision.test.ts |
+| `VER-TS-04` | verification/ts | Récapitulatif fiscal nu : « Périmètre : N écritures » compte des pièces écartées (période meublé ou hors de mes droits) sans le dire | corrigée en branche — vague 5-7 ; tests : tests/fiscal-perimetre.test.ts, tests/catalogue-documents.test.ts |
 | `ARC-04` | artisan | Numéro de facture externe : unicité sensible à la casse (« art-2026-0001 » accepté en doublon de « ART-2026-0001 »), aucune continuité contrôlée | à trancher |
 | `AUD-A-05` | auditeur/a | Écart documentation/code : la piste d'audit générique documentée n'existe pas | à trancher |
 | `AUD-A-06` | auditeur/a | Insertion anonyme directe dans demandes_devis sans limite de débit | à trancher |
@@ -1157,6 +1149,7 @@ Aucune anomalie de cette gravité à ce jour.
 | `AUD-C-08` | auditeur/c | Fichiers PDF orphelins possibles si le webhook Youtrust et la tache de nuit traitent le meme evenement en meme temps (hypothese a verifier) *(hyp.)* | à trancher |
 | `ART-15` | chaine/1b | La photo jointe par le locataire n'est visible de l'artisan ni au stade du devis ni sur la fiche de mission | à trancher |
 | `CHN-02` | chaine/2 | La validation de la facture, l'écriture de règlement et la clôture de l'incident ne laissent aucune ligne au journal d'audit : seule la chronologie de l'incident les garde | à trancher |
+| `CHF-05` | charges-fiscalite | Le wiki « Fiscalité » ne s'appuie sur aucune source officielle (quatre sites commerciaux seulement) et affirme encore « non implémentée » pour des fonctions livrées ; le wiki « Régularisation des charges » fait de même. | à trancher — avertissement ajouté à la page Fiscalité ; les sources officielles n'ont pu être consultées (réseau bloqué… |
 | `CHF-07` | charges-fiscalite | Hypothèse à vérifier : une contre-écriture est datée du jour de l'annulation, non de la pièce d'origine ; annuler en janvier un encaissement de décembre déplace le correctif sur l'exercice suivant. *(hyp.)* | à trancher |
 | `CHF-09` | charges-fiscalite | Un encaissement saisi par erreur puis retiré (net 0,00 €) reste « à qualifier » et empêche de générer le PDF du lot tant qu'il n'est pas qualifié à la main. | à trancher |
 | `EDI-01` | coordinateur | La ligne éditoriale de la veille accepte « agence » comme public valide (PUBLICS_JOURNAL) : un article visant seulement les agences passerait le filtre de pertinence en V1 | à trancher — ligne éditoriale |
@@ -1164,7 +1157,9 @@ Aucune anomalie de cette gravité à ce jour.
 | `DES-A-06` | designer/a | Hors ligne : la navigation interne bascule sur la page d'erreur du navigateur (en anglais) et n'en sort pas au retour du réseau | à trancher |
 | `DES-A-07` | designer/a | Vocabulaire d'agence encore visible dans les parcours propriétaire et locataire de la V1 | à trancher — partiellement corrigée en branche ; reste à trancher : 4) veille réglementaire — Masquer l'audience « Agen… |
 | `DES-A-08` | designer/a | Toutes les pages du propriétaire direct vivent sous l'adresse /agence/<id>/… (adresse visible, partagée, mise en favori) | à trancher |
+| `DES-A-10` | designer/a | Le logo doré posé à nu sur fond clair est quasi illisible sur mobile (≈ 1,5:1), alors que la page d'inscription artisan le présente dans une tuile bleu nuit (≈ 13,6:1) | à trancher — décision D28 de la page de décisions groupées |
 | `DES-A-11` | designer/a | L'adresse est « facultative » à l'inscription propriétaire mais bloque ensuite la création du premier bien | à trancher |
+| `DES-B-10` | designer/b | Logo doré quasi illisible sur l'en-tête blanc : artisan à 768 px et super-admin à 390 et 768 px (même défaut que DES-A-10) | à trancher — décision D28 de la page de décisions groupées |
 | `IA-06` | equipes-ia | L'arrêt d'urgence ne couvre pas le traitement immédiat du webhook Yousign ; la clé 'sauvegarde' n'a aucun lecteur (confirmation par lecture de SUP-07) | à trancher |
 | `IA-07` | equipes-ia | Des éléments d'automatisation existent sans écrivain ni appelant : automation_events, log_automation_event, automation_stats_30d, autoriser_orchestration | à trancher |
 | `IA-09` | equipes-ia | La tâche territoire peut préparer une campagne-idée 'essai avec des agences', alors que les agences sont hors du périmètre public V1 | à trancher |
@@ -1177,17 +1172,21 @@ Aucune anomalie de cette gravité à ce jour.
 | `PRF-07` | perf-liens | Console de supervision : « Voir le formulaire sur le site » n'affiche pas le formulaire pour un super-administrateur connecté | à trancher |
 | `PRF-08` | perf-liens | Page de confidentialité : « Aide et retours » mène un visiteur sans compte à la page de connexion ; contact éditeur « (à venir) » sur le banc | à trancher |
 | `PRF-10` | perf-liens | Journal serveur : erreur « The destination stream closed early » (digest 2041379235) non attribuée ; 69 % des préchargements de liens sont annulés *(hyp.)* | à trancher |
+| `PROP-08` | proprietaire/s01 | Recherche globale (⌘K) insensible à la casse mais pas aux accents ; code postal non recherchable | à trancher — code postal recherchable (corrigé) ; accents : demandent l'extension unaccent en SQL ou l'opérateur imatch… |
 | `PROP-11` | proprietaire/s01 | Un même PDF ne peut pas être déposé pour deux lots (DPE collectif) et la consigne n'est pas réalisable depuis le formulaire | à trancher |
 | `PROP-16` | proprietaire/s01 | Hypothèse à vérifier : aucune cohérence contrôlée entre loyer, loyer de référence et loyer de référence majoré | à trancher |
+| `FIN-02` | relecture/finance | Sur une organisation dont l'abonnement est suspendu, « Encaisser » répond « Accès refusé. » au lieu du message d'abonnement suspendu renvoyé par toutes les autres écritures. | à trancher — le message vient de la fonction SQL encaisser_reste_atomique (migration 20261012223000, lignes 60-65) : de… |
 | `FIN-03` | relecture/finance | Aucune contrainte de centime sur encaissements.montant / ecritures.montant : un paiement à 3 décimales est capturé avec un écart de 0,005 et ne peut plus jamais être qualifié (les parts doivent réconcilier exactement un montant que deux décimales ne peuvent p… | à trancher |
 | `FIN-04` | relecture/finance | La régularisation 230 reste exigée (et est réintégrée si saisie) pour les lots passés en meublé ou hors périmètre, alors que leurs pièces sont exclues de la 2044. | à trancher |
 | `FIN-09` | relecture/finance | La capture fiscale calcule « déjà encaissé avant » en sommant tous les AUTRES encaissements du bail présents en fin d'ordre : un INSERT à plusieurs lignes pour un même bail répartit faux (hypothèse : aucun chemin actuel de l'application n'insère plusieurs pai… | à trancher |
+| `FIN-10` | relecture/finance | Le wiki métier n'a pas été mis à jour : il décrit encore la ligne 229 comme « part non récupérable seulement, postes récupérables retirés lot par lot », alors que le code ne retire plus rien (coproRecuperableExclue vaut toujours 0) et traite la réintégration… *(hyp.)* | à trancher — page Fiscalité mise à jour (état implémenté, sources non officielles signalées) ; le traitement des lignes… |
 | `PR178-B-03` | relecture/pr178/b | Encaissement de 0,01 € accepté par le nouveau contrôle au centime mais refusé par la base avec le message générique « Gerimmo n'a pas pu terminer cette action » | à trancher |
 | `REP-02` | relecture/reprises | Le courriel d'urgence au gestionnaire n'est envoye qu'a la premiere execution : si la premiere tentative a cree l'incident puis s'est arretee avant l'e-mail, la reprise (rejoue:true) ne l'envoie jamais *(hyp.)* | à trancher |
 | `REP-04` | relecture/reprises | choisir_creneau et accepter_creneau_locataire ne sont pas rejouables : une reponse perdue suivie d'un nouvel envoi affiche une erreur alors que le rendez-vous est confirme | à trancher |
 | `REP-05` | relecture/reprises | Ecart au wiki : l'expiration J+30 et le refus trace sont livres, mais les relances J+3 / J+10 prevues par le module 16 n'existent nulle part | à trancher |
 | `SUP-03` | relecture/supervision | N'importe quel super-administrateur permanent peut accuser réception d'une alerte de relais adressée à un autre responsable : la fonction ne compare pas auth.uid() au destinataire (message d'erreur annonce pourtant « Responsable habilité requis »), et l'écran… | à trancher |
 | `SUP-04` | relecture/supervision | Pas de séparation des rôles pour une consigne : le même superviseur peut la rédiger, se désigner responsable et l'approuver (alors que enregistrer_vacances impose « un autre responsable »). L'« approbation » n'est donc pas une double vérification humaine. | à trancher |
+| `SUP-07` | relecture/supervision | Le périmètre d'arrêt « Sauvegarde » est proposé au superviseur et accepté par la base, mais aucun code (workflow GitHub de sauvegarde, scripts app/scripts/sauvegarde/*) ne lit verifier_arret_supervision('sauvegarde') : l'arrêt n'arrête rien. *(hyp.)* | à trancher — décision D06 de la page de décisions groupées |
 | `SUP-09` | relecture/supervision | Chaque validation d'un devis téléverse un nouveau PDF (chemin aléatoire) dans le compartiment devis-preparations et n'efface jamais l'ancien (ni celui d'une validation perdante en cas de conflit 409) : des PDF orphelins contenant les coordonnées de l'entrepri… *(hyp.)* | à trancher |
 | `RET-02` | retour-arriere | La sauvegarde est faite avec --no-comments : les 152 commentaires SQL, dont celui qui porte la convention de sécurité de fermer_fonctions_a_anon(), disparaissent à la restauration | à trancher |
 | `SOR-02` | sortie-de-bail | Remise des clés acceptée à une date future (01/03/2027) : le délai légal de restitution est calculé sur un événement qui n a pas eu lieu, et la restitution ne se corrige pas | à trancher |
@@ -1201,6 +1200,7 @@ Aucune anomalie de cette gravité à ce jour.
 | `VER-SECURITE-01` | verification/securite | La purge de déconnexion annoncée par la correction PR178-A-01 laisse les brouillons d'état des lieux (et la quittance de l'outil public) sur l'appareil, et le changement de compte ne les purge pas non plus | à trancher — partiellement corrigée en branche (quittance de l'outil public purgée à la déconnexion) ; reste à trancher… |
 | `VER-SECURITE-02` | verification/securite | Un artisan ayant une mission (ou une sollicitation ouverte) dans une organisation peut écrire n'importe quel chemin sous le dossier de cette organisation dans le compartiment documents | à trancher |
 | `VER-TS-05` | verification/ts | Récapitulatif fiscal nu : à partir de 1 000 lignes fiscales dans l'organisation, le document est refusé avec un message trompeur (« Réduisez la période »), même pour un lot de 3 loyers | à trancher |
+| `SOR-01` | sortie-de-bail | Clé de répartition par surface : « NaN % » et validation impossible (peut venir de l émulateur du banc) | réfutée — défaut de l'émulateur du banc (numeric rendu en chaînes, ligne 453 de serveur-supabase-local.mjs), pas du pro… |
 
 Les fiches complètes des anomalies P3 sont dans [[Fiches des anomalies P3 — audit du 13 octobre 2026]].
 

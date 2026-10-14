@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { doitVerifierSecondFacteur } from "@/lib/mfa";
+import { doitVerifierSecondFacteur, estSuperviseurActif } from "@/lib/mfa";
+import { estAdresseSupervision } from "@/lib/garde-admin";
+import { ENTETE_CHEMIN, ENTETE_METHODE } from "@/lib/entetes-traversee";
 import { ACTIVITY_COOKIE, lireActivite, secretDActivite, signerActivite, strictestLimits } from "@/lib/session-policy";
 import { COOKIES_SESSION } from "@/lib/supabase/cookies";
 import { statutRedirection } from "@/lib/redirection";
@@ -71,6 +73,13 @@ function adresseInconnue(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  // L'adresse (sans paramètres) et la méthode de la requête décrivent la ligne d'audit quand un
+  // super-administrateur entre dans un espace client (D08, audit du 13/10, SA-01). Posés ici, avant
+  // tout retour : toujours écrasés, jamais repris d'une valeur envoyée par le navigateur. Ils ne
+  // décident d'aucun droit.
+  request.headers.set(ENTETE_CHEMIN, request.nextUrl.pathname);
+  request.headers.set(ENTETE_METHODE, request.method);
+
   // Ces appels viennent de serveurs, sans cookie de connexion. Chaque route
   // vérifie son propre secret (Cron) ou la signature du corps brut (Stripe).
   // Garder la liste exacte : aucun autre chemin /api n'est rendu public.
@@ -213,8 +222,10 @@ export async function proxy(request: NextRequest) {
   // Le rôle de supervision nécessite un second facteur, y compris lorsqu'il
   // ouvre un espace agence. La page de configuration reste accessible avant AAL2.
   const roles = (memberships ?? []).map(m => m.role);
+  let niveauMfa: string | null | undefined;
   if (!isPublic && pathname !== "/securite" && roles.includes("super_admin")) {
     const { data: niveau, error: erreurMfa } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    niveauMfa = niveau?.currentLevel;
     if (erreurMfa || doitVerifierSecondFacteur(roles, niveau?.currentLevel)) {
       const url = request.nextUrl.clone();
       url.pathname = "/securite";
@@ -223,6 +234,27 @@ export async function proxy(request: NextRequest) {
       response.cookies.getAll().forEach(c => redirect.cookies.set(c));
       return redirect;
     }
+  }
+
+  // LA PORTE DE /admin EST ICI, AVANT TOUT RENDU (audit du 13/10, PRF-04, décision D44). Elle ne
+  // vivait que dans admin/layout.tsx : or un layout ne contrôle pas le rendu de la page, qui s'exécute
+  // en même temps et dont la charge utile part avant la redirection (documentation de Next.js,
+  // guide « Authentication », « Layouts and auth checks »). Le proxy lit déjà les adhésions actives
+  // et le niveau du second facteur : « superviseur actif » ici est, terme pour terme,
+  // public.is_super_admin() (adhésion super_admin active + AAL2, tests/proxy-garde-admin-base.test.ts).
+  // Un super-administrateur sans second facteur n'arrive pas jusqu'ici (renvoyé vers /securite plus
+  // haut). Le layout garde sa propre vérification et la RLS reste le filet de fond : ce sont trois
+  // portes, pas une. Le chemin est comparé décodé (« /%61dmin » est « /admin »). L'exclusion des
+  // images dans `config.matcher` ne laisse passer que des adresses finissant par une extension
+  // d'image, que n'accepte aucun segment dynamique de /admin (tous attendent un identifiant ou une
+  // clé connue) : la page n'y trouverait rien à lire, et le layout garde la même porte.
+  if (estAdresseSupervision(pathname) && !estSuperviseurActif(roles, niveauMfa)) {
+    // Une adresse neuve, pas un clone : « /admin/ » (barre finale) donnerait « /espaces/ ».
+    const url = new URL("/espaces", request.nextUrl.origin);
+    // 303 pour un POST (action serveur) : un 307 rejouerait l'action sur /espaces.
+    const redirect = NextResponse.redirect(url, statutRedirection(request.method));
+    response.cookies.getAll().forEach(c => redirect.cookies.set(c));
+    return redirect;
   }
 
   // UNE QUITTANCE INTROUVABLE RÉPOND 404 (audit du 27/09). La page se rend en

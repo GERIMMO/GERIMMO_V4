@@ -27,7 +27,7 @@ export async function enregistrerConsigne(_etat: RetourSupervision, f: FormData)
 async function exigerUneTache(db: Base, version: string): Promise<string | null> {
  const { data, error } = await db.from('supervision_consignes_taches').select('id').eq('version_id', version).limit(1);
  if (error) return 'Les tâches de cette version ne peuvent pas être vérifiées. Réessayez dans un instant.';
- return data && data.length > 0 ? null : 'Cette version ne propose aucune tâche : il n’y a rien à autoriser. Précisez les lectures dans une nouvelle version.';
+ return data && data.length > 0 ? null : 'Cette version ne propose aucune tâche : il n’y a rien à activer. Précisez les lectures dans une nouvelle version.';
 }
 export async function commanderConsigne(_etat: RetourSupervision, f: FormData): Promise<RetourSupervision> {
  const commande = texte(f,'commande'), id = texte(f,'id');

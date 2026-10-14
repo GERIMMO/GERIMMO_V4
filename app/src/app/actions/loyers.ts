@@ -53,7 +53,7 @@ export async function envoyerQuittance(
   bailId: string,
   quittanceId: string
 ): Promise<EtatLoyers> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "envoi_quittance", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
 
   // Les identifiants reçus peuvent être incohérents, même si les boutons
@@ -156,7 +156,7 @@ export async function ajouterRelance(
   _etat: EtatLoyers,
   formData: FormData
 ): Promise<EtatLoyers> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "ajout_relance", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const niveau = String(formData.get("niveau") ?? "");
@@ -182,7 +182,7 @@ export async function supprimerRelance(
   bailId: string,
   relanceId: string
 ): Promise<EtatLoyers> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "suppression_relance", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const { error } = await supabase.from("relances").delete().eq("id", relanceId).eq("organization_id", orgId);
   if (error) return { erreur: sansJargon(error.message) };
@@ -204,7 +204,7 @@ export async function regulariserCharges(
   _etat: EtatLoyers,
   formData: FormData
 ): Promise<EtatLoyers> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "regularisation_charges", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const annee = Number(String(formData.get("annee") ?? "").trim());
@@ -307,7 +307,7 @@ export async function regulariserCharges(
 
 // Générer les appels de loyer manquants (échéancier) jusqu'au mois courant.
 export async function genererAppels(orgId: string, bailId: string): Promise<EtatLoyers> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "generation_appels", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const { data, error } = await supabase.rpc("generer_appels_loyer", { p_bail: bailId });
   if (error) return { erreur: sansJargon(error.message) };
@@ -351,7 +351,7 @@ export async function ajouterEncaissement(
   _etat: EtatLoyers,
   formData: FormData
 ): Promise<EtatLoyers> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "encaissement", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const lu = lireMontant(formData.get("montant"));
@@ -473,7 +473,7 @@ export async function supprimerEncaissement(
   encId: string,
   formData?: FormData
 ): Promise<EtatLoyers> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "suppression_encaissement", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const motif = String(formData?.get("motif") ?? "").trim();
   if (!motif) {
@@ -501,7 +501,7 @@ export async function reviserLoyer(
   _etat: EtatLoyers,
   formData: FormData
 ): Promise<EtatLoyers> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "revision_loyer", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   // L'indice se lit sur le texte tel que tapé (« 145,17 » vaut 145,17) : champ en `type="text"` (VFL-07).
@@ -535,7 +535,7 @@ export async function reviserLoyer(
 // Rattrapage manuel : régénérer les reçus (paiements partiels) et quittances
 // (mois soldés) du bail — l'encaissement les émet normalement tout seul.
 export async function emettreQuittances(orgId: string, bailId: string): Promise<EtatLoyers> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "emission_quittances", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const emission = await emettreRecusQuittances(supabase, bailId);
   if (emission.erreur) return { erreur: emission.erreur };

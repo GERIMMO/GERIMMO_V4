@@ -28,7 +28,7 @@ export function BandeauArretSupervision({ arrets, relais }: { arrets: ArretEnCou
       ))}
       {relais.map((r) => (
         <p key={r.fin}>
-          <strong>Mode relais actif</strong> jusqu’au {formaterDateHeureParis(r.fin)} : seules les lectures autorisées dans une consigne s’exécutent.
+          <strong>Mode relais actif</strong> jusqu’au {formaterDateHeureParis(r.fin)} : seules les lectures activées dans une consigne s’exécutent.
         </p>
       ))}
       <p>

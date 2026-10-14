@@ -25,7 +25,7 @@ export async function encaisserDepot(
   _etat: EtatDepot,
   formData: FormData
 ): Promise<EtatDepot> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "encaissement_depot", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const lu = lireMontant(formData.get("montant"));
@@ -91,7 +91,7 @@ export async function supprimerEncaissementDepot(
   encId: string,
   formData?: FormData
 ): Promise<EtatDepot> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user } = await verifierGerant(orgId, { geste: "suppression_encaissement_depot", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
   const motif = String(formData?.get("motif") ?? "").trim();
   if (!motif) {

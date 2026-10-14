@@ -20,7 +20,7 @@ describe("ce qui attend une décision, en un chiffre", () => {
 });
 
 // Un faux client : chaque table rend ses lignes, chaque compte son nombre.
-function client(tables: Record<string, unknown[]>, comptes: Record<string, number> = {}, artisans: unknown[] = []) {
+function client(tables: Record<string, unknown[]>, comptes: Record<string, number> = {}) {
   const chaine = (table: string) => {
     let compte = false;
     const c: Record<string, unknown> = {};
@@ -30,7 +30,7 @@ function client(tables: Record<string, unknown[]>, comptes: Record<string, numbe
     c.then = (ok: (r: unknown) => unknown) => Promise.resolve(compte ? { data: null, error: null, count: comptes[table] ?? 0 } : { data: tables[table] ?? [], error: null }).then(ok);
     return c;
   };
-  return { from: vi.fn(chaine), rpc: vi.fn(async () => ({ data: artisans, error: null })) };
+  return { from: vi.fn(chaine), rpc: vi.fn(async () => ({ data: [], error: null })) };
 }
 
 describe("chargerDecisionsAttendues", () => {

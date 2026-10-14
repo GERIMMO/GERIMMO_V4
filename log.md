@@ -5800,3 +5800,22 @@ officiels français sont inaccessibles depuis l'environnement : aucune règle fi
 critère de clôture lié à l'aval, aux automatisations, au déploiement ou à la production n'est rempli ; rien n'est déployé, aucune autorisation reçue. Pages :
 [[Dossier de validation — version candidate du 13 octobre 2026]], [[Décisions groupées — version candidate du 13 octobre 2026]],
 [[Cartographie vérifiable de Gerimmo (pages, actions, base, stockage, authentification, intégrations, rôles)]].
+
+## [2026-10-14] deploy | Mission opérationnelle Gerimmo — mise en production de la version contrôlée 0ad658a
+Autorisation explicite du dirigeant (« oui » à la question de [[Dossier de validation — version candidate du 13 octobre 2026]] § 5) : fusion, déploiement Vercel, migrations
+`20261013110000` puis `20261013120000` après sauvegarde, préparation du soir du marketing par `pg_cron`, corrections R1 à R10 ratifiées. Séquence : sauvegarde n° 23 réussie ;
+`migrations.yml` n° 72 réussie ; PR #179 (CI réussie sur `c464fb9`) fusionnée en `c99e2c6` ; déploiement Vercel `dpl_7w73Ewv2…` en production, état `READY`. Contrôles non destructifs :
+0 erreur d'exécution, pages publiques sans le mot « agence », migrations enregistrées, 8 tâches `pg_cron` actives sans échec, 0 ligne `mission_annulee`. Non vérifié : parcours connectés
+(aucune écriture en production), première préparation du soir (attendue jeudi 15/10 à 18 h Paris), alertes de sécurité Supabase non comparées à un relevé antérieur. Mission non terminée
+(critères d'aval, d'automatisation, de fonctions majeures et de restauration non remplis). Détail : § 5 bis du dossier de validation.
+
+## [2026-10-14] deploy | Marketing — première préparation du soir en production, passage forcé à la demande du dirigeant
+Réglages modifiés en SQL (`heure_preparation_paris` 18 → 13 ; jours {mardi, vendredi} → {mardi, jeudi} le temps du passage, puis rétablis ; l'heure reste à 13). `preparation_marketing_due()` vrai,
+tick `pg_cron` de 13 h 15 Paris : post du jeudi 15/10 préparé (`agi`, `alerte` vrais), programmé à 09:00 Paris, publication automatique sans validation obligatoire (veto possible dans
+`/admin/marketing`). Plafond Facebook de deux envois par semaine : le post du vendredi 16/10 paraîtra sur le site sans diffusion Facebook. Détail et conséquences :
+[[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.
+
+## [2026-10-14] audit | Constat après déploiement — le point du matin est figé depuis la PR #177
+Vercel : 5 erreurs « point du matin … données indisponibles (artisans) ». Cause : `artisans_a_valider()` exige `is_super_admin()` (session humaine au second facteur), le point est généré avec le client de service ;
+depuis le commit `d4f3b59` (13/10) une source illisible bloque tout l'enregistrement. Dernière décision créée le 13/10 à 09 h 11 UTC, 236 en attente. Antérieur à la mise en production du 14/10. Non corrigé (hors autorisation) ;
+pistes et recommandation dans [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.

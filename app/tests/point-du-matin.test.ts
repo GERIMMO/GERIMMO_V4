@@ -3,7 +3,7 @@
  * équipe, ce qui a été fait, ce qui a échoué et les décisions soumises.
  */
 import {describe,expect,it,vi} from 'vitest';
-import {ATTENTES_VIDES,assemblerPoints,bilanDuPassage,genererPointsDuMatin,jourDuPoint,type Attentes,type PassageLu} from '../src/lib/point-du-matin';
+import {ATTENTES_VIDES,assemblerPoints,bilanDuPassage,genererPointsDuMatin,jourDuPoint,lireAttentes,type Attentes,type PassageLu} from '../src/lib/point-du-matin';
 import {EQUIPES,MISSIONS,missionsDeLEquipe} from '../src/lib/missions';
 
 const maintenant=new Date('2026-09-25T07:30:00Z');
@@ -74,13 +74,13 @@ describe('Génération du point — lectures incomplètes',()=>{
    : {data:[],error:null};
   const requete=(source:string):unknown=>new Proxy({}, {get:(_cible,propriete)=>
    propriete==='then'?Promise.resolve(resultat(source)).then.bind(Promise.resolve(resultat(source))):()=>requete(source)});
-  const rpc=vi.fn(async(nom:string)=>nom==='artisans_a_valider'?resultat(nom):{data:'point-fictif',error:null});
+  const rpc=vi.fn(async(_nom:string,_arguments?:unknown)=>({data:'point-fictif',error:null}));
   return {db:{from:(source:string)=>requete(source),rpc} as unknown as Parameters<typeof genererPointsDuMatin>[0],rpc};
  }
  it.each([
   ['agent_passages','passages'],['tech_log','journal technique'],
   ['development_proposals','évolutions'],['publications','publications'],
-  ['artisans_a_valider','artisans'],['retours_utilisateurs','retours'],['regulatory_watch','veille'],
+  ['artisans','artisans'],['retours_utilisateurs','retours'],['regulatory_watch','veille'],
  ])('préserve les points et décisions si %s est indisponible',async(source,libelle)=>{
   const {db,rpc}=lecteur(source);
   const resultat=await genererPointsDuMatin(db,maintenant);
@@ -94,5 +94,106 @@ describe('Génération du point — lectures incomplètes',()=>{
   const {db,rpc}=lecteur();
   expect(await genererPointsDuMatin(db,maintenant)).toEqual({enregistres:7,erreur:undefined});
   expect(rpc.mock.calls.filter(([nom])=>nom==='enregistrer_point_du_matin')).toHaveLength(7);
+ });
+});
+
+describe('Artisans en attente — lus par le client de service',()=>{
+ // `artisans_a_valider()` exige une session humaine au second facteur (`is_super_admin()`) :
+ // le client de service qui génère le point après chaque mission la refuse toujours.
+ // Constat du 14/10/2026 : le point était figé depuis le 13/10.
+ type Ligne=Record<string,unknown>;
+ type Appel={table:string;methode:string;arguments:unknown[]};
+ function clientDeService(donnees:{artisans?:Ligne[];enPanne?:string[]}={}){
+  const enPanne=donnees.enPanne??[];
+  const appels:Appel[]=[];
+  const resultat=(source:string)=>enPanne.includes(source)
+   ? {data:null,error:{message:'Détail fournisseur privé à ne pas exposer',code:'42501'}}
+   : {data:source==='artisans'?donnees.artisans??[]:[],error:null};
+  // Chaque appel chaîné est enregistré : les filtres font partie de ce que le test vérifie.
+  const requete=(source:string):unknown=>new Proxy({}, {get:(_cible,propriete)=>{
+   if(propriete==='then')return Promise.resolve(resultat(source)).then.bind(Promise.resolve(resultat(source)));
+   return (...args:unknown[])=>{appels.push({table:source,methode:String(propriete),arguments:args});return requete(source);};
+  }});
+  const rpc=vi.fn(async(nom:string,_arguments?:unknown)=>nom==='artisans_a_valider'?{data:null,error:{message:'Accès refusé'}}:{data:'point-fictif',error:null});
+  return {db:{from:(source:string)=>requete(source),rpc} as unknown as Parameters<typeof genererPointsDuMatin>[0],rpc,appels};
+ }
+ const durand={id:'a1',raison_sociale:'Plomberie Durand',siret_etat:'verifie',artisan_pieces:[]};
+ it('enregistre les sept équipes sans appeler artisans_a_valider',async()=>{
+  const {db,rpc}=clientDeService({artisans:[durand]});
+  expect(await genererPointsDuMatin(db,maintenant)).toEqual({enregistres:7,erreur:undefined});
+  expect(rpc.mock.calls.filter(([nom])=>nom==='artisans_a_valider')).toHaveLength(0);
+ });
+ it('soumet les artisans en attente à l’équipe incidents',async()=>{
+  const {db,rpc}=clientDeService({artisans:[durand]});
+  await genererPointsDuMatin(db,maintenant);
+  const appel=rpc.mock.calls.find(([nom,args])=>nom==='enregistrer_point_du_matin'&&(args as {p_equipe:string}).p_equipe==='incidents');
+  expect((appel![1] as {p_decisions:{cle:string}[]}).p_decisions.map(d=>d.cle)).toEqual(['artisan:a1']);
+ });
+ it('ne demande que les artisans en attente, du plus ancien au plus récent, justificatifs imbriqués',async()=>{
+  const {db,appels}=clientDeService({artisans:[durand]});
+  await lireAttentes(db,maintenant);
+  const surArtisans=appels.filter(a=>a.table==='artisans');
+  expect(surArtisans.find(a=>a.methode==='select')!.arguments[0]).toBe('id,raison_sociale,siret_etat,artisan_pieces(type,expire_le,retiree_le)');
+  expect(surArtisans.find(a=>a.methode==='eq')!.arguments).toEqual(['statut_plateforme','en_attente']);
+  expect(surArtisans.find(a=>a.methode==='order')!.arguments).toEqual(['created_at',{ascending:true}]);
+  // Aucune seconde requête : pas de liste d’identifiants dans l’adresse.
+  expect(appels.filter(a=>a.table==='artisan_pieces')).toEqual([]);
+ });
+ it('lit décennale, RC pro et justificatifs comme la fonction SQL',async()=>{
+  const {db}=clientDeService({artisans:[
+   {...durand,artisan_pieces:[
+    // décennale qui expire aujourd’hui (valide), RC pro à venir, autres justificatifs, un justificatif retiré (ignoré).
+    {type:'decennale',expire_le:'2026-09-25',retiree_le:null},{type:'rc_pro',expire_le:'2026-09-26',retiree_le:null},
+    {type:'kbis',expire_le:'2027-01-01',retiree_le:null},{type:'certification',expire_le:null,retiree_le:null},
+    {type:'urssaf',expire_le:'2026-09-24',retiree_le:'2026-09-20T00:00:00Z'},
+   ]},
+   {id:'a2',raison_sociale:'Élec Martin',siret_etat:'non_verifie',artisan_pieces:[
+    // échues hier ; la décennale encore valide mais retirée ne compte pas.
+    {type:'decennale',expire_le:'2026-09-24',retiree_le:null},{type:'rc_pro',expire_le:'2026-09-24',retiree_le:null},
+    {type:'decennale',expire_le:'2027-01-01',retiree_le:'2026-09-20T00:00:00Z'},
+   ]},
+   {id:'a3',raison_sociale:'Peinture Roux',siret_etat:'invalide',artisan_pieces:[]},
+   {id:'a4',raison_sociale:'Sols Petit',siret_etat:'non_verifie',artisan_pieces:null},
+   // La base interdit une échéance nulle pour une RC pro ; la fonction SQL l’accepte, le code aussi.
+   {id:'a5',raison_sociale:'Toitures Blanc',siret_etat:'verifie',artisan_pieces:[{type:'rc_pro',expire_le:null,retiree_le:null},{type:'decennale',expire_le:null,retiree_le:null}]},
+  ]});
+  const {attentes,indisponibles}=await lireAttentes(db,maintenant);
+  expect(indisponibles).toEqual([]);
+  expect(attentes.artisans).toEqual([
+   {artisan_id:'a1',raison_sociale:'Plomberie Durand',siret_etat:'verifie',decennale_valide:true,rc_pro_deposee:true,nb_pieces:4},
+   {artisan_id:'a2',raison_sociale:'Élec Martin',siret_etat:'non_verifie',decennale_valide:false,rc_pro_deposee:false,nb_pieces:2},
+   {artisan_id:'a3',raison_sociale:'Peinture Roux',siret_etat:'invalide',decennale_valide:false,rc_pro_deposee:false,nb_pieces:0},
+   {artisan_id:'a4',raison_sociale:'Sols Petit',siret_etat:'non_verifie',decennale_valide:false,rc_pro_deposee:false,nb_pieces:0},
+   {artisan_id:'a5',raison_sociale:'Toitures Blanc',siret_etat:'verifie',decennale_valide:false,rc_pro_deposee:true,nb_pieces:2},
+  ]);
+ });
+ it('compare les échéances au jour de Paris, pas au jour UTC',async()=>{
+  const piece=[{...durand,artisan_pieces:[{type:'decennale',expire_le:'2026-10-14',retiree_le:null}]}];
+  // 21 h 30 UTC : il est 23 h 30 à Paris le 14 octobre, la décennale du 14 est encore valable.
+  const avant=await lireAttentes(clientDeService({artisans:piece}).db,new Date('2026-10-14T21:30:00Z'));
+  expect(avant.attentes.artisans[0].decennale_valide).toBe(true);
+  // 22 h 30 UTC : il est 00 h 30 à Paris le 15 octobre, elle est échue.
+  const apres=await lireAttentes(clientDeService({artisans:piece}).db,new Date('2026-10-14T22:30:00Z'));
+  expect(apres.attentes.artisans[0].decennale_valide).toBe(false);
+ });
+ it('rend une liste vide quand aucun artisan n’attend',async()=>{
+  const {db}=clientDeService({artisans:[]});
+  const {attentes,indisponibles}=await lireAttentes(db,maintenant);
+  expect(indisponibles).toEqual([]);
+  expect(attentes.artisans).toEqual([]);
+ });
+ it('préserve le dernier point si les artisans sont illisibles, et ne journalise que le code',async()=>{
+  const erreurs=vi.spyOn(console,'error').mockImplementation(()=>{});
+  try{
+   const {db,rpc}=clientDeService({artisans:[durand],enPanne:['artisans']});
+   const resultat=await genererPointsDuMatin(db,maintenant);
+   expect(resultat.enregistres).toBe(0);
+   expect(resultat.erreur).toContain('artisans');
+   expect(resultat.erreur).toContain('dernier point connu est conservé');
+   expect(resultat.erreur).not.toContain('privé');
+   expect(rpc.mock.calls.filter(([nom])=>nom==='enregistrer_point_du_matin')).toHaveLength(0);
+   expect(erreurs).toHaveBeenCalledWith('[point du matin] lecture impossible :','artisans','42501');
+   expect(JSON.stringify(erreurs.mock.calls)).not.toContain('privé');
+  }finally{erreurs.mockRestore();}
  });
 });

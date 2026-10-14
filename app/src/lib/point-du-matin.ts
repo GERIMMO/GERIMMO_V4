@@ -130,19 +130,52 @@ export function assemblerPoints(entree:{passages:PassageLu[];journaux:LigneJourn
 
 // ── Lecture des tables et enregistrement ───────────────────────────────────
 type Lecteur=Pick<SupabaseClient,'from'|'rpc'>;
-export async function lireAttentes(db:Lecteur):Promise<{attentes:Attentes;indisponibles:string[]}>{
+/**
+ * Les artisans qui attendent une décision. Lecture directe des tables : la fonction
+ * `artisans_a_valider()` exige une session humaine au second facteur
+ * (`is_super_admin()`) et refuse donc toujours le client de service qui génère le
+ * point après chaque mission (constat du 14/10/2026 : le point était figé).
+ * Même contenu que la fonction : artisans « en_attente » par ancienneté, justificatifs
+ * non retirés, décennale non échue (une échéance inconnue ne compte pas), RC pro
+ * sans échéance ou non échue. Une seule requête, justificatifs imbriqués : aucune liste
+ * d'identifiants dans l'adresse, aucun plafond propre aux justificatifs.
+ * Écart voulu : l'échéance se compare au jour de Paris, la fonction SQL au jour UTC
+ * (1 à 2 h de différence chaque nuit, dans le sens le plus strict).
+ * L'appelant doit être le client de service ou une session de supervision : une autre
+ * session verrait la sécurité de ligne filtrer en silence (les pages et actions
+ * d'administration sont gardées avant tout appel).
+ */
+async function lireArtisansEnAttente(db:Lecteur,maintenant:Date):Promise<{data:Attentes['artisans']|null;error:unknown}>{
+ const artisans=await db.from('artisans').select('id,raison_sociale,siret_etat,artisan_pieces(type,expire_le,retiree_le)').eq('statut_plateforme','en_attente').order('created_at',{ascending:true});
+ if(artisans.error||!Array.isArray(artisans.data))return {data:null,error:artisans.error??new Error('Les artisans en attente sont illisibles.')};
+ const jour=jourDuPoint(maintenant);
+ type Piece={type:string;expire_le:string|null;retiree_le:string|null};
+ const lignes=artisans.data as unknown as {id:string;raison_sociale:string;siret_etat:string;artisan_pieces:Piece[]|null}[];
+ return {error:null,data:lignes.map(a=>{
+  const siennes=(a.artisan_pieces??[]).filter(l=>l.retiree_le==null);
+  return {artisan_id:a.id,raison_sociale:a.raison_sociale,siret_etat:a.siret_etat,
+   decennale_valide:siennes.some(l=>l.type==='decennale'&&l.expire_le!=null&&l.expire_le>=jour),
+   rc_pro_deposee:siennes.some(l=>l.type==='rc_pro'&&(l.expire_le==null||l.expire_le>=jour)),
+   nb_pieces:siennes.length};
+ })};
+}
+export async function lireAttentes(db:Lecteur,maintenant:Date=new Date()):Promise<{attentes:Attentes;indisponibles:string[]}>{
  const [dev,pub,art,ret,vei]=await Promise.all([
   db.from('development_proposals').select('id,titre,probleme,risque,statut,revision').eq('statut','autorisation').order('updated_at',{ascending:false}).limit(30),
   db.from('publications').select('id,titre,statut,corps,programmee_pour,valide_le').in('statut',['proposition','brouillon','programmee']).order('propose_le',{ascending:false}).limit(30),
-  db.rpc('artisans_a_valider'),
+  lireArtisansEnAttente(db,maintenant),
   db.from('retours_utilisateurs').select('id,titre,nature,gravite,etat').in('etat',['nouveau','en_examen']).or('nature.eq.idee,and(nature.eq.bug,gravite.eq.N1)').order('cree_le',{ascending:false}).limit(30),
   db.from('regulatory_watch').select('id,titre,source_nom,etude').eq('statut','a_examiner').not('analyse_le','is',null).order('reperage_le',{ascending:false}).limit(30),
  ]);
- const indisponibles=[[dev,'évolutions'],[pub,'publications'],[art,'artisans'],[ret,'retours'],[vei,'veille']].filter(([r])=>(r as {error:unknown}).error).map(([,n])=>n as string);
+ const indisponibles=[[dev,'évolutions'],[pub,'publications'],[art,'artisans'],[ret,'retours'],[vei,'veille']].filter(([r])=>(r as {error:unknown}).error).map(([r,n])=>{
+  // Le code seul, jamais le message du fournisseur : de quoi distinguer un droit refusé d'une panne.
+  console.error('[point du matin] lecture impossible :',n,((r as {error:{code?:string}}).error.code)??'sans code');
+  return n as string;
+ });
  return {indisponibles,attentes:{
   developpements:(dev.error?[]:dev.data??[]) as Attentes['developpements'],
   publications:(pub.error?[]:pub.data??[]) as Attentes['publications'],
-  artisans:(art.error||!Array.isArray(art.data)?[]:art.data) as Attentes['artisans'],
+  artisans:(art.error||!art.data?[]:art.data) as Attentes['artisans'],
   retours:(ret.error?[]:ret.data??[]) as Attentes['retours'],
   veille:(vei.error?[]:vei.data??[]) as Attentes['veille'],
  }};
@@ -159,7 +192,7 @@ export async function genererPointsDuMatin(db:Lecteur,maintenant:Date=new Date()
   const [passages,journaux,{attentes,indisponibles}]=await Promise.all([
    db.from('agent_passages').select('id,mission,debut,fin,etat,compte,bilan').gte('debut',new Date(maintenant.getTime()-24*3_600_000).toISOString()).order('debut',{ascending:false}).limit(200),
    db.from('tech_log').select('evenement,details,created_at').like('evenement','tache_%').is('account_id',null).gte('created_at',new Date(maintenant.getTime()-25*3_600_000).toISOString()).order('created_at',{ascending:false}).limit(300),
-   lireAttentes(db),
+   lireAttentes(db,maintenant),
   ]);
   // Une absence de données ne vaut pas une file vide : l'enregistrement
   // classerait sinon les décisions encore en attente comme « sans objet ».

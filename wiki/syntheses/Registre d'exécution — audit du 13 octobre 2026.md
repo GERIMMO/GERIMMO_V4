@@ -292,6 +292,9 @@ La référence est le code de `main` au commit e9f31ac, PR #177 incluse. Banc lo
 
 ## 4. Ce qui a été livré en branche, et son état
 
+> [!info] Mise à jour du 14/10/2026
+> Après l'autorisation du dirigeant, tout ce tableau est **fusionné et déployé** (PR #179, `c99e2c6`) et les deux migrations sont **appliquées en production** (exécution n° 72, après sauvegarde n° 23). Les mentions « non déployé » et « non appliqué » ci-dessous décrivent l'état au 13–14/10 avant autorisation. Contrôles après déploiement et limites : [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.
+
 | Élément | Statut |
 |---|---|
 | Retrait des agences du site public V1 (composants et code conservés) | implémenté et vérifié (tests, parcours navigateur) ; non déployé |

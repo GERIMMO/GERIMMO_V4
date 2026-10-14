@@ -10,8 +10,8 @@ sources: []
 # Dossier de validation — version candidate du 13 octobre 2026
 
 Ce dossier dit **ce que contient la livraison**, **ce qui a été vérifié**, **ce qui reste à décider** et **ce qui ne part en production qu'avec une
-autorisation explicite**. Rien n'est déployé à ce jour : la branche `claude/compassionate-euler-qpqjp6` n'est ni fusionnée ni déployée, et aucune migration n'a été
-appliquée en production. État : **version prête pour validation, production non déployée** — pas « mission terminée » (voir § 8).
+autorisation explicite**. **Mise à jour du 14/10/2026 (après autorisation) : la version contrôlée est fusionnée (PR #179, `c99e2c6`), déployée sur Vercel et les deux migrations sont
+appliquées en production** (voir § 5 bis ; les paragraphes ci-dessous décrivent la situation avant cette autorisation). État : **version déployée, vérification post-déploiement non destructive faite, mission non terminée** (voir § 8).
 
 Version contrôlée : commit `0ad658a` (batterie complète du 14/10/2026). Tête de la branche au moment de la génération : `0ad658a`.
 Aucun fichier de code, de test ni de migration n'a changé depuis le commit contrôlé (seuls le wiki et les registres changent).
@@ -39,9 +39,9 @@ Bilan du registre : **236 anomalies** (P0 : 0 ; P1 : 1 ; P2 : 69 ; P3 : 166) ; *
 
 ## 2. Migrations à appliquer en production
 
-État de la production relevé en lecture seule le 14/10/2026 : la dernière migration appliquée est `20261013107000`. Ni `20261013110000` ni `20261013120000` n'y figurent.
+**Appliquées le 14/10/2026** (exécution n° 72, après sauvegarde n° 23 ; voir § 5 bis). État relevé en lecture seule *avant* application : la dernière migration appliquée était `20261013107000`.
 
-1. `20261013110000_marketing_preparation_du_soir_cron.sql` — crée une fonction interne sans garde, fermée à tous les rôles, et une enveloppe qui garde la garde `service_role` ; `preparation_marketing_due()` lit la version interne. **Effet réel : à partir du premier passage de la tâche après application (jeudi 15/10, 18 h Paris, si l'accord arrive avant), la préparation de la publication du lendemain redevient possible depuis `pg_cron`** (automatisme déjà approuvé avec sa fenêtre de veto, mais jamais exécuté jusqu'ici).
+1. `20261013110000_marketing_preparation_du_soir_cron.sql` — crée une fonction interne sans garde, fermée à tous les rôles, et une enveloppe qui garde la garde `service_role` ; `preparation_marketing_due()` lit la version interne. **Effet réel : à partir du premier passage de la tâche après application (jeudi 15/10, 18 h Paris, si l'accord arrive avant), la préparation de la publication du lendemain redevient possible depuis `pg_cron`** (automatisme déjà approuvé avec sa fenêtre de veto, mais jamais exécuté jusqu'ici). *Constaté en production le 14/10/2026 : voir « Passage forcé de la préparation du soir » au § 5 bis.*
 2. `20261013120000_correctifs_audit_13_octobre.sql` — modifie **neuf** fonctions en relisant leur définition en vigueur (`pg_get_functiondef`), chacune avec une marque de rejeu ; si la définition n'est pas celle attendue, la migration s'arrête et ne change rien. Elle ajoute `mission_annulee` à la liste des types d'événement d'incident. Aucune ligne existante n'est touchée.
 
 **Simulation** : exécution n° 71 de `migrations.yml` (14/10, 02 h 52 UTC, tête `2235d73`) : les deux fichiers joués dans l'ordre contre la production, puis `ROLLBACK`. Les fichiers de migration n'ont **pas changé depuis** cette exécution.
@@ -93,7 +93,55 @@ Instructions `SELECT` uniquement ; pièce : `preuves/production-lecture-seule/re
 | Contrôles en production non destructifs | faits pour l'état courant (§ 4) ; à refaire après application |
 | Autorisation explicite du dirigeant | **en attente** |
 
-Question à vous poser, dans les termes de la mission, **quand vous aurez tranché Q1 à Q5 et répondu à R1 à R10** : « Autorises-tu le déploiement de la branche `claude/compassionate-euler-qpqjp6` au commit `<SHA à figer>` sur la production (fusion, déploiement Vercel), avec les migrations `20261013110000` et `20261013120000` appliquées dans cet ordre après sauvegarde, **et l'activation de fait de la préparation du soir du marketing par `pg_cron` (premier passage jeudi 15/10 à 18 h Paris si l'accord arrive avant ; sinon à la date suivante)**, avec les corrections R1 à R10 que tu auras ratifiées ? ». Tant que la réponse n'est pas donnée : **version prête pour validation, production non déployée**.
+Question à vous poser, dans les termes de la mission, **quand vous aurez tranché Q1 à Q5 et répondu à R1 à R10** : « Autorises-tu le déploiement de la branche `claude/compassionate-euler-qpqjp6` au commit `<SHA à figer>` sur la production (fusion, déploiement Vercel), avec les migrations `20261013110000` et `20261013120000` appliquées dans cet ordre après sauvegarde, **et l'activation de fait de la préparation du soir du marketing par `pg_cron` (premier passage jeudi 15/10 à 18 h Paris si l'accord arrive avant ; sinon à la date suivante)**, avec les corrections R1 à R10 que tu auras ratifiées ? ». Tant que la réponse n'est pas donnée : **version prête pour validation, production non déployée**. *Réponse reçue le 14/10/2026 : « oui » — voir § 5 bis.*
+
+## 5 bis. Mise en production du 14 octobre 2026
+
+**Autorisation reçue.** Le dirigeant a répondu « oui » à la question posée au § 5, dans ses termes exacts : déploiement de la branche `claude/compassionate-euler-qpqjp6` au commit contrôlé `0ad658a` sur la production (fusion, déploiement Vercel), migrations `20261013110000` puis `20261013120000` après sauvegarde, activation de fait de la préparation du soir du marketing par `pg_cron`, corrections R1 à R10 ratifiées. **Rien au-delà n'est autorisé par cette réponse** : les autres décisions (D01 à D49, Q1 à Q5, fonctions majeures, équipes IA) ne sont pas enregistrées comme tranchées et rien n'a été activé ni installé en plus.
+
+| Étape | Résultat |
+|---|---|
+| Sauvegarde avant migration | « Sauvegarde quotidienne » déclenchée à la main, exécution n° 23 : réussie |
+| Migrations | `migrations.yml`, application réelle, exécution n° 72 : réussie ; les deux versions sont enregistrées dans `schema_migrations` |
+| Fusion | PR #179, CI de la tête `c464fb9` réussie ; fusion « squash » le 14/10/2026, commit `c99e2c6` sur `main` (le code est celui du commit contrôlé `0ad658a` ; seuls le wiki et les registres ont changé depuis) |
+| Déploiement Vercel | déploiement `dpl_7w73Ewv2GV2Q3K5GHbqGuJW4JGuB`, cible production, état `READY` en environ deux minutes, alias `www.gerimmo.app` et `gerimmo.app` ; le déploiement précédent (`dpl_4Kx6tXLSSwWZ66ENi3DwZoGEpZa7`, PR #178) reste disponible comme point de retour |
+
+**Contrôles après déploiement, tous en lecture seule (14/10/2026, 10 h 55 à 11 h UTC) :**
+
+- Vercel : 0 erreur d'exécution sur la dernière heure.
+- Pages publiques `/`, `/tarifs` et `/connexion` : réponse 200 sur `www.gerimmo.app` (redirection 308 depuis `gerimmo.app`) ; **aucune occurrence du mot « agence »** dans le texte visible de l'accueil et des tarifs ; la page de connexion annonce « propriétaire, locataire ou artisan ».
+- Base : les dix migrations du lot du 13 octobre sont enregistrées (de `20261013100000` à `20261013120000`) ; 8 tâches `pg_cron` actives, 0 échec sur la dernière heure ; la tâche `marketing-declencheur` (toutes les 5 minutes, de 5 h à 19 h UTC) est inchangée ; 0 ligne `mission_annulee` ; la fonction interne de ciblage ne désigne aucune préparation « due » à cet instant, ce qui est attendu (publications le mardi et le vendredi à 9 h, préparation la veille à 18 h Paris).
+- Alertes de sécurité Supabase : 4 (une information : table à sécurité de ligne sans politique ; trois avertissements : extension dans le schéma public, fonctions `security definer` exécutables par les comptes connectés, durée de validité du code à usage unique). La durée de validité du code (86 400 s) était déjà connue (§ 7) ; les trois autres n'ont **pas été comparées une à une à un relevé antérieur** (le détail n'a pas été fourni par l'outil).
+
+**Ce qui n'est pas vérifié, et pourquoi :**
+
+- Aucun parcours connecté en production (propriétaire, locataire, artisan, super-administrateur) : aucune écriture n'a été faite en production, et les corrections financières restent éprouvées seulement sur le banc (la production ne contient aucune écriture comptable).
+- **La préparation du soir du marketing a tourné pour la première fois le 14/10/2026, à la demande du dirigeant** (voir « Passage forcé du 14/10 » ci-dessous). Ce passage a été provoqué par un changement de réglages ; le déroulement sans intervention (jeudi 15/10 à 13 h Paris, pour la publication du vendredi 16/10) reste à observer. Retour arrière de la migration `20261013110000` : `app/supabase/retours-arriere/`.
+- Le réseau de l'environnement de l'audit refuse l'accès direct à `gerimmo.app` (réponse 403 du proxy) : les pages ont été lues par l'outil Vercel, sans navigateur ni captures.
+- Retour arrière du code : revert de la fusion `c99e2c6` (ou promotion du déploiement précédent) ; de la base : `app/supabase/retours-arriere/LISEZ-MOI.md`, en ordre inverse, après sauvegarde.
+
+### Constat après déploiement, non corrigé : le point du matin ne s'actualise plus (14/10/2026)
+
+- **Observé** : Vercel regroupe 5 erreurs `[point du matin] Le point n'a pas été actualisé : données indisponibles (artisans)` (route `/api/cron/equipes`, première le 13/10 vers 09 h 40 UTC, dernière le 14/10 à 11 h 15 UTC). La dernière décision du point a été créée le 13/10 à 09 h 11 UTC ; **236 décisions restent « en attente »** dans `decisions_du_matin`.
+- **Cause établie (lecture du code et de la base)** : le point est regénéré après chaque mission avec le client de service (`genererPointsDuMatin`), qui lit `artisans_a_valider()`. Cette fonction exige `is_super_admin()`, c'est-à-dire une session humaine au second facteur : appelée par le client de service, elle répond « Accès refusé » à chaque fois. Avant la PR #177, l'échec était avalé (liste des artisans vide, sans bruit) ; depuis le commit `d4f3b59` (13/10), une source illisible **bloque tout l'enregistrement** pour ne pas classer des décisions en attente comme « sans objet ». Le point est donc figé depuis le déploiement de la PR #177, **avant** la version de ce dossier : ni la fusion du 14/10 ni les migrations n'y sont pour quelque chose.
+- **Effets** : la file de décisions du matin n'est plus mise à jour (y compris pour les nouveaux posts du marketing : leur alerte part bien par e-mail, mais n'apparaît pas dans le point). Le veto reste possible dans `/admin/marketing`. Les validations d'artisans en attente n'ont, de leur côté, jamais figuré dans le point (liste vide silencieuse avant le 13/10).
+- **Pistes** (rien n'est fait, hors de l'autorisation reçue) : (a) lire les artisans en attente par une requête de service dans `lireAttentes` (changement de code seul, un déploiement) ; (b) une migration autorisant explicitement le rôle de service dans `artisans_a_valider` (changement de droit, aval requis). Recommandation : (a), puis relancer une mission pour vérifier que le point se régénère.
+- **Registre** : cette anomalie n'est pas encore ajoutée au [[Registre des anomalies — audit du 13 octobre 2026]] (237ᵉ) ; à faire avec la décision.
+
+### Passage forcé de la préparation du soir, 14/10/2026
+
+À la demande du dirigeant (« change l'heure et fais-le maintenant », option « forcer un passage maintenant » choisie après avoir été prévenu des effets), pour constater la correction en production sans attendre jeudi :
+
+1. **Réglages modifiés** (`marketing_reglages`, 13 h 11 Paris) : `heure_preparation_paris` 18 → **13** ; `jours_semaine` {mardi, vendredi} → {mardi, **jeudi**} (la base impose exactement deux jours, `publications_semaine = 2`) afin que le lendemain, jeudi 15/10, soit un jour visé.
+2. **Constat avant déclenchement** : `preparation_marketing_due()` renvoyait **vrai** (cible : jeudi 15/10, rang 1, parution 09:00 Paris). C'est la première fois que la fonction corrigée par la migration `20261013110000` désigne une cible depuis la base.
+3. **Déclenchement par `pg_cron`** (tick de 13 h 15 Paris, sans appel manuel) : la tâche `marketing` a consigné `agi: true`, `preparees: 1`, `alerte: true`, `rattrapage: false`. Le côté HTTP de `pg_net` a affiché un dépassement de 15 s ; le traitement serveur, lui, est allé au bout (post programmé et alerte envoyée dans la même minute).
+4. **Résultat** : publication `6a624ae5-b0ee-42b7-8054-6ecfbcc36ae1`, « Un agenda qui vous prévient avant l'échéance », sujet éditorial (aucune veille relayée), visuel créé, statut `programmee` pour **jeudi 15/10 à 09:00 Paris**, non validée (`validation_obligatoire` est faux). Elle paraîtra sur le site puis sur Facebook sans autre geste, **sauf refus ou report** par le superviseur dans `/admin/marketing` avant 09:00 ; l'e-mail d'alerte est parti à l'adresse du superviseur permanent.
+5. **Réglages rétablis** : `jours_semaine` {mardi, vendredi}. `heure_preparation_paris` **reste à 13** (c'était la demande) ; la remettre à 18 est un réglage en base, l'écran `/admin/marketing` ne la modifie pas.
+
+**Conséquences à connaître**
+- Le plafond hebdomadaire de diffusion Facebook est de deux envois par semaine (`reserver_diffusion_facebook`) : mardi 13/10 (1) + jeudi 15/10 (2). **Le post de vendredi 16/10 sera préparé jeudi à partir de 13 h et paraîtra sur le site, mais sa diffusion Facebook sera refusée par le plafond** (message « diffusion Facebook non réservée » dans le bilan de la tâche, qui passera en erreur 503 pour ce passage). À trancher : laisser ainsi, ou refuser/reporter le post de jeudi, ou relever le plafond (changement de règle, non fait).
+- Coût réel du passage : rédaction du texte éditorial (sans veille) et création du visuel ; non mesuré.
+- Les réglages ont été modifiés en SQL direct, hors de l'écran et de son journal de supervision (`modifie_par` inchangé) : cette page et le journal du wiki en tiennent lieu de trace.
 
 ## 6. Ce qui attend une décision du dirigeant
 
@@ -111,7 +159,7 @@ Le premier point est de **figer la version** (Q1) : toute modification de code a
 
 ## 8. Critères de clôture de la mission (cochés séparément)
 
-Tout critère non rempli interdit une affirmation globale de fin de mission. **Aujourd'hui : « mission intégralement terminée » serait faux.**
+Tout critère non rempli interdit une affirmation globale de fin de mission. **Aujourd'hui : « mission intégralement terminée » serait faux** (critères encore partiels ou non remplis : audit, rôles, scénarios, corrections, fonctions majeures, design, automatisations, sécurité et restauration, production).
 
 | Critère | État | Justification |
 |---|---|---|
@@ -123,8 +171,8 @@ Tout critère non rempli interdit une affirmation globale de fin de mission. **A
 | Design vérifié | **partiel** | Passes automatiques (axe-core, mesures) à 390, 768 et 1280 px sur les écrans de tous les profils, regard sur les écrans clés, défauts P2 de design corrigés puis revérifiés en navigateur sur la construction finale (291 captures « après »). Non couvert : lecteur d'écran réel, appareils réels, Safari et Firefox, mode sombre, impression, écrans demandant des données absentes du banc ; décisions de marque en attente (logo, adresse /agence, repli hors ligne). |
 | Automatisations installées et testées | **non rempli** | Aucune équipe IA n'est installée : les propositions des six équipes sont rédigées pour aval. Les tâches planifiées existantes (11 Vercel, 8 pg_cron) n'ont pas pu être exécutées sur le banc ; elles sont observées en production en lecture seule (aucun échec sur trois jours). |
 | Sécurité et restauration vérifiées | **partiel** | Isolation : 631 requêtes croisées entre profils refusées, 0 fuite, 0 P0 et 0 P1 ; retour arrière des deux migrations essayé (état revenu identique, 13 catalogues). Non rempli : aucune restauration d'une sauvegarde de production, pg_cron absent des sauvegardes (AUD-C-02), arrêt d'urgence incomplet (SUP-01). |
-| Version autorisée déployée | **non rempli** | Aucune autorisation reçue : rien n'est déployé, aucune migration n'est appliquée en production. |
-| Production vérifiée | **non rempli** | Seules des lectures SELECT ont été faites (14/10) ; la production ne contient aucune écriture comptable, donc les corrections financières n'ont pas été éprouvées sur des données réelles. Aucune vérification après déploiement n'est possible avant le déploiement. |
+| Version autorisée déployée | **rempli** | Autorisation explicite du dirigeant le 14/10/2026 ; version `0ad658a` (code) fusionnée en `c99e2c6`, déployée sur Vercel (`READY`), migrations `20261013110000` et `20261013120000` appliquées après sauvegarde (§ 5 bis). Portée : uniquement ce que l'autorisation nomme. |
+| Production vérifiée | **partiel** | Contrôles non destructifs faits après déploiement : 0 erreur d'exécution, pages publiques, migrations enregistrées, tâches `pg_cron`, alertes Supabase (§ 5 bis). Non fait : aucun parcours connecté ni écriture en production, la préparation du soir n'a tourné qu'une fois, provoquée le 14/10 par un changement de réglages (voir « Passage forcé »), pas encore en fonctionnement normal, alertes de sécurité non comparées à un relevé antérieur. Les corrections financières n'ont pas été éprouvées sur des données réelles (aucune écriture comptable en production). |
 
 ## 9. Écarts de livrable relevés par la critique de complétude
 

@@ -92,7 +92,7 @@ export async function chargerDecisionsAttendues(
   const [sante, points, files, bugsN1, devis, contestations, alertesCritiques] = await Promise.all([
     chargerSante(db, env, faitsEditeurManquants, maintenant),
     de("points_du_matin").select("id").eq("jour", jour),
-    lireAttentes(db as never),
+    lireAttentes(db as never, maintenant),
     // Les bugs bloquants nouveaux ou en examen sont déjà des décisions de l'équipe
     // qualité (« Prendre en charge ») : le rang ne compte que ceux en cours.
     de("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "bug").eq("gravite", "N1").eq("etat", "en_cours"),

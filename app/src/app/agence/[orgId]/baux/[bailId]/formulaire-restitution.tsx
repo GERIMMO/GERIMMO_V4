@@ -1,6 +1,7 @@
 "use client";
 
 import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
+import { lireDecimalFacultatif, lireMontant } from "@/lib/saisie-montant";
 import { InputDateJour } from "@/components/input-date-jour";
 
 import { useId, useRef, useState } from "react";
@@ -106,12 +107,25 @@ function apercuRetenue(
   return { montant: Math.round(cout * ((dureeVie - age) / dureeVie) * 100) / 100, amorti: false };
 }
 
-const nombreOuNull = (brut: string): number | null => {
-  const t = brut.trim();
-  if (t === "") return null;
-  const n = Number(t);
-  return Number.isFinite(n) ? n : null;
+// L'aperçu lit la durée de vie et l'âge comme le serveur : « 7,5 » vaut 7,5. Un texte illisible n'est pas lu (l'aperçu
+// attend), et l'action le refuse en le disant (D04 (1), VER-TS-02).
+const decimalOuNull = (brut: string): number | null => {
+  const lu = lireDecimalFacultatif(brut);
+  return "valeur" in lu ? lu.valeur : null;
 };
+
+/**
+ * L'aperçu de la retenue, calculé sur le TEXTE TAPÉ dans les trois champs, lu comme le serveur le lira : « 840,50 »
+ * vaut 840,5 et « 7,5 » vaut 7,5 (D04 (1), VER-TS-02). Un coût illisible ne donne pas d'aperçu.
+ */
+export function apercuDepuisSaisie(saisie: { cout: string; duree_vie: string; age: string }): {
+  montant: number | null;
+  amorti: boolean;
+} {
+  const coutLu = lireMontant(saisie.cout);
+  const cout = "montant" in coutLu ? coutLu.montant : Number.NaN;
+  return apercuRetenue(cout, decimalOuNull(saisie.duree_vie), decimalOuNull(saisie.age));
+}
 
 export function FormulaireRestitution({
   orgId,
@@ -431,10 +445,9 @@ function ChampsRetenue({
     setSaisie((p) => ({ ...p, [nom]: champ.value }));
   };
 
-  const cout = Number(saisie.cout.trim());
-  const dureeVie = nombreOuNull(saisie.duree_vie);
-  const age = nombreOuNull(saisie.age);
-  const { montant: apercu, amorti } = apercuRetenue(cout, dureeVie, age);
+  const dureeVie = decimalOuNull(saisie.duree_vie);
+  const age = decimalOuNull(saisie.age);
+  const { montant: apercu, amorti } = apercuDepuisSaisie(saisie);
 
   // Le report ne crée RIEN et ne décide RIEN : il pose l'emplacement dans
   // l'objet, curseur en fin de champ, pour que l'agent écrive la nature des

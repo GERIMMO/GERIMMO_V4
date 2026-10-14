@@ -138,8 +138,11 @@ describe("étape « loyer » du parcours de bail : les montants sont déclarés 
     expect(source).toContain('step={c.type==="number"?');
   });
 
-  it("le complément de loyer saisi avec une virgule fait apparaître sa justification", () => {
-    expect(source).toContain('Number((v.complement_loyer??"").replace(",","."))>0');
+  it("le complément de loyer saisi avec une virgule fait apparaître sa justification, lu comme le serveur (jamais par Number)", () => {
+    // D04 (1) : la visibilité de la justification lit le complément avec lireMontantFacultatif (voir complement-loyer-saisie.test.ts).
+    expect(source).toContain('visible:v=>v.encadrement_loyer==="true"&&complementPositif(v.complement_loyer)');
+    expect(source).toContain('lireMontantFacultatif');
+    expect(source).not.toMatch(/Number\(\(v\.complement_loyer/);
   });
 });
 

@@ -1,6 +1,6 @@
 "use client";
 import { useId, useState } from "react";
-import { calculerDevis, erreurPrixSaisi, erreurQuantiteSaisie, montantEnCentimes, type LigneDevis } from "@/lib/devis-structure";
+import { calculerDevis, erreurPrixSaisi, erreurQuantiteSaisie, lireQuantite, montantEnCentimes, type LigneDevis } from "@/lib/devis-structure";
 import type { LigneDevisSaisie } from "@/lib/brouillon-devis-local";
 import { euros } from "./libelles";
 import { CLASSE_BOUTON_SOBRE, CLASSE_CHAMP, CLASSE_LIBELLE, TitreSection } from "./ui";
@@ -21,7 +21,7 @@ const vide = (): Saisie => ({ code: "", libelle: "", quantite: "1", prix: "", tv
 export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail des travaux" }: { saisieInitiale?: LigneDevisSaisie[]; initiales?: (Omit<LigneDevis, "tva_bps" | "prix_unitaire_ht_cents"> & {code?: string; tva_bps: number | null; prix_unitaire_ht_cents: number | null})[]; titre?: string }) {
   const id = useId();
   const [lignes, setLignes] = useState<Saisie[]>(() => saisieInitiale ?? (initiales.length ? initiales.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: String(l.quantite).replace(".", ","), prix: l.prix_unitaire_ht_cents === null ? "" : (l.prix_unitaire_ht_cents/100).toFixed(2).replace(".", ","), tva: l.tva_bps === null ? "" : String(l.tva_bps) })) : [vide()]));
-  const donnees = lignes.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: Number(l.quantite.replace(",", ".")), prix_unitaire_ht_cents: montantEnCentimes(l.prix), tva_bps: l.tva === "" ? Number.NaN : Number(l.tva) }));
+  const donnees = lignes.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: lireQuantite(l.quantite) ?? Number.NaN, prix_unitaire_ht_cents: montantEnCentimes(l.prix), tva_bps: l.tva === "" ? Number.NaN : Number(l.tva) }));
   let total: ReturnType<typeof calculerDevis> | null = null;
   try { total = calculerDevis(donnees); } catch { /* Le formulaire et le serveur expliquent les champs invalides. */ }
   // ART-12 : une quantité ou un prix invalide laissait le total à 0,00 € sans

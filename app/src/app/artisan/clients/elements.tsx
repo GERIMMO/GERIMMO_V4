@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type {InputHTMLAttributes,ReactNode} from "react";
 import {CLASSE_CHAMP,CLASSE_ZONE_TEXTE} from "../ui";
+import {MESSAGE_ECRITURE_FERMEE,type ExclusionArtisan} from "@/lib/artisan-prive-exclusion";
 export function Champ({label,...props}:{label:string}&InputHTMLAttributes<HTMLInputElement>){return <label className="block space-y-1"><span>{label}</span><input className={CLASSE_CHAMP} {...props}/></label>;}
 export function Texte({label,name,value,required=true}:{label:string;name:string;value?:string;required?:boolean}){return <label className="block space-y-1"><span>{label}</span><textarea name={name} className={CLASSE_ZONE_TEXTE} defaultValue={value} required={required} maxLength={8000} rows={3}/></label>;}
 export function Piece({label="Justificatif (PDF, JPEG ou PNG)",photo=false,required=true}:{label?:string;photo?:boolean;required?:boolean}){return <Champ label={label} name="fichier" type="file" accept={photo?"image/jpeg,image/png":"application/pdf,image/jpeg,image/png"} required={required}/>;}
@@ -15,4 +16,5 @@ export function NavigationPrivee(){
 export function libelleEtatPrive(etat:string){const noms:Record<string,string>={brouillon:'Brouillon',valide:'Validé',accepte:'Accepté',refuse:'Refusé',planifie:'Planifié',en_cours:'En cours',termine:'Terminé',annule:'Annulé',remplace:'Remplacé',retenu:'retenu'};return noms[etat]??etat;}
 export function libelleActionPrive(action:string){const noms:Record<string,string>={chantier:'Chantier créé',devis:'Version du devis enregistrée',valider_devis:'PDF du devis validé',decision:'Réponse du client consignée',planning:'Rendez-vous confirmé',demarrer:'Chantier démarré',bilan:'Compte rendu enregistré',facture:'Facture déposée',annuler:'Chantier annulé'};return noms[action]??action.replaceAll('_',' ');}
 
-export function LectureSeule({active}:{active:boolean}){return active?null:<p role="status">Saisie désactivée. Vos dossiers, justificatifs et exports restent consultables.</p>;}
+// `exclusion` (D25-B, ARC-08) : artisan refusé ou sur liste noire globale. Le message dit pourquoi et ce qui reste ouvert ; il remplace le message général.
+export function LectureSeule({active,exclusion}:{active:boolean;exclusion?:ExclusionArtisan|null}){if(exclusion)return <p role="status">{MESSAGE_ECRITURE_FERMEE[exclusion]}</p>;return active?null:<p role="status">Saisie désactivée. Vos dossiers, justificatifs et exports restent consultables.</p>;}

@@ -68,8 +68,9 @@ describe("SA-03 : autoriser une version qui n’a aucune tâche", () => {
 
 describe("SA-03 : l’écran", () => {
   const page = readFileSync("src/app/admin/consignes/page.tsx", "utf8");
-  it("n’offre le bouton « Autoriser » que s’il y a au moins une tâche", () => {
-    expect(page).toMatch(/!accord&&!c\.suspendue&&<div[^>]*>\{travail\.length>0&&<CommandeConsigne[^>]*commande="approuver"/);
+  // D10 : le bouton se nomme « Activer » (lecture seule) ou « Approuver » ; la condition « au moins une tâche » reste.
+  it("n’offre le bouton « Activer » que s’il y a au moins une tâche", () => {
+    expect(page).toMatch(/!accord&&!c\.suspendue&&<div[^>]*>\{travail\.length>0&&[^<]*<CommandeConsigne[^>]*commande="approuver"/);
   });
   it("garde « Refuser » et l’explication « Aucune tâche proposée »", () => {
     expect(page).toContain('commande="refuser"');

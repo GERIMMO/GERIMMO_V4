@@ -9,6 +9,7 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 | `20261013120000_correctifs_audit_13_octobre.retour.sql` | `20261013120000_correctifs_audit_13_octobre.sql` | 9 fonctions, 3 déclencheurs `diagnostic_artisan_lecture`, la contrainte `incident_evenements_type_check`, 1 ligne d'historique |
 | `20261013110000_marketing_preparation_du_soir_cron.retour.sql` | `20261013110000_marketing_preparation_du_soir_cron.sql` | 2 fonctions, 1 fonction supprimée, 1 ligne d'historique |
 | `20261014221000_alerte_relais_destinataire.retour.sql` | `20261014221000_alerte_relais_destinataire.sql` (D09, SUP-03) | 1 fonction (`accuser_alerte_vacances`), 1 ligne d'historique. Réintroduit : tout superviseur permanent peut accuser une alerte de relais adressée à un autre. Aucune donnée défaite |
+| `20261014222000_consigne_activation_approbateur_distinct.retour.sql` | `20261014222000_consigne_activation_approbateur_distinct.sql` (D10, SUP-04) | 1 fonction (`decider_consigne`), 1 fonction supprimée (`tache_consigne_lecture_seule`), 1 ligne d'historique. Réintroduit : plus aucun approbateur distinct exigé, même le jour où une tâche agira. Aucune donnée défaite |
 | `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » |
 
 Les deux migrations ne partagent aucune fonction : leurs retours sont indépendants (essayé dans les deux ordres et un par un).

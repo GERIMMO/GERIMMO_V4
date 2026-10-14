@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConflitCopieLocale, lireCopieFichiers, modifierCopieFichiers, type CopieFichiers } from "@/lib/brouillon-fichiers";
 import { compteDeLaCle, purgerCopiesAutresComptes } from "@/lib/copies-locales";
+import { installerGardeCopieLocale, type StatutCopie } from "@/lib/garde-copie-locale";
 
 /** Délai après la dernière frappe avant d'écrire la copie locale (audit du 13/10, PR178-A-04). */
 export const DELAI_COPIE_LOCALE_MS = 500;
@@ -60,7 +61,7 @@ export function useCopieFichiers<T>(cle: string, initiale: CopieFichiers<T> | nu
   const termine = useRef(false);
   const attente = useRef(0);
   const signalerConfirmation = useContext(EnvoiConfirme);
-  const [statut, setStatut] = useState<"vide" | "attente" | "conserve" | "refuse" | "conflit">(initiale ? "conserve" : "vide");
+  const [statut, setStatut] = useState<StatutCopie>(initiale ? "conserve" : "vide");
   const differee = useRef<{ donnees: T; minuterie: ReturnType<typeof setTimeout> } | null>(null);
   const enregistrer = useCallback((donnees: T | null) => {
     if (termine.current) return Promise.resolve(false);
@@ -111,16 +112,11 @@ export function useCopieFichiers<T>(cle: string, initiale: CopieFichiers<T> | nu
     window.addEventListener("pagehide", vider);
     return () => { document.removeEventListener("visibilitychange", masquee); window.removeEventListener("pagehide", vider); vider(); };
   }, [vider]);
-  useEffect(() => {
-    const avertir = (e: BeforeUnloadEvent) => {
-      if (statut === "attente" || statut === "refuse" || statut === "conflit") { e.preventDefault(); e.returnValue = ""; }
-    };
-    window.addEventListener("beforeunload", avertir);
-    return () => window.removeEventListener("beforeunload", avertir);
-  }, [statut]);
+  // Fermeture d'onglet pendant l'attente, le refus ou le conflit ; lien interne et retour arrière tant que la copie manque
+  // (refus, conflit : vérification du 14/10, VFL-03). Voir lib/garde-copie-locale.ts.
+  useEffect(() => installerGardeCopieLocale(statut), [statut]);
   return { enregistrer, differer, statut };
 }
-type StatutCopie = ReturnType<typeof useCopieFichiers>["statut"];
 /**
  * Audit du 13/10 (PR178-A-06) : la région annoncée alternait « Conservation… » et « …conservés » à chaque écriture
  * (25 changements de texte pour 12 caractères). « attente » n'est qu'un passage entre deux états stables : la région

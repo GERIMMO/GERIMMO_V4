@@ -20,7 +20,29 @@ export function relierSoumission(donnees: FormData) {
 }
 const identitesFichiers = new WeakMap<File, number>();
 let numeroFichier = 0;
-const MESSAGE = "Des modifications ne sont pas encore enregistrées. Quitter cette page et les abandonner ?";
+/** Aussi dit par le garde de la copie locale (lib/garde-copie-locale.ts) : un seul texte pour « quitter cette page ». */
+export const MESSAGE_QUITTER = "Des modifications ne sont pas encore enregistrées. Quitter cette page et les abandonner ?";
+
+export type ClicSurLien = Pick<MouseEvent, "defaultPrevented" | "button" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey">;
+export type LienClique = { href: string; target: string; download: boolean };
+/**
+ * Ce clic sur ce lien quitte-t-il la page ? Clic simple, même onglet, hors téléchargement, schéma web, et hors simple
+ * changement de fragment sur la même page. `page` est l'adresse courante (`location.href`). Pur : les gardes de départ
+ * (formulaires suivis ici, copie locale dans lib/garde-copie-locale.ts) s'accordent ainsi sur ce qu'est « quitter ».
+ */
+export function clicQuitteLaPage(clic: ClicSurLien, lien: LienClique, page: string): boolean {
+  if (clic.defaultPrevented || clic.button || clic.metaKey || clic.ctrlKey || clic.shiftKey || clic.altKey
+    || lien.download || (lien.target && lien.target !== "_self")) return false;
+  const cible = new URL(lien.href, page), courante = new URL(page);
+  if (!["http:", "https:"].includes(cible.protocol)) return false;
+  return !(cible.origin === courante.origin && cible.pathname === courante.pathname && cible.search === courante.search && cible.hash);
+}
+/** `clicQuitteLaPage` pour un événement du document : le clic part-il d'un lien qui quitte la page ? */
+export function lienQuittantLaPage(event: MouseEvent): boolean {
+  if (!(event.target instanceof Element)) return false;
+  const lien = event.target.closest<HTMLAnchorElement>("a[href]");
+  return !!lien && clicQuitteLaPage(event, { href: lien.href, target: lien.target, download: lien.hasAttribute("download") }, location.href);
+}
 
 function estChamp(element: EventTarget | null): element is Champ {
   return element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement;
@@ -153,14 +175,8 @@ export function installerProtectionSaisie(): () => void {
     if (!(event.target instanceof Element)) return;
     const reset = event.target.closest<HTMLButtonElement | HTMLInputElement>('button[type="reset"],input[type="reset"]');
     if (reset?.form) { resetsExplicites.add(reset.form); return; }
-    const lien = event.target.closest<HTMLAnchorElement>("a[href]");
-    if (!lien || event.defaultPrevented || event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
-      || lien.hasAttribute("download") || (lien.target && lien.target !== "_self")) return;
-    const cible = new URL(lien.href, location.href);
-    if (!["http:", "https:"].includes(cible.protocol)) return;
-    if (cible.origin === location.origin && cible.pathname === location.pathname && cible.search === location.search && cible.hash) return;
-    if (!saisiesModifiees().length) return;
-    if (!window.confirm(MESSAGE)) { event.preventDefault(); event.stopPropagation(); }
+    if (!lienQuittantLaPage(event) || !saisiesModifiees().length) return;
+    if (!window.confirm(MESSAGE_QUITTER)) { event.preventDefault(); event.stopPropagation(); }
     else autoriser();
   };
   const reset = (event: Event) => {
@@ -172,7 +188,7 @@ export function installerProtectionSaisie(): () => void {
       // saisie tant que l'action n'a pas confirmé cette version du formulaire.
       const explicite = resetsExplicites.has(formulaire);
       resetsExplicites.delete(formulaire);
-      if (!explicite || !window.confirm(MESSAGE)) { event.preventDefault(); return; }
+      if (!explicite || !window.confirm(MESSAGE_QUITTER)) { event.preventDefault(); return; }
     }
     setTimeout(() => { if (!event.defaultPrevented && formulaire.isConnected) suivi.initial = empreinte(formulaire); }, 0);
   };
@@ -182,7 +198,7 @@ export function installerProtectionSaisie(): () => void {
   const naviguer = (event: Event) => {
     const e = event as Event & { navigationType?: string; canIntercept?: boolean; hashChange?: boolean };
     if (e.navigationType === "traverse" && e.canIntercept && !e.hashChange && saisiesModifiees().length) {
-      if (!window.confirm(MESSAGE)) e.preventDefault(); else autoriser();
+      if (!window.confirm(MESSAGE_QUITTER)) e.preventDefault(); else autoriser();
     }
   };
   for (const nom of ["focusin", "pointerdown", "keydown"]) document.addEventListener(nom, preparer, true);

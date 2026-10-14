@@ -43,6 +43,28 @@ describe("libellés des journaux", () => {
     expect(libelleActionAudit("purge_retention")).toBe("Nettoyage des données arrivées à échéance");
   });
 
+  // D08 (audit du 13/10, SA-01) : la ligne de traversée dit la page, l'objet et la décision d'accès, en français,
+  // sans identifiant long ni adresse ni empreinte technique à l'écran.
+  it("lit la trace d'une traversée de la supervision en français, sans identifiant ni adresse", () => {
+    expect(libelleActionAudit("traversee_espace")).toBe("Consultation d’un espace client par la supervision");
+    expect(libelleActionAudit("traversee_action")).toBe("Action dans un espace client par la supervision (écriture possible)");
+    expect(
+      detailsExpurges({
+        resultat: "autorise", requete: "action_serveur", rubrique: "baux",
+        objet_id: "0b6e1d6e-7c1a-4b5e-9a3d-5f2f3d9a1c11", route: "/agence/f2cb7540-d6f9-471d-bd6e-44b6d9e7ea39/baux/0b6e1d6e-7c1a-4b5e-9a3d-5f2f3d9a1c11", action_ref: "7f3a9c0d2e4b5a69",
+      })
+    ).toBe("résultat : autorisé · requête : action · rubrique : baux");
+    expect(detailsExpurges({ resultat: "refuse", requete: "page", motif: "organisation_introuvable", rubrique: "parc" })).toBe(
+      "résultat : refusé · requête : page · motif : organisation introuvable · rubrique : parc"
+    );
+    expect(detailsExpurges({ resultat: "autorise", requete: "formulaire" })).toBe("résultat : autorisé · requête : formulaire");
+  });
+
+  it("une valeur inconnue d'une clé traduite s'affiche telle quelle, jamais un code interne inventé", () => {
+    expect(detailsExpurges({ resultat: "inconnu_x" })).toBe("résultat : inconnu_x");
+    expect(detailsExpurges({ resultat: "constructor" })).toBe("résultat : constructor");
+  });
+
   it("explique les accès aux documents", () => {
     expect(libelleAccesDocument("download")).toBe("Téléchargement");
   });

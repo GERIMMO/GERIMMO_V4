@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ROLES_GERANTS } from "@/lib/ged";
+import { tracerTraversee } from "@/lib/traversee";
 
 // Garde des actions locataire : session valide + adhésion 'locataire' dans
 // l'agence — défense en profondeur avant tout chemin Storage, les policies et
@@ -52,14 +53,19 @@ export async function verifierGerant(orgId: string) {
         .maybeSingle();
       if (org) {
         // RM-A1.11 : la traversée est autorisée mais tracée (journal d'audit).
-        // Un échec du log ne bloque pas l'action.
-        await supabase.rpc("log_sa_access", { org: orgId, sa_action: "traversee_action" });
+        // Un échec du log ne bloque pas l'action. D08 (audit du 13/10, SA-01) :
+        // « traversee_action » ne part que d'une requête qui peut écrire (action
+        // serveur, formulaire) ; la lecture d'un fichier ou le contrôle d'un
+        // dossier à l'affichage d'une page s'écrivent comme une consultation.
+        // La ligne dit la page et l'objet concernés et la décision d'accès.
+        await tracerTraversee(supabase, { orgId, nature: "geste", resultat: "autorise" });
         return {
           supabase,
           user,
           role: org.type === "proprietaire_direct" ? "proprietaire_direct" : "admin_agence",
         };
       }
+      await tracerTraversee(supabase, { orgId, nature: "geste", resultat: "refuse", motif: "organisation_introuvable" });
     }
     return { supabase, user: null, role: null };
   }

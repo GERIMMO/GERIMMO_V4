@@ -2,6 +2,7 @@ import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ROLES_GERANTS } from "@/lib/ged";
+import { tracerTraversee } from "@/lib/traversee";
 
 // Garde commune des pages de l'espace agence (partagé avec le propriétaire
 // direct dès le S2 — parcours communs du plan). La RLS protège les données ;
@@ -39,9 +40,12 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
         .maybeSingle();
       if (org) {
         // RM-A1.11 : la traversée est autorisée mais tracée (journal d'audit).
-        // Un échec du log ne bloque pas la page. cache() par requête : un log
-        // par page visitée, c'est voulu.
-        await supabase.rpc("log_sa_access", { org: orgId, sa_action: "traversee_espace" });
+        // Un échec du log ne bloque pas la page. D08 (audit du 13/10, SA-01) :
+        // la ligne dit la page et l'objet ouverts et la décision d'accès ; une
+        // même page rendue plusieurs fois dans la minute n'en écrit qu'une
+        // (la base écarte la répétition). Une page chargée à l'avance par le
+        // navigateur s'écrit comme une page ouverte (voir lib/traversee.ts).
+        await tracerTraversee(supabase, { orgId, nature: "espace", resultat: "autorise" });
         return {
           supabase,
           user,
@@ -50,6 +54,9 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
           estProprietaire: org.type === "proprietaire_direct",
         };
       }
+      // Le super-administrateur a demandé une organisation qui n'existe pas :
+      // la tentative se lit au journal (résultat « refusé »).
+      await tracerTraversee(supabase, { orgId, nature: "espace", resultat: "refuse", motif: "organisation_introuvable" });
     }
     redirect("/espaces");
   }

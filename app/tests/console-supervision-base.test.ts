@@ -167,7 +167,9 @@ describe.skipIf(!DB_URL)("Console de supervision — corrections en base (audit 
     await db.query("select public.log_sa_access($1,'traversee_espace')", [o.id]);
     await db.query("reset role");
     const { rows } = await db.query("select action, count(*)::int n from public.audit_log where organization_id=$1 group by action order by action", [o.id]);
-    expect(rows).toEqual([{ action: "consultation_organisation", n: 1 }, { action: "traversee_espace", n: 2 }]);
+    // D08 (audit du 13/10, SA-01) : la même entrée dans un espace client n'écrit plus qu'une ligne par minute
+    // (avant : une par rendu, jusqu'à 15 en une minute). Voir tests/traversee-trace-base.test.ts.
+    expect(rows).toEqual([{ action: "consultation_organisation", n: 1 }, { action: "traversee_espace", n: 1 }]);
   });
 
   it("suspendre, prolonger l'essai, archiver, réactiver : gardés, motivés, journalisés", async () => {

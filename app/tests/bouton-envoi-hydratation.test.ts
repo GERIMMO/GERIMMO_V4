@@ -63,6 +63,28 @@ describe("BoutonEnvoi avant l'hydratation (D30 B)", () => {
     expect(rendre(BoutonEnvoi, { envoiNatif: true, disabled: true }, "Envoyer")).toMatch(/\bdisabled=""/);
   });
 
+  // Le passage « grisé » → « actif » de l'hydratation ne doit pas animer l'opacité. Constaté au navigateur (parcours
+  // a11y, /admin/relais) : les boutons d'envoi hors écran d'une page longue commençaient une transition d'opacité de
+  // 150 ms à l'hydratation ; le navigateur ne produisait plus d'image pour elle, elle restait « en cours » et
+  // l'attente de rendu stable du parcours d'accessibilité échouait. L'activation est donc instantanée.
+  it("n'anime pas l'opacité : l'activation à l'hydratation est instantanée", () => {
+    for (const props of [null, { envoiNatif: true }, { variant: "outline" }, { className: "w-full" }]) {
+      const html = rendre(BoutonEnvoi, props, "Enregistrer");
+      const classes = /class="([^"]*)"/.exec(html)?.[1].split(/\s+/) ?? [];
+      expect(classes, JSON.stringify(props)).not.toContain("transition-all");
+      expect(classes, JSON.stringify(props)).not.toContain("transition-opacity");
+      const transition = classes.find((c) => c.startsWith("transition-["));
+      expect(transition, `aucune propriété de transition choisie (${JSON.stringify(props)})`).toBeDefined();
+      expect(transition).not.toMatch(/opacity|\ball\b/);
+    }
+  });
+
+  it("garde les classes de l'appelant (largeur, variante)", () => {
+    const html = rendre(BoutonEnvoi, { className: "w-full", variant: "outline" }, "Enregistrer");
+    expect(html).toMatch(/class="[^"]*\bw-full\b/);
+    expect(html).toContain("border-border");
+  });
+
   it("respecte une infobulle de l'appelant et la roue d'un envoi en cours", () => {
     expect(rendre(BoutonEnvoi, { envoiNatif: true, title: "Tout est prêt" }, "Envoyer")).toContain('title="Tout est prêt"');
     const enCours = rendre(BoutonEnvoi, { envoiNatif: true, enCours: true, enCoursTexte: "Envoi…" }, "Envoyer");

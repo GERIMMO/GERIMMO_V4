@@ -4,6 +4,7 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { AIDE_BOUTON_EN_ATTENTE, useHydrate } from "@/lib/use-hydrate";
+import { cn } from "@/lib/utils";
 
 // Bouton de soumission commun (recette Tahir 09/09) : posé dans un
 // <form action={…}>, il se désactive et affiche la roue pendant l'envoi —
@@ -20,12 +21,25 @@ import { AIDE_BOUTON_EN_ATTENTE, useHydrate } from "@/lib/use-hydrate";
 // imperceptible. `envoiNatif` est réservé aux formulaires dont l'action est
 // une action serveur passée telle quelle (inscription, mots de passe…) : le
 // navigateur sait les envoyer sans script, leur bouton n'attend pas.
+//
+// PAS D'ANIMATION D'OPACITÉ. Le bouton de base transitionne « toutes » ses
+// propriétés (transition-all) : le passage de « grisé » à « actif » de
+// l'hydratation lançait alors une transition d'opacité de 150 ms sur chaque
+// bouton d'envoi. Sur une page longue (supervision, /admin/relais), ceux qui
+// sont hors écran ne reçoivent aucune image du navigateur : la transition
+// restait « en cours » et l'attente de rendu stable du parcours
+// d'accessibilité échouait (constaté au navigateur, base verte, lot rouge).
+// L'activation est donc instantanée ; le survol et la pression gardent leur
+// transition (couleurs, filet, ombre, léger enfoncement).
+const TRANSITION_SANS_OPACITE = "transition-[color,background-color,border-color,box-shadow,transform]";
+
 export function BoutonEnvoi({
   enCoursTexte,
   enCours,
   disabled,
   envoiNatif = false,
   title,
+  className,
   children,
   ...props
 }: React.ComponentProps<typeof Button> & { enCoursTexte?: string; enCours?: boolean; envoiNatif?: boolean }) {
@@ -33,7 +47,13 @@ export function BoutonEnvoi({
   const pret = useHydrate() || envoiNatif;
   const pending = enCours ?? statut.pending;
   return (
-    <Button type="submit" disabled={pending || disabled || !pret} title={pret ? title : (title ?? AIDE_BOUTON_EN_ATTENTE)} {...props}>
+    <Button
+      type="submit"
+      disabled={pending || disabled || !pret}
+      title={pret ? title : (title ?? AIDE_BOUTON_EN_ATTENTE)}
+      className={cn(TRANSITION_SANS_OPACITE, className)}
+      {...props}
+    >
       {pending && <Spinner />}
       {pending && enCoursTexte ? enCoursTexte : children}
     </Button>

@@ -134,24 +134,26 @@ type Lecteur=Pick<SupabaseClient,'from'|'rpc'>;
  * Les artisans qui attendent une décision. Lecture directe des tables : la fonction
  * `artisans_a_valider()` exige une session humaine au second facteur
  * (`is_super_admin()`) et refuse donc toujours le client de service qui génère le
- * point après chaque mission (constat du 14/10/2026 : le point était figé). Même
- * contenu que la fonction : artisans « en_attente » par ancienneté, justificatifs
+ * point après chaque mission (constat du 14/10/2026 : le point était figé).
+ * Même contenu que la fonction : artisans « en_attente » par ancienneté, justificatifs
  * non retirés, décennale non échue (une échéance inconnue ne compte pas), RC pro
- * sans échéance ou non échue. Le droit de lecture ne change pas : le client de service
- * contourne la sécurité de ligne, une session de supervision lit par `artisan_lisible`.
+ * sans échéance ou non échue. Une seule requête, justificatifs imbriqués : aucune liste
+ * d'identifiants dans l'adresse, aucun plafond propre aux justificatifs.
+ * Écart voulu : l'échéance se compare au jour de Paris, la fonction SQL au jour UTC
+ * (1 à 2 h de différence chaque nuit, dans le sens le plus strict).
+ * L'appelant doit être le client de service ou une session de supervision : une autre
+ * session verrait la sécurité de ligne filtrer en silence (les pages et actions
+ * d'administration sont gardées avant tout appel).
  */
 async function lireArtisansEnAttente(db:Lecteur,maintenant:Date):Promise<{data:Attentes['artisans']|null;error:unknown}>{
- const artisans=await db.from('artisans').select('id,raison_sociale,siret_etat').eq('statut_plateforme','en_attente').order('created_at',{ascending:true});
+ const artisans=await db.from('artisans').select('id,raison_sociale,siret_etat,artisan_pieces(type,expire_le,retiree_le)').eq('statut_plateforme','en_attente').order('created_at',{ascending:true});
  if(artisans.error||!Array.isArray(artisans.data))return {data:null,error:artisans.error??new Error('Les artisans en attente sont illisibles.')};
- if(!artisans.data.length)return {data:[],error:null};
- const ids=artisans.data.map(a=>a.id as string);
- const pieces=await db.from('artisan_pieces').select('artisan_id,type,expire_le').in('artisan_id',ids).is('retiree_le',null);
- if(pieces.error||!Array.isArray(pieces.data))return {data:null,error:pieces.error??new Error('Les justificatifs sont illisibles.')};
  const jour=jourDuPoint(maintenant);
- const lignes=pieces.data as {artisan_id:string;type:string;expire_le:string|null}[];
- return {error:null,data:artisans.data.map(a=>{
-  const siennes=lignes.filter(l=>l.artisan_id===a.id);
-  return {artisan_id:a.id as string,raison_sociale:a.raison_sociale as string,siret_etat:a.siret_etat as string,
+ type Piece={type:string;expire_le:string|null;retiree_le:string|null};
+ const lignes=artisans.data as unknown as {id:string;raison_sociale:string;siret_etat:string;artisan_pieces:Piece[]|null}[];
+ return {error:null,data:lignes.map(a=>{
+  const siennes=(a.artisan_pieces??[]).filter(l=>l.retiree_le==null);
+  return {artisan_id:a.id,raison_sociale:a.raison_sociale,siret_etat:a.siret_etat,
    decennale_valide:siennes.some(l=>l.type==='decennale'&&l.expire_le!=null&&l.expire_le>=jour),
    rc_pro_deposee:siennes.some(l=>l.type==='rc_pro'&&(l.expire_le==null||l.expire_le>=jour)),
    nb_pieces:siennes.length};
@@ -165,7 +167,11 @@ export async function lireAttentes(db:Lecteur,maintenant:Date=new Date()):Promis
   db.from('retours_utilisateurs').select('id,titre,nature,gravite,etat').in('etat',['nouveau','en_examen']).or('nature.eq.idee,and(nature.eq.bug,gravite.eq.N1)').order('cree_le',{ascending:false}).limit(30),
   db.from('regulatory_watch').select('id,titre,source_nom,etude').eq('statut','a_examiner').not('analyse_le','is',null).order('reperage_le',{ascending:false}).limit(30),
  ]);
- const indisponibles=[[dev,'évolutions'],[pub,'publications'],[art,'artisans'],[ret,'retours'],[vei,'veille']].filter(([r])=>(r as {error:unknown}).error).map(([,n])=>n as string);
+ const indisponibles=[[dev,'évolutions'],[pub,'publications'],[art,'artisans'],[ret,'retours'],[vei,'veille']].filter(([r])=>(r as {error:unknown}).error).map(([r,n])=>{
+  // Le code seul, jamais le message du fournisseur : de quoi distinguer un droit refusé d'une panne.
+  console.error('[point du matin] lecture impossible :',n,((r as {error:{code?:string}}).error.code)??'sans code');
+  return n as string;
+ });
  return {indisponibles,attentes:{
   developpements:(dev.error?[]:dev.data??[]) as Attentes['developpements'],
   publications:(pub.error?[]:pub.data??[]) as Attentes['publications'],

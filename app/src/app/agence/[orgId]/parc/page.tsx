@@ -4,6 +4,7 @@ import { TitreEcran } from "@/components/titre-ecran";
 import { BoutonResumeBien } from "@/components/resume-bien";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
+import { elementsManquantsDuBailleur } from "@/lib/profil-bailleur";
 import { ROLES_RESPONSABLES, eur } from "@/lib/ged";
 import { avancementLot } from "@/lib/avancement-lot";
 import { AvancementLot } from "@/components/avancement-lot";
@@ -166,6 +167,18 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   noter("les pièces des lots", erreurPieces);
   noter("les chambres en colocation", erreurChambres);
 
+  // D29 B (fiche DES-A-11) : l'adresse reste facultative à l'inscription du propriétaire, mais « Créer un lot »
+  // lui demande d'abord de compléter son profil. Sur un parc VIDE, le bouton le dit d'avance au lieu de promettre
+  // « Créer mon premier bien » puis d'ouvrir un écran d'attente. Même règle, même porte que « Créer un lot »
+  // (lib/profil-bailleur.ts). Une lecture en échec ne change rien : le bouton habituel, et la porte décide.
+  let profilAComplete = false;
+  if (!erreurBiens && !portefeuille && biensVisibles.length === 0 && biensRetires.length === 0 && role === "proprietaire_direct") {
+    const { data: profil, error: erreurProfil } = await supabase.from("organizations")
+      .select("address_line1,postal_code,city,email_contact")
+      .eq("id", orgId).maybeSingle();
+    profilAComplete = !erreurProfil && elementsManquantsDuBailleur(profil).length > 0;
+  }
+
   return (
     // Le fournisseur enveloppe l'écran : chaque rang de lot y puise de quoi
     // ouvrir la fenêtre, et la fenêtre se monte au-dessus de tout.
@@ -257,9 +270,15 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                 qui portera le bail.
               </p>
               <div className="geste">
-                <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
-                  Créer mon premier bien
-                </Link>
+                {profilAComplete ? (
+                  <Link href={`/agence/${orgId}/profil?retour=nouveau-lot`} className="btn-or">
+                    Compléter mon profil pour créer un bien
+                  </Link>
+                ) : (
+                  <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
+                    Créer mon premier bien
+                  </Link>
+                )}
               </div>
               {/* Même garde que plus haut : la reprise appartient au
                   responsable. Un agent devant un portefeuille vide se voyait

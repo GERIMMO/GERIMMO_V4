@@ -100,7 +100,9 @@ for (const p of PERSONAS) {
 
       // La session est révoquée côté serveur : revenir sur l'espace renvoie à
       // la connexion. On vérifie la CONSÉQUENCE, pas seulement l'atterrissage.
-      await page.waitForURL(/\/(connexion|)$/, { timeout: 20_000 });
+      // La déconnexion aboutie arrive sur /connexion?raison=deconnecte (audit du 13/10, VER-PR178-05 : les copies locales sont
+      // purgées à cette arrivée, donc seulement si la déconnexion a réussi).
+      await page.waitForURL(/\/(connexion(\?raison=deconnecte)?|)$/, { timeout: 20_000 });
       await page.goto("/espaces");
       await expect(page).toHaveURL(/\/connexion/);
     });

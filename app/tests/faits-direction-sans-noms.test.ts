@@ -23,6 +23,7 @@ verifierBaseDeTest(url);
 const migration = (nom: string) => readFileSync(`supabase/migrations/${nom}`, "utf8");
 const MIGRATION_RETENTION = "20261014231000_retention_registres_execution.sql";
 const MIGRATION_EFFACEMENT = "20261014232000_effacement_instantanes_faits_direction.sql";
+const RETOUR_RETENTION = "supabase/retours-arriere/20261014231000_retention_registres_execution.retour.sql";
 
 // « Aujourd'hui » est le jour de PARIS, comme dans la base (`preparer_faits_direction`) et dans l'écran, jamais `current_date` : la
 // base de test est en UTC, et entre 22 h et 24 h UTC (minuit à 2 h à Paris en été) les deux jours diffèrent. Relevé à la relecture
@@ -289,6 +290,109 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
       expect(f).toContain("purger_signalements_support");
       expect(f).toContain("debut_conservation_document");
       expect(f).toContain("journal:tech_log");
+    });
+  });
+
+  // Relecture du 14/10 : le retour de 231000 recopiait la définition d'appliquer_retention d'AVANT la migration. Joué après la
+  // migration 20261014200000 (branche lot-arret-taches), qui injecte dans la même fonction la garde de l'arrêt d'urgence
+  // (« Audit du 14/10 (SUP-01) »), il supprimait cette garde en silence. Il ne retire plus que le bloc que 231000 a posé.
+  describe("D48 — le retour arrière retire le bloc de 231000 et rien d'autre (composable avec l'arrêt d'urgence, SUP-01)", () => {
+    // Le script gère SA transaction (garde « pas dans un lot », begin, commit) : pour le jouer ici, dans la transaction du test
+    // (annulée à la fin), on en retire ces trois éléments. Le reste est exécuté tel quel.
+    const retourSansTransaction = () => readFileSync(RETOUR_RETENTION, "utf8")
+      .replace(/^do \$retour_arriere\$\nbegin\n  if statement_timestamp\(\)[\s\S]*?end \$retour_arriere\$;\n/m, "")
+      .replace(/^begin;$/m, "").replace(/^commit;$/m, "");
+    // La technique et le texte de la garde de 20261014200000 pour cette fonction : ancre = fin du contrôle d'appelant.
+    const ANCRE = "    raise exception 'appliquer_retention: reserve au super admin';\n  end if;\n";
+    const GARDE = `  -- Audit du 14/10 (SUP-01) : l'arrêt d'urgence couvre aussi cette tâche pg_cron. Arrêt actif : aucun effet.
+  if not public.tache_planifiee_autorisee('retention-quotidienne') then
+    return jsonb_build_object('arret_en_cours', true, 'journaux', '{}'::jsonb, 'documents_purges', 0, 'documents_anonymises', 0);
+  end if;
+`;
+    const definition = async () => (await db.query("select pg_get_functiondef('public.appliquer_retention()'::regprocedure) f")).rows[0].f as string;
+    const poserGardeArret = async () => {
+      // Le prédicat vient de l'autre migration : ici, un double qui laisse tout passer (la garde est testée en tant que TEXTE conservé).
+      await db.query("create or replace function public.tache_planifiee_autorisee(p_tache text) returns boolean language sql stable set search_path = '' as 'select true'");
+      const def = await definition();
+      expect(def.split(ANCRE)).toHaveLength(2);
+      await db.query(def.replace(ANCRE, ANCRE + GARDE));
+    };
+    const jouerRetour = () => db.query(retourSansTransaction());
+
+    it("sans autre migration : l'appel à la purge disparaît, le reste de la fonction est intact, la purge et les cinq règles sont retirées", async () => {
+      const avant = await definition();
+      await jouerRetour();
+      const apres = await definition();
+      expect(apres).not.toContain("purger_registres_execution");
+      expect(apres).not.toContain("D48 / D13");
+      // Le texte d'avant la migration, à l'identique : on a retiré exactement le bloc ajouté.
+      expect(apres).toBe(avant.replace(/\n\n  -- D48 \/ D13[^\n]*\n  v_journaux := v_journaux \|\| public\.purger_registres_execution\(\);/, ""));
+      expect(apres).toContain("v_journaux := v_journaux || jsonb_build_object('signalements_support',public.purger_signalements_support());\n  return jsonb_build_object('journaux', v_journaux");
+      expect(await nombre("select count(*) n from pg_proc where proname='purger_registres_execution'")).toBe(0);
+      expect(await nombre("select count(*) n from public.retention_rules where data_type like 'journal:%' and data_type = any($1::text[])", [["agent_passages", "supervision_operations", "points_du_matin", "decisions_du_matin", "brief_direction_snapshots"].map((r) => `journal:${r}`)])).toBe(0);
+      // La fonction reste appelable et rend le bilan de ses autres journaux.
+      await as(sa);
+      const bilan = (await db.query("select public.appliquer_retention() b")).rows[0].b;
+      await admin();
+      expect(bilan).toHaveProperty("journaux");
+      expect(bilan.journaux).not.toHaveProperty("agent_passages");
+    });
+
+    it("après la garde de l'arrêt d'urgence (SUP-01) : la garde RESTE, seul le bloc de 231000 part", async () => {
+      await poserGardeArret();
+      const avant = await definition();
+      expect(avant).toContain("Audit du 14/10 (SUP-01)");
+      expect(avant).toContain("purger_registres_execution");
+      await jouerRetour();
+      const apres = await definition();
+      expect(apres).toContain("Audit du 14/10 (SUP-01)");
+      expect(apres).toContain("tache_planifiee_autorisee('retention-quotidienne')");
+      expect(apres).not.toContain("purger_registres_execution");
+      expect(apres).not.toContain("D48 / D13");
+      // Rien d'autre n'a bougé : la définition d'après est celle d'avant, moins le bloc.
+      expect(apres.length).toBeLessThan(avant.length);
+      expect(apres).toBe(avant.replace(/\n\n  -- D48 \/ D13[^\n]*\n  v_journaux := v_journaux \|\| public\.purger_registres_execution\(\);/, ""));
+      // Et la fonction s'exécute encore avec la garde.
+      await as(sa); await db.query("select public.appliquer_retention()"); await admin();
+    });
+
+    it("dans l'autre ordre (garde posée AVANT la migration 231000) : l'aller s'ajoute à la garde, le retour ne retire que lui", async () => {
+      await jouerRetour();
+      await poserGardeArret();
+      await db.query(migration(MIGRATION_RETENTION));
+      const ensemble = await definition();
+      expect(ensemble).toContain("Audit du 14/10 (SUP-01)");
+      expect(ensemble.match(/purger_registres_execution/g)).toHaveLength(1);
+      await jouerRetour();
+      const apres = await definition();
+      expect(apres).toContain("Audit du 14/10 (SUP-01)");
+      expect(apres).not.toContain("purger_registres_execution");
+    });
+
+    it("rejouable : sur une fonction déjà revenue, la marque est absente, rien n'est fait et aucune erreur", async () => {
+      await jouerRetour();
+      const apres = await definition();
+      await db.query("create function public.purger_registres_execution() returns jsonb language sql as $$ select '{}'::jsonb $$");
+      await jouerRetour();
+      expect(await definition()).toBe(apres);
+    });
+
+    it("fonction réécrite depuis (la marque est là, le bloc n'y est plus exactement une fois) : le script s'arrête, rien n'est supprimé", async () => {
+      const def = await definition();
+      await db.query(def.replace("-- D48 / D13 (IA-11, SUP-05)", "-- D48 / D13 (IA-11, SUP-05, retouché)"));
+      const message = await failed(retourSansTransaction());
+      expect(message).toMatch(/figure 0 fois \(attendu : une\)/);
+      expect(message).toMatch(/rien n'a été modifié/);
+      // La fonction de purge est toujours là et toujours appelée : le retour ne la retire jamais sous un appel qui la nomme.
+      expect(await nombre("select count(*) n from pg_proc where proname='purger_registres_execution'")).toBe(1);
+      expect(await definition()).toContain("public.purger_registres_execution()");
+      expect(await nombre("select count(*) n from public.retention_rules where data_type='journal:agent_passages'")).toBe(1);
+    });
+
+    it("le script refuse de se jouer dans un lot déjà ouvert (il valide sa propre transaction)", async () => {
+      const message = await failed(readFileSync(RETOUR_RETENTION, "utf8"));
+      expect(message).toMatch(/Retour arrière refusé/);
+      expect(await nombre("select count(*) n from pg_proc where proname='purger_registres_execution'")).toBe(1);
     });
   });
 });

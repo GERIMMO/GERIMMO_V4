@@ -3,9 +3,16 @@
 -- NE PAS PLACER dans app/supabase/migrations/ et NE JAMAIS le passer à migrations.yml : ce fichier défait une migration, il se
 -- joue À LA MAIN, une fois décidé, avec la procédure de LISEZ-MOI.md. Une seule transaction : la moindre erreur annule tout.
 --
--- Définition antérieure d'appliquer_retention : extraite (pg_get_functiondef) d'une base reconstruite en rejouant les migrations
--- d'origine SANS cette migration, puis recopiée ici par un générateur. Rejouable : sans la marque « purger_registres_execution »
--- dans la définition en vigueur, la fonction est laissée telle quelle.
+-- CHIRURGICAL, pas une réécriture. Ce script ne rétablit PAS une ancienne définition d'`appliquer_retention` : il relit la
+-- définition en vigueur et en retire, par son texte exact, le seul bloc que la migration y a injecté (le commentaire « D48 / D13 »
+-- et l'appel `v_journaux := v_journaux || public.purger_registres_execution();`), comme l'aller l'y a posé. Tout ce que d'autres
+-- migrations ont ajouté à la fonction reste en place : en particulier la garde de l'arrêt d'urgence sur le nettoyage nocturne
+-- (« Audit du 14/10 (SUP-01) », migration 20261014200000, branche lot-arret-taches). Une version précédente de ce script
+-- recopiait la définition d'avant la migration et supprimait cette garde en silence si les deux migrations étaient en place.
+-- Rejouable : sans la marque « purger_registres_execution » dans la définition en vigueur, la fonction est laissée telle quelle.
+-- Prudent : si la marque est là mais que le bloc n'y figure pas exactement une fois (fonction réécrite à la main depuis), le
+-- script s'arrête par une erreur AVANT de supprimer quoi que ce soit : la fonction de purge n'est jamais retirée sous un appel
+-- qui la nomme encore.
 --
 -- Usage : psql "$URL" -v ON_ERROR_STOP=1 -f 20261014231000_retention_registres_execution.retour.sql
 --
@@ -34,12 +41,12 @@ begin;
 set local lock_timeout = '10s';
 
 -- Outil local à cette session (pg_temp : disparaît à la fin de la connexion, rien n'est créé dans public).
--- Rétablit la définition ANTÉRIEURE (reprise de la base reconstruite par les migrations d'origine) si, et
--- seulement si, la définition en vigueur porte la marque du correctif. Sans la marque, la fonction est
--- déjà revenue (rejeu) ou a été réécrite depuis : on n'y touche pas.
-create function pg_temp.restaurer_fonction(p_signature text, p_marque text, p_definition text)
+-- Retire de la définition EN VIGUEUR d'une fonction un bloc de texte exact, si, et seulement si, la définition porte la marque
+-- du correctif. Sans la marque, la fonction est déjà revenue (rejeu) ou a été réécrite depuis : on n'y touche pas. Avec la
+-- marque mais sans que le bloc figure exactement une fois, erreur : rien n'est modifié (la transaction entière est annulée).
+create or replace function pg_temp.retirer_bloc(p_signature text, p_marque text, p_bloc text)
 returns text language plpgsql as $retour_arriere$
-declare v_oid regprocedure := to_regprocedure(p_signature); v_courante text;
+declare v_oid regprocedure := to_regprocedure(p_signature); v_courante text; v_occurrences integer;
 begin
   if v_oid is null then
     raise exception 'Retour arrière : la fonction % n''existe pas (base inattendue)', p_signature;
@@ -48,142 +55,21 @@ begin
   if position(p_marque in v_courante) = 0 then
     return p_signature || ' : marque du correctif absente, rien à faire';
   end if;
-  execute p_definition;
-  return p_signature || ' : définition antérieure rétablie';
+  v_occurrences := (length(v_courante) - length(replace(v_courante, p_bloc, ''))) / length(p_bloc);
+  if v_occurrences <> 1 then
+    raise exception 'Retour arrière : le bloc ajouté par la migration figure % fois (attendu : une) dans la définition en vigueur de % ; la fonction a été réécrite depuis, rien n''a été modifié. Voir LISEZ-MOI.md.', v_occurrences, p_signature;
+  end if;
+  execute replace(v_courante, p_bloc, '');
+  return p_signature || ' : bloc de la migration retiré, le reste de la fonction est intact';
 end $retour_arriere$;
 
--- nettoyage nocturne
-select pg_temp.restaurer_fonction('public.appliquer_retention()',
+-- nettoyage nocturne : retire l'appel à la purge des registres, et lui seul
+select pg_temp.retirer_bloc('public.appliquer_retention()',
   $marque$purger_registres_execution$marque$,
-$definition_anterieure$CREATE OR REPLACE FUNCTION public.appliquer_retention()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
-declare
-  v_regle record;
-  v_doc record;
-  v_docs_purges int := 0;
-  v_docs_anonymises int := 0;
-  v_journaux jsonb := '{}'::jsonb;
-  v_count bigint;
-begin
-  if (select auth.uid()) is not null and not public.is_super_admin() then
-    raise exception 'appliquer_retention: reserve au super admin';
-  end if;
+$bloc$
 
-  select duree_mois into v_regle from public.retention_rules
-    where data_type = 'journal:tech_log' and actif;
-  if found then
-    delete from public.tech_log
-      where created_at < now() - make_interval(months => v_regle.duree_mois);
-    get diagnostics v_count = row_count;
-    v_journaux := v_journaux || jsonb_build_object('tech_log', v_count);
-  end if;
-
-  select duree_mois into v_regle from public.retention_rules
-    where data_type = 'journal:acces_pieces' and actif;
-  if found then
-    delete from public.acces_pieces_log
-      where created_at < now() - make_interval(months => v_regle.duree_mois);
-    get diagnostics v_count = row_count;
-    v_journaux := v_journaux || jsonb_build_object('acces_pieces_log', v_count);
-  end if;
-
-  select duree_mois into v_regle from public.retention_rules
-    where data_type = 'journal:audit_log' and actif;
-  if found then
-    delete from public.audit_log
-      where created_at < now() - make_interval(months => v_regle.duree_mois);
-    get diagnostics v_count = row_count;
-    v_journaux := v_journaux || jsonb_build_object('audit_log', v_count);
-  end if;
-
-  select duree_mois into v_regle from public.retention_rules
-    where data_type = 'alerte:traitee' and actif;
-  if found then
-    delete from public.alerts
-      where statut = 'fermee'
-        and closed_at < now() - make_interval(months => v_regle.duree_mois);
-    get diagnostics v_count = row_count;
-    v_journaux := v_journaux || jsonb_build_object('alertes', v_count);
-  end if;
-
-  delete from public.demandes_devis
-    where created_at < now() - make_interval(months => 24);
-  get diagnostics v_count = row_count;
-  v_journaux := v_journaux || jsonb_build_object('demandes_devis', v_count);
-
-  delete from public.intentions_conge
-    where traitee_le is not null
-      and traitee_le < now() - make_interval(months => 24);
-  get diagnostics v_count = row_count;
-  v_journaux := v_journaux || jsonb_build_object('intentions_conge', v_count);
-
-  delete from public.demandes_signature ds
-    where exists (select 1 from public.documents d
-                  where d.id = ds.document_id and d.purged_at is not null
-                    and d.anonymise_le is null)
-       or (ds.signee_le is not null
-           and ds.signee_le < now() - make_interval(months => 24));
-  get diagnostics v_count = row_count;
-  v_journaux := v_journaux || jsonb_build_object('demandes_signature', v_count);
-
-  -- Le compteur court depuis le déclencheur de la règle (fin du bail, du
-  -- mandat, de la gestion, clôture de l'incident), pas depuis le dépôt.
-  for v_doc in
-    select d.id, d.organization_id, d.type, d.storage_path, r.sort, r.data_type, r.libelle,
-           public.debut_conservation_document(d.id) as debut
-    from public.documents d
-    join public.retention_rules r
-      on r.data_type = 'document:' || d.type::text and r.actif
-    where d.purged_at is null
-      and r.sort in ('suppression', 'anonymisation')
-      -- préfiltre bon marché : le déclencheur n'est jamais avant le dépôt
-      and d.retention_reference_date + make_interval(months => r.duree_mois) <= now()
-  loop
-    continue when v_doc.debut is null;
-    continue when v_doc.debut + make_interval(months => (select duree_mois from public.retention_rules
-                                                           where data_type = v_doc.data_type)) > now();
-
-    if v_doc.storage_path is not null then
-      insert into public.purge_fichiers (storage_path) values (v_doc.storage_path);
-    end if;
-
-    if v_doc.sort = 'anonymisation' then
-      -- La contrepartie subsiste, sans personne : rattachements non
-      -- personnels gardés, titre neutre, auteurs retirés.
-      delete from public.document_liens where document_id = v_doc.id and entite = 'personne';
-      update public.documents
-        set purged_at = now(), anonymise_le = now(), storage_path = null, mime_type = null,
-            taille_octets = null, titre = v_doc.libelle || ' (anonymisé)',
-            deposited_by = null, verifie_par = null
-        where id = v_doc.id;
-      v_docs_anonymises := v_docs_anonymises + 1;
-    else
-      delete from public.document_liens where document_id = v_doc.id;
-      update public.documents
-        set purged_at = now(), storage_path = null, mime_type = null,
-            taille_octets = null, empreinte = null, titre = null,
-            deposited_by = null, verifie_par = null
-        where id = v_doc.id;
-    end if;
-    insert into public.audit_log (account_id, organization_id, action, details)
-    values ((select auth.uid()), v_doc.organization_id, 'purge_retention',
-            jsonb_build_object('document_id', v_doc.id, 'type', v_doc.type,
-                               'regle', v_doc.data_type, 'sort', v_doc.sort,
-                               'debut_conservation', v_doc.debut));
-    v_docs_purges := v_docs_purges + 1;
-  end loop;
-
-  v_journaux := v_journaux || jsonb_build_object('signalements_support',public.purger_signalements_support());
-  return jsonb_build_object('journaux', v_journaux, 'documents_purges', v_docs_purges,
-                            'documents_anonymises', v_docs_anonymises,
-                            'fichiers_en_attente', (select count(*) from public.purge_fichiers where deleted_at is null));
-end;
-$function$
-$definition_anterieure$);
+  -- D48 / D13 (IA-11, SUP-05) : les registres d'exécution ont une fin de vie (six mois, retention_rules « journal:… »).
+  v_journaux := v_journaux || public.purger_registres_execution();$bloc$);
 
 -- La fonction de purge, retirée SANS cascade.
 drop function if exists public.purger_registres_execution();

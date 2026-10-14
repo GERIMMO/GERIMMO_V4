@@ -23,9 +23,11 @@ import { ArretSupervision, verifierAvantEffet } from "@/lib/controle-effets";
 // (par intervention, échéance, destinataire et début du rendez-vous, lib/cles-
 // idempotence-courriels.ts) ; le service, revoyant la même clé, rend la réponse
 // du premier envoi au lieu d'en émettre un second (décision D47). Il la retient
-// 24 h seulement (voir lib/email.ts). L'appel a aussi un délai maximal (15 s) :
-// les deux vont ENSEMBLE, un délai seul ferait reprendre à la passe suivante un
-// rappel déjà accepté. Les rappels de gestes (ci-dessous) portent la leur.
+// 24 h seulement (hypothèse, voir lib/email.ts) et cette tâche ne passe qu'une
+// fois par jour : la reprise du lendemain n'est pas garantie. L'appel a aussi
+// un délai maximal (15 s) : les deux vont ENSEMBLE, un délai seul ferait
+// reprendre à la passe suivante un rappel déjà accepté. Les rappels de gestes
+// (ci-dessous) portent la leur, avec un texte identique d'un matin à l'autre.
 //
 // DEPUIS LE 25/09, LA MÊME RONDE RAPPELLE AUSSI LES GESTES QUI N'ONT PAS ÉTÉ
 // FAITS : créneau non choisi (locataire, J+3), mission non acceptée (artisan,

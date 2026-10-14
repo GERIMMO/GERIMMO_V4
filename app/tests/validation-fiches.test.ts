@@ -54,6 +54,18 @@ describe("date de naissance", () => {
     expect(verifierDateNaissance("1990-02-31", AUJOURDHUI)).toMatch(/pas valide/);
     expect(verifierDateNaissance("21/03/1984", AUJOURDHUI)).toMatch(/pas valide/);
   });
+  // VER-TS-01 : la forme AAAA-MM-JJ est respectée, mais le mois ou le jour n'existe pas ;
+  // `toISOString()` lève alors une RangeError (500 côté serveur) au lieu de répondre par une phrase.
+  it.each(["2024-13-45", "2024-00-00", "1990-99-99", "1990-00-10", "1990-12-00", "2023-02-29"])(
+    "répond « pas valide » à la date impossible %s, sans lever d'exception",
+    (d) => {
+      expect(() => verifierDateNaissance(d, AUJOURDHUI)).not.toThrow();
+      expect(verifierDateNaissance(d, AUJOURDHUI)).toBe("La date de naissance n'est pas valide.");
+    }
+  );
+  it("accepte le 29 février d'une année bissextile", () => {
+    expect(verifierDateNaissance("2024-02-29", AUJOURDHUI)).toBeNull();
+  });
 });
 
 describe("année de construction", () => {

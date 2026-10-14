@@ -39,6 +39,21 @@ export function styleMarque(m: MarqueOrganisation | null | undefined): CSSProper
     "--ring": principale, "--sidebar-primary": principale, "--sidebar-primary-foreground": "#ffffff",
   } as CSSProperties;
 }
+/**
+ * Les initiales d'un nom d'organisation : la première lettre des deux premiers mots
+ * (« Parc de Claire Moreau » → « PD »). Elles remplacent le nom dans la cellule de 48 px
+ * du rail de menu des tablettes, où il se lisait « Par… » (audit du 13/10, DES-A-14).
+ * Un mot sans lettre ni chiffre (« & », « - ») est passé.
+ */
+export function initialesMarque(nom: string): string {
+  return nom
+    .split(/\s+/)
+    .map((mot) => /[\p{L}\p{N}]/u.exec(mot)?.[0])
+    .filter((lettre): lettre is string => Boolean(lettre))
+    .slice(0, 2)
+    .join("")
+    .toLocaleUpperCase("fr");
+}
 export function nomMarque(m: MarqueOrganisation) { return (m.nom_portail?.trim() || m.name?.trim() || "Gerimmo").slice(0, 100); }
 export function emailValide(v: string) { return v.length <= 254 && /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/i.test(v); }
 export function domaineValide(v: string) { return v.length <= 253 && !/^(?:\d+\.)+\d+$/.test(v) && !/(?:^|\.)(localhost|local|internal|test)$/i.test(v) && /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(v); }

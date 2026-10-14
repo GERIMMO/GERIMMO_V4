@@ -40,7 +40,11 @@ export function verifierTelephone(telephone: string): string | null {
 export function verifierDateNaissance(date: string, aujourdhui: string): string | null {
   const d = date.trim();
   if (!d) return null;
-  const valide = /^\d{4}-\d{2}-\d{2}$/.test(d) && new Date(`${d}T00:00:00Z`).toISOString().slice(0, 10) === d;
+  // `toISOString()` lève une RangeError sur une date invalide (« 2024-13-45 ») : on
+  // contrôle d'abord que la date existe, pour répondre par une phrase et non par un 500.
+  const instant = new Date(`${d}T00:00:00Z`);
+  const valide =
+    /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(instant.getTime()) && instant.toISOString().slice(0, 10) === d;
   if (!valide) return "La date de naissance n'est pas valide.";
   if (d > aujourdhui) return "La date de naissance ne peut pas être dans le futur.";
   if (d < "1900-01-01") return "La date de naissance est antérieure à 1900 : vérifiez la saisie.";

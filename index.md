@@ -131,6 +131,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[2026-09-08-maquette-espace-agence-v6|Maquette espace agence v6]] — agent + admin d'agence : inventaire, contradictions (fonds mandants vs RM-A6.1), découpage d'intégration.
 
 ## Synthèses
+- [[Choisir son locataire selon les conditions des assurances loyers impayés]] — **14/10, brouillon** : conditions d'éligibilité des assurances loyers impayés (taux d'effort, statut professionnel, étudiants et garants, colocation) et règles légales du choix du locataire (pièces exigibles, non-discrimination, non-cumul caution/garantie, Visale) ; chiffres issus de résumés de recherche, **aucune condition générale relue**.
 
 - [[Dossier de validation — version candidate du 13 octobre 2026]] — **dossier de livraison** : contenu, migrations, contrôles sur le SHA figé, observation de la production en lecture seule, porte de validation, dix critères de clôture cochés séparément (les critères d'aval et d'automatisation sont NON remplis ; « version autorisée déployée » est rempli, « production vérifiée » partiel), question d'autorisation et **mise en production du 14/10/2026** (PR #179, migrations appliquées, contrôles non destructifs et limites, § 5 bis).
 - [[Registre des anomalies — audit du 13 octobre 2026]] — **13/10, mission opérationnelle** : registre vivant de 237 anomalies (P0 0, P1 1, P2 70, P3 166 ; 109 corrigées en branche, 1 déployée, 104 à trancher), fiches P0 à P2 complètes ; version testée par fiche.

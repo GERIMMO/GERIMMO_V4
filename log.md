@@ -5829,3 +5829,7 @@ Registre : PDM-01 (P2, déployée), 237 anomalies. À constater : la régénéra
 « P1 bloquants, pour le reste faire en fonction des recommandations. » Q3 et Q5 : P1 bloquants (VER-TS-02, PR178-B-06, CHF-01, CHF-02 reclassés, ouverts dans la version déployée). Toutes les autres décisions : recommandation suivie, avec ce qui reste différé (avis spécialisé : D02-B, D03-B,
 D38-B, D40-B, D41, D45-B, D46-B), à votre choix (D17-B, D42, canal et responsable du relais) ou à autoriser (essais de restauration D07/D43 et de stockage D11, mesure D12) ; D32 attend l'identité de l'éditeur. Vague 1 lancée (encaissement, fiscal et charges, bail et sortie).
 Voir [[Décisions groupées — version candidate du 13 octobre 2026]] et [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 ter.
+
+## [2026-10-14] query | Conseils au propriétaire pour choisir son locataire selon les assurances loyers impayés
+Demande du dirigeant (ajouter des conseils à l'écran du propriétaire, sans savoir quoi y mettre). Recherche en quatre angles et recontrôle : aucune page ni aucun PDF n'a pu être ouvert depuis l'environnement (réseau), tous les faits viennent de résumés de moteur de recherche.
+Page [[Choisir son locataire selon les conditions des assurances loyers impayés]] (brouillon), 12 conseils d'écran proposés, 9 questions au dirigeant, contradiction signalée sur [[Garantie]] (RM-2.3.2 et RM-2.3.3). Rien n'est ajouté à l'application.

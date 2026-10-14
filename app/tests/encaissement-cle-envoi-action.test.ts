@@ -325,7 +325,14 @@ describe.skipIf(!url)("Actions d'encaissement — clé d'envoi (D05) et confirma
       });
 
       it("sans appel de loyer, le terme est celui du bail (780 + 60) : seuil 1 680 €", async () => {
-        await db.query("delete from public.appels_loyer where bail_id=$1", [f.bail]);
+        // Les appels se retirent en propriétaire de la base : le gérant n'a que des politiques de LECTURE sur cette table,
+        // un `delete` joué sous son rôle ne retirerait rien et le test passerait par le chemin normal (deux termes de 840 €).
+        await db.query("reset role");
+        const retires = await db.query("delete from public.appels_loyer where bail_id=$1", [f.bail]);
+        expect(retires.rowCount).toBe(2);
+        await agir(db, f.user);
+        // Le repli de l'action (loyer + charges du bail) n'est atteint que si l'état du bail ne rend aucun terme.
+        expect((await db.query("select count(*)::int n from public.etat_loyers_bail($1)", [f.bail])).rows[0].n).toBe(0);
         const dessous = await envoyer({ montant: "1680", cle_envoi: randomUUID() });
         expect(dessous.confirmation).toBeUndefined();
         const dessus = await envoyer({ montant: "1680.01", cle_envoi: randomUUID() });

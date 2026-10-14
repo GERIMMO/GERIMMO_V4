@@ -10,6 +10,8 @@
  *    casse, pourcentage, double barre) renvoient chaque profil non habilité vers son écran, sans rendu, sans
  *    lecture de donnée et sans qu'un jeton de donnée n'apparaisse dans la réponse ;
  * 2. le super-administrateur avec second facteur passe, sans surblocage ;
+ * 2 bis. la lecture des adhésions du proxy APPLIQUE ses filtres dans la maquette (compte connecté, adhésions actives) : un
+ *    superviseur suspendu avec un second facteur valide, ou le rôle d'un autre compte, n'ouvre pas la supervision ;
  * 3. aucune page de /admin n'utilise un client à clé de service (la RLS est le filet de fond : la fiche
  *    PRF-04 reste vraie « tant qu'aucune page /admin n'utilise un client à clé de service »).
  * L'équivalence avec public.is_super_admin() est tenue sur une vraie base par proxy-garde-admin-base.test.ts.
@@ -21,17 +23,26 @@ import { NextRequest } from "next/server";
 import { estAdresseSupervision, premierSegment } from "../src/lib/garde-admin";
 import { estSuperviseurActif } from "../src/lib/mfa";
 
-const mocks = vi.hoisted(() => ({ client: vi.fn(), tables: [] as string[] }));
+const mocks = vi.hoisted(() => ({
+  client: vi.fn(),
+  tables: [] as string[],
+  /** Les filtres `.eq()` que le proxy pose réellement sur sa lecture des adhésions, dans l'ordre. */
+  filtres: [] as [string, unknown][],
+  selections: [] as string[],
+}));
 vi.mock("@supabase/ssr", () => ({ createServerClient: mocks.client }));
 import { proxy } from "../src/proxy";
 
 const BASE = "https://gerimmo.test";
 const UUID = "0b6e1d6e-7c1a-4b5e-9a3d-5f2f3d9a1c11";
+/** L'identifiant du compte connecté dans ces tests (le proxy le passe à la base : `.eq("account_id", …)`). */
+const MOI = "compte";
 
 /** Les jetons de donnée d'autres organisations : ils ne doivent apparaître dans AUCUNE réponse refusée. */
 const JETONS = ["Agence Beta", "Parc de Fisc", "claire.moreau@exemple.test", "INC-2026-0003", "Recette TEST-SECRET"];
 
 type Profil = { nom: string; roles: string[]; niveau: string | null; connecte: boolean };
+type Adhesion = { account_id: string; role: string; status: string };
 const PROFILS: Profil[] = [
   { nom: "locataire", roles: ["locataire"], niveau: "aal1", connecte: true },
   { nom: "propriétaire", roles: ["proprietaire"], niveau: "aal1", connecte: true },
@@ -41,24 +52,40 @@ const PROFILS: Profil[] = [
   { nom: "sans aucune adhésion active", roles: [], niveau: "aal1", connecte: true },
 ];
 
-function session(profil: { roles: string[]; niveau: string | null; connecte: boolean }) {
+/**
+ * Une base d'adhésions qui APPLIQUE les filtres `.eq()` que le proxy lui pose (relecture de D44 : une maquette qui
+ * ignorait les `.eq` laissait passer un proxy qui aurait retiré « status = active » ou « account_id = … »). Seuls
+ * `select` et `eq` existent : tout autre appel du proxy sur cette lecture fait échouer le test au lieu d'être ignoré.
+ *
+ * `adhesions` : les lignes de la table. Par défaut, celles du profil, rattachées au compte connecté et actives.
+ */
+function session(profil: { roles: string[]; niveau: string | null; connecte: boolean }, adhesions?: Adhesion[]) {
   mocks.tables.length = 0;
-  const lignes = profil.roles.map((role) => ({ role }));
+  mocks.filtres.length = 0;
+  mocks.selections.length = 0;
+  const table: Adhesion[] = adhesions ?? profil.roles.map((role) => ({ account_id: MOI, role, status: "active" }));
   const requete = () => {
-    const q: Record<string, unknown> = {
-      select: () => q,
-      eq: () => q,
-      then: (resolve: (v: unknown) => unknown) => Promise.resolve({ data: lignes, error: null }).then(resolve),
+    const filtres: [string, unknown][] = [];
+    let colonnes: string[] = [];
+    const q = {
+      select: (liste: string) => { mocks.selections.push(liste); colonnes = liste.split(",").map((c) => c.trim()); return q; },
+      eq: (colonne: string, valeur: unknown) => { mocks.filtres.push([colonne, valeur]); filtres.push([colonne, valeur]); return q; },
+      then: (resolve: (v: unknown) => unknown) => {
+        const lignes = table
+          .filter((ligne) => filtres.every(([colonne, valeur]) => (ligne as Record<string, unknown>)[colonne] === valeur))
+          .map((ligne) => Object.fromEntries(colonnes.map((c) => [c, (ligne as Record<string, unknown>)[c]])));
+        return Promise.resolve({ data: lignes, error: null }).then(resolve);
+      },
     };
     return q;
   };
   mocks.client.mockReturnValue({
-    from: (table: string) => {
-      mocks.tables.push(table);
+    from: (nom: string) => {
+      mocks.tables.push(nom);
       return requete();
     },
     auth: {
-      getUser: async () => ({ data: { user: profil.connecte ? { id: "compte", last_sign_in_at: new Date().toISOString() } : null } }),
+      getUser: async () => ({ data: { user: profil.connecte ? { id: MOI, last_sign_in_at: new Date().toISOString() } : null } }),
       mfa: { getAuthenticatorAssuranceLevel: async () => ({ data: { currentLevel: profil.niveau }, error: null }) },
     },
   });
@@ -128,6 +155,43 @@ describe("D44 — un compte sans le rôle de supervision est refusé AVANT tout 
       }
     });
   }
+
+  // Relecture de D44 : la décision du proxy repose sur la lecture des adhésions. Si elle perdait un de ses deux
+  // filtres, un compte suspendu ou le rôle d'un autre compte ouvrirait la supervision sans que rien ne le dise.
+  it("un superviseur SUSPENDU (adhésion inactive) avec un second facteur valide est refusé", async () => {
+    session({ roles: [], niveau: "aal2", connecte: true }, [{ account_id: MOI, role: "super_admin", status: "inactive" }]);
+    const reponse = await proxy(new NextRequest(`${BASE}/admin/brief`));
+    expect(new URL(reponse.headers.get("location")!).pathname).toBe("/espaces");
+    expect(reponse.headers.get("x-middleware-next")).toBeNull();
+  });
+
+  it("le rôle de supervision d'un AUTRE compte ne compte pas pour le compte connecté", async () => {
+    session(
+      { roles: [], niveau: "aal2", connecte: true },
+      [{ account_id: "un-autre-compte", role: "super_admin", status: "active" }, { account_id: MOI, role: "locataire", status: "active" }]
+    );
+    const reponse = await proxy(new NextRequest(`${BASE}/admin/brief`));
+    expect(new URL(reponse.headers.get("location")!).pathname).toBe("/espaces");
+    expect(reponse.headers.get("x-middleware-next")).toBeNull();
+  });
+
+  it("un superviseur actif dont l'adhésion voisine est suspendue passe encore", async () => {
+    session(
+      { roles: [], niveau: "aal2", connecte: true },
+      [{ account_id: MOI, role: "super_admin", status: "active" }, { account_id: MOI, role: "admin_agence", status: "inactive" }]
+    );
+    const reponse = await proxy(new NextRequest(`${BASE}/admin/brief`));
+    expect(reponse.headers.get("location")).toBeNull();
+    expect(reponse.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("le proxy ne lit que les adhésions ACTIVES du compte connecté (les deux filtres sont posés)", async () => {
+    session({ roles: ["super_admin"], niveau: "aal2", connecte: true });
+    await proxy(new NextRequest(`${BASE}/admin/brief`));
+    expect(mocks.tables).toEqual(["memberships"]);
+    expect(mocks.selections).toEqual(["role"]);
+    expect([...mocks.filtres].sort()).toEqual([["account_id", MOI], ["status", "active"]]);
+  });
 
   it("une action serveur (POST) refusée est redirigée en 303, jamais rejouée", async () => {
     session(PROFILS[0]);

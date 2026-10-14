@@ -4,18 +4,25 @@
  *
  * Le proxy ne peut pas appeler is_super_admin() à chaque requête (il lit déjà les adhésions actives et
  * le niveau du second facteur, rien de plus). Il décide donc avec `estSuperviseurActif(roles, niveau)`.
- * Ce test joue, pour chaque situation de compte et chaque niveau de session, EXACTEMENT les deux
- * lectures du proxy sous la session du compte (même requête sur `memberships`, soumise à la RLS ; le
- * niveau est la revendication `aal` du jeton, comme le lit supabase-js) et exige la même réponse que
- * `public.is_super_admin()`, celle que le layout /admin et les politiques RLS appliquent.
+ *
+ * Relecture : ce test ne rejoue plus sa PROPRE requête SQL. Il fait tourner `proxy()` lui-même sur une requête
+ * vers /admin/brief, avec pour client Supabase un adaptateur qui TRADUIT EN SQL les filtres que le proxy pose
+ * réellement (`.select("role").eq("account_id", …).eq("status", "active")`) et les exécute sous la session du
+ * compte (RLS comprise). Si le proxy perd un filtre ou change de lecture, la requête exécutée change avec lui et
+ * la décision diverge de `public.is_super_admin()` — celle que le layout /admin et les politiques RLS appliquent.
+ * Le niveau du second facteur est la revendication `aal` du jeton, comme le lit supabase-js.
  *
  * Tout est joué dans une transaction annulée à la fin.
  */
 import { config } from "dotenv";
 import { Client } from "pg";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { verifierBaseDeTest } from "./garde-base";
-import { estSuperviseurActif } from "../src/lib/mfa";
+
+const mocks = vi.hoisted(() => ({ client: vi.fn(), lectures: [] as { table: string; colonnes: string[]; filtres: [string, unknown][] }[] }));
+vi.mock("@supabase/ssr", () => ({ createServerClient: mocks.client }));
+import { proxy } from "../src/proxy";
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
@@ -68,19 +75,65 @@ describe.skipIf(!DB_URL)("D44 — le proxy et is_super_admin() décident pareil"
 
   const NIVEAUX: (string | undefined)[] = [undefined, "aal1", "aal2", "aal3", ""];
 
+  /**
+   * Le client Supabase du proxy, adossé à la base : `from(table).select(colonnes).eq(c, v)…` devient
+   * `select colonnes from public.table where c = v and …`, exécuté sous la session ouverte par `agir`.
+   * Seuls `select` et `eq` existent : toute autre méthode que le proxy y appellerait lèverait une erreur
+   * (le test échoue) au lieu d'être ignorée. Les identifiants de table et de colonne sont validés.
+   */
+  function clientDuProxy(compte: string, aal: string | undefined) {
+    const identifiant = /^[a-z_][a-z0-9_]*$/;
+    return {
+      from: (table: string) => {
+        if (!identifiant.test(table)) throw new Error(`table inattendue : ${table}`);
+        const lecture = { table, colonnes: [] as string[], filtres: [] as [string, unknown][] };
+        mocks.lectures.push(lecture);
+        const q = {
+          select: (liste: string) => {
+            lecture.colonnes = liste.split(",").map((c) => c.trim());
+            if (!lecture.colonnes.every((c) => identifiant.test(c))) throw new Error(`colonnes inattendues : ${liste}`);
+            return q;
+          },
+          eq: (colonne: string, valeur: unknown) => {
+            if (!identifiant.test(colonne)) throw new Error(`colonne inattendue : ${colonne}`);
+            lecture.filtres.push([colonne, valeur]);
+            return q;
+          },
+          then: (resolve: (v: unknown) => unknown, rejeter?: (e: unknown) => unknown) => {
+            const conditions = lecture.filtres.map(([colonne], i) => `${colonne} = $${i + 1}`);
+            const sql = `select ${lecture.colonnes.join(", ")} from public.${table}${conditions.length ? ` where ${conditions.join(" and ")}` : ""}`;
+            return db.query(sql, lecture.filtres.map(([, valeur]) => valeur)).then(({ rows }) => ({ data: rows, error: null }), (e) => ({ data: null, error: e })).then(resolve, rejeter);
+          },
+        };
+        return q;
+      },
+      auth: {
+        getUser: async () => ({ data: { user: { id: compte, last_sign_in_at: new Date().toISOString() } } }),
+        // supabase-js : currentLevel = revendication `aal` du jeton, sinon null.
+        mfa: { getAuthenticatorAssuranceLevel: async () => ({ data: { currentLevel: aal === undefined || aal === "" ? null : aal }, error: null }) },
+      },
+    };
+  }
+
+  /** Vrai si le proxy laisse la requête atteindre la page de /admin. */
+  async function leProxyLaisseEntrer(compte: string, aal: string | undefined) {
+    await agir(compte, aal);
+    mocks.lectures.length = 0;
+    mocks.client.mockReturnValue(clientDuProxy(compte, aal));
+    const reponse = await proxy(new NextRequest("https://gerimmo.test/admin/brief"));
+    await db.query("reset role");
+    return reponse.headers.get("x-middleware-next") === "1" && !reponse.headers.get("location");
+  }
+
   it.each(["superviseur", "superviseur-suspendu", "administrateur-agence", "superviseur-et-agence", "locataire", "sans-adhesion"])(
-    "%s : même décision que is_super_admin() à tous les niveaux de session",
+    "%s : le proxy décide comme is_super_admin() à tous les niveaux de session",
     async (nom) => {
       for (const aal of NIVEAUX) {
+        const entre = await leProxyLaisseEntrer(comptes[nom], aal);
         await agir(comptes[nom], aal);
-        // Lecture n° 1 du proxy : les adhésions ACTIVES du compte, sous sa propre session (RLS comprise).
-        const { rows } = await db.query("select role from public.memberships where account_id = $1 and status = 'active'", [comptes[nom]]);
-        // Lecture n° 2 : le niveau du jeton (supabase-js : currentLevel = revendication `aal`, sinon null).
-        const niveau = aal === undefined || aal === "" ? null : aal;
-        const decisionProxy = estSuperviseurActif(rows.map((r) => r.role as string), niveau);
         const { rows: [sql] } = await db.query("select public.is_super_admin() as ok");
-        expect(decisionProxy, `${nom} @ ${aal ?? "sans aal"}`).toBe(sql.ok);
         await db.query("reset role");
+        expect(entre, `${nom} @ ${aal ?? "sans aal"}`).toBe(sql.ok);
       }
     }
   );
@@ -89,12 +142,18 @@ describe.skipIf(!DB_URL)("D44 — le proxy et is_super_admin() décident pareil"
     const entrants: string[] = [];
     for (const nom of Object.keys(comptes)) {
       for (const aal of NIVEAUX) {
-        await agir(comptes[nom], aal);
-        const { rows } = await db.query("select role from public.memberships where account_id = $1 and status = 'active'", [comptes[nom]]);
-        if (estSuperviseurActif(rows.map((r) => r.role as string), aal ?? null)) entrants.push(`${nom}@${aal}`);
-        await db.query("reset role");
+        if (await leProxyLaisseEntrer(comptes[nom], aal)) entrants.push(`${nom}@${aal}`);
       }
     }
     expect(entrants.sort()).toEqual(["superviseur-et-agence@aal2", "superviseur@aal2"]);
+  });
+
+  it("l'adaptateur est fidèle : la lecture exécutée est bien celle du proxy (adhésions actives du compte, colonne role)", async () => {
+    await leProxyLaisseEntrer(comptes["superviseur"], "aal2");
+    expect(mocks.lectures).toEqual([{ table: "memberships", colonnes: ["role"], filtres: [["account_id", comptes["superviseur"]], ["status", "active"]] }]);
+  });
+
+  it("un superviseur suspendu ne passe pas, même avec un jeton aal2 (garde de non-régression sur le filtre de statut)", async () => {
+    expect(await leProxyLaisseEntrer(comptes["superviseur-suspendu"], "aal2")).toBe(false);
   });
 });

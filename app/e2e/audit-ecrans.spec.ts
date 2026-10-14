@@ -39,7 +39,10 @@ for (const persona of PERSONAS) {
         // Le document d'une quittance s'affiche dans un cadre isolé SANS
         // scripts (27/09) : ce que l'outillage du navigateur tente d'y injecter
         // est refusé, et Chrome le dit. C'est la protection voulue, pas une panne.
-        if (m.type() === "error" && !m.text().startsWith("Blocked script execution in 'about:srcdoc'")) {
+        // Le banc sert les photos signées en http://127.0.0.1 (émulateur Supabase) ; la politique
+        // de sécurité n'admet les images qu'en https, comme l'adresse Supabase de production.
+        const imageDuBanc = m.text().startsWith("Refused to load the image 'http://127.0.0.1:");
+        if (m.type() === "error" && !m.text().startsWith("Blocked script execution in 'about:srcdoc'") && !imageDuBanc) {
           erreursConsole.push(m.text().slice(0, 300));
         }
       });

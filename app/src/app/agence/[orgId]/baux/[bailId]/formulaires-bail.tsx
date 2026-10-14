@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChampFichier } from "@/components/champ-fichier";
 import { InputDateJour } from "@/components/input-date-jour";
-import { clotureAnticipee } from "@/lib/cloture-bail";
+import { clotureAnticipee, confirmationAAfficher } from "@/lib/cloture-bail";
 import { formaterDate } from "@/lib/ged";
 
 // Une pièce PDF du bail : champ fichier + bouton, même gabarit pour le bail
@@ -356,10 +356,16 @@ export function BoutonTerminerBail({
   const action = terminerBail.bind(null, orgId, bailId);
   const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
   const [dateSortie, setDateSortie] = useState(etat.valeurs?.date_sortie ?? "");
-  // Le calcul de l'écran prévient avant l'envoi ; la base reste juge (GRC01).
-  const anticipee = dateSortie
-    ? clotureAnticipee(dateSortie, dateEffet)
-    : Boolean(etat.confirmationRequise);
+  // Le calcul de l'écran prévient avant l'envoi ; la base reste juge (GRC01) : si elle a
+  // réclamé la confirmation, la case s'affiche pour la date qu'elle a refusée, même quand
+  // l'écran croyait le préavis échu.
+  const anticipee = confirmationAAfficher({
+    dateSortie,
+    dateEffet,
+    confirmationRequise: etat.confirmationRequise,
+    dateRefusee: etat.valeurs?.date_sortie,
+  });
+  const ecartVuParLEcran = clotureAnticipee(dateSortie, dateEffet);
   const idDate = useId();
   return (
     <form data-saisie-confirmee action={formAction} className="space-y-3">
@@ -384,7 +390,7 @@ export function BoutonTerminerBail({
       {anticipee && (
         <div className="space-y-2 border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
           <p>
-            {dateEffet ? (
+            {dateEffet && ecartVuParLEcran ? (
               <>
                 Le préavis court jusqu&apos;au <b>{formaterDate(dateEffet)}</b> : cette
                 sortie est antérieure.

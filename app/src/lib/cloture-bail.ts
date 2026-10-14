@@ -23,3 +23,28 @@ export function clotureAnticipee(
 ): boolean {
   return Boolean(dateSortie && dateEffet && dateSortie < dateEffet);
 }
+
+/**
+ * Vrai quand l'écran doit montrer la case « Je confirme la clôture avant la fin du préavis ».
+ *
+ *  - le calcul de l'écran : la sortie précède la date d'effet qu'il connaît ;
+ *  - ou le refus de la base (GRC01) : si elle a réclamé la confirmation, c'est qu'elle a lu la
+ *    date d'effet autrement que l'écran, et sa demande prime — mais seulement pour la date
+ *    qu'elle a refusée. Une date changée depuis redevient l'affaire du calcul de l'écran ; si
+ *    la base n'a pas rendu la date, ou si le champ est encore vide, sa demande s'applique.
+ */
+export function confirmationAAfficher({
+  dateSortie,
+  dateEffet,
+  confirmationRequise,
+  dateRefusee,
+}: {
+  dateSortie: string | null | undefined;
+  dateEffet: string | null | undefined;
+  confirmationRequise: boolean | undefined;
+  dateRefusee: string | null | undefined;
+}): boolean {
+  if (clotureAnticipee(dateSortie, dateEffet)) return true;
+  if (!confirmationRequise) return false;
+  return !dateSortie || !dateRefusee || dateSortie === dateRefusee;
+}

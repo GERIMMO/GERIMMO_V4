@@ -13,6 +13,7 @@ import { aujourdhuiParis, motifLitteral, eur } from "@/lib/ged";
 import { verifierCodePostalPersonne, verifierDateNaissance } from "@/lib/validation-fiches";
 import { TYPES_BAIL, mentionsObligatoiresManquantes } from "@/lib/baux";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { CODE_CONFIRMATION_CLOTURE, lireDateSortie } from "@/lib/cloture-bail";
 import { envoyerEmail } from "@/lib/email";
 import { echapperHtml } from "@/lib/quittance-email";
 import { moisDepotGarantie } from "@/lib/depot-garantie";
@@ -27,6 +28,10 @@ export type EtatBail = {
   blocages?: BlocageActionable[];
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
+  // La base demande une confirmation (clôture avant la fin du préavis, D34) :
+  // le formulaire affiche alors la case à cocher, même si son propre calcul
+  // n'avait pas vu l'écart.
+  confirmationRequise?: boolean;
 };
 
 // Créer un bail (brouillon) sur un lot.
@@ -676,18 +681,40 @@ export async function annulerConge(
   return { succes: "Congé annulé — le bail reprend son cours." };
 }
 
-// Clôture du bail (module 3.11) : préavis échu, EDL de sortie signé — le
-// bail passe à « terminé », le lot redevient disponible, l'espace du
-// locataire sorti passe en lecture (le RPC exige l'EDL signé).
+// Clôture du bail (module 3.11) : EDL de sortie signé — le bail passe à
+// « terminé », le lot redevient disponible, l'espace du locataire sorti passe
+// en lecture (le RPC exige l'EDL signé). Décision D34 : la date de sortie
+// réelle est enregistrée ; avant la fin du préavis, la clôture se confirme
+// (la base refuse sinon, code GRC01). Aucun montant ni la date de fin du bail
+// ne changent.
 export async function terminerBail(
   orgId: string,
-  bailId: string
+  bailId: string,
+  _etat: EtatBail,
+  formData: FormData
 ): Promise<EtatBail> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
-  const { error } = await supabase.rpc("terminer_bail", { p_bail: bailId });
-  if (error) return { erreur: sansJargon(error.message) };
+  const valeurs = valeursDuFormulaire(formData);
+  const brute = String(formData.get("date_sortie") ?? "").trim();
+  const dateSortie = lireDateSortie(brute);
+  if (brute && !dateSortie) {
+    return { erreur: "La date de sortie réelle n'est pas une date valide.", valeurs };
+  }
+  const { error } = await supabase.rpc("terminer_bail", {
+    p_bail: bailId,
+    // Vide : la base prend le jour de Paris
+    p_date_sortie: dateSortie,
+    p_confirmer_anticipee: formData.get("confirmer_anticipee") === "on",
+  });
+  if (error) {
+    return {
+      erreur: sansJargon(error.message),
+      valeurs,
+      ...(error.code === CODE_CONFIRMATION_CLOTURE ? { confirmationRequise: true } : {}),
+    };
+  }
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   revalidatePath(`/agence/${orgId}/parc`);
   return {

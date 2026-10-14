@@ -446,7 +446,8 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
     );
     await db.query(`update public.baux set date_fin = current_date where id=$1`, [bail]);
     await simuler(db, admin);
-    await db.query(`select public.terminer_bail($1)`, [bail]);
+    // Clôture le jour du congé, avant la fin du préavis : à confirmer (décision D34 du 14/10).
+    await db.query(`select public.terminer_bail($1, null, true)`, [bail]);
 
     const { rows } = await db.query(
       `select b.etat, l.etat as lot from public.baux b join public.lots l on l.id=b.lot_id where b.id=$1`,

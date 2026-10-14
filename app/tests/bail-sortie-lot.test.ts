@@ -134,6 +134,18 @@ describe.skipIf(!DB_URL)("Lot bail-sortie — D01, D34, D35 en base", () => {
     await db.query("rollback to savepoint e");
   }
 
+  /** Rejoue une requête qui doit échouer et rend l'erreur (code SQLSTATE compris). */
+  async function erreurDe(sql: string, params: unknown[] = []) {
+    await db.query("savepoint erreur_de");
+    const resultat = await db.query(sql, params).then(
+      () => null,
+      (e) => e as Error & { code?: string }
+    );
+    await db.query("rollback to savepoint erreur_de");
+    expect(resultat, "la requête aurait dû être refusée").not.toBeNull();
+    return resultat as Error & { code?: string };
+  }
+
   /** Date relative au jour de la base (le test ne dépend pas de la date d'exécution). */
   async function jour(expression: string): Promise<string> {
     const {
@@ -252,6 +264,275 @@ describe.skipIf(!DB_URL)("Lot bail-sortie — D01, D34, D35 en base", () => {
       const { rows: encore } = await db.query(`select public.generer_appels_loyer($1) as n`, [b]);
       expect(encore[0].n).toBe(0);
       expect((await appels(b))[0].echeance).toBe(await jour(MOIS_PRECEDENT));
+    });
+  });
+
+  // ------------------------------------------------------------------------
+  // D34 (SOR-03, SOR-04) — option B : date de sortie réelle remplie à la clôture
+  // (confirmation si elle précède la date d'effet du préavis) ; refus d'activer
+  // un bail qui entre avant la sortie réelle du précédent (à défaut : date_fin).
+  // ------------------------------------------------------------------------
+  describe("D34 — date de sortie réelle et bail suivant", () => {
+    // Un lot prêt à louer : détention 100 %, diagnostics valides, disponible —
+    // pour qu'aucun autre blocage ne masque ce que ces tests mesurent.
+    async function lotLouable(): Promise<string> {
+      await enGerant();
+      const {
+        rows: [{ id: leBien }],
+      } = await db.query(
+        `select public.creer_bien_avec_lot($1,'9 rue de la Sortie','appartement'::public.bien_type,
+           '9 rue de la Sortie', null, '75011','Paris',1985,false,42,2) as id`,
+        [org]
+      );
+      await db.query("reset role");
+      await db.query(`select set_config('request.jwt.claims','',true)`);
+      const {
+        rows: [{ id: leLot }],
+      } = await db.query(`select id from public.lots where bien_id = $1`, [leBien]);
+      const {
+        rows: [{ id: proprietaire }],
+      } = await db.query(`insert into public.persons (organization_id, nom) values ($1,'Bailleur') returning id`, [org]);
+      await db.query(
+        `insert into public.detentions (lot_id, organization_id, person_id, quote_part) values ($1,$2,$3,100)`,
+        [leLot, org, proprietaire]
+      );
+      await db.query(
+        `insert into public.diagnostics (organization_id, lot_id, type, date_realisation, date_expiration)
+         values ($1,$2,'dpe',current_date,current_date+365)`,
+        [org, leLot]
+      );
+      await db.query(
+        `insert into public.diagnostics (organization_id, bien_id, type, date_realisation, date_expiration)
+         values ($1,$2,'erp',current_date,current_date+180)`,
+        [org, leBien]
+      );
+      await db.query(`update public.lots set etat='disponible' where id=$1`, [leLot]);
+      await couvrirParMandat(db, leLot);
+      return leLot;
+    }
+
+    async function brouillon(leLot: string, debut: string, chambre: string | null = null): Promise<string> {
+      await db.query("reset role");
+      const {
+        rows: [{ id: document }],
+      } = await db.query(
+        `insert into public.documents (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte, deposited_by)
+         values ($1,'bail','Bail signé', $1::uuid::text||'/'||gen_random_uuid()||'.pdf','application/pdf',1000,'e-'||gen_random_uuid(),$2)
+         returning id`,
+        [org, gerant]
+      );
+      const {
+        rows: [{ id }],
+      } = await db.query(
+        `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe,
+                                  loyer_hc, charges, jour_echeance, date_debut, type, chambre_id)
+         values ($1,$2,$3,$4,450,50,5,$5,$6::public.bail_type,$7) returning id`,
+        [org, leLot, locataire, document, debut, chambre ? "colocation" : "nu", chambre]
+      );
+      return id;
+    }
+
+    /** Un bail actif depuis longtemps, congé enregistré (préavis), état des lieux de sortie signé. */
+    async function bailEnPreavis(presentation: string): Promise<{ lot: string; bail: string }> {
+      const leLot = await lotLouable();
+      await db.query("reset role");
+      const {
+        rows: [{ id }],
+      } = await db.query(
+        `insert into public.baux (organization_id, lot_id, locataire_principal, etat, loyer_hc, charges, jour_echeance, date_debut)
+         values ($1,$2,$3,'actif',650,50,1,current_date - 400) returning id`,
+        [org, leLot, locataire]
+      );
+      await db.query(`update public.lots set etat='loue' where id=$1`, [leLot]);
+      await enGerant();
+      await db.query(
+        `select public.enregistrer_conge($1,'locataire'::public.conge_par, ${presentation}, 3::smallint)`,
+        [id]
+      );
+      await db.query("reset role");
+      await db.query(
+        `insert into public.etats_des_lieux (organization_id, bail_id, type, etat, date_edl)
+         values ($1,$2,'sortie','signe', current_date)`,
+        [org, id]
+      );
+      await enGerant();
+      return { lot: leLot, bail: id };
+    }
+
+    async function etatDuBail(b: string) {
+      await db.query("reset role");
+      const {
+        rows: [r],
+      } = await db.query(
+        `select etat::text, to_char(date_fin,'YYYY-MM-DD') as date_fin,
+                to_char(date_sortie_reelle,'YYYY-MM-DD') as sortie
+           from public.baux where id = $1`,
+        [b]
+      );
+      return r as { etat: string; date_fin: string; sortie: string | null };
+    }
+
+    const AUJOURDHUI_PARIS = "(now() at time zone 'Europe/Paris')::date";
+
+    it("clôture avant la fin du préavis, sans confirmation : refusée, rien n'est écrit", async () => {
+      const { bail: b } = await bailEnPreavis("current_date");
+      const avant = await etatDuBail(b);
+      expect(avant.etat).toBe("preavis");
+      const erreur = await erreurDe(`select public.terminer_bail($1)`, [b]);
+      expect(erreur.code).toBe("GRC01");
+      expect(erreur.message).toMatch(/avant la fin du préavis/);
+      // La date d'effet est dite, en clair, au format français
+      expect(erreur.message).toContain(avant.date_fin.split("-").reverse().join("/"));
+      expect(await etatDuBail(b)).toEqual({ ...avant, sortie: null });
+    });
+
+    it("clôture anticipée confirmée : la sortie réelle est enregistrée, la date de fin du bail ne bouge pas", async () => {
+      const { lot: l, bail: b } = await bailEnPreavis("current_date");
+      const avant = await etatDuBail(b);
+      const sortie = await jour(`${AUJOURDHUI_PARIS} - 3`);
+      await db.query(`select public.terminer_bail($1, $2::date, true)`, [b, sortie]);
+      const apres = await etatDuBail(b);
+      expect(apres).toEqual({ etat: "termine", date_fin: avant.date_fin, sortie });
+      const { rows } = await db.query(`select etat::text from public.lots where id = $1`, [l]);
+      expect(rows[0].etat).toBe("disponible");
+    });
+
+    it("sans date, la sortie réelle est le jour de Paris", async () => {
+      const { bail: b } = await bailEnPreavis("current_date");
+      await db.query(`select public.terminer_bail($1, null, true)`, [b]);
+      expect((await etatDuBail(b)).sortie).toBe(await jour(AUJOURDHUI_PARIS));
+    });
+
+    it("préavis échu : aucune confirmation à donner, la date par défaut est aujourd'hui", async () => {
+      const { bail: b } = await bailEnPreavis("(current_date - interval '4 months')::date");
+      const avant = await etatDuBail(b);
+      expect(avant.date_fin < (await jour(AUJOURDHUI_PARIS))).toBe(true);
+      await db.query(`select public.terminer_bail($1)`, [b]);
+      expect(await etatDuBail(b)).toEqual({ etat: "termine", date_fin: avant.date_fin, sortie: await jour(AUJOURDHUI_PARIS) });
+    });
+
+    it("une sortie réelle datée d'après la date d'effet du préavis se déclare sans confirmation", async () => {
+      const { bail: b } = await bailEnPreavis("(current_date - interval '4 months')::date");
+      const avant = await etatDuBail(b);
+      await db.query(`select public.terminer_bail($1, $2::date, false)`, [b, avant.date_fin]);
+      expect((await etatDuBail(b)).sortie).toBe(avant.date_fin);
+    });
+
+    it("la sortie réelle ne peut être ni dans le futur ni avant l'entrée dans les lieux", async () => {
+      const { bail: b } = await bailEnPreavis("(current_date - interval '4 months')::date");
+      await echec(/postérieure à aujourd'hui/, `select public.terminer_bail($1, ${AUJOURDHUI_PARIS} + 1, true)`, [b]);
+      await echec(/précéder l'entrée/, `select public.terminer_bail($1, current_date - 1000, true)`, [b]);
+      expect((await etatDuBail(b)).etat).toBe("preavis");
+    });
+
+    it("un bail clôturé avant même son entrée peut l'être : le locataire n'a jamais occupé le logement", async () => {
+      const { bail: b } = await bailEnPreavis("(current_date - interval '4 months')::date");
+      await db.query("reset role");
+      // Bail signé pour une entrée dans un mois, congé enregistré avant l'entrée
+      await db.query(`update public.baux set date_debut = current_date + 30 where id = $1`, [b]);
+      await enGerant();
+      await db.query(`select public.terminer_bail($1, null, true)`, [b]);
+      expect((await etatDuBail(b)).sortie).toBe(await jour(AUJOURDHUI_PARIS));
+    });
+
+    it("seul un bail en préavis avec état des lieux de sortie signé se clôture, comme avant", async () => {
+      const { bail: b } = await bailEnPreavis("(current_date - interval '4 months')::date");
+      await db.query("reset role");
+      await db.query(`delete from public.etats_des_lieux where bail_id = $1`, [b]);
+      await enGerant();
+      await echec(/sans état des lieux de sortie signé/, `select public.terminer_bail($1, null, true)`, [b]);
+    });
+
+    it("bail suivant : une entrée AVANT la sortie réelle du précédent est refusée (SOR-03)", async () => {
+      const { lot: l, bail: a } = await bailEnPreavis("current_date");
+      const sortie = await jour(`${AUJOURDHUI_PARIS} - 2`);
+      await db.query(`select public.terminer_bail($1, $2::date, true)`, [a, sortie]);
+      const trop_tot = await brouillon(l, await jour(`${AUJOURDHUI_PARIS} - 40`));
+      await enGerant();
+      const erreur = await erreurDe(`select public.activer_bail($1)`, [trop_tot]);
+      expect(erreur.message).toMatch(/bail précédent/);
+      expect(erreur.message).toContain(sortie.split("-").reverse().join("/"));
+      expect(erreur.message).toMatch(/sortie réelle/);
+    });
+
+    it("bail suivant : une entrée le jour de la sortie réelle, ou après, s'active", async () => {
+      const { lot: l, bail: a } = await bailEnPreavis("current_date");
+      const sortie = await jour(`${AUJOURDHUI_PARIS} - 2`);
+      await db.query(`select public.terminer_bail($1, $2::date, true)`, [a, sortie]);
+      const le_jour = await brouillon(l, sortie);
+      await enGerant();
+      await db.query(`select public.controler_mise_en_location($1)`, [le_jour]);
+      await db.query(`select public.activer_bail($1)`, [le_jour]);
+      expect((await etatDuBail(le_jour)).etat).toBe("actif");
+    });
+
+    it("bail suivant : sans sortie réelle enregistrée (bail clôturé avant cette règle), la date de fin fait foi", async () => {
+      const l = await lotLouable();
+      await db.query("reset role");
+      await db.query(
+        `insert into public.baux (organization_id, lot_id, locataire_principal, etat, loyer_hc, charges, jour_echeance, date_debut, date_fin)
+         values ($1,$2,$3,'termine',650,50,1,current_date - 400, current_date + 30)`,
+        [org, l, locataire]
+      );
+      const avant_fin = await brouillon(l, await jour("current_date + 10"));
+      await enGerant();
+      const erreur = await erreurDe(`select public.activer_bail($1)`, [avant_fin]);
+      expect(erreur.message).toMatch(/bail précédent/);
+      expect(erreur.message).toMatch(/date de fin prévue/);
+      await db.query("reset role");
+      await db.query(`update public.baux set date_debut = current_date + 30 where id = $1`, [avant_fin]);
+      await enGerant();
+      await db.query(`select public.activer_bail($1)`, [avant_fin]);
+      expect((await etatDuBail(avant_fin)).etat).toBe("actif");
+    });
+
+    it("bail suivant : un bail précédent sans aucune date de fin ni sortie ne bloque rien", async () => {
+      const l = await lotLouable();
+      await db.query("reset role");
+      await db.query(
+        `insert into public.baux (organization_id, lot_id, locataire_principal, etat, loyer_hc, charges, jour_echeance, date_debut)
+         values ($1,$2,$3,'termine',650,50,1,current_date - 400)`,
+        [org, l, locataire]
+      );
+      const b = await brouillon(l, await jour("current_date - 30"));
+      await enGerant();
+      await db.query(`select public.activer_bail($1)`, [b]);
+      expect((await etatDuBail(b)).etat).toBe("actif");
+    });
+
+    it("bail suivant : la sortie réelle prime sur la date de fin théorique du préavis (départ amiable, DEC2-01)", async () => {
+      const { lot: l, bail: a } = await bailEnPreavis("current_date");
+      const avant = await etatDuBail(a);
+      expect(avant.date_fin > (await jour(AUJOURDHUI_PARIS))).toBe(true);
+      await db.query(`select public.terminer_bail($1, null, true)`, [a]);
+      // Le bail suivant entre aujourd'hui, bien avant la date de fin théorique du précédent
+      const suivant = await brouillon(l, await jour(AUJOURDHUI_PARIS));
+      await enGerant();
+      await db.query(`select public.activer_bail($1)`, [suivant]);
+      expect((await etatDuBail(suivant)).etat).toBe("actif");
+    });
+
+    it("colocation : seule la chambre du bail précédent est concernée", async () => {
+      const l = await lotLouable();
+      await db.query("reset role");
+      await db.query("update public.lots set colocation_loyer_reference = 1000 where id = $1", [l]);
+      const { rows: chambres } = await db.query(
+        `insert into public.lot_chambres (organization_id, lot_id, nom, surface_m2, volume_m3, description, espaces_partages)
+         values ($1,$2,'Jardin',12,30,'Chambre au calme','Cuisine, séjour'),
+                ($1,$2,'Cour',10,25,'Chambre sur cour','Cuisine, séjour') returning id`,
+        [org, l]
+      );
+      await db.query(
+        `insert into public.baux (organization_id, lot_id, locataire_principal, etat, type, chambre_id, loyer_hc, charges, jour_echeance, date_debut, date_sortie_reelle, date_fin)
+         values ($1,$2,$3,'termine','colocation',$4,450,50,1,current_date - 400, current_date + 20, current_date + 20)`,
+        [org, l, locataire, chambres[0].id]
+      );
+      const memeChambre = await brouillon(l, await jour("current_date + 5"), chambres[0].id);
+      const autreChambre = await brouillon(l, await jour("current_date + 5"), chambres[1].id);
+      await enGerant();
+      const erreur = await erreurDe(`select public.controler_mise_en_location($1)`, [memeChambre]);
+      expect(erreur.message).toMatch(/bail précédent/);
+      await db.query(`select public.controler_mise_en_location($1)`, [autreChambre]);
     });
   });
 });

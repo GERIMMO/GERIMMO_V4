@@ -18,6 +18,7 @@ export function InputDateJour({
   required,
   valeurSoumise,
   pasDansLeFutur,
+  surChangement,
 }: {
   name: string;
   id?: string;
@@ -32,6 +33,10 @@ export function InputDateJour({
   // Un événement qui a déjà eu lieu (encaissement) ne se date pas de demain :
   // le sélecteur de date s'arrête à aujourd'hui, l'action serveur le refuse aussi.
   pasDansLeFutur?: boolean;
+  // Le formulaire qui a besoin de la date en cours de saisie (pour afficher un
+  // avertissement, par exemple) : appelé avec la valeur du champ, y compris
+  // celle posée par défaut après l'hydratation.
+  surChangement?: (valeur: string) => void;
 }) {
   const [valeur, setValeur] = useState(valeurSoumise ?? "");
   const [plafond, setPlafond] = useState<string | undefined>(undefined);
@@ -55,6 +60,11 @@ export function InputDateJour({
     }, 0);
     return () => clearTimeout(minuterie);
   }, [pasDansLeFutur]);
+
+  // Le parent suit la date, saisie ou posée par défaut.
+  useEffect(() => {
+    surChangement?.(valeur);
+  }, [valeur, surChangement]);
 
   return (
     <Input

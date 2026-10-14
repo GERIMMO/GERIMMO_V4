@@ -32,6 +32,8 @@ vi.mock("@/app/artisan/acces", () => ({
       code_postal: "75011", ville: "Paris", envoyee_le: "2026-10-13T08:00:00.000Z", statut: "envoyee", valide_jusqu_au: null, montant_ttc_cents: null,
     }],
   }),
+  // D16 (14/10) : la page charge aussi les photos jointes par le locataire ; ici, il n'y en a pas.
+  chargerPhotosDemande: async () => ({ photos: [], erreur: false }),
   verifierArtisanAction: vi.fn(),
 }));
 vi.mock("@/lib/parcours-devis-serveur", () => ({ chargerPreparationDevis: m.charger }));

@@ -102,11 +102,11 @@ export default async function PageDemandesLocataire(
           href={`#demande-${premiereAChoisir}`}
           className="loc-carte group block border-l-4 border-l-[var(--warning)] transition-colors hover:border-[var(--marque)] hover:border-l-[var(--warning)]"
         >
-          <h3 className="text-base font-medium">
+          <h2 className="titre-carte text-base font-medium">
             {aChoisir > 1
               ? `${aChoisir} rendez-vous attendent votre choix`
               : "Un rendez-vous attend votre choix"}
-          </h3>
+          </h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
             L&apos;artisan a proposé ses créneaux&nbsp;: choisissez celui qui vous
             arrange. Tant que personne n&apos;a choisi, la réparation attend.

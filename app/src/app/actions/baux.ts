@@ -6,6 +6,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { detecterMimeReel, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
+import { deLEspaceDeGestion } from "@/lib/libelles";
 import { abandonnerPieceGed, deposerFichierGed, preparerFichierGed } from "@/lib/ged-depot";
 import { cibleBlocage } from "@/lib/parc";
 import { aujourdhuiParis, motifLitteral, eur } from "@/lib/ged";
@@ -35,7 +36,7 @@ export async function creerBail(
   _etat: EtatBail,
   formData: FormData
 ): Promise<EtatBail> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
@@ -43,7 +44,7 @@ export async function creerBail(
   if ("erreur" in logement) return { erreur: logement.erreur, valeurs };
   const champs = lireChampsBail(formData, logement.meuble);
   if ("erreur" in champs) return { erreur: champs.erreur, valeurs };
-  const locataire = await resoudreLocatairePrincipal(supabase, orgId, formData);
+  const locataire = await resoudreLocatairePrincipal(supabase, orgId, formData, role);
   if ("erreur" in locataire) return { erreur: locataire.erreur, valeurs };
   champs.valeurs.locataire_principal = locataire.id;
 
@@ -158,7 +159,8 @@ function lireChampsBail(
 async function resoudreLocatairePrincipal(
   supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
   orgId: string,
-  formData: FormData
+  formData: FormData,
+  role?: string | null
 ): Promise<{ id: string } | { erreur: string }> {
   const choix = String(formData.get("locataire_principal") ?? "");
   if (choix !== "nouvelle") return { id: choix };
@@ -186,7 +188,7 @@ async function resoudreLocatairePrincipal(
   if ((existante ?? []).length > 0) {
     return {
       erreur:
-        "Cette adresse email appartient déjà à une fiche de l'agence — choisissez la personne dans la liste.",
+        `Cette adresse email appartient déjà à une fiche ${deLEspaceDeGestion(role)} — choisissez la personne dans la liste.`,
     };
   }
   const { data: personne, error } = await supabase
@@ -209,7 +211,7 @@ export async function modifierBail(
   _etat: EtatBail,
   formData: FormData
 ): Promise<EtatBail> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
@@ -231,7 +233,7 @@ export async function modifierBail(
   const champs = lireChampsBail(formData, logement.meuble);
   if ("erreur" in champs) return { erreur: champs.erreur, valeurs };
 
-  const locataire = await resoudreLocatairePrincipal(supabase, orgId, formData);
+  const locataire = await resoudreLocatairePrincipal(supabase, orgId, formData, role);
   if ("erreur" in locataire) return { erreur: locataire.erreur, valeurs };
   champs.valeurs.locataire_principal = locataire.id;
 

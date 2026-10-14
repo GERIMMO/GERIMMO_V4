@@ -363,7 +363,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
       {aFaire.length > 0 && (
         <div className="loc-carte border-l-4 border-l-[var(--or)]">
           <div className="entete-carte !mb-1">
-            <h3 className="text-base font-medium">Ce qui vous attend</h3>
+            <h2 className="titre-carte text-base font-medium">Ce qui vous attend</h2>
             {/* « 3 points » se lisait comme un score (24/09) */}
             <span className="loc-tag ambre">{aFaire.length} à faire</span>
           </div>

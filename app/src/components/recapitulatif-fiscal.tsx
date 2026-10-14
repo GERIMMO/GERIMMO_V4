@@ -3,7 +3,7 @@ import { csvRecapitulatifFiscal } from "@/lib/fiscal-export";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, aujourdhuiParis } from "@/lib/ged";
-import { recapitulatifFiscal, type EcritureFiscale, type QualificationFiscale, type ComposantesFiscales, type ExerciceFiscalLot } from "@/lib/fiscal";
+import { recapitulatifFiscal, LIBELLE_CUMUL_A_QUALIFIER, LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, type EcritureFiscale, type QualificationFiscale, type ComposantesFiscales, type ExerciceFiscalLot } from "@/lib/fiscal";
 import { QualificationPiece, ExerciceLot } from "@/components/formulaires-fiscaux";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -203,9 +203,9 @@ export async function RecapitulatifFiscal(props: {
         {erreurListeBiens && <p role="alert" className="text-sm text-destructive">La liste des biens n’a pas pu être chargée. Rechargez la page pour affiner le périmètre.</p>}
       </section>
       <h2 className="text-lg">2. Vérifier les montants</h2>
-      {recap.incomplet&&<div role="status" className="loc-carte space-y-2"><p className="font-medium">À compléter — les totaux portent uniquement sur les montants confirmés.</p><ul className="list-disc pl-5 text-sm">{recap.alertes.map(a=><li key={a}>{a}</li>)}</ul><p className="text-sm">Montant net des pièces ou parts à qualifier : {eur(recap.aQualifier)}. Ces montants ne sont pas inclus dans les totaux confirmés.</p></div>}
+      {recap.incomplet&&<div role="status" className="loc-carte space-y-2"><p className="font-medium">À compléter — les totaux portent uniquement sur les montants confirmés.</p><ul className="list-disc pl-5 text-sm">{recap.alertes.map(a=><li key={a}>{a}</li>)}</ul><p className="text-sm">Cumul des pièces ou parts à qualifier ({LIBELLE_CUMUL_A_QUALIFIER}) : {eur(recap.aQualifier)}. Ces montants ne sont pas inclus dans les totaux confirmés.</p></div>}
       <section className="space-y-3"><h3 className="font-medium">Périodes fiscales et régularisation 230</h3>{lots.map(l=><ExerciceLot key={`${l.id}-${exercices.get(l.id)?.version??0}`} orgId={orgId} lot={l} annee={annee} exercice={exercices.get(l.id)}/>)}</section>
-      <section className="space-y-3"><h3 className="font-medium">Qualifier les pièces</h3><p className="text-sm text-muted-foreground">Le choix est enregistré avec son auteur, sa date et sa justification. Les versions précédentes restent conservées. Les annulations reprennent la qualification de la pièce d’origine.</p>{pieces.filter(e=>e.id&&!e.contre_ecriture_de&&e.categorie!=='depot_garantie'&&(!composantes.has(e.id)||Number(composantes.get(e.id)?.non_ventile)>0)).map(e=><QualificationPiece key={`${e.id}-${qualifications.get(e.id!)?.version??0}`} orgId={orgId} ecriture={e} qualification={qualifications.get(e.id!)} lots={lots}/>)}</section>
+      <section className="space-y-3"><h3 className="font-medium">Qualifier les pièces</h3><p className="text-sm text-muted-foreground">Le choix est enregistré avec son auteur, sa date et sa justification. Les versions précédentes restent conservées. Les annulations reprennent la qualification de la pièce d’origine.</p>{pieces.filter(e=>e.id&&!e.contre_ecriture_de&&e.categorie!=='depot_garantie'&&(!composantes.has(e.id)||Number(composantes.get(e.id)?.non_ventile)>0)).map(e=><QualificationPiece key={`${e.id}-${qualifications.get(e.id!)?.version??0}`} orgId={orgId} ecriture={e} qualification={qualifications.get(e.id!)} lots={lots} capture={composantes.get(e.id!)}/>)}</section>
 
 
       {anneeVide && (
@@ -312,16 +312,16 @@ export async function RecapitulatifFiscal(props: {
       {(recap.chargesRecuperees !== 0 || recap.teomExclue !== 0 || recap.coproRecuperableExclue !== 0) && (
         <Card>
           <CardHeader>
-            <CardTitle>Charges récupérables — hors déclaration</CardTitle>
+            <CardTitle>Montants hors déclaration</CardTitle>
             <CardDescription>
               Les charges remboursées par vos locataires ne sont ni un revenu ni
-              une charge déductible : elles ne figurent pas ci-dessus. Cette
-              année : <span className="montant">{eur(recap.chargesRecuperees)}</span> de
-              provisions et régularisations de charges encaissées
+              une charge déductible, et les pièces que vous avez qualifiées
+              « Hors revenus fonciers » sont écartées de la même façon : elles
+              ne figurent pas ci-dessus. Cette
+              année : <span className="montant">{eur(recap.chargesRecuperees)}</span> de {LIBELLE_RECETTES_EXCLUES}
               {recap.teomExclue !== 0 && (
                 <>
-                  , <span className="montant">{eur(recap.teomExclue)}</span> de taxe
-                  d&apos;enlèvement des ordures ménagères
+                  , <span className="montant">{eur(recap.teomExclue)}</span> de {LIBELLE_DEPENSES_EXCLUES}
                 </>
               )}
               {recap.coproRecuperableExclue !== 0 && (

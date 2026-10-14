@@ -32,3 +32,9 @@ export function libelleRole(role: string): string {
 export function libelleStatutAdhesion(statut: string): string {
   return LIBELLES_STATUT_ADHESION[statut] ?? statut;
 }
+
+// « l'agence » n'a de sens que pour un gérant d'agence : le propriétaire direct n'en a pas, et lire
+// « fiche de l'agence » dans son espace le laisse chercher une agence (PROP-09).
+export function deLEspaceDeGestion(role: string | null | undefined): string {
+  return role === "proprietaire_direct" ? "de votre espace" : "de l'agence";
+}

@@ -2,16 +2,20 @@
 import { useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {qualifierPieceFiscale,enregistrerExerciceFiscal,retrouverVentilation} from '@/app/actions/fiscalite';
-import {RUBRIQUES_FISCALES,rubriqueDe,type EcritureFiscale,type QualificationFiscale,type ExerciceFiscalLot,type PeriodeFiscale} from '@/lib/fiscal';
+import {RUBRIQUES_FISCALES,rubriqueDe,type EcritureFiscale,type QualificationFiscale,type ComposantesFiscales,type ExerciceFiscalLot,type PeriodeFiscale} from '@/lib/fiscal';
+import {eur} from '@/lib/ged';
 const champ='min-h-11 w-full rounded-lg border border-input bg-background px-3 text-sm';
 const Etat=({etat}:{etat:{erreur?:string;succes?:string}})=><>{etat.erreur&&<p role="alert" className="err">{etat.erreur}</p>}{etat.succes&&<p role="status" className="text-sm">{etat.succes}</p>}</>;
-export function QualificationPiece({orgId,ecriture,qualification,lots}:{orgId:string;ecriture:EcritureFiscale;qualification?:QualificationFiscale;lots:{id:string;nom:string}[]}){
+// `capture` : la ventilation déjà figée de la pièce. Avec elle, la reprise n'a plus rien à retrouver (FIN-06) : le bouton ne se propose pas, et ce qui reste
+// non ventilé (une avance) se qualifie à la main, avec sa justification.
+export function QualificationPiece({orgId,ecriture,qualification,lots,capture}:{orgId:string;ecriture:EcritureFiscale;qualification?:QualificationFiscale;lots:{id:string;nom:string}[];capture?:ComposantesFiscales}){
  const [etat,action,attente]=useActionState(qualifierPieceFiscale.bind(null,orgId,ecriture.id!),{});
  const [reprise,reprendre,enReprise]=useActionState(retrouverVentilation.bind(null,orgId,ecriture.id!),{});
  const [nature,setNature]=useState(qualification?.nature??'a_qualifier');
  const proposition=rubriqueDe(ecriture.categorie,ecriture.sens);
  return <details className="rounded-lg border p-3"><summary className="min-h-11 cursor-pointer text-sm">{ecriture.date_piece} · {ecriture.categorie} · {Number(ecriture.montant).toFixed(2)} € — {qualification?`qualification v${qualification.version}`:'à qualifier'}</summary>
-  {ecriture.encaissement_id&&<form data-saisie-confirmee action={reprendre} className="my-3 space-y-2"><p className="text-sm">Une ancienne échéance conservée peut démontrer les parts loyer et charges. Les situations ambiguës restent à justifier.</p><button className="btn" disabled={enReprise}>Retrouver la ventilation historique</button><Etat etat={reprise}/></form>}
+  {capture&&Number(capture.non_ventile)>0&&<p className="my-3 text-sm">La ventilation historique de ce paiement est déjà conservée ; il reste {eur(capture.non_ventile)} non ventilés (avance ou part sans échéance vérifiée). Qualifiez cette pièce ci-dessous, avec sa justification.</p>}
+  {ecriture.encaissement_id&&!capture&&<form data-saisie-confirmee action={reprendre} className="my-3 space-y-2"><p className="text-sm">Une ancienne échéance conservée peut démontrer les parts loyer et charges. Les situations ambiguës restent à justifier.</p><button className="btn" disabled={enReprise}>Retrouver la ventilation historique</button><Etat etat={reprise}/></form>}
   <form data-saisie-confirmee action={action} className="grid gap-3 sm:grid-cols-2">
    <label className="text-sm">Lot<select name="lot_id" className={champ} defaultValue={ecriture.lot_id??qualification?.lot_id??''} required><option value="">Choisir le lot</option>{lots.filter(l=>!ecriture.lot_id||l.id===ecriture.lot_id).map(l=><option key={l.id} value={l.id}>{l.nom}</option>)}</select></label>
    <label className="text-sm">Traitement fiscal<select name="nature" className={champ} value={nature} onChange={e=>setNature(e.target.value as typeof nature)}><option value="a_qualifier">À qualifier</option>{ecriture.sens==='recette'?<option value="recette">Recette imposable</option>:<option value="deductible">Dépense déductible vérifiée</option>}<option value="non_deductible">Non déductible</option><option value="hors_2044">Hors revenus fonciers</option></select></label>

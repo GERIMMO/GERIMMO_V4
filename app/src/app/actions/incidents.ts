@@ -199,14 +199,29 @@ export async function declarerMonIncident(
   // leur taille avant de créer le signalement, pour laisser corriger la
   // saisie sans enregistrer un incident vide. joindrePhotos conserve aussi
   // ces contrôles pour les autres parcours et les erreurs de dépôt.
+  // Le même contenu envoyé deux fois (une photo choisie deux fois, un doublon
+  // de l'appareil) n'est joint qu'une fois : on l'écarte ici et on le dit
+  // dans la confirmation, au lieu de laisser la base l'ignorer en silence
+  // (AUD-B-05).
+  const empreintes = new Set<string>();
+  const fichiersDistincts: File[] = [];
+  let doublonsEcartes = 0;
   for (const fichier of photos.fichiers ?? []) {
     if (fichier.size > TAILLE_MAX_OCTETS) {
       return { erreur: `« ${fichier.name} » dépasse 10 Mo.`, valeurs };
     }
-    const mime = detecterMimeReel(new Uint8Array(await fichier.arrayBuffer()));
+    const octets = new Uint8Array(await fichier.arrayBuffer());
+    const mime = detecterMimeReel(octets);
     if (mime !== "image/jpeg" && mime !== "image/png") {
       return { erreur: `« ${fichier.name} » n'est pas une image JPEG ou PNG.`, valeurs };
     }
+    const empreinte = createHash("sha256").update(octets).digest("hex");
+    if (empreintes.has(empreinte)) {
+      doublonsEcartes += 1;
+      continue;
+    }
+    empreintes.add(empreinte);
+    fichiersDistincts.push(fichier);
   }
 
   const commande = String(formData.get("commande") ?? "");
@@ -226,7 +241,7 @@ export async function declarerMonIncident(
 
   if (!declaration?.incident_id) return { erreur: "Résultat de l’envoi indisponible. Réessayez cette même tentative.", valeurs };
   const incidentId = String(declaration.incident_id);
-  const avertissement = await joindrePhotosAvecReprise(supabase, orgId, incidentId, photos.fichiers ?? []);
+  const avertissement = await joindrePhotosAvecReprise(supabase, orgId, incidentId, fichiersDistincts);
 
   // 25/09 : « votre gérant est prévenu immédiatement » n'était vrai qu'à sa
   // prochaine connexion. Pour une urgence, l'agence reçoit l'e-mail maintenant.
@@ -253,11 +268,19 @@ export async function declarerMonIncident(
   // Ce que l'écran promet est ce qui s'est passé (audit du 27/09) : l'e-mail
   // ne part que pour une urgence, et seulement s'il est parti on le dit.
   // Sinon, le signalement attend dans l'espace du gestionnaire.
+  const noteDoublons =
+    doublonsEcartes === 0
+      ? ""
+      : doublonsEcartes === 1
+        ? " Une photo identique à une autre n’a été jointe qu’une fois."
+        : ` ${doublonsEcartes} photos identiques à une autre n’ont été jointes qu’une fois.`;
   return {
     incidentId,
-    succes: emailUrgenceParti
-      ? "Signalement envoyé — urgence : votre gestionnaire est prévenu par e-mail. Suivez-le depuis votre espace."
-      : "Signalement envoyé — votre gestionnaire le verra dans son espace à sa prochaine connexion. Suivez-le depuis votre espace.",
+    succes:
+      (emailUrgenceParti
+        ? "Signalement envoyé — urgence : votre gestionnaire est prévenu par e-mail. Suivez-le depuis votre espace."
+        : "Signalement envoyé — votre gestionnaire le verra dans son espace à sa prochaine connexion. Suivez-le depuis votre espace.") +
+      noteDoublons,
     avertissement,
   };
 }
@@ -829,7 +852,7 @@ export async function evaluerArtisan(
   _etat: EtatIncidentAction,
   formData: FormData
 ): Promise<EtatIncidentAction> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
@@ -854,9 +877,9 @@ export async function evaluerArtisan(
 
   revaliderIncident(orgId);
   revalidatePath(`/agence/${orgId}/artisans`);
+  // Le propriétaire direct n'a pas d'agence : on lui parle de son espace (PRO2-22).
   return {
-    succes:
-      "Artisan noté. Votre commentaire reste dans votre agence ; seule la moyenne remonte à son profil.",
+    succes: `Artisan noté. Votre commentaire reste dans votre ${role === "proprietaire_direct" ? "espace" : "agence"} ; seule la moyenne remonte à son profil.`,
   };
 }
 

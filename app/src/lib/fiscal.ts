@@ -26,6 +26,14 @@ export const RUBRIQUES_FISCALES=[
  {code:'250',libelle:'Intérêts d’emprunt',sens:'depense'},
 ] as const;
 export const HORS_2044='hors';
+/** Ce que recouvrent vraiment les deux totaux « hors déclaration » (FIN-08). `chargesRecuperees` cumule les parts de charges des loyers
+ * encaissés ET toute recette qualifiée « hors revenus fonciers » ; `teomExclue` cumule toute dépense qualifiée ainsi, pas seulement
+ * la TEOM. Les écrans et les documents s'appuient sur ces deux phrases pour ne pas prêter une nature que le choix de l'utilisateur
+ * ne dit pas. */
+export const LIBELLE_RECETTES_EXCLUES='recettes exclues (provisions et régularisations de charges encaissées, ou recettes que vous avez qualifiées « hors revenus fonciers »)';
+export const LIBELLE_DEPENSES_EXCLUES='dépenses que vous avez qualifiées « hors revenus fonciers » (par exemple la taxe d’enlèvement des ordures ménagères)';
+/** Le cumul des pièces à qualifier additionne recettes et dépenses en valeurs positives : ce n'est pas un net (FIN-05). */
+export const LIBELLE_CUMUL_A_QUALIFIER='recettes et dépenses additionnées, sans compensation';
 const normaliser=(s:string)=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 /** Proposition seulement, jamais une validation de déductibilité. */
 export function rubriqueDe(categorie:string,sens:string):string{

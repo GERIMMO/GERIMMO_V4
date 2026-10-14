@@ -427,9 +427,12 @@ const CRITERES: { cle: string; libelle: string }[] = [
 export function FormulaireEvaluation({
   orgId,
   interventionId,
+  estProprietaire = false,
 }: {
   orgId: string;
   interventionId: string;
+  // Propriétaire direct : il n'a pas d'« agence » (PRO2-22, même famille que PROP-09).
+  estProprietaire?: boolean;
 }) {
   const actionLiee = evaluerArtisan.bind(null, orgId, interventionId);
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
@@ -459,7 +462,7 @@ export function FormulaireEvaluation({
         </fieldset>
       ))}
       <div className="space-y-1.5">
-        <Label htmlFor={idCommentaire}>Commentaire — privé à votre agence</Label>
+        <Label htmlFor={idCommentaire}>{estProprietaire ? "Commentaire — privé à votre espace" : "Commentaire — privé à votre agence"}</Label>
         <textarea
           id={idCommentaire}
           name="commentaire"

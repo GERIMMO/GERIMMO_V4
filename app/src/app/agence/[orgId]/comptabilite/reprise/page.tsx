@@ -88,7 +88,7 @@ export default async function PageRepriseComptable(
 
       <section className="loc-carte">
         <div className="entete-carte">
-          <h3>1. Le gabarit</h3>
+          <h2 className="titre-carte leading-[inherit]">1. Le gabarit</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Quatre questions par ligne : de quoi s&apos;agit-il, combien, pour qui,
@@ -124,7 +124,9 @@ export default async function PageRepriseComptable(
 
         {/* Ouvert, et non plus replié derrière « Les colonnes, une par une » :
             c'est ce qu'il faut lire pour préparer le fichier (24/09). */}
-        <h4 className="mt-5 text-sm font-semibold text-[var(--encre)]">Les colonnes du fichier</h4>
+        {/* DES-A-03 : sous les <h2> de cette page, un <h3> (le <h4> sautait un niveau) ; `!` garde les 14 px et l'interlettrage du <h4>
+            d'origine, que les règles de `h3` (prestige.css, base) lui retireraient. */}
+        <h3 className="mt-5 !text-sm font-semibold !tracking-normal text-[var(--encre)]">Les colonnes du fichier</h3>
         <ul className="mt-2 grid gap-x-6 gap-y-1 text-[13px] text-muted-foreground sm:grid-cols-2">
           {COLONNES.map(([cle, libelle, requise]) => (
             <li key={cle}>
@@ -147,7 +149,7 @@ export default async function PageRepriseComptable(
 
       <section className="loc-carte">
         <div className="entete-carte">
-          <h3>2. Le contrôle, puis la bascule</h3>
+          <h2 className="titre-carte leading-[inherit]">2. Le contrôle, puis la bascule</h2>
         </div>
         <p className="mt-1 mb-4 text-sm text-muted-foreground">
           Le contrôle n&apos;écrit rien : il dit, ligne par ligne, ce qui
@@ -163,7 +165,7 @@ export default async function PageRepriseComptable(
           dans la carte 2, au-dessus du bouton « Basculer » — là où l'on clique. */}
       <section className="loc-carte space-y-2 text-sm">
         <div className="entete-carte">
-          <h3>À savoir avant de basculer</h3>
+          <h2 className="titre-carte leading-[inherit]">À savoir avant de basculer</h2>
         </div>
         <p>
           <b>Une dette de locataire n&apos;est pas écrite au compte.</b> Elle

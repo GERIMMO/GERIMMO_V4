@@ -404,7 +404,7 @@ export async function refuserMaMission(
   const motif = String(formData.get("motif") ?? "").trim();
   if (!motif) {
     return {
-      erreur: "Dites pourquoi vous refusez — l'agence doit réaffecter en connaissance de cause.",
+      erreur: "Dites pourquoi vous refusez — votre interlocuteur doit réaffecter en connaissance de cause.",
       valeurs,
     };
   }
@@ -613,7 +613,7 @@ export async function deposerMaFacture(
   const plafond = mission.montant_plafond_cents;
   if (plafond !== null && montant !== plafond && !justification) {
     return {
-      erreur: "Le montant diffère du devis retenu : expliquez l'écart, l'agence le tranchera.",
+      erreur: "Le montant diffère du devis retenu : expliquez l'écart, votre interlocuteur le tranchera.",
       valeurs,
     };
   }
@@ -751,7 +751,7 @@ export async function deposerMonCompteRendu(
   if (imputation && !causeReelle) {
     return {
       erreur:
-        "Expliquez ce que vous avez constaté : c'est votre constat qui permet à l'agence de trancher, pas la case cochée.",
+        "Expliquez ce que vous avez constaté : c'est votre constat qui permet à votre interlocuteur de trancher, pas la case cochée.",
       valeurs,
     };
   }

@@ -20,6 +20,14 @@ export function RepriseLocale<T>({ cle, valider, children }: {
   const [lecture, setLecture] = useState<{ copie: CopieFichiers<T> | null; pret: boolean; erreur?: string } | null>(null);
   const [confirme, setConfirme] = useState(false);
   const signalerConfirmation = useCallback(() => setConfirme(true), []);
+  // Audit du 13/10 (PR178-A-06) : le bouton « Reprendre ma saisie » disparaît avec son bloc et le focus tombait sur le
+  // body. Le titre du formulaire repris (`data-titre-reprise`, focalisable) reçoit le focus à la place.
+  const deplacerFocus = useRef(false);
+  useEffect(() => {
+    if (!lecture?.pret || !deplacerFocus.current) return;
+    deplacerFocus.current = false;
+    document.querySelector<HTMLElement>("[data-titre-reprise]")?.focus({ preventScroll: true });
+  }, [lecture]);
   useEffect(() => {
     let actif = true;
     const compte = compteDeLaCle(cle);
@@ -36,9 +44,9 @@ export function RepriseLocale<T>({ cle, valider, children }: {
     <h2 className="font-semibold text-lg">Reprendre votre saisie</h2>
     <p className="text-sm">Une copie du {new Date(lecture.copie.date).toLocaleString("fr-FR")} est disponible sur cet appareil, avec ses fichiers. Rien ne sera envoyé sans votre action.</p>
     {lecture.erreur && <p role="alert">{lecture.erreur}</p>}
-    <div className="flex flex-wrap gap-3"><button type="button" className="btn-or" onClick={() => setLecture({ ...lecture, pret: true })}>Reprendre ma saisie</button>
+    <div className="flex flex-wrap gap-3"><button type="button" className="btn-or" onClick={() => { deplacerFocus.current = true; setLecture({ ...lecture, pret: true }); }}>Reprendre ma saisie</button>
     <button type="button" className="btn-secondaire" onClick={() => {
-      void modifierCopieFichiers(cle, lecture.copie!.revision, null).then(() => setLecture({ copie: null, pret: true })).catch(() => setLecture({ ...lecture, erreur: "La copie a changé ou ne peut pas être effacée. Rechargez la page pour la vérifier." }));
+      void modifierCopieFichiers(cle, lecture.copie!.revision, null).then(() => { deplacerFocus.current = true; setLecture({ copie: null, pret: true }); }).catch(() => setLecture({ ...lecture, erreur: "La copie a changé ou ne peut pas être effacée. Rechargez la page pour la vérifier." }));
     }}>Effacer cette copie</button></div>
   </section>;
   return <EnvoiConfirme.Provider value={signalerConfirmation}>
@@ -112,13 +120,36 @@ export function useCopieFichiers<T>(cle: string, initiale: CopieFichiers<T> | nu
   }, [statut]);
   return { enregistrer, differer, statut };
 }
-export function StatutCopieLocale({ statut }: { statut: ReturnType<typeof useCopieFichiers>["statut"] }) {
+type StatutCopie = ReturnType<typeof useCopieFichiers>["statut"];
+/**
+ * Audit du 13/10 (PR178-A-06) : la région annoncée alternait « Conservation… » et « …conservés » à chaque écriture
+ * (25 changements de texte pour 12 caractères). « attente » n'est qu'un passage entre deux états stables : la région
+ * annoncée garde l'état stable précédent pendant l'écriture, et ne bouge donc que quand l'état change réellement.
+ */
+export function statutStableSuivant(stable: StatutCopie, courant: StatutCopie): StatutCopie {
+  return courant === "attente" ? stable : courant;
+}
+function phraseStatut(statut: StatutCopie) {
+  return statut === "conflit" ? "Une autre copie a été modifiée dans un autre onglet. Votre saisie reste ici ; gardez cet onglet ouvert et vérifiez l’autre copie avant de quitter."
+    : statut === "refuse" ? "Impossible de conserver la copie sur cet appareil. Gardez cet onglet ouvert jusqu’à confirmation de l’enregistrement."
+    : statut === "attente" ? "Conservation de votre saisie sur cet appareil…"
+    : statut === "conserve" ? "Saisie et fichiers conservés sur cet appareil · non envoyés automatiquement. Se déconnecter efface ces copies ; sinon elles sont effacées à votre première visite après 7 jours. Évitez un appareil partagé."
+    : "Votre saisie et vos fichiers seront conservés sur cet appareil pendant ce parcours. Évitez un appareil partagé.";
+}
+export function StatutCopieLocale({ statut }: { statut: StatutCopie }) {
+  const [stable, setStable] = useState<StatutCopie>(statutStableSuivant("vide", statut));
+  const suivant = statutStableSuivant(stable, statut);
+  if (suivant !== stable) setStable(suivant);
   const erreur = statut === "refuse" || statut === "conflit";
-  return <p role={erreur ? "alert" : "status"} className={`mb-3 text-xs ${erreur ? "text-warning-soft-foreground" : "text-muted-foreground"}`}>
-    {statut === "conflit" ? "Une autre copie a été modifiée dans un autre onglet. Votre saisie reste ici ; gardez cet onglet ouvert et vérifiez l’autre copie avant de quitter."
-      : statut === "refuse" ? "Impossible de conserver la copie sur cet appareil. Gardez cet onglet ouvert jusqu’à confirmation de l’enregistrement."
-      : statut === "attente" ? "Conservation de votre saisie sur cet appareil…"
-      : statut === "conserve" ? "Saisie et fichiers conservés sur cet appareil · non envoyés automatiquement. Se déconnecter efface ces copies ; sinon elles sont effacées à votre première visite après 7 jours. Évitez un appareil partagé."
-      : "Votre saisie et vos fichiers seront conservés sur cet appareil pendant ce parcours. Évitez un appareil partagé."}
-  </p>;
+  // Une alerte garde sa région propre (elle doit être dite tout de suite) ; le reste est dit une fois par état stable,
+  // dans une région polie masquée à l'œil, le texte visible (y compris « attente ») étant caché au lecteur d'écran.
+  // Les clés gardent trois nœuds distincts : un même nœud ne change jamais de rôle, et la région polie reste montée.
+  if (erreur) return <>
+    <p key="alerte" role="alert" className="mb-3 text-xs text-warning-soft-foreground">{phraseStatut(statut)}</p>
+    <p key="annonce" role="status" className="sr-only"></p>
+  </>;
+  return <>
+    <p key="visible" aria-hidden="true" className="mb-3 text-xs text-muted-foreground">{phraseStatut(statut)}</p>
+    <p key="annonce" role="status" className="sr-only">{phraseStatut(suivant)}</p>
+  </>;
 }

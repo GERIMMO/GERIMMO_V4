@@ -530,7 +530,7 @@ export default async function PageDocuments(
                     {/* Sans pt-5 : la Card pose déjà sa marge (24/09) */}
                     <CardContent>
                       <div className="entete-carte">
-                        <h3 className="text-base font-medium">Documents à renouveler</h3>
+                        <h2 className="titre-carte text-base font-medium">Documents à renouveler</h2>
                         <span className="puce puce-rouge">{aRenouveler.length}</span>
                       </div>
                       <ul className="divide-y divide-border text-sm">
@@ -561,7 +561,7 @@ export default async function PageDocuments(
                 <Card className="carte-rubrique" data-ton="bleu">
                   <CardContent>
                     <div className="entete-carte">
-                      <h3 className="text-base font-medium">Répartition des documents</h3>
+                      <h2 className="titre-carte text-base font-medium">Répartition des documents</h2>
                     </div>
                     {entreesTypes.length === 0 ? (
                       <p className="vide">Aucun document à répartir pour l&apos;instant.</p>

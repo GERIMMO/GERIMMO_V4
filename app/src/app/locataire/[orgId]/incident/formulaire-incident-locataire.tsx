@@ -226,7 +226,7 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
     <div className="loc-grille">
       <div className="loc-carte">
         <StatutCopieLocale statut={statut} />
-        <h3 className="text-base font-medium">Votre signalement</h3>
+        <h2 className="titre-carte text-base font-medium" tabIndex={-1} data-titre-reprise>Votre signalement</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Une ou deux photos prises sur le vif évitent souvent un déplacement
           pour rien.

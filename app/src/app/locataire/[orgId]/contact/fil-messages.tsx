@@ -57,7 +57,7 @@ export function FilMessages({
 
   return (
     <div className="loc-carte">
-      <h3 className="text-base font-medium">Écrire à {agence}</h3>
+      <h2 className="titre-carte text-base font-medium">Écrire à {agence}</h2>
       {lectureEnEchec ? (
         <div className="mt-2">
           <LectureImpossible quoi="votre fil de messages" />

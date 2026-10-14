@@ -1,5 +1,5 @@
 import { assemblerPage, cartouches, echapper, eur, Fusion, section, tableau, titre } from "./gabarit";
-import type { LigneDevisCalculee } from "../devis-structure";
+import { libelleQuantite, libelleTauxTva, type LigneDevisCalculee } from "../devis-structure";
 export type DevisArtisanDocument = {
   artisan_adresse?: string; artisan_mentions?: string; artisan_logo?: string | null;
   id: string; description: string; lignes: LigneDevisCalculee[]; montant_ht_cents: number | null; montant_tva_cents: number | null; montant_ttc_cents: number;
@@ -19,7 +19,7 @@ export function assemblerDevisArtisan(d: DevisArtisanDocument) {
     [brouillon ? "Préparé le" : d.statut === "valide" ? "Établi le" : "Transmis le",f.date(d.depose_le)], ["Valable jusqu’au",f.date(d.valide_jusqu_au)],
   ]);
   const prix=d.lignes?.length ? tableau([{libelle:"Prestation / fourniture"},{libelle:"Quantité",droite:true},{libelle:"Prix HT",droite:true},{libelle:"TVA",droite:true},{libelle:"Total TTC",droite:true}],
-    d.lignes.map(l => [echapper(l.libelle),echapper(String(l.quantite)),eur(l.prix_unitaire_ht_cents/100),`${l.tva_bps/100} %`,eur(l.montant_ttc_cents/100)])) : "";
+    d.lignes.map(l => [echapper(l.libelle),echapper(libelleQuantite(l.quantite)),eur(l.prix_unitaire_ht_cents/100),libelleTauxTva(l.tva_bps),eur(l.montant_ttc_cents/100)])) : "";
   const sommes=cartouches([
     ...(d.montant_ht_cents!==null ? [["Total HT",eur(d.montant_ht_cents/100)] as [string,string]] : []),
     ...(d.montant_tva_cents!==null ? [["TVA",eur(d.montant_tva_cents/100)] as [string,string]] : []),

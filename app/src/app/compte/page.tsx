@@ -142,7 +142,7 @@ export default async function PageCompte() {
 
         <div className="loc-carte">
           <div className="entete-carte">
-            <h3>Identifiants</h3>
+            <h2 className="titre-carte leading-[inherit]">Identifiants</h2>
           </div>
           <dl className="grid gap-x-8 sm:grid-cols-2">
             <div className="ligne-info">
@@ -163,7 +163,7 @@ export default async function PageCompte() {
 
         <div className="loc-carte">
           <div className="entete-carte">
-            <h3>Mot de passe</h3>
+            <h2 className="titre-carte leading-[inherit]">Mot de passe</h2>
           </div>
           <p className="mesure-lecture text-sm text-muted-foreground">
             Le mot de passe actuel est demandé : sans lui, un poste laissé
@@ -183,7 +183,7 @@ export default async function PageCompte() {
             lui-même, l'assistance. */}
         <div className="loc-carte" id="donnees-personnelles">
           <div className="entete-carte">
-            <h3>Mes données personnelles</h3>
+            <h2 className="titre-carte leading-[inherit]">Mes données personnelles</h2>
           </div>
           <p className="mesure-lecture text-sm text-muted-foreground">
             Vous pouvez demander à consulter vos données, à les recevoir, à les faire
@@ -216,13 +216,10 @@ export default async function PageCompte() {
         </div>
 
         <p className="text-sm text-muted-foreground">
-          Mot de passe perdu et session fermée ? Il reste{" "}
-          <Link href="/mot-de-passe-oublie" className="lien-discret">
-            le lien reçu par email
-          </Link>
-          . Second facteur perdu sans code valable, en revanche, personne ne
-          peut rouvrir le compte depuis l’application : il faut passer par
-          l’assistance.
+          Mot de passe perdu et session fermée ? Depuis la page de connexion,
+          « Mot de passe oublié » vous envoie un lien par email. Second facteur
+          perdu sans code valable, en revanche, personne ne peut rouvrir le
+          compte depuis l’application : il faut passer par l’assistance.
         </p>
       </main>
     </div>

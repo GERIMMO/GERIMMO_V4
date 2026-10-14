@@ -4,6 +4,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
+import { deLEspaceDeGestion } from "@/lib/libelles";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { aujourdhuiParis, formaterDate, motifLitteral } from "@/lib/ged";
 import { piecesHabituelles } from "@/lib/pieces";
@@ -348,7 +349,7 @@ export async function ajouterDetention(
   _etat: EtatParc,
   formData: FormData
 ): Promise<EtatParc> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
@@ -387,7 +388,7 @@ export async function ajouterDetention(
     if ((memeEmail ?? []).length > 0) {
       return {
         erreur:
-          "Cette adresse email est déjà portée par une fiche de l'agence — choisissez la personne existante dans la liste.",
+          `Cette adresse email est déjà portée par une fiche ${deLEspaceDeGestion(role)} — choisissez la personne existante dans la liste.`,
         valeurs,
       };
     }

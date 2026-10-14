@@ -198,7 +198,7 @@ export function SecondFacteur({ obligatoire }: { obligatoire: boolean }) {
   return (
     <div className="loc-carte" aria-busy={chargement || enCours}>
       <div className="entete-carte">
-        <h3>Double authentification</h3>
+        <h2 className="titre-carte leading-[inherit]">Double authentification</h2>
         <span className={`puce ${etat === "aucun" ? "puce-grise" : "puce-loue"}`}>
           {etat === "aucun" ? "inactive" : "active"}
         </span>

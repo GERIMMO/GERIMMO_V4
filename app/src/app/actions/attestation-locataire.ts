@@ -95,7 +95,20 @@ export async function deposerMonAttestation(
     p_titre: titre,
     p_expire: expire,
   });
-  if (erreurRpc) return { erreur: sansJargon(erreurRpc.message), valeurs };
+  if (erreurRpc) {
+    // L'index d'unicité (organisation, empreinte) refuse le même contenu deux fois : le
+    // dire, plutôt que « réessayez dans un instant » — un nouvel essai ne servira jamais
+    // (LOC-01). Une autre contrainte d'unicité (version déjà remplacée) garde son message.
+    const message = erreurRpc.message ?? "";
+    if (/empreinte/.test(message) && (erreurRpc.code === "23505" || /duplicate key|unique/i.test(message))) {
+      return {
+        erreur:
+          "Ce document est déjà enregistré dans votre dossier : inutile de le déposer une seconde fois. S’il s’agit d’une nouvelle attestation, choisissez le nouveau fichier.",
+        valeurs,
+      };
+    }
+    return { erreur: sansJargon(erreurRpc.message), valeurs };
+  }
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/documents`);

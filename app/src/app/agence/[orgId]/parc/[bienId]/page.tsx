@@ -398,6 +398,7 @@ export default async function PageBien(
                     etat={lot.etat}
                     bloque={blocages.length > 0}
                     compact
+                    estBailleurDirect={estProprietaire}
                   />
                 </li>
               );

@@ -54,8 +54,8 @@ export async function enregistrerBrouillonDevis(id: string, form: FormData): Pro
 
 export async function enregistrerProfilDocuments(_etat: { erreur?: string; succes?: string }, form: FormData): Promise<{erreur?: string; succes?: string}> {
   try {
-    const { fiche } = await verifierArtisanAction();
-    if (!fiche) throw new Error("Connectez-vous à votre espace artisan.");
+    const { fiche, erreur } = await verifierArtisanAction();
+    if (!fiche) throw new Error(erreur ?? "Connectez-vous à votre espace artisan.");
     const service = clientDeService();
     if (!service) throw new Error("La fiche entreprise est indisponible.");
     const adresse = String(form.get("adresse") ?? "").trim();

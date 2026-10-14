@@ -20,6 +20,11 @@ export async function qualifierPieceFiscale(orgId:string,ecritureId:string,_etat
 }
 export async function retrouverVentilation(orgId:string,ecritureId:string,_etat:EtatFiscal,_f:FormData):Promise<EtatFiscal>{
  const {supabase,autorise}=await acces(orgId);if(!autorise)return{erreur:'Accès refusé.'};
+ // La fonction SQL rend l'identifiant dès qu'une capture existe, qu'elle l'ait créée ou non : sans ce garde, une avance déjà capturée
+ // recevait « retrouvée » alors que rien n'avait changé (FIN-06).
+ const {data:existante,error:erreurLecture}=await supabase.from('fiscal_encaissements_composantes').select('non_ventile').eq('organization_id',orgId).eq('ecriture_id',ecritureId).maybeSingle();
+ if(erreurLecture)return{erreur:sansJargon(erreurLecture.message)};
+ if(existante)return{erreur:'La ventilation historique de cette pièce est déjà conservée : rien n’a été modifié. Si une part reste non ventilée, qualifiez la pièce avec sa justification.'};
  const {error}=await supabase.rpc('retrouver_ventilation_fiscale',{p_ecriture:ecritureId});
  if(error)return{erreur:sansJargon(error.message)};actualiser(orgId);return{succes:'Ventilation historique retrouvée et conservée avec les références des pièces.'};
 }

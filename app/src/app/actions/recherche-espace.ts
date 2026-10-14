@@ -18,7 +18,7 @@ export async function rechercherDansEspace(orgId: string, saisie: string): Promi
   // Le filtre précède la limite : un résultat hors portefeuille ne doit ni
   // sortir à l'écran ni prendre la place d'un résultat accessible.
   const lotsRequete = () => {
-    let q = supabase.from("lots").select("id, nom, bien_id, etat, bien:biens!lots_bien_id_fkey(nom, address_line1, city)")
+    let q = supabase.from("lots").select("id, nom, bien_id, etat, bien:biens!lots_bien_id_fkey(nom, address_line1, postal_code, city)")
       .eq("organization_id", orgId).neq("etat", "archive");
     if (portefeuille) q = q.in("id", [...portefeuille]);
     return q;
@@ -26,7 +26,7 @@ export async function rechercherDansEspace(orgId: string, saisie: string): Promi
   const [lotsNoms, biens, personnes] = await Promise.all([
     portefeuille?.size === 0 ? { data: [], error: null } : lotsRequete().or(filtreRecherche(["nom"], texte)).order("nom").limit(6),
     supabase.from("biens").select("id").eq("organization_id", orgId).is("archived_at", null)
-      .or(filtreRecherche(["nom", "address_line1", "city"], texte)).order("nom").limit(20),
+      .or(filtreRecherche(["nom", "address_line1", "postal_code", "city"], texte)).order("nom").limit(20),
     supabase.from("persons").select("id, nom, prenom, email").eq("organization_id", orgId).is("archived_at", null)
       .or(filtrePersonnes(texte)).order("nom").limit(6),
   ]);
@@ -37,7 +37,7 @@ export async function rechercherDansEspace(orgId: string, saisie: string): Promi
   const resultats: ResultatRecherche[] = lots.map((l) => {
     const bien = Array.isArray(l.bien) ? l.bien[0] : l.bien;
     return { id: l.id, type: "Logement", titre: l.nom,
-      detail: [bien?.nom, bien?.address_line1, bien?.city].filter(Boolean).join(" · "),
+      detail: [bien?.nom, bien?.address_line1, [bien?.postal_code, bien?.city].filter(Boolean).join(" ")].filter(Boolean).join(" · "),
       href: `${base}/parc?sel=lot:${l.id}` };
   });
   for (const p of personnes.data ?? []) resultats.push({ id: p.id, type: "Personne", titre: nomComplet(p), detail: p.email ?? "Fiche personne", href: `${base}/personnes/${p.id}` });

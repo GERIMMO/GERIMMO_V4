@@ -1,6 +1,6 @@
 import { MessageReseau, InteretReseau } from "@/components/disponibilite-reseau";
 import type { DisponibiliteReseau } from "@/lib/reseau";
-import type { LigneDevisCalculee } from "@/lib/devis-structure";
+import { descriptionDevisLisible, libelleQuantite, libelleTauxTva, type LigneDevisCalculee } from "@/lib/devis-structure";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
@@ -215,6 +215,7 @@ export async function VoletArtisan({
   categorie,
   imputation,
   lotId,
+  estProprietaire = false,
 }: {
   orgId: string;
   incidentId: string;
@@ -222,6 +223,7 @@ export async function VoletArtisan({
   categorie: string;
   imputation: string | null;
   lotId: string | null;
+  estProprietaire?: boolean;
 }) {
   // Avant la qualification, il n'y a rien à afficher et rien à faire :
   // RM-7.2.7 interdit d'affecter sans imputation. On l'annonce plutôt que de
@@ -563,7 +565,7 @@ export async function VoletArtisan({
             )}
             {mission.statut === "annulee" && (
               <p className="text-sm text-muted-foreground">
-                Mission annulée par l&apos;agence
+                Mission annulée{estProprietaire ? "" : " par l'agence"}
                 {mission.annulation_motif ? ` : « ${mission.annulation_motif} »` : ""}.
               </p>
             )}
@@ -642,7 +644,7 @@ export async function VoletArtisan({
                             ? heureParis(c.fin)
                             : formaterDateHeure(c.fin)}{" "}
                           · proposé par{" "}
-                          {PAR_AUTEUR_CRENEAU[c.propose_par] ??
+                          {(estProprietaire && c.propose_par === "agence" ? "vous" : PAR_AUTEUR_CRENEAU[c.propose_par]) ??
                             (AUTEURS_CRENEAU[c.propose_par] ?? c.propose_par).toLowerCase()}
                           {c.tour > 1 ? ` · ${c.tour}ᵉ tour` : ""}
                         </span>
@@ -776,7 +778,7 @@ export async function VoletArtisan({
                   Noter {nom(mission.artisan_id)}
                 </summary>
                 <div className="pt-3">
-                  <FormulaireEvaluation orgId={orgId} interventionId={mission.id} />
+                  <FormulaireEvaluation orgId={orgId} interventionId={mission.id} estProprietaire={estProprietaire} />
                 </div>
               </details>
             )}
@@ -1042,7 +1044,7 @@ function ConsultationOuverte({
                         </div>
                       )}
                     </div>
-                    <p className="whitespace-pre-line text-sm text-muted-foreground">{d.description.replace(/(\d+)\.(\d{2})0{3,}(?= €| %)/g, '$1,$2')}</p>
+                    <p className="whitespace-pre-line text-sm text-muted-foreground">{descriptionDevisLisible(d.description)}</p>
                     <DetailDevis lignes={d.lignes} />
                     <a href={`/api/devis/${d.sollicitation_id}/pdf`} target="_blank" rel="noreferrer" className="lien-discret">Télécharger le détail du devis (PDF)</a>
                     {d.document_id && (
@@ -1175,6 +1177,6 @@ function ConsultationOuverte({
 function DetailDevis({ lignes }: { lignes: LigneDevisCalculee[] }) {
   if (!lignes?.length) return null;
   return <details className="my-2 text-sm"><summary className="cursor-pointer font-medium">Voir les quantités, les prix et la TVA</summary>
-    <div className="mt-2 overflow-x-auto"><table className="w-full text-left"><thead><tr><th>Travaux</th><th>Quantité</th><th>Prix HT</th><th>TVA</th><th>Total TTC</th></tr></thead><tbody>{lignes.map((l,i) => <tr key={i} className="border-t border-border"><td className="py-2">{l.libelle}</td><td>{l.quantite}</td><td>{montant(l.prix_unitaire_ht_cents)}</td><td>{l.tva_bps/100} %</td><td>{montant(l.montant_ttc_cents)}</td></tr>)}</tbody></table></div>
+    <div className="mt-2 overflow-x-auto"><table className="w-full text-left"><thead><tr><th>Travaux</th><th>Quantité</th><th>Prix HT</th><th>TVA</th><th>Total TTC</th></tr></thead><tbody>{lignes.map((l,i) => <tr key={i} className="border-t border-border"><td className="py-2">{l.libelle}</td><td>{libelleQuantite(l.quantite)}</td><td>{montant(l.prix_unitaire_ht_cents)}</td><td>{libelleTauxTva(l.tva_bps)}</td><td>{montant(l.montant_ttc_cents)}</td></tr>)}</tbody></table></div>
   </details>;
 }

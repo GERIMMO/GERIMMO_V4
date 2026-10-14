@@ -1,4 +1,4 @@
-import type { recapitulatifFiscal } from "./fiscal";
+import { LIBELLE_CUMUL_A_QUALIFIER, type recapitulatifFiscal } from "./fiscal";
 
 /** Export des seuls montants affichés, à la quote-part du déclarant si nécessaire. */
 export function csvRecapitulatifFiscal(recap: ReturnType<typeof recapitulatifFiscal>, annee: number) {
@@ -9,9 +9,9 @@ export function csvRecapitulatifFiscal(recap: ReturnType<typeof recapitulatifFis
     ["Année", "Rubrique", "Libellé", "Montant affiché (EUR)"],
     ...recap.rubriques.map(r => [String(annee), r.code, r.libelle,
       r.aCompleter ? "" : (recap.ventile ? r.montantQuotePart : r.montant).toFixed(2).replace(".", ",")]),
-    [String(annee),"HORS TOTAL","Montant net à qualifier",recap.aQualifier.toFixed(2).replace(".",",")],
+    [String(annee),"HORS TOTAL",`Cumul des pièces à qualifier (${LIBELLE_CUMUL_A_QUALIFIER})`,recap.aQualifier.toFixed(2).replace(".",",")],
     [String(annee),"HORS TOTAL","Non déductible confirmé",recap.nonDeductible.toFixed(2).replace(".",",")],
-    [String(annee),"HORS TOTAL","Provisions et charges récupérées",recap.chargesRecuperees.toFixed(2).replace(".",",")],
+    [String(annee),"HORS TOTAL","Recettes exclues de la 2044 (charges récupérées, recettes hors revenus fonciers)",recap.chargesRecuperees.toFixed(2).replace(".",",")],
     [String(annee),"HORS TOTAL","Fonds travaux ALUR versé",recap.fondsTravauxAlur.toFixed(2).replace(".",",")],
   ];
   return "\uFEFF" + lignes.map(l => l.map(v => `"${String(v).replaceAll('"', '""')}"`).join(";")).join("\r\n");

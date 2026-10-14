@@ -131,7 +131,7 @@ describe("Catalogue — documents issus des dossiers",()=>{
     expect(html).toMatch(/1[\s\u202f\u00a0]200,00/); // 224
     expect(html).toContain("300,00");                   // 223
     expect(html).toContain("900,00");                   // 227
-    expect(html).toMatch(/180,00 € de provisions/);    // 3 × 60 € de charges, hors déclaration
+    expect(html).toMatch(/180,00 € de recettes exclues \(provisions et régularisations de charges encaissées/);    // 3 × 60 € de charges, hors déclaration (FIN-08 : le libellé ne prête plus aux recettes exclues que le nom de provisions)
     expect(html).toContain("Périmètre : 6 écritures de 2026 examinées, toutes comptées dans le tableau.");
   });
   it("le récapitulatif fiscal nu dit ce que le tableau écarte (VER-TS-04 : nu puis meublé)",async()=>{

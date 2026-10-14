@@ -246,7 +246,7 @@ export default async function PageLogementLocataire(
         if (lignes.length === 0) return null;
         return (
           <div className="loc-carte">
-            <h3 className="text-base font-medium">Votre logement, mode d&apos;emploi</h3>
+            <h2 className="titre-carte text-base font-medium">Votre logement, mode d&apos;emploi</h2>
             <div className="mt-2">
               {lignes.map(([titre, valeur]) => (
                 <div key={titre} className="ligne-info">
@@ -272,7 +272,7 @@ export default async function PageLogementLocataire(
         if (edls.length === 0) return null;
         return (
           <div className="loc-carte">
-            <h3 className="text-base font-medium">Mes états des lieux</h3>
+            <h2 className="titre-carte text-base font-medium">Mes états des lieux</h2>
             <div className="mt-2">
               {edls.map((e) => (
                 // La pastille passe sous le libellé à 390 px (25/09 au soir) :

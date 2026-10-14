@@ -85,6 +85,18 @@ body.gerimmo-prestige,
 .gerimmo-prestige h1 { font-size: clamp(29px, 3vw, 38px); }
 .gerimmo-prestige h2 { font-size: 24px; }
 .gerimmo-prestige h3 { font-family: var(--font-interface), sans-serif; font-size: 16px; }
+/* Audit du 13/10 (DES-A-03) : les titres de carte des espaces locataire et propriétaire étaient des <h3> sous le <h1>,
+   sans <h2> (WCAG 1.3.1, règle axe heading-order). Ils sont des <h2> et gardent le dessin d'un <h3> : sans cette règle,
+   `.gerimmo-prestige h2` (Georgia, 24 px, graisse 400) l'emporterait sur leurs classes utilitaires, qui sont étagées.
+   `revert-layer` rend la graisse et l'interligne aux classes posées (`font-medium`, `text-base`, `leading-…`), à défaut aux
+   titres de base. */
+.gerimmo-prestige h2.titre-carte {
+  font-family: var(--font-interface), sans-serif;
+  font-size: 16px;
+  font-weight: revert-layer;
+  letter-spacing: -0.015em;
+  line-height: revert-layer;
+}
 .gerimmo-prestige :is(.eyebrow, .dossier-surtitre) {
   color: var(--prestige-champagne-texte);
   font-size: 11px;

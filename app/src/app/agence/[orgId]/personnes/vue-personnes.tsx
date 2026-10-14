@@ -35,7 +35,7 @@ export function VuePersonnes({ titre, nombre, liste, creation, estProprietaire =
       {liste}
     </section>
     <section id="creer-fiche" hidden={!ouverte} aria-label="Créer une fiche">
-      <a href="#" className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground" onClick={e => {e.preventDefault(); afficher(false);}}><ArrowLeft size={15} aria-hidden="true" />Retour à mes fiches</a>
+      <button type="button" className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground" onClick={() => afficher(false)}><ArrowLeft size={15} aria-hidden="true" />Retour à mes fiches</button>
       <header className={parcours.enteteCreation}><UserRoundPlus size={27} aria-hidden="true" /><div><span className={parcours.surtitre}>Nouvelle personne</span><h1 id="creation-personne-titre" tabIndex={-1}>Créer une fiche</h1><p>Une seule fiche, réutilisable dans vos baux. Renseignez-la étape par étape.</p></div></header>
       {creation}
     </section>

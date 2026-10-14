@@ -1,3 +1,5 @@
+import { lireMontantFacultatif } from '@/lib/saisie-montant';
+
 export type MentionsContrat = {
   date_conclusion_prevue?: string | null;
   servitude_residence_principale?: boolean | null;
@@ -52,10 +54,10 @@ export function lireMentionsContrat(form: FormData): { mentions: MentionsContrat
     if (!form.has(champ)) continue;
     const brut = String(form.get(champ) ?? '').trim();
     if (['honoraires_edl_bailleur', 'honoraires_edl_locataire', 'dpe_depenses_min', 'dpe_depenses_max'].includes(champ)) {
-      const n = brut ? Number(brut.replace(',', '.')) : null;
-      if (n !== null && (!Number.isFinite(n) || n < 0 || n > 99999999.99 || Math.abs(n * 100 - Math.round(n * 100)) > 0.00001))
-        return { mentions, erreur: 'Saisissez des montants positifs ou nuls, avec au plus deux décimales.' };
-      Object.assign(mentions, { [champ]: n });
+      // Lu sur le texte tel que tapé (« 840,00 » vaut 840) : stricte, comme tous les montants (VER-TS-02).
+      const lu = lireMontantFacultatif(brut);
+      if ('erreur' in lu) return { mentions, erreur: lu.erreur };
+      Object.assign(mentions, { [champ]: lu.montant });
     } else if (champ === 'servitude_residence_principale' || champ === 'encadrement_loyer' || champ.startsWith('clause_resolutoire_')) {
       if (!['', 'true', 'false'].includes(brut) || (!brut && champ.startsWith('clause_resolutoire_')))
         return { mentions, erreur: 'Choisissez une réponse dans les conditions du contrat.' };

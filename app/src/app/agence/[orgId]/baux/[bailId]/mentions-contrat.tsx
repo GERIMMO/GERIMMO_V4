@@ -3,7 +3,9 @@ import { Label } from '@/components/ui/label';
 import type { MentionsContrat } from '@/lib/mentions-contrat';
 import { formaterDate, eur } from '@/lib/ged';
 
-type Champ = { nom: keyof MentionsContrat; titre: string; type?: 'date' | 'number'; options?: [string, string][]; aide?: string };
+// `montant` : un champ TEXTE à clavier décimal (jamais un champ numérique du navigateur), lu côté serveur par `lireMontantFacultatif` : « 1250,42 »
+// reste 1250,42 quelle que soit la langue du navigateur (VER-TS-02).
+type Champ = { nom: keyof MentionsContrat; titre: string; type?: 'date' | 'montant'; options?: [string, string][]; aide?: string };
 const ouiNon: [string, string][] = [['', 'À vérifier'], ['true', 'Oui'], ['false', 'Non']];
 const groupes: { titre: string; aide: string; agence?: boolean; champs: Champ[] }[] = [
   { titre: 'Date et conditions du contrat', aide: 'Confirmez les règles applicables à ce logement. La date prévue prépare le modèle ; elle ne vaut pas signature.', champs: [
@@ -15,14 +17,14 @@ const groupes: { titre: string; aide: string; agence?: boolean; champs: Champ[] 
     { nom: 'clause_resolutoire_servitude', titre: 'Résiliation pour non-respect de la servitude', options: ouiNon.slice(1), aide: 'Disponible uniquement si la servitude est confirmée ; le délai de mise en demeure du maire doit être respecté.' },
   ] },
   { titre: 'Dépenses d’énergie du DPE', aide: 'Recopiez la fourchette et les années des prix de l’énergie indiquées dans le diagnostic. La classe DPE vient de la fiche logement.', champs: [
-    { nom: 'dpe_depenses_min', titre: 'Estimation annuelle minimale (€)', type: 'number' },
-    { nom: 'dpe_depenses_max', titre: 'Estimation annuelle maximale (€)', type: 'number' },
+    { nom: 'dpe_depenses_min', titre: 'Estimation annuelle minimale (€)', type: 'montant' },
+    { nom: 'dpe_depenses_max', titre: 'Estimation annuelle maximale (€)', type: 'montant' },
     { nom: 'dpe_annees_reference', titre: 'Année(s) des prix de l’énergie', aide: 'Par exemple : 2021, 2022 et 2023, selon le DPE.' },
   ] },
   { titre: 'Honoraires de l’état des lieux', agence: true, aide: 'Les montants ci-dessous concernent uniquement l’état des lieux d’entrée. Les honoraires de visite, de dossier et de bail restent renseignés séparément.', champs: [
     { nom: 'zone_honoraires', titre: 'Zone applicable aux plafonds d’honoraires', options: [['', 'À vérifier'], ['tres_tendue', 'Zone très tendue'], ['tendue', 'Zone tendue'], ['autre', 'Autre zone']] },
-    { nom: 'honoraires_edl_bailleur', titre: 'État des lieux — part du bailleur (€ TTC)', type: 'number' },
-    { nom: 'honoraires_edl_locataire', titre: 'État des lieux — part du locataire (€ TTC)', type: 'number' },
+    { nom: 'honoraires_edl_bailleur', titre: 'État des lieux — part du bailleur (€ TTC)', type: 'montant' },
+    { nom: 'honoraires_edl_locataire', titre: 'État des lieux — part du locataire (€ TTC)', type: 'montant' },
   ] },
 ];
 
@@ -34,13 +36,14 @@ export function MentionsContratFormulaire({ defauts, valeurs, agence, modifiable
     <p className="mt-2 text-sm text-muted-foreground">{g.aide}</p>
     <div className="mt-3 grid gap-3 sm:grid-cols-2">{g.champs.map(c => {
       const actuel = defauts[c.nom];
-      const defaut = actuel == null ? (c.nom.startsWith('clause_') ? c.nom === 'clause_resolutoire_servitude' ? 'false' : 'true' : '') : String(actuel);
+      // Un montant déjà enregistré se montre avec sa virgule (1250,42), comme on l'écrit.
+      const defaut = actuel == null ? (c.nom.startsWith('clause_') ? c.nom === 'clause_resolutoire_servitude' ? 'false' : 'true' : '') : c.type === 'montant' ? String(actuel).replace('.', ',') : String(actuel);
       const valeur = valeurs?.[c.nom] ?? defaut;
-      if (!modifiable) return <div className="ligne-info sm:col-span-2" key={c.nom}><span>{c.titre}</span><span>{actuel == null ? '—' : c.options ? c.options.find(o => o[0] === String(actuel))?.[1] : c.type === 'date' ? formaterDate(String(actuel)) : c.type === 'number' ? eur(Number(actuel)) : String(actuel)}</span></div>;
+      if (!modifiable) return <div className="ligne-info sm:col-span-2" key={c.nom}><span>{c.titre}</span><span>{actuel == null ? '—' : c.options ? c.options.find(o => o[0] === String(actuel))?.[1] : c.type === 'date' ? formaterDate(String(actuel)) : c.type === 'montant' ? eur(Number(actuel)) : String(actuel)}</span></div>;
       const id = `mentions-${c.nom}`;
       return <div key={c.nom} className="space-y-1.5"><Label htmlFor={id}>{c.titre}</Label>
         {c.options ? <select key={`${c.nom}:${valeur}`} id={id} name={c.nom} defaultValue={valeur} onChange={e => { if (c.nom === "encadrement_loyer") onEncadrementChange?.(e.target.value === "true"); }} className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm">{c.options.map(([v, label]) => <option key={v} value={v}>{label}</option>)}</select>
-          : <Input id={id} name={c.nom} type={c.type ?? 'text'} min={c.type === 'number' ? 0 : undefined} step={c.type === 'number' ? '0.01' : undefined} maxLength={100} defaultValue={valeur} />}
+          : <Input id={id} name={c.nom} type={c.type === 'date' ? 'date' : 'text'} inputMode={c.type === 'montant' ? 'decimal' : undefined} maxLength={100} defaultValue={valeur} />}
         {c.aide && <p className="text-xs text-muted-foreground">{c.aide}</p>}
       </div>;
     })}</div>

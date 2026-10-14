@@ -78,9 +78,8 @@ export function FormulaireLot({
           <Input
             id="lot-surface-form"
             name="surface_m2"
-            type="number"
-            step="0.01"
-            min="0.01"
+            type="text"
+            inputMode="decimal"
             required
             value={surface}
             onChange={event => setSurface(event.target.value)}
@@ -94,9 +93,8 @@ export function FormulaireLot({
           <Input
             id="lot-carrez"
             name="surface_carrez"
-            type="number"
-            step="0.01"
-            min="0.01"
+            type="text"
+            inputMode="decimal"
             defaultValue={etat.valeurs?.surface_carrez ?? lot.surface_carrez ?? ""}
             disabled={verrouille}
           />
@@ -121,9 +119,8 @@ export function FormulaireLot({
           <Input
             id="lot-tantieme"
             name="tantieme"
-            type="number"
-            step="0.01"
-            min="0.01"
+            type="text"
+            inputMode="decimal"
             defaultValue={etat.valeurs?.tantieme ?? lot.tantieme ?? ""}
           />
         </div>

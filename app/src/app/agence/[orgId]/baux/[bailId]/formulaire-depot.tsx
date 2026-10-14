@@ -9,6 +9,7 @@ import { encaisserDepot, supprimerEncaissementDepot, type EtatDepot } from "@/ap
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
+import { CleEnvoi } from "@/components/cle-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MODES_PAIEMENT } from "./formulaire-loyers";
@@ -149,6 +150,8 @@ function FormEncaisser({
   const idVersantLibelle = useId();
   return (
     <form data-saisie-confirmee action={action} className="space-y-2 border border-dashed border-border p-3">
+      {/* D05 : la clé de CET envoi, rejouée telle quelle tant que le serveur n'a pas confirmé l'enregistrement. */}
+      <CleEnvoi etat={etat} />
       <p className="text-sm font-medium">Enregistrer un encaissement</p>
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1">
@@ -213,6 +216,10 @@ function FormEncaisser({
         révisé en cours de bail.
       </p>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {/* « Encaissement enregistré. » ou « … est déjà enregistré » (D05) : l'écran le dit, au lieu de se taire. */}
+      {!etat.erreur && etat.succes && (
+        <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>
+      )}
     </form>
   );
 }

@@ -1,5 +1,6 @@
 import { TriangleAlert } from "lucide-react";
 import { alertesDecence } from "@/lib/parc";
+import { lireDecimal } from "@/lib/saisie-montant";
 
 /** Une surface saisie n’est pas une validation de la décence du logement. */
 export function AlerteSurfaceLogement({ surface, typeBien, id }: {
@@ -7,7 +8,9 @@ export function AlerteSurfaceLogement({ surface, typeBien, id }: {
   typeBien?: string;
   id?: string;
 }) {
-  const valeur = surface === null ? null : Number(String(surface).replace(",", "."));
+  // Lue comme le serveur la lira (« 8,5 » vaut 8,5) ; illisible, elle n'alerte pas.
+  const lue = surface === null ? null : lireDecimal(String(surface));
+  const valeur = lue && "valeur" in lue ? lue.valeur : null;
   const habitation = ["appartement", "maison", "immeuble"].includes(typeBien ?? "");
   const message = habitation ? alertesDecence({ surface_m2: valeur })[0] : undefined;
   return <div id={id} aria-live="polite" aria-atomic="true">

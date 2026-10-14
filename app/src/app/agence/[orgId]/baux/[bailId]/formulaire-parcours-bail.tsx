@@ -8,12 +8,15 @@ import { type EtapeSaisieBail, type ValeursParcoursBail } from "@/lib/champs-eta
 import { Input } from "@/components/ui/input";
 import { LabelBail as Label } from "@/components/pastille-bail";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { lireMontantFacultatif } from "@/lib/saisie-montant";
 
 type Champ = { nom:string; titre:string; type?:"number"|"montant"|"date"|"textarea"; options?:[string,string][]; requis?:boolean; aide?:string; visible?:(v:Record<string,string>)=>boolean; min?:number; max?:number; entier?:boolean };
 type Groupe = { etapes:string[]; titre:string; aide?:string; agence?:boolean; champs:Champ[] };
 const ouiNon:[string,string][]=[["","À confirmer"],["true","Oui"],["false","Non"]];
 const choix:[string,string][]=[["true","Oui"],["false","Non"]];
 const recent=(v:Record<string,string>)=>v.precedente_location==="recente";
+// Le champ « justification » apparaît dès qu'un complément est saisi : lu comme le serveur (« 40,50 » vaut 40,5), jamais par Number().
+export const complementPositif=(brut:string|undefined)=>{const lu=lireMontantFacultatif(brut??"");return "montant" in lu&&(lu.montant??0)>0;};
 const groupes:Groupe[]=[
  {etapes:["bail"],titre:"Le contrat",champs:[
   {nom:"type",titre:"Type de bail",requis:true,options:[["nu","Location nue"],["meuble","Location meublée"],["colocation","Colocation · contrat commun"],["colocation_individuelle","Colocation · contrat individuel"]]},
@@ -61,7 +64,7 @@ const groupes:Groupe[]=[
   {nom:"loyer_reference",titre:"Loyer de référence (€/m²)",type:"montant",visible:v=>v.encadrement_loyer==="true"},
   {nom:"loyer_reference_majore",titre:"Loyer de référence majoré (€/m²)",type:"montant",visible:v=>v.encadrement_loyer==="true"},
   {nom:"complement_loyer",titre:"Complément de loyer (€) — Facultatif",type:"montant",visible:v=>v.encadrement_loyer==="true"},
-  {nom:"complement_justification",titre:"Justification du complément",visible:v=>v.encadrement_loyer==="true"&&Number((v.complement_loyer??"").replace(",","."))>0,aide:"À préciser si un complément est appliqué."},
+  {nom:"complement_justification",titre:"Justification du complément",visible:v=>v.encadrement_loyer==="true"&&complementPositif(v.complement_loyer),aide:"À préciser si un complément est appliqué."},
   {nom:"servitude_residence_principale",titre:"Servitude de résidence principale",options:ouiNon,aide:"À vérifier dans les règles d’urbanisme applicables au logement."},
  ]},
  {etapes:["clauses"],titre:"Les clauses de résiliation",champs:[

@@ -1,5 +1,6 @@
 import { lireMentionsContrat, verifierHonorairesContrat } from "@/lib/mentions-contrat";
 import { moisDepotGarantie } from "@/lib/depot-garantie";
+import { lireMontantFacultatif } from "@/lib/saisie-montant";
 
 export const ETAPES_BAIL = [
   { id: "bail", titre: "Le bail", detail: "Type de contrat et dates" },
@@ -34,9 +35,11 @@ export function lireEtapeBail(etape: EtapeSaisieBail, form: FormData, actuel: Va
       if (brut && !["true","false"].includes(brut)) return erreur("Choisissez Oui ou Non dans les champs proposés.");
       patch[nom] = brut ? brut === "true" : null;
     } else if (nombres.has(nom)) {
-      const n = brut ? Number(brut.replace(",", ".")) : null;
-      if (n != null && (!Number.isFinite(n) || n < 0 || n > 99999999.99 || Math.abs(n*100-Math.round(n*100))>0.00001)) return erreur("Saisissez des montants positifs ou nuls, avec au plus deux décimales.");
-      patch[nom] = n;
+      // Lu sur le texte tel que tapé (« 840,00 » vaut 840) : stricte, comme tous les montants (VER-TS-02). Ni exposant,
+      // ni hexadécimal, ni « Infinity » : `Number("1e3")` valait 1000 et `Number("0x10")` valait 16.
+      const lu = lireMontantFacultatif(brut);
+      if ("erreur" in lu) return erreur(lu.erreur);
+      patch[nom] = lu.montant;
     } else {
       if (brut.length > (nom === "clauses_particulieres" ? 4000 : nom.startsWith("travaux_") ? 2000 : 500)) return erreur("Un texte est trop long. Raccourcissez-le avant d’enregistrer.");
       if (dates.has(nom) && brut && (!/^\d{4}-\d{2}-\d{2}$/.test(brut) || !Number.isFinite(Date.parse(brut)) || new Date(brut).toISOString().slice(0,10) !== brut)) return erreur("Vérifiez les dates renseignées.");

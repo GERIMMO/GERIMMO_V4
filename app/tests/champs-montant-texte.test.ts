@@ -16,6 +16,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { lireMontantFacultatif } from "../src/lib/saisie-montant";
 
 const RACINE = resolve(__dirname, "..");
 const lire = (chemin: string) => readFileSync(resolve(RACINE, chemin), "utf8");
@@ -69,6 +70,25 @@ const CHAMPS_EN_TEXTE: [string, string, string][] = [
   ["src/app/agence/[orgId]/baux/[bailId]/formulaire-restitution.tsx", 'id="ret-cout"', "ajouterRetenue (lireMontant)"],
   ["src/app/agence/[orgId]/personnes/[personId]/formulaire-mandat.tsx", 'id="m-seuil"', "creerMandat (lireMontantFacultatif)"],
   ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/chambres-logement.tsx", 'name="plafond"', "enregistrerPlafondColocation (lireMontant)"],
+  // D04 (1), VER-TS-02 : les champs décimaux restés en type="number", dont l'action lit maintenant le texte tapé.
+  ["src/app/agence/[orgId]/personnes/[personId]/formulaire-mandat.tsx", "id={`l-taux-${mandatId}`}", "ajouterLigneMandat (lireDecimal)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-colocation.tsx", 'id="coloc-qp"', "ajouterBailPersonne (lireDecimalFacultatif)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-colocation.tsx", 'id="coloc-surf"', "ajouterBailPersonne (lireDecimalFacultatif)"],
+  ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/chambres-logement.tsx", 'name="surface_m2"', "enregistrerChambre (lireDecimal)"],
+  ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/chambres-logement.tsx", 'name="volume_m3"', "enregistrerChambre (lireDecimal)"],
+  ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-lot.tsx", 'id="lot-surface-form"', "modifierLot (lireDecimalFacultatif)"],
+  ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-lot.tsx", 'id="lot-carrez"', "modifierLot (lireDecimalFacultatif)"],
+  ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-lot.tsx", 'id="lot-tantieme"', "modifierLot (lireDecimalFacultatif)"],
+  ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-detention.tsx", 'id="detention-quote-part"', "ajouterDetention (lireDecimal)"],
+  ["src/app/agence/[orgId]/parc/[bienId]/formulaire-cle.tsx", "id={`${idPart}-${lot.id}`}", "validerCle (lireDecimal)"],
+  ["src/app/agence/[orgId]/parc/[bienId]/formulaire-decoupage.tsx", 'name="lot_surface"', "decouperBien (lireDecimalFacultatif)"],
+  ["src/app/agence/[orgId]/parc/formulaire-bien.tsx", "id=\"lot-surface\"", "creerBien (lireDecimal)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/edl/[edlId]/edl-annexes.tsx", "name={`releve_${c.id}`}", "enregistrerAnnexesEdl (lireDecimal)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/edl/[edlId]/edl-annexes.tsx", 'name="releve"', "ajouterCompteur (lireDecimalFacultatif)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-restitution.tsx", 'id="ret-duree"', "ajouterRetenue (lireDecimalFacultatif)"],
+  ["src/app/agence/[orgId]/baux/[bailId]/formulaire-restitution.tsx", 'id="ret-age"', "ajouterRetenue (lireDecimalFacultatif)"],
+  ["src/components/formulaires-fiscaux.tsx", 'name="quote_part230"', "enregistrerExerciceFiscal (lireDecimalFacultatif)"],
+  ["src/components/formulaires-fiscaux.tsx", "aria-label={`Quote-part période ${i+1}`}", "enregistrerExerciceFiscal (lireDecimal par période)"],
 ];
 
 describe("champs de montant : du texte brut, pas un champ numérique du navigateur", () => {
@@ -77,6 +97,23 @@ describe("champs de montant : du texte brut, pas un champ numérique du navigate
     expect(element).not.toMatch(/type=\{?["']number["']/);
     expect(element).toMatch(/type="text"/);
     expect(element).toMatch(/inputMode="decimal"/);
+  });
+});
+
+describe("catalogue de documents : les montants d'un document sont du texte à clavier décimal (D04 1)", () => {
+  const options = lire("src/lib/documents/catalogue-options.ts");
+  const formulaire = lire("src/app/agence/[orgId]/documents/catalogue/formulaire-catalogue.tsx");
+
+  it.each(["montant_max", "interets_emprunt"])("%s est déclaré « montant », pas « number »", (cle) => {
+    const champ = options.match(new RegExp(`\\{cle:"${cle}"[^}]*\\}`))?.[0] ?? "";
+    expect(champ, `champ ${cle} introuvable`).not.toBe("");
+    expect(champ).toContain('type:"montant"');
+    expect(champ).not.toContain('type:"number"');
+  });
+
+  it("un champ « montant » est rendu en texte à clavier décimal", () => {
+    expect(formulaire).toContain('type={c.type==="montant"?"text":(c.type??"text")}');
+    expect(formulaire).toContain('inputMode={c.type==="montant"?"decimal":undefined}');
   });
 });
 
@@ -101,8 +138,31 @@ describe("étape « loyer » du parcours de bail : les montants sont déclarés 
     expect(source).toContain('step={c.type==="number"?');
   });
 
-  it("le complément de loyer saisi avec une virgule fait apparaître sa justification", () => {
-    expect(source).toContain('Number((v.complement_loyer??"").replace(",","."))>0');
+  it("le complément de loyer saisi avec une virgule fait apparaître sa justification, lu comme le serveur (jamais par Number)", () => {
+    // D04 (1) : la visibilité de la justification lit le complément avec lireMontantFacultatif (voir complement-loyer-saisie.test.ts).
+    expect(source).toContain('visible:v=>v.encadrement_loyer==="true"&&complementPositif(v.complement_loyer)');
+    expect(source).toContain('lireMontantFacultatif');
+    expect(source).not.toMatch(/Number\(\(v\.complement_loyer/);
+  });
+});
+
+describe("compléments de contrat (mentions du bail) : les montants sont du texte à clavier décimal (D04 1)", () => {
+  const source = lire("src/app/agence/[orgId]/baux/[bailId]/mentions-contrat.tsx");
+  it.each(["dpe_depenses_min", "dpe_depenses_max", "honoraires_edl_bailleur", "honoraires_edl_locataire"])("%s est déclaré « montant »", (nom) => {
+    const ligne = source.split("\n").find((l) => l.includes(`nom: '${nom}'`));
+    expect(ligne, `champ ${nom} introuvable`).toBeDefined();
+    expect(ligne).toContain("type: 'montant'");
+    expect(ligne).not.toContain("type: 'number'");
+  });
+  it("aucun champ de ce formulaire n'est rendu en type=\"number\"", () => {
+    expect(source).not.toMatch(/type:\s*'number'/);
+    expect(source).not.toMatch(/type=\{?["']number["']/);
+    expect(source).toContain("inputMode={c.type === 'montant' ? 'decimal' : undefined}");
+    expect(source).toContain("type={c.type === 'date' ? 'date' : 'text'}");
+  });
+  it("un montant déjà enregistré revient avec sa virgule, et la virgule est relue telle quelle par le serveur", () => {
+    expect(source).toContain("String(actuel).replace('.', ',')");
+    expect(lireMontantFacultatif("1250,42")).toEqual({ montant: 1250.42 });
   });
 });
 
@@ -117,8 +177,10 @@ describe("l'indice IRL du parcours de bail : lu avec la virgule par le serveur, 
 });
 
 describe("la lecture serveur de ces champs accepte bien la virgule (condition du passage en texte)", () => {
-  it("lireEtapeBail lit les montants du parcours avec la virgule", () => {
-    expect(lire("src/lib/champs-etape-bail.ts")).toContain('Number(brut.replace(",", "."))');
+  it("lireEtapeBail lit les montants du parcours avec la virgule, strictement (D04 1 : plus de Number())", () => {
+    const source = lire("src/lib/champs-etape-bail.ts");
+    expect(source).toContain("lireMontantFacultatif(brut)");
+    expect(source).not.toContain('Number(brut.replace(",", "."))');
   });
   it("les actions de l'encaissement, du dépôt et de la compta passent par lireMontant", () => {
     expect(lire("src/app/actions/loyers.ts")).toContain('lireMontant(formData.get("montant"))');

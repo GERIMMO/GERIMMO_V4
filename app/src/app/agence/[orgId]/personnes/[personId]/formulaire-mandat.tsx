@@ -105,16 +105,15 @@ export function FormulaireLigneMandat({
           Taux %
         </Label>
         {/* Recette 22/08 : le taux est contractuel — il se choisit, pas de
-            valeur glissée en silence. */}
+            valeur glissée en silence. Texte décimal, jamais type="number" : un navigateur non francophone lit
+            « 7,5 » comme 75 (VER-TS-02) ; l'action lit le texte tapé et borne le taux entre 0 et 100. */}
         <Input
           id={`l-taux-${mandatId}`}
           name="taux_honoraires"
-          type="number"
-          step="0.01"
-          min="0"
-          max="100"
+          type="text"
+          inputMode="decimal"
           required
-          placeholder="ex. 7"
+          placeholder="ex. 7,5"
           defaultValue={etat.valeurs?.taux_honoraires}
         />
       </div>

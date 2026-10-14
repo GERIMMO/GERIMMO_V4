@@ -13,6 +13,7 @@
 // et suit, il ne notifie jamais (RM-A3.1).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { lireMontantAvecEspaces } from "@/lib/saisie-montant";
 import {
   Fusion,
   assemblerPage,
@@ -73,8 +74,9 @@ export function congeBailleurDansLesDelais(presentation: string, terme: string, 
 /** Prix saisi (« 245 000 », « 245000,50 ») → nombre positif, sinon null. */
 export function prixDepuisOptions(brut: string | undefined): number | null {
   if (!brut) return null;
-  const n = Number(brut.replace(/[\s\u00a0\u202f€]/g, "").replace(",", "."));
-  return Number.isFinite(n) && n > 0 ? n : null;
+  // Lu comme tous les montants (VER-TS-02) : « 245 000,50 » et « 245000,50 € » restent admis ; « 1e5 » ne vaut plus 100000.
+  const lu = lireMontantAvecEspaces(brut);
+  return "montant" in lu ? lu.montant : null;
 }
 
 const SOUS_TITRES: Record<Motif, string> = {

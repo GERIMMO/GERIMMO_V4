@@ -615,11 +615,13 @@ export async function enregistrerConge(
   // son prix (il vaut offre), un congé pour reprise son bénéficiaire. La base
   // les exige selon le motif ; l'action les transmet.
   if (par === "bailleur") {
-    const prixSaisi = String(formData.get("prix_vente") ?? "").trim().replace(/\s/g, "").replace(",", ".");
-    const prix = prixSaisi ? Number(prixSaisi) : null;
-    if (prix !== null && (!Number.isFinite(prix) || prix <= 0))
+    // Lu sur le texte tel que tapé (« 250000,50 » vaut 250000,5) : stricte comme tous les montants (VER-TS-02). Ni
+    // espace ni point de milliers, ni exposant : `Number("1e5")` valait 100000.
+    const prixLu = lireMontantFacultatif(formData.get("prix_vente"));
+    if ("erreur" in prixLu) return { erreur: erreurDuChamp("Prix de vente proposé", prixLu.erreur), valeurs };
+    if (prixLu.montant !== null && prixLu.montant <= 0)
       return { erreur: "Le prix de vente proposé est invalide.", valeurs };
-    conge.p_prix_vente = prix;
+    conge.p_prix_vente = prixLu.montant;
     conge.p_beneficiaire = String(formData.get("beneficiaire") ?? "").trim() || null;
   }
 
@@ -777,11 +779,29 @@ export async function ajouterBailPersonne(
   if (!personId) return { erreur: "Choisissez la personne.", valeurs };
   if (role !== "colocataire" && role !== "garant") return { erreur: "Rôle invalide.", valeurs };
 
-  const qp = String(formData.get("quote_part") ?? "").trim();
-  const surf = String(formData.get("surface_privative") ?? "").trim();
   const garantDe = String(formData.get("garant_de") ?? "").trim();
   if (role === "garant" && !garantDe) {
     return { erreur: "Indiquez le colocataire couvert par ce garant.", valeurs };
+  }
+  // Quote-part et surface privative d'un colocataire, lues sur le texte tel que tapé (« 33,5 » vaut 33,5) : les
+  // champs sont en `type="text"`, jamais `type="number"` qui donne 335 à un navigateur non francophone (VER-TS-02).
+  // Un texte illisible est refusé : converti en NaN, il serait parti en JSON comme « non renseigné ».
+  let quotePart: number | null = null;
+  let surfacePrivative: number | null = null;
+  if (role === "colocataire") {
+    const qpLue = lireDecimalFacultatif(formData.get("quote_part"));
+    if ("erreur" in qpLue) return { erreur: erreurDuChamp("Quote-part", qpLue.erreur), valeurs };
+    const surfLue = lireDecimalFacultatif(formData.get("surface_privative"));
+    if ("erreur" in surfLue) return { erreur: erreurDuChamp("Surface privative", surfLue.erreur), valeurs };
+    quotePart = qpLue.valeur;
+    surfacePrivative = surfLue.valeur;
+    // Les bornes que le champ numérique portait (min 0,01, max 100) : le serveur les dit, la base les garde aussi.
+    if (quotePart !== null && !(quotePart > 0 && quotePart <= 100)) {
+      return { erreur: "La quote-part doit être comprise entre 0 et 100 %.", valeurs };
+    }
+    if (surfacePrivative !== null && !(surfacePrivative > 0)) {
+      return { erreur: "La surface privative doit être supérieure à zéro.", valeurs };
+    }
   }
 
   const { error } = await supabase.from("bail_personnes").insert({
@@ -789,8 +809,8 @@ export async function ajouterBailPersonne(
     bail_id: bailId,
     person_id: personId,
     role,
-    quote_part: role === "colocataire" && qp ? Number(qp) : null,
-    surface_privative: role === "colocataire" && surf ? Number(surf) : null,
+    quote_part: quotePart,
+    surface_privative: surfacePrivative,
     garant_de: role === "garant" ? garantDe : null,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };

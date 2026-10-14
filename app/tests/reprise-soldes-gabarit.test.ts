@@ -95,6 +95,24 @@ describe("la trésorerie du fichier : seulement ce que l'agence détient", () =>
     ).toBe(100);
   });
 
+  // D04 (1), VER-TS-02 : lu comme tous les montants, jamais par Number() (« 1e3 » valait 1000, « Infinity » un nombre).
+  it.each(["1e3", "0x10", "Infinity", "1.234,50", "12,345", "1,2,3"])(
+    "ignore le montant « %s », que le serveur de saisie refuserait : il ne fausse pas le total proposé",
+    (montant) => {
+      expect(
+        tresorerieDuFichier([
+          { type: "fonds_mandant", montant },
+          { type: "fonds_mandant", montant: "100" },
+        ])
+      ).toBe(100);
+    }
+  );
+
+  it("lit un montant au centime avec l'espace insécable des milliers du tableur", () => {
+    expect(tresorerieDuFichier([{ type: "fonds_mandant", montant: "1\u00a0234,56" }])).toBeCloseTo(1234.56, 2);
+    expect(tresorerieDuFichier([{ type: "fonds_mandant", montant: "1\u202f234.56" }])).toBeCloseTo(1234.56, 2);
+  });
+
   it("ignore un type qu'elle ne connaît pas", () => {
     expect(tresorerieDuFichier([{ type: "caisse_noire", montant: "1000" }])).toBe(0);
   });

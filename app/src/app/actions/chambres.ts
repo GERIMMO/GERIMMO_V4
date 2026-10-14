@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { sansJargon } from "@/lib/erreurs";
-import { lireMontant } from "@/lib/saisie-montant";
+import { erreurDuChamp, lireDecimal, lireMontant } from "@/lib/saisie-montant";
 
 export type EtatChambre = { erreur?: string; succes?: string };
 
@@ -11,10 +11,21 @@ export async function enregistrerChambre(orgId: string, lotId: string, bienId: s
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const texte = (nom: string) => String(form.get(nom) ?? "").trim();
-  const surface = Number(texte("surface_m2"));
-  const volume = Number(texte("volume_m3"));
   if (!texte("nom") || !texte("description") || !texte("espaces_partages")) return { erreur: "Décrivez la chambre et les espaces partagés." };
-  if (!Number.isFinite(surface) || surface < 9 || !Number.isFinite(volume) || volume < 20) return { erreur: "La partie privative doit mesurer au moins 9 m² ET 20 m³, sans compter les espaces partagés." };
+  // Surface et volume lus sur le texte tel que tapé (« 12,5 » vaut 12,5) : les champs sont en `type="text"`, jamais
+  // `type="number"` qui donne 125 à un navigateur non francophone (VER-TS-02). Un champ vide ne passe pas le minimum.
+  const mesure = (champ: string, libelle: string): { valeur: number } | { erreur: string } => {
+    if (texte(champ) === "") return { valeur: 0 };
+    const lu = lireDecimal(texte(champ));
+    return "erreur" in lu ? { erreur: erreurDuChamp(libelle, lu.erreur) } : lu;
+  };
+  const surfaceLue = mesure("surface_m2", "Surface privative");
+  if ("erreur" in surfaceLue) return { erreur: surfaceLue.erreur };
+  const volumeLu = mesure("volume_m3", "Volume privatif");
+  if ("erreur" in volumeLu) return { erreur: volumeLu.erreur };
+  const surface = surfaceLue.valeur;
+  const volume = volumeLu.valeur;
+  if (surface < 9 || volume < 20) return { erreur: "La partie privative doit mesurer au moins 9 m² ET 20 m³, sans compter les espaces partagés." };
   const champs = { nom: texte("nom"), surface_m2: surface, volume_m3: volume, description: texte("description"), espaces_partages: texte("espaces_partages"), equipements: texte("equipements") || null };
   const id = texte("id");
   const requete = id ? supabase.from("lot_chambres").update(champs).eq("id", id).eq("lot_id", lotId).eq("organization_id", orgId)

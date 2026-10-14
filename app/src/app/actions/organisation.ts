@@ -9,6 +9,7 @@ import { couleurValide, domaineValide, emailValide, LOGO_MAX_OCTETS, typeImageLo
 import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { envoyerEmail } from "@/lib/email";
 import { adresseDuSite, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
+import { erreurDuChamp, lireMontantFacultatif } from "@/lib/saisie-montant";
 
 export type EtatProfilOrganisation = {
   erreur?: string;
@@ -86,9 +87,12 @@ export async function modifierProfilOrganisation(
   }
   // Audit gestion du 29/09 : pas de relance pour un reliquat de quelques
   // centimes — seuil de dette totale, 5 € par défaut, 0 à 1 000 €.
-  const seuilSaisi = String(formData.get("relance_seuil_montant") ?? "").trim().replace(",", ".");
-  const seuil = seuilSaisi === "" ? 5 : Number(seuilSaisi);
-  if (!Number.isFinite(seuil) || seuil < 0 || seuil > 1000) {
+  // Lu sur le texte tel que tapé (« 5,50 » vaut 5,5) : champ en `type="text"`, jamais `type="number"` qui donne 550 à un
+  // navigateur non francophone (VER-TS-02). Vide : le seuil par défaut.
+  const seuilLu = lireMontantFacultatif(formData.get("relance_seuil_montant"));
+  if ("erreur" in seuilLu) return { erreur: erreurDuChamp("Seuil de relance", seuilLu.erreur), valeurs };
+  const seuil = seuilLu.montant ?? 5;
+  if (seuil > 1000) {
     return { erreur: "Le seuil de relance doit être un montant entre 0 et 1 000 €.", valeurs };
   }
   const { error, data } = await supabase

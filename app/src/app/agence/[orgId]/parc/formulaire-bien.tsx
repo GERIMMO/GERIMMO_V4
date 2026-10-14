@@ -559,9 +559,8 @@ export function FormulaireBien({
                       id={`${idLot}-surface-${i}`}
                       value={lot.surface}
                       onChange={(e) => majLot(i, "surface", e.target.value)}
-                      type="number"
-                      step="0.01"
-                      min="0.01"
+                      type="text"
+                      inputMode="decimal"
                       required
                       className="w-28"
                       aria-describedby={`${idLot}-surface-aide-${i}`}
@@ -618,9 +617,8 @@ export function FormulaireBien({
                 <Input
                   id="lot-surface"
                   name="surface_m2"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
+                  type="text"
+                  inputMode="decimal"
                   required
                   value={lotUnique.surface}
                   onChange={e => setLotUnique(l => ({...l, surface:e.target.value}))}

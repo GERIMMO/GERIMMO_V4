@@ -168,10 +168,8 @@ export function FormulaireDetention({
             <Input
               id="detention-quote-part"
               name="quote_part"
-              type="number"
-              step="0.01"
-              min="0.01"
-              max="100"
+              type="text"
+              inputMode="decimal"
               required
               placeholder="ex. 50"
               defaultValue={etat.valeurs?.quote_part}

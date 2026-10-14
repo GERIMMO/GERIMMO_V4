@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { LignesDevis } from "../src/app/artisan/lignes-devis";
 import { assemblerDevisArtisan, type DevisArtisanDocument } from "../src/lib/documents/devis-artisan";
 import {
-  calculerDevis, descriptionDevisLisible, erreurPrixSaisi, erreurQuantiteSaisie, libelleQuantite, libelleTauxTva, montantEnCentimes,
+  calculerDevis, descriptionDevisLisible, erreurPrixSaisi, erreurQuantiteSaisie, libelleQuantite, libelleTauxTva, lireQuantite, montantEnCentimes,
 } from "../src/lib/devis-structure";
 
 // ART-11 : quantité et taux de TVA en typographie française (virgule), comme
@@ -58,6 +58,12 @@ describe("ART-12 : erreurs de champ du détail du devis", () => {
     ["abc", /nombre/],
     ["1,2345", /trois décimales/],
     ["2000000", /1 000 000/],
+    // D04 (1), VER-TS-02 : la quantité se lit comme un montant, jamais par Number() (« 1e2 » valait 100).
+    ["1e2", /nombre/],
+    ["0x10", /nombre/],
+    ["Infinity", /nombre/],
+    ["1 5", /nombre/],
+    ["2,5,1", /nombre/],
   ])("quantité %s", (brut, attendu) => {
     expect(erreurQuantiteSaisie(brut)).toMatch(attendu);
   });
@@ -71,7 +77,7 @@ describe("ART-12 : erreurs de champ du détail du devis", () => {
     expect(erreurPrixSaisi(brut)).toMatch(attendu);
   });
 
-  it.each(["1", "2,5", "2.5", "0,125", "1 ", "1e2"])("quantité acceptée %s : aucun message", brut => {
+  it.each(["1", "2,5", "2.5", "0,125", "1 ", "2,500", "1000000"])("quantité acceptée %s : aucun message", brut => {
     expect(erreurQuantiteSaisie(brut)).toBeNull();
   });
   it.each(["0", "58,40", "58.4", "1 234,56 €", "0,00"])("prix accepté %s : aucun message", brut => {
@@ -87,7 +93,7 @@ describe("ART-12 : erreurs de champ du détail du devis", () => {
   // Le message de champ ne doit jamais contredire le calcul : il apparaît
   // exactement quand calculerDevis refuserait la valeur.
   it("reste cohérent avec calculerDevis", () => {
-    const quantites = ["0", "-1", "abc", "1", "2,5", "1,2345", "0,001", "0,0001", "1000000", "1000001", "1e2", "1e-7", "Infinity"];
+    const quantites = ["0", "-1", "abc", "1", "2,5", "1,2345", "0,001", "0,0001", "1000000", "1000001", "1e-7", "Infinity", "2,500"];
     for (const q of quantites) {
       const n = Number(q.replace(",", "."));
       let refuse = false;
@@ -119,5 +125,44 @@ describe("ART-12 : erreurs de champ du détail du devis", () => {
     const bon = rendre("2,5", "58,40");
     expect(bon).not.toContain(`aria-invalid="true"`);
     expect(bon).not.toContain("corrigez les champs");
+  });
+});
+
+// D04 (1), VER-TS-02 : la quantité d'une ligne de devis se lit sur le texte tapé, comme un montant.
+describe("lireQuantite : la quantité telle que tapée", () => {
+  it.each([
+    ["1", 1],
+    ["2,5", 2.5],
+    ["2.5", 2.5],
+    ["2.125", 2.125],
+    [" 3 ", 3],
+    ["2,500", 2.5],
+    ["0,001", 0.001],
+    ["1000000", 1_000_000],
+  ])("« %s » vaut %s", (brut, attendu) => {
+    expect(lireQuantite(brut)).toBe(attendu);
+  });
+
+  it.each(["", " ", "0", "0,000", "-1", "abc", "1e2", "0x10", "Infinity", "NaN", "1 5", "2,5,1", "1,2345", "1000000,001", "1000001", ",5", "5,"])(
+    "« %s » est refusée (null), jamais lue comme un nombre",
+    (brut) => {
+      expect(lireQuantite(brut)).toBeNull();
+    }
+  );
+
+  it("« 2,5 » n'est ni 25 ni 2 500 (la virgule est lue, pas absorbée)", () => {
+    expect(lireQuantite("2,5")).not.toBe(25);
+    expect(lireQuantite("2,5")).toBe(2.5);
+  });
+
+  it("une quantité lue passe toujours calculerDevis, et une quantité refusée ne le passe jamais", () => {
+    for (const brut of ["1", "2,5", "0,125", "999999,999", "1000000"]) {
+      const q = lireQuantite(brut);
+      expect(q, brut).not.toBeNull();
+      expect(() => calculerDevis([{ libelle: "x", quantite: q, prix_unitaire_ht_cents: 100, tva_bps: 0 }])).not.toThrow();
+    }
+    for (const brut of ["1e2", "abc", "0", "1,2345"]) {
+      expect(() => calculerDevis([{ libelle: "x", quantite: lireQuantite(brut) ?? Number.NaN, prix_unitaire_ht_cents: 100, tva_bps: 0 }])).toThrow();
+    }
   });
 });

@@ -35,6 +35,8 @@ import {
   type EtatDecompteSortie,
 } from "@/lib/baux";
 import { ChampFichier } from "@/components/champ-fichier";
+import { CleEnvoi } from "@/components/cle-envoi";
+import { ConfirmationEncaissement } from "@/components/confirmation-encaissement";
 
 // Les modes de règlement qu'une agence rencontre vraiment. « autre » évite de
 // bloquer quelqu'un sur un cas rare.
@@ -361,6 +363,8 @@ export function FormulaireLoyers({
       <div className="space-y-2">
         <p className="text-sm font-medium">Saisir un encaissement</p>
         <form data-saisie-confirmee action={formEnc} className="flex flex-wrap items-end gap-2">
+          {/* D05 : la clé de CET envoi, rejouée telle quelle tant que le serveur n'a pas confirmé l'enregistrement. */}
+          <CleEnvoi etat={etatEnc} />
           <div className="space-y-1">
             <Label htmlFor="enc-montant" className="text-sm">Montant (€)</Label>
             <Input id="enc-montant" name="montant" type="text" inputMode="decimal" defaultValue={etatEnc.valeurs?.montant} className="h-9 w-28" />
@@ -400,6 +404,8 @@ export function FormulaireLoyers({
           <BoutonEnvoi size="sm">
             Encaisser
           </BoutonEnvoi>
+          {/* D04 (2) : un montant très supérieur au dû n'est pas enregistré tant qu'il n'est pas confirmé. */}
+          <ConfirmationEncaissement confirmation={etatEnc.confirmation} idChampMontant="enc-montant" />
           {etatEnc.erreur && <p className="w-full text-sm text-destructive">{etatEnc.erreur}</p>}
           {/* Le compte rendu : sur quel terme l'argent est allé (le plus ancien
               d'abord, RM-3.3.2) et ce que chacun a produit — quittance au solde,

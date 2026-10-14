@@ -67,6 +67,33 @@ export function lireMontantFacultatif(brut: FormDataEntryValue | null): { montan
   return lireMontant(texte);
 }
 
+/**
+ * Un montant saisi dans une zone de texte qui sert à produire un DOCUMENT (le prix d'un congé pour vente, le plafond
+ * d'une caution) : « 245 000,50 » et « 245000,50 € » y étaient admis, les espaces (y compris insécables) et le symbole
+ * « € » sont donc retirés avant la lecture. Le reste est lu comme `lireMontant` : ni exposant (« 1e5 » valait 100000),
+ * ni point de milliers, au centime près.
+ */
+export function lireMontantAvecEspaces(brut: FormDataEntryValue | string | null | undefined): MontantLu {
+  return lireMontant(String(brut ?? "").replace(/[\s  €]/g, ""));
+}
+
+/**
+ * Un montant qui peut être négatif ou nul (la trésorerie reprise d'une agence peut être à découvert). Mêmes règles que
+ * `lireMontant` pour le reste : virgule ou point, au centime près, ni espace ni point de milliers, ni exposant. Vide ou
+ * absent est refusé, jamais lu « 0 » (c'est ce que faisait `Number("")`).
+ */
+export function lireMontantSigne(brut: FormDataEntryValue | null): MontantLu {
+  const texte = String(brut ?? "").trim().replace(",", ".");
+  if (/^-?\d+(\.\d{1,2})?$/.test(texte)) {
+    const montant = Number(texte);
+    if (Math.abs(montant) > MONTANT_MAX) return { erreur: "Montant trop élevé : vérifiez la saisie." };
+    // « -0 » est un zéro : il ne sort pas de cette fonction avec un signe.
+    return { montant: montant === 0 ? 0 : montant };
+  }
+  if (/^-?\d+\.\d{3,}$/.test(texte)) return { erreur: "Le montant s'exprime au centime près : deux décimales au plus." };
+  return { erreur: MESSAGE_MONTANT_INVALIDE };
+}
+
 export type DecimalLu = { valeur: number } | { erreur: string };
 
 /**

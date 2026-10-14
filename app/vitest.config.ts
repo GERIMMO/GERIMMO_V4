@@ -1,5 +1,33 @@
 import path from "node:path";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
+
+/**
+ * Fichiers qui ont besoin de la base de test POUR EUX SEULS : ils tournent après tous les autres, un fichier à la fois.
+ *
+ * Les tests adossés à la base partagent une seule base locale, et vitest lance plusieurs fichiers en même temps. Trois
+ * situations ne supportent pas ce voisinage (constat de relecture du 14/10/2026, boucle de 40 passes : 3 échecs de
+ * reprise-comptable.test.ts, 1 blocage mutuel de correctifs-audit.test.ts) :
+ *  - une fixture VALIDÉE (deux sessions ne se voient qu'après un commit) reste visible de toutes les sessions pendant
+ *    l'essai, et fait échouer les tests qui comptent « toute la table » (reprise-comptable.test.ts compte les dépôts) ;
+ *  - un DDL tenu pendant tout le fichier (rejeu de migration, `create trigger` d'essai) pose un verrou de table qui se
+ *    croise avec les écritures des autres fichiers : blocage mutuel (`deadlock detected`), la base tue l'un des deux ;
+ *  - les deux à la fois.
+ *
+ * La CI (`npm test -- --maxWorkers=1`) lance déjà tout en série : ce classement ne change rien pour elle. Il protège
+ * `npm test` en local. Le test `tests/execution-en-serie.test.ts` garde cette liste cohérente avec les fichiers.
+ */
+export const FICHIERS_EN_SERIE = [
+  // Fixtures validées (concurrence entre deux sessions) + rejeu des migrations (DDL tenu pendant le fichier).
+  "tests/cle-envoi-encaissements.test.ts",
+  // Fixture validée (deux envois simultanés de la même clé).
+  "tests/encaissement-cle-envoi-action.test.ts",
+  // `create trigger` sur biens, persons, detentions, lots : verrou de table tenu pendant tout le fichier, en blocage
+  // mutuel avec les écritures de correctifs-audit.test.ts (reproduit le 14/10 avec ces deux seuls fichiers).
+  "tests/creation-bien-reprise.test.ts",
+  // Fixture validée qui encaisse un dépôt (encaisser_depot) : une ligne de depot_encaissements visible ~160 ms de toutes
+  // les sessions, mesurée le 14/10 ; même effet sur reprise-comptable.test.ts que les fixtures du lot « encaissement ».
+  "tests/restitution-impayes.test.ts",
+];
 
 export default defineConfig({
   resolve: {
@@ -13,8 +41,29 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["tests/**/*.test.ts"],
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    // `include` se pose dans chaque projet, jamais ici : un `include` de la racine s'ajouterait à celui des projets
+    // et ferait rejouer toute la suite dans le groupe en série.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "parallele",
+          include: ["tests/**/*.test.ts"],
+          exclude: [...configDefaults.exclude, ...FICHIERS_EN_SERIE],
+          sequence: { groupOrder: 1 },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "serie",
+          include: FICHIERS_EN_SERIE,
+          fileParallelism: false,
+          sequence: { groupOrder: 2 },
+        },
+      },
+    ],
   },
 });

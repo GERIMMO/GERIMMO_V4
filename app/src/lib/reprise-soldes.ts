@@ -7,6 +7,7 @@
 // pour qui, et qui détient l'argent.
 
 import { gabarit, lire, type Colonne, type LectureCsv, type LigneCsv } from "@/lib/csv";
+import { lireMontantSigne } from "@/lib/saisie-montant";
 
 export type LigneSolde = LigneCsv;
 export type { LectureCsv };
@@ -60,8 +61,11 @@ export function lireCsv(contenu: string): LectureCsv {
 export function tresorerieDuFichier(lignes: LigneSolde[]): number {
   return lignes.reduce((total, l) => {
     const type = (l.type ?? "").trim().toLowerCase();
-    const montant = Number((l.montant ?? "").replace(/\s/g, "").replace(",", "."));
-    if (!Number.isFinite(montant)) return total;
+    // Lu comme tous les montants (D04 (1), VER-TS-02) : virgule ou point, deux décimales au plus, signe admis (une dette),
+    // ni exposant ni « Infinity ». Les espaces du tableur (« 1 234,56 ») sont retirés ; une ligne illisible est ignorée.
+    const lu = lireMontantSigne((l.montant ?? "").replace(/[\s\u00a0\u202f]/g, ""));
+    if ("erreur" in lu) return total;
+    const montant = lu.montant;
     const detenteur = (l.detenteur ?? "").trim().toLowerCase();
     if (type === "depot_garantie") return detenteur === "agence" ? total + montant : total;
     if (type === "solde_locataire") return montant > 0 ? total + montant : total;

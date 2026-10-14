@@ -122,9 +122,11 @@ function ChoisirPersonne({ orgId, bailId, role, personnes, principalId, couvrabl
   </form>;
 }
 
-export function PersonnesBail({ orgId, bailId, personnes, detentions, participants, principalId, personneConnecteeId, colocation, proprietairesHref }: {
+export function PersonnesBail({ orgId, bailId, personnes, detentions, participants, principalId, personneConnecteeId, colocation, proprietairesHref, conseils = null }: {
   orgId: string; bailId: string; personnes: PersonneBail[]; detentions: DetentionBail[]; participants: ParticipantBail[];
   principalId: string | null; personneConnecteeId: string | null; colocation: boolean; proprietairesHref: string;
+  /** Les conseils pour choisir son locataire, déjà rendus côté serveur : posés sous le titre de la section, avant le choix. */
+  conseils?: ReactNode;
 }) {
   const router = useRouter();
   const notifier = useContext(SuiviEnregistrement);
@@ -181,6 +183,7 @@ export function PersonnesBail({ orgId, bailId, personnes, detentions, participan
     </section>
     <section className="bail-personnes-section bail-personnes-locataires" aria-labelledby="titre-locataires-bail">
       <div className="bail-personnes-entete"><span className="bail-personnes-icone"><Users size={19} /></span><div><h3 id="titre-locataires-bail">Locataire{colocation ? "s" : ""}</h3><p>Choisissez dans « Locataires & garants » ou créez une nouvelle fiche.</p></div></div>
+      {conseils}
       {principalId ? carte(principalId, "Locataire principal") : <p className="text-sm text-muted-foreground"><PastilleBail manquant/> Choisissez le locataire de ce bail.</p>}
       {participants.filter(p => p.role === "colocataire").map(p => carte(p.person_id, "Colocataire", false, p))}
       {ouvert !== "principal" && <Button type="button" variant="outline" onClick={() => setOuvert("principal")}>{principalId ? "Changer de locataire" : "Choisir un locataire"}</Button>}

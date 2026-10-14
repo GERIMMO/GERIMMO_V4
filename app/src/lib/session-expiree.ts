@@ -27,3 +27,15 @@ export async function sessionExpiree(adresse: string | undefined = globalThis.lo
 export async function messageApresEchec(messageHabituel: string): Promise<string> {
   return (await sessionExpiree()) ? MESSAGE_SESSION_EXPIREE : messageHabituel;
 }
+
+/**
+ * Retire d'un bilan mémorisé le message « session expirée » (audit du 13/10, VER-PR178-04). Ce message dit « reconnectez-vous,
+ * puis revenez ici » : le relire à la reprise, une fois la personne reconnectée (la page ne s'ouvre que session ouverte), ment sur
+ * l'état présent. Les autres messages (création incertaine, justificatif non confirmé) sont des faits sur les données : conservés.
+ */
+export function sansMessageSessionExpiree<T extends { erreur?: string }>(bilan: T): T {
+  if (bilan.erreur !== MESSAGE_SESSION_EXPIREE) return bilan;
+  const { erreur: _erreur, ...reste } = bilan;
+  void _erreur;
+  return reste as T;
+}

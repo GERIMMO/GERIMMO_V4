@@ -67,6 +67,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
                 initiales={(courriel[0] ?? "◇").toUpperCase()}
                 titre={courriel || "Mon compte"}
                 liens={[{ href: "/compte", libelle: "Sécurité du compte" }]}
+                compteId={utilisateur.user?.id}
               />
             </div>
           </div>

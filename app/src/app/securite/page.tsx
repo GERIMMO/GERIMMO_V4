@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { seDeconnecter } from '@/app/actions/auth';
-import { PurgerCopiesALaDeconnexion } from "@/components/purger-copies-a-la-deconnexion";
+import { PurgerCopiesAutresComptes } from "@/components/purger-copies-autres-comptes";
 import { MarqueGerimmo } from '@/components/marque-gerimmo';
 import { FormulaireMfa } from './formulaire-mfa';
 import { destinationApresMfa } from '@/lib/mfa';
@@ -21,7 +21,7 @@ export default async function PageSecurite({ searchParams }: PageProps<'/securit
   if (!adhesion) redirect('/espaces');
   const params = await searchParams;
   return <main className="mx-auto w-full max-w-xl px-5 py-10 sm:py-16">
-    <div className="mb-10 flex items-center justify-between"><MarqueGerimmo /><form data-saisie-libre action={seDeconnecter}><PurgerCopiesALaDeconnexion /><button type="submit" className="lien-discret text-sm">Se déconnecter</button></form></div>
+    <div className="mb-10 flex items-center justify-between"><MarqueGerimmo /><PurgerCopiesAutresComptes compteId={user.id} /><form data-saisie-libre action={seDeconnecter}><button type="submit" className="lien-discret text-sm">Se déconnecter</button></form></div>
     {/* Le titre ne prétend plus qu'un code « est requis » quand la session est
         déjà vérifiée (audit 25/09, C24) : la carte dessous dit l'état réel. */}
     <p className="eyebrow">Protection du compte</p>

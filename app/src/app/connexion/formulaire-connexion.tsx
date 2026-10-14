@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { destinationSure } from "@/lib/destination-sure";
 import { CLE_SESSION_ALERTES } from "@/components/synthese-alertes";
+import { oublierSession } from "@/lib/stockage-session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,7 +74,7 @@ export function FormulaireConnexion() {
   // la synthèse d'alertes déjà vue, sinon une reconnexion dans le même onglet
   // ne la rouvrirait jamais (le sessionStorage survit à la déconnexion).
   useEffect(() => {
-    sessionStorage.removeItem(CLE_SESSION_ALERTES);
+    oublierSession(CLE_SESSION_ALERTES);
   }, []);
 
   async function seConnecter(e: React.FormEvent) {

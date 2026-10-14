@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sansMessageSessionExpiree } from "./session-expiree";
 const fichier = z.custom<File>(v => typeof File !== "undefined" && v instanceof File && v.size <= 10 * 1024 * 1024);
 const court = z.string().max(2000);
 const resultat = z.object({ succes: court.optional(), erreur: court.optional(), avertissement: court.optional(), incertain: z.boolean().optional() });
@@ -14,8 +15,9 @@ const schemaIncident = z.object({
 });
 export type BrouillonPersonne = z.infer<typeof schemaPersonne>;
 export type BrouillonIncident = z.infer<typeof schemaIncident>;
-export function validerBrouillonPersonne(donnees: unknown): BrouillonPersonne | null { const r = schemaPersonne.safeParse(donnees); return r.success ? r.data : null; }
-export function validerBrouillonIncident(donnees: unknown): BrouillonIncident | null { const r = schemaIncident.safeParse(donnees); return r.success ? r.data : null; }
+// Reprendre une copie, c'est être de nouveau connecté : le message « session expirée » qu'elle porte est périmé (VER-PR178-04).
+export function validerBrouillonPersonne(donnees: unknown): BrouillonPersonne | null { const r = schemaPersonne.safeParse(donnees); return r.success ? { ...r.data, bilan: sansMessageSessionExpiree(r.data.bilan) } : null; }
+export function validerBrouillonIncident(donnees: unknown): BrouillonIncident | null { const r = schemaIncident.safeParse(donnees); return r.success ? { ...r.data, bilan: sansMessageSessionExpiree(r.data.bilan) } : null; }
 export function declarationDuBrouillon(b: BrouillonIncident): FormData {
   const f = new FormData();
   for (const nom of ["commande", "categorie", "piece", "description", "anciennete", "urgence"] as const) f.set(nom, b[nom]);

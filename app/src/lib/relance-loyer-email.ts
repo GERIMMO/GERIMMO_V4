@@ -10,6 +10,7 @@
 // gestionnaire qui prévient, pas d'un créancier qui réclame ; et chacun dit
 // où régler et à qui écrire en cas de difficulté.
 import { eur, formaterDate } from "@/lib/ged";
+import { deElide, particuleDe } from "@/lib/elision";
 import { echapperHtml, moisDeLaPeriode } from "@/lib/quittance-email";
 
 export type NiveauRelanceAuto = "relance_1" | "relance_2";
@@ -56,7 +57,7 @@ export function corpsInformationCaution(c: InformationCaution): string {
     <div style="font-family:sans-serif;font-size:14px;color:#111">
       <h2>Information de la caution</h2>
       <p>Madame, Monsieur,</p>
-      <p>En votre qualité de caution, nous vous informons que ${qui} n’a pas réglé le loyer de <strong>${mois}</strong>
+      <p>En votre qualité de caution, nous vous informons que ${qui} n’a pas réglé le loyer ${particuleDe(mois)}<strong>${mois}</strong>
         (échéance du ${formaterDate(c.dateEcheance)}) pour ${echapperHtml(c.lot)}, malgré une première relance.</p>
       <p>À ce jour, <strong>${eur(c.totalDu)}</strong> restent dus sur le bail, tous termes échus confondus.</p>
       <p>Ce message vous informe de l’incident de paiement ; il ne vous demande aucun règlement à ce stade.
@@ -68,14 +69,14 @@ export function corpsInformationCaution(c: InformationCaution): string {
 export function sujetRelanceLoyer(r: Pick<RelanceLoyer, "niveau" | "periode">): string {
   const mois = moisDeLaPeriode(r.periode);
   return r.niveau === "relance_1"
-    ? `Loyer de ${mois} — un règlement semble en attente`
-    : `Seconde relance — loyer de ${mois} toujours en attente`;
+    ? `Loyer ${deElide(mois)} — un règlement semble en attente`
+    : `Seconde relance — loyer ${deElide(mois)} toujours en attente`;
 }
 
 export function corpsRelanceLoyer(r: RelanceLoyer): string {
   const mois = moisDeLaPeriode(r.periode);
   const salut = `<p>Bonjour${r.prenom ? " " + echapperHtml(r.prenom) : ""},</p>`;
-  const constat = `<p>Sauf erreur de notre part, le loyer de <strong>${mois}</strong> (échéance du ${formaterDate(
+  const constat = `<p>Sauf erreur de notre part, le loyer ${particuleDe(mois)}<strong>${mois}</strong> (échéance du ${formaterDate(
     r.dateEcheance
   )}) pour ${echapperHtml(r.lot)} reste dû à hauteur de <strong>${eur(r.reste)}</strong>.</p>${
     // Audit du 27/09 : la relance dit la dette entière, comme l'avis

@@ -158,7 +158,7 @@ export default async function LayoutArtisan({
               <LienAssistance className={styles.help} title="Aide et retours">
                 <CircleHelp size={19} aria-hidden /><span>Aide</span>
               </LienAssistance>
-              <MenuCompte initiales={initiales} titre={nom} liens={compteLiens} />
+              <MenuCompte initiales={initiales} titre={nom} liens={compteLiens} compteId={user.id} />
             </div>
           </header>
           {enAttente && (

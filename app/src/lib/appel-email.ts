@@ -10,6 +10,7 @@
 // engage un circuit). Le vocabulaire les sépare, parce que le droit les sépare.
 
 import { eur } from "@/lib/ged";
+import { particuleDe } from "@/lib/elision";
 import { echapperHtml, moisDeLaPeriode } from "@/lib/quittance-email";
 
 export type AvisEcheance = {
@@ -62,7 +63,7 @@ export function corpsAvisEcheance(a: AvisEcheance): string {
     <div style="font-family:sans-serif;font-size:14px;color:#151b2b">
       <h2 style="color:#0f2352">Avis d'échéance — ${mois}</h2>
       <p>Bonjour${a.prenom ? " " + echapperHtml(a.prenom) : ""},</p>
-      <p>Voici le détail de votre échéance de <strong>${mois}</strong>,
+      <p>Voici le détail de votre échéance ${particuleDe(mois)}<strong>${mois}</strong>,
          à régler pour le <strong>${jourDeLEcheance(a.dateEcheance)}</strong> :</p>
       <ul>
         <li>Loyer hors charges : ${eur(a.loyerHc)}</li>

@@ -7,6 +7,7 @@
 // l'agence a cliqué ou non ne s'expliquent pas.
 
 import { eur } from "@/lib/ged";
+import { particuleDe } from "@/lib/elision";
 
 /**
  * Toute valeur SAISIE (prénom, nom de lot, émetteur…) interpolée dans le HTML
@@ -62,7 +63,7 @@ export function corpsQuittance(q: Quittance): string {
     <div style="font-family:sans-serif;font-size:14px;color:#111">
       <h2>${titre} — ${mois}</h2>
       <p>Bonjour${q.prenom ? " " + echapperHtml(q.prenom) : ""},</p>
-      <p>Veuillez trouver votre ${titre.toLowerCase()} de <strong>${mois}</strong> :</p>
+      <p>Veuillez trouver votre ${titre.toLowerCase()} ${particuleDe(mois)}<strong>${mois}</strong> :</p>
       <ul>
         <li>Loyer hors charges : ${eur(q.loyerHc)}</li>
         <li>Provision pour charges : ${eur(q.charges)}</li>

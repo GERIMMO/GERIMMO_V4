@@ -6,6 +6,7 @@
  *  · DES-A-09 : la règle qui boucle Tab dans le tiroir « Menu » (fonction pure) ;
  *  · DES-A-14 : les initiales mises à la place du nom tronqué dans le rail ;
  *  · DES-A-04 : la liste de définitions des chiffres clés d'un bien est bien formée ;
+ *  · DES-B-01, ARC-05 : les cartes de l'artisan ne poussent plus la page à 448 px dans 390 ;
  *  · DES-A-01, DES-B-02, DES-A-13, DES-A-05 : le contrat de la feuille de style
  *    (le texte de la règle, pas son rendu).
  */
@@ -142,6 +143,21 @@ describe("feuilles de style — barres fixes, rail de tablette", () => {
     const taille = /\.loc-menu \.lib\s*\{[^}]*font-size:\s*([\d.]+)px/.exec(bande);
     expect(taille).not.toBeNull();
     expect(Number(taille![1])).toBeGreaterThanOrEqual(10.5);
+  });
+
+  it("DES-B-01 / ARC-05 : la piste des listes de cartes de l'artisan et de la page d'un devis ne s'élargit plus avec un nom long", () => {
+    const portail = readFileSync(path.join(__dirname, "../src/app/artisan/portail-artisan.module.css"), "utf8");
+    // la règle de base, avant le @media (min-width: 700px) qui passe la liste à deux colonnes
+    const base = portail.slice(0, portail.indexOf("@media"));
+    expect(base).toMatch(/\.content :global\(\.artisan-liste\) \{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    const devis = readFileSync(path.join(__dirname, "../src/app/artisan/devis/[sollicitationId]/devis.module.css"), "utf8");
+    expect(devis).toMatch(/^\.page \{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/m);
+  });
+
+  it("DES-A-04 : les chiffres clés d'un bien ne sont plus en flex à deux étages (l'icône est dans le <dt>)", () => {
+    expect(globals).not.toMatch(/\.bien-visuel-chiffres > div \{[^}]*display:\s*flex/);
+    expect(globals).toMatch(/\.bien-visuel-chiffres dt \{[^}]*position:\s*relative/);
+    expect(globals).toMatch(/\.bien-visuel-chiffres svg \{[^}]*position:\s*absolute/);
   });
 
   it("rails propriétaire et locataire : même largeur (76 px) et mêmes marges de libellé", () => {

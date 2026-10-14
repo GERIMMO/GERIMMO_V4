@@ -30,6 +30,7 @@ import {
   liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
+import { deElide } from "@/lib/elision";
 
 type Retenue = {
   libelle: string;
@@ -208,7 +209,7 @@ export async function assemblerDecompteRestitution(
             [{ libelle: "Période" }, { libelle: "Montant", droite: true }],
             [
               ...termesDus.map((t) => [
-                `Terme de ${echapper(moisLong(t.periode))} — reste dû`,
+                `Terme ${echapper(deElide(moisLong(t.periode)))} — reste dû`,
                 eur(Number(t.montant_du) - Number(t.montant_couvert)),
               ]),
               ...soldesRegul.map((r) => [

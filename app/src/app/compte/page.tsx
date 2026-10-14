@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { seDeconnecter } from "@/app/actions/auth";
-import { PurgerCopiesALaDeconnexion } from "@/components/purger-copies-a-la-deconnexion";
+import { PurgerCopiesAutresComptes } from "@/components/purger-copies-autres-comptes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { MarqueOrganisation } from "@/components/marque-organisation";
 import { nomMarque, styleMarque, type MarqueOrganisation as Marque } from "@/lib/marque-organisation";
@@ -124,7 +124,8 @@ export default async function PageCompte() {
                 Mes espaces
               </Link>
             )}
-            <form data-saisie-libre action={seDeconnecter}><PurgerCopiesALaDeconnexion />
+            <PurgerCopiesAutresComptes compteId={user.id} />
+            <form data-saisie-libre action={seDeconnecter}>
               <button type="submit" className="lien-bandeau whitespace-nowrap">
                 Se déconnecter
               </button>

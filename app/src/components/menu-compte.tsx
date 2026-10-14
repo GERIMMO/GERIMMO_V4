@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { seDeconnecter } from "@/app/actions/auth";
-import { PurgerCopiesALaDeconnexion } from "@/components/purger-copies-a-la-deconnexion";
+import { PurgerCopiesAutresComptes } from "@/components/purger-copies-autres-comptes";
 
 // LE MENU DU COMPTE — demande de l'humain, 12/09.
 //
@@ -27,6 +27,7 @@ export function MenuCompte({
   titre,
   sousTitre,
   liens,
+  compteId,
 }: {
   initiales: string;
   /** Le nom affiché à côté de l'avatar, et en tête du menu. */
@@ -34,6 +35,8 @@ export function MenuCompte({
   /** Le rôle, ou l'espace : « Admin d'agence », « Locataire »… */
   sousTitre?: string;
   liens: { href: string; libelle: string }[];
+  /** Le compte connecté : à l'arrivée sur la page, les copies de saisie d'un autre compte sont effacées (VER-PR178-02). */
+  compteId?: string;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const conteneur = useRef<HTMLDivElement>(null);
@@ -64,6 +67,7 @@ export function MenuCompte({
 
   return (
     <div className="menu-compte" ref={conteneur}>
+      {compteId && <PurgerCopiesAutresComptes compteId={compteId} />}
       <button
         ref={bouton}
         type="button"
@@ -105,7 +109,7 @@ export function MenuCompte({
           ))}
           {/* La déconnexion reste une ACTION serveur, pas un lien : elle révoque
               la session côté Supabase avant de renvoyer à l'accueil. */}
-          <form data-saisie-libre action={seDeconnecter}><PurgerCopiesALaDeconnexion />
+          <form data-saisie-libre action={seDeconnecter}>
             <button type="submit" role="menuitem" className="menu-compte-sortir">
               Se déconnecter
             </button>

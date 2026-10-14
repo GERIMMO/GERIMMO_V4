@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { CoquilleAuth } from "@/components/coquille-auth";
 import { FormulaireConnexion } from "./formulaire-connexion";
+import { PurgerCopiesALaDeconnexion } from "@/components/purger-copies-a-la-deconnexion";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 export const metadata = metadonneesPubliques({
@@ -21,6 +22,7 @@ export default function PageConnexion() {
       chapo="Propriétaire, locataire ou artisan : la même adresse e-mail ouvre votre espace."
     >
       <Suspense>
+        <PurgerCopiesALaDeconnexion />
         <FormulaireConnexion />
       </Suspense>
     </CoquilleAuth>

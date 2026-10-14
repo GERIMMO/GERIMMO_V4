@@ -51,9 +51,11 @@ describe("purge", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("à la déconnexion : toutes les copies de saisie partent, rien d'autre", () => {
+  it("à la déconnexion : toutes les copies de saisie partent (dont la quittance de l'outil public), rien d'autre", () => {
     purgerCopiesLocales();
-    expect([...local.map.keys()].sort()).toEqual(["gerimmo-edl-brouillon-42", "gerimmo_quittance", "theme"]);
+    // Le brouillon d'état des lieux reste : c'est la copie de travail hors ligne de l'agent (RM-19.1.1, 19.1.2, 19.1.6),
+    // dont l'effacement à la déconnexion détruirait des relevés jamais envoyés. À trancher (VER-SECURITE-01).
+    expect([...local.map.keys()].sort()).toEqual(["gerimmo-edl-brouillon-42", "theme"]);
     expect([...session.map.keys()]).toEqual(["autre"]);
     expect(supprimees).toEqual(["gerimmo-reprises"]);
   });

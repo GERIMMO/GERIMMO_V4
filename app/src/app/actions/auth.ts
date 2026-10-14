@@ -1,6 +1,7 @@
 "use server";
 
 import { destinationSure } from "@/lib/destination-sure";
+import { RAISON_DECONNEXION } from "@/lib/copies-locales";
 
 import { CONDITIONS_VERSION } from "@/lib/editeur";
 import { sansJargon } from "@/lib/erreurs";
@@ -27,7 +28,10 @@ export async function seDeconnecter() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   (await cookies()).delete(ACTIVITY_COOKIE);
-  redirect("/connexion");
+  // Audit du 13/10 (VER-PR178-05) : les copies de saisie gardées sur l'appareil s'effacent à l'ARRIVÉE sur cette adresse
+  // (PurgerCopiesALaDeconnexion), donc seulement une fois la session fermée. Si la déconnexion échoue (hors ligne), la
+  // personne reste connectée et garde sa copie ; un utilisateur encore connecté est renvoyé de /connexion par le proxy.
+  redirect(`/connexion?raison=${RAISON_DECONNEXION}`);
 }
 
 // ============================================================

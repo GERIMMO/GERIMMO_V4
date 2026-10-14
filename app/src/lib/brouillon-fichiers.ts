@@ -1,8 +1,8 @@
-import { compteDeLaCle } from "./copies-locales";
+import { BASE_COPIES_FICHIERS, compteDeLaCle, DUREE_COPIES_LOCALES_MS } from "./copies-locales";
 
 /** Copies sur cet appareil uniquement. Les File sont conservés tels quels par
  * IndexedDB : aucune nouvelle compression à la reprise, donc mêmes empreintes. */
-export const DUREE_COPIE_FICHIERS = 7 * 24 * 60 * 60 * 1000;
+export const DUREE_COPIE_FICHIERS = DUREE_COPIES_LOCALES_MS;
 export type CopieFichiers<T> = { revision: string; date: number; donnees: T };
 export function cleCopieFichiers(type: 'personne' | 'incident', compte: string, org: string) {
   return ["gerimmo", type, "v1", compte, org].map(encodeURIComponent).join(":");
@@ -13,10 +13,20 @@ export function copieRecente(copie: unknown, maintenant = Date.now()): copie is 
   return typeof c.revision === "string" && typeof c.date === "number" && Number.isFinite(c.date)
     && c.date <= maintenant + 60_000 && maintenant - c.date <= DUREE_COPIE_FICHIERS && "donnees" in c;
 }
+/**
+ * Vrai si cette copie doit disparaître : périmée, illisible, ou écrite par un autre compte que `compteCourant`
+ * (audit du 13/10, PR178-A-01 : sur un appareil partagé, la copie d'un compte ne doit pas rester pour le suivant).
+ * Une clé qui n'a pas la forme d'une copie n'a pas de compte : seule sa péremption la juge.
+ */
+export function copieObsolete(cle: IDBValidKey, valeur: unknown, compteCourant: string | null, maintenant = Date.now()): boolean {
+  const proprietaire = typeof cle === "string" ? compteDeLaCle(cle) : null;
+  const autreCompte = compteCourant !== null && proprietaire !== null && proprietaire !== compteCourant;
+  return autreCompte || !copieRecente(valeur, maintenant);
+}
 export class ConflitCopieLocale extends Error {}
 async function ouvrir(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const demande = indexedDB.open("gerimmo-reprises", 1);
+    const demande = indexedDB.open(BASE_COPIES_FICHIERS, 1);
     demande.onupgradeneeded = () => demande.result.createObjectStore("copies");
     demande.onerror = () => reject(demande.error);
     demande.onblocked = () => reject(new Error("Stockage occupé"));
@@ -29,16 +39,13 @@ export async function lireCopieFichiers(cle: string): Promise<CopieFichiers<unkn
     return await new Promise((resolve, reject) => {
       const transaction = db.transaction("copies", "readwrite"), copies = transaction.objectStore("copies");
       let resultat: CopieFichiers<unknown> | null = null;
-      // Purge à la prochaine utilisation : les copies périmées, et celles des AUTRES comptes (audit du 13/10, PR178-A-01 :
-      // sur un appareil partagé, la copie d'un compte ne doit pas rester pour le suivant).
+      // Purge à la prochaine utilisation : les copies périmées, et celles des AUTRES comptes.
       const compteCourant = compteDeLaCle(cle);
       const curseur = copies.openCursor();
       curseur.onsuccess = () => {
         const c = curseur.result;
         if (!c) return;
-        const proprietaire = typeof c.key === "string" ? compteDeLaCle(c.key) : null;
-        const autreCompte = compteCourant !== null && proprietaire !== null && proprietaire !== compteCourant;
-        if (!copieRecente(c.value) || autreCompte) c.delete();
+        if (copieObsolete(c.key, c.value, compteCourant)) c.delete();
         else if (c.key === cle) resultat = c.value;
         c.continue();
       };
@@ -68,4 +75,39 @@ export async function modifierCopieFichiers<T>(cle: string, attendue: string | n
       transaction.onerror = () => reject(transaction.error);
     });
   } finally { db.close(); }
+}
+
+/**
+ * À l'arrivée sur une page connectée : efface d'IndexedDB les copies périmées et celles des autres comptes (audit du
+ * 13/10, VER-PR178-02 : après une session expirée puis un autre compte, elles restaient jusqu'à l'ouverture de la fiche
+ * personne). Ne crée jamais la base : si elle n'existe pas, l'ouverture est annulée dans sa mise à niveau. Au mieux :
+ * jamais d'erreur, la personne n'attend rien.
+ */
+export async function purgerCopiesFichiersObsoletes(compteCourant: string): Promise<void> {
+  if (typeof indexedDB === "undefined") return;
+  try {
+    const db = await new Promise<IDBDatabase | null>(resolve => {
+      const demande = indexedDB.open(BASE_COPIES_FICHIERS, 1);
+      demande.onupgradeneeded = () => demande.transaction?.abort();
+      demande.onerror = event => { event.preventDefault(); resolve(null); };
+      demande.onblocked = () => resolve(null);
+      demande.onsuccess = () => resolve(demande.result);
+    });
+    if (!db) return;
+    try {
+      await new Promise<void>(resolve => {
+        const transaction = db.transaction("copies", "readwrite");
+        const curseur = transaction.objectStore("copies").openCursor();
+        curseur.onsuccess = () => {
+          const c = curseur.result;
+          if (!c) return;
+          if (copieObsolete(c.key, c.value, compteCourant)) c.delete();
+          c.continue();
+        };
+        transaction.oncomplete = () => resolve();
+        transaction.onabort = () => resolve();
+        transaction.onerror = () => resolve();
+      });
+    } finally { db.close(); }
+  } catch { /* stockage refusé ou indisponible : rien à effacer */ }
 }

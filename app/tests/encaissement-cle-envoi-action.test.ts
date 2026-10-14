@@ -18,6 +18,7 @@ import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
 import { clientSurPg, typesCommePostgrest } from "./fixtures/supabase-sur-pg";
+import { supprimerOrganisationDeTest } from "./fixtures/nettoyer-organisation";
 
 config({ path: ".env.local" });
 const url = process.env.SUPABASE_DB_URL;
@@ -459,7 +460,10 @@ describe.skipIf(!url)("Actions d'encaissement — deux envois simultanés de la 
     banc.utilisateur = f.user;
   });
   afterAll(async () => {
-    await Promise.all([admin?.end(), ...(sessions ?? []).map((s) => s.end())]);
+    // Les sessions de travail se ferment d'abord, puis la fixture validée est retirée de la base partagée.
+    await Promise.all((sessions ?? []).map((s) => s.end()));
+    await supprimerOrganisationDeTest(admin, f?.org, f ? [f.user] : []);
+    await admin?.end();
   });
   beforeEach(() => {
     banc.clients = sessions.map((s) => clientSurPg(s, { transactionnel: false }));

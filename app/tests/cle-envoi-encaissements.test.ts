@@ -16,6 +16,7 @@ import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
+import { supprimerOrganisationDeTest } from "./fixtures/nettoyer-organisation";
 
 config({ path: ".env.local" });
 const url = process.env.SUPABASE_DB_URL;
@@ -296,7 +297,12 @@ describe.skipIf(!url)("Clé d'envoi — deux sessions simultanées, même clé (
     await agir(a, f.user);
     await agir(b, f.user);
   });
-  afterAll(async () => { await Promise.all([admin?.end(), a?.end(), b?.end(), observateur?.end()]); });
+  afterAll(async () => {
+    // Les sessions de travail se ferment d'abord (rôle, transaction ouverte), puis la fixture validée est retirée.
+    await Promise.all([a?.end(), b?.end(), observateur?.end()]);
+    await supprimerOrganisationDeTest(admin, f?.org, f ? [f.user, f.autre] : []);
+    await admin?.end();
+  });
 
   /** Joue `sql` dans deux transactions croisées : A écrit, B attend sur le verrou, A valide, B est refusée. */
   async function croiser(sql: string, args: unknown[]) {

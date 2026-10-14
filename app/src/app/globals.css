@@ -1443,16 +1443,27 @@ p a {
 }
 
 /* Bande tablette 641-860 px : le rail vertical passait en icônes seules —
-   on l'élargit un peu et on garde les libellés sous les icônes. */
+   on l'élargit un peu et on garde les libellés sous les icônes. 10,5 px, comme
+   la barre basse du téléphone et le rail du propriétaire (audit du 13/10,
+   DES-A-05) : 9,5 px passait sous la métrique commune des libellés. La
+   largeur de 76 px est celle qu'impose `prestige.css` ; « Mon gestionnaire »
+   et « Les règles à connaître » y tiennent, sur deux lignes au besoin. */
 @media (min-width: 641px) and (max-width: 860px) {
-  .loc-app { grid-template-columns: 78px minmax(0, 1fr); }
-  .loc-menu a { flex-direction: column; gap: 3px; padding: 9px 4px; }
+  .loc-app { grid-template-columns: 76px minmax(0, 1fr); }
+  .loc-menu a { flex-direction: column; gap: 3px; padding: 9px 2px; }
   .loc-menu .lib {
     display: block;
-    font-size: 9.5px;
+    font-size: 10.5px;
+    line-height: 1.15;
     letter-spacing: 0.01em;
     text-align: center;
+    overflow-wrap: anywhere;
   }
+  /* Le nom de l'espace (« Parc de Claire Moreau ») ne tient pas dans la
+     cellule de 48 px et s'y lisait « Par… » (DES-A-14) : les initiales, avec
+     le nom entier en infobulle. Même rendu que le rail du propriétaire. */
+  .loc-logo [data-initiales] { font-size: 0; }
+  .loc-logo [data-initiales]::before { content: attr(data-initiales); font-size: 1rem; }
 }
 
 /* Demandes transverses des correcteurs de zone (10/09) : les LIENS stylés en
@@ -1633,6 +1644,13 @@ p a {
 }
 .artisan-carte h2 { font-family: var(--font-titres), system-ui, sans-serif; font-size: 20px; }
 .artisan-navigation { box-shadow: 0 -4px 20px color-mix(in srgb, var(--encre) 8%, transparent); }
+/* Même défaut et même remède que pour la barre basse de l'espace agence
+   (DES-B-02) : la barre d'onglets de l'artisan (64 px + zone de sécurité) est
+   fixe jusqu'à 999 px — le gabarit « bureau » du portail commence à 1000 px
+   (portail-artisan.module.css) — et le focus clavier passait derrière. */
+@media (max-width: 999px) {
+  html:has(.artisan-navigation) { scroll-padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+}
 .portail-hero {
   background: linear-gradient(135deg, var(--marque), var(--marque-sombre) 70%, var(--encre));
   color: var(--sur-marque);
@@ -2142,15 +2160,38 @@ a:focus-visible > .carte-espace {
    (`.coquille-late`) : le même menu, rendu dans le tiroir du téléphone, garde
    ses libellés (vu sur téléphone le 19/09). */
 @media (max-width: 1023px) {
-  :root { --largeur-late: 60px; }
+  :root { --largeur-late: 76px; }
   .coquille-late .coquille-marque { justify-content: center; padding: 0; }
   .coquille-late .coquille-marque a > span > span:last-child,
-  .coquille-late .coquille-menu .lib,
   .coquille-late .coquille-pied { display: none; }
-  .coquille-late .coquille-menu { padding: 8px 6px; }
-  .coquille-late .coquille-menu a { justify-content: center; padding: 0; }
+  .coquille-late .coquille-menu { padding: 8px 4px; }
+  /* Les libellés restent SOUS les icônes (audit du 13/10, DES-A-13) : une
+     tablette tactile n'a pas de survol, l'infobulle `title` n'y dit rien et
+     onze icônes seules ne se devinent pas. Même rail que celui du locataire
+     (bande 641-860 px plus bas : 76 px, 10,5 px). Le titre du groupe « Plus »
+     reste masqué par `.coquille-groupe > p` ; seuls les libellés d'entrée
+     reviennent, sur deux lignes si besoin plutôt que tronqués par « … ». */
+  .coquille-late .coquille-menu a { flex-direction: column; justify-content: center; gap: 3px; padding: 9px 2px; }
+  .coquille-late .coquille-menu a .lib {
+    display: block;
+    flex: none;
+    max-width: 100%;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 10.5px;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+    text-align: center;
+  }
   .coquille-late .coquille-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; font-size: 10px; }
   .coquille-late .coquille-groupe > div { display: flex; }
+  /* Le nom d'organisation ne tient pas dans la cellule du rail (« Par… ») :
+     on y met ses initiales (`data-initiales`, posé par MarqueOrganisation) ;
+     le nom entier reste en infobulle (`title`). */
+  .coquille-late .coquille-marque [data-initiales] { font-size: 0; }
+  .coquille-late .coquille-marque [data-initiales]::before { content: attr(data-initiales); font-size: 1rem; }
 }
 
 /* Téléphone : plus de colonne. Une barre basse de quatre entrées + « Menu »,
@@ -2164,6 +2205,13 @@ a:focus-visible > .carte-espace {
   .coquille-haut .recherche-ouvrir { min-width: 0; margin-right: 0; }
   .coquille-haut .recherche-ouvrir kbd { display: none; }
   .coquille-corps { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  /* Le focus clavier ne passe plus SOUS la barre fixe (audit du 13/10,
+     DES-A-01 ; WCAG 2.2, 2.4.11). Le navigateur aligne l'élément focalisé sur
+     le bord bas de la fenêtre, donc derrière la barre : le `padding-bottom`
+     du corps ne sert pas à ce défilement-là, seul `scroll-padding-bottom` de
+     la racine le règle. 72 px = la barre (57 px) + un souffle. Posé seulement
+     là où la barre existe (agence, propriétaire, locataire). */
+  html:has(.coquille-basse) { scroll-padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
   .coquille-corps .entete-page { padding: 0 0 14px; }
   .coquille-basse {
     position: fixed;

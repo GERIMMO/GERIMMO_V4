@@ -8,6 +8,8 @@ import { detecterMimeReel, pdfComplet, EXTENSIONS } from "@/lib/file-type";
 import { calculerDevis, montantEnCentimes } from "@/lib/devis-structure";
 import { assemblerDevisArtisan } from "@/lib/documents/devis-artisan";
 import { rendrePdf } from "@/lib/documents/rendu";
+import { refusDocumentIncomplet } from "@/lib/documents/completude";
+import { messageErreurPrive, messageRenduPdfEchoue } from "@/lib/artisan-prive-erreurs";
 
 export type ResultatPrive = {erreur?:string;succes?:string;href?:string};
 async function piecePrivee(supabase:SupabaseClient,artisan:string,fichier:File,cle:string) {
@@ -39,13 +41,16 @@ export async function enregistrerActivitePrivee(form:FormData):Promise<ResultatP
       if(d?.statut==="valide"&&d.pdf_id)return {succes:"Cette version est déjà validée.",href:`/artisan/chantiers/${id}`};
       if(!d||!h||h.revision!==revision||d.statut!=="brouillon")throw Error("Le devis a changé. Rechargez et relisez sa dernière version.");
       const document=assemblerDevisArtisan({id:d.id,description:d.description,lignes:d.lignes,montant_ht_cents:Number(d.montant_ht_cents),montant_tva_cents:Number(d.montant_tva_cents),montant_ttc_cents:Number(d.montant_ttc_cents),diagnostic:null,delai_intervention:null,duree_estimee:null,contraintes:null,observations:null,statut:"valide",depose_le:d.created_at,valide_jusqu_au:d.valide_jusqu_au,artisan_nom:d.entreprise.nom,artisan_siret:d.entreprise.siret,artisan_telephone:d.entreprise.telephone,artisan_email:d.entreprise.email,artisan_adresse:d.entreprise.adresse??"",artisan_mentions:d.entreprise.mentions??"",agence_nom:d.client.nom,incident_numero:`Client externe · ${h.titre} · version ${d.version}`,commune:h.adresse,code_postal:null});
-      const pdf=await rendrePdf(document);donnees.piece_id=await piecePrivee(supabase,fiche.artisan_id,new File([new Uint8Array(pdf)],`DEV-${d.id.slice(0,8).toUpperCase()}-v${d.version}.pdf`,{type:"application/pdf"}),cle);
+      // Un devis incomplet est un refus métier (on dit ce qui manque) ; un moteur PDF en panne est technique : référence au support, jamais le texte brut (ARC-01).
+      const refus=refusDocumentIncomplet(document);if(refus)throw Error(`Le PDF ne peut pas être généré : information manquante (${refus.manquants.join(" ; ")}). Complétez-la, puis relancez.`);
+      let pdf:Uint8Array;try{pdf=await rendrePdf(document);}catch(e){throw Error(messageRenduPdfEchoue(e));}
+      donnees.piece_id=await piecePrivee(supabase,fiche.artisan_id,new File([new Uint8Array(pdf)],`DEV-${d.id.slice(0,8).toUpperCase()}-v${d.version}.pdf`,{type:"application/pdf"}),cle);
     } else {
       const fichier=form.get("fichier");
       if(fichier instanceof File&&fichier.size)donnees.piece_id=await piecePrivee(supabase,fiche.artisan_id,fichier,cle);
     }
     const {data,error}=reglement?await supabase.rpc("artisan_reglement_ecrire",{p_action:action,p_origine:String(form.get("origine")),p_facture:id,p_donnees:donnees,p_cle:cle}):await supabase.rpc("artisan_externe_ecrire",{p_action:action,p_id:id,p_revision:revision,p_donnees:donnees,p_cle:cle});
-    if(error)throw Error(error.message.includes("violates")||error.message.includes("null value")?"Complétez tous les champs et joignez votre justificatif.":error.message);
+    if(error)throw Error(messageErreurPrive(action,error.message));
     for(const path of ["/artisan/clients","/artisan/agenda","/artisan/facturation"])revalidatePath(path);
     const href=reglement?`/artisan/facturation/${id}`:["client","modifier_client","archiver_client"].includes(action)?`/artisan/clients/${data}`:`/artisan/chantiers/${data}`;
     revalidatePath(href);return{succes:"Enregistré dans votre espace privé.",href};

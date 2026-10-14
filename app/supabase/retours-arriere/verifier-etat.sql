@@ -1,4 +1,4 @@
--- VÉRIFIER L'ÉTAT des migrations 20261013110000, 20261013120000 et 20261014210000 (lecture seule, ne modifie rien).
+-- VÉRIFIER L'ÉTAT des migrations 20261013110000, 20261013120000, 20261014210000 et 20261014211000 (lecture seule, ne modifie rien).
 -- À jouer avant un retour arrière (on doit lire « migrée (B) »), après (on doit lire « antérieure (A) »),
 -- et en cas de doute : psql "$URL" -f verifier-etat.sql
 -- « migrée (B) » : la marque du correctif figure dans la définition en vigueur ; « antérieure (A) » : elle est absente.
@@ -17,7 +17,8 @@ with f(migration, signature, marque) as (values
   ('20261013120000', 'public.contre_proposer_creneaux(uuid,uuid,jsonb)', 'Audit du 13/10 (REP-01)'),
   ('20261013120000', 'public.artisan_reglement_ecrire(text,text,uuid,jsonb,uuid)', 'Audit du 13/10 (ARC-10)'),
   ('20261013120000', 'public.artisan_externe_ecrire(text,uuid,integer,jsonb,uuid)', 'Audit du 13/10 (ARC-10)'),
-  ('20261014210000', 'public.maintenance_artisans()', 'maintenance_artisans_interne'))
+  ('20261014210000', 'public.maintenance_artisans()', 'maintenance_artisans_interne'),
+  ('20261014211000', 'public.maintenance_artisans_interne()', 'Audit du 14/10 (AUT-01, D06)'))
 select migration, signature as objet,
        case when to_regprocedure(signature) is null then 'ABSENTE (anormal)'
             when position(marque in pg_get_functiondef(to_regprocedure(signature))) > 0 then 'migrée (B)'
@@ -52,7 +53,13 @@ select '20261014210000', 'tâche pg_cron maintenance-artisans',
 union all
 select '20261014210000', 'devis « expire » / sollicitations « expiree » (jamais restaurés par le retour)',
        (select count(*) from public.incident_devis where statut = 'expire')::text || ' / ' || (select count(*) from public.incident_sollicitations where statut = 'expiree')::text
+union all
+-- La table de correspondance appartient au lot « arrêt d'urgence » (D06) : si elle n'existe pas, on ne l'interroge pas.
+select '20261014211000', 'ligne de la tâche maintenance-artisans dans supervision_taches_arret (lot D06)',
+       case when to_regclass('public.supervision_taches_arret') is null then 'lot D06 non intégré : pas de table, rien à lire'
+            else (xpath('/row/n/text()', query_to_xml('select count(*) as n from public.supervision_taches_arret where tache = ''maintenance-artisans''', false, true, '')))[1]::text
+                 || ' ligne(s) (1 = migrée B, 0 = antérieure A)' end
 order by 1, 2;
 
--- Historique des migrations : doit citer les trois versions si elles sont appliquées, aucune si le retour a été fait.
-select version from supabase_migrations.schema_migrations where version in ('20261013110000', '20261013120000', '20261014210000') order by 1;
+-- Historique des migrations : doit citer les quatre versions si elles sont appliquées, aucune si le retour a été fait.
+select version from supabase_migrations.schema_migrations where version in ('20261013110000', '20261013120000', '20261014210000', '20261014211000') order by 1;

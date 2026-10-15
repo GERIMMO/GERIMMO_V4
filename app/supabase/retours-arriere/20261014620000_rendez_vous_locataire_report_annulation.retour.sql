@@ -530,7 +530,7 @@ drop function if exists public.intervention_du_locataire(uuid, uuid);
 drop function if exists public.parametres_rdv_locataire();
 
 -- La table (vide : vérifié en tête) et la colonne qui la référence.
-drop index if exists public.intervention_creneaux_demande_idx;
+drop index if exists public.intervention_creneaux_demande_id_idx;
 alter table public.intervention_creneaux drop column if exists demande_id;
 drop table if exists public.intervention_demandes_rdv;
 

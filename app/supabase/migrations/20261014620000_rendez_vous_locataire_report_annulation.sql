@@ -158,6 +158,17 @@ create index if not exists intervention_demandes_rdv_org_idx
 create index if not exists intervention_demandes_rdv_expiration_idx
   on public.intervention_demandes_rdv (expire_le)
   where statut = 'en_attente';
+-- Un index couvrant par clé étrangère (règle du schéma, tests/schema-performance-securite.test.ts).
+create index if not exists intervention_demandes_rdv_intervention_org_idx
+  on public.intervention_demandes_rdv (intervention_id, organization_id);
+create index if not exists intervention_demandes_rdv_creneau_retenu_idx
+  on public.intervention_demandes_rdv (creneau_retenu_id);
+create index if not exists intervention_demandes_rdv_creneau_accepte_idx
+  on public.intervention_demandes_rdv (creneau_accepte_id);
+create index if not exists intervention_demandes_rdv_demandee_par_idx
+  on public.intervention_demandes_rdv (demandee_par);
+create index if not exists intervention_demandes_rdv_repondu_par_idx
+  on public.intervention_demandes_rdv (repondu_par);
 
 alter table public.intervention_demandes_rdv enable row level security;
 -- Lecture par les gérants de l'organisation, dans leur portefeuille ; le locataire et l'artisan lisent par fonction.
@@ -186,8 +197,8 @@ create trigger diagnostic_artisan_lecture
 -- Les trois dates d'un report sont rattachées à leur demande (affichage, retrait, expiration).
 alter table public.intervention_creneaux
   add column if not exists demande_id uuid references public.intervention_demandes_rdv (id);
-create index if not exists intervention_creneaux_demande_idx
-  on public.intervention_creneaux (demande_id) where demande_id is not null;
+create index if not exists intervention_creneaux_demande_id_idx
+  on public.intervention_creneaux (demande_id);
 
 -- ── 3. Les rappels suivent la NOUVELLE date (C.12-2) ───────────────────────────────────────────────────────────────
 -- `rendez_vous_a_rappeler` écartait tout rendez-vous dont un rappel était déjà tracé, quelle que soit la date (DEC-09) :

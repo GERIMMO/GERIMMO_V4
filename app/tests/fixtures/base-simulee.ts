@@ -27,6 +27,13 @@ export type OptionsBase = {
   inserer?: (table: string, valeurs: unknown) => { error: { message: string } | null } | void | Promise<{ error: { message: string } | null } | void>;
   /** Tables dont la LECTURE échoue (table → message) : pour vérifier ce que devient l'écran quand une lecture tombe. */
   lecturesEnErreur?: Record<string, string>;
+  /**
+   * Le plafond de lignes de l'API (réglage « Max rows » de Supabase, 1 000 par défaut) : une lecture qui en trouve davantage n'en
+   * rend que les premières, SANS erreur ni avertissement, comme PostgREST. Sans cette option la base simulée rend tout, et un
+   * écran qui lit sans filtre passe pour correct alors qu'il se tronque en production. Ne vaut que pour les lectures de liste
+   * (`maybeSingle` et `single` n'en dépendent pas).
+   */
+  plafondLignes?: number;
 };
 
 const NON_SIMULEES = ["or", "ilike", "like", "contains", "containedBy", "overlaps", "textSearch", "match", "filter", "csv", "returns", "abortSignal"];
@@ -104,7 +111,8 @@ export function baseSimulee(tables: Record<string, Ligne[]>, options: OptionsBas
         try {
           const panne = options.lecturesEnErreur?.[table];
           if (panne) { executer(); return Promise.resolve({ data: null, error: { message: panne } } as Reponse).then(resolve, rejeter); }
-          return Promise.resolve({ data: executer(), error: null } as Reponse).then(resolve, rejeter);
+          const lignes = executer();
+          return Promise.resolve({ data: options.plafondLignes === undefined ? lignes : lignes.slice(0, options.plafondLignes), error: null } as Reponse).then(resolve, rejeter);
         }
         catch (e) { return Promise.reject(e).then(resolve, rejeter); }
       },

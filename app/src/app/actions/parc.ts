@@ -9,6 +9,7 @@ import { deposerFichierGed } from "@/lib/ged-depot";
 import { aujourdhuiParis, formaterDate, motifLitteral } from "@/lib/ged";
 import { piecesHabituelles } from "@/lib/pieces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { estUuid } from "@/lib/identifiants";
 import { verifierAnneeConstruction, verifierCodePostalBien, verifierSurface } from "@/lib/validation-fiches";
 import { erreurDuChamp, lireDecimal, lireDecimalFacultatif } from "@/lib/saisie-montant";
 import {
@@ -28,6 +29,9 @@ export type EtatParc = {
   personneCreee?: { id: string; nom: string; prenom: string | null };
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
+  // Dépôt d'un diagnostic refusé parce que le MÊME rapport est déjà rangé : la pièce existante, que l'écran
+  // propose d'utiliser pour ce lot (ou ce bien) au lieu de la déposer en double (X07, PROP-11).
+  pieceExistante?: { id: string; titre: string | null };
 };
 
 // Zone tendue saisie : « oui », « non » ou non vérifiée (NULL). Un ancien
@@ -593,25 +597,65 @@ export async function deposerDiagnostic(
     return { erreur: "Ce diagnostic se rattache à un lot : le déposer depuis la fiche lot.", valeurs };
   }
 
-  // PDF du rapport OBLIGATOIRE (arbitrage 2026-08-01) : le diagnostic est annexé
-  // au bail, on exige son rapport dès le dépôt. Déposé dans la GED (type réel
-  // vérifié, anti-doublon, accès tracés) et lié au diagnostic.
-  const fichier = formData.get("fichier");
-  if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: "Le rapport (PDF) du diagnostic est obligatoire : il est annexé au bail.", valeurs };
+  const ceNiveau = auLot ? "ce lot" : "ce bien";
+  let documentId: string;
+  let avertissement: string | undefined;
+  let pieceReutilisee: string | null = null;
+
+  // X07 (PROP-11) : un diagnostic collectif (DPE d'un immeuble) vaut pour plusieurs lots avec LE MÊME rapport.
+  // « Utiliser cette pièce » rattache le diagnostic de ce lot à la pièce déjà rangée : aucun nouveau dépôt,
+  // aucune nouvelle fiche document. La pièce se relit sous les droits de l'utilisateur (accès par ligne) ET
+  // filtrée sur l'organisation ; la base interdit en plus un diagnostic qui pointe vers la pièce d'une autre
+  // organisation (clé étrangère « même organisation »).
+  const pieceDemandee = String(formData.get("piece_existante") ?? "").trim();
+  if (pieceDemandee) {
+    const piece = estUuid(pieceDemandee) ? await lirePieceDiagnostic(supabase, orgId, pieceDemandee) : null;
+    if (!piece) {
+      return { erreur: "Cette pièce n’est plus disponible dans votre dossier. Choisissez à nouveau le rapport à déposer.", valeurs };
+    }
+    let dejaUtilisee = supabase
+      .from("diagnostics")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("document_id", piece.id)
+      .eq("type", type)
+      .is("archived_at", null);
+    dejaUtilisee = auLot ? dejaUtilisee.eq("lot_id", lotId) : dejaUtilisee.eq("bien_id", bienId);
+    const { data: usages } = await dejaUtilisee.limit(1);
+    if (usages && usages.length > 0) {
+      return { erreur: `Cette pièce est déjà utilisée pour ${ceNiveau} : rien à ajouter.`, valeurs };
+    }
+    documentId = piece.id;
+    pieceReutilisee = piece.titre ?? "sans titre";
+  } else {
+    // PDF du rapport OBLIGATOIRE (arbitrage 2026-08-01) : le diagnostic est annexé
+    // au bail, on exige son rapport dès le dépôt. Déposé dans la GED (type réel
+    // vérifié, anti-doublon, accès tracés) et lié au diagnostic.
+    const fichier = formData.get("fichier");
+    if (!(fichier instanceof File) || fichier.size === 0) {
+      return { erreur: "Le rapport (PDF) du diagnostic est obligatoire : il est annexé au bail.", valeurs };
+    }
+    const depot = await deposerFichierGed(
+      supabase,
+      user,
+      orgId,
+      fichier,
+      "diagnostic",
+      `${referentiel.libelle} — ${formaterDate(realisation)}`
+    );
+    if (depot.erreur || !depot.documentId) {
+      // Le même rapport est déjà rangé : si c'est bien un rapport de diagnostic de cette organisation, on le
+      // propose (« Utiliser cette pièce pour ce lot ») au lieu de laisser l'utilisateur dans une impasse.
+      const offre = depot.doublonId ? await lirePieceDiagnostic(supabase, orgId, depot.doublonId) : null;
+      return {
+        erreur: depot.erreur ?? "Échec du dépôt du fichier.",
+        valeurs,
+        ...(offre ? { pieceExistante: { id: offre.id, titre: offre.titre } } : {}),
+      };
+    }
+    documentId = depot.documentId;
+    avertissement = depot.avertissement;
   }
-  const depot = await deposerFichierGed(
-    supabase,
-    user,
-    orgId,
-    fichier,
-    "diagnostic",
-    `${referentiel.libelle} — ${formaterDate(realisation)}`
-  );
-  if (depot.erreur || !depot.documentId) {
-    return { erreur: depot.erreur ?? "Échec du dépôt du fichier.", valeurs };
-  }
-  const documentId = depot.documentId;
 
   // Classe énergétique (DPE uniquement) — sert au blocage « classe G interdite »
   const classe = String(formData.get("classe_dpe") ?? "").trim().toUpperCase();
@@ -637,8 +681,30 @@ export async function deposerDiagnostic(
   revalidatePath(`/agence/${orgId}/parc`);
   revalidatePath(`/agence/${orgId}/baux`, "layout");
   revalidatePath(`/agence/${orgId}/documents`);
+  if (pieceReutilisee !== null) {
+    return { succes: `${referentiel.libelle} enregistré pour ${ceNiveau} avec la pièce déjà déposée (« ${pieceReutilisee} »), sans copie supplémentaire.` };
+  }
   const base = `${referentiel.libelle} déposé.`;
-  return { succes: depot.avertissement ? `${base} ${depot.avertissement}` : base };
+  return { succes: avertissement ? `${base} ${avertissement}` : base };
+}
+
+// Un rapport de diagnostic vivant de CETTE organisation, relu sous les droits de l'utilisateur (un agent restreint
+// ne voit pas les pièces hors de son portefeuille). `null` : introuvable, d'une autre organisation, d'un autre
+// type (pièce d'identité, quittance…) ou effacé.
+async function lirePieceDiagnostic(
+  supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
+  orgId: string,
+  documentId: string
+): Promise<{ id: string; titre: string | null } | null> {
+  const { data } = await supabase
+    .from("documents")
+    .select("id, titre, type")
+    .eq("id", documentId)
+    .eq("organization_id", orgId)
+    .eq("type", "diagnostic")
+    .is("purged_at", null)
+    .maybeSingle();
+  return data ? { id: data.id as string, titre: (data.titre as string | null) ?? null } : null;
 }
 
 // Pièces du lot : la vraie liste (Séjour, Chambre 1…) qui sert à générer la

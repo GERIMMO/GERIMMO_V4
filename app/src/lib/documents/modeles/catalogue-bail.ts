@@ -10,10 +10,11 @@ export type LigneDocument = Record<string, unknown>;
 export class RefusDocument extends Error {}
 export const texte = (v: unknown) => v == null ? "" : String(v);
 export const montant = (v: unknown) => Number(v ?? 0);
+export const MESSAGE_CHARGEMENT_IMPOSSIBLE = "Les données du dossier n’ont pas pu être chargées. Réessayez avant de générer ce document.";
 export async function lireLignes(requete: PromiseLike<{ data: unknown; error: unknown }>): Promise<LigneDocument[]> {
   const r = await requete;
   if (Array.isArray(r.data) && r.data.length >= 1000) throw new RefusDocument("Ce dossier contient trop de lignes pour un export intégral. Réduisez la période avant de générer le document.");
-  if (r.error) throw new RefusDocument("Les données du dossier n’ont pas pu être chargées. Réessayez avant de générer ce document.");
+  if (r.error) throw new RefusDocument(MESSAGE_CHARGEMENT_IMPOSSIBLE);
   return (Array.isArray(r.data) ? r.data : r.data ? [r.data] : []) as LigneDocument[];
 }
 export function lignesTableau(f: Fusion, lignes: LigneDocument[], colonnes: [string, string, "texte" | "date" | "montant"][]): string {

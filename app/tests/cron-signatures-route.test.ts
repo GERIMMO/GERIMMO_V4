@@ -13,7 +13,7 @@ vi.mock("@/lib/tache", async (importer) => ({
   consignerTache: mocks.consigner,
 }));
 vi.mock("@/lib/supabase/service", () => ({ clientDeService: mocks.client }));
-import { GET } from "../src/app/api/cron/signatures/route";
+import { traiterSignatures as GET } from "../src/lib/missions-planifiees/signatures";
 
 const SECRET = "secret-de-recette-suffisamment-long";
 const appel = () => new Request("https://exemple.fr/api/cron/signatures", { headers: { authorization: `Bearer ${SECRET}` } });

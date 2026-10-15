@@ -3,8 +3,8 @@ type: concept
 tags: [identite, compte, adhesion, multi-tenant, socle]
 status: stable
 created: 2026-07-24
-updated: 2026-08-19
-sources: ["[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]"]
+updated: 2026-10-15
+sources: ["[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
 ---
 
 # Compte, personne et adhésion
@@ -79,8 +79,12 @@ organisation**, MFA obligatoire (RM-A4.1). Voir [[Architecture du socle V3]].
 « **Une personne existe avant d'avoir un compte** » : le locataire peut rester sans
 compte (géré par email, RM-16.4.2), l'artisan et l'agent en ont un, **le mandant
 jamais** (RM-16.4.3). L'invitation (depuis la fiche personne, email requis) crée
-l'accès — relances J+3/J+10, expiration J+30, refus tracé. S'y ajoute l'objet
-**Consentement** (canal WhatsApp : accord daté, révocable, repli email).
+l'accès après acceptation. La spécification V3 y ajoute des relances J+3/J+10 ; **elles ne
+sont pas livrées** : le code envoie un seul e-mail à l'invitation, renvoyable à la main,
+avec une expiration à 30 jours et un refus tracé (détail dans
+[[Onboarding et abonnement]], section « Ce que fait le code aujourd'hui pour l'invitation
+d'un locataire »). S'y ajoute l'objet **Consentement** (canal WhatsApp : accord daté,
+révocable, repli email).
 
 ## Correspondance avec le code actuel
 

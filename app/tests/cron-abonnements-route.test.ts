@@ -17,7 +17,7 @@ vi.mock("@/lib/tache", async (importer) => ({
   ...(await importer<typeof import("@/lib/tache")>()),
   consignerTache: mocks.consigner,
 }));
-import { GET } from "../src/app/api/cron/abonnements/route";
+import { traiterAbonnements as GET } from "../src/lib/missions-planifiees/abonnements";
 
 const SECRET = "secret-de-recette-suffisamment-long";
 

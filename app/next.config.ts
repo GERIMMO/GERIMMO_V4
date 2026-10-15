@@ -122,8 +122,22 @@ function hoteSupabase(): string | null {
   }
 }
 
+// ── Environnement de la plateforme, transmis au navigateur (X03, relecture du 14/10/2026) ──
+//
+// Le drapeau `Secure` du cookie de session se dérive de l'adresse du site ET de l'environnement de production
+// (src/lib/supabase/cookies.ts). Le serveur et le proxy lisent `VERCEL_ENV` à l'exécution ; le code du NAVIGATEUR, lui, ne
+// reçoit que les variables `NEXT_PUBLIC_*`, incorporées à la construction. `NEXT_PUBLIC_VERCEL_ENV` n'existe que si le projet
+// coche « exposer les variables système » : un réglage du tableau de bord que rien ne vérifie, et qui, absent, laissait le
+// client navigateur réécrire le cookie sans `Secure`. `VERCEL_ENV`, elle, est toujours présente pendant la construction sur
+// Vercel : on la déclare ici pour que le navigateur la reçoive sans aucun réglage. Hors Vercel (banc, CI) : chaîne vide, le
+// cookie reste lisible en http comme avant.
+export function environnementPourLeNavigateur(env: Record<string, string | undefined> = process.env): string {
+  return env.VERCEL_ENV || env.NEXT_PUBLIC_VERCEL_ENV || "";
+}
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  env: { NEXT_PUBLIC_VERCEL_ENV: environnementPourLeNavigateur() },
   // 06/10 : les illustrations des articles viennent du Storage Supabase ; sans
   // domaine déclaré, next/image refuse de les servir. À défaut d'adresse au
   // moment du build, toute origine *.supabase.co.

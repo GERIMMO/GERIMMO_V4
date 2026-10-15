@@ -1,7 +1,7 @@
 // Le corps de l'e-mail de quittance, écrit une seule fois.
 //
 // Deux chemins l'envoient : le bouton du gérant (`envoyerQuittance`, action
-// serveur, avec sa session) et la tâche planifiée (`/api/cron/quittances`, sans
+// serveur, avec sa session) et la tâche planifiée (`/api/cron/equipes?mission=quittances`, sans
 // session). Écrit deux fois, le message divergerait — et c'est un document que
 // le locataire conserve : deux mises en forme pour la même quittance selon que
 // l'agence a cliqué ou non ne s'expliquent pas.

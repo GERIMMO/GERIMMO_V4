@@ -8,7 +8,7 @@
  * superviseur, jeton de pg_cron accepté.
  */
 import {beforeEach,afterEach,describe,it,expect,vi} from 'vitest';
-import {GET,maintenantParis} from '@/app/api/cron/marketing/route';
+import {traiterMarketing as GET,maintenantParis} from '@/lib/missions-planifiees/marketing';
 const mocks=vi.hoisted(()=>({client:vi.fn(),facebook:vi.fn(),image:vi.fn(),source:vi.fn(),redaction:vi.fn(),email:vi.fn()}));
 vi.mock('@/lib/supabase/service',()=>({clientDeService:mocks.client}));
 vi.mock('@/lib/facebook',()=>({envoyerSurFacebook:mocks.facebook}));

@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { clientDeService } from "@/lib/supabase/service";
 import { sansJargon } from "@/lib/erreurs";
 
 export type EtatDevis = {
@@ -13,11 +13,21 @@ export type EtatDevis = {
 // Le champ « site » est un pot de miel : rempli = robot, on répond succès
 // sans rien écrire.
 //
-// Le pot de miel ne protège que ce formulaire : la clé publique étant dans le
-// navigateur, un robot peut écrire directement par l'API. La limite de débit
-// vit donc EN BASE (audit du 27/09, migration 20260927124000) : doublon exact
-// ignoré, trois demandes par adresse et par heure, trente par heure en tout.
-// Son refus arrive ici comme une erreur en français, affichée telle quelle.
+// X02 (AUD-A-06, décision du 14/10/2026) : cette action est la SEULE porte
+// d'écriture. Jusqu'ici la clé publique, présente dans le navigateur, permettait à
+// un robot d'insérer directement par l'API, sans passer par le pot de miel ni par
+// la validation ci-dessous (et de saturer le plafond horaire). La migration
+// 20261014400000 retire à `anon` et `authenticated` tout droit d'insertion dans
+// `demandes_devis` : l'insertion se fait ICI, avec le client de service, une fois
+// le pot de miel et les champs validés. C'est une exception tenue à la main à la
+// règle de lib/supabase/service.ts : un seul geste (insérer une ligne de cette
+// table, bornée par la base), aucune lecture, aucune donnée d'un autre compte.
+//
+// La limite de débit vit toujours EN BASE (audit du 27/09, migrations
+// 20260927124000 et 20260929110000) et s'applique à tous les rôles, `service_role`
+// compris : doublon exact ignoré, trois demandes par adresse et par heure, trente
+// par heure en tout. Son refus arrive ici comme une erreur en français, affichée
+// telle quelle.
 export async function demanderDevis(
   _etat: EtatDevis,
   formData: FormData
@@ -42,8 +52,12 @@ export async function demanderDevis(
     return { erreur: "Indiquez une adresse email valide — c'est là que nous répondrons." };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("demandes_devis").insert({
+  const service = clientDeService();
+  if (!service) {
+    console.error("[devis] La clé de service est absente : la demande de contact n’a pas pu être enregistrée.");
+    return { erreur: "Le formulaire est momentanément indisponible. Réessayez dans quelques minutes." };
+  }
+  const { error } = await service.from("demandes_devis").insert({
     nom: nom.slice(0, 200),
     email: email.slice(0, 320),
     agence: agence.slice(0, 200) || null,

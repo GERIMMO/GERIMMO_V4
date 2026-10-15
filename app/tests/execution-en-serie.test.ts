@@ -7,7 +7,8 @@
  *
  * `vitest.config.ts` les range dans un groupe « serie » : après tous les autres, un fichier à la fois. Ce test garde le
  * classement : la liste, ses fichiers, l'ordre des groupes, et l'oubli d'un nouveau fichier qui valide une fixture dans
- * les tables que reprise-comptable.test.ts compte en entier.
+ * les tables que reprise-comptable.test.ts compte en entier, et celui d'un nouveau fichier qui suspend un déclencheur
+ * (`alter table … disable trigger` : verrou de table tenu jusqu'à la fin de la transaction du test).
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -60,5 +61,22 @@ describe("les fichiers qui ont besoin de la base pour eux seuls tournent en sér
       return valideUneFixture.test(source) && tablesComptees.test(source) && !FICHIERS_EN_SERIE.includes(`tests/${f}`);
     });
     expect(oublies, "à ajouter à FICHIERS_EN_SERIE de vitest.config.ts").toEqual([]);
+  });
+
+  it("tout fichier qui suspend ou rétablit un déclencheur (alter table … disable / enable trigger) y est aussi", () => {
+    // Ce DDL pose un verrou de table qui dure jusqu'à la fin de la transaction du test. Deux fichiers qui le font sur
+    // `ecritures` ou `encaissements` (fiscalite-capture-multilignes et fiscalite-persistance) se croisent avec les
+    // écritures de l'autre en parallèle : « deadlock detected », la base tue l'un des deux (16 échecs sur 30 passes).
+    const suspendUnDeclencheur = /alter\s+table[^;'"`]*\b(?:disable|enable)\s+trigger\b/i;
+    const fichiers = readdirSync(resolve(RACINE, "tests")).filter((f) => f.endsWith(".test.ts") && f !== "execution-en-serie.test.ts");
+    const oublies = fichiers.filter(
+      (f) => suspendUnDeclencheur.test(readFileSync(resolve(RACINE, "tests", f), "utf8")) && !FICHIERS_EN_SERIE.includes(`tests/${f}`)
+    );
+    expect(oublies, "à ajouter à FICHIERS_EN_SERIE de vitest.config.ts").toEqual([]);
+  });
+
+  it("les deux fichiers fiscaux qui suspendent un déclencheur y sont", () => {
+    expect(FICHIERS_EN_SERIE).toContain("tests/fiscalite-capture-multilignes.test.ts");
+    expect(FICHIERS_EN_SERIE).toContain("tests/fiscalite-persistance.test.ts");
   });
 });

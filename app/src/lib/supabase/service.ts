@@ -23,6 +23,11 @@
 // de la demande de devis (src/lib/photos-demande-artisan.ts, D16, 14/10/2026) : APRÈS `lire_photo_incident_artisan`, qui prouve le
 // droit, trace l'accès et rend le chemin. La clé ne lit pas le fichier elle-même et n'écrit ni ne supprime rien.
 //
+// Et l'INSERTION du formulaire de contact du site vitrine (src/app/actions/devis.ts, X02, 14/10/2026) : sans session,
+// donc rien à prouver ; l'action écarte d'abord le robot (pot de miel) et valide les champs, puis insère UNE ligne dans
+// `demandes_devis`, que la base borne (longueurs, plafond horaire). `anon` et `authenticated` n'ont plus aucun droit
+// d'insertion sur cette table : cette action est la seule porte. La clé ne lit rien dans ce geste.
+//
 // Ce que le client peut faire est en outre borné côté base : les fonctions que
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées
 // au seul `service_role`, et chacune ne rend que ce dont la tâche a besoin.

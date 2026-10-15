@@ -2,12 +2,13 @@ import { detailRapportGestion } from "./detail-rapport-gestion";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, titre, eur, facultatif, echapper } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
-import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument } from "./catalogue-bail";
+import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument, MESSAGE_CHARGEMENT_IMPOSSIBLE } from "./catalogue-bail";
 import { chargerContexteBail, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
 import { LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, phrasePerimetreFiscal, phrasePiecesAQualifier, recapitulatifFiscal, type ComposantesFiscales, type EcritureFiscale, type ExerciceFiscalLot, type QualificationFiscale, type RecapitulatifFiscal } from "@/lib/fiscal";
 import type { Assemblage, LienDocument } from "./index";
 import { aujourdhuiParis } from "@/lib/ged";
 import { erreurDuChamp, lireMontantFacultatif } from "@/lib/saisie-montant";
+import { identifiantsDesEcritures, lectureTronquee, lireParIdentifiants, messageDocumentLectureTronquee } from "@/lib/lectures-fiscales";
 
 export const CODES_COMPLEMENTS_GESTION = ["regularisation_charges", "decompte_charges", "consultation_charges", "restitution_cles", "ordre_intervention", "comparatif_devis", "compte_rendu_intervention", "recap_incident", "cloture_mensuelle", "ecriture_rectificative", "recap_fiscal_nu", "recap_fiscal_meuble", "avenant_mandat", "avenant_perimetre", "rapport_gestion", "bordereau_versement", "resiliation_mandat", "recap_fiscal_agence"] as const;
 
@@ -33,20 +34,49 @@ export function moisEnToutesLettres(mois: string): string {
 // Le récapitulatif du lot nu pour une année, lu comme l'écran « Préparer ma déclaration » : les montants de l'aide 2044 ne viennent que des
 // captures d'encaissement, des qualifications justifiées et de l'exercice confirmé du lot. Partagé par le document et par la proposition
 // du champ « intérêts d'emprunt » (D37), pour que les deux lisent le même livre.
+//
+// X21 (VER-TS-05) : les lectures sont bornées au lot et à l'année. Les écritures du lot de l'année, et celles sans lot (une
+// qualification peut les attribuer au lot), se lisent d'abord ; qualifications et captures ne se lisent QUE pour ces pièces et pour
+// les pièces d'origine de leurs contre-écritures. Une lecture qui atteint le plafond de lignes de l'API fait refuser le document
+// (aucun montant sur une lecture peut-être coupée), avec un message qui le dit : voir `lectures-fiscales`.
 export async function chargerRecapitulatifNu(db: SupabaseClient, orgId: string, lotId: string, annee: number): Promise<RecapitulatifFiscal> {
   const lire = (table:string) => db.from(table).select("*").eq("organization_id", orgId);
   const debutAnnee = `${annee}-01-01`, debutSuivante = `${annee+1}-01-01`;
-  const [lignesQualif, lignesComposantes, lignesExercices, anneeOrg] = await Promise.all([
-    lireLignes(lire("fiscal_qualifications_ecritures").order("version",{ascending:false})),
-    lireLignes(lire("fiscal_encaissements_composantes")),
-    lireLignes(lire("fiscal_exercices_lots").eq("annee",annee).order("version",{ascending:false})),
-    lireLignes(lire("ecritures").gte("date_piece",debutAnnee).lt("date_piece",debutSuivante).order("date_piece")),
+  const lireBornee = async (requete: PromiseLike<{ data: unknown; error: unknown }>) => {
+    const r = await requete;
+    if (r.error) throw new RefusDocument(MESSAGE_CHARGEMENT_IMPOSSIBLE);
+    const lignes = (Array.isArray(r.data) ? r.data : []) as Record<string,unknown>[];
+    return { lignes, tronquee: lectureTronquee(lignes) };
+  };
+  const ecrituresDeLAnnee = () => lire("ecritures").gte("date_piece",debutAnnee).lt("date_piece",debutSuivante).order("date_piece");
+  const [duLot, sansLot, lectureExercices] = await Promise.all([
+    lireBornee(ecrituresDeLAnnee().eq("lot_id",lotId)),
+    lireBornee(ecrituresDeLAnnee().is("lot_id",null)),
+    lireBornee(lire("fiscal_exercices_lots").eq("annee",annee).eq("lot_id",lotId).order("version",{ascending:false})),
   ]);
+  const tronquees: string[] = [];
+  if (duLot.tronquee || sansLot.tronquee) tronquees.push(`des écritures de ${annee}`);
+  if (lectureExercices.tronquee) tronquees.push("des exercices confirmés");
+  if (tronquees.length) throw new RefusDocument(messageDocumentLectureTronquee(annee, tronquees));
+  // Les deux lectures sont disjointes (lot demandé / sans lot) ; une pièce n'est comptée qu'une fois quoi qu'il arrive.
+  const dejaVues = new Set<string>();
+  const anneeOrg = [...duLot.lignes, ...sansLot.lignes]
+    .filter(e => { const id = texte(e.id); if (!id) return true; if (dejaVues.has(id)) return false; dejaVues.add(id); return true; })
+    .sort((a, b) => texte(a.date_piece).localeCompare(texte(b.date_piece)));
+  const identifiants = identifiantsDesEcritures(anneeOrg as { id?: string; contre_ecriture_de?: string | null }[]);
+  const [lectureQualifications, lectureCaptures] = await Promise.all([
+    lireParIdentifiants(identifiants, (paquet) => lire("fiscal_qualifications_ecritures").in("ecriture_id",paquet).order("version",{ascending:false})),
+    lireParIdentifiants(identifiants, (paquet) => lire("fiscal_encaissements_composantes").in("ecriture_id",paquet)),
+  ]);
+  if (lectureQualifications.error || lectureCaptures.error) throw new RefusDocument(MESSAGE_CHARGEMENT_IMPOSSIBLE);
+  if (lectureQualifications.tronquee) tronquees.push("des qualifications fiscales");
+  if (lectureCaptures.tronquee) tronquees.push("des captures d’encaissement");
+  if (tronquees.length) throw new RefusDocument(messageDocumentLectureTronquee(annee, tronquees));
   const qualifications = new Map<string,QualificationFiscale>();
-  for (const q of lignesQualif as unknown as QualificationFiscale[]) if (!qualifications.has(q.ecriture_id)) qualifications.set(q.ecriture_id,q);
-  const composantes = new Map((lignesComposantes as unknown as ComposantesFiscales[]).map(c=>[c.ecriture_id,c]));
+  for (const q of (lectureQualifications.data ?? []) as unknown as QualificationFiscale[]) if (!qualifications.has(q.ecriture_id)) qualifications.set(q.ecriture_id,q);
+  const composantes = new Map(((lectureCaptures.data ?? []) as unknown as ComposantesFiscales[]).map(c=>[c.ecriture_id,c]));
   const exercices = new Map<string,ExerciceFiscalLot>();
-  for (const x of lignesExercices as unknown as ExerciceFiscalLot[]) if (x.lot_id === lotId && !exercices.has(x.lot_id)) exercices.set(x.lot_id,x);
+  for (const x of lectureExercices.lignes as unknown as ExerciceFiscalLot[]) if (x.lot_id === lotId && !exercices.has(x.lot_id)) exercices.set(x.lot_id,x);
   const ecritures = anneeOrg.filter(e => (texte(e.lot_id) || qualifications.get(texte(e.contre_ecriture_de) || texte(e.id))?.lot_id) === lotId);
   return recapitulatifFiscal(ecritures as unknown as EcritureFiscale[],annee,{qualifications,composantes,exercices,exigerPerimetre:true});
 }

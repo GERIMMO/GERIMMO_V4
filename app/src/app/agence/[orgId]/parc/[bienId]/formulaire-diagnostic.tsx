@@ -41,6 +41,9 @@ export function FormulaireDiagnostic({
   const {etat, soumettre: action, enCours} = useActionFormulaire<EtatParc>(actionLiee);
   const formulaire = useRef<HTMLFormElement>(null);
   const [etatModifie, setEtatModifie] = useState<typeof etat | null>(null);
+  // Réponse (état) pour laquelle la proposition « Utiliser cette pièce » a cessé de valoir : l'utilisateur a choisi un autre
+  // fichier ou un autre type depuis. Une nouvelle réponse du serveur est un autre objet : elle rouvre la proposition.
+  const [propositionRetiree, setPropositionRetiree] = useState<typeof etat | null>(null);
   const [type, setType] = useState(typeInitial ?? types[0]?.[0] ?? "");
   const [realisation, setRealisation] = useState("");
   const [expiration, setExpiration] = useState("");
@@ -85,8 +88,25 @@ export function FormulaireDiagnostic({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [etat]);
 
+  const propositionAffichee = Boolean(etat.pieceExistante) && propositionRetiree !== etat;
+
   return (
-    <form data-saisie-confirmee onChange={() => setEtatModifie(etat)} ref={formulaire} onSubmit={action} className="space-y-3 border-t border-border pt-4">
+    // Colonne flex : « Déposer » est écrit AVANT la proposition dans le DOM mais s'affiche après (`order-last`). La touche
+    // Entrée dans un champ clique le premier bouton d'envoi du formulaire dans le DOM : « Utiliser cette pièce » ne doit
+    // jamais être celui-là, sinon Entrée (dans « Diagnostiqueur », une date…) rattacherait la pièce proposée sans que
+    // personne l'ait demandé (constat de relecture du 15/10/2026).
+    <form
+      data-saisie-confirmee
+      onChange={(e) => {
+        setEtatModifie(etat);
+        // La proposition vaut pour le fichier qui vient d'être refusé : un autre fichier ou un autre type ne la concerne plus.
+        const nom = (e.target as { name?: string }).name;
+        if (nom === "fichier" || nom === "type") setPropositionRetiree(etat);
+      }}
+      ref={formulaire}
+      onSubmit={action}
+      className="flex flex-col gap-3 border-t border-border pt-4"
+    >
       <p className="text-sm font-medium">
         {typeInitial
           ? `Déposer : ${TYPES_DIAGNOSTIC[typeInitial]?.libelle ?? typeInitial}`
@@ -201,13 +221,41 @@ export function FormulaireDiagnostic({
           </p>
         </div>
       </div>
-      {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
+      <BoutonEnvoi enCours={enCours} size="sm" variant="outline" enCoursTexte="Dépôt…" className="order-last self-start">
+        Déposer
+      </BoutonEnvoi>
+      {etat.pieceExistante ? (
+        // X07 (PROP-11) : le même rapport est déjà rangé (diagnostic collectif d'un immeuble). Plutôt qu'un refus
+        // sans issue, on propose de l'utiliser aussi ici : le bouton envoie le MÊME formulaire (dates et classe
+        // déjà saisies comprises) avec l'identifiant de la pièce, et rien n'est déposé une seconde fois. Retirée dès qu'un
+        // autre fichier ou un autre type est choisi ; le refus brut qui allait avec ne s'affiche pas non plus.
+        propositionAffichee && (
+          <div role="status" className="space-y-2 rounded-md border border-border bg-muted/40 p-3 text-sm">
+            <p>
+              <strong>Ce rapport est déjà dans votre dossier</strong>, sous le nom « {etat.pieceExistante.titre ?? "sans titre"} ».
+            </p>
+            <p className="text-muted-foreground">
+              S’il vaut aussi pour {niveau === "lot" ? "ce lot" : "ce bien"} (par exemple le diagnostic collectif d’un immeuble),
+              utilisez cette même pièce : elle ne sera pas déposée une seconde fois.
+            </p>
+            <BoutonEnvoi
+              type="submit"
+              name="piece_existante"
+              value={etat.pieceExistante.id}
+              enCours={enCours}
+              size="sm"
+              enCoursTexte="Enregistrement…"
+            >
+              {niveau === "lot" ? "Utiliser cette pièce pour ce lot" : "Utiliser cette pièce pour ce bien"}
+            </BoutonEnvoi>
+          </div>
+        )
+      ) : (
+        etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>
+      )}
       {etat.succes && etatModifie !== etat && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
-      <BoutonEnvoi enCours={enCours} size="sm" variant="outline" enCoursTexte="Dépôt…">
-        Déposer
-      </BoutonEnvoi>
     </form>
   );
 }

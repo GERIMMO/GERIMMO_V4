@@ -183,6 +183,10 @@ type Options = {
   passages?: unknown[];
   journal?: unknown[];
   missions?: unknown[];
+  /** Les tables dont la lecture échoue (`{ data: null, error }`). */
+  tablesEnErreur?: string[];
+  /** La fonction de la base dont l'appel lève une exception (connexion coupée). */
+  leve?: string;
 };
 const MATIN = new Date("2026-10-15T03:05:00Z"); // 5 h 05 à Paris
 const JOUR = "2026-10-15";
@@ -223,7 +227,8 @@ function base(o: Options = {}) {
   const from = (table: string) => {
     const q: Record<string, unknown> = {};
     for (const m of ["select", "like", "in", "is", "gte", "order", "limit", "eq"]) q[m] = () => q;
-    q.then = (ok: (r: unknown) => unknown) => Promise.resolve({ data: tables[table] ?? [], error: null }).then(ok);
+    q.then = (ok: (r: unknown) => unknown) =>
+      Promise.resolve(o.tablesEnErreur?.includes(table) ? { data: null, error: { message: "lecture refusée" } } : { data: tables[table] ?? [], error: null }).then(ok);
     return q;
   };
   return {
@@ -232,6 +237,7 @@ function base(o: Options = {}) {
       from,
       rpc: async (nom: string, args?: Record<string, unknown>) => {
         appels.push([nom, args]);
+        if (o.leve === nom) throw new Error("connexion coupée");
         return reponses[nom] ?? { data: null, error: { message: `fonction inattendue ${nom}` } };
       },
     },
@@ -472,5 +478,84 @@ describe("les tâches suivies par l'écran Santé", () => {
     const r3 = await passerAlerteRelais({ db: cleSansEffet.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
     expect(terminaison(cleSansEffet.appels)?.p_compteurs).toMatchObject({ arrets_actifs: 1, taches_absentes: 2 });
     expect(r3).toMatchObject({ points: 3 });
+  });
+});
+
+// ── Les chemins de défaillance : une panne de lecture n'est jamais « rien à signaler » (relecture du 15/10) ──
+
+/** Le faux fournisseur, avec le corps de chaque message envoyé. */
+function fournisseurQuiGardeLeCorps(refuser: (to: string) => boolean = () => false) {
+  const fournisseur = fauxFournisseurEmail();
+  const corps: string[] = [];
+  vi.stubGlobal("fetch", async (url: unknown, init: RequestInit = {}) => {
+    const brut = String(init.body ?? "");
+    const { to } = JSON.parse(brut) as { to: string[] };
+    if (refuser(to[0])) return new Response(JSON.stringify({ name: "validation_error" }), { status: 422 });
+    corps.push(brut);
+    return fournisseur.fetch(url, init);
+  });
+  return { fournisseur, html: () => corps.map((c) => (JSON.parse(c) as { html: string }).html) };
+}
+
+describe("le passage du relais quand une lecture ou un envoi échoue", () => {
+  beforeEach(() => {
+    vi.stubEnv("RESEND_API_KEY", "cle-de-test");
+  });
+
+  it("la sentinelle de la base illisible : l'alerte part et le dit, au lieu de « rien à signaler »", async () => {
+    const f = fournisseurQuiGardeLeCorps();
+    const b = base({ sentinelle: { data: null, error: { message: "fonction indisponible" } } });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: lireAdressesRelais("relais@example.com"), site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "envoye", points: 1, envoyes: 1 });
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ lectures_impossibles: 1, arrets_actifs: 0, alertes_ouvertes: 0 });
+    expect(f.html()).toHaveLength(1);
+    expect(f.html()[0]).toContain("Les alertes du mode vacances, les arrêts d’urgence et les tâches de la base n’ont pas pu être lus.");
+  });
+
+  it("le suivi des missions illisible (agent_passages en erreur) : compté comme contrôle impossible", async () => {
+    const f = fournisseurQuiGardeLeCorps();
+    const b = base({ tablesEnErreur: ["agent_passages"] });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: lireAdressesRelais("relais@example.com"), site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "envoye", points: 1 });
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ lectures_impossibles: 1, taches_absentes: 0, taches_en_echec: 0 });
+    expect(f.html()[0]).toContain("Le suivi des missions planifiées n’a pas pu être lu.");
+  });
+
+  it("le relais du mode vacances non actualisé (traiter_vacances en erreur) : compté comme contrôle impossible", async () => {
+    const f = fournisseurQuiGardeLeCorps();
+    const b = base({ vacances: { data: null, error: { message: "indisponible" } } });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: lireAdressesRelais("relais@example.com"), site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "envoye", points: 1 });
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ lectures_impossibles: 1 });
+    expect(f.html()[0]).toContain("Le relais du mode vacances n’a pas pu être actualisé");
+  });
+
+  it("deux adresses, la seconde refusée par le fournisseur : « envoi partiel », une reprise reste permise", async () => {
+    const f = fournisseurQuiGardeLeCorps((to) => to === "second@example.org");
+    const passages = passagesSains().map((p) => (p.mission === "quittances" ? { ...p, etat: "a_reprendre" } : p));
+    const b = base({ passages });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "envoi_partiel", destinataires: 2, envoyes: 1 });
+    expect(terminaison(b.appels)).toMatchObject({ p_statut: "envoi_partiel", p_destinataires: 2, p_envoyes: 1 });
+    expect(f.fournisseur.acceptes.map((m) => m.to)).toEqual([["relais@example.com"]]);
+  });
+
+  it("toutes les adresses refusées : « échec », aucun envoi compté", async () => {
+    fournisseurQuiGardeLeCorps(() => true);
+    const passages = passagesSains().map((p) => (p.mission === "quittances" ? { ...p, etat: "a_reprendre" } : p));
+    const b = base({ passages });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "echec", envoyes: 0 });
+    expect(terminaison(b.appels)).toMatchObject({ p_statut: "echec", p_envoyes: 0 });
+  });
+
+  it("une connexion coupée en cours de passage : erreur 500, rien ne part, la passe n'est pas close (reprise permise)", async () => {
+    const f = fournisseurQuiGardeLeCorps();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const b = base({ leve: "sentinelle_relais" });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r).toEqual({ erreur: "Le passage du relais a été interrompu.", status: 500 });
+    expect(f.html()).toEqual([]);
+    expect(terminaison(b.appels)).toBeUndefined();
   });
 });

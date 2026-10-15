@@ -52,6 +52,7 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("/api/cron/relais", () => {
@@ -95,6 +96,36 @@ describe("/api/cron/relais", () => {
     expect(m.rpc.mock.calls.map(([nom]) => nom)).not.toContain("verifier_arret_supervision");
     const fin = m.rpc.mock.calls.find(([nom]) => nom === "terminer_alerte_relais")?.[1];
     expect(fin).toMatchObject({ p_statut: "envoye", p_compteurs: expect.objectContaining({ arrets_actifs: 1, adresses_ignorees: 1 }) });
+  });
+
+  it("à 5 h à Paris, le contrôle du relais indisponible (réservation en erreur) : HTTP 503, rien ne part", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-15T03:00:30Z"));
+    vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.com");
+    const fournisseur = fauxFournisseurEmail();
+    vi.stubGlobal("fetch", fournisseur.fetch);
+    m.rpc.mockImplementation(async () => ({ data: null, error: { message: "indisponible" } }));
+    const r = await GET(appel());
+    expect(r.status).toBe(503);
+    expect(await r.json()).toEqual({ erreur: "Le contrôle du relais est indisponible.", status: 503 });
+    expect(fournisseur.appels).toEqual([]);
+  });
+
+  it("à 5 h à Paris, une exception en cours de passage : HTTP 500, la tâche planifiée paraît en échec", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-15T03:00:30Z"));
+    vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.com");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const fournisseur = fauxFournisseurEmail();
+    vi.stubGlobal("fetch", fournisseur.fetch);
+    m.rpc.mockImplementation(async (nom: string) => {
+      if (nom === "reserver_alerte_relais") return { data: { reserve: true, jour: "2026-10-15", tentative: 1 }, error: null };
+      throw new Error("connexion coupée");
+    });
+    const r = await GET(appel());
+    expect(r.status).toBe(500);
+    expect(await r.json()).toMatchObject({ erreur: "Le passage du relais a été interrompu." });
+    expect(fournisseur.appels).toEqual([]);
   });
 
   it("à 5 h à Paris, variable absente : rien ne part, le passage dit « relais non configuré »", async () => {

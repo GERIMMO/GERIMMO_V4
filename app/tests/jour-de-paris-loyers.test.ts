@@ -391,6 +391,33 @@ describe.skipIf(!DB_URL).each(VARIANTES)("jour de Paris — $nom", (variante) =>
     expect(rows.map((r) => r.jour)).toEqual([veille, aujourdhui]);
   });
 
+  it("historique du lot : un incident déclaré ou clos à 00 h 30 à Paris porte le jour de Paris (pas celui du fuseau de la session)", async () => {
+    const m = await preparer();
+    await agir(null, "postgres");
+    // Déclaré le lendemain-1 à 00 h 30 (Paris), clos aujourd'hui à 00 h 20 (Paris) : deux instants qui tombent la veille en UTC.
+    await db.query("set session_replication_role = replica");
+    await db.query(
+      `insert into public.incidents (organization_id, numero, lot_id, canal, categorie, description, created_at, etat, clos_le, cloture_motif)
+       values ($1,'INC-FP-1',$2,'espace_locataire','plomberie_joint','Fuite',
+               (($3::date - 1)::timestamp + interval '30 minutes') at time zone 'Europe/Paris',
+               'clos', ($3::date::timestamp + interval '20 minutes') at time zone 'Europe/Paris', 'sans_suite')`,
+      [m.org, m.lotCollectif, m.jour]
+    );
+    await db.query("set session_replication_role = origin");
+    await agir(m.gerant);
+    const { rows } = await db.query<{ titre: string; jour: string }>(
+      "select titre, survenu_le::text as jour from public.historique_du_lot($1, 100) where nature = 'incident' order by survenu_le",
+      [m.lotCollectif]
+    );
+    const {
+      rows: [{ veille }],
+    } = await db.query<{ veille: string }>("select ($1::date - 1)::text as veille", [m.jour]);
+    expect(rows).toEqual([
+      { titre: "Incident déclaré", jour: veille },
+      { titre: "Incident clos", jour: m.jour },
+    ]);
+  });
+
   it("fin de bail dans l'historique : un bail qui finit aujourd'hui (Paris) y fige, pas celui qui finit demain", async () => {
     const m = await preparer();
     await agir(null, "postgres");
@@ -481,6 +508,25 @@ describe.skipIf(!DB_URL).each(VARIANTES)("jour de Paris — $nom", (variante) =>
     );
     expect(ecr.rows.length).toBeGreaterThan(0);
     for (const r of ecr.rows) expect([r.piece, r.imputation]).toEqual([m.jour, m.jour]);
+  });
+
+  it("« Encaisser le reste » (e2e PAY01, côté base) : impayé la veille, soldé par l'encaissement du jour de Paris, rejouable", async () => {
+    const m = await preparer();
+    const appel = await poserAppel(m, m.bailCollectif, 0, -1, 840);
+    expect(await statuts(m.bailCollectif, "brut")).toEqual(["impaye"]);
+    await agir(m.gerant);
+    const commande = (await db.query<{ id: string }>("select gen_random_uuid() as id")).rows[0].id;
+    const encaisser = () => db.query("select public.encaisser_reste_atomique($1,$2,$3,$4,840,0) as r", [m.org, m.bailCollectif, appel, commande]);
+    const premiere = (await encaisser()).rows[0].r;
+    expect(premiere).toMatchObject({ statut: "enregistre", montant: 840, rejoue: false });
+    const rejouee = (await encaisser()).rows[0].r;
+    expect(rejouee).toMatchObject({ statut: "enregistre", rejoue: true });
+    await agir(null, "postgres");
+    const { rows } = await db.query("select montant::float as montant, date_paiement::text as jour from public.encaissements where bail_id = $1", [m.bailCollectif]);
+    expect(rows).toEqual([{ montant: 840, jour: m.jour }]);
+    expect(await statuts(m.bailCollectif, "brut")).toEqual(["paye"]);
+    const { rows: reste } = await db.query("select (montant_du - montant_couvert)::float as reste from public.etat_loyers_bail_brut($1)", [m.bailCollectif]);
+    expect(reste).toEqual([{ reste: 0 }]);
   });
 
   it("quittance : émise et réémise au jour de Paris", async () => {

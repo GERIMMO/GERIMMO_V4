@@ -144,11 +144,18 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
       )
     ).rows[0].v;
 
+  /** La définition d'AVANT les migrations, sous une AUTRE forme (capitales, indentation retirée). */
+  const versLOrigine = (def: string) =>
+    def
+      .replace(/public\.aujourdhui_paris\(\)/g, "CURRENT_DATE")
+      // Les trois conversions d'horodatage de l'historique du lot (502000) reprennent leur forme d'origine.
+      .replace(/\((edl\.signe_le|i\.created_at|i\.clos_le) at time zone 'Europe\/Paris'\)::date/g, "$1::date")
+      .replace(/\n[ \t]+/g, "\n");
+
   /** Remet toute la famille dans son état d'AVANT, mais sous une AUTRE forme (capitales, indentation retirée). */
   async function remettreAvantAutrement(famille: Famille) {
     for (const [signature] of famille.fonctions) {
-      const def = await definition(signature);
-      await db.query(def.replace(/public\.aujourdhui_paris\(\)/g, "CURRENT_DATE").replace(/\n[ \t]+/g, "\n"));
+      await db.query(versLOrigine(await definition(signature)));
     }
     for (const [table, colonne] of famille.defauts) await db.query(`alter table public.${table} alter column ${colonne} set default current_date`);
   }
@@ -274,6 +281,55 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
       await db.query("drop function public.aujourdhui_paris() cascade");
       const message = await echoue(migration(famille.version, famille.fichier));
       expect(message).toMatch(/public\.aujourdhui_paris\(\) est absente.*20261014500000/);
+    });
+  });
+
+  describe("historique du lot — les jours tirés d'un horodatage (502000)", () => {
+    const famille = FAMILLES[1];
+    const SIGNATURE = "public.historique_du_lot(uuid,integer)";
+    const COLONNES = ["edl.signe_le", "i.created_at", "i.clos_le"];
+    const aParis = (c: string) => new RegExp(`\\(${c.replace(".", "\\.")} at time zone 'Europe/Paris'\\)::date`, "g");
+    const brute = (c: string) => new RegExp(`\\b${c.replace(".", "\\.")}::date`, "g");
+
+    it("chaque conversion d'horodatage est à Paris, une fois, et plus aucune ne suit le fuseau de la session", async () => {
+      const def = await definition(SIGNATURE);
+      for (const c of COLONNES) {
+        expect(def.match(aParis(c)) ?? [], c).toHaveLength(1);
+        expect(def.match(brute(c)) ?? [], c).toHaveLength(0);
+      }
+    });
+
+    it("sur l'ancienne forme (conversion brute, autre mise en forme), la migration les passe à Paris", async () => {
+      await remettreAvantAutrement(famille);
+      const avant = await definition(SIGNATURE);
+      for (const c of COLONNES) expect(avant.match(brute(c)) ?? [], c).toHaveLength(1);
+      await db.query(migration(famille.version, famille.fichier));
+      const apres = await definition(SIGNATURE);
+      for (const c of COLONNES) expect(apres.match(aParis(c)) ?? [], c).toHaveLength(1);
+    });
+
+    it("une conversion en double l'arrête, en la nommant, et ne laisse rien de changé", async () => {
+      await remettreAvantAutrement(famille);
+      const def = await definition(SIGNATURE);
+      await db.query(def.replace("'incident', 'Incident clos'", "'incident', 'Incident clos' || (i.created_at::date)::text"));
+      const avant = await empreinte();
+      const message = await echoue(migration(famille.version, famille.fichier));
+      expect(message).toMatch(/historique_du_lot\(uuid,integer\) contient 2 conversion\(s\) i\.created_at::date et 0 déjà à Paris/);
+      expect(message).toContain("rien n'est modifié");
+      expect(await empreinte()).toEqual(avant);
+    });
+
+    it("le retour ne rétablit que la conversion d'origine, et se rejoue sans effet", async () => {
+      await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
+      const def = await definition(SIGNATURE);
+      for (const c of COLONNES) {
+        expect(def.match(brute(c)) ?? [], c).toHaveLength(1);
+        expect(def.match(aParis(c)) ?? [], c).toHaveLength(0);
+      }
+      expect(def).not.toContain("Europe/Paris");
+      const unefois = await empreinte();
+      await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
+      expect(await empreinte()).toEqual(unefois);
     });
   });
 

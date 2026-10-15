@@ -386,7 +386,7 @@ l'unité près, sinon il s'arrête sans rien modifier), se rejoue sans effet et 
 |---|---|
 | `…500000_jour_de_paris_fonction` | crée `aujourdhui_paris()` ; droits : authenticated et service_role, jamais anon |
 | `…501000_jour_de_paris_etat_loyers_et_impayes` | `etat_loyers_bail_brut` (1), `suivre_impayes_bail` (1), `relances_loyer_dues` (6), `relance_loyer_consigner` (2), `actualiser_orchestration` (2), `collecter_source_direction` (7, voir ci-dessous) ; défaut de `relances.date_envoi` |
-| `…502000_jour_de_paris_lot_et_contrats` | `contrats_du_lot` (2), `fiche_lot` (2), `historique_du_lot` (2) |
+| `…502000_jour_de_paris_lot_et_contrats` | `contrats_du_lot` (2), `fiche_lot` (2), `historique_du_lot` (2, et ses trois jours d'événement tirés d'un horodatage : `edl.signe_le`, `i.created_at`, `i.clos_le`, convertis à Paris une fois chacun) |
 | `…503000_jour_de_paris_appels_et_quittances` | `generer_appels_loyer_interne` (2), `cycle_mensuel_interne` (1), `resynchroniser_quittances` (2), `quittances_a_envoyer` (1), `appels_a_envoyer` (1) ; défaut de `quittances.date_emission` |
 | `…504000_jour_de_paris_encaissements` | `contre_passer_encaissement` (2) ; défaut de `encaissements.date_paiement` |
 

@@ -14,7 +14,8 @@
 --
 -- RÉINTRODUIT le défaut corrigé : entre 22 h et 24 h UTC (00 h à 02 h à Paris), la fiche du lot et ses contrats comptent
 -- l'impayé échu avec le jour UTC (ils peuvent afficher « 0 € » sur un loyer que l'alerte vient de signaler), et l'historique
--- du lot masque ce qui est arrivé « aujourd'hui » à Paris. Ne modifie aucune donnée.
+-- du lot masque ce qui est arrivé « aujourd'hui » à Paris et date un incident déclaré ou clos, ou un état des lieux signé,
+-- entre minuit et 2 h à Paris, de la veille (conversion d'horodatage au fuseau de la session). Ne modifie aucune donnée.
 -- Le retour rétablit `current_date` en minuscules ; la logique est celle d'avant, la casse du mot peut différer d'une base
 -- qui l'écrivait en capitales.
 --
@@ -68,6 +69,38 @@ begin
     execute regexp_replace(v_def, 'public\.aujourdhui_paris\(\)', 'current_date', 'g');
     raise notice '% : jour de la session rétabli', v_signature;
   end loop;
+end $retour_arriere$;
+
+-- Historique du lot : les trois jours tirés d'un horodatage reprennent la conversion d'origine (`colonne::date`, fuseau de la session).
+do $retour_arriere$
+declare
+  v_signature constant text := 'public.historique_du_lot(uuid,integer)';
+  v_oid regprocedure := to_regprocedure('public.historique_du_lot(uuid,integer)');
+  v_def text;
+  v_colonne text;
+  v_motif text;
+  v_nb integer;
+  v_change boolean := false;
+begin
+  if v_oid is null then
+    raise exception 'Retour arrière : la fonction % n''existe pas (base inattendue)', v_signature;
+  end if;
+  v_def := pg_get_functiondef(v_oid);
+  foreach v_colonne in array array['edl.signe_le', 'i.created_at', 'i.clos_le'] loop
+    v_motif := '\(\s*(' || replace(v_colonne, '.', '\.') || ')\s+at\s+time\s+zone\s+''Europe/Paris''\s*\)\s*::\s*date';
+    select count(*) into v_nb from regexp_matches(v_def, v_motif, 'gi');
+    if v_nb = 0 then
+      raise notice '% : %::date déjà à l''origine, rien à faire', v_signature, v_colonne;
+      continue;
+    end if;
+    if v_nb <> 1 then
+      raise exception 'Retour arrière : % contient % conversions de % à Paris au lieu d''une : définition réécrite depuis, rien n''est modifié.', v_signature, v_nb, v_colonne;
+    end if;
+    v_def := regexp_replace(v_def, v_motif, '\1::date', 'gi');
+    v_change := true;
+    raise notice '% : %::date rétabli', v_signature, v_colonne;
+  end loop;
+  if v_change then execute v_def; end if;
 end $retour_arriere$;
 
 -- Convention de toute migration qui touche une fonction.

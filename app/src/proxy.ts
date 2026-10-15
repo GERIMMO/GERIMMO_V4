@@ -87,10 +87,12 @@ export async function proxy(request: NextRequest) {
   // /api/cron/equipes?mission= (25/09) ; tests/cron-routes-proxy.test.ts le
   // vérifie contre vercel.json et le dossier. Depuis le 14/10 (X04), il n'en reste que
   // deux : les missions n'ont plus de route directe, la route d'équipes est leur entrée
-  // unique (tests/cron-entree-unique.test.ts).
+  // unique (tests/cron-entree-unique.test.ts). Depuis le 15/10 (D46-B), une troisième, qui
+  // n'est pas une mission : l'alerte e-mail quotidienne du relais (secret vérifié aussi).
   if ([
     "/api/cron/equipes",
     "/api/cron/orchestrateur",
+    "/api/cron/relais",
     "/api/stripe/webhook",
     "/api/youtrust/webhook",
     "/api/sante",

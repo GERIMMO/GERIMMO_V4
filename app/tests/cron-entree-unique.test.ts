@@ -38,8 +38,11 @@ beforeEach(() => {
 });
 
 describe("X04 — une seule porte pour les missions", () => {
-  it("les seules routes de tâche sont celle d'équipes et celle du suivi des dossiers", () => {
-    expect(routes().sort()).toEqual(["equipes/route.ts", "orchestrateur/route.ts"]);
+  it("les seules routes de tâche sont celle d'équipes, celle du suivi des dossiers et celle de l'alerte du relais", () => {
+    // D46-B (15/10/2026) : l'alerte e-mail du relais n'est pas une mission (aucune clé dans MISSIONS) ; elle a sa route,
+    // hors de l'enveloppe des missions, parce que l'arrêt d'urgence ne doit pas la couper (il en est l'un des sujets).
+    expect(routes().sort()).toEqual(["equipes/route.ts", "orchestrateur/route.ts", "relais/route.ts"]);
+    expect(Object.keys(MISSIONS)).not.toContain("relais");
   });
 
   it("aucune route directe ne subsiste pour une mission", () => {
@@ -68,10 +71,10 @@ describe("X04 — une seule porte pour les missions", () => {
   // fichier (une regex cassait au moindre reformatage et laissait passer un traitement échangé ou retiré) : c'est le
   // comportement du GET qui est testé, mission par mission, dans tests/cron-equipes-route.test.ts.
 
-  it("chaque chemin de vercel.json passe par la route d'équipes ou par celle du suivi des dossiers", () => {
+  it("chaque chemin de vercel.json passe par la route d'équipes, celle du suivi des dossiers ou celle du relais", () => {
     for (const c of vercel.crons) {
       const chemin = new URL(`https://gerimmo.test${c.path}`).pathname;
-      expect(["/api/cron/equipes", "/api/cron/orchestrateur"], c.path).toContain(chemin);
+      expect(["/api/cron/equipes", "/api/cron/orchestrateur", "/api/cron/relais"], c.path).toContain(chemin);
     }
   });
 
@@ -82,8 +85,8 @@ describe("X04 — une seule porte pour les missions", () => {
     }
   });
 
-  it("le proxy laisse toujours passer les deux routes qui existent (elles vérifient leur secret)", async () => {
-    for (const chemin of ["/api/cron/equipes", "/api/cron/orchestrateur"]) {
+  it("le proxy laisse toujours passer les trois routes qui existent (elles vérifient leur secret)", async () => {
+    for (const chemin of ["/api/cron/equipes", "/api/cron/orchestrateur", "/api/cron/relais"]) {
       const r = await proxy(new NextRequest(`https://gerimmo.test${chemin}`));
       expect(r.headers.get("location"), chemin).toBeNull();
       expect(r.headers.get("x-middleware-next"), chemin).toBe("1");

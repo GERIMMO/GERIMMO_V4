@@ -859,6 +859,7 @@ export async function VoletArtisan({
               incidentId={incidentId}
               bienId={bienId}
               disponibilites={disponibilites}
+              estProprietaire={estProprietaire}
               categorieLibelle={
                 categorieIncident(categorie)?.libelle ?? titreIncident(categorie)
               }

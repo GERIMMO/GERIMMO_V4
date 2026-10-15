@@ -84,6 +84,26 @@ export function libelleEtatLocataire(
   }
 }
 
+// Les états qui attendent une action de l'agence — la file de travail « À traiter ».
+export const ETATS_A_TRAITER: readonly string[] = ["declare", "rouvert", "termine"];
+
+/**
+ * La file « À traiter » (audit du 13/10, PRO2-13, décision D19) : un incident y est compté dès que son état
+ * attend l'agence, ET tant qu'un devis reçu attend sa décision. Un incident « qualifié » dont un artisan vient de
+ * chiffrer les travaux dormait jusque-là hors de la file : seul un e-mail le signalait.
+ *
+ * `idsAvecDevisADecider` : les incidents ayant au moins un devis déposé, non expiré et pas encore retenu.
+ * Un incident clos n'est jamais à traiter.
+ */
+export function incidentsATraiter<T extends { id: string; etat: string }>(
+  incidents: readonly T[],
+  idsAvecDevisADecider: ReadonlySet<string>
+): T[] {
+  return incidents.filter(
+    (i) => i.etat !== "clos" && (ETATS_A_TRAITER.includes(i.etat) || idsAvecDevisADecider.has(i.id))
+  );
+}
+
 export const COULEURS_ETAT_LOCATAIRE: Record<string, string> = {
   declare: "puce puce-encre",
   qualifie: "puce puce-prep",

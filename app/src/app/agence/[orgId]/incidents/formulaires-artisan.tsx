@@ -13,8 +13,8 @@ import {
   solliciterArtisan,
   type EtatIncidentAction,
 } from "@/app/actions/incidents";
-import { MessageReseau, InteretReseau } from "@/components/disponibilite-reseau";
-import type { DisponibiliteReseau } from "@/lib/reseau";
+import { MessageReseau, InteretReseau, VoieDeSortieReseau } from "@/components/disponibilite-reseau";
+import { voieDeSortieAffichee, type DisponibiliteReseau } from "@/lib/reseau";
 import { IMPUTATIONS_INCIDENT } from "@/lib/incidents";
 import {
   decennaleRequise,
@@ -77,12 +77,15 @@ export function FormulaireConsultation({
   categorieLibelle,
   bienId,
   disponibilites,
+  estProprietaire = false,
 }: {
   orgId: string;
   incidentId: string;
   categorieLibelle: string;
   bienId: string | null;
   disponibilites: DisponibiliteReseau[] | null;
+  /** Un propriétaire sans réseau ne peut pas ajouter d'artisan : l'écran lui montre la voie de sortie (D17). */
+  estProprietaire?: boolean;
 }) {
   const actionLiee = ouvrirConsultation.bind(null, orgId, incidentId);
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
@@ -184,6 +187,7 @@ export function FormulaireConsultation({
 
       {disponibilites === null && <p role="alert" className="text-sm text-destructive">La disponibilité des artisans ne peut pas être vérifiée. Rechargez la page avant d’ouvrir une demande.</p>}
       {d && bienId && <MessageReseau orgId={orgId} bienId={bienId} disponibilite={d} />}
+      {d && voieDeSortieAffichee(d, estProprietaire) && <VoieDeSortieReseau interetEnregistre={d.interet_enregistre} />}
       {d && d.etat !== "ouverte" && d.nb_contacts > 0 && <p className="text-sm">Vous pouvez continuer avec {d.nb_contacts} artisan{d.nb_contacts > 1 ? "s" : ""} de votre carnet personnel correspondant à ces travaux.</p>}
       <Retour etat={etat} />
       <BoutonEnvoi disabled={!autorisee} enCoursTexte="Ouverture…">{d && d.etat !== "ouverte" && d.nb_contacts > 0 ? "Ouvrir avec mon carnet" : "Ouvrir la mise en concurrence"}</BoutonEnvoi>

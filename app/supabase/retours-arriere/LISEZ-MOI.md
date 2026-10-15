@@ -22,6 +22,9 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 | `20261014221000_alerte_relais_destinataire.retour.sql` | `20261014221000_alerte_relais_destinataire.sql` (D09, SUP-03) | 1 fonction (`accuser_alerte_vacances`), 1 ligne d'historique. Réintroduit : tout superviseur permanent peut accuser une alerte de relais adressée à un autre. Aucune donnée défaite |
 | `20261014222000_consigne_activation_approbateur_distinct.retour.sql` | `20261014222000_consigne_activation_approbateur_distinct.sql` (D10, SUP-04) | 1 fonction (`decider_consigne`), 1 fonction supprimée (`tache_consigne_lecture_seule`), 1 ligne d'historique. Réintroduit : plus aucun approbateur distinct exigé, même le jour où une tâche agira. Aucune donnée défaite |
 | `20261014223000_alerte_relais_reprise_destinataire_parti.retour.sql` | `20261014223000_alerte_relais_reprise_destinataire_parti.sql` (D09, relecture de SUP-03) | 1 fonction (`accuser_alerte_vacances`, qui retrouve la définition de 221000), 1 ligne d'historique. Réintroduit : une alerte escaladée vers un créateur qui a perdu son habilitation n'a plus personne pour l'accuser (la reprise redevient limitée au statut « non acheminée »). **À jouer AVANT le retour de 221000.** Aucune donnée défaite |
+| `20261014302000_creneaux_non_retenus_caducs.retour.sql` | `20261014302000_creneaux_non_retenus_caducs.sql` (lot « chaîne d'incident », D21) | 2 fonctions (`choisir_creneau`, `accepter_creneau_locataire`), 1 ligne d'historique |
+| `20261014301000_ecart_rendez_vous_chronologie.retour.sql` | `20261014301000_ecart_rendez_vous_chronologie.sql` (lot « chaîne d'incident », D20) | 3 fonctions (`demarrer_intervention`, `deposer_compte_rendu`, `deposer_facture_artisan`), 1 fonction supprimée (`ecart_rendez_vous`), 1 ligne d'historique |
+| `20261014300000_devis_a_decider_alerte.retour.sql` | `20261014300000_devis_a_decider_alerte.sql` (lot « chaîne d'incident », D19) | 1 fonction (`deposer_devis`), 1 déclencheur et sa fonction supprimés (`fermer_alerte_devis_a_decider`), 1 ligne d'historique |
 | `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » |
 | `20261014232000_effacement_instantanes_faits_direction.retour.sql` | `20261014232000_effacement_instantanes_faits_direction.sql` | **rien** : les instantanés effacés ne reviennent que d'une sauvegarde ; le script ne retire que la ligne d'historique |
 | `20261014231000_retention_registres_execution.retour.sql` | `20261014231000_retention_registres_execution.sql` | 1 bloc retiré d'`appliquer_retention` (retrait chirurgical : le reste de la fonction n'est pas touché), 1 fonction supprimée, 5 règles de conservation, 1 ligne d'historique |
@@ -287,3 +290,33 @@ les deux ordres (essayé). Dans le sens retour :
   `collecter_source_direction`, `organisations_citees_faits_direction`, `libelle_generique_alerte` (230000) ou `mes_photos_incident_artisan` (233000).
   Au 14/10, seule `200000` touche `appliquer_retention` ; aucune autre branche ne réécrit les fonctions de `230000` ni de `233000`. Le retour de `230000`
   rétablit des définitions entières : il écraserait une réécriture ultérieure de ces fonctions.
+## Lot « chaîne d'incident » (migrations 20261014300000 à 20261014302000)
+
+Trois migrations indépendantes (aucune fonction commune) ; trois retours indépendants, à jouer **dans l'ordre inverse** de préférence
+(302000, 301000, 300000), chacun avec la procédure ci-dessus (simulation par `sed`, puis exécution). Même méthode que plus haut : chaque
+définition antérieure est lue par `pg_get_functiondef` sur une base reconstruite sans ces migrations, et chaque fonction n'est rétablie
+que si sa **marque** est dans la définition en vigueur (« Audit du 13/10 (CHN-01) », « (ART-21) », « (PRO2-13) »).
+
+| Retour | Défaut qui revient | Ce que le retour ne défait PAS |
+|---|---|---|
+| 302000 | CHN-01 : un choix de créneau enregistre de nouveau les autres dates « refusées », qui recomptent dans les six refus | les créneaux déjà passés à « caduc » (valeur d'origine de l'énumération) |
+| 301000 | ART-21 : plus aucune trace d'écart à la chronologie quand l'artisan démarre, rend compte ou facture plus de 2 h avant le rendez-vous | les clés `avant_rendez_vous`, `debut_prevu`, `ecart_minutes` déjà écrites dans `incident_evenements.details` (lignes de chronologie, jamais supprimées) |
+| 300000 | PRO2-13 : plus d'alerte dans l'application à la réception d'un devis ; plus rien ne ferme les alertes `devis_a_decider` | les alertes `devis_a_decider` déjà écrites (voir ci-dessous) |
+
+Rejouables : un script relancé sur une base déjà revenue répond « marque du correctif absente, rien à faire » pour chaque fonction.
+Le retour 301000 ne supprime `ecart_rendez_vous` que si aucune fonction ne l'appelle plus (sinon il la garde et le dit).
+
+**Alertes `devis_a_decider` après le retour 300000.** Elles restent en base, ouvertes pour celles qui l'étaient, et plus rien ne les ferme à la
+décision. Le retour ne les modifie pas (il ne touche jamais une donnée écrite). Pour les fermer à la main, après décision :
+
+```sql
+update public.alerts
+   set statut = 'fermee', closed_at = now(), closed_action = 'Alerte retirée (retour arrière 20261014300000)'
+ where type = 'devis_a_decider' and statut = 'ouverte';
+```
+
+**Preuve de l'essai** (base jetable `gerimmo_ci_lane_j_retour`, PostgreSQL 16, reconstruite depuis `ordre-migrations.txt` sans les trois migrations) :
+A (avant) → les trois migrations appliquées (une transaction chacune) → B → rejeu des trois : empreinte md5 des définitions et droits des 556 fonctions
+de `public` **identique** à B → simulations par `sed` (annulées) → les trois retours → C : `pg_dump --schema-only -n public` de C **identique** à celui
+de A (seuls diffèrent les jetons aléatoires `\restrict` / `\unrestrict` de `pg_dump`) → marche avant : les trois migrations rejouées sur C redonnent
+exactement l'empreinte de B. Limites : base de banc, PostgreSQL 16 (la production est en 17), aucun essai sur la production.

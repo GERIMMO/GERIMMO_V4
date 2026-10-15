@@ -28,6 +28,25 @@ export function MessageReseau({ orgId, bienId, disponibilite: d }: { orgId: stri
   </div>;
 }
 
+/**
+ * Ce qu'un propriétaire peut faire quand le réseau n'est pas ouvert pour sa commune (audit du 13/10, PRO2-01,
+ * décision D17, option A — texte seul). Sans cela, l'écran de sollicitation s'arrêtait sur un bouton grisé : le
+ * propriétaire ne savait pas qu'il pouvait clore l'incident ou appeler lui-même un artisan. Aucun ajout d'artisan
+ * n'est proposé ici : l'ajout d'artisans reste réservé aux agences.
+ */
+export function VoieDeSortieReseau({ interetEnregistre }: { interetEnregistre: boolean }) {
+  return <div className="space-y-2 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4 text-sm">
+    <p className="font-medium">Ce que vous pouvez faire dès maintenant</p>
+    <ul className="list-disc space-y-1.5 pl-5">
+      <li><strong>Clôturer l’incident</strong> s’il est réglé ou s’il relève du syndic : voir <a href="#cloture" className="underline underline-offset-4">la section « Clôturer l’incident »</a>, plus bas sur cette page.</li>
+      <li><strong>Appeler vous-même l’artisan de votre choix</strong>, en dehors de Gerimmo. Une fois l’intervention faite, clôturez l’incident avec le motif « Résolu ».</li>
+      {interetEnregistre
+        ? <li><strong>Votre intérêt est déjà enregistré</strong> pour ce bien et ce métier. Aucune intervention n’a été demandée.</li>
+        : <li><strong>Signaler votre intérêt</strong> avec le bouton ci-dessous : cela aide à préparer le réseau dans cette zone, sans déclencher aucun contact.</li>}
+    </ul>
+  </div>;
+}
+
 /** Confirmation groupée des communes évidentes (audit gestion du 29/09). */
 export function ConfirmerCommunesEvidentes({ orgId, nbSansCommune }: { orgId: string; nbSansCommune: number }) {
   const [etat, action] = useActionState(confirmerCommunesEvidentes.bind(null, orgId), {});

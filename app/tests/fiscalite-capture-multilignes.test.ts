@@ -17,7 +17,7 @@ type Composante={encaissement_id:string;montant:string;loyer_hc:string;charges:s
 const centimes=(v:string|number)=>Math.round(Number(v)*100);
 
 describe.skipIf(!url)('X11 / FIN-09 : capture fiscale indépendante de l\'ordre des lignes d\'un INSERT',()=>{
- let db:Client,org:string,lot:string,bail:string,lot2:string,bail2:string;
+ let db:Client,org:string,lot:string,bail:string,bail2:string;
  const COLONNES='organization_id,bail_id,montant,date_paiement';
  // Une ligne = un paiement ; l'ordre de la liste est l'ordre des lignes de l'INSERT.
  const inserer=async(montants:number[],bailCible=bail)=>{
@@ -49,7 +49,7 @@ describe.skipIf(!url)('X11 / FIN-09 : capture fiscale indépendante de l\'ordre 
   db=new Client({connectionString:url});await db.connect();await db.query('begin');
   org=(await db.query("insert into organizations(name,status,type) values('TEST X11','active','proprietaire_direct') returning id")).rows[0].id;
   ({l:lot,b:bail}=await lot_et_bail('TEST X11 A',780,60));
-  ({l:lot2,b:bail2}=await lot_et_bail('TEST X11 B',500,100));
+  ({b:bail2}=await lot_et_bail('TEST X11 B',500,100));
  });
  beforeEach(async()=>{await db.query('savepoint scenario');});
  afterEach(async()=>{await db.query('rollback to savepoint scenario');});

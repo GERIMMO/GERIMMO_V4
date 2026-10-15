@@ -201,7 +201,32 @@ export function FormulaireDiagnostic({
           </p>
         </div>
       </div>
-      {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.pieceExistante ? (
+        // X07 (PROP-11) : le même rapport est déjà rangé (diagnostic collectif d'un immeuble). Plutôt qu'un refus
+        // sans issue, on propose de l'utiliser aussi ici : le bouton envoie le MÊME formulaire (dates et classe
+        // déjà saisies comprises) avec l'identifiant de la pièce, et rien n'est déposé une seconde fois.
+        <div role="status" className="space-y-2 rounded-md border border-border bg-muted/40 p-3 text-sm">
+          <p>
+            <strong>Ce rapport est déjà dans votre dossier</strong>, sous le nom « {etat.pieceExistante.titre ?? "sans titre"} ».
+          </p>
+          <p className="text-muted-foreground">
+            S’il vaut aussi pour {niveau === "lot" ? "ce lot" : "ce bien"} (par exemple le diagnostic collectif d’un immeuble),
+            utilisez cette même pièce : elle ne sera pas déposée une seconde fois.
+          </p>
+          <BoutonEnvoi
+            type="submit"
+            name="piece_existante"
+            value={etat.pieceExistante.id}
+            enCours={enCours}
+            size="sm"
+            enCoursTexte="Enregistrement…"
+          >
+            {niveau === "lot" ? "Utiliser cette pièce pour ce lot" : "Utiliser cette pièce pour ce bien"}
+          </BoutonEnvoi>
+        </div>
+      ) : (
+        etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>
+      )}
       {etat.succes && etatModifie !== etat && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}

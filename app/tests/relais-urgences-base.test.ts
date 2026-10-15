@@ -19,8 +19,11 @@
 import { readFileSync } from "node:fs";
 import { config } from "dotenv";
 import { Client } from "pg";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
+import { fauxFournisseurEmail } from "./fixtures/faux-fournisseur-email";
+import { envoyerUrgencesRelais } from "../src/lib/relais-urgences-envoi";
+import { lireAdressesRelais } from "../src/lib/relais-alerte";
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
@@ -386,5 +389,112 @@ describe.skipIf(!DB_URL)("D46-B — e-mail immédiat des urgences du relais : la
     // Une urgence posée après le rejeu entre une seule fois dans la file.
     await signaler(createur, plan, "incident-apres-rejeu");
     expect((await file()).filter((l) => l.statut === "a_envoyer")).toHaveLength(1);
+  });
+});
+
+/** Le client de la base vu par le serveur (`rpc`), branché sur la transaction du test, au nom du traitement. */
+function clientDuTraitement() {
+  return {
+    rpc: async (fn: string, args: Record<string, unknown> = {}) => {
+      await service();
+      const cles = Object.keys(args);
+      await db.query("savepoint rpc");
+      try {
+        const { rows: [{ r }] } = await db.query(`select public.${fn}(${cles.map((k, i) => `${k} => $${i + 1}`).join(", ")}) as r`, cles.map((k) => args[k]));
+        await db.query("release savepoint rpc");
+        return { data: r as unknown, error: null };
+      } catch (err) {
+        await db.query("rollback to savepoint rpc");
+        return { data: null, error: { message: (err as Error).message } };
+      }
+    },
+  };
+}
+
+describe.skipIf(!DB_URL)("D46-B — e-mail immédiat des urgences : le serveur sur la vraie base (aucun envoi réel)", () => {
+  const ADRESSES = lireAdressesRelais("relais@example.com, second@example.org");
+  beforeAll(async () => {
+    db = new Client({ connectionString: DB_URL });
+    await db.connect();
+  });
+  afterAll(async () => { await db?.end(); });
+  beforeEach(async () => {
+    await db.query("begin");
+    await proprietaire();
+    await db.query("delete from public.relais_urgences");
+    await db.query("delete from public.relais_urgences_envois");
+    vi.stubEnv("RESEND_API_KEY", "cle-de-test");
+  });
+  afterEach(async () => {
+    await db.query("rollback");
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("une urgence posée : un e-mail par adresse, une seule fois ; un second passage n'envoie rien ; la file dit « envoyée »", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    vi.stubGlobal("fetch", fournisseur.fetch);
+    const { createur, plan } = await planActif();
+    await signaler(createur, plan, "incident-bout-en-bout", "Urgence fictive : Mme Exemple, 1 250 €");
+    const r = await envoyerUrgencesRelais({ db: clientDuTraitement(), adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r).toEqual({ arret: "rien", envois: [{ urgences: 1, destinataires: 2, envoyes: 2, reprise: false, statut: "envoye" }] });
+    expect(fournisseur.acceptes.map((a) => a.to[0]).sort()).toEqual(["relais@example.com", "second@example.org"]);
+    expect(await envoyerUrgencesRelais({ db: clientDuTraitement(), adresses: ADRESSES, site: "https://gerimmo.test" })).toEqual({ arret: "rien", envois: [] });
+    expect(fournisseur.acceptes).toHaveLength(2);
+    expect((await file()).map((l) => l.statut)).toEqual(["envoyee"]);
+    expect((await recentes()).urgences.map((u) => u.email)).toEqual(["envoye"]);
+  });
+
+  it("relais non configuré : rien ne part, la file est conservée ; configuré ensuite, l'urgence part", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    vi.stubGlobal("fetch", fournisseur.fetch);
+    const { createur, plan } = await planActif();
+    await signaler(createur, plan, "incident-sans-relais");
+    expect(await envoyerUrgencesRelais({ db: clientDuTraitement(), adresses: lireAdressesRelais(undefined), site: "https://gerimmo.test" }))
+      .toEqual({ arret: "non_configure", envois: [] });
+    expect(fournisseur.appels).toEqual([]);
+    expect((await file()).map((l) => l.statut)).toEqual(["a_envoyer"]);
+    const r = await envoyerUrgencesRelais({ db: clientDuTraitement(), adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r.envois).toHaveLength(1);
+    expect(fournisseur.acceptes).toHaveLength(2);
+  });
+
+  it("plafond : sept urgences en sept passages, six e-mails dans l'heure ; la septième attend, puis part groupée", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    vi.stubGlobal("fetch", fournisseur.fetch);
+    const { createur, plan } = await planActif();
+    const un = lireAdressesRelais("relais@example.com");
+    for (let i = 1; i <= 7; i++) {
+      await signaler(createur, plan, `rafale-${i}`);
+      await envoyerUrgencesRelais({ db: clientDuTraitement(), adresses: un, site: "https://gerimmo.test" });
+    }
+    expect(fournisseur.acceptes).toHaveLength(6);
+    await signaler(createur, plan, "rafale-8");
+    expect(await envoyerUrgencesRelais({ db: clientDuTraitement(), adresses: un, site: "https://gerimmo.test" })).toEqual({ arret: "plafond", envois: [], en_attente: 2 });
+    await proprietaire();
+    await db.query("update public.relais_urgences_envois set commence_le = commence_le - interval '61 minutes'");
+    const r = await envoyerUrgencesRelais({ db: clientDuTraitement(), adresses: un, site: "https://gerimmo.test" });
+    expect(r.envois).toEqual([{ urgences: 2, destinataires: 1, envoyes: 1, reprise: false, statut: "envoye" }]);
+    expect(fournisseur.acceptes).toHaveLength(7);
+    expect(fournisseur.acceptes[6].subject).toBe("Gerimmo — 2 urgences du relais");
+  });
+
+  it("service muet puis revenu : l'envoi est repris sous les mêmes clés, sans second message", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    vi.stubGlobal("fetch", fournisseur.fetch);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { createur, plan } = await planActif();
+    await signaler(createur, plan, "incident-muet");
+    fournisseur.definirMode("accepte-puis-muet");
+    const r1 = await envoyerUrgencesRelais({ db: clientDuTraitement(), adresses: ADRESSES, site: "https://gerimmo.test", delaiMaxMs: 20 });
+    expect(r1).toMatchObject({ arret: "echec", envois: [{ envoyes: 0, statut: "a_reprendre" }] });
+    expect(fournisseur.acceptes).toHaveLength(2);
+    fournisseur.definirMode("normal");
+    const r2 = await envoyerUrgencesRelais({ db: clientDuTraitement(), adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r2.envois[0]).toMatchObject({ envoyes: 2, reprise: true, statut: "envoye" });
+    // Le service a reconnu les clés : toujours deux messages, un par adresse.
+    expect(fournisseur.acceptes).toHaveLength(2);
+    expect(new Set(fournisseur.cles()).size).toBe(2);
+    vi.restoreAllMocks();
   });
 });

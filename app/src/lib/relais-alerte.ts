@@ -12,6 +12,7 @@ import { composantesParis } from "./heure-paris-calcul";
 import { formaterDateHeureParis } from "./heure-paris";
 import { emailValide } from "./marque-organisation";
 import { arretSansEffet, nomArret } from "./nom-arret-supervision";
+import { libelleSortEmail, libelleUrgence, type UrgenceRecente } from "./relais-urgences";
 
 /** L'heure de l'alerte, à Paris (05 h 00, été comme hiver). */
 export const HEURE_RELAIS_PARIS = 5;
@@ -56,11 +57,20 @@ export function lireAdressesRelais(valeur: string | null | undefined): AdressesR
   return { valides, invalides, configure: valides.length > 0 };
 }
 
-/** « r•••@example.com » : la première lettre, puis le domaine. Jamais l'adresse entière à l'écran. */
+/**
+ * « re•••is@example.com » : les deux premiers et les deux derniers caractères avant @, puis le domaine — assez pour
+ * distinguer deux adresses du même domaine (décision du 15/10), jamais l'adresse entière : au moins un caractère reste
+ * caché, et le nombre de caractères cachés ne se lit pas (toujours « ••• »). Partie avant @ de 3 ou 4 caractères :
+ * le premier et le dernier ; de 2 : le premier ; d'un seul : rien.
+ */
 export function masquerAdresse(adresse: string): string {
   const arobase = adresse.lastIndexOf("@");
   if (arobase < 1) return "•••";
-  return `${adresse.slice(0, 1)}•••${adresse.slice(arobase)}`;
+  const nom = adresse.slice(0, arobase);
+  const visibles = nom.length >= 5 ? 2 : nom.length >= 3 ? 1 : 0;
+  const debut = nom.length === 2 ? nom.slice(0, 1) : nom.slice(0, visibles);
+  const fin = visibles > 0 ? nom.slice(-visibles) : "";
+  return `${debut}•••${fin}${adresse.slice(arobase)}`;
 }
 
 /** La phrase que la console affiche : ce qui part vraiment, ou « relais non configuré ». */
@@ -95,6 +105,12 @@ export type ConstatRelais = {
   lecturesImpossibles: string[];
   /** Le relais du mode vacances n'a pas pu être actualisé avant la lecture. */
   relaisNonActualise: boolean;
+  /**
+   * Le rappel des urgences posées dans les dernières 24 h (décision du 15/10 : y compris celles dont l'e-mail immédiat
+   * est déjà parti) : les 50 plus récentes et leur nombre total. Absent ou null : rien à rappeler, ou lecture impossible
+   * (alors comptée dans `lecturesImpossibles`).
+   */
+  urgences?: { liste: UrgenceRecente[]; total: number } | null;
 };
 
 function totalAlertes(c: ConstatRelais): number {
@@ -104,6 +120,11 @@ function totalAlertes(c: ConstatRelais): number {
 /** Le nombre de points à vérifier. Zéro : aucun e-mail ne part. */
 export function pointsDuRelais(c: ConstatRelais): number {
   return c.arrets.length + totalAlertes(c) + c.taches.length + c.lecturesImpossibles.length + (c.relaisNonActualise ? 1 : 0);
+}
+
+/** Le nombre d'urgences des dernières 24 h que l'e-mail de 5 h rappelle (elles suffisent à le faire partir). */
+export function urgencesDuRelais(c: ConstatRelais): number {
+  return c.urgences?.total ?? 0;
 }
 
 /** Ce que le registre du relais garde du constat : des nombres seulement. */
@@ -117,11 +138,15 @@ export function compteursDuRelais(c: ConstatRelais, adressesIgnorees = 0): Recor
     taches_absentes: c.taches.filter((t) => t.etat !== "echec").length,
     lectures_impossibles: c.lecturesImpossibles.length + (c.relaisNonActualise ? 1 : 0),
     adresses_ignorees: adressesIgnorees,
+    urgences_24h: urgencesDuRelais(c),
   };
 }
 
-export function sujetAlerteRelais(points: number): string {
-  return `Gerimmo — relais de 5 h : ${points} point${points > 1 ? "s" : ""} à vérifier`;
+const enUrgences = (n: number) => `${n} urgence${n > 1 ? "s" : ""} en 24 h`;
+
+export function sujetAlerteRelais(points: number, urgences = 0): string {
+  if (points === 0 && urgences > 0) return `Gerimmo — relais de 5 h : rappel, ${enUrgences(urgences)}`;
+  return `Gerimmo — relais de 5 h : ${points} point${points > 1 ? "s" : ""} à vérifier${urgences > 0 ? `, ${enUrgences(urgences)}` : ""}`;
 }
 
 function echapper(t: string): string {
@@ -155,19 +180,31 @@ export function htmlAlerteRelais(c: ConstatRelais, maintenant: Date, lienConsole
   if (c.taches.length) {
     blocs.push(`<p style="${titre}">Tâches planifiées, dernières 24 h</p>` + liste(c.taches.map((t) => `${t.libelle} : ${ETAT_TACHE[t.etat]}`)));
   }
+  const rappel = c.urgences && c.urgences.total > 0 ? c.urgences : null;
+  if (rappel) {
+    const autres = rappel.total - rappel.liste.length;
+    blocs.push(`<p style="${titre}">Urgences des dernières 24 h (rappel)</p>` + liste([
+      ...rappel.liste.map((u) => `${formaterDateHeureParis(u.posee_le)} — ${libelleUrgence(u.nature)} : ${libelleSortEmail(u.email)}`),
+      ...(autres > 0 ? [`Et ${autres} autre${autres > 1 ? "s" : ""}, à lire dans la console`] : []),
+    ]));
+  }
   const impossibles = [...c.lecturesImpossibles, ...(c.relaisNonActualise ? ["Le relais du mode vacances n’a pas pu être actualisé : ses chiffres datent du dernier passage."] : [])];
   if (impossibles.length) {
     blocs.push(`<p style="${titre}">Contrôles impossibles</p>` + liste(impossibles));
   }
+  const urgences = urgencesDuRelais(c);
+  const entete = points > 0 || urgences === 0
+    ? `${points} point${points > 1 ? "s" : ""} à vérifier`
+    : `Rappel : ${urgences} urgence${urgences > 1 ? "s" : ""} des dernières 24 h`;
   return `
 <div style="font-family:Figtree,Segoe UI,Arial,sans-serif;max-width:600px;margin:0 auto;color:#0f2352">
   <p style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#53617a;margin:0 0 8px">Relais du ${echapper(jour)}, 5 h (heure de Paris)</p>
-  <h1 style="font-size:22px;line-height:1.25;margin:0 0 4px">${points} point${points > 1 ? "s" : ""} à vérifier</h1>
+  <h1 style="font-size:22px;line-height:1.25;margin:0 0 4px">${entete}</h1>
   ${blocs.join("\n  ")}
   <p style="margin:22px 0 20px">
     <a href="${echapper(lienConsole)}" style="display:inline-block;background:#2457f5;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Ouvrir la console</a>
   </p>
-  <p style="font-size:13px;color:#53617a;margin:0">Cet e-mail part au plus une fois par jour, vers 5 h (heure de Paris), et seulement s’il y a quelque chose à signaler. Il ne contient ni nom ni montant ; rien ne se décide depuis lui : les gestes se font dans la console.</p>
+  <p style="font-size:13px;color:#53617a;margin:0">Cet e-mail part au plus une fois par jour, vers 5 h (heure de Paris), et seulement s’il y a quelque chose à signaler. Les urgences partent aussi, sur le moment, dans un e-mail immédiat ; il les rappelle ici. Il ne contient ni nom ni montant ; rien ne se décide depuis lui : les gestes se font dans la console.</p>
 </div>`;
 }
 
@@ -181,11 +218,17 @@ export type PassageRelais = {
   points: number;
   commence_le: string;
   termine_le: string | null;
+  /** Les compteurs du passage (des nombres) ; `urgences_24h` depuis la décision du 15/10. */
+  compteurs?: Record<string, unknown> | null;
 };
 
 /** Le résultat d'un passage, en français. */
 export function resultatPassageRelais(p: PassageRelais): string {
-  const pts = `${p.points} point${p.points > 1 ? "s" : ""} signalé${p.points > 1 ? "s" : ""}`;
+  const u = typeof p.compteurs?.urgences_24h === "number" ? p.compteurs.urgences_24h : 0;
+  // Un e-mail parti pour le seul rappel des urgences des dernières 24 h (décision du 15/10) ne dit pas « 0 point ».
+  const pts = p.points === 0 && u > 0
+    ? `rappel de ${u} urgence${u > 1 ? "s" : ""} des dernières 24 h`
+    : `${p.points} point${p.points > 1 ? "s" : ""} signalé${p.points > 1 ? "s" : ""}${u > 0 ? `, ${u} urgence${u > 1 ? "s" : ""} rappelée${u > 1 ? "s" : ""}` : ""}`;
   switch (p.statut) {
     case "envoye": return `e-mail envoyé à ${p.envoyes} adresse${p.envoyes > 1 ? "s" : ""} (${pts})`;
     case "envoi_partiel": return `e-mail envoyé à ${p.envoyes} adresse${p.envoyes > 1 ? "s" : ""} sur ${p.destinataires} ; les autres envois ont échoué (${pts})`;

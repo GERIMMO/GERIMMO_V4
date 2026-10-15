@@ -8,6 +8,8 @@
 // Paris agit (03 h UTC en été, 04 h UTC en hiver) ; l'autre répond « hors créneau ». Le paramètre `creneau` des deux
 // entrées (« ete », « hiver ») n'est qu'une étiquette : la décision vient de l'horloge, à l'heure de Paris. Au plus un
 // e-mail par jour de Paris : la base réserve le jour (`reserver_alerte_relais`), un second appel ne renvoie rien.
+// Le passage de 5 h vide aussi la file de l'e-mail immédiat des urgences (décision du 15/10) : celles qu'il vient de
+// poser partent tout de suite, puis l'e-mail de 5 h les rappelle (lib/relais-urgences-envoi.ts).
 import { clientDeService } from "@/lib/supabase/service";
 import { porteurDuSecret } from "@/lib/tache";
 import { passerAlerteRelais } from "@/lib/relais-alerte-envoi";

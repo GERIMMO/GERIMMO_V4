@@ -106,17 +106,19 @@ describe("les adresses du relais", () => {
     expect(lu.invalides).toBe(2);
   });
 
-  it("masque une adresse : première lettre, puis le domaine", () => {
-    expect(masquerAdresse("relais@example.com")).toBe("r•••@example.com");
-    expect(masquerAdresse("t@example.org")).toBe("t•••@example.org");
+  // Décision du 15/10 : les deux premiers et les deux derniers caractères avant @ (deux adresses du même domaine restent
+  // distinctes), jamais l'adresse entière ; voir aussi tests/relais-urgences.test.ts.
+  it("masque une adresse : deux premiers et deux derniers caractères avant @, puis le domaine", () => {
+    expect(masquerAdresse("relais@example.com")).toBe("re•••is@example.com");
+    expect(masquerAdresse("t@example.org")).toBe("•••@example.org");
   });
 
   it("la description dit vrai : nombre d'adresses masquées, ou relais non configuré", () => {
     expect(descriptionRelais(lireAdressesRelais("relais@example.com, second@example.org"))).toBe(
-      "Alerte e-mail quotidienne à 5 h (heure de Paris) vers 2 adresses : r•••@example.com, s•••@example.org."
+      "Alerte e-mail quotidienne à 5 h (heure de Paris) vers 2 adresses : re•••is@example.com, se•••nd@example.org."
     );
     expect(descriptionRelais(lireAdressesRelais("relais@example.com"))).toBe(
-      "Alerte e-mail quotidienne à 5 h (heure de Paris) vers 1 adresse : r•••@example.com."
+      "Alerte e-mail quotidienne à 5 h (heure de Paris) vers 1 adresse : re•••is@example.com."
     );
     expect(descriptionRelais(lireAdressesRelais(undefined))).toMatch(/^Relais non configuré/);
     expect(descriptionRelais(lireAdressesRelais("relais@example.com, second@example.org"))).not.toContain("relais@");
@@ -187,6 +189,8 @@ type Options = {
   tablesEnErreur?: string[];
   /** La fonction de la base dont l'appel lève une exception (connexion coupée). */
   leve?: string;
+  /** Les urgences des dernières 24 h (`urgences_relais_recentes`). */
+  recentes?: Reponse;
 };
 const MATIN = new Date("2026-10-15T03:05:00Z"); // 5 h 05 à Paris
 const JOUR = "2026-10-15";
@@ -218,6 +222,9 @@ function base(o: Options = {}) {
     sentinelle_relais: o.sentinelle ?? { data: SAINE, error: null },
     traiter_vacances: o.vacances ?? { data: {}, error: null },
     terminer_alerte_relais: { data: null, error: null },
+    // L'e-mail immédiat des urgences (décision du 15/10) : la file est vide, aucune urgence dans les dernières 24 h.
+    prendre_urgences_relais: { data: { pris: false, motif: "rien", en_attente: 0 }, error: null },
+    urgences_relais_recentes: o.recentes ?? { data: { urgences: [], total: 0 }, error: null },
   };
   const tables: Record<string, unknown[]> = {
     tech_log: o.journal ?? journalSain(),
@@ -270,7 +277,8 @@ describe("le passage du relais", () => {
     expect(fournisseur.appels).toEqual([]);
     expect(terminaison(b.appels)).toMatchObject({ p_jour: JOUR, p_statut: "rien_a_signaler", p_destinataires: 2, p_envoyes: 0, p_points: 0 });
     // Le relais du mode vacances est actualisé avant la lecture, comme à chaque passage de mission.
-    expect(b.appels.map(([n]) => n)).toEqual(["reserver_alerte_relais", "traiter_vacances", "sentinelle_relais", "terminer_alerte_relais"]);
+    // Puis la file des urgences est vidée (e-mail immédiat, décision du 15/10) et les urgences des dernières 24 h sont lues.
+    expect(b.appels.map(([n]) => n)).toEqual(["reserver_alerte_relais", "traiter_vacances", "prendre_urgences_relais", "sentinelle_relais", "urgences_relais_recentes", "terminer_alerte_relais"]);
   });
 
   it("variable absente : relais non configuré, rien ne part même s'il y a à signaler", async () => {

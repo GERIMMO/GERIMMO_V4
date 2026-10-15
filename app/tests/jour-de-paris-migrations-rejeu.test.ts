@@ -113,6 +113,9 @@ const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/
  * rejouent après celles du lot pour revenir exactement à l'état migré. Absents du dépôt, ils ne comptent pas.
  */
 const LOTS_POSTERIEURS = [
+  // Décision X16 du 15/10 (relances d'invitation) : relance_invitation_locataire_due et reserver_relance_invitation_locataire
+  // citent aussi la fonction du jour. Indépendant du lot du devis révisable ; le plus récent, il se défait le premier.
+  { version: "20261014830000", fichier: "relances_invitations_locataires" },
   // Reprise du 15/10 (dépôt du PDF en révision, ordre des verrous) : son retour précède celui de 601000, qui le vérifie.
   { version: "20261014602000", fichier: "devis_revision_verrous_stockage" },
   { version: "20261014601000", fichier: "devis_revision_versions" },

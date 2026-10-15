@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
-import { chargerAgenda, chargerCreneauxMission, chargerPhotosDemande, verifierAccesArtisan } from "../../acces";
+import { ligneReglementPourArtisan, phraseEtatPourArtisan } from "@/lib/reglement-facture";
+import { chargerAgenda, chargerCreneauxMission, chargerPhotosDemande, chargerReglementsFactures, verifierAccesArtisan } from "../../acces";
 import { PhotosDeLaDemande } from "../../photos-demande";
 import {
   creneauTexte,
@@ -56,9 +57,11 @@ export default async function PageMission(
   const depuisAujourdhui = de === "aujourdhui";
 
   // D16 (14/10) : les photos jointes par le locataire, que la base ne rend que pour une mission encore vivante.
-  const [agenda, photos] = await Promise.all([chargerAgenda(), chargerPhotosDemande(null, interventionId)]);
+  // D23 : le règlement que le client déclare sur la facture de cette mission (date et moyen seulement).
+  const [agenda, photos, reglements] = await Promise.all([chargerAgenda(), chargerPhotosDemande(null, interventionId), chargerReglementsFactures()]);
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
+  const factureReglement = reglements.lignes.find((r) => r.intervention_id === interventionId);
 
   const vivante = ["acceptee", "planifiee", "en_cours"].includes(mission.statut);
   // Des dates sont chez le locataire : rien n'attend l'artisan, et reproposer
@@ -365,7 +368,28 @@ export default async function PageMission(
             <LigneInfo libelle="Facture">
               {mission.facture_deposee ? "Déposée" : "À déposer"}
             </LigneInfo>
+            {mission.facture_deposee && (
+              <LigneInfo libelle="Règlement">
+                {reglements.erreur
+                  ? "État non lu : rechargez la page"
+                  : factureReglement
+                    ? phraseEtatPourArtisan(factureReglement)
+                    : "Déposée, en attente de contrôle"}
+              </LigneInfo>
+            )}
           </div>
+          {factureReglement && factureReglement.reglements.length > 0 && (
+            <ul className={`mt-2 space-y-1 ${CLASSE_AIDE}`}>
+              {factureReglement.reglements.map((r, i) => (
+                <li key={`${r.date_reglement}-${i}`}>{ligneReglementPourArtisan(r)}</li>
+              ))}
+            </ul>
+          )}
+          {factureReglement && factureReglement.reglements.length > 0 && (
+            <p className={`mt-1 ${CLASSE_AIDE}`}>
+              Déclaration de votre client, sans virement de Gerimmo : vérifiez la réception sur votre compte.
+            </p>
+          )}
           {!mission.facture_deposee && mission.compte_rendu_depose && mission.photo_apres_deposee ? (
             <Link
               href={`/artisan/missions/${mission.intervention_id}/facture`}

@@ -178,6 +178,9 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   facture_validee: "Facture contrôlée et validée",
   // Audit du 13/10 (migration 20261013120000) : l'annulation se lit au fil.
   mission_annulee: "Mission annulée",
+  // D23 (migration 20261014610000) : le règlement déclaré de la facture, et son retrait, se lisent au fil.
+  facture_reglee: "Règlement de facture enregistré",
+  reglement_retire: "Règlement de facture retiré",
 };
 
 export const PIECES_INCIDENT = [

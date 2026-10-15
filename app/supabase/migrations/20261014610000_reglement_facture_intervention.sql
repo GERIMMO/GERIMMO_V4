@@ -36,7 +36,7 @@
 -- exigée exactement une fois, sinon la migration s'arrête sans rien modifier ; le bloc ajouté est encadré de marques
 -- « -- >> » / « -- << » que le retour arrière retire chirurgicalement. Rejeu sans effet : chaque bloc reconnaît sa marque.
 --
--- Jour et heure : public.aujourdhui_paris() (migration 20261014500000), jamais current_date.
+-- Jour et heure : public.aujourdhui_paris() (migration 20261014500000), jamais le jour de la session de la base.
 -- Retour arrière : supabase/retours-arriere/20261014610000_reglement_facture_intervention.retour.sql
 
 -- 0. Préalable.

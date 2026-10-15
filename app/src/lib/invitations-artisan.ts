@@ -35,6 +35,14 @@ export function lienInvitationArtisan(origine: string, invitationId: string, ema
   return `${origine.replace(/\/+$/, "")}${cheminInvitationArtisan(invitationId)}#adresse=${encodeURIComponent(email)}`;
 }
 
+/**
+ * Ce que le propriétaire voit de l'artisan une fois l'invitation acceptée, dit à l'artisan AVANT qu'il accepte
+ * (relecture du 15/10). La base lui ouvre alors toute la fiche de l'entreprise (règle de lecture `artisan_lisible`,
+ * commune aux agences) : pas seulement le nom et le téléphone. Éprouvé dans invitation-artisan-proprietaire.test.ts.
+ */
+export const VISIBLE_APRES_ACCEPTATION =
+  "le nom de votre entreprise, son SIRET, votre téléphone, votre adresse e-mail professionnelle, vos métiers, votre zone d’intervention, ainsi que l’état de votre inscription chez Gerimmo et les motifs de ses décisions";
+
 /** Le nom de l'organisation qui invite, une fois borné (e-mail, page de l'artisan, console de validation). */
 export const LONGUEUR_MAX_NOM_INVITANT = 80;
 

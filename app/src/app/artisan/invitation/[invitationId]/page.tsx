@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { seDeconnecter } from "@/app/actions/auth";
 import { formaterDate } from "@/lib/ged";
 import { estUuid } from "@/lib/identifiants";
-import { nomInvitant, type InvitationRecue } from "@/lib/invitations-artisan";
+import { VISIBLE_APRES_ACCEPTATION, nomInvitant, type InvitationRecue } from "@/lib/invitations-artisan";
 import { chargerFicheArtisan } from "../../acces";
 import { FormulaireCompteArtisan } from "../../inscription/formulaire-compte";
 import { CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SECONDAIRE, Carte, Erreur, TitreSection } from "../../ui";
@@ -131,8 +131,8 @@ function EnAttente({ invitation, invitant }: { invitation: InvitationRecue; invi
     <Carte>
       <TitreSection>Votre réponse</TitreSection>
       <p className="text-base text-[var(--corps)]">
-        En acceptant, vous entrez dans le carnet d’artisans de {invitant ?? "ce propriétaire"}. Il verra le nom de votre
-        entreprise et votre téléphone, et pourra vous demander des devis pour ses biens situés dans votre zone
+        En acceptant, vous entrez dans le carnet d’artisans de {invitant ?? "ce propriétaire"}. Il verra
+        {" "}{VISIBLE_APRES_ACCEPTATION}. Il pourra vous demander des devis pour ses biens situés dans votre zone
         d’intervention, une fois votre inscription validée par Gerimmo. Refuser ne partage rien.
       </p>
       <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Valable jusqu’au {formaterDate(invitation.expire_le)}.</p>

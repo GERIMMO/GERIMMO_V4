@@ -28,6 +28,7 @@ import {
 } from "@/app/actions/invitations-artisan";
 import {
   LONGUEUR_MAX_NOM_INVITANT,
+  VISIBLE_APRES_ACCEPTATION,
   adresseDepuisAncre,
   cheminCarnetInvitation,
   etatLigneCarnet,
@@ -225,6 +226,26 @@ describe("le nom de l'organisation qui invite", () => {
     expect(page).toContain("nomInvitant(");
     expect(validation).not.toMatch(/\{i\.organisation\}/);
     expect(validation).toContain("nomInvitant(");
+  });
+});
+
+/**
+ * Relecture du 15/10 : le texte de consentement promettait « le nom de votre entreprise et votre téléphone », alors
+ * qu'une fois l'invitation acceptée la base ouvre au propriétaire toute la fiche de l'artisan (SIRET, e-mail, métiers,
+ * zone, état de l'inscription et motifs des décisions de Gerimmo). Le texte dit maintenant ce qui est réellement vu ;
+ * ce que la base ouvre est éprouvé dans invitation-artisan-proprietaire.test.ts.
+ */
+describe("ce que l'artisan accepte de montrer", () => {
+  it("le texte nomme tout ce que le propriétaire verra", () => {
+    for (const element of ["nom de votre entreprise", "SIRET", "téléphone", "adresse e-mail", "métiers", "zone d’intervention", "état de votre inscription", "motifs"]) {
+      expect(VISIBLE_APRES_ACCEPTATION, element).toContain(element);
+    }
+  });
+
+  it("la page d'invitation affiche ce texte, et plus l'ancienne promesse", () => {
+    const page = readFileSync(path.resolve(__dirname, "..", "src/app/artisan/invitation/[invitationId]/page.tsx"), "utf8");
+    expect(page).toContain("{VISIBLE_APRES_ACCEPTATION}");
+    expect(page).not.toContain("Il verra le nom de votre");
   });
 });
 

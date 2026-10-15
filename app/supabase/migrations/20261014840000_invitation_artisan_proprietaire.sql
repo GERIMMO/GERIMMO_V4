@@ -291,6 +291,9 @@ end $$;
 -- 5. Le carnet du propriétaire : les artisans rattachés (artisan_agences) et ses invitations, la plus récente par
 -- adresse. Les données de l'artisan (raison sociale, téléphone, métiers, zones) n'apparaissent qu'une fois la relation
 -- établie, c'est-à-dire après son acceptation ; avant, seulement ce que le propriétaire a lui-même saisi.
+-- Une fois la relation établie, la règle de lecture existante (`artisan_lisible`, commune aux agences) lui ouvre aussi
+-- toute la fiche de l'artisan (SIRET, e-mail, état de l'inscription et motifs) : la page d'invitation le dit à l'artisan
+-- avant qu'il accepte (VISIBLE_APRES_ACCEPTATION, src/lib/invitations-artisan.ts).
 -- La supervision lit (traversée d'un espace client), elle n'invite pas.
 create or replace function public.carnet_artisans_proprietaire(p_org uuid)
 returns table(

@@ -524,6 +524,24 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect(await echec("select public.annuler_invitation_artisan($1)", [r.id])).toMatch(/déjà été acceptée/);
     });
 
+    // Relecture du 15/10 : ce que la base ouvre au propriétaire après l'acceptation (RLS `artisan_lisible`, antérieure au
+    // lot) est toute la fiche de l'artisan ; le texte de consentement (VISIBLE_APRES_ACCEPTATION) le dit désormais.
+    it("après l'acceptation, le propriétaire lit toute la fiche de l'artisan, motif de refus compris : le texte de consentement le dit", async () => {
+      const r = await inviter();
+      const artisan = await inscrire();
+      await postgres();
+      await db.query("update public.artisans set email='pro@artisan.test', statut_plateforme='refuse', statut_motif='Attestation illisible' where id=$1", [artisan]);
+      await devenir(proprietaire);
+      expect((await db.query("select id from public.artisans where id=$1", [artisan])).rows).toEqual([]);
+      expect(await repondre(r.id)).toEqual({ etat: "acceptee" });
+      await devenir(proprietaire);
+      const fiche = (await db.query("select raison_sociale, siret, telephone, email, statut_plateforme, statut_motif from public.artisans where id=$1", [artisan])).rows[0];
+      expect(fiche).toMatchObject({ raison_sociale: "Plomberie Invitée", telephone: "0611223344", email: "pro@artisan.test", statut_plateforme: "refuse", statut_motif: "Attestation illisible" });
+      expect(fiche.siret).toMatch(/^[0-9]{14}$/);
+      expect((await db.query("select metier::text m from public.artisan_metiers where artisan_id=$1", [artisan])).rows).toEqual([{ m: "plomberie" }]);
+      expect((await db.query("select code_postal from public.artisan_zones where artisan_id=$1", [artisan])).rows).toEqual([{ code_postal: "75011" }]);
+    });
+
     it("un artisan déjà inscrit et validé accepte explicitement : rien n'est rattaché sans son geste", async () => {
       const r = await inviter();
       const artisan = await inscrire();

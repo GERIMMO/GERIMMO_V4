@@ -52,8 +52,8 @@ la livraison éventuelle des relances reste une décision produit non prise (est
 2 jours). Voir [[Compte, personne et adhésion]].
 - **Un seul e-mail part, à l'envoi de l'invitation** (lien pour choisir un mot de passe,
   invitation valable **30 jours**). **Aucune relance automatique à J+3 ni à J+10** : aucune
-  tâche planifiée ni aucune fonction de la base ne relit les invitations en attente. Un
-  locataire qui n'ouvre pas le premier e-mail n'est jamais relancé.
+  tâche planifiée ni aucune fonction de la base ne relit les invitations en attente pour les
+  relancer. Un locataire qui n'ouvre pas le premier e-mail n'est jamais relancé.
 - **Le renvoi est manuel** : depuis la fiche personne, le bouton « Renvoyer l'invitation »
   renvoie l'e-mail tant que l'invitation est en attente (limite de 30 e-mails
   d'invitation par heure et par organisation) ; le bouton « Annuler l'invitation » la
@@ -69,6 +69,14 @@ la livraison éventuelle des relances reste une décision produit non prise (est
   n'empêche l'agent d'envoyer ensuite une nouvelle invitation.
 - **Aucun accès n'est accordé avant l'acceptation** par le locataire, connecté avec
   l'adresse qui a reçu l'invitation.
+
+> [!warning] Points à trancher / contradictions
+> - **Relances J+3/J+10 (RM-16.4, fiche REP-05, décision X16).** Prévues par la spécification
+>   V3 ([[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]), absentes du code. Le
+>   dirigeant a choisi (14/10/2026) d'amender le wiki, la décision produit de les livrer
+>   (tâche de rappel limitée par organisation, environ 2 jours) n'étant pas prise. Tant qu'elle
+>   ne l'est pas, c'est le comportement ci-dessus qui fait foi, et la page source V3 reste
+>   le texte de la spécification, non l'état du produit.
 
 > [!warning] Divergence code ↔ V3
 > Le code : auto-inscription `createOrganization` + essai 14 j + parcours 10 étapes

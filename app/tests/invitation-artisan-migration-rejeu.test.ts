@@ -369,3 +369,85 @@ describe.skipIf(!DB_URL)("colonnes internes de la fiche artisan — rejeu de 202
     expect(await empreinte()).toEqual(migre);
   });
 });
+
+/**
+ * Seconde relecture du 15/10 (constat de sécurité) : 20261014843000 fait exiger à `artisan_blacklist_locale` une relation
+ * préalable réelle (bloc posé devant UNE ligne d'ancre, par marque). Rejouée, elle ne fait rien ; son retour retire le
+ * seul bloc (la définition redevient exactement celle d'avant : migrée moins le bloc), se rejoue sans effet et refuse de
+ * se jouer dans un lot ; aller, retour, aller redonne l'état migré.
+ */
+const MIGRATION_LISTE_NOIRE = readFileSync("supabase/migrations/20261014843000_liste_noire_locale_relation_prealable.sql", "utf8");
+const RETOUR_LISTE_NOIRE = readFileSync("supabase/retours-arriere/20261014843000_liste_noire_locale_relation_prealable.retour.sql", "utf8");
+const SIGNATURE_LISTE_NOIRE = "public.artisan_blacklist_locale(uuid,uuid,text)";
+
+describe.skipIf(!DB_URL)("liste noire locale avec relation préalable — rejeu de 20261014843000 et retour arrière", () => {
+  let db: Client;
+  const definition = async () => (await db.query("select pg_get_functiondef(to_regprocedure($1)) d", [SIGNATURE_LISTE_NOIRE])).rows[0].d as string;
+  const empreinte = async () =>
+    (await db.query(
+      "select md5(pg_get_functiondef(to_regprocedure($1))) || ' ' || coalesce((select proacl::text from pg_proc where oid = to_regprocedure($1)), '') v",
+      [SIGNATURE_LISTE_NOIRE]
+    )).rows[0].v as string;
+  const bloc = (() => {
+    const m = /c_nouveau constant text := \$nouveau\$([\s\S]*?)\$nouveau\$;/.exec(MIGRATION_LISTE_NOIRE);
+    const a = /c_ancre constant text := \$ancre\$([\s\S]*?)\$ancre\$;/.exec(MIGRATION_LISTE_NOIRE);
+    if (!m || !a) throw new Error("Bloc ou ancre introuvable dans 20261014843000");
+    return { nouveau: m[1], ancre: a[1] };
+  })();
+
+  beforeAll(async () => {
+    db = new Client({ connectionString: DB_URL });
+    await db.connect();
+    await db.query("begin");
+  });
+  afterAll(async () => {
+    await db?.query("rollback");
+    await db?.end();
+  });
+  beforeEach(async () => {
+    await db.query("savepoint cas");
+  });
+  afterEach(async () => {
+    await db.query("rollback to savepoint cas");
+    await db.query("release savepoint cas");
+  });
+
+  it("la base visée est migrée : le bloc est posé une fois, devant l'ancre", async () => {
+    const d = await definition();
+    expect(d.split("Relecture du 15/10 (liste noire à l'aveugle)")).toHaveLength(2);
+    expect(d).toContain(bloc.nouveau);
+  });
+
+  it("rejouée deux fois, la migration ne change ni la définition ni les droits", async () => {
+    const avant = await empreinte();
+    await db.query(MIGRATION_LISTE_NOIRE);
+    await db.query(MIGRATION_LISTE_NOIRE);
+    expect(await empreinte()).toBe(avant);
+  });
+
+  it("le retour refuse de se jouer dans un lot", async () => {
+    await db.query("savepoint essai");
+    let message = "";
+    try {
+      await db.query(RETOUR_LISTE_NOIRE);
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    await db.query("rollback to savepoint essai");
+    expect(message).toMatch(/Retour arrière refusé/);
+  });
+
+  it("le retour retire le seul bloc, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
+    const migre = await empreinte();
+    const definitionMigree = await definition();
+    await db.query(sansEnveloppe(RETOUR_LISTE_NOIRE));
+    const apres = await empreinte();
+    expect(apres).not.toBe(migre);
+    expect(await definition()).toBe(definitionMigree.replace(bloc.nouveau, bloc.ancre));
+    expect(await definition()).not.toContain("liste noire à l'aveugle");
+    await db.query(sansEnveloppe(RETOUR_LISTE_NOIRE));
+    expect(await empreinte()).toBe(apres);
+    await db.query(MIGRATION_LISTE_NOIRE);
+    expect(await empreinte()).toBe(migre);
+  });
+});

@@ -102,6 +102,12 @@ describe("inviter un artisan (propriétaire)", () => {
   it("renvoyer : même lien, nouvelle trace ; une invitation expirée le dit sans e-mail", async () => {
     expect((await renvoyerInvitationArtisan(org, inv, {}, new FormData())).succes).toContain("renvoyée");
     expect(m.rpc).toHaveBeenNthCalledWith(1, "renvoyer_invitation_artisan", { p_id: inv });
+    // Même lien que la première fois (même invitation, même ancre), et l'envoi est noté comme pour une invitation.
+    expect(m.courriel).toHaveBeenCalledTimes(1);
+    expect(m.courriel.mock.calls[0][0].to).toBe("artisan@example.invalid");
+    expect(m.courriel.mock.calls[0][0].html).toContain(`href="https://www.gerimmo.app/artisan/invitation/${inv}#adresse=artisan%40example.invalid"`);
+    expect(m.rpc).toHaveBeenNthCalledWith(2, "noter_envoi_invitation_artisan", { p_id: inv, p_envoye: true });
+    expect(m.rpc).toHaveBeenCalledTimes(2);
     m.courriel.mockClear();
     m.rpc.mockResolvedValue({ data: { etat: "expiree", erreur: "Cette invitation a expiré. Invitez de nouveau cet artisan." }, error: null });
     expect((await renvoyerInvitationArtisan(org, inv, {}, new FormData())).erreur).toContain("expiré");

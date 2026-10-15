@@ -58,19 +58,30 @@ describe.skipIf(!url)("Clients externes — numéro de facture unique (D24-B) et
   async function dernierDevis(h = chantier) {
     return (await db.query("select * from public.artisan_devis_externes where chantier_id=$1 order by version desc limit 1", [h])).rows[0];
   }
-  /** Un chantier terminé, devis accepté, prêt pour la facture. */
-  async function chantierPretFacture(titre = "Chantier prêt") {
-    const h = await ecrire("chantier", { titre, adresse: "1 rue fictive", description: "Réparation fictive" }, client, 0);
+  /** Un chantier terminé, devis accepté, prêt pour la facture. Par défaut chez l'artisan A ; `propre` : les pièces et le client d'un autre artisan. */
+  async function chantierPretFacture(titre = "Chantier prêt", propre: { client: string; pdf: string; photo: string } = { client, pdf, photo }) {
+    const h = await ecrire("chantier", { titre, adresse: "1 rue fictive", description: "Réparation fictive" }, propre.client, 0);
     await ecrire("devis", { description: "Réparation fictive", lignes, valide_jusqu_au: validite }, h);
     const d = await dernierDevis(h);
-    await ecrire("valider_devis", { devis_id: d.id, piece_id: pdf }, h);
-    await ecrire("decision", { devis_id: d.id, piece_id: pdf, decision: "accepte", date: jour, motif: "Accord écrit fictif du client" }, h);
+    await ecrire("valider_devis", { devis_id: d.id, piece_id: propre.pdf }, h);
+    await ecrire("decision", { devis_id: d.id, piece_id: propre.pdf, decision: "accepte", date: jour, motif: "Accord écrit fictif du client" }, h);
     await ecrire("planning", { debut: new Date(Date.now() + 2 * 86400000).toISOString(), fin: new Date(Date.now() + 2 * 86400000 + 3600000).toISOString() }, h);
     await ecrire("demarrer", {}, h);
-    await ecrire("bilan", { bilan: "Réparation fictive terminée, aucune opération réelle", piece_id: photo }, h);
+    await ecrire("bilan", { bilan: "Réparation fictive terminée, aucune opération réelle", piece_id: propre.photo }, h);
     return h;
   }
-  const facture = (numero: string, h = chantier) => ecrire("facture", { numero, montant_ttc_cents: 5500, piece_id: pdf }, h);
+  const facture = (numero: string, h = chantier, piece_id = pdf) => ecrire("facture", { numero, montant_ttc_cents: 5500, piece_id }, h);
+  /** La chaîne complète de l'artisan B (profil du devis, pièces à lui, client, chantier terminé), jouée sous son identité. */
+  async function chaineArtisanB(titre = "Chantier de B") {
+    await db.query("reset role");
+    await db.query("insert into public.artisan_profils_documents(artisan_id,adresse,mentions) values($1,'Adresse TEST B','ENTREPRISE FICTIVE B') on conflict do nothing", [artisanB]);
+    const pdfB = await piece("application/pdf", artisanB, autre);
+    const photoB = await piece("image/png", artisanB, autre);
+    await identite(autre);
+    // Un client distinct à chaque appel : deux dossiers identiques chez un même artisan sont refusés comme doublons.
+    const clientB = await ecrire("client", { nom: `Client de B ${randomUUID().slice(0, 8)}`, type: "particulier", adresse: "8 rue fictive" }, undefined, 0);
+    return { chantier: await chantierPretFacture(titre, { client: clientB, pdf: pdfB, photo: photoB }), pdf: pdfB };
+  }
   async function statut(a: string, etat: "en_attente" | "valide" | "refuse", listeNoire = false) {
     await db.query("reset role");
     await db.query(
@@ -132,17 +143,39 @@ describe.skipIf(!url)("Clients externes — numéro de facture unique (D24-B) et
       expect((await db.query("select numero from public.artisan_factures_externes where chantier_id=$1", [chantier])).rows[0].numero).toBe("Art-2026-0007");
     });
 
-    it("accepte un numéro différent, et le même numéro chez un autre artisan", async () => {
+    it("accepte un numéro différent", async () => {
       await facture("ART-2026-0001");
       const second = await chantierPretFacture("Second chantier");
       await facture("ART-2026-0002", second);
       expect((await compter()).factures).toBe(2);
+    });
+
+    it("l'unicité est par artisan : le même numéro, même en casse différente, est accepté chez un autre artisan, dans les deux sens", async () => {
+      // A dépose « ART-2026-0001 » ; B (chaîne complète, ses propres pièces) peut déposer « art-2026-0001 ».
+      await facture("ART-2026-0001");
+      const b = await chaineArtisanB();
+      await facture("art-2026-0001", b.chantier, b.pdf);
+      // B dépose en premier « ART-2026-0777 » ; A peut ensuite déposer le même numéro, à l'identique.
+      const b2 = await chaineArtisanB("Second chantier de B");
+      await facture("ART-2026-0777", b2.chantier, b2.pdf);
+      await identite(uid);
+      const second = await chantierPretFacture("Second chantier");
+      await facture("ART-2026-0777", second);
       await db.query("reset role");
-      expect((await db.query("select count(*)::int n from public.artisan_factures_externes where artisan_id=$1", [artisanB])).rows[0].n).toBe(0);
-      // L'index est par artisan : la même chaîne chez B n'est pas un doublon.
+      const numeros = async (a: string) => ((await db.query("select numero from public.artisan_factures_externes where artisan_id=$1", [a])).rows.map((r) => r.numero as string)).sort();
+      expect(await numeros(artisan)).toEqual(["ART-2026-0001", "ART-2026-0777"]);
+      expect(await numeros(artisanB)).toEqual(["ART-2026-0777", "art-2026-0001"]);
+      // L'index est lui aussi par artisan.
       const index = (await db.query("select indexdef from pg_indexes where indexname='artisan_factures_externes_numero_normalise_key'")).rows[0].indexdef as string;
       expect(index).toMatch(/UNIQUE/i);
       expect(index).toMatch(/artisan_id, lower\(btrim\(numero\)\)/);
+    });
+
+    it("chez l'autre artisan, la règle s'applique aussi : son propre doublon (casse ou espaces) est refusé", async () => {
+      const b = await chaineArtisanB();
+      await facture("ART-2026-0001", b.chantier, b.pdf);
+      const b2 = await chaineArtisanB("Second chantier de B");
+      await expect(essai(() => facture(" art-2026-0001 ", b2.chantier, b2.pdf))).rejects.toThrow(MESSAGE_NUMERO_FACTURE_UTILISE);
     });
 
     it("l'index unique tient même sans passer par la fonction (filet de sécurité)", async () => {

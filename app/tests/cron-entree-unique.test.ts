@@ -64,10 +64,9 @@ describe("X04 — une seule porte pour les missions", () => {
     }
   });
 
-  it("la route d'équipes passe CHAQUE traitement par executerMission (le verrou)", () => {
-    const equipes = readFileSync(join(CRON, "equipes", "route.ts"), "utf8");
-    expect(equipes).toMatch(/executerMission\(db,cle,\(\)=>traitements\[cle\]\(request\)\)/);
-  });
+  // Que la route d'équipes passe CHAQUE traitement par `executerMission` (le verrou) n'est plus vérifié ici sur le texte du
+  // fichier (une regex cassait au moindre reformatage et laissait passer un traitement échangé ou retiré) : c'est le
+  // comportement du GET qui est testé, mission par mission, dans tests/cron-equipes-route.test.ts.
 
   it("chaque chemin de vercel.json passe par la route d'équipes ou par celle du suivi des dossiers", () => {
     for (const c of vercel.crons) {

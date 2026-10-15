@@ -485,9 +485,29 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
   });
 
   describe("retours arrière", () => {
-    /** Joue les retours dans l'ordre recommandé : encaissements, appels, lot, état, puis la fonction elle-même. */
+    /**
+     * Les lots postérieurs au jour de Paris s'en servent à leur tour (D23 : `enregistrer_reglement_facture`,
+     * `retirer_reglement_facture`, migration 20261014610000) : en production, leur retour arrière se joue AVANT celui de
+     * 500000 et retire leurs fonctions. On fait ici la même chose sans jouer leurs scripts : toute fonction hors du lot
+     * qui cite encore la fonction du jour de Paris est retirée (dans la transaction du test, annulée à la fin).
+     */
+    async function retirerLesLotsPosterieurs() {
+      const { rows } = await db.query<{ signature: string }>(
+        `select p.oid::regprocedure::text as signature
+           from pg_proc p
+          where p.pronamespace = 'public'::regnamespace and p.prokind in ('f', 'p')
+            and p.proname <> 'aujourdhui_paris'
+            and pg_get_functiondef(p.oid) ~ 'aujourdhui_paris\\(\\)'
+            and not (p.oid = any (select to_regprocedure(s) from unnest($1::text[]) s))`,
+        [SIGNATURES]
+      );
+      for (const { signature } of rows) await db.query(`drop function ${signature}`);
+    }
+
+    /** Joue les retours dans l'ordre recommandé : encaissements, appels, lot, état, les lots postérieurs, puis la fonction elle-même. */
     async function toutDefaire() {
       for (const famille of [...FAMILLES].reverse()) await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
+      await retirerLesLotsPosterieurs();
       await db.query(sansEnveloppe(retour(FONCTION_DU_JOUR.version, FONCTION_DU_JOUR.fichier)));
     }
 
@@ -551,6 +571,7 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
 
     it("même sans fonction qui la cite, une valeur par défaut qui s'en sert fait refuser le retour, en la nommant", async () => {
       for (const famille of [...FAMILLES].reverse()) await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
+      await retirerLesLotsPosterieurs();
       await db.query("alter table public.encaissements alter column date_paiement set default public.aujourdhui_paris()");
       const message = await echoue(sansEnveloppe(retour(FONCTION_DU_JOUR.version, FONCTION_DU_JOUR.fichier)));
       expect(message).toMatch(/Retour arrière refusé : public\.aujourdhui_paris\(\) sert encore à : .*encaissements\.date_paiement/);

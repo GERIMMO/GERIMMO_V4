@@ -215,7 +215,15 @@ export const SCHEMA_CONNU = {
   intervention_factures: {
     colonnes: [
       "id", "organization_id", "intervention_id", "numero", "montant_ttc_cents", "montant_reference_cents",
-      "ecart_justification", "document_id", "validee_le", "decision_motif", "imputation_validee",
+      "ecart_justification", "document_id", "validee_le", "decision_motif", "imputation_validee", "reglee_le",
+    ],
+    integrees: [],
+  },
+  // D23 : les règlements déclarés d'une facture d'intervention, lus par l'écran de la facture.
+  intervention_facture_reglements: {
+    colonnes: [
+      "id", "organization_id", "facture_id", "montant_cents", "date_reglement", "moyen", "reference", "created_at",
+      "retire_le", "retrait_motif",
     ],
     integrees: [],
   },

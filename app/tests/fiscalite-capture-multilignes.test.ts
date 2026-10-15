@@ -6,7 +6,14 @@
 // quand la première est captée : chacune comptait les autres comme « avant » et la ventilation
 // était fausse (680 € affectés au lieu de 840 € pour deux paiements de 500 € sur un appel de 840 €).
 //
-// Ces tests tournent dans une transaction annulée, sur une base locale jetable (gerimmo_ci_…).
+// Première version du correctif : elle comparait les created_at et se trompait dès qu'ils étaient explicites et non
+// croissants dans un même INSERT (import qui préserve la chronologie). Le critère est maintenant « même instruction »
+// (xmin et cmin), sans horodatage : les essais ci-dessous jouent les created_at croissants, décroissants et mélangés,
+// l'import direct sur les écritures, et — dans deux blocs à part — la rencontre d'un paiement validé par une AUTRE transaction.
+//
+// Les premiers blocs tournent dans une transaction annulée, sur une base locale jetable (gerimmo_ci_…). Le bloc des
+// transactions distinctes valide une fixture fictive (puis la retire) ; avec le `alter table … disable trigger` des essais
+// « paiement ancien », c'est ce qui range ce fichier dans le groupe « serie » de vitest.config.ts.
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {config} from 'dotenv';

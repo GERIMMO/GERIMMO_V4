@@ -3,6 +3,8 @@ import { chargerFicheArtisan } from "../acces";
 import { Carte, TitreSection } from "../ui";
 import { FormulaireInscription } from "./formulaire-inscription";
 import { FormulaireCompteArtisan } from "./formulaire-compte";
+import { estUuid } from "@/lib/identifiants";
+import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
 
 export const metadata = { title: "Inscrire mon entreprise" };
 
@@ -25,10 +27,14 @@ export const metadata = { title: "Inscrire mon entreprise" };
  * Elle est désormais publique (proxy) et commence par créer le compte ;
  * la fiche se remplit ensuite, ici même.
  */
-export default async function PageInscriptionArtisan() {
+export default async function PageInscriptionArtisan(props: PageProps<"/artisan/inscription">) {
+  // Décision du 15/10/2026 : venu d'une invitation (?invitation=…), l'artisan y revient une fois son entreprise
+  // inscrite, pour l'accepter. Seul un identifiant bien formé est suivi.
+  const { invitation: brut } = (await props.searchParams) as { invitation?: string | string[] };
+  const invitationId = estUuid(brut) ? brut : undefined;
   const { user, fiche } = await chargerFicheArtisan();
-  if (!user) return <PremiereMarche />;
-  if (fiche) redirect("/artisan");
+  if (!user) return <PremiereMarche invitationId={invitationId} />;
+  if (fiche) redirect(invitationId ? cheminInvitationArtisan(invitationId) : "/artisan");
 
   return (
     <div className="space-y-6">
@@ -62,7 +68,7 @@ export default async function PageInscriptionArtisan() {
         </ol>
       </Carte>
 
-      <FormulaireInscription />
+      <FormulaireInscription invitationId={invitationId} />
 
       <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
         Sans document déposé dans les six mois, votre inscription est supprimée.
@@ -71,7 +77,7 @@ export default async function PageInscriptionArtisan() {
   );
 }
 
-function PremiereMarche() {
+function PremiereMarche({ invitationId }: { invitationId?: string }) {
   return (
     <div className="space-y-6">
       <div className="portail-hero">
@@ -86,7 +92,7 @@ function PremiereMarche() {
 
       <Carte>
         <TitreSection>1. Votre compte</TitreSection>
-        <FormulaireCompteArtisan />
+        <FormulaireCompteArtisan invitationId={invitationId} />
       </Carte>
 
       <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">

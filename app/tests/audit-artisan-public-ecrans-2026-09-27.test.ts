@@ -37,8 +37,9 @@ describe("inscription d'un artisan sans compte (bloquant n° 2)", () => {
     const auth = lire("app/actions/auth.ts");
     const creation = auth.slice(auth.indexOf("export async function creerCompteArtisan"));
     expect(creation).toMatch(/espace: "artisan"/);
-    // 30/09 : la destination est celle du lien de confirmation que Gerimmo envoie.
-    expect(creation).toMatch(/next: "\/artisan\/inscription"/);
+    // 30/09 : la destination est celle du lien de confirmation que Gerimmo envoie. Décision du 15/10/2026 : venu du
+    // lien d'une invitation d'artisan (identifiant bien formé), il revient sur cette invitation ; sinon, l'inscription.
+    expect(creation).toMatch(/next: estUuid\(invitation\) \? cheminInvitationArtisan\(invitation\) : "\/artisan\/inscription"/);
     expect(lire("app/espaces/page.tsx")).toMatch(
       /user_metadata\?\.espace === "artisan"[\s\S]{0,40}\)\s*\{\s*redirect\("\/artisan\/inscription"\)/
     );

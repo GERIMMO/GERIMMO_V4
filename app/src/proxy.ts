@@ -31,6 +31,10 @@ const PUBLIC_PATHS = [
   // reste traversable connecté (ce n'est pas un écran de connexion). Le seul
   // chemin public du portail : les autres pages /artisan/* exigent la session.
   "/artisan/inscription",
+  // L'invitation d'un artisan par un propriétaire (décision du 15/10/2026) : le lien de l'e-mail mène ici, où
+  // l'artisan sans compte crée le sien. Sans session, la page ne lit rien en base et ne dit rien de l'invitation ;
+  // avec une session, elle ne montre l'invitation qu'à l'adresse confirmée qui l'a reçue.
+  "/artisan/invitation",
   "/mot-de-passe-oublie",
   // Publique (et traversable connecté) : la page doit pouvoir expliquer
   // « Session expirée ou lien invalide » au lieu de rediriger sans un mot.

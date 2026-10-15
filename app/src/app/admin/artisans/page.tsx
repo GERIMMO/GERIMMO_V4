@@ -10,6 +10,7 @@ export const metadata = { title: "Artisans à valider" };
 
 type Inscription = { artisan_id: string; raison_sociale: string; siret: string; siret_etat: string; telephone: string | null; email: string | null; metiers: string[] | null; nb_pieces: number; decennale_valide: boolean; rc_pro_deposee: boolean; inscrit_le: string; purge_prevue_le: string | null };
 type Piece = { id: string; artisan_id: string; type: string; expire_le: string | null };
+type Invitation = { artisan_id: string; organisation: string; acceptee: boolean };
 const date = (valeur: string) => new Date(valeur).toLocaleDateString("fr-FR", { timeZone: "UTC" });
 const ETATS_SIRET: Record<string, string> = { verifie: "Vérifié", non_verifie: "Non vérifié", invalide: "Invalide" };
 const DECISIONS_PAR_PAGE = 20;
@@ -23,11 +24,15 @@ export default async function InscriptionsArtisan({ searchParams }: {
   const recherche = await searchParams;
   const pageDemandee = typeof recherche.page === "string" && /^[1-9]\d*$/.test(recherche.page)
     && Number.isSafeInteger(Number(recherche.page)) ? Number(recherche.page) : 1;
-  const [file, compteDecisions] = await Promise.all([
+  const [file, compteDecisions, invitations] = await Promise.all([
     supabase.rpc("artisans_a_valider"),
     supabase.from("artisans").select("id", { count: "exact", head: true })
       .in("statut_plateforme", ["valide", "refuse"]),
+    // Décision du 15/10/2026 : d'où vient l'artisan invité par un propriétaire. Une aide à l'examen, jamais une validation.
+    supabase.rpc("invitations_des_artisans_a_valider"),
   ]);
+  const invitePar = new Map<string, Invitation[]>();
+  for (const i of (invitations.data ?? []) as Invitation[]) invitePar.set(i.artisan_id, [...(invitePar.get(i.artisan_id) ?? []), i]);
   const totalDecisions = compteDecisions.error ? null : compteDecisions.count;
   const nombrePages = Math.max(1, Math.ceil((totalDecisions ?? 0) / DECISIONS_PAR_PAGE));
   const pageDecisions = Math.min(pageDemandee, nombrePages);
@@ -53,7 +58,7 @@ export default async function InscriptionsArtisan({ searchParams }: {
     <div className="entete-page mb-6"><div><TitreEcran rubrique="incidents">Artisans à valider</TitreEcran><p className="mesure-lecture mt-2 text-sm text-[var(--texte-secondaire)]">Vérifiez l’entreprise, relisez les justificatifs, puis prenez une décision motivée. La validation ne modifie ni la visibilité choisie par l’artisan, ni les contrôles d’assurance appliqués à chaque intervention.</p></div><span className="mono-discret">{file.error ? "File indisponible" : `${inscriptions.length} en attente`}</span></div>
     <p className="mb-5 text-sm">Valider un artisan n’ouvre aucune zone. <Link href="/admin/couverture" className="underline">Rattacher ses communes et décider de l’ouverture du réseau →</Link></p>
     {file.error ? <p role="alert" className="vide">Impossible de charger les inscriptions. Rechargez pour réessayer.</p> : inscriptions.length === 0 ? <div className="vide-guide"><p className="titre">Aucune inscription en attente</p><p className="explication">Les nouvelles inscriptions apparaîtront ici pour examen.</p><div className="geste"><Link href="/admin/clients" className="btn-secondaire">Voir les artisans inscrits</Link></div></div> : <div className="space-y-5">{inscriptions.map((artisan) => <section key={artisan.artisan_id} className="border border-[var(--filet)] bg-[var(--ivoire)] p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="font-heading text-xl text-[var(--encre)]">{artisan.raison_sociale}</h2><p className="mt-1 text-sm">{(artisan.metiers ?? []).map((m) => METIERS[m] ?? m).join(" · ") || "Métier non renseigné"}</p></div><span className="puce puce-prep">Depuis le {date(artisan.inscrit_le)}</span></div>
+      <div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="font-heading text-xl text-[var(--encre)]">{artisan.raison_sociale}</h2><p className="mt-1 text-sm">{(artisan.metiers ?? []).map((m) => METIERS[m] ?? m).join(" · ") || "Métier non renseigné"}</p>{(invitePar.get(artisan.artisan_id) ?? []).map((i, n) => <p key={n} className="mt-1 text-sm text-[var(--texte-secondaire)]">Invité par {i.organisation}{i.acceptee ? "" : " (invitation pas encore acceptée)"}</p>)}</div><span className="puce puce-prep">Depuis le {date(artisan.inscrit_le)}</span></div>
       <dl className="my-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="libelle-champ">SIRET</dt><dd>{artisan.siret} · {ETATS_SIRET[artisan.siret_etat] ?? artisan.siret_etat}</dd></div><div><dt className="libelle-champ">Contact</dt><dd>{artisan.email || "Email non renseigné"}{artisan.telephone && ` · ${artisan.telephone}`}</dd></div></dl>
       {artisan.siret_etat !== "verifie" && <div className="mb-4 border border-[var(--filet)] p-3"><DecisionArtisan artisanId={artisan.artisan_id} operation="verifier_siret" /></div>}
       <details className="mb-4 border border-[var(--filet)] p-3" open><summary className="cursor-pointer font-medium">Justificatifs · {artisan.nb_pieces} pièce{artisan.nb_pieces > 1 ? "s" : ""}</summary><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Décennale {artisan.decennale_valide ? "en cours de validité" : "absente ou échue"} · RC pro {artisan.rc_pro_deposee ? "déposée, non échue" : "absente ou échue"}. Les dates ne remplacent pas la relecture du document.</p>

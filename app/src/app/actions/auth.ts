@@ -15,6 +15,8 @@ import { classerErreurInscription, MESSAGE_BOITE_MAIL } from "@/lib/inscription"
 import { champTropLong, valeursBornees } from "@/lib/limites-saisie";
 import { envoyerLienMotDePasse, inscrireEtEnvoyerConfirmation } from "@/lib/lien-mot-de-passe";
 import { estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
+import { estUuid } from "@/lib/identifiants";
+import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
 
 // La qualité voyage dans les métadonnées jusqu'à la fiche personne, dont la
 // liste est fermée (audit 29/09) : une valeur hors liste est laissée vide
@@ -292,12 +294,15 @@ export async function creerCompteArtisan(
   }
 
   // Le lien de confirmation mène à next=/artisan/inscription, où la fiche de
-  // l'entreprise se remplit une fois connecté.
+  // l'entreprise se remplit une fois connecté. Décision du 15/10/2026 : venu du
+  // lien d'une invitation, l'artisan revient sur cette invitation (seul un
+  // identifiant bien formé est suivi ; la page refuse toute autre session).
+  const invitation = formData.get("invitation");
   return finirInscription({
     email,
     motDePasse,
     valeurs,
-    next: "/artisan/inscription",
+    next: estUuid(invitation) ? cheminInvitationArtisan(invitation) : "/artisan/inscription",
     metadonnees: {
       // Lu par /espaces : un compte artisan sans fiche est renvoyé vers
       // l'inscription de l'entreprise, jamais vers un espace propriétaire.

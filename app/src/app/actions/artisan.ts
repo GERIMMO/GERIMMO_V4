@@ -11,6 +11,8 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sansJargon } from "@/lib/erreurs";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { estUuid } from "@/lib/identifiants";
+import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
 import {
   detecterMimeReel,
   pdfComplet,
@@ -213,6 +215,9 @@ export async function inscrireMonEntreprise(
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath("/artisan", "layout");
+  // Décision du 15/10/2026 : inscrit depuis une invitation, il y revient pour l'accepter (ses attestations ensuite).
+  const invitation = formData.get("invitation");
+  if (estUuid(invitation)) redirect(cheminInvitationArtisan(invitation));
   redirect("/artisan/attestations?inscrit=1");
 }
 

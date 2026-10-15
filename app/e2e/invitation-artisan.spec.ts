@@ -62,6 +62,13 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
      from ba returning id`,
     [ORG, `Bien E2E invitation ${marque}`, marque]
   );
+  // Rejouable sur la même base : les artisans invités par un passage précédent sortent du carnet (désactivés), sans
+  // quoi le carnet compterait déjà un contact pour Bordeaux et la voie de sortie ne s'afficherait pas.
+  await db.query(
+    `update public.artisan_agences set statut='desactive' where organization_id=$1 and statut='actif'
+       and artisan_id in (select id from public.artisans where raison_sociale like 'Plomberie Invitée %')`,
+    [ORG]
+  );
   // La commune reste FERMÉE au réseau pendant tout le parcours.
   expect((await db.query("select count(*)::int n from public.reseau_ouvertures where commune_code='33063' and ouverte")).rows[0].n).toBe(0);
 
@@ -154,7 +161,10 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     // 6. Le super administrateur valide : la fiche dit d'où vient l'artisan.
     await connecter(s, "superadmin@gerimmo-demo.fr");
     await franchirLeSasMfa(s);
-    await s.goto("/admin/artisans");
+    // Après « Activer et continuer », la redirection vers l'espace peut encore courir : une navigation lancée trop tôt
+    // est interrompue par elle (ERR_ABORTED). On attend le calme du réseau, puis on réessaie une fois au besoin.
+    await s.waitForLoadState("networkidle");
+    await s.goto("/admin/artisans").catch(() => s.goto("/admin/artisans"));
     const examen = s.locator("section").filter({ has: s.getByRole("heading", { name: raisonSociale }) });
     await expect(examen).toContainText("Invité par Parc de Claire Moreau");
     await s.screenshot({ path: info.outputPath("5-supervision-invite-par.png"), fullPage: true });

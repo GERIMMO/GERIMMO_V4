@@ -49,14 +49,16 @@ describe("l'écran de l'alerte e-mail du relais", () => {
   });
 
   // Décision du 15/10 : envoi immédiat pour les urgences ; la console le dit, avec le délai et l'arrêt d'urgence.
-  // Relecture du 15/10 : le délai d'une minute court à partir du CONSTAT de l'urgence, pas de l'événement ; la console
-  // dit quand le constat a lieu (passages du matin, mission lancée, console) et qu'entre deux passages il faut attendre.
-  it("relais configuré : « Urgences : e-mail immédiat, au plus 1 min après leur constat ; autres alertes : e-mail quotidien à 5 h (Paris) »", () => {
+  // Relecture du 15/10 : un passage automatique toutes les 10 minutes (pg_cron) constate les urgences puis les envoie :
+  // la console donne le délai réel depuis l'événement, et le filet du matin si ce passage est en panne.
+  it("relais configuré : « Urgences : e-mail immédiat, au plus 11 min après l’événement ; autres alertes : e-mail quotidien à 5 h (Paris) »", () => {
     const html = rendre("relais@example.com, second@example.org", [passage({})]);
-    expect(html).toContain("Urgences : e-mail immédiat, au plus 1 min après leur constat ; autres alertes : e-mail quotidien à 5 h (Paris).");
+    expect(html).toContain("Urgences : e-mail immédiat, au plus 11 min après l’événement ; autres alertes : e-mail quotidien à 5 h (Paris).");
     expect(html).not.toContain("délai au plus 1 min");
-    expect(html).toContain("Les urgences ne sont pas surveillées en continu : elles sont constatées au passage des équipes, chaque matin entre 4 h et 12 h (heure de Paris)");
-    expect(html).toContain("Ce qui arrive entre deux passages, par exemple l’après-midi, n’est constaté qu’au passage suivant, souvent le lendemain matin : son e-mail part alors, pas avant.");
+    expect(html).toContain("Un passage automatique constate les urgences toutes les 10 minutes, jour et nuit, et envoie leur e-mail dans la foulée : il part au plus 11 minutes après l’événement.");
+    expect(html).toContain("Si ce passage ne fonctionne pas, l’e-mail de 5 h le signale, et les urgences ne sont plus constatées qu’au passage des équipes, chaque matin entre 4 h et 12 h (heure de Paris), ou quand on actualise le relais.");
+    expect(html).not.toContain("lendemain matin");
+    expect(html).toContain("dont le passage automatique des urgences, s’il n’atteint plus le serveur");
     expect(html).toContain("Son e-mail immédiat part une seule fois, sans son texte, au plus 6 fois par heure");
     expect(html).toContain("au-delà, ou si l’envoi échoue, les urgences en attente partent groupées au passage suivant ou dans l’e-mail de 5 h, qui rappelle aussi les urgences des dernières 24 h, envoyées ou non.");
     expect(html).toContain("l’arrêt d’urgence ne les coupe pas : ce sont des alertes au dirigeant, sans effet sur les utilisateurs");
@@ -65,7 +67,7 @@ describe("l'écran de l'alerte e-mail du relais", () => {
   it("relais non configuré : aucune promesse d'e-mail immédiat", () => {
     const html = rendre(undefined, []);
     expect(html).not.toContain("Urgences : e-mail immédiat");
-    expect(html).not.toContain("ne sont pas surveillées en continu");
+    expect(html).not.toContain("Un passage automatique constate les urgences");
     expect(html).toContain("Relais non configuré : aucune alerte e-mail ne part.");
   });
 
@@ -124,21 +126,23 @@ describe("l'écran Santé et l'alerte e-mail du relais", () => {
     };
   }
 
-  it("relais non configuré : le dit, et le veto reste l'autre alerte e-mail", async () => {
+  // Relecture du 15/10 : l'écran ne présente plus « deux e-mails d'alerte » comme les seuls ; il nomme les trois envois réels.
+  it("relais non configuré : les trois e-mails d'alerte sont nommés, et les deux du relais disent qu'ils ne partent pas", async () => {
     vi.stubEnv("GERIMMO_RELAIS_EMAILS", "");
     mocks.createClient.mockResolvedValue(client());
     const html = renderToStaticMarkup(await PageSante());
     expect(html).toContain("Cet écran ne prévient personne");
-    expect(html).toContain("L’alerte e-mail quotidienne du relais n’est pas configurée");
-    expect(html).toContain("veto");
+    expect(html).toContain("Gerimmo envoie trois e-mails d’alerte : le veto d’une publication marketing, au superviseur, avant sa parution ; l’alerte quotidienne du relais, à 5 h (heure de Paris), et l’e-mail immédiat des urgences du mode vacances, qui ne partent pas : le relais n’est pas configuré, aucune tâche en échec n’est signalée par e-mail.");
     expect(html).not.toContain("Le seul e-mail d’alerte de Gerimmo");
+    expect(html).not.toContain("L’autre e-mail d’alerte");
   });
 
-  it("relais configuré : 5 h (heure de Paris), le nombre d'adresses, masquées", async () => {
+  it("relais configuré : les trois envois, 5 h (heure de Paris), le délai de l'e-mail immédiat, le nombre d'adresses, masquées", async () => {
     vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.com,second@example.org");
     mocks.createClient.mockResolvedValue(client());
     const html = renderToStaticMarkup(await PageSante());
-    expect(html).toContain("à 5 h (heure de Paris), signale aussi les tâches en échec ou absentes sur les dernières 24 h, vers 2 adresses : re•••is@example.com, se•••nd@example.org.");
+    expect(html).toContain("Gerimmo envoie trois e-mails d’alerte : le veto d’une publication marketing, au superviseur, avant sa parution ; l’alerte quotidienne du relais, à 5 h (heure de Paris), qui signale aussi les tâches en échec ou absentes sur les dernières 24 h ; et l’e-mail immédiat des urgences du mode vacances, au plus 11 minutes après l’événement. Ces deux derniers partent vers 2 adresses : re•••is@example.com, se•••nd@example.org.");
+    expect(html).not.toContain("L’autre e-mail d’alerte");
     expect(html).not.toContain("relais@example.com");
     expect(html).toContain("/admin/relais#alerte-email");
   });

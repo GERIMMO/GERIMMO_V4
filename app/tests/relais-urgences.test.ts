@@ -28,7 +28,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, sep } from "node:path";
 import {
   DELAI_URGENCE_MAX_MINUTES,
+  HORAIRE_PASSAGE_URGENCES,
   htmlUrgencesRelais,
+  INTERVALLE_PASSAGE_URGENCES_MINUTES,
+  libelleSortEmail,
   libelleUrgence,
   PASSAGES_DU_MATIN_PARIS,
   PHRASE_CANAUX_RELAIS,
@@ -36,7 +39,7 @@ import {
   PLAFOND_URGENCES_PAR_HEURE,
   sujetUrgencesRelais,
 } from "../src/lib/relais-urgences";
-import { envoyerUrgencesRelais } from "../src/lib/relais-urgences-envoi";
+import { envoyerUrgencesRelais, passerUrgencesRelais } from "../src/lib/relais-urgences-envoi";
 import { descriptionRelais, htmlAlerteRelais, lireAdressesRelais, masquerAdresse, sujetAlerteRelais, type ConstatRelais } from "../src/lib/relais-alerte";
 import { passerAlerteRelais } from "../src/lib/relais-alerte-envoi";
 import { executerMission } from "../src/lib/execution-mission";
@@ -123,21 +126,21 @@ describe("le contenu de l'e-mail immédiat", () => {
     expect(html).not.toMatch(/€|@/);
   });
 
-  it("la phrase de la console", () => {
-    expect(PHRASE_CANAUX_RELAIS).toBe(`Urgences : e-mail immédiat, au plus ${DELAI_URGENCE_MAX_MINUTES} min après leur constat ; autres alertes : e-mail quotidien à 5 h (Paris).`);
-    expect(DELAI_URGENCE_MAX_MINUTES).toBe(1);
+  it("la phrase de la console : le délai réel, depuis l'événement (passage toutes les 10 minutes, plus l'envoi)", () => {
+    expect(PHRASE_CANAUX_RELAIS).toBe("Urgences : e-mail immédiat, au plus 11 min après l’événement ; autres alertes : e-mail quotidien à 5 h (Paris).");
+    expect(INTERVALLE_PASSAGE_URGENCES_MINUTES).toBe(10);
+    expect(DELAI_URGENCE_MAX_MINUTES).toBe(INTERVALLE_PASSAGE_URGENCES_MINUTES + 1);
     expect(PLAFOND_URGENCES_PAR_HEURE).toBe(6);
   });
 });
 
 // ── Le délai annoncé (relecture du 15/10) ──────────────────────────────────
 //
-// Constat de relecture : « délai au plus 1 min » n'était vrai qu'à partir de la POSE de l'urgence. Rien ne la guette en
-// continu : elle n'est posée qu'au passage du relais (`traiter_vacances` : missions de vercel.json, passage de 5 h,
-// mission lancée dans la journée) ou par la console. Un événement survenu entre deux passages (passage « veille » de
-// 09 h UTC interrompu, habilitation perdue l'après-midi) n'était constaté, et son e-mail parti, qu'au passage suivant,
-// souvent le lendemain matin (reproduit en base : ni alerte ni ligne de file avant `traiter_vacances`). L'écran et les
-// e-mails disent désormais que le délai court à partir du constat, et quand le constat a lieu.
+// Premier constat de relecture : « délai au plus 1 min » n'était vrai qu'à partir de la POSE de l'urgence. Second
+// constat : les tâches Vercel ne passant qu'une fois par jour, un événement de l'après-midi n'était constaté, et son
+// e-mail parti, que le lendemain matin, jusqu'à environ 18 h plus tard. Depuis la migration 20261014812000, pg_cron
+// appelle toutes les 10 minutes, jour et nuit, le passage des urgences (constat, puis envoi) : au plus 11 minutes entre
+// l'événement et l'e-mail, en marche normale. L'écran et les deux e-mails le disent exactement.
 
 /** Les heures de Paris (décimales) d'une tâche Vercel « m h * * * », un jour d'hiver et un jour d'été. */
 function heuresParis(schedule: string): number[] {
@@ -150,58 +153,79 @@ function heuresParis(schedule: string): number[] {
   });
 }
 
-describe("le délai annoncé court à partir du constat, pas de l'événement", () => {
-  it("la console ne promet plus « délai au plus 1 min » sans dire à partir de quand", () => {
+const MIGRATION_PASSAGE = "supabase/migrations/20261014812000_relais_urgences_passage_frequent.sql";
+
+describe("le délai annoncé est le délai réel depuis l'événement : passage toutes les 10 minutes, plus l'envoi", () => {
+  it("la console ne promet plus un délai « après leur constat » : elle le compte depuis l'événement", () => {
     expect(PHRASE_CANAUX_RELAIS).not.toContain("délai au plus");
-    expect(PHRASE_CANAUX_RELAIS).toContain("après leur constat");
+    expect(PHRASE_CANAUX_RELAIS).not.toContain("après leur constat");
+    expect(PHRASE_CANAUX_RELAIS).toContain("au plus 11 min après l’événement");
   });
 
-  it("la console dit quand une urgence est constatée, et qu'un événement entre deux passages attend le suivant", () => {
+  it("la console dit le passage toutes les 10 minutes, le geste manuel, et le filet du matin si le passage est en panne", () => {
     expect(PHRASE_CONSTAT_URGENCES).toBe(
-      "Les urgences ne sont pas surveillées en continu : elles sont constatées au passage des équipes, chaque matin entre 4 h et 12 h (heure de Paris), dans la journée seulement si une mission est lancée (publication programmée, lancement à la main), et dans cette console quand on actualise le relais ou qu’on signale une urgence. Ce qui arrive entre deux passages, par exemple l’après-midi, n’est constaté qu’au passage suivant, souvent le lendemain matin : son e-mail part alors, pas avant."
+      "Un passage automatique constate les urgences toutes les 10 minutes, jour et nuit, et envoie leur e-mail dans la foulée : il part au plus 11 minutes après l’événement. Une urgence signalée à la main dans cette console part aussitôt. Si ce passage ne fonctionne pas, l’e-mail de 5 h le signale, et les urgences ne sont plus constatées qu’au passage des équipes, chaque matin entre 4 h et 12 h (heure de Paris), ou quand on actualise le relais."
     );
+    expect(PHRASE_CONSTAT_URGENCES).not.toContain("lendemain matin");
+  });
+
+  it("l'horaire annoncé est celui de la tâche pg_cron de la migration : toutes les 10 minutes, jour et nuit", () => {
+    const sql = readFileSync(MIGRATION_PASSAGE, "utf8");
+    expect(HORAIRE_PASSAGE_URGENCES).toBe("*/10 * * * *");
+    expect(sql).toContain(`select cron.schedule('relais-urgences', '${HORAIRE_PASSAGE_URGENCES}', $$select public.declencher_relais_urgences()$$);`);
+    expect(sql).toContain("url := d.site_url || '/api/cron/relais?mode=urgences'");
+    expect(60 % INTERVALLE_PASSAGE_URGENCES_MINUTES).toBe(0);
+    expect(HORAIRE_PASSAGE_URGENCES.startsWith(`*/${INTERVALLE_PASSAGE_URGENCES_MINUTES} `)).toBe(true);
   });
 
   // Sur l'offre Hobby de Vercel, une tâche « 0 9 * * * » part à l'heure près (entre 09 h 00 et 09 h 59 UTC) : la fenêtre
-  // annoncée va jusqu'à la fin de l'heure du dernier passage.
-  it("les heures annoncées suivent vercel.json : chaque passage qui actualise le relais tombe entre 4 h et 12 h à Paris, été comme hiver, même à l'heure près", () => {
+  // annoncée pour le filet va jusqu'à la fin de l'heure du dernier passage.
+  it("le filet annoncé suit vercel.json : chaque passage de mission qui actualise le relais tombe entre 4 h et 12 h à Paris, été comme hiver, même à l'heure près", () => {
     const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as { crons: { path: string; schedule: string }[] };
     const passages = vercel.crons.filter((c) => c.path.startsWith("/api/cron/equipes?") || c.path.startsWith("/api/cron/relais?"));
     expect(passages.length).toBeGreaterThan(0);
     for (const c of passages) expect(c.schedule, c.path).toMatch(/^\d{1,2} \d{1,2} \* \* \*$/);
+    // Le passage fréquent n'est PAS une tâche Vercel (le plan n'en permet que de quotidiennes) : pg_cron l'appelle.
+    expect(vercel.crons.map((c) => c.path)).not.toContain("/api/cron/relais?mode=urgences");
     const heures = passages.flatMap((c) => heuresParis(c.schedule));
     expect(Math.min(...heures)).toBe(PASSAGES_DU_MATIN_PARIS.debut);
     expect(Math.floor(Math.max(...heures)) + 1).toBe(PASSAGES_DU_MATIN_PARIS.fin);
     expect(PHRASE_CONSTAT_URGENCES).toContain(`chaque matin entre ${PASSAGES_DU_MATIN_PARIS.debut} h et ${PASSAGES_DU_MATIN_PARIS.fin} h (heure de Paris)`);
   });
 
-  it("rien d'autre n'actualise le relais : les missions, le passage de 5 h et le geste « Actualiser » ; aucune tâche pg_cron", () => {
+  it("ce qui actualise le relais : les missions, le passage de 5 h, le passage fréquent et le geste « Actualiser » ; pg_cron passe par la route, jamais directement", () => {
     const fichiers = (readdirSync("src", { recursive: true }) as string[])
       .filter((f) => /\.(ts|tsx)$/.test(f))
       .filter((f) => /rpc\(\s*['"]traiter_vacances['"]|appel\(\s*['"]traiter_vacances['"]/.test(readFileSync(join("src", f), "utf8")))
       .map((f) => f.split(sep).join("/"))
       .sort();
-    expect(fichiers).toEqual(["app/actions/consignes-vacances.ts", "lib/execution-mission.ts", "lib/relais-alerte-envoi.ts"]);
+    expect(fichiers).toEqual(["app/actions/consignes-vacances.ts", "lib/execution-mission.ts", "lib/relais-alerte-envoi.ts", "lib/relais-urgences-envoi.ts"]);
     for (const f of readdirSync("supabase/migrations").filter((n) => n.endsWith(".sql"))) {
       const sql = readFileSync(join("supabase/migrations", f), "utf8");
       expect(sql, f).not.toMatch(/cron\.schedule\([^;]*traiter_vacances/);
     }
   });
 
-  it("l'e-mail immédiat dit que l'heure est celle du constat, et quand le constat a lieu", () => {
+  it("l'e-mail immédiat dit le délai depuis l'événement, le passage toutes les 10 minutes, et que l'heure est celle du constat", () => {
     const html = htmlUrgencesRelais([URGENCE], `${SITE}/admin`).replace(/\s+/g, " ");
     expect(html).toContain("Heures du constat (heure de Paris).");
-    expect(html).toContain(`Cet e-mail part au plus ${DELAI_URGENCE_MAX_MINUTES} min après le constat d’une urgence du relais`);
-    expect(html).toContain("Une urgence n’est constatée qu’au passage des équipes (chaque matin) ou dans la console : ce qui arrive entre deux passages n’est constaté qu’au passage suivant, et l’heure indiquée est celle du constat.");
+    expect(html).toContain("Cet e-mail part au plus 11 min après l’événement : un passage automatique constate les urgences toutes les 10 minutes, jour et nuit, et l’heure indiquée est celle de ce constat ; une urgence signalée à la main dans la console part aussitôt.");
     expect(html).toContain("au-delà, ou si l’envoi échoue, les urgences en attente partent groupées au passage suivant ou dans l’e-mail de 5 h (heure de Paris)");
-    expect(html).not.toContain("dès qu’une urgence du relais est posée");
+    expect(html).not.toContain("au passage des équipes (chaque matin)");
+    expect(html).not.toContain("après le constat d’une urgence");
   });
 
-  it("l'e-mail de 5 h ne dit plus que les urgences partent « sur le moment »", () => {
+  it("l'e-mail de 5 h dit le délai de l'e-mail immédiat depuis l'événement", () => {
     const constat: ConstatRelais = { arrets: [], alertes: { ouvertes: 1, escaladees: 0, non_acheminees: 0 }, taches: [], lecturesImpossibles: [], relaisNonActualise: false };
     const html = htmlAlerteRelais(constat, new Date("2026-10-15T03:00:00Z"), `${SITE}/admin`);
     expect(html).not.toContain("sur le moment");
-    expect(html).toContain("Les urgences partent aussi dans un e-mail immédiat, dès qu’elles sont constatées (au passage des équipes ou dans la console) ; il les rappelle ici.");
+    expect(html).toContain("Les urgences partent aussi dans un e-mail immédiat, au plus 11 minutes après l’événement (un passage automatique les constate toutes les 10 minutes) ; il les rappelle ici.");
+  });
+
+  it("le rappel de 5 h ne dit jamais « en cours d'envoi » d'un e-mail immédiat en échec", () => {
+    expect(libelleSortEmail("echec_reprise")).toBe("e-mail immédiat en échec pour au moins une adresse : nouvel essai au passage suivant");
+    expect(libelleSortEmail("echec_reprise")).not.toContain("en cours");
+    expect(libelleUrgence("inconnue")).toBe("Une urgence du relais");
   });
 });
 
@@ -344,12 +368,56 @@ describe("l'envoi immédiat des urgences", () => {
     expect(noms(b.appels).filter((n) => n === "prendre_urgences_relais")).toHaveLength(1);
   });
 
-  it("un envoi sans urgence lisible est clos sans e-mail (jamais « 1 urgence » annoncée à tort)", async () => {
+  it("un envoi sans urgence lisible est clos sans e-mail et n'est jamais consigné « envoyé » (relecture du 15/10)", async () => {
     const f = fournisseur();
-    const b = base({ prendre_urgences_relais: [pris({ urgences: [{ nature: 3 }] })] });
+    const b = base({
+      prendre_urgences_relais: [pris({ urgences: [{ nature: 3 }] }), RIEN],
+      clore_envoi_urgences_vide: [{ data: { termine: true, statut: "abandonne" }, error: null }],
+    });
     expect(await envoyerUrgencesRelais({ db: b.db, adresses: ADRESSES, site: SITE })).toEqual({ arret: "rien", envois: [] });
     expect(f.corps()).toEqual([]);
-    expect(b.appels.find(([n]) => n === "terminer_urgences_relais")?.[1]).toEqual({ p_envoi: ENVOI, p_destinataires: 2, p_envoyes: 2 });
+    // Ni « terminer » avec des destinataires (qui le consignerait « envoyé »), ni e-mail : la clôture sans objet.
+    expect(noms(b.appels)).toEqual(["prendre_urgences_relais", "clore_envoi_urgences_vide", "prendre_urgences_relais"]);
+    expect(b.appels.find(([n]) => n === "clore_envoi_urgences_vide")?.[1]).toEqual({ p_envoi: ENVOI });
+  });
+
+  it("un envoi sans urgence lisible que la base refuse de clore (urgences encore attachées) : rien ne part, il sera repris", async () => {
+    const f = fournisseur();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const b = base({
+      prendre_urgences_relais: [pris({ urgences: "illisible" as unknown as unknown[] })],
+      clore_envoi_urgences_vide: [{ data: { termine: false, motif: "urgences" }, error: null }],
+    });
+    expect(await envoyerUrgencesRelais({ db: b.db, adresses: ADRESSES, site: SITE })).toEqual({ arret: "indisponible", envois: [] });
+    expect(f.corps()).toEqual([]);
+    expect(noms(b.appels)).not.toContain("terminer_urgences_relais");
+  });
+
+  it("le passage fréquent : constater d'abord, envoyer ensuite, consigner le passage ; un appel au service borné à 10 s", async () => {
+    const f = fournisseur();
+    const b = base({ prendre_urgences_relais: [pris(), RIEN] });
+    const r = await passerUrgencesRelais({ db: b.db, adresses: ADRESSES, site: SITE });
+    expect(r).toEqual({ constat: "fait", envoi: { arret: "rien", envois: [{ urgences: 1, destinataires: 2, envoyes: 2, reprise: false, statut: "envoye" }] } });
+    expect(noms(b.appels)).toEqual(["traiter_vacances", "prendre_urgences_relais", "terminer_urgences_relais", "consigner_passage_urgences_relais"]);
+    expect(f.corps()).toHaveLength(2);
+    expect(f.faux.appels.every((a) => a.avecDelai)).toBe(true);
+  });
+
+  it("le passage fréquent, file vide : aucun appel au service d'e-mail", async () => {
+    const f = fournisseur();
+    const b = base();
+    expect(await passerUrgencesRelais({ db: b.db, adresses: ADRESSES, site: SITE })).toEqual({ constat: "fait", envoi: { arret: "rien", envois: [] } });
+    expect(f.faux.appels).toEqual([]);
+  });
+
+  it("le passage fréquent ne lève jamais : constat coupé, consignation en erreur", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    fournisseur();
+    const coupe = base({}, "traiter_vacances");
+    expect(await passerUrgencesRelais({ db: coupe.db, adresses: ADRESSES, site: SITE })).toEqual({ constat: "indisponible", envoi: { arret: "rien", envois: [] } });
+    expect(noms(coupe.appels)).not.toContain("consigner_passage_urgences_relais");
+    const consignation = base({}, "consigner_passage_urgences_relais");
+    expect(await passerUrgencesRelais({ db: consignation.db, adresses: ADRESSES, site: SITE })).toEqual({ constat: "fait", envoi: { arret: "rien", envois: [] } });
   });
 
   it("trois tours au plus par passage (reprise, puis urgences en attente)", async () => {

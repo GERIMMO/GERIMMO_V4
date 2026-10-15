@@ -2,9 +2,12 @@
 // urgences ») — la partie sans effet : les libellés, le sujet et le corps du message, la phrase de la console.
 //
 // Une urgence du relais est une alerte interne NOUVELLE du mode vacances (`signaler_urgence_vacances`, appelée par
-// `traiter_vacances` ou par la console). Sa nature vient de sa clé, jamais de son titre (texte libre) : le message ne
-// porte que ces natures, leur heure et un lien vers la console. Ni nom, ni adresse, ni montant.
-// L'envoi lui-même : `lib/relais-urgences-envoi.ts` (serveur seulement). La file : migration 20261014811000.
+// `traiter_vacances` ou par la console). Sa nature vient de sa clé quand `traiter_vacances` l'a posée, sinon c'est un
+// signalement fait à la main (une clé saisie qui imite celle du système n'y change rien, migration 20261014812000) ;
+// jamais de son titre (texte libre) : le message ne porte que ces natures, leur heure et un lien vers la console. Ni nom,
+// ni adresse, ni montant.
+// L'envoi lui-même : `lib/relais-urgences-envoi.ts` (serveur seulement). La file : migration 20261014811000 ; le passage
+// fréquent qui les constate : migration 20261014812000.
 
 import { formaterDateHeureParis } from "./heure-paris";
 
@@ -12,35 +15,38 @@ import { formaterDateHeureParis } from "./heure-paris";
 export const PLAFOND_URGENCES_PAR_HEURE = 6;
 
 /**
- * Le délai entre le CONSTAT d'une urgence (sa pose en base) et le départ de son e-mail, en marche normale. Il ne court
- * pas depuis l'événement lui-même : voir `PASSAGES_DU_MATIN_PARIS`. L'envoi part juste après la transaction qui pose
- * l'urgence, dans la même requête (passage de mission, passage de 5 h, geste de la console) : le temps d'une lecture de
- * la file et d'un appel au service d'e-mail, borné à 15 secondes, les adresses en parallèle (trois tours au plus).
- * Plafond atteint ou envoi en échec : l'urgence part au passage suivant, au plus tard dans l'e-mail de 5 h.
+ * LE PASSAGE FRÉQUENT (relecture du 15/10/2026). Une urgence n'existe qu'une fois CONSTATÉE (`traiter_vacances`). Les
+ * tâches Vercel ne passent qu'une fois par jour, le matin : un événement de l'après-midi attendait jusqu'à environ 18 h.
+ * Depuis la migration 20261014812000, pg_cron appelle toutes les 10 minutes, jour et nuit (tâche `relais-urgences`), la
+ * route /api/cron/relais?mode=urgences, qui constate puis envoie dans la foulée (`passerUrgencesRelais`).
  */
-export const DELAI_URGENCE_MAX_MINUTES = 1;
+export const INTERVALLE_PASSAGE_URGENCES_MINUTES = 10;
+/** L'horaire pg_cron de ce passage (tests/relais-urgences-passage-base.test.ts le compare à la base). */
+export const HORAIRE_PASSAGE_URGENCES = "*/10 * * * *";
 
 /**
- * QUAND UNE URGENCE EST CONSTATÉE (relecture du 15/10/2026). Rien ne la guette en continu : elle n'est posée que lorsque
- * le relais est actualisé (`traiter_vacances`) ou qu'on la signale dans la console. Le relais est actualisé :
- *  · à chaque passage de mission de vercel.json, chaque matin de 03 h à 09 h UTC, soit de 4 h (hiver) à 11 h (été) à
- *    Paris, passage de 5 h compris ; sur l'offre Hobby de Vercel, une tâche part à l'heure près (« 0 9 * * * » entre
- *    09 h 00 et 09 h 59 UTC) : la fenêtre annoncée va donc jusqu'à midi ;
- *  · dans la journée, seulement quand une mission est lancée : la mission marketing appelée par pg_cron quand une
- *    publication est due, « Lancer maintenant » de l'écran Santé ;
- *  · au geste « Actualiser » de la console.
- * Un événement survenu entre deux passages (passage « veille » de 09 h UTC interrompu, habilitation perdue l'après-midi)
- * n'est donc constaté qu'au passage suivant, souvent le lendemain matin, jusqu'à environ 18 h plus tard ; son e-mail
- * part alors. Un passage fréquent (pg_cron toutes les 5 à 15 min) irait au-delà de la décision du 15/10 : il revient au
- * dirigeant d'en décider. tests/relais-urgences.test.ts vérifie que ces heures suivent vercel.json.
+ * Le délai RÉEL maximal entre l'événement et le départ de son e-mail, en marche normale : l'écart entre deux passages
+ * (10 minutes) plus le passage lui-même — constat, puis envoi, chaque appel au service d'e-mail borné à 10 secondes, les
+ * adresses en parallèle : moins d'une minute. Une urgence signalée à la main dans la console part aussitôt (après la
+ * réponse du geste). Au-delà, l'urgence part au passage suivant ou dans l'e-mail de 5 h : plafond de 6 e-mails par heure
+ * atteint, envoi en échec (repris au passage suivant), ou passage fréquent en panne (pg_net, jeton, site injoignable),
+ * que l'e-mail de 5 h signale (« sans passage »).
+ */
+export const DELAI_URGENCE_MAX_MINUTES = INTERVALLE_PASSAGE_URGENCES_MINUTES + 1;
+
+/**
+ * LE FILET, si le passage fréquent ne fonctionne pas : le relais est alors actualisé à chaque passage de mission de
+ * vercel.json, chaque matin de 03 h à 09 h UTC, soit de 4 h (hiver) à 11 h (été) à Paris ; sur l'offre Hobby de Vercel,
+ * une tâche part à l'heure près (« 0 9 * * * » entre 09 h 00 et 09 h 59 UTC) : la fenêtre annoncée va donc jusqu'à
+ * midi. tests/relais-urgences.test.ts vérifie que ces heures suivent vercel.json.
  */
 export const PASSAGES_DU_MATIN_PARIS = { debut: 4, fin: 12 } as const;
 
-/** La phrase de la console (décision du 15/10/2026) : le délai court à partir du constat. */
-export const PHRASE_CANAUX_RELAIS = `Urgences : e-mail immédiat, au plus ${DELAI_URGENCE_MAX_MINUTES} min après leur constat ; autres alertes : e-mail quotidien à 5 h (Paris).`;
+/** La phrase de la console (décision du 15/10/2026) : le délai court à partir de l'événement. */
+export const PHRASE_CANAUX_RELAIS = `Urgences : e-mail immédiat, au plus ${DELAI_URGENCE_MAX_MINUTES} min après l’événement ; autres alertes : e-mail quotidien à 5 h (Paris).`;
 
-/** Ce que la console dit du constat : quand il a lieu, et ce qui attend le passage suivant. */
-export const PHRASE_CONSTAT_URGENCES = `Les urgences ne sont pas surveillées en continu : elles sont constatées au passage des équipes, chaque matin entre ${PASSAGES_DU_MATIN_PARIS.debut} h et ${PASSAGES_DU_MATIN_PARIS.fin} h (heure de Paris), dans la journée seulement si une mission est lancée (publication programmée, lancement à la main), et dans cette console quand on actualise le relais ou qu’on signale une urgence. Ce qui arrive entre deux passages, par exemple l’après-midi, n’est constaté qu’au passage suivant, souvent le lendemain matin : son e-mail part alors, pas avant.`;
+/** Ce que la console dit du constat : le passage fréquent, le geste manuel, et le filet si le passage est en panne. */
+export const PHRASE_CONSTAT_URGENCES = `Un passage automatique constate les urgences toutes les ${INTERVALLE_PASSAGE_URGENCES_MINUTES} minutes, jour et nuit, et envoie leur e-mail dans la foulée : il part au plus ${DELAI_URGENCE_MAX_MINUTES} minutes après l’événement. Une urgence signalée à la main dans cette console part aussitôt. Si ce passage ne fonctionne pas, l’e-mail de 5 h le signale, et les urgences ne sont plus constatées qu’au passage des équipes, chaque matin entre ${PASSAGES_DU_MATIN_PARIS.debut} h et ${PASSAGES_DU_MATIN_PARIS.fin} h (heure de Paris), ou quand on actualise le relais.`;
 
 export type NatureUrgence = "responsable_non_habilite" | "passage_a_reprendre" | "lecture_bloquee" | "signalement_manuel";
 
@@ -82,7 +88,7 @@ export function htmlUrgencesRelais(urgences: UrgenceEnvoi[], lienConsole: string
   <p style="margin:22px 0 20px">
     <a href="${echapper(lienConsole)}" style="display:inline-block;background:#2457f5;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Ouvrir la console</a>
   </p>
-  <p style="font-size:13px;color:#53617a;margin:0">Cet e-mail part au plus ${DELAI_URGENCE_MAX_MINUTES} min après le constat d’une urgence du relais, une seule fois par urgence, au plus ${PLAFOND_URGENCES_PAR_HEURE} fois par heure : au-delà, ou si l’envoi échoue, les urgences en attente partent groupées au passage suivant ou dans l’e-mail de 5 h (heure de Paris), qui les rappelle toutes. Une urgence n’est constatée qu’au passage des équipes (chaque matin) ou dans la console : ce qui arrive entre deux passages n’est constaté qu’au passage suivant, et l’heure indiquée est celle du constat. Il ne contient ni nom ni montant ; l’arrêt d’urgence ne le coupe pas. Rien ne se décide depuis lui : les gestes se font dans la console.</p>
+  <p style="font-size:13px;color:#53617a;margin:0">Cet e-mail part au plus ${DELAI_URGENCE_MAX_MINUTES} min après l’événement : un passage automatique constate les urgences toutes les ${INTERVALLE_PASSAGE_URGENCES_MINUTES} minutes, jour et nuit, et l’heure indiquée est celle de ce constat ; une urgence signalée à la main dans la console part aussitôt. Il part une seule fois par urgence, au plus ${PLAFOND_URGENCES_PAR_HEURE} fois par heure : au-delà, ou si l’envoi échoue, les urgences en attente partent groupées au passage suivant ou dans l’e-mail de 5 h (heure de Paris), qui les rappelle toutes. Il ne contient ni nom ni montant ; l’arrêt d’urgence ne le coupe pas. Rien ne se décide depuis lui : les gestes se font dans la console.</p>
 </div>`;
 }
 
@@ -94,6 +100,8 @@ export type UrgenceRecente = { alerte: string; nature: string; posee_le: string;
 const SORTS: Record<string, string> = {
   envoye: "e-mail immédiat envoyé",
   en_cours: "e-mail immédiat en cours d’envoi",
+  // Relecture du 15/10 : un envoi à reprendre (échec pour au moins une adresse) ou coupé n'est jamais dit « en cours ».
+  echec_reprise: "e-mail immédiat en échec pour au moins une adresse : nouvel essai au passage suivant",
   en_attente: "e-mail immédiat pas encore parti (plafond atteint ou envoi à reprendre) : rappelée ici",
   quotidien: "reprise dans un e-mail de 5 h",
   echec: "e-mail immédiat non confirmé pour toutes les adresses (échec de l’envoi)",

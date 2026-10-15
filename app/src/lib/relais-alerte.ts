@@ -12,7 +12,7 @@ import { composantesParis } from "./heure-paris-calcul";
 import { formaterDateHeureParis } from "./heure-paris";
 import { emailValide } from "./marque-organisation";
 import { arretSansEffet, nomArret } from "./nom-arret-supervision";
-import { libelleSortEmail, libelleUrgence, type UrgenceRecente } from "./relais-urgences";
+import { DELAI_URGENCE_MAX_MINUTES, INTERVALLE_PASSAGE_URGENCES_MINUTES, libelleSortEmail, libelleUrgence, type UrgenceRecente } from "./relais-urgences";
 
 /** L'heure de l'alerte, à Paris (05 h 00, été comme hiver). */
 export const HEURE_RELAIS_PARIS = 5;
@@ -92,7 +92,7 @@ export function avertissementAdresses(a: AdressesRelais): string | null {
 
 // ── Le constat et le message ──────────────────────────────────────────────────────────────────────────────────────
 
-export type EtatTacheSignalee = "echec" | "absente" | "non_programmee";
+export type EtatTacheSignalee = "echec" | "absente" | "non_programmee" | "sans_passage";
 
 export type ConstatRelais = {
   /** Les arrêts d'urgence actifs (clé, depuis quand) ; jamais leur motif. */
@@ -134,8 +134,8 @@ export function compteursDuRelais(c: ConstatRelais, adressesIgnorees = 0): Recor
     alertes_ouvertes: c.alertes?.ouvertes ?? 0,
     alertes_escaladees: c.alertes?.escaladees ?? 0,
     alertes_non_acheminees: c.alertes?.non_acheminees ?? 0,
-    taches_en_echec: c.taches.filter((t) => t.etat === "echec").length,
-    taches_absentes: c.taches.filter((t) => t.etat !== "echec").length,
+    taches_en_echec: c.taches.filter((t) => t.etat === "echec" || t.etat === "sans_passage").length,
+    taches_absentes: c.taches.filter((t) => t.etat === "absente" || t.etat === "non_programmee").length,
     lectures_impossibles: c.lecturesImpossibles.length + (c.relaisNonActualise ? 1 : 0),
     adresses_ignorees: adressesIgnorees,
     urgences_24h: urgencesDuRelais(c),
@@ -157,6 +157,7 @@ const ETAT_TACHE: Record<EtatTacheSignalee, string> = {
   echec: "en échec",
   absente: "absente (pas passée à l’heure prévue)",
   non_programmee: "plus programmée dans la base",
+  sans_passage: "appelée, mais aucun passage reçu par le serveur depuis plus de 30 minutes (extension pg_net, adresse du site ou jeton à vérifier)",
 };
 
 /** Le corps de l'e-mail : compteurs, libellés de tâche, lien de la console. */
@@ -204,7 +205,7 @@ export function htmlAlerteRelais(c: ConstatRelais, maintenant: Date, lienConsole
   <p style="margin:22px 0 20px">
     <a href="${echapper(lienConsole)}" style="display:inline-block;background:#2457f5;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Ouvrir la console</a>
   </p>
-  <p style="font-size:13px;color:#53617a;margin:0">Cet e-mail part au plus une fois par jour, vers 5 h (heure de Paris), et seulement s’il y a quelque chose à signaler. Les urgences partent aussi dans un e-mail immédiat, dès qu’elles sont constatées (au passage des équipes ou dans la console) ; il les rappelle ici. Il ne contient ni nom ni montant ; rien ne se décide depuis lui : les gestes se font dans la console.</p>
+  <p style="font-size:13px;color:#53617a;margin:0">Cet e-mail part au plus une fois par jour, vers 5 h (heure de Paris), et seulement s’il y a quelque chose à signaler. Les urgences partent aussi dans un e-mail immédiat, au plus ${DELAI_URGENCE_MAX_MINUTES} minutes après l’événement (un passage automatique les constate toutes les ${INTERVALLE_PASSAGE_URGENCES_MINUTES} minutes) ; il les rappelle ici. Il ne contient ni nom ni montant ; rien ne se décide depuis lui : les gestes se font dans la console.</p>
 </div>`;
 }
 

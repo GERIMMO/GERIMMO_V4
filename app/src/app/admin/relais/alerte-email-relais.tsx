@@ -25,7 +25,8 @@ export function AlerteEmailRelais({ adresses, passages }: { adresses: AdressesRe
       <p><strong>{descriptionRelais(adresses)}</strong></p>
       {avertissement && <p role="alert" className="err">{avertissement}</p>}
       {/* Décision du 15/10/2026 : envoi immédiat pour les urgences, en plus de l'e-mail quotidien de 5 h. Relecture du
-          15/10 : le délai court à partir du constat de l'urgence, qui n'a lieu qu'aux passages ou dans la console. */}
+          15/10 : un passage automatique toutes les 10 minutes les constate puis les envoie (migration 20261014812000) ;
+          le délai court à partir de l'événement. */}
       {adresses.configure && <p><strong>{PHRASE_CANAUX_RELAIS}</strong></p>}
       {adresses.configure && <p className="text-sm">{PHRASE_CONSTAT_URGENCES}</p>}
       <p className="text-sm">
@@ -36,7 +37,8 @@ export function AlerteEmailRelais({ adresses, passages }: { adresses: AdressesRe
       </p>
       <p className="text-sm">
         L’e-mail de 5 h signale, en nombres seulement : les alertes du mode vacances non accusées, les tâches planifiées en
-        échec ou absentes sur les dernières 24 h, et l’arrêt d’urgence s’il est actif. Sans rien à signaler, aucun e-mail ne
+        échec ou absentes sur les dernières 24 h (dont le passage automatique des urgences, s’il n’atteint plus le serveur),
+        et l’arrêt d’urgence s’il est actif. Sans rien à signaler, aucun e-mail ne
         part. Ni l’un ni l’autre ne contient de nom ni de montant, et l’arrêt d’urgence ne les coupe pas : ce sont des
         alertes au dirigeant, sans effet sur les utilisateurs, et l’arrêt fait partie de ce qu’elles signalent.
       </p>

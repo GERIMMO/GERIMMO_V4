@@ -346,6 +346,27 @@ describe("le passage du relais", () => {
     expect(terminaison(illisible.appels)?.p_compteurs).toMatchObject({ lectures_impossibles: 1 });
   });
 
+  // Relecture du 15/10 (migration 20261014812000) : le passage des urgences toutes les 10 minutes. Absent de pg_cron, il
+  // est « plus programmé » ; appelé à l'heure mais jamais reçu par le serveur depuis 30 minutes, « sans passage ».
+  it("le passage des urgences du relais, plus programmé ou sans passage reçu, est signalé sous son nom", async () => {
+    const sujets: string[] = [];
+    for (const etat of ["non_programmee", "sans_passage", "absente", "echec"] as const) {
+      // Un fournisseur neuf à chaque cas : la clé d'envoi du jour est la même, le contenu non.
+      const fournisseur = fauxFournisseurEmail();
+      vi.stubGlobal("fetch", fournisseur.fetch);
+      const b = base({ sentinelle: { data: { ...SAINE, taches_base: [{ tache: "relais-urgences", etat, echecs: 0 }] }, error: null } });
+      const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: lireAdressesRelais("relais@example.com"), site: "https://gerimmo.test" });
+      expect(r, etat).toMatchObject({ statut: "envoye", points: 1 });
+      expect(terminaison(b.appels)?.p_compteurs, etat).toMatchObject(
+        etat === "echec" || etat === "sans_passage" ? { taches_en_echec: 1, taches_absentes: 0 } : { taches_en_echec: 0, taches_absentes: 1 }
+      );
+      sujets.push(...fournisseur.acceptes.map((a) => a.subject));
+    }
+    const html = htmlAlerteRelais({ ...RIEN, taches: [{ libelle: "Passage des urgences du relais (toutes les 10 minutes)", etat: "sans_passage" }] }, MATIN, "https://gerimmo.test/admin");
+    expect(html).toContain("Passage des urgences du relais (toutes les 10 minutes) : appelée, mais aucun passage reçu par le serveur depuis plus de 30 minutes (extension pg_net, adresse du site ou jeton à vérifier)");
+    expect(sujets).toEqual(Array(4).fill("Gerimmo — relais de 5 h : 1 point à vérifier"));
+  });
+
   it("appelé deux fois le même jour : le second passage n'envoie rien", async () => {
     const fournisseur = fauxFournisseurEmail();
     vi.stubGlobal("fetch", fournisseur.fetch);

@@ -24,7 +24,9 @@
 //    revient à ne jamais la couper : elle ne consulte donc aucun contrôle d'arrêt (`verifierAvantEffet` n'est pas appelé).
 //  - Elle reste bornée : au plus un e-mail par jour, à 5 h, et seulement s'il y a quelque chose à signaler. L'e-mail
 //    immédiat des urgences (décision du 15/10) suit la même règle, borné lui aussi : une fois par urgence, au plus 6 par
-//    heure. Pour les faire taire, on vide la variable GERIMMO_RELAIS_EMAILS (l'écran dit alors « relais non configuré »).
+//    heure ; son passage toutes les 10 minutes (tâche pg_cron `relais-urgences`, migration 20261014812000) aussi : il est
+//    recensé hors de la table des tâches qu'arrête l'arrêt (`supervision_taches_hors_arret`), et ne lit aucun arrêt.
+//    Pour les faire taire, on vide la variable GERIMMO_RELAIS_EMAILS (l'écran dit alors « relais non configuré »).
 //  L'écran « Relais et arrêts » le dit dans « Ce que l'arrêt ne couvre pas ».
 
 import "server-only";
@@ -32,7 +34,7 @@ import { createHash } from "node:crypto";
 import { envoyerEmail } from "./email";
 import { estTacheSuivie, TACHES_SUIVIES } from "./missions";
 import { chargerEtatTaches, type ClientQuiLitLeJournal } from "./sante-service";
-import { arretSansEffet, TACHES_SQL } from "./nom-arret-supervision";
+import { arretSansEffet, TACHES_SQL, TACHES_SQL_HORS_ARRET } from "./nom-arret-supervision";
 import { composantesParis } from "./heure-paris-calcul";
 import { adresseDuSite } from "./site";
 import { adressesRelaisDuServeur } from "./relais-alerte-reglage";
@@ -50,12 +52,12 @@ import {
   type EtatTacheSignalee,
 } from "./relais-alerte";
 
-/** Les libellés des tâches pg_cron que la table de l'écran d'arrêt ne nomme pas (la neuvième, et les inconnues). */
+/** Les libellés des tâches pg_cron que la table de l'écran d'arrêt ne nomme pas (la caducité des devis, et les inconnues). */
 const LIBELLES_TACHES_BASE: Record<string, string> = {
   "maintenance-artisans": "Expiration des devis d’artisans périmés",
 };
 function libelleTacheBase(tache: string): string {
-  return TACHES_SQL[tache]?.libelle ?? LIBELLES_TACHES_BASE[tache] ?? `Tâche de la base « ${tache} »`;
+  return TACHES_SQL[tache]?.libelle ?? TACHES_SQL_HORS_ARRET[tache]?.libelle ?? LIBELLES_TACHES_BASE[tache] ?? `Tâche de la base « ${tache} »`;
 }
 
 type Sentinelle = {
@@ -121,7 +123,9 @@ export function constaterRelais(
     } else {
       for (const t of Array.isArray(sentinelle.taches_base) ? sentinelle.taches_base : []) {
         if (typeof t?.tache !== "string") continue;
-        if (t.etat === "echec" || t.etat === "absente" || t.etat === "non_programmee") taches.push({ libelle: libelleTacheBase(t.tache), etat: t.etat });
+        // « sans_passage » : le passage des urgences, appelé à l'heure par pg_cron, n'a été reçu par aucun serveur depuis
+        // 30 minutes (pg_net, adresse du site ou jeton : migration 20261014812000).
+        if (t.etat === "echec" || t.etat === "absente" || t.etat === "non_programmee" || t.etat === "sans_passage") taches.push({ libelle: libelleTacheBase(t.tache), etat: t.etat });
       }
     }
   }

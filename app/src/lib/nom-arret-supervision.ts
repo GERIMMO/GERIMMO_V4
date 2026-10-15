@@ -33,6 +33,16 @@ export const TACHES_SQL: Record<string, { libelle: string; cles: readonly string
   "marketing-declencheur": { libelle: "Déclenchement des publications programmées", cles: ["marketing"] },
 };
 
+/**
+ * Les tâches de la base de données (pg_cron) que l'arrêt d'urgence ne couvre PAS, à dessein. Miroir de la table
+ * `supervision_taches_hors_arret` (migration 20261014812000) : un test compare les deux. Le passage des urgences du relais
+ * est une alerte au dirigeant, sans effet sur les utilisateurs, et l'arrêt fait partie de ce qu'elle signale : l'arrêt
+ * « global » ne le coupe pas (il n'est pas dans `supervision_taches_arret`, que lit le prédicat des tâches arrêtées).
+ */
+export const TACHES_SQL_HORS_ARRET: Record<string, { libelle: string }> = {
+  "relais-urgences": { libelle: "Passage des urgences du relais (toutes les 10 minutes)" },
+};
+
 /** Les libellés des tâches de la base de données qu'arrête cette clé (« global » : toutes). */
 export function tachesSqlArretees(cle: string): string[] {
   return Object.values(TACHES_SQL)

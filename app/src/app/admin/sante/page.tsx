@@ -14,6 +14,7 @@ import {
   type Prestataire,
 } from "@/lib/sante-service";
 import { masquerAdresse } from "@/lib/relais-alerte";
+import { DELAI_URGENCE_MAX_MINUTES } from "@/lib/relais-urgences";
 import { adressesRelaisDuServeur } from "@/lib/relais-alerte-reglage";
 import { LancerMission } from "./lancer-mission";
 
@@ -278,15 +279,15 @@ export default async function PageSante() {
           demande une vérification. L&apos;historique est conservé pendant six mois.
           {" "}{NOTE_FUSEAU} <Link href="/admin/equipes" className="lien-discret">Pause et reprise des missions →</Link>
         </p>
-        {/* IA-03 / D46 : dire vrai — cet écran se consulte, il n'avertit personne. D46-B (15/10) : l'alerte e-mail
-            quotidienne du relais, elle, signale les tâches en échec ou absentes, si elle est configurée. */}
+        {/* IA-03 / D46 : dire vrai — cet écran se consulte, il n'avertit personne. D46-B (15/10) : trois envois d'alerte
+            existent, et l'écran les nomme tous : le veto marketing, l'e-mail de 5 h et l'e-mail immédiat des urgences. */}
         <p className="mesure-lecture mt-1.5 text-sm text-muted-foreground">
           Cet écran ne prévient personne : une tâche en retard ou en échec s’y voit quand vous l’ouvrez, ou par le
-          compteur « À décider » de la console.{" "}
+          compteur « À décider » de la console. Gerimmo envoie trois e-mails d’alerte : le veto d’une publication
+          marketing, au superviseur, avant sa parution ;{" "}
           {relais.configure
-            ? `L’alerte e-mail quotidienne du relais, à 5 h (heure de Paris), signale aussi les tâches en échec ou absentes sur les dernières 24 h, vers ${relais.valides.length} adresse${relais.valides.length > 1 ? "s" : ""} : ${relais.valides.map(masquerAdresse).join(", ")}.`
-            : "L’alerte e-mail quotidienne du relais n’est pas configurée : aucune tâche en échec n’est signalée par e-mail."}{" "}
-          L’autre e-mail d’alerte de Gerimmo concerne le veto d’une publication marketing.{" "}
+            ? `l’alerte quotidienne du relais, à 5 h (heure de Paris), qui signale aussi les tâches en échec ou absentes sur les dernières 24 h ; et l’e-mail immédiat des urgences du mode vacances, au plus ${DELAI_URGENCE_MAX_MINUTES} minutes après l’événement. Ces deux derniers partent vers ${relais.valides.length} adresse${relais.valides.length > 1 ? "s" : ""} : ${relais.valides.map(masquerAdresse).join(", ")}.`
+            : "l’alerte quotidienne du relais, à 5 h (heure de Paris), et l’e-mail immédiat des urgences du mode vacances, qui ne partent pas : le relais n’est pas configuré, aucune tâche en échec n’est signalée par e-mail."}{" "}
           <Link href="/admin/relais#alerte-email" className="lien-discret">Alerte e-mail du relais →</Link>
         </p>
       </section>

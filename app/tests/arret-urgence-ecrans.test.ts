@@ -178,12 +178,13 @@ describe("D06 / D46 : l'écran « Arrêt avant les prochains effets » et le mod
 
   // Relecture du 15/10 : « délai au plus 1 min » ne valait qu'à partir du constat de l'urgence ; l'écran le dit, avec
   // quand le constat a lieu (un événement entre deux passages attend le suivant, souvent le lendemain matin).
-  it("IA-02, relais configuré : une urgence part en e-mail immédiat au plus 1 min après son constat, comptée aussi à 5 h, adresses masquées", async () => {
+  it("IA-02, relais configuré : une urgence part en e-mail immédiat au plus 11 min après l'événement (passage toutes les 10 minutes), comptée aussi à 5 h, adresses masquées", async () => {
     vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.com, second@example.org");
     try {
       const html = await rendreVacances();
-      expect(html).toContain("Une urgence part aussi, sans son texte, par e-mail immédiat vers 2 adresses du relais : re•••is@example.com, se•••nd@example.org, au plus 1 min après son constat ; elle n’est constatée qu’au passage des équipes (chaque matin) ou dans cette console : ce qui arrive entre deux passages attend le suivant, souvent le lendemain matin.");
+      expect(html).toContain("Une urgence part aussi, sans son texte, par e-mail immédiat vers 2 adresses du relais : re•••is@example.com, se•••nd@example.org, au plus 11 min après l’événement : un passage automatique la constate toutes les 10 minutes, jour et nuit, et une urgence signalée ici part aussitôt.");
       expect(html).not.toContain("délai au plus 1 min");
+      expect(html).not.toContain("lendemain matin");
       expect(html).not.toContain("part aussi tout de suite");
       expect(html).toContain("Tant qu’elle n’est pas accusée, elle est aussi comptée dans l’alerte e-mail quotidienne de 5 h (heure de Paris).");
       expect(html).toContain("Une escalade n’envoie pas d’e-mail immédiat : elle est comptée à 5 h.");
@@ -209,7 +210,9 @@ describe("D06 / D46 : l'écran « Arrêt avant les prochains effets » et le mod
   it("l'arrêt d'urgence ne coupe ni l'alerte e-mail de 5 h ni l'e-mail immédiat des urgences, et l'écran le dit", async () => {
     const html = await rendreVacances();
     expect(html).toContain("L’alerte e-mail quotidienne du relais n’est pas coupée non plus : elle signale justement l’arrêt en cours.");
-    expect(html).toContain("L’e-mail immédiat des urgences du relais part lui aussi : c’est une alerte au dirigeant, sans effet sur les utilisateurs.");
+    expect(html).toContain("L’e-mail immédiat des urgences du relais part lui aussi, et son passage automatique toutes les 10 minutes continue : c’est une alerte au dirigeant, sans effet sur les utilisateurs.");
+    // La liste des tâches de la base nomme aussi celle que l'arrêt ne couvre pas, à dessein (relecture du 15/10).
+    expect(html).toContain("Passage des urgences du relais (toutes les 10 minutes)</b> — arrêtée par aucun périmètre, pas même « Tous les traitements contrôlés » : c’est une alerte au dirigeant.");
   });
 
   it("une ligne « sauvegarde » déjà enregistrée est marquée sans effet et peut être levée", async () => {

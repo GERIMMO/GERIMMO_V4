@@ -158,18 +158,20 @@ describe("le délai annoncé court à partir du constat, pas de l'événement", 
 
   it("la console dit quand une urgence est constatée, et qu'un événement entre deux passages attend le suivant", () => {
     expect(PHRASE_CONSTAT_URGENCES).toBe(
-      "Les urgences ne sont pas surveillées en continu : elles sont constatées au passage des équipes, chaque matin entre 4 h et 11 h (heure de Paris), dans la journée seulement si une mission est lancée (publication programmée, lancement à la main), et dans cette console quand on actualise le relais ou qu’on signale une urgence. Ce qui arrive entre deux passages, par exemple l’après-midi, n’est constaté qu’au passage suivant, souvent le lendemain matin : son e-mail part alors, pas avant."
+      "Les urgences ne sont pas surveillées en continu : elles sont constatées au passage des équipes, chaque matin entre 4 h et 12 h (heure de Paris), dans la journée seulement si une mission est lancée (publication programmée, lancement à la main), et dans cette console quand on actualise le relais ou qu’on signale une urgence. Ce qui arrive entre deux passages, par exemple l’après-midi, n’est constaté qu’au passage suivant, souvent le lendemain matin : son e-mail part alors, pas avant."
     );
   });
 
-  it("les heures annoncées suivent vercel.json : chaque passage qui actualise le relais tombe entre 4 h et 11 h à Paris, été comme hiver", () => {
+  // Sur l'offre Hobby de Vercel, une tâche « 0 9 * * * » part à l'heure près (entre 09 h 00 et 09 h 59 UTC) : la fenêtre
+  // annoncée va jusqu'à la fin de l'heure du dernier passage.
+  it("les heures annoncées suivent vercel.json : chaque passage qui actualise le relais tombe entre 4 h et 12 h à Paris, été comme hiver, même à l'heure près", () => {
     const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as { crons: { path: string; schedule: string }[] };
     const passages = vercel.crons.filter((c) => c.path.startsWith("/api/cron/equipes?") || c.path.startsWith("/api/cron/relais?"));
     expect(passages.length).toBeGreaterThan(0);
     for (const c of passages) expect(c.schedule, c.path).toMatch(/^\d{1,2} \d{1,2} \* \* \*$/);
     const heures = passages.flatMap((c) => heuresParis(c.schedule));
     expect(Math.min(...heures)).toBe(PASSAGES_DU_MATIN_PARIS.debut);
-    expect(Math.max(...heures)).toBe(PASSAGES_DU_MATIN_PARIS.fin);
+    expect(Math.floor(Math.max(...heures)) + 1).toBe(PASSAGES_DU_MATIN_PARIS.fin);
     expect(PHRASE_CONSTAT_URGENCES).toContain(`chaque matin entre ${PASSAGES_DU_MATIN_PARIS.debut} h et ${PASSAGES_DU_MATIN_PARIS.fin} h (heure de Paris)`);
   });
 

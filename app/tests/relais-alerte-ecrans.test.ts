@@ -55,7 +55,7 @@ describe("l'écran de l'alerte e-mail du relais", () => {
     const html = rendre("relais@example.com, second@example.org", [passage({})]);
     expect(html).toContain("Urgences : e-mail immédiat, au plus 1 min après leur constat ; autres alertes : e-mail quotidien à 5 h (Paris).");
     expect(html).not.toContain("délai au plus 1 min");
-    expect(html).toContain("Les urgences ne sont pas surveillées en continu : elles sont constatées au passage des équipes, chaque matin entre 4 h et 11 h (heure de Paris)");
+    expect(html).toContain("Les urgences ne sont pas surveillées en continu : elles sont constatées au passage des équipes, chaque matin entre 4 h et 12 h (heure de Paris)");
     expect(html).toContain("Ce qui arrive entre deux passages, par exemple l’après-midi, n’est constaté qu’au passage suivant, souvent le lendemain matin : son e-mail part alors, pas avant.");
     expect(html).toContain("Son e-mail immédiat part une seule fois, sans son texte, au plus 6 fois par heure");
     expect(html).toContain("au-delà, ou si l’envoi échoue, les urgences en attente partent groupées au passage suivant ou dans l’e-mail de 5 h, qui rappelle aussi les urgences des dernières 24 h, envoyées ou non.");

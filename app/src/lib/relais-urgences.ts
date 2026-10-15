@@ -24,7 +24,8 @@ export const DELAI_URGENCE_MAX_MINUTES = 1;
  * QUAND UNE URGENCE EST CONSTATÉE (relecture du 15/10/2026). Rien ne la guette en continu : elle n'est posée que lorsque
  * le relais est actualisé (`traiter_vacances`) ou qu'on la signale dans la console. Le relais est actualisé :
  *  · à chaque passage de mission de vercel.json, chaque matin de 03 h à 09 h UTC, soit de 4 h (hiver) à 11 h (été) à
- *    Paris, passage de 5 h compris ;
+ *    Paris, passage de 5 h compris ; sur l'offre Hobby de Vercel, une tâche part à l'heure près (« 0 9 * * * » entre
+ *    09 h 00 et 09 h 59 UTC) : la fenêtre annoncée va donc jusqu'à midi ;
  *  · dans la journée, seulement quand une mission est lancée : la mission marketing appelée par pg_cron quand une
  *    publication est due, « Lancer maintenant » de l'écran Santé ;
  *  · au geste « Actualiser » de la console.
@@ -33,7 +34,7 @@ export const DELAI_URGENCE_MAX_MINUTES = 1;
  * part alors. Un passage fréquent (pg_cron toutes les 5 à 15 min) irait au-delà de la décision du 15/10 : il revient au
  * dirigeant d'en décider. tests/relais-urgences.test.ts vérifie que ces heures suivent vercel.json.
  */
-export const PASSAGES_DU_MATIN_PARIS = { debut: 4, fin: 11 } as const;
+export const PASSAGES_DU_MATIN_PARIS = { debut: 4, fin: 12 } as const;
 
 /** La phrase de la console (décision du 15/10/2026) : le délai court à partir du constat. */
 export const PHRASE_CANAUX_RELAIS = `Urgences : e-mail immédiat, au plus ${DELAI_URGENCE_MAX_MINUTES} min après leur constat ; autres alertes : e-mail quotidien à 5 h (Paris).`;

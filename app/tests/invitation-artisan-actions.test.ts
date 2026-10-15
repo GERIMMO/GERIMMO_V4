@@ -35,6 +35,7 @@ import {
   etatLigneCarnet,
   lienInvitationArtisan,
   nomInvitant,
+  valableJusquAu,
   type LigneCarnetArtisan,
 } from "@/lib/invitations-artisan";
 import { messageInvitationArtisan } from "@/lib/notifications";
@@ -77,7 +78,7 @@ describe("inviter un artisan (propriétaire)", () => {
 
   it("prépare en base (adresse en minuscules), envoie l'e-mail Gerimmo, puis note l'envoi", async () => {
     const r = await inviterArtisan(org, {}, formulaire({ email: " Artisan@Example.INVALID ", nom: "M. Martin", metier: "plomberie" }));
-    expect(r.succes).toContain("Invitation envoyée à artisan@example.invalid");
+    expect(r.succes).toContain("Invitation envoyée à artisan@example.invalid, valable jusqu’au 14/11/2026 inclus");
     expect(m.rpc).toHaveBeenNthCalledWith(1, "preparer_invitation_artisan", {
       p_org: org, p_email: "artisan@example.invalid", p_nom: "M. Martin", p_metier: "plomberie",
     });
@@ -274,6 +275,35 @@ describe("le nom de l'organisation qui invite", () => {
  * dit exactement ce que la base ouvre — chaque colonne lisible y a ses mots — et que les motifs ne sont jamais montrés.
  * Ce que la base ouvre est éprouvé dans artisans-colonnes-internes.test.ts et invitation-artisan-proprietaire.test.ts.
  */
+/**
+ * Seconde relecture du 15/10 (20261014847000) : une invitation expire à la FIN d'un jour de Paris (minuit, heure de
+ * Paris), et « valable jusqu'au … » nomme ce dernier jour, inclus — partout où l'échéance s'affiche (e-mail, carnet,
+ * page de l'artisan). Avant, l'échéance tombait à l'heure de l'envoi : « valable jusqu'au 14/11 » expirait le 14/11 à
+ * 11 h, et l'après-midi la page disait « expirée ».
+ */
+describe("l'échéance affichée : le dernier jour de Paris, inclus", () => {
+  it("une échéance à minuit (heure de Paris) se dit par la veille, l'hiver comme l'été", () => {
+    expect(valableJusquAu("2026-11-14T23:00:00Z")).toBe("14/11/2026");
+    expect(valableJusquAu("2026-07-14T22:00:00Z")).toBe("14/07/2026");
+    expect(valableJusquAu("2026-11-14T23:00:00Z", "long")).toBe("14 novembre 2026");
+    // Une échéance au milieu d'un jour (invitation d'avant la migration) : ce jour-là.
+    expect(valableJusquAu("2026-11-14T10:00:00Z")).toBe("14/11/2026");
+  });
+
+  it("l'e-mail dit le même dernier jour", () => {
+    const m = messageInvitationArtisan({ organisation: "Parc", lien: "https://www.gerimmo.app/x", expireLe: "2026-11-14T23:00:00Z" });
+    expect(m.html.replace(/<[^>]+>/g, " ")).toContain("valable jusqu’au 14 novembre 2026");
+  });
+
+  it("le carnet et la page de l'artisan affichent l'échéance par la même règle", () => {
+    for (const fichier of ["src/app/agence/[orgId]/artisans/carnet-proprietaire.tsx", "src/app/artisan/invitation/[invitationId]/page.tsx"]) {
+      const source = readFileSync(path.resolve(__dirname, "..", fichier), "utf8");
+      expect(source, fichier).not.toMatch(/formaterDate\([^)]*expire_le\)/);
+      expect(source, fichier).toContain("valableJusquAu(");
+    }
+  });
+});
+
 describe("ce que l'artisan accepte de montrer", () => {
   it("le texte nomme tout ce que le propriétaire verra, colonne par colonne", () => {
     const elements: [string, string][] = [

@@ -45,6 +45,19 @@ export function lienInvitationArtisan(origine: string, invitationId: string, ema
 export const VISIBLE_APRES_ACCEPTATION =
   "le nom de votre entreprise, son SIRET et l’état de sa vérification, votre téléphone, votre adresse e-mail professionnelle, vos métiers, votre zone d’intervention, la visibilité de votre profil, la date de votre inscription et son état chez Gerimmo (en attente, validée ou refusée, exclusion éventuelle de la plateforme), mais jamais les motifs des décisions de Gerimmo";
 
+/**
+ * Le dernier jour de validité d'une invitation, au jour de Paris, ce jour-là inclus (seconde relecture du 15/10). Depuis
+ * 20261014847000, une invitation expire à minuit, heure de Paris, au début du 31e jour : le dernier jour valable est la
+ * veille de l'échéance. On le lit donc à l'instant qui précède l'échéance — une échéance plus ancienne, au milieu d'un
+ * jour, se dit par ce jour-là. `long` : « 14 novembre 2026 » (e-mail) ; sinon « 14/11/2026 » (écrans).
+ */
+export function valableJusquAu(expireLe: string, forme: "court" | "long" = "court"): string {
+  const dernierInstant = new Date(Date.parse(expireLe) - 1).toISOString();
+  return forme === "long"
+    ? new Date(dernierInstant).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" })
+    : formaterDate(dernierInstant);
+}
+
 /** Le nom de l'organisation qui invite, une fois borné (e-mail, page de l'artisan, console de validation). */
 export const LONGUEUR_MAX_NOM_INVITANT = 80;
 

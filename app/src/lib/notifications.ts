@@ -48,7 +48,7 @@ import { cleRappelGeste } from "./cles-idempotence-courriels";
 import { envoyerEmail } from "./email";
 import { eur, formaterDate } from "./ged";
 import { titreIncident } from "./incidents";
-import { nomInvitant } from "./invitations-artisan";
+import { nomInvitant, valableJusquAu } from "./invitations-artisan";
 import { moyenEnToutesLettres } from "./reglement-facture";
 import { echapperMarque, emailValide, nomMarque } from "./marque-organisation";
 import { chargerMarque } from "./marque-organisation-serveur";
@@ -119,7 +119,8 @@ export function extrait(texte: string | null | undefined, max = 140): string {
  * ne cite que le nom assaini (`nomInvitant`), ou « Un propriétaire ».
  */
 export function messageInvitationArtisan(p: { organisation: string; lien: string; expireLe: string }): Message {
-  const jusquAu = new Date(p.expireLe).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" });
+  // Le dernier jour de Paris, inclus (seconde relecture du 15/10) : la même règle que le carnet et la page de l'artisan.
+  const jusquAu = valableJusquAu(p.expireLe, "long");
   const invitant = nomInvitant(p.organisation) ?? "Un propriétaire";
   return {
     sujet: "Invitation à rejoindre un carnet d’artisans sur Gerimmo",

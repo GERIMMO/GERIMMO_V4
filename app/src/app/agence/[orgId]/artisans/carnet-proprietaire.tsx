@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Wrench, History, UserPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formaterDate } from "@/lib/ged";
-import { ANCRE_INVITER_ARTISAN, etatLigneCarnet, type LigneCarnetArtisan, type TonEtat } from "@/lib/invitations-artisan";
+import { ANCRE_INVITER_ARTISAN, etatLigneCarnet, valableJusquAu, type LigneCarnetArtisan, type TonEtat } from "@/lib/invitations-artisan";
 import { COULEURS_INTERVENTION, METIERS_ARTISAN, STATUTS_INTERVENTION } from "./referentiel";
 import { FormulaireInvitationArtisan, GestesDuCarnet, GestesInvitationEnAttente, ReinviterArtisan } from "./invitations-artisan";
 
@@ -72,7 +72,7 @@ export async function CarnetProprietaire({ orgId }: { orgId: string }) {
               <p className="break-words font-medium">{titre}</p>
               {detail && <p className="mt-1 break-words text-xs text-muted-foreground">{detail}</p>}
               {ligne.artisan_id && <p className="mt-1 text-xs text-muted-foreground">{ligne.codes_postaux?.length ? `Zone d’intervention : ${ligne.codes_postaux.join(", ")}` : "Zone d’intervention non renseignée"}</p>}
-              {ligne.etat_invitation === "en_attente" && ligne.expire_le && <p className="mt-1 text-xs text-muted-foreground">Valable jusqu’au {formaterDate(ligne.expire_le)}</p>}
+              {ligne.etat_invitation === "en_attente" && ligne.expire_le && <p className="mt-1 text-xs text-muted-foreground">Valable jusqu’au {valableJusquAu(ligne.expire_le)} inclus</p>}
             </div>
             <div className="flex min-w-0 max-w-full flex-col items-start gap-2 sm:items-end">
               <span className={`${PUCES[etat.ton]} max-w-full whitespace-normal`}>{etat.libelle}</span>

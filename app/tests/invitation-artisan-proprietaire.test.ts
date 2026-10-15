@@ -161,9 +161,15 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       const r = await inviter(`  ${emailInvite.toUpperCase()} `);
       expect(r).toMatchObject({ email: emailInvite, organisation: "Parc de Claire Testeuse" });
       await postgres();
-      const ligne = (await db.query("select etat, cree_par, nom_memo, metier_memo, expire_le - cree_le as duree from public.invitations_artisans where id=$1", [r.id])).rows[0];
+      const ligne = (await db.query("select etat, cree_par, nom_memo, metier_memo from public.invitations_artisans where id=$1", [r.id])).rows[0];
       expect(ligne).toMatchObject({ etat: "en_attente", cree_par: proprietaire, nom_memo: "Dupont plomberie", metier_memo: "plomberie" });
-      expect(ligne.duree.days).toBe(30);
+      // Seconde relecture du 15/10 (20261014847000) : l'échéance tombe à la FIN du 30e jour de Paris (minuit, heure de
+      // Paris) ; « valable jusqu'au … » nomme ce jour, inclus.
+      const echeance = (await db.query(
+        `select expire_le = ((((cree_le at time zone 'Europe/Paris')::date + 31)::timestamp) at time zone 'Europe/Paris') as minuit_paris,
+                ((expire_le - interval '1 microsecond') at time zone 'Europe/Paris')::date - (cree_le at time zone 'Europe/Paris')::date as jours
+           from public.invitations_artisans where id=$1`, [r.id])).rows[0];
+      expect(echeance).toEqual({ minuit_paris: true, jours: 30 });
       expect(await journal("invitation_artisan")).toHaveLength(1);
       expect(JSON.stringify(await journal("invitation_artisan"))).not.toContain(emailInvite);
     });

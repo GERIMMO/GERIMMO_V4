@@ -30,7 +30,8 @@ const MIGRATION = readFileSync("supabase/migrations/20261014840000_invitation_ar
  * l'état migré (chaque correctif retrouve son ancre et se repose).
  */
 const SUITE_DU_LOT = ["20261014844000_invitation_artisan_budget_distinct.sql", "20261014845000_invitation_artisan_soi_meme.sql",
-  "20261014846000_invitation_artisan_annulation_suspendue.sql"].map((f) =>
+  "20261014846000_invitation_artisan_annulation_suspendue.sql",
+  "20261014847000_invitation_artisan_echeance_jour_paris.sql"].map((f) =>
   readFileSync(`supabase/migrations/${f}`, "utf8")
 );
 const RETOUR = readFileSync("supabase/retours-arriere/20261014840000_invitation_artisan_proprietaire.retour.sql", "utf8");
@@ -564,3 +565,73 @@ function correctifParMarque(fichier: string) {
 correctifParMarque("20261014844000_invitation_artisan_budget_distinct");
 correctifParMarque("20261014845000_invitation_artisan_soi_meme");
 correctifParMarque("20261014846000_invitation_artisan_annulation_suspendue");
+
+/**
+ * Seconde relecture du 15/10 : 20261014847000 fait tomber l'échéance d'une nouvelle invitation à la fin d'un jour de
+ * Paris (défaut de `invitations_artisans.expire_le`). Rejouée, elle ne change rien ; son retour rétablit le défaut de
+ * 20261014840000 (`now() + 30 days`), sans toucher aux lignes, se rejoue sans effet et refuse de se jouer dans un lot.
+ */
+const MIGRATION_ECHEANCE = readFileSync("supabase/migrations/20261014847000_invitation_artisan_echeance_jour_paris.sql", "utf8");
+const RETOUR_ECHEANCE = readFileSync("supabase/retours-arriere/20261014847000_invitation_artisan_echeance_jour_paris.retour.sql", "utf8");
+
+describe.skipIf(!DB_URL)("échéance au jour de Paris — rejeu de 20261014847000 et retour arrière", () => {
+  let db: Client;
+  const defaut = async () =>
+    (await db.query(
+      "select column_default d, col_description('public.invitations_artisans'::regclass, ordinal_position::int) c from information_schema.columns where table_schema='public' and table_name='invitations_artisans' and column_name='expire_le'"
+    )).rows[0] as { d: string; c: string | null };
+
+  beforeAll(async () => {
+    db = new Client({ connectionString: DB_URL });
+    await db.connect();
+    await db.query("begin");
+  });
+  afterAll(async () => {
+    await db?.query("rollback");
+    await db?.end();
+  });
+  beforeEach(async () => {
+    await db.query("savepoint cas");
+  });
+  afterEach(async () => {
+    await db.query("rollback to savepoint cas");
+    await db.query("release savepoint cas");
+  });
+
+  it("la base visée est migrée : le défaut est la fin du 30e jour de Paris", async () => {
+    expect((await defaut()).d).toContain("Europe/Paris");
+  });
+
+  it("rejouée deux fois, la migration ne change rien", async () => {
+    const avant = await defaut();
+    await db.query(MIGRATION_ECHEANCE);
+    await db.query(MIGRATION_ECHEANCE);
+    expect(await defaut()).toEqual(avant);
+  });
+
+  it("le retour refuse de se jouer dans un lot", async () => {
+    await db.query("savepoint essai");
+    let message = "";
+    try {
+      await db.query(RETOUR_ECHEANCE);
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    await db.query("rollback to savepoint essai");
+    expect(message).toMatch(/Retour arrière refusé/);
+  });
+
+  it("le retour rétablit le défaut de 840000 sans toucher aux lignes, se rejoue sans effet ; aller, retour, aller", async () => {
+    const migre = await defaut();
+    const lignes = async () => (await db.query("select md5(coalesce(string_agg(id::text || expire_le::text, ',' order by id), '')) m from public.invitations_artisans")).rows[0].m;
+    const avant = await lignes();
+    await db.query(sansEnveloppe(RETOUR_ECHEANCE));
+    const apres = await defaut();
+    expect(apres).toEqual({ d: "(now() + '30 days'::interval)", c: null });
+    expect(await lignes()).toBe(avant);
+    await db.query(sansEnveloppe(RETOUR_ECHEANCE));
+    expect(await defaut()).toEqual(apres);
+    await db.query(MIGRATION_ECHEANCE);
+    expect(await defaut()).toEqual(migre);
+  });
+});

@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { seDeconnecter } from "@/app/actions/auth";
-import { formaterDate } from "@/lib/ged";
 import { estUuid } from "@/lib/identifiants";
-import { VISIBLE_APRES_ACCEPTATION, nomInvitant, type InvitationRecue } from "@/lib/invitations-artisan";
+import { VISIBLE_APRES_ACCEPTATION, nomInvitant, valableJusquAu, type InvitationRecue } from "@/lib/invitations-artisan";
 import { chargerFicheArtisan } from "../../acces";
 import { FormulaireCompteArtisan } from "../../inscription/formulaire-compte";
 import { CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SECONDAIRE, Carte, Erreur, TitreSection } from "../../ui";
@@ -119,7 +118,7 @@ function EnAttente({ invitation, invitant }: { invitation: InvitationRecue; invi
         <Carte>
           <TitreSection>2. Accepter l’invitation</TitreSection>
           <p className="text-base text-[var(--corps)]">
-            Valable jusqu’au {formaterDate(invitation.expire_le)}. Vous pouvez aussi la refuser dès maintenant : rien
+            Valable jusqu’au {valableJusquAu(invitation.expire_le)} inclus. Vous pouvez aussi la refuser dès maintenant : rien
             ne sera partagé.
           </p>
           <ReponseInvitationArtisan invitationId={invitation.id} accepter={false} />
@@ -135,7 +134,7 @@ function EnAttente({ invitation, invitant }: { invitation: InvitationRecue; invi
         {" "}{VISIBLE_APRES_ACCEPTATION}. Il pourra vous demander des devis pour ses biens situés dans votre zone
         d’intervention, une fois votre inscription validée par Gerimmo. Refuser ne partage rien.
       </p>
-      <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Valable jusqu’au {formaterDate(invitation.expire_le)}.</p>
+      <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Valable jusqu’au {valableJusquAu(invitation.expire_le)} inclus.</p>
       <ReponseInvitationArtisan invitationId={invitation.id} accepter />
     </Carte>
   );

@@ -12,6 +12,7 @@ import {
   LONGUEUR_MAX_NOM_MEMO,
   cheminInvitationArtisan,
   lienInvitationArtisan,
+  valableJusquAu,
 } from "@/lib/invitations-artisan";
 import { messageInvitationArtisan } from "@/lib/notifications";
 import { adresseDuSite } from "@/lib/site";
@@ -103,7 +104,7 @@ export async function inviterArtisan(
     supabase,
     orgId,
     invitation,
-    `Invitation envoyée à ${invitation.email}, valable 30 jours. L’artisan crée son compte et inscrit son entreprise ; Gerimmo vérifie son inscription avant que vous puissiez le solliciter.`
+    `Invitation envoyée à ${invitation.email}, valable jusqu’au ${valableJusquAu(invitation.expire_le)} inclus. L’artisan crée son compte et inscrit son entreprise ; Gerimmo vérifie son inscription avant que vous puissiez le solliciter.`
   );
 }
 

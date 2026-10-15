@@ -96,11 +96,15 @@ async function passage(tache: string, depuis: string, statut = "succeeded") {
     [tache, statut, depuis]
   );
 }
-/** Toutes les tâches programmées sont passées il y a une minute, avec succès. */
+/**
+ * Toutes les tâches programmées sont passées il y a une minute, avec succès ; et le serveur a reçu le dernier passage des
+ * urgences du relais (relecture du 15/10 : pg_net n'attend pas sa réponse, la sentinelle lit aussi ce passage reçu).
+ */
 async function toutEstPasse() {
   await proprietaire();
   const { rows } = await db.query<{ jobname: string }>("select jobname from cron.job");
   for (const { jobname } of rows) await passage(jobname, "1 minute");
+  await db.query("update public.declencheur_relais_urgences set dernier_passage_le = now() - interval '1 minute' where singleton");
 }
 const etatDe = (s: Sentinelle, tache: string) => s.taches_base.find((t) => t.tache === tache);
 
@@ -309,7 +313,8 @@ describe.skipIf(!DB_URL)("D46-B — alerte e-mail du relais : la base", () => {
     await toutEstPasse();
     const s = await sentinelle();
     expect(s.taches_base_lisibles).toBe(true);
-    expect(s.taches_base.length).toBe(9);
+    // Dix tâches pg_cron : la dixième, « relais-urgences », est le passage fréquent des urgences (20261014812000).
+    expect(s.taches_base.length).toBe(10);
     expect(s.taches_base.filter((t) => t.etat !== "ok")).toEqual([]);
   });
 

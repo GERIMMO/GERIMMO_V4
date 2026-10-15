@@ -290,6 +290,18 @@ describe.skipIf(!DB_URL)("Relances des invitations de locataire (X16)", () => {
     expect((await relances()).map((r) => [r.rang, r.jour])).toEqual([[1, jour(4)], [2, jour(11)]]);
   });
 
+  it("rang 1 rattrapé tard (J+9) : rien dans les trois jours qui suivent, le rang 2 attend J+12", async () => {
+    await figerJour(jour(9));
+    expect(await passe()).toMatchObject({ envoyees: 1 });
+    for (const n of [10, 11]) {
+      await figerJour(jour(n));
+      expect(await passe(), `J+${n}`).toMatchObject({ envoyees: 0 });
+    }
+    await figerJour(jour(12));
+    expect(await passe()).toMatchObject({ envoyees: 1 });
+    expect((await relances()).map((r) => [r.rang, r.jour])).toEqual([[1, jour(9)], [2, jour(12)]]);
+  });
+
   it("rattrapage : un rang 1 manqué n'est plus envoyé à J+10 ; la seconde part seule", async () => {
     await figerJour(jour(12));
     expect(await passe()).toMatchObject({ envoyees: 1 });
@@ -306,6 +318,14 @@ describe.skipIf(!DB_URL)("Relances des invitations de locataire (X16)", () => {
     await figerJour("2026-11-06");
     await passe();
     expect(envois.filter((e) => e.invitationId === tardive)).toHaveLength(1);
+    // Le rang 2, que la garde des trois jours ne masque pas : J+10 compté en UTC (12/11), J+9 à Paris.
+    await figerJour("2026-11-12");
+    await passe();
+    expect(envois.filter((e) => e.invitationId === tardive)).toHaveLength(1);
+    await figerJour("2026-11-13");
+    await passe();
+    expect(envois.filter((e) => e.invitationId === tardive)).toHaveLength(2);
+    expect((await relances(tardive)).map((r) => [r.rang, r.jour])).toEqual([[1, "2026-11-06"], [2, "2026-11-13"]]);
   });
 
   it.each(["global", "rappels"])("arrêt d'urgence « %s » actif : rien n'est réservé ni envoyé", async (cle) => {
@@ -397,6 +417,44 @@ describe.skipIf(!DB_URL)("Relances des invitations de locataire (X16)", () => {
     expect(partis).not.toContain(invite);
     expect(partis).not.toContain(invProprio);
     expect(partis).toEqual([invLocataire]);
+  });
+
+  it("adresse de la fiche changée depuis l'invitation : aucune relance (elle partirait vers l'ancienne adresse)", async () => {
+    await admin();
+    await db.query("update public.persons set email = 'test-relance-nouvelle-'||gen_random_uuid()||'@example.invalid' where id = $1", [person]);
+    await figerJour(jour(3));
+    expect(await passe()).toMatchObject({ envoyees: 0 });
+    expect(envois).toHaveLength(0);
+    expect(await relances()).toEqual([]);
+  });
+
+  it("fiche archivée : aucune relance", async () => {
+    await admin();
+    await db.query("update public.persons set archived_at = now() where id = $1", [person]);
+    await figerJour(jour(3));
+    expect(await passe()).toMatchObject({ envoyees: 0 });
+    expect(envois).toHaveLength(0);
+    expect(await relances()).toEqual([]);
+  });
+
+  it("détention terminée hier : relancé ; détention qui finit aujourd'hui (encore propriétaire) : non", async () => {
+    const { person: ancien, invite: invAncien } = await invitation();
+    const { person: sortant, invite: invSortant } = await invitation();
+    await admin();
+    const { rows: [bien] } = await db.query(
+      "insert into public.biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'TEST relance','appartement','1 rue de Test','75001','Paris') returning id",
+      [org]
+    );
+    const { rows: [lot] } = await db.query("insert into public.lots(organization_id,bien_id,nom) values($1,$2,'TEST lot') returning id", [org, bien.id]);
+    const detention = (p: string, fin: string) =>
+      db.query("insert into public.detentions(organization_id, lot_id, person_id, quote_part, date_debut, date_fin) values ($1, $2, $3, 50, '2026-01-01', $4)", [org, lot.id, p, fin]);
+    await detention(ancien, jour(2)); // finie la veille de J+3
+    await detention(sortant, jour(3)); // finit le jour même
+    await figerJour(jour(3));
+    await passe();
+    const partis = envois.map((e) => e.invitationId);
+    expect(partis).toContain(invAncien);
+    expect(partis).not.toContain(invSortant);
   });
 
   it("fiche liée au compte invité sans accès : relancée ; liée à un autre compte, ou compte déjà membre : non", async () => {

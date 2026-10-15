@@ -1481,6 +1481,8 @@ export async function notifierAnnulationRdvLocataire(db: SupabaseClient, orgId: 
     const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), lireArtisan(db, iv.artisan_id), emetteur(db, orgId)]);
     if (!inc || !artisan) return rien;
     const agence = await destinataireAgence(db, orgId, inc.responsable_account_id);
+    // Décision D27 : la copie du gestionnaire mène à /espace/<id> chez un propriétaire direct, /agence/<id> sinon.
+    const baseGestion = await baseDeLOrganisation(db, orgId);
     const base = {
       emetteur: nom, categorie: inc.categorie, numero: inc.numero, rdvDebut: d.rdv_debut, rdvFin: d.rdv_fin,
       motif: libelleMotifRdv(d.motif_code), precision: d.motif_texte, tardive: d.tardive,
@@ -1494,7 +1496,7 @@ export async function notifierAnnulationRdvLocataire(db: SupabaseClient, orgId: 
       expedier(db, {
         orgId, to: agence, role: "agence", evenement: "rdv_annule_par_locataire", objet: d.id,
         cleIdempotence: `rdv-locataire:annulation:${d.id}:agence`,
-        message: messageAnnulationRdvLocataire({ ...base, destinataire: "agence", lien: lien(`/agence/${orgId}/incidents?sel=${inc.id}`) }),
+        message: messageAnnulationRdvLocataire({ ...base, destinataire: "agence", lien: lien(`${baseGestion}/incidents?sel=${inc.id}`) }),
       }),
     ]);
     return { artisan: a, agence: g };

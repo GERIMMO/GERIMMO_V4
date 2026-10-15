@@ -34,6 +34,11 @@ describe("les fabriques d'adresses émettent la racine demandée et gardent /age
       { a: { type: "diagnostic_expiration", details: { diagnostic_id: "g1" } }, suite: "diagnostics/g1" },
       { a: { type: "incident_a_qualifier", details: { incident_id: "i1" } }, suite: "incidents?sel=i1" },
       { a: { type: "signature_retournee", details: { document_id: "d2" } }, suite: "documents?sel=d2" },
+      // Alertes ajoutées par main après la base du lot (#187 D18, #188 D22-B) : elles suivent la même racine.
+      { a: { type: "devis_revision_expiree", details: { incident_id: "i2" } }, suite: "incidents?sel=i2" },
+      { a: { type: "rdv_annule_locataire", details: { incident_id: "i3" } }, suite: "incidents?sel=i3" },
+      { a: { type: "rdv_annule_tardif", details: { incident_id: "i4" } }, suite: "incidents?sel=i4" },
+      { a: { type: "rdv_demande_sans_reponse", details: { incident_id: "i5" } }, suite: "incidents?sel=i5" },
     ];
     for (const { a, suite } of cas) {
       expect(cheminFicheAlerte(a, ORG), a.type).toBe(`/agence/${ORG}/${suite}`);

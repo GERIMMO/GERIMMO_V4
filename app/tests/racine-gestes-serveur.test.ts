@@ -8,8 +8,12 @@
  *
  * Gestes couverts : creerBien et ouvrirIncident (redirection après création), rechercherDansEspace (adresses des
  * résultats), chargerSyntheseAlertes (drapeau lu du TYPE de l'organisation), envoyerAvisCapaciteDepassee (lien du
- * courrier). Le retour de paiement et la confirmation de hausse sont dans racine-abonnement.test.ts ; la coquille et
- * « Mes espaces » dans racine-coquille-espace.test.ts.
+ * courrier), et — relecture du 15/10, mutations survivantes — creerPersonne et archiverPersonne (redirections),
+ * creerEdl (grille ouverte), remplacerDocument (nouvelle version ouverte), deposerBailSigne (liens « à corriger » des
+ * blocages de mise en location et des mentions obligatoires manquantes). Les gestes d'abonnement sont dans
+ * racine-abonnement.test.ts ; la coquille et « Mes espaces » dans racine-coquille-espace.test.ts ; les écrans rendus
+ * (alertes, console, quittance) dans racine-rendus-serveur.test.ts ; les pages, par lecture du code, dans
+ * racine-pages-espace.test.ts.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -27,7 +31,7 @@ const m = vi.hoisted(() => ({
 vi.mock("next/navigation", () => ({ redirect: m.redirect, unstable_rethrow: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/ged-acces", () => ({ verifierGerant: m.verifierGerant, verifierLocataire: vi.fn() }));
-vi.mock("@/lib/ged-depot", () => ({ deposerFichierGed: vi.fn() }));
+vi.mock("@/lib/ged-depot", () => ({ deposerFichierGed: vi.fn(), preparerFichierGed: vi.fn(), abandonnerPieceGed: vi.fn() }));
 vi.mock("@/lib/espace", () => ({ verifierAccesEspace: m.acces }));
 vi.mock("@/lib/portefeuille", () => ({ lotsDuPortefeuille: m.portefeuille, PortefeuilleIndisponible: class extends Set {} }));
 vi.mock("@/lib/email", () => ({ envoyerEmail: m.envoyer }));
@@ -37,6 +41,10 @@ import { ouvrirIncident } from "@/app/actions/incidents";
 import { rechercherDansEspace } from "@/app/actions/recherche-espace";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { envoyerAvisCapaciteDepassee } from "@/lib/avis-abonnement";
+import { archiverPersonne, creerPersonne } from "@/app/actions/personnes";
+import { creerEdl } from "@/app/actions/edl";
+import { remplacerDocument } from "@/app/actions/documents-ged";
+import { deposerBailSigne } from "@/app/actions/baux";
 
 const ORG = "org-test";
 const PROFILS = [
@@ -182,4 +190,137 @@ describe("envoyerAvisCapaciteDepassee : le lien du courrier suit le profil", () 
     expect(html).toContain(`https://gerimmo.test/espace/${ORG}/abonnement`);
     expect(html).not.toContain("/agence/");
   });
+});
+
+/**
+ * Un client PostgREST factice qui distingue les écritures : `reponse(nom, ecriture)` donne la réponse d'une table
+ * (`from`) ou d'une fonction (`rpc`) ; `ecriture` vaut « insert », « update » ou null pour une lecture. Une liste se
+ * lit telle quelle, `maybeSingle` / `single` en prennent la première ligne. Le stockage accepte tout dépôt.
+ */
+type Reponse = { data?: unknown; error?: { message: string; code?: string } | null };
+function scenario(reponse: (nom: string, ecriture: "insert" | "update" | null) => Reponse) {
+  const chaine = (nom: string) => {
+    let ecriture: "insert" | "update" | null = null;
+    const lire = () => ({ data: null, error: null, ...reponse(nom, ecriture) });
+    const q: unknown = new Proxy({}, {
+      get(_c, prop) {
+        if (prop === "then") return (ok: (r: unknown) => unknown, ko?: (e: unknown) => unknown) => Promise.resolve(lire()).then(ok, ko);
+        if (prop === "maybeSingle" || prop === "single") {
+          return async () => { const r = lire(); return { ...r, data: Array.isArray(r.data) ? r.data[0] ?? null : r.data }; };
+        }
+        if (prop === "insert" || prop === "update") return () => { ecriture = prop; return q; };
+        return () => q;
+      },
+    });
+    return q;
+  };
+  return { from: chaine, rpc: chaine, storage: { from: () => ({ upload: async () => ({ data: {}, error: null }) }) } };
+}
+function gerant(role: string, client: unknown) {
+  m.verifierGerant.mockResolvedValue({ supabase: client, user: { id: "compte" }, role });
+}
+/** Un PDF minimal (« %PDF- » … « %%EOF ») : le type réel est lu dans le contenu, pas dans le nom. */
+function pdf(nom: string, marque: string): File {
+  return new File([new TextEncoder().encode(`%PDF-1.4\n% ${marque}\n%%EOF\n`)], nom, { type: "application/pdf" });
+}
+
+describe("creerPersonne : la fiche créée s'ouvre sous la racine du profil", () => {
+  function saisie(): FormData {
+    const f = new FormData();
+    for (const [k, v] of Object.entries({
+      nom: "TEST Racine", prenom: "Alice", email: "alice.racine@example.invalid", date_naissance: "1980-04-12",
+      commune_naissance: "Lyon", address_line1: "1 rue TEST", postal_code: "69001", city: "Lyon",
+    })) f.set(k, v);
+    return f;
+  }
+  for (const p of PROFILS) {
+    it(`${p.nom} → ${p.attendu}/personnes/<fiche>`, async () => {
+      // Aucune fiche ne porte l'adresse, aucun homonyme ; l'insertion rend la nouvelle fiche.
+      gerant(p.role, scenario((nom, ecriture) => (nom === "persons" && ecriture === "insert" ? { data: { id: "pers-9" } } : { data: [] })));
+      const url = await urlDeRedirection(creerPersonne(ORG, {}, saisie()));
+      expect(url).toBe(`${p.attendu}/personnes/pers-9`);
+      expect(url).not.toContain(p.interdit);
+    });
+  }
+});
+
+describe("archiverPersonne : retour à l'annuaire sous la racine du profil", () => {
+  for (const p of PROFILS) {
+    it(`${p.nom} → ${p.attendu}/personnes`, async () => {
+      // Fiche sans compte ni lien vivant (détention, mandat, bail) : l'archivage passe.
+      gerant(p.role, scenario((nom, ecriture) =>
+        nom === "persons" && !ecriture ? { data: [{ account_id: null, archived_at: null }] } : { data: [] }));
+      const url = await urlDeRedirection(archiverPersonne(ORG, "pers-1", {}, new FormData()));
+      expect(url).toBe(`${p.attendu}/personnes`);
+      expect(url).not.toContain(p.interdit);
+    });
+  }
+});
+
+describe("creerEdl : la grille de l'état des lieux s'ouvre sous la racine du profil", () => {
+  for (const p of PROFILS) {
+    it(`${p.nom} → ${p.attendu}/baux/<bail>/edl/<edl>`, async () => {
+      gerant(p.role, scenario((nom, ecriture) => (nom === "etats_des_lieux" && ecriture === "insert" ? { data: { id: "edl-1" } } : { data: null })));
+      const f = new FormData();
+      f.set("type", "entree");
+      const url = await urlDeRedirection(creerEdl(ORG, "bail-1", {}, f));
+      expect(url).toBe(`${p.attendu}/baux/bail-1/edl/edl-1`);
+      expect(url).not.toContain(p.interdit);
+    });
+  }
+});
+
+describe("remplacerDocument : la nouvelle version s'ouvre sous la racine du profil", () => {
+  for (const p of PROFILS) {
+    it(`${p.nom} → ${p.attendu}/documents?sel=<version>`, async () => {
+      // Aucun doublon d'empreinte ; la fonction de remplacement rend la nouvelle version.
+      gerant(p.role, scenario((nom) => (nom === "remplacer_document_ged" ? { data: "doc-2" } : { data: null })));
+      const f = new FormData();
+      f.set("fichier", pdf("attestation.pdf", p.role));
+      f.set("titre", "Attestation TEST");
+      const url = await urlDeRedirection(remplacerDocument(ORG, "doc-1", {}, f));
+      expect(url).toBe(`${p.attendu}/documents?sel=doc-2`);
+      expect(url).not.toContain(p.interdit);
+    });
+  }
+});
+
+describe("deposerBailSigne : les liens « à corriger » d'une mise en location refusée", () => {
+  function depot(): FormData {
+    const f = new FormData();
+    f.set("fichier", pdf("bail-signe.pdf", "bail"));
+    return f;
+  }
+  for (const p of PROFILS) {
+    it(`${p.nom} : blocages du lot → ${p.attendu}/parc/<bien>/lots/<lot>#…`, async () => {
+      gerant(p.role, scenario((nom) => {
+        if (nom === "controler_mise_en_location") return { error: { message: "Mise en location bloquée : surface, DPE" } };
+        if (nom === "baux") return { data: [{ lot_id: "lot-1" }] };
+        if (nom === "lots") return { data: [{ id: "lot-1", bien_id: "bien-1" }] };
+        if (nom === "lot_blocages_location") return { data: ["Surface habitable non renseignée", "DPE manquant"] };
+        return { data: null };
+      }));
+      const r = await deposerBailSigne(ORG, "bail-1", {}, depot());
+      expect(r.erreur).toBe("Mise en location bloquée — à corriger :");
+      expect(r.blocages?.map((b) => b.href)).toEqual([
+        `${p.attendu}/parc/bien-1/lots/lot-1#caracteristiques`,
+        `${p.attendu}/parc/bien-1/lots/lot-1#diagnostics`,
+      ]);
+      for (const b of r.blocages ?? []) expect(b.href).not.toContain(p.interdit);
+    });
+
+    it(`${p.nom} : mentions obligatoires manquantes → ${p.attendu}/baux/<bail>#corriger`, async () => {
+      gerant(p.role, scenario((nom) => {
+        if (nom === "controler_mise_en_location") return { error: { message: "Mentions obligatoires du contrat manquantes" } };
+        if (nom === "baux") return { data: [{ locataire_principal: null, date_debut: null, loyer_hc: null }] };
+        return { data: null };
+      }));
+      const r = await deposerBailSigne(ORG, "bail-1", {}, depot());
+      expect(r.blocages).toHaveLength(3);
+      for (const b of r.blocages ?? []) {
+        expect(b.href).toBe(`${p.attendu}/baux/bail-1#corriger`);
+        expect(b.href).not.toContain(p.interdit);
+      }
+    });
+  }
 });

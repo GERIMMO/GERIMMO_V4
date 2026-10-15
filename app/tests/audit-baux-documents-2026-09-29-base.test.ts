@@ -149,7 +149,7 @@ describe.skipIf(!DB_URL)("Audit baux et actes du 29/09 — corrections en base",
       revision_irl: true,
       irl_valeur: 145.17,
       irl_trimestre: "2e trimestre 2025",
-      date_debut: await date("(current_date - 60) - interval '1 year'"),
+      date_debut: await date("(public.aujourdhui_paris() - 60) - interval '1 year'"),
     });
     await enGerant();
     const {
@@ -166,9 +166,9 @@ describe.skipIf(!DB_URL)("Audit baux et actes du 29/09 — corrections en base",
     );
     // Anniversaire il y a 60 jours, demande aujourd'hui : effet aujourd'hui,
     // jamais rétroactif à l'anniversaire.
-    expect(rev.echeance).toBe(await date("current_date - 60"));
-    expect(rev.demande).toBe(await date("current_date"));
-    expect(rev.effet).toBe(await date("current_date"));
+    expect(rev.echeance).toBe(await date("public.aujourdhui_paris() - 60"));
+    expect(rev.demande).toBe(await date("public.aujourdhui_paris()"));
+    expect(rev.effet).toBe(await date("public.aujourdhui_paris()"));
     expect(rev.irl_trimestre).toBe("T2 2026");
   });
 
@@ -177,18 +177,18 @@ describe.skipIf(!DB_URL)("Audit baux et actes du 29/09 — corrections en base",
       revision_irl: true,
       irl_valeur: 145.17,
       irl_trimestre: "T2 2025",
-      date_debut: await date("(current_date - 60) - interval '1 year'"),
+      date_debut: await date("(public.aujourdhui_paris() - 60) - interval '1 year'"),
     });
     await enGerant();
-    await echec(/anticipée/i, `select public.reviser_loyer($1, 148.03, 'T2 2026', current_date + 1)`, [b]);
-    await db.query(`select public.reviser_loyer($1, 148.03, 'T2 2026', current_date - 60)`, [b]);
+    await echec(/anticipée/i, `select public.reviser_loyer($1, 148.03, 'T2 2026', public.aujourdhui_paris() + 1)`, [b]);
+    await db.query(`select public.reviser_loyer($1, 148.03, 'T2 2026', public.aujourdhui_paris() - 60)`, [b]);
     const {
       rows: [rev],
     } = await db.query(
       `select to_char(date_effet,'YYYY-MM-DD') effet from public.revisions_loyer where bail_id = $1`,
       [b]
     );
-    expect(rev.effet).toBe(await date("current_date - 60"));
+    expect(rev.effet).toBe(await date("public.aujourdhui_paris() - 60"));
   });
 
   it("IRL : une révision tardive n'empêche pas celle de l'anniversaire suivant (une par année de bail)", async () => {
@@ -196,12 +196,12 @@ describe.skipIf(!DB_URL)("Audit baux et actes du 29/09 — corrections en base",
       revision_irl: true,
       irl_valeur: 145.17,
       irl_trimestre: "2e trimestre 2024",
-      date_debut: await date("current_date - interval '2 years'"),
+      date_debut: await date("public.aujourdhui_paris() - interval '2 years'"),
     });
     await enGerant();
     // Échéance il y a un an, demandée 100 jours plus tard : effet à la demande
     await db.query(
-      `select public.reviser_loyer($1, 148.03, 'T2 2025', (current_date - interval '1 year' + interval '100 days')::date)`,
+      `select public.reviser_loyer($1, 148.03, 'T2 2025', (public.aujourdhui_paris() - interval '1 year' + interval '100 days')::date)`,
       [b]
     );
     // L'anniversaire suivant (aujourd'hui) tombe 265 jours plus tard : dû.
@@ -221,7 +221,7 @@ describe.skipIf(!DB_URL)("Audit baux et actes du 29/09 — corrections en base",
       revision_irl: true,
       irl_valeur: 145.17,
       irl_trimestre: "2e trimestre 2025",
-      date_debut: await date("current_date - interval '1 year'"),
+      date_debut: await date("public.aujourdhui_paris() - interval '1 year'"),
     });
     await enGerant();
     await echec(/format/i, `select public.reviser_loyer($1, 148.03, '2026')`, [b]);
@@ -234,10 +234,10 @@ describe.skipIf(!DB_URL)("Audit baux et actes du 29/09 — corrections en base",
     const b = await bail({
       revision_irl: true,
       irl_valeur: 145.17,
-      date_debut: await date("current_date - interval '2 years'"),
+      date_debut: await date("public.aujourdhui_paris() - interval '2 years'"),
     });
     await enGerant();
-    await db.query(`select public.reviser_loyer($1, 148.03, 'T3 2025', (current_date - interval '1 year')::date)`, [b]);
+    await db.query(`select public.reviser_loyer($1, 148.03, 'T3 2025', (public.aujourdhui_paris() - interval '1 year')::date)`, [b]);
     await echec(/même trimestre/i, `select public.reviser_loyer($1, 150, 'T2 2026')`, [b]);
     await db.query(`select public.reviser_loyer($1, 150, 'T3 2026')`, [b]);
   });

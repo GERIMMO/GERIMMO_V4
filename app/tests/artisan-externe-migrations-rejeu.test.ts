@@ -36,12 +36,15 @@ const LECTURE = "public.mon_activite_artisan_privee()";
 const EXCLUSION = "public.artisan_exclusion_plateforme()";
 
 describe("Lot artisan-externe — fichiers de migration et de retour arrière (sans base)", () => {
-  it("les deux migrations sont dans la plage du lot et en fin du manifeste", () => {
+  it("les deux migrations se suivent dans le manifeste, après la vague précédente", () => {
     const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
-    expect(manifeste.slice(-2)).toEqual([
-      "20261014310000_artisan_facture_numero_unique.sql",
-      "20261014311000_artisan_exclusion_ecritures.sql",
-    ]);
+    const i = manifeste.indexOf("20261014310000_artisan_facture_numero_unique.sql");
+    expect(i).toBeGreaterThan(0);
+    expect(manifeste[i + 1]).toBe("20261014311000_artisan_exclusion_ecritures.sql");
+    // Les fichiers du lot suivent la dernière migration de la vague 2 (20261014233000) : jamais devant.
+    expect(manifeste.indexOf("20261014233000_photos_demande_devis_artisan.sql")).toBeLessThan(i);
+    // Seules les migrations des lots suivants de la vague 3 (numéros plus grands) peuvent les suivre.
+    for (const suivante of manifeste.slice(i + 2)) expect(suivante > "20261014311000").toBe(true);
   });
 
   it("chaque migration ferme les fonctions à anon et nomme son retour arrière", () => {

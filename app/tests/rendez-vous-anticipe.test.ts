@@ -38,6 +38,7 @@ vi.mock("@/app/artisan/acces", () => ({
   verifierAccesArtisan: async () => ({}),
   chargerAgenda: async () => ({ lignes: etat.agenda }),
   chargerCreneauxMission: async () => ({ lignes: [], erreur: false }),
+  chargerPhotosDemande: async () => ({ photos: [], erreur: false }),
 }));
 async function bouton(libelle: string) {
   const { createElement: creer } = await import("react");

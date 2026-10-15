@@ -193,6 +193,13 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   // D23 (migration 20261014610000) : le règlement déclaré de la facture, et son retrait, se lisent au fil.
   facture_reglee: "Règlement de facture enregistré",
   reglement_retire: "Règlement de facture retiré",
+  // Décision D22 (migration 20261014620000) : le report ou l'annulation du rendez-vous par le locataire.
+  rdv_report_demande: "Report du rendez-vous demandé par le locataire",
+  rdv_report_accepte: "Report accepté par l'artisan",
+  rdv_report_refuse: "Report refusé par l'artisan",
+  rdv_report_retire: "Demande de report retirée",
+  rdv_report_expire: "Demande de report sans réponse de l'artisan",
+  rdv_annule_par_locataire: "Rendez-vous annulé par le locataire",
 };
 
 export const PIECES_INCIDENT = [

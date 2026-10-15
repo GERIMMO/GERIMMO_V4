@@ -43,6 +43,8 @@ vi.mock("@/app/artisan/acces", () => ({
   chargerPhotosDemande: async () => ({ photos: [], erreur: false }),
   // D23 : l'état de règlement déclaré par le client (aucun ici : la mission est jugée sur son rendez-vous).
   chargerReglementsFactures: async () => ({ lignes: [], erreur: false }),
+  // Décision D22 : la fiche de la mission lit aussi la dernière demande du locataire (report, annulation).
+  chargerDemandesRdv: async () => ({ lignes: [], erreur: false }),
 }));
 async function bouton(libelle: string) {
   const { createElement: creer } = await import("react");

@@ -10,6 +10,7 @@ import { nomComplet } from "@/lib/roles-personnes";
 import { formaterTelephone } from "@/app/artisan/libelles";
 import { mentionEcartChronologie } from "@/lib/rendez-vous-anticipe";
 import { MOYENS_REGLEMENT, type MoyenReglement } from "@/lib/reglement-facture";
+import { libelleMotifRdv } from "@/lib/rendez-vous-locataire";
 import {
   CANAUX_INCIDENT,
   COULEURS_ETAT_INCIDENT,
@@ -297,6 +298,32 @@ export async function PaneIncident({
         ].filter(Boolean).join(" · ") || null;
       case "revision_imputation":
         return `${IMPUTATIONS_INCIDENT[String(d.imputation)] ?? d.imputation} — « ${d.justification} »`;
+      // Décision D22 : le report ou l'annulation du rendez-vous par le locataire. Le motif est dit en mots (liste
+      // fermée), la précision libre entre guillemets ; les dates à l'heure de Paris.
+      case "rdv_report_demande":
+        return [
+          d.rdv_debut ? `rendez-vous du ${formaterDateHeure(String(d.rdv_debut))}` : null,
+          libelleMotifRdv(d.motif_code == null ? null : String(d.motif_code)),
+          d.motif ? `« ${d.motif} »` : null,
+          d.expire_le ? `réponse attendue avant le ${formaterDateHeure(String(d.expire_le))}` : null,
+        ].filter(Boolean).join(" · ");
+      case "rdv_report_accepte":
+        return d.nouveau_debut
+          ? `${d.ancien_debut ? `${formaterDateHeure(String(d.ancien_debut))} → ` : ""}${formaterDateHeure(String(d.nouveau_debut))}`
+          : null;
+      case "rdv_report_refuse":
+        return d.motif ? `« ${d.motif} » — rendez-vous maintenu` : "Rendez-vous maintenu";
+      case "rdv_report_retire":
+        return d.cause === "annulation" ? "le locataire a annulé le rendez-vous" : "par le locataire";
+      case "rdv_report_expire":
+        return `rendez-vous maintenu${d.rdv_debut ? ` (${formaterDateHeure(String(d.rdv_debut))})` : ""}`;
+      case "rdv_annule_par_locataire":
+        return [
+          d.rdv_debut ? `rendez-vous du ${formaterDateHeure(String(d.rdv_debut))}` : null,
+          libelleMotifRdv(d.motif_code == null ? null : String(d.motif_code)),
+          d.motif ? `« ${d.motif} »` : null,
+          d.tardive ? "annulation à moins de 24 h" : null,
+        ].filter(Boolean).join(" · ");
       default:
         return null;
     }

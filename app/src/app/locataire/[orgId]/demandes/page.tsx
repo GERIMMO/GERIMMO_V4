@@ -6,6 +6,7 @@ import { aEchoue, PanneLecture } from "../panne-lecture";
 import { ReflexesUrgence } from "../reflexes-urgence";
 import type { CreneauPropose, SuiviIntervention } from "./suivi-intervention";
 import { signalementOuvert } from "../types";
+import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
 
 export const metadata = { title: "Mes demandes" };
 
@@ -33,6 +34,7 @@ export default async function PageDemandesLocataire(
     { data: suivisBruts, error: eSuivis },
     { data: creneauxBruts, error: eCreneaux },
     { data: baux },
+    { data: rendezVousBruts, error: eRendezVous },
   ] = await Promise.all([
     supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
     supabase.rpc("mon_suivi_intervention", { p_org: orgId }),
@@ -43,12 +45,18 @@ export default async function PageDemandesLocataire(
       : Promise.resolve({ data: [], error: null }),
     // Recette 03/10 : le bouton « Signaler » ne sort que sur un bail actif.
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
+    // Décision D22 : ses rendez-vous confirmés et ce qu'il peut en faire (report, annulation). Même règle que les
+    // créneaux : bail terminé, aucun geste, on ne lit pas.
+    adhesionActive
+      ? supabase.rpc("mes_rendez_vous_locataire", { p_org: orgId })
+      : Promise.resolve({ data: [], error: null }),
   ]);
   const peutSignaler = adhesionActive && signalementOuvert(baux as { etat: string }[] | null);
 
   const incidents = (incidentsBruts ?? []) as IncidentLocataire[];
   const suivis = (suivisBruts ?? []) as SuiviIntervention[];
   const creneaux = (creneauxBruts ?? []) as CreneauPropose[];
+  const rendezVous = (rendezVousBruts ?? []) as RendezVousLocataire[];
   const enCours = incidents.filter((i) => i.etat !== "clos");
   // Un créneau qui attend son choix est la seule chose qu'on lui demande de
   // tout le cycle : il se dit en haut de page, avant la liste.
@@ -91,7 +99,7 @@ export default async function PageDemandesLocataire(
       {aEchoue(eIncidents) && <PanneLecture quoi="vos demandes" />}
       {/* Le suivi tombé ne doit pas faire croire qu'il ne se passe rien : sans
           lui, la carte n'affiche que l'état de l'incident, muet sur l'artisan. */}
-      {!aEchoue(eIncidents) && aEchoue(eSuivis, eCreneaux) && (
+      {!aEchoue(eIncidents) && aEchoue(eSuivis, eCreneaux, eRendezVous) && (
         <PanneLecture quoi="l'avancement de vos demandes" />
       )}
 
@@ -128,6 +136,7 @@ export default async function PageDemandesLocataire(
         incidents={incidents}
         suivis={suivis}
         creneaux={creneaux}
+        rendezVous={rendezVous}
         peutAgir={adhesionActive}
         peutSignaler={peutSignaler}
         lectureEnEchec={aEchoue(eIncidents)}

@@ -1,0 +1,187 @@
+/**
+ * Invitation d'un artisan par un propriétaire direct (décision du 15/10/2026) : la migration 20261014840000 se rejoue
+ * sans effet, et son retour arrière défait exactement ce qu'elle avait créé.
+ *
+ *  - REJEU. Rejouée deux fois sur une base migrée : définitions et droits des fonctions, colonnes, contraintes, index,
+ *    déclencheurs, droits et RLS de la table identiques ; aucune invitation touchée.
+ *  - RETOUR. Supprime les neuf fonctions et la table ; CONSERVE les rattachements au carnet déjà faits par une acceptation
+ *    (`artisan_agences`) et les traces du journal ; se rejoue sans effet ; refuse de se jouer dans un lot.
+ *    Aller, retour, aller : l'état migré est retrouvé à l'identique.
+ *  - La migration ne modifie AUCUNE fonction existante (elle n'en crée que de nouvelles) : aucune migration antérieure
+ *    n'a donc de rejeu à revérifier (règle 4 des vagues précédentes).
+ *
+ * DDL tenu pendant l'essai (création et suppression d'une table qui référence organizations, accounts et artisans) :
+ * ce fichier tourne en série (FICHIERS_EN_SERIE de vitest.config.ts). Tout se joue dans une transaction annulée.
+ */
+import { readFileSync } from "node:fs";
+import { config } from "dotenv";
+import { Client } from "pg";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { verifierBaseDeTest } from "./garde-base";
+
+config({ path: ".env.local", quiet: true });
+const DB_URL = process.env.SUPABASE_DB_URL;
+verifierBaseDeTest(DB_URL);
+
+const MIGRATION = readFileSync("supabase/migrations/20261014840000_invitation_artisan_proprietaire.sql", "utf8");
+const RETOUR = readFileSync("supabase/retours-arriere/20261014840000_invitation_artisan_proprietaire.retour.sql", "utf8");
+const FONCTIONS = [
+  "public.preparer_invitation_artisan(uuid,text,text,public.artisan_metier)",
+  "public.renvoyer_invitation_artisan(uuid)",
+  "public.annuler_invitation_artisan(uuid)",
+  "public.noter_envoi_invitation_artisan(uuid,boolean)",
+  "public.carnet_artisans_proprietaire(uuid)",
+  "public.mon_invitation_artisan(uuid)",
+  "public.repondre_invitation_artisan(uuid,boolean)",
+  "public.invitations_des_artisans_a_valider()",
+  "public.invitation_artisan_par_proprietaire(uuid)",
+];
+
+/** Le script de retour gère sa propre transaction et refuse de se jouer dans un lot : on lui retire cette enveloppe seule. */
+function sansEnveloppe(script: string): string {
+  return script
+    .replace(/do \$retour_arriere\$\s*begin\s*if statement_timestamp\(\) <> transaction_timestamp\(\)[\s\S]*?end \$retour_arriere\$;/, "")
+    .replace(/^begin;$/m, "")
+    .replace(/^commit;$/m, "");
+}
+
+describe.skipIf(!DB_URL)("invitation d'artisan — rejeu de la migration et retour arrière", () => {
+  let db: Client;
+
+  async function empreinte(): Promise<Record<string, string>> {
+    const etat: Record<string, string> = {};
+    for (const signature of FONCTIONS) {
+      const { rows } = await db.query(
+        `select case when to_regprocedure($1) is null then 'absente'
+                else md5(pg_get_functiondef(to_regprocedure($1))) || ' ' || coalesce((select proacl::text from pg_proc where oid = to_regprocedure($1)), '') end as v`,
+        [signature]
+      );
+      etat[signature] = rows[0].v;
+    }
+    const table = await db.query(`select coalesce((select relacl::text || ' rls=' || relrowsecurity from pg_class where oid = to_regclass('public.invitations_artisans')), 'absente') v`);
+    etat.table = table.rows[0].v;
+    const colonnes = await db.query(
+      `select string_agg(column_name || ':' || data_type || ':' || coalesce(column_default, '') || ':' || is_nullable, ',' order by ordinal_position) v
+         from information_schema.columns where table_schema = 'public' and table_name = 'invitations_artisans'`
+    );
+    etat.colonnes = colonnes.rows[0].v ?? "";
+    const contraintes = await db.query(
+      `select string_agg(conname || '=' || pg_get_constraintdef(oid), ',' order by conname) v from pg_constraint
+        where conrelid = coalesce(to_regclass('public.invitations_artisans'), 0::oid)`
+    );
+    etat.contraintes = contraintes.rows[0].v ?? "";
+    const index = await db.query(`select string_agg(indexdef, ',' order by indexname) v from pg_indexes where schemaname = 'public' and tablename = 'invitations_artisans'`);
+    etat.index = index.rows[0].v ?? "";
+    const declencheurs = await db.query(
+      `select string_agg(pg_get_triggerdef(oid), ',' order by tgname) v from pg_trigger
+        where tgrelid = coalesce(to_regclass('public.invitations_artisans'), 0::oid) and not tgisinternal`
+    );
+    etat.declencheurs = declencheurs.rows[0].v ?? "";
+    return etat;
+  }
+
+  async function echoue(sql: string): Promise<string> {
+    await db.query("savepoint essai");
+    try {
+      await db.query(sql);
+      await db.query("release savepoint essai");
+      return "";
+    } catch (e) {
+      await db.query("rollback to savepoint essai");
+      await db.query("release savepoint essai");
+      return (e as Error).message;
+    }
+  }
+
+  /** Une invitation acceptée : un propriétaire, un artisan inscrit, la ligne du carnet. Renvoie les identifiants. */
+  async function invitationAcceptee() {
+    const compte = async (email: string) =>
+      (await db.query(
+        `insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current)
+         values('00000000-0000-0000-0000-000000000000',gen_random_uuid(),'authenticated','authenticated',$1,'x',now(),'{}','{}',now(),now(),'','','','','') returning id`,
+        [email]
+      )).rows[0].id as string;
+    const suffixe = Math.random().toString(36).slice(2, 10);
+    const org = (await db.query("insert into public.organizations(name,type,status) values('Parc rejeu','proprietaire_direct','active') returning id")).rows[0].id as string;
+    const proprietaire = await compte(`proprio-rejeu-${suffixe}@test.local`);
+    const email = `artisan-rejeu-${suffixe}@test.local`;
+    const artisanCompte = await compte(email);
+    await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct')", [proprietaire, org]);
+    const artisan = (await db.query(
+      "insert into public.artisans(account_id,raison_sociale,siret,telephone) values($1,'Artisan rejeu',$2,'0600000000') returning id",
+      [artisanCompte, `8${String(Date.now()).slice(-13)}`]
+    )).rows[0].id as string;
+    const devenir = async (qui: string) => {
+      await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated')::text,true)", [qui]);
+      await db.query("set local role authenticated");
+    };
+    await devenir(proprietaire);
+    const invitation = (await db.query("select public.preparer_invitation_artisan($1,$2) r", [org, email])).rows[0].r.id as string;
+    await db.query("reset role");
+    await devenir(artisanCompte);
+    expect((await db.query("select public.repondre_invitation_artisan($1,true) r", [invitation])).rows[0].r).toEqual({ etat: "acceptee" });
+    await db.query("reset role");
+    await db.query("select set_config('request.jwt.claims','',true)");
+    return { org, artisan, invitation };
+  }
+
+  beforeAll(async () => {
+    db = new Client({ connectionString: DB_URL });
+    await db.connect();
+    await db.query("begin");
+  });
+  afterAll(async () => {
+    await db?.query("rollback");
+    await db?.end();
+  });
+  beforeEach(async () => {
+    await db.query("savepoint cas");
+  });
+  afterEach(async () => {
+    await db.query("rollback to savepoint cas");
+    await db.query("release savepoint cas");
+  });
+
+  it("la base visée est migrée : table et neuf fonctions présentes", async () => {
+    const e = await empreinte();
+    for (const signature of FONCTIONS) expect(e[signature], signature).not.toBe("absente");
+    expect(e.table).not.toBe("absente");
+    expect(e.table).toContain("rls=true");
+  });
+
+  it("rejouée deux fois, la migration ne change rien, ni aux objets ni aux invitations", async () => {
+    const { invitation, org, artisan } = await invitationAcceptee();
+    const avant = await empreinte();
+    const lignes = async () =>
+      (await db.query("select row_to_json(i)::text v from public.invitations_artisans i where organization_id=$1", [org])).rows.map((r) => r.v);
+    const invitationsAvant = await lignes();
+    await db.query(MIGRATION);
+    await db.query(MIGRATION);
+    expect(await empreinte()).toEqual(avant);
+    expect(await lignes()).toEqual(invitationsAvant);
+    expect((await db.query("select etat, artisan_id from public.invitations_artisans where id=$1", [invitation])).rows[0]).toEqual({ etat: "acceptee", artisan_id: artisan });
+  });
+
+  it("le retour refuse de se jouer dans un lot (migrations.yml, begin;) : la garde l'interdit", async () => {
+    expect(await echoue(RETOUR)).toMatch(/Retour arrière refusé/);
+    expect((await empreinte()).table).not.toBe("absente");
+  });
+
+  it("le retour supprime table et fonctions, conserve le carnet et le journal, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
+    const migre = await empreinte();
+    const { org, artisan } = await invitationAcceptee();
+    await db.query(sansEnveloppe(RETOUR));
+    const apres = await empreinte();
+    for (const signature of FONCTIONS) expect(apres[signature], signature).toBe("absente");
+    expect(apres.table).toBe("absente");
+    // Conservés : le rattachement fait par l'acceptation, et ses traces.
+    expect((await db.query("select statut from public.artisan_agences where organization_id=$1 and artisan_id=$2", [org, artisan])).rows).toEqual([{ statut: "actif" }]);
+    expect((await db.query("select count(*)::int n from public.audit_log where organization_id=$1 and action like 'invitation_artisan%'", [org])).rows[0].n).toBe(2);
+    // Rejouable : déjà défait, rien à faire.
+    await db.query(sansEnveloppe(RETOUR));
+    expect(await empreinte()).toEqual(apres);
+    // Aller de nouveau : identique à l'état migré.
+    await db.query(MIGRATION);
+    expect(await empreinte()).toEqual(migre);
+  });
+});

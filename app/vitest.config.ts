@@ -51,6 +51,9 @@ export const FICHIERS_EN_SERIE = [
   // D18, décisions simultanées sur deux devis du même dossier : fixture VALIDÉE (trois sessions) et verrous de ligne
   // tenus exprès sur les incidents, demandes et devis le temps de l'essai.
   "tests/devis-decisions-concurrence.test.ts",
+  // Invitation d'un artisan par un propriétaire (décision du 15/10) : rejeu de 20261014840000 et de son retour arrière,
+  // qui créent et suppriment une table référençant organizations, accounts et artisans (verrous tenus pendant l'essai).
+  "tests/invitation-artisan-migration-rejeu.test.ts",
 ];
 
 export default defineConfig({

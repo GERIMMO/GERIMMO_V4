@@ -41,7 +41,7 @@ for (const persona of PERSONAS) {
         // est refusé, et Chrome le dit. C'est la protection voulue, pas une panne.
         // Le banc sert les photos signées en http://127.0.0.1 (émulateur Supabase) ; la politique
         // de sécurité n'admet les images qu'en https, comme l'adresse Supabase de production.
-        const imageDuBanc = m.text().startsWith("Refused to load the image 'http://127.0.0.1:");
+        const imageDuBanc = /^(Refused to load|Loading) the image 'http:\/\/127\.0\.0\.1:/.test(m.text());
         if (m.type() === "error" && !m.text().startsWith("Blocked script execution in 'about:srcdoc'") && !imageDuBanc) {
           erreursConsole.push(m.text().slice(0, 300));
         }

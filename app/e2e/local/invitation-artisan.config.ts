@@ -6,7 +6,7 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "..",
   testMatch: "invitation-artisan.spec.ts",
-  outputDir: "../.results-invitation-artisan",
+  outputDir: "../.results/invitation-artisan",
   timeout: 300_000,
   expect: { timeout: 20_000 },
   workers: 1,

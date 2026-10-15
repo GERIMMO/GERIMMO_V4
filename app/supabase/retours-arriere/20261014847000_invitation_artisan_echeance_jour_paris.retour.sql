@@ -34,6 +34,12 @@ begin
     raise notice 'invitations_artisans : table absente (retour de 20261014840000 déjà joué), rien à faire';
     return;
   end if;
+  if not exists (select 1 from pg_attrdef d join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum
+                  where d.adrelid = 'public.invitations_artisans'::regclass and a.attname = 'expire_le'
+                    and pg_get_expr(d.adbin, d.adrelid) like '%Europe/Paris%') then
+    raise notice 'invitations_artisans.expire_le : défaut d''origine déjà en place, rien à faire';
+    return;
+  end if;
   alter table public.invitations_artisans alter column expire_le set default (now() + interval '30 days');
   comment on column public.invitations_artisans.expire_le is null;
   raise notice 'invitations_artisans.expire_le : défaut d''origine rétabli';

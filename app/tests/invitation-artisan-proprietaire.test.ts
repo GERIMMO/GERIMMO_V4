@@ -243,6 +243,27 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect(await echec("select public.renvoyer_invitation_artisan($1)", [r.id])).toMatch(/Cette organisation ne peut pas envoyer de nouvelles invitations/);
     });
 
+    // Seconde relecture du 15/10 (20261014846000) : annuler est un geste protecteur, permis abonnement suspendu.
+    it("organisation fermée (abonnement suspendu) : l'invitation en attente peut toujours être ANNULÉE", async () => {
+      const r = await inviter();
+      await statutOrganisation("suspendue");
+      await devenir(proprietaire);
+      await db.query("select public.annuler_invitation_artisan($1)", [r.id]);
+      // La garde de l'abonnement est rétablie aussitôt pour le reste de la transaction.
+      expect((await db.query("select coalesce(current_setting('gerimmo.systeme', true), '') v")).rows[0].v).toBe("");
+      await postgres();
+      expect((await db.query("select etat from public.invitations_artisans where id=$1", [r.id])).rows[0].etat).toBe("annulee");
+      expect(await journal("invitation_artisan_annulee")).toHaveLength(1);
+      await devenir(proprietaire);
+      expect(await echec("select public.preparer_invitation_artisan($1,$2)", [org, `autre-${unique()}@test.local`])).toMatch(
+        /Cette organisation ne peut pas envoyer de nouvelles invitations/
+      );
+      // Un autre propriétaire ne profite pas du passage : sans droit sur l'invitation, toujours « Accès refusé ».
+      const r2 = await inviter(`second-${unique()}@test.local`, autreProprietaire, autreOrg);
+      await devenir(proprietaire);
+      expect(await echec("select public.annuler_invitation_artisan($1)", [r2.id])).toMatch(/Accès refusé/);
+    });
+
     // Seconde relecture du 15/10 (20261014845000) : on ne s'invite pas soi-même.
     it("s'inviter soi-même est refusé : sa propre adresse (même écrite autrement), ou celle de sa propre fiche d'artisan", async () => {
       await postgres();

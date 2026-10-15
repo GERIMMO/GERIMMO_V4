@@ -23,3 +23,34 @@ export function elementsManquantsDuBailleur(profil: ProfilBailleur | undefined):
     vide(profil?.email_contact) ? "votre e-mail de contact" : null,
   ].filter((m): m is string => m !== null);
 }
+
+/**
+ * Faut-il lire le profil pour choisir le bouton de « Mes lots » ? Seulement pour le propriétaire direct devant un parc
+ * VIDE : aucun bien visible, aucun bien retiré (sinon l'écran n'est pas l'état vide), pas de portefeuille d'agent, et un
+ * parc lisible (un parc illisible ressemble à un parc vide : l'écran n'affiche alors aucun bouton de création).
+ */
+export function doitLireLeProfilBailleur(ecran: {
+  role: string;
+  erreurBiens: boolean;
+  portefeuille: boolean;
+  nbBiensVisibles: number;
+  nbBiensRetires: number;
+}): boolean {
+  return ecran.role === "proprietaire_direct" && !ecran.erreurBiens && !ecran.portefeuille && ecran.nbBiensVisibles === 0 && ecran.nbBiensRetires === 0;
+}
+
+export type BoutonPremierBien = { libelle: string; href: string; detourParProfil: boolean };
+
+/**
+ * Le bouton de l'état vide de « Mes lots ». `base` est l'adresse de l'espace (« /agence/<id> », ou « /espace/<id> » une
+ * fois la décision D27 en place) : les deux liens en partent, il n'y a donc qu'un endroit où la poser.
+ *
+ * Le détour par le profil n'est annoncé que si la lecture a réussi ET qu'il manque quelque chose. Une lecture en échec
+ * ne dit rien du profil : le bouton habituel s'affiche, et la porte de « Créer un lot » décidera (elle relit le profil).
+ */
+export function boutonPremierBien({ base, manquants, erreurLecture }: { base: string; manquants: string[]; erreurLecture: boolean }): BoutonPremierBien {
+  if (!erreurLecture && manquants.length > 0) {
+    return { libelle: "Compléter mon profil pour créer un bien", href: `${base}/profil?retour=nouveau-lot`, detourParProfil: true };
+  }
+  return { libelle: "Créer mon premier bien", href: `${base}/parc/nouveau`, detourParProfil: false };
+}

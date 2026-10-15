@@ -17,6 +17,32 @@ import type { RegimeTva } from "@/lib/tarifs";
 
 export type FaitEditeur = string | null;
 
+// ── CE QU'IL RESTE À FOURNIR (état du 15/10/2026, décision D32) ─────────────
+//
+// L'identité ci-dessous est VIDE et n'est pas à inventer : aucune valeur
+// vraisemblable ne la remplace. Pour que les trois pages légales soient
+// complètes, le dirigeant fournit :
+//   - la dénomination sociale (ou le nom de l'entrepreneur individuel) ;
+//   - la forme juridique ;
+//   - l'adresse du siège ;
+//   - la ville et le numéro d'immatriculation au RCS ;
+//   - le SIRET ;
+//   - le nom et la qualité du directeur de la publication ;
+//   - l'adresse électronique de contact du public ;
+//   - le médiateur de la consommation (nom, puis adresse postale et site).
+// Selon sa situation : le capital social (société), le numéro de TVA
+// intracommunautaire (sans objet en franchise en base), le téléphone.
+// Hors de ce fichier : les coordonnées complètes de chaque prestataire
+// (mentions légales, `COORDONNEES_PRESTATAIRES`) et la localisation de la Base
+// Adresse Nationale (`PRESTATAIRES`, `localisation: null`).
+//
+// Tant que l'un des huit premiers manque, les trois pages le disent en toutes
+// lettres au visiteur : encadré « Document en cours de finalisation » et
+// mention « (à venir) » à la place du fait (components/coquille-legale.tsx).
+// Le texte public ne promet donc rien qu'il ne contienne pas. La liste de ce
+// qui manque pour le dirigeant est `faitsManquants()`, et le test
+// tests/pages-legales-v1.test.ts la garde.
+
 export const EDITEUR = {
   /** Dénomination sociale ou nom de l'entrepreneur individuel. */
   denomination: null as FaitEditeur,
@@ -218,7 +244,14 @@ export function prestatairesIncomplets(liste: readonly Prestataire[] = PRESTATAI
 // « article 28 du RGPD ».
 // 30/09/2026 : essai gratuit porté de 14 jours à 2 mois pour toute inscription
 // jusqu'au 31/12/2026 (offre de lancement), 1 mois ensuite (article 8.2).
-export const CONDITIONS_VERSION = "2026-09-30";
+// 15/10/2026 (décision D32, fiche PUB-03) : les passages sur l'offre et le prix
+// des agences sont retirés des conditions (définition du Client, article 8.1,
+// facturation, TVA), des mentions légales et de la page confidentialité. Aucun
+// engagement nouveau : des passages en moins, aucun en plus. Cette date est celle
+// de la rédaction : à aligner sur la date de mise en ligne si elle diffère, avant
+// les premiers inscrits publics. Tout changement ensuite exige le préavis d'un
+// mois (article 16).
+export const CONDITIONS_VERSION = "2026-10-15";
 
 /** Date d'entrée en vigueur affichée en tête des conditions. */
-export const CONDITIONS_DATE = "30 septembre 2026";
+export const CONDITIONS_DATE = "15 octobre 2026";

@@ -44,11 +44,11 @@ export default function PageConfidentialite() {
           <b className="font-semibold">Les données de votre dossier de gestion
           locative</b> — bail, pièces, loyers, quittances, incidents, messages —
           sont traitées <b className="font-semibold">pour le compte de votre
-          agence ou de votre propriétaire bailleur</b>, qui en est responsable
+          propriétaire bailleur</b>, qui en est responsable
           de traitement. Gerimmo n&apos;en est que le sous-traitant : il les
           héberge et les met en forme, il n&apos;en décide pas l&apos;usage.
-          Pour exercer vos droits sur ces données, c&apos;est à votre agence ou
-          à votre propriétaire qu&apos;il faut vous adresser.
+          Pour exercer vos droits sur ces données, c&apos;est à votre
+          propriétaire bailleur qu&apos;il faut vous adresser.
         </p>
         <p>
           <b className="font-semibold">Les données de plateforme</b> — votre
@@ -96,7 +96,7 @@ export default function PageConfidentialite() {
                 <td data-libelle="Base légale">Intérêt légitime : répondre à la demande que vous avez faite</td>
               </tr>
               <tr>
-                <td>Annuaire des artisans et évaluations laissées par les agences</td>
+                <td>Annuaire des artisans et évaluations laissées par les clients et les locataires</td>
                 <td data-libelle="Base légale">Exécution du contrat conclu avec l&apos;artisan</td>
               </tr>
               <tr>
@@ -115,7 +115,7 @@ export default function PageConfidentialite() {
         </p>
         <p>
           Pour les données de gestion locative, la base légale est déterminée
-          par votre agence ou votre propriétaire bailleur, responsable de
+          par votre propriétaire bailleur, responsable de
           traitement (en général l&apos;exécution du bail ou du mandat, et les
           obligations légales qui s&apos;y attachent).
         </p>
@@ -139,9 +139,9 @@ export default function PageConfidentialite() {
         </p>
         <p>
           <b className="font-semibold">Votre fiche d&apos;artisan</b>, si vous
-          intervenez pour des agences : raison sociale, SIRET, métiers et zones
+          intervenez pour des propriétaires bailleurs : raison sociale, SIRET, métiers et zones
           d&apos;intervention, justificatifs déposés, comptes rendus
-          d&apos;intervention, évaluations laissées par les agences. Une note
+          d&apos;intervention, évaluations laissées par les clients et les locataires. Une note
           contestée est réexaminée par une personne, jamais par un calcul seul.
         </p>
         <p>
@@ -152,8 +152,8 @@ export default function PageConfidentialite() {
         </p>
         <p>
           <b className="font-semibold">Le formulaire de demande de devis.</b>{" "}
-          Les informations transmises (nom, adresse électronique, agence,
-          téléphone, taille du portefeuille, message) servent uniquement à vous
+          Les informations transmises (nom, adresse électronique, téléphone,
+          message) servent uniquement à vous
           recontacter au sujet de votre demande. Elles sont supprimées au plus
           tard 24 mois après leur dépôt.
         </p>
@@ -304,8 +304,8 @@ export default function PageConfidentialite() {
           <li>Chiffrement en transit et au repos, base, fichiers et sauvegardes compris.</li>
           <li>
             Cloisonnement par organisation appliqué dans la base de données
-            elle-même : une agence ne peut pas lire les données d&apos;une autre,
-            même par erreur de programme.
+            elle-même : une organisation ne peut pas lire les données d&apos;une
+            autre, même par erreur de programme.
           </li>
           <li>
             Mot de passe de douze caractères au moins, vérifié contre les fuites
@@ -344,21 +344,24 @@ export default function PageConfidentialite() {
         </p>
         <p>
           <b className="font-semibold">À qui écrire.</b> Pour votre dossier de
-          gestion locative, à votre agence ou à votre propriétaire bailleur,
-          depuis la messagerie de votre espace. Pour votre compte, la
+          gestion locative, à votre propriétaire bailleur, depuis la
+          messagerie de votre espace. Pour votre compte, la
           facturation, l&apos;annuaire des artisans ou une demande envoyée
           depuis le site, à Gerimmo : si vous avez un compte, depuis la page{" "}
           <Link href="/assistance" className="lien-texte">
             « Aide et retours »
           </Link>{" "}
           de votre espace, en précisant « données personnelles » ; dans tous
-          les cas, à l&apos;adresse{" "}
+          les cas,{" "}
           {contact ? (
-            <a href={`mailto:${contact}?subject=${encodeURIComponent("Données personnelles")}`} className="lien-texte">
-              {contact}
-            </a>
+            <>
+              à l&apos;adresse{" "}
+              <a href={`mailto:${contact}?subject=${encodeURIComponent("Données personnelles")}`} className="lien-texte">
+                {contact}
+              </a>
+            </>
           ) : (
-            <AFournir quoi="adresse de contact de l'éditeur" />
+            <AFournir quoi="à l'adresse de contact de l'éditeur" />
           )}
           . Chaque demande reçoit une réponse dans le mois, après vérification
           de l&apos;identité du demandeur.

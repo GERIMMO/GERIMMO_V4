@@ -151,7 +151,9 @@ describe("conditions générales d'utilisation et de vente (29/09)", () => {
 
   it("n'annoncent pas de prix TTC ou HT sous la franchise en base", () => {
     expect(cgu).toContain('{FRANCHISE ? "" : ", prix toutes taxes comprises"}');
-    expect(cgu).toContain('{FRANCHISE ? "" : " hors taxes"}');
+    // 15/10/2026 (D32) : la grille « hors taxes » des agences n'est plus décrite ; il ne reste que la grille des particuliers.
+    expect(cgu).not.toContain('" hors taxes"');
+    expect(cgu).not.toMatch(/Les prix des agences/);
   });
 
   it("arrêtent conservation, disponibilité, plafond et mise en demeure", () => {

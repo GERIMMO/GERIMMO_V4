@@ -4,6 +4,7 @@ import {createClient} from '@/lib/supabase/server';
 import {bilanMission,estMission} from '@/lib/missions';
 import {adresseDuSite} from '@/lib/site';
 import {journaliserSupervision} from '@/lib/journal-supervision';
+import {MESSAGE_CONTROLE_IA_INDISPONIBLE,messageGardeIA,reserverAppelIA} from '@/lib/plafond-ia';
 export type RetourMission={erreur?:string;succes?:string};
 // « Lancer maintenant » attend la route au plus ce délai (25/09). Au-delà, la
 // passe continue seule dans la route cron (maxDuration 180) et l'écran suit
@@ -90,6 +91,10 @@ export async function demanderCorrection(_etat:RetourMission,form:FormData):Prom
   if(retour)console.error('[atelier] La proposition n’a pas pu être remise à l’étude.',p!.id);
   revalidatePath('/admin/autonomie');revalidatePath('/admin/equipes');
  };
+ // X19 (SA-10) : l'atelier fait travailler un modèle payant chez GitHub. L'arrêt d'urgence et la limite quotidienne
+ // sont consultés juste avant le lancement ; un lancement compte pour un appel. Refus : rien n'est lancé.
+ try{await reserverAppelIA(db,'atelier');}
+ catch(e){await restaurer();return {erreur:`La demande est conservée, mais l’atelier n’a pas été lancé. ${messageGardeIA(e)??MESSAGE_CONTROLE_IA_INDISPONIBLE}`};}
  try{
   const r=await fetch('https://api.github.com/repos/GERIMMO/GERIMMO_V4/actions/workflows/atelier-code.yml/dispatches',{method:'POST',headers:{Authorization:`Bearer ${process.env.GITHUB_AGENT_TOKEN}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({ref:'main',inputs:{proposition:p.id,demande}}),redirect:'error',signal:AbortSignal.timeout(15000)});
   if(!r.ok){await restaurer();return {erreur:'La demande est conservée mais l’atelier n’a pas confirmé son lancement. Vérifiez sa connexion, puis réessayez.'};}

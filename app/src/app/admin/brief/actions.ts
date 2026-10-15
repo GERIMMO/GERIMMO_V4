@@ -12,6 +12,7 @@ import { traiterInscriptionArtisan } from "@/app/actions/supervision-artisans";
 import { journaliserSupervision, JOURNAL_A_VERIFIER } from "@/lib/journal-supervision";
 import { sourceAttendEncore } from "@/lib/decisions-attendues";
 import { aujourdhuiParis } from "@/lib/ged";
+import { MESSAGE_CONTROLE_IA_INDISPONIBLE, messageGardeIA, reserverAppelIA } from "@/lib/plafond-ia";
 
 export type EtatBriefIA = { erreur?: string; analyse?: AnalyseBrief; genereLe?: string };
 
@@ -52,6 +53,12 @@ export async function analyserBriefIA(): Promise<EtatBriefIA> {
     alertes_critiques_ouvertes: alertesCritiques.count,
     alertes_ouvertes: alertes.count,
   };
+  // X19 (SA-10) : l'arrêt d'urgence et la limite quotidienne, consultés juste avant l'appel payant. Refus : pas d'appel.
+  try {
+    await reserverAppelIA(supabase, "brief");
+  } catch (e) {
+    return { erreur: messageGardeIA(e) ?? MESSAGE_CONTROLE_IA_INDISPONIBLE };
+  }
   try {
     const reponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",

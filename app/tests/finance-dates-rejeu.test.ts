@@ -229,7 +229,7 @@ describe.skipIf(!DB_URL)("Lot finance-dates — rejeu sur une base déjà migré
   it("sur les définitions d'AVANT, les migrations posent leur correctif et retrouvent exactement l'état migré", async () => {
     const migre = await empreinte();
     const migreDefs = Object.fromEntries(await Promise.all(FONCTIONS.map(async (s) => [s, await definition(s)])));
-    for (const [signature, def] of Object.entries({ ...definitionsAnterieures(R410), ...definitionsAnterieures(R411), ...definitionsAnterieures(R413) })) await db.query(def);
+    for (const def of Object.values({ ...definitionsAnterieures(R410), ...definitionsAnterieures(R411), ...definitionsAnterieures(R413) })) await db.query(def);
     for (const signature of FONCTIONS) expect(await definition(signature), signature).not.toMatch(/Décision X1[34]/);
     for (const sql of [M410, M411, M413]) await db.query(sansFermetureAnon(sql));
     for (const signature of FONCTIONS) expect(await definition(signature), signature).toBe(migreDefs[signature]);

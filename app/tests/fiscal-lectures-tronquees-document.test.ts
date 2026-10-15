@@ -197,3 +197,20 @@ describe("X21 : une lecture qui atteint le plafond fait refuser le document, ave
     await expect(chargerRecapitulatifNu(b.client, "org", "lot", 2026)).rejects.toThrow("Les données du dossier n’ont pas pu être chargées. Réessayez avant de générer ce document.");
   });
 });
+
+// Une lecture qui tombe en panne ne doit jamais se lire « zéro » : le document est refusé, pour chacune des quatre lectures du récapitulatif
+// (constat de relecture du 15/10 : retirer le contrôle d'erreur des écritures ou des exercices ne faisait tomber aucun test).
+describe("X21 : une lecture en panne fait refuser le document, quelle que soit la lecture", () => {
+  const PANNE = "Les données du dossier n’ont pas pu être chargées. Réessayez avant de générer ce document.";
+  it.each(["ecritures", "fiscal_exercices_lots", "fiscal_qualifications_ecritures", "fiscal_encaissements_composantes"])(
+    "la lecture de %s en panne : le récapitulatif est refusé avec le message de chargement, sans montant ni message de plafond",
+    async (table) => {
+      const b = baseSimulee(dossier(), { plafondLignes: 1000, lecturesEnErreur: { [table]: "panne" } });
+      await expect(lire(b)).rejects.toThrow(RefusDocument);
+      await expect(lire(b)).rejects.toThrow(PANNE);
+      const r = await assemblerComplementGestion("recap_fiscal_nu", b.client, "org", "lot", { annee: "2026", interets_emprunt: "" });
+      expect(r).toEqual({ erreur: PANNE });
+      expect(JSON.stringify(r)).not.toContain("limite de 1 000 lignes");
+    }
+  );
+});

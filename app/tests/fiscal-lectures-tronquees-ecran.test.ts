@@ -202,3 +202,43 @@ describe("X12 : une lecture qui atteint le plafond fait refuser tout montant, av
     expect(texte).not.toContain("limite de 1 000 lignes");
   });
 });
+
+// Une lecture qui tombe en panne ne doit jamais se lire « zéro » : l'écran refuse tout montant et nomme la lecture, pour chacune des six lectures
+// du récapitulatif (constat de relecture du 15/10 : retirer l'une d'elles de la liste des échecs ne faisait tomber aucun test).
+describe("X12 : une lecture en panne fait refuser tout montant, quelle que soit la lecture", () => {
+  it.each([
+    ["ecritures", "les écritures"],
+    ["fiscal_qualifications_ecritures", "les qualifications"],
+    ["fiscal_encaissements_composantes", "les composantes historiques"],
+    ["fiscal_exercices_lots", "les exercices confirmés"],
+    ["lots", "les lots"],
+  ])("la lecture de %s en panne : aucun montant, et %s est nommée", async (table, libelle) => {
+    poser(dossier(), { [table]: "panne" });
+    const texte = await page();
+    expect(texte).toContain(`Aucun montant n'est affiché : ${libelle} n'`);
+    expect(texte).toContain("pas pu être lu");
+    expect(texte).toContain("Ce n'est pas une année sans recettes ni charges : c'est la lecture qui a échoué");
+    expect(texte).not.toContain("Recettes confirmées");
+    expect(texte).not.toContain("2 340,00");
+    expect(texte).not.toContain("limite de 1 000 lignes");
+  });
+
+  it.each([
+    ["ecritures", "les écritures"],
+    ["fiscal_qualifications_ecritures", "les qualifications"],
+    ["fiscal_encaissements_composantes", "les composantes historiques"],
+    ["fiscal_exercices_lots", "les exercices confirmés"],
+    ["lots", "les lots"],
+  ])("la vignette de la page Finances : la lecture de %s en panne donne %s, jamais des zéros", async (table, libelle) => {
+    poser(dossier(), { [table]: "panne" });
+    const texte = await page(true);
+    expect(texte).toContain(`Récapitulatif indisponible : ${libelle}.`);
+    expect(texte).not.toContain("Recettes confirmées");
+  });
+
+  it("deux lectures en panne sont nommées ensemble, au pluriel", async () => {
+    poser(dossier(), { fiscal_exercices_lots: "panne", lots: "panne" });
+    const texte = await page();
+    expect(texte).toContain("Aucun montant n'est affiché : les exercices confirmés, les lots n'ont pas pu être lues.");
+  });
+});

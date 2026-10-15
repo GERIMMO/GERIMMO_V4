@@ -7,6 +7,8 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 | Fichier | Défait | Objets touchés |
 |---|---|---|
 | `20261013120000_correctifs_audit_13_octobre.retour.sql` | `20261013120000_correctifs_audit_13_octobre.sql` | 9 fonctions, 3 déclencheurs `diagnostic_artisan_lecture`, la contrainte `incident_evenements_type_check`, 1 ligne d'historique |
+| `20261014821000_jour_de_paris_irl_terme_charges_rapports.retour.sql` | `20261014821000_jour_de_paris_irl_terme_charges_rapports.sql` (lot « fuseau-suite », 2/2 : décision du 15/10, point 2) | 6 fonctions (`reviser_loyer`, `terme_bail`, `regulariser_charges`, `rapport_du_lot`, `envoyer_rapport` : `current_date` rétabli ; `preparer_rapports_automatiques` : `date_trunc('month',now())` rétabli), le défaut de `regularisations_charges.date_emission`, 1 ligne d'historique. Aucune donnée touchée. **À jouer AVANT** le retour de `20261014500000` (voir la section « Lot fuseau-suite » plus bas) |
+| `20261014820000_jour_de_paris_depot_et_journal.retour.sql` | `20261014820000_jour_de_paris_depot_et_journal.sql` (lot « fuseau-suite », 1/2 : décision du 15/10, point 1) | 3 fonctions (`encaisser_depot`, `contre_passer_depot_encaissement`, `contre_ecriture` : `current_date` rétabli), les défauts de `depot_encaissements.date_encaissement`, `ecritures.date_piece` et `ecritures.date_imputation`, 1 ligne d'historique. Aucune donnée touchée. **À jouer AVANT** le retour de `20261014500000` |
 | `20261014504000_jour_de_paris_encaissements.retour.sql` | `20261014504000_jour_de_paris_encaissements.sql` (lot « fuseau-paris », 5/5) | 1 fonction (`contre_passer_encaissement`, `current_date` rétabli), le défaut de `encaissements.date_paiement`, 1 ligne d'historique. Aucune donnée touchée |
 | `20261014503000_jour_de_paris_appels_et_quittances.retour.sql` | `20261014503000_jour_de_paris_appels_et_quittances.sql` (lot « fuseau-paris », 4/5) | 5 fonctions (`generer_appels_loyer_interne`, `cycle_mensuel_interne`, `resynchroniser_quittances`, `quittances_a_envoyer`, `appels_a_envoyer`), le défaut de `quittances.date_emission`, 1 ligne d'historique. Sur une base passée par la vague 4a (X13), `resynchroniser_quittances` et ce défaut sont déjà au jour de Paris : ni la migration ni le retour n'y touchent (jamais `current_date` sur eux). Aucune donnée touchée |
 | `20261014502000_jour_de_paris_lot_et_contrats.retour.sql` | `20261014502000_jour_de_paris_lot_et_contrats.sql` (lot « fuseau-paris », 3/5) | 3 fonctions (`contrats_du_lot`, `fiche_lot`, `historique_du_lot`), 1 ligne d'historique. Aucune donnée touchée |
@@ -547,3 +549,89 @@ avec le lot (51 fonctions lisent `current_date`, aucune ouverte à anon) ; retou
 retrouvé. Sur la base d'avant la vague 4a, la nouvelle `…503000` donne la même empreinte que l'ancienne. Les tests du lot passent sur les deux bancs (avec et sans la vague 4a). Le fuseau de `aujourdhui_paris()` est vérifié en évaluant son corps sur des instants fixes
 (changements d'heure compris), plus sur le texte de sa définition. Limites : base de banc ; aucun essai sur la production ; l'horloge réelle n'est jamais simulée, c'est le fuseau de la **session** qui l'est (et, pour les mois et
 années, une fonction `aujourdhui_paris()` figée le temps d'une transaction de test).
+
+## Lot « fuseau-suite » (15 octobre 2026) : deux migrations, `20261014820000` et `20261014821000`
+
+**La décision.** Le dirigeant a répondu « recommandations » aux cinq questions laissées par le lot « fuseau-paris ». Ce lot fait les points 1, 2 et 5, et
+**rien** pour les points 3 (l'heure du cycle mensuel des appels de loyer ne change pas) et 4 (le compteur « alertes en retard » du brief de la direction
+ne change pas) : toute date « du jour » du dépôt de garantie, du journal comptable général, de la révision IRL, du terme du bail, de la régularisation des
+charges et du rapport de gestion passe au jour de Paris (`public.aujourdhui_paris()`, migration `20261014500000`) ; la date « Fait le » des documents de
+contrat est celle de Paris (code de l'application, aucun retour SQL). **Exemple du défaut** : une révision IRL datée d'aujourd'hui, saisie après minuit à
+Paris, était refusée comme « datée de demain » (« Révision anticipée »). Aucun montant, aucune colonne, aucune signature, aucun droit ne change ; **aucune
+ligne existante n'est réécrite** (dépôts, écritures, révisions, régularisations, rapports et alertes déjà enregistrés gardent leurs dates).
+
+| Migration | Objets réécrits (nombre exact attendu AVANT la migration, tous remplacés) |
+|---|---|
+| `…820000_jour_de_paris_depot_et_journal` (point 1) | `encaisser_depot(uuid,numeric,date,text,uuid,text,uuid)` (3 `current_date`), `contre_passer_depot_encaissement()` (2), `contre_ecriture(uuid,text)` (1) ; défauts de `depot_encaissements.date_encaissement`, `ecritures.date_piece`, `ecritures.date_imputation` |
+| `…821000_jour_de_paris_irl_terme_charges_rapports` (point 2) | `reviser_loyer(uuid,numeric,text,date)` (2, dont la valeur par défaut du paramètre `p_date_demande`), `terme_bail(uuid,date)` (1, la valeur par défaut de `p_date`), `regulariser_charges(uuid,integer,numeric,uuid,text,boolean)` (4), `rapport_du_lot(uuid,date)` (1), `envoyer_rapport(uuid,text)` (1) ; `preparer_rapports_automatiques()` (0 `current_date`, 1 `date_trunc('month',now())`, qui devient `date_trunc('month', public.aujourdhui_paris()::timestamp)`) ; défaut de `regularisations_charges.date_emission` |
+
+**Comment.** Même méthode que le lot « fuseau-paris » : chaque fonction est relue dans sa définition en vigueur (`pg_get_functiondef`), on remplace le seul mot
+`current_date` (aucune ancre de plusieurs lignes) et on exige le nombre exact ci-dessus. Une fonction **déjà** au jour de Paris (ce nombre exact de
+`public.aujourdhui_paris()` ou de `(now() at time zone 'Europe/Paris')::date`, et plus aucun `current_date`) est laissée telle quelle, sans échec ; un défaut
+déjà au jour de Paris aussi. Toute autre forme (autre nombre, mélange des deux, ni l'un ni l'autre, fonction absente, défaut étranger) arrête la migration
+avec un message qui nomme l'objet, sans rien modifier.
+
+**Hors de ce lot, volontairement** (non tranché par la décision) : les restitutions (`finaliser_decompte`, `marquer_decompte_envoye`, alertes de restitution :
+la restitution du dépôt est une catégorie distincte du lot « fuseau-paris », sans question au dirigeant), les mandats, l'abonnement, les artisans, les
+diagnostics, les assurances, les factures d'honoraires (`factures_honoraires.emise_le`), les appels de charges de copropriété (`appels_charges.date_reception`)
+et les clés de répartition (`cles_repartition.date_effet`). Le test `tests/jour-de-paris-suite-migrations-rejeu.test.ts` tient l'inventaire : aucune autre
+fonction de ces domaines ne lit le jour de la session, hors `finaliser_decompte` et `actualiser_orchestration_socle` (restitutions et devis), classées.
+
+**Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
+**AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`821000`, `820000`, `602000`, `601000`, `600000`, `504000` → `501000`, puis `500000` (le test `tests/jour-de-paris-migrations-rejeu.test.ts` joue cette chaîne).
+Chaque retour relit la définition en vigueur, remet `current_date` (et `date_trunc('month',now())`) à sa place, nombre exact exigé (sinon il s'arrête sans rien
+modifier), se rejoue sans effet (« rien à faire »), refuse de se jouer dans un lot, et laisse en place une forme explicite du jour de Paris que la migration
+n'avait pas posée. Revenir au code d'avant (documents) ne demande rien côté base, et inversement.
+
+**Avant d'appliquer en production (lecture seule).** La colonne `trouves` doit égaler `attendu` partout, `deja_au_jour_de_paris` valoir 0 (ou `trouves` = 0 et
+`deja_au_jour_de_paris` = `attendu` : la migration laisse alors la fonction telle quelle), `mois_de_session` valoir 1 pour `preparer_rapports_automatiques` et 0
+ailleurs, et les quatre défauts `CURRENT_DATE`.
+
+```sql
+select f.signature, f.attendu,
+       (select count(*) from regexp_matches(pg_get_functiondef(to_regprocedure(f.signature)), '\mcurrent_date\M', 'gi')) as trouves,
+       (select count(*) from regexp_matches(pg_get_functiondef(to_regprocedure(f.signature)), '(\mpublic\.)?\maujourdhui_paris\(\)|\(\s*now\(\)\s+at\s+time\s+zone\s+''Europe/Paris''(::text)?\s*\)\)?\s*::\s*date', 'gi')) as deja_au_jour_de_paris,
+       (select count(*) from regexp_matches(pg_get_functiondef(to_regprocedure(f.signature)), 'date_trunc\(\s*''month''\s*,\s*now\(\)\s*\)', 'gi')) as mois_de_session,
+       md5(regexp_replace(lower(pg_get_functiondef(to_regprocedure(f.signature))), '\s+', ' ', 'g')) as empreinte_espaces_normalises
+from (values
+  ('public.encaisser_depot(uuid,numeric,date,text,uuid,text,uuid)', 3), ('public.contre_passer_depot_encaissement()', 2), ('public.contre_ecriture(uuid,text)', 1),
+  ('public.reviser_loyer(uuid,numeric,text,date)', 2), ('public.terme_bail(uuid,date)', 1), ('public.regulariser_charges(uuid,integer,numeric,uuid,text,boolean)', 4),
+  ('public.rapport_du_lot(uuid,date)', 1), ('public.envoyer_rapport(uuid,text)', 1), ('public.preparer_rapports_automatiques()', 0)
+) as f(signature, attendu) order by 1;
+select c.table_name, c.column_name, c.column_default from information_schema.columns c
+ where c.table_schema = 'public' and (c.table_name, c.column_name) in
+   (('depot_encaissements','date_encaissement'), ('ecritures','date_piece'), ('ecritures','date_imputation'), ('regularisations_charges','date_emission'))
+ order by 1, 2;
+```
+
+`empreinte_espaces_normalises` sur la base de banc d'avant le lot (même requête, chemin de recherche par défaut) : `contre_ecriture` 92954ee46cdf3d8645aef924e9334cb5,
+`contre_passer_depot_encaissement` 60f0325d21fffcd200f67deb6bc4ec83, `encaisser_depot` 7380c0d445f6ca933f3b01a2363614e8, `envoyer_rapport` ba76e55f66ef929ee312882b628f259e,
+`preparer_rapports_automatiques` e0b3070f1b5c79232984bc450868b2a1, `rapport_du_lot` b3f578f7713d244b8d0796ca25ed1958, `regulariser_charges` eb3a3c9331134fb0e562924acc933eba,
+`reviser_loyer` bb524d9e4dcf1268937dd9dea80a5660, `terme_bail` f7c8dbe452524b28484e9309edf8e931. Une empreinte différente en production ne bloque rien (le nombre exact
+d'occurrences suffit à la migration) ; elle dit seulement que la fonction diffère du banc et mérite une lecture avant la simulation.
+
+Vérifier l'état après coup (lecture seule) : « vrai » = migrée (B), « faux » = antérieure (A).
+
+```sql
+select position('aujourdhui_paris()' in pg_get_functiondef('public.encaisser_depot(uuid,numeric,date,text,uuid,text,uuid)'::regprocedure)) > 0 as depot_au_jour_de_paris,
+       position('aujourdhui_paris()' in pg_get_functiondef('public.contre_ecriture(uuid,text)'::regprocedure)) > 0 as journal_au_jour_de_paris,
+       position('aujourdhui_paris()' in pg_get_functiondef('public.reviser_loyer(uuid,numeric,text,date)'::regprocedure)) > 0 as irl_au_jour_de_paris,
+       position('aujourdhui_paris()' in pg_get_functiondef('public.preparer_rapports_automatiques()'::regprocedure)) > 0 as rapport_au_mois_de_paris,
+       (select column_default from information_schema.columns where table_schema = 'public' and table_name = 'ecritures' and column_name = 'date_piece') as defaut_ecritures;
+select version from supabase_migrations.schema_migrations where version in ('20261014820000', '20261014821000') order by 1;
+```
+
+**Côté application** (code, aucun retour SQL) : `formaterDateFr` (`src/lib/documents/gabarit.ts`) écrit un instant (heure de production, horodatage de signature d'un
+état des lieux) au jour de Paris, ce qui corrige « Fait le » et « Établi le » de tous les modèles qui l'appellent (bail nu et meublé, congé, état des lieux, avenant,
+notice, cautionnement, mandat, révision IRL, prorata, rappel d'assurance, décompte de restitution, avis d'échéance) ; une date seule s'écrit comme avant. Le congé
+du bailleur sans date de présentation calcule le terme au jour de Paris (`aujourdhuiParis()`).
+
+Essais du 15/10/2026 (base de banc jetable PostgreSQL 16, construite depuis `ordre-migrations.txt` sans ce lot ; état A mesuré : empreinte md5 des 572 fonctions de
+`public` et de leurs droits, des valeurs par défaut ; 51 fonctions lisent `current_date`, 0 ouverte à anon) : simulation des deux migrations dans **une seule
+transaction** annulée → base **identique à A** ; application dans une seule transaction → 43 fonctions lisent encore `current_date` (hors décision), droits des neuf
+fonctions **identiques** à A, 0 fonction ouverte à anon ; sur une copie : retour de `500000` joué en premier → **refus** (il nomme, entre autres, les fonctions de ce
+lot) ; retours `821000` puis `820000` → empreinte des 572 fonctions et des défauts **identique à A** ; rejeu des retours → « rien à faire » (13 fois) ; retour joué
+dans un lot (`psql --single-transaction`) → refus ; marche avant → empreinte **identique à B** ; rejeu des migrations sur B → « déjà au jour de Paris » (9 fois),
+empreinte inchangée. Limites : base de banc ; aucun essai sur la production ; l'horloge réelle n'est jamais simulée, c'est le fuseau de la session qui l'est, ou un
+instant fixe substitué à `now()` dans le corps de `aujourdhui_paris()` le temps d'une transaction de test.

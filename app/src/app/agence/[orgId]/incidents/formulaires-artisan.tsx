@@ -5,6 +5,7 @@ import { useActionStateProtegee as useActionState } from "@/lib/use-action-state
 import {
   annulerMission,
   deciderAvenant,
+  demanderRevisionDevis,
   evaluerArtisan,
   fixerRendezVous,
   ouvrirConsultation,
@@ -315,6 +316,84 @@ export function BoutonRefuserDevis({
       <div className="flex flex-wrap gap-2">
         <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Refus…">
           Confirmer le refus
+          <span className="sr-only"> du devis de {raisonSociale}</span>
+        </BoutonEnvoi>
+        <Button type="button" variant="ghost" size="sm" onClick={() => ouvrir(false)}>
+          Annuler
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * Demander une révision d'un devis reçu (décision D18 du 14/10, livraison 2). Deux temps comme le refus : le bouton
+ * ouvre le formulaire, la demande ne part qu'au clic de confirmation. Le champ « Ce que vous demandez » est transmis
+ * à l'artisan ; l'échéance (sept jours, jour de Paris) est fixée par la base et annoncée ici.
+ */
+export function BoutonDemanderRevision({
+  orgId,
+  devisId,
+  raisonSociale,
+  version,
+  echeance,
+}: {
+  orgId: string;
+  devisId: string;
+  raisonSociale: string;
+  /** La version du devis affiché : la demande produira la version suivante. */
+  version: number;
+  /** Le dernier jour de réponse de l'artisan si la demande part aujourd'hui (jour de Paris), en « jj/mm/aaaa ». */
+  echeance: string;
+}) {
+  const actionLiee = demanderRevisionDevis.bind(null, orgId, devisId);
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const [ouvert, ouvrir] = useState(false);
+  const idMotif = useId();
+
+  if (etat.succes) {
+    return (
+      <div className="space-y-1.5" data-devis-revision>
+        <Retour etat={etat} />
+        {etat.avertissement && <p className="text-sm text-muted-foreground">{etat.avertissement}</p>}
+      </div>
+    );
+  }
+  if (!ouvert) {
+    return (
+      <Button type="button" variant="outline" size="sm" onClick={() => ouvrir(true)} aria-expanded={false}>
+        Demander une révision
+        <span className="sr-only"> du devis de {raisonSociale}</span>
+      </Button>
+    );
+  }
+  return (
+    <form data-saisie-confirmee action={action} className="space-y-2 rounded-lg border border-border p-3" aria-label={`Demander une révision du devis de ${raisonSociale}`}>
+      <CleEnvoi etat={etat} />
+      <div className="space-y-1.5">
+        <Label htmlFor={idMotif}>Ce que vous demandez (transmis à l&apos;artisan) *</Label>
+        <textarea
+          id={idMotif}
+          name="motif"
+          required
+          minLength={MOTIF_DECISION_DEVIS.min}
+          maxLength={MOTIF_DECISION_DEVIS.max}
+          rows={3}
+          defaultValue={etat.valeurs?.motif}
+          placeholder="Merci de détailler la main-d'œuvre et de revoir le prix du joint."
+          className={classeTextarea}
+        />
+        <p className="text-xs text-muted-foreground">
+          Dix caractères au moins. L&apos;artisan a jusqu&apos;au {echeance} (sept jours) pour envoyer la version{" "}
+          {version + 1} de son devis en disant ce qui change, ou renoncer. Cette version {version} ne pourra plus
+          être retenue ; elle reste consultable. Sans réponse à l&apos;échéance, la demande sera close et vous serez
+          alerté.
+        </p>
+      </div>
+      <Retour etat={etat} />
+      <div className="flex flex-wrap gap-2">
+        <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Envoi…">
+          Confirmer la demande de révision
           <span className="sr-only"> du devis de {raisonSociale}</span>
         </BoutonEnvoi>
         <Button type="button" variant="ghost" size="sm" onClick={() => ouvrir(false)}>

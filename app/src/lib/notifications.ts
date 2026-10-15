@@ -233,6 +233,41 @@ export function messageDevisRefuse(p: {
   };
 }
 
+/**
+ * Révision demandée par le gérant ou le propriétaire (`demander_revision_devis`, décision D18, livraison 2) →
+ * l'artisan. Ce qui est demandé lui est transmis tel quel ; il répond par une version suivante ou renonce, avant
+ * l'échéance (jour de Paris, dernier jour compris).
+ */
+export function messageRevisionDemandee(p: {
+  emetteur: string;
+  categorie: string;
+  numero: string;
+  version: number;
+  montantCents: number;
+  motif: string;
+  revisionAvant: string;
+  lien: string | null;
+}): Message {
+  return {
+    sujet: `Une révision de votre devis est demandée — ${p.emetteur} — dossier ${p.numero}`,
+    html: gabaritNotification({
+      titre: "Une révision de votre devis est demandée",
+      emetteur: p.emetteur,
+      lignes: [
+        `${p.emetteur} vous demande de revoir votre devis de ${eur(p.montantCents / 100)} TTC (version ${p.version}) pour « ${categorieLisible(p.categorie)} » (dossier ${p.numero}).`,
+        `Ce qui est demandé : ${extrait(p.motif, 600)}`,
+        `Répondez avant le ${formaterDateCourte(p.revisionAvant)} : envoyez une nouvelle version en disant ce qui change, ou renoncez à cette demande. Sans réponse à cette date, la demande sera close.`,
+      ],
+      action: { libelle: "Préparer la nouvelle version", lien: p.lien },
+    }),
+  };
+}
+
+/** « 22/10/2026 » depuis une date ISO, à Paris. */
+function formaterDateCourte(iso: string): string {
+  return new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Paris" });
+}
+
 export type ReponseLocataireCreneaux =
   | { type: "choisi"; debut: string; fin: string | null }
   | { type: "contre_propose"; nbCreneaux: number };
@@ -409,7 +444,26 @@ export function messageDevisRecu(p: {
   numero: string;
   categorie: string;
   lien: string | null;
+  /** D18 (livraison 2) : à partir de 2, c'est la réponse à une demande de révision. */
+  version?: number;
+  noteRevision?: string | null;
 }): Message {
+  const version = p.version ?? 1;
+  if (version > 1) {
+    return {
+      sujet: `Nouvelle version du devis (v${version}) — ${p.artisan} — ${eur(p.montantCents / 100)} — ${p.numero}`,
+      html: gabaritNotification({
+        titre: "Nouvelle version du devis",
+        emetteur: p.emetteur,
+        lignes: [
+          `${p.artisan} a envoyé la version ${version} de son devis, ${eur(p.montantCents / 100)} TTC, pour « ${categorieLisible(p.categorie)} » (dossier ${p.numero}), en réponse à votre demande de révision.`,
+          ...(p.noteRevision ? [`Ce qui change : ${extrait(p.noteRevision, 600)}`] : []),
+          "Les versions précédentes restent consultables ; seule la dernière peut être retenue.",
+        ],
+        action: { libelle: "Voir la nouvelle version", lien: p.lien },
+      }),
+    };
+  }
   return {
     sujet: `Devis reçu — ${p.artisan} — ${eur(p.montantCents / 100)} — ${p.numero}`,
     html: gabaritNotification({
@@ -865,6 +919,45 @@ export async function notifierDevisRefuse(db: SupabaseClient, orgId: string, dev
   }
 }
 
+/**
+ * Révision demandée (`demander_revision_devis`, décision D18 livraison 2) → l'artisan, avec ce qui est demandé et
+ * l'échéance. Appelée depuis l'action du gérant, APRÈS le succès de la fonction et seulement si la décision est nouvelle.
+ */
+export async function notifierRevisionDemandee(db: SupabaseClient, orgId: string, devisId: string): Promise<ResultatNotification> {
+  try {
+    const { data: devis } = await db
+      .from("incident_devis")
+      .select("id, incident_id, artisan_id, sollicitation_id, montant_ttc_cents, decision_motif, statut, version")
+      .eq("id", devisId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (!devis || devis.statut !== "revise" || !devis.decision_motif) return { envoyee: false, motif: "introuvable" };
+    const { data: demande } = await db
+      .from("incident_sollicitations")
+      .select("revision_avant")
+      .eq("id", devis.sollicitation_id)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (!demande?.revision_avant) return { envoyee: false, motif: "introuvable" };
+    const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, devis.incident_id), lireArtisan(db, devis.artisan_id), emetteur(db, orgId)]);
+    if (!inc || !artisan) return { envoyee: false, motif: "introuvable" };
+    return expedier(db, {
+      orgId, to: artisan.email, role: "artisan", evenement: "devis_revision_demandee", objet: devis.id,
+      cleIdempotence: `devis-revision-${devis.id}`,
+      message: messageRevisionDemandee({
+        emetteur: nom, categorie: inc.categorie, numero: inc.numero,
+        version: typeof devis.version === "number" ? devis.version : 1,
+        montantCents: Number(devis.montant_ttc_cents), motif: devis.decision_motif,
+        revisionAvant: String(demande.revision_avant),
+        lien: lien(`/artisan/devis/${devis.sollicitation_id}`),
+      }),
+    });
+  } catch (e) {
+    console.error("[notifications] devis_revision_demandee :", e instanceof Error ? e.message : e);
+    return NON;
+  }
+}
+
 /** Rendez-vous fixé par l'agence (`fixer_creneau_arbitrage`) → l'artisan ET le locataire. */
 export async function notifierRendezVousFixe(db: SupabaseClient, orgId: string, interventionId: string): Promise<{ artisan: ResultatNotification; locataire: ResultatNotification }> {
   const rien = { artisan: NON, locataire: NON };
@@ -1037,7 +1130,7 @@ export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devis
   try {
     const { data: devis } = await db
       .from("incident_devis")
-      .select("id, incident_id, artisan_id, montant_ttc_cents, sollicitation_id")
+      .select("id, incident_id, artisan_id, montant_ttc_cents, sollicitation_id, version, note_revision")
       .eq("id", devisId)
       .eq("organization_id", orgId)
       .maybeSingle();
@@ -1056,7 +1149,12 @@ export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devis
     return expedier(db, {
       orgId, to, role: "agence", evenement: "devis_recu", objet: devis.id,
       pieceJointe, cleIdempotence: `devis-gerimmo-${devis.id}`,
-      message: messageDevisRecu({ emetteur: nom, artisan: artisan.raison_sociale, montantCents: Number(devis.montant_ttc_cents), numero: inc.numero, categorie: inc.categorie, lien: lien(`/agence/${orgId}/incidents?sel=${inc.id}`) }),
+      message: messageDevisRecu({
+        emetteur: nom, artisan: artisan.raison_sociale, montantCents: Number(devis.montant_ttc_cents), numero: inc.numero, categorie: inc.categorie,
+        // D18 (livraison 2) : la version et « ce qui change » sont lus en base, jamais du formulaire.
+        version: typeof devis.version === "number" ? devis.version : 1, noteRevision: (devis.note_revision as string | null | undefined) ?? null,
+        lien: lien(`/agence/${orgId}/incidents?sel=${inc.id}`),
+      }),
     });
   } catch (e) {
     console.error("[notifications] devis_recu :", e instanceof Error ? e.message : e);

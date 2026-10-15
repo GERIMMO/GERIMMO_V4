@@ -240,6 +240,22 @@ export async function PaneIncident({
           d.montant_ttc_cents != null ? eur(centsEnEuros(Number(d.montant_ttc_cents))) : null,
           d.motif ? `« ${d.motif} »` : null,
         ].filter(Boolean).join(" — ") || null;
+      // D18 (livraison 2) : ce que le gérant a demandé et jusqu'à quand l'artisan peut répondre.
+      case "devis_revision_demandee":
+        return [
+          d.version != null ? `version ${d.version}` : null,
+          d.motif ? `« ${d.motif} »` : null,
+          d.revision_avant ? `réponse attendue avant le ${formaterDate(String(d.revision_avant))}` : null,
+        ].filter(Boolean).join(" — ") || null;
+      // D18 (livraison 2) : la version suivante, son montant et ce qui change.
+      case "devis_revise":
+        return [
+          d.version != null ? `version ${d.version}` : null,
+          d.montant_ttc_cents != null ? eur(centsEnEuros(Number(d.montant_ttc_cents))) : null,
+          d.note_revision ? `ce qui change : « ${d.note_revision} »` : null,
+        ].filter(Boolean).join(" — ") || null;
+      case "devis_revision_expiree":
+        return d.revision_avant ? `aucune réponse de l'artisan avant le ${formaterDate(String(d.revision_avant))}` : null;
       case "mission_refusee":
       case "creneaux_refuses":
         return d.motif ? `« ${d.motif} »` : null;

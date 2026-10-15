@@ -82,7 +82,17 @@ export const STATUTS_SOLLICITATION: Record<string, string> = {
   annulee: "Annulée",
   // Décision D18 du 14/10 (livraison 1) : le client a refusé le devis, le motif est lisible sur la demande.
   refusee: "Devis refusé",
+  // Décision D18 du 14/10 (livraison 2) : le client attend une version suivante.
+  revision_demandee: "Révision demandée",
 };
+
+/**
+ * La demande attend-elle un devis de l'artisan ? Oui quand elle vient d'arriver, et de nouveau quand le client a
+ * demandé une révision (décision D18, livraison 2) : dans les deux cas le formulaire de devis est ouvert.
+ */
+export function demandeAChiffrer(statut: string | null | undefined): boolean {
+  return statut === "envoyee" || statut === "revision_demandee";
+}
 
 export const IMPUTATIONS: Record<string, string> = {
   locataire: "Le locataire",

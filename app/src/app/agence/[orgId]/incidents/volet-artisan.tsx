@@ -26,6 +26,7 @@ import {
   COULEURS_SOLLICITATION,
   centsEnEuros,
   decennaleRequise,
+  DELAI_REVISION_DEVIS_JOURS,
   LIBELLES_SCOPE,
   METIERS_ARTISAN,
   MOMENTS_PHOTO,
@@ -36,8 +37,11 @@ import {
   STATUTS_INTERVENTION,
   STATUTS_MISSION_VIVANTE,
   STATUTS_SOLLICITATION,
+  VERSIONS_DEVIS_MAX,
 } from "../artisans/referentiel";
+import { decalerJour } from "@/lib/agenda-gestion";
 import {
+  BoutonDemanderRevision,
   BoutonRefuserDevis,
   BoutonRetenirDevis,
   BoutonSolliciter,
@@ -88,6 +92,8 @@ type Sollicitation = {
   envoyee_le: string;
   repondue_le: string | null;
   refus_motif: string | null;
+  /** D18 (livraison 2) : le dernier jour où l'artisan peut répondre à une demande de révision (jour de Paris). */
+  revision_avant?: string | null;
 };
 
 type Devis = {
@@ -101,10 +107,14 @@ type Devis = {
   document_id: string | null;
   statut: string;
   depose_le: string;
-  /** D18 (livraison 1) : la décision prise sur ce devis (refus), son motif et sa date. Nuls tant qu'il attend. */
+  /** D18 (livraison 1) : la décision prise sur ce devis (refus, révision), son motif et sa date. Nuls tant qu'il attend. */
   decision?: string | null;
   decision_motif?: string | null;
   decide_le?: string | null;
+  /** D18 (livraison 2) : le numéro de version (1 par défaut), la version remplacée et « ce qui change ». */
+  version?: number | null;
+  devis_precedent_id?: string | null;
+  note_revision?: string | null;
 };
 
 type Intervention = {
@@ -268,14 +278,14 @@ export async function VoletArtisan({
       .order("created_at", { ascending: false }),
     supabase
       .from("incident_sollicitations")
-      .select("id, consultation_id, artisan_id, statut, envoyee_le, repondue_le, refus_motif")
+      .select("id, consultation_id, artisan_id, statut, envoyee_le, repondue_le, refus_motif, revision_avant")
       .eq("organization_id", orgId)
       .eq("incident_id", incidentId)
       .order("envoyee_le", { ascending: true }),
     supabase
       .from("incident_devis")
       .select(
-        "id, sollicitation_id, artisan_id, montant_ttc_cents, description, lignes, valide_jusqu_au, document_id, statut, depose_le, decision, decision_motif, decide_le"
+        "id, sollicitation_id, artisan_id, montant_ttc_cents, description, lignes, valide_jusqu_au, document_id, statut, depose_le, decision, decision_motif, decide_le, version, devis_precedent_id, note_revision"
       )
       .eq("organization_id", orgId)
       .eq("incident_id", incidentId)
@@ -914,10 +924,13 @@ export function ConsultationOuverte({
   commune: string | null;
 }) {
   // RM-9.1.1 : deux au maximum EN PARALLÈLE — ce sont les sollicitations
-  // vivantes qui comptent, pas celles qu'un artisan a déclinées.
+  // vivantes qui comptent, pas celles qu'un artisan a déclinées. D18 (livraison 2) : une demande en révision
+  // tient sa place, comme en base (solliciter_artisan).
   const vivantes = sollicitations.filter((s) =>
-    ["envoyee", "devis_depose", "retenue"].includes(s.statut)
+    ["envoyee", "devis_depose", "retenue", "revision_demandee"].includes(s.statut)
   );
+  // D18 (livraison 2) : l'échéance de réponse si une révision est demandée aujourd'hui (jour de Paris).
+  const echeanceRevision = formaterDate(decalerJour(aujourdhui, DELAI_REVISION_DEVIS_JOURS));
   const idsSollicites = new Set(sollicitations.map((s) => s.artisan_id));
   const devisDeLaConsultation = devis.filter((d) =>
     sollicitations.some((s) => s.id === d.sollicitation_id)
@@ -928,6 +941,10 @@ export function ConsultationOuverte({
   const expires = devisDeLaConsultation.filter((d) => d.statut === "expire");
   // D18 (livraison 1) : un devis refusé reste au dossier, en lecture seule, avec le motif transmis à l'artisan.
   const refuses = devisDeLaConsultation.filter((d) => d.statut === "refuse");
+  // D18 (livraison 2) : les versions renvoyées en révision forment l'historique, repliable, par artisan.
+  const revises = devisDeLaConsultation
+    .filter((d) => d.statut === "revise")
+    .sort((a, b) => (a.version ?? 1) - (b.version ?? 1));
   const restants = affectables.filter((a) => !idsSollicites.has(a.artisan_id));
 
   return (
@@ -978,6 +995,12 @@ export function ConsultationOuverte({
                     <span className={COULEURS_SOLLICITATION[s.statut] ?? "puce puce-grise"}>
                       {STATUTS_SOLLICITATION[s.statut] ?? "État à vérifier"}
                     </span>
+                    {/* D18 (livraison 2) : jusqu'à quand l'artisan peut répondre à la révision. */}
+                    {s.statut === "revision_demandee" && s.revision_avant && (
+                      <span className="text-muted-foreground">
+                        réponse attendue avant le {formaterDate(s.revision_avant)}
+                      </span>
+                    )}
                   </span>
                   {s.refus_motif && (
                     <span className="mt-1 block text-xs text-muted-foreground">
@@ -1024,13 +1047,20 @@ export function ConsultationOuverte({
                   >
                     <div className="entete-carte !mb-0">
                       <b className="min-w-0 truncate text-sm">{nom(d.artisan_id)}</b>
-                      <span className={COULEURS_DEVIS[d.statut] ?? "puce puce-grise"}>
-                        {STATUTS_DEVIS[d.statut] ?? "État à vérifier"}
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        {/* D18 (livraison 2) : l'étiquette de version, dès qu'il y en a eu plus d'une. */}
+                        {(d.version ?? 1) > 1 && <span className="puce puce-encre">v{d.version}</span>}
+                        <span className={COULEURS_DEVIS[d.statut] ?? "puce puce-grise"}>
+                          {STATUTS_DEVIS[d.statut] ?? "État à vérifier"}
+                        </span>
                       </span>
                     </div>
                     <p className="chiffre montant font-heading text-2xl text-[var(--encre)]">
                       {montant(d.montant_ttc_cents)}
                     </p>
+                    {(d.version ?? 1) > 1 && d.note_revision && (
+                      <p className="text-sm">Ce qui change : « {d.note_revision} »</p>
+                    )}
                     <div>
                       <div className="ligne-info">
                         <span>Note</span>
@@ -1077,12 +1107,28 @@ export function ConsultationOuverte({
                           devisId={d.id}
                           raisonSociale={nom(d.artisan_id)}
                         />
-                        {/* D18 (livraison 1) : refuser, à côté de retenir. Le motif part à l'artisan. */}
-                        <BoutonRefuserDevis
-                          orgId={orgId}
-                          devisId={d.id}
-                          raisonSociale={nom(d.artisan_id)}
-                        />
+                        <div className="flex flex-wrap items-start gap-2">
+                          {/* D18 (livraison 2) : demander une révision, trois versions au plus. */}
+                          {(d.version ?? 1) < VERSIONS_DEVIS_MAX ? (
+                            <BoutonDemanderRevision
+                              orgId={orgId}
+                              devisId={d.id}
+                              raisonSociale={nom(d.artisan_id)}
+                              version={d.version ?? 1}
+                              echeance={echeanceRevision}
+                            />
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              Dernière version possible : retenez ce devis ou refusez-le.
+                            </p>
+                          )}
+                          {/* D18 (livraison 1) : refuser, à côté de retenir. Le motif part à l'artisan. */}
+                          <BoutonRefuserDevis
+                            orgId={orgId}
+                            devisId={d.id}
+                            raisonSociale={nom(d.artisan_id)}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1092,10 +1138,55 @@ export function ConsultationOuverte({
             <p className="mt-2 text-xs text-muted-foreground">
               Retenir un devis confie la mission : c&apos;est votre décision, pas
               celle du locataire. Le second artisan est écarté automatiquement.
+              Demander une révision renvoie le devis à l&apos;artisan, qui a sept
+              jours pour envoyer une nouvelle version (trois au plus) ou renoncer.
               Refuser un devis le clôt pour cet artisan, qui lit votre motif, et
               libère la place pour en solliciter un autre.
             </p>
           </div>
+        )}
+
+        {/* L'HISTORIQUE DES VERSIONS (D18, livraison 2) — repliable : chaque version renvoyée en révision, avec ce qui
+            a été demandé et quand. Seule la dernière version d'un artisan se retient ; celles-ci se relisent. */}
+        {revises.length > 0 && (
+          <details className="border-t border-border pt-3" data-devis-versions>
+            <summary className="min-h-11 cursor-pointer text-sm font-medium">
+              Versions précédentes ({revises.length})
+            </summary>
+            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              {revises.map((d) => (
+                <div key={d.id} className="space-y-2 rounded-md border border-border p-3">
+                  <div className="entete-carte !mb-0">
+                    <b className="min-w-0 truncate text-sm">{nom(d.artisan_id)}</b>
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <span className="puce puce-encre">v{d.version ?? 1}</span>
+                      <span className={COULEURS_DEVIS[d.statut] ?? "puce puce-grise"}>
+                        {STATUTS_DEVIS[d.statut] ?? "État à vérifier"}
+                      </span>
+                    </span>
+                  </div>
+                  <p className="chiffre montant font-heading text-2xl text-[var(--encre)]">
+                    {montant(d.montant_ttc_cents)}
+                  </p>
+                  <div className="ligne-info">
+                    <span>Déposée le</span>
+                    <span>{formaterDate(d.depose_le)}</span>
+                  </div>
+                  <div className="ligne-info">
+                    <span>Révision demandée le</span>
+                    <span>{formaterDate(d.decide_le)}</span>
+                  </div>
+                  {d.decision_motif && (
+                    <p className="text-sm">Ce que vous avez demandé : « {d.decision_motif} »</p>
+                  )}
+                  {d.note_revision && (
+                    <p className="text-sm text-muted-foreground">Ce qui changeait dans cette version : « {d.note_revision} »</p>
+                  )}
+                  <CorpsDevis orgId={orgId} d={d} versionAncienne />
+                </div>
+              ))}
+            </div>
+          </details>
         )}
 
         {/* LES DEVIS REFUSÉS (D18, livraison 1) — en lecture seule, avec le motif que l'artisan a reçu. */}
@@ -1262,12 +1353,16 @@ export function ConsultationOuverte({
 }
 
 // Ce que l'agent lit d'un devis, retenable ou non : le détail, le PDF et la pièce déposée par l'artisan.
-function CorpsDevis({ orgId, d }: { orgId: string; d: Devis }) {
+// D18 (livraison 2) : le PDF « du jour » de la demande est celui de la DERNIÈRE version ; une version ancienne garde
+// sa pièce classée (document_id), pas ce lien.
+function CorpsDevis({ orgId, d, versionAncienne = false }: { orgId: string; d: Devis; versionAncienne?: boolean }) {
   return (
     <>
       <p className="whitespace-pre-line text-sm text-muted-foreground">{descriptionDevisLisible(d.description)}</p>
       <DetailDevis lignes={d.lignes} />
-      <a href={`/api/devis/${d.sollicitation_id}/pdf`} target="_blank" rel="noreferrer" className="lien-discret">Télécharger le détail du devis (PDF)</a>
+      {!versionAncienne && (
+        <a href={`/api/devis/${d.sollicitation_id}/pdf`} target="_blank" rel="noreferrer" className="lien-discret">Télécharger le détail du devis (PDF)</a>
+      )}
       {d.document_id && (
         <a
           href={`/agence/${orgId}/documents/${d.document_id}/fichier`}

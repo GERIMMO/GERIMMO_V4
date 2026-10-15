@@ -1,5 +1,6 @@
 import { chargerFicheArtisan, chargerSollicitations, verifierAccesArtisan } from "../acces";
 import { CarteSollicitation } from "../carte-sollicitation";
+import { demandeAChiffrer } from "../libelles";
 import { EnteteSousPage, Erreur, Succes, TitreSection, Vide } from "../ui";
 
 // Un seul nom pour cet écran : « Demandes de devis », comme son titre (24/09).
@@ -30,7 +31,8 @@ export default async function PageDevisArtisan(props: PageProps<"/artisan/devis"
     chargerSollicitations(),
   ]);
 
-  const aChiffrer = sollicitations.lignes.filter((l) => l.statut === "envoyee");
+  // D18 (livraison 2) : une demande en révision attend de nouveau un devis — elle revient en tête, avec son échéance.
+  const aChiffrer = sollicitations.lignes.filter((l) => demandeAChiffrer(l.statut));
   const envoyes = sollicitations.lignes.filter((l) => STATUTS_DEVIS_ENVOYE.includes(l.statut));
   const sansSuite = sollicitations.lignes.filter((l) => STATUTS_SANS_SUITE.includes(l.statut));
 

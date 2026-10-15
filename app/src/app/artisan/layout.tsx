@@ -13,7 +13,7 @@ import {
   chargerAgenda,
   chargerSollicitations,
 } from "./acces";
-import { degreEcheance } from "./libelles";
+import { degreEcheance, demandeAChiffrer } from "./libelles";
 
 // Un seul suffixe pour tout l'espace (audit du 13/10, DES-B-07) : les pages ne
 // donnent que le nom de l'écran, le gabarit y ajoute « — Gerimmo ». Il ne
@@ -105,8 +105,9 @@ export default async function LayoutArtisan({
       (l) =>
         l.statut === "proposee" || (l.statut === "en_cours" && !l.compte_rendu_depose)
     ).length ?? 0;
+  // D18 (livraison 2) : une révision demandée compte comme un devis à chiffrer.
   const devisAChiffrer =
-    sollicitations?.lignes.filter((l) => l.statut === "envoyee").length ?? 0;
+    sollicitations?.lignes.filter((l) => demandeAChiffrer(l.statut)).length ?? 0;
   // Le seuil de la pastille est J-30, pas l'expiration : prévenu le jour où
   // l'assurance tombe, l'artisan est déjà retiré des listes d'affectation
   // pour les travaux qui l'exigent (RM-8.2.2). RM-8.2.5 échelonne J-60/J-30/

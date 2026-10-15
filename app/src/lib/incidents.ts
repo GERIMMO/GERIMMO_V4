@@ -186,6 +186,10 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   mission_annulee: "Mission annulée",
   // Décision D18 du 14/10 (migration 20261014600000, livraison 1) : le refus motivé d'un devis.
   devis_refuse: "Devis refusé",
+  // Décision D18 du 14/10 (migration 20261014601000, livraison 2) : la révision et ses versions.
+  devis_revision_demandee: "Révision de devis demandée",
+  devis_revise: "Nouvelle version du devis",
+  devis_revision_expiree: "Révision de devis sans réponse dans le délai",
 };
 
 export const PIECES_INCIDENT = [

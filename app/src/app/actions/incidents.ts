@@ -19,6 +19,7 @@ import {
   notifierMissionAnnulee,
   notifierMissionConfiee,
   notifierRendezVousFixe,
+  notifierRevisionDemandee,
 } from "@/lib/notifications";
 import { lireCleEnvoi } from "@/lib/cle-envoi";
 
@@ -780,6 +781,55 @@ export async function refuserDevis(
       : envoi.motif === "sans_adresse"
         ? "L'artisan n'a pas d'adresse e-mail : il lira le refus et son motif dans son espace."
         : "L'e-mail à l'artisan n'a pas pu partir ; il lira le refus et son motif dans son espace.",
+  };
+}
+
+/**
+ * Demander une révision d'un devis reçu (décision D18 du 14/10, livraison 2 ; fiches ART-13, PRO2-12). Le texte
+ * « ce que vous demandez » est obligatoire et TRANSMIS À L'ARTISAN ; la base fixe l'échéance de réponse (sept jours au
+ * jour de Paris, réponse A.15-3) et refuse au-delà de la troisième version (réponse A.15-2). Même clé d'envoi que le
+ * refus : un renvoi après une réponse perdue ne crée ni second événement ni second e-mail.
+ */
+export async function demanderRevisionDevis(
+  orgId: string,
+  devisId: string,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const valeurs = valeursDuFormulaire(formData);
+  const motif = String(formData.get("motif") ?? "").trim();
+  if (motif.length < MOTIF_DECISION_DEVIS.min) {
+    return { erreur: "Dites à l'artisan ce que vous demandez, en dix caractères au moins : ce texte lui est transmis.", valeurs };
+  }
+  if (motif.length > MOTIF_DECISION_DEVIS.max) {
+    return { erreur: "La demande de révision est trop longue : 4 000 caractères au plus.", valeurs };
+  }
+  const cleLue = lireCleEnvoi(formData.get("cle_envoi"));
+  if ("erreur" in cleLue) return { erreur: cleLue.erreur, valeurs };
+
+  const { data: nouvelle, error } = await supabase.rpc("demander_revision_devis", {
+    p_org: orgId,
+    p_devis: devisId,
+    p_motif: motif,
+    p_cle: cleLue.cle,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  revaliderIncident(orgId);
+  if (nouvelle === false) {
+    return { succes: "La révision de ce devis est déjà demandée : rien n'a été refait, l'artisan avait été prévenu." };
+  }
+  const envoi = await notifierRevisionDemandee(supabase, orgId, devisId);
+  return {
+    succes: "Révision demandée — l'artisan est prévenu, avec votre texte. Il a sept jours pour envoyer une nouvelle version ou renoncer ; vous serez alerté à sa réponse.",
+    avertissement: envoi.envoyee
+      ? undefined
+      : envoi.motif === "sans_adresse"
+        ? "L'artisan n'a pas d'adresse e-mail : il lira la demande dans son espace."
+        : "L'e-mail à l'artisan n'a pas pu partir ; il lira la demande dans son espace.",
   };
 }
 

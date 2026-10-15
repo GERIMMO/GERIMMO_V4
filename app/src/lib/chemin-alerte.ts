@@ -104,6 +104,9 @@ const LIBELLES = new Map<string, string>([
   // Audit du 13/10 (PRO2-13, D19) : un devis reçu attend la décision du gérant
   // ou du propriétaire ; la retenir ferme l'alerte (déclencheur de base).
   ["devis_a_decider", "Examiner le devis reçu"],
+  // Décision D18 du 14/10 (livraison 2) : l'artisan n'a pas répondu à la demande de révision dans le délai ;
+  // le gérant retient un autre devis ou sollicite un autre artisan. L'alerte se ferme à la main (ou avec le dossier).
+  ["devis_revision_expiree", "Reprendre le dossier après la révision sans réponse"],
   // Audit du 27/09 : les deux alertes nées du cycle artisan ouvrent le
   // dossier d'incident, où se lisent la facture et les créneaux.
   ["facture_artisan_a_valider", "Contrôler la facture de l’artisan"],
@@ -176,6 +179,7 @@ export function cheminFicheAlerte(a: Alerte, orgId: string): string | null {
     type === "incident_conteste" ||
     type === "incident_imputation_a_reviser" ||
     type === "devis_a_decider" ||
+    type === "devis_revision_expiree" ||
     type === "facture_artisan_a_valider" ||
     type === "creneaux_arbitrage"
   ) {

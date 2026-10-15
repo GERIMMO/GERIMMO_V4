@@ -140,11 +140,32 @@ export type LigneSollicitation = {
     | "non_retenue"
     | "expiree"
     | "annulee"
-    | "refusee";
+    | "refusee"
+    | "revision_demandee";
   valide_jusqu_au: string | null;
   montant_ttc_cents: number | null;
-  /** D18 (livraison 1) : le motif de la décision prise sur SON devis (refus), tel que le client l'a écrit. */
+  /** D18 (livraison 1) : le motif de la décision prise sur SON devis (refus, révision), tel que le client l'a écrit. */
   decision_motif: string | null;
+  /** D18 (livraison 2) : la version de son dernier devis (1 sans révision), ce que le client demande, et jusqu'à quand. */
+  version: number | null;
+  revision_motif: string | null;
+  revision_avant: string | null;
+};
+
+/** D18 (livraison 2) : une version de son devis, telle que `mes_versions_devis` la rend (les siennes seules). */
+export type VersionDevis = {
+  devis_id: string;
+  version: number;
+  statut: "depose" | "retenu" | "non_retenu" | "expire" | "annule" | "refuse" | "revise";
+  montant_ttc_cents: number;
+  valide_jusqu_au: string;
+  depose_le: string;
+  note_revision: string | null;
+  decision: "refus" | "revision" | null;
+  decision_motif: string | null;
+  decide_le: string | null;
+  description: string;
+  lignes: unknown[];
 };
 
 export type PieceArtisan = {
@@ -219,6 +240,15 @@ export const chargerSollicitations = cache(async function chargerSollicitations(
   if (!fiche) return { lignes: [] as LigneSollicitation[], erreur: false };
   const { data, error } = await supabase.rpc("mes_sollicitations");
   return { lignes: (data ?? []) as LigneSollicitation[], erreur: Boolean(error) };
+});
+
+/** D18 (livraison 2) : l'historique des versions de SON devis sur une demande ; vide pour une demande qui n'est pas la sienne. */
+export const chargerVersionsDevis = cache(async function chargerVersionsDevis(sollicitationId: string) {
+  if (!estUuid(sollicitationId)) return { lignes: [] as VersionDevis[], erreur: false };
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as VersionDevis[], erreur: false };
+  const { data, error } = await supabase.rpc("mes_versions_devis", { p_sollicitation: sollicitationId });
+  return { lignes: (data ?? []) as VersionDevis[], erreur: Boolean(error) };
 });
 
 export const chargerPieces = cache(async function chargerPieces() {

@@ -4,8 +4,7 @@ import {lireSourceEtude,etudierVeille,type SourceEtude} from '@/lib/analyse-veil
 import {FLUX_VEILLE,lireFluxVeille,chargerFluxVeille} from '@/lib/veille-reglementaire';
 import {porteurDuSecret,consignerTache} from '@/lib/tache';
 import {clientDeService} from '@/lib/supabase/service';
-export const dynamic='force-dynamic';export const maxDuration=60;
-export async function GET(request:Request){
+export async function traiterVeille(request:Request){
  if(!porteurDuSecret(request,process.env.CRON_SECRET))return Response.json({erreur:'Non autorisé.'},{status:401});
  const db=clientDeService();if(!db)return Response.json({erreur:'Connexion indisponible.'},{status:503});
  let preparees=0;const echecs:string[]=[];

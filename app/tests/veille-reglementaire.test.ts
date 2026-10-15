@@ -47,7 +47,7 @@ describe('Journal : ce que la veille y relaie',()=>{
   expect(descriptionArticle({seo_description:long.slice(0,100),chapo:long})).toBe(couperAuMot(long,160));
  });
  it('le relais automatique ne choisit qu\'un sujet pertinent (filtre réglable, 06/10)',()=>{
-  const route=readFileSync(path.resolve(__dirname,'../src/app/api/cron/marketing/route.ts'),'utf8');
+  const route=readFileSync(path.resolve(__dirname,'../src/lib/missions-planifiees/marketing.ts'),'utf8');
   expect(route).toContain('evaluerPertinence(');
   expect(route).toContain('seo_description:couperAuMot(');
  });

@@ -56,8 +56,6 @@ import { consignerTache } from "@/lib/tache";
 import { adresseDuSite } from "@/lib/site";
 import { timingSafeEqual } from "node:crypto";
 
-export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 type Ligne = {
   quittance_id: string;
@@ -86,7 +84,7 @@ function memeSecret(fourni: string, attendu: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-export async function GET(request: Request) {
+export async function traiterQuittances(request: Request) {
   const attendu = process.env.CRON_SECRET;
   if (!attendu) {
     // Pas de secret configuré = pas d'envoi. Le silence vaut mieux qu'une

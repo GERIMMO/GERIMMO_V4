@@ -36,8 +36,6 @@ import {
 
 import { artisansVerifiesParDepartement, fusionnerMarche, lireTerritoire, moisPrecedent, publiciteParDepartement, type ArtisanTerritorial, type LigneMarche, type MesurePublicitaire } from "@/lib/mesures-territoire";
 
-export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 /** Comparaison à temps constant, sans fuir la longueur du secret. */
 function memeSecret(fourni: string, attendu: string): boolean {
@@ -52,7 +50,7 @@ const ETATS_OUVERTS = ["nouveau", "en_examen", "en_cours"];
 // N1 est la gravité la plus haute du module 20 (bloquant / majeur / mineur).
 const GRAVITE_BLOQUANTE = "N1";
 
-export async function GET(request: Request) {
+export async function traiterTerritoire(request: Request) {
   const attendu = process.env.CRON_SECRET;
   if (!attendu) {
     return Response.json(

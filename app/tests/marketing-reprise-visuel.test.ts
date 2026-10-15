@@ -7,7 +7,7 @@
  * le dernier essai date de plus d'une heure — jamais dans la même passe.
  */
 import { describe, expect, it } from "vitest";
-import { visuelReprenable } from "../src/app/api/cron/marketing/route";
+import { visuelReprenable } from "../src/lib/missions-planifiees/marketing";
 
 const T0 = Date.parse("2026-09-25T08:00:00Z");
 const article = (x: Partial<Parameters<typeof visuelReprenable>[0]> = {}) => ({

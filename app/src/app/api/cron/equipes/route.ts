@@ -1,14 +1,23 @@
-import {GET as veille} from '../veille/route';
-import {GET as appels} from '../appels/route';
-import {GET as quittances} from '../quittances/route';
-import {GET as relances} from '../relances/route';
-import {GET as rappels} from '../rappels/route';
-import {GET as abonnements} from '../abonnements/route';
-import {GET as signatures} from '../signatures/route';
-import {GET as marketing} from '../marketing/route';
-import {GET as territoire} from '../territoire/route';
-import {GET as purge} from '../purge/route';
-import {appelAutorise as appelMarketingAutorise} from '../marketing/route';
+// L'ENTRÉE UNIQUE DES MISSIONS PLANIFIÉES (X04, AUD-C-07, décision du 14/10/2026).
+//
+// Chaque mission (veille, avis d'échéance, quittances, relances, rappels, abonnements, signatures,
+// marketing, territoire, purge) ne s'exécute QUE d'ici, à l'intérieur de `executerMission` : une passe à la fois
+// (`commencer_mission`), mission en pause respectée, arrêt d'urgence consulté. Leurs traitements vivent dans
+// src/lib/missions-planifiees/, hors de toute route : il n'existe plus de `/api/cron/<mission>` à appeler
+// directement avec le secret, sans ce verrou (deux passes simultanées d'une mission qui envoie des courriels
+// pouvaient se chevaucher). Le suivi des dossiers (`/api/cron/orchestrateur`) reste à part : il est idempotent et
+// verrouillé en base. tests/cron-entree-unique.test.ts garde cette règle.
+import {traiterVeille as veille} from '@/lib/missions-planifiees/veille';
+import {traiterAppels as appels} from '@/lib/missions-planifiees/appels';
+import {traiterQuittances as quittances} from '@/lib/missions-planifiees/quittances';
+import {traiterRelances as relances} from '@/lib/missions-planifiees/relances';
+import {traiterRappels as rappels} from '@/lib/missions-planifiees/rappels';
+import {traiterAbonnements as abonnements} from '@/lib/missions-planifiees/abonnements';
+import {traiterSignatures as signatures} from '@/lib/missions-planifiees/signatures';
+import {traiterMarketing as marketing} from '@/lib/missions-planifiees/marketing';
+import {traiterTerritoire as territoire} from '@/lib/missions-planifiees/territoire';
+import {traiterPurge as purge} from '@/lib/missions-planifiees/purge';
+import {appelAutorise as appelMarketingAutorise} from '@/lib/missions-planifiees/marketing';
 import {porteurDuSecret} from '@/lib/tache';
 import {clientDeService} from '@/lib/supabase/service';
 import {estMission} from '@/lib/missions';

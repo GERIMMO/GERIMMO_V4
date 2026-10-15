@@ -10,7 +10,7 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { GET } from "../src/app/api/cron/territoire/route";
+import { traiterTerritoire as GET } from "../src/lib/missions-planifiees/territoire";
 
 const mocks = vi.hoisted(() => ({ client: vi.fn() }));
 vi.mock("@supabase/ssr", () => ({ createServerClient: mocks.client }));

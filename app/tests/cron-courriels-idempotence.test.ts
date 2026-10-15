@@ -91,7 +91,7 @@ describe("quittances", () => {
   }
 
   it("une quittance non marquée, reprise dans les 24 h (relance manuelle, seconde passe), n'est envoyée qu'une fois", async () => {
-    const { GET } = await import("../src/app/api/cron/quittances/route");
+    const { traiterQuittances: GET } = await import("../src/lib/missions-planifiees/quittances");
     banc({ erreur: true });
     await GET(appel("quittances"));
     const premiere = fournisseur.cles();
@@ -106,7 +106,7 @@ describe("quittances", () => {
   });
 
   it("à la cadence réelle (une passe par jour), la reprise est au bord de la fenêtre de 24 h : un peu avant, pas de doublon", async () => {
-    const { GET } = await import("../src/app/api/cron/quittances/route");
+    const { traiterQuittances: GET } = await import("../src/lib/missions-planifiees/quittances");
     banc({ erreur: true });
     await GET(appel("quittances"));
     // 07:00:03 un jour, 07:00:01 le suivant : 23 h 59 min 58 s.
@@ -116,7 +116,7 @@ describe("quittances", () => {
   });
 
   it("RISQUE RÉSIDUEL DE D47 : un peu après les 24 h, la clé est oubliée et la reprise renvoie la quittance", async () => {
-    const { GET } = await import("../src/app/api/cron/quittances/route");
+    const { traiterQuittances: GET } = await import("../src/lib/missions-planifiees/quittances");
     banc({ erreur: true });
     await GET(appel("quittances"));
     // 07:00:03 un jour, 07:00:05 le suivant : 24 h et 2 s. La gigue de lancement
@@ -128,7 +128,7 @@ describe("quittances", () => {
   });
 
   it("un reçu partiel envoyé, puis la MÊME ligne promue en quittance : la quittance part à la passe suivante, sans refus du service", async () => {
-    const { GET } = await import("../src/app/api/cron/quittances/route");
+    const { traiterQuittances: GET } = await import("../src/lib/missions-planifiees/quittances");
     // `resynchroniser_quittances` révise la même ligne (même id) quand l'encaissé
     // change : elle passe de reçu à quittance, change de montant et redevient « à envoyer ».
     let courante = { ...ligne, est_quittance: false, montant: 400 };
@@ -154,7 +154,7 @@ describe("quittances", () => {
   });
 
   it("la même ligne, inchangée, reste un seul courrier même si une passe la reprend (la clé ne bouge pas sans raison)", async () => {
-    const { GET } = await import("../src/app/api/cron/quittances/route");
+    const { traiterQuittances: GET } = await import("../src/lib/missions-planifiees/quittances");
     banc({ erreur: true });
     await GET(appel("quittances"));
     await GET(appel("quittances"));
@@ -164,7 +164,7 @@ describe("quittances", () => {
   });
 
   it("un envoi accepté mais coupé par le délai : échec consigné, rien de marqué, pas de doublon à la passe suivante", async () => {
-    const { GET } = await import("../src/app/api/cron/quittances/route");
+    const { traiterQuittances: GET } = await import("../src/lib/missions-planifiees/quittances");
     banc({ erreur: false });
     fournisseur.definirMode("accepte-puis-muet");
     const r1 = await GET(appel("quittances"));
@@ -196,7 +196,7 @@ describe("avis d'échéance", () => {
   }
 
   it("chaque destinataire a sa clé (le colocataire n'est pas pris pour un doublon du principal) et la reprise ne double rien", async () => {
-    const { GET } = await import("../src/app/api/cron/appels/route");
+    const { traiterAppels: GET } = await import("../src/lib/missions-planifiees/appels");
     banc({ erreur: true });
     await GET(appel("appels"));
     const premiere = fournisseur.cles();
@@ -212,7 +212,7 @@ describe("avis d'échéance", () => {
   });
 
   it("le montant dû change entre deux passes (un règlement est arrivé) : le nouvel avis part, le service ne refuse pas", async () => {
-    const { GET } = await import("../src/app/api/cron/appels/route");
+    const { traiterAppels: GET } = await import("../src/lib/missions-planifiees/appels");
     // Marquage en échec à la première passe : l'avis reste « à envoyer ».
     let courante: typeof ligne = { ...ligne, autres_destinataires: [] };
     let marquageEnErreur = true;
@@ -236,7 +236,7 @@ describe("avis d'échéance", () => {
   });
 
   it("le montant dû ne change pas : la reprise ne double rien (la clé ne bouge pas sans raison)", async () => {
-    const { GET } = await import("../src/app/api/cron/appels/route");
+    const { traiterAppels: GET } = await import("../src/lib/missions-planifiees/appels");
     banc({ erreur: true });
     await GET(appel("appels"));
     fournisseur.avancer(3_600_000);
@@ -246,7 +246,7 @@ describe("avis d'échéance", () => {
   });
 
   it("un envoi accepté mais coupé par le délai : avis non marqué, repris sans doublon", async () => {
-    const { GET } = await import("../src/app/api/cron/appels/route");
+    const { traiterAppels: GET } = await import("../src/lib/missions-planifiees/appels");
     banc({ erreur: false });
     fournisseur.definirMode("accepte-puis-muet");
     await GET(appel("appels"));
@@ -279,7 +279,7 @@ describe("relances de loyer", () => {
   }
 
   it("locataire, colocataire et caution ont chacun leur clé ; la reprise après une consignation en échec ne double rien", async () => {
-    const { GET } = await import("../src/app/api/cron/relances/route");
+    const { traiterRelances: GET } = await import("../src/lib/missions-planifiees/relances");
     banc({ erreur: true });
     await GET(appel("relances"));
     const premiere = fournisseur.cles();
@@ -296,7 +296,7 @@ describe("relances de loyer", () => {
   });
 
   it("le reste dû change entre deux passes (un règlement partiel est arrivé) : la relance part au bon montant, le service ne refuse pas", async () => {
-    const { GET } = await import("../src/app/api/cron/relances/route");
+    const { traiterRelances: GET } = await import("../src/lib/missions-planifiees/relances");
     let courante = { ...ligne, autres_destinataires: [], garants: [] };
     let consignationEnErreur = true;
     rpc.mockImplementation(async (fn: string) => {
@@ -319,7 +319,7 @@ describe("relances de loyer", () => {
   });
 
   it("l'information de la caution suit aussi le total dû qu'elle annonce", async () => {
-    const { GET } = await import("../src/app/api/cron/relances/route");
+    const { traiterRelances: GET } = await import("../src/lib/missions-planifiees/relances");
     let courante = { ...ligne, autres_destinataires: [] };
     rpc.mockImplementation(async (fn: string) => {
       if (fn === "relances_loyer_dues") return { data: [courante], error: null };
@@ -335,7 +335,7 @@ describe("relances de loyer", () => {
   });
 
   it("un envoi accepté mais coupé par le délai : rien n'est consigné, la reprise ne double pas", async () => {
-    const { GET } = await import("../src/app/api/cron/relances/route");
+    const { traiterRelances: GET } = await import("../src/lib/missions-planifiees/relances");
     banc({ erreur: false });
     fournisseur.definirMode("accepte-puis-muet");
     await GET(appel("relances"));
@@ -370,7 +370,7 @@ describe("rappels de rendez-vous", () => {
   }
 
   it("le locataire et l'artisan ont chacun leur clé ; un rappel non tracé, repris, n'est envoyé qu'une fois", async () => {
-    const { GET } = await import("../src/app/api/cron/rappels/route");
+    const { traiterRappels: GET } = await import("../src/lib/missions-planifiees/rappels");
     banc({ erreur: true });
     await GET(appel("rappels"));
     const premiere = fournisseur.cles();
@@ -384,7 +384,7 @@ describe("rappels de rendez-vous", () => {
   });
 
   it("un envoi accepté mais coupé par le délai : rappel non tracé, repris sans doublon", async () => {
-    const { GET } = await import("../src/app/api/cron/rappels/route");
+    const { traiterRappels: GET } = await import("../src/lib/missions-planifiees/rappels");
     banc({ erreur: false });
     fournisseur.definirMode("accepte-puis-muet");
     await GET(appel("rappels"));

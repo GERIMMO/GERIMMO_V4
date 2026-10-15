@@ -83,7 +83,7 @@ function memeSecret(fourni: string, attendu: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-export async function GET(request: Request) {
+export async function traiterRelances(request: Request) {
   const attendu = process.env.CRON_SECRET;
   if (!attendu) {
     return Response.json(

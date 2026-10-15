@@ -312,7 +312,7 @@ describe("relances automatiques : tous les colocataires", () => {
   });
   afterEach(() => vi.unstubAllEnvs());
   it("écrit au principal et à chaque colocataire, et consigne une seule relance", async () => {
-    const { GET } = await import("../src/app/api/cron/relances/route");
+    const { traiterRelances: GET } = await import("../src/lib/missions-planifiees/relances");
     const r = await GET(new Request("https://x/api/cron/relances", { headers: { authorization: "Bearer secret-de-recette" } }));
     expect(await r.json()).toMatchObject({ envoyees: 1, echecs: 0 });
     expect(envois.destinataires).toEqual(["claire@exemple.fr", "leo@exemple.fr"]);

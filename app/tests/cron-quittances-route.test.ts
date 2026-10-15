@@ -9,7 +9,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { GET } from "../src/app/api/cron/quittances/route";
+import { traiterQuittances as GET } from "../src/lib/missions-planifiees/quittances";
 import { proxy } from "../src/proxy";
 
 const SECRET = "secret-de-recette-suffisamment-long";
@@ -75,7 +75,8 @@ describe("le contrôle d'authentification laisse passer les tâches", () => {
   it("/api/cron/* ne part pas vers /connexion", async () => {
     // Une tâche planifiée n'a pas de session : sans cette exception, le proxy
     // la redirigerait vers la page de connexion et rien ne partirait jamais.
-    const r = await proxy(new NextRequest("https://exemple.fr/api/cron/quittances"));
+    // Depuis X04 (14/10), la mission passe par la route d'équipes, son entrée unique.
+    const r = await proxy(new NextRequest("https://exemple.fr/api/cron/equipes?mission=quittances"));
     expect(r.status).toBe(200);
     expect(r.headers.get("location")).toBeNull();
   });

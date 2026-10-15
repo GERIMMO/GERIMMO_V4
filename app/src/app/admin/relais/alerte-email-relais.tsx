@@ -1,4 +1,5 @@
 import { formaterDateHeureParis } from "@/lib/heure-paris";
+import { PHRASE_CANAUX_RELAIS, PLAFOND_URGENCES_PAR_HEURE } from "@/lib/relais-urgences";
 import {
   avertissementAdresses,
   descriptionRelais,
@@ -10,7 +11,8 @@ import {
 
 /**
  * L'alerte e-mail du relais, telle qu'elle est vraiment (D46-B, 15/10/2026) : vers combien d'adresses (masquées), ou
- * « relais non configuré » ; ce qu'elle signale ; la date et le résultat du dernier passage et du dernier envoi.
+ * « relais non configuré » ; l'e-mail immédiat des urgences et l'e-mail quotidien de 5 h ; ce qu'ils signalent ; la date
+ * et le résultat du dernier passage et du dernier envoi de 5 h.
  * Les adresses viennent du réglage du serveur : seule leur forme masquée arrive ici.
  */
 export function AlerteEmailRelais({ adresses, passages }: { adresses: AdressesRelais; passages: PassageRelais[] | null }) {
@@ -22,10 +24,19 @@ export function AlerteEmailRelais({ adresses, passages }: { adresses: AdressesRe
       <h2 className="text-xl font-semibold">Alerte e-mail du relais</h2>
       <p><strong>{descriptionRelais(adresses)}</strong></p>
       {avertissement && <p role="alert" className="err">{avertissement}</p>}
+      {/* Décision du 15/10/2026 : envoi immédiat pour les urgences, en plus de l'e-mail quotidien de 5 h. */}
+      {adresses.configure && <p><strong>{PHRASE_CANAUX_RELAIS}</strong></p>}
       <p className="text-sm">
-        Elle signale, en nombres seulement : les alertes du mode vacances non accusées, les tâches planifiées en échec ou
-        absentes sur les dernières 24 h, et l’arrêt d’urgence s’il est actif. Sans rien à signaler, aucun e-mail ne part.
-        Elle ne contient ni nom ni montant, et l’arrêt d’urgence ne la coupe pas : il fait partie de ce qu’elle signale.
+        Une urgence est une alerte nouvelle du mode vacances : un passage à reprendre, une lecture bloquée, un responsable
+        qui perd son habilitation ou un signalement fait à la main. Son e-mail immédiat part une seule fois, sans son texte,
+        au plus {PLAFOND_URGENCES_PAR_HEURE} fois par heure : au-delà, les urgences suivantes partent groupées dans l’envoi
+        suivant ou dans l’e-mail de 5 h, qui rappelle aussi les urgences des dernières 24 h, envoyées ou non.
+      </p>
+      <p className="text-sm">
+        L’e-mail de 5 h signale, en nombres seulement : les alertes du mode vacances non accusées, les tâches planifiées en
+        échec ou absentes sur les dernières 24 h, et l’arrêt d’urgence s’il est actif. Sans rien à signaler, aucun e-mail ne
+        part. Ni l’un ni l’autre ne contient de nom ni de montant, et l’arrêt d’urgence ne les coupe pas : ce sont des
+        alertes au dirigeant, sans effet sur les utilisateurs, et l’arrêt fait partie de ce qu’elles signalent.
       </p>
       {passages === null ? (
         <p role="alert" className="err">Le dernier passage du relais n’a pas pu être lu.</p>

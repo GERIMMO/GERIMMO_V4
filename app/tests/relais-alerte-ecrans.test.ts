@@ -41,16 +41,31 @@ describe("l'écran de l'alerte e-mail du relais", () => {
 
   it("deux adresses : le nombre et les adresses masquées, jamais les adresses entières", () => {
     const html = rendre("relais@example.com, second@example.org", [passage({})]);
-    expect(html).toContain("Alerte e-mail quotidienne à 5 h (heure de Paris) vers 2 adresses : r•••@example.com, s•••@example.org.");
+    expect(html).toContain("Alerte e-mail quotidienne à 5 h (heure de Paris) vers 2 adresses : re•••is@example.com, se•••nd@example.org.");
     expect(html).not.toContain("relais@example.com");
     expect(html).not.toContain("second@example.org");
-    expect(html).toContain("l’arrêt d’urgence ne la coupe pas");
+    expect(html).toContain("l’arrêt d’urgence ne les coupe pas");
     expect(html).toContain("Sans rien à signaler, aucun e-mail ne part.");
+  });
+
+  // Décision du 15/10 : envoi immédiat pour les urgences ; la console le dit, avec le délai et l'arrêt d'urgence.
+  it("relais configuré : « Urgences : e-mail immédiat (délai au plus 1 min) ; autres alertes : e-mail quotidien à 5 h (Paris) »", () => {
+    const html = rendre("relais@example.com, second@example.org", [passage({})]);
+    expect(html).toContain("Urgences : e-mail immédiat (délai au plus 1 min) ; autres alertes : e-mail quotidien à 5 h (Paris).");
+    expect(html).toContain("Son e-mail immédiat part une seule fois, sans son texte, au plus 6 fois par heure");
+    expect(html).toContain("dans l’envoi suivant ou dans l’e-mail de 5 h, qui rappelle aussi les urgences des dernières 24 h, envoyées ou non.");
+    expect(html).toContain("l’arrêt d’urgence ne les coupe pas : ce sont des alertes au dirigeant, sans effet sur les utilisateurs");
+  });
+
+  it("relais non configuré : aucune promesse d'e-mail immédiat", () => {
+    const html = rendre(undefined, []);
+    expect(html).not.toContain("Urgences : e-mail immédiat");
+    expect(html).toContain("Relais non configuré : aucune alerte e-mail ne part.");
   });
 
   it("signale les adresses invalides ignorées", () => {
     const html = rendre("relais@example.com, pas-une-adresse", [passage({})]);
-    expect(html).toContain("vers 1 adresse : r•••@example.com.");
+    expect(html).toContain("vers 1 adresse : re•••is@example.com.");
     expect(html).toContain("1 adresse du réglage est invalide ou en trop et a été ignorée.");
     expect(html).not.toContain("pas-une-adresse");
   });
@@ -69,6 +84,13 @@ describe("l'écran de l'alerte e-mail du relais", () => {
     expect(rendre("relais@example.com", [passage({ statut: "envoi_partiel", envoyes: 1, destinataires: 2, points: 2 })]))
       .toContain("e-mail envoyé à 1 adresse sur 2 ; les autres envois ont échoué (2 points signalés)");
     expect(rendre("relais@example.com", [passage({ statut: "non_configure", points: 1 })])).toContain("relais non configuré, aucun e-mail envoyé");
+  });
+
+  it("un e-mail de 5 h parti pour le seul rappel des urgences ne dit pas « 0 point » (décision du 15/10)", () => {
+    expect(rendre("relais@example.com", [passage({ statut: "envoye", envoyes: 1, points: 0, compteurs: { urgences_24h: 2 } })]))
+      .toContain("e-mail envoyé à 1 adresse (rappel de 2 urgences des dernières 24 h)");
+    expect(rendre("relais@example.com", [passage({ statut: "envoye", envoyes: 1, points: 3, compteurs: { urgences_24h: 1 } })]))
+      .toContain("e-mail envoyé à 1 adresse (3 points signalés, 1 urgence rappelée)");
   });
 
   it("configuré mais sans passage depuis plus de 26 h : le dit", () => {
@@ -110,7 +132,7 @@ describe("l'écran Santé et l'alerte e-mail du relais", () => {
     vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.com,second@example.org");
     mocks.createClient.mockResolvedValue(client());
     const html = renderToStaticMarkup(await PageSante());
-    expect(html).toContain("à 5 h (heure de Paris), signale aussi les tâches en échec ou absentes sur les dernières 24 h, vers 2 adresses : r•••@example.com, s•••@example.org.");
+    expect(html).toContain("à 5 h (heure de Paris), signale aussi les tâches en échec ou absentes sur les dernières 24 h, vers 2 adresses : re•••is@example.com, se•••nd@example.org.");
     expect(html).not.toContain("relais@example.com");
     expect(html).toContain("/admin/relais#alerte-email");
   });

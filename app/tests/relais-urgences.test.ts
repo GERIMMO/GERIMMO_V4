@@ -641,3 +641,31 @@ describe("les adresses masquées restent distinctes", () => {
     }
   });
 });
+
+// ── Aucune adresse réelle dans le dépôt (le dépôt est public) ──────────────────────────────────────────────────────
+
+describe("aucune adresse réelle dans le dépôt", () => {
+  it("les fichiers du relais ne citent que des adresses d'exemple (domaines réservés), et la variable des adresses est vide dans .env.example", () => {
+    const fichiers = [
+      ...readdirSync("src/lib").filter((f) => f.startsWith("relais-")).map((f) => join("src/lib", f)),
+      "src/app/api/cron/relais/route.ts",
+      ...readdirSync("src/app/admin/relais").map((f) => join("src/app/admin/relais", f)),
+      "src/app/admin/sante/page.tsx",
+      ...readdirSync("supabase/migrations").filter((f) => f.startsWith("2026101481")).map((f) => join("supabase/migrations", f)),
+      ...readdirSync("supabase/retours-arriere").filter((f) => f.startsWith("2026101481")).map((f) => join("supabase/retours-arriere", f)),
+      ...readdirSync("tests").filter((f) => f.startsWith("relais-") || f === "cron-relais-route.test.ts").map((f) => join("tests", f)),
+      "vercel.json",
+    ];
+    expect(fichiers.length).toBeGreaterThan(20);
+    const RESERVES = /@(example\.(com|org|net|invalid)|[a-z0-9.-]+\.(test|invalid|example))$/i;
+    for (const f of fichiers) {
+      for (const adresse of readFileSync(f, "utf8").match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) ?? []) {
+        expect(adresse, `${f} : ${adresse}`).toMatch(RESERVES);
+      }
+    }
+    const exemple = readFileSync(".env.example", "utf8");
+    expect(exemple).toMatch(/^GERIMMO_RELAIS_EMAILS=$/m);
+    const commentaire = exemple.slice(exemple.indexOf("# Alerte e-mail quotidienne du relais"), exemple.indexOf("GERIMMO_RELAIS_EMAILS="));
+    for (const adresse of commentaire.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) ?? []) expect(adresse).toMatch(RESERVES);
+  });
+});

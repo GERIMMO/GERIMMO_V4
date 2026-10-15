@@ -847,16 +847,42 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
     await db.query("update public.artisans set statut_plateforme='valide', siret_etat='verifie' where id=$1", [artisan]);
     expect(await ligne(bienParis)).toMatchObject({ sollicitable_plateforme: true, zone_couvre: true, decennale_valide: true });
     // Fidélité : « aucun motif » équivaut à artisan_affectable, pour chaque bien et chaque nature de travaux.
-    for (const bien of [bienParis, bienBordeaux]) {
-      for (const nature of ["entretien_courant", "gros_oeuvre"]) {
-        const l = await ligne(bien);
-        const sansMotif = l.relation_active && l.sollicitable_plateforme && l.metiers.includes("plomberie") && l.zone_couvre
-          && (nature === "entretien_courant" || l.decennale_valide);
-        await postgres();
-        const affectable = (await db.query("select public.artisan_affectable($1,$2,'plomberie',$3::public.nature_travaux,$4) a", [artisan, org, nature, l.code_postal])).rows[0].a;
-        expect(sansMotif, `${l.code_postal} ${nature}`).toBe(affectable);
+    const fidele = async (etat: string) => {
+      for (const bien of [bienParis, bienBordeaux]) {
+        for (const nature of ["entretien_courant", "gros_oeuvre"]) {
+          const l = await ligne(bien);
+          const sansMotif = l.relation_active && l.sollicitable_plateforme && l.metiers.includes("plomberie") && l.zone_couvre
+            && (nature === "entretien_courant" || l.decennale_valide);
+          await postgres();
+          const affectable = (await db.query("select public.artisan_affectable($1,$2,'plomberie',$3::public.nature_travaux,$4) a", [artisan, org, nature, l.code_postal])).rows[0].a;
+          expect(sansMotif, `${etat} : ${l.code_postal} ${nature}`).toBe(affectable);
+        }
       }
-    }
+    };
+    await fidele("relation active, SIRET vérifié, sans exclusion");
+    expect((await ligne(bienParis)).relation_active && (await ligne(bienParis)).sollicitable_plateforme).toBe(true);
+    // Troisième relecture du 15/10 (mutants H3, H4, H4b) : les trois barrières que la boucle ci-dessus n'éprouvait pas.
+    // Chacune seule doit retirer le drapeau qui la porte, et l'égalité avec artisan_affectable doit tenir.
+    // 1. Liste noire LOCALE (statut laissé « actif » exprès : seule la liste noire retire la relation).
+    await postgres();
+    await db.query("update public.artisan_agences set blacklist_le=now(), blacklist_motif='Retards répétés' where organization_id=$1 and artisan_id=$2", [org, artisan]);
+    expect(await ligne(bienParis)).toMatchObject({ relation_active: false, sollicitable_plateforme: true });
+    await fidele("liste noire locale");
+    await postgres();
+    await db.query("update public.artisan_agences set blacklist_le=null, blacklist_motif=null where organization_id=$1 and artisan_id=$2", [org, artisan]);
+    // 2. SIRET non vérifié.
+    await db.query("update public.artisans set siret_etat='non_verifie' where id=$1", [artisan]);
+    expect(await ligne(bienParis)).toMatchObject({ relation_active: true, sollicitable_plateforme: false });
+    await fidele("SIRET non vérifié");
+    await postgres();
+    await db.query("update public.artisans set siret_etat='verifie' where id=$1", [artisan]);
+    // 3. Liste noire GLOBALE de Gerimmo (avec son motif).
+    await db.query("update public.artisans set blacklist_globale_le=now(), blacklist_globale_motif='Fraude constatée' where id=$1", [artisan]);
+    expect(await ligne(bienParis)).toMatchObject({ relation_active: true, sollicitable_plateforme: false });
+    await fidele("liste noire globale");
+    await postgres();
+    await db.query("update public.artisans set blacklist_globale_le=null, blacklist_globale_motif=null where id=$1", [artisan]);
+    expect(await ligne(bienParis)).toMatchObject({ relation_active: true, sollicitable_plateforme: true });
     await postgres();
     await db.query("update public.artisan_agences set statut='desactive' where organization_id=$1 and artisan_id=$2", [org, artisan]);
     expect(await ligne(bienParis)).toMatchObject({ relation_active: false });
@@ -865,6 +891,47 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       await devenir(qui);
       expect(await echec("select * from public.carnet_artisans_bien($1,$2)", [org, bienParis])).toMatch(/Accès refusé/);
     }
+  });
+
+  // Troisième relecture du 15/10 (mutants A37b, H6) : le carnet d'une organisation ne rend QUE les artisans de SON carnet.
+  // Un artisan rattaché au carnet d'un autre propriétaire et d'une agence n'y apparaît jamais, ni sa raison sociale, ni
+  // son téléphone, ni ses métiers, ni sa zone.
+  it("étanchéité entre organisations : le carnet et le carnet d'un bien ne rendent que les artisans du carnet de cette organisation", async () => {
+    const r = await inviter();
+    const artisan = await inscrire();
+    expect(await repondre(r.id)).toEqual({ etat: "acceptee" });
+    await postgres();
+    const etranger = await id(
+      "insert into public.artisans(raison_sociale,siret,telephone,statut_plateforme,siret_etat,visibilite) values('Artisan d’un autre carnet',lpad((random()*10^13)::bigint::text,14,'0'),'0699999999','valide','verifie','publique') returning id"
+    );
+    await db.query("insert into public.artisan_metiers(artisan_id,metier) values($1,'plomberie')", [etranger]);
+    await db.query("insert into public.artisan_zones(artisan_id,code_postal) values($1,'75011')", [etranger]);
+    await db.query(
+      "insert into public.artisan_agences(organization_id,artisan_id,statut,created_by) values($1,$2,'actif',$3),($4,$2,'actif',$5)",
+      [autreOrg, etranger, autreProprietaire, agence, adminAgence]
+    );
+    const duCarnet = (await db.query("select artisan_id from public.artisan_agences where organization_id=$1", [org])).rows.map((l) => l.artisan_id);
+    expect(duCarnet).toEqual([artisan]);
+
+    const lignes = await carnet();
+    expect(lignes.map((l) => l.artisan_id)).not.toContain(etranger);
+    expect(JSON.stringify(lignes)).not.toContain("Artisan d’un autre carnet");
+    expect(JSON.stringify(lignes)).not.toContain("0699999999");
+    // Toute ligne rendue est une invitation de cette organisation ou un artisan de SON carnet.
+    for (const l of lignes) {
+      if (l.artisan_id !== null) expect(duCarnet, String(l.raison_sociale)).toContain(l.artisan_id);
+    }
+    expect(lignes.filter((l) => l.artisan_id !== null).map((l) => l.artisan_id)).toEqual([artisan]);
+
+    await devenir(proprietaire);
+    const duBien = (await db.query("select * from public.carnet_artisans_bien($1,$2)", [org, bienParis])).rows;
+    expect(duBien.map((l) => l.artisan_id).sort()).toEqual([...duCarnet].sort());
+    expect(JSON.stringify(duBien)).not.toContain("Artisan d’un autre carnet");
+
+    // Et l'autre propriétaire ne voit que le sien : l'artisan étranger, jamais celui de cette organisation.
+    await devenir(autreProprietaire);
+    const autres = (await db.query("select artisan_id from public.carnet_artisans_proprietaire($1)", [autreOrg])).rows.map((l) => l.artisan_id);
+    expect(autres).toEqual([etranger]);
   });
 
   it("la zone de l'artisan reste exigée : un bien hors de ses codes postaux ne le propose pas", async () => {

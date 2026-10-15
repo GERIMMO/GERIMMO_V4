@@ -345,3 +345,4 @@
 20261014503000_jour_de_paris_appels_et_quittances.sql
 20261014504000_jour_de_paris_encaissements.sql
 20261014600000_devis_refus_motive.sql
+20261014601000_devis_revision_versions.sql

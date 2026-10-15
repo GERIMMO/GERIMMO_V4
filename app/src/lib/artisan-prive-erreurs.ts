@@ -4,6 +4,7 @@
 // de « cette facture », un nom resté vide demandait de « joindre votre justificatif » sur un formulaire qui n'en a
 // pas, et l'échec du rendu PDF montrait le nom d'une variable d'environnement. Le message dépend ici de l'action et de
 // la contrainte que la base a invoquée ; ce qui est technique est journalisé sous une référence, jamais affiché.
+import { MESSAGE_MOTIF_ANNULATION } from "@/lib/artisan-prive-avoir";
 
 /** Les actions dont le formulaire demande un justificatif (le devis valide génère le sien). */
 const ACTIONS_AVEC_JUSTIFICATIF = new Set(["decision", "bilan", "facture", "reglement", "annuler_reglement"]);
@@ -19,6 +20,7 @@ const DOUBLON_PAR_ACTION: Record<string, string> = {
   devis: "Une autre version du devis vient d’être enregistrée. Rechargez la page avant de recommencer.",
   planning: "Ce chantier a déjà un rendez-vous retenu. Rechargez la page pour voir le rendez-vous actuel.",
   facture: "Une facture est déjà déposée pour ce chantier, ou ce numéro de facture est déjà utilisé. Vérifiez le numéro, puis rechargez la page.",
+  annuler_facture: "Cette facture vient d’être annulée ou a changé. Rechargez la page pour voir son avoir.",
 };
 const DOUBLON_PAR_DEFAUT = "Cet enregistrement existe déjà. Rechargez la page avant de recommencer.";
 
@@ -37,6 +39,7 @@ const CONTRAINTES: Record<string, string> = {
   artisan_devis_externes_description_check: "Décrivez les travaux proposés.",
   artisan_factures_externes_numero_check: "Indiquez le numéro figurant sur la facture.",
   artisan_factures_externes_montant_ttc_cents_check: MONTANT_HORS_LIMITES,
+  artisan_avoirs_externes_motif_check: MESSAGE_MOTIF_ANNULATION,
   artisan_reglements_montant_cents_check: MONTANT_HORS_LIMITES,
   artisan_reglements_reference_check: "Indiquez la référence ou la description du règlement.",
   artisan_reglements_moyen_check: "Choisissez le moyen de règlement.",

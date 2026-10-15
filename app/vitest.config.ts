@@ -68,6 +68,9 @@ export const FICHIERS_EN_SERIE = [
   // X19 (SA-10), limite quotidienne des appels à l'IA : fixture VALIDÉE (vingt sessions simultanées sur la ligne du jour,
   // remise en état à la fin) et rejeu de la migration (politiques et droits reposés) dans la transaction d'un essai.
   "tests/plafond-appels-ia-base.test.ts",
+  // Lot « avoir-facture-externe » (D24-C) : le retour arrière joué dans la transaction de l'essai supprime puis recrée la table
+  // des avoirs et modifie artisan_factures_externes (contrainte, index, colonne) : verrou exclusif tenu pendant tout l'essai.
+  "tests/artisan-avoir-migration-rejeu.test.ts",
 ];
 
 export default defineConfig({

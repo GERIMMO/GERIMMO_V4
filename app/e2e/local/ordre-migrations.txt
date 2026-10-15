@@ -354,3 +354,4 @@
 20261014830000_relances_invitations_locataires.sql
 20261014720000_recherche_reference_supervision.sql
 20261014730000_plafond_appels_ia.sql
+20261014710000_artisan_avoir_facture_externe.sql

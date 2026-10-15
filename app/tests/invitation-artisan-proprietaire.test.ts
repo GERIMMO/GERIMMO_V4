@@ -94,6 +94,13 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
     await postgres();
     return (await db.query("select statut, created_by, blacklist_le from public.artisan_agences where organization_id=$1 and artisan_id=$2", [org, artisan])).rows;
   };
+  /** Le statut d'une organisation ne change que par la supervision ou une tâche système : on passe par la seconde. */
+  const statutOrganisation = async (statut: string) => {
+    await postgres();
+    await db.query("select public.tache_systeme()");
+    await db.query("update public.organizations set status=$2::public.organization_status where id=$1", [org, statut]);
+    await db.query("select set_config('gerimmo.systeme','',true)");
+  };
   const journal = async (action: string) => {
     await postgres();
     return (await db.query("select details from public.audit_log where organization_id=$1 and action=$2", [org, action])).rows;
@@ -207,6 +214,28 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect((await db.query("select etat, envoye_le from public.invitations_artisans where id=$1", [r.id])).rows).toEqual([{ etat: "en_attente", envoye_le: null }]);
     });
 
+    // Relecture du 15/10 (mutant M02).
+    it("une adhésion qui n'est plus active ne permet ni d'inviter ni de renvoyer", async () => {
+      const r = await inviter();
+      await postgres();
+      await db.query("update public.memberships set status='inactive' where account_id=$1 and organization_id=$2", [proprietaire, org]);
+      await devenir(proprietaire);
+      expect(await echec("select public.preparer_invitation_artisan($1,$2)", [org, `autre-${unique()}@test.local`])).toMatch(/Accès refusé/);
+      expect(await echec("select public.renvoyer_invitation_artisan($1)", [r.id])).toMatch(/Accès refusé/);
+      expect(await echec("select public.annuler_invitation_artisan($1)", [r.id])).toMatch(/Accès refusé/);
+    });
+
+    // Relecture du 15/10 (mutants M03, M12) : le renvoi n'écrit rien dans la table, aucun déclencheur ne le retiendrait.
+    it("organisation fermée (abonnement suspendu) : ni nouvelle invitation ni renvoi, avec un message clair", async () => {
+      const r = await inviter();
+      await statutOrganisation("suspendue");
+      await devenir(proprietaire);
+      expect(await echec("select public.preparer_invitation_artisan($1,$2)", [org, `autre-${unique()}@test.local`])).toMatch(
+        /Cette organisation ne peut pas envoyer de nouvelles invitations/
+      );
+      expect(await echec("select public.renvoyer_invitation_artisan($1)", [r.id])).toMatch(/Cette organisation ne peut pas envoyer de nouvelles invitations/);
+    });
+
     it("seul le super administrateur lit d'où vient un artisan à valider", async () => {
       for (const qui of [proprietaire, adminAgence, artisanCompte]) {
         await devenir(qui);
@@ -269,6 +298,14 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect((await db.query("select public.autoriser_lien_mot_de_passe_cle($1,30) ok", [`organisation:${org}`])).rows[0].ok).toBe(false);
     });
 
+    // Relecture du 15/10 (mutant M14) : le renvoi puise dans le même budget que l'invitation.
+    it("limite anti-abus : un renvoi compte dans les trente envois par organisation et par heure", async () => {
+      const r = await inviter();
+      await devenir(proprietaire);
+      for (let n = 0; n < 29; n++) await db.query("select public.preparer_invitation_artisan($1,$2)", [org, `rafale-${n}-${unique()}@test.local`]);
+      expect(await echec("select public.renvoyer_invitation_artisan($1)", [r.id])).toMatch(/Trop d’invitations envoyées par cette organisation/);
+    });
+
     it("seule la session dont l'adresse CONFIRMÉE est celle de l'invitation la voit et y répond", async () => {
       const r = await inviter();
       await devenir(invite);
@@ -320,6 +357,35 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect(await repondre(nouvelle.id)).toEqual({ etat: "acceptee" });
       await postgres();
       expect((await db.query("select etat from public.invitations_artisans where id=$1", [r.id])).rows[0].etat).toBe("expiree");
+    });
+
+    // Relecture du 15/10 (mutant M33) : le cas précédent passe par le renvoi, qui note déjà l'invitation « expirée » ;
+    // ici l'artisan répond le premier, sur une invitation échue que personne n'a encore notée.
+    it("échue sans renvoi préalable : l'artisan ne peut pas l'accepter ; la base la note « expirée » et le trace", async () => {
+      const r = await inviter();
+      const artisan = await inscrire();
+      await postgres();
+      await db.query("update public.invitations_artisans set expire_le=now()-interval '1 second' where id=$1", [r.id]);
+      expect(await repondre(r.id)).toMatchObject({ etat: "expiree", erreur: expect.stringMatching(/expiré/) });
+      expect(await relation(artisan)).toEqual([]);
+      expect(await journal("invitation_artisan_expiree")).toHaveLength(1);
+      expect(await journal("invitation_artisan_acceptee")).toEqual([]);
+      expect((await db.query("select etat, artisan_id from public.invitations_artisans where id=$1", [r.id])).rows[0]).toEqual({ etat: "expiree", artisan_id: null });
+    });
+
+    // Relecture du 15/10 (mutant M04) : le carnet calcule « expirée » sans rien écrire et propose « Inviter de nouveau » ;
+    // c'est l'invitation suivante qui doit noter l'ancienne « expirée », sans passer par le renvoi.
+    it("échue sans renvoi préalable : « Inviter de nouveau » crée une nouvelle invitation et note l'ancienne « expirée »", async () => {
+      const r = await inviter();
+      await postgres();
+      await db.query("update public.invitations_artisans set expire_le=now()-interval '1 second' where id=$1", [r.id]);
+      expect((await carnet()).map((l) => [l.invitation_id, l.etat_invitation])).toEqual([[r.id, "expiree"]]);
+      const nouvelle = await inviter();
+      expect(nouvelle.id).not.toBe(r.id);
+      await postgres();
+      const lignes = (await db.query("select id, etat from public.invitations_artisans where organization_id=$1 and email=$2", [org, emailInvite])).rows;
+      expect(lignes.find((l) => l.id === r.id)?.etat).toBe("expiree");
+      expect(lignes.filter((l) => l.etat === "en_attente").map((l) => l.id)).toEqual([nouvelle.id]);
     });
 
     it("annulée : l'artisan ne peut plus l'accepter", async () => {
@@ -411,6 +477,71 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect(await repondre(r.id)).toEqual({ etat: "en_attente", erreur: MESSAGE_BLOQUEE });
       expect(await relation(artisan)).toEqual([]);
       expect((await journal("invitation_artisan_bloquee"))[0].details.motif).toBe("liste_noire_globale");
+    });
+
+    // Relecture du 15/10 (mutant M31).
+    it("organisation archivée : l'acceptation est refusée, rien n'est rattaché", async () => {
+      const r = await inviter();
+      const artisan = await inscrire();
+      await statutOrganisation("archivee");
+      expect(await repondre(r.id)).toEqual({ etat: "en_attente", erreur: MESSAGE_BLOQUEE });
+      expect(await relation(artisan)).toEqual([]);
+      expect((await db.query("select etat, artisan_id from public.invitations_artisans where id=$1", [r.id])).rows[0]).toEqual({ etat: "en_attente", artisan_id: null });
+    });
+
+    // Relecture du 15/10 (mutant M11) : « déjà accepté » ne vaut que pour une relation active, hors liste noire.
+    it("une relation désactivée après l'acceptation n'empêche pas une nouvelle invitation, qui la réactive", async () => {
+      const r = await inviter();
+      const artisan = await inscrire();
+      expect(await repondre(r.id)).toEqual({ etat: "acceptee" });
+      await postgres();
+      await db.query("update public.artisan_agences set statut='desactive' where organization_id=$1 and artisan_id=$2", [org, artisan]);
+      const nouvelle = await inviter();
+      expect(nouvelle.id).not.toBe(r.id);
+      expect(await repondre(nouvelle.id)).toEqual({ etat: "acceptee" });
+      expect(await relation(artisan)).toEqual([{ statut: "actif", created_by: proprietaire, blacklist_le: null }]);
+    });
+
+    // Relecture du 15/10 (mutants M21, M22) : « Validé — peut être sollicité » suit la barrière `artisan_affectable`.
+    it("« peut être sollicité » exige aussi le SIRET vérifié et l'absence de liste noire de Gerimmo", async () => {
+      const r = await inviter();
+      const artisan = await inscrire();
+      expect(await repondre(r.id)).toEqual({ etat: "acceptee" });
+      await postgres();
+      await db.query("update public.artisans set statut_plateforme='valide', siret_etat='non_verifie' where id=$1", [artisan]);
+      expect((await carnet())[0]).toMatchObject({ statut_plateforme: "valide", sollicitable_plateforme: false });
+      await postgres();
+      await db.query("update public.artisans set siret_etat='verifie', blacklist_globale_le=now(), blacklist_globale_motif='Fraude constatée' where id=$1", [artisan]);
+      expect((await carnet())[0]).toMatchObject({ statut_plateforme: "valide", sollicitable_plateforme: false });
+      await postgres();
+      await db.query("update public.artisans set blacklist_globale_le=null, blacklist_globale_motif=null where id=$1", [artisan]);
+      expect((await carnet())[0]).toMatchObject({ statut_plateforme: "valide", sollicitable_plateforme: true });
+    });
+
+    // Relecture du 15/10 (mutants M37, M38, M39).
+    it("la supervision ne voit « invité par » ni pour une invitation échue, refusée ou annulée, ni pour une adresse non confirmée", async () => {
+      const r = await inviter();
+      const artisan = await inscrire();
+      const vue = async () => {
+        await devenir(superviseur);
+        return (await db.query("select organisation from public.invitations_des_artisans_a_valider() where artisan_id=$1", [artisan])).rows;
+      };
+      expect(await vue()).toEqual([{ organisation: "Parc de Claire Testeuse" }]);
+      await postgres();
+      await db.query("update public.invitations_artisans set expire_le=now()-interval '1 second' where id=$1", [r.id]);
+      expect(await vue()).toEqual([]);
+      await postgres();
+      await db.query("update public.invitations_artisans set expire_le=now()+interval '1 day' where id=$1", [r.id]);
+      await db.query("update auth.users set email_confirmed_at=null where id=$1", [invite]);
+      expect(await vue()).toEqual([]);
+      await postgres();
+      await db.query("update auth.users set email_confirmed_at=now() where id=$1", [invite]);
+      expect(await vue()).toHaveLength(1);
+      for (const etat of ["refusee", "annulee"]) {
+        await postgres();
+        await db.query("update public.invitations_artisans set etat=$2 where id=$1", [r.id, etat]);
+        expect(await vue(), etat).toEqual([]);
+      }
     });
 
     it("la supervision voit « invité par » avant comme après l'acceptation, tant que l'artisan attend sa validation", async () => {

@@ -61,7 +61,8 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
             </Link>
             <div className="admin-bandeau-actions w-full max-[640px]:flex-nowrap!">
               <Link href="/admin/brief" className="hidden shrink-0 max-[900px]:flex" aria-label="Accueil de la supervision">
-                <MarqueGerimmo className="marque-gerimmo-compacte" />
+                {/* En-tête blanc jusqu'à 900 px : tuile bleu nuit (D28 A, DES-B-10). Au-delà, le logo est dans la colonne bleu nuit. */}
+                <MarqueGerimmo tuile className="marque-gerimmo-compacte" />
               </Link>
               <BoutonMenuSupervision />
               <RechercheSupervision masquerSousMobile />

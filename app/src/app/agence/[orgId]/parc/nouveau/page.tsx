@@ -3,6 +3,7 @@ import Link from "next/link";
 import { HousePlus } from "lucide-react";
 import styles from "@/components/presentation-parcours.module.css";
 import { verifierAccesEspace } from "@/lib/espace";
+import { elementsManquantsDuBailleur } from "@/lib/profil-bailleur";
 import { FormulaireAvecBrouillon } from "./formulaire-avec-brouillon";
 import { euros, offreParticulier, parPeriode, type Periodicite } from "@/lib/tarifs";
 
@@ -36,10 +37,8 @@ export default async function PageNouveauBien(
     const { data: profil } = await supabase.from("organizations")
       .select("address_line1,postal_code,city,email_contact")
       .eq("id", orgId).maybeSingle();
-    manquants = [
-      !profil?.address_line1 || !profil.postal_code || !profil.city ? "votre adresse" : null,
-      !profil?.email_contact ? "votre e-mail de contact" : null,
-    ].filter((m): m is string => m !== null);
+    // La même règle que le bouton de « Mes lots » vide (D29 B) : lib/profil-bailleur.ts.
+    manquants = elementsManquantsDuBailleur(profil);
   }
 
   return (

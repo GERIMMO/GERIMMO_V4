@@ -54,6 +54,8 @@ export const FICHIERS_EN_SERIE = [
   // Invitation d'un artisan par un propriétaire (décision du 15/10) : rejeu de 20261014840000 et de son retour arrière,
   // qui créent et suppriment une table référençant organizations, accounts et artisans (verrous tenus pendant l'essai).
   "tests/invitation-artisan-migration-rejeu.test.ts",
+  // Même décision : deux acceptations simultanées, et une acceptation pendant une annulation (fixture VALIDÉE, retirée en fin).
+  "tests/invitation-artisan-concurrence.test.ts",
 ];
 
 export default defineConfig({

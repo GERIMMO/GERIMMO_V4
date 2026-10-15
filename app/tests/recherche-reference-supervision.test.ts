@@ -7,7 +7,7 @@
  *
  * Ce que la base garantit ici :
  *  · seul le superviseur actif, en second facteur (`is_super_admin`), peut l'appeler : ni anon, ni un compte authentifié
- *    quelconque (même administrateur d'une agence), ni un superviseur sans second facteur ;
+ *    quelconque (même administrateur d'une agence), ni un superviseur sans second facteur ou à l'adhésion désactivée ;
  *  · la référence est EXACTE (identifiant complet, numéro d'incident complet, nom ou référence interne complet) : une
  *    référence partielle, un motif `%` ou `_`, un début d'identifiant ne trouvent rien ; aucune organisation ne fuit ;
  *  · le résultat ne dit que le type d'objet trouvé et l'organisation (identifiant et nom) : ni adresse, ni nom de lot ou
@@ -16,8 +16,12 @@
  *    le texte saisi quand il est un nom (une adresse, souvent) ; la même recherche refaite dans la minute n'écrit pas
  *    une seconde ligne identique (comme les consultations, `log_sa_access`).
  *
+ * Les noms et numéros des données d'essai portent une marque tirée au hasard : une base locale réutilisée peut contenir
+ * d'autres « Lot 1 » ou « INC-2026-0007 », que la recherche trouverait à juste titre.
+ *
  * Tout est joué dans une transaction annulée à la fin.
  */
+import { randomInt, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { config } from "dotenv";
 import { Client } from "pg";
@@ -29,6 +33,15 @@ const DB_URL = process.env.SUPABASE_DB_URL;
 verifierBaseDeTest(DB_URL);
 
 type Ligne = { type_objet: string; organisation_id: string; organisation_nom: string; nombre: number; groupes: number };
+
+// La marque de cet essai : des lettres et chiffres pour les noms, des chiffres pour les numéros d'incident.
+const MARQUE = randomUUID().slice(0, 8);
+const RANG = String(randomInt(100000, 999999));
+const NUMERO_A = `INC-1999-${RANG}`;
+const NUMERO_B = `INC-1999-${RANG}1`; // le numéro de A est le début de celui de B
+const BIEN_A = `Résidence  des Tilleuls ${MARQUE}`; // deux espaces : la recherche les ramène à un seul
+const BIEN_B = `Résidence Bêta ${MARQUE}`;
+const LOT_COMMUN = `Lot 1 ${MARQUE}`;
 
 describe.skipIf(!DB_URL)("X18 — recherche d'un dossier par référence dans la console", () => {
   let db: Client;
@@ -88,17 +101,18 @@ describe.skipIf(!DB_URL)("X18 — recherche d'un dossier par référence dans la
     ({ rows: [{ id: orgB }] } = await db.query("insert into public.organizations (name, status) values ('Agence Référence Bêta', 'active') returning id"));
     await db.query("insert into public.memberships (account_id, organization_id, role) values ($1,$2,'admin_agence')", [adminA, orgA]);
     ({ rows: [{ id: bienA }] } = await db.query(
-      "insert into public.biens (organization_id, nom, type, address_line1, postal_code, city) values ($1,'Résidence  des Tilleuls','appartement','12 rue Secrète','75011','Paris') returning id", [orgA]));
+      "insert into public.biens (organization_id, nom, type, address_line1, postal_code, city) values ($1,$2,'appartement','12 rue Secrète','75011','Paris') returning id", [orgA, BIEN_A]));
     ({ rows: [{ id: bienB }] } = await db.query(
-      "insert into public.biens (organization_id, nom, type, address_line1, postal_code, city) values ($1,'Résidence Bêta','appartement','8 avenue Privée','69003','Lyon') returning id", [orgB]));
-    ({ rows: [{ id: lotA }] } = await db.query("insert into public.lots (organization_id, bien_id, nom) values ($1,$2,'Lot 1') returning id", [orgA, bienA]));
-    ({ rows: [{ id: lotB }] } = await db.query("insert into public.lots (organization_id, bien_id, nom) values ($1,$2,'Lot 1') returning id", [orgB, bienB]));
-    await db.query("insert into public.lots (organization_id, bien_id, nom) values ($1,$2,'Lot 12 bis') returning id", [orgB, bienB]);
+      "insert into public.biens (organization_id, nom, type, address_line1, postal_code, city) values ($1,$2,'appartement','8 avenue Privée','69003','Lyon') returning id", [orgB, BIEN_B]));
+    ({ rows: [{ id: lotA }] } = await db.query("insert into public.lots (organization_id, bien_id, nom) values ($1,$2,$3) returning id", [orgA, bienA, LOT_COMMUN]));
+    ({ rows: [{ id: lotB }] } = await db.query("insert into public.lots (organization_id, bien_id, nom) values ($1,$2,$3) returning id", [orgB, bienB, LOT_COMMUN]));
+    await db.query("insert into public.lots (organization_id, bien_id, nom) values ($1,$2,$3)", [orgB, bienB, `Lot 12 bis ${MARQUE}`]);
     const { rows: [{ id: locataire }] } = await db.query("insert into public.persons (organization_id, nom, prenom) values ($1,'Dupont-Secret','Jeanne') returning id", [orgA]);
     ({ rows: [{ id: incidentA }] } = await db.query(
-      "insert into public.incidents (organization_id, numero, lot_id, declarant_person_id, canal, categorie, description) values ($1,'INC-2026-0007',$2,$3,'espace_locataire','plomberie_joint','Fuite chez Mme Dupont-Secret') returning id", [orgA, lotA, locataire]));
+      "insert into public.incidents (organization_id, numero, lot_id, declarant_person_id, canal, categorie, description) values ($1,$2,$3,$4,'espace_locataire','plomberie_joint','Fuite chez Mme Dupont-Secret') returning id",
+      [orgA, NUMERO_A, lotA, locataire]));
     ({ rows: [{ id: incidentB }] } = await db.query(
-      "insert into public.incidents (organization_id, numero, lot_id, canal, categorie, description) values ($1,'INC-2026-0071',$2,'agence','autre','Autre panne') returning id", [orgB, lotB]));
+      "insert into public.incidents (organization_id, numero, lot_id, canal, categorie, description) values ($1,$2,$3,'agence','autre','Autre panne') returning id", [orgB, NUMERO_B, lotB]));
   });
   beforeEach(async () => { await db.query("reset role"); await db.query("savepoint cas"); });
   afterEach(async () => { await db.query("rollback to savepoint cas"); await db.query("reset role"); });
@@ -109,13 +123,13 @@ describe.skipIf(!DB_URL)("X18 — recherche d'un dossier par référence dans la
       const { rows: [r] } = await db.query("select has_function_privilege('anon','public.rechercher_reference_supervision(text)','execute') as ok");
       expect(r.ok).toBe(false);
       await db.query("set local role anon");
-      const erreur = await refus("select * from public.rechercher_reference_supervision('INC-2026-0007')");
+      const erreur = await refus("select * from public.rechercher_reference_supervision($1)", [NUMERO_A]);
       expect(erreur.code).toBe("42501");
     });
 
     it("un compte authentifié sans supervision est refusé, sans rien lire ni tracer", async () => {
       await agir(simple);
-      const erreur = await refus("select * from public.rechercher_reference_supervision('INC-2026-0007')");
+      const erreur = await refus("select * from public.rechercher_reference_supervision($1)", [NUMERO_A]);
       expect(erreur.message).toMatch(/réservé à la supervision/);
       expect(await traces(simple)).toEqual([]);
     });
@@ -124,30 +138,30 @@ describe.skipIf(!DB_URL)("X18 — recherche d'un dossier par référence dans la
       await agir(adminA);
       expect((await refus("select * from public.rechercher_reference_supervision($1)", [bienA])).message).toMatch(/réservé à la supervision/);
       await agir(adminA);
-      expect((await refus("select * from public.rechercher_reference_supervision('INC-2026-0071')")).message).toMatch(/réservé à la supervision/);
+      expect((await refus("select * from public.rechercher_reference_supervision($1)", [NUMERO_B])).message).toMatch(/réservé à la supervision/);
       expect(await traces(adminA)).toEqual([]);
     });
 
     it("un superviseur sans second facteur (aal1) est refusé", async () => {
       await agir(sa, "aal1");
-      expect((await refus("select * from public.rechercher_reference_supervision('INC-2026-0007')")).message).toMatch(/réservé à la supervision/);
+      expect((await refus("select * from public.rechercher_reference_supervision($1)", [NUMERO_A])).message).toMatch(/réservé à la supervision/);
       expect(await traces(sa)).toEqual([]);
     });
 
     it("une adhésion de superviseur désactivée ne suffit pas", async () => {
       await db.query("update public.memberships set status='inactive' where account_id=$1", [sa]);
       await agir(sa);
-      expect((await refus("select * from public.rechercher_reference_supervision('INC-2026-0007')")).message).toMatch(/réservé à la supervision/);
+      expect((await refus("select * from public.rechercher_reference_supervision($1)", [NUMERO_A])).message).toMatch(/réservé à la supervision/);
     });
   });
 
   describe("le superviseur retrouve l'organisation, et rien d'autre", () => {
     it("un incident par son numéro (casse indifférente) : le type et l'organisation, sans contenu", async () => {
       await agir(sa);
-      const r = await chercher("  inc-2026-0007 ");
+      const r = await chercher(`  ${NUMERO_A.toLowerCase()} `);
       expect(r).toEqual([{ type_objet: "incident", organisation_id: orgA, organisation_nom: "Agence Référence Alpha", nombre: 1, groupes: 1 }]);
       const texte = JSON.stringify(r);
-      for (const contenu of ["Dupont", "Fuite", "rue", "Paris", "Lot 1", "Tilleuls", incidentA, lotA, bienA]) expect(texte).not.toContain(contenu);
+      for (const contenu of ["Dupont", "Fuite", "rue", "Paris", LOT_COMMUN, "Tilleuls", incidentA, lotA, bienA]) expect(texte).not.toContain(contenu);
     });
 
     it("un bien, un lot, un incident par leur identifiant", async () => {
@@ -159,23 +173,29 @@ describe.skipIf(!DB_URL)("X18 — recherche d'un dossier par référence dans la
 
     it("un bien par sa référence interne exacte (casse et espaces indifférents)", async () => {
       await agir(sa);
-      expect(await chercher("résidence des tilleuls")).toEqual([
+      expect(await chercher(`résidence des tilleuls ${MARQUE.toUpperCase()}`)).toEqual([
         { type_objet: "bien", organisation_id: orgA, organisation_nom: "Agence Référence Alpha", nombre: 1, groupes: 1 },
       ]);
     });
 
     it("un nom de lot porté dans deux organisations : les deux organisations, une ligne chacune", async () => {
       await agir(sa);
-      const r = await chercher("Lot 1");
+      const r = await chercher(LOT_COMMUN);
       expect(r.map((l) => [l.type_objet, l.organisation_nom, l.nombre, l.groupes])).toEqual([
         ["lot", "Agence Référence Alpha", 1, 2],
         ["lot", "Agence Référence Bêta", 1, 2],
       ]);
     });
 
+    it("deux lots du même nom dans une organisation : une ligne, avec leur nombre", async () => {
+      await db.query("insert into public.lots (organization_id, bien_id, nom) values ($1,$2,$3)", [orgA, bienA, LOT_COMMUN]);
+      await agir(sa);
+      expect((await chercher(LOT_COMMUN)).map((l) => [l.organisation_id, l.nombre, l.groupes])).toEqual([[orgA, 2, 2], [orgB, 1, 2]]);
+    });
+
     it("le résultat n'a que cinq colonnes : type, organisation, nom de l'organisation, nombre, groupes", async () => {
       await agir(sa);
-      const { fields } = await db.query("select * from public.rechercher_reference_supervision('INC-2026-0007')");
+      const { fields } = await db.query("select * from public.rechercher_reference_supervision($1)", [NUMERO_A]);
       expect(fields.map((f) => f.name)).toEqual(["type_objet", "organisation_id", "organisation_nom", "nombre", "groupes"]);
     });
 
@@ -185,10 +205,10 @@ describe.skipIf(!DB_URL)("X18 — recherche d'un dossier par référence dans la
         const { rows: [{ id: org }] } = await db.query("insert into public.organizations (name) values ($1) returning id", [`Agence nombreuse ${i}`]);
         const { rows: [{ id: bien }] } = await db.query(
           "insert into public.biens (organization_id, nom, type, address_line1, postal_code, city) values ($1,'Bien nombreux','appartement','1 rue X','75001','Paris') returning id", [org]);
-        await db.query("insert into public.lots (organization_id, bien_id, nom) values ($1,$2,'Lot commun')", [org, bien]);
+        await db.query("insert into public.lots (organization_id, bien_id, nom) values ($1,$2,$3)", [org, bien, `Lot commun ${MARQUE}`]);
       }
       await agir(sa);
-      const r = await chercher("Lot commun");
+      const r = await chercher(`Lot commun ${MARQUE}`);
       expect(r).toHaveLength(8);
       expect(new Set(r.map((l) => l.groupes))).toEqual(new Set([9]));
     });
@@ -197,23 +217,23 @@ describe.skipIf(!DB_URL)("X18 — recherche d'un dossier par référence dans la
   describe("« aucun résultat » et aucune fuite", () => {
     it("une référence inexistante ne répond rien", async () => {
       await agir(sa);
-      expect(await chercher("INC-2026-9999")).toEqual([]);
-      expect(await chercher("2b1e7d4e-8f3a-4c2d-9e1f-0a1b2c3d4e5f")).toEqual([]);
-      expect(await chercher("Rien de tel")).toEqual([]);
+      expect(await chercher(`INC-1998-${RANG}`)).toEqual([]);
+      expect(await chercher(randomUUID())).toEqual([]);
+      expect(await chercher(`Rien de tel ${MARQUE}`)).toEqual([]);
     });
 
     it("une référence partielle ne trouve rien, dans aucune organisation", async () => {
       await agir(sa);
       for (const partielle of [
-        "INC-2026-007", "INC-2026-00", "INC-2026", "NC-2026-0071", "INC-2026-0071 ", // la dernière est complète : contrôle ci-dessous
-        bienB.slice(0, 8), bienB.slice(0, 35), lotA.slice(1),
-        "Résidence", "Bêta", "Lot", "Lot 12", "ésidence Bêta",
-        "%", "%%", "Lot%", "Lot _", "R_sidence B_ta", "%0071", "INC-2026-00__",
+        NUMERO_A.slice(0, -1), NUMERO_B.slice(0, -2), `INC-1999-${RANG.slice(0, 3)}`, NUMERO_B.slice(1), `${NUMERO_A}%`, `${NUMERO_A.slice(0, -2)}__`, `%${RANG}1`,
+        bienB.slice(0, 8), bienB.slice(0, 35), lotA.slice(1), `${incidentA.slice(0, 35)}%`,
+        `Résidence Bêta ${MARQUE.slice(0, 7)}`, `ésidence Bêta ${MARQUE}`, `Bêta ${MARQUE}`, `Lot 1 ${MARQUE.slice(0, 7)}`, `Lot 12 ${MARQUE}`,
+        `Lot 1 ${MARQUE.slice(0, 7)}%`, `Lot _ ${MARQUE}`, `R_sidence B_ta ${MARQUE}`, `%${MARQUE}`, "%%", "__",
       ]) {
-        const r = await chercher(partielle);
-        if (partielle === "INC-2026-0071 ") { expect(r.map((l) => l.organisation_id)).toEqual([orgB]); continue; }
-        expect(r, `« ${partielle} » ne doit rien trouver`).toEqual([]);
+        expect(await chercher(partielle), `« ${partielle} » ne doit rien trouver`).toEqual([]);
       }
+      // La référence complète, elle, est trouvée — espaces autour compris.
+      expect((await chercher(` ${NUMERO_B} `)).map((l) => l.organisation_id)).toEqual([orgB]);
     });
 
     it("un texte trop court ou trop long ne lit rien et n'écrit rien", async () => {
@@ -228,30 +248,31 @@ describe.skipIf(!DB_URL)("X18 — recherche d'un dossier par référence dans la
   describe("la recherche est tracée au journal de supervision, sans données personnelles", () => {
     it("une recherche par nom : une ligne, sans le texte saisi, avec les identifiants trouvés", async () => {
       await agir(sa);
-      await chercher("Résidence des Tilleuls");
+      await chercher(`Résidence des Tilleuls ${MARQUE}`);
       const [ligne, ...autres] = await traces(sa);
       expect(autres).toEqual([]);
       expect(ligne.organization_id).toBe(orgA);
       expect(ligne.details).toEqual({ forme: "libelle", resultats: 1, organisations: [orgA], objets: [bienA] });
-      expect(JSON.stringify(ligne.details)).not.toMatch(/Tilleuls|Résidence|rue|Paris/i);
+      expect(JSON.stringify(ligne.details)).not.toMatch(new RegExp(`Tilleuls|Résidence|rue|Paris|${MARQUE}`, "i"));
     });
 
     it("une recherche par numéro d'incident garde la référence (ce n'est pas une donnée personnelle)", async () => {
       await agir(sa);
-      await chercher("inc-2026-0007");
+      await chercher(NUMERO_A.toLowerCase());
       expect(await traces(sa)).toEqual([
-        { organization_id: orgA, details: { forme: "numero", reference: "INC-2026-0007", resultats: 1, organisations: [orgA], objets: [incidentA] } },
+        { organization_id: orgA, details: { forme: "numero", reference: NUMERO_A, resultats: 1, organisations: [orgA], objets: [incidentA] } },
       ]);
     });
 
     it("une recherche sans résultat est tracée aussi, sans organisation", async () => {
+      const inconnu = randomUUID();
       await agir(sa);
-      await chercher("2b1e7d4e-8f3a-4c2d-9e1f-0a1b2c3d4e5f");
-      await chercher("Rien de tel chez Mme Dupont");
+      await chercher(inconnu);
+      await chercher(`Rien de tel chez Mme Dupont ${MARQUE}`);
       // Même transaction, même horodatage : l'ordre se fixe sur la forme.
       const lignes = (await traces(sa)).sort((a, b) => String(a.details.forme).localeCompare(String(b.details.forme)));
       expect(lignes).toEqual([
-        { organization_id: null, details: { forme: "identifiant", reference: "2b1e7d4e-8f3a-4c2d-9e1f-0a1b2c3d4e5f", resultats: 0, organisations: [], objets: [] } },
+        { organization_id: null, details: { forme: "identifiant", reference: inconnu, resultats: 0, organisations: [], objets: [] } },
         { organization_id: null, details: { forme: "libelle", resultats: 0, organisations: [], objets: [] } },
       ]);
       expect(JSON.stringify(lignes)).not.toContain("Dupont");
@@ -259,7 +280,7 @@ describe.skipIf(!DB_URL)("X18 — recherche d'un dossier par référence dans la
 
     it("plusieurs organisations : la ligne n'est rattachée à aucune, les deux sont dans le détail", async () => {
       await agir(sa);
-      await chercher("Lot 1");
+      await chercher(LOT_COMMUN);
       const [ligne] = await traces(sa);
       expect(ligne.organization_id).toBeNull();
       expect(new Set(ligne.details.organisations as string[])).toEqual(new Set([orgA, orgB]));
@@ -268,16 +289,15 @@ describe.skipIf(!DB_URL)("X18 — recherche d'un dossier par référence dans la
 
     it("la même recherche refaite dans la minute n'écrit pas de seconde ligne ; une autre, si", async () => {
       await agir(sa);
-      for (let i = 0; i < 5; i++) await chercher("INC-2026-0007");
-      await chercher("Tout autre texte");
-      await chercher("Encore un autre texte"); // même détail que la précédente (aucun résultat, par nom) : dédoublonnée
+      for (let i = 0; i < 5; i++) await chercher(NUMERO_A);
+      await chercher(`Tout autre texte ${MARQUE}`);
+      await chercher(`Encore un autre texte ${MARQUE}`); // même détail que la précédente (aucun résultat, par nom) : dédoublonnée
       expect(await traces(sa)).toHaveLength(2);
       await db.query("update public.audit_log set created_at = now() - interval '2 minutes' where account_id=$1", [sa]);
       await agir(sa);
-      await chercher("INC-2026-0007");
+      await chercher(NUMERO_A);
       expect(await traces(sa)).toHaveLength(3);
     });
-
   });
 
   describe("la migration se rejoue sans effet et ne remplace jamais une fonction inconnue", () => {

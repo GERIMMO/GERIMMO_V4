@@ -89,7 +89,7 @@ export type ConstatRelais = {
   arrets: { cle: string; depuis: string | null }[];
   /** Les alertes du mode vacances non accusées ; null quand elles n'ont pas pu être lues. */
   alertes: { ouvertes: number; escaladees: number; non_acheminees: number } | null;
-  /** Les tâches planifiées (missions et pg_cron) en échec ou absentes sur les dernières 24 h. */
+  /** Les tâches planifiées (celles de l’écran Santé et celles de pg_cron) en échec ou absentes sur les dernières 24 h. */
   taches: { libelle: string; etat: EtatTacheSignalee }[];
   /** Les contrôles qui n'ont pas pu se faire (libellés constants). */
   lecturesImpossibles: string[];

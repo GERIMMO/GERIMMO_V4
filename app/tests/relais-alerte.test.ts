@@ -22,7 +22,8 @@ import {
   pointsDuRelais,
   type ConstatRelais,
 } from "../src/lib/relais-alerte";
-import { passerAlerteRelais } from "../src/lib/relais-alerte-envoi";
+import { constaterRelais, passerAlerteRelais } from "../src/lib/relais-alerte-envoi";
+import { TACHES } from "../src/lib/sante-service";
 import { composantesParis } from "../src/lib/heure-paris-calcul";
 
 const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as { crons: { path: string; schedule: string }[] };
@@ -198,6 +199,14 @@ function passagesSains(maintenant = MATIN) {
     mission, debut: le, fin: le, expiration: null, etat: "termine", compte: 0, bilan: { envoyees: 0 },
   }));
 }
+/** Les deux tâches suivies hors missions (journal technique) : le suivi des dossiers et la sauvegarde, passés à l'heure. */
+function journalSain(maintenant = MATIN) {
+  const le = new Date(maintenant.getTime() - 2 * 3_600_000).toISOString();
+  return [
+    { evenement: "tache_orchestrateur", details: { dossiers: 3, rapports_prepares: 0 }, created_at: le },
+    { evenement: "tache_sauvegarde", details: { echecs: 0, octets: 1024, fichiers: 3, taches: 9 }, created_at: le },
+  ];
+}
 function base(o: Options = {}) {
   const appels: [string, Record<string, unknown> | undefined][] = [];
   const reponses: Record<string, Reponse> = {
@@ -207,7 +216,7 @@ function base(o: Options = {}) {
     terminer_alerte_relais: { data: null, error: null },
   };
   const tables: Record<string, unknown[]> = {
-    tech_log: o.journal ?? [],
+    tech_log: o.journal ?? journalSain(),
     agent_passages: o.passages ?? passagesSains(),
     agent_missions: o.missions ?? [],
   };
@@ -398,5 +407,70 @@ describe("le passage du relais", () => {
     expect(html).toContain("À examiner : 1");
     expect(html).toContain("Non acheminées (responsable sans habilitation) : 1");
     expect(html).not.toMatch(/€|@/);
+  });
+});
+
+// ── Toutes les tâches de l'écran Santé, pas seulement les missions (relecture du 15/10) ──
+
+describe("les tâches suivies par l'écran Santé", () => {
+  it("chaque tâche de Santé en échec donne un point, sous son nom : sauvegarde quotidienne et suivi des dossiers compris", () => {
+    expect(TACHES.map((t) => t.nom)).toEqual(expect.arrayContaining(["orchestrateur", "sauvegarde"]));
+    for (const t of TACHES) {
+      const constat = constaterRelais(SAINE, TACHES.map((x) => ({ nom: x.nom, etat: x.nom === t.nom ? "echec" : "ok" })), false);
+      expect(constat.taches, t.nom).toEqual([{ libelle: t.libelle, etat: "echec" }]);
+      expect(pointsDuRelais(constat), t.nom).toBe(1);
+    }
+  });
+
+  it("chaque tâche de Santé absente (en retard ou jamais passée) donne un point, hors arrêt", () => {
+    for (const etat of ["retard", "jamais"]) {
+      for (const t of TACHES) {
+        const constat = constaterRelais(SAINE, TACHES.map((x) => ({ nom: x.nom, etat: x.nom === t.nom ? etat : "ok" })), false);
+        expect(constat.taches, `${t.nom} ${etat}`).toEqual([{ libelle: t.libelle, etat: "absente" }]);
+      }
+    }
+  });
+
+  it("la sauvegarde nocturne en échec : l'alerte part et la nomme", async () => {
+    vi.stubEnv("RESEND_API_KEY", "cle-de-test");
+    const fournisseur = fauxFournisseurEmail();
+    const corps: string[] = [];
+    vi.stubGlobal("fetch", async (url: unknown, init: RequestInit = {}) => {
+      corps.push(String(init.body ?? ""));
+      return fournisseur.fetch(url, init);
+    });
+    const le = new Date(MATIN.getTime() - 2 * 3_600_000).toISOString();
+    const journal = journalSain().map((l) => (l.evenement === "tache_sauvegarde" ? { ...l, details: { echecs: 1, etape: "failure" }, created_at: le } : l));
+    const b = base({ journal });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: lireAdressesRelais("relais@example.com"), site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "envoye", points: 1, envoyes: 1 });
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ taches_en_echec: 1, taches_absentes: 0 });
+    const { html } = JSON.parse(corps[0]) as { html: string };
+    expect(html).toContain("Sauvegarde quotidienne : en échec");
+  });
+
+  it("le suivi des dossiers et la sauvegarde absents sont signalés ; un arrêt masque l'absence du suivi, jamais celle de la sauvegarde (qui ne lit aucun arrêt)", async () => {
+    vi.stubEnv("RESEND_API_KEY", "cle-de-test");
+    const fournisseur = fauxFournisseurEmail();
+    vi.stubGlobal("fetch", fournisseur.fetch);
+    const vieux = new Date(MATIN.getTime() - 30 * 3_600_000).toISOString();
+    const journal = journalSain().map((l) => ({ ...l, created_at: vieux }));
+    const b = base({ journal });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "envoye", points: 2 });
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ taches_absentes: 2, taches_en_echec: 0 });
+
+    for (const cle of ["global", "orchestrateur"]) {
+      const sousArret = base({ journal, sentinelle: { data: { ...SAINE, arrets: [{ cle, depuis: "2026-10-13T20:10:00Z" }] }, error: null } });
+      const r2 = await passerAlerteRelais({ db: sousArret.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+      // Un point pour l'arrêt, un pour la sauvegarde absente ; le suivi des dossiers, retenu par l'arrêt, n'est pas compté.
+      expect(r2, cle).toMatchObject({ points: 2 });
+      expect(terminaison(sousArret.appels)?.p_compteurs, cle).toMatchObject({ arrets_actifs: 1, taches_absentes: 1 });
+    }
+    // La clé « sauvegarde » n'a aucun lecteur : enregistrée, elle ne masque rien.
+    const cleSansEffet = base({ journal, sentinelle: { data: { ...SAINE, arrets: [{ cle: "sauvegarde", depuis: "2026-10-13T20:10:00Z" }] }, error: null } });
+    const r3 = await passerAlerteRelais({ db: cleSansEffet.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(terminaison(cleSansEffet.appels)?.p_compteurs).toMatchObject({ arrets_actifs: 1, taches_absentes: 2 });
+    expect(r3).toMatchObject({ points: 3 });
   });
 });

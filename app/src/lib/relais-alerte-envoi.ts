@@ -4,8 +4,8 @@
 //  1. il n'agit que s'il est 5 h à Paris (`estHeureDuRelais`) ;
 //  2. il réserve le jour de Paris en base (`reserver_alerte_relais`) : appelé deux fois, il n'envoie qu'une fois ;
 //  3. il actualise le relais du mode vacances (`traiter_vacances`, comme chaque passage de mission), puis lit la
-//     sentinelle (`sentinelle_relais` : alertes non accusées, arrêts actifs, tâches pg_cron) et l'état des missions
-//     de l'entrée unique /api/cron/equipes (la même lecture que l'écran Santé, `chargerEtatTaches`) ;
+//     sentinelle (`sentinelle_relais` : alertes non accusées, arrêts actifs, tâches pg_cron) et l'état des tâches de
+//     l'écran Santé — missions, suivi des dossiers, sauvegarde quotidienne (la même lecture, `chargerEtatTaches`) ;
 //  4. rien à signaler : aucun e-mail ; sinon un e-mail par adresse du réglage, chacun avec une clé d'envoi stable
 //     pour le jour (une reprise après échec ne fait pas partir un second message chez le fournisseur) ;
 //  5. il consigne le résultat (`terminer_alerte_relais`, nombres seulement).
@@ -25,9 +25,9 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { envoyerEmail } from "./email";
-import { estMission, MISSIONS, type Mission } from "./missions";
+import { estTacheSuivie, TACHES_SUIVIES } from "./missions";
 import { chargerEtatTaches, type ClientQuiLitLeJournal } from "./sante-service";
-import { TACHES_SQL } from "./nom-arret-supervision";
+import { arretSansEffet, TACHES_SQL } from "./nom-arret-supervision";
 import { composantesParis } from "./heure-paris-calcul";
 import { adresseDuSite } from "./site";
 import { adressesRelaisDuServeur } from "./relais-alerte-reglage";
@@ -77,17 +77,21 @@ export function constaterRelais(
   if (!sentinelle) lecturesImpossibles.push("Les alertes du mode vacances, les arrêts d’urgence et les tâches de la base n’ont pas pu être lus.");
 
   const taches: { libelle: string; etat: EtatTacheSignalee }[] = [];
-  // Les missions de l'entrée unique /api/cron/equipes. Une mission en pause, ou dont l'absence vient d'un arrêt
-  // d'urgence (signalé à part), n'est pas comptée absente.
+  // Toutes les tâches de l'écran Santé (`chargerEtatTaches`) : les missions de l'entrée unique /api/cron/equipes, le
+  // suivi des dossiers et la sauvegarde quotidienne (relecture du 15/10 : l'écran annonce « les tâches en échec ou
+  // absentes », la sauvegarde comprise). Une mission en pause n'est pas comptée. L'absence d'une tâche que retient un
+  // arrêt d'urgence (signalé à part) n'est pas comptée non plus ; la sauvegarde ne lit aucun arrêt (ni « global », ni
+  // sa clé, `arretSansEffet`) : son absence est toujours signalée.
   const arretees = new Set(arrets.map((a) => a.cle));
   if (missions === null) {
     lecturesImpossibles.push("Le suivi des missions planifiées n’a pas pu être lu.");
   } else {
     for (const t of missions) {
-      if (!estMission(t.nom)) continue;
-      const libelle = MISSIONS[t.nom as Mission].nom;
+      if (!estTacheSuivie(t.nom)) continue;
+      const libelle = TACHES_SUIVIES[t.nom].nom;
+      const retenueParUnArret = !arretSansEffet(t.nom) && (arretees.has("global") || arretees.has(t.nom));
       if (t.etat === "echec") taches.push({ libelle, etat: "echec" });
-      else if ((t.etat === "retard" || t.etat === "jamais") && !arretees.has("global") && !arretees.has(t.nom)) taches.push({ libelle, etat: "absente" });
+      else if ((t.etat === "retard" || t.etat === "jamais") && !retenueParUnArret) taches.push({ libelle, etat: "absente" });
     }
   }
   // Les tâches pg_cron (la sentinelle de la base).

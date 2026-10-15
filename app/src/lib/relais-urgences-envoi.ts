@@ -7,8 +7,12 @@
 //    de la mission marketing par pg_cron (toutes les 5 minutes de 05 h à 19 h UTC, quand une publication est due) et
 //    « Lancer maintenant » de l'écran Santé ;
 //  · le passage de 5 h (/api/cron/relais, après `traiter_vacances`) ;
-//  · les deux gestes de la console qui en posent (« Actualiser », « Signaler une urgence interne »), après la réponse.
-// Aucune tâche planifiée n'est ajoutée : une urgence ne naît que dans l'un de ces passages, l'e-mail part du même.
+//  · les deux gestes de la console qui en posent (« Actualiser », « Signaler une urgence interne »), après la réponse ;
+//  · LE PASSAGE FRÉQUENT (relecture du 15/10, migration 20261014812000) : pg_cron appelle toutes les 10 minutes, jour et
+//    nuit, /api/cron/relais?mode=urgences avec son propre jeton généré en base (`accesPassageUrgences`) ; la route ne fait
+//    que constater (`traiter_vacances`) puis vider la file (`passerUrgencesRelais`). Sans lui, les tâches Vercel ne
+//    passant qu'une fois par jour, un événement de l'après-midi n'était constaté que le lendemain matin.
+// Une urgence ne naît que dans l'un de ces passages, l'e-mail part du même.
 //
 // Dans l'ordre : relais non configuré → rien (la file est conservée, elle partira une fois les adresses renseignées) ;
 // `prendre_urgences_relais` (reprise d'un envoi inachevé, sinon nouvel envoi sous le plafond de 6 par heure) ; un e-mail
@@ -25,6 +29,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { envoyerEmail } from "./email";
+import { porteurDuSecret } from "./tache";
 import { adresseDuSite } from "./site";
 import { adressesRelaisDuServeur } from "./relais-alerte-reglage";
 import type { AdressesRelais } from "./relais-alerte";
@@ -89,10 +94,16 @@ export async function envoyerUrgencesRelais(options: {
       const envoi = p.envoi;
       const urgences = urgencesLues(p.urgences);
       if (urgences.length === 0) {
-        // Un envoi sans urgence lisible (ne devrait pas arriver : la base n'en crée qu'avec des urgences en attente) :
-        // il est clos sans e-mail, plutôt que d'annoncer une urgence qui n'existe pas.
-        await db.rpc("terminer_urgences_relais", { p_envoi: envoi, p_destinataires: adresses.valides.length, p_envoyes: adresses.valides.length });
-        return { arret: "rien", envois };
+        // Un envoi sans urgence lisible (ses urgences ont disparu) : clos SANS e-mail, « abandonné », zéro destinataire
+        // (`clore_envoi_urgences_vide`) — jamais consigné « envoyé » (relecture du 15/10). S'il porte encore des urgences
+        // que ce passage n'a pas su lire, la base refuse de le clore : il reste à reprendre, puis est abandonné, et
+        // l'e-mail de 5 h rappelle ses urgences en échec.
+        const clos = await db.rpc("clore_envoi_urgences_vide", { p_envoi: envoi });
+        if (clos.error || (clos.data as { termine?: unknown } | null)?.termine !== true) {
+          console.error("[relais] Un envoi immédiat sans urgence lisible n’a pas pu être clos ; il sera repris.");
+          return { arret: "indisponible", envois };
+        }
+        continue;
       }
       const html = htmlUrgencesRelais(urgences, `${site}/admin`);
       const sujet = sujetUrgencesRelais(urgences.length);
@@ -121,4 +132,61 @@ export async function envoyerUrgencesRelais(options: {
     console.error("[relais] L’envoi immédiat des urgences a été interrompu ; il sera repris au passage suivant.");
     return { arret: "indisponible", envois };
   }
+}
+
+// ── Le passage fréquent (relecture du 15/10/2026, migration 20261014812000) ─────────────────────────────────────────
+
+/** Délai maximal d'un appel au service d'e-mail pendant le passage fréquent : un passage court, toutes les 10 minutes. */
+export const DELAI_APPEL_PASSAGE_MS = 10_000;
+
+/**
+ * La requête porte-t-elle le jeton du passage des urgences ? Le jeton est généré en base et lu par le client de service
+ * (`jeton_declencheur_relais_urgences`) ; la comparaison est à temps constant (`porteurDuSecret`). Il n'est jamais écrit
+ * dans un journal ni renvoyé. Illisible ou absent en base (migration non appliquée) : « non_configure ».
+ */
+export async function accesPassageUrgences(request: Request, db: ClientUrgences): Promise<"autorise" | "refuse" | "non_configure"> {
+  try {
+    const { data, error } = await db.rpc("jeton_declencheur_relais_urgences");
+    if (error || typeof data !== "string" || !/^[0-9a-f]{64}$/.test(data)) return "non_configure";
+    return porteurDuSecret(request, data) ? "autorise" : "refuse";
+  } catch {
+    return "non_configure";
+  }
+}
+
+/** Ce que rend le passage fréquent : des états et des nombres, jamais une adresse ni le jeton. */
+export type ResultatPassageUrgences = { constat: "fait" | "indisponible"; envoi: ResultatUrgences };
+
+/**
+ * Le passage fréquent des urgences, et rien d'autre : (a) constater (`traiter_vacances`), (b) vider la file de l'e-mail
+ * immédiat (`envoyerUrgencesRelais` : file vide, aucun appel au service d'e-mail). Les urgences déjà en file partent même
+ * si le constat échoue. Le passage n'est consigné (`consigner_passage_urgences_relais`, lu par la sentinelle de 5 h) que
+ * si le constat a eu lieu. Aucun contrôle d'arrêt d'urgence, comme les deux autres envois du relais. Ne lève jamais.
+ */
+export async function passerUrgencesRelais(options: {
+  db: ClientUrgences;
+  adresses?: AdressesRelais;
+  site?: string | null;
+  envoyer?: typeof envoyerEmail;
+  delaiMaxMs?: number;
+}): Promise<ResultatPassageUrgences> {
+  const { db } = options;
+  let constat: ResultatPassageUrgences["constat"] = "indisponible";
+  try {
+    const { error } = await db.rpc("traiter_vacances");
+    if (!error) constat = "fait";
+  } catch {
+    // Rien de plus : la file est vidée quand même, et le passage n'est pas consigné.
+  }
+  if (constat !== "fait") console.error("[relais] Le passage des urgences n’a pas pu actualiser le relais ; la file est vidée quand même.");
+  const envoi = await envoyerUrgencesRelais({ ...options, delaiMaxMs: options.delaiMaxMs ?? DELAI_APPEL_PASSAGE_MS });
+  if (constat === "fait") {
+    try {
+      const { error } = await db.rpc("consigner_passage_urgences_relais");
+      if (error) console.error("[relais] Le passage des urgences n’a pas pu être consigné.");
+    } catch {
+      console.error("[relais] Le passage des urgences n’a pas pu être consigné.");
+    }
+  }
+  return { constat, envoi };
 }

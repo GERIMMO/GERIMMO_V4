@@ -48,6 +48,9 @@ export const FICHIERS_EN_SERIE = [
   // incident_sollicitations et incident_evenements, verrou exclusif tenu pendant l'essai, qui se croise avec les fichiers
   // parallèles écrivant des devis (« deadlock detected », relecture du 15/10).
   "tests/maintenance-artisans-planifiee.test.ts",
+  // D18, décisions simultanées sur deux devis du même dossier : fixture VALIDÉE (trois sessions) et verrous de ligne
+  // tenus exprès sur les incidents, demandes et devis le temps de l'essai.
+  "tests/devis-decisions-concurrence.test.ts",
 ];
 
 export default defineConfig({

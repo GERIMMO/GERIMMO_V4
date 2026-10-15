@@ -113,6 +113,8 @@ const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/
  * rejouent après celles du lot pour revenir exactement à l'état migré. Absents du dépôt, ils ne comptent pas.
  */
 const LOTS_POSTERIEURS = [
+  // Reprise du 15/10 (dépôt du PDF en révision, ordre des verrous) : son retour précède celui de 601000, qui le vérifie.
+  { version: "20261014602000", fichier: "devis_revision_verrous_stockage" },
   { version: "20261014601000", fichier: "devis_revision_versions" },
   { version: "20261014600000", fichier: "devis_refus_motive" },
 ].filter((l) => existsSync(`supabase/migrations/${l.version}_${l.fichier}.sql`));

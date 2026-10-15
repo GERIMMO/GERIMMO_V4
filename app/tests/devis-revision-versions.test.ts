@@ -505,6 +505,18 @@ describe.skipIf(!DB_URL)("Révision de devis et versions (D18, livraison 2)", ()
     await expect(deposer(cptArtisan, s1, 45000)).rejects.toThrow(/n'attend plus de devis/);
   });
 
+  it("pendant la révision, l'artisan classe le PDF de sa version suivante dans l'espace de l'agence ; plus après son renoncement", async () => {
+    // Le serveur dépose le PDF avec le client de l'artisan (envoyerDevisValide) : la sécurité du stockage doit
+    // accepter l'emplacement de l'agence tant que la demande attend la version suivante.
+    const { s1 } = await enRevision();
+    await agir(cptArtisan);
+    await essai(`insert into storage.objects (bucket_id, name, owner) values ('documents', $1, $2)`, [`${org}/devis-gerimmo/${s1}-v2.pdf`, cptArtisan]);
+    await db.query(`select public.decliner_sollicitation($1,$2)`, [s1, "Je ne peux pas baisser davantage."]);
+    await expect(
+      essai(`insert into storage.objects (bucket_id, name, owner) values ('documents', $1, $2)`, [`${org}/devis-gerimmo/${s1}-v3.pdf`, cptArtisan])
+    ).rejects.toThrow(/row-level security/);
+  });
+
   it("le parcours réel de l'artisan : envoyer_mon_devis_prepare dépose la v2 avec « ce qui change » lu dans la préparation validée", async () => {
     const { s1, v1 } = await enRevision();
     await enTantQuePostgres();

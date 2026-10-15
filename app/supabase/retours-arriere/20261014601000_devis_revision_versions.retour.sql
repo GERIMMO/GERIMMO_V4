@@ -36,6 +36,16 @@ end $retour_arriere$;
 begin;
 set local lock_timeout = '10s';
 
+-- Refus si la reprise du 15/10 (20261014602000 : dépôt du PDF en révision, ordre des verrous) est encore en place :
+-- son retour se joue d'abord (sinon `retenir_devis` serait rétabli sans elle, puis son retour ne trouverait plus son bloc).
+do $retour_arriere$
+begin
+  if position('reprise du 15/10' in pg_get_functiondef('public.retenir_devis(uuid,uuid)'::regprocedure)) > 0
+     or position('reprise du 15/10' in pg_get_functiondef('public.orgs_de_mes_sollicitations_ouvertes()'::regprocedure)) > 0 then
+    raise exception 'Retour arrière refusé : la migration 20261014602000 (reprise du 15/10) est encore appliquée. Jouez d''abord son retour.';
+  end if;
+end $retour_arriere$;
+
 -- Outil local à cette session (pg_temp : disparaît à la fin de la connexion, rien n'est créé dans public). « or replace » :
 -- un autre retour joué dans la même session peut l'avoir déjà posé.
 create or replace function pg_temp.restaurer_fonction(p_signature text, p_marque text, p_definition text)

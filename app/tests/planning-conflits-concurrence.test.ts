@@ -24,7 +24,11 @@ describe.skipIf(!url||process.env.PLANNING_CONFLITS_CONCURRENCE!=="1")("ART004 �
   let attente="";const limite=Date.now()+3000;
   while(Date.now()<limite){const r=(await db.query("select wait_event from pg_stat_activity where pid=$1",[pid])).rows[0];attente=r?.wait_event??"";if(attente==="advisory")break;await new Promise(r=>setTimeout(r,20));}
   expect(attente).toBe("advisory");await a.query("commit");const resultat=await seconde;
-  expect(resultat.ok).toBe(false);expect(resultat.message).toMatch(memeMission?/plus proposé/:priveSecond?/autre chantier/:/chevauche/);await b.query("rollback");
+  // Décision D22 (REP-04) : le même locataire qui confirme à nouveau le créneau déjà retenu (clic répété après une
+  // réponse perdue) obtient un succès silencieux, sans second rendez-vous ; les autres conflits restent refusés.
+  if(memeMission)expect(resultat).toEqual({ok:true,message:""});
+  else{expect(resultat.ok).toBe(false);expect(resultat.message).toMatch(priveSecond?/autre chantier/:/chevauche/);}
+  await b.query("rollback");
   const compteRdv=(await db.query("select count(*)::int n from public.incident_interventions where id=any($1::uuid[]) and statut='planifiee'",[missions])).rows[0].n;
   expect(compteRdv).toBe(privePremier?0:1);
  }
@@ -44,7 +48,7 @@ describe.skipIf(!url||process.env.PLANNING_CONFLITS_CONCURRENCE!=="1")("ART004 �
  afterEach(async()=>{await a.query("rollback");await b.query("rollback");await db.query("rollback");await db.query("begin");await db.query("delete from public.artisan_evenements_prives where artisan_id=$1",[artisan]);await db.query("delete from public.artisan_rendez_vous where artisan_id=$1",[artisan]);await db.query("delete from public.incident_evenements where organization_id=$1",[org]);await db.query("delete from public.memberships where organization_id=$1",[org]);for(const x of [...creations].reverse()){if(x.table==="public.organizations")await db.query("delete from public.audit_log where organization_id=$1",[x.id]);if(x.table==="auth.users")await db.query("delete from public.audit_log where account_id=$1",[x.id]);await db.query(`delete from ${x.table} where id=$1`,[x.id]);}await db.query("commit");});
  afterAll(async()=>{await a?.end();await b?.end();await db?.end();});
  it("deux locataires ne confirment pas simultanément deux missions incompatibles",()=>deuxConfirmations());
- it("deux confirmations du même créneau ne produisent qu'un rendez-vous",()=>deuxConfirmations(false,false,true));
+ it("deux confirmations du même créneau ne produisent qu'un rendez-vous (la seconde est un succès silencieux, D22)",()=>deuxConfirmations(false,false,true));
  it("un chantier privé confirmé pendant l'attente bloque la mission Gerimmo",()=>deuxConfirmations(true));
  it("une mission Gerimmo confirmée pendant l'attente bloque le chantier privé",()=>deuxConfirmations(false,true));
  it("les confirmations de deux artisans distincts restent indépendantes",async()=>{await db.query("update public.incident_interventions set artisan_id=$1 where id=$2",[artisanB,missions[1]]);await role(a,loc);await role(b,loc);await choisir(a,creneaux[0]);await b.query("set local lock_timeout='1000ms'");await choisir(b,creneaux[1]);await a.query("commit");await b.query("commit");expect((await db.query("select count(*)::int n from public.incident_interventions where id=any($1::uuid[]) and statut='planifiee'",[missions])).rows[0].n).toBe(2);});

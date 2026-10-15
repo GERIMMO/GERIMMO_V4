@@ -1,6 +1,6 @@
 import { MessageReseau, InteretReseau } from "@/components/disponibilite-reseau";
 import { CarnetNonSollicitable } from "@/components/carnet-non-sollicitable";
-import type { ArtisanCarnetBien } from "@/lib/invitations-artisan";
+import { cheminCarnetInvitation, type ArtisanCarnetBien } from "@/lib/invitations-artisan";
 import type { DisponibiliteReseau } from "@/lib/reseau";
 import { descriptionDevisLisible, libelleQuantite, libelleTauxTva, type LigneDevisCalculee } from "@/lib/devis-structure";
 import Link from "next/link";
@@ -864,6 +864,7 @@ export async function VoletArtisan({
           aujourdhui={aujourdhui}
           commune={disponibiliteOuverte?.commune_nom ?? null}
           carnetBien={carnetBien}
+          estProprietaire={estProprietaire}
         />
         </div>
       )}
@@ -927,6 +928,7 @@ export function ConsultationOuverte({
   aujourdhui,
   commune,
   carnetBien = null,
+  estProprietaire = false,
 }: {
   orgId: string;
   consultation: Consultation;
@@ -939,6 +941,8 @@ export function ConsultationOuverte({
   commune: string | null;
   /** Propriétaire seulement : son carnet vu pour ce bien (`carnet_artisans_bien`), pour dire qui n'est pas proposé. */
   carnetBien?: ArtisanCarnetBien[] | null;
+  /** Un propriétaire direct n'enregistre pas d'entreprise (réservé aux agences) : il invite un artisan. */
+  estProprietaire?: boolean;
 }) {
   // RM-9.1.1 : deux au maximum EN PARALLÈLE — ce sont les sollicitations
   // vivantes qui comptent, pas celles qu'un artisan a déclinées. D18 (livraison 2) : une demande en révision
@@ -1304,9 +1308,16 @@ export function ConsultationOuverte({
                 Aucun artisan ne remonte pour ce métier
                 {commune ? ` à ${commune}` : ""}
                 {consultation.decennale_requise ? " avec une décennale valide" : ""}.{" "}
-                <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
-                  Enregistrez une entreprise dans votre carnet
-                </Link>
+                {/* Seconde relecture du 15/10 : le propriétaire invite, l'agence enregistre (ajout par SIRET). */}
+                {estProprietaire ? (
+                  <Link href={cheminCarnetInvitation(orgId)} className="lien-discret">
+                    Invitez un artisan
+                  </Link>
+                ) : (
+                  <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
+                    Enregistrez une entreprise dans votre carnet
+                  </Link>
+                )}
                 , ou changez la nature des travaux si vous vous êtes trompé.
               </p>
             ) : restants.length === 0 ? (
@@ -1317,9 +1328,15 @@ export function ConsultationOuverte({
                 {vivantes.length > 0
                   ? "Tous les artisans qui correspondent sont déjà sollicités — attendez leur devis, ou "
                   : "Tous les artisans qui correspondent ont déjà été sollicités et aucune demande n'est en cours — "}
-                <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
-                  enregistrez une autre entreprise dans votre carnet
-                </Link>{" "}
+                {estProprietaire ? (
+                  <Link href={cheminCarnetInvitation(orgId)} className="lien-discret">
+                    invitez un autre artisan
+                  </Link>
+                ) : (
+                  <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
+                    enregistrez une autre entreprise dans votre carnet
+                  </Link>
+                )}{" "}
                 pour mettre en concurrence.
               </p>
             ) : (

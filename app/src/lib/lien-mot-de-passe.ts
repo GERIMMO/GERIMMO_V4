@@ -32,7 +32,8 @@
 // confirmée est refusée par Auth (`email_exists`) : son titulaire reçoit un
 // lien de reconnexion, et l'écran dit la même chose qu'à une adresse neuve.
 // Une adresse inscrite mais jamais confirmée (inscription interrompue) reçoit
-// un nouveau lien de confirmation.
+// un nouveau lien de confirmation, et le mot de passe choisi à cette
+// inscription remplace l'ancien avant l'envoi (relecture du 15/10/2026).
 //
 // SÉCURITÉ.
 // - La clé de service (src/lib/supabase/service.ts) ne sert ici qu'à fabriquer
@@ -382,7 +383,21 @@ export async function inscrireEtEnvoyerConfirmation(params: {
   if (data.user?.email_confirmed_at) return { etat: "deja_confirme" };
 
   const jeton = data.properties?.hashed_token;
-  if (!jeton) return { erreur: "Le lien de confirmation n’a pas pu être créé." };
+  const compte = data.user?.id;
+  if (!jeton || !compte) return { erreur: "Le lien de confirmation n’a pas pu être créé." };
+
+  // COMPTE PRÉ-INSCRIT (relecture du 15/10/2026, invitation d'artisan). Pour une adresse inscrite mais jamais
+  // confirmée, Auth renouvelle le jeton et GARDE le mot de passe de la première inscription. Quelqu'un qui connaît
+  // l'adresse (un invitant, par exemple) pouvait donc créer le compte avant son titulaire avec SON mot de passe : le
+  // titulaire confirmait sa boîte et le compte s'ouvrait avec le mot de passe d'un tiers. Le mot de passe choisi à
+  // CETTE inscription remplace l'ancien AVANT l'envoi du lien ; pour un compte neuf, c'est le même. Les liens envoyés
+  // auparavant sont déjà caducs (generateLink vient de remplacer le jeton) : seul le lien ci-dessous confirme la boîte.
+  // La réponse reste celle d'une adresse neuve (aucune énumération de comptes).
+  // `same_password` : c'est déjà ce mot de passe (compte neuf), rien à remplacer.
+  const { error: erreurMotDePasse } = await service.auth.admin.updateUserById(compte, { password: params.motDePasse });
+  if (erreurMotDePasse && erreurMotDePasse.code !== "same_password") {
+    return erreurMotDePasse.code ? { erreur: erreurMotDePasse.message, code: erreurMotDePasse.code } : { erreur: INDISPONIBLE };
+  }
 
   const erreurEnvoi = await envoyerCourrier({
     origine,

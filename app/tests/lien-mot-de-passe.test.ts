@@ -55,8 +55,13 @@ function admin(opts: { erreurLien?: string; codeErreur?: string; autorise?: bool
         }
   );
   const rpc = vi.fn(async () => ({ data: opts.autorise ?? true, error: opts.erreurRpc ? { message: opts.erreurRpc } : null }));
-  mocks.service.mockReturnValue({ auth: { admin: { generateLink } }, rpc });
-  return { generateLink, rpc };
+  // Doublure de `auth.admin.updateUserById` (relecture du 15/10/2026) : le mot de passe d'une inscription non confirmée.
+  const updateUserById = vi.fn(
+    async (_id: string, _attributs: { password: string }): Promise<{ data: { user: Record<string, unknown> | null }; error: { message: string; code?: string } | null }> =>
+      ({ data: { user: { id: _id } }, error: null })
+  );
+  mocks.service.mockReturnValue({ auth: { admin: { generateLink, updateUserById } }, rpc });
+  return { generateLink, rpc, updateUserById };
 }
 
 beforeEach(() => {
@@ -250,6 +255,52 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2)",
     expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
     expect(generateLink).toHaveBeenCalledTimes(1);
     expect(mocks.envoyerEmail.mock.calls[0][0].subject).toBe("Confirmez votre adresse — Gerimmo");
+  });
+
+  /**
+   * Relecture du 15/10/2026 (invitation d'artisan, compte pré-inscrit). Pour une adresse inscrite mais jamais confirmée,
+   * Auth renouvelle le jeton et GARDE le mot de passe de la première inscription. Un invitant qui connaît l'adresse
+   * pouvait donc créer le compte avant l'artisan avec SON mot de passe : l'artisan confirmait sa boîte, le compte
+   * s'ouvrait avec le mot de passe d'un tiers. Le mot de passe choisi à CETTE inscription remplace l'ancien AVANT l'envoi.
+   */
+  it("compte non confirmé : le mot de passe choisi à cette inscription remplace l'ancien AVANT l'envoi du nouveau lien", async () => {
+    const { generateLink, updateUserById } = admin({ utilisateur: { id: "u-pre-inscrit", email_confirmed_at: null } });
+    expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
+    expect(updateUserById).toHaveBeenCalledTimes(1);
+    expect(updateUserById).toHaveBeenCalledWith("u-pre-inscrit", { password: "un-mot-de-passe-long" });
+    // Ordre : le jeton (qui rend caducs les liens précédents), puis le mot de passe, puis seulement le courrier.
+    const ordre = (f: { mock: { invocationCallOrder: number[] } }) => f.mock.invocationCallOrder[0];
+    expect(ordre(generateLink)).toBeLessThan(ordre(updateUserById));
+    expect(ordre(updateUserById)).toBeLessThan(ordre(mocks.envoyerEmail));
+  });
+
+  it("compte non confirmé : si le mot de passe ne peut pas être remplacé, aucun lien ne part", async () => {
+    const { updateUserById } = admin();
+    updateUserById.mockResolvedValueOnce({ data: { user: null }, error: { message: "Database error updating user" } });
+    expect(await inscrire()).toEqual({ erreur: "Le service est momentanément indisponible. Réessayez dans un instant." });
+    expect(mocks.envoyerEmail).not.toHaveBeenCalled();
+  });
+
+  it("compte non confirmé : un nouveau mot de passe refusé par Auth garde son code (classé « mot de passe refusé »), sans courrier", async () => {
+    const { updateUserById } = admin();
+    updateUserById.mockResolvedValueOnce({ data: { user: null }, error: { message: "Password is too weak", code: "weak_password" } });
+    expect(await inscrire()).toEqual({ erreur: "Password is too weak", code: "weak_password" });
+    expect(mocks.envoyerEmail).not.toHaveBeenCalled();
+  });
+
+  it("compte neuf : si Auth répond que c'est déjà ce mot de passe (same_password), le lien part quand même", async () => {
+    const { updateUserById } = admin();
+    updateUserById.mockResolvedValueOnce({ data: { user: null }, error: { message: "New password should be different from the old password.", code: "same_password" } });
+    expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
+    expect(mocks.envoyerEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("le remplacement ne touche jamais un compte confirmé : ni adresse déjà confirmée, ni projet sans confirmation", async () => {
+    const { generateLink, updateUserById } = admin({ utilisateur: { id: "u1", email_confirmed_at: "2026-09-30T10:00:00Z" } });
+    expect(await inscrire()).toEqual({ etat: "deja_confirme" });
+    generateLink.mockResolvedValueOnce({ data: { properties: null, user: null }, error: { code: "email_exists", message: "already registered" } });
+    expect(await inscrire()).toEqual({ etat: "compte_existant" });
+    expect(updateUserById).not.toHaveBeenCalled();
   });
 
   it("remonte le code d'un mot de passe refusé, sans courrier", async () => {

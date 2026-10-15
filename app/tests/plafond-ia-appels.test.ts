@@ -294,15 +294,16 @@ describe("console : l'écran de la limite quotidienne", () => {
     expect(html).toContain("par superviseur@test.local");
   });
 
-  it("lecture impossible : l'écran le dit, sans chiffre inventé", () => {
-    for (const props of [
-      { reglage: null, jour: null, lisible: true, auteur: null },
-      { reglage: { plafond_jour: 50, modifie_le: "2026-10-15T08:00:00Z", modifie_par: null }, jour: null, lisible: false, auteur: null },
-    ]) {
-      const html = rendre(props);
-      expect(html).toContain("La limite et le compteur du jour ne peuvent pas être lus actuellement.");
-      expect(html).not.toContain("Aujourd’hui :");
-    }
+  it("lecture en erreur : l'écran le dit, sans chiffre inventé", () => {
+    const html = rendre({ reglage: { plafond_jour: 50, modifie_le: "2026-10-15T08:00:00Z", modifie_par: null }, jour: null, lisible: false, auteur: null });
+    expect(html).toContain("La limite et le compteur du jour ne peuvent pas être lus actuellement.");
+    expect(html).not.toContain("Aujourd’hui :");
+  });
+
+  it("lecture vide (relais temporaire, que la base ne laisse pas lire) : l'écran dit qui la voit, et qu'elle s'applique", () => {
+    const html = rendre({ reglage: null, jour: null, lisible: true, auteur: null });
+    expect(html).toContain("ne sont visibles que par un superviseur permanent, avec sa double vérification. Ils s’appliquent à chaque appel.");
+    expect(html).not.toContain("Aujourd’hui :");
   });
 });
 

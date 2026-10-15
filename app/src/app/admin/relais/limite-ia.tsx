@@ -21,6 +21,11 @@ export function LimiteAppelsIA({ reglage, jour, lisible, auteur }: {
   const plafond = lisible ? reglage?.plafond_jour ?? null : null;
   const accordes = jour?.appels ?? 0;
   const refus = jour?.refus ?? 0;
+  // Lecture en erreur : on ne sait rien. Lecture vide : la base ne montre la limite qu'au superviseur permanent doublement
+  // vérifié (un relais temporaire ne la voit pas) ; elle s'applique quand même à chaque appel.
+  const sansChiffre = !lisible
+    ? 'La limite et le compteur du jour ne peuvent pas être lus actuellement.'
+    : 'La limite et le compteur du jour ne sont visibles que par un superviseur permanent, avec sa double vérification. Ils s’appliquent à chaque appel.';
   return (
     <section id="limite-ia" className="loc-carte scroll-mt-6 space-y-4">
       <h2 className="text-xl font-semibold">Appels payants à l’intelligence artificielle</h2>
@@ -31,10 +36,7 @@ export function LimiteAppelsIA({ reglage, jour, lisible, auteur }: {
         ou refusé ne compte pas.
       </p>
       {plafond === null ? (
-        <p role="alert" className="err">
-          La limite et le compteur du jour ne peuvent pas être lus actuellement. Tant que ce contrôle est indisponible,
-          aucun appel payant à l’IA ne part.
-        </p>
+        <p role="alert" className="err">{sansChiffre}</p>
       ) : (
         <p>
           <strong>Aujourd’hui : {appels(accordes)} sur {plafond} permis.</strong>

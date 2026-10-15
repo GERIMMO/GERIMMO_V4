@@ -34,6 +34,8 @@ vi.mock("@/app/artisan/acces", () => ({
   }),
   // D16 (14/10) : la page charge aussi les photos jointes par le locataire ; ici, il n'y en a pas.
   chargerPhotosDemande: async () => ({ photos: [], erreur: false }),
+  // D18 (livraison 2) : et l'historique des versions de son devis ; ici, une seule version, rien à montrer.
+  chargerVersionsDevis: async () => ({ lignes: [], erreur: false }),
   verifierArtisanAction: vi.fn(),
 }));
 vi.mock("@/lib/parcours-devis-serveur", () => ({ chargerPreparationDevis: m.charger }));

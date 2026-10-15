@@ -1,27 +1,31 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   annulerMission,
   deciderAvenant,
+  demanderRevisionDevis,
   evaluerArtisan,
   fixerRendezVous,
   ouvrirConsultation,
+  refuserDevis,
   retenirDevis,
   reviserImputation,
   solliciterArtisan,
   type EtatIncidentAction,
 } from "@/app/actions/incidents";
+import { CleEnvoi } from "@/components/cle-envoi";
 import { MessageReseau, InteretReseau, VoieDeSortieReseau } from "@/components/disponibilite-reseau";
 import { voieDeSortieAffichee, type DisponibiliteReseau } from "@/lib/reseau";
-import { IMPUTATIONS_INCIDENT } from "@/lib/incidents";
+import { IMPUTATIONS_INCIDENT, MOTIF_DECISION_DEVIS } from "@/lib/incidents";
 import {
   decennaleRequise,
   METIERS_ARTISAN,
   NATURES_TRAVAUX,
 } from "../artisans/referentiel";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -245,6 +249,197 @@ export function BoutonRetenirDevis({
         <span className="sr-only"> — celui de {raisonSociale}</span>
       </BoutonEnvoi>
       <Retour etat={etat} />
+    </form>
+  );
+}
+
+/**
+ * Refuser un devis reçu (décision D18 du 14/10, livraison 1 ; fiches ART-13, PRO2-12).
+ *
+ * Deux temps, comme la fiche le demande : le bouton « Refuser » ouvre le formulaire ; le refus ne part qu'au clic
+ * sur « Confirmer le refus », après un motif de dix caractères au moins. Le formulaire DIT que le motif est transmis
+ * à l'artisan (réponse A.15-4, même précaution que PRO2-14) : rien d'interne n'a sa place ici. La clé d'envoi
+ * (`CleEnvoi`) rend le renvoi sûr après une réponse perdue : la base reconnaît le même envoi et ne refait rien.
+ */
+export function BoutonRefuserDevis({
+  orgId,
+  devisId,
+  raisonSociale,
+}: {
+  orgId: string;
+  devisId: string;
+  raisonSociale: string;
+}) {
+  return (
+    <DecisionMotivee
+      action={refuserDevis.bind(null, orgId, devisId)}
+      marque="data-devis-refuse"
+      ouvrir={<>Refuser<span className="sr-only"> le devis de {raisonSociale}</span></>}
+      titre={`Refuser le devis de ${raisonSociale}`}
+      libelle={<>Motif du refus (transmis à l&apos;artisan) *</>}
+      exemple="Le montant dépasse le budget prévu pour cette réparation."
+      aide={
+        <>
+          Dix caractères au moins. L&apos;artisan lira ce motif tel quel ; sa demande sera close et la place
+          libérée pour solliciter un autre artisan. Ce refus est définitif.
+        </>
+      }
+      confirmer={<>Confirmer le refus<span className="sr-only"> du devis de {raisonSociale}</span></>}
+      enCours="Refus…"
+    />
+  );
+}
+
+/**
+ * Demander une révision d'un devis reçu (décision D18 du 14/10, livraison 2). Deux temps comme le refus : le bouton
+ * ouvre le formulaire, la demande ne part qu'au clic de confirmation. Le champ « Ce que vous demandez » est transmis
+ * à l'artisan ; l'échéance (sept jours, jour de Paris) est fixée par la base et annoncée ici.
+ */
+export function BoutonDemanderRevision({
+  orgId,
+  devisId,
+  raisonSociale,
+  version,
+  echeance,
+}: {
+  orgId: string;
+  devisId: string;
+  raisonSociale: string;
+  /** La version du devis affiché : la demande produira la version suivante. */
+  version: number;
+  /** Le dernier jour de réponse de l'artisan si la demande part aujourd'hui (jour de Paris), en « jj/mm/aaaa ». */
+  echeance: string;
+}) {
+  return (
+    <DecisionMotivee
+      action={demanderRevisionDevis.bind(null, orgId, devisId)}
+      marque="data-devis-revision"
+      ouvrir={<>Demander une révision<span className="sr-only"> du devis de {raisonSociale}</span></>}
+      titre={`Demander une révision du devis de ${raisonSociale}`}
+      libelle={<>Ce que vous demandez (transmis à l&apos;artisan) *</>}
+      exemple="Merci de détailler la main-d'œuvre et de revoir le prix du joint."
+      aide={
+        <>
+          Dix caractères au moins. L&apos;artisan a jusqu&apos;au {echeance} (sept jours) pour envoyer la version{" "}
+          {version + 1} de son devis en disant ce qui change, ou renoncer. Cette version {version} ne pourra plus
+          être retenue ; elle reste consultable. Sans réponse à l&apos;échéance, la demande sera close et vous serez
+          alerté.
+        </>
+      }
+      confirmer={<>Confirmer la demande de révision<span className="sr-only"> du devis de {raisonSociale}</span></>}
+      enCours="Envoi…"
+    />
+  );
+}
+
+/**
+ * Le gabarit commun aux deux décisions motivées sur un devis (refus, demande de révision). Relecture du 15/10
+ * (accessibilité) : à l'ouverture, le focus va dans la zone de texte ; « Annuler » le rend au bouton qui avait ouvert le
+ * formulaire ; l'aide et l'erreur sont reliées à la zone de texte (`aria-describedby`), marquée invalide en cas d'erreur ;
+ * l'erreur est annoncée (`role="alert"`) ; après l'envoi réussi, le message remplace le formulaire, il est annoncé
+ * (`role="status"`) et reçoit le focus, qui ne retombe donc pas sur la page. Le bouton d'ouverture disparaît une fois le
+ * formulaire ouvert : il ne porte pas d'`aria-expanded`, qui ne décrirait jamais qu'un seul état.
+ */
+function DecisionMotivee({
+  action: actionLiee,
+  marque,
+  ouvrir: libelleOuvrir,
+  titre,
+  libelle,
+  exemple,
+  aide,
+  confirmer,
+  enCours,
+}: {
+  action: (etat: EtatIncidentAction, donnees: FormData) => Promise<EtatIncidentAction>;
+  marque: "data-devis-refuse" | "data-devis-revision";
+  ouvrir: ReactNode;
+  titre: string;
+  libelle: ReactNode;
+  exemple: string;
+  aide: ReactNode;
+  confirmer: ReactNode;
+  enCours: string;
+}) {
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const [ouvert, ouvrir] = useState(false);
+  const idMotif = useId();
+  const idAide = useId();
+  const idErreur = useId();
+  const bouton = useRef<HTMLButtonElement>(null);
+  const zone = useRef<HTMLTextAreaElement>(null);
+  const message = useRef<HTMLDivElement>(null);
+  const rendreAuBouton = useRef(false);
+  const reussi = Boolean(etat.succes);
+
+  useEffect(() => {
+    if (reussi) message.current?.focus();
+    else if (ouvert) zone.current?.focus();
+    else if (rendreAuBouton.current) {
+      rendreAuBouton.current = false;
+      bouton.current?.focus();
+    }
+  }, [ouvert, reussi]);
+
+  if (reussi) {
+    return (
+      <div ref={message} tabIndex={-1} role="status" className="space-y-1.5 outline-none" {...{ [marque]: "" }}>
+        <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
+        {etat.avertissement && <p className="text-sm text-muted-foreground">{etat.avertissement}</p>}
+      </div>
+    );
+  }
+  if (!ouvert) {
+    return (
+      <Button ref={bouton} type="button" variant="outline" size="sm" onClick={() => ouvrir(true)}>
+        {libelleOuvrir}
+      </Button>
+    );
+  }
+  return (
+    <form data-saisie-confirmee action={action} className="space-y-2 rounded-lg border border-border p-3" aria-label={titre}>
+      <CleEnvoi etat={etat} />
+      <div className="space-y-1.5">
+        <Label htmlFor={idMotif}>{libelle}</Label>
+        <textarea
+          ref={zone}
+          id={idMotif}
+          name="motif"
+          required
+          minLength={MOTIF_DECISION_DEVIS.min}
+          maxLength={MOTIF_DECISION_DEVIS.max}
+          rows={3}
+          defaultValue={etat.valeurs?.motif}
+          placeholder={exemple}
+          aria-describedby={etat.erreur ? `${idAide} ${idErreur}` : idAide}
+          aria-invalid={etat.erreur ? true : undefined}
+          className={classeTextarea}
+        />
+        <p id={idAide} className="text-xs text-muted-foreground">
+          {aide}
+        </p>
+      </div>
+      {etat.erreur && (
+        <p id={idErreur} role="alert" className="text-sm text-destructive">
+          {etat.erreur}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <BoutonEnvoi variant="outline" size="sm" enCoursTexte={enCours}>
+          {confirmer}
+        </BoutonEnvoi>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            rendreAuBouton.current = true;
+            ouvrir(false);
+          }}
+        >
+          Annuler
+        </Button>
+      </div>
     </form>
   );
 }

@@ -3,6 +3,7 @@ import { titreIncident } from "@/lib/incidents";
 import type { LigneSollicitation } from "./acces";
 import {
   dateSimple,
+  demandeAChiffrer,
   euros,
   jourCourt,
   libelle,
@@ -22,9 +23,11 @@ import { Etiquette, MarqueAgence } from "./ui";
  * quelqu'un.
  */
 export function CarteSollicitation({ ligne }: { ligne: LigneSollicitation }) {
-  const aChiffrer = ligne.statut === "envoyee";
+  // D18 (livraison 2) : une révision demandée attend de nouveau l'artisan, avec une échéance (ton alerte).
+  const enRevision = ligne.statut === "revision_demandee";
+  const aChiffrer = demandeAChiffrer(ligne.statut);
   const ton =
-    ligne.statut === "envoyee"
+    aChiffrer
       ? "alerte"
       : ligne.statut === "retenue"
         ? "ok"
@@ -61,9 +64,16 @@ export function CarteSollicitation({ ligne }: { ligne: LigneSollicitation }) {
         </p>
       )}
 
+      {enRevision && (
+        <p className="mt-2.5 text-[0.9375rem] font-medium text-[var(--destructive-soft-foreground)]">
+          Nouvelle version attendue
+          {ligne.revision_avant ? ` avant le ${dateSimple(ligne.revision_avant)}` : ""}
+          {ligne.version ? ` (votre version ${ligne.version} est en révision)` : ""}
+        </p>
+      )}
       {ligne.montant_ttc_cents !== null ? (
         <p className="mt-2.5 text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Votre devis : {euros(ligne.montant_ttc_cents)} TTC
+          Votre devis{ligne.version && ligne.version > 1 ? ` (version ${ligne.version})` : ""} : {euros(ligne.montant_ttc_cents)} TTC
           {ligne.valide_jusqu_au ? ` · valable jusqu'au ${dateSimple(ligne.valide_jusqu_au)}` : ""}
         </p>
       ) : (
@@ -77,7 +87,7 @@ export function CarteSollicitation({ ligne }: { ligne: LigneSollicitation }) {
           <svg viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0 fill-none stroke-current stroke-2">
             <path d="M5 12h13M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Répondre à cette demande
+          {enRevision ? "Préparer la nouvelle version" : "Répondre à cette demande"}
         </p>
       )}
     </>

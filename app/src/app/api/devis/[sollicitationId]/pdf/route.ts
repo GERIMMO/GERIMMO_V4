@@ -8,6 +8,7 @@ import { chargerPreparationDevis } from "@/lib/parcours-devis-serveur";
 import { lireSaisieDevisArtisan } from "@/lib/saisie-devis-artisan";
 import { REFERENCES_TRAVAUX } from "@/lib/references-prix-travaux";
 import { abandonnerPdfDepose, COMPARTIMENT_PREPARATIONS, effacerPdfPreparation, pdfRemplace } from "@/lib/devis-pdf-stockage";
+import { demandeAChiffrer } from "@/app/artisan/libelles";
 export const runtime = "nodejs";
 const entetes = { "Content-Type":"application/pdf", "Cache-Control":"private, no-store", "X-Content-Type-Options":"nosniff" };
 
@@ -19,7 +20,8 @@ export async function POST(request: Request, context: { params: Promise<{sollici
   try { acces = await chargerPreparationDevis(sollicitationId, true); }
   catch { return erreur("Connectez-vous avec le compte artisan destinataire de cette demande.",403); }
   const { fiche, service, demande, preparation, profil } = acces;
-  if(demande.statut!=="envoyee") return erreur("Cette demande est close.",409);
+  // D18 (livraison 2) : une demande en révision attend une nouvelle version : le formulaire est ouvert.
+  if(!demandeAChiffrer(demande.statut)) return erreur("Cette demande est close.",409);
   let form: FormData; let saisie: ReturnType<typeof lireSaisieDevisArtisan>;
   try {
     form=await request.formData();
@@ -53,7 +55,9 @@ export async function POST(request: Request, context: { params: Promise<{sollici
     cheminDepose=chemin;
     const enregistrement={sollicitation_id:sollicitationId,artisan_id:fiche.artisan_id,reference_id:id,revision:revision+1,
       saisie:{diagnostic:saisie.diagnostic,delai:saisie.delai,duree:saisie.duree,contraintes:saisie.contraintes,observations:saisie.observations,
-        valideJusquAu:saisie.valideJusquAu,prestations:saisie.prestations,lignes},entreprise,statut:"valide",valide_le:instant,
+        valideJusquAu:saisie.valideJusquAu,prestations:saisie.prestations,lignes,
+        // D18 (livraison 2) : « ce qui change », lu par la base au dépôt d'une version suivante.
+        noteRevision:saisie.noteRevision},entreprise,statut:"valide",valide_le:instant,
       pdf_bucket:"devis-preparations",pdf_path:chemin,pdf_sha:createHash("sha256").update(pdf).digest("hex"),pdf_taille:pdf.length,updated_at:instant};
     const q=preparation?service.from("artisan_devis_preparations").update(enregistrement).eq("sollicitation_id",sollicitationId).eq("artisan_id",fiche.artisan_id).eq("revision",revision).neq("statut","envoye")
       :service.from("artisan_devis_preparations").insert(enregistrement);

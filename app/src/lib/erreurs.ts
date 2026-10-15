@@ -20,6 +20,11 @@ export function sansJargon(message: string | null | undefined): string {
   // peuvent contenir des noms de tables, du SQL, des adresses réseau ou des
   // références réservées au support. Ces détails restent dans les journaux ;
   // l'utilisateur reçoit une consigne utile et compréhensible.
+  // Deux décisions simultanées sur le même dossier (interblocage 40P01, sérialisation 40001) : la base en annule une.
+  // L'état reste cohérent ; l'utilisateur doit seulement relire l'état à jour.
+  if (/deadlock detected|could not serialize access/i.test(propre)) {
+    return "Une autre action vient d’être enregistrée en même temps : rechargez la page pour voir l’état à jour.";
+  }
   if (
     /(?:SQLSTATE|PostgREST|postgres|supabase|row-level security|RLS|violates|constraint|duplicate key|foreign key|relation ["']|column ["']|schema cache|JWT|fetch failed|ECONN|ENOTFOUND|\b5\d\d\b|\bPGRST\d+\b)/i.test(
       propre

@@ -319,6 +319,13 @@ describe.skipIf(!DB_URL)("D16 — photos du locataire visibles de l'artisan : la
     it("se rejoue sans effet", async () => {
       const avant = (await db.query("select md5(pg_get_functiondef('public.mes_photos_incident_artisan(uuid,uuid)'::regprocedure) || pg_get_functiondef('public.lire_photo_incident_artisan(uuid,uuid,uuid)'::regprocedure)) m")).rows[0].m;
       await db.query(readFileSync(MIGRATION, "utf8"));
+      // Les migrations ultérieures qui complètent ces fonctions (D18, révision des devis) se rejouent à leur suite,
+      // comme dans la chaîne réelle : rejouée seule, cette migration défait leur ajout (create or replace complet).
+      const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
+      for (const suivante of manifeste.slice(manifeste.indexOf(MIGRATION.split("/").pop()!) + 1)) {
+        const sql = readFileSync(`supabase/migrations/${suivante}`, "utf8");
+        if (/mes_photos_incident_artisan|lire_photo_incident_artisan/.test(sql)) await db.query(sql);
+      }
       expect((await db.query("select md5(pg_get_functiondef('public.mes_photos_incident_artisan(uuid,uuid)'::regprocedure) || pg_get_functiondef('public.lire_photo_incident_artisan(uuid,uuid,uuid)'::regprocedure)) m")).rows[0].m).toBe(avant);
     });
   });

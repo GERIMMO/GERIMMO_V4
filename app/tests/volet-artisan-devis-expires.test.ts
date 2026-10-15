@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push() {}, refresh() {} 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/app/actions/incidents", () => ({
   annulerMission: vi.fn(), deciderAvenant: vi.fn(), evaluerArtisan: vi.fn(), fixerRendezVous: vi.fn(),
-  ouvrirConsultation: vi.fn(), retenirDevis: vi.fn(), reviserImputation: vi.fn(), solliciterArtisan: vi.fn(),
+  ouvrirConsultation: vi.fn(), refuserDevis: vi.fn(), demanderRevisionDevis: vi.fn(), retenirDevis: vi.fn(), reviserImputation: vi.fn(), solliciterArtisan: vi.fn(),
 }));
 
 import { ConsultationOuverte } from "@/app/agence/[orgId]/incidents/volet-artisan";

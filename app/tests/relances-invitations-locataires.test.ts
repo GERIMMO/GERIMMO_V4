@@ -96,10 +96,15 @@ describe.skipIf(!DB_URL)("Relances des invitations de locataire (X16)", () => {
     },
   } as unknown as SupabaseClient;
 
-  /** La doublure de l'expéditeur : note chaque relance « envoyée », rend l'issue demandée. */
+  /**
+   * La doublure de l'expéditeur : note chaque relance « envoyée », rend l'issue demandée. Comme le vrai, elle lit le
+   * contrôle d'arrêt reçu (`avantEnvoi`) avant d'envoyer ; `pendantEnvoi` agit juste avant (un arrêt posé à ce moment).
+   */
   let envois: { email: string; invitationId: string; expireLe: string }[] = [];
   let issue: ResultatRappelInvitation | (() => never) = { envoye: true };
+  let pendantEnvoi: (() => Promise<void>) | null = null;
   const expedier: ExpediteurRappelInvitation = async (p) => {
+    await pendantEnvoi?.();
     await p.avantEnvoi?.();
     if (typeof issue === "function") issue();
     envois.push({ email: p.email, invitationId: p.invitationId, expireLe: p.expireLe });
@@ -169,6 +174,7 @@ describe.skipIf(!DB_URL)("Relances des invitations de locataire (X16)", () => {
     ({ person, invite } = await invitation());
     envois = [];
     issue = { envoye: true };
+    pendantEnvoi = null;
     appels.length = 0;
   });
   afterEach(async () => {
@@ -342,13 +348,24 @@ describe.skipIf(!DB_URL)("Relances des invitations de locataire (X16)", () => {
     expect(await relances()).toEqual([]);
   });
 
-  it("arrêt d'urgence posé entre la réservation et l'envoi : réservation retirée, rien n'est parti", async () => {
+  it("arrêt d'urgence posé entre la réservation et l'envoi : le contrôle passé à l'expéditeur l'arrête, réservation retirée, rien n'est parti", async () => {
     await figerJour(jour(3));
-    issue = () => { throw new ArretSupervision(); };
+    // Un vrai arrêt (clé « rappels »), posé en base APRÈS la réservation : seul le contrôle que la passe transmet à
+    // l'expéditeur, relu juste avant l'envoi, peut encore le voir.
+    pendantEnvoi = async () => {
+      pendantEnvoi = null;
+      await admin();
+      expect(await relances()).toEqual([{ rang: 1, etat: "reservee", jour: jour(3), envoyee: false }]);
+      await db.query("insert into public.supervision_arrets(cle, arrete, motif, auteur) values ('rappels', true, 'Essai des relances', $1)", [owner]);
+    };
     await expect(passe()).rejects.toBeInstanceOf(ArretSupervision);
+    expect(envois).toHaveLength(0);
     expect(await relances()).toEqual([]);
-    issue = { envoye: true };
+    // Arrêt levé : la relance part au passage suivant.
+    await admin();
+    await db.query("update public.supervision_arrets set arrete = false where cle = 'rappels'");
     expect(await passe()).toMatchObject({ envoyees: 1 });
+    expect(envois.map((e) => e.invitationId)).toEqual([invite]);
   });
 
   it("limite par organisation (celle des invitations, 30 liens par heure, compteur partagé) : reportée, puis partie", async () => {

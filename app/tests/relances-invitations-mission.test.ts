@@ -132,6 +132,24 @@ describe("l'e-mail de relance : le gabarit et le lien de l'invitation", () => {
     expect(m.generateLink).not.toHaveBeenCalled();
     expect(m.envoyerEmail).not.toHaveBeenCalled();
   });
+
+  it("arrêt d'urgence posé après la fabrication du jeton : le service d'e-mail reçoit le contrôle et s'arrête avant l'appel", async () => {
+    const { envoyerRappelInvitationLocataire } = await import("@/lib/lien-mot-de-passe");
+    const arret = new ArretSupervision();
+    // Le premier contrôle (avant le jeton) passe ; l'arrêt est posé ensuite.
+    const avantEnvoi = vi.fn<() => Promise<void>>().mockResolvedValueOnce(undefined).mockRejectedValue(arret);
+    // Comme lib/email.ts : le contrôle reçu est lu avant tout appel au service.
+    m.envoyerEmail.mockImplementation(async (p: { avantEnvoi?: () => Promise<void> }) => {
+      await p.avantEnvoi?.();
+      return { id: "email_test" };
+    });
+    await expect(envoyerRappelInvitationLocataire({ email: "a@exemple.fr", invitationId: ID, expireLe: "2026-12-02T08:00:00Z", avantEnvoi }))
+      .rejects.toBe(arret);
+    expect(m.generateLink).toHaveBeenCalledTimes(1);
+    expect(m.envoyerEmail).toHaveBeenCalledTimes(1);
+    expect(m.envoyerEmail.mock.calls[0][0].avantEnvoi).toBe(avantEnvoi);
+    expect(avantEnvoi).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("le service d'e-mail dit quand un envoi est incertain", () => {

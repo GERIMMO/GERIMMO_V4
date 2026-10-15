@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { journaliserSupervision } from "@/lib/journal-supervision";
 import { couperAuMot } from "@/lib/utils";
 import { aujourdhuiParis } from "@/lib/ged";
+import { MESSAGE_CONTROLE_IA_INDISPONIBLE, messageGardeIA, reserverAppelIA } from "@/lib/plafond-ia";
 
 export type EtatNouvelArticle = { erreur?: string; valeurs?: Record<string, string> };
 
@@ -35,6 +36,14 @@ export async function creerArticleIA(
 
   const cle = process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim();
   if (!cle) return { erreur: "La rédaction assistée attend la clé OpenAI configurée dans Vercel.", valeurs };
+
+  // X19 (SA-10) : l'arrêt d'urgence et la limite quotidienne, consultés juste avant l'appel payant. Refus : pas d'appel,
+  // la saisie reste dans le formulaire.
+  try {
+    await reserverAppelIA(supabase, "article");
+  } catch (e) {
+    return { erreur: messageGardeIA(e) ?? MESSAGE_CONTROLE_IA_INDISPONIBLE, valeurs };
+  }
 
   let document: { titre: string; chapo: string; corps: string; seo_description: string; facebook_texte: string };
   try {

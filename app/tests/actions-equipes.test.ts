@@ -15,7 +15,7 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 import { commanderMission, demanderCorrection } from "../src/app/actions/equipes";
 
 type Ecriture = { statut?: string; probleme?: string };
-function base(statutInitial = "a_etudier") {
+function base(statutInitial = "a_etudier", statutIA = "accorde") {
   const ecritures: { valeurs: Ecriture; conditions: [string, unknown][] }[] = [];
   let statut = statutInitial;
   const from = vi.fn(() => {
@@ -44,7 +44,8 @@ function base(statutInitial = "a_etudier") {
     };
     return q;
   });
-  const rpc = vi.fn().mockResolvedValue({ data: true, error: null });
+  // X19 (SA-10) : la réservation d'un appel à l'IA (lancement de l'atelier) rend un statut ; les contrôles d'accès, `true`.
+  const rpc = vi.fn(async (nom: string) => ({ data: nom === "reserver_appel_ia" ? statutIA : true, error: null }));
   mocks.createClient.mockResolvedValue({ from, rpc });
   return { ecritures, statut: () => statut };
 }
@@ -94,6 +95,18 @@ describe("l'atelier et la proposition (B3, B13)", () => {
     const r = await demanderCorrection({}, form({ proposition: "11111111-1111-1111-1111-111111111111", demande: "Corriger le libellé du bouton" }));
     expect(r.succes).toBeTruthy();
     expect(b.statut()).toBe("en_developpement");
+  });
+
+  it.each([
+    ["plafond", /limite quotidienne des appels à l’IA/],
+    ["arret", /arrêt d’urgence en cours/],
+  ])("X19 : réservation « %s » = l'atelier n'est pas lancé, la proposition revient à l'étude", async (statut, message) => {
+    const b = base("detectee", statut);
+    const r = await demanderCorrection({}, form({ proposition: "11111111-1111-1111-1111-111111111111", demande: "Corriger le libellé du bouton" }));
+    expect(r.erreur).toMatch(/l’atelier n’a pas été lancé/);
+    expect(r.erreur).toMatch(message);
+    expect(mocks.fetch).not.toHaveBeenCalled();
+    expect(b.statut()).toBe("detectee");
   });
 
   it("exige les mêmes connexions que l'écran de l'atelier, Vercel compris", async () => {

@@ -10,6 +10,7 @@ import {creerVisuelMarketing} from '@/lib/visuel-marketing';
 import {envoyerSurFacebook} from '@/lib/facebook';
 import {alerterSuperviseurDuPost} from '@/lib/alerte-veto-marketing';
 import {composantesParis,dateParis} from '@/lib/heure-paris-calcul';
+import {PlafondIAAtteint,reserverAppelIA} from '@/lib/plafond-ia';
 
 // LA MISSION MARKETING EN DEUX TEMPS (06/10/2026).
 //
@@ -112,9 +113,11 @@ async function choisirSujet(db:Db,r:Reglages,cible:Cible):Promise<{sujet:SujetMa
   try{
    const texte=await lireSourceEtude(info.source_url);
    await verifierAvantEffet(db,'marketing');
-   const sujet=await redigerArticleVeille({id:info.id,titre:info.titre,source_url:info.source_url,source_nom:info.source_nom,publie_source_le:info.publie_source_le},texte);
+   const sujet=await redigerArticleVeille({id:info.id,titre:info.titre,source_url:info.source_url,source_nom:info.source_nom,publie_source_le:info.publie_source_le},texte,()=>reserverAppelIA(db,'redaction_veille'));
    return {sujet,source:info.id,motifs};
-  }catch(e){if(e instanceof ArretSupervision)throw e;motifs.push(`${info.titre.slice(0,60)} : ${e instanceof Error?e.message:'rédaction impossible'}`);}
+  }catch(e){if(e instanceof ArretSupervision)throw e;motifs.push(`${info.titre.slice(0,60)} : ${e instanceof Error?e.message:'rédaction impossible'}`);
+   // X19 (SA-10) : limite du jour atteinte, aucune autre actualité ne sera rédigée aujourd'hui : sujet éditorial.
+   if(e instanceof PlafondIAAtteint)break;}
  }
  return {sujet:editorial,source:null,motifs};
 }
@@ -148,7 +151,7 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
    if(apres.error||!apres.data||!['brouillon','planifiee'].includes(apres.data.statut))throw new Error('Le sujet a changé.');
    article=apres.data as Article;
    await verifierAvantEffet(db,'marketing');
-   const visuel=await creerVisuelMarketing(article.id,article.titre);
+   const visuel=await creerVisuelMarketing(article.id,article.titre,()=>reserverAppelIA(db,'visuel_marketing'));
    const chemin=`${article.id}/${visuel.empreinte}.jpg`;
    await verifierAvantEffet(db,'marketing');
    const depot=await db.storage.from('marketing-visuels').upload(chemin,visuel.octets,{contentType:'image/jpeg',upsert:false,cacheControl:'31536000'});

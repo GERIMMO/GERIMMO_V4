@@ -114,6 +114,8 @@ const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/
  * rejouent après celles du lot pour revenir exactement à l'état migré. Absents du dépôt, ils ne comptent pas.
  */
 const LOTS_POSTERIEURS = [
+  // Lot « plafond-ia » (X19, SA-10) : reserver_appel_ia compte les appels au jour de Paris (public.aujourdhui_paris()).
+  { version: "20261014730000", fichier: "plafond_appels_ia" },
   // Décision X16 du 15/10 (relances d'invitation) : relance_invitation_locataire_due et reserver_relance_invitation_locataire
   // citent aussi la fonction du jour. Indépendant du lot du devis révisable ; le plus récent, il se défait le premier.
   { version: "20261014830000", fichier: "relances_invitations_locataires" },

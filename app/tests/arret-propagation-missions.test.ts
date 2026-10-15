@@ -6,7 +6,7 @@ import { alerterSuperviseurDuPost, type ApercuPost } from "@/lib/alerte-veto-mar
 import { traiterRappels as rappels } from "@/lib/missions-planifiees/rappels";
 import { traiterVeille as veille } from "@/lib/missions-planifiees/veille";
 
-const m = vi.hoisted(() => ({ db: null as unknown, rpc: vi.fn(), envois: vi.fn(), etudier: vi.fn() }));
+const m = vi.hoisted(() => ({ db: null as unknown, rpc: vi.fn(), envois: vi.fn(), etudier: vi.fn(), statutIA: "accorde" }));
 vi.mock("@/lib/supabase/service", () => ({ clientDeService: () => m.db }));
 vi.mock("@/lib/point-du-matin", () => ({ genererPointsDuMatin: vi.fn(async () => ({ enregistres: 7 })) }));
 vi.mock("@/lib/marque-organisation-serveur", () => ({ chargerMarque: vi.fn(async () => null) }));
@@ -23,6 +23,7 @@ class Lecture implements PromiseLike<Resultat> {
   constructor(private rows: unknown[]) {}
   select() { return this; } eq() { return this; } lte() { return this; } order() { return this; }
   limit() { return this; } not() { return this; } is() { return this; } gte() { return this; } or() { return this; }
+  update() { return this; } insert() { return this; }
   maybeSingle() { return Promise.resolve({ data: this.rows[0] ?? null, error: null }); }
   then<T = Resultat, E = never>(ok?: ((r: Resultat) => T | PromiseLike<T>) | null, ko?: ((e: unknown) => E | PromiseLike<E>) | null): PromiseLike<T | E> {
     return Promise.resolve({ data: this.rows, error: null }).then(ok, ko);
@@ -33,6 +34,7 @@ function client(arretAuControle: number) {
   let controle = 0;
   m.rpc.mockImplementation(async (nom: string) => ({ data: nom === "verifier_arret_supervision" ? ++controle < arretAuControle
     : nom === "commencer_mission" ? "mission_test"
+    : nom === "reserver_appel_ia" ? m.statutIA
     : nom === "rendez_vous_a_rappeler" ? []
     : nom === "org_ecriture_ouverte" ? true
     : nom === "email_superviseur_permanent" ? "superviseur@example.invalid" : null, error: null }));
@@ -45,7 +47,7 @@ function client(arretAuControle: number) {
 }
 
 const requete = (mission: string) => new Request(`http://localhost/api/cron/${mission}`, { headers: { authorization: "Bearer secret_test" } });
-beforeEach(() => { vi.clearAllMocks(); vi.stubEnv("CRON_SECRET", "secret_test"); vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost"); });
+beforeEach(() => { vi.clearAllMocks(); m.statutIA = "accorde"; vi.stubEnv("CRON_SECRET", "secret_test"); vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost"); });
 afterEach(() => { vi.unstubAllEnvs(); });
 
 describe("L’arrêt atteint le journal de mission", () => {
@@ -68,6 +70,31 @@ describe("L’arrêt atteint le journal de mission", () => {
     expect(await r.json()).toMatchObject({ arret: "arret" });
     expect(m.etudier).not.toHaveBeenCalled();
     expect(m.rpc.mock.calls.some(([nom]) => nom === "terminer_mission")).toBe(false);
+  });
+
+  // X19 (SA-10) : l'étude simulée appelle la garde qu'on lui passe, comme la vraie (juste avant l'appel payant).
+  const etudeGardee = () => m.etudier.mockImplementation(async (_s: unknown, garde: () => Promise<void>) => { await garde(); return { analyses: [], rejets: [] }; });
+
+  it("veille : l'étude réserve son appel (usage « veille ») ; un arrêt d'urgence à ce moment interrompt la mission", async () => {
+    etudeGardee();
+    m.statutIA = "arret";
+    const db = client(99);
+    const r = await executerMission(db, "veille", () => veille(requete("veille")));
+    expect(m.rpc).toHaveBeenCalledWith("reserver_appel_ia", { p_usage: "veille" });
+    expect(r.status).toBe(503);
+    expect(await r.json()).toMatchObject({ arret: "arret" });
+    expect(m.rpc.mock.calls.some(([nom]) => nom === "terminer_mission")).toBe(false);
+  });
+
+  it("veille : limite du jour atteinte, l'étude n'a pas lieu et le passage le dit (échec à reprendre, pas un arrêt)", async () => {
+    etudeGardee();
+    m.statutIA = "plafond";
+    const db = client(99);
+    const r = await executerMission(db, "veille", () => veille(requete("veille")));
+    expect(r.status).toBe(503);
+    expect(await r.json()).toMatchObject({ echecs: ["Analyse des conséquences à reprendre"] });
+    expect(m.rpc.mock.calls.some(([nom]) => nom === "terminer_mission")).toBe(true);
+    expect(m.rpc.mock.calls.some(([nom]) => nom === "interrompre_mission_supervision")).toBe(false);
   });
 
   const post: ApercuPost = { id: "post_test", titre: "TEST", chapo: null, facebook_texte: null, facebook_image_url: null, programmee_pour: "2026-10-20T09:00:00Z", veille: false, rattrapage: false, validation_obligatoire: true };

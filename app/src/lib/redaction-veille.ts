@@ -17,6 +17,7 @@
 
 import type { SujetMarketing } from "./contenu-marketing";
 import { ErreurIA, expliquerRefusIA } from "./erreur-ia";
+import type { AvantAppelIA } from "./plafond-ia";
 import { citationPresente } from "./analyse-veille";
 import { nomDeSource, sourceVeille } from "./veille-reglementaire";
 
@@ -111,9 +112,11 @@ export function corpsArticleVeille(a: ArticleVeilleRedige, info: InfoVeille): st
   ].join("\n");
 }
 
-export async function redigerArticleVeille(info: InfoVeille, texteSource: string, env: NodeJS.ProcessEnv = process.env): Promise<SujetMarketing> {
+// X19 (SA-10) : `avantAppel` (arrêt d'urgence et limite quotidienne) passe juste avant l'appel payant, après la clé.
+export async function redigerArticleVeille(info: InfoVeille, texteSource: string, avantAppel: AvantAppelIA, env: NodeJS.ProcessEnv = process.env): Promise<SujetMarketing> {
   const cle = env.OPENAI_API_KEY?.trim() || env.OPEN_AI_KEY?.trim();
   if (!cle) throw new ErreurIA("La rédaction attend la connexion de l’IA.");
+  await avantAppel();
   const r = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { Authorization: `Bearer ${cle}`, "Content-Type": "application/json" },

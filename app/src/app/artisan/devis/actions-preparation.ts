@@ -15,6 +15,7 @@ import { notifierDevisRecu } from "@/lib/notifications";
 import { decalerJour } from "@/lib/agenda-gestion";
 import { aujourdhuiParis } from "@/lib/ged";
 import { effacerPdfPreparation, pdfRemplace } from "@/lib/devis-pdf-stockage";
+import { reserverAppelIA } from "@/lib/plafond-ia";
 
 export async function preparerPropositionDevis(id: string): Promise<{ preparation?: PreparationDevis; erreur?: string }> {
   try {
@@ -23,7 +24,7 @@ export async function preparerPropositionDevis(id: string): Promise<{ preparatio
     if (!demandeAChiffrer(demande.statut)) throw new Error("Cette demande est close.");
     const { data: historique, error } = await service.rpc("reperes_devis_realises", { p_categorie: demande.categorie });
     if (error) throw new Error("Les références de prix ne sont pas disponibles. Vous pouvez saisir votre devis.");
-    const proposition = await proposerDevis(demande.categorie, demande.description, (historique ?? []).map((h: RepereHistorique) => ({ ...h, nombre:Number(h.nombre), artisans:Number(h.artisans), moyenne_ht_cents:Number(h.moyenne_ht_cents) })));
+    const proposition = await proposerDevis(demande.categorie, demande.description, (historique ?? []).map((h: RepereHistorique) => ({ ...h, nombre:Number(h.nombre), artisans:Number(h.artisans), moyenne_ht_cents:Number(h.moyenne_ht_cents) })), () => reserverAppelIA(service, "devis"));
     // Trente jours à partir du jour de Paris (le serveur est en UTC : son jour est celui de la veille entre minuit et 2 h).
     const validite = decalerJour(aujourdhuiParis(), 30);
     const { error: insertion } = await service.from("artisan_devis_preparations").upsert({

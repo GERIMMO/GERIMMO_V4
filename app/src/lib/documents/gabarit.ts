@@ -104,9 +104,14 @@ export function echapper(s: string): string {
     .replaceAll(">", "&gt;");
 }
 
+// Un JOUR (« AAAA-MM-JJ ») est une date du calendrier : il s'écrit tel quel (midi du jour, lu dans le même fuseau, ne change
+// jamais de jour). Un INSTANT (l'heure de production `new Date().toISOString()`, un horodatage de la base comme la signature d'un
+// état des lieux) s'écrit au jour de PARIS : lu dans le fuseau du serveur (UTC chez Vercel), un document produit à 0 h 30 à Paris
+// portait la date de la veille dans « Fait le » et « Établi le » (décision du dirigeant du 15/10/2026, point 5).
 export function formaterDateFr(iso: string): string {
-  const d = new Date(iso.length <= 10 ? `${iso}T12:00:00` : iso);
-  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const options = { day: "2-digit", month: "2-digit", year: "numeric" } as const;
+  if (iso.length <= 10) return new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", options);
+  return new Date(iso).toLocaleDateString("fr-FR", { ...options, timeZone: "Europe/Paris" });
 }
 
 export function eur(n: number): string {

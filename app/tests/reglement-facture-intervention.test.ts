@@ -317,6 +317,27 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
     ]);
   });
 
+  it("après le retrait d'un règlement (virement rejeté), la facture se règle de nouveau : le règlement retiré ne compte plus", async () => {
+    await valider();
+    await devenir(admin);
+    const premier = await regler(23968, { date: "2026-10-05", moyen: "virement" });
+    expect((await etatSql()).etat).toBe("reglee");
+    await devenir(admin);
+    await retirer(premier, "Virement rejeté par la banque");
+    await devenir(admin);
+    const second = await regler(23968, { date: "2026-10-12", moyen: "cheque", reference: "CHQ 0042" });
+    expect(second).not.toBe(premier);
+    const etat = await etatSql();
+    expect(etat.etat).toBe("reglee");
+    expect(Number(etat.total_regle_cents)).toBe(23968);
+    expect(Number(etat.reste_cents)).toBe(0);
+    expect(etat.reglee_le).toEqual(new Date("2026-10-12"));
+    expect((await db.query("select reglee_le from public.intervention_factures where id=$1", [facture])).rows[0].reglee_le).toEqual(new Date("2026-10-12"));
+    // Et rien au-delà : la facture est de nouveau réglée en totalité.
+    await devenir(admin);
+    await expect(regler(1)).rejects.toThrow("déjà réglée en totalité");
+  });
+
   it("l'écriture d'un règlement ne s'annule pas seule depuis le journal : la base dit où agir", async () => {
     await valider();
     await devenir(admin);
@@ -406,6 +427,16 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
     expect(lignes[0].etat).toBe("reglee");
     expect(lignes[0].reglee_le).toEqual(new Date("2026-10-12"));
     expect(lignes[0].reglements).toHaveLength(2);
+    // Un règlement retiré (chèque rejeté) disparaît de la vue de l'artisan ; l'état et la date sont recalculés.
+    await postgres();
+    const cheque = (await db.query("select id from public.intervention_facture_reglements where facture_id=$1 and moyen='cheque'", [facture])).rows[0].id;
+    await devenir(admin);
+    await retirer(cheque, "Chèque rejeté");
+    await devenir(artisanCompte);
+    lignes = (await db.query("select * from public.mes_reglements_factures_artisan()")).rows;
+    expect(lignes[0].etat).toBe("partiellement_reglee");
+    expect(lignes[0].reglee_le).toBeNull();
+    expect(lignes[0].reglements).toEqual([{ date_reglement: "2026-10-01", moyen: "virement" }]);
     // Un autre artisan, un locataire, un gérant : rien par cette fonction.
     for (const compteId of [autreArtisanCompte, locataireCompte, admin]) {
       await devenir(compteId);

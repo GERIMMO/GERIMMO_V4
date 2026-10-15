@@ -42,4 +42,9 @@ describe("sansJargon", () => {
       "Gerimmo n’a pas pu terminer cette action. Réessayez dans un instant ; si le problème continue, signalez-le depuis Aide et retours."
     );
   });
+  it("traduit un conflit entre deux décisions simultanées (40P01, interblocage) en consigne claire", () => {
+    const attendu = "Une autre action vient d’être enregistrée en même temps : rechargez la page pour voir l’état à jour.";
+    expect(sansJargon("deadlock detected")).toBe(attendu);
+    expect(sansJargon("could not serialize access due to concurrent update")).toBe(attendu);
+  });
 });

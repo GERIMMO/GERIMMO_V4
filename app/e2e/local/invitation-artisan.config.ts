@@ -16,6 +16,7 @@ export default defineConfig({
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3106",
     locale: "fr-FR",
     timezoneId: "Europe/Paris",
+    actionTimeout: 20_000,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM } : {},

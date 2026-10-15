@@ -98,7 +98,7 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await expect(a.getByLabel("Adresse e-mail", { exact: true })).toHaveValue(email);
     await a.getByLabel("Mot de passe", { exact: true }).fill("Artisan-Invite-2026!");
     await a.getByLabel("Confirmer le mot de passe").fill("Artisan-Invite-2026!");
-    await a.getByRole("checkbox", { name: /J’accepte les/ }).check();
+    await a.getByRole("checkbox", { name: /accepte les conditions/ }).check();
     await a.screenshot({ path: info.outputPath("2-artisan-creation-compte.png"), fullPage: true });
     await a.getByRole("button", { name: "Créer mon compte" }).click();
     await a.waitForURL(new RegExp(`/artisan/invitation/${invitation}$`));

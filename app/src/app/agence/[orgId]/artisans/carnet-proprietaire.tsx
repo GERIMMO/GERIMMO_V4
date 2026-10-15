@@ -64,15 +64,16 @@ export async function CarnetProprietaire({ orgId }: { orgId: string }) {
           const detail = ligne.artisan_id
             ? [ligne.telephone, (ligne.metiers ?? []).map((m) => METIERS_ARTISAN[m] ?? m).join(", ")].filter(Boolean).join(" · ")
             : [ligne.email, ligne.metier_memo ? METIERS_ARTISAN[ligne.metier_memo] ?? ligne.metier_memo : null].filter(Boolean).join(" · ");
-          return <li key={ligne.artisan_id ?? ligne.invitation_id} className="flex flex-wrap items-start justify-between gap-3 py-3 text-sm">
+          // Au téléphone, l'état et les gestes passent sous le nom (en ligne, ils débordaient de la carte).
+          return <li key={ligne.artisan_id ?? ligne.invitation_id} className="flex flex-col gap-2 py-3 text-sm sm:flex-row sm:items-start sm:justify-between sm:gap-3">
             <div className="min-w-0 flex-1">
               <p className="break-words font-medium">{titre}</p>
               {detail && <p className="mt-1 break-words text-xs text-muted-foreground">{detail}</p>}
               {ligne.artisan_id && <p className="mt-1 text-xs text-muted-foreground">{ligne.codes_postaux?.length ? `Zone d’intervention : ${ligne.codes_postaux.join(", ")}` : "Zone d’intervention non renseignée"}</p>}
               {ligne.etat_invitation === "en_attente" && ligne.expire_le && <p className="mt-1 text-xs text-muted-foreground">Valable jusqu’au {formaterDate(ligne.expire_le)}</p>}
             </div>
-            <div className="flex flex-col items-end gap-2">
-              <span className={PUCES[etat.ton]}>{etat.libelle}</span>
+            <div className="flex min-w-0 max-w-full flex-col items-start gap-2 sm:items-end">
+              <span className={`${PUCES[etat.ton]} max-w-full whitespace-normal`}>{etat.libelle}</span>
               {etat.renvoyer && ligne.invitation_id && <GestesInvitationEnAttente orgId={orgId} invitationId={ligne.invitation_id} />}
               {etat.reinviter && ligne.email && <ReinviterArtisan orgId={orgId} email={ligne.email} nom={ligne.nom_memo} metier={ligne.metier_memo} />}
             </div>

@@ -29,9 +29,12 @@ const MIGRATION = readFileSync("supabase/migrations/20261014840000_invitation_ar
  * 15/10). Rejouer 840000 seule rétablirait ces fonctions dans leur première forme ; rejouer le lot dans l'ordre redonne
  * l'état migré (chaque correctif retrouve son ancre et se repose).
  */
-const SUITE_DU_LOT = ["20261014844000_invitation_artisan_budget_distinct.sql", "20261014845000_invitation_artisan_soi_meme.sql",
-  "20261014846000_invitation_artisan_annulation_suspendue.sql",
-  "20261014847000_invitation_artisan_echeance_jour_paris.sql"].map((f) =>
+const SUITE_DU_LOT = [
+  "20261014844000_invitation_artisan_budget_distinct.sql",
+  "20261014845000_invitation_artisan_soi_meme.sql",
+  // 847000 : le défaut de la colonne `expire_le` de la table que 840000 crée.
+  "20261014847000_invitation_artisan_echeance_jour_paris.sql",
+].map((f) =>
   readFileSync(`supabase/migrations/${f}`, "utf8")
 );
 const RETOUR = readFileSync("supabase/retours-arriere/20261014840000_invitation_artisan_proprietaire.retour.sql", "utf8");

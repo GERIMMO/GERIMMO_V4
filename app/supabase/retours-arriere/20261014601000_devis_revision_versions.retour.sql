@@ -36,8 +36,9 @@ end $retour_arriere$;
 begin;
 set local lock_timeout = '10s';
 
--- Outil local à cette session (pg_temp : disparaît à la fin de la connexion, rien n'est créé dans public).
-create function pg_temp.restaurer_fonction(p_signature text, p_marque text, p_definition text)
+-- Outil local à cette session (pg_temp : disparaît à la fin de la connexion, rien n'est créé dans public). « or replace » :
+-- un autre retour joué dans la même session peut l'avoir déjà posé.
+create or replace function pg_temp.restaurer_fonction(p_signature text, p_marque text, p_definition text)
 returns text language plpgsql as $retour_arriere$
 declare v_oid regprocedure := to_regprocedure(p_signature); v_courante text;
 begin

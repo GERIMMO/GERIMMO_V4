@@ -452,10 +452,11 @@ describe("D27 — les robots n'indexent pas l'alias", () => {
 });
 
 /**
- * `next start` RAPPELLE le proxy sur l'adresse réécrite (relevé de la première réalisation, 14/10, Next.js 16.3.8 :
- * « invoking middleware /espace/<id>/parc » puis « invoking middleware /agence/<id>/parc », avec pour en-têtes ceux que
- * la première réponse a posés). Sans précaution, la seconde passe redirigerait l'adresse /agence d'un propriétaire
- * direct vers /espace : boucle sans fin. On rejoue ici la seconde passe comme Next.js la fait.
+ * La première réalisation de D27 (14/10) a relevé que `next start` RAPPELAIT le proxy sur l'adresse réécrite
+ * (« invoking middleware /espace/<id>/parc » puis « invoking middleware /agence/<id>/parc », avec pour en-têtes ceux que
+ * la première réponse a posés). La sonde du 15/10 (Next.js 16.3.8) n'en voit plus qu'une passe ; la protection reste,
+ * pour une version ou un hébergement qui rappellerait le proxy : sans elle, la seconde passe redirigerait l'adresse
+ * /agence d'un propriétaire direct vers /espace, boucle sans fin. On rejoue ici la seconde passe comme Next.js la ferait.
  */
 function rappelerCommeNext(reponse: Response, methode = "GET"): Promise<Response> {
   const cible = new URL(reponse.headers.get("x-middleware-rewrite")!);

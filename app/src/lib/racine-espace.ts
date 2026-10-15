@@ -98,9 +98,12 @@ export type DecisionAlias = "passer" | "rediriger" | "reecrire" | "introuvable";
  * L'en-tête de requête que le proxy pose sur une adresse qu'il vient de réécrire de `/espace/<id>` vers `/agence/<id>`.
  * Sa valeur est l'identifiant de l'organisation.
  *
- * Pourquoi : `next start` RAPPELLE le proxy sur l'adresse réécrite. La seconde passe y verrait un ancien lien /agence
- * d'un propriétaire direct et le redirigerait vers /espace : boucle sans fin. Cette marque dit à la seconde passe
- * « cette adresse vient d'être réécrite, ne la redirige pas ». Elle ne dispense de RIEN d'autre (session, expiration,
+ * Pourquoi : la première réalisation de D27 (14/10) a relevé que `next start` rappelait le proxy sur l'adresse réécrite ;
+ * la seconde passe y voyait un ancien lien /agence d'un propriétaire direct et le redirigeait vers /espace : boucle sans
+ * fin. La sonde du 15/10 (Next.js 16.3.8, journal `next:router-server:resolve-routes`) ne voit plus qu'une passe pour une
+ * page, une requête RSC et un envoi d'action : la marque reste en garde-fou, pour une version ou un hébergement qui
+ * rappellerait le proxy. Elle dit à une éventuelle seconde passe « cette adresse vient d'être réécrite, ne la redirige
+ * pas ». Elle ne dispense de RIEN d'autre (session, expiration,
  * second facteur, porte de /admin, garde de la page, RLS) : seule la redirection de confort est sautée. Un visiteur qui
  * la forge n'y gagne que de ne pas être redirigé vers l'adresse canonique de SA PROPRE organisation ; la marque n'est
  * honorée que sur /agence, et que pour l'organisation qu'elle nomme.

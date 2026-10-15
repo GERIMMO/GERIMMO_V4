@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
+import { Client } from "pg";
 import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
 
 /**
@@ -46,7 +47,10 @@ test("depuis une organisation, la fiche d'un compte dit son état, ses rôles et
   await expect(page).toHaveURL(/\/agence\//);
 });
 
-test("la recherche de la console trouve un compte par son adresse", async ({ page }) => {
+const CHAMP_RECHERCHE = "Nom, ville, email, SIRET ou référence";
+
+/** Ouvre la fenêtre de recherche de la console depuis le point du matin et rend son champ. */
+async function ouvrirRecherche(page: Page) {
   await page.goto("/admin/brief");
   // Au téléphone (une seule barre, 25/09), la recherche vit dans le menu.
   // Sur la construction de production, un clic parti avant l'hydratation est
@@ -56,14 +60,19 @@ test("la recherche de la console trouve un compte par son adresse", async ({ pag
   // Le bouton du menu change de nom une fois ouvert (« Fermer le menu ») : on
   // le vise par ce qu'il commande.
   const menu = page.locator('button[aria-controls="menu-supervision"]');
-  const champ = page.getByLabel("Nom, ville, email ou SIRET");
+  const champ = page.getByLabel(CHAMP_RECHERCHE);
   await expect(async () => {
     if ((await menu.isVisible()) && (await menu.getAttribute("aria-expanded")) !== "true") await menu.click();
     // Deux boutons portent ce nom (barre haute masquée au téléphone, entrée du menu) : le visible.
     await page.locator("button:visible", { hasText: /Rechercher/ }).first().click({ timeout: 1_000 });
     await expect(champ).toBeVisible({ timeout: 1_000 });
   }).toPass({ timeout: 30_000 });
-  await page.getByLabel("Nom, ville, email ou SIRET").fill("admin.alpha");
+  return champ;
+}
+
+test("la recherche de la console trouve un compte par son adresse", async ({ page }) => {
+  const champ = await ouvrirRecherche(page);
+  await champ.fill("admin.alpha");
   const resultat = page.locator("[data-resultat]").filter({ hasText: "Compte" }).first();
   await expect(resultat).toBeVisible();
   // Rôles lisibles (audit console 27/09) : jamais le code « admin_agence ».
@@ -72,6 +81,46 @@ test("la recherche de la console trouve un compte par son adresse", async ({ pag
   const premier = page.locator("[data-resultat][data-actif]");
   await expect(premier).toHaveCount(1);
   const cible = await premier.getAttribute("href");
-  await page.getByLabel("Nom, ville, email ou SIRET").press("Enter");
+  await champ.press("Enter");
   await expect(page).toHaveURL(new RegExp(`${cible}$`));
+});
+
+// X18 (fiche SA-09), décision du 14/10/2026 ; constat de l'audit du 13/10 (S-RECHERCHE) : « INC-2026-0003 » répondait
+// « Aucun client trouvé ». Rejoué de bout en bout (relecture du 15/10) : le numéro d'un incident de la base de
+// démonstration donne un résultat « Incident », en tête, et Entrée ouvre la fiche de son organisation — jamais l'incident.
+test("la recherche de la console retrouve un incident par son numéro et ouvre la fiche de son organisation", async ({ page }) => {
+  const cible = process.env.SUPALOCAL_DB;
+  test.skip(!cible, "La base API fictive locale est requise pour lire le numéro d'un incident de démonstration.");
+  const url = new URL(cible!);
+  if (!["127.0.0.1", "localhost"].includes(url.hostname) || !/^gerimmo_ci_[a-z_]+_api$/.test(url.pathname.slice(1))) {
+    throw new Error("Une base API de recette locale est obligatoire.");
+  }
+  const db = new Client({ connectionString: cible });
+  await db.connect();
+  type IncidentDemo = { numero: string; organization_id: string; name: string };
+  let incident: IncidentDemo | undefined;
+  try {
+    // Lecture seule : le seul geste est la recherche, par l'écran.
+    await db.query("set default_transaction_read_only = on");
+    ({ rows: [incident] } = await db.query<IncidentDemo>(
+      `select i.numero, i.organization_id, o.name from public.incidents i join public.organizations o on o.id = i.organization_id
+        where i.numero ~ '^INC-[0-9]{4}-[0-9]{4,}$'
+          and (select count(*) from public.incidents j where j.numero = i.numero) = 1
+        order by i.created_at limit 1`
+    ));
+  } finally {
+    await db.end();
+  }
+  test.skip(!incident, "Aucun incident sur ce banc (node e2e/local/seed-parcours.mjs en déclare un).");
+  const champ = await ouvrirRecherche(page);
+  // Saisi en minuscules : la casse du numéro est indifférente.
+  await champ.fill(incident!.numero.toLowerCase());
+  const premier = page.locator("[data-resultat][data-actif]");
+  await expect(premier).toHaveCount(1);
+  await expect(premier).toContainText("Incident");
+  await expect(premier).toContainText(incident!.name);
+  await expect(premier).toHaveAttribute("href", `/admin/organisations/${incident!.organization_id}`);
+  await expect(page.getByText("Aucun résultat")).toHaveCount(0);
+  await champ.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/admin/organisations/${incident!.organization_id}$`));
 });

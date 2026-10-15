@@ -1,7 +1,7 @@
 /**
  * D24-B (fiches ARC-07, ARC-04) : l'écran de relecture avant le dépôt d'une facture externe.
  *
- * Une facture déposée est définitive (aucune correction ni annulation n'existe encore) : avant de l'envoyer,
+ * Une facture déposée ne se modifie plus (depuis D24-C, la seule correction est son annulation par un avoir) : avant de l'envoyer,
  * l'artisan relit le numéro, le montant, l'écart avec le devis et la pièce, et l'écran dit que le dépôt est
  * définitif. Le résumé est calculé par une fonction pure ; la page et le formulaire sont rendus comme Next le fait.
  */
@@ -153,10 +153,10 @@ const html = async (element: unknown) => renderToStaticMarkup((await element) as
 describe("fiche du chantier terminé — le formulaire de facture passe par la relecture", () => {
   beforeEach(() => { etat.activite = chantierTermine(); });
 
-  it("prévient avant la saisie que le dépôt est définitif et que le numéro doit être unique", async () => {
+  it("prévient avant la saisie que la facture ne se modifiera plus (seulement l'annuler par un avoir) et que le numéro doit être unique", async () => {
     const page = await html(PageChantier({ params: Promise.resolve({ chantierId: "h1" }) }));
     expect(page).toContain("Déposer la facture");
-    expect(page).toContain("Une facture déposée est définitive");
+    expect(page).toContain("Une facture déposée ne se modifie plus : en cas d’erreur, vous pourrez l’annuler par un avoir");
     expect(page).toContain("les majuscules et les espaces autour ne comptent pas");
   });
 

@@ -62,6 +62,15 @@ export const FICHIERS_EN_SERIE = [
   // les organisations et voit disparaître celle de l'essai : violation de orchestration_cases_organization_id_fkey
   // (relecture du 15/10, deux fichiers seuls en parallèle).
   "tests/planning-conflits-concurrence.test.ts",
+  // X16 (relances d'invitation) : remplace `aujourdhui_paris()` dans ses essais (jour de Paris figé), rejoue la
+  // migration 20261014830000 et son retour arrière (`alter table` et `create trigger` sur invitations_locataires).
+  "tests/relances-invitations-locataires.test.ts",
+  // X19 (SA-10), limite quotidienne des appels à l'IA : fixture VALIDÉE (vingt sessions simultanées sur la ligne du jour,
+  // remise en état à la fin) et rejeu de la migration (politiques et droits reposés) dans la transaction d'un essai.
+  "tests/plafond-appels-ia-base.test.ts",
+  // Lot « avoir-facture-externe » (D24-C) : le retour arrière joué dans la transaction de l'essai supprime puis recrée la table
+  // des avoirs et modifie artisan_factures_externes (contrainte, index, colonne) : verrou exclusif tenu pendant tout l'essai.
+  "tests/artisan-avoir-migration-rejeu.test.ts",
 ];
 
 export default defineConfig({

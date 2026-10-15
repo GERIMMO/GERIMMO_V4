@@ -24,6 +24,14 @@ const DB_URL = process.env.SUPABASE_DB_URL;
 verifierBaseDeTest(DB_URL);
 
 const MIGRATION = readFileSync("supabase/migrations/20261014840000_invitation_artisan_proprietaire.sql", "utf8");
+/**
+ * Les migrations suivantes du lot qui modifient, PAR MARQUE, une fonction créée par 20261014840000 (seconde relecture du
+ * 15/10). Rejouer 840000 seule rétablirait ces fonctions dans leur première forme ; rejouer le lot dans l'ordre redonne
+ * l'état migré (chaque correctif retrouve son ancre et se repose).
+ */
+const SUITE_DU_LOT = ["20261014844000_invitation_artisan_budget_distinct.sql"].map((f) =>
+  readFileSync(`supabase/migrations/${f}`, "utf8")
+);
 const RETOUR = readFileSync("supabase/retours-arriere/20261014840000_invitation_artisan_proprietaire.retour.sql", "utf8");
 const FONCTIONS = [
   "public.preparer_invitation_artisan(uuid,text,text,public.artisan_metier)",
@@ -158,8 +166,10 @@ describe.skipIf(!DB_URL)("invitation d'artisan — rejeu de la migration et reto
     const lignes = async () =>
       (await db.query("select row_to_json(i)::text v from public.invitations_artisans i where organization_id=$1", [org])).rows.map((r) => r.v);
     const invitationsAvant = await lignes();
-    await db.query(MIGRATION);
-    await db.query(MIGRATION);
+    for (let fois = 0; fois < 2; fois++) {
+      await db.query(MIGRATION);
+      for (const suite of SUITE_DU_LOT) await db.query(suite);
+    }
     expect(await empreinte()).toEqual(avant);
     expect(await lignes()).toEqual(invitationsAvant);
     expect((await db.query("select etat, artisan_id from public.invitations_artisans where id=$1", [invitation])).rows[0]).toEqual({ etat: "acceptee", artisan_id: artisan });
@@ -183,8 +193,9 @@ describe.skipIf(!DB_URL)("invitation d'artisan — rejeu de la migration et reto
     // Rejouable : déjà défait, rien à faire.
     await db.query(sansEnveloppe(RETOUR));
     expect(await empreinte()).toEqual(apres);
-    // Aller de nouveau : identique à l'état migré.
+    // Aller de nouveau (840000 puis la suite du lot) : identique à l'état migré.
     await db.query(MIGRATION);
+    for (const suite of SUITE_DU_LOT) await db.query(suite);
     expect(await empreinte()).toEqual(migre);
   });
 });
@@ -451,3 +462,89 @@ describe.skipIf(!DB_URL)("liste noire locale avec relation préalable — rejeu 
     expect(await empreinte()).toBe(migre);
   });
 });
+
+/**
+ * Seconde relecture du 15/10 : les correctifs du lot posés PAR MARQUE sur une fonction (une ancre d'une ligne remplacée
+ * ou précédée d'un bloc). Pour chacun : la base est migrée (marque présente une fois) ; rejouée deux fois, la migration ne
+ * change ni la définition ni les droits ; le retour refuse de se jouer dans un lot ; il rétablit exactement la définition
+ * d'avant (la définition migrée où le morceau de la migration redevient l'ancre), se rejoue sans effet ; aller, retour,
+ * aller redonne l'état migré.
+ */
+function correctifParMarque(fichier: string, signature: string, marque: string) {
+  const migration = readFileSync(`supabase/migrations/${fichier}.sql`, "utf8");
+  const retour = readFileSync(`supabase/retours-arriere/${fichier}.retour.sql`, "utf8");
+  const nouveau = /c_nouveau constant text := \$nouveau\$([\s\S]*?)\$nouveau\$;/.exec(migration)?.[1];
+  const ancre = /c_ancre constant text := \$ancre\$([\s\S]*?)\$ancre\$;/.exec(migration)?.[1];
+  if (!nouveau || !ancre) throw new Error(`Morceau ou ancre introuvable dans ${fichier}`);
+
+  describe.skipIf(!DB_URL)(`${fichier} — rejeu et retour arrière`, () => {
+    let db: Client;
+    const definition = async () => (await db.query("select pg_get_functiondef(to_regprocedure($1)) d", [signature])).rows[0].d as string;
+    const empreinte = async () =>
+      (await db.query(
+        "select md5(pg_get_functiondef(to_regprocedure($1))) || ' ' || coalesce((select proacl::text from pg_proc where oid = to_regprocedure($1)), '') v",
+        [signature]
+      )).rows[0].v as string;
+
+    beforeAll(async () => {
+      db = new Client({ connectionString: DB_URL });
+      await db.connect();
+      await db.query("begin");
+    });
+    afterAll(async () => {
+      await db?.query("rollback");
+      await db?.end();
+    });
+    beforeEach(async () => {
+      await db.query("savepoint cas");
+    });
+    afterEach(async () => {
+      await db.query("rollback to savepoint cas");
+      await db.query("release savepoint cas");
+    });
+
+    it("la base visée est migrée : la marque est posée une fois", async () => {
+      expect((await definition()).split(marque)).toHaveLength(2);
+      expect(await definition()).toContain(nouveau);
+    });
+
+    it("rejouée deux fois, la migration ne change ni la définition ni les droits", async () => {
+      const avant = await empreinte();
+      await db.query(migration);
+      await db.query(migration);
+      expect(await empreinte()).toBe(avant);
+    });
+
+    it("le retour refuse de se jouer dans un lot", async () => {
+      await db.query("savepoint essai");
+      let message = "";
+      try {
+        await db.query(retour);
+      } catch (e) {
+        message = (e as Error).message;
+      }
+      await db.query("rollback to savepoint essai");
+      expect(message).toMatch(/Retour arrière refusé/);
+    });
+
+    it("le retour rétablit la définition d'avant, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
+      const migre = await empreinte();
+      const definitionMigree = await definition();
+      await db.query(sansEnveloppe(retour));
+      const apres = await empreinte();
+      expect(apres).not.toBe(migre);
+      expect(await definition()).toBe(definitionMigree.replace(nouveau, ancre));
+      expect(await definition()).not.toContain(marque);
+      await db.query(sansEnveloppe(retour));
+      expect(await empreinte()).toBe(apres);
+      await db.query(migration);
+      expect(await empreinte()).toBe(migre);
+    });
+  });
+}
+
+correctifParMarque(
+  "20261014844000_invitation_artisan_budget_distinct",
+  "public.limiter_envoi_invitation_artisan(uuid,text)",
+  "Relecture du 15/10 (budget distinct des locataires)"
+);

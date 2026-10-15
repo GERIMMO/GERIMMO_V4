@@ -295,14 +295,25 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect((await db.query("select count(*)::int n from public.invitations_artisans where email=$1", [emailInvite])).rows[0].n).toBe(1);
     });
 
-    it("limite anti-abus : trente invitations par organisation et par heure, budget commun avec les locataires", async () => {
+    // Seconde relecture du 15/10 (20261014844000) : le budget horaire des invitations d'artisans est DISTINCT de celui des
+    // invitations de locataires (clé `organisation:<uuid>` de src/lib/lien-mot-de-passe.ts) ; mêmes seuils.
+    it("limite anti-abus : trente invitations d'artisans par organisation et par heure, sans toucher au budget des locataires", async () => {
       await devenir(proprietaire);
       for (let n = 0; n < 30; n++) await db.query("select public.preparer_invitation_artisan($1,$2)", [org, `rafale-${n}-${unique()}@test.local`]);
-      expect(await echec("select public.preparer_invitation_artisan($1,$2)", [org, emailInvite])).toMatch(/Trop d’invitations envoyées par cette organisation/);
+      expect(await echec("select public.preparer_invitation_artisan($1,$2)", [org, emailInvite])).toMatch(/Trop d’invitations envoyées par cette organisation en une heure/);
       await postgres();
       expect((await db.query("select count(*)::int n from public.invitations_artisans where organization_id=$1", [org])).rows[0].n).toBe(30);
-      // La clé est celle des invitations de locataires (src/lib/lien-mot-de-passe.ts) : elle est épuisée pour elles aussi.
+      // 30 invitations d'artisans n'empêchent pas l'invitation d'un locataire : sa clé n'a rien compté.
+      expect((await db.query("select public.autoriser_lien_mot_de_passe_cle($1,30) ok", [`organisation:${org}`])).rows[0].ok).toBe(true);
+    });
+
+    it("limite anti-abus : trente invitations de locataires n'empêchent pas d'inviter un artisan", async () => {
+      await postgres();
+      for (let n = 0; n < 30; n++) {
+        expect((await db.query("select public.autoriser_lien_mot_de_passe_cle($1,30) ok", [`organisation:${org}`])).rows[0].ok).toBe(true);
+      }
       expect((await db.query("select public.autoriser_lien_mot_de_passe_cle($1,30) ok", [`organisation:${org}`])).rows[0].ok).toBe(false);
+      expect((await inviter()).id).toBeTruthy();
     });
 
     // Relecture du 15/10 (constat de sécurité) : la limite par adresse se contournait par sous-adresse (+étiquette), par

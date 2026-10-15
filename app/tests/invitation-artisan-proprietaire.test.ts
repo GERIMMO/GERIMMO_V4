@@ -243,6 +243,41 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect(await echec("select public.renvoyer_invitation_artisan($1)", [r.id])).toMatch(/Cette organisation ne peut pas envoyer de nouvelles invitations/);
     });
 
+    // Seconde relecture du 15/10 (20261014845000) : on ne s'invite pas soi-même.
+    it("s'inviter soi-même est refusé : sa propre adresse (même écrite autrement), ou celle de sa propre fiche d'artisan", async () => {
+      await postgres();
+      const adresse = (await db.query("select email from auth.users where id=$1", [proprietaire])).rows[0].email as string;
+      const [local, domaine] = adresse.split("@");
+      await devenir(proprietaire);
+      for (const variante of [adresse, adresse.toUpperCase(), `${local}+artisan@${domaine}`]) {
+        expect(await echec("select public.preparer_invitation_artisan($1,$2)", [org, variante]), variante).toMatch(/Vous ne pouvez pas vous inviter vous-même/);
+      }
+      await postgres();
+      await db.query(
+        "insert into public.artisans(account_id,raison_sociale,siret,telephone,email) values($1,'Mon entreprise à moi',$2,'0600000001','contact@mon-entreprise.test')",
+        [proprietaire, `6${String(Date.now()).slice(-13)}`]
+      );
+      await devenir(proprietaire);
+      expect(await echec("select public.preparer_invitation_artisan($1,'Contact@Mon-Entreprise.test')", [org])).toMatch(/Vous ne pouvez pas vous inviter vous-même/);
+      await postgres();
+      expect((await db.query("select count(*)::int n from public.invitations_artisans where organization_id=$1", [org])).rows[0].n).toBe(0);
+      // Un autre artisan reste invitable.
+      expect((await inviter()).id).toBeTruthy();
+    });
+
+    it("on n'accepte jamais l'invitation qu'on a soi-même envoyée (même après avoir changé d'adresse)", async () => {
+      const r = await inviter();
+      await postgres();
+      await db.query("update auth.users set email='ancien-'||email where id=$1", [invite]);
+      await db.query("update auth.users set email=$2 where id=$1", [proprietaire, emailInvite]);
+      await inscrire(proprietaire);
+      const reponse = await repondre(r.id, true, proprietaire);
+      expect(reponse.etat).toBe("en_attente");
+      expect(reponse.erreur).toMatch(/Vous ne pouvez pas accepter une invitation que vous avez vous-même envoyée/);
+      await postgres();
+      expect((await db.query("select count(*)::int n from public.artisan_agences where organization_id=$1", [org])).rows[0].n).toBe(0);
+    });
+
     it("seul le super administrateur lit d'où vient un artisan à valider", async () => {
       for (const qui of [proprietaire, adminAgence, artisanCompte]) {
         await devenir(qui);

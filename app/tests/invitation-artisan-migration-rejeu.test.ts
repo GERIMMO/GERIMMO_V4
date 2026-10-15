@@ -29,7 +29,7 @@ const MIGRATION = readFileSync("supabase/migrations/20261014840000_invitation_ar
  * 15/10). Rejouer 840000 seule rétablirait ces fonctions dans leur première forme ; rejouer le lot dans l'ordre redonne
  * l'état migré (chaque correctif retrouve son ancre et se repose).
  */
-const SUITE_DU_LOT = ["20261014844000_invitation_artisan_budget_distinct.sql"].map((f) =>
+const SUITE_DU_LOT = ["20261014844000_invitation_artisan_budget_distinct.sql", "20261014845000_invitation_artisan_soi_meme.sql"].map((f) =>
   readFileSync(`supabase/migrations/${f}`, "utf8")
 );
 const RETOUR = readFileSync("supabase/retours-arriere/20261014840000_invitation_artisan_proprietaire.retour.sql", "utf8");
@@ -470,21 +470,34 @@ describe.skipIf(!DB_URL)("liste noire locale avec relation préalable — rejeu 
  * d'avant (la définition migrée où le morceau de la migration redevient l'ancre), se rejoue sans effet ; aller, retour,
  * aller redonne l'état migré.
  */
-function correctifParMarque(fichier: string, signature: string, marque: string) {
+function correctifParMarque(fichier: string) {
   const migration = readFileSync(`supabase/migrations/${fichier}.sql`, "utf8");
   const retour = readFileSync(`supabase/retours-arriere/${fichier}.retour.sql`, "utf8");
-  const nouveau = /c_nouveau constant text := \$nouveau\$([\s\S]*?)\$nouveau\$;/.exec(migration)?.[1];
-  const ancre = /c_ancre constant text := \$ancre\$([\s\S]*?)\$ancre\$;/.exec(migration)?.[1];
-  if (!nouveau || !ancre) throw new Error(`Morceau ou ancre introuvable dans ${fichier}`);
+  // Chaque bloc `do $correctif$` : la fonction relue, sa marque, son ancre et son morceau.
+  const blocs = [...migration.matchAll(/do \$correctif\$([\s\S]*?)end \$correctif\$;/g)].map((m) => {
+    const signature = /pg_get_functiondef\('([^']+)'::regprocedure\)/.exec(m[1])?.[1];
+    const marque = /position\(\$marque\$([\s\S]*?)\$marque\$/.exec(m[1])?.[1];
+    const nouveau = /c_nouveau constant text := \$nouveau\$([\s\S]*?)\$nouveau\$;/.exec(m[1])?.[1];
+    const ancre = /c_ancre constant text := \$ancre\$([\s\S]*?)\$ancre\$;/.exec(m[1])?.[1];
+    if (!signature || !marque || !nouveau || !ancre) throw new Error(`Bloc incomplet dans ${fichier}`);
+    return { signature: signature.replace(/\s+/g, ""), marque, nouveau, ancre };
+  });
+  if (blocs.length === 0) throw new Error(`Aucun bloc à marque dans ${fichier}`);
 
   describe.skipIf(!DB_URL)(`${fichier} — rejeu et retour arrière`, () => {
     let db: Client;
-    const definition = async () => (await db.query("select pg_get_functiondef(to_regprocedure($1)) d", [signature])).rows[0].d as string;
-    const empreinte = async () =>
-      (await db.query(
-        "select md5(pg_get_functiondef(to_regprocedure($1))) || ' ' || coalesce((select proacl::text from pg_proc where oid = to_regprocedure($1)), '') v",
-        [signature]
-      )).rows[0].v as string;
+    const definition = async (signature: string) =>
+      (await db.query("select pg_get_functiondef(to_regprocedure($1)) d", [signature])).rows[0].d as string;
+    const empreinte = async () => {
+      const etat: string[] = [];
+      for (const { signature } of blocs) {
+        etat.push((await db.query(
+          "select md5(pg_get_functiondef(to_regprocedure($1))) || ' ' || coalesce((select proacl::text from pg_proc where oid = to_regprocedure($1)), '') v",
+          [signature]
+        )).rows[0].v as string);
+      }
+      return etat;
+    };
 
     beforeAll(async () => {
       db = new Client({ connectionString: DB_URL });
@@ -503,16 +516,18 @@ function correctifParMarque(fichier: string, signature: string, marque: string) 
       await db.query("release savepoint cas");
     });
 
-    it("la base visée est migrée : la marque est posée une fois", async () => {
-      expect((await definition()).split(marque)).toHaveLength(2);
-      expect(await definition()).toContain(nouveau);
+    it("la base visée est migrée : chaque marque est posée une fois", async () => {
+      for (const b of blocs) {
+        expect((await definition(b.signature)).split(b.marque), b.signature).toHaveLength(2);
+        expect(await definition(b.signature)).toContain(b.nouveau);
+      }
     });
 
-    it("rejouée deux fois, la migration ne change ni la définition ni les droits", async () => {
+    it("rejouée deux fois, la migration ne change ni les définitions ni les droits", async () => {
       const avant = await empreinte();
       await db.query(migration);
       await db.query(migration);
-      expect(await empreinte()).toBe(avant);
+      expect(await empreinte()).toEqual(avant);
     });
 
     it("le retour refuse de se jouer dans un lot", async () => {
@@ -527,24 +542,23 @@ function correctifParMarque(fichier: string, signature: string, marque: string) 
       expect(message).toMatch(/Retour arrière refusé/);
     });
 
-    it("le retour rétablit la définition d'avant, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
+    it("le retour rétablit les définitions d'avant, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
       const migre = await empreinte();
-      const definitionMigree = await definition();
+      const definitionsMigrees = await Promise.all(blocs.map((b) => definition(b.signature)));
       await db.query(sansEnveloppe(retour));
       const apres = await empreinte();
-      expect(apres).not.toBe(migre);
-      expect(await definition()).toBe(definitionMigree.replace(nouveau, ancre));
-      expect(await definition()).not.toContain(marque);
+      for (const [n, b] of blocs.entries()) {
+        expect(apres[n], b.signature).not.toBe(migre[n]);
+        expect(await definition(b.signature)).toBe(definitionsMigrees[n].replace(b.nouveau, b.ancre));
+        expect(await definition(b.signature)).not.toContain(b.marque);
+      }
       await db.query(sansEnveloppe(retour));
-      expect(await empreinte()).toBe(apres);
+      expect(await empreinte()).toEqual(apres);
       await db.query(migration);
-      expect(await empreinte()).toBe(migre);
+      expect(await empreinte()).toEqual(migre);
     });
   });
 }
 
-correctifParMarque(
-  "20261014844000_invitation_artisan_budget_distinct",
-  "public.limiter_envoi_invitation_artisan(uuid,text)",
-  "Relecture du 15/10 (budget distinct des locataires)"
-);
+correctifParMarque("20261014844000_invitation_artisan_budget_distinct");
+correctifParMarque("20261014845000_invitation_artisan_soi_meme");

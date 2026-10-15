@@ -354,3 +354,4 @@
 20261014842000_artisans_colonnes_internes.sql
 20261014843000_liste_noire_locale_relation_prealable.sql
 20261014844000_invitation_artisan_budget_distinct.sql
+20261014845000_invitation_artisan_soi_meme.sql

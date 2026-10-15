@@ -3,6 +3,8 @@
  *
  *  · X09 (FIN-03) : contrainte de centime sur encaissements.montant, posée NOT VALID (les encaissements existants ne sont ni relus
  *    ni modifiés ; le relevé de production du dossier montre 0 encaissement au-delà du centime).
+ *    Constat de relecture du 15/10 : « NaN » (et l'infini) passait la contrainte de centime et la contrainte de signe ; une seconde contrainte NOT VALID
+ *    (encaissements_montant_fini_check, 20261014414000) les refuse.
  *  · X14 (PR178-B-03) : un encaissement de 0,01 € sur un bail géré sous mandat (honoraires > 0) était accepté par l'action, puis refusé par la base
  *    parce que les honoraires arrondis (0,00 €) violaient ecritures_montant_check, avec le message générique « Gerimmo n'a pas pu terminer cette
  *    action ». La base refuse maintenant sous un plancher, qui dépend du taux d'honoraires du mandat, avec un message qui dit le montant minimal.
@@ -107,6 +109,36 @@ describe.skipIf(!url)("X09 et X14 : centime et plancher d'un encaissement", () =
       await refus("insert into public.encaissements(organization_id,bail_id,montant) values($1,$2,$3)", [org, bail, "100.005"]);
       expect((await db.query("select count(*)::int as n from public.encaissements where bail_id=$1", [bail])).rows[0].n).toBe(0);
       expect((await db.query("select count(*)::int as n from public.ecritures where bail_id=$1", [bail])).rows[0].n).toBe(0);
+    });
+
+    // `NaN` est « égal » à son arrondi et « supérieur à zéro » pour numeric : la comparaison au centime et la contrainte de signe le laissaient
+    // passer, et un encaissement « NaN » solde un loyer et fait générer une quittance (constat de relecture du 15/10/2026).
+    it.each(["NaN", "Infinity"])("refuse %s : ce n'est pas un montant (ni le centime, ni le signe ne l'arrêtent)", async (montant) => {
+      const e = await refus("insert into public.encaissements(organization_id,bail_id,montant) values($1,$2,$3::numeric)", [org, bail, montant]);
+      expect(e.code).toBe("23514");
+      expect(e.constraint).toBe("encaissements_montant_fini_check");
+    });
+
+    it("refuse aussi la modification d'un montant vers NaN", async () => {
+      const { rows: [{ id }] } = await encaisser("100");
+      const e = await refus("update public.encaissements set montant='NaN'::numeric where id=$1", [id]);
+      expect(e.constraint).toBe("encaissements_montant_fini_check");
+    });
+
+    it("par une requête directe d'un compte connecté (RLS appliquée) : « NaN » ne solde aucun loyer et ne génère aucune quittance", async () => {
+      const { rows: [{ id: appel }] } = await db.query(
+        `insert into public.appels_loyer(organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du)
+         values ($1,$2,date_trunc('month', (now() at time zone 'Europe/Paris')::date)::date,(now() at time zone 'Europe/Paris')::date - 1,780,60,840) returning id`,
+        [org, bail]
+      );
+      await db.query("select set_config('request.jwt.claims', json_build_object('sub',$1::text,'role','authenticated','aal','aal2')::text, true)", [utilisateur]);
+      await db.query("set local role authenticated");
+      const e = await refus("insert into public.encaissements(organization_id,bail_id,montant) values($1,$2,$3::numeric)", [org, bail, "NaN"]);
+      expect(e.constraint).toBe("encaissements_montant_fini_check");
+      await db.query("reset role");
+      expect((await db.query("select count(*)::int as n from public.encaissements where bail_id=$1", [bail])).rows[0].n).toBe(0);
+      expect((await db.query("select statut from public.etat_loyers_bail_brut($1) where appel_id=$2", [bail, appel])).rows).toEqual([{ statut: "impaye" }]);
+      expect((await db.query("select count(*)::int as n from public.quittances where bail_id=$1", [bail])).rows[0].n).toBe(0);
     });
 
     it("la modification d'un montant vers trois décimales est refusée aussi", async () => {

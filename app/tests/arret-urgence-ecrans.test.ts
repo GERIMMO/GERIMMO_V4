@@ -3,7 +3,9 @@
  *
  *  — D06 : l'arrêt couvre aussi les tâches SQL planifiées (la table des périmètres affichée est celle de la migration) ;
  *  — D46 / IA-01 : les règles « Ce qui peut continuer seul » sont des décisions enregistrées, non appliquées automatiquement ;
- *  — D46 / IA-02 : l'urgence et l'escalade du mode vacances sont des alertes internes, sans e-mail ni message ;
+ *  — D46 / IA-02 : l'urgence et l'escalade du mode vacances ne préviennent personne sur le moment ; depuis D46-B
+ *    (15/10/2026), celles qui ne sont pas accusées sont comptées dans l'alerte e-mail quotidienne de 5 h, si le relais
+ *    est configuré, et l'écran le dit (adresses masquées) ;
  *  — D46 / IA-06 : la clé « sauvegarde » n'est plus proposée (aucun lecteur) et, si elle existe, elle est marquée sans effet ;
  *    le traitement immédiat des signatures n'est pas couvert, et l'écran le dit ;
  *  — D46 / IA-07 : la liste des prochaines étapes ne lance rien.
@@ -153,13 +155,40 @@ describe("D06 / D46 : l'écran « Arrêt avant les prochains effets » et le mod
     expect(doc).toContain("décocher « Relancer automatiquement les loyers impayés par e-mail » (rubrique Profil) le temps du rattrapage");
   });
 
-  it("IA-02 : l'alerte est interne seulement, sans e-mail ni message, et un incident urgent ne la déclenche pas", async () => {
+  // D46-B (15/10/2026) : le texte de D46-A (« alerte interne seulement ») dit désormais la vérité de l'alerte e-mail
+  // quotidienne du relais : vers combien d'adresses (masquées), ou « relais non configuré ».
+  it("IA-02, relais non configuré : pas d'alerte immédiate, aucune alerte e-mail quotidienne ne reprend les urgences", async () => {
+    vi.stubEnv("GERIMMO_RELAIS_EMAILS", "");
+    try {
+      const html = await rendreVacances();
+      expect(html).toContain("Pas d’alerte immédiate.");
+      expect(html).toContain("sur le moment, aucun e-mail ni message n’est envoyé au responsable");
+      expect(html).toContain("Le relais n’étant pas configuré, aucune alerte e-mail quotidienne ne la reprend.");
+      expect(html).toContain("Relais non configuré : aucune alerte e-mail quotidienne ne les reprend.");
+      expect(html).toContain("Un incident urgent ou un impayé ne la déclenche pas");
+      expect(html).not.toContain("Alerte interne seulement.");
+      expect(html).not.toContain("Les alertes restent internes.");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("IA-02, relais configuré : les urgences non accusées sont comptées dans l'alerte de 5 h, adresses masquées", async () => {
+    vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.com, second@example.org");
+    try {
+      const html = await rendreVacances();
+      expect(html).toContain("comptée, sans son texte, dans l’alerte e-mail quotidienne de 5 h (heure de Paris), envoyée vers 2 adresses : r•••@example.com, s•••@example.org.");
+      expect(html).toContain("Celles qui ne sont pas accusées sont comptées dans l’alerte e-mail quotidienne de 5 h (heure de Paris).");
+      expect(html).not.toContain("relais@example.com");
+      expect(html).not.toContain("second@example.org");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("l'arrêt d'urgence ne coupe pas l'alerte e-mail du relais, et l'écran le dit", async () => {
     const html = await rendreVacances();
-    expect(html).toContain("Alerte interne seulement.");
-    expect(html).toContain("aucun e-mail ni message n’est envoyé au responsable");
-    expect(html).toContain("Un incident urgent ou un impayé ne la déclenche pas");
-    expect(html).toContain("Alertes internes seulement");
-    expect(html).not.toContain("Les alertes restent internes.");
+    expect(html).toContain("L’alerte e-mail quotidienne du relais n’est pas coupée non plus : elle signale justement l’arrêt en cours.");
   });
 
   it("une ligne « sauvegarde » déjà enregistrée est marquée sans effet et peut être levée", async () => {

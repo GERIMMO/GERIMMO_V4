@@ -13,6 +13,8 @@ import {
   type OrganisationPourAdoption,
   type Prestataire,
 } from "@/lib/sante-service";
+import { masquerAdresse } from "@/lib/relais-alerte";
+import { adressesRelaisDuServeur } from "@/lib/relais-alerte-reglage";
 import { LancerMission } from "./lancer-mission";
 
 // Le nom de l'entrée de menu (audit 25/09, C8).
@@ -71,6 +73,8 @@ export default async function PageSante() {
   const supabase = await createClient();
   // Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond.
   const manquants = faitsManquants();
+  // Les adresses de l'alerte du relais (réglage du serveur), affichées masquées seulement.
+  const relais = adressesRelaisDuServeur();
   // Le même calcul que /admin et /admin/brief (25/09) : une seule requête du
   // journal, une seule fenêtre, un seul chiffre.
   const [sante, orgs] = await Promise.all([
@@ -274,10 +278,16 @@ export default async function PageSante() {
           demande une vérification. L&apos;historique est conservé pendant six mois.
           {" "}{NOTE_FUSEAU} <Link href="/admin/equipes" className="lien-discret">Pause et reprise des missions →</Link>
         </p>
-        {/* IA-03 / D46 : dire vrai — cet écran se consulte, il n'avertit personne. */}
+        {/* IA-03 / D46 : dire vrai — cet écran se consulte, il n'avertit personne. D46-B (15/10) : l'alerte e-mail
+            quotidienne du relais, elle, signale les tâches en échec ou absentes, si elle est configurée. */}
         <p className="mesure-lecture mt-1.5 text-sm text-muted-foreground">
-          Cet écran ne prévient personne : une tâche en retard ou en échec ne se voit que si vous l’ouvrez, ou par le
-          compteur « À décider » de la console. Le seul e-mail d’alerte de Gerimmo concerne le veto d’une publication marketing.
+          Cet écran ne prévient personne : une tâche en retard ou en échec s’y voit quand vous l’ouvrez, ou par le
+          compteur « À décider » de la console.{" "}
+          {relais.configure
+            ? `L’alerte e-mail quotidienne du relais, à 5 h (heure de Paris), signale aussi les tâches en échec ou absentes sur les dernières 24 h, vers ${relais.valides.length} adresse${relais.valides.length > 1 ? "s" : ""} : ${relais.valides.map(masquerAdresse).join(", ")}.`
+            : "L’alerte e-mail quotidienne du relais n’est pas configurée : aucune tâche en échec n’est signalée par e-mail."}{" "}
+          L’autre e-mail d’alerte de Gerimmo concerne le veto d’une publication marketing.{" "}
+          <Link href="/admin/relais#alerte-email" className="lien-discret">Alerte e-mail du relais →</Link>
         </p>
       </section>
 

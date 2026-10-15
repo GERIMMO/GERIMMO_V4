@@ -30,22 +30,17 @@ import { chargerEtatTaches, type ClientQuiLitLeJournal } from "./sante-service";
 import { TACHES_SQL } from "./nom-arret-supervision";
 import { composantesParis } from "./heure-paris-calcul";
 import { adresseDuSite } from "./site";
+import { adressesRelaisDuServeur } from "./relais-alerte-reglage";
 import {
   compteursDuRelais,
   estHeureDuRelais,
   htmlAlerteRelais,
-  lireAdressesRelais,
   pointsDuRelais,
   sujetAlerteRelais,
   type AdressesRelais,
   type ConstatRelais,
   type EtatTacheSignalee,
 } from "./relais-alerte";
-
-/** Les adresses du relais, lues dans le réglage du serveur. Jamais envoyées au navigateur : seulement masquées. */
-export function adressesRelaisDuServeur(): AdressesRelais {
-  return lireAdressesRelais(process.env.GERIMMO_RELAIS_EMAILS);
-}
 
 /** Les libellés des tâches pg_cron que la table de l'écran d'arrêt ne nomme pas (la neuvième, et les inconnues). */
 const LIBELLES_TACHES_BASE: Record<string, string> = {

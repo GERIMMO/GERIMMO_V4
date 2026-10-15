@@ -228,18 +228,33 @@ describe.skipIf(!DB_URL)("Relances des invitations de locataire (X16)", () => {
     expect(envois[0].expireLe).toEqual(rows[0].expire_le);
   });
 
-  it.each([
+  /** Les fins d'une invitation : après elles, plus aucune relance. */
+  const fins: [string, () => Promise<void>][] = [
     ["acceptée", async () => { await admin(); const { rows: [i] } = await db.query("select account_id from public.invitations_locataires where id=$1", [invite]); await en(i.account_id); await db.query("select public.repondre_invitation_locataire($1,true)", [invite]); }],
     ["refusée", async () => { await admin(); const { rows: [i] } = await db.query("select account_id from public.invitations_locataires where id=$1", [invite]); await en(i.account_id); await db.query("select public.repondre_invitation_locataire($1,false)", [invite]); }],
     ["annulée", async () => { await en(owner); await db.query("select public.annuler_invitation_locataire($1)", [invite]); }],
     ["expirée (calculée à l'instant, état encore « en attente »)", async () => { await admin(); await db.query("update public.invitations_locataires set expire_le = now() - interval '1 second' where id = $1", [invite]); }],
-  ])("invitation %s : aucune relance", async (_cas, geste) => {
+  ];
+
+  it.each(fins)("invitation %s : aucune relance", async (_cas, geste) => {
     await geste();
     for (const n of [3, 10]) {
       await figerJour(jour(n));
       expect(await passe()).toMatchObject({ envoyees: 0 });
     }
     expect(envois).toHaveLength(0);
+    expect(await relances()).toEqual([]);
+  });
+
+  it.each(fins)("invitation %s entre la lecture de la liste et la réservation : la réservation relit la règle et refuse", async (_cas, geste) => {
+    await figerJour(jour(3));
+    await enService();
+    const { rows: liste } = await db.query("select invitation_id, rang from public.invitations_locataires_relances_dues(50)");
+    expect(liste).toContainEqual({ invitation_id: invite, rang: 1 });
+    await geste();
+    await enService();
+    const { rows: [{ r }] } = await db.query("select public.reserver_relance_invitation_locataire($1, 1::smallint) r", [invite]);
+    expect(r).toBe(false);
     expect(await relances()).toEqual([]);
   });
 

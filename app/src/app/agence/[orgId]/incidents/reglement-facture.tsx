@@ -1,5 +1,5 @@
 "use client";
-import { useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { declarerReglementFacture, retirerReglementFacture, type EtatReglementAction } from "@/app/actions/reglement-facture";
 import { MESSAGE_AUCUN_PAIEMENT, MESSAGE_IMPUTATION_LOCATAIRE, MOYENS_REGLEMENT } from "@/lib/reglement-facture";
@@ -15,22 +15,41 @@ import { Label } from "@/components/ui/label";
  * « virement » ; la référence est facultative. Le champ du montant est du texte à clavier décimal, jamais
  * `type="number"` (VER-TS-02 : « 840,00 » lu 84000 par un navigateur non francophone). La clé d'envoi (D05) rejoue le
  * même envoi après une réponse perdue sans doubler le règlement. Gerimmo n'effectue aucun paiement : l'écran le dit.
+ *
+ * Le composant reste monté quand la facture est soldée (reste à zéro) : il remplace alors le formulaire par la phrase
+ * « réglée en totalité ». Sinon l'action, qui revalide la page, démonterait le formulaire avec son message de succès,
+ * que personne ne lirait ni n'entendrait, et le focus tomberait sur la page. La région de statut est hors du formulaire,
+ * toujours présente ; elle reçoit le focus après un succès.
  */
 export function FormulaireReglement({
   orgId,
   factureId,
-  resteEuros,
+  resteCents,
   imputationLocataire,
 }: {
   orgId: string;
   factureId: string;
-  /** Le reste à régler, déjà formaté « 139,68 » pour le champ (deux décimales, virgule). */
-  resteEuros: string;
+  /** Le reste à régler, en centimes. À zéro, la facture est soldée : plus de formulaire, la phrase d'état et le message restent. */
+  resteCents: number;
   imputationLocataire: boolean;
 }) {
   const id = useId();
   const [etat, action] = useActionState<EtatReglementAction, FormData>(declarerReglementFacture.bind(null, orgId, factureId), {});
+  const soldee = resteCents <= 0;
+  // Le champ reçoit « 139,68 » : deux décimales, virgule.
+  const resteEuros = (Math.max(resteCents, 0) / 100).toFixed(2).replace(".", ",");
+  // Le message de succès vaut pour la facture telle que SA réponse l'a laissée : si un règlement retiré la rouvre ensuite
+  // (le reste remonte), l'ancien « Règlement … enregistré » ne reste pas affiché sous un formulaire de nouveau ouvert.
+  // Un règlement ne fait que baisser le reste : le message n'est donc jamais masqué par la réponse qui l'apporte.
+  const [reponse, setReponse] = useState({ etat, resteCents });
+  if (reponse.etat !== etat) setReponse({ etat, resteCents });
+  const succes = resteCents > reponse.resteCents ? undefined : etat.succes;
+  const statut = useMessageDeStatut(etat, succes);
   return (
+    <div className="space-y-2">
+      {soldee ? (
+        <p className="text-sm text-muted-foreground">La facture est réglée en totalité (déclaration, sans paiement bancaire par Gerimmo). L’artisan voit la date et le moyen de chaque règlement.</p>
+      ) : (
     <form data-saisie-confirmee action={action} className="space-y-3 rounded-lg border border-[var(--filet)] p-3">
       <CleEnvoi etat={etat} />
       <h4 className="font-medium">Déclarer un règlement</h4>
@@ -82,17 +101,35 @@ export function FormulaireReglement({
       <p className="text-sm text-muted-foreground">{MESSAGE_AUCUN_PAIEMENT} Une dépense « Travaux » est écrite au journal, datée du règlement.</p>
       <BoutonEnvoi enCoursTexte="Enregistrement…">Enregistrer le règlement</BoutonEnvoi>
       {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
-      {etat.succes && <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}
     </form>
+      )}
+      <p ref={statut} role="status" tabIndex={-1} className="text-sm text-success-soft-foreground focus:outline-none">{succes ?? ""}</p>
+    </div>
   );
 }
 
-/** « Retirer ce règlement » : annulation motivée par contre-écriture, jamais de suppression (fiche B.8, critère 5). */
-export function RetraitReglement({ orgId, reglementId }: { orgId: string; reglementId: string }) {
+/** Après un succès (nouvelle réponse de l'action), le focus va sur la région de statut : le bouton qui l'avait a pu disparaître. */
+function useMessageDeStatut(etat: EtatReglementAction, succes: string | undefined) {
+  const statut = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (succes) statut.current?.focus();
+  }, [etat, succes]);
+  return statut;
+}
+
+/**
+ * « Retirer ce règlement » : annulation motivée par contre-écriture, jamais de suppression (fiche B.8, critère 5).
+ * Une fois le règlement retiré (`retrait`, la phrase « Retiré le … »), le composant reste monté et remplace le formulaire
+ * par cette phrase : le message de succès et le focus survivent à la revalidation de la page.
+ */
+export function RetraitReglement({ orgId, reglementId, retrait }: { orgId: string; reglementId: string; retrait: string | null }) {
   const id = useId();
   const [etat, action] = useActionState<EtatReglementAction, FormData>(retirerReglementFacture.bind(null, orgId, reglementId), {});
+  const statut = useMessageDeStatut(etat, etat.succes);
   return (
-    <details className="text-sm">
+    <div className="text-sm">
+    {retrait ? <p>{retrait}</p> : (
+    <details>
       <summary className="cursor-pointer text-[var(--marque-sombre)] underline">Retirer ce règlement</summary>
       <form data-saisie-confirmee action={action} className="mt-2 space-y-2">
         <Label htmlFor={id}>Motif du retrait</Label>
@@ -108,8 +145,10 @@ export function RetraitReglement({ orgId, reglementId }: { orgId: string; reglem
         <p className="text-xs text-muted-foreground">Une contre-écriture datée d’aujourd’hui annule la dépense ; le règlement reste visible, marqué « retiré ».</p>
         <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Retrait…">Confirmer le retrait</BoutonEnvoi>
         {etat.erreur && <p role="alert" className="text-destructive">{etat.erreur}</p>}
-        {etat.succes && <p role="status" className="text-success-soft-foreground">{etat.succes}</p>}
       </form>
     </details>
+    )}
+    <p ref={statut} role="status" tabIndex={-1} className="text-success-soft-foreground focus:outline-none">{etat.succes ?? ""}</p>
+    </div>
   );
 }

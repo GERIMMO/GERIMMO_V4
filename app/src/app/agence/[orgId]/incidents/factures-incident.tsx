@@ -85,15 +85,13 @@ export async function FacturesIncident({orgId,incidentId,imputation}:{orgId:stri
             const moyen = MOYENS_REGLEMENT[r.moyen as MoyenReglement] ?? r.moyen;
             return <li key={r.id} className={`rounded-lg border border-[var(--filet)] px-3 py-2 ${r.retire_le ? "text-muted-foreground" : ""}`}>
               <span className={r.retire_le ? "line-through" : ""}>{formaterDate(r.date_reglement)} · {moyen} · {eur(Number(r.montant_cents) / 100)}{r.reference ? ` · réf. ${r.reference}` : ""}</span>
-              {r.retire_le
-                ? <p>Retiré le {formaterDate(r.retire_le)} : « {r.retrait_motif} » (contre-écriture passée au journal).</p>
-                : <RetraitReglement orgId={orgId} reglementId={r.id}/>}
+              {/* Toujours monté, retiré ou non : son message de succès et le focus survivent à la revalidation. */}
+              <RetraitReglement orgId={orgId} reglementId={r.id} retrait={r.retire_le ? `Retiré le ${formaterDate(r.retire_le)} : « ${r.retrait_motif ?? ""} » (contre-écriture passée au journal).` : null}/>
             </li>;
           })}
         </ul>}
-        {resteCents > 0
-          ? <FormulaireReglement orgId={orgId} factureId={f.id} resteEuros={(resteCents / 100).toFixed(2).replace(".", ",")} imputationLocataire={imputationAuLocataire(imputation ?? f.imputation_validee)}/>
-          : <p className="text-sm text-muted-foreground">La facture est réglée en totalité (déclaration, sans paiement bancaire par Gerimmo). L’artisan voit la date et le moyen de chaque règlement.</p>}
+        {/* Toujours monté, soldée ou non : sur un règlement total, le message de succès ne disparaît pas avec le formulaire. */}
+        <FormulaireReglement orgId={orgId} factureId={f.id} resteCents={resteCents} imputationLocataire={imputationAuLocataire(imputation ?? f.imputation_validee)}/>
       </div>
     </> : <ValidationFacture orgId={orgId} factureId={f.id}/>}
   </section>;})}</>;

@@ -1,5 +1,5 @@
 /**
- * Migrations 20261014410000, 20261014412000, 20261014413000 et 20261014414000 (lot « finance-dates » : X13, X09, X14) : elles se rejouent sans effet, s'arrêtent sur une
+ * Migrations 20261014410000, 20261014412000, 20261014413000, 20261014414000 et 20261014415000 (lot « finance-dates » : X13, X09, X14) : elles se rejouent sans effet, s'arrêtent sur une
  * définition inattendue, posent leur correctif sur la définition d'AVANT (celle que leur retour arrière rétablit), et leurs retours
  * arrière retirent exactement ce qu'elles ajoutent.
  *
@@ -24,17 +24,20 @@ const LOT = [
   "20261014412000_encaissements_montant_au_centime",
   "20261014413000_encaissement_plancher_honoraires",
   "20261014414000_encaissements_montant_fini",
+  "20261014415000_reprise_soldes_au_centime",
 ] as const;
 const migration = (nom: string) => readFileSync(`supabase/migrations/${nom}.sql`, "utf8");
 const retour = (nom: string) => readFileSync(`supabase/retours-arriere/${nom}.retour.sql`, "utf8");
-const [M410, M412, M413, M414] = LOT.map(migration);
-const [R410, R412, R413, R414] = LOT.map(retour);
+const [M410, M412, M413, M414, M415] = LOT.map(migration);
+const [R410, R412, R413, R414, R415] = LOT.map(retour);
 
 const MARQUE_X13 = "Décision X13 du 15/10 (FIN-13)";
 const MARQUE_X14 = "Décision X14 du 15/10 (PR178-B-03)";
+const MARQUE_X09_REPRISE = "Décision X09 du 15/10 (FIN-03, reprise de soldes)";
 const ENCAISSER = "public.encaisser_reste_atomique(uuid,uuid,uuid,uuid,numeric,numeric)";
 const ECRIRE = "public.ecrire_encaissement()";
-const FONCTIONS = [ENCAISSER, ECRIRE];
+const REPRENDRE = "public.reprendre_soldes(uuid,uuid,jsonb,boolean)";
+const FONCTIONS = [ENCAISSER, ECRIRE, REPRENDRE];
 
 const sansFermetureAnon = (sql: string) => sql.replace(/^select public\.fermer_fonctions_a_anon\(\);$/m, "");
 /** Le corps d'un retour arrière, sans son enveloppe de transaction (garde de lot, begin, commit, délai de verrou). */
@@ -70,15 +73,15 @@ describe("Lot finance-dates — fichiers de migration et de retour arrière (san
   });
 
   it("chaque migration nomme son retour arrière ; celles qui touchent des fonctions ferment les fonctions à anon", () => {
-    for (const [sql, nom] of [[M410, LOT[0]], [M412, LOT[1]], [M413, LOT[2]], [M414, LOT[3]]] as const) {
+    for (const [sql, nom] of [[M410, LOT[0]], [M412, LOT[1]], [M413, LOT[2]], [M414, LOT[3]], [M415, LOT[4]]] as const) {
       expect(sql).toContain(`supabase/retours-arriere/${nom}.retour.sql`);
     }
-    for (const sql of [M410, M413]) expect(sql).toMatch(/^select public\.fermer_fonctions_a_anon\(\);$/m);
+    for (const sql of [M410, M413, M415]) expect(sql).toMatch(/^select public\.fermer_fonctions_a_anon\(\);$/m);
     // Les contraintes ne touchent aucune fonction : rien à fermer, aucun verrou de catalogue à prendre.
     for (const sql of [M412, M414]) expect(sql).not.toMatch(/fermer_fonctions_a_anon\(\);/);
   });
 
-  it.each([[R410, "20261014410000"], [R412, "20261014412000"], [R413, "20261014413000"], [R414, "20261014414000"]])(
+  it.each([[R410, "20261014410000"], [R412, "20261014412000"], [R413, "20261014413000"], [R414, "20261014414000"], [R415, "20261014415000"]])(
     "le retour %# refuse de se jouer dans un lot, gère sa transaction et retire sa version",
     (sql, version) => {
       expect(sql).toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
@@ -91,23 +94,28 @@ describe("Lot finance-dates — fichiers de migration et de retour arrière (san
   it("les marques des retours sont celles que les migrations posent", () => {
     expect(M410).toContain(MARQUE_X13);
     expect(M413).toContain(MARQUE_X14);
+    expect(M415).toContain(MARQUE_X09_REPRISE);
     expect(R410).toContain(`$marque$${MARQUE_X13}$marque$`);
     expect(R413).toContain(`$marque$${MARQUE_X14}$marque$`);
+    expect(R415).toContain(`$marque$${MARQUE_X09_REPRISE}$marque$`);
   });
 
   it("les définitions antérieures embarquées sont celles d'avant : le jour de la session, pas de marque", () => {
-    const antes = { ...definitionsAnterieures(R410), ...definitionsAnterieures(R413) };
-    expect(Object.keys(antes).sort()).toEqual(["public.ecrire_encaissement()", "public.encaisser_reste_atomique(uuid,uuid,uuid,uuid,numeric,numeric)"].sort());
+    const antes = { ...definitionsAnterieures(R410), ...definitionsAnterieures(R413), ...definitionsAnterieures(R415) };
+    expect(Object.keys(antes).sort()).toEqual([ECRIRE, ENCAISSER, REPRENDRE].sort());
     for (const [signature, def] of Object.entries(antes)) {
       expect(def, signature).not.toContain(MARQUE_X13);
       expect(def, signature).not.toContain(MARQUE_X14);
+      expect(def, signature).not.toContain(MARQUE_X09_REPRISE);
     }
+    expect(antes[REPRENDRE]).toContain("elsif v_montant is null then");
+    expect(antes[REPRENDRE]).not.toContain("Montant au centime près");
     expect(antes[ENCAISSER]).toContain("insert into public.encaissements(organization_id,bail_id,montant,mode,note)");
     expect(antes[ECRIRE]).not.toContain("trop petit");
   });
 
   it("aucun retour ne réécrit ni ne supprime une donnée métier", () => {
-    for (const sql of [R410, R412, R413, R414]) {
+    for (const sql of [R410, R412, R413, R414, R415]) {
       const sansCommentaires = sql.replace(/^\s*--.*$/gm, "");
       // Les définitions embarquées sont du texte de fonction, pas des instructions du retour : on les retire.
       const instructions = sansCommentaires.replace(/\$definition_anterieure\$[\s\S]*?\$definition_anterieure\$/g, "");
@@ -117,7 +125,7 @@ describe("Lot finance-dates — fichiers de migration et de retour arrière (san
   });
 
   it("les migrations ne réécrivent aucun encaissement ni aucune écriture existants", () => {
-    for (const sql of [M410, M412, M413, M414]) {
+    for (const sql of [M410, M412, M413, M414, M415]) {
       const instructions = sql.replace(/^\s*--.*$/gm, "").replace(/\$nouveau\$[\s\S]*?\$nouveau\$/g, "").replace(/\$ancre\$[\s\S]*?\$ancre\$/g, "");
       expect(instructions).not.toMatch(/\b(truncate|delete\s+from|update\s+public\.|insert\s+into)\b/i);
     }
@@ -127,7 +135,7 @@ describe("Lot finance-dates — fichiers de migration et de retour arrière (san
   // la fiche du lot et les contrats de colocation (échu au jour de Paris) sans que le dirigeant l'ait ratifié, en laissant les alertes d'impayé et les
   // relances sur le jour de la session. Aucune migration du lot ne modifie d'autres fonctions que celles-ci.
   it("les migrations du lot ne modifient que les fonctions des décisions X13, X09 et X14 (pas l'état des loyers, la fiche du lot, les alertes ni les relances)", () => {
-    const AUTORISEES = new Set(["public.encaisser_reste_atomique(uuid,uuid,uuid,uuid,numeric,numeric)", "public.ecrire_encaissement()"]);
+    const AUTORISEES = new Set([ENCAISSER, ECRIRE, REPRENDRE]);
     const fichiers = readdirSync("supabase/migrations").filter((f) => f >= "20261014410000" && f < "20261014420000");
     expect(fichiers.length).toBeGreaterThan(0);
     for (const f of fichiers) {
@@ -184,6 +192,7 @@ describe.skipIf(!DB_URL)("Lot finance-dates — rejeu sur une base déjà migré
 
   it("les fonctions portent la marque de leur correctif, et les deux contraintes existent, non validées", async () => {
     expect(await definition(ENCAISSER)).toContain(MARQUE_X13);
+    expect(await definition(REPRENDRE)).toContain(MARQUE_X09_REPRISE);
     expect(await definition(ECRIRE)).toContain(MARQUE_X14);
     expect((await empreinte()).contrainte).toBe("encaissements_montant_centime_check:false|encaissements_montant_fini_check:false");
   });
@@ -191,11 +200,12 @@ describe.skipIf(!DB_URL)("Lot finance-dates — rejeu sur une base déjà migré
   it("les marques ne sont posées qu'une fois (pas de garde doublée)", async () => {
     expect((await definition(ENCAISSER)).split(MARQUE_X13)).toHaveLength(2);
     expect((await definition(ECRIRE)).split(MARQUE_X14)).toHaveLength(2);
+    expect((await definition(REPRENDRE)).split(MARQUE_X09_REPRISE)).toHaveLength(2);
   });
 
   it("rejouées deux fois de suite, dans un ordre ou l'autre, elles ne changent rien (définitions, droits, contrainte)", async () => {
     const avant = await empreinte();
-    for (const sql of [M410, M412, M413, M414, M414, M413, M412, M410, M410, M412, M414]) {
+    for (const sql of [M410, M412, M413, M414, M415, M415, M414, M413, M412, M410, M410, M412, M414, M415]) {
       await db.query(sansFermetureAnon(sql));
       expect(await empreinte()).toEqual(avant);
     }
@@ -206,12 +216,15 @@ describe.skipIf(!DB_URL)("Lot finance-dates — rejeu sur une base déjà migré
       (await db.query("select has_function_privilege($1, $2::text::regprocedure, 'execute') as ok", [role, signature])).rows[0].ok as boolean;
     for (const signature of FONCTIONS) expect(await droit("anon", signature), signature).toBe(false);
     expect(await droit("authenticated", ENCAISSER)).toBe(true);
+    expect(await droit("authenticated", REPRENDRE)).toBe(true);
+    expect(await droit("service_role", REPRENDRE)).toBe(true);
     expect(await droit("authenticated", ECRIRE)).toBe(false);
   });
 
   it.each([
     [ENCAISSER, M410, R410, "insert into public.encaissements(organization_id,bail_id,montant,mode,note)", "insert into public.encaissements(organization_id,bail_id,montant,note,mode)", /X13 \(encaissement\) : définition inattendue/],
     [ECRIRE, M413, R413, "if v_taux is not null and v_taux > 0 then", "if v_taux is not null then", /X14 \(plancher d'honoraires\) : définition inattendue/],
+    [REPRENDRE, M415, R415, "elsif v_montant is null then", "elsif v_montant is not null then", /X09 \(reprise de soldes\) : définition inattendue/],
   ])("%s : une définition inattendue arrête la migration (l'ancre ne se devine pas)", async (signature, sql, retourSql, ancre, autre, message) => {
     // La définition d'avant, puis altérée : l'ancre n'y est plus.
     const avant = definitionsAnterieures(retourSql)[signature];
@@ -223,24 +236,24 @@ describe.skipIf(!DB_URL)("Lot finance-dates — rejeu sur une base déjà migré
   it("sur les définitions d'AVANT, les migrations posent leur correctif et retrouvent exactement l'état migré", async () => {
     const migre = await empreinte();
     const migreDefs = Object.fromEntries(await Promise.all(FONCTIONS.map(async (s) => [s, await definition(s)])));
-    for (const def of Object.values({ ...definitionsAnterieures(R410), ...definitionsAnterieures(R413) })) await db.query(def);
-    for (const signature of FONCTIONS) expect(await definition(signature), signature).not.toMatch(/Décision X1[34]/);
-    for (const sql of [M410, M413]) await db.query(sansFermetureAnon(sql));
+    for (const def of Object.values({ ...definitionsAnterieures(R410), ...definitionsAnterieures(R413), ...definitionsAnterieures(R415) })) await db.query(def);
+    for (const signature of FONCTIONS) expect(await definition(signature), signature).not.toMatch(/Décision X(1[34]|09)/);
+    for (const sql of [M410, M413, M415]) await db.query(sansFermetureAnon(sql));
     for (const signature of FONCTIONS) expect(await definition(signature), signature).toBe(migreDefs[signature]);
     expect(await empreinte()).toEqual(migre);
   });
 
   it("les retours arrière (corps joué dans la transaction du test) rétablissent les définitions d'avant, puis la marche avant retrouve l'état migré", async () => {
     const migre = await empreinte();
-    for (const sql of [R414, R413, R412, R410]) await db.query(corpsDuRetour(sql));
-    for (const signature of FONCTIONS) expect(await definition(signature), signature).not.toMatch(/Décision X1[34]/);
+    for (const sql of [R415, R414, R413, R412, R410]) await db.query(corpsDuRetour(sql));
+    for (const signature of FONCTIONS) expect(await definition(signature), signature).not.toMatch(/Décision X(1[34]|09)/);
     expect((await empreinte()).contrainte).toBe("");
     // Leur rejeu ne fait rien.
     const apres = await empreinte();
-    for (const sql of [R414, R413, R412, R410]) await db.query(corpsDuRetour(sql));
+    for (const sql of [R415, R414, R413, R412, R410]) await db.query(corpsDuRetour(sql));
     expect(await empreinte()).toEqual(apres);
     // Marche avant.
-    for (const sql of [M410, M412, M413, M414]) await db.query(sansFermetureAnon(sql));
+    for (const sql of [M410, M412, M413, M414, M415]) await db.query(sansFermetureAnon(sql));
     expect(await empreinte()).toEqual(migre);
   });
 

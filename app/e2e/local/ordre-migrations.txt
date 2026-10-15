@@ -334,3 +334,4 @@
 20261014412000_encaissements_montant_au_centime.sql
 20261014413000_encaissement_plancher_honoraires.sql
 20261014414000_encaissements_montant_fini.sql
+20261014415000_reprise_soldes_au_centime.sql

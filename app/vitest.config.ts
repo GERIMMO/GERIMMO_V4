@@ -27,6 +27,9 @@ export const FICHIERS_EN_SERIE = [
   // Fixture validée qui encaisse un dépôt (encaisser_depot) : une ligne de depot_encaissements visible ~160 ms de toutes
   // les sessions, mesurée le 14/10 ; même effet sur reprise-comptable.test.ts que les fixtures du lot « encaissement ».
   "tests/restitution-impayes.test.ts",
+  // Rejeu des cinq migrations du jour de Paris et de leurs retours : `alter table … set default` sur encaissements,
+  // quittances et relances, verrou exclusif tenu pendant tout l'essai, qui bloquerait les écritures des autres fichiers.
+  "tests/jour-de-paris-migrations-rejeu.test.ts",
 ];
 
 export default defineConfig({

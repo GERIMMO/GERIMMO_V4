@@ -9,6 +9,8 @@ import {
   nouveauJetonConfirmation,
   optionsCookieConfirmation,
 } from "@/lib/jeton-confirmation";
+import { finirConfirmationInscription } from "@/lib/lien-mot-de-passe";
+import { COOKIE_INSCRIPTION, optionsCookieInscription } from "@/lib/temoin-inscription";
 
 // Point d'entrée des liens envoyés par e-mail (invitations, mot de passe
 // oublié, confirmation d'inscription).
@@ -32,6 +34,13 @@ import {
 // Le GET pose aussi le cookie du double jeton (lib/jeton-confirmation.ts) que
 // la page recopie dans un champ caché : le POST exige les deux. Et rien de ce
 // qui porte le jeton n'est mis en cache (`Cache-Control: no-store`, audit M5).
+//
+// CONFIRMATION D'INSCRIPTION (troisième relecture du 15/10/2026). Le mot de
+// passe d'une inscription est choisi avant la preuve de possession de la
+// boîte. Il n'est gardé que si le bouton est cliqué dans le navigateur de
+// l'inscription (témoin, lib/temoin-inscription.ts) ; sinon la personne qui
+// vient de confirmer choisit le sien (/nouveau-mot-de-passe), puis repart vers
+// la destination prévue.
 
 const TYPES_ACCEPTES: readonly EmailOtpType[] = ["recovery", "invite", "signup", "email", "magiclink", "email_change"];
 
@@ -103,8 +112,19 @@ export async function POST(request: NextRequest) {
   if (!tokenHash || !type) return finPost(lienInvalide(request, 303));
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+  const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
   if (error) return finPost(lienInvalide(request, 303));
+  if (type === "signup") {
+    const issue = await finirConfirmationInscription(data?.user, request.cookies.get(COOKIE_INSCRIPTION)?.value);
+    const cible =
+      issue === "meme_navigateur"
+        ? new URL(next, request.url)
+        : new URL(`/nouveau-mot-de-passe?motif=inscription&suite=${encodeURIComponent(next)}`, request.url);
+    const reponse = finPost(sansCache(NextResponse.redirect(cible, 303)));
+    // Le témoin a servi : il est effacé.
+    reponse.cookies.set(COOKIE_INSCRIPTION, "", optionsCookieInscription(0));
+    return reponse;
+  }
   return finPost(sansCache(NextResponse.redirect(new URL(next, request.url), 303)));
 }
 

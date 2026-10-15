@@ -55,6 +55,7 @@ const TON_STATUT: Record<LigneSollicitation["statut"], "alerte" | "ok" | "encre"
   non_retenue: "neutre",
   expiree: "neutre",
   annulee: "neutre",
+  refusee: "neutre",
 };
 
 /**
@@ -147,6 +148,16 @@ export default async function PageRepondreDevis(
             <p className="font-semibold">Devis enregistré dans les deux espaces Gerimmo</p>
             {preparation.email_statut === "envoye" ? <p className="mt-1 text-sm text-emerald-800">E-mail avec le PDF transmis au demandeur.</p> : <><p className="mt-1 text-sm text-amber-900">Le devis est disponible sur Gerimmo, mais l’e-mail n’a pas pu être envoyé.</p><RenvoyerEmail id={sollicitationId} revision={preparation.revision}/></>}
           </div>}
+          {/* D18 (livraison 1) : le client a refusé ce devis ; son motif est transmis tel quel, il n'y a rien d'autre à faire. */}
+          {demande.statut === "refusee" && (
+            <div className="mb-4 rounded-xl border border-[var(--filet)] p-4" data-devis-refuse>
+              <p className="font-semibold">Votre devis n’a pas été retenu : le client l’a refusé.</p>
+              <p className="mt-2 whitespace-pre-wrap break-words text-[0.9375rem]">
+                Motif transmis : « {demande.decision_motif ?? "aucun motif transmis"} »
+              </p>
+              <p className={`mt-2 ${CLASSE_AIDE}`}>Cette demande est close : vous n’avez rien d’autre à faire. Votre devis reste consultable ci-dessous.</p>
+            </div>
+          )}
           {/* L'état est l'étiquette de l'en-tête ; ici, ce qu'il a répondu. */}
           <div>
             {demande.montant_ttc_cents !== null && (

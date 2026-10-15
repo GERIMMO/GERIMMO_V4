@@ -60,6 +60,8 @@ export const STATUTS_SOLLICITATION: Record<string, string> = {
   non_retenue: "Non retenue",
   expiree: "Expirée",
   annulee: "Annulée",
+  // Décision D18 du 14/10 (livraison 1) : le devis de cet artisan a été refusé avec un motif.
+  refusee: "Devis refusé",
 };
 
 export const COULEURS_SOLLICITATION: Record<string, string> = {
@@ -70,6 +72,7 @@ export const COULEURS_SOLLICITATION: Record<string, string> = {
   non_retenue: "puce puce-grise",
   expiree: "puce puce-grise",
   annulee: "puce puce-grise",
+  refusee: "puce puce-grise",
 };
 
 export const STATUTS_DEVIS: Record<string, string> = {
@@ -78,6 +81,8 @@ export const STATUTS_DEVIS: Record<string, string> = {
   non_retenu: "Non retenu",
   expire: "Expiré",
   annule: "Annulé",
+  // Décision D18 du 14/10 (livraison 1) : refusé par le gérant ou le propriétaire, motif transmis à l'artisan.
+  refuse: "Refusé",
 };
 
 export const COULEURS_DEVIS: Record<string, string> = {
@@ -86,6 +91,7 @@ export const COULEURS_DEVIS: Record<string, string> = {
   non_retenu: "puce puce-grise",
   expire: "puce puce-rouge",
   annule: "puce puce-grise",
+  refuse: "puce puce-grise",
 };
 
 export const STATUTS_INTERVENTION: Record<string, string> = {

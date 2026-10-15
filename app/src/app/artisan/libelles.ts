@@ -80,6 +80,8 @@ export const STATUTS_SOLLICITATION: Record<string, string> = {
   non_retenue: "Devis non retenu",
   expiree: "Expirée",
   annulee: "Annulée",
+  // Décision D18 du 14/10 (livraison 1) : le client a refusé le devis, le motif est lisible sur la demande.
+  refusee: "Devis refusé",
 };
 
 export const IMPUTATIONS: Record<string, string> = {

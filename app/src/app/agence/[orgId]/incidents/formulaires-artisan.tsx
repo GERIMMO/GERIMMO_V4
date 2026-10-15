@@ -8,20 +8,23 @@ import {
   evaluerArtisan,
   fixerRendezVous,
   ouvrirConsultation,
+  refuserDevis,
   retenirDevis,
   reviserImputation,
   solliciterArtisan,
   type EtatIncidentAction,
 } from "@/app/actions/incidents";
+import { CleEnvoi } from "@/components/cle-envoi";
 import { MessageReseau, InteretReseau, VoieDeSortieReseau } from "@/components/disponibilite-reseau";
 import { voieDeSortieAffichee, type DisponibiliteReseau } from "@/lib/reseau";
-import { IMPUTATIONS_INCIDENT } from "@/lib/incidents";
+import { IMPUTATIONS_INCIDENT, MOTIF_DECISION_DEVIS } from "@/lib/incidents";
 import {
   decennaleRequise,
   METIERS_ARTISAN,
   NATURES_TRAVAUX,
 } from "../artisans/referentiel";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -245,6 +248,79 @@ export function BoutonRetenirDevis({
         <span className="sr-only"> — celui de {raisonSociale}</span>
       </BoutonEnvoi>
       <Retour etat={etat} />
+    </form>
+  );
+}
+
+/**
+ * Refuser un devis reçu (décision D18 du 14/10, livraison 1 ; fiches ART-13, PRO2-12).
+ *
+ * Deux temps, comme la fiche le demande : le bouton « Refuser » ouvre le formulaire ; le refus ne part qu'au clic
+ * sur « Confirmer le refus », après un motif de dix caractères au moins. Le formulaire DIT que le motif est transmis
+ * à l'artisan (réponse A.15-4, même précaution que PRO2-14) : rien d'interne n'a sa place ici. La clé d'envoi
+ * (`CleEnvoi`) rend le renvoi sûr après une réponse perdue : la base reconnaît le même envoi et ne refait rien.
+ */
+export function BoutonRefuserDevis({
+  orgId,
+  devisId,
+  raisonSociale,
+}: {
+  orgId: string;
+  devisId: string;
+  raisonSociale: string;
+}) {
+  const actionLiee = refuserDevis.bind(null, orgId, devisId);
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const [ouvert, ouvrir] = useState(false);
+  const idMotif = useId();
+
+  if (etat.succes) {
+    return (
+      <div className="space-y-1.5" data-devis-refuse>
+        <Retour etat={etat} />
+        {etat.avertissement && <p className="text-sm text-muted-foreground">{etat.avertissement}</p>}
+      </div>
+    );
+  }
+  if (!ouvert) {
+    return (
+      <Button type="button" variant="outline" size="sm" onClick={() => ouvrir(true)} aria-expanded={false}>
+        Refuser
+        <span className="sr-only"> le devis de {raisonSociale}</span>
+      </Button>
+    );
+  }
+  return (
+    <form data-saisie-confirmee action={action} className="space-y-2 rounded-lg border border-border p-3" aria-label={`Refuser le devis de ${raisonSociale}`}>
+      <CleEnvoi etat={etat} />
+      <div className="space-y-1.5">
+        <Label htmlFor={idMotif}>Motif du refus (transmis à l&apos;artisan) *</Label>
+        <textarea
+          id={idMotif}
+          name="motif"
+          required
+          minLength={MOTIF_DECISION_DEVIS.min}
+          maxLength={MOTIF_DECISION_DEVIS.max}
+          rows={3}
+          defaultValue={etat.valeurs?.motif}
+          placeholder="Le montant dépasse le budget prévu pour cette réparation."
+          className={classeTextarea}
+        />
+        <p className="text-xs text-muted-foreground">
+          Dix caractères au moins. L&apos;artisan lira ce motif tel quel ; sa demande sera close et la place
+          libérée pour solliciter un autre artisan. Ce refus est définitif.
+        </p>
+      </div>
+      <Retour etat={etat} />
+      <div className="flex flex-wrap gap-2">
+        <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Refus…">
+          Confirmer le refus
+          <span className="sr-only"> du devis de {raisonSociale}</span>
+        </BoutonEnvoi>
+        <Button type="button" variant="ghost" size="sm" onClick={() => ouvrir(false)}>
+          Annuler
+        </Button>
+      </div>
     </form>
   );
 }

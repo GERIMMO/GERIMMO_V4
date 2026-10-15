@@ -7,7 +7,8 @@ export const metadata = { title: "Demandes de devis" };
 
 // Une demande close n'est pas forcément une demande à laquelle il a répondu :
 // une expirée ou une annulée ne rejoint pas ses devis (tour du 24/09).
-const STATUTS_DEVIS_ENVOYE = ["devis_depose", "retenue", "non_retenue"];
+// D18 (livraison 1) : un devis refusé par le client est un devis envoyé, avec sa réponse.
+const STATUTS_DEVIS_ENVOYE = ["devis_depose", "retenue", "non_retenue", "refusee"];
 const STATUTS_SANS_SUITE = ["declinee", "expiree", "annulee"];
 
 /**

@@ -139,9 +139,12 @@ export type LigneSollicitation = {
     | "retenue"
     | "non_retenue"
     | "expiree"
-    | "annulee";
+    | "annulee"
+    | "refusee";
   valide_jusqu_au: string | null;
   montant_ttc_cents: number | null;
+  /** D18 (livraison 1) : le motif de la décision prise sur SON devis (refus), tel que le client l'a écrit. */
+  decision_motif: string | null;
 };
 
 export type PieceArtisan = {

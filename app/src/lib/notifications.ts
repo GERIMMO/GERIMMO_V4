@@ -206,6 +206,33 @@ export function messageMissionAnnulee(p: {
   };
 }
 
+/**
+ * Devis refusé par le gérant ou le propriétaire (`refuser_devis`, décision D18, livraison 1) → l'artisan.
+ * Le motif lui est transmis tel qu'il a été écrit (réponse A.15-4) ; la demande est close pour lui, rien à faire.
+ */
+export function messageDevisRefuse(p: {
+  emetteur: string;
+  categorie: string;
+  numero: string;
+  montantCents: number;
+  motif: string;
+  lien: string | null;
+}): Message {
+  return {
+    sujet: `Votre devis a été refusé — ${p.emetteur} — dossier ${p.numero}`,
+    html: gabaritNotification({
+      titre: "Votre devis a été refusé",
+      emetteur: p.emetteur,
+      lignes: [
+        `${p.emetteur} n'a pas retenu votre devis de ${eur(p.montantCents / 100)} TTC pour « ${categorieLisible(p.categorie)} » (dossier ${p.numero}).`,
+        `Motif transmis : ${extrait(p.motif, 600)}`,
+        "Cette demande est close pour vous : aucune autre action n'est attendue. Votre devis reste consultable dans votre espace.",
+      ],
+      action: { libelle: "Voir la demande", lien: p.lien },
+    }),
+  };
+}
+
 export type ReponseLocataireCreneaux =
   | { type: "choisi"; debut: string; fin: string | null }
   | { type: "contre_propose"; nbCreneaux: number };
@@ -804,6 +831,36 @@ export async function notifierMissionConfiee(db: SupabaseClient, orgId: string, 
     });
   } catch (e) {
     console.error("[notifications] mission_confiee :", e instanceof Error ? e.message : e);
+    return NON;
+  }
+}
+
+/**
+ * Devis refusé (`refuser_devis`, décision D18 livraison 1) → l'artisan, avec le motif. Appelée depuis l'action du
+ * gérant, APRÈS le succès de la fonction et seulement si la décision est nouvelle (un rejeu n'envoie rien).
+ */
+export async function notifierDevisRefuse(db: SupabaseClient, orgId: string, devisId: string): Promise<ResultatNotification> {
+  try {
+    const { data: devis } = await db
+      .from("incident_devis")
+      .select("id, incident_id, artisan_id, sollicitation_id, montant_ttc_cents, decision_motif, statut")
+      .eq("id", devisId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (!devis || devis.statut !== "refuse" || !devis.decision_motif) return { envoyee: false, motif: "introuvable" };
+    const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, devis.incident_id), lireArtisan(db, devis.artisan_id), emetteur(db, orgId)]);
+    if (!inc || !artisan) return { envoyee: false, motif: "introuvable" };
+    return expedier(db, {
+      orgId, to: artisan.email, role: "artisan", evenement: "devis_refuse", objet: devis.id,
+      cleIdempotence: `devis-refuse-${devis.id}`,
+      message: messageDevisRefuse({
+        emetteur: nom, categorie: inc.categorie, numero: inc.numero,
+        montantCents: Number(devis.montant_ttc_cents), motif: devis.decision_motif,
+        lien: lien(`/artisan/devis/${devis.sollicitation_id}`),
+      }),
+    });
+  } catch (e) {
+    console.error("[notifications] devis_refuse :", e instanceof Error ? e.message : e);
     return NON;
   }
 }

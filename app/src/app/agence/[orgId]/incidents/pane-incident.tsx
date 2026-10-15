@@ -234,6 +234,12 @@ export async function PaneIncident({
         return d.montant_ttc_cents != null
           ? eur(centsEnEuros(Number(d.montant_ttc_cents)))
           : null;
+      // D18 (livraison 1) : le montant refusé et le motif, celui que l'artisan a reçu.
+      case "devis_refuse":
+        return [
+          d.montant_ttc_cents != null ? eur(centsEnEuros(Number(d.montant_ttc_cents))) : null,
+          d.motif ? `« ${d.motif} »` : null,
+        ].filter(Boolean).join(" — ") || null;
       case "mission_refusee":
       case "creneaux_refuses":
         return d.motif ? `« ${d.motif} »` : null;

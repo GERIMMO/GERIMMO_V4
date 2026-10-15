@@ -38,6 +38,7 @@ import {
   STATUTS_SOLLICITATION,
 } from "../artisans/referentiel";
 import {
+  BoutonRefuserDevis,
   BoutonRetenirDevis,
   BoutonSolliciter,
   FormulaireAnnulationMission,
@@ -100,6 +101,10 @@ type Devis = {
   document_id: string | null;
   statut: string;
   depose_le: string;
+  /** D18 (livraison 1) : la décision prise sur ce devis (refus), son motif et sa date. Nuls tant qu'il attend. */
+  decision?: string | null;
+  decision_motif?: string | null;
+  decide_le?: string | null;
 };
 
 type Intervention = {
@@ -270,7 +275,7 @@ export async function VoletArtisan({
     supabase
       .from("incident_devis")
       .select(
-        "id, sollicitation_id, artisan_id, montant_ttc_cents, description, lignes, valide_jusqu_au, document_id, statut, depose_le"
+        "id, sollicitation_id, artisan_id, montant_ttc_cents, description, lignes, valide_jusqu_au, document_id, statut, depose_le, decision, decision_motif, decide_le"
       )
       .eq("organization_id", orgId)
       .eq("incident_id", incidentId)
@@ -921,6 +926,8 @@ export function ConsultationOuverte({
   // Un devis dont la validité est dépassée est passé « expiré » (tâche quotidienne) : il quitte la comparaison,
   // mais l'agent doit pouvoir le relire — ce qu'il a coûté, qui l'avait remis, sa pièce jointe.
   const expires = devisDeLaConsultation.filter((d) => d.statut === "expire");
+  // D18 (livraison 1) : un devis refusé reste au dossier, en lecture seule, avec le motif transmis à l'artisan.
+  const refuses = devisDeLaConsultation.filter((d) => d.statut === "refuse");
   const restants = affectables.filter((a) => !idsSollicites.has(a.artisan_id));
 
   return (
@@ -1064,11 +1071,19 @@ export function ConsultationOuverte({
                       </p>
                     ) : null}
                     {!expire && (
-                      <BoutonRetenirDevis
-                        orgId={orgId}
-                        devisId={d.id}
-                        raisonSociale={nom(d.artisan_id)}
-                      />
+                      <div className="space-y-2">
+                        <BoutonRetenirDevis
+                          orgId={orgId}
+                          devisId={d.id}
+                          raisonSociale={nom(d.artisan_id)}
+                        />
+                        {/* D18 (livraison 1) : refuser, à côté de retenir. Le motif part à l'artisan. */}
+                        <BoutonRefuserDevis
+                          orgId={orgId}
+                          devisId={d.id}
+                          raisonSociale={nom(d.artisan_id)}
+                        />
+                      </div>
                     )}
                   </div>
                 );
@@ -1077,7 +1092,45 @@ export function ConsultationOuverte({
             <p className="mt-2 text-xs text-muted-foreground">
               Retenir un devis confie la mission : c&apos;est votre décision, pas
               celle du locataire. Le second artisan est écarté automatiquement.
+              Refuser un devis le clôt pour cet artisan, qui lit votre motif, et
+              libère la place pour en solliciter un autre.
             </p>
+          </div>
+        )}
+
+        {/* LES DEVIS REFUSÉS (D18, livraison 1) — en lecture seule, avec le motif que l'artisan a reçu. */}
+        {refuses.length > 0 && (
+          <div className="border-t border-border pt-3" data-devis-refuses>
+            <div className="entete-carte">
+              <p className="libelle-champ">
+                {refuses.length} devis refusé{refuses.length > 1 ? "s" : ""}
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {refuses.map((d) => (
+                <div key={d.id} className="space-y-2 rounded-md border border-border p-3">
+                  <div className="entete-carte !mb-0">
+                    <b className="min-w-0 truncate text-sm">{nom(d.artisan_id)}</b>
+                    <span className={COULEURS_DEVIS[d.statut] ?? "puce puce-grise"}>
+                      {STATUTS_DEVIS[d.statut] ?? "État à vérifier"}
+                    </span>
+                  </div>
+                  <p className="chiffre montant font-heading text-2xl text-[var(--encre)]">
+                    {montant(d.montant_ttc_cents)}
+                  </p>
+                  <div className="ligne-info">
+                    <span>Refusé le</span>
+                    <span>{formaterDate(d.decide_le)}</span>
+                  </div>
+                  {d.decision_motif && (
+                    <p className="text-sm">
+                      Motif transmis à l&apos;artisan : « {d.decision_motif} »
+                    </p>
+                  )}
+                  <CorpsDevis orgId={orgId} d={d} />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

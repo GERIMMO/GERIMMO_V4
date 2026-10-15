@@ -146,6 +146,12 @@ export const MOTIFS_CLOTURE_PAR_ETAT: Partial<Record<EtatIncident, string[]>> = 
   termine: ["resolu", "transmis_syndic"],
 };
 
+/**
+ * Bornes du motif d'une décision sur un devis reçu (refus, puis demande de révision) : celles de la base, contrainte
+ * `incident_devis_decision_coherente` (décision D18 du 14/10). Le motif est transmis à l'artisan.
+ */
+export const MOTIF_DECISION_DEVIS = { min: 10, max: 4000 } as const;
+
 // Chronologie de la fiche : libellés des événements tracés en base
 export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   declaration: "Déclaration",
@@ -178,6 +184,8 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   facture_validee: "Facture contrôlée et validée",
   // Audit du 13/10 (migration 20261013120000) : l'annulation se lit au fil.
   mission_annulee: "Mission annulée",
+  // Décision D18 du 14/10 (migration 20261014600000, livraison 1) : le refus motivé d'un devis.
+  devis_refuse: "Devis refusé",
 };
 
 export const PIECES_INCIDENT = [

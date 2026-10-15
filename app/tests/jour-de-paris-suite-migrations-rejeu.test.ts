@@ -18,7 +18,7 @@
  * Ce fichier change des valeurs par défaut (verrou de table tenu jusqu'à la fin de l'essai) : il tourne en série
  * (FICHIERS_EN_SERIE de vitest.config.ts). La base visée est déjà migrée ; tout est joué dans une transaction annulée à la fin.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -76,6 +76,34 @@ const MOIS_PARIS = /date_trunc\('month', public\.aujourdhui_paris\(\)::timestamp
 const migration = (f: Famille) => readFileSync(`supabase/migrations/${f.version}_${f.fichier}.sql`, "utf8");
 const retour = (f: Famille) => readFileSync(`supabase/retours-arriere/${f.version}_${f.fichier}.retour.sql`, "utf8");
 const RETOUR_FONCTION_DU_JOUR = readFileSync("supabase/retours-arriere/20261014500000_jour_de_paris_fonction.retour.sql", "utf8");
+
+/** Le manifeste des migrations, dans l'ordre où elles s'appliquent. */
+const MANIFESTE = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
+const FICHIER_FONCTION_DU_JOUR = "20261014500000_jour_de_paris_fonction.sql";
+/** Le fichier du manifeste dont la version se termine par ce code à six chiffres (« 610000 » → 20261014610000_…). */
+const parCode = (code: string) => MANIFESTE.find((m) => m.startsWith(`20261014${code}_`));
+
+/**
+ * La chaîne « Ordre complet si tout doit être défait » de la section du lot dans le LISEZ-MOI des retours, lue telle
+ * qu'écrite : les codes à six chiffres avant « puis `500000` », une plage « `504000` → `501000` » dépliée par pas de 1000.
+ */
+function chaineDuLisezMoi(): string[] {
+  const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
+  const section = lisezMoi.slice(lisezMoi.indexOf("## Lot « fuseau-suite »"));
+  const phrase = section.match(/Ordre complet si tout doit être défait :([\s\S]*?)puis `500000`/);
+  if (!phrase) throw new Error("La section du lot ne donne plus l'ordre complet des retours.");
+  const codes: string[] = [];
+  for (const [, debut, fin] of phrase[1].matchAll(/`(\d{6})`(?:\s*→\s*`(\d{6})`)?/g)) {
+    if (!fin) codes.push(debut);
+    else for (let n = Number(debut); n >= Number(fin); n -= 1000) codes.push(String(n));
+  }
+  return codes;
+}
+
+/** Les migrations postérieures à la fonction du jour dont le code (commentaires retirés) cite `aujourdhui_paris()`. */
+const MIGRATIONS_QUI_CITENT_LE_JOUR = MANIFESTE.slice(MANIFESTE.indexOf(FICHIER_FONCTION_DU_JOUR) + 1).filter((m) =>
+  readFileSync(`supabase/migrations/${m}`, "utf8").replace(/--.*$/gm, "").includes("aujourdhui_paris()")
+);
 
 /** Le script de retour gère sa propre transaction et refuse de se jouer dans un lot : on lui retire cette enveloppe seule. */
 function sansEnveloppe(script: string): string {
@@ -422,6 +450,17 @@ describe.skipIf(!DB_URL)("jour de Paris, la suite — migrations et retours arri
         expect(message).toContain(signature);
     });
 
+    it("la chaîne « Ordre complet » du LISEZ-MOI, jouée telle qu'écrite, défait tout : le retour de 20261014500000 passe ensuite", async () => {
+      for (const code of chaineDuLisezMoi()) {
+        const fichier = parCode(code);
+        expect(fichier, `${code} : absent du manifeste`).toBeDefined();
+        await db.query(sansEnveloppe(readFileSync(`supabase/retours-arriere/${fichier!.replace(/\.sql$/, ".retour.sql")}`, "utf8")));
+      }
+      // Joué hors de `echoue` (qui annule même un succès) : un refus fait échouer le test avec le message du retour.
+      await db.query(sansEnveloppe(RETOUR_FONCTION_DU_JOUR));
+      expect((await db.query("select to_regprocedure('public.aujourdhui_paris()') is null as retiree")).rows[0].retiree).toBe(true);
+    });
+
     it("un retour retire aussi la ligne d'historique de sa migration (migrations.yml pourra la rejouer)", async () => {
       await db.query("create schema if not exists supabase_migrations");
       await db.query("create table if not exists supabase_migrations.schema_migrations (version text primary key, name text, statements text[])");
@@ -443,6 +482,22 @@ describe.skipIf(!DB_URL)("jour de Paris, la suite — migrations et retours arri
       expect(lignes.indexOf(nom)).toBeGreaterThan(lignes.indexOf("20261014500000_jour_de_paris_fonction.sql"));
       expect(Number(famille.version)).toBeGreaterThanOrEqual(20261014820000);
       expect(Number(famille.version)).toBeLessThanOrEqual(20261014829999);
+    });
+
+    it("l'ordre complet des retours nomme, avant 500000, chaque migration postérieure qui cite la fonction du jour, dans l'ordre inverse du manifeste", () => {
+      const chaine = chaineDuLisezMoi();
+      // Chaque code désigne une migration du manifeste postérieure à la fonction du jour, et qui a son retour.
+      const positions = chaine.map((code) => {
+        const fichier = parCode(code);
+        expect(fichier, `${code} : absent du manifeste`).toBeDefined();
+        expect(existsSync(`supabase/retours-arriere/${fichier!.replace(/\.sql$/, ".retour.sql")}`), `${code} : sans retour`).toBe(true);
+        return MANIFESTE.indexOf(fichier!);
+      });
+      expect(Math.min(...positions)).toBeGreaterThan(MANIFESTE.indexOf(FICHIER_FONCTION_DU_JOUR));
+      expect(positions, "ordre inverse du manifeste").toEqual([...positions].sort((a, b) => b - a));
+      // Aucune migration qui cite la fonction du jour n'est oubliée : son retour doit précéder celui de 500000.
+      const absentes = MIGRATIONS_QUI_CITENT_LE_JOUR.filter((m) => !chaine.some((code) => m.startsWith(`20261014${code}_`)));
+      expect(absentes).toEqual([]);
     });
 
     it.each(FAMILLES)("$version a son retour arrière, déclaré dans le LISEZ-MOI du dossier", (famille) => {

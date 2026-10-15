@@ -581,7 +581,11 @@ fonction de ces domaines ne lit le jour de la session, hors `finaliser_decompte`
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
-`821000`, `820000`, `602000`, `601000`, `600000`, `504000` → `501000`, puis `500000` (le test `tests/jour-de-paris-migrations-rejeu.test.ts` joue cette chaîne).
+`821000`, `820000`, `610000`, `602000`, `601000`, `600000`, `504000` → `501000`, puis `500000`. Le retour de `610000` (règlement de facture, D23) en fait
+partie : `enregistrer_reglement_facture` et `retirer_reglement_facture` citent `aujourdhui_paris()`, et son retour les supprime ; il demande de revenir d'abord au
+code d'avant D23 (voir sa ligne du tableau). `620000` ne cite pas la fonction du jour : il n'entre pas dans cette chaîne. Le test
+`tests/jour-de-paris-suite-migrations-rejeu.test.ts` lit cette chaîne ici même et la joue telle qu'écrite, puis le retour de `500000` ;
+`tests/jour-de-paris-migrations-rejeu.test.ts` joue la même, en retirant les fonctions de `610000` au lieu de jouer son retour.
 Chaque retour relit la définition en vigueur, remet `current_date` (et `date_trunc('month',now())`) à sa place, nombre exact exigé (sinon il s'arrête sans rien
 modifier), se rejoue sans effet (« rien à faire »), refuse de se jouer dans un lot, et laisse en place une forme explicite du jour de Paris que la migration
 n'avait pas posée. Revenir au code d'avant (documents) ne demande rien côté base, et inversement.

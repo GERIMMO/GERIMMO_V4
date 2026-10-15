@@ -20,7 +20,9 @@ test('PAY01 : Encaisser le reste transmet sa commande et solde une seule fois le
   await db.query("insert into lots(id,organization_id,bien_id,nom,etat) values($1,$2,$3,$4,'loue')",[lot,ORG,bien,nom]);
   await db.query("insert into persons(id,organization_id,nom,prenom) values($1,$2,$3,'Locataire fictif')",[personne,ORG,nom]);
   await db.query("insert into baux(id,organization_id,lot_id,type,etat,loyer_hc,charges,date_debut,jour_echeance,locataire_principal) values($1,$2,$3,'nu','actif',780,60,($4::date-interval '1 month')::date,5,$5)",[bail,ORG,lot,periode,personne]);
-  await db.query("insert into appels_loyer(id,organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values($1,$2,$3,$4,(now() at time zone 'Europe/Paris')::date-1,780,60,840)",[appel,ORG,bail,periode]);
+  // Échue la veille du plus ancien des deux jours (Paris, UTC de la base) : l'état « Impayé » ne dépend pas de la plage 22 h–24 h UTC,
+  // pendant laquelle la vue des loyers (current_date) et l'application (jour de Paris) divergent encore (décision X13 élargie, en attente du dirigeant).
+  await db.query("insert into appels_loyer(id,organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values($1,$2,$3,$4,least((now() at time zone 'Europe/Paris')::date,current_date)-1,780,60,840)",[appel,ORG,bail,periode]);
   await db.query('commit');
   expect((await db.query('select count(*)::int n from encaissements where bail_id=$1',[bail])).rows[0].n).toBe(0);
   await sansSyntheseAlertes(page);await page.goto('/connexion');

@@ -638,6 +638,31 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect((await journal("invitation_artisan_acceptee"))[0].details.relation).toBe("reactivee");
     });
 
+    // Troisième relecture du 15/10 (20261014849000) : une ligne qui n'existe que par la liste noire (ici après la purge du
+    // motif, donc « désactivée » sans liste noire) ne se réactive pas par le propriétaire ; l'acceptation de l'artisan, la
+    // porte prévue, la fait entrer au carnet et retire la marque : elle se désactive et se réactive ensuite normalement.
+    it("une ligne entrée par la liste noire n'entre au carnet que par l'acceptation de l'artisan, qui retire la marque", async () => {
+      const r = await inviter();
+      const artisan = await inscrire();
+      await postgres();
+      await db.query(
+        "insert into public.artisan_agences(organization_id,artisan_id,statut,created_by,creee_par_liste_noire) values($1,$2,'desactive',$3,true)",
+        [org, artisan, proprietaire]
+      );
+      await devenir(proprietaire);
+      expect(await echec("select public.artisan_statut_local($1,$2,true)", [org, artisan])).toMatch(/que par votre liste noire.*invitez-le/);
+      expect(await repondre(r.id)).toEqual({ etat: "acceptee" });
+      expect((await journal("invitation_artisan_acceptee"))[0].details.relation).toBe("reactivee");
+      await postgres();
+      expect(
+        (await db.query("select statut, creee_par_liste_noire from public.artisan_agences where organization_id=$1 and artisan_id=$2", [org, artisan])).rows
+      ).toEqual([{ statut: "actif", creee_par_liste_noire: false }]);
+      await devenir(proprietaire);
+      await db.query("select public.artisan_statut_local($1,$2,false)", [org, artisan]);
+      await db.query("select public.artisan_statut_local($1,$2,true)", [org, artisan]);
+      expect(await relation(artisan)).toEqual([{ statut: "actif", created_by: proprietaire, blacklist_le: null }]);
+    });
+
     it("liste noire LOCALE de cette organisation : jamais rattaché, refus neutre, tracé", async () => {
       const r = await inviter();
       const artisan = await inscrire();

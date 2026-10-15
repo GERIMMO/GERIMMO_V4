@@ -10,6 +10,13 @@
  * Les autres fonctions qui créent une ligne `artisan_agences` ne prennent pas d'identifiant à l'aveugle :
  * `artisan_creer_ou_rattacher` (SIRET d'un profil public, ou créé par l'agence) et `repondre_invitation_artisan` (geste de
  * l'artisan lui-même) ; `artisan_statut_local` et `artisan_lever_blacklist_locale` ne font que modifier une ligne existante.
+ *
+ * Troisième relecture du 15/10 (constat de sécurité, migration 20261014849000) : la ligne que la liste noire CRÉE (relation
+ * préalable faite d'une sollicitation, d'une intervention ou d'un devis, sans ligne de carnet) devenait une relation ACTIVE
+ * à la levée de la liste noire. Un propriétaire direct faisait ainsi entrer dans son carnet un artisan du réseau, sans
+ * invitation ni geste de l'artisan, puis le sollicitait dans une commune fermée. Désormais une telle ligne le dit
+ * (`creee_par_liste_noire`) : la levée la SUPPRIME, la réactivation la refuse ; seules les portes prévues (invitation
+ * acceptée par l'artisan, ajout par SIRET d'une agence) font entrer l'artisan dans un carnet.
  */
 import { config } from "dotenv";
 import { Client } from "pg";
@@ -61,6 +68,36 @@ describe.skipIf(!DB)("Liste noire locale : jamais sans relation préalable", () 
     await postgres();
     return (await db.query("select statut, blacklist_le is not null as liste_noire from public.artisan_agences where organization_id=$1 and artisan_id=$2", [org, art])).rows;
   };
+  /** Une demande de devis du parc, pour un bien de cette commune (code INSEE confirmé). */
+  const consultationDuParc = async (cp: string, ville: string, commune: string) => {
+    await postgres();
+    const personne = await id("insert into public.persons(organization_id,nom) values($1,'Locataire du parc') returning id", [parc]);
+    const bien = await id(
+      "insert into public.biens(organization_id,nom,type,address_line1,postal_code,city,commune_insee) values($1,'Bien du parc','appartement','1 rue du Test',$2,$3,$4) returning id",
+      [parc, cp, ville, commune]
+    );
+    const lot = await id("insert into public.lots(organization_id,bien_id,nom) values($1,$2,'Lot du parc') returning id", [parc, bien]);
+    const inc = await id(
+      "insert into public.incidents(organization_id,lot_id,numero,canal,categorie,description,declarant_person_id,etat,imputation,imputation_justification) values($1,$2,'LNP-'||substr(gen_random_uuid()::text,1,8),'espace_locataire','plomberie_canalisation','Fuite',$3,'qualifie','proprietaire','Usure') returning id",
+      [parc, lot, personne]
+    );
+    return id("insert into public.incident_consultations(organization_id,incident_id,metier,nature_travaux) values($1,$2,'plomberie','entretien_courant') returning id", [parc, inc]);
+  };
+  /** Un artisan du RÉSEAU de Gerimmo : avec son compte, validé, public, plomberie, zone Paris 11e et Lyon 1er, rattaché à Lyon (ouverte). */
+  const artisanDuReseau = async () => {
+    await postgres();
+    const art = await artisan("Plomberie du réseau");
+    // Le réseau n'admet qu'un artisan qui a son compte (reseau_artisan_eligible).
+    await db.query("update public.artisans set account_id=$2 where id=$1", [art, await compte()]);
+    await db.query("insert into public.artisan_metiers(artisan_id,metier) values($1,'plomberie')", [art]);
+    await db.query("insert into public.artisan_zones(artisan_id,code_postal) values($1,'75011'),($1,'69001')", [art]);
+    await db.query("insert into public.reseau_artisan_communes(artisan_id,metier,commune_code) values($1,'plomberie','69123')", [art]);
+    await db.query("insert into public.reseau_ouvertures(commune_code,metier,ouverte) values('69123','plomberie',true) on conflict (commune_code,metier) do update set ouverte=true");
+    await db.query("delete from public.reseau_ouvertures where commune_code='75056' and metier='plomberie'");
+    return art;
+  };
+  const RESEAU_FERME = /pas encore disponible pour ce métier dans cette zone/;
+  const ENTREE_PAR_LISTE_NOIRE = /n’est entré dans votre carnet que par votre liste noire/;
 
   beforeAll(async () => {
     db = new Client({ connectionString: DB });
@@ -149,5 +186,77 @@ describe.skipIf(!DB)("Liste noire locale : jamais sans relation préalable", () 
     expect(await echec("select public.artisan_blacklist_locale($1,$2,'Motif')", [agence, duCarnet])).toMatch(/Accès refusé/);
     await devenir(adminAgence);
     expect(await echec("select public.artisan_blacklist_locale($1,$2,'  ')", [agence, duCarnet])).toMatch(/Le motif est obligatoire/);
+  });
+
+  // Troisième relecture du 15/10 : le scénario du relecteur, entièrement par les fonctions réelles, session du propriétaire.
+  it("propriétaire direct : sollicitation réseau, liste noire, levée ; l'artisan n'entre pas dans le carnet et la commune fermée reste fermée", async () => {
+    const art = await artisanDuReseau();
+    const lyon = await consultationDuParc("69001", "Lyon", "69123");
+    const paris = await consultationDuParc("75011", "Paris", "75056");
+    await devenir(proprietaire);
+    expect(await echec("select public.solliciter_artisan($1,$2,$3)", [parc, paris, art])).toMatch(RESEAU_FERME);
+    await db.query("select public.solliciter_artisan($1,$2,$3)", [parc, lyon, art]);
+    await db.query("select public.artisan_blacklist_locale($1,$2,'Retards répétés')", [parc, art]);
+    expect(await relations(parc, art)).toEqual([{ statut: "desactive", liste_noire: true }]);
+    await devenir(proprietaire);
+    await db.query("select public.artisan_lever_blacklist_locale($1,$2)", [parc, art]);
+    // La ligne n'existait que par la liste noire : la levée la retire. Aucune relation active, rien dans le carnet.
+    expect(await relations(parc, art)).toEqual([]);
+    await devenir(proprietaire);
+    expect((await db.query("select artisan_id from public.carnet_artisans_proprietaire($1)", [parc])).rows.map((l) => l.artisan_id)).not.toContain(art);
+    expect(await echec("select public.solliciter_artisan($1,$2,$3)", [parc, paris, art])).toMatch(RESEAU_FERME);
+    // Ni invitation ni geste de l'artisan : rien d'autre n'a été créé.
+    await postgres();
+    expect((await db.query("select count(*)::int n from public.invitations_artisans where organization_id=$1", [parc])).rows[0].n).toBe(0);
+  });
+
+  it("une ligne entrée par la liste noire ne se réactive pas, ni sur liste noire, ni après la purge du motif ; la levée la retire", async () => {
+    const art = await artisanDuReseau();
+    const lyon = await consultationDuParc("69001", "Lyon", "69123");
+    await devenir(proprietaire);
+    await db.query("select public.solliciter_artisan($1,$2,$3)", [parc, lyon, art]);
+    await db.query("select public.artisan_blacklist_locale($1,$2,'Retards répétés')", [parc, art]);
+    await devenir(proprietaire);
+    expect(await echec("select public.artisan_statut_local($1,$2,true)", [parc, art])).toMatch(ENTREE_PAR_LISTE_NOIRE);
+    expect(await relations(parc, art)).toEqual([{ statut: "desactive", liste_noire: true }]);
+    // Trois ans plus tard, la purge lève la mesure et laisse la ligne « désactivée » (maintenance_artisans) : toujours
+    // pas de réactivation possible ; la désactivation, elle, reste permise.
+    await db.query("update public.artisan_agences set blacklist_le=null, blacklist_motif=null, blacklist_par=null, purge_motif_le=null where organization_id=$1 and artisan_id=$2", [parc, art]);
+    await devenir(proprietaire);
+    expect(await echec("select public.artisan_statut_local($1,$2,true)", [parc, art])).toMatch(ENTREE_PAR_LISTE_NOIRE);
+    await db.query("select public.artisan_statut_local($1,$2,false)", [parc, art]);
+    expect(await relations(parc, art)).toEqual([{ statut: "desactive", liste_noire: false }]);
+    await devenir(proprietaire);
+    await db.query("select public.artisan_lever_blacklist_locale($1,$2)", [parc, art]);
+    expect(await relations(parc, art)).toEqual([]);
+  });
+
+  it("agence : la levée retire aussi la ligne entrée par la liste noire ; l'ajout par SIRET reste la porte du carnet", async () => {
+    await devenir(adminAgence);
+    await db.query("select public.artisan_blacklist_locale($1,$2,'Retards répétés')", [agence, sollicite]);
+    await devenir(adminAgence);
+    expect(await echec("select public.artisan_statut_local($1,$2,true)", [agence, sollicite])).toMatch(ENTREE_PAR_LISTE_NOIRE);
+    await db.query("select public.artisan_lever_blacklist_locale($1,$2)", [agence, sollicite]);
+    expect(await relations(agence, sollicite)).toEqual([]);
+    const siret = (await db.query("select siret from public.artisans where id=$1", [sollicite])).rows[0].siret as string;
+    await devenir(adminAgence);
+    await db.query("select public.artisan_creer_ou_rattacher($1,'Artisan sollicité',$2,'0600000000',null,array['plomberie']::public.artisan_metier[],array['75011'])", [agence, siret]);
+    expect(await relations(agence, sollicite)).toEqual([{ statut: "actif", liste_noire: false }]);
+    await devenir(adminAgence);
+    await db.query("select public.artisan_statut_local($1,$2,false)", [agence, sollicite]);
+    await db.query("select public.artisan_statut_local($1,$2,true)", [agence, sollicite]);
+    expect(await relations(agence, sollicite)).toEqual([{ statut: "actif", liste_noire: false }]);
+  });
+
+  it("inchangé pour une ligne du carnet antérieure à la liste noire : la levée la remet active, la réactivation reste permise", async () => {
+    await devenir(adminAgence);
+    await db.query("select public.artisan_blacklist_locale($1,$2,'Retards répétés')", [agence, duCarnet]);
+    await devenir(adminAgence);
+    await db.query("select public.artisan_lever_blacklist_locale($1,$2)", [agence, duCarnet]);
+    expect(await relations(agence, duCarnet)).toEqual([{ statut: "actif", liste_noire: false }]);
+    await devenir(adminAgence);
+    await db.query("select public.artisan_statut_local($1,$2,false)", [agence, duCarnet]);
+    await db.query("select public.artisan_statut_local($1,$2,true)", [agence, duCarnet]);
+    expect(await relations(agence, duCarnet)).toEqual([{ statut: "actif", liste_noire: false }]);
   });
 });

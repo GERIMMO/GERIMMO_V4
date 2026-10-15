@@ -34,6 +34,8 @@ const SUITE_DU_LOT = [
   "20261014845000_invitation_artisan_soi_meme.sql",
   // 847000 : le défaut de la colonne `expire_le` de la table que 840000 crée.
   "20261014847000_invitation_artisan_echeance_jour_paris.sql",
+  // 849000 (troisième relecture du 15/10) : l'acceptation retire la marque « créée par la liste noire ».
+  "20261014849000_liste_noire_levee_sans_rattachement.sql",
 ].map((f) =>
   readFileSync(`supabase/migrations/${f}`, "utf8")
 );
@@ -568,6 +570,85 @@ function correctifParMarque(fichier: string) {
 correctifParMarque("20261014844000_invitation_artisan_budget_distinct");
 correctifParMarque("20261014845000_invitation_artisan_soi_meme");
 correctifParMarque("20261014846000_invitation_artisan_annulation_suspendue");
+// Troisième relecture du 15/10 : quatre fonctions modifiées par marque (liste noire, levée, réactivation, acceptation).
+correctifParMarque("20261014849000_liste_noire_levee_sans_rattachement");
+
+/**
+ * Troisième relecture du 15/10 : 20261014849000 ajoute la marque `artisan_agences.creee_par_liste_noire` et rattrape les
+ * lignes que la liste noire a créées avant elle. Le critère : une ligne encore sur liste noire DEPUIS SA CRÉATION
+ * (`blacklist_le = created_at`, posés par la même instruction). Une ligne mise sur liste noire après coup, levée, ou
+ * jamais sur liste noire n'est pas marquée ; une organisation suspendue n'empêche pas le rattrapage ; la colonne survit au
+ * retour, et une nouvelle application ne change rien.
+ */
+const MIGRATION_LEVEE = readFileSync("supabase/migrations/20261014849000_liste_noire_levee_sans_rattachement.sql", "utf8");
+const RETOUR_LEVEE = readFileSync("supabase/retours-arriere/20261014849000_liste_noire_levee_sans_rattachement.retour.sql", "utf8");
+
+describe.skipIf(!DB_URL)("liste noire sans rattachement — colonne et rattrapage de 20261014849000", () => {
+  let db: Client;
+  const id = async (sql: string, params: unknown[] = []) => (await db.query(sql, params)).rows[0].id as string;
+
+  beforeAll(async () => {
+    db = new Client({ connectionString: DB_URL });
+    await db.connect();
+    await db.query("begin");
+  });
+  afterAll(async () => {
+    await db?.query("rollback");
+    await db?.end();
+  });
+  beforeEach(async () => {
+    await db.query("savepoint cas");
+  });
+  afterEach(async () => {
+    await db.query("rollback to savepoint cas");
+    await db.query("release savepoint cas");
+  });
+
+  it("la colonne existe, fausse par défaut, non nulle", async () => {
+    const { rows } = await db.query(
+      "select data_type, column_default, is_nullable from information_schema.columns where table_schema='public' and table_name='artisan_agences' and column_name='creee_par_liste_noire'"
+    );
+    expect(rows).toEqual([{ data_type: "boolean", column_default: "false", is_nullable: "NO" }]);
+  });
+
+  it("le rattrapage ne marque que les lignes encore sur liste noire depuis leur création, organisation suspendue comprise", async () => {
+    const active = await id("insert into public.organizations(name,type,status) values('Agence rattrapage','agence','active') returning id");
+    const suspendue = await id("insert into public.organizations(name,type,status) values('Parc suspendu','proprietaire_direct','suspendue') returning id");
+    const artisan = async () =>
+      id("insert into public.artisans(raison_sociale,siret,telephone) values('Artisan rattrapage',lpad((random()*10^13)::bigint::text,14,'0'),'0600000000') returning id");
+    const [creeeParListe, creeeSuspendue, misApres, leve, jamais] = [await artisan(), await artisan(), await artisan(), await artisan(), await artisan()];
+    await db.query("select public.tache_systeme()");
+    // Créées par la liste noire avant la migration : blacklist_le et created_at de la même instruction.
+    await db.query(
+      `insert into public.artisan_agences(organization_id,artisan_id,statut,blacklist_le,blacklist_motif,created_at)
+       values($1,$2,'desactive',now(),'Motif',now()),($3,$4,'desactive',now(),'Motif',now())`,
+      [active, creeeParListe, suspendue, creeeSuspendue]
+    );
+    // Ligne du carnet mise sur liste noire plus tard, ligne levée, ligne jamais sur liste noire.
+    await db.query(
+      `insert into public.artisan_agences(organization_id,artisan_id,statut,blacklist_le,blacklist_motif,created_at)
+       values($1,$2,'desactive',now(),'Motif',now()-interval '10 days'),($1,$3,'actif',null,null,now()),($1,$4,'actif',null,null,now())`,
+      [active, misApres, leve, jamais]
+    );
+    await db.query("select set_config('gerimmo.systeme','',true)");
+    const marques = async () =>
+      (await db.query(
+        "select artisan_id from public.artisan_agences where artisan_id = any($1::uuid[]) and creee_par_liste_noire order by artisan_id",
+        [[creeeParListe, creeeSuspendue, misApres, leve, jamais]]
+      )).rows.map((l) => l.artisan_id);
+    expect(await marques()).toEqual([]);
+    await db.query(MIGRATION_LEVEE);
+    expect(await marques()).toEqual([creeeParListe, creeeSuspendue].sort());
+    // Le drapeau du système est rendu tel qu'il était.
+    expect((await db.query("select coalesce(current_setting('gerimmo.systeme', true), '') v")).rows[0].v).toBe("");
+    // Rejouée : rien de plus.
+    await db.query(MIGRATION_LEVEE);
+    expect(await marques()).toEqual([creeeParListe, creeeSuspendue].sort());
+    // Le retour conserve la colonne et ses valeurs.
+    await db.query(sansEnveloppe(RETOUR_LEVEE));
+    expect(await marques()).toEqual([creeeParListe, creeeSuspendue].sort());
+  });
+});
 
 /**
  * Seconde relecture du 15/10 : 20261014847000 fait tomber l'échéance d'une nouvelle invitation à la fin d'un jour de

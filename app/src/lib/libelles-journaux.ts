@@ -31,6 +31,10 @@ const ACTIONS: Record<string, string> = {
   invitation_locataire: "Invitation d’un locataire envoyée",
   invitation_locataire_acceptee: "Invitation d’un locataire acceptée",
   invitation_locataire_envoi_echec: "Envoi d’une invitation de locataire en échec",
+  // Décision X16 (15/10/2026) : relances automatiques J+3 et J+10, écrites par la mission « rappels » (sans compte).
+  invitation_locataire_relancee: "Relance automatique d’une invitation de locataire envoyée",
+  invitation_locataire_relance_echec: "Relance automatique d’une invitation de locataire non partie (reprise plus tard)",
+  invitation_locataire_relance_incertaine: "Relance automatique d’une invitation de locataire non confirmée (jamais renvoyée)",
   suppression_encaissement: "Encaissement supprimé, contre-écritures passées",
   suppression_encaissement_depot: "Encaissement de dépôt de garantie supprimé",
   contre_ecriture: "Écriture comptable annulée par une contre-écriture",

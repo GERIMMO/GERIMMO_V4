@@ -79,7 +79,7 @@ export async function envoyerEmail(params: {
   delaiMaxMs?: number;
   avantEnvoi?: () => Promise<void>;
   organisation?: { db: SupabaseClient; id: string };
-}): Promise<{ erreur?: string; id?: string }> {
+}): Promise<{ erreur?: string; id?: string; /** Délai dépassé : l'envoi a peut-être eu lieu. */ incertain?: true }> {
   const cle = process.env.RESEND_API_KEY;
   if (!cle) return { erreur: "Envoi des e-mails non configuré. Contactez l’administrateur." };
   try {
@@ -127,7 +127,7 @@ export async function envoyerEmail(params: {
     return { ...(typeof resultat?.id === "string" ? { id: resultat.id } : {}) };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    if (delaiDepasse(e)) return { erreur: ERREUR_DELAI };
+    if (delaiDepasse(e)) return { erreur: ERREUR_DELAI, incertain: true };
     return { erreur: "L’e-mail n’a pas pu partir car le service est momentanément indisponible. Réessayez dans un instant." };
   }
 }

@@ -29,6 +29,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 
 import {
   construireLien,
+  creeParCetAppel,
   envoyerLienMotDePasse,
   inscrireEtEnvoyerConfirmation,
   metadonneesRemplacees,
@@ -43,7 +44,10 @@ import { COOKIE_INSCRIPTION, empreinteTemoinInscription, temoinInscriptionValide
 const EMPREINTE = "a".repeat(56);
 const ORG = "11111111-1111-4111-8111-111111111111";
 
-type ReponseLien = { data: { properties: { hashed_token: string; action_link: string } | null; user: Record<string, unknown> | null }; error: { message: string; code?: string } | null };
+type ReponseLien = {
+  data: { properties: { hashed_token: string; action_link: string } | null; user: Record<string, unknown> | null };
+  error: { message: string; code?: string; status?: number } | null;
+};
 
 function admin(opts: { erreurLien?: string; codeErreur?: string; autorise?: boolean; erreurRpc?: string; utilisateur?: Record<string, unknown> } = {}) {
   const generateLink = vi.fn(async (): Promise<ReponseLien> =>
@@ -58,8 +62,8 @@ function admin(opts: { erreurLien?: string; codeErreur?: string; autorise?: bool
         }
   );
   const rpc = vi.fn(async () => ({ data: opts.autorise ?? true, error: opts.erreurRpc ? { message: opts.erreurRpc } : null }));
-  // Doublure de `auth.admin.updateUserById` (relecture du 15/10/2026) : informations, témoin et mot de passe d'une
-  // inscription non confirmée.
+  // Doublure de `auth.admin.updateUserById` : le repli « fermé par défaut » de la confirmation faite ailleurs. Jamais
+  // appelée sur le chemin ordinaire (contre-relecture finale du 15/10/2026 : elle fermerait la session du bouton).
   const updateUserById = vi.fn(
     async (_id: string, _attributs: Record<string, unknown>): Promise<{ data: { user: Record<string, unknown> | null }; error: { message: string; code?: string } | null }> =>
       ({ data: { user: { id: _id } }, error: null })
@@ -198,23 +202,69 @@ describe("envoyerLienMotDePasse — mot de passe oublié (anonyme)", () => {
   });
 });
 
-describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2)", () => {
+/**
+ * Contre-relecture finale du 15/10/2026, prouvée sur GoTrue v2.197.0 : tout changement de mot de passe par l'API
+ * d'administration (`UpdatePassword`) vide le jeton de confirmation, efface les jetons à usage unique et ferme les
+ * sessions. Poser le mot de passe APRÈS `generateLink` tuait le lien envoyé, pour TOUTE inscription. D'où l'ordre :
+ * recherche du compte (lien de récupération : « introuvable » pour une adresse neuve), puis soit la création seule
+ * (aucun `updateUserById`), soit, pour une adresse pré-inscrite, le mot de passe AVANT le lien envoyé.
+ */
+describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2 ; contre-relecture finale du 15/10)", () => {
   const metadonnees = { nom: "Martin", prenom: "Camille", espace: "proprietaire_direct", cgu_version: "2026-09" };
   const inscrire = (email = "Camille@Exemple.fr") =>
     inscrireEtEnvoyerConfirmation({ email, motDePasse: "un-mot-de-passe-long", metadonnees, next: "/espaces" });
+  const JETON_RECUPERATION = "b".repeat(56);
+  /** Les instants qu'Auth rend : un compte créé par l'appel est postérieur à l'envoi relevé avant sa création. */
+  const CREE_PAR_L_APPEL = { created_at: "2026-10-15T10:00:00.114601Z", confirmation_sent_at: "2026-10-15T10:00:00.015460852Z" };
+  const EXISTAIT_DEJA = { created_at: "2026-10-14T08:00:00.114601Z", confirmation_sent_at: "2026-10-15T10:00:00.015460852Z" };
+  type Erreur = { message: string; code?: string; status?: number };
+  const introuvable: Erreur = { message: "User with this email not found", code: "user_not_found", status: 404 };
 
-  it("crée le compte par generateLink type signup (métadonnées comprises) et envoie NOTRE lien de confirmation", async () => {
-    const { generateLink, rpc } = admin();
+  /** Auth doublée selon ses règles : la recherche (recovery) dit si le compte existe ; signup crée ou renouvelle. */
+  function auth(opts: { compte?: "aucun" | "non_confirme" | "confirme"; metadonneesExistantes?: Record<string, unknown>; autorise?: boolean } = {}) {
+    const compte = opts.compte ?? "aucun";
+    const existant = {
+      id: "u-pre-inscrit",
+      email_confirmed_at: compte === "confirme" ? "2026-09-30T10:00:00Z" : null,
+      user_metadata: opts.metadonneesExistantes ?? { espace: "artisan", sub: "u-pre-inscrit", email_verified: false },
+    };
+    const generateLink = vi.fn(async (p: { type: string }): Promise<ReponseLien> => {
+      if (p.type === "recovery") {
+        if (compte === "aucun") return { data: { properties: null, user: null }, error: introuvable };
+        return { data: { properties: { hashed_token: JETON_RECUPERATION, action_link: "x" }, user: existant }, error: null };
+      }
+      const user = compte === "aucun" ? { id: "u-neuf", email_confirmed_at: null, ...CREE_PAR_L_APPEL } : { ...existant, ...EXISTAIT_DEJA };
+      return { data: { properties: { hashed_token: EMPREINTE, action_link: "x" }, user }, error: null };
+    });
+    const rpc = vi.fn(async () => ({ data: opts.autorise ?? true, error: null }));
+    const updateUserById = vi.fn(
+      async (id: string, _attributs: Record<string, unknown>): Promise<{ data: { user: Record<string, unknown> | null }; error: Erreur | null }> =>
+        ({ data: { user: { id } }, error: null })
+    );
+    mocks.service.mockReturnValue({ auth: { admin: { generateLink, updateUserById } }, rpc });
+    return { generateLink, rpc, updateUserById };
+  }
+  const ordre = (f: { mock: { invocationCallOrder: number[] } }, n = 0) => f.mock.invocationCallOrder[n];
+
+  it("adresse neuve : recherche, puis création par generateLink signup (métadonnées et empreinte du témoin) ; NOTRE lien part", async () => {
+    const { generateLink, rpc, updateUserById } = auth();
     expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
     // Demande anonyme : la limite d'abord.
     expect(rpc).toHaveBeenCalledWith("autoriser_lien_mot_de_passe", { p_email: "camille@exemple.fr", p_ip: "203.0.113.7" });
-    expect(generateLink).toHaveBeenCalledTimes(1);
-    expect(generateLink).toHaveBeenCalledWith({
-      type: "signup",
-      email: "camille@exemple.fr",
-      password: "un-mot-de-passe-long",
-      options: { data: metadonnees },
-    });
+    expect(generateLink).toHaveBeenCalledTimes(2);
+    expect(generateLink.mock.calls[0]).toEqual([{ type: "recovery", email: "camille@exemple.fr" }]);
+    const creation = generateLink.mock.calls[1][0] as unknown as { type: string; email: string; password: string; options: { data: Record<string, unknown> } };
+    expect(creation).toMatchObject({ type: "signup", email: "camille@exemple.fr", password: "un-mot-de-passe-long" });
+    const { empreinte_inscription: empreinte, ...donnees } = creation.options.data;
+    expect(donnees).toEqual(metadonnees);
+    expect(empreinte).toMatch(/^[0-9a-f]{64}$/);
+    // Aucun appel d'administration après la création : il effacerait le jeton du lien (règle d'Auth).
+    expect(updateUserById).not.toHaveBeenCalled();
+    // Le témoin, en cookie httpOnly limité à /auth, dont l'empreinte est celle gardée dans le compte.
+    const [nom, temoin, options] = jarre.set.mock.calls[0];
+    expect(nom).toBe(COOKIE_INSCRIPTION);
+    expect(empreinteTemoinInscription(temoin)).toBe(empreinte);
+    expect(options).toMatchObject({ httpOnly: true, sameSite: "lax", path: "/auth" });
     const courrier = mocks.envoyerEmail.mock.calls[0][0];
     expect(courrier.to).toBe("camille@exemple.fr");
     expect(courrier.subject).toBe("Confirmez votre adresse — Gerimmo");
@@ -223,117 +273,135 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2)",
     expect(courrier.html).toContain("aucun compte ne sera ouvert");
     expect(courrier.html).not.toContain("Mot de passe oublié");
     expect(courrier.html).not.toContain("supabase.co");
+    expect(ordre(jarre.set)).toBeLessThan(ordre(mocks.envoyerEmail));
   });
 
-  it("adresse déjà confirmée (email_exists) : le titulaire reçoit un lien de reconnexion, la limite n'est comptée qu'une fois", async () => {
-    const { generateLink, rpc } = admin();
-    generateLink.mockResolvedValueOnce({
-      data: { properties: null, user: null },
-      error: { code: "email_exists", message: "A user with this email address has already been registered" },
-    });
+  it("adresse déjà confirmée : le lien de la recherche part à son titulaire (reconnexion), sans création ; la limite n'est comptée qu'une fois", async () => {
+    const { generateLink, rpc, updateUserById } = auth({ compte: "confirme" });
     expect(await inscrire()).toEqual({ etat: "compte_existant" });
     expect(rpc).toHaveBeenCalledTimes(1);
-    expect(generateLink).toHaveBeenCalledTimes(2);
-    expect(generateLink).toHaveBeenLastCalledWith({ type: "recovery", email: "camille@exemple.fr" });
+    expect(generateLink).toHaveBeenCalledTimes(1);
+    expect(generateLink).toHaveBeenCalledWith({ type: "recovery", email: "camille@exemple.fr" });
+    expect(updateUserById).not.toHaveBeenCalled();
     const courrier = mocks.envoyerEmail.mock.calls[0][0];
     expect(courrier.subject).toBe("Vous avez déjà un compte Gerimmo");
-    expect(courrier.html).toContain("type=recovery");
+    expect(courrier.html).toContain(`token_hash=${JETON_RECUPERATION}&amp;type=recovery`);
     expect(courrier.html).toContain("next=%2Fnouveau-mot-de-passe");
+    expect(jarre.set).not.toHaveBeenCalled();
   });
 
-  it("reconnaît aussi l'ancien libellé « User already registered »", async () => {
-    const { generateLink } = admin();
-    generateLink.mockResolvedValueOnce({ data: { properties: null, user: null }, error: { code: "user_already_exists", message: "User already registered" } });
-    expect(await inscrire()).toEqual({ etat: "compte_existant" });
+  it("adresse confirmée entre la recherche et la création (email_exists, ancien libellé compris) : même réponse, lien de reconnexion", async () => {
+    for (const erreur of [
+      { code: "email_exists", message: "A user with this email address has already been registered" },
+      { code: "user_already_exists", message: "User already registered" },
+    ]) {
+      vi.clearAllMocks();
+      const { generateLink } = auth();
+      generateLink
+        .mockResolvedValueOnce({ data: { properties: null, user: null }, error: introuvable })
+        .mockResolvedValueOnce({ data: { properties: null, user: null }, error: erreur })
+        .mockResolvedValueOnce({ data: { properties: { hashed_token: JETON_RECUPERATION, action_link: "x" }, user: { id: "u1" } }, error: null });
+      expect(await inscrire()).toEqual({ etat: "compte_existant" });
+      expect(generateLink).toHaveBeenLastCalledWith({ type: "recovery", email: "camille@exemple.fr" });
+      expect(mocks.envoyerEmail.mock.calls[0][0].subject).toBe("Vous avez déjà un compte Gerimmo");
+    }
   });
 
-  it("compte existant : si le lien de reconnexion ne peut pas être fabriqué, la réponse reste la même", async () => {
-    const { generateLink } = admin();
+  it("compte existant : si le lien de reconnexion ne peut pas être fabriqué, la réponse reste la même, sans courrier", async () => {
+    const { generateLink } = auth();
     generateLink
+      .mockResolvedValueOnce({ data: { properties: null, user: null }, error: introuvable })
       .mockResolvedValueOnce({ data: { properties: null, user: null }, error: { code: "email_exists", message: "already registered" } })
       .mockResolvedValueOnce({ data: { properties: null, user: null }, error: { message: "panne" } });
     expect(await inscrire()).toEqual({ etat: "compte_existant" });
     expect(mocks.envoyerEmail).not.toHaveBeenCalled();
   });
 
-  it("une inscription interrompue (compte non confirmé) reçoit un nouveau lien de confirmation, pas de récupération", async () => {
-    // Auth accepte `signup` pour un compte encore non confirmé : nouveau jeton.
-    const { generateLink } = admin({ utilisateur: { id: "u1", email_confirmed_at: null } });
-    expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
+  it("recherche impossible (Auth en panne) : rien n'est créé, rien ne part", async () => {
+    const { generateLink } = auth();
+    generateLink.mockResolvedValueOnce({ data: { properties: null, user: null }, error: { message: "Database error finding user", code: "unexpected_failure", status: 500 } });
+    expect(await inscrire()).toEqual({ erreur: "Le service est momentanément indisponible. Réessayez dans un instant." });
     expect(generateLink).toHaveBeenCalledTimes(1);
-    expect(mocks.envoyerEmail.mock.calls[0][0].subject).toBe("Confirmez votre adresse — Gerimmo");
+    expect(mocks.envoyerEmail).not.toHaveBeenCalled();
   });
 
   /**
    * Relecture du 15/10/2026 (invitation d'artisan, compte pré-inscrit). Pour une adresse inscrite mais jamais confirmée,
-   * Auth renouvelle le jeton et GARDE le mot de passe de la première inscription. Un invitant qui connaît l'adresse
-   * pouvait donc créer le compte avant l'artisan avec SON mot de passe : l'artisan confirmait sa boîte, le compte
-   * s'ouvrait avec le mot de passe d'un tiers. Le mot de passe choisi à CETTE inscription remplace l'ancien AVANT l'envoi.
+   * Auth renouvelle le jeton et GARDE le mot de passe de la première inscription. Le mot de passe, les informations et
+   * l'empreinte de CETTE inscription sont posés en UNE opération AVANT la demande du lien envoyé (qui, lui, vit).
    */
-  it("compte non confirmé : les informations, le témoin du navigateur et le mot de passe de CETTE inscription sont posés AVANT l'envoi du nouveau lien", async () => {
-    const { generateLink, updateUserById } = admin({
-      utilisateur: { id: "u-pre-inscrit", email_confirmed_at: null, user_metadata: { espace: "artisan", code_parrainage: "AAAA1111", sub: "u-pre-inscrit", email_verified: false } },
+  it("compte non confirmé : mot de passe, informations et empreinte posés en une opération AVANT le lien envoyé, demandé sans l'empreinte", async () => {
+    const { generateLink, updateUserById } = auth({
+      compte: "non_confirme",
+      metadonneesExistantes: { espace: "artisan", code_parrainage: "AAAA1111", empreinte_inscription: "c".repeat(64), sub: "u-pre-inscrit", email_verified: false },
     });
     expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
-    expect(updateUserById).toHaveBeenCalledTimes(2);
-    // 1. Les informations de cette inscription remplacent celles d'avant (les clés d'Auth restent) ; l'empreinte du témoin.
-    const [id1, attributs1] = updateUserById.mock.calls[0];
-    expect(id1).toBe("u-pre-inscrit");
-    expect(attributs1.user_metadata).toEqual({ ...metadonnees, code_parrainage: null });
-    const empreinte = (attributs1.app_metadata as Record<string, string>).empreinte_inscription;
-    expect(empreinte).toMatch(/^[0-9a-f]{64}$/);
-    // 2. Le mot de passe choisi à cette inscription.
-    expect(updateUserById.mock.calls[1]).toEqual(["u-pre-inscrit", { password: "un-mot-de-passe-long" }]);
-    // 3. Le témoin, en cookie httpOnly limité à /auth, dont l'empreinte est celle gardée dans le compte.
-    expect(jarre.set).toHaveBeenCalledTimes(1);
-    const [nom, temoin, options] = jarre.set.mock.calls[0];
-    expect(nom).toBe(COOKIE_INSCRIPTION);
-    expect(empreinteTemoinInscription(temoin)).toBe(empreinte);
-    expect(options).toMatchObject({ httpOnly: true, sameSite: "lax", path: "/auth" });
-    // Ordre : le jeton (qui rend caducs les liens précédents), le compte, le mot de passe, le témoin, puis le courrier.
-    const ordre = (f: { mock: { invocationCallOrder: number[] } }, n = 0) => f.mock.invocationCallOrder[n];
-    expect(ordre(generateLink)).toBeLessThan(ordre(updateUserById));
-    expect(ordre(updateUserById, 1)).toBeLessThan(ordre(jarre.set));
-    expect(ordre(jarre.set)).toBeLessThan(ordre(mocks.envoyerEmail));
-  });
-
-  it("compte non confirmé : si les informations ou le témoin ne peuvent pas être posés, aucun lien ne part", async () => {
-    const { updateUserById } = admin();
-    updateUserById.mockResolvedValueOnce({ data: { user: null }, error: { message: "Database error updating user" } });
-    expect(await inscrire()).toEqual({ erreur: "Le service est momentanément indisponible. Réessayez dans un instant." });
     expect(updateUserById).toHaveBeenCalledTimes(1);
-    expect(mocks.envoyerEmail).not.toHaveBeenCalled();
+    const [id, attributs] = updateUserById.mock.calls[0];
+    expect(id).toBe("u-pre-inscrit");
+    expect(attributs.password).toBe("un-mot-de-passe-long");
+    const { empreinte_inscription: empreinte, ...informations } = attributs.user_metadata as Record<string, unknown>;
+    // Les informations de cette inscription remplacent celles d'avant (les clés d'Auth restent).
+    expect(informations).toEqual({ ...metadonnees, code_parrainage: null });
+    expect(empreinte).toMatch(/^[0-9a-f]{64}$/);
+    expect(empreinte).not.toBe("c".repeat(64));
+    expect(attributs).not.toHaveProperty("app_metadata");
+    // Ordre : recherche, couple (mot de passe, empreinte), PUIS le lien envoyé, témoin, courrier.
+    expect(generateLink.mock.calls.map((c) => (c[0] as { type: string }).type)).toEqual(["recovery", "signup"]);
+    expect(generateLink.mock.calls[1][0]).toEqual({ type: "signup", email: "camille@exemple.fr", password: "un-mot-de-passe-long", options: { data: metadonnees } });
+    expect(ordre(updateUserById)).toBeLessThan(ordre(generateLink, 1));
+    expect(ordre(generateLink, 1)).toBeLessThan(ordre(jarre.set));
+    expect(ordre(jarre.set)).toBeLessThan(ordre(mocks.envoyerEmail));
+    expect(empreinteTemoinInscription(jarre.set.mock.calls[0][1])).toBe(empreinte);
+    expect(mocks.envoyerEmail.mock.calls[0][0].html).toContain(`token_hash=${EMPREINTE}&amp;type=signup`);
   });
 
-  it("compte non confirmé : si le mot de passe ne peut pas être remplacé, aucun lien ne part", async () => {
-    const { updateUserById } = admin();
-    updateUserById
-      .mockResolvedValueOnce({ data: { user: { id: "u1" } }, error: null })
-      .mockResolvedValueOnce({ data: { user: null }, error: { message: "Database error updating user" } });
+  it("course à la création : la recherche ne trouvait rien, mais le compte rendu par signup existait déjà ; il est traité comme pré-inscrit", async () => {
+    const { generateLink, updateUserById } = auth();
+    generateLink
+      .mockResolvedValueOnce({ data: { properties: null, user: null }, error: introuvable })
+      .mockResolvedValueOnce({ data: { properties: { hashed_token: "jeton-du-tiers-recouvert", action_link: "x" }, user: { id: "u-tiers", email_confirmed_at: null, user_metadata: { nom: "Invitant" }, ...EXISTAIT_DEJA } }, error: null });
+    expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
+    expect(updateUserById).toHaveBeenCalledTimes(1);
+    expect(updateUserById.mock.calls[0][0]).toBe("u-tiers");
+    expect(updateUserById.mock.calls[0][1]).toMatchObject({ password: "un-mot-de-passe-long" });
+    expect(generateLink).toHaveBeenCalledTimes(3);
+    expect(ordre(updateUserById)).toBeLessThan(ordre(generateLink, 2));
+    const html = mocks.envoyerEmail.mock.calls[0][0].html as string;
+    expect(html).not.toContain("jeton-du-tiers-recouvert");
+    expect(html).toContain(`token_hash=${EMPREINTE}`);
+  });
+
+  it("garde de la course : seul un compte postérieur à l'envoi relevé par Auth est « créé par cet appel » ; le doute vaut « non »", () => {
+    expect(creeParCetAppel(CREE_PAR_L_APPEL)).toBe(true);
+    expect(creeParCetAppel(EXISTAIT_DEJA)).toBe(false);
+    // À la microseconde : 2 µs d'écart suffisent, l'égalité ne suffit pas.
+    expect(creeParCetAppel({ created_at: "2026-10-15T10:00:00.000002Z", confirmation_sent_at: "2026-10-15T10:00:00.000001999Z" })).toBe(true);
+    expect(creeParCetAppel({ created_at: "2026-10-15T10:00:00.000001Z", confirmation_sent_at: "2026-10-15T10:00:00.000001Z" })).toBe(false);
+    expect(creeParCetAppel({ created_at: "2026-10-15T12:00:00.5+02:00", confirmation_sent_at: "2026-10-15T10:00:00.4Z" })).toBe(true);
+    expect(creeParCetAppel({ created_at: "2026-10-15T10:00:00Z" })).toBe(false);
+    expect(creeParCetAppel({ created_at: "hier", confirmation_sent_at: "2026-10-15T10:00:00Z" })).toBe(false);
+    expect(creeParCetAppel(null)).toBe(false);
+  });
+
+  it("compte non confirmé : si le couple ne peut pas être posé, aucun lien n'est demandé et rien ne part", async () => {
+    const { generateLink, updateUserById } = auth({ compte: "non_confirme" });
+    updateUserById.mockResolvedValueOnce({ data: { user: null }, error: { message: "Database error updating user", code: "unexpected_failure" } });
     expect(await inscrire()).toEqual({ erreur: "Le service est momentanément indisponible. Réessayez dans un instant." });
+    expect(generateLink).toHaveBeenCalledTimes(1);
     expect(mocks.envoyerEmail).not.toHaveBeenCalled();
+    expect(jarre.set).not.toHaveBeenCalled();
   });
 
   it("compte non confirmé : un nouveau mot de passe refusé par Auth garde son code (classé « mot de passe refusé »), sans courrier", async () => {
-    const { updateUserById } = admin();
-    updateUserById
-      .mockResolvedValueOnce({ data: { user: { id: "u1" } }, error: null })
-      .mockResolvedValueOnce({ data: { user: null }, error: { message: "Password is too weak", code: "weak_password" } });
+    const { updateUserById } = auth({ compte: "non_confirme" });
+    updateUserById.mockResolvedValueOnce({ data: { user: null }, error: { message: "Password is too weak", code: "weak_password" } });
     expect(await inscrire()).toEqual({ erreur: "Password is too weak", code: "weak_password" });
     expect(mocks.envoyerEmail).not.toHaveBeenCalled();
   });
 
-  it("compte neuf : si Auth répond que c'est déjà ce mot de passe (same_password), le lien part quand même", async () => {
-    const { updateUserById } = admin();
-    updateUserById
-      .mockResolvedValueOnce({ data: { user: { id: "u1" } }, error: null })
-      .mockResolvedValueOnce({ data: { user: null }, error: { message: "New password should be different from the old password.", code: "same_password" } });
-    expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
-    expect(mocks.envoyerEmail).toHaveBeenCalledTimes(1);
-  });
-
   it("sans cookie posable, le lien part quand même : la confirmation fera choisir le mot de passe", async () => {
-    admin();
+    auth();
     jarre.set.mockImplementationOnce(() => {
       throw new Error("Cookies can only be modified in a Server Action or Route Handler");
     });
@@ -349,34 +417,33 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2)",
     expect(metadonneesRemplacees(undefined, { espace: "artisan" })).toEqual({ espace: "artisan" });
   });
 
-  it("le remplacement ne touche jamais un compte confirmé : ni adresse déjà confirmée, ni projet sans confirmation", async () => {
-    const { generateLink, updateUserById } = admin({ utilisateur: { id: "u1", email_confirmed_at: "2026-09-30T10:00:00Z" } });
+  it("projet sans confirmation d'adresse : dit que le compte est déjà confirmé, sans courrier ni appel d'administration", async () => {
+    const { generateLink, updateUserById } = auth();
+    generateLink
+      .mockResolvedValueOnce({ data: { properties: null, user: null }, error: introuvable })
+      .mockResolvedValueOnce({ data: { properties: { hashed_token: EMPREINTE, action_link: "x" }, user: { id: "u1", email_confirmed_at: "2026-09-30T10:00:00Z", ...CREE_PAR_L_APPEL } }, error: null });
     expect(await inscrire()).toEqual({ etat: "deja_confirme" });
-    generateLink.mockResolvedValueOnce({ data: { properties: null, user: null }, error: { code: "email_exists", message: "already registered" } });
-    expect(await inscrire()).toEqual({ etat: "compte_existant" });
+    expect(mocks.envoyerEmail).not.toHaveBeenCalled();
     expect(updateUserById).not.toHaveBeenCalled();
   });
 
-  it("remonte le code d'un mot de passe refusé, sans courrier", async () => {
-    admin({ erreurLien: "Password is too weak", codeErreur: "weak_password" });
+  it("remonte le code d'un mot de passe refusé à la création, sans courrier", async () => {
+    const { generateLink } = auth();
+    generateLink
+      .mockResolvedValueOnce({ data: { properties: null, user: null }, error: introuvable })
+      .mockResolvedValueOnce({ data: { properties: null, user: null }, error: { message: "Password is too weak", code: "weak_password" } });
     expect(await inscrire()).toEqual({ erreur: "Password is too weak", code: "weak_password" });
     expect(mocks.envoyerEmail).not.toHaveBeenCalled();
   });
 
-  it("projet sans confirmation d'adresse : dit que le compte est déjà confirmé, sans courrier", async () => {
-    admin({ utilisateur: { id: "u1", email_confirmed_at: "2026-09-30T10:00:00Z" } });
-    expect(await inscrire()).toEqual({ etat: "deja_confirme" });
-    expect(mocks.envoyerEmail).not.toHaveBeenCalled();
-  });
-
-  it("applique la limite anonyme avant toute création de compte", async () => {
-    const { generateLink } = admin({ autorise: false });
+  it("applique la limite anonyme avant toute recherche ou création de compte", async () => {
+    const { generateLink } = auth({ autorise: false });
     expect(await inscrire()).toEqual({ erreur: MESSAGE_TROP_DE_DEMANDES, limite: true });
     expect(generateLink).not.toHaveBeenCalled();
   });
 
   it("remonte l'échec de l'e-mail : l'inscrit doit savoir qu'il n'a rien reçu", async () => {
-    admin();
+    auth();
     mocks.envoyerEmail.mockResolvedValue({ erreur: "Le service d’e-mail a refusé l’envoi." });
     expect(await inscrire()).toEqual({ erreur: "Le service d’e-mail a refusé l’envoi." });
   });
@@ -384,7 +451,7 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2)",
   it("dit que l'envoi n'est pas configuré sans clé de service ou sans adresse du site", async () => {
     mocks.service.mockReturnValue(null);
     expect((await inscrire()) as { erreur?: string }).toMatchObject({ erreur: expect.stringMatching(/pas configuré/) });
-    admin();
+    auth();
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
     vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "");
     expect((await inscrire()) as { erreur?: string }).toMatchObject({ erreur: expect.stringMatching(/pas configuré/) });
@@ -393,7 +460,13 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2)",
 
 describe("/auth/confirm", () => {
   function supabase() {
-    const auth = { verifyOtp: vi.fn(async () => ({ error: null })), exchangeCodeForSession: vi.fn(async () => ({ error: null })) };
+    const auth = {
+      verifyOtp: vi.fn(async () => ({ error: null })),
+      exchangeCodeForSession: vi.fn(async () => ({ error: null })),
+      // La session que verifyOtp vient d'ouvrir (contre-relecture finale : c'est elle qui pose le mot de passe provisoire).
+      updateUser: vi.fn(async (_attributs: Record<string, unknown>) => ({ data: { user: null }, error: null })),
+      signOut: vi.fn(async (_options: Record<string, unknown>) => ({ error: null })),
+    };
     mocks.createClient.mockResolvedValue({ auth });
     return auth;
   }
@@ -477,51 +550,77 @@ describe("/auth/confirm", () => {
     expect(cookieDe(r)).toMatch(new RegExp(`${COOKIE_CONFIRMATION}=;.*Max-Age=0`));
   });
 
-  it("POST d'une confirmation d'inscription dans le navigateur de l'inscription : destination /espaces, témoin effacé", async () => {
+  it("POST d'une confirmation d'inscription dans le navigateur de l'inscription : destination prévue, empreinte effacée PAR LA SESSION, témoin effacé", async () => {
     const auth = supabase();
     const temoin = "temoin-de-l-inscription";
     const { updateUserById } = admin();
     auth.verifyOtp.mockResolvedValueOnce({
-      data: { user: { id: "u1", app_metadata: { empreinte_inscription: empreinteTemoinInscription(temoin) } } },
+      data: { user: { id: "u1", user_metadata: { espace: "proprietaire_direct", empreinte_inscription: empreinteTemoinInscription(temoin) } } },
       error: null,
     } as never);
     const requete = post(champs({ type: "signup", next: "/espaces" }), undefined, `${NONCE}; ${COOKIE_INSCRIPTION}=${temoin}`);
     const r = await POST(requete);
     expect(auth.verifyOtp).toHaveBeenCalledWith({ type: "signup", token_hash: EMPREINTE });
     expect(new URL(r.headers.get("location")!).pathname).toBe("/espaces");
-    // L'empreinte est effacée, le mot de passe choisi à l'inscription est gardé.
-    expect(updateUserById).toHaveBeenCalledWith("u1", { app_metadata: { empreinte_inscription: null } });
+    // Le mot de passe choisi à l'inscription est gardé ; seule l'empreinte est effacée, par la session (métadonnées).
+    expect(auth.updateUser).toHaveBeenCalledTimes(1);
+    expect(auth.updateUser).toHaveBeenCalledWith({ data: { empreinte_inscription: null } });
+    // Jamais l'API d'administration : elle fermerait la session que le bouton vient d'ouvrir (règle d'Auth).
+    expect(updateUserById).not.toHaveBeenCalled();
     expect(cookieDe(r)).toMatch(new RegExp(`${COOKIE_INSCRIPTION}=;.*Max-Age=0`));
   });
 
-  it("POST d'une confirmation d'inscription hors du navigateur de l'inscription : mot de passe inconnu posé, puis choix du mot de passe", async () => {
+  it("POST d'une confirmation d'inscription hors du navigateur de l'inscription : mot de passe inconnu posé PAR LA SESSION, puis choix du mot de passe", async () => {
     const auth = supabase();
     const { updateUserById } = admin();
     auth.verifyOtp.mockResolvedValue({
-      data: { user: { id: "u1", app_metadata: { empreinte_inscription: empreinteTemoinInscription("temoin-d-un-autre-navigateur") } } },
+      data: { user: { id: "u1", user_metadata: { empreinte_inscription: empreinteTemoinInscription("temoin-d-un-autre-navigateur") } } },
       error: null,
     } as never);
     for (const cookie of [NONCE, `${NONCE}; ${COOKIE_INSCRIPTION}=temoin-de-ce-navigateur`]) {
-      updateUserById.mockClear();
+      auth.updateUser.mockClear();
       const r = await POST(post(champs({ type: "signup", next: "/artisan/inscription?invitation=6f1e2d3c-4b5a-4968-8778-695a4b3c2d1e" }), undefined, cookie));
       const cible = new URL(r.headers.get("location")!);
       expect(cible.pathname).toBe("/nouveau-mot-de-passe");
       expect(cible.searchParams.get("motif")).toBe("inscription");
       expect(cible.searchParams.get("suite")).toBe("/artisan/inscription?invitation=6f1e2d3c-4b5a-4968-8778-695a4b3c2d1e");
-      const [id, attributs] = updateUserById.mock.calls[0];
-      expect(id).toBe("u1");
-      expect(attributs).toMatchObject({ app_metadata: { empreinte_inscription: null } });
-      expect(String(attributs.password)).toMatch(/^Aa1!-[A-Za-z0-9_-]{60,}$/);
-      expect(String(attributs.password).length).toBeLessThanOrEqual(72);
+      expect(auth.updateUser).toHaveBeenCalledTimes(1);
+      const [attributs] = auth.updateUser.mock.calls[0] as unknown as [{ password: string; data: Record<string, unknown> }];
+      expect(attributs.data).toEqual({ empreinte_inscription: null });
+      expect(attributs.password).toMatch(/^Aa1!-[A-Za-z0-9_-]{60,}$/);
+      expect(attributs.password.length).toBeLessThanOrEqual(72);
+      expect(auth.signOut).not.toHaveBeenCalled();
     }
+    expect(updateUserById).not.toHaveBeenCalled();
+  });
+
+  it("POST hors du navigateur de l'inscription, la session ne peut pas poser le mot de passe : fermé par défaut (administration, déconnexion), nouvelle demande de lien", async () => {
+    const auth = supabase();
+    const { updateUserById } = admin();
+    auth.verifyOtp.mockResolvedValueOnce({ data: { user: { id: "u1", user_metadata: {} } }, error: null } as never);
+    auth.updateUser.mockResolvedValueOnce({ error: { message: "Internal Server Error", code: "unexpected_failure" } } as never);
+    const erreur = vi.spyOn(console, "error").mockImplementation(() => {});
+    const r = await POST(post(champs({ type: "signup", next: "/espaces" })));
+    erreur.mockRestore();
+    const cible = new URL(r.headers.get("location")!);
+    expect(cible.pathname).toBe("/mot-de-passe-oublie");
+    expect(cible.searchParams.get("raison")).toBe("adresse-confirmee");
+    expect(updateUserById).toHaveBeenCalledTimes(1);
+    const [id, attributs] = updateUserById.mock.calls[0];
+    expect(id).toBe("u1");
+    expect(String(attributs.password)).toMatch(/^Aa1!-[A-Za-z0-9_-]{60,}$/);
+    expect(attributs.user_metadata).toEqual({ empreinte_inscription: null });
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(cookieDe(r)).toMatch(new RegExp(`${COOKIE_INSCRIPTION}=;.*Max-Age=0`));
   });
 
   it("POST d'un lien de mot de passe (recovery) : aucune vérification de témoin, rien n'est modifié dans le compte", async () => {
-    supabase();
+    const auth = supabase();
     const { updateUserById } = admin();
     const r = await POST(post(champs()));
     expect(new URL(r.headers.get("location")!).pathname).toBe("/nouveau-mot-de-passe");
     expect(updateUserById).not.toHaveBeenCalled();
+    expect(auth.updateUser).not.toHaveBeenCalled();
   });
 
   it("POST d'un jeton mort : « lien invalide »", async () => {
@@ -592,16 +691,22 @@ describe("POST /auth/confirm — contrôle d'origine (30/09)", () => {
 });
 
 /**
- * Troisième relecture du 15/10/2026 (constat « compte pré-inscrit », deux relecteurs). Le correctif précédent faisait
- * remplacer le mot de passe à CHAQUE inscription d'une adresse non confirmée : la course était déplacée, pas fermée. Si
- * l'invitant (qui connaît l'adresse) s'inscrit APRÈS l'artisan, son mot de passe remplace celui de l'artisan, le lien
- * de l'artisan devient caduc, et le seul lien valide, arrivé dans la boîte de l'artisan, ouvre le compte avec le mot
- * de passe de l'invitant.
+ * Troisième relecture du 15/10/2026 (constat « compte pré-inscrit », deux relecteurs), puis contre-relecture finale.
+ * Si l'invitant (qui connaît l'adresse) inscrit l'adresse de l'artisan avant ou après lui, aucun mot de passe choisi par
+ * un autre que la personne qui confirme ne doit ouvrir le compte ; et le lien envoyé doit VIVRE.
  *
- * Ici, Auth est SIMULÉE avec ses règles réelles (GoTrue) : `generateLink` signup crée le compte ou, pour un compte non
- * confirmé, renouvelle le jeton en GARDANT mot de passe et métadonnées ; `updateUserById` fusionne les métadonnées (une
- * valeur nulle efface la clé) ; `verifyOtp` confirme l'adresse et ouvre la session. Chaque personne a son navigateur
- * (ses cookies). Les liens sont ceux des courriels envoyés, cliqués par GET puis par le bouton (POST).
+ * Ici, Auth est SIMULÉE avec ses règles réelles (GoTrue v2.197.0 ; les mêmes scénarios sont prouvés contre ce GoTrue,
+ * hors dépôt, dans le dossier de preuves du lot) :
+ *  - `generateLink` recovery : « introuvable » pour une adresse sans compte ; sinon un jeton de récupération.
+ *  - `generateLink` signup : crée le compte (mot de passe, `data`) ; pour un compte non confirmé, renouvelle le jeton (le
+ *    lien précédent meurt), fusionne `data` (une valeur nulle efface la clé) et GARDE le mot de passe ; `email_exists`
+ *    pour un compte confirmé. Un compte créé par l'appel est postérieur à son `confirmation_sent_at`.
+ *  - `updateUserById` : fusionne les métadonnées ; un mot de passe (UpdatePassword) vide les jetons et ferme TOUTES les
+ *    sessions du compte.
+ *  - `verifyOtp` : confirme l'adresse, consomme le jeton et ouvre une session (cookie du navigateur).
+ *  - `updateUser` (la session) : fusionne les métadonnées ; un mot de passe vide les jetons et ferme toutes les AUTRES
+ *    sessions, celle qui parle survit. `getUser` exige une session vivante.
+ * Chaque personne a son navigateur (ses cookies). Les liens sont ceux des courriels envoyés, cliqués par GET puis POST.
  */
 describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui qui confirme n'ouvre le compte", () => {
   type Compte = {
@@ -610,59 +715,121 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     password: string;
     confirme: boolean;
     user_metadata: Record<string, unknown>;
-    app_metadata: Record<string, unknown>;
     jeton: string | null;
+    jetonRecuperation: string | null;
+    creeLe: string;
+    envoiLe: string | null;
   };
   type Navigateur = Map<string, string>;
   const ADRESSE = "artisan@entreprise.test";
+  const COOKIE_SESSION = "sb-session-simulee";
   let comptes: Map<string, Compte>;
+  let sessions: Map<string, string>;
   let courant: Navigateur;
+  let avantCreation: (() => Promise<void>) | null;
 
   function authSimulee() {
     comptes = new Map();
+    sessions = new Map();
+    avantCreation = null;
     let n = 0;
+    let horloge = 0;
+    const maintenant = () => `2026-10-15T10:00:00.${String(++horloge).padStart(6, "0")}Z`;
     const parEmail = (email: string) => [...comptes.values()].find((c) => c.email === email);
     const vue = (c: Compte) => ({
       id: c.id,
       email: c.email,
       email_confirmed_at: c.confirme ? "2026-10-15T10:00:00Z" : null,
       user_metadata: { ...c.user_metadata },
-      app_metadata: { ...c.app_metadata },
+      created_at: c.creeLe,
+      confirmation_sent_at: c.envoiLe ?? undefined,
     });
-    const fusion = (cible: Record<string, unknown>, maj: Record<string, unknown>) => {
-      for (const [k, v] of Object.entries(maj)) {
+    const fusion = (cible: Record<string, unknown>, maj: Record<string, unknown> | undefined) => {
+      for (const [k, v] of Object.entries(maj ?? {})) {
         if (v === null) delete cible[k];
         else cible[k] = v;
       }
     };
+    /** UpdatePassword : jetons vidés, sessions fermées (toutes, ou toutes sauf celle qui parle). */
+    const changerMotDePasse = (c: Compte, motDePasse: string, sessionGardee?: string) => {
+      c.password = motDePasse;
+      c.jeton = null;
+      c.jetonRecuperation = null;
+      for (const [id, compte] of sessions) if (compte === c.id && id !== sessionGardee) sessions.delete(id);
+    };
     const generateLink = vi.fn(async (p: { type: string; email: string; password?: string; options?: { data?: Record<string, unknown> } }) => {
-      if (p.type !== "signup") return { data: { properties: null, user: null }, error: { message: "type non simulé" } };
       let c = parEmail(p.email);
-      if (c?.confirme) return { data: { properties: null, user: null }, error: { code: "email_exists", message: "already registered" } };
-      if (!c) {
-        c = { id: `compte-${++n}`, email: p.email, password: p.password ?? "", confirme: false, user_metadata: { ...(p.options?.data ?? {}) }, app_metadata: { provider: "email", providers: ["email"] }, jeton: null };
-        comptes.set(c.id, c);
+      if (p.type === "recovery") {
+        if (!c) return { data: { properties: null, user: null }, error: { code: "user_not_found", status: 404, message: "User with this email not found" } };
+        c.jetonRecuperation = `recuperation-${++n}`;
+        return { data: { properties: { hashed_token: c.jetonRecuperation, action_link: "x" }, user: vue(c) }, error: null };
       }
+      if (p.type !== "signup") return { data: { properties: null, user: null }, error: { message: "type non simulé" } };
+      if (avantCreation) {
+        const geste = avantCreation;
+        avantCreation = null;
+        await geste();
+        c = parEmail(p.email);
+      }
+      if (c?.confirme) return { data: { properties: null, user: null }, error: { code: "email_exists", message: "already registered" } };
+      const envoi = maintenant();
+      if (!c) {
+        c = { id: `compte-${++n}`, email: p.email, password: p.password ?? "", confirme: false, user_metadata: { ...(p.options?.data ?? {}) }, jeton: null, jetonRecuperation: null, creeLe: maintenant(), envoiLe: null };
+        comptes.set(c.id, c);
+      } else {
+        fusion(c.user_metadata, p.options?.data);
+      }
+      c.envoiLe = envoi;
       c.jeton = `jeton-${++n}`;
-      return { data: { properties: { hashed_token: c.jeton, action_link: "https://projet.supabase.co/x" }, user: vue(c) }, error: null };
+      return { data: { properties: { hashed_token: c.jeton, action_link: "x" }, user: vue(c) }, error: null };
     });
-    const updateUserById = vi.fn(async (id: string, attributs: { password?: string; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> }) => {
+    const updateUserById = vi.fn(async (id: string, attributs: { password?: string; user_metadata?: Record<string, unknown> }) => {
       const c = comptes.get(id);
       if (!c) return { data: { user: null }, error: { message: "User not found" } };
-      if (attributs.password !== undefined) c.password = attributs.password;
-      if (attributs.user_metadata) fusion(c.user_metadata, attributs.user_metadata);
-      if (attributs.app_metadata) fusion(c.app_metadata, attributs.app_metadata);
+      fusion(c.user_metadata, attributs.user_metadata);
+      if (attributs.password !== undefined) changerMotDePasse(c, attributs.password);
       return { data: { user: vue(c) }, error: null };
     });
-    const verifyOtp = vi.fn(async (p: { type: string; token_hash: string }) => {
-      const c = [...comptes.values()].find((x) => x.jeton !== null && x.jeton === p.token_hash);
-      if (!c || p.type !== "signup") return { data: { user: null, session: null }, error: { message: "Token has expired or is invalid" } };
-      c.confirme = true;
-      c.jeton = null;
-      return { data: { user: vue(c), session: { access_token: "session" } }, error: null };
-    });
+    /** Le client serveur d'une requête : la session est celle du cookie du navigateur courant. */
+    const clientDuNavigateur = (navigateur: Navigateur) => {
+      const compteDeLaSession = () => {
+        const id = navigateur.get(COOKIE_SESSION);
+        const compteId = id ? sessions.get(id) : undefined;
+        return compteId ? { session: id!, compte: comptes.get(compteId)! } : null;
+      };
+      return {
+        auth: {
+          verifyOtp: vi.fn(async (p: { type: string; token_hash: string }) => {
+            const c = [...comptes.values()].find((x) => (p.type === "signup" ? x.jeton : x.jetonRecuperation) === p.token_hash && p.token_hash);
+            if (!c) return { data: { user: null, session: null }, error: { message: "Email link is invalid or has expired" } };
+            c.confirme = true;
+            if (p.type === "signup") c.jeton = null;
+            else c.jetonRecuperation = null;
+            const session = `session-${++n}`;
+            sessions.set(session, c.id);
+            navigateur.set(COOKIE_SESSION, session);
+            return { data: { user: vue(c), session: { access_token: session } }, error: null };
+          }),
+          updateUser: vi.fn(async (attributs: { password?: string; data?: Record<string, unknown> }) => {
+            const s = compteDeLaSession();
+            if (!s) return { data: { user: null }, error: { message: "Auth session missing!" } };
+            fusion(s.compte.user_metadata, attributs.data);
+            if (attributs.password !== undefined) changerMotDePasse(s.compte, attributs.password, s.session);
+            return { data: { user: vue(s.compte) }, error: null };
+          }),
+          getUser: vi.fn(async () => {
+            const s = compteDeLaSession();
+            return s ? { data: { user: vue(s.compte) }, error: null } : { data: { user: null }, error: { message: "Session from session_id claim in JWT does not exist" } };
+          }),
+          signOut: vi.fn(async () => {
+            navigateur.delete(COOKIE_SESSION);
+            return { error: null };
+          }),
+        },
+      };
+    };
     mocks.service.mockReturnValue({ auth: { admin: { generateLink, updateUserById } }, rpc: async () => ({ data: true, error: null }) });
-    mocks.createClient.mockResolvedValue({ auth: { verifyOtp } });
+    mocks.createClient.mockImplementation(async () => clientDuNavigateur(courant));
     mocks.cookies.mockImplementation(async () => ({
       get: (nom: string) => (courant.has(nom) ? { name: nom, value: courant.get(nom)! } : undefined),
       set: (nom: string, valeur: string, options?: { maxAge?: number }) => {
@@ -671,6 +838,7 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
       },
       delete: (nom: string) => courant.delete(nom),
     }));
+    return { generateLink, updateUserById };
   }
 
   /** Ce que peut faire, avec le mot de passe saisi, quelqu'un qui le connaît : ouvrir le compte ? */
@@ -679,23 +847,33 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     return Boolean(c?.confirme && c.password === motDePasse);
   };
   const compte = () => [...comptes.values()].find((x) => x.email === ADRESSE)!;
+  /** La session de ce navigateur est-elle vivante (ce que /nouveau-mot-de-passe exige) ? */
+  const sessionVivante = (navigateur: Navigateur) => {
+    const id = navigateur.get(COOKIE_SESSION);
+    return Boolean(id && sessions.get(id) === compte().id);
+  };
+  /** Le formulaire de /nouveau-mot-de-passe : la session pose le mot de passe choisi. */
+  const choisir = (navigateur: Navigateur, motDePasse: string) => {
+    const id = navigateur.get(COOKIE_SESSION);
+    if (!id || sessions.get(id) !== compte().id) return false;
+    compte().password = motDePasse;
+    return true;
+  };
 
   async function inscrireDepuis(navigateur: Navigateur, motDePasse: string, metadonnees: Record<string, unknown>, next = "/artisan/inscription") {
     courant = navigateur;
     return inscrireEtEnvoyerConfirmation({ email: ADRESSE, motDePasse, metadonnees, next });
   }
+  const liens = () =>
+    mocks.envoyerEmail.mock.calls
+      .map((c) => c[0])
+      .filter((c) => c.to === ADRESSE)
+      .map((c) => /href="([^"]+)"/.exec(c.html as string)![1].replace(/&amp;/g, "&"));
   /** Le lien du DERNIER courriel arrivé dans la boîte de l'artisan (le seul valide). */
-  const dernierLien = () => {
-    const courriers = mocks.envoyerEmail.mock.calls.map((c) => c[0]).filter((c) => c.to === ADRESSE);
-    const html = courriers.at(-1)!.html as string;
-    return /href="([^"]+)"/.exec(html)![1].replace(/&amp;/g, "&");
-  };
-  const premierLien = () => {
-    const html = mocks.envoyerEmail.mock.calls.map((c) => c[0]).filter((c) => c.to === ADRESSE)[0].html as string;
-    return /href="([^"]+)"/.exec(html)![1].replace(/&amp;/g, "&");
-  };
+  const dernierLien = () => liens().at(-1)!;
   /** Ouvrir le lien (GET), puis cliquer le bouton (POST), dans CE navigateur : la destination. */
   async function cliquer(navigateur: Navigateur, lien: string) {
+    courant = navigateur;
     const get = await GET(new NextRequest(lien));
     const nonce = get.cookies.get(COOKIE_CONFIRMATION)!.value;
     navigateur.set(COOKIE_CONFIRMATION, nonce);
@@ -728,11 +906,24 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     authSimulee();
   });
 
+  it("inscription neuve : le lien du courrier VIT (aucun appel d'administration après sa création) et la session reste ouverte", async () => {
+    const { updateUserById } = authSimulee();
+    const chezArtisan: Navigateur = new Map();
+    expect(await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN)).toEqual({ etat: "confirmation_envoyee" });
+    expect(updateUserById).not.toHaveBeenCalled();
+    const destination = await cliquer(chezArtisan, dernierLien());
+    expect(destination.pathname).toBe("/artisan/inscription");
+    expect(compte().confirme).toBe(true);
+    expect(sessionVivante(chezArtisan)).toBe(true);
+    expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
+    expect(compte().user_metadata).toEqual(ARTISAN);
+  });
+
   it("l'artisan s'inscrit (V), l'invitant réinscrit l'adresse APRÈS lui (A), l'artisan clique le seul lien valide : ni V ni A n'ouvrent le compte", async () => {
     const chezArtisan: Navigateur = new Map();
     const chezInvitant: Navigateur = new Map();
     expect(await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN)).toEqual({ etat: "confirmation_envoyee" });
-    const l1 = premierLien();
+    const l1 = liens()[0];
     expect(await inscrireDepuis(chezInvitant, "mot-de-passe-invitant-A", INVITANT)).toEqual({ etat: "confirmation_envoyee" });
     // L1 est caduc : seul le dernier lien confirme la boîte.
     expect((await cliquer(chezArtisan, l1)).searchParams.get("raison")).toBe("lien-invalide");
@@ -740,10 +931,13 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     expect(compte().confirme).toBe(true);
     expect(ouvre("mot-de-passe-invitant-A")).toBe(false);
     expect(ouvre("mot-de-passe-artisan-V")).toBe(false);
-    // La personne qui a confirmé choisit maintenant SON mot de passe ; elle repart ensuite où le lien menait.
+    // La personne qui a confirmé choisit maintenant SON mot de passe, dans la session restée ouverte.
     expect(destination.pathname).toBe("/nouveau-mot-de-passe");
     expect(destination.searchParams.get("motif")).toBe("inscription");
-    expect(destination.searchParams.get("suite")).toBe("/artisan/inscription");
+    expect(sessionVivante(chezArtisan)).toBe(true);
+    expect(sessionVivante(chezInvitant)).toBe(false);
+    expect(choisir(chezArtisan, "mot-de-passe-choisi-N")).toBe(true);
+    expect(ouvre("mot-de-passe-choisi-N")).toBe(true);
   });
 
   it("l'invitant inscrit seul l'adresse de l'artisan, qui clique le lien reçu sans s'être inscrit : le mot de passe de l'invitant n'ouvre pas le compte", async () => {
@@ -754,21 +948,40 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     expect(compte().confirme).toBe(true);
     expect(ouvre("mot-de-passe-invitant-A")).toBe(false);
     expect(destination.pathname).toBe("/nouveau-mot-de-passe");
+    expect(sessionVivante(chezArtisan)).toBe(true);
   });
 
   it("l'invitant s'inscrit d'abord, l'artisan ensuite et confirme dans SON navigateur : son mot de passe et ses informations, pas ceux de l'invitant", async () => {
     const chezArtisan: Navigateur = new Map();
     const chezInvitant: Navigateur = new Map();
     await inscrireDepuis(chezInvitant, "mot-de-passe-invitant-A", INVITANT);
+    const lienDeLInvitant = dernierLien();
     await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN);
+    // Le mot de passe posé avant le nouveau lien a tué celui de l'invitant ; le nouveau lien vit.
+    expect((await cliquer(new Map(), lienDeLInvitant)).searchParams.get("raison")).toBe("lien-invalide");
     const destination = await cliquer(chezArtisan, dernierLien());
     expect(destination.pathname).toBe("/artisan/inscription");
     expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
     expect(ouvre("mot-de-passe-invitant-A")).toBe(false);
-    // Les informations de la première inscription (espace, nom, code de parrainage) ne survivent pas.
+    expect(sessionVivante(chezArtisan)).toBe(true);
+    // Les informations de la première inscription (espace, nom, code de parrainage) ne survivent pas, l'empreinte non plus.
     expect(compte().user_metadata).toEqual(ARTISAN);
-    // L'empreinte du témoin ne reste pas dans le compte (ni dans le jeton de session) une fois la boîte confirmée.
-    expect(Object.keys(compte().app_metadata).sort()).toEqual(["provider", "providers"]);
+  });
+
+  it("course à la création : l'invitant crée le compte entre la recherche et la création de l'artisan ; son mot de passe n'ouvre rien", async () => {
+    const chezArtisan: Navigateur = new Map();
+    const chezInvitant: Navigateur = new Map();
+    avantCreation = async () => {
+      courant = chezInvitant;
+      await inscrireEtEnvoyerConfirmation({ email: ADRESSE, motDePasse: "mot-de-passe-invitant-A", metadonnees: INVITANT, next: "/espaces" });
+      courant = chezArtisan;
+    };
+    expect(await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN)).toEqual({ etat: "confirmation_envoyee" });
+    const destination = await cliquer(chezArtisan, dernierLien());
+    expect(destination.pathname).toBe("/artisan/inscription");
+    expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
+    expect(ouvre("mot-de-passe-invitant-A")).toBe(false);
+    expect(compte().user_metadata).toEqual(ARTISAN);
   });
 
   it("le cas ordinaire est inchangé : inscrit et confirmé dans le même navigateur, le compte s'ouvre avec le mot de passe choisi, sans étape de plus", async () => {
@@ -777,9 +990,10 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     const destination = await cliquer(chezArtisan, dernierLien());
     expect(destination.pathname).toBe("/artisan/invitation/6f1e2d3c-4b5a-4968-8778-695a4b3c2d1e");
     expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
+    expect(sessionVivante(chezArtisan)).toBe(true);
   });
 
-  it("inscrit sur un appareil, confirmé sur un autre : l'adresse est confirmée et la personne choisit son mot de passe", async () => {
+  it("inscrit sur un appareil, confirmé sur un autre : l'adresse est confirmée, la session de l'autre appareil survit et la personne y choisit son mot de passe", async () => {
     const telephone: Navigateur = new Map();
     const ordinateur: Navigateur = new Map();
     await inscrireDepuis(telephone, "mot-de-passe-artisan-V", ARTISAN);
@@ -787,9 +1001,11 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     expect(compte().confirme).toBe(true);
     expect(destination.pathname).toBe("/nouveau-mot-de-passe");
     expect(ouvre("mot-de-passe-artisan-V")).toBe(false);
+    expect(sessionVivante(ordinateur)).toBe(true);
+    expect(choisir(ordinateur, "mot-de-passe-choisi-N")).toBe(true);
+    expect(ouvre("mot-de-passe-choisi-N")).toBe(true);
   });
 });
-
 
 describe("le témoin d'inscription", () => {
   it("se compare à l'empreinte en temps constant, et refuse l'absence ou une empreinte mal formée", () => {

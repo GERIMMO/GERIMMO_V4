@@ -10,7 +10,7 @@ import {
   optionsCookieConfirmation,
 } from "@/lib/jeton-confirmation";
 import { finirConfirmationInscription } from "@/lib/lien-mot-de-passe";
-import { COOKIE_INSCRIPTION, optionsCookieInscription } from "@/lib/temoin-inscription";
+import { COOKIE_INSCRIPTION, optionsCookieInscription, RAISON_ADRESSE_CONFIRMEE } from "@/lib/temoin-inscription";
 
 // Point d'entrée des liens envoyés par e-mail (invitations, mot de passe
 // oublié, confirmation d'inscription).
@@ -40,7 +40,10 @@ import { COOKIE_INSCRIPTION, optionsCookieInscription } from "@/lib/temoin-inscr
 // boîte. Il n'est gardé que si le bouton est cliqué dans le navigateur de
 // l'inscription (témoin, lib/temoin-inscription.ts) ; sinon la personne qui
 // vient de confirmer choisit le sien (/nouveau-mot-de-passe), puis repart vers
-// la destination prévue.
+// la destination prévue. Contre-relecture finale : le mot de passe provisoire
+// est posé par la session que le bouton vient d'ouvrir, jamais par l'API
+// d'administration (qui fermerait cette session) ; si Auth le refuse, il est
+// posé par l'administration et la personne redemande un lien.
 
 const TYPES_ACCEPTES: readonly EmailOtpType[] = ["recovery", "invite", "signup", "email", "magiclink", "email_change"];
 
@@ -115,11 +118,15 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
   if (error) return finPost(lienInvalide(request, 303));
   if (type === "signup") {
-    const issue = await finirConfirmationInscription(data?.user, request.cookies.get(COOKIE_INSCRIPTION)?.value);
+    // La session que verifyOtp vient d'ouvrir pose elle-même le mot de passe provisoire (hors du navigateur de
+    // l'inscription) : elle survit, et /nouveau-mot-de-passe la trouve.
+    const issue = await finirConfirmationInscription(supabase, data?.user, request.cookies.get(COOKIE_INSCRIPTION)?.value);
     const cible =
       issue === "meme_navigateur"
         ? new URL(next, request.url)
-        : new URL(`/nouveau-mot-de-passe?motif=inscription&suite=${encodeURIComponent(next)}`, request.url);
+        : issue === "mot_de_passe_a_choisir"
+          ? new URL(`/nouveau-mot-de-passe?motif=inscription&suite=${encodeURIComponent(next)}`, request.url)
+          : new URL(`/mot-de-passe-oublie?raison=${RAISON_ADRESSE_CONFIRMEE}`, request.url);
     const reponse = finPost(sansCache(NextResponse.redirect(cible, 303)));
     // Le témoin a servi : il est effacé.
     reponse.cookies.set(COOKIE_INSCRIPTION, "", optionsCookieInscription(0));

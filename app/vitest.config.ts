@@ -51,6 +51,9 @@ export const FICHIERS_EN_SERIE = [
   // D18, décisions simultanées sur deux devis du même dossier : fixture VALIDÉE (trois sessions) et verrous de ligne
   // tenus exprès sur les incidents, demandes et devis le temps de l'essai.
   "tests/devis-decisions-concurrence.test.ts",
+  // X19 (SA-10), limite quotidienne des appels à l'IA : fixture VALIDÉE (vingt sessions simultanées sur la ligne du jour,
+  // remise en état à la fin) et rejeu de la migration (politiques et droits reposés) dans la transaction d'un essai.
+  "tests/plafond-appels-ia-base.test.ts",
 ];
 
 export default defineConfig({

@@ -39,6 +39,9 @@ import { analyserBriefIA } from "@/app/admin/brief/actions";
 import { creerArticleIA } from "@/app/admin/publications/nouvelle/actions";
 import { preparerPropositionDevis } from "@/app/artisan/devis/actions-preparation";
 import { reglerPlafondIA } from "@/app/actions/plafond-ia";
+import { LimiteAppelsIA } from "@/app/admin/relais/limite-ia";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 const fetchSimule = vi.fn();
 beforeEach(() => {
@@ -256,6 +259,50 @@ describe("console : régler la limite quotidienne", () => {
     m.createClient.mockResolvedValue(db);
     expect((await reglerPlafondIA({}, f("20"))).erreur).toMatch(/superviseur permanent/);
     expect(db.rpc).not.toHaveBeenCalledWith("regler_plafond_ia", expect.anything());
+  });
+});
+
+// ── L'écran « Relais en mon absence » : la limite, le compteur du jour, ce que l'arrêt retient ──
+
+describe("console : l'écran de la limite quotidienne", () => {
+  const rendre = (props: Parameters<typeof LimiteAppelsIA>[0]) => renderToStaticMarkup(createElement(LimiteAppelsIA, props)).replace(/\s+/g, " ");
+
+  it("dit le compteur du jour de Paris, les refus, la valeur par défaut, et propose le réglage", () => {
+    const html = rendre({ reglage: { plafond_jour: 50, modifie_le: "2026-10-15T08:00:00Z", modifie_par: null }, jour: { appels: 3, refus: 2 }, lisible: true, auteur: null });
+    expect(html).toContain("Aujourd’hui : 3 appels sur 50 permis.");
+    expect(html).toContain("2 appels n’ont pas eu lieu, faute de place.");
+    expect(html).toContain("Limite par défaut : 50 appels par jour.");
+    expect(html).toContain("Valeur par défaut, jamais modifiée.");
+    expect(html).toContain("y compris ceux lancés à la main");
+    expect(html).toContain('name="plafond"');
+    expect(html).toContain("Enregistrer la limite");
+  });
+
+  it("dit, pour chaque appel, quels arrêts le retiennent ; et ce que l'écran ne couvre pas (l'atelier lancé depuis GitHub)", () => {
+    const html = rendre({ reglage: { plafond_jour: 50, modifie_le: "2026-10-15T08:00:00Z", modifie_par: null }, jour: null, lisible: true, auteur: null });
+    expect(html).toContain("L’étude des actualités de la veille (tâche planifiée)</b> — arrêté par « Tous les traitements contrôlés » et par « Veille réglementaire »");
+    expect(html).toContain("La rédaction assistée d’un article (console)</b> — arrêté par « Tous les traitements contrôlés » et par « Publications et publicité »");
+    expect(html).toContain("La proposition de devis préparée pour un artisan</b> — arrêté par « Tous les traitements contrôlés ».");
+    expect(html).toContain("Un lancement fait directement depuis GitHub, hors de Gerimmo, n’est ni compté ni arrêté.");
+    expect(html).toContain("Aujourd’hui : 0 appel sur 50 permis.");
+  });
+
+  it("limite à 0, dernier réglage et auteur", () => {
+    const html = rendre({ reglage: { plafond_jour: 0, modifie_le: "2026-10-15T08:00:00Z", modifie_par: "compte-1" }, jour: null, lisible: true, auteur: "superviseur@test.local" });
+    expect(html).toContain("La limite est à 0 : aucun appel payant à l’IA ne part.");
+    expect(html).toContain("Dernier réglage le");
+    expect(html).toContain("par superviseur@test.local");
+  });
+
+  it("lecture impossible : l'écran le dit, sans chiffre inventé", () => {
+    for (const props of [
+      { reglage: null, jour: null, lisible: true, auteur: null },
+      { reglage: { plafond_jour: 50, modifie_le: "2026-10-15T08:00:00Z", modifie_par: null }, jour: null, lisible: false, auteur: null },
+    ]) {
+      const html = rendre(props);
+      expect(html).toContain("La limite et le compteur du jour ne peuvent pas être lus actuellement.");
+      expect(html).not.toContain("Aujourd’hui :");
+    }
   });
 });
 

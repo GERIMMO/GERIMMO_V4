@@ -112,11 +112,17 @@ describe('mission marketing : préparation de la veille',()=>{
   expect(mocks.redaction).toHaveBeenCalledTimes(1);
   expect(c.insertions[0]).toMatchObject({veille_source_id:'source',titre:'Trêve hivernale : ce qui change',facebook_texte:'Texte Facebook rédigé.'});
  });
- it('écarte une veille hors sujet (29/09) ou réservée aux artisans, et bascule sur l’éditorial',async()=>{
+ it('écarte une veille hors sujet (29/09) ou réservée aux agences (D33, 14/10), et bascule sur l’éditorial',async()=>{
   let c=contexte({cible:{...CIBLE,rang:0},source:true,titreSource:'Amorcer un plan de décarbonation : un guide national pour les entreprises'});
   const r=await GET(requete());expect(c.insertions[0].veille_source_id).toBeNull();expect((await r.json()).preparation.ecartes[0]).toContain('décarbonation');
-  c=contexte({cible:{...CIBLE,rang:0},source:true,publicsSource:['artisan']});
+  c=contexte({cible:{...CIBLE,rang:0},source:true,publicsSource:['agence']});
   await GET(requete());expect(c.insertions[0].veille_source_id).toBeNull();expect(mocks.redaction).not.toHaveBeenCalled();
+ });
+ it('une veille qui vise les artisans est relayée : ils font partie du public de la V1 (D33, 14/10)',async()=>{
+  const c=contexte({cible:{...CIBLE,rang:0},source:true,publicsSource:['artisan']});
+  await GET(requete());
+  expect(mocks.redaction).toHaveBeenCalledTimes(1);
+  expect(c.insertions[0]).toMatchObject({veille_source_id:'source'});
  });
  it('source inaccessible ou rédaction rejetée : pas de veille ce jour-là, sujet éditorial',async()=>{
   mocks.source.mockRejectedValueOnce(new Error('Source indisponible.'));

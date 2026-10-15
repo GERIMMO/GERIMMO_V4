@@ -20,10 +20,11 @@
 // de production en http.
 //
 // Côté navigateur, seules les variables NEXT_PUBLIC_* sont incorporées au
-// code ; `NEXT_PUBLIC_VERCEL_ENV` n'existe que si le projet expose les
-// variables système (réglage Vercel). Sans elle, le navigateur retombe sur
-// l'adresse du site, comme avant ; le serveur et le proxy, eux, lisent
-// `VERCEL_ENV` à l'exécution et posent `Secure` dans tous les cas.
+// code. `next.config.ts` déclare donc `env.NEXT_PUBLIC_VERCEL_ENV`, dérivée de
+// `VERCEL_ENV` (toujours présente pendant la construction sur Vercel) : le
+// navigateur reçoit l'environnement de production sans aucun réglage du
+// tableau de bord (relecture du 14/10/2026 ; tests/next-config-env-navigateur.test.ts).
+// Le serveur et le proxy, eux, lisent `VERCEL_ENV` à l'exécution.
 
 import type { CookieOptionsWithName } from "@supabase/ssr";
 

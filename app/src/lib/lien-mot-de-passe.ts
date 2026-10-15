@@ -633,7 +633,17 @@ type SessionDeConfirmation = {
 };
 
 /**
- * Après `verifyOtp` (type `signup`) : la confirmation vient-elle du navigateur de l'inscription ?
+ * L'inscription de ce compte n'est pas finie : l'empreinte du témoin y est encore (aucun bouton de confirmation n'est
+ * passé par `finirConfirmationInscription`). Exporté pour la route et les tests.
+ */
+export function inscriptionInachevee(utilisateur: { user_metadata?: Record<string, unknown> | null } | null | undefined): boolean {
+  return Boolean(utilisateur?.user_metadata?.[CLE_EMPREINTE_INSCRIPTION]);
+}
+
+/**
+ * Après `verifyOtp` (type `signup`, ou tout autre lien sur un compte dont l'inscription n'est pas finie : Auth confirme
+ * l'adresse en vérifiant AUSSI un lien de récupération ou de connexion, constat P13 prouvé sur GoTrue v2.197.0) : la
+ * confirmation vient-elle du navigateur de l'inscription ?
  *
  * Oui (le cookie est le témoin dont le compte garde l'empreinte) : le mot de passe choisi à l'inscription est celui de
  * la personne qui confirme ; l'empreinte est effacée par la session (métadonnées seules : ni jeton ni session touchés).
@@ -649,8 +659,11 @@ type SessionDeConfirmation = {
  *
  * Fermé par défaut : si Auth refuse malgré tout ce changement par la session (panne), le mot de passe provisoire est
  * posé par l'API d'administration, qui ferme toutes les sessions, celle-ci comprise ; la personne redemande alors un
- * lien (« mot de passe oublié »). Le mot de passe d'inscription ne survit jamais à une confirmation faite ailleurs que
- * dans le navigateur de l'inscription.
+ * lien (« mot de passe oublié »). Le mot de passe d'inscription ne survit jamais à une confirmation faite par le bouton
+ * de /auth/confirm ailleurs que dans le navigateur de l'inscription, quel que soit le lien (confirmation, récupération,
+ * connexion). Limite : un courrier que Supabase Auth enverrait LUI-MÊME (points d'entrée publics /recover, /resend,
+ * /otp, /signup, appelables avec la clé publique) mène à SON /verify, qui confirme l'adresse sans passer par ce bouton ;
+ * seuls ses modèles de courrier et ses réglages ferment ce chemin.
  */
 export async function finirConfirmationInscription(
   session: SessionDeConfirmation,

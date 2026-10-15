@@ -9,7 +9,7 @@ import {
   nouveauJetonConfirmation,
   optionsCookieConfirmation,
 } from "@/lib/jeton-confirmation";
-import { finirConfirmationInscription } from "@/lib/lien-mot-de-passe";
+import { finirConfirmationInscription, inscriptionInachevee } from "@/lib/lien-mot-de-passe";
 import { COOKIE_INSCRIPTION, optionsCookieInscription, RAISON_ADRESSE_CONFIRMEE } from "@/lib/temoin-inscription";
 
 // Point d'entrée des liens envoyés par e-mail (invitations, mot de passe
@@ -43,7 +43,10 @@ import { COOKIE_INSCRIPTION, optionsCookieInscription, RAISON_ADRESSE_CONFIRMEE 
 // la destination prévue. Contre-relecture finale : le mot de passe provisoire
 // est posé par la session que le bouton vient d'ouvrir, jamais par l'API
 // d'administration (qui fermerait cette session) ; si Auth le refuse, il est
-// posé par l'administration et la personne redemande un lien.
+// posé par l'administration et la personne redemande un lien. Relecture de
+// non-régression (constat P13) : Auth confirme aussi l'adresse quand le
+// bouton vérifie un lien de RÉCUPÉRATION sur un compte jamais confirmé ; la
+// même règle s'applique donc à tout lien tant que l'inscription n'est pas finie.
 
 const TYPES_ACCEPTES: readonly EmailOtpType[] = ["recovery", "invite", "signup", "email", "magiclink", "email_change"];
 
@@ -117,12 +120,16 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
   if (error) return finPost(lienInvalide(request, 303));
-  if (type === "signup") {
+  // Une confirmation d'inscription, ou tout autre lien (récupération, connexion) sur un compte dont l'inscription n'est
+  // pas finie : Auth confirme alors l'adresse au passage (constat P13). Dans tous ces cas, le mot de passe choisi avant
+  // la preuve de possession de la boîte ne survit que dans le navigateur de l'inscription.
+  if (type === "signup" || inscriptionInachevee(data?.user)) {
     // La session que verifyOtp vient d'ouvrir pose elle-même le mot de passe provisoire (hors du navigateur de
     // l'inscription) : elle survit, et /nouveau-mot-de-passe la trouve.
     const issue = await finirConfirmationInscription(supabase, data?.user, request.cookies.get(COOKIE_INSCRIPTION)?.value);
     const cible =
-      issue === "meme_navigateur"
+      // Un lien de récupération mène déjà au choix du mot de passe : sa destination est gardée.
+      issue === "meme_navigateur" || (issue === "mot_de_passe_a_choisir" && type === "recovery")
         ? new URL(next, request.url)
         : issue === "mot_de_passe_a_choisir"
           ? new URL(`/nouveau-mot-de-passe?motif=inscription&suite=${encodeURIComponent(next)}`, request.url)

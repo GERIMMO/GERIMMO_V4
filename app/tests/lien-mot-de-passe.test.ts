@@ -614,13 +614,79 @@ describe("/auth/confirm", () => {
     expect(cookieDe(r)).toMatch(new RegExp(`${COOKIE_INSCRIPTION}=;.*Max-Age=0`));
   });
 
-  it("POST d'un lien de mot de passe (recovery) : aucune vérification de témoin, rien n'est modifié dans le compte", async () => {
+  it("POST d'un lien de mot de passe (recovery) d'un compte sans inscription en cours : aucune vérification de témoin, rien n'est modifié dans le compte", async () => {
     const auth = supabase();
     const { updateUserById } = admin();
-    const r = await POST(post(champs()));
+    auth.verifyOtp.mockResolvedValueOnce({ data: { user: { id: "u1", user_metadata: { espace: "proprietaire_direct" } } }, error: null } as never);
+    const r = await POST(post(champs(), undefined, `${NONCE}; ${COOKIE_INSCRIPTION}=temoin-de-ce-navigateur`));
     expect(new URL(r.headers.get("location")!).pathname).toBe("/nouveau-mot-de-passe");
     expect(updateUserById).not.toHaveBeenCalled();
     expect(auth.updateUser).not.toHaveBeenCalled();
+    expect(cookieDe(r)).not.toContain(COOKIE_INSCRIPTION);
+  });
+
+  // Constat P13 (relecture de non-régression du 15/10/2026, prouvé sur GoTrue v2.197.0) : Auth confirme l'adresse d'un
+  // compte non confirmé en vérifiant AUSSI un lien de récupération (et un lien de connexion). Un compte pré-inscrit par un
+  // tiers, puis « mot de passe oublié » cliqué par le titulaire qui ne va pas au bout, gardait le mot de passe du tiers.
+  it("POST d'un lien de mot de passe (recovery) ou de connexion (magiclink, email) sur une inscription pas finie, hors de son navigateur : même règle qu'une confirmation, mot de passe inconnu posé PAR LA SESSION", async () => {
+    for (const [type, next, attendu] of [
+      ["recovery", "/nouveau-mot-de-passe", "/nouveau-mot-de-passe"],
+      ["recovery", "/nouveau-mot-de-passe?suite=%2Finvitations%2Fabc", "/nouveau-mot-de-passe?suite=%2Finvitations%2Fabc"],
+      ["magiclink", "/espaces", "/nouveau-mot-de-passe?motif=inscription&suite=%2Fespaces"],
+      ["email", "/espaces", "/nouveau-mot-de-passe?motif=inscription&suite=%2Fespaces"],
+    ] as const) {
+      const auth = supabase();
+      const { updateUserById } = admin();
+      auth.verifyOtp.mockResolvedValueOnce({
+        data: { user: { id: "u1", user_metadata: { espace: "artisan", empreinte_inscription: empreinteTemoinInscription("temoin-du-tiers") } } },
+        error: null,
+      } as never);
+      const r = await POST(post(champs({ type, next }), undefined, `${NONCE}; ${COOKIE_INSCRIPTION}=temoin-de-ce-navigateur`));
+      const cible = new URL(r.headers.get("location")!);
+      expect(cible.pathname + cible.search).toBe(attendu);
+      expect(auth.updateUser).toHaveBeenCalledTimes(1);
+      const [attributs] = auth.updateUser.mock.calls[0] as unknown as [{ password: string; data: Record<string, unknown> }];
+      expect(attributs.data).toEqual({ empreinte_inscription: null });
+      expect(attributs.password).toMatch(/^Aa1!-[A-Za-z0-9_-]{60,}$/);
+      expect(auth.signOut).not.toHaveBeenCalled();
+      expect(updateUserById).not.toHaveBeenCalled();
+      expect(cookieDe(r)).toMatch(new RegExp(`${COOKIE_INSCRIPTION}=;.*Max-Age=0`));
+    }
+  });
+
+  it("POST d'un lien de mot de passe (recovery) sur une inscription pas finie, DANS son navigateur : le mot de passe d'inscription est gardé, l'empreinte effacée par la session", async () => {
+    const auth = supabase();
+    const temoin = "temoin-de-l-inscription";
+    const { updateUserById } = admin();
+    auth.verifyOtp.mockResolvedValueOnce({
+      data: { user: { id: "u1", user_metadata: { empreinte_inscription: empreinteTemoinInscription(temoin) } } },
+      error: null,
+    } as never);
+    const r = await POST(post(champs(), undefined, `${NONCE}; ${COOKIE_INSCRIPTION}=${temoin}`));
+    expect(new URL(r.headers.get("location")!).pathname).toBe("/nouveau-mot-de-passe");
+    expect(auth.updateUser).toHaveBeenCalledTimes(1);
+    expect(auth.updateUser).toHaveBeenCalledWith({ data: { empreinte_inscription: null } });
+    expect(updateUserById).not.toHaveBeenCalled();
+    expect(cookieDe(r)).toMatch(new RegExp(`${COOKIE_INSCRIPTION}=;.*Max-Age=0`));
+  });
+
+  it("POST d'un lien de mot de passe (recovery) sur une inscription pas finie, la session ne peut pas poser le mot de passe : fermé par défaut, nouvelle demande de lien", async () => {
+    const auth = supabase();
+    const { updateUserById } = admin();
+    auth.verifyOtp.mockResolvedValueOnce({
+      data: { user: { id: "u1", user_metadata: { empreinte_inscription: empreinteTemoinInscription("temoin-du-tiers") } } },
+      error: null,
+    } as never);
+    auth.updateUser.mockResolvedValueOnce({ error: { message: "Internal Server Error", code: "unexpected_failure" } } as never);
+    const erreur = vi.spyOn(console, "error").mockImplementation(() => {});
+    const r = await POST(post(champs()));
+    erreur.mockRestore();
+    const cible = new URL(r.headers.get("location")!);
+    expect(cible.pathname).toBe("/mot-de-passe-oublie");
+    expect(cible.searchParams.get("raison")).toBe("adresse-confirmee");
+    expect(updateUserById).toHaveBeenCalledTimes(1);
+    expect(updateUserById.mock.calls[0][1].user_metadata).toEqual({ empreinte_inscription: null });
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: "local" });
   });
 
   it("POST d'un jeton mort : « lien invalide »", async () => {
@@ -990,6 +1056,40 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     const destination = await cliquer(chezArtisan, dernierLien());
     expect(destination.pathname).toBe("/artisan/invitation/6f1e2d3c-4b5a-4968-8778-695a4b3c2d1e");
     expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
+    expect(sessionVivante(chezArtisan)).toBe(true);
+  });
+
+  it("l'invitant inscrit l'adresse de l'artisan (A) et demande « mot de passe oublié » pour elle ; l'artisan clique le lien de récupération dans SON navigateur puis ferme l'onglet : A n'ouvre pas le compte", async () => {
+    const chezArtisan: Navigateur = new Map();
+    const chezInvitant: Navigateur = new Map();
+    await inscrireDepuis(chezInvitant, "mot-de-passe-invitant-A", INVITANT);
+    courant = chezInvitant;
+    expect(await envoyerLienMotDePasse({ email: ADRESSE, motif: "mot_de_passe_oublie", next: "/nouveau-mot-de-passe" })).toEqual({});
+    const lien = dernierLien();
+    expect(new URL(lien).searchParams.get("type")).toBe("recovery");
+    const destination = await cliquer(chezArtisan, lien);
+    expect(destination.pathname).toBe("/nouveau-mot-de-passe");
+    // L'artisan ferme l'onglet ici : l'adresse est confirmée (règle d'Auth), le mot de passe de l'invitant ne vaut plus rien.
+    expect(compte().confirme).toBe(true);
+    expect(ouvre("mot-de-passe-invitant-A")).toBe(false);
+    expect(compte().user_metadata).not.toHaveProperty("empreinte_inscription");
+    expect(sessionVivante(chezArtisan)).toBe(true);
+    // S'il revient au formulaire, il choisit le sien.
+    expect(choisir(chezArtisan, "mot-de-passe-choisi-N")).toBe(true);
+    expect(ouvre("mot-de-passe-choisi-N")).toBe(true);
+  });
+
+  it("l'artisan s'inscrit, oublie son mot de passe et clique le lien de récupération dans le navigateur de l'inscription : son mot de passe reste valable", async () => {
+    const chezArtisan: Navigateur = new Map();
+    await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN);
+    courant = chezArtisan;
+    await envoyerLienMotDePasse({ email: ADRESSE, motif: "mot_de_passe_oublie", next: "/nouveau-mot-de-passe" });
+    const destination = await cliquer(chezArtisan, dernierLien());
+    expect(destination.pathname).toBe("/nouveau-mot-de-passe");
+    expect(compte().confirme).toBe(true);
+    expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
+    expect(compte().user_metadata).toEqual(ARTISAN);
+    expect(chezArtisan.has(COOKIE_INSCRIPTION)).toBe(false);
     expect(sessionVivante(chezArtisan)).toBe(true);
   });
 

@@ -30,6 +30,7 @@ export default async function PageInvitationArtisan(props: PageProps<"/artisan/i
   const invitation = ((data ?? []) as InvitationRecue[])[0];
   // Le nom de l'organisation est un texte libre de l'invitant : jamais affiché brut (relecture du 15/10).
   const invitant = invitation ? nomInvitant(invitation.organisation) : null;
+  const adresseDuCompte = user.email ?? "";
 
   return (
     <div className="space-y-6">
@@ -42,16 +43,33 @@ export default async function PageInvitationArtisan(props: PageProps<"/artisan/i
       {error ? (
         <Erreur>L’invitation n’a pas pu être chargée. Rechargez la page dans un instant.</Erreur>
       ) : !invitation ? (
+        // Seconde relecture du 15/10 : un artisan dont l'entreprise est déjà inscrite sous l'adresse de ce compte ne
+        // peut pas en ouvrir un second avec l'adresse invitée (son SIRET est déjà pris) ; la seule issue est une
+        // invitation à la bonne adresse. Rien n'est dit de l'invitation (ni qui invite, ni quelle adresse).
         <Carte>
           <TitreSection>Cette invitation n’est pas accessible avec ce compte</TitreSection>
-          <p className="break-words text-base text-[var(--corps)]">Vous êtes connecté avec {user.email}.</p>
-          <p className="text-base text-[var(--corps)]">
-            Une invitation ne s’ouvre qu’avec l’adresse e-mail qui l’a reçue, une fois cette adresse confirmée.
-            Déconnectez-vous, puis ouvrez de nouveau le lien reçu par e-mail.
-          </p>
-          <form data-saisie-libre action={seDeconnecter}>
-            <button type="submit" className={CLASSE_BOUTON_SECONDAIRE}>Se déconnecter</button>
-          </form>
+          <p className="break-words text-base text-[var(--corps)]">Vous êtes connecté avec {adresseDuCompte}.</p>
+          {fiche ? (
+            <p className="break-words text-base text-[var(--corps)]">
+              Votre entreprise est déjà inscrite sur Gerimmo avec cette adresse. Pour la rattacher à ce carnet,
+              demandez à la personne qui vous a invité de vous réinviter à l’adresse {adresseDuCompte}. Le nouveau lien
+              s’ouvrira avec ce compte.
+            </p>
+          ) : (
+            <>
+              <p className="text-base text-[var(--corps)]">
+                Une invitation ne s’ouvre qu’avec l’adresse e-mail qui l’a reçue, une fois cette adresse confirmée.
+                Si c’est bien la vôtre, déconnectez-vous, puis ouvrez de nouveau le lien reçu par e-mail.
+              </p>
+              <p className="break-words text-base text-[var(--corps)]">
+                Vous préférez utiliser ce compte ? Demandez à la personne qui vous a invité de vous réinviter à
+                l’adresse {adresseDuCompte}.
+              </p>
+              <form data-saisie-libre action={seDeconnecter}>
+                <button type="submit" className={CLASSE_BOUTON_SECONDAIRE}>Se déconnecter</button>
+              </form>
+            </>
+          )}
         </Carte>
       ) : invitation.etat === "en_attente" ? (
         <EnAttente invitation={invitation} invitant={invitant} />

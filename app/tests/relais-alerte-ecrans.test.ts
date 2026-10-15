@@ -49,17 +49,23 @@ describe("l'écran de l'alerte e-mail du relais", () => {
   });
 
   // Décision du 15/10 : envoi immédiat pour les urgences ; la console le dit, avec le délai et l'arrêt d'urgence.
-  it("relais configuré : « Urgences : e-mail immédiat (délai au plus 1 min) ; autres alertes : e-mail quotidien à 5 h (Paris) »", () => {
+  // Relecture du 15/10 : le délai d'une minute court à partir du CONSTAT de l'urgence, pas de l'événement ; la console
+  // dit quand le constat a lieu (passages du matin, mission lancée, console) et qu'entre deux passages il faut attendre.
+  it("relais configuré : « Urgences : e-mail immédiat, au plus 1 min après leur constat ; autres alertes : e-mail quotidien à 5 h (Paris) »", () => {
     const html = rendre("relais@example.com, second@example.org", [passage({})]);
-    expect(html).toContain("Urgences : e-mail immédiat (délai au plus 1 min) ; autres alertes : e-mail quotidien à 5 h (Paris).");
+    expect(html).toContain("Urgences : e-mail immédiat, au plus 1 min après leur constat ; autres alertes : e-mail quotidien à 5 h (Paris).");
+    expect(html).not.toContain("délai au plus 1 min");
+    expect(html).toContain("Les urgences ne sont pas surveillées en continu : elles sont constatées au passage des équipes, chaque matin entre 4 h et 11 h (heure de Paris)");
+    expect(html).toContain("Ce qui arrive entre deux passages, par exemple l’après-midi, n’est constaté qu’au passage suivant, souvent le lendemain matin : son e-mail part alors, pas avant.");
     expect(html).toContain("Son e-mail immédiat part une seule fois, sans son texte, au plus 6 fois par heure");
-    expect(html).toContain("dans l’envoi suivant ou dans l’e-mail de 5 h, qui rappelle aussi les urgences des dernières 24 h, envoyées ou non.");
+    expect(html).toContain("au-delà, ou si l’envoi échoue, les urgences en attente partent groupées au passage suivant ou dans l’e-mail de 5 h, qui rappelle aussi les urgences des dernières 24 h, envoyées ou non.");
     expect(html).toContain("l’arrêt d’urgence ne les coupe pas : ce sont des alertes au dirigeant, sans effet sur les utilisateurs");
   });
 
   it("relais non configuré : aucune promesse d'e-mail immédiat", () => {
     const html = rendre(undefined, []);
     expect(html).not.toContain("Urgences : e-mail immédiat");
+    expect(html).not.toContain("ne sont pas surveillées en continu");
     expect(html).toContain("Relais non configuré : aucune alerte e-mail ne part.");
   });
 

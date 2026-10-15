@@ -1,5 +1,5 @@
 import { formaterDateHeureParis } from "@/lib/heure-paris";
-import { PHRASE_CANAUX_RELAIS, PLAFOND_URGENCES_PAR_HEURE } from "@/lib/relais-urgences";
+import { PHRASE_CANAUX_RELAIS, PHRASE_CONSTAT_URGENCES, PLAFOND_URGENCES_PAR_HEURE } from "@/lib/relais-urgences";
 import {
   avertissementAdresses,
   descriptionRelais,
@@ -24,13 +24,15 @@ export function AlerteEmailRelais({ adresses, passages }: { adresses: AdressesRe
       <h2 className="text-xl font-semibold">Alerte e-mail du relais</h2>
       <p><strong>{descriptionRelais(adresses)}</strong></p>
       {avertissement && <p role="alert" className="err">{avertissement}</p>}
-      {/* Décision du 15/10/2026 : envoi immédiat pour les urgences, en plus de l'e-mail quotidien de 5 h. */}
+      {/* Décision du 15/10/2026 : envoi immédiat pour les urgences, en plus de l'e-mail quotidien de 5 h. Relecture du
+          15/10 : le délai court à partir du constat de l'urgence, qui n'a lieu qu'aux passages ou dans la console. */}
       {adresses.configure && <p><strong>{PHRASE_CANAUX_RELAIS}</strong></p>}
+      {adresses.configure && <p className="text-sm">{PHRASE_CONSTAT_URGENCES}</p>}
       <p className="text-sm">
         Une urgence est une alerte nouvelle du mode vacances : un passage à reprendre, une lecture bloquée, un responsable
         qui perd son habilitation ou un signalement fait à la main. Son e-mail immédiat part une seule fois, sans son texte,
-        au plus {PLAFOND_URGENCES_PAR_HEURE} fois par heure : au-delà, les urgences suivantes partent groupées dans l’envoi
-        suivant ou dans l’e-mail de 5 h, qui rappelle aussi les urgences des dernières 24 h, envoyées ou non.
+        au plus {PLAFOND_URGENCES_PAR_HEURE} fois par heure : au-delà, ou si l’envoi échoue, les urgences en attente partent
+        groupées au passage suivant ou dans l’e-mail de 5 h, qui rappelle aussi les urgences des dernières 24 h, envoyées ou non.
       </p>
       <p className="text-sm">
         L’e-mail de 5 h signale, en nombres seulement : les alertes du mode vacances non accusées, les tâches planifiées en

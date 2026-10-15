@@ -176,11 +176,15 @@ describe("D06 / D46 : l'écran « Arrêt avant les prochains effets » et le mod
     }
   });
 
-  it("IA-02, relais configuré : une urgence part en e-mail immédiat (délai au plus 1 min), comptée aussi à 5 h, adresses masquées", async () => {
+  // Relecture du 15/10 : « délai au plus 1 min » ne valait qu'à partir du constat de l'urgence ; l'écran le dit, avec
+  // quand le constat a lieu (un événement entre deux passages attend le suivant, souvent le lendemain matin).
+  it("IA-02, relais configuré : une urgence part en e-mail immédiat au plus 1 min après son constat, comptée aussi à 5 h, adresses masquées", async () => {
     vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.com, second@example.org");
     try {
       const html = await rendreVacances();
-      expect(html).toContain("Une urgence part aussi tout de suite, sans son texte, par e-mail immédiat (délai au plus 1 min) vers 2 adresses du relais : re•••is@example.com, se•••nd@example.org.");
+      expect(html).toContain("Une urgence part aussi, sans son texte, par e-mail immédiat vers 2 adresses du relais : re•••is@example.com, se•••nd@example.org, au plus 1 min après son constat ; elle n’est constatée qu’au passage des équipes (chaque matin) ou dans cette console : ce qui arrive entre deux passages attend le suivant, souvent le lendemain matin.");
+      expect(html).not.toContain("délai au plus 1 min");
+      expect(html).not.toContain("part aussi tout de suite");
       expect(html).toContain("Tant qu’elle n’est pas accusée, elle est aussi comptée dans l’alerte e-mail quotidienne de 5 h (heure de Paris).");
       expect(html).toContain("Une escalade n’envoie pas d’e-mail immédiat : elle est comptée à 5 h.");
       expect(html).toContain("Chaque nouvelle urgence part aussi par e-mail immédiat vers les adresses du relais ; celles qui ne sont pas accusées sont comptées dans l’alerte e-mail quotidienne de 5 h (heure de Paris).");

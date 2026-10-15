@@ -24,11 +24,15 @@ vi.mock("next/cache", () => ({ revalidatePath: m.revalidate }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: m.createClient }));
 vi.mock("@/lib/point-du-matin", () => ({ genererPointsDuMatin: vi.fn(async () => ({ enregistres: 0 })) }));
 
+import { readdirSync, readFileSync } from "node:fs";
+import { join, sep } from "node:path";
 import {
   DELAI_URGENCE_MAX_MINUTES,
   htmlUrgencesRelais,
   libelleUrgence,
+  PASSAGES_DU_MATIN_PARIS,
   PHRASE_CANAUX_RELAIS,
+  PHRASE_CONSTAT_URGENCES,
   PLAFOND_URGENCES_PAR_HEURE,
   sujetUrgencesRelais,
 } from "../src/lib/relais-urgences";
@@ -120,9 +124,82 @@ describe("le contenu de l'e-mail immédiat", () => {
   });
 
   it("la phrase de la console", () => {
-    expect(PHRASE_CANAUX_RELAIS).toBe(`Urgences : e-mail immédiat (délai au plus ${DELAI_URGENCE_MAX_MINUTES} min) ; autres alertes : e-mail quotidien à 5 h (Paris).`);
+    expect(PHRASE_CANAUX_RELAIS).toBe(`Urgences : e-mail immédiat, au plus ${DELAI_URGENCE_MAX_MINUTES} min après leur constat ; autres alertes : e-mail quotidien à 5 h (Paris).`);
     expect(DELAI_URGENCE_MAX_MINUTES).toBe(1);
     expect(PLAFOND_URGENCES_PAR_HEURE).toBe(6);
+  });
+});
+
+// ── Le délai annoncé (relecture du 15/10) ──────────────────────────────────
+//
+// Constat de relecture : « délai au plus 1 min » n'était vrai qu'à partir de la POSE de l'urgence. Rien ne la guette en
+// continu : elle n'est posée qu'au passage du relais (`traiter_vacances` : missions de vercel.json, passage de 5 h,
+// mission lancée dans la journée) ou par la console. Un événement survenu entre deux passages (passage « veille » de
+// 09 h UTC interrompu, habilitation perdue l'après-midi) n'était constaté, et son e-mail parti, qu'au passage suivant,
+// souvent le lendemain matin (reproduit en base : ni alerte ni ligne de file avant `traiter_vacances`). L'écran et les
+// e-mails disent désormais que le délai court à partir du constat, et quand le constat a lieu.
+
+/** Les heures de Paris (décimales) d'une tâche Vercel « m h * * * », un jour d'hiver et un jour d'été. */
+function heuresParis(schedule: string): number[] {
+  const [minute, heure] = schedule.split(" ");
+  return ["2026-01-15", "2026-07-15"].map((jour) => {
+    const instant = new Date(`${jour}T${heure.padStart(2, "0")}:${minute.padStart(2, "0")}:00Z`);
+    const parties = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Europe/Paris" }).formatToParts(instant);
+    const valeur = (type: string) => parseInt(parties.find((p) => p.type === type)!.value, 10);
+    return valeur("hour") + valeur("minute") / 60;
+  });
+}
+
+describe("le délai annoncé court à partir du constat, pas de l'événement", () => {
+  it("la console ne promet plus « délai au plus 1 min » sans dire à partir de quand", () => {
+    expect(PHRASE_CANAUX_RELAIS).not.toContain("délai au plus");
+    expect(PHRASE_CANAUX_RELAIS).toContain("après leur constat");
+  });
+
+  it("la console dit quand une urgence est constatée, et qu'un événement entre deux passages attend le suivant", () => {
+    expect(PHRASE_CONSTAT_URGENCES).toBe(
+      "Les urgences ne sont pas surveillées en continu : elles sont constatées au passage des équipes, chaque matin entre 4 h et 11 h (heure de Paris), dans la journée seulement si une mission est lancée (publication programmée, lancement à la main), et dans cette console quand on actualise le relais ou qu’on signale une urgence. Ce qui arrive entre deux passages, par exemple l’après-midi, n’est constaté qu’au passage suivant, souvent le lendemain matin : son e-mail part alors, pas avant."
+    );
+  });
+
+  it("les heures annoncées suivent vercel.json : chaque passage qui actualise le relais tombe entre 4 h et 11 h à Paris, été comme hiver", () => {
+    const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as { crons: { path: string; schedule: string }[] };
+    const passages = vercel.crons.filter((c) => c.path.startsWith("/api/cron/equipes?") || c.path.startsWith("/api/cron/relais?"));
+    expect(passages.length).toBeGreaterThan(0);
+    for (const c of passages) expect(c.schedule, c.path).toMatch(/^\d{1,2} \d{1,2} \* \* \*$/);
+    const heures = passages.flatMap((c) => heuresParis(c.schedule));
+    expect(Math.min(...heures)).toBe(PASSAGES_DU_MATIN_PARIS.debut);
+    expect(Math.max(...heures)).toBe(PASSAGES_DU_MATIN_PARIS.fin);
+    expect(PHRASE_CONSTAT_URGENCES).toContain(`chaque matin entre ${PASSAGES_DU_MATIN_PARIS.debut} h et ${PASSAGES_DU_MATIN_PARIS.fin} h (heure de Paris)`);
+  });
+
+  it("rien d'autre n'actualise le relais : les missions, le passage de 5 h et le geste « Actualiser » ; aucune tâche pg_cron", () => {
+    const fichiers = (readdirSync("src", { recursive: true }) as string[])
+      .filter((f) => /\.(ts|tsx)$/.test(f))
+      .filter((f) => /rpc\(\s*['"]traiter_vacances['"]|appel\(\s*['"]traiter_vacances['"]/.test(readFileSync(join("src", f), "utf8")))
+      .map((f) => f.split(sep).join("/"))
+      .sort();
+    expect(fichiers).toEqual(["app/actions/consignes-vacances.ts", "lib/execution-mission.ts", "lib/relais-alerte-envoi.ts"]);
+    for (const f of readdirSync("supabase/migrations").filter((n) => n.endsWith(".sql"))) {
+      const sql = readFileSync(join("supabase/migrations", f), "utf8");
+      expect(sql, f).not.toMatch(/cron\.schedule\([^;]*traiter_vacances/);
+    }
+  });
+
+  it("l'e-mail immédiat dit que l'heure est celle du constat, et quand le constat a lieu", () => {
+    const html = htmlUrgencesRelais([URGENCE], `${SITE}/admin`).replace(/\s+/g, " ");
+    expect(html).toContain("Heures du constat (heure de Paris).");
+    expect(html).toContain(`Cet e-mail part au plus ${DELAI_URGENCE_MAX_MINUTES} min après le constat d’une urgence du relais`);
+    expect(html).toContain("Une urgence n’est constatée qu’au passage des équipes (chaque matin) ou dans la console : ce qui arrive entre deux passages n’est constaté qu’au passage suivant, et l’heure indiquée est celle du constat.");
+    expect(html).toContain("au-delà, ou si l’envoi échoue, les urgences en attente partent groupées au passage suivant ou dans l’e-mail de 5 h (heure de Paris)");
+    expect(html).not.toContain("dès qu’une urgence du relais est posée");
+  });
+
+  it("l'e-mail de 5 h ne dit plus que les urgences partent « sur le moment »", () => {
+    const constat: ConstatRelais = { arrets: [], alertes: { ouvertes: 1, escaladees: 0, non_acheminees: 0 }, taches: [], lecturesImpossibles: [], relaisNonActualise: false };
+    const html = htmlAlerteRelais(constat, new Date("2026-10-15T03:00:00Z"), `${SITE}/admin`);
+    expect(html).not.toContain("sur le moment");
+    expect(html).toContain("Les urgences partent aussi dans un e-mail immédiat, dès qu’elles sont constatées (au passage des équipes ou dans la console) ; il les rappelle ici.");
   });
 });
 

@@ -204,7 +204,7 @@ export function htmlAlerteRelais(c: ConstatRelais, maintenant: Date, lienConsole
   <p style="margin:22px 0 20px">
     <a href="${echapper(lienConsole)}" style="display:inline-block;background:#2457f5;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Ouvrir la console</a>
   </p>
-  <p style="font-size:13px;color:#53617a;margin:0">Cet e-mail part au plus une fois par jour, vers 5 h (heure de Paris), et seulement s’il y a quelque chose à signaler. Les urgences partent aussi, sur le moment, dans un e-mail immédiat ; il les rappelle ici. Il ne contient ni nom ni montant ; rien ne se décide depuis lui : les gestes se font dans la console.</p>
+  <p style="font-size:13px;color:#53617a;margin:0">Cet e-mail part au plus une fois par jour, vers 5 h (heure de Paris), et seulement s’il y a quelque chose à signaler. Les urgences partent aussi dans un e-mail immédiat, dès qu’elles sont constatées (au passage des équipes ou dans la console) ; il les rappelle ici. Il ne contient ni nom ni montant ; rien ne se décide depuis lui : les gestes se font dans la console.</p>
 </div>`;
 }
 

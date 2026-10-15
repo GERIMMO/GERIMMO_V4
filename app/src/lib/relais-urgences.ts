@@ -8,19 +8,38 @@
 
 import { formaterDateHeureParis } from "./heure-paris";
 
-/** Au plus 6 e-mails immédiats CRÉÉS par heure glissante ; au-delà, les urgences attendent l'envoi suivant ou l'e-mail de 5 h. */
+/** Au plus 6 e-mails immédiats CRÉÉS par heure glissante ; au-delà, les urgences attendent le passage suivant ou l'e-mail de 5 h. */
 export const PLAFOND_URGENCES_PAR_HEURE = 6;
 
 /**
- * Le délai entre la pose d'une urgence et le départ de son e-mail, en marche normale. L'envoi part juste après la
- * transaction qui pose l'urgence, dans la même requête (passage de mission, passage de 5 h, geste de la console) : le
- * temps d'une lecture de la file et d'un appel au service d'e-mail, borné à 15 secondes, les adresses en parallèle.
- * Plafond atteint ou envoi en échec : l'urgence part à l'envoi suivant, au plus tard dans l'e-mail de 5 h.
+ * Le délai entre le CONSTAT d'une urgence (sa pose en base) et le départ de son e-mail, en marche normale. Il ne court
+ * pas depuis l'événement lui-même : voir `PASSAGES_DU_MATIN_PARIS`. L'envoi part juste après la transaction qui pose
+ * l'urgence, dans la même requête (passage de mission, passage de 5 h, geste de la console) : le temps d'une lecture de
+ * la file et d'un appel au service d'e-mail, borné à 15 secondes, les adresses en parallèle (trois tours au plus).
+ * Plafond atteint ou envoi en échec : l'urgence part au passage suivant, au plus tard dans l'e-mail de 5 h.
  */
 export const DELAI_URGENCE_MAX_MINUTES = 1;
 
-/** La phrase de la console (décision du 15/10/2026). */
-export const PHRASE_CANAUX_RELAIS = `Urgences : e-mail immédiat (délai au plus ${DELAI_URGENCE_MAX_MINUTES} min) ; autres alertes : e-mail quotidien à 5 h (Paris).`;
+/**
+ * QUAND UNE URGENCE EST CONSTATÉE (relecture du 15/10/2026). Rien ne la guette en continu : elle n'est posée que lorsque
+ * le relais est actualisé (`traiter_vacances`) ou qu'on la signale dans la console. Le relais est actualisé :
+ *  · à chaque passage de mission de vercel.json, chaque matin de 03 h à 09 h UTC, soit de 4 h (hiver) à 11 h (été) à
+ *    Paris, passage de 5 h compris ;
+ *  · dans la journée, seulement quand une mission est lancée : la mission marketing appelée par pg_cron quand une
+ *    publication est due, « Lancer maintenant » de l'écran Santé ;
+ *  · au geste « Actualiser » de la console.
+ * Un événement survenu entre deux passages (passage « veille » de 09 h UTC interrompu, habilitation perdue l'après-midi)
+ * n'est donc constaté qu'au passage suivant, souvent le lendemain matin, jusqu'à environ 18 h plus tard ; son e-mail
+ * part alors. Un passage fréquent (pg_cron toutes les 5 à 15 min) irait au-delà de la décision du 15/10 : il revient au
+ * dirigeant d'en décider. tests/relais-urgences.test.ts vérifie que ces heures suivent vercel.json.
+ */
+export const PASSAGES_DU_MATIN_PARIS = { debut: 4, fin: 11 } as const;
+
+/** La phrase de la console (décision du 15/10/2026) : le délai court à partir du constat. */
+export const PHRASE_CANAUX_RELAIS = `Urgences : e-mail immédiat, au plus ${DELAI_URGENCE_MAX_MINUTES} min après leur constat ; autres alertes : e-mail quotidien à 5 h (Paris).`;
+
+/** Ce que la console dit du constat : quand il a lieu, et ce qui attend le passage suivant. */
+export const PHRASE_CONSTAT_URGENCES = `Les urgences ne sont pas surveillées en continu : elles sont constatées au passage des équipes, chaque matin entre ${PASSAGES_DU_MATIN_PARIS.debut} h et ${PASSAGES_DU_MATIN_PARIS.fin} h (heure de Paris), dans la journée seulement si une mission est lancée (publication programmée, lancement à la main), et dans cette console quand on actualise le relais ou qu’on signale une urgence. Ce qui arrive entre deux passages, par exemple l’après-midi, n’est constaté qu’au passage suivant, souvent le lendemain matin : son e-mail part alors, pas avant.`;
 
 export type NatureUrgence = "responsable_non_habilite" | "passage_a_reprendre" | "lecture_bloquee" | "signalement_manuel";
 
@@ -58,11 +77,11 @@ export function htmlUrgencesRelais(urgences: UrgenceEnvoi[], lienConsole: string
   <p style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#53617a;margin:0 0 8px">Relais — urgence du mode vacances</p>
   <h1 style="font-size:22px;line-height:1.25;margin:0 0 12px">${n > 1 ? `${n} urgences à examiner` : "1 urgence à examiner"}</h1>
   <ul style="margin:0;padding-left:20px;line-height:1.6">${lignes}</ul>
-  <p style="font-size:13px;color:#53617a;margin:8px 0 0">Heures de Paris.</p>
+  <p style="font-size:13px;color:#53617a;margin:8px 0 0">Heures du constat (heure de Paris).</p>
   <p style="margin:22px 0 20px">
     <a href="${echapper(lienConsole)}" style="display:inline-block;background:#2457f5;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Ouvrir la console</a>
   </p>
-  <p style="font-size:13px;color:#53617a;margin:0">Cet e-mail part dès qu’une urgence du relais est posée, une seule fois par urgence, au plus ${PLAFOND_URGENCES_PAR_HEURE} fois par heure : au-delà, les urgences suivantes partent groupées dans l’envoi suivant ou dans l’e-mail de 5 h (heure de Paris), qui les rappelle toutes. Il ne contient ni nom ni montant ; l’arrêt d’urgence ne le coupe pas. Rien ne se décide depuis lui : les gestes se font dans la console.</p>
+  <p style="font-size:13px;color:#53617a;margin:0">Cet e-mail part au plus ${DELAI_URGENCE_MAX_MINUTES} min après le constat d’une urgence du relais, une seule fois par urgence, au plus ${PLAFOND_URGENCES_PAR_HEURE} fois par heure : au-delà, ou si l’envoi échoue, les urgences en attente partent groupées au passage suivant ou dans l’e-mail de 5 h (heure de Paris), qui les rappelle toutes. Une urgence n’est constatée qu’au passage des équipes (chaque matin) ou dans la console : ce qui arrive entre deux passages n’est constaté qu’au passage suivant, et l’heure indiquée est celle du constat. Il ne contient ni nom ni montant ; l’arrêt d’urgence ne le coupe pas. Rien ne se décide depuis lui : les gestes se font dans la console.</p>
 </div>`;
 }
 

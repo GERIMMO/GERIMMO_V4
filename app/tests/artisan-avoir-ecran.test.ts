@@ -49,7 +49,9 @@ import { messageErreurPrive } from "@/lib/artisan-prive-erreurs";
 import { MESSAGE_FACTURE_DEFINITIVE } from "@/lib/artisan-prive-facture";
 import { MESSAGE_ECRITURE_FERMEE } from "@/lib/artisan-prive-exclusion";
 import {
+  LIBELLE_CONFIRMER_ANNULATION,
   MESSAGE_ANNULATION_CONSEQUENCES,
+  MESSAGE_AVOIR_SANS_PIECE,
   MESSAGE_MOTIF_ANNULATION,
   MESSAGE_REGLEMENTS_A_ANNULER,
   avoirDeLaFacture,
@@ -249,6 +251,47 @@ describe("registre et suivi de la facture : la facture annulée et son avoir fig
     const page = await facture("f2");
     expect(page).toContain("Déclarer un règlement reçu");
     expect(page).not.toContain("Annulée par l’avoir");
+  });
+});
+
+describe("l'avoir n'est pas une pièce à remettre au client : aucun texte ne le laisse croire (relecture du 15/10)", () => {
+  // Gerimmo n'en produit aucun document (ni PDF, ni lien de téléchargement) : l'avoir est une ligne du registre privé.
+  // Ces formulations supposent une pièce transmissible : « transmettez-lui l'avoir », « figure sur l'avoir », « émettre ».
+  const PIECE_SUPPOSEE = /transmettez|figure sur l’avoir|émettre l’avoir|émet un avoir|[ée]mis le/i;
+  /** Les propriétés des éléments de l'arbre rendu par une page serveur (avant le rendu de ses composants). */
+  function elements(noeud: unknown, garder: (p: Record<string, unknown>) => boolean): Record<string, unknown>[] {
+    if (Array.isArray(noeud)) return noeud.flatMap((n) => elements(n, garder));
+    if (!noeud || typeof noeud !== "object" || !("props" in noeud)) return [];
+    const props = (noeud as { props: Record<string, unknown> }).props;
+    return [...(garder(props) ? [props] : []), ...elements(props.children, garder)];
+  }
+
+  it("avant de confirmer, l'artisan lit que Gerimmo ne produit pas de document d'avoir et n'envoie rien à son client", () => {
+    expect(MESSAGE_AVOIR_SANS_PIECE).toMatch(/ne produit pas de document d’avoir/);
+    expect(MESSAGE_AVOIR_SANS_PIECE).toMatch(/ne lui envoie rien/);
+    expect(MESSAGE_ANNULATION_CONSEQUENCES).toContain(MESSAGE_AVOIR_SANS_PIECE);
+    for (const texte of [MESSAGE_ANNULATION_CONSEQUENCES, MESSAGE_MOTIF_ANNULATION, LIBELLE_CONFIRMER_ANNULATION])
+      expect(texte).not.toMatch(PIECE_SUPPOSEE);
+    expect(renderToStaticMarkup(createElement(RelectureAnnulation, { resume: resumerAnnulation({ numero: "ART-1", montantCents: 12000, motif: "Erreur de numéro" }) }))).not.toMatch(PIECE_SUPPOSEE);
+  });
+
+  it("le bouton de confirmation de la fiche du chantier « enregistre » l'avoir, il ne l'« émet » pas", async () => {
+    sim.activite = activite({ factures: [{ ...FACTURE_ANNULEE, annulee_le: null }], avoirs: [] });
+    const arbre = await PageChantier({ params: Promise.resolve({ chantierId: "h1" }) });
+    const [annulation] = elements(arbre, (p) => p.action === "annuler_facture");
+    expect(annulation?.libelle).toBe(LIBELLE_CONFIRMER_ANNULATION);
+    expect(LIBELLE_CONFIRMER_ANNULATION).toBe("Confirmer l’annulation et enregistrer l’avoir");
+  });
+
+  it("fiche du chantier, suivi et registre : aucune formulation de pièce transmissible ; le suivi de l'avoir le rappelle", async () => {
+    sim.activite = activite({ factures: [{ ...FACTURE_ANNULEE, annulee_le: null }], avoirs: [] });
+    const enVigueur = await chantier();
+    expect(enVigueur).toContain("Motif de l’annulation (il est enregistré avec l’avoir, dans votre registre)");
+    sim.activite = activite({ factures: [FACTURE_ANNULEE, FACTURE_REMPLACANTE], avoirs: [AVOIR] });
+    const suivi = await facture("f1");
+    for (const page of [enVigueur, await chantier(), suivi, await html(ReglementsDansFacturation())]) expect(page).not.toMatch(PIECE_SUPPOSEE);
+    expect(suivi).toContain(MESSAGE_AVOIR_SANS_PIECE);
+    expect(suivi).toMatch(/Enregistré le 14\/10\/2026 · 120,00\s€ TTC · annule la facture ART-1/);
   });
 });
 

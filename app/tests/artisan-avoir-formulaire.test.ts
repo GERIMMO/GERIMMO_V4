@@ -33,7 +33,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push() {}, refresh() {} 
 vi.mock("@/app/artisan/clients/actions", () => ({ enregistrerActivitePrivee: sim.enregistrer }));
 
 import { FormulairePrive } from "@/app/artisan/clients/formulaire";
-import { MESSAGE_ANNULATION_CONSEQUENCES, type EntreesAnnulationFacture } from "@/lib/artisan-prive-avoir";
+import { LIBELLE_CONFIRMER_ANNULATION, MESSAGE_ANNULATION_CONSEQUENCES, type EntreesAnnulationFacture } from "@/lib/artisan-prive-avoir";
 
 class FormDataSimule {
   private champs = new Map<string, unknown>(Object.entries(sim.champs));
@@ -43,7 +43,7 @@ class FormDataSimule {
 
 const MOTIF = "Erreur de numéro sur la pièce jointe";
 const proprietes = {
-  action: "annuler_facture", id: "h1", revision: 7, libelle: "Confirmer l’annulation et émettre l’avoir",
+  action: "annuler_facture", id: "h1", revision: 7, libelle: LIBELLE_CONFIRMER_ANNULATION,
   relectureAnnulation: { numero: "ART-1", montantCents: 12000 },
 };
 const releve = (motif = MOTIF): EntreesAnnulationFacture => ({ numero: "ART-1", montantCents: 12000, motif });
@@ -82,7 +82,7 @@ describe("premier temps : relire, sans rien annuler", () => {
   it("à la saisie : un seul bouton, « Relire avant d’annuler » ; le motif est visible", () => {
     const page = html();
     expect(page).toContain("Relire avant d’annuler");
-    expect(page).not.toContain("Confirmer l’annulation et émettre l’avoir");
+    expect(page).not.toContain(LIBELLE_CONFIRMER_ANNULATION);
     expect(page).not.toMatch(/<div hidden/);
   });
 });
@@ -95,14 +95,14 @@ describe("second temps : confirmer depuis le résumé", () => {
     expect(page).toContain("Relisez l’annulation avant de la confirmer");
     expect(page).toContain(MESSAGE_ANNULATION_CONSEQUENCES);
     expect(page).toContain("Modifier la saisie");
-    expect(page).toContain("Confirmer l’annulation et émettre l’avoir");
+    expect(page).toContain(LIBELLE_CONFIRMER_ANNULATION);
     expect(page).not.toContain("Relire avant d’annuler");
     expect(page).toMatch(/<div hidden=""[^>]*><textarea name="motif"><\/textarea>/);
   });
 
   it("un motif trop court bloque le bouton de confirmation", () => {
     sim.etats = { 2: true, 4: releve("court") };
-    expect(html()).toMatch(/<button[^>]*type="submit"[^>]*disabled=""[^>]*>Confirmer l’annulation et émettre l’avoir<\/button>/);
+    expect(html()).toMatch(/<button[^>]*type="submit"[^>]*disabled=""[^>]*>Confirmer l’annulation et enregistrer l’avoir<\/button>/);
   });
 
   it("appelle l'action serveur une seule fois, avec la clé de la demande", async () => {

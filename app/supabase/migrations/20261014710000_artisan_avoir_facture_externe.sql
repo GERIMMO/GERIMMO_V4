@@ -177,7 +177,7 @@ begin
      raise exception 'Cette facture est déjà annulée par un avoir. Rechargez la page pour voir l’avoir et, si besoin, déposer la facture qui la remplace.';
     end if;
     if length(btrim(coalesce(p_donnees->>'motif',''))) not between 10 and 4000 then
-     raise exception 'Expliquez pourquoi la facture est annulée (10 caractères au moins) : ce motif figure sur l’avoir et dans votre registre.';
+     raise exception 'Expliquez pourquoi la facture est annulée (10 caractères au moins) : ce motif est enregistré avec l’avoir, dans votre registre.';
     end if;
     if exists(select 1 from public.artisan_reglements rg where rg.artisan_id=a and rg.facture_externe_id=v_facture.id and rg.annule_le is null) then
      raise exception 'Des règlements sont déclarés sur cette facture : annulez d’abord ces déclarations depuis le suivi de la facture, puis annulez la facture.';

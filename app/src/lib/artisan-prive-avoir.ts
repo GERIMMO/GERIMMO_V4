@@ -14,7 +14,7 @@ export const MOTIF_ANNULATION_MIN = 10;
 export const MOTIF_ANNULATION_MAX = 4000;
 
 export const MESSAGE_MOTIF_ANNULATION =
-  "Expliquez pourquoi la facture est annulée (10 caractères au moins) : ce motif figure sur l’avoir et dans votre registre.";
+  "Expliquez pourquoi la facture est annulée (10 caractères au moins) : ce motif est enregistré avec l’avoir, dans votre registre.";
 
 export const MESSAGE_FACTURE_A_RELIRE =
   "Cette facture n’est plus celle du chantier. Rechargez la page avant de recommencer.";
@@ -29,9 +29,22 @@ export const MESSAGE_REGLEMENTS_A_ANNULER =
 export const MESSAGE_REGLEMENT_FACTURE_ANNULEE =
   "Cette facture est annulée par un avoir : aucun règlement ne peut plus y être déclaré. Déclarez-le sur la facture qui la remplace.";
 
+/**
+ * Relecture du 15/10 : Gerimmo ne produit AUCUN document d'avoir (ni PDF, ni lien de téléchargement) ; l'avoir est une ligne
+ * du registre privé (TTC seul). Aucun texte ne doit laisser croire qu'il existe une pièce à remettre au client. La forme de
+ * l'avoir remis au client (pièce produite par Gerimmo, ou avoir émis par l'outil de l'artisan et déclaré ici) relève de l'avis
+ * de l'expert-comptable que la décision D24 demande avant d'activer le module : non tranché, rien n'est promis ici.
+ */
+export const MESSAGE_AVOIR_SANS_PIECE =
+  "Cet avoir n’existe que dans votre registre Gerimmo et dans son export : Gerimmo ne produit pas de document d’avoir à remettre à votre client et ne lui envoie rien.";
+
+/** Le bouton du second temps : l'avoir est enregistré dans le registre, il n'est pas « émis » vers le client. */
+export const LIBELLE_CONFIRMER_ANNULATION = "Confirmer l’annulation et enregistrer l’avoir";
+
 /** Ce que l'artisan lit avant de confirmer : ce qui sera enregistré, ce qui reste, ce qui ne se défait pas. */
 export const MESSAGE_ANNULATION_CONSEQUENCES =
-  "Gerimmo enregistre un avoir du même montant, lié à cette facture, avec le numéro suivant de vos avoirs (attribué à la confirmation). La facture reste visible dans votre registre et dans l’export, avec son avoir. Son numéro reste réservé : la facture qui la remplace devra porter un autre numéro. Cette annulation est définitive. Gerimmo n’envoie rien à votre client : transmettez-lui vous-même l’avoir.";
+  "Gerimmo enregistre un avoir du même montant, lié à cette facture, avec le numéro suivant de vos avoirs (attribué à la confirmation). La facture reste visible dans votre registre et dans l’export, avec son avoir. Son numéro reste réservé : la facture qui la remplace devra porter un autre numéro. Cette annulation est définitive. " +
+  MESSAGE_AVOIR_SANS_PIECE;
 
 export type EntreesAnnulationFacture = {
   /** Le numéro de la facture à annuler, tel qu'il est enregistré. */

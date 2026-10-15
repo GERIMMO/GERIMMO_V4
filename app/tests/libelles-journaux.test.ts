@@ -97,6 +97,22 @@ describe("libellés des journaux", () => {
     expect(codesConnusJournaux().audit).toContain("consultation_faits_direction");
   });
 
+  // X18 (SA-09), 14/10/2026 : la recherche d'un dossier par référence se lit en français ; l'identifiant cherché reste à la base.
+  it("nomme la recherche par référence de la console, sans identifiant à l'écran", () => {
+    expect(libelleActionAudit("recherche_reference")).toBe("Recherche d’un bien, d’un lot ou d’un incident par sa référence");
+    expect(codesConnusJournaux().audit).toContain("recherche_reference");
+    const ORG = "11111111-1111-4111-8111-111111111111";
+    expect(detailsExpurges({ forme: "numero", reference: "INC-2026-0007", resultats: 1, organisations: [ORG], objets: [ORG] })).toBe(
+      "recherche par : numéro d’incident · référence : INC-2026-0007 · objets trouvés : 1 · organisations concernées : 1 élément · identifiants relevés : 1 élément"
+    );
+    expect(detailsExpurges({ forme: "identifiant", reference: ORG, resultats: 0, organisations: [], objets: [] })).toBe(
+      "recherche par : identifiant · objets trouvés : 0 · organisations concernées : 0 élément · identifiants relevés : 0 élément"
+    );
+    expect(detailsExpurges({ forme: "libelle", resultats: 2, organisations: [ORG, ORG], objets: [ORG, ORG] })).toBe(
+      "recherche par : nom ou référence interne · objets trouvés : 2 · organisations concernées : 2 éléments · identifiants relevés : 2 éléments"
+    );
+  });
+
   it("explique les accès aux documents", () => {
     expect(libelleAccesDocument("download")).toBe("Téléchargement");
   });

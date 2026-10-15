@@ -424,7 +424,6 @@ export function adresseDejaInscrite(error: { code?: string; message: string }): 
   );
 }
 
-
 // LES RÈGLES D'AUTH QUE L'INSCRIPTION RESPECTE (contre-relecture finale du 15/10/2026, prouvées sur GoTrue v2.197.0).
 // - Tout changement de mot de passe (`UpdatePassword`, par l'API d'administration comme par la session) vide le jeton
 //   de confirmation, efface tous les jetons à usage unique et ferme les sessions : toutes par l'API d'administration,
@@ -628,7 +627,7 @@ export type IssueConfirmationInscription = "meme_navigateur" | "mot_de_passe_a_c
 /** Ce que la fin de confirmation demande au client de la requête : la session que `verifyOtp` vient d'ouvrir. */
 type SessionDeConfirmation = {
   auth: {
-    updateUser: (attributs: { password?: string; data?: Record<string, unknown> }) => Promise<{ error: { message: string; code?: string } | null }>;
+    updateUser: (attributs: { password?: string; data?: Record<string, unknown> }) => Promise<{ error: { message: string; code?: string; status?: number } | null }>;
     signOut: (options: { scope: "local" }) => Promise<unknown>;
   };
 };
@@ -644,10 +643,14 @@ type SessionDeConfirmation = {
  * alors toutes les AUTRES sessions et garde celle-ci, et la personne qui vient de prouver qu'elle possède la boîte
  * choisit le sien sur /nouveau-mot-de-passe.
  *
- * Fermé par défaut : si Auth refuse ce changement par la session (réglage qui exigerait l'ancien mot de passe, panne),
- * le mot de passe provisoire est posé par l'API d'administration, qui ferme toutes les sessions, celle-ci comprise ;
- * la personne redemande alors un lien (« mot de passe oublié »). Le mot de passe d'inscription ne survit jamais à une
- * confirmation faite ailleurs que dans le navigateur de l'inscription.
+ * Les réglages qui durcissent ce changement (« mot de passe actuel exigé », « réauthentification exigée ») ne le
+ * bloquent pas : Auth traite la session d'une confirmation (amr « otp ») comme une récupération, et elle est fraîche
+ * (prouvé sur GoTrue v2.197.0 avec ces deux réglages actifs).
+ *
+ * Fermé par défaut : si Auth refuse malgré tout ce changement par la session (panne), le mot de passe provisoire est
+ * posé par l'API d'administration, qui ferme toutes les sessions, celle-ci comprise ; la personne redemande alors un
+ * lien (« mot de passe oublié »). Le mot de passe d'inscription ne survit jamais à une confirmation faite ailleurs que
+ * dans le navigateur de l'inscription.
  */
 export async function finirConfirmationInscription(
   session: SessionDeConfirmation,
@@ -665,7 +668,7 @@ export async function finirConfirmationInscription(
   const { error } = await session.auth.updateUser({ password: motDePasseInconnu(), data: effacement });
   if (!error) return "mot_de_passe_a_choisir";
 
-  console.error("[lien-mot-de-passe] mot de passe provisoire refusé par la session :", error.code ?? error.message);
+  console.error("[lien-mot-de-passe] mot de passe provisoire refusé par la session :", { statut: error.status, code: error.code, message: error.message });
   const service = clientDeService();
   if (utilisateur && service) {
     const { error: erreurService } = await service.auth.admin.updateUserById(utilisateur.id, {

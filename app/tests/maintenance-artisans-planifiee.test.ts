@@ -13,7 +13,7 @@
  *
  * Nécessite SUPABASE_DB_URL. Chaque cas est joué dans une transaction annulée à la fin.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -29,6 +29,8 @@ const RELEVE = readFileSync("supabase/retours-arriere/releve-devis-perimes.sql",
 // La seconde migration (l'arrêt d'urgence, D06) et son retour sont lus à la demande : seuls les cas qui en dépendent échouent si l'un manque.
 const lireMigrationArret = () => readFileSync("supabase/migrations/20261014211000_maintenance_artisans_arret_urgence.sql", "utf8");
 const lireRetourArret = () => readFileSync("supabase/retours-arriere/20261014211000_maintenance_artisans_arret_urgence.retour.sql", "utf8");
+// La migration de la décision D18 (livraison 2) complète la même fonction par ancre ; rejouée après les deux autres, la chaîne reste sans effet.
+const MIGRATION_REVISION_DEVIS = "supabase/migrations/20261014601000_devis_revision_versions.sql";
 
 let db: Client;
 
@@ -648,6 +650,9 @@ describe.skipIf(!DB_URL)("AUT-01 — rejeu et retour arrière", () => {
     for (let i = 0; i < 2; i++) {
       await db.query(MIGRATION);
       await db.query(lireMigrationArret());
+      // D18 livraison 2 (20261014601000) ajoute à `maintenance_artisans_interne` l'expiration des demandes de révision,
+      // par ancre sur la définition en vigueur : la chaîne se rejoue dans l'ordre du manifeste, elle aussi.
+      if (existsSync(MIGRATION_REVISION_DEVIS)) await db.query(readFileSync(MIGRATION_REVISION_DEVIS, "utf8"));
       expect(await empreinte()).toEqual(avant);
     }
   });

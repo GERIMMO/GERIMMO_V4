@@ -2,6 +2,8 @@ import type { PropositionDevis, LigneProposee } from "./proposition-devis-ia";
 export type BrouillonDevis = {
   diagnostic: string; delai: string; duree: string; contraintes: string; observations: string;
   valideJusquAu: string; lignes: LigneProposee[]; prestations?: string;
+  /** D18 (livraison 2) : « ce qui change » dans la version suivante ; la base l'exige dès la version 2. */
+  noteRevision?: string;
 };
 export type ProfilDocumentArtisan = { adresse: string; mentions: string; logo_data: string | null };
 export type PreparationDevis = {
@@ -21,5 +23,5 @@ export function brouillonDepuisFormulaire(form: FormData): BrouillonDevis {
   }
   return { diagnostic:t("diagnostic",4000), delai:t("delai",240), duree:t("duree",240),
     contraintes:t("contraintes",3000), observations:t("observations",3000),
-    valideJusquAu:t("valide_jusqu_au",10), lignes };
+    valideJusquAu:t("valide_jusqu_au",10), lignes, noteRevision:t("note_revision",4000) };
 }

@@ -10,18 +10,21 @@ import {
   chargerFicheArtisan,
   chargerPhotosDemande,
   chargerSollicitations,
+  chargerVersionsDevis,
   verifierAccesArtisan,
   type LigneSollicitation,
 } from "../../acces";
 import { PhotosDeLaDemande } from "../../photos-demande";
 import {
   dateSimple,
+  demandeAChiffrer,
   euros,
   jourCourt,
   libelle,
   NATURES_TRAVAUX,
   STATUTS_SOLLICITATION,
 } from "../../libelles";
+import { VersionsPrecedentes } from "./versions-precedentes";
 import {
   Avertissement,
   Carte,
@@ -43,7 +46,7 @@ export async function generateMetadata(
   const sollicitations = await chargerSollicitations();
   const demande = sollicitations.lignes.find((l) => l.sollicitation_id === sollicitationId);
   return {
-    title: demande && demande.statut !== "envoyee" ? "Demande de devis" : "Répondre à une demande",
+    title: demande && !demandeAChiffrer(demande.statut) ? "Demande de devis" : "Répondre à une demande",
   };
 }
 
@@ -55,6 +58,8 @@ const TON_STATUT: Record<LigneSollicitation["statut"], "alerte" | "ok" | "encre"
   non_retenue: "neutre",
   expiree: "neutre",
   annulee: "neutre",
+  refusee: "neutre",
+  revision_demandee: "alerte",
 };
 
 /**
@@ -78,10 +83,12 @@ export default async function PageRepondreDevis(
   const { sollicitationId } = await props.params;
 
   // D16 (14/10) : les photos jointes par le locataire, que la base ne rend que pour une demande encore vivante.
-  const [{ fiche }, sollicitations, photos] = await Promise.all([
+  // D18 (livraison 2) : l'historique des versions de son devis (les siennes seules).
+  const [{ fiche }, sollicitations, photos, versions] = await Promise.all([
     chargerFicheArtisan(),
     chargerSollicitations(),
     chargerPhotosDemande(sollicitationId, null),
+    chargerVersionsDevis(sollicitationId),
   ]);
   const demande = sollicitations.lignes.find(
     (l) => l.sollicitation_id === sollicitationId
@@ -90,7 +97,10 @@ export default async function PageRepondreDevis(
   // Une demande close n'attend plus rien, mais elle se relit : la liste la
   // montre coupée à trois lignes, et y renvoyer laissait l'artisan sans moyen
   // de lire la description entière ni de retrouver son devis (tour du 24/09).
-  const close = demande.statut !== "envoyee";
+  // D18 (livraison 2) : une demande en révision est de nouveau ouverte au chiffrage.
+  const close = !demandeAChiffrer(demande.statut);
+  const enRevision = demande.statut === "revision_demandee";
+  const versionSuivante = (demande.version ?? 1) + 1;
   let preparation: Awaited<ReturnType<typeof chargerPreparationDevis>>["preparation"] = null;
   let erreurPreparation: string | undefined;
   try { preparation = (await chargerPreparationDevis(sollicitationId)).preparation; }
@@ -110,14 +120,14 @@ export default async function PageRepondreDevis(
       <header className={styles.entete}>
         <div className={styles.titre}>
           <span className={styles.iconeTitre}><FileText size={24} aria-hidden /></span>
-          <div><p className={styles.surtitre}>{close ? "Votre demande de devis" : "Préparer votre devis"}</p><h1>{titreIncident(demande.categorie)}</h1></div>
+          <div><p className={styles.surtitre}>{close ? "Votre demande de devis" : enRevision ? `Préparer la version ${versionSuivante}` : "Préparer votre devis"}</p><h1>{titreIncident(demande.categorie)}</h1></div>
         </div>
         <div className={styles.client}>
           <MarqueAgence nom={demande.agence_nom} />
           <span className="flex flex-wrap items-center gap-2">
           {demande.urgence === "urgente" && <Etiquette ton="alerte">Urgent</Etiquette>}
-            <Etiquette ton={close ? TON_STATUT[demande.statut] : "attente"}>
-              {close ? libelle(STATUTS_SOLLICITATION, demande.statut) : "À chiffrer"}
+            <Etiquette ton={close ? TON_STATUT[demande.statut] : enRevision ? "alerte" : "attente"}>
+              {close ? libelle(STATUTS_SOLLICITATION, demande.statut) : enRevision ? "Révision demandée" : "À chiffrer"}
             </Etiquette>
           </span>
         </div>
@@ -140,6 +150,22 @@ export default async function PageRepondreDevis(
 
       <PhotosDeLaDemande photos={photos.photos} erreur={photos.erreur} base={`/artisan/devis/${sollicitationId}/photos`} />
 
+      {/* D18 (livraison 2) : ce que le client demande, et jusqu'à quand répondre. Le texte est le sien, tel quel. */}
+      {enRevision && (
+        <section className="rounded-xl border-2 border-[var(--destructive-soft-foreground)] bg-[var(--destructive-soft)] p-4" aria-label="Révision demandée" data-revision-demandee>
+          <h2 className="text-lg font-semibold">Le client demande une révision de votre devis</h2>
+          <p className="mt-2 whitespace-pre-wrap break-words text-[0.9375rem]">
+            Ce qui est demandé : « {demande.revision_motif ?? "aucune précision transmise"} »
+          </p>
+          <p className="mt-2 text-[0.9375rem]">
+            {demande.revision_avant
+              ? `Répondez avant le ${dateSimple(demande.revision_avant)} : envoyez la version ${versionSuivante} en disant ce qui change, ou renoncez. Sans réponse à cette date, la demande sera close.`
+              : `Envoyez la version ${versionSuivante} en disant ce qui change, ou renoncez.`}
+          </p>
+          <p className={`mt-2 ${CLASSE_AIDE}`}>Votre version {demande.version ?? 1} reste consultable ci-dessous ; le formulaire est prérempli avec elle.</p>
+        </section>
+      )}
+
       {close ? (
         <Carte>
           <TitreSection>Ma réponse</TitreSection>
@@ -147,6 +173,16 @@ export default async function PageRepondreDevis(
             <p className="font-semibold">Devis enregistré dans les deux espaces Gerimmo</p>
             {preparation.email_statut === "envoye" ? <p className="mt-1 text-sm text-emerald-800">E-mail avec le PDF transmis au demandeur.</p> : <><p className="mt-1 text-sm text-amber-900">Le devis est disponible sur Gerimmo, mais l’e-mail n’a pas pu être envoyé.</p><RenvoyerEmail id={sollicitationId} revision={preparation.revision}/></>}
           </div>}
+          {/* D18 (livraison 1) : le client a refusé ce devis ; son motif est transmis tel quel, il n'y a rien d'autre à faire. */}
+          {demande.statut === "refusee" && (
+            <div className="mb-4 rounded-xl border border-[var(--filet)] p-4" data-devis-refuse>
+              <p className="font-semibold">Votre devis n’a pas été retenu : le client l’a refusé.</p>
+              <p className="mt-2 whitespace-pre-wrap break-words text-[0.9375rem]">
+                Motif transmis : « {demande.decision_motif ?? "aucun motif transmis"} »
+              </p>
+              <p className={`mt-2 ${CLASSE_AIDE}`}>Cette demande est close : vous n’avez rien d’autre à faire. Votre devis reste consultable ci-dessous.</p>
+            </div>
+          )}
           {/* L'état est l'étiquette de l'en-tête ; ici, ce qu'il a répondu. */}
           <div>
             {demande.montant_ttc_cents !== null && (
@@ -191,9 +227,13 @@ export default async function PageRepondreDevis(
             erreurPreparation={erreurPreparation}
             sollicitationId={sollicitationId}
             echeanceParDefaut={echeanceParDefaut}
+            versionSuivante={enRevision ? versionSuivante : undefined}
           />
         </>
       )}
+
+      {/* D18 (livraison 2) : l'historique de ses versions, en lecture seule. */}
+      <VersionsPrecedentes versions={versions.lignes} erreur={versions.erreur} versionCourante={close ? null : demande.version ?? null} />
     </div>
   );
 }

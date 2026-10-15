@@ -60,6 +60,10 @@ export const STATUTS_SOLLICITATION: Record<string, string> = {
   non_retenue: "Non retenue",
   expiree: "Expirée",
   annulee: "Annulée",
+  // Décision D18 du 14/10 (livraison 1) : le devis de cet artisan a été refusé avec un motif.
+  refusee: "Devis refusé",
+  // Décision D18 du 14/10 (livraison 2) : une version suivante est attendue de l'artisan.
+  revision_demandee: "Révision demandée",
 };
 
 export const COULEURS_SOLLICITATION: Record<string, string> = {
@@ -70,6 +74,8 @@ export const COULEURS_SOLLICITATION: Record<string, string> = {
   non_retenue: "puce puce-grise",
   expiree: "puce puce-grise",
   annulee: "puce puce-grise",
+  refusee: "puce puce-grise",
+  revision_demandee: "puce puce-prep",
 };
 
 export const STATUTS_DEVIS: Record<string, string> = {
@@ -78,6 +84,10 @@ export const STATUTS_DEVIS: Record<string, string> = {
   non_retenu: "Non retenu",
   expire: "Expiré",
   annule: "Annulé",
+  // Décision D18 du 14/10 (livraison 1) : refusé par le gérant ou le propriétaire, motif transmis à l'artisan.
+  refuse: "Refusé",
+  // Décision D18 du 14/10 (livraison 2) : cette version a été renvoyée en révision ; la suivante la remplace.
+  revise: "Révision demandée",
 };
 
 export const COULEURS_DEVIS: Record<string, string> = {
@@ -86,7 +96,14 @@ export const COULEURS_DEVIS: Record<string, string> = {
   non_retenu: "puce puce-grise",
   expire: "puce puce-rouge",
   annule: "puce puce-grise",
+  refuse: "puce puce-grise",
+  revise: "puce puce-prep",
 };
+
+/** Nombre maximal de versions d'un devis sur une même demande (décision D18, réponse A.15-2 ratifiée). */
+export const VERSIONS_DEVIS_MAX = 3;
+/** Jours laissés à l'artisan pour répondre à une demande de révision, au jour de Paris (réponse A.15-3 ratifiée). */
+export const DELAI_REVISION_DEVIS_JOURS = 7;
 
 export const STATUTS_INTERVENTION: Record<string, string> = {
   proposee: "Confiée — l'artisan n'a pas encore répondu",

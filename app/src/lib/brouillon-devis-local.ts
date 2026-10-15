@@ -1,11 +1,14 @@
 import { z } from "zod";
 
-export const CHAMPS_DEVIS_LOCAL = ["diagnostic", "delai", "duree", "contraintes", "observations", "valide_jusqu_au"] as const;
+// D18 (livraison 2) : « ce qui change » (note_revision) est conservé comme les autres champs ; une copie plus
+// ancienne, sans ce champ, reste lisible (valeur vide).
+export const CHAMPS_DEVIS_LOCAL = ["diagnostic", "delai", "duree", "contraintes", "observations", "valide_jusqu_au", "note_revision"] as const;
 const ligne = z.object({ code: z.string().max(100), libelle: z.string().max(1000), quantite: z.string().max(100), prix: z.string().max(100), tva: z.string().max(10) });
 export type LigneDevisSaisie = z.infer<typeof ligne>;
 const contenu = z.object({
   diagnostic: z.string().max(4000), delai: z.string().max(240), duree: z.string().max(240),
   contraintes: z.string().max(3000), observations: z.string().max(3000), valide_jusqu_au: z.string().max(10),
+  note_revision: z.string().max(4000).optional(),
   lignes: z.array(ligne).min(1).max(100),
 });
 const schema = z.object({ version: z.literal(1), copieId: z.string().uuid(), enregistreLe: z.number().finite(), revision: z.number().int().nonnegative(), contenu });

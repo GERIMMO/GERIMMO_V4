@@ -9,7 +9,7 @@ import {
 } from "./acces";
 import { CarteMission } from "./carte-mission";
 import { CarteSollicitation } from "./carte-sollicitation";
-import { degreEcheance, jourLong, PIECES_ARTISAN, texteEcheance, libelle } from "./libelles";
+import { degreEcheance, demandeAChiffrer, jourLong, PIECES_ARTISAN, texteEcheance, libelle } from "./libelles";
 import { Avertissement, Carte, CLASSE_BOUTON_SECONDAIRE, Erreur, TitreSection } from "./ui";
 
 export const metadata = { title: "Aujourd'hui — Gerimmo" };
@@ -52,7 +52,8 @@ export default async function PageArtisanAccueil({
   const enAttenteDuLocataire = agenda.lignes.filter(
     (l) => l.statut === "acceptee" && l.creneaux_en_attente > 0
   );
-  const aChiffrer = sollicitations.lignes.filter((l) => l.statut === "envoyee");
+  // D18 (livraison 2) : une demande en révision est de nouveau à chiffrer.
+  const aChiffrer = sollicitations.lignes.filter((l) => demandeAChiffrer(l.statut));
 
   // Les prochaines interventions calées, l'aujourd'hui en tête.
   const debutDuJour = new Date();

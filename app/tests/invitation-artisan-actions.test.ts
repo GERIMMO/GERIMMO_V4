@@ -27,10 +27,12 @@ import {
   repondreInvitationArtisan,
 } from "@/app/actions/invitations-artisan";
 import {
+  LONGUEUR_MAX_NOM_INVITANT,
   adresseDepuisAncre,
   cheminCarnetInvitation,
   etatLigneCarnet,
   lienInvitationArtisan,
+  nomInvitant,
   type LigneCarnetArtisan,
 } from "@/lib/invitations-artisan";
 import { messageInvitationArtisan } from "@/lib/notifications";
@@ -156,7 +158,8 @@ describe("l'e-mail d'invitation", () => {
   const texte = message.html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 
   it("nomme l'organisation et Gerimmo, dit l'échéance (jour de Paris) et la suite du parcours", () => {
-    expect(message.sujet).toBe("Parc de Claire Moreau vous invite dans son carnet d’artisans sur Gerimmo");
+    // Sujet FIXE (relecture du 15/10) : le texte libre de l'organisation n'est jamais dans le sujet.
+    expect(message.sujet).toBe("Invitation à rejoindre un carnet d’artisans sur Gerimmo");
     expect(texte).toContain("Parc de Claire Moreau souhaite vous ajouter à son carnet d’artisans sur Gerimmo");
     expect(texte).toContain("valable jusqu’au 15 novembre 2026");
     expect(texte).toContain("Gerimmo vérifie votre inscription avant toute demande d’intervention");
@@ -166,6 +169,62 @@ describe("l'e-mail d'invitation", () => {
 
   it("ne dit rien d'un bien ni d'un locataire", () => {
     expect(texte.toLowerCase()).not.toMatch(/adresse du bien|locataire|logement|loyer|lot /);
+  });
+});
+
+/**
+ * Relecture du 15/10 (sécurité) : le nom de l'organisation est un texte libre de l'invitant, sans borne en base. Il part
+ * vers une adresse quelconque, sous la marque Gerimmo : sans assainissement, Gerimmo relaierait un hameçonnage
+ * (« ALERTE Gerimmo… appelez le 08 99… »). Le nom est borné, nettoyé, et remplacé par une formule neutre s'il contient
+ * un lien, une adresse, un numéro ou le nom de Gerimmo — dans l'e-mail, sur la page de l'artisan et à la validation.
+ */
+describe("le nom de l'organisation qui invite", () => {
+  const piege = `ALERTE Gerimmo : votre compte artisan sera suspendu sous 24 h. Régularisez sur https://gerimmo-verification.example/connexion ou appelez le 08 99 00 00 00\r\nBcc: x@y.z ${".".repeat(2000)}`;
+
+  it("un nom ordinaire est gardé tel quel, sans caractère de contrôle ni espaces en trop", () => {
+    expect(nomInvitant("Parc de Claire Moreau")).toBe("Parc de Claire Moreau");
+    expect(nomInvitant("  SCI   Les Tilleuls\r\n\u202Eéfil ")).toBe("SCI Les Tilleuls éfil");
+    expect(nomInvitant("Résidence 2024 — M. et Mme Dupont")).toBe("Résidence 2024 — M. et Mme Dupont");
+  });
+
+  it("un nom trop long est tronqué", () => {
+    const nom = nomInvitant("Parc ".repeat(100));
+    expect(nom).not.toBeNull();
+    expect(Array.from(nom!).length).toBeLessThanOrEqual(LONGUEUR_MAX_NOM_INVITANT);
+    expect(nom!.endsWith("…")).toBe(true);
+  });
+
+  it.each([
+    ["lien", "Voir https://exemple.invalid/x"],
+    ["www", "Parc www.exemple.invalid"],
+    ["domaine", "Parc gerance-dupont.fr"],
+    ["adresse", "Parc contact@exemple.invalid"],
+    ["téléphone", "Parc Dupont 06 12 34 56 78"],
+    ["téléphone international", "Parc +33612345678"],
+    ["marque", "Service sécurité GERIMMO"],
+    ["vide", "   "],
+    ["absent", null],
+  ])("%s : formule neutre", (_cas, nom) => {
+    expect(nomInvitant(nom)).toBeNull();
+  });
+
+  it("l'e-mail ne reprend du nom piégé ni le lien, ni le numéro, ni l'en-tête injecté", () => {
+    const m2 = messageInvitationArtisan({ organisation: piege, lien: lienInvitationArtisan("https://www.gerimmo.app", inv, "a@b.fr"), expireLe: "2026-11-14T10:00:00Z" });
+    expect(m2.sujet).toBe("Invitation à rejoindre un carnet d’artisans sur Gerimmo");
+    expect(m2.html).toContain("Un propriétaire souhaite vous ajouter à son carnet d’artisans sur Gerimmo");
+    for (const interdit of ["gerimmo-verification", "08 99", "Bcc", "\r", "ALERTE"]) expect(m2.html).not.toContain(interdit);
+    const long = messageInvitationArtisan({ organisation: "Parc ".repeat(400), lien: "https://www.gerimmo.app/x", expireLe: "2026-11-14T10:00:00Z" });
+    expect(long.html.length).toBeLessThan(m2.html.length + 200);
+  });
+
+  it("la page de l'artisan et la console de validation n'affichent jamais le nom brut", () => {
+    const racine = path.resolve(__dirname, "..", "src/app");
+    const page = readFileSync(path.join(racine, "artisan/invitation/[invitationId]/page.tsx"), "utf8");
+    const validation = readFileSync(path.join(racine, "admin/artisans/page.tsx"), "utf8");
+    expect(page).not.toMatch(/\{invitation\.organisation\}/);
+    expect(page).toContain("nomInvitant(");
+    expect(validation).not.toMatch(/\{i\.organisation\}/);
+    expect(validation).toContain("nomInvitant(");
   });
 });
 

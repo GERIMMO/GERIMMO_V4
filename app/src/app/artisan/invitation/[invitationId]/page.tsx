@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { seDeconnecter } from "@/app/actions/auth";
 import { formaterDate } from "@/lib/ged";
 import { estUuid } from "@/lib/identifiants";
-import type { InvitationRecue } from "@/lib/invitations-artisan";
+import { nomInvitant, type InvitationRecue } from "@/lib/invitations-artisan";
 import { chargerFicheArtisan } from "../../acces";
 import { FormulaireCompteArtisan } from "../../inscription/formulaire-compte";
 import { CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SECONDAIRE, Carte, Erreur, TitreSection } from "../../ui";
@@ -29,13 +29,15 @@ export default async function PageInvitationArtisan(props: PageProps<"/artisan/i
 
   const { data, error } = await supabase.rpc("mon_invitation_artisan", { p_id: invitationId });
   const invitation = ((data ?? []) as InvitationRecue[])[0];
+  // Le nom de l'organisation est un texte libre de l'invitant : jamais affiché brut (relecture du 15/10).
+  const invitant = invitation ? nomInvitant(invitation.organisation) : null;
 
   return (
     <div className="space-y-6">
       <div className="portail-hero">
         <p className="portail-surtitre">Espace artisan</p>
         <h1 className="mt-0.5">Invitation à rejoindre un carnet d’artisans</h1>
-        {invitation && <p className="mt-2 text-base text-[var(--corps)]">Proposée par {invitation.organisation}</p>}
+        {invitation && <p className="mt-2 text-base text-[var(--corps)]">Proposée par {invitant ?? "un propriétaire qui utilise Gerimmo"}</p>}
       </div>
 
       {error ? (
@@ -53,10 +55,10 @@ export default async function PageInvitationArtisan(props: PageProps<"/artisan/i
           </form>
         </Carte>
       ) : invitation.etat === "en_attente" ? (
-        <EnAttente invitation={invitation} />
+        <EnAttente invitation={invitation} invitant={invitant} />
       ) : invitation.etat === "acceptee" ? (
         <Carte ton="vert">
-          <TitreSection>Vous êtes dans le carnet d’artisans de {invitation.organisation}</TitreSection>
+          <TitreSection>{invitant ? `Vous êtes dans le carnet d’artisans de ${invitant}` : "Vous êtes dans son carnet d’artisans"}</TitreSection>
           {fiche?.statut_plateforme === "valide" ? (
             <p className="text-base text-[var(--corps)]">
               Votre inscription est validée par Gerimmo : vous pouvez recevoir ses demandes pour les biens situés dans
@@ -100,7 +102,7 @@ export default async function PageInvitationArtisan(props: PageProps<"/artisan/i
   );
 }
 
-function EnAttente({ invitation }: { invitation: InvitationRecue }) {
+function EnAttente({ invitation, invitant }: { invitation: InvitationRecue; invitant: string | null }) {
   if (!invitation.a_une_fiche) {
     return (
       <>
@@ -129,7 +131,7 @@ function EnAttente({ invitation }: { invitation: InvitationRecue }) {
     <Carte>
       <TitreSection>Votre réponse</TitreSection>
       <p className="text-base text-[var(--corps)]">
-        En acceptant, vous entrez dans le carnet d’artisans de {invitation.organisation}. Il verra le nom de votre
+        En acceptant, vous entrez dans le carnet d’artisans de {invitant ?? "ce propriétaire"}. Il verra le nom de votre
         entreprise et votre téléphone, et pourra vous demander des devis pour ses biens situés dans votre zone
         d’intervention, une fois votre inscription validée par Gerimmo. Refuser ne partage rien.
       </p>

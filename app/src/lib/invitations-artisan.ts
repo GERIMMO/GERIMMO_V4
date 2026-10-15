@@ -35,6 +35,32 @@ export function lienInvitationArtisan(origine: string, invitationId: string, ema
   return `${origine.replace(/\/+$/, "")}${cheminInvitationArtisan(invitationId)}#adresse=${encodeURIComponent(email)}`;
 }
 
+/** Le nom de l'organisation qui invite, une fois borné (e-mail, page de l'artisan, console de validation). */
+export const LONGUEUR_MAX_NOM_INVITANT = 80;
+
+// Caractères de contrôle, retours à la ligne, caractères invisibles et de sens d'écriture : remplacés par une espace.
+const CARACTERES_INVISIBLES = /[\u0000-\u001F\u007F-\u009F\u00AD\u200B-\u200F\u2028-\u202E\u2060-\u2069\uFEFF]/g;
+// Ce qui ferait d'un nom un relais d'hameçonnage : un lien (même sans « http »), une adresse e-mail, un numéro de
+// téléphone (six chiffres ou plus, espacés ou non), ou le nom de Gerimmo lui-même.
+const LIEN_OU_ADRESSE = /https?:|www\.|@|[a-z0-9-]\.[a-z]{2,}\b/i;
+const NUMERO = /(?:\d[\s.\-/()]*){6,}/;
+const MARQUE = /gerimmo/i;
+
+/**
+ * Le nom de l'organisation qui invite tel qu'on peut le montrer à l'artisan (et au valideur) : sans caractère de
+ * contrôle, espaces resserrées, tronqué à LONGUEUR_MAX_NOM_INVITANT caractères. NULL s'il est vide ou s'il contient un
+ * lien, une adresse, un numéro ou le nom de Gerimmo : l'écran dit alors « un propriétaire ». Relecture du 15/10 : ce
+ * nom est un texte libre de l'invitant, envoyé sous la marque Gerimmo à une adresse quelconque.
+ */
+export function nomInvitant(nom: string | null | undefined): string | null {
+  const propre = (nom ?? "").replace(CARACTERES_INVISIBLES, " ").replace(/\s+/g, " ").trim();
+  if (!propre || LIEN_OU_ADRESSE.test(propre) || NUMERO.test(propre) || MARQUE.test(propre)) return null;
+  const lettres = Array.from(propre);
+  return lettres.length > LONGUEUR_MAX_NOM_INVITANT
+    ? `${lettres.slice(0, LONGUEUR_MAX_NOM_INVITANT - 1).join("").trimEnd()}…`
+    : propre;
+}
+
 /** L'adresse pré-remplie, lue dans l'ancre de la page ; vide si elle manque ou n'a pas la forme d'une adresse. */
 export function adresseDepuisAncre(ancre: string | null | undefined): string {
   if (!ancre) return "";

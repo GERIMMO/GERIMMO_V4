@@ -129,7 +129,7 @@ describe.skipIf(!DB_URL)("Lot avoir-facture-externe — rejeu et retour arrière
     return etat;
   }
   /** Les définitions d'avant la migration, reconstituées à partir de celles d'aujourd'hui (les blocs retirés à la main). */
-  async function definitionsAvant() {
+  async function definitionsAvant(): Promise<Record<string, string>> {
     const externe = await definition(EXTERNE);
     const debut = externe.indexOf(MARQUE);
     const fin = externe.indexOf("-- << Audit du 14/10 (ARC-07, D24-C)\n  ") + "-- << Audit du 14/10 (ARC-07, D24-C)\n  ".length;

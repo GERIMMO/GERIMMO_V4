@@ -278,8 +278,11 @@ begin
    where s.arrete;
 
   -- Les tâches pg_cron : attendues (table de l'arrêt d'urgence) ou programmées (cron.job), lues dans leur journal.
+  -- Un journal absent ou illisible (droits, colonnes d'une autre version de pg_cron) ne fait pas tomber le reste :
+  -- les alertes et les arrêts partent quand même, et l'e-mail dit que les tâches de la base n'ont pas pu être lues.
   v_lisible := pg_catalog.to_regclass('cron.job') is not null and pg_catalog.to_regclass('cron.job_run_details') is not null;
   if v_lisible then
+   begin
     for r in execute $q$
       select coalesce(j.jobname, a.tache) as nom, j.jobid, j.schedule
         from (select distinct t.tache from public.supervision_taches_arret t) a
@@ -306,6 +309,10 @@ begin
       end if;
       v_taches := v_taches || jsonb_build_array(jsonb_build_object('tache', r.nom, 'etat', v_etat, 'echecs', v_echecs));
     end loop;
+   exception when others then
+    v_lisible := false;
+    v_taches := '[]'::jsonb;
+   end;
   end if;
 
   return jsonb_build_object(

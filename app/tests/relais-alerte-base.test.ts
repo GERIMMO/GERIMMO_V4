@@ -255,6 +255,16 @@ describe.skipIf(!DB_URL)("D46-B — alerte e-mail du relais : la base", () => {
     expect(s.taches_base).toEqual([]);
   });
 
+  it("un journal pg_cron illisible (colonnes d'une autre version) n'empêche pas de lire les alertes et les arrêts", async () => {
+    await proprietaire();
+    await db.query("create table cron.job_run_details (jobid bigint, runid bigserial primary key, statut_inconnu text)");
+    const s = await sentinelle();
+    expect(s.taches_base_lisibles).toBe(false);
+    expect(s.taches_base).toEqual([]);
+    expect(s.alertes).toEqual(expect.objectContaining({ ouvertes: expect.any(Number) }));
+    expect(Array.isArray(s.arrets)).toBe(true);
+  });
+
   it("toutes les tâches passées à l'heure : rien d'anormal", async () => {
     await journalCron();
     await toutEstPasse();

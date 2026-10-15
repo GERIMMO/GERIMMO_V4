@@ -191,7 +191,7 @@ export function FormulaireConsultation({
 
       {disponibilites === null && <p role="alert" className="text-sm text-destructive">La disponibilité des artisans ne peut pas être vérifiée. Rechargez la page avant d’ouvrir une demande.</p>}
       {d && bienId && <MessageReseau orgId={orgId} bienId={bienId} disponibilite={d} />}
-      {d && voieDeSortieAffichee(d, estProprietaire) && <VoieDeSortieReseau interetEnregistre={d.interet_enregistre} />}
+      {d && voieDeSortieAffichee(d, estProprietaire) && <VoieDeSortieReseau orgId={orgId} interetEnregistre={d.interet_enregistre} />}
       {d && d.etat !== "ouverte" && d.nb_contacts > 0 && <p className="text-sm">Vous pouvez continuer avec {d.nb_contacts} artisan{d.nb_contacts > 1 ? "s" : ""} de votre carnet personnel correspondant à ces travaux.</p>}
       <Retour etat={etat} />
       <BoutonEnvoi disabled={!autorisee} enCoursTexte="Ouverture…">{d && d.etat !== "ouverte" && d.nb_contacts > 0 ? "Ouvrir avec mon carnet" : "Ouvrir la mise en concurrence"}</BoutonEnvoi>

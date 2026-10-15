@@ -108,6 +108,29 @@ export function extrait(texte: string | null | undefined, max = 140): string {
 
 // — Vers l'artisan ————————————————————————————————————————————————————————
 
+/**
+ * L'invitation d'un artisan par un propriétaire direct (décision du 15/10/2026). Marque Gerimmo (c'est Gerimmo qui
+ * valide l'artisan), le nom de l'organisation qui invite, et RIEN du bien ni du locataire : l'artisan n'est encore lié
+ * à aucun dossier. Le lien mène à la page de l'invitation, où il crée son compte ou se connecte.
+ */
+export function messageInvitationArtisan(p: { organisation: string; lien: string; expireLe: string }): Message {
+  const jusquAu = new Date(p.expireLe).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" });
+  return {
+    sujet: `${p.organisation} vous invite dans son carnet d’artisans sur Gerimmo`,
+    html: gabaritNotification({
+      titre: "Une invitation à rejoindre un carnet d’artisans",
+      emetteur: "L’équipe Gerimmo",
+      lignes: [
+        `${p.organisation} souhaite vous ajouter à son carnet d’artisans sur Gerimmo, pour pouvoir vous demander des devis et vous confier des interventions.`,
+        "Pour accepter : créez votre compte artisan (ou connectez-vous si vous en avez déjà un), inscrivez votre entreprise (SIRET, métiers, zone d’intervention) et déposez vos attestations de responsabilité civile professionnelle et de garantie décennale. Gerimmo vérifie votre inscription avant toute demande d’intervention.",
+        `Cette invitation est valable jusqu’au ${jusquAu}. Rien ne se fait sans votre accord : vous pouvez aussi la refuser.`,
+        "Vous ne connaissez pas cette personne ? Ignorez ce message : aucun compte n’est créé sans vous.",
+      ],
+      action: { libelle: "Voir l’invitation", lien: p.lien },
+    }),
+  };
+}
+
 export function messageDevisDemande(p: {
   emetteur: string;
   categorie: string;

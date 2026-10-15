@@ -62,6 +62,8 @@ const ACTIONS: Record<string, string> = {
   preparation_faits_direction: "Préparation des faits de direction",
   consultation_faits_direction: "Consultation des faits de direction (une ligne par organisation citée)",
   effacement_instantanes_faits_direction: "Effacement des anciens faits de direction, qui pouvaient contenir des noms",
+  // X18 (SA-09, 14/10) : écrite par `rechercher_reference_supervision` dans sa transaction (jamais le texte d'un nom).
+  recherche_reference: "Recherche d’un bien, d’un lot ou d’un incident par sa référence",
   ...ACTIONS_SUPERVISION,
 };
 
@@ -155,6 +157,8 @@ const CLES_LIBELLES: Record<string, string> = {
   // Traversée d'un espace client par la supervision (D08) : décision d'accès, nature de la requête, geste, rubrique
   // ouverte. « accès » et non « résultat » : la ligne est posée AVANT le geste, elle ne dit pas qu'il a réussi.
   resultat: "accès", requete: "requête", geste: "geste", rubrique: "rubrique", motif: "motif", org_demandee: "organisation demandée",
+  // Recherche par référence de la console (X18) : la forme de la saisie, le nombre d'objets trouvés, les identifiants relevés.
+  forme: "recherche par", reference: "référence", resultats: "objets trouvés", organisations: "organisations concernées", objets: "identifiants relevés",
 };
 // Les valeurs de ces clés se disent en français ; les autres s'affichent telles quelles (codes courts).
 const VALEURS_LIBELLES: Record<string, Record<string, string>> = {
@@ -162,6 +166,7 @@ const VALEURS_LIBELLES: Record<string, Record<string, string>> = {
   requete: { page: "page", action_serveur: "action", formulaire: "formulaire" },
   geste: GESTES_TRACE,
   motif: { organisation_introuvable: "organisation introuvable" },
+  forme: { identifiant: "identifiant", numero: "numéro d’incident", libelle: "nom ou référence interne" },
 };
 
 export function detailsExpurges(details: unknown): string | null {

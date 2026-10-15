@@ -6,6 +6,7 @@ import { Modale } from "@/components/ui/modale";
 import { BoutonLot } from "@/components/fenetre-lot";
 import { buttonVariants } from "@/components/ui/button";
 import { TYPES_BIEN, formaterSurface } from "@/lib/parc";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 type BienResume = {
   id: string; nom: string; type: string; address_line1: string;
@@ -17,8 +18,10 @@ type BienResume = {
 export function BoutonResumeBien({ orgId, bien, className, children }: {
   orgId: string; bien: BienResume; className?: string; children: ReactNode;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const [ouvert, setOuvert] = useState(false);
-  const href = `/agence/${orgId}/parc/${bien.id}`;
+  const href = `${base}/parc/${bien.id}`;
   const lots = bien.lots.filter(l => l.etat !== "archive");
   const consultables = lots.length ? lots : bien.lots;
   if (consultables.length === 1) {
@@ -37,7 +40,7 @@ export function BoutonResumeBien({ orgId, bien, className, children }: {
         <section className="mb-3 break-inside-avoid rounded-xl border border-[var(--filet)] bg-[var(--carte)] p-3"><h4 className="mb-2 font-semibold">Contrat de location</h4><p className="text-sm text-muted-foreground">{lots.length ? "Retrouvez les contrats dans la fiche de chaque lot." : "Aucun lot actif à mettre en location."}</p></section>
       </div>
       {consultables.length > 0 && <section><h4 className="mb-2 font-semibold">Lots du bien</h4>{consultables.map(lot => <Link key={lot.id} href={`${href}/lots/${lot.id}`} className="flex min-h-11 items-center justify-between gap-3 border-b border-border text-sm">{lot.nom}<span className="text-muted-foreground">{lot.surface_m2 !== null ? formaterSurface(lot.surface_m2) : "Surface non renseignée"} →</span></Link>)}</section>}
-      <section><p className="eyebrow mb-2">Actions rapides</p><div className="flex flex-wrap gap-2"><Link href={href} className={buttonVariants({variant:"outline",size:"sm"})}>Gérer le bien</Link><Link href={`${href}#diagnostics`} className={buttonVariants({variant:"outline",size:"sm"})}>Voir les diagnostics</Link><Link href={`/agence/${orgId}/reseau?bien=${bien.id}`} className={buttonVariants({variant:"outline",size:"sm"})}>Trouver un artisan</Link></div></section>
+      <section><p className="eyebrow mb-2">Actions rapides</p><div className="flex flex-wrap gap-2"><Link href={href} className={buttonVariants({variant:"outline",size:"sm"})}>Gérer le bien</Link><Link href={`${href}#diagnostics`} className={buttonVariants({variant:"outline",size:"sm"})}>Voir les diagnostics</Link><Link href={`${base}/reseau?bien=${bien.id}`} className={buttonVariants({variant:"outline",size:"sm"})}>Trouver un artisan</Link></div></section>
     </Modale>}
   </>;
 }

@@ -47,6 +47,7 @@ import {
   FormulaireRendezVous,
   FormulaireRevisionImputation,
 } from "./formulaires-artisan";
+import { baseEspace } from "@/lib/racine-espace";
 
 // LE VOLET ARTISAN DE LA FICHE D'INCIDENT — missionner, comparer, suivre.
 //
@@ -227,6 +228,8 @@ export async function VoletArtisan({
   lotId: string | null;
   estProprietaire?: boolean;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   // Avant la qualification, il n'y a rien à afficher et rien à faire :
   // RM-7.2.7 interdit d'affecter sans imputation. On l'annonce plutôt que de
   // laisser un formulaire se faire refuser.
@@ -753,7 +756,7 @@ export async function VoletArtisan({
                       // (RM-A4 : pas de trace, pas d'accès).
                       <a
                         key={p.id}
-                        href={`/agence/${orgId}/documents/${p.document_id}/fichier`}
+                        href={`${base}/documents/${p.document_id}/fichier`}
                         target="_blank"
                         rel="noreferrer"
                         className="block"
@@ -761,7 +764,7 @@ export async function VoletArtisan({
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={`/agence/${orgId}/documents/${p.document_id}/fichier`}
+                          src={`${base}/documents/${p.document_id}/fichier`}
                           alt={`Chantier — ${MOMENTS_PHOTO[p.moment] ?? p.moment}`}
                           className="h-20 w-20 rounded-[10px] border border-border object-cover"
                         />
@@ -826,6 +829,7 @@ export async function VoletArtisan({
         {bienId && disponibiliteOuverte && <><MessageReseau orgId={orgId} bienId={bienId} disponibilite={disponibiliteOuverte} /><InteretReseau key={`${bienId}-${disponibiliteOuverte.metier}-${disponibiliteOuverte.nature}`} orgId={orgId} bienId={bienId} disponibilite={disponibiliteOuverte} /></>}
         <ConsultationOuverte
           orgId={orgId}
+          base={base}
           consultation={consultationOuverte}
           sollicitations={sollicitations.filter(
             (s) => s.consultation_id === consultationOuverte.id
@@ -889,6 +893,7 @@ export async function VoletArtisan({
 // et les devis côte à côte.
 export function ConsultationOuverte({
   orgId,
+  base = baseEspace(orgId, false),
   consultation,
   sollicitations,
   devis,
@@ -899,6 +904,8 @@ export function ConsultationOuverte({
   commune,
 }: {
   orgId: string;
+  /** « /espace/<id> » chez le propriétaire direct, « /agence/<id> » chez une agence (décision D27). */
+  base?: string;
   consultation: Consultation;
   sollicitations: Sollicitation[];
   devis: Devis[];
@@ -1050,7 +1057,7 @@ export function ConsultationOuverte({
                         </div>
                       )}
                     </div>
-                    <CorpsDevis orgId={orgId} d={d} />
+                    <CorpsDevis base={base} d={d} />
                     {expire ? (
                       <p className="text-sm text-destructive">
                         Expiré le {formaterDate(d.valide_jusqu_au)} — caduc. Demandez
@@ -1110,7 +1117,7 @@ export function ConsultationOuverte({
                     <span>Valable jusqu&apos;au</span>
                     <span>{formaterDate(d.valide_jusqu_au)}</span>
                   </div>
-                  <CorpsDevis orgId={orgId} d={d} />
+                  <CorpsDevis base={base} d={d} />
                   <p className="text-sm text-destructive">
                     Expiré le {formaterDate(d.valide_jusqu_au)} — caduc. Demandez une proposition à jour.
                   </p>
@@ -1143,7 +1150,7 @@ export function ConsultationOuverte({
                 Aucun artisan ne remonte pour ce métier
                 {commune ? ` à ${commune}` : ""}
                 {consultation.decennale_requise ? " avec une décennale valide" : ""}.{" "}
-                <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
+                <Link href={`${base}/artisans`} className="lien-discret">
                   Enregistrez une entreprise dans votre carnet
                 </Link>
                 , ou changez la nature des travaux si vous vous êtes trompé.
@@ -1156,7 +1163,7 @@ export function ConsultationOuverte({
                 {vivantes.length > 0
                   ? "Tous les artisans qui correspondent sont déjà sollicités — attendez leur devis, ou "
                   : "Tous les artisans qui correspondent ont déjà été sollicités et aucune demande n'est en cours — "}
-                <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
+                <Link href={`${base}/artisans`} className="lien-discret">
                   enregistrez une autre entreprise dans votre carnet
                 </Link>{" "}
                 pour mettre en concurrence.
@@ -1209,7 +1216,7 @@ export function ConsultationOuverte({
 }
 
 // Ce que l'agent lit d'un devis, retenable ou non : le détail, le PDF et la pièce déposée par l'artisan.
-function CorpsDevis({ orgId, d }: { orgId: string; d: Devis }) {
+function CorpsDevis({ base, d }: { base: string; d: Devis }) {
   return (
     <>
       <p className="whitespace-pre-line text-sm text-muted-foreground">{descriptionDevisLisible(d.description)}</p>
@@ -1217,7 +1224,7 @@ function CorpsDevis({ orgId, d }: { orgId: string; d: Devis }) {
       <a href={`/api/devis/${d.sollicitation_id}/pdf`} target="_blank" rel="noreferrer" className="lien-discret">Télécharger le détail du devis (PDF)</a>
       {d.document_id && (
         <a
-          href={`/agence/${orgId}/documents/${d.document_id}/fichier`}
+          href={`${base}/documents/${d.document_id}/fichier`}
           target="_blank"
           rel="noreferrer"
           className="lien-discret"

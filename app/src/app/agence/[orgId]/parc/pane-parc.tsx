@@ -6,6 +6,8 @@ import { nomComplet } from "@/lib/roles-personnes";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { EchecLecture } from "./echec-lecture";
 import { BoutonLot } from "@/components/fenetre-lot";
+import { baseEspace } from "@/lib/racine-espace";
+import { verifierAccesEspace } from "@/lib/espace";
 
 // Panneau de droite du Parc : le BIEN sélectionné s'ouvre ICI, sans quitter le
 // Parc — la fiche complète reste à un clic. Retour recette 30/08 : « ouvrir un
@@ -35,9 +37,12 @@ export async function PaneParc({
   orgId: string;
   selection: SelectionBien;
 }) {
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const { estProprietaire } = await verifierAccesEspace(orgId);
+  const base = baseEspace(orgId, estProprietaire);
   const retour = (
     // Sous 900px, le lien .retour-liste de la page fait le même travail
-    <Link href={`/agence/${orgId}/parc`} className="lien-discret text-sm max-[900px]:hidden">
+    <Link href={`${base}/parc`} className="lien-discret text-sm max-[900px]:hidden">
       ‹ Vue d&apos;ensemble
     </Link>
   );
@@ -90,7 +95,7 @@ export async function PaneParc({
             {bien.copropriete ? " · en copropriété" : ""}
           </p>
         </div>
-        <Link href={`/agence/${orgId}/parc/${bien.id}`} className="btn-or">
+        <Link href={`${base}/parc/${bien.id}`} className="btn-or">
           Ouvrir la fiche du bien
         </Link>
       </div>
@@ -118,7 +123,7 @@ export async function PaneParc({
             <BoutonLot
               key={l.id}
               lotId={l.id}
-              href={`/agence/${orgId}/parc/${bien.id}/lots/${l.id}`}
+              href={`${base}/parc/${bien.id}/lots/${l.id}`}
               className="rang"
             >
               <span className="min-w-0 flex-1 text-left">

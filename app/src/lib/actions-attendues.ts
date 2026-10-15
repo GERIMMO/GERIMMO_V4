@@ -3,6 +3,7 @@ import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { aujourdhuiParis, estExpiree, eur, formaterDate } from "@/lib/ged";
 import { diagnosticsExigibles, obligatoireEnDefaut } from "@/lib/diagnostics";
 import { statutDiagnostic } from "@/lib/parc";
+import { RACINE_AGENCE } from "@/lib/racine-espace";
 
 // Actions attendues sur les baux en cours — LA source commune (audit 09/09,
 // P2). L'accueil du propriétaire disait « tout est en ordre » pendant que la
@@ -54,10 +55,16 @@ const arrondi = (n: number) => Math.round(n * 100) / 100;
 export async function actionsAttendues(
   supabase: SupabaseClient,
   orgId: string,
-  options: { bailId?: string; portefeuille?: Set<string> | null } = {}
+  options: {
+    bailId?: string;
+    portefeuille?: Set<string> | null;
+    /** « /espace » pour le propriétaire direct, « /agence » par défaut (décision D27, lib/racine-espace.ts). */
+    racine?: string;
+  } = {}
 ): Promise<ActionAttendue[]> {
   const aujourdhui = aujourdhuiParis();
-  const { bailId, portefeuille } = options;
+  const { bailId, portefeuille, racine = RACINE_AGENCE } = options;
+  const base = `${racine}/${orgId}`;
 
   let requeteBaux = supabase
     .from("baux")
@@ -181,7 +188,7 @@ export async function actionsAttendues(
         cle: `impaye-${bail.id}`,
         titre: `Loyer impayé${surLeLot}`,
         detail: `${eur(reste)} échus non couverts`,
-        href: `/agence/${orgId}/baux/${bail.id}#loyers`,
+        href: `${base}/baux/${bail.id}#loyers`,
         critique: true,
       });
     }
@@ -192,7 +199,7 @@ export async function actionsAttendues(
         cle: `edl-${bail.id}`,
         titre: `État des lieux d'entrée à signer${surLeLot}`,
         detail: "Décrire l’état du logement avec le locataire à la remise des clés",
-        href: `/agence/${orgId}/baux/${bail.id}#edl`,
+        href: `${base}/baux/${bail.id}#edl`,
         critique: false,
       });
     }
@@ -210,7 +217,7 @@ export async function actionsAttendues(
           cle: `dpe-${lot.id}`,
           titre: `DPE absent ou expiré${surLeLot}`,
           detail: "Obligatoire en habitation (au lot)",
-          href: `/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}#diagnostics`,
+          href: `${base}/parc/${lot.bien_id}/lots/${lot.id}#diagnostics`,
           critique: false,
           diagnosticIds: expires("dpe", deposesLot),
         });
@@ -223,7 +230,7 @@ export async function actionsAttendues(
             cle: `erp-${bien.id}`,
             titre: `ERP absent ou expiré — ${bien.nom}`,
             detail: "État des risques, validité 6 mois (à l'immeuble)",
-            href: `/agence/${orgId}/parc/${bien.id}#diagnostics`,
+            href: `${base}/parc/${bien.id}#diagnostics`,
             critique: false,
             diagnosticIds: expires("erp", deposesBien),
           });
@@ -243,7 +250,7 @@ export async function actionsAttendues(
       cle: `piece-${p.id}`,
       titre: `Pièce expirée — ${p.titre}`,
       detail: `expirée le ${formaterDate(p.expire_le)}`,
-      href: `/agence/${orgId}/documents?sel=${p.id}`,
+      href: `${base}/documents?sel=${p.id}`,
       critique: false,
     }));
 

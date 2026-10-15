@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { EchecLecture } from "../documents/echec-lecture";
 import { correspond, initiales, type RolePersonne } from "@/lib/roles-personnes";
 import { AnnuaireProprietaire } from "./annuaire-proprietaire";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 export type PersonneListe = {
   id: string;
@@ -38,6 +39,8 @@ export function ListePersonnes({
   listeIllisible?: boolean;
   estBailleurDirect?: boolean;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const [recherche, setRecherche] = useState("");
   const idRecherche = useId();
   if (estBailleurDirect) {
@@ -137,7 +140,7 @@ export function ListePersonnes({
           visibles.map((p) => (
             <Link
               key={p.id}
-              href={`/agence/${orgId}/personnes/${p.id}`}
+              href={`${base}/personnes/${p.id}`}
               className="rang"
             >
               <span aria-hidden className="avatar">

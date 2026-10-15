@@ -15,6 +15,7 @@ import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { nomComplet } from "@/lib/roles-personnes";
 import { EchecLecture, PageEchecLecture } from "../../../../parc/echec-lecture";
 import { exigerUuids } from "@/lib/identifiants";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "État des lieux — Gerimmo" };
 
@@ -24,6 +25,8 @@ export default async function PageEdl(
   const { orgId, bailId, edlId } = await props.params;
   exigerUuids(bailId, edlId);
   const { supabase, estProprietaire, user } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
 
   const { data: edl, error: erreurEdl } = await supabase
     .from("etats_des_lieux")
@@ -37,7 +40,7 @@ export default async function PageEdl(
       <PageEchecLecture
         titre="État des lieux"
         quoi={["l’état des lieux"]}
-        retour={{ href: `/agence/${orgId}/baux/${bailId}`, libelle: "Bail" }}
+        retour={{ href: `${base}/baux/${bailId}`, libelle: "Bail" }}
       />
     );
   if (!edl) notFound();
@@ -180,7 +183,7 @@ export default async function PageEdl(
     <main className="mx-auto w-full max-w-3xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
         <Link
-          href={`/agence/${orgId}/baux/${bailId}`}
+          href={`${base}/baux/${bailId}`}
           className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
         >
           ← Bail{locataireDuBail ? ` · ${nomComplet(locataireDuBail)}` : ""}
@@ -205,14 +208,14 @@ export default async function PageEdl(
               orgId={orgId}
               code="edl"
               cibleId={edlId}
-              cheminRetour={`/agence/${orgId}/baux/${bailId}/edl/${edlId}`}
+              cheminRetour={`${base}/baux/${bailId}/edl/${edlId}`}
               libelle="Générer le PDF"
             />}
           </span>
         </div>
         {suiteRestitution && (
           <Link
-            href={`/agence/${orgId}/baux/${bailId}#restitution`}
+            href={`${base}/baux/${bailId}#restitution`}
             className="mt-2 inline-block text-sm underline underline-offset-2"
           >
             Démarrer la restitution du dépôt de garantie →
@@ -307,7 +310,7 @@ export default async function PageEdl(
               )}
               {!signe && !lotAPieces && lotId && (
                 <Link
-                  href={`/agence/${orgId}/parc/${bienId}/lots/${lotId}#pieces`}
+                  href={`${base}/parc/${bienId}/lots/${lotId}#pieces`}
                   className="mt-2 inline-block underline underline-offset-2"
                 >
                   Déclarer les pièces du lot, puis revenir régénérer la grille ici
@@ -373,7 +376,7 @@ export default async function PageEdl(
       ...(estProprietaire && !signe ? [<div key="validation" className="space-y-4">
         <div id="edl-validation" />
         <p className="text-sm text-muted-foreground">Les mentions, les relevés et les clés enregistrés seront repris dans le document. Vérifiez-les avant de le faire signer aux parties.</p>
-        <BoutonGenererDocument orgId={orgId} code="edl" cibleId={edlId} cheminRetour={`/agence/${orgId}/baux/${bailId}/edl/${edlId}`} libelle="Générer le PDF" />
+        <BoutonGenererDocument orgId={orgId} code="edl" cibleId={edlId} cheminRetour={`${base}/baux/${bailId}/edl/${edlId}`} libelle="Générer le PDF" />
       </div>] : []),
       ]} />
     </main>

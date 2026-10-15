@@ -1,3 +1,4 @@
+import { baseEspace } from "@/lib/racine-espace";
 // LES CLIENTS, VUS DE LA SUPERVISION — le classement, sans écran ni réseau.
 //
 // POURQUOI (demande du porteur du projet, 19/09). La console n'avait pas de
@@ -97,7 +98,8 @@ export function cheminEspaceClient(client: {
   famille: FamilleClient;
   id: string;
 }): string | null {
-  return client.famille === "artisan" ? null : `/agence/${client.id}`;
+  // Décision D27 : l'espace d'un propriétaire direct vit sous /espace/<id>.
+  return client.famille === "artisan" ? null : baseEspace(client.id, client.famille === "proprietaire");
 }
 
 // Les mots qui ne font pas un nom : sans eux, « Parc de Claire Moreau »

@@ -16,6 +16,7 @@ import {
   type AlerteRang,
   type Membre,
 } from "./modale-alerte";
+import { racineEspace } from "@/lib/racine-espace";
 
 export type { AlerteRang } from "./modale-alerte";
 
@@ -90,7 +91,9 @@ export function ListeAlertes({
   // Les incidents étaient résolus ICI, à la main, en doublon de la même règle
   // recopiée dans la synthèse de connexion. `cheminFicheAlerte` les couvre
   // depuis le 19/09, avec les diagnostics et les attestations d'assurance.
-  const ficheDe = (a: AlerteRang) => cheminFiche(a, orgId);
+  // Décision D27 : les fiches du propriétaire direct vivent sous /espace/<id>.
+  const racine = racineEspace(estProprietaire);
+  const ficheDe = (a: AlerteRang) => cheminFiche(a, orgId, racine);
   // L'auto-ouverture se consomme UNE fois, puis le paramètre est retiré de
   // l'URL : sans cela, la revalidation qui suit le traitement remontait le
   // composant avec ?traiter= encore présent et rouvrait une modale périmée
@@ -111,7 +114,7 @@ export function ListeAlertes({
     // Une alerte qui a un lieu de traitement (incident, fiche, bail) y emmène
     // — sinon le lien profond depuis « Mes espaces » ne faisait plus rien
     // (audit de vérification 06/09) ; les autres ouvrent la modale.
-    const fiche = cheminFiche(cible, orgId);
+    const fiche = cheminFiche(cible, orgId, racine);
     if (fiche) {
       router.push(fiche);
       return;
@@ -119,7 +122,7 @@ export function ListeAlertes({
     if (estConfieeAMoi(cible, monCompte) || estResponsable) {
       setOuverte(cible);
     }
-  }, [ouvrirAlerteId, alertes, monCompte, estResponsable, orgId, router]);
+  }, [ouvrirAlerteId, alertes, monCompte, estResponsable, orgId, racine, router]);
   // Le geste abouti solde l'alerte en base et la revalidation arrive dans le
   // MÊME commit React que le succès : la règle sûre est qu'une alerte qui a
   // quitté la liste ferme sa modale (recette 23/08, constaté en production).
@@ -326,7 +329,7 @@ export function ListeAlertes({
           {filtre === "toutes" && estProprietaire && (
             <p className="explication">
               Les diagnostics et pièces à compléter avant de louer restent dans{" "}
-              <Link href={`/agence/${orgId}/parc`} className="lien-discret">
+              <Link href={`${racine}/${orgId}/parc`} className="lien-discret">
                 Mes lots
               </Link>
               .

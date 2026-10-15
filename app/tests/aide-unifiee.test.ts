@@ -43,14 +43,20 @@ describe("aide propriétaire regroupée en sections", () => {
   });
   it("conserve deux paginations indépendantes et le contexte anonymisé", async () => {
     compteDemandes = 80;
-    const html = await rendre({ page: "2", pageIdees: "3", ecran: "/agence/identifiant/baux/dossier?secret=test", retour: "/agence/org-1/parc" });
+    const html = await rendre({ page: "2", pageIdees: "3", ecran: "/espace/identifiant/baux/dossier?secret=test", retour: "/espace/org-1/parc" });
     expect(requetes.filter(r => r.table === "retours_utilisateurs").map(r => r.plage)).toEqual([[20, 39], [40, 59]]);
-    expect(html).toContain("/agence/org-1/faq?pageIdees=3&amp;page=1");
-    expect(html).toContain("/agence/org-1/faq?page=2&amp;pageIdees=4");
+    // Décision D27 : l'aide du propriétaire direct vit sous /espace/<id>/faq.
+    expect(html).toContain("/espace/org-1/faq?pageIdees=3&amp;page=1");
+    expect(html).toContain("/espace/org-1/faq?page=2&amp;pageIdees=4");
+    expect(html).not.toContain("/agence/org-1/faq");
     expect(html).not.toContain("secret=test");
   });
   it("redirige l'ancien lien propriétaire vers la section du formulaire", async () => {
-    await expect(rendre({ retour: "/agence/org-1/abonnement", type: "idee" }, false)).rejects.toThrow(/REDIRECT:\/agence\/org-1\/faq\?.*type=idee#nouvelle/);
+    await expect(rendre({ retour: "/agence/org-1/abonnement", type: "idee" }, false)).rejects.toThrow(/REDIRECT:\/espace\/org-1\/faq\?.*type=idee#nouvelle/);
+  });
+  it("reconnaît la page d'où l'aide est ouverte sous l'une ou l'autre racine (ancien lien /agence, adresse /espace)", async () => {
+    await expect(rendre({ retour: "/espace/org-1/abonnement", type: "idee" }, false)).rejects.toThrow(/REDIRECT:\/espace\/org-1\/faq\?.*type=idee#nouvelle/);
+    await expect(rendre({ retour: "/agence/org-1/abonnement", type: "idee" }, false)).rejects.toThrow(/REDIRECT:\/espace\/org-1\/faq\?.*type=idee#nouvelle/);
   });
   it("conserve la page des idées d'un ancien lien", async () => {
     await expect(rendre({ retour: "/agence/org-1/parc", vue: "idees", page: "2" }, false)).rejects.toThrow(/pageIdees=2#idees/);

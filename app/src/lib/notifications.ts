@@ -53,6 +53,7 @@ import { chargerMarque } from "./marque-organisation-serveur";
 import { creneauEnToutesLettres, jourDuRendezVous } from "./rappel-email";
 import { adresseDuSite } from "./site";
 import { clientDeService } from "./supabase/service";
+import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 
 // ============================================================
 // Partie pure — gabarits
@@ -962,7 +963,7 @@ export async function notifierIncidentUrgentDeclare(
         lot: moi?.lot_nom ?? null,
         piece: champs.piece,
         description: champs.description,
-        lien: lien(`/agence/${orgId}/incidents?sel=${incidentId}`),
+        lien: lien(`${await baseDeLOrganisation(db, orgId)}/incidents?sel=${incidentId}`),
       }),
     });
   } catch (e) {
@@ -999,7 +1000,7 @@ export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devis
     return expedier(db, {
       orgId, to, role: "agence", evenement: "devis_recu", objet: devis.id,
       pieceJointe, cleIdempotence: `devis-gerimmo-${devis.id}`,
-      message: messageDevisRecu({ emetteur: nom, artisan: artisan.raison_sociale, montantCents: Number(devis.montant_ttc_cents), numero: inc.numero, categorie: inc.categorie, lien: lien(`/agence/${orgId}/incidents?sel=${inc.id}`) }),
+      message: messageDevisRecu({ emetteur: nom, artisan: artisan.raison_sociale, montantCents: Number(devis.montant_ttc_cents), numero: inc.numero, categorie: inc.categorie, lien: lien(`${await baseDeLOrganisation(db, orgId)}/incidents?sel=${inc.id}`) }),
     });
   } catch (e) {
     console.error("[notifications] devis_recu :", e instanceof Error ? e.message : e);
@@ -1017,7 +1018,7 @@ export async function notifierMissionRefusee(db: SupabaseClient, orgId: string, 
     const to = await destinataireAgence(db, orgId, inc.responsable_account_id);
     return expedier(db, {
       orgId, to, role: "agence", evenement: "mission_refusee", objet: iv.id,
-      message: messageMissionRefusee({ emetteur: nom, artisan: artisan.raison_sociale, motif: iv.refus_motif, numero: inc.numero, categorie: inc.categorie, lien: lien(`/agence/${orgId}/incidents?sel=${inc.id}`) }),
+      message: messageMissionRefusee({ emetteur: nom, artisan: artisan.raison_sociale, motif: iv.refus_motif, numero: inc.numero, categorie: inc.categorie, lien: lien(`${await baseDeLOrganisation(db, orgId)}/incidents?sel=${inc.id}`) }),
     });
   } catch (e) {
     console.error("[notifications] mission_refusee :", e instanceof Error ? e.message : e);

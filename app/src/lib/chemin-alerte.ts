@@ -1,3 +1,5 @@
+import { RACINE_AGENCE } from "@/lib/racine-espace";
+
 // Où va-t-on pour TRAITER une alerte — et l'alerte se ferme-t-elle d'elle-même
 // une fois le geste fait.
 //
@@ -128,8 +130,10 @@ function texte(details: Record<string, unknown> | null, cle: string): string | n
 
 // « Traiter » emmène là où le geste se fait : un message se lit sur la fiche
 // de la personne, une intention de congé se confirme sur le bail.
-export function cheminFicheAlerte(a: Alerte, orgId: string): string | null {
+// `racine` : « /espace » pour le propriétaire direct, « /agence » par défaut (décision D27, lib/racine-espace.ts).
+export function cheminFicheAlerte(a: Alerte, orgId: string, racine: string = RACINE_AGENCE): string | null {
   const type = a.type;
+  const base = `${racine}/${orgId}`;
 
   // Une attestation d'assurance — celle qui manque, ou celle qui vient d'être
   // déposée — vit dans les PIÈCES JUSTIFICATIVES de la personne : c'est là
@@ -143,13 +147,13 @@ export function cheminFicheAlerte(a: Alerte, orgId: string): string | null {
     const personne = texte(a.details, "person_id");
     if (personne) {
       const ancre = type === "message_locataire" ? "#messages" : "#pieces";
-      return `/agence/${orgId}/personnes/${personne}${ancre}`;
+      return `${base}/personnes/${personne}${ancre}`;
     }
     // L'alerte d'assurance porte aussi le document : à défaut de la personne,
     // la fiche GED reste un endroit honnête où le lire.
     const document = texte(a.details, "document_id");
     if (document && type !== "message_locataire" && type !== "piece_deposee") {
-      return `/agence/${orgId}/documents?sel=${document}`;
+      return `${base}/documents?sel=${document}`;
     }
     return null;
   }
@@ -157,7 +161,7 @@ export function cheminFicheAlerte(a: Alerte, orgId: string): string | null {
   const ancre = type ? ANCRES_BAIL.get(type) : undefined;
   const bail = texte(a.details, "bail_id");
   if (ancre !== undefined && bail) {
-    return `/agence/${orgId}/baux/${bail}${ancre}`;
+    return `${base}/baux/${bail}${ancre}`;
   }
 
   // Un diagnostic ne dit pas où il est posé : sa charge utile ne porte que son
@@ -166,7 +170,7 @@ export function cheminFicheAlerte(a: Alerte, orgId: string): string | null {
   // qui garde CETTE fonction pure et utilisable depuis le navigateur.
   if (type === "diagnostic_expiration") {
     const diagnostic = texte(a.details, "diagnostic_id");
-    if (diagnostic) return `/agence/${orgId}/diagnostics/${diagnostic}`;
+    if (diagnostic) return `${base}/diagnostics/${diagnostic}`;
     return null;
   }
 
@@ -180,14 +184,14 @@ export function cheminFicheAlerte(a: Alerte, orgId: string): string | null {
     type === "creneaux_arbitrage"
   ) {
     const incident = texte(a.details, "incident_id");
-    if (incident) return `/agence/${orgId}/incidents?sel=${incident}`;
+    if (incident) return `${base}/incidents?sel=${incident}`;
     return null;
   }
 
   // Un document signé retourné se contrôle puis se classe sur sa fiche GED
   if (type === "signature_retournee" || type === "signature_a_reprendre") {
     const document = texte(a.details, "document_id");
-    if (document) return `/agence/${orgId}/documents?sel=${document}`;
+    if (document) return `${base}/documents?sel=${document}`;
   }
   return null;
 }
@@ -197,8 +201,8 @@ export function cheminFicheAlerte(a: Alerte, orgId: string): string | null {
  * seule. C'est ce que la modale de traitement met EN PREMIER — avant de
  * confier à quelqu'un, et bien avant de marquer traitée à la main.
  */
-export function gesteAlerte(a: Alerte, orgId: string): GesteAlerte | null {
-  const href = cheminFicheAlerte(a, orgId);
+export function gesteAlerte(a: Alerte, orgId: string, racine: string = RACINE_AGENCE): GesteAlerte | null {
+  const href = cheminFicheAlerte(a, orgId, racine);
   if (!href || !a.type) return null;
   return {
     href,

@@ -18,6 +18,8 @@ import { ActionsDocument } from "./actions-document";
 import { FormulaireRemplacer } from "./formulaire-remplacer";
 import { FormulaireRattacher, type FichesRattachables } from "./formulaire-rattacher";
 import { titreAffiche } from "./titre-document";
+import { baseEspace } from "@/lib/racine-espace";
+import { verifierAccesEspace } from "@/lib/espace";
 
 // Les baux proposés au rattachement sont bornés — le sélecteur le DIT quand
 // il atteint le plafond, au lieu de laisser croire que l'agence n'en a pas
@@ -64,6 +66,9 @@ export async function PaneDocument({
   lienFermer: string;
 }) {
   const supabase = await createClient();
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const { estProprietaire } = await verifierAccesEspace(orgId);
+  const base = baseEspace(orgId, estProprietaire);
 
   const { data: docBrut, error: erreurDoc } = await supabase
     .from("documents")
@@ -288,7 +293,7 @@ export async function PaneDocument({
     );
   }
 
-  const fichier = `/agence/${orgId}/documents/${doc.id}/fichier`;
+  const fichier = `${base}/documents/${doc.id}/fichier`;
   const aRenouveler = estARenouveler(doc.expire_le);
 
   return (

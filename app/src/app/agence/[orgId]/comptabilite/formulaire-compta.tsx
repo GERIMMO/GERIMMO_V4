@@ -22,6 +22,7 @@ import { CleEnvoi } from "@/components/cle-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { eur, moisEnFrancais } from "@/lib/ged";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 // Le dernier mois RÉVOLU, à partir d'un « AAAA-MM ». C'est le mois que la base
 // accepte de clôturer (RM-4.4.1) et donc le seul dont un rapport de gestion
@@ -63,6 +64,8 @@ export function RapportsGestion({
   // L'agent n'a pas le geste de clôture : on lui dit qui peut débloquer
   peutCloturer: boolean;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   // Un mandat en préavis ou résilié ne génère plus de rapport, mais ses
   // rapports non versés restent visibles jusqu'au solde.
   const visibles = mandats
@@ -120,7 +123,7 @@ export function RapportsGestion({
                           ? "Validé"
                           : "Versé"}
                     </span>
-                    {r.statut === "a_valider" && <BoutonGenererDocument orgId={orgId} code="rapport_gestion" cibleId={r.id} cheminRetour={`/agence/${orgId}/comptabilite`} libelle="Préparer le PDF pour relecture" size="sm" variant="ghost" />}
+                    {r.statut === "a_valider" && <BoutonGenererDocument orgId={orgId} code="rapport_gestion" cibleId={r.id} cheminRetour={`${base}/comptabilite`} libelle="Préparer le PDF pour relecture" size="sm" variant="ghost" />}
                     <BoutonEnvoyerRapport orgId={orgId} rapportId={r.id} valide={r.statut !== "a_valider"} />
                     {r.statut !== "a_valider" && (r.versement_montant == null ? (
                       <FormVersement orgId={orgId} rapportId={r.id} />
@@ -162,6 +165,8 @@ function BoutonGenererRapport({
   moisClotures: string[];
   peutCloturer: boolean;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const [etat, action] = useActionState<EtatCompta, FormData>(genererRapport.bind(null, orgId, mandatId), {});
   // Le mois choisi est suivi : un mois non clôturé menait À COUP SÛR au refus
   // « Mois non clôturé », que rien n'annonçait (24/09). Le bouton attend donc
@@ -192,7 +197,7 @@ function BoutonGenererRapport({
         <p className="w-full text-xs text-muted-foreground">
           {nomMois.charAt(0).toUpperCase() + nomMois.slice(1)} n&apos;est pas clôturé —{" "}
           {peutCloturer
-            ? <Link className="font-medium text-primary underline" href={`/agence/${orgId}/comptabilite?vue=cloture`}>Clôturer ce mois</Link>
+            ? <Link className="font-medium text-primary underline" href={`${base}/comptabilite?vue=cloture`}>Clôturer ce mois</Link>
             : "la clôture revient au responsable de l'agence."}
         </p>
       )}
@@ -203,6 +208,8 @@ function BoutonGenererRapport({
 }
 
 function BoutonEnvoyerRapport({ orgId, rapportId, valide }: { orgId: string; rapportId: string; valide: boolean }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const { etat, soumettre, enCours } = useActionFormulaire<EtatCompta>(envoyerRapport.bind(null, orgId, rapportId));
   return (
     <form data-saisie-confirmee onSubmit={soumettre} aria-busy={enCours} className="flex flex-wrap items-center gap-1">
@@ -213,7 +220,7 @@ function BoutonEnvoyerRapport({ orgId, rapportId, valide }: { orgId: string; rap
         className="h-8 w-32 text-xs"
       />}
       <BoutonEnvoi size="sm" variant="ghost" enCours={enCours} enCoursTexte="Envoi…">{valide ? "Renvoyer le compte rendu" : "Valider & envoyer le PDF"}</BoutonEnvoi>
-      {etat.documentId && <a className="text-xs underline" href={`/agence/${orgId}/documents/${etat.documentId}/fichier`} target="_blank" rel="noopener noreferrer">Consulter le PDF</a>}
+      {etat.documentId && <a className="text-xs underline" href={`${base}/documents/${etat.documentId}/fichier`} target="_blank" rel="noopener noreferrer">Consulter le PDF</a>}
       {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
       {/* Le succès peut porter une réserve (mandant sans email, envoi manqué) */}
       {etat.succes && <span className="text-sm text-success-soft-foreground">{etat.succes}</span>}

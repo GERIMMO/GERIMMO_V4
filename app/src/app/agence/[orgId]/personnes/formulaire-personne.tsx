@@ -22,6 +22,7 @@ import { NavigationParcours } from "@/components/navigation-parcours";
 import { formaterDate } from "@/lib/ged";
 import parcours from "@/components/presentation-parcours.module.css";
 import styles from "./creation-personne.module.css";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 export type LotRattachable = { id: string; libelle: string };
 const ROLES = [
@@ -45,6 +46,8 @@ export function FormulairePersonne(props: Props) {
   return <RepriseLocale cle={cle} valider={validerBrouillonPersonne}>{copie => <FormulairePersonneSaisie {...props} cleLocale={cle} copie={copie} />}</RepriseLocale>;
 }
 function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dansParcours = false, cleLocale, copie }: Props & { cleLocale: string; copie: CopieFichiers<BrouillonPersonne> | null }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const initial = copie?.donnees;
   const { enregistrer, differer, statut } = useCopieFichiers(cleLocale, copie);
   const [pieces, setPieces] = useState<JustificatifPrepare[]>(initial?.pieces ?? []);
@@ -129,7 +132,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
     </div>;
   }
   if (etat.terminee && etat.personneCreee) {
-    const href = `/agence/${orgId}/personnes/${etat.personneCreee.id}`;
+    const href = `${base}/personnes/${etat.personneCreee.id}`;
     return <section className={`${parcours.cadre} ${styles.creationReussie}`} aria-label="Fiche créée">
       <CheckCircle2 size={38} aria-hidden="true" /><h2>La fiche est créée</h2><p>{[valeurs.prenom,valeurs.nom].filter(Boolean).join(" ")}</p>
       {etat.avertissement && <p role="status" className="text-warning-soft-foreground">{etat.avertissement}</p>}
@@ -141,8 +144,8 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
   return <div ref={navigation} className={`assistant-location ${parcours.presentation} ${parcours.parcoursLot}`}>
     <StatutCopieLocale statut={statut} />
     {etat.creationIncertaine && (creationId
-      ? <p role="alert" className="mb-4 rounded-xl bg-warning-soft p-4 text-sm">Un enregistrement a été interrompu. Vous pouvez relancer l’envoi : si la fiche a bien été créée, elle sera retrouvée et ne sera pas créée une seconde fois. Votre saisie et vos documents restent disponibles ici. <Link className="underline" href={`/agence/${orgId}/personnes`}>Voir les fiches</Link></p>
-      : <p role="alert" className="mb-4 rounded-xl bg-warning-soft p-4 text-sm">Un enregistrement a été interrompu. Vérifiez la fiche dans la liste avant de recommencer. Votre saisie et vos documents restent disponibles ici. <Link className="underline" href={`/agence/${orgId}/personnes`}>Voir les fiches</Link></p>)}
+      ? <p role="alert" className="mb-4 rounded-xl bg-warning-soft p-4 text-sm">Un enregistrement a été interrompu. Vous pouvez relancer l’envoi : si la fiche a bien été créée, elle sera retrouvée et ne sera pas créée une seconde fois. Votre saisie et vos documents restent disponibles ici. <Link className="underline" href={`${base}/personnes`}>Voir les fiches</Link></p>
+      : <p role="alert" className="mb-4 rounded-xl bg-warning-soft p-4 text-sm">Un enregistrement a été interrompu. Vérifiez la fiche dans la liste avant de recommencer. Votre saisie et vos documents restent disponibles ici. <Link className="underline" href={`${base}/personnes`}>Voir les fiches</Link></p>)}
     <NavigationParcours titre="Création d’une fiche" label="Étapes de la création d’une fiche" etape={etape} changer={changer} accessibles={role ? 5 : 1}
       etapes={ETAPES.map((e,i) => ({...e,...(i<3 ? {statut:restants[i] ? "incomplet" as const : "complet" as const, restant:restants[i]} : i===3 ? {statutLibelle: pieces.length ? `${pieces.length} préparé${pieces.length>1 ? "s" : ""}` : "Facultatif"} : {})}))} />
     {etat.succes && <p role="status" className="mb-4 text-sm text-success-soft-foreground">{etat.succes}</p>}
@@ -203,7 +206,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
           </section>
           {!estProprio && <p className={parcours.creationNote}>{role==="locataire" ? "Vous pourrez choisir cette personne comme locataire lors de la création du bail." : "Vous pourrez choisir ce garant dans le bail du locataire qu’il cautionne."}</p>}
         </div>
-        {(etat.personneCreee ?? etat.ficheExistante) && <p className="mt-4 text-sm"><Link className="underline underline-offset-4" href={`/agence/${orgId}/personnes/${(etat.personneCreee ?? etat.ficheExistante)!.id}#pieces`}>Ouvrir la fiche déjà créée</Link></p>}
+        {(etat.personneCreee ?? etat.ficheExistante) && <p className="mt-4 text-sm"><Link className="underline underline-offset-4" href={`${base}/personnes/${(etat.personneCreee ?? etat.ficheExistante)!.id}#pieces`}>Ouvrir la fiche déjà créée</Link></p>}
         {etat.erreur && <p role="alert" className="mt-4 text-sm text-destructive">{etat.erreur}</p>}
       </div>
       <div className={`assistant-pied ${parcours.pied}`}>

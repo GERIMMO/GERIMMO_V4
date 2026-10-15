@@ -7,6 +7,7 @@ import { IMPUTATIONS_INCIDENT } from "@/lib/incidents";
 import { centsEnEuros } from "../artisans/referentiel";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { EchecLecture } from "../documents/echec-lecture";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Statistiques — Gerimmo" };
 
@@ -30,6 +31,8 @@ export default async function PageStatistiques(
 ) {
   const { orgId } = await props.params;
   const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
 
   const [
     { data: incidentsBruts, error: erreurIncidents },
@@ -221,11 +224,11 @@ export default async function PageStatistiques(
         <p className="text-sm text-muted-foreground">
           Le suivi chiffré de vos incidents : délais, qui paie, lots qui reviennent.
           Vos loyers encaissés et attendus se lisent dans{" "}
-          <Link href={`/agence/${orgId}/loyers`} className="lien-discret">
+          <Link href={`${base}/loyers`} className="lien-discret">
             Loyers &amp; charges
           </Link>
           , votre bilan annuel dans{" "}
-          <Link href={`/agence/${orgId}/comptabilite/fiscal`} className="lien-discret">
+          <Link href={`${base}/comptabilite/fiscal`} className="lien-discret">
             Fiscalité
           </Link>
           .
@@ -239,11 +242,11 @@ export default async function PageStatistiques(
           Le suivi chiffré des incidents : délais, qui paie, lots qui reviennent.
           La répartition du parc et les encaissements des six derniers mois se
           lisent sur le{" "}
-          <Link href={`/agence/${orgId}`} className="lien-discret">
+          <Link href={`${base}`} className="lien-discret">
             tableau de bord
           </Link>
           , les loyers du mois dans{" "}
-          <Link href={`/agence/${orgId}/loyers`} className="lien-discret">
+          <Link href={`${base}/loyers`} className="lien-discret">
             Loyers &amp; charges
           </Link>
           .
@@ -290,7 +293,7 @@ export default async function PageStatistiques(
               : "du signalement à la clôture"}
           </span>
         </div>
-        <Link href={`/agence/${orgId}/incidents`} className="kpi or">
+        <Link href={`${base}/incidents`} className="kpi or">
           <span className="eyebrow">En cours</span>
           <span className="chiffre montant mt-1 block">{enCours}</span>
           <span className="block text-xs text-muted-foreground">
@@ -488,7 +491,7 @@ export default async function PageStatistiques(
                 return lot?.bien_id ? (
                   <Link
                     key={lotId}
-                    href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lotId}`}
+                    href={`${base}/parc/${lot.bien_id}/lots/${lotId}`}
                     className="ligne-info -mx-2 min-h-11 px-2 hover:bg-[var(--survol)]"
                   >
                     {contenu}

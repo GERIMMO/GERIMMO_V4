@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { chargerQuittancementDuMois } from "@/lib/quittancement-du-mois";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
+import { baseEspace } from "@/lib/racine-espace";
 
 // Un seul libellé pour l'onglet, le h1 et le h1 de la branche d'erreur.
 // 25/09 : le MÊME titre pour l'agent et l'admin d'agence — la même url
@@ -86,6 +87,8 @@ export default async function PageComptabilite(props: {
 }) {
   const { orgId } = await props.params;
   const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   const recherche = await props.searchParams ?? {};
   const vues = [
     { id: "journal", libelle: "Journal" },
@@ -94,7 +97,7 @@ export default async function PageComptabilite(props: {
     ...(!estProprietaire ? [{ id: "rapports", libelle: "Rapports" }] : []),
   ];
   const vue = vues.find((v) => v.id === recherche.vue)?.id ?? "journal";
-  const hrefVue = (id: string) => `/agence/${orgId}/comptabilite?vue=${id}`;
+  const hrefVue = (id: string) => `${base}/comptabilite?vue=${id}`;
 
   // « Mon portefeuille » (maquette v3, RM-18.1.3) : l'agent lit sa
   // comptabilité à travers ses mandats — null : il voit tout.
@@ -178,7 +181,7 @@ export default async function PageComptabilite(props: {
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
         <div className="entete-page">
           <TitreEcran rubrique="finances">{titreComptabilite(role, estProprietaire)}</TitreEcran>
-          {estProprietaire && <Link href={`/agence/${orgId}/loyers#operations`} className="lien-discret">← Finances</Link>}
+          {estProprietaire && <Link href={`${base}/loyers#operations`} className="lien-discret">← Finances</Link>}
         </div>
         <div className="err" role="alert">
           <p className="font-medium">
@@ -283,7 +286,7 @@ export default async function PageComptabilite(props: {
             l'espace : plus de mb-4 / mb-6 posés page par page (24/09). */}
         <div className="entete-page">
           <TitreEcran rubrique="finances">{titreComptabilite(role, estProprietaire)}</TitreEcran>
-          {estProprietaire && <Link href={`/agence/${orgId}/loyers#operations`} className="lien-discret">← Finances</Link>}
+          {estProprietaire && <Link href={`${base}/loyers#operations`} className="lien-discret">← Finances</Link>}
           <span className="mono-discret">
             {portefeuille ? "Mon portefeuille · " : ""}
             {dernierCloture ? `${moisEnFrancais(dernierCloture)} clôturé · ` : ""}
@@ -302,7 +305,7 @@ export default async function PageComptabilite(props: {
           ) : (
             <p className="mt-2 text-sm">
               <a
-                href={`/agence/${orgId}/comptabilite/reprise`}
+                href={`${base}/comptabilite/reprise`}
                 className="lien-discret inline-block py-2 sm:py-0"
               >
                 Reprendre mes comptes — balance d&apos;ouverture →
@@ -313,7 +316,7 @@ export default async function PageComptabilite(props: {
         {estProprietaire && (
           <p className="mt-2 text-sm">
             <a
-              href={`/agence/${orgId}/comptabilite/fiscal`}
+              href={`${base}/comptabilite/fiscal`}
               className="lien-discret inline-block py-2 sm:py-0"
             >
               Récapitulatif fiscal {anneeCourante} (déclaration 2044) →
@@ -394,7 +397,7 @@ export default async function PageComptabilite(props: {
         // page, était de plus une simple navigation : il devient l'affordance
         // discrète d'une carte entièrement cliquable (survol : `a:hover >
         // [data-slot=card]`).
-        <Link href={`/agence/${orgId}/loyers`} className="block rounded-[14px]">
+        <Link href={`${base}/loyers`} className="block rounded-[14px]">
           <Card>
             <CardHeader>
               <CardTitle>Quittancement {deElide(moisEnFrancais(moisQuittancement))}</CardTitle>
@@ -514,13 +517,13 @@ export default async function PageComptabilite(props: {
             {lignes.length > 0 && (
               <span className="flex items-center gap-3">
                 <a
-                  href={`/agence/${orgId}/comptabilite/export?du=${anneeCourante}-01-01&au=${anneeCourante}-12-31`}
+                  href={`${base}/comptabilite/export?du=${anneeCourante}-01-01&au=${anneeCourante}-12-31`}
                   className="lien-discret py-2 sm:py-0"
                 >
                   Exporter {anneeCourante}
                 </a>
                 <a
-                  href={`/agence/${orgId}/comptabilite/export`}
+                  href={`${base}/comptabilite/export`}
                   className="lien-discret py-2 sm:py-0"
                 >
                   Tout exporter

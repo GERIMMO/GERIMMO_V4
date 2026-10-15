@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { initiales, correspond } from "@/lib/roles-personnes";
 import { formaterDateHeure } from "@/lib/ged";
 import styles from "./messagerie.module.css";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 export type FilConversation = {
   person_id: string; nom: string; prenom: string | null; dernier: string | null;
@@ -22,7 +23,7 @@ export function MessagerieProprietaire({ orgId, fils, selection, conversation }:
   const [nonLuesSeulement, setNonLuesSeulement] = useState(false);
   const idRecherche = useId();
   const idListe = useId();
-  const base = `/agence/${orgId}`;
+  const base = useBaseEspace(orgId); // décision D27 : /espace chez le propriétaire direct
   const actives = fils.filter((fil) => fil.non_lus > 0);
   const nonLus = fils.reduce((total, fil) => total + fil.non_lus, 0);
   const visibles = fils.filter((fil) => (!nonLuesSeulement || fil.non_lus > 0) && correspond(recherche, fil.nom, fil.prenom, fil.dernier));

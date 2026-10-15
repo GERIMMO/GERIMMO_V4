@@ -10,6 +10,7 @@ import { premier } from "@/lib/postgrest";
 import { jourLong, creneauTexte, STATUTS_MISSION } from "@/app/artisan/libelles";
 import { EchecLecture } from "../documents/echec-lecture";
 import { AgendaProprietaire } from "./agenda-proprietaire";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Agenda — Gerimmo" };
 
@@ -87,13 +88,14 @@ export default async function PageAgenda({ params, searchParams }: {
   const { orgId } = await params;
   // cache() : même lecture que le layout et que l'action, pour la mention
   // « Mon portefeuille » de l'agent (comme Loyers, Statistiques, Messages).
-  const { role } = await verifierAccesEspace(orgId);
+  const { role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   const sp = await searchParams;
   const [agenda, comptesVues] = await Promise.all([
     chargerAgendaGestion(orgId, { ...sp, vue: sp.vue ?? "mois" }),
     compterVuesAgenda(orgId),
   ]);
-  const base = `/agence/${orgId}`;
   const lien = (vue: string, extra: Record<string, string> = {}) => `${base}/agenda?${new URLSearchParams({ vue, ...extra })}`;
   const lienMois = (mois: string, jour?: string) => lien("mois", { mois, ...(jour ? { jour } : {}) });
   const aujourdhui = jourParis(new Date());

@@ -4,6 +4,7 @@ import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { COLONNES } from "@/lib/import-parc";
 import { EnteteFiche } from "@/components/fiche-parc";
 import { FormulaireImport } from "./formulaire-import";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Import des lots — Gerimmo" };
 
@@ -19,6 +20,8 @@ export default async function PageImportParc(
 ) {
   const { orgId } = await props.params;
   const { role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   // Un import engage tout le parc : il appartient au responsable, pas à un
   // agent. La base le revérifie (importer_parc).
   if (!role || !ROLES_RESPONSABLES.includes(role)) notFound();
@@ -39,7 +42,7 @@ export default async function PageImportParc(
     // (24/09) : même retour gris, même titre à filet, même largeur.
     <main className="mx-auto w-full max-w-2xl space-y-5 p-4 sm:p-7">
       <EnteteFiche
-        retour={{ href: `/agence/${orgId}/parc`, libelle: libelleParc }}
+        retour={{ href: `${base}/parc`, libelle: libelleParc }}
         titre={titre}
         sousTitre={
           // Un seul locuteur (24/09) : « vous », ni l'organisation (« Parc de
@@ -61,7 +64,7 @@ export default async function PageImportParc(
           les en-têtes sont reconnus sans tenir compte des accents ni de la
           casse, et les colonnes inconnues sont ignorées, pas refusées.
         </p>
-        <a href={`/agence/${orgId}/parc/import/modele`} className="btn-or mt-3">
+        <a href={`${base}/parc/import/modele`} className="btn-or mt-3">
           Télécharger le gabarit
         </a>
         <p className="mt-3 text-sm">

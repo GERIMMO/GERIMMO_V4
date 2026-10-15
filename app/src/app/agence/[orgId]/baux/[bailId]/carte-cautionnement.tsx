@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 // Génération de l'acte de cautionnement : un acte par garant du bail, avec
 // les choix du geste (forme solidaire ou simple, plafond garanti en euros).
@@ -44,6 +45,8 @@ function LigneGarant({
   bailId: string;
   garant: { id: string; nom: string };
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const [forme, setForme] = useState<"solidaire" | "simple">("solidaire");
   const [montantMax, setMontantMax] = useState("");
 
@@ -83,7 +86,7 @@ function LigneGarant({
             orgId={orgId}
             code="cautionnement"
             cibleId={bailId}
-            cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+            cheminRetour={`${base}/baux/${bailId}`}
             libelle="Générer l'acte"
             options={{
               garant: garant.id,

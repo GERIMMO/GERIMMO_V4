@@ -9,6 +9,7 @@ import { correspond, initiales, nomComplet } from "@/lib/roles-personnes";
 import { EchecLecture } from "../documents/echec-lecture";
 import type { PersonneListe } from "./liste-personnes";
 import styles from "./annuaire-personnes.module.css";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 const FILTRES = [
   { id: "toutes", libelle: "Toutes les fiches", ton: "neutre" },
@@ -32,6 +33,8 @@ function tonRole(libelle: string) {
 export function AnnuaireProprietaire({ orgId, personnes, listeIllisible }: {
   orgId: string; personnes: PersonneListe[]; listeIllisible: boolean;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const [recherche, setRecherche] = useState("");
   const [filtre, setFiltre] = useState<Filtre>("toutes");
   const idRecherche = useId();
@@ -87,7 +90,7 @@ export function AnnuaireProprietaire({ orgId, personnes, listeIllisible }: {
           const ton = personne.roles.length ? tonRole(personne.roles[0].libelle) : "neutre";
           const nonLus = personne.messagesNonLus ?? 0;
           return <li key={personne.id}>
-            <Link href={`/agence/${orgId}/personnes/${personne.id}`} className={styles.fiche} data-ton={ton} title={`Ouvrir la fiche de ${nom}`}>
+            <Link href={`${base}/personnes/${personne.id}`} className={styles.fiche} data-ton={ton} title={`Ouvrir la fiche de ${nom}`}>
               <span className={styles.identite}>
                 <span className={styles.avatar} aria-hidden="true">{initiales(personne.nom, personne.prenom)}</span>
                 <span className={styles.nomEtRoles}>

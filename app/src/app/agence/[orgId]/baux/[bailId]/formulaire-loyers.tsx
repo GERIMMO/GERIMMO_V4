@@ -35,6 +35,7 @@ import {
   type EtatDecompteSortie,
 } from "@/lib/baux";
 import { ChampFichier } from "@/components/champ-fichier";
+import { RACINE_AGENCE, baseDepuisRacine } from "@/lib/racine-espace";
 import { CleEnvoi } from "@/components/cle-envoi";
 import { ConfirmationEncaissement } from "@/components/confirmation-encaissement";
 
@@ -224,6 +225,7 @@ function BoutonRetirerRelance({
 export function FormulaireLoyers({
   orgId,
   bailId,
+  racine = RACINE_AGENCE,
   echeancier,
   encaissements,
   quittances,
@@ -261,7 +263,10 @@ export function FormulaireLoyers({
   aujourdhui?: string;
   /** État du décompte de sortie du bail (D40) : « repris au décompte de sortie » ne se dit que s'il n'est pas finalisé. */
   decompteSortie?: EtatDecompteSortie;
+  /** « /espace » chez le propriétaire direct, « /agence » sinon (décision D27) ; la page du bail la transmet. */
+  racine?: string;
 }) {
+  const base = baseDepuisRacine(orgId, racine);
   const [etatEnc, formEnc] = useActionState<EtatLoyers, FormData>(
     ajouterEncaissement.bind(null, orgId, bailId),
     {}
@@ -483,7 +488,7 @@ export function FormulaireLoyers({
                             orgId={orgId}
                             code="quittance"
                             cibleId={q.id}
-                            cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                            cheminRetour={`${base}/baux/${bailId}`}
                             libelle={q.est_quittance ? "Quittance (PDF)" : "Reçu (PDF)"}
                             variant="ghost"
                           />
@@ -494,7 +499,7 @@ export function FormulaireLoyers({
                         orgId={orgId}
                         code="avis_echeance"
                         cibleId={l.appel_id}
-                        cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                        cheminRetour={`${base}/baux/${bailId}`}
                         libelle="Avis d'échéance (PDF)"
                         variant="ghost"
                       />
@@ -503,7 +508,7 @@ export function FormulaireLoyers({
                           orgId={orgId}
                           code="prorata"
                           cibleId={l.appel_id}
-                          cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                          cheminRetour={`${base}/baux/${bailId}`}
                           libelle="Prorata (PDF)"
                           variant="ghost"
                         />
@@ -562,7 +567,7 @@ export function FormulaireLoyers({
                     orgId={orgId}
                     code="revision_irl"
                     cibleId={r.id}
-                    cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                    cheminRetour={`${base}/baux/${bailId}`}
                     libelle="Lettre PDF"
                     variant="ghost"
                   />

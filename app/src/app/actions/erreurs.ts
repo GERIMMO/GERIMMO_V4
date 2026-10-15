@@ -17,7 +17,7 @@ import { ecranSansDonnees } from "@/lib/retours";
 // fait rien : `log_tech` est réservé aux connectés, et Vercel voit déjà ces
 // erreurs-là.
 
-const ESPACES = ["agence", "locataire", "proprietaire", "artisan", "admin"] as const;
+const ESPACES = ["agence", "espace", "locataire", "proprietaire", "artisan", "admin"] as const;
 
 export async function signalerErreurEcran(entree: {
   digest?: string;

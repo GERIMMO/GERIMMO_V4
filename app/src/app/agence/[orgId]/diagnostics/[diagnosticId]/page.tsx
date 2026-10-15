@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { exigerUuids } from "@/lib/identifiants";
+import { baseEspace } from "@/lib/racine-espace";
 
 /**
  * Le renvoi d'un diagnostic vers l'endroit où il se redépose.
@@ -23,7 +24,9 @@ export default async function PageRenvoiDiagnostic(
 ) {
   const { orgId, diagnosticId } = await props.params;
   exigerUuids(diagnosticId);
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
 
   const { data: diagnostic } = await supabase
     .from("diagnostics")
@@ -35,11 +38,11 @@ export default async function PageRenvoiDiagnostic(
   // Une alerte peut survivre à l'archivage du diagnostic qu'elle ciblait.
   // Revenir aux alertes permet de traiter ce cas sans laisser un lien en 404.
   // La destination est identique pour un objet absent ou hors de l'agence.
-  if (!diagnostic) redirect(`/agence/${orgId}/alertes?source_introuvable=diagnostic`);
+  if (!diagnostic) redirect(`${base}/alertes?source_introuvable=diagnostic`);
 
   // Diagnostic d'immeuble : la fiche du bien, sur sa carte diagnostics.
   if (diagnostic.bien_id) {
-    redirect(`/agence/${orgId}/parc/${diagnostic.bien_id}#diagnostics`);
+    redirect(`${base}/parc/${diagnostic.bien_id}#diagnostics`);
   }
 
   // Diagnostic de logement : la fiche du lot. Son bien se lit à part — deux
@@ -51,9 +54,9 @@ export default async function PageRenvoiDiagnostic(
     .eq("id", diagnostic.lot_id as string)
     .eq("organization_id", orgId)
     .maybeSingle();
-  if (!lot?.bien_id) redirect(`/agence/${orgId}/alertes?source_introuvable=diagnostic`);
+  if (!lot?.bien_id) redirect(`${base}/alertes?source_introuvable=diagnostic`);
 
   redirect(
-    `/agence/${orgId}/parc/${lot.bien_id}/lots/${diagnostic.lot_id}#diagnostics`
+    `${base}/parc/${lot.bien_id}/lots/${diagnostic.lot_id}#diagnostics`
   );
 }

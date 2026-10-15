@@ -13,6 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { BadgeStatut } from "@/components/badge-statut";
 import { FormulaireClasseDpeLot } from "./formulaire-classe-dpe-lot";
 import { FormulaireDiagnostic } from "./formulaire-diagnostic";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 export type DiagnosticDepose = {
   id: string;
@@ -43,6 +44,8 @@ export function LignesDiagnostics({
   attendus: string[];
   diagnostics: DiagnosticDepose[];
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const [classeOuverte, setClasseOuverte] = useState(false);
   const [ouvert, setOuvert] = useState<string | null>(null);
 
@@ -108,7 +111,7 @@ export function LignesDiagnostics({
               {type === "dpe" && d && lotId && niveau === "lot" && <Button type="button" size="sm" variant="outline" onClick={() => setClasseOuverte(v => !v)}>{d.classe_dpe ? `Classe ${d.classe_dpe} · Modifier` : "Compléter la classe DPE"}</Button>}
               {d?.document_id && (
                 <a
-                  href={`/agence/${orgId}/documents/${d.document_id}/fichier`}
+                  href={`${base}/documents/${d.document_id}/fichier`}
                   target="_blank"
                   rel="noreferrer"
                   className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}

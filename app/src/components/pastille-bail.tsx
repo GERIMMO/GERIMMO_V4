@@ -4,6 +4,7 @@ import { CompletudeBail } from "@/lib/suivi-enregistrement";
 import { champBailManquant } from "@/lib/reperes-bail";
 import { Label } from "@/components/ui/label";
 import styles from "./pastille-bail.module.css";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 type Repere = { champ?: string | string[]; renseigne?: boolean; manquant?: boolean };
 export function PastilleBail({ champ = "", renseigne = false, manquant }: Repere) {
@@ -16,7 +17,9 @@ export function LabelBail({ champ, renseigne, manquant, children, ...props }: Co
   return <Label {...props}>{children}<PastilleBail champ={champ} renseigne={renseigne} manquant={manquant}/></Label>;
 }
 export function ProfilBailACompleter({ orgId }: { orgId: string }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const controle = useContext(CompletudeBail);
   if (!controle || !champBailManquant(controle.manquants, "profil")) return null;
-  return <a className="inline-flex items-center gap-2 text-sm underline" href={`/agence/${orgId}/profil`}><PastilleBail champ="profil"/>Compléter les informations du profil pour le bail</a>;
+  return <a className="inline-flex items-center gap-2 text-sm underline" href={`${base}/profil`}><PastilleBail champ="profil"/>Compléter les informations du profil pour le bail</a>;
 }

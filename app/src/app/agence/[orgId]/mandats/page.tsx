@@ -7,6 +7,7 @@ import { eur, formaterDate, moisEnFrancais } from "@/lib/ged";
 import { initiales, nomComplet } from "@/lib/roles-personnes";
 import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Mandats & versements — Gerimmo" };
 
@@ -17,6 +18,8 @@ export const metadata = { title: "Mandats & versements — Gerimmo" };
 export default async function PageMandats(props: PageProps<"/agence/[orgId]/mandats">) {
   const { orgId } = await props.params;
   const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   if (estProprietaire || role !== "admin_agence") notFound();
 
   const [
@@ -166,7 +169,7 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
           {/* L'état vide mène là où le mandat se crée (24/09). */}
           <span className="geste">
             <Link
-              href={`/agence/${orgId}/personnes`}
+              href={`${base}/personnes`}
               className={buttonVariants({ variant: "outline" })}
             >
               Ouvrir Personnes
@@ -186,7 +189,7 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
               // promettait un clic au survol sans rien ouvrir (24/09).
               <Link
                 key={m.id}
-                href={`/agence/${orgId}/personnes/${m.person_id}`}
+                href={`${base}/personnes/${m.person_id}`}
                 className="rang"
               >
                 <span aria-hidden className="avatar">

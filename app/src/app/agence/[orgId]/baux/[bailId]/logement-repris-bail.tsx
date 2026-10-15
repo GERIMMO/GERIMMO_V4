@@ -9,6 +9,7 @@ import { TYPES_BIEN } from "@/lib/parc";
 import type { BienFormulaire } from "../../parc/formulaire-bien";
 import type { LotFormulaire } from "../../parc/[bienId]/lots/[lotId]/formulaire-lot";
 import styles from "./logement-bail.module.css";
+import { useRacineEspace } from "@/components/racine-espace-contexte";
 
 type Props = {
   orgId: string;
@@ -27,7 +28,8 @@ const surface = (v: number | null) => v == null ? "À renseigner" : `${Number(v)
 export function LogementReprisBail({ orgId, bailId, lot, bien, catalogue, selection, erreurEquipements, chambres }: Props) {
   const manquants = complementsLogementBail(lot, bien);
   const equipements = catalogue.filter(e => selection.includes(e.id));
-  const lien = (etape: EtapeLot) => lienLotDepuisBail(orgId, bien.id, lot.id, bailId, etape);
+  const racine = useRacineEspace(); // décision D27 : /espace chez le propriétaire direct
+  const lien = (etape: EtapeLot) => lienLotDepuisBail(orgId, bien.id, lot.id, bailId, etape, 3, racine);
   return <div id="completer-logement" className={styles.logement}>
       <div className={styles.ficheReprise}>
         <div className={styles.resume}>

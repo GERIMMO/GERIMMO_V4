@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { EchecLecture } from "../../documents/echec-lecture";
 import { FormulaireIncident } from "./formulaire-incident";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Déclarer un incident — Gerimmo" };
 
@@ -20,6 +21,8 @@ export default async function PageNouvelIncident(
   const { orgId } = await props.params;
   const { lot: lotDemande } = await props.searchParams;
   const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
 
   // Les lots où un incident peut s'ouvrir : tout le parc non archivé.
   // FK explicite (recette 23/08) : lots→biens porte DEUX clés (simple +
@@ -51,7 +54,7 @@ export default async function PageNouvelIncident(
         {/* Le retour « ← Parent » dans le style de la fiche du bien (nuit du
             25 au 26/09) : un seul style de retour dans l'espace. */}
         <Link
-          href={`/agence/${orgId}/incidents`}
+          href={`${base}/incidents`}
           className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
         >
           ← Incidents

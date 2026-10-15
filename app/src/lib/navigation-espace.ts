@@ -20,6 +20,8 @@
 // Les BADGES ne disent que ce qui attend un geste, et ne sont rouges que si
 // quelque chose est critique : une pastille rouge permanente n'alerte plus.
 
+import { baseEspace, versRouteAgence } from "@/lib/racine-espace";
+
 export type RoleEspace = "admin_agence" | "agent" | "proprietaire_direct";
 
 export type EntreeNav = {
@@ -63,7 +65,8 @@ export function navigationEspace({
   role: RoleEspace;
   badges?: BadgesEspace;
 }): NavigationEspace {
-  const base = `/agence/${orgId}`;
+  // Décision D27 : le propriétaire direct navigue sous /espace/<id>, l'agence et ses agents sous /agence/<id>.
+  const base = baseEspace(orgId, role === "proprietaire_direct");
   const b = {
     incidents: badges.incidents ?? 0,
     alertes: badges.alertes ?? 0,
@@ -201,11 +204,20 @@ export function navigationEspace({
   };
 }
 
-/** L'entrée qui répond à un chemin : la plus précise l'emporte. */
+/**
+ * L'entrée qui répond à un chemin : la plus précise l'emporte.
+ *
+ * Décision D27 : le chemin lu dans le navigateur peut porter l'une ou l'autre racine (/espace/<id>/… pour le
+ * propriétaire direct, /agence/<id>/… pour une agence — et, selon la version du routeur, la racine réécrite par le
+ * proxy). Les deux côtés sont comparés sous la racine des dossiers : l'entrée s'allume quelle que soit celle que
+ * le navigateur rapporte.
+ */
 export function entreeActive(entrees: EntreeNav[], chemin: string): EntreeNav | null {
+  const lu = versRouteAgence(chemin);
   let meilleure: EntreeNav | null = null;
   for (const e of entrees) {
-    const touche = e.alias?.some(a => chemin === a || chemin.startsWith(`${a}/`)) || (e.exact ? chemin === e.href.split("?")[0] : chemin === e.href.split("?")[0] || chemin.startsWith(`${e.href.split("?")[0]}/`));
+    const href = versRouteAgence(e.href).split("?")[0];
+    const touche = e.alias?.some(a => { const alias = versRouteAgence(a); return lu === alias || lu.startsWith(`${alias}/`); }) || (e.exact ? lu === href : lu === href || lu.startsWith(`${href}/`));
     if (touche && (!meilleure || e.href.length > meilleure.href.length)) meilleure = e;
   }
   return meilleure;

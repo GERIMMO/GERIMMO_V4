@@ -9,6 +9,7 @@ import { EchecLecture } from "../documents/echec-lecture";
 import { MessagerieProprietaire, type FilConversation } from "./messagerie-proprietaire";
 import { ConversationProprietaire } from "./conversation-proprietaire";
 import type { MessagePersonne } from "../personnes/[personId]/carte-messages";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Messages — Gerimmo" };
 
@@ -42,6 +43,8 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
   // Le propriétaire en gestion directe n'a pas d'entrée « Personnes » : son
   // menu dit « Locataires & garants » (même adaptation que personnes/page.tsx).
   const estProprietaire = role === "proprietaire_direct";
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
 
   if (estProprietaire) {
     const selection = (await props.searchParams).personne;
@@ -94,7 +97,7 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
               texte de 12 px était le seul geste de l'écran (24/09). */}
           <span className="geste">
             <Link
-              href={`/agence/${orgId}/personnes`}
+              href={`${base}/personnes`}
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >
               {estProprietaire ? "Voir mes locataires" : "Ouvrir les personnes"}
@@ -114,7 +117,7 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
             {fils.map((f) => (
               <Link
                 key={f.person_id}
-                href={`/agence/${orgId}/personnes/${f.person_id}#messages`}
+                href={`${base}/personnes/${f.person_id}#messages`}
                 className="rang"
               >
                 <span aria-hidden className="avatar">

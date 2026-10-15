@@ -43,6 +43,7 @@ import { CartePiecesDemandees } from "./carte-pieces-demandees";
 import { EchecLecture, PageEchecLecture } from "../../documents/echec-lecture";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { exigerUuids } from "@/lib/identifiants";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Fiche personne — Gerimmo" };
 
@@ -96,6 +97,8 @@ export default async function PagePersonne(
   // « Ajouter un email » (carte Accès locataire) ouvre l'édition de la fiche
   const { modifier } = await props.searchParams;
   const { supabase, user, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   // 24/09 : la rubrique porte le nom du menu — « Locataires & garants » chez
   // le propriétaire direct. Le retour disait « Personnes » à un clic de là.
   const rubrique = estProprietaire ? "Locataires & garants" : "Personnes";
@@ -116,7 +119,7 @@ export default async function PagePersonne(
       <PageEchecLecture
         titre="Fiche personne"
         quoi={["cette fiche"]}
-        retour={{ href: `/agence/${orgId}/personnes`, libelle: rubrique }}
+        retour={{ href: `${base}/personnes`, libelle: rubrique }}
       />
     );
   }
@@ -318,7 +321,7 @@ export default async function PagePersonne(
   // (retour du 24/09), pas seulement un mot.
   const cheminLot = (id: string) => {
     const lot = lotsDetenus.find((l) => l.id === id) ?? lotsManquants.find((l) => l.id === id);
-    return lot ? `/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}` : null;
+    return lot ? `${base}/parc/${lot.bien_id}/lots/${lot.id}` : null;
   };
 
   // Ce que la personne EST (24/09) — mêmes règles et mêmes puces que la liste
@@ -417,7 +420,7 @@ export default async function PagePersonne(
           disait pas ce qu'est la personne. */}
       <div>
         <EnteteFiche
-          retour={{ href: `/agence/${orgId}/personnes`, libelle: rubrique }}
+          retour={{ href: `${base}/personnes`, libelle: rubrique }}
           surtitre={personne.qualite || (personne.prenom ? "Personne physique" : "Personne morale")}
           titre={nomComplet(personne)}
           badge={
@@ -504,7 +507,7 @@ export default async function PagePersonne(
                 return (
                   <li key={b.id}>
                     <Link
-                      href={`/agence/${orgId}/baux/${b.id}`}
+                      href={`${base}/baux/${b.id}`}
                       // `.rang` (25/09) : le rang de liste de l'espace, avec son
                       // liseré de survol — la flèche n'était plus seule à dire
                       // qu'il se clique.
@@ -661,7 +664,7 @@ export default async function PagePersonne(
                       orgId={orgId}
                       code="rappel_assurance"
                       cibleId={p.document_id}
-                      cheminRetour={`/agence/${orgId}/personnes/${personId}`}
+                      cheminRetour={`${base}/personnes/${personId}`}
                       libelle="Rappel PDF"
                       variant="ghost"
                     />
@@ -693,7 +696,7 @@ export default async function PagePersonne(
                           ))}
                         <span className="puce puce-loue">Reçu</span>
                         <Link
-                          href={`/agence/${orgId}/documents/${p.document_id}/fichier`}
+                          href={`${base}/documents/${p.document_id}/fichier`}
                           className={buttonVariants({ variant: "ghost", size: "sm" })}
                         >
                           Ouvrir
@@ -728,7 +731,7 @@ export default async function PagePersonne(
                                 {v.titre || "Sans titre"} — déposée le{" "}
                                 {formaterDate(v.created_at)} ·{" "}
                                 <Link
-                                  href={`/agence/${orgId}/documents/${v.id}/fichier`}
+                                  href={`${base}/documents/${v.id}/fichier`}
                                   className="underline underline-offset-2"
                                 >
                                   ouvrir
@@ -867,7 +870,7 @@ export default async function PagePersonne(
                           orgId={orgId}
                           code="mandat_gestion"
                           cibleId={m.id}
-                          cheminRetour={`/agence/${orgId}/personnes/${personId}`}
+                          cheminRetour={`${base}/personnes/${personId}`}
                           libelle="Mandat PDF"
                         />
                       </span>
@@ -938,7 +941,7 @@ export default async function PagePersonne(
             <p className="border-t border-border pt-4 text-sm text-muted-foreground">
               Cette personne ne détient aucun lot — rattachez-la d&apos;abord à un
               lot du parc pour lui proposer un mandat.{" "}
-              <Link href={`/agence/${orgId}/parc`} className="lien-discret">
+              <Link href={`${base}/parc`} className="lien-discret">
                 Aller au parc
               </Link>
             </p>

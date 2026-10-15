@@ -1,3 +1,5 @@
+import { RACINE_AGENCE } from "@/lib/racine-espace";
+
 /** Données permanentes du logement, indépendantes de tout contrat. */
 export const ETAPES_LOT = [
   { cle: "bien", titre: "Bâtiment", detail: "Adresse et informations communes" },
@@ -13,13 +15,14 @@ export function indexEtapeLot(cle: string) {
   const index = ETAPES_LOT.findIndex(e => e.cle === (aliases[cle] ?? cle));
   return index < 0 ? 1 : index;
 }
-export function lienLotDepuisBail(orgId: string, bienId: string, lotId: string, bailId: string, etape: EtapeLot, retourEtape = 3) {
+// `racine` : « /espace » pour le propriétaire direct, « /agence » par défaut (décision D27, lib/racine-espace.ts).
+export function lienLotDepuisBail(orgId: string, bienId: string, lotId: string, bailId: string, etape: EtapeLot, retourEtape = 3, racine: string = RACINE_AGENCE) {
   const query = new URLSearchParams({ parcours: "1", etape, retourBail: bailId, retourEtape: String(retourEtape) });
-  return `/agence/${orgId}/parc/${bienId}/lots/${lotId}?${query}`;
+  return `${racine}/${orgId}/parc/${bienId}/lots/${lotId}?${query}`;
 }
 /** Un retour interne construit à partir d’un bail du lot, jamais une URL libre. */
-export function retourBailDuLot(orgId: string, bailId: unknown, etape: unknown, baux: {id: string}[]) {
+export function retourBailDuLot(orgId: string, bailId: unknown, etape: unknown, baux: {id: string}[], racine: string = RACINE_AGENCE) {
   if (typeof bailId !== "string" || !baux.some(b => b.id === bailId)) return null;
   const numero = typeof etape === "string" && /^[1-7]$/.test(etape) ? etape : "3";
-  return `/agence/${orgId}/baux/${bailId}#etape-bail-${numero}`;
+  return `${racine}/${orgId}/baux/${bailId}#etape-bail-${numero}`;
 }

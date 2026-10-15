@@ -41,6 +41,7 @@ import { EchecLecture, PageEchecLecture } from "../../../echec-lecture";
 import { BlocagesLocation } from "../../../blocages-location";
 import { AttentionFiche } from "@/components/fiche-parc";
 import { exigerUuids } from "@/lib/identifiants";
+import { baseEspace, racineEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Fiche lot — Gerimmo" };
 
@@ -51,8 +52,10 @@ export default async function PageLot(
   // Conserver le lien direct vers la modification des caractéristiques.
   const { modifier, parcours, etape, retourBail, retourEtape } = ((await props.searchParams) ?? {}) as { modifier?: string; parcours?: string; etape?: string; retourBail?: string; retourEtape?: string };
   exigerUuids(bienId, lotId);
-  const { supabase, role, user } = await verifierAccesEspace(orgId);
-  if (parcours === "1" && ["bail", "locataires"].includes(etape ?? "")) redirect(`/agence/${orgId}/parc/${bienId}/lots/${lotId}#baux`);
+  const { supabase, role, user, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
+  if (parcours === "1" && ["bail", "locataires"].includes(etape ?? "")) redirect(`${base}/parc/${bienId}/lots/${lotId}#baux`);
 
   const { data: chambres, error: erreurChambres } = await supabase.from("lot_chambres").select("*").eq("lot_id", lotId).eq("organization_id", orgId).order("nom");
 
@@ -148,7 +151,7 @@ export default async function PageLot(
       <PageEchecLecture
         titre="Fiche lot"
         quoi={[erreurLot ? "le lot" : "", erreurBien ? "le bien" : ""].filter(Boolean)}
-        retour={{ href: `/agence/${orgId}/parc/${bienId}`, libelle: "Fiche bien" }}
+        retour={{ href: `${base}/parc/${bienId}`, libelle: "Fiche bien" }}
       />
     );
   if (!lot || !bien) notFound();
@@ -499,7 +502,7 @@ export default async function PageLot(
                       </span>
                       <div className={styles.bailActions}>
                       <Link
-                        href={`/agence/${orgId}/baux/${b.id}`}
+                        href={`${base}/baux/${b.id}`}
                         className={buttonVariants({ variant: "ghost", size: "sm" })}
                       >
                         Ouvrir
@@ -561,7 +564,7 @@ export default async function PageLot(
   const bauxBrouillons = (baux ?? []).filter(b => b.etat === "brouillon");
   const bailAReprendre = bauxBrouillons[0];
   const bailPrincipal = bailEnCours ?? bailAReprendre;
-  const hrefBailPrincipal = bailPrincipal ? `/agence/${orgId}/baux/${bailPrincipal.id}` : "#baux";
+  const hrefBailPrincipal = bailPrincipal ? `${base}/baux/${bailPrincipal.id}` : "#baux";
   const libelleBailPrincipal = bailEnCours ? "Ouvrir le bail" : bailAReprendre ? "Reprendre le bail" : "Préparer un bail";
   const valeurLogement = (valeur: string | number | null | undefined) => valeur == null || String(valeur).trim() === "" ? "Non renseigné" : valeur;
 
@@ -614,12 +617,12 @@ export default async function PageLot(
     <nav className={styles.actionsRapides} aria-label="Actions rapides du lot">
       <a href="#diagnostics"><FileText size={19} aria-hidden="true" /><span><strong>Diagnostics</strong><small>Consulter les documents et leurs dates</small></span><ArrowUpRight size={15} aria-hidden="true" /></a>
       <a href="#baux"><KeyRound size={19} aria-hidden="true" /><span><strong>Baux et états des lieux</strong><small>Retrouver les contrats du logement</small></span><ArrowUpRight size={15} aria-hidden="true" /></a>
-      <Link href={`/agence/${orgId}/reseau?bien=${bienId}`}><Wrench size={19} aria-hidden="true" /><span><strong>Artisans</strong><small>Consulter le réseau pour ce bien</small></span><ArrowUpRight size={15} aria-hidden="true" /></Link>
+      <Link href={`${base}/reseau?bien=${bienId}`}><Wrench size={19} aria-hidden="true" /><span><strong>Artisans</strong><small>Consulter le réseau pour ce bien</small></span><ArrowUpRight size={15} aria-hidden="true" /></Link>
     </nav>
   </div>;
 
-  const retourContrat = retourBailDuLot(orgId, retourBail, retourEtape, baux ?? []);
-  const ficheHref = `/agence/${orgId}/parc/${bienId}/lots/${lotId}`;
+  const retourContrat = retourBailDuLot(orgId, retourBail, retourEtape, baux ?? [], racineEspace(estProprietaire));
+  const ficheHref = `${base}/parc/${bienId}/lots/${lotId}`;
   if (parcours === "1") return <main className={`mx-auto w-full p-4 sm:p-7 ${parcoursStyles.pageCreation}`}>
     <Link href={retourContrat ?? ficheHref} className="inline-flex min-h-11 items-center text-sm">← {retourContrat ? "Revenir au bail" : "Retour au logement"}</Link>
     <header className={parcoursStyles.enteteCreation}><House size={27} aria-hidden="true"/><div><span className={parcoursStyles.surtitre}>Votre logement</span><h1>Compléter le lot</h1><p>Les informations permanentes de {lot.nom}. Elles seront reprises dans chaque bail.</p></div></header>
@@ -666,10 +669,10 @@ export default async function PageLot(
   </main>;
   return (
     <main className={`${styles.fiche} dossier-location mx-auto w-full max-w-7xl space-y-[1.125rem] p-4 sm:p-7`}>
-      <Link href={`/agence/${orgId}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {role === "proprietaire_direct" ? "Mes lots" : "Mon portefeuille"}</Link>
+      <Link href={`${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {role === "proprietaire_direct" ? "Mes lots" : "Mon portefeuille"}</Link>
       <header className={styles.entete}>
         <div className={styles.identite}><span className={styles.icone}><House size={28} aria-hidden="true" /></span><div className="min-w-0"><p className={styles.surtitre}>Fiche du lot{bien.nom !== lot.nom ? ` · ${bien.nom}` : ""}</p><div className="flex flex-wrap items-center gap-3"><h1>{lot.nom}</h1><span className={COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}>{ETATS_LOT[lot.etat] ?? lot.etat}</span></div><p className={styles.adresse}><MapPin size={15} aria-hidden="true" />{[bien.address_line1, bien.address_line2, [bien.postal_code, bien.city].filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "Adresse à compléter"}</p></div></div>
-        <div className={styles.actions}><Link className="btn-secondaire" href={`/agence/${orgId}/parc/${bienId}/lots/${lotId}?modifier=1#caracteristiques`}><Pencil size={15} aria-hidden="true" /> Modifier le lot</Link></div>
+        <div className={styles.actions}><Link className="btn-secondaire" href={`${base}/parc/${bienId}/lots/${lotId}?modifier=1#caracteristiques`}><Pencil size={15} aria-hidden="true" /> Modifier le lot</Link></div>
         <dl className={styles.identiteFaits}>
           <div><dt><Ruler size={14} aria-hidden="true" />Surface</dt><dd>{lot.surface_m2 == null ? "À renseigner" : formaterSurface(lot.surface_m2)}</dd></div>
           <div><dt><DoorOpen size={14} aria-hidden="true" />Pièces</dt><dd>{lot.pieces ?? "À renseigner"}</dd></div>
@@ -689,7 +692,7 @@ export default async function PageLot(
       {vueEnsemble}
       <section className={styles.panneau} aria-label="Contrats de location">{rubriqueBaux}</section>
       <section className={styles.panneau} aria-labelledby="titre-documents-lot">
-        <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><FileText size={18} aria-hidden="true" /></span><h2 id="titre-documents-lot">Documents du logement</h2><Link href={`/agence/${orgId}/documents`}>Tous les documents <ArrowUpRight size={14} aria-hidden="true" /></Link></header>
+        <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><FileText size={18} aria-hidden="true" /></span><h2 id="titre-documents-lot">Documents du logement</h2><Link href={`${base}/documents`}>Tous les documents <ArrowUpRight size={14} aria-hidden="true" /></Link></header>
         <div className={styles.diagnosticsGrille}>{rubriqueDiagnostics}{rubriqueDiagnosticsImmeuble}</div>
       </section>
       {(bien.copropriete || (colocationPertinente && !(bailEnCours && nbChambres === 0))) && <section className={styles.panneau} aria-label="Copropriété et colocation">
@@ -738,8 +741,8 @@ export default async function PageLot(
           )}
       </section>}
     <details className={styles.gestionStatut}><summary>Gérer le statut du lot <ChevronDown size={16} aria-hidden="true" /></summary><div>
-      {lot.etat === "brouillon" && !erreurBlocages && <BlocagesLocation motifs={(blocages ?? []) as string[]} ctx={{orgId,bienId,lotId}} pageCourante={`/agence/${orgId}/parc/${bienId}/lots/${lotId}`} titre="Ce qui empêche la mise en location" />}
-      <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} estBailleurDirect={role === "proprietaire_direct"} bailHref={bailEnCours ? `/agence/${orgId}/baux/${bailEnCours.id}` : undefined} />
+      {lot.etat === "brouillon" && !erreurBlocages && <BlocagesLocation motifs={(blocages ?? []) as string[]} ctx={{orgId,bienId,lotId,racine:racineEspace(estProprietaire)}} pageCourante={`${base}/parc/${bienId}/lots/${lotId}`} titre="Ce qui empêche la mise en location" />}
+      <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} estBailleurDirect={role === "proprietaire_direct"} bailHref={bailEnCours ? `${base}/baux/${bailEnCours.id}` : undefined} />
     </div></details>
 
 

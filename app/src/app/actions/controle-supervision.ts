@@ -19,7 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 import { clientDeService } from "@/lib/supabase/service";
 import { sansJargon } from "@/lib/erreurs";
 import { envoyerLienMotDePasse } from "@/lib/lien-mot-de-passe";
-import { journaliserSupervision } from "@/lib/journal-supervision";
+import { causeTechniqueExpurgee, journaliserSupervision } from "@/lib/journal-supervision";
 
 export type EtatControle = { erreur?: string; succes?: string };
 
@@ -150,7 +150,13 @@ export async function controlerCompte(accountId: string, _etat: EtatControle, fo
     echec = e instanceof Error ? e.message : "inconnu";
   }
   if (echec) {
-    await journaliserSupervision(supabase, "controle_compte_echec", { compte: accountId, geste });
+    // X20 (SA-11) : la ligne « Blocage demandé » est déjà au journal ; l'échec du blocage a sa propre ligne,
+    // « Blocage échoué », qui garde la cause technique expurgée. Les autres gestes gardent la ligne générique.
+    if (geste === "bloquer") {
+      await journaliserSupervision(supabase, "blocage_echoue", { compte: accountId, geste, cause: causeTechniqueExpurgee(echec) });
+    } else {
+      await journaliserSupervision(supabase, "controle_compte_echec", { compte: accountId, geste });
+    }
     return { erreur: `Le geste n’a pas abouti : ${sansJargon(echec)}` };
   }
   revalidatePath(`/admin/comptes/${accountId}`);

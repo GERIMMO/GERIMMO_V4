@@ -26,8 +26,8 @@ export function InputDateJour({
   required?: boolean;
   // Date renvoyée par une action REFUSÉE (lib/formulaires.ts). Elle prime sur
   // « aujourd'hui » : sans elle, le champ repart vide et la base date
-  // l'encaissement du jour (encaissements.date_paiement vaut CURRENT_DATE par
-  // défaut). Une date ressaisie de mémoire est une date fausse, alors que « la
+  // l'encaissement du jour (encaissements.date_paiement vaut le jour de Paris,
+  // aujourdhui_paris(), par défaut). Une date ressaisie de mémoire est une date fausse, alors que « la
   // banque fait foi sur les montants et les dates » (RM-A6.7).
   valeurSoumise?: string;
   // Un événement qui a déjà eu lieu (encaissement) ne se date pas de demain :

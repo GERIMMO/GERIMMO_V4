@@ -570,9 +570,11 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
     expect(await lire(moisAffiche)).toHaveLength(0);
   });
 
-  it("une date d'encaissement absente est silencieusement datée du jour (RM-A6.7)", async () => {
+  it("une date d'encaissement absente est silencieusement datée du jour de Paris (RM-A6.7)", async () => {
     // Pourquoi la conservation de la saisie compte : le champ vide ne laisse
     // pas un trou, il fait entrer la date du jour à la place de celle du relevé.
+    // Le jour est celui de Paris (lot « fuseau-paris », 15/10/2026), pas celui de la session : le 1er janvier à
+    // 00 h 30 à Paris, la session UTC est encore le 31 décembre.
     const {
       rows: [defaut],
     } = await db.query(
@@ -580,13 +582,13 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
         where table_schema = 'public' and table_name = 'encaissements'
           and column_name = 'date_paiement'`
     );
-    expect(String(defaut.column_default)).toContain("CURRENT_DATE");
+    expect(String(defaut.column_default)).toContain("aujourdhui_paris()");
 
     const {
       rows: [enc],
     } = await db.query(
       `insert into public.encaissements (organization_id, bail_id, montant, mode)
-       values ($1,$2,100,'virement') returning date_paiement = current_date as date_du_jour`,
+       values ($1,$2,100,'virement') returning date_paiement = (now() at time zone 'Europe/Paris')::date as date_du_jour`,
       [org, bail]
     );
     expect(enc.date_du_jour).toBe(true);

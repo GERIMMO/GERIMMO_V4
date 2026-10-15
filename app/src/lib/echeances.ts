@@ -83,6 +83,16 @@ export function afficherEcheance(
   };
 }
 
+/**
+ * Le premier jour du mois qui suit le jour donné (« AAAA-MM-JJ », le jour de Paris), en ISO UTC à minuit.
+ * Sert à dire « prochaine échéance en novembre » à un locataire à jour : le mois se lit sur le jour de Paris que
+ * le serveur passe, jamais sur `new Date()` (le serveur est en UTC : à cheval sur la fin du mois, il se tromperait).
+ */
+export function premierDuMoisSuivant(jour: string): string {
+  const [annee, mois] = jour.slice(0, 7).split("-").map(Number); // mois de 1 à 12 : tel quel, c'est l'indice du mois suivant
+  return new Date(Date.UTC(annee, mois, 1)).toISOString();
+}
+
 // Un rapport de gestion couvre un mois mais se rend le mois suivant, au jour
 // convenu dans le mandat (le 10 par défaut, RM-5.3). Le mois couvert n'est donc
 // pas une échéance : c'est un intitulé.

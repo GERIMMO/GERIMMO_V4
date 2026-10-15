@@ -41,6 +41,9 @@ export const FICHIERS_EN_SERIE = [
   "tests/fiscalite-capture-multilignes.test.ts",
   // Même motif : `alter table ecritures disable trigger z_capturer_fiscalite` dans la transaction de ses essais.
   "tests/fiscalite-persistance.test.ts",
+  // Rejeu des cinq migrations du jour de Paris et de leurs retours : `alter table … set default` sur encaissements,
+  // quittances et relances, verrou exclusif tenu pendant tout l'essai, qui bloquerait les écritures des autres fichiers.
+  "tests/jour-de-paris-migrations-rejeu.test.ts",
 ];
 
 export default defineConfig({

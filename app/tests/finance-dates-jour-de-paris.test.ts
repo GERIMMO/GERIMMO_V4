@@ -256,20 +256,22 @@ describe.skipIf(!url)("Le jour de Paris, quel que soit le fuseau de la session (
     });
   });
 
-  // Périmètre : la décision X13 ne demande que la date de « Encaisser ». L'élargissement à l'état des loyers, à la fiche du lot et aux contrats de
-  // colocation (puis aux alertes et relances) attend la ratification du dirigeant : tant qu'elle n'est pas écrite, ces fonctions ne portent
-  // pas la marque du correctif.
-  describe("périmètre de la décision X13 : l'échéance d'un loyer se lit toujours comme avant", () => {
+  // Périmètre : la décision X13 ne demandait que la date de « Encaisser ». L'élargissement à l'état des loyers, à la fiche du lot, aux contrats de
+  // colocation, aux alertes et aux relances a été décidé « proprement » par le dirigeant le 15/10 : le lot « fuseau-paris » (migrations 20261014500000 à
+  // 20261014504000) les rattache à public.aujourdhui_paris(). Ces fonctions ne portent donc toujours pas la marque de ce correctif-ci (elle est propre à
+  // « Encaisser » et aux quittances), mais elles ne lisent plus le jour de la session : leur couverture est dans tests/jour-de-paris-loyers.test.ts.
+  describe("périmètre de la décision X13 : l'échéance d'un loyer se lit au jour de Paris par le lot « fuseau-paris »", () => {
     it.each([
       "public.etat_loyers_bail_brut(uuid)",
       "public.fiche_lot(uuid)",
       "public.contrats_du_lot(uuid)",
       "public.suivre_impayes_bail(uuid)",
       "public.relances_loyer_dues(integer)",
-    ])("%s ne porte pas la marque de la décision X13", async (signature) => {
+    ])("%s ne porte pas la marque de la décision X13 et lit le jour de Paris par la fonction du lot", async (signature) => {
       const { rows } = await db.query("select pg_get_functiondef($1::text::regprocedure) as def", [signature]);
       expect(rows[0].def).not.toContain("Décision X13 du 15/10 (FIN-13)");
-      expect(rows[0].def).toMatch(/current_date/i);
+      expect(rows[0].def).not.toMatch(/current_date/i);
+      expect(rows[0].def).toContain("public.aujourdhui_paris()");
     });
 
     it("les colonnes de l'état du bail sont celles d'avant", async () => {

@@ -3,6 +3,7 @@
  *
  *  - La fiche de l'incident (FacturesIncident) avec ses vrais formulaires : règlements actifs, retirés, facture soldée,
  *    imputation au locataire. Le client Supabase est le faux client qui honore select, eq et in (faux-postgrest.ts).
+ *  - La facturation de l'artisan : l'étiquette et la phrase d'état que son client déclare, date et moyen de chaque règlement.
  *  - Accessibilité (constat de relecture du 15/10/2026) : sur un règlement total ou un retrait, l'action revalide la page.
  *    Les composants restent donc montés (formulaire soldé, règlement retiré) et gardent leur région de statut hors du
  *    formulaire : le message de succès est affiché et annoncé au lieu de disparaître avec le formulaire.
@@ -14,14 +15,26 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fauxClient, table, type Ligne } from "./faux-postgrest";
 
-const sim = vi.hoisted(() => ({ supabase: null as unknown, etat: {} as Record<string, unknown> }));
+const sim = vi.hoisted(() => ({
+  supabase: null as unknown,
+  etat: {} as Record<string, unknown>,
+  agenda: [] as Record<string, unknown>[],
+  reglementsArtisan: { lignes: [] as Record<string, unknown>[], erreur: false },
+}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => sim.supabase }));
 vi.mock("@/lib/use-action-state-protegee", () => ({ useActionStateProtegee: () => [sim.etat, () => {}] }));
 vi.mock("@/app/actions/reglement-facture", () => ({ declarerReglementFacture: () => ({}), retirerReglementFacture: () => ({}) }));
 vi.mock("../src/app/agence/[orgId]/incidents/validation-facture", () => ({ ValidationFacture: () => null }));
+vi.mock("../src/app/artisan/acces", () => ({
+  verifierAccesArtisan: async () => ({}),
+  chargerAgenda: async () => ({ lignes: sim.agenda, erreur: false }),
+  chargerReglementsFactures: async () => sim.reglementsArtisan,
+}));
+vi.mock("../src/app/artisan/clients/resumes", () => ({ ReglementsDansFacturation: () => null }));
 
 import { FormulaireReglement, RetraitReglement } from "../src/app/agence/[orgId]/incidents/reglement-facture";
 import { FacturesIncident } from "../src/app/agence/[orgId]/incidents/factures-incident";
+import PageFacturation from "../src/app/artisan/facturation/page";
 import { MESSAGE_IMPUTATION_LOCATAIRE } from "@/lib/reglement-facture";
 
 const DECODAGE: [RegExp, string][] = [[/&#x27;/g, "'"], [/&quot;/g, '"'], [/&amp;/g, "&"]];
@@ -159,5 +172,51 @@ describe("la fiche de l'incident : factures, règlements actifs et retirés, fac
     expect(texte(section(html, "F-A"))).toContain("La facture est réglée en totalité");
     expect(section(html, "F-B")).toContain('value="50,00"');
     expect(texte(section(html, "F-B"))).not.toContain("Retirer ce règlement");
+  });
+});
+
+describe("la facturation de l'artisan : le règlement que son client déclare", () => {
+  const mission = (id: string, numero: string): Record<string, unknown> => ({
+    intervention_id: id, organization_id: "org", agence_nom: "Agence du Port", incident_numero: numero, statut: "terminee",
+    debut_prevu: null, fin_prevue: null, categorie: "plomberie", description: null, urgence: "normale", piece: null,
+    nature_travaux: "reparation", adresse: null, code_postal: null, ville: "Nantes", lot_nom: null, etage: null,
+    occupant_nom: null, occupant_prenom: null, occupant_telephone: null, montant_ttc_cents: 23968, montant_plafond_cents: null,
+    compte_rendu_depose: true, photo_apres_deposee: true, facture_deposee: true,
+  });
+  const etatArtisan = (intervention: string, numero: string, etat: string, reglements: { date_reglement: string; moyen: string }[], reglee_le: string | null = null) => ({
+    facture_id: `f-${intervention}`, intervention_id: intervention, organization_id: "org", numero, montant_ttc_cents: 23968,
+    validee_le: "2026-10-09T10:00:00Z", etat, reglee_le, reglements,
+  });
+  const afficher = async () => texte(renderToStaticMarkup((await PageFacturation({ searchParams: Promise.resolve({}) } as never)) as never));
+
+  beforeEach(() => {
+    sim.agenda = [mission("m1", "INC-1"), mission("m2", "INC-2"), mission("m3", "INC-3")];
+    sim.reglementsArtisan = {
+      erreur: false,
+      lignes: [
+        etatArtisan("m1", "F-1", "reglee", [{ date_reglement: "2026-10-12", moyen: "virement" }], "2026-10-12"),
+        etatArtisan("m2", "F-2", "partiellement_reglee", [{ date_reglement: "2026-10-01", moyen: "cheque" }]),
+        etatArtisan("m3", "F-3", "validee", []),
+      ],
+    };
+  });
+
+  it("chaque facture porte l'état déclaré par le client, la date et le moyen de chaque règlement, jamais de montant de règlement", async () => {
+    const t = await afficher();
+    expect(t).toContain("Réglée (déclaré par votre client)");
+    expect(t).toContain("Réglée le 12/10/2026 par virement (déclaré par votre client)");
+    expect(t).toContain("Règlement déclaré le 12/10/2026 par virement");
+    expect(t).toContain("Partiellement réglée : 1 règlement déclaré par votre client");
+    expect(t).toContain("Règlement déclaré le 01/10/2026 par chèque");
+    expect(t).toContain("Validée, règlement à venir");
+    expect(t).toContain("facture n° F-1");
+    expect(t).toContain("pas un virement de Gerimmo");
+  });
+
+  it("une lecture en échec se dit : elle ne passe pas pour « aucun règlement »", async () => {
+    sim.reglementsArtisan = { erreur: true, lignes: [] };
+    const t = await afficher();
+    expect(t).toContain("L’état de règlement de vos factures n’a pas pu être lu");
+    expect(t).not.toContain("Réglée (déclaré par votre client)");
   });
 });

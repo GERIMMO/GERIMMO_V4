@@ -351,3 +351,4 @@
 20261014620000_rendez_vous_locataire_report_annulation.sql
 20261014840000_invitation_artisan_proprietaire.sql
 20261014841000_metiers_zones_sans_proprietaire.sql
+20261014842000_artisans_colonnes_internes.sql

@@ -12,6 +12,7 @@ export const metadata = { title: "Artisans à valider" };
 type Inscription = { artisan_id: string; raison_sociale: string; siret: string; siret_etat: string; telephone: string | null; email: string | null; metiers: string[] | null; nb_pieces: number; decennale_valide: boolean; rc_pro_deposee: boolean; inscrit_le: string; purge_prevue_le: string | null };
 type Piece = { id: string; artisan_id: string; type: string; expire_le: string | null };
 type Invitation = { artisan_id: string; organisation: string; acceptee: boolean };
+type Decision = { id: string; raison_sociale: string; statut_plateforme: "valide" | "refuse"; statut_motif: string | null; statut_decide_le: string | null };
 const date = (valeur: string) => new Date(valeur).toLocaleDateString("fr-FR", { timeZone: "UTC" });
 const ETATS_SIRET: Record<string, string> = { verifie: "Vérifié", non_verifie: "Non vérifié", invalide: "Invalide" };
 const DECISIONS_PAR_PAGE = 20;
@@ -40,10 +41,8 @@ export default async function InscriptionsArtisan({ searchParams }: {
   const debutDecisions = (pageDecisions - 1) * DECISIONS_PAR_PAGE;
   const decisions = totalDecisions === null
     ? { data: null, error: compteDecisions.error ?? { message: "Comptage indisponible" } }
-    : await supabase.from("artisans").select("id, raison_sociale, statut_plateforme, statut_motif, statut_decide_le")
-      .in("statut_plateforme", ["valide", "refuse"])
-      .order("statut_decide_le", { ascending: false, nullsFirst: false }).order("id", { ascending: true })
-      .range(debutDecisions, debutDecisions + DECISIONS_PAR_PAGE - 1);
+    // Motifs et dates de décision : fermés à la lecture directe (20261014842000), lus par la fonction de la supervision.
+    : await supabase.rpc("decisions_artisans_supervision", { p_debut: debutDecisions, p_nombre: DECISIONS_PAR_PAGE });
   const inscriptions = (file.data ?? []) as Inscription[];
   const pieces = inscriptions.length > 0
     ? await supabase.from("artisan_pieces").select("id, artisan_id, type, expire_le").in("artisan_id", inscriptions.map((a) => a.artisan_id)).is("retiree_le", null)
@@ -76,7 +75,7 @@ export default async function InscriptionsArtisan({ searchParams }: {
       <p className="mt-2 text-xs text-[var(--texte-secondaire)]">Les inscriptions validées ou refusées, de la plus récente à la plus ancienne. Un refus peut être réexaminé.</p>
       {decisions.error ? <p role="alert" className="mt-3 text-sm text-[var(--destructive)]">Historique indisponible. Les décisions ne peuvent pas être consultées pour le moment. <Link href="/admin/artisans?page=1#decisions" className="lien-discret">Réessayer</Link></p> : <>
         <p className="mt-3 text-xs text-[var(--texte-secondaire)]">{totalDecisions} inscription{totalDecisions === 1 ? "" : "s"} traitée{totalDecisions === 1 ? "" : "s"}</p>
-        {totalDecisions === 0 ? <p className="mt-2 text-sm text-[var(--texte-secondaire)]">Aucune inscription validée ou refusée pour le moment.</p> : <ul className="mt-3 space-y-4">{(decisions.data ?? []).map((a) => <li key={a.id} className="border-t border-[var(--filet)] pt-3 text-sm"><p><b>{a.raison_sociale}</b> · {a.statut_plateforme === "valide" ? "Validée" : "Refusée"}{a.statut_decide_le && ` le ${date(a.statut_decide_le)}`}</p>{a.statut_motif && <p className="mt-1 whitespace-pre-wrap text-[var(--texte-secondaire)]">{a.statut_motif}</p>}{a.statut_plateforme === "refuse" && <div className="mt-2"><DecisionArtisan artisanId={a.id} operation="remise_en_attente" /></div>}</li>)}</ul>}
+        {totalDecisions === 0 ? <p className="mt-2 text-sm text-[var(--texte-secondaire)]">Aucune inscription validée ou refusée pour le moment.</p> : <ul className="mt-3 space-y-4">{((decisions.data ?? []) as Decision[]).map((a) => <li key={a.id} className="border-t border-[var(--filet)] pt-3 text-sm"><p><b>{a.raison_sociale}</b> · {a.statut_plateforme === "valide" ? "Validée" : "Refusée"}{a.statut_decide_le && ` le ${date(a.statut_decide_le)}`}</p>{a.statut_motif && <p className="mt-1 whitespace-pre-wrap text-[var(--texte-secondaire)]">{a.statut_motif}</p>}{a.statut_plateforme === "refuse" && <div className="mt-2"><DecisionArtisan artisanId={a.id} operation="remise_en_attente" /></div>}</li>)}</ul>}
         {nombrePages > 1 && <nav aria-label="Pagination des décisions" className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--filet)] pt-3 text-sm">
           {pageDecisions > 1 ? <Link href={`/admin/artisans?page=${pageDecisions - 1}#decisions`} rel="prev" className="lien-discret">Précédent</Link> : <span className="text-[var(--texte-secondaire)]">Précédent</span>}
           <span aria-current="page" className="text-[var(--texte-secondaire)]">Page {pageDecisions} sur {nombrePages}</span>

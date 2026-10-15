@@ -525,8 +525,9 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
     });
 
     // Relecture du 15/10 : ce que la base ouvre au propriétaire après l'acceptation (RLS `artisan_lisible`, antérieure au
-    // lot) est toute la fiche de l'artisan ; le texte de consentement (VISIBLE_APRES_ACCEPTATION) le dit désormais.
-    it("après l'acceptation, le propriétaire lit toute la fiche de l'artisan, motif de refus compris : le texte de consentement le dit", async () => {
+    // lot) est la fiche de l'artisan ; le texte de consentement (VISIBLE_APRES_ACCEPTATION) le dit. Seconde relecture :
+    // les colonnes de décision internes (motif de refus compris) ne lui sont plus ouvertes (20261014842000).
+    it("après l'acceptation, le propriétaire lit la fiche de l'artisan, jamais le motif de refus : le texte de consentement le dit", async () => {
       const r = await inviter();
       const artisan = await inscrire();
       await postgres();
@@ -535,9 +536,11 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect((await db.query("select id from public.artisans where id=$1", [artisan])).rows).toEqual([]);
       expect(await repondre(r.id)).toEqual({ etat: "acceptee" });
       await devenir(proprietaire);
-      const fiche = (await db.query("select raison_sociale, siret, telephone, email, statut_plateforme, statut_motif from public.artisans where id=$1", [artisan])).rows[0];
-      expect(fiche).toMatchObject({ raison_sociale: "Plomberie Invitée", telephone: "0611223344", email: "pro@artisan.test", statut_plateforme: "refuse", statut_motif: "Attestation illisible" });
+      const fiche = (await db.query("select raison_sociale, siret, siret_etat, telephone, email, visibilite, statut_plateforme, blacklist_globale_le, created_at from public.artisans where id=$1", [artisan])).rows[0];
+      expect(fiche).toMatchObject({ raison_sociale: "Plomberie Invitée", telephone: "0611223344", email: "pro@artisan.test", statut_plateforme: "refuse", blacklist_globale_le: null });
       expect(fiche.siret).toMatch(/^[0-9]{14}$/);
+      expect(await echec("select statut_motif from public.artisans where id=$1", [artisan])).toMatch(/permission denied/);
+      expect(await echec("select * from public.artisans where id=$1", [artisan])).toMatch(/permission denied/);
       expect((await db.query("select metier::text m from public.artisan_metiers where artisan_id=$1", [artisan])).rows).toEqual([{ m: "plomberie" }]);
       expect((await db.query("select code_postal from public.artisan_zones where artisan_id=$1", [artisan])).rows).toEqual([{ code_postal: "75011" }]);
     });

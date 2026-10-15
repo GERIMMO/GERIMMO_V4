@@ -31,6 +31,8 @@ import {
 // Les pièces justificatives ne sont volontairement PAS affichées : depuis le
 // pivot du 2026-09-04 la conformité sort de l'agence, et la politique RLS de
 // artisan_pieces ne les ouvre qu'à l'artisan et au super admin.
+// Les MOTIFS des décisions de Gerimmo (refus, exclusion) ne le sont pas non plus : depuis 20261014842000, la base ne
+// les rend plus à une organisation cliente (privilèges par colonne) ; l'écran dit la décision, pas sa raison.
 
 type Relation = {
   id: string;
@@ -67,7 +69,7 @@ export async function PaneArtisan({
     supabase
       .from("artisans")
       .select(
-        "id, raison_sociale, siret, siret_etat, telephone, email, visibilite, statut_plateforme, statut_motif, blacklist_globale_le, blacklist_globale_motif, created_at"
+        "id, raison_sociale, siret, siret_etat, telephone, email, visibilite, statut_plateforme, blacklist_globale_le, created_at"
       )
       .eq("id", artisanId)
       .maybeSingle(),
@@ -173,9 +175,6 @@ export async function PaneArtisan({
             Artisan retiré par Gerimmo le {formaterDate(profil.blacklist_globale_le)}.
           </p>
           <p className="mt-1">
-            {profil.blacklist_globale_motif
-              ? `« ${profil.blacklist_globale_motif} » — `
-              : ""}
             Cette mesure vaut pour toutes les agences et ne se lève que par Gerimmo.
             Il ne vous sera plus proposé.
           </p>
@@ -345,7 +344,7 @@ export async function PaneArtisan({
                 <p>
                   {profil.statut_plateforme === "en_attente"
                     ? "Gerimmo n'a pas encore validé ce profil : il ne vous sera pas proposé à l'affectation tant que la validation n'est pas faite."
-                    : `Profil refusé par Gerimmo${profil.statut_motif ? ` : « ${profil.statut_motif} »` : ""}. Il ne vous sera pas proposé.`}
+                    : "Profil refusé par Gerimmo. Il ne vous sera pas proposé."}
                 </p>
                 <p className="mt-1">
                   Cette décision est celle de la plateforme, pas la vôtre — à ne

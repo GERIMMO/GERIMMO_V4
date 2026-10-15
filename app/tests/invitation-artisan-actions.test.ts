@@ -269,15 +269,32 @@ describe("le nom de l'organisation qui invite", () => {
 
 /**
  * Relecture du 15/10 : le texte de consentement promettait « le nom de votre entreprise et votre téléphone », alors
- * qu'une fois l'invitation acceptée la base ouvre au propriétaire toute la fiche de l'artisan (SIRET, e-mail, métiers,
- * zone, état de l'inscription et motifs des décisions de Gerimmo). Le texte dit maintenant ce qui est réellement vu ;
- * ce que la base ouvre est éprouvé dans invitation-artisan-proprietaire.test.ts.
+ * qu'une fois l'invitation acceptée la base ouvre au propriétaire la fiche de l'artisan. Seconde relecture du 15/10 : les
+ * colonnes de décision internes (motifs, auteurs, purge) ne sont plus lisibles par un client (20261014842000) ; le texte
+ * dit exactement ce que la base ouvre — chaque colonne lisible y a ses mots — et que les motifs ne sont jamais montrés.
+ * Ce que la base ouvre est éprouvé dans artisans-colonnes-internes.test.ts et invitation-artisan-proprietaire.test.ts.
  */
 describe("ce que l'artisan accepte de montrer", () => {
-  it("le texte nomme tout ce que le propriétaire verra", () => {
-    for (const element of ["nom de votre entreprise", "SIRET", "téléphone", "adresse e-mail", "métiers", "zone d’intervention", "état de votre inscription", "motifs"]) {
-      expect(VISIBLE_APRES_ACCEPTATION, element).toContain(element);
-    }
+  it("le texte nomme tout ce que le propriétaire verra, colonne par colonne", () => {
+    const elements: [string, string][] = [
+      ["raison_sociale", "nom de votre entreprise"],
+      ["siret", "SIRET"],
+      ["siret_etat", "vérification"],
+      ["telephone", "téléphone"],
+      ["email", "adresse e-mail"],
+      ["visibilite", "visibilité de votre profil"],
+      ["statut_plateforme", "état chez Gerimmo"],
+      ["blacklist_globale_le", "exclusion"],
+      ["created_at", "date de votre inscription"],
+      ["artisan_metiers", "métiers"],
+      ["artisan_zones", "zone d’intervention"],
+    ];
+    for (const [colonne, element] of elements) expect(VISIBLE_APRES_ACCEPTATION, colonne).toContain(element);
+  });
+
+  it("le texte ne promet plus les motifs : il dit qu'ils ne sont jamais montrés", () => {
+    expect(VISIBLE_APRES_ACCEPTATION).not.toMatch(/et les motifs de ses décisions/);
+    expect(VISIBLE_APRES_ACCEPTATION).toMatch(/jamais les motifs des décisions de Gerimmo/);
   });
 
   it("la page d'invitation affiche ce texte, et plus l'ancienne promesse", () => {

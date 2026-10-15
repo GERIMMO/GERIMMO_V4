@@ -275,3 +275,97 @@ describe.skipIf(!DB_URL)("métiers et zone sans propriétaire direct — rejeu d
     expect(await empreinte()).toBe(migre);
   });
 });
+
+/**
+ * Seconde relecture du 15/10 (constat « important ») : 20261014842000 ferme aux clients les colonnes de décision
+ * internes de `public.artisans` (privilèges par colonne) et crée deux fonctions pour la supervision. Rejouée, elle ne
+ * change rien ; son retour rétablit le droit de lecture de toute la table pour `authenticated` (et lui seul), supprime
+ * les deux fonctions, se rejoue sans effet et refuse de se jouer dans un lot ; aller, retour, aller redonne l'état migré.
+ */
+const MIGRATION_COLONNES = readFileSync("supabase/migrations/20261014842000_artisans_colonnes_internes.sql", "utf8");
+const RETOUR_COLONNES = readFileSync("supabase/retours-arriere/20261014842000_artisans_colonnes_internes.retour.sql", "utf8");
+const FONCTIONS_COLONNES = ["public.decisions_artisans_supervision(integer,integer)", "public.decisions_artisan_supervision(uuid)"];
+
+describe.skipIf(!DB_URL)("colonnes internes de la fiche artisan — rejeu de 20261014842000 et retour arrière", () => {
+  let db: Client;
+  const empreinte = async () => {
+    const { rows: [table] } = await db.query("select relacl::text t from pg_class where oid='public.artisans'::regclass");
+    const { rows: [colonnes] } = await db.query(
+      "select coalesce(string_agg(attname || '=' || attacl::text, ',' order by attnum), '') c from pg_attribute where attrelid='public.artisans'::regclass and attnum>0 and attacl is not null"
+    );
+    const fonctions: string[] = [];
+    for (const signature of FONCTIONS_COLONNES) {
+      const { rows } = await db.query(
+        `select case when to_regprocedure($1) is null then 'absente'
+                else md5(pg_get_functiondef(to_regprocedure($1))) || ' ' || coalesce((select proacl::text from pg_proc where oid = to_regprocedure($1)), '') end as v`,
+        [signature]
+      );
+      fonctions.push(rows[0].v);
+    }
+    return { table: table.t as string, colonnes: colonnes.c as string, fonctions };
+  };
+  /** Les droits de la table hors `authenticated` : ni la migration ni son retour n'y touchent. */
+  const autresRoles = (acl: string) => acl.replace(/^\{|\}$/g, "").split(",").filter((e) => !e.startsWith("authenticated=")).sort();
+
+  beforeAll(async () => {
+    db = new Client({ connectionString: DB_URL });
+    await db.connect();
+    await db.query("begin");
+  });
+  afterAll(async () => {
+    await db?.query("rollback");
+    await db?.end();
+  });
+  beforeEach(async () => {
+    await db.query("savepoint cas");
+  });
+  afterEach(async () => {
+    await db.query("rollback to savepoint cas");
+    await db.query("release savepoint cas");
+  });
+
+  it("la base visée est migrée : droit par colonne, sans droit de table, et deux fonctions", async () => {
+    const e = await empreinte();
+    expect(e.table).not.toMatch(/authenticated=r/);
+    expect(e.colonnes).toContain("raison_sociale={authenticated=r/");
+    expect(e.colonnes).not.toContain("statut_motif=");
+    for (const f of e.fonctions) expect(f).not.toBe("absente");
+  });
+
+  it("rejouée deux fois, la migration ne change ni les droits ni les fonctions", async () => {
+    const avant = await empreinte();
+    await db.query(MIGRATION_COLONNES);
+    await db.query(MIGRATION_COLONNES);
+    expect(await empreinte()).toEqual(avant);
+  });
+
+  it("le retour refuse de se jouer dans un lot", async () => {
+    await db.query("savepoint essai");
+    let message = "";
+    try {
+      await db.query(RETOUR_COLONNES);
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    await db.query("rollback to savepoint essai");
+    expect(message).toMatch(/Retour arrière refusé/);
+  });
+
+  it("le retour rouvre la table à authenticated seul, supprime les fonctions, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
+    const migre = await empreinte();
+    await db.query(sansEnveloppe(RETOUR_COLONNES));
+    const apres = await empreinte();
+    expect(apres.fonctions).toEqual(["absente", "absente"]);
+    expect(apres.colonnes).toBe("");
+    expect(apres.table).toMatch(/authenticated=r\//);
+    expect(autresRoles(apres.table)).toEqual(autresRoles(migre.table));
+    expect((await db.query("select has_column_privilege('authenticated','public.artisans','statut_motif','SELECT') p")).rows[0].p).toBe(true);
+    expect((await db.query("select has_table_privilege('anon','public.artisans','SELECT') p")).rows[0].p).toBe(false);
+    // Rejouable : déjà défait, rien à faire.
+    await db.query(sansEnveloppe(RETOUR_COLONNES));
+    expect(await empreinte()).toEqual(apres);
+    // Aller de nouveau : identique à l'état migré.
+    await db.query(MIGRATION_COLONNES);
+    expect(await empreinte()).toEqual(migre);
+  });
+});

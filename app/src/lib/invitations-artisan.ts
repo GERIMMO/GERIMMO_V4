@@ -37,11 +37,13 @@ export function lienInvitationArtisan(origine: string, invitationId: string, ema
 
 /**
  * Ce que le propriétaire voit de l'artisan une fois l'invitation acceptée, dit à l'artisan AVANT qu'il accepte
- * (relecture du 15/10). La base lui ouvre alors toute la fiche de l'entreprise (règle de lecture `artisan_lisible`,
- * commune aux agences) : pas seulement le nom et le téléphone. Éprouvé dans invitation-artisan-proprietaire.test.ts.
+ * (relecture du 15/10). La base lui ouvre alors la fiche de l'entreprise (règle de lecture `artisan_lisible`, commune
+ * aux agences), limitée depuis 20261014842000 aux colonnes ouvertes aux clients : jamais les motifs, auteurs ni
+ * échéances des décisions de Gerimmo. Chaque colonne ouverte a ses mots ici ; éprouvé dans
+ * invitation-artisan-actions.test.ts, artisans-colonnes-internes.test.ts et invitation-artisan-proprietaire.test.ts.
  */
 export const VISIBLE_APRES_ACCEPTATION =
-  "le nom de votre entreprise, son SIRET, votre téléphone, votre adresse e-mail professionnelle, vos métiers, votre zone d’intervention, ainsi que l’état de votre inscription chez Gerimmo et les motifs de ses décisions";
+  "le nom de votre entreprise, son SIRET et l’état de sa vérification, votre téléphone, votre adresse e-mail professionnelle, vos métiers, votre zone d’intervention, la visibilité de votre profil, la date de votre inscription et son état chez Gerimmo (en attente, validée ou refusée, exclusion éventuelle de la plateforme), mais jamais les motifs des décisions de Gerimmo";
 
 /** Le nom de l'organisation qui invite, une fois borné (e-mail, page de l'artisan, console de validation). */
 export const LONGUEUR_MAX_NOM_INVITANT = 80;

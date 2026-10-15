@@ -108,11 +108,16 @@ const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/
 
 /**
  * Les lots postérieurs dont les fonctions citent aussi `public.aujourdhui_paris()` (décision D18, lot « devis-revisable » :
- * refuser_devis, demander_revision_devis, deposer_devis, expirer_revisions_devis). Leurs retours se jouent AVANT celui de la
+ * refuser_devis, demander_revision_devis, deposer_devis, expirer_revisions_devis ; lot « fuseau-suite » : dépôt de garantie,
+ * journal, révision IRL, terme du bail, charges, rapport de gestion, et leurs valeurs par défaut). Leurs retours se jouent AVANT celui de la
  * fonction du jour, dans l'ordre inverse de leurs migrations, comme la procédure du LISEZ-MOI le demande ; leurs migrations se
  * rejouent après celles du lot pour revenir exactement à l'état migré. Absents du dépôt, ils ne comptent pas.
  */
 const LOTS_POSTERIEURS = [
+  // Lot « fuseau-suite » (décisions du 15/10, points 1 et 2) : dépôt de garantie, journal, révision IRL, terme du bail, charges et
+  // rapport de gestion citent aussi la fonction du jour, et quatre valeurs par défaut s'en servent.
+  { version: "20261014821000", fichier: "jour_de_paris_irl_terme_charges_rapports" },
+  { version: "20261014820000", fichier: "jour_de_paris_depot_et_journal" },
   // Reprise du 15/10 (dépôt du PDF en révision, ordre des verrous) : son retour précède celui de 601000, qui le vérifie.
   { version: "20261014602000", fichier: "devis_revision_verrous_stockage" },
   { version: "20261014601000", fichier: "devis_revision_versions" },

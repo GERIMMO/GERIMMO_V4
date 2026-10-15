@@ -11,6 +11,10 @@ import { configDefaults, defineConfig } from "vitest/config";
  *    l'essai, et fait échouer les tests qui comptent « toute la table » (reprise-comptable.test.ts compte les dépôts) ;
  *  - un DDL tenu pendant tout le fichier (rejeu de migration, `create trigger` d'essai) pose un verrou de table qui se
  *    croise avec les écritures des autres fichiers : blocage mutuel (`deadlock detected`), la base tue l'un des deux ;
+ *  - un `alter table … disable trigger` tenu pendant le test (suspension d'un déclencheur pour fabriquer un état
+ *    d'avant la capture, constat de relecture du 15/10/2026) : le DDL pose un verrou de table jusqu'à la fin de la
+ *    transaction du test, et deux fichiers qui suspendent chacun un déclencheur de `ecritures` ou d'`encaissements`
+ *    se croisent avec les écritures de l'autre (`deadlock detected`, 16 échecs sur 30 passes avec ces deux seuls fichiers) ;
  *  - les deux à la fois.
  *
  * La CI (`npm test -- --maxWorkers=1`) lance déjà tout en série : ce classement ne change rien pour elle. Il protège
@@ -32,6 +36,11 @@ export const FICHIERS_EN_SERIE = [
   // qui se croiserait avec les écritures des autres fichiers.
   "tests/finance-dates-centime-plancher.test.ts",
   "tests/finance-dates-rejeu.test.ts",
+  // `alter table ecritures / encaissements disable trigger` (état « d'avant la capture ») tenu pendant le fichier, plus une
+  // fixture validée (transactions distinctes) : en blocage mutuel avec fiscalite-persistance.test.ts, qui fait de même.
+  "tests/fiscalite-capture-multilignes.test.ts",
+  // Même motif : `alter table ecritures disable trigger z_capturer_fiscalite` dans la transaction de ses essais.
+  "tests/fiscalite-persistance.test.ts",
 ];
 
 export default defineConfig({

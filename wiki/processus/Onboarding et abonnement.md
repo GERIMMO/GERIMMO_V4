@@ -3,8 +3,8 @@ type: process
 tags: [onboarding, abonnement, saas]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-30
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[2026-09-28-decision-tarification]]"]
+updated: 2026-10-15
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[2026-09-28-decision-tarification]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
 ---
 
 # Onboarding et abonnement
@@ -35,14 +35,48 @@ prise en main.
   grilles, plan comptable, équipements, seuils) : « elle peut travailler
   immédiatement ». Paramétrage initial : identité, agents, **indice IRL obligatoire**,
   seuil de délégation ; marque blanche et WhatsApp optionnels.
-- **Invitations** depuis la fiche personne (module 0b) : relances J+3/J+10, expiration
-  J+30 renvoyable, **refus tracé qui arrête les relances** ; une personne sans compte
-  **reste gérable** ; le mandant n'est **jamais** invité. À la première connexion :
+- **Invitations** depuis la fiche personne (module 0b) : la spécification V3 prévoit des
+  relances J+3/J+10, une expiration J+30 renvoyable et un **refus tracé qui arrête les
+  relances** — **les relances J+3/J+10 ne sont pas livrées** (voir « Ce que fait le code
+  aujourd'hui » ci-dessous) ; une personne sans compte **reste gérable** ; le mandant
+  n'est **jamais** invité. À la première connexion :
   mot de passe + CGU, puis proposition d'**enrôlement WhatsApp** (consentement daté,
   révocable, repli email — [[Canaux de communication]]).
 - **Import courant 16.3** (admin agence, dizaines de lots, ligne par ligne, sans
   reprise du passé) — gabarit et contrôles **communs** avec l'import de migration
   0.12 du [[Super Admin]].
+
+### Ce que fait le code aujourd'hui pour l'invitation d'un locataire (relevé du 15/10/2026)
+Décision X16 du dirigeant (14/10/2026) : amender le wiki plutôt que livrer les relances ;
+la livraison éventuelle des relances reste une décision produit non prise (estimation de
+2 jours). Voir [[Compte, personne et adhésion]].
+- **Un seul e-mail part, à l'envoi de l'invitation** (lien pour choisir un mot de passe,
+  invitation valable **30 jours**). **Aucune relance automatique à J+3 ni à J+10** : aucune
+  tâche planifiée ni aucune fonction de la base ne relit les invitations en attente pour les
+  relancer. Un locataire qui n'ouvre pas le premier e-mail n'est jamais relancé.
+- **Le renvoi est manuel** : depuis la fiche personne, le bouton « Renvoyer l'invitation »
+  renvoie l'e-mail tant que l'invitation est en attente (limite de 30 e-mails
+  d'invitation par heure et par organisation) ; le bouton « Annuler l'invitation » la
+  retire. L'écran signale « L'envoi de l'e-mail reste à confirmer » quand l'envoi a échoué
+  ou n'est pas enregistré.
+- **Expiration à 30 jours : oui, mais silencieuse.** Passé le délai, la fiche affiche
+  l'invitation comme expirée (calculé à l'affichage) ; l'état enregistré ne passe à
+  « expirée » que lorsque le locataire tente d'y répondre ou lorsque l'agent envoie une
+  nouvelle invitation. Aucun message n'est envoyé au locataire ni à l'agent à l'échéance.
+  L'agent doit penser à renvoyer lui-même (bouton « Envoyer une nouvelle invitation »).
+- **Refus tracé : oui.** Le refus du locataire est enregistré (état « refusée » et ligne
+  du journal d'audit) ; comme il n'y a pas de relance, il n'y a rien à arrêter, et rien
+  n'empêche l'agent d'envoyer ensuite une nouvelle invitation.
+- **Aucun accès n'est accordé avant l'acceptation** par le locataire, connecté avec
+  l'adresse qui a reçu l'invitation.
+
+> [!warning] Points à trancher / contradictions
+> - **Relances J+3/J+10 (RM-16.4, fiche REP-05, décision X16).** Prévues par la spécification
+>   V3 ([[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]), absentes du code. Le
+>   dirigeant a choisi (14/10/2026) d'amender le wiki, la décision produit de les livrer
+>   (tâche de rappel limitée par organisation, environ 2 jours) n'étant pas prise. Tant qu'elle
+>   ne l'est pas, c'est le comportement ci-dessus qui fait foi, et la page source V3 reste
+>   le texte de la spécification, non l'état du produit.
 
 > [!warning] Divergence code ↔ V3
 > Le code : auto-inscription `createOrganization` + essai 14 j + parcours 10 étapes

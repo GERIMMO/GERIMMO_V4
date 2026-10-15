@@ -338,3 +338,4 @@
 20261014414000_encaissements_montant_fini.sql
 20261014415000_reprise_soldes_au_centime.sql
 20261014416000_quittance_jour_de_paris.sql
+20261014420000_capture_fiscale_ordre_des_lignes.sql

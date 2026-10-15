@@ -30,7 +30,6 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 | `20261014330000_creation_fiche_personne_cle.retour.sql` | `20261014330000_creation_fiche_personne_cle.sql` (décision D31) | 1 colonne facultative (`persons.creation_cle`), 1 index unique partiel, 1 ligne d'historique ; aucune fonction. À jouer **après** avoir remis en production le code d'avant la décision D31 (il écrit cette colonne à chaque création de fiche depuis l'assistant). Aucune fiche n'est supprimée, seules les clés d'idempotence disparaissent. Il affiche son propre état « migrée (B) / antérieure (A) » à la fin (essayé : simulation, exécution, rejeu, refus dans un lot, marche avant). |
 | `20261014413000_encaissement_plancher_honoraires.retour.sql` | `20261014413000_encaissement_plancher_honoraires.sql` (X14, PR178-B-03) | 1 fonction rétablie (`ecrire_encaissement()` sans le plancher d'honoraires), 1 ligne d'historique. Réintroduit : un encaissement trop petit pour porter des honoraires (0,01 € à 7 %) est de nouveau refusé par la contrainte des écritures, avec le message générique. Aucune donnée touchée. |
 | `20261014412000_encaissements_montant_au_centime.retour.sql` | `20261014412000_encaissements_montant_au_centime.sql` (X09, FIN-03) | 1 contrainte supprimée (`encaissements_montant_centime_check`, posée NOT VALID), 1 ligne d'historique ; aucune fonction. Dit combien d'encaissements sont hors centime avant de la retirer. Aucune donnée touchée. |
-| `20261014411000_loyer_echu_jour_de_paris.retour.sql` | `20261014411000_loyer_echu_jour_de_paris.sql` (X13, FIN-13, élargissement du 15/10) | 3 fonctions rétablies (`etat_loyers_bail_brut`, `fiche_lot`, `contrats_du_lot`), 1 ligne d'historique. Réintroduit : un loyer échu la veille s'affiche « attendu » de minuit à 2 h à Paris. Aucune donnée touchée. |
 | `20261014410000_encaissement_reste_jour_de_paris.retour.sql` | `20261014410000_encaissement_reste_jour_de_paris.sql` (X13, FIN-13) | 1 fonction rétablie (`encaisser_reste_atomique`, sans date explicite), 1 ligne d'historique. Réintroduit : « Encaisser » date le règlement du jour UTC de la base (la veille de minuit à 2 h à Paris). Aucune donnée touchée. |
 | `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » |
 | `20261014232000_effacement_instantanes_faits_direction.retour.sql` | `20261014232000_effacement_instantanes_faits_direction.sql` | **rien** : les instantanés effacés ne reviennent que d'une sauvegarde ; le script ne retire que la ligne d'historique |
@@ -369,16 +368,23 @@ définitions et droits **identiques** à l'état A ; marche avant (migrations re
 
 ## Lot « finance-dates » — migrations du 14 octobre 2026 (X13, X09, X14)
 
-Quatre migrations (plage `20261014410000` à `20261014419999`), quatre retours dans ce dossier. Même procédure que ci-dessus (préparer, simuler, exécuter, vérifier,
-consigner). **Ordre des retours : l'inverse des migrations** (413000, 412000, 411000, 410000) ; les quatre sont indépendants (aucune fonction partagée), l'ordre
-est une habitude, pas une contrainte (essayé dans les deux ordres : même état final).
+Trois migrations (plage `20261014410000` à `20261014419999`), trois retours dans ce dossier. Même procédure que ci-dessus (préparer, simuler, exécuter, vérifier,
+consigner). **Ordre des retours : l'inverse des migrations** (413000, 412000, 410000) ; les trois sont indépendants (aucune fonction partagée), l'ordre
+est une habitude, pas une contrainte.
 
 | Migration | Ajoute | Le retour rétablit |
 |---|---|---|
 | `20261014410000` (X13, FIN-13) | `encaisser_reste_atomique` pose `date_paiement = (now() at time zone 'Europe/Paris')::date` (marque `Décision X13 du 15/10 (FIN-13)`) | la définition d'avant (aucune date : la base posait le jour de son fuseau) |
-| `20261014411000` (X13, élargissement) | `etat_loyers_bail_brut`, `fiche_lot` et `contrats_du_lot` comparent l'échéance au jour de Paris (même marque) | les trois définitions d'avant (`current_date`) |
 | `20261014412000` (X09, FIN-03) | la contrainte `encaissements_montant_centime_check` (`montant = round(montant, 2)`), posée **NOT VALID** | rien à rétablir : la contrainte est supprimée |
 | `20261014413000` (X14, PR178-B-03) | `ecrire_encaissement` refuse un encaissement dont les honoraires seraient arrondis à 0,00 €, avec le montant minimal (marque `Décision X14 du 15/10 (PR178-B-03)`) | la définition d'avant (aucun plancher) |
+
+**Élargissement retiré du lot (constat de relecture du 15/10, non ratifié).** Une migration `20261014411000` faisait aussi lire « échu » au jour de Paris dans
+`etat_loyers_bail_brut`, `fiche_lot` et `contrats_du_lot`. La décision X13 ne demande que la date de « Encaisser » ; cette migration changeait le moment où un loyer passe
+« impayé » (écran du locataire, fiche du lot), sans que le dirigeant l'ait ratifiée, et laissait `suivre_impayes_bail` (alertes) et `relances_loyer_dues` (relances, jours de retard)
+sur le jour de la session : de 22 h à 24 h UTC, l'écran aurait dit « impayé » alors que l'alerte et la relance n'étaient pas encore posées (reproduit). Elle est **retirée du lot**
+(fichiers supprimés, ligne du manifeste retirée) ; ces cinq fonctions sont donc **inchangées**. Conséquence connue : le test e2e `encaissement-reste.spec.ts`, qui date l'échéance de la veille
+**à Paris**, échoue toujours de 22 h à 24 h UTC (heure d'été ; 23 h à 24 h l'hiver), comme avant le lot. Si le dirigeant ratifie l'élargissement, il faudra aligner AUSSI
+`suivre_impayes_bail` et `relances_loyer_dues` ; la migration retirée reste lisible dans l'historique de la branche (commit `c30698c`, fichier `20261014411000_loyer_echu_jour_de_paris.sql`).
 
 **Aucune donnée n'est réécrite**, ni par les migrations ni par les retours : aucun encaissement, aucune écriture, aucun appel de loyer n'est modifié. La contrainte
 NOT VALID ne relit pas les lignes existantes (le relevé de production du 13/10 en compte zéro hors centime) ; elle s'applique aux insertions et modifications à venir.
@@ -397,18 +403,15 @@ Vérifier l'état (lecture seule) : « vrai » = migrée (B), « faux » = anté
 
 ```sql
 select position('Décision X13 du 15/10 (FIN-13)' in pg_get_functiondef('public.encaisser_reste_atomique(uuid,uuid,uuid,uuid,numeric,numeric)'::regprocedure)) > 0 as x13_encaisser,
-       position('Décision X13 du 15/10 (FIN-13)' in pg_get_functiondef('public.etat_loyers_bail_brut(uuid)'::regprocedure)) > 0 as x13_etat_des_loyers,
-       position('Décision X13 du 15/10 (FIN-13)' in pg_get_functiondef('public.fiche_lot(uuid)'::regprocedure)) > 0 as x13_fiche_lot,
-       position('Décision X13 du 15/10 (FIN-13)' in pg_get_functiondef('public.contrats_du_lot(uuid)'::regprocedure)) > 0 as x13_contrats_du_lot,
        exists (select 1 from pg_constraint where conname = 'encaissements_montant_centime_check') as x09_contrainte,
        position('Décision X14 du 15/10 (PR178-B-03)' in pg_get_functiondef('public.ecrire_encaissement()'::regprocedure)) > 0 as x14_plancher;
-select version from supabase_migrations.schema_migrations where version in ('20261014410000', '20261014411000', '20261014412000', '20261014413000') order by 1;
+select version from supabase_migrations.schema_migrations where version in ('20261014410000', '20261014412000', '20261014413000') order by 1;
 ```
 
 Avant de valider la contrainte (`alter table public.encaissements validate constraint encaissements_montant_centime_check`, décision du dirigeant, hors de ces scripts), rejouer le relevé
 de la fiche FIN-03 : `select count(*) from public.encaissements where montant <> round(montant, 2);` doit rendre zéro, sans quoi la validation échoue (aucune donnée n'est alors modifiée).
 
-Essais du 15/10/2026 (base de banc jetable, copie de la base migrée) : refus de se jouer dans un lot ouvert ; les quatre retours, dans l'ordre inverse puis dans l'ordre des migrations → les cinq définitions reviennent
+Essais du 15/10/2026 (base de banc jetable, copie de la base migrée) : refus de se jouer dans un lot ouvert ; les trois retours, dans l'ordre inverse puis dans l'ordre des migrations → les deux définitions reviennent
 **octet pour octet** à celles d'avant les migrations (empreinte md5 comparée aux définitions extraites avant), la contrainte disparaît ; rejeu des retours sans effet ; marche avant → l'état
 migré (définitions, droits, contrainte) est retrouvé à l'identique ; rejeu des migrations sans effet. Les tests `tests/finance-dates-rejeu.test.ts` (rejeu, définitions inattendues, corps des
 retours, cohérence des marques), `tests/finance-dates-jour-de-paris.test.ts` (X13) et `tests/finance-dates-centime-plancher.test.ts` (X09, X14) couvrent le reste. Limites : base de banc,

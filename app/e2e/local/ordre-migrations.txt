@@ -347,3 +347,4 @@
 20261014600000_devis_refus_motive.sql
 20261014601000_devis_revision_versions.sql
 20261014602000_devis_revision_verrous_stockage.sql
+20261014720000_recherche_reference_supervision.sql

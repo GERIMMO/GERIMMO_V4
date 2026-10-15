@@ -21,6 +21,7 @@ vi.mock("@/lib/email", () => ({ envoyerEmail: m.courriel }));
 vi.mock("next/cache", () => ({ revalidatePath: m.revalidate }));
 
 import {
+  agirSurInvitationArtisan,
   annulerInvitationArtisan,
   inviterArtisan,
   renvoyerInvitationArtisan,
@@ -91,7 +92,7 @@ describe("inviter un artisan (propriétaire)", () => {
     m.courriel.mockResolvedValue({ erreur: "Envoi des e-mails non configuré. Contactez l’administrateur." });
     const r = await inviterArtisan(org, {}, formulaire({ email: "artisan@example.invalid" }));
     expect(r.succes).toBeUndefined();
-    expect(r.erreur).toContain("n’a pas été envoyé");
+    expect(r.erreur).toContain("Invitation à artisan@example.invalid enregistrée, mais l’e-mail n’a pas été envoyé");
     expect(r.erreur).toContain("renvoyer");
     expect(m.rpc).toHaveBeenCalledWith("noter_envoi_invitation_artisan", { p_id: inv, p_envoye: false });
   });
@@ -124,6 +125,43 @@ describe("inviter un artisan (propriétaire)", () => {
     m.rpc.mockClear();
     expect((await annulerInvitationArtisan(org, "pas-un-uuid", {}, new FormData())).erreur).toBeTruthy();
     expect(m.rpc).not.toHaveBeenCalled();
+  });
+});
+
+// Relecture du 15/10 (accessibilité) : les gestes des lignes passent par une seule action, dont le message vit au niveau
+// de la liste (la ligne change sous le bouton). Le parcours navigateur vérifie l'annonce et le focus.
+describe("les gestes d'une ligne du carnet", () => {
+  const geste = (champs: Record<string, string>) => agirSurInvitationArtisan(org, {}, formulaire(champs));
+
+  it("annuler : le message nomme l'adresse, puisqu'il s'affiche hors de la ligne", async () => {
+    m.rpc.mockResolvedValue({ data: null, error: null });
+    expect((await geste({ geste: "annuler", invitation: inv, email: "artisan@example.invalid" })).succes).toBe(
+      "Invitation à artisan@example.invalid annulée : l’artisan ne pourra plus l’accepter."
+    );
+    expect(m.rpc).toHaveBeenCalledWith("annuler_invitation_artisan", { p_id: inv });
+    expect((await geste({ geste: "annuler", invitation: inv, email: "pas une adresse" })).succes).toBe("Invitation annulée : l’artisan ne pourra plus l’accepter.");
+  });
+
+  it("renvoyer et inviter de nouveau passent par les mêmes contrôles que les gestes seuls", async () => {
+    expect((await geste({ geste: "renvoyer", invitation: inv })).succes).toContain("renvoyée");
+    expect(m.rpc).toHaveBeenNthCalledWith(1, "renvoyer_invitation_artisan", { p_id: inv });
+    m.rpc.mockClear();
+    const r = await geste({ geste: "reinviter", email: "Artisan@Example.invalid", nom: "M. Martin", metier: "plomberie" });
+    expect(r.succes).toContain("Invitation envoyée à artisan@example.invalid");
+    expect(r).not.toHaveProperty("valeurs");
+    expect(m.rpc).toHaveBeenNthCalledWith(1, "preparer_invitation_artisan", {
+      p_org: org, p_email: "artisan@example.invalid", p_nom: "M. Martin", p_metier: "plomberie",
+    });
+    m.garde.mockResolvedValue({ supabase: { rpc: m.rpc }, user: { id: "x" }, role: "agent" });
+    m.rpc.mockClear();
+    expect((await geste({ geste: "annuler", invitation: inv })).erreur).toMatch(/réservée au propriétaire/);
+    expect(m.rpc).not.toHaveBeenCalled();
+  });
+
+  it("un geste inconnu n'appelle rien", async () => {
+    expect((await geste({ geste: "supprimer", invitation: inv })).erreur).toMatch(/pas reconnu/);
+    expect(m.rpc).not.toHaveBeenCalled();
+    expect(m.courriel).not.toHaveBeenCalled();
   });
 });
 

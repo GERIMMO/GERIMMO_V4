@@ -60,7 +60,7 @@ async function envoyerEtNoter(
   revalidatePath(`/agence/${orgId}/artisans`);
   if (envoi.erreur) {
     return {
-      erreur: `Invitation enregistrée, mais l’e-mail n’a pas été envoyé : ${envoi.erreur} Vous pouvez la renvoyer depuis « Mes artisans ».`,
+      erreur: `Invitation à ${invitation.email} enregistrée, mais l’e-mail n’a pas été envoyé : ${envoi.erreur} Vous pouvez la renvoyer depuis « Mes artisans ».`,
     };
   }
   if (erreurTrace) {
@@ -130,14 +130,39 @@ export async function annulerInvitationArtisan(
   orgId: string,
   invitationId: string,
   _etat: EtatInvitationArtisan,
-  _formData: FormData
+  formData: FormData
 ): Promise<EtatInvitationArtisan> {
   const { supabase, user, role } = await verifierGerant(orgId);
   if (!user || role !== "proprietaire_direct" || !estUuid(invitationId)) return { erreur: REFUS_PROPRIETAIRE };
   const { error } = await supabase.rpc("annuler_invitation_artisan", { p_id: invitationId });
   revalidatePath(`/agence/${orgId}/artisans`);
   if (error) return { erreur: sansJargon(error.message) };
-  return { succes: "Invitation annulée. L’artisan ne pourra plus l’accepter." };
+  // L'adresse ne sert qu'au message : il s'affiche hors de la ligne, qui change sous le bouton (relecture du 15/10).
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const qui = email.length <= LONGUEUR_MAX_EMAIL && ADRESSE_EMAIL.test(email) ? ` à ${email}` : "";
+  return { succes: `Invitation${qui} annulée : l’artisan ne pourra plus l’accepter.` };
+}
+
+/**
+ * Les gestes d'une ligne du carnet (renvoyer, annuler, inviter de nouveau) passent par cette seule action, dont l'état
+ * vit au niveau de la liste « Mes artisans » (relecture du 15/10, accessibilité). Le geste change la ligne sous le
+ * bouton — ses gestes disparaissent après une annulation, la nouvelle invitation remplace l'ancienne — : un message
+ * tenu par la ligne disparaissait avec elle, sans être lu. Chaque geste garde ses propres contrôles.
+ */
+export async function agirSurInvitationArtisan(
+  orgId: string,
+  _etat: EtatInvitationArtisan,
+  formData: FormData
+): Promise<EtatInvitationArtisan> {
+  const geste = formData.get("geste");
+  const invitationId = String(formData.get("invitation") ?? "");
+  if (geste === "renvoyer") return renvoyerInvitationArtisan(orgId, invitationId, {}, formData);
+  if (geste === "annuler") return annulerInvitationArtisan(orgId, invitationId, {}, formData);
+  if (geste === "reinviter") {
+    const { erreur, succes } = await inviterArtisan(orgId, {}, formData);
+    return { erreur, succes };
+  }
+  return { erreur: "Ce geste n’est pas reconnu. Rechargez la page, puis recommencez." };
 }
 
 export async function repondreInvitationArtisan(

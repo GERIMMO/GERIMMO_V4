@@ -1,13 +1,8 @@
 "use client";
 
-import { useId } from "react";
+import { createContext, useContext, useEffect, useId, useRef, type ReactNode } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
-import {
-  annulerInvitationArtisan,
-  inviterArtisan,
-  renvoyerInvitationArtisan,
-  type EtatInvitationArtisan,
-} from "@/app/actions/invitations-artisan";
+import { agirSurInvitationArtisan, inviterArtisan, type EtatInvitationArtisan } from "@/app/actions/invitations-artisan";
 import { LONGUEUR_MAX_EMAIL, LONGUEUR_MAX_NOM_MEMO } from "@/lib/invitations-artisan";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -78,57 +73,79 @@ export function FormulaireInvitationArtisan({ orgId }: { orgId: string }) {
   );
 }
 
-export function GestesInvitationEnAttente({ orgId, invitationId }: { orgId: string; invitationId: string }) {
-  const [etatRenvoi, renvoyer] = useActionState<EtatInvitationArtisan, FormData>(
-    renvoyerInvitationArtisan.bind(null, orgId, invitationId),
-    {}
-  );
-  const [etatAnnulation, annuler] = useActionState<EtatInvitationArtisan, FormData>(
-    annulerInvitationArtisan.bind(null, orgId, invitationId),
-    {}
-  );
+/**
+ * Les gestes des lignes du carnet (relecture du 15/10, accessibilité). Un geste change la ligne sous le bouton : après
+ * une annulation, ses gestes disparaissent ; une nouvelle invitation remplace l'ancienne. Un message tenu par la ligne
+ * disparaissait donc avec elle, sans être lu, et le focus se perdait. L'état des gestes et leur message vivent ici, au
+ * niveau de la liste « Mes artisans », hors de toute partie conditionnelle ; après chaque geste, le focus va au message.
+ */
+const ActionDesGestes = createContext<((formData: FormData) => void) | null>(null);
+
+function useActionDesGestes() {
+  const agir = useContext(ActionDesGestes);
+  if (!agir) throw new Error("Les gestes d’une invitation se placent dans GestesDuCarnet.");
+  return agir;
+}
+
+export function GestesDuCarnet({ orgId, children }: { orgId: string; children: ReactNode }) {
+  const [etat, agir] = useActionState<EtatInvitationArtisan, FormData>(agirSurInvitationArtisan.bind(null, orgId), {});
+  const message = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (etat.erreur || etat.succes) message.current?.focus();
+  }, [etat]);
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
-        <form data-saisie-confirmee action={renvoyer}>
-          <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Envoi…">
-            Renvoyer
-          </BoutonEnvoi>
-        </form>
-        <form data-saisie-confirmee action={annuler}>
-          <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Annulation…">
-            Annuler l’invitation
-          </BoutonEnvoi>
-        </form>
+    <ActionDesGestes.Provider value={agir}>
+      <div className="empty:hidden">
+        {etat.erreur ? (
+          <p ref={message} tabIndex={-1} role="alert" className="text-sm text-destructive outline-none">
+            {etat.erreur}
+          </p>
+        ) : etat.succes ? (
+          <p ref={message} tabIndex={-1} role="status" className="text-sm text-success-soft-foreground outline-none">
+            {etat.succes}
+          </p>
+        ) : null}
       </div>
-      <Retour etat={etatRenvoi} />
-      <Retour etat={etatAnnulation} />
+      {children}
+    </ActionDesGestes.Provider>
+  );
+}
+
+export function GestesInvitationEnAttente({ invitationId, email }: { invitationId: string; email: string | null }) {
+  const agir = useActionDesGestes();
+  return (
+    <div className="flex flex-wrap gap-2">
+      <form data-saisie-confirmee action={agir}>
+        <input type="hidden" name="geste" value="renvoyer" />
+        <input type="hidden" name="invitation" value={invitationId} />
+        <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Envoi…">
+          Renvoyer
+        </BoutonEnvoi>
+      </form>
+      <form data-saisie-confirmee action={agir}>
+        <input type="hidden" name="geste" value="annuler" />
+        <input type="hidden" name="invitation" value={invitationId} />
+        <input type="hidden" name="email" value={email ?? ""} />
+        <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Annulation…">
+          Annuler l’invitation
+        </BoutonEnvoi>
+      </form>
     </div>
   );
 }
 
 /** Une invitation expirée ou annulée se refait en un clic, avec la même adresse et les mêmes notes. */
-export function ReinviterArtisan({
-  orgId,
-  email,
-  nom,
-  metier,
-}: {
-  orgId: string;
-  email: string;
-  nom: string | null;
-  metier: string | null;
-}) {
-  const [etat, action] = useActionState<EtatInvitationArtisan, FormData>(inviterArtisan.bind(null, orgId), {});
+export function ReinviterArtisan({ email, nom, metier }: { email: string; nom: string | null; metier: string | null }) {
+  const agir = useActionDesGestes();
   return (
-    <form data-saisie-confirmee action={action} className="space-y-2">
+    <form data-saisie-confirmee action={agir}>
+      <input type="hidden" name="geste" value="reinviter" />
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="nom" value={nom ?? ""} />
       <input type="hidden" name="metier" value={metier ?? ""} />
       <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Envoi…">
         Inviter de nouveau
       </BoutonEnvoi>
-      <Retour etat={etat} />
     </form>
   );
 }

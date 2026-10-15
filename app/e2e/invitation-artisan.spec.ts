@@ -96,6 +96,22 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await expect(ligneInvitation.getByRole("button", { name: "Annuler l’invitation" })).toBeVisible();
     expect(await debordementHorizontal(p)).toBeLessThanOrEqual(1);
     await p.screenshot({ path: info.outputPath("1-carnet-invitation-envoyee.png"), fullPage: true });
+
+    // 1 bis. Annuler, puis inviter de nouveau (relecture du 15/10) : la ligne change sous le bouton (ses gestes
+    // disparaissent, puis la nouvelle invitation remplace l'ancienne), mais l'issue de chaque geste reste annoncée et
+    // reçoit le focus : un lecteur d'écran l'entend, le clavier ne se perd pas en haut de la page.
+    await ligneInvitation.getByRole("button", { name: "Annuler l’invitation" }).click();
+    const annulee = p.getByRole("status").filter({ hasText: `Invitation à ${email} annulée` });
+    await expect(annulee).toBeVisible();
+    await expect(annulee).toBeFocused();
+    await expect(ligneInvitation).toContainText("Annulée");
+    await ligneInvitation.getByRole("button", { name: "Inviter de nouveau" }).click();
+    const reinvitee = p.getByRole("alert").filter({ hasText: "n’a pas été envoyé" });
+    await expect(reinvitee).toBeVisible();
+    await expect(reinvitee).toBeFocused();
+    await expect(ligneInvitation).toContainText("e-mail non envoyé");
+    await expect(ligneInvitation.getByRole("button", { name: "Annuler l’invitation" })).toBeVisible();
+    await p.screenshot({ path: info.outputPath("1b-carnet-reinvitation.png"), fullPage: true });
     const { rows: [{ id: invitation }] } = await db.query("select id from public.invitations_artisans where email=$1 and etat='en_attente'", [email]);
 
     // 2. L'artisan ouvre le lien de l'e-mail : sans compte, l'adresse invitée est pré-remplie (ancre du lien).

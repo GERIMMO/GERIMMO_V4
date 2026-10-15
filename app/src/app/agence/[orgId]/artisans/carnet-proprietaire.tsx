@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formaterDate } from "@/lib/ged";
 import { ANCRE_INVITER_ARTISAN, etatLigneCarnet, type LigneCarnetArtisan, type TonEtat } from "@/lib/invitations-artisan";
 import { COULEURS_INTERVENTION, METIERS_ARTISAN, STATUTS_INTERVENTION } from "./referentiel";
-import { FormulaireInvitationArtisan, GestesInvitationEnAttente, ReinviterArtisan } from "./invitations-artisan";
+import { FormulaireInvitationArtisan, GestesDuCarnet, GestesInvitationEnAttente, ReinviterArtisan } from "./invitations-artisan";
 
 type Mission = { id: string; artisan_id: string; incident_id: string; statut: string; confiee_le: string; terminee_le: string | null };
 
@@ -56,6 +56,8 @@ export async function CarnetProprietaire({ orgId }: { orgId: string }) {
         <h2 id="mes-artisans" className="font-heading text-xl">Mes artisans</h2>
         <p className="mt-1 text-sm text-muted-foreground">Une fois l’invitation acceptée et l’inscription validée par Gerimmo, vous pouvez solliciter l’artisan depuis la fiche d’un incident, même si la commune du bien n’est pas encore ouverte au réseau. Il n’est proposé que pour les biens situés dans sa zone d’intervention ; s’il y manque un code postal, il peut l’ajouter depuis son espace.</p>
       </div>
+      {/* Les gestes des lignes et leur message : au niveau de la liste, hors des lignes qui changent sous le bouton. */}
+      <GestesDuCarnet orgId={orgId}>
       {erreurCarnet ? <p role="alert" className="err">La liste de vos artisans n’a pas pu être chargée. Rechargez la page.</p>
         : carnet.length === 0 ? <p className="text-sm text-muted-foreground">Aucun artisan pour le moment. Invitez un artisan que vous connaissez avec le formulaire ci-dessous.</p>
         : <ul className="divide-y divide-[var(--filet)]">{carnet.map((ligne) => {
@@ -74,11 +76,12 @@ export async function CarnetProprietaire({ orgId }: { orgId: string }) {
             </div>
             <div className="flex min-w-0 max-w-full flex-col items-start gap-2 sm:items-end">
               <span className={`${PUCES[etat.ton]} max-w-full whitespace-normal`}>{etat.libelle}</span>
-              {etat.renvoyer && ligne.invitation_id && <GestesInvitationEnAttente orgId={orgId} invitationId={ligne.invitation_id} />}
-              {etat.reinviter && ligne.email && <ReinviterArtisan orgId={orgId} email={ligne.email} nom={ligne.nom_memo} metier={ligne.metier_memo} />}
+              {etat.renvoyer && ligne.invitation_id && <GestesInvitationEnAttente invitationId={ligne.invitation_id} email={ligne.email} />}
+              {etat.reinviter && ligne.email && <ReinviterArtisan email={ligne.email} nom={ligne.nom_memo} metier={ligne.metier_memo} />}
             </div>
           </li>;
         })}</ul>}
+      </GestesDuCarnet>
     </section>
 
     <section id={ANCRE_INVITER_ARTISAN} aria-labelledby="titre-inviter-artisan" className="loc-carte scroll-mt-20 space-y-3">

@@ -88,6 +88,12 @@ export async function envoyerUrgencesRelais(options: {
       }
       const envoi = p.envoi;
       const urgences = urgencesLues(p.urgences);
+      if (urgences.length === 0) {
+        // Un envoi sans urgence lisible (ne devrait pas arriver : la base n'en crée qu'avec des urgences en attente) :
+        // il est clos sans e-mail, plutôt que d'annoncer une urgence qui n'existe pas.
+        await db.rpc("terminer_urgences_relais", { p_envoi: envoi, p_destinataires: adresses.valides.length, p_envoyes: adresses.valides.length });
+        return { arret: "rien", envois };
+      }
       const html = htmlUrgencesRelais(urgences, `${site}/admin`);
       const sujet = sujetUrgencesRelais(urgences.length);
       // Les adresses en parallèle : le délai d'un service lent ne s'additionne pas d'une adresse à l'autre.

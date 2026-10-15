@@ -265,6 +265,14 @@ describe("l'envoi immédiat des urgences", () => {
     expect(noms(b.appels).filter((n) => n === "prendre_urgences_relais")).toHaveLength(1);
   });
 
+  it("un envoi sans urgence lisible est clos sans e-mail (jamais « 1 urgence » annoncée à tort)", async () => {
+    const f = fournisseur();
+    const b = base({ prendre_urgences_relais: [pris({ urgences: [{ nature: 3 }] })] });
+    expect(await envoyerUrgencesRelais({ db: b.db, adresses: ADRESSES, site: SITE })).toEqual({ arret: "rien", envois: [] });
+    expect(f.corps()).toEqual([]);
+    expect(b.appels.find(([n]) => n === "terminer_urgences_relais")?.[1]).toEqual({ p_envoi: ENVOI, p_destinataires: 2, p_envoyes: 2 });
+  });
+
   it("trois tours au plus par passage (reprise, puis urgences en attente)", async () => {
     fournisseur();
     const b = base({ prendre_urgences_relais: [pris({ en_attente: 60 })] });

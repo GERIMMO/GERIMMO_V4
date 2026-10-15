@@ -76,6 +76,24 @@ describe("X07 : l'écran propose la pièce existante", () => {
     expect(rendre("lot")).toContain("sans titre");
   });
 
+  it("« Déposer » est le premier bouton d'envoi du DOM (bouton par défaut : Entrée dans un champ), et s'affiche pourtant en dernier", () => {
+    banc.etat = { erreur: REFUS, pieceExistante: { id: PIECE, titre: "DPE — 13/10/2026" } };
+    const html = rendre("lot");
+    const boutons = (html.match(/<button\b[^>]*>[^<]*(?:<[^b/][^>]*>[^<]*)*<\/button>/g) ?? []).filter((b) => b.includes('type="submit"'));
+    expect(boutons).toHaveLength(2);
+    // Entrée dans un champ clique le premier bouton d'envoi du formulaire : c'est « Déposer », jamais la proposition.
+    expect(boutons[0]).toContain("Déposer");
+    expect(boutons[0]).not.toContain("piece_existante");
+    expect(boutons[1]).toContain('name="piece_existante"');
+    // L'affichage reste celui d'avant (proposition au-dessus de « Déposer ») : colonne flex, « Déposer » en dernier.
+    expect(boutons[0]).toMatch(/class="[^"]*\border-last\b/);
+    expect(html).toMatch(/<form\b[^>]*class="[^"]*\bflex flex-col\b/);
+    // Le dépôt ordinaire est le même sans proposition.
+    banc.etat = {};
+    const sans = (rendre("lot").match(/<button\b[^>]*>/g) ?? []).filter((b) => b.includes('type="submit"'));
+    expect(sans).toHaveLength(1);
+  });
+
   it("le champ du rapport reste affiché : l'utilisateur peut aussi choisir un autre fichier", () => {
     banc.etat = { erreur: REFUS, pieceExistante: { id: PIECE, titre: "DPE — 13/10/2026" } };
     expect(rendre("lot")).toContain('name="fichier"');

@@ -46,7 +46,7 @@ export function FormulaireReinitialisation() {
               />
             </div>
             {etat.erreur && <AlerteFormulaire signal={etat}>{etat.erreur}</AlerteFormulaire>}
-            <BoutonEnvoi enCoursTexte="Envoi…" className="w-full">
+            <BoutonEnvoi envoiNatif enCoursTexte="Envoi…" className="w-full">
               Envoyer le lien
             </BoutonEnvoi>
             {/* Cible de 44 px au doigt (24/09), sans changer l'allure du texte. */}

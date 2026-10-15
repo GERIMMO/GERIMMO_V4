@@ -68,7 +68,7 @@ export function FormulaireMotDePasse() {
           {etat.message}
         </p>
       )}
-      <BoutonEnvoi enCoursTexte="Enregistrement…">Changer le mot de passe</BoutonEnvoi>
+      <BoutonEnvoi envoiNatif enCoursTexte="Enregistrement…">Changer le mot de passe</BoutonEnvoi>
     </form>
   );
 }

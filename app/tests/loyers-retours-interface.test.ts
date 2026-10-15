@@ -15,6 +15,10 @@ vi.mock("@/app/actions/loyers", () => ({
   regulariserCharges: vi.fn(),
 }));
 vi.mock("@/components/bouton-generer-document", () => ({ BoutonGenererDocument: () => null }));
+// Le bouton d'envoi commun est inerte tant que la page n'est pas hydratée (D30 B, audit du 13/10) : le simple rendu
+// serveur le montrerait donc toujours désactivé. Ces tests parlent de l'état APRÈS hydratation, celui où ce sont le
+// retour de l'action et l'envoi en cours qui décident du bouton : on le reproduit comme pour la date ci-dessous.
+vi.mock("@/lib/use-hydrate", () => ({ useHydrate: () => true, AIDE_BOUTON_EN_ATTENTE: "La page finit de se charger." }));
 // Reproduire le contrat du composant APRÈS hydratation : il renseigne le
 // jour courant. Le simple rendu serveur laisserait le champ vide et ne
 // détecterait pas son utilisation erronée pour la première présentation.

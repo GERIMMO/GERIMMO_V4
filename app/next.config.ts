@@ -101,6 +101,17 @@ export const ENTETES_SECURITE: { key: string; value: string }[] = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 
+// ── Cache du logo et des illustrations (audit du 13/10, PRF-05 ; décision D45 A) ──
+//
+// Next.js sert le dossier `public/` avec « Cache-Control: public, max-age=0 » : le navigateur revalidait le logo
+// (292 Ko) et l'illustration de fond (298 Ko) à chaque page. Ces fichiers n'ont PAS de nom versionné (aucune
+// empreinte dans le nom) : une durée longue les figerait chez les visiteurs le jour où l'on remplacerait l'image
+// sous le même nom. On pose donc une durée COURTE avec revalidation : une heure de fraîcheur, puis le navigateur
+// montre l'image qu'il a déjà et vérifie en arrière-plan (réponse « 304 », sans retélécharger) si elle a changé.
+// Une durée longue (« immutable ») ne se justifie qu'avec un nom versionné, par exemple « gerimmo-officiel-v2.png » :
+// il faudrait alors renommer le fichier et ses appels ; ce n'est pas fait ici (les fichiers ne changent pas).
+export const CACHE_IMAGES_DE_MARQUE = "public, max-age=3600, stale-while-revalidate=86400";
+
 /** L'hôte Supabase des visuels du journal (bucket public `marketing-visuels`), pour next/image. */
 function hoteSupabase(): string | null {
   try {
@@ -128,6 +139,9 @@ const nextConfig: NextConfig = {
       // /auth/confirmer porte le jeton d'un lien reçu par e-mail. Ni le
       // navigateur ni un relais ne doivent en garder copie.
       { source: "/auth/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
+      // Audit du 13/10 (PRF-05, D45 A) : durée courte avec revalidation, voir CACHE_IMAGES_DE_MARQUE.
+      { source: "/logo/:path*", headers: [{ key: "Cache-Control", value: CACHE_IMAGES_DE_MARQUE }] },
+      { source: "/illustrations/:path*", headers: [{ key: "Cache-Control", value: CACHE_IMAGES_DE_MARQUE }] },
     ];
   },
   // Audit 09/09 (P1) : sur Vercel, le bundler embarquait @sparticuz/chromium

@@ -22,6 +22,12 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 | `20261014221000_alerte_relais_destinataire.retour.sql` | `20261014221000_alerte_relais_destinataire.sql` (D09, SUP-03) | 1 fonction (`accuser_alerte_vacances`), 1 ligne d'historique. Réintroduit : tout superviseur permanent peut accuser une alerte de relais adressée à un autre. Aucune donnée défaite |
 | `20261014222000_consigne_activation_approbateur_distinct.retour.sql` | `20261014222000_consigne_activation_approbateur_distinct.sql` (D10, SUP-04) | 1 fonction (`decider_consigne`), 1 fonction supprimée (`tache_consigne_lecture_seule`), 1 ligne d'historique. Réintroduit : plus aucun approbateur distinct exigé, même le jour où une tâche agira. Aucune donnée défaite |
 | `20261014223000_alerte_relais_reprise_destinataire_parti.retour.sql` | `20261014223000_alerte_relais_reprise_destinataire_parti.sql` (D09, relecture de SUP-03) | 1 fonction (`accuser_alerte_vacances`, qui retrouve la définition de 221000), 1 ligne d'historique. Réintroduit : une alerte escaladée vers un créateur qui a perdu son habilitation n'a plus personne pour l'accuser (la reprise redevient limitée au statut « non acheminée »). **À jouer AVANT le retour de 221000.** Aucune donnée défaite |
+| `20261014302000_creneaux_non_retenus_caducs.retour.sql` | `20261014302000_creneaux_non_retenus_caducs.sql` (lot « chaîne d'incident », D21) | 2 fonctions (`choisir_creneau`, `accepter_creneau_locataire`), 1 ligne d'historique |
+| `20261014301000_ecart_rendez_vous_chronologie.retour.sql` | `20261014301000_ecart_rendez_vous_chronologie.sql` (lot « chaîne d'incident », D20) | 3 fonctions (`demarrer_intervention`, `deposer_compte_rendu`, `deposer_facture_artisan`), 1 fonction supprimée (`ecart_rendez_vous`), 1 ligne d'historique |
+| `20261014300000_devis_a_decider_alerte.retour.sql` | `20261014300000_devis_a_decider_alerte.sql` (lot « chaîne d'incident », D19) | 1 fonction (`deposer_devis`), 1 déclencheur et sa fonction supprimés (`fermer_alerte_devis_a_decider`), 1 ligne d'historique |
+| `20261014310000_artisan_facture_numero_unique.retour.sql` | `20261014310000_artisan_facture_numero_unique.sql` (D24-B, ARC-04) | 1 bloc retiré de `artisan_externe_ecrire`, 1 index unique supprimé, 1 ligne d'historique (voir la section « Lot artisan-externe » plus bas) |
+| `20261014311000_artisan_exclusion_ecritures.retour.sql` | `20261014311000_artisan_exclusion_ecritures.sql` (D25-B, ARC-08) | 1 bloc retiré de `artisan_externe_ecrire`, 1 clé retirée de `mon_activite_artisan_privee`, 1 fonction supprimée, 1 ligne d'historique |
+| `20261014330000_creation_fiche_personne_cle.retour.sql` | `20261014330000_creation_fiche_personne_cle.sql` (décision D31) | 1 colonne facultative (`persons.creation_cle`), 1 index unique partiel, 1 ligne d'historique ; aucune fonction. À jouer **après** avoir remis en production le code d'avant la décision D31 (il écrit cette colonne à chaque création de fiche depuis l'assistant). Aucune fiche n'est supprimée, seules les clés d'idempotence disparaissent. Il affiche son propre état « migrée (B) / antérieure (A) » à la fin (essayé : simulation, exécution, rejeu, refus dans un lot, marche avant). |
 | `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » |
 | `20261014232000_effacement_instantanes_faits_direction.retour.sql` | `20261014232000_effacement_instantanes_faits_direction.sql` | **rien** : les instantanés effacés ne reviennent que d'une sauvegarde ; le script ne retire que la ligne d'historique |
 | `20261014231000_retention_registres_execution.retour.sql` | `20261014231000_retention_registres_execution.sql` | 1 bloc retiré d'`appliquer_retention` (retrait chirurgical : le reste de la fonction n'est pas touché), 1 fonction supprimée, 5 règles de conservation, 1 ligne d'historique |
@@ -287,3 +293,72 @@ les deux ordres (essayé). Dans le sens retour :
   `collecter_source_direction`, `organisations_citees_faits_direction`, `libelle_generique_alerte` (230000) ou `mes_photos_incident_artisan` (233000).
   Au 14/10, seule `200000` touche `appliquer_retention` ; aucune autre branche ne réécrit les fonctions de `230000` ni de `233000`. Le retour de `230000`
   rétablit des définitions entières : il écraserait une réécriture ultérieure de ces fonctions.
+## Lot « chaîne d'incident » (migrations 20261014300000 à 20261014302000)
+
+Trois migrations indépendantes (aucune fonction commune) ; trois retours indépendants, à jouer **dans l'ordre inverse** de préférence
+(302000, 301000, 300000), chacun avec la procédure ci-dessus (simulation par `sed`, puis exécution). Même méthode que plus haut : chaque
+définition antérieure est lue par `pg_get_functiondef` sur une base reconstruite sans ces migrations, et chaque fonction n'est rétablie
+que si sa **marque** est dans la définition en vigueur (« Audit du 13/10 (CHN-01) », « (ART-21) », « (PRO2-13) »).
+
+| Retour | Défaut qui revient | Ce que le retour ne défait PAS |
+|---|---|---|
+| 302000 | CHN-01 : un choix de créneau enregistre de nouveau les autres dates « refusées », qui recomptent dans les six refus | les créneaux déjà passés à « caduc » (valeur d'origine de l'énumération) |
+| 301000 | ART-21 : plus aucune trace d'écart à la chronologie quand l'artisan démarre, rend compte ou facture plus de 2 h avant le rendez-vous | les clés `avant_rendez_vous`, `debut_prevu`, `ecart_minutes` déjà écrites dans `incident_evenements.details` (lignes de chronologie, jamais supprimées) |
+| 300000 | PRO2-13 : plus d'alerte dans l'application à la réception d'un devis ; plus rien ne ferme les alertes `devis_a_decider` | les alertes `devis_a_decider` déjà écrites (voir ci-dessous) |
+
+Rejouables : un script relancé sur une base déjà revenue répond « marque du correctif absente, rien à faire » pour chaque fonction.
+Le retour 301000 ne supprime `ecart_rendez_vous` que si aucune fonction ne l'appelle plus (sinon il la garde et le dit).
+
+**Alertes `devis_a_decider` après le retour 300000.** Elles restent en base, ouvertes pour celles qui l'étaient, et plus rien ne les ferme à la
+décision. Le retour ne les modifie pas (il ne touche jamais une donnée écrite). Pour les fermer à la main, après décision :
+
+```sql
+update public.alerts
+   set statut = 'fermee', closed_at = now(), closed_action = 'Alerte retirée (retour arrière 20261014300000)'
+ where type = 'devis_a_decider' and statut = 'ouverte';
+```
+
+**Preuve de l'essai** (base jetable `gerimmo_ci_lane_j_retour`, PostgreSQL 16, reconstruite depuis `ordre-migrations.txt` sans les trois migrations) :
+A (avant) → les trois migrations appliquées (une transaction chacune) → B → rejeu des trois : empreinte md5 des définitions et droits des 556 fonctions
+de `public` **identique** à B → simulations par `sed` (annulées) → les trois retours → C : `pg_dump --schema-only -n public` de C **identique** à celui
+de A (seuls diffèrent les jetons aléatoires `\restrict` / `\unrestrict` de `pg_dump`) → marche avant : les trois migrations rejouées sur C redonnent
+exactement l'empreinte de B. Limites : base de banc, PostgreSQL 16 (la production est en 17), aucun essai sur la production.
+## Lot artisan-externe — migrations du 14 octobre 2026 (D24-B et D25-B)
+
+Deux migrations du lot « clients externes » (module désactivé en production), avec leur retour arrière dans ce dossier. Même procédure que ci-dessus
+(préparer, simuler, exécuter, vérifier, consigner), avec ces particularités.
+
+| Migration | Ajoute | Le retour retire |
+|---|---|---|
+| `20261014310000` (D24-B, ARC-04) | l'index unique `artisan_factures_externes_numero_normalise_key` sur `(artisan_id, lower(btrim(numero)))` ; un bloc entre `-- >> Audit du 14/10 (ARC-04)` et `-- << Audit du 14/10 (ARC-04)` dans `artisan_externe_ecrire` | exactement ce bloc et cet index |
+| `20261014311000` (D25-B, ARC-08) | la fonction `artisan_exclusion_plateforme()` ; un bloc entre `-- >> Audit du 14/10 (ARC-08)` et `-- << Audit du 14/10 (ARC-08)` dans `artisan_externe_ecrire` ; la clé `'exclusion'` dans `mon_activite_artisan_privee` | exactement ces trois ajouts |
+
+**Méthode chirurgicale.** Ces retours ne recopient pas une ancienne définition : ils relisent la définition **d'aujourd'hui** (`pg_get_functiondef`) et en retirent le bloc
+marqué que la migration avait ajouté. Ils n'effacent donc pas ce qu'une autre migration aurait modifié dans la même fonction depuis. Si une marque est présente
+mais que le bloc n'est plus intact (marque retouchée, répétée), le script s'arrête **sans rien modifier** (`Retour arrière refusé… le bloc … n'est plus intact`).
+Sans marque, il ne fait rien (rejouable). Les deux retours sont indépendants : dans l'un ou l'autre ordre, la base revient au même état.
+
+**Aucune donnée n'est touchée**, ni par les migrations ni par les retours : pas de facture modifiée, pas de statut d'artisan lu ou changé. Ce que le retour réintroduit :
+après `…310000.retour`, deux factures de numéros « ART-1 » et « art-1 » peuvent de nouveau coexister (celles déjà déposées restent ce qu'elles sont) ; après
+`…311000.retour`, un artisan refusé ou sur liste noire globale peut de nouveau créer clients, chantiers, devis et factures. Avant de jouer le retour de `…311000`, le script vérifie
+qu'**aucune autre fonction** ne cite `artisan_exclusion_plateforme()` (sinon il refuse : la supprimer la casserait).
+
+**Migration `…310000` et numéros déjà en double.** Si deux factures d'un même artisan ne différaient que par la casse ou les espaces de bord, la migration **s'arrête avant de créer l'index**,
+sans rien modifier, en donnant le nombre de numéros concernés : garder l'une ou l'autre est une décision du dirigeant (fiche ARC-04). Le module étant désactivé en production, aucune facture externe n'est attendue.
+
+Vérifier l'état (lecture seule) : « vrai » = migrée (B), « faux » = antérieure (A).
+
+```sql
+select position('-- >> Audit du 14/10 (ARC-04)' in pg_get_functiondef('public.artisan_externe_ecrire(text,uuid,integer,jsonb,uuid)'::regprocedure)) > 0 as arc04_bloc_dans_la_fonction,
+       to_regclass('public.artisan_factures_externes_numero_normalise_key') is not null as arc04_index_unique,
+       position('-- >> Audit du 14/10 (ARC-08)' in pg_get_functiondef('public.artisan_externe_ecrire(text,uuid,integer,jsonb,uuid)'::regprocedure)) > 0 as arc08_bloc_dans_la_fonction,
+       position('''exclusion'',public.artisan_exclusion_plateforme()' in pg_get_functiondef('public.mon_activite_artisan_privee()'::regprocedure)) > 0 as arc08_cle_de_lecture,
+       to_regprocedure('public.artisan_exclusion_plateforme()') is not null as arc08_fonction;
+select version from supabase_migrations.schema_migrations where version in ('20261014310000', '20261014311000') order by 1;
+```
+
+Essais du 14/10/2026 (base de banc jetable, copie de la base migrée) : état A mesuré avant les migrations (empreinte md5 des définitions et ACL), migrations, retours dans les **deux** ordres →
+définitions et droits **identiques** à l'état A ; marche avant (migrations rejouées) → identique à l'état B ; rejeu de chaque retour → « rien à faire » ; refus dans un lot
+(`psql --single-transaction`) ; marque de fin retouchée → refus et base inchangée ; numéros déjà en double → la migration s'arrête, aucune ligne modifiée. Les tests
+`tests/artisan-externe-migrations-rejeu.test.ts` (rejeu, définitions inattendues, cohérence des marques entre migration et retour) et
+`tests/artisan-externe-numero-et-exclusion.test.ts` (comportement) couvrent le reste. Limites : base de banc, PostgreSQL 16 ; aucun essai sur la production.

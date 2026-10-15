@@ -58,7 +58,7 @@ export async function ContenuAssistance({searchParams, orgIdIntegre}:{searchPara
       </article>;
      });
  return <div className={orgIdIntegre?styles.integre:styles.fond}>
-  {!orgIdIntegre&&<header className={`bandeau-appli ${styles.bandeau}`}><div><MarqueGerimmo/><nav aria-label="Revenir dans Gerimmo">
+  {!orgIdIntegre&&<header className={`bandeau-appli ${styles.bandeau}`}><div><MarqueGerimmo tuile/><nav aria-label="Revenir dans Gerimmo">
    {retour&&<Link href={retour} className="lien-bandeau"><ArrowLeft size={15} aria-hidden="true"/> Retour à ma page</Link>}
    <Link href="/espaces" className="lien-bandeau">Mes espaces</Link></nav></div></header>}
   <Conteneur className={orgIdIntegre?styles.pageIntegree:styles.page}>

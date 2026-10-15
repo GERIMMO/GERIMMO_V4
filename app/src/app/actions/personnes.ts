@@ -12,6 +12,9 @@ import { QUALITES_BAILLEUR, estQualiteBailleur, normaliserQualiteBailleur } from
 
 export type EtatPersonne = {
   personneCreee?: { id: string };
+  // Décision D31 : la clé de cette demande a déjà créé une fiche, mais avec d'autres informations que celles
+  // renvoyées maintenant. Rien n'est écrit ; l'écran propose d'ouvrir la fiche existante.
+  ficheExistante?: { id: string };
   erreur?: string;
   succes?: string;
   avertissement?: string;
@@ -37,6 +40,57 @@ async function emailDejaPris(
   if (saufPersonId) requete = requete.neq("id", saufPersonId);
   const { data } = await requete;
   return (data ?? []).length > 0;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Les colonnes que la création écrit, dans la forme où elle les écrit : sert à insérer, puis à reconnaître la MÊME
+// demande quand elle revient avec la même clé.
+type LigneFiche = {
+  nom: string;
+  prenom: string | null;
+  email: string;
+  telephone: string | null;
+  date_naissance: string | null;
+  commune_naissance: string | null;
+  address_line1: string;
+  postal_code: string;
+  city: string;
+  qualite: string;
+};
+const COLONNES_FICHE = "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite";
+
+// Décision D31 (PR178-A-03) : la fiche déjà créée par la demande de cette clé, s'il y en a une. La lecture passe par
+// la RLS de l'appelant : un agent restreint ne retrouve pas une fiche hors de son portefeuille.
+async function ficheDeLaCle(
+  supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
+  orgId: string,
+  cle: string
+): Promise<{ fiche: (LigneFiche & { id: string }) | null; indisponible: boolean }> {
+  const { data, error } = await supabase
+    .from("persons")
+    .select(COLONNES_FICHE)
+    .eq("organization_id", orgId)
+    .eq("creation_cle", cle)
+    .maybeSingle();
+  if (error) return { fiche: null, indisponible: true };
+  return { fiche: (data as (LigneFiche & { id: string }) | null) ?? null, indisponible: false };
+}
+
+// Même demande ? Une valeur absente et une valeur vide sont la même chose (la création enregistre NULL).
+function memeDemande(fiche: LigneFiche, ligne: LigneFiche): boolean {
+  return (Object.keys(ligne) as (keyof LigneFiche)[]).every(
+    (colonne) => (fiche[colonne] ?? null) === (ligne[colonne] ?? null)
+  );
+}
+
+// La clé a déjà créé une fiche, avec d'autres informations que celles qui reviennent : rien n'est écrit, pour ne
+// pas faire croire que la correction est enregistrée.
+function refusSaisieDifferente(ficheId: string): EtatPersonne {
+  return {
+    erreur: "Cette demande a déjà créé la fiche avec les informations précédentes. Ouvrez la fiche enregistrée pour y reporter vos modifications.",
+    ficheExistante: { id: ficheId },
+  };
 }
 
 // Créer une fiche personne (retour recette 08/08) : nom, prénom (sauf raison
@@ -87,7 +141,40 @@ export async function creerPersonne(
     verifierCodePostalPersonne(codePostal) ??
     (morale ? null : verifierDateNaissance(dateNaissance, aujourdhuiParis()));
   if (refusFiche) return { erreur: refusFiche, valeurs };
-  if (await emailDejaPris(supabase, orgId, email)) {
+
+  // Décision D31 (PR178-A-03) : clé d'idempotence de la demande, tirée par l'écran et conservée avec sa copie
+  // locale. Facultative : sans elle (création depuis l'étape « bail »), le comportement d'avant est inchangé.
+  const cle = String(formData.get("creation_id") ?? "").trim();
+  if (cle && !UUID.test(cle)) {
+    return { erreur: "La référence de cette demande est illisible. Rechargez le formulaire avant de créer la fiche.", valeurs };
+  }
+  const ligne: LigneFiche = {
+    nom,
+    prenom: morale ? null : prenom,
+    email,
+    telephone: telephone || null,
+    date_naissance: morale ? null : dateNaissance,
+    commune_naissance: morale ? null : communeNaissance,
+    address_line1: adresse,
+    postal_code: codePostal,
+    city: ville,
+    qualite: morale ? "Personne morale" : "Personne physique",
+  };
+  // Rejeu : cette demande a peut-être déjà créé la fiche (réponse perdue, renvoi, double clic). On la retrouve AVANT
+  // le contrôle de l'adresse email, que cette fiche porte déjà.
+  let cree: { id: string } | null = null;
+  if (cle) {
+    const deja = await ficheDeLaCle(supabase, orgId, cle);
+    if (deja.indisponible) {
+      return { erreur: "La vérification de cette demande n'a pas pu être faite. Réessayez : la fiche ne sera pas créée deux fois.", valeurs };
+    }
+    if (deja.fiche) {
+      if (!memeDemande(deja.fiche, ligne)) return { ...refusSaisieDifferente(deja.fiche.id), valeurs };
+      cree = { id: deja.fiche.id };
+    }
+  }
+  let rejoue = cree !== null;
+  if (!cree && (await emailDejaPris(supabase, orgId, email))) {
     return {
       erreur:
         `Cette adresse email est déjà portée par une autre fiche ${deLEspaceDeGestion(roleGerant)} — une adresse ne peut appartenir qu'à une seule personne.`,
@@ -102,12 +189,15 @@ export async function creerPersonne(
     texte.trim().toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
   let doublon = false;
   if (dateNaissance) {
-    const { data } = await supabase
+    let homonymes = supabase
       .from("persons")
       .select("nom, prenom")
       .eq("organization_id", orgId)
       .eq("date_naissance", dateNaissance)
       .is("archived_at", null);
+    // Rejeu : la fiche déjà créée par cette demande n'est pas son propre homonyme.
+    if (cree) homonymes = homonymes.neq("id", cree.id);
+    const { data } = await homonymes;
     const nomSaisi = normaliser(nom);
     const prenomSaisi = normaliser(prenom);
     doublon = ((data ?? []) as { nom: string; prenom: string | null }[]).some((p) => {
@@ -120,24 +210,31 @@ export async function creerPersonne(
     });
   }
 
-  const { data: cree, error } = await supabase
-    .from("persons")
-    .insert({
-      organization_id: orgId,
-      nom,
-      prenom: morale ? null : prenom,
-      email,
-      telephone: telephone || null,
-      date_naissance: morale ? null : dateNaissance,
-      commune_naissance: morale ? null : communeNaissance,
-      address_line1: adresse,
-      postal_code: codePostal,
-      city: ville,
-      qualite: morale ? "Personne morale" : "Personne physique",
-    })
-    .select("id")
-    .single();
-  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}`, valeurs };
+  if (!cree) {
+    const { data: insere, error } = await supabase
+      .from("persons")
+      .insert({ organization_id: orgId, ...ligne, ...(cle ? { creation_cle: cle } : {}) })
+      .select("id")
+      .single();
+    if (error) {
+      // Deux envois de la même demande en même temps (double clic, renvoi pendant que le premier finit) : le second
+      // attend le premier, puis l'index unique le refuse. Ce n'est pas un échec mais un rejeu : on reprend la fiche
+      // du premier. (L'index de l'adresse email peut être celui que le message cite : on ne lit pas le message.)
+      if (cle && error.code === "23505") {
+        const relue = await ficheDeLaCle(supabase, orgId, cle);
+        if (relue.fiche) {
+          if (!memeDemande(relue.fiche, ligne)) return { ...refusSaisieDifferente(relue.fiche.id), valeurs };
+          cree = { id: relue.fiche.id };
+          rejoue = true;
+        }
+      }
+      if (!cree) return { erreur: `Création impossible : ${sansJargon(error.message)}`, valeurs };
+    } else {
+      cree = insere;
+    }
+  }
+  // Le compilateur ne suit pas ces affectations : ici la fiche existe forcément (créée ou retrouvée).
+  const ficheId = cree!.id;
 
   // Rattachement immédiat (facultatif) : un propriétaire mandant devient
   // détenteur du lot choisi, à 100 % — les quote-parts fines se règlent sur
@@ -149,18 +246,24 @@ export async function creerPersonne(
       .eq("id", lotId)
       .eq("organization_id", orgId)
       .maybeSingle();
-    const { error: erreurDetention } = lot
-      ? await supabase.from("detentions").insert({
-          lot_id: lotId,
-          organization_id: orgId,
-          person_id: cree.id,
-          quote_part: 100,
-        })
-      : { error: { message: "Lot introuvable." } };
+    // Rejeu : le rattachement a peut-être déjà été posé par l'envoi dont la réponse s'est perdue.
+    const { data: dejaDetenu } = rejoue && lot
+      ? await supabase.from("detentions").select("person_id").eq("lot_id", lotId).eq("person_id", ficheId).maybeSingle()
+      : { data: null };
+    const { error: erreurDetention } = dejaDetenu
+      ? { error: null }
+      : lot
+        ? await supabase.from("detentions").insert({
+            lot_id: lotId,
+            organization_id: orgId,
+            person_id: ficheId,
+            quote_part: 100,
+          })
+        : { error: { message: "Lot introuvable." } };
     if (erreurDetention) {
       revalidatePath(`/agence/${orgId}/personnes`);
       return {
-        personneCreee: { id: cree.id },
+        personneCreee: { id: ficheId },
         succes:
           `Fiche créée, mais le rattachement au lot a échoué : ${sansJargon(erreurDetention.message)} Faites-le depuis la fiche du lot.` +
           (doublon
@@ -173,7 +276,7 @@ export async function creerPersonne(
   if (formData.get("rester_dans_parcours") === "1") {
     revalidatePath(`/agence/${orgId}/personnes`);
     return {
-      succes: "Fiche créée.", personneCreee: { id: cree.id },
+      succes: "Fiche créée.", personneCreee: { id: ficheId },
       ...(doublon ? { avertissement: "Une personne de mêmes nom et date de naissance existe déjà. Vérifiez votre annuaire." } : {}),
     };
   }
@@ -189,7 +292,7 @@ export async function creerPersonne(
   }
   revalidatePath(`/agence/${orgId}/personnes`);
   if (formData.get("rester_dans_parcours") === "1") return { succes: "Fiche créée. Vous pouvez sélectionner cette personne à l’étape Bail." };
-  redirect(`/agence/${orgId}/personnes/${cree.id}`);
+  redirect(`/agence/${orgId}/personnes/${ficheId}`);
 }
 
 // Archiver une fiche (recette 14/08 : le nettoyage des doublons se faisait en

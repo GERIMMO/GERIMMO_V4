@@ -57,7 +57,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces" }: { suite?: st
             />
           </div>
           {etat.erreur && <AlerteFormulaire signal={etat}>{etat.erreur}</AlerteFormulaire>}
-          <BoutonEnvoi enCoursTexte="Enregistrement…" className="w-full">
+          <BoutonEnvoi envoiNatif enCoursTexte="Enregistrement…" className="w-full">
             Changer le mot de passe
           </BoutonEnvoi>
         </form>

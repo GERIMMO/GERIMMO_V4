@@ -5,7 +5,8 @@ import { useState } from "react";
 import { MarqueGerimmo } from "./marque-gerimmo";
 import { initialesMarque, logoAffichable, type MarqueOrganisation as Marque } from "@/lib/marque-organisation";
 
-export function MarqueOrganisation({ marque }: { marque?: Marque | null }) {
+/** `tuile` : le repli sur le logo Gerimmo se pose dans la tuile bleu nuit quand le fond d'appel est clair (D28 A). */
+export function MarqueOrganisation({ marque, tuile = false }: { marque?: Marque | null; tuile?: boolean }) {
   const logo = logoAffichable(marque?.logo_url);
   const [echec, setEchec] = useState<string | null>(null);
   const nom = marque?.nom_portail?.trim() || marque?.name?.trim();
@@ -13,5 +14,5 @@ export function MarqueOrganisation({ marque }: { marque?: Marque | null }) {
   // `data-initiales` : dans la cellule de 48 px du rail de menu des tablettes, le nom se
   // lisait « Par… » ; la feuille de style y montre ces initiales à la place (DES-A-14).
   if (nom) return <span title={nom} data-initiales={initialesMarque(nom) || undefined} className="block max-w-full truncate font-[family-name:var(--font-titres)] text-base font-bold tracking-wide text-[var(--encre)]">{nom}</span>;
-  return <MarqueGerimmo />;
+  return <MarqueGerimmo tuile={tuile} />;
 }

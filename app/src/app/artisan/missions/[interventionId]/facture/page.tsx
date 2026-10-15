@@ -3,6 +3,7 @@ import { titreIncident } from "@/lib/incidents";
 import { chargerAgenda, verifierAccesArtisan } from "../../../acces";
 import { euros } from "../../../libelles";
 import { Carte, EnteteSousPage, LigneInfo, MarqueAgence, Retour } from "../../../ui";
+import { AvertissementRendezVousAnticipe } from "../avertissement-rendez-vous";
 import { FormulaireFacture } from "./formulaire-facture";
 
 export const metadata = { title: "Déposer ma facture" };
@@ -58,6 +59,9 @@ export default async function PageFacture(
           </LigneInfo>
         )}
       </Carte>
+
+      {/* D20 (ART-21) : facturer plus de 2 h avant le rendez-vous confirmé reste possible ; on le dit. */}
+      <AvertissementRendezVousAnticipe debutPrevu={mission.debut_prevu} finPrevue={mission.fin_prevue} geste="facturer" />
 
       <FormulaireFacture
         interventionId={interventionId}

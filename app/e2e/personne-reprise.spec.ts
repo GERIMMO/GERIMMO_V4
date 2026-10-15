@@ -62,8 +62,13 @@ test('fiche personne : réponse de création perdue puis reprise sans nouvelle c
   for(const [n,v] of Object.entries({email,address_line1:'10 rue TEST',postal_code:'75001',city:'Paris'}))await page.locator(`#p-${n}`).fill(v);await page.getByRole('button',{name:'Suivant',exact:true}).click();await page.getByRole('button',{name:'Suivant',exact:true}).click();
   let perdue=false;await page.route(`**/agence/${org}/personnes`,async route=>{if(route.request().method()==='POST'&&route.request().headers()['next-action']&&!perdue){perdue=true;const r=await route.fetch();expect(r.ok()).toBe(true);await route.abort('failed');}else await route.continue();});
   await page.getByRole('button',{name:'Créer la fiche',exact:true}).click();await expect(page.getByRole('alert').filter({hasText:'Un enregistrement a été interrompu'})).toBeVisible();await conserve(page);
-  const contexte=page.context();await page.close();page=await contexte.newPage();await sansSyntheseAlertes(page);await page.goto(href);await page.getByRole('button',{name:'Reprendre ma saisie',exact:true}).click();await expect(page.getByRole('button',{name:'Créer la fiche',exact:true})).toBeDisabled();await expect(page.locator('#p-email')).toHaveValue(email);
+  const contexte=page.context();await page.close();page=await contexte.newPage();await sansSyntheseAlertes(page);await page.goto(href);await page.getByRole('button',{name:'Reprendre ma saisie',exact:true}).click();await expect(page.locator('#p-email')).toHaveValue(email);
+  // Décision D31 : la demande porte une clé conservée avec la copie. Le bouton n'est plus fermé pour toujours ; renvoyer retrouve la fiche déjà créée.
+  await expect(page.getByRole('button',{name:'Créer la fiche',exact:true})).toBeEnabled();
   expect((await db.query('select id from persons where email=$1',[email])).rows).toHaveLength(1);await page.screenshot({path:info.outputPath('creation-non-confirmee.png'),fullPage:true});
+  const avant=(await db.query('select id,creation_cle from persons where email=$1',[email])).rows[0];expect(avant.creation_cle).not.toBeNull();
+  await page.getByRole('button',{name:'Créer la fiche',exact:true}).click();await expect(page.getByRole('heading',{name:'La fiche est créée',exact:true})).toBeVisible();
+  const apres=(await db.query('select id from persons where email=$1',[email])).rows;expect(apres).toHaveLength(1);expect(apres[0].id).toBe(avant.id);
  }finally{await db.query('delete from persons where email=$1',[email]);await db.end();}
 });
 // Vérification du 14/10 (VFL-03) : copie locale refusée, la saisie n'existe plus qu'à l'écran. Un lien interne (navigation

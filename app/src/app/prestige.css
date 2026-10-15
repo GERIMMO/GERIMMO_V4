@@ -386,6 +386,10 @@ body.gerimmo-prestige [role="dialog"] > div:last-child :is(a, button) { min-heig
   background: transparent;
 }
 .marque-gerimmo img { display: block; width: 100%; height: auto; object-fit: contain; }
+/* Décision D28 A (DES-A-10, DES-B-10) : le logo doré posé à nu sur un fond clair se lit à ≈ 1,5:1 ; dans cette tuile
+   bleu nuit, celle de l'inscription artisan, ≈ 13,6:1. Une seule définition, pour tous les fonds clairs. Le logo garde
+   sa largeur (content-box) : la tuile s'y ajoute (4 px en haut et en bas, 12 px de chaque côté). */
+.marque-gerimmo-tuile { box-sizing: content-box; padding: 4px 12px; border-radius: var(--radius-xl); background: #152f4b; }
 .gerimmo-prestige :is(.coquille-marque, .loc-logo, .admin-marque) .marque-gerimmo { width: 170px; }
 .gerimmo-prestige :is(.coquille-marque > a, .loc-logo > a):has(.marque-gerimmo) { padding: 0; background: transparent; }
 .gerimmo-prestige .coquille-marque { justify-content: center; padding: 14px 20px; }

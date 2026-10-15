@@ -4,6 +4,7 @@ import { TitreEcran } from "@/components/titre-ecran";
 import { BoutonResumeBien } from "@/components/resume-bien";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
+import { boutonPremierBien, doitLireLeProfilBailleur, elementsManquantsDuBailleur } from "@/lib/profil-bailleur";
 import { ROLES_RESPONSABLES, eur } from "@/lib/ged";
 import { avancementLot } from "@/lib/avancement-lot";
 import { AvancementLot } from "@/components/avancement-lot";
@@ -166,6 +167,28 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   noter("les pièces des lots", erreurPieces);
   noter("les chambres en colocation", erreurChambres);
 
+  // D29 B (fiche DES-A-11) : l'adresse reste facultative à l'inscription du propriétaire, mais « Créer un lot »
+  // lui demande d'abord de compléter son profil. Sur un parc VIDE, le bouton le dit d'avance au lieu de promettre
+  // « Créer mon premier bien » puis d'ouvrir un écran d'attente. Même règle, même porte que « Créer un lot »
+  // (lib/profil-bailleur.ts, où se décident aussi quand lire le profil et quel bouton montrer). Une lecture en
+  // échec ne change rien : le bouton habituel, et la porte décide.
+  let manquantsBailleur: string[] = [];
+  let profilIllisible = false;
+  if (doitLireLeProfilBailleur({
+    role,
+    erreurBiens: Boolean(erreurBiens),
+    portefeuille: Boolean(portefeuille),
+    nbBiensVisibles: biensVisibles.length,
+    nbBiensRetires: biensRetires.length,
+  })) {
+    const { data: profil, error: erreurProfil } = await supabase.from("organizations")
+      .select("address_line1,postal_code,city,email_contact")
+      .eq("id", orgId).maybeSingle();
+    profilIllisible = Boolean(erreurProfil);
+    manquantsBailleur = elementsManquantsDuBailleur(profil);
+  }
+  const premierBien = boutonPremierBien({ base: `/agence/${orgId}`, manquants: manquantsBailleur, erreurLecture: profilIllisible });
+
   return (
     // Le fournisseur enveloppe l'écran : chaque rang de lot y puise de quoi
     // ouvrir la fenêtre, et la fenêtre se monte au-dessus de tout.
@@ -257,8 +280,8 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                 qui portera le bail.
               </p>
               <div className="geste">
-                <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
-                  Créer mon premier bien
+                <Link href={premierBien.href} className="btn-or">
+                  {premierBien.libelle}
                 </Link>
               </div>
               {/* Même garde que plus haut : la reprise appartient au

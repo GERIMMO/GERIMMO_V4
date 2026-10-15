@@ -47,6 +47,16 @@ export type LignePilotageReseau = {
   artisans: number; eligibles: number; interets: number; biens_interesses: number; demandes: number;
 };
 
+/**
+ * Audit du 13/10, PRO2-01, décision D17 (option A) : un propriétaire dont la commune n'est pas ouverte au réseau,
+ * et qui n'a aucun artisan dans son carnet pour ces travaux, ne peut rien solliciter. L'écran lui montre alors la
+ * voie de sortie (clôturer, appeler lui-même l'artisan, signaler son intérêt) au lieu d'un bouton grisé seul.
+ * Un agent d'agence garde son carnet et la possibilité d'y ajouter un artisan : il n'est pas dans une impasse.
+ */
+export function voieDeSortieAffichee(d: DisponibiliteReseau, estProprietaire: boolean): boolean {
+  return estProprietaire && (d.etat === "fermee" || d.etat === "sans_artisan") && d.nb_contacts === 0;
+}
+
 export function messageDisponibilite(d: DisponibiliteReseau): string {
   if (d.etat === "adresse_incomplete") return "Complétez l’adresse du bien et confirmez sa commune pour vérifier la disponibilité du réseau.";
   if (d.etat === "sans_artisan") return "Aucun artisan du réseau n’est actuellement disponible pour ce métier et ces travaux dans cette zone. Vous ne pouvez pas envoyer de nouvelle demande au réseau pour le moment.";

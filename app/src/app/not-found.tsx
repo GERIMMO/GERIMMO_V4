@@ -19,7 +19,7 @@ export default function PageIntrouvable() {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center p-6 sm:p-10">
       <div className="vide-guide">
-        <MarqueGerimmo className="mb-5" />
+        <MarqueGerimmo tuile className="mb-5" />
         {/* Le code reste lisible : c'est ce que l'on dicte au support. */}
         <p className="text-xs text-[var(--texte-secondaire)]">Erreur 404</p>
         <h1 className="titre">Cette page est introuvable</h1>

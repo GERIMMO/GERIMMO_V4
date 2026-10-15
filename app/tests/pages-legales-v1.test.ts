@@ -10,6 +10,8 @@
  */
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 // L'en-tête et le pied du site public n'ont rien à voir avec ce que l'on vérifie.
 vi.mock("@/components/chrome-public", () => ({
@@ -184,5 +186,10 @@ describe("la version des conditions suit la modification", () => {
     expect(CONDITIONS_DATE).toBe("15 octobre 2026");
     expect(textes.conditions).toContain("Version du 15 octobre 2026");
     expect(textes.conditions).toContain("version du 15 octobre 2026");
+  });
+
+  it("le script des comptes de recette copie la même version (il simule une inscription qui a accepté les conditions)", () => {
+    const sql = readFileSync(resolve(__dirname, "..", "e2e/recette-production/preparer-comptes.sql"), "utf8");
+    expect(sql).toContain(`v_version_cgu constant text := '${CONDITIONS_VERSION}';`);
   });
 });

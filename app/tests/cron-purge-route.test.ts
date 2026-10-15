@@ -16,7 +16,7 @@ vi.mock("@/lib/tache", async (importer) => ({
   consignerTache: mocks.consigner,
 }));
 vi.mock("@/lib/supabase/service", () => ({ clientDeService: mocks.client }));
-import { GET } from "../src/app/api/cron/purge/route";
+import { traiterPurge as GET } from "../src/lib/missions-planifiees/purge";
 import { MISSIONS, TACHES_SUIVIES } from "../src/lib/missions";
 import { TACHES } from "../src/lib/sante-service";
 

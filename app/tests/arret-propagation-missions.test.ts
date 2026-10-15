@@ -3,8 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ArretSupervision } from "@/lib/controle-effets";
 import { executerMission } from "@/lib/execution-mission";
 import { alerterSuperviseurDuPost, type ApercuPost } from "@/lib/alerte-veto-marketing";
-import { GET as rappels } from "@/app/api/cron/rappels/route";
-import { GET as veille } from "@/app/api/cron/veille/route";
+import { traiterRappels as rappels } from "@/lib/missions-planifiees/rappels";
+import { traiterVeille as veille } from "@/lib/missions-planifiees/veille";
 
 const m = vi.hoisted(() => ({ db: null as unknown, rpc: vi.fn(), envois: vi.fn(), etudier: vi.fn() }));
 vi.mock("@/lib/supabase/service", () => ({ clientDeService: () => m.db }));

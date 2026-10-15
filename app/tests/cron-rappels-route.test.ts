@@ -8,7 +8,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { GET } from "../src/app/api/cron/rappels/route";
+import { traiterRappels as GET } from "../src/lib/missions-planifiees/rappels";
 import {
   corpsRappel,
   sujetRappel,
@@ -59,8 +59,9 @@ describe("la route refuse plutôt que de s'ouvrir", () => {
 });
 
 describe("le contrôle d'authentification laisse passer les tâches", () => {
-  it("/api/cron/rappels ne part pas vers /connexion", async () => {
-    const r = await proxy(new NextRequest("https://exemple.fr/api/cron/rappels"));
+  it("/api/cron/equipes?mission=rappels ne part pas vers /connexion", async () => {
+    // X04 (14/10) : la mission n'a plus de route directe ; la route d'équipes est son entrée unique.
+    const r = await proxy(new NextRequest("https://exemple.fr/api/cron/equipes?mission=rappels"));
     expect(r.status).toBe(200);
     expect(r.headers.get("location")).toBeNull();
   });

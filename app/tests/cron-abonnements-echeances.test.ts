@@ -38,7 +38,7 @@ vi.mock("@/lib/stripe-offres", async (importer) => {
   return { ...vrai, appliquerBaisseAEcheance: m.baisse, programmerPeriodicite: m.periodicite };
 });
 
-import { GET } from "@/app/api/cron/abonnements/route";
+import { traiterAbonnements as GET } from "@/lib/missions-planifiees/abonnements";
 
 const SECRET = "secret-de-recette-suffisamment-long";
 

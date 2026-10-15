@@ -7,6 +7,7 @@ import { rendrePdf } from "@/lib/documents/rendu";
 import { chargerPreparationDevis } from "@/lib/parcours-devis-serveur";
 import { lireSaisieDevisArtisan } from "@/lib/saisie-devis-artisan";
 import { REFERENCES_TRAVAUX } from "@/lib/references-prix-travaux";
+import { abandonnerPdfDepose, COMPARTIMENT_PREPARATIONS, effacerPdfPreparation, pdfRemplace } from "@/lib/devis-pdf-stockage";
 export const runtime = "nodejs";
 const entetes = { "Content-Type":"application/pdf", "Cache-Control":"private, no-store", "X-Content-Type-Options":"nosniff" };
 
@@ -41,11 +42,15 @@ export async function POST(request: Request, context: { params: Promise<{sollici
     incident_numero:demande.incident_numero,commune:demande.ville,code_postal:demande.code_postal,
   });
   if(doc.manquants.length) return erreur(`Complétez ces informations : ${doc.manquants.join(", ")}.`,422);
+  // X17 (SUP-09) : le PDF déposé n'est « à nous » que tant que la base ne répond pas que la mise à jour a réussi ;
+  // ensuite c'est l'ANCIEN PDF qui n'est plus référencé et qu'on efface (lib/devis-pdf-stockage.ts).
+  let cheminDepose: string | null = null;
   try {
     const pdf=await rendrePdf(doc);
     const chemin=`${demande.organization_id}/devis-gerimmo/${randomUUID()}.pdf`;
-    const {error:upload}=await service.storage.from("devis-preparations").upload(chemin,pdf,{contentType:"application/pdf"});
+    const {error:upload}=await service.storage.from(COMPARTIMENT_PREPARATIONS).upload(chemin,pdf,{contentType:"application/pdf"});
     if(upload) return erreur("Le PDF n’a pas pu être enregistré. Vos saisies sont conservées.",503);
+    cheminDepose=chemin;
     const enregistrement={sollicitation_id:sollicitationId,artisan_id:fiche.artisan_id,reference_id:id,revision:revision+1,
       saisie:{diagnostic:saisie.diagnostic,delai:saisie.delai,duree:saisie.duree,contraintes:saisie.contraintes,observations:saisie.observations,
         valideJusquAu:saisie.valideJusquAu,prestations:saisie.prestations,lignes},entreprise,statut:"valide",valide_le:instant,
@@ -53,9 +58,19 @@ export async function POST(request: Request, context: { params: Promise<{sollici
     const q=preparation?service.from("artisan_devis_preparations").update(enregistrement).eq("sollicitation_id",sollicitationId).eq("artisan_id",fiche.artisan_id).eq("revision",revision).neq("statut","envoye")
       :service.from("artisan_devis_preparations").insert(enregistrement);
     const {data,error}=await q.select("revision").single();
-    if(error||!data) return erreur("Le devis a changé pendant la génération. Validez de nouveau la version à jour.",409);
+    if(error||!data) {
+      await abandonnerPdfDepose(service,sollicitationId,fiche.artisan_id,chemin);
+      return erreur("Le devis a changé pendant la génération. Validez de nouveau la version à jour.",409);
+    }
+    // La mise à jour a réussi : l'ancien PDF n'est plus référencé par personne.
+    cheminDepose=null;
+    await effacerPdfPreparation(service,pdfRemplace(preparation,chemin));
     return new Response(Buffer.from(pdf),{headers:{...entetes,"Content-Disposition":`inline; filename="${doc.reference}.pdf"`,"X-Devis-Revision":String(data.revision)}});
-  } catch { return erreur("Le PDF n’a pas pu être généré. Vos saisies sont conservées : réessayez.",503); }
+  } catch {
+    // Incident après le dépôt : on ne sait pas si la mise à jour a abouti ; le PDF n'est effacé que si la base ne le référence pas.
+    await abandonnerPdfDepose(service,sollicitationId,fiche.artisan_id,cheminDepose);
+    return erreur("Le PDF n’a pas pu être généré. Vos saisies sont conservées : réessayez.",503);
+  }
 }
 
 export async function GET(_request: Request, context: { params: Promise<{sollicitationId:string}> }) {

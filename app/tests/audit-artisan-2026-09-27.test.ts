@@ -499,8 +499,10 @@ describe.skipIf(!DB_URL)("Audit du 27/09 — artisan, pages publiques", () => {
 
   // ── 5. Formulaire public ───────────────────────────────────────────────
   it("demandes_devis : le doublon s'ignore, la quatrième demande de l'heure est refusée", async () => {
+    // X02 (14/10) : l'insertion passe par l'action serveur, donc par le rôle de service ; le déclencheur de limite
+    // s'applique à tous les rôles. La porte directe d'anon est fermée : tests/devis-vitrine-base.test.ts.
     await role("reset");
-    await role("anon");
+    await role("service_role");
     const email = `Robot-${unique()}@exemple.test`;
     const ecrire = (message: string) =>
       essai(`insert into public.demandes_devis (nom, email, message) values ('R', $1, $2)`, [

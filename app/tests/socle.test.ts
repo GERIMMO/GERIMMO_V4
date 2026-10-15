@@ -65,7 +65,7 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
     ).toHaveLength(0);
   });
 
-  it("anon n'écrit nulle part, sauf le formulaire de devis de la vitrine", async () => {
+  it("anon n'écrit nulle part (le formulaire de la vitrine passe par l'action serveur)", async () => {
     // Ce test est le VRAI garde-fou de la migration 20260910174000. En
     // production, les privilèges par défaut du schéma appartiennent à
     // `supabase_admin` : ni la migration ni personne d'autre que Supabase ne
@@ -78,9 +78,9 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
     // privilège compte. Un `anon` qui garde TRUNCATE sur `encaissements` peut
     // vider le journal des encaissements sans qu'aucune politique s'y oppose.
     //
-    // La seule écriture anonyme légitime de l'application est l'INSERT du
-    // formulaire de devis du site vitrine (`demandes_devis`), qui s'exécute
-    // sans session. Toute autre survivance est un oubli de révocation.
+    // Depuis le 14/10/2026 (X02), l'application n'a plus AUCUNE écriture anonyme :
+    // le formulaire de contact du site vitrine (`demandes_devis`) écrit par l'action
+    // serveur (client de service). Toute survivance est un oubli de révocation.
     const { rows } = await db.query(`
       select c.relname as table_en_defaut, p.priv as privilege
       from pg_class c
@@ -91,7 +91,6 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
       where n.nspname = 'public'
         and c.relkind in ('r', 'p')
         and has_table_privilege('anon', c.oid, p.priv)
-        and not (c.relname = 'demandes_devis' and p.priv = 'INSERT')
       order by c.relname, p.priv
     `);
     expect(

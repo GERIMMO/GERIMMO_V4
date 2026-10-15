@@ -5,15 +5,13 @@ import { consignerTache } from "@/lib/tache";
 import { configurationYoutrust } from "@/lib/youtrust";
 import { traiterEvenementSignature, type EvenementSignature } from "@/lib/signature-worker";
 
-export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 function memeSecret(fourni: string, attendu: string): boolean {
   const a = Buffer.from(fourni); const b = Buffer.from(attendu);
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export async function GET(request: Request) {
+export async function traiterSignatures(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return Response.json({ erreur: "CRON_SECRET absente." }, { status: 503 });
   if (!memeSecret(request.headers.get("authorization") ?? "", `Bearer ${secret}`)) {

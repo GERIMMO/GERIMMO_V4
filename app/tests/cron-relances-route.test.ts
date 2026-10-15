@@ -7,7 +7,7 @@
  * qu'elle ne se laisse pas appeler sans le secret.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GET } from "../src/app/api/cron/relances/route";
+import { traiterRelances as GET } from "../src/lib/missions-planifiees/relances";
 
 const SECRET = "secret-de-recette-suffisamment-long";
 

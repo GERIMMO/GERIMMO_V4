@@ -17,15 +17,13 @@ import { verifierAvantEffet } from "@/lib/controle-effets";
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache, porteurDuSecret } from "@/lib/tache";
 
-export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 /** Au-delà, un chemin en file est considéré comme bloqué. */
 const FILE_BLOQUEE_HEURES = 48;
 /** Une passe traite au plus ce nombre de chemins (l'API Storage accepte des lots). */
 const LOT = 500;
 
-export async function GET(request: Request) {
+export async function traiterPurge(request: Request) {
   if (!porteurDuSecret(request, process.env.CRON_SECRET)) {
     return Response.json({ erreur: "Non autorisé." }, { status: 401 });
   }

@@ -126,7 +126,12 @@ describe.skipIf(!DB_URL)("Audit sécurité du 29/09", () => {
     expect(await echec(
       `insert into public.demandes_devis (id, nom, email) values (gen_random_uuid(),'X','x29@test.local')`))
       .toMatch(/permission denied/);
-    // Le chemin du formulaire (actions/devis.ts) fonctionne toujours.
+    // Le chemin du formulaire (actions/devis.ts) fonctionne toujours — depuis le 14/10 (X02) par le rôle de service,
+    // l'insertion directe d'anon étant fermée (tests/devis-vitrine-base.test.ts).
+    expect(await echec(
+      `insert into public.demandes_devis (nom, email, agence, telephone, nb_lots, message)
+       values ('Audit 29','Audit29@Test.local','Agence','0102030405','10','Bonjour')`)).toMatch(/permission denied/);
+    await agir(null, "service_role");
     expect(await echec(
       `insert into public.demandes_devis (nom, email, agence, telephone, nb_lots, message)
        values ('Audit 29','Audit29@Test.local','Agence','0102030405','10','Bonjour')`)).toBe("");

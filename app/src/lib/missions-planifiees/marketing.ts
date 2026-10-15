@@ -27,8 +27,6 @@ import {composantesParis,dateParis} from '@/lib/heure-paris-calcul';
 // et reste idempotente : rien n'est préparé deux fois, rien n'est envoyé deux
 // fois (réservations SQL).
 
-export const dynamic='force-dynamic';
-export const maxDuration=180;
 
 /** Conservé pour les écrans et tests qui le lisent : la date et le jour ISO de Paris. */
 export function maintenantParis(date=new Date()){
@@ -170,7 +168,7 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
  return {agi:true,preparees:1,article:article.id,parution:cible.parution,rattrapage:cible.rattrapage,alerte:alerte.envoye,...(alerte.motif?{alerte_motif:alerte.motif}:{}),...(motifs.length?{ecartes:motifs}:{})};
 }
 
-export async function GET(request:Request){
+export async function traiterMarketing(request:Request){
  const db=clientDeService();if(!db)return Response.json({erreur:'Configuration serveur incomplète.'},{status:503});
  if(!(await appelAutorise(request,db)))return Response.json({erreur:'Non autorisé.'},{status:401});
  const bilan=async(resultat:Record<string,unknown>,status=200)=>{await consignerTache(db,'marketing',resultat);return Response.json(resultat,{status});};

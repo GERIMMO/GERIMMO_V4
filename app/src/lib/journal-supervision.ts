@@ -43,11 +43,30 @@ export const ACTIONS_SUPERVISION = {
   organisation_reactivee: "Organisation réactivée",
   organisation_archivee: "Organisation archivée",
   essai_prolonge: "Essai prolongé",
-  compte_bloque: "Compte bloqué",
+  // X20 (SA-11, 14/10) : la ligne `compte_bloque` est posée AVANT l'appel d'administration (un geste sur un compte
+  // sans trace n'est pas acceptable) ; elle dit donc une demande, pas un résultat. Le code reste le même : les
+  // lignes déjà écrites (elles aussi posées avant l'effet) se lisent désormais exactement ce qu'elles sont.
+  // Si le blocage échoue, `blocage_echoue` suit, avec la cause technique expurgée dans ses détails.
+  compte_bloque: "Blocage demandé",
+  blocage_echoue: "Blocage échoué",
   compte_debloque: "Compte débloqué",
   second_facteur_reinitialise: "Second facteur réinitialisé",
   controle_compte_echec: "Geste sur un compte non abouti",
 } as const;
+
+/**
+ * La cause technique d'un échec, rendue assez courte et assez neutre pour le journal d'audit : ni adresse
+ * e-mail, ni identifiant, ni long jeton, et jamais plus de 120 caractères.
+ */
+export function causeTechniqueExpurgee(message: string | null | undefined): string {
+  const nette = String(message ?? "")
+    .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, "[adresse]")
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "[identifiant]")
+    .replace(/[A-Za-z0-9_-]{20,}(?:\.[A-Za-z0-9_-]+)*/g, "[jeton]")
+    .replace(/\s+/g, " ")
+    .trim();
+  return nette ? nette.slice(0, 120) : "cause inconnue";
+}
 
 export type ActionSupervision = keyof typeof ACTIONS_SUPERVISION;
 

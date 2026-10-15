@@ -41,8 +41,6 @@ import { consignerTache } from "@/lib/tache";
 import { adresseDuSite } from "@/lib/site";
 import { timingSafeEqual } from "node:crypto";
 
-export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
 type Ligne = {
   appel_id: string;
@@ -75,7 +73,7 @@ function memeSecret(fourni: string, attendu: string): boolean {
   return timingSafeEqual(a, b);
 }
 
-export async function GET(request: Request) {
+export async function traiterAppels(request: Request) {
   const attendu = process.env.CRON_SECRET;
   if (!attendu) {
     return Response.json(

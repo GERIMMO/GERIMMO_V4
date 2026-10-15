@@ -21,7 +21,8 @@
 //
 // LIMITE PAR ORGANISATION. La même que celle des invitations, et le même compteur : 30 liens par heure et par
 // organisation (`autoriser_lien_mot_de_passe_cle`, clé `organisation:<id>`). Relances et invitations manuelles se
-// partagent donc ces 30 liens.
+// partagent donc ces 30 liens. La liste lue en base en tient compte : au plus 30 relances par organisation, chaque
+// organisation à son tour, pour qu'une organisation qui a beaucoup invité ne prenne pas toutes les places de la passe.
 //
 // HEURE. Jamais la nuit à Paris : rien ne part hors de 7 h – 21 h (heure de Paris), même si la mission est lancée à la
 // main à une autre heure. Ce qui n'est pas parti un jour peut partir un jour suivant, dans les limites de la règle.
@@ -36,7 +37,7 @@ import {
 
 /** La plage horaire des relances, à Paris : de 7 h (incluse) à 21 h (exclue). */
 export const HEURES_RELANCES_INVITATION = { debut: 7, fin: 21 } as const;
-/** Au plus tant de relances par passe (les plus anciennes invitations d'abord) ; la suite part au passage suivant. */
+/** Au plus tant de relances par passe (chaque organisation à son tour, ses plus anciennes invitations d'abord) ; la suite part au passage suivant. */
 export const RELANCES_INVITATION_PAR_PASSE = 50;
 /**
  * Au plus tant de temps par passe pour les relances (la mission entière est coupée à 180 s, `maxDuration` de la route) :

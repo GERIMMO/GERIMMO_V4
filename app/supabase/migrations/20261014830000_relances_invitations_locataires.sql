@@ -19,7 +19,8 @@
 --      renvoyée) ou retirée (échec certain, limite atteinte, arrêt d'urgence : une passe suivante pourra la reprendre).
 --   4. Quatre fonctions, réservées au traitement (`service_role`) sauf la règle interne, fermée à tous :
 --      `relance_invitation_locataire_due(invitation)` (LA règle, lue par les trois autres),
---      `invitations_locataires_relances_dues(limite)`, `reserver_relance_invitation_locataire(invitation, rang)`,
+--      `invitations_locataires_relances_dues(limite)` (au plus 30 par organisation, chacune à son tour),
+--      `reserver_relance_invitation_locataire(invitation, rang)`,
 --      `noter_relance_invitation_locataire(invitation, rang, résultat)` (journal d'audit).
 --
 -- LA RÈGLE (jours comptés au jour de Paris, `public.aujourdhui_paris()`, jamais `current_date`) :
@@ -177,18 +178,24 @@ stable
 security definer
 set search_path = ''
 as $$
--- Décision X16 (REP-05) du 15/10 : les relances dues aujourd'hui, les plus anciennes invitations d'abord.
+-- Décision X16 (REP-05) du 15/10 : les relances dues aujourd'hui. Au plus 30 par organisation (la limite des
+-- invitations, 30 liens par heure : LIMITE_INVITATIONS_PAR_ORGANISATION dans lib/lien-mot-de-passe.ts), et chaque
+-- organisation à son tour (sa plus ancienne invitation, puis la suivante…) : une organisation qui a beaucoup invité ne
+-- prend pas toutes les places de la passe, au risque de faire manquer aux autres leur rang 1 (J+3 à J+9).
 begin
   if auth.role() is distinct from 'service_role' then
     raise exception 'Accès réservé au traitement';
   end if;
   return query
-    select i.id, i.organization_id, i.email, d.rang, i.expire_le
-      from public.invitations_locataires i
-      cross join lateral (select public.relance_invitation_locataire_due(i.id) as rang) d
-     where i.etat = 'en_attente' and i.expire_le > now() and i.relances_prevues and i.premier_envoi_le is not null
-       and d.rang is not null
-     order by i.premier_envoi_le, i.id
+    select q.id, q.organization_id, q.email, q.rang, q.expire_le
+      from (select i.id, i.organization_id, i.email, d.rang, i.expire_le, i.premier_envoi_le,
+                   row_number() over (partition by i.organization_id order by i.premier_envoi_le, i.id) as tour
+              from public.invitations_locataires i
+              cross join lateral (select public.relance_invitation_locataire_due(i.id) as rang) d
+             where i.etat = 'en_attente' and i.expire_le > now() and i.relances_prevues and i.premier_envoi_le is not null
+               and d.rang is not null) q
+     where q.tour <= 30
+     order by q.tour, q.premier_envoi_le, q.id
      limit greatest(1, least(coalesce(p_limite, 50), 200));
 end;
 $$;

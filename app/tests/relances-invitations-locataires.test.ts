@@ -24,7 +24,7 @@ import {
   envoyerRelancesInvitations,
   type ExpediteurRappelInvitation,
 } from "../src/lib/relances-invitations";
-import type { ResultatRappelInvitation } from "../src/lib/lien-mot-de-passe";
+import { LIMITE_INVITATIONS_PAR_ORGANISATION, type ResultatRappelInvitation } from "../src/lib/lien-mot-de-passe";
 
 config({ path: ".env.local", quiet: true });
 const DB_URL = process.env.SUPABASE_DB_URL;
@@ -335,6 +335,33 @@ describe.skipIf(!DB_URL)("Relances des invitations de locataire (X16)", () => {
     await db.query("delete from public.demandes_lien_mot_de_passe");
     expect(await passe()).toMatchObject({ envoyees: 1, limitees: 0 });
     expect(envois.map((e) => e.invitationId)).toContain(reportee);
+  });
+
+  it("une organisation chargée ne prive pas les autres : au plus 30 relances par organisation et par passe, chacune son tour", async () => {
+    // Constat de relecture : 60 invitations dues dans une organisation, envoyées le 2/11 à 9 h, et une dans une autre,
+    // envoyée à 10 h. Triées par ancienneté seule, les 50 places de la passe allaient toutes à la première.
+    for (let n = 0; n < 59; n++) await invitation();
+    const { invite: ailleurs } = await invitation(autreOrg, autreOwner, "2026-11-02T10:00:00+01:00");
+    await figerJour(jour(3));
+    const dues = async (limite: number) => {
+      await enService();
+      const { rows } = await db.query("select organization_id from public.invitations_locataires_relances_dues($1)", [limite]);
+      await admin();
+      return rows.map((r) => r.organization_id as string);
+    };
+    const liste = await dues(50);
+    expect(liste.filter((o) => o === org)).toHaveLength(LIMITE_INVITATIONS_PAR_ORGANISATION);
+    expect(liste.filter((o) => o === autreOrg)).toHaveLength(1);
+    // Chacune son tour : même avec deux places, l'autre organisation a la sienne.
+    expect((await dues(2)).sort()).toEqual([org, autreOrg].sort());
+
+    expect(await passe()).toMatchObject({ envoyees: LIMITE_INVITATIONS_PAR_ORGANISATION + 1, limitees: 0 });
+    expect(envois.map((e) => e.invitationId)).toContain(ailleurs);
+    // Le lendemain, les 30 relances restantes de la première organisation partent à leur tour (fenêtre J+3 à J+9).
+    await figerJour(jour(4));
+    await admin();
+    await db.query("delete from public.demandes_lien_mot_de_passe");
+    expect(await passe()).toMatchObject({ envoyees: 60 - LIMITE_INVITATIONS_PAR_ORGANISATION, limitees: 0 });
   });
 
   it("le mandant n'est jamais relancé (RM-16.4.3), ni le propriétaire d'un lot ; un locataire voisin l'est", async () => {

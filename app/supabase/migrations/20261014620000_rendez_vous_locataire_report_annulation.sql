@@ -75,26 +75,29 @@ revoke all on function public.parametres_rdv_locataire() from public, anon;
 grant execute on function public.parametres_rdv_locataire() to authenticated, service_role;
 
 -- ── 1. La chronologie de l'incident sait dire ces gestes ───────────────────────────────────────────────────────────
+-- La liste fermée est relue dans la base et COMPLÉTÉE (jamais réécrite de mémoire) : un type ajouté par une autre
+-- migration du même jour reste admis, quel que soit l'ordre de passage.
 do $correctif$
+declare v_def text; v_types text[]; v_nouveaux text[] := array[
+  'rdv_report_demande', 'rdv_report_accepte', 'rdv_report_refuse',
+  'rdv_report_retire', 'rdv_report_expire', 'rdv_annule_par_locataire'];
 begin
-  if exists (select 1 from pg_constraint
-             where conrelid = 'public.incident_evenements'::regclass
-               and conname = 'incident_evenements_type_check'
-               and pg_get_constraintdef(oid) like '%rdv_report_demande%') then
-    return;
+  select pg_get_constraintdef(oid) into v_def from pg_constraint
+  where conrelid = 'public.incident_evenements'::regclass and conname = 'incident_evenements_type_check';
+  if v_def is null then
+    raise exception 'Correctif D22 : la contrainte incident_evenements_type_check est absente (base inattendue)';
   end if;
-  alter table public.incident_evenements drop constraint if exists incident_evenements_type_check;
-  alter table public.incident_evenements add constraint incident_evenements_type_check
-    check (type = any (array[
-      'declaration', 'qualification', 'contestation', 'cloture', 'reouverture',
-      'attribution', 'photo', 'consultation', 'sollicitation', 'devis',
-      'selection_devis', 'mission_confiee', 'mission_acceptee', 'mission_refusee',
-      'creneaux_proposes', 'creneau_retenu', 'arbitrage_creneau',
-      'intervention_demarree', 'compte_rendu', 'revision_imputation', 'evaluation',
-      'creneaux_refuses', 'facture_deposee', 'facture_validee', 'mission_annulee',
-      'rdv_report_demande', 'rdv_report_accepte', 'rdv_report_refuse',
-      'rdv_report_retire', 'rdv_report_expire', 'rdv_annule_par_locataire'
-    ]::text[]));
+  select array_agg(t.m[1] order by t.n) into v_types
+  from regexp_matches(v_def, '''([a-z0-9_]+)''', 'g') with ordinality as t(m, n);
+  if v_types is null or array_length(v_types, 1) < 10 then
+    raise exception 'Correctif D22 : liste des types d''événement illisible (%)', v_def;
+  end if;
+  if v_types @> v_nouveaux then return; end if;
+  select v_types || array_agg(u.x order by u.o) into v_types
+  from unnest(v_nouveaux) with ordinality as u(x, o) where not (u.x = any (v_types));
+  alter table public.incident_evenements drop constraint incident_evenements_type_check;
+  execute format('alter table public.incident_evenements add constraint incident_evenements_type_check check (type = any (array[%s]::text[]))',
+                 (select string_agg(quote_literal(x), ', ' order by o) from unnest(v_types) with ordinality as w(x, o)));
 end $correctif$;
 
 -- ── 2. La demande du locataire ──────────────────────────────────────────────────────────────────────────────────────
@@ -797,7 +800,7 @@ begin
     raise exception 'Correctif D22 (choisir_creneau) : définition inattendue (ancre absente ou répétée)';
   end if;
   -- Clic répété sur « Confirmer » après une réponse perdue : le rendez-vous est déjà confirmé sur ce créneau.
-  v_def := replace(v_def, v_ancre, $nouveau$if v.statut = 'retenu' and v.statut_intervention = 'planifiee' then return; end if; -- Décision D22 (LOC-21, REP-04) : rejeu
+  v_def := replace(v_def, v_ancre, $nouveau$if v.statut = 'retenu' and v.statut_intervention = 'planifiee' then return; end if; -- Décision D22 (LOC-21) : rejeu (REP-04)
     raise exception 'Ce créneau n''est plus proposé';$nouveau$);
   execute v_def;
 end $correctif$;

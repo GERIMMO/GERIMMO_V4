@@ -68,7 +68,7 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     const bien = await id("insert into public.biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'TEST D22','appartement','1 rue TEST','75001','Paris') returning id", [o]);
     const lot = await id("insert into public.lots(organization_id,bien_id,nom,etat) values($1,$2,'TEST','loue') returning id", [o, bien]);
     const personne = (await db.query("select id from public.persons where organization_id=$1 and account_id=$2 limit 1", [o, l])).rows[0]?.id
-      ?? await id("insert into public.persons(organization_id,account_id,nom,prenom,email) values($1,$2,'TEST','Léa','lea@example.invalid') returning id", [o, l]);
+      ?? await id("insert into public.persons(organization_id,account_id,nom,prenom,email) values($1,$2,'TEST','Léa',$3) returning id", [o, l, `lea-${randomUUID().slice(0, 8)}@example.invalid`]);
     const bail = await id("insert into public.baux(organization_id,lot_id,locataire_principal,etat,date_debut,loyer_hc,charges) values($1,$2,$3,$4,current_date-30,500,50) returning id", [o, lot, personne, etatBail]);
     const incident = await id("insert into public.incidents(organization_id,numero,lot_id,bail_id,declarant_person_id,canal,categorie,description,etat,imputation,imputation_justification) values($1,$2,$3,$4,$5,'espace_locataire','plomberie_canalisation','TEST D22','qualifie','proprietaire','TEST') returning id", [o, `TEST-${randomUUID().slice(0, 8)}`, lot, bail, personne]);
     return id("insert into public.incident_interventions(organization_id,incident_id,artisan_id,nature_travaux,statut) values($1,$2,$3,'entretien_courant','acceptee') returning id", [o, incident, a]);
@@ -216,7 +216,7 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     await demanderReport();
     expect((await mesRendezVous())[0]).toMatchObject({ reports_restants: 1 });
     // L'artisan ne peut plus retenir une date retirée : elle est caduque.
-    await expect(essai(() => accepter((await datesDeLaDemande(demande))[0].id))).rejects.toThrow(/plus proposée/);
+    await expect(essai(async () => accepter((await datesDeLaDemande(demande))[0].id))).rejects.toThrow(/plus proposée/);
   });
 
   // ── 2. L'accord de l'artisan déplace le rendez-vous ──────────────────────────────────────────────────────────────
@@ -262,9 +262,10 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     // On recule donc l'horloge du rendez-vous à J+2 pour pouvoir le reporter, en gardant la trace du rappel « veille ».
     await db.query(`update public.incident_interventions set debut_prevu = debut_prevu + interval '1 day', fin_prevue = fin_prevue + interval '1 day' where id=$1`, [mission]);
     await db.query(`update public.intervention_creneaux set debut = debut + interval '1 day', fin = fin + interval '1 day' where id=$1`, [creneau]);
-    // Le locataire demande un report ; l'artisan retient « demain 9 h » (date reportée = celle du rappel déjà tracé pour l'ancien créneau).
+    // Le locataire demande un report ; l'artisan retient « demain 14 h » : un autre rendez-vous, à rappeler lui aussi
+    // la veille, alors que l'échéance « veille » de la mission est déjà tracée pour l'ancien créneau.
     await postgres();
-    const demain9 = (await db.query(`select (((now() at time zone 'Europe/Paris')::date + 1 + time '09:00') at time zone 'Europe/Paris') as d, (((now() at time zone 'Europe/Paris')::date + 1 + time '11:00') at time zone 'Europe/Paris') as f`)).rows[0];
+    const demain9 = (await db.query(`select (((now() at time zone 'Europe/Paris')::date + 1 + time '14:00') at time zone 'Europe/Paris') as d, (((now() at time zone 'Europe/Paris')::date + 1 + time '16:00') at time zone 'Europe/Paris') as f`)).rows[0];
     const demande = await demanderReport({ dates: [{ debut: new Date(demain9.d).toISOString(), fin: new Date(demain9.f).toISOString() }, troisDates()[1], troisDates()[2]] });
     const [premiere] = await datesDeLaDemande(demande);
     await accepter(premiere.id);
@@ -320,7 +321,7 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     // Avant le passage de la tâche, le locataire et l'artisan lisent déjà « expirée », et l'artisan ne peut plus accepter.
     expect((await mesRendezVous())[0].demande_statut).toBe("expiree");
     expect((await mesDemandesArtisan())[0].statut).toBe("expiree");
-    await expect(essai(() => accepter((await datesDeLaDemande(demande))[0].id))).rejects.toThrow(/délai de réponse .* dépassé/);
+    await expect(essai(async () => accepter((await datesDeLaDemande(demande))[0].id))).rejects.toThrow(/délai de réponse .* dépassé/);
     await postgres();
     const { rows } = await db.query("select public.expirer_demandes_rdv() as n");
     expect(rows[0].n).toBe(1);
@@ -384,7 +385,8 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     const report = await demanderReport();
     await annuler();
     const liste = await demandes();
-    expect(liste.map((d) => [d.type, d.statut])).toEqual([["report", "retiree"], ["annulation", "acceptee"]]);
+    // Les deux demandes naissent dans la même transaction de test (même instant) : on les lit par type.
+    expect(liste.map((d) => [d.type, d.statut]).sort()).toEqual([["annulation", "acceptee"], ["report", "retiree"]]);
     expect((await datesDeLaDemande(report)).map((c) => c.statut)).toEqual(["caduc", "caduc", "caduc"]);
   });
 

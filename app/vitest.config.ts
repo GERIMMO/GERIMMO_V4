@@ -44,6 +44,9 @@ export const FICHIERS_EN_SERIE = [
   // Rejeu des cinq migrations du jour de Paris et de leurs retours : `alter table … set default` sur encaissements,
   // quittances et relances, verrou exclusif tenu pendant tout l'essai, qui bloquerait les écritures des autres fichiers.
   "tests/jour-de-paris-migrations-rejeu.test.ts",
+  // Rejeu de la migration D22 (report et annulation par le locataire) : `alter table incident_evenements`, `intervention_rappels`
+  // et `create trigger` sur incident_interventions dans la transaction du test, verrous tenus pendant tout l'essai.
+  "tests/rendez-vous-locataire-rejeu.test.ts",
 ];
 
 export default defineConfig({

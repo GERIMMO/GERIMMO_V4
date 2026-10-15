@@ -184,7 +184,8 @@ describe("ne pas promettre un lancement sans données", () => {
     const m = { logements_loues_prive: 40000, agences: 50, communes_zone_tendue: null };
     expect(prioriteTerritoriale(m)).toMatchObject({ public: 'donnees', pilotePreparable: false });
     expect(prioriteTerritoriale({ ...m, artisans_disponibles: 0 })).toMatchObject({ public: 'artisans', pilotePreparable: false });
-    expect(prioriteTerritoriale({ ...m, artisans_disponibles: 4 })).toMatchObject({ public: 'agences', pilotePreparable: true });
+    // D49 (14/10/2026) : une forte densité d'agences ne fait plus choisir « agences » (la V1 publique les exclut).
+    expect(prioriteTerritoriale({ ...m, artisans_disponibles: 4 })).toMatchObject({ public: 'proprietaires', pilotePreparable: true });
     expect(prioriteTerritoriale({ ...m, agences: 3, artisans_disponibles: 4 })).toMatchObject({ public: 'proprietaires', pilotePreparable: true });
   });
   it("le coût par client et la concurrence connus départagent des marchés égaux", () => {
@@ -195,5 +196,54 @@ describe("ne pas promettre un lancement sans données", () => {
     const candidats = noterCandidats({ empreinte: [], marche, voisinage });
     expect(candidats.find(c=>c.code==='91')!.score).toBeGreaterThan(candidats.find(c=>c.code==='92')!.score);
     expect(candidats.find(c=>c.code==='91')!.couverture).toBe(100);
+  });
+});
+
+// D49 (fiche IA-09, 14/10/2026) : la tâche « territoire » n'inscrit plus « agences » comme priorité de campagne-idée
+// tant que la V1 publique les exclut. L'idée préparée (marketing_campagnes, statut « idée », budget 0) visait un public
+// que le site n'accueille pas.
+describe("la priorité territoriale ne vise plus les agences (V1 publique)", () => {
+  const agences = (n: number | null) => ({ logements_loues_prive: 40000, agences: n, communes_zone_tendue: 8, artisans_disponibles: 4 });
+
+  it("ne rend jamais « agences », quelle que soit la densité d'agences, et reste une idée préparable", () => {
+    for (const n of [0, 3, 19, 20, 40, 50, 400, 100000]) {
+      const p = prioriteTerritoriale(agences(n));
+      expect(p.public).toBe('proprietaires');
+      expect(p.pilotePreparable).toBe(true);
+    }
+  });
+
+  it("les autres priorités ne changent pas (données, artisans)", () => {
+    expect(prioriteTerritoriale({ ...agences(50), artisans_disponibles: null }).public).toBe('donnees');
+    expect(prioriteTerritoriale({ ...agences(50), artisans_disponibles: 2 }).public).toBe('artisans');
+    expect(prioriteTerritoriale({ ...agences(null) }).public).toBe('donnees');
+    expect(prioriteTerritoriale({ ...agences(50), logements_loues_prive: null }).public).toBe('donnees');
+  });
+
+  it("n'écrit ni « agences » ni « marque blanche » dans l'idée préparée, ni dans son titre", () => {
+    for (const n of [3, 50, 400]) {
+      const p = prioriteTerritoriale(agences(n));
+      expect(`${p.titre} ${p.raison} ${p.etapes.join(' ')}`).not.toMatch(/agence|marque blanche|intermédiaire/i);
+      expect(p.titre).toBe('Préparer un essai avec des propriétaires bailleurs');
+    }
+  });
+
+  it("là où les agences sont nombreuses, la raison dit que l'essai vise les propriétaires parce que la V1 s'adresse à eux", () => {
+    const dense = prioriteTerritoriale(agences(400)).raison;
+    const rare = prioriteTerritoriale(agences(3)).raison;
+    expect(dense).toContain('propriétaires bailleurs');
+    expect(dense).toContain('version publique');
+    // Faux de dire que la densité mesurée « invite » à ce choix quand elle est élevée : ce n'est plus la raison.
+    expect(dense).not.toContain('invite à commencer');
+    // Là où elles sont rares, la raison d'origine est inchangée.
+    expect(rare).toBe('Le réseau artisanal permet de préparer un petit essai local. La densité d’entreprises immobilières mesurée invite à commencer par les propriétaires bailleurs.');
+  });
+
+  it("la cible transmise à la préparation est toujours l'une des trois que la V1 admet", () => {
+    const cibles = new Set<string>();
+    for (const n of [0, 19, 20, 400]) for (const art of [null, 0, 2, 3, 40]) {
+      cibles.add(prioriteTerritoriale({ ...agences(n), artisans_disponibles: art }).public);
+    }
+    expect([...cibles].sort()).toEqual(['artisans', 'donnees', 'proprietaires']);
   });
 });

@@ -964,5 +964,11 @@
     "persona": "locataire",
     "label": "Invitation à l’espace locataire — accepter ou refuser",
     "dynamic": "invitationId"
+  },
+  {
+    "path": "/artisan/invitation/INVITATION_ARTISAN",
+    "persona": "public",
+    "label": "Invitation d’un propriétaire — l’artisan crée son compte",
+    "dynamic": "invitationId"
   }
 ]

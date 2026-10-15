@@ -90,12 +90,12 @@ export function GestesInvitationEnAttente({ orgId, invitationId }: { orgId: stri
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <form data-saisie-libre action={renvoyer}>
+        <form data-saisie-confirmee action={renvoyer}>
           <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Envoi…">
             Renvoyer
           </BoutonEnvoi>
         </form>
-        <form data-saisie-libre action={annuler}>
+        <form data-saisie-confirmee action={annuler}>
           <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Annulation…">
             Annuler l’invitation
           </BoutonEnvoi>
@@ -121,7 +121,7 @@ export function ReinviterArtisan({
 }) {
   const [etat, action] = useActionState<EtatInvitationArtisan, FormData>(inviterArtisan.bind(null, orgId), {});
   return (
-    <form data-saisie-libre action={action} className="space-y-2">
+    <form data-saisie-confirmee action={action} className="space-y-2">
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="nom" value={nom ?? ""} />
       <input type="hidden" name="metier" value={metier ?? ""} />

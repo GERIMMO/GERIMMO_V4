@@ -13,6 +13,7 @@
 // et suit, il ne notifie jamais (RM-A3.1).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { aujourdhuiParis } from "@/lib/ged";
 import { lireMontantAvecEspaces } from "@/lib/saisie-montant";
 import {
   Fusion,
@@ -119,9 +120,11 @@ export async function assemblerCongeBailleur(
 
   // Date d'effet : le terme du bail calculé par la base pour la date de
   // présentation prévue ; si le préavis n'y tient plus, le terme suivant.
+  // Sans date de présentation : aujourd'hui, au jour de Paris (le jour UTC du
+  // serveur était la veille entre minuit et 2 h ; décision du 15/10/2026).
   const presentation = /^\d{4}-\d{2}-\d{2}$/.test(options?.date_presentation ?? "")
     ? (options?.date_presentation as string)
-    : new Date().toISOString().slice(0, 10);
+    : aujourdhuiParis();
   let terme: string | null = null;
   {
     const { data, error } = await supabase.rpc("terme_bail", { p_bail: ctx.bail.id, p_date: presentation });

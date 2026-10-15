@@ -90,7 +90,8 @@ describe.skipIf(!DB_URL)("Pilotage des dossiers et continuité",()=>{
   await db.query("insert into public.detentions(organization_id,lot_id,person_id,quote_part,date_debut) select organization_id,lot_id,locataire_principal,100,current_date-interval '2 months' from public.baux where id=$1",[bail]);
   await db.query("insert into public.mandat_lignes(organization_id,mandat_id,lot_id,date_debut) select organization_id,$2,lot_id,current_date-interval '2 months' from public.baux where id=$1",[bail,mandat]);
   await agir(null,"aal1","service_role");expect((await db.query("select public.preparer_rapports_automatiques() n")).rows[0].n).toBe(0);
-  await db.query("insert into public.clotures_comptables(organization_id,mois) values($1,(date_trunc('month',now())-interval '1 month')::date)",[org]);
+  // Le mois clôturé est celui qui précède le mois de PARIS, celui que lit la préparation (lot « fuseau-suite »).
+  await db.query("insert into public.clotures_comptables(organization_id,mois) values($1,(date_trunc('month',public.aujourdhui_paris()::timestamp)-interval '1 month')::date)",[org]);
   expect((await db.query("select public.preparer_rapports_automatiques() n")).rows[0].n).toBe(1);expect((await db.query("select public.preparer_rapports_automatiques() n")).rows[0].n).toBe(0);
   expect((await db.query("select statut,envoye_le,versement_date from public.rapports_gestion where mandat_id=$1",[mandat])).rows).toEqual([{statut:'a_valider',envoye_le:null,versement_date:null}]);
   await actualiser();expect((await db.query("select id from public.orchestration_cases where dossier_type='rapport' and organization_id=$1",[org])).rows).toHaveLength(1);

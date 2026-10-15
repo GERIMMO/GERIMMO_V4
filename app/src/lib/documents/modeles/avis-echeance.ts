@@ -2,6 +2,7 @@
 // règlement. Cible : l'appel de loyer.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { aujourdhuiParis } from "@/lib/ged";
 import {
   Fusion,
   assemblerPage,
@@ -53,11 +54,16 @@ export type DonneesAvisEcheance = {
   exp: ReturnType<typeof expediteur>;
   // Signature préenregistrée de l'émetteur (data-URI) — null : zone vierge
   signatureImg?: string | null;
+  /** Jour d'établissement de l'avis (« AAAA-MM-JJ »). Par défaut : le jour de Paris, celui que la base donne à l'appel. */
+  jour?: string;
   f: Fusion;
 };
 
 export function construireAvisEcheance(d: DonneesAvisEcheance) {
   const f = d.f;
+  // « Établi le » et « Fait à … le » : le jour de Paris. `new Date().toISOString()` donnait le jour UTC, donc la veille
+  // entre minuit et 2 h à Paris, sur un avis qui annonce une échéance que la base lit, elle, au jour de Paris.
+  const jour = d.jour ?? aujourdhuiParis();
   // Audit du 27/09 : période bornée à l'entrée / la sortie d'un terme au prorata.
   const bornes = bornesTerme(d.periode, d.prorata, d.dateBail, d.dateFinBail);
   const du = formaterDateFr(bornes.du);
@@ -65,7 +71,7 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
   const arriere = Math.max(0, Number(d.arriere ?? 0));
 
   const corps = `
-    ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: new Date().toISOString() })}
+    ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: jour })}
     ${titre("Avis d'échéance", `Période du ${du} au ${au}`, [
       "Le présent avis ne constitue ni une quittance ni un reçu.",
     ])}
@@ -105,7 +111,7 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
       <p>En cas de difficulté de paiement, rapprochez-vous sans attendre de votre gestionnaire :
       des solutions amiables existent (délais, aides au logement).</p>
     </div>
-    ${faitA(f, d.exp.ville, new Date().toISOString())}
+    ${faitA(f, d.exp.ville, jour)}
     ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
   `;
   return assemblerPage({

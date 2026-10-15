@@ -1037,3 +1037,19 @@ describe("/nouveau-mot-de-passe après une confirmation d'inscription ouverte ai
     expect(ordinaire).not.toContain("est confirmée");
   });
 });
+
+describe("/mot-de-passe-oublie après une confirmation faite ailleurs que la session n'a pas pu finir", () => {
+  it("dit que l'adresse est confirmée et comment choisir le mot de passe ; sans motif, l'écran ordinaire", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { default: Page } = await import("../src/app/mot-de-passe-oublie/page");
+    const texte = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").replace(/&#x27;/g, "'");
+    const apres = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ raison: "adresse-confirmee" }) })));
+    expect(apres).toContain("Choisissez votre mot de passe");
+    expect(apres).toContain("Votre adresse est confirmée");
+    expect(apres).toContain("le mot de passe se choisit par un nouveau lien");
+    const ordinaire = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({}) })));
+    expect(ordinaire).toContain("Mot de passe oublié");
+    expect(ordinaire).not.toContain("est confirmée");
+    expect(texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ raison: "autre" }) })))).not.toContain("est confirmée");
+  });
+});

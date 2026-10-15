@@ -441,10 +441,13 @@ describe("pour un bien : pourquoi un artisan du carnet ne peut pas être sollici
 });
 
 describe("la page d'invitation est publique (proxy)", () => {
-  it("le proxy laisse passer /artisan/invitation sans session, et pas le reste du portail", () => {
+  // Seconde relecture du 15/10 : le chemin exact, pas le préfixe (le comportement est éprouvé dans
+  // proxy-invitation-artisan.test.ts).
+  it("le proxy ne rend public ni le préfixe /artisan/invitation, ni le reste du portail", () => {
     const proxy = readFileSync(path.resolve(__dirname, "..", "src/proxy.ts"), "utf8");
     const liste = proxy.slice(proxy.indexOf("const PUBLIC_PATHS"), proxy.indexOf("];"));
-    expect(liste).toContain('"/artisan/invitation"');
+    expect(liste).not.toContain('"/artisan/invitation"');
     expect(liste).not.toMatch(/"\/artisan"\s*,/);
+    expect(proxy).toContain("CHEMIN_INVITATION_ARTISAN.test(pathname)");
   });
 });

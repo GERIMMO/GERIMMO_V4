@@ -253,8 +253,12 @@ describe.skipIf(!DB_URL)("Révision de devis et versions (D18, livraison 2)", ()
     const s = await lireSollicitation(s1);
     expect(s.statut).toBe("revision_demandee");
     await enTantQuePostgres();
-    const { rows: [{ attendu }] } = await db.query(`select to_char(public.aujourdhui_paris() + 7, 'YYYY-MM-DD') as attendu`);
-    expect(new Date(s.revision_avant).toISOString().slice(0, 10)).toBe(attendu);
+    // La date est lue en texte par la base : un objet Date la décalerait selon le fuseau de la machine.
+    const { rows: [{ attendu, lue }] } = await db.query(
+      `select to_char(public.aujourdhui_paris() + 7, 'YYYY-MM-DD') as attendu,
+              to_char(revision_avant, 'YYYY-MM-DD') as lue
+       from public.incident_sollicitations where id = $1`, [s1]);
+    expect(lue).toBe(attendu);
 
     const [e] = await evenements("devis_revision_demandee");
     expect(e.details.motif).toBe(MOTIF);

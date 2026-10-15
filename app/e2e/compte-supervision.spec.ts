@@ -56,14 +56,14 @@ test("la recherche de la console trouve un compte par son adresse", async ({ pag
   // Le bouton du menu change de nom une fois ouvert (« Fermer le menu ») : on
   // le vise par ce qu'il commande.
   const menu = page.locator('button[aria-controls="menu-supervision"]');
-  const champ = page.getByLabel("Nom, ville, email ou SIRET");
+  const champ = page.getByLabel("Nom, ville, email, SIRET ou référence");
   await expect(async () => {
     if ((await menu.isVisible()) && (await menu.getAttribute("aria-expanded")) !== "true") await menu.click();
     // Deux boutons portent ce nom (barre haute masquée au téléphone, entrée du menu) : le visible.
     await page.locator("button:visible", { hasText: /Rechercher/ }).first().click({ timeout: 1_000 });
     await expect(champ).toBeVisible({ timeout: 1_000 });
   }).toPass({ timeout: 30_000 });
-  await page.getByLabel("Nom, ville, email ou SIRET").fill("admin.alpha");
+  await page.getByLabel("Nom, ville, email, SIRET ou référence").fill("admin.alpha");
   const resultat = page.locator("[data-resultat]").filter({ hasText: "Compte" }).first();
   await expect(resultat).toBeVisible();
   // Rôles lisibles (audit console 27/09) : jamais le code « admin_agence ».
@@ -72,6 +72,6 @@ test("la recherche de la console trouve un compte par son adresse", async ({ pag
   const premier = page.locator("[data-resultat][data-actif]");
   await expect(premier).toHaveCount(1);
   const cible = await premier.getAttribute("href");
-  await page.getByLabel("Nom, ville, email ou SIRET").press("Enter");
+  await page.getByLabel("Nom, ville, email, SIRET ou référence").press("Enter");
   await expect(page).toHaveURL(new RegExp(`${cible}$`));
 });

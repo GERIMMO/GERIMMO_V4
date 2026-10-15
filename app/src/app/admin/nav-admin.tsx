@@ -52,7 +52,7 @@ export function NavAdmin({ artisansEnAttente = 0, decisions = 0 }: { artisansEnA
   const { fermer } = useContext(MenuSupervision);
   return <div className="admin-menu-conteneur">
     {/* Au téléphone, la recherche vit dans le menu (audit C26) ; la fenêtre est celle de la barre haute. */}
-    <button type="button" className="admin-nav-lien min-[901px]:hidden" onClick={() => { fermer(); window.dispatchEvent(new Event("gerimmo:ouvrir-recherche")); }}>Rechercher un client…</button>
+    <button type="button" className="admin-nav-lien min-[901px]:hidden" onClick={() => { fermer(); window.dispatchEvent(new Event("gerimmo:ouvrir-recherche")); }}>Rechercher un client ou un dossier…</button>
     <Groupes artisansEnAttente={artisansEnAttente} decisions={decisions} auClic={fermer} />
   </div>;
 }

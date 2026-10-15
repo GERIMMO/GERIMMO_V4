@@ -39,6 +39,7 @@ describe("la mission « rappels » envoie les relances d'invitation", () => {
     vi.doUnmock("@/lib/relances-invitations");
     vi.doUnmock("@/lib/notifications");
     vi.doUnmock("@/lib/supabase/service");
+    vi.doUnmock("@/lib/email");
   });
   const requete = () => new Request("http://localhost/api/cron/equipes?mission=rappels", { headers: { authorization: "Bearer secret_test" } });
 
@@ -56,6 +57,38 @@ describe("la mission « rappels » envoie les relances d'invitation", () => {
     rpc.mockClear();
     await options.avantEffet();
     expect(rpc).toHaveBeenCalledWith("verifier_arret_supervision", { p_mission: "rappels", p_plan: null });
+  });
+
+  it("un jour avec des rendez-vous à rappeler : les relances partent aussi, après les rendez-vous, et figurent au bilan", async () => {
+    const ordre: string[] = [];
+    m.relancer.mockImplementation(async () => {
+      ordre.push("relances");
+      return { envoyees: 1, echecs: 0, incertaines: 0, limitees: 0, ignorees: 0, non_notees: 0, restantes: 0 };
+    });
+    // L'envoi du rappel de rendez-vous : une maquette, aucun e-mail réel.
+    const envoyerEmail = vi.fn(async () => {
+      ordre.push("rendez-vous");
+      return { id: "email_test" };
+    });
+    vi.doMock("@/lib/email", () => ({ envoyerEmail }));
+    const rendezVous = {
+      intervention_id: "11111111-2222-4333-8444-555555555555", organization_id: "66666666-7777-4888-8999-000000000000",
+      echeance: "veille", destinataire: "locataire", adresse: "locataire@exemple.fr", prenom: "Léa", emetteur: "Agence Test",
+      artisan: "Plomberie Test", lot: "Lot 1", adresse_bien: "1 rue de Test, 75001 Paris", debut_prevu: "2026-11-06T08:00:00Z",
+      fin_prevue: "2026-11-06T09:00:00Z", incident_numero: "INC-0001", categorie: "plomberie",
+    };
+    const rpc = vi.fn(async (nom: string) => ({
+      data: nom === "verifier_arret_supervision" ? true : nom === "rendez_vous_a_rappeler" ? [rendezVous] : null,
+      error: null,
+    }));
+    m.service.mockReturnValue({ rpc });
+    const { traiterRappels } = await import("@/lib/missions-planifiees/rappels");
+    const r = await traiterRappels(requete());
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ rappeles: 1, echecs: 0, invitations: { envoyees: 1 } });
+    expect(envoyerEmail).toHaveBeenCalledTimes(1);
+    expect(m.relancer).toHaveBeenCalledTimes(1);
+    expect(ordre).toEqual(["rendez-vous", "relances"]);
   });
 
   it("un arrêt d'urgence pendant les relances interrompt la mission (jamais un succès)", async () => {

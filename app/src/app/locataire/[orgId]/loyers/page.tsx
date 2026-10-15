@@ -1,7 +1,8 @@
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
-import { eur, formaterDate } from "@/lib/ged";
+import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
+import { premierDuMoisSuivant } from "@/lib/echeances";
 import { CONSERVATION_DOCUMENTS_LOCATAIRE } from "@/lib/locataire-textes";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
@@ -111,10 +112,9 @@ export default async function PagePaiementsLocataire(
   );
   // Bail actif et tout soldé (audit 09/09) : la prochaine échéance réelle —
   // le jour d'échéance du bail, au mois suivant
-  const dateActuelle = new Date();
-  const moisSuivant = new Date(
-    Date.UTC(dateActuelle.getFullYear(), dateActuelle.getMonth() + 1, 1)
-  ).toISOString();
+  // Le mois se compte au jour de Paris, comme la base : le serveur tourne en UTC, et entre 22 h et 24 h
+  // le dernier jour du mois, `new Date()` dirait encore le mois qui finit alors que Paris est déjà au suivant.
+  const moisSuivant = premierDuMoisSuivant(aujourdhuiParis());
 
   const pastilles = douzeDerniers.length > 1 && (
     <>

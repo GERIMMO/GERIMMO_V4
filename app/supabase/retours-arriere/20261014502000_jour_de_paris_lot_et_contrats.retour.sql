@@ -1,0 +1,117 @@
+-- RETOUR ARRIÈRE de 20261014502000_jour_de_paris_lot_et_contrats.sql (lot « fuseau-paris », 3/5)
+--
+-- NE PAS PLACER dans app/supabase/migrations/ et NE JAMAIS le passer à migrations.yml : ce fichier
+-- défait une migration, il se joue À LA MAIN, une fois décidé, avec la procédure de LISEZ-MOI.md.
+-- Une seule transaction : la moindre erreur annule tout, la base reste alors telle qu'elle était.
+--
+-- Il fait le chemin inverse de la migration : il relit chaque définition EN VIGUEUR et remet le jour de la session
+-- (`current_date`) à la place de `public.aujourdhui_paris()`, après avoir vérifié le NOMBRE EXACT d'occurrences. Aucune
+-- définition n'est recopiée à la main ; aucune ancre de plusieurs lignes. Rejouable : une fonction qui ne cite plus
+-- `aujourdhui_paris()` est laissée telle quelle. Une fonction dont le nombre d'occurrences est inattendu (réécrite depuis)
+-- arrête tout le script, sans rien modifier.
+--
+-- Usage : psql "$URL" -v ON_ERROR_STOP=1 -f 20261014502000_jour_de_paris_lot_et_contrats.retour.sql
+--
+-- RÉINTRODUIT le défaut corrigé : entre 22 h et 24 h UTC (00 h à 02 h à Paris), la fiche du lot et ses contrats comptent
+-- l'impayé échu avec le jour UTC (ils peuvent afficher « 0 € » sur un loyer que l'alerte vient de signaler), et l'historique
+-- du lot masque ce qui est arrivé « aujourd'hui » à Paris et date un incident déclaré ou clos, ou un état des lieux signé,
+-- entre minuit et 2 h à Paris, de la veille (conversion d'horodatage au fuseau de la session). Ne modifie aucune donnée.
+-- Le retour rétablit `current_date` en minuscules ; la logique est celle d'avant, la casse du mot peut différer d'une base
+-- qui l'écrivait en capitales.
+--
+-- À jouer AVANT le retour de 20261014500000 (qui refuse tant qu'un objet cite encore la fonction du jour de Paris).
+
+-- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
+-- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
+-- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
+do $retour_arriere$
+begin
+  if statement_timestamp() <> transaction_timestamp() then
+    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
+  end if;
+end $retour_arriere$;
+
+
+begin;
+set local lock_timeout = '10s';
+
+do $retour_arriere$
+declare
+  -- signature, puis nombre exact de `public.aujourdhui_paris()` posés par la migration dans la définition en vigueur.
+  v_cibles constant text[][] := array[
+    ['public.contrats_du_lot(uuid)', '2'],
+    ['public.fiche_lot(uuid)', '2'],
+    ['public.historique_du_lot(uuid,integer)', '2']
+  ];
+  v_i integer;
+  v_signature text;
+  v_attendu integer;
+  v_oid regprocedure;
+  v_def text;
+  v_nb integer;
+begin
+  for v_i in 1 .. array_length(v_cibles, 1) loop
+    v_signature := v_cibles[v_i][1];
+    v_attendu := v_cibles[v_i][2]::integer;
+    v_oid := to_regprocedure(v_signature);
+    if v_oid is null then
+      raise exception 'Retour arrière : la fonction % n''existe pas (base inattendue)', v_signature;
+    end if;
+    v_def := pg_get_functiondef(v_oid);
+    select count(*) into v_nb from regexp_matches(v_def, 'public\.aujourdhui_paris\(\)', 'g');
+    if v_nb = 0 then
+      raise notice '% : ne cite plus aujourdhui_paris(), rien à faire', v_signature;
+      continue;
+    end if;
+    if v_nb <> v_attendu then
+      raise exception 'Retour arrière : % cite aujourdhui_paris() % fois au lieu de % : définition réécrite depuis, rien n''est modifié.', v_signature, v_nb, v_attendu;
+    end if;
+    execute regexp_replace(v_def, 'public\.aujourdhui_paris\(\)', 'current_date', 'g');
+    raise notice '% : jour de la session rétabli', v_signature;
+  end loop;
+end $retour_arriere$;
+
+-- Historique du lot : les trois jours tirés d'un horodatage reprennent la conversion d'origine (`colonne::date`, fuseau de la session).
+do $retour_arriere$
+declare
+  v_signature constant text := 'public.historique_du_lot(uuid,integer)';
+  v_oid regprocedure := to_regprocedure('public.historique_du_lot(uuid,integer)');
+  v_def text;
+  v_colonne text;
+  v_motif text;
+  v_nb integer;
+  v_change boolean := false;
+begin
+  if v_oid is null then
+    raise exception 'Retour arrière : la fonction % n''existe pas (base inattendue)', v_signature;
+  end if;
+  v_def := pg_get_functiondef(v_oid);
+  foreach v_colonne in array array['edl.signe_le', 'i.created_at', 'i.clos_le'] loop
+    v_motif := '\(\s*(' || replace(v_colonne, '.', '\.') || ')\s+at\s+time\s+zone\s+''Europe/Paris''\s*\)\s*::\s*date';
+    select count(*) into v_nb from regexp_matches(v_def, v_motif, 'gi');
+    if v_nb = 0 then
+      raise notice '% : %::date déjà à l''origine, rien à faire', v_signature, v_colonne;
+      continue;
+    end if;
+    if v_nb <> 1 then
+      raise exception 'Retour arrière : % contient % conversions de % à Paris au lieu d''une : définition réécrite depuis, rien n''est modifié.', v_signature, v_nb, v_colonne;
+    end if;
+    v_def := regexp_replace(v_def, v_motif, '\1::date', 'gi');
+    v_change := true;
+    raise notice '% : %::date rétabli', v_signature, v_colonne;
+  end loop;
+  if v_change then execute v_def; end if;
+end $retour_arriere$;
+
+-- Convention de toute migration qui touche une fonction.
+select public.fermer_fonctions_a_anon();
+
+-- La version n'est plus « appliquée » : sans cela migrations.yml refuserait de la rejouer (garde « version déjà enregistrée »).
+do $retour_arriere$
+begin
+  if to_regclass('supabase_migrations.schema_migrations') is not null then
+    delete from supabase_migrations.schema_migrations where version = '20261014502000';
+  end if;
+end $retour_arriere$;
+
+commit;

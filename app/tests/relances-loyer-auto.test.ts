@@ -8,6 +8,9 @@
  *
  * Nécessite SUPABASE_DB_URL (avec la migration relances_loyer_automatiques).
  * Transaction annulée à la fin.
+ *
+ * Les dates de départ se posent au jour de PARIS (lot « fuseau-paris », 15/10/2026), comme la base : `current_date` est le
+ * jour de la session, qui diffère de Paris entre 22 h et 24 h UTC et ferait compter un jour de retard de trop ou de moins.
  */
 import { verifierBaseDeTest } from "./garde-base";
 import { couvrirParMandat } from "./fixtures/mandat";
@@ -67,7 +70,7 @@ async function consigner(niveau: string): Promise<string | null> {
 async function echeanceIlYA(jours: number) {
   await db.query("reset role");
   await db.query(
-    `update public.appels_loyer set date_echeance = current_date - $1::int where bail_id = $2`,
+    `update public.appels_loyer set date_echeance = (now() at time zone 'Europe/Paris')::date - $1::int where bail_id = $2`,
     [jours, bail]
   );
 }
@@ -120,7 +123,7 @@ beforeEach(async () => {
   } = await db.query<{ id: string }>(
     `insert into public.baux (organization_id, lot_id, locataire_principal, loyer_hc, charges,
                               etat, date_debut, jour_echeance)
-     values ($1,$2,$3,700,50,'actif', date_trunc('month', current_date)::date, 1) returning id`,
+     values ($1,$2,$3,700,50,'actif', date_trunc('month', (now() at time zone 'Europe/Paris')::date)::date, 1) returning id`,
     [org, lot, loc]
   );
   bail = b;
@@ -164,7 +167,7 @@ describe.skipIf(!DB_URL)("qui est relancé, et qui ne l'est pas", () => {
     await echeanceIlYA(10);
     await simuler(gerant);
     await db.query(
-      `insert into public.encaissements (organization_id, bail_id, montant, date_paiement) values ($1,$2,750, current_date)`,
+      `insert into public.encaissements (organization_id, bail_id, montant, date_paiement) values ($1,$2,750, (now() at time zone 'Europe/Paris')::date)`,
       [org, bail]
     );
     expect(await dues()).toEqual([]);
@@ -187,7 +190,7 @@ describe.skipIf(!DB_URL)("qui est relancé, et qui ne l'est pas", () => {
     // Le gérant a relancé lui-même il y a dix jours : la tâche ne repart pas au niveau 1.
     await db.query("reset role");
     await db.query(
-      `insert into public.relances (organization_id, bail_id, niveau, date_envoi) values ($1,$2,'relance_1', current_date - 10)`,
+      `insert into public.relances (organization_id, bail_id, niveau, date_envoi) values ($1,$2,'relance_1', (now() at time zone 'Europe/Paris')::date - 10)`,
       [org, bail]
     );
     const l = await dues();
@@ -199,7 +202,7 @@ describe.skipIf(!DB_URL)("qui est relancé, et qui ne l'est pas", () => {
     await echeanceIlYA(40);
     await db.query("reset role");
     await db.query(
-      `insert into public.relances (organization_id, bail_id, niveau, date_envoi) values ($1,$2,'relance_1', current_date - 30), ($1,$2,'mise_en_demeure', current_date - 5)`,
+      `insert into public.relances (organization_id, bail_id, niveau, date_envoi) values ($1,$2,'relance_1', (now() at time zone 'Europe/Paris')::date - 30), ($1,$2,'mise_en_demeure', (now() at time zone 'Europe/Paris')::date - 5)`,
       [org, bail]
     );
     expect(await dues()).toEqual([]);
@@ -254,7 +257,7 @@ describe.skipIf(!DB_URL)("seuil minimal et caution (audit 29/09)", () => {
     await echeanceIlYA(10);
     await simuler(gerant);
     await db.query(
-      `insert into public.encaissements (organization_id, bail_id, montant, date_paiement) values ($1,$2,746, current_date)`,
+      `insert into public.encaissements (organization_id, bail_id, montant, date_paiement) values ($1,$2,746, (now() at time zone 'Europe/Paris')::date)`,
       [org, bail]
     );
     expect(await dues()).toEqual([]); // 4 € restants < 5 €
@@ -284,7 +287,7 @@ describe.skipIf(!DB_URL)("seuil minimal et caution (audit 29/09)", () => {
     expect(niveau1[0].garants).toEqual([]);
     await db.query("reset role");
     await db.query(
-      `insert into public.relances (organization_id, bail_id, niveau, date_envoi) values ($1,$2,'relance_1', current_date - 10)`,
+      `insert into public.relances (organization_id, bail_id, niveau, date_envoi) values ($1,$2,'relance_1', (now() at time zone 'Europe/Paris')::date - 10)`,
       [org, bail]
     );
     const niveau2 = (await dues()) as AvecGarants[];

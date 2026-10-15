@@ -16,6 +16,13 @@
  *    après puis 40 jours avant l'horloge. Un seul reste de `current_date` dans un objet de l'inventaire suffit à le trahir.
  * Dans tous les cas, tous les objets doivent répondre pareil, et selon le jour de Paris.
  *
+ * LA VAGUE 4a (décision X13, migrations 20261014410000 et 20261014416000, en production). Elle date « Encaisser le reste », la
+ * quittance réémise (`resynchroniser_quittances`) et le défaut de `quittances.date_emission` du jour de Paris par l'expression
+ * explicite `(now() at time zone 'Europe/Paris')::date`, sans passer par `aujourdhui_paris()`. Le lot les laisse tels quels
+ * (migration 503000) : sur un banc qui a la vague 4a ces objets sont donc « au jour de Paris » sous cette forme, et la variante
+ * « figé » (qui remplace `aujourdhui_paris()`) ne peut pas les déplacer, seules les variantes « session » les éprouvent.
+ * Les tests tournent sur les deux bancs ; `jourFourniPar` dit, d'après le catalogue, quel jour attendre de chaque objet.
+ *
  * Nécessite SUPABASE_DB_URL (avec les migrations 20261014500000 à 20261014504000). Tout est joué dans une transaction
  * annulée à la fin. Aucun test ne lit l'heure réelle pour décider de son résultat.
  */
@@ -81,6 +88,41 @@ async function jourDeReference(v: Variante): Promise<string> {
     rows: [{ p }],
   } = await db.query<{ p: string }>("select ($1::date + $2::int)::text as p", [paris, v.decalage]);
   return p;
+}
+
+/** L'écriture explicite du jour de Paris posée par la vague 4a (X13) : dans une définition de fonction, puis dans un défaut de colonne. */
+const JOUR_DE_PARIS_EXPLICITE = /\(\s*now\(\)\s+at\s+time\s+zone\s+'Europe\/Paris'\s*\)\s*::\s*date/i;
+const DEFAUT_JOUR_DE_PARIS_EXPLICITE = /^\(*\s*now\(\)\s+at\s+time\s+zone\s+'Europe\/Paris'(::text)?\s*\)*\s*::\s*date\s*\)*$/i;
+const DEFAUT_PAR_LA_FONCTION = /^(public\.)?aujourdhui_paris\(\)$/;
+/** Objets que la vague 4a a datés du jour de Paris par l'expression explicite : l'une ou l'autre forme est admise pour eux, et pour eux seuls. */
+const FONCTIONS_A_FORME_EXPLICITE_ADMISE = new Set(["public.resynchroniser_quittances(uuid)"]);
+const DEFAUTS_A_FORME_EXPLICITE_ADMISE = new Set(["quittances.date_emission"]);
+
+async function definitionDe(signature: string): Promise<string> {
+  const { rows } = await db.query<{ def: string }>("select pg_get_functiondef($1::text::regprocedure) as def", [signature]);
+  return rows[0].def;
+}
+
+async function defautDe(table: string, colonne: string): Promise<string> {
+  const { rows } = await db.query<{ defaut: string }>(
+    `select pg_get_expr(d.adbin, d.adrelid) as defaut
+       from pg_attrdef d join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum
+      where d.adrelid = $1::regclass and a.attname = $2`,
+    [`public.${table}`, colonne]
+  );
+  return rows[0].defaut;
+}
+
+/**
+ * Le jour qu'un objet donne dans la variante : le jour de référence (figé ou non) s'il lit `aujourdhui_paris()`, le jour de Paris de
+ * l'horloge s'il ne date que par l'expression explicite de la vague 4a, que la variante « figé » ne déplace pas. `texte` est la
+ * définition de la fonction ou l'expression du défaut. Un objet qui ne lit ni l'un ni l'autre (`current_date`…) est attendu au jour
+ * de référence : c'est lui qui échoue.
+ */
+async function jourFourniPar(texte: string, m: Monde): Promise<string> {
+  // Définition de fonction (`(now() at time zone 'Europe/Paris')::date`) ou défaut rendu par le catalogue (`((now() AT TIME ZONE 'Europe/Paris'::text))::date`).
+  const explicite = !texte.includes("aujourdhui_paris()") && /now\(\)\s+at\s+time\s+zone\s+'Europe\/Paris'/i.test(texte);
+  return explicite ? parisHorloge() : m.jour;
 }
 
 /** Fuseau POSIX de décalage `h` heures par rapport à UTC (positif à l'est). */
@@ -523,7 +565,12 @@ describe.skipIf(!DB_URL).each(VARIANTES)("jour de Paris — $nom", (variante) =>
     expect(rejouee).toMatchObject({ statut: "enregistre", rejoue: true });
     await agir(null, "postgres");
     const { rows } = await db.query("select montant::float as montant, date_paiement::text as jour from public.encaissements where bail_id = $1", [m.bailCollectif]);
-    expect(rows).toEqual([{ montant: 840, jour: m.jour }]);
+    // Le règlement est daté par « Encaisser le reste » lui-même (vague 4a, expression explicite) ou, sans elle, par le défaut de la colonne.
+    const jourDuReglement = await jourFourniPar(
+      await definitionDe("public.encaisser_reste_atomique(uuid,uuid,uuid,uuid,numeric,numeric)"),
+      m
+    );
+    expect(rows).toEqual([{ montant: 840, jour: jourDuReglement }]);
     expect(await statuts(m.bailCollectif, "brut")).toEqual(["paye"]);
     const { rows: reste } = await db.query("select (montant_du - montant_couvert)::float as reste from public.etat_loyers_bail_brut($1)", [m.bailCollectif]);
     expect(reste).toEqual([{ reste: 0 }]);
@@ -544,9 +591,12 @@ describe.skipIf(!DB_URL).each(VARIANTES)("jour de Paris — $nom", (variante) =>
     const date = async () =>
       (await db.query("select date_emission::text as jour, est_quittance from public.quittances where appel_id = $1", [appel])).rows[0];
     await agir(null, "postgres");
+    // Le reçu est inséré sans date : le défaut de la colonne la pose. La quittance réémise est datée par la fonction.
+    const jourDuDefaut = await jourFourniPar(await defautDe("quittances", "date_emission"), m);
+    const jourDeLaReemission = await jourFourniPar(await definitionDe("public.resynchroniser_quittances(uuid)"), m);
     const recu = await date();
     expect(recu.est_quittance).toBe(false);
-    expect(recu.jour).toBe(m.jour);
+    expect(recu.jour, "le reçu inséré porte le jour de Paris (défaut de la colonne)").toBe(jourDuDefaut);
     await db.query("update public.quittances set date_emission = $2::date - 5 where appel_id = $1", [appel, m.jour]);
     await agir(m.gerant);
     await db.query("insert into public.encaissements (organization_id, bail_id, montant, date_paiement) values ($1,$2,450, $3::date)", [
@@ -557,7 +607,7 @@ describe.skipIf(!DB_URL).each(VARIANTES)("jour de Paris — $nom", (variante) =>
     await agir(null, "postgres");
     const quittance = await date();
     expect(quittance.est_quittance).toBe(true);
-    expect(quittance.jour, "la quittance réémise porte le jour de Paris").toBe(m.jour);
+    expect(quittance.jour, "la quittance réémise porte le jour de Paris").toBe(jourDeLaReemission);
     expect(partiel).toBeTruthy();
   });
 
@@ -735,33 +785,113 @@ describe.skipIf(!DB_URL)("inventaire : plus aucun jour de session dans les objet
   ];
 
   it.each(FONCTIONS_DU_LOT)("%s ne lit plus current_date et lit le jour de Paris", async (signature) => {
-    const { rows } = await db.query<{ def: string }>("select pg_get_functiondef($1::text::regprocedure) as def", [signature]);
-    expect(rows[0].def).not.toMatch(/\bcurrent_date\b/i);
-    expect(rows[0].def).toContain("public.aujourdhui_paris()");
+    const def = await definitionDe(signature);
+    expect(def).not.toMatch(/\bcurrent_date\b/i);
+    // La fonction du lot, ou (resynchroniser_quittances seule) l'expression explicite que la vague 4a y a posée.
+    const parLaFonction = def.includes("public.aujourdhui_paris()");
+    const parLExpression = FONCTIONS_A_FORME_EXPLICITE_ADMISE.has(signature) && JOUR_DE_PARIS_EXPLICITE.test(def);
+    expect(parLaFonction || parLExpression, `${signature} ne lit pas le jour de Paris`).toBe(true);
   });
 
   it.each(DEFAUTS_DU_LOT)("%s.%s prend le jour de Paris par défaut", async (table, colonne) => {
-    const { rows } = await db.query<{ defaut: string }>(
-      `select pg_get_expr(d.adbin, d.adrelid) as defaut
-         from pg_attrdef d join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum
-        where d.adrelid = $1::regclass and a.attname = $2`,
-      [`public.${table}`, colonne]
-    );
-    expect(rows[0].defaut).toMatch(/^(public\.)?aujourdhui_paris\(\)$/);
+    const defaut = await defautDe(table, colonne);
+    const parLaFonction = DEFAUT_PAR_LA_FONCTION.test(defaut);
+    const parLExpression = DEFAUTS_A_FORME_EXPLICITE_ADMISE.has(`${table}.${colonne}`) && DEFAUT_JOUR_DE_PARIS_EXPLICITE.test(defaut);
+    expect(parLaFonction || parLExpression, `${table}.${colonne} : ${defaut}`).toBe(true);
   });
 
-  it("aujourdhui_paris() est le jour de Paris, quel que soit le fuseau de la session", async () => {
+  it("aujourdhui_paris() suit l'horloge de Paris, quel que soit le fuseau de la session", async () => {
+    // Comparaison à l'horloge du moment : elle ne sépare Paris d'un autre fuseau que lorsque les deux jours diffèrent à cet instant
+    // (de 22 h à 24 h UTC pour UTC). Elle garde donc surtout l'indépendance à l'égard du fuseau de la session ; le fuseau lui-même est
+    // éprouvé, sans dépendre de l'heure du run, par les deux tests qui suivent (instants fixes).
     const paris = await parisHorloge();
     for (const fuseau of ["UTC", "Etc/GMT+12", "Etc/GMT-14", "America/Los_Angeles", "Pacific/Kiritimati", "<-24>24", "<+24>-24"]) {
       await db.query("savepoint fuseau");
       await db.query("select set_config('TimeZone', $1, true)", [fuseau]);
-      const { rows } = await db.query<{ j: string; defini: string }>(
-        "select public.aujourdhui_paris()::text as j, pg_get_functiondef('public.aujourdhui_paris()'::regprocedure) as defini"
-      );
+      const { rows } = await db.query<{ j: string }>("select public.aujourdhui_paris()::text as j");
       await db.query("rollback to savepoint fuseau");
       expect(rows[0].j, fuseau).toBe(paris);
-      expect(rows[0].defini).toMatch(/Europe\/Paris/);
     }
+  });
+
+  /** Le corps de la fonction, tel que la base le garde (sans l'enveloppe `create function`). */
+  async function corpsDuJourDeParis(): Promise<string> {
+    const { rows } = await db.query<{ corps: string }>("select prosrc as corps from pg_proc where oid = 'public.aujourdhui_paris()'::regprocedure");
+    return rows[0].corps;
+  }
+
+  /**
+   * Évalue un corps de la forme `select <expression>` comme si l'horloge valait `instant` : `now()` est remplacé par cet instant fixe.
+   * Le résultat ne dépend ni de l'heure du run ni, pour une expression juste, du fuseau de la session (réglé à `fuseauDeSession`).
+   */
+  async function jourDeParisA(corps: string, instant: string, fuseauDeSession: string): Promise<string> {
+    const expression = corps.replace(/^\s*select\s+/i, "").replace(/;\s*$/, "");
+    await db.query("select set_config('TimeZone', $1, true)", [fuseauDeSession]);
+    const { rows } = await db.query<{ j: string }>(`select (${expression.replace(/\bnow\(\)/gi, `timestamptz '${instant}'`)})::text as j`);
+    return rows[0].j;
+  }
+
+  /**
+   * Instants fixes (UTC) et jour de Paris attendu. Choisis pour séparer Paris de UTC, d'un décalage fixe de +1 h ou de +2 h (heure
+   * d'hiver ou d'été seule), et d'un voisin (Londres, Açores), à la seconde près autour de minuit de Paris : le dernier instant de la
+   * veille et le premier du lendemain, en hiver, en été, à chaque changement d'heure de 2026 et un 29 février.
+   */
+  const INSTANTS_FIXES: [string, string, string][] = [
+    ["2026-12-31 22:59:59+00", "2026-12-31", "hiver, 23 h 59 min 59 s à Paris"],
+    ["2026-12-31 23:00:00+00", "2027-01-01", "hiver, minuit à Paris : changement d'année"],
+    ["2026-12-31 23:30:00+00", "2027-01-01", "hiver, 00 h 30 à Paris"],
+    ["2026-06-30 21:59:59+00", "2026-06-30", "été, 23 h 59 min 59 s à Paris"],
+    ["2026-06-30 22:00:00+00", "2026-07-01", "été, minuit à Paris : changement de mois"],
+    ["2026-06-30 22:30:00+00", "2026-07-01", "été, 00 h 30 à Paris"],
+    ["2026-03-28 22:59:59+00", "2026-03-28", "veille du passage à l'heure d'été, 23 h 59 min 59 s (heure d'hiver)"],
+    ["2026-03-28 23:00:00+00", "2026-03-29", "nuit du passage à l'heure d'été, minuit (heure d'hiver)"],
+    ["2026-03-29 00:30:00+00", "2026-03-29", "nuit du passage à l'heure d'été, 01 h 30 (avant la bascule de 02 h à 03 h)"],
+    ["2026-03-29 21:59:59+00", "2026-03-29", "jour du passage à l'heure d'été, 23 h 59 min 59 s (heure d'été)"],
+    ["2026-03-29 22:00:00+00", "2026-03-30", "après le passage à l'heure d'été, minuit (heure d'été)"],
+    ["2026-10-24 21:59:59+00", "2026-10-24", "veille du retour à l'heure d'hiver, 23 h 59 min 59 s (heure d'été)"],
+    ["2026-10-24 22:00:00+00", "2026-10-25", "nuit du retour à l'heure d'hiver, minuit (heure d'été)"],
+    ["2026-10-25 22:30:00+00", "2026-10-25", "jour du retour à l'heure d'hiver, 23 h 30 (heure d'hiver)"],
+    ["2026-10-25 22:59:59+00", "2026-10-25", "jour du retour à l'heure d'hiver, 23 h 59 min 59 s (heure d'hiver)"],
+    ["2026-10-25 23:00:00+00", "2026-10-26", "après le retour à l'heure d'hiver, minuit (heure d'hiver)"],
+    ["2028-02-28 22:59:59+00", "2028-02-28", "année bissextile, 23 h 59 min 59 s le 28 février"],
+    ["2028-02-28 23:00:00+00", "2028-02-29", "année bissextile, minuit : le 29 février existe"],
+    ["2026-07-14 10:00:00+00", "2026-07-14", "milieu de journée"],
+  ];
+  /** Fuseaux de session sous lesquels chaque instant est évalué : le résultat doit être le même partout. */
+  const FUSEAUX_DE_SESSION = ["UTC", "America/Los_Angeles", "Pacific/Kiritimati"];
+
+  async function ecartsAvecParis(corps: string): Promise<string[]> {
+    const ecarts: string[] = [];
+    for (const fuseau of FUSEAUX_DE_SESSION)
+      for (const [instant, attendu, nom] of INSTANTS_FIXES) {
+        const obtenu = await jourDeParisA(corps, instant, fuseau);
+        if (obtenu !== attendu) ecarts.push(`${nom} (${instant}, session ${fuseau}) : ${obtenu} au lieu de ${attendu}`);
+      }
+    return ecarts;
+  }
+
+  it("aujourdhui_paris() : son corps, évalué sur des instants fixes, donne le jour de Paris (changements d'heure compris) sous tout fuseau de session", async () => {
+    const corps = await corpsDuJourDeParis();
+    // L'évaluation n'a de sens que si now() est la seule lecture de l'horloge : sinon l'instant fixe ne la gouvernerait pas.
+    expect(corps, "le corps doit commencer par select").toMatch(/^\s*select\b/i);
+    expect(corps, "le corps ne doit lire l'horloge que par now()").not.toMatch(
+      /\b(current_(date|time|timestamp)|localtime(stamp)?|clock_timestamp|statement_timestamp|transaction_timestamp|timeofday)\b/i
+    );
+    expect(await ecartsAvecParis(corps)).toEqual([]);
+  });
+
+  it.each([
+    ["UTC", "select (now() at time zone 'UTC')::date"],
+    ["UTC avec « Europe/Paris » en commentaire", "select (now() at time zone 'UTC')::date /* Europe/Paris */"],
+    ["Atlantic/Azores avec « Europe/Paris » en commentaire", "select (now() at time zone 'Atlantic/Azores')::date /* Europe/Paris */"],
+    ["Europe/London", "select (now() at time zone 'Europe/London')::date"],
+    ["un décalage fixe de +1 h (heure d'hiver toute l'année)", "select (now() at time zone 'Etc/GMT-1')::date"],
+    ["un décalage fixe de +2 h (heure d'été toute l'année)", "select (now() at time zone 'Etc/GMT-2')::date"],
+    ["le fuseau de la session", "select now()::date"],
+  ])("l'évaluation sur instants fixes démasque un corps qui lirait %s", async (_nom, mutant) => {
+    // Preuve que le test ci-dessus discrimine : un corps faux, même déguisé par un commentaire, a au moins un écart.
+    // (Europe/Berlin, qui suit les mêmes règles que Paris, donne les mêmes jours : ce n'est pas un défaut observable.)
+    expect((await ecartsAvecParis(mutant)).length).toBeGreaterThan(0);
   });
 
   it("aujourdhui_paris() : droits — jamais anon, ouverte aux comptes connectés et à la tâche planifiée", async () => {

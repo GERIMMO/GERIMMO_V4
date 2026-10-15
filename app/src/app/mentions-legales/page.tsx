@@ -53,8 +53,8 @@ export default function PageMentionsLegales() {
       <Article titre="Activité">
         <p>
           Gerimmo édite un <b className="font-semibold">logiciel de gérance
-          immobilière</b> que des propriétaires bailleurs utilisent pour leur
-          propre gestion.
+          immobilière</b> que des agences et des propriétaires bailleurs
+          utilisent pour leur propre gestion.
         </p>
         <p>
           Gerimmo <b className="font-semibold">n&apos;exerce aucune activité
@@ -103,10 +103,9 @@ export default function PageMentionsLegales() {
           . S&apos;il s&apos;agit des données de votre dossier de gestion
           locative — bail, pièces, loyers, incidents —{" "}
           <b className="font-semibold">
-            c&apos;est à votre propriétaire bailleur qu&apos;il faut vous
-            adresser
+            c&apos;est à votre agence qu&apos;il faut vous adresser
           </b>
-          , et non à Gerimmo : il en est responsable, nous n&apos;en sommes
+          , et non à Gerimmo : elle en est responsable, nous n&apos;en sommes
           que le sous-traitant.
         </p>
       </Article>
@@ -140,13 +139,20 @@ export default function PageMentionsLegales() {
           charte graphique et leurs bases de données sont protégés. Toute
           reproduction ou réutilisation non autorisée est interdite.
         </p>
+        <p>
+          <b className="font-semibold">Marque blanche.</b> Le service permet à
+          une agence d&apos;apposer ses propres couleurs et son logo sur son
+          espace. Ces éléments <b className="font-semibold">restent la
+          propriété de l&apos;agence</b> ; Gerimmo n&apos;en acquiert aucun
+          droit au-delà de ce qui est nécessaire pour les afficher.
+        </p>
       </Article>
 
       <Article titre="Signaler un contenu illicite">
         <p>
           Conformément à l&apos;article 6-I-5 de la LCEN, tout contenu
           manifestement illicite peut être signalé à{" "}
-          <Fait valeur={EDITEUR.email} quoi="l'adresse de signalement" />, en
+          <Fait valeur={EDITEUR.email} quoi="adresse de signalement" />, en
           précisant la date du constat, la description des faits,
           l&apos;emplacement précis du contenu et les motifs pour lesquels il
           devrait être retiré.

@@ -54,12 +54,12 @@ const CLAUSES: Record<
 > = {
   // Arrêtée le 28/09/2026 avec la grille tarifaire.
   facturation:
-    "Les particuliers choisissent un paiement mensuel ou annuel. Le paiement se fait par carte, auprès du prestataire de paiement de l'Éditeur, à chaque échéance ; l'abonnement annuel est prélevé en une fois. Les factures sont émises électroniquement et consultables depuis « Mon abonnement ».",
+    "Les particuliers choisissent un paiement mensuel ou annuel ; les agences paient au mois. Le paiement se fait par carte, auprès du prestataire de paiement de l'Éditeur, à chaque échéance ; l'abonnement annuel est prélevé en une fois. Les factures sont émises électroniquement et consultables depuis « Mon abonnement ».",
   tva: REGIME_TVA === null
     ? null
     : REGIME_TVA.nature === "franchise"
       ? "TVA non applicable, article 293 B du code général des impôts : les prix affichés sont les montants payés."
-      : `Les prix des formules particuliers s'entendent toutes taxes comprises, TVA de ${REGIME_TVA.tauxPourcent} % incluse.`,
+      : `Les prix des formules particuliers s'entendent toutes taxes comprises, TVA de ${REGIME_TVA.tauxPourcent} % incluse. Les prix des agences s'entendent hors taxes ; la TVA de ${REGIME_TVA.tauxPourcent} % s'y ajoute et est détaillée avant tout paiement.`,
   // Décision du porteur, 28/09/2026 : un mois.
   preavisTarif: "au moins un mois",
   // 29/09 : formulations standard prudentes, cohérentes avec « rien n'est
@@ -124,8 +124,8 @@ export default function PageConditions() {
         </p>
         <p>
           <b className="font-semibold">Client</b> : la personne physique ou
-          morale qui ouvre un compte et souscrit au Service — propriétaire
-          bailleur gérant son propre parc. C&apos;est le Client
+          morale qui ouvre un compte et souscrit au Service — agence de gestion,
+          ou propriétaire bailleur gérant son propre parc. C&apos;est le Client
           qui accepte les présentes conditions.
         </p>
         <p>
@@ -269,13 +269,16 @@ export default function PageConditions() {
       <Article titre="8. Prix, essai et facturation">
         <p>
           <b className="font-semibold">8.1 — Grilles.</b> Le prix dépend du
-          nombre de biens gérés ;
+          nombre de biens gérés, ou de lots sous mandat actif pour une agence ;
           les fonctions de gestion sont les mêmes quelle que soit la formule.
           Les particuliers et les sociétés civiles qui gèrent leurs propres
           biens relèvent des formules Solo (1 bien), Bailleur (jusqu&apos;à 3),
           Investisseur (jusqu&apos;à 10) et Patrimoine (jusqu&apos;à 20, puis
           un supplément par bien), en paiement mensuel ou annuel
-          {FRANCHISE ? "" : ", prix toutes taxes comprises"}.
+          {FRANCHISE ? "" : ", prix toutes taxes comprises"}. Les agences qui
+          gèrent pour des tiers relèvent d&apos;un tarif mensuel
+          {FRANCHISE ? "" : " hors taxes"} par tranches cumulatives de lots
+          sous mandat actif, avec un socle dès la souscription.
           {FRANCHISE
             ? " L'Éditeur ne facturant pas de TVA (article 8.4), les prix publiés sont, pour tous, les montants payés."
             : ""}{" "}
@@ -362,7 +365,7 @@ export default function PageConditions() {
           consommation). Il notifie sa décision avant l&apos;expiration de ce
           délai, au moyen du formulaire ci-dessous ou de toute autre déclaration
           dénuée d&apos;ambiguïté, adressée à{" "}
-          <Fait valeur={EDITEUR.email} quoi="l'adresse de contact de l'Éditeur" /> ou depuis
+          <Fait valeur={EDITEUR.email} quoi="adresse de contact" /> ou depuis
           la page « Aide et retours » de son espace.
         </p>
         <p>
@@ -383,11 +386,9 @@ export default function PageConditions() {
           </p>
           <p className="mt-2">
             À l&apos;attention de{" "}
-            {/* Entre crochets, comme dans le formulaire type : « À l'attention de
-                dénomination (à venir) » ne se lirait pas. */}
-            <Fait valeur={EDITEUR.denomination} quoi="[dénomination de l'Éditeur]" />,{" "}
-            <Fait valeur={EDITEUR.siege} quoi="[adresse du siège]" />,{" "}
-            <Fait valeur={EDITEUR.email} quoi="[adresse de contact]" /> :
+            <Fait valeur={EDITEUR.denomination} quoi="dénomination de l'éditeur" />,{" "}
+            <Fait valeur={EDITEUR.siege} quoi="adresse du siège" />,{" "}
+            <Fait valeur={EDITEUR.email} quoi="adresse de contact" /> :
           </p>
           <p className="mt-2">
             Je vous notifie par la présente ma rétractation du contrat portant
@@ -561,7 +562,7 @@ export default function PageConditions() {
           <b className="font-semibold">droit français</b>. En cas de litige, les
           parties recherchent une solution amiable ; la réclamation
           s&apos;adresse à{" "}
-          <Fait valeur={EDITEUR.email} quoi="l'adresse de contact de l'Éditeur" />.
+          <Fait valeur={EDITEUR.email} quoi="adresse de contact" />.
         </p>
         <p>
           À défaut de solution amiable, le{" "}

@@ -172,11 +172,9 @@ describe("les écrans annoncent l'essai du jour, et l'offre de lancement", () =>
     expect(mandat).toContain("<b>quatorze jours</b>");
   });
 
-  it("le changement des conditions est daté : version du 15 octobre 2026", () => {
-    // 30/09 : essai de deux mois. 15/10 (D32) : passages « agence » retirés des textes légaux — la version suit
-    // chaque modification de fond (lib/editeur.ts), et l'article 8.2 de l'essai n'a pas changé depuis le 30/09.
-    expect(CONDITIONS_VERSION).toBe("2026-10-15");
-    expect(CONDITIONS_DATE).toBe("15 octobre 2026");
+  it("le changement des conditions est daté : version du 30 septembre 2026", () => {
+    expect(CONDITIONS_VERSION).toBe("2026-09-30");
+    expect(CONDITIONS_DATE).toBe("30 septembre 2026");
   });
 });
 

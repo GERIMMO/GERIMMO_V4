@@ -190,6 +190,9 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   devis_revision_demandee: "Révision de devis demandée",
   devis_revise: "Nouvelle version du devis",
   devis_revision_expiree: "Révision de devis sans réponse dans le délai",
+  // D23 (migration 20261014610000) : le règlement déclaré de la facture, et son retrait, se lisent au fil.
+  facture_reglee: "Règlement de facture enregistré",
+  reglement_retire: "Règlement de facture retiré",
 };
 
 export const PIECES_INCIDENT = [

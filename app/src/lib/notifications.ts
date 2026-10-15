@@ -46,8 +46,9 @@ import { ArretSupervision } from "./controle-effets";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cleRappelGeste } from "./cles-idempotence-courriels";
 import { envoyerEmail } from "./email";
-import { eur } from "./ged";
+import { eur, formaterDate } from "./ged";
 import { titreIncident } from "./incidents";
+import { moyenEnToutesLettres } from "./reglement-facture";
 import { echapperMarque, emailValide, nomMarque } from "./marque-organisation";
 import { chargerMarque } from "./marque-organisation-serveur";
 import { creneauEnToutesLettres, jourDuRendezVous } from "./rappel-email";
@@ -266,6 +267,38 @@ export function messageRevisionDemandee(p: {
 /** « 22/10/2026 » depuis une date ISO, à Paris. */
 function formaterDateCourte(iso: string): string {
   return new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Paris" });
+}
+
+/**
+ * Le propriétaire ou le gérant a déclaré le règlement de la facture de l'artisan (D23, `enregistrer_reglement_facture`)
+ * → l'artisan. Déclaratif : le message dit la date et le moyen déclarés, jamais une référence bancaire ni le montant du
+ * règlement (réponse 3 de la fiche B.15) ; il ne promet aucun virement de Gerimmo.
+ */
+export function messageFactureReglee(p: {
+  emetteur: string;
+  numero: string;
+  dateReglement: string;
+  moyen: string;
+  partiel: boolean;
+  lien: string | null;
+}): Message {
+  const quand = formaterDate(p.dateReglement);
+  const moyen = moyenEnToutesLettres(p.moyen);
+  const declaration = p.partiel
+    ? `${p.emetteur} a déclaré un règlement partiel de votre facture n° ${p.numero}, le ${quand}${moyen ? ` ${moyen}` : ""}. La facture reste partiellement réglée.`
+    : `${p.emetteur} a déclaré le règlement de votre facture n° ${p.numero}, le ${quand}${moyen ? ` ${moyen}` : ""}. La facture est marquée réglée.`;
+  return {
+    sujet: `Votre client a déclaré le règlement de la facture n° ${p.numero}`,
+    html: gabaritNotification({
+      titre: p.partiel ? "Règlement partiel déclaré par votre client" : "Règlement déclaré par votre client",
+      emetteur: p.emetteur,
+      lignes: [
+        declaration,
+        "Cette déclaration vient de votre client ; Gerimmo n'effectue aucun paiement. Vérifiez la réception sur votre compte et, en cas d'écart, rapprochez-vous de lui.",
+      ],
+      action: { libelle: "Voir ma facturation", lien: p.lien },
+    }),
+  };
 }
 
 export type ReponseLocataireCreneaux =
@@ -1176,6 +1209,45 @@ export async function notifierMissionRefusee(db: SupabaseClient, orgId: string, 
     });
   } catch (e) {
     console.error("[notifications] mission_refusee :", e instanceof Error ? e.message : e);
+    return NON;
+  }
+}
+
+/**
+ * Règlement de facture déclaré par le gérant ou le propriétaire (`enregistrer_reglement_facture`, D23) → l'artisan.
+ * Appelée APRÈS le succès de la fonction, via `notifierEnCoulisses` : le client du gérant ne lit pas l'adresse de
+ * l'artisan. Le message ne porte ni référence ni montant du règlement. Un échec est consigné, jamais remonté.
+ */
+export async function notifierReglementFacture(db: SupabaseClient, orgId: string, reglementId: string): Promise<ResultatNotification> {
+  try {
+    const { data: reglement } = await db
+      .from("intervention_facture_reglements")
+      .select("id, facture_id, date_reglement, moyen, montant_cents")
+      .eq("id", reglementId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (!reglement) return { envoyee: false, motif: "introuvable" };
+    const [{ data: facture }, { data: regles }] = await Promise.all([
+      db.from("intervention_factures").select("id, numero, artisan_id, montant_ttc_cents").eq("id", reglement.facture_id).eq("organization_id", orgId).maybeSingle(),
+      db.from("intervention_facture_reglements").select("montant_cents").eq("facture_id", reglement.facture_id).eq("organization_id", orgId).is("retire_le", null),
+    ]);
+    if (!facture) return { envoyee: false, motif: "introuvable" };
+    const [artisan, nom] = await Promise.all([lireArtisan(db, facture.artisan_id), emetteur(db, orgId)]);
+    if (!artisan) return { envoyee: false, motif: "introuvable" };
+    const totalRegle = (regles ?? []).reduce((somme, r) => somme + Number(r.montant_cents), 0);
+    return expedier(db, {
+      orgId, to: artisan.email, role: "artisan", evenement: "facture_reglee", objet: reglement.id,
+      message: messageFactureReglee({
+        emetteur: nom,
+        numero: facture.numero,
+        dateReglement: reglement.date_reglement,
+        moyen: reglement.moyen,
+        partiel: totalRegle < Number(facture.montant_ttc_cents),
+        lien: lien("/artisan/facturation"),
+      }),
+    });
+  } catch (e) {
+    console.error("[notifications] facture_reglee :", e instanceof Error ? e.message : e);
     return NON;
   }
 }

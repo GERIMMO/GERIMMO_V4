@@ -9,6 +9,7 @@ import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { nomComplet } from "@/lib/roles-personnes";
 import { formaterTelephone } from "@/app/artisan/libelles";
 import { mentionEcartChronologie } from "@/lib/rendez-vous-anticipe";
+import { MOYENS_REGLEMENT, type MoyenReglement } from "@/lib/reglement-facture";
 import {
   CANAUX_INCIDENT,
   COULEURS_ETAT_INCIDENT,
@@ -265,6 +266,21 @@ export async function PaneIncident({
             ? `${d.numero ? `n° ${d.numero} · ` : ""}${eur(centsEnEuros(Number(d.montant_ttc_cents)))}`
             : null,
           mentionEcartChronologie(d, formaterDateHeure),
+        ].filter(Boolean).join(" · ") || null;
+      // D23 : le règlement déclaré (jamais exécuté par Gerimmo) et son retrait, dans les mots du gérant.
+      case "facture_reglee":
+        return [
+          d.numero ? `n° ${d.numero}` : null,
+          d.montant_cents != null ? eur(centsEnEuros(Number(d.montant_cents))) : null,
+          d.date_reglement ? `le ${formaterDate(String(d.date_reglement))}` : null,
+          d.moyen ? (MOYENS_REGLEMENT[String(d.moyen) as MoyenReglement] ?? String(d.moyen)).toLowerCase() : null,
+          d.reglee === true ? "facture réglée en totalité" : d.reglee === false ? "règlement partiel" : null,
+        ].filter(Boolean).join(" · ") || null;
+      case "reglement_retire":
+        return [
+          d.numero ? `n° ${d.numero}` : null,
+          d.montant_cents != null ? eur(centsEnEuros(Number(d.montant_cents))) : null,
+          d.motif ? `« ${d.motif} »` : null,
         ].filter(Boolean).join(" · ") || null;
       // D20 (ART-21) : un geste fait plus de 2 h avant le rendez-vous confirmé est inscrit avec son écart.
       case "intervention_demarree":
@@ -602,7 +618,7 @@ export async function PaneIncident({
 
           </div>
 
-          <FacturesIncident orgId={orgId} incidentId={incidentId} />
+          <FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} />
           <details id="cloture" open={!estProprietaire || incident.etat === "termine" || incident.etat === "clos"} className="rounded-xl border border-border bg-card p-4">
             <summary className="cursor-pointer font-semibold">{incident.etat === "clos" ? "Incident clos · consulter" : "Clôturer l’incident"}</summary>
           <Card className="mt-3 border-0 shadow-none">

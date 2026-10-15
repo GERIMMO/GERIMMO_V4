@@ -178,6 +178,13 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   facture_validee: "Facture contrôlée et validée",
   // Audit du 13/10 (migration 20261013120000) : l'annulation se lit au fil.
   mission_annulee: "Mission annulée",
+  // Décision D22 (migration 20261014620000) : le report ou l'annulation du rendez-vous par le locataire.
+  rdv_report_demande: "Report du rendez-vous demandé par le locataire",
+  rdv_report_accepte: "Report accepté par l'artisan",
+  rdv_report_refuse: "Report refusé par l'artisan",
+  rdv_report_retire: "Demande de report retirée",
+  rdv_report_expire: "Demande de report sans réponse de l'artisan",
+  rdv_annule_par_locataire: "Rendez-vous annulé par le locataire",
 };
 
 export const PIECES_INCIDENT = [

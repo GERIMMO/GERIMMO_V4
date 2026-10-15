@@ -44,7 +44,7 @@ const MOTIF = "empechement";
 describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le locataire", () => {
   let db: Client;
   let org: string, orgB: string, gerant: string, gerantB: string, loc: string, locB: string, locVoisin: string, locAncien: string;
-  let cptArtisan: string, cptArtisanB: string, artisan: string, artisanB: string;
+  let cptArtisan: string, cptArtisanB: string, artisan: string;
   let mission: string, creneau: string;
 
   const id = async (sql: string, args: unknown[] = []) => (await db.query(sql, args)).rows[0].id as string;
@@ -157,7 +157,7 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
       [gerant, org, gerantB, orgB, loc, locB, locVoisin, locAncien]
     );
     const art = async (u: string) => id("insert into public.artisans(account_id,raison_sociale,siret,telephone,email,statut_plateforme,siret_etat) values($1,'TEST D22',$2,'0600000000','artisan@example.invalid','valide','verifie') returning id", [u, String(randomInt(10000000000000, 99999999999999))]);
-    artisan = await art(cptArtisan); artisanB = await art(cptArtisanB);
+    artisan = await art(cptArtisan); await art(cptArtisanB);
   });
   beforeEach(async () => {
     await postgres(); await db.query("savepoint cas");

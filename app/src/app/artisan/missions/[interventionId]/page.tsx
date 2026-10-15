@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
-import { chargerAgenda, chargerCreneauxMission, chargerPhotosDemande, verifierAccesArtisan } from "../../acces";
+import { chargerAgenda, chargerCreneauxMission, chargerDemandesRdv, chargerPhotosDemande, verifierAccesArtisan } from "../../acces";
+import { libelleMotifRdv, instantRdv } from "@/lib/rendez-vous-locataire";
 import { PhotosDeLaDemande } from "../../photos-demande";
 import {
   creneauTexte,
@@ -56,9 +57,20 @@ export default async function PageMission(
   const depuisAujourdhui = de === "aujourdhui";
 
   // D16 (14/10) : les photos jointes par le locataire, que la base ne rend que pour une mission encore vivante.
-  const [agenda, photos] = await Promise.all([chargerAgenda(), chargerPhotosDemande(null, interventionId)]);
+  const [agenda, photos, demandesRdv] = await Promise.all([
+    chargerAgenda(),
+    chargerPhotosDemande(null, interventionId),
+    chargerDemandesRdv(),
+  ]);
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
+  // Décision D22 : la dernière demande du locataire sur ce rendez-vous. Un report en attente se traite ici (retenir une
+  // de ses dates, ou refuser) ; une annulation s'affiche pour information tant qu'aucun nouveau rendez-vous n'est fixé.
+  const demandeRdv = demandesRdv.lignes.find((d) => d.intervention_id === interventionId) ?? null;
+  const reportEnAttente =
+    mission.statut === "planifiee" && demandeRdv?.type === "report" && demandeRdv.statut === "en_attente" ? demandeRdv : null;
+  const annulationLocataire =
+    mission.statut === "acceptee" && mission.creneaux_en_attente === 0 && demandeRdv?.type === "annulation" ? demandeRdv : null;
 
   const vivante = ["acceptee", "planifiee", "en_cours"].includes(mission.statut);
   // Des dates sont chez le locataire : rien n'attend l'artisan, et reproposer
@@ -71,7 +83,7 @@ export default async function PageMission(
   // Les dates elles-mêmes, et plus seulement leur nombre : l'artisan doit
   // garder les siennes libres jusqu'à la réponse (audit du 27/09).
   const creneaux =
-    attendLocataire || repondreLocataire
+    attendLocataire || repondreLocataire || reportEnAttente
       ? await chargerCreneauxMission(mission.intervention_id)
       : { lignes: [], erreur: false };
   const mesDates = creneaux.lignes.filter(
@@ -243,17 +255,57 @@ export default async function PageMission(
         </div>
       )}
 
+      {/* Décision D22 : le locataire demande à reporter. Son rendez-vous tient tant que l'artisan n'a pas répondu ;
+          retenir une de ses dates déplace le rendez-vous, refuser le maintient (le gérant arbitre). */}
+      {reportEnAttente && (
+        <Carte className="border-l-4 border-l-[var(--warning)]">
+          <TitreSection>Le locataire demande un report</TitreSection>
+          <p className="text-base text-[var(--corps)]">
+            Il ne pourra pas être présent au rendez-vous prévu. Motif&nbsp;: {libelleMotifRdv(reportEnAttente.motif_code)}
+            {reportEnAttente.motif_texte ? ` — « ${reportEnAttente.motif_texte} »` : ""}.
+          </p>
+          <p className={`mt-1 mb-3 ${CLASSE_AIDE}`}>
+            Le rendez-vous actuel reste valable tant que vous n&apos;avez pas répondu
+            {reportEnAttente.expire_le ? ` (au plus tard ${instantRdv(reportEnAttente.expire_le)})` : ""}. Sans
+            réponse, il est maintenu et le gérant est prévenu.
+          </p>
+          {creneaux.erreur ? (
+            <p className={CLASSE_AIDE}>
+              Les dates du locataire n&apos;ont pas pu être chargées. Rechargez la page.
+            </p>
+          ) : (
+            <DatesLocataire
+              interventionId={mission.intervention_id}
+              dates={datesLocataire.map(({ creneau_id, debut, fin }) => ({ creneau_id, debut, fin }))}
+            />
+          )}
+        </Carte>
+      )}
+
+      {/* Décision D22 (variante B) : l'annulation a pris effet ; c'est une information, sans geste bloquant. */}
+      {annulationLocataire && (
+        <Avertissement>
+          Le locataire a annulé le rendez-vous {instantRdv(annulationLocataire.rdv_debut)}. Motif&nbsp;:{" "}
+          {libelleMotifRdv(annulationLocataire.motif_code)}
+          {annulationLocataire.motif_texte ? ` — « ${annulationLocataire.motif_texte} »` : ""}. Ne vous déplacez pas à
+          cette date ; la mission reste à vous&nbsp;: proposez de nouveaux créneaux.
+        </Avertissement>
+      )}
+
       {mission.statut === "planifiee" && (
         <div className="space-y-3">
           {/* D20 (ART-21) : démarrer plus de 2 h avant le rendez-vous confirmé reste possible ; on le dit. */}
           <AvertissementRendezVousAnticipe debutPrevu={mission.debut_prevu} finPrevue={mission.fin_prevue} geste="demarrer" />
           <BoutonDemarrer interventionId={mission.intervention_id} />
-          <Link
-            href={`/artisan/missions/${mission.intervention_id}/creneaux`}
-            className={CLASSE_BOUTON_SECONDAIRE}
-          >
-            Déplacer le rendez-vous
-          </Link>
+          {/* Pendant une demande de report, on répond à la demande (ci-dessus) : la base refuse de « déplacer » à côté. */}
+          {!reportEnAttente && (
+            <Link
+              href={`/artisan/missions/${mission.intervention_id}/creneaux`}
+              className={CLASSE_BOUTON_SECONDAIRE}
+            >
+              Déplacer le rendez-vous
+            </Link>
+          )}
         </div>
       )}
 

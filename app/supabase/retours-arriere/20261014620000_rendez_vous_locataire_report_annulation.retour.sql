@@ -524,6 +524,7 @@ drop function if exists public.demander_report_rdv(uuid, uuid, text, text, jsonb
 drop function if exists public.annuler_rdv_locataire(uuid, uuid, text, text, uuid);
 drop function if exists public.retirer_demande_rdv(uuid, uuid);
 drop function if exists public.expirer_demandes_rdv();
+drop function if exists public.expirer_demande_rdv_echue(uuid);
 drop function if exists public.mes_rendez_vous_locataire(uuid);
 drop function if exists public.mes_demandes_rdv_artisan();
 drop function if exists public.intervention_du_locataire(uuid, uuid);

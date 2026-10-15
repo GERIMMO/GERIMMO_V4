@@ -43,7 +43,7 @@ const MOTIF = "empechement";
 
 describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le locataire", () => {
   let db: Client;
-  let org: string, orgB: string, gerant: string, gerantB: string, loc: string, locB: string, locVoisin: string, locAncien: string;
+  let org: string, orgB: string, gerant: string, gerantB: string, loc: string, locB: string, locVoisin: string, locAncien: string, locColoc: string;
   let cptArtisan: string, cptArtisanB: string, artisan: string;
   let mission: string, creneau: string;
 
@@ -149,12 +149,12 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     if (process.env.RDV_LOCATAIRE_PREVIEW === "1") await db.query(migration);
     org = await id("insert into public.organizations(name,status) values('D22 TEST','active') returning id");
     orgB = await id("insert into public.organizations(name,status) values('D22 TEST B','active') returning id");
-    const comptes: string[] = []; for (let n = 0; n < 8; n++) comptes.push(await utilisateur());
-    [gerant, gerantB, loc, locB, locVoisin, locAncien, cptArtisan, cptArtisanB] = comptes;
+    const comptes: string[] = []; for (let n = 0; n < 9; n++) comptes.push(await utilisateur());
+    [gerant, gerantB, loc, locB, locVoisin, locAncien, cptArtisan, cptArtisanB, locColoc] = comptes;
     await db.query(
       `insert into public.memberships(account_id,organization_id,role) values
-         ($1,$2,'admin_agence'),($3,$4,'admin_agence'),($5,$2,'locataire'),($6,$4,'locataire'),($7,$2,'locataire'),($8,$2,'locataire')`,
-      [gerant, org, gerantB, orgB, loc, locB, locVoisin, locAncien]
+         ($1,$2,'admin_agence'),($3,$4,'admin_agence'),($5,$2,'locataire'),($6,$4,'locataire'),($7,$2,'locataire'),($8,$2,'locataire'),($9,$2,'locataire')`,
+      [gerant, org, gerantB, orgB, loc, locB, locVoisin, locAncien, locColoc]
     );
     const art = async (u: string) => id("insert into public.artisans(account_id,raison_sociale,siret,telephone,email,statut_plateforme,siret_etat) values($1,'TEST D22',$2,'0600000000','artisan@example.invalid','valide','verifie') returning id", [u, String(randomInt(10000000000000, 99999999999999))]);
     artisan = await art(cptArtisan); await art(cptArtisanB);
@@ -213,10 +213,15 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     await agir(loc);
     await expect(essai(() => db.query("select public.retirer_demande_rdv($1,$2)", [org, demande]))).rejects.toThrow(/déjà été traitée/);
     // Une demande retirée ne consomme pas le plafond : une nouvelle demande part.
-    await demanderReport();
+    const deuxieme = await demanderReport();
     expect((await mesRendezVous())[0]).toMatchObject({ reports_restants: 1 });
     // L'artisan ne peut plus retenir une date retirée : elle est caduque.
     await expect(essai(async () => accepter((await datesDeLaDemande(demande))[0].id))).rejects.toThrow(/plus proposée/);
+    // La preuve par le plafond lui-même : la deuxième est acceptée, une troisième demande part encore (la retirée ne
+    // compte pas) ; compter la retirée l'aurait refusée (« déjà fait l'objet de 2 demandes »).
+    await accepter((await datesDeLaDemande(deuxieme))[0].id);
+    await demanderReport({ dates: troisDates(200) });
+    expect((await demandes()).map((d) => d.statut)).toEqual(["retiree", "acceptee", "en_attente"]);
   });
 
   // ── 2. L'accord de l'artisan déplace le rendez-vous ──────────────────────────────────────────────────────────────
@@ -317,6 +322,11 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
   it("C.12-4 : sans réponse dans le délai, la demande expire, le rendez-vous reste, le gérant est alerté", async () => {
     const avant = await etat();
     const demande = await demanderReport();
+    // Encore dans son délai : la tâche n'y touche pas.
+    await postgres();
+    expect((await db.query("select public.expirer_demandes_rdv() as n")).rows[0].n).toBe(0);
+    expect((await demandes())[0]).toMatchObject({ statut: "en_attente" });
+    expect(await alertes()).toEqual([]);
     await expirer(demande);
     // Avant le passage de la tâche, le locataire et l'artisan lisent déjà « expirée », et l'artisan ne peut plus accepter.
     expect((await mesRendezVous())[0].demande_statut).toBe("expiree");
@@ -337,9 +347,53 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     expect((await mesRendezVous())[0]).toMatchObject({ report_possible: true, reports_restants: 1 });
   });
 
+  it("C.12-4 : une organisation dont l'écriture est fermée ne voit pas ses demandes échues expirées par la tâche", async () => {
+    const demande = await demanderReport();
+    await expirer(demande);
+    // Le statut d'une organisation n'est modifiable que par le super admin : la garde est levée pour ce seul geste.
+    await db.query("set local session_replication_role = replica");
+    await db.query("update public.organizations set status='suspendue' where id=$1", [org]);
+    await db.query("set local session_replication_role = origin");
+    expect((await db.query("select public.org_ecriture_ouverte($1) as o", [org])).rows[0].o).toBe(false);
+    expect((await db.query("select public.expirer_demandes_rdv() as n")).rows[0].n).toBe(0);
+    expect((await demandes())[0]).toMatchObject({ statut: "en_attente" });
+    expect(await alertes()).toEqual([]);
+  });
+
   it("l'expiration est réservée à la tâche planifiée : un compte connecté est refusé", async () => {
     await agir(gerant);
     await expect(essai(() => db.query("select public.expirer_demandes_rdv()"))).rejects.toThrow(/tache planifiee|permission denied/);
+  });
+
+  it("demande échue avant le passage de la tâche : le locataire n'est pas bloqué, la demande expire avec son alerte", async () => {
+    const premiere = await demanderReport();
+    await expirer(premiere);
+    // Ce que l'écran lit : la demande est expirée, le report est de nouveau possible, l'annulation ne serait pas tardive.
+    expect((await mesRendezVous())[0]).toMatchObject({ demande_statut: "expiree", report_possible: true, reports_restants: 1, annulation_tardive: false });
+    // Retirer une demande échue n'est plus possible : elle sortirait du plafond et le gérant ne serait jamais alerté.
+    await agir(loc);
+    await expect(essai(() => db.query("select public.retirer_demande_rdv($1,$2)", [org, premiere]))).rejects.toThrow(/délai de réponse de l'artisan est dépassé/);
+    expect((await demandes())[0]).toMatchObject({ statut: "en_attente" });
+    // Une nouvelle demande part : l'échue passe d'abord « expirée », avec son événement et l'alerte « sans réponse ».
+    const seconde = await demanderReport({ dates: troisDates(200) });
+    const liste = await demandes();
+    expect(liste.find((d) => d.id === premiere)).toMatchObject({ statut: "expiree" });
+    expect(liste.find((d) => d.id === seconde)).toMatchObject({ statut: "en_attente" });
+    expect((await datesDeLaDemande(premiere)).map((c) => c.statut)).toEqual(["caduc", "caduc", "caduc"]);
+    expect((await evenements()).map((e) => e.type)).toContain("rdv_report_expire");
+    expect(await alertes()).toMatchObject([{ type: "rdv_demande_sans_reponse", statut: "ouverte" }]);
+    // La tâche ne la compte pas une seconde fois.
+    await postgres();
+    expect((await db.query("select public.expirer_demandes_rdv() as n")).rows[0].n).toBe(0);
+  });
+
+  it("demande échue avant le passage de la tâche : l'annulation l'expire (alerte « sans réponse ») au lieu de la retirer", async () => {
+    const report = await demanderReport();
+    await expirer(report);
+    await annuler();
+    expect((await demandes()).find((d) => d.id === report)).toMatchObject({ statut: "expiree" });
+    expect((await alertes()).map((a) => a.type).sort()).toEqual(["rdv_annule_locataire", "rdv_demande_sans_reponse"]);
+    expect((await demandes()).find((d) => d.type === "annulation")).toMatchObject({ tardive: false });
   });
 
   // ── 5. L'annulation (option B : effet immédiat, alerte) ───────────────────────────────────────────────────────────
@@ -373,7 +427,7 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
   it("C.12-5 : à moins de 24 h, l'annulation reste possible, elle est tracée « tardive » et l'alerte le dit", async () => {
     await rendezVousDans(12);
     // Le report, lui, n'est plus possible : le locataire est renvoyé vers l'annulation ou son gestionnaire.
-    expect((await mesRendezVous())[0]).toMatchObject({ report_possible: false, annulation_possible: true });
+    expect((await mesRendezVous())[0]).toMatchObject({ report_possible: false, annulation_possible: true, annulation_tardive: true });
     await expect(essai(() => demanderReport())).rejects.toThrow(/moins de 24 heures/);
     await annuler();
     expect((await demandes())[0]).toMatchObject({ type: "annulation", tardive: true });
@@ -459,6 +513,10 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
 
   // ── 9. Isolation ──────────────────────────────────────────────────────────────────────────────────────────────────
   it("C.12-9 : un autre locataire, un ancien locataire, un autre artisan, une autre agence échouent en appel direct", async () => {
+    // Le voisin a SA personne, SON bail actif et SA mission dans la même agence : seules les gardes de bail l'arrêtent.
+    const missionVoisin = await creerMission(artisan, org, locVoisin);
+    await planifier(missionVoisin, 60, locVoisin);
+    expect((await mesRendezVous(locVoisin)).map((r) => r.intervention_id)).toEqual([missionVoisin]);
     const demande = await demanderReport();
     const [premiere] = await datesDeLaDemande(demande);
     for (const u of [locVoisin, locB, gerant]) {
@@ -470,8 +528,17 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     await expect(essai(() => accepter(premiere.id, cptArtisanB))).rejects.toThrow(/Accès refusé/);
     await expect(essai(() => refuser(mission, cptArtisanB))).rejects.toThrow(/Accès refusé/);
     expect(await mesDemandesArtisan(cptArtisanB)).toEqual([]);
-    expect(await mesRendezVous(locVoisin)).toEqual([]);
+    expect((await mesRendezVous(locVoisin)).map((r) => r.intervention_id)).toEqual([missionVoisin]);
     expect(await mesRendezVous(locB, orgB)).toEqual([]);
+    expect((await demandes()).map((d) => d.statut)).toEqual(["en_attente"]);
+    // Un colocataire légitime du bail de `loc` agit, lui : il lit le rendez-vous et retire la demande.
+    await postgres();
+    const coloc = await id("insert into public.persons(organization_id,account_id,nom,prenom,email) values($1,$2,'TEST','Colette',$3) returning id", [org, locColoc, `coloc-${randomUUID().slice(0, 8)}@example.invalid`]);
+    await db.query("insert into public.bail_personnes(organization_id,bail_id,person_id,role) values($1,(select bail_id from public.incidents where id=(select incident_id from public.incident_interventions where id=$2)),$3,'colocataire')", [org, mission, coloc]);
+    expect((await mesRendezVous(locColoc)).map((r) => r.intervention_id)).toEqual([mission]);
+    await agir(locColoc);
+    await db.query("select public.retirer_demande_rdv($1,$2)", [org, demande]);
+    expect((await demandes()).map((d) => d.statut)).toEqual(["retiree"]);
     // Un ancien locataire (bail terminé) lit, mais n'agit plus.
     const ancienne = await creerMission(artisan, org, locAncien);
     await planifier(ancienne, 30, locAncien);

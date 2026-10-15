@@ -249,6 +249,54 @@ $fonction$;
 revoke all on function public.intervention_du_locataire(uuid, uuid) from public, anon, authenticated;
 grant execute on function public.intervention_du_locataire(uuid, uuid) to service_role;
 
+-- ── 4 bis. Expirer UNE demande échue (outil commun) ───────────────────────────────────────────────────────────────
+-- La tâche `rappels` ne passe qu'une fois par jour : entre l'échéance et son passage, la demande est encore
+-- « en_attente » en base. Les gestes du locataire (nouveau report, annulation) la passent d'abord « expirée », avec
+-- son événement et l'alerte « sans réponse » au gérant, exactement comme la tâche : le locataire n'est pas bloqué
+-- jusqu'à 24 h, et l'alerte n'est jamais perdue. Rend vrai si la demande vient d'expirer, faux sinon (déjà traitée,
+-- ou encore dans son délai). L'appelant tient déjà les verrous de la mission.
+create or replace function public.expirer_demande_rdv_echue(p_demande uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $fonction$
+declare d record; v_numero text; v_incident uuid; v_lot uuid;
+begin
+  select x.* into d from public.intervention_demandes_rdv x
+  where x.id = p_demande and x.statut = 'en_attente' and x.expire_le is not null and x.expire_le <= now()
+  for update;
+  if not found then return false; end if;
+  update public.intervention_demandes_rdv
+  set statut = 'expiree', repondu_le = now(), reponse_motif = 'Sans réponse de l''artisan dans le délai'
+  where id = d.id;
+  update public.intervention_creneaux set statut = 'caduc' where demande_id = d.id and statut = 'propose';
+  select iv.incident_id into v_incident from public.incident_interventions iv where iv.id = d.intervention_id;
+  select i.numero, i.lot_id into v_numero, v_lot from public.incidents i where i.id = v_incident;
+  insert into public.incident_evenements
+    (organization_id, incident_id, type, acteur_account_id, details)
+  values (d.organization_id, v_incident, 'rdv_report_expire', null,
+          jsonb_build_object('intervention_id', d.intervention_id, 'demande_id', d.id,
+                             'rdv_debut', d.rdv_debut, 'expire_le', d.expire_le));
+  if not exists (select 1 from public.alerts a
+                 where a.organization_id = d.organization_id and a.statut = 'ouverte'
+                   and a.type = 'rdv_demande_sans_reponse' and a.details->>'demande_id' = d.id::text) then
+    insert into public.alerts (organization_id, type, criticite, titre, details, origine_type, origine_id)
+    values (d.organization_id, 'rdv_demande_sans_reponse', 'normale',
+            'Demande de report sans réponse de l''artisan — ' || v_numero,
+            jsonb_build_object('incident_id', v_incident, 'lot_id', v_lot,
+                               'intervention_id', d.intervention_id, 'demande_id', d.id,
+                               'rdv_debut', d.rdv_debut,
+                               'libelle', 'L''artisan n''a pas répondu à la demande de report du locataire dans le délai : le rendez-vous confirmé est maintenu. Rappelez le locataire, ou fixez un autre rendez-vous.'),
+            'intervention', d.intervention_id);
+  end if;
+  return true;
+end;
+$fonction$;
+-- Outil des fonctions ci-dessous : personne ne l'appelle directement.
+revoke all on function public.expirer_demande_rdv_echue(uuid) from public, anon, authenticated;
+grant execute on function public.expirer_demande_rdv_echue(uuid) to service_role;
+
 -- ── 5. Demander un report (locataire) ───────────────────────────────────────────────────────────────────────────────
 create or replace function public.demander_report_rdv(
   p_org uuid, p_intervention uuid, p_motif_code text, p_motif_texte text, p_creneaux jsonb, p_cle uuid)
@@ -292,6 +340,9 @@ begin
   if v.debut_prevu - now() < make_interval(hours => p.delai_report_heures) then
     raise exception 'Le rendez-vous est dans moins de % heures : il ne peut plus être reporté ici. Vous pouvez encore l''annuler, ou appeler votre gestionnaire', p.delai_report_heures;
   end if;
+  -- Une demande échue que la tâche n'a pas encore traitée expire ici (événement, alerte au gérant) : elle ne bloque pas.
+  perform public.expirer_demande_rdv_echue(d.id) from public.intervention_demandes_rdv d
+  where d.intervention_id = p_intervention and d.statut = 'en_attente';
   if exists (select 1 from public.intervention_demandes_rdv d
              where d.intervention_id = p_intervention and d.statut = 'en_attente') then
     raise exception 'Une demande attend déjà la réponse de l''artisan : retirez-la avant d''en envoyer une autre';
@@ -436,6 +487,10 @@ begin
   -- Tardive : moins du délai minimal avant le rendez-vous. Tracée, jamais sanctionnée (C.15-5).
   v_tardive := v.debut_prevu - now() < make_interval(hours => p.delai_report_heures);
 
+  -- Une demande échue que la tâche n'a pas encore traitée expire d'abord (événement, alerte « sans réponse ») : elle
+  -- n'est pas « retirée » par le locataire, le gérant apprend que l'artisan n'a pas répondu.
+  perform public.expirer_demande_rdv_echue(d.id) from public.intervention_demandes_rdv d
+  where d.intervention_id = p_intervention and d.statut = 'en_attente';
   -- Une demande de report en attente tombe avec le rendez-vous qu'elle visait : retirée.
   update public.intervention_demandes_rdv
   set statut = 'retiree', repondu_le = now(), repondu_par = (select auth.uid()),
@@ -529,6 +584,11 @@ begin
   if d.statut <> 'en_attente' then
     raise exception 'Cette demande a déjà été traitée : rechargez la page pour lire la réponse';
   end if;
+  -- Échue : elle est expirée, pas retirable (elle sortirait du plafond et le gérant ne serait jamais alerté). La tâche
+  -- ou le prochain geste du locataire la passe « expirée » avec son alerte ; l'écran la lit déjà ainsi.
+  if d.expire_le is not null and d.expire_le <= now() then
+    raise exception 'Le délai de réponse de l''artisan est dépassé : votre demande a expiré, le rendez-vous actuel est maintenu. Rechargez la page';
+  end if;
   update public.intervention_demandes_rdv
   set statut = 'retiree', repondu_le = now(), repondu_par = (select auth.uid())
   where id = p_demande;
@@ -551,42 +611,19 @@ language plpgsql
 security definer
 set search_path = ''
 as $fonction$
-declare d record; v_n integer := 0; v_numero text; v_incident uuid; v_lot uuid;
+declare d record; v_n integer := 0;
 begin
   if (select auth.uid()) is not null and not public.is_super_admin() then
     raise exception 'expirer_demandes_rdv: reserve a la tache planifiee';
   end if;
   for d in
-    select x.* from public.intervention_demandes_rdv x
+    select x.id from public.intervention_demandes_rdv x
     where x.statut = 'en_attente' and x.expire_le is not null and x.expire_le <= now()
       and public.org_ecriture_ouverte(x.organization_id)
     order by x.expire_le
     for update skip locked
   loop
-    update public.intervention_demandes_rdv
-    set statut = 'expiree', repondu_le = now(), reponse_motif = 'Sans réponse de l''artisan dans le délai'
-    where id = d.id;
-    update public.intervention_creneaux set statut = 'caduc' where demande_id = d.id and statut = 'propose';
-    select iv.incident_id into v_incident from public.incident_interventions iv where iv.id = d.intervention_id;
-    select i.numero, i.lot_id into v_numero, v_lot from public.incidents i where i.id = v_incident;
-    insert into public.incident_evenements
-      (organization_id, incident_id, type, acteur_account_id, details)
-    values (d.organization_id, v_incident, 'rdv_report_expire', null,
-            jsonb_build_object('intervention_id', d.intervention_id, 'demande_id', d.id,
-                               'rdv_debut', d.rdv_debut, 'expire_le', d.expire_le));
-    if not exists (select 1 from public.alerts a
-                   where a.organization_id = d.organization_id and a.statut = 'ouverte'
-                     and a.type = 'rdv_demande_sans_reponse' and a.details->>'demande_id' = d.id::text) then
-      insert into public.alerts (organization_id, type, criticite, titre, details, origine_type, origine_id)
-      values (d.organization_id, 'rdv_demande_sans_reponse', 'normale',
-              'Demande de report sans réponse de l''artisan — ' || v_numero,
-              jsonb_build_object('incident_id', v_incident, 'lot_id', v_lot,
-                                 'intervention_id', d.intervention_id, 'demande_id', d.id,
-                                 'rdv_debut', d.rdv_debut,
-                                 'libelle', 'L''artisan n''a pas répondu à la demande de report du locataire dans le délai : le rendez-vous confirmé est maintenu. Rappelez le locataire, ou fixez un autre rendez-vous.'),
-              'intervention', d.intervention_id);
-    end if;
-    v_n := v_n + 1;
+    if public.expirer_demande_rdv_echue(d.id) then v_n := v_n + 1; end if;
   end loop;
   return v_n;
 end;
@@ -597,6 +634,9 @@ grant execute on function public.expirer_demandes_rdv() to service_role;
 -- ── 9. Ce que le locataire lit : ses rendez-vous et ce qu'il peut encore en faire ─────────────────────────────────
 -- Une ligne par mission vivante (acceptée ou planifiée) de ses incidents, avec la dernière demande s'il y en a une.
 -- Les deux booléens sont calculés ICI, avec les mêmes règles que les fonctions d'écriture : l'écran ne devine pas.
+-- Le type de retour a gagné `annulation_tardive` : une base qui porte une version antérieure de cette fonction la
+-- recrée (rien n'en dépend ; les droits sont reposés juste après).
+drop function if exists public.mes_rendez_vous_locataire(uuid);
 create or replace function public.mes_rendez_vous_locataire(p_org uuid)
 returns table (
   intervention_id uuid, incident_id uuid, statut_mission public.intervention_statut,
@@ -605,7 +645,7 @@ returns table (
   demande_id uuid, demande_type text, demande_statut text, demande_motif_code text,
   demandee_le timestamptz, expire_le timestamptz, repondu_le timestamptz, reponse_motif text,
   demande_rdv_debut timestamptz, demande_rdv_fin timestamptz,
-  nouveau_debut timestamptz, nouvelle_fin timestamptz, tardive boolean)
+  nouveau_debut timestamptz, nouvelle_fin timestamptz, tardive boolean, annulation_tardive boolean)
 language sql
 stable
 security definer
@@ -635,7 +675,8 @@ as $fonction$
   comptes as (
     select d.intervention_id,
            count(*) filter (where d.type = 'report' and d.statut <> 'retiree')::integer as reports,
-           bool_or(d.statut = 'en_attente') as une_en_attente
+           -- Une demande échue ne bloque plus : elle se lit « expirée », et le prochain geste l'expire en base.
+           bool_or(d.statut = 'en_attente' and (d.expire_le is null or d.expire_le > now())) as une_en_attente
     from public.intervention_demandes_rdv d
     where d.intervention_id in (select id from missions)
     group by d.intervention_id
@@ -655,7 +696,10 @@ as $fonction$
     d.motif_code, d.demandee_le, d.expire_le, d.repondu_le, d.reponse_motif, d.rdv_debut, d.rdv_fin,
     (select c.debut from public.intervention_creneaux c where c.id = d.creneau_accepte_id),
     (select c.fin from public.intervention_creneaux c where c.id = d.creneau_accepte_id),
-    coalesce(d.tardive, false)
+    coalesce(d.tardive, false),
+    -- Une annulation envoyée maintenant serait-elle « tardive » ? Même règle qu'annuler_rdv_locataire.
+    (m.statut = 'planifiee' and m.debut_prevu is not null and m.debut_prevu > now()
+       and m.debut_prevu - now() < make_interval(hours => p.delai_report_heures))
   from missions m
   cross join p
   left join derniere d on d.intervention_id = m.id

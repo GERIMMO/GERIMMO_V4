@@ -389,7 +389,7 @@ est une habitude, pas une contrainte.
 « impayé » (écran du locataire, fiche du lot), sans que le dirigeant l'ait ratifiée, et laissait `suivre_impayes_bail` (alertes) et `relances_loyer_dues` (relances, jours de retard)
 sur le jour de la session : de 22 h à 24 h UTC, l'écran aurait dit « impayé » alors que l'alerte et la relance n'étaient pas encore posées (reproduit). Elle est **retirée du lot**
 (fichiers supprimés, ligne du manifeste retirée) ; ces cinq fonctions sont donc **inchangées**. Conséquence connue : le test e2e `encaissement-reste.spec.ts`, qui date l'échéance de la veille
-**à Paris**, échoue toujours de 22 h à 24 h UTC (heure d'été ; 23 h à 24 h l'hiver), comme avant le lot. Si le dirigeant ratifie l'élargissement, il faudra aligner AUSSI
+**à Paris** et attend « Impayé », échoue toujours de 22 h à 24 h UTC (heure d'été ; 23 h à 24 h l'hiver), comme avant le lot (constat par lecture du test et du code, non rejoué : les e2e exigent un navigateur). Si le dirigeant ratifie l'élargissement, il faudra aligner AUSSI
 `suivre_impayes_bail` et `relances_loyer_dues` ; la migration retirée reste lisible dans l'historique de la branche (commit `c30698c`, fichier `20261014411000_loyer_echu_jour_de_paris.sql`).
 
 **Aucune donnée n'est réécrite**, ni par les migrations ni par les retours : aucun encaissement, aucune écriture, aucun appel de loyer n'est modifié. La contrainte
@@ -429,8 +429,10 @@ sans quoi la validation échoue (aucune donnée n'est alors modifiée).
 **Hors périmètre, à décider par le dirigeant :** la table `ecritures` (`montant > 0`) accepte elle aussi « NaN » par une requête directe d'un compte connecté ; la contrainte de centime et la contrainte
 « fini » ne portent que sur `encaissements`, comme la décision X09. Les étendre aux écritures est une décision à part (la fiche FIN-03 citait aussi `ecritures.montant`).
 
-Essais du 15/10/2026 (base de banc jetable, copie de la base migrée) : refus de se jouer dans un lot ouvert ; les six retours, dans l'ordre inverse puis dans l'ordre des migrations → les quatre définitions reviennent
-**octet pour octet** à celles d'avant les migrations (empreinte md5 comparée aux définitions extraites avant), la contrainte disparaît ; rejeu des retours sans effet ; marche avant → l'état
-migré (définitions, droits, contrainte) est retrouvé à l'identique ; rejeu des migrations sans effet. Les tests `tests/finance-dates-rejeu.test.ts` (rejeu, définitions inattendues, corps des
-retours, cohérence des marques), `tests/finance-dates-jour-de-paris.test.ts` (X13) et `tests/finance-dates-centime-plancher.test.ts` (X09, X14) couvrent le reste. Limites : base de banc,
+Essais du 15/10/2026 (bases de banc jetables, PostgreSQL 16, reconstruites depuis le manifeste ; copie de la base migrée pour chaque essai) : refus de se jouer dans un lot ouvert
+(`psql --single-transaction`) ; les six retours joués dans l'ordre inverse → les quatre définitions (avec leurs droits), les contraintes et le défaut de `quittances.date_emission` sont
+**identiques, empreinte md5 comparée,** à ceux d'une base construite SANS les six migrations (332 migrations) ; les trois derniers retours seuls (414000 à 416000) → identiques à ceux d'une base construite sans eux
+(335 migrations) ; rejeu des retours sans effet (« rien à faire ») ; marche avant des migrations → l'état migré (338 migrations) est retrouvé à l'identique ; rejeu des migrations sans effet.
+Les tests `tests/finance-dates-rejeu.test.ts` (rejeu, définitions inattendues, corps des retours, cohérence des marques, périmètre), `tests/finance-dates-jour-de-paris.test.ts` (X13, quittances),
+`tests/finance-dates-centime-plancher.test.ts` (X09, X14) et `tests/finance-dates-reprise-centime.test.ts` (reprise de soldes) couvrent le reste. Limites : base de banc,
 PostgreSQL 16, extension `pg_cron` simulée ; aucun essai sur la production.

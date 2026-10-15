@@ -624,7 +624,9 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
   // RLS (RM-A1.6/A1.7, wiki/regles-metier/Isolation multi-organisation ;
   // RM-A4.6, wiki/regles-metier/Socle de sécurité).
   // ------------------------------------------------------------------
-  it("anon n'écrit plus dans aucune table, sauf le formulaire de devis du site vitrine", async () => {
+  // X02 (14/10/2026) : le formulaire du site vitrine n'est plus une exception — il écrit par l'action serveur
+  // (client de service), anon n'a plus AUCUN droit d'écriture dans `public`.
+  it("anon n'écrit plus dans aucune table, formulaire du site vitrine compris", async () => {
     // L'ABUS : un visiteur sans session, avec des identifiants EN DUR — c'est
     // tout ce dont dispose un attaquant muni de la seule clé publiable.
     // Le refus attendu nomme LA TABLE : « permission denied for table X ».
@@ -667,8 +669,8 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
          select count(*) from x`,
         "quittances",
       ],
-      // ON CONFLICT DO UPDATE sur la seule table encore ouverte : l'insertion
-      // du formulaire vitrine ne doit pas se muer en droit de modification.
+      // ON CONFLICT DO UPDATE sur l'ancienne table du formulaire vitrine : plus d'insertion directe (X02),
+      // et jamais de droit de modification.
       [
         "upsert demandes_devis",
         `insert into public.demandes_devis (id, nom, email)
@@ -699,8 +701,8 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     }
     await db.query("reset role");
 
-    // L'invariant de catalogue : dans `public`, la seule écriture qu'anon
-    // conserve est l'insertion des demandes de devis.
+    // L'invariant de catalogue : dans `public`, anon ne conserve AUCUNE écriture
+    // (depuis X02, l'insertion des demandes de devis passe par l'action serveur).
     const { rows: restes } = await db.query(
       `select c.relname || '/' || p.priv as reste
          from pg_class c
@@ -710,7 +712,6 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
         where n.nspname = 'public'
           and c.relkind in ('r','p')
           and has_table_privilege('anon', c.oid, p.priv)
-          and not (c.relname = 'demandes_devis' and p.priv = 'INSERT')
         order by 1`
     );
     expect(
@@ -748,13 +749,13 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     ).toHaveLength(0);
 
     // LES GESTES LÉGITIMES restent entiers.
-    // 1. Le formulaire de devis du site vitrine écrit toujours, sans session
-    //    (src/app/actions/devis.ts, politique demandes_devis_insert_public).
+    // 1. Le formulaire de contact du site vitrine écrit toujours, sans session — par l'action serveur
+    //    (src/app/actions/devis.ts, client de service), non plus par la clé publique (X02, 14/10).
     await db.query("savepoint anon_legitime");
     await db.query(
-      `select set_config('request.jwt.claims', json_build_object('role','anon')::text, true)`
+      `select set_config('request.jwt.claims', json_build_object('role','service_role')::text, true)`
     );
-    await db.query("set local role anon");
+    await db.query("set local role service_role");
     await db.query(
       `insert into public.demandes_devis (nom, email, agence, message)
        values ('Visiteur Vitrine','visiteur@exemple.fr','Agence Test','Un devis, svp')`

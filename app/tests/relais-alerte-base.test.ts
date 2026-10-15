@@ -147,6 +147,14 @@ describe.skipIf(!DB_URL)("D46-B — alerte e-mail du relais : la base", () => {
     expect(await reserver()).toMatchObject({ reserve: false, statut: "echec" });
   });
 
+  it("un relais non configuré se reprend le jour même (adresses renseignées après 5 h) ; « rien à signaler » non", async () => {
+    const { jour } = await reserver();
+    await terminer(jour, "non_configure");
+    expect(await reserver()).toMatchObject({ reserve: true, jour, tentative: 2 });
+    await terminer(jour, "rien_a_signaler");
+    expect(await reserver()).toMatchObject({ reserve: false, statut: "rien_a_signaler", tentative: 2 });
+  });
+
   it("une passe restée « en cours » plus de 10 minutes se reprend ; avant, non", async () => {
     await reserver();
     await proprietaire();
@@ -208,9 +216,13 @@ describe.skipIf(!DB_URL)("D46-B — alerte e-mail du relais : la base", () => {
     expect(await refusee("select public.reserver_alerte_relais()")).toMatch(/permission denied|refusé|réservé/i);
     await agir(superviseur);
     expect((await db.query("select statut from public.relais_alertes_envois")).rows).toEqual([{ statut: "envoye" }]);
-    // Sans jeton (pg_cron, propriétaire) : la garde refuse aussi.
+    // Sans jeton (pg_cron, propriétaire) : la garde refuse aussi, pour chacune des trois fonctions du traitement.
     await proprietaire();
     expect(await refusee("select public.reserver_alerte_relais()")).toMatch(/réservé au traitement/);
+    expect(await refusee("select public.terminer_alerte_relais(public.aujourdhui_paris() - 1,'echec',1,0,1,'{}'::jsonb)")).toMatch(/réservé au traitement/);
+    expect(await refusee("select public.sentinelle_relais()")).toMatch(/réservé au traitement/);
+    const { rows: [l] } = await db.query("select statut from public.relais_alertes_envois where jour = public.aujourdhui_paris() - 1");
+    expect(l).toEqual({ statut: "envoye" });
   });
 
   // ── La sentinelle ──────────────────────────────────────────────────────
@@ -234,6 +246,33 @@ describe.skipIf(!DB_URL)("D46-B — alerte e-mail du relais : la base", () => {
     await agir(responsable);
     await db.query("select accuser_alerte_vacances(id) from supervision_alertes_internes where plan_id = $1", [p.id]);
     expect((await sentinelle()).alertes.ouvertes).toBe(avant.ouvertes);
+  });
+
+  it("compte à part les alertes escaladées et les alertes non acheminées ; une alerte accusée ne compte plus", async () => {
+    const createur = await compte();
+    const responsable = await compte();
+    await proprietaire();
+    await db.query("insert into memberships(account_id,organization_id,role,status) values($1,null,'super_admin','active'),($2,null,'super_admin','active')", [createur, responsable]);
+    await agir(createur);
+    const { rows: [p] } = await db.query(
+      "select enregistrer_vacances(null,'Vacances TEST',now()-interval '1 hour',now()+interval '1 day','Europe/Paris',$1,null,60) id", [responsable]
+    );
+    await db.query("select traiter_vacances()");
+    const avant = (await sentinelle()).alertes;
+    await agir(createur);
+    for (const cle of ["escaladee", "non-acheminee", "ouverte", "accusee"]) {
+      await db.query("select signaler_urgence_vacances($1,$2,'Urgence fictive') id", [p.id, `incident-${cle}`]);
+    }
+    await proprietaire();
+    await db.query("update supervision_alertes_internes set statut = 'escalade', escalade_le = now() where plan_id = $1 and cle = 'incident-escaladee'", [p.id]);
+    await db.query("update supervision_alertes_internes set statut = 'non_acheminee' where plan_id = $1 and cle = 'incident-non-acheminee'", [p.id]);
+    await db.query("update supervision_alertes_internes set statut = 'accusee', accusee_le = now() where plan_id = $1 and cle = 'incident-accusee'", [p.id]);
+    const s = await sentinelle();
+    expect(s.alertes).toEqual({
+      ouvertes: avant.ouvertes + 1,
+      escaladees: avant.escaladees + 1,
+      non_acheminees: avant.non_acheminees + 1,
+    });
   });
 
   it("dit l'arrêt d'urgence actif (clé et date), jamais son motif", async () => {
@@ -310,7 +349,104 @@ describe.skipIf(!DB_URL)("D46-B — alerte e-mail du relais : la base", () => {
     if (!lendemain) expect(etatDe(s, "cycle-mensuel")?.etat).toBe("ok");
   });
 
+  it("un échec il y a 24 h 30 n'est plus compté ; il y a 23 h 30, si", async () => {
+    await journalCron();
+    await passage("alertes-impayes-quotidiennes", "24 hours 30 minutes", "failed");
+    await passage("alertes-impayes-quotidiennes", "1 minute");
+    expect(etatDe(await sentinelle(), "alertes-impayes-quotidiennes")).toEqual({ tache: "alertes-impayes-quotidiennes", etat: "ok", echecs: 0 });
+    await passage("alertes-impayes-quotidiennes", "23 hours 30 minutes", "failed");
+    expect(etatDe(await sentinelle(), "alertes-impayes-quotidiennes")).toEqual({ tache: "alertes-impayes-quotidiennes", etat: "echec", echecs: 1 });
+  });
+
+  /** Ajoute une tâche quotidienne prévue à l'instant `il y a` (minute entière), lue dans le fuseau donné. */
+  async function tacheQuotidienne(nom: string, ilYa: string, fuseau = "UTC"): Promise<void> {
+    await proprietaire();
+    await db.query(
+      `insert into cron.job(jobname, schedule, command)
+       select $1, extract(minute from t)::int || ' ' || extract(hour from t)::int || ' * * *', 'select 1'
+         from (select (date_trunc('minute', now()) - $2::interval) at time zone $3 as t) x`,
+      [nom, ilYa, fuseau]
+    );
+  }
+
+  it("une tâche prévue il y a 5 minutes n'est pas encore « absente » (marge de 10 minutes) ; passée d'une minute, elle reste à l'heure (tolérance)", async () => {
+    await journalCron();
+    // Prévue il y a 5 minutes, sans passage aujourd'hui ; passée hier à son heure.
+    await tacheQuotidienne("tache-a-l-instant", "5 minutes");
+    await proprietaire();
+    await db.query(
+      `insert into cron.job_run_details(jobid, status, start_time, end_time)
+       select jobid, 'succeeded', date_trunc('minute', now()) - interval '5 minutes' - interval '24 hours' + interval '2 seconds',
+              date_trunc('minute', now()) - interval '5 minutes' - interval '24 hours' + interval '4 seconds'
+         from cron.job where jobname = 'tache-a-l-instant'`
+    );
+    // Prévue il y a deux heures, partie 30 secondes avant la minute prévue (horloges décalées) : à l'heure.
+    await tacheQuotidienne("tache-a-la-minute", "2 hours");
+    await proprietaire();
+    await db.query(
+      `insert into cron.job_run_details(jobid, status, start_time, end_time)
+       select jobid, 'succeeded', date_trunc('minute', now()) - interval '2 hours' - interval '30 seconds',
+              date_trunc('minute', now()) - interval '2 hours' - interval '28 seconds'
+         from cron.job where jobname = 'tache-a-la-minute'`
+    );
+    // Prévue il y a deux heures, partie trois minutes avant : ce passage-là n'est pas celui de l'échéance.
+    await tacheQuotidienne("tache-trop-tot", "2 hours");
+    await proprietaire();
+    await db.query(
+      `insert into cron.job_run_details(jobid, status, start_time, end_time)
+       select jobid, 'succeeded', date_trunc('minute', now()) - interval '2 hours' - interval '3 minutes',
+              date_trunc('minute', now()) - interval '2 hours' - interval '170 seconds'
+         from cron.job where jobname = 'tache-trop-tot'`
+    );
+    const s = await sentinelle();
+    expect(etatDe(s, "tache-a-l-instant")?.etat).toBe("ok");
+    expect(etatDe(s, "tache-a-la-minute")?.etat).toBe("ok");
+    expect(etatDe(s, "tache-trop-tot")?.etat).toBe("absente");
+  });
+
+  it("la sentinelle lit les horaires dans le fuseau de pg_cron (cron.timezone)", async () => {
+    await journalCron();
+    await proprietaire();
+    // Un jour de changement d'heure, l'heure de Paris d'il y a trois heures peut être ambiguë : le cas ne joue pas alors.
+    const { rows: [{ stable }] } = await db.query<{ stable: boolean }>(
+      `select (now() at time zone 'Europe/Paris') - (now() at time zone 'UTC')
+            = ((now() - interval '3 hours') at time zone 'Europe/Paris') - ((now() - interval '3 hours') at time zone 'UTC') as stable`
+    );
+    if (!stable) return;
+    await db.query("set local cron.timezone = 'Europe/Paris'");
+    // Prévue il y a trois heures à l'heure de Paris, passée à l'instant prévu.
+    await tacheQuotidienne("tache-heure-de-paris", "3 hours", "Europe/Paris");
+    await proprietaire();
+    await db.query(
+      `insert into cron.job_run_details(jobid, status, start_time, end_time)
+       select jobid, 'succeeded', date_trunc('minute', now()) - interval '3 hours', date_trunc('minute', now()) - interval '3 hours' + interval '2 seconds'
+         from cron.job where jobname = 'tache-heure-de-paris'`
+    );
+    expect(etatDe(await sentinelle(), "tache-heure-de-paris")?.etat).toBe("ok");
+    // Lu en UTC, le même horaire tomberait une ou deux heures plus tard, après ce passage : la tâche serait dite absente.
+    await proprietaire();
+    await db.query("set local cron.timezone = 'UTC'");
+    expect(etatDe(await sentinelle(), "tache-heure-de-paris")?.etat).toBe("absente");
+  });
+
   // ── Le calcul de l'échéance ────────────────────────────────────────────
+
+  it("lit les champs d'horaire : pas « n/p », intervalles, listes ; refuse les valeurs hors bornes", async () => {
+    await proprietaire();
+    const champ = async (texte: string, min: number, max: number) => {
+      const { rows: [{ v }] } = await db.query<{ v: number[] | null }>("select public.cron_valeurs_champ($1, $2, $3) as v", [texte, min, max]);
+      return v;
+    };
+    expect(await champ("5/20", 0, 59)).toEqual([5, 25, 45]);
+    expect(await champ("*/15", 0, 59)).toEqual([0, 15, 30, 45]);
+    expect(await champ("10-20/5", 0, 59)).toEqual([10, 15, 20]);
+    expect(await champ("1,3,5", 0, 6)).toEqual([1, 3, 5]);
+    expect(await champ("7", 0, 59)).toEqual([7]);
+    for (const [texte, min, max] of [["60", 0, 59], ["24", 0, 23], ["0", 1, 31], ["13", 1, 12], ["5-60", 0, 59], ["20-10", 0, 59], ["*/0", 0, 59]] as const) {
+      expect(await champ(texte, min, max), texte).toBeNull();
+    }
+  });
+
 
   it("retrouve la dernière heure prévue d'un horaire pg_cron, en UTC", async () => {
     await proprietaire();

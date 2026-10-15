@@ -5,6 +5,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { eur, aujourdhuiParis } from "@/lib/ged";
 import { recapitulatifFiscal, fondsTravauxAlurQualificationIgnoree, phrasePiecesAQualifier, LIBELLE_CUMUL_A_QUALIFIER, LIBELLE_DEPENSES_EXCLUES, LIBELLE_RECETTES_EXCLUES, type EcritureFiscale, type QualificationFiscale, type ComposantesFiscales, type ExerciceFiscalLot } from "@/lib/fiscal";
 import { QualificationPiece, ExerciceLot } from "@/components/formulaires-fiscaux";
+import { identifiantsDesEcritures, lectureTronquee, lireParIdentifiants, messageEcranLectureTronquee, phraseLimiteAtteinte } from "@/lib/lectures-fiscales";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 
@@ -61,20 +62,29 @@ export async function RecapitulatifFiscal(props: {
     ]),
   ].sort((a, b) => a - b);
 
+  // X12 (FIN-12) : les écritures de l'année se lisent d'abord ; qualifications et captures ne se lisent QUE pour elles (et pour les
+  // pièces d'origine de leurs contre-écritures), par paquets d'identifiants. Une lecture qui atteint le plafond de lignes de l'API
+  // est peut-être coupée : aucun montant n'est alors affiché (voir `lectures-fiscales`).
   const [
     {data:ecritures,error:erreurEcritures},
-    {data:qualificationsRows,error:erreurQualifications},
-    {data:composantesRows,error:erreurComposantes},
     {data:exercicesRows,error:erreurExercices},
     {data:lotsRows,error:erreurLots},
   ]=await Promise.all([
     supabase.from("ecritures").select("id,categorie,sens,montant,date_piece,contre_ecriture_de,lot_id,bail_id,encaissement_id,libelle").eq("organization_id",orgId).gte("date_piece",`${annee}-01-01`).lte("date_piece",`${annee}-12-31`),
-    supabase.from("fiscal_qualifications_ecritures").select("*").eq("organization_id",orgId).order("version",{ascending:false}),
-    supabase.from("fiscal_encaissements_composantes").select("*").eq("organization_id",orgId),
     supabase.from("fiscal_exercices_lots").select("*").eq("organization_id",orgId).eq("annee",annee).order("version",{ascending:false}),
     supabase.from("lots").select("id,nom").eq("organization_id",orgId).order("nom"),
   ]);
+  const ecrituresTronquees=lectureTronquee(ecritures);
+  const identifiants=erreurEcritures||ecrituresTronquees?[]:identifiantsDesEcritures(ecritures??[]);
+  const [
+    {data:qualificationsRows,error:erreurQualifications,tronquee:qualificationsTronquees},
+    {data:composantesRows,error:erreurComposantes,tronquee:composantesTronquees},
+  ]=await Promise.all([
+    lireParIdentifiants(identifiants,paquet=>supabase.from("fiscal_qualifications_ecritures").select("*").eq("organization_id",orgId).in("ecriture_id",paquet).order("version",{ascending:false})),
+    lireParIdentifiants(identifiants,paquet=>supabase.from("fiscal_encaissements_composantes").select("*").eq("organization_id",orgId).in("ecriture_id",paquet)),
+  ]);
   const lecturesEnEchec=[erreurBien&&"les lots du bien",erreurEcritures&&"les écritures",erreurQualifications&&"les qualifications",erreurComposantes&&"les composantes historiques",erreurExercices&&"les exercices confirmés",erreurLots&&"les lots"].filter((x):x is string=>Boolean(x));
+  const lecturesTronquees=[ecrituresTronquees&&`des écritures de ${annee}`,qualificationsTronquees&&"des qualifications fiscales",composantesTronquees&&"des captures d’encaissement",lectureTronquee(exercicesRows)&&"des exercices confirmés",lectureTronquee(lotsRows)&&"des lots"].filter((x):x is string=>Boolean(x));
 
   // Le choix de l'année prend la pastille `.filtre` de l'espace, 44 px au
   // doigt : c'était une rangée de liens soulignés de 36 px (14 px de haut sur
@@ -128,6 +138,28 @@ export async function RecapitulatifFiscal(props: {
             donnerait des montants faux — à recopier sur une déclaration. Nous
             préférons ne rien avancer : rechargez la page dans un instant.
           </p>
+        </div>
+      </main>
+    );
+  }
+
+  // X12 : une lecture qui atteint le plafond de lignes de l'API est peut-être coupée. Recharger n'y change rien : le message le dit.
+  if (lecturesTronquees.length > 0 && props.compact) return <p role="alert" className="err">Récapitulatif indisponible : {phraseLimiteAtteinte(lecturesTronquees)}. Aucun montant n’est affiché.</p>;
+
+  if (lecturesTronquees.length > 0) {
+    const message = messageEcranLectureTronquee(lecturesTronquees);
+    return (
+      <main className="mx-auto w-full max-w-4xl space-y-[1.125rem] p-4 sm:p-7">
+        <div>
+          {retour}
+          <div className="entete-page">
+            <h1>Récapitulatif fiscal {annee}</h1>
+          </div>
+          {navigation}
+        </div>
+        <div className="err" role="alert">
+          <p className="font-medium">{message.titre}</p>
+          <p className="mt-1">{message.explication}</p>
         </div>
       </main>
     );

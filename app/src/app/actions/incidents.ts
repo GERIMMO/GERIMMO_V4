@@ -245,14 +245,35 @@ export async function declarerMonIncident(
 
   // 25/09 : « votre gérant est prévenu immédiatement » n'était vrai qu'à sa
   // prochaine connexion. Pour une urgence, l'agence reçoit l'e-mail maintenant.
+  //
+  // 14/10 (X15, REP-02) : l'envoi est MÉMORISÉ en base (`notifie_le`). Avant, l'e-mail ne partait qu'à la première
+  // exécution : si elle s'arrêtait après l'enregistrement et avant l'e-mail (photos interrompues, réponse perdue),
+  // la reprise le sautait et rien ne permettait de le renvoyer. Maintenant :
+  //  · `notifie === true`  : le gestionnaire est déjà prévenu, on ne renvoie pas (et l'écran le dit) ;
+  //  · `notifie === false` : première exécution OU reprise sans e-mail parti, on envoie, puis on mémorise ;
+  //  · `notifie` absent    : base pas encore migrée, ancien comportement (pas d'envoi à la reprise, pas de doublon).
+  // La mémorisation vient APRÈS l'envoi réussi : si elle échoue, la reprise renverra l'e-mail — un doublon vaut mieux
+  // qu'une urgence non signalée.
   let emailUrgenceParti = false;
-  if (champs.urgence === "urgente" && !declaration.rejoue) {
-    const notification = await notifierIncidentUrgentDeclare(supabase, orgId, incidentId, {
-      categorie: champs.categorie ?? "",
-      piece: champs.piece || null,
-      description: champs.description || null,
-    });
-    emailUrgenceParti = notification.envoyee;
+  if (champs.urgence === "urgente") {
+    if (declaration.notifie === true) {
+      emailUrgenceParti = true;
+    } else if (!declaration.rejoue || declaration.notifie === false) {
+      const notification = await notifierIncidentUrgentDeclare(supabase, orgId, incidentId, {
+        categorie: champs.categorie ?? "",
+        piece: champs.piece || null,
+        description: champs.description || null,
+      });
+      emailUrgenceParti = notification.envoyee;
+      if (notification.envoyee) {
+        try {
+          const { error: memorisation } = await supabase.rpc("marquer_incident_urgent_notifie", { p_org: orgId, p_commande: commande });
+          if (memorisation) console.error("[incidents] L’envoi de l’e-mail d’urgence n’a pas pu être mémorisé.");
+        } catch {
+          console.error("[incidents] L’envoi de l’e-mail d’urgence n’a pas pu être mémorisé.");
+        }
+      }
+    }
   }
 
   revalidatePath(`/locataire/${orgId}`);

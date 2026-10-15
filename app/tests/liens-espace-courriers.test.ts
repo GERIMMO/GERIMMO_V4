@@ -5,16 +5,30 @@
  * Couvre les deux courriers ajoutés par main après la base du lot (#187 D18 « devis reçu », #188 D22-B « annulation du
  * rendez-vous par le locataire »), exécutés de bout en bout avec un client en mémoire ; seul l'envoi est simulé.
  * La racine est lue d'après le TYPE de l'organisation (baseDeLOrganisation), jamais d'après le formulaire.
+ *
+ * Relecture du 15/10 (mutations survivantes) : une assertion par courrier restant — incident urgent déclaré par le
+ * locataire, mission refusée par l'artisan, relances de paiement, avis de reconduction, avis de fin d'essai (envoyé
+ * par le webhook Stripe, exécuté par sa route avec Stripe et le client de service simulés).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type Ligne = Record<string, unknown>;
-const sim = vi.hoisted(() => ({ envoyer: vi.fn() }));
+const sim = vi.hoisted(() => ({ envoyer: vi.fn(), service: null as unknown, stripe: null as unknown }));
 
 vi.mock("@/lib/email", () => ({ envoyerEmail: sim.envoyer }));
 vi.mock("@/lib/marque-organisation-serveur", () => ({ chargerMarque: async () => null }));
+// Le webhook : réglages prêts, client de service et Stripe simulés (la signature est le sujet d'un autre test).
+vi.mock("@/lib/supabase/service", () => ({ clientDeService: () => sim.service }));
+vi.mock("@/lib/stripe", async (importer) => ({
+  ...(await importer<typeof import("@/lib/stripe")>()),
+  configurationStripe: () => ({ pret: true, config: { cle: "sk_test_x", secretWebhook: "whsec_x", prix: {} } }),
+  clientStripe: () => sim.stripe,
+}));
 
-import { notifierAnnulationRdvLocataire, notifierDevisRecu } from "@/lib/notifications";
+import { notifierAnnulationRdvLocataire, notifierDevisRecu, notifierIncidentUrgentDeclare, notifierMissionRefusee } from "@/lib/notifications";
+import { envoyerRelancesDues } from "@/lib/relances-paiement";
+import { envoyerAvisReconduction } from "@/lib/avis-abonnement";
+import { POST as webhookStripe } from "@/app/api/stripe/webhook/route";
 
 const SITE = "https://gerimmo.test";
 const ORG = "org-1";
@@ -96,4 +110,107 @@ describe("D18 : le courrier « devis reçu » (version révisée comprise)", () 
     expect(courrier.html).toContain(`${SITE}/agence/${ORG}/incidents?sel=inc-1`);
     expect(courrier.html).not.toContain("/espace/");
   });
+});
+
+const PROFILS_COURRIER = [
+  { nom: "propriétaire direct", type: "proprietaire_direct", attendu: `${SITE}/espace/${ORG}`, interdit: `/agence/${ORG}` },
+  { nom: "agence", type: "agence", attendu: `${SITE}/agence/${ORG}`, interdit: "/espace/" },
+] as const;
+const seulCourrier = () => {
+  expect(sim.envoyer).toHaveBeenCalledOnce();
+  return sim.envoyer.mock.calls[0][0] as { to: string; html: string };
+};
+
+describe("incident URGENT déclaré par le locataire : le courrier au gestionnaire", () => {
+  for (const p of PROFILS_COURRIER) {
+    it(`${p.nom} : ${p.attendu}/incidents?sel=…`, async () => {
+      // Le client est celui du LOCATAIRE : le gestionnaire et le numéro viennent de ses deux fonctions dédiées.
+      const db = client(base(p.type), {
+        mon_gestionnaire_locataire: [{ agence: "Organisation TEST", email_contact: null, agent_email: "gerant@example.invalid" }],
+        mes_incidents_locataire: [{ id: "inc-1", numero: "INC-1", lot_nom: "Lot TEST" }],
+      });
+      const r = await notifierIncidentUrgentDeclare(db as never, ORG, "inc-1", { categorie: "plomberie_canalisation", piece: null, description: "Fuite TEST" });
+      expect(r).toEqual({ envoyee: true });
+      const courrier = seulCourrier();
+      expect(courrier.to).toBe("gerant@example.invalid");
+      expect(courrier.html).toContain(`${p.attendu}/incidents?sel=inc-1`);
+      expect(courrier.html).not.toContain(p.interdit);
+    });
+  }
+});
+
+describe("mission refusée par l'artisan : le courrier au gestionnaire", () => {
+  for (const p of PROFILS_COURRIER) {
+    it(`${p.nom} : ${p.attendu}/incidents?sel=…`, async () => {
+      expect(await notifierMissionRefusee(service(p.type) as never, ORG, "iv-1")).toEqual({ envoyee: true });
+      const [courrier] = envoisAuGestionnaire();
+      expect(courrier.html).toContain(`${p.attendu}/incidents?sel=inc-1`);
+      expect(courrier.html).not.toContain(p.interdit);
+    });
+  }
+});
+
+describe("relance d'un paiement d'abonnement refusé", () => {
+  for (const p of PROFILS_COURRIER) {
+    it(`${p.nom} : ${p.attendu}/abonnement`, async () => {
+      const db = client(base(p.type), {
+        abonnements_a_relancer: [{
+          organization_id: ORG, organisation: "Organisation TEST", destinataire: "facturation@example.invalid", palier: 1,
+          jours_ecoules: 3, jours_restants: 12, lecture_seule_le: "2026-10-30", montant_mensuel: "12.00",
+        }],
+      });
+      expect(await envoyerRelancesDues(db as never)).toEqual({ envoyees: 1, sans_adresse: [], echecs: [] });
+      const courrier = seulCourrier();
+      expect(courrier.html).toContain(`${p.attendu}/abonnement`);
+      expect(courrier.html).not.toContain(p.interdit);
+    });
+  }
+});
+
+describe("avis de reconduction de l'abonnement", () => {
+  for (const p of PROFILS_COURRIER) {
+    it(`${p.nom} : ${p.attendu}/abonnement`, async () => {
+      const db = client(base(p.type), {
+        abonnements_avis_reconduction_dus: [{
+          organization_id: ORG, organisation: "Organisation TEST", destinataire: "facturation@example.invalid",
+          periode_fin: "2026-12-01T00:00:00Z", montant_periode_cents: 14400, formule: null,
+        }],
+      });
+      expect(await envoyerAvisReconduction(db as never)).toEqual({ envoyes: 1, sans_adresse: [], echecs: [] });
+      const courrier = seulCourrier();
+      expect(courrier.html).toContain(`${p.attendu}/abonnement`);
+      expect(courrier.html).not.toContain(p.interdit);
+    });
+  }
+});
+
+describe("avis de fin d'essai (webhook Stripe « trial_will_end »)", () => {
+  for (const p of PROFILS_COURRIER) {
+    it(`${p.nom} : ${p.attendu}/abonnement`, async () => {
+      const finEssai = Math.floor(Date.parse("2026-11-01T00:00:00Z") / 1000);
+      const souscription = {
+        id: "sub_test", customer: "cus_test", status: "trialing", trial_end: finEssai, metadata: {},
+        items: { data: [{ quantity: 1, price: { unit_amount: 1200, recurring: { interval: "month" } } }] },
+      };
+      const evenement = { id: "evt_fin_essai", type: "customer.subscription.trial_will_end", data: { object: souscription } };
+      sim.stripe = {
+        webhooks: { constructEventAsync: async () => evenement },
+        subscriptions: { retrieve: async () => souscription },
+      };
+      sim.service = client(base(p.type), {
+        abonnement_evenement_a_traiter: true,
+        abonnement_par_client: [{
+          organization_id: ORG, organisation: "Organisation TEST", public_tarif: p.type, grille: "2026-09-28",
+          stripe_subscription_id: "sub_test", stripe_statut: "trialing", destinataire: "facturation@example.invalid",
+        }],
+      });
+      const reponse = await webhookStripe(new Request("https://gerimmo.test/api/stripe/webhook", {
+        method: "POST", headers: { "stripe-signature": "t=1,v1=simulee" }, body: JSON.stringify(evenement),
+      }));
+      expect(await reponse.json()).toMatchObject({ traite: "customer.subscription.trial_will_end", organisation: ORG, avis: "envoye" });
+      const courrier = seulCourrier();
+      expect(courrier.html).toContain(`${p.attendu}/abonnement`);
+      expect(courrier.html).not.toContain(p.interdit);
+    });
+  }
 });

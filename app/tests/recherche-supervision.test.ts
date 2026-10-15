@@ -138,15 +138,45 @@ describe("recherche par référence (bien, lot, incident)", () => {
     expect(r.remarque).toBe("11 résultats en tout, 8 affichés : saisissez l’identifiant complet du bien, du lot ou de l’incident pour n’en garder qu’un.");
   });
 
-  it("une ligne inattendue de la base est ignorée plutôt qu'affichée", async () => {
+  // Relecture du 15/10 : l'ancien essai filtrait d'abord les résultats sur les types connus, puis attendait une liste vide ;
+  // une ligne « bail » affichée avec un type indéfini (qui ferait planter l'icône de la fenêtre) passait inaperçue.
+  it("une ligne inattendue de la base est écartée, la ligne valide reste, et l'écart se signale", async () => {
     preparer({
       references: [
-        { type_objet: "bail", organisation_id: ALPHA, organisation_nom: "Agence Alpha", nombre: 1, groupes: 2 },
-        { type_objet: "lot", organisation_id: "pas-un-identifiant", organisation_nom: "Agence Alpha", nombre: 1, groupes: 2 },
+        { type_objet: "bail", organisation_id: ALPHA, organisation_nom: "Agence Alpha", nombre: 1, groupes: 3 },
+        { type_objet: "lot", organisation_id: BETA, organisation_nom: "Agence Bêta", nombre: 1, groupes: 3 },
+        { type_objet: "lot", organisation_id: "pas-un-identifiant", organisation_nom: "Agence Alpha", nombre: 1, groupes: 3 },
       ],
     });
     const r = await rechercherDansSupervision("Lot 1");
-    expect(r.resultats.filter((x) => ["Bien", "Lot", "Incident"].includes(x.type))).toEqual([]);
+    const TYPES = ["Organisation", "Artisan", "Compte", "Bien", "Lot", "Incident"];
+    expect(r.resultats.every((x) => TYPES.includes(x.type))).toBe(true);
+    // Tout ce qui n'est ni une organisation, ni un artisan, ni un compte : la seule ligne valide.
+    expect(r.resultats.filter((x) => !["Organisation", "Artisan", "Compte"].includes(x.type))).toEqual([
+      {
+        id: BETA,
+        type: "Lot",
+        titre: "Agence Bêta",
+        detail: "Un lot de cette organisation porte cette référence · ouvrir la fiche de l’organisation",
+        href: `/admin/organisations/${BETA}`,
+      },
+    ]);
+    expect(r.erreur).toBe("Certains résultats sont momentanément indisponibles. Réessayez.");
+    expect(r.remarque).toBeUndefined();
+  });
+
+  // Relecture du 15/10 : une colonne renommée d'un côté seulement (base ou application) écartait toutes les lignes, et la
+  // fenêtre disait « Aucun résultat » sans erreur. Le lien réel avec la fonction SQL est essayé dans
+  // tests/recherche-supervision-api.test.ts ; ici, la réponse illisible doit au moins se dire.
+  it("une réponse de la base qu'on ne sait pas lire se signale au lieu de répondre « Aucun résultat »", async () => {
+    preparer({
+      references: [
+        { type_objet: "incident", organisation_id: ALPHA, organisation_nom: "Agence Alpha", nb: 1, groupes: 1 } as unknown as LigneReference,
+      ],
+    });
+    const r = await rechercherDansSupervision("INC-2026-0003");
+    expect(r.resultats.filter((x) => x.type === "Incident")).toEqual([]);
+    expect(r.erreur).toBe("Certains résultats sont momentanément indisponibles. Réessayez.");
   });
 
   it("une recherche par référence en panne se dit, les autres résultats restent", async () => {

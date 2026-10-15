@@ -93,7 +93,15 @@ export async function rechercherDansSupervision(
 
   const resultats: ResultatRechercheSupervision[] = [];
   // Une référence exacte est la réponse la plus précise : elle passe en tête.
-  const lignesReference = (Array.isArray(references.data) ? references.data : []).filter(ligneReferenceValide).slice(0, MAX_REFERENCES);
+  const lignesBrutes: unknown[] = Array.isArray(references.data) ? references.data : references.data == null ? [] : [references.data];
+  const lignesValides = lignesBrutes.filter(ligneReferenceValide);
+  // Relecture du 15/10 : une ligne qu'on ne sait pas lire (colonne renommée d'un seul côté, type d'objet inconnu) est
+  // écartée ET signalée ; sans cela, la fenêtre répondait « Aucun résultat » alors que la base avait trouvé quelque chose.
+  const referencesIllisibles = lignesBrutes.length - lignesValides.length;
+  if (referencesIllisibles > 0) {
+    console.error(`[recherche-supervision] ${referencesIllisibles} ligne(s) de rechercher_reference_supervision écartée(s) : forme inattendue.`);
+  }
+  const lignesReference = lignesValides.slice(0, MAX_REFERENCES);
   for (const r of lignesReference) {
     const type = r.type_objet as keyof typeof TYPES_REFERENCE;
     resultats.push({
@@ -143,10 +151,10 @@ export async function rechercherDansSupervision(
   return {
     resultats,
     // La recherche des comptes se signale aussi quand elle échoue (audit console 27/09).
-    ...(references.error || organisations.error || artisans.error || comptes.error
+    ...(references.error || referencesIllisibles > 0 || organisations.error || artisans.error || comptes.error
       ? { erreur: "Certains résultats sont momentanément indisponibles. Réessayez." }
       : {}),
-    ...(totalReferences > lignesReference.length
+    ...(referencesIllisibles === 0 && totalReferences > lignesReference.length
       ? { remarque: `${totalReferences} résultats en tout, ${lignesReference.length} affichés : saisissez l’identifiant complet du bien, du lot ou de l’incident pour n’en garder qu’un.` }
       : {}),
   };

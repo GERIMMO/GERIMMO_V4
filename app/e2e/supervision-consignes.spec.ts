@@ -6,7 +6,7 @@ import {champParis} from '../src/lib/dates-supervision';
 test.use({storageState:path.join(__dirname,'.auth','superadmin.json')});
 test.beforeEach(async({page})=>sansSyntheseAlertes(page));
 
-test('une consigne exige une version approuvée, conserve sa preuve et reste suspendable',async({page},testInfo)=>{
+test('une consigne exige une version activée, conserve sa preuve et reste suspendable',async({page},testInfo)=>{
  const titre=`E2E supervision locale ${Date.now()}`;
  await page.goto('/admin/consignes');
  await expect(page.getByRole('heading',{name:'Consignes du dirigeant'})).toBeVisible();
@@ -26,10 +26,10 @@ test('une consigne exige une version approuvée, conserve sa preuve et reste sus
  await creation.getByLabel('Fin — heure de Paris',{exact:true}).fill(fin);
  await creation.getByRole('button',{name:'Préparer la consigne',exact:true}).click();
  const fiche=page.locator('main section').filter({has:page.getByRole('heading',{name:`${titre} — version 1`,exact:true})});
- await expect(fiche.getByText('Votre accord est attendu',{exact:true})).toBeVisible();
+ await expect(fiche.getByText('Cette version attend son activation',{exact:true})).toBeVisible();
  await expect(fiche.getByRole('button',{name:'Exécuter cette lecture'})).toHaveCount(0);
- await fiche.getByRole('button',{name:'Autoriser la version 1',exact:true}).click();
- await expect(fiche.getByText('Version autorisée',{exact:true})).toBeVisible();
+ await fiche.getByRole('button',{name:'Activer la version 1',exact:true}).click();
+ await expect(fiche.getByText('Version activée',{exact:true})).toBeVisible();
  await fiche.getByRole('button',{name:'Exécuter cette lecture',exact:true}).click();
  await expect(fiche.getByText('Résultat conservé — Quittances',{exact:true})).toBeVisible();
  await expect(fiche.getByText(/Au moment de la lecture, la mission était/)).toBeVisible();
@@ -41,18 +41,18 @@ test('une consigne exige une version approuvée, conserve sa preuve et reste sus
  await fiche.getByRole('button',{name:'Suspendre les nouvelles exécutions',exact:true}).click();
  await expect(fiche.getByText('Suspendue',{exact:true})).toBeVisible();
  await fiche.getByRole('button',{name:'Reprendre explicitement',exact:true}).click();
- await expect(fiche.getByText('Version autorisée',{exact:true})).toBeVisible();
+ await expect(fiche.getByText('Version activée',{exact:true})).toBeVisible();
  await fiche.getByText('Préparer une révision',{exact:true}).click();
  const revision=fiche;
  await revision.getByRole('textbox',{name:'Consigne et contexte',exact:true}).fill('Version révisée fictive : compter les passages, après un nouvel accord.');
  await revision.getByRole('checkbox',{name:'Compter les passages et ceux à reprendre pendant la période',exact:true}).check();
  await revision.getByRole('button',{name:'Préparer une nouvelle version',exact:true}).click();
  const fiche2=page.locator('main section').filter({has:page.getByRole('heading',{name:`${titre} — version 2`,exact:true})});
- await expect(fiche2.getByText('Votre accord est attendu',{exact:true})).toBeVisible();
+ await expect(fiche2.getByText('Cette version attend son activation',{exact:true})).toBeVisible();
  await expect(fiche2.getByRole('button',{name:'Exécuter cette lecture'})).toHaveCount(0);
  await fiche2.getByText('Historique des versions précédentes',{exact:true}).click();
  await expect(fiche2.getByText('Résultat conservé — Quittances',{exact:true})).toBeVisible();
- await expect(fiche2.getByText(/Version autorisée le/)).toBeVisible();
+ await expect(fiche2.getByText(/Version activée le/)).toBeVisible();
  await fiche2.getByRole('button',{name:'Suspendre les nouvelles exécutions',exact:true}).click();
  await expect(fiche2.getByText('Suspendue',{exact:true})).toBeVisible();
 });

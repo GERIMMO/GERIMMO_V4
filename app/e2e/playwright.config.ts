@@ -19,7 +19,8 @@ export default defineConfig({
   fullyParallel: false,
   workers: 2,
   retries: 1,
-  reporter: [["list"]],
+  // Dans GitHub Actions, les échecs sont aussi annotés sur le job (lisibles par l'API, sans télécharger l'artefact).
+  reporter: process.env.E2E_CI ? [["list"], ["github"]] : [["list"]],
   use: {
     // Environnements à Chromium pré-installé (Claude Code web) : pointer
     // PLAYWRIGHT_CHROMIUM sur le binaire ; sur un poste normal, laisser vide.

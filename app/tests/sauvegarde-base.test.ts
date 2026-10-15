@@ -53,10 +53,14 @@ describe("exporter / verifier / extraire", () => {
     // que pg_dump ne connaît pas — on l'insère via un enrobage shell.
     const enrobage = path.join(racine, "pg_dump");
     await fs.writeFile(enrobage, `#!/bin/sh\nexec "${process.execPath}" "${fauxPgDump}" "$@"\n`, { mode: 0o700 });
-    const bilan = await exporter(archive, cle, CONNEXION, { commande: enrobage, schemas: ["public"] });
+    // D07 : l'export lit aussi les tâches pg_cron (cron.job) avec psql ; ici un psql de substitution qui répond « aucune tâche »
+    // (le détail des tâches est gardé par sauvegarde-taches-planifiees.test.ts).
+    const fauxPsql = path.join(racine, "psql");
+    await fs.writeFile(fauxPsql, `#!/bin/sh\ncase "$*" in *m0t-de-passe*) exit 2;; esac\n[ -n "$PGPASSWORD" ] || exit 3\ncase "$*" in *to_regclass*) echo true;; *) echo '[]';; esac\n`, { mode: 0o700 });
+    const bilan = await exporter(archive, cle, CONNEXION, { commande: enrobage, schemas: ["public"], psql: fauxPsql });
     expect(bilan.octets).toBeGreaterThan(200);
     const m = await verifier(archive, cle);
-    expect(m).toMatchObject({ nature: "base", schemas: ["public"], taille: bilan.octets, hote: "base.exemple.fr" });
+    expect(m).toMatchObject({ nature: "base", schemas: ["public"], taille: bilan.octets, hote: "base.exemple.fr", taches_planifiees: { pg_cron: true, nombre: 0 } });
     expect(JSON.stringify(m)).not.toMatch(/m0t-de-passe/);
     // Le fichier chiffré ne contient pas le dump en clair.
     const chiffre = await fs.readFile(path.join(archive, "base.dump.gcm"));

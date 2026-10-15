@@ -19,6 +19,9 @@
 // fréquence `autoriser_lien_mot_de_passe` — l'API d'administration n'a pas
 // celle d'Auth. Dans tous ces cas la clé ne lit ni n'écrit aucune donnée
 // métier : elle fabrique un jeton pour l'adresse que l'action a validée.
+// Et la signature d'une lecture de 60 secondes (`createSignedUrl`) d'une photo jointe par le locataire, pour l'artisan destinataire
+// de la demande de devis (src/lib/photos-demande-artisan.ts, D16, 14/10/2026) : APRÈS `lire_photo_incident_artisan`, qui prouve le
+// droit, trace l'accès et rend le chemin. La clé ne lit pas le fichier elle-même et n'écrit ni ne supprime rien.
 //
 // Ce que le client peut faire est en outre borné côté base : les fonctions que
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées

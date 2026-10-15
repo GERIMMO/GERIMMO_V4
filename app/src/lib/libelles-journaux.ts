@@ -1,10 +1,12 @@
 import { TACHES_SUIVIES } from "./missions";
 import { ACTIONS_SUPERVISION } from "./journal-supervision";
+import { GESTES_TRACE } from "./gestes-trace";
 
 const ACTIONS: Record<string, string> = {
   consultation_organisation: "Consultation d’une organisation",
   traversee_espace: "Consultation d’un espace client par la supervision",
-  traversee_action: "Accès à une action dans un espace client par la supervision",
+  // D08 (audit du 13/10, SA-01) : la ligne dit la page, l'objet et la décision d'accès ; elle ne part plus qu'à un geste.
+  traversee_action: "Action dans un espace client par la supervision (écriture possible)",
   consultation_piece_artisan: "Consultation d’un justificatif artisan",
   consultation_document: "Consultation d’un document",
   telechargement_document: "Téléchargement d’un document",
@@ -48,6 +50,10 @@ const ACTIONS: Record<string, string> = {
   // Les gestes de la console (audit console du 27/09) : chacun a sa ligne.
   point_du_matin_decide: "Décision prise depuis le point du matin",
   examen_inscription_artisan: "Examen d’une inscription d’artisan",
+  // D13 (SUP-05, 14/10) : les faits de direction traversent toutes les organisations, chaque traversée est tracée.
+  preparation_faits_direction: "Préparation des faits de direction",
+  consultation_faits_direction: "Consultation des faits de direction (une ligne par organisation citée)",
+  effacement_instantanes_faits_direction: "Effacement des anciens faits de direction, qui pouvaient contenir des noms",
   ...ACTIONS_SUPERVISION,
 };
 
@@ -91,6 +97,8 @@ const EVENEMENTS: Record<string, string> = {
   reponse_gestionnaire: "Réponse du gestionnaire",
   notification_rappel: "Rappel envoyé",
   incident_urgent: "Incident urgent signalé",
+  // D48 (IA-11, 14/10) : le nettoyage des registres d'exécution ne garde que des nombres.
+  purge_registres_execution: "Nettoyage des registres d’exécution arrivés à échéance",
 };
 
 export function libelleEvenement(evenement: string | null | undefined): string {
@@ -131,8 +139,21 @@ export function codesConnusJournaux(): { audit: string[]; technique: string[] } 
  */
 // Clés internes jamais présentées (audit console 27/09) : l'empreinte d'une
 // erreur (« digest : 101828213 ») et l'origine technique d'un appel.
-const CLES_MASQUEES = new Set(["digest", "depuis", "empreinte"]);
-const CLES_LIBELLES: Record<string, string> = { espace: "espace", ecran: "écran", avant: "état précédent", apres: "nouvel état", avant_active: "active avant", jours: "jours", essai_fin: "fin d’essai" };
+// « action_ref » (D08) : l'empreinte technique d'une action serveur, utile au développeur, pas à l'écran.
+const CLES_MASQUEES = new Set(["digest", "depuis", "empreinte", "action_ref"]);
+const CLES_LIBELLES: Record<string, string> = {
+  espace: "espace", ecran: "écran", avant: "état précédent", apres: "nouvel état", avant_active: "active avant", jours: "jours", essai_fin: "fin d’essai",
+  // Traversée d'un espace client par la supervision (D08) : décision d'accès, nature de la requête, geste, rubrique
+  // ouverte. « accès » et non « résultat » : la ligne est posée AVANT le geste, elle ne dit pas qu'il a réussi.
+  resultat: "accès", requete: "requête", geste: "geste", rubrique: "rubrique", motif: "motif", org_demandee: "organisation demandée",
+};
+// Les valeurs de ces clés se disent en français ; les autres s'affichent telles quelles (codes courts).
+const VALEURS_LIBELLES: Record<string, Record<string, string>> = {
+  resultat: { autorise: "autorisé", refuse: "refusé" },
+  requete: { page: "page", action_serveur: "action", formulaire: "formulaire" },
+  geste: GESTES_TRACE,
+  motif: { organisation_introuvable: "organisation introuvable" },
+};
 
 export function detailsExpurges(details: unknown): string | null {
   if (!details || typeof details !== "object" || Array.isArray(details)) return null;
@@ -143,7 +164,10 @@ export function detailsExpurges(details: unknown): string | null {
     if (typeof valeur === "number" && Number.isFinite(valeur)) morceaux.push(`${libelle} : ${valeur}`);
     else if (typeof valeur === "boolean") morceaux.push(`${libelle} : ${valeur ? "oui" : "non"}`);
     else if (Array.isArray(valeur)) morceaux.push(`${libelle} : ${valeur.length} élément${valeur.length > 1 ? "s" : ""}`);
-    else if (typeof valeur === "string" && /^[a-z0-9_.-]{1,40}$/i.test(valeur) && !/^[0-9a-f-]{32,}$/i.test(valeur)) morceaux.push(`${libelle} : ${valeur}`);
+    else if (typeof valeur === "string" && /^[a-z0-9_.-]{1,40}$/i.test(valeur) && !/^[0-9a-f-]{32,}$/i.test(valeur)) {
+      const dit = Object.hasOwn(VALEURS_LIBELLES, cle) && Object.hasOwn(VALEURS_LIBELLES[cle], valeur) ? VALEURS_LIBELLES[cle][valeur] : valeur;
+      morceaux.push(`${libelle} : ${dit}`);
+    }
     if (morceaux.length >= 8) break;
   }
   return morceaux.length > 0 ? morceaux.join(" · ") : null;

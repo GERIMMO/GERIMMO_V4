@@ -3,7 +3,7 @@ import type { DisponibiliteReseau } from "@/lib/reseau";
 import { descriptionDevisLisible, libelleQuantite, libelleTauxTva, type LigneDevisCalculee } from "@/lib/devis-structure";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
+import { aujourdhuiParis, eur, formaterDate, formaterDateHeure } from "@/lib/ged";
 import { formaterTelephone } from "@/app/artisan/libelles";
 import {
   IMPUTATIONS_INCIDENT,
@@ -203,7 +203,9 @@ function heureParis(iso: string): string {
 }
 
 // RM-9.2.3 : un devis expiré est caduc. On le dit avant que la base ne le
-// refuse — l'agent n'a pas à essayer pour l'apprendre.
+// refuse — l'agent n'a pas à essayer pour l'apprendre. Cela couvre le devis encore
+// « déposé » dont la date est passée (la tâche quotidienne de 04 h 30 UTC ne l'a pas
+// encore traité) ; une fois traité, il est « expiré » et passe dans « Devis expirés ».
 function devisExpire(d: Devis, aujourdhui: string): boolean {
   return d.statut === "depose" && d.valide_jusqu_au < aujourdhui;
 }
@@ -243,7 +245,7 @@ export async function VoletArtisan({
   }
 
   const supabase = await createClient();
-  const aujourdhui = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+  const aujourdhui = aujourdhuiParis();
 
   const [
     { data: consultationsBrutes, error: erreurConsultations },
@@ -884,7 +886,7 @@ export async function VoletArtisan({
 
 // La mise en concurrence ouverte : qui a été sollicité, ce qu'ils ont répondu,
 // et les devis côte à côte.
-function ConsultationOuverte({
+export function ConsultationOuverte({
   orgId,
   consultation,
   sollicitations,
@@ -915,6 +917,9 @@ function ConsultationOuverte({
     sollicitations.some((s) => s.id === d.sollicitation_id)
   );
   const comparables = devisDeLaConsultation.filter((d) => d.statut === "depose");
+  // Un devis dont la validité est dépassée est passé « expiré » (tâche quotidienne) : il quitte la comparaison,
+  // mais l'agent doit pouvoir le relire — ce qu'il a coûté, qui l'avait remis, sa pièce jointe.
+  const expires = devisDeLaConsultation.filter((d) => d.statut === "expire");
   const restants = affectables.filter((a) => !idsSollicites.has(a.artisan_id));
 
   return (
@@ -1044,19 +1049,7 @@ function ConsultationOuverte({
                         </div>
                       )}
                     </div>
-                    <p className="whitespace-pre-line text-sm text-muted-foreground">{descriptionDevisLisible(d.description)}</p>
-                    <DetailDevis lignes={d.lignes} />
-                    <a href={`/api/devis/${d.sollicitation_id}/pdf`} target="_blank" rel="noreferrer" className="lien-discret">Télécharger le détail du devis (PDF)</a>
-                    {d.document_id && (
-                      <a
-                        href={`/agence/${orgId}/documents/${d.document_id}/fichier`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="lien-discret"
-                      >
-                        Ouvrir le devis
-                      </a>
-                    )}
+                    <CorpsDevis orgId={orgId} d={d} />
                     {expire ? (
                       <p className="text-sm text-destructive">
                         Expiré le {formaterDate(d.valide_jusqu_au)} — caduc. Demandez
@@ -1084,6 +1077,45 @@ function ConsultationOuverte({
               Retenir un devis confie la mission : c&apos;est votre décision, pas
               celle du locataire. Le second artisan est écarté automatiquement.
             </p>
+          </div>
+        )}
+
+        {/* LES DEVIS EXPIRÉS — en lecture seule. Ils ne se comparent plus et ne se retiennent plus (RM-9.2.3), mais
+            ils restent au dossier : sans cela, le devis disparaîtrait de l'écran le jour où il expire. */}
+        {expires.length > 0 && (
+          <div className="border-t border-border pt-3">
+            <div className="entete-carte">
+              <p className="libelle-champ">
+                {expires.length} devis expiré{expires.length > 1 ? "s" : ""}
+              </p>
+            </div>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Un devis dont la date de validité est dépassée est caduc : il ne peut plus être retenu.
+              Il reste consultable ici.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {expires.map((d) => (
+                <div key={d.id} className="space-y-2 rounded-md border border-border p-3">
+                  <div className="entete-carte !mb-0">
+                    <b className="min-w-0 truncate text-sm">{nom(d.artisan_id)}</b>
+                    <span className={COULEURS_DEVIS[d.statut] ?? "puce puce-grise"}>
+                      {STATUTS_DEVIS[d.statut] ?? "État à vérifier"}
+                    </span>
+                  </div>
+                  <p className="chiffre montant font-heading text-2xl text-[var(--encre)]">
+                    {montant(d.montant_ttc_cents)}
+                  </p>
+                  <div className="ligne-info">
+                    <span>Valable jusqu&apos;au</span>
+                    <span>{formaterDate(d.valide_jusqu_au)}</span>
+                  </div>
+                  <CorpsDevis orgId={orgId} d={d} />
+                  <p className="text-sm text-destructive">
+                    Expiré le {formaterDate(d.valide_jusqu_au)} — caduc. Demandez une proposition à jour.
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1120,8 +1152,9 @@ function ConsultationOuverte({
               // trois lignes plus haut, poussait à corriger la nature des
               // travaux pour rien. Il n'en reste simplement aucun AUTRE.
               <p className="text-sm text-muted-foreground">
-                Tous les artisans qui correspondent sont déjà sollicités —
-                attendez leur devis, ou{" "}
+                {vivantes.length > 0
+                  ? "Tous les artisans qui correspondent sont déjà sollicités — attendez leur devis, ou "
+                  : "Tous les artisans qui correspondent ont déjà été sollicités et aucune demande n'est en cours — "}
                 <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
                   enregistrez une autre entreprise dans votre carnet
                 </Link>{" "}
@@ -1171,6 +1204,27 @@ function ConsultationOuverte({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// Ce que l'agent lit d'un devis, retenable ou non : le détail, le PDF et la pièce déposée par l'artisan.
+function CorpsDevis({ orgId, d }: { orgId: string; d: Devis }) {
+  return (
+    <>
+      <p className="whitespace-pre-line text-sm text-muted-foreground">{descriptionDevisLisible(d.description)}</p>
+      <DetailDevis lignes={d.lignes} />
+      <a href={`/api/devis/${d.sollicitation_id}/pdf`} target="_blank" rel="noreferrer" className="lien-discret">Télécharger le détail du devis (PDF)</a>
+      {d.document_id && (
+        <a
+          href={`/agence/${orgId}/documents/${d.document_id}/fichier`}
+          target="_blank"
+          rel="noreferrer"
+          className="lien-discret"
+        >
+          Ouvrir le devis
+        </a>
+      )}
+    </>
   );
 }
 

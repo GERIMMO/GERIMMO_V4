@@ -7,6 +7,11 @@
 // qui note la date, la taille et l'empreinte. Rien n'est planifié ici : il se
 // lance à la main ou depuis un planificateur externe qui détient les secrets.
 //
+// 14/10/2026 (D07, AUD-C-02) : les tâches planifiées de la base (`cron.job`, schéma
+// `cron`, que pg_dump ne copie pas) sont exportées avec le dump, chiffrées dans
+// `taches-pg-cron.gcm`, et `extraire` produit le script qui les recrée (voir
+// taches-planifiees.mjs et docs/sauvegarde-et-restauration.md).
+//
 // Ce qu'il ne fait PAS : il ne restaure rien (voir docs/sauvegarde-et-
 // restauration.md, la restauration passe par pg_restore sur un projet de
 // secours), il ne copie pas les fichiers du Storage (fichiers.mjs) et il ne
@@ -21,6 +26,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chiffrer, dechiffrer, lireCle } from './fichiers.mjs';
+import { exporterTachesPlanifiees, FICHIER_REJEU, FICHIER_TACHES, FICHIER_TACHES_CLAIR, genererRejeu } from './taches-planifiees.mjs';
 
 /** Les schémas qui portent les données de Gerimmo. Les schémas internes de Supabase se recréent avec le projet. */
 export const SCHEMAS = ['public', 'auth', 'storage'];
@@ -70,13 +76,23 @@ export async function exporter(dossier, cle, connexion, options = {}) {
   // `snapshot` (exercice de restauration) : l'export lit exactement l'instantané
   // qu'une autre session a exporté, pour comparer source et copie sans course.
   const extras = options.snapshot ? [`--snapshot=${options.snapshot}`] : [];
-  try { octets = await lancerPgDump(argumentsConnexion(connexion), options.commande, options.schemas, extras); }
+  // D07 (AUD-C-02) : les tâches planifiées (`cron.job`, schéma `cron`) ne font pas partie des schémas sauvegardés par pg_dump.
+  // Elles sont lues avec le dump et avant toute écriture : si la lecture échoue, rien n'est laissé à moitié.
+  let taches;
+  try {
+    octets = await lancerPgDump(argumentsConnexion(connexion), options.commande, options.schemas, extras);
+    taches = await exporterTachesPlanifiees(argumentsConnexion(connexion), { psql: options.psql });
+  }
   catch (e) { await fs.rmdir(dossier).catch(() => {}); throw e; }
   if (octets.length < 64) throw new Error('Export vide : rien n’a été écrit.');
+  const date = new Date().toISOString();
+  const clairTaches = Buffer.from(JSON.stringify({ version: 1, nature: 'taches-pg-cron', date, pg_cron: taches.pg_cron, taches: taches.taches }));
   await fs.writeFile(path.join(dossier, 'base.dump.gcm'), chiffrer(octets, cle), { mode: 0o600, flag: 'wx' });
-  const manifeste = { version: 1, nature: 'base', date: new Date().toISOString(), schemas: options.schemas ?? SCHEMAS, taille: octets.length, sha256: empreinte(octets), hote: argumentsConnexion(connexion).args[1] };
+  await fs.writeFile(path.join(dossier, FICHIER_TACHES), chiffrer(clairTaches, cle), { mode: 0o600, flag: 'wx' });
+  const manifeste = { version: 1, nature: 'base', date, schemas: options.schemas ?? SCHEMAS, taille: octets.length, sha256: empreinte(octets), hote: argumentsConnexion(connexion).args[1],
+    taches_planifiees: { fichier: FICHIER_TACHES, pg_cron: taches.pg_cron, nombre: taches.taches.length, sha256: empreinte(clairTaches) } };
   await fs.writeFile(path.join(dossier, 'manifeste-base.gcm'), chiffrer(Buffer.from(JSON.stringify(manifeste)), cle), { mode: 0o600, flag: 'wx' });
-  return { octets: octets.length, sha256: manifeste.sha256 };
+  return { octets: octets.length, sha256: manifeste.sha256, taches_planifiees: taches.taches.length };
 }
 
 async function lireSur(dossier, nom) {
@@ -85,20 +101,39 @@ async function lireSur(dossier, nom) {
   return fs.readFile(chemin);
 }
 
+/** Les tâches planifiées d'une archive, vérifiées (empreinte, nombre). Les archives d'avant le 14/10/2026 n'en portent pas : `null`. */
+async function lireTaches(dossier, cle, m) {
+  const t = m.taches_planifiees;
+  if (t === undefined) return null;
+  if (!t || t.fichier !== FICHIER_TACHES || !/^[a-f0-9]{64}$/.test(t.sha256 ?? '') || !Number.isInteger(t.nombre) || t.nombre < 0) throw new Error('Manifeste invalide.');
+  const clair = dechiffrer(await lireSur(dossier, t.fichier), cle);
+  if (empreinte(clair) !== t.sha256) throw new Error('Intégrité des tâches planifiées non confirmée.');
+  const contenu = JSON.parse(clair.toString());
+  if (contenu.nature !== 'taches-pg-cron' || !Array.isArray(contenu.taches) || contenu.taches.length !== t.nombre) throw new Error('Liste des tâches planifiées non conforme au manifeste.');
+  return contenu;
+}
+
 export async function verifier(dossier, cle) {
   const m = JSON.parse(dechiffrer(await lireSur(dossier, 'manifeste-base.gcm'), cle).toString());
   if (m.version !== 1 || m.nature !== 'base' || !/^[a-f0-9]{64}$/.test(m.sha256 ?? '')) throw new Error('Manifeste invalide.');
   const octets = dechiffrer(await lireSur(dossier, 'base.dump.gcm'), cle);
   if (octets.length !== m.taille || empreinte(octets) !== m.sha256) throw new Error('Intégrité de l’export non confirmée.');
+  await lireTaches(dossier, cle, m);
   return m;
 }
 
 export async function extraire(dossier, cle, destination) {
   const m = await verifier(dossier, cle);
+  const taches = await lireTaches(dossier, cle, m);
   await fs.mkdir(destination, { mode: 0o700 });
   await fs.writeFile(path.join(destination, 'base.dump'), dechiffrer(await lireSur(dossier, 'base.dump.gcm'), cle), { flag: 'wx', mode: 0o600 });
   await fs.writeFile(path.join(destination, 'restauration-base.json'), JSON.stringify(m, null, 2), { flag: 'wx', mode: 0o600 });
-  return { octets: m.taille, date: m.date };
+  if (taches) {
+    // D07 : la liste en clair et le script qui la rejoue (étape « activer pg_cron/pg_net et rejouer les cron.schedule »).
+    await fs.writeFile(path.join(destination, FICHIER_TACHES_CLAIR), JSON.stringify(taches, null, 2), { flag: 'wx', mode: 0o600 });
+    await fs.writeFile(path.join(destination, FICHIER_REJEU), genererRejeu(taches.taches), { flag: 'wx', mode: 0o600 });
+  }
+  return { octets: m.taille, date: m.date, taches_planifiees: taches ? taches.taches.length : null };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -107,7 +142,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     if (!dossier) throw new Error('Indiquer un dossier de sauvegarde.');
     let bilan;
     if (commande === 'exporter') bilan = await exporter(dossier, cle, process.env.GERIMMO_BACKUP_DB_URL);
-    else if (commande === 'verifier') { const m = await verifier(dossier, cle); bilan = { date: m.date, octets: m.taille, integrite: 'vérifiée' }; }
+    else if (commande === 'verifier') { const m = await verifier(dossier, cle); bilan = { date: m.date, octets: m.taille, integrite: 'vérifiée', taches_planifiees: m.taches_planifiees?.nombre ?? null }; }
     else if (commande === 'extraire' && destination) bilan = await extraire(dossier, cle, destination);
     else throw new Error('Commandes : exporter, verifier ou extraire (avec un dossier de destination neuf).');
     console.log(JSON.stringify(bilan));

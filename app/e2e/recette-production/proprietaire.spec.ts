@@ -18,10 +18,9 @@ import {
 
 // RECETTE — LE PROPRIÉTAIRE DIRECT.
 //
-// Le compte vient de preparer-comptes.sql avec UN bien : le premier est
-// offert à vie, et « Mon abonnement » n'affiche alors aucun bouton. C'est le
-// second bien, créé ici, qui fait apparaître un montant et le bouton
-// « S'abonner » — que la recette regarde et ne touche JAMAIS (aucun paiement).
+// Grille du 28/09 : « Mon abonnement » affiche un récapitulatif avant paiement
+// et le bouton « Continuer vers le paiement sécurisé » — que la recette regarde
+// et ne touche JAMAIS (aucun paiement).
 
 test.describe("propriétaire direct", () => {
   test("se connecte et voit le parcours de démarrage", SANS_TRACE, async ({ page, context }) => {
@@ -58,21 +57,18 @@ test.describe("propriétaire direct", () => {
       await expect(page.locator("body")).toContainText(nom);
     });
 
-    test("« Mon abonnement » affiche un montant et le bouton d'abonnement, sans le toucher", async ({ page, surveillance }) => {
+    test("« Mon abonnement » affiche le récapitulatif avant paiement et le bouton, sans le toucher", async ({ page, surveillance }) => {
       const { orgProprietaire } = lireComptes();
       const chemin = `/agence/${orgProprietaire}/abonnement`;
       expect(await jugerEcran(page, chemin, surveillance)).toEqual([]);
-      // Test autonome : s'il n'y a qu'un bien (test précédent non joué), le
-      // bouton n'a pas lieu d'être — on crée le second, comme un client.
-      if (await page.getByText(/Rien à régler pour l.instant/).isVisible()) {
-        await creerBien(page, orgProprietaire, nomUnique("Second bien recette"));
-        await page.goto(chemin);
-      }
-      await expect(page.getByText("Total mensuel")).toBeVisible();
-      await expect(page.locator(".montant").filter({ hasText: /\d.*€/ }).first()).toBeVisible();
-      const bouton = page.getByRole("button", { name: /S[’']abonner/ });
+      // Grille du 28/09 : le récapitulatif avant paiement remplace l'ancien
+      // « Total mensuel » (sans offre à vie ni second bien à créer).
+      const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
+      await expect(recap).toBeVisible();
+      await expect(recap).toContainText("Total à payer TTC");
+      await expect(recap).toContainText(/\d.*€/);
+      const bouton = page.getByRole("button", { name: /Continuer vers le paiement sécurisé/ });
       await expect(bouton).toBeVisible();
-      await expect(bouton).toContainText(/€/);
       // Aucun clic : le bouton part vers le paiement Stripe.
       expect(await debordementHorizontal(page)).toBeLessThanOrEqual(0);
     });

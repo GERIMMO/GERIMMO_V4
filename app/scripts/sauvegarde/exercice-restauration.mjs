@@ -17,7 +17,9 @@
 //      `anon` / `authenticated` / `service_role` sur les tables et les
 //      fonctions — et le contrôle « aucune fonction ouverte à anon » sur la
 //      base restaurée (les droits font partie de la défense : un dump sans
-//      GRANT/REVOKE rouvrirait toutes les fonctions à PUBLIC) ;
+//      GRANT/REVOKE rouvrirait toutes les fonctions à PUBLIC) ; depuis le
+//      14/10/2026 (D07), le nombre de tâches pg_cron de la source (`cron.job`,
+//      hors des schémas restaurés) doit être celui de l'archive ;
 //   6. bilan JSON (durées, nombres, écarts) ; la base cible est supprimée
 //      sauf `--garder`.
 //
@@ -118,7 +120,7 @@ export async function exercer({ source, cible = 'gerimmo_restauration', garder =
 
     t = Date.now();
     await verifier(path.join(travail, 'base'), cle);
-    await extraire(path.join(travail, 'base'), cle, path.join(travail, 'clair'));
+    const extrait = await extraire(path.join(travail, 'base'), cle, path.join(travail, 'clair'));
     chrono('verification_dechiffrement', t);
 
     t = Date.now();
@@ -149,6 +151,9 @@ export async function exercer({ source, cible = 'gerimmo_restauration', garder =
     const ouvertesAnon = Number((await lireCible(`select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
       where n.nspname='public' and p.prokind='f' and has_function_privilege('anon',p.oid,'EXECUTE')`))[0]);
     await cibleClient.end();
+    // D07 : les tâches pg_cron de la source (`cron.job`, hors des schémas sauvegardés) doivent se retrouver dans l'archive.
+    const cronPresent = (await lireSource(`select (to_regclass('cron.job') is not null)::text`))[0] === 'true';
+    const tachesSource = cronPresent ? Number((await lireSource('select count(*) from cron.job'))[0]) : 0;
     chrono('comparaison', t);
 
     bilan.tables = Object.keys(lignesCible).length;
@@ -156,7 +161,8 @@ export async function exercer({ source, cible = 'gerimmo_restauration', garder =
     bilan.tables_differentes = tablesDifferentes;
     bilan.ecarts_droits = ecarts;
     bilan.fonctions_ouvertes_a_anon = ouvertesAnon;
-    bilan.reussi = tablesDifferentes.length === 0 && Object.keys(ecarts).length === 0 && ouvertesAnon === 0;
+    bilan.taches_planifiees = { source: tachesSource, archive: extrait.taches_planifiees };
+    bilan.reussi = tablesDifferentes.length === 0 && Object.keys(ecarts).length === 0 && ouvertesAnon === 0 && tachesSource === extrait.taches_planifiees;
     bilan.duree = `${((Date.now() - debut) / 1000).toFixed(1)} s`;
     bilan.date = new Date().toISOString();
     return bilan;

@@ -70,7 +70,13 @@ test.describe("admin d'agence", () => {
         test.info().annotations.push({ type: "reprise", description: "fiche déjà créée au premier essai" });
         return;
       }
+      // Depuis le 10/10 (#170), la saisie est une vue à part, masquée tant
+      // qu'on n'a pas ouvert « Créer une fiche » : on l'ouvre comme un client.
       const carte = page.locator("#creer-fiche");
+      if (!(await carte.isVisible())) {
+        await cliquer(page.getByRole("link", { name: /Créer une fiche/ }).first());
+      }
+      await expect(carte).toBeVisible({ timeout: 15_000 });
       await carte.scrollIntoViewIfNeeded();
       const role = carte.getByRole("button", { name: /^Locataire/ });
       const nom = page.locator("#p-nom");

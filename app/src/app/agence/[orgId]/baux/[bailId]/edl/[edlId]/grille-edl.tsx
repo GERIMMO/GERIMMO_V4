@@ -5,7 +5,10 @@ import { createPortal } from "react-dom";
 import { majGrilleEdl, type EtatEdl } from "@/app/actions/edl";
 import { formaterDate, formaterDateHeure } from "@/lib/ged";
 import {
+  actionBrouillon,
   chargerBrouillon,
+  construireBrouillon,
+  decisionReprise,
   effacerBrouillon,
   empreinteGrille,
   lignesEnAttente,
@@ -148,6 +151,7 @@ export function GrilleEdl({
   zoneSignatureId,
   bailId,
   edlId,
+  compteId,
   lignes,
   signe,
   reference,
@@ -156,6 +160,8 @@ export function GrilleEdl({
   zoneSignatureId?: string;
   bailId: string;
   edlId: string;
+  // D15 (14/10) : le brouillon local est rattaché à ce compte ; un autre compte du même appareil ne le relit pas.
+  compteId: string;
   lignes: Ligne[];
   signe: boolean;
   // EDL d'entrée signé du même bail (saisie de sortie uniquement) : chaque
@@ -236,17 +242,31 @@ export function GrilleEdl({
   // depuis (le brouillon est strictement plus récent) ; signalée sinon — un
   // EDL ouvert ailleurs se signale, ne se verrouille pas (RM-19.1.9).
   useEffect(() => {
-    if (signe) return;
-    const b = chargerBrouillon(edlId);
-    if (!b) return;
+    // Un état des lieux signé est figé : un brouillon resté sur l'appareil n'a plus de ligne à envoyer (D15). Sinon, le
+    // brouillon du compte, ou à défaut l'ancien brouillon de cet état des lieux, saisi avant la mise à jour et repris ici (D15).
+    const b = signe ? null : chargerBrouillon(compteId, edlId);
+    const reprise = decisionReprise({
+      signe,
+      brouillon: b,
+      empreinteServeur: empreinteGrille(lignes),
+      saisie: { etats, commentaires },
+      synchronise,
+    });
+    if (reprise.action === "effacer") {
+      // D15 : un brouillon qui ne diffère plus de la version synchronisée ne protège plus rien, il est effacé (sans quoi la
+      // déconnexion le garderait et en avertirait à tort).
+      effacerBrouillon(compteId, edlId);
+      return;
+    }
+    if (reprise.action === "aucune") return;
     // Restauration APRÈS l'hydratation : le HTML serveur ne connaît pas le
     // brouillon de l'appareil, le report d'un rendu est structurel ici.
     queueMicrotask(() => {
-      if (b.empreinteServeur === empreinteGrille(lignes)) {
-        setEtats((prev) => ({ ...prev, ...b.etats }));
-        setCommentaires((prev) => ({ ...prev, ...b.commentaires }));
+      if (reprise.action === "restaurer") {
+        setEtats((prev) => ({ ...prev, ...reprise.etats }));
+        setCommentaires((prev) => ({ ...prev, ...reprise.commentaires }));
       } else {
-        setConflit(b);
+        setConflit(reprise.brouillon);
       }
     });
     // Volontairement au seul montage : la grille contrôlée reprend la main ensuite.
@@ -254,18 +274,27 @@ export function GrilleEdl({
   }, []);
 
   // RM-19.1.1 : chaque saisie part sur l'appareil, sans action de l'agent.
+  // D15 : le brouillon annonce combien de lignes il garde sans les avoir envoyées (`enAttente`), et disparaît dès qu'il n'y en a
+  // plus (saisie remise à l'identique de la version synchronisée) : la déconnexion n'efface que ce qui ne protège rien.
+  const brouillonEcrit = useRef(false);
   useEffect(() => {
-    if (signe || attente === 0) return;
+    const action = actionBrouillon({ signe, attente, dejaEcrit: brouillonEcrit.current });
+    if (action === "effacer") {
+      effacerBrouillon(compteId, edlId);
+      brouillonEcrit.current = false;
+      return;
+    }
+    if (action === "rien") return;
     const minuteur = setTimeout(() => {
-      sauverBrouillon(edlId, {
-        etats,
-        commentaires,
-        enregistreLe: new Date().toISOString(),
-        empreinteServeur: empreinte,
-      });
+      sauverBrouillon(
+        compteId,
+        edlId,
+        construireBrouillon({ saisie: { etats, commentaires }, empreinteServeur: empreinte, attente, maintenant: new Date() })
+      );
+      brouillonEcrit.current = true;
     }, 400);
     return () => clearTimeout(minuteur);
-  }, [signe, edlId, etats, commentaires, empreinte, attente]);
+  }, [signe, compteId, edlId, etats, commentaires, empreinte, attente]);
 
   // RM-19.1.7 : fermer l'onglet avec des lignes non synchronisées se confirme.
   useEffect(() => {
@@ -379,7 +408,7 @@ export function GrilleEdl({
               size="sm"
               variant="outline"
               onClick={() => {
-                effacerBrouillon(edlId);
+                effacerBrouillon(compteId, edlId);
                 setConflit(null);
               }}
             >
@@ -413,7 +442,7 @@ export function GrilleEdl({
             if (retour.succes) {
               setSynchronise(soumis);
               setConflit(null);
-              effacerBrouillon(edlId);
+              effacerBrouillon(compteId, edlId);
               // Après signature, relire le dossier figé avant toute autre action.
               if (donnees.get("signer") === "1") window.location.reload();
             }

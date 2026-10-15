@@ -12,6 +12,7 @@
 // client perd l'usage de son outil.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cleRelanceAbonnement } from "@/lib/cles-idempotence-courriels";
 import { envoyerEmail } from "@/lib/email";
 import { corpsRelance, sujetRelance, type Palier } from "@/lib/relance-paiement-email";
 import { adresseDuSite } from "@/lib/site";
@@ -42,6 +43,14 @@ export type BilanRelances = {
  * recevrait jamais l'avis de la veille et découvrirait la lecture seule sans
  * avoir été prévenu. Dans ce sens-ci, le pire cas est un doublon, et la base
  * l'interdit déjà : jamais deux courriers le même jour.
+ *
+ * Mais ce « jamais le même jour » ne vaut qu'une fois le courrier marqué. L'appel
+ * au service d'e-mail a un délai maximal (15 s, `lib/email.ts`) : s'il coupe
+ * l'attente d'un envoi pourtant accepté, rien n'est marqué et l'autre chemin
+ * (webhook ou tâche de nuit) reprend la relance. D'où la clé anti-doublon
+ * (décision D47, relecture du 14/10) : le service, revoyant la même clé, rend la
+ * réponse du premier envoi. Il la retient 24 h seulement (hypothèse, voir
+ * `lib/email.ts`) : une reprise plus tardive renverrait le courrier.
  *
  * UNE ORGANISATION SANS ADRESSE N'EST PAS RELANCÉE EN SILENCE : elle est
  * rapportée. Fermer l'écriture de quelqu'un qu'on n'a pas pu prévenir serait le
@@ -82,6 +91,14 @@ export async function envoyerRelancesDues(
     const { erreur } = await envoyerEmail({
       avantEnvoi: options.avantEffet,
       to: r.destinataire,
+      cleIdempotence: cleRelanceAbonnement({
+        organisationId: r.organization_id,
+        palier: relance.palier,
+        lectureSeuleLe: relance.lectureSeuleLe,
+        joursRestants: relance.joursRestants,
+        montantMensuel: r.montant_mensuel,
+        destinataire: r.destinataire,
+      }),
       subject: sujetRelance(relance),
       html: corpsRelance(relance),
     });

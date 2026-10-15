@@ -39,9 +39,25 @@ import { cleRappelRendezVous } from "@/lib/cles-idempotence-courriels";
 import { envoyerEmail } from "@/lib/email";
 import { envoyerRappelsGestes, type BilanRappelsGestes } from "@/lib/notifications";
 import { corpsRappel, sujetRappel } from "@/lib/rappel-email";
+import { envoyerRelancesInvitations, type BilanRelancesInvitations } from "@/lib/relances-invitations";
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache } from "@/lib/tache";
 import { timingSafeEqual } from "node:crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+// DEPUIS LE 15/10 (décision X16, fiche REP-05), LA MÊME RONDE RELANCE AUSSI LES INVITATIONS DE LOCATAIRE restées sans
+// réponse, à J+3 puis à J+10 (lib/relances-invitations.ts). Elles passent APRÈS les rendez-vous, qui ne doivent pas
+// attendre, avec le même contrôle d'arrêt d'urgence (clé « rappels » ou arrêt global). Un incident des relances
+// d'invitation ne prive pas les rendez-vous de leur passe : il est compté dans le bilan, sans texte.
+async function relancerInvitations(supabase: SupabaseClient): Promise<BilanRelancesInvitations> {
+  try {
+    return await envoyerRelancesInvitations(supabase, { avantEffet: () => verifierAvantEffet(supabase, "rappels") });
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    console.error("[cron rappels] relances d'invitation :", e instanceof Error ? e.name : "incident");
+    return { envoyees: 0, echecs: 1, incertaines: 0, limitees: 0, ignorees: 0, non_notees: 0, lecture_impossible: true };
+  }
+}
 
 
 type Ligne = {
@@ -111,7 +127,8 @@ export async function traiterRappels(request: Request) {
   if (lignes.length === 0) {
     // Une passe sans rien à faire se consigne aussi : c'est le battement de
     // cœur que la ronde du matin attend à cette heure-là.
-    const bilan = { rappeles: 0, echecs: 0, gestes };
+    const invitations = await relancerInvitations(supabase);
+    const bilan = { rappeles: 0, echecs: 0, gestes, invitations };
     await consignerTache(supabase, "rappels", bilan);
     return Response.json(bilan);
   }
@@ -173,7 +190,8 @@ export async function traiterRappels(request: Request) {
   if (echecs.length > 0) {
     console.error("[cron rappels] échecs:", [...new Set(echecs)].join(" · "));
   }
-  const bilan = { rappeles, echecs: echecs.length, gestes };
+  const invitations = await relancerInvitations(supabase);
+  const bilan = { rappeles, echecs: echecs.length, gestes, invitations };
   await consignerTache(supabase, "rappels", bilan);
   return Response.json(bilan);
 }

@@ -127,6 +127,12 @@ export default async function PagePersonne(
       .eq("organization_id",orgId).eq("person_id",personId).order("cree_le",{ascending:false}),
     personne.account_id ? supabase.rpc("statut_acces_locataire", {p_org:orgId,p_person_id:personId}) : Promise.resolve({data:null,error:null}),
   ]);
+  // Les relances automatiques (J+3, J+10 ; décision X16 du 15/10/2026) de la dernière invitation : « Relancé le … ».
+  const derniereInvitation = invitations?.[0]?.id;
+  const { data: relancesInvitation, error: erreurRelances } = derniereInvitation
+    ? await supabase.from("relances_invitations_locataires").select("invitation_id,rang,jour,etat,envoyee_le")
+        .eq("invitation_id", derniereInvitation).order("rang")
+    : { data: [], error: null };
 
   // Quatre lectures indépendantes — un seul aller-retour
   const [
@@ -613,7 +619,8 @@ export default async function PagePersonne(
             dejaInvite={accesLocataire?.role === "locataire" && accesLocataire.status === "active"}
             accesSuspendu={accesLocataire?.role === "locataire" && accesLocataire.status === "inactive"}
             historique={invitations ?? []}
-            erreurLecture={Boolean(erreurInvitations || erreurAccesLocataire)}
+            relances={relancesInvitation ?? []}
+            erreurLecture={Boolean(erreurInvitations || erreurAccesLocataire || erreurRelances)}
           />
         </CardContent>
       </Card>

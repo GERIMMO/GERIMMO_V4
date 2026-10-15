@@ -48,7 +48,9 @@ set local lock_timeout = '10s';
 
 -- Outil local à cette session (pg_temp) : retire d'une fonction le bloc compris entre deux marques, si et seulement si
 -- chacune est présente exactement une fois et dans le bon ordre. Sans marque de début : rien à faire (rejeu).
-create or replace function pg_temp.retirer_bloc(p_signature text, p_debut text, p_fin text)
+-- Nom propre à ce script : le retour de 20261014610000, joué plus loin dans la même chaîne, pose son propre
+-- `pg_temp.retirer_bloc(text, text, text)` par un « create » simple, qui échouerait dans une session où celui-ci existe.
+create or replace function pg_temp.retirer_bloc_relais(p_signature text, p_debut text, p_fin text)
 returns text language plpgsql as $retour_arriere$
 declare v_oid regprocedure := to_regprocedure(p_signature); v_def text; p_d int; p_f int;
 begin
@@ -79,19 +81,19 @@ begin
 end $retour_arriere$;
 
 -- 2. Les blocs ajoutés aux fonctions du lot, retirés de la définition en vigueur.
-select pg_temp.retirer_bloc('public.sentinelle_relais()',
+select pg_temp.retirer_bloc_relais('public.sentinelle_relais()',
   '      -- >> Relais 15/10 (passage reçu)', E'-- << Relais 15/10 (passage reçu)\n');
-select pg_temp.retirer_bloc('public.sentinelle_relais()',
+select pg_temp.retirer_bloc_relais('public.sentinelle_relais()',
   ' /* >> Relais 15/10 (tâches hors arrêt) */', '/* << Relais 15/10 (tâches hors arrêt) */');
 revoke all on function public.sentinelle_relais() from public, anon, authenticated;
 grant execute on function public.sentinelle_relais() to service_role;
 
-select pg_temp.retirer_bloc('public.urgences_relais_recentes()',
+select pg_temp.retirer_bloc_relais('public.urgences_relais_recentes()',
   '  -- >> Relais 15/10 (rappel exact)', E'-- << Relais 15/10 (rappel exact)\n');
 revoke all on function public.urgences_relais_recentes() from public, anon, authenticated;
 grant execute on function public.urgences_relais_recentes() to service_role;
 
-select pg_temp.retirer_bloc('public.relais_urgence_a_envoyer()',
+select pg_temp.retirer_bloc_relais('public.relais_urgence_a_envoyer()',
   '    -- >> Relais 15/10 (clé imitée)', E'-- << Relais 15/10 (clé imitée)\n');
 revoke all on function public.relais_urgence_a_envoyer() from public, anon, authenticated, service_role;
 

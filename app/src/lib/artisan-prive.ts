@@ -16,7 +16,7 @@ export type RendezVousExterne = {id:string;chantier_id:string;debut:string;fin:s
 export type FactureArtisanPrivee = {id:string;origine:"externe"|"gerimmo";chantier_id?:string;intervention_id?:string;numero:string;montant_ttc_cents:number;piece_id?:string;document_id?:string;client:string;created_at:string};
 export type ReglementArtisan = {id:string;facture_externe_id:string|null;facture_gerimmo_id:string|null;montant_cents:number;date_reglement:string;moyen:string;reference:string;preuve_id:string;auteur:string;created_at:string;annule_le:string|null;annulation_motif:string|null;annulation_preuve_id:string|null};
 export type PiecePrivee = {id:string;nom:string;storage_path:string;mime:string;sha256:string;taille:number};
-export type ActiviteArtisanPrivee = {clients:ClientExterne[];chantiers:ChantierExterne[];devis:DevisExterne[];rendez_vous:RendezVousExterne[];factures:FactureArtisanPrivee[];pieces:PiecePrivee[];reglements:ReglementArtisan[];evenements:{id:string;objet_id:string;action:string;created_at:string;auteur:string;details:Record<string,unknown>}[];activation:{clients:boolean;reglements:boolean}};
+export type ActiviteArtisanPrivee = {clients:ClientExterne[];chantiers:ChantierExterne[];devis:DevisExterne[];rendez_vous:RendezVousExterne[];factures:FactureArtisanPrivee[];pieces:PiecePrivee[];reglements:ReglementArtisan[];evenements:{id:string;objet_id:string;action:string;created_at:string;auteur:string;details:Record<string,unknown>}[];activation:{clients:boolean;reglements:boolean;exclusion?:"refuse"|"liste_noire"|null}};
 export async function chargerActivitePrivee() {
   const supabase=await createClient();
   if (!environnementArtisanLocal()) return {supabase,data:null,erreur:"Cet espace privé est désactivé dans cet environnement."};

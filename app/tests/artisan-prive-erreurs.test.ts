@@ -48,8 +48,12 @@ function activiteAvecDevis(nomEntreprise = "Atelier TEST") {
   };
 }
 
+/** Les appels qui écrivent : la garde d'exclusion (D25-B, ARC-08) précède chaque écriture et n'en est pas une. */
+const ecritures = () => sim.rpc.mock.calls.filter(([nom]) => nom !== "artisan_exclusion_plateforme");
+
 beforeEach(() => {
   sim.rpc.mockReset();
+  sim.rpc.mockImplementation(async (nom: string) => (nom === "artisan_exclusion_plateforme" ? { data: null, error: null } : undefined));
   sim.rendrePdf.mockReset();
   sim.activite = activiteAvecDevis();
   vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -64,7 +68,7 @@ describe("devis externe : le rendu PDF échoue (ARC-01)", () => {
     const r = await valider();
     expect(r.erreur).toMatch(/PDF du devis n’a pas pu être généré \(réf\. DOC-[A-Z0-9]+\)/);
     expect(r.erreur).not.toMatch(/Chrome|GERIMMO|installez|variable/i);
-    expect(sim.rpc).not.toHaveBeenCalled();
+    expect(ecritures()).toHaveLength(0);
   });
 
   it("le détail technique reste au journal du serveur, sous la même référence", async () => {
@@ -106,7 +110,7 @@ describe("clients, chantiers, factures : un message par action (ARC-06)", () => 
     sim.rpc.mockResolvedValue({ data: null, error: { message: 'new row for relation "artisan_clients" violates check constraint "artisan_clients_nom_check"' } });
     const r = await enregistrerActivitePrivee(formulaire({ ...champsClient, nom: "   " }));
     expect(r.erreur).toBe("Indiquez le nom du client.");
-    expect(sim.rpc.mock.calls[0][1].p_donnees.nom).toBe("");
+    expect(ecritures()[0][1].p_donnees.nom).toBe("");
   });
 
   it("une phrase métier de la base passe telle quelle", async () => {

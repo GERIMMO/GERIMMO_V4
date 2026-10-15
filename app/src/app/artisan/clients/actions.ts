@@ -10,6 +10,7 @@ import { assemblerDevisArtisan } from "@/lib/documents/devis-artisan";
 import { rendrePdf } from "@/lib/documents/rendu";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
 import { messageErreurPrive, messageRenduPdfEchoue } from "@/lib/artisan-prive-erreurs";
+import { exclusionLue, MESSAGE_ECRITURE_FERMEE } from "@/lib/artisan-prive-exclusion";
 
 export type ResultatPrive = {erreur?:string;succes?:string;href?:string};
 async function piecePrivee(supabase:SupabaseClient,artisan:string,fichier:File,cle:string) {
@@ -28,6 +29,9 @@ export async function enregistrerActivitePrivee(form:FormData):Promise<ResultatP
     const action=String(form.get("action")??"");const reglement=["reglement","annuler_reglement"].includes(action);
     if(!activationArtisanLocale(reglement?"reglements":"clients"))throw Error("La saisie de ce module est désactivée. Les dossiers conservés restent consultables.");
     const {supabase,fiche,erreur}=await verifierArtisanMutation();if(!fiche)throw Error(erreur??"Connectez-vous avec votre propre compte artisan.");
+    // D25-B (ARC-08) : refusé ou sur liste noire, l'artisan n'écrit plus (client, chantier, devis, facture). On le dit AVANT de produire un
+    // PDF au gabarit Gerimmo ou de déposer une pièce ; la base refuse de toute façon. Les règlements déclarés restent hors de cette décision.
+    if(!reglement){const {data:exclusion}=await supabase.rpc("artisan_exclusion_plateforme");const fermee=exclusionLue(exclusion);if(fermee)throw Error(MESSAGE_ECRITURE_FERMEE[fermee]);}
     const id=String(form.get("id")??"")||null;const revision=Number(form.get("revision")??0);const cle=String(form.get("cle")??"");
     if(!/^[a-f\d-]{36}$/i.test(cle))throw Error("Rechargez le formulaire avant de continuer.");
     const donnees:Record<string,unknown>={};

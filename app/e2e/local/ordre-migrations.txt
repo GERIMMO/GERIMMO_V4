@@ -327,3 +327,5 @@
 20261014300000_devis_a_decider_alerte.sql
 20261014301000_ecart_rendez_vous_chronologie.sql
 20261014302000_creneaux_non_retenus_caducs.sql
+20261014310000_artisan_facture_numero_unique.sql
+20261014311000_artisan_exclusion_ecritures.sql

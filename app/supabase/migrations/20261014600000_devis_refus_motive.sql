@@ -42,6 +42,9 @@ alter table public.incident_devis
   add column if not exists decision_motif text,
   add column if not exists decision_cle uuid;
 
+-- Index couvrant de la clé étrangère vers accounts (règle du schéma : chaque clé étrangère publique a son index).
+create index if not exists incident_devis_decide_par_idx on public.incident_devis (decide_par);
+
 do $correctif$
 begin
   if not exists (select 1 from pg_constraint

@@ -13,6 +13,7 @@ import { redirect } from "next/navigation";
 import { notifierDevisRecu } from "@/lib/notifications";
 import { decalerJour } from "@/lib/agenda-gestion";
 import { aujourdhuiParis } from "@/lib/ged";
+import { effacerPdfPreparation, pdfRemplace } from "@/lib/devis-pdf-stockage";
 
 export async function preparerPropositionDevis(id: string): Promise<{ preparation?: PreparationDevis; erreur?: string }> {
   try {
@@ -48,6 +49,8 @@ export async function enregistrerBrouillonDevis(id: string, form: FormData): Pro
       : service.from("artisan_devis_preparations").insert(donnees);
     const { data, error } = await requete.select("revision").single();
     if (error || !data) throw new Error("Le brouillon a changé. Rouvrez-le avant de continuer.");
+    // X17 (SUP-09) : le devis redevient brouillon, son PDF validé n'est plus référencé — on l'efface (jamais un devis envoyé).
+    await effacerPdfPreparation(service, pdfRemplace(preparation, null));
     return { revision:data.revision };
   } catch (e) { return { erreur:e instanceof Error ? e.message : "Le brouillon n’a pas pu être enregistré." }; }
 }

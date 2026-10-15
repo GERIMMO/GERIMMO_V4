@@ -86,15 +86,20 @@ test.describe("admin d'agence", () => {
         if (!(await nom.isVisible())) await cliquer(role);
         await expect(nom).toBeVisible({ timeout: 3_000 });
       }).toPass({ timeout: 30_000 });
+      // Assistant en étapes (#170) : identité, puis coordonnées, puis une étape facultative avant la création.
+      const suivant = page.getByRole("button", { name: "Suivant", exact: true });
       await saisir(nom, `Recette-${suffixe}`);
       await saisir(page.locator("#p-prenom"), "Léa");
+      await saisir(page.locator("#p-date_naissance"), "1990-05-14");
+      await saisir(page.locator("#p-commune_naissance"), "Lyon");
+      await cliquer(suivant);
       await saisir(page.locator("#p-email"), email);
-      await saisir(page.locator("#p-naissance"), "1990-05-14");
-      await saisir(page.locator("#p-commune-naissance"), "Lyon");
-      await saisir(page.locator("#p-adresse"), "3 place de la Recette");
-      await saisir(page.locator("#p-cp"), "69002");
-      await saisir(page.locator("#p-ville"), "Lyon");
-      await cliquer(page.getByRole("button", { name: "Créer la fiche" }));
+      await saisir(page.locator("#p-address_line1"), "3 place de la Recette");
+      await saisir(page.locator("#p-postal_code"), "69002");
+      await saisir(page.locator("#p-city"), "Lyon");
+      await cliquer(suivant);
+      await cliquer(suivant);
+      await cliquer(page.getByRole("button", { name: "Créer la fiche", exact: true }));
       // La création mène à la fiche de la personne.
       await page.waitForURL(new RegExp(`/agence/${orgAgence}/personnes/[0-9a-f-]{36}`), { timeout: 30_000 });
       await expect(page.locator("body")).toContainText(`Recette-${suffixe}`);

@@ -339,8 +339,10 @@ begin
 
   select cr.id into v_retenu from public.intervention_creneaux cr
   where cr.intervention_id = p_intervention and cr.statut = 'retenu';
-  -- L'artisan répond dans le délai, et au plus tard au début du rendez-vous (passé, il ne se reporte plus).
-  v_expire := least(now() + make_interval(hours => p.reponse_artisan_heures), v.debut_prevu);
+  -- L'artisan répond dans les 48 h, ou avant la veille du rendez-vous si elle est plus proche (fiche C.7) : passé ce
+  -- point, le report ne serait plus demandable non plus ; le rendez-vous confirmé est maintenu.
+  v_expire := least(now() + make_interval(hours => p.reponse_artisan_heures),
+                    v.debut_prevu - make_interval(hours => p.delai_report_heures));
 
   insert into public.intervention_demandes_rdv
     (organization_id, intervention_id, creneau_retenu_id, rdv_debut, rdv_fin, type, motif_code, motif_texte,

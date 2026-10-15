@@ -514,6 +514,24 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     expect(await mesDemandesArtisan()).toEqual([]);
   });
 
+  it("pendant une demande de report, l'artisan ne « déplace » pas le rendez-vous de son côté : il répond à la demande", async () => {
+    const demande = await demanderReport();
+    const avant = await etat();
+    await agir(cptArtisan);
+    await expect(essai(() => db.query("select public.proposer_creneaux($1,$2::jsonb)", [mission, JSON.stringify(troisDates(300))])))
+      .rejects.toThrow(/Le locataire vous a proposé des dates/);
+    expect((await demandes())[0]).toMatchObject({ id: demande, statut: "en_attente" });
+    expect(await etat()).toEqual(avant);
+  });
+
+  it("C.7 : l'échéance de réponse est de 48 h, ou la veille du rendez-vous si elle est plus proche", async () => {
+    await rendezVousDans(50);
+    const demande = await demanderReport();
+    await postgres();
+    const { rows: [r] } = await db.query("select d.expire_le, iv.debut_prevu from public.intervention_demandes_rdv d join public.incident_interventions iv on iv.id=d.intervention_id where d.id=$1", [demande]);
+    expect(new Date(r.debut_prevu).getTime() - new Date(r.expire_le).getTime()).toBe(24 * 3600000);
+  });
+
   it("le locataire ne lit aucune table du module en direct, et la liste des trois nombres est celle de la décision", async () => {
     await agir(loc);
     for (const table of ["intervention_demandes_rdv", "intervention_creneaux", "intervention_rappels"]) {

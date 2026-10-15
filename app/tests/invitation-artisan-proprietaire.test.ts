@@ -188,8 +188,15 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
         const { rows } = await db.query("select has_function_privilege('anon',$1::regprocedure,'execute') a, has_function_privilege('authenticated',$1::regprocedure,'execute') c", [signature]);
         expect(rows[0], signature).toEqual({ a: false, c: true });
       }
-      const interne = (await db.query("select has_function_privilege('authenticated','public.invitation_artisan_par_proprietaire(uuid)','execute') c")).rows[0].c;
-      expect(interne).toBe(false);
+      for (const interne of [
+        "public.invitation_artisan_par_proprietaire(uuid)",
+        "public.adresse_canonique_invitation_artisan(text)",
+        "public.autoriser_invitation_artisan_cle(text,integer,integer)",
+        "public.limiter_envoi_invitation_artisan(uuid,text)",
+      ]) {
+        const { rows } = await db.query("select has_function_privilege('anon',$1::regprocedure,'execute') a, has_function_privilege('authenticated',$1::regprocedure,'execute') c", [interne]);
+        expect(rows[0], interne).toEqual({ a: false, c: false });
+      }
       await db.query("set local role anon");
       expect(await echec("select public.preparer_invitation_artisan($1,$2)", [org, emailInvite])).toMatch(/permission denied/);
       await postgres();
@@ -296,6 +303,86 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect((await db.query("select count(*)::int n from public.invitations_artisans where organization_id=$1", [org])).rows[0].n).toBe(30);
       // La clé est celle des invitations de locataires (src/lib/lien-mot-de-passe.ts) : elle est épuisée pour elles aussi.
       expect((await db.query("select public.autoriser_lien_mot_de_passe_cle($1,30) ok", [`organisation:${org}`])).rows[0].ok).toBe(false);
+    });
+
+    // Relecture du 15/10 (constat de sécurité) : la limite par adresse se contournait par sous-adresse (+étiquette), par
+    // les points d'une adresse Gmail ou par un point final ; elle porte désormais sur la boîte.
+    it("limite anti-abus : sous-adresses, points Gmail et point final comptent pour la même boîte", async () => {
+      const u = unique();
+      await devenir(proprietaire);
+      const r = (await db.query("select public.preparer_invitation_artisan($1,$2) r", [org, `cible${u}@gmail.com`])).rows[0].r;
+      await db.query("select public.renvoyer_invitation_artisan($1)", [r.id]);
+      await db.query("select public.renvoyer_invitation_artisan($1)", [r.id]);
+      for (const variante of [`cible${u}+1@gmail.com`, `c.ible${u}@gmail.com`, `CI.BLE${u}+zz@googlemail.com`, `cible${u}@gmail.com.`]) {
+        expect(await echec("select public.preparer_invitation_artisan($1,$2)", [org, variante]), variante).toMatch(
+          /Trop d’invitations envoyées à cette adresse en une heure/
+        );
+      }
+      // Hors Gmail, les points distinguent deux boîtes : jean.dupont et jeandupont ne se gênent pas.
+      for (let n = 0; n < 3; n++) await db.query("select public.preparer_invitation_artisan($1,$2)", [org, `jean.dupont${u}+${n}@exemple.fr`]);
+      expect((await db.query("select public.preparer_invitation_artisan($1,$2) r", [org, `jeandupont${u}@exemple.fr`])).rows[0].r.id).toBeTruthy();
+    });
+
+    it("la clé de la limite par adresse ramène l'adresse à sa boîte ; fonction interne", async () => {
+      await postgres();
+      const cas: Record<string, string> = {
+        "Cible+Promo@Gmail.com": "cible@gmail.com",
+        "c.i.ble@googlemail.com": "cible@gmail.com",
+        "cible@gmail.com.": "cible@gmail.com",
+        " Jean.Dupont+devis@Exemple.FR ": "jean.dupont@exemple.fr",
+        "jean.dupont@exemple.fr..": "jean.dupont@exemple.fr",
+      };
+      for (const [adresse, boite] of Object.entries(cas)) {
+        expect((await db.query("select public.adresse_canonique_invitation_artisan($1) b", [adresse])).rows[0].b, adresse).toBe(boite);
+      }
+    });
+
+    const reculerDeuxHeures = async () => {
+      // Les envois de ce cas datent de l'instant de sa transaction : les reculer de deux heures vide le décompte de
+      // l'heure sans toucher à celui des 24 heures.
+      await postgres();
+      await db.query("update public.demandes_lien_mot_de_passe set cree_le = cree_le - interval '2 hours' where cree_le = now()");
+    };
+
+    it("limite anti-abus : cinq envois par adresse et par 24 heures, toutes organisations confondues", async () => {
+      const r = await inviter();
+      await db.query("select public.renvoyer_invitation_artisan($1)", [r.id]);
+      await db.query("select public.renvoyer_invitation_artisan($1)", [r.id]);
+      await reculerDeuxHeures();
+      await devenir(proprietaire);
+      await db.query("select public.renvoyer_invitation_artisan($1)", [r.id]);
+      await db.query("select public.renvoyer_invitation_artisan($1)", [r.id]);
+      await reculerDeuxHeures();
+      await devenir(proprietaire);
+      expect(await echec("select public.renvoyer_invitation_artisan($1)", [r.id])).toMatch(/Trop d’invitations envoyées à cette adresse en 24 heures/);
+      await devenir(autreProprietaire);
+      expect(await echec("select public.preparer_invitation_artisan($1,$2)", [autreOrg, `${emailInvite.replace("@", "+autre@")}`])).toMatch(
+        /Trop d’invitations envoyées à cette adresse en 24 heures/
+      );
+    });
+
+    it("limite anti-abus : cinquante invitations par organisation et par 24 heures", async () => {
+      await devenir(proprietaire);
+      for (let n = 0; n < 30; n++) await db.query("select public.preparer_invitation_artisan($1,$2)", [org, `jour-${n}-${unique()}@test.local`]);
+      await reculerDeuxHeures();
+      await devenir(proprietaire);
+      for (let n = 30; n < 50; n++) await db.query("select public.preparer_invitation_artisan($1,$2)", [org, `jour-${n}-${unique()}@test.local`]);
+      expect(await echec("select public.preparer_invitation_artisan($1,$2)", [org, emailInvite])).toMatch(/Trop d’invitations envoyées par cette organisation en 24 heures/);
+    });
+
+    // Un compte n'a qu'un espace propriétaire actif à la fois, mais peut quitter le sien et en ouvrir un autre.
+    it("limite anti-abus : cinquante invitations par compte et par 24 heures, même depuis un nouvel espace", async () => {
+      await devenir(proprietaire);
+      for (let n = 0; n < 30; n++) await db.query("select public.preparer_invitation_artisan($1,$2)", [org, `compte-${n}-${unique()}@test.local`]);
+      await reculerDeuxHeures();
+      await devenir(proprietaire);
+      for (let n = 30; n < 50; n++) await db.query("select public.preparer_invitation_artisan($1,$2)", [org, `compte-${n}-${unique()}@test.local`]);
+      await postgres();
+      await db.query("update public.memberships set status='inactive' where account_id=$1 and organization_id=$2", [proprietaire, org]);
+      const nouvelEspace = await id("insert into public.organizations(name,type,status) values('Nouveau parc de Claire','proprietaire_direct','active') returning id");
+      await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct')", [proprietaire, nouvelEspace]);
+      await devenir(proprietaire);
+      expect(await echec("select public.preparer_invitation_artisan($1,$2)", [nouvelEspace, emailInvite])).toMatch(/Trop d’invitations envoyées depuis votre compte en 24 heures/);
     });
 
     // Relecture du 15/10 (mutant M14) : le renvoi puise dans le même budget que l'invitation.

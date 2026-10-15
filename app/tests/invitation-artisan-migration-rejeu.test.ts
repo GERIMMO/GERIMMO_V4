@@ -4,7 +4,7 @@
  *
  *  - REJEU. Rejouée deux fois sur une base migrée : définitions et droits des fonctions, colonnes, contraintes, index,
  *    déclencheurs, droits et RLS de la table identiques ; aucune invitation touchée.
- *  - RETOUR. Supprime les neuf fonctions et la table ; CONSERVE les rattachements au carnet déjà faits par une acceptation
+ *  - RETOUR. Supprime les douze fonctions et la table ; CONSERVE les rattachements au carnet déjà faits par une acceptation
  *    (`artisan_agences`) et les traces du journal ; se rejoue sans effet ; refuse de se jouer dans un lot.
  *    Aller, retour, aller : l'état migré est retrouvé à l'identique.
  *  - La migration ne modifie AUCUNE fonction existante (elle n'en crée que de nouvelles) : aucune migration antérieure
@@ -35,6 +35,9 @@ const FONCTIONS = [
   "public.repondre_invitation_artisan(uuid,boolean)",
   "public.invitations_des_artisans_a_valider()",
   "public.invitation_artisan_par_proprietaire(uuid)",
+  "public.adresse_canonique_invitation_artisan(text)",
+  "public.autoriser_invitation_artisan_cle(text,integer,integer)",
+  "public.limiter_envoi_invitation_artisan(uuid,text)",
 ];
 
 /** Le script de retour gère sa propre transaction et refuse de se jouer dans un lot : on lui retire cette enveloppe seule. */
@@ -142,7 +145,7 @@ describe.skipIf(!DB_URL)("invitation d'artisan — rejeu de la migration et reto
     await db.query("release savepoint cas");
   });
 
-  it("la base visée est migrée : table et neuf fonctions présentes", async () => {
+  it("la base visée est migrée : table et douze fonctions présentes", async () => {
     const e = await empreinte();
     for (const signature of FONCTIONS) expect(e[signature], signature).not.toBe("absente");
     expect(e.table).not.toBe("absente");

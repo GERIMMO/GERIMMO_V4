@@ -16,8 +16,10 @@
 -- Ce que cette migration ajoute (et rien d'autre) :
 --   · la table `invitations_artisans`, fermée par défaut (RLS active, aucune politique, aucun droit pour `anon` ni
 --     `authenticated`) : on n'y accède que par les fonctions ci-dessous ;
---   · huit fonctions SECURITY DEFINER à search_path vide, chacune avec ses droits explicites, et une fonction interne
---     (`invitation_artisan_par_proprietaire`) qu'aucun rôle client ne peut appeler.
+--   · huit fonctions SECURITY DEFINER à search_path vide, chacune avec ses droits explicites, et quatre fonctions
+--     internes qu'aucun rôle client ne peut appeler (`invitation_artisan_par_proprietaire`, et pour les limites
+--     anti-abus `adresse_canonique_invitation_artisan`, `autoriser_invitation_artisan_cle`,
+--     `limiter_envoi_invitation_artisan`).
 -- Aucune fonction existante n'est modifiée ; aucune ligne existante n'est réécrite. L'ajout d'un artisan par SIRET
 -- reste réservé aux agences (`artisan_creer_ou_rattacher` refuse toujours les propriétaires directs) : l'invitation
 -- est une porte distincte. La table `public.invitations` (20260903205742, avec jeton) n'est pas réutilisée : elle
@@ -25,11 +27,17 @@
 --
 -- Modèle suivi : l'invitation du locataire (20261013101000, 104000, 106000, 107000) — mêmes états, expiration à
 -- 30 jours, envoi noté, acceptation par la seule session dont l'ADRESSE CONFIRMÉE est celle de l'invitation.
--- Limite anti-abus en base, comptée AVANT chaque envoi (invitation et renvoi), avec `autoriser_lien_mot_de_passe_cle` :
+-- Limites anti-abus en base, comptées AVANT chaque envoi (invitation et renvoi), dans la table des demandes de lien
+-- (`demandes_lien_mot_de_passe`, clés conservées sous forme d'empreinte, purgées après une journée) :
 --   · 30 invitations par organisation et par heure, sur la MÊME clé que les invitations de locataires
 --     (`organisation:<uuid>`, src/lib/lien-mot-de-passe.ts) : le budget d'une organisation est commun ;
---   · 3 invitations par adresse et par heure, toutes organisations confondues (clé `invitation-artisan:<adresse>`,
---     conservée sous forme d'empreinte) : une adresse ne devient pas la cible d'une rafale.
+--   · 50 invitations d'artisans par organisation et par 24 heures ;
+--   · 50 invitations d'artisans par compte qui invite et par 24 heures, quel que soit son espace (un compte peut quitter
+--     son espace propriétaire et en ouvrir un autre) ;
+--   · 3 envois par adresse et par heure, 5 par 24 heures, toutes organisations confondues : une adresse ne devient pas la
+--     cible d'une rafale. L'adresse est ramenée à sa BOÎTE (relecture du 15/10) : sans « +étiquette », sans point final,
+--     et sans les points de la partie locale pour gmail.com et googlemail.com (une même boîte) ; sinon, cible+1@…,
+--     c.ible@gmail.com ou « cible@gmail.com. » passaient chacune pour une adresse neuve.
 --
 -- Rejouable sans effet : `if not exists` pour la table et les index, `create or replace` pour les fonctions (toutes
 -- nouvelles : il n'y a pas de définition antérieure à relire), déclencheurs reposés à l'identique.
@@ -100,6 +108,64 @@ returns boolean language sql stable security definer set search_path = '' as $$
 $$;
 revoke all on function public.invitation_artisan_par_proprietaire(uuid) from public, anon, authenticated;
 
+-- Limites anti-abus (voir l'en-tête). Trois fonctions internes : aucun rôle client ne les appelle.
+-- La boîte d'une adresse, pour la limite seulement (l'invitation part à l'adresse saisie, telle quelle).
+create or replace function public.adresse_canonique_invitation_artisan(p_email text)
+returns text language sql immutable set search_path = '' as $$
+  select case when d.domaine in ('gmail.com', 'googlemail.com')
+              then replace(d.locale, '.', '') || '@gmail.com'
+              else d.locale || '@' || d.domaine end
+  from (select regexp_replace(split_part(a.adresse, '@', 1), '[+].*$', '') as locale,
+               regexp_replace(split_part(a.adresse, '@', 2), '[.]+$', '') as domaine
+          from (select lower(btrim(coalesce(p_email, ''))) as adresse) a) d;
+$$;
+revoke all on function public.adresse_canonique_invitation_artisan(text) from public, anon, authenticated;
+
+-- Une clé, plafonnée par heure ET par 24 heures. Rend NULL si l'envoi passe (il est alors compté), sinon 'heure' ou
+-- 'jour'. Le décompte de l'heure et l'écriture sont ceux de `autoriser_lien_mot_de_passe_cle` ; celui du jour se fait
+-- sous le même verrou, sur la même empreinte.
+create or replace function public.autoriser_invitation_artisan_cle(p_cle text, p_max_heure integer, p_max_jour integer)
+returns text language plpgsql security definer set search_path = '' as $$
+declare
+  v_empreinte text := encode(sha256(convert_to('cle:' || btrim(coalesce(p_cle, '')), 'UTF8')), 'hex');
+begin
+  perform pg_advisory_xact_lock(hashtext('lien_mot_de_passe:' || v_empreinte));
+  if (select count(*) from public.demandes_lien_mot_de_passe
+       where empreinte_email = v_empreinte and cree_le > now() - interval '1 day') >= p_max_jour then
+    return 'jour';
+  end if;
+  if not public.autoriser_lien_mot_de_passe_cle(p_cle, p_max_heure) then
+    return 'heure';
+  end if;
+  return null;
+end $$;
+revoke all on function public.autoriser_invitation_artisan_cle(text, integer, integer) from public, anon, authenticated;
+
+-- Toutes les limites d'un envoi (invitation ou renvoi), dans l'ordre : organisation, compte, adresse. Un refus lève
+-- l'erreur affichée au propriétaire ; la transaction annulée ne compte rien.
+create or replace function public.limiter_envoi_invitation_artisan(p_org uuid, p_email text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare v_refus text;
+begin
+  if not public.autoriser_lien_mot_de_passe_cle('organisation:' || p_org::text, 30) then
+    raise exception 'Trop d’invitations envoyées par cette organisation en une heure. Réessayez plus tard';
+  end if;
+  if public.autoriser_invitation_artisan_cle('invitation-artisan-organisation:' || p_org::text, 50, 50) is not null then
+    raise exception 'Trop d’invitations envoyées par cette organisation en 24 heures. Réessayez plus tard';
+  end if;
+  if public.autoriser_invitation_artisan_cle('invitation-artisan-compte:' || (select auth.uid())::text, 50, 50) is not null then
+    raise exception 'Trop d’invitations envoyées depuis votre compte en 24 heures. Réessayez plus tard';
+  end if;
+  v_refus := public.autoriser_invitation_artisan_cle(
+    'invitation-artisan:' || public.adresse_canonique_invitation_artisan(p_email), 3, 5);
+  if v_refus = 'jour' then
+    raise exception 'Trop d’invitations envoyées à cette adresse en 24 heures. Réessayez plus tard';
+  elsif v_refus = 'heure' then
+    raise exception 'Trop d’invitations envoyées à cette adresse en une heure. Réessayez plus tard';
+  end if;
+end $$;
+revoke all on function public.limiter_envoi_invitation_artisan(uuid, text) from public, anon, authenticated;
+
 -- 1. Inviter. Rend de quoi écrire l'e-mail : l'identifiant, l'adresse, le nom de l'organisation, l'échéance.
 create or replace function public.preparer_invitation_artisan(
   p_org uuid, p_email text, p_nom text default null, p_metier public.artisan_metier default null)
@@ -142,12 +208,7 @@ begin
   end if;
 
   -- Limites anti-abus (voir l'en-tête) : comptées avant l'envoi, annulées avec la transaction si l'invitation échoue.
-  if not public.autoriser_lien_mot_de_passe_cle('organisation:' || p_org::text, 30) then
-    raise exception 'Trop d’invitations envoyées par cette organisation en une heure. Réessayez plus tard';
-  end if;
-  if not public.autoriser_lien_mot_de_passe_cle('invitation-artisan:' || v_email, 3) then
-    raise exception 'Trop d’invitations envoyées à cette adresse en une heure. Réessayez plus tard';
-  end if;
+  perform public.limiter_envoi_invitation_artisan(p_org, v_email);
 
   insert into public.invitations_artisans (organization_id, email, nom_memo, metier_memo, cree_par)
   values (p_org, v_email, v_nom, p_metier, (select auth.uid()))
@@ -184,12 +245,7 @@ begin
   if i.etat <> 'en_attente' then
     raise exception 'Cette invitation n’est plus en attente : elle ne peut pas être renvoyée';
   end if;
-  if not public.autoriser_lien_mot_de_passe_cle('organisation:' || i.organization_id::text, 30) then
-    raise exception 'Trop d’invitations envoyées par cette organisation en une heure. Réessayez plus tard';
-  end if;
-  if not public.autoriser_lien_mot_de_passe_cle('invitation-artisan:' || i.email, 3) then
-    raise exception 'Trop d’invitations envoyées à cette adresse en une heure. Réessayez plus tard';
-  end if;
+  perform public.limiter_envoi_invitation_artisan(i.organization_id, i.email);
   select o.name into v_org from public.organizations o where o.id = i.organization_id;
   return jsonb_build_object('id', i.id, 'email', i.email, 'organisation', v_org, 'expire_le', i.expire_le, 'etat', 'en_attente');
 end $$;

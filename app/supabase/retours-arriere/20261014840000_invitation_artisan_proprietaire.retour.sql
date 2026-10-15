@@ -5,12 +5,14 @@
 -- défait une migration, il se joue À LA MAIN, une fois décidé, avec la procédure de LISEZ-MOI.md.
 -- Une seule transaction : la moindre erreur annule tout, la base reste alors telle qu'elle était.
 --
--- La migration n'avait modifié AUCUNE fonction existante : elle n'avait qu'ajouté une table et neuf fonctions. Il n'y a
+-- La migration n'avait modifié AUCUNE fonction existante : elle n'avait qu'ajouté une table et douze fonctions. Il n'y a
 -- donc aucune définition antérieure à rétablir ; le retour supprime ce qu'elle avait créé, et rien d'autre.
 --
--- Ce que le retour fait : supprime les neuf fonctions (`preparer_`, `renvoyer_`, `annuler_`, `noter_envoi_`,
+-- Ce que le retour fait : supprime les douze fonctions (`preparer_`, `renvoyer_`, `annuler_`, `noter_envoi_`,
 -- `repondre_invitation_artisan`, `mon_invitation_artisan`, `carnet_artisans_proprietaire`,
--- `invitations_des_artisans_a_valider`, `invitation_artisan_par_proprietaire`), puis la table `invitations_artisans`
+-- `invitations_des_artisans_a_valider`, et les fonctions internes `invitation_artisan_par_proprietaire`,
+-- `limiter_envoi_invitation_artisan`, `autoriser_invitation_artisan_cle`, `adresse_canonique_invitation_artisan`),
+-- puis la table `invitations_artisans`
 -- (ses index et ses deux déclencheurs partent avec elle). Le script dit combien d'invitations disparaissent, et combien
 -- avaient été acceptées.
 --
@@ -42,7 +44,7 @@ end $retour_arriere$;
 begin;
 set local lock_timeout = '10s';
 
--- 1/2 Les fonctions d'abord (aucune autre fonction ne les appelle ; la fonction interne en dernier).
+-- 1/2 Les fonctions d'abord (aucune autre fonction ne les appelle ; les fonctions internes en dernier).
 do $retour_arriere$
 declare v_signature text;
 begin
@@ -55,7 +57,10 @@ begin
     'public.mon_invitation_artisan(uuid)',
     'public.repondre_invitation_artisan(uuid,boolean)',
     'public.invitations_des_artisans_a_valider()',
-    'public.invitation_artisan_par_proprietaire(uuid)'
+    'public.invitation_artisan_par_proprietaire(uuid)',
+    'public.limiter_envoi_invitation_artisan(uuid,text)',
+    'public.autoriser_invitation_artisan_cle(text,integer,integer)',
+    'public.adresse_canonique_invitation_artisan(text)'
   ] loop
     if to_regprocedure(v_signature) is null then
       raise notice '% : absente, rien à faire', v_signature;
@@ -96,10 +101,11 @@ commit;
 select 'table invitations_artisans' as objet,
        case when to_regclass('public.invitations_artisans') is not null then 'migrée (B)' else 'antérieure (A)' end as etat
 union all
-select 'fonctions de l''invitation d''artisan (' || count(*) || ' présente(s) sur 9)',
+select 'fonctions de l''invitation d''artisan (' || count(*) || ' présente(s) sur 12)',
        case when count(*) > 0 then 'migrée (B)' else 'antérieure (A)' end
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public'
   and p.proname in ('preparer_invitation_artisan', 'renvoyer_invitation_artisan', 'annuler_invitation_artisan',
                     'noter_envoi_invitation_artisan', 'carnet_artisans_proprietaire', 'mon_invitation_artisan',
-                    'repondre_invitation_artisan', 'invitations_des_artisans_a_valider', 'invitation_artisan_par_proprietaire');
+                    'repondre_invitation_artisan', 'invitations_des_artisans_a_valider', 'invitation_artisan_par_proprietaire',
+                    'limiter_envoi_invitation_artisan', 'autoriser_invitation_artisan_cle', 'adresse_canonique_invitation_artisan');

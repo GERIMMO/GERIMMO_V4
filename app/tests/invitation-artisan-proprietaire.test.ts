@@ -599,6 +599,46 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
     expect((await db.query("select sollicitation_id from public.mes_sollicitations()")).rows.map((l) => l.sollicitation_id)).toContain(sollicitation);
   });
 
+  // Relecture du 15/10 (bloquant). Métiers et zone sont le profil GLOBAL de l'artisan (RM-A1.8) : être dans le carnet
+  // d'un propriétaire ne lui donne pas la main dessus. Sans quoi il élargirait la zone de l'artisan pour le solliciter
+  // hors de chez lui, commune fermée comprise (migration 20261014841000).
+  it("le propriétaire ne peut modifier ni la zone ni les métiers de l'artisan invité ; l'artisan, lui, le peut", async () => {
+    const r = await inviter();
+    const artisan = await inscrire(invite, undefined, "69003");
+    await postgres();
+    await db.query("update public.artisans set statut_plateforme='valide', siret_etat='verifie' where id=$1", [artisan]);
+    expect(await repondre(r.id)).toEqual({ etat: "acceptee" });
+    const profil = async () => {
+      await postgres();
+      return (await db.query(
+        `select (select array_agg(code_postal order by code_postal) from public.artisan_zones where artisan_id=$1) zones,
+                (select array_agg(metier::text order by metier) from public.artisan_metiers where artisan_id=$1) metiers`,
+        [artisan]
+      )).rows[0];
+    };
+    const contacts = async () => {
+      await devenir(proprietaire);
+      return Number((await db.query("select nb_contacts from public.reseau_disponibilite($1,$2,'plomberie','entretien_courant')", [org, bienParis])).rows[0].nb_contacts);
+    };
+    await devenir(proprietaire);
+    expect(
+      await echec("select public.artisan_definir_metiers_zones($1, array['plomberie','electricite']::public.artisan_metier[], array['69003','75011'])", [artisan])
+    ).toMatch(/Accès refusé/);
+    expect(await profil()).toEqual({ zones: ["69003"], metiers: ["plomberie"] });
+    expect(await contacts()).toBe(0);
+    // L'artisan ajoute lui-même le code postal du bien depuis son espace : le carnet le propose alors.
+    await devenir(invite);
+    await db.query("select public.artisan_definir_metiers_zones($1, array['plomberie']::public.artisan_metier[], array['69003','75011'])", [artisan]);
+    expect(await profil()).toEqual({ zones: ["69003", "75011"], metiers: ["plomberie"] });
+    expect(await contacts()).toBe(1);
+    // Inchangé pour les agences : la fiche d'un artisan de leur carnet reste modifiable (avertissement « profil public »).
+    await postgres();
+    await db.query("insert into public.artisan_agences(organization_id,artisan_id,statut,created_by) values($1,$2,'actif',$3)", [agence, artisan, adminAgence]);
+    await devenir(adminAgence);
+    await db.query("select public.artisan_definir_metiers_zones($1, array['plomberie']::public.artisan_metier[], array['69003','75011','75012'])", [artisan]);
+    expect((await profil()).zones).toEqual(["69003", "75011", "75012"]);
+  });
+
   it("la zone de l'artisan reste exigée : un bien hors de ses codes postaux ne le propose pas", async () => {
     const r = await inviter();
     const artisan = await inscrire(invite, undefined, "69003");

@@ -185,3 +185,90 @@ describe.skipIf(!DB_URL)("invitation d'artisan — rejeu de la migration et reto
     expect(await empreinte()).toEqual(migre);
   });
 });
+
+/**
+ * Relecture du 15/10 (constat bloquant) : 20261014841000 retire `proprietaire_direct` des rôles admis par
+ * `artisan_definir_metiers_zones` (fonction de 20260911180000, modifiée par marque). Rejouée, elle ne fait rien ; son
+ * retour rétablit EXACTEMENT la définition d'origine (comparée à celle que crée 20260911180000), se rejoue sans effet,
+ * et refuse de se jouer dans un lot.
+ */
+const MIGRATION_ZONES = readFileSync("supabase/migrations/20261014841000_metiers_zones_sans_proprietaire.sql", "utf8");
+const RETOUR_ZONES = readFileSync("supabase/retours-arriere/20261014841000_metiers_zones_sans_proprietaire.retour.sql", "utf8");
+const SIGNATURE_ZONES = "public.artisan_definir_metiers_zones(uuid,public.artisan_metier[],text[])";
+/** La définition d'origine, telle que 20260911180000 la crée (rejouable ici en `create or replace`). */
+const ORIGINE_ZONES = (() => {
+  const socle = readFileSync("supabase/migrations/20260911180000_module8_artisans_socle.sql", "utf8");
+  const bloc = /create function public\.artisan_definir_metiers_zones\([\s\S]*?\n\$\$;/.exec(socle);
+  if (!bloc) throw new Error("Définition d'origine de artisan_definir_metiers_zones introuvable dans 20260911180000");
+  return bloc[0].replace(/^create function/, "create or replace function");
+})();
+
+describe.skipIf(!DB_URL)("métiers et zone sans propriétaire direct — rejeu de 20261014841000 et retour arrière", () => {
+  let db: Client;
+  const empreinte = async () =>
+    (await db.query(
+      "select md5(pg_get_functiondef(to_regprocedure($1))) || ' ' || coalesce((select proacl::text from pg_proc where oid = to_regprocedure($1)), '') v",
+      [SIGNATURE_ZONES]
+    )).rows[0].v as string;
+  const definition = async () => (await db.query("select pg_get_functiondef(to_regprocedure($1)) d", [SIGNATURE_ZONES])).rows[0].d as string;
+
+  beforeAll(async () => {
+    db = new Client({ connectionString: DB_URL });
+    await db.connect();
+    await db.query("begin");
+  });
+  afterAll(async () => {
+    await db?.query("rollback");
+    await db?.end();
+  });
+  beforeEach(async () => {
+    await db.query("savepoint cas");
+  });
+  afterEach(async () => {
+    await db.query("rollback to savepoint cas");
+    await db.query("release savepoint cas");
+  });
+
+  it("la base visée est migrée : la fonction n'admet plus le propriétaire direct", async () => {
+    const d = await definition();
+    expect(d).toContain("Relecture du 15/10 (invitation d'artisan)");
+    expect(d).toContain("m.role in ('admin_agence','agent'))");
+    expect(d).not.toContain("proprietaire_direct");
+  });
+
+  it("rejouée deux fois, la migration ne change ni la définition ni les droits", async () => {
+    const avant = await empreinte();
+    await db.query(MIGRATION_ZONES);
+    await db.query(MIGRATION_ZONES);
+    expect(await empreinte()).toBe(avant);
+  });
+
+  it("le retour refuse de se jouer dans un lot", async () => {
+    await db.query("savepoint essai");
+    let message = "";
+    try {
+      await db.query(RETOUR_ZONES);
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    await db.query("rollback to savepoint essai");
+    expect(message).toMatch(/Retour arrière refusé/);
+  });
+
+  it("le retour rétablit exactement la définition d'origine, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
+    const migre = await empreinte();
+    await db.query(sansEnveloppe(RETOUR_ZONES));
+    const apres = await empreinte();
+    expect(apres).not.toBe(migre);
+    expect(await definition()).toContain("m.role in ('admin_agence','agent','proprietaire_direct'))");
+    // Identique, définition et droits, à ce que crée la migration d'origine.
+    await db.query(ORIGINE_ZONES);
+    expect(await empreinte()).toBe(apres);
+    // Rejouable : déjà défait, rien à faire.
+    await db.query(sansEnveloppe(RETOUR_ZONES));
+    expect(await empreinte()).toBe(apres);
+    // Aller de nouveau : identique à l'état migré.
+    await db.query(MIGRATION_ZONES);
+    expect(await empreinte()).toBe(migre);
+  });
+});

@@ -6,6 +6,15 @@ import { ENTETE_CHEMIN, ENTETE_METHODE } from "@/lib/entetes-traversee";
 import { ACTIVITY_COOKIE, lireActivite, secretDActivite, signerActivite, strictestLimits } from "@/lib/session-policy";
 import { COOKIES_SESSION } from "@/lib/supabase/cookies";
 import { statutRedirection } from "@/lib/redirection";
+import { ROLES_GERANTS } from "@/lib/ged";
+import {
+  ENTETE_ALIAS,
+  RACINE_AGENCE,
+  RACINE_PROPRIETAIRE,
+  decisionAlias,
+  estDejaReecrite,
+  lireCheminDeGestion,
+} from "@/lib/racine-espace";
 
 // Accessibles sans session. /auth/confirm traite les liens reçus par email
 // (réinitialisation…) : il doit rester traversable même connecté.
@@ -58,11 +67,51 @@ const SEGMENTS_CONNUS = new Set([
   // src/app
   "actions", "admin", "agence", "api", "artisan", "assistance", "attestation-loyer",
   "auth", "compte", "conditions", "confidentialite", "connexion", "espaces",
+  // Décision D27 : l'alias des écrans du propriétaire direct n'est pas un dossier de src/app ; le proxy le réécrit
+  // vers /agence/<id> (fin de proxy()). Sans session, il mène à la connexion comme toute adresse privée.
+  "espace",
   "inscription", "invitations", "journal", "locataire", "mentions-legales", "mot-de-passe-oublie",
   "nouveau-mot-de-passe", "outils", "polices", "quittance", "relais", "securite", "tarifs", "veille",
   // public
   "illustrations", "logo", "marketing",
 ]);
+
+type ClientProxy = ReturnType<typeof createServerClient>;
+
+/**
+ * Le type (« proprietaire_direct », « agence »…) de l'organisation d'une adresse de gestion, SELON LES ACCÈS DE LA
+ * PERSONNE (décision D27) : d'abord par son adhésion de gestion active à CETTE organisation (admin d'agence, agent,
+ * propriétaire direct) ; à défaut, et pour la supervision active seule, par la lecture de l'organisation (la RLS la
+ * lui ouvre, comme à la garde de la page). Dans tous les autres cas : null — l'alias répondra « introuvable » et
+ * l'ancienne adresse suivra son chemin habituel (la garde de la page renvoie vers « Mes espaces »).
+ *
+ * Une lecture À PART, après les gardes : la lecture des adhésions qui décide de la session, du second facteur et de
+ * la porte de /admin n'est pas touchée. Une lecture en échec vaut null : on ne redirige rien, et l'alias répond
+ * « introuvable » (l'ancienne adresse, elle, reste servie).
+ */
+async function typeDeLOrganisation(
+  supabase: ClientProxy,
+  compteId: string,
+  orgId: string,
+  superviseurActif: boolean,
+): Promise<string | null> {
+  const { data: adhesions, error } = await supabase
+    .from("memberships")
+    .select("role, organisation:organizations(type)")
+    .eq("account_id", compteId)
+    .eq("organization_id", orgId)
+    .eq("status", "active");
+  if (!error) {
+    for (const a of (adhesions ?? []) as { role: string; organisation: { type: string } | { type: string }[] | null }[]) {
+      if (!ROLES_GERANTS.includes(a.role)) continue;
+      const o = Array.isArray(a.organisation) ? a.organisation[0] : a.organisation;
+      if (o?.type) return o.type;
+    }
+  }
+  if (!superviseurActif) return null;
+  const { data: organisation } = await supabase.from("organizations").select("type").eq("id", orgId).maybeSingle();
+  return (organisation as { type?: string } | null)?.type ?? null;
+}
 
 function adresseInconnue(pathname: string): boolean {
   const segment = pathname.split("/")[1] ?? "";
@@ -282,6 +331,45 @@ export async function proxy(request: NextRequest) {
     const redirect = NextResponse.redirect(url);
     response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
     return redirect;
+  }
+
+  // LES ÉCRANS DU PROPRIÉTAIRE DIRECT VIVENT SOUS /espace/<id>/… (décision D27, fiche DES-A-08 ; lib/racine-espace.ts).
+  // Cette étape vient APRÈS toutes les gardes ci-dessus (session, expiration, second facteur, porte de /admin) : elle
+  // n'en remplace ni n'en saute aucune, elle ne fait que choisir l'adresse. La page garde sa propre garde
+  // (verifierAccesEspace) et la base sa RLS.
+  const gestion = lireCheminDeGestion(pathname);
+  if (gestion) {
+    const type = await typeDeLOrganisation(supabase, user.id, gestion.orgId, estSuperviseurActif(roles, niveauMfa));
+    // Next.js rappelle le proxy sur l'adresse réécrite (voir ENTETE_ALIAS) : la seconde passe ne la redirige pas.
+    const decision = decisionAlias(gestion, type, request.method, estDejaReecrite(gestion, request.headers.get(ENTETE_ALIAS)));
+    if (decision === "rediriger") {
+      // Redirection PERMANENTE, chemin et requête conservés : les liens déjà envoyés ou mis en favori sur /agence
+      // continuent de fonctionner. La réponse dépend de la personne connectée et l'alias peut être retiré un jour :
+      // aucun cache partagé ne la garde, et le navigateur la revalide à chaque visite.
+      const url = request.nextUrl.clone();
+      url.pathname = `${RACINE_PROPRIETAIRE}/${gestion.orgId}${gestion.suite}`;
+      const redirect = NextResponse.redirect(url, 308);
+      redirect.headers.set("Cache-Control", "private, no-cache");
+      response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+      return redirect;
+    }
+    if (decision === "reecrire") {
+      const url = request.nextUrl.clone();
+      url.pathname = `${RACINE_AGENCE}/${gestion.orgId}${gestion.suite}`;
+      const entetes = new Headers(request.headers);
+      entetes.set(ENTETE_ALIAS, gestion.orgId);
+      const reecrit = NextResponse.rewrite(url, { request: { headers: entetes } });
+      response.cookies.getAll().forEach((c) => reecrit.cookies.set(c));
+      return reecrit;
+    }
+    if (decision === "introuvable") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/_introuvable";
+      url.search = "";
+      const introuvable = NextResponse.rewrite(url, { status: 404 });
+      response.cookies.getAll().forEach((c) => introuvable.cookies.set(c));
+      return introuvable;
+    }
   }
 
   return response;

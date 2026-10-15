@@ -44,6 +44,9 @@ export const FICHIERS_EN_SERIE = [
   // Rejeu des cinq migrations du jour de Paris et de leurs retours : `alter table … set default` sur encaissements,
   // quittances et relances, verrou exclusif tenu pendant tout l'essai, qui bloquerait les écritures des autres fichiers.
   "tests/jour-de-paris-migrations-rejeu.test.ts",
+  // Lot « avoir-facture-externe » (D24-C) : le retour arrière joué dans la transaction de l'essai supprime puis recrée la table
+  // des avoirs et modifie artisan_factures_externes (contrainte, index, colonne) : verrou exclusif tenu pendant tout l'essai.
+  "tests/artisan-avoir-migration-rejeu.test.ts",
 ];
 
 export default defineConfig({

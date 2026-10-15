@@ -90,6 +90,12 @@ const FAMILLES: Famille[] = [
   },
 ];
 const FONCTION_DU_JOUR = { version: "20261014500000", fichier: "jour_de_paris_fonction" };
+/**
+ * Migrations ULTÉRIEURES dont une fonction cite aussi `public.aujourdhui_paris()` : le retour de la fonction du jour refuse
+ * tant qu'elles sont en place (c'est voulu), donc « tout défaire » joue d'abord leurs retours, du plus récent au plus ancien.
+ * Lot « avoir-facture-externe » (D24-C) : l'avoir est daté du jour de Paris dans artisan_externe_ecrire.
+ */
+const ULTERIEURES_QUI_LA_CITENT = [{ version: "20261014710000", fichier: "artisan_avoir_facture_externe" }];
 
 /**
  * Deux objets peuvent être « au jour de Paris » par l'expression explicite de la décision X13 (20261014416000) plutôt que par
@@ -486,7 +492,12 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
 
   describe("retours arrière", () => {
     /** Joue les retours dans l'ordre recommandé : encaissements, appels, lot, état, puis la fonction elle-même. */
+    /** Les retours des migrations ultérieures qui citent la fonction du jour (voir ULTERIEURES_QUI_LA_CITENT). */
+    async function defaireLesUlterieures() {
+      for (const m of [...ULTERIEURES_QUI_LA_CITENT].reverse()) await db.query(sansEnveloppe(retour(m.version, m.fichier)));
+    }
     async function toutDefaire() {
+      await defaireLesUlterieures();
       for (const famille of [...FAMILLES].reverse()) await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
       await db.query(sansEnveloppe(retour(FONCTION_DU_JOUR.version, FONCTION_DU_JOUR.fichier)));
     }
@@ -550,6 +561,7 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
     });
 
     it("même sans fonction qui la cite, une valeur par défaut qui s'en sert fait refuser le retour, en la nommant", async () => {
+      await defaireLesUlterieures();
       for (const famille of [...FAMILLES].reverse()) await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
       await db.query("alter table public.encaissements alter column date_paiement set default public.aujourdhui_paris()");
       const message = await echoue(sansEnveloppe(retour(FONCTION_DU_JOUR.version, FONCTION_DU_JOUR.fichier)));

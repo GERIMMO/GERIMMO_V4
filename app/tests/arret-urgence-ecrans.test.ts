@@ -3,7 +3,10 @@
  *
  *  — D06 : l'arrêt couvre aussi les tâches SQL planifiées (la table des périmètres affichée est celle de la migration) ;
  *  — D46 / IA-01 : les règles « Ce qui peut continuer seul » sont des décisions enregistrées, non appliquées automatiquement ;
- *  — D46 / IA-02 : l'urgence et l'escalade du mode vacances sont des alertes internes, sans e-mail ni message ;
+ *  — D46 / IA-02 : l'urgence et l'escalade du mode vacances ne préviennent pas le responsable ; depuis D46-B
+ *    (15/10/2026), celles qui ne sont pas accusées sont comptées dans l'alerte e-mail quotidienne de 5 h, et une urgence
+ *    part aussi tout de suite par e-mail immédiat (décision du 15/10), si le relais est configuré ; l'écran le dit
+ *    (adresses masquées) ;
  *  — D46 / IA-06 : la clé « sauvegarde » n'est plus proposée (aucun lecteur) et, si elle existe, elle est marquée sans effet ;
  *    le traitement immédiat des signatures n'est pas couvert, et l'écran le dit ;
  *  — D46 / IA-07 : la liste des prochaines étapes ne lance rien.
@@ -23,7 +26,7 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("@/app/admin/autonomie/formulaire-delegation", () => ({ FormulaireDelegation: () => null, RevoquerDelegation: () => null, ActualiserDossiers: () => null, DecisionAmelioration: () => null }));
 import { commanderRelais } from "../src/app/actions/consignes-vacances";
 import { Vacances } from "../src/app/admin/relais/vacances";
-import { FormulaireArret } from "../src/app/admin/relais/vacances-formulaires";
+import { FormulaireArret, FormulaireVacances, UrgenceInterne } from "../src/app/admin/relais/vacances-formulaires";
 
 /** Un client où chaque lecture rend les lignes de sa table (ou une erreur), quelle que soit la chaîne. */
 function client(tables: Record<string, unknown[]>, rpc: (nom: string, args?: Record<string, unknown>) => unknown = async () => ({ data: true, error: null })) {
@@ -153,13 +156,63 @@ describe("D06 / D46 : l'écran « Arrêt avant les prochains effets » et le mod
     expect(doc).toContain("décocher « Relancer automatiquement les loyers impayés par e-mail » (rubrique Profil) le temps du rattrapage");
   });
 
-  it("IA-02 : l'alerte est interne seulement, sans e-mail ni message, et un incident urgent ne la déclenche pas", async () => {
+  // D46-B (15/10/2026) : le texte de D46-A (« alerte interne seulement ») dit désormais la vérité de l'alerte e-mail
+  // du relais : vers combien d'adresses (masquées), ou « relais non configuré ». Décision du 15/10 (« envoi immédiat
+  // pour les urgences ») : une urgence part aussi tout de suite par e-mail vers les adresses du relais, jamais vers le
+  // responsable ; une escalade, elle, n'est comptée qu'à 5 h.
+  it("IA-02, relais non configuré : personne n'est prévenu sur le moment, aucun e-mail ne reprend les urgences", async () => {
+    vi.stubEnv("GERIMMO_RELAIS_EMAILS", "");
+    try {
+      const html = await rendreVacances();
+      expect(html).toContain("aucun e-mail ni message n’est envoyé au responsable");
+      expect(html).toContain("Le relais n’étant pas configuré, aucun e-mail ne la reprend, ni immédiat ni quotidien.");
+      expect(html).toContain("Ces alertes se lisent ici ; personne n’est prévenu sur le moment. Relais non configuré : aucun e-mail, immédiat ou quotidien, ne les reprend.");
+      expect(html).toContain("Un incident urgent ou un impayé ne la déclenche pas");
+      expect(html).not.toContain("Pas d’alerte immédiate.");
+      expect(html).not.toContain("Alerte interne seulement.");
+      expect(html).not.toContain("Les alertes restent internes.");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  // Relecture du 15/10 : « délai au plus 1 min » ne valait qu'à partir du constat de l'urgence ; l'écran le dit, avec
+  // quand le constat a lieu (un événement entre deux passages attend le suivant, souvent le lendemain matin).
+  it("IA-02, relais configuré : une urgence part en e-mail immédiat au plus 11 min après l'événement (passage toutes les 10 minutes), comptée aussi à 5 h, adresses masquées", async () => {
+    vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.com, second@example.org");
+    try {
+      const html = await rendreVacances();
+      expect(html).toContain("Une urgence part aussi, sans son texte, par e-mail immédiat vers 2 adresses du relais : re•••is@example.com, se•••nd@example.org, au plus 11 min après l’événement : un passage automatique la constate toutes les 10 minutes, jour et nuit, et une urgence signalée ici part aussitôt.");
+      expect(html).not.toContain("délai au plus 1 min");
+      expect(html).not.toContain("lendemain matin");
+      expect(html).not.toContain("part aussi tout de suite");
+      expect(html).toContain("Tant qu’elle n’est pas accusée, elle est aussi comptée dans l’alerte e-mail quotidienne de 5 h (heure de Paris).");
+      expect(html).toContain("Une escalade n’envoie pas d’e-mail immédiat : elle est comptée à 5 h.");
+      expect(html).toContain("Chaque nouvelle urgence part aussi par e-mail immédiat vers les adresses du relais ; celles qui ne sont pas accusées sont comptées dans l’alerte e-mail quotidienne de 5 h (heure de Paris).");
+      expect(html).not.toContain("Pas d’alerte immédiate.");
+      expect(html).not.toContain("relais@example.com");
+      expect(html).not.toContain("second@example.org");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("les formulaires du relais ne promettent plus « aucun e-mail sur le moment » : ils disent l'e-mail immédiat, sans le texte saisi", () => {
+    const urgence = renderToStaticMarkup(createElement(UrgenceInterne, { plan: "plan-1" }));
+    expect(urgence).toContain("La même référence conserve une seule alerte, et un seul e-mail.");
+    expect(urgence).toContain("Si le relais est configuré, un e-mail immédiat part vers ses adresses, sans le texte saisi");
+    expect(urgence).not.toContain("Aucun e-mail ni message ne part sur le moment");
+    const vacances = renderToStaticMarkup(createElement(FormulaireVacances, { comptes: [], versions: [] }));
+    expect(vacances).toContain("Le responsable n’est pas prévenu par e-mail ; les urgences partent par e-mail immédiat vers les adresses du relais");
+    expect(vacances).not.toContain("Aucune notification immédiate");
+  });
+
+  it("l'arrêt d'urgence ne coupe ni l'alerte e-mail de 5 h ni l'e-mail immédiat des urgences, et l'écran le dit", async () => {
     const html = await rendreVacances();
-    expect(html).toContain("Alerte interne seulement.");
-    expect(html).toContain("aucun e-mail ni message n’est envoyé au responsable");
-    expect(html).toContain("Un incident urgent ou un impayé ne la déclenche pas");
-    expect(html).toContain("Alertes internes seulement");
-    expect(html).not.toContain("Les alertes restent internes.");
+    expect(html).toContain("L’alerte e-mail quotidienne du relais n’est pas coupée non plus : elle signale justement l’arrêt en cours.");
+    expect(html).toContain("L’e-mail immédiat des urgences du relais part lui aussi, et son passage automatique toutes les 10 minutes continue : c’est une alerte au dirigeant, sans effet sur les utilisateurs.");
+    // La liste des tâches de la base nomme aussi celle que l'arrêt ne couvre pas, à dessein (relecture du 15/10).
+    expect(html).toContain("Vérification des urgences du relais (toutes les 10 minutes)</b> — arrêtée par aucun périmètre, pas même « Tous les traitements contrôlés » : c’est une alerte au dirigeant.");
   });
 
   it("une ligne « sauvegarde » déjà enregistrée est marquée sans effet et peut être levée", async () => {

@@ -191,6 +191,16 @@ describe.skipIf(!DB_URL)("jour de Paris, la suite — migrations et retours arri
     db = new Client({ connectionString: DB_URL });
     await db.connect();
     await db.query("begin");
+    // La chaîne des retours commence par celui de 20261014812000 (lot « relais-alertes »), qui retire sa tâche avec
+    // `cron.unschedule` : le planificateur de façade du banc ne l'a pas, on la pose le temps de la transaction (annulée).
+    await db.query(
+      `do $$ begin
+         if to_regprocedure('cron.unschedule(text)') is null then
+           create function cron.unschedule(p_nom text) returns boolean language sql as $f$
+             with retiree as (delete from cron.job where jobname = p_nom returning 1) select exists (select 1 from retiree) $f$;
+         end if;
+       end $$`
+    );
   });
   afterAll(async () => {
     await db?.query("rollback");

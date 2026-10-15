@@ -179,23 +179,25 @@ describe("la liste des tâches", () => {
 const psqlDisponible = spawnSync("psql", ["--version"]).status === 0;
 
 describe.skipIf(!DB_URL || !psqlDisponible)("avec une vraie base locale (psql réel)", () => {
-  it("lit les neuf tâches du planificateur de la base, noms et commandes compris", async () => {
+  it("lit les dix tâches du planificateur de la base, noms et commandes compris", async () => {
     const { pg_cron, taches } = await exporterTachesPlanifiees(argumentsConnexion(DB_URL!));
     expect(pg_cron).toBe(true);
+    // La dixième, « relais-urgences » (toutes les 10 minutes), vient du passage fréquent des urgences du relais (20261014812000).
     expect(taches.map((t: { jobname: string }) => t.jobname)).toEqual([
       "alertes-assurance-quotidiennes", "alertes-diagnostics-quotidiennes", "alertes-impayes-quotidiennes", "alertes-restitutions-quotidiennes",
-      "cycle-mensuel", "maintenance-artisans", "marketing-declencheur", "propositions-publication-hebdo", "retention-quotidienne",
+      "cycle-mensuel", "maintenance-artisans", "marketing-declencheur", "propositions-publication-hebdo", "relais-urgences", "retention-quotidienne",
     ]);
+    expect(taches.find((t: { jobname: string }) => t.jobname === "relais-urgences")).toMatchObject({ schedule: "*/10 * * * *", command: "select public.declencher_relais_urgences()", active: true });
     expect(taches.find((t: { jobname: string }) => t.jobname === "cycle-mensuel")).toMatchObject({ schedule: "0 5 1 * *", command: "select public.cycle_mensuel_interne()", active: true });
   });
 
-  it("un export complet de la base locale porte les neuf tâches et se vérifie", async () => {
+  it("un export complet de la base locale porte les dix tâches et se vérifie", async () => {
     const pgDump = spawnSync("pg_dump", ["--version"]).status === 0;
     if (!pgDump) return;
     const archive = path.join(racine, "archive-reelle");
     const bilan = await exporter(archive, cle, DB_URL!, { schemas: ["public"] });
-    expect(bilan.taches_planifiees).toBe(9);
-    expect((await verifier(archive, cle)).taches_planifiees.nombre).toBe(9);
+    expect(bilan.taches_planifiees).toBe(10);
+    expect((await verifier(archive, cle)).taches_planifiees.nombre).toBe(10);
   }, 120_000);
 
   it("le rejeu recrée la liste à l'identique sur un planificateur de façade, sans doublon, et ne laisse rien derrière lui", async () => {

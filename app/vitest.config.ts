@@ -59,6 +59,13 @@ export const FICHIERS_EN_SERIE = [
   // les organisations et voit disparaître celle de l'essai : violation de orchestration_cases_organization_id_fkey
   // (relecture du 15/10, deux fichiers seuls en parallèle).
   "tests/planning-conflits-concurrence.test.ts",
+  // D46-B (15/10), e-mail immédiat des urgences du relais : deux sessions vident la file en même temps. Fixture VALIDÉE
+  // (deux comptes, un plan terminé, deux alertes) puis supprimée ; la file est globale, une ligne validée serait prise
+  // par les essais d'un autre fichier.
+  "tests/relais-urgences-concurrence.test.ts",
+  // Même lot : une contrainte posée sur la file et le retour arrière (déclencheur retiré de supervision_alertes_internes,
+  // tables supprimées puis recréées) dans la transaction du test, verrous de table tenus pendant tout l'essai.
+  "tests/relais-urgences-retour.test.ts",
 ];
 
 export default defineConfig({

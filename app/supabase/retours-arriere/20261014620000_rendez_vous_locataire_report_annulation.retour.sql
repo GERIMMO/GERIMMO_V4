@@ -561,4 +561,13 @@ begin
 end $retour_arriere$;
 
 select public.fermer_fonctions_a_anon();
+
+-- La ligne d'historique de la migration : elle pourra être rejouée.
+do $retour_arriere$
+begin
+  if to_regclass('supabase_migrations.schema_migrations') is not null then
+    delete from supabase_migrations.schema_migrations where version = '20261014620000';
+  end if;
+end $retour_arriere$;
+
 commit;

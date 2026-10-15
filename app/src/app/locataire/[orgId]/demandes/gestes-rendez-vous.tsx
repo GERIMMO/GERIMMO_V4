@@ -268,10 +268,9 @@ export function GestesRendezVous({
   const enAttente = rendezVous.demande_statut === "en_attente" && rendezVous.demande_type === "report";
   const raison = peutAgir ? raisonSansReport(rendezVous) : null;
   const gestes = peutAgir && rdvTexte && rendezVous.annulation_possible && !enAttente;
-  // Annulation « tardive » : moins de 24 h avant le rendez-vous (tracée, jamais sanctionnée). C'est la base qui le
-  // sait : quand le report n'est plus possible alors qu'il reste des reports et qu'aucune demande n'attend, la seule
-  // raison est le délai.
-  const tardive = !rendezVous.report_possible && rendezVous.reports_restants > 0 && !enAttente;
+  // Annulation « tardive » : moins de 24 h avant le rendez-vous (tracée, jamais sanctionnée). La base le calcule avec la
+  // règle d'`annuler_rdv_locataire` ; l'écran ne le déduit pas d'autres drapeaux (une demande échue le trompait).
+  const tardive = rendezVous.annulation_tardive;
 
   return (
     <div className="mt-2.5">

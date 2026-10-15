@@ -52,7 +52,7 @@ function rv(partiel: Partial<RendezVousLocataire> = {}): RendezVousLocataire {
     report_possible: true, annulation_possible: true, reports_restants: 2,
     demande_id: null, demande_type: null, demande_statut: null, demande_motif_code: null,
     demandee_le: null, expire_le: null, repondu_le: null, reponse_motif: null,
-    demande_rdv_debut: null, demande_rdv_fin: null, nouveau_debut: null, nouvelle_fin: null, tardive: false,
+    demande_rdv_debut: null, demande_rdv_fin: null, nouveau_debut: null, nouvelle_fin: null, tardive: false, annulation_tardive: false,
     ...partiel,
   };
 }
@@ -123,7 +123,9 @@ describe("ce que le locataire lit de sa demande", () => {
 
   it("report impossible : on dit pourquoi (plafond, ou moins de 24 h), jamais un bouton qui échouerait", () => {
     expect(raisonSansReport(rv({ report_possible: false, reports_restants: 0 }))).toMatch(/déjà fait l'objet de 2 demandes de report/);
-    expect(raisonSansReport(rv({ report_possible: false, reports_restants: 1 }))).toMatch(/moins de 24 heures/);
+    expect(raisonSansReport(rv({ report_possible: false, reports_restants: 1, annulation_tardive: true }))).toMatch(/moins de 24 heures/);
+    // La raison du délai n'est jamais devinée : sans le drapeau de la base, aucune phrase (ex. demande échue).
+    expect(raisonSansReport(rv({ report_possible: false, reports_restants: 1, demande_id: "d", demande_type: "report", demande_statut: "expiree" }))).toBeNull();
     expect(raisonSansReport(rv())).toBeNull();
   });
 });

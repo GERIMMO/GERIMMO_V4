@@ -72,6 +72,8 @@ export type RendezVousLocataire = {
   nouveau_debut: string | null;
   nouvelle_fin: string | null;
   tardive: boolean;
+  /** Une annulation envoyée maintenant serait « tardive » (moins de 24 h avant le rendez-vous) : calculé en base. */
+  annulation_tardive: boolean;
 };
 
 /** Les états de la demande, exactement ceux de la fiche C.4. */
@@ -188,5 +190,7 @@ export function raisonSansReport(rv: RendezVousLocataire): string | null {
   if (rv.reports_restants <= 0) {
     return `Ce rendez-vous a déjà fait l'objet de ${REGLES_RDV_LOCATAIRE.reportsMax} demandes de report : pour le changer encore, appelez votre gestionnaire.`;
   }
+  // Le délai, seulement quand la base le dit : jamais une raison devinée.
+  if (!rv.annulation_tardive) return null;
   return `Le rendez-vous est dans moins de ${REGLES_RDV_LOCATAIRE.delaiReportHeures} heures : il ne peut plus être reporté ici. Vous pouvez encore l'annuler, ou appeler votre gestionnaire.`;
 }

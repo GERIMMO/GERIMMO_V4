@@ -291,11 +291,12 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
     });
 
     it("la fenêtre est exacte : les alertes en retard et jusqu'à J+7 inclus y sont, J+8 n'y est pas ; les faits sont rangés par échéance", async () => {
-      // Le jour de référence de la source est `current_date` de la session (comme la fonction), et non le jour de Paris des autres tests.
+      // Le jour de référence de la source est le jour de Paris (lot « fuseau-paris », 15/10/2026 : `aujourdhui_paris()`), comme
+      // celui des autres sources et de l'écran — plus le `current_date` de la session, qui diffère entre 22 h et 24 h UTC.
       await as(sa); const avant = await preparer(); await admin();
-      const enRetard = await alerteOuverte("current_date-3");
-      const limite = await alerteOuverte("current_date+7");
-      const horsFenetre = await alerteOuverte("current_date+8");
+      const enRetard = await alerteOuverte(`${PARIS}-3`);
+      const limite = await alerteOuverte(`${PARIS}+7`);
+      const horsFenetre = await alerteOuverte(`${PARIS}+8`);
       await as(sa); const apres = await preparer(); await admin();
       const ids = faits(apres);
       expect(ids).toContain(enRetard);

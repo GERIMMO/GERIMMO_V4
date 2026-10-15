@@ -157,7 +157,7 @@ const ETAT_TACHE: Record<EtatTacheSignalee, string> = {
   echec: "en échec",
   absente: "absente (pas passée à l’heure prévue)",
   non_programmee: "plus programmée dans la base",
-  sans_passage: "appelée, mais aucun passage reçu par le serveur depuis plus de 30 minutes (extension pg_net, adresse du site ou jeton à vérifier)",
+  sans_passage: "lancée à l’heure, mais le serveur n’a reçu aucun passage depuis plus de 30 minutes (extension pg_net, adresse du site ou jeton à vérifier)",
 };
 
 /** Le corps de l'e-mail : compteurs, libellés de tâche, lien de la console. */

@@ -362,8 +362,11 @@ describe("le passage du relais", () => {
       );
       sujets.push(...fournisseur.acceptes.map((a) => a.subject));
     }
-    const html = htmlAlerteRelais({ ...RIEN, taches: [{ libelle: "Passage des urgences du relais (toutes les 10 minutes)", etat: "sans_passage" }] }, MATIN, "https://gerimmo.test/admin");
-    expect(html).toContain("Passage des urgences du relais (toutes les 10 minutes) : appelée, mais aucun passage reçu par le serveur depuis plus de 30 minutes (extension pg_net, adresse du site ou jeton à vérifier)");
+    // Sous son nom (miroir TACHES_SQL_HORS_ARRET), pas sous « Tâche de la base « relais-urgences » ».
+    expect(constaterRelais({ ...SAINE, taches_base: [{ tache: "relais-urgences", etat: "sans_passage" }] }, [], false).taches)
+      .toEqual([{ libelle: "Vérification des urgences du relais (toutes les 10 minutes)", etat: "sans_passage" }]);
+    const html = htmlAlerteRelais({ ...RIEN, taches: [{ libelle: "Vérification des urgences du relais (toutes les 10 minutes)", etat: "sans_passage" }] }, MATIN, "https://gerimmo.test/admin");
+    expect(html).toContain("Vérification des urgences du relais (toutes les 10 minutes) : lancée à l’heure, mais le serveur n’a reçu aucun passage depuis plus de 30 minutes (extension pg_net, adresse du site ou jeton à vérifier)");
     expect(sujets).toEqual(Array(4).fill("Gerimmo — relais de 5 h : 1 point à vérifier"));
   });
 

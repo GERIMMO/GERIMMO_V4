@@ -40,7 +40,7 @@ export const TACHES_SQL: Record<string, { libelle: string; cles: readonly string
  * « global » ne le coupe pas (il n'est pas dans `supervision_taches_arret`, que lit le prédicat des tâches arrêtées).
  */
 export const TACHES_SQL_HORS_ARRET: Record<string, { libelle: string }> = {
-  "relais-urgences": { libelle: "Passage des urgences du relais (toutes les 10 minutes)" },
+  "relais-urgences": { libelle: "Vérification des urgences du relais (toutes les 10 minutes)" },
 };
 
 /** Les libellés des tâches de la base de données qu'arrête cette clé (« global » : toutes). */

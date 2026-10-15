@@ -212,7 +212,7 @@ describe("D06 / D46 : l'écran « Arrêt avant les prochains effets » et le mod
     expect(html).toContain("L’alerte e-mail quotidienne du relais n’est pas coupée non plus : elle signale justement l’arrêt en cours.");
     expect(html).toContain("L’e-mail immédiat des urgences du relais part lui aussi, et son passage automatique toutes les 10 minutes continue : c’est une alerte au dirigeant, sans effet sur les utilisateurs.");
     // La liste des tâches de la base nomme aussi celle que l'arrêt ne couvre pas, à dessein (relecture du 15/10).
-    expect(html).toContain("Passage des urgences du relais (toutes les 10 minutes)</b> — arrêtée par aucun périmètre, pas même « Tous les traitements contrôlés » : c’est une alerte au dirigeant.");
+    expect(html).toContain("Vérification des urgences du relais (toutes les 10 minutes)</b> — arrêtée par aucun périmètre, pas même « Tous les traitements contrôlés » : c’est une alerte au dirigeant.");
   });
 
   it("une ligne « sauvegarde » déjà enregistrée est marquée sans effet et peut être levée", async () => {

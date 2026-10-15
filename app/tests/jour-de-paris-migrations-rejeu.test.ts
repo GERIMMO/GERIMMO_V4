@@ -111,8 +111,11 @@ const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/
  * refuser_devis, demander_revision_devis, deposer_devis, expirer_revisions_devis). Leurs retours se jouent AVANT celui de la
  * fonction du jour, dans l'ordre inverse de leurs migrations, comme la procédure du LISEZ-MOI le demande ; leurs migrations se
  * rejouent après celles du lot pour revenir exactement à l'état migré. Absents du dépôt, ils ne comptent pas.
+ * Depuis le 15/10 (D46-B, lot « relais-alertes »), aussi `reserver_alerte_relais` (le jour de Paris de l'alerte e-mail du relais) :
+ * son retour, indépendant des autres, se joue le premier.
  */
 const LOTS_POSTERIEURS = [
+  { version: "20261014810000", fichier: "relais_alerte_quotidienne" },
   // Reprise du 15/10 (dépôt du PDF en révision, ordre des verrous) : son retour précède celui de 601000, qui le vérifie.
   { version: "20261014602000", fichier: "devis_revision_verrous_stockage" },
   { version: "20261014601000", fichier: "devis_revision_versions" },

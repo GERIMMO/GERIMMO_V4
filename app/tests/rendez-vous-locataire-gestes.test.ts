@@ -58,7 +58,7 @@ function rendre(rendezVous: RendezVousLocataire, peutAgir = true) {
 }
 /** La balise du bouton d'envoi de l'annulation. */
 function boutonAnnuler(html: string) {
-  return /<button[^>]*type="submit"[^>]*>(?:(?!<\/button>).)*Annuler le rendez-vous/s.exec(html)?.[0] ?? "";
+  return /<button[^>]*type="submit"[^>]*>[^<]*Annuler le rendez-vous/.exec(html)?.[0] ?? "";
 }
 
 beforeEach(() => {

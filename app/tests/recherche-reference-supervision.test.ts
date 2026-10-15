@@ -287,6 +287,36 @@ describe.skipIf(!DB_URL)("X18 — recherche d'un dossier par référence dans la
       expect(new Set(ligne.details.objets as string[])).toEqual(new Set([lotA, lotB]));
     });
 
+    // Relecture du 15/10 : la trace gardait les vingt premières organisations PAR IDENTIFIANT, l'écran montre les huit
+    // premières PAR NOM. Un nom de lot courant (« Lot unique ») ou un numéro d'incident (propre à chaque organisation) se
+    // retrouve dans des dizaines d'organisations : celles qu'on voyait à l'écran pouvaient manquer à la trace.
+    it("plus de vingt organisations : celles qui sont affichées sont toutes dans la trace, dans l'ordre de l'écran", async () => {
+      await db.query("reset role");
+      // Identifiants croissants, noms décroissants : l'ordre de l'écran est l'inverse de celui des identifiants.
+      const ids = Array.from({ length: 25 }, () => randomUUID()).sort();
+      const lots = new Map<string, string>();
+      for (const [i, id] of ids.entries()) {
+        await db.query("insert into public.organizations (id, name) values ($1, $2)", [id, `Agence sonde ${MARQUE} ${String.fromCharCode(89 - i)}`]);
+        const { rows: [{ id: bien }] } = await db.query(
+          "insert into public.biens (organization_id, nom, type, address_line1, postal_code, city) values ($1,'Bien sonde','appartement','1 rue X','75001','Paris') returning id", [id]);
+        const { rows: [{ id: lot }] } = await db.query("insert into public.lots (organization_id, bien_id, nom) values ($1,$2,$3) returning id", [id, bien, `Lot sonde ${MARQUE}`]);
+        lots.set(id, lot);
+      }
+      await agir(sa);
+      const affichees = (await chercher(`Lot sonde ${MARQUE}`)).map((l) => l.organisation_id);
+      expect(affichees).toEqual(ids.slice(-8).reverse()); // « … A » à « … H » : les huit plus grands identifiants
+      const [ligne, ...autres] = await traces(sa);
+      expect(autres).toEqual([]);
+      expect(ligne.details.resultats).toBe(25);
+      const organisations = ligne.details.organisations as string[];
+      expect(organisations).toHaveLength(20);
+      expect(affichees.filter((org) => !organisations.includes(org)), "organisations affichées absentes de la trace").toEqual([]);
+      expect(organisations.slice(0, 8)).toEqual(affichees);
+      expect(new Set(organisations).size).toBe(20);
+      // Les objets suivent le même ordre : le lot de chaque organisation affichée est relevé.
+      expect((ligne.details.objets as string[]).slice(0, 8)).toEqual(affichees.map((org) => lots.get(org)));
+    });
+
     it("la même recherche refaite dans la minute n'écrit pas de seconde ligne ; une autre, si", async () => {
       await agir(sa);
       for (let i = 0; i < 5; i++) await chercher(NUMERO_A);

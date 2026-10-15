@@ -21,9 +21,11 @@
 --     identifiant de l'objet. Au plus huit lignes ; `groupes` dit combien il y en a en tout.
 --   · La recherche est tracée au journal de supervision (`audit_log`, action `recherche_reference`) dans la même
 --     transaction : pas de résultat sans trace. Le détail garde la forme de la saisie, le nombre d'objets trouvés et leurs
---     identifiants (organisations, objets : au plus vingt de chaque) ; il ne recopie le texte saisi que lorsqu'il est un
---     identifiant ou un numéro d'incident (ni l'un ni l'autre n'est une donnée personnelle), JAMAIS un nom, qui est souvent
---     une adresse. La ligne est rattachée à l'organisation quand une seule est trouvée. La même recherche refaite dans la
+--     identifiants (organisations, objets : au plus vingt de chaque), DANS L'ORDRE DE L'ÉCRAN : les groupes rendus sont
+--     calculés avant la trace, si bien que toute organisation affichée y figure, même quand la référence (« Lot unique »,
+--     « INC-2026-0001 ») se retrouve dans plus de vingt organisations (relecture du 15/10). Il ne recopie le texte saisi
+--     que lorsqu'il est un identifiant ou un numéro d'incident (ni l'un ni l'autre n'est une donnée personnelle), JAMAIS
+--     un nom, qui est souvent une adresse. La ligne est rattachée à l'organisation quand une seule est trouvée. La même recherche refaite dans la
 --     minute (même compte, même détail) n'écrit pas de seconde ligne, comme les consultations (`log_sa_access`) : la
 --     fenêtre de recherche interroge la base à mesure de la saisie.
 --   · Un texte de moins de 2 ou de plus de 120 caractères ne lit rien et n'écrit rien.
@@ -58,6 +60,7 @@ declare
   v_id uuid;
   v_numero text;
   v_trouves jsonb;
+  v_groupes jsonb;
   v_orgs jsonb;
   v_nb_orgs integer;
   v_nb_groupes integer;
@@ -96,10 +99,19 @@ begin
              where lower(btrim(regexp_replace(l.nom, '\s+', ' ', 'g'))) = v_ref) t;
   end if;
 
-  select coalesce(jsonb_agg(o.org order by o.org), '[]'::jsonb), count(*)::integer into v_orgs, v_nb_orgs
-    from (select distinct (e->>'org')::uuid as org from jsonb_array_elements(v_trouves) e) o;
-  select count(*)::integer into v_nb_groupes
-    from (select distinct e->>'t', e->>'org' from jsonb_array_elements(v_trouves) e) g;
+  -- Les groupes (type d'objet × organisation) dans l'ordre de l'écran, calculés UNE fois, avant la trace : la réponse en
+  -- rend les huit premiers, la trace suit le même ordre. Une organisation affichée est donc toujours tracée.
+  select coalesce(jsonb_agg(jsonb_build_object('t', g.t, 'org', g.org, 'nom', o.name, 'nombre', g.nombre)
+                   order by array_position(array['bien', 'lot', 'incident'], g.t), o.name, o.id), '[]'::jsonb),
+         count(*)::integer
+    into v_groupes, v_nb_groupes
+    from (select e->>'t' as t, (e->>'org')::uuid as org, count(*)::integer as nombre
+            from jsonb_array_elements(v_trouves) e group by 1, 2) g
+    join public.organizations o on o.id = g.org;
+  -- Chaque organisation au rang de son premier groupe : celles qui sont affichées viennent en tête.
+  select coalesce(jsonb_agg(to_jsonb(r.org) order by r.rang), '[]'::jsonb), count(*)::integer into v_orgs, v_nb_orgs
+    from (select (a.x->>'org')::uuid as org, min(a.n) as rang
+            from jsonb_array_elements(v_groupes) with ordinality a(x, n) group by 1) r;
   v_org := case when v_nb_orgs = 1 then (v_orgs->>0)::uuid end;
 
   -- La trace : jamais le texte d'un nom (souvent une adresse) ; des identifiants, des nombres, des codes courts.
@@ -107,7 +119,12 @@ begin
       'forme', v_forme,
       'resultats', jsonb_array_length(v_trouves),
       'organisations', (select coalesce(jsonb_agg(a.x order by a.n), '[]'::jsonb) from jsonb_array_elements(v_orgs) with ordinality a(x, n) where a.n <= 20),
-      'objets', (select coalesce(jsonb_agg(a.x->'id' order by a.n), '[]'::jsonb) from jsonb_array_elements(v_trouves) with ordinality a(x, n) where a.n <= 20))
+      'objets', (select coalesce(jsonb_agg(z.id order by z.k), '[]'::jsonb)
+                   from (select e->'id' as id, row_number() over (order by g.n, (e->>'id')::uuid) as k
+                           from jsonb_array_elements(v_trouves) e
+                           join jsonb_array_elements(v_groupes) with ordinality g(x, n)
+                             on g.x->>'t' = e->>'t' and g.x->>'org' = e->>'org') z
+                  where z.k <= 20))
     || case v_forme when 'identifiant' then jsonb_build_object('reference', v_id::text)
                     when 'numero' then jsonb_build_object('reference', v_numero)
                     else '{}'::jsonb end;
@@ -122,11 +139,9 @@ begin
   end if;
 
   return query
-    select g.t, g.org, o.name, g.nombre, v_nb_groupes
-      from (select e->>'t' as t, (e->>'org')::uuid as org, count(*)::integer as nombre
-              from jsonb_array_elements(v_trouves) e group by 1, 2) g
-      join public.organizations o on o.id = g.org
-     order by array_position(array['bien', 'lot', 'incident'], g.t), o.name, o.id
+    select g.x->>'t', (g.x->>'org')::uuid, g.x->>'nom', (g.x->>'nombre')::integer, v_nb_groupes
+      from jsonb_array_elements(v_groupes) with ordinality g(x, n)
+     order by g.n
      limit 8;
 end
 $corps$

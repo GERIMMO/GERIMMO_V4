@@ -43,6 +43,10 @@ const ACTIONS: Record<string, string> = {
   suppression_encaissement: "Encaissement supprimé, contre-écritures passées",
   suppression_encaissement_depot: "Encaissement de dépôt de garantie supprimé",
   contre_ecriture: "Écriture comptable annulée par une contre-écriture",
+  // D23 (14/10, PRO2-21 et CHN-02) : la validation d'une facture d'artisan et son règlement déclaré laissent une trace.
+  facture_validee: "Facture d’artisan contrôlée et validée",
+  reglement_facture_enregistre: "Règlement d’une facture d’artisan déclaré (écriture de dépense liée)",
+  reglement_facture_retire: "Règlement d’une facture d’artisan retiré (contre-écriture passée)",
   mois_reouvert: "Mois comptable rouvert",
   inscription_proprietaire: "Inscription d’un propriétaire bailleur",
   organisation_ouverte: "Ouverture d’une organisation",
@@ -106,6 +110,7 @@ const EVENEMENTS: Record<string, string> = {
   reponse_gestionnaire: "Réponse du gestionnaire",
   notification_rappel: "Rappel envoyé",
   incident_urgent: "Incident urgent signalé",
+  facture_reglee: "Règlement de facture déclaré à l’artisan",
   // D48 (IA-11, 14/10) : le nettoyage des registres d'exécution ne garde que des nombres.
   purge_registres_execution: "Nettoyage des registres d’exécution arrivés à échéance",
 };

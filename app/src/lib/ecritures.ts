@@ -13,11 +13,17 @@ export type EcritureJournal = {
   contre_ecriture_de: string | null;
   encaissement_id?: string | null;
   depot_encaissement_id?: string | null;
+  /**
+   * D23 (PRO2-21) : le numéro de la facture d'intervention dont le règlement déclaré a créé cette écriture. Le lien est
+   * porté par la table des règlements (aucune colonne du journal) : la page le pose avant d'afficher.
+   */
+  reglement_facture?: string | null;
 };
 
 /** `null` si « Annuler l'écriture » est proposé ; sinon, la mention à afficher. */
 export function annulationHorsJournal(e: EcritureJournal): string | null {
   if (e.contre_ecriture_de) return "annulation";
+  if (e.reglement_facture) return `née du règlement de la facture n° ${e.reglement_facture} : se retire depuis la fiche de l’incident`;
   if (e.encaissement_id) return "se retire avec l’encaissement, depuis le bail";
   if (e.depot_encaissement_id) return "se retire avec le dépôt, depuis le bail";
   if (e.systeme) return "se corrige depuis le geste qui l’a créée";

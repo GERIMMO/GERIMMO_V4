@@ -24,10 +24,13 @@ import { verifierArtisanAction } from "@/app/artisan/acces";
 import type { LigneAgenda } from "@/app/artisan/acces";
 import { LISTE_METIERS } from "@/app/artisan/libelles";
 import {
+  demandeDuCreneau,
   notifierCreneauxAChoisir,
   notifierEnCoulisses,
   notifierMissionRefusee,
+  notifierReponseReportRdv,
 } from "@/lib/notifications";
+import type { DemandeRdvArtisan } from "@/lib/rendez-vous-locataire";
 
 /**
  * Actions du portail artisan.
@@ -541,6 +544,19 @@ export async function accepterDateLocataire(
   });
   if (error) return { erreur: sansJargon(error.message) };
 
+  // Décision D22 : si cette date répondait à une demande de report du locataire, il apprend que son rendez-vous a
+  // changé. Le client de l'artisan ne lit pas la demande : le client de service la retrouve par le créneau, APRÈS le
+  // succès de la fonction (qui a vérifié que c'est bien SA mission). Clic répété : même clé d'envoi, pas de second
+  // courrier.
+  const mission = await maMission(supabase, interventionId);
+  if (mission) {
+    const org = mission.organization_id;
+    await notifierEnCoulisses(supabase, { evenement: "rdv_report_accepte", objet: creneauId, org }, async (service) => {
+      const lien = await demandeDuCreneau(service, creneauId);
+      if (lien && lien.orgId === org) await notifierReponseReportRdv(service, org, lien.demandeId);
+    });
+  }
+
   rafraichirMission(interventionId);
   return { succes: "Rendez-vous confirmé. Le locataire le voit dans son espace." };
 }
@@ -561,11 +577,31 @@ export async function refuserDatesLocataire(
       valeurs,
     };
   }
+  // Décision D22 : une demande de report en attente sur cette mission ? Lue AVANT le refus (le refus la close).
+  const { data: demandes } = await supabase.rpc("mes_demandes_rdv_artisan");
+  const report = ((demandes ?? []) as DemandeRdvArtisan[]).find(
+    (d) => d.intervention_id === interventionId && d.type === "report" && d.statut === "en_attente"
+  );
+
   const { error } = await supabase.rpc("refuser_creneaux_locataire", {
     p_intervention: interventionId,
     p_motif: motif.slice(0, 1000),
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  if (report) {
+    const mission = await maMission(supabase, interventionId);
+    if (mission) {
+      const org = mission.organization_id;
+      await notifierEnCoulisses(supabase, { evenement: "rdv_report_refuse", objet: report.demande_id, org }, (service) =>
+        notifierReponseReportRdv(service, org, report.demande_id)
+      );
+    }
+    rafraichirMission(interventionId);
+    return {
+      succes: "Report refusé : le rendez-vous actuel est maintenu. Le locataire et le gérant sont prévenus ; le gérant peut fixer une autre date.",
+    };
+  }
 
   rafraichirMission(interventionId);
   return {

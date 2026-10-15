@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { estUuid } from "@/lib/identifiants";
+import type { FactureVueParArtisan } from "@/lib/reglement-facture";
+import type { DemandeRdvArtisan } from "@/lib/rendez-vous-locataire";
 
 /**
  * LE MODÈLE D'ACCÈS DU PORTAIL ARTISAN — pourquoi il est sûr.
@@ -279,6 +281,30 @@ export const chargerCreneauxMission = cache(async function chargerCreneauxMissio
     p_intervention: interventionId,
   });
   return { lignes: (data ?? []) as CreneauMission[], erreur: Boolean(error) };
+});
+
+/**
+ * L'état de règlement de SES factures (décision D23, `mes_reglements_factures_artisan`) : déclaré par le client, jamais
+ * exécuté par Gerimmo. Pour chaque règlement, la date et le moyen seulement (réponse 3 de la fiche B.15) : la base ne rend
+ * ni la référence ni le montant de chaque règlement. Un échec de lecture se distingue d'« aucune facture ».
+ */
+export const chargerReglementsFactures = cache(async function chargerReglementsFactures() {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as FactureVueParArtisan[], erreur: false };
+  const { data, error } = await supabase.rpc("mes_reglements_factures_artisan");
+  return { lignes: (data ?? []) as FactureVueParArtisan[], erreur: Boolean(error) };
+});
+
+/**
+ * Décision D22 : la dernière demande du locataire (report ou annulation) sur chacune des missions vivantes de l'artisan.
+ * La table n'est pas lisible par l'artisan : la fonction de base ne rend que SES missions, motif compris (fiche C.6),
+ * aucune coordonnée.
+ */
+export const chargerDemandesRdv = cache(async function chargerDemandesRdv() {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as DemandeRdvArtisan[], erreur: false };
+  const { data, error } = await supabase.rpc("mes_demandes_rdv_artisan");
+  return { lignes: (data ?? []) as DemandeRdvArtisan[], erreur: Boolean(error) };
 });
 
 /** Une photo jointe par le locataire que l'artisan a le droit de voir : ni chemin, ni nom de fichier, ni auteur. */

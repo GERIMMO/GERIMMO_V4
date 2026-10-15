@@ -46,6 +46,9 @@ export const GESTES_TRACE = {
   actualisation_restitution: "actualisation des montants de la restitution",
   decompte_envoye: "décompte de restitution marqué comme envoyé",
   finalisation_decompte: "finalisation du décompte de restitution",
+  // Règlement déclaratif de la facture d'intervention (actions/reglement-facture.ts, décision D23)
+  reglement_facture: "déclaration du règlement d’une facture d’intervention",
+  retrait_reglement_facture: "retrait d’un règlement de facture d’intervention",
   // Appels de charges (actions/appels-charges.ts)
   creation_appel_charges: "création d’un appel de charges",
   ajout_poste_charge: "ajout d’un poste de charges",

@@ -100,7 +100,12 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
  // le revenu net. Un zéro confirmé diffère d'une donnée absente.
  let manque230=false;
  for(const lot of new Set([...lots,...(options.exercices?.keys()??[])])){
-  const x=options.exercices?.get(lot);if(!x||x.annee!==annee||x.regularisation230===null){manque230=true;continue;}
+  const x=options.exercices?.get(lot);
+  // Décision X10 du 14/10 (FIN-04) : la 230 ne concerne que les lots qui ont au moins une période en location NUE sur
+  // l'année. Un lot confirmé meublé (ou hors de vos droits) toute l'année n'est pas dans la 2044 : sa 230 n'est ni exigée
+  // ni comptée, même saisie. Sans exercice confirmé pour l'année on ne sait pas encore : la 230 reste à compléter.
+  if(x&&x.annee===annee&&!(x.periodes??[]).some(p=>p.regime==='nu'))continue;
+  if(!x||x.annee!==annee||x.regularisation230===null){manque230=true;continue;}
   const m=Number(x.regularisation230),q=Number(x.quote_part230);
   if(!Number.isFinite(m)||m<0||!Number.isFinite(q)||q<0||q>100||!x.justification230){manque230=true;continue;}
   ajouter('230',m,q,'Régularisation N−1 confirmée');if(q!==100)ventile=true;

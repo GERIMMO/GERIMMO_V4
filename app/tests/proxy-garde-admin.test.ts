@@ -296,7 +296,7 @@ describe("D08 — le proxy décrit la requête pour la trace de traversée, sans
 
   it("les appels de serveur à serveur (crons) les portent aussi, écrasés", async () => {
     mocks.client.mockReturnValue({});
-    const reponse = await proxy(new NextRequest(`${BASE}/api/cron/purge`, { headers: { "x-gerimmo-chemin": "/admin/forge" } }));
-    expect(reponse.headers.get("x-middleware-request-x-gerimmo-chemin")).toBe("/api/cron/purge");
+    const reponse = await proxy(new NextRequest(`${BASE}/api/cron/equipes`, { headers: { "x-gerimmo-chemin": "/admin/forge" } }));
+    expect(reponse.headers.get("x-middleware-request-x-gerimmo-chemin")).toBe("/api/cron/equipes");
   });
 });

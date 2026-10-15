@@ -145,20 +145,20 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
     // le plus récent et à celui d'avant ; on décale la date de début pour que
     // « il y a un an » et « aujourd'hui » soient des anniversaires.
     await db.query(
-      `update public.baux set date_debut = (current_date - interval '2 years')::date where id = $1`,
+      `update public.baux set date_debut = (public.aujourdhui_paris() - interval '2 years')::date where id = $1`,
       [b]
     );
     await enGerant();
     const {
       rows: [an1],
     } = await db.query(
-      `select public.reviser_loyer($1, 148.03, 'T2 2025', (current_date - interval '1 year')::date) as loyer`,
+      `select public.reviser_loyer($1, 148.03, 'T2 2025', (public.aujourdhui_paris() - interval '1 year')::date) as loyer`,
       [b]
     );
     expect(Number(an1.loyer)).toBe(764.78); // l'exemple du wiki
     const {
       rows: [an2],
-    } = await db.query(`select public.reviser_loyer($1, 150.00, 'T2 2026', current_date) as loyer`, [b]);
+    } = await db.query(`select public.reviser_loyer($1, 150.00, 'T2 2026', public.aujourdhui_paris()) as loyer`, [b]);
     // Juste : 764,78 × 150 / 148,03 = 774,96 € (l'ancien calcul donnait 790,23 €)
     expect(Number(an2.loyer)).toBe(774.96);
     const { rows } = await db.query(
@@ -175,16 +175,16 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
   it("IRL : la date d'effet est une date anniversaire du bail, jamais avant la première", async () => {
     const b = await bail({ revision_irl: true, irl_valeur: 145.17, date_debut: "2026-01-01" });
     await db.query(
-      `update public.baux set date_debut = (current_date - 14)::date where id = $1`,
+      `update public.baux set date_debut = (public.aujourdhui_paris() - 14)::date where id = $1`,
       [b]
     );
     await enGerant();
     // 14 jours après la prise d'effet (constat de l'audit agence)
-    await echec(/date anniversaire/i, `select public.reviser_loyer($1, 148.03, 'T2 2026', current_date)`, [b]);
+    await echec(/date anniversaire/i, `select public.reviser_loyer($1, 148.03, 'T2 2026', public.aujourdhui_paris())`, [b]);
     // Avant même le début du bail
     await echec(
       /date anniversaire/i,
-      `select public.reviser_loyer($1, 148.03, 'T2 2026', (current_date - 30)::date)`,
+      `select public.reviser_loyer($1, 148.03, 'T2 2026', (public.aujourdhui_paris() - 30)::date)`,
       [b]
     );
   });
@@ -192,14 +192,14 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
   it("IRL : une révision antérieure à la dernière appliquée est refusée", async () => {
     const b = await bail({ revision_irl: true, irl_valeur: 145.17, date_debut: "2024-01-01" });
     await db.query(
-      `update public.baux set date_debut = (current_date - interval '2 years')::date where id = $1`,
+      `update public.baux set date_debut = (public.aujourdhui_paris() - interval '2 years')::date where id = $1`,
       [b]
     );
     await enGerant();
-    await db.query(`select public.reviser_loyer($1, 148.03, 'T2 2026', current_date)`, [b]);
+    await db.query(`select public.reviser_loyer($1, 148.03, 'T2 2026', public.aujourdhui_paris())`, [b]);
     await echec(
       /plus récente/i,
-      `select public.reviser_loyer($1, 147.00, 'T2 2025', (current_date - interval '1 year')::date)`,
+      `select public.reviser_loyer($1, 147.00, 'T2 2025', (public.aujourdhui_paris() - interval '1 year')::date)`,
       [b]
     );
   });
@@ -210,18 +210,18 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
   it("dépôt : une révision à la baisse passe, le dépôt n'est jamais recontrôlé sur un bail engagé", async () => {
     const b = await bail({ depot_garantie: 650, revision_irl: true, irl_valeur: 145.17 });
     await db.query(
-      `update public.baux set date_debut = (current_date - interval '1 year')::date where id = $1`,
+      `update public.baux set date_debut = (public.aujourdhui_paris() - interval '1 year')::date where id = $1`,
       [b]
     );
     await enGerant();
     const {
       rows: [r],
-    } = await db.query(`select public.reviser_loyer($1, 144, 'T2 2026', current_date) as loyer`, [b]);
+    } = await db.query(`select public.reviser_loyer($1, 144, 'T2 2026', public.aujourdhui_paris()) as loyer`, [b]);
     expect(Number(r.loyer)).toBe(644.76); // l'exemple de l'audit, autrefois bloqué
     // Le solde du dépôt s'encaisse toujours, au plafond du loyer de signature
     const {
       rows: [e],
-    } = await db.query(`select public.encaisser_depot($1, 650, current_date, 'virement') as cumul`, [b]);
+    } = await db.query(`select public.encaisser_depot($1, 650, public.aujourdhui_paris(), 'virement') as cumul`, [b]);
     expect(Number(e.cumul)).toBe(650);
     // Modifier le DÉPÔT reste contrôlé
     await db.query("reset role");

@@ -53,7 +53,7 @@ test.describe("admin d'agence", () => {
 
     test("crée un bien et son premier lot, et le retrouve au parc", async ({ page }) => {
       const { orgAgence } = lireComptes();
-      const nom = await creerBien(page, orgAgence, nomUnique("Bien recette"));
+      const nom = await creerBien(page, espaceDe("admin"), nomUnique("Bien recette"));
       await page.goto(`/agence/${orgAgence}/parc`);
       await expect(page.locator("h1").first()).toBeVisible();
       await expect(page.locator("body")).toContainText(nom);

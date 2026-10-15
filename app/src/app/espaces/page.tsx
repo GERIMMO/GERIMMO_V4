@@ -9,6 +9,7 @@ import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { sansJargon } from "@/lib/erreurs";
+import { baseEspace } from "@/lib/racine-espace";
 import { ChoixEspace } from "./choix-espace";
 
 export const metadata = { title: "Mes espaces — Gerimmo" };
@@ -41,7 +42,8 @@ function cheminEspace(a: Adhesion): string | null {
   // Le propriétaire direct partage les écrans de l'espace agence dès le S2
   // (parcours communs du plan) ; ses écrans propres arrivent au S9
   if (["admin_agence", "agent", "proprietaire_direct"].includes(a.role))
-    return a.organization ? `/agence/${a.organization.id}` : null;
+    // Décision D27 : le propriétaire direct entre sous /espace, l'agence et ses agents sous /agence.
+    return a.organization ? baseEspace(a.organization.id, a.role === "proprietaire_direct") : null;
   if (a.role === "locataire")
     return a.organization ? `/locataire/${a.organization.id}` : null;
   // L'artisan est le seul rôle SANS organisation dans son adresse : il
@@ -160,7 +162,7 @@ export default async function PageEspaces() {
       // l'ouverture : le profil dira « aucun parrain ».
       const code = normaliserCode(user.user_metadata?.code_parrainage);
       if (code) await supabase.rpc("enregistrer_parrainage", { p_filleul: orgId, p_code: code });
-      redirect(`/agence/${orgId}`);
+      redirect(baseEspace(orgId, true));
     }
     // Refus métier (ex. : adresse d'un mandant — exclusivité PD/PM) : dit tel quel
     erreurOuverture = error ? sansJargon(error.message) : null;

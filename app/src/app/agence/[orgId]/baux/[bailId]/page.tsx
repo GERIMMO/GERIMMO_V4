@@ -66,6 +66,7 @@ import {
 import { FormulaireDepot, type EncaissementDepot } from "./formulaire-depot";
 import { EchecLecture, PageEchecLecture } from "../../parc/echec-lecture";
 import { exigerUuids } from "@/lib/identifiants";
+import { baseEspace, racineEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Bail — Gerimmo" };
 
@@ -73,6 +74,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const { orgId, bailId } = await props.params;
   exigerUuids(bailId);
   const { supabase, organisation, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   const agence = organisation.type === "agence";
   // Rappel « Conseils pour choisir votre locataire », à côté des garants : le
   // propriétaire en gestion directe seulement. L'agence (hors site public V1)
@@ -96,7 +99,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       <PageEchecLecture
         titre="Bail"
         quoi={["le bail"]}
-        retour={{ href: `/agence/${orgId}/parc`, libelle: "Parc" }}
+        retour={{ href: `${base}/parc`, libelle: "Parc" }}
       />
     );
   if (!bail) notFound();
@@ -242,7 +245,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: montantsAJour, error: erreurMontants },
   ] = await Promise.all([
     loyersActif
-      ? actionsAttendues(supabase, orgId, { bailId })
+      ? actionsAttendues(supabase, orgId, { bailId, racine: racineEspace(estProprietaire) })
       : Promise.resolve([]),
     comparatifPossible
       ? supabase.rpc("comparatif_edl", { p_bail: bailId })
@@ -379,7 +382,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       aFaire.push({
         texte:
           "Déclarer les pièces du lot — sans elles, l'état des lieux ne distingue pas la cuisine de la chambre",
-        href: `/agence/${orgId}/parc/${lot?.bien_id}/lots/${bail.lot_id}#pieces`,
+        href: `${base}/parc/${lot?.bien_id}/lots/${bail.lot_id}#pieces`,
       });
     if (!edlEntreeSigne)
       aFaire.push({ texte: "Réaliser et signer l'état des lieux d'entrée (à la remise des clés)", href: "#edl" });
@@ -395,7 +398,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       aFaire.push({
         texte:
           "Déclarer les pièces du lot — sans elles, l'état des lieux ne distingue pas la cuisine de la chambre",
-        href: `/agence/${orgId}/parc/${lot?.bien_id}/lots/${bail.lot_id}#pieces`,
+        href: `${base}/parc/${lot?.bien_id}/lots/${bail.lot_id}#pieces`,
       });
     // Les blocages calculés par la source commune (impayés, EDL d'entrée,
     // diagnostics obligatoires) — les mêmes items que l'accueil affiche.
@@ -564,7 +567,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             orgId={orgId}
             code="notice"
             cibleId={bailId}
-            cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+            cheminRetour={`${base}/baux/${bailId}`}
             libelle="Générer la notice (PDF)"
           />
         </CardContent>
@@ -582,7 +585,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             <p className="text-sm text-success-soft-foreground">
               Règlement déposé.{" "}
               <a
-                href={`/agence/${orgId}/documents/${bail.reglement_copropriete}/fichier`}
+                href={`${base}/documents/${bail.reglement_copropriete}/fichier`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-[var(--bleu)] underline-offset-2 hover:underline"
@@ -789,7 +792,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 orgId={orgId}
                 code={bail.chambre_id ? "bail_individuel" : bail.type === "colocation" ? "bail_colocation" : bail.type === "meuble" ? "bail_meuble" : "bail_nu"}
                 cibleId={bailId}
-                cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                cheminRetour={`${base}/baux/${bailId}`}
                 completionSurPlace
                 libelle={bail.chambre_id ? "Générer le contrat individuel (PDF)" : bail.type === "colocation" ? "Générer le contrat commun (PDF)" : "Générer le bail (PDF)"}
                 variant="default"
@@ -845,7 +848,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 <li key={e.id}>
                   {/* Tout le rang ouvre la grille, pas seulement le bouton (retour du 24/09). */}
                   <Link
-                    href={`/agence/${orgId}/baux/${bailId}/edl/${e.id}`}
+                    href={`${base}/baux/${bailId}/edl/${e.id}`}
                     className="-mx-2 flex items-center gap-3 rounded-lg px-2 hover:bg-[var(--survol)]"
                   >
                     <span className="w-20 text-sm font-medium">
@@ -882,6 +885,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             <FormulaireLoyers
               orgId={orgId}
               bailId={bailId}
+              racine={racineEspace(estProprietaire)}
               echeancier={(echeancier ?? []) as LigneEcheance[]}
               encaissements={(encaissements ?? []) as Encaissement[]}
               quittances={(quittances ?? []) as Quittance[]}
@@ -943,7 +947,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             <GenererAvenant
               orgId={orgId}
               bailId={bailId}
-              cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+              cheminRetour={`${base}/baux/${bailId}`}
             />
           </CardContent>
         </Card>
@@ -952,11 +956,11 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       </RubriqueDossier>);
   return (
     <main className={`${styles.page} dossier-bail mx-auto w-full max-w-6xl space-y-[1.125rem] p-4 sm:p-7`}>
-      <Link href={lot ? `/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}` : `/agence/${orgId}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {lot?.nom ?? "Mes lots"}</Link>
+      <Link href={lot ? `${base}/parc/${lot.bien_id}/lots/${lot.id}` : `${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {lot?.nom ?? "Mes lots"}</Link>
       <header className={styles.entete}>
         <span className={styles.icone}><FileText size={26} aria-hidden="true" /></span>
         <div className="min-w-0 flex-1"><p className={styles.surtitre}>Contrat de location · {TYPES_BAIL[bail.type] ?? bail.type}</p><div className="flex flex-wrap items-center gap-3"><h1>{lot?.nom ?? "Fiche du bail"}</h1><span className={COULEURS_ETAT_BAIL[bail.etat] ?? "puce puce-grise"}>{ETATS_BAIL[bail.etat] ?? "État à vérifier"}</span></div><p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Users size={16} aria-hidden="true" />{erreurLocataire ? "Locataire indisponible" : locataire ? nomComplet(locataire) : "Locataire à renseigner"}{bail.chambre_id && ` · ${chambre?.nom ?? "Chambre"}`}</p></div>
-        {bail.etat === "brouillon" ? <a href="#corriger" className="btn-secondaire"><Pencil size={15} aria-hidden="true" /> Modifier le contrat</a> : lot && <Link className="btn-secondaire" href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}`}><House size={15} aria-hidden="true" /> Voir le logement</Link>}
+        {bail.etat === "brouillon" ? <a href="#corriger" className="btn-secondaire"><Pencil size={15} aria-hidden="true" /> Modifier le contrat</a> : lot && <Link className="btn-secondaire" href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}><House size={15} aria-hidden="true" /> Voir le logement</Link>}
         {bail.etat === "brouillon" && !bail.document_signe && !bail.signe_envoye_le && <SupprimerBailBrouillon orgId={orgId} bailId={bailId} revenirAuLot libelle={[lot?.nom, TYPES_BAIL[bail.type] ?? bail.type, locataire ? nomComplet(locataire) : null, bail.date_debut ? `Entrée le ${formaterDate(bail.date_debut)}` : null].filter(Boolean).join(" · ")} />}
         {bail.etat === "brouillon" && <dl className={styles.resumeBrouillon}>
           <div><Wallet size={17} aria-hidden="true"/><div><dt>Loyer mensuel · charges comprises</dt><dd>{bail.loyer_hc != null && bail.charges != null ? eur(Number(bail.loyer_hc) + Number(bail.charges)) : "À compléter"}</dd></div></div>
@@ -1022,7 +1026,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         formulaire={<FormulaireParcoursBail orgId={orgId} bailId={bailId} defauts={bail} agence={agence} meuble={Boolean(lot?.meuble)} chambres={chambres ?? []} />}
         orgId={orgId} bailId={bailId} controleInitial={await verifierDossierBail(orgId, bailId)}
         contenus={[
-          lot ? <p key="chambres" className="text-sm text-muted-foreground">Pour louer une chambre avec son propre contrat, <Link className="underline" href={lienLotDepuisBail(orgId,lot.bien_id,bail.lot_id,bailId,"equipements",1)}>préparez ses caractéristiques dans le lot</Link>.</p> : null,
+          lot ? <p key="chambres" className="text-sm text-muted-foreground">Pour louer une chambre avec son propre contrat, <Link className="underline" href={lienLotDepuisBail(orgId,lot.bien_id,bail.lot_id,bailId,"equipements",1,racineEspace(estProprietaire))}>préparez ses caractéristiques dans le lot</Link>.</p> : null,
           <EtapePersonnesBail key="personnes" orgId={orgId} bailId={bailId} lotId={bail.lot_id} principalId={bail.locataire_principal} colocation={bail.type === "colocation" && !bail.chambre_id} />,
           <CompleterSurPlace key="logement" orgId={orgId} bailId={bailId} lotId={bail.lot_id} individuel={Boolean(bail.chambre_id)} />,
           bail.chambre_id && lot ? <div key="plafond" id="loyer-plafond-colocation"><ChambresLogement orgId={orgId} lotId={bail.lot_id} bienId={lot.bien_id} chambres={[]} plafond={lot.colocation_loyer_reference} mode="plafond" /></div> : null,
@@ -1056,7 +1060,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               <GenererCongeBailleur
                 orgId={orgId}
                 bailId={bailId}
-                cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                cheminRetour={`${base}/baux/${bailId}`}
                 meuble={bail.type === "meuble" || (bail.type === "colocation" && Boolean(lot?.meuble))}
                 terme={(termeBail as string | null) ?? null}
               />

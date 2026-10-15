@@ -13,6 +13,7 @@ import { CleEnvoi } from "@/components/cle-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MODES_PAIEMENT } from "./formulaire-loyers";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 export type EncaissementDepot = {
   id: string;
@@ -42,6 +43,8 @@ export function FormulaireDepot({
   locataireNom: string;
   encaissementOuvert?: boolean;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const encaisse = encaissements.reduce((s, e) => s + Number(e.montant), 0);
   const reste = depotDu - encaisse;
   const nom = (id: string | null, libelle: string | null) =>
@@ -103,7 +106,7 @@ export function FormulaireDepot({
                   orgId={orgId}
                   code="recu_depot"
                   cibleId={e.id}
-                  cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                  cheminRetour={`${base}/baux/${bailId}`}
                   libelle="Reçu PDF"
                   variant="ghost"
                 />

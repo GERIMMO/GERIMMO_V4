@@ -7,6 +7,7 @@ import { recapitulatifFiscal, fondsTravauxAlurQualificationIgnoree, phrasePieces
 import { QualificationPiece, ExerciceLot } from "@/components/formulaires-fiscaux";
 import { identifiantsDesEcritures, lectureTronquee, lireParIdentifiants, messageEcranLectureTronquee, phraseLimiteAtteinte } from "@/lib/lectures-fiscales";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { baseEspace } from "@/lib/racine-espace";
 
 
 
@@ -22,6 +23,8 @@ export async function RecapitulatifFiscal(props: {
   const { annee: anneeDemandee, bien } = await props.searchParams;
   const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
   if (!estProprietaire) notFound();
+  // Décision D27 : l'aide à la déclaration n'existe que chez le propriétaire direct (/espace/<id>).
+  const base = baseEspace(orgId, true);
 
   const { data: biensDisponibles, error: erreurListeBiens } = props.compact
     ? { data: [], error: null }
@@ -94,7 +97,7 @@ export async function RecapitulatifFiscal(props: {
       {anneesProposees.map((a) => (
         <Link
           key={a}
-          href={`/agence/${orgId}/comptabilite/fiscal?annee=${a}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}`}
+          href={`${base}/comptabilite/fiscal?annee=${a}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}`}
           className={`${a === annee ? "filtre actif" : "filtre"} inline-flex items-center pointer-coarse:min-h-11`}
           aria-current={a === annee ? "page" : undefined}
         >
@@ -107,7 +110,7 @@ export async function RecapitulatifFiscal(props: {
   // au-dessus du titre, libellé du titre de la page qu'il rouvre (24/09).
   const retour = (
     <Link
-      href={`/agence/${orgId}/loyers?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}#declaration`}
+      href={`${base}/loyers?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}#declaration`}
       className="inline-flex min-h-9 items-center text-sm text-muted-foreground hover:underline"
     >
       ← Finances
@@ -208,7 +211,7 @@ export async function RecapitulatifFiscal(props: {
       {recap.meuble.nbEcritures > 0 && <p className="text-sm">Locations meublées, hors revenus fonciers : {eur(recap.meuble.recettes)} de recettes et {eur(recap.meuble.depenses)} de dépenses.</p>}
     </>}
     <p className="text-xs text-muted-foreground">Aide à la déclaration de revenus fonciers ; aucune déclaration n’est envoyée.</p>
-    <Link className="lien-discret inline-flex min-h-11 items-center" href={`/agence/${orgId}/comptabilite/fiscal?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}`}>Préparer ma déclaration {annee} →</Link>
+    <Link className="lien-discret inline-flex min-h-11 items-center" href={`${base}/comptabilite/fiscal?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}`}>Préparer ma déclaration {annee} →</Link>
   </div>;
 
 
@@ -237,7 +240,7 @@ export async function RecapitulatifFiscal(props: {
       </div>
       <section className="loc-carte space-y-3">
         <h2 className="text-lg">1. Choisir l’année et les biens</h2>
-        <form data-saisie-libre action={`/agence/${orgId}/comptabilite/fiscal`} className="grid items-end gap-3 sm:grid-cols-[1fr_2fr_auto]">
+        <form data-saisie-libre action={`${base}/comptabilite/fiscal`} className="grid items-end gap-3 sm:grid-cols-[1fr_2fr_auto]">
           <label className="space-y-1 text-sm">Année<select name="annee" defaultValue={annee} className="min-h-11 w-full rounded-lg border border-input bg-background px-3">{anneesProposees.map(a => <option key={a} value={a}>{a}</option>)}</select></label>
           <label className="space-y-1 text-sm">Biens<select name="bien" defaultValue={bien ?? ""} className="min-h-11 w-full rounded-lg border border-input bg-background px-3"><option value="">Tous mes biens</option>{(biensDisponibles ?? []).map(b => <option key={b.id} value={b.id}>{b.nom}</option>)}</select></label>
           <button type="submit" className="btn-or">Afficher</button>
@@ -258,7 +261,7 @@ export async function RecapitulatifFiscal(props: {
             dépenses de {annee} n&apos;y sont pas saisis.
           </p>
           <p className="geste">
-            <Link href={`/agence/${orgId}/comptabilite`} className="lien-discret">
+            <Link href={`${base}/comptabilite`} className="lien-discret">
               Ouvrir le livre recettes-dépenses →
             </Link>
           </p>

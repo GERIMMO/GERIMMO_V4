@@ -75,7 +75,9 @@ function empreinte(formulaire: HTMLFormElement): Empreinte {
  *   - un filtre (`method="get"`, `role="search"`) n'est jamais suivi non plus.
  */
 export function eligible(formulaire: HTMLFormElement): boolean {
-  return /^\/(agence|artisan|locataire|admin|assistance|compte)(\/|$)/.test(location.pathname)
+  // Décision D27 : « espace » est l'adresse des écrans du propriétaire direct (/espace/<id>/…). Sans lui, sa saisie
+  // cessait d'être protégée dès que ses écrans ont quitté /agence (relevé par protection-saisie.spec.ts).
+  return /^\/(agence|espace|artisan|locataire|admin|assistance|compte)(\/|$)/.test(location.pathname)
     // Audit du 13/10 (PR178-A-02, PR178-B-05) : seuls les formulaires qui déclarent pouvoir confirmer un envoi
     // sont suivis. Un filtre ou une recherche sans attribut method ne se « confirme » jamais : il restait
     // « modifié » et la boîte « Quitter le site ? » s'ouvrait à chaque validation, « Rester » bloquant le filtre.

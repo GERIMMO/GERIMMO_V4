@@ -7,6 +7,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { destinationSure } from "@/lib/destination-sure";
 import { actionSansDonnees, ecranSansDonnees, ETATS_RETOUR, pageRetour, type RetourUtilisateur } from "@/lib/retours";
+import { baseEspace, versRouteAgence } from "@/lib/racine-espace";
 import { FormulaireRetour, SoutenirIdee } from "./formulaire-retour";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 // Couleur de la puce selon l'état (24/09) : toujours orange jusqu'ici, même
@@ -16,7 +17,8 @@ export type ParametresAssistance = { ecran?: string; action?: string; type?: str
 export async function ContenuAssistance({searchParams, orgIdIntegre}:{searchParams:Promise<ParametresAssistance>; orgIdIntegre?:string}){
  const params=await searchParams;const c=await createClient();const{data:{user}}=await c.auth.getUser();if(!user)redirect('/connexion?suite=%2Fassistance');
  const page=pageRetour(params.page);
- const cheminAssistance=orgIdIntegre?`/agence/${orgIdIntegre}/faq`:'/assistance';
+ // D27 : l'aide intégrée n'existe que dans l'espace du propriétaire direct (/espace/<id>/faq).
+ const cheminAssistance=orgIdIntegre?`${baseEspace(orgIdIntegre,true)}/faq`:'/assistance';
  const Conteneur=orgIdIntegre?'section':'main';
  const vue=orgIdIntegre?'suivi':params.vue==='idees'?'idees':params.vue==='agence'?'agence':'suivi';
  // Retour à la page d'où l'aide a été ouverte (24/09). Le bouton transmet le
@@ -33,9 +35,11 @@ export async function ContenuAssistance({searchParams, orgIdIntegre}:{searchPara
  const organisations=(adhesions.data??[]).filter(m=>m.organization_id).map(m=>({id:m.organization_id as string,nom:(m.organizations as unknown as {name:string}|null)?.name??'Mon organisation'}));
  const orgAdmin=(adhesions.data??[]).filter(m=>m.role==='admin_agence').map(m=>m.organization_id as string);
  const espacesProprietaire=(adhesions.data??[]).filter(m=>m.role==='proprietaire_direct');
- const espaceAide=espacesProprietaire.find(m=>retour.startsWith(`/agence/${m.organization_id}/`)||retour===`/agence/${m.organization_id}`)??(espacesProprietaire.length===1?espacesProprietaire[0]:null);
- const aide=espaceAide?`/agence/${espaceAide.organization_id}/faq`:null;
- if(!orgIdIntegre&&aide&&params.type!=='contestation'&&(retour.startsWith(`/agence/${espaceAide!.organization_id}`)||(!retour&&!fiche.data&&(adhesions.data??[]).every(m=>m.role==='proprietaire_direct')))){
+ // La page d'où l'aide a été ouverte peut porter l'une ou l'autre racine (/espace/<id> aujourd'hui, /agence/<id> pour un ancien lien) : on la compare sous la racine des dossiers.
+ const retourRoute=versRouteAgence(retour);
+ const espaceAide=espacesProprietaire.find(m=>retourRoute.startsWith(`/agence/${m.organization_id}/`)||retourRoute===`/agence/${m.organization_id}`)??(espacesProprietaire.length===1?espacesProprietaire[0]:null);
+ const aide=espaceAide?`${baseEspace(espaceAide.organization_id as string,true)}/faq`:null;
+ if(!orgIdIntegre&&aide&&params.type!=='contestation'&&(retourRoute.startsWith(`/agence/${espaceAide!.organization_id}`)||(!retour&&!fiche.data&&(adhesions.data??[]).every(m=>m.role==='proprietaire_direct')))){
   const q=new URLSearchParams(contexte);for(const cle of ['type','sel','page','pageIdees'] as const)if(params[cle])q.set(cle,params[cle]!);if(params.vue==='idees'&&params.page){q.delete('page');q.set('pageIdees',params.page);}
   redirect(`${aide}${q.size?`?${q}`:''}${params.vue==='idees'?'#idees':params.sel?'#mes-demandes':'#nouvelle'}`);
  }

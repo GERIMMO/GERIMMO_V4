@@ -6,7 +6,8 @@ import { Search, ArrowUpRight, Building2, Users, FileText, X, LoaderCircle } fro
 import { rechercherDansEspace } from "@/app/actions/recherche-espace";
 import { normaliserRecherche, type ReponseRecherche } from "@/lib/recherche-espace";
 
-export function RechercheEspace({ orgId }: { orgId: string }) {
+// `racine` : « /espace » pour le propriétaire direct, « /agence » sinon (décision D27, lib/racine-espace.ts).
+export function RechercheEspace({ orgId, racine }: { orgId: string; racine: string }) {
   const [ouverte, ouvrir] = useState(false);
   useEffect(() => {
     const raccourci = (event: KeyboardEvent) => {
@@ -27,11 +28,11 @@ export function RechercheEspace({ orgId }: { orgId: string }) {
       <span>Rechercher<span className="hidden lg:inline"> un lot, une personne…</span></span>
       <kbd className="hidden sm:inline">⌘ / Ctrl K</kbd>
     </button>
-    {ouverte && <FenetreRecherche key={orgId} orgId={orgId} fermer={() => ouvrir(false)} />}
+    {ouverte && <FenetreRecherche key={orgId} orgId={orgId} racine={racine} fermer={() => ouvrir(false)} />}
   </>;
 }
 
-function FenetreRecherche({ orgId, fermer }: { orgId: string; fermer: () => void }) {
+function FenetreRecherche({ orgId, racine, fermer }: { orgId: string; racine: string; fermer: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const champ = useRef<HTMLInputElement>(null);
   const [saisie, saisir] = useState("");
@@ -57,7 +58,7 @@ function FenetreRecherche({ orgId, fermer }: { orgId: string; fermer: () => void
     return () => { abandon = true; clearTimeout(timer); };
   }, [orgId, texte, tentative]);
 
-  const base = `/agence/${orgId}`;
+  const base = `${racine}/${orgId}`;
   return <dialog ref={dialog} className="recherche-dialog" aria-labelledby="recherche-titre" onCancel={(e) => { e.preventDefault(); fermer(); }} onClick={(e) => { if (e.target === dialog.current) fermer(); }}>
     <div className="recherche-corps">
       <header className="recherche-entete">

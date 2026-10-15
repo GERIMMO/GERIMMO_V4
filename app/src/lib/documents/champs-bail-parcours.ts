@@ -1,5 +1,7 @@
+import { RACINE_AGENCE } from "@/lib/racine-espace";
+
 /** Liens communs au contrôle du dossier et aux erreurs de génération. */
-export function cibleChampBail(champ: string, orgId: string): { href: string; etape: string } {
+export function cibleChampBail(champ: string, orgId: string, racine: string = RACINE_AGENCE): { href: string; etape: string } {
   const champsLogement = new Set([
     "identifiant fiscal du logement", "autres parties du logement",
     "chauffage du logement", "eau chaude du logement", "locaux privatifs du logement",
@@ -8,7 +10,7 @@ export function cibleChampBail(champ: string, orgId: string): { href: string; et
     return { href: "#completer-lot", etape: "logement" };
   }
   const vers = (href: string, etape: string) => ({ href, etape });
-  if (/^(commune|adresse du mandataire)$|carte et CCI|garantie financière|siret/i.test(champ)) return vers(`/agence/${orgId}/profil`, "personnes");
+  if (/^(commune|adresse du mandataire)$|carte et CCI|garantie financière|siret/i.test(champ)) return vers(`${racine}/${orgId}/profil`, "personnes");
   if (/Date d’entrée|date prévue/i.test(champ)) return vers("#etape-bail-1", "bail");
   if (/inventaire du mobilier/i.test(champ)) return vers("#inventaire", "documents");
   if (/jour du mois|jour d[’']échéance|montant mensuel|montant convenu|loyer \+ charges|trimestre/i.test(champ)) return vers("#etape-bail-4", "loyer");

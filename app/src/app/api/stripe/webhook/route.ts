@@ -37,6 +37,7 @@ import { envoyerRelancesDues } from "@/lib/relances-paiement";
 import { GRILLE, lireDetails } from "@/lib/stripe-offres";
 import { clientDeService } from "@/lib/supabase/service";
 import type Stripe from "stripe";
+import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -352,6 +353,8 @@ async function traiterFinEssai(supabase: Service, stripe: Stripe, evenement: Str
       premierPrelevementLe: new Date(s.trial_end * 1000).toISOString(),
       montantCents: details.montantPeriodeCents || null,
       cle: `fin-essai-${evenement.id}`,
+      // Décision D27 : le lien du courrier mène à /espace/<id> chez un propriétaire direct.
+      base: await baseDeLOrganisation(supabase, suivi.organization_id),
     });
   } catch (e) {
     echec = e instanceof Error ? e.message : "envoi impossible";

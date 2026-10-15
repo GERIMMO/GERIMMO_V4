@@ -184,4 +184,16 @@ describe("eligible : quels formulaires sont suivis", () => {
     sur("/inscription");
     expect(eligible(formulaire({ "data-saisie-confirmee": "" }))).toBe(false);
   });
+  it("décision D27 : suit aussi les formulaires du propriétaire direct sous /espace/<id> (sans quoi sa saisie ne serait plus protégée)", () => {
+    for (const chemin of ["/espace/o1", "/espace/o1/profil", "/espace/o1/personnes", "/espace/o1/parc/nouveau"]) {
+      sur(chemin);
+      expect(eligible(formulaire({ "data-saisie-confirmee": "" })), chemin).toBe(true);
+      expect(eligible(formulaire({ "data-saisie-libre": "" })), chemin).toBe(false);
+      expect(eligible(formulaire({ "data-saisie-confirmee": "", method: "GET" })), chemin).toBe(false);
+    }
+  });
+  it("ne confond pas /espace avec /espaces (la page « Mes espaces » n'a pas de saisie à protéger)", () => {
+    sur("/espaces");
+    expect(eligible(formulaire({ "data-saisie-confirmee": "" }))).toBe(false);
+  });
 });

@@ -19,6 +19,7 @@ import { echapperHtml } from "@/lib/quittance-email";
 import { moisDepotGarantie } from "@/lib/depot-garantie";
 import { adresseDeRetour, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
 import { erreurDuChamp, lireDecimalFacultatif, lireMontantFacultatif } from "@/lib/saisie-montant";
+import { baseEspace, racineEspace } from "@/lib/racine-espace";
 
 export type BlocageActionable = { message: string; href: string; libelle: string };
 export type EtatBail = {
@@ -378,7 +379,8 @@ export async function modifierComplementsBail(
 async function blocagesActionables(
   supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
   orgId: string,
-  bailId: string
+  bailId: string,
+  racine: string
 ): Promise<BlocageActionable[]> {
   const { data: bail } = await supabase
     .from("baux")
@@ -393,7 +395,7 @@ async function blocagesActionables(
   if (!lot || !Array.isArray(causes)) return [];
   return (causes as string[]).map((m) => ({
     message: m,
-    ...cibleBlocage(m, { orgId, bienId: lot.bien_id, lotId: lot.id }),
+    ...cibleBlocage(m, { orgId, bienId: lot.bien_id, lotId: lot.id, racine }),
   }));
 }
 
@@ -411,8 +413,9 @@ async function deposerPieceBail(
     succes: string;
   }
 ): Promise<EtatBail> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const racine = racineEspace(role === "proprietaire_direct"); // décision D27
 
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) return { erreur: "Choisissez le PDF." };
@@ -432,7 +435,7 @@ async function deposerPieceBail(
     const { error } = await supabase.rpc("controler_mise_en_location", { p_bail: bailId });
     if (error) {
       if (error.message.includes("Mise en location bloquée")) {
-        const blocages = await blocagesActionables(supabase, orgId, bailId);
+        const blocages = await blocagesActionables(supabase, orgId, bailId, racine);
         if (blocages.length > 0) return { erreur: "Mise en location bloquée — à corriger :", blocages };
       }
       // Mentions obligatoires du contrat (date d'effet, loyer, locataire) :
@@ -451,7 +454,7 @@ async function deposerPieceBail(
             erreur: "Mentions obligatoires du contrat manquantes — à compléter dans le brouillon :",
             blocages: mentions.map((m) => ({
               message: m,
-              href: `/agence/${orgId}/baux/${bailId}#corriger`,
+              href: `${baseEspace(orgId, role === "proprietaire_direct")}/baux/${bailId}#corriger`,
               libelle: "Corriger",
             })),
           };

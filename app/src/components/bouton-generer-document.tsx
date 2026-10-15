@@ -11,6 +11,7 @@ import { actualiserControleGeneration } from "@/lib/documents/controle-generatio
 import { CompletudeBail } from "@/lib/suivi-enregistrement";
 import { cibleChampBail } from "@/lib/documents/champs-bail-parcours";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
+import { useRacineEspace } from "@/components/racine-espace-contexte";
 
 // Bouton commun du sprint « Documents-0 » : génère le PDF, toast à la
 // résolution (convention 23/08), puis propose d'ouvrir le document et dit
@@ -38,6 +39,9 @@ export function BoutonGenererDocument({
   completionSurPlace?: boolean;
 }) {
   const LienCompletion = completionSurPlace ? "a" : Link;
+  // Décision D27 : les liens de cet espace vivent sous /espace/<id> chez le propriétaire direct.
+  const racine = useRacineEspace();
+  const base = `${racine}/${orgId}`;
   const [enCours, demarrer] = useTransition();
   const [resultat, setResultat] = useState<EtatGeneration | null>(null);
 
@@ -66,7 +70,7 @@ export function BoutonGenererDocument({
       </Button>
       {affichage?.documentId && (
         <a
-          href={`/agence/${orgId}/documents/${affichage.documentId}/fichier`}
+          href={`${base}/documents/${affichage.documentId}/fichier`}
           target="_blank"
           rel="noreferrer"
           className="lien-discret text-xs"
@@ -79,7 +83,7 @@ export function BoutonGenererDocument({
         <span className="block w-full text-xs text-warning-soft-foreground">
           À renseigner avant de générer le PDF :{" "}
           {affichage.manquants!.slice(0, montrerTous ? undefined : 5).map((m, i) => {
-            const cible = lienPourManquant(m, orgId, affichage.liens ?? [], code);
+            const cible = lienPourManquant(m, orgId, affichage.liens ?? [], code, racine);
             return (
               <span key={m}>
                 {i > 0 && " · "}
@@ -87,7 +91,7 @@ export function BoutonGenererDocument({
                 {(cible || completionSurPlace) && (
                   <>
                     {" "}
-                    <LienCompletion href={completionSurPlace ? cibleChampBail(m,orgId).href : cible!.href} className="lien-discret">
+                    <LienCompletion href={completionSurPlace ? cibleChampBail(m,orgId,racine).href : cible!.href} className="lien-discret">
                       {completionSurPlace ? "Compléter ici" : `renseigner (${cible!.ecran})`} →
                     </LienCompletion>
                   </>

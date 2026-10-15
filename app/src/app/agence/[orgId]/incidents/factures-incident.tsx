@@ -13,6 +13,7 @@ import {
 import { ValidationFacture } from "./validation-facture";
 import { FormulaireReglement, RetraitReglement } from "./reglement-facture";
 import { EchecLecture } from "../documents/echec-lecture";
+import { baseEspace } from "@/lib/racine-espace";
 
 type MissionFacturee = {
   id: string;
@@ -39,7 +40,9 @@ const COULEUR_ETAT: Record<string, string> = {
   reglee: "puce puce-loue",
 };
 
-export async function FacturesIncident({orgId,incidentId,imputation}:{orgId:string;incidentId:string;imputation?:string|null}) {
+// `base` : « /espace/<id> » chez le propriétaire direct, « /agence/<id> » chez une agence (décision D27) ; la fiche
+// d'incident le transmet, avec l'imputation qui oriente le règlement (D23).
+export async function FacturesIncident({orgId,incidentId,imputation,base=baseEspace(orgId,false)}:{orgId:string;incidentId:string;imputation?:string|null;base?:string}) {
   const supabase = await createClient();
   // D20 (ART-21) : le rendez-vous prévu et la date de fin se lisent à côté de la facture, pour que le gérant voie
   // si le travail a été déclaré fait avant le rendez-vous confirmé avec le locataire.
@@ -73,7 +76,7 @@ export async function FacturesIncident({orgId,incidentId,imputation}:{orgId:stri
     {termineAvant && <p role="note" className="rounded-lg border-l-4 border-[var(--warning)] bg-[var(--warning-soft)] px-3.5 py-3 text-sm text-[var(--warning-soft-foreground)]">
       L’artisan a déclaré l’intervention terminée avant le rendez-vous confirmé avec le locataire : contrôlez le travail avant de valider.
     </p>}
-    <Link className="text-[var(--marque-sombre)] underline" href={`/agence/${orgId}/documents/${f.document_id}/fichier`}>Consulter la facture avant de décider</Link>
+    <Link className="text-[var(--marque-sombre)] underline" href={`${base}/documents/${f.document_id}/fichier`}>Consulter la facture avant de décider</Link>
     {f.montant_reference_cents != null && f.montant_ttc_cents !== f.montant_reference_cents && <p>Écart avec le montant autorisé de {eur(f.montant_reference_cents / 100)} : {f.ecart_justification}</p>}
     {f.validee_le ? <>
       <p>Validée le {formaterDateHeure(f.validee_le)}. {f.decision_motif}</p>

@@ -3,6 +3,7 @@ import { ArrowRight, ChevronDown } from "lucide-react";
 import styles from "./parcours-demarrage.module.css";
 import { toutManuel, type ReglagesEnvoi } from "@/lib/envois-automatiques";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { baseEspace } from "@/lib/racine-espace";
 
 /**
  * « Par où je commence ? » — le chemin du compte au premier loyer encaissé.
@@ -48,25 +49,26 @@ const LIBELLES_PROPRIETAIRE: Record<string, { titre: string; geste: string }> = 
   lot_pret: { titre: "Un bien en état d'être loué", geste: "Lever ce qui bloque" },
 };
 
-function lien(orgId: string, e: Etape): string {
+// `base` : « /espace/<id> » chez le propriétaire direct, « /agence/<id> » chez une agence (décision D27).
+function lien(base: string, e: Etape): string {
   switch (e.etape) {
     case "identite":
-      return `/agence/${orgId}/profil`;
+      return `${base}/profil`;
     case "bien":
-      return `/agence/${orgId}/parc/nouveau`;
+      return `${base}/parc/nouveau`;
     case "locataire":
-      return `/agence/${orgId}/personnes#creer-fiche`;
+      return `${base}/personnes#creer-fiche`;
     case "loyer":
-      return `/agence/${orgId}/loyers`;
+      return `${base}/loyers`;
     case "lot_pret":
     case "bail":
       // Le formulaire de création d'un bail vit sur la fiche du lot, section
       // « Baux & état des lieux » — c'est l'unique porte d'entrée du produit.
       return e.bien_id && e.lot_id
-        ? `/agence/${orgId}/parc/${e.bien_id}/lots/${e.lot_id}#baux`
-        : `/agence/${orgId}/parc`;
+        ? `${base}/parc/${e.bien_id}/lots/${e.lot_id}#baux`
+        : `${base}/parc`;
     default:
-      return `/agence/${orgId}/parc`;
+      return `${base}/parc`;
   }
 }
 
@@ -84,6 +86,7 @@ export async function ParcoursDemarrage({
   estProprietaire?: boolean;
 }) {
   const libelles = estProprietaire ? LIBELLES_PROPRIETAIRE : LIBELLES;
+  const base = baseEspace(orgId, estProprietaire);
   const [{ data, error }, reglages] = await Promise.all([
     supabase.rpc("parcours_demarrage", { p_org: orgId }),
     // Les trois envois automatiques (audit du 20/09, proposition n° 7) : le
@@ -128,7 +131,7 @@ export async function ParcoursDemarrage({
               <span style={{width:`${faites / etapes.length * 100}%`}} />
             </span>
           </div>
-          {suivante && <Link href={lien(orgId, suivante)} className={`btn-or ${styles.action}`}>{libelles[suivante.etape]?.geste ?? "Continuer"}<ArrowRight size={14} aria-hidden="true" /></Link>}
+          {suivante && <Link href={lien(base, suivante)} className={`btn-or ${styles.action}`}>{libelles[suivante.etape]?.geste ?? "Continuer"}<ArrowRight size={14} aria-hidden="true" /></Link>}
         </div>
       </div>
       <details className={styles.details}>
@@ -171,13 +174,13 @@ export async function ParcoursDemarrage({
                     devait deviner que ça se passe dans la fiche du lot. La
                     suivante garde le bouton plein ; les autres, un lien. */}
                 {!e.faite && !courante && (
-                  <Link href={lien(orgId, e)} className="lien-discret mt-1.5 inline-block text-[13px]">
+                  <Link href={lien(base, e)} className="lien-discret mt-1.5 inline-block text-[13px]">
                     {libelle?.geste ?? "Continuer"}&nbsp;→
                   </Link>
                 )}
                 {courante && e.etape === "bien" && (
                   <span className="mt-2 block text-xs text-muted-foreground">
-                    Un parc déjà constitué ? <Link href={`/agence/${orgId}/parc/import`} className="lien-discret">Reprenez-le depuis un tableur</Link>.
+                    Un parc déjà constitué ? <Link href={`${base}/parc/import`} className="lien-discret">Reprenez-le depuis un tableur</Link>.
                   </span>
                 )}
               </span>
@@ -195,7 +198,7 @@ export async function ParcoursDemarrage({
             <b>Gerimmo peut aussi envoyer avis et quittances seul</b>, avec les
             relances d&apos;impayé : rien ne part sans votre accord, donné une fois.
           </p>
-          <Link href={`/agence/${orgId}/profil#relances`} className="lien-discret whitespace-nowrap">
+          <Link href={`${base}/profil#relances`} className="lien-discret whitespace-nowrap">
             Activer les envois automatiques →
           </Link>
         </div>

@@ -8,6 +8,7 @@ import { appliquerMarqueDocument } from "@/lib/documents/marque";
 import { rendrePdf, copieDeTravail } from "@/lib/documents/rendu";
 import { MODELES, type CodeModele, type Modele } from "@/lib/documents/modeles";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
+import { versRouteAgence } from "@/lib/racine-espace";
 
 export type EtatGeneration = {
   erreur?: string;
@@ -95,7 +96,10 @@ export async function genererDocument(
       }
     }
 
-    revalidatePath(cheminRetour.startsWith(`/agence/${orgId}/`) ? cheminRetour : `/agence/${orgId}/documents`);
+    // Décision D27 : l'écran qui demande le PDF peut être sous /espace/<id> (propriétaire direct) ; la route à revalider
+    // est celle des dossiers.
+    const retourRoute = versRouteAgence(cheminRetour);
+    revalidatePath(retourRoute.startsWith(`/agence/${orgId}/`) ? retourRoute : `/agence/${orgId}/documents`);
     revalidatePath(`/agence/${orgId}/documents`);
     return {
       documentId,

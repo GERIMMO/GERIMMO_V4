@@ -28,6 +28,7 @@ import { PaneParc, lireSelection } from "./pane-parc";
 import { FenetreLotProvider, BoutonLot } from "@/components/fenetre-lot";
 import { EchecLecture } from "./echec-lecture";
 import styles from "./liste-lots.module.css";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Parc — Gerimmo" };
 
@@ -63,6 +64,8 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     selection?.type === "bien" ? { type: "bien" as const, id: selection.id } : null;
   const lotInitial = selection?.type === "lot" ? selection.id : null;
   const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   // « Mon portefeuille » (RM-18.1.3) : l'agent ne voit que les lots des
   // mandats qui lui sont confiés — null : il voit tout.
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
@@ -187,7 +190,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     profilIllisible = Boolean(erreurProfil);
     manquantsBailleur = elementsManquantsDuBailleur(profil);
   }
-  const premierBien = boutonPremierBien({ base: `/agence/${orgId}`, manquants: manquantsBailleur, erreurLecture: profilIllisible });
+  const premierBien = boutonPremierBien({ base, manquants: manquantsBailleur, erreurLecture: profilIllisible });
 
   return (
     // Le fournisseur enveloppe l'écran : chaque rang de lot y puise de quoi
@@ -231,13 +234,13 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   parc » pour l'agence. */}
               {ROLES_RESPONSABLES.includes(role) && (
                 <Link
-                  href={`/agence/${orgId}/parc/import`}
+                  href={`${base}/parc/import`}
                   className="lien-discret text-[13px]"
                 >
                   {estProprietaire ? "Importer mes lots" : "Reprendre le parc"}
                 </Link>
               )}
-              <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
+              <Link href={`${base}/parc/nouveau`} className="btn-or">
                 + Ajouter un bien
               </Link>
             </>
@@ -267,7 +270,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                 enregistrez vous-même.
               </p>
               <div className="geste">
-                <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
+                <Link href={`${base}/parc/nouveau`} className="btn-or">
                   Ajouter un bien
                 </Link>
               </div>
@@ -290,7 +293,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               {ROLES_RESPONSABLES.includes(role) && (
                 <p className="mt-3 text-[13px] text-muted-foreground">
                   Vous arrivez avec un parc déjà constitué ?{" "}
-                  <Link href={`/agence/${orgId}/parc/import`} className="lien-discret">
+                  <Link href={`${base}/parc/import`} className="lien-discret">
                     Reprenez-le depuis un tableur
                   </Link>{" "}
                   — une ligne par lot, en une fois.
@@ -302,7 +305,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   {biensRetires.map((bien, i) => (
                     <span key={bien.id}>
                       {i > 0 && ", "}
-                      <Link href={`/agence/${orgId}/parc/${bien.id}`} className="lien-discret">
+                      <Link href={`${base}/parc/${bien.id}`} className="lien-discret">
                         {bien.nom}
                       </Link>
                     </span>
@@ -331,7 +334,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
             <div className="tete-liste">
               <span className="mono-discret">Lots</span>
               {selectionBien ? (
-                <Link href={`/agence/${orgId}/parc`} className="lien-discret text-xs">
+                <Link href={`${base}/parc`} className="lien-discret text-xs">
                   Vue d&apos;ensemble
                   <IndicateurLien />
                 </Link>
@@ -364,7 +367,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                     key={lot.id}
                     lotId={lot.id}
                     libelle={`${bien.nom} · ${lot.nom}`}
-                    href={`/agence/${orgId}/parc/${bien.id}/lots/${lot.id}`}
+                    href={`${base}/parc/${bien.id}/lots/${lot.id}`}
                     className={estProprietaire ? styles.carte : "rang-lot"}
                     data-etat={lot.etat}
                   >
@@ -415,7 +418,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           {selectionBien ? (
             <div className="min-w-0">
               {/* Visible sous 900px seulement (.retour-liste) : la liste est masquée */}
-              <Link href={`/agence/${orgId}/parc`} className="retour-liste mb-2">
+              <Link href={`${base}/parc`} className="retour-liste mb-2">
                 ← Tous les lots
               </Link>
               <PaneParc supabase={supabase} orgId={orgId} selection={selectionBien} />
@@ -529,7 +532,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   )}
                   <div className="space-y-2">
                     {disponibles.slice(0, 3).map((lot) => (
-                      <Link key={lot.id} href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
+                      <Link key={lot.id} href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
                         <span className="min-w-0">{lot.nomComplet}</span><span aria-hidden>→</span>
                       </Link>
                     ))}

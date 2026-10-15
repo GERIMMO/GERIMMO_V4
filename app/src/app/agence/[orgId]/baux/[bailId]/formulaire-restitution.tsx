@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modale } from "@/components/ui/modale";
 import { ChampFichier } from "@/components/champ-fichier";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 import { REGLE_ECART_EDL } from "@/lib/regle-ecart-edl";
 
 export type Restitution = {
@@ -149,6 +150,8 @@ export function FormulaireRestitution({
   // un délai légal.
   comparatifDisponible: boolean;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   if (!restitution)
     return (
       <FormDemarrer
@@ -290,7 +293,7 @@ export function FormulaireRestitution({
             orgId={orgId}
             code="decompte_restitution"
             cibleId={bailId}
-            cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+            cheminRetour={`${base}/baux/${bailId}`}
             libelle="Générer le décompte PDF"
           />
           {restitution.envoye_le ? (

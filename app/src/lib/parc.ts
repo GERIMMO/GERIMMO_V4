@@ -1,3 +1,4 @@
+import { RACINE_AGENCE } from "@/lib/racine-espace";
 // Référentiel partagé du parc (Sprint 2 — module 0).
 // Le bien est l'unité physique, le lot l'unité locative : le bail portera
 // toujours sur un lot, jamais sur un bien (RM-0.2.5).
@@ -232,7 +233,8 @@ export function alerteDiagnostics(
 
 export function cibleBlocage(
   message: string,
-  ctx: { orgId: string; bienId: string; lotId: string },
+  // `racine` : « /espace » pour le propriétaire direct, « /agence » par défaut (décision D27, lib/racine-espace.ts).
+  ctx: { orgId: string; bienId: string; lotId: string; racine?: string },
   // Chemin (sans ancre) de la page qui affiche la liste, quand on le connaît.
   // L'ERP est rattaché au BIEN, mais `deposerDiagnostic` range lui-même le
   // dépôt d'après le référentiel : la fiche LOT sait donc le recevoir aussi
@@ -243,7 +245,7 @@ export function cibleBlocage(
   // où se règle tout le reste (surface, DPE, mise en location, bail).
   pageCourante?: string
 ): CibleBlocage {
-  const bien = `/agence/${ctx.orgId}/parc/${ctx.bienId}`;
+  const bien = `${ctx.racine ?? RACINE_AGENCE}/${ctx.orgId}/parc/${ctx.bienId}`;
   const lot = `${bien}/lots/${ctx.lotId}`;
   const m = message.toLowerCase();
   if (m.includes("surface")) return { href: `${lot}#caracteristiques`, libelle: "Renseigner la surface" };

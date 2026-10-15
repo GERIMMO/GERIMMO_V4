@@ -22,6 +22,7 @@ import {
   notifierRevisionDemandee,
 } from "@/lib/notifications";
 import { lireCleEnvoi } from "@/lib/cle-envoi";
+import { baseEspace } from "@/lib/racine-espace";
 
 export type EtatIncidentAction = {
   erreur?: string;
@@ -377,7 +378,7 @@ export async function ouvrirIncident(
   _etat: EtatIncidentAction,
   formData: FormData
 ): Promise<EtatIncidentAction> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
@@ -409,7 +410,7 @@ export async function ouvrirIncident(
   }
   // Relevé du 11/09 : on renvoyait sur /incidents/<id>, une route qui ne fait
   // plus que rediriger vers ?sel= — deux navigations serveur pour un seul clic.
-  redirect(`/agence/${orgId}/incidents?sel=${incidentId}`);
+  redirect(`${baseEspace(orgId, role === "proprietaire_direct")}/incidents?sel=${incidentId}`);
 }
 
 // Qualification / imputation (RM-7.2) : l'agent tranche et justifie ; le

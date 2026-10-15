@@ -1,4 +1,7 @@
+"use client";
+
 import { buttonVariants } from "@/components/ui/button";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 // Consultation / téléchargement : la route /fichier revérifie les droits,
 // trace l'accès et sert le fichier — l'URL reste applicative et stable,
@@ -13,7 +16,8 @@ export function ActionsDocument({
   // Distingue les liens répétés pour les lecteurs d'écran (revue 26/08)
   titre?: string | null;
 }) {
-  const base = `/agence/${orgId}/documents/${documentId}/fichier`;
+  // Décision D27 : chez le propriétaire direct, le fichier se sert sous /espace/<id>.
+  const base = `${useBaseEspace(orgId)}/documents/${documentId}/fichier`;
   return (
     <div className="flex items-center gap-2">
       <a

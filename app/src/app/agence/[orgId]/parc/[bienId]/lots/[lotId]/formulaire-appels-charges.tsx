@@ -18,6 +18,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChampFichier } from "@/components/champ-fichier";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 export type PosteCharge = {
   id: string;
@@ -77,6 +78,8 @@ function AppelBloc({
   lotId: string;
   appel: AppelCharge;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const somme = appel.postes.reduce((s, p) => s + Number(p.montant), 0);
   const recup = appel.postes.filter((p) => p.nature === "recuperable").reduce((s, p) => s + Number(p.montant), 0);
   const nonRecup = appel.postes.filter((p) => p.nature === "non_recuperable").reduce((s, p) => s + Number(p.montant), 0);
@@ -94,7 +97,7 @@ function AppelBloc({
         </span>
         {appel.document_id && (
           <a
-            href={`/agence/${orgId}/documents?sel=${appel.document_id}`}
+            href={`${base}/documents?sel=${appel.document_id}`}
             className="text-xs text-muted-foreground underline-offset-2 hover:underline"
           >
             appel du syndic

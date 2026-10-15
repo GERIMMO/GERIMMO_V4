@@ -8,6 +8,7 @@ import { formaterDate } from "@/lib/ged";
 import { familleOrganisation, initiales } from "@/lib/clients-supervision";
 import { GesteControle } from "@/components/geste-controle";
 import { controlerOrganisation, renvoyerInvitation } from "@/app/actions/controle-supervision";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Client" };
 
@@ -124,6 +125,8 @@ export default async function PageAdminOrganisation(
     lignesParrainage.find((p) => p.filleul_organization_id === orgId)?.parrain?.name ?? null;
 
   const famille = familleOrganisation(organisation.type);
+  // Décision D27 : l'espace d'un propriétaire direct vit sous /espace/<id>.
+  const base = baseEspace(orgId, organisation.type === "proprietaire_direct");
   const responsables = adhesions.filter((m) => (m.role === "admin_agence" || m.role === "proprietaire_direct") && m.account?.email);
   // Sept « Non renseignée » ne disent qu'une chose (audit 25/09, C12) : l'identité
   // n'est pas remplie. Une ligne le dit, avec le geste ; les champs remplis s'affichent.
@@ -178,7 +181,7 @@ export default async function PageAdminOrganisation(
           {/* LE GESTE DEMANDÉ : entrer dans l'espace du client, depuis sa
               fiche. Il existait, mais seulement en repassant par « Mes
               espaces » et en retrouvant la bonne carte dans la liste. */}
-          <Link href={`/agence/${orgId}`} className="btn-or">
+          <Link href={`${base}`} className="btn-or">
             Entrer dans son espace
           </Link>
         </div>
@@ -207,14 +210,14 @@ export default async function PageAdminOrganisation(
       <section className="loc-carte">
         <div className="entete-carte">
           <h3>Identité</h3>
-          <Link href={`/agence/${orgId}/profil`} className="lien-discret text-[12.5px]">
+          <Link href={`${base}/profil`} className="lien-discret text-[12.5px]">
             Ouvrir son profil →
           </Link>
         </div>
         {manquants.length > 0 && (
           <p className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--filet)] bg-[var(--filet-leger)] p-3 text-sm">
             <span>{renseignes.length === 0 ? "Identité non renseignée" : `À compléter : ${manquants.join(", ")}`}</span>
-            <Link href={`/agence/${orgId}/profil`} className="btn-secondaire">Compléter</Link>
+            <Link href={`${base}/profil`} className="btn-secondaire">Compléter</Link>
           </p>
         )}
         <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">

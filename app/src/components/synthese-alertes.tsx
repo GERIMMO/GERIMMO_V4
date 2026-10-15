@@ -9,6 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
 import { ecrireSession, lireSession } from "@/lib/stockage-session";
 import { ModaleAlerte } from "@/app/agence/[orgId]/alertes/modale-alerte";
+import { racineEspace } from "@/lib/racine-espace";
 
 // Pop-up de synthèse des alertes à la connexion (S2, revue recette 08/08) :
 // uniquement les alertes qui me sont confiées (nominativement ou « tout le
@@ -23,6 +24,8 @@ export type AlerteSynthese = {
   type?: string;
   organization_id: string;
   organisation: string;
+  /** Décision D27 : l'organisation est celle d'un propriétaire direct (ses écrans vivent sous /espace/<id>). */
+  proprietaire_direct?: boolean;
   criticite: string;
   titre: string;
   echeance: string | null;
@@ -38,6 +41,9 @@ export type AlerteSynthese = {
 // tableau de bord. Une seule subsiste — la .rang-alerte de la charte.
 const CLASSE_CRITICITE = (c: string) =>
   c === "critique" ? "critique" : c === "normale" ? "normale" : "";
+
+// La racine des adresses de l'organisation d'une alerte (décision D27) : « /espace » chez un propriétaire direct.
+const racineAlerte = (a: Pick<AlerteSynthese, "proprietaire_direct"> | undefined) => racineEspace(Boolean(a?.proprietaire_direct));
 
 // Le drapeau « déjà vue » vit dans le sessionStorage, qui survit à la
 // déconnexion tant que l'onglet reste ouvert : la page de connexion le remet
@@ -157,7 +163,7 @@ export function SyntheseAlertes({
                   (historique et alertes fermées comprises) */}
               {!modeAdmin && !multiAgences && alertes.length > 0 ? (
                 <Link
-                  href={`/agence/${[...parAgence.keys()][0]}/alertes`}
+                  href={`${racineAlerte(alertes[0])}/${[...parAgence.keys()][0]}/alertes`}
                   onClick={fermer}
                   className="lien-discret"
                 >
@@ -252,9 +258,9 @@ export function SyntheseAlertes({
                         // dossier, dans l'onglet Incidents.
                         const cible = modeAdmin
                           ? `/admin/organisations/${a.organization_id}`
-                          : cheminFicheAlerte(a, a.organization_id) ?? (membres
+                          : cheminFicheAlerte(a, a.organization_id, racineAlerte(a)) ?? (membres
                             ? null
-                            : `/agence/${a.organization_id}/alertes?traiter=${a.id}`);
+                            : `${racineAlerte(a)}/${a.organization_id}/alertes?traiter=${a.id}`);
                         return cible ? (
                           <Link
                             key={a.id}
@@ -288,6 +294,7 @@ export function SyntheseAlertes({
       {traitement && membres && (
         <ModaleAlerte
           orgId={traitement.organization_id}
+          racine={racineAlerte(traitement)}
           alerte={traitement}
           membres={membres}
           estResponsable={estResponsable}

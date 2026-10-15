@@ -16,6 +16,8 @@ import { RechercheEspace } from "@/components/recherche-espace";
 import { LienAssistance } from "@/components/bouton-assistance";
 import { IconeTrait } from "@/components/icone-trait";
 import { Toasteur } from "@/components/ui/toast";
+import { baseEspace, racineEspace } from "@/lib/racine-espace";
+import { FournisseurRacineEspace } from "@/components/racine-espace-contexte";
 
 // Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée.
 //
@@ -102,7 +104,7 @@ export default async function LayoutAgence({
     // on n'en trouve qu'un ») : baux bloqués, mes alertes dédoublonnées,
     // rapports à valider. Un seul calcul, mémorisé par requête — la page qui
     // suit le relit sans nouvel aller-retour.
-    compterActionsDuJour(supabase, orgId, { userId: user.id, portefeuille }),
+    compterActionsDuJour(supabase, orgId, { userId: user.id, portefeuille, racine: racineEspace(estProprietaire) }),
     // Lu pour TOUTE organisation (audit 29/09) : l'écriture se ferme aussi
     // hors essai — souscription résiliée, prélèvement en défaut —, et l'écran
     // doit le dire au lieu de laisser chaque bouton échouer un à un.
@@ -148,6 +150,9 @@ export default async function LayoutAgence({
       .filter((o): o is { id: string; nom: string } => o !== null);
   }
 
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const racine = racineEspace(estProprietaire);
+  const base = baseEspace(orgId, estProprietaire);
   const roleNav: RoleEspace = estProprietaire
     ? "proprietaire_direct"
     : role === "admin_agence"
@@ -183,7 +188,7 @@ export default async function LayoutAgence({
     estResponsable && organisation.status === "essai" && organisation.essai_fin
       ? {
           jours: joursRestants(organisation.essai_fin),
-          href: `/agence/${orgId}/abonnement`,
+          href: `${base}/abonnement`,
           ecritureFermee,
           rienARegler,
         }
@@ -191,21 +196,23 @@ export default async function LayoutAgence({
 
   const liensCompte = estProprietaire
     ? [
-        { href: `/agence/${orgId}/profil`, libelle: "Mon profil" },
+        { href: `${base}/profil`, libelle: "Mon profil" },
         { href: "/compte", libelle: "Sécurité du compte" },
         { href: "/espaces", libelle: "Mes espaces" },
       ]
     : [
-        { href: `/agence/${orgId}/profil`, libelle: "Profil de l'agence" },
+        { href: `${base}/profil`, libelle: "Profil de l'agence" },
         { href: "/compte", libelle: "Sécurité du compte" },
         { href: "/espaces", libelle: "Mes espaces" },
       ];
 
   return (
+    <FournisseurRacineEspace racine={racine}>
     <div className="coquille gerimmo-prestige" style={estProprietaire ? undefined : styleMarque(organisation)}>
       <aside className="coquille-late">
         <BarreLaterale
           orgId={orgId}
+          racine={racine}
           espace={espace}
           navigation={navigation}
           organisations={organisations}
@@ -220,7 +227,7 @@ export default async function LayoutAgence({
             {/* En-tête clair : sans marque propre, le logo Gerimmo se pose dans la tuile bleu nuit (D28 A, DES-A-10). */}
             <MarqueOrganisation marque={estProprietaire ? undefined : organisation} tuile />
           </span>
-          <RechercheEspace orgId={orgId} />
+          <RechercheEspace orgId={orgId} racine={racine} />
           <SyntheseAlertes
             alertes={alertes}
             membres={membres}
@@ -231,7 +238,7 @@ export default async function LayoutAgence({
               (24/09) : icône seule sous 1 024 px, et sur téléphone
               (≤ 640 px) elle passe dans le tiroir « Menu » de la barre basse.
               `!` : `.lien-bandeau` (hors couche) l'emporterait sur `hidden`. */}
-          <LienAssistance destination={estProprietaire ? `/agence/${orgId}/faq` : undefined} title="Aide et retours" className="lien-bandeau justify-center pointer-coarse:min-w-11 max-[641px]:!hidden">
+          <LienAssistance destination={estProprietaire ? `${base}/faq` : undefined} title="Aide et retours" className="lien-bandeau justify-center pointer-coarse:min-w-11 max-[641px]:!hidden">
             <IconeTrait nom="quest" className="size-4 shrink-0" />
             <span className="hidden lg:inline">Aide et retours</span>
           </LienAssistance>
@@ -264,7 +271,7 @@ export default async function LayoutAgence({
             {estResponsable ? (
               <>
                 activez l&apos;abonnement pour continuer à saisir.{" "}
-                <Link href={`/agence/${orgId}/abonnement`} className="font-semibold underline underline-offset-2">
+                <Link href={`${base}/abonnement`} className="font-semibold underline underline-offset-2">
                   Choisir ma formule →
                 </Link>
               </>
@@ -280,9 +287,10 @@ export default async function LayoutAgence({
           </p>
         )}
         {children}
-        <BarreBasse espace={espace} navigation={navigation} orgId={orgId} organisations={organisations} />
+        <BarreBasse espace={espace} navigation={navigation} orgId={orgId} racine={racine} organisations={organisations} />
       </div>
       <Toasteur />
     </div>
+    </FournisseurRacineEspace>
   );
 }

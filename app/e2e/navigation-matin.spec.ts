@@ -93,7 +93,8 @@ for (const profil of ['admin','agent','proprietaire','locataire'] as const) {
   test.use({storageState:`e2e/.auth/${profil}.json`});
   test('revient directement à son espace et garde le retour après un filtre',async({page})=>{
    await sansSyntheseAlertes(page);
-   const prefixe=profil==='locataire'?'locataire':'agence';
+   // Décision D27 : le propriétaire direct revient sur /espace/<id>, les agences sur /agence/<id>.
+   const prefixe=profil==='locataire'?'locataire':profil==='proprietaire'?'espace':'agence';
    const org=await entrerDansEspace(page,prefixe);
    const retour=`/${prefixe}/${org}`;
    await page.goto(`/veille?public=${profil==='locataire'?'locataire':'agence'}&retour=${encodeURIComponent(retour)}`);

@@ -16,6 +16,7 @@ import {
 import { FormulaireAlerte } from "./formulaire-alerte";
 import { GroupeActions, LienGeste, type RangDuJour } from "./groupe-actions";
 import { ListeAlertes, type AlerteRang } from "./liste-alertes";
+import { racineEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Alertes — Gerimmo" };
 
@@ -40,7 +41,7 @@ export default async function PageAlertes(
   // pop-up de traitement de cette alerte s'ouvre à l'arrivée sur la page.
   const { traiter, source_introuvable } = await props.searchParams;
   const traiterId = typeof traiter === "string" ? traiter : undefined;
-  const { supabase, user, role, organisation } = await verifierAccesEspace(orgId);
+  const { supabase, user, role, organisation, estProprietaire } = await verifierAccesEspace(orgId);
   const estResponsable = ROLES_RESPONSABLES.includes(role);
   // « Mon portefeuille » (RM-18.1.3) : le plan du jour se lit à travers lui,
   // comme sur l'accueil — null : je vois tout.
@@ -77,7 +78,7 @@ export default async function PageAlertes(
         .order("closed_at", { ascending: false })
         .limit(FERMEES_AFFICHEES),
       supabase.rpc("org_membres_gerants", { org: orgId }),
-      chargerActionsDuJour(supabase, orgId, { userId: user.id, portefeuille }),
+      chargerActionsDuJour(supabase, orgId, { userId: user.id, portefeuille, racine: racineEspace(estProprietaire) }),
     ]);
   const membres = (donneesMembres ?? []) as {
     account_id: string;

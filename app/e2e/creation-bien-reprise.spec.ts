@@ -21,8 +21,8 @@ for (const largeur of [390, 1440]) test(`creation bien : panne, reponse perdue e
     await sansSyntheseAlertes(page);
     await page.route('https://api-adresse.data.gouv.fr/**', route => route.fulfill({ json: { features: [] } }));
     await page.setViewportSize({ width: largeur, height: 1000 });
-    await page.goto('/connexion'); await page.locator('#email').fill(email); await page.locator('#mot-de-passe').fill(motDePasse); await page.getByRole('button', { name: 'Se connecter', exact: true }).click(); await page.waitForURL(/\/(espaces|agence)(\/|$)/);
-    await page.goto(`/agence/${org}/parc/nouveau`);
+    await page.goto('/connexion'); await page.locator('#email').fill(email); await page.locator('#mot-de-passe').fill(motDePasse); await page.getByRole('button', { name: 'Se connecter', exact: true }).click(); await page.waitForURL(/\/(espaces|espace|agence)(\/|$)/);
+    await page.goto(`/espace/${org}/parc/nouveau`);
     await expect(page.getByLabel('Nom du bien', { exact: true })).toBeVisible();
     cle = await page.locator('[name="creation_id"]').inputValue(); expect(cle).toMatch(/^[0-9a-f-]{36}$/);
     await page.getByLabel('Nom du bien', { exact: true }).fill(nom);
@@ -36,7 +36,7 @@ for (const largeur of [390, 1440]) test(`creation bien : panne, reponse perdue e
     await expect(page.getByRole('status').filter({hasText:'Brouillon conservé'})).toBeVisible();
     const contexte = page.context(); await page.close(); page = await contexte.newPage();
     await page.setViewportSize({width:largeur,height:1000});
-    await page.goto(`/agence/${org}/parc/nouveau`);
+    await page.goto(`/espace/${org}/parc/nouveau`);
     await expect(page.getByRole('heading',{name:'Reprendre votre lot'})).toBeVisible();
     await page.screenshot({path:info.outputPath('brouillon-a-reprendre.png'),fullPage:true});
     await page.getByRole('button',{name:'Reprendre le brouillon',exact:true}).click();
@@ -52,7 +52,7 @@ for (const largeur of [390, 1440]) test(`creation bien : panne, reponse perdue e
     await page.screenshot({ path: info.outputPath('panne-saisies-conservees.png'), fullPage: true });
     await db.query(`drop trigger ${fonction} on public.biens; drop function public.${fonction}()`);
     let perdue = false;
-    await page.route(`**/agence/${org}/parc/nouveau`, async route => {
+    await page.route(`**/espace/${org}/parc/nouveau`, async route => {
       if (route.request().method() === 'POST' && route.request().headers()['next-action'] && !perdue) {
         perdue = true; const reponse = await route.fetch(); expect(reponse.ok()).toBe(true); await route.abort('failed');
       } else await route.continue();
@@ -69,7 +69,7 @@ for (const largeur of [390, 1440]) test(`creation bien : panne, reponse perdue e
     await page.getByLabel('Nom du bien', { exact: true }).fill(nom + ' modifié');
     await page.getByRole('button', { name: 'Suivant', exact: true }).click();
     await envoyer.click(); await expect(page.locator('form.saisie-bien').getByRole('alert')).toContainText('Vos nouvelles saisies restent');
-    await expect(page).toHaveURL(new RegExp(`/agence/${org}/parc/nouveau$`));
+    await expect(page).toHaveURL(new RegExp(`/espace/${org}/parc/nouveau$`));
     await expect(page.locator('[name="nom"]')).toHaveValue(nom + ' modifié');
     await expect(page.getByRole('link', { name: 'Ouvrir le dossier déjà enregistré' })).toBeVisible();
     expect((await db.query('select id,nom from biens where organization_id=$1 and creation_cle=$2', [org, cle])).rows).toEqual(avant);
@@ -79,7 +79,7 @@ for (const largeur of [390, 1440]) test(`creation bien : panne, reponse perdue e
     await expect(page).toHaveURL(new RegExp(`/parc/${bien}/lots/`));
     const obtenu = (await db.query('select b.nom,b.parties_communes,b.acces_tic,l.surface_m2,l.pieces,(select count(*)::int from detentions where lot_id=l.id) detentions from biens b join lots l on l.bien_id=b.id where b.id=$1', [bien])).rows;
     expect(obtenu).toEqual([{ nom, parties_communes: 'Hall TEST conservé', acces_tic: 'Fibre TEST conservée', surface_m2: '42.25', pieces: 2, detentions: 1 }]);
-    await page.goto(`/agence/${org}/parc/nouveau`);
+    await page.goto(`/espace/${org}/parc/nouveau`);
     await expect(page.getByLabel('Nom du bien',{exact:true})).toHaveValue('');
     await expect(page.getByRole('heading',{name:'Reprendre votre lot'})).toHaveCount(0);
     preuve.rechargementAvantEtApresEnvoi = true;

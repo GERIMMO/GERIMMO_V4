@@ -14,14 +14,15 @@ import { euros } from "../../libelles";
 import { ApercuDevis } from "./apercu-devis";
 import styles from "./devis.module.css";
 import { CLASSE_AIDE, CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SOBRE, CLASSE_CHAMP, CLASSE_LIBELLE, CLASSE_ZONE_TEXTE, Erreur } from "../../ui";
-function Envoyer({valide}: {valide:boolean}) {const {pending}=useFormStatus();return <button type="submit" disabled={!valide||pending} className={`${CLASSE_BOUTON_PRINCIPAL} ${styles.boutonEnvoi}`}><Send size={17} aria-hidden/>{pending?"Envoi…":"Envoyer le devis par e-mail"}</button>;}
+// D18 (livraison 2) : en révision, le bouton nomme la version qui part (« Envoyer la version 2 »).
+function Envoyer({valide, versionSuivante}: {valide:boolean; versionSuivante?: number}) {const {pending}=useFormStatus();return <button type="submit" disabled={!valide||pending} className={`${CLASSE_BOUTON_PRINCIPAL} ${styles.boutonEnvoi}`}><Send size={17} aria-hidden/>{pending?"Envoi…":versionSuivante?`Envoyer la version ${versionSuivante}`:"Envoyer le devis par e-mail"}</button>;}
 
 // Le sélecteur d’étape mobile n’est pas une modification du devis.
 function estSaisieDevis(cible: EventTarget) {
   if (!(cible instanceof HTMLInputElement || cible instanceof HTMLSelectElement || cible instanceof HTMLTextAreaElement)) return false;
-  return ["diagnostic", "delai", "duree", "contraintes", "observations", "valide_jusqu_au"].includes(cible.name) || Boolean(cible.closest("[data-lignes-devis]"));
+  return ["diagnostic", "delai", "duree", "contraintes", "observations", "valide_jusqu_au", "note_revision"].includes(cible.name) || Boolean(cible.closest("[data-lignes-devis]"));
 }
-export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erreurPreparation,cleLocale,copieInitiale}: {sollicitationId:string;echeanceParDefaut:string;initiale?:PreparationDevis|null;erreurPreparation?:string;cleLocale:string;copieInitiale?:BrouillonDevisLocal}) {
+export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erreurPreparation,cleLocale,copieInitiale,versionSuivante}: {sollicitationId:string;echeanceParDefaut:string;initiale?:PreparationDevis|null;erreurPreparation?:string;cleLocale:string;copieInitiale?:BrouillonDevisLocal;versionSuivante?:number}) {
   const [etat,action]=useActionState(envoyerDevisValide.bind(null,sollicitationId),{});
   const [refus,actionRefus]=useActionState(declinerMaSollicitation.bind(null,sollicitationId),{});
   const [refusOuvert,setRefusOuvert]=useState(false);
@@ -114,13 +115,15 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
   return <div className={styles.editeur}>
     <form data-protection-saisie="locale" ref={form} action={action} onReset={e=>e.preventDefault()} onChange={e=>{if(estSaisieDevis(e.target))modification();}} onClick={e=>{const button=(e.target as HTMLElement).closest("button");if(button&&/Ajouter une prestation|Retirer cette ligne/.test(button.textContent??""))modification();}}>
       <input type="hidden" name="revision" value={revision}/>
-      <EtapesSaisie titre="Préparer mon devis" etapes={[
-        {titre:"Proposition",statut:valide?"complet":undefined,statutLibelle:valide?"Validée":"À relire",detail:"Gerimmo prépare une base de devis. Ajustez les prestations, les quantités et les prix."},
+      <EtapesSaisie titre={versionSuivante?`Préparer la version ${versionSuivante}`:"Préparer mon devis"} etapes={[
+        {titre:"Proposition",statut:valide?"complet":undefined,statutLibelle:valide?"Validée":"À relire",detail:versionSuivante?"Votre version précédente est reprise ici. Ajustez-la et dites ce qui change.":"Gerimmo prépare une base de devis. Ajustez les prestations, les quantités et les prix."},
         {titre:"Conditions",statut:valide?"complet":undefined,statutLibelle:valide?"Validées":"À préciser",detail:"Précisez votre organisation et la durée de validité."},
         {titre:"Validation",statut:valide?"complet":undefined,statutLibelle:valide?"PDF enregistré":"Votre accord",detail:"Relisez puis validez le devis pour générer votre PDF."},
         {titre:"Envoi",statutLibelle:valide?"Prêt à envoyer":"Après validation",detail:"Transmettez le PDF à la personne qui vous a sollicité."},
-      ]} conclusion={<Envoyer valide={valide&&!enregistrement&&!chargement}/>} contenus={[
+      ]} conclusion={<Envoyer valide={valide&&!enregistrement&&!chargement} versionSuivante={versionSuivante}/>} contenus={[
         <div key={`prestations-${cle}`} className="space-y-5">
+          {/* D18 (livraison 2) : « ce qui change » est obligatoire pour une version suivante ; la base le lit dans la préparation envoyée. */}
+          {versionSuivante&&<label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Ce qui change dans la version {versionSuivante}</span><textarea name="note_revision" required maxLength={4000} rows={3} defaultValue={copieInitiale ? copieInitiale.contenu.note_revision : preparation?.saisie?.noteRevision} placeholder="Ex. : main-d’œuvre détaillée par heure, prix du joint ramené au tarif fournisseur." className={CLASSE_ZONE_TEXTE}/><span className={CLASSE_AIDE}>Transmis au client avec la nouvelle version : il lit ce qui a été revu.</span></label>}
           <div className={styles.aideProposition}>
             <h3><Sparkles size={19} aria-hidden/>{chargement?"Gerimmo prépare votre proposition…":proposition?.moteur==="ia"?"Proposition préparée avec l’IA":"Proposition Gerimmo"}</h3>
             <p>Ajustez cette base selon votre diagnostic. Vous décidez des prestations et de vos prix.</p>
@@ -151,7 +154,8 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
       {copieLocale&&<p role="status" className="mt-2 text-sm text-muted-foreground">{copieLocale}</p>}
       {erreur&&<div className="mt-3"><Erreur>{erreur}</Erreur></div>}
     </form>
-    <div className={styles.refus}>{!refusOuvert?<button type="button" onClick={()=>setRefusOuvert(true)}>Je ne peux pas chiffrer cette demande</button>:<form data-saisie-libre action={actionRefus} className="space-y-3"><label className="block">Motif (facultatif)<textarea name="motif" rows={2} className={CLASSE_ZONE_TEXTE}/></label>{refus.erreur&&<Erreur>{refus.erreur}</Erreur>}<button type="submit" className={CLASSE_BOUTON_SOBRE}>Confirmer : je ne chiffre pas</button><button type="button" className={CLASSE_BOUTON_SOBRE} onClick={()=>setRefusOuvert(false)}>Revenir</button></form>}</div>
+    {/* D18 (livraison 2) : en révision, renoncer clôt la demande ; la version précédente reste au dossier. */}
+    <div className={styles.refus}>{!refusOuvert?<button type="button" onClick={()=>setRefusOuvert(true)}>{versionSuivante?"Je renonce à cette demande":"Je ne peux pas chiffrer cette demande"}</button>:<form data-saisie-libre action={actionRefus} className="space-y-3"><label className="block">Motif (facultatif)<textarea name="motif" rows={2} className={CLASSE_ZONE_TEXTE}/></label>{refus.erreur&&<Erreur>{refus.erreur}</Erreur>}<button type="submit" className={CLASSE_BOUTON_SOBRE}>{versionSuivante?"Confirmer : je renonce, sans nouvelle version":"Confirmer : je ne chiffre pas"}</button><button type="button" className={CLASSE_BOUTON_SOBRE} onClick={()=>setRefusOuvert(false)}>Revenir</button></form>}</div>
   </div>;
 }
 

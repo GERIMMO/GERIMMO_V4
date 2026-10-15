@@ -22,7 +22,7 @@
  * Ce fichier tient des verrous de table (changement de valeur par défaut) jusqu'à la fin de chaque essai : il tourne en série
  * (FICHIERS_EN_SERIE de vitest.config.ts). La base visée est déjà migrée ; tout est joué dans une transaction annulée à la fin.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -105,9 +105,24 @@ const MARQUE_X13 = "Décision X13 du 15/10 (FIN-13)";
 
 const migration = (v: string, f: string) => readFileSync(`supabase/migrations/${v}_${f}.sql`, "utf8");
 const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/${v}_${f}.retour.sql`, "utf8");
+
+/**
+ * Les lots postérieurs dont les fonctions citent aussi `public.aujourdhui_paris()` (décision D18, lot « devis-revisable » :
+ * refuser_devis, demander_revision_devis, deposer_devis, expirer_revisions_devis). Leurs retours se jouent AVANT celui de la
+ * fonction du jour, dans l'ordre inverse de leurs migrations, comme la procédure du LISEZ-MOI le demande ; leurs migrations se
+ * rejouent après celles du lot pour revenir exactement à l'état migré. Absents du dépôt, ils ne comptent pas.
+ */
+const LOTS_POSTERIEURS = [
+  // Reprise du 15/10 (dépôt du PDF en révision, ordre des verrous) : son retour précède celui de 601000, qui le vérifie.
+  { version: "20261014602000", fichier: "devis_revision_verrous_stockage" },
+  { version: "20261014601000", fichier: "devis_revision_versions" },
+  { version: "20261014600000", fichier: "devis_refus_motive" },
+].filter((l) => existsSync(`supabase/migrations/${l.version}_${l.fichier}.sql`));
+
 const MIGRATIONS = [
   migration(FONCTION_DU_JOUR.version, FONCTION_DU_JOUR.fichier),
   ...FAMILLES.map((f) => migration(f.version, f.fichier)),
+  ...[...LOTS_POSTERIEURS].reverse().map((l) => migration(l.version, l.fichier)),
 ];
 
 /** Le script de retour gère sa propre transaction et refuse de se jouer dans un lot : on lui retire cette enveloppe seule. */
@@ -485,9 +500,35 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
   });
 
   describe("retours arrière", () => {
-    /** Joue les retours dans l'ordre recommandé : encaissements, appels, lot, état, puis la fonction elle-même. */
+    /** Les retours des lots postérieurs qui citent la fonction du jour : à jouer avant ceux du lot. */
+    async function defaireLotsPosterieurs() {
+      for (const lot of LOTS_POSTERIEURS) await db.query(sansEnveloppe(retour(lot.version, lot.fichier)));
+    }
+
+    /**
+     * Les lots postérieurs au jour de Paris s'en servent à leur tour (D23 : `enregistrer_reglement_facture`,
+     * `retirer_reglement_facture`, migration 20261014610000) : en production, leur retour arrière se joue AVANT celui de
+     * 500000 et retire leurs fonctions. On fait ici la même chose sans jouer leurs scripts : toute fonction hors du lot
+     * qui cite encore la fonction du jour de Paris est retirée (dans la transaction du test, annulée à la fin).
+     */
+    async function retirerLesLotsPosterieurs() {
+      const { rows } = await db.query<{ signature: string }>(
+        `select p.oid::regprocedure::text as signature
+           from pg_proc p
+          where p.pronamespace = 'public'::regnamespace and p.prokind in ('f', 'p')
+            and p.proname <> 'aujourdhui_paris'
+            and pg_get_functiondef(p.oid) ~ 'aujourdhui_paris\\(\\)'
+            and not (p.oid = any (select to_regprocedure(s) from unnest($1::text[]) s))`,
+        [SIGNATURES]
+      );
+      for (const { signature } of rows) await db.query(`drop function ${signature}`);
+    }
+
+    /** Joue les retours dans l'ordre recommandé : encaissements, appels, lot, état, les lots postérieurs, puis la fonction elle-même. */
     async function toutDefaire() {
+      await defaireLotsPosterieurs();
       for (const famille of [...FAMILLES].reverse()) await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
+      await retirerLesLotsPosterieurs();
       await db.query(sansEnveloppe(retour(FONCTION_DU_JOUR.version, FONCTION_DU_JOUR.fichier)));
     }
 
@@ -550,7 +591,9 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
     });
 
     it("même sans fonction qui la cite, une valeur par défaut qui s'en sert fait refuser le retour, en la nommant", async () => {
+      await defaireLotsPosterieurs();
       for (const famille of [...FAMILLES].reverse()) await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
+      await retirerLesLotsPosterieurs();
       await db.query("alter table public.encaissements alter column date_paiement set default public.aujourdhui_paris()");
       const message = await echoue(sansEnveloppe(retour(FONCTION_DU_JOUR.version, FONCTION_DU_JOUR.fichier)));
       expect(message).toMatch(/Retour arrière refusé : public\.aujourdhui_paris\(\) sert encore à : .*encaissements\.date_paiement/);

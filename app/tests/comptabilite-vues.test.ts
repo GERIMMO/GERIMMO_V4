@@ -5,6 +5,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 const banc = vi.hoisted(() => ({
   role: "admin_agence", proprietaire: false, erreur: false,
   portefeuille: null as Set<string> | null,
+  // D23 : les règlements de facture d'intervention liés à une écriture (lus par la page pour la mention du journal).
+  reglements: [] as { ecriture_id: string; facture: { numero: string } | null }[],
 }));
 vi.mock("@/lib/espace", () => ({
   verifierAccesEspace: async () => ({
@@ -17,7 +19,7 @@ vi.mock("@/lib/espace", () => ({
           libelle: `ligne-${String(i).padStart(3, "0")}`, systeme: false,
           contre_ecriture_de: null, encaissement_id: null, depot_encaissement_id: null,
           lot_id: i % 2 ? "autre" : "lot",
-        })) : [];
+        })) : table === "intervention_facture_reglements" ? banc.reglements : [];
         const result = { data, error: banc.erreur && table === "ecritures" ? { message: "lecture refusée" } : null };
         const query: Record<string, unknown> = {};
         for (const method of ["select", "eq", "order", "limit", "in"]) query[method] = () => query;
@@ -40,7 +42,7 @@ vi.mock("@/app/agence/[orgId]/comptabilite/formulaire-compta", () => ({
 import PageComptabilite from "@/app/agence/[orgId]/comptabilite/page";
 const rendre = async (search: { vue?: string | string[]; page?: string | string[] } = {}) =>
   renderToStaticMarkup(await PageComptabilite({ params: Promise.resolve({ orgId: "org" }), searchParams: Promise.resolve(search) }));
-beforeEach(() => { banc.role = "admin_agence"; banc.proprietaire = false; banc.erreur = false; banc.portefeuille = null; });
+beforeEach(() => { banc.role = "admin_agence"; banc.proprietaire = false; banc.erreur = false; banc.portefeuille = null; banc.reglements = []; });
 
 describe("comptabilité par action", () => {
   it("ouvre le journal sans imposer les formulaires et limite sa première page", async () => {
@@ -105,6 +107,17 @@ describe("comptabilité par action", () => {
     expect(html).toContain("Rapports test");
     expect(html).not.toContain("ligne-000");
     expect(html).not.toContain("Saisie test");
+  });
+  it("D23 : l'écriture née d'un règlement de facture le dit, et renvoie à la fiche de l'incident au lieu d'« Annuler »", async () => {
+    const boutons = (html: string) => (html.match(/<button>Annuler<\/button>/g) ?? []).length;
+    const sans = boutons(await rendre());
+    banc.reglements = [{ ecriture_id: "e0", facture: { numero: "F-2026-17" } }];
+    const html = await rendre();
+    expect(html).toContain("ligne-000 · pièce 10/09/2026 · née du règlement de la facture n° F-2026-17");
+    expect(html).toContain("née du règlement de la facture n° F-2026-17 : se retire depuis la fiche de l’incident");
+    // Vue mobile et vue tableau : l'écriture e0 perd son bouton dans chacune, les autres le gardent.
+    expect(boutons(html)).toBe(sans - 2);
+    expect(html.match(/née du règlement de la facture n° F-2026-17/g)?.length).toBeGreaterThanOrEqual(2);
   });
   it("ne transforme pas un échec de lecture en journal vide", async () => {
     banc.erreur = true;

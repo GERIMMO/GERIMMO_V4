@@ -13,6 +13,8 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { CRENEAUX_MINIMUM, DEMI_JOURNEES } from "./creneaux";
+import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
+import { GestesRendezVous } from "./gestes-rendez-vous";
 
 // ════════════════════════════════════════════════════════════════════════════
 // LE SUIVI DE L'INTERVENTION, DANS LA CARTE DE LA DEMANDE
@@ -575,6 +577,7 @@ export function SuiviInterventionLocataire({
   suivi,
   creneaux,
   peutAgir,
+  rendezVous,
 }: {
   orgId: string;
   suivi: SuiviIntervention;
@@ -582,6 +585,8 @@ export function SuiviInterventionLocataire({
   creneaux: CreneauPropose[];
   /** Adhésion active : bail terminé, la lecture reste, les gestes non. */
   peutAgir: boolean;
+  /** Décision D22 : le rendez-vous de CETTE intervention et la dernière demande du locataire (report, annulation). */
+  rendezVous?: RendezVousLocataire;
 }) {
   const rail = RAIL_DE_L_ETAPE[suivi.etape] ?? 0;
   const { titre, detail } = enMots(suivi, peutAgir);
@@ -592,6 +597,17 @@ export function SuiviInterventionLocataire({
       {detail && <p className="mt-0.5 text-sm text-muted-foreground">{detail}</p>}
 
       <Fil rail={rail} />
+
+      {/* Décision D22 : sur le rendez-vous confirmé, « Je ne peux plus être là » (report ou annulation) ; après une
+          annulation ou une réponse de l'artisan, ce qu'il en est. */}
+      {rendezVous && ["planifiee", "creneaux_attendus", "creneau_a_choisir", "ma_proposition"].includes(suivi.etape) && (
+        <GestesRendezVous
+          orgId={orgId}
+          rendezVous={rendezVous}
+          rdvTexte={suivi.etape === "planifiee" && suivi.rdv_debut && suivi.rdv_fin ? plage(suivi.rdv_debut, suivi.rdv_fin) : null}
+          peutAgir={peutAgir}
+        />
+      )}
 
       {suivi.etape === "creneau_a_choisir" && peutAgir && (
         <ChoixDuCreneau

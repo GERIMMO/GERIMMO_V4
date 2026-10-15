@@ -6,6 +6,7 @@ import { brouillonDepuisFormulaire, type PreparationDevis } from "@/lib/parcours
 import { proposerDevis } from "@/lib/proposition-devis-ia";
 import { REFERENCES_TRAVAUX, type RepereHistorique } from "@/lib/references-prix-travaux";
 import { verifierArtisanAction } from "../acces";
+import { demandeAChiffrer } from "../libelles";
 import { clientDeService } from "@/lib/supabase/service";
 import { detecterMimeReel } from "@/lib/file-type";
 import { createHash } from "node:crypto";
@@ -19,7 +20,7 @@ export async function preparerPropositionDevis(id: string): Promise<{ preparatio
   try {
     const { service, fiche, demande, preparation } = await chargerPreparationDevis(id, true);
     if (preparation) return { preparation };
-    if (demande.statut !== "envoyee") throw new Error("Cette demande est close.");
+    if (!demandeAChiffrer(demande.statut)) throw new Error("Cette demande est close.");
     const { data: historique, error } = await service.rpc("reperes_devis_realises", { p_categorie: demande.categorie });
     if (error) throw new Error("Les références de prix ne sont pas disponibles. Vous pouvez saisir votre devis.");
     const proposition = await proposerDevis(demande.categorie, demande.description, (historique ?? []).map((h: RepereHistorique) => ({ ...h, nombre:Number(h.nombre), artisans:Number(h.artisans), moyenne_ht_cents:Number(h.moyenne_ht_cents) })));
@@ -37,7 +38,8 @@ export async function preparerPropositionDevis(id: string): Promise<{ preparatio
 export async function enregistrerBrouillonDevis(id: string, form: FormData): Promise<{ revision?: number; erreur?: string }> {
   try {
     const { service, fiche, demande, preparation } = await chargerPreparationDevis(id, true);
-    if (demande.statut !== "envoyee" || preparation?.statut === "envoye") throw new Error("Ce devis a déjà été envoyé.");
+    // D18 (livraison 2) : une demande en révision rouvre le brouillon (la base l'a remis en « brouillon »).
+    if (!demandeAChiffrer(demande.statut) || preparation?.statut === "envoye") throw new Error("Ce devis a déjà été envoyé.");
     const saisie = brouillonDepuisFormulaire(form);
     saisie.lignes = saisie.lignes.map(l => ({ ...l, code: REFERENCES_TRAVAUX.some(r=>r.code===l.code) ? l.code : "" }));
     const revision = Number(form.get("revision") ?? 0);

@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { estUuid } from "@/lib/identifiants";
+import type { FactureVueParArtisan } from "@/lib/reglement-facture";
+import type { DemandeRdvArtisan } from "@/lib/rendez-vous-locataire";
 
 /**
  * LE MODÈLE D'ACCÈS DU PORTAIL ARTISAN — pourquoi il est sûr.
@@ -139,9 +141,33 @@ export type LigneSollicitation = {
     | "retenue"
     | "non_retenue"
     | "expiree"
-    | "annulee";
+    | "annulee"
+    | "refusee"
+    | "revision_demandee";
   valide_jusqu_au: string | null;
   montant_ttc_cents: number | null;
+  /** D18 (livraison 1) : le motif de la décision prise sur SON devis (refus, révision), tel que le client l'a écrit. */
+  decision_motif: string | null;
+  /** D18 (livraison 2) : la version de son dernier devis (1 sans révision), ce que le client demande, et jusqu'à quand. */
+  version: number | null;
+  revision_motif: string | null;
+  revision_avant: string | null;
+};
+
+/** D18 (livraison 2) : une version de son devis, telle que `mes_versions_devis` la rend (les siennes seules). */
+export type VersionDevis = {
+  devis_id: string;
+  version: number;
+  statut: "depose" | "retenu" | "non_retenu" | "expire" | "annule" | "refuse" | "revise";
+  montant_ttc_cents: number;
+  valide_jusqu_au: string;
+  depose_le: string;
+  note_revision: string | null;
+  decision: "refus" | "revision" | null;
+  decision_motif: string | null;
+  decide_le: string | null;
+  description: string;
+  lignes: unknown[];
 };
 
 export type PieceArtisan = {
@@ -218,6 +244,15 @@ export const chargerSollicitations = cache(async function chargerSollicitations(
   return { lignes: (data ?? []) as LigneSollicitation[], erreur: Boolean(error) };
 });
 
+/** D18 (livraison 2) : l'historique des versions de SON devis sur une demande ; vide pour une demande qui n'est pas la sienne. */
+export const chargerVersionsDevis = cache(async function chargerVersionsDevis(sollicitationId: string) {
+  if (!estUuid(sollicitationId)) return { lignes: [] as VersionDevis[], erreur: false };
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as VersionDevis[], erreur: false };
+  const { data, error } = await supabase.rpc("mes_versions_devis", { p_sollicitation: sollicitationId });
+  return { lignes: (data ?? []) as VersionDevis[], erreur: Boolean(error) };
+});
+
 export const chargerPieces = cache(async function chargerPieces() {
   const { supabase, fiche } = await chargerFicheArtisan();
   if (!fiche) return { lignes: [] as PieceArtisan[], erreur: false };
@@ -246,6 +281,30 @@ export const chargerCreneauxMission = cache(async function chargerCreneauxMissio
     p_intervention: interventionId,
   });
   return { lignes: (data ?? []) as CreneauMission[], erreur: Boolean(error) };
+});
+
+/**
+ * L'état de règlement de SES factures (décision D23, `mes_reglements_factures_artisan`) : déclaré par le client, jamais
+ * exécuté par Gerimmo. Pour chaque règlement, la date et le moyen seulement (réponse 3 de la fiche B.15) : la base ne rend
+ * ni la référence ni le montant de chaque règlement. Un échec de lecture se distingue d'« aucune facture ».
+ */
+export const chargerReglementsFactures = cache(async function chargerReglementsFactures() {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as FactureVueParArtisan[], erreur: false };
+  const { data, error } = await supabase.rpc("mes_reglements_factures_artisan");
+  return { lignes: (data ?? []) as FactureVueParArtisan[], erreur: Boolean(error) };
+});
+
+/**
+ * Décision D22 : la dernière demande du locataire (report ou annulation) sur chacune des missions vivantes de l'artisan.
+ * La table n'est pas lisible par l'artisan : la fonction de base ne rend que SES missions, motif compris (fiche C.6),
+ * aucune coordonnée.
+ */
+export const chargerDemandesRdv = cache(async function chargerDemandesRdv() {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as DemandeRdvArtisan[], erreur: false };
+  const { data, error } = await supabase.rpc("mes_demandes_rdv_artisan");
+  return { lignes: (data ?? []) as DemandeRdvArtisan[], erreur: Boolean(error) };
 });
 
 /** Une photo jointe par le locataire que l'artisan a le droit de voir : ni chemin, ni nom de fichier, ni auteur. */

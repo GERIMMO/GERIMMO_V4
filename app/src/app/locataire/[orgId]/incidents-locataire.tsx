@@ -14,6 +14,7 @@ import { libelleEtatLocataire, titreIncident } from "@/lib/incidents";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
 import { LectureImpossible } from "./panne-lecture";
+import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
 import {
   SuiviInterventionLocataire,
   etapeCourte,
@@ -95,6 +96,7 @@ function CarteIncident({
   suivi,
   creneaux,
   peutAgir,
+  rendezVous,
 }: {
   orgId: string;
   incident: IncidentLocataire;
@@ -104,6 +106,8 @@ function CarteIncident({
   suivi?: SuiviIntervention;
   creneaux: CreneauPropose[];
   peutAgir: boolean;
+  /** Décision D22 : le rendez-vous de l'intervention et la dernière demande du locataire. */
+  rendezVous?: RendezVousLocataire;
 }) {
   const [ouvert, setOuvert] = useState<"contester" | "persiste" | null>(null);
   const [etatContestation, actionContestation] = useActionState<
@@ -230,6 +234,7 @@ function CarteIncident({
           suivi={suivi}
           creneaux={creneaux}
           peutAgir={peutAgir}
+          rendezVous={rendezVous}
         />
       )}
 
@@ -314,6 +319,7 @@ export function IncidentsLocataire({
   incidents,
   suivis = [],
   creneaux = [],
+  rendezVous = [],
   peutAgir = true,
   peutSignaler = true,
   lectureEnEchec = false,
@@ -324,6 +330,8 @@ export function IncidentsLocataire({
   suivis?: SuiviIntervention[];
   /** Les créneaux que l'artisan propose, toutes demandes confondues. */
   creneaux?: CreneauPropose[];
+  /** Décision D22 : les rendez-vous du locataire et leur dernière demande (report, annulation). */
+  rendezVous?: RendezVousLocataire[];
   /** Adhésion active : bail terminé, la lecture reste, les gestes non. */
   peutAgir?: boolean;
   /** Bail actif : sans lui, la déclaration est refusée (recette 03/10). */
@@ -377,6 +385,7 @@ export function IncidentsLocataire({
             incident={i}
             suivi={suivi}
             creneaux={creneaux.filter((c) => c.intervention_id === suivi?.intervention_id)}
+            rendezVous={rendezVous.find((r) => r.intervention_id === suivi?.intervention_id)}
             peutAgir={peutAgir}
           />
         );

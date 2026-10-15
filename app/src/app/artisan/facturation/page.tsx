@@ -2,7 +2,8 @@ import { ReglementsDansFacturation } from "../clients/resumes";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Check, CheckCircle2, ClipboardList, FileCheck2, FileUp, Info, ReceiptText } from "lucide-react";
 import { titreIncident } from "@/lib/incidents";
-import { chargerAgenda, verifierAccesArtisan, type LigneAgenda } from "../acces";
+import { ligneReglementPourArtisan, phraseEtatPourArtisan, type FactureVueParArtisan } from "@/lib/reglement-facture";
+import { chargerAgenda, chargerReglementsFactures, verifierAccesArtisan, type LigneAgenda } from "../acces";
 import { euros, jourCourt } from "../libelles";
 import { EnteteSousPage, Erreur, Etiquette, MarqueAgence, Succes } from "../ui";
 import { classerFacturation, montantEngage } from "./suivi-facturation";
@@ -13,7 +14,10 @@ export const metadata = { title: "Ma facturation" };
 export default async function PageFacturation(props: PageProps<"/artisan/facturation">) {
   await verifierAccesArtisan();
   const { facture } = await props.searchParams;
-  const agenda = await chargerAgenda();
+  // D23 : l'état de règlement déclaré par le client, par intervention. Une lecture en échec se dit, elle ne se déguise
+  // pas en « aucun règlement ».
+  const [agenda, reglements] = await Promise.all([chargerAgenda(), chargerReglementsFactures()]);
+  const reglementDe = new Map(reglements.lignes.map((r) => [r.intervention_id, r]));
   const { aFacturer, aCompleter, deposees } = classerFacturation(agenda.lignes);
   const montantAFacturer = aFacturer.reduce((total, ligne) => total + (montantEngage(ligne) ?? 0), 0);
   const montantsIncomplets = aFacturer.some(l => montantEngage(l) === null);
@@ -46,14 +50,15 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
             </li>)}</ul> : <p className={styles.rienACompleter}><CheckCircle2 size={18} aria-hidden/>Aucun dossier en attente de compte rendu ou de photo.</p>}
           </section>
           <section id="factures-deposees" className={styles.section}>
-            <div className={styles.titreSection}><div><h2>Factures déposées <span>{deposees.length}</span></h2><p>Les factures transmises pour vos interventions.</p></div><FileCheck2 size={21} aria-hidden/></div>
-            {deposees.length ? <ul className={styles.liste}>{deposees.map(l => <LigneFacturation key={l.intervention_id} ligne={l}/>)}</ul> : <p className={styles.aucuneFacture}>Vos prochaines factures apparaîtront ici après leur dépôt.</p>}
+            <div className={styles.titreSection}><div><h2>Factures déposées <span>{deposees.length}</span></h2><p>Les factures transmises pour vos interventions, et le règlement que vos clients déclarent.</p></div><FileCheck2 size={21} aria-hidden/></div>
+            {reglements.erreur && <p className={styles.aucuneFacture} role="alert">L’état de règlement de vos factures n’a pas pu être lu : rechargez la page avant de conclure qu’aucun règlement n’est déclaré.</p>}
+            {deposees.length ? <ul className={styles.liste}>{deposees.map(l => <LigneFacturation key={l.intervention_id} ligne={l} reglement={reglementDe.get(l.intervention_id)}/>)}</ul> : <p className={styles.aucuneFacture}>Vos prochaines factures apparaîtront ici après leur dépôt.</p>}
           </section>
         </div>
         <aside className={styles.guide} aria-label="Comment transmettre une facture">
           <p className={styles.surtitre}>Vos repères</p><h2>Facturer en 3 étapes</h2>
           <ol><li><span>1</span><div><h3>Terminez l’intervention</h3><p>Ajoutez le compte rendu et une photo du travail réalisé.</p></div></li><li><span>2</span><div><h3>Déposez votre facture</h3><p>Le montant est prérempli à partir du devis ou de l’avenant accepté. Vous pouvez justifier un écart.</p></div></li><li><span>3</span><div><h3>Votre client est prévenu</h3><p>Il retrouve la facture dans son espace pour la contrôler et la régler.</p></div></li></ol>
-          <div className={styles.note}><Info size={17} aria-hidden/><p>Le dépôt est suivi ici. Le règlement reste à vérifier auprès de votre client.</p></div>
+          <div className={styles.note}><Info size={17} aria-hidden/><p>Le dépôt est suivi ici. Quand votre client déclare un règlement, sa date et son moyen s’affichent sur la facture : c’est une déclaration de sa part, pas un virement de Gerimmo. Vérifiez la réception sur votre compte.</p></div>
           <Link href="/artisan/entreprise#documents" className={styles.lienGuide}>Vérifier ma fiche entreprise <ArrowRight size={15} aria-hidden/></Link>
         </aside>
       </div>
@@ -61,13 +66,28 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
   </div>;
 }
 
-function LigneFacturation({ ligne }: { ligne: LigneAgenda }) {
+/** L'étiquette d'une facture déposée : l'état que son client déclare (D23), sinon « Facture déposée ». */
+function etiquetteFacture(deposee: boolean, reglement: FactureVueParArtisan | undefined): { ton: "ok" | "encre" | "attente"; texte: string } {
+  if (!deposee) return { ton: "encre", texte: "Prête à facturer" };
+  if (reglement?.etat === "reglee") return { ton: "ok", texte: "Réglée (déclaré par votre client)" };
+  if (reglement?.etat === "partiellement_reglee") return { ton: "attente", texte: "Partiellement réglée" };
+  if (reglement?.etat === "validee") return { ton: "attente", texte: "Validée, règlement à venir" };
+  return { ton: "ok", texte: "Facture déposée" };
+}
+
+function LigneFacturation({ ligne, reglement }: { ligne: LigneAgenda; reglement?: FactureVueParArtisan }) {
   const deposee = ligne.facture_deposee;
   const montant = montantEngage(ligne);
+  const etiquette = etiquetteFacture(deposee, reglement);
   return <li className={styles.facture}>
-    <div className={styles.client}><MarqueAgence nom={ligne.agence_nom}/><Etiquette ton={deposee ? "ok" : "encre"}>{deposee ? "Facture déposée" : "Prête à facturer"}</Etiquette></div>
+    <div className={styles.client}><MarqueAgence nom={ligne.agence_nom}/><Etiquette ton={etiquette.ton}>{etiquette.texte}</Etiquette></div>
     <div className={styles.detailFacture}>
-      <div><h3>{titreIncident(ligne.categorie)}</h3><p>{[ligne.incident_numero, ligne.debut_prevu ? jourCourt(ligne.debut_prevu) : null, ligne.ville].filter(Boolean).join(" · ")}</p></div>
+      <div>
+        <h3>{titreIncident(ligne.categorie)}</h3>
+        <p>{[ligne.incident_numero, reglement ? `facture n° ${reglement.numero}` : null, ligne.debut_prevu ? jourCourt(ligne.debut_prevu) : null, ligne.ville].filter(Boolean).join(" · ")}</p>
+        {deposee && reglement && <p>{phraseEtatPourArtisan(reglement)}</p>}
+        {deposee && reglement && reglement.reglements.length > 0 && <ul>{reglement.reglements.map((r, i) => <li key={`${r.date_reglement}-${i}`}>{ligneReglementPourArtisan(r)}</li>)}</ul>}
+      </div>
       <div className={styles.montant}><strong>{montant !== null ? euros(montant) : "À préciser"}{montant !== null && <small> TTC</small>}</strong><span>{ligne.montant_plafond_cents !== null && ligne.montant_plafond_cents !== ligne.montant_ttc_cents ? "Avenant accepté" : "Devis retenu"}</span></div>
     </div>
     <Link href={`/artisan/missions/${ligne.intervention_id}${deposee ? "" : "/facture"}`} className={deposee ? styles.boutonSecondaire : styles.boutonPrincipal}>{deposee ? <FileCheck2 size={16} aria-hidden/> : <FileUp size={16} aria-hidden/>}{deposee ? "Voir la mission" : "Déposer ma facture"}<ArrowRight size={15} aria-hidden/></Link>

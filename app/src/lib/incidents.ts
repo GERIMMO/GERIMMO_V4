@@ -146,6 +146,12 @@ export const MOTIFS_CLOTURE_PAR_ETAT: Partial<Record<EtatIncident, string[]>> = 
   termine: ["resolu", "transmis_syndic"],
 };
 
+/**
+ * Bornes du motif d'une décision sur un devis reçu (refus, puis demande de révision) : celles de la base, contrainte
+ * `incident_devis_decision_coherente` (décision D18 du 14/10). Le motif est transmis à l'artisan.
+ */
+export const MOTIF_DECISION_DEVIS = { min: 10, max: 4000 } as const;
+
 // Chronologie de la fiche : libellés des événements tracés en base
 export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   declaration: "Déclaration",
@@ -178,6 +184,22 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   facture_validee: "Facture contrôlée et validée",
   // Audit du 13/10 (migration 20261013120000) : l'annulation se lit au fil.
   mission_annulee: "Mission annulée",
+  // Décision D18 du 14/10 (migration 20261014600000, livraison 1) : le refus motivé d'un devis.
+  devis_refuse: "Devis refusé",
+  // Décision D18 du 14/10 (migration 20261014601000, livraison 2) : la révision et ses versions.
+  devis_revision_demandee: "Révision de devis demandée",
+  devis_revise: "Nouvelle version du devis",
+  devis_revision_expiree: "Révision de devis sans réponse dans le délai",
+  // D23 (migration 20261014610000) : le règlement déclaré de la facture, et son retrait, se lisent au fil.
+  facture_reglee: "Règlement de facture enregistré",
+  reglement_retire: "Règlement de facture retiré",
+  // Décision D22 (migration 20261014620000) : le report ou l'annulation du rendez-vous par le locataire.
+  rdv_report_demande: "Report du rendez-vous demandé par le locataire",
+  rdv_report_accepte: "Report accepté par l'artisan",
+  rdv_report_refuse: "Report refusé par l'artisan",
+  rdv_report_retire: "Demande de report retirée",
+  rdv_report_expire: "Demande de report sans réponse de l'artisan",
+  rdv_annule_par_locataire: "Rendez-vous annulé par le locataire",
 };
 
 export const PIECES_INCIDENT = [

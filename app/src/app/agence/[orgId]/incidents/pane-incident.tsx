@@ -9,6 +9,8 @@ import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { nomComplet } from "@/lib/roles-personnes";
 import { formaterTelephone } from "@/app/artisan/libelles";
 import { mentionEcartChronologie } from "@/lib/rendez-vous-anticipe";
+import { MOYENS_REGLEMENT, type MoyenReglement } from "@/lib/reglement-facture";
+import { libelleMotifRdv } from "@/lib/rendez-vous-locataire";
 import {
   CANAUX_INCIDENT,
   COULEURS_ETAT_INCIDENT,
@@ -237,6 +239,28 @@ export async function PaneIncident({
         return d.montant_ttc_cents != null
           ? eur(centsEnEuros(Number(d.montant_ttc_cents)))
           : null;
+      // D18 (livraison 1) : le montant refusé et le motif, celui que l'artisan a reçu.
+      case "devis_refuse":
+        return [
+          d.montant_ttc_cents != null ? eur(centsEnEuros(Number(d.montant_ttc_cents))) : null,
+          d.motif ? `« ${d.motif} »` : null,
+        ].filter(Boolean).join(" — ") || null;
+      // D18 (livraison 2) : ce que le gérant a demandé et jusqu'à quand l'artisan peut répondre.
+      case "devis_revision_demandee":
+        return [
+          d.version != null ? `version ${d.version}` : null,
+          d.motif ? `« ${d.motif} »` : null,
+          d.revision_avant ? `réponse attendue avant le ${formaterDate(String(d.revision_avant))}` : null,
+        ].filter(Boolean).join(" — ") || null;
+      // D18 (livraison 2) : la version suivante, son montant et ce qui change.
+      case "devis_revise":
+        return [
+          d.version != null ? `version ${d.version}` : null,
+          d.montant_ttc_cents != null ? eur(centsEnEuros(Number(d.montant_ttc_cents))) : null,
+          d.note_revision ? `ce qui change : « ${d.note_revision} »` : null,
+        ].filter(Boolean).join(" — ") || null;
+      case "devis_revision_expiree":
+        return d.revision_avant ? `aucune réponse de l'artisan avant le ${formaterDate(String(d.revision_avant))}` : null;
       case "mission_refusee":
       case "creneaux_refuses":
         return d.motif ? `« ${d.motif} »` : null;
@@ -246,6 +270,21 @@ export async function PaneIncident({
             ? `${d.numero ? `n° ${d.numero} · ` : ""}${eur(centsEnEuros(Number(d.montant_ttc_cents)))}`
             : null,
           mentionEcartChronologie(d, formaterDateHeure),
+        ].filter(Boolean).join(" · ") || null;
+      // D23 : le règlement déclaré (jamais exécuté par Gerimmo) et son retrait, dans les mots du gérant.
+      case "facture_reglee":
+        return [
+          d.numero ? `n° ${d.numero}` : null,
+          d.montant_cents != null ? eur(centsEnEuros(Number(d.montant_cents))) : null,
+          d.date_reglement ? `le ${formaterDate(String(d.date_reglement))}` : null,
+          d.moyen ? (MOYENS_REGLEMENT[String(d.moyen) as MoyenReglement] ?? String(d.moyen)).toLowerCase() : null,
+          d.reglee === true ? "facture réglée en totalité" : d.reglee === false ? "règlement partiel" : null,
+        ].filter(Boolean).join(" · ") || null;
+      case "reglement_retire":
+        return [
+          d.numero ? `n° ${d.numero}` : null,
+          d.montant_cents != null ? eur(centsEnEuros(Number(d.montant_cents))) : null,
+          d.motif ? `« ${d.motif} »` : null,
         ].filter(Boolean).join(" · ") || null;
       // D20 (ART-21) : un geste fait plus de 2 h avant le rendez-vous confirmé est inscrit avec son écart.
       case "intervention_demarree":
@@ -262,6 +301,32 @@ export async function PaneIncident({
         ].filter(Boolean).join(" · ") || null;
       case "revision_imputation":
         return `${IMPUTATIONS_INCIDENT[String(d.imputation)] ?? d.imputation} — « ${d.justification} »`;
+      // Décision D22 : le report ou l'annulation du rendez-vous par le locataire. Le motif est dit en mots (liste
+      // fermée), la précision libre entre guillemets ; les dates à l'heure de Paris.
+      case "rdv_report_demande":
+        return [
+          d.rdv_debut ? `rendez-vous du ${formaterDateHeure(String(d.rdv_debut))}` : null,
+          libelleMotifRdv(d.motif_code == null ? null : String(d.motif_code)),
+          d.motif ? `« ${d.motif} »` : null,
+          d.expire_le ? `réponse attendue avant le ${formaterDateHeure(String(d.expire_le))}` : null,
+        ].filter(Boolean).join(" · ");
+      case "rdv_report_accepte":
+        return d.nouveau_debut
+          ? `${d.ancien_debut ? `${formaterDateHeure(String(d.ancien_debut))} → ` : ""}${formaterDateHeure(String(d.nouveau_debut))}`
+          : null;
+      case "rdv_report_refuse":
+        return d.motif ? `« ${d.motif} » — rendez-vous maintenu` : "Rendez-vous maintenu";
+      case "rdv_report_retire":
+        return d.cause === "annulation" ? "le locataire a annulé le rendez-vous" : "par le locataire";
+      case "rdv_report_expire":
+        return `rendez-vous maintenu${d.rdv_debut ? ` (${formaterDateHeure(String(d.rdv_debut))})` : ""}`;
+      case "rdv_annule_par_locataire":
+        return [
+          d.rdv_debut ? `rendez-vous du ${formaterDateHeure(String(d.rdv_debut))}` : null,
+          libelleMotifRdv(d.motif_code == null ? null : String(d.motif_code)),
+          d.motif ? `« ${d.motif} »` : null,
+          d.tardive ? "annulation à moins de 24 h" : null,
+        ].filter(Boolean).join(" · ");
       default:
         return null;
     }
@@ -583,7 +648,7 @@ export async function PaneIncident({
 
           </div>
 
-          <FacturesIncident orgId={orgId} incidentId={incidentId} base={base} />
+          <FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base} />
           <details id="cloture" open={!estProprietaire || incident.etat === "termine" || incident.etat === "clos"} className="rounded-xl border border-border bg-card p-4">
             <summary className="cursor-pointer font-semibold">{incident.etat === "clos" ? "Incident clos · consulter" : "Clôturer l’incident"}</summary>
           <Card className="mt-3 border-0 shadow-none">

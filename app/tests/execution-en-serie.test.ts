@@ -75,6 +75,19 @@ describe("les fichiers qui ont besoin de la base pour eux seuls tournent en sér
     expect(oublies, "à ajouter à FICHIERS_EN_SERIE de vitest.config.ts").toEqual([]);
   });
 
+  it("tout fichier qui rejoue une migration du devis révisable (D18 : alter type, alter table sur les devis) y est aussi", () => {
+    // 20261014600000 et 20261014601000 font `alter type … add value` et `alter table` sur incident_devis,
+    // incident_sollicitations et incident_evenements, même quand il n'y a rien à faire : verrou exclusif tenu jusqu'à la
+    // fin de l'essai, qui se croise avec les fichiers parallèles écrivant des devis (« deadlock detected », relecture du 15/10).
+    const rejoueD18 = /2026101460[01]000_devis_/;
+    const fichiers = readdirSync(resolve(RACINE, "tests")).filter((f) => f.endsWith(".test.ts") && f !== "execution-en-serie.test.ts");
+    const oublies = fichiers.filter(
+      (f) => rejoueD18.test(readFileSync(resolve(RACINE, "tests", f), "utf8")) && !FICHIERS_EN_SERIE.includes(`tests/${f}`)
+    );
+    expect(oublies, "à ajouter à FICHIERS_EN_SERIE de vitest.config.ts").toEqual([]);
+    expect(FICHIERS_EN_SERIE).toContain("tests/maintenance-artisans-planifiee.test.ts");
+  });
+
   it("les deux fichiers fiscaux qui suspendent un déclencheur y sont", () => {
     expect(FICHIERS_EN_SERIE).toContain("tests/fiscalite-capture-multilignes.test.ts");
     expect(FICHIERS_EN_SERIE).toContain("tests/fiscalite-persistance.test.ts");

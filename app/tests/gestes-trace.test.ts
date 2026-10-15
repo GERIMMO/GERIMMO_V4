@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { GESTES_TRACE, estCodeGeste } from "../src/lib/gestes-trace";
 import { detailsExpurges } from "../src/lib/libelles-journaux";
 
-const FICHIERS = ["loyers", "quittancement", "compta", "restitution", "depot", "appels-charges"];
+const FICHIERS = ["loyers", "quittancement", "compta", "restitution", "depot", "appels-charges", "reglement-facture"];
 const lire = (nom: string) => readFileSync(join(__dirname, "..", "src", "app", "actions", `${nom}.ts`), "utf8");
 
 /** Chaque appel de verifierGerant du fichier, avec ce qui suit l'identifiant d'organisation. */

@@ -46,11 +46,13 @@ import { ArretSupervision } from "./controle-effets";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cleRappelGeste } from "./cles-idempotence-courriels";
 import { envoyerEmail } from "./email";
-import { eur } from "./ged";
+import { eur, formaterDate } from "./ged";
 import { titreIncident } from "./incidents";
+import { moyenEnToutesLettres } from "./reglement-facture";
 import { echapperMarque, emailValide, nomMarque } from "./marque-organisation";
 import { chargerMarque } from "./marque-organisation-serveur";
-import { creneauEnToutesLettres, jourDuRendezVous } from "./rappel-email";
+import { creneauEnToutesLettres, heureDuRendezVous, jourDuRendezVous } from "./rappel-email";
+import { libelleMotifRdv } from "./rendez-vous-locataire";
 import { adresseDuSite } from "./site";
 import { clientDeService } from "./supabase/service";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
@@ -207,6 +209,100 @@ export function messageMissionAnnulee(p: {
   };
 }
 
+/**
+ * Devis refusé par le gérant ou le propriétaire (`refuser_devis`, décision D18, livraison 1) → l'artisan.
+ * Le motif lui est transmis tel qu'il a été écrit (réponse A.15-4) ; la demande est close pour lui, rien à faire.
+ */
+export function messageDevisRefuse(p: {
+  emetteur: string;
+  categorie: string;
+  numero: string;
+  montantCents: number;
+  motif: string;
+  lien: string | null;
+}): Message {
+  return {
+    sujet: `Votre devis a été refusé — ${p.emetteur} — dossier ${p.numero}`,
+    html: gabaritNotification({
+      titre: "Votre devis a été refusé",
+      emetteur: p.emetteur,
+      lignes: [
+        `${p.emetteur} n'a pas retenu votre devis de ${eur(p.montantCents / 100)} TTC pour « ${categorieLisible(p.categorie)} » (dossier ${p.numero}).`,
+        `Motif transmis : ${extrait(p.motif, 600)}`,
+        "Cette demande est close pour vous : aucune autre action n'est attendue. Votre devis reste consultable dans votre espace.",
+      ],
+      action: { libelle: "Voir la demande", lien: p.lien },
+    }),
+  };
+}
+
+/**
+ * Révision demandée par le gérant ou le propriétaire (`demander_revision_devis`, décision D18, livraison 2) →
+ * l'artisan. Ce qui est demandé lui est transmis tel quel ; il répond par une version suivante ou renonce, avant
+ * l'échéance (jour de Paris, dernier jour compris).
+ */
+export function messageRevisionDemandee(p: {
+  emetteur: string;
+  categorie: string;
+  numero: string;
+  version: number;
+  montantCents: number;
+  motif: string;
+  revisionAvant: string;
+  lien: string | null;
+}): Message {
+  return {
+    sujet: `Une révision de votre devis est demandée — ${p.emetteur} — dossier ${p.numero}`,
+    html: gabaritNotification({
+      titre: "Une révision de votre devis est demandée",
+      emetteur: p.emetteur,
+      lignes: [
+        `${p.emetteur} vous demande de revoir votre devis de ${eur(p.montantCents / 100)} TTC (version ${p.version}) pour « ${categorieLisible(p.categorie)} » (dossier ${p.numero}).`,
+        `Ce qui est demandé : ${extrait(p.motif, 600)}`,
+        `Répondez avant le ${formaterDateCourte(p.revisionAvant)} : envoyez une nouvelle version en disant ce qui change, ou renoncez à cette demande. Sans réponse à cette date, la demande sera close.`,
+      ],
+      action: { libelle: "Préparer la nouvelle version", lien: p.lien },
+    }),
+  };
+}
+
+/** « 22/10/2026 » depuis une date ISO, à Paris. */
+function formaterDateCourte(iso: string): string {
+  return new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Paris" });
+}
+
+/**
+ * Le propriétaire ou le gérant a déclaré le règlement de la facture de l'artisan (D23, `enregistrer_reglement_facture`)
+ * → l'artisan. Déclaratif : le message dit la date et le moyen déclarés, jamais une référence bancaire ni le montant du
+ * règlement (réponse 3 de la fiche B.15) ; il ne promet aucun virement de Gerimmo.
+ */
+export function messageFactureReglee(p: {
+  emetteur: string;
+  numero: string;
+  dateReglement: string;
+  moyen: string;
+  partiel: boolean;
+  lien: string | null;
+}): Message {
+  const quand = formaterDate(p.dateReglement);
+  const moyen = moyenEnToutesLettres(p.moyen);
+  const declaration = p.partiel
+    ? `${p.emetteur} a déclaré un règlement partiel de votre facture n° ${p.numero}, le ${quand}${moyen ? ` ${moyen}` : ""}. La facture reste partiellement réglée.`
+    : `${p.emetteur} a déclaré le règlement de votre facture n° ${p.numero}, le ${quand}${moyen ? ` ${moyen}` : ""}. La facture est marquée réglée.`;
+  return {
+    sujet: `Votre client a déclaré le règlement de la facture n° ${p.numero}`,
+    html: gabaritNotification({
+      titre: p.partiel ? "Règlement partiel déclaré par votre client" : "Règlement déclaré par votre client",
+      emetteur: p.emetteur,
+      lignes: [
+        declaration,
+        "Cette déclaration vient de votre client ; Gerimmo n'effectue aucun paiement. Vérifiez la réception sur votre compte et, en cas d'écart, rapprochez-vous de lui.",
+      ],
+      action: { libelle: "Voir ma facturation", lien: p.lien },
+    }),
+  };
+}
+
 export type ReponseLocataireCreneaux =
   | { type: "choisi"; debut: string; fin: string | null }
   | { type: "contre_propose"; nbCreneaux: number };
@@ -252,6 +348,121 @@ export function messageReponseLocataireCreneaux(p: {
         "Reprenez l'une de ses dates en la proposant à votre tour depuis votre espace, ou proposez-en de nouvelles. Sans réponse, le rendez-vous reste en suspens.",
       ],
       action: { libelle: "Voir ses disponibilités", lien: p.lien },
+    }),
+  };
+}
+
+// — Décision D22 : le report ou l'annulation du rendez-vous par le locataire ——————————————————————————————
+//
+// Trois courriers (fiche C.8) : la demande de report à l'artisan ; la réponse de l'artisan au locataire (accord ou
+// refus) ; l'annulation, à l'artisan et au gestionnaire. Le motif du locataire est dit en mots ; sa précision libre
+// n'est montrée qu'à l'artisan et au gestionnaire (fiche C.6), jamais une coordonnée de plus.
+
+export type DemandeRdvMessage = {
+  emetteur: string;
+  categorie: string;
+  numero: string;
+  /** Le rendez-vous visé, tel qu'il était à la demande. */
+  rdvDebut: string;
+  rdvFin: string | null;
+  motif: string;
+  precision: string | null;
+  lien: string | null;
+};
+
+function quandRdv(debut: string, fin: string | null): string {
+  return `${jourDuRendezVous(debut)} ${creneauEnToutesLettres(debut, fin)}`;
+}
+
+/** Le locataire demande un report → l'artisan (il retient une date ou refuse, dans le délai). */
+export function messageDemandeReportRdv(p: DemandeRdvMessage & { expireLe: string | null }): Message {
+  const quand = quandRdv(p.rdvDebut, p.rdvFin);
+  return {
+    sujet: `Le locataire demande à reporter le rendez-vous du ${jourDuRendezVous(p.rdvDebut)} — dossier ${p.numero}`,
+    html: gabaritNotification({
+      titre: "Demande de report du rendez-vous",
+      emetteur: p.emetteur,
+      lignes: [
+        `Le locataire ne pourra pas être présent au rendez-vous du ${quand} pour « ${categorieLisible(p.categorie)} » (dossier ${p.numero}). Motif : ${p.motif}${p.precision ? ` — « ${extrait(p.precision, 300)} »` : ""}.`,
+        "Il propose trois autres disponibilités : retenez-en une, ou dites pourquoi aucune ne convient. Tant que vous n'avez pas répondu, le rendez-vous actuel reste valable.",
+        p.expireLe
+          ? `Sans réponse avant le ${jourDuRendezVous(p.expireLe)} à ${heureDuRendezVous(p.expireLe)}, la demande expire et le rendez-vous actuel est maintenu.`
+          : "Sans réponse dans les 48 heures, la demande expire et le rendez-vous actuel est maintenu.",
+      ],
+      action: { libelle: "Répondre à la demande", lien: p.lien },
+    }),
+  };
+}
+
+/** L'artisan a répondu à la demande de report → le locataire. */
+export function messageReponseReportRdv(p: {
+  emetteur: string;
+  prenom?: string | null;
+  categorie: string;
+  reponse: { type: "acceptee"; debut: string; fin: string | null } | { type: "refusee"; motif: string | null };
+  rdvDebut: string;
+  rdvFin: string | null;
+  lien: string | null;
+}): Message {
+  const cat = categorieLisible(p.categorie);
+  if (p.reponse.type === "acceptee") {
+    const quand = quandRdv(p.reponse.debut, p.reponse.fin);
+    return {
+      sujet: `Rendez-vous reporté — ${quand}`,
+      html: gabaritNotification({
+        titre: "Votre report est accepté",
+        prenom: p.prenom,
+        emetteur: p.emetteur,
+        lignes: [
+          `L'artisan a retenu l'une de vos disponibilités : le rendez-vous pour « ${cat} » est maintenant le ${quand}.`,
+          "L'ancien rendez-vous est annulé. Nous vous rappellerons le nouveau la veille.",
+        ],
+        action: { libelle: "Voir le rendez-vous", lien: p.lien },
+      }),
+    };
+  }
+  const ancien = quandRdv(p.rdvDebut, p.rdvFin);
+  return {
+    sujet: "L'artisan ne peut pas reporter le rendez-vous",
+    html: gabaritNotification({
+      titre: "Votre report n'a pas pu être accepté",
+      prenom: p.prenom,
+      emetteur: p.emetteur,
+      lignes: [
+        `Aucune de vos disponibilités ne convient à l'artisan pour « ${cat} »${p.reponse.motif ? ` : « ${extrait(p.reponse.motif, 300)} »` : ""}.`,
+        `Votre rendez-vous du ${ancien} est maintenu en attendant. Votre gestionnaire va vous appeler pour trouver une solution.`,
+      ],
+      action: { libelle: "Voir ma demande", lien: p.lien },
+    }),
+  };
+}
+
+/** Le locataire a annulé le rendez-vous (effet immédiat) → l'artisan, ou le gestionnaire. */
+export function messageAnnulationRdvLocataire(p: DemandeRdvMessage & { destinataire: "artisan" | "agence"; tardive: boolean }): Message {
+  const quand = quandRdv(p.rdvDebut, p.rdvFin);
+  const cat = categorieLisible(p.categorie);
+  const motif = `Motif : ${p.motif}${p.precision ? ` — « ${extrait(p.precision, 300)} »` : ""}.`;
+  // C.15-5 : une annulation à moins de 24 h est seulement TRACÉE. Elle est dite au gestionnaire (information), jamais
+  // présentée à l'artisan comme un déplacement perdu ni assortie d'une sanction.
+  const lignes = p.destinataire === "artisan"
+    ? [
+        `Le locataire a annulé le rendez-vous du ${quand} pour « ${cat} » (dossier ${p.numero}). ${motif}`,
+        "Ne vous déplacez pas à cette date. La mission reste à vous : proposez de nouveaux créneaux depuis votre espace, le locataire choisira.",
+      ]
+    : [
+        `Le locataire a annulé le rendez-vous du ${quand} pour « ${cat} » (dossier ${p.numero}). ${motif}`,
+        p.tardive
+          ? "L'annulation intervient moins de 24 heures avant le rendez-vous : elle est notée au dossier, sans autre suite."
+          : "L'artisan est prévenu et va proposer de nouveaux créneaux au locataire.",
+        "Vous pouvez aussi fixer vous-même le rendez-vous depuis la fiche de l'incident.",
+      ];
+  return {
+    sujet: `Rendez-vous annulé par le locataire — dossier ${p.numero}`,
+    html: gabaritNotification({
+      titre: p.destinataire === "agence" && p.tardive ? "Rendez-vous annulé tardivement" : "Rendez-vous annulé par le locataire",
+      emetteur: p.emetteur,
+      lignes,
+      action: { libelle: p.destinataire === "artisan" ? "Proposer de nouveaux créneaux" : "Voir le dossier", lien: p.lien },
     }),
   };
 }
@@ -383,7 +594,26 @@ export function messageDevisRecu(p: {
   numero: string;
   categorie: string;
   lien: string | null;
+  /** D18 (livraison 2) : à partir de 2, c'est la réponse à une demande de révision. */
+  version?: number;
+  noteRevision?: string | null;
 }): Message {
+  const version = p.version ?? 1;
+  if (version > 1) {
+    return {
+      sujet: `Nouvelle version du devis (v${version}) — ${p.artisan} — ${eur(p.montantCents / 100)} — ${p.numero}`,
+      html: gabaritNotification({
+        titre: "Nouvelle version du devis",
+        emetteur: p.emetteur,
+        lignes: [
+          `${p.artisan} a envoyé la version ${version} de son devis, ${eur(p.montantCents / 100)} TTC, pour « ${categorieLisible(p.categorie)} » (dossier ${p.numero}), en réponse à votre demande de révision.`,
+          ...(p.noteRevision ? [`Ce qui change : ${extrait(p.noteRevision, 600)}`] : []),
+          "Les versions précédentes restent consultables ; seule la dernière peut être retenue.",
+        ],
+        action: { libelle: "Voir la nouvelle version", lien: p.lien },
+      }),
+    };
+  }
   return {
     sujet: `Devis reçu — ${p.artisan} — ${eur(p.montantCents / 100)} — ${p.numero}`,
     html: gabaritNotification({
@@ -809,6 +1039,75 @@ export async function notifierMissionConfiee(db: SupabaseClient, orgId: string, 
   }
 }
 
+/**
+ * Devis refusé (`refuser_devis`, décision D18 livraison 1) → l'artisan, avec le motif. Appelée depuis l'action du
+ * gérant, APRÈS le succès de la fonction et seulement si la décision est nouvelle (un rejeu n'envoie rien).
+ */
+export async function notifierDevisRefuse(db: SupabaseClient, orgId: string, devisId: string): Promise<ResultatNotification> {
+  try {
+    const { data: devis } = await db
+      .from("incident_devis")
+      .select("id, incident_id, artisan_id, sollicitation_id, montant_ttc_cents, decision_motif, statut")
+      .eq("id", devisId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (!devis || devis.statut !== "refuse" || !devis.decision_motif) return { envoyee: false, motif: "introuvable" };
+    const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, devis.incident_id), lireArtisan(db, devis.artisan_id), emetteur(db, orgId)]);
+    if (!inc || !artisan) return { envoyee: false, motif: "introuvable" };
+    return expedier(db, {
+      orgId, to: artisan.email, role: "artisan", evenement: "devis_refuse", objet: devis.id,
+      cleIdempotence: `devis-refuse-${devis.id}`,
+      message: messageDevisRefuse({
+        emetteur: nom, categorie: inc.categorie, numero: inc.numero,
+        montantCents: Number(devis.montant_ttc_cents), motif: devis.decision_motif,
+        lien: lien(`/artisan/devis/${devis.sollicitation_id}`),
+      }),
+    });
+  } catch (e) {
+    console.error("[notifications] devis_refuse :", e instanceof Error ? e.message : e);
+    return NON;
+  }
+}
+
+/**
+ * Révision demandée (`demander_revision_devis`, décision D18 livraison 2) → l'artisan, avec ce qui est demandé et
+ * l'échéance. Appelée depuis l'action du gérant, APRÈS le succès de la fonction et seulement si la décision est nouvelle.
+ */
+export async function notifierRevisionDemandee(db: SupabaseClient, orgId: string, devisId: string): Promise<ResultatNotification> {
+  try {
+    const { data: devis } = await db
+      .from("incident_devis")
+      .select("id, incident_id, artisan_id, sollicitation_id, montant_ttc_cents, decision_motif, statut, version")
+      .eq("id", devisId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (!devis || devis.statut !== "revise" || !devis.decision_motif) return { envoyee: false, motif: "introuvable" };
+    const { data: demande } = await db
+      .from("incident_sollicitations")
+      .select("revision_avant")
+      .eq("id", devis.sollicitation_id)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (!demande?.revision_avant) return { envoyee: false, motif: "introuvable" };
+    const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, devis.incident_id), lireArtisan(db, devis.artisan_id), emetteur(db, orgId)]);
+    if (!inc || !artisan) return { envoyee: false, motif: "introuvable" };
+    return expedier(db, {
+      orgId, to: artisan.email, role: "artisan", evenement: "devis_revision_demandee", objet: devis.id,
+      cleIdempotence: `devis-revision-${devis.id}`,
+      message: messageRevisionDemandee({
+        emetteur: nom, categorie: inc.categorie, numero: inc.numero,
+        version: typeof devis.version === "number" ? devis.version : 1,
+        montantCents: Number(devis.montant_ttc_cents), motif: devis.decision_motif,
+        revisionAvant: String(demande.revision_avant),
+        lien: lien(`/artisan/devis/${devis.sollicitation_id}`),
+      }),
+    });
+  } catch (e) {
+    console.error("[notifications] devis_revision_demandee :", e instanceof Error ? e.message : e);
+    return NON;
+  }
+}
+
 /** Rendez-vous fixé par l'agence (`fixer_creneau_arbitrage`) → l'artisan ET le locataire. */
 export async function notifierRendezVousFixe(db: SupabaseClient, orgId: string, interventionId: string): Promise<{ artisan: ResultatNotification; locataire: ResultatNotification }> {
   const rien = { artisan: NON, locataire: NON };
@@ -981,7 +1280,7 @@ export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devis
   try {
     const { data: devis } = await db
       .from("incident_devis")
-      .select("id, incident_id, artisan_id, montant_ttc_cents, sollicitation_id")
+      .select("id, incident_id, artisan_id, montant_ttc_cents, sollicitation_id, version, note_revision")
       .eq("id", devisId)
       .eq("organization_id", orgId)
       .maybeSingle();
@@ -1000,7 +1299,12 @@ export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devis
     return expedier(db, {
       orgId, to, role: "agence", evenement: "devis_recu", objet: devis.id,
       pieceJointe, cleIdempotence: `devis-gerimmo-${devis.id}`,
-      message: messageDevisRecu({ emetteur: nom, artisan: artisan.raison_sociale, montantCents: Number(devis.montant_ttc_cents), numero: inc.numero, categorie: inc.categorie, lien: lien(`${await baseDeLOrganisation(db, orgId)}/incidents?sel=${inc.id}`) }),
+      message: messageDevisRecu({
+        emetteur: nom, artisan: artisan.raison_sociale, montantCents: Number(devis.montant_ttc_cents), numero: inc.numero, categorie: inc.categorie,
+        // D18 (livraison 2) : la version et « ce qui change » sont lus en base, jamais du formulaire.
+        version: typeof devis.version === "number" ? devis.version : 1, noteRevision: (devis.note_revision as string | null | undefined) ?? null,
+        lien: lien(`${await baseDeLOrganisation(db, orgId)}/incidents?sel=${inc.id}`),
+      }),
     });
   } catch (e) {
     console.error("[notifications] devis_recu :", e instanceof Error ? e.message : e);
@@ -1022,6 +1326,45 @@ export async function notifierMissionRefusee(db: SupabaseClient, orgId: string, 
     });
   } catch (e) {
     console.error("[notifications] mission_refusee :", e instanceof Error ? e.message : e);
+    return NON;
+  }
+}
+
+/**
+ * Règlement de facture déclaré par le gérant ou le propriétaire (`enregistrer_reglement_facture`, D23) → l'artisan.
+ * Appelée APRÈS le succès de la fonction, via `notifierEnCoulisses` : le client du gérant ne lit pas l'adresse de
+ * l'artisan. Le message ne porte ni référence ni montant du règlement. Un échec est consigné, jamais remonté.
+ */
+export async function notifierReglementFacture(db: SupabaseClient, orgId: string, reglementId: string): Promise<ResultatNotification> {
+  try {
+    const { data: reglement } = await db
+      .from("intervention_facture_reglements")
+      .select("id, facture_id, date_reglement, moyen, montant_cents")
+      .eq("id", reglementId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (!reglement) return { envoyee: false, motif: "introuvable" };
+    const [{ data: facture }, { data: regles }] = await Promise.all([
+      db.from("intervention_factures").select("id, numero, artisan_id, montant_ttc_cents").eq("id", reglement.facture_id).eq("organization_id", orgId).maybeSingle(),
+      db.from("intervention_facture_reglements").select("montant_cents").eq("facture_id", reglement.facture_id).eq("organization_id", orgId).is("retire_le", null),
+    ]);
+    if (!facture) return { envoyee: false, motif: "introuvable" };
+    const [artisan, nom] = await Promise.all([lireArtisan(db, facture.artisan_id), emetteur(db, orgId)]);
+    if (!artisan) return { envoyee: false, motif: "introuvable" };
+    const totalRegle = (regles ?? []).reduce((somme, r) => somme + Number(r.montant_cents), 0);
+    return expedier(db, {
+      orgId, to: artisan.email, role: "artisan", evenement: "facture_reglee", objet: reglement.id,
+      message: messageFactureReglee({
+        emetteur: nom,
+        numero: facture.numero,
+        dateReglement: reglement.date_reglement,
+        moyen: reglement.moyen,
+        partiel: totalRegle < Number(facture.montant_ttc_cents),
+        lien: lien("/artisan/facturation"),
+      }),
+    });
+  } catch (e) {
+    console.error("[notifications] facture_reglee :", e instanceof Error ? e.message : e);
     return NON;
   }
 }
@@ -1070,6 +1413,137 @@ async function notifierReponseLocataire(db: SupabaseClient, orgId: string, inter
     orgId, to: artisan.email, role: "artisan", evenement: reponse.type === "choisi" ? "creneau_choisi" : "creneaux_contre_proposes", objet: iv.id,
     message: messageReponseLocataireCreneaux({ emetteur: nom, categorie: inc.categorie, adresse: lieu.adresse, numero: inc.numero, reponse, lien: lien(`/artisan/missions/${iv.id}`) }),
   });
+}
+
+// — Décision D22 : le report ou l'annulation du rendez-vous par le locataire —————————————————————————————
+//
+// Appelées par `notifierEnCoulisses` (client de service), STRICTEMENT après le succès de la fonction de base qui a
+// vérifié le lien de l'appelant au dossier. La clé d'idempotence porte la demande et le destinataire : un envoi rejoué
+// (double clic, réponse perdue, même clé d'envoi) ne fait pas partir un second courrier.
+
+type DemandeRdvLue = {
+  id: string;
+  intervention_id: string;
+  type: "report" | "annulation";
+  statut: string;
+  motif_code: string;
+  motif_texte: string | null;
+  rdv_debut: string;
+  rdv_fin: string | null;
+  expire_le: string | null;
+  tardive: boolean;
+  reponse_motif: string | null;
+  creneau_accepte_id: string | null;
+};
+
+async function lireDemandeRdv(db: SupabaseClient, orgId: string, demandeId: string): Promise<DemandeRdvLue | null> {
+  const { data } = await db
+    .from("intervention_demandes_rdv")
+    .select("id, intervention_id, type, statut, motif_code, motif_texte, rdv_debut, rdv_fin, expire_le, tardive, reponse_motif, creneau_accepte_id")
+    .eq("id", demandeId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  return (data as DemandeRdvLue | null) ?? null;
+}
+
+/** Demande de report du locataire (`demander_report_rdv`) → l'artisan. */
+export async function notifierDemandeReportRdv(db: SupabaseClient, orgId: string, demandeId: string): Promise<ResultatNotification> {
+  try {
+    const d = await lireDemandeRdv(db, orgId, demandeId);
+    if (!d || d.type !== "report") return { envoyee: false, motif: "introuvable" };
+    const iv = await lireIntervention(db, orgId, d.intervention_id);
+    if (!iv) return { envoyee: false, motif: "introuvable" };
+    const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), lireArtisan(db, iv.artisan_id), emetteur(db, orgId)]);
+    if (!inc || !artisan) return { envoyee: false, motif: "introuvable" };
+    return expedier(db, {
+      orgId, to: artisan.email, role: "artisan", evenement: "rdv_report_demande", objet: d.id,
+      cleIdempotence: `rdv-locataire:report:${d.id}:artisan`,
+      message: messageDemandeReportRdv({
+        emetteur: nom, categorie: inc.categorie, numero: inc.numero, rdvDebut: d.rdv_debut, rdvFin: d.rdv_fin,
+        motif: libelleMotifRdv(d.motif_code), precision: d.motif_texte, expireLe: d.expire_le,
+        lien: lien(`/artisan/missions/${iv.id}`),
+      }),
+    });
+  } catch (e) {
+    console.error("[notifications] rdv_report_demande :", e instanceof Error ? e.message : e);
+    return NON;
+  }
+}
+
+/** Annulation du rendez-vous par le locataire (`annuler_rdv_locataire`) → l'artisan ET le gestionnaire. */
+export async function notifierAnnulationRdvLocataire(db: SupabaseClient, orgId: string, demandeId: string): Promise<{ artisan: ResultatNotification; agence: ResultatNotification }> {
+  const rien = { artisan: NON, agence: NON };
+  try {
+    const d = await lireDemandeRdv(db, orgId, demandeId);
+    if (!d || d.type !== "annulation") return rien;
+    const iv = await lireIntervention(db, orgId, d.intervention_id);
+    if (!iv) return rien;
+    const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), lireArtisan(db, iv.artisan_id), emetteur(db, orgId)]);
+    if (!inc || !artisan) return rien;
+    const agence = await destinataireAgence(db, orgId, inc.responsable_account_id);
+    const base = {
+      emetteur: nom, categorie: inc.categorie, numero: inc.numero, rdvDebut: d.rdv_debut, rdvFin: d.rdv_fin,
+      motif: libelleMotifRdv(d.motif_code), precision: d.motif_texte, tardive: d.tardive,
+    };
+    const [a, g] = await Promise.all([
+      expedier(db, {
+        orgId, to: artisan.email, role: "artisan", evenement: "rdv_annule_par_locataire", objet: d.id,
+        cleIdempotence: `rdv-locataire:annulation:${d.id}:artisan`,
+        message: messageAnnulationRdvLocataire({ ...base, destinataire: "artisan", lien: lien(`/artisan/missions/${iv.id}`) }),
+      }),
+      expedier(db, {
+        orgId, to: agence, role: "agence", evenement: "rdv_annule_par_locataire", objet: d.id,
+        cleIdempotence: `rdv-locataire:annulation:${d.id}:agence`,
+        message: messageAnnulationRdvLocataire({ ...base, destinataire: "agence", lien: lien(`/agence/${orgId}/incidents?sel=${inc.id}`) }),
+      }),
+    ]);
+    return { artisan: a, agence: g };
+  } catch (e) {
+    console.error("[notifications] rdv_annule_par_locataire :", e instanceof Error ? e.message : e);
+    return rien;
+  }
+}
+
+/**
+ * L'artisan a répondu à la demande de report (`accepter_creneau_locataire` sur une de ses dates, ou
+ * `refuser_creneaux_locataire`) → le locataire. On ne part que si la demande porte bien cette réponse en base
+ * (acceptée sur ce créneau, ou refusée) : un appel sans demande de report ne prévient personne.
+ */
+export async function notifierReponseReportRdv(db: SupabaseClient, orgId: string, demandeId: string): Promise<ResultatNotification> {
+  try {
+    const d = await lireDemandeRdv(db, orgId, demandeId);
+    if (!d || d.type !== "report" || (d.statut !== "acceptee" && d.statut !== "refusee")) return { envoyee: false, motif: "introuvable" };
+    const iv = await lireIntervention(db, orgId, d.intervention_id);
+    if (!iv) return { envoyee: false, motif: "introuvable" };
+    const [inc, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), emetteur(db, orgId)]);
+    if (!inc) return { envoyee: false, motif: "introuvable" };
+    const locataire = await lireLocataire(db, orgId, inc);
+    let reponse: { type: "acceptee"; debut: string; fin: string | null } | { type: "refusee"; motif: string | null };
+    if (d.statut === "acceptee") {
+      const { data: c } = await db.from("intervention_creneaux").select("debut, fin").eq("id", d.creneau_accepte_id ?? "").maybeSingle();
+      if (!c) return { envoyee: false, motif: "introuvable" };
+      reponse = { type: "acceptee", debut: c.debut, fin: c.fin };
+    } else {
+      reponse = { type: "refusee", motif: d.reponse_motif };
+    }
+    return expedier(db, {
+      orgId, to: locataire?.email, role: "locataire", evenement: d.statut === "acceptee" ? "rdv_report_accepte" : "rdv_report_refuse", objet: d.id,
+      cleIdempotence: `rdv-locataire:reponse:${d.id}:${d.statut}:locataire`,
+      message: messageReponseReportRdv({
+        emetteur: nom, prenom: locataire?.prenom, categorie: inc.categorie, reponse, rdvDebut: d.rdv_debut, rdvFin: d.rdv_fin,
+        lien: lien(`/locataire/${orgId}/demandes`),
+      }),
+    });
+  } catch (e) {
+    console.error("[notifications] rdv_report_reponse :", e instanceof Error ? e.message : e);
+    return NON;
+  }
+}
+
+/** La demande de report à laquelle répond la date `creneauId` (service : le client de l'artisan ne lit pas la table). */
+export async function demandeDuCreneau(db: SupabaseClient, creneauId: string): Promise<{ orgId: string; demandeId: string } | null> {
+  const { data } = await db.from("intervention_creneaux").select("organization_id, demande_id").eq("id", creneauId).maybeSingle();
+  return data?.demande_id ? { orgId: data.organization_id as string, demandeId: data.demande_id as string } : null;
 }
 
 /**

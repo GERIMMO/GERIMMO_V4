@@ -663,7 +663,7 @@ export function inscriptionInachevee(utilisateur: { user_metadata?: Record<strin
  * de /auth/confirm ailleurs que dans le navigateur de l'inscription, quel que soit le lien (confirmation, récupération,
  * connexion). Limite : un courrier que Supabase Auth enverrait LUI-MÊME (points d'entrée publics /recover, /resend,
  * /otp, /signup, appelables avec la clé publique) mène à SON /verify, qui confirme l'adresse sans passer par ce bouton ;
- * seuls ses modèles de courrier et ses réglages ferment ce chemin.
+ * seuls ses modèles de courrier ferment ce chemin, en menant eux aussi à ce bouton (app/supabase/templates/LISEZ-MOI.md).
  */
 export async function finirConfirmationInscription(
   session: SessionDeConfirmation,

@@ -24,9 +24,33 @@ antivirus de messagerie qui pré-ouvrent les liens. Depuis le 30/09 :
   (`RESEND_API_KEY`, `RESEND_EXPEDITEUR`) — le SMTP de Supabase n'est plus
   sollicité pour ces courriers.
 
-Les fichiers `confirmation.html` et `recovery.html` restent ici pour mémoire
-et pour le cas où l'on rebrancherait un envoi par Supabase : ils ne sont
-**plus utilisés**.
+Les fichiers `confirmation.html`, `recovery.html` et `magic_link.html` ne
+servent plus aux parcours de Gerimmo. Ils doivent pourtant être **collés dans
+Supabase** : voir la section suivante.
+
+## Les courriers que Supabase envoie encore lui-même (15/10/2026, constat P13)
+
+Supabase Auth garde des points d'entrée publics, appelables par n'importe qui
+avec la clé publique du site : `/recover` (mot de passe oublié), `/resend`
+(nouvel envoi de la confirmation), `/otp` (lien de connexion) et `/signup`.
+Chacun fait partir un courrier rédigé d'après le modèle enregistré dans le
+tableau de bord.
+
+Avec le lien par défaut (`{{ .ConfirmationURL }}`), le clic mène au `/verify`
+de Supabase, qui **confirme l'adresse** sans passer par le bouton de
+`/auth/confirm`. Prouvé sur GoTrue v2.197.0 : un tiers qui a inscrit l'adresse
+d'un artisan avec SON mot de passe, puis déclenche l'un de ces courriers,
+garde un mot de passe qui ouvre le compte dès que le titulaire a cliqué.
+
+Les trois modèles du dossier mènent donc au bouton de Gerimmo
+(`{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=…`). Le bouton
+applique la règle de l'inscription : hors du navigateur de l'inscription, le
+mot de passe choisi avant la confirmation est remplacé, et la personne qui a
+cliqué choisit le sien. Prouvé sur la même version avec ces fichiers : le mot
+de passe du tiers n'ouvre plus rien, quel que soit le point d'entrée.
+
+Le collage dans le tableau de bord est un geste humain, en production : tant
+qu'il n'est pas fait, ce chemin reste ouvert.
 
 ## Ce qui reste à régler dans Supabase
 
@@ -35,9 +59,10 @@ Tableau de bord Supabase → projet **Gerimmo V4** → *Authentication*.
 | Modèle Supabase | Fichier | Sujet à saisir | État |
 |---|---|---|---|
 | **Change email address** | `email_change.html` | `Confirmez votre nouvelle adresse — Gerimmo` | **Utilisé** : changement d'adresse depuis « Mon compte » |
-| Confirm signup | `confirmation.html` | — | Plus utilisé (l'application envoie) |
-| Reset password | `recovery.html` | — | Plus utilisé (l'application envoie) |
-| Magic link, Invite user | — | — | Non utilisés |
+| Confirm signup | `confirmation.html` | `Confirmez votre adresse — Gerimmo` | **À coller** : courrier que Supabase n'envoie que sur appel direct (constat P13) |
+| Reset password | `recovery.html` | `Réinitialisation de votre mot de passe Gerimmo` | **À coller** : idem |
+| Magic link | `magic_link.html` | `Votre lien de connexion — Gerimmo` | **À coller** : idem |
+| Invite user | — | — | Non utilisé (seule la clé de service le déclenche) |
 
 ### *URL Configuration* (indispensable)
 
@@ -70,8 +95,12 @@ d'envoi intégré.
 
 ## Ce que les modèles contiennent (mémoire)
 
-- `{{ .ConfirmationURL }}` : le lien signé par Supabase. Il passe par
-  `/auth/confirm?code=…`, qui échange le code puis mène à la bonne page.
+- `{{ .ConfirmationURL }}` (changement d'adresse seulement) : le lien signé
+  par Supabase. Il passe par `/auth/confirm?code=…`, qui échange le code puis
+  mène à la bonne page.
+- `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=…&next=…`
+  (confirmation, mot de passe, connexion) : le lien mène à la page du bouton
+  de Gerimmo, comme les courriers que l'application envoie elle-même.
 - Aucune image, aucun style externe : un courrier d'accès doit passer les
   filtres et se lire dans n'importe quel client.
 - Le ton est celui du produit : on dit ce qui se passe et quoi faire si l'on

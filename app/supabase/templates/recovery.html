@@ -5,7 +5,7 @@
      votre gestionnaire vient de vous ouvrir un espace sur Gerimmo pour suivre
      votre dossier. Dans les deux cas, le geste est le même :</p>
   <p style="margin:22px 0">
-    <a href="{{ .ConfirmationURL }}"
+    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=recovery&amp;next=/nouveau-mot-de-passe"
        style="background:#2457f5;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;display:inline-block">
       Choisir mon mot de passe
     </a>

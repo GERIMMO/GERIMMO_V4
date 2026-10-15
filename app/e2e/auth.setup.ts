@@ -12,7 +12,7 @@ const COMPTES = [
   { nom: "superadmin", email: "superadmin@gerimmo-demo.fr" },
   // L'artisan est le seul persona dont l'adresse ne porte pas d'organisation :
   // son portail les réunit (RM-19.3.3). Il atterrit donc sur /artisan, jamais
-  // sur /agence/<id>.
+  // sur /agence/<id> ni /espace/<id>.
   { nom: "artisan", email: "artisan.alpha@gerimmo-demo.fr" },
 ];
 
@@ -66,7 +66,7 @@ setup("sessions des personas", async ({ browser }) => {
     await page.locator("#mot-de-passe").fill(MOT_DE_PASSE);
     await page.getByRole("button", { name: "Se connecter" }).click();
     await franchirLeSasMfa(page);
-    await page.waitForURL(/\/(espaces|agence|locataire|proprietaire|admin|artisan)/, {
+    await page.waitForURL(/\/(espaces?|agence|locataire|proprietaire|admin|artisan)/, {
       timeout: 20_000,
     });
     await expect(page.locator("body")).not.toContainText("Identifiants invalides");

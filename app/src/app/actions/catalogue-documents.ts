@@ -6,14 +6,15 @@ import { RefusDocument, anneeDocument } from "@/lib/documents/modeles/catalogue-
 import { chargerRecapitulatifNu, interetsQualifies, montantPourSaisie } from "@/lib/documents/modeles/catalogue-gestion";
 import { MODELES, type CodeModele } from "@/lib/documents/modeles";
 import { genererDocument, type EtatGeneration } from "./documents-generes";
+import { baseEspace } from "@/lib/racine-espace";
 export async function genererDepuisCatalogue(orgId:string,modeleId:string,cibleId:string,options:Record<string,string>):Promise<EtatGeneration> {
-  const {supabase,user}=await verifierGerant(orgId);
+  const {supabase,user,role}=await verifierGerant(orgId);
   if(!user) return {erreur:"Accès refusé."};
   const modele=CATALOGUE_DOCUMENTS.find(m=>m.id===modeleId);
   if(!modele || !Object.hasOwn(MODELES,modele.code)) return {erreur:"Ce modèle n’est pas disponible à la génération."};
   try {
     await verifierCibleCatalogue(supabase,orgId,modele,cibleId);
-    return await genererDocument(orgId,modele.code as CodeModele,cibleId,`/agence/${orgId}/documents/catalogue`,options);
+    return await genererDocument(orgId,modele.code as CodeModele,cibleId,`${baseEspace(orgId,role==="proprietaire_direct")}/documents/catalogue`,options);
   } catch(e) {
     if(e instanceof RefusDocument) return {erreur:e.message};
     console.error("[catalogue] lecture du dossier impossible",e);

@@ -51,15 +51,27 @@ test.describe("propriétaire direct", () => {
     });
 
     test("crée un bien et le retrouve dans ses lots", async ({ page }) => {
-      const { orgProprietaire } = lireComptes();
-      const nom = await creerBien(page, orgProprietaire, nomUnique("Appartement recette"));
-      await page.goto(`/agence/${orgProprietaire}/parc`);
+      const nom = await creerBien(page, espaceDe("proprietaire"), nomUnique("Appartement recette"));
+      await page.goto(`${espaceDe("proprietaire")}/parc`);
       await expect(page.locator("body")).toContainText(nom);
     });
 
-    test("« Mon abonnement » affiche le récapitulatif avant paiement et le bouton, sans le toucher", async ({ page, surveillance }) => {
+    // Décision D27 : un ancien lien /agence/<id>/… (reçu par e-mail, mis en favori) mène à la même page sous
+    // /espace/<id>/…, chemin et requête conservés, par une redirection permanente que le navigateur revalide.
+    test("un ancien lien /agence/<id>/… est redirigé à vie vers /espace/<id>/…", async ({ page }) => {
       const { orgProprietaire } = lireComptes();
-      const chemin = `/agence/${orgProprietaire}/abonnement`;
+      const reponse = await page.request.get(`/agence/${orgProprietaire}/parc?vue=recette`, { maxRedirects: 0 });
+      expect(reponse.status()).toBe(308);
+      const lieu = new URL(reponse.headers()["location"], "http://adresse.invalide");
+      expect(lieu.pathname + lieu.search).toBe(`/espace/${orgProprietaire}/parc?vue=recette`);
+      expect(reponse.headers()["cache-control"]).toBe("private, no-cache");
+      await page.goto(`/agence/${orgProprietaire}/parc`);
+      await expect(page).toHaveURL(new RegExp(`/espace/${orgProprietaire}/parc$`));
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    });
+
+    test("« Mon abonnement » affiche le récapitulatif avant paiement et le bouton, sans le toucher", async ({ page, surveillance }) => {
+      const chemin = `${espaceDe("proprietaire")}/abonnement`;
       expect(await jugerEcran(page, chemin, surveillance)).toEqual([]);
       // Grille du 28/09 : le récapitulatif avant paiement remplace l'ancien
       // « Total mensuel » (sans offre à vie ni second bien à créer).

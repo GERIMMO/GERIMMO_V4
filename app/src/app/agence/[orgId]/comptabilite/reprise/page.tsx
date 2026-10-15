@@ -5,6 +5,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { ROLES_RESPONSABLES, eur, formaterDate } from "@/lib/ged";
 import { COLONNES, TYPES_SOLDE } from "@/lib/reprise-soldes";
 import { FormulaireReprise } from "./formulaire-reprise";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Reprendre mes comptes — Gerimmo" };
 
@@ -22,7 +23,9 @@ export default async function PageRepriseComptable(
   props: PageProps<"/agence/[orgId]/comptabilite/reprise">
 ) {
   const { orgId } = await props.params;
-  const { supabase, role, organisation } = await verifierAccesEspace(orgId);
+  const { supabase, role, organisation, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   // Une balance d'ouverture engage tout le portefeuille : elle appartient au
   // responsable. La base le revérifie (ouvrir_reprise, reprendre_soldes).
   if (!role || !ROLES_RESPONSABLES.includes(role)) notFound();
@@ -53,7 +56,7 @@ export default async function PageRepriseComptable(
           `.entete-page` — le Récapitulatif fiscal fait de même. */}
       <div>
         <Link
-          href={`/agence/${orgId}/comptabilite`}
+          href={`${base}/comptabilite`}
           className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
         >
           {/* Le mot du menu (audit 27/09), et 44 px au doigt. */}
@@ -99,7 +102,7 @@ export default async function PageRepriseComptable(
         {/* Le gabarit est un exemple : bouton secondaire. Le geste qui fait
             avancer le parcours, « Contrôler la balance », porte le plein
             (24/09). */}
-        <a href={`/agence/${orgId}/comptabilite/reprise/modele`} className="btn-secondaire mt-3">
+        <a href={`${base}/comptabilite/reprise/modele`} className="btn-secondaire mt-3">
           Télécharger le gabarit
         </a>
 

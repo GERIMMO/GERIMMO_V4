@@ -16,6 +16,7 @@ import { cleRelanceAbonnement } from "@/lib/cles-idempotence-courriels";
 import { envoyerEmail } from "@/lib/email";
 import { corpsRelance, sujetRelance, type Palier } from "@/lib/relance-paiement-email";
 import { adresseDuSite } from "@/lib/site";
+import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 
 type Relance = {
   organization_id: string;
@@ -85,7 +86,7 @@ export async function envoyerRelancesDues(
       // Pas de lien de secours en dur : dans le courrier qui annonce un
       // prélèvement échoué, un lien qui ne mène nulle part fait plus de mal
       // que pas de lien. La lettre dit alors quoi faire sans promettre un clic.
-      lien: site ? `${site}/agence/${r.organization_id}/abonnement` : null,
+      lien: site ? `${site}${await baseDeLOrganisation(supabase, r.organization_id)}/abonnement` : null,
     };
     await options.avantEffet?.();
     const { erreur } = await envoyerEmail({

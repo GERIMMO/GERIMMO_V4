@@ -31,7 +31,7 @@ export async function chargerSyntheseAlertes(
   let requete = supabase
     .from("alerts")
     .select(
-      "id, type, organization_id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades, details, organization:organizations(name)"
+      "id, type, organization_id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades, details, organization:organizations(name, type)"
     )
     .eq("statut", "ouverte")
     .order("created_at", { ascending: true })
@@ -46,6 +46,9 @@ export async function chargerSyntheseAlertes(
     organization_id: a.organization_id,
     organisation:
       (a.organization as unknown as { name: string } | null)?.name ?? "—",
+    // Décision D27 : les liens d'une alerte de propriétaire direct mènent à /espace/<id>.
+    proprietaire_direct:
+      (a.organization as unknown as { type?: string } | null)?.type === "proprietaire_direct",
     criticite: a.criticite,
     titre: a.titre,
     echeance: a.echeance,

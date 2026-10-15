@@ -1,3 +1,4 @@
+import { RACINE_AGENCE } from "@/lib/racine-espace";
 // Où renseigner un champ resté en libellé dans un PDF généré (chantier
 // documentaire 08/09, refondu à l'audit du 09/09) : chaque « manquant »
 // pointe l'écran où la donnée se saisit — Gerimmo sait où vit chaque
@@ -108,8 +109,11 @@ export function lienPourManquant(
   libelle: string,
   orgId: string,
   liens: Liens,
-  modele?: string
+  modele?: string,
+  /** « /espace » pour le propriétaire direct, « /agence » par défaut (décision D27, lib/racine-espace.ts). */
+  racine: string = RACINE_AGENCE
 ): LienManquant | null {
+  const base = `${racine}/${orgId}`;
   const l = libelle.toLowerCase();
   const bail = liens.find((x) => x.entite === "bail");
   const personne = liens.find((x) => x.entite === "personne");
@@ -118,10 +122,10 @@ export function lienPourManquant(
   const vers = (cible: Cible, regle?: Regle): LienManquant | null => {
     switch (cible) {
       case "organisation":
-        return { href: `/agence/${orgId}/profil`, ecran: "profil de l'organisation" };
+        return { href: `${base}/profil`, ecran: "profil de l'organisation" };
       case "personne":
         if (personne)
-          return { href: `/agence/${orgId}/personnes/${personne.entiteId}`, ecran: "fiche de la personne" };
+          return { href: `${base}/personnes/${personne.entiteId}`, ecran: "fiche de la personne" };
         break;
       case "lot":
         // La fiche complète, par le renvoi `/lots/[lotId]` (le bien n'est pas
@@ -130,18 +134,18 @@ export function lienPourManquant(
           const section = regle?.section ?? "caracteristiques";
           const requete = `${regle?.modifier ? "modifier=1&" : ""}vers=${section}`;
           return {
-            href: `/agence/${orgId}/lots/${lot.entiteId}?${requete}`,
+            href: `${base}/lots/${lot.entiteId}?${requete}`,
             ecran: section === "bien" ? "fiche du bien" : "fiche du lot",
           };
         }
         break;
       case "complements":
-        if (bail) return { href: `/agence/${orgId}/baux/${bail.entiteId}#complements`, ecran: "compléments du contrat" };
+        if (bail) return { href: `${base}/baux/${bail.entiteId}#complements`, ecran: "compléments du contrat" };
         break;
       case "bail":
         break;
     }
-    if (bail) return { href: `/agence/${orgId}/baux/${bail.entiteId}`, ecran: "fiche du bail" };
+    if (bail) return { href: `${base}/baux/${bail.entiteId}`, ecran: "fiche du bail" };
     return null;
   };
 
@@ -159,7 +163,7 @@ export function lienPourManquant(
     }
   }
   if (personne) {
-    return { href: `/agence/${orgId}/personnes/${personne.entiteId}`, ecran: "fiche de la personne" };
+    return { href: `${base}/personnes/${personne.entiteId}`, ecran: "fiche de la personne" };
   }
   return null;
 }

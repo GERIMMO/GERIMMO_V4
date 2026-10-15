@@ -19,6 +19,13 @@ it("actualise le lot et ses listes uniquement après confirmation en base", asyn
   expect(m.revalider).toHaveBeenCalledWith(`/agence/${org}/parc/${bien}/lots/${lot}`);
   expect(m.revalider).toHaveBeenCalledWith(`/agence/${org}/baux/${bail}`);
 });
+it("décision D27 : le propriétaire direct revient sur la fiche du lot sous /espace ; la revalidation vise la route des dossiers", async () => {
+  m.acces.mockResolvedValue({ user: { id: "bailleur" }, role: "proprietaire_direct", supabase: { rpc: m.rpc } });
+  m.rpc.mockResolvedValue({ data: {bail_id:bail,lot_id:lot,bien_id:bien},error:null });
+  expect(await supprimerBailBrouillon(org,bail)).toMatchObject({succes:"Brouillon supprimé.",retour:`/espace/${org}/parc/${bien}/lots/${lot}#baux`});
+  expect(m.revalider).toHaveBeenCalledWith(`/agence/${org}/parc/${bien}/lots/${lot}`);
+  expect(m.revalider).not.toHaveBeenCalledWith(expect.stringMatching(/^\/espace\//));
+});
 it("affiche le refus de la base sans annoncer de suppression", async () => {
   m.rpc.mockResolvedValue({ data:null,error:{message:"Seuls les baux en brouillon peuvent être supprimés."} });
   expect(await supprimerBailBrouillon(org,bail)).toHaveProperty("erreur"); expect(m.revalider).not.toHaveBeenCalled();

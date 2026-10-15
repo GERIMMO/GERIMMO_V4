@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { ComboboxLot } from "@/components/combobox-lot";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 type LotOption = { id: string; libelle: string };
 
@@ -236,6 +237,8 @@ export function BoutonsEtatMandat({
   /** Lots sous mandat avant/après activation et capacité payée (grille du 28/09/2026). */
   impact?: { avant: number; apres: number; capacite: number | null } | null;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const suivant: Record<string, { libelle: string; vers: string }> = {
     brouillon: { libelle: "Passer à signer", vers: "a_signer" },
     a_signer: { libelle: "Activer", vers: "actif" },
@@ -268,7 +271,7 @@ export function BoutonsEtatMandat({
         Activer porterait vos lots sous mandat à {hausse.apres} pour {hausse.capacite} lot{hausse.capacite > 1 ? "s" : ""} facturé
         {hausse.capacite > 1 ? "s" : ""} : {euros(offreAgence(hausse.capacite).montantCents)} →{" "}
         {euros(offreAgence(hausse.apres).montantCents)} HT/mois.
-        <Link href={`/agence/${orgId}/abonnement?capacite=${hausse.apres}`} className="underline">
+        <Link href={`${base}/abonnement?capacite=${hausse.apres}`} className="underline">
           Voir et confirmer le nouveau montant
         </Link>
       </span>

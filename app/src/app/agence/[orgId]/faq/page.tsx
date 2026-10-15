@@ -15,7 +15,7 @@ export default async function PageFaqProprietaire(props: PageProps<"/agence/[org
   for (const cle of ["ecran", "action", "type", "sel", "vue", "page", "pageIdees", "retour"] as const) {
     if (typeof recherche[cle] === "string") params[cle] = recherche[cle];
   }
-  params.ecran ??= "/agence/[dossier]/faq";
+  params.ecran ??= "/espace/[dossier]/faq";
   return <main className={`mx-auto w-full space-y-7 p-4 sm:p-7 ${styles.page}`}>
     <AideProprietaire orgId={orgId} nom={organisation.name} assistance="#nouvelle" />
     <ContenuAssistance orgIdIntegre={orgId} searchParams={Promise.resolve(params)} />

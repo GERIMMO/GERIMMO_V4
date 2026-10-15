@@ -26,7 +26,7 @@ const PERSONAS = [
   // l'artisan n'en avaient AUCUN.
   { nom: "agent", etat: "agent.json", espace: "agence" as const, attendus: ["Profil de l'agence", "Sécurité du compte", "Mes espaces"] },
   { nom: "admin", etat: "admin.json", espace: "agence" as const, attendus: ["Profil de l'agence", "Sécurité du compte", "Mes espaces"] },
-  { nom: "propriétaire", etat: "proprietaire.json", espace: "agence" as const, attendus: ["Mon profil", "Sécurité du compte", "Mes espaces"] },
+  { nom: "propriétaire", etat: "proprietaire.json", espace: "espace" as const, attendus: ["Mon profil", "Sécurité du compte", "Mes espaces"] },
   { nom: "locataire", etat: "locataire.json", espace: "locataire" as const, attendus: ["Sécurité du compte", "Mes données personnelles", "Mes espaces"] },
 ];
 

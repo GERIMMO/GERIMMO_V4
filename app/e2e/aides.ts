@@ -13,7 +13,9 @@ export async function sansSyntheseAlertes(page: Page) {
 
 // Entre dans un espace depuis /espaces : avec une seule adhésion, l'app
 // redirige d'elle-même ; sinon on clique le premier lien VISIBLE de l'espace.
-export async function entrerDansEspace(page: Page, prefixe: "agence" | "locataire" | "proprietaire") {
+// Décision D27 : le propriétaire direct entre par « espace » (/espace/<id>), les
+// agences et leurs agents par « agence » (/agence/<id>).
+export async function entrerDansEspace(page: Page, prefixe: "agence" | "espace" | "locataire" | "proprietaire") {
   await page.goto("/espaces");
   const motif = new RegExp(`/${prefixe}/([0-9a-f-]+)`);
   try {

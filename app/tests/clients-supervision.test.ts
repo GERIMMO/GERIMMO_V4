@@ -39,7 +39,8 @@ describe("Les clients vus de la supervision", () => {
     // donc un formulaire, jamais une ancre.
     expect(cheminEspaceClient({ famille: "artisan", id: "abc" })).toBeNull();
     expect(cheminEspaceClient({ famille: "agence", id: "abc" })).toBe("/agence/abc");
-    expect(cheminEspaceClient({ famille: "proprietaire", id: "abc" })).toBe("/agence/abc");
+    // Décision D27 : l'espace d'un propriétaire direct vit sous /espace/<id>.
+    expect(cheminEspaceClient({ famille: "proprietaire", id: "abc" })).toBe("/espace/abc");
   });
 
   it("dit les statuts en français, jamais la valeur de l'énumération", () => {

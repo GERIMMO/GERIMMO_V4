@@ -1,6 +1,7 @@
 import { chromium } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { ARRIVEE_APRES_CONNEXION, PERSONAS, RACINE_PROPRE, admissible, controleCouverture } from "./perimetre-audit.mjs";
 
 const BASE = process.env.E2E_BASE_URL ?? "https://www.gerimmo.app";
 const MOT_DE_PASSE = process.env.E2E_MOT_DE_PASSE ?? "Gerimmo-Demo-2026";
@@ -10,23 +11,7 @@ const TESTER_INTERACTIONS = process.env.E2E_INTERACTIONS !== "0";
 const LARGEUR = Number(process.env.E2E_VIEWPORT_WIDTH ?? 390);
 const HAUTEUR = Number(process.env.E2E_VIEWPORT_HEIGHT ?? 844);
 
-const PERSONAS = [
-  { nom: "public", departs: ["/", "/connexion", "/inscription", "/journal", "/conditions", "/confidentialite", "/tarifs", "/outils", "/outils/calcul-irl", "/outils/quittance-de-loyer", "/outils/comparateur-gli-visale", "/outils/simulateur-lmnp", "/outils/rentabilite-locative", "/mentions-legales", "/mot-de-passe-oublie"] },
-  { nom: "agent", email: "agent.alpha@gerimmo-demo.fr", departs: ["/espaces"], racines: ["/agence/", "/espaces", "/compte", "/assistance"] },
-  { nom: "admin", email: "admin.alpha@gerimmo-demo.fr", departs: ["/espaces"], racines: ["/agence/", "/espaces", "/compte", "/assistance"] },
-  { nom: "locataire", email: "locataire.alpha@gerimmo-demo.fr", departs: ["/espaces"], racines: ["/locataire/", "/espaces", "/compte", "/assistance", "/quittance/", "/attestation-loyer/"] },
-  { nom: "proprietaire", email: "proprietaire@gerimmo-demo.fr", departs: ["/espaces"], racines: ["/agence/", "/espaces", "/compte", "/assistance"] },
-  { nom: "artisan", email: "artisan.alpha@gerimmo-demo.fr", departs: ["/espaces", "/artisan"], racines: ["/artisan", "/espaces", "/compte", "/assistance"] },
-];
-
-const ignorer = /\/(api|auth\/|comptabilite\/export|documents\/[^/]+\/fichier|bail\/fichier|attestations\/[^/]+\/fichier)(\/|$)|\/modele$/;
 const commandeSure = /^(fermer|ouvrir le menu|menu|afficher|masquer|plus|moins|filtrer)/i;
-
-function admissible(persona, pathname) {
-  if (ignorer.test(pathname)) return false;
-  if (persona.nom === "public") return !/^\/(admin|agence|artisan|locataire|compte|espaces|securite)(\/|$)/.test(pathname);
-  return persona.racines.some((racine) => pathname === racine || pathname.startsWith(racine));
-}
 
 async function connecter(page, persona) {
   if (!persona.email) return;
@@ -34,7 +19,7 @@ async function connecter(page, persona) {
   await page.locator("#email").fill(persona.email);
   await page.locator("#mot-de-passe").fill(MOT_DE_PASSE);
   await page.getByRole("button", { name: "Se connecter" }).click();
-  await page.waitForURL(/\/(espaces|agence|locataire|artisan)/, { timeout: 20_000 });
+  await page.waitForURL(ARRIVEE_APRES_CONNEXION, { timeout: 20_000 });
 }
 
 async function auditerPersona(browser, persona) {
@@ -123,15 +108,23 @@ async function auditerPersona(browser, persona) {
 fs.mkdirSync(SORTIE, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const tout = [];
+const couvertureManquante = [];
 for (const persona of PERSONAS) {
   const rapport = await auditerPersona(browser, persona);
   tout.push(...rapport);
   fs.writeFileSync(path.join(SORTIE, `rapport-${persona.nom}.json`), JSON.stringify(rapport, null, 2));
   console.log(`${persona.nom}: ${rapport.length} écrans, ${rapport.reduce((n, r) => n + (r.interactionsSures ?? 0), 0)} interactions d'affichage`);
+  // Un profil connecté qui n'ouvre aucun écran de sa propre racine (/agence, /espace, /locataire, /artisan) n'a pas été audité :
+  // l'exploration s'est arrêtée à l'accueil. C'est un échec, pas un « zéro erreur ».
+  const racine = RACINE_PROPRE[persona.nom];
+  const manque = racine && controleCouverture(persona.nom, rapport.filter((r) => !r.erreur).map((r) => r.chemin), [racine]);
+  if (manque) couvertureManquante.push(manque);
 }
 await browser.close();
 fs.writeFileSync(path.join(SORTIE, "rapport.json"), JSON.stringify(tout, null, 2));
 const echecs = tout.filter((r) => r.statut >= 400 || !r.h1 || r.texteErreur || r.overflowPx > 2 || r.boutonsSansNom > 0 || r.erreur || r.erreurs?.length);
 fs.writeFileSync(path.join(SORTIE, "echecs.json"), JSON.stringify(echecs, null, 2));
+fs.writeFileSync(path.join(SORTIE, "couverture-manquante.json"), JSON.stringify(couvertureManquante, null, 2));
 console.log(`TOTAL: ${tout.length} écrans ; ${echecs.length} à corriger`);
-if (echecs.length) process.exitCode = 1;
+for (const manque of couvertureManquante) console.error(`COUVERTURE: ${manque}`);
+if (echecs.length || couvertureManquante.length) process.exitCode = 1;

@@ -9,6 +9,7 @@ import { aujourdhuiParis, motifLitteral } from "@/lib/ged";
 import { verifierCodePostalPersonne, verifierDateNaissance, verifierTelephone } from "@/lib/validation-fiches";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { QUALITES_BAILLEUR, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
+import { baseEspace } from "@/lib/racine-espace";
 
 export type EtatPersonne = {
   personneCreee?: { id: string };
@@ -292,7 +293,7 @@ export async function creerPersonne(
   }
   revalidatePath(`/agence/${orgId}/personnes`);
   if (formData.get("rester_dans_parcours") === "1") return { succes: "Fiche créée. Vous pouvez sélectionner cette personne à l’étape Bail." };
-  redirect(`/agence/${orgId}/personnes/${ficheId}`);
+  redirect(`${baseEspace(orgId, roleGerant === "proprietaire_direct")}/personnes/${ficheId}`);
 }
 
 // Archiver une fiche (recette 14/08 : le nettoyage des doublons se faisait en
@@ -304,7 +305,7 @@ export async function archiverPersonne(
   _etat: EtatPersonne,
   _formData: FormData
 ): Promise<EtatPersonne> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   const { data: fiche } = await supabase
@@ -370,7 +371,7 @@ export async function archiverPersonne(
   if (error) return { erreur: `Archivage impossible : ${sansJargon(error.message)}` };
 
   revalidatePath(`/agence/${orgId}/personnes`);
-  redirect(`/agence/${orgId}/personnes`);
+  redirect(`${baseEspace(orgId, role === "proprietaire_direct")}/personnes`);
 }
 
 // Modifier l'identité et les coordonnées d'une personne (recette 13/08 : une

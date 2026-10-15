@@ -6,15 +6,17 @@ import { filtreRecherche, filtrePersonnes, normaliserRecherche, type ReponseRech
 import { nomComplet } from "@/lib/roles-personnes";
 import { ETATS_BAIL } from "@/lib/baux";
 import { eur, formaterDate, TYPES_DOCUMENT } from "@/lib/ged";
+import { baseEspace } from "@/lib/racine-espace";
 
 export async function rechercherDansEspace(orgId: string, saisie: string): Promise<ReponseRecherche> {
-  const { supabase, user, role } = await verifierAccesEspace(orgId);
+  const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
   const texte = normaliserRecherche(saisie);
   if (texte.length < 2) return { resultats: [] };
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
   if (portefeuille instanceof PortefeuilleIndisponible)
     return { resultats: [], erreur: "Votre portefeuille est momentanément indisponible. Réessayez." };
-  const base = `/agence/${orgId}`;
+  // Décision D27 : les résultats du propriétaire direct mènent à /espace.
+  const base = baseEspace(orgId, Boolean(estProprietaire));
   // Le filtre précède la limite : un résultat hors portefeuille ne doit ni
   // sortir à l'écran ni prendre la place d'un résultat accessible.
   const lotsRequete = () => {

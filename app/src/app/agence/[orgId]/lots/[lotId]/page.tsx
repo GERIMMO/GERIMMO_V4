@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { exigerUuids } from "@/lib/identifiants";
+import { baseEspace } from "@/lib/racine-espace";
 
 /**
  * Le renvoi d'un lot vers sa fiche complète, par son seul identifiant.
@@ -21,7 +22,9 @@ export default async function PageRenvoiLot(props: PageProps<"/agence/[orgId]/lo
   const { orgId, lotId } = await props.params;
   const { modifier, vers } = ((await props.searchParams) ?? {}) as { modifier?: string; vers?: string };
   exigerUuids(lotId);
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
 
   const { data: lot } = await supabase
     .from("lots")
@@ -29,11 +32,11 @@ export default async function PageRenvoiLot(props: PageProps<"/agence/[orgId]/lo
     .eq("id", lotId)
     .eq("organization_id", orgId)
     .maybeSingle();
-  if (!lot?.bien_id) redirect(`/agence/${orgId}/parc`);
+  if (!lot?.bien_id) redirect(`${base}/parc`);
 
   const section = typeof vers === "string" && /^[a-z-]{1,40}$/.test(vers) ? vers : "caracteristiques";
-  if (section === "bien") redirect(`/agence/${orgId}/parc/${lot.bien_id}#caracteristiques`);
+  if (section === "bien") redirect(`${base}/parc/${lot.bien_id}#caracteristiques`);
   redirect(
-    `/agence/${orgId}/parc/${lot.bien_id}/lots/${lotId}${modifier === "1" ? "?modifier=1" : ""}#${section}`
+    `${base}/parc/${lot.bien_id}/lots/${lotId}${modifier === "1" ? "?modifier=1" : ""}#${section}`
   );
 }

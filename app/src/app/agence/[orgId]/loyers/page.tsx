@@ -7,6 +7,7 @@ import { eur, moisEnFrancais } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuittancementMois } from "../comptabilite/quittancement-mois";
+import { baseEspace } from "@/lib/racine-espace";
 
 // L'onglet dit l'écran, comme ses voisins (24/09 : il n'affichait que
 // « Gerimmo »).
@@ -30,6 +31,8 @@ export async function generateMetadata({ params }: { params: Promise<{ orgId: st
 export default async function PageLoyers({ params, searchParams }: PageProps<"/agence/[orgId]/loyers">) {
   const { orgId } = await params;
   const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   if (estProprietaire) return <PageFinances orgId={orgId} recherche={await searchParams} />;
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
   const dansPortefeuille = (lotId: string | null | undefined) =>
@@ -76,7 +79,7 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
           {estProprietaire ? (
             <>
               L&apos;historique de vos recettes et dépenses est dans{" "}
-              <Link href={`/agence/${orgId}/comptabilite`} className="lien-discret">
+              <Link href={`${base}/comptabilite`} className="lien-discret">
                 le livre recettes-dépenses
               </Link>
               .
@@ -84,7 +87,7 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
           ) : role === "agent" ? (
             <>
               Le journal et les rapports de gestion sont dans{" "}
-              <Link href={`/agence/${orgId}/comptabilite`} className="lien-discret">
+              <Link href={`${base}/comptabilite`} className="lien-discret">
                 Écritures &amp; rapports de gestion
               </Link>
               .
@@ -92,7 +95,7 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
           ) : (
             <>
               Le journal, les écritures et la clôture vivent dans{" "}
-              <Link href={`/agence/${orgId}/comptabilite`} className="lien-discret">
+              <Link href={`${base}/comptabilite`} className="lien-discret">
                 la comptabilité
               </Link>
               .
@@ -100,7 +103,7 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
           )}{" "}
           Les appels de charges se saisissent sur le lot, la régularisation annuelle sur le
           bail.{" "}
-          <Link href={`/agence/${orgId}/parc`} className="lien-discret">
+          <Link href={`${base}/parc`} className="lien-discret">
             {libelleParc} →
           </Link>
         </p>
@@ -190,7 +193,7 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
                 {/* L'état vide mène au geste qui le remplit : un bail se crée
                     depuis la fiche d'un lot. */}
                 <Link
-                  href={`/agence/${orgId}/parc`}
+                  href={`${base}/parc`}
                   className={buttonVariants({ variant: "outline", size: "sm" })}
                 >
                   {libelleParc}
@@ -224,7 +227,7 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
                           le rang qui se clique, pas ces trois mots (retour du
                           24/09 : « je veux que tout le carré soit cliquable »). */}
                       <Link
-                        href={`/agence/${orgId}/baux/${l.bail_id}#loyers`}
+                        href={`${base}/baux/${l.bail_id}#loyers`}
                         className="-mx-2 flex flex-wrap items-center justify-between gap-2 rounded-lg px-2 py-2.5 hover:bg-[var(--survol)]"
                       >
                         <span className="min-w-0">

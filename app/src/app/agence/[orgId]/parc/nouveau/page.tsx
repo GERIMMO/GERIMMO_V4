@@ -6,6 +6,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { elementsManquantsDuBailleur } from "@/lib/profil-bailleur";
 import { FormulaireAvecBrouillon } from "./formulaire-avec-brouillon";
 import { euros, offreParticulier, parPeriode, type Periodicite } from "@/lib/tarifs";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Créer un lot — Gerimmo" };
 
@@ -14,6 +15,8 @@ export default async function PageNouveauBien(
 ) {
   const { orgId } = await props.params;
   const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
 
   // Le bailleur doit être identifiable AVANT de saisir un bien (recette de
   // production du 27/09) : l'action refuse la création tant que l'adresse et
@@ -46,7 +49,7 @@ export default async function PageNouveauBien(
       {/* Le retour « ← Parent » au-dessus de l'en-tête, nommé comme l'entrée
           du menu (25/09 : aucun retour, ni fil ni flèche). */}
       <Link
-        href={`/agence/${orgId}/parc`}
+        href={`${base}/parc`}
         className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
       >
         ← {estProprietaire ? "Mes lots" : "Parc de l'agence"}
@@ -72,7 +75,7 @@ export default async function PageNouveauBien(
             </span>
           </p>
           <div className="mt-3">
-            <Link href={`/agence/${orgId}/abonnement?biens=${depassement.apres}`} className="btn-or">
+            <Link href={`${base}/abonnement?biens=${depassement.apres}`} className="btn-or">
               Voir et confirmer le nouveau montant
             </Link>
           </div>
@@ -87,7 +90,7 @@ export default async function PageNouveauBien(
             sans eux, le bien ne peut pas être créé.
           </p>
           <div className="geste">
-            <Link href={`/agence/${orgId}/profil?retour=nouveau-lot`} className="btn-or">
+            <Link href={`${base}/profil?retour=nouveau-lot`} className="btn-or">
               Compléter mon profil
             </Link>
           </div>

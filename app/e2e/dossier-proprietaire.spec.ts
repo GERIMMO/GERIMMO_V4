@@ -10,12 +10,12 @@ test.beforeEach(async ({ page }) => {
   await page.locator('#email').fill('proprietaire@gerimmo-demo.fr');
   await page.locator('#mot-de-passe').fill(process.env.E2E_MOT_DE_PASSE ?? 'Gerimmo-Demo-2026');
   await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
-  await page.waitForURL(/\/(espaces|agence)\//);
+  await page.waitForURL(/\/(espaces|espace|agence)\//);
 });
 for (const largeur of [390, 1440]) {
   test(`propriétaire : repères et rubriques accessibles à ${largeur}px`, async ({ page }) => {
     await page.setViewportSize({ width: largeur, height: 1000 });
-    await page.goto(`/agence/${ORG}/parc`);
+    await page.goto(`/espace/${ORG}/parc`);
     await page.getByRole('button', { name: /Appartement T2/ }).first().click();
     await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).click();
     await expect(page.getByRole('navigation', { name: 'Rubriques du logement' })).toHaveCount(0);
@@ -38,7 +38,7 @@ for (const largeur of [390, 1440]) {
 }
 
 test('propriétaire : un refus d’enregistrement reste visible sans perdre la saisie', async ({ page }) => {
-  await page.goto(`/agence/${ORG}/parc`);
+  await page.goto(`/espace/${ORG}/parc`);
   await page.getByRole('button', { name: /Appartement T2/ }).first().click();
   const href = await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).getAttribute('href');
   await page.goto(href! + '?parcours=1&etape=bien');
@@ -63,7 +63,7 @@ test('propriétaire : un refus d’enregistrement reste visible sans perdre la s
 for (const largeur of [390, 1440]) {
   test(`propriétaire : parcours guidé et saisies conservées à ${largeur}px`, async ({ page }) => {
     await page.setViewportSize({ width: largeur, height: 1000 });
-    await page.goto(`/agence/${ORG}/parc`);
+    await page.goto(`/espace/${ORG}/parc`);
     await page.getByRole('button', { name: /Appartement T2/ }).first().click();
     const href = await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).getAttribute('href');
     await page.goto(href! + '?parcours=1&etape=bien');
@@ -111,7 +111,7 @@ test('propriétaire : le bail reprend le lot et permet de créer puis retrouver 
     await db.query(`insert into public.detentions(id,lot_id,organization_id,person_id,quote_part,date_debut,date_fin)
       select gen_random_uuid(),$1,organization_id,person_id,quote_part,date_debut,date_fin from public.detentions
       where lot_id=$3 and organization_id=$2`, [lotId, ORG, sourceId]);
-  await page.goto(`/agence/${ORG}/parc`);
+  await page.goto(`/espace/${ORG}/parc`);
   await page.getByRole('button', { name: new RegExp(nomLot) }).first().click();
   const href = await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).getAttribute('href');
   // L’ancien lien de création de locataire rejoint désormais les baux du lot.

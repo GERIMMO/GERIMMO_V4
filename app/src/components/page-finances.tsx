@@ -9,6 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { QuittancementMois, type LigneQuittancement } from "@/app/agence/[orgId]/comptabilite/quittancement-mois";
 import { RecapitulatifFiscal } from "@/components/recapitulatif-fiscal";
 import { lireLivreFinances, resumerLivre } from "@/lib/finances";
+import { baseEspace } from "@/lib/racine-espace";
 
 export async function PageFinances({ orgId, recherche }: {
   orgId: string; recherche: Record<string, string | string[] | undefined>;
@@ -28,14 +29,15 @@ export async function PageFinances({ orgId, recherche }: {
     supabase.rpc("quittancement_mois", { p_org: orgId, p_mois: `${mois}-01` }),
     lireLivreFinances(supabase, orgId),
   ]);
-  const href = (a: number, m = numeroMois, anchor = "") => `/agence/${orgId}/loyers?${new URLSearchParams({ annee: String(a), mois: String(m), ...(bien ? { bien } : {}) })}${anchor}`;
+  // Décision D27 : « Finances » n'existe que chez le propriétaire direct (/espace/<id>).
+  const base = baseEspace(orgId, true);
+  const href = (a: number, m = numeroMois, anchor = "") => `${base}/loyers?${new URLSearchParams({ annee: String(a), mois: String(m), ...(bien ? { bien } : {}) })}${anchor}`;
   const perimetre = bien ? new Set((lots ?? []).filter(l => l.bien_id === bien).map(l => l.id)) : null;
   const erreurPerimetre = erreurBiens || erreurLots || (bien && !(biens ?? []).some(b => b.id === bien));
   const lignes = ((quittancement.data ?? []) as LigneQuittancement[]).filter(l => !perimetre || perimetre.has(l.lot_id));
   const appele = lignes.reduce((s, l) => s + Number(l.montant_du), 0);
   const encaisse = lignes.reduce((s, l) => s + Math.min(Number(l.montant_du), Number(l.montant_couvert)), 0);
   const resume = resumerLivre(livre.lignes, annee, perimetre);
-  const base = `/agence/${orgId}`;
   const bouton = buttonVariants({ variant: "outline", size: "sm" });
   return <main className="mx-auto w-full max-w-5xl space-y-4 p-4 sm:p-7">
     <div className="entete-page"><TitreEcran rubrique="finances">Finances</TitreEcran><span className="mono-discret">Loyers · Recettes et dépenses · Déclaration</span></div>

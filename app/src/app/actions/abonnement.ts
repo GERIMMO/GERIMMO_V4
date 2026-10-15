@@ -25,6 +25,8 @@ import {
 } from "@/lib/stripe-offres";
 import { clientDeService } from "@/lib/supabase/service";
 import { offreAgence, offreParticulier, type Offre, type Periodicite } from "@/lib/tarifs";
+import { baseEspace } from "@/lib/racine-espace";
+import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 
 export type EtatAbonnementAction = { erreur?: string };
 
@@ -232,7 +234,8 @@ export async function demarrerAbonnement(
   const client = await assurerEtEnregistrerClient(stripe, supabase, orgId, org);
   if (!client.ok) return { erreur: client.erreur };
 
-  const retour = `${origine}/agence/${orgId}/abonnement`;
+  // Décision D27 : au retour du paiement, le propriétaire direct revient sous /espace/<id>.
+  const retour = `${origine}${baseEspace(orgId, !estAgence)}/abonnement`;
   const session = await creerSessionOffre(stripe, {
     offre,
     regime: REGIME_TVA,
@@ -320,7 +323,7 @@ export async function confirmerHausse(
   // L'échéancier libéré emportait une baisse ou une périodicité programmée :
   // la tâche de nuit la reprogrammera, sur la nouvelle offre.
   if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
-  redirect(`/agence/${orgId}/abonnement?changement=ok`);
+  redirect(`${baseEspace(orgId, etat.public_tarif === "proprietaire_direct")}/abonnement?changement=ok`);
 }
 
 /**
@@ -355,7 +358,7 @@ export async function demanderPeriodicite(
       }
     }
   }
-  redirect(`/agence/${orgId}/abonnement?periodicite=programmee`);
+  redirect(`${await baseDeLOrganisation(supabase, orgId)}/abonnement?periodicite=programmee`);
 }
 
 /** Résilier pour la prochaine échéance, ou revenir sur cette résiliation. */
@@ -379,7 +382,7 @@ export async function resilierAbonnement(
   // Un échéancier libéré (audit 29/09, point 5) : si la résiliation est levée,
   // la tâche de nuit doit pouvoir reprogrammer l'échéance.
   if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
-  redirect(`/agence/${orgId}/abonnement?resiliation=${resilier ? "programmee" : "annulee"}`);
+  redirect(`${await baseDeLOrganisation(supabase, orgId)}/abonnement?resiliation=${resilier ? "programmee" : "annulee"}`);
 }
 
 /**
@@ -412,7 +415,7 @@ async function basculerVersGrilleActuelle(
   }
   const { error } = await service.rpc("abonnement_basculer_grille", { p_org: orgId });
   if (error) return { erreur: sansJargon(error.message) };
-  redirect(`/agence/${orgId}/abonnement?grille=actuelle`);
+  redirect(`${await baseDeLOrganisation(service, orgId)}/abonnement?grille=actuelle`);
 }
 
 /**
@@ -448,7 +451,7 @@ export async function ouvrirPortailAbonnement(
 
   const portail = await ouvrirPortailFacturation(clientStripe(reglages.config), {
     customer: client as string,
-    retour: `${origine}/agence/${orgId}/abonnement`,
+    retour: `${origine}${await baseDeLOrganisation(supabase, orgId)}/abonnement`,
   });
   if (!portail.ok) return { erreur: portail.erreur };
   redirect(portail.url);

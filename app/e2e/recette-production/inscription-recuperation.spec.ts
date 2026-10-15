@@ -61,7 +61,8 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
       await cliquer(page.getByRole("button", { name: bouton, exact: true }));
     };
     await lien("confirmation_token", "signup", "/espaces", "Confirmer mon adresse");
-    await page.waitForURL(/\/agence\/[a-f0-9-]{36}/, { timeout: 30_000 });
+    // Décision D27 : l'espace du propriétaire direct qui vient de s'inscrire est /espace/<id>.
+    await page.waitForURL(/\/espace\/[a-f0-9-]{36}/, { timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 1, name: /Bonjour/ })).toBeVisible();
     const r = await db.query("select email_confirmed_at is not null as confirme from auth.users where email=$1", [email]);
     expect(r.rows[0]?.confirme).toBe(true);
@@ -86,7 +87,7 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
     await saisir(page.getByLabel("Adresse e-mail"), email);
     await page.getByLabel("Mot de passe", { exact: true }).fill(nouveau);
     await cliquer(page.getByRole("button", { name: "Se connecter", exact: true }));
-    await page.waitForURL(/\/(agence|espaces)(\/|$|\?)/);
+    await page.waitForURL(/\/(espace|espaces)(\/|$|\?)/);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   } finally {
     await db.end();

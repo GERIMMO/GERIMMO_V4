@@ -8,7 +8,10 @@ import { genererDepuisCatalogue, proposerInteretsEmprunt } from "@/app/actions/c
 import type { EtatGeneration } from "@/app/actions/documents-generes";
 import { OPTIONS_CATALOGUE } from "@/lib/documents/catalogue-options";
 import type { ChoixDossier } from "@/lib/documents/catalogue-cibles";
-export function FormulaireCatalogue({orgId,modeleId,choix,garants=[]}:{orgId:string;modeleId:string;choix:ChoixDossier[];garants?:{id:string;libelle:string;bailId:string}[]}) {
+import { RACINE_AGENCE, baseDepuisRacine } from "@/lib/racine-espace";
+// `racine` : « /espace » chez le propriétaire direct, « /agence » sinon (décision D27) ; la page la transmet.
+export function FormulaireCatalogue({orgId,modeleId,choix,garants=[],racine=RACINE_AGENCE}:{orgId:string;modeleId:string;choix:ChoixDossier[];garants?:{id:string;libelle:string;bailId:string}[];racine?:string}) {
+  const base=baseDepuisRacine(orgId,racine);
   const [cible,setCible]=useState(choix.length===1?choix[0].id:"");
   const [annee,setAnnee]=useState(String(new Date().getFullYear()));
   // D37 : « intérêts d'emprunt » du récapitulatif location nue, prérempli avec le montant que le livre porte en ligne 250 pour le lot et
@@ -55,12 +58,12 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[]}:{orgId:str
     <Button disabled={enCours||!cible||!choix.length||calcul} type="submit">{enCours?"Préparation du PDF…":"Générer le PDF"}</Button>
     {etat.erreur&&!etat.manquants?.length&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
     {etat.succes&&<p role="status" className="text-sm text-success">{etat.succes}</p>}
-    {etat.documentId&&<Link className="block font-medium text-primary underline" href={`/agence/${orgId}/documents/${etat.documentId}/fichier`} target="_blank" rel="noopener">Ouvrir le PDF</Link>}
+    {etat.documentId&&<Link className="block font-medium text-primary underline" href={`${base}/documents/${etat.documentId}/fichier`} target="_blank" rel="noopener">Ouvrir le PDF</Link>}
     {!!etat.manquants?.length&&<section aria-label="Informations à compléter" role="status" className="rounded-xl border border-[var(--or-filet)] bg-[var(--or-clair)] p-4">
       <h3 className="text-sm font-semibold">Encore {etat.manquants.length} {etat.manquants.length===1?"information":"informations"} à compléter</h3>
       <p className="mt-1 text-sm text-muted-foreground">Complétez le dossier, puis revenez générer le PDF.</p>
       <ul className="mt-3 divide-y divide-blue-100">{etat.manquants.map(m=>{
-        const destination=lienPourManquant(m,orgId,etat.liens??[],modeleId);
+        const destination=lienPourManquant(m,orgId,etat.liens??[],modeleId,racine);
         return <li key={m} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm"><span className="min-w-0 flex-1">{m}</span>{destination&&<Link className="font-medium text-primary underline underline-offset-4" href={destination.href} aria-label={`Compléter : ${m} (${destination.ecran})`}>Compléter →</Link>}</li>;
       })}</ul>
     </section>}

@@ -46,6 +46,7 @@ import {
   FormulaireQualification,
   FormulaireReouverture,
 } from "./[incidentId]/actions-incident";
+import { baseEspace } from "@/lib/racine-espace";
 
 type Evenement = {
   id: string;
@@ -90,6 +91,8 @@ export async function PaneIncident({
   membres: MembreGerant[];
 }) {
   const { supabase, role, user, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
 
   const [
@@ -368,12 +371,12 @@ export async function PaneIncident({
         </div>
         <div className="incident-reperes">
           <div><Building2 size={17} aria-hidden="true" /><div><span>Logement concerné</span>
-            {lot ? <Link href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <strong>Lot non disponible</strong>}
+            {lot ? <Link href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <strong>Lot non disponible</strong>}
             {incident.piece && <small>{incident.piece}</small>}
           </div></div>
           <div><UserRound size={17} aria-hidden="true" /><div><span>{incident.canal === "espace_locataire" ? "Déclaré par" : "Contact du logement"}</span>
             {declarant ? <>
-              <Link href={`/agence/${orgId}/personnes/${declarant.id}#messages`}>{nomComplet(declarant)}</Link>
+              <Link href={`${base}/personnes/${declarant.id}#messages`}>{nomComplet(declarant)}</Link>
               {declarant.telephone && <a href={`tel:${declarant.telephone.replace(/\s/g, "")}`} className="incident-telephone">{formaterTelephone(declarant.telephone)}</a>}
             </> : <strong>{declarantIllisible ? "Déclarant hors de votre portefeuille" : "Aucun bail actif sur le lot"}</strong>}
           </div></div>
@@ -424,14 +427,14 @@ export async function PaneIncident({
                     // photo en grand — la vignette 80px ne se zoome pas au doigt.
                     <a
                       key={p.id}
-                      href={`/agence/${orgId}/documents/${p.id}/fichier`}
+                      href={`${base}/documents/${p.id}/fichier`}
                       target="_blank"
                       rel="noreferrer"
                       className="block"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={`/agence/${orgId}/documents/${p.id}/fichier`}
+                        src={`${base}/documents/${p.id}/fichier`}
                         alt={p.titre ?? "Photo de l'incident"}
                         className="h-20 w-20 rounded-[10px] border border-border object-cover"
                       />
@@ -645,7 +648,7 @@ export async function PaneIncident({
 
           </div>
 
-          <FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} />
+          <FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base} />
           <details id="cloture" open={!estProprietaire || incident.etat === "termine" || incident.etat === "clos"} className="rounded-xl border border-border bg-card p-4">
             <summary className="cursor-pointer font-semibold">{incident.etat === "clos" ? "Incident clos · consulter" : "Clôturer l’incident"}</summary>
           <Card className="mt-3 border-0 shadow-none">

@@ -114,7 +114,7 @@
     "dynamic": "orgId"
   },
   {
-    "path": "/agence/ORG/abonnement",
+    "path": "/espace/ORG/abonnement",
     "persona": "proprietaire",
     "label": "Abonnement (propriétaire direct)",
     "dynamic": "orgId"
@@ -162,7 +162,7 @@
     "dynamic": "orgId"
   },
   {
-    "path": "/agence/ORG/comptabilite/fiscal",
+    "path": "/espace/ORG/comptabilite/fiscal",
     "persona": "proprietaire",
     "label": "Aide fiscale (revenus fonciers)",
     "dynamic": "orgId"
@@ -192,7 +192,7 @@
     "dynamic": "orgId"
   },
   {
-    "path": "/agence/ORG/faq",
+    "path": "/espace/ORG/faq",
     "persona": "proprietaire",
     "label": "FAQ du propriétaire direct",
     "dynamic": "orgId"
@@ -780,97 +780,97 @@
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG",
+    "path": "/espace/ORG",
     "persona": "proprietaire",
     "label": "Accueil du bailleur",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/parc",
+    "path": "/espace/ORG/parc",
     "persona": "proprietaire",
     "label": "Mes lots",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/parc/nouveau",
+    "path": "/espace/ORG/parc/nouveau",
     "persona": "proprietaire",
     "label": "Ajouter un bien",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/personnes",
+    "path": "/espace/ORG/personnes",
     "persona": "proprietaire",
     "label": "Locataires et garants",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/loyers",
+    "path": "/espace/ORG/loyers",
     "persona": "proprietaire",
     "label": "Loyers du bailleur",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/comptabilite",
+    "path": "/espace/ORG/comptabilite",
     "persona": "proprietaire",
     "label": "Livre recettes-dépenses",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/incidents",
+    "path": "/espace/ORG/incidents",
     "persona": "proprietaire",
     "label": "Incidents du bailleur",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/incidents/nouveau",
+    "path": "/espace/ORG/incidents/nouveau",
     "persona": "proprietaire",
     "label": "Déclarer un incident",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/alertes",
+    "path": "/espace/ORG/alertes",
     "persona": "proprietaire",
     "label": "Alertes du bailleur",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/agenda",
+    "path": "/espace/ORG/agenda",
     "persona": "proprietaire",
     "label": "Agenda du bailleur",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/statistiques",
+    "path": "/espace/ORG/statistiques",
     "persona": "proprietaire",
     "label": "Statistiques du bailleur",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/messages",
+    "path": "/espace/ORG/messages",
     "persona": "proprietaire",
     "label": "Messages du bailleur",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/profil",
+    "path": "/espace/ORG/profil",
     "persona": "proprietaire",
     "label": "Paramètres du bailleur",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/documents",
+    "path": "/espace/ORG/documents",
     "persona": "proprietaire",
     "label": "Documents du bailleur",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/documents/catalogue",
+    "path": "/espace/ORG/documents/catalogue",
     "persona": "proprietaire",
     "label": "Catalogue du bailleur",
     "dynamic": ""
   },
   {
-    "path": "/agence/ORG/artisans",
+    "path": "/espace/ORG/artisans",
     "persona": "proprietaire",
     "label": "Carnet d’artisans du bailleur",
     "dynamic": ""
@@ -900,13 +900,13 @@
     "dynamic": "orgId"
   },
   {
-    "path": "/agence/ORG/journal",
+    "path": "/espace/ORG/journal",
     "persona": "proprietaire",
     "label": "Journal dans l’espace connecté",
     "dynamic": "orgId"
   },
   {
-    "path": "/agence/ORG/journal/ARTICLE",
+    "path": "/espace/ORG/journal/ARTICLE",
     "persona": "proprietaire",
     "label": "Article dans l’espace connecté",
     "dynamic": "orgId, slug"

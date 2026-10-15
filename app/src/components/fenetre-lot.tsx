@@ -45,6 +45,7 @@ import { TYPES_BAIL, ETATS_BAIL, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { TYPES_DOCUMENT, eur, formaterDate, moisEnFrancais } from "@/lib/ged";
 import { regrouperDocumentsLot } from "@/lib/documents-lot";
 import { CATEGORIES_INCIDENT } from "@/lib/incidents";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 // LA FENÊTRE DU LOT — sur le gabarit remis par l'humain le 12/09.
 //
@@ -169,6 +170,8 @@ function FenetreLot({
   estProprietaire: boolean;
   fermer: () => void;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const [fiche, setFiche] = useState<FicheLot | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [onglet, setOnglet] = useState<Onglet>("resume");
@@ -205,7 +208,7 @@ function FenetreLot({
     ? null
     : locataire
       ? `/locataire/${orgId}/logement#bail`
-      : `/agence/${orgId}/parc/${fiche.bien_id}/lots/${fiche.lot_id}`;
+      : `${base}/parc/${fiche.bien_id}/lots/${fiche.lot_id}`;
 
   const onglets: { cle: Onglet; libelle: string }[] = [
     { cle: "resume", libelle: "Résumé" },
@@ -665,6 +668,8 @@ function OngletResume({
   allerA: (o: Onglet) => void;
   estProprietaire: boolean;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const locataire = fiche.portee === "locataire";
   const multiple = (fiche.contrats?.length ?? 0) > 1;
   const loyer = totalLoyerAffiche(fiche.loyer_hc, fiche.charges);
@@ -752,7 +757,7 @@ function OngletResume({
                 {fiche.proprietaire_id && (
                   <div className="mt-3">
                     <Link
-                      href={`/agence/${orgId}/personnes/${fiche.proprietaire_id}#mandats`}
+                      href={`${base}/personnes/${fiche.proprietaire_id}#mandats`}
                       className={buttonVariants({ size: "sm" })}
                     >
                       Proposer un mandat
@@ -767,7 +772,7 @@ function OngletResume({
           badge={!multiple && fiche.bail_etat ? ETATS_BAIL[fiche.bail_etat] : undefined}>
           {multiple ? <div className="space-y-3">{fiche.contrats?.map(c => (
             <div key={c.id} className="border-b border-[var(--filet)] pb-3 last:border-0">
-              <Link className="lien-discret font-medium" href={`/agence/${orgId}/baux/${c.id}`}>{c.chambre} →</Link>
+              <Link className="lien-discret font-medium" href={`${base}/baux/${c.id}`}>{c.chambre} →</Link>
               <p className="text-sm">{ETATS_BAIL[c.etat] ?? "État à vérifier"}</p>
               <Ligne libelle="Début" valeur={fiche.details_resume?.baux.find(b => b.id === c.id)?.date_debut ? formaterDate(fiche.details_resume.baux.find(b => b.id === c.id)!.date_debut!) : "Non renseigné"} />
               <Ligne libelle="Loyer hors charges" valeur={c.loyer_hc !== null ? eur(c.loyer_hc) : "Non renseigné"} />
@@ -786,12 +791,12 @@ function OngletResume({
             <Ligne libelle="Dépôt de garantie" valeur={fiche.depot_garantie !== null ? eur(fiche.depot_garantie) : null} />
             <Ligne libelle="Échéance" valeur={fiche.jour_echeance ? `Le ${fiche.jour_echeance} du mois` : null} />
             {impaye > 0 && <p className="mt-2 text-sm text-destructive">{eur(impaye)} restant dû</p>}
-            <Link href={locataire ? `/locataire/${orgId}/logement#bail` : `/agence/${orgId}/baux/${fiche.bail_id}`} className="lien-discret mt-3 inline-flex min-h-11 items-center">Ouvrir le bail →</Link>
+            <Link href={locataire ? `/locataire/${orgId}/logement#bail` : `${base}/baux/${fiche.bail_id}`} className="lien-discret mt-3 inline-flex min-h-11 items-center">Ouvrir le bail →</Link>
           </> : <>
             <p className="text-sm text-muted-foreground">Aucun contrat en cours ni en préparation.</p>
             {fiche.portee === "gerant" && fiche.lot_etat !== "archive" && (
               <Link
-                href={`/agence/${orgId}/parc/${fiche.bien_id}/lots/${fiche.lot_id}#baux`}
+                href={`${base}/parc/${fiche.bien_id}/lots/${fiche.lot_id}#baux`}
                 className="lien-discret mt-3 inline-flex min-h-11 items-center"
               >
                 Préparer le bail →
@@ -807,6 +812,8 @@ function OngletResume({
 }
 
 function PersonnesDuResume({ personnes, fiche, orgId, vide }: { personnes: PersonneResume[]; fiche: FicheLot; orgId: string; vide: string }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   if (!personnes.length) return <p className="text-sm text-muted-foreground">{vide}</p>;
   return <div className="space-y-3">{personnes.map((lien) => {
     const p = lien.personne;
@@ -821,11 +828,11 @@ function PersonnesDuResume({ personnes, fiche, orgId, vide }: { personnes: Perso
         <Ligne libelle="Âge" valeur={age !== null ? `${age} ans` : "Non renseigné"} />
         <Ligne libelle="Sexe" valeur={p.sexe ?? "Non renseigné"} />
         <Ligne libelle="Téléphone" valeur={p.telephone ? <a className="lien-discret break-all" href={`tel:${p.telephone}`}>{p.telephone}</a> : "Non renseigné"} />
-        <Link href={`/agence/${orgId}/personnes/${p.id}`} className="lien-discret mt-2 inline-flex min-h-11 items-center text-sm">Voir la personne →</Link>
+        <Link href={`${base}/personnes/${p.id}`} className="lien-discret mt-2 inline-flex min-h-11 items-center text-sm">Voir la personne →</Link>
       </>}
       {lien.depart && <Ligne libelle="Départ" valeur={formaterDate(lien.depart)} />}
       {lien.garant_de && <Ligne libelle="Garant de" valeur={garanti ? `${garanti.prenom ?? ""} ${garanti.nom}`.trim() : "Locataire non renseigné"} />}
-      {(fiche.contrats?.length ?? 0) > 1 && <Link href={`/agence/${orgId}/baux/${lien.bail_id}`} className="lien-discret text-sm">{contrat?.chambre ?? "Voir le contrat"} →</Link>}
+      {(fiche.contrats?.length ?? 0) > 1 && <Link href={`${base}/baux/${lien.bail_id}`} className="lien-discret text-sm">{contrat?.chambre ?? "Voir le contrat"} →</Link>}
     </div>;
   })}</div>;
 }
@@ -839,8 +846,10 @@ function ActionsRapides({
   fiche: FicheLot;
   allerA: (o: Onglet) => void;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const locataire = fiche.portee === "locataire";
-  const retour = locataire ? `/locataire/${orgId}/logement` : `/agence/${orgId}/parc`;
+  const retour = locataire ? `/locataire/${orgId}/logement` : `${base}/parc`;
   return (
     <div>
       <p className="eyebrow mb-2">Actions rapides</p>
@@ -878,7 +887,7 @@ function ActionsRapides({
                   libelle="Révision IRL"
                 />
                 <Link
-                  href={`/agence/${orgId}/baux/${fiche.bail_id}#edl`}
+                  href={`${base}/baux/${fiche.bail_id}#edl`}
                   className={buttonVariants({ variant: "outline", size: "sm" })}
                 >
                   Préparer un état des lieux
@@ -886,7 +895,7 @@ function ActionsRapides({
               </>
             )}
             <Link
-              href={`/agence/${orgId}/incidents/nouveau?lot=${fiche.lot_id}`}
+              href={`${base}/incidents/nouveau?lot=${fiche.lot_id}`}
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >
               Signaler un incident
@@ -985,6 +994,8 @@ function EnAttente({ quoi }: { quoi: string }) {
 /* ── Onglet « Documents » ─────────────────────────────────────────────── */
 
 function OngletDocuments({ orgId, fiche, fermer }: { orgId: string; fiche: FicheLot; fermer: () => void }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const locataire = fiche.portee === "locataire";
   const [docs, setDocs] = useState<DocumentDuLot[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -1024,7 +1035,7 @@ function OngletDocuments({ orgId, fiche, fermer }: { orgId: string; fiche: Fiche
               <li key={d.document_id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
                 <span className="min-w-0 flex-1">
                   <Link
-                    href={locataire ? `/locataire/${orgId}/documents` : `/agence/${orgId}/documents?sel=${d.document_id}`}
+                    href={locataire ? `/locataire/${orgId}/documents` : `${base}/documents?sel=${d.document_id}`}
                     onNavigate={fermer}
                     className="block truncate text-[13.5px] font-semibold lien-discret"
                   >
@@ -1046,7 +1057,7 @@ function OngletDocuments({ orgId, fiche, fermer }: { orgId: string; fiche: Fiche
         </ul>
       )}
       <Link
-        href={locataire ? `/locataire/${orgId}/documents` : `/agence/${orgId}/documents?sel=depot`}
+        href={locataire ? `/locataire/${orgId}/documents` : `${base}/documents?sel=depot`}
         onNavigate={fermer}
         className={buttonVariants({ variant: "outline", size: "sm" })}
       >

@@ -194,7 +194,9 @@ describe("le parcours de démarrage mène au premier loyer encaissé", async () 
     const html = renderToStaticMarkup(el!);
     expect(html).toContain("5 / 6");
     expect(html).toContain("Le premier loyer encaissé");
-    expect(html).toContain('href="/agence/org/loyers"');
+    // Décision D27 : chez le propriétaire direct, le parcours mène à /espace/<id>.
+    expect(html).toContain('href="/espace/org/loyers"');
+    expect(html).not.toContain('href="/agence/');
     expect(html).not.toContain("rien à lancer");
     expect(html).toContain("déclarer chaque encaissement");
   });

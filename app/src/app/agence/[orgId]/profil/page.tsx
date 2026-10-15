@@ -15,6 +15,7 @@ import {
 } from "@/lib/parrainage";
 import { eur } from "@/lib/ged";
 import { adresseDuSite } from "@/lib/site";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Profil — Gerimmo" };
 
@@ -29,6 +30,8 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   const { orgId } = await props.params;
   const { retour } = await props.searchParams;
   const { supabase, role, estProprietaire, organisation } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   const responsable = ROLES_RESPONSABLES.includes(role);
   const titre = estProprietaire ? "Mon profil" : "Profil de l'agence";
   // 24/09 : côté agence, la barre latérale et la barre haute nomment déjà
@@ -133,7 +136,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
 
       {retour === "nouveau-lot" && estProprietaire && <div className="rounded-xl border bg-card p-4 text-sm">
         <p>Complétez et enregistrez votre profil pour reprendre l’ajout de votre logement.</p>
-        <Link href={`/agence/${orgId}/parc/nouveau`} className="mt-2 inline-flex min-h-11 items-center font-semibold underline">Reprendre la création du lot →</Link>
+        <Link href={`${base}/parc/nouveau`} className="mt-2 inline-flex min-h-11 items-center font-semibold underline">Reprendre la création du lot →</Link>
       </div>}
       <div className={estProprietaire ? "space-y-4" : "loc-carte"}>
         <div className={estProprietaire ? "sr-only" : "entete-carte"}>

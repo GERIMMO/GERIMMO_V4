@@ -13,6 +13,7 @@ import {
   type EntreeNav,
   type NavigationEspace,
 } from "@/lib/navigation-espace";
+import { RACINE_AGENCE } from "@/lib/racine-espace";
 
 /**
  * LA BARRE LATÉRALE v4 — une seule pour les trois rôles de l'espace agence.
@@ -63,6 +64,7 @@ export type OrganisationDuSelecteur = { id: string; nom: string };
 
 export function BarreLaterale({
   orgId,
+  racine,
   espace,
   navigation,
   organisations = [],
@@ -70,6 +72,8 @@ export function BarreLaterale({
   marque,
 }: {
   orgId: string;
+  /** La racine des adresses de cet espace (décision D27) : « /espace » pour le propriétaire direct, « /agence » sinon. */
+  racine: string;
   /** Le mot sous la marque : « Espace agence », « Mon espace ». */
   espace: string;
   navigation: NavigationEspace;
@@ -96,7 +100,7 @@ export function BarreLaterale({
   return (
     <>
       <div className="coquille-marque">
-        <Link href={`/agence/${orgId}`} aria-label="Accueil" className="flex min-w-0 max-w-full items-center gap-2.5 overflow-hidden">
+        <Link href={`${racine}/${orgId}`} aria-label="Accueil" className="flex min-w-0 max-w-full items-center gap-2.5 overflow-hidden">
           <MarqueOrganisation marque={{ nom_portail: marque?.nom, logo_url: marque?.logoUrl }} />
         </Link>
       </div>
@@ -109,7 +113,7 @@ export function BarreLaterale({
           <select
             id="selecteur-organisation"
             value={orgId}
-            onChange={(ev) => router.push(`/agence/${ev.target.value}`)}
+            onChange={(ev) => router.push(`${racine}/${ev.target.value}`)}
             className="w-full rounded-lg border border-[var(--trait)] bg-[var(--surface)] px-2 py-1.5 text-[12.5px] text-[var(--texte)]"
           >
             {organisations.map((o) => (
@@ -181,11 +185,14 @@ export function BarreBasse({
   espace,
   navigation,
   orgId,
+  racine = RACINE_AGENCE,
   organisations = [],
 }: {
   espace: string;
   navigation: NavigationEspace;
   orgId?: string;
+  /** La racine des adresses de cet espace (décision D27) ; sans objet quand il n'y a pas d'organisation à choisir. */
+  racine?: string;
   /** Sur téléphone, la bascule SCI / nom propre vit dans le tiroir « Menu » (24/09). */
   organisations?: OrganisationDuSelecteur[];
 }) {
@@ -253,7 +260,7 @@ export function BarreBasse({
                 value={orgId}
                 onChange={(ev) => {
                   setOuvert(false);
-                  router.push(`/agence/${ev.target.value}`);
+                  router.push(`${racine}/${ev.target.value}`);
                 }}
                 className="w-full rounded-lg border border-[var(--trait)] bg-[var(--surface)] px-2 py-1.5 text-[12.5px] text-[var(--texte)]"
               >
@@ -272,7 +279,7 @@ export function BarreBasse({
             {/* L'aide, en dernier et à part de l'espace (24/09) : le rond
                 flottant mordait les champs et les montants alignés à droite. */}
             <div className="mt-1 border-t border-[var(--trait-doux)] pt-1">
-              <LienAssistance destination={toutes.find(e => e.href === `/agence/${orgId}/faq`)?.href} onClick={() => setOuvert(false)}>
+              <LienAssistance destination={toutes.find(e => e.href === `${racine}/${orgId}/faq`)?.href} onClick={() => setOuvert(false)}>
                 <Icone nom="quest" />
                 <span className="lib">Aide et retours</span>
               </LienAssistance>

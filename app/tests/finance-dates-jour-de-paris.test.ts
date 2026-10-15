@@ -17,6 +17,9 @@
  * veille du jour de Paris). Toutes les dates attendues se calculent depuis le jour de Paris : le test ne dépend pas de l'heure à
  * laquelle il tourne. Transaction annulée à la fin de chaque cas.
  *
+ * La quittance émise par « Encaisser » (resynchroniser_quittances, et le défaut de quittances.date_emission) porte le même jour que le règlement
+ * qu'elle atteste (constat de relecture du 15/10 : elle gardait le jour de la session, donc la veille du règlement de minuit à 2 h à Paris).
+ *
  * Limite connue de cette méthode : elle ne voit pas un fuseau FIGÉ dans la définition (« now() at time zone 'UTC' » donne le jour de
  * Paris sauf de 22 h à 24 h UTC). Le dernier bloc compare donc aussi le texte des définitions à l'expression attendue.
  */
@@ -151,6 +154,54 @@ describe.skipIf(!url)("Le jour de Paris, quel que soit le fuseau de la session (
       });
     });
 
+    // Constat de relecture du 15/10 : resynchroniser_quittances datait la quittance de CURRENT_DATE (jour de la session) et la colonne
+    // date_emission avait le même défaut. Après « Encaisser », le règlement et la pièce portaient le jour de Paris, la quittance la veille :
+    // « Fait à … le <veille> » pour un versement daté du lendemain.
+    it.each(FUSEAUX)("fuseau %s : la quittance émise par « Encaisser » est datée du jour de Paris, comme le règlement qu'elle atteste", async (nom) => {
+      const { appels } = await troisTermes();
+      const paris = await jourParis(0);
+      await sansTrace(async () => {
+        await fuseau(nom);
+        await identite(utilisateur);
+        await encaisser(appels[0]);
+        await identite(null);
+        const quittances = (await db.query("select date_emission::text as jour, est_quittance, montant::float as montant from public.quittances where bail_id = $1", [bail])).rows;
+        expect(quittances).toEqual([{ jour: paris, est_quittance: true, montant: 500 }]);
+        const paiement = (await db.query("select date_paiement::text as jour from public.encaissements where bail_id = $1", [bail])).rows;
+        expect(paiement).toEqual([{ jour: paris }]);
+      });
+    });
+
+    it.each(FUSEAUX)("fuseau %s : un reçu qui devient quittance (paiement complété) est redaté du jour de Paris", async (nom) => {
+      const { appels } = await troisTermes();
+      const paris = await jourParis(0);
+      await sansTrace(async () => {
+        await fuseau(nom);
+        // Un paiement partiel : un reçu (pas une quittance), daté du jour de Paris.
+        await db.query("insert into public.encaissements(organization_id,bail_id,montant,date_paiement) values($1,$2,200,$3::date)", [org, bail, paris]);
+        const recu = (await db.query("select date_emission::text as jour, est_quittance from public.quittances where bail_id = $1", [bail])).rows;
+        expect(recu).toEqual([{ jour: paris, est_quittance: false }]);
+        // Le reçu est vieilli : seule la réémission peut le ramener au jour de Paris.
+        await db.query("update public.quittances set date_emission = date_emission - 7 where bail_id = $1", [bail]);
+        await identite(utilisateur);
+        const { rows: [{ resultat }] } = await db.query("select public.encaisser_reste_atomique($1,$2,$3,$4,300,0) as resultat", [org, bail, appels[0], randomUUID()]);
+        expect(resultat).toMatchObject({ statut: "enregistre", montant: 300 });
+        await identite(null);
+        const quittances = (await db.query("select date_emission::text as jour, est_quittance, montant::float as montant from public.quittances where bail_id = $1", [bail])).rows;
+        expect(quittances).toEqual([{ jour: paris, est_quittance: true, montant: 500 }]);
+      });
+    });
+
+    it.each(FUSEAUX)("fuseau %s : la date d'émission par défaut d'une quittance est le jour de Paris", async (nom) => {
+      const { appels } = await troisTermes();
+      const paris = await jourParis(0);
+      await sansTrace(async () => {
+        await fuseau(nom);
+        const { rows } = await db.query("insert into public.quittances(organization_id,bail_id,appel_id,est_quittance,montant) values($1,$2,$3,true,500) returning date_emission::text as jour", [org, bail, appels[0]]);
+        expect(rows, nom).toEqual([{ jour: paris }]);
+      });
+    });
+
     it("le règlement n'est jamais daté du futur : le contrôle de l'application (jour de Paris) l'accepte toujours", async () => {
       const { appels } = await troisTermes();
       for (const nom of FUSEAUX) {
@@ -166,8 +217,11 @@ describe.skipIf(!url)("Le jour de Paris, quel que soit le fuseau de la session (
     });
   });
 
-  describe("plus aucun jour de session dans « Encaisser »", () => {
-    it.each(["public.encaisser_reste_atomique(uuid,uuid,uuid,uuid,numeric,numeric)"])("%s : le jour de Paris, écrit en toutes lettres", async (signature) => {
+  describe("plus aucun jour de session dans « Encaisser » ni dans l'émission des quittances", () => {
+    it.each([
+      "public.encaisser_reste_atomique(uuid,uuid,uuid,uuid,numeric,numeric)",
+      "public.resynchroniser_quittances(uuid)",
+    ])("%s : le jour de Paris, écrit en toutes lettres", async (signature) => {
       const { rows } = await db.query("select pg_get_functiondef($1::text::regprocedure) as def", [signature]);
       const def: string = rows[0].def;
       expect(def).not.toMatch(/current_date/i);
@@ -179,12 +233,26 @@ describe.skipIf(!url)("Le jour de Paris, quel que soit le fuseau de la session (
       expect(def).toContain("Décision X13 du 15/10 (FIN-13)");
     });
 
-    it("les droits ne bougent pas : « Encaisser » n'est pas ouverte à anon, ouverte aux comptes connectés", async () => {
+    it("le défaut de la colonne date_emission est le jour de Paris, lui aussi écrit en toutes lettres", async () => {
+      const { rows } = await db.query(
+        "select pg_get_expr(d.adbin, d.adrelid) as expr from pg_attrdef d join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum where d.adrelid = 'public.quittances'::regclass and a.attname = 'date_emission'"
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0].expr).toContain("Europe/Paris");
+      expect(rows[0].expr).not.toMatch(/current_date/i);
+      expect(rows[0].expr).not.toMatch(/'UTC'/i);
+    });
+
+    it("les droits ne bougent pas : « Encaisser » n'est pas ouverte à anon, ouverte aux comptes connectés ; l'émission des quittances reste interne", async () => {
       const droit = async (role: string, signature: string) =>
         (await db.query("select has_function_privilege($1, $2::text::regprocedure, 'execute') as ok", [role, signature])).rows[0].ok;
-      const signature = "public.encaisser_reste_atomique(uuid,uuid,uuid,uuid,numeric,numeric)";
-      expect(await droit("anon", signature)).toBe(false);
-      expect(await droit("authenticated", signature)).toBe(true);
+      const encaisser = "public.encaisser_reste_atomique(uuid,uuid,uuid,uuid,numeric,numeric)";
+      expect(await droit("anon", encaisser)).toBe(false);
+      expect(await droit("authenticated", encaisser)).toBe(true);
+      const quittances = "public.resynchroniser_quittances(uuid)";
+      expect(await droit("anon", quittances)).toBe(false);
+      expect(await droit("authenticated", quittances)).toBe(false);
+      expect(await droit("service_role", quittances)).toBe(true);
     });
   });
 

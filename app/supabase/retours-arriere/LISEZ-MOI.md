@@ -28,6 +28,7 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 | `20261014310000_artisan_facture_numero_unique.retour.sql` | `20261014310000_artisan_facture_numero_unique.sql` (D24-B, ARC-04) | 1 bloc retiré de `artisan_externe_ecrire`, 1 index unique supprimé, 1 ligne d'historique (voir la section « Lot artisan-externe » plus bas) |
 | `20261014311000_artisan_exclusion_ecritures.retour.sql` | `20261014311000_artisan_exclusion_ecritures.sql` (D25-B, ARC-08) | 1 bloc retiré de `artisan_externe_ecrire`, 1 clé retirée de `mon_activite_artisan_privee`, 1 fonction supprimée, 1 ligne d'historique |
 | `20261014330000_creation_fiche_personne_cle.retour.sql` | `20261014330000_creation_fiche_personne_cle.sql` (décision D31) | 1 colonne facultative (`persons.creation_cle`), 1 index unique partiel, 1 ligne d'historique ; aucune fonction. À jouer **après** avoir remis en production le code d'avant la décision D31 (il écrit cette colonne à chaque création de fiche depuis l'assistant). Aucune fiche n'est supprimée, seules les clés d'idempotence disparaissent. Il affiche son propre état « migrée (B) / antérieure (A) » à la fin (essayé : simulation, exécution, rejeu, refus dans un lot, marche avant). |
+| `20261014416000_quittance_jour_de_paris.retour.sql` | `20261014416000_quittance_jour_de_paris.sql` (X13, FIN-13, constat de relecture du 15/10) | 1 fonction rétablie (`resynchroniser_quittances`, datée du jour de la session), le défaut de la colonne `quittances.date_emission` remis à `CURRENT_DATE`, 1 ligne d'historique. Réintroduit : de minuit à 2 h à Paris, la quittance émise après « Encaisser » porte la veille du règlement qu'elle atteste. Aucune quittance redatée. |
 | `20261014415000_reprise_soldes_au_centime.retour.sql` | `20261014415000_reprise_soldes_au_centime.sql` (X09, FIN-03, constat de relecture du 15/10) | 1 fonction rétablie (`reprendre_soldes`, sans le contrôle « au centime près » ni le refus de NaN/Infinity), 1 ligne d'historique. Réintroduit : le contrôle d'une reprise peut annoncer « Prêt à reprendre. » pour une ligne à trois décimales que la bascule refusera (message générique). Aucune donnée touchée. |
 | `20261014414000_encaissements_montant_fini.retour.sql` | `20261014414000_encaissements_montant_fini.sql` (X09, FIN-03, constat de relecture du 15/10) | 1 contrainte supprimée (`encaissements_montant_fini_check`, posée NOT VALID), 1 ligne d'historique ; aucune fonction. La contrainte de centime n'est pas touchée. Dit combien d'encaissements sont NaN ou Infinity avant de la retirer. Réintroduit : un encaissement « NaN » écrit par requête directe solde un loyer et génère une quittance. Aucune donnée touchée. |
 | `20261014413000_encaissement_plancher_honoraires.retour.sql` | `20261014413000_encaissement_plancher_honoraires.sql` (X14, PR178-B-03) | 1 fonction rétablie (`ecrire_encaissement()` sans le plancher d'honoraires), 1 ligne d'historique. Réintroduit : un encaissement trop petit pour porter des honoraires (0,01 € à 7 %) est de nouveau refusé par la contrainte des écritures, avec le message générique. Aucune donnée touchée. |
@@ -370,8 +371,8 @@ définitions et droits **identiques** à l'état A ; marche avant (migrations re
 
 ## Lot « finance-dates » — migrations du 14 octobre 2026 (X13, X09, X14)
 
-Cinq migrations (plage `20261014410000` à `20261014419999`), cinq retours dans ce dossier. Même procédure que ci-dessus (préparer, simuler, exécuter, vérifier,
-consigner). **Ordre des retours : l'inverse des migrations** (415000, 414000, 413000, 412000, 410000) ; les cinq sont indépendants (aucune fonction partagée), l'ordre
+Six migrations (plage `20261014410000` à `20261014419999`), six retours dans ce dossier. Même procédure que ci-dessus (préparer, simuler, exécuter, vérifier,
+consigner). **Ordre des retours : l'inverse des migrations** (416000, 415000, 414000, 413000, 412000, 410000) ; les six sont indépendants (aucune fonction partagée), l'ordre
 est une habitude, pas une contrainte.
 
 | Migration | Ajoute | Le retour rétablit |
@@ -381,6 +382,7 @@ est une habitude, pas une contrainte.
 | `20261014413000` (X14, PR178-B-03) | `ecrire_encaissement` refuse un encaissement dont les honoraires seraient arrondis à 0,00 €, avec le montant minimal (marque `Décision X14 du 15/10 (PR178-B-03)`) | la définition d'avant (aucun plancher) |
 | `20261014414000` (X09, constat de relecture du 15/10) | la contrainte `encaissements_montant_fini_check` (`montant <> 'NaN' and montant <> 'Infinity'`), posée **NOT VALID**, en plus de la contrainte de centime | rien à rétablir : la contrainte est supprimée (celle du centime reste) |
 | `20261014415000` (X09, constat de relecture du 15/10) | `reprendre_soldes` refuse dès le contrôle toute ligne dont le montant n'est pas au centime près (« Montant au centime près : … ») et tout montant NaN/Infinity (« illisible ») ; marque `Décision X09 du 15/10 (FIN-03, reprise de soldes)` | la définition d'avant (aucun contrôle du centime) |
+| `20261014416000` (X13, constat de relecture du 15/10) | `resynchroniser_quittances` date l'émission (quittance, reçu réémis) de `(now() at time zone 'Europe/Paris')::date` (marque `Décision X13 du 15/10 (FIN-13)`, deux fois) ; le défaut de `quittances.date_emission` devient le même jour | la définition d'avant (`current_date`) et le défaut `CURRENT_DATE` |
 
 **Élargissement retiré du lot (constat de relecture du 15/10, non ratifié).** Une migration `20261014411000` faisait aussi lire « échu » au jour de Paris dans
 `etat_loyers_bail_brut`, `fiche_lot` et `contrats_du_lot`. La décision X13 ne demande que la date de « Encaisser » ; cette migration changeait le moment où un loyer passe
@@ -393,7 +395,9 @@ sur le jour de la session : de 22 h à 24 h UTC, l'écran aurait dit « impayé 
 **Aucune donnée n'est réécrite**, ni par les migrations ni par les retours : aucun encaissement, aucune écriture, aucun appel de loyer n'est modifié. La contrainte
 NOT VALID ne relit pas les lignes existantes (le relevé de production du 13/10 en compte zéro hors centime) ; elle s'applique aux insertions et modifications à venir.
 Les règlements déjà enregistrés la veille d'un jour de création entre 22 h et 24 h UTC (FIN-13) se repèrent par la requête de contrôle de la fiche (lecture seule) ; les
-corriger relève d'une décision écrite du dirigeant.
+corriger relève d'une décision écrite du dirigeant. Il en va de même des quittances déjà émises dans cette fenêtre avec la date de la veille (`20261014416000` ne date que les émissions
+à venir) : aucune clé ne relie la date d'émission d'une quittance à celle du règlement qui l'a produite, donc pas de relevé automatique fiable ; un relevé à la main, approximatif, compare `quittances.date_emission`
+au `date_paiement` des encaissements du même bail enregistrés à la même minute que la quittance (`created_at`).
 
 **Méthode.** Les migrations relisent la définition en vigueur (`pg_get_functiondef`), remplacent une ancre et s'arrêtent si elle est absente ou répétée ; elles se
 rejouent sans effet (la marque dit que c'est fait). Les retours **recopient** la définition d'avant, extraite d'une base reconstruite sans la migration (générateur,
@@ -410,8 +414,11 @@ select position('Décision X13 du 15/10 (FIN-13)' in pg_get_functiondef('public.
        exists (select 1 from pg_constraint where conname = 'encaissements_montant_centime_check') as x09_contrainte,
        exists (select 1 from pg_constraint where conname = 'encaissements_montant_fini_check') as x09_contrainte_finie,
        position('Décision X14 du 15/10 (PR178-B-03)' in pg_get_functiondef('public.ecrire_encaissement()'::regprocedure)) > 0 as x14_plancher,
-       position('Décision X09 du 15/10 (FIN-03, reprise de soldes)' in pg_get_functiondef('public.reprendre_soldes(uuid,uuid,jsonb,boolean)'::regprocedure)) > 0 as x09_reprise;
-select version from supabase_migrations.schema_migrations where version in ('20261014410000', '20261014412000', '20261014413000', '20261014414000', '20261014415000') order by 1;
+       position('Décision X09 du 15/10 (FIN-03, reprise de soldes)' in pg_get_functiondef('public.reprendre_soldes(uuid,uuid,jsonb,boolean)'::regprocedure)) > 0 as x09_reprise,
+       position('Décision X13 du 15/10 (FIN-13)' in pg_get_functiondef('public.resynchroniser_quittances(uuid)'::regprocedure)) > 0 as x13_quittances,
+       (select pg_get_expr(d.adbin, d.adrelid) like '%Europe/Paris%' from pg_attrdef d join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum
+         where d.adrelid = 'public.quittances'::regclass and a.attname = 'date_emission') as x13_defaut_emission;
+select version from supabase_migrations.schema_migrations where version in ('20261014410000', '20261014412000', '20261014413000', '20261014414000', '20261014415000', '20261014416000') order by 1;
 ```
 
 Avant de valider les contraintes (`alter table public.encaissements validate constraint encaissements_montant_centime_check`, puis `… encaissements_montant_fini_check` ; décision du dirigeant, hors de ces scripts),
@@ -422,7 +429,7 @@ sans quoi la validation échoue (aucune donnée n'est alors modifiée).
 **Hors périmètre, à décider par le dirigeant :** la table `ecritures` (`montant > 0`) accepte elle aussi « NaN » par une requête directe d'un compte connecté ; la contrainte de centime et la contrainte
 « fini » ne portent que sur `encaissements`, comme la décision X09. Les étendre aux écritures est une décision à part (la fiche FIN-03 citait aussi `ecritures.montant`).
 
-Essais du 15/10/2026 (base de banc jetable, copie de la base migrée) : refus de se jouer dans un lot ouvert ; les cinq retours, dans l'ordre inverse puis dans l'ordre des migrations → les trois définitions reviennent
+Essais du 15/10/2026 (base de banc jetable, copie de la base migrée) : refus de se jouer dans un lot ouvert ; les six retours, dans l'ordre inverse puis dans l'ordre des migrations → les quatre définitions reviennent
 **octet pour octet** à celles d'avant les migrations (empreinte md5 comparée aux définitions extraites avant), la contrainte disparaît ; rejeu des retours sans effet ; marche avant → l'état
 migré (définitions, droits, contrainte) est retrouvé à l'identique ; rejeu des migrations sans effet. Les tests `tests/finance-dates-rejeu.test.ts` (rejeu, définitions inattendues, corps des
 retours, cohérence des marques), `tests/finance-dates-jour-de-paris.test.ts` (X13) et `tests/finance-dates-centime-plancher.test.ts` (X09, X14) couvrent le reste. Limites : base de banc,

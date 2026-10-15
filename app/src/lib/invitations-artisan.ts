@@ -131,8 +131,10 @@ export type EtatLigneCarnet = {
 
 /**
  * L'état lisible d'une ligne du carnet. Avant l'acceptation, c'est l'état de l'invitation ; après, celui de l'artisan
- * (validation de Gerimmo, relation dans le carnet). « Validé — peut être sollicité » ne s'affiche que si Gerimmo l'a
- * validé, SIRET vérifié et sans exclusion.
+ * (validation de Gerimmo, relation dans le carnet). « Validé » ne s'affiche que si Gerimmo l'a validé, SIRET vérifié et
+ * sans exclusion ; il ne promet pas de sollicitation (seconde relecture du 15/10) : la zone et la décennale se jugent
+ * bien par bien, et la fiche de l'incident dit pourquoi un artisan n'y est pas proposé (`motifsCarnetPourBien`).
+ * Un échec d'envoi n'est jamais masqué par un envoi réussi plus ancien.
  */
 export function etatLigneCarnet(ligne: LigneCarnetArtisan): EtatLigneCarnet {
   const sans = { renvoyer: false, annuler: false, reinviter: false };
@@ -142,17 +144,26 @@ export function etatLigneCarnet(ligne: LigneCarnetArtisan): EtatLigneCarnet {
     if (ligne.statut_plateforme === "refuse") return { ...sans, libelle: "Inscription refusée par Gerimmo", ton: "alerte" };
     if (ligne.statut_plateforme === "valide") {
       return ligne.sollicitable_plateforme
-        ? { ...sans, libelle: "Validé — peut être sollicité", ton: "succes" }
+        ? { ...sans, libelle: "Validé", ton: "succes" }
         : { ...sans, libelle: "Ne peut pas être sollicité pour le moment", ton: "neutre" };
     }
     return { ...sans, libelle: "Inscrit, en attente de validation par Gerimmo", ton: "attente" };
   }
   switch (ligne.etat_invitation) {
     case "en_attente": {
-      const envoi = ligne.envoye_le
-        ? `Invitation envoyée le ${formaterDate(ligne.envoye_le)}`
-        : `Invitation enregistrée le ${formaterDate(ligne.invite_le)}, e-mail non envoyé`;
-      return { libelle: envoi, ton: "attente", renvoyer: true, annuler: true, reinviter: false };
+      const gestes = { renvoyer: true, annuler: true, reinviter: false };
+      if (ligne.erreur_envoi) {
+        return {
+          ...gestes,
+          ton: "alerte",
+          libelle: ligne.envoye_le
+            ? `Invitation envoyée le ${formaterDate(ligne.envoye_le)}, mais le dernier envoi n’est pas parti`
+            : `Invitation enregistrée le ${formaterDate(ligne.invite_le)}, e-mail non envoyé`,
+        };
+      }
+      return ligne.envoye_le
+        ? { ...gestes, ton: "attente", libelle: `Invitation envoyée le ${formaterDate(ligne.envoye_le)}` }
+        : { ...gestes, ton: "attente", libelle: `Invitation enregistrée le ${formaterDate(ligne.invite_le)}, envoi non confirmé` };
     }
     case "expiree":
       return { ...sans, libelle: "Invitation expirée", ton: "neutre", reinviter: true };
@@ -165,6 +176,37 @@ export function etatLigneCarnet(ligne: LigneCarnetArtisan): EtatLigneCarnet {
     default:
       return { ...sans, libelle: "État inconnu", ton: "neutre" };
   }
+}
+
+/**
+ * Un artisan du carnet, vu pour UN bien (`carnet_artisans_bien`, 20261014848000) : les conditions de
+ * `artisan_affectable`, chacune lue au serveur (la zone par `zone_artisan_couvre`, la décennale par
+ * `artisan_decennale_valide`).
+ */
+export type ArtisanCarnetBien = {
+  artisan_id: string;
+  raison_sociale: string;
+  metiers: string[] | null;
+  sollicitable_plateforme: boolean;
+  relation_active: boolean;
+  zone_couvre: boolean;
+  decennale_valide: boolean;
+  code_postal: string | null;
+};
+
+/**
+ * Pourquoi cet artisan du carnet ne peut pas être sollicité pour ce bien et ces travaux (seconde relecture du 15/10) :
+ * NULL s'il n'exerce pas ce métier (il n'est pas concerné), [] s'il peut l'être. Les motifs reprennent une à une les
+ * conditions de `artisan_affectable` ; la fidélité est éprouvée dans invitation-artisan-proprietaire.test.ts.
+ */
+export function motifsCarnetPourBien(artisan: ArtisanCarnetBien, metier: string, decennaleExigee: boolean): string[] | null {
+  if (!(artisan.metiers ?? []).includes(metier)) return null;
+  const motifs: string[] = [];
+  if (!artisan.relation_active) motifs.push("désactivé dans votre carnet ou sur votre liste noire");
+  if (!artisan.sollicitable_plateforme) motifs.push("inscription pas validée par Gerimmo pour le moment");
+  if (!artisan.zone_couvre) motifs.push(`sa zone d’intervention ne couvre pas le ${artisan.code_postal ?? "code postal du bien"}`);
+  if (decennaleExigee && !artisan.decennale_valide) motifs.push("pas de garantie décennale valide, exigée pour ces travaux");
+  return motifs;
 }
 
 /** Ce que voit l'artisan sur la page de son invitation (`mon_invitation_artisan`). */

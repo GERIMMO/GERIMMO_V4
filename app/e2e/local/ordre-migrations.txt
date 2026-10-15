@@ -357,3 +357,4 @@
 20261014845000_invitation_artisan_soi_meme.sql
 20261014846000_invitation_artisan_annulation_suspendue.sql
 20261014847000_invitation_artisan_echeance_jour_paris.sql
+20261014848000_carnet_artisans_bien.sql

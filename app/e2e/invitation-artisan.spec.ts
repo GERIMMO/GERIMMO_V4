@@ -172,6 +172,10 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await expect(p.getByText("Le réseau d’artisans Gerimmo n’est pas encore disponible pour ce métier dans cette zone.")).toBeVisible();
     await expect(p.getByRole("link", { name: "Inviter un artisan" })).toHaveAttribute("href", `/agence/${ORG}/artisans#inviter-un-artisan`);
     await expect(p.getByRole("button", { name: "Ouvrir la mise en concurrence" })).toBeDisabled();
+    // Seconde relecture du 15/10 : la fiche dit pourquoi l'artisan du carnet n'est pas proposé pour ce bien.
+    const pourquoi = p.locator("li").filter({ hasText: raisonSociale }).filter({ hasText: "inscription pas validée par Gerimmo" });
+    await expect(p.getByText("Dans votre carnet, ne peuvent pas être sollicités pour ce bien :")).toBeVisible();
+    await expect(pourquoi).toBeVisible();
     await p.screenshot({ path: info.outputPath("4-proprietaire-avant-validation.png"), fullPage: true });
 
     // 6. Le super administrateur valide : la fiche dit d'où vient l'artisan.
@@ -195,7 +199,10 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
 
     // 7. Le propriétaire le sollicite, commune fermée, depuis son carnet.
     await p.goto(`/agence/${ORG}/artisans`);
-    await expect(p.locator("li").filter({ hasText: raisonSociale })).toContainText("Validé — peut être sollicité");
+    // « Validé », sans promesse : la zone et la décennale se jugent bien par bien (seconde relecture du 15/10).
+    const ligneValidee = p.locator("li").filter({ hasText: raisonSociale });
+    await expect(ligneValidee.getByText("Validé", { exact: true })).toBeVisible();
+    await expect(ligneValidee).not.toContainText("peut être sollicité");
     await p.goto(`/agence/${ORG}/incidents/${incident}`);
     await p.getByLabel("Métier recherché *").selectOption("plomberie");
     await p.getByLabel("Nature des travaux *").selectOption("entretien_courant");

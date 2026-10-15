@@ -635,3 +635,72 @@ describe.skipIf(!DB_URL)("échéance au jour de Paris — rejeu de 2026101484700
     expect(await defaut()).toEqual(migre);
   });
 });
+
+/**
+ * Seconde relecture du 15/10 : 20261014848000 crée la fonction de lecture `carnet_artisans_bien`. Rejouée, elle ne
+ * change rien ; son retour la supprime, se rejoue sans effet et refuse de se jouer dans un lot ; aller, retour, aller.
+ */
+const MIGRATION_CARNET_BIEN = readFileSync("supabase/migrations/20261014848000_carnet_artisans_bien.sql", "utf8");
+const RETOUR_CARNET_BIEN = readFileSync("supabase/retours-arriere/20261014848000_carnet_artisans_bien.retour.sql", "utf8");
+
+describe.skipIf(!DB_URL)("carnet vu pour un bien — rejeu de 20261014848000 et retour arrière", () => {
+  let db: Client;
+  const empreinte = async () =>
+    (await db.query(
+      `select case when to_regprocedure('public.carnet_artisans_bien(uuid,uuid)') is null then 'absente'
+              else md5(pg_get_functiondef(to_regprocedure('public.carnet_artisans_bien(uuid,uuid)'))) || ' ' ||
+                   coalesce((select proacl::text from pg_proc where oid = to_regprocedure('public.carnet_artisans_bien(uuid,uuid)')), '') end v`
+    )).rows[0].v as string;
+
+  beforeAll(async () => {
+    db = new Client({ connectionString: DB_URL });
+    await db.connect();
+    await db.query("begin");
+  });
+  afterAll(async () => {
+    await db?.query("rollback");
+    await db?.end();
+  });
+  beforeEach(async () => {
+    await db.query("savepoint cas");
+  });
+  afterEach(async () => {
+    await db.query("rollback to savepoint cas");
+    await db.query("release savepoint cas");
+  });
+
+  it("la base visée est migrée, et la fonction n'est ouverte qu'aux clients connectés", async () => {
+    expect(await empreinte()).not.toBe("absente");
+    const { rows } = await db.query("select has_function_privilege('anon','public.carnet_artisans_bien(uuid,uuid)','execute') a, has_function_privilege('authenticated','public.carnet_artisans_bien(uuid,uuid)','execute') c");
+    expect(rows[0]).toEqual({ a: false, c: true });
+  });
+
+  it("rejouée deux fois, la migration ne change rien", async () => {
+    const avant = await empreinte();
+    await db.query(MIGRATION_CARNET_BIEN);
+    await db.query(MIGRATION_CARNET_BIEN);
+    expect(await empreinte()).toBe(avant);
+  });
+
+  it("le retour refuse de se jouer dans un lot", async () => {
+    await db.query("savepoint essai");
+    let message = "";
+    try {
+      await db.query(RETOUR_CARNET_BIEN);
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    await db.query("rollback to savepoint essai");
+    expect(message).toMatch(/Retour arrière refusé/);
+  });
+
+  it("le retour supprime la fonction, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
+    const migre = await empreinte();
+    await db.query(sansEnveloppe(RETOUR_CARNET_BIEN));
+    expect(await empreinte()).toBe("absente");
+    await db.query(sansEnveloppe(RETOUR_CARNET_BIEN));
+    expect(await empreinte()).toBe("absente");
+    await db.query(MIGRATION_CARNET_BIEN);
+    expect(await empreinte()).toBe(migre);
+  });
+});

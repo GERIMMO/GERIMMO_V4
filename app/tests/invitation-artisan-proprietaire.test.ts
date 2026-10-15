@@ -683,7 +683,7 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect(await relation(artisan)).toEqual([{ statut: "actif", created_by: proprietaire, blacklist_le: null }]);
     });
 
-    // Relecture du 15/10 (mutants M21, M22) : « Validé — peut être sollicité » suit la barrière `artisan_affectable`.
+    // Relecture du 15/10 (mutants M21, M22) : « Validé » (sollicitable_plateforme) suit la barrière `artisan_affectable`.
     it("« peut être sollicité » exige aussi le SIRET vérifié et l'absence de liste noire de Gerimmo", async () => {
       const r = await inviter();
       const artisan = await inscrire();
@@ -818,6 +818,53 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
     await devenir(adminAgence);
     await db.query("select public.artisan_definir_metiers_zones($1, array['plomberie']::public.artisan_metier[], array['69003','75011','75012'])", [artisan]);
     expect((await profil()).zones).toEqual(["69003", "75011", "75012"]);
+  });
+
+  // Seconde relecture du 15/10 (20261014848000) : pour un bien, le carnet dit POURQUOI un artisan ne peut pas être
+  // sollicité (validation, zone, décennale, relation) ; les drapeaux suivent exactement `artisan_affectable`.
+  it("carnet d'un bien : zone, décennale, validation et relation, fidèles à artisan_affectable", async () => {
+    const r = await inviter();
+    const artisan = await inscrire();
+    expect(await repondre(r.id)).toEqual({ etat: "acceptee" });
+    await postgres();
+    const bienBordeaux = await id("insert into public.biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'Bien à Bordeaux','appartement','1 cours du Test','33000','Bordeaux') returning id", [org]);
+    const ligne = async (bien: string) => {
+      await devenir(proprietaire);
+      return (await db.query("select * from public.carnet_artisans_bien($1,$2) where artisan_id=$3", [org, bien, artisan])).rows[0];
+    };
+    expect(await ligne(bienParis)).toMatchObject({
+      raison_sociale: "Plomberie Invitée", metiers: ["plomberie"], sollicitable_plateforme: false, relation_active: true,
+      zone_couvre: true, decennale_valide: false, code_postal: "75011",
+    });
+    expect(await ligne(bienBordeaux)).toMatchObject({ zone_couvre: false, code_postal: "33000" });
+    // Validé, décennale déposée : les drapeaux suivent.
+    await devenir(invite);
+    await db.query(
+      "select public.deposer_ma_piece_artisan('decennale'::public.artisan_piece_type,$1,'application/pdf',2048,$2,current_date-10,current_date+300)",
+      [`artisans/${artisan}/decennale.pdf`, `empreinte-decennale-${artisan}`]
+    );
+    await postgres();
+    await db.query("update public.artisans set statut_plateforme='valide', siret_etat='verifie' where id=$1", [artisan]);
+    expect(await ligne(bienParis)).toMatchObject({ sollicitable_plateforme: true, zone_couvre: true, decennale_valide: true });
+    // Fidélité : « aucun motif » équivaut à artisan_affectable, pour chaque bien et chaque nature de travaux.
+    for (const bien of [bienParis, bienBordeaux]) {
+      for (const nature of ["entretien_courant", "gros_oeuvre"]) {
+        const l = await ligne(bien);
+        const sansMotif = l.relation_active && l.sollicitable_plateforme && l.metiers.includes("plomberie") && l.zone_couvre
+          && (nature === "entretien_courant" || l.decennale_valide);
+        await postgres();
+        const affectable = (await db.query("select public.artisan_affectable($1,$2,'plomberie',$3::public.nature_travaux,$4) a", [artisan, org, nature, l.code_postal])).rows[0].a;
+        expect(sansMotif, `${l.code_postal} ${nature}`).toBe(affectable);
+      }
+    }
+    await postgres();
+    await db.query("update public.artisan_agences set statut='desactive' where organization_id=$1 and artisan_id=$2", [org, artisan]);
+    expect(await ligne(bienParis)).toMatchObject({ relation_active: false });
+    // Étanchéité : ni un autre propriétaire, ni une agence, ni l'artisan.
+    for (const qui of [autreProprietaire, adminAgence, invite]) {
+      await devenir(qui);
+      expect(await echec("select * from public.carnet_artisans_bien($1,$2)", [org, bienParis])).toMatch(/Accès refusé/);
+    }
   });
 
   it("la zone de l'artisan reste exigée : un bien hors de ses codes postaux ne le propose pas", async () => {

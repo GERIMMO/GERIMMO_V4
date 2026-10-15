@@ -12,6 +12,8 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const m = vi.hoisted(() => ({ rpc: vi.fn(), getUser: vi.fn(), garde: vi.fn(), courriel: vi.fn(), revalidate: vi.fn() }));
@@ -35,9 +37,12 @@ import {
   etatLigneCarnet,
   lienInvitationArtisan,
   nomInvitant,
+  motifsCarnetPourBien,
   valableJusquAu,
+  type ArtisanCarnetBien,
   type LigneCarnetArtisan,
 } from "@/lib/invitations-artisan";
+import { CarnetNonSollicitable } from "@/components/carnet-non-sollicitable";
 import { messageInvitationArtisan } from "@/lib/notifications";
 
 const org = "11111111-1111-4111-8111-111111111111";
@@ -364,7 +369,13 @@ describe("l'état lisible d'une ligne du carnet", () => {
 
   it("avant l'acceptation : l'état de l'invitation, et les gestes possibles", () => {
     expect(etatLigneCarnet(base)).toMatchObject({ libelle: "Invitation envoyée le 15/10/2026", renvoyer: true, annuler: true });
-    expect(etatLigneCarnet({ ...base, envoye_le: null, erreur_envoi: true }).libelle).toBe("Invitation enregistrée le 15/10/2026, e-mail non envoyé");
+    expect(etatLigneCarnet({ ...base, envoye_le: null, erreur_envoi: true })).toMatchObject({ libelle: "Invitation enregistrée le 15/10/2026, e-mail non envoyé", ton: "alerte" });
+    // Seconde relecture du 15/10 : un échec d'envoi n'est jamais masqué par un envoi réussi plus ancien.
+    expect(etatLigneCarnet({ ...base, erreur_envoi: true })).toMatchObject({
+      libelle: "Invitation envoyée le 15/10/2026, mais le dernier envoi n’est pas parti", ton: "alerte", renvoyer: true,
+    });
+    // Ni un envoi dont la trace manque présenté comme un échec : la base ne sait pas.
+    expect(etatLigneCarnet({ ...base, envoye_le: null, erreur_envoi: false }).libelle).toBe("Invitation enregistrée le 15/10/2026, envoi non confirmé");
     expect(etatLigneCarnet({ ...base, etat_invitation: "expiree" })).toMatchObject({ libelle: "Invitation expirée", reinviter: true, renvoyer: false });
     expect(etatLigneCarnet({ ...base, etat_invitation: "annulee" })).toMatchObject({ libelle: "Annulée", reinviter: true });
     expect(etatLigneCarnet({ ...base, etat_invitation: "refusee" })).toMatchObject({ libelle: "Invitation refusée par l’artisan", reinviter: false });
@@ -372,12 +383,60 @@ describe("l'état lisible d'une ligne du carnet", () => {
 
   it("après l'acceptation : la validation de Gerimmo, puis la relation", () => {
     expect(etatLigneCarnet({ ...artisan, statut_plateforme: "en_attente" }).libelle).toBe("Inscrit, en attente de validation par Gerimmo");
-    expect(etatLigneCarnet({ ...artisan, statut_plateforme: "valide", sollicitable_plateforme: true }).libelle).toBe("Validé — peut être sollicité");
+    // Seconde relecture du 15/10 : « Validé », sans promettre une sollicitation que la zone ou la décennale d'un bien
+    // peuvent refuser (l'explication est donnée par bien, dans la fiche de l'incident).
+    expect(etatLigneCarnet({ ...artisan, statut_plateforme: "valide", sollicitable_plateforme: true }).libelle).toBe("Validé");
     expect(etatLigneCarnet({ ...artisan, statut_plateforme: "valide", sollicitable_plateforme: false }).libelle).toBe("Ne peut pas être sollicité pour le moment");
     expect(etatLigneCarnet({ ...artisan, statut_plateforme: "refuse" }).libelle).toBe("Inscription refusée par Gerimmo");
     expect(etatLigneCarnet({ ...artisan, statut_plateforme: "valide", sollicitable_plateforme: true, relation_statut: "desactive" }).libelle).toBe("Désactivé dans votre carnet");
     expect(etatLigneCarnet({ ...artisan, statut_plateforme: "valide", sollicitable_plateforme: true, liste_noire: true }).libelle).toBe("Sur votre liste noire");
     expect(etatLigneCarnet({ ...artisan, statut_plateforme: "valide" })).toMatchObject({ renvoyer: false, annuler: false, reinviter: false });
+  });
+});
+
+describe("pour un bien : pourquoi un artisan du carnet ne peut pas être sollicité", () => {
+  const sollicitable: ArtisanCarnetBien = {
+    artisan_id: "a1", raison_sociale: "Plomberie Martin", metiers: ["plomberie"], sollicitable_plateforme: true,
+    relation_active: true, zone_couvre: true, decennale_valide: true, code_postal: "33000",
+  };
+
+  it("chaque condition non remplie a son motif ; aucune : il peut l'être ; autre métier : il n'est pas concerné", () => {
+    expect(motifsCarnetPourBien(sollicitable, "plomberie", true)).toEqual([]);
+    expect(motifsCarnetPourBien(sollicitable, "electricite", true)).toBeNull();
+    expect(motifsCarnetPourBien({ ...sollicitable, zone_couvre: false }, "plomberie", false)).toEqual([
+      "sa zone d’intervention ne couvre pas le 33000",
+    ]);
+    expect(motifsCarnetPourBien({ ...sollicitable, decennale_valide: false }, "plomberie", true)).toEqual([
+      "pas de garantie décennale valide, exigée pour ces travaux",
+    ]);
+    expect(motifsCarnetPourBien({ ...sollicitable, decennale_valide: false }, "plomberie", false)).toEqual([]);
+    expect(motifsCarnetPourBien({ ...sollicitable, sollicitable_plateforme: false, relation_active: false }, "plomberie", false)).toEqual([
+      "désactivé dans votre carnet ou sur votre liste noire",
+      "inscription pas validée par Gerimmo pour le moment",
+    ]);
+  });
+
+  it("l'encart nomme chaque artisan du métier qui ne peut pas l'être, et se tait sinon", () => {
+    const html = renderToStaticMarkup(createElement(CarnetNonSollicitable, {
+      artisans: [sollicitable, { ...sollicitable, artisan_id: "a2", raison_sociale: "Toitures Durand", zone_couvre: false, decennale_valide: false },
+        { ...sollicitable, artisan_id: "a3", raison_sociale: "Élec Dupont", metiers: ["electricite"], zone_couvre: false }],
+      metier: "plomberie",
+      decennaleExigee: true,
+    }));
+    expect(html).toContain("ne peuvent pas être sollicités pour ce bien");
+    expect(html).toContain("Toitures Durand");
+    expect(html).toContain("sa zone d’intervention ne couvre pas le 33000 ; pas de garantie décennale valide, exigée pour ces travaux");
+    expect(html).not.toContain("Plomberie Martin");
+    expect(html).not.toContain("Élec Dupont");
+    expect(renderToStaticMarkup(createElement(CarnetNonSollicitable, { artisans: [sollicitable], metier: "plomberie", decennaleExigee: true }))).toBe("");
+  });
+
+  it("la fiche de l'incident du propriétaire lit ces motifs au serveur, pour le formulaire et pour la liste", () => {
+    const volet = readFileSync(path.resolve(__dirname, "..", "src/app/agence/[orgId]/incidents/volet-artisan.tsx"), "utf8");
+    expect(volet).toContain('rpc("carnet_artisans_bien"');
+    expect(volet.match(/<CarnetNonSollicitable/g)?.length ?? 0).toBeGreaterThanOrEqual(1);
+    const formulaire = readFileSync(path.resolve(__dirname, "..", "src/app/agence/[orgId]/incidents/formulaires-artisan.tsx"), "utf8");
+    expect(formulaire).toContain("<CarnetNonSollicitable");
   });
 });
 

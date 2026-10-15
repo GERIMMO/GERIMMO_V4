@@ -1,4 +1,6 @@
 import { MessageReseau, InteretReseau } from "@/components/disponibilite-reseau";
+import { CarnetNonSollicitable } from "@/components/carnet-non-sollicitable";
+import type { ArtisanCarnetBien } from "@/lib/invitations-artisan";
 import type { DisponibiliteReseau } from "@/lib/reseau";
 import { descriptionDevisLisible, libelleQuantite, libelleTauxTva, type LigneDevisCalculee } from "@/lib/devis-structure";
 import Link from "next/link";
@@ -429,6 +431,15 @@ export async function VoletArtisan({
     if (error) erreurAffectables = error.message;
   }
   const noteDe = new Map(affectables.map((a) => [a.artisan_id, a]));
+  // Seconde relecture du 15/10 (invitation d'artisan) : pour un propriétaire, les artisans de son carnet qui ne peuvent
+  // pas être sollicités pour CE bien, et pourquoi (zone, décennale, validation, relation), lus au serveur.
+  let carnetBien: ArtisanCarnetBien[] | null = null;
+  let erreurCarnetBien = false;
+  if (estProprietaire && bienId) {
+    const { data, error } = await supabase.rpc("carnet_artisans_bien", { p_org: orgId, p_bien: bienId });
+    if (error) erreurCarnetBien = true;
+    else carnetBien = (data ?? []) as ArtisanCarnetBien[];
+  }
 
   const lecturesManquees = [
     erreurConsultations && "les mises en concurrence",
@@ -441,6 +452,7 @@ export async function VoletArtisan({
     erreurEvaluations && "les notes déjà données",
     erreurArtisans && "les fiches des artisans",
     erreurAffectables && "les artisans proposables",
+    erreurCarnetBien && "les artisans de votre carnet pour ce bien",
     etatsReseau.error && "la disponibilité du réseau pour ce bien",
     erreurAlerteRevision && "la révision d'imputation en attente",
     erreurAvenants && "les demandes de dépassement de devis",
@@ -851,6 +863,7 @@ export async function VoletArtisan({
           nom={nom}
           aujourdhui={aujourdhui}
           commune={disponibiliteOuverte?.commune_nom ?? null}
+          carnetBien={carnetBien}
         />
         </div>
       )}
@@ -875,6 +888,7 @@ export async function VoletArtisan({
               bienId={bienId}
               disponibilites={disponibilites}
               estProprietaire={estProprietaire}
+              carnetBien={carnetBien}
               categorieLibelle={
                 categorieIncident(categorie)?.libelle ?? titreIncident(categorie)
               }
@@ -912,6 +926,7 @@ export function ConsultationOuverte({
   nom,
   aujourdhui,
   commune,
+  carnetBien = null,
 }: {
   orgId: string;
   consultation: Consultation;
@@ -922,6 +937,8 @@ export function ConsultationOuverte({
   nom: (id: string) => string;
   aujourdhui: string;
   commune: string | null;
+  /** Propriétaire seulement : son carnet vu pour ce bien (`carnet_artisans_bien`), pour dire qui n'est pas proposé. */
+  carnetBien?: ArtisanCarnetBien[] | null;
 }) {
   // RM-9.1.1 : deux au maximum EN PARALLÈLE — ce sont les sollicitations
   // vivantes qui comptent, pas celles qu'un artisan a déclinées. D18 (livraison 2) : une demande en révision
@@ -1345,6 +1362,15 @@ export function ConsultationOuverte({
               travaux l&apos;exigent. Un artisan absent d&apos;ici ne peut pas
               être sollicité.
             </p>
+            {carnetBien && (
+              <div className="mt-2">
+                <CarnetNonSollicitable
+                  artisans={carnetBien}
+                  metier={consultation.metier}
+                  decennaleExigee={consultation.decennale_requise}
+                />
+              </div>
+            )}
           </div>
         )}
       </CardContent>

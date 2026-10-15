@@ -145,7 +145,12 @@ function acces(role: string, reponses: Record<string, Reponse>) {
 }
 const rendreParc = async () => renderToStaticMarkup(await PageParc({ params: Promise.resolve({ orgId: "org-1" }), searchParams: Promise.resolve({}) } as never));
 const rendreNouveau = async () => renderToStaticMarkup(await PageNouveauBien({ params: Promise.resolve({ orgId: "org-1" }) } as never));
-const liens = (html: string) => [...html.matchAll(/<a [^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g)].map((m) => ({ href: m[1].replaceAll("&amp;", "&"), texte: m[2].replace(/<[^>]*>/g, "").trim() }));
+// La racine des adresses (« /agence » ; « /espace » pour un propriétaire direct une fois la décision D27 en place) n'est
+// pas l'objet de ces tests, qui disent OÙ mène chaque bouton : elle est ramenée à « /agence ». D27 a ses propres tests.
+const liens = (html: string) => [...html.matchAll(/<a [^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g)].map((m) => ({
+  href: m[1].replaceAll("&amp;", "&").replace(/^\/espace\//, "/agence/"),
+  texte: m[2].replace(/<[^>]*>/g, "").trim(),
+}));
 
 beforeEach(() => banc.acces.mockReset());
 

@@ -38,6 +38,12 @@ import {
 export const HEURES_RELANCES_INVITATION = { debut: 7, fin: 21 } as const;
 /** Au plus tant de relances par passe (les plus anciennes invitations d'abord) ; la suite part au passage suivant. */
 export const RELANCES_INVITATION_PAR_PASSE = 50;
+/**
+ * Au plus tant de temps par passe pour les relances (la mission entière est coupée à 180 s, `maxDuration` de la route) :
+ * au-delà, les relances restantes ne sont pas tentées et partiront au passage suivant. Une passe coupée en plein envoi
+ * laisserait une relance « réservée » sans issue, donc jamais envoyée.
+ */
+export const DUREE_MAX_RELANCES_INVITATION_MS = 60_000;
 
 /** L'heure (0 à 23) à Paris, heure d'été comprise, de cet instant. */
 export function heureDeParis(instant: Date): number {
@@ -63,6 +69,8 @@ export type BilanRelancesInvitations = {
   ignorees: number;
   /** Parties, mais leur notation a échoué : la réservation reste, elles ne repartiront pas. */
   non_notees: number;
+  /** Non tentées faute de temps dans cette passe : elles partiront au passage suivant. */
+  restantes: number;
   /** Hors de la plage 7 h – 21 h à Paris : la passe n'a rien lu. */
   hors_horaire?: true;
   /** La liste des relances dues n'a pas pu être lue. */
@@ -81,7 +89,7 @@ type Due = { invitation_id: string; organization_id: string; email: string; rang
 type Resultat = "envoyee" | "incertaine" | "echec" | "reportee";
 
 function bilanVide(): BilanRelancesInvitations {
-  return { envoyees: 0, echecs: 0, incertaines: 0, limitees: 0, ignorees: 0, non_notees: 0 };
+  return { envoyees: 0, echecs: 0, incertaines: 0, limitees: 0, ignorees: 0, non_notees: 0, restantes: 0 };
 }
 
 async function noter(service: SupabaseClient, d: Due, resultat: Resultat): Promise<boolean> {
@@ -101,9 +109,18 @@ async function noter(service: SupabaseClient, d: Due, resultat: Resultat): Promi
  */
 export async function envoyerRelancesInvitations(
   service: SupabaseClient,
-  options: { maintenant?: Date; avantEffet?: () => Promise<void>; expedier?: ExpediteurRappelInvitation; limite?: number } = {}
+  options: {
+    maintenant?: Date;
+    avantEffet?: () => Promise<void>;
+    expedier?: ExpediteurRappelInvitation;
+    limite?: number;
+    /** Horloge de la durée maximale de la passe (tests). */
+    horloge?: () => number;
+  } = {}
 ): Promise<BilanRelancesInvitations> {
   const bilan = bilanVide();
+  const horloge = options.horloge ?? Date.now;
+  const fin = horloge() + DUREE_MAX_RELANCES_INVITATION_MS;
   if (!relancesInvitationPermises(options.maintenant ?? new Date())) return { ...bilan, hors_horaire: true };
 
   const { data, error } = await service.rpc("invitations_locataires_relances_dues", {
@@ -117,7 +134,11 @@ export async function envoyerRelancesInvitations(
   const expedier = options.expedier ?? envoyerRappelInvitationLocataire;
   const auPlafond = new Set<string>();
 
-  for (const d of dues) {
+  for (const [n, d] of dues.entries()) {
+    if (horloge() >= fin) {
+      bilan.restantes = dues.length - n;
+      break;
+    }
     if (auPlafond.has(d.organization_id)) {
       bilan.limitees += 1;
       continue;

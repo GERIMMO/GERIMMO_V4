@@ -29,6 +29,7 @@ export function FormulaireInvitation({ orgId, personId, email, dejaInvite, acces
         <p className="mt-1 text-muted-foreground">{statut === "en_attente" ? "Valable jusqu’au" : "Échéance :"} {new Date(derniere.expire_le).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}</p>
         {statut === "en_attente" && (!derniere.envoye_le || derniere.erreur_envoi) && <p className="mt-1 text-destructive">L’envoi de l’e-mail reste à confirmer. Vous pouvez le renvoyer.</p>}
         {relancesDerniere.map(phrase => <p key={phrase} className="mt-1 text-muted-foreground">{phrase}</p>)}
+        {statut === "en_attente" && derniere.relances_prevues === false && <p className="mt-1 text-muted-foreground">Invitation envoyée avant la mise en place des rappels automatiques : aucun rappel ne partira pour elle.</p>}
       </div>}
       <div className="flex flex-wrap gap-2">
         <form data-saisie-confirmee action={action}><BoutonEnvoi size="sm" variant="outline" enCoursTexte="Invitation…">{statut === "en_attente" ? "Renvoyer l’invitation" : derniere ? "Envoyer une nouvelle invitation" : "Inviter comme locataire"}</BoutonEnvoi></form>

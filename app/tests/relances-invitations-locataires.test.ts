@@ -357,6 +357,37 @@ describe.skipIf(!DB_URL)("Relances des invitations de locataire (X16)", () => {
     expect(partis).toEqual([invLocataire]);
   });
 
+  it("fiche liée au compte invité sans accès : relancée ; liée à un autre compte, ou compte déjà membre : non", async () => {
+    const { person: memeCompte, invite: invMeme } = await invitation();
+    const { person: autreCompte, invite: invAutre } = await invitation();
+    const { invite: invMembre } = await invitation();
+    await admin();
+    const compteDe = async (id: string) => (await db.query("select account_id from public.invitations_locataires where id = $1", [id])).rows[0].account_id as string;
+    await db.query("update public.persons set account_id = $2 where id = $1", [memeCompte, await compteDe(invMeme)]);
+    await db.query("update public.persons set account_id = $2 where id = $1", [autreCompte, autreOwner]);
+    await db.query("insert into public.memberships(account_id, organization_id, role) values ($1, $2, 'agent')", [await compteDe(invMembre), org]);
+    await figerJour(jour(3));
+    await passe();
+    const partis = envois.map((e) => e.invitationId);
+    expect(partis).toContain(invMeme);
+    expect(partis).not.toContain(invAutre);
+    expect(partis).not.toContain(invMembre);
+  });
+
+  it("durée maximale de la passe : les relances non tentées partent au passage suivant", async () => {
+    await invitation();
+    await invitation();
+    await figerJour(jour(3));
+    let t = 0;
+    // Chaque lecture de l'horloge avance de 25 s : la passe s'arrête après 60 s.
+    const bilan = await envoyerRelancesInvitations(service, { maintenant: EN_JOURNEE, expedier, horloge: () => (t += 25_000) });
+    expect(bilan.envoyees).toBeGreaterThanOrEqual(1);
+    expect(bilan.restantes).toBeGreaterThanOrEqual(1);
+    expect(bilan.envoyees + bilan.restantes).toBe(3);
+    expect(await passe()).toMatchObject({ envoyees: bilan.restantes, restantes: 0 });
+    expect(envois).toHaveLength(3);
+  });
+
   it("une invitation antérieure à la décision (relances_prevues faux) n'est jamais relancée", async () => {
     await admin();
     await db.query("update public.invitations_locataires set relances_prevues = false where id = $1", [invite]);

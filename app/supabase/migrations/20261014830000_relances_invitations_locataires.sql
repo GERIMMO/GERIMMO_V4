@@ -31,9 +31,9 @@
 --     manuel (la spécification ne dit pas qu'un renvoi relance le cycle : il ne le relance pas, il le retarde), ni
 --     dans les trois jours qui suivent une relance (cas d'un rang 1 rattrapé tard) ;
 --   - jamais une personne propriétaire ou mandante (un mandat, quel que soit son état, ou une détention en cours :
---     RM-16.4.3), jamais une fiche archivée, déjà liée à un compte, dont l'adresse a changé depuis l'invitation, ni un
---     compte qui a déjà un accès à l'organisation ; jamais une organisation fermée à l'écriture (abonnement suspendu,
---     essai échu) ;
+--     RM-16.4.3), jamais une fiche archivée, liée à un autre compte que celui invité, dont l'adresse a changé depuis
+--     l'invitation, ni un compte qui a déjà un accès à l'organisation (l'invitation ne pourrait plus être acceptée) ;
+--     jamais une organisation fermée à l'écriture (abonnement suspendu, essai échu) ;
 --   - l'arrêt d'urgence (global, ou clé « rappels », celle de la mission qui envoie) refuse toute réservation.
 --
 -- Migration ADDITIVE et rejouable : colonnes et table ajoutées sous garde, fonctions en `create or replace`, politique
@@ -134,7 +134,7 @@ begin
     return null;
   end if;
   select * into p from public.persons where id = i.person_id and organization_id = i.organization_id;
-  if not found or p.archived_at is not null or p.account_id is not null or lower(btrim(p.email)) is distinct from i.email then
+  if not found or p.archived_at is not null or p.account_id <> i.account_id or lower(btrim(p.email)) is distinct from i.email then
     return null;
   end if;
   -- RM-16.4.3 : le propriétaire mandant n'est jamais invité, donc jamais relancé.

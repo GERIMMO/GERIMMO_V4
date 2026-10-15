@@ -55,7 +55,7 @@ async function relancerInvitations(supabase: SupabaseClient): Promise<BilanRelan
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
     console.error("[cron rappels] relances d'invitation :", e instanceof Error ? e.name : "incident");
-    return { envoyees: 0, echecs: 1, incertaines: 0, limitees: 0, ignorees: 0, non_notees: 0, lecture_impossible: true };
+    return { envoyees: 0, echecs: 1, incertaines: 0, limitees: 0, ignorees: 0, non_notees: 0, restantes: 0, lecture_impossible: true };
   }
 }
 

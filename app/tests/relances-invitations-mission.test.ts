@@ -10,6 +10,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ArretSupervision } from "@/lib/controle-effets";
 
+// La carte de la fiche personne : ses actions serveur et son crochet d'état ne sont pas en cause ici.
+vi.mock("@/app/actions/invitations", () => ({ inviterLocataire: vi.fn(), annulerInvitation: vi.fn() }));
+vi.mock("@/lib/use-action-state-protegee", () => ({ useActionStateProtegee: () => [{}, () => {}, false] }));
+
 const m = vi.hoisted(() => ({
   relancer: vi.fn(),
   service: vi.fn(),
@@ -186,5 +190,23 @@ describe("la fiche personne dit « Relancé le … »", () => {
     ]);
     // Jour de Paris : envoyée à 23 h 30 UTC le 4, c'est le 5 à Paris.
     expect(phrasesRelances([{ ...r1, envoyee_le: "2026-11-04T23:30:00Z" }])).toEqual(["Relancé le 05/11/2026"]);
+  });
+
+  it("la carte « Accès locataire » affiche les relances de la dernière invitation, et dit quand aucune ne partira", async () => {
+    const { createElement } = await import("react");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { FormulaireInvitation } = await import("@/app/agence/[orgId]/personnes/[personId]/formulaire-invitation");
+    const invitation = { id: "inv-1", etat: "en_attente", email: "loc@exemple.fr", expire_le: "2099-01-01T00:00:00Z", cree_le: "2026-11-02T08:00:00Z", envoye_le: "2026-11-02T08:00:00Z", erreur_envoi: false, relances_prevues: true };
+    const relance = { invitation_id: "inv-1", rang: 1, jour: "2026-11-05", etat: "envoyee", envoyee_le: "2026-11-05T06:00:03Z" };
+    const rendu = (props: Record<string, unknown>) =>
+      renderToStaticMarkup(createElement(FormulaireInvitation, { orgId: "org", personId: "p", email: "loc@exemple.fr", dejaInvite: false, ...props }));
+    const avec = rendu({ historique: [invitation], relances: [relance, { ...relance, invitation_id: "ancienne", jour: "2026-10-01" }] });
+    expect(avec).toContain("Relancé le 05/11/2026");
+    expect(avec).not.toContain("01/10/2026");
+    expect(avec).toContain("un rappel lui est envoyé par e-mail 3 jours puis 10 jours après l’envoi");
+    expect(avec).not.toContain("aucun rappel ne partira");
+    const ancienne = rendu({ historique: [{ ...invitation, relances_prevues: false }], relances: [] });
+    expect(ancienne).toContain("aucun rappel ne partira pour elle");
+    expect(ancienne).not.toContain("Relancé le");
   });
 });

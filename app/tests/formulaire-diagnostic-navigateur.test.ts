@@ -108,15 +108,15 @@ describe.skipIf(!CHROMIUM)("Dépôt d'un diagnostic et proposition de la pièce 
 
   // ───────── gestes ─────────
 
-  const reponses = (...r: EtatParc[]) => page.evaluate((r) => { window.__banc.reponses.push(...r); }, r);
-  const envois = (): Promise<EnvoiRecu[]> => page.evaluate(() => window.__banc.envois);
+  const reponses = (...r: EtatParc[]) => page.evaluate((r) => { window.__bancDiagnostic.reponses.push(...r); }, r);
+  const envois = (): Promise<EnvoiRecu[]> => page.evaluate(() => window.__bancDiagnostic.envois);
   const deposer = () => page.getByRole("button", { name: "Déposer", exact: true });
   const utiliser = () => page.getByRole("button", { name: "Utiliser cette pièce pour ce lot", exact: true });
   /** Laisse React finir de poser l'état et d'exécuter les effets qui suivent une réponse. */
   const laisserAfficher = () => page.evaluate(() => new Promise<void>((fini) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(fini, 30)))));
   /** Attend que l'action ait reçu `n` envois et que l'écran soit revenu au repos. */
   async function attendre(n: number) {
-    await page.waitForFunction((n) => window.__banc.envois.length === n, n);
+    await page.waitForFunction((n) => window.__bancDiagnostic.envois.length === n, n);
     await page.waitForFunction(() => ![...document.querySelectorAll("button")].some((b) => b.disabled));
     await laisserAfficher();
   }

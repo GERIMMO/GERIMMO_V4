@@ -3,8 +3,8 @@
  *
  * Il monte, dans un vrai Chromium et sous <StrictMode>, le VRAI formulaire `FormulaireDiagnostic` avec le VRAI crochet
  * `useActionFormulaire` (celui qui lit le bouton qui a envoyé le formulaire : `submitter`). Seule l'action du serveur est
- * simulée : elle note ce qu'elle reçoit (`window.__banc.envois`) et rend les réponses que le test a préparées
- * (`window.__banc.reponses`).
+ * simulée : elle note ce qu'elle reçoit (`window.__bancDiagnostic.envois`) et rend les réponses que le test a préparées
+ * (`window.__bancDiagnostic.reponses`).
  *
  * Il est assemblé par `tests/formulaire-diagnostic-navigateur.test.ts` ; il ne fait pas partie de l'application.
  */
@@ -26,14 +26,14 @@ export type Banc = { envois: EnvoiRecu[]; reponses: EtatParc[] };
 
 declare global {
   interface Window {
-    __banc: Banc;
+    __bancDiagnostic: Banc;
   }
 }
 
 const texte = (v: FormDataEntryValue | null) => (typeof v === "string" ? v : null);
 
 async function actionSimulee(_etat: EtatParc, donnees: FormData): Promise<EtatParc> {
-  const banc = window.__banc;
+  const banc = window.__bancDiagnostic;
   const fichier = donnees.get("fichier");
   banc.envois.push({
     pieceExistante: texte(donnees.get("piece_existante")),
@@ -45,7 +45,7 @@ async function actionSimulee(_etat: EtatParc, donnees: FormData): Promise<EtatPa
   return banc.reponses.shift() ?? {};
 }
 
-window.__banc = { envois: [], reponses: [] };
+window.__bancDiagnostic = { envois: [], reponses: [] };
 createRoot(document.getElementById("racine")!).render(
   <StrictMode>
     <FormulaireDiagnostic orgId="org" bienId="bien" lotId="lot" niveau="lot" actionDepot={actionSimulee} />

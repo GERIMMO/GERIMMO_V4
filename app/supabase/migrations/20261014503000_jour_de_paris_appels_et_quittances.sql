@@ -17,7 +17,8 @@
 --
 -- CE QUI NE CHANGE PAS, volontairement. Le moment où le cycle mensuel tourne (tâche `cycle-mensuel`, le 1er de chaque mois
 -- à 05 h UTC) n'est pas touché : à cette heure, le jour de Paris et le jour UTC sont le même. Le jour de génération du
--- cycle est une règle métier, pas un fuseau ; la changer est une décision du dirigeant (voir la fiche du lot).
+-- cycle est une règle métier, pas un fuseau ; la changer est une décision du dirigeant (voir la section « Lot fuseau-paris »
+-- de supabase/retours-arriere/LISEZ-MOI.md).
 --
 -- COMMENT. Relecture de la définition EN VIGUEUR (pg_get_functiondef), remplacement du seul mot `current_date`, nombre
 -- d'occurrences exigé à l'unité près, aucune ancre de plusieurs lignes (la mise en forme en production peut différer du banc).

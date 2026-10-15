@@ -14,7 +14,8 @@
 --
 -- HORS DE CE LOT, volontairement : le dépôt de garantie (`encaisser_depot`, `contre_passer_depot_encaissement`) et le journal
 -- comptable général (`ecritures.date_piece`, `ecritures.date_imputation`, `contre_ecriture`) ne sont pas des loyers ; ils
--- gardent le jour de la session jusqu'à décision du dirigeant (voir la fiche du lot).
+-- gardent le jour de la session jusqu'à décision du dirigeant (voir la section « Lot fuseau-paris » de
+-- supabase/retours-arriere/LISEZ-MOI.md).
 --
 -- COMMENT. Relecture de la définition EN VIGUEUR (pg_get_functiondef), remplacement du seul mot `current_date`, nombre
 -- d'occurrences exigé à l'unité près, aucune ancre de plusieurs lignes. Un autre nombre : la migration s'arrête sans rien

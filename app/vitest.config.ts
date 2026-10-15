@@ -44,6 +44,9 @@ export const FICHIERS_EN_SERIE = [
   // Rejeu des cinq migrations du jour de Paris et de leurs retours : `alter table … set default` sur encaissements,
   // quittances et relances, verrou exclusif tenu pendant tout l'essai, qui bloquerait les écritures des autres fichiers.
   "tests/jour-de-paris-migrations-rejeu.test.ts",
+  // Lot « fuseau-suite » : rejeu de ses deux migrations et de leurs retours, `alter table … set default` sur depot_encaissements,
+  // ecritures et regularisations_charges (verrou exclusif tenu pendant l'essai, qui bloquerait les écritures des autres fichiers).
+  "tests/jour-de-paris-suite-migrations-rejeu.test.ts",
   // Rejoue 20261014601000 (D18, devis révisable) : `alter type` et `alter table` sur incident_devis,
   // incident_sollicitations et incident_evenements, verrou exclusif tenu pendant l'essai, qui se croise avec les fichiers
   // parallèles écrivant des devis (« deadlock detected », relecture du 15/10).
@@ -59,6 +62,15 @@ export const FICHIERS_EN_SERIE = [
   // les organisations et voit disparaître celle de l'essai : violation de orchestration_cases_organization_id_fkey
   // (relecture du 15/10, deux fichiers seuls en parallèle).
   "tests/planning-conflits-concurrence.test.ts",
+  // X16 (relances d'invitation) : remplace `aujourdhui_paris()` dans ses essais (jour de Paris figé), rejoue la
+  // migration 20261014830000 et son retour arrière (`alter table` et `create trigger` sur invitations_locataires).
+  "tests/relances-invitations-locataires.test.ts",
+  // X19 (SA-10), limite quotidienne des appels à l'IA : fixture VALIDÉE (vingt sessions simultanées sur la ligne du jour,
+  // remise en état à la fin) et rejeu de la migration (politiques et droits reposés) dans la transaction d'un essai.
+  "tests/plafond-appels-ia-base.test.ts",
+  // Lot « avoir-facture-externe » (D24-C) : le retour arrière joué dans la transaction de l'essai supprime puis recrée la table
+  // des avoirs et modifie artisan_factures_externes (contrainte, index, colonne) : verrou exclusif tenu pendant tout l'essai.
+  "tests/artisan-avoir-migration-rejeu.test.ts",
   // D46-B (15/10), e-mail immédiat des urgences du relais : deux sessions vident la file en même temps. Fixture VALIDÉE
   // (deux comptes, un plan terminé, deux alertes) puis supprimée ; la file est globale, une ligne validée serait prise
   // par les essais d'un autre fichier.

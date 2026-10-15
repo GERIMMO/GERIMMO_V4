@@ -1,6 +1,7 @@
-// Décision D24-B du dirigeant (14/10/2026, fiches ARC-07 et ARC-04) : une facture externe déposée est définitive
-// (aucune correction ni annulation n'existe encore), donc un écran de relecture précède le dépôt, et le numéro ne
-// peut servir qu'une fois pour un même artisan, sans tenir compte des majuscules ni des espaces autour.
+// Décision D24-B du dirigeant (14/10/2026, fiches ARC-07 et ARC-04) : une facture externe déposée ne se modifie plus,
+// donc un écran de relecture précède le dépôt, et le numéro ne peut servir qu'une fois pour un même artisan, sans tenir
+// compte des majuscules ni des espaces autour. Depuis D24-C, la seule correction est l'annulation par un avoir
+// (lib/artisan-prive-avoir.ts), suivie d'une nouvelle facture sous un autre numéro.
 //
 // Ce module ne lit un montant que par `montantEnCentimes`, le lecteur que l'action serveur emploie pour la même
 // facture : l'écran de relecture montre donc exactement ce qui sera enregistré, au centime, sans nombre à virgule.
@@ -15,7 +16,7 @@ export const MESSAGE_NUMERO_FACTURE_UTILISE =
 export const JUSTIFICATION_ECART_MIN = 10;
 
 export const MESSAGE_FACTURE_DEFINITIVE =
-  "Une fois déposée, la facture est définitive : vous ne pourrez ni la corriger ni l’annuler dans Gerimmo, et son numéro ne pourra plus servir pour une autre facture. Vérifiez qu’elle correspond exactement à la pièce jointe.";
+  "Une fois déposée, la facture ne se modifie plus : en cas d’erreur, vous pourrez seulement l’annuler par un avoir, puis déposer une nouvelle facture sous un autre numéro. Son numéro ne pourra plus servir pour une autre facture. Vérifiez qu’elle correspond exactement à la pièce jointe.";
 
 export type EntreesRelectureFacture = {
   numero: string;

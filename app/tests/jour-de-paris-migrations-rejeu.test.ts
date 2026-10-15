@@ -108,14 +108,25 @@ const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/
 
 /**
  * Les lots postérieurs dont les fonctions citent aussi `public.aujourdhui_paris()` (décision D18, lot « devis-revisable » :
- * refuser_devis, demander_revision_devis, deposer_devis, expirer_revisions_devis). Leurs retours se jouent AVANT celui de la
+ * refuser_devis, demander_revision_devis, deposer_devis, expirer_revisions_devis ; lot « fuseau-suite » : dépôt de garantie,
+ * journal, révision IRL, terme du bail, charges, rapport de gestion, et leurs valeurs par défaut). Leurs retours se jouent AVANT celui de la
  * fonction du jour, dans l'ordre inverse de leurs migrations, comme la procédure du LISEZ-MOI le demande ; leurs migrations se
  * rejouent après celles du lot pour revenir exactement à l'état migré. Absents du dépôt, ils ne comptent pas.
  * Depuis le 15/10 (D46-B, lot « relais-alertes »), aussi `reserver_alerte_relais` (le jour de Paris de l'alerte e-mail du relais) :
  * son retour, indépendant des autres, se joue le premier.
  */
 const LOTS_POSTERIEURS = [
+  // Lot « relais-alertes » : appliqué en production après tous les autres lots de cette liste, son retour se joue le premier.
   { version: "20261014810000", fichier: "relais_alerte_quotidienne" },
+  // Lot « plafond-ia » (X19, SA-10) : reserver_appel_ia compte les appels au jour de Paris (public.aujourdhui_paris()).
+  { version: "20261014730000", fichier: "plafond_appels_ia" },
+  // Décision X16 du 15/10 (relances d'invitation) : relance_invitation_locataire_due et reserver_relance_invitation_locataire
+  // citent aussi la fonction du jour. Indépendant du lot du devis révisable ; le plus récent, il se défait le premier.
+  { version: "20261014830000", fichier: "relances_invitations_locataires" },
+  // Lot « fuseau-suite » (décisions du 15/10, points 1 et 2) : dépôt de garantie, journal, révision IRL, terme du bail, charges et
+  // rapport de gestion citent aussi la fonction du jour, et quatre valeurs par défaut s'en servent.
+  { version: "20261014821000", fichier: "jour_de_paris_irl_terme_charges_rapports" },
+  { version: "20261014820000", fichier: "jour_de_paris_depot_et_journal" },
   // Reprise du 15/10 (dépôt du PDF en révision, ordre des verrous) : son retour précède celui de 601000, qui le vérifie.
   { version: "20261014602000", fichier: "devis_revision_verrous_stockage" },
   { version: "20261014601000", fichier: "devis_revision_versions" },

@@ -58,6 +58,7 @@ import { envoyerEmail } from "@/lib/email";
 import { adresseDuSite } from "@/lib/site";
 import { destinationSure } from "@/lib/destination-sure";
 import { sansJargon } from "@/lib/erreurs";
+import { suiteInvitationLocataire } from "@/lib/invitations-locataire";
 
 export type MotifLien =
   /** La supervision vient d'ouvrir l'organisation : son responsable crée son mot de passe. */
@@ -188,7 +189,10 @@ function echapper(texte: string): string {
 
 /** Le corps de l'e-mail, aux couleurs des autres courriers du produit. Exporté pour les tests. */
 export function corpsCourrier(motif: MotifLien, lien: string, origine: string): string {
-  const c = COURRIERS[motif];
+  return corpsDuCourrier(COURRIERS[motif], lien, origine);
+}
+
+function corpsDuCourrier(c: Courrier, lien: string, origine: string): string {
   const href = echapper(lien);
   const oublie = echapper(`${origine}/mot-de-passe-oublie`);
   const renouvellement =
@@ -211,6 +215,81 @@ export function corpsCourrier(motif: MotifLien, lien: string, origine: string): 
 
 export function sujetCourrier(motif: MotifLien): string {
   return COURRIERS[motif].sujet;
+}
+
+// LES RELANCES AUTOMATIQUES D'UNE INVITATION DE LOCATAIRE (décision X16 du 15/10/2026, RM-16.6.1 : J+3 et J+10).
+// Même gabarit que l'invitation, objet « Rappel : … », même destination (la page de réponse de CETTE invitation, voir
+// `suiteInvitationLocataire`). Seul le texte dit la date d'expiration réelle au lieu de « valable 30 jours », et qu'un
+// refus arrête les rappels (RM-16.7.2).
+
+/** L'objet de la relance : celui de l'invitation, précédé de « Rappel : ». */
+export const SUJET_RAPPEL_INVITATION_LOCATAIRE = `Rappel : ${COURRIERS.invitation_locataire.sujet}`;
+
+/** « 14 novembre 2026 » : le jour de Paris de l'expiration. */
+function jourEnLettres(instant: string): string {
+  return new Date(instant).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris", day: "numeric", month: "long", year: "numeric" });
+}
+
+/** Le corps de la relance (gabarit de l'invitation). Exporté pour les tests. */
+export function corpsRappelInvitationLocataire(lien: string, origine: string, expireLe: string): string {
+  const invitation = COURRIERS.invitation_locataire;
+  return corpsDuCourrier(
+    {
+      ...invitation,
+      sujet: SUJET_RAPPEL_INVITATION_LOCATAIRE,
+      texte:
+        `Votre gestionnaire vous a proposé un espace locataire sur Gerimmo et attend votre réponse. Après avoir sécurisé votre compte, vous pourrez accepter ou refuser cette invitation, valable jusqu’au ${jourEnLettres(expireLe)}. Si vous la refusez, vous ne recevrez plus de rappel. Aucun accès à ce nouvel espace ne sera accordé avant votre acceptation.`,
+    },
+    lien,
+    origine
+  );
+}
+
+/** L'issue d'une relance : partie, ou non, et dans ce cas si elle a pu partir quand même (délai dépassé). */
+export type ResultatRappelInvitation = { envoye: true } | { envoye: false; erreur: string; incertain: boolean };
+
+/**
+ * Envoie UNE relance d'invitation de locataire. Appelée par la mission planifiée « rappels », APRÈS la réservation de
+ * la relance en base (`reserver_relance_invitation_locataire`) et le contrôle de la limite par organisation : cette
+ * fonction ne compte rien, ne réserve rien et ne trace rien.
+ *
+ * Le jeton de connexion d'un e-mail précédent ne sert plus : il est à usage unique, valable 24 h dans le réglage
+ * actuel du projet (86 400 s), et aucune relance ne part moins de trois jours après un e-mail d'invitation. Sans jeton
+ * neuf, le bouton mènerait à « lien invalide » : un jeton neuf est fabriqué, comme au renvoi manuel. L'invitation, elle,
+ * ne change pas (même identifiant, même échéance, même page de réponse).
+ *
+ * `avantEnvoi` (arrêt d'urgence) est lu avant de fabriquer le jeton, puis juste avant l'appel au service d'e-mail.
+ */
+export async function envoyerRappelInvitationLocataire(params: {
+  email: string;
+  invitationId: string;
+  expireLe: string;
+  avantEnvoi?: () => Promise<void>;
+}): Promise<ResultatRappelInvitation> {
+  const email = params.email.trim().toLowerCase();
+  if (!email) return { envoye: false, erreur: "Adresse e-mail manquante.", incertain: false };
+  const origine = adresseDuSite();
+  const service = clientDeService();
+  if (!origine || !service) return { envoye: false, erreur: NON_CONFIGURE, incertain: false };
+
+  await params.avantEnvoi?.();
+  const { data, error } = await service.auth.admin.generateLink({ type: "recovery", email });
+  const jeton = data?.properties?.hashed_token;
+  if (error || !jeton) {
+    return { envoye: false, erreur: sansJargon(error?.message ?? "Le lien n’a pas pu être créé."), incertain: false };
+  }
+  const lien = construireLien(origine, jeton, suiteInvitationLocataire(params.invitationId), "recovery");
+  const envoi = await envoyerEmail({
+    to: email,
+    subject: SUJET_RAPPEL_INVITATION_LOCATAIRE,
+    html: corpsRappelInvitationLocataire(lien, origine, params.expireLe),
+    avantEnvoi: params.avantEnvoi,
+  });
+  if (envoi.erreur) {
+    console.error("[lien-mot-de-passe] relance d'invitation non partie :", envoi.incertain ? "délai dépassé" : "refus");
+    return { envoye: false, erreur: envoi.erreur, incertain: envoi.incertain === true };
+  }
+  return { envoye: true };
 }
 
 type Service = NonNullable<ReturnType<typeof clientDeService>>;

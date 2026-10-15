@@ -9,6 +9,8 @@
  */
 import {beforeEach,afterEach,describe,it,expect,vi} from 'vitest';
 import {traiterMarketing as GET,maintenantParis} from '@/lib/missions-planifiees/marketing';
+import {ArretSupervision} from '@/lib/controle-effets';
+import {MESSAGE_LIMITE_IA} from '@/lib/plafond-ia';
 const mocks=vi.hoisted(()=>({client:vi.fn(),facebook:vi.fn(),image:vi.fn(),source:vi.fn(),redaction:vi.fn(),email:vi.fn()}));
 vi.mock('@/lib/supabase/service',()=>({clientDeService:mocks.client}));
 vi.mock('@/lib/facebook',()=>({envoyerSurFacebook:mocks.facebook}));
@@ -20,7 +22,7 @@ beforeEach(()=>{vi.resetAllMocks();vi.stubEnv('CRON_SECRET','test-secret');vi.us
  mocks.redaction.mockResolvedValue({cle:'veille-source',audience:'particuliers',titre:'Trêve hivernale : ce qui change',chapo:'Chapo rédigé.',corps:'## Ce qui change\n\nTexte.',facebook:'Texte Facebook rédigé.'});});
 afterEach(()=>{vi.useRealTimers();vi.unstubAllEnvs();});
 
-type Options={actif?:boolean;auto?:boolean;validation?:boolean;echus?:Record<string,unknown>[];cible?:{jour:string;rang:number;parution:string;rattrapage:boolean}|null;existant?:Record<string,unknown>|null;source?:boolean;titreSource?:string;publicsSource?:string[];jetonDb?:string;erreurCampagne?:boolean;parutionRefusee?:boolean;reservationRefusee?:boolean};
+type Options={actif?:boolean;auto?:boolean;validation?:boolean;echus?:Record<string,unknown>[];cible?:{jour:string;rang:number;parution:string;rattrapage:boolean}|null;existant?:Record<string,unknown>|null;source?:boolean;titreSource?:string;publicsSource?:string[];jetonDb?:string;erreurCampagne?:boolean;parutionRefusee?:boolean;reservationRefusee?:boolean;statutIA?:string};
 function contexte(o:Options={}){
  const regle={actif:o.actif??true,publication_automatique:o.auto??true,diffusion_version:1,publicite_active:true,jours_semaine:[2,5],heure_paris:9,heure_preparation_paris:18,validation_obligatoire:o.validation??false,budget_mensuel_cents:1000,veille_mots_inclus:['logement','trêve hivernale','loyer'],veille_mots_exclus:['décarbonation']};
  const articles=new Map<string,Record<string,unknown>>();
@@ -39,6 +41,8 @@ function contexte(o:Options={}){
    case 'reserver_visuel_marketing':{const a=articles.get(args?.p_id as string);if(!a||(a.image_essais as number)>=2)return {data:false,error:null};a.image_essais=(a.image_essais as number)+1;return {data:true,error:null};}
    case 'programmer_publication_marketing':{const a=articles.get(args?.p_id as string);if(!a||!a.image_empreinte)return {data:false,error:null};a.statut='programmee';a.programmee_pour=args?.p_pour;return {data:true,error:null};}
    case 'email_superviseur_permanent':return {data:'superviseur@test.local',error:null};
+   // X19 (SA-10) : la réservation d'un appel payant à l'IA (arrêt d'urgence, puis limite quotidienne).
+   case 'reserver_appel_ia':return {data:o.statutIA??'accorde',error:null};
    default:return {data:null,error:{message:`rpc inconnue ${n}`}};
   }});
  const from=vi.fn((table:string)=>{
@@ -129,6 +133,35 @@ describe('mission marketing : préparation de la veille',()=>{
   let c=contexte({cible:{...CIBLE,rang:0},source:true});await GET(requete());expect(c.insertions[0].veille_source_id).toBeNull();
   mocks.redaction.mockRejectedValueOnce(new Error('Citation-preuve introuvable dans la source : article rejeté.'));
   c=contexte({cible:{...CIBLE,rang:0},source:true});const r=await GET(requete());expect(c.insertions[0].veille_source_id).toBeNull();expect((await r.json()).preparation.ecartes[0]).toContain('Citation-preuve');
+ });
+ // X19 (SA-10) : la rédaction et le visuel simulés appellent la garde qu'on leur passe, comme les vrais (garde avant l'appel).
+ const redactionGardee=()=>mocks.redaction.mockImplementation(async(_i:unknown,_t:unknown,garde:()=>Promise<void>)=>{await garde();return {cle:'veille-source',audience:'particuliers',titre:'Trêve hivernale : ce qui change',chapo:'Chapo rédigé.',corps:'## Ce qui change\n\nTexte.',facebook:'Texte Facebook rédigé.'};});
+ const visuelGarde=()=>mocks.image.mockImplementation(async(_id:unknown,_t:unknown,garde:()=>Promise<void>)=>{await garde();return {octets:Buffer.from('image de recette'),empreinte:'a'.repeat(64)};});
+ it('X19 : réservation accordée, la rédaction de la veille puis le visuel réservent chacun leur appel',async()=>{
+  redactionGardee();visuelGarde();
+  const c=contexte({cible:{...CIBLE,rang:0},source:true});
+  expect((await GET(requete())).status).toBe(200);
+  expect(c.rpcs.filter(([n])=>n==='reserver_appel_ia').map(([,a])=>a)).toEqual([{p_usage:'redaction_veille'},{p_usage:'visuel_marketing'}]);
+  expect(c.insertions[0]).toMatchObject({veille_source_id:'source'});
+ });
+ it('X19 : limite du jour atteinte, ni veille rédigée ni visuel : sujet éditorial, rien de programmé, le motif est dit',async()=>{
+  redactionGardee();visuelGarde();
+  const c=contexte({cible:{...CIBLE,rang:0},source:true,statutIA:'plafond'});
+  const r=await GET(requete());expect(r.status).toBe(503);
+  const bilan=await r.json();
+  expect(bilan.preparation.erreur).toBe(MESSAGE_LIMITE_IA);
+  // La rédaction a été refusée (la place n'existait plus), puis le visuel : deux réservations, aucune rédaction ni image.
+  expect(c.rpcs.filter(([n])=>n==='reserver_appel_ia').map(([,a])=>a)).toEqual([{p_usage:'redaction_veille'},{p_usage:'visuel_marketing'}]);
+  expect(c.insertions[0].veille_source_id).toBeNull();
+  expect(c.rpcs.some(([n])=>n==='programmer_publication_marketing')).toBe(false);
+  expect(c.modifications.some(m=>m.facebook_erreur===MESSAGE_LIMITE_IA)).toBe(true);
+  expect(mocks.email).not.toHaveBeenCalled();
+ });
+ it('X19 : un arrêt d’urgence avant le visuel remonte à la mission, rien n’est programmé',async()=>{
+  visuelGarde();
+  const c=contexte({cible:CIBLE,statutIA:'arret'});
+  await expect(GET(requete())).rejects.toBeInstanceOf(ArretSupervision);
+  expect(c.rpcs.some(([n])=>n==='programmer_publication_marketing')).toBe(false);
  });
  it('aucun post sans image nouvelle : image refusée = rien de programmé, bilan en erreur',async()=>{
   const c=contexte({cible:CIBLE});mocks.image.mockRejectedValueOnce(new Error('Image indisponible'));

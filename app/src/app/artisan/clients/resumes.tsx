@@ -2,7 +2,7 @@ import Link from "next/link";
 import {chargerActivitePrivee,environnementArtisanLocal,bilanReglements} from "@/lib/artisan-prive";
 import {Carte,TitreSection,Erreur} from "../ui";
 import {euros} from "../libelles";
-import {formaterDateHeureParis,formaterHeureParis} from "@/lib/heure-paris";
+import {formaterDateHeureParis,formaterDateParis,formaterHeureParis} from "@/lib/heure-paris";
 import {libelleEtatPrive} from "./elements";
 // Composant serveur : sans fuseau explicite il affiche l'heure d'UTC (2 h de moins que Paris l'été) — ARC-02.
 export async function ChantiersDansAgenda(){
@@ -11,5 +11,5 @@ export async function ChantiersDansAgenda(){
 }
 export async function ReglementsDansFacturation(){
  if(!environnementArtisanLocal())return null;const {data,erreur}=await chargerActivitePrivee();if(!data)return <Erreur>{erreur}</Erreur>;
- return <Carte><TitreSection>Mes règlements déclarés — Gerimmo et clients externes</TitreSection><p>Déclarations privées avec justificatifs. Aucune confirmation du client ni opération bancaire.</p><a href="/api/artisan-prive/export" download className="underline">Exporter mon registre et son historique</a>{!data.factures.length?<p>Aucune facture déposée.</p>:<ul>{data.factures.map(f=>{const b=bilanReglements(f,data.reglements);return <li key={f.id} className="py-4 border-b border-[var(--filet)]"><Link className="min-h-12 inline-flex items-center underline" href={`/artisan/facturation/${f.id}`}>{f.numero} · {f.client}</Link><p>{f.origine==="gerimmo"?"Gerimmo":"Client externe"} · {b.etat}</p><p>Facturé {euros(Number(f.montant_ttc_cents))} · Déclaré reçu {euros(b.declare)} · Solde {euros(b.solde)}</p></li>;})}</ul>}</Carte>;
+ return <Carte><TitreSection>Mes règlements déclarés — Gerimmo et clients externes</TitreSection><p>Déclarations privées avec justificatifs. Aucune confirmation du client ni opération bancaire.</p><a href="/api/artisan-prive/export" download className="underline">Exporter mon registre et son historique</a>{!data.factures.length?<p>Aucune facture déposée.</p>:<ul>{data.factures.map(f=>{const b=bilanReglements(f,data.reglements,data.avoirs);return <li key={f.id} className="py-4 border-b border-[var(--filet)]"><Link className="min-h-12 inline-flex items-center underline" href={`/artisan/facturation/${f.id}`}>{f.numero} · {f.client}</Link><p>{f.origine==="gerimmo"?"Gerimmo":"Client externe"} · {b.etat}</p>{b.avoir?<><p>Avoir {b.avoir.numero} du {formaterDateParis(b.avoir.jour)} · annule la facture {f.numero} · {euros(b.avoir.montant_ttc_cents)}</p><p>Facturé {euros(Number(f.montant_ttc_cents))} · Avoir {euros(b.avoir.montant_ttc_cents)} · Déclaré reçu {euros(b.declare)} · Reste dû {euros(b.solde)}</p></>:<p>Facturé {euros(Number(f.montant_ttc_cents))} · Déclaré reçu {euros(b.declare)} · Solde {euros(b.solde)}</p>}</li>;})}</ul>}</Carte>;
 }

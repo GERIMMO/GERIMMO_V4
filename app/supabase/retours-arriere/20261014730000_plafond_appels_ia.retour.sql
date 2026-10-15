@@ -17,6 +17,8 @@
 -- `reserver_appel_ia` ; sans elle, il ne sait pas vérifier l'arrêt ni la limite et, par prudence, n'appelle plus l'IA du tout
 -- (brief, article, veille, posts, devis assisté, atelier : « Le contrôle des appels à l'IA est indisponible »). Rien n'est
 -- cassé, mais plus aucun appel à l'IA ne part tant que le code n'est pas revenu.
+-- Parmi les retours : celui-ci se joue AVANT le retour de 20261014500000 (fonction du jour de Paris), que
+-- `reserver_appel_ia` cite et qui refuse tant qu'elle existe (chaîne jouée par tests/jour-de-paris-migrations-rejeu.test.ts).
 --
 -- RÉINTRODUIT le défaut corrigé (SA-10) : plus aucune limite propre à Gerimmo (seule reste celle du compte chez le
 -- fournisseur), et les appels lancés à la main (brief, article, devis assisté, atelier) partent même sous un arrêt d'urgence.

@@ -54,8 +54,9 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 | `20261014600000_devis_refus_motive.retour.sql` | voir ci-dessus | — |
 
 **Lot « devis-revisable » et lot « fuseau-paris ».** Les fonctions `refuser_devis`, `demander_revision_devis`, `deposer_devis` (version suivante) et
-`expirer_revisions_devis` citent `public.aujourdhui_paris()` : le retour de `20261014500000` (qui retire cette fonction) refuse tant qu'elles existent et les
-nomme. Ordre complet si tout doit être défait : `602000`, `601000`, `600000`, puis les retours du lot fuseau-paris (`504000` → `501000`), puis `500000`. Le test
+`expirer_revisions_devis` citent `public.aujourdhui_paris()`, comme `reserver_appel_ia` (lot « plafond-ia », X19) : le retour de `20261014500000` (qui retire cette
+fonction) refuse tant qu'elles existent et les nomme. Ordre complet si tout doit être défait : `730000`, `602000`, `601000`, `600000`, puis les retours du lot
+fuseau-paris (`504000` → `501000`), puis `500000`. Le test
 `tests/jour-de-paris-migrations-rejeu.test.ts` joue cette chaîne. Les deux scripts posent leur outil `pg_temp.restaurer_fonction` en « create or replace » :
 joués dans une même session (le test, ou un opérateur qui enchaîne), ils ne se gênent pas.
 | `verifier-etat.sql` | rien (lecture seule) | dit pour chaque objet s'il est « migré (B) » ou « antérieur (A) » (migrations du 13/10 seulement) |

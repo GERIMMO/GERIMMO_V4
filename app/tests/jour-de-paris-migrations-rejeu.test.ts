@@ -113,6 +113,8 @@ const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/
  * rejouent après celles du lot pour revenir exactement à l'état migré. Absents du dépôt, ils ne comptent pas.
  */
 const LOTS_POSTERIEURS = [
+  // Lot « plafond-ia » (X19, SA-10) : reserver_appel_ia compte les appels au jour de Paris (public.aujourdhui_paris()).
+  { version: "20261014730000", fichier: "plafond_appels_ia" },
   // Reprise du 15/10 (dépôt du PDF en révision, ordre des verrous) : son retour précède celui de 601000, qui le vérifie.
   { version: "20261014602000", fichier: "devis_revision_verrous_stockage" },
   { version: "20261014601000", fichier: "devis_revision_versions" },

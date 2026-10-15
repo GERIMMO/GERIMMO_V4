@@ -35,7 +35,7 @@ export async function enregistrerActivitePrivee(form:FormData):Promise<ResultatP
     const id=String(form.get("id")??"")||null;const revision=Number(form.get("revision")??0);const cle=String(form.get("cle")??"");
     if(!/^[a-f\d-]{36}$/i.test(cle))throw Error("Rechargez le formulaire avant de continuer.");
     const donnees:Record<string,unknown>={};
-    for(const key of ["nom","type","email","telephone","adresse","titre","description","valide_jusqu_au","devis_id","decision","motif","conflit_motif","bilan","numero","justification","date","moyen","reference","reglement_id"]){const v=form.get(key);if(typeof v==="string")donnees[key]=v.trim();}
+    for(const key of ["nom","type","email","telephone","adresse","titre","description","valide_jusqu_au","devis_id","decision","motif","conflit_motif","bilan","numero","justification","date","moyen","reference","reglement_id","facture_id"]){const v=form.get(key);if(typeof v==="string")donnees[key]=v.trim();}
     if(action==="archiver_client")donnees.archive=form.get("archive")==="true";
     if(action==="devis")donnees.lignes=calculerDevis(JSON.parse(String(form.get("lignes")??"[]"))).lignes;
     if(action==="planning")for(const k of ["debut","fin"]){const d=new Date(String(form.get(k)));if(!Number.isFinite(d.getTime()))throw Error("Vérifiez les dates du rendez-vous.");donnees[k]=d.toISOString();}

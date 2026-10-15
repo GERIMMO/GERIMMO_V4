@@ -7,6 +7,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { envoyerLienMotDePasse } from "@/lib/lien-mot-de-passe";
 import { createClient } from "@/lib/supabase/server";
 import { estUuid } from "@/lib/identifiants";
+import { suiteInvitationLocataire } from "@/lib/invitations-locataire";
 
 export type EtatInvitation = { erreur?: string; succes?: string };
 
@@ -17,10 +18,10 @@ export async function inviterLocataire(orgId: string, personId: string, _etat: E
   if (error) return { erreur: sansJargon(error.message) };
   if (data?.etat === "deja_actif") return { succes: "Ce compte dispose déjà d’un accès locataire actif." };
   if (!data?.id || !data?.email) return { erreur: "L’invitation n’a pas pu être préparée. Réessayez." };
-  const suite = `/invitations/${data.id}`;
+  // Le même chemin que les relances automatiques (X16) : un seul lien par invitation.
   const { erreur: erreurMail } = await envoyerLienMotDePasse({
     email: data.email, motif: "invitation_locataire", organisation: orgId,
-    next: `/nouveau-mot-de-passe?suite=${encodeURIComponent(suite)}`,
+    next: suiteInvitationLocataire(data.id),
   });
   const { error: erreurTrace } = await supabase.rpc("noter_envoi_invitation_locataire", { p_id: data.id, p_envoye: !erreurMail });
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);

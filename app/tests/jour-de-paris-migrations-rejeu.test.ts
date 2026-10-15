@@ -114,6 +114,9 @@ const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/
  * rejouent après celles du lot pour revenir exactement à l'état migré. Absents du dépôt, ils ne comptent pas.
  */
 const LOTS_POSTERIEURS = [
+  // Décision X16 du 15/10 (relances d'invitation) : relance_invitation_locataire_due et reserver_relance_invitation_locataire
+  // citent aussi la fonction du jour. Indépendant du lot du devis révisable ; le plus récent, il se défait le premier.
+  { version: "20261014830000", fichier: "relances_invitations_locataires" },
   // Lot « fuseau-suite » (décisions du 15/10, points 1 et 2) : dépôt de garantie, journal, révision IRL, terme du bail, charges et
   // rapport de gestion citent aussi la fonction du jour, et quatre valeurs par défaut s'en servent.
   { version: "20261014821000", fichier: "jour_de_paris_irl_terme_charges_rapports" },

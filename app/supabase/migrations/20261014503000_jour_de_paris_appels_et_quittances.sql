@@ -15,6 +15,13 @@
 --   appels_a_envoyer(integer)            1   colocataires encore solidaires à la date du jour de Paris
 -- Valeur par défaut : quittances.date_emission (la date d'une quittance créée sans date).
 --
+-- DÉJÀ AU JOUR DE PARIS PAR LA VAGUE 4a (migration 20261014416000, décision X13, en production depuis le 15/10). Cette migration-là a daté
+-- `resynchroniser_quittances` (ses deux `current_date`) et le défaut de `quittances.date_emission` de l'expression explicite
+-- `(now() at time zone 'Europe/Paris')::date`, sans passer par `aujourdhui_paris()`. Sur une base qui l'a reçue, ces deux objets ne
+-- contiennent plus `current_date` et sont déjà au jour de Paris : la migration les LAISSE TELS QUELS (même résultat, et les tests de la
+-- vague 4a exigent encore cette écriture). Elle ne les accepte que sous cette forme exacte, en nombre exact (deux expressions dans la
+-- fonction) ; toute autre définition l'arrête, comme avant.
+--
 -- CE QUI NE CHANGE PAS, volontairement. Le moment où le cycle mensuel tourne (tâche `cycle-mensuel`, le 1er de chaque mois
 -- à 05 h UTC) n'est pas touché : à cette heure, le jour de Paris et le jour UTC sont le même. Le jour de génération du
 -- cycle est une règle métier, pas un fuseau ; la changer est une décision du dirigeant (voir la section « Lot fuseau-paris »
@@ -30,20 +37,23 @@
 
 do $jour_de_paris$
 declare
-  -- signature, puis nombre exact de `current_date` attendus dans la définition en vigueur.
+  -- signature, nombre exact de `current_date` attendus dans la définition en vigueur, puis (facultatif) l'écriture explicite du jour
+  -- de Paris sous laquelle la fonction est DÉJÀ au jour de Paris et qu'on laisse telle quelle (vague 4a, X13).
   v_cibles constant text[][] := array[
-    ['public.generer_appels_loyer_interne(uuid)', '2'],
-    ['public.cycle_mensuel_interne()', '1'],
-    ['public.resynchroniser_quittances(uuid)', '2'],
-    ['public.quittances_a_envoyer(integer)', '1'],
-    ['public.appels_a_envoyer(integer)', '1']
+    ['public.generer_appels_loyer_interne(uuid)', '2', ''],
+    ['public.cycle_mensuel_interne()', '1', ''],
+    ['public.resynchroniser_quittances(uuid)', '2', '\(\s*now\(\)\s+at\s+time\s+zone\s+''Europe/Paris''\s*\)\s*::\s*date'],
+    ['public.quittances_a_envoyer(integer)', '1', ''],
+    ['public.appels_a_envoyer(integer)', '1', '']
   ];
   v_i integer;
   v_signature text;
   v_attendu integer;
+  v_explicite text;
   v_oid regprocedure;
   v_def text;
   v_nb integer;
+  v_nb_explicite integer;
 begin
   if to_regprocedure('public.aujourdhui_paris()') is null then
     raise exception 'Jour de Paris : la fonction public.aujourdhui_paris() est absente ; appliquez d''abord 20261014500000.';
@@ -51,6 +61,7 @@ begin
   for v_i in 1 .. array_length(v_cibles, 1) loop
     v_signature := v_cibles[v_i][1];
     v_attendu := v_cibles[v_i][2]::integer;
+    v_explicite := v_cibles[v_i][3];
     v_oid := to_regprocedure(v_signature);
     if v_oid is null then
       raise exception 'Jour de Paris : la fonction % est absente de cette base ; rien n''est modifié.', v_signature;
@@ -58,7 +69,18 @@ begin
     v_def := pg_get_functiondef(v_oid);
     select count(*) into v_nb from regexp_matches(v_def, '\mcurrent_date\M', 'gi');
     if v_nb = 0 then
+      -- Déjà au jour de Paris par la fonction du lot (rejeu) : on laisse tel quel.
       if position('public.aujourdhui_paris()' in v_def) > 0 then continue; end if;
+      -- Déjà au jour de Paris par l'écriture explicite de la vague 4a (X13) : on laisse tel quel, si elle est là en nombre exact.
+      if v_explicite <> '' then
+        select count(*) into v_nb_explicite from regexp_matches(v_def, v_explicite, 'gi');
+        if v_nb_explicite = v_attendu then continue; end if;
+        if v_nb_explicite > 0 then
+          raise exception 'Jour de Paris : % contient % occurrence(s) de l''expression du jour de Paris au lieu de % : définition inattendue, rien n''est modifié. Comparez-la à celle du dépôt (pg_get_functiondef) avant de réessayer.',
+            v_signature, v_nb_explicite, v_attendu;
+        end if;
+        raise exception 'Jour de Paris : % ne lit ni current_date ni aujourdhui_paris() ni l''expression du jour de Paris : définition inattendue, rien n''est modifié.', v_signature;
+      end if;
       raise exception 'Jour de Paris : % ne lit ni current_date ni aujourdhui_paris() : définition inattendue, rien n''est modifié.', v_signature;
     end if;
     if v_nb <> v_attendu then
@@ -69,8 +91,10 @@ begin
   end loop;
 end $jour_de_paris$;
 
--- Valeur par défaut : la date d'une quittance créée sans date est le jour de Paris. Une colonne dont le défaut n'est ni
--- l'ancien (`current_date`) ni le nouveau n'est pas touchée : la migration s'arrête.
+-- Valeur par défaut : la date d'une quittance créée sans date est le jour de Paris. Une colonne dont le défaut est déjà au jour de
+-- Paris (la fonction du lot, ou l'expression explicite de la vague 4a / X13, que le catalogue rend
+-- `((now() AT TIME ZONE 'Europe/Paris'::text))::date`) est laissée telle quelle. Ni l'ancien (`current_date`) ni l'un de ces deux
+-- jours de Paris : la migration s'arrête.
 do $jour_de_paris_defaut$
 declare v_defaut text;
 begin
@@ -78,6 +102,8 @@ begin
     from pg_attrdef d join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum
    where d.adrelid = 'public.quittances'::regclass and a.attname = 'date_emission';
   if v_defaut ~* '^(public\.)?aujourdhui_paris\(\)$' then
+    return;
+  elsif v_defaut ~* '^\(*\s*now\(\)\s+at\s+time\s+zone\s+''Europe/Paris''(::text)?\s*\)*\s*::\s*date\s*\)*$' then
     return;
   elsif v_defaut ~* '^current_date$' then
     alter table public.quittances alter column date_emission set default public.aujourdhui_paris();

@@ -10,6 +10,11 @@
  *    remettant chaque fonction dans une forme DIFFÉRENTE (mot en capitales, indentation retirée) avant de rejouer.
  *  - DÉFINITION INATTENDUE. Un nombre d'occurrences différent, une fonction qui ne lit rien, une valeur par défaut étrangère, la
  *    fonction du jour de Paris absente : la migration s'arrête avec un message qui dit quoi et où, et ne laisse rien de changé.
+ *  - FORME DE LA VAGUE 4a (constat de relecture du 15/10). La décision X13 (migration 20261014416000, déjà en production) a
+ *    daté `resynchroniser_quittances` et le défaut de `quittances.date_emission` du jour de Paris par l'expression explicite
+ *    `(now() at time zone 'Europe/Paris')::date`, sans passer par la fonction du lot. La migration 503000 doit les laisser tels
+ *    quels (ils sont déjà au jour de Paris) au lieu de s'arrêter, et son retour ne doit jamais y remettre `current_date`.
+ *    Les tests tournent sur les deux bancs (avec ou sans 416000) et fabriquent la forme X13 quand la base ne l'a pas.
  *  - RETOURS. Chaque retour remet `current_date` à sa place (nombre exact vérifié), se rejoue sans effet, refuse de se jouer
  *    dans un lot, et celui de la fonction elle-même refuse tant qu'un objet s'en sert. Aller, retour, aller : même état.
  *    (L'égalité avec l'état d'AVANT les migrations, empreinte md5 à l'appui, a été mesurée sur une base de banc reconstruite sans elles.)
@@ -86,6 +91,18 @@ const FAMILLES: Famille[] = [
 ];
 const FONCTION_DU_JOUR = { version: "20261014500000", fichier: "jour_de_paris_fonction" };
 
+/**
+ * Deux objets peuvent être « au jour de Paris » par l'expression explicite de la décision X13 (20261014416000) plutôt que par
+ * `public.aujourdhui_paris()`. Les deux formes sont admises pour eux, et pour eux seuls.
+ */
+const FONCTIONS_A_FORME_EXPLICITE = new Set(["public.resynchroniser_quittances(uuid)"]);
+const DEFAUTS_A_FORME_EXPLICITE = new Set(["quittances.date_emission"]);
+const FORME_EXPLICITE = /\(\s*now\(\)\s+at\s+time\s+zone\s+'Europe\/Paris'\s*\)\s*::\s*date/gi;
+const DEFAUT_PAR_LA_FONCTION = /^(public\.)?aujourdhui_paris\(\)$/;
+/** Ce que le catalogue rend pour le défaut posé par 416000 : `((now() AT TIME ZONE 'Europe/Paris'::text))::date`. */
+const DEFAUT_EXPLICITE = /^\(*\s*now\(\)\s+at\s+time\s+zone\s+'Europe\/Paris'(::text)?\s*\)*\s*::\s*date\s*\)*$/i;
+const MARQUE_X13 = "Décision X13 du 15/10 (FIN-13)";
+
 const migration = (v: string, f: string) => readFileSync(`supabase/migrations/${v}_${f}.sql`, "utf8");
 const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/${v}_${f}.retour.sql`, "utf8");
 const MIGRATIONS = [
@@ -133,8 +150,20 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
   const definition = async (signature: string) =>
     (await db.query<{ def: string }>("select pg_get_functiondef($1::text::regprocedure) as def", [signature])).rows[0].def;
   const nbJourDeSession = (def: string) => (def.match(/\bcurrent_date\b/gi) ?? []).length;
-  const nbJourDeParis = (def: string) => (def.match(/public\.aujourdhui_paris\(\)/g) ?? []).length;
-  const normaliser = (def: string) => def.replace(/\s+/g, " ").toLowerCase().trim();
+  const nbExplicite = (def: string, signature: string) =>
+    FONCTIONS_A_FORME_EXPLICITE.has(signature) ? (def.match(FORME_EXPLICITE) ?? []).length : 0;
+  /** Les occurrences du jour de Paris : la fonction du lot, et pour les objets de la vague 4a l'expression explicite de X13. */
+  const nbJourDeParis = (def: string, signature: string) => (def.match(/public\.aujourdhui_paris\(\)/g) ?? []).length + nbExplicite(def, signature);
+  /** Espaces et casse ramenés à une forme unique ; les deux écritures du jour de Paris sont un seul jeton (même logique, autre mot). */
+  const normaliser = (def: string) =>
+    def
+      .replace(/\s+/g, " ")
+      .toLowerCase()
+      .trim()
+      .replace(/public\.aujourdhui_paris\(\)/g, "<jour de paris>")
+      .replace(/\(\s*now\(\)\s+at\s+time\s+zone\s+'europe\/paris'\s*\)\s*::\s*date/g, "<jour de paris>");
+  const defautAuJourDeParis = (table: string, colonne: string, valeur: string) =>
+    DEFAUT_PAR_LA_FONCTION.test(valeur) || (DEFAUTS_A_FORME_EXPLICITE.has(`${table}.${colonne}`) && DEFAUT_EXPLICITE.test(valeur));
   const defaut = async (table: string, colonne: string) =>
     (
       await db.query<{ v: string }>(
@@ -145,9 +174,11 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
     ).rows[0].v;
 
   /** La définition d'AVANT les migrations, sous une AUTRE forme (capitales, indentation retirée). */
-  const versLOrigine = (def: string) =>
+  const versLOrigine = (def: string, signature: string) =>
     def
       .replace(/public\.aujourdhui_paris\(\)/g, "CURRENT_DATE")
+      // La forme de la vague 4a (X13) redevient, elle aussi, le jour de la session : c'est l'état d'avant 20261014416000 et d'avant le lot.
+      .replace(FONCTIONS_A_FORME_EXPLICITE.has(signature) ? FORME_EXPLICITE : /(?!)/, "CURRENT_DATE")
       // Les trois conversions d'horodatage de l'historique du lot (502000) reprennent leur forme d'origine.
       .replace(/\((edl\.signe_le|i\.created_at|i\.clos_le) at time zone 'Europe\/Paris'\)::date/g, "$1::date")
       .replace(/\n[ \t]+/g, "\n");
@@ -155,7 +186,7 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
   /** Remet toute la famille dans son état d'AVANT, mais sous une AUTRE forme (capitales, indentation retirée). */
   async function remettreAvantAutrement(famille: Famille) {
     for (const [signature] of famille.fonctions) {
-      await db.query(versLOrigine(await definition(signature)));
+      await db.query(versLOrigine(await definition(signature), signature));
     }
     for (const [table, colonne] of famille.defauts) await db.query(`alter table public.${table} alter column ${colonne} set default current_date`);
   }
@@ -195,14 +226,17 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
       for (const signature of SIGNATURES) {
         const def = await definition(signature);
         expect(nbJourDeSession(def), signature).toBe(0);
-        expect(nbJourDeParis(def), signature).toBeGreaterThan(0);
+        expect(nbJourDeParis(def, signature), signature).toBeGreaterThan(0);
       }
-      for (const [table, colonne] of DEFAUTS) expect(await defaut(table, colonne)).toMatch(/^(public\.)?aujourdhui_paris\(\)$/);
+      for (const [table, colonne] of DEFAUTS) {
+        const valeur = await defaut(table, colonne);
+        expect(defautAuJourDeParis(table, colonne, valeur), `${table}.${colonne} : ${valeur}`).toBe(true);
+      }
     });
 
     it("le nombre d'occurrences remplacées est celui que les migrations annoncent", async () => {
       for (const famille of FAMILLES)
-        for (const [signature, attendu] of famille.fonctions) expect(nbJourDeParis(await definition(signature)), signature).toBe(attendu);
+        for (const [signature, attendu] of famille.fonctions) expect(nbJourDeParis(await definition(signature), signature), signature).toBe(attendu);
     });
   });
 
@@ -235,17 +269,17 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
       for (const [signature, attendu] of famille.fonctions) {
         const def = await definition(signature);
         expect(nbJourDeSession(def), `${signature} (avant)`).toBe(attendu);
-        expect(nbJourDeParis(def)).toBe(0);
+        expect(nbJourDeParis(def, signature), `${signature} (avant)`).toBe(0);
       }
       await db.query(migration(famille.version, famille.fichier));
       for (const [signature, attendu] of famille.fonctions) {
         const def = await definition(signature);
         expect(nbJourDeSession(def), signature).toBe(0);
-        expect(nbJourDeParis(def), signature).toBe(attendu);
+        expect(nbJourDeParis(def, signature), signature).toBe(attendu);
         // La logique est celle d'origine : seul le mot a changé, mots et ordre des mots identiques à l'espace près.
         expect(normaliser(def), signature).toBe(avant[signature]);
       }
-      for (const [table, colonne] of famille.defauts) expect(await defaut(table, colonne)).toMatch(/^(public\.)?aujourdhui_paris\(\)$/);
+      for (const [table, colonne] of famille.defauts) expect(await defaut(table, colonne)).toMatch(DEFAUT_PAR_LA_FONCTION);
     });
 
     it("un nombre d'occurrences inattendu l'arrête, en nommant la fonction, et ne laisse rien de changé", async () => {
@@ -333,6 +367,106 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
     });
   });
 
+  describe("forme de la vague 4a (X13, 20261014416000) : resynchroniser_quittances et quittances.date_emission", () => {
+    const famille = FAMILLES[2];
+    const RESYNC = "public.resynchroniser_quittances(uuid)";
+    const AUTRES = famille.fonctions.filter(([signature]) => signature !== RESYNC);
+    const DEFAUT_X13 = "((now() at time zone 'Europe/Paris')::date)";
+    const joue = () => db.query(migration(famille.version, famille.fichier));
+    const rejoue = () => migration(famille.version, famille.fichier);
+
+    /**
+     * Met la base dans l'état de la production après la vague 4a : l'expression explicite (et la marque de X13) dans
+     * `resynchroniser_quittances`, le même jour pour le défaut de la colonne ; les quatre autres fonctions de la famille comme avant le lot.
+     * Vaut pour un banc sans 416000 (on la fabrique) comme pour un banc qui l'a (on la retrouve).
+     */
+    async function poserLaFormeX13() {
+      const origine = versLOrigine(await definition(RESYNC), RESYNC);
+      await db.query(origine.replace(/CURRENT_DATE/g, `(now() at time zone 'Europe/Paris')::date /* ${MARQUE_X13} : émission datée du jour de Paris */`));
+      await db.query(`alter table public.quittances alter column date_emission set default ${DEFAUT_X13}`);
+      for (const [signature] of AUTRES) await db.query(versLOrigine(await definition(signature), signature));
+      const def = await definition(RESYNC);
+      expect(nbJourDeSession(def), "banc de l'essai : plus aucun jour de session").toBe(0);
+      expect(nbExplicite(def, RESYNC), "banc de l'essai : deux expressions de X13").toBe(2);
+      expect(await defaut("quittances", "date_emission")).toMatch(DEFAUT_EXPLICITE);
+    }
+
+    it("la migration laisse ces deux objets tels quels (déjà au jour de Paris), convertit le reste, et se rejoue sans effet", async () => {
+      await poserLaFormeX13();
+      const resyncAvant = await definition(RESYNC);
+      const defautAvant = await defaut("quittances", "date_emission");
+      await joue();
+      expect(await definition(RESYNC)).toBe(resyncAvant);
+      expect(await defaut("quittances", "date_emission")).toBe(defautAvant);
+      for (const [signature, attendu] of AUTRES) {
+        const def = await definition(signature);
+        expect(nbJourDeSession(def), signature).toBe(0);
+        expect(nbJourDeParis(def, signature), signature).toBe(attendu);
+      }
+      const unefois = await empreinte();
+      await joue();
+      expect(await empreinte()).toEqual(unefois);
+    });
+
+    it("resynchroniser_quittances qui ne lit ni current_date, ni la fonction du lot, ni l'expression de X13 l'arrête", async () => {
+      await poserLaFormeX13();
+      await db.query((await definition(RESYNC)).replace(FORME_EXPLICITE, "now()::date"));
+      const avant = await empreinte();
+      const message = await echoue(rejoue());
+      expect(message).toMatch(/resynchroniser_quittances\(uuid\) ne lit ni current_date ni aujourdhui_paris\(\) ni l'expression du jour de Paris/);
+      expect(message).toContain("rien n'est modifié");
+      expect(await empreinte()).toEqual(avant);
+    });
+
+    it("l'expression de X13 en nombre inattendu l'arrête, en nommant la fonction, et ne laisse rien de changé", async () => {
+      await poserLaFormeX13();
+      let n = 0;
+      await db.query((await definition(RESYNC)).replace(FORME_EXPLICITE, (m) => (++n === 1 ? "now()::date" : m)));
+      const avant = await empreinte();
+      const message = await echoue(rejoue());
+      expect(message).toMatch(/resynchroniser_quittances\(uuid\) contient 1 occurrence\(s\) de l'expression du jour de Paris au lieu de 2/);
+      expect(message).toContain("rien n'est modifié");
+      expect(await empreinte()).toEqual(avant);
+    });
+
+    it("un défaut à l'heure d'un autre fuseau que Paris n'est pas pris pour celui de X13 : la migration s'arrête", async () => {
+      for (const fuseau of ["UTC", "Europe/London", "Atlantic/Azores"]) {
+        await db.query(`alter table public.quittances alter column date_emission set default ((now() at time zone '${fuseau}')::date)`);
+        const message = await echoue(rejoue());
+        expect(message, fuseau).toContain("le défaut de quittances.date_emission est");
+        expect(message, fuseau).toContain("rien n'est modifié");
+      }
+    });
+
+    it("le retour laisse l'expression de X13 en place (jamais current_date), rétablit le reste, et se rejoue sans effet", async () => {
+      await poserLaFormeX13();
+      await joue();
+      const resyncAvant = await definition(RESYNC);
+      const defautAvant = await defaut("quittances", "date_emission");
+      await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
+      expect(await definition(RESYNC)).toBe(resyncAvant);
+      expect(await defaut("quittances", "date_emission")).toBe(defautAvant);
+      for (const [signature, attendu] of AUTRES) {
+        const def = await definition(signature);
+        expect(nbJourDeParis(def, signature), signature).toBe(0);
+        expect(nbJourDeSession(def), signature).toBe(attendu);
+      }
+      const unefois = await empreinte();
+      await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
+      expect(await empreinte()).toEqual(unefois);
+    });
+
+    it("aller, retour, aller : l'état migré est retrouvé à l'identique", async () => {
+      await poserLaFormeX13();
+      await joue();
+      const migre = await empreinte();
+      await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
+      expect(await empreinte()).not.toEqual(migre);
+      await joue();
+      expect(await empreinte()).toEqual(migre);
+    });
+  });
+
   describe("valeurs par défaut", () => {
     it.each(DEFAUTS)("%s.%s : un défaut étranger arrête la migration au lieu d'être écrasé", async (table, colonne) => {
       const famille = FAMILLES.find((f) => f.defauts.some(([t, c]) => t === table && c === colonne))!;
@@ -365,15 +499,31 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
       }
     });
 
-    it("chaque retour rétablit current_date (nombre exact), les défauts, et se rejoue sans effet", async () => {
+    it("chaque retour rétablit current_date (nombre exact) là où le lot l'avait remplacé, les défauts, et se rejoue sans effet", async () => {
+      // Sur une base passée par la vague 4a, deux objets sont au jour de Paris par l'expression explicite de X13 : le lot ne les a pas
+      // touchés, son retour non plus (jamais `current_date` sur eux : ce serait défaire X13).
+      const explicites = new Set<string>();
+      for (const signature of FONCTIONS_A_FORME_EXPLICITE) if (nbExplicite(await definition(signature), signature) > 0) explicites.add(signature);
+      const defautsExplicites = new Set<string>();
+      for (const [table, colonne] of DEFAUTS)
+        if (DEFAUT_EXPLICITE.test(await defaut(table, colonne))) defautsExplicites.add(`${table}.${colonne}`);
       for (const famille of [...FAMILLES].reverse()) {
         await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
         for (const [signature, attendu] of famille.fonctions) {
           const def = await definition(signature);
-          expect(nbJourDeParis(def), signature).toBe(0);
-          expect(nbJourDeSession(def), signature).toBe(attendu);
+          if (explicites.has(signature)) {
+            expect(nbJourDeSession(def), `${signature} (forme X13 conservée)`).toBe(0);
+            expect(nbExplicite(def, signature), `${signature} (forme X13 conservée)`).toBe(attendu);
+          } else {
+            expect(nbJourDeParis(def, signature), signature).toBe(0);
+            expect(nbJourDeSession(def), signature).toBe(attendu);
+          }
         }
-        for (const [table, colonne] of famille.defauts) expect((await defaut(table, colonne)).toLowerCase()).toBe("current_date");
+        for (const [table, colonne] of famille.defauts) {
+          const valeur = await defaut(table, colonne);
+          if (defautsExplicites.has(`${table}.${colonne}`)) expect(valeur, `${table}.${colonne} (forme X13 conservée)`).toMatch(DEFAUT_EXPLICITE);
+          else expect(valeur.toLowerCase()).toBe("current_date");
+        }
         const unefois = await empreinte();
         await db.query(sansEnveloppe(retour(famille.version, famille.fichier)));
         expect(await empreinte()).toEqual(unefois);
@@ -393,7 +543,9 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
     it("la fonction du jour de Paris se retire en dernier : tant qu'un objet s'en sert, le retour refuse et les nomme", async () => {
       const message = await echoue(sansEnveloppe(retour(FONCTION_DU_JOUR.version, FONCTION_DU_JOUR.fichier)));
       expect(message).toMatch(/Retour arrière refusé : ces fonctions citent encore public\.aujourdhui_paris\(\)/);
-      for (const signature of ["etat_loyers_bail_brut(uuid)", "fiche_lot(uuid)", "resynchroniser_quittances(uuid)", "contre_passer_encaissement()"])
+      // Sans resynchroniser_quittances(uuid) : sur une base passée par la vague 4a (X13) elle date du jour de Paris par l'expression explicite
+      // et ne cite pas la fonction du lot, donc le retour ne la nomme pas (elle ne retient pas la suppression de la fonction).
+      for (const signature of ["etat_loyers_bail_brut(uuid)", "fiche_lot(uuid)", "quittances_a_envoyer(integer)", "contre_passer_encaissement()"])
         expect(message).toContain(signature);
     });
 

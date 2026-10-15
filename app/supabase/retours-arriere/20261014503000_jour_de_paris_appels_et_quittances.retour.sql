@@ -18,6 +18,13 @@
 -- leur date. Le retour rétablit `current_date` en minuscules ; la logique est celle d'avant, la casse du mot peut différer
 -- d'une base qui l'écrivait en capitales.
 --
+-- VAGUE 4a (20261014416000, décision X13). Sur une base qui l'a reçue, `resynchroniser_quittances` et le défaut de
+-- `quittances.date_emission` sont au jour de Paris par l'expression explicite `(now() at time zone 'Europe/Paris')::date`, et la
+-- migration du lot ne les a PAS modifiés. Ce retour ne les modifie pas non plus : il ne remet JAMAIS `current_date` sur ces deux objets
+-- (ce serait défaire X13, qui reste en vigueur) ; il les nomme « déjà au jour de Paris par X13, rien à faire ». Seuls les objets que le
+-- lot avait réellement convertis (cités par `public.aujourdhui_paris()`) reviennent à `current_date`. Le retour de X13 est
+-- 20261014416000_quittance_jour_de_paris.retour.sql.
+--
 -- À jouer AVANT le retour de 20261014500000 (qui refuse tant qu'un objet cite encore la fonction du jour de Paris).
 
 -- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
@@ -61,7 +68,7 @@ begin
     v_def := pg_get_functiondef(v_oid);
     select count(*) into v_nb from regexp_matches(v_def, 'public\.aujourdhui_paris\(\)', 'g');
     if v_nb = 0 then
-      raise notice '% : ne cite plus aujourdhui_paris(), rien à faire', v_signature;
+      raise notice '% : ne cite plus aujourdhui_paris(), rien à faire (si elle date du jour de Paris par l''expression de la vague 4a, X13, elle le reste)', v_signature;
       continue;
     end if;
     if v_nb <> v_attendu then
@@ -81,6 +88,9 @@ begin
    where d.adrelid = 'public.quittances'::regclass and a.attname = 'date_emission';
   if v_defaut ~* '^(public\.)?aujourdhui_paris\(\)$' then
     alter table public.quittances alter column date_emission set default current_date;
+  elsif v_defaut ~* '^\(*\s*now\(\)\s+at\s+time\s+zone\s+''Europe/Paris''(::text)?\s*\)*\s*::\s*date\s*\)*$' then
+    -- Posé par la vague 4a (X13) : le lot n'y a pas touché, le retour non plus.
+    raise notice 'quittances.date_emission : au jour de Paris par la vague 4a (X13), le lot n''y a pas touché, rien à faire';
   elsif v_defaut ~* '^current_date$' then
     raise notice 'quittances.date_emission : déjà current_date, rien à faire';
   else

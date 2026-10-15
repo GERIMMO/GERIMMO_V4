@@ -9,10 +9,36 @@
 // NODE_ENV. `httpOnly` reste faux : le client navigateur lit la session.
 // Les options fournies s'AJOUTENT aux défauts de la bibliothèque (path,
 // maxAge) : elles ne les remplacent pas.
+//
+// 14/10/2026 (X03, AUD-B-03) : `Secure` ne dépend plus de la seule adresse du
+// site. Si cette variable était absente ou posée en http, la session de
+// production circulait en clair sans qu'aucune alerte le dise. Le drapeau se
+// dérive aussi de l'environnement de production de la plateforme
+// (`VERCEL_ENV === "production"`, que seule Vercel pose) : il est vrai si
+// l'UNE ou l'AUTRE condition l'est, donc jamais moins strict qu'avant.
+// NODE_ENV ne sert toujours pas : la CI et le banc servent une construction
+// de production en http.
+//
+// Côté navigateur, seules les variables NEXT_PUBLIC_* sont incorporées au
+// code ; `NEXT_PUBLIC_VERCEL_ENV` n'existe que si le projet expose les
+// variables système (réglage Vercel). Sans elle, le navigateur retombe sur
+// l'adresse du site, comme avant ; le serveur et le proxy, eux, lisent
+// `VERCEL_ENV` à l'exécution et posent `Secure` dans tous les cas.
 
 import type { CookieOptionsWithName } from "@supabase/ssr";
 
+/** Vrai si le site est servi en https OU si l'environnement est la production de la plateforme. */
+export function cookieSessionSecurise(env: { adresseSite?: string; environnement?: string }): boolean {
+  const enHttps = (env.adresseSite ?? "").startsWith("https://");
+  const enProduction = env.environnement === "production";
+  return enHttps || enProduction;
+}
+
 export const COOKIES_SESSION: CookieOptionsWithName = {
-  secure: (process.env.NEXT_PUBLIC_SITE_URL ?? "").startsWith("https://"),
+  // Accès statiques à process.env : seuls ceux-là sont incorporés au code du navigateur.
+  secure: cookieSessionSecurise({
+    adresseSite: process.env.NEXT_PUBLIC_SITE_URL,
+    environnement: process.env.VERCEL_ENV || process.env.NEXT_PUBLIC_VERCEL_ENV,
+  }),
   sameSite: "lax",
 };

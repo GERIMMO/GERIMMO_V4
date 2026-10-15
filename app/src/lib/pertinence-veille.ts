@@ -9,12 +9,17 @@
 //    superviseur les modifie depuis l'écran marketing) ;
 //  - on lit le titre ET le résumé de l'étude ;
 //  - un mot exclu l'emporte sur tout ;
-//  - les publics de l'étude doivent viser bailleurs, agences ou locataires :
-//    un sujet « artisans seuls » n'a pas sa place dans un journal de gestion
-//    locative.
+//  - les publics de l'étude doivent viser un public du journal (ci-dessous).
 // Sans sujet pertinent, le créneau bascule sur la veine éditoriale.
+//
+// 14/10/2026 (décision D33, fiche EDI-01) : la ligne éditoriale vise le
+// périmètre de la V1 publique — bailleurs, locataires, artisans. « agence » en
+// sort : tant que la V1 ne s'adresse pas aux agences, un sujet qui ne vise
+// qu'elles ne passe plus le filtre. Les artisans y entrent : ils font partie
+// du public de la V1. « agence » reste une valeur valide de l'étude et de la
+// base (écran de validation de la veille) ; seul le journal ne la relaie plus.
 
-export const PUBLICS_JOURNAL = ["bailleur", "agence", "locataire"] as const;
+export const PUBLICS_JOURNAL = ["bailleur", "artisan", "locataire"] as const;
 
 export type SujetVeilleCandidat = {
   titre: string;

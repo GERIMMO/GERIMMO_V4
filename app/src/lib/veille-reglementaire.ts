@@ -1,4 +1,9 @@
 export const PUBLICS_VEILLE={artisan:'Artisans',bailleur:'Propriétaires bailleurs',agence:'Agences et agents immobiliers',locataire:'Locataires'} as const;
+// LES ONGLETS DE /veille SUIVENT LA V1 PUBLIQUE (décision D33, 14/10/2026).
+// « agence » reste une audience valide (étude, écran de validation, base) :
+// seul son onglet n'est plus proposé, à personne. Les artisans lisent leurs
+// règles dans leur espace (/artisan/regles), sans onglet ici.
+export const ONGLETS_VEILLE=['bailleur','locataire'] as const satisfies readonly (keyof typeof PUBLICS_VEILLE)[];
 export const FLUX_VEILLE=[
  {nom:'Service Public — Particuliers',url:'https://www.service-public.gouv.fr/abonnements/rss/actu-actualites-particuliers.rss'},
  {nom:'Service Public — Entreprises',url:'https://www.service-public.gouv.fr/abonnements/rss/actu-actu-pro.rss'},

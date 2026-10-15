@@ -4,35 +4,21 @@
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
+import { COMPTES_LECTURE as COMPTES, controleCouverture, fabriquerPatron, permis, routesDuCode } from "./perimetre-audit.mjs";
 
 const ORIGINE = process.env.E2E_BASE_URL ?? "https://www.gerimmo.app";
 const MOT_DE_PASSE = process.env.E2E_MOT_DE_PASSE ?? "Gerimmo-Demo-2026";
 const SORTIE = process.env.E2E_AUDIT_DIR ?? path.join(process.cwd(), "e2e", ".audit-live");
-const COMPTES = [
-  ["agent", "agent.alpha@gerimmo-demo.fr", "/agence/"],
-  ["admin-agence", "admin.alpha@gerimmo-demo.fr", "/agence/"],
-  ["locataire", "locataire.alpha@gerimmo-demo.fr", "/locataire/"],
-  ["artisan", "artisan.alpha@gerimmo-demo.fr", "/artisan"],
-  ["proprietaire", "proprietaire@gerimmo-demo.fr", "/agence/"],
-];
 
-function pages(dir) {
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((item) => {
-    const complet = path.join(dir, item.name);
-    return item.isDirectory() ? pages(complet) : item.name === "page.tsx" ? [complet] : [];
-  });
-}
+// Les routes viennent des dossiers de src/app. L'espace du propriétaire direct (/espace/<id>/…) n'a pas de dossier : le patron
+// d'une adresse /espace/<id>/… est celui de la page /agence/[orgId]/… correspondante (décision D27).
 const racine = path.join(process.cwd(), "src", "app");
-const patrons = pages(racine).map((fichier) => {
-  const route = fichier.slice(racine.length).replace(/\/page\.tsx$/, "") || "/";
-  const motif = route.replace(/\[[^/]+\]/g, "[^/]+");
-  return { route, regex: new RegExp(`^${motif}/?$`) };
-});
-const patron = (pathname) => patrons.find((p) => p.regex.test(pathname))?.route ?? null;
-const permis = (pathname, prefixe) => pathname.startsWith(prefixe) || pathname === "/compte";
+const routes = routesDuCode(racine);
+const patron = fabriquerPatron(routes);
 const navigateur = await chromium.launch({ headless: true });
 fs.mkdirSync(SORTIE, { recursive: true });
 const synthese = [];
+const couvertureManquante = [];
 
 for (const [persona, email, prefixe] of COMPTES) {
   const contexte = await navigateur.newContext({ viewport: { width: 1280, height: 900 }, locale: "fr-FR" });
@@ -47,6 +33,7 @@ for (const [persona, email, prefixe] of COMPTES) {
   const depart = new URL(page.url()).pathname;
   if (!permis(depart, prefixe)) {
     synthese.push({ persona, connexion: depart, erreur: "Session non ouverte" });
+    couvertureManquante.push(controleCouverture(persona, [], [prefixe]));
     await contexte.close();
     continue;
   }
@@ -123,6 +110,9 @@ for (const [persona, email, prefixe] of COMPTES) {
     fs.writeFileSync(path.join(SORTIE, `${persona}.json`), JSON.stringify(lignes, null, 2));
     console.log(`${persona}: ${lignes.length} pages, ${file.length} liens en attente`);
   }
+  // Un profil qui n'ouvre aucun écran sous sa racine n'a pas été audité (exploration arrêtée à l'accueil) : c'est un échec.
+  const manque = controleCouverture(persona, lignes.filter((l) => !l.erreur).map((l) => l.chemin), [prefixe]);
+  if (manque) couvertureManquante.push(manque);
   synthese.push({ persona, pages: lignes.length, patrons: [...new Set(lignes.map((l) => l.patron))].length,
     controles: lignes.reduce((n, l) => n + (l.commandes?.length || 0), 0),
     essais: lignes.reduce((n, l) => n + (l.essais?.length || 0), 0),
@@ -138,8 +128,11 @@ const routesVisitees = new Set(
   }),
 );
 fs.writeFileSync(path.join(SORTIE, "couverture.json"), JSON.stringify({
-  routesDansLeCode: patrons.length,
+  routesDansLeCode: routes.length,
   routesVisitees: routesVisitees.size,
-  routesNonVisitees: patrons.map((p) => p.route).filter((route) => !routesVisitees.has(route)),
+  routesNonVisitees: routes.filter((route) => !routesVisitees.has(route)),
 }, null, 2));
 console.log(JSON.stringify(synthese, null, 2));
+fs.writeFileSync(path.join(SORTIE, "couverture-manquante.json"), JSON.stringify(couvertureManquante, null, 2));
+for (const manque of couvertureManquante) console.error(`COUVERTURE: ${manque}`);
+if (couvertureManquante.length) process.exitCode = 1;

@@ -29,7 +29,8 @@ test.describe("Côté propriétaire bailleur", () => {
 
   test.beforeEach(async ({ page }) => {
     await sansSyntheseAlertes(page);
-    await page.goto(`/agence/${ORG}/abonnement`);
+    // Décision D27 : l'écran du propriétaire direct vit sous /espace/<id>.
+    await page.goto(`/espace/${ORG}/abonnement`);
     await expect(
       page.getByRole("heading", { name: "Mon abonnement" }),
     ).toBeVisible();

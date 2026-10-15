@@ -120,7 +120,8 @@ export async function saisir(champ: Locator, valeur: string) {
   await champ.fill(valeur);
 }
 
-const DESTINATIONS = /\/(espaces|agence|locataire|artisan|admin)(\/|\?|$)/;
+// Décision D27 : le propriétaire direct arrive sous /espace/<id>, les agences sous /agence/<id>.
+const DESTINATIONS = /\/(espaces?|agence|locataire|artisan|admin)(\/|\?|$)/;
 
 /** La connexion par le vrai formulaire /connexion. */
 export async function seConnecter(page: Page, persona: Persona) {
@@ -138,7 +139,8 @@ export async function seConnecter(page: Page, persona: Persona) {
 export function espaceDe(persona: Persona): string {
   const c = lireComptes();
   if (persona === "admin") return `/agence/${c.orgAgence}`;
-  if (persona === "proprietaire") return `/agence/${c.orgProprietaire}`;
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id> (/agence/<id> y est redirigé à vie).
+  if (persona === "proprietaire") return `/espace/${c.orgProprietaire}`;
   return `/locataire/${c.orgAgence}`;
 }
 
@@ -269,9 +271,9 @@ export async function seDeconnecterParLeMenu(page: Page) {
   await expect(page).toHaveURL(/\/connexion/);
 }
 
-/** Créer un bien et son lot unique par le formulaire du parc. Rend son nom. */
-export async function creerBien(page: Page, orgId: string, nom: string) {
-  await page.goto(`/agence/${orgId}/parc/nouveau`);
+/** Créer un bien et son lot unique par le formulaire du parc. `espace` : l'adresse de l'espace (espaceDe). Rend son nom. */
+export async function creerBien(page: Page, espace: string, nom: string) {
+  await page.goto(`${espace}/parc/nouveau`);
   await expect(page.getByLabel("Nom du bien", { exact: true })).toBeVisible();
   await saisir(page.getByLabel("Nom du bien", { exact: true }), nom);
   await saisir(page.getByLabel("Adresse", { exact: true }), "12 rue de la Recette");

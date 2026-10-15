@@ -15,7 +15,7 @@ for(const largeur of [390,1440])test(`fiche personne et justificatif : fermeture
  test.skip(!url||!/^postgres(?:ql)?:\/\/[^@]*@(?:localhost|127\.0\.0\.1):\d{1,5}\/gerimmo_ci_[a-z_]+_api$/.test(url)||!api||!/^http:\/\/(localhost|127\.0\.0\.1):\d{1,5}$/.test(api),'Base/API fictives locales requises');
  const db=new Client({connectionString:url});await db.connect();const email=`reprise-${randomUUID()}@example.invalid`;const preuve:Record<string,unknown>={largeur,email};
  try{
-  await page.setViewportSize({width:largeur,height:1000});await sansSyntheseAlertes(page);const org=await entrerDansEspace(page,'agence');const href=`/agence/${org}/personnes#creer-fiche`;await page.goto(href);
+  await page.setViewportSize({width:largeur,height:1000});await sansSyntheseAlertes(page);const org=await entrerDansEspace(page,'espace');const href=`/espace/${org}/personnes#creer-fiche`;await page.goto(href);
   await page.getByRole('button',{name:'Locataire Occupe un logement',exact:true}).click();
   for(const [n,v] of Object.entries({nom:'TEST Reprise',prenom:'Camille',date_naissance:'1990-01-15',commune_naissance:'Paris'}))await page.locator(`#p-${n}`).fill(v);
   await page.getByRole('button',{name:'Suivant',exact:true}).click();
@@ -44,7 +44,7 @@ for(const largeur of [390,1440])test(`fiche personne et justificatif : fermeture
 });
 
 test('fiche personne : une autre fenêtre ne remplace pas la copie et le stockage refusé est expliqué',async({page})=>{
- await sansSyntheseAlertes(page);const org=await entrerDansEspace(page,'agence');const href=`/agence/${org}/personnes#creer-fiche`;await page.goto(href);
+ await sansSyntheseAlertes(page);const org=await entrerDansEspace(page,'espace');const href=`/espace/${org}/personnes#creer-fiche`;await page.goto(href);
  await page.getByRole('button',{name:'Locataire Occupe un logement',exact:true}).click();await page.locator('#p-nom').fill('Copie A');await conserve(page);
  const autre=await page.context().newPage();await sansSyntheseAlertes(autre);await autre.goto(href);await autre.getByRole('button',{name:'Reprendre ma saisie',exact:true}).click();await autre.locator('#p-nom').fill('Copie B récente');await conserve(autre);
  await page.locator('#p-nom').fill('Copie A encore en mémoire');await expect(page.getByRole('alert').filter({hasText:'Une autre copie a été modifiée'})).toBeVisible();await expect(page.locator('#p-nom')).toHaveValue('Copie A encore en mémoire');
@@ -57,10 +57,10 @@ test('fiche personne : réponse de création perdue puis reprise sans nouvelle c
  test.setTimeout(90000);const url=process.env.SUPALOCAL_DB;test.skip(!url||!/^postgres(?:ql)?:\/\/[^@]*@(?:localhost|127\.0\.0\.1):\d{1,5}\/gerimmo_ci_[a-z_]+_api$/.test(url),'Base fictive locale requise');
  const db=new Client({connectionString:url});await db.connect();const email=`reprise-perdue-${randomUUID()}@example.invalid`;
  try{
-  await sansSyntheseAlertes(page);const org=await entrerDansEspace(page,'agence');const href=`/agence/${org}/personnes#creer-fiche`;await page.goto(href);await page.getByRole('button',{name:'Locataire Occupe un logement',exact:true}).click();
+  await sansSyntheseAlertes(page);const org=await entrerDansEspace(page,'espace');const href=`/espace/${org}/personnes#creer-fiche`;await page.goto(href);await page.getByRole('button',{name:'Locataire Occupe un logement',exact:true}).click();
   for(const [n,v] of Object.entries({nom:'TEST Perdue',prenom:'Camille',date_naissance:'1990-01-15',commune_naissance:'Paris'}))await page.locator(`#p-${n}`).fill(v);await page.getByRole('button',{name:'Suivant',exact:true}).click();
   for(const [n,v] of Object.entries({email,address_line1:'10 rue TEST',postal_code:'75001',city:'Paris'}))await page.locator(`#p-${n}`).fill(v);await page.getByRole('button',{name:'Suivant',exact:true}).click();await page.getByRole('button',{name:'Suivant',exact:true}).click();
-  let perdue=false;await page.route(`**/agence/${org}/personnes`,async route=>{if(route.request().method()==='POST'&&route.request().headers()['next-action']&&!perdue){perdue=true;const r=await route.fetch();expect(r.ok()).toBe(true);await route.abort('failed');}else await route.continue();});
+  let perdue=false;await page.route(`**/espace/${org}/personnes`,async route=>{if(route.request().method()==='POST'&&route.request().headers()['next-action']&&!perdue){perdue=true;const r=await route.fetch();expect(r.ok()).toBe(true);await route.abort('failed');}else await route.continue();});
   await page.getByRole('button',{name:'Créer la fiche',exact:true}).click();await expect(page.getByRole('alert').filter({hasText:'Un enregistrement a été interrompu'})).toBeVisible();await conserve(page);
   const contexte=page.context();await page.close();page=await contexte.newPage();await sansSyntheseAlertes(page);await page.goto(href);await page.getByRole('button',{name:'Reprendre ma saisie',exact:true}).click();await expect(page.locator('#p-email')).toHaveValue(email);
   // Décision D31 : la demande porte une clé conservée avec la copie. Le bouton n'est plus fermé pour toujours ; renvoyer retrouve la fiche déjà créée.
@@ -75,9 +75,9 @@ test('fiche personne : réponse de création perdue puis reprise sans nouvelle c
 // côté client, que beforeunload ne voit pas) l'abandonnait sans avertissement ; il demande maintenant la même confirmation
 // que les autres formulaires (lib/garde-copie-locale.ts).
 test('fiche personne : copie refusée, un lien interne demande confirmation avant d’abandonner la saisie',async({page})=>{
- await sansSyntheseAlertes(page);const org=await entrerDansEspace(page,'agence');
+ await sansSyntheseAlertes(page);const org=await entrerDansEspace(page,'espace');
  await page.addInitScript(()=>{Object.defineProperty(IDBFactory.prototype,'open',{value:()=>{throw new DOMException('Test stockage refusé','SecurityError');}});});
- await page.goto(`/agence/${org}/personnes#creer-fiche`);
+ await page.goto(`/espace/${org}/personnes#creer-fiche`);
  await page.getByRole('button',{name:'Locataire Occupe un logement',exact:true}).click();await page.locator('#p-nom').fill('Saisie sans copie');
  await expect(page.getByRole('alert').filter({hasText:'Impossible de conserver la copie'})).toBeVisible();
  const dialogues:string[]=[];let accepter=false;

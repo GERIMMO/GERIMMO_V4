@@ -7,7 +7,12 @@
  *    `relais-urgences` et le jeton, les fonctions et le recensement ajoutés, et rend aux trois fonctions qu'il avait
  *    complétées (`sentinelle_relais`, `urgences_relais_recentes`, `relais_urgence_a_envoyer`) EXACTEMENT leur définition
  *    d'avant (celle que leurs migrations d'origine écrivent) ; il se rejoue sans effet ; la marche avant remet tout ;
- *  — il refuse de se jouer dans un lot déjà ouvert.
+ *  — il refuse de se jouer dans un lot déjà ouvert ;
+ *  — ORDRE DES RETOURS (relecture du 15/10) : tant que cette migration est en place, les retours de 20261014811000 et de
+ *    20261014810000 refusent de se jouer (sinon la tâche `relais-urgences` resterait planifiée, sans file, et le retour de
+ *    20261014812000 ne trouverait plus ses fonctions : on resterait bloqué) ; tant que 20261014811000 est en place, celui de
+ *    20261014810000 refuse aussi. Dans l'ordre du LISEZ-MOI (812000, 811000, 810000), les trois passent, et la marche avant
+ *    remet tout.
  *
  * Ces essais rejouent des migrations et suppriment des tables dans la transaction du test : verrous tenus pendant
  * l'essai, le fichier tourne en série (vitest.config.ts, FICHIERS_EN_SERIE).
@@ -28,16 +33,36 @@ const MIGRATION = readFileSync("supabase/migrations/20261014812000_relais_urgenc
 const ORIGINE_810000 = readFileSync("supabase/migrations/20261014810000_relais_alerte_quotidienne.sql", "utf8");
 const ORIGINE_811000 = readFileSync("supabase/migrations/20261014811000_relais_urgences_immediates.sql", "utf8");
 const RETOUR = readFileSync("supabase/retours-arriere/20261014812000_relais_urgences_passage_frequent.retour.sql", "utf8");
-/** Le retour sans sa garde de transaction ni son begin/commit : joué dans la transaction du test, annulée à la fin. */
-const RETOUR_DANS_LE_TEST = RETOUR
-  .replace(/do \$retour_arriere\$\s*begin\s*if statement_timestamp\(\) <> transaction_timestamp\(\)[\s\S]*?end \$retour_arriere\$;/, "")
-  .replace(/^begin;$/m, "")
-  .replace(/^commit;$/m, "");
+/** Un retour sans sa garde de transaction ni son begin/commit : joué dans la transaction du test, annulée à la fin. */
+const sansEnveloppe = (script: string) =>
+  script
+    .replace(/do \$retour_arriere\$\s*begin\s*if statement_timestamp\(\) <> transaction_timestamp\(\)[\s\S]*?end \$retour_arriere\$;/, "")
+    .replace(/^begin;$/m, "")
+    .replace(/^commit;$/m, "");
+const RETOUR_DANS_LE_TEST = sansEnveloppe(RETOUR);
+const RETOUR_811000 = sansEnveloppe(readFileSync("supabase/retours-arriere/20261014811000_relais_urgences_immediates.retour.sql", "utf8"));
+const RETOUR_810000 = sansEnveloppe(readFileSync("supabase/retours-arriere/20261014810000_relais_alerte_quotidienne.retour.sql", "utf8"));
 
 const COMPLETEES = ["public.sentinelle_relais()", "public.urgences_relais_recentes()", "public.relais_urgence_a_envoyer()"];
 const NOUVELLES = [
   "public.declencher_relais_urgences()", "public.jeton_declencheur_relais_urgences()", "public.consigner_passage_urgences_relais()",
   "public.clore_envoi_urgences_vide(uuid)", "public.urgence_constatee_par_le_relais()",
+];
+
+/** Tout ce que les trois migrations du lot créent : tables, fonctions, déclencheur, tâche pg_cron. */
+const TABLES_DU_LOT = [
+  "public.relais_alertes_envois", "public.relais_urgences", "public.relais_urgences_envois",
+  "public.declencheur_relais_urgences", "public.supervision_taches_hors_arret",
+];
+const FONCTIONS_DU_LOT = [
+  // 20261014810000
+  "public.reserver_alerte_relais()", "public.terminer_alerte_relais(date,text,integer,integer,integer,jsonb)", "public.sentinelle_relais()",
+  "public.cron_derniere_echeance(text,timestamptz,interval,text)", "public.cron_valeurs_champ(text,integer,integer)",
+  // 20261014811000
+  "public.nature_urgence_relais(text)", "public.relais_urgence_a_envoyer()", "public.prendre_urgences_relais(integer)",
+  "public.terminer_urgences_relais(uuid,integer,integer)", "public.urgences_relais_recentes()", "public.urgences_relais_au_quotidien(uuid[])",
+  // 20261014812000
+  ...NOUVELLES,
 ];
 
 let db: Client;
@@ -67,6 +92,29 @@ async function objets() {
     [NOUVELLES, COMPLETEES]
   );
   return o;
+}
+async function lot() {
+  await proprietaire();
+  const { rows: [o] } = await db.query<{ tache: number; tables: number; fonctions: number; declencheur: number }>(
+    `select (select count(*)::int from cron.job where jobname = 'relais-urgences') tache,
+            (select count(*)::int from unnest($1::text[]) t where to_regclass(t) is not null) tables,
+            (select count(*)::int from unnest($2::text[]) f where to_regprocedure(f) is not null) fonctions,
+            (select count(*)::int from pg_trigger where tgname = 'relais_urgence_a_envoyer') declencheur`,
+    [TABLES_DU_LOT, FONCTIONS_DU_LOT]
+  );
+  return o;
+}
+/** Le message d'erreur d'un script joué dans un point de sauvegarde (annulé, même en cas de succès) ; vide s'il passe. */
+async function refus(sql: string): Promise<string> {
+  await db.query("savepoint e");
+  try {
+    await db.query(sql);
+    return "";
+  } catch (err) {
+    return (err as Error).message;
+  } finally {
+    await db.query("rollback to savepoint e");
+  }
 }
 async function empreinte(): Promise<string> {
   await proprietaire();
@@ -145,6 +193,44 @@ describe.skipIf(!DB_URL)("D46-B — passage fréquent des urgences : rejeu et re
     }
     await db.query("rollback to savepoint e");
     expect(message).toMatch(/Retour arrière refusé : ce script gère sa propre transaction/);
+  });
+
+  it("tant que 812000 est en place, les retours de 811000 et de 810000 refusent de se jouer et nomment celui à jouer d'abord", async () => {
+    await proprietaire();
+    expect(await lot()).toEqual({ tache: 1, tables: 5, fonctions: 16, declencheur: 1 });
+    const attendu = /Retour arrière refusé : la migration 20261014812000 \(passage fréquent des urgences du relais\) est encore appliquée\. Jouez d'abord son retour/;
+    expect(await refus(RETOUR_811000)).toMatch(attendu);
+    expect(await refus(RETOUR_810000)).toMatch(attendu);
+    // La tâche seule suffit à refuser : son jeton retiré à la main, elle appellerait encore la route toutes les 10 minutes.
+    await db.query("drop table public.declencheur_relais_urgences");
+    expect(await refus(RETOUR_811000)).toMatch(attendu);
+    expect(await refus(RETOUR_810000)).toMatch(attendu);
+    // Et le jeton seul aussi (tâche déjà retirée).
+    await db.query("rollback");
+    await db.query("begin");
+    await proprietaire();
+    await db.query("delete from cron.job where jobname = 'relais-urgences'");
+    expect(await refus(RETOUR_811000)).toMatch(attendu);
+    expect(await refus(RETOUR_810000)).toMatch(attendu);
+  });
+
+  it("dans l'ordre du LISEZ-MOI (812000, 811000, 810000), les trois retours passent ; 810000 refuse tant que 811000 est en place ; la marche avant remet tout", async () => {
+    const migre = await lot();
+    await db.query(RETOUR_DANS_LE_TEST);
+    expect(await lot()).toEqual({ tache: 0, tables: 3, fonctions: 11, declencheur: 1 });
+    expect(await refus(RETOUR_810000)).toMatch(
+      /Retour arrière refusé : la migration 20261014811000 \(e-mail immédiat des urgences du relais\) est encore appliquée\. Jouez d'abord son retour/
+    );
+    await db.query(RETOUR_811000);
+    expect(await lot()).toEqual({ tache: 0, tables: 1, fonctions: 5, declencheur: 0 });
+    await db.query(RETOUR_810000);
+    expect(await lot()).toEqual({ tache: 0, tables: 0, fonctions: 0, declencheur: 0 });
+    // Les deux retours gardés, rejoués : sans effet ni erreur (leurs gardes ne trouvent plus rien de 812000 ni de 811000).
+    for (const retour of [RETOUR_811000, RETOUR_810000]) await db.query(retour);
+    expect(await lot()).toEqual({ tache: 0, tables: 0, fonctions: 0, declencheur: 0 });
+    // La marche avant, dans l'ordre du manifeste.
+    for (const migration of [ORIGINE_810000, ORIGINE_811000, MIGRATION]) await db.query(migration);
+    expect(await lot()).toEqual(migre);
   });
 
   it("un bloc retouché à la main arrête le retour, sans rien modifier", async () => {

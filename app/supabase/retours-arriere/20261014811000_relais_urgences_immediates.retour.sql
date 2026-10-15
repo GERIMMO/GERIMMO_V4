@@ -17,7 +17,8 @@
 -- « Actualiser » et « Signaler une urgence interne » de la console). Sans elles, l'envoi immédiat échoue en silence (il est
 -- conçu pour ne jamais bloquer : la mission, le passage de 5 h et le geste continuent), et l'e-mail de 5 h dit que « les
 -- urgences des dernières 24 h n'ont pas pu être lues ». À retirer AVEC le code, ou vider d'abord GERIMMO_RELAIS_EMAILS.
--- À jouer AVANT le retour de 20261014810000 si les deux doivent être défaits (même lot).
+-- À jouer APRÈS le retour de 20261014812000 (il REFUSE tant que son jeton ou sa tâche pg_cron `relais-urgences` existe) et
+-- AVANT celui de 20261014810000 si les deux doivent être défaits (même lot ; celui de 810000 le vérifie).
 --
 -- NE DÉFAIT PAS : les e-mails déjà envoyés ; les alertes de la console (`supervision_alertes_internes`, intactes). PERD :
 -- la file et l'historique des envois immédiats (des natures, des heures et des nombres), qui disparaissent avec les tables ;
@@ -35,6 +36,21 @@ end $retour_arriere$;
 
 begin;
 set local lock_timeout = '10s';
+
+-- Refus si le passage fréquent des urgences (20261014812000) est encore en place, par son jeton OU par sa tâche pg_cron :
+-- il a complété des fonctions de ce lot. Défait après celui-ci, sa tâche `relais-urgences` resterait planifiée et appellerait
+-- la route toutes les 10 minutes sans rien pouvoir envoyer, et son propre retour ne trouverait plus ces fonctions (« base
+-- inattendue ») : on resterait bloqué. Son retour se joue d'abord.
+do $retour_arriere$
+declare v_tache boolean := false;
+begin
+  if to_regclass('cron.job') is not null then
+    execute 'select exists (select from cron.job where jobname = ''relais-urgences'')' into v_tache;
+  end if;
+  if to_regclass('public.declencheur_relais_urgences') is not null or v_tache then
+    raise exception 'Retour arrière refusé : la migration 20261014812000 (passage fréquent des urgences du relais) est encore appliquée. Jouez d''abord son retour.';
+  end if;
+end $retour_arriere$;
 
 do $retour_arriere$
 declare v_file bigint; v_attente bigint; v_envois bigint;

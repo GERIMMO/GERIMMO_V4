@@ -5,7 +5,8 @@
  *    déclencheur la rattrape ; l'e-mail de 5 h rappelle quand même l'urgence (« hors file ») ;
  *  — le retour arrière (20261014811000_relais_urgences_immediates.retour.sql) retire le déclencheur, les six fonctions et
  *    les deux tables, laisse les alertes intactes et la pose d'une alerte possible ; il se rejoue sans effet ; la
- *    migration se rejoue ensuite et tout revient.
+ *    migration se rejoue ensuite et tout revient. Il refuse tant que 20261014812000 est en place : le cas joue d'abord le
+ *    retour de 812000, comme le LISEZ-MOI le demande (relais-urgences-passage-retour.test.ts garde ce refus).
  *
  * Ces essais posent des verrous de table (contrainte sur la file, déclencheur retiré de `supervision_alertes_internes`)
  * tenus jusqu'à la fin de leur transaction : le fichier tourne en série (vitest.config.ts, FICHIERS_EN_SERIE).
@@ -23,11 +24,15 @@ verifierBaseDeTest(DB_URL);
 
 const MIGRATION = readFileSync("supabase/migrations/20261014811000_relais_urgences_immediates.sql", "utf8");
 const RETOUR = readFileSync("supabase/retours-arriere/20261014811000_relais_urgences_immediates.retour.sql", "utf8");
-/** Le retour sans sa garde de transaction ni son begin/commit : joué dans la transaction du test, annulée à la fin. */
-const RETOUR_DANS_LE_TEST = RETOUR
-  .replace(/do \$retour_arriere\$\s*begin\s*if statement_timestamp\(\) <> transaction_timestamp\(\)[\s\S]*?end \$retour_arriere\$;/, "")
-  .replace(/^begin;$/m, "")
-  .replace(/^commit;$/m, "");
+/** Un retour sans sa garde de transaction ni son begin/commit : joué dans la transaction du test, annulée à la fin. */
+const sansEnveloppe = (script: string) =>
+  script
+    .replace(/do \$retour_arriere\$\s*begin\s*if statement_timestamp\(\) <> transaction_timestamp\(\)[\s\S]*?end \$retour_arriere\$;/, "")
+    .replace(/^begin;$/m, "")
+    .replace(/^commit;$/m, "");
+const RETOUR_DANS_LE_TEST = sansEnveloppe(RETOUR);
+/** Le retour du passage fréquent (20261014812000), à jouer avant celui-ci. */
+const RETOUR_812000 = sansEnveloppe(readFileSync("supabase/retours-arriere/20261014812000_relais_urgences_passage_frequent.retour.sql", "utf8"));
 
 let db: Client;
 
@@ -108,6 +113,13 @@ describe.skipIf(!DB_URL)("D46-B — e-mail immédiat des urgences : file en pann
     const avant = await signaler(createur, plan, "incident-avant-retour");
     expect(await objets()).toEqual({ tables: 2, fonctions: 6, declencheur: 1 });
     await proprietaire();
+    // D'abord le retour de 812000 (le planificateur de façade du banc n'a pas cron.unschedule : posée le temps du cas).
+    await db.query(
+      `create or replace function cron.unschedule(p_nom text) returns boolean language sql as $$
+         with retiree as (delete from cron.job where jobname = p_nom returning 1) select exists (select 1 from retiree) $$`
+    );
+    await db.query(RETOUR_812000);
+    expect(await objets()).toEqual({ tables: 2, fonctions: 6, declencheur: 1 });
     await db.query(RETOUR_DANS_LE_TEST);
     expect(await objets()).toEqual({ tables: 0, fonctions: 0, declencheur: 0 });
     // Les alertes sont intactes, et la pose d'une alerte reste possible sans la file.

@@ -61,6 +61,22 @@ type Ligne = {
   categorie: string;
 };
 
+/** Les demandes de report expirées par cette passe ; -1 si la base a refusé (consigné, jamais bloquant). */
+async function expirerDemandesRdv(supabase: NonNullable<ReturnType<typeof clientDeService>>): Promise<number> {
+  try {
+    const r = await supabase.rpc("expirer_demandes_rdv");
+    if (r?.error) {
+      console.error("[cron rappels] expiration des demandes de report :", r.error.message);
+      return -1;
+    }
+    return typeof r?.data === "number" ? r.data : 0;
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    console.error("[cron rappels] expiration des demandes de report :", e instanceof Error ? e.message : e);
+    return -1;
+  }
+}
+
 /** Comparaison à temps constant, sans fuir la longueur du secret. */
 function memeSecret(fourni: string, attendu: string): boolean {
   const a = Buffer.from(fourni);
@@ -94,6 +110,13 @@ export async function traiterRappels(request: Request) {
   // Pas de contrôle d'adresse de site ici : le rappel se suffit à lui-même, il
   // ne porte pas de lien. Le locataire n'a rien à ouvrir — il a un rendez-vous.
 
+  // Décision D22 : une demande de report du locataire restée sans réponse de l'artisan au-delà de son échéance
+  // (48 h, ou la veille du rendez-vous) expire ; le rendez-vous confirmé est maintenu et le gérant reçoit une alerte.
+  // Fait AVANT de lire les rendez-vous à rappeler. Une écriture de la tâche : l'arrêt d'urgence l'interdit comme un
+  // envoi. Son échec ne prive personne de son rappel : il est compté (-1) et consigné.
+  await verifierAvantEffet(supabase, "rappels");
+  const demandesExpirees = await expirerDemandesRdv(supabase);
+
   const { data, error } = await supabase.rpc("rendez_vous_a_rappeler", { p_limite: 200 });
   if (error) {
     console.error("[cron rappels] lecture impossible:", error.message);
@@ -111,7 +134,7 @@ export async function traiterRappels(request: Request) {
   if (lignes.length === 0) {
     // Une passe sans rien à faire se consigne aussi : c'est le battement de
     // cœur que la ronde du matin attend à cette heure-là.
-    const bilan = { rappeles: 0, echecs: 0, gestes };
+    const bilan = { rappeles: 0, echecs: 0, gestes, demandes_rdv_expirees: demandesExpirees };
     await consignerTache(supabase, "rappels", bilan);
     return Response.json(bilan);
   }
@@ -173,7 +196,7 @@ export async function traiterRappels(request: Request) {
   if (echecs.length > 0) {
     console.error("[cron rappels] échecs:", [...new Set(echecs)].join(" · "));
   }
-  const bilan = { rappeles, echecs: echecs.length, gestes };
+  const bilan = { rappeles, echecs: echecs.length, gestes, demandes_rdv_expirees: demandesExpirees };
   await consignerTache(supabase, "rappels", bilan);
   return Response.json(bilan);
 }

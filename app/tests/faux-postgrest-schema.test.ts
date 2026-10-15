@@ -109,6 +109,17 @@ describe.skipIf(!DB_URL)("Le faux client des tests d'écrans colle à la base r�
       expect(rows).toEqual([]);
     });
 
+    it("l'écran de la facture : les règlements déclarés (D23), lus par le gérant sous RLS", async () => {
+      const { rows } = await lire(
+        `select id, facture_id, montant_cents, date_reglement, moyen, reference, created_at, retire_le, retrait_motif
+           from public.intervention_facture_reglements
+          where organization_id = $1 and facture_id = any($2::uuid[])
+          order by date_reglement, created_at`,
+        [org, [gerant]]
+      );
+      expect(rows).toEqual([]);
+    });
+
     it("la valeur « depose » est bien un statut de devis, « retenu » aussi", async () => {
       const { rows } = await db.query(`select unnest(enum_range(null::public.devis_statut))::text as statut`);
       expect(rows.map((r) => r.statut)).toEqual(expect.arrayContaining(["depose", "retenu"]));

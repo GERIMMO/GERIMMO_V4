@@ -71,6 +71,12 @@ const ANCRES_BAIL = new Map<string, string>([
  * qui la ferme dès que le devis est retenu, écarté, annulé ou expiré.
  */
 const SE_FERMENT_SEULES = new Set([
+  // Décision D22 (migration 20261014620000) : les trois alertes nées d'un geste du locataire sur son rendez-vous se
+  // ferment dès que la mission avance (nouveau rendez-vous fixé, intervention démarrée ou terminée, mission annulée)
+  // — déclencheur `demandes_rdv_suivre_mission` — ou par l'arbitrage du rendez-vous.
+  "rdv_annule_locataire",
+  "rdv_annule_tardif",
+  "rdv_demande_sans_reponse",
   "assurance_expiration",
   "attestation_a_verifier",
   "decompte",
@@ -111,6 +117,11 @@ const LIBELLES = new Map<string, string>([
   // dossier d'incident, où se lisent la facture et les créneaux.
   ["facture_artisan_a_valider", "Contrôler la facture de l’artisan"],
   ["creneaux_arbitrage", "Fixer le rendez-vous"],
+  // Décision D22 : le locataire a annulé (l'artisan repropose des dates ; le gérant peut fixer le rendez-vous), ou
+  // l'artisan n'a pas répondu à sa demande de report (le rendez-vous est maintenu ; rappeler le locataire).
+  ["rdv_annule_locataire", "Suivre le nouveau rendez-vous"],
+  ["rdv_annule_tardif", "Suivre le nouveau rendez-vous"],
+  ["rdv_demande_sans_reponse", "Voir le rendez-vous maintenu"],
   ["loyer_impaye", "Ouvrir les loyers du bail"],
   ["zone_tendue_a_verifier", "Vérifier la zone tendue du bail"],
   ["regularisation_non_appelee", "Ouvrir les loyers et régularisations du bail"],
@@ -181,7 +192,10 @@ export function cheminFicheAlerte(a: Alerte, orgId: string): string | null {
     type === "devis_a_decider" ||
     type === "devis_revision_expiree" ||
     type === "facture_artisan_a_valider" ||
-    type === "creneaux_arbitrage"
+    type === "creneaux_arbitrage" ||
+    type === "rdv_annule_locataire" ||
+    type === "rdv_annule_tardif" ||
+    type === "rdv_demande_sans_reponse"
   ) {
     const incident = texte(a.details, "incident_id");
     if (incident) return `/agence/${orgId}/incidents?sel=${incident}`;

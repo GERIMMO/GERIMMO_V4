@@ -11,10 +11,15 @@ import {
 } from "@/app/locataire/[orgId]/demandes/creneaux";
 import type { EtatIncidentAction } from "@/app/actions/incidents";
 import {
+  notifierAnnulationRdvLocataire,
   notifierContrePropositionLocataire,
   notifierCreneauChoisi,
+  notifierDemandeReportRdv,
   notifierEnCoulisses,
 } from "@/lib/notifications";
+import { lireCleEnvoi } from "@/lib/cle-envoi";
+import { aujourdhuiParis } from "@/lib/ged";
+import { motifRdv, PRECISION_MAX, type MotifRdv } from "@/lib/rendez-vous-locataire";
 
 // ════════════════════════════════════════════════════════════════════════════
 // LES TROIS SEULS GESTES DU LOCATAIRE SUR UNE INTERVENTION
@@ -182,4 +187,156 @@ export async function noterMonIntervention(
 
   revaliderSuivi(orgId);
   return { succes: "Merci — votre avis est enregistré." };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// DÉCISION D22 (14/10/2026, option B) : LE LOCATAIRE NE PEUT PLUS ÊTRE LÀ
+//
+// Deux gestes de plus sur un rendez-vous CONFIRMÉ, et rien d'autre :
+//  · demander un report (motif et trois disponibilités) : le rendez-vous reste
+//    valable tant que l'artisan n'a pas répondu ; lui seul fixe la nouvelle date ;
+//  · annuler le rendez-vous (motif, confirmation) : effet immédiat, le gestionnaire
+//    est alerté, l'artisan proposera d'autres créneaux.
+// Et retirer sa demande de report tant que l'artisan n'a pas répondu.
+//
+// Toutes les règles (24 h, deux reports, 48 h, SA mission, bail actif) sont en
+// base (`demander_report_rdv`, `annuler_rdv_locataire`, `retirer_demande_rdv`) ;
+// on contrôle ici la saisie pour dire un reproche utile avant d'écrire. Rejeu sûr :
+// une clé d'envoi par formulaire monté (`cle_envoi`) — le même envoi rejoué rend la
+// même demande, et le courrier porte une clé d'idempotence : pas de second e-mail.
+// ════════════════════════════════════════════════════════════════════════════
+
+function lireMotifEtPrecision(formData: FormData): { motif: MotifRdv; precision: string | null } | { erreur: string } {
+  const motif = motifRdv(String(formData.get("motif") ?? ""));
+  if (!motif) return { erreur: "Choisissez le motif dans la liste." };
+  const precision = String(formData.get("precision") ?? "").trim();
+  if (precision.length > PRECISION_MAX) {
+    return { erreur: "Votre précision est trop longue (1 000 caractères au plus)." };
+  }
+  return { motif, precision: precision || null };
+}
+
+// ── Demander un report (fiche C.4, colonne « Report ») ─────────────────────
+export async function demanderReportRdv(
+  orgId: string,
+  interventionId: string,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierLocataire(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const valeurs = valeursDuFormulaire(formData);
+  const cle = lireCleEnvoi(formData.get("cle_envoi"));
+  if ("erreur" in cle) return { erreur: cle.erreur, valeurs };
+  const saisie = lireMotifEtPrecision(formData);
+  if ("erreur" in saisie) return { erreur: saisie.erreur, valeurs };
+
+  const aujourdhui = aujourdhuiParis();
+  const creneaux: { debut: string; fin: string }[] = [];
+  const vus = new Set<string>();
+  for (let i = 0; i < CRENEAUX_MINIMUM; i++) {
+    const date = String(formData.get(`date-${i}`) ?? "").trim();
+    const moment = demiJournee(String(formData.get(`moment-${i}`) ?? ""));
+    if (!date || !moment) {
+      return {
+        erreur: `Indiquez vos ${CRENEAUX_MINIMUM} disponibilités : une date et un moment de la journée pour chacune.`,
+        valeurs,
+      };
+    }
+    if (date <= aujourdhui) {
+      return { erreur: "Proposez des dates à venir — celles-ci sont déjà passées.", valeurs };
+    }
+    const cleCreneau = `${date}-${moment.valeur}`;
+    if (vus.has(cleCreneau)) {
+      return { erreur: "Vos trois propositions doivent être différentes — sinon l'artisan n'a qu'un choix.", valeurs };
+    }
+    vus.add(cleCreneau);
+    const debut = instantParis(date, moment.debut);
+    const fin = instantParis(date, moment.fin);
+    if (!debut || !fin) return { erreur: "Date invalide.", valeurs };
+    creneaux.push({ debut, fin });
+  }
+
+  const { data: demandeId, error } = await supabase.rpc("demander_report_rdv", {
+    p_org: orgId,
+    p_intervention: interventionId,
+    p_motif_code: saisie.motif,
+    p_motif_texte: saisie.precision,
+    p_creneaux: creneaux,
+    p_cle: cle.cle,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  if (typeof demandeId === "string") {
+    await notifierEnCoulisses(supabase, { evenement: "rdv_report_demande", objet: demandeId, org: orgId }, (service) =>
+      notifierDemandeReportRdv(service, orgId, demandeId)
+    );
+  }
+
+  revaliderSuivi(orgId);
+  return {
+    succes:
+      "Votre demande de report est transmise à l'artisan. Votre rendez-vous actuel reste valable tant qu'il n'a pas répondu.",
+  };
+}
+
+// ── Annuler le rendez-vous (fiche C.4, colonne « Annulation », variante B) ─
+export async function annulerRdvLocataire(
+  orgId: string,
+  interventionId: string,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierLocataire(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const valeurs = valeursDuFormulaire(formData);
+  const cle = lireCleEnvoi(formData.get("cle_envoi"));
+  if ("erreur" in cle) return { erreur: cle.erreur, valeurs };
+  const saisie = lireMotifEtPrecision(formData);
+  if ("erreur" in saisie) return { erreur: saisie.erreur, valeurs };
+  // Confirmation à deux temps (fiche C.8) : la case se coche au second temps.
+  if (formData.get("confirmation") !== "oui") {
+    return { erreur: "Confirmez l'annulation : cochez la case avant d'envoyer.", valeurs };
+  }
+
+  const { data: demandeId, error } = await supabase.rpc("annuler_rdv_locataire", {
+    p_org: orgId,
+    p_intervention: interventionId,
+    p_motif_code: saisie.motif,
+    p_motif_texte: saisie.precision,
+    p_cle: cle.cle,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  if (typeof demandeId === "string") {
+    await notifierEnCoulisses(supabase, { evenement: "rdv_annule_par_locataire", objet: demandeId, org: orgId }, (service) =>
+      notifierAnnulationRdvLocataire(service, orgId, demandeId)
+    );
+  }
+
+  revaliderSuivi(orgId);
+  return {
+    succes:
+      "Le rendez-vous est annulé. L'artisan et votre gestionnaire sont prévenus ; l'artisan va vous proposer d'autres créneaux.",
+  };
+}
+
+// ── Retirer sa demande de report, tant que l'artisan n'a pas répondu ───────
+export async function retirerDemandeRdv(
+  orgId: string,
+  demandeId: string,
+  _etat: EtatIncidentAction,
+  _formData: FormData
+): Promise<EtatIncidentAction> {
+  void _formData;
+  const { supabase, user } = await verifierLocataire(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { error } = await supabase.rpc("retirer_demande_rdv", { p_org: orgId, p_demande: demandeId });
+  if (error) return { erreur: sansJargon(error.message) };
+
+  revaliderSuivi(orgId);
+  return { succes: "Votre demande de report est retirée. Votre rendez-vous reste celui prévu." };
 }

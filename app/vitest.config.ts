@@ -51,6 +51,14 @@ export const FICHIERS_EN_SERIE = [
   // D18, décisions simultanées sur deux devis du même dossier : fixture VALIDÉE (trois sessions) et verrous de ligne
   // tenus exprès sur les incidents, demandes et devis le temps de l'essai.
   "tests/devis-decisions-concurrence.test.ts",
+  // Rejeu de la migration D22 (report et annulation par le locataire) : `alter table incident_evenements`, `intervention_rappels`
+  // et `create trigger` sur incident_interventions dans la transaction du test, verrous tenus pendant tout l'essai.
+  "tests/rendez-vous-locataire-rejeu.test.ts",
+  // ART004, deux vraies transactions qui confirment un créneau : organisation, incidents et missions VALIDÉS puis supprimés
+  // à chaque essai. Pendant ce temps, actualiser_orchestration() (pilotage-dossiers.test.ts) parcourt les incidents de toutes
+  // les organisations et voit disparaître celle de l'essai : violation de orchestration_cases_organization_id_fkey
+  // (relecture du 15/10, deux fichiers seuls en parallèle).
+  "tests/planning-conflits-concurrence.test.ts",
 ];
 
 export default defineConfig({

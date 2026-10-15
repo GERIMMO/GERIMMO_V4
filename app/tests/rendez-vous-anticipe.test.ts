@@ -22,6 +22,8 @@ const etat = vi.hoisted(() => ({ supabase: null as unknown, agenda: [] as Record
 // de la requête change ce que l'écran affiche, et fait donc tomber un test.
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => etat.supabase }));
 vi.mock("../src/app/agence/[orgId]/incidents/validation-facture", () => ({ ValidationFacture: () => null }));
+// D23 : les formulaires du règlement sont des composants clients ; l'écran de la facture les pose, le test les remplace.
+vi.mock("../src/app/agence/[orgId]/incidents/reglement-facture", () => ({ FormulaireReglement: () => null, RetraitReglement: () => null }));
 
 // Les pages de l'artisan sont rendues pour de bon : seuls leurs accès (agenda, navigation) et leurs formulaires
 // clients sont remplacés. Chaque formulaire laisse un repère de texte, pour vérifier que l'avertissement le PRÉCÈDE
@@ -39,6 +41,10 @@ vi.mock("@/app/artisan/acces", () => ({
   chargerAgenda: async () => ({ lignes: etat.agenda }),
   chargerCreneauxMission: async () => ({ lignes: [], erreur: false }),
   chargerPhotosDemande: async () => ({ photos: [], erreur: false }),
+  // D23 : l'état de règlement déclaré par le client (aucun ici : la mission est jugée sur son rendez-vous).
+  chargerReglementsFactures: async () => ({ lignes: [], erreur: false }),
+  // Décision D22 : la fiche de la mission lit aussi la dernière demande du locataire (report, annulation).
+  chargerDemandesRdv: async () => ({ lignes: [], erreur: false }),
 }));
 async function bouton(libelle: string) {
   const { createElement: creer } = await import("react");
@@ -341,6 +347,8 @@ describe("l'écran de validation de la facture : rendez-vous prévu / interventi
         facture("f3", "m1", "F-AUTRE-AGENCE", AUTRE_ORG),
         facture("f4", "m-autre-agence", "F-INCOHERENTE"),
       ]),
+      // D23 : l'écran lit aussi les règlements déclarés de ces factures (aucun ici).
+      intervention_facture_reglements: table("intervention_facture_reglements", []),
     };
     etat.supabase = fauxClient(banc);
     return FacturesIncident({ orgId: ORG, incidentId: INCIDENT }).then((e) => renderToStaticMarkup(e as never));

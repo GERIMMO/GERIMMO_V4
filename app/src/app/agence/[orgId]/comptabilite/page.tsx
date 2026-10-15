@@ -78,6 +78,8 @@ type Ecriture = {
   encaissement_id: string | null;
   depot_encaissement_id: string | null;
   lot_id: string | null;
+  /** D23 : le numéro de la facture d'intervention dont le règlement a créé l'écriture (posé par la page, pas lu du journal). */
+  reglement_facture?: string | null;
 };
 
 export default async function PageComptabilite(props: {
@@ -198,9 +200,27 @@ export default async function PageComptabilite(props: {
     );
   }
 
+  // D23 (PRO2-21) : une écriture née du règlement déclaré d'une facture d'intervention se dit telle au journal, et se
+  // retire depuis la fiche de l'incident (jamais seule ici). Le lien est porté par la table des règlements, lue par la
+  // politique de l'organisation ; en échec de lecture, les lignes restent affichées sans la mention (la base refuse de
+  // toute façon la contre-écriture depuis le journal : l'écran ne peut pas désaccorder le journal de la facture).
+  const identifiantsEcritures = ((ecritures ?? []) as Ecriture[]).map((e) => e.id);
+  const { data: reglementsFactures } = identifiantsEcritures.length > 0
+    ? await supabase
+        .from("intervention_facture_reglements")
+        .select("ecriture_id, facture:intervention_factures(numero)")
+        .eq("organization_id", orgId)
+        .in("ecriture_id", identifiantsEcritures)
+    : { data: null };
+  const factureDeLEcriture = new Map<string, string>();
+  for (const r of (reglementsFactures ?? []) as { ecriture_id: string; facture: { numero: string } | { numero: string }[] | null }[]) {
+    const numero = Array.isArray(r.facture) ? r.facture[0]?.numero : r.facture?.numero;
+    if (numero) factureDeLEcriture.set(r.ecriture_id, numero);
+  }
+
   // Portefeuille : seules les écritures rattachées à un de mes lots comptent
   // (une écriture sans lot reste une affaire d'agence).
-  const toutesLesLignes = (ecritures ?? []) as Ecriture[];
+  const toutesLesLignes = ((ecritures ?? []) as Ecriture[]).map((e) => ({ ...e, reglement_facture: factureDeLEcriture.get(e.id) ?? null }));
   const lignes = toutesLesLignes.filter((e) => dansPortefeuille(e.lot_id));
   // La base a rendu une page pleine : il y a (très probablement) plus ancien
   // derrière. Le dire, sinon le journal passe pour complet.
@@ -582,6 +602,7 @@ export default async function PageComptabilite(props: {
                       {e.libelle ? `${e.libelle} · ` : ""}
                       pièce {formaterDate(e.date_piece)}
                       {e.systeme ? " · créée automatiquement" : ""}
+                      {e.reglement_facture && !e.contre_ecriture_de ? ` · née du règlement de la facture n° ${e.reglement_facture}` : ""}
                     </p>
                     {!annulationHorsJournal(e) && !clot && (
                       <BoutonContre orgId={orgId} ecritureId={e.id} />
@@ -622,6 +643,7 @@ export default async function PageComptabilite(props: {
                           {e.libelle ? `${e.libelle} · ` : ""}
                           pièce {formaterDate(e.date_piece)}
                           {e.systeme ? " · créée automatiquement" : ""}
+                          {e.reglement_facture && !e.contre_ecriture_de ? ` · née du règlement de la facture n° ${e.reglement_facture}` : ""}
                         </td>
                         <td
                           className={`nombre montant font-medium ${e.sens === "recette" ? "text-success" : ""}`}

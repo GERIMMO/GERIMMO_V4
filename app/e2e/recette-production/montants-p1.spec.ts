@@ -147,8 +147,16 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
     await page.goto(`${espaceDe("proprietaire")}/baux/${d.bail}`);
     await expect(carteLoyers(page)).toContainText("Loyers & paiements");
     await expect(montantSaisi(page)).toHaveAttribute("type", "text");
+    // Saisie dès que le champ est là, comme au premier essai en échec du 16/10 : avant l'hydratation, le champ est déjà
+    // saisissable et seul « Encaisser » est inerte (D30). Puis on attend l'activation d'« Encaisser » et on lit le champ
+    // AVANT d'envoyer : une saisie perdue à l'hydratation ou dans le navigateur échoue ici, un refus du serveur plus bas.
+    test.info().annotations.push({
+      type: "D04",
+      description: (await boutonEncaisser(page).isDisabled()) ? "saisie avant hydratation" : "saisie après hydratation",
+    });
     await montantSaisi(page).pressSequentially("840,00");
     await expect(boutonEncaisser(page)).toBeEnabled();
+    await expect(montantSaisi(page)).toHaveValue("840,00");
     await cliquer(boutonEncaisser(page));
     await expect(carteLoyers(page)).toContainText(/840,00\s€ encaissés/);
     // Aucune demande de confirmation : 840,00 € est le terme dû, pas un montant cent fois trop grand.
@@ -177,6 +185,7 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
       await route.abort("connectionreset");
     });
     await montantSaisi(page).pressSequentially("15,00");
+    await expect(montantSaisi(page)).toHaveValue("15,00");
     await expect(boutonEncaisser(page)).toBeEnabled();
     await cliquer(boutonEncaisser(page));
     await expect(carteLoyers(page)).toContainText("La confirmation n’a pas pu être reçue");

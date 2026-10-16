@@ -65,9 +65,15 @@ test.describe("admin d'agence", () => {
       await page.goto(`/agence/${orgAgence}/personnes`);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       // Une seule fiche par adresse dans l'agence : au second essai d'un test
-      // en échec, la fiche du premier existe déjà — on la retrouve.
+      // en échec, la fiche du premier existe déjà — on la retrouve ET on l'ouvre
+      // depuis la liste (rangée = lien ${base}/personnes/<id>, liste-personnes.tsx).
+      // Limite : cette branche ne prouve pas l'écran « La fiche est créée » ;
+      // seul le premier essai le prouve.
       if (test.info().retry > 0 && (await page.getByText(email).count()) > 0) {
-        test.info().annotations.push({ type: "reprise", description: "fiche déjà créée au premier essai" });
+        test.info().annotations.push({ type: "reprise", description: "fiche déjà créée au premier essai : ouverte depuis la liste" });
+        await cliquer(page.getByRole("link").filter({ hasText: email }).first());
+        await page.waitForURL(new RegExp(`/agence/${orgAgence}/personnes/[0-9a-f-]{36}`), { timeout: 30_000 });
+        await expect(page.locator("body")).toContainText(`Recette-${suffixe}`);
         return;
       }
       // Depuis le 10/10 (#170), la saisie est une vue à part, masquée tant
@@ -100,7 +106,10 @@ test.describe("admin d'agence", () => {
       await cliquer(suivant);
       await cliquer(suivant);
       await cliquer(page.getByRole("button", { name: "Créer la fiche", exact: true }));
-      // La création mène à la fiche de la personne.
+      // Depuis #170, la création RESTE sur place (rester_dans_parcours=1, lib/creation-fiche-personne.ts) : l'écran
+      // « La fiche est créée » propose « Ouvrir la fiche » (même attente que e2e/personne-reprise.spec.ts).
+      await expect(page.getByRole("heading", { name: "La fiche est créée", exact: true })).toBeVisible({ timeout: 30_000 });
+      await cliquer(page.getByRole("link", { name: "Ouvrir la fiche", exact: true }));
       await page.waitForURL(new RegExp(`/agence/${orgAgence}/personnes/[0-9a-f-]{36}`), { timeout: 30_000 });
       await expect(page.locator("body")).toContainText(`Recette-${suffixe}`);
       await page.goto(`/agence/${orgAgence}/personnes`);

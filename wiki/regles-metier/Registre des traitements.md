@@ -26,7 +26,9 @@ actée dans [[RGPD]] (A2, 2026-07-24).
 > de direction sans noms, 6 mois ; D48 : registres d'exécution, 6 mois) et les traitements
 > nés les 15 et 16/10 (relais du dirigeant, recherche par référence, plafond des appels à
 > l'IA, relances d'invitation) sont amorcés dans [[RGPD]], sections « Durées décidées en
-> octobre 2026 » et « Registre des traitements de la plateforme (amorce) ». Ils ne sont
+> octobre 2026 » et « Registre des traitements de la plateforme (amorce) ». Depuis le
+> 16/10 (PR #195), les registres du relais et le compteur des appels à l'IA ont leur règle
+> de six mois au catalogue `retention_rules`. Ils ne sont
 > pas encore reportés dans les tableaux ci-dessous : validation DPO recommandée d'abord.
 
 ## Fondement

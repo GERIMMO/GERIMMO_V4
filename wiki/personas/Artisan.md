@@ -4,7 +4,7 @@ tags: [role, artisan, incident]
 status: in-progress
 created: 2026-07-21
 updated: 2026-10-16
-sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
+sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Invitation d'un artisan par un propriétaire]]"]
 ---
 
 # Artisan
@@ -114,8 +114,10 @@ l'intervention humaine** (RM-A2.11 — obligation d'information de l'artisan).
   réseau. Depuis la PR #132, le réseau s'ouvre **commune (code INSEE) × métier** par
   le [[Super Admin]] ; l'artisan doit être **validé** (statut valide, SIRET vérifié),
   en **visibilité publique**, et **rattaché aux communes** pour chacun de ses
-  métiers. Un artisan du carnet personnel d'un gérant reste sollicitable partout.
-  Voir [[Ouverture du réseau d'artisans]].
+  métiers. Un artisan du carnet personnel d'un gérant reste sollicitable même dans une
+  commune fermée, pour les biens que couvre sa zone d'intervention (règle du carnet,
+  `reseau_contact_dans_zone`, migrations `20260928081000` et `20261002100000`, inchangée
+  par la PR #194). Voir [[Ouverture du réseau d'artisans]].
 - **Désactivation** (neutre) ≠ **blacklist** (motivée, conservée) : locale (admin
   agence, n'engage que son agence) vs **globale** (super admin seul, faits objectifs,
   réversible par lui seul). Jamais avec intervention en cours ; devis annulés.
@@ -199,9 +201,22 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
   (`app/src/lib/artisan-prive.ts`), aucun réglage de l'hébergeur ne l'allume ; décision du
   15/10 : « finis », module éteint jusqu'à la validation comptable de la forme de l'avoir.
   D24-B et D25-B, qui portent sur ce même outil, sont donc déployés mais sans effet.
-- **Invitation par un propriétaire** (décision du 15/10/2026, remplace D17-B) : **en cours,
-  non livrée** (mise en chantier le 15/10 d'après le journal ; aucune de ses migrations
-  n'est sur `main` au 16/10).
+- **Invitation par un propriétaire** (décision du 15/10/2026, remplace D17-B ; **en
+  production depuis le 16/10**, PR #194, fusion `f24dfb0`) : un propriétaire direct
+  l'invite par e-mail ; il ouvre le lien, crée lui-même son compte avec l'adresse invitée,
+  inscrit son entreprise, puis **accepte explicitement** (ou refuse, sans rien partager).
+  Avant d'accepter, il lit ce que le propriétaire verra de sa fiche (jamais les motifs des
+  décisions de Gerimmo). L'acceptation le rattache au carnet de ce propriétaire, sans
+  adhésion à l'organisation ni validation ; il dépose ensuite RC pro et décennale et
+  Gerimmo valide son inscription comme pour tout artisan. Validé, il est sollicitable par ce
+  propriétaire même en commune fermée, pour les biens de sa zone. L'invitation vaut jusqu'à
+  la fin du 30e jour de Paris. Détail : [[Invitation d'un artisan par un propriétaire]].
+- **Ce qui protège sa fiche** (même PR) : un propriétaire direct ne peut pas modifier sa
+  zone ni ses métiers (migration `20261014841000`) ; les colonnes internes de sa fiche
+  (motifs de refus et d'exclusion, auteurs et dates des décisions, échéances de purge) ne
+  sont plus lisibles par aucune organisation cliente, agences comprises (`20261014842000`) ;
+  une liste noire locale exige une relation préalable et sa levée ne le fait jamais entrer
+  dans un carnet (`20261014843000`, `20261014849000`).
 
 > [!warning] Points à trancher (relevé du 16/10/2026)
 > - **D24-C, avant toute activation, avec l'expert-comptable** (message de fusion de la
@@ -214,4 +229,9 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
 > - **D18 et D22-B partiels** : pas de PDF par version de devis, pas de relance de
 >   l'artisan avant l'échéance de 48 h d'un report, pas de badge dans son agenda (constat du
 >   tour final de vérification).
-> - La recette de production n'a aucun parcours d'artisan (espace artisan jamais parcouru).
+> - La recette de production n'a aucun parcours d'artisan (espace artisan jamais parcouru) :
+>   l'invitation par un propriétaire n'a été jouée de bout en bout que sur le banc local
+>   (`app/e2e/invitation-artisan.spec.ts`) ; recette n° 17 sur `f24dfb0` verte (38875612888).
+> - Côté authentification, deux réglages de Supabase hors dépôt (modèles de courrier,
+>   fermeture de « Allow new users to sign up ») restent à faire par le dirigeant au 16/10 :
+>   voir [[Invitation d'un artisan par un propriétaire]].

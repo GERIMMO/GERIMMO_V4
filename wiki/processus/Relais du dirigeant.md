@@ -22,6 +22,10 @@ chose à signaler, et un e-mail immédiat pour chaque urgence du mode vacances.
 > relais n'était pas encore en ligne à cette heure (journal, entrée « deploy » du 16/10).
 > Le premier e-mail de 5 h est donc attendu le 17/10 au plus tôt, et **aucun envoi réel
 > d'e-mail du relais n'a encore été constaté**.
+> Complété le 16/10 par la PR #195 (fusion `db0a95f`, correctifs du tour final de
+> vérification, sans nouvelle décision) : passage de 5 h borné sous les 60 s de la route,
+> registres du relais déclarés au catalogue de conservation (six mois), écran « Relais et
+> arrêts » complété de la tâche `maintenance-artisans` (journal, entrée « deploy » du 16/10).
 
 ## Déclencheurs
 - **Chaque matin** : Vercel appelle la route `/api/cron/relais` à 03 h et à 04 h UTC
@@ -52,10 +56,18 @@ chose à signaler, et un e-mail immédiat pour chaque urgence du mode vacances.
    trois tentatives au plus.
 2. Il actualise le relais du mode vacances (comme chaque passage de mission), envoie tout de
    suite les urgences que cela vient de poser, puis lit ce qu'il faut signaler.
-3. **Rien à signaler ni à rappeler : aucun e-mail.** Sinon, un e-mail par adresse, chacun
-   avec une clé d'envoi stable pour le jour (une reprise ne fait pas partir un second
-   message chez le fournisseur). Objet : « Gerimmo — relais de 5 h : N point(s) à
-   vérifier ».
+3. **Rien à signaler ni à rappeler : aucun e-mail.** Sinon, un e-mail par adresse,
+   **envoyé à toutes les adresses en parallèle** (depuis la PR #195), chacun avec une clé
+   d'envoi stable pour le jour (une reprise ne fait pas partir un second message chez le
+   fournisseur). Objet : « Gerimmo — relais de 5 h : N point(s) à vérifier ».
+   **Durée bornée** (PR #195, `app/src/lib/relais-alerte-envoi.ts`) : la route est coupée à
+   60 s (`maxDuration`) ; les appels au service d'e-mail doivent être finis aux trois quarts
+   de cette durée (**45 s**), le dernier quart restant aux lectures et à l'écriture du
+   résultat. Les urgences de l'étape 2 passent d'abord, bornées à cette échéance moins un
+   appel (s'il reste trop peu de temps, aucun nouveau tour n'est commencé et la file attend
+   le passage suivant) ; l'e-mail de 5 h garde son créneau, chaque appel borné au temps
+   restant (10 s au plus). Sans cette borne, une passe coupée avant la fin laissait la
+   ligne du jour « en cours » et l'alerte du jour perdue sans bruit.
 4. Le résultat est consigné (nombres seulement) dans le registre `relais_alertes_envois`.
 
 ### 2. L'e-mail immédiat des urgences
@@ -99,7 +111,10 @@ l'application) et ce lien (`app/src/lib/relais-alerte.ts`). Les registres
 - La tâche `relais-urgences` est donc recensée **à part**, dans
   `supervision_taches_hors_arret` : l'arrêt couvre neuf des dix tâches `pg_cron`
   (`app/docs/sauvegarde-et-restauration.md`). L'écran « Relais et arrêts » le dit dans
-  « Ce que l'arrêt ne couvre pas ».
+  « Ce que l'arrêt ne couvre pas ». Depuis la PR #195 (16/10), il liste aussi la tâche
+  `maintenance-artisans` (« Expiration des devis d'artisans dont la durée de validité est
+  dépassée », arrêtée par la clé « rappels », `app/src/lib/nom-arret-supervision.ts`) :
+  les neuf tâches arrêtables y figurent toutes, avec `relais-urgences` à part.
 
 ## Où cela se règle
 - **Les adresses** : variable `GERIMMO_RELAIS_EMAILS` de Vercel (production), posée hors du
@@ -130,9 +145,17 @@ l'application) et ce lien (`app/src/lib/relais-alerte.ts`). Les registres
 ## Règles et contraintes
 - Jour de référence : le **jour de Paris** pour la réservation de l'e-mail quotidien
   ([[Le jour de référence est le jour de Paris]]).
-- Conservation : six mois pour les registres du relais, alignée sur la durée des registres
-  d'exécution (décision D48) — purge codée dans les fonctions du relais
-  ([[RGPD]], section « Durées décidées en octobre 2026 (D13, D14, D48) »).
+- Conservation : six mois pour les registres du relais (`relais_alertes_envois`,
+  `relais_urgences`, `relais_urgences_envois`), alignée sur la durée des registres
+  d'exécution (décision D48). **Déclarés au catalogue `retention_rules` depuis le 16/10**
+  (PR #195, migration `20261014850000`) et purgés par `appliquer_retention` (nettoyage de
+  03 h chaque nuit et bouton « Nettoyer » de la supervision), avec les mêmes critères que
+  les fonctions du relais : une urgence à envoyer ou en cours d'envoi, un envoi en cours ou
+  à reprendre, et un envoi encore cité par une urgence ne sont jamais effacés. Les purges
+  propres au relais (`reserver_alerte_relais`, `prendre_urgences_relais`) restent **codées
+  en dur** à six mois : désactiver ou allonger une règle au catalogue n'arrête pas leur purge,
+  faite à chaque passage (limite assumée par la migration) ([[RGPD]], section « Durées
+  décidées en octobre 2026 (D13, D14, D48) »).
 
 ## Implications pour l'application
 - Voir aussi [[Plan de reprise d'activité]] (la sauvegarde quotidienne fait partie de ce que
@@ -143,14 +166,17 @@ l'application) et ce lien (`app/src/lib/relais-alerte.ts`). Les registres
 >   attendu le 17/10 au plus tôt) ; l'heure réelle d'arrivée reste à constater. Vercel ne
 >   lance pas ses tâches à la minute près : l'appel n'agit que s'il est encore 5 h à Paris à
 >   son arrivée ; arrivé après 6 h, rien ne part ce jour-là (règle `estHeureDuRelais`).
-> - **Durée du passage de 5 h** : la route est bornée à 60 secondes (`maxDuration = 60`,
->   `app/src/app/api/cron/relais/route.ts`). Chaque envoi a bien un délai maximal, 15 s par
->   défaut (`DELAI_MAX_FOURNISSEUR_MS`, `AbortSignal.timeout` dans `app/src/lib/email.ts`),
->   mais les délais s'additionnent : le passage vide d'abord la file des urgences (jusqu'à
->   trois tours, chacun pouvant attendre environ 15 s, `app/src/lib/relais-urgences-envoi.ts`),
->   puis envoie l'e-mail quotidien adresse par adresse (environ 15 s chacune, deux adresses).
->   Avec un fournisseur d'e-mail lent, le total peut dépasser 60 secondes et la passe être
->   coupée. **Non vérifié** en production.
+>   L'heure de départ réelle des deux entrées du relais (03 h et 04 h UTC) est inconnue tant
+>   qu'aucun passage n'a eu lieu : les autres tâches Vercel partent à un décalage fixe après
+>   l'heure prévue (de 5 à 58 minutes selon la tâche, relevé du 16/10) ; l'e-mail « de 5 h »
+>   arrivera à 5 h et quelques minutes, à relever le 17/10.
+> - ~~**Durée du passage de 5 h** : avec un fournisseur d'e-mail lent, le total des délais
+>   (urgences puis e-mail quotidien adresse par adresse) pouvait dépasser les 60 secondes de
+>   la route et la passe être coupée~~ → **corrigé par la PR #195** (`db0a95f`, 16/10) :
+>   envoi aux adresses en parallèle, appels au service d'e-mail finis en 45 s, urgences
+>   bornées pour laisser son créneau à l'e-mail de 5 h (voir « Étapes »). Couvert par les
+>   tests du dépôt (`app/tests/relais-alerte-duree.test.ts`) ; **non vérifié** en
+>   production (aucun e-mail de 5 h encore parti).
 > - **Validation du dirigeant non consignée** : le journal ne consigne que sa consigne
 >   « envoi immédiat pour les urgences » (entrée « decision » du 15/10, point 2). Le passage
 >   toutes les 10 minutes, jour et nuit, non coupé par l'arrêt d'urgence, est la façon dont
@@ -162,8 +188,8 @@ l'application) et ce lien (`app/src/lib/relais-alerte.ts`). Les registres
 >   d'urgence reste actif (`sentinelle_relais`, migration `20261014810000`) ; l'escalade
 >   d'une alerte déjà posée ne fait pas partir d'e-mail immédiat, elle attend l'e-mail de
 >   5 h (migration `20261014811000`) ; les incidents urgents des locataires n'alimentent pas
->   le relais ; les registres du relais sont purgés par leurs propres fonctions (six mois,
->   D48), hors du catalogue `retention_rules`. Aucune source ne dit si ces choix conviennent
->   au dirigeant.
+>   le relais. Aucune source ne dit si ces choix conviennent au dirigeant. (Les registres du
+>   relais, purgés jusque-là par leurs seules fonctions hors du catalogue `retention_rules`,
+>   y sont déclarés depuis la PR #195 ; leurs purges propres restent codées en dur.)
 > - **Changement d'heure du 25/10/2026** : l'appel de 04 h UTC prend le relais ; à
 >   surveiller.

@@ -4,7 +4,7 @@ tags: [artisan, reseau, territoire, couverture, super-admin, devis]
 status: stable
 created: 2026-09-29
 updated: 2026-10-16
-sources: ["[[2026-09-28-reseau-national-ouvertures-locales]]"]
+sources: ["[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Invitation d'un artisan par un propriétaire]]"]
 ---
 
 # Ouverture du réseau d'artisans
@@ -66,7 +66,11 @@ rattaché à la commune pour ce métier.
   intérêts sont visibles dans Couverture (« Où le réseau est attendu », toute la
   France).
 - **Carnet personnel** : les contacts personnels éligibles du gérant restent
-  **toujours sollicitables**, même dans une commune fermée.
+  **toujours sollicitables**, même dans une commune fermée — à condition que la
+  **zone de l'artisan couvre le code postal du bien** (`reseau_contact_dans_zone`).
+  Une agence remplit son carnet par l'ajout par SIRET ; un **propriétaire direct**,
+  depuis le 16/10/2026, **par invitation** : l'artisan accepte, Gerimmo le valide
+  ([[Invitation d'un artisan par un propriétaire]]).
 - Contrôles **refaits en base** au moment de l'envoi (une page restée ouverte ne
   les contourne pas).
 - Traçabilité : chaque sollicitation porte son origine (`historique`, `carnet`,
@@ -79,12 +83,15 @@ rattaché à la commune pour ce métier.
 >   ouverts » : ne pas confondre avec cette ouverture du réseau ; la gestion n'est
 >   jamais fermée par territoire.
 >
-> - **Carnet personnel du propriétaire direct (relevé du 16/10/2026)** : « toujours
->   sollicitables » vaut pour les contacts déjà au carnet, mais un propriétaire direct **ne
->   peut plus ajouter d'artisan** à son carnet depuis la PR #170 (migration
->   `20261007190000` : l'ajout est réservé aux agences). La décision du dirigeant du
->   15/10/2026 (un propriétaire invite un artisan, l'artisan s'inscrit lui-même ; remplace
->   la question D17-B) est **en cours, non livrée** (aucune de ses migrations n'est sur
->   `main` au 16/10). Voir [[Propriétaire bailleur]].
+> - **Carnet personnel du propriétaire direct (relevé du 16/10/2026)** : depuis la PR #170
+>   (migration `20261007190000`), l'ajout d'artisan **par SIRET** reste réservé aux
+>   agences. La décision du dirigeant du 15/10/2026 (un propriétaire invite un artisan,
+>   l'artisan s'inscrit lui-même ; remplace la question D17-B) est **en production depuis
+>   le 16/10** (PR #194, fusion `f24dfb0`, migrations `20261014840000` à `20261014849000`) :
+>   une fois l'invitation acceptée et l'inscription validée par Gerimmo, l'artisan est
+>   sollicitable par ce propriétaire même en commune fermée, pour les biens de sa zone ;
+>   `artisan_affectable` est inchangée. Parcours jamais joué de bout en bout en production ;
+>   recette n° 17 sur `f24dfb0` verte (38875612888). Voir
+>   [[Invitation d'un artisan par un propriétaire]] et [[Propriétaire bailleur]].
 > - Aucune commune n'étant ouverte par défaut, le réseau est **vide au lancement**
 >   tant que le super admin n'a pas validé, rattaché et ouvert.

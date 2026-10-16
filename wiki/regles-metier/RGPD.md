@@ -157,12 +157,30 @@ production avec la vague 2 le 15/10/2026 (PR #182, fusion `8c4aed6`). Détail de
 | **D13** (A, « 6 mois sauf avis contraire ») | « Faits de direction » de la supervision (instantanés `brief_direction_snapshots`) | **6 mois** | **Sans noms** : une alerte n'y figure que par son identifiant, un libellé générique tiré de son type et un lien ; chaque préparation et chaque lecture de l'écran est tracée par organisation citée ; purge par la rétention ; les anciens instantanés (avec noms) ont été effacés (étape irréversible, après sauvegarde) | Migrations `20261014230000`, `20261014231000`, `20261014232000` |
 | **D48** (A, « avec la durée de D13 ») | Registres d'exécution des automatismes et du pilotage : `agent_passages`, `supervision_operations`, `points_du_matin`, `decisions_du_matin`, `brief_direction_snapshots` | **6 mois** (durée du journal technique, RM-A2.6) | Suppression ; une ligne de `retention_rules` par registre, appliquée par `appliquer_retention` (tâche `pg_cron` `retention-quotidienne`, 03 h 00 UTC, et bouton « Nettoyer » de la supervision) | Migration `20261014231000` |
 
-**Registres nés depuis (15-16/10/2026)** :
-- registres du [[Relais du dirigeant]] (`relais_alertes_envois`, `relais_urgences`,
-  `relais_urgences_envois`) : **six mois**, alignés sur D48, mais purgés **par leurs
-  propres fonctions**, sans ligne au catalogue `retention_rules` ;
-- compteur des appels payants à l'IA (`ia_appels_jour`, X19 : nombres par jour de Paris) :
-  **aucune purge** ;
+**Registres nés depuis (15-16/10/2026)** — déclarés au catalogue le 16/10 (PR #195, fusion
+`db0a95f`, migration `20261014850000`, vérifiée en lecture seule en production : quatre
+règles de six mois actives, purge branchée une fois dans `appliquer_retention`) :
+
+| Registre (`retention_rules`) | Âge compté depuis | Durée | Purge |
+|---|---|---|---|
+| `relais_alertes_envois` (`journal:relais_alertes_envois`), passages de l'e-mail de 5 h du [[Relais du dirigeant]] | jour du passage (jour de Paris) | **6 mois** | `appliquer_retention` ; et déjà, en dur, `reserver_alerte_relais` à chaque passage |
+| `relais_urgences` (`journal:relais_urgences`), file des urgences du relais | traitement de l'urgence | **6 mois** | `appliquer_retention` (jamais une urgence encore à envoyer ou en cours d'envoi) ; et déjà, en dur, `prendre_urgences_relais` |
+| `relais_urgences_envois` (`journal:relais_urgences_envois`), e-mails immédiats des urgences | début de l'envoi | **6 mois** | `appliquer_retention` (jamais un envoi en cours, à reprendre ou encore cité par une urgence) ; et déjà, en dur, `prendre_urgences_relais` |
+| `ia_appels_jour` (`journal:ia_appels_jour`), compteur des appels payants à l'IA (X19 : nombres par jour de Paris) | jour des appels (jour de Paris) | **6 mois** | `appliquer_retention` seulement (**première purge** : aucune avant le 16/10) |
+
+`appliquer_retention` tourne au nettoyage de nuit (tâche `pg_cron` `retention-quotidienne`,
+03 h 00 UTC) et par le bouton « Nettoyer » de la supervision ; chaque registre n'est purgé
+que si **sa** règle est active, et le journal technique ne garde que des nombres. Effet
+immédiat nul au 16/10 (registres du relais et compteur IA vides au relevé). **Ce que la
+migration ne couvre pas** : les purges propres au relais (`reserver_alerte_relais`,
+`prendre_urgences_relais`) restent **codées en dur** à six mois — désactiver ou allonger une
+règle du relais au catalogue n'arrête pas leur purge, faite à chaque passage du relais
+(limite assumée par la migration) ; le compteur IA, lui, n'est purgé **que** par le
+nettoyage de nuit (ou le bouton « Nettoyer »). Durée : la recommandation de la CNIL sur la
+journalisation (6 mois à 1 an) est citée par la migration sans que la source officielle ait
+été consultée ; validation DPO recommandée.
+
+Autres registres nés depuis :
 - relances d'invitation (`relances_invitations_locataires`, X16) : aucune durée propre, la
   ligne suit l'invitation (suppression en cascade).
 
@@ -176,10 +194,10 @@ production avec la vague 2 le 15/10/2026 (PR #182, fusion `8c4aed6`). Détail de
 
 | Traitement (code au 16/10/2026) | Finalité | Personnes et données | Destinataires | Durée |
 |---|---|---|---|---|
-| **Relais du dirigeant** (D46-B, PR #192) | Alerter le responsable de la supervision (tâches en échec, arrêts actifs, urgences du mode vacances) | Le dirigeant : deux adresses électroniques fournies par lui, gardées hors du dépôt (variable du serveur) ; le message ne porte que des compteurs, sans nom ni montant | Resend (envoi) | Registres du relais : 6 mois |
+| **Relais du dirigeant** (D46-B, PR #192) | Alerter le responsable de la supervision (tâches en échec, arrêts actifs, urgences du mode vacances) | Le dirigeant : deux adresses électroniques fournies par lui, gardées hors du dépôt (variable du serveur) ; le message ne porte que des compteurs, sans nom ni montant | Resend (envoi) | Registres du relais : 6 mois (au catalogue `retention_rules` depuis le 16/10, PR #195 ; purges propres du relais codées en dur) |
 | **Registres d'exécution et faits de direction** (D13, D48) | Piloter et contrôler les automatismes et la supervision | Comptes de supervision (auteurs des gestes), organisations citées (identifiants, libellés génériques, sans nom de locataire depuis D13) | Supervision | 6 mois |
 | **Recherche par référence de la console** (X18, PR #190) | Retrouver un bien, un lot ou un incident pour le support | Superviseur (auteur) ; la trace garde la forme de la saisie, le nombre et les identifiants trouvés, jamais un nom | Supervision (journal d'audit) | Celle du journal d'audit (3 ans selon RM-A2.6) |
-| **Plafond des appels payants à l'IA** (X19, PR #190) | Borner les appels à un modèle payant | Compteur quotidien sans donnée personnelle ; le réglage est journalisé avec son auteur | Supervision | Compteur : aucune purge ; journal des opérations : 6 mois (D48) |
+| **Plafond des appels payants à l'IA** (X19, PR #190) | Borner les appels à un modèle payant | Compteur quotidien sans donnée personnelle ; le réglage est journalisé avec son auteur | Supervision | Compteur : 6 mois (règle `journal:ia_appels_jour`, depuis le 16/10, PR #195) ; journal des opérations : 6 mois (D48) |
 
 À rattacher au volet 2 (Gerimmo sous-traitant, pour le compte des organisations) :
 - **Copies locales de saisie** (D14) : données de fiche personne, d'incident, de lot ou de
@@ -188,10 +206,13 @@ production avec la vague 2 le 15/10/2026 (PR #182, fusion `8c4aed6`). Détail de
   personne invitée, dates des relances ; envoi par Resend.
 
 > [!warning] Points à trancher / contradictions
-> - **D48 partiellement appliquée** : « chaque nouveau registre d'équipe IA naît avec sa
->   règle » ; les registres du relais se purgent à six mois sans figurer au catalogue
->   `retention_rules`, et `ia_appels_jour` n'a aucune purge (constat du tour final de
->   vérification).
+> - ~~**D48 partiellement appliquée** : les registres du relais se purgaient à six mois sans
+>   figurer au catalogue `retention_rules`, et `ia_appels_jour` n'avait aucune purge~~ →
+>   **corrigé le 16/10** (PR #195, `20261014850000`) : les quatre registres ont leur règle
+>   de six mois. Restent : les purges propres au relais codées en dur (le catalogue ne
+>   peut pas les arrêter ni les allonger) ; `invitations_artisans` (16/10) sans règle au
+>   catalogue ([[Invitation d'un artisan par un propriétaire]]) ; la consignation de D48 au
+>   [[Registre des traitements]].
 > - **Durées non alignées entre sources** : la fiche SUP-05 proposait 90 jours, la fiche
 >   IA-11 12 mois ; le wiki (RM-A2.6) retient 6 mois pour le journal technique, et la
 >   recommandation de la CNIL sur la journalisation (non consultée directement) parle de 6

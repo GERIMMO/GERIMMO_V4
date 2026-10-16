@@ -132,7 +132,7 @@ l'application) et ce lien (`app/src/lib/relais-alerte.ts`). Les registres
   ([[Le jour de référence est le jour de Paris]]).
 - Conservation : six mois pour les registres du relais, alignée sur la durée des registres
   d'exécution (décision D48) — purge codée dans les fonctions du relais
-  ([[RGPD]], section « Durées décidées les 14 et 15/10/2026 »).
+  ([[RGPD]], section « Durées décidées en octobre 2026 (D13, D14, D48) »).
 
 ## Implications pour l'application
 - Voir aussi [[Plan de reprise d'activité]] (la sauvegarde quotidienne fait partie de ce que

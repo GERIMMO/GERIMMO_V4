@@ -3,8 +3,8 @@ type: business-rule
 tags: [rgpd, conformite, donnees-personnelles]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-09
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]"]
+updated: 2026-10-16
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Complément à la page « Décisions groupées » — fiches de la vague 6]]"]
 ---
 
 # RGPD
@@ -97,6 +97,9 @@ terme), RM-8.5.6 (blacklist 3/5 ans), RM-12.5.6 (plus de « sans limite »), RM-
 **Reste à produire** : contrat de sous-traitance type, politique de confidentialité
 (conseil juridique), registre des traitements plateforme, **AIPD sur le score
 artisan** (profilage), procédure de notification de violation.
+*(État au 16/10/2026 : le registre existe en brouillon depuis le 20/09 —
+[[Registre des traitements]] — et attend sa validation ; voir aussi la section
+« Registre des traitements de la plateforme (amorce) » plus bas.)*
 
 ## La purge du dossier locataire (module 0b, 2026-07-24)
 Premier cas de purge entièrement spécifié ([[Dossier locataire]], parcours 0b.8 — V2
@@ -139,3 +142,60 @@ Voir [[Architecture du socle V3]].
 - Image de signature de l'organisation : remplacée ou retirée, l'ancien
   fichier est mis en file de purge (sans ligne `documents`, la rétention
   documentaire ne la voyait pas). Voir [[Organisation]].
+
+## Durées décidées en octobre 2026 (D13, D14, D48)
+
+Réponses du dirigeant du 14/10/2026 aux décisions groupées (« pour le reste, faire en
+fonction des recommandations » ; journal `log.md`, entrée « decision » du 14/10) ; mises en
+production avec la vague 2 le 15/10/2026 (PR #182, fusion `8c4aed6`). Détail des options :
+[[Décisions groupées — version candidate du 13 octobre 2026]] (D13, D14) et
+[[Complément à la page « Décisions groupées » — fiches de la vague 6]] (D48).
+
+| Décision | Données | Durée | Sort et déclencheur | Dans le code |
+|---|---|---|---|---|
+| **D14** (A, « à consigner au registre des traitements ») | Copies locales de saisie gardées sur l'appareil : brouillons de fiche personne (avec pièces), d'incident, de lot, de devis (IndexedDB et stockage du navigateur) | **7 jours** | Effacées passé ce délai ; effacées aussi à la déconnexion réussie, et à l'arrivée d'un autre compte sur l'appareil | `DUREE_COPIES_LOCALES_MS`, `app/src/lib/copies-locales.ts` (la durée de 7 jours existait déjà ; la décision la confirme) |
+| **D13** (A, « 6 mois sauf avis contraire ») | « Faits de direction » de la supervision (instantanés `brief_direction_snapshots`) | **6 mois** | **Sans noms** : une alerte n'y figure que par son identifiant, un libellé générique tiré de son type et un lien ; chaque préparation et chaque lecture de l'écran est tracée par organisation citée ; purge par la rétention ; les anciens instantanés (avec noms) ont été effacés (étape irréversible, après sauvegarde) | Migrations `20261014230000`, `20261014231000`, `20261014232000` |
+| **D48** (A, « avec la durée de D13 ») | Registres d'exécution des automatismes et du pilotage : `agent_passages`, `supervision_operations`, `points_du_matin`, `decisions_du_matin`, `brief_direction_snapshots` | **6 mois** (durée du journal technique, RM-A2.6) | Suppression ; une ligne de `retention_rules` par registre, appliquée par `appliquer_retention` (tâche `pg_cron` `retention-quotidienne`, 03 h 00 UTC, et bouton « Nettoyer » de la supervision) | Migration `20261014231000` |
+
+**Registres nés depuis (15-16/10/2026)** :
+- registres du [[Relais du dirigeant]] (`relais_alertes_envois`, `relais_urgences`,
+  `relais_urgences_envois`) : **six mois**, alignés sur D48, mais purgés **par leurs
+  propres fonctions**, sans ligne au catalogue `retention_rules` ;
+- compteur des appels payants à l'IA (`ia_appels_jour`, X19 : nombres par jour de Paris) :
+  **aucune purge** ;
+- relances d'invitation (`relances_invitations_locataires`, X16) : aucune durée propre, la
+  ligne suit l'invitation (suppression en cascade).
+
+## Registre des traitements de la plateforme (amorce)
+
+> [!note] Brouillon — validation par un DPO ou un conseil spécialisé recommandée
+> Amorce établie par l'agent à partir du code au 16/10/2026, pour compléter le volet 1
+> (Gerimmo responsable de traitement) du [[Registre des traitements]], brouillon du
+> 20/09/2026. Ce n'est pas un avis juridique : **aucune base légale n'est qualifiée ici**.
+> Les décisions D13, D14 et D48 recommandent elles-mêmes une validation spécialisée.
+
+| Traitement (code au 16/10/2026) | Finalité | Personnes et données | Destinataires | Durée |
+|---|---|---|---|---|
+| **Relais du dirigeant** (D46-B, PR #192) | Alerter le responsable de la supervision (tâches en échec, arrêts actifs, urgences du mode vacances) | Le dirigeant : deux adresses électroniques fournies par lui, gardées hors du dépôt (variable du serveur) ; le message ne porte que des compteurs, sans nom ni montant | Resend (envoi) | Registres du relais : 6 mois |
+| **Registres d'exécution et faits de direction** (D13, D48) | Piloter et contrôler les automatismes et la supervision | Comptes de supervision (auteurs des gestes), organisations citées (identifiants, libellés génériques, sans nom de locataire depuis D13) | Supervision | 6 mois |
+| **Recherche par référence de la console** (X18, PR #190) | Retrouver un bien, un lot ou un incident pour le support | Superviseur (auteur) ; la trace garde la forme de la saisie, le nombre et les identifiants trouvés, jamais un nom | Supervision (journal d'audit) | Celle du journal d'audit (3 ans selon RM-A2.6) |
+| **Plafond des appels payants à l'IA** (X19, PR #190) | Borner les appels à un modèle payant | Compteur quotidien sans donnée personnelle ; le réglage est journalisé avec son auteur | Supervision | Compteur : aucune purge ; journal des opérations : 6 mois (D48) |
+
+À rattacher au volet 2 (Gerimmo sous-traitant, pour le compte des organisations) :
+- **Copies locales de saisie** (D14) : données de fiche personne, d'incident, de lot ou de
+  devis, sur l'appareil de l'utilisateur, 7 jours au plus ;
+- **Relances d'invitation des locataires** (X16, PR #190) : adresse électronique de la
+  personne invitée, dates des relances ; envoi par Resend.
+
+> [!warning] Points à trancher / contradictions
+> - **D48 partiellement appliquée** : « chaque nouveau registre d'équipe IA naît avec sa
+>   règle » ; les registres du relais se purgent à six mois sans figurer au catalogue
+>   `retention_rules`, et `ia_appels_jour` n'a aucune purge (constat du tour final de
+>   vérification).
+> - **Durées non alignées entre sources** : la fiche SUP-05 proposait 90 jours, la fiche
+>   IA-11 12 mois ; le wiki (RM-A2.6) retient 6 mois pour le journal technique, et la
+>   recommandation de la CNIL sur la journalisation (non consultée directement) parle de 6
+>   mois à 1 an, jusqu'à 3 ans sous conditions. **Validation DPO recommandée.**
+> - **D14** : la décision demande de consigner la durée au registre des traitements ; c'est
+>   l'objet de l'amorce ci-dessus, à reporter dans [[Registre des traitements]] après
+>   validation.

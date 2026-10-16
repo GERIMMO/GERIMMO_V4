@@ -3,7 +3,7 @@ type: business-rule
 tags: [rgpd, registre, traitements, sous-traitance, conformite]
 status: draft
 created: 2026-09-20
-updated: 2026-09-27
+updated: 2026-10-16
 sources: ["[[RGPD]]", "[[Socle de sécurité]]", "[[Plan de reprise d'activité]]", "[[Modèle de données]]", "[[Modèle de rôles et permissions]]", "[[Grille tarifaire]]", "[[Canaux de communication]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]"]
 ---
 
@@ -20,6 +20,14 @@ actée dans [[RGPD]] (A2, 2026-07-24).
 > fait réellement : tables, fonctions, table `retention_rules`, sous-traitants
 > du déploiement. Ce n'est pas un avis juridique ; le référentiel A2 prévoit
 > une **validation par un conseil spécialisé** avant qu'il fasse foi.
+
+> [!info] Mise à jour à reporter (16/10/2026)
+> Les durées décidées le 14/10/2026 (D14 : copies locales de saisie, 7 jours ; D13 : faits
+> de direction sans noms, 6 mois ; D48 : registres d'exécution, 6 mois) et les traitements
+> nés les 15 et 16/10 (relais du dirigeant, recherche par référence, plafond des appels à
+> l'IA, relances d'invitation) sont amorcés dans [[RGPD]], sections « Durées décidées en
+> octobre 2026 » et « Registre des traitements de la plateforme (amorce) ». Ils ne sont
+> pas encore reportés dans les tableaux ci-dessous : validation DPO recommandée d'abord.
 
 ## Fondement
 - Article 30 du RGPD : registre du responsable (§ 1) et registre du

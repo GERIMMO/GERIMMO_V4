@@ -3,8 +3,8 @@ type: persona
 tags: [role, plateforme]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-30
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
+updated: 2026-10-16
+sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Fiches des anomalies P3 — audit du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
 ---
 
 # Super Admin
@@ -117,3 +117,47 @@ d'espace (`traversee_espace`) et chaque action de gérance hors adhésion
 (`traversee_action`) écrit une ligne `audit_log` via `log_sa_access`, et la
 consultation de pièces reste tracée (`acces_pieces_log`). Il figure aussi
 dans les listes de gérants (alertes, incidents) sous le rôle « super_admin ».
+
+## Ce que fait le code aujourd'hui : relais, arrêt, plafond IA, recherche (relevé du 16/10/2026)
+La console `/admin/relais` (« Relais en mon absence », aussi appelée « Relais et arrêts »
+dans les liens) réunit : qui prend le relais, vacances et arrêts, l'alerte e-mail du relais,
+les appels payants à l'IA, l'arrêt avant les prochains effets.
+- **Relais du dirigeant** (D46-B, partie alerte, PR #192, fusion `a722f94`, en production
+  depuis le 16/10) : e-mail quotidien à 5 h (Paris) s'il y a quelque chose à signaler,
+  e-mail immédiat des urgences du mode vacances (passage toutes les 10 minutes), vers deux
+  adresses fournies par le dirigeant, gardées hors du dépôt ; l'écran n'en montre que la
+  forme masquée. Détail : [[Relais du dirigeant]].
+- **Arrêt d'urgence** (D06-A, vague 2, PR #182, en production depuis le 15/10) : il couvre
+  neuf des dix tâches `pg_cron` ; la dixième, `relais-urgences`, ne l'est pas, à dessein
+  (`app/docs/sauvegarde-et-restauration.md`).
+- **Plafond des appels payants à l'IA** (X19, PR #190, fusion `f93ec6e`, depuis le 15/10) :
+  avant chaque appel payant, **gestes manuels compris**, Gerimmo consulte l'arrêt d'urgence
+  puis une limite quotidienne comptée au jour de Paris : **50 appels par jour par défaut**,
+  réglable de 0 à 1 000 (0 coupe tout) par le superviseur permanent avec double
+  vérification ; le réglage est journalisé. Sept usages comptés : étude de la veille,
+  rédaction d'un post, visuel d'un post (tâches planifiées), rédaction assistée d'un article,
+  analyse du brief, lancement de l'atelier (console), et la proposition de devis préparée
+  pour un artisan. Un appel parti compte, même s'il échoue ; sous arrêt ou limite atteinte,
+  l'appel n'a pas lieu et l'écran le dit. C'est une limite d'appels, pas de dépense.
+- **Recherche par référence** (X18, PR #190, depuis le 15/10) : la fenêtre de recherche de
+  la console retrouve un bien, un lot ou un incident par sa **référence exacte**
+  (identifiant complet, numéro d'incident complet comme « INC-2026-0003 », nom complet d'un
+  bien ou d'un lot) ; une référence partielle ne trouve rien. Le résultat ne dit que le type
+  d'objet et l'organisation (au plus huit lignes) et mène à la **fiche de l'organisation**,
+  jamais à la donnée : entrer dans l'espace reste la traversée tracée (D08). Chaque
+  recherche est tracée au journal d'audit ; réservée au superviseur actif en second facteur.
+
+> [!warning] Non vérifié / points à trancher (relevé du 16/10/2026)
+> - La recette de production n'a aucun parcours de super-administrateur : ni l'écran du
+>   relais, ni la recherche par référence, ni le réglage du plafond IA ne sont joués
+>   (constat du tour final de vérification). Aucun e-mail du relais n'a encore été reçu.
+> - X19 : une seule limite, en nombre d'appels, pour tous les usages ensemble, ni par usage
+>   ni en euros (`app/src/lib/plafond-ia.ts`, migration `20261014730000`), alors que la
+>   fiche SA-10 ([[Fiches des anomalies P3 — audit du 13 octobre 2026]]) attendait « un
+>   plafond (appels ou coût) » ; le défaut de 50 repose sur une estimation écrite dans le
+>   code (« l'usage normal en fait une dizaine »), pas sur une mesure ; le lancement de
+>   l'atelier (modèle appelé par GitHub) est compté. Aucune source ne dit si le dirigeant
+>   veut une autre forme de limite.
+> - X18 : le code prend pour référence d'un bien son nom complet (sa « référence
+>   interne », migration `20261014720000`) ; ni la fiche SA-09 ni la décision X18 ne disent
+>   ce qu'est la référence d'un bien. À faire confirmer au dirigeant.

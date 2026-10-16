@@ -3,7 +3,7 @@ type: process
 tags: [recette, production, lancement, personas, qualite]
 status: draft
 created: 2026-09-20
-updated: 2026-09-30
+updated: 2026-10-16
 sources: ["[[Fonctionnalités par persona]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]", "[[Onboarding et abonnement]]", "[[Quittancement des loyers]]", "[[Cycle de vie d'un incident]]"]
 ---
 
@@ -132,6 +132,38 @@ Pour chacun : expéditeur `Gerimmo <no-reply@gerimmo.app>` (ou l'expéditeur
 réglé), français, liens vers `https://gerimmo.app/…`, aucun `localhost`,
 signature attendue. Les dix corps se relisent aussi hors ligne :
 `app/src/lib/*-email.ts`.
+
+> [!info] Courriers apparus depuis le 15/10/2026 (liste ci-dessus : état au 30/09)
+> - **« Rappel : Votre invitation locataire Gerimmo »** (Resend) : relances J+3 et J+10
+>   d'une invitation en attente, par la mission « rappels » (X16, PR #190) — voir
+>   [[Onboarding et abonnement]]. Aucune n'est encore partie : la première suppose une
+>   invitation envoyée après le 15/10, puis trois jours.
+> - **« Gerimmo — relais de 5 h : … »** et **« Gerimmo — urgence du relais »** (Resend) :
+>   adressés au dirigeant seulement, sur deux adresses gardées hors du dépôt (D46-B,
+>   PR #192) — voir [[Relais du dirigeant]]. Aucun encore reçu au 16/10.
+
+## La recette automatisée (état au 16/10/2026)
+Le chantier GitHub « Recette de production avec nettoyage »
+(`.github/workflows/recette-production-autonome.yml`) joue sur `gerimmo.app` les parcours
+de `app/e2e/recette-production/` (public, inscription et récupération, administrateur
+d'agence, propriétaire, locataire) avec des comptes éphémères, retirés à la fin. **Il ne
+part pas tout seul** : comme `recette-production.yml`, il ne se lance qu'à la main
+(`workflow_dispatch`, ni planification ni déclenchement par une fusion ; journal du 14/10 :
+« la recette ne tourne que sur déclenchement »). Recettes n° 4 à 14 consignées au journal
+`log.md` (14 et 15/10) ; celles du 16/10 sur `a722f94` (exécution 38854421819) et `bdaf755`
+(38858371065) ont réussi d'après GitHub Actions, sans entrée au journal de `main` à cette
+date.
+
+> [!warning] Ce que la recette ne joue pas (relevé du 16/10/2026)
+> - **Aucun parcours d'artisan ni de super-administrateur** : l'espace artisan et la
+>   console `/admin` ne sont jamais parcourus (constat du tour final de vérification).
+> - Ni le refus ou la révision d'un devis (D18), ni le report ou l'annulation d'un
+>   rendez-vous par le locataire (D22-B), ni le règlement d'une facture d'intervention
+>   (D23-A), ni une relance d'invitation (X16), ni la recherche par référence (X18), ni le
+>   plafond des appels IA (X19), ni l'avoir (D24-C, module désactivé), ni les e-mails du
+>   relais (journal, entrées « audit » du 15/10).
+> - Ni les contrôles en production des P1 de la vague 1 (encaissement avec virgule, rejeu
+>   après réponse perdue, ligne 250 du 2044, régularisation d'un exercice non terminé).
 
 ## Résultat / sorties
 - Une entrée `## [date] recette | Production` dans `log.md` : ce qui a été

@@ -3,8 +3,8 @@ type: persona
 tags: [role, proprietaire]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-30
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]"]
+updated: 2026-10-16
+sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]"]
 ---
 
 # Propriétaire bailleur
@@ -137,3 +137,34 @@ espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe a
   **sa** propre organisation ; statut/type/essai réservés au SA (trigger).
 - Droits ajustés : le PD crée et modifie ses personnes, clôture et rouvre ses
   mois. Recette : [[Recette - test par sprint et persona]] § 2.00 (30.1 à 30.3).
+
+## Ce que fait le code aujourd'hui (relevé du 16/10/2026)
+- **Son adresse : `/espace`** (décision D27, option B, fiche DES-A-08, PR #191, fusion
+  `d55f87b`, en production depuis le 16/10, jour de Paris : fusion à 00 h 38, entrée du
+  journal datée du 15/10) : les écrans du propriétaire direct vivent sous
+  `/espace/<id>/…`, sans le mot « agence ». C'est un alias réécrit par le proxy après toutes
+  ses gardes ; les pages restent celles du dossier `app/agence/[orgId]`. Un ancien lien
+  `/agence/<id>/…` d'un propriétaire direct est **redirigé à vie (308)**, chemin et requête
+  conservés (un envoi de formulaire n'est pas redirigé) ; `/espace/<id>` d'une autre
+  organisation répond « introuvable » ; les agences restent sous `/agence`. Tout lien que
+  l'application émet pour un propriétaire direct pointe vers `/espace`
+  (`app/src/lib/racine-espace.ts`).
+- **Qualification d'un incident** (PR #193, fusion `bdaf755`, 16/10) : le repère juridique
+  lui dit « C'est vous qui décidez qui paie » (et non plus « C'est vous qui tranchez à la
+  qualification », mot d'agence).
+- **Sur ses incidents**, comme gestionnaire : il peut refuser un devis avec un motif ou en
+  demander une révision (D18, [[Devis]]), et déclarer le règlement d'une facture validée,
+  sans paiement par Gerimmo (D23-A, [[Intervention et clôture]]) ; il reçoit l'alerte quand
+  un locataire annule un rendez-vous (D22-B, [[Planification d'intervention]]).
+- **Ajouter un artisan à son carnet : impossible aujourd'hui.** Depuis la PR #170
+  (migration `20261007190000`), l'ajout d'artisan est réservé aux agences. La décision du
+  15/10/2026 (un propriétaire **invite** un artisan, l'artisan s'inscrit lui-même ;
+  remplace la question D17-B ; journal `log.md`, entrée « decision » du 15/10, point 1) est
+  **en cours, non livrée** : mise en chantier le 15/10, aucune de ses migrations n'est sur
+  `main` au 16/10.
+
+> [!warning] Points à trancher / contradictions (D27-B)
+> - Les liens fabriqués par la base pour la console de supervision pointent encore vers
+>   `/agence` (ils aboutissent par la redirection 308) : question du lot.
+> - Côté navigateur, l'absence de `/espace` pour une agence n'est contrôlée que sur un
+>   écran (constat du tour final de vérification).

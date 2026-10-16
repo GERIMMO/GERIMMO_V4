@@ -3,7 +3,7 @@ type: process
 tags: [irl, revision, loyer, prescription]
 status: draft
 created: 2026-07-24
-updated: 2026-09-30
+updated: 2026-10-16
 sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 
@@ -96,3 +96,7 @@ dépend du [[Diagnostic]] DPE du lot.
 > interdite. L'application agence, elle, garde la saisie de l'indice (pas de
 > récupération automatique en V1).
 
+> [!info] Jour de référence (depuis le 15/10/2026)
+> La date de demande par défaut et le refus d'une demande « future » se comptent au **jour
+> de Paris** (PR #189) : avant, une révision datée d'aujourd'hui, saisie après minuit à
+> Paris, était refusée comme « Révision anticipée ». Voir [[Le jour de référence est le jour de Paris]].

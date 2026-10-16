@@ -3,7 +3,7 @@ type: process
 tags: [rapport, mandat, versement, rectificatif, fiscalite]
 status: draft
 created: 2026-07-24
-updated: 2026-09-29
+updated: 2026-10-16
 sources: ["[[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite]]", "[[2026-07-24-gerimmo-v3-a6-doctrine-financiere]]"]
 ---
 
@@ -74,3 +74,8 @@ Consomme : [[Comptabilité]] (clôture, écritures), [[Mandat de gestion]] (date
 [[Appel de charges]] (part non récupérable), [[Incident|incidents]] ouverts.
 Transmis via [[Document]] (module 12) ; alerte de versement au module 14
 ([[Agenda et échéances]]).
+
+> [!info] Jour de référence (depuis le 15/10/2026)
+> Le mois couvert par défaut, les rapports préparés automatiquement et l'échéance du
+> versement au propriétaire (15 jours après l'envoi du rapport) se comptent au **jour de
+> Paris** (PR #189). Voir [[Le jour de référence est le jour de Paris]].

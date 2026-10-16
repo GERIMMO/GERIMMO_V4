@@ -3,7 +3,7 @@ type: synthesis
 tags: [couverture, tests, ecrans, audit]
 status: draft
 created: 2026-10-14
-updated: 2026-10-14
+updated: 2026-10-16
 sources: []
 ---
 
@@ -48,6 +48,9 @@ Le relevé « ouvert » vient de la **dernière passe de l'audit des écrans** (
 ## 3. Détail des 157 écrans de `matrice-ecrans.json`
 
 `O` ouvert (HTTP/redirection), `R` regardé par (rôle), `PW` parcours Playwright spécifique, `V` vitest qui importe le code, `Vs` vitest qui lit le source (non compté), `X` exercé. Les identifiants d'objets de la matrice sont remplacés par `{id}`.
+
+> [!info] Adresses du propriétaire direct depuis le 15/10/2026
+> Les lignes « proprietaire » ci-dessous portent l'adresse du relevé du 14/10 (`/agence/{id}/…`). Depuis la décision D27-B (PR #191, fusion `d55f87b`, 15/10/2026), ces mêmes écrans sont servis au propriétaire direct sous **`/espace/{id}/…`** (alias réécrit par le proxy vers `app/agence/[orgId]`) ; `/agence/{id}/…` lui répond en 308. Les lignes « admin » (agence) gardent `/agence/{id}/…`. Couverture ajoutée depuis : `e2e/alias-espace.spec.ts` et les tests de racine des pages (PR #191 et #193) ; la recette de production parcourt les écrans du propriétaire sous la nouvelle adresse (recette n° 14). Ce relevé généré n'a pas été rejoué.
 
 | Profil | URL | Libellé | O | R | PW | V | Vs | X |
 |---|---|---|---|---|---|---|---|---|

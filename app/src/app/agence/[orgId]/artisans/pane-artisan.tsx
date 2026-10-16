@@ -19,6 +19,7 @@ import {
   STATUTS_PLATEFORME,
   VISIBILITES_ARTISAN,
 } from "./referentiel";
+import { baseEspace } from "@/lib/racine-espace";
 
 // La fiche d'un artisan VUE PAR SON AGENCE. Deux moitiés, et la frontière
 // entre elles est la chose importante à ne pas brouiller :
@@ -59,6 +60,8 @@ export async function PaneArtisan({
 }) {
   const supabase = await createClient();
   const chezVous = bailleurDirect ? "votre parc" : "votre agence";
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, bailleurDirect);
 
   const [
     { data: profil, error: erreurProfil },
@@ -246,7 +249,7 @@ export async function PaneArtisan({
                 return inc ? (
                   <Link
                     key={m.id}
-                    href={`/agence/${orgId}/incidents?sel=${inc.id}`}
+                    href={`${base}/incidents?sel=${inc.id}`}
                     className="ligne-info hover:bg-[var(--survol)]"
                   >
                     {contenu}

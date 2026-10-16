@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { definirEquipementsLot, type EtatParc } from "@/app/actions/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 type Equipement = { id: string; nom: string };
 
@@ -21,6 +22,8 @@ export function FormulaireEquipementsLot({
   catalogue: Equipement[];
   selection: string[];
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const actionLiee = definirEquipementsLot.bind(null, orgId, bienId, lotId);
   const [etat, action] = useActionStateSuivi<EtatParc, FormData>(actionLiee, {});
   const coches = new Set(selection);
@@ -28,7 +31,7 @@ export function FormulaireEquipementsLot({
   if (catalogue.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Aucun équipement n’est encore disponible dans votre catalogue. <Link className="underline" href={`/agence/${orgId}/parc`}>Compléter le catalogue depuis la liste des biens</Link>.
+        Aucun équipement n’est encore disponible dans votre catalogue. <Link className="underline" href={`${base}/parc`}>Compléter le catalogue depuis la liste des biens</Link>.
       </p>
     );
   }

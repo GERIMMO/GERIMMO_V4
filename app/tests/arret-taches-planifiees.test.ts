@@ -18,7 +18,7 @@ import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
 import { couvrirParMandat } from "./fixtures/mandat";
-import { TACHES_SQL } from "../src/lib/nom-arret-supervision";
+import { TACHES_SQL, TACHES_SQL_HORS_ARRET } from "../src/lib/nom-arret-supervision";
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
@@ -26,7 +26,12 @@ verifierBaseDeTest(DB_URL);
 
 const MIGRATION = readFileSync("supabase/migrations/20261014200000_arret_urgence_taches_planifiees.sql", "utf8");
 
-/** Les 9 tâches pg_cron (la 9ᵉ, « maintenance-artisans », vient du lot maintenance des artisans), et la clé d'arrêt (en plus de « global ») qui arrête chacune. */
+/**
+ * Les 10 tâches pg_cron. Neuf sont arrêtées par l'arrêt d'urgence (la 9ᵉ, « maintenance-artisans », vient du lot maintenance
+ * des artisans), chacune avec la clé d'arrêt (en plus de « global ») qui l'arrête. La 10ᵉ, « relais-urgences » (passage des
+ * urgences du relais toutes les 10 minutes, 20261014812000), n'est arrêtée par aucune clé, à dessein : c'est une alerte au
+ * dirigeant, et l'arrêt est l'un de ses sujets. Elle est recensée à part (`supervision_taches_hors_arret`).
+ */
 const CORRESPONDANCE: Record<string, string[]> = {
   "retention-quotidienne": ["purge"],
   "cycle-mensuel": ["appels", "quittances"],
@@ -38,6 +43,7 @@ const CORRESPONDANCE: Record<string, string[]> = {
   "marketing-declencheur": ["marketing"],
   "maintenance-artisans": ["rappels"],
 };
+const HORS_ARRET = ["relais-urgences"];
 const FONCTIONS: [tache: string, signature: string][] = [
   ["retention-quotidienne", "public.appliquer_retention()"],
   ["cycle-mensuel", "public.cycle_mensuel_interne()"],
@@ -143,7 +149,13 @@ describe.skipIf(!DB_URL)("arrêt d'urgence et tâches planifiées (D06)", () => 
     await db.query("reset role");
     const { rows: planifiees } = await db.query<{ jobname: string }>(`select jobname from cron.job order by 1`);
     const { rows: table } = await db.query<{ tache: string; cle: string }>(`select tache, cle from public.supervision_taches_arret order by 1, 2`);
-    expect(planifiees.map((j) => j.jobname)).toEqual(Object.keys(CORRESPONDANCE).sort());
+    // Les deux recensements ensemble couvrent exactement pg_cron : dix tâches, aucune dans les deux.
+    const { rows: horsArret } = await db.query<{ tache: string }>(`select tache from public.supervision_taches_hors_arret order by 1`);
+    expect(horsArret.map((h) => h.tache)).toEqual(HORS_ARRET);
+    expect(Object.keys(TACHES_SQL_HORS_ARRET).sort()).toEqual(HORS_ARRET);
+    expect(planifiees.map((j) => j.jobname)).toEqual([...Object.keys(CORRESPONDANCE), ...HORS_ARRET].sort());
+    expect(planifiees).toHaveLength(10);
+    for (const t of HORS_ARRET) expect(Object.keys(CORRESPONDANCE)).not.toContain(t);
     const lue: Record<string, string[]> = {};
     for (const { tache, cle } of table) (lue[tache] ??= []).push(cle);
     expect(lue).toEqual(CORRESPONDANCE);

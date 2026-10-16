@@ -6,9 +6,13 @@ import { TYPES_DIAGNOSTIC } from "@/lib/parc";
 import { formaterDate } from "@/lib/ged";
 import { statutPieceDiagnostic, type DiagnosticBail } from "@/lib/documents-bail";
 import styles from "./documents-bail.module.css";
+import { useRacineEspace } from "@/components/racine-espace-contexte";
 
 export function DiagnosticsBail({orgId,bailId,lotId,bienId,diagnostics,aujourdhui}:{orgId:string;bailId:string;lotId:string;bienId:string;diagnostics:DiagnosticBail[];aujourdhui:string}) {
-  const modifierHref = lienLotDepuisBail(orgId, bienId, lotId, bailId, "diagnostics", 5);
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const racine = useRacineEspace();
+  const base = `${racine}/${orgId}`;
+  const modifierHref = lienLotDepuisBail(orgId, bienId, lotId, bailId, "diagnostics", 5, racine);
   return <>
     {diagnostics.length ? <ul className={styles.liste}>{diagnostics.map(d=>{
       const statut=statutPieceDiagnostic(d,aujourdhui);
@@ -19,7 +23,7 @@ export function DiagnosticsBail({orgId,bailId,lotId,bienId,diagnostics,aujourdhu
         </div>
         <span className={styles.etat} data-ton={statut.ton}>{statut.libelle}</span>
         <div className={styles.actions}>
-          {d.document_id&&<a href={`/agence/${orgId}/documents/${d.document_id}/fichier`} target="_blank" rel="noreferrer" aria-label={`Consulter le diagnostic ${TYPES_DIAGNOSTIC[d.type]?.libelle??d.type}`}><ExternalLink size={14} aria-hidden="true"/>Consulter</a>}
+          {d.document_id&&<a href={`${base}/documents/${d.document_id}/fichier`} target="_blank" rel="noreferrer" aria-label={`Consulter le diagnostic ${TYPES_DIAGNOSTIC[d.type]?.libelle??d.type}`}><ExternalLink size={14} aria-hidden="true"/>Consulter</a>}
           {d.type === "dpe" && !d.classe_dpe && <Link href={modifierHref}>Compléter la classe dans le lot</Link>}
         </div>
       </li>;

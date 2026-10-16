@@ -5,6 +5,7 @@ import { formaterDate } from "@/lib/ged";
 import { ANCRE_INVITER_ARTISAN, etatLigneCarnet, valableJusquAu, type LigneCarnetArtisan, type TonEtat } from "@/lib/invitations-artisan";
 import { COULEURS_INTERVENTION, METIERS_ARTISAN, STATUTS_INTERVENTION } from "./referentiel";
 import { FormulaireInvitationArtisan, GestesDuCarnet, GestesInvitationEnAttente, ReinviterArtisan } from "./invitations-artisan";
+import { baseEspace } from "@/lib/racine-espace";
 
 type Mission = { id: string; artisan_id: string; incident_id: string; statut: string; confiee_le: string; terminee_le: string | null };
 
@@ -23,6 +24,8 @@ const PUCES: Record<TonEtat, string> = {
  *  · l'historique des interventions confiées, comme avant.
  */
 export async function CarnetProprietaire({ orgId }: { orgId: string }) {
+  // Décision D27 : le carnet n'existe que chez le propriétaire direct (/espace/<id>).
+  const base = baseEspace(orgId, true);
   const supabase = await createClient();
   const missions: Mission[] = [];
   let erreur = false;
@@ -49,7 +52,7 @@ export async function CarnetProprietaire({ orgId }: { orgId: string }) {
     for (const profil of data ?? []) profils.set(profil.id, profil);
   }
   return <main className="mx-auto w-full max-w-5xl flex-1 space-y-5 p-4 sm:p-7">
-    <div className="entete-page"><div><h1>Mon carnet d’artisans</h1><p className="mt-2 text-sm text-muted-foreground">Les artisans que vous avez invités, et le suivi de leurs interventions.</p></div><div className="flex flex-wrap gap-2"><Link href={`#${ANCRE_INVITER_ARTISAN}`} className="btn-or">+ Inviter un artisan</Link><Link href={`/agence/${orgId}/reseau`} className="btn-secondaire">Consulter le réseau</Link></div></div>
+    <div className="entete-page"><div><h1>Mon carnet d’artisans</h1><p className="mt-2 text-sm text-muted-foreground">Les artisans que vous avez invités, et le suivi de leurs interventions.</p></div><div className="flex flex-wrap gap-2"><Link href={`#${ANCRE_INVITER_ARTISAN}`} className="btn-or">+ Inviter un artisan</Link><Link href={`${base}/reseau`} className="btn-secondaire">Consulter le réseau</Link></div></div>
 
     <section aria-labelledby="mes-artisans" className="loc-carte space-y-4">
       <div>
@@ -90,12 +93,12 @@ export async function CarnetProprietaire({ orgId }: { orgId: string }) {
     </section>
 
     <h2 className="font-heading text-xl">Historique des interventions</h2>
-    {erreur ? <p role="alert" className="err">Votre historique n’a pas pu être chargé. Rechargez la page.</p> : !missions.length ? <section className="loc-carte py-10 text-center"><History aria-hidden="true" className="mx-auto mb-3 text-[var(--or-texte)]" size={30} /><h3 className="font-heading text-xl">Aucune intervention pour le moment</h3><p className="mt-2 text-sm text-muted-foreground">L’historique se complète automatiquement lorsqu’une intervention est confiée à un artisan.</p><Link className="btn-secondaire mt-5 inline-flex" href={`/agence/${orgId}/incidents`}>Voir mes incidents</Link></section> : <>
+    {erreur ? <p role="alert" className="err">Votre historique n’a pas pu être chargé. Rechargez la page.</p> : !missions.length ? <section className="loc-carte py-10 text-center"><History aria-hidden="true" className="mx-auto mb-3 text-[var(--or-texte)]" size={30} /><h3 className="font-heading text-xl">Aucune intervention pour le moment</h3><p className="mt-2 text-sm text-muted-foreground">L’historique se complète automatiquement lorsqu’une intervention est confiée à un artisan.</p><Link className="btn-secondaire mt-5 inline-flex" href={`${base}/incidents`}>Voir mes incidents</Link></section> : <>
       {erreurProfils && <p role="alert" className="err">Certaines coordonnées sont indisponibles. L’historique reste consultable.</p>}
       {[...groupes].map(([id, historique]) => {
         const profil = profils.get(id);
         return <section key={id} className="loc-carte space-y-4"><div className="flex items-start gap-3"><span className="rounded-xl bg-[var(--marque-clair)] p-3 text-[var(--marque-sombre)]"><Wrench size={20} aria-hidden="true" /></span><div className="min-w-0"><h3 className="break-words font-heading text-lg">{profil?.raison_sociale ?? "Artisan — fiche indisponible"}</h3><p className="mt-1 break-words text-sm text-muted-foreground">{[profil?.telephone, profil?.email].filter(Boolean).join(" · ") || "Coordonnées indisponibles"}</p></div></div>
-          <details><summary className="cursor-pointer py-2 text-sm font-medium">Historique · {historique.length} intervention{historique.length > 1 ? "s" : ""}</summary><ul className="divide-y divide-[var(--filet)]">{historique.map((mission) => <li key={mission.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"><div><Link className="font-medium underline underline-offset-4" href={`/agence/${orgId}/incidents?sel=${mission.incident_id}`}>Consulter l’intervention</Link><p className="mt-1 text-xs text-muted-foreground">Confiée le {formaterDate(mission.confiee_le)}{mission.terminee_le && ` · Terminée le ${formaterDate(mission.terminee_le)}`}</p></div><span className={COULEURS_INTERVENTION[mission.statut] ?? "puce puce-grise"}>{STATUTS_INTERVENTION[mission.statut] ?? mission.statut}</span></li>)}</ul></details>
+          <details><summary className="cursor-pointer py-2 text-sm font-medium">Historique · {historique.length} intervention{historique.length > 1 ? "s" : ""}</summary><ul className="divide-y divide-[var(--filet)]">{historique.map((mission) => <li key={mission.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"><div><Link className="font-medium underline underline-offset-4" href={`${base}/incidents?sel=${mission.incident_id}`}>Consulter l’intervention</Link><p className="mt-1 text-xs text-muted-foreground">Confiée le {formaterDate(mission.confiee_le)}{mission.terminee_le && ` · Terminée le ${formaterDate(mission.terminee_le)}`}</p></div><span className={COULEURS_INTERVENTION[mission.statut] ?? "puce puce-grise"}>{STATUTS_INTERVENTION[mission.statut] ?? mission.statut}</span></li>)}</ul></details>
         </section>;
       })}
     </>}

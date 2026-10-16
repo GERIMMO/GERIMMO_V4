@@ -47,6 +47,14 @@
     {
       "path": "/api/cron/equipes?mission=veille",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/relais?creneau=ete",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/relais?creneau=hiver",
+      "schedule": "0 4 * * *"
     }
   ]
 }

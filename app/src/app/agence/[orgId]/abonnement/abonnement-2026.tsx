@@ -30,6 +30,7 @@ import {
   type Periodicite,
 } from "@/lib/tarifs";
 import { EncadreLectureImpossible, EnteteReglages, statutAbonnement } from "../profil/famille-reglages";
+import { baseEspace } from "@/lib/racine-espace";
 
 type Etat = {
   statut: string;
@@ -82,7 +83,9 @@ function montantLu(o: Offre): string {
 export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonnement">) {
   const { orgId } = await props.params;
   const recherche = await props.searchParams;
-  const { supabase, organisation, role } = await verifierAccesEspace(orgId);
+  const { supabase, organisation, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   if (!["admin_agence", "proprietaire_direct"].includes(role)) notFound();
   const estAgence = organisation.type === "agence";
   const unite = estAgence ? "lot sous mandat" : "bien";
@@ -312,7 +315,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
               <div>
                 <span><Building2 size={16} aria-hidden="true" /> Biens en gestion</span>
                 <strong>{enGestion}{souscrit && capacite !== null && <small> / {capacite} inclus</small>}</strong>
-                <Link href={`/agence/${orgId}/parc`}>Voir mes lots <ArrowRight size={13} aria-hidden="true" /></Link>
+                <Link href={`${base}/parc`}>Voir mes lots <ArrowRight size={13} aria-hidden="true" /></Link>
               </div>
               <div>
                 <span><CalendarDays size={16} aria-hidden="true" /> {souscrit ? paiement.annulation_demandee ? "Fin de l’abonnement" : "Prochaine échéance" : enEssai ? "Fin de l’essai" : "Abonnement"}</span>
@@ -494,7 +497,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
               <ul className="space-y-1 text-sm">
                 {FORMULES_PARTICULIER.filter((f) => f.biens > (capacite ?? 0)).map((f) => (
                   <li key={f.code}>
-                    <Link href={`/agence/${orgId}/abonnement?formule=${f.code}`} className="underline">
+                    <Link href={`${base}/abonnement?formule=${f.code}`} className="underline">
                       {f.nom} — jusqu&apos;à {f.biens} biens,{" "}
                       {euros(paiement.periodicite === "annuel" ? f.annuelCents : f.mensuelCents)} TTC {parPeriode(paiement.periodicite)}
                     </Link>

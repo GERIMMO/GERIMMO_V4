@@ -11,9 +11,11 @@ import {
 // peut encore ; ce qu'il ne devait pas voir, il ne le voit toujours pas.
 const ORG = "0000-org";
 const nav = (role: RoleEspace, badges = {}) => navigationEspace({ orgId: ORG, role, badges });
+// Décision D27 : le propriétaire direct navigue sous /espace/<id>, l'agence et ses agents sous /agence/<id>.
+const racineDe = (role: RoleEspace) => (role === "proprietaire_direct" ? "/espace" : "/agence");
 const chemins = (role: RoleEspace) => {
   const n = nav(role);
-  return [...n.principales, ...n.secondaires].map((e) => e.href.replace(`/agence/${ORG}`, "") || "/");
+  return [...n.principales, ...n.secondaires].map((e) => e.href.replace(`${racineDe(role)}/${ORG}`, "") || "/");
 };
 
 describe("La navigation v4 préserve les accès de chaque rôle", () => {
@@ -156,4 +158,52 @@ it("garde Finances actif dans le livre et la déclaration du propriétaire", () 
   for (const chemin of ["/loyers", "/comptabilite", "/comptabilite/fiscal"]) {
     expect(entreeActive(n.principales, `/agence/${ORG}${chemin}`)?.libelle).toBe("Finances");
   }
+});
+
+
+describe("Décision D27 : le propriétaire direct navigue sous /espace, les agences restent sous /agence", () => {
+  const toutesLesEntrees = (role: RoleEspace) => {
+    const n = nav(role);
+    return [...n.principales, ...n.secondaires, ...n.barreBasse];
+  };
+
+  it("chaque entrée du menu du propriétaire direct (principal, « Plus », barre basse) pointe vers /espace/<id>", () => {
+    for (const e of toutesLesEntrees("proprietaire_direct")) {
+      expect(e.href, e.libelle).toMatch(new RegExp(`^/espace/${ORG}(/|$|\\?|#)`));
+      for (const a of e.alias ?? []) expect(a, e.libelle).toMatch(new RegExp(`^/espace/${ORG}`));
+    }
+  });
+
+  it("aucune entrée de l'agence ou de l'agent ne change d'adresse (hors liens vers les espaces voisins)", () => {
+    for (const role of ["admin_agence", "agent"] as RoleEspace[]) {
+      for (const e of toutesLesEntrees(role)) {
+        if (e.href.startsWith("/compte") || e.href.startsWith("/veille")) continue;
+        expect(e.href, `${role} — ${e.libelle}`).toMatch(new RegExp(`^/agence/${ORG}(/|$|\\?|#)`));
+      }
+      expect(toutesLesEntrees(role).some((e) => e.href.startsWith("/espace")), role).toBe(false);
+    }
+  });
+
+  it("le tableau de bord du propriétaire est /espace/<id>, et ne s'allume que sur son chemin exact", () => {
+    const n = nav("proprietaire_direct");
+    const toutes = [...n.principales, ...n.secondaires];
+    expect(n.principales[0].href).toBe(`/espace/${ORG}`);
+    expect(entreeActive(toutes, `/espace/${ORG}`)?.libelle).toBe("Tableau de bord");
+    expect(entreeActive(toutes, `/espace/${ORG}/parc/abc/lots/def`)?.libelle).toBe("Mes lots");
+    expect(entreeActive(toutes, `/espace/${ORG}/inconnu`)).toBeNull();
+  });
+
+  it("l'entrée s'allume quelle que soit la racine que le navigateur rapporte (alias ou route réécrite)", () => {
+    const n = nav("proprietaire_direct");
+    const toutes = [...n.principales, ...n.secondaires];
+    for (const racine of ["/espace", "/agence"]) {
+      expect(entreeActive(toutes, `${racine}/${ORG}/loyers`)?.libelle, racine).toBe("Finances");
+      expect(entreeActive(toutes, `${racine}/${ORG}/comptabilite/fiscal`)?.libelle, racine).toBe("Finances");
+      expect(entreeActive(toutes, `${racine}/${ORG}/messages`)?.libelle, racine).toBe("Messages");
+    }
+    const agence = nav("admin_agence");
+    for (const racine of ["/espace", "/agence"]) {
+      expect(entreeActive([...agence.principales, ...agence.secondaires], `${racine}/${ORG}/parc`)?.libelle, racine).toBe("Parc de l'agence");
+    }
+  });
 });

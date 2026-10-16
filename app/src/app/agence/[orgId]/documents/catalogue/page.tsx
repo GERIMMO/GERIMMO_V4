@@ -7,11 +7,14 @@ import { chargerCiblesCatalogue } from "@/lib/documents/catalogue-cibles";
 import { lireLignes, texte } from "@/lib/documents/modeles/catalogue-bail";
 import { FormulaireCatalogue } from "./formulaire-catalogue";
 import { buttonVariants } from "@/components/ui/button";
+import { baseEspace, racineEspace } from "@/lib/racine-espace";
 // Même nom que le H1 et que le lien qui y mène depuis Documents (24/09).
 export const metadata={title:"Préparer un document — Gerimmo"};
 export default async function PageCatalogue({params,searchParams}:{params:Promise<{orgId:string}>;searchParams:Promise<Record<string,string|string[]|undefined>>}) {
   const {orgId}=await params, brut=await searchParams;
   const {supabase,organisation,role,estProprietaire}=await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const baseOrg = baseEspace(orgId, estProprietaire);
   const valeur=(k:string)=>typeof brut[k]==="string"?brut[k] as string:"";
   const recherche=valeur("q").trim(),bail=valeur("bail");
   const page=Math.min(10000,Math.max(0,Number.parseInt(valeur("page"),10)||0));
@@ -26,7 +29,7 @@ export default async function PageCatalogue({params,searchParams}:{params:Promis
   // « Entrée et contrat » → « entree-et-contrat » : l'ancre de sa section
   const ancre=(f:string)=>normaliser(f).replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
   const enPreparation=filtres.filter(m=>!Object.hasOwn(MODELES,m.code)).length;
-  const base=`/agence/${orgId}/documents/catalogue`;
+  const base=`${baseOrg}/documents/catalogue`;
   const lien=(mod:string,num=0)=>`${base}?${new URLSearchParams({modele:mod,...(bail?{bail}:{}),...(situation?{situation}:{}),...(num?{page:String(num)}:{})})}`;
   let cibles:Awaited<ReturnType<typeof chargerCiblesCatalogue>>={choix:[],suite:false},erreur="";
   let garants:{id:string;libelle:string;bailId:string}[]=[];
@@ -44,11 +47,11 @@ export default async function PageCatalogue({params,searchParams}:{params:Promis
   return <main className="mx-auto w-full max-w-6xl flex-1 space-y-7 p-4 sm:p-7">
     {/* Sous-page : le retour « ← Parent » AU-DESSUS de l'en-tête, comme la fiche
         du bien (25/09 — il était dans le bandeau, un troisième style de retour). */}
-    <div><Link href={`/agence/${orgId}/documents`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline">← Documents</Link>
+    <div><Link href={`${baseOrg}/documents`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline">← Documents</Link>
     <header className="entete-page"><div><TitreEcran rubrique="documents">Préparer un document</TitreEcran><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Choisissez le document utile à votre situation. Gerimmo reprend les informations du dossier et conserve le PDF dans votre espace Documents.</p></div></header></div>
     {choisi?<><Link href={`${base}?${new URLSearchParams({... (situation?{situation}:{}),...(bail?{bail}:{})})}`} className="text-sm text-primary hover:underline">← Choisir un autre document</Link><section className="rounded-2xl border bg-card p-5 sm:p-7"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{choisi.famille}</p><h2 className="mt-2 text-2xl font-semibold">{choisi.nom}</h2><p className="mb-6 mt-2 text-sm text-muted-foreground">{choisi.description}</p>
       {!Object.hasOwn(MODELES,choisi.code)?<p role="status" className="rounded-lg border p-4 text-sm">Ce modèle est en préparation : Gerimmo ne présentera pas un document provisoire à la place de la pièce attendue.</p>:
-      erreur?<p role="alert" className="text-destructive">{erreur}</p>:cibles.choix.length?<FormulaireCatalogue key={`${choisi.id}-${page}-${bail}`} orgId={orgId} modeleId={choisi.id} choix={cibles.choix} garants={garants}/>:<p className="rounded-lg bg-muted p-4 text-sm">Aucun dossier compatible sur cette page. Vérifiez les informations et l’avancement du dossier concerné.{bail&&<> <Link href={lien(choisi.id).replace(`&bail=${bail}`,"")} className="underline">Afficher tous les dossiers</Link></>}</p>}
+      erreur?<p role="alert" className="text-destructive">{erreur}</p>:cibles.choix.length?<FormulaireCatalogue key={`${choisi.id}-${page}-${bail}`} orgId={orgId} modeleId={choisi.id} choix={cibles.choix} garants={garants} racine={racineEspace(estProprietaire)}/>:<p className="rounded-lg bg-muted p-4 text-sm">Aucun dossier compatible sur cette page. Vérifiez les informations et l’avancement du dossier concerné.{bail&&<> <Link href={lien(choisi.id).replace(`&bail=${bail}`,"")} className="underline">Afficher tous les dossiers</Link></>}</p>}
       {(page>0||cibles.suite)&&<nav aria-label="Pages des dossiers" className="mt-5 flex items-center gap-4 text-sm">{page>0&&<Link href={lien(choisi.id,page-1)} className="underline">Dossiers précédents</Link>}<span>Page {page+1} · 50 dossiers au maximum</span>{cibles.suite&&<Link href={lien(choisi.id,page+1)} className="underline">Dossiers suivants</Link>}</nav>}
     </section></>:<>
       {/* Tour du 24/09. Les situations sont les titres de section de la page :

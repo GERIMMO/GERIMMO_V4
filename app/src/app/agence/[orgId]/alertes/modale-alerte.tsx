@@ -16,6 +16,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
 import { afficherToast } from "@/components/ui/toast";
+import { useRacineEspace } from "@/components/racine-espace-contexte";
 
 export type AlerteRang = {
   id: string;
@@ -62,6 +63,7 @@ export function nomAssignation(
 // se replie donc, au lieu d'occuper la place du geste.
 export function ModaleAlerte({
   orgId,
+  racine: racineImposee,
   alerte,
   membres,
   estResponsable,
@@ -69,6 +71,8 @@ export function ModaleAlerte({
   fermer,
 }: {
   orgId: string;
+  /** La racine des adresses de CETTE organisation, quand la fenêtre s'ouvre hors de son espace (synthèse de connexion). */
+  racine?: string;
   alerte: AlerteRang;
   membres: Membre[];
   estResponsable: boolean;
@@ -76,6 +80,9 @@ export function ModaleAlerte({
   aujourdhui?: string;
   fermer: () => void;
 }) {
+  // Décision D27 : la fiche vers laquelle « Traiter » emmène vit sous /espace/<id> chez le propriétaire direct.
+  const racineEspaceCourant = useRacineEspace();
+  const racine = racineImposee ?? racineEspaceCourant;
   // Le toast se déclenche ICI, à la résolution de l'action — pas dans un
   // effet : la revalidation retire la ligne (et cette modale) dans le même
   // commit React que le succès, un effet local n'aurait jamais tourné.
@@ -107,7 +114,7 @@ export function ModaleAlerte({
   const nbEscalades = Array.isArray(alerte.escalades)
     ? alerte.escalades.length
     : 0;
-  const geste = gesteAlerte(alerte, orgId);
+  const geste = gesteAlerte(alerte, orgId, racine);
   // Quand l'alerte se referme seule, la clore à la main est l'exception : le
   // bloc reste accessible mais replié, pour qu'on ne le prenne pas pour la
   // marche à suivre. Sans geste connu, il est la marche à suivre — donc ouvert.

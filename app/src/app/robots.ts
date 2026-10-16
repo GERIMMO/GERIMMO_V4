@@ -20,6 +20,9 @@ const SEGMENTS_PRIVES = [
   "/attestation-loyer",
   "/auth",
   "/compte",
+  // D27 : l'alias des écrans du propriétaire direct (réécrit par le proxy vers /agence). Pas un dossier de src/app,
+  // donc hors du test des dossiers : tests/alias-espace-proxy.test.ts le tient.
+  "/espace",
   "/espaces",
   "/invitations",
   "/locataire",

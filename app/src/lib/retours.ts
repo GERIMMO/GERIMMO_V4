@@ -11,7 +11,7 @@ export const ACTIONS_RETOUR: Record<string,string> = {
   navigation: "Navigation", bouton: "Clic sur un bouton", lien: "Ouverture d’un lien", formulaire: "Envoi d’un formulaire", saisie: "Saisie dans un champ",
 };
 const SEGMENTS = new Set([
-  'agence','admin','artisan','locataire','espaces','parc','baux','documents','personnes','incidents','demandes','logement','loyers','comptabilite','fiscal',
+  'agence','espace','admin','artisan','locataire','espaces','parc','baux','documents','personnes','incidents','demandes','logement','loyers','comptabilite','fiscal',
   'agenda','alertes','messages','contact','profil','administration','abonnement','missions','devis','attestations','entreprise','note','edl','compte-rendu',
   'bilan','creneaux','nouveau','nouvelle','import','organisations','publications','journaux','retours','assistance','idees','securite','parametres','compte','clients',
   'brief','territoire','sante','artisans','facturation','statistiques','catalogue','faq','inscription','panne','reprise','modele','fichier',
@@ -21,7 +21,9 @@ export function ecranSansDonnees(chemin: string):string {
   return '/' + chemin.slice(0,2000).split(/[?#]/,1)[0].split('/').filter(Boolean).slice(0,11)
     .map(segment=>SEGMENTS.has(segment)?segment:'[dossier]').join('/');
 }
-const ESPACES_ECRAN: Record<string,string> = { agence: "Espace agence", admin: "Console", artisan: "Portail artisan", locataire: "Espace locataire", espaces: "Mes espaces" };
+// D27 : « espace » est l'alias des écrans du propriétaire direct (lib/racine-espace.ts) ; « agence » reste celui des agences
+// et des signalements enregistrés avant la décision.
+const ESPACES_ECRAN: Record<string,string> = { agence: "Espace agence", espace: "Espace propriétaire", admin: "Console", artisan: "Portail artisan", locataire: "Espace locataire", espaces: "Mes espaces" };
 const PAGES_ECRAN: Record<string,string> = {
   parc: "Parc", baux: "Baux", documents: "Documents", personnes: "Personnes", incidents: "Incidents", demandes: "Demandes", logement: "Logement",
   loyers: "Loyers", comptabilite: "Comptabilité", fiscal: "Fiscalité", agenda: "Agenda", alertes: "Alertes", messages: "Messages", profil: "Profil",

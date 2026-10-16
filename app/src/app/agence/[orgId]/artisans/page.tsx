@@ -15,6 +15,7 @@ import {
   METIERS_ARTISAN,
   STATUTS_PLATEFORME,
 } from "./referentiel";
+import { baseEspace } from "@/lib/racine-espace";
 
 // Même nom que l'entrée de menu et le raccourci des incidents (24/09).
 export const metadata = { title: "Carnet d'artisans — Gerimmo" };
@@ -72,7 +73,9 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
   };
   const vue = VUES.some((v) => v.cle === vueBrute) ? vueBrute! : "actifs";
   const sel = typeof selBrut === "string" && selBrut ? selBrut : null;
-  const { supabase, role } = await verifierAccesEspace(orgId);
+  const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   // artisan_statut_local et artisan_blacklist_locale sont réservées à
   // l'admin d'agence et au propriétaire direct : « l'agent simple ne
   // désactive pas ». L'écran le dit au lieu de laisser la base refuser.
@@ -148,7 +151,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
     if (vueCible !== "actifs") params.set("vue", vueCible);
     if (selCible) params.set("sel", selCible);
     const q = params.toString();
-    return `/agence/${orgId}/artisans${q ? `?${q}` : ""}`;
+    return `${base}/artisans${q ? `?${q}` : ""}`;
   };
 
   return (
@@ -181,7 +184,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
         </p>
       </div>
 
-      <p className="mb-4 text-sm"><Link href={`/agence/${orgId}/reseau`} className="btn-secondaire inline-flex">Vérifier le réseau pour mes biens</Link><span className="mt-2 block text-muted-foreground">Le réseau Gerimmo dépend de la commune du bien et du métier ouvert. Votre carnet personnel reste disponible.</span></p>
+      <p className="mb-4 text-sm"><Link href={`${base}/reseau`} className="btn-secondaire inline-flex">Vérifier le réseau pour mes biens</Link><span className="mt-2 block text-muted-foreground">Le réseau Gerimmo dépend de la commune du bien et du métier ouvert. Votre carnet personnel reste disponible.</span></p>
       <EchecLecture quoi={lecturesManquees} />
 
       <div className={`split${sel ? " detail-actif" : ""}`}>

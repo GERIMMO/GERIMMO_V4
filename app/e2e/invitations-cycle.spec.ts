@@ -3,7 +3,7 @@ import { Client } from 'pg';
 import { randomUUID } from 'node:crypto';
 import { sansSyntheseAlertes, debordementHorizontal } from './aides';
 const org='3c1d1e95-3570-400b-8012-44530be145b1';
-async function login(p:Page,email:string){await sansSyntheseAlertes(p);await p.goto('/connexion');await p.locator('#email').fill(email);await p.locator('#mot-de-passe').fill('Gerimmo-Demo-2026');await p.getByRole('button',{name:'Se connecter',exact:true}).click();await p.waitForURL(/\/(espaces|agence|locataire)(\/|$)/);}
+async function login(p:Page,email:string){await sansSyntheseAlertes(p);await p.goto('/connexion');await p.locator('#email').fill(email);await p.locator('#mot-de-passe').fill('Gerimmo-Demo-2026');await p.getByRole('button',{name:'Se connecter',exact:true}).click();await p.waitForURL(/\/(espaces|espace|agence|locataire)(\/|$)/);}
 test('invitation : envoi non configuré honnête, refus, expiration, acceptation et historique',async({browser},info)=>{
  const url=process.env.SUPALOCAL_DB;test.skip(!url||!/^postgres(?:ql)?:\/\/[^@]*@127\.0\.0\.1:[0-9]{1,5}\/gerimmo_ci_[a-z_]+_api$/.test(url),'Base API fictive locale seulement');
  const db=new Client({connectionString:url});await db.connect();
@@ -12,7 +12,7 @@ test('invitation : envoi non configuré honnête, refus, expiration, acceptation
  try{
   await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current) values('00000000-0000-0000-0000-000000000000',$1,'authenticated','authenticated',$2,extensions.crypt('Gerimmo-Demo-2026',extensions.gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','')`,[target,email]);
   await db.query("insert into persons(id,organization_id,nom,prenom,email) values($1,$2,'TEST Invitation','Camille',$3)",[person,org,email]);
-  await login(p,'proprietaire@gerimmo-demo.fr');await p.goto(`/agence/${org}/personnes/${person}#acces-locataire`);
+  await login(p,'proprietaire@gerimmo-demo.fr');await p.goto(`/espace/${org}/personnes/${person}#acces-locataire`);
   const card=p.locator('#acces-locataire');await card.getByRole('button',{name:'Inviter comme locataire',exact:true}).click();
   await expect(card.getByRole('alert')).toContainText('n’a pas été envoyé');
   await expect(card.getByText('En attente d’acceptation',{exact:true})).toBeVisible();

@@ -21,6 +21,8 @@ import { envoyerEmail } from "@/lib/email";
 import { eur } from "@/lib/ged";
 import { echapperMarque } from "@/lib/marque-organisation";
 import { adresseDuSite } from "@/lib/site";
+import { baseEspace } from "@/lib/racine-espace";
+import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 
 export type Courrier = { sujet: string; html: string };
 
@@ -146,9 +148,11 @@ export function courrierReconduction(p: {
 // Envois (client de service : webhook et tâche de nuit seulement)
 // ============================================================
 
-function lienAbonnement(orgId: string): string | null {
+// `base` : « /espace/<id> » chez un propriétaire direct, « /agence/<id> » chez une agence (décision D27) ; à défaut,
+// l'ancienne adresse, que le proxy redirige.
+function lienAbonnement(orgId: string, base?: string): string | null {
   const site = adresseDuSite();
-  return site ? `${site}/agence/${orgId}/abonnement` : null;
+  return site ? `${site}${base ?? `/agence/${orgId}`}/abonnement` : null;
 }
 
 async function destinataire(supabase: SupabaseClient, orgId: string): Promise<string | null> {
@@ -159,10 +163,10 @@ async function destinataire(supabase: SupabaseClient, orgId: string): Promise<st
 
 /** L'avis de fin d'essai. Rend un motif d'échec, ou `null` si envoyé. */
 export async function envoyerAvisFinEssai(
-  p: { orgId: string; organisation: string; destinataire: string | null; premierPrelevementLe: string; montantCents: number | null; cle: string }
+  p: { orgId: string; organisation: string; destinataire: string | null; premierPrelevementLe: string; montantCents: number | null; cle: string; base?: string }
 ): Promise<string | null> {
   if (!p.destinataire) return "sans adresse";
-  const c = courrierFinEssai({ ...p, lien: lienAbonnement(p.orgId) });
+  const c = courrierFinEssai({ ...p, lien: lienAbonnement(p.orgId, p.base) });
   const { erreur } = await envoyerEmail({ to: p.destinataire, subject: c.sujet, html: c.html, cleIdempotence: p.cle });
   return erreur ?? null;
 }
@@ -175,7 +179,7 @@ export async function envoyerAvisCapaciteDepassee(
 ): Promise<string | null> {
   const a = await destinataire(supabase, p.orgId);
   if (!a) return "sans adresse";
-  const c = courrierCapaciteDepassee({ ...p, lien: lienAbonnement(p.orgId) });
+  const c = courrierCapaciteDepassee({ ...p, lien: lienAbonnement(p.orgId, baseEspace(p.orgId, !p.estAgence)) });
   await avantEffet?.();
   const { erreur } = await envoyerEmail({
     avantEnvoi: avantEffet,
@@ -220,7 +224,7 @@ export async function envoyerAvisReconduction(supabase: SupabaseClient, avantEff
       echeance: a.periode_fin,
       montantCents: a.montant_periode_cents === null ? null : Number(a.montant_periode_cents),
       formule: a.formule,
-      lien: lienAbonnement(a.organization_id),
+      lien: lienAbonnement(a.organization_id, await baseDeLOrganisation(supabase, a.organization_id)),
     });
     await avantEffet?.();
     const { erreur } = await envoyerEmail({

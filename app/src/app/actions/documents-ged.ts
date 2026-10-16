@@ -12,6 +12,7 @@ import {
   TAILLE_MAX_OCTETS,
 } from "@/lib/file-type";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { baseEspace } from "@/lib/racine-espace";
 
 export type EtatDocumentGed = {
   erreur?: string;
@@ -31,7 +32,7 @@ export async function remplacerDocument(
   _etat: EtatDocumentGed,
   formData: FormData
 ): Promise<EtatDocumentGed> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
@@ -114,7 +115,7 @@ export async function remplacerDocument(
 
   revalidatePath(`/agence/${orgId}/documents`);
   // La liste ne montre que les versions courantes : ouvrir la nouvelle
-  redirect(`/agence/${orgId}/documents?sel=${nouvelleVersion}`);
+  redirect(`${baseEspace(orgId, role === "proprietaire_direct")}/documents?sel=${nouvelleVersion}`);
 }
 
 // Les entités rattachables depuis la fiche de pièce (module 12 — l'énum

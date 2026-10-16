@@ -17,6 +17,7 @@ import { envoyerLienMotDePasse, inscrireEtEnvoyerConfirmation } from "@/lib/lien
 import { estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 import { estUuid } from "@/lib/identifiants";
 import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
+import { baseEspace } from "@/lib/racine-espace";
 
 // La qualité voyage dans les métadonnées jusqu'à la fiche personne, dont la
 // liste est fermée (audit 29/09) : une valeur hors liste est laissée vide
@@ -366,5 +367,5 @@ export async function ouvrirEspaceProprietaire(
   if (error || !orgId) {
     return { erreur: error ? sansJargon(error.message) : "L'espace n'a pas pu être ouvert. Réessayez dans un instant.", valeurs };
   }
-  redirect(`/agence/${orgId}`);
+  redirect(baseEspace(orgId, true));
 }

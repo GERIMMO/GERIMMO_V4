@@ -8,8 +8,11 @@ import { importerParc, type EtatImport } from "@/app/actions/import-parc";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { ChampFichier } from "@/components/champ-fichier";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 export function FormulaireImport({ orgId }: { orgId: string }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const baseOrg = useBaseEspace(orgId);
   const [etat, action, enCours] = useActionState<EtatImport, FormData>(
     importerParc.bind(null, orgId),
     {}
@@ -119,7 +122,7 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
                 // `.rang:last-child` lui retire le sien.
                 <li key={r.ligne} className="border-b border-[var(--filet)] last:border-b-0">
                   {r.lot_id && r.bien_id ? (
-                    <Link href={`/agence/${orgId}/parc/${r.bien_id}/lots/${r.lot_id}`} className="rang">
+                    <Link href={`${baseOrg}/parc/${r.bien_id}/lots/${r.lot_id}`} className="rang">
                       {contenu}
                     </Link>
                   ) : (

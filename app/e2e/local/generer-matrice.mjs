@@ -71,8 +71,9 @@ const matrice = [];
 const ecartees = [];
 for (const route of inventaire) {
   let chemin = route.path;
-  // L'espace « propriétaire » réutilise les routes /agence avec l'organisation PD
-  if (route.persona === "proprietaire") chemin = chemin.replace("/agence/ORG", `/agence/${ids.ORG_PD}`);
+  // L'espace « propriétaire » réutilise les écrans de l'agence avec l'organisation PD, sous /espace/<id> (décision D27 :
+  // /agence/<id> redirige à vie vers /espace/<id> pour lui, un modèle encore écrit « /agence/ORG » est donc ramené à /espace).
+  if (route.persona === "proprietaire") chemin = chemin.replace(/^\/(?:agence|espace)\/ORG(?![A-Z_])/, `/espace/${ids.ORG_PD}`);
   let manquant = null;
   chemin = chemin.replace(/\b(INVITATION_ARTISAN|INVITATION|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT|CLIENT_EXTERNE|CHANTIER_EXTERNE|FACTURE_EXTERNE)\b/g, (m) => {
     if (!ids[m]) manquant = m;

@@ -5,6 +5,7 @@ import { useActionStateProtegee as useActionState } from "@/lib/use-action-state
 import { inviterLocataire, annulerInvitation, type EtatInvitation } from "@/app/actions/invitations";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { etatInvitation, LIBELLES_INVITATION, phrasesRelances, type InvitationLocataire, type RelanceInvitation } from "@/lib/invitations-locataire";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 export function FormulaireInvitation({ orgId, personId, email, dejaInvite, accesSuspendu = false, historique = [], relances = [], erreurLecture = false }: {
   orgId: string; personId: string; email: string | null; dejaInvite: boolean; accesSuspendu?: boolean;
@@ -13,6 +14,8 @@ export function FormulaireInvitation({ orgId, personId, email, dejaInvite, acces
   relances?: RelanceInvitation[];
   erreurLecture?: boolean;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const [etat, action] = useActionState<EtatInvitation, FormData>(inviterLocataire.bind(null, orgId, personId), {});
   const derniere = historique[0];
   const statut = derniere ? etatInvitation(derniere) : null;
@@ -21,7 +24,7 @@ export function FormulaireInvitation({ orgId, personId, email, dejaInvite, acces
   return <div className="space-y-3">
     {dejaInvite ? <p className="text-sm text-success-soft-foreground">Compte locataire actif : la personne accède à son espace.</p> : accesSuspendu ? <p className="text-sm text-muted-foreground">Accès locataire désactivé. Les documents conservés restent consultables ; une invitation ne réactive pas cet accès.</p> : !email ? <div className="space-y-2">
       <p className="text-sm text-muted-foreground">Ajoutez un email à cette fiche pour pouvoir l’inviter comme locataire.</p>
-      <Link href={`/agence/${orgId}/personnes/${personId}?modifier=1#identite`} className="lien-discret text-sm">Ajouter un email</Link>
+      <Link href={`${base}/personnes/${personId}?modifier=1#identite`} className="lien-discret text-sm">Ajouter un email</Link>
     </div> : <>
       <p className="text-sm text-muted-foreground">{email} recevra une invitation valable 30 jours. La personne choisira de l’accepter ou de la refuser avant d’accéder à son espace. Sans réponse de sa part, un rappel lui est envoyé par e-mail 3 jours puis 10 jours après l’envoi.</p>
       {derniere && <div className="rounded-xl border border-border bg-muted/40 p-3 text-sm">

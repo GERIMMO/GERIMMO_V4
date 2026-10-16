@@ -12,7 +12,7 @@ import { buttonVariants } from "@/components/ui/button";
 // Un blocage se reconnaît maintenant à la même forme partout : liseré et fond
 // d'avertissement, un motif par ligne, et l'action qui le lève à droite.
 
-export type CibleLot = { orgId: string; bienId: string; lotId: string };
+export type CibleLot = { orgId: string; bienId: string; lotId: string; /** « /espace » pour le propriétaire direct (décision D27). */ racine?: string };
 
 function Motifs({
   motifs,

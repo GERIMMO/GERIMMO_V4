@@ -4,6 +4,7 @@ import { euros, offreParticulier } from "@/lib/tarifs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
+import { RACINE_PROPRIETAIRE, baseEspace } from "@/lib/racine-espace";
 import { chargerActionsDuJour, type ActionDuJour } from "@/lib/actions-du-jour";
 import { ParcoursDemarrage } from "@/components/parcours-demarrage";
 import { ArticlesAccueil } from "./articles-accueil";
@@ -39,6 +40,8 @@ export async function AccueilProprietaire({
   // Prénom du compte connecté (métadonnées d'inscription) — audit 09/09
   prenom?: string | null;
 }) {
+  // Décision D27 : l'espace du propriétaire direct vit sous /espace/<id>.
+  const base = baseEspace(orgId, true);
   const moisCourant = `${aujourdhuiParis().slice(0, 7)}-01`;
   const [
     { data: lots, error: erreurLots },
@@ -81,7 +84,7 @@ export async function AccueilProprietaire({
       .in("classe_dpe", ["F", "G"])
       .is("archived_at", null),
     // Le propriétaire direct voit tout son parc : pas de portefeuille.
-    chargerActionsDuJour(supabase, orgId, { userId, portefeuille: null }),
+    chargerActionsDuJour(supabase, orgId, { userId, portefeuille: null, racine: RACINE_PROPRIETAIRE }),
     // Lots déjà engagés : bail vivant OU seulement commencé. Sert au rappel
     // « prêt à louer, aucun bail » ci-dessous.
     supabase
@@ -99,7 +102,7 @@ export async function AccueilProprietaire({
   // Le geste d'un rang : l'écran qui résout (bail, rapport, incident) ou la
   // pop-up « Traiter » de la page Alertes, ouverte d'emblée sur l'alerte.
   const cibleAction = (a: ActionDuJour): string =>
-    a.source === "alerte" ? (a.href ?? `/agence/${orgId}/alertes?traiter=${a.alerte.id}`) : a.href;
+    a.source === "alerte" ? (a.href ?? `${base}/alertes?traiter=${a.alerte.id}`) : a.href;
   const gesteAction = (a: ActionDuJour) =>
     a.source === "bail" ? "Résoudre" : a.source === "rapport" ? "Valider" : "Traiter";
 
@@ -229,7 +232,7 @@ export async function AccueilProprietaire({
               flèche comprise) : seul un lien de 13 px en dernière ligne
               réagissait, ni le chiffre ni le titre (24/09). */}
           <div className="grille-kpi">
-            <Link href={`/agence/${orgId}/loyers`} className={`${styles.indicateur} ${styles.encaisse} kpi bleu`}>
+            <Link href={`${base}/loyers`} className={`${styles.indicateur} ${styles.encaisse} kpi bleu`}>
               <span className={styles.enteteIndicateur}>
                 <span className="eyebrow">Encaissé en {nomMois}</span>
                 <Banknote size={20} aria-hidden="true" />
@@ -247,7 +250,7 @@ export async function AccueilProprietaire({
             {/* Un parc vide mène à la création du premier bien : la tuile
                 entière porte le geste (un lien dans un lien n'est pas permis). */}
             <Link
-              href={`/agence/${orgId}/parc${!erreurLots && nbLots === 0 ? "/nouveau" : ""}`}
+              href={`${base}/parc${!erreurLots && nbLots === 0 ? "/nouveau" : ""}`}
               className={`${styles.indicateur} ${styles.lots} kpi ${erreurLots ? "" : vacants > 0 || nbLots === 0 ? "ambre" : "vert"}`}
             >
               <span className={styles.enteteIndicateur}>
@@ -284,7 +287,7 @@ export async function AccueilProprietaire({
               plutôt qu'une tuile de prose déguisée en indicateur (24/09). */}
           <div>
             <Link
-              href={`/agence/${orgId}/comptabilite/fiscal`}
+              href={`${base}/comptabilite/fiscal`}
               className="lien-discret text-[13px]"
             >
               Mon récapitulatif fiscal (2044)&nbsp;→
@@ -297,7 +300,7 @@ export async function AccueilProprietaire({
               <h2 className={`${styles.titreCarte} text-[length:var(--pas-sous-titre)]`}>
                 <ListChecks size={21} aria-hidden="true" />À faire
               </h2>
-              <Link href={`/agence/${orgId}/alertes`} className="lien-discret text-[13px]">
+              <Link href={`${base}/alertes`} className="lien-discret text-[13px]">
                 {plan.total > 0 ? `${plan.total} à traiter` : "Toutes mes alertes"}&nbsp;→
               </Link>
             </div>
@@ -356,7 +359,7 @@ export async function AccueilProprietaire({
             <div className="loc-carte">
               <div className="entete-carte">
                 <h2 className="text-[length:var(--pas-sous-titre)]">Avant la mise en location</h2>
-                <Link href={`/agence/${orgId}/parc`} className="lien-discret text-[13px]">
+                <Link href={`${base}/parc`} className="lien-discret text-[13px]">
                   Mes lots&nbsp;→
                 </Link>
               </div>
@@ -369,7 +372,7 @@ export async function AccueilProprietaire({
                   return (
                     <li key={l.id}>
                       <Link
-                        href={`/agence/${orgId}/parc/${l.bien_id}/lots/${l.id}${bloque || illisible ? "" : "#baux"}`}
+                        href={`${base}/parc/${l.bien_id}/lots/${l.id}${bloque || illisible ? "" : "#baux"}`}
                         className="rang px-2 py-2.5 text-sm"
                       >
                         <span className="min-w-0 flex-1">
@@ -400,7 +403,7 @@ export async function AccueilProprietaire({
                         à trois, c'est la seule tranche dont on ait lu les
                         blocages. Et on n'écrit plus « prêts à louer » pour des
                         lots qu'on n'a pas examinés — seulement « sans bail ». */}
-                    <Link href={`/agence/${orgId}/parc`} className="lien-discret">
+                    <Link href={`${base}/parc`} className="lien-discret">
                       {lotsSansBail.length - 3} autre
                       {lotsSansBail.length - 3 > 1 ? "s" : ""} lot
                       {lotsSansBail.length - 3 > 1 ? "s" : ""} disponible
@@ -451,7 +454,7 @@ export async function AccueilProprietaire({
           {/* La carte entière mène à l'abonnement (24/09) : seul le lien de la
               dernière ligne réagissait. */}
           <Link
-            href={`/agence/${orgId}/abonnement`}
+            href={`${base}/abonnement`}
             className={`${styles.abonnement} loc-carte block transition-colors hover:border-[var(--marque)]`}
           >
             <div className="entete-carte !mb-1">

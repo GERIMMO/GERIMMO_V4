@@ -24,6 +24,7 @@ import { FormulaireDepot } from "./formulaire-depot";
 import { EchecLecture } from "./echec-lecture";
 import { PaneDocument, puceConservation } from "./pane-document";
 import { titreAffiche } from "./titre-document";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Documents — Gerimmo" };
 
@@ -75,7 +76,9 @@ export default async function PageDocuments(
     au: uneValeur(brut.au),
   };
   const sel = uneValeur(brut.sel) ?? null;
-  const { supabase, role, user } = await verifierAccesEspace(orgId);
+  const { supabase, role, user, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   // Périmètre portefeuille (RM-18.1.3, audit 09/09) : l'agent ne voit que les
   // pièces rattachées à ses lots, baux, incidents et locataires — les pièces
   // d'organisation (sans rattachement) restent visibles de tous. Le filtre
@@ -216,7 +219,7 @@ export default async function PageDocuments(
     if (recherche.au) params.set("au", recherche.au);
     if (selCible) params.set("sel", selCible);
     const q = params.toString();
-    return `/agence/${orgId}/documents${q ? `?${q}` : ""}`;
+    return `${base}/documents${q ? `?${q}` : ""}`;
   };
 
   return (
@@ -247,7 +250,7 @@ export default async function PageDocuments(
                 </>
               )}
             </span>
-            <Link href={`/agence/${orgId}/documents/catalogue`} className="lien-discret">
+            <Link href={`${base}/documents/catalogue`} className="lien-discret">
               Préparer un document
             </Link>
             {/* Parc vide : le guide, dessous, porte le seul geste de dépôt */}
@@ -402,7 +405,7 @@ export default async function PageDocuments(
                         </p>
                         <span className="geste">
                           <Link
-                            href={`/agence/${orgId}/documents`}
+                            href={`${base}/documents`}
                             className={`inline-flex items-center gap-1.5 ${buttonVariants({ variant: "outline", size: "sm" })}`}
                           >
                             Effacer les filtres

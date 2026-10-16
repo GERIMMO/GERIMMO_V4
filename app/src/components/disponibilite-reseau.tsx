@@ -7,6 +7,7 @@ import { confirmerCommuneBien, confirmerCommunesEvidentes, signalerInteretReseau
 import { messageDisponibilite, type DisponibiliteReseau, type CommuneReseau } from "@/lib/reseau";
 import { cheminCarnetInvitation } from "@/lib/invitations-artisan";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 export function RetourReseau({ etat }: { etat: EtatReseau }) {
   return <>{etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}{etat.succes && <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}</>;
@@ -22,9 +23,11 @@ export function InteretReseau({ orgId, bienId, disponibilite: d }: { orgId: stri
 }
 
 export function MessageReseau({ orgId, bienId, disponibilite: d }: { orgId: string; bienId: string; disponibilite: DisponibiliteReseau }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   return <div className={`rounded-xl border p-4 ${d.etat === "ouverte" ? "border-success/30 bg-success-soft" : "border-warning/30 bg-warning-soft"}`}>
     <p className="text-sm font-medium">{messageDisponibilite(d)}</p>
-    {d.etat === "adresse_incomplete" && <Link href={`/agence/${orgId}/reseau?bien=${bienId}`} className="mt-2 inline-flex min-h-11 items-center text-sm underline underline-offset-4">Compléter la localisation du bien</Link>}
+    {d.etat === "adresse_incomplete" && <Link href={`${base}/reseau?bien=${bienId}`} className="mt-2 inline-flex min-h-11 items-center text-sm underline underline-offset-4">Compléter la localisation du bien</Link>}
     <p className="mt-2 text-xs text-muted-foreground">Le suivi de vos incidents et travaux et votre carnet de contacts restent disponibles.</p>
   </div>;
 }
@@ -66,9 +69,11 @@ export function ConfirmerCommunesEvidentes({ orgId, nbSansCommune }: { orgId: st
 }
 
 export function ConfirmerCommuneBien({ orgId, bienId, communes, communeActuelle }: { orgId: string; bienId: string; communes: CommuneReseau[]; communeActuelle: string | null }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const [etat, action] = useActionState(confirmerCommuneBien.bind(null, orgId, bienId), {});
   const id = useId();
-  if (!communes.length) return <p className="text-sm">La commune ne peut pas être déterminée avec cette adresse. <Link href={`/agence/${orgId}/parc/${bienId}`} className="underline">Compléter l’adresse du bien</Link> avant de vérifier le réseau.</p>;
+  if (!communes.length) return <p className="text-sm">La commune ne peut pas être déterminée avec cette adresse. <Link href={`${base}/parc/${bienId}`} className="underline">Compléter l’adresse du bien</Link> avant de vérifier le réseau.</p>;
   return <form data-saisie-confirmee action={action} className="space-y-3 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4">
     <label htmlFor={id} className="block text-sm font-medium">Commune exacte du bien</label>
     <select id={id} name="commune" required defaultValue={communeActuelle ?? ""} className="min-h-11 w-full rounded-md border border-input bg-background px-3 text-sm">

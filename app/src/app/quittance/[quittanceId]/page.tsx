@@ -16,6 +16,7 @@ import {
   manquantsQuittance,
 } from "@/lib/quittance-conforme";
 import { DocumentQuittance } from "./document-quittance";
+import { racineEspace } from "@/lib/racine-espace";
 
 // Un seul appel base pour la page et son titre (React déduplique via cache).
 // `quittance_document` porte les mêmes contrôles d'accès que l'ancienne
@@ -128,7 +129,7 @@ export default async function PageQuittance(props: {
               </p>
               <ul className="list-disc space-y-1 pl-5">
                 {manquants.map((m) => {
-                  const lien = lienPourManquant(m, q.organization_id, [{ entite: "bail", entiteId: q.bail_id }], "quittance");
+                  const lien = lienPourManquant(m, q.organization_id, [{ entite: "bail", entiteId: q.bail_id }], "quittance", racineEspace(q.organisation.type === "proprietaire_direct"));
                   return (
                     <li key={m}>
                       {m}

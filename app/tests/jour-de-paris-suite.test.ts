@@ -108,7 +108,9 @@ async function activerTemps(t: Temps, jour: string): Promise<void> {
   const {
     rows: [{ h }],
   } = await db.query<{ h: number }>(
-    `select h from generate_series(-24, 24) h
+    // Jusqu'à ±48 h : entre minuit et 2 h à Paris, une session « en avance d'un jour sur Paris » demande plus de 24 h
+    // d'avance sur UTC (fuseau fictif que PostgreSQL accepte, `<+26>-26` par exemple) ; ±24 h échouait à ces heures-là.
+    `select h from generate_series(-48, 48) h
       where ((now() at time zone 'UTC') + h * interval '1 hour')::date = ($1::date + $2::int)
       order by abs(h), h limit 1`,
     [jour, t.ecart]

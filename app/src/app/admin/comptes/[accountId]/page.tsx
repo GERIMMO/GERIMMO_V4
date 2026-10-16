@@ -8,6 +8,7 @@ import { detailsExpurges, libelleActionAudit, libelleEvenement } from "@/lib/lib
 import { formaterDateHeureParis } from "@/lib/heure-paris";
 import { GesteControle } from "@/components/geste-controle";
 import { controlerCompte } from "@/app/actions/controle-supervision";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Fiche d’un compte" };
 
@@ -179,9 +180,11 @@ export default async function PageCompte({ params }: { params: Promise<{ account
               const org = un(m.organisation);
               const locataire = m.role === "locataire";
               const fiche = locataire ? personnes.find((p) => p.organization_id === m.organization_id) : null;
-              const href = !org ? null : locataire
-                ? fiche ? `/agence/${org.id}/personnes/${fiche.id}` : `/agence/${org.id}/personnes`
-                : `/agence/${org.id}`;
+              // Décision D27 : l'espace d'un propriétaire direct vit sous /espace/<id>.
+              const baseOrg = org ? baseEspace(org.id, org.type === "proprietaire_direct") : null;
+              const href = !baseOrg ? null : locataire
+                ? fiche ? `${baseOrg}/personnes/${fiche.id}` : `${baseOrg}/personnes`
+                : baseOrg;
               return (
                 <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                   <span>

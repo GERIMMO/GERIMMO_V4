@@ -15,6 +15,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { eur, moisEnFrancais } from "@/lib/ged";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 // Carte « Quittancement du mois » (maquette v3) : le mois d'un coup d'œil,
 // l'encaissement en un clic, l'envoi groupé des quittances.
@@ -54,6 +55,8 @@ export type LigneQuittancement = {
 // de l'arbre. Son compte rendu disparaîtrait avec lui — soit exactement le
 // défaut qu'on répare. Porté par la ligne, il survit au basculement.
 function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittancement }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const commande = useRef<string | null>(null);
   const [etatEnc, actionEnc] = useActionState<EtatEncaissementReste, FormData>(
     async () => {
@@ -128,7 +131,7 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
               des loyers du bail (24/09). */}
           {l.statut === "impaye" && (
             <Link
-              href={`/agence/${orgId}/baux/${l.bail_id}#loyers`}
+              href={`${base}/baux/${l.bail_id}#loyers`}
               className="lien-discret relative z-10"
             >
               Relancer sur le bail →
@@ -161,6 +164,8 @@ export function QuittancementMois({
   proprietaire?: boolean;
   envoiGroupe?: boolean;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const [etatEnvoi, actionEnvoi] = useActionState<EtatLoyers, FormData>(
     async () => envoyerQuittancesMois(orgId, mois),
     {}
@@ -226,7 +231,7 @@ export function QuittancementMois({
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                 <Link
-                  href={`/agence/${orgId}/baux/${l.bail_id}#loyers`}
+                  href={`${base}/baux/${l.bail_id}#loyers`}
                   className="font-medium after:absolute after:inset-0 after:rounded-lg after:content-[''] pointer-coarse:py-3"
                 >
                   {l.locataire ?? "—"}
@@ -267,7 +272,7 @@ export function QuittancementMois({
                 <tr key={l.appel_id} className="relative hover:bg-[var(--survol)]">
                   <td>
                     <Link
-                      href={`/agence/${orgId}/baux/${l.bail_id}#loyers`}
+                      href={`${base}/baux/${l.bail_id}#loyers`}
                       className="font-medium after:absolute after:inset-0 after:content-['']"
                     >
                       {l.locataire ?? "—"}

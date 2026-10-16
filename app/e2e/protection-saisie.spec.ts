@@ -13,14 +13,14 @@ async function dialogueAbsent(page:Page,action:()=>Promise<unknown>){
 }
 for(const largeur of [390,1440])test(`profil : avertissement avant sortie, annulation et retour à la valeur initiale à ${largeur}px`,async({browser},info)=>{
  const context=await browser.newContext({storageState:'e2e/.auth/proprietaire.json',viewport:{width:largeur,height:950}});const page=await context.newPage();
- try{await sansSyntheseAlertes(page);const org=await entrerDansEspace(page,'agence');await page.goto(`/agence/${org}/profil`);
+ try{await sansSyntheseAlertes(page);const org=await entrerDansEspace(page,'espace');await page.goto(`/espace/${org}/profil`);
  const nom=page.locator('#pr-nom');await expect(nom).toBeVisible();const initial=await nom.inputValue();await nom.fill('TEST saisie à conserver');
- const lien=page.locator(`a[href="/agence/${org}/parc"]:visible`).first();
+ const lien=page.locator(`a[href="/espace/${org}/parc"]:visible`).first();
  if(!await lien.isVisible())await page.getByRole('button',{name:/menu/i}).first().click();
  await annulerDepart(page,()=>lien.click());await expect(nom).toHaveValue('TEST saisie à conserver');
  const dialogue=page.waitForEvent('dialog');const recharge=page.reload({timeout:1500});const d=await dialogue;expect(d.type()).toBe('beforeunload');await d.dismiss();await recharge.catch(()=>{});
  await expect(nom).toHaveValue('TEST saisie à conserver');expect(await debordementHorizontal(page)).toBe(0);await page.screenshot({path:info.outputPath('profil-saisie-conservee.png'),fullPage:true});
- await nom.fill(initial);await dialogueAbsent(page,()=>lien.click());await expect(page).toHaveURL(`/agence/${org}/parc`);
+ await nom.fill(initial);await dialogueAbsent(page,()=>lien.click());await expect(page).toHaveURL(`/espace/${org}/parc`);
  }finally{await context.close();}
 });
 

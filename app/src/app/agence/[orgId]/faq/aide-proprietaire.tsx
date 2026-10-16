@@ -7,10 +7,13 @@ import { correspond } from "@/lib/roles-personnes";
 import { EnteteReglages } from "../profil/famille-reglages";
 import { QUESTIONS } from "./questions";
 import styles from "./aide.module.css";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 const THEMES = ["Tout", "Prise en main", "Locataires", "Finances", "Abonnement"] as const;
 
 export function AideProprietaire({ orgId, nom, assistance }: { orgId: string; nom: string; assistance: string }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const [recherche, setRecherche] = useState("");
   const [theme, setTheme] = useState<string>("Tout");
   const idRecherche = useId();
@@ -40,7 +43,7 @@ export function AideProprietaire({ orgId, nom, assistance }: { orgId: string; no
       <div id="questions-aide" className={styles.questions}>
         {questions.map((q) => <details key={q.question} className={styles.question}>
           <summary><span><small>{q.theme}</small><strong>{q.question}</strong></span><ChevronDown size={17} aria-hidden="true" /></summary>
-          <div><p>{q.reponse}</p>{q.lien && <Link href={`/agence/${orgId}/${q.lien}`}>Ouvrir {q.lien === "messages" ? "mes messages" : q.lien === "abonnement" ? "mon abonnement" : "mes finances"} <ArrowRight size={14} aria-hidden="true" /></Link>}</div>
+          <div><p>{q.reponse}</p>{q.lien && <Link href={`${base}/${q.lien}`}>Ouvrir {q.lien === "messages" ? "mes messages" : q.lien === "abonnement" ? "mon abonnement" : "mes finances"} <ArrowRight size={14} aria-hidden="true" /></Link>}</div>
         </details>)}
         {questions.length === 0 && <div className={styles.vide}><Search size={28} aria-hidden="true" /><h3>Aucune réponse trouvée</h3><p>Essayez un autre mot-clé ou écrivez-nous pour être accompagné.</p><button type="button" onClick={reinitialiser}>Afficher toutes les questions</button></div>}
       </div>

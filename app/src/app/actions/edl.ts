@@ -7,6 +7,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { abandonnerPieceGed, preparerFichierGed } from "@/lib/ged-depot";
 import { lireDecimal, lireDecimalFacultatif } from "@/lib/saisie-montant";
+import { baseEspace } from "@/lib/racine-espace";
 
 // Un relevé de compteur illisible se refuse en le disant (jamais « non renseigné »). Le message existait avant la
 // lecture du texte tapé : il est gardé tel quel.
@@ -61,7 +62,7 @@ export async function creerEdl(
   _etat: EtatEdl,
   formData: FormData
 ): Promise<EtatEdl> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   const type = String(formData.get("type") ?? "entree");
@@ -91,7 +92,8 @@ export async function creerEdl(
   const { error: erreurGrille } = await supabase.rpc("generer_grille_edl", { p_edl: data.id });
   if (erreurGrille) return { erreur: sansJargon(erreurGrille.message) };
 
-  redirect(`/agence/${orgId}/baux/${bailId}/edl/${data.id}`);
+  // Décision D27 : la grille du propriétaire direct s'ouvre sous /espace/<id>.
+  redirect(`${baseEspace(orgId, role === "proprietaire_direct")}/baux/${bailId}/edl/${data.id}`);
 }
 
 // Régénérer la grille d'un EDL non signé depuis les pièces du lot (recette

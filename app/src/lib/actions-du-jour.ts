@@ -11,6 +11,7 @@ import { CRITICITES, ORDRE_CRITICITE, aujourdhuiParis, eur } from "@/lib/ged";
 import { PortefeuilleIndisponible } from "@/lib/portefeuille";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { nomComplet } from "@/lib/roles-personnes";
+import { RACINE_AGENCE } from "@/lib/racine-espace";
 
 // CE QUI M'ATTEND AUJOURD'HUI — un seul calcul pour trois écrans (relevé du
 // 24/09 : « on lit “2 à faire”, on clique, on n'en trouve qu'un »). La tuile
@@ -158,8 +159,11 @@ export function regrouperActionsDuJour({
   alertes,
   rapports,
   aujourdhui = aujourdhuiParis(),
+  racine = RACINE_AGENCE,
 }: {
   orgId: string;
+  /** « /espace » pour le propriétaire direct, « /agence » par défaut (décision D27, lib/racine-espace.ts). */
+  racine?: string;
   userId: string;
   /** Les lots de mon portefeuille (RM-18.1.3) ; null : je vois tout. */
   portefeuille: Set<string> | null;
@@ -170,6 +174,7 @@ export function regrouperActionsDuJour({
   /** « AAAA-MM-JJ », date de Paris. */
   aujourdhui?: string;
 }): PlanDuJour {
+  const base = `${racine}/${orgId}`;
   const surLesBaux: ActionSurBail[] = attendues.map((a) => ({
     cle: a.cle,
     source: "bail",
@@ -198,7 +203,7 @@ export function regrouperActionsDuJour({
     // incident, elle, emmène au dossier dans l'onglet Incidents.
     href:
       typeof a.details?.incident_id === "string"
-        ? `/agence/${orgId}/incidents?sel=${a.details.incident_id}`
+        ? `${base}/incidents?sel=${a.details.incident_id}`
         : null,
   }));
 
@@ -225,7 +230,7 @@ export function regrouperActionsDuJour({
       titre: `Rapport ${deElide(new Date(r.mois).toLocaleDateString("fr-FR", { month: "long", timeZone: "UTC" }))}`,
       detail: `${p ? nomComplet(p) : "Mandant"} · à valider avant envoi`,
       echeance,
-      href: `/agence/${orgId}/comptabilite`,
+      href: `${base}/comptabilite`,
     });
   }
 
@@ -271,7 +276,8 @@ const lire = cache(
     supabase: SupabaseClient,
     orgId: string,
     userId: string,
-    clePortefeuille: string
+    clePortefeuille: string,
+    racine: string
   ): Promise<LectureActionsDuJour> => {
     const portefeuille = portefeuilleDepuisCle(clePortefeuille);
     const [
@@ -283,7 +289,7 @@ const lire = cache(
       { data: alertes, error: erreurAlertes },
       { data: rapports, error: erreurRapports },
     ] = await Promise.all([
-      actionsAttendues(supabase, orgId, { portefeuille }),
+      actionsAttendues(supabase, orgId, { portefeuille, racine }),
       // « À traiter » se calcule sur MES alertes (revue recette 08/08) : celles
       // qui me sont confiées nominativement, plus celles à tout le monde.
       supabase
@@ -305,6 +311,7 @@ const lire = cache(
     ]);
     const plan = regrouperActionsDuJour({
       orgId,
+      racine,
       userId,
       portefeuille,
       attendues,
@@ -327,16 +334,16 @@ const lire = cache(
 export function chargerActionsDuJour(
   supabase: SupabaseClient,
   orgId: string,
-  { userId, portefeuille }: { userId: string; portefeuille: Set<string> | null }
+  { userId, portefeuille, racine = RACINE_AGENCE }: { userId: string; portefeuille: Set<string> | null; racine?: string }
 ): Promise<LectureActionsDuJour> {
-  return lire(supabase, orgId, userId, cleDuPortefeuille(portefeuille));
+  return lire(supabase, orgId, userId, cleDuPortefeuille(portefeuille), racine);
 }
 
 /** Le seul chiffre, pour la pastille : combien attendent un geste, dont combien de critiques. */
 export async function compterActionsDuJour(
   supabase: SupabaseClient,
   orgId: string,
-  options: { userId: string; portefeuille: Set<string> | null }
+  options: { userId: string; portefeuille: Set<string> | null; racine?: string }
 ): Promise<{ total: number; critiques: number }> {
   const { plan } = await chargerActionsDuJour(supabase, orgId, options);
   return { total: plan.total, critiques: plan.critiques };

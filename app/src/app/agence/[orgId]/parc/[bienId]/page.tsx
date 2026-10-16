@@ -43,6 +43,7 @@ import {
 import { exigerUuids } from "@/lib/identifiants";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { CarteRetraitBien } from "./carte-retrait-bien";
+import { baseEspace, racineEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Fiche bien — Gerimmo" };
 
@@ -52,6 +53,8 @@ export default async function PageBien(
   const { orgId, bienId } = await props.params;
   exigerUuids(bienId);
   const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   // Le lien retour porte le nom de l'entrée du menu (24/09) : « ← Parc »
   // ne se lisait nulle part ailleurs.
   const libelleParc = estProprietaire
@@ -126,7 +129,7 @@ export default async function PageBien(
       <PageEchecLecture
         titre="Fiche bien"
         quoi={["le bien"]}
-        retour={{ href: `/agence/${orgId}/parc`, libelle: libelleParc }}
+        retour={{ href: `${base}/parc`, libelle: libelleParc }}
       />
     );
   if (!bien) notFound();
@@ -263,7 +266,7 @@ export default async function PageBien(
   return (
     <FenetreLotProvider orgId={orgId} estProprietaire={estProprietaire}>
       <main className="mx-auto w-full max-w-5xl bien-visuel space-y-[1.125rem] p-4 sm:p-7">
-      <Link href={`/agence/${orgId}/parc`} className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-primary">← {libelleParc}</Link>
+      <Link href={`${base}/parc`} className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-primary">← {libelleParc}</Link>
       <header className="bien-visuel-entete">
         <div className="bien-visuel-identite">
           <span className="bien-visuel-embleme"><IconeTrait nom={estImmeuble ? "parc" : "maison"} /></span>
@@ -276,7 +279,7 @@ export default async function PageBien(
         <nav aria-label="Rubriques du bien" className="mt-4 flex flex-wrap gap-2">
           <a href="#informations" className={buttonVariants({variant:"outline",size:"sm"})}>Informations du bien</a>
           <a href="#diagnostics" className={buttonVariants({variant:"outline",size:"sm"})}>Diagnostics</a>
-          <Link href={estProprietaire ? `/agence/${orgId}/loyers?bien=${bienId}` : `/agence/${orgId}/loyers`} className={buttonVariants({variant:"outline",size:"sm"})}>{estProprietaire ? "Voir les finances" : "Loyers et charges"}</Link>
+          <Link href={estProprietaire ? `${base}/loyers?bien=${bienId}` : `${base}/loyers`} className={buttonVariants({variant:"outline",size:"sm"})}>{estProprietaire ? "Voir les finances" : "Loyers et charges"}</Link>
         </nav>
         <ChiffresBien chiffres={[
             {icone:"cle",label:"Lots actifs",valeur:erreurLots ? "Indisponible" : String(lotsActifs.length)},
@@ -321,8 +324,8 @@ export default async function PageBien(
           {/* Ce qui bloque TOUS les lots : affiché une fois, pas sous chacun */}
           <BlocagesLocation
             motifs={blocagesCommuns}
-            ctx={{ orgId, bienId, lotId: lotsActifs[0]?.id ?? "" }}
-            pageCourante={`/agence/${orgId}/parc/${bienId}`}
+            ctx={{ orgId, bienId, lotId: lotsActifs[0]?.id ?? "", racine: racineEspace(estProprietaire) }}
+            pageCourante={`${base}/parc/${bienId}`}
             titre="À régler pour l’ensemble des lots"
           />
 
@@ -335,7 +338,7 @@ export default async function PageBien(
                 <li key={lot.id} className={`space-y-2 py-3 ${lot.etat === "archive" ? "opacity-60" : ""}`}>
                   {/* Depuis la fiche du bien, ouvrir directement le dossier complet. */}
                   <Link
-                    href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
+                    href={`${base}/parc/${bienId}/lots/${lot.id}`}
                     className="-mx-2 flex w-[calc(100%+1rem)] flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-[var(--survol)]"
                   >
                     <span
@@ -384,8 +387,8 @@ export default async function PageBien(
                       <div className="pl-3">
                         <ListeBlocages
                           motifs={propres}
-                          ctx={{ orgId, bienId, lotId: lot.id }}
-                          pageCourante={`/agence/${orgId}/parc/${bienId}`}
+                          ctx={{ orgId, bienId, lotId: lot.id, racine: racineEspace(estProprietaire) }}
+                          pageCourante={`${base}/parc/${bienId}`}
                         />
                       </div>
                     </details>
@@ -419,7 +422,7 @@ export default async function PageBien(
         <CardHeader><CardTitle className="bien-visuel-titre"><IconeTrait nom="maison" />Informations du bien</CardTitle></CardHeader>
         <CardContent><RecapBien orgId={orgId} bien={bien as BienFormulaire} /></CardContent>
       </Card>
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-1"><h2 className="text-lg font-semibold">Le dossier du bien</h2><Link href={`/agence/${orgId}/reseau?bien=${bienId}`} className="lien-discret inline-flex min-h-11 items-center gap-2 text-sm"><IconeTrait nom="outil" className="size-4" />Trouver un artisan →</Link></div>
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1"><h2 className="text-lg font-semibold">Le dossier du bien</h2><Link href={`${base}/reseau?bien=${bienId}`} className="lien-discret inline-flex min-h-11 items-center gap-2 text-sm"><IconeTrait nom="outil" className="size-4" />Trouver un artisan →</Link></div>
       <div className="bien-visuel-dossier">
           {/* Diagnostics du bien */}
           <SectionLot
@@ -469,7 +472,7 @@ export default async function PageBien(
                 {proprietairesBien.map((p) => (
                   <li key={p.id}>
                     <Link
-                      href={`/agence/${orgId}/personnes/${p.id}`}
+                      href={`${base}/personnes/${p.id}`}
                       className="rang flex-wrap gap-x-3 gap-y-0.5 rounded-md px-2 py-2"
                     >
                       <span className="min-w-0 font-medium">{p.nom}</span>

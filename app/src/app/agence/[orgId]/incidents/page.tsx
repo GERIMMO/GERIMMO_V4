@@ -17,6 +17,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { EchecLecture } from "../documents/echec-lecture";
 import { PaneIncident, type MembreGerant } from "./pane-incident";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Incidents — Gerimmo" };
 
@@ -68,6 +69,8 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
   // estProprietaire : en gestion directe, le « gestionnaire » c'est lui —
   // la page lui parle à la deuxième personne (tour du 24/09).
   const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
 
   // Revue 23/08 : un plafond global faisait sortir les plus VIEUX dossiers —
   // précisément ceux que la file « À traiter » ne doit jamais perdre. Les
@@ -191,7 +194,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
     if (vueCible !== "en-cours") params.set("vue", vueCible);
     if (selCible) params.set("sel", selCible);
     const q = params.toString();
-    return `/agence/${orgId}/incidents${q ? `?${q}` : ""}`;
+    return `${base}/incidents${q ? `?${q}` : ""}`;
   };
 
   // Le dossier affiché à droite (24/09) : celui qu'on a choisi, sinon le
@@ -210,10 +213,10 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
           <p>Du signalement à la résolution, gardez le fil de chaque intervention.</p>
         </div>
         <div className={`incidents-entete-actions${sel ? " max-[1100px]:hidden" : ""}`}>
-          <Link href={`/agence/${orgId}/${estProprietaire ? "reseau" : "artisans"}`} className="btn-secondaire">
+          <Link href={`${base}/${estProprietaire ? "reseau" : "artisans"}`} className="btn-secondaire">
             <Wrench size={16} aria-hidden="true" /> Carnet d&apos;artisans
           </Link>
-          <Link href={`/agence/${orgId}/incidents/nouveau`} className="btn-or">
+          <Link href={`${base}/incidents/nouveau`} className="btn-or">
             <Plus size={17} aria-hidden="true" /> Déclarer un incident
           </Link>
         </div>
@@ -291,7 +294,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                     </p>
                     <span className="geste">
                       <Link
-                        href={`/agence/${orgId}/incidents/nouveau`}
+                        href={`${base}/incidents/nouveau`}
                         className={buttonVariants({ variant: "outline", size: "sm" })}
                       >
                         Déclarer un incident

@@ -76,6 +76,19 @@ export const FICHIERS_EN_SERIE = [
   // Lot « avoir-facture-externe » (D24-C) : le retour arrière joué dans la transaction de l'essai supprime puis recrée la table
   // des avoirs et modifie artisan_factures_externes (contrainte, index, colonne) : verrou exclusif tenu pendant tout l'essai.
   "tests/artisan-avoir-migration-rejeu.test.ts",
+  // D46-B (15/10), e-mail immédiat des urgences du relais : deux sessions vident la file en même temps. Fixture VALIDÉE
+  // (deux comptes, un plan terminé, deux alertes) puis supprimée ; la file est globale, une ligne validée serait prise
+  // par les essais d'un autre fichier.
+  "tests/relais-urgences-concurrence.test.ts",
+  // Même lot : une contrainte posée sur la file et le retour arrière (déclencheur retiré de supervision_alertes_internes,
+  // tables supprimées puis recréées) dans la transaction du test, verrous de table tenus pendant tout l'essai.
+  "tests/relais-urgences-retour.test.ts",
+  // Même lot, passage fréquent des urgences (relecture du 15/10) : deux passages simultanés sur deux sessions, fixture
+  // VALIDÉE (un plan ACTIF : tout traiter_vacances d'un autre fichier le traiterait) puis supprimée.
+  "tests/relais-urgences-passage-concurrence.test.ts",
+  // Même lot : rejeu de la migration 20261014812000 et de ses migrations d'origine, retour arrière (tables supprimées,
+  // fonctions réécrites, tâche pg_cron retirée) dans la transaction du test, verrous tenus pendant tout l'essai.
+  "tests/relais-urgences-passage-retour.test.ts",
 ];
 
 export default defineConfig({

@@ -8,6 +8,7 @@ import {
   EnteteReglages,
   statutAbonnement,
 } from "../profil/famille-reglages";
+import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Administration — Gerimmo" };
 
@@ -34,6 +35,8 @@ export default async function PageAdministration(
 ) {
   const { orgId } = await props.params;
   const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   if (estProprietaire || role !== "admin_agence") notFound();
 
   const [
@@ -260,7 +263,7 @@ export default async function PageAdministration(
                     {/* Tout le rang mène au champ « Confié à » du mandat,
                         sur la fiche du propriétaire (24/09). */}
                     <Link
-                      href={`/agence/${orgId}/personnes/${personId}#m-titulaire-${p.mandatId}`}
+                      href={`${base}/personnes/${personId}#m-titulaire-${p.mandatId}`}
                       className="ligne-info -mx-2 items-center rounded-md px-2 hover:bg-[var(--survol)]"
                     >
                       <span className="min-w-0 !text-foreground">{p.nom}</span>
@@ -311,7 +314,7 @@ export default async function PageAdministration(
             {/* Tout le rang mène à l'abonnement (24/09) — seul le petit lien
                 de droite l'était — et il porte le nom de l'écran visé. */}
             <Link
-              href={`/agence/${orgId}/abonnement`}
+              href={`${base}/abonnement`}
               className="ligne-info items-center hover:bg-[var(--survol)]"
             >
               <span>Abonnement</span>

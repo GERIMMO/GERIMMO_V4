@@ -18,6 +18,7 @@ import {
   TYPES_NON_DECOUPABLES,
   ETATS_LOT,
 } from "@/lib/parc";
+import { baseEspace } from "@/lib/racine-espace";
 
 export type EtatParc = {
   erreur?: string;
@@ -55,8 +56,9 @@ export async function creerBien(
   formData: FormData
 ): Promise<EtatParc> {
   const valeurs = valeursDuFormulaire(formData);
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé.", valeurs };
+  const base = baseEspace(orgId, role === "proprietaire_direct"); // décision D27
   const nom = String(formData.get("nom") ?? "").trim();
   const type = String(formData.get("type") ?? "");
   const adresse1 = String(formData.get("address_line1") ?? "").trim();
@@ -149,8 +151,8 @@ export async function creerBien(
   const bienId = resultat.bien_id;
   const lotUniqueId = resultat.lot_unique_id;
   const destination = lotUniqueId
-    ? `/agence/${orgId}/parc/${bienId}/lots/${lotUniqueId}${formData.get("parcours") === "1" ? "?parcours=1&etape=lot" : ""}`
-    : `/agence/${orgId}/parc/${bienId}`;
+    ? `${base}/parc/${bienId}/lots/${lotUniqueId}${formData.get("parcours") === "1" ? "?parcours=1&etape=lot" : ""}`
+    : `${base}/parc/${bienId}`;
   if (resultat.saisie_differente) {
     return { erreur: "Cette demande a déjà créé le bien avec les saisies précédentes. Vos nouvelles saisies restent dans ce formulaire. Ouvrez le dossier enregistré pour y reporter vos modifications.", valeurs, repriseHref: destination };
   }

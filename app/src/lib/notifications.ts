@@ -56,6 +56,7 @@ import { creneauEnToutesLettres, heureDuRendezVous, jourDuRendezVous } from "./r
 import { libelleMotifRdv } from "./rendez-vous-locataire";
 import { adresseDuSite } from "./site";
 import { clientDeService } from "./supabase/service";
+import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 
 // ============================================================
 // Partie pure — gabarits
@@ -1289,7 +1290,7 @@ export async function notifierIncidentUrgentDeclare(
         lot: moi?.lot_nom ?? null,
         piece: champs.piece,
         description: champs.description,
-        lien: lien(`/agence/${orgId}/incidents?sel=${incidentId}`),
+        lien: lien(`${await baseDeLOrganisation(db, orgId)}/incidents?sel=${incidentId}`),
       }),
     });
   } catch (e) {
@@ -1330,7 +1331,7 @@ export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devis
         emetteur: nom, artisan: artisan.raison_sociale, montantCents: Number(devis.montant_ttc_cents), numero: inc.numero, categorie: inc.categorie,
         // D18 (livraison 2) : la version et « ce qui change » sont lus en base, jamais du formulaire.
         version: typeof devis.version === "number" ? devis.version : 1, noteRevision: (devis.note_revision as string | null | undefined) ?? null,
-        lien: lien(`/agence/${orgId}/incidents?sel=${inc.id}`),
+        lien: lien(`${await baseDeLOrganisation(db, orgId)}/incidents?sel=${inc.id}`),
       }),
     });
   } catch (e) {
@@ -1349,7 +1350,7 @@ export async function notifierMissionRefusee(db: SupabaseClient, orgId: string, 
     const to = await destinataireAgence(db, orgId, inc.responsable_account_id);
     return expedier(db, {
       orgId, to, role: "agence", evenement: "mission_refusee", objet: iv.id,
-      message: messageMissionRefusee({ emetteur: nom, artisan: artisan.raison_sociale, motif: iv.refus_motif, numero: inc.numero, categorie: inc.categorie, lien: lien(`/agence/${orgId}/incidents?sel=${inc.id}`) }),
+      message: messageMissionRefusee({ emetteur: nom, artisan: artisan.raison_sociale, motif: iv.refus_motif, numero: inc.numero, categorie: inc.categorie, lien: lien(`${await baseDeLOrganisation(db, orgId)}/incidents?sel=${inc.id}`) }),
     });
   } catch (e) {
     console.error("[notifications] mission_refusee :", e instanceof Error ? e.message : e);
@@ -1508,6 +1509,8 @@ export async function notifierAnnulationRdvLocataire(db: SupabaseClient, orgId: 
     const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), lireArtisan(db, iv.artisan_id), emetteur(db, orgId)]);
     if (!inc || !artisan) return rien;
     const agence = await destinataireAgence(db, orgId, inc.responsable_account_id);
+    // Décision D27 : la copie du gestionnaire mène à /espace/<id> chez un propriétaire direct, /agence/<id> sinon.
+    const baseGestion = await baseDeLOrganisation(db, orgId);
     const base = {
       emetteur: nom, categorie: inc.categorie, numero: inc.numero, rdvDebut: d.rdv_debut, rdvFin: d.rdv_fin,
       motif: libelleMotifRdv(d.motif_code), precision: d.motif_texte, tardive: d.tardive,
@@ -1521,7 +1524,7 @@ export async function notifierAnnulationRdvLocataire(db: SupabaseClient, orgId: 
       expedier(db, {
         orgId, to: agence, role: "agence", evenement: "rdv_annule_par_locataire", objet: d.id,
         cleIdempotence: `rdv-locataire:annulation:${d.id}:agence`,
-        message: messageAnnulationRdvLocataire({ ...base, destinataire: "agence", lien: lien(`/agence/${orgId}/incidents?sel=${inc.id}`) }),
+        message: messageAnnulationRdvLocataire({ ...base, destinataire: "agence", lien: lien(`${baseGestion}/incidents?sel=${inc.id}`) }),
       }),
     ]);
     return { artisan: a, agence: g };

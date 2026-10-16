@@ -22,6 +22,7 @@ import {
   type Periodicite,
   type RegimeTva,
 } from "@/lib/tarifs";
+import { useRacineEspace } from "@/components/racine-espace-contexte";
 
 export function DetailMontants({ offre, regime }: { offre: Offre; regime: RegimeTva | null }) {
   const m = montantsOffre(offre, regime);
@@ -95,6 +96,9 @@ export function FormulaireSouscription({
   /** Pourquoi la souscription en ligne n'est pas possible (configuration), sinon null. */
   motifIndisponible: string | null;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const racine = useRacineEspace();
+  const base = `${racine}/${orgId}`;
   const [etat, action] = useActionState<EtatAbonnementAction, FormData>(
     demarrerAbonnement.bind(null, orgId),
     {}
@@ -211,7 +215,7 @@ export function FormulaireSouscription({
         <div className={estAgence ? "mesure-lecture text-sm text-muted-foreground" : styles.indisponible}>
           <MessageCircle size={20} aria-hidden="true" />
           <p>{motifIndisponible}</p>
-          {!estAgence && <Link href={`/assistance?ecran=${encodeURIComponent("/agence/[dossier]/abonnement")}&action=lien&retour=${encodeURIComponent(`/agence/${orgId}/abonnement`)}`}>Contacter Gerimmo</Link>}
+          {!estAgence && <Link href={`/assistance?ecran=${encodeURIComponent(`${racine}/[dossier]/abonnement`)}&action=lien&retour=${encodeURIComponent(`${base}/abonnement`)}`}>Contacter Gerimmo</Link>}
         </div>
       ) : (
         <>

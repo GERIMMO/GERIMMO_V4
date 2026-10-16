@@ -7,6 +7,7 @@ import { Modale } from "@/components/ui/modale";
 import { Spinner } from "@/components/ui/spinner";
 import { afficherToast } from "@/components/ui/toast";
 import { formaterDateHeure } from "@/lib/ged";
+import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 // Bail signé déposé (sprint « Alertes & documents ») : prévisualisation dans
 // la modale unique, puis « Envoyer » au locataire renseigné ou « Corriger »
@@ -31,11 +32,13 @@ export function CarteBailSigne({
   // 30/08) : le texte ne doit pas mentir sur l'état du bail.
   actif?: boolean;
 }) {
+  // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
+  const base = useBaseEspace(orgId);
   const [ouverte, setOuverte] = useState(false);
   const [confirmerCorrection, setConfirmerCorrection] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, demarrer] = useTransition();
-  const fichier = `/agence/${orgId}/documents/${documentId}/fichier`;
+  const fichier = `${base}/documents/${documentId}/fichier`;
 
   function envoyer() {
     setErreur(null);

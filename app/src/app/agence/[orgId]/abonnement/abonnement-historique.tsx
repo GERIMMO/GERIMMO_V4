@@ -8,6 +8,7 @@ import {
   EnteteReglages,
   statutAbonnement,
 } from "../profil/famille-reglages";
+import { baseEspace } from "@/lib/racine-espace";
 
 type EtatAbonnement = {
   statut: string;
@@ -72,7 +73,9 @@ type EtatPaiement = {
 // abonnement-2026.tsx ; page.tsx choisit selon la grille de l'organisation.
 export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]/abonnement">) {
   const { orgId } = await props.params;
-  const { supabase, organisation, role } = await verifierAccesEspace(orgId);
+  const { supabase, organisation, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
   // OUVERT AUX AGENCES depuis la grille du 12/09 : elles ont désormais un
   // barème et un chemin d'encaissement. Réservé au RESPONSABLE dans les deux
   // cas — un agent n'a pas à connaître la facture de son agence, et la base
@@ -300,7 +303,7 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
                 qu&apos;aucun mandat n&apos;est signé, rien n&apos;est dû.
               </p>
               <div className="geste">
-                <Link href={`/agence/${orgId}/parc`} className="btn-or">
+                <Link href={`${base}/parc`} className="btn-or">
                   Voir mon portefeuille
                 </Link>
               </div>
@@ -347,7 +350,7 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
               gérez qu&apos;un, votre abonnement reste à 0 €.
             </p>
             <div className="geste">
-              <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
+              <Link href={`${base}/parc/nouveau`} className="btn-or">
                 Ajouter un bien
               </Link>
             </div>

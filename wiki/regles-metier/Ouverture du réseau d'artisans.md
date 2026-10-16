@@ -3,7 +3,7 @@ type: business-rule
 tags: [artisan, reseau, territoire, couverture, super-admin, devis]
 status: stable
 created: 2026-09-29
-updated: 2026-09-29
+updated: 2026-10-16
 sources: ["[[2026-09-28-reseau-national-ouvertures-locales]]"]
 ---
 
@@ -78,5 +78,13 @@ rattaché à la commune pour ce métier.
 > - [[Expansion territoriale autonome]] (19/09) raisonnait en « départements
 >   ouverts » : ne pas confondre avec cette ouverture du réseau ; la gestion n'est
 >   jamais fermée par territoire.
+>
+> - **Carnet personnel du propriétaire direct (relevé du 16/10/2026)** : « toujours
+>   sollicitables » vaut pour les contacts déjà au carnet, mais un propriétaire direct **ne
+>   peut plus ajouter d'artisan** à son carnet depuis la PR #170 (migration
+>   `20261007190000` : l'ajout est réservé aux agences). La décision du dirigeant du
+>   15/10/2026 (un propriétaire invite un artisan, l'artisan s'inscrit lui-même ; remplace
+>   la question D17-B) est **en cours, non livrée** (quatrième tour de relecture en cours
+>   pour une faille de sécurité de la pré-inscription). Voir [[Propriétaire bailleur]].
 > - Aucune commune n'étant ouverte par défaut, le réseau est **vide au lancement**
 >   tant que le super admin n'a pas validé, rattaché et ouvert.

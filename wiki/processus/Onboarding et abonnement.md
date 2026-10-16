@@ -3,8 +3,8 @@ type: process
 tags: [onboarding, abonnement, saas]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-15
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[2026-09-28-decision-tarification]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
+updated: 2026-10-16
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[2026-09-28-decision-tarification]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Prompt de passation à Codex — état du 14 octobre 2026]]"]
 ---
 
 # Onboarding et abonnement
@@ -37,8 +37,10 @@ prise en main.
   seuil de délégation ; marque blanche et WhatsApp optionnels.
 - **Invitations** depuis la fiche personne (module 0b) : la spécification V3 prévoit des
   relances J+3/J+10, une expiration J+30 renvoyable et un **refus tracé qui arrête les
-  relances** — **les relances J+3/J+10 ne sont pas livrées** (voir « Ce que fait le code
-  aujourd'hui » ci-dessous) ; une personne sans compte **reste gérable** ; le mandant
+  relances** — **les relances J+3/J+10 sont livrées depuis le 15/10/2026** (décision du
+  dirigeant du 15/10, PR #190, fusion `f93ec6e`), pour les seules invitations créées après
+  le déploiement (voir « Ce que fait le code aujourd'hui » ci-dessous) ; une personne sans
+  compte **reste gérable** ; le mandant
   n'est **jamais** invité. À la première connexion :
   mot de passe + CGU, puis proposition d'**enrôlement WhatsApp** (consentement daté,
   révocable, repli email — [[Canaux de communication]]).
@@ -46,37 +48,73 @@ prise en main.
   reprise du passé) — gabarit et contrôles **communs** avec l'import de migration
   0.12 du [[Super Admin]].
 
-### Ce que fait le code aujourd'hui pour l'invitation d'un locataire (relevé du 15/10/2026)
-Décision X16 du dirigeant (14/10/2026) : amender le wiki plutôt que livrer les relances ;
-la livraison éventuelle des relances reste une décision produit non prise (estimation de
-2 jours). Voir [[Compte, personne et adhésion]].
-- **Un seul e-mail part, à l'envoi de l'invitation** (lien pour choisir un mot de passe,
-  invitation valable **30 jours**). **Aucune relance automatique à J+3 ni à J+10** : aucune
-  tâche planifiée ni aucune fonction de la base ne relit les invitations en attente pour les
-  relancer. Un locataire qui n'ouvre pas le premier e-mail n'est jamais relancé.
-- **Le renvoi est manuel** : depuis la fiche personne, le bouton « Renvoyer l'invitation »
-  renvoie l'e-mail tant que l'invitation est en attente (limite de 30 e-mails
-  d'invitation par heure et par organisation) ; le bouton « Annuler l'invitation » la
-  retire. L'écran signale « L'envoi de l'e-mail reste à confirmer » quand l'envoi a échoué
-  ou n'est pas enregistré.
+### Ce que fait le code aujourd'hui pour l'invitation d'un locataire (relevé du 16/10/2026)
+Décision X16 : le 14/10, le dirigeant avait retenu d'amender le wiki plutôt que de livrer les
+relances ; le 15/10, il revient sur ce choix et fait livrer les relances J+3 et J+10 (journal
+`log.md`, entrée « decision » du 15/10, point 5). En production depuis le 15/10 (PR #190,
+fusion `f93ec6e`, migration `20261014830000_relances_invitations_locataires.sql`, module
+`app/src/lib/relances-invitations.ts`). Voir [[Compte, personne et adhésion]].
+- **Premier envoi.** Un e-mail part à l'envoi de l'invitation. L'**invitation** vaut
+  **30 jours** ; le **lien** de l'e-mail, lui, est à usage unique et expire au bout de
+  **24 h** dans le réglage actuel du projet Supabase (86 400 s, commentaire de
+  `lien-mot-de-passe.ts`) : passé ce délai, une relance en apporte un neuf, ou le locataire
+  passe par « Mot de passe oublié ». J+0 est le **jour de Paris** du premier envoi confirmé ;
+  un renvoi manuel ne le déplace pas.
+- **Deux relances au plus**, objet « Rappel : Votre invitation locataire Gerimmo » : le
+  rang 1 est dû de J+3 à J+9, le rang 2 de J+10 jusqu'à l'expiration (un rang 1 manqué
+  n'est plus envoyé une fois J+10 atteint). Elles partent avec la mission planifiée
+  « rappels » (« Rendez-vous et suivi des dossiers », programmée à 06 h 00 UTC), jamais hors
+  de la plage 7 h – 21 h à Paris, au plus 50 par passe. Une même relance n'est jamais envoyée
+  deux fois (réservée en base avant l'envoi ; un envoi sans réponse du service d'e-mail est
+  noté « incertain » et n'est pas renvoyé).
+- **Arrêt.** Les relances s'arrêtent dès l'acceptation, le refus, l'annulation ou
+  l'expiration. Jamais de relance pour une personne propriétaire ou mandante, une fiche
+  archivée ou dont l'adresse a changé, un compte qui a déjà accès à l'organisation, ni pour
+  une organisation fermée à l'écriture (abonnement suspendu, essai échu). Jamais deux
+  e-mails d'invitation à moins de trois jours : un renvoi manuel retarde la relance, il ne
+  relance pas le cycle.
+- **Arrêt d'urgence.** L'arrêt « global » ou la clé « rappels » bloque toute relance (lu
+  avant chaque réservation et avant chaque envoi).
+- **Limite par organisation.** La même que celle des invitations, avec le même compteur :
+  30 liens par heure et par organisation, partagés entre relances et envois manuels ;
+  chaque organisation passe à son tour.
+- **Invitations antérieures au déploiement : jamais relancées** (colonne
+  `relances_prevues` à faux pour toutes les invitations déjà en base le 15/10 ; vérifié en
+  lecture seule au déploiement : aucune invitation existante marquée pour relance).
+- **Trace.** La fiche personne affiche « Relancé le … » ; chaque relance est notée au
+  journal d'audit.
+- **Le renvoi manuel reste possible** : depuis la fiche personne, le bouton « Renvoyer
+  l'invitation » renvoie l'e-mail tant que l'invitation est en attente (même limite de 30
+  liens par heure et par organisation) ; le bouton « Annuler l'invitation » la retire.
+  L'écran signale « L'envoi de l'e-mail reste à confirmer » quand l'envoi a échoué ou n'est
+  pas enregistré.
 - **Expiration à 30 jours : oui, mais silencieuse.** Passé le délai, la fiche affiche
   l'invitation comme expirée (calculé à l'affichage) ; l'état enregistré ne passe à
   « expirée » que lorsque le locataire tente d'y répondre ou lorsque l'agent envoie une
-  nouvelle invitation. Aucun message n'est envoyé au locataire ni à l'agent à l'échéance.
-  L'agent doit penser à renvoyer lui-même (bouton « Envoyer une nouvelle invitation »).
+  nouvelle invitation. Aucun message n'est envoyé au locataire ni à l'agent à l'échéance
+  (les relances s'arrêtent, l'expiration étant relue à l'instant). L'agent doit penser à
+  renvoyer lui-même (bouton « Envoyer une nouvelle invitation »).
 - **Refus tracé : oui.** Le refus du locataire est enregistré (état « refusée » et ligne
-  du journal d'audit) ; comme il n'y a pas de relance, il n'y a rien à arrêter, et rien
-  n'empêche l'agent d'envoyer ensuite une nouvelle invitation.
+  du journal d'audit) ; il arrête les relances (le courrier de relance le dit : « Si vous la
+  refusez, vous ne recevrez plus de rappel »). Rien n'empêche ensuite l'agent d'envoyer une
+  nouvelle invitation.
 - **Aucun accès n'est accordé avant l'acceptation** par le locataire, connecté avec
   l'adresse qui a reçu l'invitation.
 
 > [!warning] Points à trancher / contradictions
-> - **Relances J+3/J+10 (RM-16.4, fiche REP-05, décision X16).** Prévues par la spécification
->   V3 ([[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]), absentes du code. Le
->   dirigeant a choisi (14/10/2026) d'amender le wiki, la décision produit de les livrer
->   (tâche de rappel limitée par organisation, environ 2 jours) n'étant pas prise. Tant qu'elle
->   ne l'est pas, c'est le comportement ci-dessus qui fait foi, et la page source V3 reste
->   le texte de la spécification, non l'état du produit.
+> - **Relances J+3/J+10 (RM-16.6.1, fiche REP-05, décision X16)** : livrées le 15/10/2026
+>   (PR #190). **Non vérifié** : aucune relance réelle observée en production (la recette de
+>   production ne joue pas de relance ; la première relance possible suppose une invitation
+>   envoyée après le déploiement, puis trois jours).
+> - **À trancher par le dirigeant** (questions du lot, reprises dans le prompt de passation) :
+>   relancer ou non les invitations déjà en attente au déploiement (choix prudent du lot :
+>   non) ; la règle du renvoi manuel (il retarde la relance sans relancer le cycle) ; l'heure
+>   d'envoi (mission programmée à 06 h 00 UTC, soit 8 h à Paris en été, 7 h en hiver, au bord
+>   de la plage 7 h – 21 h) ; le libellé de la clé d'arrêt « Rendez-vous et suivi des
+>   dossiers », qui coupe aussi les relances sans le dire.
+> - **Durée du lien** : si le code à usage unique passe de 86 400 s à 3 600 s (question H1
+>   du dossier de validation), le lien d'une invitation ou d'une relance n'est plus valable
+>   qu'une heure.
 
 > [!warning] Divergence code ↔ V3
 > Le code : auto-inscription `createOrganization` + essai 14 j + parcours 10 étapes

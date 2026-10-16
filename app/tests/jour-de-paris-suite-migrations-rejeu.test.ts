@@ -80,12 +80,12 @@ const RETOUR_FONCTION_DU_JOUR = readFileSync("supabase/retours-arriere/202610145
 /** Le manifeste des migrations, dans l'ordre où elles s'appliquent. */
 const MANIFESTE = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
 const FICHIER_FONCTION_DU_JOUR = "20261014500000_jour_de_paris_fonction.sql";
-/** Le fichier du manifeste dont la version se termine par ce code à six chiffres (« 610000 » → 20261014610000_…). */
-const parCode = (code: string) => MANIFESTE.find((m) => m.startsWith(`20261014${code}_`));
+/** Version complète à 14 chiffres, ou code historique du 14/10 à six chiffres. */
+const parCode = (code: string) => MANIFESTE.find((m) => m.startsWith(`${code.length === 14 ? code : `20261014${code}`}_`));
 
 /**
  * La chaîne « Ordre complet si tout doit être défait » de la section du lot dans le LISEZ-MOI des retours, lue telle
- * qu'écrite : les codes à six chiffres avant « puis `500000` », une plage « `504000` → `501000` » dépliée par pas de 1000.
+ * qu'écrite : les versions à 14 chiffres ou codes historiques à six chiffres avant « puis `500000` », une plage « `504000` → `501000` » dépliée par pas de 1000.
  */
 function chaineDuLisezMoi(): string[] {
   const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
@@ -93,7 +93,7 @@ function chaineDuLisezMoi(): string[] {
   const phrase = section.match(/Ordre complet si tout doit être défait :([\s\S]*?)puis `500000`/);
   if (!phrase) throw new Error("La section du lot ne donne plus l'ordre complet des retours.");
   const codes: string[] = [];
-  for (const [, debut, fin] of phrase[1].matchAll(/`(\d{6})`(?:\s*→\s*`(\d{6})`)?/g)) {
+  for (const [, debut, fin] of phrase[1].matchAll(/`(\d{14}|\d{6})`(?:\s*→\s*`(\d{14}|\d{6})`)?/g)) {
     if (!fin) codes.push(debut);
     else for (let n = Number(debut); n >= Number(fin); n -= 1000) codes.push(String(n));
   }
@@ -506,7 +506,7 @@ describe.skipIf(!DB_URL)("jour de Paris, la suite — migrations et retours arri
       expect(Math.min(...positions)).toBeGreaterThan(MANIFESTE.indexOf(FICHIER_FONCTION_DU_JOUR));
       expect(positions, "ordre inverse du manifeste").toEqual([...positions].sort((a, b) => b - a));
       // Aucune migration qui cite la fonction du jour n'est oubliée : son retour doit précéder celui de 500000.
-      const absentes = MIGRATIONS_QUI_CITENT_LE_JOUR.filter((m) => !chaine.some((code) => m.startsWith(`20261014${code}_`)));
+      const absentes = MIGRATIONS_QUI_CITENT_LE_JOUR.filter((m) => !chaine.some((code) => parCode(code) === m));
       expect(absentes).toEqual([]);
     });
 

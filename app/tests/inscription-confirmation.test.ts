@@ -23,7 +23,6 @@ vi.mock("next/navigation", () => ({
 
 import { creerCompteArtisan, inscrireProprietaire } from "../src/app/actions/auth";
 import { MESSAGE_BOITE_MAIL } from "../src/lib/inscription";
-import { CONDITIONS_VERSION } from "../src/lib/editeur";
 
 const MDP = "un-mot-de-passe-de-douze";
 
@@ -70,7 +69,7 @@ describe("inscrireProprietaire", () => {
     expect(mocks.inscrire).toHaveBeenCalledTimes(1);
     const appel = mocks.inscrire.mock.calls[0][0];
     expect(appel.email).toBe("camille@exemple.fr");
-    expect(appel.motDePasse).toBe(MDP);
+    expect(appel.motDePasse).toBeUndefined();
     expect(appel.next).toBe("/espaces");
     expect(appel.metadonnees).toMatchObject({
       nom: "Martin",
@@ -78,10 +77,9 @@ describe("inscrireProprietaire", () => {
       espace: "proprietaire_direct",
       telephone: "0600000000",
       ville: "Lyon",
-      cgu_version: CONDITIONS_VERSION,
       code_parrainage: "3FA2B9C0",
     });
-    expect(appel.metadonnees.cgu_acceptee_le).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(appel.metadonnees.cgu_acceptee_le).toBeUndefined();
     // Plus aucun `signUp` : le lien PKCE de Supabase ne part plus.
     expect(mocks.createClient).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
@@ -102,10 +100,10 @@ describe("inscrireProprietaire", () => {
     expect(r.valeurs?.mot_de_passe).toBeUndefined();
   });
 
-  it("un mot de passe refusé par Auth est classé et dit", async () => {
+  it("la réponse de confirmation reste uniforme", async () => {
     mocks.inscrire.mockResolvedValue({ erreur: "Password is too weak", code: "weak_password" });
     const r = await inscrireProprietaire({}, formulaire());
-    expect(r.erreur).toMatch(/Mot de passe refusé/);
+    expect(r).toEqual({ message: MESSAGE_BOITE_MAIL });
   });
 
   it("une autre erreur (envoi impossible…) se dit sans jargon", async () => {
@@ -115,22 +113,14 @@ describe("inscrireProprietaire", () => {
     expect(r.erreur).toContain("refusé l’envoi");
   });
 
-  it("projet sans confirmation d'adresse : ouvre la session par mot de passe et mène à /espaces", async () => {
-    mocks.inscrire.mockResolvedValue({ etat: "deja_confirme" });
-    const signInWithPassword = vi.fn(async () => ({ error: null }));
-    mocks.createClient.mockResolvedValue({ auth: { signInWithPassword } });
-    await expect(inscrireProprietaire({}, formulaire())).rejects.toThrow("REDIRECT");
-    expect(signInWithPassword).toHaveBeenCalledWith({ email: "camille@exemple.fr", password: MDP });
-    expect(mocks.redirect).toHaveBeenCalledWith("/espaces");
+  it("ne crée jamais de session avant le courrier", async () => {
+    expect(await inscrireProprietaire({}, formulaire())).toEqual({ message: MESSAGE_BOITE_MAIL });
+    expect(mocks.createClient).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
   it("garde ses contrôles de formulaire avant tout appel", async () => {
     expect((await inscrireProprietaire({}, formulaire({ nom: "" }))).erreur).toMatch(/nom/i);
-    expect((await inscrireProprietaire({}, formulaire({ confirmation: "autre" }))).erreur).toMatch(/correspondent/);
-    expect((await inscrireProprietaire({}, formulaire({ mot_de_passe: "court", confirmation: "court" }))).erreur).toMatch(/12 caractères/);
-    const sansCgu = formulaire();
-    sansCgu.delete("cgu");
-    expect((await inscrireProprietaire({}, sansCgu)).erreur).toMatch(/conditions/);
     expect(mocks.inscrire).not.toHaveBeenCalled();
   });
 });
@@ -142,15 +132,15 @@ describe("creerCompteArtisan", () => {
     const appel = mocks.inscrire.mock.calls[0][0];
     expect(appel.email).toBe("camille@exemple.fr");
     expect(appel.next).toBe("/artisan/inscription");
-    expect(appel.metadonnees).toMatchObject({ espace: "artisan", cgu_version: CONDITIONS_VERSION });
+    expect(appel.metadonnees).toEqual({ espace: "artisan" });
     expect(appel.metadonnees.nom).toBeUndefined();
   });
 
-  it("projet sans confirmation d'adresse : session puis /artisan/inscription", async () => {
-    mocks.inscrire.mockResolvedValue({ etat: "deja_confirme" });
-    mocks.createClient.mockResolvedValue({ auth: { signInWithPassword: vi.fn(async () => ({ error: null })) } });
-    await expect(creerCompteArtisan({}, formulaire())).rejects.toThrow("REDIRECT");
-    expect(mocks.redirect).toHaveBeenCalledWith("/artisan/inscription");
+  it("demande le courrier sans mot de passe ni acceptation initiale", async () => {
+    const f = new FormData(); f.set("email", "delivered+inscription@resend.dev");
+    expect(await creerCompteArtisan({}, f)).toEqual({ message: MESSAGE_BOITE_MAIL });
+    expect(mocks.createClient).not.toHaveBeenCalled();
+    expect(mocks.inscrire.mock.calls[0][0]).not.toHaveProperty("motDePasse");
   });
 
   it("adresse déjà inscrite : même écran", async () => {

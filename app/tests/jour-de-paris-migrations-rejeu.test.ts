@@ -117,6 +117,14 @@ const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/
  * n'ont pas été joués : ils le précèdent ici.
  */
 const LOTS_POSTERIEURS = [
+  // Compléments du 16/10, en ordre inverse : retirer leurs dépendances avant les lots historiques.
+  { version: "20261016200000", fichier: "jour_paris_complements" },
+  { version: "20261016190000", fichier: "relance_report_reprise_sans_envoi" },
+  { version: "20261016180000", fichier: "relais_retention_sentinelle" },
+  { version: "20261016172453", fichier: "traversee_lecture_seule" },
+  { version: "20261016150000", fichier: "confirmation_auth" },
+  { version: "20261016110100", fichier: "rdv_relance_accuse_agenda" },
+  { version: "20261016110000", fichier: "devis_pdf_versions_alerte" },
   // Lot « correctifs-base » (16/10) : la restitution du dépôt (finaliser_decompte, marquer_decompte_envoye) et la purge des
   // registres du 15/10 (purger_registres_relais_ia) citent la fonction du jour. Appliqué le dernier, il se défait le premier.
   { version: "20261014851000", fichier: "jour_de_paris_restitution_depot" },

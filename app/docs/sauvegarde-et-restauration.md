@@ -18,15 +18,25 @@ Pour prendre une nouvelle copie avant l'essai : Actions → **Sauvegarde quotidi
 
 ## Programmes et protections
 
-- `scripts/sauvegarde/base.mjs` : export PostgreSQL des schémas public, auth et storage, au format custom, sans propriétaires mais **avec les droits**. Il exporte aussi **les tâches planifiées** (`cron.job`, voir plus bas) dans `taches-pg-cron.gcm`, chiffré, avec son empreinte au manifeste. Si la lecture de `cron.job` échoue (droit refusé, connexion), la sauvegarde échoue : une copie qui omettrait les tâches sans le dire ne se déclare pas réussie. Sur un projet sans pg_cron, la liste est vide et le manifeste le note.
+- `scripts/sauvegarde/base.mjs` : export PostgreSQL des schémas public, auth, storage et support_interne, au format custom, sans propriétaires mais **avec les droits et les commentaires**. Il exporte aussi **les tâches planifiées** (`cron.job`, voir plus bas) dans `taches-pg-cron.gcm`, chiffré, avec son empreinte au manifeste. Si la lecture de `cron.job` échoue (droit refusé, connexion), la sauvegarde échoue : une copie qui omettrait les tâches sans le dire ne se déclare pas réussie. Sur un projet sans pg_cron, la liste est vide et le manifeste le note.
 - `scripts/sauvegarde/taches-planifiees.mjs` : lecture de `cron.job` (psql, mot de passe dans l'environnement du seul processus), validation de la liste et génération du script `rejouer-pg-cron.sql`.
 - `scripts/sauvegarde/fichiers.mjs` : copie des fichiers, contrôle des tailles et des empreintes SHA-256.
 - `scripts/sauvegarde/restaurer-archive.mjs` : exercice de la copie réelle, déchiffrement, import PostgreSQL, extraction des fichiers et contrôles de cohérence. Il rejoue aussi la liste des tâches sur un planificateur de façade (pg_cron et pg_net n'existent pas dans la base jetable) et le dit dans son bilan.
-- `scripts/sauvegarde/exercice-restauration.mjs` : contre-épreuve sur données fictives, avec comparaison détaillée des tables, politiques et droits dans le même instantané source. Elle reste exécutée dans les tests automatiques.
+- `scripts/sauvegarde/exercice-restauration.mjs` : contre-épreuve sur données fictives, avec comparaison détaillée des tables, politiques, fonctions, déclencheurs, commentaires et droits dans le même instantané source. Le registre privé est refusé s’il manque, perd sa protection par utilisateur, devient accessible à anon/authenticated ou perd une de ses gardes essentielles. Elle reste exécutée dans les tests automatiques.
 - Chiffrement AES-256-GCM ; clé de 32 octets hors des archives. Un fichier supérieur à 64 Mo interrompt la copie.
 - Planification quotidienne à 01:20 UTC ; la supervision signale un retard au-delà de 26 heures. Une planification GitHub peut être retardée par le fournisseur : consulter la dernière réussite, pas seulement l'horaire prévu.
 
 Les copies prises avant la correction du 27 septembre ne contenaient pas les droits PostgreSQL : leur restauration exige de rétablir les permissions avant toute ouverture. Ne jamais utiliser `--no-privileges` lors de la restauration des copies récentes.
+
+## Registre privé de support (16 octobre)
+
+`support_interne` contient les intentions d’encaissement de support, leurs résultats et les permis transactionnels de la console. Ce schéma, ses trois tables, ses cinq fonctions et les déclencheurs qui les utilisent font partie de la sauvegarde. Il reste inaccessible à `anon` et `authenticated` après restauration ; seules les fonctions publiques prévues contrôlent l’accès du superadmin et son second facteur. Les droits du schéma, des tables et des fonctions sont comparés pendant l’exercice local, ainsi que les définitions et l’activation des déclencheurs.
+
+Une intention expire après cinq minutes. Son registre suit la règle de conservation existante `journal:audit_log` (36 mois par défaut), purgée quotidiennement par `appliquer_retention()`. Les permis de maintenance ne vivent que dans leur transaction et sont supprimés avant le retour de la commande. Les identifiants d’auteur, d’organisation, de bail et d’appel sont des instantanés d’audit : ils ne bloquent pas la suppression légitime de ces objets ; le support revalide la présence de la cible avant toute exécution.
+
+Les archives antérieures à cette migration ne portent pas ce schéma et restent lisibles. L’export exige la présence de chacun des schémas annoncés (`--strict-names`) : un schéma manquant fait échouer la sauvegarde avant toute archive. Une archive qui le déclare dans son manifeste mais ne le restaure pas est refusée. Une copie d’une base déjà migrée ne doit jamais être exportée avec seulement les trois anciens schémas.
+
+Après [l’exercice réel réussi du 16 octobre](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/38943437206), l’option qui retirait les commentaires PostgreSQL a été supprimée. Les nouvelles copies conservent ainsi la documentation des objets métier et de sécurité ; les anciennes ne peuvent pas restituer les commentaires qui n’avaient pas été sauvegardés.
 
 ## Procédure en cas d'incident
 

@@ -10,10 +10,11 @@ import { PastilleBail } from "@/components/pastille-bail";
 import { Button } from "@/components/ui/button";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { FileText,Send } from "lucide-react";
-import { useBaseEspace } from "@/components/racine-espace-contexte";
+import { useBaseEspace, useRacineEspace } from "@/components/racine-espace-contexte";
 export function FinaliserParcoursBail({orgId,bailId,code,signataires,edlId,preparationEdl,signatureManuelle}:{orgId:string;bailId:string;code:CodeModele;signataires:{id:string;nom:string}[];edlId:string|null;preparationEdl:ReactNode;signatureManuelle:ReactNode}){
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
+  const racine = useRacineEspace();
  const [pdf,setPdf]=useState<EtatGeneration|null>(null),[enCours,demarrer]=useTransition();
  const [retours,setRetours]=useState<Record<string,{erreur?:string;succes?:string}>>({});
  const controle=useContext(CompletudeBail);
@@ -27,7 +28,7 @@ export function FinaliserParcoursBail({orgId,bailId,code,signataires,edlId,prepa
   {manquants.length>0&&<section aria-labelledby="titre-oublis-bail" className="rounded-xl border border-border bg-warning-soft p-4 text-sm">
     <h4 id="titre-oublis-bail" className="flex items-center gap-2 font-semibold"><PastilleBail manquant/>À compléter pour le PDF · {manquants.length}</h4>
     <p className="mt-1 text-xs text-muted-foreground">Cliquez sur une information pour revenir au champ à compléter. La liste se met à jour après chaque enregistrement.</p>
-    <ul className="mt-3 grid gap-x-6 gap-y-1 sm:grid-cols-2">{manquants.map(m=><li key={m}><a className="inline-flex min-h-11 w-full items-center justify-between gap-3 underline decoration-border underline-offset-4 hover:decoration-current" href={cibleChampBail(m,orgId).href}><span>{m}</span><span aria-hidden="true">→</span></a></li>)}</ul>
+    <ul className="mt-3 grid gap-x-6 gap-y-1 sm:grid-cols-2">{manquants.map(m=><li key={m}><a className="inline-flex min-h-11 w-full items-center justify-between gap-3 underline decoration-border underline-offset-4 hover:decoration-current" href={cibleChampBail(m,orgId,racine).href}><span>{m}</span><span aria-hidden="true">→</span></a></li>)}</ul>
   </section>}
   {pdf?.documentId&&!pdfCourant&&<p role="status" className="text-sm">Le dossier a été modifié. Générez un nouveau PDF avant de demander les signatures.</p>}
   <div className="bail-finalisation-docs"><div><h4>1. Le contrat de location</h4><Button onClick={generer} disabled={enCours}>{enCours?"Génération…":"Générer le PDF du bail"}</Button>{pdf?.erreur&&<p role="alert" className="text-sm text-destructive">{pdf.erreur}</p>}{pdf?.documentId&&!pdf.erreur&&pdfCourant&&<a className="lien-discret block mt-2" href={`${base}/documents/${pdf.documentId}/fichier`} target="_blank" rel="noreferrer">Ouvrir et relire le PDF</a>}</div>

@@ -2,6 +2,7 @@
 // Cible : le document « attestation d'assurance » qui arrive à expiration.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { aujourdhuiParis } from "@/lib/ged";
 import { Fusion, assemblerPage, blocSignatureEmetteur, cartouches, enTete, faitA, formaterDateFr, titre } from "../gabarit";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { adresseOrganisation, nomPersonne, referenceCourte, signatureOrganisation } from "./communs";
@@ -113,7 +114,7 @@ export async function assemblerRappelAssurance(
   const bien = lot ? premier(lot.bien) : null;
 
   const f = new Fusion();
-  const aujourdHui = new Date().toISOString().slice(0, 10);
+  const aujourdHui = aujourdhuiParis();
   const document = construireRappelAssurance({
     reference: referenceCourte("ASSU", doc.id),
     echeance: doc.expire_le,

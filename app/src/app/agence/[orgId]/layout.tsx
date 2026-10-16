@@ -55,7 +55,7 @@ export default async function LayoutAgence({
   params,
 }: LayoutProps<"/agence/[orgId]">) {
   const { orgId } = await params;
-  const { supabase, user, organisation, role, estProprietaire } =
+  const { supabase, user, organisation, role, estProprietaire, traverseeLectureSeule } =
     await verifierAccesEspace(orgId);
 
   // « Mon portefeuille » (RM-18.1.3) d'abord : la pastille Incidents et le
@@ -262,6 +262,12 @@ export default async function LayoutAgence({
             « la saisie est suspendue » alors qu'il pouvait saisir). À TOUS les
             rôles : un agent qui ne peut plus écrire doit savoir pourquoi, et à
             qui s'adresser. Le responsable, lui, a le lien. */}
+        {traverseeLectureSeule && (
+          <p role="status" className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-3 text-sm">
+            Consultation de {organisation.name} en lecture seule. Les modifications de gestion sont refusées. Par votre compte de supervision, vous pouvez préparer un geste distinct :{" "}
+            <Link href={`/admin/organisations/${orgId}/support`} className="font-semibold underline">Ouvrir le support</Link>
+          </p>
+        )}
         {ecritureFermee && (
           <p className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-1.5 text-center text-xs text-[var(--warning-soft-foreground)]">
             {organisation.status === "essai"

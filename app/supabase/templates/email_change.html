@@ -2,9 +2,9 @@
   <h2 style="color:#0f2352;font-size:18px">Confirmez votre nouvelle adresse</h2>
   <p>Bonjour,</p>
   <p>Vous avez demandé à remplacer l'adresse de votre compte Gerimmo par
-     <strong>{{ .NewEmail }}</strong>. Confirmez ce changement :</p>
+     <strong>{{ .NewEmail }}</strong>. Confirmez ce changement depuis les deux courriers, celui reçu à votre adresse actuelle et celui reçu à votre nouvelle adresse :</p>
   <p style="margin:22px 0">
-    <a href="{{ .ConfirmationURL }}"
+    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email_change{{ if .SendingTo }}&amp;email={{ .SendingTo | urlquery }}{{ end }}&amp;next=/compte"
        style="background:#2457f5;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;display:inline-block">
       Confirmer la nouvelle adresse
     </a>
@@ -12,7 +12,7 @@
   <p style="color:#5b6478;font-size:12.5px">
     Si vous n'êtes pas à l'origine de cette demande, ne cliquez pas et changez
     votre mot de passe depuis « Mon compte » : votre adresse actuelle reste
-    en place tant que ce lien n'est pas suivi.
+    en place tant que les deux adresses ne sont pas confirmées.
   </p>
   <p>— Gerimmo</p>
 </div>

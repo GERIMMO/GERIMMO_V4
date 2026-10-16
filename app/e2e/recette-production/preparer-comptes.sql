@@ -1,7 +1,7 @@
 -- PRÉPARER LES COMPTES D'UNE RECETTE DE PRODUCTION.
 --
 -- CE QUE FAIT CE SCRIPT. Il crée, pour UN passage de recette identifié par son
--- suffixe, les trois personas que la recette Playwright
+-- suffixe, les cinq personas que la recette Playwright
 -- (e2e/recette-production/) parcourt :
 --   · une agence « <nom_agence> <suffixe> » en essai de 2 mois, et son admin
 --     d'agence ;
@@ -11,7 +11,9 @@
 --     bouton d'abonnement (la recette ne clique jamais dessus) ;
 --   · un locataire de l'agence : compte, fiche personne rattachée au compte,
 --     adhésion « locataire ». Sans bail : la recette vérifie que son espace
---     vide se lit sans erreur.
+--     vide se lit sans erreur ;
+--   · un artisan privé validé, rattaché uniquement à l’agence de ce passage ;
+--   · une supervision sans organisation, avec expiration automatique et MFA réel.
 -- Il reproduit ce que font `ouvrir_organisation` (agence),
 -- `initialiser_espace_proprietaire` (parc) et l'invitation d'un locataire —
 -- sans passer par elles, qui exigent une session (super admin, titulaire).
@@ -23,14 +25,11 @@
 --   delivered+recette-proprietaire-<suffixe>@resend.dev
 --   delivered+recette-locataire-<suffixe>@resend.dev
 --
--- LANCEMENT (psql, en tant que `postgres`) :
---   psql "$URL_BASE" -v ON_ERROR_STOP=1 \
---     -v suffixe=r20260927a \
---     -v mot_de_passe='Un-mot-de-passe-long-2026' \
---     -f e2e/recette-production/preparer-comptes.sql
--- Facultatif : -v nom_agence='Agence Recette' (défaut : « Recette banc »).
--- Le script affiche à la fin les valeurs à donner au workflow
--- « Recette de production » (e-mails, UUID des deux organisations).
+-- LANCEMENT : uniquement scripts/recette-production-comptes.mjs depuis le
+-- chantier autonome. Il génère le mot de passe en mémoire et le transmet sur
+-- l'entrée privée de psql, jamais en argument, input manuel ou journal.
+-- Les comptes artisan et supervision ne sont pas admis par la recette manuelle.
+-- La supervision expire après 60 minutes, avec une tâche de contrôle par minute.
 --
 -- IL REFUSE plutôt que d'écraser : si un compte du suffixe existe déjà, rien
 -- n'est créé (purger d'abord, ou choisir un autre suffixe). Tout est fait
@@ -71,6 +70,11 @@ declare
   v_email_admin text;
   v_email_proprio text;
   v_email_locataire text;
+  v_email_artisan text;
+  v_email_superadmin text;
+  v_artisan uuid;
+  v_superadmin uuid;
+  v_expire timestamptz := now() + interval '60 minutes';
   v_org_agence uuid;
   v_org_parc uuid;
   v_uid uuid;
@@ -89,6 +93,8 @@ begin
   v_email_admin := 'delivered+recette-admin-' || v_suffixe || '@resend.dev';
   v_email_proprio := 'delivered+recette-proprietaire-' || v_suffixe || '@resend.dev';
   v_email_locataire := 'delivered+recette-locataire-' || v_suffixe || '@resend.dev';
+  v_email_artisan := 'delivered+recette-artisan-' || v_suffixe || '@resend.dev';
+  v_email_superadmin := 'delivered+recette-superadmin-' || v_suffixe || '@resend.dev';
 
   if exists (select 1 from auth.users u
              where lower(u.email) like 'delivered+%' || v_suffixe || '%@resend.dev') then
@@ -98,7 +104,7 @@ begin
     raise exception 'Une organisation porte déjà le suffixe « % » : purgez-la (purger.sql) ou changez de suffixe', v_suffixe;
   end if;
 
-  -- Les trois comptes, comme les crée `ouvrir_organisation` — mais avec un
+  -- Les cinq comptes, comme les crée `ouvrir_organisation` — mais avec un
   -- mot de passe connu, puisque personne ne relèvera le lien d'invitation.
   -- `cgu_version` dans les métadonnées : le déclencheur d'inscription pose la
   -- preuve d'acceptation (acceptations_cgu), comme pour une vraie inscription.
@@ -106,7 +112,9 @@ begin
     select * from (values
       (v_email_admin, 'Alice', 'Recette-' || v_suffixe),
       (v_email_proprio, 'Paul', 'Recette-' || v_suffixe),
-      (v_email_locataire, 'Lina', 'Recette-' || v_suffixe)
+      (v_email_locataire, 'Lina', 'Recette-' || v_suffixe),
+      (v_email_artisan, 'Arthur', 'Recette-' || v_suffixe),
+      (v_email_superadmin, 'Supervision', 'Recette-' || v_suffixe)
     ) as t(email, prenom, nom)
   loop
     insert into auth.users (
@@ -185,13 +193,40 @@ begin
   insert into public.memberships (account_id, organization_id, role)
   values (v_uid, v_org_agence, 'locataire');
 
+  -- 4. Artisan fictif, privé : aucun référencement dans le réseau public.
+  select id into strict v_uid from public.accounts where lower(email) = v_email_artisan;
+  insert into public.artisans(account_id,raison_sociale,siret,email,telephone,visibilite,statut_plateforme,siret_etat,cree_par_organization_id)
+  values(v_uid,'TEST Artisan recette-' || v_suffixe,
+    (10000000000000 + floor(random()*89999999999999))::bigint::text,
+    v_email_artisan,'0600000000','privee','valide','verifie',v_org_agence) returning id into v_artisan;
+  insert into public.artisan_agences(artisan_id,organization_id,statut) values(v_artisan,v_org_agence,'actif');
+  insert into public.artisan_metiers(artisan_id,metier) values(v_artisan,'plomberie');
+  insert into public.artisan_zones(artisan_id,code_postal) values(v_artisan,'69001');
+
+  -- 5. Rôle réel de supervision, second facteur obligatoire et configuré par le
+  -- navigateur. Aucun secret MFA ni session AAL2 n'est fabriqué par le SQL.
+  select id into strict v_superadmin from public.accounts where lower(email) = v_email_superadmin;
+  insert into public.memberships(account_id,organization_id,role) values(v_superadmin,null,'super_admin');
+  -- Filet de sécurité si le runner disparaît : retrait du rôle sous 61 minutes,
+  -- blocage Auth et révocation des sessions. Le nettoyage normal retire ce job.
+  -- UUID, échéance et nom du job uniquement ; aucun mot de passe ou secret.
+  perform cron.schedule('recette-expiration-' || v_suffixe, '* * * * *', format($expiration$
+    do $borne$ begin
+      if clock_timestamp() >= %L::timestamptz then
+        delete from public.memberships where account_id=%L::uuid and role='super_admin';
+        update auth.users set banned_until='infinity'::timestamptz where id=%L::uuid;
+        delete from auth.sessions where user_id=%L::uuid;
+        perform cron.unschedule(%L);
+      end if;
+    end $borne$;
+  $expiration$,v_expire,v_superadmin,v_superadmin,v_superadmin,'recette-expiration-' || v_suffixe));
   raise notice 'Recette « % » préparée.', v_suffixe;
 end
 $recette$;
 
 commit;
 
--- Les valeurs à reporter dans le workflow « Recette de production ».
+-- Valeurs non secrètes lues uniquement par le chantier autonome avec nettoyage.
 select 'email_admin' as parametre, u.email as valeur
   from auth.users u where u.email = 'delivered+recette-admin-' || :'suffixe' || '@resend.dev'
 union all
@@ -200,6 +235,10 @@ select 'email_proprietaire', u.email
 union all
 select 'email_locataire', u.email
   from auth.users u where u.email = 'delivered+recette-locataire-' || :'suffixe' || '@resend.dev'
+union all
+select 'email_artisan', u.email from auth.users u where u.email = 'delivered+recette-artisan-' || :'suffixe' || '@resend.dev'
+union all
+select 'email_superadmin', u.email from auth.users u where u.email = 'delivered+recette-superadmin-' || :'suffixe' || '@resend.dev'
 union all
 select 'org_agence', o.id::text
   from public.organizations o where o.type = 'agence' and o.name like '% ' || :'suffixe'

@@ -38,7 +38,7 @@ function contexte(o:Options={}){
    case 'cible_preparation_marketing':return {data:o.cible===undefined?[]:o.cible?[o.cible]:[],error:null};
    case 'publier_article_automatique':{const a=articles.get(args?.p_id as string);if(o.parutionRefusee||!a)return {data:false,error:null};a.statut='publiee';return {data:true,error:null};}
    case 'reserver_diffusion_facebook':{const a=articles.get(args?.p_id as string);if(o.reservationRefusee||!a||a.facebook_envoi_demarre_le)return {data:false,error:null};a.facebook_envoi_demarre_le='now';return {data:true,error:null};}
-   case 'reserver_visuel_marketing':{const a=articles.get(args?.p_id as string);if(!a||(a.image_essais as number)>=2)return {data:false,error:null};a.image_essais=(a.image_essais as number)+1;return {data:true,error:null};}
+   case 'reserver_visuel_marketing':{const a=articles.get(args?.p_id as string);if(!a||(a.image_essais as number)>=2)return {data:false,error:null};a.image_essais=(a.image_essais as number)+1;a.image_en_cours_le=new Date().toISOString();return {data:true,error:null};}
    case 'programmer_publication_marketing':{const a=articles.get(args?.p_id as string);if(!a||!a.image_empreinte)return {data:false,error:null};a.statut='programmee';a.programmee_pour=args?.p_pour;return {data:true,error:null};}
    case 'email_superviseur_permanent':return {data:'superviseur@test.local',error:null};
    // X19 (SA-10) : la réservation d'un appel payant à l'IA (arrêt d'urgence, puis limite quotidienne).
@@ -46,20 +46,20 @@ function contexte(o:Options={}){
    default:return {data:null,error:{message:`rpc inconnue ${n}`}};
   }});
  const from=vi.fn((table:string)=>{
-  let filtreId:string|null=null,filtreJour:string|null=null,mutation=false,valeurs:Record<string,unknown>|null=null;
+  let filtreId:string|null=null,filtreJour:string|null=null,mutation=false,valeurs:Record<string,unknown>|null=null;const filtres:Record<string,unknown>={};
   const lire=()=>{
    if(table==='marketing_reglages')return {data:regle,error:null};
    if(table==='regulatory_watch')return {data:o.source?[{id:'source',titre:o.titreSource??'Trêve hivernale 2026-2027 : ce que vous devez savoir',source_nom:'Service Public',source_url:'https://www.service-public.gouv.fr/particuliers/actualites/A1',publie_source_le:'2026-10-02',etude:{resume:'Les expulsions sont suspendues.',publics:o.publicsSource??['bailleur','agence','locataire']}}]:[],error:null};
    if(table==='marketing_campagnes')return {data:null,error:o.erreurCampagne?{message:'indisponible'}:null};
    if(table==='publications'){
-    if(mutation){if(filtreId&&valeurs){const a=articles.get(filtreId);if(a)Object.assign(a,valeurs);return {data:a?{...a}:null,error:null};}return {data:null,error:null};}
+    if(mutation){if(filtreId&&valeurs){const a=articles.get(filtreId);if(a&&Object.entries(filtres).every(([k,v])=>a[k]===v)){Object.assign(a,valeurs);return {data:{...a},error:null};}return {data:null,error:null};}return {data:null,error:null};}
     if(filtreId)return {data:articles.get(filtreId)?{...articles.get(filtreId)}:null,error:null};
     if(filtreJour){const a=[...articles.values()].find(x=>x.marketing_jour===filtreJour);return {data:a?{...a}:null,error:null};}
     return {data:[],error:null};
    }
    return {data:null,error:null};
   };
-  const q={select:vi.fn(()=>q),eq:vi.fn((col:string,v:string)=>{if(col==='id')filtreId=v;if(col==='marketing_jour')filtreJour=v;return q;}),not:vi.fn(()=>q),neq:vi.fn(()=>q),gte:vi.fn(()=>q),order:vi.fn(()=>q),limit:vi.fn(async()=>lire()),in:vi.fn(async()=>({data:[],error:null})),single:vi.fn(async()=>lire()),maybeSingle:vi.fn(async()=>lire()),
+  const q={select:vi.fn(()=>q),eq:vi.fn((col:string,v:string)=>{if(col==='id')filtreId=v;if(col==='marketing_jour')filtreJour=v;filtres[col]=v;return q;}),not:vi.fn(()=>q),neq:vi.fn(()=>q),gte:vi.fn(()=>q),order:vi.fn(()=>q),limit:vi.fn(async()=>lire()),in:vi.fn(async()=>({data:[],error:null})),single:vi.fn(async()=>lire()),maybeSingle:vi.fn(async()=>lire()),
    insert:vi.fn((v:Record<string,unknown>)=>{insertions.push(v);const a={...v,id:'nouveau',updated_at:'date',image_empreinte:null,image_essais:0,image_en_cours_le:null,facebook_post_id:null,facebook_envoi_demarre_le:null};articles.set('nouveau',a);filtreId='nouveau';return q;}),
    update:vi.fn((v:Record<string,unknown>)=>{modifications.push(v);valeurs=v;mutation=true;return q;}),upsert:vi.fn(()=>q),
    then:(resolve:(v:unknown)=>unknown)=>Promise.resolve(mutation?lire():lire()).then(resolve)};
@@ -155,17 +155,23 @@ describe('mission marketing : préparation de la veille',()=>{
   expect(c.insertions[0].veille_source_id).toBeNull();
   expect(c.rpcs.some(([n])=>n==='programmer_publication_marketing')).toBe(false);
   expect(c.modifications.some(m=>m.facebook_erreur===MESSAGE_LIMITE_IA)).toBe(true);
+  expect(c.articles.get('nouveau')?.image_essais).toBe(0);
+  await GET(requete());
+  expect(c.articles.get('nouveau')?.image_essais).toBe(0);
+  expect(c.articles.get('nouveau')?.image_en_cours_le).toBeNull();
   expect(mocks.email).not.toHaveBeenCalled();
  });
  it('X19 : un arrêt d’urgence avant le visuel remonte à la mission, rien n’est programmé',async()=>{
   visuelGarde();
   const c=contexte({cible:CIBLE,statutIA:'arret'});
   await expect(GET(requete())).rejects.toBeInstanceOf(ArretSupervision);
+  expect(c.articles.get('nouveau')?.image_essais).toBe(0);
+  expect(c.articles.get('nouveau')?.image_en_cours_le).toBeNull();
   expect(c.rpcs.some(([n])=>n==='programmer_publication_marketing')).toBe(false);
  });
  it('aucun post sans image nouvelle : image refusée = rien de programmé, bilan en erreur',async()=>{
   const c=contexte({cible:CIBLE});mocks.image.mockRejectedValueOnce(new Error('Image indisponible'));
-  expect((await GET(requete())).status).toBe(503);expect(c.rpcs.some(([n])=>n==='programmer_publication_marketing')).toBe(false);expect(mocks.email).not.toHaveBeenCalled();
+  expect((await GET(requete())).status).toBe(503);expect(c.articles.get('nouveau')?.image_essais).toBe(1);expect(c.rpcs.some(([n])=>n==='programmer_publication_marketing')).toBe(false);expect(mocks.email).not.toHaveBeenCalled();
  });
  it('reprend un brouillon de la veille resté sans visuel plutôt que d’en créer un second',async()=>{
   const c=contexte({cible:CIBLE,existant:{id:'brouillon',titre:'Déjà rédigé',statut:'brouillon',marketing_jour:'2026-10-09',updated_at:'d',image_empreinte:null,image_essais:0,image_en_cours_le:null,facebook_texte:'fb',chapo:null,veille_source_id:null}});

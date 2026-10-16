@@ -1,24 +1,7 @@
-// LE TÉMOIN D'INSCRIPTION (troisième relecture du 15/10/2026, constat « compte pré-inscrit »).
-//
-// Le mot de passe d'une inscription est choisi AVANT que l'adresse soit prouvée. Pour une adresse inscrite mais jamais
-// confirmée, quiconque la connaît (un invitant, par exemple) peut réinscrire l'adresse avec SON mot de passe : le seul
-// lien valide part alors dans la boîte du titulaire, qui le clique et ouvre un compte dont un tiers connaît le mot de
-// passe. Le dernier inscrit gagnait, quel qu'il soit.
-//
-// Le remède lie la confirmation au navigateur de l'inscription. L'inscription pose un témoin aléatoire en cookie
-// (httpOnly, limité au préfixe /auth) et garde son EMPREINTE dans le compte. Au clic sur le bouton de confirmation, le
-// cookie présent doit correspondre à l'empreinte : la personne qui confirme est celle qui a choisi le mot de passe,
-// dans ce navigateur. Sinon, le mot de passe choisi avant la confirmation est remplacé par un mot de passe aléatoire,
-// que personne ne connaît, posé par la session que le bouton vient d'ouvrir, et la personne qui vient de prouver la
-// possession de la boîte choisit le sien (lib/lien-mot-de-passe.ts, route /auth/confirm).
-//
-// OÙ VIT L'EMPREINTE (contre-relecture finale du 15/10/2026). Dans `user_metadata`, écrite avec le mot de passe dans
-// la MÊME opération d'Auth : la création du compte par `generateLink` (qui ne sait écrire que `user_metadata`), ou
-// `updateUserById` pour une adresse pré-inscrite. Poser l'empreinte à part (dans `app_metadata`, par un second appel)
-// séparait le couple et obligeait à un appel d'administration sur chaque inscription neuve. La sûreté ne repose pas
-// sur le secret de l'empreinte (un condensé) ni sur qui peut l'écrire : sans le témoin, que seul le navigateur de
-// l'inscription détient (cookie httpOnly), aucune empreinte ne donne « même navigateur » — une empreinte posée par un
-// autre ne mène qu'au choix du mot de passe.
+// Compatibilité avec les témoins d'inscription historiques du 15/10/2026.
+// Le parcours courant crée un secret inconnu, puis demande le mot de passe après
+// preuve e-mail. Il efface les anciens témoins et ne les utilise plus pour
+// dispenser du choix explicite. Ces helpers restent pour les liens et tests historiques.
 
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
@@ -27,7 +10,7 @@ export const COOKIE_INSCRIPTION = "gerimmo_inscription";
 export const CLE_EMPREINTE_INSCRIPTION = "empreinte_inscription";
 /** /mot-de-passe-oublie?raison=… : l'adresse est confirmée, mais le mot de passe n'a pas pu être choisi dans la foulée. */
 export const RAISON_ADRESSE_CONFIRMEE = "adresse-confirmee";
-/** /nouveau-mot-de-passe?motif=… : la confirmation d'une inscription de Gerimmo, ouverte hors de son navigateur. */
+/** /nouveau-mot-de-passe?motif=… : la confirmation d'une inscription de Gerimmo. */
 export const MOTIF_INSCRIPTION = "inscription";
 /** /nouveau-mot-de-passe?motif=… : tout autre lien (récupération, invitation, connexion) qui vient de confirmer l'adresse. */
 export const MOTIF_CONFIRMATION = "confirmation";

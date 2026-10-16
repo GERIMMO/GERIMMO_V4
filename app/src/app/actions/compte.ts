@@ -62,8 +62,9 @@ export async function changerMonMotDePasse(
     // renseignerait un attaquant sur l'état du compte.
     return { erreur: "Mot de passe actuel incorrect." };
   }
-  // La session jetable a servi : elle ne doit pas survivre à la vérification.
-  await jetable.auth.signOut();
+  // Fermer seulement cette session de vérification ; une sortie globale
+  // révoquerait aussi la session courante avant le changement de mot de passe.
+  await jetable.auth.signOut({ scope: "local" });
 
   const { error } = await supabase.auth.updateUser({ password: nouveau });
   if (error) {

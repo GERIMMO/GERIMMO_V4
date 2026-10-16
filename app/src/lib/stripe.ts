@@ -7,8 +7,8 @@ import { ArretSupervision } from "./controle-effets";
 // clair dans la migration). Ce fichier PARLE à Stripe : il traduit nos gestes
 // en appels, et les refus de Stripe en phrases qu'un gérant peut lire.
 //
-// TOUT EST FACULTATIF, ET RIEN NE MARCHE À MOITIÉ. Tant que les trois
-// variables ne sont pas posées, `configurationStripe()` rend le motif exact et
+// TOUT EST FACULTATIF, ET RIEN NE MARCHE À MOITIÉ. Tant que les clés et le tarif du public concerné
+// ne sont pas posés, `configurationStripe()` rend le motif exact et
 // AUCUN appel n'est tenté. C'est délibéré : un encaissement qui « fonctionne
 // presque » facture mal, et facturer mal coûte plus cher que ne pas facturer.
 // Le jour où les clés arrivent, rien d'autre n'est à écrire.
@@ -141,7 +141,7 @@ export function lireErreurStripe(e: unknown): string {
     return "Le client Stripe enregistré pour cette organisation n'existe plus chez Stripe. Contactez Gerimmo : la souscription doit être recréée.";
   }
   if (/similar object exists in (test|live) mode/i.test(brut)) {
-    return "Les clés Stripe et les données ne sont pas dans le même mode (test / réel). Vérifiez que les trois variables viennent du même environnement Stripe.";
+    return "Les clés Stripe et les données ne sont pas dans le même mode (test / réel). Vérifiez que les clés et les tarifs viennent du même environnement Stripe.";
   }
   return brut;
 }

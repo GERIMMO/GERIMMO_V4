@@ -1,6 +1,7 @@
+import { badgeDemandeRdv } from "@/lib/rendez-vous-locataire";
 import { ChantiersDansAgenda } from "../clients/resumes";
 import Link from "next/link";
-import { chargerAgenda, verifierAccesArtisan, type LigneAgenda } from "../acces";
+import { chargerAgenda, chargerDemandesRdv, verifierAccesArtisan, type LigneAgenda } from "../acces";
 import { CarteMission } from "../carte-mission";
 import { jourCivil, jourLong } from "../libelles";
 import { Carte, EnteteSousPage, Erreur, TitreSection, Vide } from "../ui";
@@ -69,7 +70,8 @@ function semaineAVenir(): Date[] {
 
 export default async function PageAgendaArtisan() {
   const { fiche } = await verifierAccesArtisan();
-  const agenda = await chargerAgenda();
+  const [agenda, demandesRdv] = await Promise.all([chargerAgenda(), chargerDemandesRdv()]);
+  const badge = (l: LigneAgenda) => badgeDemandeRdv(demandesRdv.lignes.find(d => d.intervention_id === l.intervention_id), l.statut);
 
   const sansDate = agenda.lignes.filter(
     (l) => !l.debut_prevu && l.statut !== "terminee"
@@ -104,6 +106,8 @@ export default async function PageAgendaArtisan() {
           une journée vide : rechargez dans un instant.
         </Erreur>
       )}
+
+      {demandesRdv.erreur && <Erreur>Les demandes de report et d’annulation n’ont pas pu être lues. Ouvrez la mission pour vérifier son rendez-vous avant de vous déplacer.</Erreur>}
 
       {/* La semaine qui vient, en sept cases. Une case avec des rendez-vous
           mène à sa journée ; les autres ne se cliquent pas (rien dessous). */}
@@ -170,7 +174,7 @@ export default async function PageAgendaArtisan() {
             </TitreSection>
             <div className="artisan-liste">
               {lignes.map((l) => (
-                <CarteMission key={l.intervention_id} ligne={l} />
+                <CarteMission key={l.intervention_id} ligne={l} badgeRdv={badge(l)} />
               ))}
             </div>
           </section>
@@ -201,6 +205,7 @@ export default async function PageAgendaArtisan() {
               <CarteMission
                 key={l.intervention_id}
                 ligne={l}
+                badgeRdv={badge(l)}
                 aFaire={consigne(l)}
               />
             ))}
@@ -219,7 +224,7 @@ export default async function PageAgendaArtisan() {
                 </p>
                 <div className="artisan-liste">
                   {lignes.map((l) => (
-                    <CarteMission key={l.intervention_id} ligne={l} />
+                    <CarteMission key={l.intervention_id} ligne={l} badgeRdv={badge(l)} />
                   ))}
                 </div>
               </div>

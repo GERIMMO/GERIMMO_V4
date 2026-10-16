@@ -829,8 +829,9 @@ export function rappelsDus<T extends { cle: string }>(candidats: T[], dejaTracee
 
 export type ResultatNotification = {
   envoyee: boolean;
-  motif?: "sans_adresse" | "echec_envoi" | "introuvable" | "erreur";
+  motif?: "sans_adresse" | "echec_envoi" | "introuvable" | "erreur" | "delai_depasse";
 };
+type BudgetRappels = { echeanceMs?: number; horloge?: () => number };
 
 const NON: ResultatNotification = { envoyee: false, motif: "erreur" };
 
@@ -866,8 +867,11 @@ async function emetteur(db: SupabaseClient, orgId: string): Promise<string> {
  */
 async function expedier(
   db: SupabaseClient,
-  p: { orgId: string; to: string | null | undefined; message: Message; evenement: string; objet: string; role: Role; pieceJointe?: { nom: string; contenuBase64: string }; cleIdempotence?: string; avantEffet?: () => Promise<void> }
+  p: { orgId: string; to: string | null | undefined; message: Message; evenement: string; objet: string; role: Role; pieceJointe?: { nom: string; contenuBase64: string }; cleIdempotence?: string; avantEffet?: () => Promise<void> } & BudgetRappels
 ): Promise<ResultatNotification> {
+  const horloge = p.horloge ?? Date.now;
+  const fin = p.echeanceMs ?? Infinity;
+  if (horloge() >= fin) return { envoyee: false, motif: "delai_depasse" };
   const trace = { evenement: p.evenement, objet: p.objet, org: p.orgId, role: p.role };
   const to = (p.to ?? "").trim();
   if (!to || !emailValide(to)) {
@@ -875,9 +879,18 @@ async function expedier(
     return { envoyee: false, motif: "sans_adresse" };
   }
   await p.avantEffet?.();
+  if (horloge() >= fin) return { envoyee: false, motif: "delai_depasse" };
+  let delaiDepasse = false;
   try {
     const envoi = await envoyerEmail({
-      avantEnvoi: p.avantEffet,
+      avantEnvoi: async () => {
+        await p.avantEffet?.();
+        if (horloge() >= fin) {
+          delaiDepasse = true;
+          throw new Error("Le temps disponible pour les rappels est écoulé.");
+        }
+      },
+      get delaiMaxMs() { return Math.max(1, Math.floor(Math.min(15_000, fin - horloge()))); },
       organisation: { db, id: p.orgId },
       to,
       subject: p.message.sujet,
@@ -885,6 +898,7 @@ async function expedier(
       ...(p.pieceJointe ? { piecesJointes: [p.pieceJointe] } : {}),
       ...(p.cleIdempotence ? { cleIdempotence: p.cleIdempotence } : {}),
     });
+    if (delaiDepasse) return { envoyee: false, motif: "delai_depasse" };
     if (envoi.erreur) {
       await journaliser(db, "notification_echec", { ...trace, erreur: envoi.erreur });
       return { envoyee: false, motif: "echec_envoi" };
@@ -893,6 +907,7 @@ async function expedier(
     return { envoyee: true };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
+    if (delaiDepasse) return { envoyee: false, motif: "delai_depasse" };
     await journaliser(db, "notification_echec", { ...trace, erreur: e instanceof Error ? e.message : "exception" });
     return { envoyee: false, motif: "echec_envoi" };
   }
@@ -1610,6 +1625,8 @@ export type BilanRappelsGestes = {
   sans_adresse: number;
   /** Partis mais non tracés : la passe suivante les renverrait (leçon B5). */
   non_consignes: number;
+  /** Non tentés faute de temps ; aucune trace d'envoi n'a été posée. */
+  restants?: number;
   par_type: Record<TypeRappel, number>;
 };
 
@@ -1635,11 +1652,14 @@ const PLAFOND_PAR_TYPE = 100;
  * PUIS on trace, comme les autres tâches : le pire cas est un doublon, pas un
  * silence. Une organisation dont l'écriture est fermée n'écrit plus en son nom.
  */
-export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: Date = new Date(), avantEffet?: () => Promise<void>): Promise<BilanRappelsGestes> {
+export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: Date = new Date(), avantEffet?: () => Promise<void>, budget: BudgetRappels = {}): Promise<BilanRappelsGestes> {
   const bilan: BilanRappelsGestes = {
     envoyes: 0, echecs: 0, sans_adresse: 0, non_consignes: 0,
     par_type: { creneau_non_choisi: 0, mission_non_acceptee: 0, piece_demandee: 0, devis_non_chiffre: 0 },
   };
+  const horloge = budget.horloge ?? Date.now;
+  const echeanceMs = budget.echeanceMs ?? horloge() + 160_000;
+  if (horloge() >= echeanceMs) return bilan;
   const avant = (jours: number) => new Date(maintenant.getTime() - jours * 86_400_000).toISOString();
 
   // 1. Les candidats, par type.
@@ -1731,7 +1751,8 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
   // 3. Envoi, organisation par organisation (écriture ouverte vérifiée une fois).
   const ecritureOuverte = new Map<string, boolean>();
   const noms = new Map<string, string>();
-  for (const c of dus) {
+  for (const [n, c] of dus.entries()) {
+    if (horloge() >= echeanceMs) { bilan.restants = dus.length - n; break; }
     if (!ecritureOuverte.has(c.orgId)) {
       const { data } = await service.rpc("org_ecriture_ouverte", { p_org: c.orgId });
       ecritureOuverte.set(c.orgId, data === true);
@@ -1739,7 +1760,8 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
     }
     if (!ecritureOuverte.get(c.orgId)) continue;
 
-    const resultat = await envoyerUnRappel(service, c, noms.get(c.orgId) ?? "Votre gestionnaire", avantEffet);
+    const resultat = await envoyerUnRappel(service, c, noms.get(c.orgId) ?? "Votre gestionnaire", avantEffet, { echeanceMs, horloge });
+    if (resultat.motif === "delai_depasse") { bilan.restants = dus.length - n; break; }
     if (!resultat.envoyee) {
       if (resultat.motif === "sans_adresse") bilan.sans_adresse += 1;
       else bilan.echecs += 1;
@@ -1758,7 +1780,7 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
   return bilan;
 }
 
-async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string, avantEffet?: () => Promise<void>): Promise<ResultatNotification> {
+async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string, avantEffet?: () => Promise<void>, budget: BudgetRappels = {}): Promise<ResultatNotification> {
   const role = ROLE_RAPPEL[c.type];
   try {
     let to: string | null | undefined;
@@ -1792,6 +1814,7 @@ async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string
     // d'une passe à l'autre (`messageRappelGeste`), sans quoi le service
     // refuserait la reprise même dans la fenêtre.
     return expedier(service, {
+      ...budget,
       avantEffet, orgId: c.orgId, to, role, evenement: `rappel_${c.type}`, objet: c.objetId,
       cleIdempotence: cleRappelGeste(c.cle),
       message: messageRappelGeste({ type: c.type, emetteur: nom, prenom, categorie, libelle: c.libelle, lien: lien(c.lienChemin) }),

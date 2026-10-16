@@ -495,7 +495,9 @@ describe.skipIf(!DB_URL)("Révision de devis et versions (D18, livraison 2)", ()
     await brouillon(s1, artisan, NOTE);
     await enTantQuePostgres();
     await db.query(`delete from public.artisan_metiers where artisan_id = $1`, [artisan]);
-    await expect(deposer(cptArtisan, s1, 45000)).rejects.toThrow(/profil ne permet plus/);
+    expect(await deposer(cptArtisan, s1, 45000)).toBeNull();
+    expect(await deposer(cptArtisan, s1, 45000)).toBeNull();
+    expect(await alertes("devis_revision_non_affectable")).toHaveLength(1);
     await enTantQuePostgres();
     await db.query(`insert into public.artisan_metiers values ($1,'plomberie')`, [artisan]);
     await agir(gerant);
@@ -562,4 +564,48 @@ describe.skipIf(!DB_URL)("Révision de devis et versions (D18, livraison 2)", ()
     await agir(gerant);
     expect(await aTraiter()).toHaveLength(1);
   });
+  it("D18 complément : l’archive PDF est celle de la version autorisée, jamais de la préparation suivante", async () => {
+    const {s1}=await consulter();
+    async function avecPdf(version:number) {
+      const path=`${org}/devis-gerimmo/version-${version}.pdf`;
+      await enTantQuePostgres();
+      await db.query("insert into storage.objects(bucket_id,name,owner) values('documents',$1,$2)",[path,cptArtisan]);
+      await agir(cptArtisan);
+      const {rows:[r]}=await db.query(`select public.deposer_devis_structure($1,${LIGNES(45000)},'Diagnostic','Prestations','Un jour','Une heure',null,null,null,$2,'application/pdf',100,$3) as id`,[s1,path,String(version).repeat(64)]);
+      return {id:r.id,path};
+    }
+    const v1=await avecPdf(1);
+    await reviser(gerant,v1.id);
+    await brouillon(s1,artisan,NOTE,"valide");
+    await agir(gerant);
+    const lecture=async(version:number|null)=>(await essai("select public.lire_devis_pdf_version($1,$2) as doc",[s1,version])).rows[0].doc;
+    expect(await lecture(null)).toMatchObject({version:1,pdf_path:v1.path,pdf_sha:"1".repeat(64)});
+    await expect(lecture(2)).rejects.toThrow(/Accès refusé/);
+    const v2=await avecPdf(2);
+    for (const compte of [gerant,cptArtisan]) {
+      await agir(compte);
+      expect(await lecture(1)).toMatchObject({version:1,pdf_path:v1.path});
+      expect(await lecture(2)).toMatchObject({version:2,pdf_path:v2.path});
+      expect(await lecture(null)).toMatchObject({version:2,pdf_path:v2.path});
+    }
+    for (const compte of [cptArtisan2,autreGerant,cptLoc,agent]) {
+      await agir(compte);
+      await expect(lecture(1)).rejects.toThrow(/Accès refusé/);
+    }
+  });
+  it("D18 complément : un envoi refusé garde la préparation validée et écrit une seule alerte durable", async () => {
+    const {s1}=await enRevision();
+    await brouillon(s1,artisan,NOTE,"valide");
+    await enTantQuePostgres();
+    await db.query(`update public.artisan_devis_preparations set saisie=saisie || jsonb_build_object('lignes',${LIGNES(45000)}) where sollicitation_id=$1`,[s1]);
+    await db.query('delete from public.artisan_metiers where artisan_id=$1',[artisan]);
+    for(let n=0;n<2;n++) {
+      await agir(cptArtisan);
+      expect((await db.query('select public.envoyer_mon_devis_prepare($1,1) as id',[s1])).rows[0].id).toBeNull();
+    }
+    await enTantQuePostgres();
+    expect((await db.query('select statut,devis_id from public.artisan_devis_preparations where sollicitation_id=$1',[s1])).rows[0]).toMatchObject({statut:'valide',devis_id:null});
+    expect(await alertes('devis_revision_non_affectable')).toHaveLength(1);
+  });
+
 });

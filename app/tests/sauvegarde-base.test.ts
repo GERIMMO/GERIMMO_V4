@@ -57,10 +57,10 @@ describe("exporter / verifier / extraire", () => {
     // (le détail des tâches est gardé par sauvegarde-taches-planifiees.test.ts).
     const fauxPsql = path.join(racine, "psql");
     await fs.writeFile(fauxPsql, `#!/bin/sh\ncase "$*" in *m0t-de-passe*) exit 2;; esac\n[ -n "$PGPASSWORD" ] || exit 3\ncase "$*" in *to_regclass*) echo true;; *) echo '[]';; esac\n`, { mode: 0o700 });
-    const bilan = await exporter(archive, cle, CONNEXION, { commande: enrobage, schemas: ["public"], psql: fauxPsql });
+    const bilan = await exporter(archive, cle, CONNEXION, { commande: enrobage, psql: fauxPsql });
     expect(bilan.octets).toBeGreaterThan(200);
     const m = await verifier(archive, cle);
-    expect(m).toMatchObject({ nature: "base", schemas: ["public"], taille: bilan.octets, hote: "base.exemple.fr", taches_planifiees: { pg_cron: true, nombre: 0 } });
+    expect(m).toMatchObject({ nature: "base", schemas: ["public", "auth", "storage", "support_interne"], taille: bilan.octets, hote: "base.exemple.fr", taches_planifiees: { pg_cron: true, nombre: 0 } });
     expect(JSON.stringify(m)).not.toMatch(/m0t-de-passe/);
     // Le fichier chiffré ne contient pas le dump en clair.
     const chiffre = await fs.readFile(path.join(archive, "base.dump.gcm"));
@@ -70,9 +70,12 @@ describe("exporter / verifier / extraire", () => {
     await extraire(archive, cle, clair);
     const dump = (await fs.readFile(path.join(clair, "base.dump"))).toString();
     expect(dump).toContain('"--schema","public"');
+    expect(dump).toContain('"--schema","support_interne"');
     expect(dump).toContain('"--no-owner"');
+    expect(dump).toContain('"--strict-names"');
     // 27/09 : les droits (GRANT/REVOKE) font partie de la défense et de la copie.
     expect(dump).not.toContain('"--no-privileges"');
+    expect(dump).not.toContain('"--no-comments"');
     expect(dump).not.toContain("m0t-de-passe");
     // Rien ne s'écrase : ni l'archive, ni le dossier en clair.
     await expect(exporter(archive, cle, CONNEXION, { commande: enrobage })).rejects.toThrow(/EEXIST/);

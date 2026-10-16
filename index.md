@@ -3,6 +3,9 @@
 Catalogue de tout le wiki : lien + accroche courte. Mis à jour à chaque ingest.
 Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 
+- [[Mission du 16 octobre — suivi vérifié]] — constats de production, corrections locales, preuves et points encore ouverts.
+- [[Cohérence des loyers de référence]] — contrôle indicatif à la saisie du bail, surface habitable et complément, sans modification automatique des montants.
+
 ## Personas
 - [[Super Admin]] — l'éditeur de la plateforme ; console, modèles, blacklist globale, facturation.
 - [[Administrateur d'agence]] — « agent ++ » : administration, paramétrages, vue retards.
@@ -134,7 +137,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[2026-09-08-maquette-espace-agence-v6|Maquette espace agence v6]] — agent + admin d'agence : inventaire, contradictions (fonds mandants vs RM-A6.1), découpage d'intégration.
 
 ## Synthèses
-- [[Choisir son locataire selon les conditions des assurances loyers impayés]] — **14/10, brouillon** : conditions d'éligibilité des assurances loyers impayés (taux d'effort, statut professionnel, étudiants et garants, colocation) et règles légales du choix du locataire (pièces exigibles, non-discrimination, non-cumul caution/garantie, Visale) ; chiffres issus de résumés de recherche, **aucune condition générale relue**.
+- [[Choisir son locataire selon les conditions des assurances loyers impayés]] — 16/10/2026, brouillon : conseils masqués dans la version candidate en attendant relecture ; aucune validation juridique annoncée.
 
 - [[Dossier de validation — version candidate du 13 octobre 2026]] — **dossier de livraison** : contenu, migrations, contrôles sur le SHA figé, observation de la production en lecture seule, porte de validation, dix critères de clôture cochés séparément (au 16/10 : « fonctions majeures » partiel, « automatisations » non rempli, « version autorisée déployée » rempli, « production vérifiée » partiel), **mise en production du 14/10/2026** (PR #179, § 5 bis) et **déploiements du 14 au 16/10** (PR #181 à #195 : migrations, sauvegardes, simulations, recettes, § 5 quater ; #195 : sauvegarde 38875875213, simulation 38875594376, application 38879864823, recette n° 18 38880135882) ; mission non terminée (P1 contrôlés au second essai seulement, premier essai de D04 en échec sans cause établie, réglages Supabase de la PR #194 ; « Créer la fiche » instable aux recettes n° 6 à 18 : défaut du test, corrigé dans la PR #196).
 - [[Prompt de passation à Codex — état du 16 octobre 2026]] — **16/10, à transmettre** : prompt autonome à copier dans Codex : règles absolues (aucun secret, aucune adresse réelle, production en lecture seule par défaut, la recette avec nettoyage exceptée), état de la production après les PR #181 à #195 (recettes n° 4 à 18), ce qui est éteint ou partiel, environnement et pièges, tâches T1 à T15 par priorité, gestes du dirigeant (Supabase, Stripe, Vercel, GitHub, dont l'adresse des commits) et questions Q1 à Q15, protocole de déploiement (feu vert écrit au commit nommé avant sauvegarde, application et fusion) ; porté par la PR #196.
@@ -205,3 +208,8 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Référentiel vérifiable Gerimmo du 12 septembre 2026]] — 465 exigences et neuf personas ; minimum demandé, couverture à prouver dans la version publiée.
 
 - [[Bail#Contrats individuels de colocation — réalisation du 14 septembre 2026|Contrats individuels de colocation]] — chambres, gestion indépendante, plafonds et confidentialité testés ; contrats nu et meublé.
+
+
+### Actualisation de la mission du 16 octobre
+
+Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de validation — version candidate du 13 octobre 2026]], [[Décisions groupées — version candidate du 13 octobre 2026]], [[Prêt à démarcher]], [[Relais du dirigeant]] et [[Invitation d'un artisan par un propriétaire]] renvoient au relevé du soir : [[Mission du 16 octobre — suivi vérifié]], contrôles réalisés et changements candidats distingués de la production.

@@ -21,6 +21,15 @@ import { configDefaults, defineConfig } from "vitest/config";
  * `npm test` en local. Le test `tests/execution-en-serie.test.ts` garde cette liste cohérente avec les fichiers.
  */
 export const FICHIERS_EN_SERIE = [
+  // Repose tous les triggers métier : verrou DDL incompatible avec les écritures parallèles.
+  "tests/retours-utilisateurs.test.ts",
+  // Mission du 16/10 : retours de migrations, DDL exclusif et fixtures validées de concurrence.
+  "tests/devis-rdv-complements-rejeu.test.ts",
+  "tests/rdv-relance-concurrence-oct16.test.ts",
+  "tests/traversee-lecture-seule-base.test.ts",
+  "tests/confirmation-auth-migration-rejeu.test.ts",
+  "tests/retours-oct16-registre.test.ts",
+  "tests/relais-retention-sentinelle-oct16.test.ts",
   // Fixtures validées (concurrence entre deux sessions) + rejeu des migrations (DDL tenu pendant le fichier).
   "tests/cle-envoi-encaissements.test.ts",
   // Fixture validée (deux envois simultanés de la même clé).
@@ -96,6 +105,7 @@ export const FICHIERS_EN_SERIE = [
   // Restitution du dépôt au jour de Paris (20261014851000) : rejeu de la migration et de son retour, fonctions supprimées puis
   // recréées (dont `aujourdhui_paris()` en cascade, qui retire les valeurs par défaut d'ecritures et de depot_encaissements).
   "tests/jour-de-paris-restitution-migration-rejeu.test.ts",
+  "tests/jour-paris-complements-oct16.test.ts",
 ];
 
 export default defineConfig({

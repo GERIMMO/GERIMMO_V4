@@ -1,3 +1,5 @@
+import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
+import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import { SupprimerBailBrouillon } from "@/components/supprimer-bail-brouillon";
 import { FormulaireParcoursBail } from "./formulaire-parcours-bail";
 import { DocumentsParcoursBail } from "./documents-parcours-bail";
@@ -45,6 +47,7 @@ import { GenererCongeBailleur } from "./generer-conge-bailleur";
 import { GenererAvenant } from "./generer-avenant";
 import { CarteCautionnement } from "./carte-cautionnement";
 import { ConseilsChoixLocataire } from "@/components/conseils-choix-locataire";
+import { CONSEILS_LOCATAIRE_VALIDES } from "@/lib/conseils-locataire";
 import { CarteBailSigne } from "./carte-bail-signe";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { FormulaireInventaire, type LigneInventaire } from "./formulaire-inventaire";
@@ -81,7 +84,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // propriétaire en gestion directe seulement. L'agence (hors site public V1)
   // garde la fiche telle qu'elle était. Le même bloc, replié, que dans le
   // parcours de création (étape « Personnes »).
-  const rappelConseilsLocataire = estProprietaire ? <ConseilsChoixLocataire emplacement="garanties-bail" className="mt-4" /> : null;
+  const rappelConseilsLocataire = estProprietaire && CONSEILS_LOCATAIRE_VALIDES ? <ConseilsChoixLocataire emplacement="garanties-bail" className="mt-4" /> : null;
 
   const { data: bail, error: erreurBail } = await supabase
     .from("baux")
@@ -118,7 +121,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: bailPersonnes, error: erreurBailPersonnes },
     { data: intentions, error: erreurIntentions },
   ] = await Promise.all([
-      supabase.from("lots").select("id, nom, bien_id, meuble, colocation_loyer_reference, bien:biens!lots_bien_id_fkey(zone_tendue, copropriete)").eq("id", bail.lot_id).maybeSingle(),
+      supabase.from("lots").select("id, nom, bien_id, meuble, surface_m2, colocation_loyer_reference, bien:biens!lots_bien_id_fkey(zone_tendue, copropriete)").eq("id", bail.lot_id).maybeSingle(),
       // Les pièces déclarées du lot : leur absence rend l'état des lieux générique.
       supabase
         .from("lot_pieces")
@@ -427,6 +430,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   }
 
   const complementsContrat = (<FormulaireComplementsBail
+            surfaceHabitable={lot?.surface_m2}
+            loyerHc={bail.loyer_hc}
+            individuel={Boolean(bail.chambre_id)}
             orgId={orgId}
             bailId={bailId}
             defauts={{
@@ -1022,8 +1028,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </div>
       )}
 
+      {bail.etat !== "brouillon" && <AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(bail, lot?.surface_m2)} />}
       {bail.etat === "brouillon" ? <AssistantBail
-        formulaire={<FormulaireParcoursBail orgId={orgId} bailId={bailId} defauts={bail} agence={agence} meuble={Boolean(lot?.meuble)} chambres={chambres ?? []} />}
+        formulaire={<FormulaireParcoursBail surfaceHabitable={lot?.surface_m2} orgId={orgId} bailId={bailId} defauts={bail} agence={agence} meuble={Boolean(lot?.meuble)} chambres={chambres ?? []} />}
         orgId={orgId} bailId={bailId} controleInitial={await verifierDossierBail(orgId, bailId)}
         contenus={[
           lot ? <p key="chambres" className="text-sm text-muted-foreground">Pour louer une chambre avec son propre contrat, <Link className="underline" href={lienLotDepuisBail(orgId,lot.bien_id,bail.lot_id,bailId,"equipements",1,racineEspace(estProprietaire))}>préparez ses caractéristiques dans le lot</Link>.</p> : null,
@@ -1032,7 +1039,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           bail.chambre_id && lot ? <div key="plafond" id="loyer-plafond-colocation"><ChambresLogement orgId={orgId} lotId={bail.lot_id} bienId={lot.bien_id} chambres={[]} plafond={lot.colocation_loyer_reference} mode="plafond" /></div> : null,
           lot ? <DocumentsParcoursBail key="documents" orgId={orgId} bailId={bailId} lotId={bail.lot_id} bienId={lot.bien_id} copropriete={premier(lot.bien)?.copropriete ?? null} reglementId={bail.reglement_copropriete} annexes={annexesContrat} /> : <p key="documents">Le logement est indisponible.</p>,
           null,
-          <RecapitulatifParcoursBail key="recapitulatif" orgId={orgId} lotId={bail.lot_id} bail={bail}
+          <div key="recapitulatif" className="space-y-4"><AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(bail, lot?.surface_m2)} /><RecapitulatifParcoursBail orgId={orgId} lotId={bail.lot_id} bail={bail}
             personnes={[...(locataire ? [{nom:nomComplet(locataire),role:"Locataire principal"}]:[]),...lignesColoc.filter(p=>!p.date_depart).map(p=>({nom:p.person_nom,role:p.role === "garant"?"Garant":"Colocataire"}))]}
             documents={<div className="bail-batiment-resume"><strong>Documents et annexes</strong><p>Vérifiez les diagnostics, la notice, le règlement et les pièces déposées avant la signature.</p><a className="lien-discret" href="#etape-bail-5">Revoir les documents →</a></div>}
             signature={<FinaliserParcoursBail key={JSON.stringify([bail,lignesColoc,inventaire])} orgId={orgId} bailId={bailId}
@@ -1040,7 +1047,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               signataires={[...(bail.locataire_principal ? [{id:bail.locataire_principal,nom:locataire?nomComplet(locataire):"Locataire principal"}]:[]),...lignesColoc.filter(p=>p.role==="colocataire"&&!p.date_depart).map(p=>({id:p.person_id,nom:p.person_nom}))]}
               edlId={(edls??[]).find(e=>e.type==="entree")?.id??null}
               preparationEdl={erreurEdls?<p role="alert">Les états des lieux n’ont pas pu être chargés.</p>:<FormulaireCreerEdl orgId={orgId} bailId={bailId} bailEtat={bail.etat} typesExistants={(edls??[]).map(e=>e.type)}/>}
-              signatureManuelle={depotSigne}/>} />
+              signatureManuelle={depotSigne}/>} /></div>
         ]} /> : <>{rubriqueContrat}{rubriqueSignature}{rubriqueSuivi}</>}
       {sectionSortie && <RubriqueDossier id="sortie-bail" titre="Départ du locataire" resume={bail.date_fin ? `Fin prévue le ${formaterDate(bail.date_fin)} · congé, comparaison des états des lieux et restitution` : "Enregistrer un congé et préparer la fin de location"} ouverte={restitutionActif || (intentions ?? []).length > 0}>
 

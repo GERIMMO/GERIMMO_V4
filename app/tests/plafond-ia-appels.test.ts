@@ -354,7 +354,7 @@ describe("inventaire : chaque appel payant de l'application passe par la garde",
     const lire = (f: string) => readFileSync(resolve(RACINE, f), "utf8");
     expect(lire("lib/missions-planifiees/veille.ts")).toMatch(/etudierVeille\(sources,\s*\(\)\s*=>\s*reserverAppelIA\(db,\s*'veille'\)\)/);
     expect(lire("lib/missions-planifiees/marketing.ts")).toMatch(/redigerArticleVeille\([^;]*\(\)\s*=>\s*reserverAppelIA\(db,\s*'redaction_veille'\)\)/);
-    expect(lire("lib/missions-planifiees/marketing.ts")).toMatch(/creerVisuelMarketing\([^;]*\(\)\s*=>\s*reserverAppelIA\(db,\s*'visuel_marketing'\)\)/);
+    expect(lire("lib/missions-planifiees/marketing.ts")).toMatch(/creerVisuelMarketing\([^;]*async\s*\(\)\s*=>\s*\{\s*await reserverAppelIA\(db,\s*'visuel_marketing'\);\s*appelIAEngage\s*=\s*true;/);
     expect(lire("app/artisan/devis/actions-preparation.ts")).toMatch(/proposerDevis\([^;]*\(\)\s*=>\s*reserverAppelIA\(service,\s*"devis"\)\)/);
   });
 

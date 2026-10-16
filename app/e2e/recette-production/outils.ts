@@ -127,6 +127,7 @@ const DESTINATIONS = /\/(espaces?|agence|locataire|artisan|admin)(\/|\?|$)/;
 export async function seConnecter(page: Page, persona: Persona) {
   const comptes = lireComptes();
   await page.goto("/connexion");
+  await page.waitForLoadState("networkidle");
   await expect(page.locator("#email")).toBeVisible();
   await saisir(page.locator("#email"), comptes.emails[persona]);
   await page.locator("#mot-de-passe").fill(comptes.motDePasse);
@@ -138,6 +139,8 @@ export async function seConnecter(page: Page, persona: Persona) {
 /** L'adresse de l'espace attendu pour chaque persona. */
 export function espaceDe(persona: Persona): string {
   const c = lireComptes();
+  if (persona === "artisan") return "/artisan";
+  if (persona === "superadmin") return "/admin";
   if (persona === "admin") return `/agence/${c.orgAgence}`;
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id> (/agence/<id> y est redirigé à vie).
   if (persona === "proprietaire") return `/espace/${c.orgProprietaire}`;
@@ -154,10 +157,21 @@ export function selecteurMenu(persona: Persona): string {
 const sessions = new Map<Persona, EtatSession>();
 
 async function ouvrirSession(browser: Browser, persona: Persona): Promise<EtatSession> {
+  if (persona === "artisan" || persona === "superadmin") {
+    // Préparée hors du test runner, sans enregistrement de mot de passe/MFA.
+    const brute = process.env[`RECETTE_SESSION_${persona.toUpperCase()}`];
+    if (!brute || process.env.RECETTE_AUTONOME !== "1") throw new Error("Session éphémère du chantier autonome absente.");
+    const session = JSON.parse(Buffer.from(brute, "base64").toString("utf8")) as EtatSession;
+    if (!Array.isArray(session.cookies) || !Array.isArray(session.origins)) throw new Error("Session de recette invalide.");
+    return session;
+  }
   const deja = sessions.get(persona);
   if (deja) return deja;
   const context = await browser.newContext({
     baseURL: verifierCible(process.env.RECETTE_URL),
+    // Playwright transmet les options du test au nouveau contexte ; une
+    // seconde persona doit commencer sans les cookies de la première.
+    storageState: { cookies: [], origins: [] },
     viewport: { width: 390, height: 844 },
     isMobile: true,
     hasTouch: true,
@@ -167,10 +181,22 @@ async function ouvrirSession(browser: Browser, persona: Persona): Promise<EtatSe
   await poserBouclier(context);
   const page = await context.newPage();
   await seConnecter(page, persona);
+  await page.waitForLoadState("networkidle");
   const etat = await context.storageState();
   await context.close();
   sessions.set(persona, etat);
   return etat;
+}
+
+/** Deux profils dans un même parcours, sans connexion ni trace partagées. */
+export async function contextePersona(browser: Browser, persona: Persona): Promise<BrowserContext> {
+  const context = await browser.newContext({
+    baseURL: verifierCible(process.env.RECETTE_URL), storageState: await ouvrirSession(browser, persona),
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+    locale: "fr-FR", timezoneId: "Europe/Paris",
+  });
+  await poserBouclier(context);
+  return context;
 }
 
 /** Retenir la session qu'un test vient d'ouvrir par le formulaire. */

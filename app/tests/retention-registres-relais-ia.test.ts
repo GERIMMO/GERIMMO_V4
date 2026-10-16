@@ -158,6 +158,11 @@ describe.skipIf(!url)("D48 — les registres du 15/10 ont leur règle de six moi
   beforeEach(async () => {
     await admin();
     await db.query("savepoint scenario");
+    // Reconstituer le palier de cette migration : le raccord support ajouté ensuite
+    // utilise la même ancre. Son ordre n'est pas une propriété du rejeu de D48.
+    const def=(await db.query("select pg_get_functiondef('public.appliquer_retention()'::regprocedure) d")).rows[0].d as string;
+    const support="v_journaux := v_journaux || jsonb_build_object('gestes_support',support_interne.purger_gestes_support());\n  ";
+    if(def.includes(support))await db.query(def.replace(support,''));
   });
   afterEach(async () => {
     await db.query("rollback to savepoint scenario");
@@ -182,12 +187,12 @@ describe.skipIf(!url)("D48 — les registres du 15/10 ont leur règle de six moi
       }
     });
 
-    it("la durée du catalogue est celle que les fonctions du relais codent déjà (six mois) ; ces fonctions ne sont pas modifiées", async () => {
+    it("les purges du relais suivent désormais le catalogue (complément T12), six mois par défaut", async () => {
       const def = async (s: string) => (await db.query("select pg_get_functiondef($1::regprocedure) f", [s])).rows[0].f as string;
-      expect((await def("public.reserver_alerte_relais()")).match(/interval '6 months'/g)).toHaveLength(1);
-      expect((await def("public.prendre_urgences_relais(integer)")).match(/interval '6 months'/g)).toHaveLength(2);
-      for (const s of ["public.reserver_alerte_relais()", "public.prendre_urgences_relais(integer)", "public.reserver_appel_ia(text)"])
-        expect(await def(s), s).not.toContain("retention_rules");
+      for (const s of ["public.reserver_alerte_relais()", "public.prendre_urgences_relais(integer)"]) {
+        expect(await def(s), s).toContain("retention_rules");
+        expect(await def(s), s).not.toContain("interval '6 months'");
+      }
       const { rows } = await db.query("select distinct duree_mois from public.retention_rules where data_type like 'journal:relais%'");
       expect(rows).toEqual([{ duree_mois: 6 }]);
     });
@@ -234,9 +239,7 @@ describe.skipIf(!url)("D48 — les registres du 15/10 ont leur règle de six moi
 
     // Le levier d'un DPO : allonger la conservation au catalogue. La durée est LUE dans `retention_rules` à chaque purge, jamais
     // codée en dur (constat de relecture du 16/10 : une purge écrite `interval '6 months'` passait tous les autres essais).
-    // Pour ia_appels_jour, cette purge est la seule. LIMITE, ASSUMÉE (en-tête de la migration) : pour les trois registres du
-    // relais, leurs propres fonctions (reserver_alerte_relais, prendre_urgences_relais) purgent de toute façon à six mois à chaque
-    // passage du relais ; allonger leur règle ne vaut que pour appliquer_retention.
+    // Depuis le complément T12, les purges propres au relais suivent aussi ce catalogue.
     it.each(REGISTRES)("règle « %s » allongée à douze mois : sa ligne de six mois et dix jours reste, celles des autres registres partent", async (registre) => {
       const { ancien, recent } = await poserRegistres();
       await db.query("update public.retention_rules set duree_mois = 12 where data_type = $1", [`journal:${registre}`]);

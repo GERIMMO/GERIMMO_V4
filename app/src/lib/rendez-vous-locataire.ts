@@ -92,6 +92,7 @@ export type DemandeRdvArtisan = {
   rdv_debut: string;
   rdv_fin: string | null;
   tardive: boolean;
+  annulation_vue_le?: string | null;
 };
 
 /** « jeudi 24 septembre, 8 h – 12 h », à l'heure de Paris. */
@@ -193,4 +194,12 @@ export function raisonSansReport(rv: RendezVousLocataire): string | null {
   // Le délai, seulement quand la base le dit : jamais une raison devinée.
   if (!rv.annulation_tardive) return null;
   return `Le rendez-vous est dans moins de ${REGLES_RDV_LOCATAIRE.delaiReportHeures} heures : il ne peut plus être reporté ici. Vous pouvez encore l'annuler, ou appeler votre gestionnaire.`;
+}
+
+/** Badge d’agenda : un report attend une réponse ; une annulation reste visible tant que la date n’est pas refixée. */
+export function badgeDemandeRdv(demande: DemandeRdvArtisan | null | undefined, statutMission: string): string | null {
+  if (!demande) return null;
+  if (demande.type === "report" && demande.statut === "en_attente" && statutMission === "planifiee") return "Report demandé · rendez-vous maintenu";
+  if (demande.type === "annulation" && statutMission === "acceptee") return "Rendez-vous annulé par le locataire";
+  return null;
 }

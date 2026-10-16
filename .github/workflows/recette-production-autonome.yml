@@ -12,7 +12,7 @@ concurrency:
 jobs:
   recette:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     defaults:
       run:
@@ -22,7 +22,7 @@ jobs:
       RECETTE_SUFFIXE: r${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -33,7 +33,15 @@ jobs:
           npx playwright install --with-deps chromium
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client
-      - name: Préparer uniquement les trois comptes du passage
+      - name: Vérifier que le nettoyage des fichiers sera possible
+        env:
+          CLE_NETTOYAGE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$CLE_NETTOYAGE" ]; then
+            echo "Nettoyage Storage indisponible : aucun compte ne sera créé."
+            exit 1
+          fi
+      - name: Préparer les cinq comptes éphémères du passage
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           PGHOST: aws-0-eu-west-3.pooler.supabase.com
@@ -42,6 +50,8 @@ jobs:
           PGDATABASE: postgres
           PGSSLMODE: require
         run: node scripts/recette-production-comptes.mjs preparer
+      - name: Ouvrir les sessions artisan et supervision avec un vrai second facteur
+        run: node scripts/recette-production-sessions.mjs
       - name: Parcourir les espaces en ligne sur téléphone
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -54,6 +64,7 @@ jobs:
       - name: Retirer les comptes et les données de ce passage
         if: always()
         env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           PGHOST: aws-0-eu-west-3.pooler.supabase.com
           PGPORT: 5432
@@ -63,7 +74,7 @@ jobs:
         run: node scripts/recette-production-comptes.mjs purger
       - name: Conserver le rapport sans les sessions
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: recette-production-${{ github.run_id }}
           path: app/e2e/recette-production/.resultats/

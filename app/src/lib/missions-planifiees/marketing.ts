@@ -146,12 +146,13 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
   }
   const reservation=await db.rpc('reserver_visuel_marketing',{p_id:article.id});
   if(reservation.error||reservation.data!==true)return {erreur:article.image_essais>=2?'Les deux essais de visuel sont épuisés ; la mission réessaiera d’elle-même après une heure. Aucun post sans image nouvelle.':'Le visuel est en préparation. Aucun post sans image nouvelle.',article:article.id,essais:article.image_essais,reprise};
+  let appelIAEngage=false;
   try{
    const apres=await db.from('publications').select(CHAMPS).eq('id',article.id).single();
    if(apres.error||!apres.data||!['brouillon','planifiee'].includes(apres.data.statut))throw new Error('Le sujet a changé.');
    article=apres.data as Article;
    await verifierAvantEffet(db,'marketing');
-   const visuel=await creerVisuelMarketing(article.id,article.titre,()=>reserverAppelIA(db,'visuel_marketing'));
+   const visuel=await creerVisuelMarketing(article.id,article.titre,async()=>{await reserverAppelIA(db,'visuel_marketing');appelIAEngage=true;});
    const chemin=`${article.id}/${visuel.empreinte}.jpg`;
    await verifierAvantEffet(db,'marketing');
    const depot=await db.storage.from('marketing-visuels').upload(chemin,visuel.octets,{contentType:'image/jpeg',upsert:false,cacheControl:'31536000'});
@@ -161,7 +162,17 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
    const sauvegarde=await db.from('publications').update({facebook_image_url:url,image_empreinte:visuel.empreinte,image_en_cours_le:null,facebook_erreur:null}).eq('id',article.id).eq('updated_at',article.updated_at).select(CHAMPS).maybeSingle();
    if(sauvegarde.error||!sauvegarde.data)throw new Error('Le sujet a changé ou le visuel existe déjà. La diffusion attend une vérification.');
    article=sauvegarde.data as Article;
-  }catch(e){if(e instanceof ArretSupervision)throw e;const message=e instanceof Error?e.message:'Le visuel doit être repris.';await db.from('publications').update({image_en_cours_le:null,facebook_erreur:message}).eq('id',article.id);return {erreur:message,article:article.id,essais:article.image_essais,reprise};}
+  }catch(e){
+   const message=e instanceof Error?e.message:'Le visuel doit être repris.';
+   // Un refus avant l'appel payant n'est pas un essai d'image. Le témoin de réservation
+   // et le compteur empêchent d'annuler une autre tentative démarrée entre-temps.
+   const sansEssai=!appelIAEngage&&(e instanceof PlafondIAAtteint||e instanceof ArretSupervision);
+   const essais=sansEssai?Math.max(0,article.image_essais-1):article.image_essais;
+   const miseAJour=db.from('publications').update({image_en_cours_le:null,facebook_erreur:message,...(sansEssai?{image_essais:essais}:{})}).eq('id',article.id);
+   if(article.image_en_cours_le)await miseAJour.eq('image_en_cours_le',article.image_en_cours_le).eq('image_essais',article.image_essais);
+   if(e instanceof ArretSupervision)throw e;
+   return {erreur:message,article:article.id,essais,reprise};
+  }
  }
  // Programmation : la base refuse un texte à trous.
  const programmation=await db.rpc('programmer_publication_marketing',{p_id:article.id,p_pour:cible.parution});

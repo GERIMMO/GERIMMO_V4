@@ -41,7 +41,11 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
     await connecte(compte);
     await role("authenticated");
   };
-  const enTantQuePostgres = () => role("reset");
+  const enTantQuePostgres = async () => {
+    await role("reset");
+    // Une fixture sans utilisateur ne conserve pas le JWT du dernier acteur.
+    await db.query("select set_config('request.jwt.claims', '{}', true)");
+  };
 
   // Une tentative que l'on ATTEND refusée avorte la transaction du test si on
   // la joue nue : chacune se joue donc sous un point de reprise, qu'on annule.
@@ -653,6 +657,12 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
       `select public.artisan_decider_plateforme($1,'blacklist_globale','Attestation falsifiée')`,
       [artisan]
     );
+    // D08-C : le geste motivé consomme son permis ; aucune réutilisation, même par la même session.
+    await enTantQuePostgres();
+    expect((await db.query('select count(*)::int n from support_interne.maintenance_lignes where transaction_id=txid_current()')).rows[0].n).toBe(0);
+    await agir(sa);
+    await expect(essai('select support_interne.preparer_blacklist_globale($1)',[artisan])).rejects.toThrow(/permission denied/);
+    await expect(essai("update public.organizations set iban='TEST interdit après sanction' where id=$1",[orgA])).rejects.toThrow(/Traversée en lecture seule/);
     await agir(gerantA);
     const { rows: apres } = await db.query(
       `select * from public.artisans_affectables($1,'plomberie','entretien_courant','75011')`,

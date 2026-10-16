@@ -267,16 +267,16 @@ dans votre boîte.
 
 | Rôle | Adresse |
 |---|---|
-| Super admin (hors agence) | `tahir.brahim.pro+superadmin@gmail.com` |
-| Admin agence Alpha | `tahir.brahim.pro+adminagence@gmail.com` |
-| Agent Alpha | `tahir.brahim.pro+agent@gmail.com` |
-| Propriétaire mandant | `tahir.brahim.pro+mandant@gmail.com` |
-| Propriétaire en direct | `tahir.brahim.pro+direct@gmail.com` |
-| Locataire | `tahir.brahim.pro+locataire@gmail.com` |
-| Artisan | `tahir.brahim.pro+artisan@gmail.com` |
-| Garant | `tahir.brahim.pro+garant@gmail.com` |
-| **Double adhésion** Alpha + Beta | `tahir.brahim.pro+multi@gmail.com` |
-| Admin agence Beta (témoin) | `tahir.brahim.pro+beta@gmail.com` |
+| Super admin (hors agence) | `delivered+recette@resend.dev` |
+| Admin agence Alpha | `delivered+recette@resend.dev` |
+| Agent Alpha | `delivered+recette@resend.dev` |
+| Propriétaire mandant | `delivered+recette@resend.dev` |
+| Propriétaire en direct | `delivered+recette@resend.dev` |
+| Locataire | `delivered+recette@resend.dev` |
+| Artisan | `delivered+recette@resend.dev` |
+| Garant | `delivered+recette@resend.dev` |
+| **Double adhésion** Alpha + Beta | `delivered+recette@resend.dev` |
+| Admin agence Beta (témoin) | `delivered+recette@resend.dev` |
 
 **Parc.** 5 biens, 7 lots :
 - **Immeuble Voltaire**, 3 lots — **lots 1 et 3 à Bertrand, lot 2 à Nguyen** : deux

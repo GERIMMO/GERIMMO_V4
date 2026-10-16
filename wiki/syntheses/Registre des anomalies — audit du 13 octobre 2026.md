@@ -9,6 +9,10 @@ sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "
 
 # Registre des anomalies — audit du 13 octobre 2026
 
+> [!info] Relevé de la mission du 16 octobre, en soirée
+> État vérifié et preuves : [[Mission du 16 octobre — suivi vérifié]]. PR #197 fusionnée (`4a5ddf5`). Inscription publique et anonyme fermées, confirmation d’adresse active, liens limités à une heure et trois modèles de courrier enregistrés dans Supabase. La recette n°19 passe au premier essai ; la n°20 confirme les nouveaux réglages (39 réussites, 1 ignoré, aucun test instable, nettoyage réussi). La trace D04 a été relue : montant vide envoyé, aucun montant faux enregistré. Les compléments D18, D22, D08-C, X08, relais et dates sont préparés et testés localement, **pas encore publiés**. Les anciens constats ci-dessous sont datés ; cette mission ne clôt ni les avis spécialisés ni les limites de recette restantes.
+
+
 Registre vivant de la mission opérationnelle du 12/10/2026, tenu au fil des résultats. Version de départ de l'audit :
 commit `e9f31ac` de `main` (PR #177 incluse) ; la version testée par chaque volet figure sur chaque fiche (la branche
 candidate a été reconstruite et rejouée plusieurs fois). Banc local isolé et gratuit, aucun effet réel. **Chaque ligne vient

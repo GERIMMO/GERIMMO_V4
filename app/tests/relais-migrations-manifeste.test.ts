@@ -36,6 +36,16 @@ const POSTERIEURES = [
   "20261014850000_retention_registres_relais_ia.sql",
   "20261014851000_jour_de_paris_restitution_depot.sql",
 ];
+/** Mission du 16/10 : ajout après la chaîne déjà publiée ; aucun réordonnancement historique. */
+const MISSION_OCTOBRE = [
+  "20261016110000_devis_pdf_versions_alerte.sql",
+  "20261016110100_rdv_relance_accuse_agenda.sql",
+  "20261016150000_confirmation_auth.sql",
+  "20261016172453_traversee_lecture_seule.sql",
+  "20261016180000_relais_retention_sentinelle.sql",
+  "20261016190000_relance_report_reprise_sans_envoi.sql",
+  "20261016200000_jour_paris_complements.sql",
+];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [
   "20261014820000_jour_de_paris_depot_et_journal.sql",
@@ -54,7 +64,7 @@ describe("lot relais-alertes — manifeste et procédure de retour (sans base)",
     for (const nom of LOT) expect(lignes.filter((l) => l === nom), nom).toHaveLength(1);
     const premiere = lignes.indexOf(LOT[0]);
     expect(lignes.slice(premiere, premiere + LOT.length)).toEqual(LOT);
-    expect(lignes.slice(premiere + LOT.length)).toEqual(POSTERIEURES);
+    expect(lignes.slice(premiere + LOT.length)).toEqual([...POSTERIEURES, ...MISSION_OCTOBRE]);
   });
 
   it("les migrations déjà appliquées en production (820000, 821000, puis celles de la PR #190) restent devant celles du lot", () => {

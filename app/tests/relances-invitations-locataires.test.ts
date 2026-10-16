@@ -496,8 +496,10 @@ describe.skipIf(!DB_URL)("Relances des invitations de locataire (X16)", () => {
     await invitation();
     await figerJour(jour(3));
     let t = 0;
-    // Chaque lecture de l'horloge avance de 25 s : la passe s'arrête après 60 s.
-    const bilan = await envoyerRelancesInvitations(service, { maintenant: EN_JOURNEE, expedier, horloge: () => (t += 25_000) });
+    // Le temps avance pendant le travail, indépendamment du nombre de gardes temporelles.
+    const bilan = await envoyerRelancesInvitations(service, { maintenant: EN_JOURNEE, expedier:async(p)=>{
+      const r=await expedier(p);t+=30_000;return r;
+    }, horloge: () => t });
     expect(bilan.envoyees).toBeGreaterThanOrEqual(1);
     expect(bilan.restantes).toBeGreaterThanOrEqual(1);
     expect(bilan.envoyees + bilan.restantes).toBe(3);

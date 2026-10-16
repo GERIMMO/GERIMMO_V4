@@ -26,3 +26,11 @@ it("commence un brouillon sans imposer les étapes personnes et montants à l’
  m.acces.mockResolvedValue({user:{id:"moi"},supabase:{from:(table:string)=>table==="lots"?q:{insert}}});
  expect(await commencerBail("org","lot","bien")).toHaveProperty("bailCree","nouveau");expect(insert).toHaveBeenCalledWith({organization_id:"org",lot_id:"lot",type:"nu",etat:"brouillon"});expect(q.eq).toHaveBeenCalledWith("bien_id","bien");expect(q.eq).toHaveBeenCalledWith("organization_id","org");
 });
+
+it("X08 : la sauvegarde des clauses reste permise et renvoie le contrôle de cohérence",async()=>{
+ const form=new FormData();for(const [k,v] of Object.entries({encadrement_loyer:"true",loyer_reference:"1",loyer_reference_majore:"1,20"}))form.set(k,v);
+ const r=await modifierEtapeBail("org","bail","clauses",{},form);
+ expect(r.succes).toBeTruthy();expect(r.erreur).toBeUndefined();expect(r.avertissements?.map(a=>a.code)).toContain("base_superieure");
+ expect(m.update).toHaveBeenCalledWith(expect.objectContaining({loyer_reference:1,loyer_reference_majore:1.2}));
+ expect(m.update.mock.calls[0][0]).not.toHaveProperty("loyer_hc");
+});

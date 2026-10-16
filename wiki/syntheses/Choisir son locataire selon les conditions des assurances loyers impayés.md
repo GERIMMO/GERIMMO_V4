@@ -3,7 +3,7 @@ type: synthesis
 tags: [gli, assurance-loyers-impayes, selection-locataire, bailleur]
 status: draft
 created: 2026-10-14
-updated: 2026-10-14
+updated: 2026-10-16
 sources: []
 ---
 
@@ -13,6 +13,10 @@ sources: []
 > Aucune des pages citées n'a pu être ouverte pendant la recherche (réseau bloqué) : tous les chiffres viennent de résumés d'un moteur de recherche qui renvoient vers des documents d'assureurs, de Légifrance, de l'ANIL, de la CNIL, du Défenseur des droits et de Visale. Seuls les faits de confiance « haute » ou « moyenne » sont repris ; les faits de confiance « faible » sont écartés. Les versions des conditions générales ne sont pas toutes datées. Relire chaque seuil dans le document cité, dans sa version en vigueur, avant de l'afficher à un propriétaire. Aucune page source n'existe encore dans `wiki/sources/` : le champ `sources` reste vide.
 
 **Objet.** Aider le [[Propriétaire bailleur]] en gestion directe à rapprocher le dossier d'un candidat des conditions d'éligibilité de son assurance loyers impayés (GLI), avant la signature du [[Bail]], sans sortir du cadre légal. Il n'existe pas de règle commune : chaque contrat fixe ses propres seuils, et les valeurs ci-dessous sont des exemples datés d'un contrat donné, pas des normes. La [[Garantie]] enregistre le contrat souscrit ; le [[Dossier locataire]] porte les pièces.
+
+## État de publication au 16 octobre 2026
+
+La mission du 16 octobre applique la précaution Q9 : les conseils non relus sont masqués dans les parcours du bail dans la version locale candidate. Le contenu ci-dessous reste un brouillon de travail ; sa présence ici ne vaut ni relecture des sources ni validation juridique. La sélection d'un locataire et la gestion des garants restent disponibles. Remise en ligne seulement après relecture des sources primaires et de la qualification des conseils. Voir [[Mission du 16 octobre — suivi vérifié]]. Aucun déploiement de ce retrait n'est encore attesté.
 
 ## 1. Règles légales qui s'imposent à tout bailleur
 

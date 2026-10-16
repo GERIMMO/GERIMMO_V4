@@ -69,7 +69,7 @@ describe("Sécurité du compte : changer son mot de passe sans passer par un ema
   it("vérifie sur un client jetable, jamais sur la session en cours, et referme derrière lui", async () => {
     await changerMonMotDePasse({}, saisie(ANCIEN, NOUVEAU));
     expect(mocks.connexion).toHaveBeenCalledWith({ email: "moi@exemple.test", password: ANCIEN });
-    expect(mocks.sortieJetable).toHaveBeenCalled();
+    expect(mocks.sortieJetable).toHaveBeenCalledWith({ scope: "local" });
   });
 
   it("change le mot de passe, éjecte les AUTRES appareils, garde celui-ci, et journalise", async () => {

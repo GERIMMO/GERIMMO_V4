@@ -1,6 +1,7 @@
 import { expect, test, type Browser } from "@playwright/test";
 import { Client } from "pg";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
 import path from "node:path";
 import { sansSyntheseAlertes } from "./aides";
 
@@ -110,6 +111,52 @@ test.describe("Propriétaire direct : l'alias /espace", () => {
     }
   });
 
+  test("les fiches de lot, bail, personne et document restent sous /espace, ancien lien compris", async ({ browser, page }) => {
+    test.setTimeout(180_000);
+    const url=baseLocale(), api=process.env.NEXT_PUBLIC_SUPABASE_URL;
+    test.skip(!url || !api || !/^http:\/\/(localhost|127\.0\.0\.1):\d{1,5}$/.test(api),"Base et stockage fictifs locaux requis");
+    const storage=createClient(api!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false}});
+    const stockage=`${PD}/alias-${randomUUID()}.pdf`;
+    const pdf=Buffer.from("%PDF-1.7\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Count 0 /Kids [] >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF");
+    const db=new Client({connectionString:url!});await db.connect();
+    let bailId:string|undefined,documentId:string|undefined;
+    const titre=`TEST D27 document ${randomUUID().slice(0,8)}`;
+    try {
+      const {rows:[lot]}=await db.query("select id,bien_id from public.lots where organization_id=$1 and etat='disponible' order by created_at limit 1",[PD]);
+      const {rows:[personne]}=await db.query("select id from public.persons where organization_id=$1 and email='locataire.pd@gerimmo-demo.fr'",[PD]);
+      expect(lot,"Lot fictif disponible requis").toBeDefined();expect(personne,"Locataire fictif requis").toBeDefined();
+      bailId=(await db.query("insert into public.baux(organization_id,lot_id,locataire_principal,etat,loyer_hc,charges,date_debut) values($1,$2,$3,'brouillon',700,40,current_date+7) returning id",[PD,lot.id,personne.id])).rows[0].id;
+      const depot=await storage.storage.from("documents").upload(stockage,pdf,{contentType:"application/pdf"});
+      expect(depot.error).toBeNull();
+      documentId=(await db.query("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'bail',$2,$3,'application/pdf',$4,$5) returning id",[PD,titre,stockage,pdf.length,createHash("sha256").update(pdf).digest("hex")])).rows[0].id;
+      await db.query("insert into public.document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'bail',$3)",[PD,documentId,bailId]);
+      for(const suite of [`/parc/${lot.bien_id}/lots/${lot.id}`,`/baux/${bailId}`,`/personnes/${personne.id}`,`/documents?sel=${documentId}`]) {
+        const ancien=await sansSuivre(browser,"proprietaire",`/agence/${PD}${suite}`);
+        expect(ancien.statut,suite).toBe(308);
+        const lieu=new URL(ancien.lieu,"http://adresse.invalide");
+        expect(lieu.pathname+lieu.search,suite).toBe(`/espace/${PD}${suite}`);
+        const reponse=await page.goto(`/espace/${PD}${suite}`);
+        expect(reponse?.status(),suite).toBe(200);
+        await expect(page.locator("h1").first(),suite).toBeVisible();
+        const liens=await page.locator("a[href],form[action]").evaluateAll(els=>els.map(e=>e.getAttribute("href")??e.getAttribute("action")??""));
+        expect(liens.filter(l=>/^\/agence(\/|$)/.test(l)),suite).toEqual([]);
+        expect(new URL(page.url()).pathname+new URL(page.url()).search,suite).toBe(`/espace/${PD}${suite}`);
+      }
+      await expect(page.locator("body")).toContainText(titre);
+      const fichier=await page.request.get(`/espace/${PD}/documents/${documentId}/fichier`);
+      expect(fichier.status()).toBe(200);
+      expect(fichier.headers()["content-type"]).toContain("application/pdf");
+      expect(await fichier.body()).toEqual(pdf);
+    } finally {
+      await page.close();
+      if(documentId){await db.query("delete from public.acces_pieces_log where document_id=$1",[documentId]);await db.query("delete from public.document_liens where document_id=$1",[documentId]);await db.query("delete from public.documents where id=$1",[documentId]);}
+      if(bailId)await db.query("delete from public.baux where id=$1",[bailId]);
+      const retrait=await storage.storage.from("documents").remove([stockage]);
+      expect(retrait.error).toBeNull();
+      await db.end();
+    }
+  });
+
   test("une action serveur postée sous /espace aboutit et ramène sous /espace (déclarer un incident)", async ({ page }) => {
     const description = `TEST D27 alias ${randomUUID().slice(0, 8)}`;
     const posts: string[] = [];
@@ -197,16 +244,31 @@ test.describe("Autres profils : aucun accès par l'alias, aucune garde affaiblie
   }
 
   test("admin : son agence reste servie sous /agence, sans redirection, et ses liens restent sous /agence", async ({ browser }) => {
+    test.setTimeout(180_000);
+    const url = baseLocale();
+    test.skip(!url, "Base API fictive locale requise (SUPALOCAL_DB)");
+    const db = new Client({ connectionString: url! });
+    await db.connect();
+    let bailId: string;
+    try {
+      const baux = await db.query("select id from public.baux where organization_id=$1 order by created_at desc limit 1", [AGENCE]);
+      expect(baux.rows.length, "Un bail de démonstration est requis").toBe(1);
+      bailId = baux.rows[0].id;
+    } finally { await db.end(); }
     const r = await sansSuivre(browser, "admin", `/agence/${AGENCE}/parc`);
     expect(r.statut).toBe(200);
     const context = await browser.newContext({ storageState: etat("admin") });
     try {
       const page = await context.newPage();
       await sansSyntheseAlertes(page);
-      await page.goto(`/agence/${AGENCE}/parc`);
-      await expect(page).toHaveURL(new RegExp(`/agence/${AGENCE}/parc$`));
-      const liens = await page.$$eval("a[href]", (as) => as.map((a) => a.getAttribute("href") ?? ""));
-      expect(liens.filter((h) => h.startsWith("/espace/"))).toEqual([]);
+      for (const ecran of ["/parc", `/baux/${bailId}`, "/incidents", "/loyers", "/alertes", "/documents"]) {
+        const reponse = await page.goto(`/agence/${AGENCE}${ecran}`);
+        expect(reponse?.status(), ecran).toBe(200);
+        await expect(page.locator("h1").first(), ecran).toBeVisible();
+        await expect(page).toHaveURL(new RegExp(`/agence/${AGENCE}${ecran}$`));
+        const liens = await page.$$eval("a[href],form[action]", (els) => els.map((e) => e.getAttribute("href") ?? e.getAttribute("action") ?? ""));
+        expect(liens.filter((h) => h.startsWith("/espace/")), ecran).toEqual([]);
+      }
     } finally {
       await context.close();
     }

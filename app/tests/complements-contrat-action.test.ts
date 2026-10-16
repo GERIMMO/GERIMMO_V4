@@ -6,10 +6,10 @@ vi.mock('@/lib/email', () => ({ envoyerEmail: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalider }));
 import { modifierComplementsBail } from '@/app/actions/baux';
 beforeEach(() => vi.clearAllMocks());
-function client(lignes: unknown[] = [{ id: 'bail' }]) {
+function client(lignes: unknown[] = [{ id: 'bail' }], loyerHc = 1500) {
   const filtres: unknown[] = []; let ecriture = false;
   const q = { update: (v: unknown) => { ecriture = true; mocks.update(v); return q; }, eq: (k: string,v: unknown) => { filtres.push([k,v]); return q; }, select: () => ecriture ? Promise.resolve({ data: lignes, error: null }) : q,
-    maybeSingle: async () => ({ data: { lot: { surface_m2: 50 } }, error: null }) };
+    maybeSingle: async () => ({ data: { loyer_hc: loyerHc, lot_id: "lot", lot: { surface_m2: 50, bien_id: "bien" } }, error: null }) };
   mocks.acces.mockResolvedValue({ user: { id:'gerant' }, supabase: { from: () => q } }); return filtres;
 }
 it('refuse une session non autorisée', async () => {
@@ -30,4 +30,15 @@ it('enregistre les nouveaux choix explicites et recharge le dossier', async () =
   expect(await modifierComplementsBail('org','bail',{},f)).toHaveProperty('succes');
   expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ encadrement_loyer: false, servitude_residence_principale: true, clause_resolutoire_servitude: true }));
   expect(mocks.revalider).toHaveBeenCalledWith('/agence/org/baux/bail');
+});
+
+it('X08 : enregistre les montants inchangés et renvoie un avertissement après succès', async () => {
+  client(); const f = new FormData();
+  for (const [k,v] of Object.entries({encadrement_loyer:'true',loyer_reference:'20',loyer_reference_majore:'24',complement_loyer:'100',complement_justification:'Terrasse'})) f.set(k,v);
+  const r = await modifierComplementsBail('org','bail',{},f);
+  expect(r.succes).toBeTruthy(); expect(r.erreur).toBeUndefined();
+  expect(r.avertissements?.map(a=>a.code)).toContain('base_superieure');
+  expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({loyer_reference:20,loyer_reference_majore:24,complement_loyer:100}));
+  expect(mocks.update.mock.calls[0][0]).not.toHaveProperty('loyer_hc');
+  expect(mocks.revalider).toHaveBeenCalledWith('/agence/org/parc/bien/lots/lot');
 });

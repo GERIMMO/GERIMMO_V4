@@ -27,10 +27,7 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
     .eq("status", "active")
     .maybeSingle();
   if (!adhesion || !ROLES_GERANTS.includes(adhesion.role)) {
-    // Le SUPER ADMIN entre partout (décision Tahir 09/09 : « toutes les
-    // autorisations ») : sans adhésion locale, il porte le rôle plein de
-    // l'organisation visitée — la base le reconnaît de son côté
-    // (org_ids_avec_roles), la traçabilité reste au compte.
+    // D08-C : hors adhésion locale, le rôle sert uniquement à présenter les lectures.
     const { data: superAdmin } = await supabase.rpc("is_super_admin");
     if (superAdmin) {
       const { data: org } = await supabase
@@ -52,6 +49,7 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
           role: org.type === "proprietaire_direct" ? "proprietaire_direct" : "admin_agence",
           organisation: org,
           estProprietaire: org.type === "proprietaire_direct",
+          traverseeLectureSeule: true,
         };
       }
       // Le super-administrateur a demandé une organisation qui n'existe pas :
@@ -80,6 +78,7 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
     supabase,
     user,
     role: adhesion.role as string,
+    traverseeLectureSeule: false,
     organisation,
     // S9a : le propriétaire direct reprend les écrans de l'agence, sans
     // mandats ni honoraires — les pages s'adaptent sur ce seul drapeau.

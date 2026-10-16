@@ -41,6 +41,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import pg from 'pg';
 import { exporter, extraire, SCHEMAS, verifier } from './base.mjs';
+import { verifierSupportInterne } from './restaurer-archive.mjs';
 
 const PRODUCTION = 'rddlxunppddzpsaatdaz';
 const LOCAUX = ['127.0.0.1', 'localhost', '::1'];
@@ -72,10 +73,23 @@ const INSTANTANES = {
   droits_tables: `select grantee||' '||table_schema||'.'||table_name||' '||privilege_type from information_schema.role_table_grants
                    where grantee in ('anon','authenticated','service_role') and table_schema in (${SCHEMAS.map(s => `'${s}'`).join(',')}) order by 1`,
   droits_colonnes: `select grantee||' '||table_schema||'.'||table_name||'.'||column_name||' '||privilege_type from information_schema.column_privileges
-                     where grantee in ('anon','authenticated') and table_schema='public' order by 1`,
+                     where grantee in ('anon','authenticated') and table_schema in (${SCHEMAS.map(s => `'${s}'`).join(',')}) order by 1`,
   droits_fonctions: `select r.rolname||' '||p.oid::regprocedure::text from pg_proc p join pg_namespace n on n.oid=p.pronamespace
                       cross join (values ('anon'),('authenticated'),('service_role')) r(rolname)
-                      where n.nspname='public' and p.prokind='f' and has_function_privilege(r.rolname,p.oid,'EXECUTE') order by 1`,
+                      where n.nspname in (${SCHEMAS.map(s => `'${s}'`).join(',')}) and p.prokind='f' and has_function_privilege(r.rolname,p.oid,'EXECUTE') order by 1`,
+  droits_schemas: `select r.rolname||' '||n.nspname||' '||has_schema_privilege(r.rolname,n.oid,'USAGE')||' '||has_schema_privilege(r.rolname,n.oid,'CREATE')
+    from pg_namespace n cross join (values ('anon'),('authenticated'),('service_role')) r(rolname)
+    where n.nspname in (${SCHEMAS.map(s => `'${s}'`).join(',')}) order by 1`,
+  fonctions: `select n.nspname||'.'||p.oid::regprocedure::text||' '||md5(pg_get_functiondef(p.oid))
+    from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname in (${SCHEMAS.map(s => `'${s}'`).join(',')}) and p.prokind='f' order by 1`,
+  declencheurs: `select n.nspname||'.'||c.relname||' '||t.tgname||' '||t.tgenabled::text||' '||pg_get_triggerdef(t.oid)
+    from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname in (${SCHEMAS.map(s => `'${s}'`).join(',')}) and not t.tgisinternal order by 1`,
+  commentaires: `select pg_describe_object(d.classoid,d.objoid,d.objsubid)||' '||d.description
+    from pg_description d cross join lateral pg_identify_object(d.classoid,d.objoid,d.objsubid) i
+    where i.schema in (${SCHEMAS.map(s => `'${s}'`).join(',')})
+      or (d.classoid='pg_namespace'::regclass and d.objoid in (select oid from pg_namespace where nspname in (${SCHEMAS.map(s => `'${s}'`).join(',')}))) order by 1`,
 };
 
 /** `lire(sql)` rend une liste de lignes texte (première colonne). */
@@ -111,6 +125,7 @@ export async function exercer({ source, cible = 'gerimmo_restauration', garder =
   // concurrentes (autres tests, application) ne faussent pas la comparaison.
   const client = new pg.Client({ connectionString: source });
   await client.connect();
+  let cibleClient;
   try {
     await client.query('begin transaction isolation level repeatable read read only');
     const { rows: [{ snapshot }] } = await client.query('select pg_export_snapshot() as snapshot');
@@ -127,7 +142,7 @@ export async function exercer({ source, cible = 'gerimmo_restauration', garder =
     psql(adminUrl, `drop database if exists ${cible}`);
     psql(adminUrl, `create database ${cible}`);
     // Un projet Supabase neuf a déjà ses rôles (grappe) et le schéma des
-    // extensions ; le dump apporte public, auth et storage.
+    // extensions ; le dump apporte aussi le registre privé support_interne.
     psql(cibleUrl, 'drop schema if exists public cascade');
     psql(cibleUrl, 'create schema if not exists extensions; create extension if not exists pgcrypto with schema extensions; grant usage on schema extensions to anon, authenticated, service_role');
     const r = spawnSync('pg_restore', ['--no-owner', '--exit-on-error', '--dbname', cibleUrl, path.join(travail, 'clair', 'base.dump')], { encoding: 'utf8' });
@@ -136,7 +151,7 @@ export async function exercer({ source, cible = 'gerimmo_restauration', garder =
 
     t = Date.now();
     const lireSource = lecteur(client);
-    const cibleClient = new pg.Client({ connectionString: cibleUrl });
+    cibleClient = new pg.Client({ connectionString: cibleUrl });
     await cibleClient.connect();
     const lireCible = lecteur(cibleClient);
     const lignesSource = await lignesParTable(lireSource), lignesCible = await lignesParTable(lireCible);
@@ -144,13 +159,16 @@ export async function exercer({ source, cible = 'gerimmo_restauration', garder =
       .filter(k => lignesSource[k] !== lignesCible[k])
       .map(k => `${k} : ${lignesSource[k] ?? 'absente'} → ${lignesCible[k] ?? 'absente'}`);
     const ecarts = {};
+    bilan.objets_compares = {};
     for (const [nom, sql] of Object.entries(INSTANTANES)) {
-      const e = ecart(await lireSource(sql), await lireCible(sql));
+      const origine = await lireSource(sql);
+      bilan.objets_compares[nom] = origine.length;
+      const e = ecart(origine, await lireCible(sql));
       if (e.manquants.length || e.en_trop.length) ecarts[nom] = { manquants: e.manquants.slice(0, 20), en_trop: e.en_trop.slice(0, 20), total: e.manquants.length + e.en_trop.length };
     }
     const ouvertesAnon = Number((await lireCible(`select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
       where n.nspname='public' and p.prokind='f' and has_function_privilege('anon',p.oid,'EXECUTE')`))[0]);
-    await cibleClient.end();
+    bilan.support_interne = await verifierSupportInterne(cibleClient, SCHEMAS.includes('support_interne'));
     // D07 : les tâches pg_cron de la source (`cron.job`, hors des schémas sauvegardés) doivent se retrouver dans l'archive.
     const cronPresent = (await lireSource(`select (to_regclass('cron.job') is not null)::text`))[0] === 'true';
     const tachesSource = cronPresent ? Number((await lireSource('select count(*) from cron.job'))[0]) : 0;
@@ -167,6 +185,7 @@ export async function exercer({ source, cible = 'gerimmo_restauration', garder =
     bilan.date = new Date().toISOString();
     return bilan;
   } finally {
+    await cibleClient?.end().catch(() => {});
     await client.query('rollback').catch(() => {});
     await client.end().catch(() => {});
     await fs.rm(travail, { recursive: true, force: true });

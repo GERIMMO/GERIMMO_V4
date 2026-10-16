@@ -113,3 +113,8 @@ direction) est lui aussi laissé tel quel : ce compteur est **déjà au jour de 
 > - **Non vérifié en production** : la recette ne joue aucune saisie faite entre minuit et
 >   2 h à Paris (encaissement, dépôt, révision IRL) ; le premier cycle mensuel après ces lots
 >   aura lieu le 01/11.
+
+
+## Compléments préparés le 16 octobre
+
+Dans le cadre de la mission confiée avec carte blanche, la recommandation Q3 est préparée en local : les valeurs par défaut des factures d’honoraires, appels de copropriété et clés de répartition, les comparaisons des alertes d’assurance et de restitution, l’ouverture en écriture et la priorité de pilotage utilisent le jour de Paris. Le rappel d’assurance applique la même date à son indicateur d’expiration et à son nom de fichier. Les anciennes dates et les montants restent inchangés. Migration `20261016200000_jour_paris_complements`, retour atomique associé. Voir [[Mission du 16 octobre — suivi vérifié]] pour l’état de validation et de publication ; cette préparation n’est pas encore une livraison.

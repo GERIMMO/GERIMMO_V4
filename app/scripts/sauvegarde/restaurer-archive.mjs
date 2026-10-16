@@ -9,7 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import pg from 'pg';
-import { extraire as extraireBase, argumentsConnexion } from './base.mjs';
+import { extraire as extraireBase, argumentsConnexion, SCHEMAS } from './base.mjs';
 import { extraire as extraireFichiers, verifier as verifierFichiers, lireCle } from './fichiers.mjs';
 import { FICHIER_TACHES_CLAIR, genererRejeu, normaliserTaches } from './taches-planifiees.mjs';
 
@@ -60,6 +60,38 @@ export async function verifierRejeuTaches(cible, taches) {
   } finally {
     await cible.query('drop schema cron cascade').catch(() => {});
   }
+}
+
+/** Le registre D08-C doit rester privé après import, y compris ses fonctions et ses déclencheurs. */
+export async function verifierSupportInterne(cible, attendu = false) {
+  const present = (await cible.query("select to_regnamespace('support_interne') is not null as present")).rows[0].present;
+  if (!present) {
+    const dependant = (await cible.query("select to_regprocedure('public.preparer_encaissement_support(uuid,uuid,uuid,numeric,numeric,text)') is not null or to_regprocedure('public.poser_gardes_traversee()') is not null as present")).rows[0].present;
+    if (attendu || dependant) throw new Error('Le registre privé de support manque dans la restauration.');
+    return { present: false };
+  }
+  const etat = (await cible.query(`select
+    (select count(*) from pg_namespace n cross join (values ('anon'),('authenticated')) r(nom)
+      where n.nspname='support_interne' and (has_schema_privilege(r.nom,n.oid,'USAGE') or has_schema_privilege(r.nom,n.oid,'CREATE'))) as schema_ouvert,
+    (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace cross join (values ('anon'),('authenticated')) r(nom)
+      where n.nspname='support_interne' and has_function_privilege(r.nom,p.oid,'EXECUTE')) as fonctions_ouvertes,
+    (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace cross join (values ('anon'),('authenticated')) r(nom)
+      where n.nspname='support_interne' and c.relkind='r' and has_table_privilege(r.nom,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')) as tables_ouvertes,
+    (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+      where n.nspname='support_interne' and c.relkind='r' and not c.relrowsecurity) as tables_sans_rls,
+    (select count(*) from (values ('gestes_encaissement'),('controles_organisation'),('maintenance_lignes')) t(nom)
+      where to_regclass('support_interne.'||t.nom) is null) as tables_manquantes,
+    (select count(*) from (values ('preparer_maintenance_artisans()'),('preparer_blacklist_globale(uuid)'),('garder_ecriture_traversee()'),('refuser_auto_habilitation()'),('purger_gestes_support()')) f(signature)
+      where to_regprocedure('support_interne.'||f.signature) is null) as fonctions_manquantes,
+    (select count(*) from (values ('public.organizations','traversee_lecture_seule','garder_ecriture_traversee()'),
+      ('storage.objects','traversee_lecture_seule','garder_ecriture_traversee()'),
+      ('public.memberships','traversee_auto_habilitation','refuser_auto_habilitation()')) g(cible,nom,fonction)
+      where not exists(select 1 from pg_trigger t where t.tgrelid=to_regclass(g.cible) and t.tgname=g.nom
+        and t.tgenabled in ('O','A') and t.tgfoid=to_regprocedure('support_interne.'||g.fonction))) as gardes_manquantes,
+    (select count(*) from pg_trigger t join pg_proc p on p.oid=t.tgfoid join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname='support_interne' and t.tgenabled not in ('O','A')) as gardes_inactives`)).rows[0];
+  if (Object.values(etat).some(n => Number(n) !== 0)) throw new Error('Les protections du registre privé de support ne sont pas confirmées.');
+  return { present: true, protections: 'validées' };
 }
 
 export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
@@ -113,7 +145,7 @@ export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
       throw new Error(`Restauration interrompue : ${categorie}. Aucun contenu de la base affiché.`);
     }
     const tables = (await cible.query(`select schemaname,tablename from pg_tables
-      where schemaname in ('public','auth','storage') order by 1,2`)).rows;
+      where schemaname=any($1::text[]) order by 1,2`, [SCHEMAS])).rows;
     let lignes = 0;
     for (const t of tables) {
       const ident = x => '"' + x.replaceAll('"', '""') + '"';
@@ -127,6 +159,8 @@ export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
       (select count(*) from pg_constraint c join pg_namespace n on n.oid=c.connamespace
         where n.nspname='public' and c.contype='f' and not c.convalidated) as contraintes_non_validees`)).rows[0];
     if (Object.values(securite).some(n => Number(n) !== 0)) throw new Error('Les protections de la base restaurée ne sont pas toutes confirmées.');
+    const manifesteBase = JSON.parse(await fs.readFile(path.join(travail, 'base/restauration-base.json'), 'utf8'));
+    const supportInterne = await verifierSupportInterne(cible, manifesteBase.schemas?.includes('support_interne'));
     const objets = (await cible.query('select bucket_id,name from storage.objects')).rows;
     const dansArchive = new Set(manifeste.objets.map(f => `${f.bucket}/${f.nom}`));
     const dansBase = new Set(objets.map(f => `${f.bucket_id}/${f.name}`));
@@ -142,7 +176,7 @@ export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
     }
     return { reussi: true, date: new Date().toISOString(), sauvegarde: prefixe, date_sauvegarde: infoBase.date,
       tables: tables.length, lignes, fichiers: manifeste.objets.length, fichiers_manquants: manquants,
-      octets_base: infoBase.octets, protections: 'validées', taches_planifiees: tachesPlanifiees, duree_secondes: Math.ceil((Date.now() - debut) / 1000),
+      octets_base: infoBase.octets, protections: 'validées', support_interne: supportInterne, taches_planifiees: tachesPlanifiees, duree_secondes: Math.ceil((Date.now() - debut) / 1000),
       portee: 'Base PostgreSQL et fichiers restaurés localement ; bascule des services Supabase non effectuée. Tâches pg_cron : liste et script de rejeu contrôlés sur un planificateur de façade ; pg_cron et pg_net non activés.' };
   } finally {
     if (cible) await cible.end().catch(() => {});

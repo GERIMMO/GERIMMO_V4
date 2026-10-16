@@ -38,8 +38,8 @@ jobs:
       GERIMMO_ARTISAN_REGLEMENTS_LOCAUX: "1"
       PLANNING_CONFLITS_CONCURRENCE: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -114,7 +114,7 @@ jobs:
         run: npm run test:e2e
       - name: Conserver les résultats du navigateur
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: essais-interactifs
           path: |
@@ -125,7 +125,7 @@ jobs:
           if-no-files-found: ignore
       - name: Conserver les épreuves PDF de recette
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: epreuves-pdf
           path: |

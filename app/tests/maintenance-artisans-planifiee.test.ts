@@ -451,13 +451,43 @@ describe.skipIf(!DB_URL)("AUT-01 — la purge des motifs de liste noire n'est pa
     const sa = await compte("sa");
     await db.query(`insert into public.memberships (account_id, organization_id, role) values ($1,null,'super_admin')`, [sa]);
     await agir(sa, { aal: "aal2" });
+    expect(await refusee(`select support_interne.preparer_maintenance_artisans()`)).toMatch(/permission denied/);
+    expect(await refusee(`select * from support_interne.maintenance_lignes`)).toMatch(/permission denied/);
+    // Atteindre le trigger comme une RPC SECURITY DEFINER, tout en gardant le JWT SA.
+    await db.query("reset role");
+    expect(await refusee(`update public.incident_devis set statut='expire' where id=$1`, [perime.devis])).toMatch(/Traversée en lecture seule/);
+    await agir(sa, { aal: "aal2" });
     const { rows } = await db.query(`select devis_expires, motifs_purges from public.maintenance_artisans()`);
+    // Le permis ne survit pas à la RPC, même dans la même transaction et le même compte.
+    await db.query("reset role");
+    expect(await refusee(`update public.incident_devis set statut='depose' where id=$1`, [perime.devis])).toMatch(/Traversée en lecture seule/);
+    await db.query("reset role");
+    expect((await db.query("select count(*)::int n from support_interne.maintenance_lignes where transaction_id=txid_current()")).rows[0].n).toBe(0);
+    expect((await db.query("select account_id,details from public.audit_log where action='maintenance_artisans_console' and account_id=$1",[sa])).rows).toEqual([{account_id:sa,details:{auteur_reel:sa,devis_expires:1,motifs_purges:2}}]);
     expect(rows).toEqual([{ devis_expires: 1, motifs_purges: 2 }]);
     expect(await lire(d, locale, globale)).toEqual({
       locale: { blacklist_motif: null, purge: false },
       globale: { blacklist_motif: null, purge: false },
     });
     expect((await statuts({ devis: [perime.devis!] })).devis).toEqual({ [perime.devis!]: "expire" });
+  });
+
+  it("la maintenance manuelle expire une révision due avec son événement et son alerte exacts", async () => {
+    const d = await monterDossier();
+    const a = await sollicitéAvecDevis(d, "Révision échue", 20);
+    await agir(d.gerant);
+    await db.query("select public.demander_revision_devis($1,$2,'TEST préciser les quantités',gen_random_uuid())",[d.org,a.devis]);
+    await agir(null);
+    await db.query("update public.incident_sollicitations set revision_avant=public.aujourdhui_paris()-1 where id=$1",[a.sollicitation]);
+    const sa = await compte("sa");
+    await db.query("insert into public.memberships(account_id,role) values($1,'super_admin')",[sa]);
+    await agir(sa,{aal:"aal2"});
+    await db.query("select * from public.maintenance_artisans()");
+    await db.query("reset role");
+    expect((await db.query("select statut from public.incident_sollicitations where id=$1",[a.sollicitation])).rows[0].statut).toBe("expiree");
+    expect((await db.query("select count(*)::int n from public.incident_evenements where incident_id=$1 and type='devis_revision_expiree'",[d.incident])).rows[0].n).toBe(1);
+    expect((await db.query("select count(*)::int n from public.alerts where origine_id=$1 and type='devis_revision_expiree'",[a.sollicitation])).rows[0].n).toBe(1);
+    expect((await db.query("select count(*)::int n from support_interne.maintenance_lignes where transaction_id=txid_current()")).rows[0].n).toBe(0);
   });
 
   it("la version publique appelle la version interne (une seule définition de la caducité)", async () => {
@@ -653,6 +683,8 @@ describe.skipIf(!DB_URL)("AUT-01 — rejeu et retour arrière", () => {
       // D18 livraison 2 (20261014601000) ajoute à `maintenance_artisans_interne` l'expiration des demandes de révision,
       // par ancre sur la définition en vigueur : la chaîne se rejoue dans l'ordre du manifeste, elle aussi.
       if (existsSync(MIGRATION_REVISION_DEVIS)) await db.query(readFileSync(MIGRATION_REVISION_DEVIS, "utf8"));
+      // D08-C complète la maintenance de console ; réappliquer la chaîne jusqu’à son dernier correctif.
+      await db.query(readFileSync("supabase/migrations/20261016172453_traversee_lecture_seule.sql", "utf8"));
       expect(await empreinte()).toEqual(avant);
     }
   });

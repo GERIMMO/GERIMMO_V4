@@ -19,12 +19,12 @@ concurrency:
 jobs:
   preparer:
     if: github.ref == 'refs/heads/main' && vars.GERIMMO_CODEX_ENABLED == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
       base: ${{ steps.base.outputs.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - id: base
@@ -49,22 +49,22 @@ jobs:
           prompt-file: /tmp/consigne.txt
           output-file: proposition.json
           codex-args: '["--output-schema","app/scripts/atelier/schema.json"]'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: proposition
           path: proposition.json
           retention-days: 7
   proposer:
     needs: preparer
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: main
           persist-credentials: false
           sparse-checkout: app/scripts/atelier
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: proposition
           path: correction

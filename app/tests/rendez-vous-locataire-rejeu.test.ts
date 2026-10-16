@@ -49,7 +49,14 @@ describe.skipIf(!url)("D22 — rejeu de la migration du report et de l'annulatio
     (await db.query("select (length(d) - length(replace(d, 'Décision D22', ''))) / length('Décision D22') as n from pg_get_functiondef($1::regprocedure) d", [sig])).rows[0].n as number;
 
   beforeAll(async () => { db = new Client({ connectionString: url }); await db.connect(); await db.query("begin"); });
-  beforeEach(async () => { await db.query("savepoint cas"); });
+  beforeEach(async () => {
+    await db.query("savepoint cas");
+    // Rejouer le palier D22 initial : le complément du 16/10 a élargi le type de retour
+    // de mes_demandes_rdv_artisan, qu'un CREATE OR REPLACE historique ne peut pas réduire.
+    for(const nom of ['20261016190000_relance_report_reprise_sans_envoi','20261016110100_rdv_relance_accuse_agenda']) {
+      await db.query(readFileSync(new URL(`../supabase/retours-arriere/${nom}.retour.sql`,import.meta.url),'utf8'));
+    }
+  });
   afterEach(async () => { await db.query("rollback to savepoint cas"); });
   afterAll(async () => { await db?.query("rollback"); await db?.end(); });
 

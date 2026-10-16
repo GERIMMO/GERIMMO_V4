@@ -25,7 +25,7 @@ try {
   await db.query(await readFile(new URL('e2e/local/bootstrap-supabase-local.sql', app), 'utf8'));
   // Conserve les déclarations de tâches, sans lancer de travail automatique.
   await db.query(`create schema cron;
-    create table cron.job(jobid bigserial primary key,jobname text unique,schedule text,command text);
+    create table cron.job(jobid bigserial primary key,jobname text unique,schedule text,command text,active boolean not null default true);
     create function cron.schedule(text,text,text) returns bigint language sql as $$
       insert into cron.job(jobname,schedule,command) values($1,$2,$3)
       on conflict(jobname) do update set schedule=excluded.schedule,command=excluded.command returning jobid $$;

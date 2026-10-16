@@ -156,9 +156,9 @@ describe("relais de 5 h : le passage finit avant la coupure de la route", () => 
     // à prendre un envoi et 4 s à lire la sentinelle. Échéance des urgences : 45 s moins un appel, soit 35 s.
     //   0 s → 12 s     traiter_vacances
     //   tour 1         reste 23 s avant 35 s : appel borné à 10 s ; prise 12 → 16 s ; e-mails 16 → 25,999 s
-    //   tour 2         reste 9,001 s : appel borné à 9,001 s ; prise → 29,999 s ; e-mails → 38,999 s
+    //   tour 2         reste 9,001 s ; prise → 29,999 s ; budget recalculé à 5,001 s ; e-mails → 34,999 s
     //   tour 3         reste moins d'une seconde : pas commencé (la file attend le passage suivant)
-    //   sentinelle     38,999 → 42,999 s ; e-mail de 5 h borné aux 2,001 s qui restent avant 45 s ; fini à 44,999 s
+    //   sentinelle     34,999 → 38,999 s ; e-mail de 5 h borné aux 6,001 s qui restent avant 45 s ; fini à 44,999 s
     const h = horlogeSimulee();
     const s = serviceSimule("lent", h);
     const b = basePireCas({ traiter_vacances: 12_000, prendre_urgences_relais: 4_000, sentinelle_relais: 4_000 }, h);
@@ -167,7 +167,7 @@ describe("relais de 5 h : le passage finit avant la coupure de la route", () => 
 
     // Les urgences : deux tours seulement, le second borné au temps restant avant leur échéance.
     expect(nombreDAppels(b.appels, "prendre_urgences_relais")).toBe(2);
-    expect(s.appels.filter((a) => a.sorte === "urgence").map((a) => a.delai)).toEqual([10_000, 10_000, 9_001, 9_001]);
+    expect(s.appels.filter((a) => a.sorte === "urgence").map((a) => a.delai)).toEqual([10_000, 10_000, 5_001, 5_001]);
     // L'e-mail de 5 h : chaque appel borné au temps restant avant 45 s (moins que les 10 s d'un appel).
     const quotidiens = s.appels.filter((a) => a.sorte === "quotidien");
     expect(quotidiens).toHaveLength(2);
@@ -182,10 +182,9 @@ describe("relais de 5 h : le passage finit avant la coupure de la route", () => 
     expect(terminaison(b.appels)).toMatchObject({ p_jour: JOUR, p_statut: "envoye", p_envoyes: 2 });
   });
 
-  it("base très lente : 45 s dépassées, l'e-mail de 5 h part quand même avec une seconde, jamais un délai négatif ; le résultat est consigné", async () => {
-    // 7 s pour actualiser le relais, prendre un envoi et lire la sentinelle : les e-mails de 5 h commencent à 47,998 s,
-    // après la fin des envois. L'appel garde une seconde (un délai négatif ferait échouer l'envoi à coup sûr :
-    // `AbortSignal.timeout` le refuse).
+  it("base très lente : le temps de prise est décompté, l’e-mail de 5 h garde son budget avant 45 s", async () => {
+    // 7 s pour chaque lecture : le deuxième tour recalcule son délai après la prise.
+    // Les e-mails de 5 h commencent à 41,999 s, avec 3,001 s disponibles.
     const h = horlogeSimulee();
     const s = serviceSimule("lent", h);
     const b = basePireCas({ traiter_vacances: 7_000, prendre_urgences_relais: 7_000, sentinelle_relais: 7_000 }, h);
@@ -193,8 +192,8 @@ describe("relais de 5 h : le passage finit avant la coupure de la route", () => 
 
     expect(nombreDAppels(b.appels, "prendre_urgences_relais")).toBe(2);
     const quotidiens = s.appels.filter((a) => a.sorte === "quotidien");
-    expect(quotidiens.map((a) => a.delai)).toEqual([1_000, 1_000]);
-    expect(quotidiens[0].debut).toBeGreaterThan(s.debut + DUREE_ROUTE_MS * 0.75);
+    expect(quotidiens.map((a) => a.delai)).toEqual([3_001, 3_001]);
+    expect(quotidiens[0].debut).toBeLessThan(s.debut + DUREE_ROUTE_MS * 0.75);
     expect(s.horloge() - s.debut).toBeLessThan(DUREE_ROUTE_MS);
     expect(r).toMatchObject({ statut: "envoye", envoyes: 2 });
     expect(terminaison(b.appels)).toMatchObject({ p_jour: JOUR, p_statut: "envoye", p_envoyes: 2 });

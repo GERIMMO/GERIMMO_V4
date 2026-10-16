@@ -1,4 +1,6 @@
 "use client";
+import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
+import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
 import { EtapeComplementsBail } from "@/lib/etape-complements-bail";
@@ -58,6 +60,9 @@ export function FormulaireComplementsBail({
   meuble,
   agence,
   modifiable,
+  surfaceHabitable,
+  loyerHc,
+  individuel = false,
 }: {
   orgId: string;
   bailId: string;
@@ -66,8 +71,17 @@ export function FormulaireComplementsBail({
   meuble: boolean;
   agence: boolean;
   modifiable: boolean;
+  surfaceHabitable?: number | null;
+  loyerHc?: number | null;
+  individuel?: boolean;
 }) {
-  const action = modifierComplementsBail.bind(null, orgId, bailId);
+  const [saisieLoyer, setSaisieLoyer] = useState<Record<string, string>>({});
+  const [modifie, setModifie] = useState(false);
+  const action = async (precedent: EtatBail, formulaire: FormData) => {
+    const resultat = await modifierComplementsBail(orgId, bailId, precedent, formulaire);
+    if (resultat.succes) setModifie(false);
+    return resultat;
+  };
   const [etat, formAction] = useActionStateSuivi<EtatBail, FormData>(action, {});
   const [encadrement, setEncadrement] = useState(defauts.encadrement_loyer === true);
 
@@ -140,7 +154,13 @@ export function FormulaireComplementsBail({
     etat.valeurs?.[nom] ?? (defaut == null ? "" : String(defaut));
 
   return (
-    <form data-saisie-confirmee onReset={event => event.preventDefault()} action={formAction} className="space-y-5" onInvalidCapture={event => {
+    <form data-saisie-confirmee onChangeCapture={event => {
+      setModifie(true);
+      const champ = event.target;
+      if ("value" in champ && typeof champ.value === "string" && ["loyer_reference", "loyer_reference_majore", "complement_loyer", "complement_justification"].includes(champ.name)) {
+        setSaisieLoyer(v => ({ ...v, [champ.name]: champ.value }));
+      }
+    }} onReset={event => event.preventDefault()} action={formAction} className="space-y-5" onInvalidCapture={event => {
       const groupe = (event.target as HTMLElement).closest<HTMLElement>("[data-complement]");
       if (groupe?.dataset.complement) parcours?.ouvrir(groupe.dataset.complement);
     }}>
@@ -387,6 +407,10 @@ export function FormulaireComplementsBail({
           </div>
         )}
       </div>
+      <AvertissementsLoyer avertissements={!modifie && etat.avertissements ? etat.avertissements : avertissementsCoherenceLoyer({
+        ...defauts, ...etat.valeurs, ...saisieLoyer, encadrement_loyer: encadrement, loyer_hc: loyerHc,
+        type: individuel ? "colocation_individuelle" : undefined,
+      }, surfaceHabitable)} enregistre={!modifie && Boolean(etat.succes)} />
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
       <BoutonEnvoi enCoursTexte="Enregistrement…" size="sm" variant="outline">Enregistrer</BoutonEnvoi>

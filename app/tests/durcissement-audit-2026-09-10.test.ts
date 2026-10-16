@@ -988,20 +988,27 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     const motif = "Chèque rejeté par la banque — relevé à l'appui";
     await db.query(`select public.supprimer_encaissement($1, $2)`, [enc.id, motif]);
     const {
-      rows: [motivee],
+      rows: motivees,
     } = await db.query(
-      `select c.motif, c.libelle, c.sens, c.montant, c.contre_ecriture_de
+      `select c.motif, c.libelle, c.sens, c.montant, c.contre_ecriture_de,
+              o.sens as sens_origine, o.montant as montant_origine, o.categorie as categorie_origine
          from public.ecritures c
          join public.ecritures o on o.id = c.contre_ecriture_de
         where o.encaissement_id = $1`,
       [enc.id]
     );
-    expect(motivee.motif).toBe(motif);
-    // Le motif se lit AUSSI dans le journal, sans changer d'écran.
-    expect(motivee.libelle).toContain(motif);
-    // Ce qui faisait la contre-écriture ne bouge pas : sens inversé, même montant.
-    expect(motivee.sens).toBe("depense");
-    expect(Number(motivee.montant)).toBe(650);
+    // Un encaissement d'agence peut produire aussi des frais : SQL ne garantit
+    // pas que sa première ligne soit le loyer. Chaque annulation doit inverser
+    // sa propre origine, sans dépendre de l'ordre de lecture du planificateur.
+    expect(motivees.length).toBeGreaterThan(0);
+    for (const motivee of motivees) {
+      expect(motivee.motif).toBe(motif);
+      expect(motivee.libelle).toContain(motif);
+      expect(motivee.sens).toBe(motivee.sens_origine === "recette" ? "depense" : "recette");
+      expect(Number(motivee.montant)).toBe(Number(motivee.montant_origine));
+    }
+    expect(motivees.some((e) => e.categorie_origine === "loyer"
+      && e.sens_origine === "recette" && Number(e.montant) === 650)).toBe(true);
 
     // 2 ─ Le DELETE direct (API) sans motif est REFUSÉ depuis l'audit
     // sécurité du 27/09 : la contre-écriture muette, créée par un déclencheur

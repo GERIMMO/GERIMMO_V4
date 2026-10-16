@@ -31,6 +31,7 @@
 //  L'écran « Relais et arrêts » le dit dans « Ce que l'arrêt ne couvre pas ».
 
 import "server-only";
+import { attendreRelais } from "./delai-relais";
 import { createHash } from "node:crypto";
 import { envoyerEmail } from "./email";
 import { estTacheSuivie, TACHES_SUIVIES } from "./missions";
@@ -154,6 +155,8 @@ export type ResultatRelais =
  * être finis aux trois quarts de cette durée (45 s) ; le dernier quart reste aux lectures et à l'écriture en base.
  * L'e-mail immédiat des urgences passe d'abord, borné à cette échéance moins un appel : l'e-mail de 5 h garde toujours
  * son créneau. Celui-ci part vers les adresses en parallèle, chaque appel borné au temps restant (10 s au plus).
+ * Les lectures et mutations partagent aussi une échéance absolue (55 s depuis la route, 57 s par défaut).
+ * Un budget épuisé ne déclenche plus d’e-mail ; une réservation interrompue suit la reprise existante en base.
  */
 export const DUREE_MAX_PASSAGE_RELAIS_MS = 60_000;
 /** Délai maximal d'un appel au service d'e-mail pendant le passage de 5 h. */
@@ -174,6 +177,8 @@ export async function passerAlerteRelais(options: {
   delaiMaxMs?: number;
   /** La durée dont dispose le passage avant la coupure de la route (60 s par défaut). */
   dureeMaxMs?: number;
+  /** Échéance reçue de la route : compte aussi le temps passé avant cet appel. */
+  echeance?: number;
   /** L'horloge qui mesure cette durée, en millisecondes (`Date.now` par défaut) ; réglable pour les tests. */
   horloge?: () => number;
 }): Promise<ResultatRelais> {
@@ -185,9 +190,14 @@ export async function passerAlerteRelais(options: {
   const adresses = options.adresses ?? adressesRelaisDuServeur();
   const envoyer = options.envoyer ?? envoyerEmail;
   const delaiAppel = options.delaiMaxMs ?? DELAI_APPEL_RELAIS_MS;
-  const finDesEnvois = debut + Math.floor((options.dureeMaxMs ?? DUREE_MAX_PASSAGE_RELAIS_MS) * PART_DES_ENVOIS);
+  const duree = options.dureeMaxMs ?? DUREE_MAX_PASSAGE_RELAIS_MS;
+  const finPassage = Math.min(options.echeance ?? Infinity, debut + Math.floor(duree * 0.95));
+  const finDesEnvois = Math.min(debut + Math.floor(duree * PART_DES_ENVOIS), finPassage - Math.min(1_000, duree * 0.05));
+  const appeler = (nom: string, args?: Record<string, unknown>) => attendreRelais(() => db.rpc(nom, args), finPassage, horloge);
 
-  const reservation = await db.rpc("reserver_alerte_relais");
+  let reservation: Reponse;
+  try { reservation = await appeler("reserver_alerte_relais"); }
+  catch { return { erreur: "Le contrôle du relais est indisponible.", status: 503 }; }
   const r = reservation.data as { reserve?: unknown; jour?: unknown; statut?: unknown } | null;
   if (reservation.error || !r || typeof r.jour !== "string") return { erreur: "Le contrôle du relais est indisponible.", status: 503 };
   const jour = r.jour;
@@ -195,7 +205,7 @@ export async function passerAlerteRelais(options: {
 
   const terminer = async (statut: Exclude<ResultatRelais, { ignore: true } | { erreur: string }>["statut"], envoyes: number, constat: ConstatRelais) => {
     const points = pointsDuRelais(constat);
-    const { error } = await db.rpc("terminer_alerte_relais", {
+    const { error } = await appeler("terminer_alerte_relais", {
       p_jour: jour, p_statut: statut, p_destinataires: adresses.valides.length, p_envoyes: envoyes, p_points: points,
       p_compteurs: compteursDuRelais(constat, adresses.invalides),
     });
@@ -205,14 +215,14 @@ export async function passerAlerteRelais(options: {
 
   try {
     // Le relais du mode vacances d'abord : ses urgences et escalades sont ainsi à jour.
-    const vacances = await db.rpc("traiter_vacances");
+    const vacances = await attendreRelais(() => db.rpc("traiter_vacances"), finPassage, horloge);
     // Les urgences que ce passage vient de poser partent tout de suite, comme après chaque passage de mission ; l'e-mail
     // de 5 h les rappelle ensuite (décision du 15/10). Ne lève jamais.
     // Bornées pour laisser à l'e-mail de 5 h un appel entier avant la fin des envois (voir la durée du passage).
     await envoyerUrgencesRelais({ db, adresses, site: options.site, envoyer, delaiMaxMs: delaiAppel, echeance: finDesEnvois - delaiAppel, horloge });
-    const sentinelle = await db.rpc("sentinelle_relais");
-    const missions = await chargerEtatTaches(db, maintenant);
-    const recentes = await db.rpc("urgences_relais_recentes");
+    const sentinelle = await appeler("sentinelle_relais");
+    const missions = await attendreRelais(() => chargerEtatTaches(db, maintenant), finPassage, horloge);
+    const recentes = await appeler("urgences_relais_recentes");
     const constat = constaterRelais(
       sentinelle.error || !sentinelle.data || typeof sentinelle.data !== "object" ? null : (sentinelle.data as Sentinelle),
       missions,
@@ -229,7 +239,9 @@ export async function passerAlerteRelais(options: {
     const sujet = sujetAlerteRelais(points, urgences);
     // Les adresses en parallèle, chaque appel borné au temps restant avant la fin des envois : le délai d'un service lent
     // ne s'additionne pas d'une adresse à l'autre, et le résultat est consigné avant la coupure de la route.
-    const delai = Math.max(Math.min(DELAI_APPEL_MIN_MS, delaiAppel), Math.min(delaiAppel, finDesEnvois - horloge()));
+    const restant = finDesEnvois - horloge();
+    if (restant < Math.min(DELAI_APPEL_MIN_MS, delaiAppel)) return await terminer("echec", 0, constat);
+    const delai = Math.min(delaiAppel, restant);
     const resultats = await Promise.all(adresses.valides.map((to) =>
       // Aucun `avantEnvoi` : l'arrêt d'urgence ne retient pas cette alerte (voir l'en-tête).
       envoyer({ to, subject: sujet, html, cleIdempotence: cleEnvoi(jour, to), delaiMaxMs: delai })
@@ -242,7 +254,7 @@ export async function passerAlerteRelais(options: {
     // (plafond atteint) ne repartiront pas en e-mail immédiat. Une erreur ici ne change rien au résultat du passage.
     const reprises = statut === "envoye" ? (constat.urgences?.liste ?? []).filter((u) => u.email === "en_attente").map((u) => u.alerte) : [];
     if (reprises.length) {
-      const { error } = await db.rpc("urgences_relais_au_quotidien", { p_alertes: reprises });
+      const { error } = await appeler("urgences_relais_au_quotidien", { p_alertes: reprises });
       if (error) console.error("[relais] Les urgences reprises par l’e-mail de 5 h n’ont pas pu être marquées.");
     }
     return await terminer(statut, envoyes, constat);

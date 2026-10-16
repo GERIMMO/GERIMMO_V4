@@ -20,7 +20,7 @@ import { construireBailNu } from "@/lib/documents/modeles/bail-nu";
 import { construireBailMeuble } from "@/lib/documents/modeles/bail-meuble";
 import { construireRevisionIrl } from "@/lib/documents/modeles/revision-irl";
 import { construireProrata } from "@/lib/documents/modeles/prorata";
-import { construireRappelAssurance } from "@/lib/documents/modeles/rappel-assurance";
+import { construireRappelAssurance, assemblerRappelAssurance } from "@/lib/documents/modeles/rappel-assurance";
 import { construireEdl } from "@/lib/documents/modeles/edl";
 import { assemblerCautionnement } from "@/lib/documents/modeles/cautionnement";
 import { assemblerCongeBailleur } from "@/lib/documents/modeles/conge-bailleur";
@@ -189,6 +189,25 @@ describe.each(INSTANTS)("documents de contrat produits à %s : « Établi le » 
     const doc = await assemblerCongeBailleur({ rpc } as unknown as SupabaseClient, "org", "b1", { motif: "vente", prix_vente: "245000" });
     expect(rpc).toHaveBeenCalledWith("terme_bail", { p_bail: "b1", p_date: jourIso });
     expect("document" in doc && datesDuDocument(doc.document.html)).toEqual([attendu, attendu]);
+  });
+
+  it("le rappel d’assurance compare son échéance et nomme son fichier au jour de Paris", async () => {
+    const donnees: Record<string, unknown> = {
+      documents: { id: "d1", type: "attestation_assurance", expire_le: "2026-07-31" },
+      organizations: { name: "Organisation fictive", type: "proprietaire_direct", city: "Lyon" },
+      document_liens: { entite_id: "p1" },
+      persons: personne({ id: "p1" }),
+      baux: null,
+    };
+    const from = (table: string) => {
+      const q = { select: () => q, eq: () => q, in: () => q, limit: () => q,
+        maybeSingle: async () => ({ data: donnees[table] }) };
+      return q;
+    };
+    const resultat = await assemblerRappelAssurance({ from } as unknown as SupabaseClient, "org", "d1");
+    expect("nomFichier" in resultat && resultat.nomFichier).toBe(`rappel-assurance-${jourIso}`);
+    if (!("document" in resultat)) throw new Error("Rappel non construit");
+    expect(resultat.document.html.includes("arrivée à échéance")).toBe(jourIso > "2026-07-31");
   });
 });
 

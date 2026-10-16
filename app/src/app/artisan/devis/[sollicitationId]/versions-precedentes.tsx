@@ -20,10 +20,12 @@ const ETATS_VERSION: Record<VersionDevis["statut"], { libelle: string; ton: "neu
  * la carte « Ma réponse ».
  */
 export function VersionsPrecedentes({
+  sollicitationId,
   versions,
   erreur,
   versionCourante,
 }: {
+  sollicitationId: string;
   versions: VersionDevis[];
   erreur: boolean;
   /** La version en cours de préparation (en révision) : elle n'est pas dans l'historique ; null si la demande est close. */
@@ -71,6 +73,7 @@ export function VersionsPrecedentes({
                   {v.decision === "revision" ? "Ce que le client demandait" : "Motif du client"} : « {v.decision_motif} »
                 </p>
               )}
+              <a href={`/api/devis/${sollicitationId}/pdf?version=${v.version}`} target="_blank" rel="noreferrer" className="lien-discret">Ouvrir le PDF de la version {v.version}</a>
             </li>
           );
         })}

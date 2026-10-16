@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
 import { randomUUID } from "node:crypto";
 import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
+import { terminerInscriptionLocale } from "./confirmation-locale";
 
 /**
  * Invitation d'un artisan par un propriétaire direct (décision du dirigeant du 15/10/2026), de bout en bout, au
@@ -45,7 +46,8 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
   const db = new Client({ connectionString: url });
   await db.connect();
   const marque = randomUUID().slice(0, 8);
-  const email = `artisan-invite-${marque}@example.invalid`;
+  // Une boîte distincte par passage : les alias « + » partagent volontairement le plafond anti-abus.
+  const email = `artisan-invite-${marque}@resend.dev`;
   const raisonSociale = `Plomberie Invitée ${marque}`;
   const siret = `7${String(Date.now()).slice(-13)}`;
 
@@ -83,6 +85,7 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await connecter(p, "proprietaire@gerimmo-demo.fr");
     await p.waitForURL(/\/(espaces|agence|espace)/);
     await p.goto(`/espace/${ORG}/artisans`);
+    await p.waitForLoadState("networkidle");
     await expect(p.getByRole("heading", { name: "Mes artisans" })).toBeVisible();
     await p.getByLabel(/Adresse e-mail de l’artisan/).fill(email);
     await p.getByLabel("Nom, pour mémoire").fill("M. Invité");
@@ -119,11 +122,10 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await expect(a.getByRole("heading", { name: "Vous avez reçu une invitation" })).toBeVisible();
     await expect(a.getByText("Parc de Claire Moreau")).toHaveCount(0); // rien de l'invitation sans session
     await expect(a.getByLabel("Adresse e-mail", { exact: true })).toHaveValue(email);
-    await a.getByLabel("Mot de passe", { exact: true }).fill("Artisan-Invite-2026!");
-    await a.getByLabel("Confirmer le mot de passe").fill("Artisan-Invite-2026!");
-    await a.getByRole("checkbox", { name: /accepte les conditions/ }).check();
+    await expect(a.locator('input[type="password"]')).toHaveCount(0);
     await a.screenshot({ path: info.outputPath("2-artisan-creation-compte.png"), fullPage: true });
     await a.getByRole("button", { name: "Créer mon compte" }).click();
+    await terminerInscriptionLocale(a, email, "Artisan-Invite-2026!", `/artisan/invitation/${invitation}`);
     await a.waitForURL(new RegExp(`/artisan/invitation/${invitation}$`));
     await expect(a.getByText("Proposée par Parc de Claire Moreau")).toBeVisible();
 
@@ -163,6 +165,7 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
 
     // 5. AVANT la validation de Gerimmo : dans le carnet, mais PAS sollicitable ; la voie de sortie propose d'inviter.
     await p.goto(`/espace/${ORG}/artisans`);
+    await p.waitForLoadState("networkidle");
     const ligneArtisan = p.locator("li").filter({ hasText: raisonSociale });
     await expect(ligneArtisan).toContainText("Inscrit, en attente de validation par Gerimmo");
     await expect(ligneArtisan).toContainText("0611223344");
@@ -199,6 +202,7 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
 
     // 7. Le propriétaire le sollicite, commune fermée, depuis son carnet.
     await p.goto(`/espace/${ORG}/artisans`);
+    await p.waitForLoadState("networkidle");
     // « Validé », sans promesse : la zone et la décennale se jugent bien par bien (seconde relecture du 15/10).
     const ligneValidee = p.locator("li").filter({ hasText: raisonSociale });
     await expect(ligneValidee.getByText("Validé", { exact: true })).toBeVisible();

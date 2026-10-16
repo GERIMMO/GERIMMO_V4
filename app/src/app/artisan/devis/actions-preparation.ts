@@ -108,7 +108,7 @@ export async function envoyerDevisValide(id: string, _etat: { erreur?: string },
       }
     }
     const {data:devisId,error}=await supabase.rpc("envoyer_mon_devis_prepare",{p_sollicitation:id,p_revision:preparation.revision});
-    if(error||typeof devisId!=="string") throw new Error(error?.message??"L’envoi du devis n’a pas abouti.");
+    if(error||typeof devisId!=="string") throw new Error(error?.message??"Votre profil ne permet plus de déposer cette révision. Le gestionnaire a été prévenu ; votre devis est conservé.");
     if(preparation.email_statut==="envoye") email="envoye";
     else {
       const notification=await notifierDevisRecu(service,demande.organization_id,devisId,{

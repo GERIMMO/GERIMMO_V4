@@ -119,7 +119,7 @@ describe.skipIf(!DB_URL)("Migration 20261014610000 — rejeu sur la base", () =>
     expect((await db.query("select pg_get_functiondef($1::text::regprocedure) d", [ANNULABLE])).rows[0].d).toContain("-- >> D23 (PRO2-21)");
     for (const signature of NOUVELLES) expect((await db.query("select to_regprocedure($1) p", [signature])).rows[0].p, signature).not.toBeNull();
     const e = await empreinte();
-    expect(e["declencheurs"]).toBe("abonnement_intervention_facture_reglements,diagnostic_artisan_lecture");
+    expect(e["declencheurs"]).toBe("abonnement_intervention_facture_reglements,diagnostic_artisan_lecture,traversee_lecture_seule");
     expect(e["politiques"]).toBe("intervention_facture_reglements_lecture");
     expect(e["contrainte"]).toContain("'facture_reglee'::text, 'reglement_retire'::text");
   });

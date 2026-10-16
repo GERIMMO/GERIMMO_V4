@@ -105,7 +105,7 @@ describe.skipIf(!url)("Retours utilisateurs : droits, traçabilité et idempoten
  });
 
  it('reste accessible en abonnement suspendu, après la pose des gardes métier par la migration',async()=>{
-  await agir(sa);await db.query('reset role');await db.query("update public.organizations set status='suspendue' where id=$1",[orgA]);
+  await agir(sa);await db.query('reset role');await db.query("select public.controler_organisation($1,'suspendre',null,'TEST suspension avec accès aux retours')",[orgA]);
   await agir(auteur);const id=await creer('bug');expect(id).toBeTruthy();
   const idee=await creer('idee');await agir(collegue);await db.query('select public.soutenir_idee($1)',[idee]);
  });

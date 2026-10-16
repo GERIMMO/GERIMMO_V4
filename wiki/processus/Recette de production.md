@@ -4,7 +4,7 @@ tags: [recette, production, lancement, personas, qualite]
 status: draft
 created: 2026-09-20
 updated: 2026-10-16
-sources: ["[[Fonctionnalités par persona]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]", "[[Onboarding et abonnement]]", "[[Quittancement des loyers]]", "[[Cycle de vie d'un incident]]"]
+sources: ["[[Fonctionnalités par persona]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]", "[[Onboarding et abonnement]]", "[[Quittancement des loyers]]", "[[Cycle de vie d'un incident]]", "[[Registre des anomalies — audit du 13 octobre 2026]]"]
 ---
 
 # Recette de production
@@ -34,7 +34,11 @@ ce que le banc a prouvé tient en production.
    documents légaux **complets** (plus aucun « à fournir »).
 2. Les modèles d'e-mails d'authentification sont collés dans Supabase
    (`app/supabase/templates/LISEZ-MOI.md`), le SMTP personnalisé est actif,
-   `https://gerimmo.app/auth/confirm` figure dans les Redirect URLs.
+   `https://www.gerimmo.app/**` figure dans les Redirect URLs (Site URL
+   `https://www.gerimmo.app`). Depuis la
+   PR #194 (16/10/2026), le LISEZ-MOI demande aussi de coller *Confirm signup*,
+   *Reset password* et *Magic link* et de désactiver « Allow new users to sign
+   up » : **non faits au 16/10** ([[Invitation d'un artisan par un propriétaire]]).
 3. Décision prise sur les données de développement (purgées ou renommées en
    démonstration) — la recette crée **ses propres** organisations, nommées
    « Recette … », pour pouvoir les retirer après.
@@ -146,24 +150,114 @@ signature attendue. Les dix corps se relisent aussi hors ligne :
 Le chantier GitHub « Recette de production avec nettoyage »
 (`.github/workflows/recette-production-autonome.yml`) joue sur `gerimmo.app` les parcours
 de `app/e2e/recette-production/` (public, inscription et récupération, administrateur
-d'agence, propriétaire, locataire) avec des comptes éphémères, retirés à la fin. **Il ne
+d'agence, propriétaire, locataire, et depuis la PR #195 les contrôles des P1 « montant faux ») avec des comptes éphémères, retirés à la fin. **Il ne
 part pas tout seul** : comme `recette-production.yml`, il ne se lance qu'à la main
 (`workflow_dispatch`, ni planification ni déclenchement par une fusion ; journal du 14/10 :
-« la recette ne tourne que sur déclenchement »). Recettes n° 4 à 14 consignées au journal
-`log.md` (14 et 15/10) ; celles du 16/10 sur `a722f94` (exécution 38854421819) et `bdaf755`
-(38858371065) ont réussi d'après GitHub Actions, sans entrée au journal de `main` à cette
-date.
+« la recette ne tourne que sur déclenchement »). Recettes n° 4 à 18 consignées au journal
+`log.md` (14, 15 et 16/10 ; n° 15 sur `a722f94`, exécution 38854421819 ; n° 16 sur
+`bdaf755`, 38858371065 ; n° 17 sur `f24dfb0`, 38875612888 : 34 réussis, 1 sauté, 1 instable ;
+n° 18 sur `db0a95f`, 38880135882 : 40 tests, 37 réussis, 1 sauté (`/cgu`, facultative),
+2 instables). La configuration rejoue une fois un test en échec (`retries: 1`,
+`app/e2e/recette-production/playwright.config.ts`) : un test « instable » a échoué au
+premier essai puis réussi au second.
+
+### Les contrôles des P1 « montant faux » (projet `recette-montants`, depuis la PR #195)
+- **Quoi** : `app/e2e/recette-production/montants-p1.spec.ts` (étiquette `@montants`) joue
+  les contrôles des quatre P1 de Q3/Q5 : **D04** (« 840,00 » tapé dans un navigateur réglé
+  en anglais est enregistré et affiché 840,00 €), **D05** (le même envoi rejoué après une
+  réponse perdue n'encaisse qu'une fois), **D37** (la ligne 250 vaut le montant qualifié, à
+  l'écran et dans le champ du récapitulatif 2044), **D38** (une régularisation de
+  l'exercice en cours est signalée et refusée sans confirmation explicite). Les quatre
+  tests forment un bloc en série : un échec fait sauter les suivants.
+- **Données éphémères** : dans le seul parc du propriétaire éphémère de la recette, la
+  connexion de la recette à la base insère un bien et son lot, une fiche de locataire
+  **sans adresse e-mail**, un bail actif, un appel de loyer de 840,00 € et une dépense
+  « intérêts d'emprunt » de 2 345,67 € ; les écrans font ensuite deux encaissements, la
+  confirmation de l'exercice fiscal du lot et la qualification de la dépense en ligne 250.
+  Tout porte sur l'organisation éphémère et `purger.sql` le retire après passage ; aucun
+  fichier déposé, aucun e-mail, aucun paiement.
+- **Où il tourne** : seulement avec une connexion à la base de la recette (variables
+  `PG*`), que fournit le chantier « Recette de production avec nettoyage » ; le chantier
+  manuel « Recette de production » ne la fournit pas et saute ces tests. Projet déclaré en
+  dernier (`recette-montants`), parce qu'activer un bail referme le parcours de démarrage
+  du propriétaire que vérifie un autre test.
+- **Limites** : le PDF 2044 n'est pas généré (il serait déposé dans le stockage de fichiers,
+  que le nettoyage ne garantit pas d'effacer) ; le chemin confirmé de D38 n'est pas joué
+  (il enregistrerait une régularisation qui ne se modifie plus) ; la confirmation de D04
+  au-delà de 2 × (reste dû + un terme) n'est pas exercée.
+- **Premier passage** : recette n° 18 (38880135882, 16/10) — D04 en échec au premier essai
+  (« Montant invalide : écrivez 1234,50, sans espace ni point de milliers. », rien
+  d'enregistré ; D05, D37 et D38 sautés), puis les quatre réussis au second essai sur des
+  données neuves ; cause de l'échec de D04 non établie (ci-dessous). Voir
+  [[Registre des anomalies — audit du 13 octobre 2026]].
+
+### Échecs au premier essai : diagnostic du 16/10/2026
+Diagnostic sur le banc local (build de `db0a95f`), sans aucune écriture en production
+(journal, entrée « audit » du 16/10, « Échecs au premier essai de la recette »).
+- **« crée la fiche d'un locataire à une adresse resend.dev »** (administrateur d'agence,
+  mobile, `admin-agence.spec.ts`) échouait au premier essai (attente de navigation de plus
+  de 30 s après « Créer la fiche ») et réussissait au second en quelques secondes (4,6 s à la
+  n° 6 ; 3 à 4 s aux n° 14 à 18), **à chacune des recettes n° 6 à 18**, donc depuis le
+  recâblage du test par la PR #183 (recette n° 6, 38661886020, 15/10 vers 00 h 46 UTC) :
+  « 1 flaky », même expiration de `waitForURL` à la ligne 104 du test, dans le journal de job
+  de chacune, des n° 6 à 13 (38661886020, 38686435654 — la n° 7, celle de la PR #184 —,
+  38712773640, 38720668132, 38767814840, 38775647416, 38802750219, 38809953785 ; lus par
+  l'API GitHub le 16/10) comme des n° 14 à 18 (38818788671, 38854421819, 38858371065,
+  38875612888, 38880135882). Les entrées n° 6 et n° 8 à 16 du journal disaient « tous les
+  parcours réussis » (la n° 6 : « sans échec ») et l'entrée « deploy » de la PR #184
+  « recette de production verte », sans mentionner l'échec au premier essai (rectifié au
+  journal, entrée « lint » du 16/10). **Cause prouvée : défaut du test.** Depuis la
+  PR #170, la création d'une fiche par l'assistant reste sur place
+  (`rester_dans_parcours=1`, `app/src/lib/creation-fiche-personne.ts`) et affiche « La
+  fiche est créée » avec un lien « Ouvrir la fiche » ; le test, recâblé par la PR #183,
+  attendait encore une redirection vers la fiche, qui n'arrive jamais. Le second essai
+  passait par la branche de reprise du test (fiche trouvée dans la liste) **sans vérifier
+  l'ouverture de la fiche**. Reproduit au banc : action serveur en 100 ms, aucune
+  redirection, titre « La fiche est créée » visible, fiche créée une seule fois. **Aucun
+  défaut de l'écran.** Test corrigé (commit `72e1e0b` : attendre le titre, cliquer « Ouvrir
+  la fiche », puis attendre l'adresse de la fiche), vérifié au banc ; la PR #196 corrige
+  aussi la branche de reprise : au second essai, elle ouvre la fiche depuis la liste et
+  vérifie son nom (elle ne prouve pas l'écran « La fiche est créée », que seul le premier
+  essai prouve). Ces corrections sont dans la PR #196 et n'ont pas encore été jouées en
+  production : la recette qui suit sa fusion le confirmera.
+- **D04** (bloc des P1, premier essai de la recette n° 18, 16/10 à 09 h 29 UTC) : **cause
+  non établie.** Le serveur a reçu un texte vide ou tronqué (« Montant invalide » ; rien
+  d'enregistré). Non reproduit en 20 essais au banc avec le même build (saisie avant et
+  pendant l'hydratation, CPU ralenti jusqu'à ×20, réseau lent, contenu retardé, serveur
+  froid) : la saisie a toujours survécu et l'action a toujours reçu « 840,00 ». La piste
+  d'une saisie perdue à l'hydratation est réfutée au banc (React 19.2 n'écrase pas la
+  valeur d'un champ à l'hydratation ; aucun écart serveur/client relevé sur l'écran). Le
+  test tapait sans attendre que la page soit prête et ne lisait pas le champ avant
+  d'envoyer : il tape toujours dès que le champ est là (cas réel de D30 : champ
+  saisissable avant l'hydratation, seul « Encaisser » inerte), puis attend l'activation
+  d'« Encaisser » et vérifie la valeur saisie avant l'envoi, et note si la saisie a eu lieu
+  avant ou après l'hydratation (PR #196 ; le commit `72e1e0b` attendait l'activation
+  avant de taper, ce qui ne rejouait plus le cas observé), ce qui séparera une perte côté
+  navigateur d'un refus du serveur si l'échec revient. Pour un utilisateur
+  réel : perte de saisie non reproduite ; dans le cas observé, le refus est visible et
+  aucun montant faux n'est enregistré.
+- **Reste** : lire les traces Playwright de l'artefact `recette-production-38880135882`
+  (conservé jusqu'au 30/10), que l'environnement de l'agent ne peut pas télécharger.
 
 > [!warning] Ce que la recette ne joue pas (relevé du 16/10/2026)
 > - **Aucun parcours d'artisan ni de super-administrateur** : l'espace artisan et la
 >   console `/admin` ne sont jamais parcourus (constat du tour final de vérification).
+>   L'invitation d'un artisan par un propriétaire (PR #194) n'est donc pas jouée : son
+>   parcours navigateur (`app/e2e/invitation-artisan.spec.ts`) ne tourne que sur le banc
+>   local.
 > - Ni le refus ou la révision d'un devis (D18), ni le report ou l'annulation d'un
 >   rendez-vous par le locataire (D22-B), ni le règlement d'une facture d'intervention
 >   (D23-A), ni une relance d'invitation (X16), ni la recherche par référence (X18), ni le
 >   plafond des appels IA (X19), ni l'avoir (D24-C, module désactivé), ni les e-mails du
 >   relais (journal, entrées « audit » du 15/10).
-> - Ni les contrôles en production des P1 de la vague 1 (encaissement avec virgule, rejeu
->   après réponse perdue, ligne 250 du 2044, régularisation d'un exercice non terminé).
+> - ~~Ni les contrôles en production des P1 de la vague 1~~ → joués depuis la recette
+>   n° 18 (projet `recette-montants`, ci-dessus), **sans** la génération du PDF 2044 ni le
+>   chemin confirmé d'une régularisation d'exercice en cours.
+> - **Échecs au premier essai** (ci-dessus) : une recette « en succès » peut cacher un
+>   échec au premier essai ; le journal doit nommer les tests instables. « Créer la fiche »
+>   est un défaut du test, corrigé par `72e1e0b` mais pas encore joué en production : la
+>   recette suivante le confirmera. D04 : cause non établie, traces de l'artefact à lire
+>   avant le 30/10.
 
 ## Résultat / sorties
 - Une entrée `## [date] recette | Production` dans `log.md` : ce qui a été

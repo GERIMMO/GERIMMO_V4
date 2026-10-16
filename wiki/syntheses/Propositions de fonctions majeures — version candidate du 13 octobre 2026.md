@@ -4,7 +4,7 @@ tags: [fonctions, devis, facture, rendez-vous, artisan, locataire, proprietaire,
 status: draft
 created: 2026-10-14
 updated: 2026-10-16
-sources: ["[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Fiches des anomalies P3 — audit du 13 octobre 2026]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
+sources: ["[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Fiches des anomalies P3 — audit du 13 octobre 2026]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Invitation d'un artisan par un propriétaire]]"]
 ---
 
 # Propositions de fonctions majeures — version candidate du 13 octobre 2026
@@ -42,9 +42,12 @@ facture** (wiki : [[Demande et sélection de devis]], [[Planification d'interven
 **Prérequis produit.** La chaîne n'est atteignable par un propriétaire que si sa commune est ouverte au réseau pour le
 métier (wiki [[Ouverture du réseau d'artisans]]) ; or le code interdit au propriétaire direct d'ajouter un artisan
 (migration `20261007190000`, décision D17). Sans D17 ou sans ouverture de commune, aucune des trois fonctions n'est
-utilisable en V1 hors banc. *État au 16/10 : D17-A (voie de sortie affichée, texte seul) est en production (PR #184) ;
-l'ajout d'un artisan par le propriétaire passe désormais par l'invitation d'un artisan décidée le 15/10, en cours et non
-livrée. Le prérequis reste donc entier pour un propriétaire dont la commune n'est pas ouverte.*
+utilisable en V1 hors banc. *État au 16/10 : D17-A (voie de sortie affichée) est en production (PR #184) ;
+l'ajout d'un artisan par le propriétaire passe par l'invitation d'un artisan décidée le 15/10, **en production depuis le
+16/10** (PR #194, `f24dfb0`) : un artisan invité qui s'inscrit, accepte et que Gerimmo valide est sollicitable par ce
+propriétaire même en commune fermée, pour les biens que couvre sa zone d'intervention
+([[Invitation d'un artisan par un propriétaire]]). Le prérequis est donc levé pour ce cas, mais le parcours n'a été
+joué de bout en bout que sur le banc, jamais en production.*
 
 **Conventions du dépôt réutilisées (vérifiées dans le code) :**
 

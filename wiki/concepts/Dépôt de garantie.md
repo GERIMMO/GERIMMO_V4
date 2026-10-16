@@ -4,7 +4,7 @@ tags: [depot-de-garantie, bail, encaissement, restitution, plafond]
 status: draft
 created: 2026-07-24
 updated: 2026-10-16
-sources: ["[[2026-09-14-service-public-depot-colocation]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
+sources: ["[[2026-09-14-service-public-depot-colocation]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Le jour de référence est le jour de Paris]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
 ---
 
 # Dépôt de garantie
@@ -106,5 +106,8 @@ deux mois ne constituent pas un nouveau parcours implémenté.
 
 > [!info] Jour de référence (depuis le 15/10/2026)
 > L'encaissement d'un dépôt saisi sans date, sa pièce comptable et la contre-passation d'un
-> dépôt retiré sont datés du **jour de Paris** (PR #189). La **restitution** ne l'est pas
-> encore (hors décision : voir [[Le jour de référence est le jour de Paris]]).
+> dépôt retiré sont datés du **jour de Paris** (PR #189). La **restitution** l'est aussi
+> depuis le 16/10/2026 (PR #195, migration `20261014851000` : décompte finalisé, écritures
+> de restitution, date d'envoi du décompte) ; c'est une **interprétation** de la décision
+> du 15/10, **à faire ratifier par le dirigeant**. Les alertes du délai de restitution
+> restent au jour de la session. Voir [[Le jour de référence est le jour de Paris]].

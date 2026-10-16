@@ -4,7 +4,7 @@ tags: [restitution, depot-de-garantie, retenue, decompte, delai-legal, vetuste]
 status: draft
 created: 2026-07-24
 updated: 2026-10-16
-sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
+sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Le jour de référence est le jour de Paris]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
 ---
 
 # Restitution du dépôt de garantie
@@ -125,8 +125,14 @@ Voir [[Agenda et échéances]] (alerte liée à son événement d'origine).
 > obstacle à l'EDL (art. 3-2 loi 89-462). Le référentiel V3 (RM-2.4.3 = RM-1.13.4) reste
 > à mettre à jour dans ce sens. Source : [[Audit complet du 29 septembre 2026]].
 
-> [!warning] Jour de référence : la restitution n'est pas encore au jour de Paris (16/10/2026)
-> `finaliser_decompte` (écritures « Restitution du dépôt de garantie » et trop-perçu),
-> `marquer_decompte_envoye` et les alertes de restitution lisent encore le jour UTC de la
-> base : entre minuit et 2 h à Paris, ils datent de la veille. Hors des décisions du 15/10 ;
-> question au dirigeant. Voir [[Le jour de référence est le jour de Paris]].
+> [!warning] Jour de référence : la restitution au jour de Paris depuis le 16/10/2026 — interprétation à ratifier
+> `finaliser_decompte` (date d'émission du décompte ; date de pièce et d'imputation des
+> écritures « Restitution du dépôt de garantie » et trop-perçu) et `marquer_decompte_envoye`
+> (date d'envoi par défaut ; refus d'une date postérieure) lisent le **jour de Paris**
+> depuis la PR #195 (fusion `db0a95f`, migration `20261014851000`). Avant, entre minuit et
+> 2 h à Paris, ils dataient de la veille et refusaient un envoi daté du jour même. Les
+> restitutions, décomptes et écritures déjà datés gardent leur date. C'est une lecture du
+> point 1 de la décision du 15/10 (« dépôt de garantie et journal comptable général au jour
+> de Paris ») étendue à la restitution : **à faire ratifier par le dirigeant**. Les alertes
+> de restitution (seuils J-7 et J+0 du délai légal) lisent encore le jour de la session.
+> Voir [[Le jour de référence est le jour de Paris]].

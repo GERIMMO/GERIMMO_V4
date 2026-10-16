@@ -4,7 +4,7 @@ tags: [role, proprietaire]
 status: in-progress
 created: 2026-07-21
 updated: 2026-10-16
-sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]"]
+sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]", "[[Invitation d'un artisan par un propriétaire]]"]
 ---
 
 # Propriétaire bailleur
@@ -156,15 +156,32 @@ espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe a
   demander une révision (D18, [[Devis]]), et déclarer le règlement d'une facture validée,
   sans paiement par Gerimmo (D23-A, [[Intervention et clôture]]) ; il reçoit l'alerte quand
   un locataire annule un rendez-vous (D22-B, [[Planification d'intervention]]).
-- **Ajouter un artisan à son carnet : impossible aujourd'hui.** Depuis la PR #170
-  (migration `20261007190000`), l'ajout d'artisan est réservé aux agences. La décision du
-  15/10/2026 (un propriétaire **invite** un artisan, l'artisan s'inscrit lui-même ;
-  remplace la question D17-B ; journal `log.md`, entrée « decision » du 15/10, point 1) est
-  **en cours, non livrée** : mise en chantier le 15/10, aucune de ses migrations n'est sur
-  `main` au 16/10.
+- **Inviter un artisan dans son carnet** (décision du 15/10/2026, un propriétaire
+  **invite** un artisan, l'artisan s'inscrit lui-même ; remplace la question D17-B ; journal
+  `log.md`, entrée « decision » du 15/10, point 1) : **en production depuis le 16/10**
+  (PR #194, fusion `f24dfb0`, migrations `20261014840000` à `20261014849000`). Depuis « Mes
+  artisans » (`/espace/<id>/artisans`), il invite par l'adresse e-mail de l'artisan (nom et
+  métier pour mémoire, jamais montrés à l'artisan) ; il suit l'état de chaque invitation,
+  la renvoie, l'annule ou la refait. Il ne voit la fiche de l'artisan qu'après son
+  acceptation, jamais les motifs des décisions de Gerimmo. Une fois l'inscription validée
+  par Gerimmo, il le sollicite depuis la fiche d'un incident, **même en commune fermée**,
+  pour les biens que couvre la zone de l'artisan ; la fiche de l'incident dit pourquoi un
+  artisan du carnet n'est pas proposé. L'ajout par SIRET reste réservé aux agences (PR #170,
+  migration `20261007190000`), et il ne peut pas modifier la zone ni les métiers d'un artisan
+  (`20261014841000`). Détail, réglages et limites : [[Invitation d'un artisan par un propriétaire]].
 
 > [!warning] Points à trancher / contradictions (D27-B)
 > - Les liens fabriqués par la base pour la console de supervision pointent encore vers
 >   `/agence` (ils aboutissent par la redirection 308) : question du lot.
 > - Côté navigateur, l'absence de `/espace` pour une agence n'est contrôlée que sur un
 >   écran (constat du tour final de vérification).
+
+> [!warning] Points à trancher / contradictions (invitation d'un artisan, 16/10/2026)
+> - Parcours de l'invitation **jamais joué de bout en bout en production** (banc local
+>   seulement) ; recette n° 17 sur `f24dfb0` verte (38875612888).
+> - Deux réglages de Supabase hors dépôt, à faire par le dirigeant, **non faits au 16/10** :
+>   coller les trois modèles de courrier et désactiver « Allow new users to sign up »
+>   (`app/supabase/templates/LISEZ-MOI.md`).
+> - Réglages par défaut choisis par le lot (validité de 30 jours, plafonds d'envoi, aucune
+>   relance) sans décision écrite du dirigeant : voir
+>   [[Invitation d'un artisan par un propriétaire]].

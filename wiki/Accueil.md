@@ -3,7 +3,7 @@ type: synthesis
 tags: [accueil, vue-ensemble]
 status: in-progress
 created: 2026-07-20
-updated: 2026-09-30
+updated: 2026-10-16
 sources: ["[[2026-09-20-cahier-des-charges-maitre-v3]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Dépôt Gerimmo-V3]]"]
 ---
 
@@ -53,7 +53,8 @@ Gerimmo est publiée le 30/09/2026 sur `gerimmo.app`. Ce qui vaut au lancement :
   (art. 8.8 et 16), rétractation de 14 jours (art. 8.9).
 - **Réseau d'artisans** — [[Ouverture du réseau d'artisans]] : la gestion locative
   est nationale ; seul le réseau s'ouvre, **commune × métier**, par le
-  [[Super Admin]] ; le carnet personnel reste utilisable partout.
+  [[Super Admin]] ; les artisans du carnet personnel restent sollicitables même en
+  commune fermée, pour les biens que couvre leur zone d'intervention.
 - **[[Signature électronique]] non activée** au lancement (masquée, décision du
   27/09) : circuit de transition V0 — le signataire télécharge, signe et dépose
   le document signé.

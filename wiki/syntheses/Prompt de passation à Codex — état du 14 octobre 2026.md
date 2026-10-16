@@ -1,13 +1,17 @@
 ---
 type: synthesis
 tags: [passation, codex, déploiement, vagues]
-status: in-progress
+status: stable
 created: 2026-10-14
-updated: 2026-10-14
+updated: 2026-10-16
 sources: []
 ---
 
 # Prompt de passation à Codex — état du 14 octobre 2026
+
+> [!warning] Remplacé
+> Ce prompt est **périmé** depuis le 16/10/2026 : utiliser [[Prompt de passation à Codex — état du 16 octobre 2026]].
+> Il est gardé tel quel comme instantané du 14/10.
 
 > [!info] Mode d'emploi
 > Ce texte est autonome : copier-coller tout ce qui suit la ligne « ===== DÉBUT DU PROMPT ===== » dans Codex. L'état exact de la mission change vite : la dernière entrée de `log.md` fait foi sur tout ce qui est daté d'après ce document. Voir aussi [[Dossier de validation — version candidate du 13 octobre 2026]], [[Décisions groupées — version candidate du 13 octobre 2026]] et [[Registre des anomalies — audit du 13 octobre 2026]].

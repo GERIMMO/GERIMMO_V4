@@ -33,7 +33,9 @@ export async function GET(request: Request) {
   }
   const db = clientDeService();
   if (!db) return Response.json({ erreur: "Connexion du traitement indisponible." }, { status: 503 });
-  const resultat = await passerAlerteRelais({ db });
+  // La durée de la route est donnée au passage : il borne ses appels au service d'e-mail pour consigner son résultat
+  // avant la coupure (sinon la ligne du jour resterait « en cours » et l'alerte du jour serait perdue).
+  const resultat = await passerAlerteRelais({ db, dureeMaxMs: maxDuration * 1000 });
   // Rien d'autre que des nombres et des états : ni adresse, ni contenu de l'e-mail.
   return Response.json(resultat, { status: "erreur" in resultat ? resultat.status : 200 });
 }

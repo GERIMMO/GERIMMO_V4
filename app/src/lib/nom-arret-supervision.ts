@@ -20,7 +20,8 @@ export function arretSansEffet(cle: string): boolean {
 
 /**
  * Les tâches de la base de données (pg_cron) qu'arrête chaque clé, en plus de l'arrêt « global » qui les arrête toutes
- * (D06). Miroir de la table `supervision_taches_arret` (migration 20261014200000) : un test compare les deux.
+ * (D06). Miroir de la table `supervision_taches_arret` (migrations 20261014200000 et, pour la caducité des devis,
+ * 20261014211000) : un test compare les deux.
  */
 export const TACHES_SQL: Record<string, { libelle: string; cles: readonly string[] }> = {
   "retention-quotidienne": { libelle: "Purge quotidienne des données dont la durée de conservation est échue", cles: ["purge"] },
@@ -31,6 +32,7 @@ export const TACHES_SQL: Record<string, { libelle: string; cles: readonly string
   "alertes-restitutions-quotidiennes": { libelle: "Alertes de restitution du dépôt de garantie", cles: ["rappels"] },
   "propositions-publication-hebdo": { libelle: "Propositions hebdomadaires de publication", cles: ["marketing"] },
   "marketing-declencheur": { libelle: "Déclenchement des publications programmées", cles: ["marketing"] },
+  "maintenance-artisans": { libelle: "Expiration des devis d’artisans dont la durée de validité est dépassée", cles: ["rappels"] },
 };
 
 /**

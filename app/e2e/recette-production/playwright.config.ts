@@ -57,8 +57,14 @@ export default defineConfig({
   // l'enregistrerait en clair dans l'artefact. L'ordre des projets est sans
   // conséquence : la session d'un parcours s'ouvre dans son propre processus,
   // et une déconnexion ne révoque que les sessions déjà ouvertes.
+  //
+  // Le troisième projet, lui, dépend de l'ordre : les contrôles des montants (@montants, montants-p1.spec.ts) activent un
+  // bail dans le parc du propriétaire, ce qui referme son parcours de démarrage, qu'un test de proprietaire.spec.ts vérifie.
+  // Avec un seul processus, les projets passent dans l'ordre où ils sont déclarés : il est donc déclaré en dernier, sans
+  // dépendance (un échec ailleurs ne doit pas le faire sauter).
   projects: [
-    { name: "recette-mobile", grepInvert: /@sans-trace/ },
+    { name: "recette-mobile", grepInvert: /@sans-trace|@montants/ },
     { name: "recette-connexion", grep: /@sans-trace/, use: { trace: "off" } },
+    { name: "recette-montants", grep: /@montants/ },
   ],
 });

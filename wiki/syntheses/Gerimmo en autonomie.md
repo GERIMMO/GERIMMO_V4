@@ -24,7 +24,8 @@ sources: ["[[2026-09-28-reseau-national-ouvertures-locales]]", "[[2026-07-24-ger
 >   vacances non accusées, arrêt d'urgence actif (aucune donnée de locataire ni montant). Chaque urgence du mode vacances part aussi tout de suite
 >   par e-mail (passage toutes les 10 minutes). L'arrêt d'urgence ne coupe pas ces e-mails. Aucun e-mail de 5 h le 16/10 : premier attendu le 17/10
 >   au plus tôt, non constaté.
-> - **Arrêt d'urgence** (D06-A, PR #182) : il couvre les tâches Vercel et neuf des dix tâches `pg_cron` ; `relais-urgences` est hors arrêt à dessein.
+> - **Arrêt d'urgence** (D06-A, PR #182) : il couvre les missions Vercel et neuf des dix tâches `pg_cron` ; l'alerte du relais et la tâche
+>   `relais-urgences` sont hors arrêt à dessein (écart à faire ratifier par le dirigeant).
 > - **Limite des appels IA** (X19, PR #190) : 50 appels payants par jour de Paris par défaut, réglable ; arrêt consulté avant chaque appel, gestes
 >   manuels compris.
 > - Restent hors de ce canal : les incidents urgents des clients, les webhooks (hors arrêt), et la « ronde quotidienne » décrite plus bas, qui

@@ -52,12 +52,9 @@ import {
   type EtatTacheSignalee,
 } from "./relais-alerte";
 
-/** Les libellés des tâches pg_cron que la table de l'écran d'arrêt ne nomme pas (la caducité des devis, et les inconnues). */
-const LIBELLES_TACHES_BASE: Record<string, string> = {
-  "maintenance-artisans": "Expiration des devis d’artisans périmés",
-};
+/** Le libellé d'une tâche pg_cron : celui de l'écran d'arrêt (les dix tâches connues), sinon son nom brut. */
 function libelleTacheBase(tache: string): string {
-  return TACHES_SQL[tache]?.libelle ?? TACHES_SQL_HORS_ARRET[tache]?.libelle ?? LIBELLES_TACHES_BASE[tache] ?? `Tâche de la base « ${tache} »`;
+  return TACHES_SQL[tache]?.libelle ?? TACHES_SQL_HORS_ARRET[tache]?.libelle ?? `Tâche de la base « ${tache} »`;
 }
 
 type Sentinelle = {

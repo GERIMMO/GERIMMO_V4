@@ -169,6 +169,26 @@ describe.skipIf(!DB_URL)("arrêt d'urgence et tâches planifiées (D06)", () => 
     }
   });
 
+  // Tour final du 16/10 (D06 / D42) : l'écran « Relais et arrêts » listait 9 tâches sur 10 ; la caducité des devis
+  // (« maintenance-artisans », inscrite sous la clé « rappels » par 20261014211000) manquait au miroir TypeScript.
+  it("le miroir de l'écran (TACHES_SQL ∪ TACHES_SQL_HORS_ARRET) est exactement les deux tables, soit les dix tâches pg_cron", async () => {
+    await db.query("reset role");
+    const { rows: table } = await db.query<{ tache: string; cle: string }>(`select tache, cle from public.supervision_taches_arret`);
+    const { rows: horsArret } = await db.query<{ tache: string }>(`select tache from public.supervision_taches_hors_arret`);
+    const { rows: planifiees } = await db.query<{ jobname: string }>(`select jobname from cron.job`);
+    const base = [...table.map((t) => `${t.tache}:${t.cle}`), ...horsArret.map((h) => `${h.tache}:hors-arret`)].sort();
+    const ecran = [
+      ...Object.entries(TACHES_SQL).flatMap(([t, v]) => v.cles.map((c) => `${t}:${c}`)),
+      ...Object.keys(TACHES_SQL_HORS_ARRET).map((t) => `${t}:hors-arret`),
+    ].sort();
+    expect(ecran).toEqual(base);
+    const tachesEcran = [...Object.keys(TACHES_SQL), ...Object.keys(TACHES_SQL_HORS_ARRET)].sort();
+    expect(tachesEcran).toEqual(planifiees.map((j) => j.jobname).sort());
+    expect(tachesEcran).toHaveLength(10);
+    expect(TACHES_SQL["maintenance-artisans"]?.cles).toEqual(["rappels"]);
+    expect(TACHES_SQL["maintenance-artisans"]?.libelle).toMatch(/devis/);
+  });
+
   it("la table n'est lisible que du superviseur permanent et n'est écrite par aucun rôle", async () => {
     await db.query("reset role");
     const droits = await db.query<{ role: string; select: boolean; ecriture: boolean }>(

@@ -43,14 +43,33 @@ d'un artisan avec SON mot de passe, puis déclenche l'un de ces courriers,
 garde un mot de passe qui ouvre le compte dès que le titulaire a cliqué.
 
 Les trois modèles du dossier mènent donc au bouton de Gerimmo
-(`{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=…`). Le bouton
-applique la règle de l'inscription : hors du navigateur de l'inscription, le
-mot de passe choisi avant la confirmation est remplacé, et la personne qui a
-cliqué choisit le sien. Prouvé sur la même version avec ces fichiers : le mot
-de passe du tiers n'ouvre plus rien, quel que soit le point d'entrée.
+(`{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=…`).
 
-Le collage dans le tableau de bord est un geste humain, en production : tant
-qu'il n'est pas fait, ce chemin reste ouvert.
+Depuis le 16/10/2026, le bouton applique la règle de la **première
+confirmation** à tout lien qui confirme une adresse jusque-là non confirmée
+(inscription, invitation, mot de passe oublié, connexion), que le compte vienne
+d'une inscription de Gerimmo ou du `/signup` public de Supabase : hors du
+navigateur d'une inscription de Gerimmo, le mot de passe choisi avant ce clic
+est remplacé par un mot de passe que personne ne connaît, posé par la session
+que le bouton vient d'ouvrir, et la personne qui a cliqué choisit le sien
+(`premiereConfirmation`, `src/lib/lien-mot-de-passe.ts`). Un compte déjà
+confirmé avant le clic n'est pas touché. Prouvé sur GoTrue v2.197.0, navigateur
+réel, avec ces fichiers servis comme modèles : après le clic, le mot de passe du
+tiers est refusé.
+
+Ce que le bouton ne couvre pas, dit tel quel :
+
+- un courrier rendu avec le lien **par défaut** de Supabase mène à son
+  `/verify`, qui confirme l'adresse sans passer par le bouton : le collage des
+  modèles est un geste humain, en production ; tant qu'il n'est pas fait, ce
+  chemin reste ouvert ;
+- entre la confirmation par Supabase et la pose du mot de passe provisoire
+  (un aller-retour vers Supabase), le mot de passe d'avant vaut encore ; la pose
+  ferme ensuite toutes les autres sessions.
+
+La seconde barrière est donc de fermer la création de comptes par le `/signup`
+public (voir le tableau ci-dessous) : Gerimmo n'en a pas besoin, ses
+inscriptions passent par l'API d'administration.
 
 ## Ce qui reste à régler dans Supabase
 
@@ -63,6 +82,15 @@ Tableau de bord Supabase → projet **Gerimmo V4** → *Authentication*.
 | Reset password | `recovery.html` | `Réinitialisation de votre mot de passe Gerimmo` | **À coller** : idem |
 | Magic link | `magic_link.html` | `Votre lien de connexion — Gerimmo` | **À coller** : idem |
 | Invite user | — | — | Non utilisé (seule la clé de service le déclenche) |
+
+### *Sign In / Providers* → « Allow new users to sign up »
+
+**À désactiver** (recommandation du 16/10/2026, geste humain en production).
+L'application n'appelle jamais le `/signup` public (`supabase.auth.signUp`) :
+inscriptions et invitations créent les comptes par l'API d'administration
+(`auth.admin.generateLink`), que ce réglage ne bloque pas. Désactivé, il retire
+à un tiers le moyen de créer, avec la seule clé publique du site, un compte non
+confirmé à l'adresse de quelqu'un d'autre.
 
 ### *URL Configuration* (indispensable)
 

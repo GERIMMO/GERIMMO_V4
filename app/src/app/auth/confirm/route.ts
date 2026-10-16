@@ -9,8 +9,13 @@ import {
   nouveauJetonConfirmation,
   optionsCookieConfirmation,
 } from "@/lib/jeton-confirmation";
-import { finirConfirmationInscription, inscriptionInachevee } from "@/lib/lien-mot-de-passe";
-import { COOKIE_INSCRIPTION, optionsCookieInscription, RAISON_ADRESSE_CONFIRMEE } from "@/lib/temoin-inscription";
+import {
+  destinationApresConfirmation,
+  finirConfirmationInscription,
+  inscriptionInachevee,
+  premiereConfirmation,
+} from "@/lib/lien-mot-de-passe";
+import { COOKIE_INSCRIPTION, optionsCookieInscription } from "@/lib/temoin-inscription";
 
 // Point d'entrée des liens envoyés par e-mail (invitations, mot de passe
 // oublié, confirmation d'inscription).
@@ -47,6 +52,9 @@ import { COOKIE_INSCRIPTION, optionsCookieInscription, RAISON_ADRESSE_CONFIRMEE 
 // non-régression (constat P13) : Auth confirme aussi l'adresse quand le
 // bouton vérifie un lien de RÉCUPÉRATION sur un compte jamais confirmé ; la
 // même règle s'applique donc à tout lien tant que l'inscription n'est pas finie.
+// Quatrième relecture (16/10/2026) : et à TOUT lien qui confirme une adresse
+// jusque-là non confirmée, même sans inscription de Gerimmo (compte créé par le
+// /signup public d'Auth) : voir `premiereConfirmation`.
 
 const TYPES_ACCEPTES: readonly EmailOtpType[] = ["recovery", "invite", "signup", "email", "magiclink", "email_change"];
 
@@ -120,20 +128,16 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
   if (error) return finPost(lienInvalide(request, 303));
-  // Une confirmation d'inscription, ou tout autre lien (récupération, connexion) sur un compte dont l'inscription n'est
-  // pas finie : Auth confirme alors l'adresse au passage (constat P13). Dans tous ces cas, le mot de passe choisi avant
-  // la preuve de possession de la boîte ne survit que dans le navigateur de l'inscription.
-  if (type === "signup" || inscriptionInachevee(data?.user)) {
+  const utilisateur = data?.user;
+  // Un lien qui vient de confirmer une adresse jusque-là non confirmée (inscription, invitation, récupération,
+  // connexion : Auth confirme l'adresse au passage, constat P13), ou tout lien sur un compte dont l'inscription n'est pas
+  // finie : le mot de passe choisi avant la preuve de possession de la boîte ne survit que dans le navigateur de
+  // l'inscription. Un compte déjà confirmé avant ce clic n'est pas touché (récupération ordinaire).
+  if (premiereConfirmation(type, utilisateur) || inscriptionInachevee(utilisateur)) {
     // La session que verifyOtp vient d'ouvrir pose elle-même le mot de passe provisoire (hors du navigateur de
     // l'inscription) : elle survit, et /nouveau-mot-de-passe la trouve.
-    const issue = await finirConfirmationInscription(supabase, data?.user, request.cookies.get(COOKIE_INSCRIPTION)?.value);
-    const cible =
-      // Un lien de récupération mène déjà au choix du mot de passe : sa destination est gardée.
-      issue === "meme_navigateur" || (issue === "mot_de_passe_a_choisir" && type === "recovery")
-        ? new URL(next, request.url)
-        : issue === "mot_de_passe_a_choisir"
-          ? new URL(`/nouveau-mot-de-passe?motif=inscription&suite=${encodeURIComponent(next)}`, request.url)
-          : new URL(`/mot-de-passe-oublie?raison=${RAISON_ADRESSE_CONFIRMEE}`, request.url);
+    const issue = await finirConfirmationInscription(supabase, utilisateur, request.cookies.get(COOKIE_INSCRIPTION)?.value);
+    const cible = new URL(destinationApresConfirmation(issue, type, next, inscriptionInachevee(utilisateur)), request.url);
     const reponse = finPost(sansCache(NextResponse.redirect(cible, 303)));
     // Le témoin a servi : il est effacé.
     reponse.cookies.set(COOKIE_INSCRIPTION, "", optionsCookieInscription(0));

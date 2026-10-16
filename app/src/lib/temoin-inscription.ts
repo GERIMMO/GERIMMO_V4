@@ -27,6 +27,10 @@ export const COOKIE_INSCRIPTION = "gerimmo_inscription";
 export const CLE_EMPREINTE_INSCRIPTION = "empreinte_inscription";
 /** /mot-de-passe-oublie?raison=… : l'adresse est confirmée, mais le mot de passe n'a pas pu être choisi dans la foulée. */
 export const RAISON_ADRESSE_CONFIRMEE = "adresse-confirmee";
+/** /nouveau-mot-de-passe?motif=… : la confirmation d'une inscription de Gerimmo, ouverte hors de son navigateur. */
+export const MOTIF_INSCRIPTION = "inscription";
+/** /nouveau-mot-de-passe?motif=… : tout autre lien (récupération, invitation, connexion) qui vient de confirmer l'adresse. */
+export const MOTIF_CONFIRMATION = "confirmation";
 /** Deux jours : plus long que la validité d'un lien de confirmation. */
 export const DUREE_TEMOIN_INSCRIPTION_S = 2 * 24 * 60 * 60;
 

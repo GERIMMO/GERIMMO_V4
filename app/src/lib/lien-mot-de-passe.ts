@@ -64,9 +64,12 @@ import {
   CLE_EMPREINTE_INSCRIPTION,
   COOKIE_INSCRIPTION,
   empreinteTemoinInscription,
+  MOTIF_CONFIRMATION,
+  MOTIF_INSCRIPTION,
   motDePasseInconnu,
   nouveauTemoinInscription,
   optionsCookieInscription,
+  RAISON_ADRESSE_CONFIRMEE,
   temoinInscriptionValide,
 } from "@/lib/temoin-inscription";
 import { envoyerEmail } from "@/lib/email";
@@ -640,10 +643,84 @@ export function inscriptionInachevee(utilisateur: { user_metadata?: Record<strin
   return Boolean(utilisateur?.user_metadata?.[CLE_EMPREINTE_INSCRIPTION]);
 }
 
+/** Les champs du compte rendu par `verifyOtp` qui disent si CE clic a confirmé l'adresse. */
+type CompteVerifie =
+  | {
+      email_confirmed_at?: string | null;
+      confirmation_sent_at?: string | null;
+      recovery_sent_at?: string | null;
+    }
+  | null
+  | undefined;
+
+// LA PREMIÈRE CONFIRMATION (quatrième relecture du 16/10/2026, constat « compte créé par le /signup public »).
+//
+// Un tiers peut créer un compte NON confirmé à l'adresse de quelqu'un d'autre, avec SON mot de passe, sans passer par
+// Gerimmo : le /signup public d'Auth ne demande que la clé publique du site. Ce compte ne porte pas l'empreinte d'une
+// inscription de Gerimmo. Quand le titulaire de l'adresse clique ensuite un lien quelconque (mot de passe oublié,
+// invitation de locataire ou d'artisan, lien de connexion), Auth confirme l'adresse au passage : le mot de passe du
+// tiers ouvrait alors le compte. La règle de l'inscription s'applique donc à TOUT lien qui confirme une adresse jusque-là
+// non confirmée, avec ou sans empreinte.
+//
+// « Non confirmée avant ce clic » se lit dans la réponse de `verifyOtp`, sans horloge de Gerimmo. La règle d'Auth qui
+// la rend sûre (GoTrue v2.197.0 : `Confirm` et `UpdatePassword` effacent TOUS les jetons à usage unique du compte, et
+// `verifyOtp` ne trouve un compte que par un jeton encore présent ; prouvé sur ce serveur réel) : un lien qui se vérifie
+// prouve qu'aucune confirmation n'a eu lieu depuis sa fabrication. Les deux instants comparés sont ceux d'Auth, lus dans
+// la transaction même de la vérification (le compte y est verrouillé dès son premier changement) : aucune autre requête,
+// concurrente ou non, ne peut s'intercaler entre la confirmation et la lecture.
+
 /**
- * Après `verifyOtp` (type `signup`, ou tout autre lien sur un compte dont l'inscription n'est pas finie : Auth confirme
- * l'adresse en vérifiant AUSSI un lien de récupération ou de connexion, constat P13 prouvé sur GoTrue v2.197.0) : la
- * confirmation vient-elle du navigateur de l'inscription ?
+ * Ce clic vient-il de confirmer une adresse jusque-là NON confirmée ? Exporté pour la route et les tests.
+ *
+ *  - lien d'inscription ou d'invitation (`signup`, `invite`) : un tel jeton n'existe que sur un compte non confirmé
+ *    (une confirmation l'efface, et Auth n'en fabrique pas pour une adresse confirmée) → oui ;
+ *  - lien de récupération ou de connexion (`recovery`, `magiclink`) : adresse confirmée APRÈS la fabrication du lien
+ *    (`email_confirmed_at` ≥ `recovery_sent_at`) → c'est ce clic ; confirmée avant → non ;
+ *  - lien `email` (l'un ou l'autre jeton) : comparé au plus ancien des envois connus ;
+ *  - changement d'adresse (`email_change`) : non, il ne confirme pas un compte.
+ *
+ * Tout doute (instant absent ou illisible) répond « oui » : le mot de passe est remplacé et la personne en choisit un,
+ * jamais l'inverse.
+ */
+export function premiereConfirmation(type: string, utilisateur: CompteVerifie): boolean {
+  if (type === "email_change") return false;
+  if (type === "signup" || type === "invite") return true;
+  const confirmation = microsecondes(utilisateur?.email_confirmed_at);
+  const envoisBruts = type === "email" ? [utilisateur?.confirmation_sent_at, utilisateur?.recovery_sent_at] : [utilisateur?.recovery_sent_at];
+  const envois = envoisBruts.filter((v) => v !== null && v !== undefined).map(microsecondes);
+  if (confirmation === null || envois.length === 0 || envois.some((e) => e === null)) return true;
+  return confirmation >= Math.min(...(envois as number[]));
+}
+
+/**
+ * Où mène le bouton après une première confirmation. Exporté pour la route et les tests.
+ *  - dans le navigateur de l'inscription : la destination prévue ;
+ *  - ailleurs : le choix du mot de passe, avec son motif (« inscription » pour la confirmation d'une inscription de
+ *    Gerimmo, « confirmation » pour tout autre lien) ; un lien qui menait déjà au choix du mot de passe garde sa suite ;
+ *  - si Auth a refusé le mot de passe provisoire posé par la session : une nouvelle demande de lien.
+ */
+export function destinationApresConfirmation(
+  issue: IssueConfirmationInscription,
+  type: string,
+  next: string,
+  inscriptionDeGerimmo: boolean
+): string {
+  if (issue === "meme_navigateur") return next;
+  if (issue === "mot_de_passe_a_redemander") return `/mot-de-passe-oublie?raison=${RAISON_ADRESSE_CONFIRMEE}`;
+  const motif = type === "signup" && inscriptionDeGerimmo ? MOTIF_INSCRIPTION : MOTIF_CONFIRMATION;
+  const cible = new URL(next, "https://gerimmo.invalid");
+  if (cible.pathname === "/nouveau-mot-de-passe") {
+    cible.searchParams.set("motif", motif);
+    return `${cible.pathname}${cible.search}`;
+  }
+  return `/nouveau-mot-de-passe?motif=${motif}&suite=${encodeURIComponent(next)}`;
+}
+
+/**
+ * Après `verifyOtp` d'un lien qui vient de confirmer l'adresse (`premiereConfirmation` : inscription, invitation,
+ * récupération ou connexion sur un compte jamais confirmé, avec ou sans inscription de Gerimmo — Auth confirme l'adresse
+ * en vérifiant AUSSI un lien de récupération ou de connexion, constat P13 prouvé sur GoTrue v2.197.0), ou d'un lien sur
+ * un compte dont l'inscription n'est pas finie : la confirmation vient-elle du navigateur de l'inscription ?
  *
  * Oui (le cookie est le témoin dont le compte garde l'empreinte) : le mot de passe choisi à l'inscription est celui de
  * la personne qui confirme ; l'empreinte est effacée par la session (métadonnées seules : ni jeton ni session touchés).
@@ -659,11 +736,19 @@ export function inscriptionInachevee(utilisateur: { user_metadata?: Record<strin
  *
  * Fermé par défaut : si Auth refuse malgré tout ce changement par la session (panne), le mot de passe provisoire est
  * posé par l'API d'administration, qui ferme toutes les sessions, celle-ci comprise ; la personne redemande alors un
- * lien (« mot de passe oublié »). Le mot de passe d'inscription ne survit jamais à une confirmation faite par le bouton
- * de /auth/confirm ailleurs que dans le navigateur de l'inscription, quel que soit le lien (confirmation, récupération,
- * connexion). Limite : un courrier que Supabase Auth enverrait LUI-MÊME (points d'entrée publics /recover, /resend,
- * /otp, /signup, appelables avec la clé publique) mène à SON /verify, qui confirme l'adresse sans passer par ce bouton ;
- * seuls ses modèles de courrier ferment ce chemin, en menant eux aussi à ce bouton (app/supabase/templates/LISEZ-MOI.md).
+ * lien (« mot de passe oublié »).
+ *
+ * Ce que cela garantit : après une première confirmation faite par le bouton de /auth/confirm ailleurs que dans le
+ * navigateur de l'inscription, aucun mot de passe choisi avant ce clic n'ouvre plus le compte, quel que soit le lien
+ * (inscription, invitation, récupération, connexion) et quelle que soit l'origine du compte (inscription de Gerimmo,
+ * /signup public d'Auth, compte plus ancien). Limites, dites telles quelles :
+ *  - entre la confirmation par Auth et la pose du mot de passe provisoire (le temps d'un aller-retour vers Auth), le
+ *    mot de passe d'avant ouvre encore une session ; celle-ci est fermée par la pose (Auth ferme toutes les autres
+ *    sessions), mais son jeton d'accès reste valable jusqu'à son échéance pour qui l'appelle directement ;
+ *  - un courrier que Supabase Auth enverrait LUI-MÊME avec son lien par défaut (points d'entrée publics /recover,
+ *    /resend, /otp, /signup) mène à SON /verify, qui confirme l'adresse sans passer par ce bouton ; seuls ses modèles de
+ *    courrier ferment ce chemin, en menant eux aussi à ce bouton (app/supabase/templates/LISEZ-MOI.md), et la fermeture
+ *    des inscriptions publiques dans Supabase en retire la cause.
  */
 export async function finirConfirmationInscription(
   session: SessionDeConfirmation,

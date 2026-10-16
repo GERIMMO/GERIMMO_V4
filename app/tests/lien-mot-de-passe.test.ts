@@ -30,18 +30,32 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 import {
   construireLien,
   creeParCetAppel,
+  destinationApresConfirmation,
   envoyerLienMotDePasse,
   inscrireEtEnvoyerConfirmation,
   metadonneesRemplacees,
   LIMITE_INVITATIONS_PAR_ORGANISATION,
   MESSAGE_TROP_D_INVITATIONS,
   MESSAGE_TROP_DE_DEMANDES,
+  premiereConfirmation,
 } from "../src/lib/lien-mot-de-passe";
 import { GET, POST } from "../src/app/auth/confirm/route";
 import { COOKIE_CONFIRMATION, jetonConfirmationValide } from "../src/lib/jeton-confirmation";
 import { COOKIE_INSCRIPTION, empreinteTemoinInscription, temoinInscriptionValide } from "../src/lib/temoin-inscription";
 
 const EMPREINTE = "a".repeat(56);
+// Comptes rendus par verifyOtp, instants relevés sur GoTrue v2.197.0 (banc du lot, 16/10/2026, vt-regle.log) :
+// une confirmation efface TOUS les jetons du compte, donc un lien qui se vérifie a été fabriqué après toute confirmation.
+/** Compte déjà confirmé avant la fabrication du lien de récupération (récupération ordinaire). */
+const DEJA_CONFIRME = { id: "u1", user_metadata: {}, email_confirmed_at: "2026-10-16T05:38:26.636227Z", recovery_sent_at: "2026-10-16T05:38:26.714606Z" };
+/** Compte jamais confirmé (créé par le /signup public), confirmé par CE clic sur un lien de récupération. */
+const CONFIRME_PAR_CE_CLIC = {
+  id: "u2",
+  user_metadata: {},
+  confirmation_sent_at: "2026-10-16T05:38:25.7583Z",
+  recovery_sent_at: "2026-10-16T05:38:25.828731Z",
+  email_confirmed_at: "2026-10-16T05:38:25.880904Z",
+};
 const ORG = "11111111-1111-4111-8111-111111111111";
 
 type ReponseLien = {
@@ -461,7 +475,8 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2 ; 
 describe("/auth/confirm", () => {
   function supabase() {
     const auth = {
-      verifyOtp: vi.fn(async () => ({ error: null })),
+      // Par défaut : un compte déjà confirmé, comme le rend Auth (récupération ordinaire).
+      verifyOtp: vi.fn(async () => ({ data: { user: DEJA_CONFIRME }, error: null })),
       exchangeCodeForSession: vi.fn(async () => ({ error: null })),
       // La session que verifyOtp vient d'ouvrir (contre-relecture finale : c'est elle qui pose le mot de passe provisoire).
       updateUser: vi.fn(async (_attributs: Record<string, unknown>) => ({ data: { user: null }, error: null })),
@@ -614,10 +629,10 @@ describe("/auth/confirm", () => {
     expect(cookieDe(r)).toMatch(new RegExp(`${COOKIE_INSCRIPTION}=;.*Max-Age=0`));
   });
 
-  it("POST d'un lien de mot de passe (recovery) d'un compte sans inscription en cours : aucune vérification de témoin, rien n'est modifié dans le compte", async () => {
+  it("POST d'un lien de mot de passe (recovery) d'un compte DÉJÀ confirmé, sans inscription en cours : aucune vérification de témoin, rien n'est modifié dans le compte", async () => {
     const auth = supabase();
     const { updateUserById } = admin();
-    auth.verifyOtp.mockResolvedValueOnce({ data: { user: { id: "u1", user_metadata: { espace: "proprietaire_direct" } } }, error: null } as never);
+    auth.verifyOtp.mockResolvedValueOnce({ data: { user: { ...DEJA_CONFIRME, user_metadata: { espace: "proprietaire_direct" } } }, error: null } as never);
     const r = await POST(post(champs(), undefined, `${NONCE}; ${COOKIE_INSCRIPTION}=temoin-de-ce-navigateur`));
     expect(new URL(r.headers.get("location")!).pathname).toBe("/nouveau-mot-de-passe");
     expect(updateUserById).not.toHaveBeenCalled();
@@ -630,10 +645,11 @@ describe("/auth/confirm", () => {
   // tiers, puis « mot de passe oublié » cliqué par le titulaire qui ne va pas au bout, gardait le mot de passe du tiers.
   it("POST d'un lien de mot de passe (recovery) ou de connexion (magiclink, email) sur une inscription pas finie, hors de son navigateur : même règle qu'une confirmation, mot de passe inconnu posé PAR LA SESSION", async () => {
     for (const [type, next, attendu] of [
-      ["recovery", "/nouveau-mot-de-passe", "/nouveau-mot-de-passe"],
-      ["recovery", "/nouveau-mot-de-passe?suite=%2Finvitations%2Fabc", "/nouveau-mot-de-passe?suite=%2Finvitations%2Fabc"],
-      ["magiclink", "/espaces", "/nouveau-mot-de-passe?motif=inscription&suite=%2Fespaces"],
-      ["email", "/espaces", "/nouveau-mot-de-passe?motif=inscription&suite=%2Fespaces"],
+      // Quatrième relecture : le choix du mot de passe dit pourquoi (motif « confirmation »), la suite est gardée.
+      ["recovery", "/nouveau-mot-de-passe", "/nouveau-mot-de-passe?motif=confirmation"],
+      ["recovery", "/nouveau-mot-de-passe?suite=%2Finvitations%2Fabc", "/nouveau-mot-de-passe?suite=%2Finvitations%2Fabc&motif=confirmation"],
+      ["magiclink", "/espaces", "/nouveau-mot-de-passe?motif=confirmation&suite=%2Fespaces"],
+      ["email", "/espaces", "/nouveau-mot-de-passe?motif=confirmation&suite=%2Fespaces"],
     ] as const) {
       const auth = supabase();
       const { updateUserById } = admin();
@@ -687,6 +703,53 @@ describe("/auth/confirm", () => {
     expect(updateUserById).toHaveBeenCalledTimes(1);
     expect(updateUserById.mock.calls[0][1].user_metadata).toEqual({ empreinte_inscription: null });
     expect(auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+
+  // Quatrième relecture (16/10/2026, prouvé sur GoTrue v2.197.0) : un tiers crée un compte NON confirmé par le /signup
+  // public d'Auth (clé publique seule), donc SANS empreinte de Gerimmo, puis le titulaire de l'adresse clique un lien :
+  // Auth confirme l'adresse au passage. La règle vaut pour tout lien qui confirme une adresse jusque-là non confirmée.
+  it("POST d'un lien qui vient de confirmer un compte sans empreinte (récupération, invitation de locataire, connexion, confirmation envoyée par Auth) : mot de passe inconnu posé PAR LA SESSION, choix du mot de passe avec le motif « confirmation »", async () => {
+    for (const [type, next, attendu] of [
+      ["recovery", "/nouveau-mot-de-passe", "/nouveau-mot-de-passe?motif=confirmation"],
+      ["recovery", "/nouveau-mot-de-passe?suite=%2Finvitations%2Fabc", "/nouveau-mot-de-passe?suite=%2Finvitations%2Fabc&motif=confirmation"],
+      ["magiclink", "/espaces", "/nouveau-mot-de-passe?motif=confirmation&suite=%2Fespaces"],
+      ["signup", "/espaces", "/nouveau-mot-de-passe?motif=confirmation&suite=%2Fespaces"],
+    ] as const) {
+      const auth = supabase();
+      const { updateUserById } = admin();
+      auth.verifyOtp.mockResolvedValueOnce({ data: { user: CONFIRME_PAR_CE_CLIC }, error: null } as never);
+      // Un témoin présent dans ce navigateur (autre inscription) ne change rien : le compte ne porte aucune empreinte.
+      const r = await POST(post(champs({ type, next }), undefined, `${NONCE}; ${COOKIE_INSCRIPTION}=temoin-de-ce-navigateur`));
+      const cible = new URL(r.headers.get("location")!);
+      expect(cible.pathname + cible.search, type).toBe(attendu);
+      expect(auth.updateUser).toHaveBeenCalledTimes(1);
+      const [attributs] = auth.updateUser.mock.calls[0] as unknown as [{ password: string; data: Record<string, unknown> }];
+      expect(attributs.password).toMatch(/^Aa1!-[A-Za-z0-9_-]{60,}$/);
+      expect(auth.signOut).not.toHaveBeenCalled();
+      expect(updateUserById).not.toHaveBeenCalled();
+    }
+  });
+
+  it("POST d'un lien de récupération sur un compte confirmé AVANT la fabrication du lien : rien n'est changé, la destination est gardée (récupération ordinaire)", async () => {
+    const auth = supabase();
+    const { updateUserById } = admin();
+    auth.verifyOtp.mockResolvedValueOnce({ data: { user: DEJA_CONFIRME }, error: null } as never);
+    const r = await POST(post(champs({ next: "/nouveau-mot-de-passe?suite=%2Finvitations%2Fabc" })));
+    const cible = new URL(r.headers.get("location")!);
+    expect(cible.pathname + cible.search).toBe("/nouveau-mot-de-passe?suite=%2Finvitations%2Fabc");
+    expect(auth.updateUser).not.toHaveBeenCalled();
+    expect(updateUserById).not.toHaveBeenCalled();
+  });
+
+  it("POST : un doute sur les instants d'Auth (absents, illisibles, ou aucun compte rendu) vaut « confirmé par ce clic » : fermé par défaut", async () => {
+    for (const user of [{ id: "u1", user_metadata: {} }, { ...DEJA_CONFIRME, recovery_sent_at: "hier" }, undefined]) {
+      const auth = supabase();
+      admin();
+      auth.verifyOtp.mockResolvedValueOnce({ data: { user }, error: null } as never);
+      const r = await POST(post(champs()));
+      expect(new URL(r.headers.get("location")!).searchParams.get("motif")).toBe("confirmation");
+      expect(auth.updateUser).toHaveBeenCalledTimes(1);
+    }
   });
 
   it("POST d'un jeton mort : « lien invalide »", async () => {
@@ -774,6 +837,47 @@ describe("POST /auth/confirm — contrôle d'origine (30/09)", () => {
  *    sessions, celle qui parle survit. `getUser` exige une session vivante.
  * Chaque personne a son navigateur (ses cookies). Les liens sont ceux des courriels envoyés, cliqués par GET puis POST.
  */
+describe("premiereConfirmation : ce clic vient-il de confirmer l'adresse ? (règle d'Auth : une confirmation efface tous les jetons)", () => {
+  it("inscription et invitation : toujours (un tel jeton n'existe que sur un compte non confirmé)", () => {
+    expect(premiereConfirmation("signup", DEJA_CONFIRME)).toBe(true);
+    expect(premiereConfirmation("invite", undefined)).toBe(true);
+  });
+  it("récupération et connexion : confirmé après la fabrication du lien → oui ; avant → non", () => {
+    expect(premiereConfirmation("recovery", CONFIRME_PAR_CE_CLIC)).toBe(true);
+    expect(premiereConfirmation("magiclink", CONFIRME_PAR_CE_CLIC)).toBe(true);
+    expect(premiereConfirmation("recovery", DEJA_CONFIRME)).toBe(false);
+    expect(premiereConfirmation("magiclink", DEJA_CONFIRME)).toBe(false);
+    // Égalité à la microseconde : le doute vaut « oui ».
+    expect(premiereConfirmation("recovery", { email_confirmed_at: "2026-10-16T05:00:00.000001Z", recovery_sent_at: "2026-10-16T05:00:00.000001Z" })).toBe(true);
+    // Fuseau exprimé autrement : même instant lu.
+    expect(premiereConfirmation("recovery", { email_confirmed_at: "2026-10-16T07:00:00.5+02:00", recovery_sent_at: "2026-10-16T05:00:00.6Z" })).toBe(false);
+  });
+  it("lien « email » : comparé au plus ancien des envois connus", () => {
+    expect(premiereConfirmation("email", CONFIRME_PAR_CE_CLIC)).toBe(true);
+    expect(premiereConfirmation("email", DEJA_CONFIRME)).toBe(false);
+    expect(premiereConfirmation("email", { email_confirmed_at: "2026-10-16T05:00:01Z", confirmation_sent_at: "2026-10-16T05:00:00Z", recovery_sent_at: "2026-10-16T05:00:02Z" })).toBe(true);
+  });
+  it("changement d'adresse : non (il ne confirme pas un compte)", () => {
+    expect(premiereConfirmation("email_change", CONFIRME_PAR_CE_CLIC)).toBe(false);
+  });
+  it("doute : instant absent ou illisible, compte absent → oui (le mot de passe est remplacé, jamais gardé)", () => {
+    expect(premiereConfirmation("recovery", { email_confirmed_at: "2026-10-16T05:00:00Z" })).toBe(true);
+    expect(premiereConfirmation("recovery", { recovery_sent_at: "2026-10-16T05:00:00Z" })).toBe(true);
+    expect(premiereConfirmation("recovery", { email_confirmed_at: "hier", recovery_sent_at: "2026-10-16T05:00:00Z" })).toBe(true);
+    expect(premiereConfirmation("recovery", null)).toBe(true);
+  });
+});
+
+describe("destinationApresConfirmation", () => {
+  it("même navigateur : la destination prévue ; ailleurs : le choix du mot de passe et son motif ; refus d'Auth : nouvelle demande de lien", () => {
+    expect(destinationApresConfirmation("meme_navigateur", "signup", "/artisan/inscription", true)).toBe("/artisan/inscription");
+    expect(destinationApresConfirmation("mot_de_passe_a_choisir", "signup", "/espaces", true)).toBe("/nouveau-mot-de-passe?motif=inscription&suite=%2Fespaces");
+    expect(destinationApresConfirmation("mot_de_passe_a_choisir", "signup", "/espaces", false)).toBe("/nouveau-mot-de-passe?motif=confirmation&suite=%2Fespaces");
+    expect(destinationApresConfirmation("mot_de_passe_a_choisir", "recovery", "/nouveau-mot-de-passe?suite=%2Finvitations%2Fx", true)).toBe("/nouveau-mot-de-passe?suite=%2Finvitations%2Fx&motif=confirmation");
+    expect(destinationApresConfirmation("mot_de_passe_a_redemander", "recovery", "/nouveau-mot-de-passe", false)).toBe("/mot-de-passe-oublie?raison=adresse-confirmee");
+  });
+});
+
 describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui qui confirme n'ouvre le compte", () => {
   type Compte = {
     id: string;
@@ -785,6 +889,10 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     jetonRecuperation: string | null;
     creeLe: string;
     envoiLe: string | null;
+    /** `email_confirmed_at` : l'instant de la confirmation, posé par Auth (règles de GoTrue v2.197.0). */
+    confirmeLe: string | null;
+    /** `recovery_sent_at` : l'instant du dernier lien de récupération fabriqué. */
+    recuperationLe: string | null;
   };
   type Navigateur = Map<string, string>;
   const ADRESSE = "artisan@entreprise.test";
@@ -793,6 +901,10 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
   let sessions: Map<string, string>;
   let courant: Navigateur;
   let avantCreation: (() => Promise<void>) | null;
+  /** Le /signup PUBLIC d'Auth (clé publique seule) : un compte non confirmé, sans empreinte de Gerimmo. */
+  let signupPublic: (email: string, motDePasse: string) => void;
+  /** Le /recover PUBLIC d'Auth, courrier rendu avec le modèle recovery.html du dépôt : le lien mène au bouton de Gerimmo. */
+  let recuperationPublique: (email: string) => string;
 
   function authSimulee() {
     comptes = new Map();
@@ -805,10 +917,11 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     const vue = (c: Compte) => ({
       id: c.id,
       email: c.email,
-      email_confirmed_at: c.confirme ? "2026-10-15T10:00:00Z" : null,
+      email_confirmed_at: c.confirmeLe,
       user_metadata: { ...c.user_metadata },
       created_at: c.creeLe,
       confirmation_sent_at: c.envoiLe ?? undefined,
+      recovery_sent_at: c.recuperationLe ?? undefined,
     });
     const fusion = (cible: Record<string, unknown>, maj: Record<string, unknown> | undefined) => {
       for (const [k, v] of Object.entries(maj ?? {})) {
@@ -816,11 +929,13 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
         else cible[k] = v;
       }
     };
-    /** UpdatePassword : jetons vidés, sessions fermées (toutes, ou toutes sauf celle qui parle). */
+    /** UpdatePassword : jetons et instants d'envoi vidés, sessions fermées (toutes, ou toutes sauf celle qui parle). */
     const changerMotDePasse = (c: Compte, motDePasse: string, sessionGardee?: string) => {
       c.password = motDePasse;
       c.jeton = null;
       c.jetonRecuperation = null;
+      c.envoiLe = null;
+      c.recuperationLe = null;
       for (const [id, compte] of sessions) if (compte === c.id && id !== sessionGardee) sessions.delete(id);
     };
     const generateLink = vi.fn(async (p: { type: string; email: string; password?: string; options?: { data?: Record<string, unknown> } }) => {
@@ -828,6 +943,7 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
       if (p.type === "recovery") {
         if (!c) return { data: { properties: null, user: null }, error: { code: "user_not_found", status: 404, message: "User with this email not found" } };
         c.jetonRecuperation = `recuperation-${++n}`;
+        c.recuperationLe = maintenant();
         return { data: { properties: { hashed_token: c.jetonRecuperation, action_link: "x" }, user: vue(c) }, error: null };
       }
       if (p.type !== "signup") return { data: { properties: null, user: null }, error: { message: "type non simulé" } };
@@ -840,7 +956,7 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
       if (c?.confirme) return { data: { properties: null, user: null }, error: { code: "email_exists", message: "already registered" } };
       const envoi = maintenant();
       if (!c) {
-        c = { id: `compte-${++n}`, email: p.email, password: p.password ?? "", confirme: false, user_metadata: { ...(p.options?.data ?? {}) }, jeton: null, jetonRecuperation: null, creeLe: maintenant(), envoiLe: null };
+        c = { id: `compte-${++n}`, email: p.email, password: p.password ?? "", confirme: false, user_metadata: { ...(p.options?.data ?? {}) }, jeton: null, jetonRecuperation: null, creeLe: maintenant(), envoiLe: null, confirmeLe: null, recuperationLe: null };
         comptes.set(c.id, c);
       } else {
         fusion(c.user_metadata, p.options?.data);
@@ -868,9 +984,14 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
           verifyOtp: vi.fn(async (p: { type: string; token_hash: string }) => {
             const c = [...comptes.values()].find((x) => (p.type === "signup" ? x.jeton : x.jetonRecuperation) === p.token_hash && p.token_hash);
             if (!c) return { data: { user: null, session: null }, error: { message: "Email link is invalid or has expired" } };
-            c.confirme = true;
-            if (p.type === "signup") c.jeton = null;
-            else c.jetonRecuperation = null;
+            // recoverVerify / signupVerify : un compte non confirmé l'est au passage (Confirm), et TOUS les jetons à usage
+            // unique du compte sont effacés (Recover comme Confirm).
+            if (!c.confirme) {
+              c.confirme = true;
+              c.confirmeLe = maintenant();
+            }
+            c.jeton = null;
+            c.jetonRecuperation = null;
             const session = `session-${++n}`;
             sessions.set(session, c.id);
             navigateur.set(COOKIE_SESSION, session);
@@ -893,6 +1014,18 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
           }),
         },
       };
+    };
+    signupPublic = (email, motDePasse) => {
+      expect(parEmail(email)).toBeUndefined();
+      const c: Compte = { id: `compte-${++n}`, email, password: motDePasse, confirme: false, user_metadata: {}, jeton: `jeton-${++n}`, jetonRecuperation: null, creeLe: maintenant(), envoiLe: null, confirmeLe: null, recuperationLe: null };
+      c.envoiLe = maintenant();
+      comptes.set(c.id, c);
+    };
+    recuperationPublique = (email) => {
+      const c = parEmail(email)!;
+      c.jetonRecuperation = `recuperation-${++n}`;
+      c.recuperationLe = maintenant();
+      return `https://www.gerimmo.app/auth/confirm?token_hash=${c.jetonRecuperation}&type=recovery&next=/nouveau-mot-de-passe`;
     };
     mocks.service.mockReturnValue({ auth: { admin: { generateLink, updateUserById } }, rpc: async () => ({ data: true, error: null }) });
     mocks.createClient.mockImplementation(async () => clientDuNavigateur(courant));
@@ -1105,6 +1238,58 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     expect(choisir(ordinateur, "mot-de-passe-choisi-N")).toBe(true);
     expect(ouvre("mot-de-passe-choisi-N")).toBe(true);
   });
+
+  // Quatrième relecture (16/10/2026) : le compte est créé par le /signup PUBLIC d'Auth, sans passer par Gerimmo (aucune
+  // empreinte, aucun témoin). Mêmes scénarios que T10, T10b et T12 de la contre-relecture, rejoués sur GoTrue réel.
+  it("T10 : compte du /signup public (A), « mot de passe oublié » de Gerimmo, le titulaire clique chez lui et ferme l'onglet : A n'ouvre pas le compte", async () => {
+    const chezTitulaire: Navigateur = new Map();
+    signupPublic(ADRESSE, "mot-de-passe-du-tiers-A");
+    expect(ouvre("mot-de-passe-du-tiers-A")).toBe(false);
+    courant = new Map();
+    expect(await envoyerLienMotDePasse({ email: ADRESSE, motif: "mot_de_passe_oublie", next: "/nouveau-mot-de-passe" })).toEqual({});
+    const destination = await cliquer(chezTitulaire, dernierLien());
+    expect(destination.pathname + destination.search).toBe("/nouveau-mot-de-passe?motif=confirmation");
+    expect(compte().confirme).toBe(true);
+    expect(ouvre("mot-de-passe-du-tiers-A")).toBe(false);
+    expect(sessionVivante(chezTitulaire)).toBe(true);
+    expect(choisir(chezTitulaire, "mot-de-passe-choisi-N")).toBe(true);
+    expect(ouvre("mot-de-passe-choisi-N")).toBe(true);
+  });
+
+  it("T10b : compte du /signup public (A), puis invitation de locataire cliquée par le titulaire : A n'ouvre pas le compte, la suite de l'invitation est gardée", async () => {
+    const chezLocataire: Navigateur = new Map();
+    signupPublic(ADRESSE, "mot-de-passe-du-tiers-A");
+    courant = new Map();
+    const suite = "/invitations/6f1e2d3c-4b5a-4968-8778-695a4b3c2d1e";
+    expect(await envoyerLienMotDePasse({ email: ADRESSE, motif: "invitation_locataire", next: `/nouveau-mot-de-passe?suite=${encodeURIComponent(suite)}`, organisation: ORG })).toEqual({});
+    const destination = await cliquer(chezLocataire, dernierLien());
+    expect(destination.pathname).toBe("/nouveau-mot-de-passe");
+    expect(destination.searchParams.get("motif")).toBe("confirmation");
+    expect(destination.searchParams.get("suite")).toBe(suite);
+    expect(ouvre("mot-de-passe-du-tiers-A")).toBe(false);
+    expect(sessionVivante(chezLocataire)).toBe(true);
+  });
+
+  it("T12 : compte du /signup public (A), puis /recover public dont le courrier (modèle du dépôt) mène au bouton de Gerimmo : A n'ouvre pas le compte", async () => {
+    signupPublic(ADRESSE, "mot-de-passe-du-tiers-A");
+    const destination = await cliquer(new Map(), recuperationPublique(ADRESSE));
+    expect(destination.searchParams.get("motif")).toBe("confirmation");
+    expect(ouvre("mot-de-passe-du-tiers-A")).toBe(false);
+  });
+
+  it("compte déjà confirmé : « mot de passe oublié » cliqué dans un autre navigateur ne change rien avant le choix (récupération ordinaire)", async () => {
+    const chezArtisan: Navigateur = new Map();
+    await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN);
+    await cliquer(chezArtisan, dernierLien());
+    expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
+    courant = new Map();
+    await envoyerLienMotDePasse({ email: ADRESSE, motif: "mot_de_passe_oublie", next: "/nouveau-mot-de-passe" });
+    const ailleurs: Navigateur = new Map();
+    const destination = await cliquer(ailleurs, dernierLien());
+    expect(destination.pathname + destination.search).toBe("/nouveau-mot-de-passe");
+    expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
+    expect(sessionVivante(ailleurs)).toBe(true);
+  });
 });
 
 describe("le témoin d'inscription", () => {
@@ -1131,6 +1316,12 @@ describe("/nouveau-mot-de-passe après une confirmation d'inscription ouverte ai
     expect(apres).toContain("ouvert dans un autre navigateur que celui de l'inscription");
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ motif: "inscription", suite: "/artisan/inscription" }) }));
     expect(html).toMatch(/name="suite" value="\/artisan\/inscription"/);
+    // Quatrième relecture : tout autre lien qui vient de confirmer l'adresse (motif « confirmation »).
+    const confirmation = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ motif: "confirmation", suite: "/invitations/x" }) })));
+    expect(confirmation).toContain("Choisissez votre mot de passe");
+    expect(confirmation).toContain("Votre adresse artisan@entreprise.test vient d'être confirmée par ce lien");
+    expect(confirmation).toContain("un mot de passe choisi avant cette confirmation ne permet plus d'entrer");
+    expect(confirmation).not.toContain("autre navigateur");
     // Sans motif : l'écran ordinaire du mot de passe oublié.
     const ordinaire = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({}) })));
     expect(ordinaire).toContain("Nouveau mot de passe");
@@ -1146,7 +1337,7 @@ describe("/mot-de-passe-oublie après une confirmation faite ailleurs que la ses
     const apres = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ raison: "adresse-confirmee" }) })));
     expect(apres).toContain("Choisissez votre mot de passe");
     expect(apres).toContain("Votre adresse est confirmée");
-    expect(apres).toContain("le mot de passe se choisit par un nouveau lien");
+    expect(apres).toContain("le vôtre se choisit par un nouveau lien");
     const ordinaire = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({}) })));
     expect(ordinaire).toContain("Mot de passe oublié");
     expect(ordinaire).not.toContain("est confirmée");

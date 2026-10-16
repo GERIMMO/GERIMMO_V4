@@ -77,6 +77,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Notification et valeur probante]] — Gerimmo ne notifie jamais ; trace GED ≠ preuve.
 - [[Machines à états et événements]] — 8 machines, transitions interdites, idempotence.
 - [[Vétusté et décote]] — grille de durées de vie, décote linéaire ; amorti = zéro retenue.
+- [[Le jour de référence est le jour de Paris]] — **16/10, brouillon** : « aujourd'hui » = date du calendrier à Paris (`aujourdhui_paris()`), jamais le jour UTC ; loyers, encaissements et quittances (X13, #186), dépôt, journal, IRL, terme, charges, rapports et « Fait le » (#189), fonctions des 15-16/10 ; hors décision en callout (restitution, honoraires, copropriété, abonnement…).
 - [[Plan de reprise d'activité]] — RPO 24 h / RTO 4 h, test de restauration documenté.
 - [[Socle de sécurité]] — MFA super administrateur, contrôle AAL2 et séparation des droits de supervision et de signature.
 - [[Ouverture du réseau d'artisans]] — **28/09** : gestion locative nationale ; seul le réseau d'artisans s'ouvre, commune (INSEE) × métier, par le super admin (`/admin/couverture`) ; artisan validé, SIRET vérifié, public, rattaché ; « Signaler mon intérêt » en zone fermée ; carnet personnel toujours utilisable.

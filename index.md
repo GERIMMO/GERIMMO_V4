@@ -213,3 +213,5 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 ### Actualisation de la mission du 16 octobre
 
 Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de validation — version candidate du 13 octobre 2026]], [[Décisions groupées — version candidate du 13 octobre 2026]], [[Prêt à démarcher]], [[Relais du dirigeant]] et [[Invitation d'un artisan par un propriétaire]] renvoient au relevé du soir : [[Mission du 16 octobre — suivi vérifié]], contrôles réalisés et changements candidats distingués de la production.
+
+- 2026-10-16 — [[Mission du 16 octobre — suivi vérifié]] : PR198, simulation GitHub réussie, batterie et parcours locaux finaux, captures inspectées, CI et interventions sécurisées encore attendues ; statut candidat.

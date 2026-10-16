@@ -84,6 +84,13 @@ export const FICHIERS_EN_SERIE = [
   // Même lot : rejeu de la migration 20261014812000 et de ses migrations d'origine, retour arrière (tables supprimées,
   // fonctions réécrites, tâche pg_cron retirée) dans la transaction du test, verrous tenus pendant tout l'essai.
   "tests/relais-urgences-passage-retour.test.ts",
+  // D48 (16/10), règles de conservation des registres du relais et du compteur de l'IA : rejeu de 20261014850000, de son retour et
+  // de celui de 20261014231000 (réécriture d'`appliquer_retention`, règles supprimées puis reposées, `drop table` d'essai) dans la
+  // transaction du fichier : verrous tenus pendant l'essai, croisés avec faits-direction-sans-noms.test.ts, qui réécrit la même fonction.
+  "tests/retention-registres-relais-ia.test.ts",
+  // Restitution du dépôt au jour de Paris (20261014851000) : rejeu de la migration et de son retour, fonctions supprimées puis
+  // recréées (dont `aujourdhui_paris()` en cascade, qui retire les valeurs par défaut d'ecritures et de depot_encaissements).
+  "tests/jour-de-paris-restitution-migration-rejeu.test.ts",
 ];
 
 export default defineConfig({

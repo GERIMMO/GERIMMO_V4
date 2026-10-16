@@ -358,3 +358,4 @@
 20261014810000_relais_alerte_quotidienne.sql
 20261014811000_relais_urgences_immediates.sql
 20261014812000_relais_urgences_passage_frequent.sql
+20261014850000_retention_registres_relais_ia.sql

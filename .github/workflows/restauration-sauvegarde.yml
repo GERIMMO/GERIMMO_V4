@@ -13,7 +13,9 @@ concurrency:
 jobs:
   restaurer:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    # Version figée, pas ubuntu-latest (Ubuntu 26 dès le 19/10/2026) : le client Postgres vient du dépôt PGDG
+    # nommé d'après la version (lsb_release -cs), qui pourrait ne pas encore exister pour une Ubuntu neuve.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     services:
       postgres:

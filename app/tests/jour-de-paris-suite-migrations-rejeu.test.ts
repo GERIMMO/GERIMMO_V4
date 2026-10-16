@@ -250,8 +250,8 @@ describe.skipIf(!DB_URL)("jour de Paris, la suite — migrations et retours arri
     it("inventaire : aucune autre fonction de ces domaines ne lit encore le jour de la session, hors objets classés", async () => {
       // Les fonctions qui écrivent ou lisent le dépôt, le journal, les révisions, les régularisations ou les rapports ET lisent le jour
       // de la SESSION. Les objets hors de la décision du 15/10 sont classés ici avec leur raison, jamais en assouplissant le motif.
+      // `finaliser_decompte` (restitution du dépôt) n'y est plus : il est au jour de Paris depuis 20261014851000 (16/10).
       const HORS_PERIMETRE = new Map<string, string>([
-        ["finaliser_decompte", "restitution du dépôt (décompte de sortie) : catégorie « restitutions », hors des questions tranchées le 15/10"],
         ["actualiser_orchestration_socle", "lit le jour de la session pour les restitutions et les devis d'artisan, pas pour les rapports"],
       ]);
       const { rows } = await db.query<{ nom: string }>(

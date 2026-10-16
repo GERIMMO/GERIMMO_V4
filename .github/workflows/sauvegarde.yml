@@ -63,7 +63,9 @@ jobs:
     # Tant que le compartiment n'est pas nommé dans les variables, le chantier
     # ne fait rien (pas d'échec quotidien pour une configuration absente).
     if: ${{ vars.SCW_BUCKET != '' }}
-    runs-on: ubuntu-latest
+    # Version figée, pas ubuntu-latest (Ubuntu 26 dès le 19/10/2026) : le client Postgres vient du dépôt PGDG
+    # nommé d'après la version (lsb_release -cs), qui pourrait ne pas encore exister pour une Ubuntu neuve.
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
       REF: rddlxunppddzpsaatdaz

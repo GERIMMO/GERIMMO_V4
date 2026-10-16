@@ -74,8 +74,10 @@ describe("lot relais-alertes — manifeste et procédure de retour (sans base)",
     const chaines = [...lisezMoi.matchAll(/Ordre complet si tout doit être défait :([\s\S]*?)puis `500000`/g)];
     expect(chaines, "une seule chaîne complète").toHaveLength(1);
     const codes = [...chaines[0][1].matchAll(/`(\d{6})`/g)].map((m) => m[1]);
-    // Devant le lot : les seuls lots postérieurs, dans l'ordre inverse du manifeste.
-    const avant = POSTERIEURES.map((nom) => nom.slice(8, 14)).reverse();
+    // Devant le lot : les seuls lots postérieurs qui citent la fonction du jour, dans l'ordre inverse du manifeste. Les
+    // migrations de l'invitation d'artisan (840000 à 849000) n'entrent pas dans cette chaîne : aucune ne cite
+    // aujourdhui_paris() (847000 ne la nomme que dans un commentaire et calcule le jour de Paris dans l'expression même).
+    const avant = POSTERIEURES.filter((nom) => !/^2026101484\d{4}_/.test(nom)).map((nom) => nom.slice(8, 14)).reverse();
     expect(codes.slice(0, avant.length)).toEqual(avant);
     expect(codes.slice(avant.length, avant.length + 3)).toEqual(["812000", "811000", "810000"]);
     // Les retours du lot précèdent ceux des migrations appliquées avant lui en production.

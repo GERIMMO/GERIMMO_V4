@@ -72,6 +72,8 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 | `20261014810000_relais_alerte_quotidienne.retour.sql` | `20261014810000_relais_alerte_quotidienne.sql` (D46-B, partie « alerte e-mail du relais », décisions du 15/10/2026) | 5 fonctions supprimées (`reserver_alerte_relais`, `terminer_alerte_relais`, `sentinelle_relais`, `cron_derniere_echeance`, `cron_valeurs_champ`), la table `relais_alertes_envois` supprimée (il dit en nombre les passages retirés), 1 ligne d'historique. Aucune fonction existante n'était modifiée, aucune tâche `pg_cron` ajoutée : rien d'antérieur à rétablir. Réintroduit : plus aucune alerte e-mail quotidienne (IA-02, IA-03). Se joue **le dernier** du lot : il **refuse** tant que `812000` est en place (son jeton ou sa tâche `relais-urgences`) ou tant que `811000` l'est (sa file `relais_urgences`), et nomme le retour à jouer d'abord. À retirer **avec** le code (route `/api/cron/relais`, deux entrées de `vercel.json`, textes de la console), ou vider d'abord `GERIMMO_RELAIS_EMAILS`. Essayé sur une copie le 15/10/2026 : retour joué dans un lot → refus ; exécution ; empreinte des fonctions et des tables hors relais **identique** à celle d'avant le retour ; rejeu sans effet ; marche avant → empreinte des fonctions identique à la base migrée. |
 | `20261014811000_relais_urgences_immediates.retour.sql` | `20261014811000_relais_urgences_immediates.sql` (D46-B, « envoi immédiat pour les urgences », décision du 15/10/2026) | 1 déclencheur retiré (`relais_urgence_a_envoyer` sur `supervision_alertes_internes`), 6 fonctions supprimées (`nature_urgence_relais`, `relais_urgence_a_envoyer`, `prendre_urgences_relais`, `terminer_urgences_relais`, `urgences_relais_recentes`, `urgences_relais_au_quotidien`), les tables `relais_urgences` et `relais_urgences_envois` supprimées (il dit en nombre les urgences retirées, dont celles qui attendaient leur e-mail immédiat), 1 ligne d'historique. Aucune fonction existante n'était modifiée, aucune tâche `pg_cron` ajoutée : rien d'antérieur à rétablir ; les alertes de la console restent intactes. Réintroduit : une urgence du mode vacances ne part plus sur le moment, seulement dans l'e-mail de 5 h. **Refuse** tant que `812000` est en place (son jeton ou sa tâche `relais-urgences`) : son retour d'abord, sinon la tâche resterait planifiée sans file et le retour de `812000` ne trouverait plus ses fonctions. À jouer **avant** le retour de `810000` (qui le vérifie), **avec** le code (appels depuis les missions, le passage de 5 h et la console), ou vider d'abord `GERIMMO_RELAIS_EMAILS`. Essayé dans la transaction d'un test (`tests/relais-urgences-retour.test.ts`) : tout est retiré, les alertes restent et se posent encore, rejeu sans effet, marche avant → tout revient. |
 | `20261014812000_relais_urgences_passage_frequent.retour.sql` | `20261014812000_relais_urgences_passage_frequent.sql` (D46-B, passage fréquent des urgences : toutes les 10 minutes, relecture du 15/10/2026) | Chirurgical : la tâche `pg_cron` `relais-urgences` retirée **en premier** (plus aucun appel avec le jeton), 4 blocs balisés « Relais 15/10 » retirés de la définition en vigueur (`sentinelle_relais` : « tâches hors arrêt », « passage reçu » ; `urgences_relais_recentes` : « rappel exact » ; `relais_urgence_a_envoyer` : « clé imitée »), 5 fonctions supprimées (`declencher_relais_urgences`, `jeton_declencheur_relais_urgences`, `consigner_passage_urgences_relais`, `clore_envoi_urgences_vide`, `urgence_constatee_par_le_relais`), les tables `declencheur_relais_urgences` (le **jeton**) et `supervision_taches_hors_arret` (le recensement) supprimées, 1 ligne d'historique. Ne réécrit aucune donnée : les natures « signalement_manuel » déjà posées dans la file et les envois clos « abandonné » sans urgence restent. Réintroduit : urgences constatées seulement au passage des missions (jusqu'à ~18 h après l'événement), clé imitée qui change le texte, rappel de 5 h qui peut dire « en cours d'envoi » un envoi en échec. À jouer **avant** les retours de `811000` et `810000` (il modifie leurs fonctions ; tous deux refusent tant qu'il est en place), **avec** le code (route `?mode=urgences`, `clore_envoi_urgences_vide`). Essayé dans la transaction d'un test (`tests/relais-urgences-passage-retour.test.ts`) : tâche et jeton retirés, définitions des trois fonctions identiques à celles d'avant la migration, rejeu sans effet, marche avant → tout revient ; et joué par `psql -f` sur une copie de la base de travail (voir le rapport du lot). |
+| `20261014850000_retention_registres_relais_ia.retour.sql` | `20261014850000_retention_registres_relais_ia.sql` (lot « correctifs-base », D48 : règles de conservation des registres créés le 15/10, tour final du 16/10/2026) | Chirurgical, comme le retour de `231000` : 1 bloc retiré de la définition en vigueur d'`appliquer_retention` (marque `purger_registres_relais_ia`, texte exact), 1 fonction supprimée sans cascade (`purger_registres_relais_ia`), 4 règles de `retention_rules` supprimées (`journal:relais_alertes_envois`, `journal:relais_urgences`, `journal:relais_urgences_envois`, `journal:ia_appels_jour` ; une durée réglée à la main depuis serait perdue), 1 ligne d'historique. **Ne ramène pas** les lignes déjà purgées (sauvegarde). Réintroduit : ces quatre registres hors du catalogue ; plus aucune purge du compteur des appels à l'IA (les trois du relais gardent celle de leurs propres fonctions, six mois, jamais modifiée). Indépendant du retour de `231000` (blocs et fonctions distincts, n'importe quel ordre). Sa fonction cite `aujourdhui_paris()` : **à jouer AVANT** le retour de `20261014500000` (voir l'ordre complet, section « fuseau-suite »). Essayé dans la transaction d'un test (`tests/retention-registres-relais-ia.test.ts`) : refus dans un lot, bloc retiré à l'identique, rejeu « rien à faire », aller-retour-aller identique, refus sans rien supprimer si la fonction a été réécrite, composable avec le retour de `231000`. |
+| `20261014851000_jour_de_paris_restitution_depot.retour.sql` | `20261014851000_jour_de_paris_restitution_depot.sql` (lot « correctifs-base » : restitution du dépôt de garantie au jour de Paris, décision du 15/10, point 1, complétée le 16/10/2026) | 2 fonctions (`finaliser_decompte` : 5 `aujourdhui_paris()` remis en `current_date` ; `marquer_decompte_envoye` : 2, dont la valeur par défaut de `p_date`), nombre exact exigé, 1 ligne d'historique. Aucune donnée touchée. Réintroduit : de minuit à 1 h ou 2 h à Paris, un décompte finalisé et ses deux écritures (restitution du dépôt, trop-perçu) datés de la veille, un envoi daté du jour même refusé. **À jouer AVANT** le retour de `20261014500000`. Essayé dans la transaction d'un test (`tests/jour-de-paris-restitution-migration-rejeu.test.ts`) : refus dans un lot, nombre exact rétabli, rejeu sans effet, aller-retour-aller identique, refus sans rien modifier si la fonction a été réécrite. |
 
 **Lot « devis-revisable » et lot « fuseau-paris ».** Les fonctions `refuser_devis`, `demander_revision_devis`, `deposer_devis` (version suivante) et
 `expirer_revisions_devis` citent `public.aujourdhui_paris()`, comme `reserver_appel_ia` (lot « plafond-ia », X19) et `reserver_alerte_relais` (lot « relais-alertes », D46-B) : le retour de `20261014500000` (qui retire cette
@@ -595,10 +597,12 @@ avec un message qui nomme l'objet, sans rien modifier.
 la restitution du dépôt est une catégorie distincte du lot « fuseau-paris », sans question au dirigeant), les mandats, l'abonnement, les artisans, les
 diagnostics, les assurances, les factures d'honoraires (`factures_honoraires.emise_le`), les appels de charges de copropriété (`appels_charges.date_reception`)
 et les clés de répartition (`cles_repartition.date_effet`). Le test `tests/jour-de-paris-suite-migrations-rejeu.test.ts` tient l'inventaire : aucune autre
-fonction de ces domaines ne lit le jour de la session, hors `finaliser_decompte` et `actualiser_orchestration_socle` (restitutions et devis), classées.
+fonction de ces domaines ne lit le jour de la session, hors `actualiser_orchestration_socle` (restitutions et devis), classée. **Depuis le 16/10**, la restitution
+du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Paris : migration `20261014851000`, section « Lot « correctifs-base » » plus bas.
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`851000` (restitution du dépôt au jour de Paris : `finaliser_decompte` et `marquer_decompte_envoye` citent la fonction) et `850000` (règles de conservation des registres du 15/10 : `purger_registres_relais_ia` cite la fonction), en tête parce que le lot « correctifs-base » passe en production après tous les autres ; puis
 `812000` (passage fréquent des urgences du relais : il modifie des fonctions des deux suivants), `811000` (e-mail immédiat des urgences du relais : ne cite pas la fonction, mais se défait avant le suivant, du même lot) et `810000` (alerte du relais : `reserver_alerte_relais` cite la fonction), en tête parce que ce lot passe en production après toutes les migrations qui suivent ; puis `710000` (avoir sur facture externe, D24-C), `730000` (plafond des appels IA, X19), `830000` (relances d'invitation, X16), tous trois citant aussi `aujourdhui_paris()`, `821000`, `820000`, `610000`, `602000`, `601000`, `600000`, `504000` → `501000`, puis `500000`. Le retour de `610000` (règlement de facture, D23) en fait
 partie : `enregistrer_reglement_facture` et `retirer_reglement_facture` citent `aujourdhui_paris()`, et son retour les supprime ; il demande de revenir d'abord au
 code d'avant D23 (voir sa ligne du tableau). `620000` ne cite pas la fonction du jour : il n'entre pas dans cette chaîne. Le test
@@ -658,4 +662,101 @@ fonctions **identiques** à A, 0 fonction ouverte à anon ; sur une copie : reto
 lot) ; retours `821000` puis `820000` → empreinte des 572 fonctions et des défauts **identique à A** ; rejeu des retours → « rien à faire » (13 fois) ; retour joué
 dans un lot (`psql --single-transaction`) → refus ; marche avant → empreinte **identique à B** ; rejeu des migrations sur B → « déjà au jour de Paris » (9 fois),
 empreinte inchangée. Limites : base de banc ; aucun essai sur la production ; l'horloge réelle n'est jamais simulée, c'est le fuseau de la session qui l'est, ou un
+instant fixe substitué à `now()` dans le corps de `aujourdhui_paris()` le temps d'une transaction de test.
+
+## Lot « correctifs-base » (16 octobre 2026) : deux migrations, `20261014850000` et `20261014851000`
+
+**Les décisions.** Constats du tour final de vérification du 16/10/2026, appliqués à l'identique :
+1. **D48** (« chaque nouveau registre naît avec sa règle ») : les registres créés le 15/10 sont déclarés au catalogue `retention_rules` et
+   purgés par `appliquer_retention`, sur le modèle de `20261014231000`. Six mois partout : pour `relais_alertes_envois`, `relais_urgences` et
+   `relais_urgences_envois`, la durée déjà codée dans leurs propres fonctions (`reserver_alerte_relais`, `prendre_urgences_relais`), qui ne
+   sont **pas** modifiées ; pour `ia_appels_jour`, qui n'avait aucune purge, six mois comme les autres registres d'exécution (D48, D13).
+2. **Décision du 15/10, point 1** (« dépôt de garantie et journal comptable général au jour de Paris ») : la **restitution** du dépôt, laissée
+   au jour de la session par le lot « fuseau-suite », passe au jour de Paris. Aucun montant, aucune colonne, aucun droit ne change ; **aucune
+   ligne existante n'est réécrite** (restitutions, décomptes envoyés, écritures, registres gardent leurs dates et leurs lignes).
+
+| Migration | Objets touchés (nombre exact attendu AVANT la migration) |
+|---|---|
+| `…850000_retention_registres_relais_ia` (D48) | 4 règles `journal:relais_alertes_envois`, `journal:relais_urgences`, `journal:relais_urgences_envois`, `journal:ia_appels_jour` (6 mois, suppression, actives) ; 1 fonction nouvelle `purger_registres_relais_ia()` (fermée à `anon`, refus hors supervision et traitement planifié) ; `appliquer_retention()` complétée d'un appel posé juste **avant** la ligne de purge des signalements du support, ancre d'**une** ligne exigée **1** fois (sans son indentation) |
+| `…851000_jour_de_paris_restitution_depot` (point 1) | `finaliser_decompte(uuid)` (**5** `current_date` : date d'émission du décompte, date de pièce et d'imputation des écritures « Restitution du dépôt de garantie » et « Restitution d'un trop-perçu au locataire ») ; `marquer_decompte_envoye(uuid,date)` (**2** : valeur par défaut de `p_date`, refus d'une date d'envoi postérieure au jour) |
+
+**Inventaire (restitution du dépôt et journal comptable général).** Sur la base de banc d'avant le lot, 43 fonctions de `public` lisent
+`current_date`. Parmi celles qui écrivent (insertion ou mise à jour) dans `restitutions`, `retenues`, `ecritures`, `depot_encaissements`,
+`mouvements_mandants` ou `clotures_comptables`, seules `finaliser_decompte` et `marquer_decompte_envoye` le lisaient ; aucune n'utilise une autre
+forme du jour de la session (`now()::date`, `localtimestamp`…) ; aucune valeur par défaut de ces tables ne lit plus `current_date`. Trois
+fonctions lisent `current_date` et la restitution **sans écrire de date du jour** : `generer_alertes_restitution` et
+`rafraichir_alerte_restitution` (seuil J-7 / J+0 de l'alerte du délai légal), `actualiser_orchestration_socle` (priorité d'un dossier de
+pilotage) ; elles restent hors de ce lot, comme les honoraires, les appels de copropriété, les clés de répartition, l'assurance et
+`org_ecriture_ouverte` (question au dirigeant). Le test `tests/jour-de-paris-restitution-migration-rejeu.test.ts` tient cet inventaire. Après
+le lot : 41 fonctions lisent `current_date`.
+
+**Limite assumée (D48).** Les purges propres au relais lisent leur durée en dur : désactiver ou allonger une règle du relais au catalogue
+n'arrête pas leur purge à six mois, faite à chaque passage du relais. Les y rattacher demanderait de réécrire `reserver_alerte_relais` et
+`prendre_urgences_relais`, hors du lot. La purge du catalogue saute un registre absent (retour de son lot joué seul) : le nettoyage de la nuit
+n'échoue pas.
+
+**Ordre des retours.** Les deux retours sont indépendants entre eux (aucun objet commun) ; ordre recommandé : `…851000` puis `…850000`. Leurs
+fonctions citent `aujourdhui_paris()` : ils se jouent **AVANT** le retour de `20261014500000`, en tête de la chaîne complète donnée dans la section
+« Lot « fuseau-suite » » ci-dessus. Le retour de `…850000` est indépendant de celui de `20261014231000` (blocs distincts dans
+`appliquer_retention`, fonctions distinctes, n'importe quel ordre). Son outil de session porte un nom propre
+(`pg_temp.retirer_bloc_registres_relais`) : le retour de `20261014610000`, plus loin dans la chaîne, pose son propre `pg_temp.retirer_bloc`.
+
+**Avant d'appliquer en production (lecture seule).** Restitution : `trouves` doit égaler `attendu`, `deja_au_jour_de_paris` valoir 0 (ou
+`trouves` = 0 et `deja_au_jour_de_paris` = `attendu` : la migration laisse alors la fonction telle quelle).
+
+```sql
+select f.signature, f.attendu,
+       (select count(*) from regexp_matches(pg_get_functiondef(to_regprocedure(f.signature)), '\mcurrent_date\M', 'gi')) as trouves,
+       (select count(*) from regexp_matches(pg_get_functiondef(to_regprocedure(f.signature)), '(\mpublic\.)?\maujourdhui_paris\(\)|\(\s*now\(\)\s+at\s+time\s+zone\s+''Europe/Paris''(::text)?\s*\)\)?\s*::\s*date', 'gi')) as deja_au_jour_de_paris,
+       md5(regexp_replace(lower(pg_get_functiondef(to_regprocedure(f.signature))), '\s+', ' ', 'g')) as empreinte_espaces_normalises
+from (values ('public.finaliser_decompte(uuid)', 5), ('public.marquer_decompte_envoye(uuid,date)', 2)) as f(signature, attendu) order by 1;
+```
+
+D48 : `ancre` doit valoir 1, `deja_branchee` faux, `purge_presente` faux, `regles_presentes` 0 ; la seconde requête dit ce que la première purge
+supprimera (0 attendu : ces registres datent du 15/10).
+
+```sql
+select (length(d) - length(replace(d, $a$v_journaux := v_journaux || jsonb_build_object('signalements_support',public.purger_signalements_support());$a$, '')))
+         / length($a$v_journaux := v_journaux || jsonb_build_object('signalements_support',public.purger_signalements_support());$a$) as ancre,
+       position('purger_registres_relais_ia' in d) > 0 as deja_branchee,
+       to_regprocedure('public.purger_registres_relais_ia()') is not null as purge_presente,
+       (select count(*) from public.retention_rules where data_type in ('journal:relais_alertes_envois', 'journal:relais_urgences',
+          'journal:relais_urgences_envois', 'journal:ia_appels_jour')) as regles_presentes,
+       md5(regexp_replace(lower(d), '\s+', ' ', 'g')) as empreinte_espaces_normalises
+  from (select pg_get_functiondef('public.appliquer_retention()'::regprocedure) as d) f;
+select 'relais_alertes_envois' as registre, count(*) from public.relais_alertes_envois where jour < ((now() at time zone 'Europe/Paris')::date - interval '6 months')::date
+union all select 'relais_urgences', count(*) from public.relais_urgences where statut in ('envoyee', 'quotidien', 'non_envoyee') and traitee_le < now() - interval '6 months'
+union all select 'relais_urgences_envois', count(*) from public.relais_urgences_envois e
+           where e.statut in ('envoye', 'abandonne') and e.commence_le < now() - interval '6 months' and not exists (select 1 from public.relais_urgences u where u.envoi_id = e.id)
+union all select 'ia_appels_jour', count(*) from public.ia_appels_jour where jour < ((now() at time zone 'Europe/Paris')::date - interval '6 months')::date;
+```
+
+`empreinte_espaces_normalises` sur la base de banc d'avant le lot : `finaliser_decompte` 9027022fc044ede87ca306f6cff2a950, `marquer_decompte_envoye`
+b601f6ea3ff21295ee459227e325e221, `appliquer_retention` d86e0705301f94834f0e148ff17e5b1f. Une empreinte différente en production ne bloque rien (le
+nombre exact d'occurrences et l'ancre unique suffisent aux migrations) ; elle dit seulement que la fonction diffère du banc et mérite une lecture
+avant la simulation.
+
+Vérifier l'état après coup (lecture seule) : « vrai » = migrée (B), « faux » = antérieure (A).
+
+```sql
+select position('aujourdhui_paris()' in pg_get_functiondef('public.finaliser_decompte(uuid)'::regprocedure)) > 0 as restitution_au_jour_de_paris,
+       position('aujourdhui_paris()' in pg_get_functiondef('public.marquer_decompte_envoye(uuid,date)'::regprocedure)) > 0 as envoi_au_jour_de_paris,
+       position('purger_registres_relais_ia' in pg_get_functiondef('public.appliquer_retention()'::regprocedure)) > 0 as registres_du_15_10_purges,
+       (select count(*) from public.retention_rules where data_type in ('journal:relais_alertes_envois', 'journal:relais_urgences',
+          'journal:relais_urgences_envois', 'journal:ia_appels_jour')) = 4 as regles_declarees;
+select version from supabase_migrations.schema_migrations where version in ('20261014850000', '20261014851000') order by 1;
+```
+
+Essais du 16/10/2026 (base de banc jetable PostgreSQL 16, construite depuis `ordre-migrations.txt` sans ce lot ; état A : empreinte md5 des 611
+fonctions de `public` (définitions, droits, propriétaire), des 24 règles de conservation et des 542 valeurs par défaut ; 43 fonctions lisent
+`current_date`, 0 ouverte à anon) : simulation des deux migrations dans **une seule transaction** annulée → base **identique à A** ; application
+dans une seule transaction → 612 fonctions, 28 règles, valeurs par défaut inchangées, 41 fonctions lisent `current_date`, 0 ouverte à anon, état
+**identique** à celui d'une base construite depuis le manifeste complet (B) ; rejeu des migrations sur B → « rien à faire » (3 fois), empreinte
+inchangée ; retour de `500000` joué en premier → **refus** (il nomme `finaliser_decompte`, `marquer_decompte_envoye` et
+`purger_registres_relais_ia`) ; retours joués dans un lot (`psql --single-transaction`) → refus ; simulation des retours par `sed` → base
+identique à B ; retours `…851000` puis `…850000` → empreinte **identique à A** ; rejeu des retours → « rien à faire » ; marche avant → empreinte
+**identique à B**. Les tests `tests/jour-de-paris-restitution.test.ts` (sept « temps », dont 23 h 30 UTC le 31 décembre = 0 h 30 le 1er janvier
+à Paris), `tests/jour-de-paris-restitution-migration-rejeu.test.ts` et `tests/retention-registres-relais-ia.test.ts` (purge, critères
+d'attente, règles désactivées, bascule de minuit, rejeu, ancre absente ou répétée, retour, composition avec `231000`) couvrent le reste.
+Limites : base de banc ; aucun essai sur la production ; l'horloge réelle n'est jamais simulée, c'est le fuseau de la session qui l'est, ou un
 instant fixe substitué à `now()` dans le corps de `aujourdhui_paris()` le temps d'une transaction de test.

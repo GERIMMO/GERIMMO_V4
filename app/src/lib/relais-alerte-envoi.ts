@@ -8,8 +8,9 @@
 //     lit la sentinelle (`sentinelle_relais` : alertes non accusées, arrêts actifs, tâches pg_cron), l'état des tâches
 //     de l'écran Santé — missions, suivi des dossiers, sauvegarde quotidienne (la même lecture, `chargerEtatTaches`) —
 //     et les urgences des dernières 24 h (`urgences_relais_recentes`), rappelées même si leur e-mail immédiat est parti ;
-//  4. rien à signaler ni à rappeler : aucun e-mail ; sinon un e-mail par adresse du réglage, chacun avec une clé
-//     d'envoi stable pour le jour (une reprise après échec ne fait pas partir un second message chez le fournisseur) ;
+//  4. rien à signaler ni à rappeler : aucun e-mail ; sinon un e-mail par adresse du réglage, en parallèle, chacun avec
+//     une clé d'envoi stable pour le jour (une reprise après échec ne fait pas partir un second message chez le
+//     fournisseur), et chaque appel borné pour que le passage finisse avant la coupure de la route (voir plus bas) ;
 //     parti vers toutes les adresses, il reprend les urgences qui attendaient encore leur e-mail immédiat (plafond
 //     atteint) : elles ne repartent plus (`urgences_relais_au_quotidien`) ;
 //  5. il consigne le résultat (`terminer_alerte_relais`, nombres seulement).
@@ -146,6 +147,22 @@ export type ResultatRelais =
   | { erreur: string; status: 503 | 500 }
   | { jour: string; statut: "envoye" | "envoi_partiel" | "echec" | "rien_a_signaler" | "non_configure"; destinataires: number; envoyes: number; points: number };
 
+/**
+ * LA DURÉE DU PASSAGE (tour final de vérification du 16/10/2026). La route /api/cron/relais est coupée à 60 s
+ * (`maxDuration`). Coupée avant `terminer_alerte_relais`, la ligne du jour resterait « en_cours » et l'alerte du jour
+ * serait perdue sans bruit (l'autre appel de Vercel tombe hors créneau). Les appels au service d'e-mail doivent donc
+ * être finis aux trois quarts de cette durée (45 s) ; le dernier quart reste aux lectures et à l'écriture en base.
+ * L'e-mail immédiat des urgences passe d'abord, borné à cette échéance moins un appel : l'e-mail de 5 h garde toujours
+ * son créneau. Celui-ci part vers les adresses en parallèle, chaque appel borné au temps restant (10 s au plus).
+ */
+export const DUREE_MAX_PASSAGE_RELAIS_MS = 60_000;
+/** Délai maximal d'un appel au service d'e-mail pendant le passage de 5 h. */
+export const DELAI_APPEL_RELAIS_MS = 10_000;
+/** La part de la durée du passage laissée aux appels au service d'e-mail. */
+const PART_DES_ENVOIS = 0.75;
+/** Un appel n'est jamais borné en dessous de ce délai (ou du délai d'un appel, s'il est plus court). */
+const DELAI_APPEL_MIN_MS = 1_000;
+
 /** Le passage quotidien du relais. Voir l'en-tête du fichier. */
 export async function passerAlerteRelais(options: {
   db: ClientRelais;
@@ -153,14 +170,22 @@ export async function passerAlerteRelais(options: {
   adresses?: AdressesRelais;
   site?: string | null;
   envoyer?: typeof envoyerEmail;
-  /** Délai maximal d'un appel au service d'e-mail (défaut de `envoyerEmail`) ; réglable pour les tests. */
+  /** Délai maximal d'un appel au service d'e-mail (10 s par défaut) ; réglable pour les tests. */
   delaiMaxMs?: number;
+  /** La durée dont dispose le passage avant la coupure de la route (60 s par défaut). */
+  dureeMaxMs?: number;
+  /** L'horloge qui mesure cette durée, en millisecondes (`Date.now` par défaut) ; réglable pour les tests. */
+  horloge?: () => number;
 }): Promise<ResultatRelais> {
+  const horloge = options.horloge ?? Date.now;
+  const debut = horloge();
   const maintenant = options.maintenant ?? new Date();
   if (!estHeureDuRelais(maintenant)) return { ignore: true, motif: "hors_creneau", heure_paris: composantesParis(maintenant).heure };
   const { db } = options;
   const adresses = options.adresses ?? adressesRelaisDuServeur();
   const envoyer = options.envoyer ?? envoyerEmail;
+  const delaiAppel = options.delaiMaxMs ?? DELAI_APPEL_RELAIS_MS;
+  const finDesEnvois = debut + Math.floor((options.dureeMaxMs ?? DUREE_MAX_PASSAGE_RELAIS_MS) * PART_DES_ENVOIS);
 
   const reservation = await db.rpc("reserver_alerte_relais");
   const r = reservation.data as { reserve?: unknown; jour?: unknown; statut?: unknown } | null;
@@ -183,7 +208,8 @@ export async function passerAlerteRelais(options: {
     const vacances = await db.rpc("traiter_vacances");
     // Les urgences que ce passage vient de poser partent tout de suite, comme après chaque passage de mission ; l'e-mail
     // de 5 h les rappelle ensuite (décision du 15/10). Ne lève jamais.
-    await envoyerUrgencesRelais({ db, adresses, site: options.site, envoyer, delaiMaxMs: options.delaiMaxMs });
+    // Bornées pour laisser à l'e-mail de 5 h un appel entier avant la fin des envois (voir la durée du passage).
+    await envoyerUrgencesRelais({ db, adresses, site: options.site, envoyer, delaiMaxMs: delaiAppel, echeance: finDesEnvois - delaiAppel, horloge });
     const sentinelle = await db.rpc("sentinelle_relais");
     const missions = await chargerEtatTaches(db, maintenant);
     const recentes = await db.rpc("urgences_relais_recentes");
@@ -201,13 +227,16 @@ export async function passerAlerteRelais(options: {
     const site = (options.site !== undefined ? options.site : adresseDuSite()) ?? "https://www.gerimmo.app";
     const html = htmlAlerteRelais(constat, maintenant, `${site}/admin`);
     const sujet = sujetAlerteRelais(points, urgences);
-    let envoyes = 0;
-    for (const to of adresses.valides) {
+    // Les adresses en parallèle, chaque appel borné au temps restant avant la fin des envois : le délai d'un service lent
+    // ne s'additionne pas d'une adresse à l'autre, et le résultat est consigné avant la coupure de la route.
+    const delai = Math.max(Math.min(DELAI_APPEL_MIN_MS, delaiAppel), Math.min(delaiAppel, finDesEnvois - horloge()));
+    const resultats = await Promise.all(adresses.valides.map((to) =>
       // Aucun `avantEnvoi` : l'arrêt d'urgence ne retient pas cette alerte (voir l'en-tête).
-      const resultat = await envoyer({ to, subject: sujet, html, cleIdempotence: cleEnvoi(jour, to), ...(options.delaiMaxMs ? { delaiMaxMs: options.delaiMaxMs } : {}) });
-      if (resultat.erreur) console.error("[relais] Un envoi de l’alerte n’a pas abouti.");
-      else envoyes++;
-    }
+      envoyer({ to, subject: sujet, html, cleIdempotence: cleEnvoi(jour, to), delaiMaxMs: delai })
+        .catch(() => ({ erreur: "envoi interrompu" }))
+    ));
+    const envoyes = resultats.filter((resultat) => !resultat.erreur).length;
+    if (envoyes < adresses.valides.length) console.error("[relais] Un envoi de l’alerte n’a pas abouti.");
     const statut = envoyes === adresses.valides.length ? "envoye" : envoyes === 0 ? "echec" : "envoi_partiel";
     // Parti vers toutes les adresses : les urgences qu'il rappelle alors qu'elles attendaient encore leur e-mail immédiat
     // (plafond atteint) ne repartiront pas en e-mail immédiat. Une erreur ici ne change rien au résultat du passage.

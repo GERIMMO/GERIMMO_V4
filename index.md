@@ -24,6 +24,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Restitution du dépôt de garantie]] — délai légal 1/2 mois, imputabilité des écarts d'EDL.
 - [[Régularisation des charges]] — provisions vs réel, année civile, justificatifs bloquants.
 - [[Relances et mise en demeure]] — impayés à seuils paramétrables, relances = preuve.
+- [[Relais du dirigeant]] — **16/10, brouillon** : D46-B, partie alerte, en production (PR #192) : e-mail quotidien à 5 h (Paris) s'il y a quelque chose à signaler, e-mail immédiat des urgences du mode vacances (passage `pg_cron` toutes les 10 min, au plus 11 min, 6 envois par heure), non coupé par l'arrêt d'urgence ; deux adresses gardées hors du dépôt ; aucun envoi réel encore constaté.
 - [[Onboarding et abonnement]] — création d'agence, invitations, essai sans carte — 2 mois jusqu'au 31/12/2026 (offre de lancement), 1 mois ensuite — puis **gel en lecture seule** jusqu'au paiement ; aucun bien offert (28/09) ; préavis d'un mois et rétractation de 14 jours (CGU).
 - [[Retours utilisateurs]] — suivi privé, contestations, revue mensuelle des idées et conservation des signalements ; réalisation et preuves séparées des fonctionnalités restantes.
 

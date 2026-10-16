@@ -1,0 +1,18 @@
+<div style="font-family:sans-serif;font-size:14px;color:#151b2b;line-height:1.55">
+  <h2 style="color:#0f2352;font-size:18px">Votre lien de connexion</h2>
+  <p>Bonjour,</p>
+  <p>Une connexion à votre compte Gerimmo a été demandée avec cette adresse.
+     Pour vous connecter :</p>
+  <p style="margin:22px 0">
+    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=magiclink&amp;next=/espaces"
+       style="background:#2457f5;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;display:inline-block">
+      Me connecter
+    </a>
+  </p>
+  <p style="color:#5b6478;font-size:12.5px">
+    Ce lien est valable pour une durée limitée et ne sert qu'une fois. Si vous
+    n'êtes pas à l'origine de cette demande, ignorez ce message : personne ne
+    peut se connecter sans cliquer ce lien.
+  </p>
+  <p>— Gerimmo</p>
+</div>

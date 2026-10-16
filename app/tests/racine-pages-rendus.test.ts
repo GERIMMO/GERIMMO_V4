@@ -226,7 +226,8 @@ describe("incidents : la liste, le dossier ouvert, son volet artisan et la mise 
           description: "Fuite TEST", lot: { id: LOT, nom: "Lot TEST", bien_id: BIEN }, declarant: { id: LOCATAIRE, nom: "Martin", prenom: "Léa", telephone: null },
         }],
         // Le volet artisan : une mise en concurrence ouverte sans artisan proposable (« Enregistrez une entreprise dans
-        // votre carnet »), et la mission précédente, terminée, avec sa photo de chantier.
+        // votre carnet » pour une agence, « Invitez un artisan » pour le propriétaire direct), et la mission précédente,
+        // terminée, avec sa photo de chantier.
         incident_consultations: [{ id: "c-1", metier: "plomberie", nature_travaux: "entretien_courant", decennale_requise: false, devis_unique_assume: false, validite_jours: 30, statut: "ouverte", created_at: "2026-10-02T08:00:00Z" }],
         incident_interventions: [{ id: MISSION, artisan_id: "art-1", devis_id: null, nature_travaux: "entretien_courant", statut: "terminee", confiee_le: "2026-09-01T08:00:00Z", acceptee_le: null, refusee_le: null, refus_motif: null, debut_prevu: null, fin_prevue: null, demarree_le: null, terminee_le: "2026-09-10T08:00:00Z", annulation_motif: null }],
         intervention_photos: [{ id: "ph-1", intervention_id: MISSION, document_id: PHOTO, moment: "apres" }],
@@ -241,8 +242,10 @@ describe("incidents : la liste, le dossier ouvert, son volet artisan et la mise 
         "/incidents/nouveau", `/incidents?sel=${INCIDENT}`,
         // le dossier ouvert (PaneIncident)
         `/parc/${BIEN}/lots/${LOT}`, `/personnes/${LOCATAIRE}#messages`,
-        // le volet artisan (VoletArtisan) et la mise en concurrence (ConsultationOuverte)
-        `/documents/${PHOTO}/fichier`, "/artisans",
+        // le volet artisan (VoletArtisan) et la mise en concurrence (ConsultationOuverte) ; sans artisan proposable, le
+        // propriétaire direct est mené au formulaire d'invitation de son carnet (décision du 15/10/2026, lot
+        // invitation-artisan), l'agence à son carnet (« Enregistrez une entreprise »)
+        `/documents/${PHOTO}/fichier`, p.racine === "/espace" ? "/artisans#inviter-un-artisan" : "/artisans",
       ]);
     });
   }

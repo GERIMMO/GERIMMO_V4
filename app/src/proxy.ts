@@ -56,6 +56,13 @@ const PUBLIC_PATHS = [
 ];
 const REDIRECT_SI_CONNECTE = ["/connexion", "/inscription", "/mot-de-passe-oublie"];
 
+// L'invitation d'un artisan par un propriétaire (décision du 15/10/2026) : le lien de l'e-mail mène à
+// /artisan/invitation/<identifiant>, où l'artisan sans compte crée le sien. Sans session, la page ne lit rien en base
+// et ne dit rien de l'invitation ; avec une session, elle ne montre l'invitation qu'à l'adresse confirmée qui l'a reçue.
+// Seconde relecture du 15/10 : ce chemin EXACT seulement (un identifiant, rien après), pas le préfixe — une page
+// ajoutée plus tard sous /artisan/invitation… ne deviendrait pas publique sans qu'on le décide.
+const CHEMIN_INVITATION_ARTISAN = /^\/artisan\/invitation\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // LES PREMIERS SEGMENTS QUI EXISTENT (recette de production du 27/09). Sans
 // session, toute adresse privée mène à la connexion — y compris une adresse
 // qui n'existe pas : le visiteur se connectait pour atterrir… sur une 404.
@@ -180,7 +187,8 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   // La racine est le site vitrine : publique pour le visiteur, raccourci vers
   // les espaces pour le connecté.
-  const isPublic = pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isPublic =
+    pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p)) || CHEMIN_INVITATION_ARTISAN.test(pathname);
 
   if (!user) {
     if (isPublic) return response;

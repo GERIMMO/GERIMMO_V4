@@ -62,6 +62,11 @@ export const FICHIERS_EN_SERIE = [
   // les organisations et voit disparaître celle de l'essai : violation de orchestration_cases_organization_id_fkey
   // (relecture du 15/10, deux fichiers seuls en parallèle).
   "tests/planning-conflits-concurrence.test.ts",
+  // Invitation d'un artisan par un propriétaire (décision du 15/10) : rejeu de 20261014840000 et de son retour arrière,
+  // qui créent et suppriment une table référençant organizations, accounts et artisans (verrous tenus pendant l'essai).
+  "tests/invitation-artisan-migration-rejeu.test.ts",
+  // Même décision : deux acceptations simultanées, et une acceptation pendant une annulation (fixture VALIDÉE, retirée en fin).
+  "tests/invitation-artisan-concurrence.test.ts",
   // X16 (relances d'invitation) : remplace `aujourdhui_paris()` dans ses essais (jour de Paris figé), rejoue la
   // migration 20261014830000 et son retour arrière (`alter table` et `create trigger` sur invitations_locataires).
   "tests/relances-invitations-locataires.test.ts",

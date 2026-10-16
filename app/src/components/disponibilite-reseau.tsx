@@ -5,6 +5,7 @@ import { useId } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { confirmerCommuneBien, confirmerCommunesEvidentes, signalerInteretReseau, type EtatReseau } from "@/app/actions/reseau";
 import { messageDisponibilite, type DisponibiliteReseau, type CommuneReseau } from "@/lib/reseau";
+import { cheminCarnetInvitation } from "@/lib/invitations-artisan";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
 
@@ -33,15 +34,20 @@ export function MessageReseau({ orgId, bienId, disponibilite: d }: { orgId: stri
 
 /**
  * Ce qu'un propriétaire peut faire quand le réseau n'est pas ouvert pour sa commune (audit du 13/10, PRO2-01,
- * décision D17, option A — texte seul). Sans cela, l'écran de sollicitation s'arrêtait sur un bouton grisé : le
- * propriétaire ne savait pas qu'il pouvait clore l'incident ou appeler lui-même un artisan. Aucun ajout d'artisan
- * n'est proposé ici : l'ajout d'artisans reste réservé aux agences.
+ * décision D17, option A). Sans cela, l'écran de sollicitation s'arrêtait sur un bouton grisé : le propriétaire ne
+ * savait pas qu'il pouvait clore l'incident ou appeler lui-même un artisan.
+ *
+ * Décision du dirigeant du 15/10/2026 : le propriétaire peut désormais INVITER un artisan qu'il connaît. L'artisan
+ * s'inscrit lui-même et Gerimmo le valide ; une fois l'invitation acceptée, il est dans le carnet du propriétaire et peut
+ * être sollicité ici, même commune fermée, pour les biens situés dans sa zone d'intervention. L'ajout direct d'un
+ * artisan par SIRET reste réservé aux agences : ce texte n'en propose aucun.
  */
-export function VoieDeSortieReseau({ interetEnregistre }: { interetEnregistre: boolean }) {
+export function VoieDeSortieReseau({ orgId, interetEnregistre }: { orgId: string; interetEnregistre: boolean }) {
   return <div className="space-y-2 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4 text-sm">
     <p className="font-medium">Ce que vous pouvez faire dès maintenant</p>
     <ul className="list-disc space-y-1.5 pl-5">
       <li><strong>Clôturer l’incident</strong> s’il est réglé ou s’il relève du syndic : voir <a href="#cloture" className="underline underline-offset-4">la section « Clôturer l’incident »</a>, plus bas sur cette page.</li>
+      <li><strong>Inviter un artisan que vous connaissez</strong> depuis votre carnet : <Link href={cheminCarnetInvitation(orgId)} className="underline underline-offset-4">Inviter un artisan</Link>. Il crée son compte et inscrit son entreprise, puis Gerimmo vérifie son inscription. Vous pourrez ensuite le solliciter ici, même si la commune n’est pas ouverte au réseau, pour les biens situés dans sa zone d’intervention.</li>
       <li><strong>Appeler vous-même l’artisan de votre choix</strong>, en dehors de Gerimmo. Une fois l’intervention faite, clôturez l’incident avec le motif « Résolu ».</li>
       {interetEnregistre
         ? <li><strong>Votre intérêt est déjà enregistré</strong> pour ce bien et ce métier. Aucune intervention n’a été demandée.</li>

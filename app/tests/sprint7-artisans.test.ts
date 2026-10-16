@@ -620,6 +620,13 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
     await db.query(`select public.definir_ma_visibilite('publique')`);
 
     await agir(gerantB);
+    // Seconde relecture du 15/10 (20261014843000) : la liste noire exige une relation préalable réelle. L'agence B
+    // rattache d'abord le profil, devenu public, par son SIRET (la porte prévue), puis l'écarte.
+    await db.query(
+      `select public.artisan_creer_ou_rattacher($1,'Plomberie Durand','12345678901234',
+         '0611111111', null, array['plomberie']::public.artisan_metier[], array['75011'])`,
+      [orgB]
+    );
     await expect(
       essai(`select public.artisan_blacklist_locale($1,$2,'')`, [orgB, artisan])
     ).rejects.toThrow(/motif est obligatoire/);

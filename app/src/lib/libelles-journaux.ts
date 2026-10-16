@@ -31,6 +31,15 @@ const ACTIONS: Record<string, string> = {
   invitation_locataire: "Invitation d’un locataire envoyée",
   invitation_locataire_acceptee: "Invitation d’un locataire acceptée",
   invitation_locataire_envoi_echec: "Envoi d’une invitation de locataire en échec",
+  // Décision du 15/10/2026 : l'invitation d'un artisan par un propriétaire direct.
+  invitation_artisan: "Invitation d’un artisan préparée par un propriétaire",
+  invitation_artisan_envoyee: "Invitation d’un artisan envoyée",
+  invitation_artisan_envoi_echec: "Envoi d’une invitation d’artisan en échec",
+  invitation_artisan_annulee: "Invitation d’un artisan annulée",
+  invitation_artisan_expiree: "Invitation d’un artisan expirée",
+  invitation_artisan_refusee: "Invitation refusée par l’artisan",
+  invitation_artisan_acceptee: "Invitation acceptée : artisan ajouté au carnet du propriétaire",
+  invitation_artisan_bloquee: "Invitation d’un artisan non aboutie (liste noire)",
   // Décision X16 (15/10/2026) : relances automatiques J+3 et J+10, écrites par la mission « rappels » (sans compte).
   invitation_locataire_relancee: "Relance automatique d’une invitation de locataire envoyée",
   invitation_locataire_relance_echec: "Relance automatique d’une invitation de locataire non partie (reprise plus tard)",

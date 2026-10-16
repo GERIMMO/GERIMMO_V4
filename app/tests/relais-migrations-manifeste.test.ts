@@ -32,10 +32,15 @@ const DEJA_EN_PRODUCTION = [
 const manifeste = () => readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
 
 describe("lot relais-alertes — manifeste et procédure de retour (sans base)", () => {
-  it("les trois migrations du lot ferment le manifeste, dans leur ordre, une seule fois chacune", () => {
+  it("les trois migrations du lot se suivent, dans leur ordre, une seule fois chacune ; seules celles du lot invitation-artisan viennent après", () => {
     const lignes = manifeste();
     for (const nom of LOT) expect(lignes.filter((l) => l === nom), nom).toHaveLength(1);
-    expect(lignes.slice(-LOT.length)).toEqual(LOT);
+    const premiere = lignes.indexOf(LOT[0]);
+    expect(lignes.slice(premiere, premiere + LOT.length)).toEqual(LOT);
+    // Fusion du lot invitation-artisan (16/10/2026) : ses migrations (20261014840000 à 20261014849000) passeront en
+    // production après celles du relais ; elles seules ferment le manifeste, en ajout.
+    const apres = lignes.slice(premiere + LOT.length);
+    expect(apres.every((nom) => /^2026101484\d{4}_/.test(nom)), apres.join(", ")).toBe(true);
   });
 
   it("les migrations déjà appliquées en production (820000, 821000, puis celles de la PR #190) restent devant celles du lot", () => {

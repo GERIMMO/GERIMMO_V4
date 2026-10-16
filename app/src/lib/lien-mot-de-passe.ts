@@ -32,7 +32,13 @@
 // confirmée est refusée par Auth (`email_exists`) : son titulaire reçoit un
 // lien de reconnexion, et l'écran dit la même chose qu'à une adresse neuve.
 // Une adresse inscrite mais jamais confirmée (inscription interrompue) reçoit
-// un nouveau lien de confirmation.
+// un nouveau lien de confirmation ; le mot de passe et les informations
+// choisis à cette inscription remplacent les anciens AVANT la demande de ce
+// lien (relecture du 15/10/2026 ; contre-relecture finale : un mot de passe
+// posé après tue le lien, voir « Les règles d'Auth » plus bas). Et la
+// confirmation est liée au navigateur de l'inscription (lib/temoin-inscription.ts) :
+// ouverte ailleurs, elle fait choisir le mot de passe à la personne qui a
+// prouvé posséder la boîte, dans la session que le bouton vient d'ouvrir.
 //
 // SÉCURITÉ.
 // - La clé de service (src/lib/supabase/service.ts) ne sert ici qu'à fabriquer
@@ -52,8 +58,20 @@
 //   qu'une adresse connue : on ne révèle pas qui a un compte.
 
 import "server-only";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { clientDeService } from "@/lib/supabase/service";
+import {
+  CLE_EMPREINTE_INSCRIPTION,
+  COOKIE_INSCRIPTION,
+  empreinteTemoinInscription,
+  MOTIF_CONFIRMATION,
+  MOTIF_INSCRIPTION,
+  motDePasseInconnu,
+  nouveauTemoinInscription,
+  optionsCookieInscription,
+  RAISON_ADRESSE_CONFIRMEE,
+  temoinInscriptionValide,
+} from "@/lib/temoin-inscription";
 import { envoyerEmail } from "@/lib/email";
 import { adresseDuSite } from "@/lib/site";
 import { destinationSure } from "@/lib/destination-sure";
@@ -409,14 +427,75 @@ export function adresseDejaInscrite(error: { code?: string; message: string }): 
   );
 }
 
+// LES RÈGLES D'AUTH QUE L'INSCRIPTION RESPECTE (contre-relecture finale du 15/10/2026, prouvées sur GoTrue v2.197.0).
+// - Tout changement de mot de passe (`UpdatePassword`, par l'API d'administration comme par la session) vide le jeton
+//   de confirmation, efface tous les jetons à usage unique et ferme les sessions : toutes par l'API d'administration,
+//   toutes SAUF celle qui parle quand c'est la session elle-même (`auth.updateUser`). Poser un mot de passe APRÈS
+//   `generateLink` tuait donc le lien envoyé, pour toute inscription ; le poser par l'administration après `verifyOtp`
+//   fermait la session que le bouton venait d'ouvrir.
+// - `generateLink` (signup) sur une adresse inscrite mais non confirmée renouvelle le jeton (les liens précédents
+//   meurent), fusionne `data` dans les métadonnées et GARDE le mot de passe ; il n'applique alors aucune politique de
+//   mot de passe.
+// - Changer seulement des métadonnées ne touche ni aux jetons ni aux sessions.
+//
+// D'où l'ordre : on cherche d'abord si l'adresse a un compte ; le mot de passe d'une adresse pré-inscrite est posé
+// AVANT le lien qu'on envoie ; une adresse neuve n'appelle jamais `updateUserById` ; et à la confirmation hors du
+// navigateur de l'inscription, c'est la SESSION ouverte par le bouton qui pose le mot de passe provisoire.
+//
+// LE COUPLE (mot de passe, empreinte du témoin). « Même navigateur » ne garde le mot de passe d'inscription que si ce
+// mot de passe a été choisi dans ce navigateur. Les deux sont donc toujours écrits ENSEMBLE, en une opération d'Auth :
+// la création du compte (mot de passe et `data`), ou `updateUserById` (mot de passe et `user_metadata`, une seule
+// transaction). Le lien d'une adresse pré-inscrite est demandé SANS l'empreinte : une inscription concurrente qui
+// poserait son propre couple entre-temps garde le sien, et le clic de l'autre personne mène au choix du mot de passe.
+// Un lien encore valide au clic prouve qu'aucun mot de passe n'a changé et qu'aucun autre lien n'a été demandé depuis
+// le sien (règles ci-dessus) : le couple est celui que la demande de ce lien a laissé.
+
+/** Auth répond qu'aucun compte ne porte cette adresse (recherche par un lien de récupération). */
+function compteIntrouvable(error: { code?: string; status?: number }): boolean {
+  return error.code === "user_not_found" || error.status === 404;
+}
+
+/** Un instant d'Auth (« 2026-10-15T22:22:41.114601Z ») en microsecondes ; `null` s'il est illisible. */
+function microsecondes(instant: unknown): number | null {
+  if (typeof instant !== "string") return null;
+  const m = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/.exec(instant);
+  if (!m) return null;
+  const secondes = Date.parse(`${m[1]}${m[3]}`);
+  if (Number.isNaN(secondes)) return null;
+  return secondes * 1000 + Number((m[2] ?? "").padEnd(6, "0").slice(0, 6));
+}
+
 /**
- * Crée le compte d'une inscription et envoie NOTRE lien de confirmation.
+ * Le compte rendu par `generateLink` (signup) vient-il d'être CRÉÉ par cet appel ? Exporté pour les tests.
  *
- * Une seule opération Auth (`generateLink`, type `signup`) : elle crée
- * l'utilisateur avec ses métadonnées, applique la politique de mot de passe,
- * n'envoie aucun e-mail et rend l'empreinte du jeton. Demande anonyme : la
- * limite de fréquence s'applique d'abord. L'erreur rendue garde le `code` de
- * Supabase pour que l'action la classe (mot de passe faible…).
+ * Garde contre une course : l'adresse était libre à la recherche, mais un tiers l'a inscrite (avec SON mot de passe)
+ * avant notre création. Auth relève l'heure de l'envoi (`confirmation_sent_at`) AVANT de créer le compte (GoTrue
+ * v2.197.0, api/mail.go) : un compte créé par l'appel lui est postérieur, un compte qui existait déjà lui est
+ * antérieur. Tout doute (champ absent ou illisible, égalité) répond « non » : le compte est alors traité comme
+ * pré-inscrit, ce qui coûte deux appels de plus et ne garde jamais un mot de passe inconnu.
+ */
+export function creeParCetAppel(utilisateur: { created_at?: string; confirmation_sent_at?: string } | null | undefined): boolean {
+  const creation = microsecondes(utilisateur?.created_at);
+  const envoi = microsecondes(utilisateur?.confirmation_sent_at);
+  return creation !== null && envoi !== null && creation > envoi;
+}
+
+type CompteAuth = { id: string; email_confirmed_at?: string | null; user_metadata?: Record<string, unknown> | null };
+
+/**
+ * Crée le compte d'une inscription (ou reprend une inscription jamais confirmée) et envoie NOTRE lien de confirmation.
+ *
+ * 1. Recherche : un lien de récupération pour l'adresse. Aucun compte : Auth répond « introuvable ». Compte confirmé :
+ *    ce lien part à son titulaire (« vous avez déjà un compte »). Compte non confirmé : son identifiant.
+ * 2. Adresse neuve : `generateLink` (signup) crée le compte avec le mot de passe, les métadonnées et l'empreinte du
+ *    témoin, applique la politique de mot de passe, n'envoie aucun e-mail et rend le jeton. Rien d'autre.
+ * 3. Adresse pré-inscrite (ou inscrite par un tiers pendant l'étape 2) : le mot de passe, les informations de CETTE
+ *    inscription et l'empreinte remplacent les anciens (une opération), PUIS un nouveau lien est demandé.
+ * 4. Le témoin est posé en cookie dans ce navigateur, puis le courrier part.
+ *
+ * Demande anonyme : la limite de fréquence s'applique d'abord. La réponse est la même pour une adresse neuve,
+ * pré-inscrite ou déjà confirmée (aucune énumération de comptes). L'erreur rendue garde le `code` de Supabase pour que
+ * l'action la classe (mot de passe faible…).
  */
 export async function inscrireEtEnvoyerConfirmation(params: {
   email: string;
@@ -434,34 +513,84 @@ export async function inscrireEtEnvoyerConfirmation(params: {
   const refus = await limiteAnonyme(service, email);
   if (refus) return refus;
 
-  const { data, error } = await service.auth.admin.generateLink({
-    type: "signup",
-    email,
-    password: params.motDePasse,
-    options: { data: params.metadonnees },
-  });
-
-  if (error) {
-    if (adresseDejaInscrite(error)) {
-      // Le titulaire reçoit de quoi se reconnecter (le même lien que « mot de
-      // passe oublié »). La limite a déjà compté cette demande ; l'échec de
-      // l'envoi est ignoré : la réponse reste neutre.
-      const { data: recuperation } = await service.auth.admin.generateLink({ type: "recovery", email });
-      const jeton = recuperation?.properties?.hashed_token;
-      if (jeton) {
-        await envoyerCourrier({ origine, email, motif: "compte_existant", jeton, next: "/nouveau-mot-de-passe", type: "recovery" });
-      }
-      return { etat: "compte_existant" };
+  /** L'adresse a un compte confirmé : son titulaire reçoit de quoi se reconnecter ; l'échec de l'envoi est tu. */
+  const prevenirTitulaire = async (jetonDejaFabrique?: string | null): Promise<ResultatInscription> => {
+    let jeton = jetonDejaFabrique ?? null;
+    if (!jeton) {
+      const { data } = await service.auth.admin.generateLink({ type: "recovery", email });
+      jeton = data?.properties?.hashed_token ?? null;
     }
-    return { erreur: error.message, code: error.code };
+    if (jeton) {
+      await envoyerCourrier({ origine, email, motif: "compte_existant", jeton, next: "/nouveau-mot-de-passe", type: "recovery" });
+    }
+    return { etat: "compte_existant" };
+  };
+
+  // 1. Recherche.
+  const recherche = await service.auth.admin.generateLink({ type: "recovery", email });
+  if (recherche.error && !compteIntrouvable(recherche.error)) return { erreur: INDISPONIBLE };
+  let preInscrit: CompteAuth | null = recherche.error ? null : (recherche.data.user ?? null);
+  if (!recherche.error && !preInscrit) return { erreur: INDISPONIBLE };
+  if (preInscrit?.email_confirmed_at) return prevenirTitulaire(recherche.data.properties?.hashed_token);
+
+  const temoin = nouveauTemoinInscription();
+  const empreinte = { [CLE_EMPREINTE_INSCRIPTION]: empreinteTemoinInscription(temoin) };
+  let jeton: string | null = null;
+
+  // 2. Adresse neuve : une seule opération, aucun `updateUserById` (il effacerait le jeton du lien).
+  if (!preInscrit) {
+    const { data, error } = await service.auth.admin.generateLink({
+      type: "signup",
+      email,
+      password: params.motDePasse,
+      options: { data: { ...params.metadonnees, ...empreinte } },
+    });
+    if (error) {
+      if (adresseDejaInscrite(error)) return prevenirTitulaire();
+      return { erreur: error.message, code: error.code };
+    }
+    // Un projet qui n'exige pas la confirmation d'adresse (banc local) rend le compte déjà confirmé : pas de
+    // courrier, la session s'ouvre tout de suite.
+    if (data.user?.email_confirmed_at) return { etat: "deja_confirme" };
+    if (creeParCetAppel(data.user)) jeton = data.properties?.hashed_token ?? null;
+    else if (data.user) preInscrit = data.user;
+    else return { erreur: "Le lien de confirmation n’a pas pu être créé." };
   }
 
-  // Un projet qui n'exige pas la confirmation d'adresse (banc local) rend le
-  // compte déjà confirmé : pas de courrier, la session s'ouvre tout de suite.
-  if (data.user?.email_confirmed_at) return { etat: "deja_confirme" };
-
-  const jeton = data.properties?.hashed_token;
+  // 3. Adresse pré-inscrite : le couple (mot de passe, empreinte) et les informations de CETTE inscription, en une
+  // opération (elle tue tous les liens d'avant), PUIS le lien envoyé, demandé sans l'empreinte.
+  if (preInscrit) {
+    const { error: erreurCompte } = await service.auth.admin.updateUserById(preInscrit.id, {
+      password: params.motDePasse,
+      user_metadata: metadonneesRemplacees(preInscrit.user_metadata, { ...params.metadonnees, ...empreinte }),
+    });
+    if (erreurCompte) {
+      return erreurCompte.code && erreurCompte.code !== "unexpected_failure"
+        ? { erreur: erreurCompte.message, code: erreurCompte.code }
+        : { erreur: INDISPONIBLE };
+    }
+    const { data, error } = await service.auth.admin.generateLink({
+      type: "signup",
+      email,
+      password: params.motDePasse,
+      options: { data: params.metadonnees },
+    });
+    if (error) {
+      if (adresseDejaInscrite(error)) return prevenirTitulaire();
+      return { erreur: error.message, code: error.code };
+    }
+    if (data.user?.email_confirmed_at) return { etat: "deja_confirme" };
+    jeton = data.properties?.hashed_token ?? null;
+  }
   if (!jeton) return { erreur: "Le lien de confirmation n’a pas pu être créé." };
+
+  // 4. Le témoin, puis le courrier.
+  try {
+    (await cookies()).set(COOKIE_INSCRIPTION, temoin, optionsCookieInscription());
+  } catch (e) {
+    // Sans cookie, la confirmation fera choisir le mot de passe : plus long, jamais moins sûr.
+    console.error("[lien-mot-de-passe] témoin d'inscription non posé :", e);
+  }
 
   const erreurEnvoi = await envoyerCourrier({
     origine,
@@ -473,4 +602,181 @@ export async function inscrireEtEnvoyerConfirmation(params: {
   });
   if (erreurEnvoi) return { erreur: erreurEnvoi };
   return { etat: "confirmation_envoyee" };
+}
+
+/** Les clés qu'Auth tient elle-même dans `user_metadata` (identité du fournisseur) : jamais effacées. */
+const CLES_AUTH = new Set(["sub", "email", "email_verified", "phone_verified"]);
+
+/**
+ * Les métadonnées de cette inscription, et l'effacement (valeur nulle, règle d'Auth) de toute autre clé qu'une
+ * inscription précédente aurait posée. Exporté pour les tests.
+ */
+export function metadonneesRemplacees(
+  anciennes: Record<string, unknown> | null | undefined,
+  nouvelles: Record<string, unknown>
+): Record<string, unknown> {
+  const effacees = Object.keys(anciennes ?? {})
+    .filter((cle) => !(cle in nouvelles) && !CLES_AUTH.has(cle))
+    .map((cle) => [cle, null] as const);
+  return { ...Object.fromEntries(effacees), ...nouvelles };
+}
+
+/**
+ * L'issue d'une confirmation d'inscription : la destination prévue ; d'abord le choix du mot de passe (session
+ * ouverte) ; ou, si Auth a refusé de poser le mot de passe provisoire par la session, une nouvelle demande de lien.
+ */
+export type IssueConfirmationInscription = "meme_navigateur" | "mot_de_passe_a_choisir" | "mot_de_passe_a_redemander";
+
+/** Ce que la fin de confirmation demande au client de la requête : la session que `verifyOtp` vient d'ouvrir. */
+type SessionDeConfirmation = {
+  auth: {
+    updateUser: (attributs: { password?: string; data?: Record<string, unknown> }) => Promise<{ error: { message: string; code?: string; status?: number } | null }>;
+    signOut: (options: { scope: "local" }) => Promise<unknown>;
+  };
+};
+
+/**
+ * L'inscription de ce compte n'est pas finie : l'empreinte du témoin y est encore (aucun bouton de confirmation n'est
+ * passé par `finirConfirmationInscription`). Exporté pour la route et les tests.
+ */
+export function inscriptionInachevee(utilisateur: { user_metadata?: Record<string, unknown> | null } | null | undefined): boolean {
+  return Boolean(utilisateur?.user_metadata?.[CLE_EMPREINTE_INSCRIPTION]);
+}
+
+/** Les champs du compte rendu par `verifyOtp` qui disent si CE clic a confirmé l'adresse. */
+type CompteVerifie =
+  | {
+      email_confirmed_at?: string | null;
+      confirmation_sent_at?: string | null;
+      recovery_sent_at?: string | null;
+    }
+  | null
+  | undefined;
+
+// LA PREMIÈRE CONFIRMATION (quatrième relecture du 16/10/2026, constat « compte créé par le /signup public »).
+//
+// Un tiers peut créer un compte NON confirmé à l'adresse de quelqu'un d'autre, avec SON mot de passe, sans passer par
+// Gerimmo : le /signup public d'Auth ne demande que la clé publique du site. Ce compte ne porte pas l'empreinte d'une
+// inscription de Gerimmo. Quand le titulaire de l'adresse clique ensuite un lien quelconque (mot de passe oublié,
+// invitation de locataire ou d'artisan, lien de connexion), Auth confirme l'adresse au passage : le mot de passe du
+// tiers ouvrait alors le compte. La règle de l'inscription s'applique donc à TOUT lien qui confirme une adresse jusque-là
+// non confirmée, avec ou sans empreinte.
+//
+// « Non confirmée avant ce clic » se lit dans la réponse de `verifyOtp`, sans horloge de Gerimmo. La règle d'Auth qui
+// la rend sûre (GoTrue v2.197.0 : `Confirm` et `UpdatePassword` effacent TOUS les jetons à usage unique du compte, et
+// `verifyOtp` ne trouve un compte que par un jeton encore présent ; prouvé sur ce serveur réel) : un lien qui se vérifie
+// prouve qu'aucune confirmation n'a eu lieu depuis sa fabrication. Les deux instants comparés sont ceux d'Auth, lus dans
+// la transaction même de la vérification (le compte y est verrouillé dès son premier changement) : aucune autre requête,
+// concurrente ou non, ne peut s'intercaler entre la confirmation et la lecture.
+
+/**
+ * Ce clic vient-il de confirmer une adresse jusque-là NON confirmée ? Exporté pour la route et les tests.
+ *
+ *  - lien d'inscription ou d'invitation (`signup`, `invite`) : un tel jeton n'existe que sur un compte non confirmé
+ *    (une confirmation l'efface, et Auth n'en fabrique pas pour une adresse confirmée) → oui ;
+ *  - lien de récupération ou de connexion (`recovery`, `magiclink`) : adresse confirmée APRÈS la fabrication du lien
+ *    (`email_confirmed_at` ≥ `recovery_sent_at`) → c'est ce clic ; confirmée avant → non ;
+ *  - lien `email` (l'un ou l'autre jeton) : comparé au plus ancien des envois connus ;
+ *  - changement d'adresse (`email_change`) : non, il ne confirme pas un compte.
+ *
+ * Tout doute (instant absent ou illisible) répond « oui » : le mot de passe est remplacé et la personne en choisit un,
+ * jamais l'inverse.
+ */
+export function premiereConfirmation(type: string, utilisateur: CompteVerifie): boolean {
+  if (type === "email_change") return false;
+  if (type === "signup" || type === "invite") return true;
+  const confirmation = microsecondes(utilisateur?.email_confirmed_at);
+  const envoisBruts = type === "email" ? [utilisateur?.confirmation_sent_at, utilisateur?.recovery_sent_at] : [utilisateur?.recovery_sent_at];
+  const envois = envoisBruts.filter((v) => v !== null && v !== undefined).map(microsecondes);
+  if (confirmation === null || envois.length === 0 || envois.some((e) => e === null)) return true;
+  return confirmation >= Math.min(...(envois as number[]));
+}
+
+/**
+ * Où mène le bouton après une première confirmation. Exporté pour la route et les tests.
+ *  - dans le navigateur de l'inscription : la destination prévue ;
+ *  - ailleurs : le choix du mot de passe, avec son motif (« inscription » pour la confirmation d'une inscription de
+ *    Gerimmo, « confirmation » pour tout autre lien) ; un lien qui menait déjà au choix du mot de passe garde sa suite ;
+ *  - si Auth a refusé le mot de passe provisoire posé par la session : une nouvelle demande de lien.
+ */
+export function destinationApresConfirmation(
+  issue: IssueConfirmationInscription,
+  type: string,
+  next: string,
+  inscriptionDeGerimmo: boolean
+): string {
+  if (issue === "meme_navigateur") return next;
+  if (issue === "mot_de_passe_a_redemander") return `/mot-de-passe-oublie?raison=${RAISON_ADRESSE_CONFIRMEE}`;
+  const motif = type === "signup" && inscriptionDeGerimmo ? MOTIF_INSCRIPTION : MOTIF_CONFIRMATION;
+  const cible = new URL(next, "https://gerimmo.invalid");
+  if (cible.pathname === "/nouveau-mot-de-passe") {
+    cible.searchParams.set("motif", motif);
+    return `${cible.pathname}${cible.search}`;
+  }
+  return `/nouveau-mot-de-passe?motif=${motif}&suite=${encodeURIComponent(next)}`;
+}
+
+/**
+ * Après `verifyOtp` d'un lien qui vient de confirmer l'adresse (`premiereConfirmation` : inscription, invitation,
+ * récupération ou connexion sur un compte jamais confirmé, avec ou sans inscription de Gerimmo — Auth confirme l'adresse
+ * en vérifiant AUSSI un lien de récupération ou de connexion, constat P13 prouvé sur GoTrue v2.197.0), ou d'un lien sur
+ * un compte dont l'inscription n'est pas finie : la confirmation vient-elle du navigateur de l'inscription ?
+ *
+ * Oui (le cookie est le témoin dont le compte garde l'empreinte) : le mot de passe choisi à l'inscription est celui de
+ * la personne qui confirme ; l'empreinte est effacée par la session (métadonnées seules : ni jeton ni session touchés).
+ *
+ * Non (autre navigateur, autre appareil, ou inscription faite par un tiers) : le mot de passe choisi avant la
+ * confirmation est remplacé par un mot de passe que personne ne connaît, posé par la SESSION elle-même : Auth ferme
+ * alors toutes les AUTRES sessions et garde celle-ci, et la personne qui vient de prouver qu'elle possède la boîte
+ * choisit le sien sur /nouveau-mot-de-passe.
+ *
+ * Les réglages qui durcissent ce changement (« mot de passe actuel exigé », « réauthentification exigée ») ne le
+ * bloquent pas : Auth traite la session d'une confirmation (amr « otp ») comme une récupération, et elle est fraîche
+ * (prouvé sur GoTrue v2.197.0 avec ces deux réglages actifs).
+ *
+ * Fermé par défaut : si Auth refuse malgré tout ce changement par la session (panne), le mot de passe provisoire est
+ * posé par l'API d'administration, qui ferme toutes les sessions, celle-ci comprise ; la personne redemande alors un
+ * lien (« mot de passe oublié »).
+ *
+ * Ce que cela garantit : après une première confirmation faite par le bouton de /auth/confirm ailleurs que dans le
+ * navigateur de l'inscription, aucun mot de passe choisi avant ce clic n'ouvre plus le compte, quel que soit le lien
+ * (inscription, invitation, récupération, connexion) et quelle que soit l'origine du compte (inscription de Gerimmo,
+ * /signup public d'Auth, compte plus ancien). Limites, dites telles quelles :
+ *  - entre la confirmation par Auth et la pose du mot de passe provisoire (le temps d'un aller-retour vers Auth), le
+ *    mot de passe d'avant ouvre encore une session ; celle-ci est fermée par la pose (Auth ferme toutes les autres
+ *    sessions), mais son jeton d'accès reste valable jusqu'à son échéance pour qui l'appelle directement ;
+ *  - un courrier que Supabase Auth enverrait LUI-MÊME avec son lien par défaut (points d'entrée publics /recover,
+ *    /resend, /otp, /signup) mène à SON /verify, qui confirme l'adresse sans passer par ce bouton ; seuls ses modèles de
+ *    courrier ferment ce chemin, en menant eux aussi à ce bouton (app/supabase/templates/LISEZ-MOI.md), et la fermeture
+ *    des inscriptions publiques dans Supabase en retire la cause.
+ */
+export async function finirConfirmationInscription(
+  session: SessionDeConfirmation,
+  utilisateur: { id: string; user_metadata?: Record<string, unknown> | null } | null | undefined,
+  temoin: string | undefined | null
+): Promise<IssueConfirmationInscription> {
+  const effacement = { [CLE_EMPREINTE_INSCRIPTION]: null };
+  const memeNavigateur = Boolean(utilisateur) && temoinInscriptionValide(temoin, utilisateur?.user_metadata?.[CLE_EMPREINTE_INSCRIPTION]);
+  if (memeNavigateur) {
+    const { error } = await session.auth.updateUser({ data: effacement });
+    if (error) console.error("[lien-mot-de-passe] empreinte d'inscription non effacée :", error.message);
+    return "meme_navigateur";
+  }
+
+  const { error } = await session.auth.updateUser({ password: motDePasseInconnu(), data: effacement });
+  if (!error) return "mot_de_passe_a_choisir";
+
+  console.error("[lien-mot-de-passe] mot de passe provisoire refusé par la session :", { statut: error.status, code: error.code, message: error.message });
+  const service = clientDeService();
+  if (utilisateur && service) {
+    const { error: erreurService } = await service.auth.admin.updateUserById(utilisateur.id, {
+      password: motDePasseInconnu(),
+      user_metadata: effacement,
+    });
+    if (erreurService) console.error("[lien-mot-de-passe] mot de passe provisoire non posé :", erreurService.message);
+  } else {
+    console.error("[lien-mot-de-passe] mot de passe provisoire non posé : service indisponible");
+  }
+  await session.auth.signOut({ scope: "local" });
+  return "mot_de_passe_a_redemander";
 }

@@ -351,11 +351,6 @@ const OMISSIONS_ADMISES: Exception[] = [
     raison: "espace LOCATAIRE, sans organisation à choisir ni aide de l'espace de gestion (la racine n'y sert pas)",
     preuve: ["src/components/barre-laterale.tsx", "{orgId && organisations.length > 1 && ("],
   },
-  {
-    fichier: "src/app/agence/[orgId]/incidents/[incidentId]/actions-incident.tsx", fonction: "FormulaireQualification", forme: "<RepereJuridique> sans estProprietaire", nombre: 1,
-    raison: "VOCABULAIRE seulement, aucune adresse : le repère juridique de la qualification dit « tranchez » au lieu de « décidez » (écart connu, hors D27)",
-    preuve: ["src/app/agence/[orgId]/incidents/nouveau/formulaire-incident.tsx", "{estProprietaire ? \"C'est vous qui décidez qui paie.\" : \"C'est vous qui tranchez à la qualification.\"}"],
-  },
 ];
 
 const attribut = (el: ts.JsxOpeningElement | ts.JsxSelfClosingElement, nom: string) =>

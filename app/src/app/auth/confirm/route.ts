@@ -15,7 +15,7 @@ import {
   inscriptionInachevee,
 } from "@/lib/lien-mot-de-passe";
 import { COOKIE_INSCRIPTION, optionsCookieInscription } from "@/lib/temoin-inscription";
-import { preparerConfirmationAuth } from "@/lib/confirmation-auth";
+import { preparerConfirmationAuth, preparerRetourAdresseConfirmee } from "@/lib/confirmation-auth";
 
 // Point d'entrée des liens envoyés par e-mail (invitations, mot de passe
 // oublié, confirmation d'inscription).
@@ -25,7 +25,8 @@ import { preparerConfirmationAuth } from "@/lib/confirmation-auth";
 //    fabrique lui-même (src/lib/lien-mot-de-passe.ts, 30/09/2026) : mot de
 //    passe (recovery) et confirmation d'inscription (signup). Ils marchent
 //    dans n'importe quel navigateur.
-// Les anciens liens PKCE demandent désormais un nouveau courrier.
+// Les anciens liens PKCE demandent un nouveau courrier, sauf le changement
+// d'adresse d'un compte déjà confirmé, vérifié dans le contexte serveur Auth.
 //
 // UN LIEN À JETON N'EST PAS VÉRIFIÉ À L'OUVERTURE (GET). Les messageries
 // professionnelles et les antivirus ouvrent les liens d'un e-mail pour les
@@ -74,6 +75,25 @@ export async function GET(request: NextRequest) {
     const reponse = sansCache(NextResponse.redirect(confirmer));
     reponse.cookies.set(COOKIE_CONFIRMATION, nouveauJetonConfirmation(), optionsCookieConfirmation());
     return reponse;
+  }
+
+  const code = searchParams.get("code");
+  if (code) {
+    const utilisateurAttendu = await preparerRetourAdresseConfirmee(code);
+    if (!utilisateurAttendu) return lienInvalide(request);
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) return lienInvalide(request);
+    if (!data?.session || data.user?.id !== utilisateurAttendu) {
+      await supabase.auth.signOut({ scope: "local" });
+      return lienInvalide(request);
+    }
+    return sansCache(NextResponse.redirect(new URL("/compte", request.url)));
+  }
+
+  // Ce texte de retour n'accorde aucun accès et n'est jamais une preuve de confirmation.
+  if (searchParams.get("message") === "Confirmation link accepted. Please proceed to confirm link sent to the other email") {
+    return sansCache(NextResponse.redirect(new URL("/auth/confirmer?etape=autre-adresse", request.url)));
   }
 
   // Lien expiré, déjà utilisé ou invalide

@@ -118,6 +118,7 @@ const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/
  */
 const LOTS_POSTERIEURS = [
   // Compléments du 16/10, en ordre inverse : retirer leurs dépendances avant les lots historiques.
+  { version: "20261016210000", fichier: "retour_adresse_confirmee" },
   { version: "20261016200000", fichier: "jour_paris_complements" },
   { version: "20261016190000", fichier: "relance_report_reprise_sans_envoi" },
   { version: "20261016180000", fichier: "relais_retention_sentinelle" },

@@ -10,6 +10,13 @@ updated: 2026-10-16
 
 Ce relevé distingue les constats en production des changements candidats de la [PR #198](https://github.com/GERIMMO/GERIMMO_V4/pull/198). Il complète [[Prêt à démarcher]], [[Dossier de validation — version candidate du 13 octobre 2026]] et [[Décisions groupées — version candidate du 13 octobre 2026]]. Une préparation locale n'est pas une livraison.
 
+## Compléments candidats du 16 octobre, 21 h 32 Paris
+
+- La CI initiale [38952044004](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/38952044004) est terminée : 8 118 tests de logique et PDF réussis, 16 ignorés ; navigateur 196 réussis, un ignoré, trois échecs. Les traces montrent une même cause : le cookie Secure de confirmation refusé sur l'adresse HTTP numérique du banc. L'alignement sur localhost conserve la protection du produit ; les trois parcours passent localement après correction, sans nouvelle tentative. La CI finale reste à exécuter.
+- Le modèle **Change email address reste strictement identique au modèle de main**. Un complément du retour applicatif conserve le changement d'adresse d'un compte déjà confirmé ; les quinze essais sur le service Auth et le rendu SMTP locaux réels sont réussis. L'expiration et le contrôle du navigateur demandeur restent assurés par Auth. Le nouveau complément SQL `20261016210000_retour_adresse_confirmee.sql` est en huitième position, avec retour dédié.
+- Relevé SELECT avant simulation : structure Auth requise présente, fonction candidate absente et aucune version `20261016210000` enregistrée en production. La simulation précédente ne couvrait que les sept premiers fichiers ; le lot de huit doit être simulé sur sa nouvelle tête avant application.
+- Batterie complète finale : 8 029 tests réussis, 117 ignorés, aucun échec ; 554 fichiers réussis. Compilation, typage, lint et relecture indépendante du complément réussis. Les quinze scénarios Auth/SMTP et le retour/rejeu brut ont été répétés indépendamment, sans constat bloquant. La PR #198 reste en brouillon et la production reste à `4a5ddf58f7cefe1cf882777063cb272cb4420ec6`.
+
 ## Point de livraison du 16 octobre, 21 h 10 Paris
 
 - Candidat applicatif `6934a85f4f069faf65f0b8aaadfd5053753635a1`, arborescence `8ca438fd4f33d8cb20ecef87c66ca981de834033`. La PR reste en brouillon ; aucune des sept migrations n'est appliquée définitivement.
@@ -65,7 +72,7 @@ La trace conservée de la recette n°18 montre un champ de montant non disponibl
 
 ## Éléments à terminer
 
-1. Résultat CI sur la tête exacte, puis sauvegarde, application nommée, publication et nouvelle recette. Validation locale, navigateur, relecture indépendante et simulation sont réussies ; cela ne vaut pas publication.
+1. Résultat CI et nouvelle simulation des huit migrations sur la tête exacte, puis sauvegarde, application nommée, publication et nouvelle recette. Les preuves de la première version ne remplacent pas les contrôles du complément final.
 2. Stripe : API en bac à sable validée ; essai du paiement par l’interface et livraison HTTP du webhook restent distincts et non vérifiés.
 3. Secret dédié de nettoyage Storage pour la recette autonome étendue : absent des secrets GitHub lors du relevé. Ne pas réutiliser implicitement la clé de sauvegarde.
 4. Accord au moment du lancement pour le compte de supervision éphémère en production et sa purge ; contrôle du second facteur et extinction automatique.
@@ -74,4 +81,4 @@ La trace conservée de la recette n°18 montre un champ de montant non disponibl
 7. Comparaison du logo préparée en local : WebP sans perte visuelle 196 074 octets, PNG 335 549 octets ; pixels visibles identiques, gain d'environ 42 %. AVIF sans perte 473 068 octets, sans avantage. Aucun remplacement publié.
 8. Surveillance future planifiée : contrôles du relais, sauvegarde, changement d'heure et cycle mensuel ; CI à 00 h 30 Paris le 17 octobre (16 octobre 22 h 30 UTC) et le 1er novembre (31 octobre 23 h 30 UTC). Ces constats futurs ne sont pas déjà acquis.
 9. Contrôle du vrai service Storage et d'un dépôt de 6 Mo sur environnement jetable : non réalisé. Les essais locaux simulés ne prouvent ni les politiques du service hébergé ni la limite du transport Vercel.
-10. Réglages sécurisés Vercel : saisie par le dirigeant requise pour les clés manquantes ; aucune récupération de valeur existante. Le modèle de changement d'adresse reste préparé seulement, conformément à la consigne de ne pas le modifier en production.
+10. Réglages sécurisés Vercel : saisie par le dirigeant requise pour les clés manquantes ; aucune récupération de valeur existante. Le modèle de changement d'adresse reste conservé ; seule la compatibilité du retour applicatif est corrigée dans le candidat.

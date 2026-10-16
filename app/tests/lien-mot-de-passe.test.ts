@@ -22,8 +22,9 @@ const mocks = vi.hoisted(() => ({
   cookies: vi.fn(),
   createClient: vi.fn(),
   preparer: vi.fn(),
+  preparerRetour: vi.fn(),
 }));
-vi.mock("@/lib/confirmation-auth", () => ({ preparerConfirmationAuth: mocks.preparer }));
+vi.mock("@/lib/confirmation-auth", () => ({ preparerConfirmationAuth: mocks.preparer, preparerRetourAdresseConfirmee: mocks.preparerRetour }));
 vi.mock("@/lib/supabase/service", () => ({ clientDeService: mocks.service }));
 vi.mock("@/lib/email", () => ({ envoyerEmail: mocks.envoyerEmail }));
 vi.mock("next/headers", () => ({ headers: mocks.headers, cookies: mocks.cookies }));

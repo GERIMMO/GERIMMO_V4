@@ -45,6 +45,7 @@ const MISSION_OCTOBRE = [
   "20261016180000_relais_retention_sentinelle.sql",
   "20261016190000_relance_report_reprise_sans_envoi.sql",
   "20261016200000_jour_paris_complements.sql",
+  "20261016210000_retour_adresse_confirmee.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

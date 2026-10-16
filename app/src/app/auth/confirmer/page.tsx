@@ -65,7 +65,7 @@ export default async function PageConfirmerLien({ searchParams }: { searchParams
       <Card>
         <CardContent className="pt-6">
           {etape === "autre-adresse" ? (
-            <p role="status">Cette adresse est confirmée. Pour terminer le changement, ouvrez aussi le lien envoyé à l’autre adresse e-mail.</p>
+            <p role="status">Pour terminer le changement d’adresse, ouvrez les liens envoyés à votre adresse actuelle et à votre nouvelle adresse e-mail.</p>
           ) : jeton && type && confirmation ? (
             <form data-saisie-libre method="post" action="/auth/confirm" className="space-y-4">
               <input type="hidden" name="token_hash" value={jeton} />

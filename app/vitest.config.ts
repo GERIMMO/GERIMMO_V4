@@ -28,6 +28,7 @@ export const FICHIERS_EN_SERIE = [
   "tests/rdv-relance-concurrence-oct16.test.ts",
   "tests/traversee-lecture-seule-base.test.ts",
   "tests/confirmation-auth-migration-rejeu.test.ts",
+  "tests/retour-adresse-confirmee-migration.test.ts",
   "tests/retours-oct16-registre.test.ts",
   "tests/relais-retention-sentinelle-oct16.test.ts",
   // Fixtures validées (concurrence entre deux sessions) + rejeu des migrations (DDL tenu pendant le fichier).

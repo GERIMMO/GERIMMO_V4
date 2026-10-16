@@ -215,3 +215,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de validation — version candidate du 13 octobre 2026]], [[Décisions groupées — version candidate du 13 octobre 2026]], [[Prêt à démarcher]], [[Relais du dirigeant]] et [[Invitation d'un artisan par un propriétaire]] renvoient au relevé du soir : [[Mission du 16 octobre — suivi vérifié]], contrôles réalisés et changements candidats distingués de la production.
 
 - 2026-10-16 — [[Mission du 16 octobre — suivi vérifié]] : PR198, simulation GitHub réussie, batterie et parcours locaux finaux, captures inspectées, CI et interventions sécurisées encore attendues ; statut candidat.
+
+- 2026-10-16 — [[Prêt à démarcher]] : anciens constats remplacés par les preuves du soir (Auth, recettes n°19/20, sauvegarde restaurée en environnement isolé et mode Stripe) ; limites de production conservées.
+
+- 2026-10-16 — [[Mission du 16 octobre — suivi vérifié]] : diagnostic des trois échecs CI, correction du banc local et huitième migration de compatibilité du changement d’adresse, modèle de courrier conservé ; nouvelle validation en cours.

@@ -87,7 +87,7 @@ describe("le texte de la voie de sortie", () => {
   // s'inscrit lui-même et que Gerimmo valide. L'ajout direct par SIRET reste réservé aux agences (PR #170).
   it("propose d'inviter un artisan depuis le carnet, sans aucun ajout par SIRET ni formulaire sur place", () => {
     expect(texte).toContain("Inviter un artisan que vous connaissez");
-    expect(html).toContain('href="/agence/org-1/artisans#inviter-un-artisan"');
+    expect(html).toContain('href="/espace/org-1/artisans#inviter-un-artisan"');
     expect(texte).toContain("Gerimmo vérifie son inscription");
     expect(texte).toContain("pour les biens situés dans sa zone d’intervention");
     expect(texte.toLowerCase()).not.toMatch(/siret|ajouter un artisan|réservé aux agences/);

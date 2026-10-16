@@ -81,8 +81,8 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
   try {
     // 1. Le propriétaire invite, depuis son carnet.
     await connecter(p, "proprietaire@gerimmo-demo.fr");
-    await p.waitForURL(/\/(espaces|agence)/);
-    await p.goto(`/agence/${ORG}/artisans`);
+    await p.waitForURL(/\/(espaces|agence|espace)/);
+    await p.goto(`/espace/${ORG}/artisans`);
     await expect(p.getByRole("heading", { name: "Mes artisans" })).toBeVisible();
     await p.getByLabel(/Adresse e-mail de l’artisan/).fill(email);
     await p.getByLabel("Nom, pour mémoire").fill("M. Invité");
@@ -162,15 +162,15 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     expect((await db.query("select count(*)::int n from public.artisan_pieces where artisan_id=$1 and retiree_le is null", [fiche.id])).rows[0].n).toBe(2);
 
     // 5. AVANT la validation de Gerimmo : dans le carnet, mais PAS sollicitable ; la voie de sortie propose d'inviter.
-    await p.goto(`/agence/${ORG}/artisans`);
+    await p.goto(`/espace/${ORG}/artisans`);
     const ligneArtisan = p.locator("li").filter({ hasText: raisonSociale });
     await expect(ligneArtisan).toContainText("Inscrit, en attente de validation par Gerimmo");
     await expect(ligneArtisan).toContainText("0611223344");
-    await p.goto(`/agence/${ORG}/incidents/${incident}`);
+    await p.goto(`/espace/${ORG}/incidents/${incident}`);
     await p.getByLabel("Métier recherché *").selectOption("plomberie");
     await p.getByLabel("Nature des travaux *").selectOption("entretien_courant");
     await expect(p.getByText("Le réseau d’artisans Gerimmo n’est pas encore disponible pour ce métier dans cette zone.")).toBeVisible();
-    await expect(p.getByRole("link", { name: "Inviter un artisan" })).toHaveAttribute("href", `/agence/${ORG}/artisans#inviter-un-artisan`);
+    await expect(p.getByRole("link", { name: "Inviter un artisan" })).toHaveAttribute("href", `/espace/${ORG}/artisans#inviter-un-artisan`);
     await expect(p.getByRole("button", { name: "Ouvrir la mise en concurrence" })).toBeDisabled();
     // Seconde relecture du 15/10 : la fiche dit pourquoi l'artisan du carnet n'est pas proposé pour ce bien.
     const pourquoi = p.locator("li").filter({ hasText: raisonSociale }).filter({ hasText: "inscription pas validée par Gerimmo" });
@@ -198,12 +198,12 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await expect.poll(async () => (await db.query("select statut_plateforme from public.artisans where id=$1", [fiche.id])).rows[0].statut_plateforme).toBe("valide");
 
     // 7. Le propriétaire le sollicite, commune fermée, depuis son carnet.
-    await p.goto(`/agence/${ORG}/artisans`);
+    await p.goto(`/espace/${ORG}/artisans`);
     // « Validé », sans promesse : la zone et la décennale se jugent bien par bien (seconde relecture du 15/10).
     const ligneValidee = p.locator("li").filter({ hasText: raisonSociale });
     await expect(ligneValidee.getByText("Validé", { exact: true })).toBeVisible();
     await expect(ligneValidee).not.toContainText("peut être sollicité");
-    await p.goto(`/agence/${ORG}/incidents/${incident}`);
+    await p.goto(`/espace/${ORG}/incidents/${incident}`);
     await p.getByLabel("Métier recherché *").selectOption("plomberie");
     await p.getByLabel("Nature des travaux *").selectOption("entretien_courant");
     await expect(p.getByText(/Vous pouvez continuer avec 1 artisan de votre carnet personnel/)).toBeVisible();

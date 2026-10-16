@@ -41,14 +41,16 @@ describe("aucun artisan proposable", () => {
   it("propriétaire : « Invitez un artisan », vers le formulaire d'invitation de son carnet", () => {
     const { html, texte } = rendre(true, []);
     expect(texte).toContain("Invitez un artisan");
-    expect(html).toContain('href="/agence/o1/artisans#inviter-un-artisan"');
+    expect(html).toContain('href="/espace/o1/artisans#inviter-un-artisan"');
     expect(texte).not.toMatch(/enregistrez une (autre )?entreprise/i);
   });
 
   it("agence : son texte d'origine", () => {
-    const { texte } = rendre(false, []);
+    const { html, texte } = rendre(false, []);
     expect(texte).toContain("Enregistrez une entreprise dans votre carnet");
     expect(texte).not.toContain("Invitez un artisan");
+    // Décision D27 : le carnet d'une agence reste sous /agence, celui du propriétaire direct vit sous /espace.
+    expect(html).toContain('href="/agence/o1/artisans"');
   });
 });
 
@@ -56,13 +58,14 @@ describe("tous les artisans proposables déjà sollicités", () => {
   it("propriétaire : « invitez un autre artisan »", () => {
     const { html, texte } = rendre(true, [affectable], [sollicite]);
     expect(texte).toContain("invitez un autre artisan");
-    expect(html).toContain('href="/agence/o1/artisans#inviter-un-artisan"');
+    expect(html).toContain('href="/espace/o1/artisans#inviter-un-artisan"');
     expect(texte).not.toMatch(/enregistrez une autre entreprise/i);
   });
 
   it("agence : son texte d'origine", () => {
-    const { texte } = rendre(false, [affectable], [sollicite]);
+    const { html, texte } = rendre(false, [affectable], [sollicite]);
     expect(texte).toContain("enregistrez une autre entreprise dans votre carnet");
+    expect(html).toContain('href="/agence/o1/artisans"');
   });
 });
 

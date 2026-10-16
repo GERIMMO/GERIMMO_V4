@@ -9,6 +9,7 @@
 // Les règles sont en base (migration 20261014840000) ; l'écran les nomme.
 
 import { formaterDate } from "@/lib/ged";
+import { baseEspace } from "@/lib/racine-espace";
 
 /** Même forme que la contrainte de la table `invitations_artisans`. */
 export const ADRESSE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -18,8 +19,9 @@ export const LONGUEUR_MAX_NOM_MEMO = 120;
 /** L'ancre du formulaire « Inviter un artisan » dans le carnet du propriétaire ; la voie de sortie « commune fermée » y mène. */
 export const ANCRE_INVITER_ARTISAN = "inviter-un-artisan";
 
+/** Le carnet n'existe que chez le propriétaire direct : son adresse vit sous `/espace/<id>` (décision D27). */
 export function cheminCarnetInvitation(orgId: string): string {
-  return `/agence/${orgId}/artisans#${ANCRE_INVITER_ARTISAN}`;
+  return `${baseEspace(orgId, true)}/artisans#${ANCRE_INVITER_ARTISAN}`;
 }
 
 export function cheminInvitationArtisan(invitationId: string): string {

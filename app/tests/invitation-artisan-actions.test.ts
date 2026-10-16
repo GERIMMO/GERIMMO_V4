@@ -354,7 +354,7 @@ describe("le lien et l'adresse pré-remplie", () => {
   });
 
   it("la voie de sortie mène au formulaire d'invitation du carnet", () => {
-    expect(cheminCarnetInvitation(org)).toBe(`/agence/${org}/artisans#inviter-un-artisan`);
+    expect(cheminCarnetInvitation(org)).toBe(`/espace/${org}/artisans#inviter-un-artisan`);
   });
 });
 

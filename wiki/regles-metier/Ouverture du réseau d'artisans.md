@@ -84,7 +84,7 @@ rattaché à la commune pour ce métier.
 >   peut plus ajouter d'artisan** à son carnet depuis la PR #170 (migration
 >   `20261007190000` : l'ajout est réservé aux agences). La décision du dirigeant du
 >   15/10/2026 (un propriétaire invite un artisan, l'artisan s'inscrit lui-même ; remplace
->   la question D17-B) est **en cours, non livrée** (quatrième tour de relecture en cours
->   pour une faille de sécurité de la pré-inscription). Voir [[Propriétaire bailleur]].
+>   la question D17-B) est **en cours, non livrée** (aucune de ses migrations n'est sur
+>   `main` au 16/10). Voir [[Propriétaire bailleur]].
 > - Aucune commune n'étant ouverte par défaut, le réseau est **vide au lancement**
 >   tant que le super admin n'a pas validé, rattaché et ouvert.

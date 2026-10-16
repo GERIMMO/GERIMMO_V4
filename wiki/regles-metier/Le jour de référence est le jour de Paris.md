@@ -64,6 +64,10 @@ Les délais du report ou de l'annulation d'un rendez-vous par le locataire (24 h
 D22-B, #188) se comptent sur des **instants**, pas sur des jours : ils ne dépendent d'aucun
 fuseau.
 
+Le point 4 de la décision du 15/10 (compteur « alertes en retard » du brief de la
+direction) est lui aussi laissé tel quel : ce compteur est **déjà au jour de Paris** depuis
+#186, pour toutes les natures d'alertes (voir le tableau).
+
 ## Implications pour l'application
 - Toute nouvelle règle qui parle d'« aujourd'hui » lit `public.aujourdhui_paris()` (ou
   `aujourdhuiParis()`), jamais `current_date` ni le jour UTC du serveur.
@@ -73,9 +77,7 @@ fuseau.
 > [!warning] Ce qui n'est pas encore au jour de Paris / points à trancher
 > - **Laissé tel quel par décision du 15/10 (point 3)** : l'heure du cycle mensuel des
 >   appels de loyer (tâche `cycle-mensuel`, le 1er de chaque mois à 05 h UTC ; à cette
->   heure, jour de Paris et jour UTC coïncident). Le point 4 (compteur « alertes en retard »
->   du brief, passé au jour de Paris par #186 pour toutes les natures d'alertes) est
->   lui aussi laissé tel quel.
+>   heure, jour de Paris et jour UTC coïncident).
 > - **Hors décision, toujours au jour de la session** (liste des lots
 >   `fuseau-suite` et `relances-invitation`) : restitution du dépôt de garantie
 >   (`finaliser_decompte`, `marquer_decompte_envoye`, alertes de restitution), mandats,

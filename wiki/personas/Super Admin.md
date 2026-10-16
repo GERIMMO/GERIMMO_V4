@@ -4,7 +4,7 @@ tags: [role, plateforme]
 status: in-progress
 created: 2026-07-21
 updated: 2026-10-16
-sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
+sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Fiches des anomalies P3 — audit du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
 ---
 
 # Super Admin
@@ -151,7 +151,13 @@ les appels payants à l'IA, l'arrêt avant les prochains effets.
 > - La recette de production n'a aucun parcours de super-administrateur : ni l'écran du
 >   relais, ni la recherche par référence, ni le réglage du plafond IA ne sont joués
 >   (constat du tour final de vérification). Aucun e-mail du relais n'a encore été reçu.
-> - X19 : la limite de 50 est un défaut non mesuré ; une limite par usage ou en euros n'est
->   pas décidée ; l'atelier (modèle appelé par GitHub) est compté (questions du lot).
-> - X18 : la « référence lisible » est-elle le nom complet ? faut-il chercher l'identifiant
->   fiscal ? (questions du lot).
+> - X19 : une seule limite, en nombre d'appels, pour tous les usages ensemble, ni par usage
+>   ni en euros (`app/src/lib/plafond-ia.ts`, migration `20261014730000`), alors que la
+>   fiche SA-10 ([[Fiches des anomalies P3 — audit du 13 octobre 2026]]) attendait « un
+>   plafond (appels ou coût) » ; le défaut de 50 repose sur une estimation écrite dans le
+>   code (« l'usage normal en fait une dizaine »), pas sur une mesure ; le lancement de
+>   l'atelier (modèle appelé par GitHub) est compté. Aucune source ne dit si le dirigeant
+>   veut une autre forme de limite.
+> - X18 : le code prend pour référence d'un bien son nom complet (sa « référence
+>   interne », migration `20261014720000`) ; ni la fiche SA-09 ni la décision X18 ne disent
+>   ce qu'est la référence d'un bien. À faire confirmer au dirigeant.

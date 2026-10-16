@@ -4,7 +4,7 @@ tags: [supervision, relais, alerte, e-mail, arret-urgence, automatisation]
 status: draft
 created: 2026-10-16
 updated: 2026-10-16
-sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Complément à la page « Décisions groupées » — fiches de la vague 6]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Prompt de passation à Codex — état du 14 octobre 2026]]"]
+sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Complément à la page « Décisions groupées » — fiches de la vague 6]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]"]
 ---
 
 # Relais du dirigeant
@@ -143,15 +143,27 @@ l'application) et ce lien (`app/src/lib/relais-alerte.ts`). Les registres
 >   attendu le 17/10 au plus tôt) ; l'heure réelle d'arrivée reste à constater. Vercel ne
 >   lance pas ses tâches à la minute près : l'appel n'agit que s'il est encore 5 h à Paris à
 >   son arrivée ; arrivé après 6 h, rien ne part ce jour-là (règle `estHeureDuRelais`).
-> - **Non vérifié** : la route de 5 h est bornée à 60 secondes sans délai maximal par envoi
->   (constat du tour final de vérification) ; un fournisseur d'e-mail lent pourrait couper le
->   passage.
-> - **À faire ratifier par le dirigeant** (relectures du lot) : le passage toutes les
->   10 minutes, jour et nuit, non coupé par l'arrêt d'urgence, est une interprétation de
->   « envoi immédiat pour les urgences » et une exception à l'arrêt d'urgence (D06-A).
-> - **Questions des lots** : un e-mail chaque jour tant qu'une alerte ou un arrêt persiste,
->   est-ce voulu ? Un e-mail immédiat à l'escalade ? Les incidents urgents des locataires
->   doivent-ils déclencher l'e-mail immédiat ? Inscrire les registres du relais au catalogue
->   `retention_rules` (aujourd'hui purgés par leurs propres fonctions) ?
+> - **Durée du passage de 5 h** : la route est bornée à 60 secondes (`maxDuration = 60`,
+>   `app/src/app/api/cron/relais/route.ts`). Chaque envoi a bien un délai maximal, 15 s par
+>   défaut (`DELAI_MAX_FOURNISSEUR_MS`, `AbortSignal.timeout` dans `app/src/lib/email.ts`),
+>   mais les délais s'additionnent : le passage vide d'abord la file des urgences (jusqu'à
+>   trois tours, chacun pouvant attendre environ 15 s, `app/src/lib/relais-urgences-envoi.ts`),
+>   puis envoie l'e-mail quotidien adresse par adresse (environ 15 s chacune, deux adresses).
+>   Avec un fournisseur d'e-mail lent, le total peut dépasser 60 secondes et la passe être
+>   coupée. **Non vérifié** en production.
+> - **Validation du dirigeant non consignée** : le journal ne consigne que sa consigne
+>   « envoi immédiat pour les urgences » (entrée « decision » du 15/10, point 2). Le passage
+>   toutes les 10 minutes, jour et nuit, non coupé par l'arrêt d'urgence, est la façon dont
+>   le code l'a réalisée (en-tête de `app/src/app/api/cron/relais/route.ts`, « relecture du
+>   15/10 ») ; c'est aussi une exception à l'arrêt d'urgence (D06-A). Aucune source ne dit
+>   que le dirigeant a validé ce choix : à lui soumettre.
+> - **Comportements relevés dans le code, sans décision consignée** : l'e-mail de 5 h
+>   repart chaque jour tant qu'une alerte du mode vacances reste non accusée ou qu'un arrêt
+>   d'urgence reste actif (`sentinelle_relais`, migration `20261014810000`) ; l'escalade
+>   d'une alerte déjà posée ne fait pas partir d'e-mail immédiat, elle attend l'e-mail de
+>   5 h (migration `20261014811000`) ; les incidents urgents des locataires n'alimentent pas
+>   le relais ; les registres du relais sont purgés par leurs propres fonctions (six mois,
+>   D48), hors du catalogue `retention_rules`. Aucune source ne dit si ces choix conviennent
+>   au dirigeant.
 > - **Changement d'heure du 25/10/2026** : l'appel de 04 h UTC prend le relais ; à
 >   surveiller.

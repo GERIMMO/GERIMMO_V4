@@ -143,10 +143,13 @@ signature attendue. Les dix corps se relisent aussi hors ligne :
 >   PR #192) — voir [[Relais du dirigeant]]. Aucun encore reçu au 16/10.
 
 ## La recette automatisée (état au 16/10/2026)
-Après chaque fusion déployée, le chantier GitHub « Recette de production avec
-nettoyage » joue sur `gerimmo.app` les parcours de `app/e2e/recette-production/`
-(public, inscription et récupération, administrateur d'agence, propriétaire, locataire)
-avec des comptes éphémères, retirés à la fin. Recettes n° 4 à 14 consignées au journal
+Le chantier GitHub « Recette de production avec nettoyage »
+(`.github/workflows/recette-production-autonome.yml`) joue sur `gerimmo.app` les parcours
+de `app/e2e/recette-production/` (public, inscription et récupération, administrateur
+d'agence, propriétaire, locataire) avec des comptes éphémères, retirés à la fin. **Il ne
+part pas tout seul** : comme `recette-production.yml`, il ne se lance qu'à la main
+(`workflow_dispatch`, ni planification ni déclenchement par une fusion ; journal du 14/10 :
+« la recette ne tourne que sur déclenchement »). Recettes n° 4 à 14 consignées au journal
 `log.md` (14 et 15/10) ; celles du 16/10 sur `a722f94` (exécution 38854421819) et `bdaf755`
 (38858371065) ont réussi d'après GitHub Actions, sans entrée au journal de `main` à cette
 date.

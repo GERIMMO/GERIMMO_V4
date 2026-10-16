@@ -140,7 +140,8 @@ espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe a
 
 ## Ce que fait le code aujourd'hui (relevé du 16/10/2026)
 - **Son adresse : `/espace`** (décision D27, option B, fiche DES-A-08, PR #191, fusion
-  `d55f87b`, en production depuis le 15/10) : les écrans du propriétaire direct vivent sous
+  `d55f87b`, en production depuis le 16/10, jour de Paris : fusion à 00 h 38, entrée du
+  journal datée du 15/10) : les écrans du propriétaire direct vivent sous
   `/espace/<id>/…`, sans le mot « agence ». C'est un alias réécrit par le proxy après toutes
   ses gardes ; les pages restent celles du dossier `app/agence/[orgId]`. Un ancien lien
   `/agence/<id>/…` d'un propriétaire direct est **redirigé à vie (308)**, chemin et requête
@@ -158,9 +159,9 @@ espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe a
 - **Ajouter un artisan à son carnet : impossible aujourd'hui.** Depuis la PR #170
   (migration `20261007190000`), l'ajout d'artisan est réservé aux agences. La décision du
   15/10/2026 (un propriétaire **invite** un artisan, l'artisan s'inscrit lui-même ;
-  remplace la question D17-B) est **en cours, non livrée** : un quatrième tour de relecture
-  est en cours pour une faille de sécurité de la pré-inscription (journal `log.md`, entrée
-  « decision » du 15/10, point 1).
+  remplace la question D17-B ; journal `log.md`, entrée « decision » du 15/10, point 1) est
+  **en cours, non livrée** : mise en chantier le 15/10, aucune de ses migrations n'est sur
+  `main` au 16/10.
 
 > [!warning] Points à trancher / contradictions (D27-B)
 > - Les liens fabriqués par la base pour la console de supervision pointent encore vers

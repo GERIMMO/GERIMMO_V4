@@ -80,7 +80,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Le jour de référence est le jour de Paris]] — **16/10, brouillon** : « aujourd'hui » = date du calendrier à Paris (`aujourdhui_paris()`), jamais le jour UTC ; loyers, encaissements et quittances (X13, #186), dépôt, journal, IRL, terme, charges, rapports et « Fait le » (#189), fonctions des 15-16/10 ; hors décision en callout (restitution, honoraires, copropriété, abonnement…).
 - [[Plan de reprise d'activité]] — RPO 24 h / RTO 4 h, test de restauration documenté.
 - [[Socle de sécurité]] — MFA super administrateur, contrôle AAL2 et séparation des droits de supervision et de signature.
-- [[Ouverture du réseau d'artisans]] — **28/09** : gestion locative nationale ; seul le réseau d'artisans s'ouvre, commune (INSEE) × métier, par le super admin (`/admin/couverture`) ; artisan validé, SIRET vérifié, public, rattaché ; « Signaler mon intérêt » en zone fermée ; carnet personnel toujours utilisable.
+- [[Ouverture du réseau d'artisans]] — **28/09** : gestion locative nationale ; seul le réseau d'artisans s'ouvre, commune (INSEE) × métier, par le super admin (`/admin/couverture`) ; artisan validé, SIRET vérifié, public, rattaché ; « Signaler mon intérêt » en zone fermée ; contacts du carnet personnel toujours sollicitables, mais l'ajout d'un artisan est réservé aux agences depuis la PR #170 (invitation par un propriétaire décidée le 15/10, non livrée).
 
 ## Sources
 - [[2026-09-28-decision-tarification|Décision tarifaire du 28/09/2026]] — consigne du porteur : formules particuliers, tranches agences, fin du premier bien offert, règles d'essai, de changement et de migration.

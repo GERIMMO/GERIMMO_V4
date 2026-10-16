@@ -4,7 +4,7 @@ tags: [onboarding, abonnement, saas]
 status: in-progress
 created: 2026-07-21
 updated: 2026-10-16
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[2026-09-28-decision-tarification]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Prompt de passation à Codex — état du 14 octobre 2026]]"]
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[2026-09-28-decision-tarification]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
 ---
 
 # Onboarding et abonnement
@@ -106,12 +106,14 @@ fusion `f93ec6e`, migration `20261014830000_relances_invitations_locataires.sql`
 >   (PR #190). **Non vérifié** : aucune relance réelle observée en production (la recette de
 >   production ne joue pas de relance ; la première relance possible suppose une invitation
 >   envoyée après le déploiement, puis trois jours).
-> - **À trancher par le dirigeant** (questions du lot, reprises dans le prompt de passation) :
->   relancer ou non les invitations déjà en attente au déploiement (choix prudent du lot :
->   non) ; la règle du renvoi manuel (il retarde la relance sans relancer le cycle) ; l'heure
->   d'envoi (mission programmée à 06 h 00 UTC, soit 8 h à Paris en été, 7 h en hiver, au bord
->   de la plage 7 h – 21 h) ; le libellé de la clé d'arrêt « Rendez-vous et suivi des
->   dossiers », qui coupe aussi les relances sans le dire.
+> - **À trancher par le dirigeant** : relancer ou non les invitations déjà en attente au
+>   déploiement (choix prudent du lot : non ; « question au dirigeant », journal `log.md`,
+>   entrée « deploy » de la PR #190).
+> - **Choix relevés dans le code, sans décision consignée** : un renvoi manuel retarde la
+>   relance sans relancer le cycle ; la mission « rappels » est programmée à 06 h 00 UTC
+>   (`app/vercel.json`), soit 8 h à Paris en été, 7 h en hiver, au bord de la plage
+>   7 h – 21 h ; sa clé d'arrêt s'affiche « Rendez-vous et suivi des dossiers »
+>   (`nomArret`, `app/src/lib/missions.ts`) et ne dit pas qu'elle coupe aussi les relances.
 > - **Durée du lien** : si le code à usage unique passe de 86 400 s à 3 600 s (question H1
 >   du dossier de validation), le lien d'une invitation ou d'une relance n'est plus valable
 >   qu'une heure.

@@ -200,13 +200,17 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
   15/10 : « finis », module éteint jusqu'à la validation comptable de la forme de l'avoir.
   D24-B et D25-B, qui portent sur ce même outil, sont donc déployés mais sans effet.
 - **Invitation par un propriétaire** (décision du 15/10/2026, remplace D17-B) : **en cours,
-  non livrée** (quatrième tour de relecture en cours pour une faille de sécurité de la
-  pré-inscription).
+  non livrée** (mise en chantier le 15/10 d'après le journal ; aucune de ses migrations
+  n'est sur `main` au 16/10).
 
 > [!warning] Points à trancher (relevé du 16/10/2026)
-> - **D24-C, avant toute activation, avec l'expert-comptable** : mentions de l'avoir,
->   numérotation AV-, document remis au client, avoir partiel, règlement déjà reçu, numéro
->   annulé réservé à vie (questions du lot, reprises dans le prompt de passation).
+> - **D24-C, avant toute activation, avec l'expert-comptable** (message de fusion de la
+>   PR #190) : mentions de l'avoir et numérotation AV- (en-tête de la migration
+>   `20261014710000`), document remis au client et avoir partiel (journal `log.md`, entrée
+>   « deploy » de la PR #190) ; à valider avec eux, deux choix du code : pas d'annulation
+>   tant qu'un règlement déclaré est actif, numéro de la facture annulée réservé à vie.
+>   Le journal dit ces questions reprises dans le prompt de passation, mais la page
+>   [[Prompt de passation à Codex — état du 14 octobre 2026]] ne les contient pas.
 > - **D18 et D22-B partiels** : pas de PDF par version de devis, pas de relance de
 >   l'artisan avant l'échéance de 48 h d'un report, pas de badge dans son agenda (constat du
 >   tour final de vérification).

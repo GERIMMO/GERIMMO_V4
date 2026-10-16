@@ -134,7 +134,11 @@ artisan, l'annulation que côté gérant.
 > - **Non vérifié** : le parcours complet dans un navigateur (report demandé par le
 >   locataire puis accepté par l'artisan) n'a pas été joué ; la recette de production ne le
 >   couvre pas (journal `log.md`, entrées du 15/10).
-> - **Partiel** (constat du tour final de vérification, lot déclaré « partiel ») : pas de
->   relance de l'artisan avant l'échéance des 48 h (seule l'alerte au gérant à l'échéance
->   existe), pas de geste « J'en prends acte » sur une annulation, pas de badge dans l'agenda
->   de l'artisan. À livrer, ou à faire sortir de D22-B par le dirigeant.
+> - **Écarts avec la proposition C** (sections C.4 et C.8 de
+>   [[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]), relevés
+>   dans le code : pas de relance de l'artisan avant l'échéance des 48 h (la tâche
+>   « rappels » ne fait qu'expirer les demandes, `expirer_demandes_rdv` ; seule l'alerte au
+>   gérant à l'échéance existe, migration `20261014620000`) ; pas de geste « J'en prends
+>   acte » sur une annulation ; la demande n'apparaît pas dans l'agenda de l'artisan
+>   (`app/src/app/artisan/agenda/page.tsx`), seulement sur la fiche de la mission. À livrer,
+>   ou à faire sortir de D22-B par le dirigeant.

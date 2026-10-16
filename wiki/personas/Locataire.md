@@ -86,10 +86,6 @@ Cas tranché par le [[Compte, personne et adhésion|modèle canonique d'identit�
 - Visible par son [[Propriétaire bailleur|propriétaire]] et les gestionnaires de l'agence.
 - Interagit avec l'[[Artisan]] lors du choix des créneaux. Voir [[Modèle de rôles et permissions]].
 
-> [!warning] Points à trancher / contradictions
-> - Points de douleur métier non explicités dans les sources — à recueillir (entretiens).
->
-
 ## Ce que fait le code aujourd'hui (relevé du 16/10/2026)
 - **Reporter ou annuler son rendez-vous** (décision D22-B, PR #188, fusion `98f3fd7`, en
   production depuis le 15/10) : sous le rendez-vous confirmé, « Je ne peux plus être là ».
@@ -103,6 +99,9 @@ Cas tranché par le [[Compte, personne et adhésion|modèle canonique d'identit�
   avant le déploiement ne sont pas relancées. Détail : [[Onboarding et abonnement]].
 - **« Mes paiements »** lit le mois suivant au jour de Paris (lot « fuseau-paris », PR #186)
   — [[Le jour de référence est le jour de Paris]].
-- **Non vérifié** : la recette de production ne joue ni le report ni l'annulation d'un
-  rendez-vous par le locataire, ni une relance d'invitation (journal `log.md`, entrées du
-  15/10).
+
+> [!warning] Points à trancher / contradictions
+> - Points de douleur métier non explicités dans les sources — à recueillir (entretiens).
+> - **Non vérifié** : la recette de production ne joue ni le report ni l'annulation d'un
+>   rendez-vous par le locataire, ni une relance d'invitation (journal `log.md`, entrées du
+>   15/10).

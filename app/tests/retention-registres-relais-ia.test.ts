@@ -232,6 +232,23 @@ describe.skipIf(!url)("D48 — les registres du 15/10 ont leur règle de six moi
       expect(bilan.journaux[registre], `bilan ${registre}`).toBeUndefined();
     });
 
+    // Le levier d'un DPO : allonger la conservation au catalogue. La durée est LUE dans `retention_rules` à chaque purge, jamais
+    // codée en dur (constat de relecture du 16/10 : une purge écrite `interval '6 months'` passait tous les autres essais).
+    // Pour ia_appels_jour, cette purge est la seule. LIMITE, ASSUMÉE (en-tête de la migration) : pour les trois registres du
+    // relais, leurs propres fonctions (reserver_alerte_relais, prendre_urgences_relais) purgent de toute façon à six mois à chaque
+    // passage du relais ; allonger leur règle ne vaut que pour appliquer_retention.
+    it.each(REGISTRES)("règle « %s » allongée à douze mois : sa ligne de six mois et dix jours reste, celles des autres registres partent", async (registre) => {
+      const { ancien, recent } = await poserRegistres();
+      await db.query("update public.retention_rules set duree_mois = 12 where data_type = $1", [`journal:${registre}`]);
+      await appliquer();
+      // Une urgence gardée garde aussi son envoi (un envoi cité ne part pas).
+      const gardes: Registre[] = registre === "relais_urgences" ? ["relais_urgences", "relais_urgences_envois"] : [registre];
+      for (const r of REGISTRES) {
+        expect(await existe(r, ancien[r]), `${r} (règle ${registre} à douze mois)`).toBe(gardes.includes(r));
+        expect(await existe(r, recent[r]), `${r} récent`).toBe(true);
+      }
+    });
+
     it("une purge qui supprime laisse UNE ligne au journal technique, avec des nombres seulement ; une purge à vide n'en laisse aucune", async () => {
       await poserRegistres();
       await db.query("delete from public.tech_log where evenement = 'purge_registres_relais_ia'");

@@ -3,7 +3,7 @@ type: process
 tags: [loyer, impaye, relance, mise-en-demeure]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-29
+updated: 2026-10-16
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]"]
 ---
 
@@ -106,3 +106,9 @@ fonde ensuite un recours. L'escalade reste donc un geste du gérant, tracé dans
 > [!warning] À trancher (29/09/2026)
 > Modéliser le plan d'apurement (échéancier, statut) pour suspendre les relances
 > automatiques tant qu'il est respecté. Source : [[Audit complet du 29 septembre 2026]].
+
+> [!info] Jour de référence (depuis le 15/10/2026)
+> L'état « impayé » d'un loyer, l'alerte d'impayé, les relances dues (jours de retard,
+> termes échus, colocataires encore solidaires) et la relance consignée (un courrier par
+> jour) se comptent au **jour de Paris** (lot « fuseau-paris », PR #186) : avant, un loyer
+> échu la veille à Paris restait « attendu » entre minuit et 2 h. Voir [[Le jour de référence est le jour de Paris]].

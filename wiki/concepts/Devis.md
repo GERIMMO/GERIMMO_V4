@@ -3,8 +3,8 @@ type: concept
 tags: [devis, incident, artisan]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-24
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-9-devis-et-facturation]]"]
+updated: 2026-10-16
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-9-devis-et-facturation]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]"]
 ---
 
 # Devis
@@ -46,6 +46,38 @@ Plusieurs tables autour du processus de mise en concurrence.
   locataire → créance sur le bail, module 3).
 - **Incident imputé au locataire** : il choisit — son artisan en direct (preuve de
   résolution exigée, sinon l'agence reprend la main) ou l'agence avec refacturation.
+
+## Ce que fait le code aujourd'hui : refus motivé et révision en versions (relevé du 16/10/2026)
+Décision D18 du dirigeant (14/10/2026, option A en deux livraisons, fiches ART-13 et
+PRO2-12), **en production depuis le 15/10/2026** (PR #187, fusion `8a168dd`, migrations
+`20261014600000` à `20261014602000`). Les objets du code actuel sont `incident_devis` et
+`incident_sollicitations`, non les tables du code hérité décrites plus haut.
+- **Trois gestes sur un devis reçu** : le **retenir** (il confie la mission ; le second
+  artisan est écarté automatiquement), le **refuser**, ou **demander une révision**.
+- **Refus motivé** : motif de dix caractères au moins, **transmis tel quel à l'artisan**
+  (il le lit dans son espace). Le devis passe « refusé », la sollicitation « refusée » ; le
+  refus est définitif et **libère la place** dans le plafond de deux artisans sollicités
+  (RM-9.1.1) pour en solliciter un autre.
+- **Révision** : « Ce que vous demandez » (dix caractères au moins, transmis à l'artisan).
+  L'artisan a **sept jours** (jour de Paris) pour déposer la version suivante, en disant
+  « ce qui change », ou renoncer. **Trois versions au plus** : au-delà, seuls « retenir » et
+  « refuser » restent. Une version renvoyée en révision ne peut plus être retenue ; elle
+  reste consultable dans l'historique des versions. Un seul devis « vivant » (déposé ou
+  retenu) par demande.
+- **Échéance** : sans réponse, la tâche quotidienne `maintenance-artisans` (04 h 30 UTC)
+  clôt la demande (« expirée »), le devis reste « révisé » et le gérant reçoit une alerte.
+- Chaque geste est rejouable sans doublon (clé d'envoi) et laisse un événement au fil de
+  l'incident (`devis_refuse`, `devis_revision_demandee`, `devis_revise`,
+  `devis_revision_expiree`).
+
+> [!warning] Ce qui n'est pas livré ou pas vérifié (D18)
+> - **Non vérifié** : le parcours complet dans un navigateur (refus motivé par le
+>   gestionnaire, nouvelle version par l'artisan) n'a pas été joué ; la recette de
+>   production ne le couvre pas (journal `log.md`, entrées du 15/10).
+> - **Partiel** (constat du tour final de vérification) : le PDF du devis est celui de la
+>   dernière version (les précédentes ne se relisent qu'à l'écran) ; aucune alerte dédiée au
+>   gérant si l'artisan devient non affectable pendant la révision. À livrer, ou à faire
+>   sortir de D18 par le dirigeant.
 
 ## Machine à états cible (référentiel V3, Livrable A5 — module 9)
 **demandé** → déposé ou expiré · **déposé** → validé, refusé ou expiré · **validé** →

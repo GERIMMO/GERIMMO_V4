@@ -5,7 +5,9 @@
  * intérêt.
  *
  * NE PAS permettre l'ajout d'un artisan par SIRET (option B, non retenue) : la PR #170 a posé la règle « l'ajout
- * d'artisans est réservé aux agences ». Un test garde cette limite : l'écran ne propose aucun ajout.
+ * d'artisans est réservé aux agences ». Décision du dirigeant du 15/10/2026 : le propriétaire peut en revanche INVITER
+ * un artisan (lien vers son carnet), qui s'inscrit lui-même et que Gerimmo valide. Un test garde les deux : le lien
+ * d'invitation est là, aucun ajout par SIRET ni formulaire sur place.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -56,7 +58,7 @@ describe("quand la voie de sortie s'affiche", () => {
 });
 
 describe("le texte de la voie de sortie", () => {
-  const html = renderToStaticMarkup(createElement(VoieDeSortieReseau, { interetEnregistre: false }));
+  const html = renderToStaticMarkup(createElement(VoieDeSortieReseau, { orgId: "org-1", interetEnregistre: false }));
   const texte = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 
   it("propose les trois issues : clôturer, appeler soi-même l'artisan, signaler son intérêt", () => {
@@ -74,15 +76,21 @@ describe("le texte de la voie de sortie", () => {
   });
 
   it("quand l'intérêt est déjà enregistré, le dit au lieu de renvoyer à un bouton absent", () => {
-    const deja = renderToStaticMarkup(createElement(VoieDeSortieReseau, { interetEnregistre: true }))
+    const deja = renderToStaticMarkup(createElement(VoieDeSortieReseau, { orgId: "org-1", interetEnregistre: true }))
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ");
     expect(deja).toContain("Votre intérêt est déjà enregistré");
     expect(deja).not.toContain("bouton ci-dessous");
   });
 
-  it("ne propose aucun ajout d'artisan (option B non retenue, règle « réservé aux agences » de la PR #170)", () => {
-    expect(texte.toLowerCase()).not.toMatch(/siret|ajouter un artisan|inviter un artisan/);
+  // Décision du dirigeant du 15/10/2026 (remplace la question D17-B) : le propriétaire peut INVITER un artisan, qui
+  // s'inscrit lui-même et que Gerimmo valide. L'ajout direct par SIRET reste réservé aux agences (PR #170).
+  it("propose d'inviter un artisan depuis le carnet, sans aucun ajout par SIRET ni formulaire sur place", () => {
+    expect(texte).toContain("Inviter un artisan que vous connaissez");
+    expect(html).toContain('href="/espace/org-1/artisans#inviter-un-artisan"');
+    expect(texte).toContain("Gerimmo vérifie son inscription");
+    expect(texte).toContain("pour les biens situés dans sa zone d’intervention");
+    expect(texte.toLowerCase()).not.toMatch(/siret|ajouter un artisan|réservé aux agences/);
     expect(html).not.toContain("<form");
     expect(html).not.toContain("<input");
   });

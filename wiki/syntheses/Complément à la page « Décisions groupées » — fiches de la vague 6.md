@@ -3,13 +3,30 @@ type: synthesis
 tags: [decisions, audit, registre, v1, mission-operationnelle, validation, complement, vague-6]
 status: draft
 created: 2026-10-14
-updated: 2026-10-14
+updated: 2026-10-16
 sources: ["[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Sortie de bail — scénario joué le 14 octobre 2026]]", "[[Charges et fiscalité — jeu de référence et sources officielles (audit du 13 octobre 2026)]]", "[[Dossier sécurité et restauration — retour arrière des migrations du 13 octobre 2026]]", "[[Performances et liens — mesures du 14 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]"]
 ---
 
 # Complément à la page « Décisions groupées » — fiches de la vague 6
 
-> [!warning] Tout est proposé, non décidé
+> [!success] Décidé le 14/10 et le 15/10/2026 — état au 16/10
+> Le dirigeant a répondu le 14/10 (« P1 bloquants, pour le reste faire en fonction des recommandations ») puis le
+> 15/10 (relais D46-B, D24-C, X16, jour de Paris, invitation d'artisan). Q5 a été tranchée comme Q3 : CHF-01 et
+> CHF-02 sont des P1 bloquants. Ce qui est en production au 16/10, sans contrôle en production des P1 :
+> - **Vague 1** (PR #181, `d38487a`, 14/10) : D34-B, D35 (1) A et (2) C, D36-B, D37-B, D38-A, D39-B, D40-A.
+>   Différés : D35 (2) B, D38-B, D40-B, D41 (avis spécialisé). D36-C est reportée (« option C reportée », `app/tests/accueil-locataire-depot.test.ts`) : à redemander.
+> - **Vague 2** (PR #182, `8c4aed6`, 15/10) : D42-B (sans choix tracé du dirigeant, à ratifier), D44-A, D46-A, D47-A,
+>   D48-A (les registres créés ensuite ne sont pas déclarés au catalogue `retention_rules`). D43 : essai de restauration
+>   toujours à autoriser.
+> - **Vague 3** (PR #184, `fac0105`, 15/10) : D45-A, D49 (1) A. D45-B attend une comparaison visuelle ; D49 (2) attend
+>   une qualification juridique.
+> - **D46-B, partie alerte** (PR #192, `a722f94`, 16/10) : e-mail quotidien à 05 h 00 heure de Paris et e-mail immédiat
+>   des urgences du mode vacances, vers deux adresses fournies par le dirigeant et gardées hors du dépôt ; règles « Ce qui
+>   peut continuer seul » et arrêt du webhook de signature hors périmètre.
+>
+> Le tableau décision par décision, avec la PR et ce qui manque, est dans [[Décisions groupées — version candidate du 13 octobre 2026]], section « Réponses du dirigeant ». Le texte ci-dessous est la proposition d'origine, conservée telle quelle.
+
+> [!note] Proposition d'origine (14/10/2026) — à l'époque, tout était proposé, non décidé
 > Ce complément reprend **exactement** le gabarit, le ton et la numérotation de la page « Décisions groupées — version
 > candidate du 13 octobre 2026 » (D01 à D33, Q1 à Q4, R1 à R6, X01 à X22) et continue à **D34**. Chaque ligne est une
 > **proposition de l'agent** : aucune n'est présumée acceptée, aucune ne l'est par silence (mission, section 02 :

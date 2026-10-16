@@ -190,7 +190,7 @@ describe("la section « Clôturer l'incident » est la cible des liens #cloture 
   );
 
   it("la voie de sortie du réseau (propriétaire sans artisan) renvoie à une ancre qui existe dans la fiche", async () => {
-    const voie = renderToStaticMarkup(createElement(VoieDeSortieReseau, { interetEnregistre: false }));
+    const voie = renderToStaticMarkup(createElement(VoieDeSortieReseau, { orgId: "org-1", interetEnregistre: false }));
     const liens = cibles(voie);
     expect(liens).toContain("cloture");
     const ids = identifiants(await afficher("qualifie"));

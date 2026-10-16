@@ -202,5 +202,10 @@ export async function leverBlacklistArtisanLocal(
   if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/artisans`);
-  return { succes: "Liste noire levée — l'artisan vous est de nouveau proposé." };
+  // Troisième relecture du 15/10 (20261014849000) : une ligne qui n'existait que par la liste noire est retirée du carnet
+  // à la levée ; l'artisan n'y entre que par l'ajout par SIRET.
+  return {
+    succes:
+      "Liste noire levée. S'il n'était dans votre carnet que par cette liste noire, il en est retiré : ajoutez-le par son SIRET pour le solliciter de nouveau.",
+  };
 }

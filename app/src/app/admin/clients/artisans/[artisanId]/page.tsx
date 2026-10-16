@@ -66,12 +66,23 @@ export default async function PageFicheArtisan(
   const { data: artisan, error } = await supabase
     .from("artisans")
     .select(
-      "id, raison_sociale, siret, siret_etat, statut_plateforme, statut_motif, statut_decide_le, visibilite, email, telephone, created_at, purge_prevue_le, blacklist_globale_le, blacklist_globale_motif"
+      "id, raison_sociale, siret, siret_etat, statut_plateforme, visibilite, email, telephone, created_at, blacklist_globale_le"
     )
     .eq("id", artisanId)
     .maybeSingle();
   if (error) throw new Error("La fiche de cet artisan n'a pas pu être lue.");
   if (!artisan) notFound();
+  // Date de décision, échéance de conservation et motif d'exclusion : fermés à la lecture directe (20261014842000),
+  // rendus par la fonction de la supervision.
+  const { data: decisionsBrutes, error: erreurDecisions } = await supabase.rpc("decisions_artisan_supervision", {
+    p_artisan: artisanId,
+  });
+  if (erreurDecisions) throw new Error("La fiche de cet artisan n'a pas pu être lue.");
+  const decisions = ((decisionsBrutes ?? []) as {
+    statut_decide_le: string | null;
+    purge_prevue_le: string | null;
+    blacklist_globale_motif: string | null;
+  }[])[0] ?? { statut_decide_le: null, purge_prevue_le: null, blacklist_globale_motif: null };
 
   const [metiers, zones, pieces, validations, agences] = await Promise.all([
     supabase.from("artisan_metiers").select("metier").eq("artisan_id", artisanId),
@@ -153,7 +164,7 @@ export default async function PageFicheArtisan(
             className="mb-6 border border-[var(--destructive)] bg-[var(--destructive-soft)] p-3.5 text-[13px] text-[var(--destructive-soft-foreground)]"
           >
             Écarté de la plateforme le {formaterDate(artisan.blacklist_globale_le)}
-            {artisan.blacklist_globale_motif ? ` — ${artisan.blacklist_globale_motif}` : "."}
+            {decisions.blacklist_globale_motif ? ` — ${decisions.blacklist_globale_motif}` : "."}
           </div>
         )}
 
@@ -304,7 +315,7 @@ export default async function PageFicheArtisan(
             <>
               <p className="text-sm text-[var(--texte-secondaire)]">
                 Inscription validée
-                {artisan.statut_decide_le ? ` le ${formaterDate(artisan.statut_decide_le)}` : ""}.
+                {decisions.statut_decide_le ? ` le ${formaterDate(decisions.statut_decide_le)}` : ""}.
               </p>
               {/* Le geste de contrôle (audit console 27/09) : suspendre, motivé, confirmé, journalisé. */}
               <details className="mt-4 border-t border-[var(--filet)] pt-3" open={!assuranceEnCours && !pieces.error}>
@@ -315,10 +326,10 @@ export default async function PageFicheArtisan(
               </details>
             </>
           )}
-          {artisan.purge_prevue_le && (
+          {decisions.purge_prevue_le && (
             <p className="mt-3 text-xs text-[var(--texte-secondaire)]">
               Sans suite, échéance de conservation prévue le{" "}
-              {formaterDate(artisan.purge_prevue_le)}.
+              {formaterDate(decisions.purge_prevue_le)}.
             </p>
           )}
         </section>

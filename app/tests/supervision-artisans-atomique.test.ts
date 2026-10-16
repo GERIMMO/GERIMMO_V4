@@ -160,7 +160,11 @@ describe.skipIf(!DB_URL)("Supervision artisan — décisions atomiques", () => {
     await db.query(APPEL, [artisan, "validation", null, false, true]);
     await expect(essai(db, [artisan, "suspension", "  ", false, false])).rejects.toThrow(/motif objectif/);
     await db.query(APPEL, [artisan, "suspension", "Décennale échue", false, false]);
+    // Le motif est une colonne interne, fermée à la lecture directe de tout client, supervision comprise
+    // (20261014842000) : on vérifie ce que la fonction a écrit avec les droits du propriétaire de la base.
+    await db.query("reset role");
     const { rows: [a] } = await db.query("select statut_plateforme, statut_motif from public.artisans where id=$1", [artisan]);
+    await agir(db, sa);
     expect(a).toEqual({ statut_plateforme: "en_attente", statut_motif: "Décennale échue" });
     // now() est identique dans toute la transaction : created_at ne départage pas ces décisions.
     const { rows: decisions } = await db.query("select decision from public.artisan_validations where artisan_id=$1", [artisan]);
@@ -175,8 +179,9 @@ describe.skipIf(!DB_URL)("Supervision artisan — décisions atomiques", () => {
     await expect(essai(db, [artisan, "remise_en_attente", null, false, false])).rejects.toThrow(/déjà changé d’état/);
     await db.query(APPEL, [artisan, "refus", "  Justificatif illisible  ", false, false]);
     await expect(essai(db, [artisan, "validation", null, false, true])).rejects.toThrow(/déjà changé d’état/);
-    const { rows: [refus] } = await db.query("select statut_plateforme, statut_motif from public.artisans where id=$1", [artisan]);
-    expect(refus).toEqual({ statut_plateforme: "refuse", statut_motif: "Justificatif illisible" });
+    // Lu comme l'écran de la supervision le lit (20261014842000) : par sa fonction, jamais par la table.
+    const { rows: refus } = await db.query("select statut_plateforme, statut_motif from public.decisions_artisans_supervision(0, 500) where id=$1", [artisan]);
+    expect(refus).toEqual([{ statut_plateforme: "refuse", statut_motif: "Justificatif illisible" }]);
     await db.query(APPEL, [artisan, "remise_en_attente", null, false, false]);
     const { rows: [a] } = await db.query("select statut_plateforme, siret_etat from public.artisans where id=$1", [artisan]);
     expect(a).toEqual({ statut_plateforme: "en_attente", siret_etat: "non_verifie" });

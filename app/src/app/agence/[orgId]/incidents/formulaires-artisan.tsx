@@ -17,6 +17,8 @@ import {
 } from "@/app/actions/incidents";
 import { CleEnvoi } from "@/components/cle-envoi";
 import { MessageReseau, InteretReseau, VoieDeSortieReseau } from "@/components/disponibilite-reseau";
+import { CarnetNonSollicitable } from "@/components/carnet-non-sollicitable";
+import type { ArtisanCarnetBien } from "@/lib/invitations-artisan";
 import { voieDeSortieAffichee, type DisponibiliteReseau } from "@/lib/reseau";
 import { IMPUTATIONS_INCIDENT, MOTIF_DECISION_DEVIS } from "@/lib/incidents";
 import {
@@ -82,6 +84,7 @@ export function FormulaireConsultation({
   bienId,
   disponibilites,
   estProprietaire = false,
+  carnetBien = null,
 }: {
   orgId: string;
   incidentId: string;
@@ -90,6 +93,8 @@ export function FormulaireConsultation({
   disponibilites: DisponibiliteReseau[] | null;
   /** Un propriétaire sans réseau ne peut pas ajouter d'artisan : l'écran lui montre la voie de sortie (D17). */
   estProprietaire?: boolean;
+  /** Propriétaire seulement : son carnet vu pour ce bien (`carnet_artisans_bien`), pour dire qui ne peut pas être sollicité. */
+  carnetBien?: ArtisanCarnetBien[] | null;
 }) {
   const actionLiee = ouvrirConsultation.bind(null, orgId, incidentId);
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
@@ -191,8 +196,11 @@ export function FormulaireConsultation({
 
       {disponibilites === null && <p role="alert" className="text-sm text-destructive">La disponibilité des artisans ne peut pas être vérifiée. Rechargez la page avant d’ouvrir une demande.</p>}
       {d && bienId && <MessageReseau orgId={orgId} bienId={bienId} disponibilite={d} />}
-      {d && voieDeSortieAffichee(d, estProprietaire) && <VoieDeSortieReseau interetEnregistre={d.interet_enregistre} />}
+      {d && voieDeSortieAffichee(d, estProprietaire) && <VoieDeSortieReseau orgId={orgId} interetEnregistre={d.interet_enregistre} />}
       {d && d.etat !== "ouverte" && d.nb_contacts > 0 && <p className="text-sm">Vous pouvez continuer avec {d.nb_contacts} artisan{d.nb_contacts > 1 ? "s" : ""} de votre carnet personnel correspondant à ces travaux.</p>}
+      {/* Seconde relecture du 15/10 : pour ce bien et ces travaux, qui, dans le carnet du propriétaire, ne peut pas être
+          sollicité, et pourquoi (zone, décennale, validation) — plutôt qu'un artisan validé qui disparaît sans mot. */}
+      {estProprietaire && carnetBien && metier && nature && <CarnetNonSollicitable artisans={carnetBien} metier={metier} decennaleExigee={decennaleRequise(nature)} />}
       <Retour etat={etat} />
       <BoutonEnvoi disabled={!autorisee} enCoursTexte="Ouverture…">{d && d.etat !== "ouverte" && d.nb_contacts > 0 ? "Ouvrir avec mon carnet" : "Ouvrir la mise en concurrence"}</BoutonEnvoi>
     </form>

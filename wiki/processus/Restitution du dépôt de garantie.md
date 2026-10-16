@@ -3,7 +3,7 @@ type: process
 tags: [restitution, depot-de-garantie, retenue, decompte, delai-legal, vetuste]
 status: draft
 created: 2026-07-24
-updated: 2026-09-29
+updated: 2026-10-16
 sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 
@@ -124,3 +124,9 @@ Voir [[Agenda et échéances]] (alerte liée à son événement d'origine).
 > mention conservée au décompte, et rappel que la présomption tombe si le bailleur a fait
 > obstacle à l'EDL (art. 3-2 loi 89-462). Le référentiel V3 (RM-2.4.3 = RM-1.13.4) reste
 > à mettre à jour dans ce sens. Source : [[Audit complet du 29 septembre 2026]].
+
+> [!warning] Jour de référence : la restitution n'est pas encore au jour de Paris (16/10/2026)
+> `finaliser_decompte` (écritures « Restitution du dépôt de garantie » et trop-perçu),
+> `marquer_decompte_envoye` et les alertes de restitution lisent encore le jour UTC de la
+> base : entre minuit et 2 h à Paris, ils datent de la veille. Hors des décisions du 15/10 ;
+> question au dirigeant. Voir [[Le jour de référence est le jour de Paris]].

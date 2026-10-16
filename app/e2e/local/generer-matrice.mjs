@@ -62,6 +62,9 @@ ids.EDL = edl?.id;
 ids.CLIENT_EXTERNE = (await un("select id from artisan_clients where artisan_id=$1 order by created_at limit 1",[artisanPrive?.id]))?.id;
 ids.CHANTIER_EXTERNE = (await un("select id from artisan_chantiers where artisan_id=$1 order by created_at limit 1",[artisanPrive?.id]))?.id;
 ids.FACTURE_EXTERNE = (await un("select id from artisan_factures_externes where artisan_id=$1 order by created_at limit 1",[artisanPrive?.id]))?.id;
+// Invitation d'un artisan (décision du 15/10/2026) : vue SANS session, la page ne lit rien en base et ne dit rien de
+// l'invitation ; n'importe quel identifiant bien formé montre donc l'écran public (création du compte).
+ids.INVITATION_ARTISAN = "00000000-0000-4000-8000-000000000000";
 
 const inventaire = JSON.parse(fs.readFileSync(path.join(ICI, "..", "routes-inventaire.json"), "utf8"));
 const matrice = [];
@@ -72,7 +75,7 @@ for (const route of inventaire) {
   // /agence/<id> redirige à vie vers /espace/<id> pour lui, un modèle encore écrit « /agence/ORG » est donc ramené à /espace).
   if (route.persona === "proprietaire") chemin = chemin.replace(/^\/(?:agence|espace)\/ORG(?![A-Z_])/, `/espace/${ids.ORG_PD}`);
   let manquant = null;
-  chemin = chemin.replace(/\b(INVITATION|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT|CLIENT_EXTERNE|CHANTIER_EXTERNE|FACTURE_EXTERNE)\b/g, (m) => {
+  chemin = chemin.replace(/\b(INVITATION_ARTISAN|INVITATION|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT|CLIENT_EXTERNE|CHANTIER_EXTERNE|FACTURE_EXTERNE)\b/g, (m) => {
     if (!ids[m]) manquant = m;
     return ids[m] ?? m;
   });

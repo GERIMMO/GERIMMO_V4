@@ -3,7 +3,7 @@ type: synthesis
 tags: [cartographie, audit, architecture, droits, banc-local]
 status: draft
 created: 2026-10-14
-updated: 2026-10-14
+updated: 2026-10-16
 sources: []
 ---
 
@@ -14,6 +14,14 @@ sources: []
 > - Arbre de travail : propre sur app/src, app/supabase, app/e2e, app/tests au moment du relevé.
 > - Scripts : `scripts/lib.py`, `scripts/01_routes.py`, `scripts/02_actions.py`, `scripts/03_base.py`, `scripts/04_transverse.py`, `scripts/08_page_cartographie.py`, `scripts/00_controles_croises.sh` (rejeu complet : `bash scripts/rejouer.sh`).
 > - Contrôle croisé (commande indépendante des scripts) : pages `116`, route handlers `27`, fichiers « use server » `70`, migrations `308` (fichier `donnees/controles-croises.tsv`).
+
+> [!warning] Depuis ce relevé (état au 16/10/2026) — adresse du propriétaire direct
+> Depuis la décision D27-B (PR #191, fusion `d55f87b`, 16/10/2026 à 00 h 38 heure de Paris), le propriétaire direct entre sous **`/espace/<id>/…`** : c'est un alias réécrit par
+> le proxy vers les écrans de `app/agence/[orgId]`, après toutes ses gardes ; `/agence/<id>/…` d'un propriétaire direct lui répond en **308** (chemin et
+> requête conservés, à vie) ; `/espace/<id>` d'une autre organisation répond « introuvable ». Les agences et leurs agents restent sous `/agence/<id>`.
+> La structure des fichiers décrite ici (dossier `app/agence/[orgId]`, coquille commune) ne change pas : seules les adresses vues par le propriétaire
+> direct changent (`app/src/lib/racine-espace.ts`, `app/src/app/espaces/page.tsx`). Les autres écarts depuis le 14/10 (migrations des 14 et 15/10,
+> tâches planifiées) ne sont pas reportés dans ce relevé généré : voir [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 quater.
 
 
 Cette page est **générée par des scripts** rejouables ; chaque section dit quel script et quel fichier de données l'a produite. Rien n'est écrit dans le dépôt
@@ -1306,7 +1314,7 @@ Produit par `04_transverse.py`. Appels Supabase Auth repérés dans `app/src` (f
 | garant | 7 * DAY | 30 * DAY |
 
 - **Cookie d'activité** `gerimmo-derniere-activite` signé HMAC (`GERIMMO_SESSION_SECRET`, repli sur la clé de service, sinon non signé).
-- **Aiguillage après connexion** (`app/src/app/espaces/page.tsx`) : super-administrateur → `/admin/brief` ; une seule adhésion gérante → `/agence/[orgId]` ; locataire → `/locataire/[orgId]` ; artisan → `/artisan` ; compte neuf `espace=proprietaire_direct` → `initialiser_espace_proprietaire()` puis son espace.
+- **Aiguillage après connexion** (`app/src/app/espaces/page.tsx`) : super-administrateur → `/admin/brief` ; une seule adhésion gérante → `/espace/[orgId]` pour un propriétaire direct, `/agence/[orgId]` pour une agence ou un agent (D27-B, PR #191, depuis le 16/10 ; relevé du 14/10 : `/agence/[orgId]` pour tous) ; locataire → `/locataire/[orgId]` ; artisan → `/artisan` ; compte neuf `espace=proprietaire_direct` → `initialiser_espace_proprietaire()` puis son espace.
 
 ## 6. Intégrations
 
@@ -1454,7 +1462,7 @@ Produit par `03_base.py` (énumération `membership_role`, contrainte de `member
 | `super_admin` | Aucune fonction ni action ne l'octroie : création directe en base (SQL / clé de service) — `authenticated` n'a que `SELECT` et `DELETE` sur `memberships`, et le DELETE est réservé à `is_super_admin()` par politique. Second facteur obligatoire. | `/admin/**` (supervision), traversée journalisée des espaces clients, jamais d'usurpation (« Voir comme » n'existe pas) | 30 * MINUTE / 8 * HOUR | 7 fichiers src, 9 migrations |
 | `admin_agence` | `ouvrir_organisation` (super-administrateur : crée l'agence et son responsable) ; hors V1 publique. | `/agence/[orgId]` : parc de l'agence, mandats, abonnement, administration, comptabilité | 2 * HOUR / 12 * HOUR | 20 fichiers src, 159 migrations |
 | `agent` | `inviter_agent` (réservé à l'admin d'agence ou au super-administrateur, uniquement pour une organisation de type agence). | `/agence/[orgId]` restreint à son portefeuille de lots ; pas d'abonnement ni d'administration | 4 * HOUR / 12 * HOUR | 16 fichiers src, 152 migrations |
-| `proprietaire_direct` | `initialiser_espace_proprietaire` (auto-inscription `/inscription`, une seule fois, idempotent) ou `ouvrir_organisation`. | `/agence/[orgId]` en vocabulaire propriétaire : « Mes lots », finances, fiscalité, abonnement | 4 * HOUR / 12 * HOUR | 39 fichiers src, 159 migrations |
+| `proprietaire_direct` | `initialiser_espace_proprietaire` (auto-inscription `/inscription`, une seule fois, idempotent) ou `ouvrir_organisation`. | `/espace/[orgId]` depuis le 16/10 (D27-B, PR #191 : alias réécrit par le proxy vers les écrans de `app/agence/[orgId]`, `/agence/[orgId]` redirigé en 308), en vocabulaire propriétaire : « Mes lots », finances, fiscalité, abonnement | 4 * HOUR / 12 * HOUR | 39 fichiers src, 159 migrations |
 | `proprietaire_mandant` | Présent dans l'énumération et la table des durées de session ; **aucune fonction d'attribution trouvée** ; le code l'emploie comme libellé de rôle de personne (`personnes.ts`, `libelles.ts`). Exclusivité PD/PM mentionnée par `/espaces`. | aucun espace dédié repéré | 7 * DAY / 30 * DAY | 3 fichiers src, 2 migrations |
 | `locataire` | `repondre_invitation_locataire` (acceptation d'une invitation) ; désactivation par `terminer_bail` (adhésion `inactive` : lecture seule des documents). | `/locataire/[orgId]` : logement, loyers, documents, demandes, messages | 7 * DAY / 30 * DAY | 41 fichiers src, 63 migrations |
 | `artisan` | Compte artisan : `/artisan/inscription` (action `creerCompteArtisan`) crée la fiche `artisans.account_id` ; adhésions `artisan` créées par les parcours de rattachement (`solliciter_artisan_interne`, interne). | `/artisan` : missions, devis, planning, factures, clients externes | 7 * DAY / 30 * DAY | 25 fichiers src, 21 migrations |

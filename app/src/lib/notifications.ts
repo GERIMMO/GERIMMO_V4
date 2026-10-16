@@ -48,6 +48,7 @@ import { cleRappelGeste } from "./cles-idempotence-courriels";
 import { envoyerEmail } from "./email";
 import { eur, formaterDate } from "./ged";
 import { titreIncident } from "./incidents";
+import { nomInvitant, valableJusquAu } from "./invitations-artisan";
 import { moyenEnToutesLettres } from "./reglement-facture";
 import { echapperMarque, emailValide, nomMarque } from "./marque-organisation";
 import { chargerMarque } from "./marque-organisation-serveur";
@@ -110,6 +111,33 @@ export function extrait(texte: string | null | undefined, max = 140): string {
 }
 
 // — Vers l'artisan ————————————————————————————————————————————————————————
+
+/**
+ * L'invitation d'un artisan par un propriétaire direct (décision du 15/10/2026). Marque Gerimmo (c'est Gerimmo qui
+ * valide l'artisan), le nom de l'organisation qui invite, et RIEN du bien ni du locataire : l'artisan n'est encore lié
+ * à aucun dossier. Le lien mène à la page de l'invitation, où il crée son compte ou se connecte.
+ * Relecture du 15/10 : le nom de l'organisation est un texte libre de l'invitant. Le sujet est donc FIXE, et le corps
+ * ne cite que le nom assaini (`nomInvitant`), ou « Un propriétaire ».
+ */
+export function messageInvitationArtisan(p: { organisation: string; lien: string; expireLe: string }): Message {
+  // Le dernier jour de Paris, inclus (seconde relecture du 15/10) : la même règle que le carnet et la page de l'artisan.
+  const jusquAu = valableJusquAu(p.expireLe, "long");
+  const invitant = nomInvitant(p.organisation) ?? "Un propriétaire";
+  return {
+    sujet: "Invitation à rejoindre un carnet d’artisans sur Gerimmo",
+    html: gabaritNotification({
+      titre: "Une invitation à rejoindre un carnet d’artisans",
+      emetteur: "L’équipe Gerimmo",
+      lignes: [
+        `${invitant} souhaite vous ajouter à son carnet d’artisans sur Gerimmo, pour pouvoir vous demander des devis et vous confier des interventions.`,
+        "Pour accepter : créez votre compte artisan (ou connectez-vous si vous en avez déjà un), inscrivez votre entreprise (SIRET, métiers, zone d’intervention) et déposez vos attestations de responsabilité civile professionnelle et de garantie décennale. Gerimmo vérifie votre inscription avant toute demande d’intervention.",
+        `Cette invitation est valable jusqu’au ${jusquAu}. Rien ne se fait sans votre accord : vous pouvez aussi la refuser.`,
+        "Vous ne connaissez pas cette personne ? Ignorez ce message : aucun compte n’est créé sans vous.",
+      ],
+      action: { libelle: "Voir l’invitation", lien: p.lien },
+    }),
+  };
+}
 
 export function messageDevisDemande(p: {
   emetteur: string;

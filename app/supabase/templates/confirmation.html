@@ -4,7 +4,7 @@
   <p>Vous venez de créer un compte Gerimmo. Pour l'ouvrir, confirmez que cette
      adresse est bien la vôtre :</p>
   <p style="margin:22px 0">
-    <a href="{{ .ConfirmationURL }}"
+    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=signup&amp;next=/espaces"
        style="background:#2457f5;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;display:inline-block">
       Confirmer mon adresse
     </a>

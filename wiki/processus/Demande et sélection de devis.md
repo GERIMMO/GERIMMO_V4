@@ -3,8 +3,8 @@ type: process
 tags: [devis, incident, artisan]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-29
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
+updated: 2026-10-16
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
 ---
 
 # Demande et sélection de devis
@@ -67,3 +67,14 @@ globale. L'écran n'en refait aucun morceau.
 > intérêt » et **solliciter ses contacts personnels du carnet**. La demande de
 > devis reste dans l'incident, après qualification ; les contrôles sont refaits en
 > base à l'envoi. Voir [[Ouverture du réseau d'artisans]].
+
+## Ce que fait le code aujourd'hui : refuser ou faire réviser un devis (depuis le 15/10/2026)
+La sélection n'est plus le seul geste sur un devis reçu (décision D18, PR #187, fusion
+`8a168dd`) :
+- **Refuser** avec un motif transmis à l'artisan : sa demande est close et la place est
+  libérée pour solliciter un autre artisan, sans toucher au plafond de deux.
+- **Demander une révision** : l'artisan a sept jours (jour de Paris) pour envoyer la
+  version suivante ou renoncer ; trois versions au plus ; une version renvoyée en révision
+  n'est plus sélectionnable ; sans réponse, la demande expire et le gérant est alerté.
+Détail et limites : [[Devis]], section « Ce que fait le code aujourd'hui ». Parcours complet
+non joué dans un navigateur à ce jour.

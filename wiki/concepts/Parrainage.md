@@ -3,7 +3,7 @@ type: concept
 tags: [parrainage, croissance, expansion, acquisition, proprietaire-direct, agence]
 status: stable
 created: 2026-09-19
-updated: 2026-09-30
+updated: 2026-10-16
 sources: ["[[2026-09-28-decision-tarification]]"]
 ---
 
@@ -67,7 +67,8 @@ mais ils peuvent recommander ([[Expansion territoriale autonome]]).
   montant facturé, un parrain archivé : l'avantage est inscrit « sans objet »
   et l'écran le dit, plutôt que d'afficher un cadeau qui n'arrivera jamais.
 - **L'avoir est porté au solde client Stripe** par la tâche planifiée
-  `/api/cron/abonnements`, avec une clé d'idempotence : une tâche rejouée ne
+  des abonnements (d'abord `/api/cron/abonnements`, aujourd'hui la mission « abonnements »
+  de l'entrée unique `/api/cron/equipes`), avec une clé d'idempotence : une tâche rejouée ne
   crédite pas deux fois.
 
 Registre : `avantages_parrainage` — qui, pour quel parrainage, quelle nature,
@@ -88,7 +89,7 @@ quel montant ou combien de jours, et si c'est honoré.
   facture est de 0 € — elle ne déclenche rien.
 - **Une récompense par filleul** (même unicité du registre qu'en 19/09).
 - **Même mécanique d'avoir** que pour la grille historique : registre
-  `avantages_parrainage`, tâche planifiée `/api/cron/abonnements`, clé
+  `avantages_parrainage`, tâche planifiée des abonnements (`/api/cron/equipes?mission=abonnements`), clé
   d'idempotence.
 - **Affichage** : le profil montre le code, le lien, le nombre de filleuls, les
   récompenses obtenues / en cours et les filleuls pas encore convertis, sous la

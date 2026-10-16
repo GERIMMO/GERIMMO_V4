@@ -3,7 +3,7 @@ type: process
 tags: [charges, regularisation, loyer]
 status: draft
 created: 2026-07-22
-updated: 2026-09-29
+updated: 2026-10-16
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
@@ -111,3 +111,8 @@ Le module 3 confirme et précise les décisions du 2026-07-22 :
 >   (Cass. 3e civ.) fait courir le délai du jour où le bailleur connaît le montant réel
 >   des charges — à confirmer avec une source avant d'assouplir.
 > Source : [[Audit complet du 29 septembre 2026]].
+
+> [!info] Jour de référence (depuis le 15/10/2026)
+> L'exercice « commencé », la prescription, la régularisation « tardive », le premier mois
+> de l'étalement et la date d'émission se comptent au **jour de Paris** (PR #189). Voir
+> [[Le jour de référence est le jour de Paris]].

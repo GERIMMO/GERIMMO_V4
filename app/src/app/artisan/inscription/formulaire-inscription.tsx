@@ -37,7 +37,8 @@ function Envoyer() {
   );
 }
 
-export function FormulaireInscription() {
+/** `invitationId` (décision du 15/10/2026) : inscrite depuis une invitation, l’entreprise ramène l’artisan à celle-ci. */
+export function FormulaireInscription({ invitationId }: { invitationId?: string } = {}) {
   const [etat, action] = useActionState<EtatArtisanAction, FormData>(
     inscrireMonEntreprise,
     {}
@@ -61,6 +62,7 @@ export function FormulaireInscription() {
     // les cases « métiers » (contrôlées) se décochaient alors à l'écran même
     // quand l'état les gardait cochées (retour recette du 02/10).
     <form data-saisie-confirmee action={action} onReset={(event) => event.preventDefault()} className="space-y-5">
+      {invitationId && <input type="hidden" name="invitation" value={invitationId} />}
       <div className="space-y-1.5">
         <label htmlFor={idRaison} className={CLASSE_LIBELLE}>
           Nom de votre entreprise

@@ -3,8 +3,8 @@ type: synthesis
 tags: [equipes-ia, automatisation, supervision, fiabilite, rgpd, v1, mission-operationnelle]
 status: draft
 created: 2026-10-14
-updated: 2026-10-14
-sources: []
+updated: 2026-10-16
+sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Complément à la page « Décisions groupées » — fiches de la vague 6]]"]
 ---
 
 # Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)
@@ -16,9 +16,18 @@ sources: []
 > code est écrite **« à construire »**. Aucune équipe IA n'est décrite comme installée : l'inventaire (§ 3) dit ce qui
 > existe réellement, avec le fichier et la ligne.
 
+> [!info] Depuis cet inventaire — état au 16/10/2026
+> L'inventaire ci-dessous date du 14/10 et reste juste pour son relevé ; ce qui a changé depuis, d'après le journal et le code de `main` :
+> - **Arrêt d'urgence étendu** (D06-A, vague 2, PR #182, `8c4aed6`, 15/10) : neuf des dix tâches `pg_cron` lisent l'arrêt (table `supervision_taches_arret`) ; la dixième, `relais-urgences`, est hors arrêt à dessein. La clé « sauvegarde », qu'aucun traitement ne lit, n'est plus proposée (D46-A). Les webhooks Stripe et de signature restent hors arrêt.
+> - **Tâches `pg_cron` sauvegardées** (D07-A, même PR) : `cron.job` est exporté avec la sauvegarde et rejoué par la procédure ; Santé lit le cycle mensuel (retard au-delà de 32 jours). Essai de restauration réel non fait.
+> - **Limite des appels IA** (X19, PR #190, `f93ec6e`, 15/10) : avant chaque appel payant, gestes manuels compris (brief, article, devis assisté, atelier), l'application consulte l'arrêt d'urgence et réserve une place sous une limite d'appels par jour de Paris, 50 par défaut, réglable dans « Relais en mon absence ». C'est une limite d'appels, pas de dépense ; aucun appel compté n'est encore observé en production.
+> - **Relais du dirigeant par e-mail** (D46-B, partie alerte, PR #192, `a722f94`, 16/10) : responsable le dirigeant ; e-mail vers deux adresses fournies par le dirigeant et gardées hors du dépôt ; e-mail quotidien à 05 h 00 heure de Paris s'il y a quelque chose à signaler (tâches en échec ou absentes, alertes du mode vacances non accusées, arrêt actif) ; e-mail immédiat de chaque urgence du mode vacances, au plus environ 11 minutes après l'événement grâce à une tâche `pg_cron` toutes les 10 minutes ; l'arrêt d'urgence ne coupe pas ces e-mails. Aucun e-mail de 5 h le 16/10 ; premier attendu le 17/10 au plus tôt. Heure réelle d'arrivée à constater : sur l'offre Hobby de Vercel, une tâche part « à l'heure près » (commentaire de `app/src/lib/relais-urgences.ts`).
+> - **Comptes au 16/10** : 13 entrées Vercel (dont deux appels quotidiens de l'alerte du relais, à 03 h et 04 h UTC, un seul agissant selon l'heure d'été ou d'hiver) et **10 tâches `pg_cron`** (ajouts : `maintenance-artisans`, vague 2 ; `relais-urgences`, 16/10).
+> - **Toujours vrai au 16/10** : aucune équipe IA n'est installée ; les règles « Ce qui peut continuer seul » ne sont appliquées par aucun code (décision 7 non tranchée) ; les incidents urgents des clients n'alimentent pas le relais ; le brief n'est envoyé à personne.
+
 ## 1. En bref
 
-**Ce qui existe.** Le produit fait déjà tourner seul 11 tâches Vercel quotidiennes, 8 tâches SQL `pg_cron`, 2 webhooks
+**Ce qui existe (au 14/10 ; voir l'encadré pour le 16/10).** Le produit fait déjà tourner seul 11 tâches Vercel quotidiennes, 8 tâches SQL `pg_cron`, 2 webhooks
 signés et une sauvegarde GitHub nocturne. Ces tâches sont **déterministes** : elles envoient des e-mails, posent des alertes,
 suppriment des fichiers échus, alignent la facturation Stripe de Gerimmo. Les « équipes » du code ne sont pas des agents :
 c'est un regroupement de tâches planifiées (`app/src/lib/missions.ts:1-3`). Un modèle d'IA n'est appelé qu'en **7 points**
@@ -32,14 +41,14 @@ l'ordre de mission n'existe comme agent.
 versionnées dont le texte n'est **jamais** exécuté (`20261012221000_consignes_versionnees.sql:1-2`) ; un relais daté avec
 escalade interne (`20261012221100_vacances_arret.sql:81-116`) ; une fenêtre de veto sur les posts marketing.
 
-**Ce qui manque avant d'ajouter de l'IA.**
+**Ce qui manque avant d'ajouter de l'IA** (relevé du 14/10 ; l'état au 16/10 suit chaque point).
 1. L'arrêt d'urgence ne couvre ni les 8 tâches SQL, ni les webhooks, ni la sauvegarde, ni les appels IA lancés à la main
-   (SUP-01, AUD-C-05, SUP-07, SA-10 du [[Registre des anomalies — audit du 13 octobre 2026]]).
+   (SUP-01, AUD-C-05, SUP-07, SA-10 du [[Registre des anomalies — audit du 13 octobre 2026]]). *Au 16/10 : tâches SQL couvertes (neuf sur dix, D06-A), appels IA manuels couverts (X19), clé « sauvegarde » retirée de l'écran (D46-A) ; webhooks toujours hors arrêt.*
 2. Aucune alerte active : la santé des tâches ne se lit que si le dirigeant ouvre l'écran ; la seule alerte e-mail du produit
-   est le veto marketing (IA-03).
-3. Une seule identité technique (clé `service_role`) pour toutes les tâches ; aucun plafond de dépense IA côté code.
-4. Aucun canal d'escalade externe : le mode vacances n'alerte qu'à l'intérieur de la console (IA-02).
-5. Les règles « Ce qui peut continuer seul » affichées au dirigeant ne sont lues par aucun code (IA-01).
+   est le veto marketing (IA-03). *Au 16/10 : l'e-mail de 5 h du relais signale les tâches en échec ou absentes (D46-B), premier envoi non encore constaté.*
+3. Une seule identité technique (clé `service_role`) pour toutes les tâches ; aucun plafond de dépense IA côté code. *Au 16/10 : une limite d'appels par jour (X19), pas un plafond en euros ; identité technique inchangée.*
+4. Aucun canal d'escalade externe : le mode vacances n'alerte qu'à l'intérieur de la console (IA-02). *Au 16/10 : les urgences du mode vacances partent par e-mail au dirigeant (D46-B) ; l'escalade n'a pas d'e-mail immédiat, et les incidents urgents ne sont pas branchés.*
+5. Les règles « Ce qui peut continuer seul » affichées au dirigeant ne sont lues par aucun code (IA-01). *Au 16/10 : l'écran dit « non appliquées automatiquement » (D46-A) ; la décision de les brancher ou de les retirer n'est pas prise.*
 
 **Ordre recommandé** (§ 6) : d'abord un **socle de sûreté sans IA** (arrêt étendu, alerte active, sauvegarde des tâches SQL),
 puis **Synthèse de direction**, **Qualité et sécurité**, **Support**, **Coordination des artisans**, **Exploitation locative**,
@@ -119,11 +128,13 @@ Points communs à toutes les lignes ci-dessous :
 
 Chacune, sauf l'orchestrateur, se lance aussi à la main (« Lancer maintenant », `app/src/app/actions/equipes.ts:18-41`), avec une ligne d'audit écrite **avant** l'appel (`:27`).
 
-### 3.3 Tâches SQL `pg_cron` (8)
+### 3.3 Tâches SQL `pg_cron` (8 au 14/10 ; 10 au 16/10)
 
-Elles s'exécutent dans la base, sans jeton, sous le rôle propriétaire. Aucune ne passe par `verifier_arret_supervision`
-(SUP-01), aucune n'est dans la sauvegarde (le schéma `cron` n'est pas sauvegardé : `app/scripts/sauvegarde/base.mjs:26`, AUD-C-02)
-et aucune n'est lue par Santé, qui ne suit que 12 tâches `tache_*` (`sante-service.ts:334-346`).
+Elles s'exécutent dans la base, sans jeton, sous le rôle propriétaire. Au 14/10, aucune ne passait par `verifier_arret_supervision`
+(SUP-01), aucune n'était dans la sauvegarde (le schéma `cron` n'est pas sauvegardé : `app/scripts/sauvegarde/base.mjs:26`, AUD-C-02)
+et aucune n'était lue par Santé, qui ne suivait que 12 tâches `tache_*` (`sante-service.ts:334-346`).
+
+*État au 16/10* : neuf des dix tâches lisent l'arrêt d'urgence (D06-A) ; `cron.job` est exporté par la sauvegarde (D07-A) ; Santé lit le cycle mensuel ; la sentinelle de 5 h du relais signale toute tâche en échec, absente à son heure ou plus programmée. Deux tâches se sont ajoutées au tableau ci-dessous : `maintenance-artisans` (tous les jours à 04:30 UTC, passe à « expiré » les devis échus, D42-B, vague 2) et `relais-urgences` (toutes les 10 minutes, jour et nuit, constate les urgences du relais et envoie leur e-mail immédiat, hors arrêt d'urgence, PR #192). Liste à jour : `app/docs/sauvegarde-et-restauration.md`.
 
 | Nom | Horaire UTC | Fonction et effet | Preuve | Statut |
 |---|---|---|---|---|
@@ -154,7 +165,7 @@ Fournisseur : OpenAI (API « responses » et « images », plus l'action GitHub 
 n'utilise d'outil ; les cinq appels de texte demandent `store: false` et une sortie JSON à schéma strict ; l'image et l'atelier
 n'ont pas ce paramètre. Le nom du modèle vient d'une variable d'environnement avec une valeur par défaut
 dans le code (`gpt-5.6-luna` pour le texte, `gpt-image-2` pour l'image) ; je ne sais pas si ces noms sont ceux de la production.
-La clé est `OPENAI_API_KEY`, la même pour tous les usages. **Aucun appel ne compte ses jetons ni ne vérifie un plafond de dépense** ;
+La clé est `OPENAI_API_KEY`, la même pour tous les usages. **Au 14/10, aucun appel ne comptait ses jetons ni ne vérifiait un plafond de dépense** (depuis le 15/10, X19 : chaque appel payant est compté dans une limite d'appels par jour de Paris et consulte l'arrêt d'urgence ; les jetons ne sont toujours pas comptés) ;
 seuls les refus du fournisseur (crédit, plafond) sont traduits (`app/src/lib/erreur-ia.ts:3-16`) et lus par Santé
 (`sante-service.ts:626-662`) — confirmé par lecture, voir SA-10.
 
@@ -163,10 +174,10 @@ seuls les refus du fournisseur (crédit, plafond) sont traduits (`app/src/lib/er
 | 1 | Étude d'une actualité officielle (`app/src/lib/analyse-veille.ts:85-90`, route `veille/route.ts:23`) | cron `veille` quotidien | texte d'une page officielle (≤ 12 000 caractères), ≤ 3 sources | liste blanche d'hôtes https (`veille-reglementaire.ts:6`), `redirect: 'error'`, 2 Mo max ; consigne « sources = données non fiables » ; citation exacte vérifiée dans la source ; délai 50 s, 9 000 jetons de sortie max | « Diffuser » ou « Écarter » dans `/admin/veille` (`decider_veille`) | Oui, avant l'appel |
 | 2 | Article de veille pour le journal (`app/src/lib/redaction-veille.ts:114-141`, `marketing/route.ts:117`) | préparation du soir (rang 0 si une veille pertinente existe) | texte officiel (12 000 caractères au plus, issu de `lireSourceEtude`) | gabarit strict, 3 à 5 points chacun prouvé par une citation, aucun lien, rejet sinon ; délai 60 s, 3 000 jetons | **Fenêtre de veto** : sans geste, le post part à l'heure dite | Oui |
 | 3 | Visuel du post (`app/src/lib/visuel-marketing.ts:8-16`, `marketing/route.ts:153`) | préparation du soir | le titre (300 caractères) cité comme donnée | image JPEG contrôlée (octets de tête, taille) ; 2 essais puis pause d'une heure (`marketing/route.ts:44-49`) ; délai 110 s ; déposée dans un compartiment **public** (`20260925013000_marketing_images_et_diffusion.sql:17`) | veto | Oui |
-| 4 | Brief IA (`app/src/app/admin/brief/actions.ts:17-75`) | clic du superviseur (AAL2) | **8 compteurs et la date** | sortie consultative à 4 champs ; délai 30 s ; 650 jetons ; « aucune action » dans la consigne | lecture | **Non** (SA-10) |
-| 5 | Rédaction d'un article (`app/src/app/admin/publications/nouvelle/actions.ts:20-86`) | clic du superviseur | sujet, public, faits saisis | brouillon seulement ; délai 45 s ; 1 800 jetons | publication humaine | **Non** |
-| 6 | Proposition de devis (`app/src/lib/proposition-devis-ia.ts:18-66`, `app/src/app/artisan/devis/actions-preparation.ts:17-34`) | l'artisan ouvre une demande | catégorie + au plus 30 mots techniques d'un lexique fermé (jamais la description brute) | codes du catalogue en énumération, quantités validées, repli sur les repères de prix ; délai 30 s ; 1 800 jetons | l'artisan relit et envoie | **Non** |
-| 7 | Atelier de corrections (voir § 3.4) | clic du superviseur | demande saisie « sans donnée personnelle » (consigne humaine, non contrôlée) | lecture seule, 5 fichiers, brouillon de PR | relecture, tests, accord | n/a (GitHub) |
+| 4 | Brief IA (`app/src/app/admin/brief/actions.ts:17-75`) | clic du superviseur (AAL2) | **8 compteurs et la date** | sortie consultative à 4 champs ; délai 30 s ; 650 jetons ; « aucune action » dans la consigne | lecture | **Non** au 14/10 (SA-10) ; depuis le 15/10, arrêt « global » et limite d'appels (X19) |
+| 5 | Rédaction d'un article (`app/src/app/admin/publications/nouvelle/actions.ts:20-86`) | clic du superviseur | sujet, public, faits saisis | brouillon seulement ; délai 45 s ; 1 800 jetons | publication humaine | **Non** au 14/10 ; depuis le 15/10, arrêt « global » ou « marketing » et limite d'appels (X19) |
+| 6 | Proposition de devis (`app/src/lib/proposition-devis-ia.ts:18-66`, `app/src/app/artisan/devis/actions-preparation.ts:17-34`) | l'artisan ouvre une demande | catégorie + au plus 30 mots techniques d'un lexique fermé (jamais la description brute) | codes du catalogue en énumération, quantités validées, repli sur les repères de prix ; délai 30 s ; 1 800 jetons | l'artisan relit et envoie | **Non** au 14/10 ; depuis le 15/10, arrêt « global » et limite d'appels (X19) |
+| 7 | Atelier de corrections (voir § 3.4) | clic du superviseur | demande saisie « sans donnée personnelle » (consigne humaine, non contrôlée) | lecture seule, 5 fichiers, brouillon de PR | relecture, tests, accord | n/a (GitHub) au 14/10 ; depuis le 15/10, le lancement consulte l'arrêt « global » et compte dans la limite d'appels (X19) |
 
 La tâche `territoire` n'est **pas** de l'IA : c'est un calcul sur des données internes et publiques.
 
@@ -229,11 +240,11 @@ procédure de rotation des secrets) : **5 à 6 jours**, à décider avec D1. Ce 
 
 | Couvert (13 clés de mission + `global`) | Non couvert | Référence |
 |---|---|---|
-| Les 11 tâches Vercel (`verifierAvantEffet` dans les 10 routes de mission et dans `app/src/lib/orchestrateur.ts` ; recherche `grep` reproductible) ; chaque e-mail (`email.ts:45`) ; la publication Facebook (`facebook.ts:98`) ; la suppression Storage de `purge` (`purge/route.ts:50`) ; les écritures Stripe des tâches (`client-automatique.ts:7-17`) | Les 8 tâches `pg_cron` (dont `appliquer_retention`, qui supprime) | SUP-01 |
+| Les 11 tâches Vercel (`verifierAvantEffet` dans les 10 routes de mission et dans `app/src/lib/orchestrateur.ts` ; recherche `grep` reproductible) ; chaque e-mail (`email.ts:45`) ; la publication Facebook (`facebook.ts:98`) ; la suppression Storage de `purge` (`purge/route.ts:50`) ; les écritures Stripe des tâches (`client-automatique.ts:7-17`) | Les 8 tâches `pg_cron` (dont `appliquer_retention`, qui supprime) — *couvertes depuis le 15/10 (D06-A), neuf tâches sur dix au 16/10 ; `relais-urgences` et l'alerte de 5 h du relais sont hors arrêt à dessein* | SUP-01 |
 | | Le webhook Stripe (e-mails, état d'abonnement) et le webhook Yousign (traitement immédiat) | AUD-C-05, IA-06 |
-| | La sauvegarde (clé acceptée, jamais lue) | SUP-07 |
-| | Les appels IA lancés à la main (brief, article), le devis assisté de l'artisan, les notifications liées aux gestes des utilisateurs | SA-10 |
-| | L'atelier de corrections (GitHub) | — |
+| | La sauvegarde (clé acceptée, jamais lue) — *clé retirée de l'écran depuis le 15/10 (D46-A)* | SUP-07 |
+| | Les appels IA lancés à la main (brief, article), le devis assisté de l'artisan, les notifications liées aux gestes des utilisateurs — *appels IA couverts depuis le 15/10 (X19) ; notifications liées aux gestes toujours hors arrêt* | SA-10 |
+| | L'atelier de corrections (GitHub) — *son lancement consulte l'arrêt « global » depuis le 15/10 (X19)* | — |
 | Un arrêt n'écrit pas de passage : une mission arrêtée ne laisse aucune trace dans Équipes (`execution-mission.ts:8`) | Bandeau d'arrêt sur toute la console : corrigé en branche (SA-04) | SA-04 |
 
 Test réalisé par un autre rôle sur le banc : arrêt global enregistré en 99 ms, `verifier_arret_supervision` faux pour
@@ -268,7 +279,7 @@ sous-traitant, [[RGPD]]) ; pour le bon fonctionnement de l'équipe, le dirigeant
 [[Super Admin]]). Aujourd'hui seuls des comptes de supervision peuvent « autoriser » une étape (`autoriser_orchestration`, non branchée) :
 l'autorisation par le propriétaire est **à construire**.
 
-**Escalade commune.** N1 : deux tentatives au plus, puis la file d'échec. N2 : alerte interne et e-mail au superviseur (**à construire**).
+**Escalade commune.** N1 : deux tentatives au plus, puis la file d'échec. N2 : alerte interne et e-mail au superviseur (**à construire** par équipe ; depuis le 16/10, les urgences du mode vacances partent déjà par e-mail au dirigeant, D46-B).
 N3 : après le délai du plan de relais, escalade vers le créateur du plan (mécanisme existant,
 `20261012221100_vacances_arret.sql:111-114`). N4 : arrêt d'urgence de la clé de l'équipe par le dirigeant.
 
@@ -491,7 +502,7 @@ développement. Exécute seul : créer la fiche. **Jamais** : fusion, migration,
 
 **Mission.** Produire le brief quotidien du dirigeant : faits datés, estimations signalées comme telles, données indisponibles, décisions requises, prochaines échéances, automatismes en échec — avec des liens vers les dossiers autorisés.
 
-**Existant.** Point du matin et décisions (§ 3.6), faits de direction (manuel), brief IA de 8 compteurs, consignes en lecture seule, relais. **Aucun envoi, aucun horaire, aucun fuseau décidé, aucun canal décidé** : à définir avec le dirigeant avant activation, sans valeur inventée.
+**Existant.** Point du matin et décisions (§ 3.6), faits de direction (manuel), brief IA de 8 compteurs, consignes en lecture seule, relais. Au 14/10 : **aucun envoi, aucun horaire, aucun fuseau décidé, aucun canal décidé**. Depuis le 16/10, le relais envoie au dirigeant une alerte par e-mail à 05 h 00 heure de Paris et un e-mail immédiat des urgences (D46-B) ; **le brief et le point du matin ne sont toujours envoyés à personne** : leur horaire et leur canal restent à définir avec le dirigeant, sans valeur inventée.
 
 **Données accessibles.** `brief_direction_snapshots.sources` (après correction de SUP-05 : plus de titres nominatifs), `points_du_matin.contenu`, `decisions_du_matin(statut, titre, source)`,
 `agent_passages`, `supervision_alertes_internes(statut)`, `supervision_arrets(arrete)`, `supervision_vacances(etat)`, comptes de `retours_utilisateurs` et d'`organizations(status)`.
@@ -545,12 +556,12 @@ et `territoire` ne sont pas modifiées par cette proposition.
 |---|---|---|
 | D1 | Approuver le socle de sûreté (rang 0) avant toute équipe IA | Corrections de SUP-01, AUD-C-02, AUD-C-05, SUP-07, SA-10 ; migration à simuler et à autoriser comme toute migration |
 | D2 | Périmètre de l'arrêt d'urgence | Recommandé : un arrêt « global » coupe aussi les tâches SQL, les webhooks sortants, la sauvegarde et les appels IA manuels ; **exception à trancher** pour la rétention légale et la sauvegarde |
-| D3 | Horaire, fuseau et canal du brief et des alertes | Non décidés dans le code ; l'e-mail (déjà utilisé pour le veto) est le seul canal disponible. Un second canal pour l'absence est à choisir |
-| D4 | Plafonds de dépense IA (jour, mois, par équipe) | Aucun plafond côté code ; tarif non consulté |
+| D3 | Horaire, fuseau et canal du brief et des alertes | Non décidés dans le code au 14/10. **Alertes du relais tranchées le 15/10** : e-mail, 05 h 00 heure de Paris, urgences immédiates (livré le 16/10, D46-B). Brief : non tranché. Un second canal pour l'absence reste à choisir |
+| D4 | Plafonds de dépense IA (jour, mois, par équipe) | Aucun plafond côté code au 14/10. **Depuis le 15/10 : limite d'appels réglable** (50 par jour de Paris par défaut, X19), non mesurée ; plafond en euros, par mois ou par équipe : non décidé ; tarif non consulté |
 | D5 | Données de gestion locative vers un fournisseur d'IA | Nouveau traitement, contrat de sous-traitance, transfert hors Union européenne si OpenAI : à qualifier ; alternative d'un hébergement européen. Sans cette décision, les rangs 5 et 6 restent bloqués |
 | D6 | Marketing : silence vaut parution, ou validation obligatoire | Aujourd'hui `validation_obligatoire = false` par défaut et la publication automatique est activée par migration (`20261007100000_marketing_fenetre_de_veto.sql:51`, `20260925013000_marketing_images_et_diffusion.sql:4`) ; posts rédigés en partie par IA et publiés sur le site et Facebook |
 | D7 | Règles « Ce qui peut continuer seul » | Les brancher (avec un périmètre précis) ou les retirer de l'écran ; en l'état elles laissent croire qu'un incident urgent est « sécurisé » seul (IA-01) |
-| D8 | Responsable humain de chaque équipe et du relais | Aucun nom dans le code ; le dirigeant est le seul superviseur permanent connu |
+| D8 | Responsable humain de chaque équipe et du relais | **Relais : le dirigeant** (réponse du 15/10). Équipes : non décidé |
 | D9 | Mention de l'origine IA des textes et images publiés | À qualifier (§ 7) ; aucune mention aujourd'hui (IA-12) |
 
 ## 7. Règles externes et sources
@@ -586,13 +597,14 @@ de recherche indiquée ; un constat de comportement est une **hypothèse à vér
 | IA-12 | P3 (hypothèse) | Les textes et visuels produits avec l'IA et publiés sur le site et Facebook ne portent aucune mention d'origine ; obligation de transparence à qualifier | aucune occurrence d'une mention IA dans `app/src/app/journal`, `app/src/app/veille`, `app/src/lib/facebook.ts` ; § 7 |
 
 > [!warning] Points à trancher / contradictions
-> - **Arrêt d'urgence** : l'écran et le wiki parlent d'« arrêt » sans dire qu'il ne couvre pas les tâches SQL, les webhooks, la sauvegarde ni les appels IA manuels (D2).
-> - **Mode vacances** : l'ordre de mission demande un canal d'alerte et une escalade validée ; le code livre un canal interne seulement (D3, IA-02).
+> - **Arrêt d'urgence** : au 14/10, l'écran et le wiki parlaient d'« arrêt » sans dire qu'il ne couvrait pas les tâches SQL, les webhooks, la sauvegarde ni les appels IA manuels (D2). Au 16/10 : tâches SQL (neuf sur dix) et appels IA couverts ; webhooks toujours hors arrêt ; le passage `relais-urgences` toutes les 10 minutes, jour et nuit, non coupé par l'arrêt même « global », est une exception à D06-A **à faire ratifier**.
+> - **Mode vacances** : l'ordre de mission demande un canal d'alerte et une escalade validée ; au 14/10, le code livrait un canal interne seulement (D3, IA-02). Au 16/10 : e-mail au dirigeant pour les urgences (D46-B) ; ni l'escalade ni les incidents urgents des clients ne déclenchent d'e-mail immédiat (à demander au dirigeant).
+> - **Limite des appels IA** : la valeur de 50 appels par jour n'a pas été mesurée, et l'atelier de corrections y est compté : à faire valider par le dirigeant.
 > - **Consignes** : l'ordre de mission demande de transformer une consigne en tâche ; le code n'accepte que deux lectures de compteurs et refuse d'exécuter le texte, ce qui est volontairement prudent. Un même compte peut rédiger, se désigner responsable et approuver (SUP-04).
 > - **Marketing** : le silence vaut parution par défaut ; la mission réserve les communications sensibles à un accord (D6).
 > - **Règles de continuité** : affichées comme décisions « agir seul » sans effet (D7, IA-01).
 > - **Données d'IA** : le [[Registre des traitements]] garantit des appels sans donnée de locataire ni de bailleur ; les équipes 2, 3 et 4 en demanderaient (D5).
-> - **Production** : les migrations `20261013110000` et `20261013120000` ne sont pas appliquées ; le comportement décrit ici est celui de la tête de la branche, pas celui de la production.
+> - **Production** : au 14/10, les migrations `20261013110000` et `20261013120000` n'étaient pas appliquées ; elles l'ont été le 14/10 (PR #179). Les changements des 15 et 16/10 sont résumés dans l'encadré en tête de page.
 
 ## Relations
 

@@ -117,7 +117,11 @@ const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/
  * n'ont pas été joués : ils le précèdent ici.
  */
 const LOTS_POSTERIEURS = [
-  // Lot « relais-alertes » : appliqué en production après tous les autres lots de cette liste, il se défait le premier.
+  // Lot « correctifs-base » (16/10) : la restitution du dépôt (finaliser_decompte, marquer_decompte_envoye) et la purge des
+  // registres du 15/10 (purger_registres_relais_ia) citent la fonction du jour. Appliqué le dernier, il se défait le premier.
+  { version: "20261014851000", fichier: "jour_de_paris_restitution_depot" },
+  { version: "20261014850000", fichier: "retention_registres_relais_ia" },
+  // Lot « relais-alertes » : appliqué en production après tous les autres lots de cette liste (sauf « correctifs-base »).
   { version: "20261014812000", fichier: "relais_urgences_passage_frequent" },
   { version: "20261014811000", fichier: "relais_urgences_immediates" },
   { version: "20261014810000", fichier: "relais_alerte_quotidienne" },

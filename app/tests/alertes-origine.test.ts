@@ -322,7 +322,7 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
     // Décompte : envoi impossible avant finalisation ; finalisé → l'alerte d'envoi
     // se ferme quand l'envoi est enregistré
     await simuler(db, gerant);
-    await attendreEchec(db, /finalisé avant/, `select public.marquer_decompte_envoye($1, current_date)`, [restitution]);
+    await attendreEchec(db, /finalisé avant/, `select public.marquer_decompte_envoye($1, public.aujourdhui_paris())`, [restitution]);
     await db.query(`select public.finaliser_decompte($1)`, [restitution]);
     await db.query("reset role");
     const {
@@ -333,9 +333,11 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
     );
     expect(envoi).toBeTruthy();
     await simuler(db, gerant);
-    await attendreEchec(db, /invalide/, `select public.marquer_decompte_envoye($1, current_date+1)`, [restitution]);
-    await db.query(`select public.marquer_decompte_envoye($1, current_date)`, [restitution]);
-    await attendreEchec(db, /déjà envoyé/, `select public.marquer_decompte_envoye($1, current_date)`, [restitution]);
+    // Le décompte est daté du jour de Paris (20261014851000) : l'envoi aussi, jamais du jour UTC de la session (entre minuit et
+    // 2 h à Paris, `current_date` est la veille, antérieure à l'émission, et `current_date + 1` n'est pas « demain »).
+    await attendreEchec(db, /invalide/, `select public.marquer_decompte_envoye($1, public.aujourdhui_paris() + 1)`, [restitution]);
+    await db.query(`select public.marquer_decompte_envoye($1, public.aujourdhui_paris())`, [restitution]);
+    await attendreEchec(db, /déjà envoyé/, `select public.marquer_decompte_envoye($1, public.aujourdhui_paris())`, [restitution]);
     await db.query("reset role");
     expect((await alerte(envoi.id)).closed_action).toMatch(/Décompte envoyé au locataire/);
     const r = await db.query(`select envoye_le from public.restitutions where id=$1`, [restitution]);

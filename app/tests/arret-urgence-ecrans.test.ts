@@ -45,10 +45,16 @@ beforeEach(() => { mocks.createClient.mockReset(); mocks.revalidate.mockReset();
 
 describe("D06 : le périmètre des tâches SQL affiché est celui de la migration", () => {
   const migration = readFileSync("supabase/migrations/20261014200000_arret_urgence_taches_planifiees.sql", "utf8");
-  const paires = [...migration.matchAll(/^\s*\('([a-z-]+)', '([a-z]+)'\)[,]?\s*$/gm)].map((m) => [m[1], m[2]] as const);
+  // La caducité des devis est inscrite à part, sous la clé « rappels », par la migration de D42 (20261014211000).
+  const maintenance = readFileSync("supabase/migrations/20261014211000_maintenance_artisans_arret_urgence.sql", "utf8");
+  const paires = [
+    ...[...migration.matchAll(/^\s*\('([a-z-]+)', '([a-z]+)'\)[,]?\s*$/gm)].map((m) => [m[1], m[2]] as const),
+    ...[...maintenance.matchAll(/^\s*values \('(maintenance-artisans)', '([a-z]+)'\) on conflict do nothing/gm)].map((m) => [m[1], m[2]] as const),
+  ];
 
   it("chaque couple tâche / clé de la table SQL figure dans la liste de l'écran, et inversement", () => {
-    expect(paires.length).toBe(9);
+    expect(paires.length).toBe(10);
+    expect(paires).toContainEqual(["maintenance-artisans", "rappels"]);
     const sql = paires.map(([t, c]) => `${t}:${c}`).sort();
     const ecran = Object.entries(TACHES_SQL).flatMap(([t, v]) => v.cles.map((c) => `${t}:${c}`)).sort();
     expect(ecran).toEqual(sql);
@@ -65,9 +71,11 @@ describe("D06 : le périmètre des tâches SQL affiché est celui de la migratio
   });
 
   it("l'arrêt global les arrête toutes ; une clé n'arrête que les siennes", () => {
-    expect(tachesSqlArretees("global")).toHaveLength(8);
+    expect(tachesSqlArretees("global")).toHaveLength(9);
     expect(tachesSqlArretees("purge")).toEqual(["Purge quotidienne des données dont la durée de conservation est échue"]);
-    expect(tachesSqlArretees("rappels")).toHaveLength(3);
+    expect(tachesSqlArretees("rappels")).toHaveLength(4);
+    // L'arrêt « rappels » annonce qu'il coupe aussi l'expiration des devis d'artisans (D42, 20261014211000).
+    expect(tachesSqlArretees("rappels")).toContain("Expiration des devis d’artisans dont la durée de validité est dépassée");
     expect(tachesSqlArretees("marketing")).toHaveLength(2);
     expect(tachesSqlArretees("territoire")).toEqual([]);
   });

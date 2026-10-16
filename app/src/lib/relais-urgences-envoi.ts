@@ -28,7 +28,7 @@
 
 import "server-only";
 import { createHash } from "node:crypto";
-import { envoyerEmail } from "./email";
+import { DELAI_MAX_FOURNISSEUR_MS, envoyerEmail } from "./email";
 import { porteurDuSecret } from "./tache";
 import { adresseDuSite } from "./site";
 import { adressesRelaisDuServeur } from "./relais-alerte-reglage";
@@ -40,14 +40,16 @@ export type ClientUrgences = { rpc: (fn: string, args?: Record<string, unknown>)
 
 /** Le compte rendu d'un passage : des nombres et des états, jamais une adresse. */
 export type ResultatUrgences = {
-  /** Pourquoi le passage s'est arrêté. */
-  arret: "non_configure" | "rien" | "plafond" | "echec" | "indisponible" | "tours";
+  /** Pourquoi le passage s'est arrêté (« delai » : l'échéance donnée par l'appelant est atteinte, la suite attend). */
+  arret: "non_configure" | "rien" | "plafond" | "echec" | "indisponible" | "tours" | "delai";
   envois: { urgences: number; destinataires: number; envoyes: number; reprise: boolean; statut: string }[];
   /** Les urgences qui attendent encore (plafond atteint, ou plus de 50 d'un coup). */
   en_attente?: number;
 };
 
 const TOURS_MAX = 3;
+/** En dessous de ce temps restant avant l'échéance, aucun nouveau tour n'est commencé (l'appel échouerait à coup sûr). */
+const DELAI_TOUR_MIN_MS = 1_000;
 
 /** Une clé d'envoi stable pour l'envoi et l'adresse, sans l'adresse elle-même. */
 function cleEnvoi(envoi: string, adresse: string): string {
@@ -72,6 +74,13 @@ export async function envoyerUrgencesRelais(options: {
   /** Délai maximal d'un appel au service d'e-mail (15 s par défaut) ; réglable pour les tests. */
   delaiMaxMs?: number;
   plafond?: number;
+  /**
+   * Heure (sur `horloge`, en millisecondes) à laquelle les appels au service d'e-mail doivent être finis : le passage de
+   * 5 h, coupé à 60 s, la fixe pour garder le temps de son propre e-mail. Chaque appel est borné au temps restant ; s'il
+   * en reste trop peu, aucun nouveau tour n'est commencé (la file attend le passage suivant). Absente : aucune échéance.
+   */
+  echeance?: number;
+  horloge?: () => number;
 }): Promise<ResultatUrgences> {
   const envois: ResultatUrgences["envois"] = [];
   try {
@@ -83,7 +92,16 @@ export async function envoyerUrgencesRelais(options: {
     const envoyer = options.envoyer ?? envoyerEmail;
     const site = (options.site !== undefined ? options.site : adresseDuSite()) ?? "https://www.gerimmo.app";
 
+    const horloge = options.horloge ?? Date.now;
     for (let tour = 0; tour < TOURS_MAX; tour++) {
+      // Le délai de ce tour, décidé AVANT de prendre un envoi (un envoi pris et non tenté resterait en cours).
+      let delaiMaxMs = options.delaiMaxMs;
+      if (options.echeance !== undefined) {
+        const plafondAppel = options.delaiMaxMs ?? DELAI_MAX_FOURNISSEUR_MS;
+        const restant = options.echeance - horloge();
+        if (restant < Math.min(DELAI_TOUR_MIN_MS, plafondAppel)) return { arret: "delai", envois };
+        delaiMaxMs = Math.min(plafondAppel, restant);
+      }
       const prise = await db.rpc("prendre_urgences_relais", { p_plafond: options.plafond ?? PLAFOND_URGENCES_PAR_HEURE });
       const p = prise.data as Prise | null;
       if (prise.error || !p || typeof p !== "object") return { arret: "indisponible", envois };
@@ -109,7 +127,7 @@ export async function envoyerUrgencesRelais(options: {
       const sujet = sujetUrgencesRelais(urgences.length);
       // Les adresses en parallèle : le délai d'un service lent ne s'additionne pas d'une adresse à l'autre.
       const resultats = await Promise.all(adresses.valides.map((to) =>
-        envoyer({ to, subject: sujet, html, cleIdempotence: cleEnvoi(envoi, to), ...(options.delaiMaxMs ? { delaiMaxMs: options.delaiMaxMs } : {}) })
+        envoyer({ to, subject: sujet, html, cleIdempotence: cleEnvoi(envoi, to), ...(delaiMaxMs ? { delaiMaxMs } : {}) })
           .catch(() => ({ erreur: "envoi interrompu" }))
       ));
       const envoyes = resultats.filter((r) => !r.erreur).length;

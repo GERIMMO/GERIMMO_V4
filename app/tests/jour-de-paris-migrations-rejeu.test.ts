@@ -112,8 +112,15 @@ const retour = (v: string, f: string) => readFileSync(`supabase/retours-arriere/
  * journal, révision IRL, terme du bail, charges, rapport de gestion, et leurs valeurs par défaut). Leurs retours se jouent AVANT celui de la
  * fonction du jour, dans l'ordre inverse de leurs migrations, comme la procédure du LISEZ-MOI le demande ; leurs migrations se
  * rejouent après celles du lot pour revenir exactement à l'état migré. Absents du dépôt, ils ne comptent pas.
+ * Depuis le 15/10 (D46-B, lot « relais-alertes »), aussi `reserver_alerte_relais` (le jour de Paris de l'alerte e-mail du relais) :
+ * le lot se défait le premier, et son retour (810000) refuse tant que ceux de 812000 et de 811000 (qui ne citent pas la fonction)
+ * n'ont pas été joués : ils le précèdent ici.
  */
 const LOTS_POSTERIEURS = [
+  // Lot « relais-alertes » : appliqué en production après tous les autres lots de cette liste, il se défait le premier.
+  { version: "20261014812000", fichier: "relais_urgences_passage_frequent" },
+  { version: "20261014811000", fichier: "relais_urgences_immediates" },
+  { version: "20261014810000", fichier: "relais_alerte_quotidienne" },
   // Lot « plafond-ia » (X19, SA-10) : reserver_appel_ia compte les appels au jour de Paris (public.aujourdhui_paris()).
   { version: "20261014730000", fichier: "plafond_appels_ia" },
   // Décision X16 du 15/10 (relances d'invitation) : relance_invitation_locataire_due et reserver_relance_invitation_locataire
@@ -233,6 +240,16 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
     db = new Client({ connectionString: DB_URL });
     await db.connect();
     await db.query("begin");
+    // Le retour de 20261014812000 (lot « relais-alertes ») retire sa tâche avec `cron.unschedule` : le planificateur de façade
+    // du banc ne l'a pas, on la pose le temps de la transaction (annulée).
+    await db.query(
+      `do $$ begin
+         if to_regprocedure('cron.unschedule(text)') is null then
+           create function cron.unschedule(p_nom text) returns boolean language sql as $f$
+             with retiree as (delete from cron.job where jobname = p_nom returning 1) select exists (select 1 from retiree) $f$;
+         end if;
+       end $$`
+    );
   });
   afterAll(async () => {
     await db?.query("rollback");

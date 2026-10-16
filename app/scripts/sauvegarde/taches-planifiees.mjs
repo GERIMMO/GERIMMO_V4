@@ -1,7 +1,7 @@
 // Les tâches planifiées de la base (pg_cron) dans la sauvegarde (D07, AUD-C-02).
 //
-// POURQUOI. Les neuf tâches SQL de Gerimmo (cycle mensuel des appels de loyer, alertes d'impayés, rétention,
-// publications) vivent dans `cron.job`, schéma `cron` : la sauvegarde ne copie que public, auth et storage, et la
+// POURQUOI. Les dix tâches SQL de Gerimmo (cycle mensuel des appels de loyer, alertes d'impayés, rétention,
+// publications, caducité des devis, passage des urgences du relais) vivent dans `cron.job`, schéma `cron` : la sauvegarde ne copie que public, auth et storage, et la
 // procédure de reprise n'en parlait pas. Une restauration dans un projet neuf ne relançait donc ni les appels de
 // loyer, ni les alertes, ni la rétention, ni le marketing — sans aucun signal.
 //
@@ -80,7 +80,8 @@ export function genererRejeu(taches, { verifierExtensions = true } = {}) {
     '-- Rejeu des tâches planifiées (pg_cron) de Gerimmo, généré depuis la sauvegarde.',
     '-- À jouer sur le projet restauré, APRÈS la restauration et APRÈS avoir activé les extensions pg_cron et pg_net',
     '-- (Supabase : Database → Extensions), au moment de la reprise des traitements — pas avant : dès qu’elles existent,',
-    '-- le cycle mensuel génère des appels de loyer et le déclencheur marketing appelle le site enregistré en base.',
+    '-- le cycle mensuel génère des appels de loyer, et le déclencheur marketing comme le passage des urgences du relais',
+    '-- appellent le site enregistré en base.',
     '-- Chaque tâche est (re)créée sous son nom ; rejouer ce script ne crée pas de doublon.',
   ];
   if (verifierExtensions) {
@@ -90,7 +91,7 @@ export function genererRejeu(taches, { verifierExtensions = true } = {}) {
       "    raise exception 'pg_cron n''est pas activée : l''activer avant de rejouer les tâches planifiées';",
       '  end if;',
       "  if not exists (select from pg_catalog.pg_extension where extname = 'pg_net') then",
-      "    raise warning 'pg_net n''est pas activée : le déclencheur marketing ne partira pas tant qu''elle ne l''est pas';",
+      "    raise warning 'pg_net n''est pas activée : le déclencheur marketing et le passage des urgences du relais ne partiront pas tant qu''elle ne l''est pas';",
       '  end if;',
       'end $rejeu$;'
     );

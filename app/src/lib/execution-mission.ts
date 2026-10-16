@@ -2,8 +2,13 @@ import type {SupabaseClient} from '@supabase/supabase-js';
 import {bilanMission,type Mission} from './missions';
 import {genererPointsDuMatin} from './point-du-matin';
 import {ArretSupervision,verifierAvantEffet} from './controle-effets';
+import {envoyerUrgencesRelais} from './relais-urgences-envoi';
 export async function executerMission(db:SupabaseClient,mission:Mission,traiter:()=>Promise<Response>){
  const {error:vacances}=await db.rpc('traiter_vacances');
+ // D46-B (15/10/2026) : les urgences que ce passage vient de poser partent tout de suite par e-mail (file en base,
+ // lib/relais-urgences-envoi.ts). Avant le contrôle d'arrêt, qui ne les retient pas. Ne lève jamais : au pire, le temps
+ // d'un appel au service d'e-mail (15 s au plus, adresses en parallèle) ; relais non configuré, aucun appel.
+ await envoyerUrgencesRelais({db});
  if(vacances)return Response.json({erreur:'Le contrôle du relais est indisponible.'},{status:503});
  try { await verifierAvantEffet(db,mission); } catch(e) { return Response.json({erreur:e instanceof ArretSupervision?e.message:'Contrôle indisponible.',arret:e instanceof ArretSupervision?e.raison:'indisponible'},{status:503}); }
  const {data:id,error}=await db.rpc('commencer_mission',{p_cle:mission});

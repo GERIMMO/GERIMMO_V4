@@ -3,8 +3,8 @@ type: persona
 tags: [role, locataire]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-29
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-07-24-gerimmo-v3-module-9-devis-et-facturation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]"]
+updated: 2026-10-16
+sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-07-24-gerimmo-v3-module-9-devis-et-facturation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]"]
 ---
 
 # Locataire
@@ -89,3 +89,20 @@ Cas tranché par le [[Compte, personne et adhésion|modèle canonique d'identit�
 > [!warning] Points à trancher / contradictions
 > - Points de douleur métier non explicités dans les sources — à recueillir (entretiens).
 >
+
+## Ce que fait le code aujourd'hui (relevé du 16/10/2026)
+- **Reporter ou annuler son rendez-vous** (décision D22-B, PR #188, fusion `98f3fd7`, en
+  production depuis le 15/10) : sous le rendez-vous confirmé, « Je ne peux plus être là ».
+  Report : trois disponibilités et un motif, 24 h au moins avant, deux demandes au plus ;
+  le rendez-vous reste valable tant que l'artisan n'a pas répondu (48 h). Annulation : effet
+  immédiat, alerte au gérant ou au propriétaire, simple trace si elle a lieu à moins de
+  24 h. Détail : [[Planification d'intervention]].
+- **Relances d'invitation** (X16, PR #190, depuis le 15/10) : une personne invitée à
+  rejoindre son espace locataire reçoit au plus deux rappels (J+3, J+10, jour de Paris) tant
+  qu'elle n'a ni accepté ni refusé ; un refus arrête les rappels. Les invitations envoyées
+  avant le déploiement ne sont pas relancées. Détail : [[Onboarding et abonnement]].
+- **« Mes paiements »** lit le mois suivant au jour de Paris (lot « fuseau-paris », PR #186)
+  — [[Le jour de référence est le jour de Paris]].
+- **Non vérifié** : la recette de production ne joue ni le report ni l'annulation d'un
+  rendez-vous par le locataire, ni une relance d'invitation (journal `log.md`, entrées du
+  15/10).

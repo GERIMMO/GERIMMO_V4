@@ -3,8 +3,8 @@ type: process
 tags: [planification, creneaux, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-18
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]"]
+updated: 2026-10-16
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]"]
 ---
 
 # Planification d'intervention
@@ -82,8 +82,9 @@ Le rendez-vous se négocie en deux tours, et la base tient les règles :
 ## Le rappel de rendez-vous (depuis le 18/09)
 
 RM-10.5 — « veille systématique, J-7 si posé assez tôt » — est **en place**. Une
-tâche quotidienne (`/api/cron/rappels`, 6 h UTC, tôt pour que le rappel
-précède les rendez-vous du matin) écrit **aux deux parties** : le locataire doit
+tâche quotidienne (6 h UTC, tôt pour que le rappel précède les rendez-vous du matin ;
+d'abord `/api/cron/rappels`, aujourd'hui la mission « rappels » de l'entrée unique
+`/api/cron/equipes`, `app/vercel.json`) écrit **aux deux parties** : le locataire doit
 être là, l'artisan doit venir, et les deux absences ont les mêmes conséquences.
 
 Trois partis pris :
@@ -103,3 +104,37 @@ Les deux messages sont **différents** : au locataire l'heure, la durée et quoi
 faire s'il ne peut pas ; à l'artisan l'adresse, le désordre et la référence du
 dossier. L'écran du locataire promet de nouveau le rappel — la phrase, retirée
 le 11/09 faute de quoi la tenir, est revenue avec la tâche qui la tient.
+
+## Ce que fait le code aujourd'hui : report ou annulation par le locataire (depuis le 15/10/2026)
+Décision D22 du dirigeant (14/10/2026, option B, fiches LOC-21, CHN-01 et REP-04), **en
+production depuis le 15/10/2026** (PR #188, fusion `98f3fd7`, migration
+`20261014620000_rendez_vous_locataire_report_annulation.sql`). Jusque-là, une fois le
+rendez-vous confirmé, le locataire n'avait aucun geste : le report n'existait que côté
+artisan, l'annulation que côté gérant.
+- **Sous le rendez-vous confirmé**, le locataire a un bouton « Je ne peux plus être là » qui
+  ouvre deux chemins : **demander un report** ou **annuler le rendez-vous**, chacun avec un
+  motif.
+- **Report, avec l'accord de l'artisan** : le locataire propose **trois disponibilités**.
+  Le rendez-vous confirmé **reste valable** tant que l'artisan n'a pas répondu. L'artisan
+  retient l'une des dates (le rendez-vous change alors, et seulement alors) ou refuse (le
+  rendez-vous est maintenu et le gérant arbitre). Sans réponse dans les **48 h**, la demande
+  expire, le rendez-vous est maintenu et le gérant reçoit une alerte. Le report se demande
+  **24 h au moins** avant le rendez-vous, **deux demandes au plus** par mission ; le
+  locataire peut retirer une demande en attente.
+- **Annulation, sans accord de l'artisan mais avec alerte** au gérant ou au propriétaire :
+  effet immédiat, le créneau confirmé devient caduc, la mission revient à « acceptée —
+  rendez-vous à fixer » ; un nouveau créneau suit le circuit existant (l'artisan propose, le
+  locataire choisit). Une annulation à moins de 24 h est seulement **tracée** (fil de
+  l'incident, alerte « annulation tardive »), sans sanction ni déplacement imputé.
+- Les délais se comptent sur des instants (pas de jour de référence) ; ces trois nombres
+  (24 h, 2 demandes, 48 h) vivent à un seul endroit en base (`parametres_rdv_locataire()`).
+  Un rappel tracé pour l'ancienne date ne prive pas le rendez-vous reporté de son rappel.
+
+> [!warning] Ce qui n'est pas livré ou pas vérifié (D22-B)
+> - **Non vérifié** : le parcours complet dans un navigateur (report demandé par le
+>   locataire puis accepté par l'artisan) n'a pas été joué ; la recette de production ne le
+>   couvre pas (journal `log.md`, entrées du 15/10).
+> - **Partiel** (constat du tour final de vérification, lot déclaré « partiel ») : pas de
+>   relance de l'artisan avant l'échéance des 48 h (seule l'alerte au gérant à l'échéance
+>   existe), pas de geste « J'en prends acte » sur une annulation, pas de badge dans l'agenda
+>   de l'artisan. À livrer, ou à faire sortir de D22-B par le dirigeant.

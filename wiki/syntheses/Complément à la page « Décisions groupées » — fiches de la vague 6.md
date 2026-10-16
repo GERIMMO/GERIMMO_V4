@@ -14,7 +14,7 @@ sources: ["[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Sortie d
 > 15/10 (relais D46-B, D24-C, X16, jour de Paris, invitation d'artisan). Q5 a été tranchée comme Q3 : CHF-01 et
 > CHF-02 sont des P1 bloquants. Ce qui est en production au 16/10, sans contrôle en production des P1 :
 > - **Vague 1** (PR #181, `d38487a`, 14/10) : D34-B, D35 (1) A et (2) C, D36-B, D37-B, D38-A, D39-B, D40-A.
->   Différés : D35 (2) B, D38-B, D40-B, D41 (avis spécialisé). D36-C a été retirée à la relecture : à redemander.
+>   Différés : D35 (2) B, D38-B, D40-B, D41 (avis spécialisé). D36-C est reportée (« option C reportée », `app/tests/accueil-locataire-depot.test.ts`) : à redemander.
 > - **Vague 2** (PR #182, `8c4aed6`, 15/10) : D42-B (sans choix tracé du dirigeant, à ratifier), D44-A, D46-A, D47-A,
 >   D48-A (les registres créés ensuite ne sont pas déclarés au catalogue `retention_rules`). D43 : essai de restauration
 >   toujours à autoriser.

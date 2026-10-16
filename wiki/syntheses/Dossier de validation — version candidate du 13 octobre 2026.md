@@ -14,7 +14,7 @@ autorisation explicite**. **Mise à jour du 14/10/2026 (après autorisation) : l
 appliquées en production** (voir § 5 bis ; les paragraphes ci-dessous décrivent la situation avant cette autorisation). État : **version déployée, vérification post-déploiement non destructive faite, mission non terminée** (voir § 8).
 
 > [!info] Mise à jour du 16/10/2026
-> Après les réponses du dirigeant du 14/10 et du 15/10, treize fusions ont suivi (PR #181 à #193) : vagues 1 à 4a, jour de Paris, D18, D22-B et D23-A, X16, X18, X19, D24-C, D27-B et le relais du dirigeant (D46-B, partie alerte). Le tableau des déploiements est au § 5 quater, l'état décision par décision dans [[Décisions groupées — version candidate du 13 octobre 2026]]. **La mission n'est toujours pas terminée** : les contrôles en production des quatre P1 ne sont pas joués, et l'invitation d'un artisan par un propriétaire (décision du 15/10) est en cours, non livrée.
+> Après les réponses du dirigeant du 14/10 et du 15/10, treize fusions ont suivi (PR #181 à #193) : vagues 1 à 4a, jour de Paris, D18, D22-B et D23-A, X16, X18, X19, D24-C, D27-B et le relais du dirigeant (D46-B, partie alerte). Le tableau des déploiements est au § 5 quater, l'état décision par décision dans [[Décisions groupées — version candidate du 13 octobre 2026]]. **La mission n'est toujours pas terminée** : les contrôles en production des quatre P1 ne sont pas joués, et l'invitation d'un artisan par un propriétaire (décision du 15/10) est en cours, non livrée. Ce qu'on peut montrer et promettre à un prospect à ce stade : [[Prêt à démarcher]].
 
 Version contrôlée : commit `0ad658a` (batterie complète du 14/10/2026). Tête de la branche au moment de la génération : `0ad658a`.
 Aucun fichier de code, de test ni de migration n'a changé depuis le commit contrôlé (seuls le wiki et les registres changent).
@@ -171,11 +171,11 @@ Source : journal `log.md` (entrées « deploy » et « audit ») et messages de 
 | 15/10 | #188, `98f3fd7` | D23-A et D22-B | `20261014610000`, `…620000` | 38774627385 / 38767999868 / 38775207192 | n° 11 (38775647416) : tout réussi |
 | 15/10 | #189, `0c9328a` | Suite du jour de Paris | `20261014820000`, `…821000` | 38801999367 / 38793305579 / 38802392366 | n° 12 (38802750219) : tout réussi |
 | 15/10 | #190, `f93ec6e` | X16, X18, X19, D24-C | `20261014710000`, `…720000`, `…730000`, `…830000` | 38808894135 / 38803202370 / 38809581425 | n° 13 (38809953785) : tout réussi |
-| 15/10 | #191, `d55f87b` | D27-B : adresse `/espace` du propriétaire direct | aucune | — | n° 14 (38818788671) : tout réussi |
+| 16/10 | #191, `d55f87b` | D27-B : adresse `/espace` du propriétaire direct | aucune | — | n° 14 (38818788671) : tout réussi |
 | 16/10 | #192, `a722f94` | D46-B, partie alerte : relais du dirigeant par e-mail | `20261014810000`, `…811000`, `…812000` | 38853778608 / 38818526280 / 38854124489 | jouée (38854421819), **non consignée** dans le journal de `main` |
 | 16/10 | #193, `bdaf755` | Tests de racine D27-B, repère juridique de la qualification | aucune | — | jouée (38858371065), **non consignée** ; pas d'entrée « deploy » au journal |
 
-Les identifiants des recettes jouées après #192 et #193 viennent du tour final de vérification du 16/10 (chantier « Recette de production avec nettoyage », exécutions réussies) ; leurs entrées de journal existent sur une branche non fusionnée.
+Les identifiants des recettes jouées après #192 et #193 viennent du tour final de vérification du 16/10 (chantier « Recette de production avec nettoyage », exécutions réussies) ; leurs entrées de journal existent sur une branche non fusionnée. La fusion de la PR #191 date du 16/10 à 00 h 38 heure de Paris (22 h 38 UTC le 15/10) : le journal la range au 15/10, le tableau suit le jour de Paris.
 
 **Ce que ces recettes ne couvrent pas** : les contrôles des quatre P1 de la vague 1 ; l'espace artisan et la console de supervision (aucun compte de recette artisan ni super-administrateur) ; les parcours complets de D18, D22-B et D23-A ; une relance d'invitation réelle, la recherche par référence, la limite des appels IA, l'avoir (module désactivé) ; le premier e-mail de 5 h du relais (aucun le 16/10, premier attendu le 17/10 au plus tôt).
 

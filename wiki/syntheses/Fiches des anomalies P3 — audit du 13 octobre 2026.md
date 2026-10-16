@@ -12,7 +12,7 @@ sources: []
 Fiches complètes des 166 anomalies de gravité P3 du [[Registre des anomalies — audit du 13 octobre 2026]] (les fiches P0, P1 et P2 sont dans le registre). Les champs vides n'ont pas été relevés par l'agent.
 
 > [!info] Statuts au 16/10/2026
-> Le champ « Statut » des fiches ci-dessous reflète la rédaction du 13–14/10. Depuis, 39 anomalies P3 sont passées à *déployée* (vagues 2, 3 et 4a, PR #185 à #193) et 33 restent *à trancher* : le statut à jour, avec la PR et le SHA de chaque livraison, est dans le tableau P3 du [[Registre des anomalies — audit du 13 octobre 2026]] (encadré « Mise à jour du 16/10/2026 »).
+> Le champ « Statut » des fiches ci-dessous reflète la rédaction du 13–14/10. Depuis, 39 anomalies P3 sont passées à *déployée* (vague 1, PR #181 ; vague 2, PR #182 ; vague 3, PR #184 ; vague 4a, PR #185 ; puis PR #188, #190 et #191, tests PR #193) et 33 restent *à trancher* : le statut à jour, avec la PR et le SHA de chaque livraison, est dans le tableau P3 du [[Registre des anomalies — audit du 13 octobre 2026]] (encadré « Mise à jour du 16/10/2026 »).
 
 #### `AUD-C-03` — L'ordre d'application des migrations n'est pas l'ordre des noms de fichiers
 

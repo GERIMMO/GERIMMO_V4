@@ -41,7 +41,7 @@ Repères des fusions : vague 1 = PR #181 (`d38487a`, 14/10) ; vague 2 = PR #182 
 | Décision | Option retenue | État au 16/10/2026 |
 |---|---|---|
 | **Q1, Q2, Q4** | Q1 A (version figée `0ad658a`), Q2 A (effet réel nommé), Q4 : R1 à R10 ratifiées (« oui » du 14/10) | fait |
-| **Q3, Q5** | **B : P1 bloquants** (D04, D05, D37, D38 : VER-TS-02, PR178-B-06, CHF-01, CHF-02) | **partiel** : code en production depuis la vague 1 (PR #181) ; **contrôles en production non joués** (encaissement « 840,00 », rejeu après réponse perdue, ligne 250 du PDF 2044, régularisation d'un exercice non terminé) ; les quatre fiches sont « déployée, contrôle en production à faire » au registre ; une recette dédiée est en préparation |
+| **Q3, Q5** | **B : P1 bloquants** (D04, D05, D37, D38 : VER-TS-02, PR178-B-06, CHF-01, CHF-02) | **partiel** : code en production depuis la vague 1 (PR #181) ; **contrôles en production non joués** (encaissement « 840,00 », rejeu après réponse perdue, ligne 250 du PDF 2044, régularisation d'un exercice non terminé) ; les quatre fiches sont « déployée, contrôle en production à faire » au registre |
 | D01 | A | livré (PR #181) ; B seulement si un relevé de production montre des appels concernés : relevé non consigné au journal |
 | D02 | A (B « à prévoir avant le printemps 2027 ») | A livré (PR #181) ; B **différé** (avis d'un expert-comptable, avant la campagne de déclaration du printemps 2027) |
 | D03 | A (B après validation fiscale) | A livré (PR #181) ; B **différé** (validation fiscale) |
@@ -68,7 +68,7 @@ Repères des fusions : vague 1 = PR #181 (`d38487a`, 14/10) ; vague 2 = PR #182 
 | D24 | B maintenant, C avant d'activer le module « clients externes » | B livré (PR #184) ; C livré le 15/10 (« finis », PR #190) ; **le module « clients externes » reste désactivé** jusqu'à la validation comptable de la forme de l'avoir |
 | D25 | B | livré (PR #184), sans effet en production : l'outil privé de l'artisan est coupé hors poste local |
 | D26 | B | livré (PR #184) |
-| D27 | B | livré le 15/10 (PR #191) ; tests renforcés et repère juridique de la qualification corrigé pour le propriétaire direct (PR #193, 16/10) |
+| D27 | B | livré le 16/10 (PR #191, fusion à 00 h 38 heure de Paris ; le journal la date du 15/10) ; tests renforcés et repère juridique de la qualification corrigé pour le propriétaire direct (PR #193, 16/10) |
 | D28 | A | livré (PR #184) |
 | D29 | B | livré (PR #184) |
 | D30 | B | livré (PR #184) |
@@ -77,7 +77,7 @@ Repères des fusions : vague 1 = PR #181 (`d38487a`, 14/10) ; vague 2 = PR #182 
 | D33 | A et C | livré (PR #184) |
 | D34 | B | livré (PR #181) |
 | D35 | (1) A ; (2) C | livré (PR #181) ; (2) B attend un avis juridique |
-| D36 | B, puis C | **partiel** : B livré (PR #181) ; **C retirée à la relecture de la vague 1** (le complément la range parmi les options conditionnées à un avis) : à redemander |
+| D36 | B, puis C | **partiel** : B livré (PR #181) ; **C reportée** (« option C reportée », `app/tests/accueil-locataire-depot.test.ts` ; le complément la range parmi les options reportées) : à redemander |
 | D37 | B | livré (PR #181) — P1 : contrôle en production à faire |
 | D38 | A maintenant (B après avis) | A livré (PR #181) — P1 : contrôle en production à faire ; B **différé** |
 | D39 | B | livré (PR #181) |
@@ -101,7 +101,7 @@ Cinq réponses, mises en chantier le jour même (journal, entrée « decision »
 | Réponse | Contenu | État au 16/10/2026 |
 |---|---|---|
 | Jour de Paris des règles de loyer (« corrige proprement ») | état des appels, impayés, relances, fiche du lot, appels, quittances, encaissements | livré (PR #186, `6b2a130`) |
-| (1) Invitation d'un artisan par un propriétaire | un propriétaire invite un artisan ; c'est l'artisan qui s'inscrit ; remplace la question D17-B | **en cours, non livrée** : quatrième tour de relecture en cours pour une faille de sécurité de pré-inscription ; aucune migration du lot n'est en production ; plusieurs questions au dirigeant restent ouvertes |
+| (1) Invitation d'un artisan par un propriétaire | un propriétaire invite un artisan ; c'est l'artisan qui s'inscrit ; remplace la question D17-B | **en cours, non livrée** : lot non fusionné, qui porte aussi un correctif de sécurité ; aucune migration du lot n'est en production ; plusieurs questions au dirigeant restent ouvertes |
 | (2) Relais (D46-B, partie alerte) | responsable : le dirigeant ; canal : e-mail vers deux adresses fournies par le dirigeant, gardées hors du dépôt ; 05 h 00 heure de Paris pour l'e-mail quotidien ; envoi immédiat des urgences | livré le 16/10 (PR #192, `a722f94`) : e-mail quotidien à 5 h s'il y a quelque chose à signaler, e-mail immédiat de chaque urgence du mode vacances (passage toutes les 10 minutes par une dixième tâche pg_cron), hors arrêt d'urgence ; **aucun e-mail de 5 h le 16/10**, premier attendu le 17/10 au plus tôt, non constaté |
 | (3) Suite du jour de Paris (« recommandations ») | points 1 (dépôt de garantie, journal comptable général), 2 (révision IRL, terme du bail, régularisation des charges, rapport de gestion) et 5 (« Fait le » des documents) ; points 3 (heure du cycle mensuel) et 4 (compteur « alertes en retard ») laissés tels quels | livré (PR #189, `0c9328a`) ; hors décision : restitution du dépôt (écritures du décompte), factures d'honoraires, appels de charges de copropriété |
 | (4) D24-C « finis » | l'avoir sur facture externe est terminé ; le module « clients externes » reste éteint jusqu'à la validation comptable | livré (PR #190, `f93ec6e`) ; module toujours désactivé |
@@ -286,4 +286,4 @@ Détail dans `rapport.json` (anomalies DEC-01 à DEC-12). Les plus lourdes pour 
 | En plus, options reportées recommandées (D02-B 3–4 ; D03-B 1–1,5 ; D08-C 3–5 ; D12-C 3–5 ; D17-B 3–5 ; D24-C 3–5) | ≈ 16–26 |
 | Dont ce qui touche des fonds ou une règle financière (D01, D04, D05, D23) | ≈ 12–17 |
 
-Voir aussi : [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de validation — version candidate du 13 octobre 2026]], [[Fiches des anomalies P3 — audit du 13 octobre 2026]], [[Propositions de fonctions majeures — version candidate du 13 octobre 2026]].
+Voir aussi : [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de validation — version candidate du 13 octobre 2026]], [[Fiches des anomalies P3 — audit du 13 octobre 2026]], [[Propositions de fonctions majeures — version candidate du 13 octobre 2026]], [[Prêt à démarcher]].

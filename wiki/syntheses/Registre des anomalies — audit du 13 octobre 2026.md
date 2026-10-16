@@ -3,8 +3,8 @@ type: synthesis
 tags: [audit, anomalies, registre, v1, mission-operationnelle]
 status: in-progress
 created: 2026-10-13
-updated: 2026-10-14
-sources: []
+updated: 2026-10-16
+sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Complément à la page « Décisions groupées » — fiches de la vague 6]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]"]
 ---
 
 # Registre des anomalies — audit du 13 octobre 2026
@@ -22,15 +22,38 @@ erroné ; **P2** dégradation avec contournement ; **P3** cosmétique. Statuts :
 > [!info] Mise à jour du 14/10/2026 — déploiement
 > Le dirigeant a autorisé le déploiement de la version contrôlée `0ad658a` : fusion (PR #179, `c99e2c6`), déploiement Vercel et migrations `20261013110000` et `20261013120000` appliquées en production. Les lignes de ce registre marquées *corrigée en branche* sont donc **déployées**, sauf mention contraire ; leur statut ligne par ligne n'a pas été réécrit (il reflète la rédaction du 13–14/10). PDM-01, relevée après le déploiement, est corrigée par la PR #180 (`0f7dbd5`), déployée le même jour. Détail, contrôles faits et limites : [[Dossier de validation — version candidate du 13 octobre 2026]] § 5 bis.
 
+> [!info] Mise à jour du 16/10/2026 — décisions du 14/10 et du 15/10 en production
+> Entre le 14 et le 16/10, les décisions du dirigeant ont été livrées par vagues (journal `log.md`, entrées « deploy » et « audit » des 14, 15 et 16/10). Les fiches dont la décision est en production passent à *déployée*, avec la PR et le SHA de fusion ; une livraison partielle reste *à trancher* avec ce qui est fait et ce qui manque. Les fiches *corrigée en branche* gardent la convention du 14/10 ci-dessus (déployées depuis la PR #179).
+> - **Vague 1** (PR #181, `d38487a`, 14/10) : VER-TS-02, PR178-B-06, CHF-01, CHF-02 (les quatre P1, voir ci-dessous) ; PROP-14 (D01-A), CHF-03 (D39-B), SOR-02 (D35), SOR-03 et SOR-04 (D34-B) ; partielles : FIN-11 (D02-A), FIN-07 (D03-A), CHF-06 (D40-A), SOR-05 (D36-B), SOR-06 (D35 (2) C).
+> - **Vague 2** (PR #182, `8c4aed6`, 15/10) : SUP-01 (D06-A), AUD-C-02 (D07-A), SUP-03 (D09-A), SUP-04 (D10-C), SUP-05 (D13-A), VER-PR178-06 et VER-SECURITE-01 (D15), ART-15 (D16-A), PRF-04 (D44-A), SUP-07 (D46-A), IA-04 et IA-05 (D47-A), IA-11 (D48-A), AUT-01 (D42-B) ; partielles : SA-01 (D08-A), IA-01 et IA-06 (D46-A).
+> - **Vague 3** (PR #184, `fac0105`, 15/10) : PRO2-13 (D19-A), ART-21 (D20-B), CHN-01 (D21-A), ARC-04 et ARC-08 (D24-B, D25-B, inactifs en production), DES-A-06 (D26-B), DES-A-10 et DES-B-10 (D28-A), DES-A-11 (D29-B), PR178-B-04 (D30-B), PR178-A-03 (D31-B), EDI-01 et VUI-05 (D33), IA-09 (D49-1) ; partielles : PRO2-01 (D17-A), PRF-05 (D45-A), DES-A-07.
+> - **Vague 4a** (PR #185, `5ff849b`, 15/10) : AUD-A-05 (X01, wiki), AUD-A-06 (X02), AUD-B-03 (X03), AUD-C-07 (X04), PROP-11 (X07), FIN-03 (X09), FIN-04 (X10), FIN-09 (X11), FIN-12 (X12), FIN-13 (X13, étendu par les PR #186 et #189), PR178-B-03 (X14), REP-02 (X15), SUP-09 (X17), SA-11 (X20), VER-TS-05 (X21).
+> - **D18** (PR #187, `8a168dd`, 15/10) : ART-13, PRO2-12. **D22-B et D23-A** (PR #188, `98f3fd7`, 15/10) : LOC-21, REP-04, PRO2-21, CHN-02 (X06).
+> - **PR #190** (`f93ec6e`, 15/10) : REP-05 (X16, relances J+3 et J+10), SA-09 (X18), SA-10 (X19), ARC-07 (D24-C, module « clients externes » toujours désactivé).
+> - **D27-B** (PR #191, `d55f87b`, 16/10 à 00 h 38 heure de Paris ; tests PR #193, `bdaf755`, 16/10) : DES-A-08.
+> - **D46-B, partie alerte** (PR #192, `a722f94`, 16/10) : IA-03 ; IA-02 partielle (urgences du mode vacances par e-mail, incidents urgents et impayés non branchés).
+> - **Restent à trancher faute de décision livrée** : AUD-B-04 et PROP-03 (D12, mesure à autoriser), VER-SECURITE-02 (D11, essai sur le vrai stockage), RET-02 (D43, essai de restauration), CHF-07 et CHF-09 (D41, avis spécialisé), PUB-03 et VUI-06 (D32, identité de l'éditeur), IA-12 (D49 (2), qualification juridique), PROP-16 (X08 non fait), AUD-C-08 (X05 reporté).
+>
+> **Les quatre P1 (Q3/Q5) restent « déployée, contrôle en production à faire »** : le code est en production depuis la vague 1, mais aucun des contrôles exigés avant de les refermer n'a été joué (encaissement « 840,00 » avec virgule, rejeu après réponse perdue, ligne 250 du PDF 2044, régularisation d'un exercice non terminé). Ils ne seront refermés qu'avec l'identifiant d'exécution d'une recette qui joue ces contrôles.
+
+> [!warning] Points à trancher / contradictions (16/10)
+> - L'autorisation de déployer du 14/10 exige « aucune anomalie P0 ou P1 ouverte dans ce qui est livré » ; or les quatre P1 sont restés notés « ouverte » ici pendant les fusions #182 à #193. Leur passage à « déployée » au 16/10 ne vaut pas fermeture : la fermeture attend les contrôles en production.
+> - Plusieurs livraisons dépassent ou n'atteignent pas la lettre de la décision et n'ont pas d'aval écrit : D42-B en production sans choix tracé du dirigeant (AUT-01) ; exception « destinataire qui n'est plus habilité » de D09 (SUP-03) ; manques de D18-A (ART-13) et de D22-B (LOC-21) ; D08-C ni planifiée ni abandonnée (SA-01). Voir [[Décisions groupées — version candidate du 13 octobre 2026]].
+> - Les fiches P3 détaillées de [[Fiches des anomalies P3 — audit du 13 octobre 2026]] gardent leur statut du 14/10 : le statut à jour est celui du tableau P3 ci-dessous.
+
 ## Synthèse
+
+Comptes au 16/10/2026 (statut de la colonne « Statut » des tableaux ci-dessous ; *corrigée en branche* = déployée depuis le 14/10, voir l'encadré du 14/10).
 
 | Gravité | ouverte | corrigée en branche | déployée | à trancher | acceptée | hypothèse | réfutée | Total |
 |---|---|---|---|---|---|---|---|---|
 | **P0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | **0** |
-| **P1** | 4 | 1 | 0 | 0 | 0 | 0 | 0 | **5** |
-| **P2** | 0 | 34 | 1 | 30 | 1 | 0 | 0 | **66** |
-| **P3** | 20 | 74 | 0 | 70 | 1 | 0 | 1 | **166** |
-| **Total** | 24 | 109 | 1 | 100 | 2 | 0 | 1 | **237** |
+| **P1** | 0 | 1 | 4 | 0 | 0 | 0 | 0 | **5** |
+| **P2** | 0 | 34 | 22 | 9 | 1 | 0 | 0 | **66** |
+| **P3** | 18 | 74 | 39 | 33 | 1 | 0 | 1 | **166** |
+| **Total** | 18 | 109 | 65 | 42 | 2 | 0 | 1 | **237** |
+
+Comptes du 14/10 (pour mémoire) : ouverte 24, corrigée en branche 109, déployée 1, à trancher 100, acceptée 2, réfutée 1.
 
 Sources lues : artisan, auditeur/a, auditeur/b, auditeur/c, cartographie, chaine/1, chaine/1b, chaine/2, charges-fiscalite, coordinateur, designer/a, designer/b, equipes-ia, perf-liens, proprietaire/s01, relecture/finance, relecture/pr178/a, relecture/pr178/b, relecture/reprises, relecture/supervision, retour-arriere, sortie-de-bail, superadmin, verification/flux-finale, verification/pr178, verification/securite, verification/sql, verification/ts, verification/ui-finale, verification/vague10-finale.
 
@@ -47,17 +70,17 @@ Aucune anomalie de cette gravité à ce jour.
 
 | ID | Source | Anomalie | Statut |
 |---|---|---|---|
-| `CHF-01` | charges-fiscalite | Le PDF « Récapitulatif annuel · location nue » imprime la ligne 250 (intérêts d'emprunt) d'après un champ de génération qui vaut 0 par défaut, et non d'après la rubrique 250 qualifiée de l'écran : 0,00 € au lieu de 2 345,67 €, sans alerte. | ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correc… |
-| `CHF-02` | charges-fiscalite | La régularisation de charges est acceptée pour l'exercice en cours : 10 mois de provisions sont comparés à des charges réelles d'une année pleine, et le résultat « complément dû » ne peut plus être corrigé. | ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correc… |
-| `PR178-B-06` | relecture/pr178/b | Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté) | ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correc… |
-| `VER-TS-02` | verification/ts | Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises | ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correc… |
+| `CHF-01` | charges-fiscalite | Le PDF « Récapitulatif annuel · location nue » imprime la ligne 250 (intérêts d'emprunt) d'après un champ de génération qui vaut 0 par défaut, et non d'après la rubrique 250 qualifiée de l'écran : 0,00 € au lieu de 2 345,67 €, sans alerte. | déployée, contrôle en production à faire — D37-B (ligne 250 préremplie avec le montant qualifié, écart signalé sur le PDF) en production depuis la vague 1 (PR #181, `d38487a`, 14/10) ; P1 bloquant non refermé : impression de la ligne 250 du 2044 non contrôlée en production au 16/10 (recette dédiée en préparation) |
+| `CHF-02` | charges-fiscalite | La régularisation de charges est acceptée pour l'exercice en cours : 10 mois de provisions sont comparés à des charges réelles d'une année pleine, et le résultat « complément dû » ne peut plus être corrigé. | déployée, contrôle en production à faire — D38-A (avertissement et confirmation pour un exercice non terminé) en production depuis la vague 1 (PR #181, `d38487a`, 14/10) ; P1 bloquant non refermé : régularisation d'un exercice en cours non contrôlée en production au 16/10 (recette dédiée en préparation) ; D38-B différé (avis spécialisé) |
+| `PR178-B-06` | relecture/pr178/b | Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté) | déployée, contrôle en production à faire — D05-A (clé d'envoi unique, encaissement d'abord, puis dépôt de garantie et écriture libre) en production depuis la vague 1 (PR #181, `d38487a`, 14/10) ; P1 bloquant non refermé : rejeu après réponse perdue non contrôlé en production au 16/10 (recette dédiée en préparation) |
+| `VER-TS-02` | verification/ts | Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises | déployée, contrôle en production à faire — D04 (lecture de la virgule et confirmation au-delà de 2 × (reste dû + un terme)) en production depuis la vague 1 (PR #181, `d38487a`, 14/10) ; P1 bloquant non refermé : encaissement « 840,00 » non contrôlé en production au 16/10 (recette dédiée en préparation) |
 | `FIN-01` | relecture/finance | Le document « Récapitulatif annuel · location nue » appelle le nouveau recapitulatifFiscal sans qualifications, composantes ni exercices : toutes les rubriques s'impriment à 0,00 €. | corrigée en branche — commit cddf339 (tests rouges puis verts) |
 
 ### Fiches P1
 
 #### `CHF-01` — Le PDF « Récapitulatif annuel · location nue » imprime la ligne 250 (intérêts d'emprunt) d'après un champ de génération qui vaut 0 par défaut, et non d'après la rubrique 250 qualifiée de l'écran : 0,…
 
-- **Sévérité** : P1 · **Statut** : ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correction recommandée en cours (vague 1) — D37 option B : ligne 250 préremplie avec le montant qualifié, écart signalé sur le PDF · **Propriétaire** : à désigner par le dirigeant
+- **Sévérité** : P1 · **Statut** : déployée, contrôle en production à faire — D37-B (ligne 250 préremplie avec le montant qualifié, écart signalé sur le PDF) en production depuis la vague 1 (PR #181, `d38487a`, 14/10) ; P1 bloquant non refermé : impression de la ligne 250 du 2044 non contrôlée en production au 16/10 (recette dédiée en préparation) (mise à jour du 16/10/2026 ; statut précédent : ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correction recommandée en cours (vague 1) — D37 option B : ligne 250 préremplie avec le montant qualifié, écart signalé sur le PDF) · **Propriétaire** : à désigner par le dirigeant
 - **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Lot nu dont une dépense « Intérêts d'emprunt » de 2 345,67 € est qualifiée en rubrique 250, exercice confirmé, récapitulatif complet (écran et CSV : 250 = 2 345,67).
@@ -71,7 +94,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `CHF-02` — La régularisation de charges est acceptée pour l'exercice en cours : 10 mois de provisions sont comparés à des charges réelles d'une année pleine, et le résultat « complément dû » ne peut plus être c…
 
-- **Sévérité** : P1 · **Statut** : ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correction recommandée en cours (vague 1) — D38 option A : avertissement fort et confirmation explicite pour un exercice en cours (l'option B attend l'avis spécialisé) · **Propriétaire** : à désigner par le dirigeant
+- **Sévérité** : P1 · **Statut** : déployée, contrôle en production à faire — D38-A (avertissement et confirmation pour un exercice non terminé) en production depuis la vague 1 (PR #181, `d38487a`, 14/10) ; P1 bloquant non refermé : régularisation d'un exercice en cours non contrôlée en production au 16/10 (recette dédiée en préparation) ; D38-B différé (avis spécialisé) (mise à jour du 16/10/2026 ; statut précédent : ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correction recommandée en cours (vague 1) — D38 option A : avertissement fort et confirmation explicite pour un exercice en cours (l'option B attend l'avis spécialisé)) · **Propriétaire** : à désigner par le dirigeant
 - **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Bail nu actif depuis 2025 à 60 € de provisions par mois ; nous sommes en octobre 2026 (10 appels en 2026).
@@ -85,7 +108,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `PR178-B-06` — Encaissement après réponse perdue : la saisie conservée et le bouton actif permettent de rejouer l'envoi, et l'action serveur n'a pas de clé d'idempotence (double encaissement constaté)
 
-- **Sévérité** : P1 · **Statut** : ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correction recommandée en cours (vague 1) — D05 option A : clé d'envoi unique (encaissement de loyer d'abord, puis dépôt de garantie et écriture libre) · **Propriétaire** : à désigner par le dirigeant
+- **Sévérité** : P1 · **Statut** : déployée, contrôle en production à faire — D05-A (clé d'envoi unique, encaissement d'abord, puis dépôt de garantie et écriture libre) en production depuis la vague 1 (PR #181, `d38487a`, 14/10) ; P1 bloquant non refermé : rejeu après réponse perdue non contrôlé en production au 16/10 (recette dédiée en préparation) (mise à jour du 16/10/2026 ; statut précédent : ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correction recommandée en cours (vague 1) — D05 option A : clé d'envoi unique (encaissement de loyer d'abord, puis dépôt de garantie et écriture libre)) · **Propriétaire** : à désigner par le dirigeant
 - **Rôle / source** : relecteur adverse PR178 (côté serveur et régressions) (relecture/pr178/b) · **Version testée** : f283439 (main après PR #178, lecture) et candidate 5d15b4d (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Compte gérant (admin.alpha ou propriétaire) sur un bail avec appels ; réseau qui coupe la réponse après traitement par le serveur (simulé : route.fetch puis abort).
@@ -99,7 +122,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `VER-TS-02` — Un montant « 840,00 » tapé dans un navigateur dont la langue n'est pas le français devient 84 000 € : accepté sans alerte, avec deux quittances émises
 
-- **Sévérité** : P1 · **Statut** : ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correction recommandée en cours (vague 1) — D04 : lecture de la virgule achevée sur les champs restants et confirmation au-delà de 2 × (reste dû + un terme) ; acquis déjà déployé : 36 champs en texte décimal (vagues 5b et 10) · **Propriétaire** : à désigner par le dirigeant
+- **Sévérité** : P1 · **Statut** : déployée, contrôle en production à faire — D04 (lecture de la virgule et confirmation au-delà de 2 × (reste dû + un terme)) en production depuis la vague 1 (PR #181, `d38487a`, 14/10) ; P1 bloquant non refermé : encaissement « 840,00 » non contrôlé en production au 16/10 (recette dédiée en préparation) (mise à jour du 16/10/2026 ; statut précédent : ouverte — classée P1 bloquante par le dirigeant le 14/10/2026 (Q3/Q5) ; présente dans la version déjà déployée ; correction recommandée en cours (vague 1) — D04 : lecture de la virgule achevée sur les champs restants et confirmation au-delà de 2 × (reste dû + un terme) ; acquis déjà déployé : 36 champs en texte décimal (vagues 5b et 10)) · **Propriétaire** : à désigner par le dirigeant
 - **Rôle / source** : vérificateur adverse ts (verification/ts) · **Version testée** : candidate dfbc19a (banc, 3100) et bases jetables reconstruites depuis le manifeste
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Navigateur dont la langue d'interface n'est pas le français (le Chromium du banc est en anglais, quel que soit le contexte « fr-FR » de la page), champ Montant en type=number (formulaire d'encaissement du bail ; les autres formulaires de montant sont identiques)
@@ -162,36 +185,36 @@ Aucune anomalie de cette gravité à ce jour.
 | `VFL-07` | verification/flux-finale | Montants restés en type=number : « 840,00 » devient 84 000 dans un navigateur non francophone (charges réelles à régulariser, indice IRL, loyer/charges/dépôt du bail) | corrigée en branche — vague 10 (commit 0ad658a) ; tests : tests/montants-actions-lecture.test.ts : 209 tests, 22 couple… |
 | `VER-PR178-01` | verification/pr178 | Régression : la correction PR178-A-02 désactive la protection « Quitter la page ? » pour une quarantaine de formulaires de saisie (profil, bail, lot, EDL, messages, assistance…) | corrigée en branche — vague 5-7 ; tests : tests/protection-saisie-formulaires.test.ts |
 | `PDM-01` | coordinateur | Le point du matin ne s'actualise plus depuis le 13/10 : la lecture des artisans en attente passe par une fonction que le client de service se voit toujours refuser | déployée — PR #180 fusionnée (0f7dbd5) et déployée le 14/10/2026 après autorisation du dirigeant ; tests rouge puis ver… |
-| `ARC-07` | artisan | Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé | à trancher |
-| `ARC-08` | artisan | Un artisan refusé par la plateforme et sur liste noire globale garde l outil clients externes, devis et factures | à trancher |
-| `AUD-B-04` | auditeur/b | Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce *(hyp.)* | à trancher |
-| `AUD-C-02` | auditeur/c | Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees par Sante | à trancher — décision D07 de la page de décisions groupées |
-| `PRO2-01` | chaine/1 | Un propriétaire dont la commune n'est pas ouverte au réseau ne peut solliciter aucun artisan, même un artisan connu : le carnet ne se remplit que par une intervention déjà confiée | à trancher — choix produit : réseau fermé pour la commune du propriétaire, carnet sans formulaire d'ajout |
-| `ART-13` | chaine/1b | L'artisan ne peut pas déposer une version 2 de son devis : la demande close devient lecture seule, sans « réviser mon devis » | à trancher — fonction manquante : l'artisan ne peut pas déposer une version 2 de son devis |
-| `PRO2-12` | chaine/1b | Un devis reçu ne peut être que retenu : ni refus motivé, ni demande de révision (écart avec le référentiel : déposé, validé, refusé ou expiré) | à trancher — fonction manquante : un devis reçu ne peut pas être refusé ni renvoyé en révision |
-| `PRO2-13` | chaine/1b | Réception d'un devis : aucune alerte dans l'application, seulement un e-mail ; l'incident n'est pas compté « À traiter » | à trancher — aucune alerte dans l'application à la réception d'un devis (e-mail seul) : création d'une alerte en base à… |
-| `ART-21` | chaine/2 | Rien n'empêche de démarrer, de terminer et de facturer plusieurs jours avant le rendez-vous confirmé avec le locataire | à trancher — règle métier : démarrer, terminer et facturer avant le rendez-vous confirmé |
-| `CHN-01` | chaine/2 | Les créneaux non retenus sont enregistrés « refusés » : après trois reports, l'artisan est bloqué et l'écran impute au locataire des refus qu'il n'a jamais faits | à trancher — règle métier : les créneaux non retenus comptent aujourd'hui comme refusés (six refus = arbitrage) ; une c… |
-| `LOC-21` | chaine/2 | Le locataire ne peut ni reporter ni annuler un rendez-vous confirmé : aucun geste après la confirmation | à trancher — fonction manquante : le locataire ne peut ni reporter ni annuler un rendez-vous confirmé |
-| `PRO2-21` | chaine/2 | Le règlement de la facture de l'artisan n'est pas un geste de l'application : l'écriture du journal n'est liée à rien et la facture ne passe jamais à « réglée » | à trancher — fonction manquante : le règlement d'une facture d'artisan n'est lié ni à la facture ni à l'incident |
-| `CHF-03` | charges-fiscalite | Le « Décompte annuel des charges » et le « Courrier de régularisation » sont impossibles à générer pour une régularisation créée depuis l'interface : ils exigent un champ « note » que le formulaire ne propose pas. | à trancher |
-| `CHF-06` | charges-fiscalite | Une régularisation de charges n'écrit rien au livre ni aux appels : le complément dû ou le trop-perçu à rendre n'apparaît dans aucun écran de suivi financier. | à trancher |
-| `AUT-01` | coordinateur | maintenance_artisans() n'est appelée par aucune tâche : les devis déposés ne deviennent jamais « expirés » et les motifs de liste noire ne sont jamais purgés | à trancher — correction préparable (tâche pg_cron + version interne), aval requis : active un automatisme en production |
-| `IA-01` | equipes-ia | Les règles 'Ce qui peut continuer seul' (dont incident urgent et correction à faible risque en 'agir_seul') sont affichées au dirigeant mais aucun code ne les applique | à trancher |
-| `IA-02` | equipes-ia | Mode vacances : l'urgence et l'escalade restent internes à la console, sans alerte vers un responsable absent, et ne s'alimentent ni d'un incident urgent ni d'un impayé | à trancher |
-| `IA-03` | equipes-ia | Aucune alerte active sur l'échec ou l'absence d'une tâche : la santé ne se lit que si le dirigeant ouvre l'écran ; la seule alerte e-mail du produit est le veto marketing | à trancher |
-| `IA-04` | equipes-ia | Hypothèse à vérifier : quittances, avis d'échéance, relances et rappels s'envoient puis se marquent, sans clé d'idempotence côté fournisseur d'e-mail *(hyp.)* | à trancher |
-| `IA-05` | equipes-ia | Hypothèse à vérifier : envoyerEmail n'a aucun délai maximal, un blocage du fournisseur retient toute la passe *(hyp.)* | à trancher — décision D47 de la page de décisions groupées |
-| `PROP-03` | proprietaire/s01 | Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause | à trancher — voir D12 : la limite réelle est celle des fonctions Vercel (4,5 Mo), à mesurer avant de choisir le seuil d… |
-| `PROP-14` | proprietaire/s01 | Entrée en cours de mois : le premier terme (prorata) est exigible le 1er du mois, avant l'entrée, et passe tout de suite en « Impayé » | à trancher |
-| `FIN-07` | relecture/finance | Le filtre par mot-clé « fonds travaux / alur » écarte la pièce avant de consulter la qualification justifiée du propriétaire : une dépense qualifiée « déductible 224 » reste exclue des charges et la qualification est enregistrée mais sans effet. | à trancher |
-| `FIN-11` | relecture/finance | Les migrations ne rétro-capturent aucun loyer existant et la reprise « retrouver_ventilation_fiscale » refuse tout bail qui a plus d'un appel : sur les données réelles déjà en production, le récapitulatif 2044 passe à 0 € de loyers et chaque pièce doit être q… | à trancher |
-| `PR178-A-03` | relecture/pr178/a | Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seule issue : effacer la copie et tout ressaisir | à trancher — décision D31 de la page de décisions groupées |
-| `PR178-B-04` | relecture/pr178/b | Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires | à trancher — clic avant hydratation sans effet visible : désactiver le bouton jusqu'à l'hydratation, formulaire par for… |
-| `SUP-01` | relecture/supervision | L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision. | à trancher |
-| `SUP-05` | relecture/supervision | Les « faits de direction » copient, pour toutes les organisations, des données personnelles (titres d'alertes contenant le nom du locataire, ex. « État des lieux d'entrée — Lot 1 · Marie Durand ») dans brief_direction_snapshots, sans aucune trace d'audit par… | à trancher |
-| `SOR-03` | sortie-de-bail | Un second bail est activé sur un lot avec une période qui recouvre celle du bail précédent | à trancher |
-| `SA-01` | superadmin | Traversée de la supervision dans un espace client : écriture financière possible sans motif ni durée, et la ligne d'audit 'traversee_action' ne dit ni quelle action, ni sur quel objet, ni avec quel résultat | à trancher — limite déjà actée au wiki (audit du 25/09) : entrée dans un espace client sans motif ni durée ; l'écriture… |
+| `ARC-07` | artisan | Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé | déployée, inactive en production — D24-B (relecture avant dépôt, PR #184, `fac0105`) puis D24-C (annulation motivée par un avoir numéroté AV-…, PR #190, `f93ec6e`) ; le module « clients externes » reste désactivé (décision du 15/10) jusqu'à la validation comptable de la forme de l'avoir, et l'outil privé de l'artisan est coupé hors poste local |
+| `ARC-08` | artisan | Un artisan refusé par la plateforme et sur liste noire globale garde l outil clients externes, devis et factures | déployée, inactive en production — D25-B (écritures coupées pour un artisan refusé ou sur liste noire globale, lecture et export gardés, PR #184, `fac0105`) ; outil privé coupé hors poste local |
+| `AUD-B-04` | auditeur/b | Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce *(hyp.)* | à trancher — D12 : la mesure (dépôt de 6 Mo hors données réelles) reste à autoriser au 16/10 ; les formulaires annoncent toujours « 10 Mo maximum » |
+| `AUD-C-02` | auditeur/c | Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees par Sante | déployée — D07-A (PR #182, `8c4aed6`) : export de `cron.job` dans la sauvegarde, rejeu des tâches pg_cron dans la procédure, cycle mensuel lu par Santé (retard au-delà de 32 jours) ; essai de restauration d'une sauvegarde réelle non fait (à autoriser, avec D43) |
+| `PRO2-01` | chaine/1 | Un propriétaire dont la commune n'est pas ouverte au réseau ne peut solliciter aucun artisan, même un artisan connu : le carnet ne se remplit que par une intervention déjà confiée | à trancher — D17-A (voie de sortie affichée, texte seul) déployée (PR #184, `fac0105`) ; D17-B remplacée le 15/10 par l'invitation d'un artisan par le propriétaire : en cours, non livrée |
+| `ART-13` | chaine/1b | L'artisan ne peut pas déposer une version 2 de son devis : la demande close devient lecture seule, sans « réviser mon devis » | déployée — D18-A (PR #187, `8a168dd`) : version 2 et suivantes, trois versions au plus, sept jours (jour de Paris) pour répondre ; hors livraison : alerte au propriétaire si l'artisan devient non affectable pendant la révision, PDF par version ; parcours complet dans un navigateur non joué |
+| `PRO2-12` | chaine/1b | Un devis reçu ne peut être que retenu : ni refus motivé, ni demande de révision (écart avec le référentiel : déposé, validé, refusé ou expiré) | déployée — D18 (PR #187, `8a168dd`) : refus motivé (motif montré à l'artisan, place libérée) puis demande de révision ; parcours complet dans un navigateur non joué |
+| `PRO2-13` | chaine/1b | Réception d'un devis : aucune alerte dans l'application, seulement un e-mail ; l'incident n'est pas compté « À traiter » | déployée — D19-A (alerte « devis à décider » posée au dépôt, PR #184, `fac0105`) |
+| `ART-21` | chaine/2 | Rien n'empêche de démarrer, de terminer et de facturer plusieurs jours avant le rendez-vous confirmé avec le locataire | déployée — D20-B (avertissement non bloquant et écart écrit à la chronologie, PR #184, `fac0105`) |
+| `CHN-01` | chaine/2 | Les créneaux non retenus sont enregistrés « refusés » : après trois reports, l'artisan est bloqué et l'écran impute au locataire des refus qu'il n'a jamais faits | déployée — D21-A (créneaux non retenus « caducs », nouveaux choix seulement, PR #184, `fac0105`) et D22-B (PR #188, `98f3fd7`) ; reprise de l'historique (D21-C) subordonnée à un relevé de production |
+| `LOC-21` | chaine/2 | Le locataire ne peut ni reporter ni annuler un rendez-vous confirmé : aucun geste après la confirmation | déployée — D22-B (PR #188, `98f3fd7`) : report avec accord de l'artisan (demande 24 h avant au moins, deux demandes au plus, réponse sous 48 h), annulation immédiate avec alerte au gérant ; non livrés : relance de l'artisan avant l'échéance de 48 h, geste « J'en prends acte », badge dans l'agenda de l'artisan ; parcours complet dans un navigateur non joué |
+| `PRO2-21` | chaine/2 | Le règlement de la facture de l'artisan n'est pas un geste de l'application : l'écriture du journal n'est liée à rien et la facture ne passe jamais à « réglée » | déployée — D23-A (règlement déclaratif, partiel admis, aucun paiement exécuté, visible de l'artisan, PR #188, `98f3fd7`) ; parcours complet dans un navigateur non joué |
+| `CHF-03` | charges-fiscalite | Le « Décompte annuel des charges » et le « Courrier de régularisation » sont impossibles à générer pour une régularisation créée depuis l'interface : ils exigent un champ « note » que le formulaire ne propose pas. | déployée — D39-B (détail des dépenses saisi au moment de générer le document, PR #181, `d38487a`) |
+| `CHF-06` | charges-fiscalite | Une régularisation de charges n'écrit rien au livre ni aux appels : le complément dû ou le trop-perçu à rendre n'apparaît dans aucun écran de suivi financier. | à trancher — D40-A déployée (message à l'émission et alerte, PR #181, `d38487a`) ; D40-B (appel complémentaire ou avoir) différé, avis spécialisé |
+| `AUT-01` | coordinateur | maintenance_artisans() n'est appelée par aucune tâche : les devis déposés ne deviennent jamais « expirés » et les motifs de liste noire ne sont jamais purgés | déployée — D42-B (tâche pg_cron `maintenance-artisans` : expiration des devis échus, PR #182, `8c4aed6`) ; le choix du dirigeant entre A et B n'est pas tracé (à ratifier) ; purge des motifs de liste noire non planifiée |
+| `IA-01` | equipes-ia | Les règles 'Ce qui peut continuer seul' (dont incident urgent et correction à faible risque en 'agir_seul') sont affichées au dirigeant mais aucun code ne les applique | à trancher — D46-A (vague 2) : l'écran dit « non appliquées automatiquement » ; la décision 7 du document « Équipes IA » (brancher ou retirer) n'est pas tranchée, et les réponses du 15/10 la laissent hors périmètre |
+| `IA-02` | equipes-ia | Mode vacances : l'urgence et l'escalade restent internes à la console, sans alerte vers un responsable absent, et ne s'alimentent ni d'un incident urgent ni d'un impayé | à trancher — partiel : depuis le 16/10 (D46-B, PR #192, `a722f94`), chaque urgence du mode vacances part par e-mail au dirigeant (passage toutes les 10 minutes) ; les incidents urgents des clients et les impayés n'alimentent toujours pas le relais, et l'escalade n'a pas d'e-mail immédiat |
+| `IA-03` | equipes-ia | Aucune alerte active sur l'échec ou l'absence d'une tâche : la santé ne se lit que si le dirigeant ouvre l'écran ; la seule alerte e-mail du produit est le veto marketing | déployée — D46-B (PR #192, `a722f94`) : e-mail quotidien à 5 h (Paris) s'il y a des tâches en échec ou absentes, des alertes non accusées ou un arrêt actif ; aucun e-mail de 5 h le 16/10, premier attendu le 17/10 au plus tôt, non constaté |
+| `IA-04` | equipes-ia | Hypothèse à vérifier : quittances, avis d'échéance, relances et rappels s'envoient puis se marquent, sans clé d'idempotence côté fournisseur d'e-mail *(hyp.)* | déployée — D47-A (clé d'idempotence sur les e-mails de tâche, livrée avec le délai maximal, PR #182, `8c4aed6`) ; garantie limitée aux reprises rapprochées (rétention de la clé chez le fournisseur supposée de 24 h, non vérifiée) |
+| `IA-05` | equipes-ia | Hypothèse à vérifier : envoyerEmail n'a aucun délai maximal, un blocage du fournisseur retient toute la passe *(hyp.)* | déployée — D47-A (délai maximal de 15 s, livré avec la clé d'idempotence, PR #182, `8c4aed6`) |
+| `PROP-03` | proprietaire/s01 | Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause | à trancher — D12 : la mesure (dépôt de 6 Mo) reste à autoriser au 16/10 ; le seuil annoncé reste 10 Mo |
+| `PROP-14` | proprietaire/s01 | Entrée en cours de mois : le premier terme (prorata) est exigible le 1er du mois, avant l'entrée, et passe tout de suite en « Impayé » | déployée — D01-A (le premier terme n'est pas exigible avant l'entrée, nouveaux appels seulement, PR #181, `d38487a`) ; D01-B seulement si un relevé de production montre des appels concernés |
+| `FIN-07` | relecture/finance | Le filtre par mot-clé « fonds travaux / alur » écarte la pièce avant de consulter la qualification justifiée du propriétaire : une dépense qualifiée « déductible 224 » reste exclue des charges et la qualification est enregistrée mais sans effet. | à trancher — D03-A déployée (l'écran dit que la qualification n'est pas appliquée, PR #181, `d38487a`) ; D03-B différé (validation fiscale) |
+| `FIN-11` | relecture/finance | Les migrations ne rétro-capturent aucun loyer existant et la reprise « retrouver_ventilation_fiscale » refuse tout bail qui a plus d'un appel : sur les données réelles déjà en production, le récapitulatif 2044 passe à 0 € de loyers et chaque pièce doit être q… | à trancher — D02-A déployée (nombre de pièces à qualifier annoncé, PR #181, `d38487a`) ; D02-B (reprise de l'historique) différé, à livrer avant la campagne de déclaration du printemps 2027 après avis d'un expert-comptable |
+| `PR178-A-03` | relecture/pr178/a | Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seule issue : effacer la copie et tout ressaisir | déployée — D31-B (clé d'idempotence de la création d'une fiche personne, PR #184, `fac0105`) |
+| `PR178-B-04` | relecture/pr178/b | Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires | déployée — D30-B (bouton d'envoi désactivé jusqu'à l'hydratation, PR #184, `fac0105`) |
+| `SUP-01` | relecture/supervision | L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision. | déployée — D06-A (PR #182, `8c4aed6`) : l'arrêt couvre neuf des dix tâches pg_cron (`relais-urgences`, ajoutée le 16/10, est exclue à dessein) ; l'écran « Relais et arrêts » n'affiche pas `maintenance-artisans`, arrêtée par la clé « rappels » |
+| `SUP-05` | relecture/supervision | Les « faits de direction » copient, pour toutes les organisations, des données personnelles (titres d'alertes contenant le nom du locataire, ex. « État des lieux d'entrée — Lot 1 · Marie Durand ») dans brief_direction_snapshots, sans aucune trace d'audit par… | déployée — D13-A (faits de direction sans noms, conservation 6 mois, PR #182, `8c4aed6`) ; durée à consigner au registre des traitements |
+| `SOR-03` | sortie-de-bail | Un second bail est activé sur un lot avec une période qui recouvre celle du bail précédent | déployée — D34-B (date de sortie réelle à la clôture ; refus d'activer un bail avant la sortie réelle du précédent, PR #181, `d38487a`) |
+| `SA-01` | superadmin | Traversée de la supervision dans un espace client : écriture financière possible sans motif ni durée, et la ligne d'audit 'traversee_action' ne dit ni quelle action, ni sur quel objet, ni avec quel résultat | à trancher — D08-A déployée (trace précise de la traversée, PR #182, `8c4aed6`) ; D08-C (lecture seule en traversée) retenue « ensuite » mais ni planifiée ni abandonnée au 16/10 |
 | `PROP-BANC-01` | proprietaire/s01 | Banc : serveur :3100 démarré sans SUPABASE_SERVICE_ROLE_KEY (inscription et liens bloqués) | acceptée — défaut du banc d'essai, pas du produit ; banc-up.sh vérifie la clé de service |
 
 ### Fiches P2
@@ -677,7 +700,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `ARC-07` — Facture externe déposée avec une erreur (numéro, montant, pièce) : impossible de la corriger ni de l annuler, le chantier terminé est figé
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée, inactive en production — D24-B (relecture avant dépôt, PR #184, `fac0105`) puis D24-C (annulation motivée par un avoir numéroté AV-…, PR #190, `f93ec6e`) ; le module « clients externes » reste désactivé (décision du 15/10) jusqu'à la validation comptable de la forme de l'avoir, et l'outil privé de l'artisan est coupé hors poste local (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Chantier externe terminé, facture déposée
@@ -691,7 +714,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `ARC-08` — Un artisan refusé par la plateforme et sur liste noire globale garde l outil clients externes, devis et factures
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée, inactive en production — D25-B (écritures coupées pour un artisan refusé ou sur liste noire globale, lecture et export gardés, PR #184, `fac0105`) ; outil privé coupé hors poste local (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : artisan (artisan) · **Version testée** : candidate dfbc19a (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Module clients externes activé ; fiche artisan au statut refusé avec blacklist_globale renseignée (fixture SQL sur ma propre fiche de test, remise ensuite en en_attente)
@@ -705,7 +728,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `AUD-B-04` — Hypothèse à vérifier : la limite de corps des fonctions Vercel (4,5 Mo, d'après la documentation de la plateforme) est inférieure aux 10 Mo annoncés pour un dépôt de pièce
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : à trancher — D12 : la mesure (dépôt de 6 Mo hors données réelles) reste à autoriser au 16/10 ; les formulaires annoncent toujours « 10 Mo maximum » (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : auditeur-b (auditeur/b) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Déploiement Vercel
@@ -720,7 +743,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `AUD-C-02` — Les 8 taches pg_cron (cycle mensuel des appels de loyer, retention, alertes d'impayes, declencheur marketing) ne sont ni sauvegardees, ni decrites dans la procedure de restauration, ni surveillees pa…
 
-- **Sévérité** : P2 · **Statut** : à trancher — décision D07 de la page de décisions groupées · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D07-A (PR #182, `8c4aed6`) : export de `cron.job` dans la sauvegarde, rejeu des tâches pg_cron dans la procédure, cycle mensuel lu par Santé (retard au-delà de 32 jours) ; essai de restauration d'une sauvegarde réelle non fait (à autoriser, avec D43) (mise à jour du 16/10/2026 ; statut précédent : à trancher — décision D07 de la page de décisions groupées) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : auditeur-c (auditeur/c) · **Version testée** : e9f31ac (code de main, photographie lecture seule) ; banc servant e9f31ac
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Restauration de la base dans un projet neuf, ou arret silencieux de pg_cron / pg_net
@@ -734,7 +757,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `PRO2-01` — Un propriétaire dont la commune n'est pas ouverte au réseau ne peut solliciter aucun artisan, même un artisan connu : le carnet ne se remplit que par une intervention déjà confiée
 
-- **Sévérité** : P2 · **Statut** : à trancher — choix produit : réseau fermé pour la commune du propriétaire, carnet sans formulaire d'ajout · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : à trancher — D17-A (voie de sortie affichée, texte seul) déployée (PR #184, `fac0105`) ; D17-B remplacée le 15/10 par l'invitation d'un artisan par le propriétaire : en cours, non livrée (mise à jour du 16/10/2026 ; statut précédent : à trancher — choix produit : réseau fermé pour la commune du propriétaire, carnet sans formulaire d'ajout) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : proprietaire (chaine/1) · **Version testée** : candidate 5d15b4d (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Propriétaire n°2 (bien en 75011, commune INSEE 75056), incident qualifié « charge propriétaire », aucun artisan dans son carnet, réseau non ouvert pour le métier et la commune
@@ -748,7 +771,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `ART-13` — L'artisan ne peut pas déposer une version 2 de son devis : la demande close devient lecture seule, sans « réviser mon devis »
 
-- **Sévérité** : P2 · **Statut** : à trancher — fonction manquante : l'artisan ne peut pas déposer une version 2 de son devis · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D18-A (PR #187, `8a168dd`) : version 2 et suivantes, trois versions au plus, sept jours (jour de Paris) pour répondre ; hors livraison : alerte au propriétaire si l'artisan devient non affectable pendant la révision, PDF par version ; parcours complet dans un navigateur non joué (mise à jour du 16/10/2026 ; statut précédent : à trancher — fonction manquante : l'artisan ne peut pas déposer une version 2 de son devis) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : artisan (chaine/1b) · **Version testée** : candidate 5d15b4d (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Devis v1 envoyé (sollicitation devis_depose)
@@ -762,7 +785,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `PRO2-12` — Un devis reçu ne peut être que retenu : ni refus motivé, ni demande de révision (écart avec le référentiel : déposé, validé, refusé ou expiré)
 
-- **Sévérité** : P2 · **Statut** : à trancher — fonction manquante : un devis reçu ne peut pas être refusé ni renvoyé en révision · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D18 (PR #187, `8a168dd`) : refus motivé (motif montré à l'artisan, place libérée) puis demande de révision ; parcours complet dans un navigateur non joué (mise à jour du 16/10/2026 ; statut précédent : à trancher — fonction manquante : un devis reçu ne peut pas être refusé ni renvoyé en révision) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : proprietaire (chaine/1b) · **Version testée** : candidate 5d15b4d (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Incident qualifié « charge propriétaire », consultation en devis unique, un devis déposé par l'artisan sollicité
@@ -776,7 +799,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `PRO2-13` — Réception d'un devis : aucune alerte dans l'application, seulement un e-mail ; l'incident n'est pas compté « À traiter »
 
-- **Sévérité** : P2 · **Statut** : à trancher — aucune alerte dans l'application à la réception d'un devis (e-mail seul) : création d'une alerte en base à décider · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D19-A (alerte « devis à décider » posée au dépôt, PR #184, `fac0105`) (mise à jour du 16/10/2026 ; statut précédent : à trancher — aucune alerte dans l'application à la réception d'un devis (e-mail seul) : création d'une alerte en base à décider) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : proprietaire (chaine/1b) · **Version testée** : candidate 5d15b4d (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Devis déposé alors que l'envoi d'e-mail échoue ou n'est pas lu
@@ -790,7 +813,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `ART-21` — Rien n'empêche de démarrer, de terminer et de facturer plusieurs jours avant le rendez-vous confirmé avec le locataire
 
-- **Sévérité** : P2 · **Statut** : à trancher — règle métier : démarrer, terminer et facturer avant le rendez-vous confirmé · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D20-B (avertissement non bloquant et écart écrit à la chronologie, PR #184, `fac0105`) (mise à jour du 16/10/2026 ; statut précédent : à trancher — règle métier : démarrer, terminer et facturer avant le rendez-vous confirmé) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : artisan / chaîne (chaine/2) · **Version testée** : candidate 5d15b4d (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Mission planifiée au 19/10 09:00-11:00, locataire informé « E2E Plomberie Dubois intervient chez vous »
@@ -804,7 +827,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `CHN-01` — Les créneaux non retenus sont enregistrés « refusés » : après trois reports, l'artisan est bloqué et l'écran impute au locataire des refus qu'il n'a jamais faits
 
-- **Sévérité** : P2 · **Statut** : à trancher — règle métier : les créneaux non retenus comptent aujourd'hui comme refusés (six refus = arbitrage) ; une correction en base les rendrait « caducs » · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D21-A (créneaux non retenus « caducs », nouveaux choix seulement, PR #184, `fac0105`) et D22-B (PR #188, `98f3fd7`) ; reprise de l'historique (D21-C) subordonnée à un relevé de production (mise à jour du 16/10/2026 ; statut précédent : à trancher — règle métier : les créneaux non retenus comptent aujourd'hui comme refusés (six refus = arbitrage) ; une correction en base les rendrait « caducs ») · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : chaine (artisan, locataire, propriétaire) (chaine/2) · **Version testée** : candidate 5d15b4d (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Mission acceptée, rendez-vous négocié entre l'artisan et le locataire (version candidate servie sur le banc)
@@ -818,7 +841,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `LOC-21` — Le locataire ne peut ni reporter ni annuler un rendez-vous confirmé : aucun geste après la confirmation
 
-- **Sévérité** : P2 · **Statut** : à trancher — fonction manquante : le locataire ne peut ni reporter ni annuler un rendez-vous confirmé · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D22-B (PR #188, `98f3fd7`) : report avec accord de l'artisan (demande 24 h avant au moins, deux demandes au plus, réponse sous 48 h), annulation immédiate avec alerte au gérant ; non livrés : relance de l'artisan avant l'échéance de 48 h, geste « J'en prends acte », badge dans l'agenda de l'artisan ; parcours complet dans un navigateur non joué (mise à jour du 16/10/2026 ; statut précédent : à trancher — fonction manquante : le locataire ne peut ni reporter ni annuler un rendez-vous confirmé) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : locataire (chaine/2) · **Version testée** : candidate 5d15b4d (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Rendez-vous retenu (mission planifiée)
@@ -832,7 +855,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `PRO2-21` — Le règlement de la facture de l'artisan n'est pas un geste de l'application : l'écriture du journal n'est liée à rien et la facture ne passe jamais à « réglée »
 
-- **Sévérité** : P2 · **Statut** : à trancher — fonction manquante : le règlement d'une facture d'artisan n'est lié ni à la facture ni à l'incident · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D23-A (règlement déclaratif, partiel admis, aucun paiement exécuté, visible de l'artisan, PR #188, `98f3fd7`) ; parcours complet dans un navigateur non joué (mise à jour du 16/10/2026 ; statut précédent : à trancher — fonction manquante : le règlement d'une facture d'artisan n'est lié ni à la facture ni à l'incident) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : propriétaire n°2 (chaine/2) · **Version testée** : candidate 5d15b4d (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Facture artisan validée par le propriétaire (propriétaire direct)
@@ -846,7 +869,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `CHF-03` — Le « Décompte annuel des charges » et le « Courrier de régularisation » sont impossibles à générer pour une régularisation créée depuis l'interface : ils exigent un champ « note » que le formulaire n…
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D39-B (détail des dépenses saisi au moment de générer le document, PR #181, `d38487a`) (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Régularisation émise par le formulaire « Régulariser » (justificatif déposé).
@@ -860,7 +883,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `CHF-06` — Une régularisation de charges n'écrit rien au livre ni aux appels : le complément dû ou le trop-perçu à rendre n'apparaît dans aucun écran de suivi financier.
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : à trancher — D40-A déployée (message à l'émission et alerte, PR #181, `d38487a`) ; D40-B (appel complémentaire ou avoir) différé, avis spécialisé (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : charges-fiscalite (propriétaire direct) (charges-fiscalite) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Régularisations émises : A 2025 (+10,36 trop-perçu), B 2025 (-50,40 complément).
@@ -874,7 +897,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `AUT-01` — maintenance_artisans() n'est appelée par aucune tâche : les devis déposés ne deviennent jamais « expirés » et les motifs de liste noire ne sont jamais purgés
 
-- **Sévérité** : P2 · **Statut** : à trancher — correction préparable (tâche pg_cron + version interne), aval requis : active un automatisme en production · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D42-B (tâche pg_cron `maintenance-artisans` : expiration des devis échus, PR #182, `8c4aed6`) ; le choix du dirigeant entre A et B n'est pas tracé (à ratifier) ; purge des motifs de liste noire non planifiée (mise à jour du 16/10/2026 ; statut précédent : à trancher — correction préparable (tâche pg_cron + version interne), aval requis : active un automatisme en production) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : auditeur (coordinateur) · **Version testée** : e9f31ac puis candidate
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Attendu** : RM-9.2.3 : un devis dont la validité est dépassée devient caduc ; matrice A2 : les motifs de liste noire sont purgés à 3 ans (local) et 5 ans (global)
@@ -886,7 +909,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `IA-01` — Les règles 'Ce qui peut continuer seul' (dont incident urgent et correction à faible risque en 'agir_seul') sont affichées au dirigeant mais aucun code ne les applique
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : à trancher — D46-A (vague 2) : l'écran dit « non appliquées automatiquement » ; la décision 7 du document « Équipes IA » (brancher ou retirer) n'est pas tranchée, et les réponses du 15/10 la laissent hors périmètre (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : tête 83ba492 (lecture)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Code au commit 83ba492
@@ -900,7 +923,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `IA-02` — Mode vacances : l'urgence et l'escalade restent internes à la console, sans alerte vers un responsable absent, et ne s'alimentent ni d'un incident urgent ni d'un impayé
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : à trancher — partiel : depuis le 16/10 (D46-B, PR #192, `a722f94`), chaque urgence du mode vacances part par e-mail au dirigeant (passage toutes les 10 minutes) ; les incidents urgents des clients et les impayés n'alimentent toujours pas le relais, et l'escalade n'a pas d'e-mail immédiat (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : tête 83ba492 (lecture)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Plan de vacances actif avec un responsable désigné
@@ -914,7 +937,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `IA-03` — Aucune alerte active sur l'échec ou l'absence d'une tâche : la santé ne se lit que si le dirigeant ouvre l'écran ; la seule alerte e-mail du produit est le veto marketing
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D46-B (PR #192, `a722f94`) : e-mail quotidien à 5 h (Paris) s'il y a des tâches en échec ou absentes, des alertes non accusées ou un arrêt actif ; aucun e-mail de 5 h le 16/10, premier attendu le 17/10 au plus tôt, non constaté (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : tête 83ba492 (lecture)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Une tâche planifiée échoue ou ne passe pas
@@ -928,7 +951,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `IA-04` — Hypothèse à vérifier : quittances, avis d'échéance, relances et rappels s'envoient puis se marquent, sans clé d'idempotence côté fournisseur d'e-mail
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D47-A (clé d'idempotence sur les e-mails de tâche, livrée avec le délai maximal, PR #182, `8c4aed6`) ; garantie limitée aux reprises rapprochées (rétention de la clé chez le fournisseur supposée de 24 h, non vérifiée) (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : tête 83ba492 (lecture)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Le marquage échoue après l'envoi, ou le passage est interrompu entre l'envoi et le marquage
@@ -943,7 +966,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `IA-05` — Hypothèse à vérifier : envoyerEmail n'a aucun délai maximal, un blocage du fournisseur retient toute la passe
 
-- **Sévérité** : P2 · **Statut** : à trancher — décision D47 de la page de décisions groupées · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D47-A (délai maximal de 15 s, livré avec la clé d'idempotence, PR #182, `8c4aed6`) (mise à jour du 16/10/2026 ; statut précédent : à trancher — décision D47 de la page de décisions groupées) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : equipes-ia (equipes-ia) · **Version testée** : tête 83ba492 (lecture)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Le service d'e-mail ne répond pas
@@ -958,7 +981,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `PROP-03` — Un fichier de plus de 10 Mo provoque une erreur HTTP 500 et un message sans rapport avec la cause
 
-- **Sévérité** : P2 · **Statut** : à trancher — voir D12 : la limite réelle est celle des fonctions Vercel (4,5 Mo), à mesurer avant de choisir le seuil du contrôle · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : à trancher — D12 : la mesure (dépôt de 6 Mo) reste à autoriser au 16/10 ; le seuil annoncé reste 10 Mo (mise à jour du 16/10/2026 ; statut précédent : à trancher — voir D12 : la limite réelle est celle des fonctions Vercel (4,5 Mo), à mesurer avant de choisir le seuil du contrôle) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : lot avec DPE déjà déposé, bouton « Remplacer »
@@ -972,7 +995,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `PROP-14` — Entrée en cours de mois : le premier terme (prorata) est exigible le 1er du mois, avant l'entrée, et passe tout de suite en « Impayé »
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D01-A (le premier terme n'est pas exigible avant l'entrée, nouveaux appels seulement, PR #181, `d38487a`) ; D01-B seulement si un relevé de production montre des appels concernés (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : proprietaire (proprietaire/s01) · **Version testée** : e9f31ac (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : bail nu actif, date d'entrée 16/10/2026, jour d'échéance 1, paiement à échoir, activation le 13/10/2026
@@ -986,7 +1009,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `FIN-07` — Le filtre par mot-clé « fonds travaux / alur » écarte la pièce avant de consulter la qualification justifiée du propriétaire : une dépense qualifiée « déductible 224 » reste exclue des charges et la…
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : à trancher — D03-A déployée (l'écran dit que la qualification n'est pas appliquée, PR #181, `d38487a`) ; D03-B différé (validation fiscale) (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : relecture (relecture/finance) · **Version testée** : e9f31ac (lecture du code)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Observé** : Le propriétaire saisit « Appel de fonds travaux ravalement 2026 » (800 €, travaux votés payés dans l'année), la qualifie « Dépense déductible vérifiée », rubrique 224, justification « facture approuvée en assemblée ». La base accepte et versionne la qualification (audit_log inclus) ; le récapitulatif compte 224 = 0 et 800 € dans « Fonds travaux ALUR — à part » (« ne sont pas comptés dans les charges »). Aucun message n'explique que son choix est ignoré, et le libellé du journal étant immuable, seul un contournement par contre-écriture et ressaisie sous un autre libellé est possible. Contredit le principe posé en tête du fichier : « seuls les faits figés et choix justifiés chiffrent les totaux confirmés ». La règle existait avant la PR (mots-clés ALUR) mais la PR ajoute le formulaire de qualification qui devrait la primer.
@@ -998,7 +1021,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `FIN-11` — Les migrations ne rétro-capturent aucun loyer existant et la reprise « retrouver_ventilation_fiscale » refuse tout bail qui a plus d'un appel : sur les données réelles déjà en production, le récapitu…
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : à trancher — D02-A déployée (nombre de pièces à qualifier annoncé, PR #181, `d38487a`) ; D02-B (reprise de l'historique) différé, à livrer avant la campagne de déclaration du printemps 2027 après avis d'un expert-comptable (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : relecture (relecture/finance) · **Version testée** : e9f31ac (lecture du code)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Observé** : Bail régulier, trois appels de 840 € (780 + 60) et trois paiements de 840 € antérieurs à la migration : la fonction répond trois fois « Plusieurs échéances ou aucune échéance : la ventilation doit être justifiée », 0 capture. Avec exigerPerimetre, le récapitulatif ne compte rien tant que l'exercice du lot n'est pas confirmé, puis refuse chaque loyer ancien (« attendent leur ventilation historique ») tant qu'il n'a pas reçu une qualification justifiée (nature, lot, parts HC et charges, justification, case de confirmation) : une pièce par mois et par lot. Le comportement précédent (ventilation au prorata du bail) affichait des totaux. Le choix de « ne rien réécrire » est assumé dans les commentaires, mais l'effet sur les propriétaires réels n'est ni mesuré ni annoncé dans l'interface. Contournement : qualification manuelle pièce par pièce.
@@ -1010,7 +1033,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `PR178-A-03` — Après une réponse perdue à la création d'une fiche personne, le bouton d'envoi reste désactivé pour toujours : la saisie et les pièces « restent disponibles » mais ne peuvent plus être envoyées ; seu…
 
-- **Sévérité** : P2 · **Statut** : à trancher — décision D31 de la page de décisions groupées · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D31-B (clé d'idempotence de la création d'une fiche personne, PR #184, `fac0105`) (mise à jour du 16/10/2026 ; statut précédent : à trancher — décision D31 de la page de décisions groupées) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : relecteur-pr178-navigateur (relecture/pr178/a) · **Version testée** : f283439 (main après PR #178, lecture) et candidate 5d15b4d (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Compte proprietaire@gerimmo-demo.fr, version candidate. Réseau simulé : la requête POST de l'action serveur de création est transmise au serveur mais sa réponse est coupée (route.fetch puis abort connectionreset).
@@ -1024,7 +1047,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `PR178-B-04` — Les formulaires passés par useActionStateProtegee ne s'envoient plus avant l'hydratation : l'amélioration progressive des actions serveur est perdue sur une soixantaine de formulaires
 
-- **Sévérité** : P2 · **Statut** : à trancher — clic avant hydratation sans effet visible : désactiver le bouton jusqu'à l'hydratation, formulaire par formulaire · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D30-B (bouton d'envoi désactivé jusqu'à l'hydratation, PR #184, `fac0105`) (mise à jour du 16/10/2026 ; statut précédent : à trancher — clic avant hydratation sans effet visible : désactiver le bouton jusqu'à l'hydratation, formulaire par formulaire) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : relecteur adverse PR178 (côté serveur et régressions) (relecture/pr178/b) · **Version testée** : f283439 (main après PR #178, lecture) et candidate 5d15b4d (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Navigateur dont les scripts JavaScript de l'application ne sont pas encore chargés (réseau lent, téléphone modeste), simulé ici en bloquant **/_next/static/**/*.js.
@@ -1038,7 +1061,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `SUP-01` — L'arret d'urgence (global ou par mission) ne couvre pas les 8 taches SQL planifiees par pg_cron : seules les routes Next/Vercel appellent verifier_arret_supervision.
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D06-A (PR #182, `8c4aed6`) : l'arrêt couvre neuf des dix tâches pg_cron (`relais-urgences`, ajoutée le 16/10, est exclue à dessein) ; l'écran « Relais et arrêts » n'affiche pas `maintenance-artisans`, arrêtée par la clé « rappels » (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : relecture (relecture/supervision) · **Version testée** : e9f31ac (lecture du code)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Observé** : La supervision enregistre un arret 'global' (ou 'purge', 'quittances', 'appels'). verifier_arret_supervision(...) renvoie false pour les 13 cles, les routes /api/cron/* s'arretent. Mais pg_cron continue : retention-quotidienne (appliquer_retention : DELETE sur tech_log, audit_log, demandes_devis, intentions_conge, demandes_signature, purge/anonymisation de documents), cycle-mensuel (generation des appels de loyer et quittances), alertes-*, propositions-publication-hebdo.
@@ -1050,7 +1073,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `SUP-05` — Les « faits de direction » copient, pour toutes les organisations, des données personnelles (titres d'alertes contenant le nom du locataire, ex. « État des lieux d'entrée — Lot 1 · Marie Durand ») da…
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D13-A (faits de direction sans noms, conservation 6 mois, PR #182, `8c4aed6`) ; durée à consigner au registre des traitements (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : relecture (relecture/supervision) · **Version testée** : e9f31ac (lecture du code)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Observé** : Un superviseur clique « Préparer le point maintenant » : preparer_faits_direction lit alerts.titre de toutes les organisations et stocke la copie dans sources->echeances->donnees->faits (jusqu'à 20 faits x 5 sources par clic, un instantané par clic, conservé indéfiniment). Delta audit_log = 0 et supervision_operations = 0 pour l'appel SQL ; côté TypeScript une seule ligne générique point_du_matin_prepare (sans organisation, écrite après coup et non transactionnelle). La lecture de l'écran /admin/brief (lire_faits_direction) n'est jamais tracée. Écart à la règle documentée « traversée par le Super Admin autorisée mais journalisée » (wiki/regles-metier/Isolation multi-organisation.md, RM-A1.11) et à la minimisation des données.
@@ -1062,7 +1085,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `SOR-03` — Un second bail est activé sur un lot avec une période qui recouvre celle du bail précédent
 
-- **Sévérité** : P2 · **Statut** : à trancher · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : déployée — D34-B (date de sortie réelle à la clôture ; refus d'activer un bail avant la sortie réelle du précédent, PR #181, `d38487a`) (mise à jour du 16/10/2026 ; statut précédent : à trancher) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : proprietaire+locataire (sortie de bail) (sortie-de-bail) · **Version testée** : candidate 375af42 (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Lot A : bail A 01/08/2026 -> 14/01/2027 (clôturé le 14/10/2026) ; brouillon B créé pendant le bail A avec date d entrée 01/09/2026
@@ -1076,7 +1099,7 @@ Aucune anomalie de cette gravité à ce jour.
 
 #### `SA-01` — Traversée de la supervision dans un espace client : écriture financière possible sans motif ni durée, et la ligne d'audit 'traversee_action' ne dit ni quelle action, ni sur quel objet, ni avec quel r…
 
-- **Sévérité** : P2 · **Statut** : à trancher — limite déjà actée au wiki (audit du 25/09) : entrée dans un espace client sans motif ni durée ; l'écriture complète la prolonge · **Propriétaire** : dirigeant (décision)
+- **Sévérité** : P2 · **Statut** : à trancher — D08-A déployée (trace précise de la traversée, PR #182, `8c4aed6`) ; D08-C (lecture seule en traversée) retenue « ensuite » mais ni planifiée ni abandonnée au 16/10 (mise à jour du 16/10/2026 ; statut précédent : à trancher — limite déjà actée au wiki (audit du 25/09) : entrée dans un espace client sans motif ni durée ; l'écriture complète la prolonge) · **Propriétaire** : dirigeant (décision)
 - **Rôle / source** : super-administrateur (superadmin) · **Version testée** : candidate 5d15b4d (banc)
 - **Environnement** : banc local isolé (Postgres 16, émulateur Supabase, next start), aucun service externe
 - **Préconditions** : Super-administrateur aal2 ; organisation de test '[TEST-superadmin] Parc brief' avec un bail de test
@@ -1116,8 +1139,8 @@ Aucune anomalie de cette gravité à ce jour.
 | `CAR-10` | cartographie | La matrice du super-administrateur décrit la politique d'écriture de `memberships` de façon incomplète | ouverte |
 | `CHF-08` | charges-fiscalite | Hypothèse à vérifier : le lien « notice officielle 2044, millésime 2026 (revenus 2025) » affiché sous un récapitulatif des revenus 2026 pointe vers …/2044_5487.pdf, alors que la recherche renvoie le formulaire 2026 sous …/2044_5483.pdf. *(hyp.)* | ouverte |
 | `DES-B-12` | designer/b | HORS V1 PUBLIQUE — espaces administrateur d'agence et agent : défauts transversaux déjà connus et petites cibles sur la recherche | ouverte |
-| `FIN-12` | relecture/finance | Hypothèse à vérifier : les lectures de qualifications, de captures et d'écritures n'ont ni filtre d'année (captures, qualifications) ni garde contre la limite de 1 000 lignes de l'API, alors que d'autres écrans du dépôt la connaissent (« trop de lignes »). *(hyp.)* | ouverte |
-| `FIN-13` | relecture/finance | Hypothèse à vérifier : l'encaissement en un clic prend la date par défaut de la base (current_date, fuseau UTC), pas la date de Paris ; entre 00 h 00 et 01 h 59 (heure de Paris) un règlement est daté de la veille, y compris le 31 décembre pour un 1er janvier. *(hyp.)* | ouverte |
+| `FIN-12` | relecture/finance | Hypothèse à vérifier : les lectures de qualifications, de captures et d'écritures n'ont ni filtre d'année (captures, qualifications) ni garde contre la limite de 1 000 lignes de l'API, alors que d'autres écrans du dépôt la connaissent (« trop de lignes »). *(hyp.)* | déployée — X12 (PR #185, `5ff849b`) |
+| `FIN-13` | relecture/finance | Hypothèse à vérifier : l'encaissement en un clic prend la date par défaut de la base (current_date, fuseau UTC), pas la date de Paris ; entre 00 h 00 et 01 h 59 (heure de Paris) un règlement est daté de la veille, y compris le 31 décembre pour un 1er janvier. *(hyp.)* | déployée — X13 restreint à « Encaisser » et à la quittance (PR #185, `5ff849b`), puis jour de Paris étendu aux règles de loyer (PR #186, `6b2a130` ; PR #189, `0c9328a`) |
 | `PR178-A-09` | relecture/pr178/a | Sans API Navigation (hypothèse Safari/iOS et Firefox), le geste Retour abandonne silencieusement un formulaire modifié *(hyp.)* | ouverte |
 | `PR178-B-07` | relecture/pr178/b | Les parcours navigateur ajoutés n'auraient détecté aucun des constats B-01 à B-06 : les tests du garde sont en partie synthétiques et aucun ne couvre les succès financiers, la session expirée ou les formulaires de recherche sans method | ouverte |
 | `REP-03` | relecture/reprises | Clients externes (module desactive en production) : apres un refus de validation, le meme justificatif ne peut plus etre remplace par un autre fichier de meme type tant que le formulaire n'est pas recharge, et un devis re-genere ne peut pas etre redepose *(hyp.)* | ouverte |
@@ -1200,75 +1223,75 @@ Aucune anomalie de cette gravité à ce jour.
 | `VER-TS-03` | verification/ts | L'élision « d’octobre » n'est appliquée que sur la page d'accueil locataire : e-mails, page Documents du locataire, PDF de décompte et libellés d'agenda disent encore « de octobre », « de avril », « de août » | corrigée en branche — vague 5-7 ; tests : tests/elision-courriers.test.ts, tests/elision.test.ts |
 | `VER-TS-04` | verification/ts | Récapitulatif fiscal nu : « Périmètre : N écritures » compte des pièces écartées (période meublé ou hors de mes droits) sans le dire | corrigée en branche — vague 5-7 ; tests : tests/fiscal-perimetre.test.ts, tests/catalogue-documents.test.ts |
 | `VUI-02` | verification/ui-finale | Rail tablette locataire (641-860 px) : la cellule du nom d espace affiche « PDP… » (initiales suivies du début du nom tronqué) au lieu des seules initiales ; la correction DES-A-14 ne tient pas sur la construction finale | corrigée en branche — globals.css : font-size:0 !important sur les initiales du rail ; tests/rail-initiales-et-cesure.t… |
-| `ARC-04` | artisan | Numéro de facture externe : unicité sensible à la casse (« art-2026-0001 » accepté en doublon de « ART-2026-0001 »), aucune continuité contrôlée | à trancher |
-| `AUD-A-05` | auditeur/a | Écart documentation/code : la piste d'audit générique documentée n'existe pas | à trancher |
-| `AUD-A-06` | auditeur/a | Insertion anonyme directe dans demandes_devis sans limite de débit | à trancher |
-| `AUD-B-03` | auditeur/b | Cookie de session lisible par script et marqué Secure seulement si NEXT_PUBLIC_SITE_URL commence par https:// *(hyp.)* | à trancher |
+| `ARC-04` | artisan | Numéro de facture externe : unicité sensible à la casse (« art-2026-0001 » accepté en doublon de « ART-2026-0001 »), aucune continuité contrôlée | déployée, inactive en production — D24-B (unicité sans tenir compte de la casse ni des espaces, PR #184, `fac0105`) ; numérotation continue des avoirs avec D24-C (PR #190, `f93ec6e`) ; module « clients externes » désactivé |
+| `AUD-A-05` | auditeur/a | Écart documentation/code : la piste d'audit générique documentée n'existe pas | déployée (wiki) — X01 : wiki corrigé dans la vague 4a (PR #185, `5ff849b`) ; déclencheur d'audit générique reporté par la recommandation |
+| `AUD-A-06` | auditeur/a | Insertion anonyme directe dans demandes_devis sans limite de débit | déployée — X02 (demande de devis par l'action serveur, porte directe fermée, PR #185, `5ff849b`) |
+| `AUD-B-03` | auditeur/b | Cookie de session lisible par script et marqué Secure seulement si NEXT_PUBLIC_SITE_URL commence par https:// *(hyp.)* | déployée — X03 (PR #185, `5ff849b`) |
 | `AUD-C-05` | auditeur/c | L'arret d'urgence ne couvre pas les e-mails declenches par le webhook Stripe (hypothese a verifier) *(hyp.)* | à trancher |
-| `AUD-C-07` | auditeur/c | Les routes cron directes n'ont ni verrou de mission ni reservation avant envoi (doublon d'e-mail possible, hypothese a verifier) *(hyp.)* | à trancher |
-| `AUD-C-08` | auditeur/c | Fichiers PDF orphelins possibles si le webhook Youtrust et la tache de nuit traitent le meme evenement en meme temps (hypothese a verifier) *(hyp.)* | à trancher |
+| `AUD-C-07` | auditeur/c | Les routes cron directes n'ont ni verrou de mission ni reservation avant envoi (doublon d'e-mail possible, hypothese a verifier) *(hyp.)* | déployée — X04 (entrée unique `/api/cron/equipes`, PR #185, `5ff849b`) |
+| `AUD-C-08` | auditeur/c | Fichiers PDF orphelins possibles si le webhook Youtrust et la tache de nuit traitent le meme evenement en meme temps (hypothese a verifier) *(hyp.)* | à trancher — X05 reporté par sa propre recommandation : la signature électronique n'est pas en production |
 | `CAR-05` | cartographie | Privilèges de table et politiques RLS ne se recouvrent pas : 17 tables ont des privilèges d'écriture sans politique, 12 tables ont des politiques sans privilège | à trancher |
 | `CAR-06` | cartographie | Deux valeurs de `membership_role` (`proprietaire_mandant`, `garant`) n'ont ni fonction d'attribution repérée ni espace dédié *(hyp.)* | à trancher |
-| `ART-15` | chaine/1b | La photo jointe par le locataire n'est visible de l'artisan ni au stade du devis ni sur la fiche de mission | à trancher |
+| `ART-15` | chaine/1b | La photo jointe par le locataire n'est visible de l'artisan ni au stade du devis ni sur la fiche de mission | déployée — D16-A (photo lisible par l'artisan dès la demande, URL signée, PR #182, `8c4aed6`) ; jamais éprouvée sur le vrai service de stockage |
 | `PRO2-11` | chaine/1b | Élision manquante dans le nom de parc généré : « Parc de Éloïse … » (même famille que LOC-02) | à trancher — texte produit par une fonction SQL : demande une migration supplémentaire (les deux migrations de la livra… |
-| `CHN-02` | chaine/2 | La validation de la facture, l'écriture de règlement et la clôture de l'incident ne laissent aucune ligne au journal d'audit : seule la chronologie de l'incident les garde | à trancher |
+| `CHN-02` | chaine/2 | La validation de la facture, l'écriture de règlement et la clôture de l'incident ne laissent aucune ligne au journal d'audit : seule la chronologie de l'incident les garde | déployée — X06, avec D23-A (PR #188, `98f3fd7`) |
 | `CHF-05` | charges-fiscalite | Le wiki « Fiscalité » ne s'appuie sur aucune source officielle (quatre sites commerciaux seulement) et affirme encore « non implémentée » pour des fonctions livrées ; le wiki « Régularisation des charges » fait de même. | à trancher — avertissement ajouté à la page Fiscalité ; les sources officielles n'ont pu être consultées (réseau bloqué… |
-| `CHF-07` | charges-fiscalite | Hypothèse à vérifier : une contre-écriture est datée du jour de l'annulation, non de la pièce d'origine ; annuler en janvier un encaissement de décembre déplace le correctif sur l'exercice suivant. *(hyp.)* | à trancher |
-| `CHF-09` | charges-fiscalite | Un encaissement saisi par erreur puis retiré (net 0,00 €) reste « à qualifier » et empêche de générer le PDF du lot tant qu'il n'est pas qualifié à la main. | à trancher |
-| `EDI-01` | coordinateur | La ligne éditoriale de la veille accepte « agence » comme public valide (PUBLICS_JOURNAL) : un article visant seulement les agences passerait le filtre de pertinence en V1 | à trancher — ligne éditoriale |
-| `PUB-03` | coordinateur | Les textes juridiques (conditions générales, mentions légales, confidentialité) décrivent encore l'offre et la tarification agence | à trancher — textes juridiques non modifiés |
-| `DES-A-06` | designer/a | Hors ligne : la navigation interne bascule sur la page d'erreur du navigateur (en anglais) et n'en sort pas au retour du réseau | à trancher |
-| `DES-A-07` | designer/a | Vocabulaire d'agence encore visible dans les parcours propriétaire et locataire de la V1 | à trancher — partiellement corrigée en branche ; reste à trancher : 4) veille réglementaire — Masquer l'audience « Agen… |
-| `DES-A-08` | designer/a | Toutes les pages du propriétaire direct vivent sous l'adresse /agence/<id>/… (adresse visible, partagée, mise en favori) | à trancher |
-| `DES-A-10` | designer/a | Le logo doré posé à nu sur fond clair est quasi illisible sur mobile (≈ 1,5:1), alors que la page d'inscription artisan le présente dans une tuile bleu nuit (≈ 13,6:1) | à trancher — décision D28 de la page de décisions groupées |
-| `DES-A-11` | designer/a | L'adresse est « facultative » à l'inscription propriétaire mais bloque ensuite la création du premier bien | à trancher |
-| `DES-B-10` | designer/b | Logo doré quasi illisible sur l'en-tête blanc : artisan à 768 px et super-admin à 390 et 768 px (même défaut que DES-A-10) | à trancher — décision D28 de la page de décisions groupées |
-| `IA-06` | equipes-ia | L'arrêt d'urgence ne couvre pas le traitement immédiat du webhook Yousign ; la clé 'sauvegarde' n'a aucun lecteur (confirmation par lecture de SUP-07) | à trancher |
+| `CHF-07` | charges-fiscalite | Hypothèse à vérifier : une contre-écriture est datée du jour de l'annulation, non de la pièce d'origine ; annuler en janvier un encaissement de décembre déplace le correctif sur l'exercice suivant. *(hyp.)* | à trancher — D41 (b) différé : avis spécialisé attendu |
+| `CHF-09` | charges-fiscalite | Un encaissement saisi par erreur puis retiré (net 0,00 €) reste « à qualifier » et empêche de générer le PDF du lot tant qu'il n'est pas qualifié à la main. | à trancher — D41 (a) différé : avis spécialisé attendu |
+| `EDI-01` | coordinateur | La ligne éditoriale de la veille accepte « agence » comme public valide (PUBLICS_JOURNAL) : un article visant seulement les agences passerait le filtre de pertinence en V1 | déployée — D33 A et C (PR #184, `fac0105`) |
+| `PUB-03` | coordinateur | Les textes juridiques (conditions générales, mentions légales, confidentialité) décrivent encore l'offre et la tarification agence | à trancher — D32 bloquée : l'identité de l'éditeur n'est pas fournie au 16/10 ; textes juridiques non modifiés |
+| `DES-A-06` | designer/a | Hors ligne : la navigation interne bascule sur la page d'erreur du navigateur (en anglais) et n'en sort pas au retour du réseau | déployée — D26-B (page de repli hors ligne sans service worker, PR #184, `fac0105`) |
+| `DES-A-07` | designer/a | Vocabulaire d'agence encore visible dans les parcours propriétaire et locataire de la V1 | à trancher — partiel ; le point 4 (audience « Agences » de la veille) est traité par D33-C (PR #184, `fac0105`) |
+| `DES-A-08` | designer/a | Toutes les pages du propriétaire direct vivent sous l'adresse /agence/<id>/… (adresse visible, partagée, mise en favori) | déployée — D27-B (écrans du propriétaire direct sous `/espace/<id>`, `/agence/<id>` redirigé en 308, PR #191, `d55f87b` ; tests renforcés PR #193, `bdaf755`) |
+| `DES-A-10` | designer/a | Le logo doré posé à nu sur fond clair est quasi illisible sur mobile (≈ 1,5:1), alors que la page d'inscription artisan le présente dans une tuile bleu nuit (≈ 13,6:1) | déployée — D28-A (PR #184, `fac0105`) |
+| `DES-A-11` | designer/a | L'adresse est « facultative » à l'inscription propriétaire mais bloque ensuite la création du premier bien | déployée — D29-B (PR #184, `fac0105`) |
+| `DES-B-10` | designer/b | Logo doré quasi illisible sur l'en-tête blanc : artisan à 768 px et super-admin à 390 et 768 px (même défaut que DES-A-10) | déployée — D28-A (PR #184, `fac0105`) |
+| `IA-06` | equipes-ia | L'arrêt d'urgence ne couvre pas le traitement immédiat du webhook Yousign ; la clé 'sauvegarde' n'a aucun lecteur (confirmation par lecture de SUP-07) | à trancher — partiel : la clé « sauvegarde » n'est plus proposée (D46-A, PR #182, `8c4aed6`) ; l'arrêt du webhook de signature est hors périmètre des réponses du 15/10 |
 | `IA-07` | equipes-ia | Des éléments d'automatisation existent sans écrivain ni appelant : automation_events, log_automation_event, automation_stats_30d, autoriser_orchestration | à trancher |
-| `IA-09` | equipes-ia | La tâche territoire peut préparer une campagne-idée 'essai avec des agences', alors que les agences sont hors du périmètre public V1 | à trancher |
-| `IA-11` | equipes-ia | Aucun registre d'exécution n'a de règle de rétention (agent_passages, supervision_operations, points_du_matin, decisions_du_matin, brief_direction_snapshots) | à trancher |
-| `IA-12` | equipes-ia | Hypothèse à vérifier : les textes et visuels produits avec l'IA et publiés sur le site et Facebook ne portent aucune mention d'origine *(hyp.)* | à trancher |
+| `IA-09` | equipes-ia | La tâche territoire peut préparer une campagne-idée 'essai avec des agences', alors que les agences sont hors du périmètre public V1 | déployée — D49 (1) A (PR #184, `fac0105`) |
+| `IA-11` | equipes-ia | Aucun registre d'exécution n'a de règle de rétention (agent_passages, supervision_operations, points_du_matin, decisions_du_matin, brief_direction_snapshots) | déployée — D48-A (règle de conservation de 6 mois pour les registres d'exécution, PR #182, `8c4aed6`) ; les registres créés les 15 et 16/10 (relais, compteur des appels IA) ne sont pas déclarés au catalogue `retention_rules` |
+| `IA-12` | equipes-ia | Hypothèse à vérifier : les textes et visuels produits avec l'IA et publiés sur le site et Facebook ne portent aucune mention d'origine *(hyp.)* | à trancher — D49 (2) : qualification juridique d'abord, non engagée au 16/10 |
 | `PRF-02` | perf-liens | Lien de nouveau mot de passe sans session : réponse 200 puis redirection côté client, avec décalage visible (CLS 0,346 à 390 px) | à trancher |
 | `PRF-03` | perf-liens | Accès interdits ou objets inexistants : le document répond 200 (redirection ou 404 faites côté client), seul le visiteur anonyme reçoit un vrai 307 | à trancher |
-| `PRF-04` | perf-liens | Défense en profondeur : la garde des pages /admin vit dans le layout ; la page s'exécute pour un non-super-administrateur et sa charge utile part avant la redirection (bornée par la RLS) | à trancher |
-| `PRF-05` | perf-liens | Poids et mise en cache : logo de 292 Ko (2016×1594) et illustration de 298 Ko chargés sur chaque écran d'espace, servis avec max-age=0 ; ils portent le LCP des écrans d'agence | à trancher |
+| `PRF-04` | perf-liens | Défense en profondeur : la garde des pages /admin vit dans le layout ; la page s'exécute pour un non-super-administrateur et sa charge utile part avant la redirection (bornée par la RLS) | déployée — D44-A (garde `/admin/*` dans le proxy, PR #182, `8c4aed6`) |
+| `PRF-05` | perf-liens | Poids et mise en cache : logo de 292 Ko (2016×1594) et illustration de 298 Ko chargés sur chaque écran d'espace, servis avec max-age=0 ; ils portent le LCP des écrans d'agence | à trancher — D45-A déployée (en-têtes de cache, PR #184, `fac0105`) ; D45-B (fichiers allégés) attend une comparaison visuelle validée par le dirigeant |
 | `PRF-07` | perf-liens | Console de supervision : « Voir le formulaire sur le site » n'affiche pas le formulaire pour un super-administrateur connecté | à trancher |
 | `PRF-08` | perf-liens | Page de confidentialité : « Aide et retours » mène un visiteur sans compte à la page de connexion ; contact éditeur « (à venir) » sur le banc | à trancher |
 | `PRF-10` | perf-liens | Journal serveur : erreur « The destination stream closed early » (digest 2041379235) non attribuée ; 69 % des préchargements de liens sont annulés *(hyp.)* | à trancher |
 | `PROP-05` | proprietaire/s01 | Nom d'espace sans élision : « Parc de Éloïse … » | à trancher — texte produit par une fonction SQL : demande une migration supplémentaire (les deux migrations de la livra… |
 | `PROP-08` | proprietaire/s01 | Recherche globale (⌘K) insensible à la casse mais pas aux accents ; code postal non recherchable | à trancher — code postal recherchable (corrigé) ; accents : demandent l'extension unaccent en SQL ou l'opérateur imatch… |
 | `PROP-10` | proprietaire/s01 | Message serveur de la clé de répartition avec point décimal : « fait 99.99 » | à trancher — texte produit par une fonction SQL : demande une migration supplémentaire (les deux migrations de la livra… |
-| `PROP-11` | proprietaire/s01 | Un même PDF ne peut pas être déposé pour deux lots (DPE collectif) et la consigne n'est pas réalisable depuis le formulaire | à trancher |
-| `PROP-16` | proprietaire/s01 | Hypothèse à vérifier : aucune cohérence contrôlée entre loyer, loyer de référence et loyer de référence majoré | à trancher |
+| `PROP-11` | proprietaire/s01 | Un même PDF ne peut pas être déposé pour deux lots (DPE collectif) et la consigne n'est pas réalisable depuis le formulaire | déployée — X07 (PR #185, `5ff849b`) |
+| `PROP-16` | proprietaire/s01 | Hypothèse à vérifier : aucune cohérence contrôlée entre loyer, loyer de référence et loyer de référence majoré | à trancher — X08 non réalisé : la règle d'encadrement des loyers n'a pas encore de source primaire dans le wiki |
 | `FIN-02` | relecture/finance | Sur une organisation dont l'abonnement est suspendu, « Encaisser » répond « Accès refusé. » au lieu du message d'abonnement suspendu renvoyé par toutes les autres écritures. | à trancher — le message vient de la fonction SQL encaisser_reste_atomique (migration 20261012223000, lignes 60-65) : de… |
-| `FIN-03` | relecture/finance | Aucune contrainte de centime sur encaissements.montant / ecritures.montant : un paiement à 3 décimales est capturé avec un écart de 0,005 et ne peut plus jamais être qualifié (les parts doivent réconcilier exactement un montant que deux décimales ne peuvent p… | à trancher |
-| `FIN-04` | relecture/finance | La régularisation 230 reste exigée (et est réintégrée si saisie) pour les lots passés en meublé ou hors périmètre, alors que leurs pièces sont exclues de la 2044. | à trancher |
-| `FIN-09` | relecture/finance | La capture fiscale calcule « déjà encaissé avant » en sommant tous les AUTRES encaissements du bail présents en fin d'ordre : un INSERT à plusieurs lignes pour un même bail répartit faux (hypothèse : aucun chemin actuel de l'application n'insère plusieurs pai… | à trancher |
+| `FIN-03` | relecture/finance | Aucune contrainte de centime sur encaissements.montant / ecritures.montant : un paiement à 3 décimales est capturé avec un écart de 0,005 et ne peut plus jamais être qualifié (les parts doivent réconcilier exactement un montant que deux décimales ne peuvent p… | déployée — X09 (contrainte de centime en base, PR #185, `5ff849b`) |
+| `FIN-04` | relecture/finance | La régularisation 230 reste exigée (et est réintégrée si saisie) pour les lots passés en meublé ou hors périmètre, alors que leurs pièces sont exclues de la 2044. | déployée — X10 (PR #185, `5ff849b`) |
+| `FIN-09` | relecture/finance | La capture fiscale calcule « déjà encaissé avant » en sommant tous les AUTRES encaissements du bail présents en fin d'ordre : un INSERT à plusieurs lignes pour un même bail répartit faux (hypothèse : aucun chemin actuel de l'application n'insère plusieurs pai… | déployée — X11 (PR #185, `5ff849b`) |
 | `FIN-10` | relecture/finance | Le wiki métier n'a pas été mis à jour : il décrit encore la ligne 229 comme « part non récupérable seulement, postes récupérables retirés lot par lot », alors que le code ne retire plus rien (coproRecuperableExclue vaut toujours 0) et traite la réintégration… *(hyp.)* | à trancher — page Fiscalité mise à jour (état implémenté, sources non officielles signalées) ; le traitement des lignes… |
-| `PR178-B-03` | relecture/pr178/b | Encaissement de 0,01 € accepté par le nouveau contrôle au centime mais refusé par la base avec le message générique « Gerimmo n'a pas pu terminer cette action » | à trancher |
-| `REP-02` | relecture/reprises | Le courriel d'urgence au gestionnaire n'est envoye qu'a la premiere execution : si la premiere tentative a cree l'incident puis s'est arretee avant l'e-mail, la reprise (rejoue:true) ne l'envoie jamais *(hyp.)* | à trancher |
-| `REP-04` | relecture/reprises | choisir_creneau et accepter_creneau_locataire ne sont pas rejouables : une reponse perdue suivie d'un nouvel envoi affiche une erreur alors que le rendez-vous est confirme | à trancher |
-| `REP-05` | relecture/reprises | Ecart au wiki : l'expiration J+30 et le refus trace sont livres, mais les relances J+3 / J+10 prevues par le module 16 n'existent nulle part | à trancher |
-| `SUP-03` | relecture/supervision | N'importe quel super-administrateur permanent peut accuser réception d'une alerte de relais adressée à un autre responsable : la fonction ne compare pas auth.uid() au destinataire (message d'erreur annonce pourtant « Responsable habilité requis »), et l'écran… | à trancher |
-| `SUP-04` | relecture/supervision | Pas de séparation des rôles pour une consigne : le même superviseur peut la rédiger, se désigner responsable et l'approuver (alors que enregistrer_vacances impose « un autre responsable »). L'« approbation » n'est donc pas une double vérification humaine. | à trancher |
-| `SUP-07` | relecture/supervision | Le périmètre d'arrêt « Sauvegarde » est proposé au superviseur et accepté par la base, mais aucun code (workflow GitHub de sauvegarde, scripts app/scripts/sauvegarde/*) ne lit verifier_arret_supervision('sauvegarde') : l'arrêt n'arrête rien. *(hyp.)* | à trancher — décision D06 de la page de décisions groupées |
-| `SUP-09` | relecture/supervision | Chaque validation d'un devis téléverse un nouveau PDF (chemin aléatoire) dans le compartiment devis-preparations et n'efface jamais l'ancien (ni celui d'une validation perdante en cas de conflit 409) : des PDF orphelins contenant les coordonnées de l'entrepri… *(hyp.)* | à trancher |
-| `RET-02` | retour-arriere | La sauvegarde est faite avec --no-comments : les 152 commentaires SQL, dont celui qui porte la convention de sécurité de fermer_fonctions_a_anon(), disparaissent à la restauration | à trancher |
-| `SOR-02` | sortie-de-bail | Remise des clés acceptée à une date future (01/03/2027) : le délai légal de restitution est calculé sur un événement qui n a pas eu lieu, et la restitution ne se corrige pas | à trancher |
-| `SOR-04` | sortie-de-bail | Clôture du bail avant la fin du préavis : date_fin reste à la date théorique et rien n avertit des loyers non appelés | à trancher |
-| `SOR-05` | sortie-de-bail | Espace du locataire sortant : « Rien à régler » alors que le décompte arrêté établit une créance de 561,43 EUR | à trancher |
-| `SOR-06` | sortie-de-bail | Comparatif d EDL : un passage de « bon » à « usagé » (usure normale) compte comme écart et porte le délai de restitution à 2 mois | à trancher |
+| `PR178-B-03` | relecture/pr178/b | Encaissement de 0,01 € accepté par le nouveau contrôle au centime mais refusé par la base avec le message générique « Gerimmo n'a pas pu terminer cette action » | déployée — X14 (PR #185, `5ff849b`) |
+| `REP-02` | relecture/reprises | Le courriel d'urgence au gestionnaire n'est envoye qu'a la premiere execution : si la premiere tentative a cree l'incident puis s'est arretee avant l'e-mail, la reprise (rejoue:true) ne l'envoie jamais *(hyp.)* | déployée — X15 (PR #185, `5ff849b`) |
+| `REP-04` | relecture/reprises | choisir_creneau et accepter_creneau_locataire ne sont pas rejouables : une reponse perdue suivie d'un nouvel envoi affiche une erreur alors que le rendez-vous est confirme | déployée — avec D22-B : un nouvel envoi après réponse perdue réussit sans effet (PR #188, `98f3fd7`) |
+| `REP-05` | relecture/reprises | Ecart au wiki : l'expiration J+30 et le refus trace sont livres, mais les relances J+3 / J+10 prevues par le module 16 n'existent nulle part | déployée — X16 : relances J+3 et J+10 livrées sur décision du dirigeant du 15/10 (PR #190, `f93ec6e`) ; invitations déjà en attente au déploiement non relancées ; aucune relance réelle observée au 16/10 |
+| `SUP-03` | relecture/supervision | N'importe quel super-administrateur permanent peut accuser réception d'une alerte de relais adressée à un autre responsable : la fonction ne compare pas auth.uid() au destinataire (message d'erreur annonce pourtant « Responsable habilité requis »), et l'écran… | déployée — D09-A (PR #182, `8c4aed6`) ; l'exception « destinataire qui n'est plus habilité » est à faire ratifier |
+| `SUP-04` | relecture/supervision | Pas de séparation des rôles pour une consigne : le même superviseur peut la rédiger, se désigner responsable et l'approuver (alors que enregistrer_vacances impose « un autre responsable »). L'« approbation » n'est donc pas une double vérification humaine. | déployée — D10-C (PR #182, `8c4aed6`) |
+| `SUP-07` | relecture/supervision | Le périmètre d'arrêt « Sauvegarde » est proposé au superviseur et accepté par la base, mais aucun code (workflow GitHub de sauvegarde, scripts app/scripts/sauvegarde/*) ne lit verifier_arret_supervision('sauvegarde') : l'arrêt n'arrête rien. *(hyp.)* | déployée — D46-A (PR #182, `8c4aed6`) : « Sauvegarde » n'est plus proposé comme arrêt ; la sauvegarde ne lit toujours aucun arrêt |
+| `SUP-09` | relecture/supervision | Chaque validation d'un devis téléverse un nouveau PDF (chemin aléatoire) dans le compartiment devis-preparations et n'efface jamais l'ancien (ni celui d'une validation perdante en cas de conflit 409) : des PDF orphelins contenant les coordonnées de l'entrepri… *(hyp.)* | déployée — X17 (PR #185, `5ff849b`) |
+| `RET-02` | retour-arriere | La sauvegarde est faite avec --no-comments : les 152 commentaires SQL, dont celui qui porte la convention de sécurité de fermer_fonctions_a_anon(), disparaissent à la restauration | à trancher — D43 : essai de restauration à autoriser ; `--no-comments` toujours en place |
+| `SOR-02` | sortie-de-bail | Remise des clés acceptée à une date future (01/03/2027) : le délai légal de restitution est calculé sur un événement qui n a pas eu lieu, et la restitution ne se corrige pas | déployée — D35 (1) A (remise des clés future refusée, PR #181, `d38487a`) |
+| `SOR-04` | sortie-de-bail | Clôture du bail avant la fin du préavis : date_fin reste à la date théorique et rien n avertit des loyers non appelés | déployée — D34-B (date de sortie réelle, PR #181, `d38487a`) |
+| `SOR-05` | sortie-de-bail | Espace du locataire sortant : « Rien à régler » alors que le décompte arrêté établit une créance de 561,43 EUR | à trancher — D36-B déployée (carte « Votre dépôt de garantie » sur l'accueil, PR #181, `d38487a`) ; D36-C (pièce « décompte » dans Mes documents) retirée à la relecture, à redemander au dirigeant |
+| `SOR-06` | sortie-de-bail | Comparatif d EDL : un passage de « bon » à « usagé » (usure normale) compte comme écart et porte le délai de restitution à 2 mois | à trancher — D35 (2) C déployée (règle actuelle confirmée à l'écran, PR #181, `d38487a`) ; D35 (2) B attend un avis juridique |
 | `SA-02` | superadmin | Brief de direction : les montants des faits datés s'affichent avec un point décimal ('500.00 €') alors que les mesures s'affichent à la française ('4 870,00 €') | à trancher — texte produit par une fonction SQL : demande une migration supplémentaire (les deux migrations de la livra… |
-| `SA-09` | superadmin | La recherche de la console ne trouve ni un bien, ni un lot, ni un incident : le brief du support demande de retrouver « un dossier (utilisateur, bien, incident) » | à trancher |
-| `SA-10` | superadmin | Hypothèse à vérifier : aucun plafond de dépense applicatif pour les appels IA, et l'arrêt d'urgence ne couvre pas les appels IA déclenchés à la main (analyse du brief, rédaction de publications) *(hyp.)* | à trancher |
-| `SA-11` | superadmin | Journal du blocage d'un compte : « Compte bloqué » est écrit avant l'effet ; si le blocage échoue, le journal garde « Compte bloqué » suivi d'une ligne d'échec sans cause | à trancher |
+| `SA-09` | superadmin | La recherche de la console ne trouve ni un bien, ni un lot, ni un incident : le brief du support demande de retrouver « un dossier (utilisateur, bien, incident) » | déployée — X18 (recherche par référence exacte, tracée, PR #190, `f93ec6e`) |
+| `SA-10` | superadmin | Hypothèse à vérifier : aucun plafond de dépense applicatif pour les appels IA, et l'arrêt d'urgence ne couvre pas les appels IA déclenchés à la main (analyse du brief, rédaction de publications) *(hyp.)* | déployée — X19 (limite de 50 appels payants par jour de Paris par défaut, arrêt consulté avant chaque appel, gestes manuels compris, PR #190, `f93ec6e`) ; c'est une limite d'appels, pas de dépense |
+| `SA-11` | superadmin | Journal du blocage d'un compte : « Compte bloqué » est écrit avant l'effet ; si le blocage échoue, le journal garde « Compte bloqué » suivi d'une ligne d'échec sans cause | déployée — X20 (PR #185, `5ff849b`) |
 | `VFL-01` | verification/flux-finale | La région role=status de la copie locale affiche « conservés » alors que l'écriture n'a pas eu lieu (seul le texte visible dit « Conservation… ») | à trancher — décision de conception : exactitude de la région annoncée (role=status) contre bruit d'annonces ; texte vi… |
-| `VER-PR178-06` | verification/pr178 | Hypothèse à vérifier : le brouillon local de la grille d'état des lieux (gerimmo-edl-brouillon-<id>) n'est ni effacé à la déconnexion ni rattaché à un compte ni limité dans le temps *(hyp.)* | à trancher |
-| `VER-SECURITE-01` | verification/securite | La purge de déconnexion annoncée par la correction PR178-A-01 laisse les brouillons d'état des lieux (et la quittance de l'outil public) sur l'appareil, et le changement de compte ne les purge pas non plus | à trancher — partiellement corrigée en branche (quittance de l'outil public purgée à la déconnexion) ; reste à trancher… |
-| `VER-SECURITE-02` | verification/securite | Un artisan ayant une mission (ou une sollicitation ouverte) dans une organisation peut écrire n'importe quel chemin sous le dossier de cette organisation dans le compartiment documents | à trancher |
-| `VER-TS-05` | verification/ts | Récapitulatif fiscal nu : à partir de 1 000 lignes fiscales dans l'organisation, le document est refusé avec un message trompeur (« Réduisez la période »), même pour un lot de 3 loyers | à trancher |
-| `VUI-05` | verification/ui-finale | Veille réglementaire : l audience « Agences et agents immobiliers » est toujours proposée aux propriétaires et aux locataires (DES-A-07 point 4 non corrigé) | à trancher — décision D33 (ligne éditoriale de la veille) |
-| `VUI-06` | verification/ui-finale | Pages juridiques publiques (CGU, confidentialité, mentions légales) : les agences y sont encore présentées (tarif mensuel agences, marque blanche, « votre agence ») alors que le code agence n est plus présenté au public | à trancher — décision D32 (textes juridiques) |
+| `VER-PR178-06` | verification/pr178 | Hypothèse à vérifier : le brouillon local de la grille d'état des lieux (gerimmo-edl-brouillon-<id>) n'est ni effacé à la déconnexion ni rattaché à un compte ni limité dans le temps *(hyp.)* | déployée — D15 option 2 avec rattachement au compte (PR #182, `8c4aed6`) |
+| `VER-SECURITE-01` | verification/securite | La purge de déconnexion annoncée par la correction PR178-A-01 laisse les brouillons d'état des lieux (et la quittance de l'outil public) sur l'appareil, et le changement de compte ne les purge pas non plus | déployée — quittance de l'outil public purgée (14/10) ; brouillons d'état des lieux : D15 option 2 (PR #182, `8c4aed6`) |
+| `VER-SECURITE-02` | verification/securite | Un artisan ayant une mission (ou une sollicitation ouverte) dans une organisation peut écrire n'importe quel chemin sous le dossier de cette organisation dans le compartiment documents | à trancher — D11 : essai sur le vrai service de stockage toujours à autoriser au 16/10 |
+| `VER-TS-05` | verification/ts | Récapitulatif fiscal nu : à partir de 1 000 lignes fiscales dans l'organisation, le document est refusé avec un message trompeur (« Réduisez la période »), même pour un lot de 3 loyers | déployée — X21 (PR #185, `5ff849b`) |
+| `VUI-05` | verification/ui-finale | Veille réglementaire : l audience « Agences et agents immobiliers » est toujours proposée aux propriétaires et aux locataires (DES-A-07 point 4 non corrigé) | déployée — D33-C (PR #184, `fac0105`) |
+| `VUI-06` | verification/ui-finale | Pages juridiques publiques (CGU, confidentialité, mentions légales) : les agences y sont encore présentées (tarif mensuel agences, marque blanche, « votre agence ») alors que le code agence n est plus présenté au public | à trancher — D32 bloquée (identité de l'éditeur) |
 | `V10-02` | verification/vague10-finale | Message de succes de la revision IRL : montant avec un point decimal ('671.18 EUR HC') | à trancher — message de succès de la révision IRL formaté avec un point (« 671.18 € HC ») : texte produit par la base,… |
 | `VUI-04` | verification/ui-finale | Reprise des soldes (propriétaire direct) : le libellé « Détenteur du dépôt (agence = votre gestionnaire / proprietaire = vous) » garde le mot « agence » et une faute (« proprietaire » sans accent) : DES-A-07 point 3 corrigé à moitié | acceptée — « agence » et « proprietaire » sont les valeurs techniques de la colonne du fichier à fournir, sans accent ;… |
 | `SOR-01` | sortie-de-bail | Clé de répartition par surface : « NaN % » et validation impossible (peut venir de l émulateur du banc) | réfutée — défaut de l'émulateur du banc (numeric rendu en chaînes, ligne 453 de serveur-supabase-local.mjs), pas du pro… |

@@ -3,17 +3,33 @@ type: synthesis
 tags: [autonomie, exploitation, debogage, evolution, routines, securite, france, rgpd]
 status: draft
 created: 2026-09-19
-updated: 2026-10-14
+updated: 2026-10-16
 sources: ["[[2026-09-28-reseau-national-ouvertures-locales]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]"]
 ---
 
 # Gerimmo en autonomie — exploitation, débogage, évolution
 
 > [!warning] Page historique — état au 29/09/2026
-> Cette page décrit l'état et les intentions du 29/09. Depuis, le code a changé : l'audit du 14/10 relève **11 tâches planifiées côté Vercel** (région `cdg1`) et
-> **8 tâches `pg_cron`**, et non les « quatre tâches quotidiennes » ni l'absence de région décrites plus bas.
+> Cette page décrit l'état et les intentions du 29/09. Depuis, le code a changé : l'audit du 14/10 relevait 11 tâches planifiées côté Vercel (région `cdg1`) et
+> 8 tâches `pg_cron`, et non les « quatre tâches quotidiennes » ni l'absence de région décrites plus bas. **Au 16/10, il y a 13 entrées Vercel**
+> (dont deux appels quotidiens de l'alerte du relais, à 03 h et 04 h UTC) **et 10 tâches `pg_cron`** (ajouts : `maintenance-artisans`, vague 2, PR #182,
+> `8c4aed6` ; `relais-urgences`, toutes les 10 minutes, PR #192, `a722f94`).
 > L'inventaire à jour des automatismes, ce qui est installé ou seulement préparé, et les propositions d'équipes IA sont dans
 > [[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]] (écart IA-10 du [[Registre des anomalies — audit du 13 octobre 2026]]).
+
+> [!info] Voir ses pannes : ce qui est réel au 16/10/2026
+> La boucle « voir » de cette page a désormais un canal hors de la console :
+> - **Alerte du relais au dirigeant** (D46-B, PR #192, 16/10) : un e-mail quotidien à 05 h 00 heure de Paris, vers deux adresses fournies par le dirigeant
+>   et gardées hors du dépôt, s'il y a quelque chose à signaler : tâche `pg_cron` en échec, absente à son heure ou plus programmée, alertes du mode
+>   vacances non accusées, arrêt d'urgence actif (aucune donnée de locataire ni montant). Chaque urgence du mode vacances part aussi tout de suite
+>   par e-mail (passage toutes les 10 minutes). L'arrêt d'urgence ne coupe pas ces e-mails. Aucun e-mail de 5 h le 16/10 : premier attendu le 17/10
+>   au plus tôt, non constaté.
+> - **Arrêt d'urgence** (D06-A, PR #182) : il couvre les missions Vercel et neuf des dix tâches `pg_cron` ; l'alerte du relais et la tâche
+>   `relais-urgences` sont hors arrêt à dessein (écart à faire ratifier par le dirigeant).
+> - **Limite des appels IA** (X19, PR #190) : 50 appels payants par jour de Paris par défaut, réglable ; arrêt consulté avant chaque appel, gestes
+>   manuels compris.
+> - Restent hors de ce canal : les incidents urgents des clients, les webhooks (hors arrêt), et la « ronde quotidienne » décrite plus bas, qui
+>   n'est toujours pas une routine qui corrige.
 
 > [!note] Précision du 28/09/2026 — gestion nationale, réseau local
 > La **gestion locative est nationale** : un propriétaire ou une agence peut gérer

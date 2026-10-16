@@ -3,14 +3,17 @@ type: synthesis
 tags: [decisions, audit, registre, v1, mission-operationnelle, validation]
 status: draft
 created: 2026-10-14
-updated: 2026-10-14
-sources: ["[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Fiches des anomalies P3 — audit du 13 octobre 2026]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Registre d'exécution — audit du 13 octobre 2026]]"]
+updated: 2026-10-16
+sources: ["[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Fiches des anomalies P3 — audit du 13 octobre 2026]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Registre d'exécution — audit du 13 octobre 2026]]", "[[Complément à la page « Décisions groupées » — fiches de la vague 6]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]"]
 ---
 
 # Décisions groupées — version candidate du 13 octobre 2026
 
 > [!success] Réponses du dirigeant, 14/10/2026
 > **Q3 et Q5 : P1 bloquants** (B). **Toutes les autres décisions : la recommandation de l'agent est suivie** ; le détail, y compris ce qui reste à votre choix ou à autoriser, est dans « Réponses du dirigeant » ci-dessous.
+
+> [!success] Réponses du dirigeant, 15/10/2026
+> (1) **Invitation d'un artisan par un propriétaire** (l'artisan s'inscrit), en remplacement de D17-B : en cours, non livrée. (2) **Relais D46-B, partie alerte** : responsable le dirigeant, e-mail vers deux adresses fournies par le dirigeant et gardées hors du dépôt, 05 h 00 heure de Paris, envoi immédiat des urgences : livré le 16/10 (PR #192). (3) **Suite du jour de Paris** : points 1, 2 et 5 livrés (PR #189). (4) **D24-C « finis »** : livré (PR #190), module « clients externes » toujours éteint. (5) **X16** : relances J+3/J+10 livrées (PR #190). Détail et état de chaque décision au 16/10 : section « Réponses du dirigeant » ci-dessous.
 
 > [!warning] État antérieur à ces réponses — tout était proposé, non décidé
 > Chaque ligne ci-dessous est une **proposition de l'agent**. Aucune décision n'est présumée acceptée, aucune ne
@@ -29,67 +32,88 @@ les lignes D18, D22 et D23 y renvoient.
 > [!info] Complément
 > Les décisions D34 à D49, le point de procédure Q5 et les ratifications R7 à R10 (fiches de la vague 6) sont dans [[Complément à la page « Décisions groupées » — fiches de la vague 6]]. Les mises à jour de chiffres à reporter ici y sont listées (section « 0 bis »).
 
-## Réponses du dirigeant (14/10/2026)
+## Réponses du dirigeant (14/10/2026) et état de livraison au 16/10/2026
 
-Message du dirigeant : « P1 bloquants, pour le reste faire en fonction des recommandations. » Lecture de l'agent, décision par décision. **Option retenue** = l'option recommandée dans la fiche ci-dessous. **À faire** = en cours ou à venir dans une vague de travail ; **différé** = la recommandation elle-même subordonne cette partie à un avis spécialisé, à une validation ou à un essai ; **à votre choix** = la recommandation vous laisse la décision et aucune option n'est présumée.
+Message du dirigeant : « P1 bloquants, pour le reste faire en fonction des recommandations. » Lecture de l'agent, décision par décision. **Option retenue** = l'option recommandée dans la fiche ci-dessous. La colonne **État au 16/10/2026** dit ce qui est réellement en production, avec la PR et le SHA de fusion (journal `log.md`, entrées « deploy » et « audit » des 14, 15 et 16/10) : **livré** = en production ; **partiel** = en production avec ce qui manque nommé ; **différé** = la recommandation elle-même subordonne cette partie à un avis spécialisé, à une validation ou à un essai ; **en attente** = rien n'est livré, une réponse, une autorisation ou un moyen manque.
 
-| Décision | Option retenue | État |
+Repères des fusions : vague 1 = PR #181 (`d38487a`, 14/10) ; vague 2 = PR #182 (`8c4aed6`, 15/10) ; vague 3 = PR #184 (`fac0105`, 15/10) ; vague 4a = PR #185 (`5ff849b`, 15/10) ; jour de Paris = PR #186 (`6b2a130`) et #189 (`0c9328a`) ; D18 = PR #187 (`8a168dd`) ; D22-B et D23-A = PR #188 (`98f3fd7`) ; X16, X18, X19, D24-C = PR #190 (`f93ec6e`) ; D27-B = PR #191 (`d55f87b`) ; relais D46-B = PR #192 (`a722f94`, 16/10) ; tests D27-B = PR #193 (`bdaf755`, 16/10). Les fusions #181 à #191 ont chacune été suivies d'une recette de production à comptes éphémères consignée au journal (n° 4 à 14) ; les recettes jouées après #192 et #193 ne sont pas encore consignées dans le journal de `main`. Cette recette ne joue ni l'espace artisan, ni la console de supervision, ni les parcours complets de D18, D22 et D23.
+
+| Décision | Option retenue | État au 16/10/2026 |
 |---|---|---|
 | **Q1, Q2, Q4** | Q1 A (version figée `0ad658a`), Q2 A (effet réel nommé), Q4 : R1 à R10 ratifiées (« oui » du 14/10) | fait |
-| **Q3, Q5** | **B : P1 bloquants** (D04, D05, D37, D38 : VER-TS-02, PR178-B-06, CHF-01, CHF-02) | reclassés P1 dans le registre ; **ces quatre anomalies sont dans la version déjà déployée** ; correction en vague 1 |
-| D01 | A | à faire (vague 1) |
-| D02 | A (B « à prévoir avant le printemps 2027 ») | A à faire (vague 1) ; B différé |
-| D03 | A (B après validation fiscale) | A à faire (vague 1) ; B différé |
-| D04 | (1) oui ; (2) confirmation au-delà de 2 × (reste dû + un terme) | à faire (vague 1) |
-| D05 | A (clé d'envoi unique, encaissement d'abord) | à faire (vague 1) |
-| D06 | A, avec la correspondance proposée | à faire (vague 2) |
-| D07 | A | à faire (vague 2) ; **l'essai de restauration sur cible isolée reste à autoriser** |
-| D08 | A tout de suite, puis C | A (vague 2), C ensuite |
-| D09 | A | à faire (vague 2) |
-| D10 | C | à faire (vague 2) |
+| **Q3, Q5** | **B : P1 bloquants** (D04, D05, D37, D38 : VER-TS-02, PR178-B-06, CHF-01, CHF-02) | **partiel** : code en production depuis la vague 1 (PR #181) ; **contrôles en production non joués** (encaissement « 840,00 », rejeu après réponse perdue, ligne 250 du PDF 2044, régularisation d'un exercice non terminé) ; les quatre fiches sont « déployée, contrôle en production à faire » au registre |
+| D01 | A | livré (PR #181) ; B seulement si un relevé de production montre des appels concernés : relevé non consigné au journal |
+| D02 | A (B « à prévoir avant le printemps 2027 ») | A livré (PR #181) ; B **différé** (avis d'un expert-comptable, avant la campagne de déclaration du printemps 2027) |
+| D03 | A (B après validation fiscale) | A livré (PR #181) ; B **différé** (validation fiscale) |
+| D04 | (1) oui ; (2) confirmation au-delà de 2 × (reste dû + un terme) | livré (PR #181) — P1 : contrôle en production à faire |
+| D05 | A (clé d'envoi unique, encaissement d'abord) | livré (PR #181) — P1 : contrôle en production à faire |
+| D06 | A, avec la correspondance proposée | **partiel** : livré (PR #182) ; l'écran « Relais et arrêts » n'affiche que neuf des dix tâches pg_cron (il omet `maintenance-artisans`, arrêtée par « rappels ») ; la tâche `relais-urgences` (16/10) est hors arrêt d'urgence à dessein, écart à ratifier |
+| D07 | A | A livré (PR #182 : export de `cron.job`, rejeu dans la procédure, cycle mensuel lu par Santé) ; **essai de restauration sur cible isolée toujours à autoriser** |
+| D08 | A tout de suite, puis C | A livré (PR #182) ; **C ni planifiée ni abandonnée** : à planifier (3–5 j, migration qui change des droits) ou à abandonner par écrit |
+| D09 | A | livré (PR #182) ; exception « destinataire qui n'est plus habilité » ajoutée par le lot, à ratifier |
+| D10 | C | livré (PR #182) |
 | D11 | A, « avec un essai sur le vrai service de stockage » | **en attente d'un moyen d'essai** (le banc est un émulateur) |
-| D12 | A (mesurer) puis B si confirmé | **en attente d'une mesure** hors banc |
-| D13 | A, durée 6 mois « sauf avis contraire » | à faire (vague 2) |
-| D14 | A (7 jours), à consigner au registre des traitements | à faire (vague 2) |
-| D15 | option 2, avec rattachement au compte | à faire (vague 2) |
-| D16 | A | à faire (vague 2) |
-| D17 | A tout de suite ; « votre choix entre A seul et A+B » | A à faire (vague 3) ; **B à votre choix** |
-| D18 | A, en deux livraisons (B d'abord) | à faire (vague 4) |
-| D19 | A | à faire (vague 3) |
-| D20 | B | à faire (vague 3) |
-| D21 | A (C seulement si un relevé de production le justifie) | à faire (vague 3) |
-| D22 | B (délai minimal avant le rendez-vous : 24 h) | à faire (vague 4) |
-| D23 | A | à faire (vague 4) |
-| D24 | B maintenant, C avant d'activer le module « clients externes » | B à faire (vague 3) ; C avant activation |
-| D25 | B | à faire (vague 3) |
-| D26 | B | à faire (vague 3) |
-| D27 | B | à faire (vague 3) |
-| D28 | A | à faire (vague 3) |
-| D29 | B | à faire (vague 3) |
-| D30 | B | à faire (vague 3) |
-| D31 | B | à faire (vague 3) |
-| D32 | A, « une fois l'identité de l'éditeur fournie » | **bloquée tant que l'identité de l'éditeur manque (H1)** ; relecture juridique recommandée |
-| D33 | A et C | à faire (vague 3) |
-| D34 | B | à faire (vague 1) |
-| D35 | (1) A ; (2) C | à faire (vague 1) |
-| D36 | B, puis C | à faire (vague 1) |
-| D37 | B | à faire (vague 1) — P1 |
-| D38 | A maintenant (B après avis) | A à faire (vague 1) — P1 ; B différé |
-| D39 | B | à faire (vague 1) |
-| D40 | A maintenant (B après avis) | A à faire (vague 1) ; B différé |
-| D41 | (a) B après validation ; (b) attendre l'avis | **différé** (avis spécialisé) |
-| D42 | « A ou B, à votre choix » | **à votre choix** ; l'agent propose B (expiration des devis maintenant, purge des motifs avant septembre 2029) |
-| D43 | A, dans le même essai que D07 | à faire (vague 2) ; **essai à autoriser** |
-| D44 | A | à faire (vague 2) |
-| D45 | A maintenant (B après votre validation visuelle) | A à faire (vague 3) ; B différé |
-| D46 | C : A avant le lancement, B par étapes | A à faire (vague 2) ; B différé ; **canal d'alerte, horaire, fuseau et responsable humain du relais à votre choix** |
-| D47 | A | à faire (vague 2) |
-| D48 | A, avec la durée de D13 | à faire (vague 2) |
-| D49 | (1) A ; (2) A (qualification juridique d'abord, aucun code) | (1) à faire (vague 3) ; (2) qualification à faire |
-| X01 à X21 | recommandation suivie | à faire (vague 4) ; X22 est repris en D42 |
-| H1 | rappel | **à fournir** : identité de l'éditeur, durée du code à usage unique, suppression de deux dossiers de stockage, validation des six articles |
+| D12 | A (mesurer) puis B si confirmé | **en attente d'une mesure** hors banc ; les formulaires annoncent toujours « 10 Mo maximum » |
+| D13 | A, durée 6 mois « sauf avis contraire » | livré (PR #182) ; durée à consigner au registre des traitements |
+| D14 | A (7 jours), à consigner au registre des traitements | code en place (7 jours) ; **non consigné au registre des traitements** |
+| D15 | option 2, avec rattachement au compte | livré (PR #182) |
+| D16 | A | livré (PR #182) ; lecture signée de la photo jamais éprouvée sur le vrai stockage |
+| D17 | A tout de suite ; « votre choix entre A seul et A+B » | A livré (PR #184) ; B **remplacée le 15/10** par l'invitation d'un artisan par le propriétaire (voir ci-dessous) : **en cours, non livrée** |
+| D18 | A, en deux livraisons (B d'abord) | **partiel** : livré le 15/10 (PR #187) : refus motivé, puis révision en trois versions au plus, sept jours (jour de Paris) pour répondre ; non livrés : alerte au propriétaire quand l'artisan devient non affectable pendant la révision, PDF de chaque version ; parcours complet dans un navigateur non joué |
+| D19 | A | livré (PR #184) |
+| D20 | B | livré (PR #184) |
+| D21 | A (C seulement si un relevé de production le justifie) | A livré (PR #184), sans reprise de l'historique ; C conditionnée à un relevé non consigné au journal |
+| D22 | B (délai minimal avant le rendez-vous : 24 h) | **partiel** : B livré le 15/10 (PR #188) : report avec accord de l'artisan (24 h avant au moins, deux demandes au plus, réponse sous 48 h), annulation immédiate avec alerte ; non livrés : relance de l'artisan avant l'échéance de 48 h, geste « J'en prends acte », badge dans l'agenda de l'artisan ; parcours complet dans un navigateur non joué |
+| D23 | A | livré le 15/10 (PR #188), avec X06 ; règlement déclaratif, aucun paiement exécuté ; parcours complet dans un navigateur non joué |
+| D24 | B maintenant, C avant d'activer le module « clients externes » | B livré (PR #184) ; C livré le 15/10 (« finis », PR #190) ; **le module « clients externes » reste désactivé** jusqu'à la validation comptable de la forme de l'avoir |
+| D25 | B | livré (PR #184), sans effet en production : l'outil privé de l'artisan est coupé hors poste local |
+| D26 | B | livré (PR #184) |
+| D27 | B | livré le 16/10 (PR #191, fusion à 00 h 38 heure de Paris ; le journal la date du 15/10) ; tests renforcés et repère juridique de la qualification corrigé pour le propriétaire direct (PR #193, 16/10) |
+| D28 | A | livré (PR #184) |
+| D29 | B | livré (PR #184) |
+| D30 | B | livré (PR #184) |
+| D31 | B | livré (PR #184) |
+| D32 | A, « une fois l'identité de l'éditeur fournie » | **en attente** : retirée de la vague 3 faute d'identité de l'éditeur (H1) ; aucun texte légal inventé ; relecture juridique recommandée |
+| D33 | A et C | livré (PR #184) |
+| D34 | B | livré (PR #181) |
+| D35 | (1) A ; (2) C | livré (PR #181) ; (2) B attend un avis juridique |
+| D36 | B, puis C | **partiel** : B livré (PR #181) ; **C reportée** (« option C reportée », `app/tests/accueil-locataire-depot.test.ts` ; le complément la range parmi les options reportées) : à redemander |
+| D37 | B | livré (PR #181) — P1 : contrôle en production à faire |
+| D38 | A maintenant (B après avis) | A livré (PR #181) — P1 : contrôle en production à faire ; B **différé** |
+| D39 | B | livré (PR #181) |
+| D40 | A maintenant (B après avis) | A livré (PR #181) ; B **différé** |
+| D41 | (a) B après validation ; (b) attendre l'avis | **différé** (avis spécialisé) : rien de livré |
+| D42 | « A ou B, à votre choix » | **B en production depuis la vague 2** (tâche pg_cron `maintenance-artisans`, PR #182) **sans choix tracé du dirigeant** : à ratifier ; purge des motifs de liste noire non planifiée |
+| D43 | A, dans le même essai que D07 | **essai à autoriser** ; `--no-comments` toujours en place |
+| D44 | A | livré (PR #182) |
+| D45 | A maintenant (B après votre validation visuelle) | A livré (PR #184) ; B **différé** (comparaison visuelle à vous présenter) |
+| D46 | C : A avant le lancement, B par étapes | A livré (PR #182) ; B, partie alerte, tranchée le 15/10 et **livrée le 16/10** (PR #192, voir ci-dessous) ; hors périmètre : règles « Ce qui peut continuer seul » (décision 7 du document « Équipes IA », non tranchée), arrêt du webhook de signature ; non branchés : incidents urgents des clients |
+| D47 | A | livré (PR #182) |
+| D48 | A, avec la durée de D13 | **partiel** : livré (PR #182) ; les registres créés les 15 et 16/10 (relais, compteur des appels IA) ne sont pas déclarés au catalogue `retention_rules` |
+| D49 | (1) A ; (2) A (qualification juridique d'abord, aucun code) | (1) livré (PR #184) ; (2) qualification juridique non engagée |
+| X01 à X21 | recommandation suivie | vague 4a (PR #185) : X01 (wiki), X02, X03, X04, X07, X09 à X15, X17, X20, X21 ; X13 étendu par le jour de Paris (PR #186, #189) ; X06 avec D23 (PR #188) ; X16 : relances J+3/J+10 livrées sur décision du 15/10 (PR #190) ; X18, X19 livrés (PR #190) ; **X05 reporté** par sa propre recommandation (signature non en production) ; **X08 non fait** (règle d'encadrement des loyers à sourcer) ; X22 est repris en D42 |
+| H1 | rappel | **à fournir** : identité de l'éditeur, durée du code à usage unique (86 400 s ; elle borne aussi les liens des relances X16), suppression de deux dossiers de stockage, validation des six articles |
 
-**Règle de livraison.** Rien de ce qui est produit n'est déployé sans une nouvelle autorisation explicite du dirigeant, au commit nommé (voir [[Dossier de validation — version candidate du 13 octobre 2026]]). Toute migration passe par sauvegarde, simulation puis application réelle.
+## Réponses du dirigeant (15/10/2026)
+
+Cinq réponses, mises en chantier le jour même (journal, entrée « decision » du 15/10), plus la réponse « corrige proprement » sur le jour de Paris des règles de loyer.
+
+| Réponse | Contenu | État au 16/10/2026 |
+|---|---|---|
+| Jour de Paris des règles de loyer (« corrige proprement ») | état des appels, impayés, relances, fiche du lot, appels, quittances, encaissements | livré (PR #186, `6b2a130`) |
+| (1) Invitation d'un artisan par un propriétaire | un propriétaire invite un artisan ; c'est l'artisan qui s'inscrit ; remplace la question D17-B | **en cours, non livrée** : lot non fusionné, qui porte aussi un correctif de sécurité ; aucune migration du lot n'est en production ; plusieurs questions au dirigeant restent ouvertes |
+| (2) Relais (D46-B, partie alerte) | responsable : le dirigeant ; canal : e-mail vers deux adresses fournies par le dirigeant, gardées hors du dépôt ; 05 h 00 heure de Paris pour l'e-mail quotidien ; envoi immédiat des urgences | livré le 16/10 (PR #192, `a722f94`) : e-mail quotidien à 5 h s'il y a quelque chose à signaler, e-mail immédiat de chaque urgence du mode vacances (passage toutes les 10 minutes par une dixième tâche pg_cron), hors arrêt d'urgence ; **aucun e-mail de 5 h le 16/10**, premier attendu le 17/10 au plus tôt, non constaté |
+| (3) Suite du jour de Paris (« recommandations ») | points 1 (dépôt de garantie, journal comptable général), 2 (révision IRL, terme du bail, régularisation des charges, rapport de gestion) et 5 (« Fait le » des documents) ; points 3 (heure du cycle mensuel) et 4 (compteur « alertes en retard ») laissés tels quels | livré (PR #189, `0c9328a`) ; hors décision : restitution du dépôt (écritures du décompte), factures d'honoraires, appels de charges de copropriété |
+| (4) D24-C « finis » | l'avoir sur facture externe est terminé ; le module « clients externes » reste éteint jusqu'à la validation comptable | livré (PR #190, `f93ec6e`) ; module toujours désactivé |
+| (5) X16 | le dirigeant revient sur son choix du 14/10 (amender le wiki) et fait livrer les relances J+3 et J+10 | livré (PR #190) : deux relances au plus, au jour de Paris ; les invitations déjà en attente au déploiement ne sont pas relancées ; aucune relance réelle observée au 16/10 |
+
+**Règle de livraison.** Autorisation de déployer donnée le 14/10 (« tu as l'autorisation », journal, entrée « decision ») pour les vagues 1 à 4 des décisions du 14/10, chacune après relecture indépendante, batterie complète verte, simulation des migrations réussie et aucune anomalie P0 ou P1 ouverte dans ce qui est livré ; hors portée : activation de fonctions désactivées, D17-B, essais de restauration et de stockage, parties soumises à un avis, identité de l'éditeur. Chaque déploiement est consigné dans le journal ; toute migration passe par sauvegarde, simulation puis application réelle.
+
+> [!warning] Points à trancher / contradictions (état du 16/10)
+> - **Portée de l'autorisation** : l'autorisation écrite du 14/10 vise les vagues 1 à 4 des décisions du 14/10 et exclut D17-B. Les réponses du 15/10 (suite du jour de Paris, X16, relais) ont été déployées sans entrée du journal disant que leur déploiement est couvert ; l'invitation d'artisan remplace D17-B, exclue de l'autorisation. À faire confirmer par le dirigeant.
+> - **P1 et autorisation** : la condition « aucune anomalie P1 ouverte dans ce qui est livré » n'est pas démontrée tant que les contrôles en production des quatre P1 ne sont pas joués.
+> - **Écarts introduits par les lots, sans aval écrit** : `relais-urgences` toutes les 10 minutes, jour et nuit, non coupée par l'arrêt d'urgence (interprétation de « envoi immédiat », exception à D06-A) ; exception de D09 ; invitations en attente au déploiement jamais relancées (X16) ; limite de 50 appels IA par jour non mesurée, atelier compté (X19) ; e-mail de 5 h répété chaque jour tant que la situation dure, pas d'e-mail immédiat à l'escalade (relais) ; D42-B sans choix tracé.
+> - **Parties de décisions ni livrées ni reportées par écrit** : D08-C, D36-C, manques de D18-A et de D22-B, consignation de D13, D14 et D48 au registre des traitements.
 
 ## 0. Ce qui conditionne la suite
 
@@ -262,4 +286,4 @@ Détail dans `rapport.json` (anomalies DEC-01 à DEC-12). Les plus lourdes pour 
 | En plus, options reportées recommandées (D02-B 3–4 ; D03-B 1–1,5 ; D08-C 3–5 ; D12-C 3–5 ; D17-B 3–5 ; D24-C 3–5) | ≈ 16–26 |
 | Dont ce qui touche des fonds ou une règle financière (D01, D04, D05, D23) | ≈ 12–17 |
 
-Voir aussi : [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de validation — version candidate du 13 octobre 2026]], [[Fiches des anomalies P3 — audit du 13 octobre 2026]], [[Propositions de fonctions majeures — version candidate du 13 octobre 2026]].
+Voir aussi : [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de validation — version candidate du 13 octobre 2026]], [[Fiches des anomalies P3 — audit du 13 octobre 2026]], [[Propositions de fonctions majeures — version candidate du 13 octobre 2026]], [[Prêt à démarcher]].

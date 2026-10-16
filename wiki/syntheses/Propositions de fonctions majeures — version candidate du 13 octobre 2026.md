@@ -3,19 +3,35 @@ type: synthesis
 tags: [fonctions, devis, facture, rendez-vous, artisan, locataire, proprietaire, proposition, mission-operationnelle]
 status: draft
 created: 2026-10-14
-updated: 2026-10-14
-sources: ["[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Fiches des anomalies P3 — audit du 13 octobre 2026]]"]
+updated: 2026-10-16
+sources: ["[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Fiches des anomalies P3 — audit du 13 octobre 2026]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
 ---
 
 # Propositions de fonctions majeures — version candidate du 13 octobre 2026
 
-> [!warning] Proposé, non décidé
-> Trois fonctions sont proposées, chacune au gabarit de la mission (section 15 : acteur, déclencheur, résultat, données,
-> droits, états d'erreur, critères d'acceptation) complété par les intégrations, la migration, les tests, le retour
-> arrière et l'estimation. **Rien n'est implémenté, aucun fichier du dépôt n'est modifié, aucune maquette graphique** :
-> les écrans sont décrits en liste. L'aval du dirigeant est requis avant toute implémentation (mission, section 02) ;
-> les questions à lui poser sont à la fin de chaque fonction. Les décisions correspondantes de la page
-> [[Décisions groupées — version candidate du 13 octobre 2026]] sont D18 (fonction A), D23 (B) et D22 (C).
+> [!success] Décidé le 14/10/2026, livré le 15/10/2026 (état au 16/10)
+> Les trois fonctions ont été ratifiées par le dirigeant le 14/10 et sont en production depuis le 15/10 :
+> - **A — devis refusable et révisable** (D18, PR #187, `8a168dd`) : refus motivé (motif montré à l'artisan), puis
+>   demande de révision, trois versions au plus, sept jours (jour de Paris) pour répondre. Non livrés : l'alerte au
+>   propriétaire quand l'artisan devient non affectable pendant la révision (A.7) et le PDF de chaque version (A.9).
+> - **B — règlement de la facture d'intervention** (D23-A, avec X06, PR #188, `98f3fd7`) : règlement déclaratif,
+>   partiel admis, aucun paiement exécuté, état et date visibles de l'artisan.
+> - **C — report ou annulation par le locataire** (D22-B, PR #188, `98f3fd7`) : report avec accord de l'artisan
+>   (demande 24 h avant le rendez-vous au moins, deux demandes au plus, réponse sous 48 h, sinon expiration et alerte),
+>   annulation immédiate avec alerte au gérant. Non livrés : la relance de l'artisan avant l'échéance de 48 h, le geste
+>   « J'en prends acte » et le bandeau dans l'agenda de l'artisan (C.4, C.8).
+>
+> **Non vérifié** : aucun des trois parcours complets n'a été joué dans un navigateur (refus puis révision d'un devis,
+> règlement noté par le gérant, report demandé par le locataire puis accepté par l'artisan) ; la recette de production ne
+> les exerce pas. État par décision : [[Décisions groupées — version candidate du 13 octobre 2026]].
+
+> [!note] Proposition d'origine (13–14/10/2026)
+> Le texte ci-dessous est la proposition soumise au dirigeant avant sa décision, conservée telle quelle. Trois fonctions
+> y sont proposées, chacune au gabarit de la mission (section 15 : acteur, déclencheur, résultat, données, droits, états
+> d'erreur, critères d'acceptation) complété par les intégrations, la migration, les tests, le retour arrière et
+> l'estimation. Au moment de la rédaction, rien n'était implémenté ; les écrans sont décrits en liste, sans maquette.
+> Les décisions correspondantes de la page [[Décisions groupées — version candidate du 13 octobre 2026]] sont D18
+> (fonction A), D23 (B) et D22 (C).
 
 Les trois fonctions s'ajoutent à la chaîne **incident → consultation → devis → mission → rendez-vous → intervention →
 facture** (wiki : [[Demande et sélection de devis]], [[Planification d'intervention]], [[Intervention et clôture]],
@@ -26,7 +42,9 @@ facture** (wiki : [[Demande et sélection de devis]], [[Planification d'interven
 **Prérequis produit.** La chaîne n'est atteignable par un propriétaire que si sa commune est ouverte au réseau pour le
 métier (wiki [[Ouverture du réseau d'artisans]]) ; or le code interdit au propriétaire direct d'ajouter un artisan
 (migration `20261007190000`, décision D17). Sans D17 ou sans ouverture de commune, aucune des trois fonctions n'est
-utilisable en V1 hors banc.
+utilisable en V1 hors banc. *État au 16/10 : D17-A (voie de sortie affichée, texte seul) est en production (PR #184) ;
+l'ajout d'un artisan par le propriétaire passe désormais par l'invitation d'un artisan décidée le 15/10, en cours et non
+livrée. Le prérequis reste donc entier pour un propriétaire dont la commune n'est pas ouverte.*
 
 **Conventions du dépôt réutilisées (vérifiées dans le code) :**
 

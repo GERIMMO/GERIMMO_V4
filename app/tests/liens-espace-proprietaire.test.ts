@@ -5,15 +5,18 @@
  *  1. les fabriques d'adresses (alertes, plan du jour, blocages, documents à compléter, parcours du lot) émettent
  *     la racine qu'on leur donne, et gardent /agence par défaut ;
  *  2. le contexte React donne la racine aux composants client sans que chaque parent la transmette ;
- *  3. un balayage du code : aucun lien « /agence/${…} » n'est composé à la main hors des écrans réservés aux agences,
- *     des chemins de revalidation (qui désignent la ROUTE, restée /agence) et des quelques exceptions listées ici
- *     avec leur raison. Un nouveau lien partagé écrit à l'ancienne manière fait échouer ce test.
+ *  3. un balayage du code (arbre syntaxique, voir analyse-ast.ts) : aucun lien « /agence/${…} » n'est composé à la
+ *     main hors des écrans réservés aux agences, des chemins de revalidation (qui désignent la ROUTE, restée /agence)
+ *     et des quelques exceptions listées ici avec leur raison, la FONCTION qui l'écrit et le nombre exact. Un nouveau
+ *     lien partagé écrit à l'ancienne manière, même dans un fichier déjà listé, fait échouer ce test.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { arbre, fichiersSources, fonctionEnglobante, ligne, noeuds, nomAppele } from "./analyse-ast";
 import { cheminFicheAlerte, gesteAlerte } from "../src/lib/chemin-alerte";
 import { regrouperActionsDuJour } from "../src/lib/actions-du-jour";
 import { cibleBlocage } from "../src/lib/parc";
@@ -127,23 +130,60 @@ describe("baseDeLOrganisation (gestes serveur sans rôle sous la main)", () => {
 
 // ── Le balayage du code ─────────────────────────────────────────────────────────────────────────────────────────
 const SRC = path.resolve(__dirname, "../src");
-function fichiers(dossier: string): string[] {
-  return readdirSync(dossier).flatMap((nom) => {
-    const chemin = path.join(dossier, nom);
-    if (statSync(chemin).isDirectory()) return fichiers(chemin);
-    return /\.(ts|tsx)$/.test(nom) ? [chemin] : [];
-  });
-}
-// Les fichiers où « /agence/${…} » reste écrit à la main, et pourquoi.
-const EXCEPTIONS: Record<string, string> = {
-  "app/agence/[orgId]/page.tsx": "tableau de bord d'AGENCE : le propriétaire direct est servi plus haut par AccueilProprietaire",
-  "app/agence/[orgId]/fil-activite.tsx": "fil d'activité d'AGENCE, rendu par ce seul tableau de bord (même raison)",
-  "lib/pilotage.ts": "liens de la supervision, issus de la base (migrations du 22/09) et validés sous la route des dossiers ; la console les convertit (admin/autonomie, cheminPourProfil)",
-  "lib/avis-abonnement.ts": "adresse de repli d'un courrier quand la base de l'organisation n'a pas pu être lue : le proxy redirige",
-  "app/assistance/contenu-assistance.tsx": "COMPARAISON de la page d'où l'aide est ouverte, ramenée à la route des dossiers (versRouteAgence), jamais un lien émis",
-  "app/actions/appels-charges.ts": "chemin de REVALIDATION (la route des dossiers), jamais un lien",
-  "app/actions/supprimer-bail-brouillon.ts": "chemins de REVALIDATION (la route des dossiers), jamais des liens",
+/**
+ * Les FONCTIONS où « /agence/${…} » reste écrit à la main, combien de fois, et pourquoi. Contre-relecture du 15/10 : une
+ * exception indexée par FICHIER admettait tout lien de plus écrit dans ce fichier (un nouveau courrier de
+ * lib/avis-abonnement.ts, une nouvelle fonction de lib/pilotage.ts) ; elle vise désormais la fonction et le nombre exact.
+ */
+const EXCEPTIONS: Record<string, { fonctions: Record<string, number>; raison: string }> = {
+  "app/agence/[orgId]/page.tsx": {
+    fonctions: { PageTableauDeBord: 16 },
+    raison: "tableau de bord d'AGENCE : le propriétaire direct est servi plus haut par AccueilProprietaire",
+  },
+  "app/agence/[orgId]/fil-activite.tsx": {
+    fonctions: { FilActivite: 6 },
+    raison: "fil d'activité d'AGENCE, rendu par ce seul tableau de bord (même raison)",
+  },
+  "lib/pilotage.ts": {
+    fonctions: { lienDossier: 1 },
+    raison: "liens de la supervision, issus de la base (migrations du 22/09) et validés sous la route des dossiers ; la console les convertit (admin/autonomie, cheminPourProfil)",
+  },
+  "lib/avis-abonnement.ts": {
+    fonctions: { lienAbonnement: 1 },
+    raison: "adresse de repli d'un courrier quand la base de l'organisation n'a pas pu être lue : le proxy redirige",
+  },
+  "app/assistance/contenu-assistance.tsx": {
+    fonctions: { ContenuAssistance: 3 },
+    raison: "COMPARAISON de la page d'où l'aide est ouverte, ramenée à la route des dossiers (versRouteAgence), jamais un lien émis",
+  },
+  "app/actions/appels-charges.ts": {
+    fonctions: { chemin: 1 },
+    raison: "chemin de REVALIDATION (la route des dossiers), jamais un lien",
+  },
+  "app/actions/supprimer-bail-brouillon.ts": {
+    fonctions: { supprimerBailBrouillon: 5 },
+    raison: "chemins de REVALIDATION (la route des dossiers), jamais des liens",
+  },
 };
+
+/**
+ * Chaque « /agence/${…} » (ou `"/agence/" + …`) composé dans src, lu dans l'arbre syntaxique (les commentaires n'y
+ * sont pas), hors des arguments d'une revalidation (`revalidatePath`) ou d'une conversion vers la route (`versRouteAgence`).
+ */
+function liensAgenceComposes(): { relatif: string; fonction: string; ligne: number }[] {
+  return fichiersSources("src").flatMap((fichier) =>
+    noeuds(arbre(fichier))
+      .filter((n) =>
+        ((ts.isTemplateHead(n) || ts.isTemplateMiddle(n)) && n.text.endsWith("/agence/"))
+        || (ts.isStringLiteral(n) && n.text.endsWith("/agence/") && ts.isBinaryExpression(n.parent) && n.parent.operatorToken.kind === ts.SyntaxKind.PlusToken))
+      .filter((n) => {
+        for (let p: ts.Node | undefined = n.parent; p && !ts.isSourceFile(p); p = p.parent) {
+          if (ts.isCallExpression(p) && ["revalidatePath", "versRouteAgence"].includes(nomAppele(p) ?? "")) return false;
+        }
+        return true;
+      })
+      .map((n) => ({ relatif: fichier.slice("src/".length), fonction: fonctionEnglobante(n), ligne: ligne(n) })));
+}
 
 describe("les exceptions sont bien ce qu'elles disent", () => {
   it("le tableau de bord d'agence n'est jamais rendu pour un propriétaire direct (il est servi avant par AccueilProprietaire)", () => {
@@ -170,25 +210,28 @@ describe("les exceptions sont bien ce qu'elles disent", () => {
 });
 
 describe("balayage : aucun lien « /agence/${…} » composé à la main hors des exceptions", () => {
-  const motif = /\/agence\/\$\{/;
-  const sansCommentaires = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-
-  it("les lignes qui restent sont des revalidations de route ou des exceptions listées", () => {
-    const fautes: string[] = [];
-    for (const f of fichiers(SRC)) {
-      const relatif = path.relative(SRC, f).split(path.sep).join("/");
-      if (relatif in EXCEPTIONS) continue;
-      sansCommentaires(readFileSync(f, "utf8")).split("\n").forEach((ligne, i) => {
-        if (motif.test(ligne) && !/revalidatePath|versRouteAgence/.test(ligne)) fautes.push(`${relatif}:${i + 1} ${ligne.trim().slice(0, 140)}`);
-      });
+  it("les liens qui restent sont des revalidations de route ou des exceptions listées (fichier, fonction, nombre)", () => {
+    const parFonction = new Map<string, number[]>();
+    for (const { relatif, fonction, ligne: l } of liensAgenceComposes()) {
+      const k = `${relatif} › ${fonction}`;
+      parFonction.set(k, [...(parFonction.get(k) ?? []), l]);
     }
+    const fautes = [...parFonction].flatMap(([k, lignes]) => {
+      const [relatif, fonction] = k.split(" › ");
+      const admis = EXCEPTIONS[relatif]?.fonctions[fonction];
+      if (admis === undefined) return [`${k} (ligne ${lignes.join(", ")})`];
+      return lignes.length === admis ? [] : [`${k} : ${lignes.length} lien(s) pour ${admis} admis (ligne ${lignes.join(", ")})`];
+    });
     expect(fautes).toEqual([]);
   });
 
-  it("chaque exception existe encore et en a besoin", () => {
-    for (const relatif of Object.keys(EXCEPTIONS)) {
-      const source = sansCommentaires(readFileSync(path.join(SRC, relatif), "utf8"));
-      expect(source, relatif).toMatch(/\/agence\//);
+  it("chaque exception existe encore, exactement autant de fois", () => {
+    const liens = liensAgenceComposes();
+    for (const [relatif, { fonctions }] of Object.entries(EXCEPTIONS)) {
+      for (const [fonction, nombre] of Object.entries(fonctions)) {
+        const n = liens.filter((l) => l.relatif === relatif && l.fonction === fonction).length;
+        expect(n, `${relatif} › ${fonction} : ${n} lien(s), l'exception en admet ${nombre}`).toBe(nombre);
+      }
     }
   });
 

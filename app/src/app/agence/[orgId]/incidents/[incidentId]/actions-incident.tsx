@@ -51,6 +51,7 @@ export function FormulaireQualification({
   imputation,
   justification,
   apresSucces,
+  estProprietaire = false,
 }: {
   orgId: string;
   incidentId: string;
@@ -58,6 +59,8 @@ export function FormulaireQualification({
   imputation?: string | null;
   justification?: string | null;
   apresSucces?: () => void;
+  /** Propriétaire direct : le repère juridique lui dit « C'est vous qui décidez qui paie ». */
+  estProprietaire?: boolean;
 }) {
   const actionLiee = qualifierIncident.bind(null, orgId, incidentId);
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
@@ -67,7 +70,7 @@ export function FormulaireQualification({
 
   return (
     <form data-saisie-confirmee action={action} className="incident-formulaire-qualification space-y-3">
-      <RepereJuridique slug={categorie} />
+      <RepereJuridique slug={categorie} estProprietaire={estProprietaire} />
       <fieldset className="space-y-1.5">
         <legend className="libelle-champ">Qui prend en charge *</legend>
         {/* Décision opposable : rangées pleine largeur avec du padding — les

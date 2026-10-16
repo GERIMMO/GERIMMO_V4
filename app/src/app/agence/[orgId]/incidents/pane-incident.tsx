@@ -522,6 +522,7 @@ export async function PaneIncident({
                     la maintenir ne doit pas obliger à la ressaisir. À
                     qualifier (déclaré, rouvert), rien n'est coché (RM-7.2.1). */}
                 <FormulaireQualification
+                  estProprietaire={estProprietaire}
                   orgId={orgId}
                   incidentId={incidentId}
                   categorie={incident.categorie}
@@ -575,6 +576,7 @@ export async function PaneIncident({
                   </summary>
                   <div className="pt-3">
                     <FormulaireQualification
+                      estProprietaire={estProprietaire}
                       orgId={orgId}
                       incidentId={incidentId}
                       categorie={incident.categorie}

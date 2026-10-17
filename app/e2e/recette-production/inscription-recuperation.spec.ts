@@ -15,6 +15,8 @@ import { lireComptes } from "./cible";
 // exactement le `token_hash` que porte l'e-mail. La remise dans une boîte
 // humaine reste hors de cet essai : les boîtes resend.dev sont des puits de
 // test.
+test.use({ actionTimeout: 20_000 });
+
 test("inscription, confirmation et récupération d'un compte fictif", SANS_TRACE, async ({ page, context }) => {
   test.skip(!process.env.PGPASSWORD, "Lecture du seul lien de test réservée au chantier autonome.");
   test.setTimeout(240_000);
@@ -39,9 +41,9 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
     await saisir(page.getByLabel("Adresse postale", { exact: false }), "3 rue du Test");
     await saisir(page.getByLabel("Code postal", { exact: false }), "69003");
     await saisir(page.getByLabel("Ville", { exact: false }), "Lyon");
-    await page.getByLabel("Mot de passe", { exact: true }).fill(c.motDePasse);
-    await page.getByLabel("Confirmer le mot de passe").fill(c.motDePasse);
-    await page.locator('input[name="cgu"]').check();
+    // L'adresse est confirmée avant le choix du mot de passe et des conditions.
+    await expect(page.locator('input[type="password"]')).toHaveCount(0);
+    await expect(page.locator('input[name="cgu"]')).toHaveCount(0);
     await cliquer(page.getByRole("button", { name: "Ouvrir mon espace", exact: true }));
     await expect(page.getByText(/Vérifiez votre boîte mail/)).toBeVisible();
 
@@ -51,16 +53,29 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
     const lien = async (colonne: "confirmation_token" | "recovery_token", type: "signup" | "recovery", next: string, bouton: string) => {
       let empreinte = "";
       await expect(async () => {
-        const r = await db.query(`select ${colonne} as token from auth.users where email=$1 and raw_user_meta_data->>'nom'=$2`, [email, nom]);
+        const r = await db.query(`select ${colonne} as token from auth.users where email=$1 and coalesce(raw_user_meta_data->'profil_a_confirmer'->>'nom', raw_user_meta_data->>'nom')=$2`, [email, nom]);
         empreinte = r.rows[0]?.token ?? "";
         expect(/^[a-f0-9]{56}$/.test(empreinte), `un lien ${type} fabriqué par Gerimmo est créé pour le compte fictif`).toBe(true);
       }).toPass({ timeout: 20_000, intervals: [1000, 2000] });
-      await page.goto(`/auth/confirm?token_hash=${empreinte}&type=${type}&next=${next}`);
+      await page.goto(`/auth/confirm?${new URLSearchParams({ token_hash: empreinte, type, email, next })}`);
       empreinte = "";
       // La page du bouton : le jeton n'a pas été consommé à l'ouverture.
       await cliquer(page.getByRole("button", { name: bouton, exact: true }));
     };
     await lien("confirmation_token", "signup", "/espaces", "Confirmer mon adresse");
+    await expect(page).toHaveURL(/\/nouveau-mot-de-passe/);
+    await expect(page.getByLabel("Vous utilisez Gerimmo pour")).toHaveValue("proprietaire_direct");
+    await expect(page.getByLabel("Nom", { exact: true })).toHaveValue(nom);
+    await expect(page.getByLabel("Prénom", { exact: true })).toHaveValue("Camille");
+    await page.getByLabel("Nouveau mot de passe", { exact: true }).fill(c.motDePasse);
+    await page.getByLabel("Confirmation", { exact: true }).fill(c.motDePasse);
+    await page.getByRole("checkbox", { name: /accepte les conditions/ }).check();
+    await cliquer(page.getByRole("button", { name: "Changer le mot de passe", exact: true }));
+    await expect(page).toHaveURL(/\/connexion\?raison=mot-de-passe-modifie/);
+    await expect(page.getByText("Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe.")).toBeVisible();
+    await saisir(page.getByLabel("Adresse e-mail", { exact: true }), email);
+    await page.getByLabel("Mot de passe", { exact: true }).fill(c.motDePasse);
+    await cliquer(page.getByRole("button", { name: "Se connecter", exact: true }));
     // Décision D27 : l'espace du propriétaire direct qui vient de s'inscrire est /espace/<id>.
     await page.waitForURL(/\/espace\/[a-f0-9-]{36}/, { timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 1, name: /Bonjour/ })).toBeVisible();

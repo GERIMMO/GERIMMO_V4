@@ -3,7 +3,7 @@ type: process
 tags: [recette, production, lancement, personas, qualite]
 status: draft
 created: 2026-09-20
-updated: 2026-10-16
+updated: 2026-10-17
 sources: ["[[Fonctionnalités par persona]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]", "[[Onboarding et abonnement]]", "[[Quittancement des loyers]]", "[[Cycle de vie d'un incident]]", "[[Registre des anomalies — audit du 13 octobre 2026]]"]
 ---
 
@@ -13,6 +13,32 @@ sources: ["[[Fonctionnalités par persona]]", "[[Invitation d'un artisan par un 
 l'on fait **le jour du déploiement** et à chaque mise en production qui touche
 un parcours — pour constater, sur le vrai service et les vrais courriers, que
 ce que le banc a prouvé tient en production.
+
+## Règle actuelle — cinq comptes fixes (17 octobre 2026)
+
+À la demande explicite du dirigeant, les cinq identités de test sont désormais
+conservées entre les évolutions : administrateur d'agence, propriétaire, locataire,
+artisan et supervision. La PR #201 met cette règle en place ; sa validation en
+production reste à confirmer dans [[Mission du 16 octobre — suivi vérifié]].
+
+- Les adresses et identifiants restent les mêmes. La fin d'un contrôle ne les supprime plus.
+- Au début du contrôle suivant, seuls leurs dossiers fictifs sont remis à zéro,
+  après vérification qu'aucune relation ne les rattache à un utilisateur réel.
+- Le compte de supervision reste présent, mais son privilège, ses sessions et son
+  accès sont retirés à la fin. Chaque contrôle utilise un vrai second facteur et
+  une autorisation de 61 minutes au maximum.
+- Le scénario de nouvelle inscription utilise un sixième compte ponctuel, distinct
+  des cinq comptes permanents. Ce compte ponctuel est supprimé après son test.
+- Les secrets sont propres à chaque exécution et ne sont ni publiés ni conservés
+  dans le rapport. Les adresses sont des destinations fictives Resend.
+- Le chantier reste déclenché manuellement, uniquement sur main, sans paiement
+  réel ni message aux utilisateurs. Les essais de services externes décrits dans
+  le guide historique ci-dessous constituent des validations distinctes.
+
+La réussite doit confirmer les cinq comptes conservés, aucune session ou permission
+de supervision encore active, et aucun compte d'inscription ponctuel restant.
+Les consignes historiques de suppression de tous les comptes ci-dessous sont
+supplantées par cette règle pour le groupe fixe.
 
 ## Déclencheur
 - Le déploiement de lancement (visé le 30/09/2026), puis toute mise en

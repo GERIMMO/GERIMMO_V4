@@ -24,8 +24,10 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
   if (process.env.PGHOST !== "aws-0-eu-west-3.pooler.supabase.com"
     || process.env.PGUSER !== "postgres.rddlxunppddzpsaatdaz" || process.env.PGDATABASE !== "postgres"
     || !/^r[0-9]{6,20}-[0-9]{1,5}$/.test(c.suffixe)) throw new Error("Cible de recette refusée.");
-  const email = `delivered+inscription-${test.info().retry}-${c.suffixe}@resend.dev`;
-  const nom = `Recette-${c.suffixe}-${test.info().retry}`;
+  // L'essai de création doit rester neuf ; il est distinct des cinq comptes conservés.
+  const suffixeInscription = process.env.RECETTE_COMPTES_FIXES === "1" ? `i${c.suffixe}` : c.suffixe;
+  const email = `delivered+inscription-${test.info().retry}-${suffixeInscription}@resend.dev`;
+  const nom = `Recette-${suffixeInscription}-${test.info().retry}`;
   // Autorité officielle Supabase, avec contrôle de la chaîne ET du nom d'hôte.
   // Source : Database Settings > SSL configuration > Download certificate.
   const db = new Client({ ssl: {

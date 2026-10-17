@@ -31,9 +31,10 @@
 -- Les comptes artisan et supervision ne sont pas admis par la recette manuelle.
 -- La supervision expire après 60 minutes, avec une tâche de contrôle par minute.
 --
--- IL REFUSE plutôt que d'écraser : si un compte du suffixe existe déjà, rien
--- n'est créé (purger d'abord, ou choisir un autre suffixe). Tout est fait
--- dans une transaction : une erreur ne laisse rien derrière elle.
+-- En mode réutilisable, seuls les cinq comptes portant le marqueur serveur
+-- permanente-v1 et le suffixe fixe sont repris, avec leurs UUID conservés.
+-- Le runner remet leurs dossiers à zéro avant ce script. Hors de ce mode,
+-- il refuse tout compte déjà présent. Tout se passe dans une transaction.
 
 \set ON_ERROR_STOP on
 
@@ -51,6 +52,10 @@
 \else
   \set nom_agence 'Recette banc'
 \endif
+\if :{?reutilisables}
+\else
+  \set reutilisables 0
+\endif
 
 begin;
 
@@ -58,6 +63,7 @@ begin;
 -- réglages LOCAUX à la transaction, lus dans le bloc, oubliés au commit.
 select set_config('recette.suffixe', :'suffixe', true),
        set_config('recette.mot_de_passe', :'mot_de_passe', true),
+       set_config('recette.reutilisables', :'reutilisables', true),
        set_config('recette.nom_agence', :'nom_agence', true)
 \gset ignore_
 
@@ -79,6 +85,8 @@ declare
   v_org_parc uuid;
   v_uid uuid;
   v_compte record;
+  v_reutilisables boolean := current_setting('recette.reutilisables') = '1';
+  v_existant boolean;
 begin
   if v_suffixe !~ '^[a-z0-9][a-z0-9-]{5,39}$' then
     raise exception 'Suffixe refusé (%) : minuscules, chiffres et tirets, 6 à 40 caractères', v_suffixe;
@@ -96,9 +104,22 @@ begin
   v_email_artisan := 'delivered+recette-artisan-' || v_suffixe || '@resend.dev';
   v_email_superadmin := 'delivered+recette-superadmin-' || v_suffixe || '@resend.dev';
 
+  if v_reutilisables and v_suffixe <> 'r20261017000000-1' then
+    raise exception 'Le groupe réutilisable exige son identifiant fixe';
+  end if;
+
   if exists (select 1 from auth.users u
              where lower(u.email) like 'delivered+%' || v_suffixe || '%@resend.dev') then
-    raise exception 'Des comptes du suffixe « % » existent déjà : purgez-les (purger.sql) ou changez de suffixe', v_suffixe;
+    if not v_reutilisables then
+      raise exception 'Des comptes du suffixe existent déjà';
+    end if;
+    if (select count(*) from auth.users where email=any(array[v_email_admin,v_email_proprio,v_email_locataire,v_email_artisan,v_email_superadmin])
+          and raw_app_meta_data->>'gerimmo_recette'='permanente-v1') <> 5
+       or exists(select 1 from auth.users where lower(email) like 'delivered+%' || v_suffixe || '%@resend.dev'
+          and not(email=any(array[v_email_admin,v_email_proprio,v_email_locataire,v_email_artisan,v_email_superadmin])
+            and coalesce(raw_app_meta_data->>'gerimmo_recette','')='permanente-v1')) then
+      raise exception 'Groupe réutilisable incomplet ou non reconnu';
+    end if;
   end if;
   if exists (select 1 from public.organizations o where o.name like '%' || v_suffixe || '%') then
     raise exception 'Une organisation porte déjà le suffixe « % » : purgez-la (purger.sql) ou changez de suffixe', v_suffixe;
@@ -117,6 +138,21 @@ begin
       (v_email_superadmin, 'Supervision', 'Recette-' || v_suffixe)
     ) as t(email, prenom, nom)
   loop
+    select id into v_uid from auth.users where email=v_compte.email;
+    v_existant := v_uid is not null;
+    if v_existant then
+      -- Les UUID sont conservés. Les accès du runner sont renouvelés en privé.
+      update auth.users set encrypted_password=extensions.crypt(v_mdp,extensions.gen_salt('bf')),
+        banned_until=null, updated_at=now(), confirmation_token='', recovery_token='',
+        email_change='', email_change_token_new='', email_change_token_current=''
+        where id=v_uid;
+      if to_regclass('auth.sessions') is not null then
+        execute 'delete from auth.sessions where user_id=$1' using v_uid;
+      end if;
+      if v_compte.email=v_email_superadmin and to_regclass('auth.mfa_factors') is not null then
+        execute 'delete from auth.mfa_factors where user_id=$1' using v_uid;
+      end if;
+    else
     insert into auth.users (
       instance_id, id, aud, role, email, encrypted_password,
       email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
@@ -125,16 +161,18 @@ begin
     ) values (
       '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
       v_compte.email, extensions.crypt(v_mdp, extensions.gen_salt('bf')),
-      now(), '{"provider":"email","providers":["email"]}'::jsonb,
+      now(), '{"provider":"email","providers":["email"]}'::jsonb ||
+        case when v_reutilisables then '{"gerimmo_recette":"permanente-v1"}'::jsonb else '{}'::jsonb end,
       jsonb_build_object('prenom', v_compte.prenom, 'nom', v_compte.nom,
                          'cgu_version', v_version_cgu, 'cgu_acceptee_le', now()),
       now(), now(), '', '', '', '', ''
     )
     returning id into v_uid;
+    end if;
 
     -- L'identité « email » que GoTrue pose à l'inscription. Absente du banc
     -- local (pas de table auth.identities) ; présente en production.
-    if to_regclass('auth.identities') is not null then
+    if not v_existant and to_regclass('auth.identities') is not null then
       execute $sql$
         insert into auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
         values ($1::text, $1, jsonb_build_object('sub', $1::text, 'email', $2::text, 'email_verified', true),

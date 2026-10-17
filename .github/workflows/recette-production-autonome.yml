@@ -1,4 +1,5 @@
-# Comptes éphémères : préparation, navigation et nettoyage dans le même passage.
+# Cinq comptes fixes réutilisés. Les dossiers de scénario sont remis à zéro
+# au début ; les comptes sont conservés à la fin et la supervision révoquée.
 # Aucun paiement réel, aucun message à une personne ; seuls des courriers
 # éventuels vers les boîtes de test Resend peuvent partir.
 name: Recette de production avec nettoyage
@@ -19,7 +20,8 @@ jobs:
         working-directory: app
     env:
       RECETTE_URL: https://www.gerimmo.app
-      RECETTE_SUFFIXE: r${{ github.run_id }}-${{ github.run_attempt }}
+      RECETTE_SUFFIXE: r20261017000000-1
+      RECETTE_COMPTES_FIXES: '1'
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v6
@@ -38,10 +40,10 @@ jobs:
           CLE_NETTOYAGE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           if [ -z "$CLE_NETTOYAGE" ]; then
-            echo "Nettoyage Storage indisponible : aucun compte ne sera créé."
+            echo "Nettoyage Storage indisponible : le groupe de test ne sera pas préparé."
             exit 1
           fi
-      - name: Préparer les cinq comptes éphémères du passage
+      - name: Préparer ou réutiliser les cinq comptes fixes
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           PGHOST: aws-0-eu-west-3.pooler.supabase.com
@@ -61,7 +63,7 @@ jobs:
           PGDATABASE: postgres
           PGSSLMODE: require
         run: npx playwright test --config e2e/recette-production/playwright.config.ts
-      - name: Retirer les comptes et les données de ce passage
+      - name: Conserver les cinq comptes et retirer la supervision temporaire
         if: always()
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

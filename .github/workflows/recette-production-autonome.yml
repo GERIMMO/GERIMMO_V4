@@ -45,6 +45,7 @@ jobs:
           fi
       - name: Préparer ou réutiliser les cinq comptes fixes
         env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           PGHOST: aws-0-eu-west-3.pooler.supabase.com
           PGPORT: 5432

@@ -13,6 +13,9 @@ describe('comptes éphémères : refus avant toute connexion ou création', () =
     { PGHOST:'autre-base.example' },
     { RECETTE_SUFFIXE:'passage-manuel' },
     { RECETTE_SUFFIXE:'r202610160099-1%_.*' },
+    { RECETTE_COMPTES_FIXES:'1' },
+    { RECETTE_COMPTES_FIXES:'true' },
+    { RECETTE_SUFFIXE:'r20261017000000-1' },
     { PGHOST:'aws-0-eu-west-3.pooler.supabase.com', PGUSER:'postgres.rddlxunppddzpsaatdaz', PGDATABASE:'postgres', RECETTE_URL:'https://www.gerimmo.app', GITHUB_WORKFLOW:'Recette de production avec nettoyage', GITHUB_REF:'refs/heads/branche', PGPASSWORD:'fictif' },
     { PGHOST:'aws-0-eu-west-3.pooler.supabase.com', PGUSER:'postgres.rddlxunppddzpsaatdaz', PGDATABASE:'postgres', RECETTE_URL:'https://www.gerimmo.app', GITHUB_WORKFLOW:'Recette de production', GITHUB_REF:'refs/heads/main', PGPASSWORD:'fictif' },
   ])('refuse le contexte hors périmètre %j', valeurs => {

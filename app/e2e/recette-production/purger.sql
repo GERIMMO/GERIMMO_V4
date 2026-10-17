@@ -89,6 +89,7 @@ declare
   v_artisans uuid[];
   v_orgs uuid[];
   v_uids uuid[];
+  v_uids_a_supprimer uuid[];
   v_intrus text;
   v_passe int := 0;
   v_progres boolean;
@@ -109,6 +110,13 @@ begin
     from public.organizations o where o.name ~ v_motif_org;
   select coalesce(array_agg(u.id), '{}') into v_uids
     from auth.users u where lower(u.email) ~ v_motif_email;
+  -- Protection permanente des cinq identités validées : même un ancien
+  -- appel de purge ne doit pas les effacer. Seuls leurs dossiers se remettent à zéro.
+  select coalesce(array_agg(u.id), '{}') into v_uids_a_supprimer
+    from auth.users u where u.id=any(v_uids) and not (
+      coalesce(u.raw_app_meta_data->>'gerimmo_recette','')='permanente-v1'
+      and u.email ~ '^delivered\+recette-(admin|proprietaire|locataire|artisan|superadmin)-r20261017000000-1@resend\.dev$'
+    );
 
   select coalesce(array_agg(a.id), '{}') into v_artisans from public.artisans a
     where a.account_id=any(v_uids) or lower(a.email) ~ v_motif_email;
@@ -275,7 +283,7 @@ begin
       v_erreurs := v_erreurs || jsonb_build_object('organizations', sqlerrm);
     end;
     begin
-      delete from auth.users where id = any(v_uids);
+      delete from auth.users where id = any(v_uids_a_supprimer);
       get diagnostics v_n = row_count;
       if v_n > 0 then v_progres := true; v_total := v_total + v_n; end if;
     exception when others then
@@ -283,7 +291,7 @@ begin
     end;
 
     select count(*) into v_reste_orgs from public.organizations where id = any(v_orgs);
-    select count(*) into v_reste_comptes from auth.users where id = any(v_uids);
+    select count(*) into v_reste_comptes from auth.users where id = any(v_uids_a_supprimer);
     exit when v_reste_orgs = 0 and v_reste_comptes = 0 and not exists(select 1 from public.artisans where id=any(v_artisans));
 
     if not v_progres or v_passe >= 25 then
@@ -304,6 +312,13 @@ select 'organisations' as reste, count(*) as nombre
 union all
 select 'comptes', count(*) from auth.users
  where lower(email) ~ ('^delivered\+[a-z0-9-]+-' || :'suffixe' || '@resend\.dev$')
+   and not (coalesce(raw_app_meta_data->>'gerimmo_recette','')='permanente-v1'
+     and email ~ '^delivered\+recette-(admin|proprietaire|locataire|artisan|superadmin)-r20261017000000-1@resend\.dev$')
+union all
+select 'comptes conserves', count(*) from auth.users
+ where lower(email) ~ ('^delivered\+[a-z0-9-]+-' || :'suffixe' || '@resend\.dev$')
+   and coalesce(raw_app_meta_data->>'gerimmo_recette','')='permanente-v1'
+   and email ~ '^delivered\+recette-(admin|proprietaire|locataire|artisan|superadmin)-r20261017000000-1@resend\.dev$'
 union all
 select 'fiches personnes', count(*) from public.persons
  where lower(email) ~ ('^delivered\+[a-z0-9-]+-' || :'suffixe' || '@resend\.dev$')

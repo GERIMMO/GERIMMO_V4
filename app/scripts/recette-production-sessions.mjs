@@ -51,9 +51,11 @@ try {
       await page.getByRole('button',{name:'Activer et continuer',exact:true}).click();
     }
     phase=`accès ${persona.toLowerCase()}`;console.log(`Session : ${phase}.`);
-    await page.waitForURL(/\/(espaces|artisan|admin)(\/|\?|$)/,{timeout:45000});
-    phase=`stabilisation ${persona.toLowerCase()}`;console.log(`Session : ${phase}.`);
-    await page.waitForLoadState('networkidle',{timeout:45000});
+    await page.waitForURL(persona==='ARTISAN'?/\/artisan(?:\/|\?|$)/:/\/admin(?:\/|\?|$)/,{timeout:45000});
+    phase=`écran prêt ${persona.toLowerCase()}`;console.log(`Session : ${phase}.`);
+    // Le portail peut garder des échanges réseau actifs après son affichage.
+    // Sa disponibilité se vérifie par la destination et le titre visible.
+    await page.getByRole('heading',{level:1}).first().waitFor({state:'visible',timeout:45000});
     const session=Buffer.from(JSON.stringify(await context.storageState())).toString('base64');
     console.log(`::add-mask::${session}`);
     appendFileSync(env.GITHUB_ENV,`RECETTE_SESSION_${persona}=${session}\n`);

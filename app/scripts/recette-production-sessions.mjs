@@ -17,6 +17,8 @@ function totp(secret) {
 console.log('Ouverture du navigateur de recette.');
 const browser=await chromium.launch({timeout:45000,...(env.PLAYWRIGHT_CHROMIUM?{executablePath:env.PLAYWRIGHT_CHROMIUM}:{})});
 let phase="ouverture du navigateur";
+let pageActive;
+let statutConnexion=null;
 try {
   for(const persona of ['ARTISAN','SUPERADMIN']) {
     const email=env[`RECETTE_EMAIL_${persona}`];
@@ -24,6 +26,11 @@ try {
     const context=await browser.newContext({baseURL:url.origin});
     context.setDefaultTimeout(45000);context.setDefaultNavigationTimeout(45000);
     const page=await context.newPage();
+    pageActive=page;statutConnexion=null;
+    page.on('response',response=>{
+      const adresse=new URL(response.url());
+      if(adresse.pathname==='/auth/v1/token' && adresse.searchParams.get('grant_type')==='password') statutConnexion=response.status();
+    });
     phase=`connexion ${persona.toLowerCase()}`;console.log(`Session : ${phase}.`);
     await page.goto('/connexion');
     // La page serveur peut précéder l’hydratation : saisir à ce moment serait
@@ -45,6 +52,7 @@ try {
     }
     phase=`accès ${persona.toLowerCase()}`;console.log(`Session : ${phase}.`);
     await page.waitForURL(/\/(espaces|artisan|admin)(\/|\?|$)/,{timeout:45000});
+    phase=`stabilisation ${persona.toLowerCase()}`;console.log(`Session : ${phase}.`);
     await page.waitForLoadState('networkidle',{timeout:45000});
     const session=Buffer.from(JSON.stringify(await context.storageState())).toString('base64');
     console.log(`::add-mask::${session}`);
@@ -53,5 +61,10 @@ try {
   }
   console.log('Sessions artisan et supervision ouvertes ; second facteur vérifié par Auth.');
 } catch {
+  // Catégories fermées seulement : jamais d'URL complète, d'erreur Auth,
+  // de texte de page, de corps de requête ou de contenu de session.
+  const chemin=pageActive?new URL(pageActive.url()).pathname:'';
+  const ecran=['/connexion','/espaces','/artisan','/admin','/admin/brief','/securite'].includes(chemin)?chemin:'autre';
+  console.error(`Diagnostic de recette : écran=${ecran}, réponse connexion=${statutConnexion??'absente'}.`);
   console.error(`Ouverture des sessions interrompue (${phase}) ; aucun détail sensible enregistré.`);process.exitCode=1;
 } finally {await browser.close();}

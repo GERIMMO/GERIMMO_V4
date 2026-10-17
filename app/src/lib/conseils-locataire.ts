@@ -30,6 +30,9 @@
 // contenu fourni (corrections de français et retraits listés un par un),
 // refuse tout chiffre ajouté et tout nom d'assureur.
 
+/** Q9 (16/10) : contenu conservé pour relecture, masqué dans les parcours tant que les sources et la qualification juridique ne sont pas validées. */
+export const CONSEILS_LOCATAIRE_VALIDES = false;
+
 /** Le niveau de certitude d'un conseil : d'où vient ce qu'il affirme. */
 export type NiveauCertitude = "regle-legale" | "pratique-courante" | "variable-contrat";
 

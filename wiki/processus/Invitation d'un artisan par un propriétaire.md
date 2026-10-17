@@ -9,6 +9,10 @@ sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "
 
 # Invitation d'un artisan par un propriétaire
 
+> [!info] Relevé de la mission du 16 octobre, en soirée
+> État vérifié et preuves : [[Mission du 16 octobre — suivi vérifié]]. PR #197 fusionnée (`4a5ddf5`). Inscription publique et anonyme fermées, confirmation d’adresse active, liens limités à une heure et trois modèles de courrier enregistrés dans Supabase. La recette n°19 passe au premier essai ; la n°20 confirme les nouveaux réglages (39 réussites, 1 ignoré, aucun test instable, nettoyage réussi). La trace D04 a été relue : montant vide envoyé, aucun montant faux enregistré. Les compléments D18, D22, D08-C, X08, relais et dates sont préparés et testés localement, **pas encore publiés**. Les anciens constats ci-dessous sont datés ; cette mission ne clôt ni les avis spécialisés ni les limites de recette restantes.
+
+
 **En une phrase :** le [[Propriétaire bailleur|propriétaire en gestion directe]] invite par
 e-mail un artisan qu'il connaît ; l'artisan crée lui-même son compte, inscrit son entreprise
 et accepte l'invitation ; une fois son inscription validée par Gerimmo, il est dans le carnet

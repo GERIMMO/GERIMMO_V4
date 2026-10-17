@@ -212,7 +212,7 @@ describe("les écrans de l'artisan", () => {
     expect(html).not.toContain("revision_demandee");
   });
   it("l'historique montre la v1 révisée avec ce que le client demandait, puis la v2 et ce qui changeait", () => {
-    const html = renderToStaticMarkup(createElement(VersionsPrecedentes, {
+    const html = renderToStaticMarkup(createElement(VersionsPrecedentes, { sollicitationId: "s-1",
       versions: [
         { devis_id: "d1", version: 1, statut: "revise", montant_ttc_cents: 48000, valide_jusqu_au: "2026-12-31", depose_le: "2026-10-01T08:00:00.000Z", note_revision: null, decision: "revision", decision_motif: MOTIF, decide_le: "2026-10-10T09:00:00.000Z", description: "x", lignes: [] },
         { devis_id: "d2", version: 2, statut: "depose", montant_ttc_cents: 45000, valide_jusqu_au: "2026-12-31", depose_le: "2026-10-12T08:00:00.000Z", note_revision: NOTE, decision: null, decision_motif: null, decide_le: null, description: "y", lignes: [] },
@@ -221,6 +221,8 @@ describe("les écrans de l'artisan", () => {
       versionCourante: null,
     }));
     expect(html).toContain("Vos versions (2)");
+    expect(html).toContain("/api/devis/s-1/pdf?version=1");
+    expect(html).toContain("/api/devis/s-1/pdf?version=2");
     expect(html).toContain("Version 1");
     expect(html).toContain("Révision demandée par le client");
     expect(html).toContain("Ce que le client demandait : « Merci de détailler la main-d&#x27;œuvre et de revoir le prix du joint. »");
@@ -229,7 +231,7 @@ describe("les écrans de l'artisan", () => {
     expect(html).toContain("Envoyée, en attente de décision");
   });
   it("une seule version sans révision : rien de plus que la carte « Ma réponse »", () => {
-    const html = renderToStaticMarkup(createElement(VersionsPrecedentes, {
+    const html = renderToStaticMarkup(createElement(VersionsPrecedentes, { sollicitationId: "s-1",
       versions: [{ devis_id: "d1", version: 1, statut: "depose", montant_ttc_cents: 48000, valide_jusqu_au: "2026-12-31", depose_le: "2026-10-01T08:00:00.000Z", note_revision: null, decision: null, decision_motif: null, decide_le: null, description: "x", lignes: [] }],
       erreur: false,
       versionCourante: null,

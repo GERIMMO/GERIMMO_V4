@@ -120,6 +120,18 @@ describe("rappels de gestes : la reprise du lendemain porte le même texte", () 
     return { b1, b2 };
   }
 
+  it.each([1,2])("garde lente %i : aucun envoi après l'échéance commune, rappel disponible à la prochaine passe",async(n)=>{
+    let temps=150_000, gardes=0;
+    const {client,journal}=base(tables,uniques);
+    const bilan=await envoyerRappelsGestes(client,MAINTENANT,async()=>{if(++gardes===n)temps=160_001;},{echeanceMs:160_000,horloge:()=>temps});
+    expect(bilan).toMatchObject({envoyes:0,echecs:0,restants:1});
+    expect(fournisseur.acceptes).toHaveLength(0);
+    expect(journal).toEqual([]);
+    temps=0;
+    expect(await envoyerRappelsGestes(client,MAINTENANT,undefined,{echeanceMs:160_000,horloge:()=>temps})).toMatchObject({envoyes:1});
+    expect(fournisseur.acceptes).toHaveLength(1);
+  });
+
   it("le rappel accepté mais non tracé est repris le lendemain sans nouveau message ni faux échec", async () => {
     // 14/10 06:00:05, puis 15/10 06:00:01 : 23 h 59 min 56 s, dans la fenêtre de la clé.
     const { b1, b2 } = await deuxPassesSansTrace(matin(14, 5), matin(15, 1));

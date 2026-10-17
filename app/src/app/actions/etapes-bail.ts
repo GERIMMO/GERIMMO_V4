@@ -1,4 +1,5 @@
 "use server";
+import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { premier } from "@/lib/postgrest";
@@ -12,7 +13,7 @@ export async function modifierEtapeBail(orgId: string, bailId: string, etape: Et
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(form);
   if (!Object.hasOwn(CHAMPS_ETAPE_BAIL, etape)) return { erreur: "Étape inconnue.", valeurs };
-  const {data: bail,error: lecture} = await supabase.from("baux").select("*,lot:lots!baux_lot_meme_org_fk(meuble,surface_m2)").eq("id",bailId).eq("organization_id",orgId).maybeSingle();
+  const {data: bail,error: lecture} = await supabase.from("baux").select("*,lot:lots!baux_lot_meme_org_fk(meuble,surface_m2,bien_id)").eq("id",bailId).eq("organization_id",orgId).maybeSingle();
   if (lecture) return {erreur:"Le bail n’a pas pu être relu. Votre saisie est conservée.",valeurs};
   if (!bail || bail.etat !== "brouillon") return {erreur:"Seul un bail en brouillon accessible peut être modifié.",valeurs};
   const lot = premier(bail.lot);
@@ -29,7 +30,8 @@ export async function modifierEtapeBail(orgId: string, bailId: string, etape: Et
   if(error) return {erreur:sansJargon(error.message),valeurs};
   if(!data?.length) return {erreur:"Le bail a changé pendant l’enregistrement. Rechargez le dossier avant de réessayer ; votre saisie reste affichée.",valeurs};
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return {succes:"Étape enregistrée."};
+  if (lot.bien_id) revalidatePath(`/agence/${orgId}/parc/${lot.bien_id}/lots/${bail.lot_id}`);
+  return {succes:"Étape enregistrée.",avertissements:avertissementsCoherenceLoyer({...bail,...resultat.patch},lot.surface_m2)};
 }
 
 /** Un brouillon peut être incomplet : les mentions restent exigées avant le PDF et l’activation. */

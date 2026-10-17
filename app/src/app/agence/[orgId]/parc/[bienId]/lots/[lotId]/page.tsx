@@ -1,3 +1,5 @@
+import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
+import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import styles from "./fiche-lot.module.css";
 import parcoursStyles from "@/components/presentation-parcours.module.css";
 import { SupprimerBailBrouillon } from "@/components/supprimer-bail-brouillon";
@@ -130,7 +132,7 @@ export default async function PageLot(
     supabase.rpc("lot_blocages_location", { p_lot: lotId }),
     supabase
       .from("baux")
-      .select("id, chambre_id, type, etat, document_signe, signe_envoye_le, locataire_principal, loyer_hc, charges, date_debut, date_fin")
+      .select("id, chambre_id, type, etat, document_signe, signe_envoye_le, locataire_principal, loyer_hc, charges, date_debut, date_fin, encadrement_loyer, loyer_reference, loyer_reference_majore, complement_loyer, complement_justification")
       .eq("lot_id", lotId)
       .order("created_at", { ascending: false }),
     supabase
@@ -481,7 +483,7 @@ export default async function PageLot(
                       {/* Recette 21/08 puis 22/08 : la vue macro dit qui
                           habite, pour combien et depuis quand — avant
                           d'ouvrir. */}
-                      <span className={styles.bailTexte}>
+                      <div className={styles.bailTexte}>
                         Bail {b.chambre_id ? `individuel · ${chambres?.find(c => c.id === b.chambre_id)?.nom ?? "chambre"}` : (TYPES_BAIL[b.type] ?? b.type).toLowerCase()}
                         {b.locataire_principal && nomsParId.get(b.locataire_principal)
                           ? ` — ${nomsParId.get(b.locataire_principal)}`
@@ -499,7 +501,8 @@ export default async function PageLot(
                               .join(" · ")}
                           </span>
                         )}
-                      </span>
+                      <AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(b, lot.surface_m2)} />
+                      </div>
                       <div className={styles.bailActions}>
                       <Link
                         href={`${base}/baux/${b.id}`}

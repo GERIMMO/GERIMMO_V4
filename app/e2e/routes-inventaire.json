@@ -66,6 +66,12 @@
     "dynamic": "orgId"
   },
   {
+    "path": "/admin/organisations/ORG/support",
+    "persona": "superadmin",
+    "label": "Assistance encadrée sur un encaissement",
+    "dynamic": "orgId"
+  },
+  {
     "path": "/admin/organisations/nouvelle",
     "persona": "superadmin",
     "label": "Ouvrir une organisation",

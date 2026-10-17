@@ -3,44 +3,11 @@ import { ENTETE_CHEMIN, ENTETE_METHODE } from "@/lib/entetes-traversee";
 import { estCodeGeste, type GesteTrace } from "@/lib/gestes-trace";
 
 /**
- * Trace de l'entrée du super-administrateur dans un espace client (audit du 13/10, SA-01 et SA-09,
- * décision D08, option A : statu quo accepté, trace plus précise — AUCUN droit ne change).
- *
- * Avant : la ligne d'audit `traversee_action` disait seulement « un super-administrateur est passé »
- * (détails vides), elle partait aussi à la simple ouverture d'une page, et chaque navigation écrivait
- * de 1 à 15 lignes `traversee_espace` vides (pages liées chargées à l'avance, pages et mises en page
- * rendues par des requêtes distinctes).
- *
- * Maintenant, chaque ligne dit :
- * - l'ACTION : une consultation de page (`traversee_espace`) ou un geste lancé depuis une page
- *   (`traversee_action`, seulement quand la requête peut écrire : action serveur ou formulaire en POST
- *   — jamais à l'ouverture d'une page ni au téléchargement d'un fichier) ;
- * - l'OBJET : l'adresse, la rubrique de l'espace et l'identifiant de l'objet ouvert (bail, lot,
- *   incident…) quand l'adresse en porte un. Pour une action FINANCIÈRE, l'action dit elle-même son nom
- *   (`geste`) et la cible qu'elle modifie (l'identifiant du bail, du rapport, de l'écriture…) : la cible l'emporte
- *   sur l'objet de la page d'où part le geste, qui n'en porte souvent aucun (la fenêtre de lot est sur
- *   `/agence/<org>/parc`) — voir lib/gestes-trace.ts ;
- * - le RÉSULTAT : la décision d'accès — `autorise`, ou `refuse` (organisation introuvable). Une demande
- *   vers une organisation qui n'existe pas s'écrit SANS organisation (`audit_log.organization_id` est une clé
- *   étrangère : l'identifiant d'une organisation absente ne peut pas y figurer) ; l'identifiant demandé est
- *   alors dans les détails (`org_demandee`), pour retrouver qui a essayé quoi.
- *
- * Limite assumée : la trace est posée par la porte d'entrée, AVANT le geste. Elle dit « le
- * super-administrateur est autorisé à agir ici », pas « le geste a réussi » : la console l'écrit « accès :
- * autorisé » (et non « résultat »), et le résultat d'un geste financier est lisible dans ses propres écritures
- * et lignes d'audit (`contre_ecriture`, `suppression_encaissement`…). Les actions non financières n'ont pas de
- * nom lisible côté serveur : on garde l'empreinte technique de l'action (`action_ref`) pour la rapprocher de la
- * version déployée. Faire écrire la ligne par les fonctions financières elles-mêmes (auteur, montant, résultat)
- * relève de l'option B ou C de D08, non appliquées.
- *
- * Limite constatée sur un vrai serveur (Next.js 16.3, `next start`) : une page liée que le navigateur
- * charge à l'avance (préchargement, sans que personne ne l'ouvre) est rendue par le serveur, sous la
- * session du super-administrateur, comme une page ouverte. Next.js MASQUE ses en-têtes de navigation
- * (`rsc`, `next-router-prefetch`…) au proxy et à `headers()` (documentation : « Proxy », § « RSC requests
- * and rewrites ») : rien, côté application, ne distingue les deux. Ces pages sont donc tracées comme des
- * consultations, ce qui peut surdéclarer (jamais sous-déclarer) ; la base n'écrit qu'une ligne par page et
- * par minute, ce qui borne le bruit au nombre de liens de l'écran. Activer `skipProxyUrlNormalize` pour
- * lire ces en-têtes changerait le comportement de tout le proxy : non fait ici.
+ * D08-C : traversée en lecture seule, tracée sous le compte réel.
+ * Le proxy décrit la requête ; la base refuse les écritures métier indépendamment
+ * de ces en-têtes. Le support utilise des gestes distincts, motivés et bornés.
+ * Une trace décrit la décision d'accès ; le résultat effectif du support est
+ * journalisé dans la même transaction que son écriture.
  */
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -69,7 +36,7 @@ export async function lireContexteRequete(): Promise<ContexteRequete> {
     return {
       chemin: brut && brut.startsWith("/") && brut.length <= 300 ? brut : null,
       actionServeur: Boolean(action),
-      ecriture: Boolean(action) || (methode !== null && methode !== "GET" && methode !== "HEAD"),
+      ecriture: Boolean(action) || (methode !== "GET" && methode !== "HEAD"),
       actionRef: action ? action.slice(0, 16) : null,
     };
   } catch {
@@ -112,7 +79,7 @@ export type DemandeTrace = {
   nature: "espace" | "geste";
   resultat: "autorise" | "refuse";
   /** Pourquoi, quand le résultat est un refus. */
-  motif?: "organisation_introuvable";
+  motif?: "organisation_introuvable" | "lecture_seule";
   /** Pour une action financière : son nom et la cible qu'elle modifie (lib/gestes-trace.ts). */
   geste?: GesteTrace;
 };

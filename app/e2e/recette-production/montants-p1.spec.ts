@@ -147,13 +147,17 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
     await page.goto(`${espaceDe("proprietaire")}/baux/${d.bail}`);
     await expect(carteLoyers(page)).toContainText("Loyers & paiements");
     await expect(montantSaisi(page)).toHaveAttribute("type", "text");
-    // Saisie dès que le champ est là, comme au premier essai en échec du 16/10 : avant l'hydratation, le champ est déjà
-    // saisissable et seul « Encaisser » est inerte (D30). Puis on attend l'activation d'« Encaisser » et on lit le champ
-    // AVANT d'envoyer : une saisie perdue à l'hydratation ou dans le navigateur échoue ici, un refus du serveur plus bas.
+    // Le champ doit être visible et sélectionné avant la frappe, puis le bouton actif avant l'envoi.
+    // La lecture de sa valeur distingue une saisie perdue dans le navigateur d'un refus du serveur.
     test.info().annotations.push({
       type: "D04",
       description: (await boutonEncaisser(page).isDisabled()) ? "saisie avant hydratation" : "saisie après hydratation",
     });
+    // La trace n°18 montre une saisie sans cible visible (0×0), avec champ vide avant/après.
+    // Comme une personne, attendre que le champ soit visible et le prendre au clic avant de taper.
+    await expect(montantSaisi(page)).toBeVisible();
+    await montantSaisi(page).click();
+    await expect(montantSaisi(page)).toBeFocused();
     await montantSaisi(page).pressSequentially("840,00");
     await expect(boutonEncaisser(page)).toBeEnabled();
     await expect(montantSaisi(page)).toHaveValue("840,00");

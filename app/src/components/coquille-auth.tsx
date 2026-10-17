@@ -13,7 +13,7 @@ import { MarqueGerimmo } from "@/components/marque-gerimmo";
  * mêmes écrans pour l'utilisateur — et celui qui a perdu son mot de passe est
  * précisément celui qu'il ne faut pas laisser douter du site où il se trouve.
  *
- * Le panneau encre ne s'affiche qu'à partir de `md` : sur téléphone, la marque
+ * Le panneau encre ne s'affiche qu'à partir de `lg` : sur téléphone et tablette, la marque
  * passe au-dessus du formulaire, comme avant.
  */
 export function CoquilleAuth({
@@ -37,8 +37,8 @@ export function CoquilleAuth({
   children: ReactNode;
 }) {
   return (
-    <main className="coquille-auth grid min-h-full flex-1 md:grid-cols-[1.05fr_1fr]">
-      <div className="panneau-marque hidden flex-col justify-between p-13 text-[var(--sur-marque)] md:flex">
+    <main className="coquille-auth grid min-h-full flex-1 lg:grid-cols-[1.05fr_1fr]">
+      <div className="panneau-marque hidden flex-col justify-between p-13 text-[var(--sur-marque)] lg:flex">
         {/* La marque ramène à la vitrine (24/09), comme sur la vitrine, le
             journal et les pages légales : c'était ici le seul logo inerte. */}
         <Link href="/" aria-label="Gerimmo — accueil" className="inline-flex min-h-11 items-center self-start">
@@ -61,7 +61,7 @@ export function CoquilleAuth({
 
       <div className="flex items-center justify-center p-6 sm:p-8">
         <div className="w-full" style={{ maxWidth: largeur }}>
-          <div className="mb-6 md:hidden">
+          <div className="mb-6 lg:hidden">
             {/* Sur le fond clair du formulaire, le logo doré se pose dans la tuile bleu nuit (D28 A, DES-A-10) :
                 nu, il se lisait à ≈ 1,5:1 sur le tout premier écran de connexion. */}
             <Link href="/" aria-label="Gerimmo — accueil" className="inline-flex min-h-11 items-center rounded-xl">

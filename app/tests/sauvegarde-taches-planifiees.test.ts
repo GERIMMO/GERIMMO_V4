@@ -1,7 +1,7 @@
 /**
  * D07 (AUD-C-02) : la sauvegarde exporte les tâches pg_cron, et la procédure de reprise sait les rejouer.
  *
- * `cron.job` vit dans le schéma `cron`, que pg_dump ne copie pas (public, auth et storage seulement). Une restauration
+ * `cron.job` vit dans le schéma `cron`, que pg_dump ne copie pas (public, auth, storage et support_interne seulement). Une restauration
  * dans un projet neuf ne relançait donc ni les appels de loyer, ni les alertes d'impayés, ni la rétention, ni le
  * marketing, sans aucun signal. Ces tests gardent : l'export chiffré et son manifeste, la détection d'une altération,
  * la compatibilité avec les copies d'avant, le script de rejeu généré, l'échec franc quand la lecture échoue, et le

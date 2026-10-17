@@ -130,7 +130,7 @@ async function suspendre(org: string) {
   );
   await simuler(sa);
   await db.query(
-    `update public.organizations set status='suspendue'::public.organization_status where id=$1`,
+    `select public.controler_organisation($1,'suspendre',null,'TEST suspension pour vérifier le traitement planifié')`,
     [org]
   );
   await db.query("reset role");

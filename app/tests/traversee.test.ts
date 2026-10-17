@@ -1,16 +1,4 @@
-/**
- * D08 (audit du 13/10, SA-01 et SA-09), option A — la trace de l'entrée du super-administrateur dans un espace
- * client dit l'ACTION, l'OBJET et le RÉSULTAT, sans changer aucun droit.
- *
- * Avant : `traversee_action` sans détail, émise aussi à l'ouverture d'une page (le contrôle d'un dossier de
- * bail s'exécute au rendu), et `traversee_espace` vide, réécrite à chaque rendu (jusqu'à 15 par minute).
- * Maintenant :
- * - une ouverture de page ou un fichier lu → `traversee_espace` ; un geste (action serveur, formulaire en POST)
- *   → `traversee_action` ;
- * - les détails portent la page, l'objet (rubrique + identifiant) et la décision d'accès (autorisé / refusé) ;
- * - une demande vers une organisation inexistante laisse une ligne « refusé » ;
- * - un échec d'écriture de la trace ne bloque rien (comme avant) ; un membre ordinaire n'écrit aucune trace.
- */
+/** D08-C : consultation inchangée, mutation de traversée refusée et journalisée. */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -225,6 +213,7 @@ describe("D08 — l'entrée dans un espace client par la page (verifierAccesEspa
     mocks.entetes = { "x-gerimmo-chemin": `/agence/${ORG}/baux/${BAIL}`, "x-gerimmo-methode": "GET" };
     const espace = await verifierAccesEspace(ORG);
     expect(espace.role).toBe("admin_agence");
+    expect(espace.traverseeLectureSeule).toBe(true);
     expect(appelsTrace()).toEqual([[
       "log_sa_access",
       { org: ORG, sa_action: "traversee_espace", sa_details: { resultat: "autorise", requete: "page", rubrique: "baux", objet_id: BAIL, route: `/agence/${ORG}/baux/${BAIL}` } },
@@ -269,10 +258,10 @@ describe("D08 — un geste dans un espace client (verifierGerant)", () => {
   it("une action serveur écrit « traversee_action », avec son empreinte, la page et l'objet", async () => {
     mocks.entetes = { "x-gerimmo-chemin": `/agence/${ORG}/baux/${BAIL}`, "x-gerimmo-methode": "POST", "next-action": ACTION };
     const acces = await verifierGerant(ORG);
-    expect(acces.user).not.toBeNull();
+    expect(acces.user).toBeNull();
     expect(appelsTrace()).toEqual([[
       "log_sa_access",
-      { org: ORG, sa_action: "traversee_action", sa_details: { resultat: "autorise", requete: "action_serveur", rubrique: "baux", objet_id: BAIL, route: `/agence/${ORG}/baux/${BAIL}`, action_ref: ACTION.slice(0, 16) } },
+      { org: ORG, sa_action: "traversee_action", sa_details: { resultat: "refuse", motif: "lecture_seule", requete: "action_serveur", rubrique: "baux", objet_id: BAIL, route: `/agence/${ORG}/baux/${BAIL}`, action_ref: ACTION.slice(0, 16) } },
     ]]);
   });
 
@@ -281,7 +270,7 @@ describe("D08 — un geste dans un espace client (verifierGerant)", () => {
     await verifierGerant(ORG, { geste: "encaissement", cible: BAIL });
     expect(appelsTrace()).toEqual([[
       "log_sa_access",
-      { org: ORG, sa_action: "traversee_action", sa_details: { resultat: "autorise", requete: "action_serveur", geste: "encaissement", rubrique: "parc", objet_id: BAIL, route: `/agence/${ORG}/parc`, action_ref: ACTION.slice(0, 16) } },
+      { org: ORG, sa_action: "traversee_action", sa_details: { resultat: "refuse", motif: "lecture_seule", requete: "action_serveur", geste: "encaissement", rubrique: "parc", objet_id: BAIL, route: `/agence/${ORG}/parc`, action_ref: ACTION.slice(0, 16) } },
     ]]);
   });
 
@@ -326,9 +315,28 @@ describe("D08 — un geste dans un espace client (verifierGerant)", () => {
     expect(appelsTrace()).toHaveLength(0);
   });
 
-  it("aucun droit ne change : le rôle rendu au super-administrateur est celui d'avant", async () => {
+  it("la lecture garde le rôle de présentation de chaque espace", async () => {
+    mocks.entetes = { "x-gerimmo-methode": "GET" };
     expect((await verifierGerant(ORG + "-role")).role).toBe("admin_agence");
     mocks.organisation = { id: ORG, type: "proprietaire_direct" };
     expect((await verifierGerant(ORG + "-role2")).role).toBe("proprietaire_direct");
+  });
+});
+
+
+describe("D08-C — échec fermé du contexte de mutation", () => {
+  it("un contexte absent ne transforme jamais un geste en lecture", async () => {
+    expect((await verifierGerant(ORG)).user).toBeNull();
+    expect(appelsTrace()[0][1]).toMatchObject({ sa_details: { resultat: "refuse", motif: "lecture_seule" } });
+  });
+  it("un geste financier nommé est refusé même avec un en-tête GET", async () => {
+    mocks.entetes = { "x-gerimmo-methode": "GET" };
+    expect((await verifierGerant(ORG, { geste: "encaissement", cible: BAIL })).user).toBeNull();
+  });
+  it("une vraie adhésion locale conserve ses droits d'action", async () => {
+    mocks.entetes = { "x-gerimmo-methode": "POST" };
+    mocks.membre = { role: "admin_agence" };
+    expect((await verifierGerant(ORG)).user).not.toBeNull();
+    expect(appelsTrace()).toHaveLength(0);
   });
 });

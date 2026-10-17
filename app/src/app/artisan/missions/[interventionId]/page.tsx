@@ -1,3 +1,4 @@
+import { AccuseAnnulation } from "./accuse-annulation";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
@@ -294,6 +295,7 @@ export default async function PageMission(
           {libelleMotifRdv(annulationLocataire.motif_code)}
           {annulationLocataire.motif_texte ? ` — « ${annulationLocataire.motif_texte} »` : ""}. Ne vous déplacez pas à
           cette date ; la mission reste à vous&nbsp;: proposez de nouveaux créneaux.
+          <AccuseAnnulation demandeId={annulationLocataire.demande_id} interventionId={interventionId} vueLe={annulationLocataire.annulation_vue_le ?? null} />
         </Avertissement>
       )}
 

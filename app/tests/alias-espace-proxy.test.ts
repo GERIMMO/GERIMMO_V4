@@ -278,7 +278,7 @@ describe("D27 — l'adresse d'un autre profil n'est pas atteignable par l'alias"
     expect(dossiers).not.toContain("espace");
   });
 
-  it("une lecture du type en échec ne réécrit ni ne redirige rien", async () => {
+  it("une panne du type reste une indisponibilité temporaire, jamais une fausse 404", async () => {
     connecter(PROPRIETAIRE);
     const client = mocks.client();
     mocks.client.mockReturnValue({
@@ -295,8 +295,13 @@ describe("D27 — l'adresse d'un autre profil n'est pas atteignable par l'alias"
         };
       },
     });
-    introuvable(await aller(`/espace/${ORG_P}/parc`));
-    servieTelleQuelle(await aller(`/agence/${ORG_P}/parc`));
+    for (const racine of ["espace", "agence"]) {
+      const r = await aller(`/${racine}/${ORG_P}/parc`);
+      expect(r.status).toBe(503);
+      expect(r.headers.get("retry-after")).toBe("15");
+      expect(r.headers.get("location")).toBeNull();
+      expect(await r.text()).toContain("Réessayez");
+    }
   });
 });
 

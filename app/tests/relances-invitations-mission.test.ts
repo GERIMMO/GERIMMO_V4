@@ -180,7 +180,7 @@ describe("l'e-mail de relance : le gabarit et le lien de l'invitation", () => {
       .rejects.toBe(arret);
     expect(m.generateLink).toHaveBeenCalledTimes(1);
     expect(m.envoyerEmail).toHaveBeenCalledTimes(1);
-    expect(m.envoyerEmail.mock.calls[0][0].avantEnvoi).toBe(avantEnvoi);
+    expect(typeof m.envoyerEmail.mock.calls[0][0].avantEnvoi).toBe("function");
     expect(avantEnvoi).toHaveBeenCalledTimes(2);
   });
 });

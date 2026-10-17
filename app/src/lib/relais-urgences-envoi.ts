@@ -27,6 +27,7 @@
 // Aucun `avantEnvoi`, aucun contrôle d'arrêt n'est consulté.
 
 import "server-only";
+import { attendreRelais, DelaiRelaisDepasse } from "./delai-relais";
 import { createHash } from "node:crypto";
 import { DELAI_MAX_FOURNISSEUR_MS, envoyerEmail } from "./email";
 import { porteurDuSecret } from "./tache";
@@ -94,7 +95,7 @@ export async function envoyerUrgencesRelais(options: {
 
     const horloge = options.horloge ?? Date.now;
     for (let tour = 0; tour < TOURS_MAX; tour++) {
-      // Le délai de ce tour, décidé AVANT de prendre un envoi (un envoi pris et non tenté resterait en cours).
+      // Vérifier le budget avant de réserver ; il est recalculé après la réponse de la base.
       let delaiMaxMs = options.delaiMaxMs;
       if (options.echeance !== undefined) {
         const plafondAppel = options.delaiMaxMs ?? DELAI_MAX_FOURNISSEUR_MS;
@@ -102,12 +103,19 @@ export async function envoyerUrgencesRelais(options: {
         if (restant < Math.min(DELAI_TOUR_MIN_MS, plafondAppel)) return { arret: "delai", envois };
         delaiMaxMs = Math.min(plafondAppel, restant);
       }
-      const prise = await db.rpc("prendre_urgences_relais", { p_plafond: options.plafond ?? PLAFOND_URGENCES_PAR_HEURE });
+      const prise = await attendreRelais(() => db.rpc("prendre_urgences_relais", { p_plafond: options.plafond ?? PLAFOND_URGENCES_PAR_HEURE }), options.echeance, horloge);
       const p = prise.data as Prise | null;
       if (prise.error || !p || typeof p !== "object") return { arret: "indisponible", envois };
       const enAttente = typeof p.en_attente === "number" ? p.en_attente : undefined;
       if (p.pris !== true || typeof p.envoi !== "string") {
         return { arret: p.motif === "plafond" ? "plafond" : "rien", envois, ...(enAttente ? { en_attente: enAttente } : {}) };
+      }
+      // La réservation a elle aussi consommé du temps : son ancien budget ne vaut plus.
+      if (options.echeance !== undefined) {
+        const restant = options.echeance - horloge();
+        const plafondAppel = options.delaiMaxMs ?? DELAI_MAX_FOURNISSEUR_MS;
+        if (restant < Math.min(DELAI_TOUR_MIN_MS, plafondAppel)) return { arret: "delai", envois };
+        delaiMaxMs = Math.min(plafondAppel, restant);
       }
       const envoi = p.envoi;
       const urgences = urgencesLues(p.urgences);
@@ -116,7 +124,7 @@ export async function envoyerUrgencesRelais(options: {
         // (`clore_envoi_urgences_vide`) — jamais consigné « envoyé » (relecture du 15/10). S'il porte encore des urgences
         // que ce passage n'a pas su lire, la base refuse de le clore : il reste à reprendre, puis est abandonné, et
         // l'e-mail de 5 h rappelle ses urgences en échec.
-        const clos = await db.rpc("clore_envoi_urgences_vide", { p_envoi: envoi });
+        const clos = await attendreRelais(() => db.rpc("clore_envoi_urgences_vide", { p_envoi: envoi }), options.echeance, horloge);
         if (clos.error || (clos.data as { termine?: unknown } | null)?.termine !== true) {
           console.error("[relais] Un envoi immédiat sans urgence lisible n’a pas pu être clos ; il sera repris.");
           return { arret: "indisponible", envois };
@@ -132,7 +140,7 @@ export async function envoyerUrgencesRelais(options: {
       ));
       const envoyes = resultats.filter((r) => !r.erreur).length;
       if (envoyes < adresses.valides.length) console.error("[relais] Un envoi immédiat d’urgence n’a pas abouti ; il sera repris.");
-      const fin = await db.rpc("terminer_urgences_relais", { p_envoi: envoi, p_destinataires: adresses.valides.length, p_envoyes: envoyes });
+      const fin = await attendreRelais(() => db.rpc("terminer_urgences_relais", { p_envoi: envoi, p_destinataires: adresses.valides.length, p_envoyes: envoyes }), options.echeance, horloge);
       const f = fin.data as { statut?: unknown } | null;
       if (fin.error) console.error("[relais] Le résultat d’un envoi immédiat n’a pas pu être consigné.");
       envois.push({
@@ -146,7 +154,8 @@ export async function envoyerUrgencesRelais(options: {
       if (!enAttente) return { arret: "rien", envois };
     }
     return { arret: "tours", envois };
-  } catch {
+  } catch (e) {
+    if (e instanceof DelaiRelaisDepasse) return { arret: "delai", envois };
     console.error("[relais] L’envoi immédiat des urgences a été interrompu ; il sera repris au passage suivant.");
     return { arret: "indisponible", envois };
   }
@@ -187,20 +196,24 @@ export async function passerUrgencesRelais(options: {
   site?: string | null;
   envoyer?: typeof envoyerEmail;
   delaiMaxMs?: number;
+  echeance?: number;
+  horloge?: () => number;
 }): Promise<ResultatPassageUrgences> {
   const { db } = options;
+  const horloge = options.horloge ?? Date.now;
+  const echeance = options.echeance ?? horloge() + 55_000;
   let constat: ResultatPassageUrgences["constat"] = "indisponible";
   try {
-    const { error } = await db.rpc("traiter_vacances");
+    const { error } = await attendreRelais(() => db.rpc("traiter_vacances"), echeance, horloge);
     if (!error) constat = "fait";
   } catch {
-    // Rien de plus : la file est vidée quand même, et le passage n'est pas consigné.
+    // La file sera tentée si le budget le permet ; le passage n’est pas consigné.
   }
-  if (constat !== "fait") console.error("[relais] Le passage des urgences n’a pas pu actualiser le relais ; la file est vidée quand même.");
-  const envoi = await envoyerUrgencesRelais({ ...options, delaiMaxMs: options.delaiMaxMs ?? DELAI_APPEL_PASSAGE_MS });
+  if (constat !== "fait") console.error("[relais] Le passage des urgences n’a pas pu actualiser le relais ; la file sera tentée dans le temps restant.");
+  const envoi = await envoyerUrgencesRelais({ ...options, echeance, horloge, delaiMaxMs: options.delaiMaxMs ?? DELAI_APPEL_PASSAGE_MS });
   if (constat === "fait") {
     try {
-      const { error } = await db.rpc("consigner_passage_urgences_relais");
+      const { error } = await attendreRelais(() => db.rpc("consigner_passage_urgences_relais"), echeance, horloge);
       if (error) console.error("[relais] Le passage des urgences n’a pas pu être consigné.");
     } catch {
       console.error("[relais] Le passage des urgences n’a pas pu être consigné.");

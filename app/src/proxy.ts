@@ -93,30 +93,30 @@ type ClientProxy = ReturnType<typeof createServerClient>;
  * l'ancienne adresse suivra son chemin habituel (la garde de la page renvoie vers « Mes espaces »).
  *
  * Une lecture À PART, après les gardes : la lecture des adhésions qui décide de la session, du second facteur et de
- * la porte de /admin n'est pas touchée. Une lecture en échec vaut null : on ne redirige rien, et l'alias répond
- * « introuvable » (l'ancienne adresse, elle, reste servie).
+ * la porte de /admin n'est pas touchée. Une panne renvoie undefined : les deux racines répondent 503,
+ * avec une invitation à réessayer. Une organisation réellement inaccessible reste distinguée (null).
  */
 async function typeDeLOrganisation(
   supabase: ClientProxy,
   compteId: string,
   orgId: string,
   superviseurActif: boolean,
-): Promise<string | null> {
+): Promise<string | null | undefined> {
   const { data: adhesions, error } = await supabase
     .from("memberships")
     .select("role, organisation:organizations(type)")
     .eq("account_id", compteId)
     .eq("organization_id", orgId)
     .eq("status", "active");
-  if (!error) {
-    for (const a of (adhesions ?? []) as { role: string; organisation: { type: string } | { type: string }[] | null }[]) {
-      if (!ROLES_GERANTS.includes(a.role)) continue;
-      const o = Array.isArray(a.organisation) ? a.organisation[0] : a.organisation;
-      if (o?.type) return o.type;
-    }
+  if (error) return undefined;
+  for (const a of (adhesions ?? []) as { role: string; organisation: { type: string } | { type: string }[] | null }[]) {
+    if (!ROLES_GERANTS.includes(a.role)) continue;
+    const o = Array.isArray(a.organisation) ? a.organisation[0] : a.organisation;
+    if (o?.type) return o.type;
   }
   if (!superviseurActif) return null;
-  const { data: organisation } = await supabase.from("organizations").select("type").eq("id", orgId).maybeSingle();
+  const { data: organisation, error: erreurOrganisation } = await supabase.from("organizations").select("type").eq("id", orgId).maybeSingle();
+  if (erreurOrganisation) return undefined;
   return (organisation as { type?: string } | null)?.type ?? null;
 }
 
@@ -350,6 +350,14 @@ export async function proxy(request: NextRequest) {
   const gestion = lireCheminDeGestion(pathname);
   if (gestion) {
     const type = await typeDeLOrganisation(supabase, user.id, gestion.orgId, estSuperviseurActif(roles, niveauMfa));
+    if (type === undefined) {
+      const indisponible = new NextResponse("L’espace est momentanément indisponible. Réessayez dans quelques instants ; vos données restent conservées.", {
+        status: 503,
+        headers: { "Content-Type": "text/plain; charset=utf-8", "Retry-After": "15", "Cache-Control": "private, no-store" },
+      });
+      response.cookies.getAll().forEach((c) => indisponible.cookies.set(c));
+      return indisponible;
+    }
     // Next.js rappelle le proxy sur l'adresse réécrite (voir ENTETE_ALIAS) : la seconde passe ne la redirige pas.
     const decision = decisionAlias(gestion, type, request.method, estDejaReecrite(gestion, request.headers.get(ENTETE_ALIAS)));
     if (decision === "rediriger") {

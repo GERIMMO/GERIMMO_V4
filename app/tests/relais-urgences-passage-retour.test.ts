@@ -140,6 +140,9 @@ describe.skipIf(!DB_URL)("D46-B — passage fréquent des urgences : rejeu et re
   beforeEach(async () => {
     await db.query("begin");
     await proprietaire();
+    // Le test porte sur le palier du passage fréquent. Revenir d'abord du complément
+    // qui change la sentinelle ; le rollback de fin de test restitue le schéma courant.
+    await db.query(readFileSync(new URL('../supabase/retours-arriere/20261016180000_relais_retention_sentinelle.retour.sql',import.meta.url),'utf8'));
     // Le planificateur de façade du banc n'a pas de cron.unschedule : on la pose le temps de la transaction.
     await db.query(
       `create or replace function cron.unschedule(p_nom text) returns boolean language sql as $$

@@ -151,7 +151,7 @@ export default async function LayoutLocataire({
         {!adhesionActive && (
           <p className="border-b border-border bg-[var(--or-clair)]/30 px-4 py-1.5 text-center text-xs text-muted-foreground">
             Votre bail est terminé — cet espace reste consultable : quittances,
-            documents et décompte de restitution.
+            documents et suivi de votre dépôt de garantie.
           </p>
         )}
         {/* Plus de marge basse réservée au rond flottant (25/09, D40) : l'aide

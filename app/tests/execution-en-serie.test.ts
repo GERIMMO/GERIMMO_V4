@@ -88,6 +88,11 @@ describe("les fichiers qui ont besoin de la base pour eux seuls tournent en sér
     expect(FICHIERS_EN_SERIE).toContain("tests/maintenance-artisans-planifiee.test.ts");
   });
 
+  it("la repose globale des gardes métier reste en série", () => {
+    expect(FICHIERS_EN_SERIE).toContain("tests/retours-utilisateurs.test.ts");
+    expect(FICHIERS_EN_SERIE).toContain("tests/traversee-lecture-seule-base.test.ts");
+  });
+
   it("les deux fichiers fiscaux qui suspendent un déclencheur y sont", () => {
     expect(FICHIERS_EN_SERIE).toContain("tests/fiscalite-capture-multilignes.test.ts");
     expect(FICHIERS_EN_SERIE).toContain("tests/fiscalite-persistance.test.ts");

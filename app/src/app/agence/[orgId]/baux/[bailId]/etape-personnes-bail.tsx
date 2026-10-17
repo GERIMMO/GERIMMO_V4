@@ -1,6 +1,7 @@
 import { lienLotDepuisBail } from "@/lib/parcours-lot";
 import { verifierAccesEspace } from "@/lib/espace";
 import { ConseilsChoixLocataire } from "@/components/conseils-choix-locataire";
+import { CONSEILS_LOCATAIRE_VALIDES } from "@/lib/conseils-locataire";
 import { PersonnesBail, type PersonneBail, type DetentionBail, type ParticipantBail } from "./personnes-bail";
 import { racineEspace } from "@/lib/racine-espace";
 
@@ -23,5 +24,5 @@ export async function EtapePersonnesBail({ orgId, bailId, lotId, principalId, co
   return <PersonnesBail orgId={orgId} bailId={bailId} personnes={personnes} detentions={(detentions.data as DetentionBail[]).map(d => ({ ...d, quote_part: Number(d.quote_part) }))}
     participants={participants.data as ParticipantBail[]} principalId={principalId} personneConnecteeId={moi} colocation={colocation} proprietairesHref={lienLotDepuisBail(orgId, lot.data.bien_id, lotId, bailId, "proprietaires", 2, racineEspace(estProprietaire))}
     // Les conseils pour choisir son locataire s'adressent au propriétaire en gestion directe ; l'agence ne les voit pas (V1 publique).
-    conseils={estProprietaire ? <ConseilsChoixLocataire emplacement="creation-bail" /> : null} />;
+    conseils={estProprietaire && CONSEILS_LOCATAIRE_VALIDES ? <ConseilsChoixLocataire emplacement="creation-bail" /> : null} />;
 }

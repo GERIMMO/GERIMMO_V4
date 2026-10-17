@@ -39,6 +39,7 @@ import { cleRappelRendezVous } from "@/lib/cles-idempotence-courriels";
 import { envoyerEmail } from "@/lib/email";
 import { envoyerRappelsGestes, type BilanRappelsGestes } from "@/lib/notifications";
 import { corpsRappel, sujetRappel } from "@/lib/rappel-email";
+import { envoyerRelancesReportsRdv } from "@/lib/relances-reports-rdv";
 import { envoyerRelancesInvitations, type BilanRelancesInvitations } from "@/lib/relances-invitations";
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache } from "@/lib/tache";
@@ -49,9 +50,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // réponse, à J+3 puis à J+10 (lib/relances-invitations.ts). Elles passent APRÈS les rendez-vous, qui ne doivent pas
 // attendre, avec le même contrôle d'arrêt d'urgence (clé « rappels » ou arrêt global). Un incident des relances
 // d'invitation ne prive pas les rendez-vous de leur passe : il est compté dans le bilan, sans texte.
-async function relancerInvitations(supabase: SupabaseClient): Promise<BilanRelancesInvitations> {
+async function relancerInvitations(supabase: SupabaseClient, echeanceMs: number): Promise<BilanRelancesInvitations> {
   try {
-    return await envoyerRelancesInvitations(supabase, { avantEffet: () => verifierAvantEffet(supabase, "rappels") });
+    return await envoyerRelancesInvitations(supabase, { echeanceMs, avantEffet: () => verifierAvantEffet(supabase, "rappels") });
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
     console.error("[cron rappels] relances d'invitation :", e instanceof Error ? e.name : "incident");
@@ -102,6 +103,8 @@ function memeSecret(fourni: string, attendu: string): boolean {
 }
 
 export async function traiterRappels(request: Request) {
+  // La route est limitée à 180 s : conserver vingt secondes pour les traces et la réponse.
+  const echeanceMs = Date.now() + 160_000;
   const attendu = process.env.CRON_SECRET;
   if (!attendu) {
     return Response.json(
@@ -132,6 +135,10 @@ export async function traiterRappels(request: Request) {
   // envoi. Son échec ne prive personne de son rappel : il est compté (-1) et consigné.
   await verifierAvantEffet(supabase, "rappels");
   const demandesExpirees = await expirerDemandesRdv(supabase);
+  const reports = await envoyerRelancesReportsRdv(supabase, { echeanceMs }).catch(e => {
+    if (e instanceof ArretSupervision) throw e;
+    return { envoyees:0, echecs:1, incertaines:0, ignorees:0, non_notees:0 };
+  });
 
   const { data, error } = await supabase.rpc("rendez_vous_a_rappeler", { p_limite: 200 });
   if (error) {
@@ -142,7 +149,7 @@ export async function traiterRappels(request: Request) {
   const lignes = (data ?? []) as Ligne[];
   // Les rappels de gestes partent même sans rendez-vous à rappeler. Leur
   // échec ne prive pas les rendez-vous de leur rappel : bilan vide et compté.
-  const gestes = await envoyerRappelsGestes(supabase, undefined, () => verifierAvantEffet(supabase, "rappels")).catch((e): BilanRappelsGestes => {
+  const gestes = await envoyerRappelsGestes(supabase, undefined, () => verifierAvantEffet(supabase, "rappels"), { echeanceMs }).catch((e): BilanRappelsGestes => {
     if (e instanceof ArretSupervision) throw e;
     console.error("[cron rappels] rappels de gestes :", e instanceof Error ? e.message : e);
     return { envoyes: 0, echecs: -1, sans_adresse: 0, non_consignes: 0, par_type: { creneau_non_choisi: 0, mission_non_acceptee: 0, piece_demandee: 0, devis_non_chiffre: 0 } };
@@ -150,8 +157,8 @@ export async function traiterRappels(request: Request) {
   if (lignes.length === 0) {
     // Une passe sans rien à faire se consigne aussi : c'est le battement de
     // cœur que la ronde du matin attend à cette heure-là.
-    const invitations = await relancerInvitations(supabase);
-    const bilan = { rappeles: 0, echecs: 0, gestes, demandes_rdv_expirees: demandesExpirees, invitations };
+    const invitations = await relancerInvitations(supabase, echeanceMs);
+    const bilan = { rappeles: 0, echecs: 0, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations };
     await consignerTache(supabase, "rappels", bilan);
     return Response.json(bilan);
   }
@@ -159,6 +166,7 @@ export async function traiterRappels(request: Request) {
   let rappeles = 0;
   const echecs: string[] = [];
   for (const l of lignes) {
+    if (Date.now() >= echeanceMs) break;
     const rappel = {
       echeance: l.echeance,
       destinataire: l.destinataire,
@@ -173,8 +181,17 @@ export async function traiterRappels(request: Request) {
       categorie: l.categorie,
     };
     await verifierAvantEffet(supabase, "rappels");
+    if (Date.now() >= echeanceMs) break;
+    let delaiDepasse = false;
     const envoi = await envoyerEmail({
-      avantEnvoi: () => verifierAvantEffet(supabase, "rappels"),
+      get delaiMaxMs() { return Math.max(1, Math.floor(Math.min(15_000, echeanceMs - Date.now()))); },
+      avantEnvoi: async () => {
+        await verifierAvantEffet(supabase, "rappels");
+        if (Date.now() >= echeanceMs) {
+          delaiDepasse = true;
+          throw new Error("Le temps disponible pour les rappels est écoulé.");
+        }
+      },
       organisation: { db: supabase, id: l.organization_id },
       to: l.adresse,
       cleIdempotence: cleRappelRendezVous({
@@ -186,6 +203,7 @@ export async function traiterRappels(request: Request) {
       subject: sujetRappel(rappel),
       html: corpsRappel(rappel),
     });
+    if (delaiDepasse) break;
     if (envoi.erreur) {
       echecs.push(envoi.erreur);
       continue;
@@ -213,8 +231,8 @@ export async function traiterRappels(request: Request) {
   if (echecs.length > 0) {
     console.error("[cron rappels] échecs:", [...new Set(echecs)].join(" · "));
   }
-  const invitations = await relancerInvitations(supabase);
-  const bilan = { rappeles, echecs: echecs.length, gestes, demandes_rdv_expirees: demandesExpirees, invitations };
+  const invitations = await relancerInvitations(supabase, echeanceMs);
+  const bilan = { rappeles, echecs: echecs.length, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations };
   await consignerTache(supabase, "rappels", bilan);
   return Response.json(bilan);
 }

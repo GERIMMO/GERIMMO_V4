@@ -148,6 +148,7 @@ const EXCEPTIONS: Exception[] = [
   { fichier: "src/app/actions/parc.ts", argument: "annee", raison: "année de construction, entière : Number.isInteger puis bornes 1000-2100" },
   { fichier: "src/app/actions/organisation.ts", argument: 'String(formData.get(n) ?? ""), 10', raison: "jours de relance, entiers ; vérifiés ensuite" },
   { fichier: "src/app/api/devis/[sollicitationId]/pdf/route.ts", argument: 'form.get("revision")??0', raison: "numéro de révision du devis (champ caché produit par le serveur)" },
+  { fichier: "src/app/api/devis/[sollicitationId]/pdf/route.ts", argument: 'numero', raison: "numéro de version archivée, jamais un montant : chiffres positifs puis entier sûr borné à 2147483647 avant la lecture SQL" },
   { fichier: "src/app/artisan/devis/actions-preparation.ts", argument: 'form.get("revision") ?? 0', raison: "numéro de révision du devis (champ caché produit par le serveur)" },
   { fichier: "src/app/artisan/devis/actions-preparation.ts", argument: 'form.get("revision")', raison: "numéro de révision du devis (champ caché produit par le serveur), comparé à la révision enregistrée" },
   { fichier: "src/app/artisan/clients/actions.ts", argument: 'form.get("revision")??0', raison: "numéro de révision du devis (champ caché produit par le serveur)" },

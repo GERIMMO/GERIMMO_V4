@@ -44,7 +44,7 @@ concurrency:
 
 jobs:
   appliquer:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
 
@@ -62,6 +62,8 @@ jobs:
           SIMULATION: ${{ inputs.simulation }}
         run: |
           set -euo pipefail
+          # Même lecture des chaînes que la garde syntaxique ; conserver les options déjà configurées.
+          export PGOPTIONS="${PGOPTIONS:-} -c standard_conforming_strings=on"
           URL="postgresql://postgres.${REF}@aws-0-${REGION}.pooler.supabase.com:5432/postgres"
           cd app/supabase/migrations
 
@@ -106,6 +108,7 @@ jobs:
           echo "— à appliquer, dans cet ordre :"
           for f in $LISTE; do
             [ -f "$f" ] || { echo "✗ fichier introuvable : $f" >&2; exit 1; }
+            node ../../scripts/verifier-transactions-migration.mjs "$f"
             echo "   · $f"
           done
 

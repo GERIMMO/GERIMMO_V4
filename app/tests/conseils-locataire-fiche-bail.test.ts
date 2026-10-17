@@ -150,18 +150,10 @@ beforeEach(() => {
 // ── Tests ─────────────────────────────────────────────────────────────────
 
 describe("fiche d'un bail en cours : rappel des conseils, à côté des garants", () => {
-  it("le propriétaire en gestion directe le voit, replié, une fois, dans la carte « Garants »", async () => {
+  it("masque les conseils non relus au propriétaire et conserve les garants", async () => {
     const html = await fiche();
-    expect(occurrences(html, RAPPEL)).toBe(1);
-    expect(html).toMatch(/<details[^>]*data-conseils-locataire="garanties-bail"(?![^>]*\sopen\b)[^>]*>/);
-    expect(html).not.toContain('data-conseils-locataire="creation-bail"');
-    // Dans la carte des garants : après son titre, avant le cautionnement et la signature.
-    const titre = html.indexOf(">Garants<");
-    const bloc = html.indexOf('data-conseils-locataire="garanties-bail"');
-    expect(titre).toBeGreaterThan(-1);
-    expect(bloc).toBeGreaterThan(titre);
-    expect(bloc - titre).toBeLessThan(20_000);
-    // Rien n'est retiré de la carte : le formulaire d'ajout de garant est toujours là.
+    expect(occurrences(html, RAPPEL)).toBe(0);
+    expect(html).not.toContain("Conseils pour choisir votre locataire");
     expect(html).toContain("Aucun garant.");
   });
 
@@ -186,17 +178,17 @@ describe("fiche d'un bail en cours : rappel des conseils, à côté des garants"
     expect(html).not.toContain("data-conseils-locataire");
   });
 
-  it("en colocation, le rappel figure dans « Colocataires & garants » — une seule fois", async () => {
+  it("en colocation, la carte des garants reste présente sans conseil non relu", async () => {
     banc.bail = bail({ type: "colocation" });
     const html = await fiche();
     expect(html).toContain("Colocataires &amp; garants");
-    expect(occurrences(html, RAPPEL)).toBe(1);
+    expect(occurrences(html, RAPPEL)).toBe(0);
   });
 
-  it("pour un contrat individuel de colocation (chambre), le rappel figure dans « Garants »", async () => {
+  it("pour un contrat individuel de colocation, les conseils restent masqués", async () => {
     banc.bail = bail({ type: "colocation_individuelle", chambre_id: "66666666-6666-4666-8666-666666666666" });
     const html = await fiche();
-    expect(occurrences(html, RAPPEL)).toBe(1);
+    expect(occurrences(html, RAPPEL)).toBe(0);
   });
 
   it("pas de rappel sur un bail en préparation : le parcours de création a le sien", async () => {
@@ -211,9 +203,9 @@ describe("fiche d'un bail en cours : rappel des conseils, à côté des garants"
     expect(html).not.toContain("data-conseils-locataire");
   });
 
-  it("un bail en préavis garde le rappel pour le propriétaire", async () => {
+  it("un bail en préavis ne réaffiche pas les conseils non relus", async () => {
     banc.bail = bail({ etat: "preavis" });
     const html = await fiche();
-    expect(occurrences(html, RAPPEL)).toBe(1);
+    expect(occurrences(html, RAPPEL)).toBe(0);
   });
 });

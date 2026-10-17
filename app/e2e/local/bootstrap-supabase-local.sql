@@ -53,6 +53,18 @@ create table if not exists auth.users (
   deleted_at timestamptz
 );
 
+-- Sous-ensemble des jetons utilisé par le bouton de confirmation du banc UI.
+create table if not exists auth.one_time_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  token_type text not null,
+  token_hash text not null,
+  relates_to text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(user_id, token_type)
+);
+
 -- Identique à Supabase : lit le claim `sub` posé par la couche d'accès
 -- (set_config('request.jwt.claims', …)).
 create or replace function auth.uid() returns uuid

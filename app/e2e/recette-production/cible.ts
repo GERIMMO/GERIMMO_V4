@@ -58,7 +58,7 @@ function uuid(nom: string): string {
   return v.toLowerCase();
 }
 
-export type Persona = "admin" | "proprietaire" | "locataire";
+export type Persona = "admin" | "proprietaire" | "locataire" | "artisan" | "superadmin";
 
 export type Comptes = {
   motDePasse: string;
@@ -74,12 +74,21 @@ export function lireComptes(): Comptes {
   if (!/^[a-z0-9][a-z0-9-]{5,39}$/.test(suffixe)) {
     throw new Error(`RECETTE_SUFFIXE refusé (${suffixe}) : minuscules, chiffres, tirets, 6 à 40 caractères.`);
   }
+  const email = (nom: string, facultatif = false) => {
+    const brut = process.env[nom]?.trim();
+    if (!brut && facultatif && process.env.RECETTE_AUTONOME !== "1") return "";
+    const v = verifierEmail(brut || variable(nom));
+    if (!v.endsWith(`-${suffixe}@resend.dev`)) throw new Error("Adresse extérieure au passage de recette.");
+    return v;
+  };
   return {
     motDePasse: variable("RECETTE_MOT_DE_PASSE"),
     emails: {
-      admin: verifierEmail(variable("RECETTE_EMAIL_ADMIN")),
-      proprietaire: verifierEmail(variable("RECETTE_EMAIL_PROPRIETAIRE")),
-      locataire: verifierEmail(variable("RECETTE_EMAIL_LOCATAIRE")),
+      admin: email("RECETTE_EMAIL_ADMIN"),
+      proprietaire: email("RECETTE_EMAIL_PROPRIETAIRE"),
+      locataire: email("RECETTE_EMAIL_LOCATAIRE"),
+      artisan: email("RECETTE_EMAIL_ARTISAN", true),
+      superadmin: email("RECETTE_EMAIL_SUPERADMIN", true),
     },
     orgAgence: uuid("RECETTE_ORG_AGENCE"),
     orgProprietaire: uuid("RECETTE_ORG_PROPRIETAIRE"),

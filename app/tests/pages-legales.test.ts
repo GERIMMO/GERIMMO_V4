@@ -80,8 +80,8 @@ describe("identité de l'éditeur", () => {
 });
 
 describe("le contrat est lisible avant d'être accepté", () => {
-  it("la case d'inscription renvoie vers les conditions", () => {
-    const src = lire("app/inscription/formulaire-inscription.tsx");
+  it("la case de finalisation d'inscription après preuve e-mail renvoie vers les conditions", () => {
+    const src = lire("app/nouveau-mot-de-passe/formulaire-nouveau-mot-de-passe.tsx");
     // Le lien vit DANS le libellé de la case : c'est là qu'on lit ce qu'on
     // accepte, pas dans un pied de page.
     const label = src.slice(src.indexOf('name="cgu"'), src.indexOf('name="cgu"') + 1400);
@@ -134,6 +134,8 @@ describe("conditions générales d'utilisation et de vente (29/09)", () => {
   it("portent leur vrai nom, partout où on les nomme", () => {
     expect(cgu).toContain('titre="Conditions générales d\'utilisation et de vente"');
     expect(lire("app/inscription/formulaire-inscription.tsx")).toContain("conditions générales d&apos;utilisation et de vente");
+    expect(lire("app/artisan/inscription/formulaire-compte.tsx")).toContain("conditions générales d&apos;utilisation et de vente");
+    expect(lire("app/nouveau-mot-de-passe/formulaire-nouveau-mot-de-passe.tsx")).toContain("conditions générales d&apos;utilisation et de vente");
     expect(lire("components/chrome-public.tsx")).toContain('["/conditions", "Conditions générales"]');
   });
 

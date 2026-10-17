@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ROLES_GERANTS } from "@/lib/ged";
-import { tracerTraversee } from "@/lib/traversee";
+import { lireContexteRequete, tracerTraversee } from "@/lib/traversee";
 import type { GesteTrace } from "@/lib/gestes-trace";
 
 // Garde des actions locataire : session valide + adhésion 'locataire' dans
@@ -46,8 +46,7 @@ export async function verifierGerant(orgId: string, geste?: GesteTrace) {
     .eq("status", "active")
     .maybeSingle();
   if (!adhesion || !ROLES_GERANTS.includes(adhesion.role)) {
-    // Le super admin agit partout avec le rôle plein de l'organisation
-    // (décision Tahir 09/09) — la base revérifie via org_ids_avec_roles.
+    // D08-C : seule la consultation reste permise hors adhésion de gérance.
     const { data: superAdmin } = await supabase.rpc("is_super_admin");
     if (superAdmin) {
       const { data: org } = await supabase
@@ -56,13 +55,12 @@ export async function verifierGerant(orgId: string, geste?: GesteTrace) {
         .eq("id", orgId)
         .maybeSingle();
       if (org) {
-        // RM-A1.11 : la traversée est autorisée mais tracée (journal d'audit).
-        // Un échec du log ne bloque pas l'action. D08 (audit du 13/10, SA-01) :
-        // « traversee_action » ne part que d'une requête qui peut écrire (action
-        // serveur, formulaire) ; la lecture d'un fichier ou le contrôle d'un
-        // dossier à l'affichage d'une page s'écrivent comme une consultation.
-        // La ligne dit la page et l'objet concernés et la décision d'accès.
-        await tracerTraversee(supabase, { orgId, nature: "geste", resultat: "autorise", geste });
+        const contexte = await lireContexteRequete();
+        if (contexte.ecriture || geste) {
+          await tracerTraversee(supabase, { orgId, nature: "geste", resultat: "refuse", motif: "lecture_seule", geste });
+          return { supabase, user: null, role: null };
+        }
+        await tracerTraversee(supabase, { orgId, nature: "geste", resultat: "autorise" });
         return {
           supabase,
           user,

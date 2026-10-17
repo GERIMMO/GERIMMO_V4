@@ -145,61 +145,10 @@ export function FormulaireInscription({
               ouvre pas d&apos;avantage supplémentaire. Sinon, laissez vide.
             </p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="mot-de-passe">Mot de passe</Label>
-            <Input
-              id="mot-de-passe"
-              name="mot_de_passe"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={12}
-            />
-            <p className="text-xs text-muted-foreground">12 caractères minimum.</p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmation">Confirmer le mot de passe</Label>
-            <Input
-              id="confirmation"
-              name="confirmation"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={12}
-            />
-          </div>
-          <div className="space-y-1">
-            {/* Au doigt (audit du 27/09) : la case mesurait 13 px et son
-                libellé 37 px. Case de 24 px, ligne de 44 px. */}
-            <label className="flex min-h-11 items-center gap-3 text-sm">
-              <input
-                type="checkbox"
-                name="cgu"
-                value="1"
-                required
-                className="size-6 shrink-0 accent-[var(--encre)]"
-                aria-describedby="cgu-aide"
-                defaultChecked={etat.valeurs?.cgu === "1"}
-              />
-              {/* Le lien manquait : on faisait cocher « j'accepte » sans que
-                  rien ne permette de lire ce qu'on acceptait — et, jusqu'au
-                  11/09, sans que le document existe. Nouvel onglet : un clic ne
-                  doit pas coûter la saisie en cours. */}
-              <span>
-                J&apos;accepte les{" "}
-                <Link href="/conditions" target="_blank" rel="noopener" className="lien-texte">
-                  conditions générales d&apos;utilisation et de vente
-                </Link>
-              </span>
-            </label>
-            {/* 24/09 : l'avertissement quitte le libellé de la case. On ne fait
-                plus accepter d'un même geste le contrat et une phrase de
-                jargon comptable ; il reste lisible, juste dessous. */}
-            <p id="cgu-aide" className="pl-9 text-xs text-muted-foreground">
-              Gerimmo vous aide à suivre vos loyers et vos dépenses ; il ne
-              remplace pas votre relevé bancaire.
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Vous recevrez un lien pour confirmer votre adresse, choisir votre mot de passe et accepter les{" "}
+            <Link href="/conditions" target="_blank" rel="noopener" className="lien-texte">conditions générales d&apos;utilisation et de vente</Link>.
+          </p>
           {etat.erreur && <AlerteFormulaire signal={etat}>{etat.erreur}</AlerteFormulaire>}
           {/* Information RGPD au moment de la collecte (art. 13) : une phrase
               et le lien, au plus près du bouton qui envoie les données. */}

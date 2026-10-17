@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { debordementHorizontal } from "./aides";
+import { terminerInscriptionLocale } from "./confirmation-locale";
 
 /**
  * SÉCURITÉ DU COMPTE — les deux gestes qu'on ne pouvait pas faire (19/09).
@@ -19,18 +20,15 @@ const ANCIEN = "recette-mot-de-passe-1";
 const NOUVEAU = "recette-mot-de-passe-2";
 
 async function creerUnCompte(page: Page): Promise<string> {
-  const email = `recette-compte-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@exemple.test`;
+  const email = `delivered+recette-compte-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@resend.dev`;
   await page.goto("/inscription");
   await page.getByLabel("Prénom").fill("Camille");
   await page.getByLabel("Nom", { exact: true }).fill("Recette");
   await page.getByLabel("Adresse e-mail").fill(email);
-  await page.getByLabel("Mot de passe", { exact: true }).fill(ANCIEN);
-  await page.getByLabel("Confirmer le mot de passe").fill(ANCIEN);
-  await page.locator('input[name="cgu"]').check();
+  await expect(page.locator('input[type="password"]')).toHaveCount(0);
   await page.getByRole("button", { name: /créer|inscrire|ouvrir/i }).first().click();
-  // L'émulateur confirme l'adresse d'emblée : la session existe, et /espaces
-  // ouvre l'organisation du propriétaire avant de nous y emmener.
-  await page.waitForURL(/\/(agence|espaces)/, { timeout: 30_000 });
+  await terminerInscriptionLocale(page, email, ANCIEN, "/espaces");
+  await page.waitForURL(/\/(agence|espace|espaces)/, { timeout: 30_000 });
   return email;
 }
 
@@ -75,11 +73,11 @@ test("on change son mot de passe depuis son compte, et l'ancien ne vaut plus rie
   await seConnecter(page, email, ANCIEN);
   await expect(page.getByText("Identifiants invalides.")).toBeVisible();
   await seConnecter(page, email, NOUVEAU);
-  await page.waitForURL(/\/(agence|espaces)/, { timeout: 30_000 });
+  await page.waitForURL(/\/(agence|espace|espaces)(\/|\?|$)/, { timeout: 30_000 });
 });
 
 test("on active puis on retire son second facteur sans l'aide de personne", async ({ page }) => {
-  // Le calcul TOTP du banc, celui-là même que l'émulateur vérifie.
+  // Le calcul TOTP standard, vérifié par Auth sur le banc réel comme sur l’émulateur.
   const { totp } = await import("./local/mfa-local.mjs");
 
   await creerUnCompte(page);

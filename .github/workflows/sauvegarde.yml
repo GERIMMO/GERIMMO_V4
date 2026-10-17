@@ -47,7 +47,9 @@ name: Sauvegarde quotidienne
 
 on:
   schedule:
-    # Chaque nuit, 03:20 à Paris en été (01:20 UTC) ; 02:20 en hiver.
+    # Horaire demandé : 01:20 UTC (03:20 à Paris en été, 02:20 en hiver).
+    # GitHub peut retarder le lancement ; passages observés vers 06–08 h UTC.
+    # La supervision compare le passage réel au seuil de 26 h, pas cette heure nominale.
     - cron: "20 1 * * *"
   workflow_dispatch:
 
@@ -75,7 +77,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 

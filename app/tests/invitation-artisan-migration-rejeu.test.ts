@@ -36,6 +36,8 @@ const SUITE_DU_LOT = [
   "20261014847000_invitation_artisan_echeance_jour_paris.sql",
   // 849000 (troisième relecture du 15/10) : l'acceptation retire la marque « créée par la liste noire ».
   "20261014849000_liste_noire_levee_sans_rattachement.sql",
+  // 16/10 : la recréation de la table doit également rétablir sa garde de traversée.
+  "20261016172453_traversee_lecture_seule.sql",
 ].map((f) =>
   readFileSync(`supabase/migrations/${f}`, "utf8")
 );

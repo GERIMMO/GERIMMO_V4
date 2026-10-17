@@ -29,7 +29,7 @@ import { chiffrer, dechiffrer, lireCle } from './fichiers.mjs';
 import { exporterTachesPlanifiees, FICHIER_REJEU, FICHIER_TACHES, FICHIER_TACHES_CLAIR, genererRejeu } from './taches-planifiees.mjs';
 
 /** Les schémas qui portent les données de Gerimmo. Les schémas internes de Supabase se recréent avec le projet. */
-export const SCHEMAS = ['public', 'auth', 'storage'];
+export const SCHEMAS = ['public', 'auth', 'storage', 'support_interne'];
 const LIMITE = 4 * 1024 * 1024 * 1024;
 const empreinte = b => createHash('sha256').update(b).digest('hex');
 
@@ -56,7 +56,8 @@ export function argumentsConnexion(chaine) {
  */
 export function lancerPgDump({ args, env }, commande = 'pg_dump', schemas = SCHEMAS, extras = []) {
   return new Promise((resoudre, rejeter) => {
-    const complet = ['--format=custom', '--no-owner', '--no-comments', ...extras, ...schemas.flatMap(s => ['--schema', s]), ...args];
+    // Q6 (16/10) : l’exercice réel a réussi ; conserver les commentaires métier et sécurité.
+    const complet = ['--format=custom', '--no-owner', '--strict-names', ...extras, ...schemas.flatMap(s => ['--schema', s]), ...args];
     const enfant = spawn(commande, complet, { env: { PATH: process.env.PATH, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
     const morceaux = []; let taille = 0; let erreurs = '';
     enfant.stdout.on('data', m => { taille += m.length; if (taille > LIMITE) { enfant.kill(); rejeter(new Error('Export trop volumineux : traitement spécifique nécessaire.')); } morceaux.push(m); });

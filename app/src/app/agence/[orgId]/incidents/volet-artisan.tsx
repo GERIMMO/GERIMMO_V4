@@ -1403,16 +1403,13 @@ export function ConsultationOuverte({
 }
 
 // Ce que l'agent lit d'un devis, retenable ou non : le détail, le PDF et la pièce déposée par l'artisan.
-// D18 (livraison 2) : le PDF « du jour » de la demande est celui de la DERNIÈRE version ; une version ancienne garde
-// sa pièce classée (document_id), pas ce lien. `base` : « /espace/<id> » ou « /agence/<id> » (décision D27).
-function CorpsDevis({ base, d, versionAncienne = false }: { base: string; d: Devis; versionAncienne?: boolean }) {
+// D18 : chaque version possède son lien PDF, relié à sa pièce classée. `base` : « /espace/<id> » ou « /agence/<id> » (décision D27).
+function CorpsDevis({ base, d }: { base: string; d: Devis; versionAncienne?: boolean }) {
   return (
     <>
       <p className="whitespace-pre-line text-sm text-muted-foreground">{descriptionDevisLisible(d.description)}</p>
       <DetailDevis lignes={d.lignes} />
-      {!versionAncienne && (
-        <a href={`/api/devis/${d.sollicitation_id}/pdf`} target="_blank" rel="noreferrer" className="lien-discret">Télécharger le détail du devis (PDF)</a>
-      )}
+      <a href={`/api/devis/${d.sollicitation_id}/pdf?version=${d.version ?? 1}`} target="_blank" rel="noreferrer" className="lien-discret">Télécharger le détail du devis (PDF)</a>
       {d.document_id && (
         <a
           href={`${base}/documents/${d.document_id}/fichier`}

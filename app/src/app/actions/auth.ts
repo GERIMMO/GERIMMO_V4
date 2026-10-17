@@ -18,6 +18,7 @@ import { estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bai
 import { estUuid } from "@/lib/identifiants";
 import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
 import { baseEspace } from "@/lib/racine-espace";
+import { CHAMPS_PROFIL_INSCRIPTION, CLE_PROFIL_A_CONFIRMER } from "@/lib/revalidation-inscription";
 
 // La qualité voyage dans les métadonnées jusqu'à la fiche personne, dont la
 // liste est fermée (audit 29/09) : une valeur hors liste est laissée vide
@@ -99,7 +100,22 @@ export async function definirNouveauMotDePasse(
     };
   }
 
-  const { error } = await supabase.auth.updateUser({ password: motDePasse });
+  let profil: Record<string, unknown> | undefined;
+  if (Object.hasOwn(user.user_metadata ?? {}, CLE_PROFIL_A_CONFIRMER)) {
+    const champs = Object.fromEntries(CHAMPS_PROFIL_INSCRIPTION.map((champ) => [champ, String(formData.get(champ) ?? "").trim()]));
+    const tropLong = champTropLong(champs);
+    if (tropLong) return { erreur: tropLong };
+    if (!["proprietaire_direct", "artisan", "invite"].includes(champs.espace)) return { erreur: "Choisissez l’usage de votre compte." };
+    if (champs.espace === "proprietaire_direct" && !champs.nom) return { erreur: "Le nom est obligatoire." };
+    if (!formData.get("cgu")) return { erreur: "Acceptez les conditions d’utilisation pour continuer." };
+    const code = champs.code_parrainage ? normaliserCode(champs.code_parrainage) : null;
+    if (champs.code_parrainage && !code) return { erreur: "Le code de parrainage doit compter huit lettres ou chiffres." };
+    const { error: erreurCgu } = await supabase.rpc("accepter_cgu", { p_version: CONDITIONS_VERSION, p_source: "compte" });
+    if (erreurCgu) return { erreur: "L’acceptation des conditions n’a pas pu être enregistrée. Réessayez." };
+    profil = { ...champs, espace: champs.espace === "invite" ? null : champs.espace, qualite: qualiteDeLaListe(formData.get("qualite")), code_parrainage: code, cgu_version: CONDITIONS_VERSION, cgu_acceptee_le: new Date().toISOString(), [CLE_PROFIL_A_CONFIRMER]: null };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: motDePasse, ...(profil ? { data: profil } : {}) });
   if (error) {
     if (error.code === "same_password") {
       return { erreur: "Le nouveau mot de passe doit être différent de l'ancien." };
@@ -126,7 +142,9 @@ export async function definirNouveauMotDePasse(
   // On repart d'une connexion propre avec le nouveau mot de passe
   await supabase.auth.signOut();
   (await cookies()).delete(ACTIVITY_COOKIE);
-  const suite = destinationSure(String(formData.get("suite") ?? ""));
+  let suite = destinationSure(String(formData.get("suite") ?? ""));
+  if (profil?.espace === "proprietaire_direct") suite = "/espaces";
+  else if (profil?.espace === "artisan" && suite === "/espaces") suite = "/artisan/inscription";
   redirect(`/connexion?raison=mot-de-passe-modifie${suite !== "/espaces" ? `&suite=${encodeURIComponent(suite)}` : ""}`);
 }
 
@@ -160,23 +178,12 @@ export async function inscrireProprietaire(
   const adresse = String(formData.get("adresse") ?? "").trim();
   const codePostal = String(formData.get("code_postal") ?? "").trim();
   const ville = String(formData.get("ville") ?? "").trim();
-  const motDePasse = String(formData.get("mot_de_passe") ?? "");
-  const confirmation = String(formData.get("confirmation") ?? "");
 
   if (!nom) return { erreur: "Le nom est obligatoire.", valeurs };
   if (!email) return { erreur: "L'adresse e-mail est obligatoire.", valeurs };
   // Ces champs voyagent dans le jeton de session : une borne, dite en clair (audit du 13/10, AUD-B-02).
   const tropLong = champTropLong({ nom, prenom, email, telephone, adresse, code_postal: codePostal, ville });
   if (tropLong) return { erreur: tropLong, valeurs: valeursBornees(valeurs) };
-  if (motDePasse.length < 12) {
-    return { erreur: "Le mot de passe doit compter au moins 12 caractères.", valeurs };
-  }
-  if (motDePasse !== confirmation) {
-    return { erreur: "Les deux saisies ne correspondent pas.", valeurs };
-  }
-  if (!formData.get("cgu")) {
-    return { erreur: "Acceptez les conditions d'utilisation pour continuer.", valeurs };
-  }
   // Le code de parrainage (19/09) : facultatif, mais s'il est tapé il doit
   // avoir la bonne forme — un code qu'on laisserait passer de travers ne
   // rattacherait personne, et la personne ne le saurait pas.
@@ -195,7 +202,6 @@ export async function inscrireProprietaire(
   // quel navigateur, consommé au clic sur un bouton, jamais à l'ouverture.
   return finirInscription({
     email,
-    motDePasse,
     valeurs,
     next: "/espaces",
     metadonnees: {
@@ -207,12 +213,6 @@ export async function inscrireProprietaire(
       code_postal: codePostal,
       ville,
       qualite: qualiteDeLaListe(formData.get("qualite")),
-      // Ce qui a été accepté. Les métadonnées restent modifiables par le
-      // titulaire du compte (audit du 27/09) : la PREUVE est la ligne que
-      // la base inscrit, à la création du compte et à l'heure du serveur,
-      // dans `acceptations_cgu` (ajout seul, ni mise à jour ni suppression).
-      cgu_version: CONDITIONS_VERSION,
-      cgu_acceptee_le: new Date().toISOString(),
       // Consommé à la naissance de l'organisation, sur /espaces.
       ...(codeParrainage ? { code_parrainage: codeParrainage } : {}),
     },
@@ -232,29 +232,20 @@ export async function inscrireProprietaire(
  */
 async function finirInscription(params: {
   email: string;
-  motDePasse: string;
   metadonnees: Record<string, unknown>;
   next: string;
   valeurs: Record<string, string>;
 }): Promise<EtatInscription> {
-  const { email, motDePasse, metadonnees, next, valeurs } = params;
-  const resultat = await inscrireEtEnvoyerConfirmation({ email, motDePasse, metadonnees, next });
+  const { email, metadonnees, next, valeurs } = params;
+  const resultat = await inscrireEtEnvoyerConfirmation({ email, metadonnees, next });
   if ("erreur" in resultat) {
     if (resultat.limite) return { erreur: resultat.erreur, valeurs };
     const issue = classerErreurInscription({ code: resultat.code, message: resultat.erreur });
-    if (issue.type === "mot_de_passe_faible") return { erreur: issue.erreur, valeurs };
+    if (issue.type === "mot_de_passe_faible") return { message: MESSAGE_BOITE_MAIL };
     // « adresse déjà inscrite » est traité par la fabrique elle-même (état
     // `compte_existant`) : ici il ne reste que les autres erreurs.
     const message = issue.type === "autre" ? issue.message : resultat.erreur;
     return { erreur: `Inscription impossible : ${sansJargon(message)}`, valeurs };
-  }
-  if (resultat.etat === "deja_confirme") {
-    // Projet sans confirmation d'adresse (banc local) : la session s'ouvre
-    // tout de suite, comme le faisait `signUp` autoconfirmé.
-    const supabase = await createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password: motDePasse });
-    if (error) return { erreur: `Inscription impossible : ${sansJargon(error.message)}`, valeurs };
-    redirect(next);
   }
   return { message: MESSAGE_BOITE_MAIL };
 }
@@ -278,21 +269,10 @@ export async function creerCompteArtisan(
   delete valeurs.mot_de_passe;
   delete valeurs.confirmation;
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const motDePasse = String(formData.get("mot_de_passe") ?? "");
-  const confirmation = String(formData.get("confirmation") ?? "");
 
   if (!email) return { erreur: "L'adresse e-mail est obligatoire.", valeurs };
   const emailTropLong = champTropLong({ email });
   if (emailTropLong) return { erreur: emailTropLong, valeurs: valeursBornees(valeurs) };
-  if (motDePasse.length < 12) {
-    return { erreur: "Le mot de passe doit compter au moins 12 caractères.", valeurs };
-  }
-  if (motDePasse !== confirmation) {
-    return { erreur: "Les deux saisies ne correspondent pas.", valeurs };
-  }
-  if (!formData.get("cgu")) {
-    return { erreur: "Acceptez les conditions d'utilisation pour continuer.", valeurs };
-  }
 
   // Le lien de confirmation mène à next=/artisan/inscription, où la fiche de
   // l'entreprise se remplit une fois connecté. Décision du 15/10/2026 : venu du
@@ -301,15 +281,12 @@ export async function creerCompteArtisan(
   const invitation = formData.get("invitation");
   return finirInscription({
     email,
-    motDePasse,
     valeurs,
     next: estUuid(invitation) ? cheminInvitationArtisan(invitation) : "/artisan/inscription",
     metadonnees: {
       // Lu par /espaces : un compte artisan sans fiche est renvoyé vers
       // l'inscription de l'entreprise, jamais vers un espace propriétaire.
       espace: "artisan",
-      cgu_version: CONDITIONS_VERSION,
-      cgu_acceptee_le: new Date().toISOString(),
     },
   });
 }
@@ -348,8 +325,6 @@ export async function ouvrirEspaceProprietaire(
       prenom,
       espace: "proprietaire_direct",
       qualite: qualiteDeLaListe(formData.get("qualite")),
-      cgu_version: CONDITIONS_VERSION,
-      cgu_acceptee_le: new Date().toISOString(),
     },
   });
   if (erreurProfil) return { erreur: sansJargon(erreurProfil.message), valeurs };

@@ -233,7 +233,7 @@ export default async function PageRepondreDevis(
       )}
 
       {/* D18 (livraison 2) : l'historique de ses versions, en lecture seule. */}
-      <VersionsPrecedentes versions={versions.lignes} erreur={versions.erreur} versionCourante={close ? null : demande.version ?? null} />
+      <VersionsPrecedentes sollicitationId={demande.sollicitation_id} versions={versions.lignes} erreur={versions.erreur} versionCourante={close ? null : demande.version ?? null} />
     </div>
   );
 }

@@ -17,6 +17,9 @@ import { verifierCible } from "./cible";
 //
 // Le garde-fou de la cible s'exécute ICI, au chargement : une URL qui n'est
 // ni la production ni un poste local arrête tout avant le premier test.
+// Playwright 1.63 ajoute un instantané DOM en cas d’échec même sans trace.
+// La supervision ne doit jamais en recopier les données dans le rapport.
+process.env.PLAYWRIGHT_NO_COPY_PROMPT = '1';
 const baseURL = verifierCible(process.env.RECETTE_URL);
 const RESULTATS = path.join(__dirname, ".resultats");
 
@@ -63,8 +66,12 @@ export default defineConfig({
   // Avec un seul processus, les projets passent dans l'ordre où ils sont déclarés : il est donc déclaré en dernier, sans
   // dépendance (un échec ailleurs ne doit pas le faire sauter).
   projects: [
-    { name: "recette-mobile", grepInvert: /@sans-trace|@montants/ },
+    { name: "recette-mobile", grepInvert: /@sans-trace|@montants|@supervision|@parcours-metier/ },
     { name: "recette-connexion", grep: /@sans-trace/, use: { trace: "off" } },
     { name: "recette-montants", grep: /@montants/ },
+    // La supervision lit des données réelles : ni cookies AAL2, ni contenu client
+    // en artefact. Connexion et MFA sont préparés hors du test runner.
+    { name: "recette-supervision", grep: /@supervision/, use: { trace: "off", screenshot: "off", video: "off" } },
+    { name: "recette-parcours-metier", grep: /@parcours-metier/, use: { trace: "off", screenshot: "off", video: "off" } },
   ],
 });

@@ -607,4 +607,44 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     const { rows } = await db.query("select * from public.parametres_rdv_locataire()");
     expect(rows[0]).toEqual({ delai_report_heures: 24, reports_max: 2, reponse_artisan_heures: 48 });
   });
+  it("D22 complément : une réservation durable au plus, uniquement avant échéance et réservée au service", async () => {
+    const d=await demanderReport();
+    await agir(cptArtisan);
+    await expect(essai(()=>db.query('select public.reserver_relance_report_rdv($1)',[d]))).rejects.toThrow(/permission denied/);
+    await postgres(); await db.query('set local role service_role');
+    expect((await db.query('select * from public.reports_rdv_a_relancer(10)')).rows).toContainEqual({demande_id:d});
+    const r=(await db.query('select public.reserver_relance_report_rdv($1) as r',[d])).rows[0].r;
+    expect(r).toMatchObject({demande_id:d,intervention_id:mission,adresse:'artisan@example.invalid'});
+    expect((await db.query('select public.reserver_relance_report_rdv($1) as r',[d])).rows[0].r).toBeNull();
+    expect((await db.query('select * from public.reports_rdv_a_relancer(10)')).rows).not.toContainEqual({demande_id:d});
+    await db.query('select public.noter_relance_report_rdv($1,true)',[d]);
+    await postgres();
+    expect((await demandes())[0].relance_envoyee_le).not.toBeNull();
+  });
+  it("D22 complément : un report expiré ou retiré n’est jamais relancé",async()=>{
+    const d=await demanderReport();
+    await expirer(d);
+    await db.query('set local role service_role');
+    expect((await db.query('select public.reserver_relance_report_rdv($1) as r',[d])).rows[0].r).toBeNull();
+    expect((await db.query('select * from public.reports_rdv_a_relancer(10)')).rows).not.toContainEqual({demande_id:d});
+  });
+  it("D22 complément : prendre acte est idempotent, réservé à son artisan, ne change ni mission ni alerte",async()=>{
+    const d=await annuler();
+    const avant=await etat(); const alertesAvant=await alertes();
+    await agir(cptArtisanB);
+    await expect(essai(()=>db.query('select public.accuser_annulation_rdv($1)',[d]))).rejects.toThrow(/indisponible/);
+    await agir(cptArtisan);
+    expect((await db.query('select public.accuser_annulation_rdv($1) as r',[d])).rows[0].r).toBe(true);
+    expect((await db.query('select public.accuser_annulation_rdv($1) as r',[d])).rows[0].r).toBe(false);
+    expect((await mesDemandesArtisan())[0].annulation_vue_le).not.toBeNull();
+    expect(await etat()).toEqual(avant); expect(await alertes()).toEqual(alertesAvant);
+  });
+  it("D22 complément : proposer de nouveaux créneaux reste possible sans prendre acte",async()=>{
+    await annuler();
+    await agir(cptArtisan);
+    await db.query('select public.proposer_creneaux($1,$2::jsonb)',[mission,JSON.stringify(troisDates(300))]);
+    expect((await demandes())[0].annulation_vue_le).toBeNull();
+    expect((await creneaux()).filter(c=>c.statut==='propose')).toHaveLength(3);
+  });
+
 });

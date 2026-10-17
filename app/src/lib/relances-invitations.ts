@@ -84,6 +84,8 @@ export type ExpediteurRappelInvitation = (p: {
   invitationId: string;
   expireLe: string;
   avantEnvoi?: () => Promise<void>;
+  echeanceMs?: number;
+  horloge?: () => number;
 }) => Promise<ResultatRappelInvitation>;
 
 type Due = { invitation_id: string; organization_id: string; email: string; rang: number; expire_le: string };
@@ -117,13 +119,16 @@ export async function envoyerRelancesInvitations(
     limite?: number;
     /** Horloge de la durée maximale de la passe (tests). */
     horloge?: () => number;
+    /** Fin absolue de la mission, jamais prolongée par cette sous-passe. */
+    echeanceMs?: number;
   } = {}
 ): Promise<BilanRelancesInvitations> {
   const bilan = bilanVide();
   const horloge = options.horloge ?? Date.now;
-  const fin = horloge() + DUREE_MAX_RELANCES_INVITATION_MS;
+  const fin = Math.min(horloge() + DUREE_MAX_RELANCES_INVITATION_MS, options.echeanceMs ?? Infinity);
   if (!relancesInvitationPermises(options.maintenant ?? new Date())) return { ...bilan, hors_horaire: true };
 
+  if (horloge() >= fin) return bilan;
   const { data, error } = await service.rpc("invitations_locataires_relances_dues", {
     p_limite: options.limite ?? RELANCES_INVITATION_PAR_PASSE,
   });
@@ -145,6 +150,10 @@ export async function envoyerRelancesInvitations(
       continue;
     }
     await options.avantEffet?.();
+    if (horloge() >= fin) {
+      bilan.restantes = dues.length - n;
+      break;
+    }
     const { data: reservee, error: erreurReservation } = await service.rpc("reserver_relance_invitation_locataire", {
       p_invitation: d.invitation_id,
       p_rang: d.rang,
@@ -156,6 +165,12 @@ export async function envoyerRelancesInvitations(
     if (reservee !== true) {
       bilan.ignorees += 1;
       continue;
+    }
+
+    if (horloge() >= fin) {
+      await noter(service, d, "reportee");
+      bilan.restantes = dues.length - n;
+      break;
     }
 
     const { data: autorise, error: erreurLimite } = await service.rpc("autoriser_lien_mot_de_passe_cle", {
@@ -172,6 +187,11 @@ export async function envoyerRelancesInvitations(
       continue;
     }
 
+    if (horloge() >= fin) {
+      await noter(service, d, "reportee");
+      bilan.restantes = dues.length - n;
+      break;
+    }
     let resultat: ResultatRappelInvitation;
     try {
       resultat = await expedier({
@@ -179,6 +199,8 @@ export async function envoyerRelancesInvitations(
         invitationId: d.invitation_id,
         expireLe: d.expire_le,
         avantEnvoi: options.avantEffet,
+        echeanceMs: fin,
+        horloge,
       });
     } catch (e) {
       if (e instanceof ArretSupervision) {

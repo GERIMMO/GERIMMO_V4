@@ -209,10 +209,16 @@ describe.skipIf(!DB_URL)("Incidents dans le portefeuille de l'agent", () => {
     expect((await db.query("select id from public.audit_log where action='detention_supprimee'")).rows).toHaveLength(0);
   });
 
-  it.each(["admin", "super_admin"])("%s conserve la qualification sans mandat personnel", async (role) => {
-    await devenir(role === "admin" ? admin : sa);
+  it("l’administrateur de l’agence conserve la qualification sans mandat personnel", async () => {
+    await devenir(admin);
     expect((await db.query("select id from public.incidents where id=$1", [incident])).rows).toHaveLength(1);
     await db.query("select public.qualifier_incident($1,$2,'proprietaire','Qualification responsable')", [org, incident]);
+  });
+
+  it("le super-administrateur lit l’incident mais ne le qualifie pas en traversée (D08-C)", async () => {
+    await devenir(sa);
+    expect((await db.query("select id from public.incidents where id=$1", [incident])).rows).toHaveLength(1);
+    await expect(db.query("select public.qualifier_incident($1,$2,'proprietaire','Qualification responsable')",[org,incident])).rejects.toThrow(/Traversée en lecture seule/);
   });
 
   it("le propriétaire direct conserve le périmètre de son organisation", async () => {

@@ -19,10 +19,12 @@ export function CarteMission({
   ligne,
   aFaire,
   origine,
+  badgeRdv,
 }: {
   ligne: LigneAgenda;
   /** Ce que la mission attend de lui, en toutes lettres. Rien si elle n'attend rien. */
   aFaire?: string;
+  badgeRdv?: string | null;
   /**
    * L'écran d'où la carte s'ouvre, quand ce n'est pas l'agenda : la fiche de
    * mission y renvoie par son lien retour au lieu de l'agenda (tour du 24/09).
@@ -64,6 +66,8 @@ export function CarteMission({
               : libelle(STATUTS_MISSION, ligne.statut)}
         </Etiquette>
       </div>
+
+      {badgeRdv && <div className="mt-3"><Etiquette ton="attente">{badgeRdv}</Etiquette></div>}
 
       {/* 25/09 (A2) : quand les dates sont chez le locataire, l'étiquette le
           dit déjà — la carte ne le répète plus en titre, elle s'ouvre sur les

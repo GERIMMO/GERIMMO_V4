@@ -30,10 +30,11 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-type Params = { token_hash?: string; type?: string; next?: string };
+type Params = { token_hash?: string; type?: string; next?: string; email?: string; etape?: string };
 
 export default async function PageConfirmerLien({ searchParams }: { searchParams: Promise<Params> }) {
-  const { token_hash: jeton, type, next: brut } = await searchParams;
+  const { token_hash: jeton, type, next: brut, email: adresse, etape } = await searchParams;
+  const email = adresse && adresse.length <= 254 ? adresse : "";
   const next = destinationSure(brut);
   const motDePasse = next === "/nouveau-mot-de-passe";
   const inscription = type === "signup";
@@ -42,6 +43,7 @@ export default async function PageConfirmerLien({ searchParams }: { searchParams
   const relance = new URLSearchParams();
   if (jeton) relance.set("token_hash", jeton);
   if (type) relance.set("type", type);
+  if (email) relance.set("email", email);
   relance.set("next", next);
 
   return (
@@ -62,12 +64,23 @@ export default async function PageConfirmerLien({ searchParams }: { searchParams
     >
       <Card>
         <CardContent className="pt-6">
-          {jeton && type && confirmation ? (
+          {etape === "autre-adresse" ? (
+            <p role="status">Pour terminer le changement d’adresse, ouvrez les liens envoyés à votre adresse actuelle et à votre nouvelle adresse e-mail.</p>
+          ) : jeton && type && confirmation ? (
             <form data-saisie-libre method="post" action="/auth/confirm" className="space-y-4">
               <input type="hidden" name="token_hash" value={jeton} />
               <input type="hidden" name="type" value={type} />
               <input type="hidden" name="next" value={next} />
               <input type="hidden" name="confirmation" value={confirmation} />
+              {email ? (
+                <input type="hidden" name="email" value={email} />
+              ) : (
+                <label className="block space-y-2 text-sm">
+                  <span>Adresse e-mail associée à ce lien</span>
+                  <input className="w-full rounded-md border bg-background px-3 py-2" type="email" name="email" autoComplete="email" maxLength={254} required />
+                  <span className="block text-muted-foreground">Saisissez l’adresse à laquelle ce courrier a été envoyé pour continuer.</span>
+                </label>
+              )}
               <Button type="submit" className="w-full">
                 {inscription ? "Confirmer mon adresse" : motDePasse ? "Choisir mon mot de passe" : "Continuer"}
               </Button>

@@ -21,7 +21,10 @@ const mocks = vi.hoisted(() => ({
   headers: vi.fn(),
   cookies: vi.fn(),
   createClient: vi.fn(),
+  preparer: vi.fn(),
+  preparerRetour: vi.fn(),
 }));
+vi.mock("@/lib/confirmation-auth", () => ({ preparerConfirmationAuth: mocks.preparer, preparerRetourAdresseConfirmee: mocks.preparerRetour }));
 vi.mock("@/lib/supabase/service", () => ({ clientDeService: mocks.service }));
 vi.mock("@/lib/email", () => ({ envoyerEmail: mocks.envoyerEmail }));
 vi.mock("next/headers", () => ({ headers: mocks.headers, cookies: mocks.cookies }));
@@ -260,7 +263,7 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2 ; 
   }
   const ordre = (f: { mock: { invocationCallOrder: number[] } }, n = 0) => f.mock.invocationCallOrder[n];
 
-  it("adresse neuve : recherche, puis création par generateLink signup (métadonnées et empreinte du témoin) ; NOTRE lien part", async () => {
+  it("adresse neuve : secret aléatoire et informations en attente de validation", async () => {
     const { generateLink, rpc, updateUserById } = auth();
     expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
     // Demande anonyme : la limite d'abord.
@@ -268,17 +271,13 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2 ; 
     expect(generateLink).toHaveBeenCalledTimes(2);
     expect(generateLink.mock.calls[0]).toEqual([{ type: "recovery", email: "camille@exemple.fr" }]);
     const creation = generateLink.mock.calls[1][0] as unknown as { type: string; email: string; password: string; options: { data: Record<string, unknown> } };
-    expect(creation).toMatchObject({ type: "signup", email: "camille@exemple.fr", password: "un-mot-de-passe-long" });
-    const { empreinte_inscription: empreinte, ...donnees } = creation.options.data;
-    expect(donnees).toEqual(metadonnees);
-    expect(empreinte).toMatch(/^[0-9a-f]{64}$/);
-    // Aucun appel d'administration après la création : il effacerait le jeton du lien (règle d'Auth).
+    expect(creation.type).toBe("signup");
+    expect(creation.email).toBe("camille@exemple.fr");
+    expect(creation.password === "un-mot-de-passe-long").toBe(false);
+    expect(/^Aa1!-[A-Za-z0-9_-]{60,}$/.test(creation.password)).toBe(true);
+    expect(creation.options.data).toEqual({ profil_a_confirmer: { nom: "Martin", prenom: "Camille", espace: "proprietaire_direct" } });
     expect(updateUserById).not.toHaveBeenCalled();
-    // Le témoin, en cookie httpOnly limité à /auth, dont l'empreinte est celle gardée dans le compte.
-    const [nom, temoin, options] = jarre.set.mock.calls[0];
-    expect(nom).toBe(COOKIE_INSCRIPTION);
-    expect(empreinteTemoinInscription(temoin)).toBe(empreinte);
-    expect(options).toMatchObject({ httpOnly: true, sameSite: "lax", path: "/auth" });
+    expect(jarre.set).toHaveBeenCalledWith(COOKIE_INSCRIPTION, "", expect.objectContaining({ maxAge: 0 }));
     const courrier = mocks.envoyerEmail.mock.calls[0][0];
     expect(courrier.to).toBe("camille@exemple.fr");
     expect(courrier.subject).toBe("Confirmez votre adresse — Gerimmo");
@@ -339,51 +338,28 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2 ; 
     expect(mocks.envoyerEmail).not.toHaveBeenCalled();
   });
 
-  /**
-   * Relecture du 15/10/2026 (invitation d'artisan, compte pré-inscrit). Pour une adresse inscrite mais jamais confirmée,
-   * Auth renouvelle le jeton et GARDE le mot de passe de la première inscription. Le mot de passe, les informations et
-   * l'empreinte de CETTE inscription sont posés en UNE opération AVANT la demande du lien envoyé (qui, lui, vit).
-   */
-  it("compte non confirmé : mot de passe, informations et empreinte posés en une opération AVANT le lien envoyé, demandé sans l'empreinte", async () => {
-    const { generateLink, updateUserById } = auth({
-      compte: "non_confirme",
-      metadonneesExistantes: { espace: "artisan", code_parrainage: "AAAA1111", empreinte_inscription: "c".repeat(64), sub: "u-pre-inscrit", email_verified: false },
-    });
+  it("compte non confirmé : réutilise le lien de récupération sans modifier le compte", async () => {
+    const { generateLink, updateUserById } = auth({ compte: "non_confirme" });
     expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
-    expect(updateUserById).toHaveBeenCalledTimes(1);
-    const [id, attributs] = updateUserById.mock.calls[0];
-    expect(id).toBe("u-pre-inscrit");
-    expect(attributs.password).toBe("un-mot-de-passe-long");
-    const { empreinte_inscription: empreinte, ...informations } = attributs.user_metadata as Record<string, unknown>;
-    // Les informations de cette inscription remplacent celles d'avant (les clés d'Auth restent).
-    expect(informations).toEqual({ ...metadonnees, code_parrainage: null });
-    expect(empreinte).toMatch(/^[0-9a-f]{64}$/);
-    expect(empreinte).not.toBe("c".repeat(64));
-    expect(attributs).not.toHaveProperty("app_metadata");
-    // Ordre : recherche, couple (mot de passe, empreinte), PUIS le lien envoyé, témoin, courrier.
-    expect(generateLink.mock.calls.map((c) => (c[0] as { type: string }).type)).toEqual(["recovery", "signup"]);
-    expect(generateLink.mock.calls[1][0]).toEqual({ type: "signup", email: "camille@exemple.fr", password: "un-mot-de-passe-long", options: { data: metadonnees } });
-    expect(ordre(updateUserById)).toBeLessThan(ordre(generateLink, 1));
-    expect(ordre(generateLink, 1)).toBeLessThan(ordre(jarre.set));
-    expect(ordre(jarre.set)).toBeLessThan(ordre(mocks.envoyerEmail));
-    expect(empreinteTemoinInscription(jarre.set.mock.calls[0][1])).toBe(empreinte);
-    expect(mocks.envoyerEmail.mock.calls[0][0].html).toContain(`token_hash=${EMPREINTE}&amp;type=signup`);
+    expect(updateUserById).not.toHaveBeenCalled();
+    expect(generateLink).toHaveBeenCalledExactlyOnceWith({ type: "recovery", email: "camille@exemple.fr" });
+    expect(jarre.set).toHaveBeenCalledWith(COOKIE_INSCRIPTION, "", expect.objectContaining({ maxAge: 0 }));
+    expect(mocks.envoyerEmail.mock.calls[0][0].html).toContain(`token_hash=${JETON_RECUPERATION}&amp;type=recovery`);
   });
 
   it("course à la création : la recherche ne trouvait rien, mais le compte rendu par signup existait déjà ; il est traité comme pré-inscrit", async () => {
     const { generateLink, updateUserById } = auth();
     generateLink
       .mockResolvedValueOnce({ data: { properties: null, user: null }, error: introuvable })
-      .mockResolvedValueOnce({ data: { properties: { hashed_token: "jeton-du-tiers-recouvert", action_link: "x" }, user: { id: "u-tiers", email_confirmed_at: null, user_metadata: { nom: "Invitant" }, ...EXISTAIT_DEJA } }, error: null });
+      .mockResolvedValueOnce({ data: { properties: { hashed_token: "jeton-du-tiers-recouvert", action_link: "x" }, user: { id: "u-tiers", email_confirmed_at: null, user_metadata: { nom: "Invitant" }, ...EXISTAIT_DEJA } }, error: null })
+      .mockResolvedValueOnce({ data: { properties: { hashed_token: JETON_RECUPERATION, action_link: "x" }, user: { id: "u-tiers", email_confirmed_at: null } }, error: null });
     expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
-    expect(updateUserById).toHaveBeenCalledTimes(1);
-    expect(updateUserById.mock.calls[0][0]).toBe("u-tiers");
-    expect(updateUserById.mock.calls[0][1]).toMatchObject({ password: "un-mot-de-passe-long" });
+    expect(updateUserById).not.toHaveBeenCalled();
     expect(generateLink).toHaveBeenCalledTimes(3);
-    expect(ordre(updateUserById)).toBeLessThan(ordre(generateLink, 2));
+    expect(generateLink).toHaveBeenLastCalledWith({ type: "recovery", email: "camille@exemple.fr" });
     const html = mocks.envoyerEmail.mock.calls[0][0].html as string;
     expect(html).not.toContain("jeton-du-tiers-recouvert");
-    expect(html).toContain(`token_hash=${EMPREINTE}`);
+    expect(html).toContain(`token_hash=${JETON_RECUPERATION}`);
   });
 
   it("garde de la course : seul un compte postérieur à l'envoi relevé par Auth est « créé par cet appel » ; le doute vaut « non »", () => {
@@ -398,20 +374,12 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2 ; 
     expect(creeParCetAppel(null)).toBe(false);
   });
 
-  it("compte non confirmé : si le couple ne peut pas être posé, aucun lien n'est demandé et rien ne part", async () => {
-    const { generateLink, updateUserById } = auth({ compte: "non_confirme" });
-    updateUserById.mockResolvedValueOnce({ data: { user: null }, error: { message: "Database error updating user", code: "unexpected_failure" } });
-    expect(await inscrire()).toEqual({ erreur: "Le service est momentanément indisponible. Réessayez dans un instant." });
-    expect(generateLink).toHaveBeenCalledTimes(1);
-    expect(mocks.envoyerEmail).not.toHaveBeenCalled();
-    expect(jarre.set).not.toHaveBeenCalled();
-  });
-
-  it("compte non confirmé : un nouveau mot de passe refusé par Auth garde son code (classé « mot de passe refusé »), sans courrier", async () => {
+  it("compte non confirmé : le lien permet de choisir son mot de passe après confirmation", async () => {
     const { updateUserById } = auth({ compte: "non_confirme" });
     updateUserById.mockResolvedValueOnce({ data: { user: null }, error: { message: "Password is too weak", code: "weak_password" } });
-    expect(await inscrire()).toEqual({ erreur: "Password is too weak", code: "weak_password" });
-    expect(mocks.envoyerEmail).not.toHaveBeenCalled();
+    expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
+    expect(mocks.envoyerEmail).toHaveBeenCalledOnce();
+    expect(jarre.set).toHaveBeenCalledWith(COOKIE_INSCRIPTION, "", expect.objectContaining({ maxAge: 0 }));
   });
 
   it("sans cookie posable, le lien part quand même : la confirmation fera choisir le mot de passe", async () => {
@@ -431,24 +399,17 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2 ; 
     expect(metadonneesRemplacees(undefined, { espace: "artisan" })).toEqual({ espace: "artisan" });
   });
 
-  it("projet sans confirmation d'adresse : dit que le compte est déjà confirmé, sans courrier ni appel d'administration", async () => {
+  it("projet sans confirmation d’adresse : demande aussi un courrier de récupération", async () => {
     const { generateLink, updateUserById } = auth();
     generateLink
       .mockResolvedValueOnce({ data: { properties: null, user: null }, error: introuvable })
-      .mockResolvedValueOnce({ data: { properties: { hashed_token: EMPREINTE, action_link: "x" }, user: { id: "u1", email_confirmed_at: "2026-09-30T10:00:00Z", ...CREE_PAR_L_APPEL } }, error: null });
-    expect(await inscrire()).toEqual({ etat: "deja_confirme" });
-    expect(mocks.envoyerEmail).not.toHaveBeenCalled();
+      .mockResolvedValueOnce({ data: { properties: { hashed_token: EMPREINTE, action_link: "x" }, user: { id: "u1", email_confirmed_at: "2026-09-30T10:00:00Z", ...CREE_PAR_L_APPEL } }, error: null })
+      .mockResolvedValueOnce({ data: { properties: { hashed_token: JETON_RECUPERATION, action_link: "x" }, user: { id: "u1" } }, error: null });
+    expect(await inscrire()).toEqual({ etat: "compte_existant" });
+    expect(mocks.envoyerEmail).toHaveBeenCalledOnce();
     expect(updateUserById).not.toHaveBeenCalled();
   });
 
-  it("remonte le code d'un mot de passe refusé à la création, sans courrier", async () => {
-    const { generateLink } = auth();
-    generateLink
-      .mockResolvedValueOnce({ data: { properties: null, user: null }, error: introuvable })
-      .mockResolvedValueOnce({ data: { properties: null, user: null }, error: { message: "Password is too weak", code: "weak_password" } });
-    expect(await inscrire()).toEqual({ erreur: "Password is too weak", code: "weak_password" });
-    expect(mocks.envoyerEmail).not.toHaveBeenCalled();
-  });
 
   it("applique la limite anonyme avant toute recherche ou création de compte", async () => {
     const { generateLink } = auth({ autorise: false });
@@ -483,6 +444,19 @@ describe("/auth/confirm", () => {
       signOut: vi.fn(async (_options: Record<string, unknown>) => ({ error: null })),
     };
     mocks.createClient.mockResolvedValue({ auth });
+    mocks.preparer.mockImplementation(async (_email: string, type: string) => {
+      let utilisateur: typeof DEJA_CONFIRME | undefined;
+      const verifier = auth.verifyOtp;
+      auth.verifyOtp = vi.fn(async () => {
+        const resultat = await verifier();
+        utilisateur = resultat.data?.user;
+        return resultat;
+      });
+      return {
+        get user_id() { return utilisateur?.id; },
+        get premiere_confirmation() { return premiereConfirmation(type, utilisateur); },
+      };
+    });
     return auth;
   }
   const cookieDe = (r: Response) => r.headers.get("set-cookie") ?? "";
@@ -523,15 +497,12 @@ describe("/auth/confirm", () => {
     expect(r2.headers.get("cache-control")).toBe("no-store");
   });
 
-  it("GET garde les anciens liens ?code= (PKCE) et renvoie vers « lien invalide » s'ils échouent", async () => {
+  it("GET invite à renouveler un ancien lien sans échanger de code", async () => {
     const auth = supabase();
-    const ok = await GET(new NextRequest("https://www.gerimmo.app/auth/confirm?code=abc&next=/nouveau-mot-de-passe"));
-    expect(auth.exchangeCodeForSession).toHaveBeenCalledWith("abc");
-    expect(new URL(ok.headers.get("location")!).pathname).toBe("/nouveau-mot-de-passe");
-    expect(ok.headers.get("cache-control")).toBe("no-store");
-    auth.exchangeCodeForSession.mockResolvedValueOnce({ error: { message: "code verifier" } } as never);
-    const ko = await GET(new NextRequest("https://www.gerimmo.app/auth/confirm?code=abc"));
-    expect(ko.headers.get("location")).toContain("/connexion?raison=lien-invalide");
+    const r = await GET(new NextRequest("https://www.gerimmo.app/auth/confirm?code=abc"));
+    expect(auth.exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(r.headers.get("location")).toContain("/connexion?raison=lien-invalide");
+    expect(r.headers.get("cache-control")).toBe("no-store");
   });
 
   const NONCE = "jeton-de-confirmation-aleatoire";
@@ -553,7 +524,24 @@ describe("/auth/confirm", () => {
       },
     });
   };
-  const champs = (extra: Record<string, string> = {}) => ({ token_hash: EMPREINTE, type: "recovery", next: "/nouveau-mot-de-passe", confirmation: NONCE, ...extra });
+  const champs = (extra: Record<string, string> = {}) => ({ token_hash: EMPREINTE, email: "delivered+confirmation@resend.dev", type: "recovery", next: "/nouveau-mot-de-passe", confirmation: NONCE, ...extra });
+
+  it("POST refusé par le contrôle serveur : aucun jeton n’est consommé", async () => {
+    const auth = supabase();
+    mocks.preparer.mockResolvedValueOnce(null);
+    const r = await POST(post(champs()));
+    expect(new URL(r.headers.get("location")!).searchParams.get("raison")).toBe("lien-invalide");
+    expect(auth.verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it("POST dont le compte ne correspond pas au contexte : session fermée", async () => {
+    const auth = supabase();
+    mocks.preparer.mockResolvedValueOnce({ user_id: "autre-compte", premiere_confirmation: false });
+    const r = await POST(post(champs()));
+    expect(new URL(r.headers.get("location")!).searchParams.get("raison")).toBe("lien-invalide");
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(auth.updateUser).not.toHaveBeenCalled();
+  });
 
   it("POST vérifie le jeton puis mène à la destination (303), et efface le double jeton", async () => {
     const auth = supabase();
@@ -565,7 +553,7 @@ describe("/auth/confirm", () => {
     expect(cookieDe(r)).toMatch(new RegExp(`${COOKIE_CONFIRMATION}=;.*Max-Age=0`));
   });
 
-  it("POST d'une confirmation d'inscription dans le navigateur de l'inscription : destination prévue, empreinte effacée PAR LA SESSION, témoin effacé", async () => {
+  it("POST dans le navigateur initial : le choix du mot de passe reste obligatoire", async () => {
     const auth = supabase();
     const temoin = "temoin-de-l-inscription";
     const { updateUserById } = admin();
@@ -576,10 +564,10 @@ describe("/auth/confirm", () => {
     const requete = post(champs({ type: "signup", next: "/espaces" }), undefined, `${NONCE}; ${COOKIE_INSCRIPTION}=${temoin}`);
     const r = await POST(requete);
     expect(auth.verifyOtp).toHaveBeenCalledWith({ type: "signup", token_hash: EMPREINTE });
-    expect(new URL(r.headers.get("location")!).pathname).toBe("/espaces");
-    // Le mot de passe choisi à l'inscription est gardé ; seule l'empreinte est effacée, par la session (métadonnées).
+    expect(new URL(r.headers.get("location")!).pathname).toBe("/nouveau-mot-de-passe");
+    // La session reste ouverte pour le choix explicite.
     expect(auth.updateUser).toHaveBeenCalledTimes(1);
-    expect(auth.updateUser).toHaveBeenCalledWith({ data: { empreinte_inscription: null } });
+    expect(auth.updateUser).toHaveBeenCalledWith({ password: expect.any(String), data: { espace: null, empreinte_inscription: null, profil_a_confirmer: { espace: "proprietaire_direct" } } });
     // Jamais l'API d'administration : elle fermerait la session que le bouton vient d'ouvrir (règle d'Auth).
     expect(updateUserById).not.toHaveBeenCalled();
     expect(cookieDe(r)).toMatch(new RegExp(`${COOKIE_INSCRIPTION}=;.*Max-Age=0`));
@@ -601,7 +589,7 @@ describe("/auth/confirm", () => {
       expect(cible.searchParams.get("suite")).toBe("/artisan/inscription?invitation=6f1e2d3c-4b5a-4968-8778-695a4b3c2d1e");
       expect(auth.updateUser).toHaveBeenCalledTimes(1);
       const [attributs] = auth.updateUser.mock.calls[0] as unknown as [{ password: string; data: Record<string, unknown> }];
-      expect(attributs.data).toEqual({ empreinte_inscription: null });
+      expect(attributs.data).toMatchObject({ empreinte_inscription: null, profil_a_confirmer: {} });
       expect(attributs.password).toMatch(/^Aa1!-[A-Za-z0-9_-]{60,}$/);
       expect(attributs.password.length).toBeLessThanOrEqual(72);
       expect(auth.signOut).not.toHaveBeenCalled();
@@ -624,7 +612,7 @@ describe("/auth/confirm", () => {
     const [id, attributs] = updateUserById.mock.calls[0];
     expect(id).toBe("u1");
     expect(String(attributs.password)).toMatch(/^Aa1!-[A-Za-z0-9_-]{60,}$/);
-    expect(attributs.user_metadata).toEqual({ empreinte_inscription: null });
+    expect(attributs.user_metadata).toEqual({ profil_a_confirmer: {} });
     expect(auth.signOut).toHaveBeenCalledWith({ scope: "local" });
     expect(cookieDe(r)).toMatch(new RegExp(`${COOKIE_INSCRIPTION}=;.*Max-Age=0`));
   });
@@ -662,7 +650,7 @@ describe("/auth/confirm", () => {
       expect(cible.pathname + cible.search).toBe(attendu);
       expect(auth.updateUser).toHaveBeenCalledTimes(1);
       const [attributs] = auth.updateUser.mock.calls[0] as unknown as [{ password: string; data: Record<string, unknown> }];
-      expect(attributs.data).toEqual({ empreinte_inscription: null });
+      expect(attributs.data).toEqual({ empreinte_inscription: null, espace: null, profil_a_confirmer: { espace: "artisan" } });
       expect(attributs.password).toMatch(/^Aa1!-[A-Za-z0-9_-]{60,}$/);
       expect(auth.signOut).not.toHaveBeenCalled();
       expect(updateUserById).not.toHaveBeenCalled();
@@ -670,7 +658,7 @@ describe("/auth/confirm", () => {
     }
   });
 
-  it("POST d'un lien de mot de passe (recovery) sur une inscription pas finie, DANS son navigateur : le mot de passe d'inscription est gardé, l'empreinte effacée par la session", async () => {
+  it("POST de récupération sur une inscription en cours : choix du mot de passe même dans le navigateur initial", async () => {
     const auth = supabase();
     const temoin = "temoin-de-l-inscription";
     const { updateUserById } = admin();
@@ -681,7 +669,7 @@ describe("/auth/confirm", () => {
     const r = await POST(post(champs(), undefined, `${NONCE}; ${COOKIE_INSCRIPTION}=${temoin}`));
     expect(new URL(r.headers.get("location")!).pathname).toBe("/nouveau-mot-de-passe");
     expect(auth.updateUser).toHaveBeenCalledTimes(1);
-    expect(auth.updateUser).toHaveBeenCalledWith({ data: { empreinte_inscription: null } });
+    expect(auth.updateUser).toHaveBeenCalledWith({ password: expect.any(String), data: { empreinte_inscription: null, profil_a_confirmer: {} } });
     expect(updateUserById).not.toHaveBeenCalled();
     expect(cookieDe(r)).toMatch(new RegExp(`${COOKIE_INSCRIPTION}=;.*Max-Age=0`));
   });
@@ -701,7 +689,7 @@ describe("/auth/confirm", () => {
     expect(cible.pathname).toBe("/mot-de-passe-oublie");
     expect(cible.searchParams.get("raison")).toBe("adresse-confirmee");
     expect(updateUserById).toHaveBeenCalledTimes(1);
-    expect(updateUserById.mock.calls[0][1].user_metadata).toEqual({ empreinte_inscription: null });
+    expect(updateUserById.mock.calls[0][1].user_metadata).toEqual({ empreinte_inscription: null, profil_a_confirmer: {} });
     expect(auth.signOut).toHaveBeenCalledWith({ scope: "local" });
   });
 
@@ -741,8 +729,8 @@ describe("/auth/confirm", () => {
     expect(updateUserById).not.toHaveBeenCalled();
   });
 
-  it("POST : un doute sur les instants d'Auth (absents, illisibles, ou aucun compte rendu) vaut « confirmé par ce clic » : fermé par défaut", async () => {
-    for (const user of [{ id: "u1", user_metadata: {} }, { ...DEJA_CONFIRME, recovery_sent_at: "hier" }, undefined]) {
+  it("POST : un doute sur les instants d'Auth (absents, illisibles, ) vaut « confirmé par ce clic » : fermé par défaut", async () => {
+    for (const user of [{ id: "u1", user_metadata: {} }, { ...DEJA_CONFIRME, recovery_sent_at: "hier" }]) {
       const auth = supabase();
       admin();
       auth.verifyOtp.mockResolvedValueOnce({ data: { user }, error: null } as never);
@@ -852,10 +840,10 @@ describe("premiereConfirmation : ce clic vient-il de confirmer l'adresse ? (règ
     // Fuseau exprimé autrement : même instant lu.
     expect(premiereConfirmation("recovery", { email_confirmed_at: "2026-10-16T07:00:00.5+02:00", recovery_sent_at: "2026-10-16T05:00:00.6Z" })).toBe(false);
   });
-  it("lien « email » : comparé au plus ancien des envois connus", () => {
+  it("lien « email » : comparé au dernier envoi connu", () => {
     expect(premiereConfirmation("email", CONFIRME_PAR_CE_CLIC)).toBe(true);
     expect(premiereConfirmation("email", DEJA_CONFIRME)).toBe(false);
-    expect(premiereConfirmation("email", { email_confirmed_at: "2026-10-16T05:00:01Z", confirmation_sent_at: "2026-10-16T05:00:00Z", recovery_sent_at: "2026-10-16T05:00:02Z" })).toBe(true);
+    expect(premiereConfirmation("email", { email_confirmed_at: "2026-10-16T05:00:01Z", confirmation_sent_at: "2026-10-16T05:00:00Z", recovery_sent_at: "2026-10-16T05:00:02Z" })).toBe(false);
   });
   it("changement d'adresse : non (il ne confirme pas un compte)", () => {
     expect(premiereConfirmation("email_change", CONFIRME_PAR_CE_CLIC)).toBe(false);
@@ -870,7 +858,6 @@ describe("premiereConfirmation : ce clic vient-il de confirmer l'adresse ? (règ
 
 describe("destinationApresConfirmation", () => {
   it("même navigateur : la destination prévue ; ailleurs : le choix du mot de passe et son motif ; refus d'Auth : nouvelle demande de lien", () => {
-    expect(destinationApresConfirmation("meme_navigateur", "signup", "/artisan/inscription", true)).toBe("/artisan/inscription");
     expect(destinationApresConfirmation("mot_de_passe_a_choisir", "signup", "/espaces", true)).toBe("/nouveau-mot-de-passe?motif=inscription&suite=%2Fespaces");
     expect(destinationApresConfirmation("mot_de_passe_a_choisir", "signup", "/espaces", false)).toBe("/nouveau-mot-de-passe?motif=confirmation&suite=%2Fespaces");
     expect(destinationApresConfirmation("mot_de_passe_a_choisir", "recovery", "/nouveau-mot-de-passe?suite=%2Finvitations%2Fx", true)).toBe("/nouveau-mot-de-passe?suite=%2Finvitations%2Fx&motif=confirmation");
@@ -901,6 +888,7 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
   let sessions: Map<string, string>;
   let courant: Navigateur;
   let avantCreation: (() => Promise<void>) | null;
+  let avancerTemps: (ms: number) => void;
   /** Le /signup PUBLIC d'Auth (clé publique seule) : un compte non confirmé, sans empreinte de Gerimmo. */
   let signupPublic: (email: string, motDePasse: string) => void;
   /** Le /recover PUBLIC d'Auth, courrier rendu avec le modèle recovery.html du dépôt : le lien mène au bouton de Gerimmo. */
@@ -912,7 +900,11 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     avantCreation = null;
     let n = 0;
     let horloge = 0;
-    const maintenant = () => `2026-10-15T10:00:00.${String(++horloge).padStart(6, "0")}Z`;
+    let decalageMs = 0;
+    avancerTemps = (ms) => { decalageMs += ms; };
+    const maintenant = () => new Date(Date.UTC(2026, 9, 15, 10) + decalageMs).toISOString().replace(".000Z", `.${String(++horloge).padStart(6, "0")}Z`);
+    const motDePasseRefuse = (password: string | undefined) => password !== undefined && password.length < 12;
+    const erreurMotDePasse = { code: "weak_password", message: "Password is too weak" };
     const parEmail = (email: string) => [...comptes.values()].find((c) => c.email === email);
     const vue = (c: Compte) => ({
       id: c.id,
@@ -954,6 +946,7 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
         c = parEmail(p.email);
       }
       if (c?.confirme) return { data: { properties: null, user: null }, error: { code: "email_exists", message: "already registered" } };
+      if (!c && motDePasseRefuse(p.password)) return { data: { properties: null, user: null }, error: erreurMotDePasse };
       const envoi = maintenant();
       if (!c) {
         c = { id: `compte-${++n}`, email: p.email, password: p.password ?? "", confirme: false, user_metadata: { ...(p.options?.data ?? {}) }, jeton: null, jetonRecuperation: null, creeLe: maintenant(), envoiLe: null, confirmeLe: null, recuperationLe: null };
@@ -968,6 +961,7 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     const updateUserById = vi.fn(async (id: string, attributs: { password?: string; user_metadata?: Record<string, unknown> }) => {
       const c = comptes.get(id);
       if (!c) return { data: { user: null }, error: { message: "User not found" } };
+      if (motDePasseRefuse(attributs.password)) return { data: { user: null }, error: erreurMotDePasse };
       fusion(c.user_metadata, attributs.user_metadata);
       if (attributs.password !== undefined) changerMotDePasse(c, attributs.password);
       return { data: { user: vue(c) }, error: null };
@@ -982,13 +976,16 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
       return {
         auth: {
           verifyOtp: vi.fn(async (p: { type: string; token_hash: string }) => {
-            const c = [...comptes.values()].find((x) => (p.type === "signup" ? x.jeton : x.jetonRecuperation) === p.token_hash && p.token_hash);
+            const c = [...comptes.values()].find((x) => (p.type === "email" ? x.jeton === p.token_hash || x.jetonRecuperation === p.token_hash : (p.type === "signup" ? x.jeton : x.jetonRecuperation) === p.token_hash) && p.token_hash);
+            const envoi = c && (c.jeton === p.token_hash ? c.envoiLe : c.recuperationLe);
+            if (envoi && Date.parse(envoi) + 86_400_000 <= Date.parse(maintenant())) return { data: { user: null, session: null }, error: { message: "Email link is invalid or has expired" } };
             if (!c) return { data: { user: null, session: null }, error: { message: "Email link is invalid or has expired" } };
             // recoverVerify / signupVerify : un compte non confirmé l'est au passage (Confirm), et TOUS les jetons à usage
             // unique du compte sont effacés (Recover comme Confirm).
             if (!c.confirme) {
               c.confirme = true;
               c.confirmeLe = maintenant();
+              c.user_metadata.email_verified = true;
             }
             c.jeton = null;
             c.jetonRecuperation = null;
@@ -1000,6 +997,7 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
           updateUser: vi.fn(async (attributs: { password?: string; data?: Record<string, unknown> }) => {
             const s = compteDeLaSession();
             if (!s) return { data: { user: null }, error: { message: "Auth session missing!" } };
+            if (motDePasseRefuse(attributs.password)) return { data: { user: null }, error: erreurMotDePasse };
             fusion(s.compte.user_metadata, attributs.data);
             if (attributs.password !== undefined) changerMotDePasse(s.compte, attributs.password, s.session);
             return { data: { user: vue(s.compte) }, error: null };
@@ -1029,6 +1027,10 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     };
     mocks.service.mockReturnValue({ auth: { admin: { generateLink, updateUserById } }, rpc: async () => ({ data: true, error: null }) });
     mocks.createClient.mockImplementation(async () => clientDuNavigateur(courant));
+    mocks.preparer.mockImplementation(async (_email: string, type: string, token: string) => {
+      const c = [...comptes.values()].find((x) => (type === "email" ? x.jeton === token || x.jetonRecuperation === token : (type === "signup" ? x.jeton : x.jetonRecuperation) === token));
+      return c ? { user_id: c.id, premiere_confirmation: !c.confirme } : null;
+    });
     mocks.cookies.mockImplementation(async () => ({
       get: (nom: string) => (courant.has(nom) ? { name: nom, value: courant.get(nom)! } : undefined),
       set: (nom: string, valeur: string, options?: { maxAge?: number }) => {
@@ -1105,34 +1107,57 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     authSimulee();
   });
 
+  it("la doublure respecte l’expiration du lien", async () => {
+    await inscrireDepuis(new Map(), "mot-de-passe-artisan-V", ARTISAN);
+    avancerTemps(86_400_000);
+    expect((await cliquer(new Map(), dernierLien())).searchParams.get("raison")).toBe("lien-invalide");
+    expect(compte().confirme).toBe(false);
+  });
+
+  it("le type email peut vérifier un lien d’inscription", async () => {
+    const navigateur: Navigateur = new Map();
+    await inscrireDepuis(navigateur, "mot-de-passe-artisan-V", ARTISAN);
+    const lien = new URL(dernierLien());
+    lien.searchParams.set("type", "email");
+    expect((await cliquer(navigateur, lien.toString())).pathname).toBe("/nouveau-mot-de-passe");
+    expect(compte().user_metadata.email_verified).toBe(true);
+    expect(ouvre("mot-de-passe-artisan-V")).toBe(false);
+  });
+
+  it("la doublure applique la politique de mot de passe", async () => {
+    const navigateur: Navigateur = new Map();
+    await inscrireDepuis(navigateur, "court", ARTISAN);
+    expect(ouvre("court")).toBe(false);
+    expect((await cliquer(navigateur, dernierLien())).pathname).toBe("/nouveau-mot-de-passe");
+  });
+
   it("inscription neuve : le lien du courrier VIT (aucun appel d'administration après sa création) et la session reste ouverte", async () => {
     const { updateUserById } = authSimulee();
     const chezArtisan: Navigateur = new Map();
     expect(await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN)).toEqual({ etat: "confirmation_envoyee" });
     expect(updateUserById).not.toHaveBeenCalled();
     const destination = await cliquer(chezArtisan, dernierLien());
-    expect(destination.pathname).toBe("/artisan/inscription");
+    expect(destination.pathname).toBe("/nouveau-mot-de-passe");
     expect(compte().confirme).toBe(true);
     expect(sessionVivante(chezArtisan)).toBe(true);
-    expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
-    expect(compte().user_metadata).toEqual(ARTISAN);
+    expect(ouvre("mot-de-passe-artisan-V")).toBe(false);
+    expect(compte().user_metadata).toEqual({ profil_a_confirmer: ARTISAN, email_verified: true });
   });
 
-  it("l'artisan s'inscrit (V), l'invitant réinscrit l'adresse APRÈS lui (A), l'artisan clique le seul lien valide : ni V ni A n'ouvrent le compte", async () => {
+  it("l'artisan s'inscrit (V), l'invitant réinscrit l'adresse APRÈS lui (A), l'artisan clique le lien de reprise : ni V ni A n'ouvrent le compte", async () => {
     const chezArtisan: Navigateur = new Map();
     const chezInvitant: Navigateur = new Map();
     expect(await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN)).toEqual({ etat: "confirmation_envoyee" });
-    const l1 = liens()[0];
     expect(await inscrireDepuis(chezInvitant, "mot-de-passe-invitant-A", INVITANT)).toEqual({ etat: "confirmation_envoyee" });
-    // L1 est caduc : seul le dernier lien confirme la boîte.
-    expect((await cliquer(chezArtisan, l1)).searchParams.get("raison")).toBe("lien-invalide");
+    expect(new URL(dernierLien()).searchParams.get("type")).toBe("recovery");
     const destination = await cliquer(chezArtisan, dernierLien());
     expect(compte().confirme).toBe(true);
     expect(ouvre("mot-de-passe-invitant-A")).toBe(false);
     expect(ouvre("mot-de-passe-artisan-V")).toBe(false);
     // La personne qui a confirmé choisit maintenant SON mot de passe, dans la session restée ouverte.
     expect(destination.pathname).toBe("/nouveau-mot-de-passe");
-    expect(destination.searchParams.get("motif")).toBe("inscription");
+    expect(destination.searchParams.get("motif")).toBe("confirmation");
+    expect(compte().user_metadata.profil_a_confirmer).toEqual(ARTISAN);
     expect(sessionVivante(chezArtisan)).toBe(true);
     expect(sessionVivante(chezInvitant)).toBe(false);
     expect(choisir(chezArtisan, "mot-de-passe-choisi-N")).toBe(true);
@@ -1150,21 +1175,18 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     expect(sessionVivante(chezArtisan)).toBe(true);
   });
 
-  it("l'invitant s'inscrit d'abord, l'artisan ensuite et confirme dans SON navigateur : son mot de passe et ses informations, pas ceux de l'invitant", async () => {
+  it("une reprise demande de valider les informations et de choisir le mot de passe", async () => {
     const chezArtisan: Navigateur = new Map();
     const chezInvitant: Navigateur = new Map();
     await inscrireDepuis(chezInvitant, "mot-de-passe-invitant-A", INVITANT);
-    const lienDeLInvitant = dernierLien();
     await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN);
-    // Le mot de passe posé avant le nouveau lien a tué celui de l'invitant ; le nouveau lien vit.
-    expect((await cliquer(new Map(), lienDeLInvitant)).searchParams.get("raison")).toBe("lien-invalide");
     const destination = await cliquer(chezArtisan, dernierLien());
-    expect(destination.pathname).toBe("/artisan/inscription");
-    expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
+    expect(destination.pathname).toBe("/nouveau-mot-de-passe");
+    expect(ouvre("mot-de-passe-artisan-V")).toBe(false);
     expect(ouvre("mot-de-passe-invitant-A")).toBe(false);
     expect(sessionVivante(chezArtisan)).toBe(true);
-    // Les informations de la première inscription (espace, nom, code de parrainage) ne survivent pas, l'empreinte non plus.
-    expect(compte().user_metadata).toEqual(ARTISAN);
+    // Les informations proposées doivent être validées par le titulaire.
+    expect(compte().user_metadata).toEqual({ profil_a_confirmer: INVITANT, email_verified: true });
   });
 
   it("course à la création : l'invitant crée le compte entre la recherche et la création de l'artisan ; son mot de passe n'ouvre rien", async () => {
@@ -1177,18 +1199,19 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     };
     expect(await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN)).toEqual({ etat: "confirmation_envoyee" });
     const destination = await cliquer(chezArtisan, dernierLien());
-    expect(destination.pathname).toBe("/artisan/inscription");
-    expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
+    expect(destination.pathname).toBe("/nouveau-mot-de-passe");
+    expect(ouvre("mot-de-passe-artisan-V")).toBe(false);
     expect(ouvre("mot-de-passe-invitant-A")).toBe(false);
-    expect(compte().user_metadata).toEqual(ARTISAN);
+    expect(compte().user_metadata).toEqual({ profil_a_confirmer: ARTISAN, email_verified: true });
   });
 
-  it("le cas ordinaire est inchangé : inscrit et confirmé dans le même navigateur, le compte s'ouvre avec le mot de passe choisi, sans étape de plus", async () => {
+  it("le choix final conserve la destination de l’invitation", async () => {
     const chezArtisan: Navigateur = new Map();
     await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN, "/artisan/invitation/6f1e2d3c-4b5a-4968-8778-695a4b3c2d1e");
     const destination = await cliquer(chezArtisan, dernierLien());
-    expect(destination.pathname).toBe("/artisan/invitation/6f1e2d3c-4b5a-4968-8778-695a4b3c2d1e");
-    expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
+    expect(destination.pathname).toBe("/nouveau-mot-de-passe");
+    expect(destination.searchParams.get("suite")).toBe("/artisan/invitation/6f1e2d3c-4b5a-4968-8778-695a4b3c2d1e");
+    expect(ouvre("mot-de-passe-artisan-V")).toBe(false);
     expect(sessionVivante(chezArtisan)).toBe(true);
   });
 
@@ -1212,7 +1235,7 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     expect(ouvre("mot-de-passe-choisi-N")).toBe(true);
   });
 
-  it("l'artisan s'inscrit, oublie son mot de passe et clique le lien de récupération dans le navigateur de l'inscription : son mot de passe reste valable", async () => {
+  it("la récupération dans le navigateur initial demande aussi de choisir le mot de passe", async () => {
     const chezArtisan: Navigateur = new Map();
     await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN);
     courant = chezArtisan;
@@ -1220,8 +1243,8 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     const destination = await cliquer(chezArtisan, dernierLien());
     expect(destination.pathname).toBe("/nouveau-mot-de-passe");
     expect(compte().confirme).toBe(true);
-    expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
-    expect(compte().user_metadata).toEqual(ARTISAN);
+    expect(ouvre("mot-de-passe-artisan-V")).toBe(false);
+    expect(compte().user_metadata).toEqual({ profil_a_confirmer: ARTISAN, email_verified: true });
     expect(chezArtisan.has(COOKIE_INSCRIPTION)).toBe(false);
     expect(sessionVivante(chezArtisan)).toBe(true);
   });
@@ -1281,6 +1304,8 @@ describe("compte pré-inscrit : aucun mot de passe choisi par un autre que celui
     const chezArtisan: Navigateur = new Map();
     await inscrireDepuis(chezArtisan, "mot-de-passe-artisan-V", ARTISAN);
     await cliquer(chezArtisan, dernierLien());
+    expect(choisir(chezArtisan, "mot-de-passe-artisan-V")).toBe(true);
+    delete compte().user_metadata.profil_a_confirmer;
     expect(ouvre("mot-de-passe-artisan-V")).toBe(true);
     courant = new Map();
     await envoyerLienMotDePasse({ email: ADRESSE, motif: "mot_de_passe_oublie", next: "/nouveau-mot-de-passe" });
@@ -1304,7 +1329,7 @@ describe("le témoin d'inscription", () => {
   });
 });
 
-describe("/nouveau-mot-de-passe après une confirmation d'inscription ouverte ailleurs", () => {
+describe("/nouveau-mot-de-passe après une confirmation d'inscription", () => {
   it("dit que l'adresse est confirmée et pourquoi le mot de passe est demandé ; garde la destination", async () => {
     const { renderToStaticMarkup } = await import("react-dom/server");
     mocks.createClient.mockResolvedValue({ auth: { getUser: async () => ({ data: { user: { id: "u1", email: "artisan@entreprise.test" } } }) } });
@@ -1313,14 +1338,15 @@ describe("/nouveau-mot-de-passe après une confirmation d'inscription ouverte ai
     const apres = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ motif: "inscription", suite: "/artisan/inscription" }) })));
     expect(apres).toContain("Choisissez votre mot de passe");
     expect(apres).toContain("Votre adresse artisan@entreprise.test est confirmée");
-    expect(apres).toContain("ouvert dans un autre navigateur que celui de l'inscription");
+    expect(apres).toContain("Vérifiez vos informations puis choisissez le mot de passe de votre compte");
+    expect(apres).not.toContain("autre navigateur");
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ motif: "inscription", suite: "/artisan/inscription" }) }));
     expect(html).toMatch(/name="suite" value="\/artisan\/inscription"/);
     // Quatrième relecture : tout autre lien qui vient de confirmer l'adresse (motif « confirmation »).
     const confirmation = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ motif: "confirmation", suite: "/invitations/x" }) })));
     expect(confirmation).toContain("Choisissez votre mot de passe");
     expect(confirmation).toContain("Votre adresse artisan@entreprise.test vient d'être confirmée par ce lien");
-    expect(confirmation).toContain("un mot de passe choisi avant cette confirmation ne permet plus d'entrer");
+    expect(confirmation).toContain("Vérifiez vos informations puis choisissez le mot de passe de votre compte");
     expect(confirmation).not.toContain("autre navigateur");
     // Sans motif : l'écran ordinaire du mot de passe oublié.
     const ordinaire = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({}) })));

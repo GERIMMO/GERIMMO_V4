@@ -17,7 +17,7 @@ jobs:
     # de TEST (étape « Refuser une clé réelle ou absente »), et aucune branche
     # de fork n'y accède (workflow_dispatch réservé aux collaborateurs).
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
       postgres:
@@ -37,7 +37,7 @@ jobs:
       SUPABASE_DB_URL: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_stripe
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
       - run: npm ci --ignore-scripts --no-audit --no-fund
@@ -65,7 +65,7 @@ jobs:
           fs.writeFileSync('/tmp/bilan-stripe-test.json',JSON.stringify(b,null,2));
           console.log(JSON.stringify(b));
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: bilan-stripe-test

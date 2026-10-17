@@ -366,23 +366,11 @@ describe("étape « Personnes » du bail en préparation (là où le locataire e
     banc.superAdmin = false;
   });
 
-  it("le propriétaire en gestion directe voit le bloc replié, une seule fois, dans la section du locataire", async () => {
+  it("masque les conseils non relus au propriétaire sans retirer le choix du locataire", async () => {
     banc.adhesion = adhesion(ADHESIONS.proprietaire);
     const html = await etapePersonnes();
-    expect(html.match(/data-conseils-locataire="creation-bail"/g)).toHaveLength(1);
-    expect(html).not.toContain('data-conseils-locataire="garanties-bail"');
-    expect(html).toMatch(/<details[^>]*data-conseils-locataire="creation-bail"(?![^>]*\sopen\b)[^>]*>/);
-
-    // Entre l'en-tête de la section du locataire et la section des garants.
-    const locataire = html.indexOf('aria-labelledby="titre-locataires-bail"');
-    const garants = html.indexOf('aria-labelledby="titre-garants-bail"');
-    const proprietaires = html.indexOf('aria-labelledby="titre-proprietaires-bail"');
-    const bloc = html.indexOf('data-conseils-locataire="creation-bail"');
-    expect(proprietaires).toBeGreaterThan(-1);
-    expect(locataire).toBeGreaterThan(proprietaires);
-    expect(bloc).toBeGreaterThan(locataire);
-    expect(bloc).toBeLessThan(garants);
-    // Le bouton « Choisir un locataire » est toujours là : rien n'est retiré.
+    expect(html).not.toContain("data-conseils-locataire");
+    expect(html).not.toContain("Conseils pour choisir votre locataire");
     expect(texteVisible(html)).toContain("Choisir un locataire");
   });
 
@@ -448,9 +436,9 @@ describe("gardes de source", () => {
 
   it("le propriétaire est reconnu par le drapeau commun `estProprietaire`, jamais par un nom d'organisation", () => {
     const etape = lire(path.join(SRC, "app/agence/[orgId]/baux/[bailId]/etape-personnes-bail.tsx"));
-    expect(etape).toMatch(/estProprietaire\s*\?\s*<ConseilsChoixLocataire emplacement="creation-bail"/);
+    expect(etape).toMatch(/estProprietaire && CONSEILS_LOCATAIRE_VALIDES\s*\?\s*<ConseilsChoixLocataire emplacement="creation-bail"/);
     const page = lire(path.join(SRC, "app/agence/[orgId]/baux/[bailId]/page.tsx"));
-    expect(page).toMatch(/estProprietaire\s*\?\s*<ConseilsChoixLocataire emplacement="garanties-bail"/);
+    expect(page).toMatch(/estProprietaire && CONSEILS_LOCATAIRE_VALIDES\s*\?\s*<ConseilsChoixLocataire emplacement="garanties-bail"/);
   });
 
   it("le nouveau code ne lit aucun montant : ni Number() ni parseFloat()", () => {

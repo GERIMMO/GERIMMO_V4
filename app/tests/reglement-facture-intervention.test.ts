@@ -57,7 +57,7 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
     essai(() => db.query<{ id: string }>("select public.retirer_reglement_facture($1,$2,$3) id", [org, reglement, motif])).then((r) => r.rows[0].id);
   const etatSql = async (f = facture) => {
     await postgres();
-    return (await db.query("select * from public.etat_facture_intervention($1)", [f])).rows[0];
+    return (await db.query("select e.*, e.reglee_le::text from public.etat_facture_intervention($1) e", [f])).rows[0];
   };
   const valider = async (f = facture) => { await devenir(admin); await db.query("select public.valider_facture_artisan($1,$2,'Pièce et prix vérifiés')", [org, f]); };
 
@@ -123,15 +123,15 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
     expect(r.reference).toBe("VIR 1234");
     expect(r.cree_par).toBe(admin);
     expect(r.retire_le).toBeNull();
-    const e = (await db.query("select * from public.ecritures where id=$1", [r.ecriture_id])).rows[0];
+    const e = (await db.query("select e.*, e.date_piece::text, e.date_imputation::text from public.ecritures e where id=$1", [r.ecriture_id])).rows[0];
     expect(e.organization_id).toBe(org);
     expect(e.lot_id).toBe(lot);
     expect(e.bail_id).toBeNull();
     expect(e.categorie).toBe("travaux");
     expect(e.sens).toBe("depense");
     expect(Number(e.montant)).toBe(239.68);
-    expect(e.date_piece).toEqual(new Date("2026-10-10"));
-    expect(e.date_imputation).toEqual(new Date(jourParis()));
+    expect(e.date_piece).toEqual("2026-10-10");
+    expect(e.date_imputation).toEqual(jourParis());
     expect(e.libelle).toBe("Règlement facture n° F-2026-17 — incident INC-RECETTE-REGLEMENT");
     expect(e.contre_ecriture_de).toBeNull();
     expect(e.encaissement_id).toBeNull();
@@ -139,8 +139,8 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
     expect(apres.etat).toBe("reglee");
     expect(Number(apres.total_regle_cents)).toBe(23968);
     expect(Number(apres.reste_cents)).toBe(0);
-    expect(apres.reglee_le).toEqual(new Date("2026-10-10"));
-    expect((await db.query("select reglee_le from public.intervention_factures where id=$1", [facture])).rows[0].reglee_le).toEqual(new Date("2026-10-10"));
+    expect(apres.reglee_le).toEqual("2026-10-10");
+    expect((await db.query("select reglee_le::text from public.intervention_factures where id=$1", [facture])).rows[0].reglee_le).toEqual("2026-10-10");
   });
 
   // ── B.12-2 : règlement partiel puis solde, dépassement refusé ──────────────────────────────────────────────────
@@ -157,7 +157,7 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
     await regler(13968, { date: "2026-10-12", moyen: "cheque", reference: null });
     etat = await etatSql();
     expect(etat.etat).toBe("reglee");
-    expect(etat.reglee_le).toEqual(new Date("2026-10-12"));
+    expect(etat.reglee_le).toEqual("2026-10-12");
     await devenir(agentA);
     await expect(regler(1)).rejects.toThrow("déjà réglée en totalité");
     await postgres();
@@ -292,13 +292,13 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
     expect(r.retire_par).toBe(agentA);
     expect(r.retrait_motif).toBe("Virement rejeté par la banque");
     expect(r.contre_ecriture_id).toBe(contre);
-    const c = (await db.query("select * from public.ecritures where id=$1", [contre])).rows[0];
+    const c = (await db.query("select e.*, e.date_piece::text, e.date_imputation::text from public.ecritures e where id=$1", [contre])).rows[0];
     expect(c.contre_ecriture_de).toBe(r.ecriture_id);
     expect(c.sens).toBe("recette");
     expect(Number(c.montant)).toBe(239.68);
     expect(c.lot_id).toBe(lot);
-    expect(c.date_piece).toEqual(new Date(jourParis()));
-    expect(c.date_imputation).toEqual(new Date(jourParis()));
+    expect(c.date_piece).toEqual(jourParis());
+    expect(c.date_imputation).toEqual(jourParis());
     expect(c.motif).toBe("Virement rejeté par la banque");
     expect(c.libelle).toContain("règlement de la facture n° F-2026-17 retiré");
     // Le règlement reste en base (jamais supprimé) ; l'état redevient « validée », la date de règlement total disparaît.
@@ -331,8 +331,8 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
     expect(etat.etat).toBe("reglee");
     expect(Number(etat.total_regle_cents)).toBe(23968);
     expect(Number(etat.reste_cents)).toBe(0);
-    expect(etat.reglee_le).toEqual(new Date("2026-10-12"));
-    expect((await db.query("select reglee_le from public.intervention_factures where id=$1", [facture])).rows[0].reglee_le).toEqual(new Date("2026-10-12"));
+    expect(etat.reglee_le).toEqual("2026-10-12");
+    expect((await db.query("select reglee_le::text from public.intervention_factures where id=$1", [facture])).rows[0].reglee_le).toEqual("2026-10-12");
     // Et rien au-delà : la facture est de nouveau réglée en totalité.
     await devenir(admin);
     await expect(regler(1)).rejects.toThrow("déjà réglée en totalité");
@@ -373,12 +373,13 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
       await devenir(compteId);
       await expect(retirer(reglement)).rejects.toThrow("Accès refusé");
     }
-    // Le super-administrateur agit avec le rôle plein, tracé (D08) : l'auteur de la ligne est bien lui.
+    // D08-C : une traversée ne permet plus ce retrait. Ce geste n'est pas
+    // l'encaissement de support explicitement préparé et motivé.
     await devenir(sa);
-    await retirer(reglement, "Retrait par la supervision, tracé");
+    await expect(retirer(reglement, "Retrait par la supervision")).rejects.toThrow(/Traversée en lecture seule/);
     await postgres();
-    expect((await db.query("select retire_par from public.intervention_facture_reglements where id=$1", [reglement])).rows[0].retire_par).toBe(sa);
-    expect((await db.query("select account_id from public.audit_log where action='reglement_facture_retire' and details->>'reglement_id'=$1", [reglement])).rows[0].account_id).toBe(sa);
+    expect((await db.query("select retire_par from public.intervention_facture_reglements where id=$1", [reglement])).rows[0].retire_par).toBeNull();
+    expect((await db.query("select account_id from public.audit_log where action='reglement_facture_retire' and details->>'reglement_id'=$1", [reglement])).rows).toHaveLength(0);
   });
 
   it("la table se lit par les gérants de l'organisation (portefeuille compris), jamais par l'artisan ni le locataire, et ne s'écrit que par fonction", async () => {
@@ -406,14 +407,14 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
 
   it("l'artisan voit l'état et, pour chaque règlement, la date et le moyen de SES factures seulement ; jamais la référence ni le détail des montants", async () => {
     await devenir(artisanCompte);
-    let lignes = (await db.query("select * from public.mes_reglements_factures_artisan()")).rows;
+    let lignes = (await db.query("select r.*, r.reglee_le::text from public.mes_reglements_factures_artisan() r")).rows;
     expect(lignes).toHaveLength(1);
     expect(lignes[0]).toMatchObject({ facture_id: facture, intervention_id: intervention, numero: "F-2026-17", etat: "deposee", reglements: [] });
     await valider();
     await devenir(admin);
     await regler(10000, { date: "2026-10-01", moyen: "virement", reference: "IBAN-SECRET-0001" });
     await devenir(artisanCompte);
-    lignes = (await db.query("select * from public.mes_reglements_factures_artisan()")).rows;
+    lignes = (await db.query("select r.*, r.reglee_le::text from public.mes_reglements_factures_artisan() r")).rows;
     expect(lignes[0].etat).toBe("partiellement_reglee");
     expect(lignes[0].reglee_le).toBeNull();
     expect(lignes[0].reglements).toEqual([{ date_reglement: "2026-10-01", moyen: "virement" }]);
@@ -423,9 +424,9 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
     await devenir(admin);
     await regler(13968, { date: "2026-10-12", moyen: "cheque" });
     await devenir(artisanCompte);
-    lignes = (await db.query("select * from public.mes_reglements_factures_artisan()")).rows;
+    lignes = (await db.query("select r.*, r.reglee_le::text from public.mes_reglements_factures_artisan() r")).rows;
     expect(lignes[0].etat).toBe("reglee");
-    expect(lignes[0].reglee_le).toEqual(new Date("2026-10-12"));
+    expect(lignes[0].reglee_le).toEqual("2026-10-12");
     expect(lignes[0].reglements).toHaveLength(2);
     // Un règlement retiré (chèque rejeté) disparaît de la vue de l'artisan ; l'état et la date sont recalculés.
     await postgres();
@@ -433,14 +434,14 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
     await devenir(admin);
     await retirer(cheque, "Chèque rejeté");
     await devenir(artisanCompte);
-    lignes = (await db.query("select * from public.mes_reglements_factures_artisan()")).rows;
+    lignes = (await db.query("select r.*, r.reglee_le::text from public.mes_reglements_factures_artisan() r")).rows;
     expect(lignes[0].etat).toBe("partiellement_reglee");
     expect(lignes[0].reglee_le).toBeNull();
     expect(lignes[0].reglements).toEqual([{ date_reglement: "2026-10-01", moyen: "virement" }]);
     // Un autre artisan, un locataire, un gérant : rien par cette fonction.
     for (const compteId of [autreArtisanCompte, locataireCompte, admin]) {
       await devenir(compteId);
-      expect((await db.query("select * from public.mes_reglements_factures_artisan()")).rows, compteId).toHaveLength(0);
+      expect((await db.query("select r.*, r.reglee_le::text from public.mes_reglements_factures_artisan() r")).rows, compteId).toHaveLength(0);
     }
   });
 

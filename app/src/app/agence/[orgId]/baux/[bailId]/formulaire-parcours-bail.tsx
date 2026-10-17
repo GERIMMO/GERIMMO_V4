@@ -1,4 +1,6 @@
 "use client";
+import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
+import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import { useContext, useState } from "react";
 import { EtapeComplementsBail } from "@/lib/etape-complements-bail";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
@@ -81,7 +83,7 @@ const groupes:Groupe[]=[
  ]},
 ];
 
-export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chambres}:{orgId:string;bailId:string;defauts:ValeursParcoursBail;agence:boolean;meuble:boolean;chambres:{id:string;nom:string}[]}) {
+export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chambres,surfaceHabitable}:{orgId:string;bailId:string;defauts:ValeursParcoursBail;agence:boolean;meuble:boolean;chambres:{id:string;nom:string}[];surfaceHabitable?:number|null}) {
  const parcours=useContext(EtapeComplementsBail);
  const etape=parcours?.etape??"bail";
  const [valeurs,setValeurs]=useState<Record<string,string>>(()=>Object.fromEntries(Object.entries({...defauts,type:defauts.chambre_id?"colocation_individuelle":defauts.type,logement_meuble:meuble,revision_irl:defauts.revision_irl??false,meuble_etudiant:defauts.meuble_etudiant??false,clause_resolutoire_assurance:defauts.clause_resolutoire_assurance??true,clause_resolutoire_troubles:defauts.clause_resolutoire_troubles??true,clause_resolutoire_servitude:defauts.clause_resolutoire_servitude??false}).map(([k,v])=>[k,v==null?"":String(v)])));
@@ -117,6 +119,7 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
     </div>;
    })}</div>
   </fieldset>)}
+  {["loyer","clauses"].includes(etape)&&<AvertissementsLoyer avertissements={!modifie&&retourEtape===etape&&etat.avertissements?etat.avertissements:avertissementsCoherenceLoyer({...valeurs,encadrement_loyer:valeurs.encadrement_loyer==="true",chambre_id:valeurs.type==="colocation_individuelle"?valeurs.chambre_id:null},surfaceHabitable)} enregistre={!modifie&&retourEtape===etape&&Boolean(etat.succes)} />}
   {retourEtape===etape&&etat.erreur&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
   {retourEtape===etape&&etat.succes&&!modifie&&<p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}
   <BoutonEnvoi enCours={enCours} enCoursTexte="Enregistrement…">{etape==="documents"?"Enregistrer les informations du DPE":"Enregistrer cette étape"}</BoutonEnvoi>

@@ -1,5 +1,6 @@
 "use server";
 
+import { avertissementsCoherenceLoyer, type AvertissementLoyer } from "@/lib/coherence-loyer";
 import { premier } from "@/lib/postgrest";
 import { lireMentionsContrat, verifierHonorairesContrat } from "@/lib/mentions-contrat";
 import { sansJargon } from "@/lib/erreurs";
@@ -25,6 +26,7 @@ export type BlocageActionable = { message: string; href: string; libelle: string
 export type EtatBail = {
   erreur?: string;
   succes?: string;
+  avertissements?: AvertissementLoyer[];
   bailCree?: string;
   blocages?: BlocageActionable[];
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
@@ -324,7 +326,7 @@ export async function modifierComplementsBail(
   }
   const nombre = (nom: string) => nombres[nom] ?? null;
   const { data: contrat, error: erreurLecture } = await supabase.from("baux")
-    .select("lot:lots!baux_lot_meme_org_fk(surface_m2)")
+    .select("lot_id, loyer_hc, type, chambre_id, encadrement_loyer, lot:lots!baux_lot_meme_org_fk(surface_m2, bien_id)")
     .eq("id", bailId).eq("organization_id", orgId).eq("etat", "brouillon").maybeSingle();
   if (erreurLecture) return { erreur: "Le logement n’a pas pu être vérifié. Réessayez.", valeurs };
   if (!contrat) return { erreur: "Seul un bail en brouillon accessible peut être corrigé.", valeurs };
@@ -348,8 +350,7 @@ export async function modifierComplementsBail(
       honoraires_bailleur: nombre("honoraires_bailleur"),
       honoraires_locataire: nombre("honoraires_locataire"),
       clauses_particulieres: texte("clauses_particulieres"),
-      // Zone tendue : le formulaire n'envoie ces champs que si le bien y est —
-      // absents, ils s'écrivent NULL (l'encadrement ne s'applique pas).
+      // Encadrement explicitement activé : les champs masqués sont absents et s’écrivent NULL.
       loyer_reference: nombre("loyer_reference"),
       loyer_reference_majore: nombre("loyer_reference_majore"),
       complement_loyer: nombre("complement_loyer"),
@@ -371,7 +372,11 @@ export async function modifierComplementsBail(
   }
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: "Compléments enregistrés.", valeurs };
+  if (logement?.bien_id) revalidatePath(`/agence/${orgId}/parc/${logement.bien_id}/lots/${contrat.lot_id}`);
+  return { succes: "Compléments enregistrés.", valeurs, avertissements: avertissementsCoherenceLoyer({
+    ...contrat, ...mentions, loyer_reference: nombre("loyer_reference"), loyer_reference_majore: nombre("loyer_reference_majore"),
+    complement_loyer: nombre("complement_loyer"), complement_justification: texte("complement_justification"),
+  }, logement?.surface_m2) };
 }
 
 // Blocages de mise en location, chacun transformé en action cliquable

@@ -18,7 +18,7 @@ export const MISSIONS={
  appels:{nom:'Avis d’échéance',equipe:'exploitation',heure:'9 h 30 (heure de Paris, 8 h 30 en hiver)',lien:'/admin/autonomie?equipe=bail'},
  quittances:{nom:'Quittances',equipe:'finance',heure:'9 h (heure de Paris, 8 h en hiver)',lien:'/admin/autonomie?equipe=rapport'},
  relances:{nom:'Relances de loyers',equipe:'finance',heure:'9 h 45 (heure de Paris, 8 h 45 en hiver)',lien:'/admin/autonomie?equipe=loyer'},
- rappels:{nom:'Rendez-vous et suivi des dossiers',equipe:'incidents',heure:'8 h (heure de Paris, 7 h en hiver)',lien:'/admin/autonomie?equipe=incident'},
+ rappels:{nom:'Rendez-vous, invitations et suivi des dossiers',equipe:'incidents',heure:'8 h (heure de Paris, 7 h en hiver)',lien:'/admin/autonomie?equipe=incident'},
  abonnements:{nom:'Abonnements',equipe:'finance',heure:'6 h (heure de Paris, 5 h en hiver)',lien:'/admin/clients'},
  signatures:{nom:'Signatures et classement',equipe:'conformite',heure:'5 h (heure de Paris, 4 h en hiver)',lien:'/admin/autonomie?equipe=document'},
  marketing:{nom:'Publications et publicité',equipe:'marketing',heure:'préparation la veille à 18 h, parution à l’heure réglée (heure de Paris)',lien:'/admin/marketing'},

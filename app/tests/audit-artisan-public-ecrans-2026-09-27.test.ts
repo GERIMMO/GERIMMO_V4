@@ -139,8 +139,8 @@ describe("portail artisan (mineurs et détails)", () => {
     expect(compte).toMatch(/estArtisan\s*\?/);
   });
 
-  it("la case CGU de /inscription fait 24 px et sa ligne 44 px", () => {
-    const form = lire("app/inscription/formulaire-inscription.tsx");
+  it("la case CGU après preuve e-mail fait 24 px et sa ligne 44 px", () => {
+    const form = lire("app/nouveau-mot-de-passe/formulaire-nouveau-mot-de-passe.tsx");
     expect(form).toMatch(/<label className="flex min-h-11[^"]*">\s*<input\s+type="checkbox"\s+name="cgu"/);
     expect(form).toMatch(/name="cgu"[\s\S]{0,80}className="size-6/);
   });

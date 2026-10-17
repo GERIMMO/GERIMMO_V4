@@ -77,37 +77,50 @@ export async function POST(request: Request, context: { params: Promise<{sollici
   }
 }
 
-export async function GET(_request: Request, context: { params: Promise<{sollicitationId:string}> }) {
+/** Une version envoyée se lit depuis sa propre archive, jamais depuis la préparation suivante. */
+export async function GET(request: Request, context: { params: Promise<{sollicitationId:string}> }) {
   const {sollicitationId}=await context.params;
+  const url = new URL(request.url);
+  const numero = url.searchParams.get("version");
+  const preparationDemandee = url.searchParams.get("preparation") === "1";
+  if (numero !== null && (!/^[1-9]\d*$/.test(numero) || !Number.isSafeInteger(Number(numero)) || Number(numero) > 2147483647 || preparationDemandee)) {
+    return pageErreurFichier(400,"Version incorrecte","Choisissez une version du devis depuis son historique.","depuis vos devis");
+  }
   const supabase=await createClient();
   const {data:{user}}=await supabase.auth.getUser();
   if(!user) return pageErreurFichier(403,"Connexion nécessaire","Connectez-vous pour consulter ce devis.","depuis vos devis");
-  const {data,error}=await supabase.rpc("lire_devis_structure",{p_sollicitation:sollicitationId});
-  // Un destinataire ne lit que les devis envoyés (RPC ci-dessus). L'artisan
-  // peut également relire son PDF validé avant de l'envoyer.
-  if(error||!data) {
+  type DocumentArchive = DevisArtisanDocument & { pdf_path?: string; pdf_sha?: string | null; pdf_bucket?: string; reference_id?: string; version?: number };
+  let document: DocumentArchive | null = null;
+  if (!preparationDemandee) {
+    const {data,error}=await supabase.rpc("lire_devis_pdf_version",{p_sollicitation:sollicitationId,p_version:numero === null ? null : Number(numero)});
+    if (!error && data) document = data;
+    // Un numéro explicite ne se replie jamais sur une autre version.
+    if (!document && numero !== null) return pageErreurFichier(403,"Devis indisponible","Cette version n’existe pas ou votre compte n’a pas accès à ce dossier.","depuis vos devis");
+  }
+  if (!document) {
     try {
-      const acces=await chargerPreparationDevis(sollicitationId);
-      if(!acces.preparation||acces.preparation.statut==="brouillon") throw new Error("Pas de PDF validé");
+      const {preparation}=await chargerPreparationDevis(sollicitationId);
+      if (!preparation || preparation.statut === "brouillon" || !preparation.pdf_path) throw new Error("Pas de PDF validé");
+      document = { id:preparation.reference_id, pdf_path:preparation.pdf_path, pdf_sha:preparation.pdf_sha,
+        pdf_bucket:preparation.pdf_bucket, reference_id:preparation.reference_id } as DocumentArchive;
     } catch { return pageErreurFichier(403,"Devis indisponible","Ce devis n’existe pas ou votre compte n’a pas accès à ce dossier.","depuis vos devis"); }
   }
   const service=clientDeService();
   if(!service) return pageErreurFichier(503,"Document indisponible","La lecture du PDF enregistré est momentanément indisponible.","depuis vos devis");
-  if(service) {
-    const {data:prepare,error:lecture}=await service.from("artisan_devis_preparations").select("pdf_path,pdf_sha,pdf_bucket,reference_id,statut").eq("sollicitation_id",sollicitationId).maybeSingle();
-    if(lecture) return pageErreurFichier(503,"Document indisponible","La lecture du document a échoué. Réessayez.","depuis vos devis");
-    if(prepare?.pdf_path && prepare.statut!=="brouillon") {
-      const {data:fichier,error:download}=await service.storage.from(prepare.pdf_bucket).download(prepare.pdf_path);
-      if(!download&&fichier) {
-        const octets=Buffer.from(await fichier.arrayBuffer());
-        if(createHash("sha256").update(octets).digest("hex")===prepare.pdf_sha) return new Response(octets,{headers:{...entetes,"Content-Disposition":`inline; filename="DEV-${prepare.reference_id.slice(0,8).toUpperCase()}.pdf"`}});
+  if (document?.pdf_path) {
+    const {data:fichier,error:download}=await service.storage.from(document.pdf_bucket ?? "documents").download(document.pdf_path);
+    if (!download && fichier) {
+      const octets=Buffer.from(await fichier.arrayBuffer());
+      if (document.pdf_sha && createHash("sha256").update(octets).digest("hex") === document.pdf_sha) {
+        const reference = (document.reference_id ?? document.id).slice(0,8).toUpperCase();
+        return new Response(octets,{headers:{...entetes,"Content-Disposition":`inline; filename="DEV-${reference}${document.version ? `-v${document.version}` : ""}.pdf"`}});
       }
-      return pageErreurFichier(503,"Document indisponible","Le PDF validé ne peut pas être lu. Réessayez dans un instant.","depuis vos devis");
     }
+    return pageErreurFichier(503,"Document indisponible","Le PDF validé ne peut pas être lu. Réessayez dans un instant.","depuis vos devis");
   }
-  if(!data) return pageErreurFichier(503,"Document indisponible","La lecture du PDF validé est momentanément indisponible.","depuis vos devis");
-  const doc=assemblerDevisArtisan(data as DevisArtisanDocument);
+  if(!document) return pageErreurFichier(503,"Document indisponible","La lecture du PDF validé est momentanément indisponible.","depuis vos devis");
+  const doc=assemblerDevisArtisan(document);
   if(doc.manquants.length) return pageErreurFichier(422,"Informations à compléter",`Complétez ces informations : ${doc.manquants.join(", ")}.`,"depuis vos devis");
-  try {return new Response(Buffer.from(await rendrePdf(doc)),{headers:{...entetes,"Content-Disposition":`inline; filename="${doc.reference}.pdf"`}});}
+  try {return new Response(Buffer.from(await rendrePdf(doc)),{headers:{...entetes,"Content-Disposition":`inline; filename="${doc.reference}${document.version ? `-v${document.version}` : ""}.pdf"`}});}
   catch{return pageErreurFichier(503,"Document momentanément indisponible","La préparation du devis n’a pas abouti. Réessayez.","depuis vos devis");}
 }

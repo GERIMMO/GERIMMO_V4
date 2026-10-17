@@ -678,12 +678,7 @@ async function routerAuth(methode, chemin, url, corps, claims) {
       throw e;
     }
   }
-  // L'API d'administration qui fabrique les liens (src/lib/lien-mot-de-passe.ts,
-  // 30/09) : réservée à la clé de service. `signup` crée le compte — confirmé
-  // d'emblée, comme `signup` ci-dessus : le banc n'a pas de courrier, et
-  // l'application ouvre alors la session tout de suite. Les autres types
-  // posent un jeton de récupération. Le lien ne sera jamais vérifié ici
-  // (`verify` non géré) : la réponse suffit à l'application.
+  // Liens du banc UI seulement : GoTrue réel reste exigé pour les preuves Auth.
   if (chemin === "admin/generate_link" && methode === "POST") {
     if (claims?.role !== "service_role") return { statut: 401, corps: { code: "not_admin", msg: "User not allowed" } };
     const email = String(corps.email ?? "").trim().toLowerCase();
@@ -702,6 +697,12 @@ async function routerAuth(methode, chemin, url, corps, claims) {
     } else {
       return { statut: 400, corps: { msg: `generate_link type ${corps.type} non géré en mode local` } };
     }
+    await admin((c) => c.query(
+      `insert into auth.one_time_tokens(user_id,token_type,token_hash,relates_to)
+       values($1,$2,$3,$4) on conflict(user_id,token_type) do update
+       set token_hash=excluded.token_hash,relates_to=excluded.relates_to,created_at=now(),updated_at=now()`,
+      [u.id, corps.type === "signup" ? "confirmation_token" : "recovery_token", jeton, email]
+    ));
     return {
       statut: 200,
       corps: {
@@ -732,7 +733,7 @@ async function routerAuth(methode, chemin, url, corps, claims) {
     }
     if (corps.data) {
       await admin((c) =>
-        c.query("update auth.users set raw_user_meta_data = raw_user_meta_data || $1::jsonb, updated_at = now() where id = $2", [JSON.stringify(corps.data), claims.sub]),
+        c.query("update auth.users set raw_user_meta_data = jsonb_strip_nulls(raw_user_meta_data || $1::jsonb), updated_at = now() where id = $2", [JSON.stringify(corps.data), claims.sub]),
       );
     }
     const u = await utilisateurParId(claims.sub);
@@ -744,7 +745,22 @@ async function routerAuth(methode, chemin, url, corps, claims) {
     // parcours ; le lien n'arrivera jamais (limite documentée du mode local).
     return { statut: 200, corps: {} };
   }
-  if (chemin === "verify") return { statut: 400, corps: { msg: "verify non géré en mode local" } };
+  if (chemin === "verify" && methode === "POST") {
+    const types = corps.type === "email" ? ["confirmation_token", "recovery_token"]
+      : corps.type === "signup" ? ["confirmation_token"] : corps.type === "recovery" || corps.type === "magiclink" ? ["recovery_token"] : [];
+    const id = await admin(async (c) => {
+      const { rows } = await c.query(
+        `delete from auth.one_time_tokens where token_hash=$1 and token_type=any($2::text[])
+         and created_at>now()-interval '1 hour' returning user_id`, [corps.token_hash, types]
+      );
+      if (!rows[0]) return null;
+      await c.query("update auth.users set email_confirmed_at=coalesce(email_confirmed_at,now()), raw_user_meta_data=raw_user_meta_data || '{\"email_verified\":true}'::jsonb where id=$1", [rows[0].user_id]);
+      await c.query("delete from auth.one_time_tokens where user_id=$1", [rows[0].user_id]);
+      return rows[0].user_id;
+    });
+    if (!id) return { statut: 403, corps: { code: "otp_expired", msg: "Email link is invalid or has expired" } };
+    return { statut: 200, corps: sessionPour(await utilisateurParId(id)) };
+  }
   return { statut: 404, corps: { msg: `auth/${chemin} non géré` } };
 }
 

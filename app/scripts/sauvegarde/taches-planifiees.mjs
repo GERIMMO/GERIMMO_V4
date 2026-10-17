@@ -1,7 +1,7 @@
 // Les tâches planifiées de la base (pg_cron) dans la sauvegarde (D07, AUD-C-02).
 //
 // POURQUOI. Les dix tâches SQL de Gerimmo (cycle mensuel des appels de loyer, alertes d'impayés, rétention,
-// publications, caducité des devis, passage des urgences du relais) vivent dans `cron.job`, schéma `cron` : la sauvegarde ne copie que public, auth et storage, et la
+// publications, caducité des devis, passage des urgences du relais) vivent dans `cron.job`, schéma `cron` : la sauvegarde ne copie que public, auth, storage et support_interne, et la
 // procédure de reprise n'en parlait pas. Une restauration dans un projet neuf ne relançait donc ni les appels de
 // loyer, ni les alertes, ni la rétention, ni le marketing — sans aucun signal.
 //

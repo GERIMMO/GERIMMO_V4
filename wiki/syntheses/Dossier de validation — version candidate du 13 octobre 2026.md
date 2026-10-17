@@ -9,6 +9,10 @@ sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "
 
 # Dossier de validation — version candidate du 13 octobre 2026
 
+> [!info] Relevé de la mission du 16 octobre, en soirée
+> État vérifié et preuves : [[Mission du 16 octobre — suivi vérifié]]. PR #197 fusionnée (`4a5ddf5`). Inscription publique et anonyme fermées, confirmation d’adresse active, liens limités à une heure et trois modèles de courrier enregistrés dans Supabase. La recette n°19 passe au premier essai ; la n°20 confirme les nouveaux réglages (39 réussites, 1 ignoré, aucun test instable, nettoyage réussi). La trace D04 a été relue : montant vide envoyé, aucun montant faux enregistré. Les compléments D18, D22, D08-C, X08, relais et dates sont préparés et testés localement, **pas encore publiés**. Les anciens constats ci-dessous sont datés ; cette mission ne clôt ni les avis spécialisés ni les limites de recette restantes.
+
+
 Ce dossier dit **ce que contient la livraison**, **ce qui a été vérifié**, **ce qui reste à décider** et **ce qui ne part en production qu'avec une
 autorisation explicite**. **Mise à jour du 14/10/2026 (après autorisation) : la version contrôlée est fusionnée (PR #179, `c99e2c6`), déployée sur Vercel et les deux migrations sont
 appliquées en production** (voir § 5 bis ; les paragraphes ci-dessous décrivent la situation avant cette autorisation). État : **version déployée, vérification post-déploiement non destructive faite, mission non terminée** (voir § 8).

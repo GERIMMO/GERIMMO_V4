@@ -1,6 +1,7 @@
+import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
 import { Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
-import { EDITEUR, documentsIncomplets, prestatairesIncomplets, type FaitEditeur } from "@/lib/editeur";
+import { documentsIncomplets, prestatairesIncomplets, type FaitEditeur } from "@/lib/editeur";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 export const metadata = metadonneesPubliques({
@@ -20,13 +21,14 @@ export const metadata = metadonneesPubliques({
 /** Réserve propre à cette page : les coordonnées de chaque prestataire. */
 const COORDONNEES_PRESTATAIRES: FaitEditeur = null;
 
-export default function PageMentionsLegales() {
+export default async function PageMentionsLegales() {
+  const {editeur:EDITEUR,indisponible}=await lireEditeur();
   return (
     <CoquilleLegale
       titre="Mentions légales"
       chapo="Qui édite ce service, qui l'héberge, et comment nous joindre."
       chemin="/mentions-legales"
-      incomplet={documentsIncomplets() || prestatairesIncomplets() || !COORDONNEES_PRESTATAIRES}
+      incomplet={(indisponible || documentsIncomplets(EDITEUR)) || prestatairesIncomplets() || !COORDONNEES_PRESTATAIRES}
     >
       <Article titre="Éditeur">
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr]">

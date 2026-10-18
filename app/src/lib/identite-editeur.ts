@@ -1,0 +1,6 @@
+export const CHAMPS_EDITEUR={denomination:'Dénomination sociale',forme:'Forme juridique',capital:'Capital social (facultatif)',siege:'Adresse du siège',rcs:'Immatriculation au RCS',siret:'SIRET',tvaIntracommunautaire:'TVA intracommunautaire (facultatif)',directeurPublication:'Directeur de publication',email:'E-mail de contact',telephone:'Téléphone (facultatif)',mediateurNom:'Médiateur de la consommation',mediateurAdresse:'Adresse du médiateur',mediateurSite:'Site du médiateur'} as const;
+export function validerIdentite(f:FormData){const valeurs:Record<string,string|null>={};for(const k of Object.keys(CHAMPS_EDITEUR)){const v=String(f.get(k)??'').trim();if(v.length>1000)return {erreur:'Un champ dépasse 1 000 caractères.'};valeurs[k]=v||null;}
+ if(valeurs.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valeurs.email))return {erreur:'Vérifiez l’adresse e-mail.'};
+ if(valeurs.siret&&!/^\d{14}$/.test(valeurs.siret.replace(/\s/g,'')))return {erreur:'Le SIRET doit comporter 14 chiffres.'};
+ if(valeurs.mediateurSite){try{const u=new URL(valeurs.mediateurSite);if(u.protocol!=='https:'||u.username||u.password)throw new Error();}catch{return {erreur:'Le site du médiateur doit être une adresse HTTPS.'};}}
+ return {valeurs};}

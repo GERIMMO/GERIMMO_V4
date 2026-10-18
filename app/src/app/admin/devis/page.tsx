@@ -1,10 +1,11 @@
+import { OrienterDemande } from "./orienter-demande";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { formaterDateHeure } from "@/lib/ged";
 import { createClient } from "@/lib/supabase/server";
 import { BoutonDevisTraite } from "./bouton-traite";
 
-export const metadata = { title: "Demandes commerciales" };
+export const metadata = { title: "Demandes de contact" };
 
 // Les demandes de devis déposées sur le site vitrine (agences). La vitrine
 // promet une réponse sous 48 h ouvrées : cette page est l'endroit où la
@@ -20,7 +21,7 @@ export default async function PageDevisAdmin() {
   if (error) {
     return (
       <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-        <TitreEcran rubrique="finances">Demandes commerciales</TitreEcran>
+        <TitreEcran rubrique="finances">Demandes de contact</TitreEcran>
         <div className="vide mt-4">
           Impossible de charger la page pour l&apos;instant — rechargez dans un
           instant.
@@ -44,7 +45,7 @@ export default async function PageDevisAdmin() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
-        <TitreEcran rubrique="finances">Demandes commerciales</TitreEcran>
+        <TitreEcran rubrique="finances">Demandes de contact</TitreEcran>
         {/* « 0 en attente / 0 » se lisait comme une fraction (24/09). */}
         <span className="mono-discret">
           {demandes.length === 0
@@ -59,7 +60,7 @@ export default async function PageDevisAdmin() {
           demandes. */}
       {demandes.length === 0 ? (
         <div className="vide-guide">
-          <p className="titre">Aucune demande commerciale</p>
+          <p className="titre">Aucune demande de contact</p>
           <p className="explication">
             Les demandes arrivent depuis le formulaire de contact de l&apos;accueil
             du site vitrine.
@@ -73,7 +74,7 @@ export default async function PageDevisAdmin() {
       ) : (
         <div className="colonne-liste">
           {demandes.map((d) => (
-            <div key={d.id} className={`rang flex-col items-stretch gap-0 ${d.traitee_le ? "opacity-60" : ""}`}>
+            <div id={`demande-${d.id}`} key={d.id} className={`scroll-mt-24 rang flex-col items-stretch gap-0 ${d.traitee_le ? "opacity-60" : ""}`}>
               <div className="flex flex-wrap items-center gap-2">
                 <b className="text-sm">{d.nom}</b>
                 {d.agence && <span className="text-sm text-muted-foreground">— {d.agence}</span>}
@@ -100,16 +101,7 @@ export default async function PageDevisAdmin() {
                   </span>
                 ) : (
                   <div className="flex flex-wrap items-center gap-2">
-                    {/* La suite naturelle d'une demande acceptée : ouvrir
-                        l'agence. Elle préremplit le nom et l'adresse, et marque
-                        la demande traitée — sans quoi la file garde une ligne
-                        dont la suite a déjà eu lieu. */}
-                    <Link
-                      href={`/admin/organisations/nouvelle?demande=${d.id}`}
-                      className="btn-or"
-                    >
-                      Ouvrir l&apos;organisation
-                    </Link>
+                    <OrienterDemande id={d.id} />
                     <BoutonDevisTraite id={d.id} />
                   </div>
                 )}

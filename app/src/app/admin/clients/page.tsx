@@ -1,3 +1,8 @@
+import { AnnuairePersonnes } from "./personnes";
+import { lirePage, numeroPage, rechercheIlike } from "@/lib/pagination-supervision";
+import { Annuaire, type ClientResume } from "./annuaire";
+import { Plus } from "lucide-react";
+import styles from "../repertoires.module.css";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -5,14 +10,13 @@ import { LIBELLES_STATUT_ORGANISATION } from "@/lib/libelles";
 import { formaterDate } from "@/lib/ged";
 import {
   familleOrganisation,
-  initiales,
   LIBELLES_STATUT_ARTISAN,
   LIBELLES_SIRET,
   trierArtisans,
 } from "@/lib/clients-supervision";
 
 // Le nom de l'entrée de menu (audit 25/09, C8).
-export const metadata = { title: "Agences, bailleurs et artisans" };
+export const metadata = { title: "Utilisateurs" };
 
 /**
  * LES CLIENTS, EN UN SEUL ÉCRAN (demande du porteur du projet, 19/09).
@@ -51,282 +55,56 @@ type Artisan = {
   created_at: string;
 };
 
-function PuceStatutOrg({ statut }: { statut: string }) {
-  return (
-    <span
-      className={`puce ${
-        statut === "active"
-          ? "puce-loue"
-          : statut === "essai"
-            ? "puce-prep"
-            : statut === "suspendue"
-              ? "puce-rouge"
-              : "puce-grise"
-      }`}
-    >
-      {LIBELLES_STATUT_ORGANISATION[statut] ?? statut}
-    </span>
-  );
-}
-
-function LigneClient({
-  href,
-  nom,
-  detail,
-  puce,
-  enEvidence = false,
-}: {
-  href: string;
-  nom: string;
-  detail: string;
-  puce: React.ReactNode;
-  enEvidence?: boolean;
-}) {
-  return (
-    // Le rang commun de la console (24/09) : même survol, même liseré, même
-    // filet que les autres listes. Le liseré or reste pour ce qui attend.
-    <Link
-      href={href}
-      className={`rang ${enEvidence ? "border-l-[var(--or)]" : ""}`}
-    >
-      <span
-        aria-hidden
-        className="pastille-marque flex size-9 shrink-0 items-center justify-center rounded-full text-[12px]"
-      >
-        {initiales(nom)}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14px] text-[var(--corps)]">{nom}</span>
-        <span className="mono-discret sans-majuscules block">{detail}</span>
-      </span>
-      <span className="shrink-0">{puce}</span>
-    </Link>
-  );
-}
-
-function Section({
-  titre,
-  compte,
-  enTete,
-  children,
-}: {
-  titre: string;
-  compte: string;
-  enTete?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="section-ecran">
-      <div className="entete-carte mb-3">
-        <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">{titre}</h2>
-        <span className="mono-discret">{compte}</span>
-      </div>
-      {enTete}
-      {children}
-    </section>
-  );
-}
-
-function Vide({ titre, explication }: { titre: string; explication: string }) {
-  return (
-    <div className="vide-guide">
-      <p className="titre">{titre}</p>
-      <p className="explication">{explication}</p>
-    </div>
-  );
-}
-
-export default async function PageClients() {
+export default async function PageClients({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const p = await searchParams;
+  if(p.vue!=="espaces" && !p.famille && !p.pageProprietaires && !p.pageArtisans && !p.pageAgences) return <AnnuairePersonnes p={p}/>;
+  const famille = ["proprietaire", "artisan", "agence", "attente"].includes(String(p.famille)) ? String(p.famille) : "tous";
+  const recherche = typeof p.recherche === "string" ? p.recherche.trim().slice(0, 160) : "";
+  const statuts = [...Object.keys(LIBELLES_STATUT_ORGANISATION).map(s => `org:${s}`), ...Object.keys(LIBELLES_STATUT_ARTISAN).map(s => `artisan:${s}`)];
+  const statut = typeof p.statut === "string" && statuts.includes(p.statut) ? p.statut : "";
+  const motif = rechercheIlike(recherche);
   const supabase = await createClient();
 
-  // Le layout /admin a déjà vérifié la supervision ; la RLS reste la garde de
-  // fond. On lit `error` : une liste de clients qui affiche zéro parce qu'une
-  // requête a échoué ferait croire qu'on n'a plus de clients.
-  const [orgs, artisansBruts] = await Promise.all([
-    supabase
-      .from("organizations")
-      .select("id, name, status, type, city, email_contact, essai_fin, created_at")
-      .order("name"),
-    supabase
-      .from("artisans")
-      .select("id, raison_sociale, siret, siret_etat, statut_plateforme, email, telephone, created_at")
-      .order("raison_sociale"),
+  const lireOrganisations = (f: "agence" | "proprietaire", debut: number, fin: number) => {
+    let q = supabase.from("organizations").select("id,name,status,type,city,email_contact,essai_fin,created_at", { count: "exact" });
+    q = f === "proprietaire" ? q.eq("type", "proprietaire_direct") : q.or("type.neq.proprietaire_direct,type.is.null");
+    if (recherche) q = q.or(`name.ilike.${motif},city.ilike.${motif},email_contact.ilike.${motif}`);
+    if (statut.startsWith("org:")) q = q.eq("status", statut.slice(4));
+    return q.order("name").order("id").range(debut, fin);
+  };
+  const vide = { data: [], count: 0, error: null, page: 1, taille: 25 };
+  const [proprietaires, agences, artisansBruts, nbProprietaires, nbAgences, nbArtisans, nbAttente] = await Promise.all([
+    (famille === "tous" || famille === "proprietaire") && !statut.startsWith("artisan:") ? lirePage((a,b) => lireOrganisations("proprietaire", a,b), numeroPage(p.pageProprietaires)) : vide,
+    (famille === "tous" || famille === "agence") && !statut.startsWith("artisan:") ? lirePage((a,b) => lireOrganisations("agence", a,b), numeroPage(p.pageAgences)) : vide,
+    (famille === "tous" || famille === "artisan" || famille === "attente") && !statut.startsWith("org:") ? lirePage((a,b) => {
+      let q = supabase.from("artisans").select("id,raison_sociale,siret,siret_etat,statut_plateforme,email,telephone,created_at", { count: "exact" });
+      if (recherche) q = q.or(`raison_sociale.ilike.${motif},siret.ilike.${motif},email.ilike.${motif}`);
+      if (famille === "attente") q = q.eq("statut_plateforme", "en_attente");
+      if (statut.startsWith("artisan:")) q = q.eq("statut_plateforme", statut.slice(8));
+      return q.order("raison_sociale").order("id").range(a,b);
+    }, numeroPage(p.pageArtisans)) : vide,
+    supabase.from("organizations").select("id", { count: "exact", head: true }).eq("type", "proprietaire_direct"),
+    supabase.from("organizations").select("id", { count: "exact", head: true }).or("type.neq.proprietaire_direct,type.is.null"),
+    supabase.from("artisans").select("id", { count: "exact", head: true }),
+    supabase.from("artisans").select("id", { count: "exact", head: true }).eq("statut_plateforme", "en_attente"),
   ]);
-
-  const organisations = (orgs.data ?? []) as Organisation[];
-  const agences = organisations.filter((o) => familleOrganisation(o.type) === "agence");
-  const proprietaires = organisations.filter(
-    (o) => familleOrganisation(o.type) === "proprietaire"
-  );
+  const organisations = [...(proprietaires.data ?? []), ...(agences.data ?? [])] as Organisation[];
   const artisans = trierArtisans((artisansBruts.data ?? []) as Artisan[]);
-  const enAttente = artisans.filter((a) => a.statut_plateforme === "en_attente");
-
-  const enEchec = [orgs.error, artisansBruts.error].filter(Boolean);
-
-  return (
-    <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-      <div className="entete-page mb-6">
-        <div className="min-w-0 flex-[1_1_20rem]">
-          <TitreEcran rubrique="personnes">Agences, bailleurs et artisans</TitreEcran>
-          <p className="mt-2 text-sm text-[var(--texte-secondaire)]">
-            Les agences et les propriétaires bailleurs sont des clients de
-            l&apos;abonnement ; les artisans sont des inscrits dont
-            l&apos;entreprise se vérifie. Chaque fiche porte ce qu&apos;on sait
-            d&apos;eux.
-          </p>
-        </div>
-        <Link href="/admin/organisations/nouvelle" className="btn-or">
-          Ouvrir une organisation
-        </Link>
-      </div>
-
-      {enEchec.length > 0 && (
-        <div
-          role="alert"
-          className="mb-6 border border-[var(--destructive)] bg-[var(--destructive-soft)] p-3.5 text-[13px] text-[var(--destructive-soft-foreground)]"
-        >
-          {enEchec.length} lecture{enEchec.length > 1 ? "s" : ""} de cette page
-          {enEchec.length > 1 ? " ont" : " a"} échoué : la liste est incomplète.
-          Rechargez — si elle ne revient pas, c&apos;est la base qui ne répond
-          pas.
-        </div>
-      )}
-
-      {/* LES ARTISANS D'ABORD, ET LES EN-ATTENTE EN TÊTE : c'est la seule
-          famille qui porte une file de décisions, et un dossier qui attend
-          depuis dix jours est un artisan qui ne travaille pas. */}
-      <Section
-        titre="Artisans"
-        compte={
-          artisansBruts.error
-            ? "indisponible"
-            : `${artisans.length} inscrit${artisans.length > 1 ? "s" : ""}`
-        }
-        enTete={
-          enAttente.length > 0 ? (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-l-[3px] border-l-[var(--or)] bg-[var(--or-clair)]/30 p-3">
-              <p className="text-[13px] text-[var(--corps)]">
-                <b>
-                  {enAttente.length} inscription{enAttente.length > 1 ? "s" : ""} en
-                  attente de validation
-                </b>{" "}
-                — vérifiez le SIRET et les justificatifs avant de décider.
-              </p>
-              <Link href="/admin/artisans" className="lien-discret text-[12.5px]">
-                Examiner les inscriptions →
-              </Link>
-            </div>
-          ) : null
-        }
-      >
-        {artisansBruts.error ? (
-          <p role="alert" className="vide">
-            La liste des artisans est indisponible. Rechargez la page.
-          </p>
-        ) : artisans.length === 0 ? (
-          <Vide
-            titre="Aucun artisan inscrit"
-            explication="Les artisans s'inscrivent eux-mêmes depuis le site ; leur dossier arrive ici pour vérification."
-          />
-        ) : (
-          <div className="colonne-liste">
-            {artisans.map((a) => (
-              <LigneClient
-                key={a.id}
-                href={`/admin/clients/artisans/${a.id}`}
-                nom={a.raison_sociale}
-                detail={`${LIBELLES_SIRET[a.siret_etat] ?? a.siret_etat} · inscrit le ${formaterDate(a.created_at)}`}
-                enEvidence={a.statut_plateforme === "en_attente"}
-                puce={
-                  <span
-                    className={`puce ${
-                      a.statut_plateforme === "valide"
-                        ? "puce-loue"
-                        : a.statut_plateforme === "en_attente"
-                          ? "puce-prep"
-                          : "puce-rouge"
-                    }`}
-                  >
-                    {LIBELLES_STATUT_ARTISAN[a.statut_plateforme] ?? a.statut_plateforme}
-                  </span>
-                }
-              />
-            ))}
-          </div>
-        )}
-      </Section>
-
-      <Section
-        titre="Agences"
-        compte={orgs.error ? "indisponible" : `${agences.length} agence${agences.length > 1 ? "s" : ""}`}
-      >
-        {orgs.error ? (
-          <p role="alert" className="vide">
-            La liste des agences est indisponible. Rechargez la page.
-          </p>
-        ) : agences.length === 0 ? (
-          <Vide
-            titre="Aucune agence"
-            explication="Une agence s'ouvre ici après contrat — le bouton « Ouvrir une organisation » en haut de cet écran."
-          />
-        ) : (
-          <div className="colonne-liste">
-            {agences.map((o) => (
-              <LigneClient
-                key={o.id}
-                href={`/admin/organisations/${o.id}`}
-                nom={o.name}
-                detail={[
-                  o.city,
-                  o.email_contact,
-                  o.status === "essai" && o.essai_fin
-                    ? `essai jusqu'au ${formaterDate(o.essai_fin)}`
-                    : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || `cliente depuis le ${formaterDate(o.created_at)}`}
-                puce={<PuceStatutOrg statut={o.status} />}
-              />
-            ))}
-          </div>
-        )}
-      </Section>
-
-      <Section
-        titre="Propriétaires bailleurs"
-        compte={orgs.error ? "indisponible" : `${proprietaires.length} propriétaire${proprietaires.length > 1 ? "s" : ""}`}
-      >
-        {orgs.error ? (
-          <p role="alert" className="vide">
-            La liste des propriétaires est indisponible. Rechargez la page.
-          </p>
-        ) : proprietaires.length === 0 ? (
-          <Vide
-            titre="Aucun propriétaire bailleur"
-            explication="Un propriétaire ouvre son espace lui-même depuis le site : son organisation naît à sa première connexion."
-          />
-        ) : (
-          <div className="colonne-liste">
-            {proprietaires.map((o) => (
-              <LigneClient
-                key={o.id}
-                href={`/admin/organisations/${o.id}`}
-                nom={o.name}
-                detail={[
-                  o.city,
-                  o.email_contact,
-                  o.status === "essai" && o.essai_fin
-                    ? `essai jusqu'au ${formaterDate(o.essai_fin)}`
-                    : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || `client depuis le ${formaterDate(o.created_at)}`}
-                puce={<PuceStatutOrg statut={o.status} />}
-              />
-            ))}
-          </div>
-        )}
-      </Section>
-    </main>
-  );
+  const clients: ClientResume[] = [
+    ...organisations.map(o => ({ id: o.id, famille: familleOrganisation(o.type), nom: o.name,
+      detail: [o.city, o.email_contact, o.status === "essai" && o.essai_fin ? `Essai jusqu’au ${formaterDate(o.essai_fin)}` : null].filter(Boolean).join(" · ") || `Inscrit le ${formaterDate(o.created_at)}`,
+      recherche: [o.city,o.email_contact].filter(Boolean).join(" "), statut: LIBELLES_STATUT_ORGANISATION[o.status] ?? o.status,
+      ton: (o.status === "active" ? "vert" : o.status === "essai" ? "ambre" : o.status === "suspendue" ? "rouge" : "gris") as ClientResume["ton"], enAttente: false, href: `/admin/organisations/${o.id}` })),
+    ...artisans.map(a => ({ id: a.id, famille: "artisan" as const, nom: a.raison_sociale,
+      detail: `${LIBELLES_SIRET[a.siret_etat] ?? a.siret_etat} · Inscrit le ${formaterDate(a.created_at)}`,
+      recherche: [a.siret,a.email].filter(Boolean).join(" "), statut: LIBELLES_STATUT_ARTISAN[a.statut_plateforme] ?? a.statut_plateforme,
+      ton: (a.statut_plateforme === "valide" ? "vert" : a.statut_plateforme === "en_attente" ? "ambre" : "rouge") as ClientResume["ton"], enAttente: a.statut_plateforme === "en_attente", href: `/admin/clients/artisans/${a.id}` })),
+  ];
+  return <main className={styles.page}>
+    <header className={styles.header}><div><p className={styles.eyebrow}>RELATION CLIENTS</p><TitreEcran rubrique="personnes">Utilisateurs</TitreEcran><p className={styles.subtitle}>Retrouvez les propriétaires bailleurs, les artisans et les agences de Gerimmo.</p></div><Link href="/admin/organisations/nouvelle" className="btn-or"><Plus size={16} aria-hidden="true" />Ouvrir une organisation</Link></header>
+    <Link href="/admin/clients" className="btn-secondaire mb-4">Tous les utilisateurs individuels →</Link>
+    <Annuaire clients={clients} famille={famille} recherche={recherche} statut={statut}
+      totaux={{ proprietaire: nbProprietaires.error ? null : nbProprietaires.count, agence: nbAgences.error ? null : nbAgences.count, artisan: nbArtisans.error ? null : nbArtisans.count, attente: nbAttente.error ? null : nbAttente.count }}
+      lectures={{ proprietaire: { page: proprietaires.page, total: proprietaires.count, erreur: Boolean(proprietaires.error) }, agence: { page: agences.page, total: agences.count, erreur: Boolean(agences.error) }, artisan: { page: artisansBruts.page, total: artisansBruts.count, erreur: Boolean(artisansBruts.error) } }} />
+  </main>;
 }

@@ -26,7 +26,7 @@ export default async function PageDetailPoint({ params, searchParams }: { params
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-      <p className="mb-3 text-sm"><Link href={`/admin/brief${jour === jourDuPoint() ? "" : `?jour=${jour}`}`} className="lien-discret text-sm">← Aujourd’hui</Link></p>
+      <p className="mb-3 text-sm"><Link href={`/admin/brief?vue=equipes${jour === jourDuPoint() ? "" : `&jour=${jour}`}`} className="lien-discret text-sm">← Équipes et comptes rendus</Link></p>
       <div className="entete-page mb-6">
         <TitreEcran rubrique="suivi">Équipe {EQUIPES[equipe].nom}</TitreEcran>
         <span className="mono-discret">{dateLongue(jour)}</span>
@@ -52,7 +52,7 @@ export default async function PageDetailPoint({ params, searchParams }: { params
           </section>
 
           <section className="section-ecran">
-            <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Ce que l’équipe a fait</h2>
+            <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Informations et résultats</h2>
             {point.contenu.realisations.length === 0
               ? <p className="text-sm text-muted-foreground">{missionsDeLEquipe(equipe).length === 0 ? "Cette équipe n’a pas de passage planifié : elle prépare des décisions à partir des files existantes." : "Aucun passage terminé dans les dernières 24 heures."}</p>
               : <ul className="grid gap-2 text-sm">{point.contenu.realisations.map((r) => <li key={r} className="rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] px-4 py-3">{r}</li>)}</ul>}
@@ -60,7 +60,7 @@ export default async function PageDetailPoint({ params, searchParams }: { params
           </section>
 
           <section className="section-ecran">
-            <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Ce qui a échoué</h2>
+            <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Incidents à examiner</h2>
             {point.contenu.echecs.length === 0
               ? <p className="text-sm text-muted-foreground">Aucun échec relevé.</p>
               : <ul className="grid gap-2 text-sm">{point.contenu.echecs.map((e) => <li key={e} className="rounded-lg border border-[var(--destructive)] bg-[var(--destructive-soft)] px-4 py-3 text-[var(--destructive-soft-foreground)]">{e}</li>)}</ul>}

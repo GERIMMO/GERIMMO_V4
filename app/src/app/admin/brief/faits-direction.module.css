@@ -1,0 +1,32 @@
+.section { min-width: 0; scroll-margin-top: 100px; }
+.header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.header h2 { font: 24px/1.25 Georgia,serif; color: var(--encre); }
+.header p { font-size: 12px; color: var(--texte-secondaire); margin-top: 5px; line-height: 1.6; }
+.updated { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; color: var(--texte-secondaire); }
+.grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; align-items: stretch; }
+.card { min-width: 0; border: 1px solid var(--filet); border-radius: 11px; background: var(--carte); padding: 16px; }
+.card[data-source="loyers"] { grid-column: 3; grid-row: 1 / span 2; display: flex; flex-direction: column; }
+.cardTitle { display: flex; align-items: center; gap: 9px; }
+.cardTitle > span { display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; border-radius: 8px; color: #526d86; background: #edf2f7; }
+.card[data-source="incidents"] .cardTitle > span { color: #a3683e; background: #fcf1e8; }
+.card[data-source="loyers"] .cardTitle > span { color: #39755e; background: #ecf5ef; }
+.cardTitle h3 { font-size: 13px; font-weight: 650; line-height: 1.5; }
+.observed { font-size: 10px; color: var(--texte-secondaire); margin-top: 9px; }
+.measures { display: grid; margin-top: 12px; }
+.measures > div { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding-block: 9px; border-top: 1px solid var(--filet-leger); }
+.measures dt { color: var(--texte-secondaire); font-size: 12px; line-height: 1.6; }
+.measures dd { flex-shrink: 0; font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.card[data-source="loyers"] .measures { flex: 1; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.card[data-source="loyers"] .measures > div { flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px; border: 0; border-radius: 9px; background: #f1f7f4; }
+.card[data-source="loyers"] .measures dd { font-size: 19px; color: #366650; }
+.details { margin-top: 8px; }
+.details summary { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; color: var(--marque); cursor: pointer; list-style: none; min-height: 32px; }
+.details ul { display: grid; gap: 8px; margin-top: 10px; font-size: 12px; }
+.method { margin-top: 14px; color: var(--texte-secondaire); }
+.method summary { display: flex; align-items: center; gap: 7px; font-size: 11px; cursor: pointer; list-style: none; min-height: 32px; }
+.method p { font-size: 12px; line-height: 1.7; max-width: 90ch; margin-top: 8px; }
+.method summary::-webkit-details-marker, .details summary::-webkit-details-marker { display: none; }
+.method[open] summary > svg:last-child, .details[open] summary > svg { transform: rotate(180deg); }
+.empty { padding: 18px; border: 1px dashed var(--filet); border-radius: 10px; color: var(--texte-secondaire); font-size: 13px; }
+@media(max-width:1250px) and (min-width:901px) { .grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .card[data-source="loyers"] { grid-column: auto; grid-row: auto; } }
+@media(max-width:700px) { .card[data-source="loyers"] { grid-column: auto; grid-row: auto; } .grid { grid-template-columns: minmax(0,1fr); } .card { padding: 16px; } .measures dt { font-size: 12px; } .method summary, .details summary { min-height: 44px; font-size: 12px; } }

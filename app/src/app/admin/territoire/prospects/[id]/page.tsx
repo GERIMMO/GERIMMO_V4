@@ -1,0 +1,20 @@
+import Link from 'next/link';
+import {notFound} from 'next/navigation';
+import {createClient} from '@/lib/supabase/server';
+import {TitreEcran} from '@/components/titre-ecran';
+import {LectureIndisponible} from '../../../lecture-indisponible';
+import {ProspectFormulaire} from '../../prospect-formulaire';
+import {type Prospect,ETAPES_PROSPECT} from '@/lib/prospects-supervision';
+import {formaterDateHeureParis} from '@/lib/heure-paris';
+import {lirePage,numeroPage} from '@/lib/pagination-supervision';
+import {Pagination} from '../../../pagination';
+export default async function FicheProspect({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{demande?:string;page?:string}>}){
+ const {id}=await params,p=await searchParams,db=await createClient();const auth=await db.rpc('is_permanent_super_admin');if(auth.error||auth.data!==true)notFound();
+ let prospect:Partial<Prospect>={etape:'nouveau'};
+ if(id!=='nouveau'){const r=await db.from('supervision_prospects').select('*').eq('id',id).maybeSingle();if(r.error)return <LectureIndisponible sujet="Le prospect" retour={`/admin/territoire/prospects/${id}`}/>;if(!r.data)notFound();prospect=r.data;}
+ if(id==='nouveau'&&p.demande){const r=await db.from('demandes_devis').select('id,nom,email,telephone,message').eq('id',p.demande).maybeSingle();if(r.error||!r.data)return <LectureIndisponible sujet="La demande d’origine" retour={`/admin/territoire/prospects/nouveau?demande=${p.demande}`}/>;prospect={...prospect,nom:r.data.nom,email:r.data.email,telephone:r.data.telephone,notes:r.data.message??'',origine:'Formulaire de contact',demande_id:r.data.id};}
+ const [roles,history,org]=await Promise.all([db.from('memberships').select('account_id').eq('role','super_admin').eq('status','active'),id==='nouveau'?Promise.resolve({data:[],error:null,count:0,page:1}):lirePage((a,b)=>db.from('supervision_registre').select('id,avant,apres,cree_le',{count:'exact'}).eq('objet','supervision_prospects').eq('objet_id',id).order('cree_le',{ascending:false}).order('id').range(a,b),numeroPage(p.page)),prospect.organisation_id?db.from('organizations').select('name').eq('id',prospect.organisation_id).maybeSingle():Promise.resolve({data:null,error:null})]);
+ const ids=roles.data?.map(r=>r.account_id)??[];const comptes=ids.length?await db.from('accounts').select('id,email').in('id',ids):{data:[],error:null};
+ return <main className="mx-auto max-w-5xl w-full p-4 sm:p-7 space-y-5"><Link href="/admin/territoire#prospects">← Suivi commercial</Link><TitreEcran rubrique="personnes">{id==='nouveau'?'Ajouter un prospect':prospect.nom}</TitreEcran><section className="loc-carte">{roles.error||comptes.error||org.error?<p role="alert" className="err">Les références du dossier sont indisponibles. Réessayez avant de modifier.</p>:<ProspectFormulaire prospect={prospect} responsables={comptes.data??[]} espace={org.data?.name}/>}</section>{prospect.demande_id&&<Link className="lien-discret" href={`/admin/devis#demande-${prospect.demande_id}`}>Demande d’origine →</Link>}{prospect.organisation_id&&<Link className="btn-secondaire" href={`/admin/organisations/${prospect.organisation_id}`}>Espace client et abonnement</Link>}
+ {id!=='nouveau'&&<section className="loc-carte space-y-3"><h2 className="text-xl font-semibold">Historique du suivi</h2>{history.error?<p className="err" role="alert">Historique indisponible.</p>:<ul className="divide-y">{history.data?.map(h=><li key={h.id} className="py-3 text-sm"><b>{h.avant?'Mise à jour':'Création'}</b> · {formaterDateHeureParis(h.cree_le)}<p>{h.avant?`${ETAPES_PROSPECT[h.avant.etape]??h.avant.etape} → `:''}{ETAPES_PROSPECT[h.apres.etape]??h.apres.etape}</p><p>Prochaine action : {h.apres.prochaine_action??'Aucune'} · {h.apres.echeance??'Sans date'}</p>{h.apres.notes&&<details><summary className="cursor-pointer">Notes conservées à cette date</summary><p className="whitespace-pre-wrap">{h.apres.notes}</p></details>}</li>)}</ul>}<Pagination page={history.page} total={history.count??0} adresse={n=>`/admin/territoire/prospects/${id}?page=${n}`} libelle="Historique du prospect"/></section>}</main>;
+}

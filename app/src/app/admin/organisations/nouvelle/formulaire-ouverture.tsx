@@ -99,7 +99,7 @@ export function FormulaireOuverture({
             onChange={(e) => setActive(e.target.checked)}
             className="size-5 shrink-0 accent-[var(--encre)]"
           />
-          Contrat déjà signé — ouvrir directement en abonnement actif
+          Contrat déjà signé — activer les accès Gerimmo
         </label>
         {!active && (
           <div className="space-y-2">
@@ -146,6 +146,8 @@ export function FormulaireOuverture({
         </p>
       )}
 
+      {prefill?.demandeId && <label className="flex items-start gap-3 rounded-lg border border-[var(--filet)] p-3 text-sm"><input type="checkbox" name="demande_commerciale_confirmee" required className="mt-1 size-4 shrink-0" />Je confirme que cette demande concerne l’ouverture d’un espace client et que son responsable attend une invitation.</label>}
+      <p className="text-xs text-muted-foreground">L’ouverture et l’activation de l’espace ne créent pas de souscription Stripe. La facturation se règle séparément.</p>
       <BoutonEnvoi enCoursTexte="Ouverture…">Ouvrir l&apos;organisation</BoutonEnvoi>
     </form>
   );

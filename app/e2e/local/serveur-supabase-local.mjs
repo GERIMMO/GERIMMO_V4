@@ -20,6 +20,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { Pool, types as typesPg } from "pg";
+import { estApercuSuperadminSansMfa } from "./apercu-superadmin.mjs";
 
 // LES DATES RESTENT DES DATES, comme chez PostgREST.
 //
@@ -470,7 +471,14 @@ async function ecrireTable(claims, table, url, entetes, corps, methode) {
   const representation = /return=representation/.test(prefer) || !!sel;
   // Fidèle à PostgREST : RETURNING (et donc les politiques SELECT) seulement
   // en representation ; en minimal, l'écriture n'exige que sa propre politique.
-  const retour = representation ? " returning *" : "";
+  // Respecter aussi les droits de lecture par colonne : un client demandant
+  // seulement la révision ne doit pas exiger SELECT sur les colonnes privées.
+  const colonnesRetour = arbre ? colonnesDeBase(arbre) : null;
+  const colonnesSql = colonnesRetour === null ? "*" : [...new Set([
+    ...colonnesRetour,
+    ...arbre.filter(n => n.type === "embed").flatMap(n => resoudreRelation(table, n.table, n.fk).colsParent),
+  ])].map(c => `"${c.replaceAll('"', '""')}"`).join(", ");
+  const retour = representation ? ` returning ${colonnesSql}` : "";
 
   return sousIdentite(claims, async (client) => {
     let lignes = [];
@@ -658,7 +666,10 @@ async function routerAuth(methode, chemin, url, corps, claims) {
       );
       if (!rows[0]) return { statut: 400, corps: { error: "invalid_grant", error_description: "Invalid login credentials", code: "invalid_credentials", msg: "Invalid login credentials" } };
       await admin((c) => c.query("update auth.users set last_sign_in_at = now() where id = $1", [rows[0].id]));
-      return { statut: 200, corps: sessionPour(rows[0]) };
+      // L'aperçu visuel local peut utiliser son compte fictif sans demander
+      // un code. Ce drapeau n'existe que dans le banc, jamais dans le produit.
+      const niveau = estApercuSuperadminSansMfa(process.env, rows[0].email) ? "aal2" : "aal1";
+      return { statut: 200, corps: sessionPour(rows[0], niveau) };
     }
     if (grant === "refresh_token") {
       const c2 = verifier(corps.refresh_token ?? "");

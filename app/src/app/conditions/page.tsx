@@ -1,6 +1,7 @@
+import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
 import { Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
-import { CONDITIONS_DATE, EDITEUR, REGIME_TVA, documentsIncomplets, type FaitEditeur } from "@/lib/editeur";
+import { CONDITIONS_DATE, REGIME_TVA, documentsIncomplets, type FaitEditeur } from "@/lib/editeur";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 export const metadata = metadonneesPubliques({
@@ -78,13 +79,14 @@ const CLAUSES: Record<
   preavisModification: "au moins un mois",
 };
 
-export default function PageConditions() {
+export default async function PageConditions() {
+  const {editeur:EDITEUR,indisponible}=await lireEditeur();
   return (
     <CoquilleLegale
       titre="Conditions générales d'utilisation et de vente"
       chapo={`Version du ${CONDITIONS_DATE}, en vigueur depuis cette date.`}
       chemin="/conditions"
-      incomplet={documentsIncomplets() || Object.values(CLAUSES).some((c) => !c)}
+      incomplet={(indisponible || documentsIncomplets(EDITEUR)) || Object.values(CLAUSES).some((c) => !c)}
     >
       <Article titre="1. Objet">
         <p>

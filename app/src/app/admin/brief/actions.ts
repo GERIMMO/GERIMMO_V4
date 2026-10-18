@@ -118,7 +118,7 @@ type Decision = { id: string; source: string; source_id: string | null; statut: 
 const DEJA_TRANCHEE = "Cette décision a déjà été tranchée sur son écran : le point est mis à jour.";
 
 /** Applique l'effet métier par les actions et fonctions existantes (leurs gardes restent), puis trace la décision dans le point. */
-export async function deciderDecisionDuMatin(id: string, validee: boolean, motif: string, attestation = false): Promise<EtatDecision> {
+async function appliquerDecisionDuMatin(id: string, validee: boolean, motif: string, attestation = false): Promise<EtatDecision> {
   const { supabase, ok } = await superviseurPermanent();
   if (!ok) return { erreur: "Cette décision demande votre compte de supervision et sa double vérification." };
   motif = motif.trim().slice(0, 1000);
@@ -203,4 +203,19 @@ export async function deciderDecisionDuMatin(id: string, validee: boolean, motif
   revalidatePath("/admin/brief");
   if (trace) return { succes: `${effet.succes ?? "Décision appliquée."} Sa trace dans le point doit être vérifiée.` };
   return { succes: effet.succes ?? (validee ? "Décision validée." : "Décision refusée.") };
+}
+
+/** Le journal de tentative précède l'effet ; une erreur n'est jamais affichée comme une exécution réussie. */
+export async function deciderDecisionDuMatin(id:string,validee:boolean,motif:string,attestation=false):Promise<EtatDecision>{
+ const {supabase,ok}=await superviseurPermanent();
+ if(!ok)return {erreur:"Compte de supervision permanent requis."};
+ if(!/^[0-9a-f-]{36}$/i.test(id))return {erreur:"Décision invalide."};
+ const trace=await supabase.from("supervision_executions_decisions").insert({decision_id:id,accord:validee}).select("id").single();
+ if(trace.error||!trace.data)return {erreur:"Le suivi de cette décision est indisponible ou une exécution est déjà engagée. Vérifiez son résultat avant de recommencer."};
+ let resultat:EtatDecision;
+ try{resultat=await appliquerDecisionDuMatin(id,validee,motif,attestation);}catch{resultat={erreur:"L’action a été interrompue. Vérifiez le dossier source avant de recommencer."};}
+ const fin=await supabase.from("supervision_executions_decisions").update({etat:resultat.erreur?"echec":"reussie",resultat:(resultat.erreur??resultat.succes??"Action terminée").slice(0,2000),termine_le:new Date().toISOString()}).eq("id",trace.data.id).select("id").maybeSingle();
+ revalidatePath("/admin/brief");
+ if(fin.error||!fin.data)return {erreur:"L’action a été tentée, mais son résultat n’a pas pu être journalisé. Consultez le dossier source avant tout nouvel essai."};
+ return resultat;
 }

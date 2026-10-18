@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { RUBRIQUES, ongletActif, rubriqueActive } from "@/lib/rubriques-supervision";
+import { LayoutDashboard, Users, ShieldCheck, Megaphone, PanelsTopLeft, History, Settings2, Menu, X, Search, ClipboardCheck, Files, Wrench, MessagesSquare, Wallet, TrendingUp, Workflow, CalendarClock, Activity, BookOpen } from "lucide-react";
+
+const ICONES = { bureau: LayoutDashboard, decisions: ClipboardCheck, "comptes-rendus": BookOpen, utilisateurs: Users, dossiers: Files, artisans: Wrench, assistance: MessagesSquare, finances: Wallet, marketing: Megaphone, commercial: TrendingUp, automatismes: Workflow, relais: CalendarClock, produit: PanelsTopLeft, sante: Activity, securite: ShieldCheck, historique: History, parametres: Settings2 };
 
 // Le plan de la console vit dans lib/rubriques-supervision.ts (26/09).
 
@@ -21,7 +24,7 @@ export function MenuSupervisionProvider({ children }: { children: ReactNode }) {
 /** Le bouton du menu, posé dans la barre haute ; visible sous 900 px seulement (classe commune). */
 export function BoutonMenuSupervision() {
   const { ouvert, basculer } = useContext(MenuSupervision);
-  return <button type="button" className="admin-menu-mobile w-auto! shrink-0" aria-label={ouvert ? "Fermer le menu" : "Menu supervision"} aria-expanded={ouvert} aria-controls="menu-supervision" onClick={basculer}>{ouvert ? "Fermer" : "Menu"}</button>;
+  return <button type="button" className="admin-menu-mobile w-auto! shrink-0" aria-label={ouvert ? "Fermer le menu" : "Menu supervision"} aria-expanded={ouvert} aria-controls="menu-supervision" onClick={basculer}>{ouvert ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}{ouvert ? "Fermer" : "Menu"}</button>;
 }
 
 /** La colonne latérale : toujours là sur ordinateur ; au téléphone, seulement quand le menu est ouvert (un seul menu dans la page). */
@@ -32,16 +35,26 @@ export function ColonneSupervision({ children }: { children: ReactNode }) {
 
 function Groupes({ artisansEnAttente, decisions, auClic }: { artisansEnAttente: number; decisions: number; auClic?: () => void }) {
   const chemin = usePathname();
-  const active = rubriqueActive(chemin);
+  const recherche = useSearchParams().toString();
+  const active = rubriqueActive(chemin, recherche);
+  const liste = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const navigation = liste.current?.closest<HTMLElement>(".admin-nav");
+    const lien = liste.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!navigation || !lien || getComputedStyle(navigation).overflowY !== "auto") return;
+    const cadre = navigation.getBoundingClientRect();
+    const position = lien.getBoundingClientRect();
+    if (position.top < cadre.top || position.bottom > cadre.bottom) navigation.scrollTop += position.top - cadre.top - 8;
+  }, [active?.cle]);
   const compte = { artisans: artisansEnAttente, decisions };
-  // Sept entrées, dessinées par le porteur le 26/09 : le menu dit OÙ l'on est,
-  // les onglets en haut de l'écran disent QUOI regarder dans la rubrique.
-  return <div className="admin-menu-groupes" key={chemin} onClick={(e) => { if ((e.target as HTMLElement).closest("a")) auClic?.(); }}>
-    {RUBRIQUES.map((r, i) => {
+  // Toutes les destinations sont affichées sans groupes ni accordéons.
+  return <div ref={liste} className="admin-menu-groupes" key={`${chemin}?${recherche}`} onClick={(e) => { if ((e.target as HTMLElement).closest("a")) auClic?.(); }}>
+    {RUBRIQUES.map((r) => {
       const n = r.badge ? compte[r.badge] : 0;
-      return <Link key={r.cle} href={r.href} className={`admin-nav-lien${i === RUBRIQUES.length - 2 ? " admin-nav-lien-bas" : ""}`} aria-current={active?.cle === r.cle ? "page" : undefined}>
-        {r.libelle}
-        {n > 0 && <span className="coquille-badge ml-auto" aria-label={r.badge === "artisans" ? `${n} artisan${n > 1 ? "s" : ""} à valider` : `${n} décision${n > 1 ? "s" : ""} attendue${n > 1 ? "s" : ""}`}>{n}</span>}
+      const Icone = ICONES[r.cle as keyof typeof ICONES] ?? LayoutDashboard;
+      return <Link key={r.cle} href={r.href} prefetch={false} className="admin-nav-lien" aria-current={active?.cle === r.cle ? "page" : undefined}>
+        <Icone size={18} strokeWidth={1.7} aria-hidden="true" /><span>{r.libelle}</span>
+        {n > 0 && <span className="coquille-badge ml-auto" aria-label={r.badge === "artisans" ? `${n} artisan${n > 1 ? "s" : ""} à valider` : `${n} sujet${n > 1 ? "s" : ""} à traiter`}>{n}</span>}
       </Link>;
     })}
   </div>;
@@ -52,7 +65,7 @@ export function NavAdmin({ artisansEnAttente = 0, decisions = 0 }: { artisansEnA
   const { fermer } = useContext(MenuSupervision);
   return <div className="admin-menu-conteneur">
     {/* Au téléphone, la recherche vit dans le menu (audit C26) ; la fenêtre est celle de la barre haute. */}
-    <button type="button" className="admin-nav-lien min-[901px]:hidden" onClick={() => { fermer(); window.dispatchEvent(new Event("gerimmo:ouvrir-recherche")); }}>Rechercher un client ou un dossier…</button>
+    <button type="button" className="admin-nav-lien min-[901px]:hidden" onClick={() => { fermer(); window.dispatchEvent(new Event("gerimmo:ouvrir-recherche")); }}><Search size={18} aria-hidden="true" /><span>Rechercher un client ou un dossier…</span></button>
     <Groupes artisansEnAttente={artisansEnAttente} decisions={decisions} auClic={fermer} />
   </div>;
 }
@@ -65,6 +78,7 @@ export function NavAdmin({ artisansEnAttente = 0, decisions = 0 }: { artisansEnA
  */
 export function OngletsSupervision({ artisansEnAttente = 0, decisions = 0 }: { artisansEnAttente?: number; decisions?: number }) {
   const chemin = usePathname();
+  const recherche = useSearchParams().toString();
   const rangee = useRef<HTMLDivElement>(null);
   // Au téléphone, la rangée d'onglets défile : l'onglet actif est ramené dans
   // la vue à chaque changement de page (audit console 27/09) — « Relais en mon
@@ -76,10 +90,10 @@ export function OngletsSupervision({ artisansEnAttente = 0, decisions = 0 }: { a
     const r = rangee.current;
     const gauche = courant.getBoundingClientRect().left - r.getBoundingClientRect().left + r.scrollLeft;
     r.scrollLeft = gauche - (r.clientWidth - courant.offsetWidth) / 2;
-  }, [chemin]);
-  const rubrique = rubriqueActive(chemin);
+  }, [chemin, recherche]);
+  const rubrique = rubriqueActive(chemin, recherche);
   if (!rubrique || rubrique.onglets.length < 2) return null;
-  const actif = ongletActif(chemin);
+  const actif = ongletActif(chemin, recherche);
   const compte = { artisans: artisansEnAttente, decisions };
   return <nav className="admin-onglets" aria-label={`Pages de la rubrique ${rubrique.libelle}`}>
     <div ref={rangee} className="admin-onglets-interieur">

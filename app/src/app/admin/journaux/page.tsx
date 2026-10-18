@@ -1,3 +1,4 @@
+import {PreuvesSupervision} from "./preuves";
 import { deElide } from "@/lib/elision";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
@@ -23,7 +24,7 @@ const PAR_PAGE = 50;
 const PAGE_MAX = 1000;
 
 type Filtres = { type: string; org: string; depuis: string; jusqu: string };
-type Params = Partial<Filtres> & { p_audit?: string; p_technique?: string; p_acces?: string };
+type Params = Partial<Filtres> & { p_audit?: string; p_technique?: string; p_acces?: string; registre?:string; pageRegistre?:string; pageCopies?:string; copie?:string };
 
 function pageDe(valeur: string | undefined): number {
   const n = Number(valeur);
@@ -31,7 +32,7 @@ function pageDe(valeur: string | undefined): number {
 }
 
 // Le nom de l'entrée de menu (audit 25/09, C8).
-export const metadata = { title: "Historique et conservation" };
+export const metadata = { title: "Historique et sauvegardes" };
 
 const SORTS: Record<string, string> = {
   suppression: "Suppression",
@@ -177,7 +178,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
   if (e1 || e2 || e3 || e4 || e5) {
     return (
       <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
-        <TitreEcran rubrique="suivi">Historique et conservation</TitreEcran>
+        <TitreEcran rubrique="suivi">Historique et sauvegardes</TitreEcran>
         <div className="vide mt-4">
           Impossible de charger la page pour l&apos;instant — rechargez dans un
           instant.
@@ -211,15 +212,16 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
           en premier (audit 25/09, C11) ; les règles et le nettoyage, en bas. */}
       <div className="entete-page mb-6">
         <div className="min-w-0 flex-[1_1_20rem]">
-          <TitreEcran rubrique="suivi">Historique et conservation</TitreEcran>
+          <TitreEcran rubrique="suivi">Historique et sauvegardes</TitreEcran>
           <p className="mt-2 text-sm text-muted-foreground">
             Les actions sensibles, le travail automatique et les consultations de
             pièces, puis les règles qui fixent combien de temps tout cela est gardé.
           </p>
         </div>
-        <a href="#conservation" className="lien-discret text-sm">Règles et nettoyage ↓</a>
+        <div className="flex flex-wrap gap-3"><Link href="/admin/sante#sauvegarde" className="btn-secondaire">Vérifier la sauvegarde</Link><a href="#conservation" className="lien-discret text-sm">Règles de conservation ↓</a></div>
       </div>
 
+      <PreuvesSupervision p={p}/>
       <FiltresJournaux
         filtres={filtres}
         organisations={(organisations ?? []) as { id: string; name: string }[]}

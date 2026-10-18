@@ -1,3 +1,7 @@
+import { lirePage, numeroPage } from "@/lib/pagination-supervision";
+import { formaterDateParis } from "@/lib/heure-paris";
+import { Pagination } from "../pagination";
+import { LectureIndisponible } from "../lecture-indisponible";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -24,29 +28,13 @@ type Publication = {
   refus_motif: string | null;
 };
 
-function jour(d: string | null) {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
+const jour = formaterDateParis;
 
 // Combien de faits datés restent à fournir avant qu'un article puisse paraître.
 // C'est l'information la plus utile de la file : elle dit le travail restant.
 function trous(corps: string | null): number {
   if (!corps) return 0;
   return (corps.match(/\[\[à compléter/g) ?? []).length;
-}
-
-// Le prochain passage du moteur (pg_cron, lundi 6 h UTC) : la page ne lit
-// pas l'historique de pg_cron, elle dit donc quand il PASSERA.
-function prochainLundi(maintenant = new Date()): string {
-  const jour = new Date(Date.UTC(maintenant.getUTCFullYear(), maintenant.getUTCMonth(), maintenant.getUTCDate(), 6));
-  const ecart = (8 - jour.getUTCDay()) % 7;
-  jour.setUTCDate(jour.getUTCDate() + (ecart === 0 && maintenant.getTime() >= jour.getTime() ? 7 : ecart));
-  return jour.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
 }
 
 // Le rang commun de la console, en bloc (24/09). La période se lit en
@@ -74,7 +62,7 @@ function Rang({ p }: { p: Publication }) {
         ) : p.statut === "publiee" ? (
           <span className="puce puce-loue">Paru le {jour(p.publie_le)}</span>
         ) : (
-          <span className="puce puce-encre">Prêt à paraître</span>
+          <span className="puce puce-encre">{STATUTS[p.statut] ?? "À vérifier"}</span>
         )}
       </div>
       {p.refus_motif && (
@@ -108,7 +96,7 @@ function Section({
       <div className="entete-carte mb-2">
         <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
           {titre}
-          <span className="font-normal text-[var(--texte-secondaire)]"> · {publications.length}</span>
+          <span className="font-normal text-[var(--texte-secondaire)]"> · {publications.length} sur cette page</span>
         </h2>
       </div>
       <p className="mb-3 text-[13px] text-[var(--texte-secondaire)]">{explication}</p>
@@ -126,103 +114,28 @@ function Section({
   );
 }
 
-export default async function PageJournalAdmin() {
+const STATUTS: Record<string, string> = { proposition: "À écrire", brouillon: "Brouillons", programmee: "Programmés", reportee: "Reportés", publiee: "Parus", refusee: "Écartés", archivee: "Retirés" };
+
+export default async function PageJournalAdmin({ searchParams }: { searchParams: Promise<{ page?: string; statut?: string }> }) {
+  const p = await searchParams;
+  const statut = p.statut && Object.hasOwn(STATUTS, p.statut) ? p.statut : "";
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("publications")
-    .select(
-      "id, veine, periode, statut, titre, slug, chapo, corps, sources, propose_le, publie_le, refus_motif"
-    )
-    .order("propose_le", { ascending: false });
-
-  const tout = (data ?? []) as Publication[];
-  const par = (s: string) => tout.filter((p) => p.statut === s);
-  const propositions = par("proposition");
-  const brouillons = par("brouillon");
-  const parus = par("publiee");
-  const derniereProposition =
-    tout.filter((p) => p.veine).map((p) => p.propose_le).sort().at(-1) ?? null;
-
-  return (
-    <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-      <div className="entete-page mb-2">
-        <TitreEcran rubrique="journal">Articles du site</TitreEcran>
-        <Link href="/admin/publications/nouvelle" className="btn-or text-sm">Nouvel article</Link>
-      </div>
-      {/* Un seul « Chercher des sujets » (audit 25/09, C16) : dans la section
-          « À écrire », là où le résultat arrive. La doctrine se replie. */}
-      <details className="mb-6 text-[13px] leading-relaxed text-[var(--texte-secondaire)]">
-        <summary className="cursor-pointer">Comment les sujets arrivent</summary>
-        <p className="mesure-lecture mt-2">
-          Chaque lundi à 6 h, Gerimmo regarde le calendrier du métier et propose
-          les sujets dont c&apos;est le moment. Une proposition apporte un angle, un
-          plan et sa source dans le référentiel — <strong>jamais un chiffre</strong>.
-          Les faits datés sont laissés en blanc, et un article ne peut pas paraître
-          tant qu&apos;il en reste un.
-        </p>
-      </details>
-
-      {error && <div role="alert" className="err">Le journal n’a pas pu être chargé. Rechargez la page : ce n’est pas une file vide.</div>}
-
-      {!error && tout.length === 0 && (
-        <div className="vide-guide">
-          <p className="titre">La file est vide</p>
-          <p className="explication">
-            Aucun sujet n&apos;a encore été proposé. Le moteur se déclenche le lundi
-            matin, mais vous pouvez lui demander tout de suite ce que le mois en
-            cours appelle.
-          </p>
-          <div className="geste">
-            <BoutonChercherSujets />
-          </div>
-        </div>
-      )}
-
-      {/* La file de travail ne disparaît plus quand elle est vide (24/09) :
-          rien ne disait si le moteur du lundi avait tourné sans rien trouver. */}
-      {!error && tout.length > 0 && (
-        <Section
-          titre="À écrire"
-          explication="Le sujet est arrivé à son moment. Ouvrez-le pour compléter les faits datés et l'amener à parution."
-          publications={propositions}
-          pied={propositions.length > 0 ? <div className="mt-3"><BoutonChercherSujets /></div> : undefined}
-          vide={
-            <div className="vide-guide">
-              <p className="titre">Aucun sujet en attente</p>
-              <p className="explication">
-                {derniereProposition
-                  ? `Dernière proposition reçue le ${jour(derniereProposition)}. `
-                  : ""}
-                Le moteur cherche de nouveaux sujets chaque lundi matin ; prochain
-                passage le {prochainLundi()}.
-              </p>
-              <div className="geste">
-                <BoutonChercherSujets />
-              </div>
-            </div>
-          }
-        />
-      )}
-      <Section
-        titre="En cours d'écriture"
-        explication="Commencés, pas encore parus."
-        publications={brouillons}
-      />
-      <Section
-        titre="Parus"
-        explication="En ligne dans le journal public."
-        publications={parus}
-      />
-      <Section
-        titre="Écartés"
-        explication="Refusés avec leur motif — ils ne seront pas reproposés pour cette période."
-        publications={par("refusee")}
-      />
-      <Section
-        titre="Retirés"
-        explication="Dépubliés, conservés ici."
-        publications={par("archivee")}
-      />
-    </main>
-  );
+  const lecture = await lirePage((a,b) => {
+    let q = supabase.from("publications").select("id,veine,periode,statut,titre,slug,chapo,corps,sources,propose_le,publie_le,refus_motif", { count: "exact" });
+    if (statut) q = q.eq("statut", statut);
+    return q.order("propose_le", { ascending: false }).order("id").range(a,b);
+  }, numeroPage(p.page));
+  const tout = (lecture.data ?? []) as Publication[];
+  const adresse = (page: number) => `/admin/publications?${new URLSearchParams({ ...(statut ? { statut } : {}), page: String(page) })}`;
+  return <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
+    <div className="entete-page mb-4"><TitreEcran rubrique="journal">Articles du site</TitreEcran><Link href="/admin/publications/nouvelle" className="btn-or text-sm">Nouvel article</Link></div>
+    <p className="mb-4 text-sm text-muted-foreground">Retrouvez tous les articles, y compris ceux programmés ou reportés. Le rythme des préparations et des diffusions se consulte dans <Link href="/admin/marketing" className="underline">Marketing et contenus</Link>.</p>
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-3"><form action="/admin/publications" className="flex flex-wrap items-end gap-3"><label className="text-sm">État de l’article<select name="statut" className="champ mt-1 block" defaultValue={statut}><option value="">Tous les états</option>{Object.entries(STATUTS).map(([s,l]) => <option key={s} value={s}>{l}</option>)}</select></label><button className="btn-secondaire">Filtrer</button></form><BoutonChercherSujets /></div>
+    {lecture.error ? <LectureIndisponible sujet="Articles" retour={adresse(lecture.page)} /> : <>
+      <p role="status" className="mb-4 text-sm text-muted-foreground">{tout.length} affiché{tout.length > 1 ? "s" : ""} sur {lecture.count ?? "—"} article{lecture.count !== 1 ? "s" : ""}{statut ? ` · ${STATUTS[statut]}` : " · Tous les états"}</p>
+      {!tout.length && <div className="vide-guide"><p className="titre">{statut ? "Aucun article dans cet état" : "Aucun article enregistré"}</p><p className="explication">{statut ? "Choisissez un autre état ou consultez tous les articles." : "Créez un article ou demandez des propositions de sujets."}</p>{statut && <Link href="/admin/publications" className="btn-secondaire">Tous les articles</Link>}</div>}
+      {Object.entries(STATUTS).map(([s,l]) => <Section key={s} titre={l} explication="" publications={tout.filter(p => p.statut === s)} />)}
+      {lecture.count !== null && <Pagination page={lecture.page} total={lecture.count} adresse={adresse} libelle="Articles" />}
+    </>}
+  </main>;
 }

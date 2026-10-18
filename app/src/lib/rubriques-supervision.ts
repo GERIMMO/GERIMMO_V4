@@ -1,111 +1,45 @@
-// LE PLAN DE LA CONSOLE (26/09), dessiné par le porteur :
-// « Vue d'ensemble (avec aujourd'hui) — Utilisateurs — Veille — Marketing —
-// Développement — Historique et conservation — Paramètres. »
-//
-// Sept entrées dans la colonne, pas une de plus. Chaque rubrique regroupe ses
-// pages sous des onglets en haut de l'écran : le menu dit OÙ l'on est, les
-// onglets disent QUOI regarder dans la rubrique. Les adresses des pages ne
-// changent pas (liens, favoris et tests restent valables) ; seul le
-// rangement change. Un seul tableau, lu par la colonne ET par les onglets.
-
-export type Onglet = { href: string; libelle: string; badge?: "artisans" | "decisions" };
-export type Rubrique = {
-  cle: string;
-  libelle: string;
-  /** L'écran ouvert par l'entrée du menu : le premier onglet. */
-  href: string;
-  onglets: Onglet[];
-  /** Pages sans onglet qui appartiennent pourtant à la rubrique (fiches). */
-  aussi?: string[];
-  badge?: "artisans" | "decisions";
-};
+// Menu du dirigeant : 17 destinations visibles, sans groupes ni accordéons.
+export type Onglet = { href: string; libelle: string; badge?: "artisans" | "decisions"; exact?: boolean };
+export type Rubrique = { cle: string; libelle: string; href: string; onglets: Onglet[]; aussi?: string[]; badge?: "artisans" | "decisions" };
 
 export const RUBRIQUES: Rubrique[] = [
-  {
-    cle: "vue",
-    libelle: "Vue d’ensemble",
-    href: "/admin/brief",
-    badge: "decisions",
-    onglets: [
-      { href: "/admin/brief", libelle: "Aujourd’hui", badge: "decisions" },
-      { href: "/admin", libelle: "Chiffres et clients" },
-    ],
-  },
-  {
-    cle: "utilisateurs",
-    libelle: "Utilisateurs",
-    href: "/admin/clients",
-    badge: "artisans",
-    onglets: [
-      { href: "/admin/clients", libelle: "Agences, bailleurs et artisans" },
-      { href: "/admin/artisans", libelle: "Artisans à valider", badge: "artisans" },
-      { href: "/admin/devis", libelle: "Demandes commerciales" },
-      { href: "/admin/marque-blanche", libelle: "Personnalisation des agences" },
-    ],
-    aussi: ["/admin/organisations", "/admin/comptes"],
-  },
-  {
-    cle: "veille",
-    libelle: "Veille",
-    href: "/admin/veille",
-    onglets: [
-      { href: "/admin/veille", libelle: "Veille réglementaire" },
-      { href: "/admin/equipes", libelle: "Travail des équipes" },
-      { href: "/admin/sante", libelle: "Santé et connexions" },
-      { href: "/admin/relais", libelle: "Relais en mon absence" },
-    ],
-  },
-  {
-    cle: "marketing",
-    libelle: "Marketing",
-    href: "/admin/marketing",
-    onglets: [
-      { href: "/admin/marketing", libelle: "Agent marketing" },
-      { href: "/admin/publications", libelle: "Articles du site" },
-    ],
-  },
-  {
-    cle: "developpement",
-    libelle: "Développement",
-    href: "/admin/autonomie",
-    onglets: [
-      { href: "/admin/autonomie", libelle: "Développement du site" },
-      { href: "/admin/retours", libelle: "Retours des utilisateurs" },
-      { href: "/admin/territoire", libelle: "Développement territorial" },
-      { href: "/admin/couverture", libelle: "Réseau d’artisans" },
-    ],
-  },
-  {
-    cle: "historique",
-    libelle: "Historique et conservation",
-    href: "/admin/journaux",
-    onglets: [{ href: "/admin/journaux", libelle: "Historique et conservation" }],
-  },
-  {
-    cle: "parametres",
-    libelle: "Paramètres",
-    href: "/admin/parametres",
-    onglets: [{ href: "/admin/parametres", libelle: "Paramètres" }],
-  },
+  { cle: "bureau", libelle: "Bureau de direction", href: "/admin/brief", onglets: [{ href: "/admin/brief", libelle: "Bureau de direction", exact: true }] },
+  { cle: "decisions", libelle: "Décisions à prendre", href: "/admin/brief?vue=decisions", badge: "decisions", onglets: [{ href: "/admin/brief?vue=decisions", libelle: "Décisions à prendre", badge: "decisions" }] },
+  { cle: "comptes-rendus", libelle: "Équipes et comptes rendus", href: "/admin/brief?vue=equipes", onglets: [{ href: "/admin/brief?vue=equipes", libelle: "Comptes rendus" }], aussi: ["/admin/brief"] },
+  { cle: "utilisateurs", libelle: "Utilisateurs", href: "/admin/clients", onglets: [{ href: "/admin/clients", libelle: "Utilisateurs" }, { href: "/admin/marque-blanche", libelle: "Personnalisation des agences" }], aussi: ["/admin/organisations", "/admin/comptes"] },
+  { cle: "dossiers", libelle: "Activité et dossiers", href: "/admin/autonomie?vue=dossiers", onglets: [{ href: "/admin/autonomie?vue=dossiers", libelle: "Activité et dossiers" }], aussi: ["/admin/autonomie"] },
+  { cle: "artisans", libelle: "Réseau d’artisans", href: "/admin/artisans", badge: "artisans", onglets: [{ href: "/admin/artisans", libelle: "Inscriptions et validations", badge: "artisans" }, { href: "/admin/couverture", libelle: "Couverture du réseau" }], aussi: ["/admin/clients/artisans"] },
+  { cle: "assistance", libelle: "Assistance clients", href: "/admin/retours", onglets: [{ href: "/admin/retours", libelle: "Demandes et suivi" }] },
+  { cle: "finances", libelle: "Abonnements et finances", href: "/admin", onglets: [{ href: "/admin", libelle: "Abonnements et finances" }] },
+  { cle: "marketing", libelle: "Marketing et contenus", href: "/admin/marketing", onglets: [{ href: "/admin/marketing", libelle: "Communication et résultats" }, { href: "/admin/publications", libelle: "Articles du site" }] },
+  { cle: "commercial", libelle: "Développement commercial", href: "/admin/territoire", onglets: [{ href: "/admin/territoire", libelle: "Développement territorial" }, { href: "/admin/devis", libelle: "Demandes de contact" }] },
+  { cle: "automatismes", libelle: "Automatismes et consignes", href: "/admin/equipes", onglets: [{ href: "/admin/equipes", libelle: "Tâches automatiques" }, { href: "/admin/consignes", libelle: "Consignes du dirigeant" }] },
+  { cle: "relais", libelle: "Vacances et relais", href: "/admin/relais", onglets: [{ href: "/admin/relais", libelle: "Vacances et relais" }] },
+  { cle: "produit", libelle: "Améliorations du produit", href: "/admin/autonomie?vue=ameliorations", onglets: [{ href: "/admin/autonomie?vue=ameliorations", libelle: "Améliorations du produit" }] },
+  { cle: "sante", libelle: "Santé et connexions", href: "/admin/sante", onglets: [{ href: "/admin/sante", libelle: "Santé et connexions" }] },
+  { cle: "securite", libelle: "Sécurité et conformité", href: "/admin/securite", onglets: [{ href: "/admin/securite", libelle: "Accès et données" }, { href: "/admin/veille", libelle: "Veille réglementaire" }] },
+  { cle: "historique", libelle: "Historique et sauvegardes", href: "/admin/journaux", onglets: [{ href: "/admin/journaux", libelle: "Historique et sauvegardes" }] },
+  { cle: "parametres", libelle: "Paramètres généraux", href: "/admin/parametres", onglets: [{ href: "/admin/parametres", libelle: "Paramètres généraux" }] },
 ];
 
-/** `/admin` n'englobe pas ses sous-pages : c'est un onglet comme un autre. */
-function couvre(href: string, chemin: string): boolean {
-  if (href === "/admin") return chemin === "/admin";
-  return chemin === href || chemin.startsWith(`${href}/`);
+// Les vues ont priorité sur la page générique ; les filtres ne changent pas
+// de rubrique. Le préfixe le plus précis gagne pour les fiches imbriquées.
+function pertinence(onglet: Onglet, chemin: string, recherche: string): number {
+  const cible = new URL(onglet.href, "https://gerimmo.invalid");
+  if (!(chemin === cible.pathname || (!onglet.exact && cible.pathname !== "/admin" && chemin.startsWith(`${cible.pathname}/`)))) return -1;
+  const courante = new URLSearchParams(recherche);
+  for (const [cle, valeur] of cible.searchParams) if (courante.get(cle) !== valeur) return -1;
+  return cible.pathname.length + cible.searchParams.size * 1000;
 }
-
-/** L'onglet de l'écran courant, ou `null` (fiche d'une organisation…). */
-export function ongletActif(chemin: string): Onglet | null {
-  for (const r of RUBRIQUES) for (const o of r.onglets) if (couvre(o.href, chemin)) return o;
-  return null;
+export function rubriqueActive(chemin: string, recherche = ""): Rubrique | null {
+  let active: Rubrique | null = null;
+  let meilleur = -1;
+  for (const r of RUBRIQUES) for (const o of [...r.onglets, ...(r.aussi ?? []).map(href => ({ href, libelle: r.libelle }))]) {
+    const score = pertinence(o, chemin, recherche);
+    if (score > meilleur) { meilleur = score; active = r; }
+  }
+  return active;
 }
-
-/** La rubrique de l'écran courant : par ses onglets, puis par ses fiches. */
-export function rubriqueActive(chemin: string): Rubrique | null {
-  return (
-    RUBRIQUES.find((r) => r.onglets.some((o) => couvre(o.href, chemin))) ??
-    RUBRIQUES.find((r) => r.aussi?.some((a) => couvre(a, chemin))) ??
-    null
-  );
+export function ongletActif(chemin: string, recherche = ""): Onglet | null {
+  return rubriqueActive(chemin, recherche)?.onglets.filter(o => pertinence(o, chemin, recherche) >= 0).sort((a, b) => pertinence(b, chemin, recherche) - pertinence(a, chemin, recherche))[0] ?? null;
 }

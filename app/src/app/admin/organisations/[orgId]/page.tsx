@@ -1,3 +1,4 @@
+import { LectureIndisponible } from "../../lecture-indisponible";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { euros, formuleParCode, parPeriode, type Periodicite } from "@/lib/tarifs";
@@ -64,13 +65,14 @@ export default async function PageAdminOrganisation(
     sa_action: "consultation_organisation",
   });
 
-  const { data: organisation } = await supabase
+  const { data: organisation, error: erreurOrganisation } = await supabase
     .from("organizations")
     .select(
       "id, name, status, type, essai_fin, created_at, address_line1, postal_code, city, telephone, email_contact, siret, carte_pro, garantie_financiere, tva_intracom, tva_franchise, code_parrainage"
     )
     .eq("id", orgId)
     .maybeSingle();
+  if (erreurOrganisation) return <main className="p-4 sm:p-7"><LectureIndisponible sujet="Fiche de l’organisation" retour={`/admin/organisations/${orgId}`} /></main>;
   if (!organisation) notFound();
 
   const [personnes, adhesionsLues, lots, baux, parrainages, supervisionAbonnement] = await Promise.all([
@@ -95,7 +97,7 @@ export default async function PageAdminOrganisation(
       .from("parrainages")
       .select(
         "parrain_organization_id, filleul_organization_id, parrain:organizations!parrainages_parrain_organization_id_fkey(name)"
-      ),
+      ).or(`parrain_organization_id.eq.${orgId},filleul_organization_id.eq.${orgId}`),
     supabase.rpc("supervision_abonnement", { p_org: orgId }),
   ]);
   const abo = ((supervisionAbonnement.data ?? []) as {
@@ -220,6 +222,7 @@ export default async function PageAdminOrganisation(
             <Link href={`${base}/profil`} className="btn-secondaire">Compléter</Link>
           </p>
         )}
+        {supervisionAbonnement.error && <LectureIndisponible sujet="Abonnement et facturation" retour={`/admin/organisations/${orgId}`} />}
         <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
           {renseignes.map(([libelle, valeur]) => <Info key={libelle} libelle={libelle}>{valeur}</Info>)}
           {/* La ligne ne sert que pour un essai (24/09) : ailleurs, elle
@@ -269,6 +272,7 @@ export default async function PageAdminOrganisation(
         </dl>
       </section>
 
+      {(lots.error || baux.error || personnes.error || parrainages.error) && <LectureIndisponible sujet="Parc ou parrainage" retour={`/admin/organisations/${orgId}`} />}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <section className="loc-carte">
           <div className="entete-carte">
@@ -297,7 +301,7 @@ export default async function PageAdminOrganisation(
             </Info>
             {/* Une valeur absente ne se lit pas comme un nom (24/09). */}
             <Info libelle="Amenée par">
-              {monParrain ?? <span className="text-[var(--texte-secondaire)]">Aucun parrain</span>}
+              {parrainages.error ? "Indisponible" : monParrain ?? <span className="text-[var(--texte-secondaire)]">Aucun parrain</span>}
             </Info>
             <Info libelle="Filleuls">
               {parrainages.error ? "Indisponible" : filleuls}
@@ -348,7 +352,7 @@ export default async function PageAdminOrganisation(
           que le commentaire d'ouverture promettait. */}
       <section id="invitation" className="loc-carte mt-4">
         <div className="entete-carte"><h3>Invitation du responsable</h3></div>
-        {responsables.length === 0 ? (
+        {adhesionsLues.error ? <LectureIndisponible sujet="Responsables et invitations" retour={`/admin/organisations/${orgId}`} /> : responsables.length === 0 ? (
           <p className="text-sm text-[var(--texte-secondaire)]">Aucun responsable rattaché : rien à renvoyer.</p>
         ) : (
           <div className="grid gap-2">
@@ -370,27 +374,27 @@ export default async function PageAdminOrganisation(
           « Cycle de vie de l'abonnement » et à « Archivage plutôt que
           suppression » : aucune suppression, chaque geste confirmé et journalisé. */}
       <section className="loc-carte mt-4">
-        <div className="entete-carte"><h3>Contrôle de l’abonnement</h3></div>
+        <div className="entete-carte"><h3>Accès à l’espace client</h3></div>
         <p className="mesure-lecture mb-3 text-sm text-[var(--texte-secondaire)]">
           Chaque geste est fait à votre nom et inscrit au journal d’audit de cette organisation. Une
-          organisation suspendue ou archivée garde ses données ; elle se réactive d’ici.
+          organisation suspendue ou archivée garde ses données ; elle se réactive d’ici. Ces actions modifient les accès Gerimmo. Elles ne résilient pas l’abonnement Stripe et n’arrêtent pas ses prélèvements.
         </p>
         <div className="grid gap-2">
           {(organisation.status === "essai" || organisation.status === "active") && (
             <GesteControle action={controlerOrganisation.bind(null, orgId)} geste="suspendre" titre="Suspendre l’organisation" bouton="Suspendre" motif destructif
-              confirmation="Je suspends cette organisation : l’écriture est fermée pour ses utilisateurs jusqu’à sa réactivation." />
+              confirmation="Je suspends cette organisation : l’écriture est fermée pour ses utilisateurs jusqu’à sa réactivation. Son abonnement Stripe et ses prélèvements restent inchangés." />
           )}
           {(organisation.status === "essai" || organisation.status === "suspendue") && (
             <GesteControle action={controlerOrganisation.bind(null, orgId)} geste="prolonger_essai" titre="Prolonger l’essai" bouton="Prolonger l’essai" jours
-              confirmation="Je prolonge l’essai à partir de sa date de fin (ou d’aujourd’hui si elle est passée)." />
+              confirmation="Je prolonge l’essai à partir de sa date de fin (ou d’aujourd’hui si elle est passée). Cette action ne modifie pas la facturation Stripe." />
           )}
           {(organisation.status === "suspendue" || organisation.status === "archivee") && (
             <GesteControle action={controlerOrganisation.bind(null, orgId)} geste="reactiver" titre="Réactiver l’organisation" bouton="Réactiver"
-              confirmation="Je réactive cette organisation dans l’état qu’elle avait avant sa suspension ou son archivage." />
+              confirmation="Je réactive cette organisation dans l’état qu’elle avait avant sa suspension ou son archivage. Cette action ne modifie pas la facturation Stripe." />
           )}
           {organisation.status !== "archivee" && (
             <GesteControle action={controlerOrganisation.bind(null, orgId)} geste="archiver" titre="Archiver l’organisation" bouton="Archiver" motif destructif
-              confirmation="J’archive cette organisation : elle n’est pas supprimée, ses données sont conservées selon la durée légale et elle peut être réactivée." />
+              confirmation="J’archive cette organisation : elle n’est pas supprimée, ses données sont conservées selon la durée légale et elle peut être réactivée. Son abonnement Stripe et ses prélèvements restent inchangés." />
           )}
         </div>
       </section>

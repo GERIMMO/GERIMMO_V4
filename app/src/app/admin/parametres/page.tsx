@@ -1,26 +1,32 @@
+import { lireEditeur } from "@/lib/editeur-serveur";
+import {createClient} from "@/lib/supabase/server";
+import {IdentiteEditeur} from "./identite";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { faitsManquants } from "@/lib/editeur";
 
-export const metadata = { title: "Paramètres" };
+export const metadata = { title: "Paramètres généraux" };
 
 /**
  * PARAMÈTRES (26/09) : la dernière entrée du plan dessiné par le porteur.
  * Ce qui se règle une fois et se revoit rarement : l'identité de l'éditeur
  * (les huit faits exigés par les pages légales), la sécurité du compte de
- * supervision, l'ouverture d'une organisation. Rien n'est écrit ici ; chaque
- * carte mène à l'endroit où le réglage se fait.
+ * supervision, l'ouverture d'une organisation. Les coordonnées publiques sont versionnées ici ; les accès gardent leurs
+ * procédures de contrôle dédiées.
  */
-export default function PageParametres() {
+export default async function PageParametres() {
+  const {editeur,indisponible}=await lireEditeur();
+  const db=await createClient();
+  const config=await db.from("supervision_identite").select("revision").eq("singleton",true).maybeSingle();
   const exiges = faitsManquants({});
-  const manquants = new Set(faitsManquants());
+  const manquants = new Set(faitsManquants(editeur));
   const fournis = exiges.length - manquants.size;
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-7">
       <div className="entete-page">
         <div className="min-w-0 flex-[1_1_20rem]">
-          <TitreEcran rubrique="profil">Paramètres</TitreEcran>
+          <TitreEcran rubrique="profil">Paramètres généraux</TitreEcran>
           <p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">
             Ce qui se règle une fois : l’identité de Gerimmo sur les pages légales, la sécurité de votre compte et
             l’ouverture d’une organisation.
@@ -49,11 +55,9 @@ export default function PageParametres() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-sm text-[var(--texte-secondaire)]">
-          Envoyez ces informations à votre développeur : elles sont écrites une seule fois, dans le code, puis
-          reprises partout.{" "}
-          <Link href="/mentions-legales" className="lien-discret">Voir les mentions légales →</Link>
-        </p>
+        <div className="mt-5">{indisponible||config.error||!config.data?<p role="alert" className="err">Paramètres indisponibles. Rechargez avant de modifier.</p>:<IdentiteEditeur valeurs={editeur} revision={config.data.revision}/>}</div>
+        <Link className="lien-discret mt-4 inline-block" href="/admin/journaux?registre=supervision_identite">Historique des modifications →</Link>
+
       </section>
 
       <div className="grid gap-6 md:grid-cols-2">

@@ -1,7 +1,7 @@
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Lightbulb, Megaphone, PenLine, Radar, TriangleAlert } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CheckCheck, ChevronDown, FilePenLine, Megaphone, PenLine, Settings2, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { campagnesFacebook, depenseFacebookDuMois, santeFacebook } from "@/lib/marketing-meta";
 import { sansJargon } from "@/lib/erreurs";
@@ -11,12 +11,12 @@ import { FormulaireCampagne } from "./formulaire-campagne";
 import { ReglagesAutomatiques } from "./reglages-automatiques";
 import { VetoPost, type PostProgramme } from "./veto-post";
 
-export const metadata = { title: "Agent marketing" };
+export const metadata = { title: "Marketing et contenus" };
 export const dynamic = "force-dynamic";
 
 type Campagne = { id: string; nom: string; description: string | null; canal: string; nature: string; objectif: string; statut: string; publication_prevue_le: string | null; budget_cents: number | null; cree_le: string };
 type Publication = { id: string; titre: string; statut: string; slug: string | null; propose_le: string; publie_le: string | null; facebook_post_id: string | null; facebook_publie_le: string | null; facebook_erreur: string | null; facebook_image_url: string | null };
-type Reglages = { actif: boolean; publication_automatique: boolean; publicite_active: boolean; jours_semaine: number[]; heure_paris: number; budget_mensuel_cents: number; validation_obligatoire: boolean; veille_mots_inclus: string[]; veille_mots_exclus: string[] };
+type Reglages = { actif: boolean; publication_automatique: boolean; publicite_active: boolean; jours_semaine: number[]; heure_paris: number; heure_preparation_paris: number; budget_mensuel_cents: number; validation_obligatoire: boolean; veille_mots_inclus: string[]; veille_mots_exclus: string[] };
 
 const JOURS: Record<number, string> = { 1: "lundi", 2: "mardi", 3: "mercredi", 4: "jeudi", 5: "vendredi", 6: "samedi", 7: "dimanche" };
 // À l'heure de Paris (25/09) : sans fuseau, le serveur affichait l'heure UTC.
@@ -47,41 +47,24 @@ const ETATS_PUBLICITE: Record<string, string> = {
   DISAPPROVED: "Refusée",
 };
 
-// La pastille dit l'état réel (24/09) : « À finaliser » s'affichait en vert,
-// la couleur de « fait » partout ailleurs sur la page. La carte n'est pas un
-// lien : elle ne se soulève plus au survol.
-function Capacite({ icone, titre, detail, statut, operationnel }: { icone: React.ReactNode; titre: string; detail: string; statut: string; operationnel: boolean }) {
-  return <article className="loc-carte">
-    <div className="flex items-start justify-between gap-3"><span className="grid size-10 place-items-center rounded-xl bg-[var(--marque-clair)] text-[var(--marque)]">{icone}</span><span className={`puce ${operationnel ? "puce-loue" : "puce-prep"}`}>{statut}</span></div>
-    <h3 className="mt-4 font-heading text-lg text-[var(--encre)]">{titre}</h3><p className="mt-1.5 text-sm leading-relaxed text-[var(--texte-secondaire)]">{detail}</p>
-  </article>;
-}
-
-// Un canal et son état, dans « Canaux et contrôle » (24/09) : l'état des
-// connexions était dit trois fois sur la page, sans jamais dire où relier.
-function Canal({ nom, relie, detail }: { nom: string; relie: boolean | null; detail: string }) {
-  return <div className="loc-carte">
-    <div className="flex items-center justify-between gap-2"><b>{nom}</b><span className={`puce ${relie === null ? "puce-grise" : relie ? "puce-loue" : "puce-prep"}`}>{relie === null ? "Non proposé" : relie ? "Relié" : "À relier"}</span></div>
-    <p className="mt-2 text-sm text-[var(--texte-secondaire)]">{detail}</p>
-  </div>;
-}
-
+import base from "../repertoires.module.css";
+import styles from "../pilotage.module.css";
 export default async function PageAgentMarketing() {
   const supabase = await createClient();
   const [campagnesResultat, publicationsResultat, reglagesResultat, depenses, facebook, meta, programmesResultat] = await Promise.all([
     supabase.from("marketing_campagnes").select("id,nom,description,canal,nature,objectif,statut,publication_prevue_le,budget_cents,cree_le").order("publication_prevue_le", { ascending: true, nullsFirst: false }),
     supabase.from("publications").select("id,titre,statut,slug,propose_le,publie_le,facebook_post_id,facebook_publie_le,facebook_erreur,facebook_image_url").order("propose_le", { ascending: false }).limit(100),
-    supabase.from("marketing_reglages").select("actif,publication_automatique,publicite_active,jours_semaine,heure_paris,budget_mensuel_cents,validation_obligatoire,veille_mots_inclus,veille_mots_exclus").eq("singleton", true).single(),
+    supabase.from("marketing_reglages").select("actif,publication_automatique,publicite_active,jours_semaine,heure_paris,heure_preparation_paris,budget_mensuel_cents,validation_obligatoire,veille_mots_inclus,veille_mots_exclus").eq("singleton", true).single(),
     depenseFacebookDuMois(),
     santeFacebook(),
     campagnesFacebook(),
     // 06/10 : les posts en fenêtre de veto, du plus proche au plus lointain.
-    supabase.from("publications").select("id,titre,chapo,facebook_texte,facebook_image_url,programmee_pour,valide_le,veille_source_id,slug").eq("statut", "programmee").order("programmee_pour", { ascending: true }).limit(5),
+    supabase.from("publications").select("id,titre,chapo,facebook_texte,facebook_image_url,programmee_pour,valide_le,veille_source_id,slug", { count: "exact" }).eq("statut", "programmee").order("programmee_pour", { ascending: true }).limit(5),
   ]);
   const programmes = (programmesResultat.data ?? []) as PostProgramme[];
   const campagnes = (campagnesResultat.data ?? []) as Campagne[];
   const publications = (publicationsResultat.data ?? []) as Publication[];
-  const reglages = (reglagesResultat.data ?? { actif: false, publication_automatique: false, publicite_active: false, jours_semaine: [2, 5], heure_paris: 9, budget_mensuel_cents: 0, validation_obligatoire: false, veille_mots_inclus: [], veille_mots_exclus: [] }) as Reglages;
+  const reglages = (reglagesResultat.data ?? { actif: false, publication_automatique: false, publicite_active: false, jours_semaine: [2, 5], heure_paris: 9, heure_preparation_paris: 18, budget_mensuel_cents: 0, validation_obligatoire: false, veille_mots_inclus: [], veille_mots_exclus: [] }) as Reglages;
   const depenseMois = depenses.cents;
   const futures = campagnes.filter((c) => ["idee", "planifiee"].includes(c.statut));
   const actives = meta.campagnes.filter((c) => ["ACTIVE", "IN_PROCESS", "PENDING_REVIEW"].includes(c.statut));
@@ -92,92 +75,43 @@ export default async function PageAgentMarketing() {
   const facebookOperationnel = facebook.configure && !facebook.erreur;
   const metaOperationnel = meta.configure && !meta.erreur;
   const jours = reglages.jours_semaine.map((jour) => JOURS[jour]).filter(Boolean).join(" et ") || "mardi et vendredi";
-  // La prochaine action se nomme (audit 25/09, C21) : relire tel article,
-  // diffuser tel autre — ou relier la Page si c'est elle qui manque.
-  const prochaine = aDiffuser[0] ? (facebookOperationnel ? { href: `/admin/publications/${aDiffuser[0].id}`, libelle: `Diffuser « ${aDiffuser[0].titre} »` } : { href: "#canaux", libelle: "Voir ce qu’il faut relier pour Facebook" }) : aRelire[0] ? { href: `/admin/publications/${aRelire[0].id}`, libelle: `Relire « ${aRelire[0].titre} »` } : null;
-  const aTraiter = aRelire.length + aDiffuser.length;
-  // La tuile des dépenses ne rougit que si le plafond est dépassé (24/09) :
-  // elle était rouge en permanence, sans dépense ni dépassement.
+  // Le seuil est une alerte, pas une autorisation de dépense.
   const depassement = depenseMois != null && depenseMois > reglages.budget_mensuel_cents;
 
-  return <main className="mx-auto w-full max-w-7xl flex-1 space-y-8 p-4 sm:p-7">
-    {/* L'en-tête commun de la console (24/09) : le grand bandeau à photo, son
-        slogan et ses trois cartes vitrées occupaient un à deux écrans. Les
-        deux liens deviennent les boutons communs, cibles tactiles comprises. */}
-    <div className="entete-page">
-      <div className="min-w-0 flex-[1_1_20rem]"><TitreEcran rubrique="journal">Agent marketing</TitreEcran><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">L’agent choisit des sujets utiles, prépare les articles, les diffuse sur Facebook et centralise les résultats. Vous gardez ici les décisions, le budget et l’historique.</p></div>
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="mono-discret">{reglages.actif ? `Deux posts ${jours} à ${reglages.heure_paris} h, préparés la veille · ${reglages.validation_obligatoire ? "validation obligatoire" : reglages.publication_automatique && facebookOperationnel ? "parution sauf veto" : "brouillons à valider"}` : "Préparation des brouillons en pause"}</span>
-        {prochaine && <Link href={prochaine.href} className="btn-secondaire max-w-full"><span className="truncate">{prochaine.libelle}</span> <ArrowRight className="size-4 shrink-0" /></Link>}
-        <Link href="/admin/publications/nouvelle" className="btn-or"><PenLine className="size-4" /> Créer un article</Link>
-      </div>
+  const iaConfiguree = Boolean(process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim());
+  const fileIndisponible = Boolean(publicationsResultat.error);
+  const preparation = reglagesResultat.error ? "État indisponible" : !reglages.actif ? "Préparation en pause" : !iaConfiguree ? "Connexion IA à terminer" : "Préparation activée";
+  const prochainsVides = reglagesResultat.error ? "Les réglages ne sont pas disponibles. Actualisez avant de vérifier la programmation." : !reglages.actif ? "La préparation automatique est en pause. Vous pouvez créer un article ou reprendre la préparation dans les réglages." : !iaConfiguree ? "La préparation attend la connexion du service d’IA. Les contenus déjà créés restent accessibles." : `La préparation est prévue la veille des jours choisis (${jours}), à ${reglages.heure_preparation_paris} h, sous réserve des limites et des contrôles du service.`;
+  const counts = (n:number) => fileIndisponible ? "—" : n;
+  const columns = [
+    {title:"À relire",rows:aRelire,tone:"ambre",empty:"Aucun article à relire dans les derniers contenus.",icon:FilePenLine},
+    {title:"À diffuser",rows:aDiffuser,tone:"bleu",empty:"Aucun article en attente de diffusion dans les derniers contenus.",icon:Megaphone},
+    {title:"Déjà diffusés",rows:parutionsFacebook,tone:"vert",empty:"Aucune publication Facebook parmi les derniers contenus.",icon:CheckCheck},
+  ];
+
+  return <main className={base.page}>
+    <header className={base.header}><div><p className={base.eyebrow}>FAIRE CONNAÎTRE GERIMMO</p><TitreEcran rubrique="journal">Marketing et contenus</TitreEcran><p className={base.subtitle}>Vos contenus à relire, les prochaines publications et leurs résultats, au même endroit.</p></div><div className={styles.actions}><Link href="/admin/publications" className="btn-secondaire">Tous les articles <ArrowUpRight size={15} aria-hidden="true"/></Link><Link href="/admin/publications/nouvelle" className="btn-or"><PenLine size={16} aria-hidden="true"/>Créer un article</Link></div></header>
+    {(campagnesResultat.error||publicationsResultat.error||reglagesResultat.error||programmesResultat.error)&&<p role="alert" className={styles.notice}>Une partie des informations est indisponible. <a href="/admin/marketing" className="underline">Actualiser la page</a></p>}
+    <div className={base.stats}>
+      <a href="#publications" className={base.stat} data-tone="ambre"><span className={base.statIcon}><FilePenLine size={19} aria-hidden="true"/></span><strong>{counts(aRelire.length)}</strong><span>Contenus à relire</span><small>Dans les 100 derniers articles</small></a>
+      <a href="#veto" className={base.stat} data-tone="bleu"><span className={base.statIcon}><CalendarDays size={19} aria-hidden="true"/></span><strong>{programmesResultat.error?"—":programmesResultat.count??programmes.length}</strong><span>Posts programmés</span><small>À venir dans le calendrier</small></a>
+      <a href="#canaux" className={base.stat} data-tone={facebookOperationnel?"vert":"ambre"}><span className={base.statIcon}><Megaphone size={19} aria-hidden="true"/></span><strong>{facebookOperationnel&&facebook.abonnes!=null?nombre(facebook.abonnes):"—"}</strong><span>Abonnés Facebook</span><small>{facebookOperationnel?"Audience de votre Page":facebook.configure?"Connexion à vérifier":"Page à relier"}</small></a>
+      <a href="#resultats" className={base.stat} data-tone={depassement?"rouge":"bleu"}><span className={base.statIcon}><Wallet size={19} aria-hidden="true"/></span><strong>{argent(depenseMois)}</strong><span>Dépenses Meta ce mois</span><small>{!meta.configure?"Compte publicitaire à relier":depenses.erreur?"Lecture indisponible":`Seuil d’alerte : ${reglagesResultat.error?"—":argent(reglages.budget_mensuel_cents)}`}</small></a>
     </div>
-
-    {/* Seules les lectures de la base déclenchent l'alerte (24/09) : un compte
-        Meta non relié est un état de configuration, dit par la tuile et par
-        « Canaux et contrôle », pas une panne que recharger réparerait. */}
-    {(campagnesResultat.error || publicationsResultat.error || reglagesResultat.error) && <p role="alert" className="err">Une partie des informations marketing est momentanément indisponible. Rechargez la page.</p>}
-
-    {/* La tuile commune de la console ; la couleur suit la valeur (24/09). Les
-        deux tuiles qui désignent une liste de la page y mènent. */}
-    <section aria-label="Situation marketing" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      <Link href="#publications" className={`kpi ${aTraiter > 0 ? "ambre" : ""}`}><span className="libelle-champ">Publications à traiter</span><div className="chiffre montant">{aTraiter}</div><span className="mono-discret sans-majuscules">{aRelire.length} à relire · {aDiffuser.length} à diffuser</span></Link>
-      <div className={`kpi ${facebookOperationnel ? "" : "ambre"}`}><span className="libelle-champ">Facebook</span><div className="chiffre montant">{parutionsFacebook.length}</div><span className="mono-discret sans-majuscules">publications envoyées · {facebookOperationnel ? (facebook.abonnes == null ? "audience en lecture" : `${nombre(facebook.abonnes)} abonnés`) : "Page à relier"}</span></div>
-      <Link href="#calendrier" className="kpi"><span className="libelle-champ">Intentions éditoriales</span><div className="chiffre montant">{futures.length}</div><span className="mono-discret sans-majuscules">notes de travail, sans diffusion automatique</span></Link>
-      <div className={`kpi ${depassement ? "rouge" : depenses.erreur ? "ambre" : ""}`}><span className="libelle-champ">Dépenses ce mois</span><div className="chiffre montant">{argent(depenseMois)}</div><span className="mono-discret sans-majuscules">seuil d’alerte : {argent(reglages.budget_mensuel_cents)}{depenses.erreur && <span className="mt-1 block">{depenses.erreur}</span>}</span></div>
+    <div className={styles.hero}>
+      <section id="veto" className={`${styles.panel} ${styles.feature} scroll-mt-24`}><div className={styles.head}><div><p className={styles.eyebrow}>LES 5 PROCHAINES DIFFUSIONS</p><h2>{programmes.length?"Vos prochains posts":"Votre prochain post"}</h2></div><span className={styles.icon}><CalendarDays size={21} aria-hidden="true"/></span></div>
+        {programmesResultat.error?<p role="alert" className={styles.intro}>La programmation est momentanément indisponible.</p>:!programmes.length?<div className={styles.empty}><FilePenLine size={30} aria-hidden="true"/><div><h3>Aucun post programmé pour le moment</h3><p>{prochainsVides}</p><Link className={styles.link} href="/admin/publications/nouvelle">Préparer un article <ArrowUpRight size={15} aria-hidden="true"/></Link></div></div>:<div className={styles.stack}>{programmes.map(p=><VetoPost key={p.id} post={p} validationObligatoire={reglages.validation_obligatoire} diffusionActive={!reglagesResultat.error&&reglages.actif&&reglages.publication_automatique&&facebookOperationnel} quand={date(p.programmee_pour)}/>)}</div>}
+      </section>
+      <aside className={`${styles.panel} ${styles.gold}`}><p className={styles.eyebrow}>VOTRE LIGNE ÉDITORIALE</p><h2>Rythme et validation</h2><dl className="mt-4"><div className={styles.fact}><dt>Préparation</dt><dd>{preparation}</dd></div><div className={styles.fact}><dt>Jours choisis</dt><dd>{reglagesResultat.error?"—":jours}</dd></div><div className={styles.fact}><dt>Heure de publication</dt><dd>{reglagesResultat.error?"—":`${reglages.heure_paris} h · Paris`}</dd></div><div className={styles.fact}><dt>Diffusion automatique</dt><dd>{reglagesResultat.error?"À vérifier":!reglages.actif||!reglages.publication_automatique?"En pause":!facebookOperationnel?"Connexion à vérifier":reglages.validation_obligatoire?"Après votre validation":"Sauf report ou refus"}</dd></div></dl><Link className={styles.link} href="#reglages">Ajuster les réglages <Settings2 size={14} aria-hidden="true"/></Link><p className={styles.note}>Vous pouvez relire, modifier, reporter ou refuser un post. Le résultat de chaque diffusion reste attaché à l’article.</p></aside>
+    </div>
+    <section id="publications" className={styles.section}><div className={styles.sectionTitle}><div><h2>Votre atelier de contenus</h2><p>Les 100 derniers articles · ouvrez une fiche pour relire et agir.</p></div><Link className={styles.link} href="/admin/publications">Historique des articles <ArrowUpRight size={15} aria-hidden="true"/></Link></div><div className={styles.columns}>{columns.map(c=><section key={c.title} className={styles.column} data-tone={c.tone}><div className={styles.columnHead}><h3><c.icon size={16} aria-hidden="true"/>{c.title}</h3><span className={base.badge} data-tone={c.tone}>{counts(c.rows.length)}</span></div>{fileIndisponible?<p className={styles.columnEmpty}>Contenus indisponibles.</p>:!c.rows.length?<p className={styles.columnEmpty}>{c.empty}</p>:<>{c.rows.slice(0,4).map(p=><Link key={p.id} href={`/admin/publications/${p.id}`} className={styles.contentRow}>{p.facebook_image_url&&<Image unoptimized width={264} height={176} src={p.facebook_image_url} alt="Illustration de l’article" loading="lazy"/>}<strong>{p.titre}</strong><small>{p.facebook_erreur?sansJargon(p.facebook_erreur):p.facebook_post_id?`Diffusé le ${date(p.facebook_publie_le)}`:p.statut==="publiee"?"Article en ligne · diffusion Facebook à examiner":"Article et texte Facebook à relire"}</small></Link>)}{c.rows.length>4&&<Link className={`${styles.contentRow} ${styles.link}`} href="/admin/publications">Voir les autres articles <ArrowUpRight size={14} aria-hidden="true"/></Link>}</>}</section>)}</div></section>
+    <section className={styles.twoColumns}>
+      <div id="calendrier" className={`${styles.panel} scroll-mt-24`}><div className={styles.head}><div><p className={styles.eyebrow}>SUJETS À DÉVELOPPER</p><h2>Vos intentions éditoriales</h2></div><span className={base.badge}>{campagnesResultat.error?"—":futures.length}</span></div><p className={styles.intro}>Gardez vos idées, leurs objectifs et une date souhaitée. Une intention reste une note de travail jusqu’à la création d’un article.</p>{campagnesResultat.error?<p className={styles.note}>Intentions indisponibles.</p>:!futures.length?<p className={styles.note}>Aucune intention notée pour le moment.</p>:<div>{futures.map(c=><article className={styles.contentRow} key={c.id}><strong>{c.nom}</strong><small>{date(c.publication_prevue_le)} · {objectif(c.objectif)}{c.nature==="sponsorisee"?` · budget envisagé ${argent(c.budget_cents)} (sans lancement publicitaire)`:""}</small>{c.description&&<p className={styles.note}>{c.description}</p>}</article>)}</div>}<details id="programmer" className={styles.history}><summary>Noter une intention éditoriale</summary><div className="mt-3"><FormulaireCampagne objectifs={OBJECTIFS}/></div></details></div>
+      <aside id="canaux" className={`${styles.panel} scroll-mt-24`}><div className={styles.head}><div><p className={styles.eyebrow}>CONNEXIONS</p><h2>Vos canaux de diffusion</h2></div><Megaphone size={21} aria-hidden="true"/></div>{[{name:"Facebook",state:facebookOperationnel?"Relié":facebook.configure?"À vérifier":"À relier",detail:facebookOperationnel?facebook.nom??"Page Gerimmo":facebook.configure?"La lecture de la Page doit être rétablie.":"La connexion de la Page est nécessaire pour diffuser.",ok:facebookOperationnel},{name:"Meta Ads",state:metaOperationnel?"Lecture reliée":meta.configure?"À vérifier":"À relier",detail:"Mesure des campagnes existantes. Aucun achat publicitaire depuis Gerimmo.",ok:metaOperationnel},{name:"Instagram",state:"Non proposé",detail:"Ce canal n’est pas disponible actuellement.",ok:false}].map(c=><div key={c.name} className={styles.contentRow}><div className="flex items-center justify-between gap-3"><strong>{c.name}</strong><span className={base.badge} data-tone={c.ok?"vert":"gris"}>{c.state}</span></div><small>{c.detail}</small></div>)}<Link className={styles.link} href="/admin/sante">Vérifier les connexions <ArrowUpRight size={15} aria-hidden="true"/></Link></aside>
     </section>
-
-    {/* La fenêtre de veto (06/10) : le post de demain, préparé la veille,
-        attend ici jusqu'à son heure. */}
-    <section id="veto" className="section-ecran scroll-mt-6"><div className="entete-carte"><div><p className="libelle-champ">Fenêtre de veto</p><h2>Prochain post</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Préparé la veille à 18 h (texte et visuel). Vous pouvez le publier maintenant, le modifier, le reporter ou le refuser ; sinon il part à l’heure réglée.</p></div></div>
-      <div className="mt-4 space-y-4">
-        {programmes.length === 0
-          ? <p className="text-sm text-[var(--texte-secondaire)]">Aucun post en attente. Le prochain sera préparé la veille du prochain jour de publication ({jours}), à 18 h.</p>
-          : programmes.map((p) => <VetoPost key={p.id} post={p} validationObligatoire={reglages.validation_obligatoire} quand={date(p.programmee_pour)} />)}
-      </div>
-    </section>
-
-    {/* Le travail du jour d'abord (24/09) : la publication « À diffuser »
-        n'arrivait qu'au cinquième écran de téléphone. */}
-    <section id="publications" className="section-ecran scroll-mt-6"><div className="entete-carte"><div><p className="libelle-champ">Réseaux sociaux</p><h2>Publications Facebook</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">À relire, à diffuser et déjà publiées depuis Gerimmo.</p></div><Link href="/admin/publications" className="lien-discret text-sm">Tous les articles →</Link></div>{/* La liste commune de la console (nuit du 25/09) : un rang par article, tout le carré se clique. */}<div className="colonne-liste mt-4">{aRelire.slice(0, 5).map((p) => <Link key={p.id} href={`/admin/publications/${p.id}`} className="rang w-full flex-col items-stretch gap-1">{p.facebook_image_url&&<Image unoptimized width={264} height={176} src={p.facebook_image_url} alt="Illustration du sujet" loading="lazy" className="mb-3 aspect-[3/2] max-h-44 rounded-xl object-cover"/>}<div className="flex justify-between gap-2"><b>{p.titre}</b><span className="puce puce-grise">À relire</span></div><small>{p.facebook_erreur ? sansJargon(p.facebook_erreur) : "Vérifier l’article et son texte Facebook avant diffusion."}</small></Link>)}{aDiffuser.map((p) => <Link key={p.id} href={`/admin/publications/${p.id}`} className="rang w-full flex-col items-stretch gap-1">{p.facebook_image_url&&<Image unoptimized width={264} height={176} src={p.facebook_image_url} alt="Illustration du sujet" loading="lazy" className="mb-3 aspect-[3/2] max-h-44 rounded-xl object-cover"/>}<div className="flex justify-between gap-2"><b>{p.titre}</b><span className={`puce ${p.facebook_erreur ? "puce-prep" : "puce-grise"}`}>{p.facebook_erreur ? "Action requise" : "À diffuser"}</span></div><small>{p.facebook_erreur ? sansJargon(p.facebook_erreur) : "L’article est en ligne et attend sa diffusion Facebook."}</small></Link>)}{parutionsFacebook.slice(0, 10).map((p) => <Link key={p.id} href={`/admin/publications/${p.id}`} className="rang w-full flex-col items-stretch gap-1">{p.facebook_image_url&&<Image unoptimized width={264} height={176} src={p.facebook_image_url} alt="Illustration du sujet" loading="lazy" className="mb-3 aspect-[3/2] max-h-44 rounded-xl object-cover"/>}<div className="flex justify-between gap-2"><b>{p.titre}</b><span className="puce puce-loue">Publiée</span></div><small>Diffusée le {date(p.facebook_publie_le)}</small></Link>)}{aRelire.length === 0 && aDiffuser.length === 0 && parutionsFacebook.length === 0 && <p className="vide">Aucune publication Facebook pour le moment.</p>}</div></section>
-
-    {/* Deux colonnes égales (nuit du 25/09) : la doctrine « Vous gardez le
-        dernier mot » ne prend plus la place d'une carte de travail — elle se
-        replie tout en bas, avec la présentation de l'équipe. */}
-    <section className="grid gap-6 xl:grid-cols-2">
-      {/* Des intentions, pas un calendrier de diffusion (25/09) : rien ne lisait
-          ces lignes, la tuile promettait une diffusion qui n'avait pas lieu. */}
-      <div id="calendrier" className="section-ecran min-w-0 scroll-mt-6"><div className="entete-carte"><div><p className="libelle-champ">Feuille de route</p><h2>Intentions éditoriales</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Vos notes de sujets à traiter, par date visée. Elles ne sont pas diffusées automatiquement : l’agent suit son rythme hebdomadaire, et un article se crée à la main depuis « Créer un article ».</p></div></div><div className="colonne-liste mt-4">{futures.length === 0 ? <div className="vide-guide"><p className="titre">Aucune intention notée</p><p className="explication">Le rythme automatique suit les deux jours choisis dans les réglages. Les sujets que vous voulez voir traités se notent ici.</p><div className="geste"><a className="btn-secondaire" href="#programmer">Noter une intention</a></div></div> : futures.map((c) => <article key={c.id} className="p-4"><div className="flex flex-wrap justify-between gap-2"><h3 className="font-heading text-lg">{c.nom}</h3><span className="puce puce-prep">{date(c.publication_prevue_le)}</span></div><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Facebook · {c.nature === "sponsorisee" ? `sponsorisée (publicité non ouverte) · ${argent(c.budget_cents)}` : "gratuite"} · objectif : {objectif(c.objectif)}{c.statut === "planifiee" && " · notée avant le 25/09, sans diffusion automatique"}</p>{c.description && <p className="mt-2 text-sm">{c.description}</p>}</article>)}</div></div>
-      {/* Un en-tête de carte comme les autres sections (24/09) : l'action de
-          création de la page n'avait pas à se replier derrière un triangle. */}
-      <details id="programmer" className="section-ecran group min-w-0 scroll-mt-6"><summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden"><div className="entete-carte"><div><p className="libelle-champ">Nouvelle intention</p><h2>Noter une intention éditoriale</h2><p className="mt-1 text-sm leading-relaxed text-[var(--texte-secondaire)]">Le message, l’objectif et la date visée. Les campagnes payantes ne sont pas lancées depuis Gerimmo.</p></div><span className="btn-secondaire"><span className="group-open:hidden">Noter</span><span className="hidden group-open:inline">Fermer</span></span></div></summary><div className="mt-4"><FormulaireCampagne objectifs={OBJECTIFS} /></div></details>
-    </section>
-
-    <section className="section-ecran"><div className="entete-carte"><div><p className="libelle-champ">Automatisation et garde-fous</p><h2>Rythme, diffusion et seuil d’alerte</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Vous pouvez tout mettre en pause instantanément. Le seuil d’alerte surveille les dépenses Meta constatées ; Gerimmo n’engage aucune dépense publicitaire.</p></div><span className={`puce ${reglages.actif ? "puce-loue" : "puce-prep"}`}>{reglages.actif ? "Agent actif" : "En pause"}</span></div><div className="mt-4"><ReglagesAutomatiques reglages={reglages} comptePublicitaire={metaOperationnel} pageReliee={facebookOperationnel} /></div></section>
-
-    {/* L'état des canaux, en un seul endroit, avec le moyen de les relier
-        (24/09). Instagram n'a aucun réglage : il n'est pas « en pause selon
-        votre choix », il n'est pas proposé. */}
-    <section id="canaux" className="section-ecran scroll-mt-6"><div className="entete-carte"><div><p className="libelle-champ">État des connexions</p><h2>Canaux et contrôle</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">La Page Facebook permet les publications gratuites. Le compte publicitaire sert aux campagnes payantes et à leurs résultats. Chaque connexion a son propre état.</p></div></div><div className="mt-4 grid gap-4 sm:grid-cols-3">
-      <Canal nom="Facebook" relie={facebookOperationnel} detail={facebookOperationnel ? `${facebook.nom ?? "La Page Gerimmo"} peut publier sans votre présence.` : facebook.configure ? `Connexion à vérifier : ${facebook.erreur ?? "la Page ne répond pas"}.` : "À relier par la configuration du service (jeton Meta de la Page)."} />
-      <Canal nom="Meta Ads" relie={metaOperationnel} detail={metaOperationnel ? `Compte relié et statistiques en direct, seuil d’alerte de ${argent(reglages.budget_mensuel_cents)} par mois. La publicité payante n’est pas ouverte depuis Gerimmo.` : meta.configure ? "La lecture des résultats doit être rétablie. Consultez le détail ci-dessous." : "À relier par la configuration du service (compte publicitaire Meta). Facebook gratuit fonctionne sans lui."} />
-      <Canal nom="Instagram" relie={null} detail="Non proposé pour l’instant." />
-    </div></section>
-
-    {meta.configure && <section className="section-ecran"><div className="entete-carte"><div><p className="libelle-champ">Publicité payante</p><h2>Résultats Meta Ads</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Portée, clics et dépense, lus directement dans le compte publicitaire.</p></div></div>{meta.erreur ? <div className="mt-4 rounded-xl border border-[var(--warning)]/40 bg-[var(--warning-soft)] p-4"><div className="flex gap-3"><TriangleAlert className="mt-0.5 size-5 shrink-0 text-[var(--warning-soft-foreground)]" /><div><p className="font-semibold text-[var(--warning-soft-foreground)]">Lecture des résultats à terminer</p><p className="mt-1 text-sm text-[var(--warning-soft-foreground)]">{meta.erreur}</p><p className="mt-2 text-xs text-[var(--warning-soft-foreground)]">Vérifiez la connexion et son autorisation de lecture des résultats dans Meta Business. Gerimmo ne lance aucune campagne payante.</p></div></div></div> : actives.length === 0 ? <p className="vide mt-4">Compte relié. Aucune publicité active actuellement.</p> : <div className="mt-4 overflow-x-auto"><table><thead><tr><th>Campagne</th><th>Portée</th><th>Impressions</th><th>Clics</th><th>Dépense</th></tr></thead><tbody>{actives.map((c) => <tr key={c.id}><td>{c.nom}</td><td>{nombre(c.portee)}</td><td>{nombre(c.impressions)}</td><td>{nombre(c.clics)}</td><td>{argent(Math.round(c.depense * 100))}</td></tr>)}</tbody></table></div>}{anciennesMeta.length > 0 && <details className="mt-5"><summary className="cursor-pointer text-sm font-semibold text-[var(--bleu)]">Voir l’historique publicitaire ({anciennesMeta.length})</summary><div className="colonne-liste mt-3">{anciennesMeta.map((c) => <div key={c.id} className="rang w-full flex-col items-stretch text-sm"><div className="flex justify-between gap-2"><b>{c.nom}</b><span className="puce puce-grise">{ETATS_PUBLICITE[c.statut] ?? "Terminée"}</span></div><p className="mt-2 text-[var(--texte-secondaire)]">{nombre(c.portee)} personnes · {nombre(c.clics)} clics · {argent(Math.round(c.depense * 100))}</p></div>)}</div></details>}</section>}
-
-    {/* La doctrine, repliée (nuit du 25/09) : elle occupait une carte entière
-        au milieu des listes de travail. */}
-    <details className="section-ecran group"><summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden"><div className="entete-carte"><div><p className="libelle-champ">Doctrine</p><h2>Vous gardez le dernier mot</h2></div><span className="lien-discret text-sm"><span className="group-open:hidden">Afficher</span><span className="hidden group-open:inline">Masquer</span></span></div></summary><p className="mesure-lecture mt-4 text-sm">Le mode automatique diffuse deux publications par semaine avec un visuel original : Gerimmo, ses fonctionnalités, conseils et relais de la veille officielle. Vous pouvez le suspendre à tout moment. Les études internes ne sont pas publiées comme des règles vérifiées ; les posts de veille renvoient à leur source. Les développements du logiciel et les campagnes payantes restent soumis à votre accord.</p><Link href="/admin/publications" className="btn-secondaire mt-4">Examiner les propositions</Link></details>
-
-    {/* La présentation ne revient plus à chaque visite en tête de page
-        (24/09) : elle se replie tout en bas. */}
-    <details className="section-ecran group"><summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden"><div className="entete-carte"><div><p className="libelle-champ">Vos possibilités</p><h2>Ce que l’équipe marketing Gerimmo prend en charge</h2></div><span className="lien-discret text-sm"><span className="group-open:hidden">Afficher</span><span className="hidden group-open:inline">Masquer</span></span></div></summary><div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <Capacite icone={<Lightbulb className="size-5" />} titre="Stratégie éditoriale" detail="Alterner Gerimmo, gestion locative, investissement et conseils pratiques pour les particuliers, professionnels et artisans." statut="En service" operationnel />
-      <Capacite icone={<PenLine className="size-5" />} titre="Création de contenus" detail="Préparer l’article, le texte Facebook et le visuel avec une information vérifiable et une présentation cohérente." statut="En service" operationnel />
-      <Capacite icone={<Megaphone className="size-5" />} titre="Diffusion" detail="Deux sujets par semaine, un nouveau visuel par post, diffusion automatique activable ou mise en pause depuis cet écran." statut={facebookOperationnel ? "Connectée" : "À finaliser"} operationnel={facebookOperationnel} />
-      <Capacite icone={<Radar className="size-5" />} titre="Mesure et amélioration" detail="Suivre portée, clics, dépenses et campagnes afin de proposer les prochains sujets et arbitrages." statut={metaOperationnel ? "En direct" : "Autorisation à terminer"} operationnel={metaOperationnel} />
-    </div></details>
-    <ActualisationAuto actualiseLe={new Date().toISOString()} />
+    <details id="reglages" className={styles.fold}><summary><span className={styles.icon}><Settings2 size={20} aria-hidden="true"/></span><div><h2>Réglages de préparation et de diffusion</h2><p>Jours, validation, mots-clés et seuil d’alerte sur les dépenses.</p></div><ChevronDown size={18} aria-hidden="true"/></summary><div className={styles.foldBody}><p className={`${styles.intro} mb-4`}>Le seuil compare les dépenses Meta constatées : il alerte sans bloquer ni engager de dépense. Les limites et l’arrêt du service restent applicables.</p>{reglagesResultat.error?<p role="alert" className="err">Les réglages doivent être relus avant toute modification.</p>:<ReglagesAutomatiques reglages={reglages} comptePublicitaire={metaOperationnel} pageReliee={facebookOperationnel}/>}</div></details>
+    <section id="resultats" className={`${styles.panel} ${styles.section}`}><div className={styles.head}><div><p className={styles.eyebrow}>MESURER LE RÉSULTAT</p><h2>Résultats publicitaires</h2><p>Portée, clics et dépenses des campagnes Meta existantes.</p></div><Wallet size={21} aria-hidden="true"/></div>{!meta.configure?<p className={styles.intro}>Reliez le compte publicitaire pour consulter ses résultats. Aucune performance n’est estimée à partir des seuls contenus publiés.</p>:meta.erreur?<p role="alert" className="err">{meta.erreur}</p>:!actives.length?<p className={styles.intro}>Compte relié. Aucune publicité active actuellement.</p>:<div className="tableau-defilant" role="group" aria-label="Résultats Meta" tabIndex={0}><table><thead><tr><th>Campagne</th><th>Portée</th><th>Impressions</th><th>Clics</th><th>Dépense</th></tr></thead><tbody>{actives.map(c=><tr key={c.id}><td>{c.nom}</td><td>{nombre(c.portee)}</td><td>{nombre(c.impressions)}</td><td>{nombre(c.clics)}</td><td>{argent(Math.round(c.depense*100))}</td></tr>)}</tbody></table></div>}{anciennesMeta.length>0&&<details className={styles.history}><summary>Historique publicitaire ({anciennesMeta.length})</summary>{anciennesMeta.map(c=><div key={c.id} className={styles.contentRow}><strong>{c.nom} · {ETATS_PUBLICITE[c.statut]??"Terminée"}</strong><small>{nombre(c.portee)} personnes · {nombre(c.clics)} clics · {argent(Math.round(c.depense*100))}</small></div>)}</details>}</section>
+    <p className={styles.note}>Les propositions, articles, diffusions et notes de travail gardent leurs validations existantes. Les services d’IA peuvent être facturés lors de la création de textes et de visuels. <Link href="/admin/relais" className="underline">Consulter les limites d’utilisation</Link>.</p>
+    <ActualisationAuto actualiseLe={new Date().toISOString()}/>
   </main>;
 }

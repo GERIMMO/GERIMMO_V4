@@ -1,3 +1,4 @@
+import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
 import { AFournir, Article, CoquilleLegale, TableauPrestataires } from "@/components/coquille-legale";
 import { courrielDeContact, documentsIncomplets, prestatairesIncomplets } from "@/lib/editeur";
@@ -22,18 +23,19 @@ export const metadata = metadonneesPubliques({
 // produit ne fait pas — publicité, revente, lecture de comptes bancaires —
 // est dit aussi. Une relecture par un conseil reste prévue avant que
 // l'encadré « en cours de finalisation » ne disparaisse.
-export default function PageConfidentialite() {
+export default async function PageConfidentialite() {
+  const {editeur:EDITEUR,indisponible}=await lireEditeur();
   // 29/09 : les droits ne s'exercent plus par le formulaire de devis de
   // l'accueil (une demande commerciale) : « Aide et retours » pour qui a un
   // compte, l'adresse de contact de l'éditeur pour tous, dès qu'elle est
   // fournie (lib/editeur.ts).
-  const contact = courrielDeContact();
+  const contact = courrielDeContact(EDITEUR);
   return (
     <CoquilleLegale
       titre="Confidentialité"
       chapo="Ce que nous faisons de vos données, et ce que nous n'en faisons pas."
       chemin="/confidentialite"
-      incomplet={documentsIncomplets() || prestatairesIncomplets()}
+      incomplet={(indisponible || documentsIncomplets(EDITEUR)) || prestatairesIncomplets()}
     >
       <Article titre="Qui est responsable de quoi">
         <p>

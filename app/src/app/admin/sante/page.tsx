@@ -1,3 +1,4 @@
+import {lireEditeur} from '@/lib/editeur-serveur';
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -73,7 +74,8 @@ const OU_OBTENIR: Record<Prestataire, string> = {
 export default async function PageSante() {
   const supabase = await createClient();
   // Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond.
-  const manquants = faitsManquants();
+  const identite=await lireEditeur();
+  const manquants = faitsManquants(identite.indisponible?{}:identite.editeur);
   // Les adresses de l'alerte du relais (réglage du serveur), affichées masquées seulement.
   const relais = adressesRelaisDuServeur();
   // Le même calcul que /admin et /admin/brief (25/09) : une seule requête du
@@ -195,7 +197,7 @@ export default async function PageSante() {
         ) : (
           <ul className="colonne-liste">
             {taches.map((t) => (
-              <li key={t.nom} className="rang w-full flex-wrap items-start gap-y-2">
+              <li key={t.nom} id={t.nom === "sauvegarde" ? "sauvegarde" : undefined} className="rang w-full flex-wrap items-start gap-y-2 scroll-mt-6">
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-baseline gap-x-2">
                     <span className="font-medium text-[var(--encre)]">{t.libelle}</span>

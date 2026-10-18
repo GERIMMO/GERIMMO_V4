@@ -1,3 +1,5 @@
+import { LectureIndisponible } from "../../lecture-indisponible";
+import { formaterDateParis } from "@/lib/heure-paris";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -21,12 +23,13 @@ const ETATS: Record<string, string> = {
 export default async function PagePublication({ params }: PageProps<"/admin/publications/[id]">) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: p } = await supabase
+  const { data: p, error } = await supabase
     .from("publications")
     .select("id, titre, slug, chapo, corps, seo_description, statut, sources, periode, veine, publie_le, facebook_texte, facebook_image_url, facebook_post_id, facebook_publie_le, facebook_erreur")
     .eq("id", id)
     .maybeSingle();
 
+  if (error) return <main className="p-4 sm:p-7"><LectureIndisponible sujet="Article" retour={`/admin/publications/${id}`} /></main>;
   if (!p) notFound();
   // L'en-tête dit l'écran et l'état de l'article (24/09) : il répétait le
   // titre, premier champ éditable 60 px plus bas, sans suivre sa saisie, et
@@ -34,7 +37,7 @@ export default async function PagePublication({ params }: PageProps<"/admin/publ
   const periode = libellePeriode(p.periode);
   const etat =
     p.statut === "publiee"
-      ? `Paru${p.publie_le ? ` le ${new Date(p.publie_le).toLocaleDateString("fr-FR")}` : ""}`
+      ? `Paru${p.publie_le ? ` le ${formaterDateParis(p.publie_le)}` : ""}`
       : ETATS[p.statut] ?? "Brouillon";
 
   return (

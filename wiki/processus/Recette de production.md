@@ -16,10 +16,19 @@ ce que le banc a prouvé tient en production.
 
 ## Règle actuelle — cinq comptes fixes (17 octobre 2026)
 
+### Aperçu local du superadmin — environnement distinct à conserver
+
+Le 17 octobre, le dirigeant demande aussi de conserver le compte local `superadmin@gerimmo-demo.fr` pour les futurs essais visuels, sans double authentification dans cet aperçu. Le même compte et son identifiant sont copiés dans la base dédiée `gerimmo_ci_apercu_permanent`, port local 55439. Elle est stockée durablement dans `work/environnement-local-permanent/postgres` à la racine de la conversation, avec une sauvegarde initiale. **Aucun reset, seed ou nettoyage de recette ne doit cibler cette base.** Ne pas supprimer ou recréer ce compte entre deux essais.
+
+Le lanceur de l'aperçu est `outputs/superadmin-visuel/local/demarrer.mjs`, URL `http://localhost:3102/admin/brief`. L'exception au code MFA réside exclusivement dans l'émulateur E2E, sous un drapeau explicite ; elle exige le mode développement, le compte fictif exact et des adresses locales pour le site, l'API et la base. Aucun changement dans les gardes de l'application, les sessions réelles ou la production. Les cinq identités de recette de production décrites ci-dessous restent distinctes.
+
+### Recette publiée
+
 À la demande explicite du dirigeant, les cinq identités de test sont désormais
 conservées entre les évolutions : administrateur d'agence, propriétaire, locataire,
-artisan et supervision. La PR #201 met cette règle en place ; sa validation en
-production reste à confirmer dans [[Mission du 16 octobre — suivi vérifié]].
+artisan et supervision. La PR #201 met cette règle en place ; la recette n°24 (39022945703) confirme
+49 scénarios réussis et les cinq mêmes comptes présents après clôture. Preuves :
+[[Mission du 16 octobre — suivi vérifié]].
 
 - Les adresses et identifiants restent les mêmes. La fin d'un contrôle ne les supprime plus.
 - Au début du contrôle suivant, seuls leurs dossiers fictifs sont remis à zéro,

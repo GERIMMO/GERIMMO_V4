@@ -1,3 +1,7 @@
+import { ArrowUpRight, CheckCheck, ClipboardCheck, FileCheck2, History, Info, MapPinned, ShieldCheck, Users, Wrench } from "lucide-react";
+import shared from "../repertoires.module.css";
+import styles from "../relation-clients.module.css";
+import { initiales } from "@/lib/clients-supervision";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -7,7 +11,7 @@ import { DecisionArtisan } from "./decision-artisan";
 import { RetourDecisionsArtisan } from "./retour-decisions";
 
 // Le nom de l'entrée de menu (audit 25/09, C8).
-export const metadata = { title: "Artisans à valider" };
+export const metadata = { title: "Réseau d’artisans" };
 
 type Inscription = { artisan_id: string; raison_sociale: string; siret: string; siret_etat: string; telephone: string | null; email: string | null; metiers: string[] | null; nb_pieces: number; decennale_valide: boolean; rc_pro_deposee: boolean; inscrit_le: string; purge_prevue_le: string | null };
 type Piece = { id: string; artisan_id: string; type: string; expire_le: string | null };
@@ -48,40 +52,65 @@ export default async function InscriptionsArtisan({ searchParams }: {
     ? await supabase.from("artisan_pieces").select("id, artisan_id, type, expire_le").in("artisan_id", inscriptions.map((a) => a.artisan_id)).is("retiree_le", null)
     : { data: [], error: null };
 
-  return <RetourDecisionsArtisan><main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-    {/* 24/09 : même retour vers la liste que les fiches artisan et organisation,
-        rattachées elles aussi à l'entrée « Clients ». La note à liseré qui
-        suivait l'en-tête est fondue dans sa phrase d'appui : un seul bloc ;
-        mesure-lecture garde la mention « en attente » à droite du titre. */}
-    {/* Pas de « ← Tous les clients » (audit 25/09, C14) : la page est rangée
-        sous « Dossiers et décisions », le menu suffit. */}
-    <div className="entete-page mb-6"><div><TitreEcran rubrique="incidents">Artisans à valider</TitreEcran><p className="mesure-lecture mt-2 text-sm text-[var(--texte-secondaire)]">Vérifiez l’entreprise, relisez les justificatifs, puis prenez une décision motivée. La validation ne modifie ni la visibilité choisie par l’artisan, ni les contrôles d’assurance appliqués à chaque intervention.</p></div><span className="mono-discret">{file.error ? "File indisponible" : `${inscriptions.length} en attente`}</span></div>
-    <p className="mb-5 text-sm">Valider un artisan n’ouvre aucune zone. <Link href="/admin/couverture" className="underline">Rattacher ses communes et décider de l’ouverture du réseau →</Link></p>
-    {file.error ? <p role="alert" className="vide">Impossible de charger les inscriptions. Rechargez pour réessayer.</p> : inscriptions.length === 0 ? <div className="vide-guide"><p className="titre">Aucune inscription en attente</p><p className="explication">Les nouvelles inscriptions apparaîtront ici pour examen.</p><div className="geste"><Link href="/admin/clients" className="btn-secondaire">Voir les artisans inscrits</Link></div></div> : <div className="space-y-5">{inscriptions.map((artisan) => <section key={artisan.artisan_id} className="border border-[var(--filet)] bg-[var(--ivoire)] p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="font-heading text-xl text-[var(--encre)]">{artisan.raison_sociale}</h2><p className="mt-1 text-sm">{(artisan.metiers ?? []).map((m) => METIERS[m] ?? m).join(" · ") || "Métier non renseigné"}</p>{(invitePar.get(artisan.artisan_id) ?? []).map((i, n) => <p key={n} className="mt-1 text-sm text-[var(--texte-secondaire)]">Invité par {nomInvitant(i.organisation) ?? "un propriétaire (nom masqué : il contient un lien, un numéro ou le nom de Gerimmo)"}{i.acceptee ? "" : " (invitation pas encore acceptée)"}</p>)}</div><span className="puce puce-prep">Depuis le {date(artisan.inscrit_le)}</span></div>
-      <dl className="my-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="libelle-champ">SIRET</dt><dd>{artisan.siret} · {ETATS_SIRET[artisan.siret_etat] ?? artisan.siret_etat}</dd></div><div><dt className="libelle-champ">Contact</dt><dd>{artisan.email || "Email non renseigné"}{artisan.telephone && ` · ${artisan.telephone}`}</dd></div></dl>
-      {artisan.siret_etat !== "verifie" && <div className="mb-4 border border-[var(--filet)] p-3"><DecisionArtisan artisanId={artisan.artisan_id} operation="verifier_siret" /></div>}
-      <details className="mb-4 border border-[var(--filet)] p-3" open><summary className="cursor-pointer font-medium">Justificatifs · {artisan.nb_pieces} pièce{artisan.nb_pieces > 1 ? "s" : ""}</summary><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Décennale {artisan.decennale_valide ? "en cours de validité" : "absente ou échue"} · RC pro {artisan.rc_pro_deposee ? "déposée, non échue" : "absente ou échue"}. Les dates ne remplacent pas la relecture du document.</p>
-        {pieces.error ? <p role="alert" className="mt-2 text-sm text-[var(--destructive)]">Les justificatifs sont indisponibles. Réessayez avant de décider.</p> : <ul className="mt-3 space-y-2">{((pieces.data ?? []) as Piece[]).filter((p) => p.artisan_id === artisan.artisan_id).map((p) => <li key={p.id} className="text-sm"><a href={`/admin/artisans/pieces/${p.id}/fichier`} target="_blank" rel="noopener noreferrer" className="lien-discret">Ouvrir {PIECES_ARTISAN[p.type] ?? p.type}</a><span className="ml-2 text-[var(--texte-secondaire)]">{p.expire_le ? `Échéance : ${date(p.expire_le)}` : "Sans échéance"}</span></li>)}</ul>}
-      </details>
-      {pieces.error ? null : <DecisionArtisan artisanId={artisan.artisan_id} operation="validation" siretVerifie={artisan.siret_etat === "verifie"} />}
-      <details className="mt-4 border-t border-[var(--filet)] pt-3"><summary className="cursor-pointer text-sm">Refuser cette inscription</summary><div className="mt-3"><DecisionArtisan artisanId={artisan.artisan_id} operation="refus" /></div></details>
-      {artisan.purge_prevue_le && <p className="mt-3 text-xs text-[var(--texte-secondaire)]">Sans suite, échéance de conservation prévue le {date(artisan.purge_prevue_le)}.</p>}
-    </section>)}</div>}
-    {/* 24/09 : ouvert d'emblée. Sans inscription en attente, l'historique est
-        le seul contenu de l'écran ; le replier coûtait un clic à chaque visite. */}
-    <details id="decisions" open className="mt-7 border border-[var(--filet)] bg-[var(--ivoire)] p-4">
-      <summary className="cursor-pointer font-heading text-lg">Décisions récentes</summary>
-      <p className="mt-2 text-xs text-[var(--texte-secondaire)]">Les inscriptions validées ou refusées, de la plus récente à la plus ancienne. Un refus peut être réexaminé.</p>
-      {decisions.error ? <p role="alert" className="mt-3 text-sm text-[var(--destructive)]">Historique indisponible. Les décisions ne peuvent pas être consultées pour le moment. <Link href="/admin/artisans?page=1#decisions" className="lien-discret">Réessayer</Link></p> : <>
-        <p className="mt-3 text-xs text-[var(--texte-secondaire)]">{totalDecisions} inscription{totalDecisions === 1 ? "" : "s"} traitée{totalDecisions === 1 ? "" : "s"}</p>
-        {totalDecisions === 0 ? <p className="mt-2 text-sm text-[var(--texte-secondaire)]">Aucune inscription validée ou refusée pour le moment.</p> : <ul className="mt-3 space-y-4">{((decisions.data ?? []) as Decision[]).map((a) => <li key={a.id} className="border-t border-[var(--filet)] pt-3 text-sm"><p><b>{a.raison_sociale}</b> · {a.statut_plateforme === "valide" ? "Validée" : "Refusée"}{a.statut_decide_le && ` le ${date(a.statut_decide_le)}`}</p>{a.statut_motif && <p className="mt-1 whitespace-pre-wrap text-[var(--texte-secondaire)]">{a.statut_motif}</p>}{a.statut_plateforme === "refuse" && <div className="mt-2"><DecisionArtisan artisanId={a.id} operation="remise_en_attente" /></div>}</li>)}</ul>}
-        {nombrePages > 1 && <nav aria-label="Pagination des décisions" className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--filet)] pt-3 text-sm">
-          {pageDecisions > 1 ? <Link href={`/admin/artisans?page=${pageDecisions - 1}#decisions`} rel="prev" className="lien-discret">Précédent</Link> : <span className="text-[var(--texte-secondaire)]">Précédent</span>}
-          <span aria-current="page" className="text-[var(--texte-secondaire)]">Page {pageDecisions} sur {nombrePages}</span>
-          {pageDecisions < nombrePages ? <Link href={`/admin/artisans?page=${pageDecisions + 1}#decisions`} rel="next" className="lien-discret">Suivant</Link> : <span className="text-[var(--texte-secondaire)]">Suivant</span>}
-        </nav>}
-      </>}
-    </details>
+  const siretsAVerifier = inscriptions.filter(a => a.siret_etat !== "verifie").length;
+  return <RetourDecisionsArtisan><main className={shared.page}>
+    <header className={shared.header}>
+      <div><p className={shared.eyebrow}>PARTENAIRES DE GERIMMO</p><TitreEcran rubrique="incidents">Réseau d’artisans</TitreEcran><p className={shared.subtitle}>Examinez les nouvelles entreprises et retrouvez vos décisions, au même endroit.</p></div>
+      <Link href="/admin/couverture" className="btn-or"><MapPinned size={16} aria-hidden="true" />Couverture du réseau</Link>
+    </header>
+    <div className={shared.stats} data-columns="3" aria-label="Suivi des inscriptions artisan">
+      <a href="#inscriptions" className={shared.stat} data-tone="ambre"><span className={shared.statIcon}><ClipboardCheck size={20} aria-hidden="true" /></span><strong>{file.error ? "—" : inscriptions.length}</strong><span>Inscriptions à examiner</span><small>{file.error ? "Lecture indisponible" : "Dans la file de validation"}</small></a>
+      <a href="#inscriptions" className={shared.stat}><span className={shared.statIcon}><ShieldCheck size={20} aria-hidden="true" /></span><strong>{file.error ? "—" : siretsAVerifier}</strong><span>SIRET à vérifier</span><small>Parmi les inscriptions en attente</small></a>
+      <a href="#decisions" className={shared.stat} data-tone="vert"><span className={shared.statIcon}><History size={20} aria-hidden="true" /></span><strong>{totalDecisions ?? "—"}</strong><span>Inscriptions traitées</span><small>Validées ou refusées</small></a>
+    </div>
+    <div className={styles.layout}>
+      <div className={styles.mainColumn}>
+        <section id="inscriptions" className={styles.panel} aria-labelledby="inscriptions-titre">
+          <div className={styles.panelHeading}><div><h2 id="inscriptions-titre">Les inscriptions à examiner</h2><p>L’identité de l’entreprise, ses justificatifs, puis votre décision.</p></div><ClipboardCheck size={20} aria-hidden="true" /></div>
+          {file.error ? <p role="alert" className={styles.notice}>Impossible de charger les inscriptions. Rechargez pour réessayer.</p> : inscriptions.length === 0 ? <div className={styles.empty}><CheckCheck size={28} aria-hidden="true" /><h3>Aucune inscription en attente</h3><p>Les nouvelles entreprises apparaîtront ici pour examen. Vous pouvez consulter les artisans déjà inscrits dans l’annuaire.</p><Link href="/admin/clients">Ouvrir l’annuaire <ArrowUpRight size={15} aria-hidden="true" /></Link></div> : <>
+            {invitations.error && <p role="alert" className={styles.notice}>L’origine des invitations est momentanément indisponible.</p>}
+            <div className={styles.queue}>{inscriptions.map(artisan => <article key={artisan.artisan_id} className={styles.application}>
+              <header className={styles.applicationHeader}>
+                <span className={shared.avatar} data-family="artisan" aria-hidden="true">{initiales(artisan.raison_sociale)}</span>
+                <div className={styles.applicationIdentity}><h3>{artisan.raison_sociale}</h3><p>{(artisan.metiers ?? []).map(m => METIERS[m] ?? m).join(" · ") || "Métier non renseigné"}</p>{(invitePar.get(artisan.artisan_id) ?? []).map((i,n) => <p key={n}>Invité par {nomInvitant(i.organisation) ?? "un propriétaire (nom masqué : il contient un lien, un numéro ou le nom de Gerimmo)"}{i.acceptee ? "" : " (invitation pas encore acceptée)"}</p>)}</div>
+                <time dateTime={artisan.inscrit_le}>Inscrit le {date(artisan.inscrit_le)}</time>
+              </header>
+              <div className={styles.applicationBody}>
+                <h4 className={styles.checkTitle}><Wrench size={16} aria-hidden="true" />1. L’entreprise</h4>
+                <dl className={styles.identityDetails}>
+                  <div><dt>SIRET</dt><dd>{artisan.siret}<span className={shared.badge} data-tone={artisan.siret_etat === "verifie" ? "vert" : artisan.siret_etat === "invalide" ? "rouge" : "ambre"}>{ETATS_SIRET[artisan.siret_etat] ?? artisan.siret_etat}</span></dd></div>
+                  <div><dt>Contact</dt><dd>{artisan.email || "E-mail non renseigné"}{artisan.telephone && <><br />{artisan.telephone}</>}</dd></div>
+                </dl>
+                {artisan.siret_etat !== "verifie" && <DecisionArtisan artisanId={artisan.artisan_id} operation="verifier_siret" />}
+                <section className={styles.check} aria-label={`Justificatifs de ${artisan.raison_sociale}`}>
+                  <h4 className={styles.checkTitle}><FileCheck2 size={16} aria-hidden="true" />2. Les justificatifs <span className={shared.badge}>{artisan.nb_pieces} pièce{artisan.nb_pieces > 1 ? "s" : ""}</span></h4>
+                  <div className={styles.documentStates}><span className={shared.badge} data-tone={artisan.decennale_valide ? "vert" : "ambre"}>Décennale · {artisan.decennale_valide ? "en cours de validité" : "absente ou échue"}</span><span className={shared.badge} data-tone={artisan.rc_pro_deposee ? "vert" : "ambre"}>RC pro · {artisan.rc_pro_deposee ? "déposée, non échue" : "absente ou échue"}</span></div>
+                  <p className={styles.subtle}>Les dates ne remplacent pas la relecture des documents.</p>
+                  {pieces.error ? <p role="alert" className="err mt-3">Les justificatifs sont indisponibles. Réessayez avant de décider.</p> : <ul className={styles.documents}>{((pieces.data ?? []) as Piece[]).filter(p => p.artisan_id === artisan.artisan_id).map(p => <li key={p.id}><a href={`/admin/artisans/pieces/${p.id}/fichier`} target="_blank" rel="noopener noreferrer">{PIECES_ARTISAN[p.type] ?? p.type}<ArrowUpRight size={13} aria-hidden="true" /><span className="sr-only"> (nouvel onglet)</span></a><span>{p.expire_le ? `Échéance : ${date(p.expire_le)}` : "Sans échéance"}</span></li>)}</ul>}
+                </section>
+                <section className={styles.decisionArea} aria-label={`Décider pour ${artisan.raison_sociale}`}><h4 className={styles.checkTitle}><ClipboardCheck size={16} aria-hidden="true" />3. Votre décision</h4>{pieces.error ? <p className={styles.subtle}>La validation reste indisponible tant que les justificatifs ne peuvent pas être consultés.</p> : <DecisionArtisan artisanId={artisan.artisan_id} operation="validation" siretVerifie={artisan.siret_etat === "verifie"} />}<details className={styles.refusal}><summary>Refuser cette inscription</summary><div><DecisionArtisan artisanId={artisan.artisan_id} operation="refus" /></div></details></section>
+                {artisan.purge_prevue_le && <p className={`${styles.subtle} mt-4`}>Sans suite, échéance de conservation prévue le {date(artisan.purge_prevue_le)}.</p>}
+              </div>
+            </article>)}</div>
+          </>}
+        </section>
+        <section id="decisions" className={styles.panel} aria-labelledby="decisions-titre">
+          <div className={styles.panelHeading}><div><h2 id="decisions-titre">Vos décisions récentes</h2><p>De la plus récente à la plus ancienne. Une inscription refusée peut être réexaminée.</p></div><History size={20} aria-hidden="true" /></div>
+          {decisions.error ? <p role="alert" className={styles.notice}>Historique indisponible. <Link href="/admin/artisans?page=1#decisions" className="underline">Réessayer</Link></p> : <>
+            {totalDecisions === 0 ? <p className={styles.pastEmpty}>Aucune inscription validée ou refusée pour le moment. Vos prochaines décisions seront conservées ici.</p> : <ul className={styles.pastDecisions}>{((decisions.data ?? []) as Decision[]).map(a => <li key={a.id}><div className={styles.pastDecisionHeading}><strong>{a.raison_sociale}{a.statut_decide_le && <time dateTime={a.statut_decide_le}>{date(a.statut_decide_le)}</time>}</strong><span className={shared.badge} data-tone={a.statut_plateforme === "valide" ? "vert" : "rouge"}>{a.statut_plateforme === "valide" ? "Validée" : "Refusée"}</span></div>{a.statut_motif && <p>{a.statut_motif}</p>}{a.statut_plateforme === "refuse" && <div><DecisionArtisan artisanId={a.id} operation="remise_en_attente" /></div>}</li>)}</ul>}
+            {nombrePages > 1 && <nav aria-label="Pagination des décisions" className={shared.pagination}>
+              {pageDecisions > 1 ? <Link href={`/admin/artisans?page=${pageDecisions - 1}#decisions`} rel="prev">Précédent</Link> : <span />}
+              <span aria-current="page">Page {pageDecisions} sur {nombrePages}</span>
+              {pageDecisions < nombrePages ? <Link href={`/admin/artisans?page=${pageDecisions + 1}#decisions`} rel="next">Suivant</Link> : <span />}
+            </nav>}
+          </>}
+        </section>
+      </div>
+      <aside className={styles.sidebar} aria-label="Développement du réseau">
+        <section className={styles.networkCard}><MapPinned size={29} aria-hidden="true" /><p className={styles.eyebrow}>LE RÉSEAU SUR LE TERRAIN</p><h2>Chaque zone<br />se prépare.</h2><p>Rattachez les communes des artisans, puis décidez des zones à ouvrir.</p><Link href="/admin/couverture">Voir la couverture <ArrowUpRight size={16} aria-hidden="true" /></Link></section>
+        <section className={styles.guide}><p className={styles.eyebrow}>VOTRE EXAMEN</p><h2>Trois points de contrôle</h2><ol><li><div><strong>L’identité de l’entreprise</strong><span>Vérifier le SIRET et les coordonnées.</span></div></li><li><div><strong>Les justificatifs</strong><span>Relire les pièces et leurs dates.</span></div></li><li><div><strong>Une décision tracée</strong><span>Valider ou préciser le motif du refus.</span></div></li></ol><Link href="/admin/clients"><Users size={15} aria-hidden="true" />Consulter l’annuaire<ArrowUpRight size={15} aria-hidden="true" /></Link></section>
+      </aside>
+    </div>
+    <p className={styles.context}><Info size={15} aria-hidden="true" /><span>La validation d’un artisan n’ouvre aucune zone et conserve sa visibilité choisie. Les contrôles d’assurance restent appliqués à chaque intervention.</span></p>
   </main></RetourDecisionsArtisan>;
 }

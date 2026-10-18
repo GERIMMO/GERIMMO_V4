@@ -7,10 +7,10 @@ vi.mock("@/lib/controle-effets",()=>({verifierAvantEffet:m.garde}));
 import { synchroniserCircuitSignatureBail } from "@/lib/signature-bail-worker";
 const config={prestataire:"youtrust" as const,cleApi:"test",environnement:"sandbox" as const,baseUrl:"https://api.example.test"};
 const parties=[{externalId:"s1",prenom:"Alice",nom:"Test",email:"alice@example.test"},{externalId:"s2",prenom:"Benoit",nom:"Test",email:"benoit@example.test"}];
-function base(etat="en_cours",environnement="sandbox",prestataire="youtrust",modele="bail") {
+function base(etat="en_cours",environnement="sandbox",prestataire="youtrust",modele="bail",signataires=parties) {
  const rpc=vi.fn(async(n:string,..._params:unknown[])=>({data:n==="verrouiller_signature_bail"?true:"document-signe",error:null}));
  const update=vi.fn(()=>query);
- const query={select:vi.fn(()=>query),eq:vi.fn(()=>query),single:vi.fn(async()=>({data:{id:"circuit",prestataire,modele,organization_id:"org",environnement,etat,external_request_id:"req",external_document_id:"doc",signataires:parties},error:null})),update,then:(resolve:(v:unknown)=>void)=>Promise.resolve({error:null}).then(resolve)};
+ const query={select:vi.fn(()=>query),eq:vi.fn(()=>query),single:vi.fn(async()=>({data:{id:"circuit",prestataire,modele,organization_id:"org",environnement,etat,external_request_id:"req",external_document_id:"doc",signataires},error:null})),update,then:(resolve:(v:unknown)=>void)=>Promise.resolve({error:null}).then(resolve)};
  const upload=vi.fn(async(_path:string,_contenu:Uint8Array,_options:unknown)=>({error:null}));
  const db={rpc,from:vi.fn(()=>query),storage:{from:vi.fn(()=>({upload}))}};
  return {db:db as unknown as SupabaseClient,rpc,update,upload};
@@ -92,4 +92,21 @@ it("archive l’offre artisan complète avec l’acceptation, sans réassembler 
  await synchroniserCircuitSignatureBail(b.db,cfg,"circuit");
  expect(m.zohoDossier).toHaveBeenCalledWith(cfg,"req");expect(m.zohoPdf).not.toHaveBeenCalled();
  expect(b.upload.mock.calls[0][1]).toEqual(new TextEncoder().encode("%PDF-offre-et-acceptation"));
+});
+
+const mentionTest="Je m'engage en qualité de caution " + "mention complète du test ".repeat(12);
+it.each(["ok","",undefined,"Je m'engage"])("ne classe pas un cautionnement malgré toutes les signatures si la mention vaut %s",async mention=>{
+ const b=base("en_cours","sandbox","zoho","cautionnement",parties.map((s,i)=>({...s,qualite:i===0?"Garant":"Propriétaire",mentionCaution:i===0?mentionTest:undefined})));
+ m.zohoLire.mockResolvedValue({id:"req",external_id:"circuit",status:"done",signers:parties.map(s=>({id:s.externalId,email:s.email,status:"signed",mentions:[mention]}))});
+ await synchroniserCircuitSignatureBail(b.db,{prestataire:"zoho",environnement:"sandbox",clientId:"test",clientSecret:"test",refreshToken:"test"},"circuit");
+ expect(b.upload).not.toHaveBeenCalled();
+ expect(b.update).toHaveBeenCalledWith(expect.objectContaining({etat:"a_verifier",erreur:expect.stringContaining("OK")}));
+ expect(b.rpc.mock.calls.some(([n])=>n==="archiver_signature_bail")).toBe(false);
+});
+it("classe la caution seulement si la mention personnelle correspond au texte figé",async()=>{
+ const b=base("en_cours","sandbox","zoho","cautionnement",parties.map((s,i)=>({...s,qualite:i===0?"Garant":"Propriétaire",mentionCaution:i===0?mentionTest:undefined})));
+ m.zohoLire.mockResolvedValue({id:"req",external_id:"circuit",status:"done",signers:parties.map(s=>({id:s.externalId,email:s.email,status:"signed",mentions:[mentionTest]}))});
+ m.zohoPdf.mockResolvedValue(new TextEncoder().encode("%PDF-caution"));m.zohoPreuve.mockResolvedValue(new TextEncoder().encode("%PDF-preuve"));
+ await synchroniserCircuitSignatureBail(b.db,{prestataire:"zoho",environnement:"sandbox",clientId:"test",clientSecret:"test",refreshToken:"test"},"circuit");
+ expect(b.rpc.mock.calls.some(([n])=>n==="archiver_signature_bail")).toBe(true);
 });

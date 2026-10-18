@@ -2,6 +2,7 @@ import { telechargerDossierSigneZoho } from "./zoho-sign";
 import { createHash, randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CircuitBail } from "./signature-bail";
+import { ERREUR_MENTION_CAUTION, mentionCautionConforme } from "./mention-caution";
 import { verifierAvantEffet } from "./controle-effets";
 import { lireDemandeSignature, telechargerDocumentSignature, telechargerPreuveSignature, type ConfigurationSignature } from "./signature-prestataire";
 
@@ -31,6 +32,19 @@ export async function synchroniserCircuitSignatureBail(db: SupabaseClient, confi
       return !distantSigner || !("email" in distantSigner) || String(distantSigner.email).toLowerCase() !== s.email.toLowerCase();
     })) throw new Error("Un destinataire a changé chez Zoho Sign. Le dossier doit être vérifié.");
     const parties = circuit.signataires.map(s=>({...s,statut:distant.signers.find(p=>p.id===s.externalId)!.status}));
+    if (circuit.modele === "cautionnement" && (distant.status === "done" || parties.some(s=>s.qualite === "Garant" && s.statut === "signed"))) {
+      const garants = parties.filter(s=>s.qualite === "Garant");
+      const mentionValide = config.prestataire === "zoho" && garants.length === 1 && garants.every(s=>{
+        const p = distant.signers.find(p=>p.id===s.externalId);
+        const mentions = p && "mentions" in p && Array.isArray(p.mentions) ? p.mentions : [];
+        return mentions.length === 1 && mentionCautionConforme(s.mentionCaution,mentions[0]);
+      });
+      if (!mentionValide && !["canceled","deleted","expired","declined","rejected"].includes(distant.status)) {
+        const refus = await db.from("bail_signature_circuits").update({signataires:parties,etat:"a_verifier",erreur:ERREUR_MENTION_CAUTION,updated_at:new Date().toISOString()}).eq("id",id).eq("verrou_jeton",jeton);
+        if (refus.error) throw new Error("Le contrôle de la mention ne peut pas être enregistré.");
+        return; // Pas d'archive validée, même si le prestataire déclare toutes les signatures finies.
+      }
+    }
     const etat: CircuitBail["etat"] = distant.status === "done" ? "en_cours"
       : distant.status === "canceled" || distant.status === "deleted" ? "annule"
       : distant.status === "expired" ? "expire"

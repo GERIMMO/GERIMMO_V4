@@ -1,3 +1,4 @@
+import { texteMentionCaution, expressionSaisieMentionCaution } from "@/lib/mention-caution";
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { activerDemandeZoho, annulerDemandeZoho, configurationZohoSign, lireDemandeZoho, preparerCircuitZoho, supprimerBrouillonZoho, telechargerDocumentSigneZoho, telephoneZoho, webhookZohoValide, type ConfigurationZohoSign } from "@/lib/zoho-sign";
@@ -6,6 +7,7 @@ import { configurationSignatureBail, configurationSuiviSignatureBail } from "@/l
 let config: ConfigurationZohoSign;
 let compteur = 0;
 const parties = [{ prenom:"Alice", nom:"Test", email:"alice@example.test", telephone:"+33600000001" }, { prenom:"Benoit", nom:"Test", email:"benoit@example.test", telephone:"+32470123456" }];
+const mention=texteMentionCaution({caution:"Alice Test",locataires:"Benoit Test",plafond:"mille euros (1 000,00 €)",solidaire:true});
 const id = "11000000000001", doc = "11000000000002";
 const dossier = () => ({ request_id:id, request_status:"draft", description:"gerimmo:circuit:circuit", is_sequential:true,
  document_ids:[{document_id:doc,document_name:"bail",document_order:"0",total_pages:6}],
@@ -86,16 +88,32 @@ describe("Zoho Sign européen",()=>{
   expect(form.get("testing")).toBe("true");
  });
  it("la caution saisit une mention obligatoire non préremplie, avant sa signature et avec SMS",async()=>{
-  const fetch=api([{code:0,requests:dossier()},{code:0}]);
-  const circuit={...attendu(),modele:"cautionnement",signataires:attendu().signataires.map((s,i)=>({...s,qualite:i===0?"Garant":"Propriétaire"}))};
+  const controle={...dossier(),actions:dossier().actions.map((a,i)=>({...a,fields:i===0?[{field_type_name:"Textfield",is_mandatory:true,validation:{validation_type:"CUSTOM",validation_regex:expressionSaisieMentionCaution(mention)}}]:[]}))};
+  const fetch=api([{code:0,requests:dossier()},{code:0},{code:0,requests:controle},{code:0}]);
+  const circuit={...attendu(),modele:"cautionnement",signataires:attendu().signataires.map((s,i)=>({...s,qualite:i===0?"Garant":"Propriétaire",mentionCaution:i===0?mention:undefined}))};
   await activerDemandeZoho(config,id,circuit);
   const actions=JSON.parse((fetch.mock.calls[2][1]!.body as FormData).get("data") as string).requests.actions;
   expect(actions[0].fields).toHaveLength(2);
   expect(actions[0].fields[0]).toMatchObject({field_type_name:"Textfield",is_mandatory:true});
   expect(actions[0].fields[0]).not.toHaveProperty("default_value");
+  expect(actions[0].fields[0].validation.validation_type).toBe("CUSTOM");
+  expect(new RegExp(actions[0].fields[0].validation.validation_regex).test("ok")).toBe(false);
+  expect(fetch.mock.calls.map(c=>c[1]?.method)).toEqual(["POST",undefined,"PUT",undefined,"POST"]);
   expect(actions[0].fields[1].y_coord).toBeGreaterThan(actions[0].fields[0].y_coord+actions[0].fields[0].abs_height);
   expect(actions[1].fields).toHaveLength(1);
   expect(actions.every((a:{verification_type:string})=>a.verification_type==="SMS")).toBe(true);
+ });
+
+ it("refuse une mention perdue chez Zoho avant d’envoyer l’invitation",async()=>{
+  const fetch=api([{code:0,requests:dossier()},{code:0},{code:0,requests:dossier()}]);
+  const c={...attendu(),modele:"cautionnement",signataires:attendu().signataires.map((s,i)=>({...s,qualite:i===0?"Garant":"Propriétaire",mentionCaution:i===0?mention:undefined}))};
+  await expect(activerDemandeZoho(config,id,c)).rejects.toThrow("contrôle de la mention");
+  expect(fetch.mock.calls.some(([url])=>url.endsWith("/submit"))).toBe(false);
+ });
+ it("refuse un ancien cautionnement sans mention figée",async()=>{
+  const fetch=api([{code:0,requests:dossier()}]);
+  await expect(activerDemandeZoho(config,id,{...attendu(),modele:"cautionnement",signataires:attendu().signataires.map(s=>({...s,qualite:"Garant"}))})).rejects.toThrow("préparée à nouveau");
+  expect(fetch.mock.calls.some(([url])=>url.endsWith("/submit"))).toBe(false);
  });
  it("contient les signatures mobiles observées quand Zoho conserve leur rapport largeur/hauteur",async()=>{
   const fetch=api([{code:0,requests:dossier()},{code:0}]);

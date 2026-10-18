@@ -38,6 +38,8 @@ export type Assemblage =
       liens: LienDocument[];
       /** Alerte non bloquante à montrer au gérant après la génération. */
       avertissement?: string;
+      /** Texte à apposer personnellement, figé avec le PDF avant l'envoi. */
+      mentionCaution?: string;
     }
   | { erreur: string };
 

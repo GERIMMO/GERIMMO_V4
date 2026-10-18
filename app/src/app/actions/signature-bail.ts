@@ -16,6 +16,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { assemblerSignatureDocument, selectionDuCircuit } from "@/lib/signature-document";
 import { selectionSignatureValide, type SelectionSignature } from "@/lib/politique-signature";
 import { signatureEnEssai } from "@/lib/signature-essai";
+import { ERREUR_MENTION_CAUTION } from "@/lib/mention-caution";
 
 export type VueSignatureBail = {
   bailId?: string | null; selection?: SelectionSignature; erreur?: string; succes?: string; manquants?: string[]; signataires?: SignataireBail[];
@@ -210,7 +211,20 @@ export async function annulerSignatureBail(org: string,bail: string,id: string):
       await verifierAvantEffet(service,"signatures");
       const actuel = await lireDemandeSignature(config,circuit.external_request_id);
       if (actuel.id !== circuit.external_request_id || actuel.external_id !== circuit.id) throw new Error("La référence du prestataire ne correspond pas au circuit. Aucune annulation n’a été demandée.");
-      if (actuel.status === "done") { await synchroniserCircuitSignatureBail(service,config,id); return {...await lireSignatureBail(org,bail,selectionDuCircuit(circuit)),succes:"Le contrat était déjà signé. Son archive a été récupérée."}; }
+      if (actuel.status === "done") {
+        await synchroniserCircuitSignatureBail(service,config,id);
+        const suivi = await service.from("bail_signature_circuits").select("etat,erreur").eq("id",id).single();
+        if (suivi.error || !suivi.data) throw new Error("Le classement du document doit être vérifié.");
+        if (circuit.modele === "cautionnement" && suivi.data.etat === "a_verifier" && suivi.data.erreur === ERREUR_MENTION_CAUTION) {
+          // Écarter le circuit non conforme sans altérer le fichier signé ni sa preuve chez Zoho.
+          const ecarte = await service.from("bail_signature_circuits").update({etat:"annule",erreur:ERREUR_MENTION_CAUTION,updated_at:new Date().toISOString()}).eq("id",id).eq("etat","a_verifier").eq("erreur",ERREUR_MENTION_CAUTION).select("id").single();
+          if (ecarte.error || !ecarte.data) throw new Error("Le circuit vient de changer. Actualisez son suivi.");
+          rafraichir(org,bail);
+          return {...await lireSignatureBail(org,bail,selectionDuCircuit(circuit)),succes:"Cautionnement écarté du parcours de validation. Son historique est conservé ; préparez un nouvel acte avec la mention complète."};
+        }
+        if (suivi.data.etat !== "termine") throw new Error("Le document signé n’a pas encore été validé et archivé. Consultez son suivi.");
+        return {...await lireSignatureBail(org,bail,selectionDuCircuit(circuit)),succes:"Le contrat était déjà signé. Son archive a été récupérée."};
+      }
       if (["expired","declined","rejected"].includes(actuel.status)) {
         await synchroniserCircuitSignatureBail(service,config,id);
         return {...await lireSignatureBail(org,bail,selectionDuCircuit(circuit)),succes:actuel.status === "expired" ? "L’invitation a expiré. Vous pouvez préparer une nouvelle version." : "La signature a été refusée. Consultez son suivi avant de préparer une nouvelle version."};

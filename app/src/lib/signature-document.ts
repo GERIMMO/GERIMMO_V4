@@ -35,6 +35,11 @@ export async function assemblerSignatureDocument(db: SupabaseClient, org: string
   const assemblage = await modele.assembler(db,org,selection.cibleId,selection.options);
   if ("erreur" in assemblage) throw new Error(assemblage.erreur);
   const manquants = [...parties.manquants, ...(refusDocumentIncomplet(assemblage.document)?.manquants ?? [])];
+  if (selection.code === "cautionnement") {
+    if (!assemblage.mentionCaution) manquants.push("Complétez le plafond et la mention personnelle de la caution.");
+    else if (assemblage.mentionCaution.length > 1000) manquants.push("La mention de caution dépasse la place disponible pour la signature en ligne. Contactez l’assistance pour adapter cet acte.");
+    for (const s of signataires) if (s.qualite === "Garant") s.mentionCaution = assemblage.mentionCaution;
+  }
   const annexes: AnnexeSignature[] = [];
   if (selection.code === "cautionnement") {
     const circuit = await db.from("bail_signature_circuits").select("document_id,document_signe").eq("organization_id",org).eq("bail_id",bailId).eq("modele","bail").in("etat",["pret","preparation","en_cours","termine"]).order("created_at",{ascending:false}).limit(1).maybeSingle();

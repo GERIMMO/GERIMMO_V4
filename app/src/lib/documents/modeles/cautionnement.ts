@@ -9,6 +9,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { lireMontantAvecEspaces } from "@/lib/saisie-montant";
+import { texteMentionCaution } from "@/lib/mention-caution";
 import {
   Fusion,
   assemblerPage,
@@ -40,7 +41,7 @@ function montantMaxDepuisOptions(brut: string | undefined): number | null {
   if (!brut) return null;
   // Lu comme tous les montants (VER-TS-02) : « 12 000,50 » reste admis ; « 1e4 » ne vaut plus 10000.
   const lu = lireMontantAvecEspaces(brut);
-  return "montant" in lu ? lu.montant : null;
+  return "montant" in lu && lu.montant > 0 && lu.montant <= 999_999.99 ? lu.montant : null;
 }
 
 // Art. 22-1, avant-dernier alinéa (texte légal exact) : un cautionnement sans
@@ -173,16 +174,7 @@ export async function assemblerCautionnement(
     ${section("VII — Mention apposée par la caution")}
     <div class="encadre">
       <p class="etiquette">Mention à recopier par la caution</p>
-      <p>« Je, soussigné(e) ${nomCaution}, m'engage en qualité de caution${solidaire ? " solidaire" : ""}
-      de ${nomsCouverts} envers le bailleur, à lui payer, en cas de défaillance du locataire, les
-      sommes dues au titre du bail désigné dans le présent acte — loyers, charges, réparations
-      locatives, intérêts et pénalités de retard —, pour la durée du bail et de ses renouvellements,
-      dans la limite de la somme de ${montantMaxLettresHtml}, couvrant le principal et les
-      accessoires.${
-        solidaire
-          ? " Je reconnais ne pouvoir exiger du bailleur qu'il poursuive d'abord le locataire, ni qu'il divise ses poursuites entre les cautions."
-          : ""
-      } »</p>
+      <p>« ${texteMentionCaution({caution:nomCaution,locataires:nomsCouverts,plafond:montantMaxLettresHtml,solidaire})} »</p>
     </div>
     <p class="mentions">La mention ci-dessus peut être dactylographiée, mais, à peine de nullité de
     l'engagement, elle doit être apposée par la caution elle-même (article 2297 du code civil) :
@@ -209,6 +201,11 @@ export async function assemblerCautionnement(
 
   return {
     document,
+    mentionCaution: montantMax === null ? undefined : texteMentionCaution({
+      caution: nomPersonne(garant) ?? "",
+      locataires: (locataireCouvert ? [locataireCouvert] : ctx.locataires).map(p=>nomPersonne(p)).filter(Boolean).join(", "),
+      plafond: `${montantEnLettres(montantMax)} (${eur(montantMax)})`, solidaire,
+    }),
     titreGed: `Cautionnement — ${nomPersonne(garant) ?? garant.nom}`,
     nomFichier: `cautionnement-${reference.toLowerCase()}`,
     liens: [

@@ -15,6 +15,7 @@ export type SignataireBail = {
   personId: string; qualite: "Locataire" | "Colocataire" | "Garant" | "Propriétaire";
   nom: string; prenom: string; email: string; telephone: string;
   externalId?: string; statut?: string; preuveDocumentId?: string;
+  mentionCaution?: string;
 };
 export type CircuitBail = {
   essai?: boolean; modele?: ModeleSignature; cible_id?: string; options?: Record<string,string>;
@@ -99,13 +100,13 @@ export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locatai
 
 /** Une page par personne : aucun chevauchement avec le texte ou une autre signature. */
 export function ajouterPagesSignature(doc: DocumentAssemble, parties: SignataireBail[], annexes: AnnexeSignature[] = [], titre = "contrat de location", caution = false): DocumentAssemble {
-  const pages = parties.map((p,i) => `<section style="break-before:page;break-inside:avoid;background:#fff;color:#17324d">
+  const pages = parties.map((p,i) => `<section style="break-before:page;break-inside:avoid;${caution && p.qualite === "Garant" ? "position:relative;min-height:680pt;" : ""}background:#fff;color:#17324d">
     <h1>Signature — ${echapper(titre)}</h1><p>Référence : ${echapper(doc.reference)}</p>
     <p>Cette page fait partie du document qui précède. La signature porte sur l’ensemble de ce document.</p>
     <h2>${i + 1}. ${echapper(p.qualite)}</h2><p>${echapper(`${p.prenom} ${p.nom}`)}</p>
     <p>La date et la preuve de signature sont établies par le prestataire au moment de la signature.</p>
-    ${caution && p.qualite === "Garant" ? '<p><strong>Mention personnelle de la caution</strong> — recopiez intégralement la mention figurant dans l’acte, avec le plafond en lettres et en chiffres. Ce champ doit être rempli par vous-même avant de signer.</p><div style="height:260pt"></div>' : ''}
-    <div style="margin-top:32pt;min-height:100pt"><span style="color:#fff;font:12px Arial;white-space:nowrap">{{s${i + 1}|signature|190|80}}</span></div>
+    ${caution && p.qualite === "Garant" ? `<div style="font-size:8.5pt;line-height:1.25;overflow-wrap:anywhere"><strong>Mention personnelle de la caution</strong><p>Recopiez le texte ci-dessous dans le champ vide. Vous pouvez le copier vous-même. Une réponse « OK » ne suffit pas.</p><p>${echapper(p.mentionCaution ?? "Mention à préparer à nouveau avant tout envoi.")}</p></div>` : ''}
+    <div style="${caution && p.qualite === "Garant" ? "position:absolute;top:656pt" : "margin-top:32pt;min-height:100pt"}"><span style="color:#fff;font:12px Arial;white-space:nowrap">{{s${i + 1}|signature|190|80}}</span></div>
   </section>`).join("");
   const inventaire = annexes.length ? `<section style="break-before:page"><h1>Annexes remises avec le contrat</h1><p>Ces pièces accompagnent le document dans le même dossier de signature. Leur empreinte identifie exactement la version remise.</p>${annexes.map(a=>`<div style="break-inside:avoid;margin:14pt 0"><strong>${echapper(a.titre)}</strong><p style="font:8px monospace;overflow-wrap:anywhere">SHA-256 : ${echapper(a.empreinte)}</p></div>`).join("")}</section>` : "";
   return { ...doc, html: doc.html.replace("</body>", `${inventaire}${pages}</body>`) };

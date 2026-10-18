@@ -1,3 +1,4 @@
+import {ERREUR_MENTION_CAUTION} from "@/lib/mention-caution";
 import {beforeEach,describe,expect,it,vi} from "vitest";
 const m=vi.hoisted(()=>({acces:vi.fn(),service:vi.fn(),lire:vi.fn(),rappeler:vi.fn(),supprimer:vi.fn(),sync:vi.fn(),update:vi.fn(),stop:vi.fn(),circuit:{} as Record<string,unknown>}));
 vi.mock("next/cache",()=>({revalidatePath:vi.fn()}));
@@ -33,6 +34,7 @@ describe("Arrêt confirmé, sans perdre le sens du résultat",()=>{
   m.lire.mockResolvedValue(distant(status));expect((await action()).succes).toBeTruthy();expect(m.sync).toHaveBeenCalledTimes(1);expect(m.rappeler).not.toHaveBeenCalled();expect(m.update).not.toHaveBeenCalled();
  });
  it("récupère le contrat déjà signé sans demander son annulation",async()=>{
+  m.sync.mockImplementation(async()=>{m.circuit.etat="termine";});
   m.lire.mockResolvedValue(distant("done"));expect((await action()).succes).toContain("déjà signé");expect(m.sync).toHaveBeenCalledTimes(1);expect(m.rappeler).not.toHaveBeenCalled();expect(m.update).not.toHaveBeenCalled();
  });
  it("vérifie la corbeille Zoho après le retrait d’un brouillon",async()=>{
@@ -48,4 +50,18 @@ describe("Arrêt confirmé, sans perdre le sens du résultat",()=>{
  it("respecte l’arrêt général avant tout rappel externe",async()=>{
   m.stop.mockRejectedValue(new Error("arrêt demandé"));expect((await action()).erreur).toContain("arrêt");expect(m.lire).not.toHaveBeenCalled();expect(m.rappeler).not.toHaveBeenCalled();expect(m.update).not.toHaveBeenCalled();
  });
+});
+
+it("permet de préparer un nouvel acte sans supprimer le cautionnement non conforme",async()=>{
+ m.circuit.modele="cautionnement";
+ m.sync.mockImplementation(async()=>{m.circuit.etat="a_verifier";m.circuit.erreur=ERREUR_MENTION_CAUTION;});
+ m.lire.mockResolvedValue(distant("done"));
+ expect((await action()).succes).toContain("écarté");
+ expect(m.update).toHaveBeenCalledWith(expect.objectContaining({etat:"annule",erreur:ERREUR_MENTION_CAUTION}));
+ expect(m.supprimer).not.toHaveBeenCalled();expect(m.rappeler).not.toHaveBeenCalled();
+});
+it("n’annonce pas une archive réussie quand le contrôle demeure incomplet",async()=>{
+ m.lire.mockResolvedValue(distant("done"));
+ expect((await action()).erreur).toContain("validé et archivé");
+ expect(m.update).not.toHaveBeenCalled();
 });

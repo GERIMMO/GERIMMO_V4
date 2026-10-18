@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
+import { verifierPublication } from '@/lib/suivi-publication';
 import { verifierCorrection } from '@/lib/suivi-corrections';
 export type EtatAutonomie = { erreur?: string; succes?: string };
 async function verifier() {
@@ -69,6 +70,14 @@ export async function actualiserCorrection(id:string):Promise<EtatAutonomie>{
  if(error||!p)return {erreur:'Cette proposition est introuvable.'};
  if(['annulee','publiee','retour_arriere'].includes(p.statut))return {erreur:'Cette proposition est terminée. Son historique est conservé.'};
  try{
+  if(p.statut==='preproduction'&&p.autorisee_le){
+   if(!p.revision||!p.rapport_controles?.proposition)return {erreur:'Aucune proposition GitHub n’est liée à cette version. Sa publication ne peut pas être attestée automatiquement.'};
+   const preuve=await verifierPublication(p.revision,p.rapport_controles.proposition);
+   const {data:modifie,error:e}=await supabase.from('development_proposals').update({statut:'publiee',preuve_publication:preuve,publiee_le:preuve.controle_le}).eq('id',id).eq('updated_at',p.updated_at).eq('statut','preproduction').select('id').maybeSingle();
+   if(e||!modifie)return {erreur:'La proposition a changé pendant le contrôle. Aucun nouvel état de publication n’est confirmé.'};
+   revalidatePath('/admin/autonomie');revalidatePath('/admin/brief');
+   return {succes:'Publication constatée sur Vercel pour la version autorisée. Sa preuve est conservée.'};
+  }
   const s=await verifierCorrection(id);
   const identique=p.revision===s.revision&&(Object.keys(s.rapport) as (keyof typeof s.rapport)[]).every(k=>p.rapport_controles?.[k]===s.rapport[k]);
   if(!identique){

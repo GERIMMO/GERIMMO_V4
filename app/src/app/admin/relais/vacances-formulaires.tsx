@@ -1,20 +1,11 @@
 'use client';
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
-import { commanderRelais, enregistrerVacances } from '@/app/actions/consignes-vacances';
-import { MessageSupervision, type CompteResponsable } from '../consignes/formulaires';
+import { commanderRelais } from '@/app/actions/consignes-vacances';
+import { MessageSupervision } from '../consignes/formulaires';
 import { MISSIONS } from '@/lib/missions';
 import { nomArret } from '@/lib/nom-arret-supervision';
-import { champParis } from '@/lib/dates-supervision';
 export type PlanVacances={id:string;titre:string;debut:string;fin:string;responsable:string;consigne_version:string|null;delai_minutes:number;numero:number;etat:string;arrete:boolean;};
-export function FormulaireVacances({comptes,versions,plan}:{comptes:CompteResponsable[];versions:{id:string;titre:string;numero:number}[];plan?:PlanVacances}){
- const [etat,action,pending]=useActionState(enregistrerVacances,{});
- return <form data-saisie-confirmee action={action} onReset={e=>e.preventDefault()} className="space-y-4"><input type="hidden" name="precedent" value={plan?.id??''}/><label className="block">Nom de l’absence<input name="titre" required minLength={3} maxLength={120} className="champ mt-1 w-full" defaultValue={plan?.titre}/></label>
- <div className="grid gap-4 sm:grid-cols-2"><label>Début — heure de Paris<input type="datetime-local" name="debut" required className="champ mt-1 w-full" defaultValue={plan?champParis(plan.debut):undefined}/></label><label>Fin — heure de Paris<input type="datetime-local" name="fin" required className="champ mt-1 w-full" defaultValue={plan?champParis(plan.fin):undefined}/></label>
- <label>Responsable déjà habilité<select name="responsable" required className="champ mt-1 w-full" defaultValue={plan?.responsable??''}><option value="">Choisir un autre superviseur</option>{comptes.map(c=><option value={c.id} key={c.id}>{c.email}</option>)}</select></label>
- <label>Délai avant escalade interne, en minutes<input name="delai" type="number" min={1} max={10080} required defaultValue={plan?.delai_minutes??60} className="champ mt-1 w-full"/></label></div>
- <label className="block">Consigne de lecture déjà activée<select name="consigne" className="champ mt-1 w-full" defaultValue={plan?.consigne_version??''}><option value="">Aucune tâche de lecture : alertes seulement</option>{versions.map(v=><option value={v.id} key={v.id}>{v.titre} — version {v.numero}</option>)}</select></label><p className="text-sm text-muted-foreground">La consigne doit couvrir toute la période et désigner le même responsable. Les départs sont contrôlés lors des passages existants ou de l’actualisation manuelle. Le responsable n’est pas prévenu par e-mail ; les urgences partent par e-mail immédiat vers les adresses du relais, si elles sont renseignées : voir « Alerte e-mail du relais ».</p>
- <button disabled={pending} className="btn-or">{pending?'Enregistrement…':plan?'Remplacer ce plan par une nouvelle version':'Programmer cette absence'}</button><MessageSupervision etat={etat}/></form>;
-}
+export {FormulaireVacances} from "./parcours-vacances";
 export function CommandeRelais({commande,id,label}:{commande:string;id?:string;label:string}){
  const [etat,action,pending]=useActionState(commanderRelais,{});return <form data-saisie-confirmee action={action}><input type="hidden" name="commande" value={commande}/><input type="hidden" name="id" value={id??''}/><button disabled={pending} className="btn btn-secondaire">{label}</button><MessageSupervision etat={etat}/></form>;
 }

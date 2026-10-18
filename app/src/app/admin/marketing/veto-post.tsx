@@ -36,7 +36,7 @@ function Geste({ post, action, libelle, classe, motifRequis, enCours, dejaValide
       <input type="hidden" name="id" value={post.id} />
       <input type="hidden" name="action" value={action} />
       {motifRequis && (
-        <label className="grid min-w-[16rem] flex-1 gap-1">
+        <label className="grid min-w-0 basis-full flex-1 gap-1">
           <span className="libelle-champ">Motif ({action === "reporter" ? "report" : "refus"})</span>
           <input name="motif" required minLength={3} maxLength={1000} className={champ} placeholder="Dites pourquoi : le motif reste dans le journal." />
         </label>
@@ -49,11 +49,11 @@ function Geste({ post, action, libelle, classe, motifRequis, enCours, dejaValide
   );
 }
 
-export function VetoPost({ post, validationObligatoire, quand }: { post: PostProgramme; validationObligatoire: boolean; quand: string }) {
+export function VetoPost({ post, validationObligatoire, quand, diffusionActive = true }: { post: PostProgramme; validationObligatoire: boolean; quand: string; diffusionActive?: boolean }) {
   const texte = post.facebook_texte?.trim() || `${post.titre}\n\n${post.chapo ?? ""}`;
   return (
-    <article className="loc-carte border-l-4 border-l-[var(--warning)]">
-      <div className="grid gap-5 md:grid-cols-[minmax(0,18rem)_1fr]">
+    <article className="@container loc-carte border-l-4 border-l-[var(--warning)]">
+      <div className="grid gap-5 @[650px]:grid-cols-[minmax(0,18rem)_1fr]">
         <div className="min-w-0">
           {post.facebook_image_url ? (
             // eslint-disable-next-line @next/next/no-img-element -- aperçu d'un visuel public déjà hébergé, pas d'optimisation attendue
@@ -67,11 +67,13 @@ export function VetoPost({ post, validationObligatoire, quand }: { post: PostPro
           <h3 className="mt-1 font-heading text-lg text-[var(--encre)]">{post.titre}</h3>
           <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--corps)]">{texte}</p>
           <p className="mt-3 text-xs text-[var(--texte-secondaire)]">
-            {post.valide_le
-              ? "Validé : il partira à l’heure prévue."
+            {!diffusionActive
+              ? "Diffusion automatique en pause ou connexion à vérifier. Le post reste disponible pour votre relecture."
+              : post.valide_le
+              ? "Validé : diffusion prévue à l’heure indiquée, sous réserve des contrôles du service."
               : validationObligatoire
                 ? "Validation obligatoire : rien ne part sans « Valider » ou « Publier maintenant »."
-                : "Sans geste de votre part, il part automatiquement à l’heure prévue. Un report ou un refus l’empêche définitivement."}
+                : "Diffusion automatique prévue à l’heure indiquée, sous réserve des contrôles du service. Un report ou un refus l’empêche."}
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Geste post={post} action="publier_maintenant" libelle="Publier maintenant" classe="btn-or" enCours="Publication…" />

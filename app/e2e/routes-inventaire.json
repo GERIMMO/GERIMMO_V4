@@ -976,5 +976,41 @@
     "persona": "public",
     "label": "Invitation d’un propriétaire — l’artisan crée son compte",
     "dynamic": "invitationId"
+  },
+  {
+    "path": "/admin/securite",
+    "persona": "superadmin",
+    "label": "Sécurité et accès",
+    "dynamic": ""
+  },
+  {
+    "path": "/admin/clients/personnes/PERSONNE",
+    "persona": "superadmin",
+    "label": "Fiche individuelle d’une personne",
+    "dynamic": "personId"
+  },
+  {
+    "path": "/admin/territoire/prospects/PROSPECT",
+    "persona": "superadmin",
+    "label": "Fiche prospect",
+    "dynamic": "prospectId"
+  },
+  {
+    "path": "/admin/brief?vue=decisions",
+    "persona": "superadmin",
+    "label": "Décisions et exécution",
+    "dynamic": ""
+  },
+  {
+    "path": "/admin/autonomie?vue=ameliorations",
+    "persona": "superadmin",
+    "label": "Améliorations du produit",
+    "dynamic": ""
+  },
+  {
+    "path": "/admin/clients?vue=espaces",
+    "persona": "superadmin",
+    "label": "Annuaire des espaces",
+    "dynamic": ""
   }
 ]

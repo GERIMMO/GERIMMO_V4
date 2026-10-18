@@ -3,14 +3,16 @@ type: synthesis
 tags: [demarchage, lancement, production, v1, pilotage, promesses]
 status: draft
 created: 2026-10-16
-updated: 2026-10-16
+updated: 2026-10-17
 sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Audit d'acquisition du 3 octobre 2026]]", "[[Expansion territoriale autonome]]", "[[Parrainage]]", "[[Choisir son locataire selon les conditions des assurances loyers impayés]]", "[[Recette de production]]", "[[Relais du dirigeant]]", "[[Le jour de référence est le jour de Paris]]"]
 ---
 
 # Prêt à démarcher
 
-> [!info] Relevé de la mission du 16 octobre, en soirée
-> État vérifié et preuves : [[Mission du 16 octobre — suivi vérifié]]. PR #197 fusionnée (`4a5ddf5`). Inscription publique et anonyme fermées, confirmation d’adresse active, liens limités à une heure et trois modèles de courrier enregistrés dans Supabase. La recette n°19 passe au premier essai ; la n°20 confirme les nouveaux réglages (39 réussites, 1 ignoré, aucun test instable, nettoyage réussi). La trace D04 a été relue : montant vide envoyé, aucun montant faux enregistré. Les compléments D18, D22, D08-C, X08, relais et dates sont préparés et testés localement, **pas encore publiés**. Les anciens constats ci-dessous sont datés ; cette mission ne clôt ni les avis spécialisés ni les limites de recette restantes.
+> [!info] Point du 17 octobre — publication et recette vérifiées
+> PR #198 publiée, sauvegardes avant/après et huit migrations vérifiées, 31 anciens fichiers fictifs supprimés. PR201 publiée (`406ad8a`) : recette n°24 réussie, 49 scénarios validés, un chemin facultatif ignoré, aucun échec ni test instable. Vérification SQL après clôture : les cinq mêmes comptes fixes sont conservés ; zéro privilège/session superadmin temporaire et zéro inscription ponctuelle restante. CI candidate : 8 136 tests logique/PDF et 199 tests navigateur réussis. Preuves et limites : [[Mission du 16 octobre — suivi vérifié]].
+>
+> Les sections du 16 octobre qui suivent sont le relevé historique avant cette publication : leurs mentions « candidat » ne décrivent plus l'état de la PR #198. Le paiement complet, les signatures, l'identité légale et les avis spécialisés ne sont pas déclarés validés par la publication.
 
 
 Ce que Gerimmo peut montrer et promettre à un prospect **au 16/10/2026**, d'après l'état réel de la production : ce qui

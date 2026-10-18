@@ -210,7 +210,9 @@ describe("D06 / D46 : l'écran « Arrêt avant les prochains effets » et le mod
     expect(urgence).toContain("La même référence conserve une seule alerte, et un seul e-mail.");
     expect(urgence).toContain("Si le relais est configuré, un e-mail immédiat part vers ses adresses, sans le texte saisi");
     expect(urgence).not.toContain("Aucun e-mail ni message ne part sur le moment");
-    const vacances = renderToStaticMarkup(createElement(FormulaireVacances, { comptes: [], versions: [] }));
+    const vacances = renderToStaticMarkup(createElement(FormulaireVacances, { comptes: [], versions: [], relaisConfigure: true }));
+    const sansRelais = renderToStaticMarkup(createElement(FormulaireVacances, { comptes: [], versions: [], relaisConfigure: false }));
+    expect(sansRelais).toContain("Personne ne sera prévenu par e-mail");
     expect(vacances).toContain("Le responsable n’est pas prévenu par e-mail ; les urgences partent par e-mail immédiat vers les adresses du relais");
     expect(vacances).not.toContain("Aucune notification immédiate");
   });

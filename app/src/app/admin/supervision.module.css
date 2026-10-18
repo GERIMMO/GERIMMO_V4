@@ -1,0 +1,70 @@
+/* Même charte et mêmes composants que les portails métier ; portée superadmin. */
+:global(.gerimmo-prestige) .shell :global(.admin-contexte) { display: flex; align-items: center; gap: 9px; color: var(--texte-secondaire); font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 500; }
+:global(.gerimmo-prestige) .shell :global(.admin-nav-lien) { gap: 11px; }
+.shell :global(.admin-nav-lien) > svg { flex-shrink: 0; }
+.shell :global(.admin-menu-mobile) { align-items: center; gap: 7px; }
+.signature { margin-top: 13px; color: #d8c69d; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; }
+:global(.gerimmo-prestige) .shell :global(.admin-onglets) { background: var(--carte); }
+:global(.gerimmo-prestige) .shell :global(.admin-onglets-interieur) { gap: 8px; padding: 10px 28px; }
+:global(.gerimmo-prestige) .shell :global(.admin-onglet) { min-height: 36px; padding: 7px 14px; border-radius: 7px; border: 0; font-size: 13px; }
+:global(.gerimmo-prestige) .shell :global(.admin-onglet[aria-current="page"]) { background: var(--marque-clair); color: var(--marque); box-shadow: none; }
+@media (min-width: 901px) {
+  :global(.gerimmo-prestige) .shell { grid-template-columns: 246px minmax(0, 1fr); }
+  :global(.gerimmo-prestige) .shell :global(.admin-marque) { flex-direction: column; margin-inline: 18px; padding: 20px 10px; }
+  :global(.gerimmo-prestige) .shell :global(.admin-marque .marque-gerimmo) { width: 148px; }
+  :global(.gerimmo-prestige) .shell :global(.admin-menu-groupes) { gap: 6px; }
+  :global(.gerimmo-prestige) .shell :global(.admin-nav) { padding: 20px 12px; }
+  :global(.gerimmo-prestige) .shell :global(.admin-nav-lien) { border: 1px solid transparent; min-height: 46px; color: #e1e9f3; font-size: 13px; }
+  :global(.gerimmo-prestige) .shell :global(.admin-nav-lien:hover) { background: #ffffff0d; }
+  :global(.gerimmo-prestige) .shell :global(.admin-nav-lien[aria-current="page"]) { color: #f7e7c0; background: #ffffff12; border-color: #d3b37645; box-shadow: inset 3px 0 #d3b376; }
+  :global(.gerimmo-prestige) .shell :global(.admin-bandeau-interieur) { min-height: 72px; padding-inline: 28px; gap: 24px; }
+}
+@media (max-width: 900px) {
+  :global(.gerimmo-prestige) .shell :global(.admin-contexte) { display: none; }
+  :global(.gerimmo-prestige) .shell :global(.admin-menu-mobile) { display: inline-flex; }
+  :global(.gerimmo-prestige) .shell :global(.admin-onglets-interieur) { padding: 8px 16px; }
+  :global(.gerimmo-prestige) .shell :global(.admin-bandeau-interieur) { padding-inline: 12px; }
+  .shell :global(.admin-nav-lien) { min-height: 44px; }
+}
+
+/* Menu intégral : une seule liste et un défilement indépendant du contenu. */
+:global(.gerimmo-prestige) .shell :global(.admin-menu-groupes) { display: flex; flex-direction: column; gap: 2px; }
+:global(.gerimmo-prestige) .shell :global(.admin-nav-lien) { min-height: 41px; padding: 9px 11px; line-height: 1.35; }
+:global(.gerimmo-prestige) .shell :global(.admin-nav-lien) > span:not(:global(.coquille-badge)) { min-width: 0; }
+:global(.gerimmo-prestige) .shell :global(.admin-marque) { flex-shrink: 0; }
+:global(.gerimmo-prestige) .shell :global(.portail-ecrans) > main { width: 100%; max-width: 1320px; margin-inline: auto; padding: 28px 32px 50px; }
+:global(.gerimmo-prestige) .shell :global(.entete-page) { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 26px; padding-bottom: 20px; border-bottom: 1px solid var(--filet); }
+:global(.gerimmo-prestige) .shell :global(.entete-page h1) { font-size: clamp(26px, 2.6vw, 34px); line-height: 1.2; }
+:global(.gerimmo-prestige) .shell :global(.entete-page p) { max-width: 72ch; line-height: 1.6; }
+:global(.gerimmo-prestige) .shell :global(.loc-carte), :global(.gerimmo-prestige) .shell :global([data-slot="card"]) { border-radius: 12px; border: 1px solid var(--filet); background: var(--carte); box-shadow: 0 3px 12px #17304d05; }
+:global(.gerimmo-prestige) .shell :global(.loc-carte) { padding: 22px; }
+:global(.gerimmo-prestige) .shell :global(.section-ecran) { margin-top: 28px; }
+:global(.gerimmo-prestige) .shell :global(.entete-carte) { gap: 12px; flex-wrap: wrap; }
+:global(.gerimmo-prestige) .shell :global(.entete-carte h2) { font-size: 23px; }
+:global(.gerimmo-prestige) .shell :global(.vide-guide) { border: 1px solid var(--filet); border-radius: 12px; background: var(--carte); padding: 24px; }
+:global(.gerimmo-prestige) .shell :global(.vide-guide .titre) { font-size: 18px; }
+:global(.gerimmo-prestige) .shell :global(.vide-guide .explication) { max-width: 70ch; font-size: 14px; line-height: 1.6; }
+:global(.gerimmo-prestige) .shell :global(.rang) { border-radius: 9px; gap: 14px; padding: 16px; }
+:global(.gerimmo-prestige) .shell :global(.btn-secondaire), :global(.gerimmo-prestige) .shell :global(.btn-or) { border-radius: 8px; min-height: 40px; font-size: 13px; }
+:global(.gerimmo-prestige) .shell :global(.filtre) { border-radius: 7px; min-height: 36px; padding: 7px 12px; }
+:global(.gerimmo-prestige) .shell :global(.admin-acces-carte) { display: flex; align-items: flex-start; gap: 15px; padding: 22px; min-width: 0; border: 1px solid var(--filet); border-radius: 12px; background: var(--carte); }
+:global(.gerimmo-prestige) .shell :global(.admin-acces-carte:hover) { border-color: var(--or); background: var(--survol); }
+:global(.gerimmo-prestige) .shell :global(.admin-acces-carte h2), :global(.gerimmo-prestige) .shell :global(.admin-acces-carte h3) { font-size: 18px; margin: 0 0 8px; }
+:global(.gerimmo-prestige) .shell :global(.admin-acces-carte p) { font-size: 13px; line-height: 1.6; color: var(--texte-secondaire); }
+:global(.gerimmo-prestige) .shell :global(.admin-acces-icone) { display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0; border-radius: 10px; background: var(--marque-clair); color: var(--marque); }
+:global(.gerimmo-prestige) .shell :global(.admin-acces-action) { display: inline-flex; align-items: center; gap: 9px; margin-top: 16px; color: var(--marque); font-size: 13px; font-weight: 600; }
+@media (min-width: 901px) {
+  :global(.gerimmo-prestige) .shell { grid-template-columns: 278px minmax(0, 1fr); }
+  :global(.gerimmo-prestige) .shell :global(.admin-nav) { min-height: 0; padding: 12px 12px 20px; scrollbar-color: #bdc7d57a transparent; }
+  :global(.gerimmo-prestige) .shell :global(.admin-nav-lien) { font-size: 12.5px; }
+  :global(.gerimmo-prestige) .shell :global(.admin-marque) { padding: 15px 10px; }
+  :global(.gerimmo-prestige) .shell :global(.admin-marque .marque-gerimmo) { width: 112px; }
+  .signature { margin-top: 8px; }
+}
+@media (max-width: 900px) {
+  :global(.gerimmo-prestige) .shell :global(.admin-nav-lien) { min-height: 44px; }
+  :global(.gerimmo-prestige) .shell :global(.portail-ecrans) > main { padding: 22px 18px 36px; }
+  :global(.gerimmo-prestige) .shell :global(.entete-page) { margin-bottom: 22px; }
+  :global(.gerimmo-prestige) .shell :global(.loc-carte), :global(.gerimmo-prestige) .shell :global(.admin-acces-carte) { padding: 18px; }
+  :global(.gerimmo-prestige) .shell :global(.btn-secondaire), :global(.gerimmo-prestige) .shell :global(.btn-or), :global(.gerimmo-prestige) .shell :global(.filtre) { min-height: 44px; }
+}

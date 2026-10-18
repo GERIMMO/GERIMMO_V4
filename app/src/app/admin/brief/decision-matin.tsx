@@ -25,6 +25,7 @@ export function DecisionMatin({ decision }: { decision: DecisionAffichee }) {
   return (
     <li className="loc-carte">
       <div className="flex flex-wrap items-start justify-between gap-2">
+        <span className={`puce ${decision.lien?.includes("nature=bug")?"puce-rouge":"puce-prep"}`}>{decision.lien?.includes("nature=bug")?"Panne à examiner":"Demande d’accord"}</span>
         <h4 className="font-semibold text-[var(--encre)]">{decision.titre}</h4>
         <span className={`puce ${decision.statut === "validee" || etat.succes ? "puce-loue" : decision.statut === "refusee" ? "puce-rouge" : decision.statut === "sans_objet" ? "puce-grise" : "puce-prep"}`}>{etat.succes && decision.statut === "en_attente" ? "Décidée" : LIBELLES_STATUT[decision.statut] ?? decision.statut}</span>
       </div>
@@ -40,7 +41,7 @@ export function DecisionMatin({ decision }: { decision: DecisionAffichee }) {
           <div className="flex flex-wrap items-center gap-2">
             {decision.validation
               ? <button type="button" className="btn-or" disabled={enCours || (Boolean(decision.attestation) && !atteste)} onClick={() => decider(true)}>{enCours ? "En cours…" : "Valider"}</button>
-              : decision.lien && <Link href={decision.lien} className="btn-or">Décider sur l’écran</Link>}
+              : decision.lien && <Link href={decision.lien} className="btn-or">Examiner sur l’écran</Link>}
             {decision.refus && (refusOuvert
               ? <button type="button" className="btn-secondaire" disabled={enCours || motif.trim().length < 3} onClick={() => decider(false)}>Confirmer le refus</button>
               : <button type="button" className="btn-secondaire" onClick={() => setRefusOuvert(true)}>Refuser</button>)}

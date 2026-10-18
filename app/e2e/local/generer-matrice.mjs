@@ -25,6 +25,7 @@ const artisanPrive = await un("select a.id from artisans a join auth.users u on 
 // l'agent — un bien sans mandat rendrait un 404 légitime sous ce persona.
 const ids = {
   ORG,
+  PROSPECT: "nouveau", // Formulaire sans mutation ; historique peuple dans la recette locale.
   ORG_PD: pd?.id,
   INVITATION: (await un("select i.id from invitations_locataires i join auth.users u on u.id=i.account_id where u.email='locataire.alpha@gerimmo-demo.fr' order by i.cree_le desc limit 1"))?.id,
   BIEN: (await un("select id from biens where organization_id = $1 order by (nom like 'E2E%') desc, created_at limit 1", [ORG]))?.id,
@@ -75,7 +76,7 @@ for (const route of inventaire) {
   // /agence/<id> redirige à vie vers /espace/<id> pour lui, un modèle encore écrit « /agence/ORG » est donc ramené à /espace).
   if (route.persona === "proprietaire") chemin = chemin.replace(/^\/(?:agence|espace)\/ORG(?![A-Z_])/, `/espace/${ids.ORG_PD}`);
   let manquant = null;
-  chemin = chemin.replace(/\b(INVITATION_ARTISAN|INVITATION|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT|CLIENT_EXTERNE|CHANTIER_EXTERNE|FACTURE_EXTERNE)\b/g, (m) => {
+  chemin = chemin.replace(/\b(PROSPECT|INVITATION_ARTISAN|INVITATION|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT|CLIENT_EXTERNE|CHANTIER_EXTERNE|FACTURE_EXTERNE)\b/g, (m) => {
     if (!ids[m]) manquant = m;
     return ids[m] ?? m;
   });

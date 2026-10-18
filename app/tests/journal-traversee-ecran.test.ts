@@ -32,6 +32,8 @@ vi.mock("@/lib/supabase/server", () => ({
   }),
 }));
 
+vi.mock("@/app/admin/journaux/preuves", () => ({ PreuvesSupervision: () => null }));
+
 import PageJournaux from "../src/app/admin/journaux/page";
 
 const ligne = (action: string, details: Record<string, unknown>) => ({

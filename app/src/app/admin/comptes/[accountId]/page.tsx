@@ -1,3 +1,4 @@
+import { LectureIndisponible } from "../../lecture-indisponible";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -90,6 +91,8 @@ export default async function PageCompte({ params }: { params: Promise<{ account
       .limit(20),
   ]);
 
+  const retour = `/admin/comptes/${accountId}`;
+  if (dossierLu.error) return <main className="p-4 sm:p-7"><LectureIndisponible sujet="Fiche du compte" retour={retour} /></main>;
   const dossier = ((dossierLu.data ?? []) as Dossier[])[0];
   if (!dossier) {
     // Compte inconnu, ou supervision déléguée : la fiche est réservée au
@@ -119,7 +122,7 @@ export default async function PageCompte({ params }: { params: Promise<{ account
         <div className="min-w-0">
           <TitreEcran rubrique="personnes">{dossier.email}</TitreEcran>
           <p className="mono-discret sans-majuscules">
-            Fiche du compte · {dossier.est_super_admin ? "compte de supervision" : `${adhesions.filter((a) => a.status === "active").length} rôle${adhesions.filter((a) => a.status === "active").length > 1 ? "s" : ""} actif${adhesions.filter((a) => a.status === "active").length > 1 ? "s" : ""}`}
+            Fiche du compte · {dossier.est_super_admin ? "compte de supervision" : adhesionsLues.error ? "rôles indisponibles" : `${adhesions.filter((a) => a.status === "active").length} rôle${adhesions.filter((a) => a.status === "active").length > 1 ? "s" : ""} actif${adhesions.filter((a) => a.status === "active").length > 1 ? "s" : ""}`}
           </p>
         </div>
       </div>
@@ -161,6 +164,7 @@ export default async function PageCompte({ params }: { params: Promise<{ account
             )}
           </div>
         )}
+        {gestesLus.error && <LectureIndisponible sujet="Historique des contrôles" retour={retour} />}
         {gestesSurLeCompte.length > 0 && (
           <ol className="mt-3 divide-y divide-[var(--filet-leger)] border-t border-[var(--filet)] pt-2">
             {gestesSurLeCompte.map((l) => (
@@ -171,8 +175,8 @@ export default async function PageCompte({ params }: { params: Promise<{ account
       </section>
 
       <section className="loc-carte mt-4">
-        <div className="entete-carte"><h2>Rôles et espaces</h2><span className="puce puce-grise">{adhesions.length}</span></div>
-        {adhesions.length === 0 && !dossier.artisan_id ? (
+        <div className="entete-carte"><h2>Rôles et espaces</h2><span className="puce puce-grise">{adhesionsLues.error ? "—" : adhesions.length}</span></div>
+        {adhesionsLues.error || personnesLues.error ? <LectureIndisponible sujet="Rôles et dossiers rattachés" retour={retour} /> : adhesions.length === 0 && !dossier.artisan_id ? (
           <p className="text-sm text-[var(--texte-secondaire)]">Aucun rôle : ce compte n’a accès à aucun espace.</p>
         ) : (
           <ul className="divide-y divide-[var(--filet-leger)]">
@@ -211,9 +215,9 @@ export default async function PageCompte({ params }: { params: Promise<{ account
       </section>
 
       <section className="loc-carte mt-4">
-        <div className="entete-carte"><h2>Journal d’audit de ce compte</h2><span className="puce puce-grise">{audit.length}{audit.length === 60 ? "+" : ""}</span></div>
+        <div className="entete-carte"><h2>Journal d’audit de ce compte</h2><span className="puce puce-grise">{auditLu.error ? "—" : `${audit.length}${audit.length === 60 ? " derniers" : ""}`}</span></div>
         {auditLu.error ? (
-          <p role="alert" className="text-sm text-[var(--destructive)]">Le journal est indisponible. Rechargez la page.</p>
+          <LectureIndisponible sujet="Journal d’audit" retour={retour} />
         ) : audit.length === 0 ? (
           <p className="text-sm text-[var(--texte-secondaire)]">Aucune action enregistrée pour ce compte.</p>
         ) : (
@@ -235,8 +239,8 @@ export default async function PageCompte({ params }: { params: Promise<{ account
       </section>
 
       <section className="loc-carte mt-4">
-        <div className="entete-carte"><h2>Journal technique</h2><span className="puce puce-grise">{tech.length}</span></div>
-        {tech.length === 0 ? (
+        <div className="entete-carte"><h2>Journal technique</h2><span className="puce puce-grise">{techLu.error ? "—" : `${tech.length}${tech.length === 40 ? " derniers" : ""}`}</span></div>
+        {techLu.error ? <LectureIndisponible sujet="Journal technique" retour={retour} /> : tech.length === 0 ? (
           <p className="text-sm text-[var(--texte-secondaire)]">Aucun événement technique rattaché à ce compte.</p>
         ) : (
           <ol className="divide-y divide-[var(--filet-leger)]">

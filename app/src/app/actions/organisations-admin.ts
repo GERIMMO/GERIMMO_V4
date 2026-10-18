@@ -43,6 +43,12 @@ export async function ouvrirOrganisation(
   const joursSaisis = String(formData.get("essai_jours") ?? "").trim();
   const jours = joursSaisis === "" ? null : Number(joursSaisis);
   const demande = String(formData.get("demande_id") ?? "").trim();
+  if (demande) {
+    if (formData.get("demande_commerciale_confirmee") !== "on") return { erreur: "Confirmez que la demande concerne bien l’ouverture d’un espace client.", valeurs };
+    const demandeLue = await supabase.from("demandes_devis").select("id,traitee_le").eq("id", demande).maybeSingle();
+    if (demandeLue.error) return { erreur: "La demande ne peut pas être vérifiée. Réessayez avant d’ouvrir l’organisation.", valeurs };
+    if (!demandeLue.data || demandeLue.data.traitee_le) return { erreur: "Cette demande est introuvable ou déjà traitée. Revenez à la liste des demandes.", valeurs };
+  }
   // Le code de parrainage (19/09) : facultatif ; s'il est là, il doit être
   // bien formé ET connu AVANT d'ouvrir quoi que ce soit — une organisation
   // créée puis un rattachement refusé laisserait la supervision devant un

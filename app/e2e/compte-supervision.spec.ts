@@ -19,11 +19,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("depuis une organisation, la fiche d'un compte dit son état, ses rôles et ses journaux", async ({ page }) => {
-  await page.goto("/admin/clients");
+  await page.goto("/admin/clients?vue=espaces");
   await page.getByRole("link", { name: /Agence Alpha/ }).first().click();
   await expect(page).toHaveURL(/\/admin\/organisations\//);
   // Les gestes de contrôle (audit console 27/09) : repliés, confirmés, jamais sous l'identité du client.
-  await expect(page.getByRole("heading", { name: "Contrôle de l’abonnement" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Accès à l’espace client" })).toBeVisible();
+  await expect(page.getByText(/Elles ne résilient pas l’abonnement Stripe et n’arrêtent pas ses prélèvements/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Invitation du responsable" })).toBeVisible();
   const lien = page.getByRole("link", { name: "Fiche du compte →" }).first();
   await expect(lien).toBeVisible();

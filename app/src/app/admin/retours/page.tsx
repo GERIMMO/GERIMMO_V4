@@ -1,3 +1,6 @@
+import { ArrowUpRight, Bug, CheckCheck, ChevronDown, ClipboardCheck, History, Info, Lightbulb, MessageCircle, MessagesSquare, Monitor, Scale, TriangleAlert } from "lucide-react";
+import shared from "../repertoires.module.css";
+import styles from "../relation-clients.module.css";
 import { deElide } from "@/lib/elision";
 import { TitreEcran } from "@/components/titre-ecran";
 import { formaterDateHeureParis, formaterDateParis } from "@/lib/heure-paris";
@@ -8,7 +11,7 @@ import { ACTIONS_RETOUR, ETATS_RETOUR, GRAVITES_RETOUR, moisRevue, nomEcran, pag
 import { CloreRevue, DecisionRetour, RegrouperIdees } from "./decisions-retour";
 
 // Même nom que l'entrée de la barre (24/09) : les contestations artisan restent une puce de la file.
-export const metadata = { title: "Retours des utilisateurs" };
+export const metadata = { title: "Assistance clients" };
 const NATURES: Record<string, string> = { tous: "Tous", bug: "Problèmes", question: "Questions", idee: "Idées", contestation: "Contestations artisan" };
 type Ligne = { retour: RetourUtilisateur; organisation: string | null; soutiens: number; organisations: number; premiere: string | null; total: number };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -46,45 +49,69 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
   const filtreActif = nature !== "tous" || etat !== "" || org !== "";
   const pages = Math.max(1, Math.ceil(total / 50));
   // Au-delà de la dernière page, la file ne renvoie aucun total : on ne l'affirme pas.
-  const mention = file.error ? "File indisponible" : !lignes.length && page > 1 ? null : `${total} demande${total > 1 ? "s" : ""}`;
+  const totalConnu = !file.error && (lignes.length > 0 || page === 1);
+  const nouveaux = lignes.filter(l => l.retour.etat === "nouveau").length;
+  const aTraiter = new Set(["nouveau", "en_examen", "en_cours"]);
+  const bloquants = lignes.filter(l => l.retour.gravite === "N1" && aTraiter.has(l.retour.etat)).length;
+  const icones: Record<string, typeof MessageCircle> = { bug: Bug, question: MessageCircle, idee: Lightbulb, contestation: Scale };
+  const revueLabel = deElide(new Date(mois + "T12:00:00").toLocaleDateString("fr-FR", { month: "long", year: "numeric" }));
 
-  return <main className="mx-auto w-full max-w-4xl p-4 sm:p-7 space-y-5">
-    <div className="entete-page"><div><TitreEcran rubrique="messages">Retours des utilisateurs</TitreEcran><p className="mt-2 text-sm text-muted-foreground">Répondre aux utilisateurs, qualifier les problèmes et préparer la revue des idées.</p></div>{mention && <span className="mono-discret">{mention}</span>}</div>
-    {/* Rien à filtrer sur une liste vide (audit 25/09, C19) : puces et
-        sélecteurs n'apparaissent que s'il y a des demandes ou un filtre actif. */}
-    {(total > 0 || filtreActif || file.error) && <nav aria-label="Files de retours" className="flex flex-wrap gap-2">{Object.entries(NATURES).map(([k, v]) => <Link key={k} href={adresse(1, k)} aria-current={nature === k ? "page" : undefined} className={`filtre inline-flex items-center${nature === k ? " actif" : ""}`}>{v}</Link>)}</nav>}
-    {nature === "idee" && <section className="rounded-xl border border-[var(--or)] bg-[var(--ivoire)] p-4 text-sm">
-      <h2 className="font-heading text-lg">Revue {deElide(new Date(mois + "T12:00:00").toLocaleDateString("fr-FR", { month: "long", year: "numeric" }))}</h2>
-      {revue.error ? <p>Le bilan de la revue est indisponible.</p> : revue.data ? <><p className="mt-2">Revue terminée le {formaterDateParis(revue.data.cree_le)}.</p><p className="mt-2 whitespace-pre-wrap">{revue.data.bilan}</p></> : <><p className="mt-2">La revue mensuelle est à faire. Examinez les idées et leurs dates de réexamen, puis consignez le bilan.</p><CloreRevue /></>}
-      {!reexamens.error && Number(reexamens.count) > 0 && <p className="mt-3 font-medium">{reexamens.count} idée(s) ont atteint leur date de réexamen.</p>}
-      <p className="mt-3 text-xs text-muted-foreground">Classement sur tout l’historique : organisations distinctes, soutiens uniques, puis ancienneté. Regrouper des idées conserve la confidentialité de leurs descriptions.</p>
+  return <main className={shared.page}>
+    <header className={shared.header}>
+      <div><p className={shared.eyebrow}>À L’ÉCOUTE DES UTILISATEURS</p><TitreEcran rubrique="messages">Assistance clients</TitreEcran><p className={shared.subtitle}>Comprenez la demande, apportez une réponse et gardez le fil jusqu’à sa résolution.</p></div>
+      <Link href="/admin/retours?nature=idee" className="btn-or"><Lightbulb size={16} aria-hidden="true" />Revue des idées</Link>
+    </header>
+    <div className={shared.stats} data-columns="3" aria-label="Résumé des demandes">
+      <a href="#demandes" className={shared.stat}><span className={shared.statIcon}><MessagesSquare size={20} aria-hidden="true" /></span><strong>{totalConnu ? total : "—"}</strong><span>Demandes{filtreActif ? " sélectionnées" : " reçues"}</span><small>{file.error ? "Lecture indisponible" : !totalConnu ? "Total indisponible sur cette page" : filtreActif ? "Selon les filtres en cours" : "Tous les états et catégories"}</small></a>
+      <a href="#demandes" className={shared.stat} data-tone="ambre"><span className={shared.statIcon}><MessageCircle size={20} aria-hidden="true" /></span><strong>{file.error ? "—" : nouveaux}</strong><span>Nouvelles demandes</span><small>Parmi les demandes affichées</small></a>
+      <a href="#demandes" className={shared.stat} data-tone="rouge"><span className={shared.statIcon}><TriangleAlert size={20} aria-hidden="true" /></span><strong>{file.error ? "—" : bloquants}</strong><span>Blocages à traiter</span><small>Parmi les demandes affichées</small></a>
+    </div>
+    {erreur && <p role="alert" className="err mb-5">Une partie du suivi est indisponible. Rechargez avant de prendre une décision.</p>}
+    {nature === "idee" && <section className={styles.review} aria-labelledby="revue-titre">
+      <h2 id="revue-titre">Revue {revueLabel}</h2>
+      {revue.error ? <p>Le bilan de la revue est indisponible.</p> : revue.data ? <><p>Revue terminée le {formaterDateParis(revue.data.cree_le)}.</p><p className="whitespace-pre-wrap">{revue.data.bilan}</p></> : <><p>Examinez les idées et leurs dates de réexamen, puis consignez le bilan de ce mois.</p><CloreRevue /></>}
+      {!reexamens.error && Number(reexamens.count) > 0 && <strong>{reexamens.count} idée{reexamens.count === 1 ? " a" : "s ont"} atteint {reexamens.count === 1 ? "sa" : "leur"} date de réexamen.</strong>}
+      <p>Classement sur tout l’historique : organisations distinctes, soutiens uniques, puis ancienneté. Regrouper des idées conserve la confidentialité de leurs descriptions.</p>
     </section>}
-    {/* Libellé au-dessus du sélecteur : à 390 px, État et Organisation tiennent sur une ligne et « Filtrer » prend la suivante (24/09). */}
-    {(total > 0 || filtreActif || file.error) && <form data-saisie-libre className="flex flex-wrap items-end gap-3 text-sm">
-      <input type="hidden" name="nature" value={nature} />
-      <label className="flex min-w-[10rem] flex-1 flex-col gap-1"><span>État</span><select name="etat" defaultValue={etat} className="w-full rounded border bg-white p-2"><option value="">Tous</option>{Object.entries(ETATS_RETOUR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-      <label className="flex min-w-[10rem] flex-1 flex-col gap-1"><span>Organisation</span><select name="org" defaultValue={org} className="w-full rounded border bg-white p-2"><option value="">Toutes</option>{(organisations.data ?? []).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
-      <button type="submit" className="btn-or w-full justify-center sm:w-auto">Filtrer</button>
-    </form>}
-    {erreur && <p role="alert" className="err">Une partie du suivi est indisponible. Rechargez avant de prendre une décision.</p>}
-    {!file.error && !lignes.length && (page > 1
-      ? <div className="vide-guide"><p className="titre">Cette page est vide</p><p className="explication">La liste compte moins de pages : reprenez depuis la première.</p><div className="geste"><Link href={adresse(1)} className="btn-secondaire">Revenir à la première page</Link></div></div>
-      : filtreActif
-        ? <div className="vide-guide"><p className="titre">Aucune demande pour ces filtres</p><p className="explication">Élargissez la nature, l’état ou l’organisation, ou revenez à la file complète.</p><div className="geste"><Link href="/admin/retours" className="btn-secondaire">Voir toutes les demandes</Link></div></div>
-        : <div className="vide-guide"><p className="titre">Aucune demande en attente</p><p className="explication">Les problèmes, questions, idées et contestations envoyés depuis « Aide et retours » arrivent ici.</p></div>)}
-    {lignes.map(({ retour: r, organisation, soutiens, organisations: nbOrg }) => <article key={r.id} className="loc-carte">
-      <div className="flex flex-wrap justify-between gap-2"><h2 className="font-heading text-xl">{r.titre}</h2><span className="puce puce-prep">{ETATS_RETOUR[r.etat]}</span></div>
-      <p className="mt-2 text-xs text-muted-foreground">{NATURES[r.nature]} · Gravité : {GRAVITES_RETOUR[r.gravite] ?? r.gravite} · {formaterDateHeureParis(r.cree_le)} · Réf. {r.id.slice(0, 8).toUpperCase()} · {organisation ?? (r.nature === "contestation" ? "Espace artisan privé" : "Compte personnel")}</p>
-      <p className="mt-4 whitespace-pre-wrap text-sm">{r.description}</p>
-      {r.attendu && <p className="mt-3 whitespace-pre-wrap text-sm"><strong>Attendu : </strong>{r.attendu}</p>}
-      <p className="mt-3 text-xs text-muted-foreground">Écran : {nomEcran(r.ecran)} · {ACTIONS_RETOUR[r.action_origine]}</p>
-      {r.nature === "idee" && <p className="mt-3 text-sm">{nbOrg} organisation(s) · {soutiens} soutien(s)</p>}
-      {r.reexaminer_le && <p className="mt-3 text-sm">À réexaminer le {new Date(r.reexaminer_le + "T12:00:00").toLocaleDateString("fr-FR")}.</p>}
-      {r.publication_id && <Link href={`/admin/publications/${r.publication_id}`} className="mt-3 inline-block text-sm underline">Préparer l’article lié à cette idée</Link>}
-      <details className="mt-4 text-sm"><summary className="cursor-pointer font-medium">Historique des réponses</summary><ol className="mt-3 space-y-3">{(historique.data ?? []).filter(h => h.retour_id === r.id).map(h => <li key={h.id} className="border-l-2 border-[var(--filet)] pl-3"><time className="text-xs text-muted-foreground">{formaterDateHeureParis(h.cree_le)}</time><p className="whitespace-pre-wrap">{h.message}</p></li>)}</ol></details>
-      <DecisionRetour retour={r} />{r.nature === "idee" && <RegrouperIdees retour={r} idees={idees} />}
-    </article>)}
-    {/* Pas de pagination sur une liste vide ; le total est dans l'en-tête (24/09). */}
-    {total > 0 && <nav aria-label="Pages des demandes" className="flex justify-between gap-3 text-sm">{page > 1 ? <Link href={adresse(page - 1)} className="underline">Précédente</Link> : <span />}<span>Page {page} sur {pages}</span>{page * 50 < total ? <Link href={adresse(page + 1)} className="underline">Suivante</Link> : <span />}</nav>}
+    <div className={styles.layout}>
+      <section id="demandes" className={styles.panel} aria-labelledby="demandes-titre">
+        <div className={styles.panelHeading}><div><h2 id="demandes-titre">Les demandes clients</h2><p>{filtreActif ? "La liste tient compte de la catégorie, de l’état et de l’organisation choisis." : "Problèmes, questions, idées et contestations : un suivi pour chaque demande."}</p></div><MessagesSquare size={20} aria-hidden="true" /></div>
+        {(total > 0 || filtreActif || file.error) && <>
+          <nav aria-label="Files de retours" className={shared.filters}>{Object.entries(NATURES).map(([k,v]) => <Link key={k} href={adresse(1,k)} aria-current={nature === k ? "true" : undefined}>{v}</Link>)}</nav>
+          <form key={`${nature}:${etat}:${org}`} data-saisie-libre method="get" action="/admin/retours" className={styles.filterForm}>
+            <input type="hidden" name="nature" value={nature} />
+            <label><span>État de la demande</span><select name="etat" defaultValue={etat}><option value="">Tous les états</option>{Object.entries(ETATS_RETOUR).map(([k,v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+            <label><span>Organisation</span><select name="org" defaultValue={org}><option value="">Toutes les organisations</option>{(organisations.data ?? []).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
+            <button type="submit" className="btn-secondaire">Appliquer</button>
+            {filtreActif && <Link href="/admin/retours">Tout effacer</Link>}
+          </form>
+        </>}
+        {file.error ? <p role="alert" className={styles.notice}>La liste des demandes est momentanément indisponible.</p> : !lignes.length ? <div className={styles.empty}><CheckCheck size={28} aria-hidden="true" /><h3>{page > 1 ? "Cette page est vide" : filtreActif ? "Aucune demande pour ces filtres" : "Aucune demande reçue"}</h3><p>{page > 1 ? "La liste compte moins de pages. Reprenez depuis la première." : filtreActif ? "Élargissez la catégorie, l’état ou l’organisation pour retrouver les autres demandes." : "Les messages envoyés depuis « Aide et retours » apparaîtront ici avec leur contexte et leur historique."}</p>{(page > 1 || filtreActif) && <Link href={page > 1 ? adresse(1) : "/admin/retours"}>{page > 1 ? "Revenir à la première page" : "Voir toutes les demandes"}<ArrowUpRight size={15} aria-hidden="true" /></Link>}</div> : <div className={styles.requestList}>
+          {lignes.map(({retour:r,organisation,soutiens,organisations:nbOrg}) => {
+            const Icone = icones[r.nature] ?? MessageCircle;
+            const echanges = (historique.data ?? []).filter(h => h.retour_id === r.id);
+            const bloque = r.gravite === "N1" && aTraiter.has(r.etat);
+            return <article id={`retour-${r.id}`} key={r.id} className={styles.request} data-blocking={bloque}>
+              <header className={styles.requestHeader}><span className={shared.avatar} aria-hidden="true"><Icone size={19} /></span><div className={styles.requestTitle}><h3>{r.titre}</h3><p>{organisation ?? (r.nature === "contestation" ? "Espace artisan privé" : "Compte personnel")} · {formaterDateHeureParis(r.cree_le)}</p><div className={styles.badges}><span className={shared.badge} data-tone={r.etat === "resolu" || r.etat === "retenue" ? "vert" : r.etat === "nouveau" ? "ambre" : "bleu"}>{ETATS_RETOUR[r.etat] ?? r.etat}</span><span className={shared.badge}>{NATURES[r.nature]}</span><span className={shared.badge} data-tone={bloque ? "rouge" : "gris"}>{GRAVITES_RETOUR[r.gravite] ?? r.gravite}</span></div></div></header>
+              <div className={styles.requestContent}>
+                <p className={styles.description}>{r.description}</p>
+                {r.attendu && <div className={styles.expected}><strong>Résultat attendu</strong>{r.attendu}</div>}
+                <div className={styles.requestMeta}><span><Monitor size={12} aria-hidden="true" />{nomEcran(r.ecran)} · {ACTIONS_RETOUR[r.action_origine]}</span><span>Réf. {r.id.slice(0,8).toUpperCase()}</span></div>
+                {(r.nature === "idee" || r.reexaminer_le) && <div className={styles.ideaInfo}>{r.nature === "idee" && <span>{nbOrg} organisation{nbOrg > 1 ? "s" : ""} · {soutiens} soutien{soutiens > 1 ? "s" : ""}</span>}{r.reexaminer_le && <span>À réexaminer le {formaterDateParis(r.reexaminer_le)}</span>}</div>}
+                {r.publication_id && <Link href={`/admin/publications/${r.publication_id}`} className={styles.articleLink}>Préparer l’article lié à cette idée<ArrowUpRight size={14} aria-hidden="true" /></Link>}
+                <details className={styles.responses}><summary><History size={14} aria-hidden="true" />Historique des réponses{!historique.error && ` · ${echanges.length}`}<ChevronDown size={14} aria-hidden="true" /></summary>{historique.error ? <p role="alert" className="err">Les réponses précédentes sont indisponibles.</p> : echanges.length ? <ol>{echanges.map(h => <li key={h.id}><time dateTime={h.cree_le}>{formaterDateHeureParis(h.cree_le)}</time><p>{h.message}</p></li>)}</ol> : <p className={styles.subtle}>Aucune réponse enregistrée pour le moment.</p>}</details>
+              </div>
+              <details className={styles.response} open={lignes.length === 1}><summary><MessageCircle size={16} aria-hidden="true" />Répondre et décider<ChevronDown size={16} aria-hidden="true" /></summary><div><DecisionRetour retour={r} />{r.nature === "idee" && <RegrouperIdees retour={r} idees={idees} />}</div></details>
+            </article>;
+          })}
+        </div>}
+        {total > 0 && pages > 1 && <nav aria-label="Pages des demandes" className={shared.pagination}>{page > 1 ? <Link href={adresse(page-1)}>Précédente</Link> : <span />}<span>Page {page} sur {pages}</span>{page*50 < total ? <Link href={adresse(page+1)}>Suivante</Link> : <span />}</nav>}
+      </section>
+      <aside className={styles.sidebar} aria-label="Suivi de la relation clients">
+        <section className={styles.networkCard}><Lightbulb size={29} aria-hidden="true" /><p className={styles.eyebrow}>LES IDÉES FONT AVANCER GERIMMO</p><h2>Écouter.<br />Puis améliorer.</h2><p>Retrouvez les propositions, leurs soutiens et les décisions de la revue mensuelle.</p><Link href="/admin/retours?nature=idee">Ouvrir la revue des idées<ArrowUpRight size={16} aria-hidden="true" /></Link></section>
+        <section className={styles.guide}><p className={styles.eyebrow}>À REPRENDRE</p><h2>Les idées à réexaminer</h2><div className={styles.reviewNumber}><strong>{reexamens.error ? "—" : reexamens.count ?? 0}</strong><span>{reexamens.error ? "Lecture indisponible" : "dont la date de réexamen est atteinte"}</span></div><p>La revue {revueLabel} {revue.error ? "est indisponible." : revue.data ? "est terminée." : "reste à compléter."}</p><Link href="/admin/autonomie?vue=ameliorations"><ClipboardCheck size={15} aria-hidden="true" />Améliorations du produit<ArrowUpRight size={15} aria-hidden="true" /></Link><Link href="/admin/brief/qualite">Compte rendu de l’équipe qualité<ArrowUpRight size={15} aria-hidden="true" /></Link></section>
+      </aside>
+    </div>
+    <p className={styles.context}><Info size={15} aria-hidden="true" /><span>Les réponses restent dans le suivi de la demande. Les contestations artisan sont privées entre l’artisan et la supervision.</span></p>
   </main>;
 }

@@ -39,6 +39,7 @@ export async function commanderConsigne(_etat: RetourSupervision, f: FormData): 
  return { erreur: 'Commande inconnue.' };
 }
 export async function enregistrerVacances(_etat: RetourSupervision, f: FormData): Promise<RetourSupervision> {
+ if(texte(f,'verification')!=='oui') return {erreur:'Relisez le récapitulatif et confirmez la vérification avant de programmer cette absence.'};
  const debut = instantParis(texte(f,'debut')), fin = instantParis(texte(f,'fin'));
  if (!debut || !fin) return { erreur: 'Vérifiez les dates à l’heure de Paris. Les heures ambiguës du changement d’heure sont refusées.' };
  return appel('enregistrer_vacances', { p_precedent: texte(f,'precedent') || null, p_titre: texte(f,'titre'), p_debut: debut, p_fin: fin, p_fuseau: 'Europe/Paris', p_responsable: texte(f,'responsable'), p_consigne_version: texte(f,'consigne') || null, p_delai_minutes: Number(f.get('delai')) });

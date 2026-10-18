@@ -27,13 +27,14 @@ const MOI = "22222222-2222-4222-8222-222222222222";
 const form = (v: Record<string, string>) => { const f = new FormData(); for (const [k, x] of Object.entries(v)) f.set(k, x); return f; };
 
 /** Un client : `rpc` répond selon la table `reponses`, `from` rend `lignes[table]`. */
-function client(reponses: Record<string, { data?: unknown; error?: { message: string } | null }> = {}, lignes: Record<string, unknown> = {}) {
+function client(reponses: Record<string, { data?: unknown; error?: { message: string } | null }> = {}, lignes: Record<string, unknown> = {}, erreurs: Record<string,string> = {}) {
   const appels: [string, unknown][] = [];
   const rpc = vi.fn(async (fn: string, args?: unknown) => { appels.push([fn, args]); return { data: reponses[fn]?.data ?? true, error: reponses[fn]?.error ?? null }; });
   const from = vi.fn((table: string) => {
     const q: Record<string, unknown> = {};
-    for (const m of ["select", "eq", "in", "update", "is", "or", "order", "limit"]) q[m] = () => q;
-    q.maybeSingle = async () => ({ data: lignes[table] ?? null, error: null });
+    for (const m of ["select", "eq", "in", "insert", "update", "is", "or", "order", "limit"]) q[m] = () => q;
+    q.maybeSingle = async () => ({ data: lignes[table] ?? (table === "supervision_executions_decisions" ? {id:ID} : null), error: erreurs[table]?{message:erreurs[table]}:null });
+    q.single = q.maybeSingle;
     q.then = (ok: (r: unknown) => unknown) => Promise.resolve({ data: lignes[table] ?? [], error: null }).then(ok);
     return q;
   });
@@ -60,6 +61,13 @@ describe("marquerDevisTraitee (majeur 6)", () => {
 });
 
 describe("décision du point du matin : l'état courant d'abord (majeur 1)", () => {
+  it("ne déclenche aucun effet lorsque le journal est indisponible ou une tentative est engagée", async () => {
+    const c = client({}, {}, {supervision_executions_decisions:"conflit de tentative"});
+    expect((await deciderDecisionDuMatin(ID,true,"")).erreur).toMatch(/déjà engagée/);
+    expect(c.appels.map(([f])=>f)).toEqual(["is_permanent_super_admin"]);
+    expect(c.from).not.toHaveBeenCalledWith("decisions_du_matin");
+  });
+
   it("n'appelle pas decider_veille quand l'information a été écartée depuis son écran", async () => {
     const c = client({}, {
       decisions_du_matin: { id: ID, source: "veille", source_id: ID, statut: "en_attente", cle: `veille:${ID}`, gestes: {} },

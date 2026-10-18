@@ -1,3 +1,4 @@
+import { LectureIndisponible } from "../../lecture-indisponible";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -22,11 +23,13 @@ export default async function PageOuvrirOrganisation(
   let prefill: { nom?: string; email?: string; demandeId?: string } | undefined;
   if (idDemande) {
     const supabase = await createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("demandes_devis")
-      .select("id, nom, email, agence")
+      .select("id, nom, email, agence, traitee_le")
       .eq("id", idDemande)
       .maybeSingle();
+    if (error) return <main className="p-4 sm:p-7"><LectureIndisponible sujet="Demande de contact" retour={`/admin/organisations/nouvelle?demande=${encodeURIComponent(idDemande)}`} /></main>;
+    if (!data || data.traitee_le) return <main className="p-4 sm:p-7"><p>Cette demande est introuvable ou déjà traitée.</p><Link className="lien-discret" href="/admin/devis">Revenir aux demandes</Link></main>;
     const d = data as { id: string; nom: string; email: string; agence: string | null } | null;
     if (d) prefill = { nom: d.agence ?? d.nom, email: d.email, demandeId: d.id };
   }
@@ -50,7 +53,7 @@ export default async function PageOuvrirOrganisation(
       {prefill?.demandeId && (
         <div className="loc-carte mb-5 border-l-4 border-l-[var(--or)]">
           <p className="text-sm">
-            Ouverture depuis une demande de devis. Elle sera marquée traitée.
+            Ouverture depuis une demande de contact, à confirmer comme commerciale. Elle sera marquée traitée.
           </p>
         </div>
       )}

@@ -6028,3 +6028,110 @@ Le modèle Supabase Change email address est restauré strictement à son conten
 ## [2026-10-16] audit | Batterie complète après le complément de compatibilité
 
 Version locale finale : 8 029 tests réussis, 117 ignorés, aucun échec, 554 fichiers réussis ; les exécutables PostgreSQL sont disponibles pour les essais de restauration. Compilation de production, typecheck et lint réussis. Quinze tests Auth/SMTP réels, 89 tests ciblés et le retour SQL brut rejoués par la contrelecture indépendante, sans constat bloquant. Le modèle Change email address reste identique à main. La nouvelle CI et la simulation du lot complet de huit fichiers doivent maintenant valider la tête publiée de la PR #198. Aucune migration définitive ni publication du candidat à cette entrée.
+
+
+## [2026-10-17] deploy | Mission du 16 octobre publiée après sauvegarde et huit migrations
+
+Accord du dirigeant pour les trois points préalables et leur publication. Secret dédié de nettoyage fourni par le dirigeant, présence vérifiée sans lecture de valeur. CI candidate [38956122277](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/38956122277) réussie sur `fe8e534` : 8 130 tests logique/PDF et 199 tests navigateur, respectivement 16 et un ignorés ; aucun échec ni test instable. Simulation des huit fichiers [38956595433](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/38956595433) réussie. Avant application : 26 définitions sans dérive. Sauvegarde [39016260525](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/39016260525) réussie et archive distante relue ; application [39016744717](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/39016744717) réussie. Vérification SELECT : huit versions enregistrées, quatre nouvelles tables avec RLS, douze nouvelles fonctions fermées à anon, dix tâches actives conservées. Fusion PR198 `d31a9525908bbb0999c876c0a6733d499941264d`, arbre `fb5dac8ed891ce6f810b573b37cf4a5e6fc4f97a` identique au candidat. Vercel `DcZufoNqkHq9io4ZEuDSrgF9rZQ9` Ready, Production sur www.gerimmo.app. `GERIMMO_CODEX_ENABLED`, trouvé à true, corrigé à false avant ce déploiement. Durcissement de /auth/confirm (consigne hors dépôt).
+
+## [2026-10-17] audit | Nettoyage ancien confirmé et recette n°21 arrêtée avant les parcours
+
+Après sauvegarde et accord ponctuel explicite : 31 anciens fichiers fictifs supprimés via l'interface Storage ; zéro restant dans les deux dossiers ciblés, hors fichiers des utilisateurs actuels. Accord ponctuel reçu pour la recette étendue : cinq comptes, superadmin protégé par MFA, durée bornée à 61 minutes, nettoyage. Exécution [39017066396](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/39017066396), job `117351283214` : arrêt à l'accès artisan durant la préparation des sessions ; aucun parcours exécuté. Nettoyage réussi puis SELECT indépendant : comptes 0, organisations 0, artisans 0 et tâche d'expiration 0. Complément de diagnostic sans changement applicatif dans PR199. Sept pages publiques contrôlées en HTTP 200 ; premier relevé Vercel sans erreur, deux tâches réussies après publication. La CI de main et la validation complète de la nouvelle recette restent en cours à cette entrée. Voir [[Mission du 16 octobre — suivi vérifié]].
+
+
+## [2026-10-17] audit | Diagnostic confirmé de l'attente réseau de la recette
+
+CI de main [39016823364](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/39016823364) réussie : 8 130 tests logique/PDF et 199 navigateur, aucun échec. PR199 de diagnostic fusionnée en `6614ea7be6e84dfaaf3463d263cf283292d23ef4`, après CI 39017381737 réussie sur 264b177. Déploiement `8J7FTNXMoMSDscoVYauMkqg42F32` Ready. Recette n°22 [39018291225](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/39018291225), job 117354807735 : connexion HTTP 200 et page `/artisan`, puis expiration de l'attente networkidle (45 s). Nettoyage réussi. PR200 remplace cette attente de silence réseau par la destination du rôle et un titre visible. Aucun changement applicatif ni assouplissement de sécurité ; la recette complète n'est toujours pas acquise.
+
+## 2026-10-17 — Recette n°23 et conservation des cinq comptes demandée
+
+La recette 39019618173 termine avec 48 réussites, un ignoré et un échec du scénario d’inscription périmé. D18, D22 et D23, les accès artisan et la supervision avec MFA sont vérifiés. Nettoyage du passage confirmé à zéro ; les 42 fichiers antérieurs restent présents. CI main 39019545685 et sauvegarde après publication 39018999783 réussies.
+
+Le dirigeant demande explicitement de conserver les cinq comptes de test. PR201 prépare un groupe fixe protégé de la suppression, avec retrait du seul rôle superadmin temporaire et test d’inscription isolé. Dix-sept contrôles locaux réussis, dont deux cycles avec UUID inchangés et refus des rattachements étrangers. La CI et le premier passage en ligne avec conservation restent à terminer. Voir [[Mission du 16 octobre — suivi vérifié]].
+
+
+## 2026-10-17 — cinq comptes fixes conservés, contrôle de production réussi
+
+À la demande explicite du dirigeant, PR #201 intégrée en `406ad8a` après CI 39022164590 : 8 136 tests logique/PDF et 199 tests navigateur réussis (16 et un ignorés). Vercel `9jseXz655P2Q4Q41yYCHdy3H2rBc` Ready en Production. Recette n°24, exécution 39022945703, job 117368227992 : 49 réussites, un chemin facultatif ignoré, aucun échec ni test instable. Après clôture, contrôle SQL limité au groupe fictif : cinq comptes, identifiants inchangés ; zéro privilège/session superadmin, accès de supervision fermé, zéro tâche d’expiration et zéro inscription ponctuelle. Les cinq comptes sont réutilisables ; leurs dossiers restent jusqu’à la remise à zéro du prochain passage. Les contrôles locaux ont aussi confirmé la stabilité des identifiants sur deux cycles. Rapport HTML/JSON et synthèses actualisés. Serveur local temporaire des tests arrêté ; autre environnement local laissé intact.
+
+
+## 2026-10-17 — première proposition visuelle superadmin, aperçu local permanent
+
+À la demande du dirigeant : travail écran par écran, local uniquement. Première proposition pour le menu partagé et l’accueil : icônes, identité Gerimmo, bandeau clair bleu/champagne, repères du jour et décisions en tête. Les lectures, droits, routes et actions métier sont conservés. Les compteurs utilisent les données présentes, les comptes rendus absents restent explicitement « À préparer ». Base locale dédiée et durable, même compte superadmin fictif conservé ; pas de réinitialisation ni suppression lors des essais. Exception MFA réservée au seul émulateur local en développement, avec contrôles de boucle locale ; gardes de production inchangées. 96 tests ciblés réussis, vérification TypeScript et lint réussies ; présentation et menu vérifiés à 1440 et 390 px. Aucune publication. Voir [[Recette de production#Aperçu local du superadmin — environnement distinct à conserver]].
+
+
+## 2026-10-17 — menu superadmin continu et présentation des 17 destinations
+
+À la demande du dirigeant, le menu local présente 17 entrées à la suite, sans regroupement ni section repliable. Les vues Bureau de direction, Décisions et Équipes sont distinctes ; Activité et dossiers et Améliorations ont chacune leur vue et des filtres conservés. Les liens actifs tiennent compte des paramètres et des sous-pages. Présentation partagée harmonisée (titres, cartes, actions, espaces et mobile), accueil complété et accès Sécurité et conformité ajouté vers les fonctions existantes. Abonnements et finances présente les états réels et les fiches clients ; les mesures d’automatisation rejoignent les automatismes. Le total financier consolidé reste explicitement absent, sans chiffre inventé. Historique renvoie directement au contrôle de sauvegarde.
+
+Validation : 32 tests ciblés réussis, TypeScript et ESLint réussis ; les 17 destinations ouvertes sur ordinateur et à 390 px, titres et entrée active vérifiés, aucun débordement horizontal détecté ; menu mobile ouvert et navigation vérifiée. Relecture des derniers changements sur Finances et Automatismes. Cette vérification porte sur l’affichage et la navigation, pas sur une nouvelle recette exhaustive des mutations ou services externes. Compte superadmin local permanent conservé et aperçu rouvert. Aucun changement métier, aucune suppression de compte, aucune publication. Voir [[Recette de production#Aperçu local du superadmin — environnement distinct à conserver]].
+
+
+## 2026-10-17 — bureau de direction plus compact et lisible
+
+Amélioration locale de la page demandée par le dirigeant : en-tête avec actualisation et consigne, compte des rapports restant à lire, priorités et relais côte à côte, cartes des sept équipes plus compactes et repérées par couleur. Les compteurs vides des équipes sans passage sont remplacés par leur état explicite ; les résultats, validations et échecs restent visibles dès qu’ils existent. Les indicateurs factuels sont réorganisés, leurs dates et états indisponibles conservés ; les explications de calcul sont accessibles dans un volet dépliable. Aucun calcul métier, accès ou automatisme modifié.
+
+Vérifications : 32 tests ciblés réussis, TypeScript et lint réussis. Affichage relu sur ordinateur et à 390 px, aucun débordement horizontal ; aller-retour vers les comptes rendus et ouverture des explications vérifiés. Compte d’essai permanent conservé ; aucune publication.
+
+## 2026-10-17 — bureau, utilisateurs et activité : présentation locale approfondie
+
+Bureau de direction recomposé : repères réunis, priorité centrale, accès aux consignes et au relais dans une colonne dédiée, sept équipes présentées en lignes avec filtres Toutes / À lire / À vérifier. Utilisateurs devient un annuaire avec recherche insensible aux accents, catégories, statuts, inscriptions artisan à valider et accès aux fiches existantes. Activité et dossiers distingue les urgences et blocages, les prochaines actions et l’historique ; retour à la première page disponible lorsque la pagination n’a plus de résultats. Les états indisponibles restent distincts des compteurs à zéro. Requêtes, droits et actions métier conservés.
+
+Vérifications : TypeScript et ESLint réussis ; 46 tests ciblés réussis, 23 tests SQL ignorés faute de base de test configurée pour cette commande. Navigateur : filtres des équipes (7 / 5 / 0 / retour à 7), recherche utilisateurs (1 résultat puis zéro), catégories, statut et réinitialisation vérifiés. Trois pages relues sur ordinateur et téléphone à 390 px, sans débordement ; indicateurs du suivi compactés sur mobile. Le suivi local contient zéro dossier : état vide vérifié, cas peuplés et pagination non parcourus dans le navigateur. Captures conservées dans outputs/superadmin-visuel/direction-utilisateurs-dossiers du workspace. Aucune mutation métier de test, aucun compte supprimé, aucune publication.
+
+
+## 2026-10-17 — réseau, assistance et finances : enrichissement local, audit complet du superadmin
+
+Réseau d’artisans : contrôles identité/documents/décision, file et historique, accès à la couverture. Assistance clients : demandes, filtres et états conservés, réponse et idées mieux séparées. Finances : état Stripe distinct de l’accès organisation, revenu mensuel normalisé avec HT/TTC séparés et montants inconnus explicites, essais, défauts, résiliations, échéances, offres, unités, synchronisation et détails par client ; recherche, filtres exacts et pagination. Les factures encaissées et coûts non consolidés ne sont pas inventés. Le seuil marketing est nommé comme une alerte et non un plafond de dépense.
+
+Migration `20261017180829_supervision_finances.sql` appliquée seulement à `gerimmo_ci_apercu_permanent` : nouvelle lecture sécurisée de supervision, aucun changement de données financières métier, aucun droit direct ajouté sur les abonnements. Contrôles locaux en transaction annulée : superadmin avec AAL2 autorisé ; compte ordinaire, AAL1 et anonyme refusés ; pas d’identifiants Stripe ni de message brut de synchronisation renvoyés. Émulateur local relancé seul pour charger la lecture. Comptes permanents conservés.
+
+Vérifications : 36 tests ciblés réussis, TypeScript, ESLint et diff sans erreur ; filtres et recherche vérifiés dans le navigateur, affichage des trois pages sur ordinateur et à 390 px sans débordement. Les files artisan et assistance sont vides en local : les scénarios peuplés et les envois n’ont pas été exécutés.
+
+À la demande du dirigeant, audit de pertinence de l’ensemble du superadmin : 17 destinations de menu, 28 modèles de page inventoriés, 35 vues ouvertes (variantes et sept équipes incluses), 14 familles d’écrans secondaires détaillées. Deux modèles, fiche artisan et éditeur d’article, relus seulement dans le code faute de données locales. Huit constats ouverts : portée des commandes d’accès versus abonnement, mauvais candidat proposé pour le relais, erreurs de lecture masquées en vide/introuvable, vérification partielle de personnalisation, jour UTC de validité artisan, actions commerciales sur demandes non commerciales, périmètres de listes et compteurs, préparation marketing annoncée sans état suffisant. Rapport accessible : `outputs/superadmin-visuel/audit/audit-superadmin.html` du workspace, données et preuves locales à côté.
+
+Le menu continu de 17 entrées est conservé. Recommandations prioritaires : compléter finances réelles, tous les comptes utilisateurs, sécurité exploitable et vacances guidées. L’audit n’est pas une recette exhaustive des mutations et connexions de production. Aucun lancement d’automatisme, envoi, purge, changement de sécurité ni déploiement.
+
+
+## 2026-10-17 — marketing, développement commercial et automatismes : présentation locale
+
+Marketing et contenus : compteurs avec indisponibilité explicite, cinq prochains posts, files de relecture/diffusion/publication, intentions éditoriales et canaux. La limite des 100 derniers articles est annoncée ; le nombre de posts programmés utilise le total exact. Le prochain passage annoncé tient compte de la pause, de la connexion IA et de l’heure configurée. Le message de diffusion respecte aussi la validation et la connexion Facebook. Réglages et programmation restent disponibles dans des volets dépliables ; commandes de publication conservées.
+
+Développement commercial : total et cinq plus anciennes demandes en attente, accès direct à leur fiche, six derniers espaces clients avec état et date. Une demande de contact n’est pas assimilée à un prospect ; l’accès d’une organisation reste distinct de son abonnement. Les études territoriales sont conservées plus bas, sans recommandation lorsque les sources sont indisponibles ou insuffisamment complètes. Formulaire d’étude et règles de validation inchangés.
+
+Automatismes et consignes : dix tâches en cartes, recherche par tâche/équipe et filtres par état ; dernier résultat, horaire habituel et effet des commandes expliqués. L’historique des 200 derniers passages est explicitement borné. Consignes, relais, limites et arrêt restent accessibles ; atelier qualité et mesures d’autonomie sont dépliables. Droits et actions serveur inchangés.
+
+Vérifications : 111 tests ciblés réussis dans sept fichiers, ESLint, TypeScript et diff sans erreur. Trois pages inspectées à 1280 px et à 390 px, sans débordement horizontal ; recherche et filtres des tâches, ouverture des réglages/programmation et champs conditionnels de l’étude commerciale vérifiés sans soumission. Les files de demandes et publications sont vides en local : leurs cas peuplés et les actions d’envoi ne sont pas une recette navigateur acquise. Captures dans outputs/superadmin-visuel/marketing-commercial-automatismes du workspace. Aucune migration, modification métier, suppression de compte, publication ou exécution d’automatisme. Compte d’essai permanent conservé.
+
+
+## 2026-10-18 — clôture locale des huit constats de l’audit superadmin
+
+Demande : « ça me convient, corrige les défaut ouvert ». Périmètre : SA-01 à SA-08 de l’audit du 17 octobre ; les enrichissements fonctionnels plus larges restent séparés. Aucune publication.
+
+SA-01 : accès de l’organisation distincts de l’abonnement Stripe dans le titre, les explications et les confirmations. SA-02 : exclusion du superviseur courant, avertissement avant saisie et programmation désactivée sans autre responsable habilité. SA-03 : erreurs de lecture distinctes des états vides et des 404 pour comptes, organisations et articles ; réessai explicite, protection des listes secondaires et des invitations. SA-04 : toutes les connexions configurées doivent être vérifiées ; badge partiel ajouté. SA-05 : validité des assurances au jour de Paris.
+
+SA-06 : demandes de contact orientées explicitement vers ouverture, assistance, confidentialité ou autre contact. Aucune intention commerciale déduite du texte. Ouverture d’organisation liée à une demande protégée par une confirmation explicite côté formulaire et serveur ; refus si la demande est déjà traitée, absente ou illisible, avant création et invitation. Le choix d’orientation est une aide de navigation, sans qualification persistante supplémentaire.
+
+SA-07 : annuaire paginé côté serveur par catégorie, totaux exacts indépendants des pages et recherche sur toutes les fiches ; articles et propositions paginés ; filtres conservés dans les liens ; gestion des pages devenues hors limites. Les articles programmés et reportés sont désormais accessibles. Marketing conserve un aperçu explicite des 100 derniers articles et des cinq prochains posts, avec accès à la liste complète. SA-08 : vérification du correctif antérieur sur activation, connexion IA et heure de préparation configurée.
+
+Vérification : 63 tests ciblés dans quatre fichiers, incluant les erreurs de lecture, 1 051 fiches simulées, les vérifications partielles, le relais, la qualification commerciale et minuit/changement d’heure à Paris. TypeScript et ESLint ciblé sans erreur. Aperçu local inspecté sur ordinateur ; annuaire, articles, relais et améliorations à 390 px sans débordement horizontal. Les files de contacts et publications sont vides dans l’aperçu : leurs cas peuplés sont testés avec des réponses simulées, sans les déclarer recettés en navigateur. Aucun compte supplémentaire, aucun nettoyage, aucune modification de droits ni d’authentification. L’aperçu a redémarré automatiquement pour libérer sa mémoire pendant les compilations ; la vérification a repris dans un nouvel onglet.
+
+Rapport HTML et données d’audit mis à jour ; captures et sorties des contrôles dans `outputs/superadmin-visuel/corrections-18-octobre` du workspace. Aucune migration ni donnée métier modifiée ; les traces habituelles de consultation et présence restent gérées par l’application. Les comptes d’essai permanents sont conservés.
+
+## [2026-10-18] develop | Sept volets de supervision fonctionnelle
+
+Finances : lecture paginée des mouvements Stripe par mois de Paris, encaissements, remboursements, frais et virements distingués ; registre immuable des coûts TTC payés avec référence et preuve déclarée, correction par contre-écriture. Le solde affiché reste provisoire si les coûts ne sont pas exhaustifs. Aucune mutation Stripe.
+
+Annuaire : comptes et fiches sans compte, rôles connus propriétaires, locataires, garants, artisans et superviseurs, organisations, filtres et pagination de 25. Décisions : qualification accord/incident/information, trace avant exécution, résultat explicite et état de la source ; cinq dernières tentatives annoncées par décision.
+
+Vacances : cinq étapes (période, responsable, tâches autorisées, alertes, contrôle final), conservation de la saisie et garde serveur avant activation. Sans second superviseur habilité, la préparation est explicitement bloquée. Sécurité : comptes sensibles, état MFA disponible, délégations, dernières actions et accès aux preuves.
+
+Historique : sauvegardes avec compteurs et état réel, filtres de dates/résultat, registre des modifications. Paramètres publics de l’éditeur modifiables avec contrôle de version et historique, repris dans les pages légales ; aucune clé proposée à la saisie. Améliorations : progression jusqu’à la publication, preuve vérifiée sur révision autorisée, fusion main et déploiement Vercel de production promu ; vérification en lecture seule.
+
+Commercial : fiches prospects, étapes, responsable, prochaine action et échéance, retard, origine, historique et rattachement à un espace. Une ouverture d’espace ne signifie pas un client payant ; perte motivée et conversion sans espace refusée.
+
+Migrations 20261017180829 et 20261018061548 : uniquement sur la base fictive permanente à ce stade. Le lecteur SQL local respecte maintenant les colonnes demandées dans RETURNING ; les droits limités de l’identité publique sont conservés. Aucun compte permanent supprimé ni privilège ajouté.
+
+Vérifications locales : 244 tests ciblés réussis (14 fichiers), TypeScript et ESLint ciblé sans erreur, diff vérifié ; SQL en transaction annulée (isolation, identité publique sans auteur, immutabilité, doublons, version périmée, qualification et conversion). Conseiller sécurité local, niveau ERROR : aucune anomalie. Navigateur : annuaire et filtres, finances avec coût fictif, prospect créé puis qualifié après erreur contrôlée, historique, paramètres enregistrés et repris dans les mentions légales puis valeur fictive restaurée. Captures dans outputs/superadmin-visuel/developpement-18-octobre.
+
+Limites : Stripe/GitHub/Vercel non connectés dans cet aperçu (réponses simulées pour les tests), un seul superviseur fictif donc pas d’activation réelle du relais, absence de données locales de sauvegarde et de publication. Le réglage de fenêtre mobile du navigateur n’a pas modifié la largeur effective (1280 px) ; les captures de cette passe sont des captures ordinateur, pas une validation mobile. Le dirigeant demande ensuite la publication, suivie d’un audit complet de l’existant.

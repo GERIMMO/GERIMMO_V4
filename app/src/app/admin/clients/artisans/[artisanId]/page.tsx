@@ -1,8 +1,9 @@
+import { LectureIndisponible } from "../../../lecture-indisponible";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formaterDate } from "@/lib/ged";
+import { aujourdhuiParis, formaterDate } from "@/lib/ged";
 import { METIERS, PIECES_ARTISAN } from "@/app/artisan/libelles";
 import { DecisionArtisan } from "@/app/admin/artisans/decision-artisan";
 import { RetourDecisionsArtisan } from "@/app/admin/artisans/retour-decisions";
@@ -103,13 +104,15 @@ export default async function PageFicheArtisan(
       .eq("artisan_id", artisanId),
   ]);
 
+  if ([metiers, zones, pieces, validations, agences].some(lecture => lecture.error)) return <main className="p-4 sm:p-7"><LectureIndisponible sujet="Justificatifs et dossier de l’artisan" retour={`/admin/clients/artisans/${artisanId}`} /></main>;
+
   const listeMetiers = (metiers.data ?? []).map((m) => METIERS[m.metier] ?? m.metier);
   const listeZones = (zones.data ?? []).map((z) => z.code_postal);
   const listePieces = (pieces.data ?? []) as Piece[];
   // Les DEUX assurances en cours : décennale non échue ET RC pro non échue
   // (décision du porteur du 27/09 ; même règle que la base,
   // `artisan_assurance_deposee`).
-  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const aujourdhui = aujourdhuiParis();
   const decennaleEnCours = listePieces.some((p) => p.type === "decennale" && p.expire_le !== null && p.expire_le >= aujourdhui);
   const rcProEnCours = listePieces.some((p) => p.type === "rc_pro" && (p.expire_le === null || p.expire_le >= aujourdhui));
   const assuranceEnCours = decennaleEnCours && rcProEnCours;

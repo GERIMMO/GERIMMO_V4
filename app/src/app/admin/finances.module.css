@@ -64,7 +64,7 @@
 .cell p { font-size:12px; margin-top:5px; font-variant-numeric:tabular-nums; }
 .cell .warning { color:#8e5034; }
 .mobileLabel { display:none; }
-.openAccount { color:#6b8399; padding-top:5px; }
+.openAccount { color:#52677c; padding-top:5px; }
 .openAccount span { display:none; }
 .financeScope { margin-top:28px; }
 .scopeGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; }

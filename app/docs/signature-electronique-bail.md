@@ -1,6 +1,12 @@
 # Signature électronique du bail — préparation du 18 octobre 2026
 
-## État réel
+## État réel au 18 octobre 2026, après raccordement
+
+Le circuit et ses trois migrations sont publiés. Le webhook Zoho est actif, sa clé HMAC est enregistrée en production et les envois clients restent désactivés. Le bouton « Tester l’URL » de Zoho a transmis une notification sans en-tête de signature : son refus HTTP 400 est attendu et ne valide pas la correspondance des clés. Le journal ne contient que des codes de refus fixes, sans données du document ni secret. La validation externe complète depuis un bail Gerimmo est encore à réaliser.
+
+Pour cette recette, `SIGNATURE_BAIL_ORGS_ESSAI` peut désigner une liste fermée d’UUID d’organisations fictives. Une liste invalide ou absente ne permet aucun essai. Seul un propriétaire du périmètre, portant le marqueur serveur `app_metadata.gerimmo_recette=permanente-v1`, peut utiliser cette ouverture ciblée lorsque `ZOHO_SIGN_BAIL_ACTIF=false`. Le PDF et l’invitation indiquent « essai sans engagement », et l’activation du bail est refusée. Les autres organisations restent fermées ; supprimer la liste referme les nouveaux essais tout en conservant le suivi des circuits engagés.
+
+## Historique de préparation (avant publication)
 
 Le circuit est développé et vérifié en local. Le titulaire a créé son compte **Zoho Sign Europe**, actuellement en essai Enterprise, puis autorisé la connexion OAuth et une invitation fictive sur ses coordonnées contrôlées. Les deux rôles ont signé avec authentification SMS ; le PDF final et le certificat ont été téléchargés et relus. Les identifiants sont conservés dans une configuration locale privée exclue de Git. Le suivi, l’archivage et les reprises après incident ont ensuite été testés sur la base et le stockage fictifs locaux, avec les réponses Zoho simulées. **Le retour HTTPS réel n’est pas encore configuré et les envois depuis l’application restent désactivés.** Les anciens circuits Youtrust restent compatibles, chaque circuit conservant son prestataire.
 

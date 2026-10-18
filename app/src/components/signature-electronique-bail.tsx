@@ -54,6 +54,7 @@ export function SignatureElectroniqueBail({orgId,bailId}:{orgId:string;bailId:st
     {!vue&&<p role="status" className="text-sm text-muted-foreground">Chargement des signataires…</p>}
     {vue?.mode==="indisponible"&&<p className="rounded-xl bg-warning-soft p-3 text-sm"><strong>Signature en ligne en préparation.</strong> Vous pouvez vérifier les personnes et préparer le PDF. L’envoi sera disponible après la connexion et les essais du prestataire. Aucun e-mail ne part pendant cette préparation.</p>}
     {vue?.mode==="sandbox"&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm font-medium">Environnement d’essai : documents fictifs uniquement.</p>}
+    {vue?.essai&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm font-medium">Essai sans engagement · le document et les invitations sont fictifs. Cet essai ne met aucun logement en location.</p>}
     {!!parties.length&&<ol className="divide-y divide-border rounded-xl border border-border">
       {parties.map((p,i)=><li key={p.personId} className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 p-3 md:flex md:flex-wrap md:gap-3">
         <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${p.statut==="signed"?"bg-success-soft":"bg-muted"}`}>{p.statut==="signed"?<CheckCircle2 size={18}/>:i+1}</span>
@@ -74,7 +75,7 @@ export function SignatureElectroniqueBail({orgId,bailId}:{orgId:string;bailId:st
     </div>}
     {c?.etat==="termine"&&<div className="rounded-xl bg-success-soft p-3 space-y-3"><p className="flex items-center gap-2 font-medium text-sm"><ShieldCheck size={18}/>Contrat signé et preuves enregistrés dans Documents.</p>
       <a className="block underline text-sm" href={`${base}/documents/${c.document_signe}/fichier`} target="_blank" rel="noreferrer">Télécharger le contrat signé</a>
-      {c.environnement==="production"&&<Button disabled={occupe} onClick={()=>agir(()=>activerBailApresSignature(orgId,bailId,c.id))}>Activer le bail signé</Button>}
+      {c.environnement==="production"&&!vue?.essai&&<Button disabled={occupe} onClick={()=>agir(()=>activerBailApresSignature(orgId,bailId,c.id))}>Activer le bail signé</Button>}
       <p className="text-xs text-muted-foreground">La mise en location applique les contrôles habituels du dossier. Un document d’essai n’active jamais un bail réel.</p>
     </div>}
     {(vue?.erreur||c?.erreur)&&<p role="alert" className="text-sm text-destructive">{vue?.erreur||c?.erreur}</p>}

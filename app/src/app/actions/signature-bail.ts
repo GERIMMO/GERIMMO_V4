@@ -13,16 +13,19 @@ import { activerDemandeSignature, annulerDemandeSignature, lireDemandeSignature,
 import { synchroniserCircuitSignatureBail } from "@/lib/signature-bail-worker";
 import { verifierAvantEffet } from "@/lib/controle-effets";
 import { sansJargon } from "@/lib/erreurs";
+import { signatureEnEssai } from "@/lib/signature-essai";
 
 export type VueSignatureBail = {
   erreur?: string; succes?: string; manquants?: string[]; signataires?: SignataireBail[];
   circuit?: CircuitBail | null; mode?: "indisponible" | "sandbox" | "production";
   annexes?: AnnexeSignature[];
   versionDepassee?: boolean;
+  essai?: boolean;
 };
 async function acces(org: string) {
   const g = await verifierGerant(org);
   if (!g.user) throw new Error("Connectez-vous à votre espace propriétaire.");
+  if (signatureEnEssai(org) && g.user.app_metadata?.gerimmo_recette !== "permanente-v1") throw new Error("Cet essai est réservé au compte de recette permanent.");
   const droit = await g.supabase.rpc("has_org_role", { org, roles: ["proprietaire_direct"] });
   if (droit.error || !droit.data) throw new Error("La signature doit être demandée depuis votre propre espace propriétaire.");
   return { ...g, user: g.user };
@@ -51,7 +54,7 @@ export async function lireSignatureBail(org: string, bail: string): Promise<VueS
     const circuit = (data?.[0] ?? null) as CircuitBail | null;
     return { circuit, signataires: preparation.signataires, manquants: preparation.manquants, annexes: preparation.annexes,
       versionDepassee: Boolean(circuit && (circuit.empreinte!==preparation.empreinte || (circuit.etat==='pret' && new Date(circuit.expire_le).getTime()<=Date.now()+86_400_000))),
-      mode: configurationSignatureBail(process.env,circuit?.prestataire)?.environnement ?? "indisponible" };
+      mode: configurationSignatureBail(process.env,circuit?.prestataire,org)?.environnement ?? "indisponible", essai: signatureEnEssai(org) };
   } catch(e) { return erreur(e); }
 }
 
@@ -76,7 +79,7 @@ export async function preparerSignatureBail(org: string, bail: string): Promise<
     const liens = await supabase.from("document_liens").upsert(preparation.liens.map(l=>({ organization_id:org,document_id:documentId,entite:l.entite,entite_id:l.entiteId })),{onConflict:"document_id,entite,entite_id",ignoreDuplicates:true});
     if (liens.error) throw new Error("Le PDF est enregistré, mais son lien avec le bail doit être réparé. Réessayez la préparation.");
     const insertion = await service.from("bail_signature_circuits").insert({ organization_id:org,bail_id:bail,document_id:documentId,created_by:user.id,
-      prestataire:prestataireSignature(),environnement:configurationSignatureBail()?.environnement ?? "production",empreinte:preparation.empreinte,pdf_hash:createHash("sha256").update(pdf).digest("hex"),signataires:preparation.signataires,annexes:preparation.annexes });
+      prestataire:prestataireSignature(),environnement:configurationSignatureBail(process.env,prestataireSignature(),org)?.environnement ?? "production",empreinte:preparation.empreinte,pdf_hash:createHash("sha256").update(pdf).digest("hex"),signataires:preparation.signataires,annexes:preparation.annexes });
     if (insertion.error) throw new Error("Un circuit existe déjà ou n’a pas pu être enregistré. Actualisez le suivi.");
     rafraichir(org,bail);
     return { ...await lireSignatureBail(org,bail), succes:"PDF préparé. Relisez-le avant de confirmer l’envoi aux signataires." };
@@ -87,7 +90,7 @@ export async function envoyerSignatureBail(org: string, bail: string, id: string
   let reserve = false;
   try {
     const { supabase, user, circuit } = await circuitAutorise(org,bail,id);
-    const config = configurationSignatureBail(process.env,circuit.prestataire);
+    const config = configurationSignatureBail(process.env,circuit.prestataire,org);
     if (!config) throw new Error("La signature électronique n’est pas encore activée. Le PDF reste disponible et aucun envoi n’a été effectué.");
     if (circuit.environnement !== config.environnement) throw new Error("L’environnement de signature a changé. Annulez cette préparation puis préparez un nouveau PDF.");
     if (new Date(circuit.expire_le).getTime()<=Date.now()+86_400_000) throw new Error("Cette préparation est trop ancienne. Actualisez le PDF avant de l’envoyer.");
@@ -120,7 +123,7 @@ export async function envoyerSignatureBail(org: string, bail: string, id: string
     reserve = true;
     const expiration = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(circuit.expire_le));
     const cree = await preparerCircuitSignature({ config,pdf:contenu,nomFichier:"bail-gerimmo.pdf",
-      titre:config.environnement === "sandbox" ? "TEST FICTIF — Bail Gerimmo" : "Votre bail Gerimmo",referenceExterne:id,expiration,
+      titre:signatureEnEssai(org) ? "GERIMMO — ESSAI DE SIGNATURE SANS ENGAGEMENT" : config.environnement === "sandbox" ? "TEST FICTIF — Bail Gerimmo" : "Votre bail Gerimmo",referenceExterne:id,expiration,
       signataires:circuit.signataires,annexes,demandeCreee:async externalId=>{
         const attache = await service.from("bail_signature_circuits").update({external_request_id:externalId}).eq("id",id).eq("etat","preparation").select("id").single();
         if (attache.error) throw new Error("Le suivi de la demande doit être vérifié avant toute activation.");
@@ -195,6 +198,7 @@ export async function annulerSignatureBail(org: string,bail: string,id: string):
 
 export async function activerBailApresSignature(org:string,bail:string,id:string): Promise<VueSignatureBail> {
   try {
+    if (signatureEnEssai(org)) throw new Error("Un essai de signature ne met pas un logement en location.");
     const {supabase,circuit} = await circuitAutorise(org,bail,id);
     const actuel = await assemblerSignatureBail(supabase,org,bail);
     if (actuel.empreinte !== circuit.empreinte) throw new Error("Les informations du dossier ont changé après la préparation du contrat. Vérifiez le PDF signé avant toute activation auprès de l’assistance.");

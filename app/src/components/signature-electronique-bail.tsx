@@ -53,9 +53,9 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
     return cibleChampBail(champ,orgId,racine).href;
   }
   if (!visible) return null;
-  return <section aria-labelledby={titreId} className="rounded-2xl border border-border bg-card p-4 sm:p-5 space-y-4">
+  return <section aria-labelledby={titreId} className="min-w-0 rounded-2xl border border-border bg-card p-4 sm:p-5 space-y-4 [&_button]:h-auto [&_button]:min-h-10 [&_button]:max-w-full [&_button]:whitespace-normal">
     <header className="flex flex-wrap items-start justify-between gap-3">
-      <div className="flex gap-3"><span className="rounded-xl bg-primary/10 p-2.5 text-primary h-fit"><FileSignature size={22}/></span><div>
+      <div className="flex min-w-0 gap-3"><span className="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary h-fit"><FileSignature size={22}/></span><div className="min-w-0">
         <h4 id={titreId} className="font-semibold text-base">Signature · {DOCUMENTS_ZOHO[code]}</h4>
         <p className="text-sm text-muted-foreground">{code === "devis_artisan" ? "L’offre validée par l’artisan est jointe sans modification. Les propriétaires signent leur acceptation." : "Un document commun, les propriétaires signent en dernier."}</p>
       </div></div>

@@ -1063,7 +1063,7 @@ export function ConsultationOuverte({
                 cause.
               </p>
             )}
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,30rem),1fr))] gap-3">
               {comparables.map((d) => {
                 const fiche = noteDe.get(d.artisan_id);
                 const expire = devisExpire(d, aujourdhui);
@@ -1073,7 +1073,7 @@ export function ConsultationOuverte({
                 return (
                   <div
                     key={d.id}
-                    className="space-y-2 rounded-md border border-border p-3"
+                    className="min-w-0 space-y-3 rounded-xl border border-border p-3 sm:p-4"
                   >
                     <div className="entete-carte !mb-0">
                       <b className="min-w-0 truncate text-sm">{nom(d.artisan_id)}</b>
@@ -1407,6 +1407,7 @@ function CorpsDevis({ base, d }: { base: string; d: Devis; versionAncienne?: boo
     <>
       <p className="whitespace-pre-line text-sm text-muted-foreground">{descriptionDevisLisible(d.description)}</p>
       <DetailDevis lignes={d.lignes} />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-1">
       <a href={`/api/devis/${d.sollicitation_id}/pdf?version=${d.version ?? 1}`} target="_blank" rel="noreferrer" className="lien-discret">Télécharger le détail du devis (PDF)</a>
       {d.document_id && (
         <a
@@ -1418,6 +1419,7 @@ function CorpsDevis({ base, d }: { base: string; d: Devis; versionAncienne?: boo
           Ouvrir le devis
         </a>
       )}
+      </div>
     </>
   );
 }

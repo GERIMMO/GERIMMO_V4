@@ -2,11 +2,11 @@
 -- liée à chaque signataire. Les preuves individuelles Youtrust sont inchangées.
 create or replace function public.archiver_signature_bail(p_circuit uuid,p_jeton uuid,p_archives jsonb)
 -- Le classement de signatures déjà reçues continue après une suspension.
--- Réglage limité à cet appel serveur ; PostgreSQL restaure la valeur à sa sortie.
-returns uuid language plpgsql security invoker set search_path='' set gerimmo.systeme='on' as $$
+-- Réglage local à la transaction serveur, restauré avant le retour normal.
+returns uuid language plpgsql security invoker set search_path='' as $$
 declare
  v public.bail_signature_circuits; a jsonb; idx integer:=0; doc uuid; signe uuid;
- preuve_commune uuid; parties jsonb; racine text; chemin text; original public.documents;
+ preuve_commune uuid; parties jsonb; racine text; chemin text; original public.documents; contexte_systeme text;
 begin
  select * into v from public.bail_signature_circuits where id=p_circuit for update;
  if not found then raise exception 'Circuit inconnu'; end if;
@@ -15,6 +15,8 @@ begin
  if not coalesce(jsonb_typeof(p_archives)='array' and jsonb_array_length(p_archives)=jsonb_array_length(v.signataires)+1,false) then raise exception 'Archives incomplètes'; end if;
  if exists(select 1 from jsonb_array_elements(v.signataires) s where s->>'statut' is distinct from 'signed') then raise exception 'Toutes les parties doivent avoir signé'; end if;
  select * into strict original from public.documents where id=v.document_id and organization_id=v.organization_id;
+ contexte_systeme:=current_setting('gerimmo.systeme',true);
+ perform pg_catalog.set_config('gerimmo.systeme','on',true);
  parties:=v.signataires;
  racine:=v.organization_id||'/signature-bail/'||v.id||'/';
  for a in select value from jsonb_array_elements(p_archives) loop
@@ -45,6 +47,7 @@ begin
    jsonb_build_object('bail_id',v.bail_id,'document_id',signe,'circuit_id',v.id,'libelle','Contrat et preuves archivés — à vérifier avant activation'));
  insert into public.audit_log(account_id,organization_id,action,details)
  values(v.created_by,v.organization_id,'signature_bail_archivee',jsonb_build_object('circuit_id',v.id,'document_signe',signe,'preuves',idx-1));
+ perform pg_catalog.set_config('gerimmo.systeme',coalesce(contexte_systeme,''),true);
  return signe;
 end $$;
 revoke all on function public.archiver_signature_bail(uuid,uuid,jsonb) from public,anon,authenticated;

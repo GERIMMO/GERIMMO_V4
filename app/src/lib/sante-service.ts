@@ -27,7 +27,7 @@ export type Etat = "ok" | "attention" | "manque";
  * nom de la variable ET le prestataire chez qui on la trouve. La variable se
  * pose dans les réglages du projet Vercel ; rien ici n'est un lien inventé.
  */
-export type Prestataire = "Stripe" | "Resend" | "Yousign" | "Vercel" | "Supabase" | "OpenAI";
+export type Prestataire = "Stripe" | "Resend" | "Yousign" | "Zoho Sign" | "Vercel" | "Supabase" | "OpenAI";
 
 export type Verification = {
   /** Le nom de la variable, tel qu'il se lit dans Vercel. */
@@ -61,6 +61,10 @@ const PRESTATAIRE_PAR_CLE: Record<string, Prestataire> = {
   STRIPE_PRIX_LOT_AGENCE: "Stripe",
   RESEND_API_KEY: "Resend",
   RESEND_EXPEDITEUR: "Resend",
+  ZOHO_SIGN_CLIENT_ID: "Zoho Sign",
+  ZOHO_SIGN_CLIENT_SECRET: "Zoho Sign",
+  ZOHO_SIGN_REFRESH_TOKEN: "Zoho Sign",
+  ZOHO_SIGN_WEBHOOK_SECRET: "Zoho Sign",
   YOUTRUST_API_KEY: "Yousign",
   YOUTRUST_WEBHOOK_SECRET: "Yousign",
   CRON_SECRET: "Vercel",
@@ -216,28 +220,35 @@ export function etatConfiguration(env: Env, regimeTva: RegimeTva | null = REGIME
         : `domaine ${domaine} — à vérifier chez Resend (SPF, DKIM)`,
   });
 
-  // ── Signature électronique : DÉSACTIVÉE pour le lancement (décision du
-  // porteur, 27/09). Hors `YOUTRUST_ENV=production`, aucun document ne part
-  // chez Yousign : « Envoyer pour signature » suit le circuit manuel (le
-  // signataire télécharge, signe, dépose le signé). Ce n'est pas une panne :
-  // la ligne le dit, sans alerte. L'activer reste un choix contractuel.
+  // L'envoi des baux exige un opt-in après recette, en plus des clés.
   const cleYoutrust = valeur(env, "YOUTRUST_API_KEY");
-  const youtrustActive = valeur(env, "YOUTRUST_ENV") === "production" && Boolean(cleYoutrust);
+  const signatureDemandee = valeur(env, "YOUTRUST_BAIL_ACTIF") === "true";
+  const youtrustActive = signatureDemandee && valeur(env, "YOUTRUST_ENV") === "production" && Boolean(cleYoutrust) && Boolean(valeur(env,"YOUTRUST_WEBHOOK_SECRET"));
   verifications.push({
     cle: "YOUTRUST_API_KEY",
     usage: "Signature électronique des baux et contrats",
-    etat: "ok",
+    etat: signatureDemandee && !youtrustActive ? "attention" : "ok",
     detail: youtrustActive
-      ? "environnement réel"
-      : "désactivée pour le lancement : signature manuelle (le signataire dépose le PDF signé), aucun document transmis à Yousign",
+      ? "environnement réel — envoi activé, à distinguer d’une signature effectivement testée"
+      : signatureDemandee ? "activation demandée mais configuration réelle incomplète — vérifier l’environnement et les deux clés"
+      : "envoi désactivé : préparation et signature manuelle disponibles ; compte API et essais nécessaires avant activation",
   });
-  if (youtrustActive) {
+  if (signatureDemandee) {
     verifications.push({
       cle: "YOUTRUST_WEBHOOK_SECRET",
       usage: "Réception sécurisée des signatures terminées",
       etat: valeur(env, "YOUTRUST_WEBHOOK_SECRET") ? "ok" : "attention",
       detail: valeur(env, "YOUTRUST_WEBHOOK_SECRET") ? null : "à poser lors de la création du webhook",
     });
+  }
+
+  const zohoDemande = valeur(env,"ZOHO_SIGN_BAIL_ACTIF") === "true";
+  const zohoCles = ["ZOHO_SIGN_CLIENT_ID","ZOHO_SIGN_CLIENT_SECRET","ZOHO_SIGN_REFRESH_TOKEN","ZOHO_SIGN_WEBHOOK_SECRET"];
+  if (valeur(env,"SIGNATURE_BAIL_PRESTATAIRE") !== "youtrust" || zohoDemande) {
+    const zohoPret = zohoCles.every(c => Boolean(valeur(env,c))) && valeur(env,"ZOHO_SIGN_ENV") === "production";
+    verifications.push({cle:"ZOHO_SIGN_CLIENT_ID",usage:"Signature des baux avec Zoho Sign (Europe)",etat:zohoDemande && !zohoPret ? "attention" : "ok",
+      detail:zohoDemande ? zohoPret ? "envoi réel activé — la connexion et la recette doivent être vérifiées séparément" : "activation demandée : vérifier l’environnement, l’autorisation Zoho et le retour sécurisé" : "envoi désactivé — compte Zoho européen et recette nécessaires"});
+    if (zohoDemande) for (const cle of zohoCles.slice(1)) verifications.push({cle,usage:cle.endsWith("WEBHOOK_SECRET")?"Réception sécurisée Zoho Sign":"Autorisation serveur Zoho Sign",etat:valeur(env,cle)?"ok":"attention",detail:valeur(env,cle)?null:"à renseigner dans la configuration sécurisée"});
   }
 
   // ── Tâches planifiées : sans secret, chaque passe répond 503.

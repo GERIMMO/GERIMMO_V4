@@ -1,23 +1,20 @@
 ---
 type: concept
-tags: [signature, yousign, demande-de-signature]
-status: draft
+tags: [signature, zoho-sign, yousign, demande-de-signature]
+status: in-progress
 created: 2026-07-24
-updated: 2026-09-27
+updated: 2026-10-18
 sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]"]
 ---
 
 # Signature électronique
 
-> [!note] Lancement du 30/09 : signature électronique non activée (décision du 27/09)
-> Le porteur a décidé d'ouvrir sans la signature électronique Yousign. Le code
-> ne transmet rien à Yousign tant que `YOUTRUST_ENV` ne vaut pas « production » :
-> « Envoyer pour signature » suit le [circuit de transition V0](#circuit-de-transition-v0--le-signé-déposé-2026-09-09)
-> (le signataire télécharge, signe, dépose le signé). L'écran Santé l'affiche
-> comme un choix, pas comme une panne. L'activer demande un compte Yousign réel,
-> ses clés dans Vercel et le webhook `/api/youtrust/webhook`.
+> [!note] Circuit de bail préparé en local le 18/10/2026 — envoi non activé
+> **Choix du 18/10 : Zoho Sign Europe**. Le titulaire ne possède pas encore de compte Zoho. L’adaptation locale conserve les anciens circuits Youtrust et attend la recette externe. Le nouveau parcours prépare un PDF commun, les annexes et les emplacements de tous les signataires, propriétaires en dernier. La configuration exige un opt-in explicite après recette externe ; les tests locaux ne remplacent pas un essai prestataire. Aucun envoi ni changement de production dans ce chantier. Le circuit manuel demeure disponible.
+>
+> Périmètre actuel : propriétaire direct et personnes physiques ; bail uniquement. L’acte de cautionnement reste distinct et l’EDL garde son circuit sur place. Voir [le dossier technique et la recette à réaliser](../../app/docs/signature-electronique-bail.md).
 
-**Définition :** le circuit de signature des documents engageants (**Yousign**,
+**Historique du référentiel (Yousign, remplacé par Zoho Sign pour les nouveaux baux le 18/10/2026) :** le circuit de signature des documents engageants (**Yousign**,
 signature **simple** : email + code SMS — RM-13.1.1). Objet : **Demande de
 signature** (document + signataires).
 Source : [[2026-07-24-gerimmo-v3-module-13-signature-electronique|Module 13]].
@@ -91,3 +88,9 @@ dernier », pas de relances ni d'expiration — Yousign les apportera. La
 **signature préenregistrée** de l'organisation ([[Organisation]]) est un tampon
 d'émetteur (Famille 3, aucune valeur probante) apposé sur quittances, reçus et
 courriers générés — jamais sur un bail ni un EDL.
+
+> [!warning] Écarts explicites entre la cible métier et la première version locale
+> - La réception du contrat et des preuves est automatique ; l’activation du bail reste une confirmation du propriétaire, avec les contrôles existants. L’automatisme métier du référentiel ci-dessus n’est donc pas livré.
+> - Les relances J+7/J+21 et l’alerte J+28 restent à développer avant de les annoncer. L’expiration et le rapprochement du statut sont préparés.
+> - Les mandats, avenants, cautionnements électroniques séparés et représentants de personnes morales restent hors de ce premier circuit.
+> - La délivrabilité e-mail/SMS, le rendu de la signature prestataire et ses preuves attendent le compte API et une recette sandbox contrôlée.

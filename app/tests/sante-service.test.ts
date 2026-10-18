@@ -68,17 +68,17 @@ describe("les variables de production", () => {
     expect(v.find((x) => x.cle === "RESEND_EXPEDITEUR")!.etat).toBe("attention");
   });
 
-  it("la signature électronique désactivée pour le lancement n'est pas une alerte (27/09)", () => {
+  it("la signature électronique désactivée ne déclenche ni envoi ni alerte", () => {
     const v = etatConfiguration({ ...COMPLET, YOUTRUST_ENV: "sandbox" }, REGIME);
     expect(v.find((x) => x.cle === "YOUTRUST_API_KEY")).toMatchObject({
       etat: "ok",
-      detail: expect.stringContaining("désactivée pour le lancement"),
+      detail: expect.stringContaining("envoi désactivé"),
     });
     // Son webhook n'est pas réclamé tant qu'elle est éteinte.
     expect(v.find((x) => x.cle === "YOUTRUST_WEBHOOK_SECRET")).toBeUndefined();
     // Activée, la ligne redevient celle de l'environnement réel, webhook compris.
-    const active = etatConfiguration(COMPLET, REGIME);
-    expect(active.find((x) => x.cle === "YOUTRUST_API_KEY")!.detail).toBe("environnement réel");
+    const active = etatConfiguration({ ...COMPLET, YOUTRUST_BAIL_ACTIF: "true" }, REGIME);
+    expect(active.find((x) => x.cle === "YOUTRUST_API_KEY")!.detail).toContain("environnement réel");
     expect(active.find((x) => x.cle === "YOUTRUST_WEBHOOK_SECRET")!.etat).toBe("ok");
   });
 
@@ -417,4 +417,14 @@ describe("ce qui bloque, en un chiffre", () => {
     expect(pointsBloquants(config, taches, 3)).toBe(1 + TACHES.length + 1);
     expect(pointsBloquants(etatConfiguration(COMPLET, REGIME), [], 0)).toBe(0);
   });
+});
+
+describe("Configuration Zoho Sign",()=>{
+ it("n’annonce pas une connexion vérifiée à partir des seules variables",()=>{
+  const row=etatConfiguration({SIGNATURE_BAIL_PRESTATAIRE:"zoho"}).find(v=>v.cle==="ZOHO_SIGN_CLIENT_ID")!;
+  expect(row.detail).toContain("désactivé");
+  const res=etatConfiguration({ZOHO_SIGN_BAIL_ACTIF:"true",ZOHO_SIGN_ENV:"production"});
+  expect(res.find(v=>v.cle==="ZOHO_SIGN_CLIENT_ID")!.etat).toBe("attention");
+  expect(res.find(v=>v.cle==="ZOHO_SIGN_REFRESH_TOKEN")!.etat).toBe("attention");
+ });
 });

@@ -101,6 +101,8 @@ jobs:
           export GERIMMO_CHROME="$(node -p "require('@playwright/test').chromium.executablePath()")"
           export GERIMMO_CATALOGUE_PDF_DIR="$RUNNER_TEMP/gerimmo-pdfs"
           export GERIMMO_TEST_PDF=1
+          export SIGNATURE_TEST_API_URL=http://127.0.0.1:54321
+          export SIGNATURE_TEST_DB_URL="$SUPALOCAL_DB"
           npm test -- --maxWorkers=1
       - name: Préparer les parcours navigateur isolés
         run: |

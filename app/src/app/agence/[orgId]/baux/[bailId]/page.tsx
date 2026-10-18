@@ -1047,7 +1047,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               signataires={[...(bail.locataire_principal ? [{id:bail.locataire_principal,nom:locataire?nomComplet(locataire):"Locataire principal"}]:[]),...lignesColoc.filter(p=>p.role==="colocataire"&&!p.date_depart).map(p=>({id:p.person_id,nom:p.person_nom}))]}
               edlId={(edls??[]).find(e=>e.type==="entree")?.id??null}
               preparationEdl={erreurEdls?<p role="alert">Les états des lieux n’ont pas pu être chargés.</p>:<FormulaireCreerEdl orgId={orgId} bailId={bailId} bailEtat={bail.etat} typesExistants={(edls??[]).map(e=>e.type)}/>}
-              signatureManuelle={depotSigne}/>} /></div>
+              signatureManuelle={depotSigne} proprietaireDirect={estProprietaire}/>} /></div>
         ]} /> : <>{rubriqueContrat}{rubriqueSignature}{rubriqueSuivi}</>}
       {sectionSortie && <RubriqueDossier id="sortie-bail" titre="Départ du locataire" resume={bail.date_fin ? `Fin prévue le ${formaterDate(bail.date_fin)} · congé, comparaison des états des lieux et restitution` : "Enregistrer un congé et préparer la fin de location"} ouverte={restitutionActif || (intentions ?? []).length > 0}>
 

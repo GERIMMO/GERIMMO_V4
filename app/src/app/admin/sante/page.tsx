@@ -66,6 +66,7 @@ const OU_OBTENIR: Record<Prestataire, string> = {
   Stripe: "tableau de bord Stripe (Développeurs → Clés API / Webhooks / Produits)",
   Resend: "tableau de bord Resend (Clés API / Domaines)",
   Yousign: "espace Yousign (API / Webhooks)",
+  "Zoho Sign": "compte européen Zoho Sign (console API OAuth / Paramètres → Développeurs → Webhooks)",
   Vercel: "à choisir par le responsable technique",
   Supabase: "tableau de bord Supabase (Réglages du projet → API)",
   OpenAI: "plateforme OpenAI (Clés API ; le crédit se recharge dans Facturation)",

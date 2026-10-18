@@ -227,3 +227,7 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - **18 octobre 2026 — défauts du superadmin corrigés en local (SA-01 à SA-08)** : accès distincts de Stripe, relais distinct du superviseur, erreurs de lecture explicites, vérifications partielles, jour de Paris, qualification des contacts, pagination et programmation conditionnelle. 63 tests ciblés réussis ; compte permanent conservé. État détaillé dans le rapport `outputs/superadmin-visuel/audit/audit-superadmin.html` du workspace de conversation. Aucun déploiement.
 
 - **18 octobre 2026 — sept volets de supervision développés** : trésorerie distincte du MRR, annuaire individuel paginé, décision/exécution/résultat, vacances guidées, contrôles d’accès, registres et identité éditable, suivi des prospects. Deux migrations additives, 244 tests ciblés réussis et vérifications locales. Publication demandée ensuite par le dirigeant ; état de livraison et audit post-publication à consigner séparément.
+
+### Signature du bail — préparation locale du 18 octobre 2026
+
+- [[Signature électronique]] — Zoho Sign Europe choisi, circuit adapté en local et prestataire non connecté ; compte API, recette externe et limites explicités dans [le dossier de signature](app/docs/signature-electronique-bail.md).

@@ -151,6 +151,7 @@ export async function proxy(request: NextRequest) {
     "/api/cron/relais",
     "/api/stripe/webhook",
     "/api/youtrust/webhook",
+    "/api/zoho-sign/webhook",
     "/api/sante",
   ].includes(request.nextUrl.pathname)) {
     return NextResponse.next({ request });

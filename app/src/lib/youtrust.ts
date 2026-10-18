@@ -64,7 +64,7 @@ async function appel<T>(
   entetes.set("Accept", "application/json");
   if (init.body && !(init.body instanceof FormData)) entetes.set("Content-Type", "application/json");
 
-  const reponse = await fetch(`${config.baseUrl}${chemin}`, { ...init, headers: entetes });
+  const reponse = await fetch(`${config.baseUrl}${chemin}`, { ...init, headers: entetes, signal: AbortSignal.timeout(25_000), cache: "no-store" });
   if (!reponse.ok) {
     let details: unknown;
     try {
@@ -164,7 +164,71 @@ export async function annulerDemandeYoutrust(
   config: ConfigurationYoutrust,
   demandeId: string
 ): Promise<void> {
-  await appel(config, `/signature_requests/${demandeId}/cancel`, { method: "POST" });
+  await appel(config, `/signature_requests/${encodeURIComponent(demandeId)}/cancel`, {
+    method: "POST", body: JSON.stringify({ reason: "contractualization_aborted" }),
+  });
+}
+
+/** Aucune invitation avant l'activation explicite, après persistance des identifiants. */
+export async function preparerCircuitYoutrust(params: {
+  config: ConfigurationYoutrust; pdf: Uint8Array; nomFichier: string; titre: string;
+  referenceExterne: string; expiration: string; signataires: SignataireYoutrust[];
+  annexes?: { pdf:Uint8Array; nomFichier:string }[];
+  demandeCreee: (id: string) => Promise<void>;
+}): Promise<{ demandeId: string; documentId: string; signataireIds: string[] }> {
+  if (params.signataires.length < 2 || params.signataires.length > 100) throw new Error("Le circuit doit contenir de 2 à 100 signataires.");
+  if (params.signataires.some(s => !s.prenom.trim() || !s.nom.trim() || !s.email.trim() || !/^\+[1-9]\d{7,14}$/.test(s.telephone ?? ""))) {
+    throw new Error("Vérifiez le nom, le prénom, l’e-mail et le téléphone de chaque signataire.");
+  }
+  const demande = await appel<{ id: string }>(params.config, "/signature_requests", {
+    method: "POST", body: JSON.stringify({
+      name: params.titre.slice(0, 128), delivery_mode: "email", ordered_signers: true,
+      smart_anchors_resolution: "on_activation", audit_trail_locale: "fr", timezone: "Europe/Paris",
+      external_id: params.referenceExterne, expiration_date: params.expiration,
+      signers_allowed_to_decline: true,
+    }),
+  });
+  // Même une interruption pendant l'upload laisse une référence récupérable.
+  await params.demandeCreee(demande.id);
+  const form = new FormData();
+  form.append("file", new Blob([Uint8Array.from(params.pdf).buffer], { type: "application/pdf" }), params.nomFichier);
+  form.append("nature", "signable_document");
+  form.append("parse_anchors", "true");
+  const document = await appel<{ id: string; total_anchors: number }>(params.config,
+    `/signature_requests/${demande.id}/documents`, { method: "POST", body: form });
+  if (document.total_anchors !== params.signataires.length) throw new Error("Les emplacements de signature du PDF doivent être vérifiés.");
+  for (const annexe of params.annexes ?? []) {
+    const piece = new FormData();
+    piece.append("file",new Blob([Uint8Array.from(annexe.pdf).buffer],{type:"application/pdf"}),annexe.nomFichier);
+    piece.append("nature","attachment");
+    await appel(params.config,`/signature_requests/${demande.id}/documents`,{method:"POST",body:piece});
+  }
+  const signataireIds: string[] = [];
+  for (const s of params.signataires) {
+    const signe = await appel<{ id: string }>(params.config, `/signature_requests/${demande.id}/signers`, {
+      method: "POST", body: JSON.stringify({
+        info: { first_name: s.prenom, last_name: s.nom, email: s.email, phone_number: s.telephone, locale: "fr" },
+        signature_level: "electronic_signature", signature_authentication_mode: "otp_sms",
+      }),
+    });
+    signataireIds.push(signe.id);
+  }
+  return { demandeId: demande.id, documentId: document.id, signataireIds };
+}
+
+export type DemandeYoutrustLue = {
+  id: string; status: string; external_id?: string | null; expiration_date?: string;
+  signers: { id: string; status: string }[];
+  decline_information?: { reason?: string | null } | null;
+};
+export function lireDemandeYoutrust(config: ConfigurationYoutrust, id: string): Promise<DemandeYoutrustLue> {
+  return appel(config, `/signature_requests/${encodeURIComponent(id)}`);
+}
+export function activerDemandeYoutrust(config: ConfigurationYoutrust, id: string): Promise<DemandeYoutrustLue> {
+  return appel(config, `/signature_requests/${encodeURIComponent(id)}/activate`, { method: "POST" });
+}
+export async function supprimerBrouillonYoutrust(config: ConfigurationYoutrust, id: string): Promise<void> {
+  await appel(config, `/signature_requests/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
 export async function lireSignataireYoutrust(
@@ -182,11 +246,28 @@ async function telecharger(
 ): Promise<Uint8Array> {
   const reponse = await fetch(`${config.baseUrl}${chemin}`, {
     headers: { Authorization: `Bearer ${config.cleApi}`, Accept: accept },
+    signal: AbortSignal.timeout(25_000), cache: "no-store",
   });
   if (!reponse.ok) {
     throw new ErreurYoutrust("Le document signé n'est pas disponible.", reponse.status);
   }
-  return new Uint8Array(await reponse.arrayBuffer());
+  const maximum = 10_485_760;
+  if (Number(reponse.headers.get("content-length")) > maximum) throw new Error("Archive trop volumineuse.");
+  const reader = reponse.body?.getReader();
+  if (!reader) throw new Error("Archive vide.");
+  const morceaux: Uint8Array[] = []; let taille = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read(); if (done) break;
+      taille += value.byteLength;
+      if (taille > maximum) throw new Error("Archive trop volumineuse.");
+      morceaux.push(value);
+    }
+  } finally { await reader.cancel(); }
+  const contenu = new Uint8Array(taille); let position = 0;
+  for (const morceau of morceaux) { contenu.set(morceau, position); position += morceau.byteLength; }
+  if (new TextDecoder().decode(contenu.slice(0, 5)) !== "%PDF-") throw new Error("Le service n’a pas retourné un PDF.");
+  return contenu;
 }
 
 export function telechargerDocumentSigneYoutrust(

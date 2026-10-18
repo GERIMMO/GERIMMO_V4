@@ -1,3 +1,5 @@
+import { ConfirmationPaiement } from "./confirmation-paiement";
+import { joursJusquaParis } from "@/lib/heure-paris-calcul";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BoutonPortail, BoutonSouscrire } from "./boutons-abonnement";
@@ -111,7 +113,7 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
   );
   const ferme = etat ? !etat.ecriture_ouverte : false;
   const enEssai = etat?.statut === "essai";
-  const jours = etat?.jours_essai_restants ?? null;
+  const jours = etat?.essai_fin ? Math.max(0, joursJusquaParis(etat.essai_fin)) : null;
 
   // Retour de Stripe. `annule` n'est pas une erreur : le client a fermé la page
   // de paiement, ce qui est son droit — on le lui dit sans le gronder.
@@ -152,21 +154,7 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
           : "Ce que vous payez, bien par bien, et l'état de votre compte."}
       </EnteteReglages>
 
-      {retourStripe === "ok" && (
-        <div
-          role="status"
-          className="loc-carte border-l-4 border-l-[var(--success)]"
-        >
-          <p className="mesure-lecture text-sm">
-            <b className="font-semibold">Merci, votre paiement est enregistré.</b>{" "}
-            <span className="text-muted-foreground">
-              Votre compte s&apos;ouvre dès que notre prestataire de paiement
-              nous le confirme — quelques secondes en général. Si cette page
-              dit encore le contraire dans une minute, rechargez-la.
-            </span>
-          </p>
-        </div>
-      )}
+      {retourStripe === "ok" && <ConfirmationPaiement confirme={Boolean(paiement?.paye) && !ferme} />}
       {retourStripe === "annule" && (
         <div role="status" className="loc-carte">
           <p className="mesure-lecture text-sm text-muted-foreground">

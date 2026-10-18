@@ -17,6 +17,7 @@ describe("PRESTATAIRES", () => {
       ["Supabase", "lib/supabase/service.ts"],
       ["Stripe", "lib/stripe.ts"],
       ["Resend", "lib/email.ts"],
+      ["Zoho Sign", "lib/zoho-sign.ts"],
       ["Yousign", "lib/youtrust.ts"],
       ["OpenAI", "lib/visuel-marketing.ts"],
       ["Meta", "lib/facebook.ts"],

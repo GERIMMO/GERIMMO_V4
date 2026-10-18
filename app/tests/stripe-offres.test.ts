@@ -14,6 +14,7 @@ import {
   creerSessionOffre,
   elementsDeMiseAJour,
   finEssaiPreservee,
+  datePremierPrelevement,
   lireDetails,
   metadonneesOffre,
   programmerPeriodicite,
@@ -195,8 +196,13 @@ describe("la page de paiement porte la grille, pas un tarif Stripe", () => {
 
 describe("l'essai : les jours restants sont préservés, aucun débit sans accord", () => {
   const maintenant = Date.UTC(2026, 9, 1, 12);
-  it("essai jusqu'au 10/10 inclus : premier prélèvement le 11/10 à 00:00 UTC", () => {
-    expect(finEssaiPreservee("2026-10-10", maintenant)).toBe(Date.UTC(2026, 9, 11) / 1000);
+  it("annonce le jour du prélèvement à Paris, pas la veille UTC", () => {
+    expect(datePremierPrelevement("2026-10-31", maintenant)).toBe("2026-11-01");
+    expect(datePremierPrelevement("2026-10-10", maintenant)).toBe("2026-10-11");
+    expect(datePremierPrelevement("2026-09-30", maintenant)).toBeNull();
+  });
+  it("essai jusqu'au 10/10 inclus : premier prélèvement le 11/10 à minuit de Paris", () => {
+    expect(finEssaiPreservee("2026-10-10", maintenant)).toBe(Date.UTC(2026, 9, 10, 22) / 1000);
   });
   it("essai qui finit dans moins de 48 h : reporté juste au-delà, jamais un débit immédiat", () => {
     const r = finEssaiPreservee("2026-10-01", maintenant)!;
@@ -205,6 +211,25 @@ describe("l'essai : les jours restants sont préservés, aucun débit sans accor
   });
   it("essai terminé : rien à reporter", () => {
     expect(finEssaiPreservee("2026-09-20", maintenant)).toBeUndefined();
+  });
+  it.each([
+    ["2026-10-18", "2026-10-18T22:00:00Z"],
+    ["2026-12-18", "2026-12-18T23:00:00Z"],
+    ["2026-03-29", "2026-03-29T22:00:00Z"],
+    ["2026-10-25", "2026-10-25T23:00:00Z"],
+  ])("ne prolonge pas un essai expiré à minuit de Paris (%s)", (jour, minuit) => {
+    const fin = Date.parse(minuit);
+    expect(finEssaiPreservee(jour, fin - 1000)).toBeGreaterThan(fin / 1000);
+    expect(finEssaiPreservee(jour, fin)).toBeUndefined();
+    expect(finEssaiPreservee(jour, fin + 30 * 60_000)).toBeUndefined();
+  });
+  it("respecte la fin du jour en hiver sans dépendre du fuseau du serveur", () => {
+    expect(finEssaiPreservee("2026-12-10", maintenant)).toBe(Date.UTC(2026, 11, 10, 23) / 1000);
+  });
+  it("conserve un horodatage explicite et ignore une date invalide", () => {
+    expect(finEssaiPreservee("2026-10-10T15:00:00+02:00", maintenant)).toBe(Date.UTC(2026, 9, 10, 13) / 1000);
+    expect(finEssaiPreservee("2026-02-30", maintenant)).toBeUndefined();
+    expect(finEssaiPreservee("invalide", maintenant)).toBeUndefined();
   });
 });
 

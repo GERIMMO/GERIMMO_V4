@@ -31,6 +31,14 @@ export function dateParis(instant: Date): string {
   return `${c.annee}-${String(c.mois).padStart(2, "0")}-${String(c.jour).padStart(2, "0")}`;
 }
 
+/** Nombre de jours calendaires jusqu'à une date, depuis le jour de Paris. */
+export function joursJusquaParis(jour: string, instant = new Date()): number {
+  const cible = new Date(`${jour.slice(0, 10)}T00:00:00Z`).getTime();
+  if (!Number.isFinite(cible) || !Number.isFinite(instant.getTime())) return 0;
+  const debut = new Date(`${dateParis(instant)}T00:00:00Z`).getTime();
+  return Math.round((cible - debut) / 86_400_000);
+}
+
 /** Le décalage de Paris (minutes à l'est de l'UTC) à un instant donné : 120 en été, 60 en hiver. */
 function decalageParis(instant: Date): number {
   const c = composantesParis(instant);

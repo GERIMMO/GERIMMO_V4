@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }));
@@ -12,10 +12,13 @@ const paiementInitial = { souscrit: false, paye: false, paiement_en_retard: fals
 let etat: Record<string, unknown>;
 let paiement: Record<string, unknown>;
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2099-10-10T23:30:00Z")); // Le 11 à Paris : 13 jours avant le 24.
   etat = { ...etatInitial };
   paiement = { ...paiementInitial };
   mocks.rpc.mockImplementation(async (nom: string) => ({ data: [nom === "etat_abonnement" ? etat : paiement], error: null }));
 });
+afterEach(() => vi.useRealTimers());
 async function rendre() {
   return renderToStaticMarkup(await PageAbonnement2026({ params: Promise.resolve({ orgId: "org-test" }), searchParams: Promise.resolve({}) }));
 }
@@ -29,6 +32,9 @@ describe("présentation de l’abonnement propriétaire", () => {
     const html = await rendre();
     expect(html).toContain("Votre essai Gerimmo");
     expect(html).toContain("13 jours restants");
+    expect(html).toContain("25 octobre 2099");
+    expect(html).toContain("Zoho Sign");
+    expect(html).not.toContain("signature électronique n’est pas encore proposée");
     expect(html).toContain("Choisir ma formule");
     expect(html).toContain("Sans souscription, aucun prélèvement");
     expect(html).not.toContain("Abonnement actif");

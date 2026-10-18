@@ -39,7 +39,7 @@ async function appliquer(statut: string) {
 /** Fait comme si le défaut datait de N jours, sans attendre N jours. */
 async function defautDepuis(jours: number) {
   await db.query(
-    `update public.abonnements set paiement_en_defaut_depuis = current_date - $2::integer
+    `update public.abonnements set paiement_en_defaut_depuis = public.aujourdhui_paris() - $2::integer
       where organization_id = $1`,
     [org, jours]
   );
@@ -65,6 +65,7 @@ afterEach(async () => {
 });
 beforeEach(async () => {
   await db.query("begin");
+  await db.query("set local timezone = 'UTC'");
   const {
     rows: [o],
   } = await db.query<{ id: string }>(
@@ -182,7 +183,7 @@ describe("La date de défaut se pose une fois, pas à chaque tentative", () => {
     await appliquer("past_due");
     await appliquer("past_due");
     const { rows } = await db.query<{ j: number }>(
-      `select (current_date - paiement_en_defaut_depuis) as j
+      `select (public.aujourdhui_paris() - paiement_en_defaut_depuis) as j
          from public.abonnements where organization_id=$1`,
       [org]
     );
@@ -213,7 +214,7 @@ describe("Les quatre courriers, et quand ils partent", () => {
     await db.query("select public.abonnement_relance_envoyee($1)", [org]);
     await defautDepuis(6);
     // La relance du jour même a été marquée : rien n'est dû aujourd'hui.
-    await db.query("update public.abonnements set derniere_relance_le = current_date - 1 where organization_id=$1", [org]);
+    await db.query("update public.abonnements set derniere_relance_le = public.aujourdhui_paris() - 1 where organization_id=$1", [org]);
     expect(await dues()).toHaveLength(0);
 
     await defautDepuis(7);
@@ -225,14 +226,14 @@ describe("Les quatre courriers, et quand ils partent", () => {
   it("l'avis part la veille de la fermeture, le constat le jour même", async () => {
     await appliquer("past_due");
     await db.query(
-      "update public.abonnements set relances_paiement = 2, derniere_relance_le = current_date - 1 where organization_id=$1",
+      "update public.abonnements set relances_paiement = 2, derniere_relance_le = public.aujourdhui_paris() - 1 where organization_id=$1",
       [org]
     );
     await defautDepuis(DELAI - 1);
     expect((await dues())[0].palier).toBe(2);
 
     await db.query(
-      "update public.abonnements set relances_paiement = 3, derniere_relance_le = current_date - 1 where organization_id=$1",
+      "update public.abonnements set relances_paiement = 3, derniere_relance_le = public.aujourdhui_paris() - 1 where organization_id=$1",
       [org]
     );
     await defautDepuis(DELAI);
@@ -244,7 +245,7 @@ describe("Les quatre courriers, et quand ils partent", () => {
   it("après le quatrième, on n'écrit plus : quatre courriers, pas une campagne", async () => {
     await appliquer("past_due");
     await db.query(
-      "update public.abonnements set relances_paiement = 4, derniere_relance_le = current_date - 1 where organization_id=$1",
+      "update public.abonnements set relances_paiement = 4, derniere_relance_le = public.aujourdhui_paris() - 1 where organization_id=$1",
       [org]
     );
     await defautDepuis(DELAI + 60);

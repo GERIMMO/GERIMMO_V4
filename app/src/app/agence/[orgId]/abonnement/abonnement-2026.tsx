@@ -1,3 +1,4 @@
+import { ConfirmationPaiement } from "./confirmation-paiement";
 // « Mon abonnement » — grille du 28/09/2026.
 //
 // CE QUI EST TOUJOURS À L'ÉCRAN : le volume facturé, la formule, la
@@ -16,7 +17,8 @@ import { REGIME_TVA } from "@/lib/editeur";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate } from "@/lib/ged";
 import { clientStripe, configurationStripe } from "@/lib/stripe";
-import { apercuChangement, finEssaiPreservee } from "@/lib/stripe-offres";
+import { apercuChangement, datePremierPrelevement } from "@/lib/stripe-offres";
+import { joursJusquaParis } from "@/lib/heure-paris-calcul";
 import {
   FORMULES_PARTICULIER,
   euros,
@@ -176,8 +178,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
       ? aEcheance
       : null;
 
-  const premierPrelevementS = enEssai ? finEssaiPreservee(etat.essai_fin) : undefined;
-  const premierPrelevement = premierPrelevementS ? new Date(premierPrelevementS * 1000).toISOString().slice(0, 10) : null;
+  const premierPrelevement = enEssai ? datePremierPrelevement(etat.essai_fin) : null;
+  const joursEssaiRestants = etat.essai_fin ? Math.max(0, joursJusquaParis(etat.essai_fin)) : null;
   const statut = statutAbonnement({
     paye: paiement.paye,
     essai: enEssai && !souscrit,
@@ -194,17 +196,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           : "Votre formule, vos biens et votre facturation, en un coup d’œil."}
       </EnteteReglages>
 
-      {retour("paiement") === "ok" && (
-        <div role="status" className="loc-carte border-l-4 border-l-[var(--success)]">
-          <p className="mesure-lecture text-sm">
-            <b className="font-semibold">Merci, votre souscription est enregistrée.</b>{" "}
-            <span className="text-muted-foreground">
-              Elle s&apos;affiche ici dès que notre prestataire de paiement nous la confirme — quelques secondes en
-              général. Rechargez la page si ce n&apos;est pas encore le cas.
-            </span>
-          </p>
-        </div>
-      )}
+      {retour("paiement") === "ok" && <ConfirmationPaiement confirme={paiement.paye && !ferme} />}
       {retour("paiement") === "annule" && (
         <div role="status" className="loc-carte">
           <p className="mesure-lecture text-sm text-muted-foreground">
@@ -282,10 +274,10 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
               Essai gratuit jusqu&apos;au {formaterDate(etat.essai_fin)}
-              {etat.jours_essai_restants !== null
-                ? etat.jours_essai_restants === 0
+              {joursEssaiRestants !== null
+                ? joursEssaiRestants === 0
                   ? " — dernier jour."
-                  : ` — ${etat.jours_essai_restants} jour${etat.jours_essai_restants > 1 ? "s" : ""} restant${etat.jours_essai_restants > 1 ? "s" : ""}.`
+                  : ` — ${joursEssaiRestants} jour${joursEssaiRestants > 1 ? "s" : ""} restant${joursEssaiRestants > 1 ? "s" : ""}.`
                 : "."}
             </b>{" "}
             <span className="text-muted-foreground">
@@ -320,8 +312,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
               <div>
                 <span><CalendarDays size={16} aria-hidden="true" /> {souscrit ? paiement.annulation_demandee ? "Fin de l’abonnement" : "Prochaine échéance" : enEssai ? "Fin de l’essai" : "Abonnement"}</span>
                 <strong>{souscrit ? paiement.periode_fin ? formaterDate(paiement.periode_fin) : "À confirmer" : enEssai && etat.essai_fin ? formaterDate(etat.essai_fin) : "À souscrire"}</strong>
-                <small>{!souscrit && enEssai && !ferme && etat.jours_essai_restants !== null
-                  ? etat.jours_essai_restants === 0 ? "Dernier jour de votre essai" : `${etat.jours_essai_restants} jour${etat.jours_essai_restants > 1 ? "s" : ""} restant${etat.jours_essai_restants > 1 ? "s" : ""}`
+                <small>{!souscrit && enEssai && !ferme && joursEssaiRestants !== null
+                  ? joursEssaiRestants === 0 ? "Dernier jour de votre essai" : `${joursEssaiRestants} jour${joursEssaiRestants > 1 ? "s" : ""} restant${joursEssaiRestants > 1 ? "s" : ""}`
                   : souscrit ? paiement.periodicite === "annuel" ? "Facturation annuelle" : "Facturation mensuelle" : "Vos données restent conservées"}</small>
               </div>
               <div>
@@ -575,7 +567,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           </div>
           <details className={styles.precisions}>
             <summary>Services facturés à part ou non inclus</summary>
-            <p>Les travaux et interventions d’artisans sont sur devis et facturés à part. Le réseau d’artisans dépend de la zone du bien et du métier. La signature électronique n’est pas encore proposée ; aucun envoi de SMS ni service bancaire n’est inclus.</p>
+            <p>Les travaux et interventions d’artisans sont sur devis et facturés à part. Le réseau d’artisans dépend de la zone du bien et du métier. La signature des documents éligibles s’effectue avec Zoho Sign et vérification par SMS, selon les conditions et limites affichées avant l’envoi. Aucun service bancaire n’est inclus.</p>
           </details>
         </section>
       ) : <div className="loc-carte">
@@ -594,8 +586,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           </li>
           <li>
             Non compris : les travaux et interventions d&apos;artisans, toujours sur devis et facturés à part ; le réseau
-            d&apos;artisans dépend de la zone du bien et du métier. La signature électronique n&apos;est pas encore
-            proposée ; aucun envoi de SMS ni service bancaire n&apos;est inclus.
+            d&apos;artisans dépend de la zone du bien et du métier. La signature des documents éligibles s’effectue avec Zoho Sign et vérification
+            par SMS, selon les conditions et limites affichées avant l’envoi. Aucun service bancaire n’est inclus.
           </li>
           <li>
             Aucun frais d&apos;installation.

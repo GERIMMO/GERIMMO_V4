@@ -132,6 +132,13 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
   if('erreur'in choix)return {erreur:choix.erreur};
   motifs.push(...choix.motifs);
   const {sujet,source}=choix;
+  // Le catalogue éditorial peut proposer le même sujet deux jours de suite.
+  // Une nouvelle date ne suffit pas à en faire un nouvel article : vérifier
+  // le contenu avant de créer un brouillon, un visuel payant ou une alerte.
+  const historique=await db.from('publications').select('id,corps').eq('titre',sujet.titre).in('statut',['publiee','programmee']).order('updated_at',{ascending:false}).limit(50);
+  if(historique.error)return {erreur:'L’historique des articles ne peut pas être vérifié. Aucun nouveau post préparé.'};
+  const identique=historique.data?.find(p=>p.corps?.trim()===sujet.corps.trim());
+  if(identique)return {agi:false,raison:'Ce contenu est déjà publié ou programmé. Aucun doublon préparé.',article:identique.id};
   const creation=await db.from('publications').insert({marketing_jour:cible.jour,veille_source_id:source,periode:`marketing-auto-${cible.jour}`,statut:'brouillon',titre:sujet.titre,slug:`${cible.jour}-${sujet.cle}`,chapo:sujet.chapo,corps:sujet.corps,sources:[`audience:${sujet.audience}`,source?'veille-officielle-gerimmo':'contenu-editorial-gerimmo'],seo_description:couperAuMot(sujet.chapo,160),facebook_texte:sujet.facebook,publie_le:null}).select(CHAMPS).single();
   if(creation.error||!creation.data)return {erreur:'La préparation n’a pas été enregistrée. Aucun envoi effectué.'};
   article=creation.data as Article;

@@ -11,6 +11,7 @@ import {beforeEach,afterEach,describe,it,expect,vi} from 'vitest';
 import {traiterMarketing as GET,maintenantParis} from '@/lib/missions-planifiees/marketing';
 import {ArretSupervision} from '@/lib/controle-effets';
 import {MESSAGE_LIMITE_IA} from '@/lib/plafond-ia';
+import {sujetMarketing} from '@/lib/contenu-marketing';
 const mocks=vi.hoisted(()=>({client:vi.fn(),facebook:vi.fn(),image:vi.fn(),source:vi.fn(),redaction:vi.fn(),email:vi.fn()}));
 vi.mock('@/lib/supabase/service',()=>({clientDeService:mocks.client}));
 vi.mock('@/lib/facebook',()=>({envoyerSurFacebook:mocks.facebook}));
@@ -22,7 +23,7 @@ beforeEach(()=>{vi.resetAllMocks();vi.stubEnv('CRON_SECRET','test-secret');vi.us
  mocks.redaction.mockResolvedValue({cle:'veille-source',audience:'particuliers',titre:'Trêve hivernale : ce qui change',chapo:'Chapo rédigé.',corps:'## Ce qui change\n\nTexte.',facebook:'Texte Facebook rédigé.'});});
 afterEach(()=>{vi.useRealTimers();vi.unstubAllEnvs();});
 
-type Options={actif?:boolean;auto?:boolean;validation?:boolean;echus?:Record<string,unknown>[];cible?:{jour:string;rang:number;parution:string;rattrapage:boolean}|null;existant?:Record<string,unknown>|null;source?:boolean;titreSource?:string;publicsSource?:string[];jetonDb?:string;erreurCampagne?:boolean;parutionRefusee?:boolean;reservationRefusee?:boolean;statutIA?:string};
+type Options={actif?:boolean;auto?:boolean;validation?:boolean;echus?:Record<string,unknown>[];cible?:{jour:string;rang:number;parution:string;rattrapage:boolean}|null;existant?:Record<string,unknown>|null;historique?:Record<string,unknown>[];erreurHistorique?:boolean;source?:boolean;titreSource?:string;publicsSource?:string[];jetonDb?:string;erreurCampagne?:boolean;parutionRefusee?:boolean;reservationRefusee?:boolean;statutIA?:string};
 function contexte(o:Options={}){
  const regle={actif:o.actif??true,publication_automatique:o.auto??true,diffusion_version:1,publicite_active:true,jours_semaine:[2,5],heure_paris:9,heure_preparation_paris:18,validation_obligatoire:o.validation??false,budget_mensuel_cents:1000,veille_mots_inclus:['logement','trêve hivernale','loyer'],veille_mots_exclus:['décarbonation']};
  const articles=new Map<string,Record<string,unknown>>();
@@ -55,11 +56,12 @@ function contexte(o:Options={}){
     if(mutation){if(filtreId&&valeurs){const a=articles.get(filtreId);if(a&&Object.entries(filtres).every(([k,v])=>a[k]===v)){Object.assign(a,valeurs);return {data:{...a},error:null};}return {data:null,error:null};}return {data:null,error:null};}
     if(filtreId)return {data:articles.get(filtreId)?{...articles.get(filtreId)}:null,error:null};
     if(filtreJour){const a=[...articles.values()].find(x=>x.marketing_jour===filtreJour);return {data:a?{...a}:null,error:null};}
+    if(filtres.titre)return {data:(o.historique??[]).filter(a=>a.titre===filtres.titre&&(filtres.statut as string[]).includes(a.statut as string)),error:o.erreurHistorique?{message:'indisponible'}:null};
     return {data:[],error:null};
    }
    return {data:null,error:null};
   };
-  const q={select:vi.fn(()=>q),eq:vi.fn((col:string,v:string)=>{if(col==='id')filtreId=v;if(col==='marketing_jour')filtreJour=v;filtres[col]=v;return q;}),not:vi.fn(()=>q),neq:vi.fn(()=>q),gte:vi.fn(()=>q),order:vi.fn(()=>q),limit:vi.fn(async()=>lire()),in:vi.fn(async()=>({data:[],error:null})),single:vi.fn(async()=>lire()),maybeSingle:vi.fn(async()=>lire()),
+  const q={select:vi.fn(()=>q),eq:vi.fn((col:string,v:string)=>{if(col==='id')filtreId=v;if(col==='marketing_jour')filtreJour=v;filtres[col]=v;return q;}),not:vi.fn(()=>q),neq:vi.fn(()=>q),gte:vi.fn(()=>q),order:vi.fn(()=>q),limit:vi.fn(async()=>lire()),in:vi.fn((col:string,v:string[])=>{filtres[col]=v;return q;}),single:vi.fn(async()=>lire()),maybeSingle:vi.fn(async()=>lire()),
    insert:vi.fn((v:Record<string,unknown>)=>{insertions.push(v);const a={...v,id:'nouveau',updated_at:'date',image_empreinte:null,image_essais:0,image_en_cours_le:null,facebook_post_id:null,facebook_envoi_demarre_le:null};articles.set('nouveau',a);filtreId='nouveau';return q;}),
    update:vi.fn((v:Record<string,unknown>)=>{modifications.push(v);valeurs=v;mutation=true;return q;}),upsert:vi.fn(()=>q),
    then:(resolve:(v:unknown)=>unknown)=>Promise.resolve(mutation?lire():lire()).then(resolve)};
@@ -99,6 +101,22 @@ describe('mission marketing : diffusion de l’échu',()=>{
 });
 
 describe('mission marketing : préparation de la veille',()=>{
+ it.each(['publiee','programmee'])('ne recrée pas un contenu identique déjà %s, sans image ni courriel supplémentaires',async(statut)=>{
+  const sujet=sujetMarketing(new Date(`${CIBLE.jour}T12:00:00Z`),CIBLE.rang);
+  const c=contexte({cible:CIBLE,historique:[{id:'original',titre:sujet.titre,corps:sujet.corps,statut}]});
+  const r=await GET(requete());expect(r.status).toBe(200);
+  expect((await r.json()).preparation).toMatchObject({agi:false,article:'original',raison:expect.stringContaining('doublon')});
+  expect(c.insertions).toHaveLength(0);expect(mocks.image).not.toHaveBeenCalled();expect(mocks.email).not.toHaveBeenCalled();expect(mocks.facebook).not.toHaveBeenCalled();
+ });
+ it('un article différent portant le même titre reste possible',async()=>{
+  const sujet=sujetMarketing(new Date(`${CIBLE.jour}T12:00:00Z`),CIBLE.rang);
+  const c=contexte({cible:CIBLE,historique:[{id:'original',titre:sujet.titre,corps:'Un contenu précédent différent.',statut:'publiee'}]});
+  await GET(requete());expect(c.insertions).toHaveLength(1);
+ });
+ it('un historique illisible bloque la préparation avant toute dépense de visuel',async()=>{
+  const c=contexte({cible:CIBLE,erreurHistorique:true});
+  expect((await GET(requete())).status).toBe(503);expect(c.insertions).toHaveLength(0);expect(mocks.image).not.toHaveBeenCalled();expect(mocks.email).not.toHaveBeenCalled();
+ });
  it('rédige, illustre, programme à l’heure de Paris et alerte le superviseur, sans publier',async()=>{
   const c=contexte({cible:CIBLE});
   const r=await GET(requete());expect(r.status).toBe(200);

@@ -21,6 +21,8 @@ import { configDefaults, defineConfig } from "vitest/config";
  * `npm test` en local. Le test `tests/execution-en-serie.test.ts` garde cette liste cohérente avec les fichiers.
  */
 export const FICHIERS_EN_SERIE = [
+  // Réécriture temporaire des fonctions d’abonnement et du jour de Paris, annulée après chaque cas.
+  "tests/abonnement-jour-paris-migration.test.ts",
   // Fixtures historiques de signature manuelle : suspension temporaire du garde des nouveaux envois.
   "tests/audit-securite-2026-09-27.test.ts",
   "tests/supprimer-bail-brouillon-base.test.ts",

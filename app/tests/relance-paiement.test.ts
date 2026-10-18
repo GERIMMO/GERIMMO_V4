@@ -65,6 +65,7 @@ afterEach(async () => {
 });
 beforeEach(async () => {
   await db.query("begin");
+  await db.query("set local timezone = 'UTC'");
   const {
     rows: [o],
   } = await db.query<{ id: string }>(

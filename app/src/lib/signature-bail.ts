@@ -8,6 +8,7 @@ import { configurationYoutrust } from "@/lib/youtrust";
 import { configurationZohoSign } from "@/lib/zoho-sign";
 import { prestataireSignature, type ConfigurationSignature, type PrestataireSignature } from "@/lib/signature-prestataire";
 import { aujourdhuiParis } from "@/lib/ged";
+import { marquerDocumentEssai, signatureEnEssai } from "@/lib/signature-essai";
 
 export type SignataireBail = {
   personId: string; qualite: "Locataire" | "Colocataire" | "Garant" | "Propriétaire";
@@ -130,7 +131,7 @@ export async function assemblerSignatureBail(db: SupabaseClient, org: string, ba
   if ("erreur" in modele) throw new Error(modele.erreur);
   const incomplet = refusDocumentIncomplet(modele.document);
   if (incomplet) manquants.push(...incomplet.manquants);
-  const document = ajouterPagesSignature(modele.document, signataires,pieces.annexes);
+  const document = ajouterPagesSignature(signatureEnEssai(org) ? marquerDocumentEssai(modele.document) : modele.document, signataires,pieces.annexes);
   const empreinte = empreinteSignatureBail(document.html, signataires);
   return { ...modele, document, empreinte, signataires, manquants,annexes:pieces.annexes };
 }
@@ -151,7 +152,8 @@ export function configurationSuiviSignatureBail(env: Record<string,string|undefi
 }
 
 /** Opt-in distinct : posséder une clé ne permet jamais d'envoyer une invitation. */
-export function configurationSignatureBail(env: Record<string,string|undefined> = process.env, prestataire: PrestataireSignature = prestataireSignature(env)): ConfigurationSignature | null {
+export function configurationSignatureBail(env: Record<string,string|undefined> = process.env, prestataire: PrestataireSignature = prestataireSignature(env), org?: string): ConfigurationSignature | null {
   const prefixe = prestataire === "zoho" ? "ZOHO_SIGN" : "YOUTRUST";
-  return env[`${prefixe}_BAIL_ACTIF`] === "true" ? configurationSuiviSignatureBail(env, prestataire) : null;
+  const essai = prestataire === "zoho" && Boolean(org && signatureEnEssai(org, env));
+  return env[`${prefixe}_BAIL_ACTIF`] === "true" || essai ? configurationSuiviSignatureBail(env, prestataire) : null;
 }

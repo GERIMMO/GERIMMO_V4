@@ -6,7 +6,7 @@ vi.mock('@/lib/supabase/service',()=>({clientDeService:m.service}));
 vi.mock('@/lib/signature-bail',()=>({assemblerSignatureBail:m.assembler,configurationSignatureBail:m.config,configurationSuiviSignatureBail:m.config}));
 vi.mock('@/lib/youtrust',()=>({preparerCircuitYoutrust:m.preparer,activerDemandeYoutrust:m.activer,lireDemandeYoutrust:m.lire,annulerDemandeYoutrust:m.annuler,supprimerBrouillonYoutrust:vi.fn()}));
 vi.mock('@/lib/controle-effets',()=>({verifierAvantEffet:m.stop}));
-import {envoyerSignatureBail,annulerSignatureBail} from '@/app/actions/signature-bail';
+import {envoyerSignatureBail,annulerSignatureBail,activerBailApresSignature} from '@/app/actions/signature-bail';
 beforeEach(()=>{
  vi.resetAllMocks();m.circuit={id:'circuit',prestataire:'youtrust',etat:'pret',environnement:'production',empreinte:'actuelle',pdf_hash:'invalide',signataires:[],annexes:[],document_id:'doc',expire_le:new Date(Date.now()+30*86400000).toISOString(),external_request_id:'req'};
  m.rpc.mockResolvedValue({data:true,error:null});m.service.mockReturnValue({rpc:m.rpc});
@@ -18,6 +18,21 @@ afterEach(()=>vi.unstubAllEnvs());
 const envoyer=()=>envoyerSignatureBail('org','bail','circuit');
 const aucunEnvoi=()=>{expect(m.preparer).not.toHaveBeenCalled();expect(m.activer).not.toHaveBeenCalled();expect(m.rpc.mock.calls.some(c=>c[0]==='reserver_envoi_signature_bail')).toBe(false);};
 describe('Garde avant tout envoi du bail',()=>{
+ it('réserve la recette au marqueur serveur du compte permanent, pas aux métadonnées modifiables',async()=>{
+  const org='11111111-1111-4111-8111-111111111111';vi.stubEnv('SIGNATURE_BAIL_ORGS_ESSAI',org);
+  m.acces.mockResolvedValue({user:{id:'owner',user_metadata:{gerimmo_recette:'permanente-v1'}}});
+  expect((await envoyerSignatureBail(org,'bail','circuit')).erreur).toContain('compte de recette permanent');
+  expect(m.rpc).not.toHaveBeenCalled();aucunEnvoi();
+ });
+ it('un compte permanent reste soumis à son rôle propriétaire',async()=>{
+  const org='11111111-1111-4111-8111-111111111111';vi.stubEnv('SIGNATURE_BAIL_ORGS_ESSAI',org);
+  const g=await m.acces();g.user.app_metadata={gerimmo_recette:'permanente-v1'};m.acces.mockResolvedValue(g);m.rpc.mockResolvedValue({data:false,error:null});
+  expect((await envoyerSignatureBail(org,'bail','circuit')).erreur).toContain('propre espace');aucunEnvoi();
+ });
+ it('un essai ne peut pas activer le bail après signature',async()=>{
+  const org='11111111-1111-4111-8111-111111111111';vi.stubEnv('SIGNATURE_BAIL_ORGS_ESSAI',org);
+  expect((await activerBailApresSignature(org,'bail','circuit')).erreur).toContain('ne met pas');expect(m.rpc).not.toHaveBeenCalled();
+ });
  it('une session absente ne lit aucun dossier',async()=>{m.acces.mockResolvedValue({user:null});expect((await envoyer()).erreur).toBeTruthy();expect(m.rpc).not.toHaveBeenCalled();aucunEnvoi();});
  it('un rôle de supervision seul ne permet pas d’envoyer',async()=>{m.rpc.mockResolvedValue({data:false,error:null});expect((await envoyer()).erreur).toContain('propre espace');aucunEnvoi();});
  it('une configuration absente reste sans effet externe',async()=>{m.config.mockReturnValue(null);expect((await envoyer()).erreur).toContain('pas encore activée');aucunEnvoi();});

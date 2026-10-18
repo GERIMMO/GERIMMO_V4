@@ -2,6 +2,7 @@ import { ArretSupervision } from "./controle-effets";
 import { createHash, randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { telechargerDocumentSigneYoutrust, telechargerPreuveYoutrust, type ConfigurationYoutrust } from "@/lib/youtrust";
+import { synchroniserCircuitSignatureBail } from "@/lib/signature-bail-worker";
 
 export type EvenementSignature = { event_id: string; event_name: string; request_id: string; tentatives: number };
 type Demande = { organization_id: string; signee_le: string | null; external_document_id: string | null; external_signer_id: string | null };
@@ -14,6 +15,18 @@ export async function traiterEvenementSignature(
   avantEffet?: () => Promise<void>,
 ): Promise<{ ok: boolean; erreur?: string }> {
   try {
+    if (process.env.YOUTRUST_BAIL_ACTIF === "true") {
+      const circuit = await supabase.from("bail_signature_circuits").select("id,environnement").eq("external_request_id",evenement.request_id).eq("prestataire","youtrust").maybeSingle();
+      if (circuit.error) throw new Error("Le suivi des circuits est indisponible.");
+      if (circuit.data) {
+        if (circuit.data.environnement !== config.environnement) throw new Error("Environnement de signature incorrect.");
+        await avantEffet?.();
+        await synchroniserCircuitSignatureBail(supabase,{...config,prestataire:"youtrust"},circuit.data.id);
+        const traite = await supabase.from("signature_evenements").update({etat:"traite",erreur:null,traite_le:new Date().toISOString()}).eq("event_id",evenement.event_id);
+        if (traite.error) throw new Error("Le traitement doit être confirmé.");
+        return {ok:true};
+      }
+    }
     const { data: demande, error: erreurDemande } = await supabase.from("demandes_signature")
       .select("organization_id,signee_le,external_document_id,external_signer_id")
       .eq("external_request_id", evenement.request_id).maybeSingle();
@@ -53,7 +66,7 @@ export async function traiterEvenementSignature(
         await supabase.storage.from("documents").remove([cheminSigne, cheminPreuve]);
         throw new Error(erreurFinale.message);
       }
-    } else if (evenement.event_name !== "signature_request.done") {
+    } else if (evenement.event_name.startsWith("signature_request.") && evenement.event_name !== "signature_request.done") {
       const { error } = await supabase.rpc("classer_echec_signature_youtrust", {
         p_request: evenement.request_id,
         p_statut: evenement.event_name.replace("signature_request.", ""),

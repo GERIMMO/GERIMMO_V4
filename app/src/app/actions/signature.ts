@@ -6,12 +6,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant } from "@/lib/ged-acces";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { detecterMimeReel, EXTENSIONS } from "@/lib/file-type";
-import {
-  annulerDemandeYoutrust,
-  configurationYoutrust,
-  creerDemandeYoutrust,
-  ErreurYoutrust,
-} from "@/lib/youtrust";
+import { annulerDemandeYoutrust, configurationYoutrust, lireDemandeYoutrust, supprimerBrouillonYoutrust } from "@/lib/youtrust";
 // 25/09 : le signataire est prévenu par e-mail dans le parcours manuel.
 import { notifierSignatureDemandee } from "@/lib/notifications";
 
@@ -97,7 +92,7 @@ export async function retirerSignature(orgId: string): Promise<EtatSignature> {
 // courrier, quittance — jamais un EDL, RM-13.1.6), signataire rattaché AU
 // document, espace locataire actif obligatoire (sinon la demande partait
 // dans le vide), une seule demande en attente par document et personne.
-// Signature en ligne (Yousign) : chantier S10.
+// Le circuit électronique commun du bail est dans signature-bail.ts.
 export async function envoyerPourSignature(
   orgId: string,
   documentId: string,
@@ -113,66 +108,8 @@ export async function envoyerPourSignature(
   });
   if (error) return { erreur: sansJargon(error.message) };
 
-  // La sandbox sert exclusivement aux PDF fictifs du développement. Tant que
-  // l'abonnement API de production n'est pas posé, le parcours manuel éprouvé
-  // reste actif et aucun document client ne quitte Gerimmo.
-  const youtrust = configurationYoutrust();
-  if (youtrust?.environnement === "production" && demandeId) {
-    let demandeExterne: string | null = null;
-    try {
-      const [{ data: document, error: erreurDocument }, { data: personne, error: erreurPersonne }] =
-        await Promise.all([
-          supabase.from("documents").select("titre,storage_path,mime_type").eq("id", documentId).eq("organization_id", orgId).single(),
-          supabase.from("persons").select("nom,prenom,email,telephone").eq("id", personId).eq("organization_id", orgId).single(),
-        ]);
-      if (erreurDocument || !document?.storage_path || document.mime_type !== "application/pdf") {
-        throw new Error("La signature électronique exige un PDF disponible.");
-      }
-      if (erreurPersonne || !personne?.email) {
-        throw new Error("Ajoutez l'adresse email du signataire avant l'envoi.");
-      }
-      const { data: fichier, error: erreurFichier } = await supabase.storage
-        .from("documents")
-        .download(document.storage_path);
-      if (erreurFichier || !fichier) throw new Error("Le PDF à signer est indisponible.");
-
-      const creee = await creerDemandeYoutrust({
-        config: youtrust,
-        pdf: new Uint8Array(await fichier.arrayBuffer()),
-        nomFichier: `${(document.titre ?? "document").replace(/[^a-zA-Z0-9À-ÿ _-]/g, "").slice(0, 80) || "document"}.pdf`,
-        titre: document.titre ?? "Document Gerimmo",
-        referenceExterne: demandeId,
-        signataire: {
-          prenom: personne.prenom ?? "",
-          nom: personne.nom,
-          email: personne.email,
-          telephone: telephoneInternational(personne.telephone),
-        },
-      });
-      demandeExterne = creee.demandeId;
-      const { error: erreurRattachement } = await supabase.rpc("rattacher_signature_youtrust", {
-        p_org: orgId,
-        p_demande: demandeId,
-        p_request: creee.demandeId,
-        p_document: creee.documentId,
-        p_signer: creee.signataireId,
-        p_statut: creee.statut,
-      });
-      if (erreurRattachement) throw new Error(erreurRattachement.message);
-      revalidatePath(`/agence/${orgId}/documents`);
-      return { succes: "Invitation de signature électronique envoyée. Son avancement apparaîtra ici." };
-    } catch (e) {
-      if (demandeExterne) await annulerDemandeYoutrust(youtrust, demandeExterne).catch(() => undefined);
-      await supabase.rpc("annuler_demande_signature", { p_org: orgId, p_demande: demandeId });
-      const detail = e instanceof ErreurYoutrust
-        ? "Youtrust a refusé l'envoi. Vérifiez les coordonnées du signataire."
-        : e instanceof Error ? e.message : "Envoi électronique impossible.";
-      return { erreur: detail };
-    }
-  }
-
-  // Parcours manuel : jusqu'ici, seul Youtrust en production écrivait au
-  // signataire. Le locataire l'apprend désormais par e-mail, avec le lien.
+  // Le circuit électronique commun du bail est géré par signature-bail.ts.
+  // Cette action conserve explicitement le retour manuel du PDF.
   const envoi = demandeId
     ? await notifierSignatureDemandee(supabase, orgId, personId, documentId, String(demandeId))
     : { envoyee: false, motif: "introuvable" as const };
@@ -189,15 +126,6 @@ export async function envoyerPourSignature(
   };
 }
 
-function telephoneInternational(telephone: string | null): string | null {
-  if (!telephone) return null;
-  const brut = telephone.replace(/[^\d+]/g, "");
-  if (/^\+\d{8,15}$/.test(brut)) return brut;
-  const chiffres = brut.replace(/\D/g, "");
-  if (/^0\d{9}$/.test(chiffres)) return `+33${chiffres.slice(1)}`;
-  return null;
-}
-
 // Annuler une demande en attente (mauvais destinataire, signature obtenue
 // autrement) — le document disparaît de son « À signer ».
 export async function annulerDemandeSignature(
@@ -206,6 +134,25 @@ export async function annulerDemandeSignature(
 ): Promise<EtatSignature> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const droit = await supabase.rpc("has_org_role", {org:orgId,roles:["proprietaire_direct","admin_agence","agent"]});
+  if(droit.error || !droit.data)return {erreur:"L’annulation exige un rôle de gestion dans cet espace."};
+  const demande = await supabase.from("demandes_signature").select("prestataire,external_request_id,signee_le").eq("id",demandeId).eq("organization_id",orgId).single();
+  if(demande.error || !demande.data)return {erreur:"Demande introuvable."};
+  if(demande.data.signee_le)return {erreur:"Cette demande a déjà été signée."};
+  if(demande.data.prestataire === "youtrust") {
+    const config=configurationYoutrust();
+    if(!config || config.environnement!=="production" || !demande.data.external_request_id)return {erreur:"La connexion au prestataire est nécessaire pour confirmer l’arrêt de cette signature."};
+    try {
+      const distant=await lireDemandeYoutrust(config,demande.data.external_request_id);
+      if(distant.id!==demande.data.external_request_id || distant.external_id!==demandeId)return {erreur:"Le rattachement au prestataire doit être vérifié avant d’annuler."};
+      if(distant.status==="done")return {erreur:"Le document est déjà signé chez le prestataire. Actualisez son suivi."};
+      if(distant.status==="draft")await supprimerBrouillonYoutrust(config,distant.id);
+      else if(["ongoing","approval"].includes(distant.status)) {
+        await annulerDemandeYoutrust(config,distant.id);
+        if((await lireDemandeYoutrust(config,distant.id)).status!=="canceled")return {erreur:"L’arrêt n’est pas encore confirmé. La demande reste suivie dans Gerimmo."};
+      } else if(!["expired","declined","rejected","canceled","deleted"].includes(distant.status))return {erreur:"L’état de cette signature nécessite une vérification avant son annulation."};
+    } catch {return {erreur:"L’arrêt chez le prestataire n’a pas pu être confirmé. La demande est conservée dans Gerimmo."};}
+  }
   const { error } = await supabase.rpc("annuler_demande_signature", {
     p_org: orgId,
     p_demande: demandeId,

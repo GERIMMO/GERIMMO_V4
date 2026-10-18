@@ -121,6 +121,12 @@ function fichiersSource(dossier: string): string[] {
 type Exception = { fichier: string; argument: string; raison: string };
 
 const EXCEPTIONS: Exception[] = [
+  // Tailles HTTP en octets, jamais des montants saisis. La lecture du flux
+  // recompte les octets et impose la limite même sans cet en-tête indicatif.
+  { fichier: "src/app/api/youtrust/webhook/route.ts", argument: 'request.headers.get("content-length")', raison: "précontrôle HTTP de 1 Mio ; le flux est aussi borné à 1 Mio" },
+  { fichier: "src/app/api/zoho-sign/webhook/route.ts", argument: 'request.headers.get("content-length")', raison: "précontrôle HTTP de 1 Mio ; le flux est aussi borné à 1 Mio" },
+  { fichier: "src/lib/youtrust.ts", argument: 'reponse.headers.get("content-length")', raison: "précontrôle de taille PDF ; les octets du flux sont recomptés et bornés à 10 Mio" },
+  { fichier: "src/lib/zoho-sign.ts", argument: 'response.headers.get("content-length")', raison: "précontrôle de taille PDF ; les octets du flux sont recomptés et bornés à 10 Mio" },
   { fichier: "src/app/actions/identite-editeur.ts", argument: "f.get('revision')", raison: "révision entière positive du formulaire, comparée atomiquement à la version enregistrée" },
   // ── Nombres de jours, de mois, d'années, d'unités, de pièces, de pages : entiers bornés par une règle propre ──
   { fichier: "src/app/actions/equipes.ts", argument: "form.get('jours')", raison: "durée en jours d'une délégation, entière ; la base borne" },

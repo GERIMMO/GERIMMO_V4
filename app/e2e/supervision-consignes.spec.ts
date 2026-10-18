@@ -61,14 +61,14 @@ for(const format of [{nom:'mobile',width:390,height:844,isMobile:true},{nom:'ord
  test.describe(`présentation ${format.nom}`,()=>{
   test.use({viewport:{width:format.width,height:format.height},isMobile:format.isMobile,hasTouch:format.isMobile});
   test('consignes et relais restent lisibles sans débordement',async({page},testInfo)=>{
-   for(const ecran of [{chemin:'/admin/consignes',titre:'Consignes du dirigeant',nom:'consignes'},{chemin:'/admin/relais',titre:'Vacances programmées',nom:'relais'}]){
+   for(const ecran of [{chemin:'/admin/consignes',titre:'Consignes du dirigeant',nom:'consignes'},{chemin:'/admin/relais',titre:'Vacances et relais',nom:'relais'}]){
     await page.goto(ecran.chemin);
     await expect(page.getByRole('heading',{name:ecran.titre,exact:true})).toBeVisible();
     await expect(page.locator('main')).not.toContainText('ne peuvent pas être vérifi');
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
     await page.screenshot({path:testInfo.outputPath(`${ecran.nom}-${format.nom}.png`),fullPage:true,animations:'disabled'});
     await page.screenshot({path:testInfo.outputPath(`${ecran.nom}-${format.nom}-premier-ecran.png`),animations:'disabled'});
-    const carte=page.locator('main section').filter({has:page.getByRole('heading',{name:ecran.nom==='consignes'?'Donner une consigne':'Vacances programmées',exact:true})});
+    const carte=page.locator('main section').filter({has:page.getByRole('heading',{name:ecran.nom==='consignes'?'Donner une consigne':'Préparer votre absence',exact:true})});
     await carte.screenshot({path:testInfo.outputPath(`${ecran.nom}-${format.nom}-formulaire.png`),animations:'disabled'});
    }
   });

@@ -1,6 +1,6 @@
 :global(.gerimmo-prestige) :global(.portail-ecrans) > .page { max-width: 1320px; margin-inline: auto; padding: 30px 34px 42px; }
 .header { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 26px; }
-.eyebrow { font-size: 10px; font-weight: 650; letter-spacing: .13em; color: #8a7650; margin-bottom: 10px; }
+.eyebrow { font-size: 10px; font-weight: 650; letter-spacing: .13em; color: #735f3c; margin-bottom: 10px; }
 .header :global(.titre-ecran-icone) { display: none; }
 .header :global(h1) { font-size: 36px; letter-spacing: -.03em; }
 .subtitle { font-size: 13px; line-height: 1.7; color: var(--texte-secondaire); margin-top: 10px; max-width: 65ch; }
@@ -19,7 +19,7 @@ button.stat[aria-pressed="true"], a.stat[aria-current="true"] { border-color: va
 .statIcon { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 10px; color: var(--accent); background: var(--tint); grid-column: 2; grid-row: 1 / span 2; }
 .stat strong { font-size: 29px; line-height: 1.2; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
 .stat > span:not(.statIcon) { font-size: 12px; color: var(--texte-secondaire); line-height: 1.5; }
-.stat small { grid-column: 1 / -1; font-size: 10px; color: #75818c; }
+.stat small { grid-column: 1 / -1; font-size: 10px; color: #5c6d7c; }
 .notice { display: flex; align-items: center; gap: 13px; padding: 16px 18px; background: #faf3e4; border: 1px solid #eadbbc; border-radius: 10px; margin-bottom: 20px; font-size: 13px; }
 .notice > svg { color: #8f6b36; flex-shrink: 0; }
 .notice p { flex: 1; }
@@ -51,7 +51,7 @@ button.stat[aria-pressed="true"], a.stat[aria-current="true"] { border-color: va
 .clientIdentity { min-width: 0; flex: 1; }
 .clientIdentity strong { display: block; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
 .clientIdentity small { display: block; font-size: 12px; color: var(--texte-secondaire); margin-top: 5px; line-height: 1.6; overflow-wrap: anywhere; }
-.badge { display: inline-flex; align-items: center; border-radius: 6px; padding: 5px 9px; background: #f0f2f5; color: #697785; font-size: 11px; line-height: 1.5; }
+.badge { display: inline-flex; align-items: center; border-radius: 6px; padding: 5px 9px; background: #f0f2f5; color: #566675; font-size: 11px; line-height: 1.5; }
 .badge[data-tone="vert"] { background: #eaf4ee; color: #3c745b; }
 .badge[data-tone="ambre"] { background: #fcf0da; color: #88612b; }
 .badge[data-tone="rouge"] { background: #f9eae7; color: #a05247; }

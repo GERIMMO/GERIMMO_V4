@@ -14,7 +14,7 @@
 .notice { padding: 14px 18px; margin: 0 23px 18px; border-radius: 8px; background: #fcf1df; color: #8b652b; font-size: 12px; line-height: 1.7; }
 .networkCard { background: linear-gradient(135deg,#213a53,#34546c); color: #fff; border-radius: 13px; padding: 23px; }
 .networkCard > svg { color: #dfcb9c; margin-bottom: 20px; }
-.eyebrow { font-size: 9px; font-weight: 650; letter-spacing: .13em; color: #8b7651; }
+.eyebrow { font-size: 9px; font-weight: 650; letter-spacing: .13em; color: #735f3c; }
 .networkCard .eyebrow { color: #dfcb9c; }
 .networkCard h2 { font: 26px/1.25 Georgia,serif; margin-top: 9px; color: #fff; }
 .networkCard > p:not(.eyebrow) { font-size: 12px; line-height: 1.8; color: #dce5ed; margin-top: 12px; }

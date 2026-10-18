@@ -24,7 +24,7 @@ test.beforeEach(async ({ page }) => {
 test("la supervision arrive sur sa console, pas sur un sélecteur d'espaces", async ({ page }) => {
   await page.goto("/espaces");
   await page.waitForURL(/\/admin\/brief$/, { timeout: 20_000 });
-  await expect(page.getByRole("heading", { name: "Aujourd’hui" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bureau de direction" })).toBeVisible();
 });
 
 test("les faits de direction se préparent manuellement avec cinq sources datées", async ({ page }, info) => {
@@ -48,10 +48,10 @@ test("les faits de direction se préparent manuellement avec cinq sources datée
        order by s.genere_le desc, s.id desc limit 1`
     )).rows[0];
     await page.goto("/admin/brief");
-    await expect(page.getByRole("link", { name: "Donner une consigne" })).toHaveAttribute("href", "/admin/consignes");
+    await expect(page.getByRole("link", { name: /^Donner une consigne/ })).toHaveAttribute("href", "/admin/consignes");
     const avant = await lireDernier();
     const borne = (await db.query<{ instant: string }>("select clock_timestamp()::text instant")).rows[0].instant;
-    const preparer = page.getByRole("button", { name: /^(Préparer le point maintenant|Actualiser le point)$/ });
+    const preparer = page.locator("main > header").getByRole("button", { name: /^(Préparer le point|Actualiser)$/ });
     await preparer.click();
     let nouveau: FaitsDirection | undefined;
     await expect.poll(async () => {
@@ -65,8 +65,10 @@ test("les faits de direction se préparent manuellement avec cinq sources datée
     // Après une relecture réelle de la page, chaque date et chaque montant doit
     // correspondre à l'instantané nouvellement enregistré, même dans la même minute.
     await page.reload();
-    const faits = page.getByRole("region", { name: "Faits de direction" });
-    await expect(faits.getByText(`Préparation du ${formaterDateHeureParis(nouveau!.genere_le)} · version ${nouveau!.version_regles}.`, { exact: true })).toBeVisible();
+    const faits = page.getByRole("region", { name: "Les points de vigilance" });
+    await expect(faits.getByText(`Relevé du ${formaterDateHeureParis(nouveau!.genere_le)}`, { exact: true })).toBeVisible();
+    await faits.getByText("Comprendre ces indicateurs", { exact: true }).click();
+    await expect(faits.getByText(`Règles de calcul : version ${nouveau!.version_regles}.`, { exact: false })).toBeVisible();
     for (const [cle, nom] of Object.entries(SOURCES_DIRECTION)) {
       const source = nouveau!.sources[cle as keyof typeof SOURCES_DIRECTION];
       expect(source.statut).toBe("disponible");
@@ -91,20 +93,28 @@ test("les faits de direction se préparent manuellement avec cinq sources datée
   }
 });
 
-test("« Clients » réunit les trois familles et met en avant ce qui attend", async ({ page }) => {
+test("« Utilisateurs » ouvre les personnes et conserve les trois familles d’espaces", async ({ page }) => {
   await page.goto("/admin");
   await page.getByRole("button", { name: "Menu supervision", exact: true }).click();
-  // Plan à sept entrées (26/09) : « Utilisateurs » ouvre la liste des clients.
+  // Annuaire individuel, puis espaces clients depuis son lien explicite.
   await page.getByRole("navigation", { name: "Navigation de la supervision" }).getByRole("link", { name: /^Utilisateurs/ }).click();
   await page.waitForURL(/\/admin\/clients/);
 
-  await expect(page.getByRole("heading", { name: "Agences, bailleurs et artisans", level: 1 })).toBeVisible();
-  // Les trois parties demandées, dans cet ordre : les artisans d'abord, parce
-  // que ce sont les seuls à porter une file de décisions.
-  const sections = page.getByRole("heading", { level: 2 });
-  await expect(sections.nth(0)).toHaveText("Artisans");
-  await expect(sections.nth(1)).toHaveText("Agences");
-  await expect(sections.nth(2)).toHaveText("Propriétaires bailleurs");
+  await expect(page.getByRole("heading", { name: "Tous les utilisateurs", level: 1 })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Rôle", exact: true })).toBeVisible();
+  await expect(page.locator('a[href^="/admin/comptes/"]').first()).toBeVisible();
+  await page.getByRole("link", { name: "Espaces clients et entreprises" }).click();
+  await page.waitForURL(/vue=espaces/);
+  await expect(page.getByRole("heading", { name: "Utilisateurs", level: 1 })).toBeVisible();
+  for (const famille of [/^Propriétaires bailleurs/, /^Artisans/, /^Agences/]) {
+    await expect(page.getByRole("heading", { name: famille, level: 3 })).toBeVisible();
+  }
+  await expect(page.getByRole("link", { name: /Inscriptions à valider/ })).toBeVisible();
+  await page.getByRole("link", { name: /Inscriptions à valider/ }).click();
+  await page.waitForURL(/famille=attente/);
+  await page.getByRole("link", { name: "Effacer les filtres", exact: true }).click();
+  await page.waitForURL(/\/admin\/clients\?vue=espaces$/);
+  await expect(page.getByRole("heading", { name: /^Propriétaires bailleurs/, level: 3 })).toBeVisible();
 
   expect(await debordementHorizontal(page)).toBe(0);
 });
@@ -112,11 +122,11 @@ test("« Clients » réunit les trois familles et met en avant ce qui attend", a
 test("la fiche d'une agence est complète, et son bouton entre vraiment dans l'espace", async ({
   page,
 }) => {
-  await page.goto("/admin/clients");
+  await page.goto("/admin/clients?vue=espaces");
 
   // « Ouvrir une organisation » partage ce préfixe : on l'écarte, sinon c'est
   // le formulaire de création qu'on ouvre, pas une fiche.
-  const premiereAgence = page
+  const premiereAgence = page.getByRole("region", { name: "Agences", exact: true })
     .locator('a[href^="/admin/organisations/"]:not([href$="/nouvelle"])')
     .first();
   await expect(premiereAgence).toBeVisible();
@@ -138,10 +148,10 @@ test("la fiche d'une agence est complète, et son bouton entre vraiment dans l'e
 test("le diagnostic artisan exige un motif, reste en lecture seule et se ferme", async ({
   page,
 }) => {
-  await page.goto("/admin/clients");
+  await page.goto("/admin/clients?vue=espaces");
 
   const premierArtisan = page.locator('a[href^="/admin/clients/artisans/"]').first();
-  test.skip((await premierArtisan.count()) === 0, "aucun artisan inscrit sur ce banc");
+  await expect(premierArtisan).toBeVisible();
 
   await premierArtisan.click();
   await page.waitForURL(/\/admin\/clients\/artisans\/[0-9a-f-]+/);

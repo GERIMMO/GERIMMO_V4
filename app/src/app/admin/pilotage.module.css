@@ -9,7 +9,7 @@
 .head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:19px; }
 .head h2,.panel > h2 { font:25px/1.25 Georgia,serif; letter-spacing:-.02em; }
 .head p { color:var(--texte-secondaire); font-size:12px; line-height:1.7; margin-top:6px; }
-.eyebrow { font-size:10px; letter-spacing:.12em; font-weight:650; color:#8c7448; margin-bottom:10px; }
+.eyebrow { font-size:10px; letter-spacing:.12em; font-weight:650; color:#735f3c; margin-bottom:10px; }
 .icon { display:grid; place-items:center; width:39px; height:39px; border-radius:11px; background:#e7eef6; color:#496b8d; flex-shrink:0; }
 .intro { color:var(--texte-secondaire); font-size:13px; line-height:1.8; max-width:70ch; }
 .link { display:inline-flex; align-items:center; gap:7px; color:#3d6488; font-weight:550; font-size:12px; min-height:36px; }

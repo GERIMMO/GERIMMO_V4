@@ -4,29 +4,29 @@ import {sansSyntheseAlertes,entrerDansEspace} from './aides';
 test.describe('Tour du matin de la supervision',()=>{
  test.use({storageState:'e2e/.auth/superadmin.json'});
  test.beforeEach(async({page})=>{await sansSyntheseAlertes(page);});
- test('arrive sur Aujourd’hui et retrouve les destinations dans le menu mobile',async({page})=>{
+ test('arrive sur le bureau de direction et retrouve les destinations dans le menu mobile',async({page})=>{
   await page.goto('/espaces');await expect(page).toHaveURL(/\/admin\/brief/);
-  await expect(page.getByRole('heading',{name:'Aujourd’hui',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Bureau de direction',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Menu supervision',exact:true}).click();
-  // Plan à sept entrées (26/09) : la rubrique s'ouvre depuis le menu, ses pages
-  // sont des onglets en haut de l'écran.
+  // Chaque rubrique est directement accessible ; ses pages secondaires restent à portée de main.
   const menu=page.getByRole('navigation',{name:'Navigation de la supervision'});
-  await menu.getByRole('link',{name:/^Utilisateurs/}).click();
+  await menu.getByRole('link',{name:/^Développement commercial/}).click();
   await expect(page.getByRole('button',{name:'Menu supervision',exact:true})).toHaveAttribute('aria-expanded','false');
-  const onglets=page.getByRole('navigation',{name:'Pages de la rubrique Utilisateurs'});
-  await onglets.getByRole('link',{name:'Demandes commerciales',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Demandes commerciales',exact:true})).toBeVisible();
-  await expect(onglets.getByRole('link',{name:'Demandes commerciales',exact:true})).toHaveAttribute('aria-current','page');
+  const onglets=page.getByRole('navigation',{name:'Pages de la rubrique Développement commercial'});
+  await onglets.getByRole('link',{name:'Demandes de contact',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Demandes de contact',exact:true})).toBeVisible();
+  await expect(onglets.getByRole('link',{name:'Demandes de contact',exact:true})).toHaveAttribute('aria-current','page');
   await page.getByRole('button',{name:'Menu supervision',exact:true}).click();
-  await expect(menu.getByRole('link',{name:/^Utilisateurs/})).toHaveAttribute('aria-current','page');
+  await expect(menu.getByRole('link',{name:/^Développement commercial/})).toHaveAttribute('aria-current','page');
  });
  test('le menu complet est accessible sur ordinateur sans ouvrir le bouton mobile',async({page})=>{
   await page.setViewportSize({width:1440,height:960});await page.goto('/admin/brief');
-  // Les sept entrées du plan (26/09) sont toutes visibles, rien à ouvrir.
+  // Les 17 destinations sont présentes dans un seul menu, sans sections repliées.
   const menu=page.getByRole('navigation',{name:'Navigation de la supervision'});
-  for(const r of ['Vue d’ensemble','Utilisateurs','Veille','Marketing','Développement','Historique et conservation','Paramètres'])
+  for(const r of ['Bureau de direction','Décisions à prendre','Équipes et comptes rendus','Utilisateurs','Activité et dossiers','Réseau d’artisans','Assistance clients','Abonnements et finances','Marketing et contenus','Développement commercial','Automatismes et consignes','Vacances et relais','Améliorations du produit','Santé et connexions','Sécurité et conformité','Historique et sauvegardes','Paramètres généraux'])
    await expect(menu.getByRole('link',{name:new RegExp('^'+r)})).toBeVisible();
-  await expect(page.getByRole('navigation',{name:'Pages de la rubrique Vue d’ensemble'}).getByRole('link',{name:/^Aujourd’hui/})).toHaveAttribute('aria-current','page');
+  await expect(menu.getByRole('link',{name:'Bureau de direction',exact:true})).toHaveAttribute('aria-current','page');
+  await expect(menu.getByRole('link')).toHaveCount(17);
  });
  test('la santé conduit directement au résultat des traitements',async({page})=>{
   await page.goto('/admin/sante');

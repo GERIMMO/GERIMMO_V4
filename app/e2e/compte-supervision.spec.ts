@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("depuis une organisation, la fiche d'un compte dit son état, ses rôles et ses journaux", async ({ page }) => {
-  await page.goto("/admin/clients");
+  await page.goto("/admin/clients?vue=espaces");
   await page.getByRole("link", { name: /Agence Alpha/ }).first().click();
   await expect(page).toHaveURL(/\/admin\/organisations\//);
   // Les gestes de contrôle (audit console 27/09) : repliés, confirmés, jamais sous l'identité du client.

@@ -35,7 +35,7 @@ export function Annuaire({ clients, famille, recherche, statut, totaux, lectures
     </div>
     {(totaux.attente ?? 0) > 0 && <div className={styles.notice}><ClipboardCheck size={20} aria-hidden="true" /><p><strong>{totaux.attente} inscription{totaux.attente! > 1 ? "s" : ""} à examiner.</strong><span>Vérifiez le SIRET et les justificatifs avant de valider.</span></p><Link href="/admin/artisans">Examiner <ArrowUpRight size={16} aria-hidden="true" /></Link></div>}
     <section className={styles.directory} aria-labelledby="annuaire-titre">
-      <div className={styles.directoryHeading}><div><h2 id="annuaire-titre">Votre annuaire</h2><p>La recherche porte sur toutes les fiches. Jusqu’à 25 résultats par catégorie et par page.</p></div>{(famille !== "tous" || recherche || statut) && <Link href="/admin/clients" className={styles.reset}>Effacer les filtres</Link>}</div>
+      <div className={styles.directoryHeading}><div><h2 id="annuaire-titre">Votre annuaire</h2><p>La recherche porte sur toutes les fiches. Jusqu’à 25 résultats par catégorie et par page.</p></div>{(famille !== "tous" || recherche || statut) && <Link href="/admin/clients?vue=espaces" className={styles.reset}>Effacer les filtres</Link>}</div>
       <form method="get" action="/admin/clients" className={styles.searchBar}><input type="hidden" name="vue" value="espaces"/>
         <input type="hidden" name="famille" value={famille} />
         <label className={styles.search}><Search size={18} aria-hidden="true" /><span className="sr-only">Rechercher dans l’annuaire</span><input type="search" name="recherche" defaultValue={recherche} maxLength={160} placeholder="Nom, ville, e-mail ou SIRET…" /></label>
@@ -44,7 +44,7 @@ export function Annuaire({ clients, famille, recherche, statut, totaux, lectures
       </form>
       {famillesVisibles.map(f => {
         const liste = clients.filter(c => c.famille === f), lecture = lectures[f], Icone = ICONES[f];
-        return <section key={f} className={styles.family}><h3><Icone size={16} aria-hidden="true" />{LIBELLES_FAMILLE[f]}<span>{lecture.erreur ? "Indisponible" : `${liste.length} sur ${lecture.total ?? "—"}`}</span></h3>
+        return <section key={f} className={styles.family} aria-label={LIBELLES_FAMILLE[f]}><h3><Icone size={16} aria-hidden="true" />{LIBELLES_FAMILLE[f]}<span>{lecture.erreur ? "Indisponible" : `${liste.length} sur ${lecture.total ?? "—"}`}</span></h3>
           {lecture.erreur ? <LectureIndisponible sujet={LIBELLES_FAMILLE[f]} retour={adresse(famille, f, lecture.page)} /> : <>
             {liste.length === 0 ? <div className={styles.familyEmpty}><Users size={17} aria-hidden="true" /><span>{recherche || statut ? "Aucune fiche ne correspond à ces filtres." : "Aucune fiche dans cette catégorie."}</span></div> : liste.map(c => <Link key={c.id} href={c.href} className={styles.clientRow} data-attente={c.enAttente}><span className={styles.avatar} data-family={f} aria-hidden="true">{initiales(c.nom)}</span><span className={styles.clientIdentity}><strong>{c.nom}</strong><small>{c.detail}</small></span><span className={styles.badge} data-tone={c.ton}>{c.statut}</span><ArrowUpRight className={styles.rowArrow} size={17} aria-hidden="true" /></Link>)}
             {lecture.total !== null && <Pagination page={lecture.page} total={lecture.total} adresse={n => adresse(famille, f, n)} libelle={LIBELLES_FAMILLE[f]} />}

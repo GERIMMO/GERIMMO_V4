@@ -6,20 +6,20 @@
 .sectionHead h2 { font:25px/1.25 Georgia,serif; letter-spacing:-.025em; }
 .sectionHead p:not(.eyebrow) { font-size:12px; line-height:1.6; margin-top:6px; color:var(--texte-secondaire); }
 .sectionHead > svg { flex-shrink:0; color:#6b877a; margin-top:4px; }
-.eyebrow { font-size:9px; letter-spacing:.13em; font-weight:650; margin-bottom:9px; color:#74867a; }
+.eyebrow { font-size:9px; letter-spacing:.13em; font-weight:650; margin-bottom:9px; color:#526a5b; }
 .revenue { padding:24px 26px 20px; border:1px solid #ccdcd5; border-radius:13px; background:linear-gradient(120deg,#eef6f0,#f7faf7 65%,#eef3f8); }
 .revenueFigures { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 .revenueFigures > div + div { border-left:1px solid #d6e0da; padding-left:22px; }
 .revenueFigures > div > span { font-size:12px; color:#536c60; }
 .revenueFigures strong { display:block; font-size:34px; font-weight:550; letter-spacing:-.04em; margin-block:9px; font-variant-numeric:tabular-nums; }
-.revenueFigures strong small { display:block; font-size:11px; letter-spacing:0; color:#6e8076; font-weight:400; margin-top:3px; }
+.revenueFigures strong small { display:block; font-size:11px; letter-spacing:0; color:#526a5b; font-weight:400; margin-top:3px; }
 .revenueFigures p { font-size:11px; line-height:1.6; color:#61756a; margin-top:5px; }
 .revenueFoot { display:flex; flex-wrap:wrap; gap:8px 19px; padding-top:16px; margin-top:20px; border-top:1px solid #d7e2db; font-size:11px; color:#577061; }
 .revenueFoot span:last-child { margin-left:auto; }
-.revenueNote { color:#6c7e72; font-size:10px; line-height:1.6; margin-top:14px; }
+.revenueNote { color:#526a5b; font-size:10px; line-height:1.6; margin-top:14px; }
 .attention, .panel { background:white; border:1px solid var(--filet); border-radius:13px; padding:23px; min-width:0; }
 .attention .sectionHead { margin-bottom:15px; }
-.attention .eyebrow { color:#9a7a44; }
+.attention .eyebrow { color:#735f3c; }
 .attention > button { display:flex; align-items:center; width:100%; gap:10px; text-align:left; border-bottom:1px solid var(--filet-leger); padding:12px 0; font-size:12px; cursor:pointer; }
 .attention > button > span:first-child { flex:1; }
 .attention > button:hover { color:#91692e; }
@@ -51,7 +51,7 @@
 .filters button[aria-pressed="true"] { background:#283e55; border-color:#283e55; color:white; }
 .resultLine { display:flex; align-items:center; justify-content:space-between; padding:0 23px 15px; font-size:11px; color:var(--texte-secondaire); gap:10px; }
 .tableHead, .account { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,.85fr) minmax(0,1.1fr) 26px; gap:15px; padding:18px 23px; align-items:start; }
-.tableHead { background:#f7f9fb; border-block:1px solid var(--filet); font-size:10px; color:#758491; padding-block:12px; }
+.tableHead { background:#f7f9fb; border-block:1px solid var(--filet); font-size:10px; color:#5c6d7c; padding-block:12px; }
 .account { border-bottom:1px solid var(--filet-leger); }
 .account:last-child { border-bottom:0; }
 .account[data-warning="true"] { box-shadow:inset 3px 0 #bb7265; background:#fffbfa; }
@@ -62,14 +62,14 @@
 .cell { min-width:0; }
 .cell strong { font-weight:550; font-size:12px; }
 .cell p { font-size:12px; margin-top:5px; font-variant-numeric:tabular-nums; }
-.cell .warning { color:#a96344; }
+.cell .warning { color:#8e5034; }
 .mobileLabel { display:none; }
 .openAccount { color:#6b8399; padding-top:5px; }
 .openAccount span { display:none; }
 .financeScope { margin-top:28px; }
 .scopeGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; }
 .scopeGrid article { border:1px solid var(--filet); border-radius:11px; padding:21px; background:#fff; display:flex; flex-direction:column; align-items:start; }
-.scopeGrid article > span { font-size:9px; color:#8c794f; letter-spacing:.08em; }
+.scopeGrid article > span { font-size:9px; color:#735f3c; letter-spacing:.08em; }
 .scopeGrid h3 { font-size:19px; margin:13px 0 8px; font-weight:500; }
 .scopeGrid h3 small { font-size:12px; }
 .scopeGrid p { font-size:12px; color:var(--texte-secondaire); line-height:1.7; margin-bottom:16px; }
@@ -78,5 +78,5 @@
 .method summary { cursor:pointer; min-height:34px; padding-block:8px; }
 .method p { margin-top:10px; max-width:110ch; }
 .method a { margin-top:12px; display:inline-flex; align-items:center; gap:6px; }
-@media(max-width:1200px) { .overview { grid-template-columns:minmax(0,1fr); } .tableHead { display:none; } .account { grid-template-columns:1fr 1fr 1fr; gap:20px; } .identity { grid-column:1/3; } .openAccount { grid-column:3; grid-row:1; justify-self:end; display:flex; align-items:center; gap:5px; font-size:11px; } .openAccount span { display:inline; } .mobileLabel { display:block; color:#8995a0; font-size:9px; margin-bottom:7px; } }
+@media(max-width:1200px) { .overview { grid-template-columns:minmax(0,1fr); } .tableHead { display:none; } .account { grid-template-columns:1fr 1fr 1fr; gap:20px; } .identity { grid-column:1/3; } .openAccount { grid-column:3; grid-row:1; justify-self:end; display:flex; align-items:center; gap:5px; font-size:11px; } .openAccount span { display:inline; } .mobileLabel { display:block; color:#5c6d7c; font-size:9px; margin-bottom:7px; } }
 @media(max-width:700px) { .headerActions { width:100%; } .snapshot { font-size:10px; margin-top:-8px; } .revenue { padding:20px 18px; } .revenueFigures { gap:13px; } .revenueFigures > div + div { padding-left:14px; } .revenueFigures strong { font-size:29px; } .revenueFigures > div > span { font-size:11px; } .revenueFoot span:last-child { margin-left:0; } .secondary { grid-template-columns:1fr; } .attention, .panel { padding:20px 18px; } .sectionHead h2 { font-size:24px; } .filters { padding-inline:16px; } .filters button { min-height:40px; } .resultLine { padding-inline:16px; } .account { grid-template-columns:minmax(0,1fr) minmax(0,1fr); padding:20px 16px; gap:16px; } .identity { grid-column:1/-1; } .cell:last-of-type { grid-column:1/-1; } .openAccount { grid-column:1/-1; grid-row:auto; justify-self:start; min-height:36px; } .scopeGrid { grid-template-columns:1fr; } }

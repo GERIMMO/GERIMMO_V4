@@ -58,14 +58,14 @@ test.describe('Études, validation et visibilité par profil',()=>{
   }finally{await db.query('delete from public.territory_studies where source=$1',[source]);}
  });
  test('la supervision contrôle le mode automatique, et l’artisan trouve la veille',async({page,browser})=>{
-  await page.goto('/admin/marketing');const auto=page.getByLabel('Publier automatiquement');
+  await page.goto('/admin/marketing');await page.getByText('Réglages de préparation et de diffusion',{exact:true}).click();const auto=page.getByLabel('Publier automatiquement');
   if(await auto.isDisabled()){
    // Sans Page Facebook reliée (audit 25/09, C21) : la case est décochée et désactivée, et le dit.
    await expect(auto).not.toBeChecked();await expect(page.getByText('la Page Facebook n’est pas reliée').first()).toBeVisible();
   }else{
    await expect(auto).toBeChecked();
    await auto.uncheck();await page.getByRole('button',{name:'Enregistrer les réglages'}).click();await expect(page.getByRole('status')).toContainText('mis à jour');
-   await page.reload();await expect(page.getByLabel('Publier automatiquement')).not.toBeChecked();
+   await page.reload();await page.getByText('Réglages de préparation et de diffusion',{exact:true}).click();await expect(page.getByLabel('Publier automatiquement')).not.toBeChecked();
    await page.getByLabel('Publier automatiquement').check();await page.getByRole('button',{name:'Enregistrer les réglages'}).click();await expect(page.getByRole('status')).toContainText('mis à jour');
   }
   const artisan=await browser.newContext({storageState:'e2e/.auth/artisan.json'});const ecran=await artisan.newPage();await sansSyntheseAlertes(ecran);

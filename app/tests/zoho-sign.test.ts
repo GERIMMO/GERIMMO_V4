@@ -1,7 +1,7 @@
-import { texteMentionCaution } from "@/lib/mention-caution";
+import { texteMentionCaution, noteMentionCaution } from "@/lib/mention-caution";
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { actionsSignatureZoho, activerDemandeZoho, annulerDemandeZoho, configurationZohoSign, lireDemandeZoho, preparerCircuitZoho, supprimerBrouillonZoho, telechargerDocumentSigneZoho, telephoneZoho, webhookZohoValide, type ConfigurationZohoSign } from "@/lib/zoho-sign";
+import { INSTRUCTIONS_CAUTION_MOBILE, actionsSignatureZoho, activerDemandeZoho, annulerDemandeZoho, configurationZohoSign, lireDemandeZoho, preparerCircuitZoho, supprimerBrouillonZoho, telechargerDocumentSigneZoho, telephoneZoho, webhookZohoValide, type ConfigurationZohoSign } from "@/lib/zoho-sign";
 import { configurationSignatureBail, configurationSuiviSignatureBail } from "@/lib/signature-bail";
 
 let config: ConfigurationZohoSign;
@@ -89,11 +89,15 @@ describe("Zoho Sign européen",()=>{
  });
  it("la caution saisit une mention obligatoire non préremplie, avant sa signature et avec SMS",async()=>{
   const circuit={...attendu(),modele:"cautionnement",signataires:attendu().signataires.map((s,i)=>({...s,qualite:i===0?"Garant":"Propriétaire",mentionCaution:i===0?mention:undefined}))};
-  const controle={...dossier(),actions:actionsSignatureZoho(dossier(),circuit).map((a,i)=>({...dossier().actions[i],fields:a.fields.map((f,k)=>({...f,field_id:`11000000000${i}${k}1`}))}))};
+  const controle={...dossier(),notes:INSTRUCTIONS_CAUTION_MOBILE,actions:actionsSignatureZoho(dossier(),circuit).map((a,i)=>({...dossier().actions[i],private_notes:a.private_notes,fields:a.fields.map((f,k)=>({...f,field_id:`11000000000${i}${k}1`}))}))};
   const fetch=api([{code:0,requests:dossier()},{code:0},{code:0,requests:controle},{code:0}]);
   await activerDemandeZoho(config,id,circuit);
   const actions=JSON.parse((fetch.mock.calls[2][1]!.body as FormData).get("data") as string).requests.actions;
   expect(actions[0].fields).toHaveLength(2);
+  expect(actions[0].private_notes).toBe(noteMentionCaution(mention));
+  expect(JSON.parse((fetch.mock.calls[2][1]!.body as FormData).get("data") as string).requests.notes).toBe(INSTRUCTIONS_CAUTION_MOBILE);
+  expect(actions[1]).not.toHaveProperty("private_notes");
+  expect(actions[0].fields[0].field_label).toContain("e-mail");
   expect(actions[0].fields[0]).toMatchObject({field_type_name:"Textfield",is_mandatory:true});
   expect(actions[0].fields[0]).not.toHaveProperty("default_value");
   expect(actions[0].fields[0].validation.validation_type).toBe("CUSTOM");
@@ -105,11 +109,12 @@ describe("Zoho Sign européen",()=>{
   const soumis=JSON.parse((fetch.mock.calls[4][1]!.body as FormData).get("data") as string).requests.actions;
   expect(soumis.flatMap((a:{fields:{field_id:string}[]})=>a.fields.map(f=>f.field_id))).toEqual(controle.actions.flatMap(a=>a.fields.map(f=>f.field_id)));
   expect(soumis.flatMap((a:{fields:unknown[]})=>a.fields)).toHaveLength(3);
+  expect(soumis[0].private_notes).toBe(noteMentionCaution(mention));
  });
 
  it("une reprise de préparation réutilise les champs existants au PUT comme au submit",async()=>{
   const c={...attendu(),modele:"cautionnement",signataires:attendu().signataires.map((s,i)=>({...s,qualite:i===0?"Garant":"Propriétaire",mentionCaution:i===0?mention:undefined}))};
-  const controle={...dossier(),actions:actionsSignatureZoho(dossier(),c).map((a,i)=>({...dossier().actions[i],fields:a.fields.map((f,k)=>({...f,field_id:`11000000000${i}${k}1`}))}))};
+  const controle={...dossier(),notes:INSTRUCTIONS_CAUTION_MOBILE,actions:actionsSignatureZoho(dossier(),c).map((a,i)=>({...dossier().actions[i],private_notes:a.private_notes,fields:a.fields.map((f,k)=>({...f,field_id:`11000000000${i}${k}1`}))}))};
   const fetch=api([{code:0,requests:controle},{code:0},{code:0,requests:controle},{code:0}]);
   await activerDemandeZoho(config,id,c);
   for(const call of [2,4]) {
@@ -120,9 +125,17 @@ describe("Zoho Sign européen",()=>{
 
  it("refuse un brouillon contenant déjà des champs en double sans inviter",async()=>{
   const c={...attendu(),modele:"cautionnement",signataires:attendu().signataires.map((s,i)=>({...s,qualite:i===0?"Garant":"Propriétaire",mentionCaution:i===0?mention:undefined}))};
-  const controle={...dossier(),actions:actionsSignatureZoho(dossier(),c).map((a,i)=>({...dossier().actions[i],fields:[...a.fields,...a.fields].map((f,k)=>({...f,field_id:`11000000000${i}${k}1`}))}))};
+  const controle={...dossier(),notes:INSTRUCTIONS_CAUTION_MOBILE,actions:actionsSignatureZoho(dossier(),c).map((a,i)=>({...dossier().actions[i],private_notes:a.private_notes,fields:[...a.fields,...a.fields].map((f,k)=>({...f,field_id:`11000000000${i}${k}1`}))}))};
   const fetch=api([{code:0,requests:controle}]);
   await expect(activerDemandeZoho(config,id,c)).rejects.toThrow("champs Zoho");
+  expect(fetch.mock.calls.some(([url])=>url.endsWith("/submit"))).toBe(false);
+ });
+
+ it("bloque l’envoi si le texte à copier dans l’invitation a été perdu ou tronqué",async()=>{
+  const c={...attendu(),modele:"cautionnement",signataires:attendu().signataires.map((s,i)=>({...s,qualite:i===0?"Garant":"Propriétaire",mentionCaution:i===0?mention:undefined}))};
+  const controle={...dossier(),notes:INSTRUCTIONS_CAUTION_MOBILE,actions:actionsSignatureZoho(dossier(),c).map((a,i)=>({...dossier().actions[i],private_notes:"note tronquée",fields:a.fields.map((f,k)=>({...f,field_id:`11000000000${i}${k}1`}))}))};
+  const fetch=api([{code:0,requests:dossier()},{code:0},{code:0,requests:controle}]);
+  await expect(activerDemandeZoho(config,id,c)).rejects.toThrow("texte à copier");
   expect(fetch.mock.calls.some(([url])=>url.endsWith("/submit"))).toBe(false);
  });
 

@@ -136,6 +136,18 @@ describe.skipIf(!apiUrl)("Retour Zoho → vraie base et stockage fictifs locaux"
     expect((await db.query("select count(*)::int n from public.documents where organization_id=$1",[org])).rows[0].n).toBe(1);
     expect(appels.some(x=>x.endsWith("/pdf"))).toBe(false);
   });
+  it("récupère le contrat déjà signé même si l’abonnement a été suspendu entre-temps",async()=>{
+    async function statut(valeur:string) {
+      await db.query('begin');await db.query('select public.tache_systeme()');
+      await db.query('update public.organizations set status=$1 where id=$2',[valeur,org]);await db.query('commit');
+    }
+    await statut('suspendue');
+    try {
+      etat='completed';expect((await recevoir(evenement())).status).toBe(200);
+      const c=await lire();expect(c.etat,JSON.stringify(diagnostics)).toBe('termine');
+      expect(c.verrou_jeton).toBeNull();expect(c.signataires[0].preuveDocumentId).toBe(c.signataires[1].preuveDocumentId);
+    } finally {await statut('active');}
+  });
   it.each(["prestataire","stockage"])("reprend après une panne %s sans renvoyer d’invitation",async(panne)=>{
     etat="completed"; archivesIndisponibles=panne==="prestataire"; storageIndisponible=panne==="stockage";
     expect((await recevoir(evenement())).status).toBe(200);

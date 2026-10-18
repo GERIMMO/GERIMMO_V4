@@ -182,3 +182,39 @@ create policy signature_bail_fichier_update on storage.objects as restrictive fo
   with check(bucket_id<>'documents' or not public.fichier_en_signature_bail(name));
 create policy signature_bail_fichier_delete on storage.objects as restrictive for delete to authenticated
   using(bucket_id<>'documents' or not public.fichier_en_signature_bail(name));
+
+-- Même garde que les autres tables d'organisation, posée sans reverrouiller
+-- toutes les tables. Une suspension bloque la préparation et le nouvel envoi.
+create trigger abonnement_bail_signature_circuits
+ before insert or update or delete on public.bail_signature_circuits
+ for each row execute function public.refuser_ecriture_si_fermee();
+create trigger traversee_lecture_seule
+ before insert or update or delete on public.bail_signature_circuits
+ for each row execute function support_interne.garder_ecriture_traversee();
+
+-- Le serveur doit néanmoins suivre un circuit déjà engagé et permettre son
+-- annulation. Cette exception reste attachée à la garde commune si elle est
+-- reposée plus tard ; ni nouveau circuit ni retour à l'état prêt ne passe.
+do $suivi_signature$
+declare d text;
+ ancre constant text := $a$  v_org := case when tg_op = 'DELETE' then old.organization_id else new.organization_id end;$a$;
+ ajout constant text := $b$
+  -- Suivi serveur des signatures déjà engagées (18/10/2026).
+  if tg_table_name = 'bail_signature_circuits' and tg_op = 'UPDATE' and auth.role() = 'service_role' then
+    if old.etat <> 'pret' and new.etat <> 'pret'
+      and to_jsonb(old) - array['etat','signataires','external_request_id','external_document_id','document_signe','erreur','updated_at','verrou_jeton','verrou_jusqua']
+        = to_jsonb(new) - array['etat','signataires','external_request_id','external_document_id','document_signe','erreur','updated_at','verrou_jeton','verrou_jusqua'] then
+      return new;
+    end if;
+    if old.etat = 'pret' and new.etat = 'annule'
+      and to_jsonb(old) - array['etat','erreur','updated_at'] = to_jsonb(new) - array['etat','erreur','updated_at'] then
+      return new;
+    end if;
+  end if;$b$;
+begin
+ select pg_get_functiondef('public.refuser_ecriture_si_fermee()'::regprocedure) into d;
+ if strpos(d,'Suivi serveur des signatures déjà engagées (18/10/2026)')=0 then
+   if (length(d)-length(replace(d,ancre,'')))<>length(ancre) then raise exception 'Garde abonnement : ancre inattendue'; end if;
+   execute replace(d,ancre,ancre||ajout);
+ end if;
+end $suivi_signature$;

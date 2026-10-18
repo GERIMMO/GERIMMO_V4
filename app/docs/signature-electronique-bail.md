@@ -55,6 +55,10 @@ Le démarrage de l’essai annonce 14 jours / 10 documents ; la documentation in
 
 ## Exploitation et reprise
 
+Le retour Zoho accuse réception immédiatement après authentification et identification du circuit ; les lectures fournisseur et téléchargements continuent avec `after()` de Next.js. Zoho impose un accusé sous cinq secondes. Le registre existant et la tâche des signatures permettent de reprendre après une interruption ; un échec après l'accusé laisse le circuit à reprendre, sans invitation supplémentaire.
+
+Les gardes d'abonnement et de traversée s'appliquent aussi au nouveau registre. La suspension interdit toute nouvelle préparation ou réservation d'envoi. Le suivi serveur d'un circuit déjà engagé et son classement restent possibles, tout comme l'annulation d'une préparation. Le classement utilise un réglage système limité à cette fonction serveur, automatiquement restauré à sa sortie ; les rôles clients n'ont aucun droit d'exécution.
+
 Un envoi réservé est exclusif par bail. Dès la création distante, son identifiant est enregistré avant l’activation des invitations. Chez Zoho, le PDF et ses annexes sont téléversés au moment de la création du brouillon ; aucune invitation ne part à cette étape. Si l’issue n’est pas confirmée, l’état devient « Envoi à vérifier » : actualiser le suivi et rapprocher le dossier prestataire, **ne pas recréer une demande**.
 
 Si une coupure empêche même de connaître l’identifiant distant, rechercher la référence du circuit (`description = gerimmo:circuit:<UUID>` chez Zoho ; `external_id` chez Youtrust) côté prestataire et constater son état avant toute correction du registre. Ne pas libérer artificiellement la réservation : une création distante peut avoir réussi.

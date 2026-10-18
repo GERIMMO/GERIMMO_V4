@@ -1,7 +1,9 @@
 -- Zoho émet un certificat commun : une seule entrée GED (empreinte unique),
 -- liée à chaque signataire. Les preuves individuelles Youtrust sont inchangées.
 create or replace function public.archiver_signature_bail(p_circuit uuid,p_jeton uuid,p_archives jsonb)
-returns uuid language plpgsql security invoker set search_path='' as $$
+-- Le classement de signatures déjà reçues continue après une suspension.
+-- Réglage limité à cet appel serveur ; PostgreSQL restaure la valeur à sa sortie.
+returns uuid language plpgsql security invoker set search_path='' set gerimmo.systeme='on' as $$
 declare
  v public.bail_signature_circuits; a jsonb; idx integer:=0; doc uuid; signe uuid;
  preuve_commune uuid; parties jsonb; racine text; chemin text; original public.documents;

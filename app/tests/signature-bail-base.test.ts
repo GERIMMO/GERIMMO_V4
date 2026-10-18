@@ -27,6 +27,11 @@ describe.skipIf(!url)("Circuit de signature : droits, concurrence et archives",(
   await db.query('reset role');await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:user,role:r,aal:'aal2'})]);await db.query('set local role '+r);
  }
  async function reserver(){return db.query('select (public.reserver_envoi_signature_bail($1,$2)).id',[circuit,owner]);}
+ async function suspendre(){
+  await db.query('reset role');await db.query('select public.tache_systeme()');
+  await db.query("update public.organizations set status='suspendue' where id=$1",[org]);
+  await db.query("select set_config('gerimmo.systeme','',true)");
+ }
  function archives(){return ['contrat','preuve-1','preuve-2'].map((n,i)=>({path:`${org}/signature-bail/${circuit}/${n}.pdf`,size:100,hash:String(i+1).repeat(64)}));}
  it('conserve le prestataire historique et interdit un prestataire inconnu',async()=>{
   expect((await db.query('select prestataire from public.bail_signature_circuits where id=$1',[circuit])).rows[0].prestataire).toBe('youtrust');
@@ -71,6 +76,25 @@ describe.skipIf(!url)("Circuit de signature : droits, concurrence et archives",(
   await role(null,'service_role');await reserver();
   expect((await db.query("select count(*)::int n from public.audit_log where action='signature_bail_envoi_demande' and details->>'circuit_id'=$1",[circuit])).rows[0].n).toBe(1);
   await expect(reserver()).rejects.toThrow(/déjà été envoyé/);
+ });
+ it('un abonnement suspendu refuse une nouvelle réservation serveur',async()=>{
+  await suspendre();
+  await role(null,'service_role');await expect(reserver()).rejects.toThrow(/Abonnement suspendu/);
+ });
+ it('la suspension laisse annuler une préparation mais ne permet pas de la réutiliser',async()=>{
+  await suspendre();
+  await role(null,'service_role');
+  await db.query("update public.bail_signature_circuits set etat='annule' where id=$1",[circuit]);
+  await expect(db.query("update public.bail_signature_circuits set etat='pret' where id=$1",[circuit])).rejects.toThrow(/Abonnement suspendu/);
+ });
+ it('archive un circuit déjà engagé après suspension et restaure le contexte de garde',async()=>{
+  await role(null,'service_role');await reserver();await db.query('reset role');
+  await suspendre();
+  await role(null,'service_role');const jeton=(await db.query('select gen_random_uuid() id')).rows[0].id;
+  await db.query('select public.verrouiller_signature_bail($1,$2)',[circuit,jeton]);
+  await db.query('select public.archiver_signature_bail($1,$2,$3)',[circuit,jeton,JSON.stringify(archives())]);
+  expect((await db.query('select etat from public.bail_signature_circuits where id=$1',[circuit])).rows[0].etat).toBe('termine');
+  expect((await db.query("select current_setting('gerimmo.systeme',true) reglage")).rows[0].reglage).not.toBe('on');
  });
  it('interdit deux circuits actifs sur deux versions du même bail',async()=>{
   await expect(db.query("insert into public.bail_signature_circuits(organization_id,bail_id,document_id,created_by,environnement,empreinte,pdf_hash,signataires) select organization_id,bail_id,document_id,created_by,environnement,empreinte,pdf_hash,signataires from public.bail_signature_circuits where id=$1",[circuit])).rejects.toThrow(/bail_signature_un_circuit_actif/);

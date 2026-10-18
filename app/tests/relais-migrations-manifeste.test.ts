@@ -49,6 +49,9 @@ const MISSION_OCTOBRE = [
   "20261017180829_supervision_finances.sql",
   "20261018061548_supervision_complete.sql",
   "20261018071556_supervision_index_relations.sql",
+  "20261018085521_circuit_signature_bail.sql",
+  "20261018100243_prestataire_signature_bail.sql",
+  "20261018143644_certificat_commun_zoho.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

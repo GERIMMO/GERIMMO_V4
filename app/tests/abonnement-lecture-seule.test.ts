@@ -80,7 +80,7 @@ async function refusee(sql: string, params: unknown[] = []): Promise<string> {
 }
 
 async function creerOrg(nom: string, statut: string, essaiFin: "hier" | "demain" | null = null): Promise<string> {
-  const date = essaiFin === "hier" ? "current_date - 1" : essaiFin === "demain" ? "current_date + 1" : "null";
+  const date = essaiFin === "hier" ? "public.aujourdhui_paris() - 1" : essaiFin === "demain" ? "public.aujourdhui_paris() + 1" : "null";
   const {
     rows: [{ id }],
   } = await db.query<{ id: string }>(
@@ -135,11 +135,11 @@ describe("org_ecriture_ouverte — qui peut encore créer", () => {
     for (const [libelle, statut, quand, attendu, grille] of cas) {
       const date =
         quand === "tomorrow"
-          ? "current_date + 1"
+          ? "public.aujourdhui_paris() + 1"
           : quand === "today"
-            ? "current_date"
+            ? "public.aujourdhui_paris()"
             : quand === "yesterday"
-              ? "current_date - 1"
+              ? "public.aujourdhui_paris() - 1"
               : "null";
       const {
         rows: [{ id }],
@@ -166,7 +166,7 @@ describe("org_ecriture_ouverte — qui peut encore créer", () => {
       rows: [{ id: org }],
     } = await db.query<{ id: string }>(
       `insert into public.organizations (name, status, essai_fin, type, grille_tarifaire)
-       values ('Ancien compte', 'essai', current_date - 1, 'proprietaire_direct', 'historique') returning id`
+       values ('Ancien compte', 'essai', public.aujourdhui_paris() - 1, 'proprietaire_direct', 'historique') returning id`
     );
     const ouverte = async () =>
       (await db.query<{ o: boolean }>("select public.org_ecriture_ouverte($1) as o", [org])).rows[0].o;
@@ -185,7 +185,7 @@ describe("org_ecriture_ouverte — qui peut encore créer", () => {
       rows: [{ id: org }],
     } = await db.query<{ id: string }>(
       `insert into public.organizations (name, status, essai_fin, type)
-       values ('Un seul bien', 'essai', current_date, 'proprietaire_direct') returning id`
+       values ('Un seul bien', 'essai', public.aujourdhui_paris(), 'proprietaire_direct') returning id`
     );
     await db.query(
       `insert into public.biens (organization_id, nom, type, address_line1, postal_code, city)
@@ -196,7 +196,7 @@ describe("org_ecriture_ouverte — qui peut encore créer", () => {
       (await db.query<{ o: boolean }>("select public.org_ecriture_ouverte($1) as o", [org])).rows[0].o;
     expect(await ouverte()).toBe(true); // dernier jour d'essai inclus
     await db.query("select public.tache_systeme()");
-    await db.query("update public.organizations set essai_fin = current_date - 1 where id = $1", [org]);
+    await db.query("update public.organizations set essai_fin = public.aujourdhui_paris() - 1 where id = $1", [org]);
     expect(await ouverte()).toBe(false);
     // Les données restent là, lisibles.
     const { rows } = await db.query("select count(*)::int as n from public.biens where organization_id = $1", [org]);
@@ -259,7 +259,7 @@ describe("une organisation suspendue ne crée plus", () => {
       rows: [{ id: org }],
     } = await db.query<{ id: string }>(
       `insert into public.organizations (name, status, essai_fin, type)
-       values ('Essai fini', 'essai', current_date - 1, 'proprietaire_direct') returning id`
+       values ('Essai fini', 'essai', public.aujourdhui_paris() - 1, 'proprietaire_direct') returning id`
     );
     for (const nom of ["Bien offert", "Bien facturé"]) {
       await semer(

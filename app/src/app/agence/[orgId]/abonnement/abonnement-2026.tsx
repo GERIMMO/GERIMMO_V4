@@ -567,7 +567,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           </div>
           <details className={styles.precisions}>
             <summary>Services facturés à part ou non inclus</summary>
-            <p>Les travaux et interventions d’artisans sont sur devis et facturés à part. Le réseau d’artisans dépend de la zone du bien et du métier. La signature électronique n’est pas encore proposée ; aucun envoi de SMS ni service bancaire n’est inclus.</p>
+            <p>Les travaux et interventions d’artisans sont sur devis et facturés à part. Le réseau d’artisans dépend de la zone du bien et du métier. La signature des documents éligibles s’effectue avec Zoho Sign et vérification par SMS, selon les conditions et limites affichées avant l’envoi. Aucun service bancaire n’est inclus.</p>
           </details>
         </section>
       ) : <div className="loc-carte">
@@ -586,8 +586,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           </li>
           <li>
             Non compris : les travaux et interventions d&apos;artisans, toujours sur devis et facturés à part ; le réseau
-            d&apos;artisans dépend de la zone du bien et du métier. La signature électronique n&apos;est pas encore
-            proposée ; aucun envoi de SMS ni service bancaire n&apos;est inclus.
+            d&apos;artisans dépend de la zone du bien et du métier. La signature des documents éligibles s’effectue avec Zoho Sign et vérification
+            par SMS, selon les conditions et limites affichées avant l’envoi. Aucun service bancaire n’est inclus.
           </li>
           <li>
             Aucun frais d&apos;installation.

@@ -1,4 +1,5 @@
 import { instantParis } from './dates-supervision';
+import { lireMontantSigne } from './saisie-montant';
 export type MouvementStripe = { id: string; created: number; type: string; currency: string; amount: number; fee: number; net: number; status: string };
 export function periodeFinanciere(mois: string | undefined, today: string) {
  const value = mois && /^20\d{2}-(0[1-9]|1[0-2])$/.test(mois) ? mois : today.slice(0,7);
@@ -21,6 +22,15 @@ export function bilanMouvements(rows: MouvementStripe[]) {
 }
 export function montantEnCentimes(value: string): number | null {
  if(!/^-?\d{1,8}([.,]\d{1,2})?$/.test(value.trim())) return null;
- const n=Math.round(Number(value.replace(',','.'))*100);
+ const lu=lireMontantSigne(value);
+ if('erreur' in lu)return null;
+ const n=Math.round(lu.montant*100);
  return Number.isSafeInteger(n)&&n!==0&&Math.abs(n)<=1_000_000_000?n:null;
+}
+
+/** Vérifie un jour civil saisi, sans le confondre avec l'instant courant à Paris. */
+export function jourComptableValide(jour:string):boolean {
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(jour))return false;
+ const d=new Date(`${jour}T00:00:00Z`);
+ return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===jour;
 }

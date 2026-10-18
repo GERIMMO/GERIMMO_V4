@@ -121,6 +121,7 @@ function fichiersSource(dossier: string): string[] {
 type Exception = { fichier: string; argument: string; raison: string };
 
 const EXCEPTIONS: Exception[] = [
+  { fichier: "src/app/actions/identite-editeur.ts", argument: "f.get('revision')", raison: "révision entière positive du formulaire, comparée atomiquement à la version enregistrée" },
   // ── Nombres de jours, de mois, d'années, d'unités, de pièces, de pages : entiers bornés par une règle propre ──
   { fichier: "src/app/actions/equipes.ts", argument: "form.get('jours')", raison: "durée en jours d'une délégation, entière ; la base borne" },
   { fichier: "src/app/actions/autonomie.ts", argument: 'formData.get("jours")', raison: "durée en jours d'une délégation, entière ; la base borne" },

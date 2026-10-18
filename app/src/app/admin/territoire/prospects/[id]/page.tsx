@@ -1,3 +1,4 @@
+export const metadata = { title: "Suivi du prospect" };
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';

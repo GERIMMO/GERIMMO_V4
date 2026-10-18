@@ -46,6 +46,9 @@ const MISSION_OCTOBRE = [
   "20261016190000_relance_report_reprise_sans_envoi.sql",
   "20261016200000_jour_paris_complements.sql",
   "20261016210000_retour_adresse_confirmee.sql",
+  "20261017180829_supervision_finances.sql",
+  "20261018061548_supervision_complete.sql",
+  "20261018071556_supervision_index_relations.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

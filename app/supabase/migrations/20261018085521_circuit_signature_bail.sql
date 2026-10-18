@@ -215,6 +215,7 @@ begin
  select pg_get_functiondef('public.refuser_ecriture_si_fermee()'::regprocedure) into d;
  if strpos(d,'Suivi serveur des signatures déjà engagées (18/10/2026)')=0 then
    if (length(d)-length(replace(d,ancre,'')))<>length(ancre) then raise exception 'Garde abonnement : ancre inattendue'; end if;
-   execute replace(d,ancre,ancre||ajout);
+   -- Préserve le bloc ancre + exception artisan utilisé par son retour arrière.
+   execute replace(d,ancre,ajout||E'\n'||ancre);
  end if;
 end $suivi_signature$;

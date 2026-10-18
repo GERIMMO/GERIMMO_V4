@@ -1,4 +1,5 @@
 import { ArretSupervision } from "./controle-effets";
+import { borneJourParis } from "./heure-paris";
 // Stripe pour la grille du 28/09/2026 — l'adaptateur des OFFRES.
 //
 // LE PRIX NE VIT PLUS CHEZ STRIPE. La grille historique confiait le prix
@@ -162,15 +163,17 @@ const MARGE_ESSAI_S = 48 * 3600 + 600;
 
 /**
  * La fin d'essai à transmettre : les jours restants sont PRÉSERVÉS. `essai_fin`
- * est une date incluse (fin = minuit UTC du lendemain). Si l'essai finit dans
+ * est une date incluse (fin = minuit de Paris du lendemain). Si l'essai finit dans
  * moins de 48 h, Stripe refuse la date : on la reporte au plus proche
  * possible — quelques heures offertes plutôt qu'un débit immédiat.
  */
 export function finEssaiPreservee(essaiFin: string | null | undefined, maintenantMs = Date.now()): number | undefined {
   if (!essaiFin) return undefined;
-  const debutMs = new Date(essaiFin).getTime();
-  if (Number.isNaN(debutMs)) return undefined;
-  const fin = Math.floor(debutMs / 1000) + (essaiFin.length === 10 ? 86_400 : 0);
+  const borne = essaiFin.length === 10 ? borneJourParis(essaiFin, true) : essaiFin;
+  if (!borne) return undefined;
+  const finMs = new Date(borne).getTime() + (essaiFin.length === 10 ? 1 : 0);
+  if (!Number.isFinite(finMs) || !Number.isFinite(maintenantMs)) return undefined;
+  const fin = Math.floor(finMs / 1000);
   const maintenant = Math.floor(maintenantMs / 1000);
   if (fin <= maintenant) return undefined; // essai terminé : rien à préserver
   return Math.max(fin, maintenant + MARGE_ESSAI_S);

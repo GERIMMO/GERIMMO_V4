@@ -149,15 +149,20 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     localisation: "Irlande",
   },
   {
+    nom: "Zoho Sign",
+    role: "Signature électronique des baux, cautionnements et devis : document à signer, nom, adresse électronique et téléphone des signataires ; invitations par courriel, vérification par SMS et conservation des preuves de signature",
+    localisation: "Centre de données Union européenne (sign.zoho.eu) ; acheminement des SMS par les prestataires de Zoho",
+  },
+  {
     nom: "Yousign",
-    // Non activée au lancement (décision du 27/09) : rien ne lui est transmis
-    // tant que YOUTRUST_ENV ne vaut pas « production ».
-    role: "Signature électronique des baux, lorsqu'elle sera activée (elle ne l'est pas au lancement) : le document à signer, le nom, l'adresse électronique et le téléphone de chaque signataire",
+    // Adaptateur historique conservé dans le code, non utilisé par le
+    // circuit Zoho Sign actuellement activé.
+    role: "Ancienne intégration de signature des baux, inactive : aucune transmission par le circuit de signature Zoho Sign actuellement utilisé",
     localisation: "France",
   },
   {
     nom: "OpenAI",
-    role: "Assistance rédactionnelle de la supervision (veille réglementaire, brouillons et illustrations du Journal) : textes éditoriaux et actualités publiques, sans donnée de locataire ni de bailleur",
+    role: "Assistance rédactionnelle de la supervision (veille, brouillons et illustrations du Journal) et propositions de devis artisans : textes éditoriaux publics, catalogue tarifaire et symptômes techniques sélectionnés ; les propositions de devis excluent les noms, adresses et descriptions libres des occupants",
     localisation: "États-Unis (transfert hors UE)",
   },
   // Audit 27/09 : la sauvegarde quotidienne (.github/workflows/sauvegarde.yml,

@@ -1,3 +1,4 @@
+import { ConfirmationPaiement } from "./confirmation-paiement";
 // « Mon abonnement » — grille du 28/09/2026.
 //
 // CE QUI EST TOUJOURS À L'ÉCRAN : le volume facturé, la formule, la
@@ -194,17 +195,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           : "Votre formule, vos biens et votre facturation, en un coup d’œil."}
       </EnteteReglages>
 
-      {retour("paiement") === "ok" && (
-        <div role="status" className="loc-carte border-l-4 border-l-[var(--success)]">
-          <p className="mesure-lecture text-sm">
-            <b className="font-semibold">Merci, votre souscription est enregistrée.</b>{" "}
-            <span className="text-muted-foreground">
-              Elle s&apos;affiche ici dès que notre prestataire de paiement nous la confirme — quelques secondes en
-              général. Rechargez la page si ce n&apos;est pas encore le cas.
-            </span>
-          </p>
-        </div>
-      )}
+      {retour("paiement") === "ok" && <ConfirmationPaiement confirme={paiement.paye && !ferme} />}
       {retour("paiement") === "annule" && (
         <div role="status" className="loc-carte">
           <p className="mesure-lecture text-sm text-muted-foreground">

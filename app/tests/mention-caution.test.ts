@@ -1,7 +1,13 @@
 import {describe,expect,it} from 'vitest';
-import {texteMentionCaution,mentionCautionConforme,expressionMentionCaution} from '@/lib/mention-caution';
+import {texteMentionCaution,mentionCautionConforme,expressionMentionCaution,noteMentionCaution} from '@/lib/mention-caution';
 const mention=texteMentionCaution({caution:'Robin Test',locataires:'Alex Test',plafond:'mille euros (1 000,00 €)',solidaire:true});
 describe('mention personnelle de la caution',()=>{
+ it('donne le texte complet en un paragraphe copiable depuis le mail sans le modifier',()=>{
+  const note=noteMentionCaution(mention);
+  expect(note).toBe(mention);
+  expect(note.length).toBeLessThanOrEqual(1000);
+  expect(()=>noteMentionCaution('A'.repeat(1001))).toThrow();
+ });
  it.each(['ok','OK','lu et approuvé','','Je suis d’accord',undefined,null])('refuse %s',v=>expect(mentionCautionConforme(mention,v)).toBe(false));
  it('admet uniquement une reprise complète, avec les variantes typographiques mobiles',()=>{
   expect(mentionCautionConforme(mention,mention)).toBe(true);

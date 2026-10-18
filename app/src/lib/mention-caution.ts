@@ -36,3 +36,9 @@ export function mentionCautionConforme(attendue: string | undefined, recue: unkn
   try { return new RegExp(expressionMentionCaution(attendue), "u").test(recue); }
   catch { return false; }
 }
+
+/** Note privée de l’invitation : copiable dans le mail avant l’ouverture du clavier mobile. */
+export function noteMentionCaution(mention: string) {
+  expressionMentionCaution(mention);
+  return mention; // La note privée Zoho est limitée à 1 000 caractères.
+}

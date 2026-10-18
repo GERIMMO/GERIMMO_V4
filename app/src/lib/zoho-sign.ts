@@ -1,7 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { parsePhoneNumberFromString } from "libphonenumber-js/max";
 import type { DemandeYoutrustLue, SignataireYoutrust } from "./youtrust";
-import { expressionSaisieMentionCaution } from "./mention-caution";
+import { expressionSaisieMentionCaution, noteMentionCaution } from "./mention-caution";
 
 /** Compte européen uniquement. Le mode test Zoho utilise la même API, avec testing=true. */
 export type ConfigurationZohoSign = {
@@ -54,9 +54,9 @@ function verifierCompteConfirme(code: unknown) {
   if (code === 8044) throw new Error("L’administrateur Gerimmo doit confirmer l’adresse e-mail du compte Zoho Sign avant de pouvoir créer une demande de signature.");
 }
 type ChampZoho = { field_id?: string; field_name?: string; field_type_name: string; field_value?: unknown; default_value?: unknown; is_mandatory?: boolean; validation?: {validation_type?: string; validation_regex?: string} };
-type Action = { action_id: string; action_type: string; recipient_email: string; recipient_name: string; signing_order: number; action_status: string; verify_recipient: boolean; verification_type: string; recipient_countrycode_iso: string; recipient_phonenumber: string; fields?: ChampZoho[] };
+type Action = { private_notes?: string; action_id: string; action_type: string; recipient_email: string; recipient_name: string; signing_order: number; action_status: string; verify_recipient: boolean; verification_type: string; recipient_countrycode_iso: string; recipient_phonenumber: string; fields?: ChampZoho[] };
 type DocumentZoho = { document_id: string; document_name: string; document_order: string | number; total_pages: number };
-type Demande = { request_id: string; description: string; request_status: string; is_deleted?: boolean; is_sequential: boolean; actions: Action[]; document_ids: DocumentZoho[] };
+type Demande = { notes?: string; request_id: string; description: string; request_status: string; is_deleted?: boolean; is_sequential: boolean; actions: Action[]; document_ids: DocumentZoho[] };
 async function json(config: ConfigurationZohoSign, chemin: string, init?: RequestInit): Promise<{ requests?: Demande }> {
   const body = await (await appel(config, chemin, init)).json();
   verifierCompteConfirme(body?.code);
@@ -116,6 +116,7 @@ export async function preparerCircuitZoho(params: Preparation) {
   return { demandeId: req.request_id, documentId: idValide(documents[0].document_id), signataireIds: personnes.map(s => s.action_id) };
 }
 
+export const INSTRUCTIONS_CAUTION_MOBILE = "Garant : avant de commencer sur téléphone, lisez puis copiez le paragraphe du Message privé de cet e-mail. Collez-le vous-même dans le champ Mention personnelle de Zoho. Propriétaire : vous n’avez aucun texte à recopier, vérifiez la mention du garant avant de signer.";
 type CircuitAttendu = { modele?: string; id: string; external_document_id: string | null; signataires: { externalId?: string; email: string; telephone: string; qualite?: string; mentionCaution?: string }[]; annexes: unknown[] };
 /** Construction commune à l'envoi et à la recette fournisseur sans invitation. */
 export function actionsSignatureZoho(req: Demande, attendu: CircuitAttendu) {
@@ -130,8 +131,8 @@ export function actionsSignatureZoho(req: Demande, attendu: CircuitAttendu) {
     // Lors de la recette mobile, Zoho a conservé la hauteur et étendu la largeur
     // selon les proportions du paraphe. 30 pt garde les deux apparences observées
     // dans la zone de 190 pt, contrairement à la hauteur initiale de 80 pt.
-    return { action_id: a.action_id, action_type: "SIGN", recipient_email: a.recipient_email, recipient_name: a.recipient_name, signing_order: i, verify_recipient: true, verification_type: "SMS", ...phone, fields: [
-      ...(attendu.modele === "cautionnement" && s.qualite === "Garant" ? [{ field_type_name:"Textfield", field_name:`Mention personnelle ${i+1}`, field_label:"Recopiez toute la mention affichée au-dessus (OK ne suffit pas)", description_tooltip:"Recopiez personnellement le texte affiché au-dessus du champ.", is_mandatory:true, document_id:doc.document_id, page_no:doc.total_pages-attendu.signataires.length+i, x_coord:54, y_coord:480, abs_width:480, abs_height:190, text_property:{font:"Arial",font_size:9,font_color:"000000",is_bold:false,is_italic:false,max_field_length:2048}, validation:{validation_type:"CUSTOM",validation_regex:expressionSaisieMentionCaution(s.mentionCaution ?? ""),validation_error_message:"Recopiez toute la mention ci-dessus, montant compris. Une réponse OK ne suffit pas."} }] : []),
+    return { action_id: a.action_id, action_type: "SIGN", recipient_email: a.recipient_email, recipient_name: a.recipient_name, signing_order: i, verify_recipient: true, verification_type: "SMS", ...phone, ...(attendu.modele === "cautionnement" && s.qualite === "Garant" ? {private_notes:noteMentionCaution(s.mentionCaution ?? "")} : {}), fields: [
+      ...(attendu.modele === "cautionnement" && s.qualite === "Garant" ? [{ field_type_name:"Textfield", field_name:`Mention personnelle ${i+1}`, field_label:"Collez le texte du Message privé de votre e-mail", description_tooltip:"Sur téléphone, copiez le paragraphe de votre e-mail, puis collez-le ici vous-même.", is_mandatory:true, document_id:doc.document_id, page_no:doc.total_pages-attendu.signataires.length+i, x_coord:54, y_coord:480, abs_width:480, abs_height:190, text_property:{font:"Arial",font_size:9,font_color:"000000",is_bold:false,is_italic:false,max_field_length:2048}, validation:{validation_type:"CUSTOM",validation_regex:expressionSaisieMentionCaution(s.mentionCaution ?? ""),validation_error_message:"Reprenez toute la mention de votre e-mail, montant compris. OK ne suffit pas."} }] : []),
       { field_type_name: "Signature", field_name: `Signature ${i + 1}`, field_label: "Signature du document", is_mandatory: true, document_id: doc.document_id, page_no: doc.total_pages - attendu.signataires.length + i, x_coord: 54, y_coord: attendu.modele === "cautionnement" && s.qualite === "Garant" ? 700 : 330, abs_width: 190, abs_height: 30 }
     ] };
   });
@@ -152,11 +153,12 @@ function reutiliserChampsZoho(actions: ReturnType<typeof actionsSignatureZoho>, 
 export async function activerDemandeZoho(config: ConfigurationZohoSign, id: string, attendu: CircuitAttendu) {
   const req = await details(config, id);
   let actions = actionsSignatureZoho(req, attendu);
+  const notes = attendu.modele === "cautionnement" ? {notes:INSTRUCTIONS_CAUTION_MOBILE} : {};
   if (attendu.modele === "cautionnement") {
     if (attendu.signataires.filter(s=>s.qualite === "Garant").length !== 1) throw new Error("Un acte de caution doit concerner exactement un garant.");
     actions = reutiliserChampsZoho(actions, req);
     // Vérifier que le prestataire conserve la règle AVANT d'envoyer une invitation.
-    await json(config, `/requests/${idValide(id)}`, {method:"PUT",body:formulaire(config,{actions})});
+    await json(config, `/requests/${idValide(id)}`, {method:"PUT",body:formulaire(config,{actions,...notes})});
     const controle = await details(config,id);
     actionsSignatureZoho(controle,attendu);
     for (const s of attendu.signataires.filter(s=>s.qualite === "Garant")) {
@@ -164,10 +166,12 @@ export async function activerDemandeZoho(config: ConfigurationZohoSign, id: stri
       const f = champs[0];
       if (champs.length !== 1 || !f.is_mandatory || f.default_value || f.field_value || f.validation?.validation_type!=="CUSTOM" || f.validation.validation_regex!==expressionSaisieMentionCaution(s.mentionCaution ?? "")) throw new Error("Zoho n’a pas confirmé le contrôle de la mention. Aucune invitation n’a été envoyée.");
     }
+    const garant = attendu.signataires.find(s => s.qualite === "Garant")!;
+    if (controle.notes !== INSTRUCTIONS_CAUTION_MOBILE || controle.actions.find(a => a.action_id === garant.externalId)?.private_notes !== noteMentionCaution(garant.mentionCaution ?? "")) throw new Error("Zoho n’a pas conservé le texte à copier dans l’invitation. Aucun envoi n’a été demandé.");
     // Réutiliser les identifiants reçus après PUT : aucun nouveau champ au submit.
     actions = reutiliserChampsZoho(actions, controle, true);
   }
-  await json(config, `/requests/${idValide(id)}/submit`, { method: "POST", body: formulaire(config, { actions }) });
+  await json(config, `/requests/${idValide(id)}/submit`, { method: "POST", body: formulaire(config, { actions, ...notes }) });
 }
 const ETATS: Record<string, string> = { draft: "draft", inprogress: "ongoing", completed: "done", recalled: "canceled", expired: "expired", declined: "declined", rejected: "rejected" };
 const ETATS_PERSONNES: Record<string, string> = { NOACTION: "initiated", UNOPENED: "notified", VIEWED: "notified", SIGNED: "signed", REJECTED: "declined" };

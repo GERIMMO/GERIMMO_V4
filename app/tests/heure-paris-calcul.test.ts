@@ -4,7 +4,7 @@
  * Miroir de la fonction SQL `instant_paris`.
  */
 import { describe, expect, it } from "vitest";
-import { composantesParis, dateParis, instantParis, isodow, lendemain } from "@/lib/heure-paris-calcul";
+import { composantesParis, dateParis, instantParis, isodow, lendemain, joursJusquaParis } from "@/lib/heure-paris-calcul";
 
 describe("instantParis", () => {
   it("9 h à Paris = 7 h UTC en été, 8 h UTC en hiver", () => {
@@ -21,6 +21,13 @@ describe("instantParis", () => {
 });
 
 describe("lecture de Paris", () => {
+  it("compte les jours d’essai depuis Paris lorsque le jour UTC est différent", () => {
+    expect(joursJusquaParis("2026-10-31", new Date("2026-10-18T22:30:00Z"))).toBe(12);
+    expect(joursJusquaParis("2026-10-31T00:00:00Z", new Date("2026-10-18T22:30:00Z"))).toBe(12);
+    expect(joursJusquaParis("2026-10-31", new Date("2026-10-31T23:00:00Z"))).toBe(-1);
+    expect(joursJusquaParis("2026-10-25", new Date("2026-10-24T22:30:00Z"))).toBe(0);
+    expect(joursJusquaParis("invalide", new Date("2026-10-24T22:30:00Z"))).toBe(0);
+  });
   it("date et jour ISO depuis un instant universel", () => {
     expect(dateParis(new Date("2026-10-08T22:30:00Z"))).toBe("2026-10-09");
     expect(composantesParis(new Date("2026-10-08T22:30:00Z")).isodow).toBe(5);

@@ -1,5 +1,6 @@
 import { ArretSupervision } from "./controle-effets";
 import { borneJourParis } from "./heure-paris";
+import { dateParis } from "./heure-paris-calcul";
 // Stripe pour la grille du 28/09/2026 — l'adaptateur des OFFRES.
 //
 // LE PRIX NE VIT PLUS CHEZ STRIPE. La grille historique confiait le prix
@@ -177,6 +178,12 @@ export function finEssaiPreservee(essaiFin: string | null | undefined, maintenan
   const maintenant = Math.floor(maintenantMs / 1000);
   if (fin <= maintenant) return undefined; // essai terminé : rien à préserver
   return Math.max(fin, maintenant + MARGE_ESSAI_S);
+}
+
+/** Date annoncée au client, dans le même fuseau que la fin d'essai Stripe. */
+export function datePremierPrelevement(essaiFin: string | null | undefined, maintenantMs = Date.now()): string | null {
+  const fin = finEssaiPreservee(essaiFin, maintenantMs);
+  return fin === undefined ? null : dateParis(new Date(fin * 1000));
 }
 
 /** La page de paiement hébergée par Stripe, pour une offre de la nouvelle grille. */

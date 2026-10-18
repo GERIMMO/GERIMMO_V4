@@ -18,6 +18,7 @@ import { IconeTrait } from "@/components/icone-trait";
 import { Toasteur } from "@/components/ui/toast";
 import { baseEspace, racineEspace } from "@/lib/racine-espace";
 import { FournisseurRacineEspace } from "@/components/racine-espace-contexte";
+import { joursJusquaParis } from "@/lib/heure-paris-calcul";
 
 // Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée.
 //
@@ -27,11 +28,7 @@ import { FournisseurRacineEspace } from "@/components/racine-espace-contexte";
 // date invalide, et le bandeau annonçait « NaN jour restants » (relevé du
 // 11/09). On ne garde donc que le jour, qui est tout ce que la question demande.
 function joursRestants(iso: string): number {
-  const jour = String(iso).slice(0, 10);
-  const ms =
-    new Date(`${jour}T00:00:00`).getTime() -
-    new Date(`${aujourdhuiParis()}T00:00:00`).getTime();
-  return Number.isFinite(ms) ? Math.round(ms / 86_400_000) : 0;
+  return joursJusquaParis(iso);
 }
 
 /**

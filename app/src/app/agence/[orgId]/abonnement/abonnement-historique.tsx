@@ -1,4 +1,5 @@
 import { ConfirmationPaiement } from "./confirmation-paiement";
+import { joursJusquaParis } from "@/lib/heure-paris-calcul";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BoutonPortail, BoutonSouscrire } from "./boutons-abonnement";
@@ -112,7 +113,7 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
   );
   const ferme = etat ? !etat.ecriture_ouverte : false;
   const enEssai = etat?.statut === "essai";
-  const jours = etat?.jours_essai_restants ?? null;
+  const jours = etat?.essai_fin ? Math.max(0, joursJusquaParis(etat.essai_fin)) : null;
 
   // Retour de Stripe. `annule` n'est pas une erreur : le client a fermé la page
   // de paiement, ce qui est son droit — on le lui dit sans le gronder.

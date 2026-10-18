@@ -14,6 +14,7 @@ import {
   creerSessionOffre,
   elementsDeMiseAJour,
   finEssaiPreservee,
+  datePremierPrelevement,
   lireDetails,
   metadonneesOffre,
   programmerPeriodicite,
@@ -195,6 +196,11 @@ describe("la page de paiement porte la grille, pas un tarif Stripe", () => {
 
 describe("l'essai : les jours restants sont préservés, aucun débit sans accord", () => {
   const maintenant = Date.UTC(2026, 9, 1, 12);
+  it("annonce le jour du prélèvement à Paris, pas la veille UTC", () => {
+    expect(datePremierPrelevement("2026-10-31", maintenant)).toBe("2026-11-01");
+    expect(datePremierPrelevement("2026-10-10", maintenant)).toBe("2026-10-11");
+    expect(datePremierPrelevement("2026-09-30", maintenant)).toBeNull();
+  });
   it("essai jusqu'au 10/10 inclus : premier prélèvement le 11/10 à minuit de Paris", () => {
     expect(finEssaiPreservee("2026-10-10", maintenant)).toBe(Date.UTC(2026, 9, 10, 22) / 1000);
   });

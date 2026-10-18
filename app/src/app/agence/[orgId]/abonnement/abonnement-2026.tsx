@@ -17,7 +17,8 @@ import { REGIME_TVA } from "@/lib/editeur";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate } from "@/lib/ged";
 import { clientStripe, configurationStripe } from "@/lib/stripe";
-import { apercuChangement, finEssaiPreservee } from "@/lib/stripe-offres";
+import { apercuChangement, datePremierPrelevement } from "@/lib/stripe-offres";
+import { joursJusquaParis } from "@/lib/heure-paris-calcul";
 import {
   FORMULES_PARTICULIER,
   euros,
@@ -177,8 +178,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
       ? aEcheance
       : null;
 
-  const premierPrelevementS = enEssai ? finEssaiPreservee(etat.essai_fin) : undefined;
-  const premierPrelevement = premierPrelevementS ? new Date(premierPrelevementS * 1000).toISOString().slice(0, 10) : null;
+  const premierPrelevement = enEssai ? datePremierPrelevement(etat.essai_fin) : null;
+  const joursEssaiRestants = etat.essai_fin ? Math.max(0, joursJusquaParis(etat.essai_fin)) : null;
   const statut = statutAbonnement({
     paye: paiement.paye,
     essai: enEssai && !souscrit,
@@ -273,10 +274,10 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
               Essai gratuit jusqu&apos;au {formaterDate(etat.essai_fin)}
-              {etat.jours_essai_restants !== null
-                ? etat.jours_essai_restants === 0
+              {joursEssaiRestants !== null
+                ? joursEssaiRestants === 0
                   ? " — dernier jour."
-                  : ` — ${etat.jours_essai_restants} jour${etat.jours_essai_restants > 1 ? "s" : ""} restant${etat.jours_essai_restants > 1 ? "s" : ""}.`
+                  : ` — ${joursEssaiRestants} jour${joursEssaiRestants > 1 ? "s" : ""} restant${joursEssaiRestants > 1 ? "s" : ""}.`
                 : "."}
             </b>{" "}
             <span className="text-muted-foreground">
@@ -311,8 +312,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
               <div>
                 <span><CalendarDays size={16} aria-hidden="true" /> {souscrit ? paiement.annulation_demandee ? "Fin de l’abonnement" : "Prochaine échéance" : enEssai ? "Fin de l’essai" : "Abonnement"}</span>
                 <strong>{souscrit ? paiement.periode_fin ? formaterDate(paiement.periode_fin) : "À confirmer" : enEssai && etat.essai_fin ? formaterDate(etat.essai_fin) : "À souscrire"}</strong>
-                <small>{!souscrit && enEssai && !ferme && etat.jours_essai_restants !== null
-                  ? etat.jours_essai_restants === 0 ? "Dernier jour de votre essai" : `${etat.jours_essai_restants} jour${etat.jours_essai_restants > 1 ? "s" : ""} restant${etat.jours_essai_restants > 1 ? "s" : ""}`
+                <small>{!souscrit && enEssai && !ferme && joursEssaiRestants !== null
+                  ? joursEssaiRestants === 0 ? "Dernier jour de votre essai" : `${joursEssaiRestants} jour${joursEssaiRestants > 1 ? "s" : ""} restant${joursEssaiRestants > 1 ? "s" : ""}`
                   : souscrit ? paiement.periodicite === "annuel" ? "Facturation annuelle" : "Facturation mensuelle" : "Vos données restent conservées"}</small>
               </div>
               <div>

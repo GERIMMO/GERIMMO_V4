@@ -13,6 +13,7 @@ describe('mention personnelle de la caution',()=>{
   mention.split(' Je reconnais')[0],mention.replace("m'engage","ne m'engage pas"),
   mention+' Je ne reconnais pas cet engagement.',
  ])('refuse une mention modifiée ou tronquée',v=>expect(mentionCautionConforme(mention,v)).toBe(false));
+ it('refuse une mention trop longue pour la zone du PDF',()=>expect(mentionCautionConforme(mention.repeat(3),mention.repeat(3))).toBe(false));
  it('ne reprend pas une ancienne mention inconnue',()=>expect(mentionCautionConforme(undefined,'ok')).toBe(false));
  it('échappe les caractères spéciaux des noms et des montants',()=>{
   const v=texteMentionCaution({caution:'Test (A+B)',locataires:'Test [C]',plafond:'mille euros (1 000,00 €)',solidaire:false});

@@ -13,7 +13,7 @@ export const ERREUR_MENTION_CAUTION = "La mention de la caution est absente ou i
  * Le contrôle intégral est exécuté au retour côté serveur.
  */
 export function expressionMentionCaution(mention: string) {
-  if (mention.length < 200 || mention.length > 1800) throw new Error("La mention de caution doit être préparée à nouveau.");
+  if (mention.length < 200 || mention.length > 1000) throw new Error("La mention de caution doit être préparée à nouveau.");
   const corps = Array.from(mention.trim()).map(c => {
     if (/\s/u.test(c)) return "\\s+";
     if (/[’']/u.test(c)) return "['’]";

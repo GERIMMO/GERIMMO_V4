@@ -37,6 +37,7 @@ export async function assemblerSignatureDocument(db: SupabaseClient, org: string
   const manquants = [...parties.manquants, ...(refusDocumentIncomplet(assemblage.document)?.manquants ?? [])];
   if (selection.code === "cautionnement") {
     if (!assemblage.mentionCaution) manquants.push("Complétez le plafond et la mention personnelle de la caution.");
+    else if (assemblage.mentionCaution.length > 1000) manquants.push("La mention de caution dépasse la place disponible pour la signature en ligne. Contactez l’assistance pour adapter cet acte.");
     for (const s of signataires) if (s.qualite === "Garant") s.mentionCaution = assemblage.mentionCaution;
   }
   const annexes: AnnexeSignature[] = [];

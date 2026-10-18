@@ -54,6 +54,7 @@ const MISSION_OCTOBRE = [
   "20261018143644_certificat_commun_zoho.sql",
   "20261018185515_signatures_documents_budget.sql",
   "20261018193308_signature_devis_accord_client.sql",
+  "20261018231827_abonnement_jour_paris.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

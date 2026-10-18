@@ -53,7 +53,7 @@ function verifierCompteConfirme(code: unknown) {
   // Message connu uniquement : ne jamais restituer le corps fournisseur ou une adresse privée.
   if (code === 8044) throw new Error("L’administrateur Gerimmo doit confirmer l’adresse e-mail du compte Zoho Sign avant de pouvoir créer une demande de signature.");
 }
-type ChampZoho = { field_type_name: string; field_value?: unknown; default_value?: unknown; is_mandatory?: boolean; validation?: {validation_type?: string; validation_regex?: string} };
+type ChampZoho = { field_id?: string; field_name?: string; field_type_name: string; field_value?: unknown; default_value?: unknown; is_mandatory?: boolean; validation?: {validation_type?: string; validation_regex?: string} };
 type Action = { action_id: string; action_type: string; recipient_email: string; recipient_name: string; signing_order: number; action_status: string; verify_recipient: boolean; verification_type: string; recipient_countrycode_iso: string; recipient_phonenumber: string; fields?: ChampZoho[] };
 type DocumentZoho = { document_id: string; document_name: string; document_order: string | number; total_pages: number };
 type Demande = { request_id: string; description: string; request_status: string; is_deleted?: boolean; is_sequential: boolean; actions: Action[]; document_ids: DocumentZoho[] };
@@ -136,11 +136,25 @@ export function actionsSignatureZoho(req: Demande, attendu: CircuitAttendu) {
     ] };
   });
 }
+/** Zoho ajoute un champ sans field_id, même quand le nom est déjà présent. */
+function reutiliserChampsZoho(actions: ReturnType<typeof actionsSignatureZoho>, req: Demande, obligatoires = false) {
+  return actions.map(a => {
+    const existants = req.actions.find(r => r.action_id === a.action_id)?.fields ?? [];
+    if (existants.length && existants.length !== a.fields.length) throw new Error("Les champs Zoho doivent être vérifiés avant l’envoi.");
+    return {...a, fields:a.fields.map(f => {
+      const matches = existants.filter(e => e.field_name === f.field_name && e.field_type_name === f.field_type_name);
+      if (matches.length === 0 && !existants.length && !obligatoires) return f;
+      if (matches.length !== 1 || !matches[0].field_id) throw new Error("Les champs Zoho doivent être vérifiés avant l’envoi.");
+      return {...f, field_id:idValide(matches[0].field_id)};
+    })};
+  });
+}
 export async function activerDemandeZoho(config: ConfigurationZohoSign, id: string, attendu: CircuitAttendu) {
   const req = await details(config, id);
-  const actions = actionsSignatureZoho(req, attendu);
+  let actions = actionsSignatureZoho(req, attendu);
   if (attendu.modele === "cautionnement") {
     if (attendu.signataires.filter(s=>s.qualite === "Garant").length !== 1) throw new Error("Un acte de caution doit concerner exactement un garant.");
+    actions = reutiliserChampsZoho(actions, req);
     // Vérifier que le prestataire conserve la règle AVANT d'envoyer une invitation.
     await json(config, `/requests/${idValide(id)}`, {method:"PUT",body:formulaire(config,{actions})});
     const controle = await details(config,id);
@@ -150,6 +164,8 @@ export async function activerDemandeZoho(config: ConfigurationZohoSign, id: stri
       const f = champs[0];
       if (champs.length !== 1 || !f.is_mandatory || f.default_value || f.field_value || f.validation?.validation_type!=="CUSTOM" || f.validation.validation_regex!==expressionSaisieMentionCaution(s.mentionCaution ?? "")) throw new Error("Zoho n’a pas confirmé le contrôle de la mention. Aucune invitation n’a été envoyée.");
     }
+    // Réutiliser les identifiants reçus après PUT : aucun nouveau champ au submit.
+    actions = reutiliserChampsZoho(actions, controle, true);
   }
   await json(config, `/requests/${idValide(id)}/submit`, { method: "POST", body: formulaire(config, { actions }) });
 }

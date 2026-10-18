@@ -11,7 +11,7 @@ import {annulerSignatureBail} from "@/app/actions/signature-bail";
 const action=()=>annulerSignatureBail("org","bail","circuit");
 const distant=(status:string)=>({id:"req",external_id:"circuit",status});
 beforeEach(()=>{
- vi.resetAllMocks();m.circuit={id:"circuit",etat:"en_cours",prestataire:"zoho",environnement:"sandbox",external_request_id:"req",empreinte:"test"};
+ vi.resetAllMocks();m.circuit={id:"circuit",bail_id:"bail",etat:"en_cours",prestataire:"zoho",environnement:"sandbox",external_request_id:"req",empreinte:"test"};
  const q={select:()=>q,eq:()=>q,in:()=>q,order:()=>q,limit:async()=>({data:[m.circuit],error:null}),single:async()=>({data:m.circuit,error:null}),update:m.update,then:(resolve:(v:unknown)=>void)=>Promise.resolve({error:null}).then(resolve)};
  m.update.mockReturnValue(q);const db={from:()=>q,rpc:async()=>({data:true,error:null})};
  m.service.mockReturnValue(db);m.acces.mockResolvedValue({user:{id:"proprietaire"},supabase:db});

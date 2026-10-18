@@ -35,6 +35,7 @@ type Tables = Record<string, unknown[] | null>;
 function client(tables: Tables, erreurs: Record<string, unknown> = {}) {
   const appels: unknown[][] = [];
   const db = {
+    rpc: async () => ({data:null,error:null}),
     from: (table: string) => {
       appels.push(["from", table]);
       const q: Record<string, unknown> = {};

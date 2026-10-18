@@ -1,4 +1,27 @@
-# Signature électronique du bail — préparation du 18 octobre 2026
+# Signatures des documents Gerimmo
+
+## Extension du 18 octobre 2026 — état de livraison
+
+Le bail fictif envoyé depuis Gerimmo a été signé par le titulaire avec SMS ; le retour HTTPS, le PDF et le certificat ont été reçus et classés. L'offre API Zoho affiche 500 crédits après le paiement effectué par le titulaire. Les passages historiques ci-dessous décrivent les états successifs, et ne remplacent pas ce point.
+
+Cette extension ajoute avenant, cautionnement, états des lieux, accord d'échelonnement, accord de travaux et acceptation de devis artisan. Chaque envoi reste une action explicite après relecture de la version exacte. La caution choisie signe son acte distinct et renseigne sa mention personnelle non préremplie, que le bailleur doit vérifier avant sa propre signature. Un brouillon fournisseur sans invitation a confirmé ce champ obligatoire et l'authentification SMS le 18 octobre à 21 h 50 (Paris).
+
+Pour un devis, l'offre PDF validée par l'artisan est annexée sans modification. Les propriétaires signent l'acceptation de cette version. Le dossier complet signé est téléchargé directement chez Zoho (sans réassemblage local), puis accessible aux clients et à cet artisan avec contrôle d'accès et d'empreinte. Confier la mission reste une action distincte, et ne déclenche aucun paiement automatique. Un devis signé ne peut plus être remplacé ou supprimé dans ce circuit.
+
+Les documents courants utilisent seulement la signature personnelle enregistrée avec consentement dans le profil ; aucun fac-similé générique n'est créé. Les anciens envois manuels restent consultables, mais les nouvelles demandes de ce type sont refusées. Importer un document historique déjà signé reste distinct de demander une nouvelle signature.
+
+### Déploiement et ouverture progressive
+
+- Appliquer `20261018185515_signatures_documents_budget.sql`, puis `20261018193308_signature_devis_accord_client.sql`. Les comptes fictifs permanents sont conservés.
+- Publier le code après les contrôles. Les nouvelles invitations clients restent fermées tant que les variables d'activation ne sont pas explicitement activées : `ZOHO_SIGN_BAIL_ACTIF`, `ZOHO_SIGN_DOCUMENTS_ACTIF`, et, pour les devis, `ZOHO_SIGN_DEVIS_ACTIF` avec `signature_budget.devis_actif` en base. La recette permanente autorisée reste identifiée par son organisation et son marqueur serveur.
+- Le plafond mensuel initial de zéro bloque les nouveaux envois payants. Le superadmin règle le plafond dans Santé et connexions. La réservation est atomique : 5 crédits par enveloppe et 0,5 crédit pour le premier SMS de chaque personne. Le seuil d'alerte est de 80 %. Les renvois de SMS et les essais sont hors de cette estimation ; le solde et les alertes Zoho restent la référence. Aucun rechargement ni achat automatique n'est ajouté.
+- Avant ouverture aux clients, terminer une recette humaine fictive pour la mention de caution et le devis, vérifier les retours signés et leurs archives. Les tests locaux et le brouillon fournisseur ne remplacent pas les signatures personnelles du titulaire.
+
+### Arrêt et retour
+
+Refermer les trois variables d'activation bloque les nouveaux envois tout en maintenant le suivi des demandes déjà engagées. Pour un arrêt immédiat, utiliser le contrôle central des effets « signatures » et le plafond zéro ; ne jamais supprimer les circuits, preuves ou consommations. Ne pas retirer les colonnes et modèles ajoutés : la version précédente peut lire les anciens baux et les nouvelles archives restent préservées. Si la signature des devis a été ouverte, conserver l'obligation en base tant qu'une offre est en cours ou signée, afin qu'un retour de version ne permette pas de contourner l'accord du client.
+
+Les personnes morales sans représentant qualifié, les mandats d'agence et les dossiers ayant des parties sorties qui exigent une vérification restent bloqués explicitement. Les relances J+7/J+21/J+28 et l'expéditeur sur un domaine Gerimmo ne sont pas livrés par cette extension.
 
 ## État réel au 18 octobre 2026, après raccordement
 

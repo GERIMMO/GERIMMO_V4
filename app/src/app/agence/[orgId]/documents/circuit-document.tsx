@@ -1,14 +1,12 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
   annulerDemandeSignature,
-  envoyerPourSignature,
   partagerDocument,
 } from "@/app/actions/signature";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { afficherToast } from "@/components/ui/toast";
 import { formaterDate } from "@/lib/ged";
@@ -24,7 +22,9 @@ export type DemandeDuDocument = {
   preuve_document_id?: string | null;
 };
 
-// Ce que le document peut vivre depuis sa fiche (audit 09/09) :
+// Partage et historique des anciennes demandes. Les nouveaux engagements
+// utilisent le circuit Zoho de leur fiche ; aucun nouveau retour manuel.
+// Ancien fonctionnement :
 // — « Mettre à disposition » (RM-12 : la mise à disposition est un GESTE) rend
 //   une quittance ou un courrier visible dans « Mes documents » du locataire ;
 // — « Envoyer pour signature » (bail, courrier, quittance — jamais un EDL,
@@ -32,7 +32,6 @@ export type DemandeDuDocument = {
 //   signe, dépose le signé, le retour vous alerte (Yousign : S10) ;
 // — chaque demande s'affiche (en attente / signée) et s'annule.
 const TYPES_PARTAGEABLES = ["quittance", "courrier"];
-const TYPES_SIGNABLES = ["bail", "courrier", "quittance"];
 
 export function CircuitDocument({
   orgId,
@@ -54,15 +53,8 @@ export function CircuitDocument({
 }) {
   const [enCours, demarrer] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
-  const [choix, setChoix] = useState(signataires[0]?.id ?? "");
-  const idSignataire = useId();
-
   const partageable = TYPES_PARTAGEABLES.includes(type) && signataires.length > 0;
-  const enAttente = demandes.filter((d) => !d.signee_le);
-  const signable =
-    TYPES_SIGNABLES.includes(type) && signataires.length > 0 && enAttente.length === 0;
-
-  if (!partageable && !signable && demandes.length === 0) return null;
+  if (!partageable && demandes.length === 0) return null;
 
   const agir = (action: () => Promise<{ erreur?: string; succes?: string }>) =>
     demarrer(async () => {
@@ -150,40 +142,6 @@ export function CircuitDocument({
           )}
         </div>
       ))}
-
-      {signable && (
-        <div className="flex flex-wrap items-center gap-2">
-          {signataires.length > 1 && (
-            <>
-              {/* Ligne compacte : libellé réservé à la synthèse vocale */}
-              <Label htmlFor={idSignataire} className="sr-only">
-                Signataire
-              </Label>
-              <select
-                id={idSignataire}
-                value={choix}
-                onChange={(e) => setChoix(e.target.value)}
-                className="h-8 rounded-md border border-input bg-transparent px-2 text-sm"
-              >
-                {signataires.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.nom}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={enCours || !choix}
-            onClick={() => agir(() => envoyerPourSignature(orgId, documentId, choix))}
-          >
-            {enCours ? <><Spinner /> Envoi…</> : "Envoyer pour signature"}
-          </Button>
-        </div>
-      )}
 
       {erreur && <p className="text-xs text-destructive">{erreur}</p>}
     </div>

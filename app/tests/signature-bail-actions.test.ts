@@ -8,14 +8,14 @@ vi.mock('@/lib/youtrust',()=>({preparerCircuitYoutrust:m.preparer,activerDemande
 vi.mock('@/lib/controle-effets',()=>({verifierAvantEffet:m.stop}));
 import {envoyerSignatureBail,annulerSignatureBail,activerBailApresSignature} from '@/app/actions/signature-bail';
 beforeEach(()=>{
- vi.resetAllMocks();m.circuit={id:'circuit',prestataire:'youtrust',etat:'pret',environnement:'production',empreinte:'actuelle',pdf_hash:'invalide',signataires:[],annexes:[],document_id:'doc',expire_le:new Date(Date.now()+30*86400000).toISOString(),external_request_id:'req'};
+ vi.resetAllMocks();m.circuit={id:'circuit',bail_id:'11111111-1111-4111-8111-111111111111',prestataire:'youtrust',etat:'pret',environnement:'production',empreinte:'actuelle',pdf_hash:'invalide',signataires:[],annexes:[],document_id:'doc',expire_le:new Date(Date.now()+30*86400000).toISOString(),external_request_id:'req'};
  m.rpc.mockResolvedValue({data:true,error:null});m.service.mockReturnValue({rpc:m.rpc});
  const db={rpc:m.rpc,storage:{from:()=>({download:m.download})},from:(table:string)=>{const q={select:()=>q,eq:()=>q,single:async()=>({data:table==='bail_signature_circuits'?m.circuit:{storage_path:'org/doc.pdf',mime_type:'application/pdf'},error:null})};return q;}};
  m.acces.mockResolvedValue({supabase:db,user:{id:'owner'}});m.config.mockReturnValue({environnement:'production'});
  m.assembler.mockResolvedValue({empreinte:'actuelle',manquants:[]});m.download.mockResolvedValue({data:new Blob(['%PDF-fictif']),error:null});
 });
 afterEach(()=>vi.unstubAllEnvs());
-const envoyer=()=>envoyerSignatureBail('org','bail','circuit');
+const envoyer=()=>envoyerSignatureBail('org','11111111-1111-4111-8111-111111111111','circuit');
 const aucunEnvoi=()=>{expect(m.preparer).not.toHaveBeenCalled();expect(m.activer).not.toHaveBeenCalled();expect(m.rpc.mock.calls.some(c=>c[0]==='reserver_envoi_signature_bail')).toBe(false);};
 describe('Garde avant tout envoi du bail',()=>{
  it('réserve la recette au marqueur serveur du compte permanent, pas aux métadonnées modifiables',async()=>{
@@ -36,11 +36,12 @@ describe('Garde avant tout envoi du bail',()=>{
  it('une session absente ne lit aucun dossier',async()=>{m.acces.mockResolvedValue({user:null});expect((await envoyer()).erreur).toBeTruthy();expect(m.rpc).not.toHaveBeenCalled();aucunEnvoi();});
  it('un rôle de supervision seul ne permet pas d’envoyer',async()=>{m.rpc.mockResolvedValue({data:false,error:null});expect((await envoyer()).erreur).toContain('propre espace');aucunEnvoi();});
  it('une configuration absente reste sans effet externe',async()=>{m.config.mockReturnValue(null);expect((await envoyer()).erreur).toContain('pas encore activée');aucunEnvoi();});
+ it('un acte de caution ne part jamais chez un prestataire sans champ de mention personnelle',async()=>{m.circuit.modele='cautionnement';vi.stubEnv('ZOHO_SIGN_DOCUMENTS_ACTIF','true');expect((await envoyer()).erreur).toContain('signé avec Zoho');aucunEnvoi();});
  it('une préparation production ne part pas dans une sandbox',async()=>{m.config.mockReturnValue({environnement:'sandbox'});expect((await envoyer()).erreur).toContain('environnement');aucunEnvoi();});
  it('le mode essai exige une organisation explicitement autorisée',async()=>{m.circuit.environnement='sandbox';m.config.mockReturnValue({environnement:'sandbox'});vi.stubEnv('YOUTRUST_ORGS_TEST','autre');expect((await envoyer()).erreur).toContain('pas autorisé');aucunEnvoi();});
  it('un dossier modifié doit être relu avant tout appel prestataire',async()=>{m.assembler.mockResolvedValue({empreinte:'nouvelle',manquants:[]});expect((await envoyer()).erreur).toContain('dossier a changé');aucunEnvoi();});
  it('une préparation expirée ne peut pas déclencher d’invitation',async()=>{m.circuit.expire_le=new Date(Date.now()-86400000).toISOString();expect((await envoyer()).erreur).toContain('trop ancienne');aucunEnvoi();});
  it('un remplacement du PDF est détecté même si ses métadonnées semblent valides',async()=>{expect((await envoyer()).erreur).toContain('correspond plus au PDF préparé');aucunEnvoi();});
  it('un contrôle métier refusé empêche le chargement et l’envoi du PDF',async()=>{m.rpc.mockImplementation(async(name:string)=>name==='has_org_role'?{data:true,error:null}:{error:{message:'Dossier incomplet'}});expect((await envoyer()).erreur).toBeTruthy();expect(m.download).not.toHaveBeenCalled();aucunEnvoi();});
- it('une annulation ne touche jamais une autre référence de contrat',async()=>{m.circuit.etat='en_cours';m.lire.mockResolvedValue({id:'req',external_id:'autre',status:'ongoing'});expect((await annulerSignatureBail('org','bail','circuit')).erreur).toContain('correspond pas');expect(m.annuler).not.toHaveBeenCalled();});
+ it('une annulation ne touche jamais une autre référence de contrat',async()=>{m.circuit.etat='en_cours';m.lire.mockResolvedValue({id:'req',external_id:'autre',status:'ongoing'});expect((await annulerSignatureBail('org','11111111-1111-4111-8111-111111111111','circuit')).erreur).toContain('correspond pas');expect(m.annuler).not.toHaveBeenCalled();});
 });

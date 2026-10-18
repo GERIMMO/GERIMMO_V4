@@ -1,16 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-const m=vi.hoisted(()=>({lire:vi.fn(),pdf:vi.fn(),preuve:vi.fn(),zohoLire:vi.fn(),zohoPdf:vi.fn(),zohoPreuve:vi.fn(),garde:vi.fn()}));
+const m=vi.hoisted(()=>({lire:vi.fn(),pdf:vi.fn(),preuve:vi.fn(),zohoLire:vi.fn(),zohoPdf:vi.fn(),zohoPreuve:vi.fn(),zohoDossier:vi.fn(),garde:vi.fn()}));
 vi.mock("@/lib/youtrust",()=>({lireDemandeYoutrust:m.lire,telechargerDocumentSigneYoutrust:m.pdf,telechargerPreuveYoutrust:m.preuve}));
-vi.mock("@/lib/zoho-sign",()=>({lireDemandeZoho:m.zohoLire,telechargerDocumentSigneZoho:m.zohoPdf,telechargerPreuveZoho:m.zohoPreuve}));
+vi.mock("@/lib/zoho-sign",()=>({lireDemandeZoho:m.zohoLire,telechargerDocumentSigneZoho:m.zohoPdf,telechargerPreuveZoho:m.zohoPreuve,telechargerDossierSigneZoho:m.zohoDossier}));
 vi.mock("@/lib/controle-effets",()=>({verifierAvantEffet:m.garde}));
 import { synchroniserCircuitSignatureBail } from "@/lib/signature-bail-worker";
 const config={prestataire:"youtrust" as const,cleApi:"test",environnement:"sandbox" as const,baseUrl:"https://api.example.test"};
 const parties=[{externalId:"s1",prenom:"Alice",nom:"Test",email:"alice@example.test"},{externalId:"s2",prenom:"Benoit",nom:"Test",email:"benoit@example.test"}];
-function base(etat="en_cours",environnement="sandbox",prestataire="youtrust") {
+function base(etat="en_cours",environnement="sandbox",prestataire="youtrust",modele="bail") {
  const rpc=vi.fn(async(n:string,..._params:unknown[])=>({data:n==="verrouiller_signature_bail"?true:"document-signe",error:null}));
  const update=vi.fn(()=>query);
- const query={select:vi.fn(()=>query),eq:vi.fn(()=>query),single:vi.fn(async()=>({data:{id:"circuit",prestataire,organization_id:"org",environnement,etat,external_request_id:"req",external_document_id:"doc",signataires:parties},error:null})),update,then:(resolve:(v:unknown)=>void)=>Promise.resolve({error:null}).then(resolve)};
+ const query={select:vi.fn(()=>query),eq:vi.fn(()=>query),single:vi.fn(async()=>({data:{id:"circuit",prestataire,modele,organization_id:"org",environnement,etat,external_request_id:"req",external_document_id:"doc",signataires:parties},error:null})),update,then:(resolve:(v:unknown)=>void)=>Promise.resolve({error:null}).then(resolve)};
  const upload=vi.fn(async(_path:string,_contenu:Uint8Array,_options:unknown)=>({error:null}));
  const db={rpc,from:vi.fn(()=>query),storage:{from:vi.fn(()=>({upload}))}};
  return {db:db as unknown as SupabaseClient,rpc,update,upload};
@@ -82,4 +82,14 @@ describe("Certificat commun Zoho",()=>{
  it("un changement de prestataire ne redirige pas un ancien circuit",async()=>{
   const b=base();await expect(synchroniserCircuitSignatureBail(b.db,zoho,"circuit")).rejects.toThrow("connexion");expect(m.zohoLire).not.toHaveBeenCalled();
  });
+});
+
+it("archive l’offre artisan complète avec l’acceptation, sans réassembler le PDF signé",async()=>{
+ const cfg={prestataire:"zoho" as const,environnement:"sandbox" as const,clientId:"test",clientSecret:"test",refreshToken:"test"};
+ const b=base("en_cours","sandbox","zoho","devis_artisan");
+ m.zohoLire.mockResolvedValue({id:"req",external_id:"circuit",status:"done",signers:parties.map(s=>({id:s.externalId,email:s.email,status:"signed"}))});
+ m.zohoDossier.mockResolvedValue(new TextEncoder().encode("%PDF-offre-et-acceptation"));m.zohoPreuve.mockResolvedValue(new TextEncoder().encode("%PDF-preuve"));
+ await synchroniserCircuitSignatureBail(b.db,cfg,"circuit");
+ expect(m.zohoDossier).toHaveBeenCalledWith(cfg,"req");expect(m.zohoPdf).not.toHaveBeenCalled();
+ expect(b.upload.mock.calls[0][1]).toEqual(new TextEncoder().encode("%PDF-offre-et-acceptation"));
 });

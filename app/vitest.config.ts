@@ -21,6 +21,9 @@ import { configDefaults, defineConfig } from "vitest/config";
  * `npm test` en local. Le test `tests/execution-en-serie.test.ts` garde cette liste cohérente avec les fichiers.
  */
 export const FICHIERS_EN_SERIE = [
+  // Fixtures historiques de signature manuelle : suspension temporaire du garde des nouveaux envois.
+  "tests/audit-securite-2026-09-27.test.ts",
+  "tests/supprimer-bail-brouillon-base.test.ts",
   // Repose tous les triggers métier : verrou DDL incompatible avec les écritures parallèles.
   "tests/retours-utilisateurs.test.ts",
   // Mission du 16/10 : retours de migrations, DDL exclusif et fixtures validées de concurrence.

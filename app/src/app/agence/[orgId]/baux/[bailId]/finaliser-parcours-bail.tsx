@@ -1,7 +1,6 @@
 "use client";
 import { useContext,useState,useTransition,type ReactNode } from "react";
 import { genererDocument,type EtatGeneration } from "@/app/actions/documents-generes";
-import { envoyerPourSignature } from "@/app/actions/signature";
 import type { CodeModele } from "@/lib/documents/modeles";
 import { cibleChampBail } from "@/lib/documents/champs-bail-parcours";
 import { EtapeComplementsBail } from "@/lib/etape-complements-bail";
@@ -10,20 +9,19 @@ import { PastilleBail } from "@/components/pastille-bail";
 import { Button } from "@/components/ui/button";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { SignatureElectroniqueBail } from "@/components/signature-electronique-bail";
-import { FileText,Send } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useBaseEspace, useRacineEspace } from "@/components/racine-espace-contexte";
-export function FinaliserParcoursBail({orgId,bailId,code,signataires,edlId,preparationEdl,signatureManuelle,proprietaireDirect=false}:{orgId:string;bailId:string;code:CodeModele;signataires:{id:string;nom:string}[];edlId:string|null;preparationEdl:ReactNode;signatureManuelle:ReactNode;proprietaireDirect?:boolean}){
+export function FinaliserParcoursBail({orgId,bailId,code,edlId,preparationEdl,proprietaireDirect=false}:{orgId:string;bailId:string;code:CodeModele;signataires:{id:string;nom:string}[];edlId:string|null;preparationEdl:ReactNode;signatureManuelle:ReactNode;proprietaireDirect?:boolean}){
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
   const racine = useRacineEspace();
  const [pdf,setPdf]=useState<EtatGeneration|null>(null),[enCours,demarrer]=useTransition();
- const [retours,setRetours]=useState<Record<string,{erreur?:string;succes?:string}>>({});
  const controle=useContext(CompletudeBail);
  const revision=useContext(EtapeComplementsBail)?.revision??0;
  const [revisionPdf,setRevisionPdf]=useState(-1);
  const pdfCourant=revisionPdf===revision;
  const retour=`${base}/baux/${bailId}`;
- function generer(){demarrer(async()=>{setPdf(null);setRetours({});try{setPdf(await genererDocument(orgId,code,bailId,retour));setRevisionPdf(revision);}catch{setPdf({erreur:"La génération a été interrompue. Réessayez."});}});}
+ function generer(){demarrer(async()=>{setPdf(null);try{setPdf(await genererDocument(orgId,code,bailId,retour));setRevisionPdf(revision);}catch{setPdf({erreur:"La génération a été interrompue. Réessayez."});}});}
  const manquants=controle?.manquants??pdf?.manquants??[];
  return <section className="bail-finalisation" id="signature"><header><FileText size={22}/><div><h3>Vos documents à signer</h3><p>Générez les PDF après avoir vérifié le récapitulatif.</p></div></header>
   {manquants.length>0&&<section aria-labelledby="titre-oublis-bail" className="rounded-xl border border-border bg-warning-soft p-4 text-sm">
@@ -36,7 +34,5 @@ export function FinaliserParcoursBail({orgId,bailId,code,signataires,edlId,prepa
    <div id="edl"><h4>2. L’état des lieux d’entrée</h4>{edlId?<><BoutonGenererDocument orgId={orgId} code="edl" cibleId={edlId} cheminRetour={retour} libelle="Générer le PDF de l’état des lieux"/><a className="lien-discret block mt-2" href={`${retour}/edl/${edlId}`}>Compléter la grille de l’état des lieux</a></>:<><p className="text-sm mb-2">Préparez d’abord la grille : pièces, observations, compteurs et clés.</p>{preparationEdl}</>}<p className="text-xs text-muted-foreground mt-2">L’état des lieux se complète et se signe avec les parties à la remise des clés. Son circuit de signature se trouve dans la grille.</p></div>
   </div>
   {proprietaireDirect&&<SignatureElectroniqueBail orgId={orgId} bailId={bailId}/>}
-  <div className="bail-envoi-signature"><h4><Send size={16}/>Signature manuelle · demander le retour du PDF signé</h4>{pdf?.documentId&&!pdf.erreur&&pdfCourant&&!controle?.erreur&&manquants.length===0?<><p className="text-sm">Pour signer hors ligne : les locataires téléchargent le PDF, le signent puis déposent la copie dans leur espace. Cette option ne produit pas de preuve de signature électronique.</p>{signataires.map(p=><div key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2"><span>{p.nom}</span><Button size="sm" variant="outline" disabled={enCours||Boolean(retours[p.id]?.succes)} onClick={()=>demarrer(async()=>{try{const res=await envoyerPourSignature(orgId,pdf.documentId!,p.id);setRetours(v=>({...v,[p.id]:res}));}catch{setRetours(v=>({...v,[p.id]:{erreur:"La confirmation de l’envoi n’a pas pu être reçue. Vérifiez le suivi dans Documents avant de réessayer."}}));}})}>{retours[p.id]?.succes?"Demande envoyée":"Demander le retour signé"}</Button>{retours[p.id]?.erreur&&<p role="alert" className="w-full text-sm text-destructive">{retours[p.id].erreur}</p>}</div>)}<a className="lien-discret" href={`${base}/documents?sel=${pdf.documentId}`}>Suivre les signatures du document</a></>:<p className="text-sm text-muted-foreground">Générez le PDF du bail complet pour ouvrir les envois en signature.</p>}</div>
-  {signatureManuelle}
  </section>;
 }

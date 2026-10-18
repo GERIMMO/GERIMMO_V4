@@ -1,3 +1,4 @@
+vi.mock("@/components/suivi-signature-devis-artisan",()=>({SuiviSignatureDevisArtisan:()=>null}));
 /**
  * Décision D18 du 14/10/2026 (devis révisable), relecture du 15/10 : le parcours TypeScript de la VERSION SUIVANTE côté
  * artisan n'était couvert par aucun test. Revenir, dans la route de validation du PDF ou dans l'enregistrement du

@@ -11,6 +11,7 @@ describe.skipIf(!url)("Circuit de signature : droits, concurrence et archives",(
  const id=async(sql:string,params:unknown[]=[])=>String((await db.query(sql,params)).rows[0].id);
  beforeEach(async()=>{
   await db.query('begin');
+  await db.query('update public.signature_budget set plafond_demi_credits=1000');
   org=await id("insert into public.organizations(name,type,status) values('Essai signature','proprietaire_direct','active') returning id");
   owner=await id("insert into auth.users(id,email) values(gen_random_uuid(),gen_random_uuid()||'@example.test') returning id");
   autre=await id("insert into auth.users(id,email) values(gen_random_uuid(),gen_random_uuid()||'@example.test') returning id");

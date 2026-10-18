@@ -117,6 +117,7 @@ describe("l'écran de l'alerte e-mail du relais", () => {
 describe("l'écran Santé et l'alerte e-mail du relais", () => {
   function client() {
     return {
+      rpc: async () => ({data:null,error:null}),
       from: () => {
         const q: Record<string, unknown> = {};
         for (const m of ["select", "like", "in", "is", "gte", "order", "limit", "eq"]) q[m] = () => q;

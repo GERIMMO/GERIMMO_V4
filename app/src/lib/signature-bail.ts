@@ -9,6 +9,7 @@ import { configurationZohoSign } from "@/lib/zoho-sign";
 import { prestataireSignature, type ConfigurationSignature, type PrestataireSignature } from "@/lib/signature-prestataire";
 import { aujourdhuiParis } from "@/lib/ged";
 import { marquerDocumentEssai, signatureEnEssai } from "@/lib/signature-essai";
+import type { ModeleSignature } from "./politique-signature";
 
 export type SignataireBail = {
   personId: string; qualite: "Locataire" | "Colocataire" | "Garant" | "Propriétaire";
@@ -16,7 +17,8 @@ export type SignataireBail = {
   externalId?: string; statut?: string; preuveDocumentId?: string;
 };
 export type CircuitBail = {
-  id: string; prestataire: PrestataireSignature; organization_id: string; bail_id: string; document_id: string;
+  essai?: boolean; modele?: ModeleSignature; cible_id?: string; options?: Record<string,string>;
+  id: string; prestataire: PrestataireSignature; organization_id: string; bail_id: string | null; document_id: string;
   etat: "pret" | "preparation" | "en_cours" | "a_verifier" | "termine" | "annule" | "refuse" | "expire";
   environnement: "sandbox" | "production"; empreinte: string; pdf_hash: string; signataires: SignataireBail[];
   external_request_id: string | null; external_document_id: string | null;
@@ -71,10 +73,10 @@ export function telephoneSignature(v: string | null | undefined): string {
   return /^\+[1-9]\d{7,14}$/.test(normalise) ? normalise : "";
 }
 
-export function partiesSignatureBail(ctx: ContexteBail): { signataires: SignataireBail[]; manquants: string[] } {
+export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locataires"|"garants"> & {organisation:{type:string}}, inclureLocataires = true): { signataires: SignataireBail[]; manquants: string[] } {
   const manquants: string[] = [];
   if (ctx.organisation.type !== "proprietaire_direct") manquants.push("La signature du mandataire d’agence reste à configurer.");
-  if (!ctx.locataires.length) manquants.push("Ajoutez un locataire au bail.");
+  if (inclureLocataires && !ctx.locataires.length) manquants.push("Ajoutez un locataire au bail.");
   if (!ctx.bailleurs.length) manquants.push("Renseignez les propriétaires du lot.");
   const ids = new Set<string>(); const signataires: SignataireBail[] = [];
   function ajouter(p: PersonneDocument, qualite: SignataireBail["qualite"]) {
@@ -88,23 +90,24 @@ export function partiesSignatureBail(ctx: ContexteBail): { signataires: Signatai
     if (qualite === "Propriétaire" && p.qualite && /sci|morale|soci[eé]t[eé]/i.test(p.qualite)) manquants.push(`${libelle} : le représentant habilité de la personne morale doit être défini avant la signature électronique.`);
     signataires.push(s);
   }
-  ctx.locataires.forEach((p,i) => ajouter(p, i === 0 ? "Locataire" : "Colocataire"));
+  if (inclureLocataires) ctx.locataires.forEach((p,i) => ajouter(p, i === 0 ? "Locataire" : "Colocataire"));
   [...ctx.garants].sort((a,b) => a.id.localeCompare(b.id)).forEach(p => ajouter(p, "Garant"));
   [...ctx.bailleurs].sort((a,b) => a.id.localeCompare(b.id)).forEach(p => ajouter(p, "Propriétaire"));
-  if (signataires.length > 100) manquants.push("Le prestataire accepte au maximum 100 signataires par circuit.");
+  if (signataires.length > 25) manquants.push("Le prestataire accepte au maximum 25 signataires par circuit.");
   return { signataires, manquants };
 }
 
 /** Une page par personne : aucun chevauchement avec le texte ou une autre signature. */
-export function ajouterPagesSignature(doc: DocumentAssemble, parties: SignataireBail[], annexes: AnnexeSignature[] = []): DocumentAssemble {
+export function ajouterPagesSignature(doc: DocumentAssemble, parties: SignataireBail[], annexes: AnnexeSignature[] = [], titre = "contrat de location", caution = false): DocumentAssemble {
   const pages = parties.map((p,i) => `<section style="break-before:page;break-inside:avoid;background:#fff;color:#17324d">
-    <h1>Signature du contrat de location</h1><p>Référence : ${echapper(doc.reference)}</p>
-    <p>Cette page fait partie du contrat qui précède. La signature porte sur l’ensemble de ce document.</p>
+    <h1>Signature — ${echapper(titre)}</h1><p>Référence : ${echapper(doc.reference)}</p>
+    <p>Cette page fait partie du document qui précède. La signature porte sur l’ensemble de ce document.</p>
     <h2>${i + 1}. ${echapper(p.qualite)}</h2><p>${echapper(`${p.prenom} ${p.nom}`)}</p>
     <p>La date et la preuve de signature sont établies par le prestataire au moment de la signature.</p>
+    ${caution && p.qualite === "Garant" ? '<p><strong>Mention personnelle de la caution</strong> — recopiez intégralement la mention figurant dans l’acte, avec le plafond en lettres et en chiffres. Ce champ doit être rempli par vous-même avant de signer.</p><div style="height:260pt"></div>' : ''}
     <div style="margin-top:32pt;min-height:100pt"><span style="color:#fff;font:12px Arial;white-space:nowrap">{{s${i + 1}|signature|190|80}}</span></div>
   </section>`).join("");
-  const inventaire = annexes.length ? `<section style="break-before:page"><h1>Annexes remises avec le contrat</h1><p>Ces pièces accompagnent le bail dans le même dossier de signature. Leur empreinte identifie exactement la version remise.</p>${annexes.map(a=>`<div style="break-inside:avoid;margin:14pt 0"><strong>${echapper(a.titre)}</strong><p style="font:8px monospace;overflow-wrap:anywhere">SHA-256 : ${echapper(a.empreinte)}</p></div>`).join("")}</section>` : "";
+  const inventaire = annexes.length ? `<section style="break-before:page"><h1>Annexes remises avec le contrat</h1><p>Ces pièces accompagnent le document dans le même dossier de signature. Leur empreinte identifie exactement la version remise.</p>${annexes.map(a=>`<div style="break-inside:avoid;margin:14pt 0"><strong>${echapper(a.titre)}</strong><p style="font:8px monospace;overflow-wrap:anywhere">SHA-256 : ${echapper(a.empreinte)}</p></div>`).join("")}</section>` : "";
   return { ...doc, html: doc.html.replace("</body>", `${inventaire}${pages}</body>`) };
 }
 

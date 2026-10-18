@@ -133,6 +133,7 @@ export function FormulaireSignature({
           </div>
           {/* 24/09 : même bouton que la carte Identité — petit et en contour,
               le seul geste du formulaire se lisait comme une action secondaire. */}
+          <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="autorisation_signature" required className="mt-1 size-4 accent-primary"/><span>Cette signature est la mienne. J’autorise son utilisation sur les quittances, reçus, attestations et courriers que je génère. Les accords à signer utilisent Zoho avec un code SMS.</span></label>
           <BoutonEnvoi enCoursTexte="Enregistrement…">Enregistrer</BoutonEnvoi>
           {etat.erreur && (
             <p role="alert" className="text-sm text-destructive">

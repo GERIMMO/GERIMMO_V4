@@ -5,10 +5,10 @@ import { assemblerComplementBail, CODES_COMPLEMENTS_BAIL, lireLignes } from "@/l
 import { assemblerComplementGestion, CODES_COMPLEMENTS_GESTION } from "@/lib/documents/modeles/catalogue-gestion";
 import { CATALOGUE_DOCUMENTS } from "@/lib/documents/catalogue";
 import { MODELES } from "@/lib/documents/modeles";
-import { chargerContexteBail } from "@/lib/documents/modeles/communs";
+import { chargerContexteBail, signatureOrganisation } from "@/lib/documents/modeles/communs";
 import { verifierCibleCatalogue, chargerCiblesCatalogue } from "@/lib/documents/catalogue-cibles";
 import type { Assemblage } from "@/lib/documents/modeles";
-vi.mock("@/lib/documents/modeles/communs",async importOriginal=>({...await importOriginal<object>(),chargerContexteBail:vi.fn()}));
+vi.mock("@/lib/documents/modeles/communs",async importOriginal=>({...await importOriginal<object>(),chargerContexteBail:vi.fn(),signatureOrganisation:vi.fn(async()=>null)}));
 type Row=Record<string,unknown>;
 let ctx=contexte();
 function fixture():Record<string,Row[]> {return {
@@ -48,8 +48,18 @@ function mockDb(tables=fixture(),failure?:string) {
 }
 const options={annee:"2026",interets_emprunt:"0",mois:"2026-01",delai:"15",mensualites:"3",premiere_echeance:"2026-01-31",date_effet:"2026-04-01",date_constat:"2026-04-01",conditions:"Accord signé",destinataire:"Organisme test",allocataire:"123456",sortant:"Sortant",entrant:"Entrant",depot:"Accord entre colocataires",constat:"Mobilier conforme",travaux:"Peinture",intervenant:"Entreprise",periode:"Octobre",prise_en_charge:"Bailleur",consultation:"Sur rendez-vous au bureau",acces:"Contact gestionnaire",visiteur:"Visiteur test",contact:"Email test",rendez_vous:"14 septembre 2026 à 10 h",representant:"Gestionnaire",motif:"Accord mutuel",remise:"Remise sous 30 jours",modifications:"Ajout du lot Jardin"};
 function succes(r:Assemblage) {expect(r).not.toHaveProperty("erreur");if("erreur" in r) throw new Error(r.erreur);return r;}
-beforeEach(()=>{ctx=contexte();ctx.bail.etat="actif";vi.mocked(chargerContexteBail).mockImplementation(async()=>ctx);});
+beforeEach(()=>{ctx=contexte();ctx.bail.etat="actif";vi.mocked(chargerContexteBail).mockImplementation(async()=>ctx);vi.mocked(signatureOrganisation).mockReset().mockResolvedValue(null);});
 describe("Catalogue — documents issus des dossiers",()=>{
+  it("appose la signature enregistrée sur une attestation, jamais sur l’accord des parties",async()=>{
+    const image="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB";
+    vi.mocked(signatureOrganisation).mockResolvedValue(image);
+    const attestation=succes(await assemblerComplementBail("attestation_loyer",mockDb().db,"org","bail",options));
+    expect(attestation.document.html).toContain(image);
+    vi.mocked(signatureOrganisation).mockClear();
+    const accord=succes(await assemblerComplementBail("autorisation_travaux",mockDb().db,"org","bail",options));
+    expect(accord.document.html).not.toContain(image);
+    expect(signatureOrganisation).not.toHaveBeenCalled();
+  });
   it("classe le compte rendu dans les rapports et présente sa validation sans certifier l’envoi", async()=>{
     expect(MODELES.rapport_gestion.typeGed).toBe("rapport_gestion");
     const modele=CATALOGUE_DOCUMENTS.find(m=>m.id==="rapport_gestion")!;

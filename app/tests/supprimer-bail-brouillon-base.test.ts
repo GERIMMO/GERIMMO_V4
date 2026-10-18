@@ -62,7 +62,9 @@ describe.skipIf(!url)("Suppression transactionnelle des brouillons", () => {
   it("refuse un document envoyé en signature", async () => {
     const doc=await document();
     await db.query("insert into public.document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'bail',$3)",[org,doc,bail]);
+    await db.query("alter table public.demandes_signature disable trigger signature_manuelle_fin_nouveaux_envois");
     await db.query("insert into public.demandes_signature(organization_id,document_id,person_id) values($1,$2,$3)",[org,doc,personne]);
+    await db.query("alter table public.demandes_signature enable trigger signature_manuelle_fin_nouveaux_envois");
     await connecter(); await expect(supprimer()).rejects.toThrow(/envoyé en signature/);
   });
   it("refuse un état des lieux signé", async () => {

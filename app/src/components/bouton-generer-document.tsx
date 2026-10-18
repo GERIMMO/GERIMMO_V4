@@ -11,6 +11,8 @@ import { actualiserControleGeneration } from "@/lib/documents/controle-generatio
 import { CompletudeBail } from "@/lib/suivi-enregistrement";
 import { cibleChampBail } from "@/lib/documents/champs-bail-parcours";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
+import { DOCUMENTS_ZOHO, type ModeleSignature } from "@/lib/politique-signature";
+import { OuvrirSignatureDocument } from "@/components/ouvrir-signature-document";
 import { useRacineEspace } from "@/components/racine-espace-contexte";
 
 // Bouton commun du sprint « Documents-0 » : génère le PDF, toast à la
@@ -68,6 +70,7 @@ export function BoutonGenererDocument({
       <Button type="button" size={size} variant={variant} disabled={enCours} onClick={generer}>
         {enCours ? <><Spinner /> Génération…</> : libelle}
       </Button>
+      {Object.hasOwn(DOCUMENTS_ZOHO,code) && <OuvrirSignatureDocument orgId={orgId} selection={{code:code as ModeleSignature,cibleId,options}}/>}
       {affichage?.documentId && (
         <a
           href={`${base}/documents/${affichage.documentId}/fichier`}

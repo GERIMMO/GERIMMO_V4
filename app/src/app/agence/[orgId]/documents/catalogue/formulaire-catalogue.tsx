@@ -1,4 +1,6 @@
 "use client";
+import { DOCUMENTS_ZOHO, type SelectionSignature } from "@/lib/politique-signature";
+import { OuvrirSignatureDocument } from "@/components/ouvrir-signature-document";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 import { useEffect, useState } from "react";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
@@ -36,9 +38,14 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[],racine=RACI
   },[orgId,cible,annee,cleProposition]);
   const infoInterets=calcul?"Lecture du montant du livre…":proposition?.info??"";
   const choixCourant=choix.find(c=>c.id===cible);
+  const [signature,setSignature]=useState<SelectionSignature|null>(null);
   const {etat,soumettre,enCours}=useActionFormulaire<EtatGeneration>(async (_:EtatGeneration,data:FormData)=>{
     const options=Object.fromEntries((OPTIONS_CATALOGUE[modeleId]??[]).map(c=>[c.cle,String(data.get(c.cle)??"").trim()]));
-    return genererDepuisCatalogue(orgId,modeleId,String(data.get("cible")??""),options);
+    const cibleSoumise=String(data.get("cible")??"");
+    setSignature(null);
+    const resultat = await genererDepuisCatalogue(orgId,modeleId,cibleSoumise,options);
+    if(resultat.documentId && Object.hasOwn(DOCUMENTS_ZOHO,modeleId)) setSignature({code:modeleId as SelectionSignature["code"],cibleId:cibleSoumise,options});
+    return resultat;
   });
   const champs=OPTIONS_CATALOGUE[modeleId]??[];
   const style="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
@@ -58,6 +65,7 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[],racine=RACI
     <Button disabled={enCours||!cible||!choix.length||calcul} type="submit">{enCours?"Préparation du PDF…":"Générer le PDF"}</Button>
     {etat.erreur&&!etat.manquants?.length&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
     {etat.succes&&<p role="status" className="text-sm text-success">{etat.succes}</p>}
+    {signature&&<OuvrirSignatureDocument orgId={orgId} selection={signature}/>}
     {etat.documentId&&<Link className="block font-medium text-primary underline" href={`${base}/documents/${etat.documentId}/fichier`} target="_blank" rel="noopener">Ouvrir le PDF</Link>}
     {!!etat.manquants?.length&&<section aria-label="Informations à compléter" role="status" className="rounded-xl border border-[var(--or-filet)] bg-[var(--or-clair)] p-4">
       <h3 className="text-sm font-semibold">Encore {etat.manquants.length} {etat.manquants.length===1?"information":"informations"} à compléter</h3>

@@ -1,3 +1,4 @@
+vi.mock("@/components/suivi-signature-devis-artisan",()=>({SuiviSignatureDevisArtisan:()=>null}));
 /**
  * Audit du 13/10/2026 (ARC-10, suite) : le devis des missions Gerimmo proposait « aujourd'hui + 30 jours » calculé sur
  * le jour UTC (`toISOString()`). Entre minuit et 2 h à Paris (heure d'été), le jour UTC est celui de la veille : la

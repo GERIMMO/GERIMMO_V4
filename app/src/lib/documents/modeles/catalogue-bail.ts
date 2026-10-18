@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, tableau, titre, eur } from "../gabarit";
+import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, section, tableau, titre, eur } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
-import { chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte } from "./communs";
+import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte } from "./communs";
+import { modeSignatureDocument } from "@/lib/politique-signature";
 import type { Assemblage } from "./index";
 import { aujourdhuiParis } from "@/lib/ged";
 
@@ -153,10 +154,11 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         <p>L’autorisation porte uniquement sur les travaux décrits. Les autorisations administratives ou de copropriété éventuellement nécessaires doivent être obtenues avant leur réalisation. Tout changement de périmètre fait l’objet d’un accord écrit.</p>`;
       signatures = true;
     }
+    const signatureEmetteur = modeSignatureDocument(code)==="enregistree" ? blocSignatureEmetteur(exp.nom, await signatureOrganisation(supabase,orgId)) : null;
     const reference = referenceCourte(code.toUpperCase().replaceAll("_","-"), bailId);
     const corps = `${enTete(f,exp,{libelle:"Dossier",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,"Dossier de location",[])}
       ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],["Locataire",nomsLocataires(f,ctx.locataires)],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",referenceCourte("BAIL",bailId)]])}
-      ${contenu}${faitA(f,exp.ville,aujourdhui)}${signatures ? `<div class="signatures">${cadreSignature("Le bailleur / mandataire",nomsBailleurs(f,ctx.bailleurs))}${cadreSignature("Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : ""}`;
+      ${contenu}${faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature("Le bailleur / mandataire",nomsBailleurs(f,ctx.bailleurs))}${cadreSignature("Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`;
     return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)],...(avertissement ? { avertissement } : {}) };
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }
 }

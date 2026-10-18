@@ -38,7 +38,7 @@ export function FormulaireDiagnostic({
     ([, t]) => tousNiveaux || t.niveau === niveau
   );
   const actionLiee = actionDepot ?? deposerDiagnostic.bind(null, orgId, bienId, lotId);
-  const {etat, soumettre: action, enCours} = useActionFormulaire<EtatParc>(actionLiee);
+  const {etat, soumettre: action, enCours, version} = useActionFormulaire<EtatParc>(actionLiee, true);
   const formulaire = useRef<HTMLFormElement>(null);
   const [etatModifie, setEtatModifie] = useState<typeof etat | null>(null);
   // Réponse (état) pour laquelle la proposition « Utiliser cette pièce » a cessé de valoir : l'utilisateur a choisi un autre
@@ -67,14 +67,14 @@ export function FormulaireDiagnostic({
   }, []);
 
   useEffect(() => {
-    if (!etat.succes) return;
-    formulaire.current?.reset();
+    // Une nouvelle version n'arrive qu'après confirmation de la saisie exacte.
+    // Le nouveau formulaire n'hérite pas de l'empreinte du dépôt précédent.
+    // Une réponse tardive ne vide donc pas le diagnostic suivant.
+    if (!version) return;
     const minuterie = setTimeout(() => {
       setRealisation("");
       setExpiration("");
-      // form.reset() vient de remettre le <select> sur sa 1re option : sans ça,
-      // l'état React garde l'ancien type et le prochain dépôt part avec le
-      // mauvais — un « Termites » enregistré en « Amiante ».
+      // Le nouveau formulaire repart du type initial, y compris dans l’état React.
       setType(typeInitial ?? types[0]?.[0] ?? "");
     }, 0);
     return () => clearTimeout(minuterie);
@@ -84,9 +84,9 @@ export function FormulaireDiagnostic({
     // parent. Le déclarer ici ferait rejouer l'effet à chaque rendu tant que
     // `etat.succes` reste vrai — c'est-à-dire vider le formulaire sous les
     // doigts de celui qui vient de commencer le dépôt suivant. Le seul
-    // déclencheur légitime est l'arrivée d'un succès.
+    // déclencheur légitime est la confirmation d’une saisie restée inchangée.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [etat]);
+  }, [version]);
 
   const propositionAffichee = Boolean(etat.pieceExistante) && propositionRetiree !== etat;
 
@@ -96,6 +96,7 @@ export function FormulaireDiagnostic({
     // jamais être celui-là, sinon Entrée (dans « Diagnostiqueur », une date…) rattacherait la pièce proposée sans que
     // personne l'ait demandé (constat de relecture du 15/10/2026).
     <form
+      key={version}
       data-saisie-confirmee
       onChange={(e) => {
         setEtatModifie(etat);

@@ -320,9 +320,11 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
     const doc = (await un<{ id: string }>(
       `insert into public.documents (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte)
        values ($1,'courrier','Courrier',$1::uuid::text||'/'||gen_random_uuid()||'.pdf','application/pdf',10,'audit-yt-'||gen_random_uuid()) returning id`, [orgA])).id;
+    await db.query("alter table public.demandes_signature disable trigger signature_manuelle_fin_nouveaux_envois");
     const demande = (await un<{ id: string }>(
       `insert into public.demandes_signature (organization_id, document_id, person_id, created_by) values ($1,$2,$3,$4) returning id`,
       [orgA, doc, personneLoc, agentA])).id;
+    await db.query("alter table public.demandes_signature enable trigger signature_manuelle_fin_nouveaux_envois");
     // Le signataire est dans le portefeuille de l'agent (mandat dont il est titulaire).
     await db.query("set local session_replication_role = replica");
     await db.query(`insert into public.mandats (organization_id, person_id, etat, agent_account_id) values ($1,$2,'actif',$3)`, [orgA, personneLoc, agentA]);

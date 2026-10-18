@@ -88,7 +88,7 @@ type Preparation = {
   signataires: SignataireYoutrust[]; annexes?: { pdf: Uint8Array; nomFichier: string }[]; demandeCreee: (id: string) => Promise<void>;
 };
 export async function preparerCircuitZoho(params: Preparation) {
-  if (params.signataires.length < 2 || params.signataires.length > 100) throw new Error("Vérifiez les parties au contrat.");
+  if (params.signataires.length < 1 || params.signataires.length > 25) throw new Error("Vérifiez les parties au contrat.");
   const actions = params.signataires.map((s, i) => {
     if (!s.prenom.trim() || !s.nom.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email)) throw new Error("Vérifiez les coordonnées des signataires.");
     return { action_type: "SIGN", recipient_name: `${s.prenom} ${s.nom}`, recipient_email: s.email, signing_order: i, verify_recipient: true, verification_type: "SMS", delivery_mode: "EMAIL", language: "fr", ...telephoneZoho(s.telephone) };
@@ -114,12 +114,13 @@ export async function preparerCircuitZoho(params: Preparation) {
   return { demandeId: req.request_id, documentId: idValide(documents[0].document_id), signataireIds: personnes.map(s => s.action_id) };
 }
 
-export async function activerDemandeZoho(config: ConfigurationZohoSign, id: string, attendu: { id: string; external_document_id: string | null; signataires: { externalId?: string; email: string; telephone: string }[]; annexes: unknown[] }) {
-  const req = await details(config, id);
+type CircuitAttendu = { modele?: string; id: string; external_document_id: string | null; signataires: { externalId?: string; email: string; telephone: string; qualite?: string }[]; annexes: unknown[] };
+/** Construction commune à l'envoi et à la recette fournisseur sans invitation. */
+export function actionsSignatureZoho(req: Demande, attendu: CircuitAttendu) {
   if (req.description !== `gerimmo:circuit:${attendu.id}` || req.request_status !== "draft" || !req.is_sequential || req.actions.length !== attendu.signataires.length || req.document_ids?.length !== attendu.annexes.length + 1) throw new Error("Le brouillon Zoho Sign a changé. Aucun envoi n’a été demandé.");
   const doc = req.document_ids.find(d => d.document_id === attendu.external_document_id);
   if (!doc || Number(doc.document_order) !== 0 || !Number.isInteger(doc.total_pages) || doc.total_pages <= req.actions.length) throw new Error("Les pages de signature du bail doivent être vérifiées.");
-  const actions = attendu.signataires.map((s, i) => {
+  return attendu.signataires.map((s, i) => {
     const a = req.actions.find(a => a.action_id === s.externalId);
     const phone = telephoneZoho(s.telephone);
     if (!a || a.signing_order !== i || a.action_type !== "SIGN" || a.recipient_email.toLowerCase() !== s.email.toLowerCase() || !a.verify_recipient || a.verification_type !== "SMS" || a.recipient_phonenumber !== phone.recipient_phonenumber || a.recipient_countrycode_iso !== phone.recipient_countrycode_iso) throw new Error("Les coordonnées des signataires Zoho Sign ont changé.");
@@ -127,8 +128,15 @@ export async function activerDemandeZoho(config: ConfigurationZohoSign, id: stri
     // Lors de la recette mobile, Zoho a conservé la hauteur et étendu la largeur
     // selon les proportions du paraphe. 30 pt garde les deux apparences observées
     // dans la zone de 190 pt, contrairement à la hauteur initiale de 80 pt.
-    return { action_id: a.action_id, action_type: "SIGN", recipient_email: a.recipient_email, recipient_name: a.recipient_name, signing_order: i, verify_recipient: true, verification_type: "SMS", ...phone, fields: [{ field_type_name: "Signature", field_name: `Signature ${i + 1}`, field_label: "Signature du bail", is_mandatory: true, document_id: doc.document_id, page_no: doc.total_pages - attendu.signataires.length + i, x_coord: 54, y_coord: 330, abs_width: 190, abs_height: 30 }] };
+    return { action_id: a.action_id, action_type: "SIGN", recipient_email: a.recipient_email, recipient_name: a.recipient_name, signing_order: i, verify_recipient: true, verification_type: "SMS", ...phone, fields: [
+      ...(attendu.modele === "cautionnement" && s.qualite === "Garant" ? [{ field_type_name:"Textfield", field_name:`Mention personnelle ${i+1}`, field_label:"Recopiez la mention de caution avec le montant en lettres et en chiffres", is_mandatory:true, document_id:doc.document_id, page_no:doc.total_pages-attendu.signataires.length+i, x_coord:54, y_coord:340, abs_width:480, abs_height:220, text_property:{font:"Arial",font_size:10,font_color:"000000",is_bold:false,is_italic:false,max_field_length:2048} }] : []),
+      { field_type_name: "Signature", field_name: `Signature ${i + 1}`, field_label: "Signature du document", is_mandatory: true, document_id: doc.document_id, page_no: doc.total_pages - attendu.signataires.length + i, x_coord: 54, y_coord: attendu.modele === "cautionnement" && s.qualite === "Garant" ? 650 : 330, abs_width: 190, abs_height: 30 }
+    ] };
   });
+}
+export async function activerDemandeZoho(config: ConfigurationZohoSign, id: string, attendu: CircuitAttendu) {
+  const req = await details(config, id);
+  const actions = actionsSignatureZoho(req, attendu);
   await json(config, `/requests/${idValide(id)}/submit`, { method: "POST", body: formulaire(config, { actions }) });
 }
 const ETATS: Record<string, string> = { draft: "draft", inprogress: "ongoing", completed: "done", recalled: "canceled", expired: "expired", declined: "declined", rejected: "rejected" };
@@ -157,6 +165,7 @@ async function pdf(config: ConfigurationZohoSign, chemin: string) {
   return new Uint8Array(contenu);
 }
 export const telechargerDocumentSigneZoho = (config: ConfigurationZohoSign, id: string, document: string) => pdf(config, `/requests/${idValide(id)}/documents/${idValide(document)}/pdf`);
+export const telechargerDossierSigneZoho = (config: ConfigurationZohoSign, id: string) => pdf(config, `/requests/${idValide(id)}/pdf?with_coc=true&merge=true`);
 export const telechargerPreuveZoho = (config: ConfigurationZohoSign, id: string) => pdf(config, `/requests/${idValide(id)}/completioncertificate`);
 export function webhookZohoValide(corps: string, signature: string | null, secret: string) {
   if (!signature || !secret) return false;

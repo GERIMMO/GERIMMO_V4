@@ -85,6 +85,18 @@ describe("Zoho Sign européen",()=>{
   expect(actions.every((a:{fields:{is_mandatory:boolean}[]})=>a.fields[0].is_mandatory)).toBe(true);
   expect(form.get("testing")).toBe("true");
  });
+ it("la caution saisit une mention obligatoire non préremplie, avant sa signature et avec SMS",async()=>{
+  const fetch=api([{code:0,requests:dossier()},{code:0}]);
+  const circuit={...attendu(),modele:"cautionnement",signataires:attendu().signataires.map((s,i)=>({...s,qualite:i===0?"Garant":"Propriétaire"}))};
+  await activerDemandeZoho(config,id,circuit);
+  const actions=JSON.parse((fetch.mock.calls[2][1]!.body as FormData).get("data") as string).requests.actions;
+  expect(actions[0].fields).toHaveLength(2);
+  expect(actions[0].fields[0]).toMatchObject({field_type_name:"Textfield",is_mandatory:true});
+  expect(actions[0].fields[0]).not.toHaveProperty("default_value");
+  expect(actions[0].fields[1].y_coord).toBeGreaterThan(actions[0].fields[0].y_coord+actions[0].fields[0].abs_height);
+  expect(actions[1].fields).toHaveLength(1);
+  expect(actions.every((a:{verification_type:string})=>a.verification_type==="SMS")).toBe(true);
+ });
  it("contient les signatures mobiles observées quand Zoho conserve leur rapport largeur/hauteur",async()=>{
   const fetch=api([{code:0,requests:dossier()},{code:0}]);
   await activerDemandeZoho(config,id,attendu());

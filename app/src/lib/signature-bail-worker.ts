@@ -1,3 +1,4 @@
+import { telechargerDossierSigneZoho } from "./zoho-sign";
 import { createHash, randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CircuitBail } from "./signature-bail";
@@ -54,7 +55,9 @@ export async function synchroniserCircuitSignatureBail(db: SupabaseClient, confi
       }
       await verifierAvantEffet(db,"signatures");
       const contenu = i === 0
-        ? await telechargerDocumentSignature(config,circuit.external_request_id,circuit.external_document_id)
+        ? circuit.modele === "devis_artisan" && config.prestataire === "zoho"
+          ? await telechargerDossierSigneZoho(config,circuit.external_request_id)
+          : await telechargerDocumentSignature(config,circuit.external_request_id,circuit.external_document_id)
         : await telechargerPreuveSignature(config,circuit.external_request_id,parties[i-1].externalId!);
       const path = `${racine}${i === 0 ? "contrat.pdf" : `preuve-${i}.pdf`}`;
       const depot = await db.storage.from("documents").upload(path,contenu,{contentType:"application/pdf",upsert:true});

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SuiviSignatureDevisArtisan } from "@/components/suivi-signature-devis-artisan";
 import { CalendarDays, FileText, MapPin, ShieldCheck, Wrench } from "lucide-react";
 import { chargerPreparationDevis } from "@/lib/parcours-devis-serveur";
 import { RenvoyerEmail } from "./renvoyer-email";
@@ -233,6 +234,7 @@ export default async function PageRepondreDevis(
       )}
 
       {/* D18 (livraison 2) : l'historique de ses versions, en lecture seule. */}
+      <SuiviSignatureDevisArtisan sollicitationId={demande.sollicitation_id}/>
       <VersionsPrecedentes sollicitationId={demande.sollicitation_id} versions={versions.lignes} erreur={versions.erreur} versionCourante={close ? null : demande.version ?? null} />
     </div>
   );

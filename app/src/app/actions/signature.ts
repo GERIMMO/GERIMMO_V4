@@ -7,8 +7,6 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { detecterMimeReel, EXTENSIONS } from "@/lib/file-type";
 import { annulerDemandeYoutrust, configurationYoutrust, lireDemandeYoutrust, supprimerBrouillonYoutrust } from "@/lib/youtrust";
-// 25/09 : le signataire est prévenu par e-mail dans le parcours manuel.
-import { notifierSignatureDemandee } from "@/lib/notifications";
 
 export type EtatSignature = {
   erreur?: string;
@@ -35,6 +33,7 @@ export async function enregistrerSignature(
     org: orgId, roles: ROLES_RESPONSABLES,
   });
   if (erreurDroit || !responsableReel) return { erreur: "La signature est réservée au responsable de l’organisation, hors accès de supervision." };
+  if(formData.get("autorisation_signature")!=="on") return {erreur:"Confirmez que cette signature est la vôtre et autorisez son utilisation sur vos documents courants."};
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) {
     return { erreur: "Choisissez l'image de votre signature (PNG ou JPEG)." };
@@ -85,47 +84,12 @@ export async function retirerSignature(orgId: string): Promise<EtatSignature> {
   return { succes: "Signature retirée — la zone restera vierge sur les prochains documents." };
 }
 
-// « Envoyer pour signature » : le document généré devient visible dans
-// l'espace du signataire (carte « À signer » de Mes documents) — il le
-// télécharge, le signe et dépose le PDF signé ; le retour vous alerte.
-// La RPC porte les gardes (audit 09/09) : types signables seulement (bail,
-// courrier, quittance — jamais un EDL, RM-13.1.6), signataire rattaché AU
-// document, espace locataire actif obligatoire (sinon la demande partait
-// dans le vide), une seule demande en attente par document et personne.
-// Le circuit électronique commun du bail est dans signature-bail.ts.
-export async function envoyerPourSignature(
-  orgId: string,
-  documentId: string,
-  personId: string
-): Promise<EtatSignature> {
-  const { supabase, user } = await verifierGerant(orgId);
-  if (!user) return { erreur: "Accès refusé." };
-
-  const { data: demandeId, error } = await supabase.rpc("envoyer_pour_signature", {
-    p_org: orgId,
-    p_document: documentId,
-    p_person: personId,
-  });
-  if (error) return { erreur: sansJargon(error.message) };
-
-  // Le circuit électronique commun du bail est géré par signature-bail.ts.
-  // Cette action conserve explicitement le retour manuel du PDF.
-  const envoi = demandeId
-    ? await notifierSignatureDemandee(supabase, orgId, personId, documentId, String(demandeId))
-    : { envoyee: false, motif: "introuvable" as const };
-  revalidatePath(`/agence/${orgId}/documents`);
-  return {
-    succes: envoi.envoyee
-      ? "Demande de signature manuelle créée — le signataire est prévenu par e-mail. Depuis « À signer », il doit télécharger le document, le signer puis déposer la copie signée. Vous serez alerté à son retour."
-      : "Demande de signature manuelle créée — le document apparaît dans « À signer ». Le signataire doit le télécharger, le signer puis déposer la copie signée. Vous serez alerté à son retour.",
-    avertissement: envoi.envoyee
-      ? undefined
-      : envoi.motif === "sans_adresse"
-        ? "Le signataire n'a pas d'adresse e-mail : il ne verra la demande qu'en ouvrant son espace."
-        : "L'e-mail au signataire n'a pas pu partir ; la demande reste visible dans son espace.",
-  };
+export async function envoyerPourSignature(_orgId:string,_documentId:string,_personId:string):Promise<EtatSignature> {
+  return {erreur:"Les nouveaux engagements se signent avec Zoho depuis la fiche du document. Les anciennes demandes restent consultables."};
 }
 
+// Les anciennes demandes restent annulables et leurs retours restent lisibles.
+// Les nouveaux engagements passent par le circuit Zoho du document.
 // Annuler une demande en attente (mauvais destinataire, signature obtenue
 // autrement) — le document disparaît de son « À signer ».
 export async function annulerDemandeSignature(

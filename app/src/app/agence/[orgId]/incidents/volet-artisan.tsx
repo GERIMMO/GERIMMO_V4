@@ -4,6 +4,8 @@ import { cheminCarnetInvitation, type ArtisanCarnetBien } from "@/lib/invitation
 import type { DisponibiliteReseau } from "@/lib/reseau";
 import { descriptionDevisLisible, libelleQuantite, libelleTauxTva, type LigneDevisCalculee } from "@/lib/devis-structure";
 import Link from "next/link";
+import { signatureEnEssai } from "@/lib/signature-essai";
+import { SignatureDevisClient } from "@/components/signature-devis-client";
 import { createClient } from "@/lib/supabase/server";
 import { aujourdhuiParis, eur, formaterDate, formaterDateHeure } from "@/lib/ged";
 import { formaterTelephone } from "@/app/artisan/libelles";
@@ -1130,11 +1132,7 @@ export function ConsultationOuverte({
                     ) : null}
                     {!expire && (
                       <div className="space-y-2">
-                        <BoutonRetenirDevis
-                          orgId={orgId}
-                          devisId={d.id}
-                          raisonSociale={nom(d.artisan_id)}
-                        />
+                        {estProprietaire && (process.env.ZOHO_SIGN_DEVIS_ACTIF === "true" || signatureEnEssai(orgId)) ? <SignatureDevisClient orgId={orgId} devisId={d.id} raisonSociale={nom(d.artisan_id)}/> : <BoutonRetenirDevis orgId={orgId} devisId={d.id} raisonSociale={nom(d.artisan_id)}/>}
                         <div className="flex flex-wrap items-start gap-2">
                           {/* D18 (livraison 2) : demander une révision, trois versions au plus. */}
                           {(d.version ?? 1) < VERSIONS_DEVIS_MAX ? (

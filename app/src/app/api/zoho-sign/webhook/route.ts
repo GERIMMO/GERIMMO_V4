@@ -7,6 +7,12 @@ import { after } from "next/server";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 const EVENEMENTS = new Set(["RequestSubmitted", "RequestViewed", "RequestSigningSuccess", "RequestCompleted", "RequestRejected", "RequestRecalled", "RequestForwarded", "RequestExpired"]);
+type MotifRefus = "signature_absente" | "signature_invalide" | "corps_invalide" | "reference_invalide";
+function refuser(motif: MotifRefus, erreur: string) {
+  // Codes fixes uniquement : ni clé, ni signature, ni contenu ou identité du document.
+  console.warn("[zoho-webhook]", motif);
+  return Response.json({ erreur }, { status: 400 });
+}
 export async function POST(request: Request) {
   const secret = process.env.ZOHO_SIGN_WEBHOOK_SECRET?.trim();
   if (!secret) return Response.json({ erreur: "Réception non configurée." }, { status: 503 });
@@ -21,13 +27,14 @@ export async function POST(request: Request) {
     morceaux.push(value);
   }
   const brut = Buffer.concat(morceaux).toString("utf8");
-  if (!webhookZohoValide(brut, request.headers.get("x-zs-webhook-signature"), secret)) return Response.json({ erreur: "Signature refusée." }, { status: 400 });
+  const signature = request.headers.get("x-zs-webhook-signature");
+  if (!webhookZohoValide(brut, signature, secret)) return refuser(signature ? "signature_invalide" : "signature_absente", "Signature refusée.");
   let evenement;
-  try { evenement = JSON.parse(brut); } catch { return Response.json({ erreur: "Corps invalide." }, { status: 400 }); }
-  if (!evenement || typeof evenement !== "object") return Response.json({ erreur: "Corps invalide." }, { status: 400 });
+  try { evenement = JSON.parse(brut); } catch { return refuser("corps_invalide", "Corps invalide."); }
+  if (!evenement || typeof evenement !== "object") return refuser("corps_invalide", "Corps invalide.");
   if (!EVENEMENTS.has(evenement.notifications?.operation_type)) return Response.json({ ignore: true });
   const id = evenement.requests?.request_id;
-  if (typeof id !== "string" || !/^\d{1,30}$/.test(id)) return Response.json({ erreur: "Référence invalide." }, { status: 400 });
+  if (typeof id !== "string" || !/^\d{1,30}$/.test(id)) return refuser("reference_invalide", "Référence invalide.");
   const config = configurationSuiviSignatureBail(process.env, "zoho");
   const db = clientDeService();
   if (!config || !db) return Response.json({ erreur: "Suivi temporairement indisponible." }, { status: 503 });

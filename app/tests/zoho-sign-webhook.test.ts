@@ -10,12 +10,25 @@ const event={notifications:{operation_type:'RequestCompleted',performed_by_email
 function req(value:unknown=event,signature?:string){const body=typeof value==='string'?value:JSON.stringify(value);return new Request('https://example.test/api/zoho-sign/webhook',{method:'POST',body,headers:{'x-zs-webhook-signature':signature??createHmac('sha256','secret-fictif').update(body).digest('base64')}});}
 beforeEach(()=>{
  vi.resetAllMocks();vi.stubEnv('ZOHO_SIGN_WEBHOOK_SECRET','secret-fictif');m.config.mockReturnValue({prestataire:'zoho',environnement:'sandbox'});
+ vi.spyOn(console,'warn').mockImplementation(()=>{});
  m.tasks=[]; m.after.mockImplementation((task:()=>Promise<void>)=>m.tasks.push(task));
  const q={select:()=>q,eq:m.eq,update:m.update,in:()=>Promise.resolve({error:null}),maybeSingle:m.read};m.eq.mockReturnValue(q);m.update.mockReturnValue(q);
  m.service.mockReturnValue({from:()=>q});m.read.mockResolvedValue({data:{id:'circuit',etat:'en_cours'},error:null});m.sync.mockResolvedValue(undefined);
 });
-afterEach(()=>vi.unstubAllEnvs());
+afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks();});
 describe('Retour Zoho Sign sécurisé',()=>{
+ it('distingue les refus sans divulguer le secret ni le contenu reçu',async()=>{
+  const sansSignature=req();sansSignature.headers.delete('x-zs-webhook-signature');
+  expect((await POST(sansSignature)).status).toBe(400);
+  expect((await POST(req(event,'signature-privee'))).status).toBe(400);
+  expect((await POST(req('{'))).status).toBe(400);
+  expect((await POST(req({...event,requests:{request_id:'identite-privee'}}))).status).toBe(400);
+  expect(vi.mocked(console.warn).mock.calls).toEqual([
+   ['[zoho-webhook]','signature_absente'],['[zoho-webhook]','signature_invalide'],
+   ['[zoho-webhook]','corps_invalide'],['[zoho-webhook]','reference_invalide'],
+  ]);
+  expect(m.service).not.toHaveBeenCalled();expect(m.sync).not.toHaveBeenCalled();
+ });
  it('refuse une fausse signature avant toute lecture de données',async()=>{expect((await POST(req(event,'faux'))).status).toBe(400);expect(m.service).not.toHaveBeenCalled();});
  it.each(['{','null'])('refuse le corps invalide %s',async body=>{expect((await POST(req(body))).status).toBe(400);expect(m.service).not.toHaveBeenCalled();});
  it('borne le corps réel même sans Content-Length',async()=>{expect((await POST(req('a'.repeat(1_048_577)))).status).toBe(413);expect(m.service).not.toHaveBeenCalled();});

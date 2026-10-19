@@ -3,7 +3,7 @@ type: concept
 tags: [abonnement, saas, stripe, facturation]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-30
+updated: 2026-10-19
 sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
 ---
 
@@ -55,6 +55,29 @@ Stripe). À **ne pas confondre** avec les [[Période de loyer|loyers]] des locat
   - Portail client Stripe imposé par le code : résiliation en fin de période,
     changement de formule désactivé ; préavis d'au moins un mois avant révision
     tarifaire (CGU art. 8.9) ; rétractation de 14 jours pour le consommateur (art. 8.10).
+
+## Conditions d'ouverture du paiement (19/10/2026)
+Garde de souscription (lot B3, entrée du journal `[2026-10-19] dev | Garde de
+souscription`). En plus des clés Stripe et du régime de TVA, le paiement en ligne ne
+s'ouvre que si deux conditions de contrat sont remplies, vérifiées par le serveur avant
+tout appel à Stripe et dites par l'écran « Mon abonnement » avec les mêmes phrases :
+- **l'identité de l'éditeur est complète** — les huit faits requis des mentions légales
+  (dénomination, forme, siège, RCS, SIRET, directeur de publication, e-mail, médiateur),
+  lus dans `supervision_identite` par-dessus le code. Tant qu'un fait manque, ni
+  souscription ni hausse de capacité ; le détail des faits manquants n'est pas dit au
+  client, il est affiché au dirigeant (/admin/sante, /admin/parametres) ;
+- **le compte qui clique a accepté la version en vigueur des CGV** (`acceptations_cgu`,
+  version 2026-09-30, source `compte` pour la case cochée depuis « Mon abonnement »).
+  Exigée pour la souscription initiale seulement : une hausse porte sur un contrat déjà
+  formé.
+
+La phrase affichée tant que l'identité manque dépend de l'état du compte (correction du
+19/10) : **en essai** (statut essai et écriture ouverte) « Le paiement en ligne n'est pas
+encore ouvert : les mentions légales de l'éditeur sont en cours de publication. Votre essai
+continue. » ; **gelé en lecture seule** (essai arrivé à son terme, le statut reste
+« essai ») ou **déjà abonné** (hausse de capacité) : la même phrase sans « Votre essai
+continue. ». Voir [[Conditions generales d'utilisation (projet)|Conditions générales d'utilisation]]
+et, pour l'identité de l'éditeur encore à fournir, [[État du projet et décisions ouvertes]].
 
 ## Relations
 - Souscrit par [[Administrateur d'agence]] ou [[Propriétaire bailleur]] ; administré par [[Super Admin]].

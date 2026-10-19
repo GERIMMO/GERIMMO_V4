@@ -25,9 +25,14 @@ import {
 // /admin/parametres, hors dépôt) ; sinon l'écran dit pourquoi, par la phrase
 // MOTIF_IDENTITE ci-dessous (= lib/garde-souscription.ts).
 
-/** Le motif exact affiché tant que les mentions légales de l'éditeur manquent (lib/garde-souscription.ts). */
+/**
+ * Le motif exact affiché tant que les mentions légales de l'éditeur manquent
+ * (lib/garde-souscription.ts, MOTIF_IDENTITE_EDITEUR_ESSAI) : le compte de
+ * recette est en essai, la phrase se termine par « Votre essai continue. »
+ * (un compte gelé ou abonné lit la même phrase sans cette fin).
+ */
 const MOTIF_IDENTITE =
-  "Le paiement en ligne n’est pas encore ouvert : les mentions légales de l’éditeur sont en cours de publication. Votre essai continue.";
+  "Le paiement en ligne n'est pas encore ouvert : les mentions légales de l'éditeur sont en cours de publication. Votre essai continue.";
 
 test.describe("propriétaire direct", () => {
   test("se connecte et voit le parcours de démarrage", SANS_TRACE, async ({ page, context }) => {

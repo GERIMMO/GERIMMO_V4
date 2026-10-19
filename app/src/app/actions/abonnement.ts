@@ -87,6 +87,8 @@ async function origineDeLaRequete(): Promise<string | null> {
  */
 type EtatAbonnementLu = {
   statut: string;
+  /** Faux quand le compte est gelé en lecture seule (essai arrivé à son terme, défaut de paiement). */
+  ecriture_ouverte: boolean;
   essai_fin: string | null;
   public_tarif: "agence" | "proprietaire_direct";
   unites_facturees: number;
@@ -108,6 +110,15 @@ type PaiementLu = {
 /** Le régime de TVA déclaré — sans lui, aucune souscription de la nouvelle grille. */
 const REGIME_ABSENT =
   "Le paiement en ligne n'est pas encore ouvert : le régime de TVA de l'éditeur doit d'abord être renseigné pour afficher les taxes exactes. Écrivez-nous : nous prolongeons votre essai le temps de l'ouvrir.";
+
+/**
+ * L'essai court-il encore ? Statut « essai » ET écriture ouverte : un essai
+ * arrivé à son terme garde son statut, seule l'écriture se ferme
+ * (public.org_ecriture_ouverte). C'est le `enEssai` de lib/garde-souscription.ts.
+ */
+function essaiEnCours(etat: EtatAbonnementLu): boolean {
+  return etat.statut === "essai" && etat.ecriture_ouverte;
+}
 
 function lirePeriodicite(v: FormDataEntryValue | null): Periodicite | null {
   return v === "mensuel" || v === "annuel" ? v : null;
@@ -234,8 +245,9 @@ export async function demarrerAbonnement(
   // TVA (le banc local sans clés garde sa phrase) et AVANT tout appel à Stripe.
   // 1. L'identité de l'éditeur, lue en base par-dessus le code : sans mentions
   //    légales complètes, pas de paiement — même phrase qu'à l'écran. Une
-  //    lecture en échec ferme aussi.
-  const motifIdentite = await lireMotifIdentiteEditeur();
+  //    lecture en échec ferme aussi. « Votre essai continue » seulement si
+  //    l'essai court encore (un essai gelé garde le statut « essai »).
+  const motifIdentite = await lireMotifIdentiteEditeur(essaiEnCours(etat));
   if (motifIdentite) return { erreur: motifIdentite };
   // 2. La version en vigueur des conditions, acceptée par LE COMPTE qui clique.
   //    L'écran propose la case qui l'enregistre (accepterConditionsGenerales) ;
@@ -308,8 +320,9 @@ export async function confirmerHausse(
   if (!REGIME_TVA) return { erreur: REGIME_ABSENT };
   // Lot B3 (19/10) : une hausse est un paiement ; sans l'identité complète de
   // l'éditeur, elle attend aussi. Les conditions ne sont pas redemandées : le
-  // contrat est déjà formé (arbitrage du 19/10).
-  const motifIdentite = await lireMotifIdentiteEditeur();
+  // contrat est déjà formé (arbitrage du 19/10). Un client abonné n'est pas
+  // en essai : la phrase s'arrête avant « Votre essai continue ».
+  const motifIdentite = await lireMotifIdentiteEditeur(essaiEnCours(etat));
   if (motifIdentite) return { erreur: motifIdentite };
 
   const unites = lireEntier(formData.get("unites"));

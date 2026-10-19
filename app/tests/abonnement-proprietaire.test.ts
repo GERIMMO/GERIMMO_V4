@@ -9,10 +9,22 @@ const EDITEUR_COMPLET: Record<string, string | null> = {
   mediateurNom: "Médiateur de test", mediateurAdresse: null, mediateurSite: null,
 };
 const EDITEUR_VIDE: Record<string, string | null> = Object.fromEntries(Object.keys(EDITEUR_COMPLET).map((k) => [k, null]));
-/** Lot B3 (19/10) : la phrase arbitrée, en toutes lettres (le test fige le libellé, il ne le recopie pas depuis le code). */
+/**
+ * Lot B3 (19/10) : la phrase arbitrée, en toutes lettres (le test fige le
+ * libellé, il ne le recopie pas depuis le code). Complète pendant l'essai ;
+ * sans « Votre essai continue. » pour un compte gelé ou abonné (correction du
+ * 19/10). React écrit l'apostrophe droite « &#x27; » dans le HTML statique :
+ * les comparaisons se font sur la forme écrite.
+ */
 const MOTIF_IDENTITE =
-  "Le paiement en ligne n’est pas encore ouvert : les mentions légales de l’éditeur sont en cours de publication. Votre essai continue.";
+  "Le paiement en ligne n'est pas encore ouvert : les mentions légales de l'éditeur sont en cours de publication. Votre essai continue.";
+const MOTIF_IDENTITE_HORS_ESSAI =
+  "Le paiement en ligne n'est pas encore ouvert : les mentions légales de l'éditeur sont en cours de publication.";
+const enHtml = (texte: string) => texte.replace(/'/g, "&#x27;");
+const MOTIF_IDENTITE_HTML = enHtml(MOTIF_IDENTITE);
+const MOTIF_IDENTITE_HORS_ESSAI_HTML = enHtml(MOTIF_IDENTITE_HORS_ESSAI);
 const CASE_CONDITIONS = "J’ai lu et j’accepte la";
+const INFOBULLE_CONDITIONS = 'title="Acceptez d’abord la version en vigueur des conditions générales."';
 
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -68,8 +80,8 @@ beforeEach(() => {
   mocks.conditionsAcceptees = true;
 });
 afterEach(() => vi.useRealTimers());
-async function rendre() {
-  return renderToStaticMarkup(await PageAbonnement2026({ params: Promise.resolve({ orgId: "org-test" }), searchParams: Promise.resolve({}) }));
+async function rendre(recherche: Record<string, string> = {}) {
+  return renderToStaticMarkup(await PageAbonnement2026({ params: Promise.resolve({ orgId: "org-test" }), searchParams: Promise.resolve(recherche) }));
 }
 function abonner(changements = {}) {
   etat = { ...etat, statut: "actif" };
@@ -128,11 +140,11 @@ describe("présentation de l’abonnement propriétaire", () => {
 // Lot B3 (19/10/2026) : la garde de souscription à l'écran. Le paiement est
 // ouvert (clés Stripe, régime de TVA), et l'écran dit ce qui manque encore.
 describe("garde de souscription à l’écran « Mon abonnement »", () => {
-  it("identité de l’éditeur incomplète : le motif remplace le bouton, sans case à cocher", async () => {
+  it("identité de l’éditeur incomplète, essai en cours : le motif complet remplace le bouton, sans case à cocher", async () => {
     mocks.stripePret = true;
     mocks.editeur = { editeur: EDITEUR_VIDE, indisponible: false };
     const html = await rendre();
-    expect(html).toContain(MOTIF_IDENTITE);
+    expect(html).toContain(MOTIF_IDENTITE_HTML);
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
     expect(html).not.toContain(CASE_CONDITIONS);
     // Le récapitulatif reste : le client lit le montant, même sans bouton.
@@ -143,32 +155,58 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     mocks.stripePret = true;
     mocks.editeur = { editeur: EDITEUR_VIDE, indisponible: true };
     const html = await rendre();
-    expect(html).toContain(MOTIF_IDENTITE);
+    expect(html).toContain(MOTIF_IDENTITE_HTML);
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
   });
-  it("identité complète, version en vigueur non acceptée : la case, le lien vers les conditions, le bouton présent", async () => {
+  it("essai arrivé à son terme (lecture seule, statut encore « essai ») : le motif sans « Votre essai continue »", async () => {
+    mocks.stripePret = true;
+    mocks.editeur = { editeur: EDITEUR_VIDE, indisponible: false };
+    etat = { ...etat, ecriture_ouverte: false, essai_fin: "2099-10-01", jours_essai_restants: 0 };
+    const html = await rendre();
+    expect(html).toContain("Reprendre avec un abonnement");
+    expect(html).toContain("Votre essai gratuit est arrivé à son terme.");
+    expect(html).toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
+    expect(html).not.toContain("Votre essai continue");
+    expect(html).not.toContain("Continuer vers le paiement sécurisé");
+  });
+  it("client abonné qui demande une hausse : le motif sans « Votre essai continue », à la place de la promesse de prorata", async () => {
+    mocks.stripePret = true;
+    mocks.editeur = { editeur: EDITEUR_VIDE, indisponible: false };
+    abonner();
+    const html = await rendre({ formule: "investisseur" });
+    expect(html).toContain("Changer de formule");
+    expect(html).toContain("Formule Investisseur");
+    expect(html).toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
+    expect(html).not.toContain("Votre essai continue");
+    expect(html).not.toContain("Le prorata sera calculé par notre prestataire de paiement avant confirmation.");
+    expect(html).not.toContain("J&#x27;accepte le nouveau montant");
+  });
+  it("identité complète, version en vigueur non acceptée : la case, le lien vers les conditions, le bouton présent mais retenu", async () => {
     mocks.stripePret = true;
     mocks.conditionsAcceptees = false;
     const html = await rendre();
-    expect(html).not.toContain(MOTIF_IDENTITE);
+    expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
     expect(html).toContain(CASE_CONDITIONS);
     expect(html).toContain("version du 30 septembre 2026 des conditions générales");
     expect(html).toContain('href="/conditions"');
     expect(html).toContain("Continuer vers le paiement sécurisé");
+    // Le blocage est prouvé par son infobulle : la prop arrive bien au bouton.
+    expect(html).toContain(INFOBULLE_CONDITIONS);
   });
   it("identité complète et version acceptée : ni motif ni case, le bouton", async () => {
     mocks.stripePret = true;
     const html = await rendre();
-    expect(html).not.toContain(MOTIF_IDENTITE);
+    expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
     expect(html).not.toContain(CASE_CONDITIONS);
     expect(html).toContain("Continuer vers le paiement sécurisé");
+    expect(html).not.toContain("Acceptez d’abord");
   });
   it("sans clés Stripe, le motif Stripe passe avant celui de l’identité (banc local)", async () => {
     mocks.editeur = { editeur: EDITEUR_VIDE, indisponible: false };
     const html = await rendre();
     // React écrit l'apostrophe droite « &#x27; » dans le HTML statique.
     expect(html).toContain("Le paiement en ligne n&#x27;est pas encore ouvert. Écrivez-nous");
-    expect(html).not.toContain(MOTIF_IDENTITE);
+    expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
   });
 });

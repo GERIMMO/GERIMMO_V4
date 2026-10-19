@@ -23,13 +23,21 @@ import { CONDITIONS_VERSION, faitsManquants, type FaitEditeur } from "@/lib/edit
 /**
  * Le refus tant que les mentions légales de l'éditeur manquent. Même phrase
  * dans l'action et à l'écran. Elle commence comme les motifs Stripe et TVA
- * (« Le paiement en ligne n'est pas encore ouvert ») et ne prend aucune des
- * formes que la recette relève comme une erreur d'écran
+ * (« Le paiement en ligne n'est pas encore ouvert », apostrophe droite comme
+ * eux : le parcours local e2e/abonnement.spec.ts s'y accroche) et ne prend
+ * aucune des formes que la recette relève comme une erreur d'écran
  * (e2e/recette-production/outils.ts, MESSAGES_D_ERREUR) : la recette la lit
  * telle quelle, par son texte exact.
+ *
+ * Correction du 19/10 : la phrase est servie SANS « Votre essai continue. »
+ * dès que l'essai ne court plus — compte gelé en lecture seule à la fin de
+ * l'essai, ou client déjà abonné qui demande une hausse.
  */
 export const MOTIF_IDENTITE_EDITEUR =
-  "Le paiement en ligne n’est pas encore ouvert : les mentions légales de l’éditeur sont en cours de publication. Votre essai continue.";
+  "Le paiement en ligne n'est pas encore ouvert : les mentions légales de l'éditeur sont en cours de publication.";
+
+/** La même phrase pendant l'essai : il continue, rien n'est perdu. */
+export const MOTIF_IDENTITE_EDITEUR_ESSAI = `${MOTIF_IDENTITE_EDITEUR} Votre essai continue.`;
 
 /** Le refus tant que le compte n'a pas accepté la version en vigueur des conditions. */
 export const MOTIF_CONDITIONS_A_ACCEPTER = "Acceptez la version en vigueur des conditions générales avant de poursuivre.";
@@ -43,12 +51,23 @@ export const ERREUR_ACCEPTATION_CONDITIONS =
   "L’acceptation des conditions n’a pas pu être enregistrée. Réessayez dans un instant.";
 
 /**
+ * L'état du compte qui lit le motif. `enEssai` est vrai quand l'essai COURT
+ * encore : statut « essai » ET écriture ouverte. Un essai arrivé à son terme
+ * garde le statut « essai » (public.org_ecriture_ouverte ferme à la date,
+ * sans changement de statut) : il n'est plus « en essai » au sens de cette
+ * phrase.
+ */
+export type ContexteGarde = { enEssai: boolean };
+
+/**
  * Le motif qui ferme le paiement, ou `null` si l'identité est complète. Le
  * détail des faits manquants n'est pas dit au client : il est déjà affiché au
- * dirigeant (/admin/sante, /admin/parametres).
+ * dirigeant (/admin/sante, /admin/parametres). Pendant l'essai, la phrase
+ * ajoute « Votre essai continue. » ; gelé ou abonné, elle s'arrête avant.
  */
-export function motifIdentiteEditeur(editeur: Record<string, FaitEditeur>): string | null {
-  return faitsManquants(editeur).length > 0 ? MOTIF_IDENTITE_EDITEUR : null;
+export function motifIdentiteEditeur(editeur: Record<string, FaitEditeur>, { enEssai }: ContexteGarde): string | null {
+  if (faitsManquants(editeur).length === 0) return null;
+  return enEssai ? MOTIF_IDENTITE_EDITEUR_ESSAI : MOTIF_IDENTITE_EDITEUR;
 }
 
 /** Vrai si la valeur est la version en vigueur — égalité stricte, jamais une comparaison d'ordre. */

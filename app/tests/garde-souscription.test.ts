@@ -5,7 +5,10 @@
  *  1. L'identité de l'éditeur, lue dans `supervision_identite` par-dessus le
  *     code (lib/editeur-serveur.ts) : tant qu'un fait requis manque — ou que la
  *     lecture échoue —, ni souscription ni hausse. Le refus est une phrase
- *     exacte, la même à l'écran et dans l'action.
+ *     exacte, la même à l'écran et dans l'action ; elle se termine par « Votre
+ *     essai continue. » seulement si l'essai court encore (correction du
+ *     19/10) : un essai gelé en lecture seule ou un client abonné lisent la
+ *     phrase sans cette fin.
  *  2. La version en vigueur des conditions générales, acceptée par LE COMPTE
  *     qui clique (`acceptations_cgu`) : exigée pour la souscription initiale
  *     seulement (arbitrage du 19/10). L'action qui l'enregistre
@@ -18,9 +21,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { offreParticulier } from "@/lib/tarifs";
 
+/** Pendant l'essai : la phrase complète (celle que la recette de production lit, compte en essai). */
 const MOTIF_IDENTITE =
-  "Le paiement en ligne n’est pas encore ouvert : les mentions légales de l’éditeur sont en cours de publication. Votre essai continue.";
+  "Le paiement en ligne n'est pas encore ouvert : les mentions légales de l'éditeur sont en cours de publication. Votre essai continue.";
+/** Compte gelé en lecture seule ou déjà abonné : la même phrase, sans « Votre essai continue. ». */
+const MOTIF_IDENTITE_HORS_ESSAI =
+  "Le paiement en ligne n'est pas encore ouvert : les mentions légales de l'éditeur sont en cours de publication.";
 const MOTIF_CONDITIONS = "Acceptez la version en vigueur des conditions générales avant de poursuivre.";
+const ERREUR_CONDITIONS_PERIMEES =
+  "Les conditions ont changé depuis l’affichage : rechargez la page, puis acceptez la version en vigueur.";
+const ERREUR_ACCEPTATION_CONDITIONS =
+  "L’acceptation des conditions n’a pas pu être enregistrée. Réessayez dans un instant.";
 const VERSION_EN_VIGUEUR = "2026-09-30";
 
 /** Un éditeur fictif complet : les huit faits requis par lib/editeur.ts (domaine example : jamais une adresse réelle). */
@@ -123,11 +134,16 @@ import { GRILLE } from "@/lib/stripe-offres";
 
 const PIED = "TVA non applicable, art. 293 B du CGI.";
 
-function etat(grille: string, souscrit = false) {
+/**
+ * L'état lu par l'action. `ecritureOuverte` faux = compte gelé en lecture
+ * seule ; un essai arrivé à son terme garde le statut « essai »
+ * (public.org_ecriture_ouverte ferme à la date, sans changement de statut).
+ */
+function etat(grille: string, souscrit = false, ecritureOuverte = true) {
   mocks.rpc.mockImplementation(async (nom: string) => {
     if (nom === "etat_abonnement") {
       return {
-        data: [{ statut: souscrit ? "actif" : "essai", essai_fin: null, public_tarif: "proprietaire_direct", unites_facturees: 1, en_ligne_possible: true, grille, unites_a_couvrir: 1, unites_souscrites: souscrit ? 1 : null }],
+        data: [{ statut: souscrit ? "active" : "essai", ecriture_ouverte: ecritureOuverte, essai_fin: null, public_tarif: "proprietaire_direct", unites_facturees: 1, en_ligne_possible: true, grille, unites_a_couvrir: 1, unites_souscrites: souscrit ? 1 : null }],
         error: null,
       };
     }
@@ -209,6 +225,15 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     expect(r.erreur).toBe(MOTIF_IDENTITE);
   });
 
+  it("essai arrivé à son terme (gelé en lecture seule, statut encore « essai ») : la phrase sans « Votre essai continue »", async () => {
+    etat(GRILLE, false, false);
+    identite(EDITEUR_VIDE);
+    const r = await demarrerAbonnement("org-1", {}, souscrire());
+    expect(r.erreur).toBe(MOTIF_IDENTITE_HORS_ESSAI);
+    expect(r.erreur).not.toContain("Votre essai continue");
+    expect(mocks.retrieve).not.toHaveBeenCalled();
+  });
+
   it("laisse passer une identité complète : le flux atteint l'enregistrement du client", async () => {
     etat(GRILLE);
     const r = await demarrerAbonnement("org-1", {}, souscrire());
@@ -271,11 +296,12 @@ describe("souscription : la version en vigueur des conditions générales, accep
 });
 
 describe("hausse de capacité : l'identité de l'éditeur seulement", () => {
-  it("refuse une hausse quand l'identité manque, avant tout calcul de prorata", async () => {
+  it("refuse une hausse quand l'identité manque, avant tout calcul de prorata — sans « Votre essai continue » : le client est abonné", async () => {
     etat(GRILLE, true);
     identite(EDITEUR_VIDE);
     const r = await confirmerHausse("org-1", {}, hausse());
-    expect(r.erreur).toBe(MOTIF_IDENTITE);
+    expect(r.erreur).toBe(MOTIF_IDENTITE_HORS_ESSAI);
+    expect(r.erreur).not.toContain("Votre essai continue");
     expect(appelsRpc()).not.toContain("ma_souscription_stripe");
     expect(mocks.apercu).not.toHaveBeenCalled();
     expect(mocks.appliquerHausse).not.toHaveBeenCalled();
@@ -341,9 +367,26 @@ describe("les phrases de la garde ne ressemblent pas à une erreur d'écran", ()
     /Lecture impossible/i,
     /n.ont pas pu être lues|n.a pas pu être lue/i,
   ];
-  for (const phrase of [MOTIF_IDENTITE, MOTIF_CONDITIONS]) {
+  // Les cinq phrases visibles du lot (plan, étape 6, point 4) : les deux
+  // motifs, leur variante hors essai, et les deux erreurs en role=alert.
+  for (const phrase of [
+    MOTIF_IDENTITE,
+    MOTIF_IDENTITE_HORS_ESSAI,
+    MOTIF_CONDITIONS,
+    ERREUR_CONDITIONS_PERIMEES,
+    ERREUR_ACCEPTATION_CONDITIONS,
+  ]) {
     it(`« ${phrase.slice(0, 40)}… » passe la recette`, () => {
       for (const motif of MESSAGES_D_ERREUR) expect(phrase).not.toMatch(motif);
     });
   }
+
+  it("le motif identité commence comme les motifs Stripe et TVA : le parcours local e2e/abonnement.spec.ts s'y accroche", () => {
+    // Plan, étapes 1 et 6 : « n'est pas encore ouvert » (apostrophe droite,
+    // comme ses voisins ; le parcours tolère les deux).
+    expect(MOTIF_IDENTITE).toMatch(/n[’']est pas encore ouvert/);
+    expect(MOTIF_IDENTITE_HORS_ESSAI).toMatch(/n[’']est pas encore ouvert/);
+    expect(MOTIF_IDENTITE).toContain("n'est pas encore ouvert");
+    expect(MOTIF_IDENTITE.startsWith(MOTIF_IDENTITE_HORS_ESSAI)).toBe(true);
+  });
 });

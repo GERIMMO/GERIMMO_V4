@@ -1,8 +1,8 @@
 import "server-only";
 import type { createClient } from "@/lib/supabase/server";
-import { CONDITIONS_VERSION } from "@/lib/editeur";
+import { CONDITIONS_VERSION, type FaitEditeur } from "@/lib/editeur";
 import { lireEditeur } from "@/lib/editeur-serveur";
-import { motifIdentiteEditeur } from "@/lib/garde-souscription";
+import { motifIdentiteEditeur, type ContexteGarde } from "@/lib/garde-souscription";
 
 // Les lectures en base des deux conditions de lib/garde-souscription.ts
 // (lot B3, 19/10/2026), avec la session de la personne connectée :
@@ -15,8 +15,13 @@ import { motifIdentiteEditeur } from "@/lib/garde-souscription";
 type Client = Awaited<ReturnType<typeof createClient>>;
 
 export type GardeSouscription = {
-  /** Le motif qui ferme le paiement (identité incomplète ou illisible), sinon `null`. */
-  motifIdentite: string | null;
+  /**
+   * L'identité de l'éditeur telle que la production la tient. L'écran en tire
+   * le motif par `motifIdentiteEditeur(editeur, { enEssai })` une fois l'état
+   * du compte lu : les deux lectures se font en parallèle, la phrase se choisit
+   * après.
+   */
+  editeur: Record<string, FaitEditeur>;
   /** Vrai si le compte a une acceptation enregistrée pour la version en vigueur des conditions. */
   conditionsAcceptees: boolean;
 };
@@ -25,11 +30,12 @@ export type GardeSouscription = {
  * L'identité telle que la production la tient : `supervision_identite`
  * superposée au code (lib/editeur-serveur.ts). Une lecture en échec rend
  * l'identité du code — vide à ce jour — donc le motif : fermeture par défaut,
- * et rien n'est prélevé entre-temps.
+ * et rien n'est prélevé entre-temps. `enEssai` : voir ContexteGarde.
  */
-export async function lireMotifIdentiteEditeur(): Promise<string | null> {
+export async function lireMotifIdentiteEditeur(enEssai: boolean): Promise<string | null> {
   const { editeur } = await lireEditeur();
-  return motifIdentiteEditeur(editeur);
+  const contexte: ContexteGarde = { enEssai };
+  return motifIdentiteEditeur(editeur, contexte);
 }
 
 /**
@@ -52,9 +58,9 @@ export async function conditionsEnVigueurAccepteesPar(supabase: Client, accountI
 
 /** Les deux lectures en parallèle, pour l'écran « Mon abonnement ». */
 export async function lireGardeSouscription(supabase: Client, accountId: string): Promise<GardeSouscription> {
-  const [motifIdentite, conditionsAcceptees] = await Promise.all([
-    lireMotifIdentiteEditeur(),
+  const [{ editeur }, conditionsAcceptees] = await Promise.all([
+    lireEditeur(),
     conditionsEnVigueurAccepteesPar(supabase, accountId),
   ]);
-  return { motifIdentite, conditionsAcceptees };
+  return { editeur, conditionsAcceptees };
 }

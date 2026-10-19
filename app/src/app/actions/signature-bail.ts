@@ -62,8 +62,10 @@ export async function lireSignatureBail(org: string, bail: string, choix?: Selec
     if (error) throw new Error("Le suivi des signatures n’est pas encore disponible dans cet environnement.");
     const circuit = (data?.[0] ?? null) as CircuitBail | null;
     const fournisseur = circuit?.prestataire ?? (selection.code === "bail" ? prestataireSignature() : "zoho");
-    // Fermeture ciblée d'un modèle (ZOHO_SIGN_CAUTIONNEMENT_FERME=1) : l'envoi est indisponible, la préparation du PDF reste possible.
-    const fermeture = fermetureModeleSignature(selection.code) ?? undefined;
+    // Fermeture ciblée d'un modèle (ZOHO_SIGN_CAUTIONNEMENT_FERME=1 ou true) : l'envoi est indisponible, la préparation du PDF reste possible.
+    // Elle ne vaut que pour un NOUVEL envoi : un circuit déjà envoyé (préparation, en cours, à vérifier) garde le mode d'avant et
+    // ne porte pas le message, dont le « signer hors ligne » serait trompeur alors que les invitations sont parties (relecture du 19/10).
+    const fermeture = circuit && ["preparation", "en_cours", "a_verifier"].includes(circuit.etat) ? undefined : fermetureModeleSignature(selection.code) ?? undefined;
     const mode = fermeture ? "indisponible" : (selection.code !== "devis_artisan" || process.env.ZOHO_SIGN_DEVIS_ACTIF === "true" || signatureEnEssai(org)) && (selection.code === "bail" || (fournisseur === "zoho" && (process.env.ZOHO_SIGN_DOCUMENTS_ACTIF === "true" || signatureEnEssai(org)))) ? configurationSignatureBail(process.env,fournisseur,org)?.environnement ?? "indisponible" : "indisponible";
     // Un dossier déjà envoyé reste consultable même si ses données courantes ont changé.
     if (circuit && circuit.etat !== "pret") return { bailId:circuit.bail_id, selection:selectionDuCircuit(circuit), circuit, signataires:circuit.signataires, annexes:circuit.annexes, mode, essai:signatureEnEssai(org) || circuit.essai, fermeture };

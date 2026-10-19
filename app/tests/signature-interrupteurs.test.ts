@@ -1,9 +1,10 @@
 /**
  * Lot B7 — interrupteur du seul modèle « cautionnement ».
  *
- * `ZOHO_SIGN_CAUTIONNEMENT_FERME` est lue côté serveur seulement : la valeur exacte « 1 » suspend l'ENVOI en
- * signature électronique de l'acte de cautionnement pour toutes les organisations, essais compris. Absente, vide ou
- * toute autre valeur : ouvert, comportement d'avant inchangé. Les autres modèles ne sont jamais concernés.
+ * `ZOHO_SIGN_CAUTIONNEMENT_FERME` est lue côté serveur seulement : la valeur « 1 » ou « true » (espaces autour
+ * ignorés, décision du 19/10) suspend l'ENVOI en signature électronique de l'acte de cautionnement pour toutes les
+ * organisations, essais compris. Absente, vide ou toute autre valeur : ouvert, comportement d'avant inchangé. Les
+ * autres modèles ne sont jamais concernés.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -27,7 +28,12 @@ describe("Interrupteur du modèle cautionnement", () => {
     );
   });
 
-  it.each(["0", "true", "TRUE", "01", "oui", "false", "fermé"])("toute autre valeur (%j) laisse ouvert", (valeur) => {
+  // Décision du 19/10 : « true », la forme des autres drapeaux ZOHO_SIGN_*, ferme aussi ; un espace autour est ignoré.
+  it.each(["true", " 1 ", "true ", "\t1\n"])("« %j » ferme aussi le cautionnement", (valeur) => {
+    expect(fermetureModeleSignature("cautionnement", { ZOHO_SIGN_CAUTIONNEMENT_FERME: valeur })).toBe(MESSAGE_CAUTIONNEMENT_FERME);
+  });
+
+  it.each(["0", "TRUE", "01", "oui", "false", "fermé", "1 1", "yes"])("toute autre valeur (%j) laisse ouvert", (valeur) => {
     expect(fermetureModeleSignature("cautionnement", { ZOHO_SIGN_CAUTIONNEMENT_FERME: valeur })).toBeNull();
   });
 

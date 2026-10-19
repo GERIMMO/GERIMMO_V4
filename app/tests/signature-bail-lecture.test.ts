@@ -2,8 +2,11 @@
  * Lot B7 — lecture de la vue de signature quand le cautionnement est fermé.
  *
  * `lireSignatureBail` rend `mode: "indisponible"` et le message exact dans `fermeture` pour le seul acte de
- * cautionnement lorsque `ZOHO_SIGN_CAUTIONNEMENT_FERME` vaut « 1 » ; le bail et les autres actes ne changent pas, et
- * la préparation du PDF reste possible (seul l'envoi est fermé).
+ * cautionnement lorsque `ZOHO_SIGN_CAUTIONNEMENT_FERME` vaut « 1 » (ou « true ») ; le bail et les autres actes ne
+ * changent pas, et la préparation du PDF reste possible (seul l'envoi est fermé).
+ *
+ * Correction du 19/10 (relecture) : la fermeture ne concerne qu'un NOUVEL envoi. Un circuit déjà envoyé (préparation,
+ * en cours, à vérifier) garde le mode d'avant et aucun message : ses invitations sont parties, rien n'est suspendu.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const m = vi.hoisted(() => ({ acces: vi.fn(), rpc: vi.fn(), assembler: vi.fn(), rendu: vi.fn(), circuits: [] as Record<string, unknown>[] }));
@@ -84,15 +87,24 @@ describe("Fermeture du cautionnement à la lecture", () => {
     expect(avenant.mode).toBe("production");
     expect(avenant.fermeture).toBeUndefined();
   });
-  it("un acte déjà envoyé reste consultable et porte le message", async () => {
+  it.each(["preparation", "en_cours", "a_verifier"] as const)("un acte déjà envoyé (%s) reste consultable, garde le mode d’avant et ne porte pas le message", async (etat) => {
     vi.stubEnv("ZOHO_SIGN_DOCUMENTS_ACTIF", "true");
     vi.stubEnv("ZOHO_SIGN_CAUTIONNEMENT_FERME", "1");
-    m.circuits = [{ id: "c1", bail_id: BAIL, modele: "cautionnement", cible_id: BAIL, options: { garant: GARANT }, prestataire: "zoho", etat: "en_cours", signataires: [], annexes: [], essai: false }];
+    m.circuits = [{ id: "c1", bail_id: BAIL, modele: "cautionnement", cible_id: BAIL, options: { garant: GARANT }, prestataire: "zoho", etat, signataires: [], annexes: [], essai: false }];
     const vue = await lireSignatureBail(ORG, BAIL, CAUTION);
+    expect(vue.erreur).toBeUndefined();
     expect(vue.circuit?.id).toBe("c1");
+    // Les invitations sont parties : aucun nouvel envoi n'est en jeu, le texte « suspendu … hors ligne » serait trompeur.
+    expect(vue.mode).toBe("production");
+    expect(vue.fermeture).toBeUndefined();
+    expect(m.assembler).not.toHaveBeenCalled();
+  });
+  it("« true » ferme aussi la lecture du cautionnement (décision du 19/10)", async () => {
+    vi.stubEnv("ZOHO_SIGN_DOCUMENTS_ACTIF", "true");
+    vi.stubEnv("ZOHO_SIGN_CAUTIONNEMENT_FERME", "true");
+    const vue = await lireSignatureBail(ORG, BAIL, CAUTION);
     expect(vue.mode).toBe("indisponible");
     expect(vue.fermeture).toBe(MESSAGE_CAUTIONNEMENT_FERME);
-    expect(m.assembler).not.toHaveBeenCalled();
   });
   it("un PDF déjà préparé reste listé avec le message", async () => {
     vi.stubEnv("ZOHO_SIGN_DOCUMENTS_ACTIF", "true");

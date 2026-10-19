@@ -52,7 +52,8 @@ describe('Garde avant tout envoi du bail',()=>{
  });
  it('la fermeture du cautionnement ne touche pas le bail',async()=>{vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','1');expect((await envoyer()).erreur).toContain('correspond plus au PDF préparé');aucunEnvoi();});
  it('la fermeture du cautionnement ne ferme pas un autre acte',async()=>{m.circuit.modele='avenant';vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','1');vi.stubEnv('ZOHO_SIGN_DOCUMENTS_ACTIF','true');expect((await envoyer()).erreur).toContain('signé avec Zoho');aucunEnvoi();});
- it('une valeur autre que « 1 » laisse le cautionnement suivre son parcours habituel',async()=>{m.circuit.modele='cautionnement';vi.stubEnv('ZOHO_SIGN_DOCUMENTS_ACTIF','true');vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','true');expect((await envoyer()).erreur).toContain('signé avec Zoho');aucunEnvoi();});
+ it('« true » (décision du 19/10) ferme aussi l’envoi du cautionnement',async()=>{m.circuit.modele='cautionnement';m.circuit.prestataire='zoho';vi.stubEnv('ZOHO_SIGN_DOCUMENTS_ACTIF','true');vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','true');expect((await envoyer()).erreur).toContain('cautionnement est suspendu');aucunEnvoi();expect(m.download).not.toHaveBeenCalled();});
+ it('une valeur autre que « 1 » ou « true » laisse le cautionnement suivre son parcours habituel',async()=>{m.circuit.modele='cautionnement';vi.stubEnv('ZOHO_SIGN_DOCUMENTS_ACTIF','true');vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','oui');expect((await envoyer()).erreur).toContain('signé avec Zoho');aucunEnvoi();});
  it('un circuit de caution déjà envoyé reste annulable malgré la fermeture',async()=>{
   m.circuit.modele='cautionnement';m.circuit.etat='en_cours';vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','1');m.lire.mockResolvedValue({id:'req',external_id:'autre',status:'ongoing'});
   expect((await annulerSignatureBail('org','11111111-1111-4111-8111-111111111111','circuit')).erreur).toContain('correspond pas');expect(m.lire).toHaveBeenCalled();

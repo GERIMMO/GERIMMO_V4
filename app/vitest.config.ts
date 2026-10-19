@@ -23,6 +23,9 @@ import { configDefaults, defineConfig } from "vitest/config";
 export const FICHIERS_EN_SERIE = [
   // Réécriture temporaire des fonctions d’abonnement et du jour de Paris, annulée après chaque cas.
   "tests/abonnement-jour-paris-migration.test.ts",
+  // Audit du 19/10 (B5) : rejeu de 20261019124000 et de son retour (drop/create de l'index signature_devis_une_offre, verrou
+  // exclusif sur bail_signature_circuits) et horloge de Paris figée (réécriture temporaire d'aujourdhui_paris()).
+  "tests/devis-signes-sort-et-jour-de-paris-rejeu.test.ts",
   // Fixtures historiques de signature manuelle : suspension temporaire du garde des nouveaux envois.
   "tests/audit-securite-2026-09-27.test.ts",
   "tests/supprimer-bail-brouillon-base.test.ts",

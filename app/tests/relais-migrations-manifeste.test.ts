@@ -55,6 +55,8 @@ const MISSION_OCTOBRE = [
   "20261018185515_signatures_documents_budget.sql",
   "20261018193308_signature_devis_accord_client.sql",
   "20261018231827_abonnement_jour_paris.sql",
+  // Audit du 19/10, lot B5 : sort du devis signé et jour de Paris des devis.
+  "20261019124000_devis_signes_sort_et_jour_de_paris.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

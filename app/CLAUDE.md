@@ -32,8 +32,14 @@ flou), le mentionner à l'humain pour déclencher une recherche de source.
 - Composants dans `src/components/`, logique Supabase dans `src/lib/supabase/`.
 - Variables d'environnement : `.env.local` (jamais commité) ; documenter toute
   nouvelle variable dans `.env.example`.
-- Schéma de base : migrations via l'outil MCP Supabase (`apply_migration`),
-  jamais de DDL sauvage en production.
+- Schéma de base : fichiers de `supabase/migrations/`, appliqués en production **uniquement** par le chantier
+  GitHub « Migrations Supabase » (`.github/workflows/migrations.yml`) : simulation d'abord, puis application avec
+  les mêmes fichiers nommés un à un dans l'ordre. Le chantier refuse d'appliquer sans « Sauvegarde quotidienne »
+  réussie depuis moins de 90 min, et refuse un contenu déjà appliqué sous un autre numéro (garde par empreinte).
+  Jamais par l'outil MCP Supabase `apply_migration`, ni par un outil SQL en écriture, ni par du DDL à la main :
+  l'outil MCP sert au SELECT seulement. Protocole et conventions (rejouable, `search_path = ''`,
+  `fermer_fonctions_a_anon()`, retour arrière, manifeste `e2e/local/ordre-migrations.txt`) :
+  `../wiki/syntheses/Prompt de passation à Codex — état du 16 octobre 2026.md` § 6.
 
 ## Commandes
 

@@ -22,6 +22,25 @@
 # la base a enregistré la même migration sous 20260911014814. Une détection
 # automatique la croirait absente et la REJOUERAIT. On nomme donc ce qu'on
 # applique — le chantier affiche l'historique pour aider à choisir.
+#
+# SAUVEGARDE D'ABORD (19/10 ; protocole § 6, étapes 5 puis 6). « simulation » décoché : l'application est
+# REFUSÉE si aucune « Sauvegarde quotidienne » n'a RÉUSSI depuis SAUVEGARDE_MAX_MINUTES (90). La preuve se lit
+# dans la base elle-même, par la même connexion psql : la ligne `public.tech_log` (evenement = 'tache_sauvegarde',
+# sans auteur, echecs = 0) que sauvegarde.yml écrit en fin de passage réussi (étape « Consigner le passage dans
+# Gerimmo »). Aucune entrée de contournement : si la garde refuse, lancer la sauvegarde à la demande, attendre son
+# succès, relancer. Le 18/10, deux des trois applications réelles (3 h 10 et 6 h 51 après la dernière sauvegarde)
+# auraient été refusées.
+#
+# ÉQUIVALENCES CONNUES — fichier du dépôt → version enregistrée en base (ne JAMAIS nommer ces fichiers ici ;
+# relevé en lecture seule du 19/10) :
+#   20260911124500_restitution_rearrete_sous_verrou.sql → 20260911014814  (fichier renommé le 11/09 ; son texte a
+#       changé depuis : 6 140 octets au dépôt contre 3 808 enregistrés — seule cette liste le signale)
+#   20261017180829_supervision_finances.sql             → 20261018071151  (appliquée HORS chantier le 18/10, outil MCP)
+#   20261018061548_supervision_complete.sql             → 20261018071200  (idem)
+#   20261018071556_supervision_index_relations.sql      → 20261018071811  (idem)
+# Pour les trois du 18/10, le texte enregistré en base (`statements`) est celui du fichier, octet pour octet
+# (md5 comparés le 19/10) : la garde par empreinte de l'étape « Appliquer » les refuse d'elle-même en nommant
+# le fichier et la version. Cette liste sert à l'humain qui s'apprête à nommer un fichier.
 
 name: Migrations Supabase
 
@@ -38,6 +57,10 @@ on:
         type: boolean
         default: true
 
+# Lecture seule du dépôt : actions/checkout n'a besoin de rien d'autre, et la base se joint par son propre secret.
+permissions:
+  contents: read
+
 concurrency:
   group: migrations-production
   cancel-in-progress: false
@@ -52,6 +75,41 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client
+
+      # SAUVEGARDE D'ABORD (protocole § 6, étapes 5 puis 6). Une application réelle n'est acceptée que si une
+      # « Sauvegarde quotidienne » a RÉUSSI depuis moins de SAUVEGARDE_MAX_MINUTES. La preuve se lit dans la base
+      # elle-même : la ligne `tech_log` (evenement = 'tache_sauvegarde', sans auteur, echecs = 0) que sauvegarde.yml
+      # écrit en fin de passage réussi (étape « Consigner le passage dans Gerimmo »). Même connexion psql que
+      # l'application, aucun droit GitHub supplémentaire. En simulation : affiché, jamais bloquant. La sortie ne
+      # contient qu'un nombre de minutes et un préfixe daté.
+      - name: Garde — une sauvegarde réussie récente
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          REF: rddlxunppddzpsaatdaz
+          REGION: eu-west-3
+          SIMULATION: ${{ inputs.simulation }}
+          SAUVEGARDE_MAX_MINUTES: "90"
+        run: |
+          set -euo pipefail
+          URL="postgresql://postgres.${REF}@aws-0-${REGION}.pooler.supabase.com:5432/postgres"
+          LIGNE="$(psql "$URL" -v ON_ERROR_STOP=1 -At -f app/scripts/sauvegarde/age-derniere-sauvegarde.sql)"
+          AGE="${LIGNE%%|*}"; PREFIXE="${LIGNE#*|}"
+          case "$AGE" in ''|*[!0-9-]*) echo "✗ âge de la dernière sauvegarde illisible : « $LIGNE »" >&2; exit 1;; esac
+          if [ "$AGE" -lt 0 ]; then
+            echo "— aucune sauvegarde réussie consignée dans tech_log"
+          else
+            echo "— dernière sauvegarde réussie : il y a $AGE min (préfixe $PREFIXE) ; seuil ${SAUVEGARDE_MAX_MINUTES} min"
+          fi
+          RECENTE=oui
+          if [ "$AGE" -lt 0 ] || [ "$AGE" -gt "$SAUVEGARDE_MAX_MINUTES" ]; then RECENTE=non; fi
+          if [ "$SIMULATION" != "true" ] && [ "$RECENTE" = non ]; then
+            echo "✗ Application refusée : aucune « Sauvegarde quotidienne » réussie depuis ${SAUVEGARDE_MAX_MINUTES} min." >&2
+            echo "  Actions → « Sauvegarde quotidienne » → Run workflow (branche main) ; attendre son succès ; relancer ce chantier." >&2
+            exit 1
+          fi
+          if [ "$RECENTE" = non ]; then
+            echo "  simulation : rien n'est bloqué ici, mais l'application réelle serait refusée en l'état."
+          fi
 
       - name: Appliquer
         env:
@@ -68,9 +126,11 @@ jobs:
           cd app/supabase/migrations
 
           echo "— historique déjà en base"
-          psql "$URL" -Atc \
-            "select version from supabase_migrations.schema_migrations order by version" \
-            > /tmp/deja.txt
+          # Version et empreinte (md5 du texte enregistré dans `statements`) : la seconde sert à la garde par contenu.
+          psql "$URL" -v ON_ERROR_STOP=1 -Atc \
+            "select version || ' ' || coalesce(md5(array_to_string(statements, E'\n')), '-') from supabase_migrations.schema_migrations order by version" \
+            > /tmp/deja-empreintes.txt
+          cut -d' ' -f1 /tmp/deja-empreintes.txt > /tmp/deja.txt
           echo "  $(wc -l < /tmp/deja.txt) migrations enregistrées"
 
           echo "— dix dernières versions enregistrées"
@@ -102,6 +162,23 @@ jobs:
             v="${f%%_*}"
             if grep -qx "$v" /tmp/deja.txt; then
               echo "✗ $f : la version $v est déjà enregistrée en base." >&2
+              exit 1
+            fi
+          done
+
+          # Garde-fou : refuser un CONTENU déjà appliqué sous un autre numéro. Un fichier renommé, ou une migration
+          # passée hors chantier (18/10 : trois fichiers joués par l'outil MCP, enregistrés sous l'heure de leur
+          # application et non sous celle de leur nom), n'a pas sa version en base : la garde ci-dessus le laisse
+          # passer et il serait REJOUÉ. L'empreinte md5 du fichier, octet pour octet, est comparée à celle du texte
+          # enregistré en base (`statements`). Les versions passées par ce chantier portent le texte « appliquée par
+          # le chantier GitHub », jamais celui du fichier : elles n'entrent pas en jeu.
+          for f in $LISTE; do
+            [ -f "$f" ] || { echo "✗ fichier introuvable : $f" >&2; exit 1; }
+            v="${f%%_*}"
+            empreinte="$(md5sum < "$f" | cut -d' ' -f1)"
+            v_base="$(awk -v e="$empreinte" -v v="$v" '$2 == e && $1 != v { print $1; exit }' /tmp/deja-empreintes.txt)"
+            if [ -n "$v_base" ]; then
+              echo "✗ $f : ce contenu exact (md5 $empreinte) est déjà appliqué en base sous la version $v_base — fichier renommé ou passé hors chantier ; ne pas le rejouer." >&2
               exit 1
             fi
           done

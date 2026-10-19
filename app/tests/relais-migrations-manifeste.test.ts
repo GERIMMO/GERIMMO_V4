@@ -55,6 +55,8 @@ const MISSION_OCTOBRE = [
   "20261018185515_signatures_documents_budget.sql",
   "20261018193308_signature_devis_accord_client.sql",
   "20261018231827_abonnement_jour_paris.sql",
+  // Lot M2 de l'audit du 19/10 : la table liste_attente (créée hors dépôt le 29/09) entre au dépôt et se borne.
+  "20261019120000_liste_attente_bornee.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

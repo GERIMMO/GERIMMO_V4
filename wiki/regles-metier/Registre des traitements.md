@@ -3,7 +3,7 @@ type: business-rule
 tags: [rgpd, registre, traitements, sous-traitance, conformite]
 status: draft
 created: 2026-09-20
-updated: 2026-10-16
+updated: 2026-10-19
 sources: ["[[RGPD]]", "[[Socle de sécurité]]", "[[Plan de reprise d'activité]]", "[[Modèle de données]]", "[[Modèle de rôles et permissions]]", "[[Grille tarifaire]]", "[[Canaux de communication]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]"]
 ---
 
@@ -61,6 +61,7 @@ actée dans [[RGPD]] (A2, 2026-07-24).
 | P7 | **Courriers du service** | Envoyer quittances, avis d'échéance, relances, rappels de rendez-vous, courriers d'abonnement | Contrat (pour le compte des organisations, voir volet 2) | Locataires, artisans, responsables | Adresse électronique, contenu du courrier | Resend — domaine d'envoi en région **eu-west-1 (Irlande)**, constaté le 27/09 ; chiffrement TLS **imposé** à la remise (« Enforced », 27/09) ; société établie aux États-Unis | Chez Gerimmo : traces d'envoi dans les tables métier ; chez Resend : **à vérifier** |
 | P8 | **Assistance rédactionnelle de la supervision** (ajout du 27/09, audit sécurité) | Préparer l'étude de la veille réglementaire, les brouillons et illustrations du Journal, l'aide à la décision du matin | Intérêt légitime | — | Textes éditoriaux et actualités publiques, **sans donnée de locataire ni de bailleur** d'après le code (`lib/analyse-veille.ts`, `lib/visuel-marketing.ts`, `admin/brief`, `admin/publications`) | OpenAI — États-Unis (**transfert hors UE**) | Chez OpenAI : **à vérifier** |
 | P9 | **Publication du Journal sur Facebook** (ajout du 27/09, audit sécurité) | Diffuser les articles du Journal sur la page Facebook de Gerimmo | Intérêt légitime | — | Titre, texte et illustration de l'article, sans donnée personnelle (`lib/facebook.ts`) | Meta (Facebook) — Irlande, avec transfert vers les États-Unis | Chez Meta : **à vérifier** |
+| P10 | **Liste d'attente du site** (ajout du 19/10, audit M2 : table `liste_attente` créée hors dépôt le 29/09, intégrée, bornée et plafonnée par `20261019120000_liste_attente_bornee.sql`) | Recontacter les visiteurs qui laissent leur adresse en attendant l'ouverture du service — usage à confirmer par le dirigeant | **À décider par le dirigeant / DPO** (consentement ou mesures précontractuelles) | Visiteurs du site vitrine (prospects) | Adresse électronique ; en option le nombre de biens (`biens`) et la page d'origine (`source`) ; horodatage. Inscription anonyme par la clé publiable, 30 par heure au plus ; aucune lecture par le site | Supervision (lecture par la clé de service seulement) ; Supabase (Paris) | **À décider par le dirigeant / DPO** — aucune règle `retention_rules` à ce jour ; 0 ligne au relevé du 19/10 |
 
 ## Volet 2 — Gerimmo sous-traitant (gestion locative)
 

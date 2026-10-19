@@ -391,3 +391,4 @@
 20261019120500_relance_abonnement_periodicite.sql
 20261019121000_droits_anon_contact_articles_et_prospects.sql
 20261019122000_relais_point_demandes_contact.sql
+20261019123000_identite_editeur_prestataires.sql

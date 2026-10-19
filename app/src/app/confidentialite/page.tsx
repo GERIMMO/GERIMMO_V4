@@ -1,7 +1,7 @@
 import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
 import { AFournir, Article, CoquilleLegale, TableauPrestataires } from "@/components/coquille-legale";
-import { courrielDeContact, documentsIncomplets, prestatairesIncomplets } from "@/lib/editeur";
+import { courrielDeContact, documentsIncomplets, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 export const metadata = metadonneesPubliques({
@@ -30,12 +30,17 @@ export default async function PageConfidentialite() {
   // compte, l'adresse de contact de l'éditeur pour tous, dès qu'elle est
   // fournie (lib/editeur.ts).
   const contact = courrielDeContact(EDITEUR);
+  // 19/10 : la liste du code complétée par la saisie (localisation de la BAN).
+  // La page n'affiche pas les coordonnées : sa réserve ne porte que sur les
+  // localisations.
+  const prestataires = prestatairesAvecFaits(EDITEUR);
   return (
     <CoquilleLegale
       titre="Confidentialité"
       chapo="Ce que nous faisons de vos données, et ce que nous n'en faisons pas."
       chemin="/confidentialite"
-      incomplet={(indisponible || documentsIncomplets(EDITEUR)) || prestatairesIncomplets()}
+      incomplet={indisponible || documentsIncomplets(EDITEUR) || prestatairesIncomplets(prestataires)}
+      courriel={contact}
     >
       <Article titre="Qui est responsable de quoi">
         <p>
@@ -190,7 +195,7 @@ export default async function PageConfidentialite() {
           Data Privacy Framework UE–États-Unis, selon le prestataire.
         </p>
         {/* La même liste que les mentions légales (lib/editeur.ts). */}
-        <TableauPrestataires />
+        <TableauPrestataires prestataires={prestataires} />
         <p>
           Au sein de Gerimmo, seule la supervision technique peut accéder aux
           données en dehors de votre organisation ; cet accès exige un second

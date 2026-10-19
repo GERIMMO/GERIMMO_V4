@@ -117,6 +117,9 @@ export const FICHIERS_EN_SERIE = [
   // recréées (dont `aujourdhui_paris()` en cascade, qui retire les valeurs par défaut d'ecritures et de depot_encaissements).
   "tests/jour-de-paris-restitution-migration-rejeu.test.ts",
   "tests/jour-paris-complements-oct16.test.ts",
+  // Identité de l'éditeur, clés des prestataires (19/10) : rejeu de 20261019123000 et de son retour (`alter table` sur
+  // supervision_identite, déclencheur de traçage suspendu le temps du retour) dans la transaction du test.
+  "tests/identite-prestataires-migration-rejeu.test.ts",
 ];
 
 export default defineConfig({

@@ -61,6 +61,8 @@ const MISSION_OCTOBRE = [
   "20261019121000_droits_anon_contact_articles_et_prospects.sql",
   // M16 (audit du 19/10) : les demandes de contact du site vitrine comptées dans l'e-mail de 5 h.
   "20261019122000_relais_point_demandes_contact.sql",
+  // 19/10, lot « pages légales » : clés des prestataires dans supervision_identite.
+  "20261019123000_identite_editeur_prestataires.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

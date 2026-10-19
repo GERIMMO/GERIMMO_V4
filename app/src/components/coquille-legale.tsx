@@ -1,12 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
-import {
-  FORMULAIRE_ACCUEIL,
-  PRESTATAIRES,
-  courrielDeContact,
-  type FaitEditeur,
-} from "@/lib/editeur";
+import { FORMULAIRE_ACCUEIL, type FaitEditeur, type Prestataire } from "@/lib/editeur";
 
 // Coquille des pages légales : mentions légales, conditions générales,
 // confidentialité. Les trois avaient chacune leur en-tête avant le 11/09 —
@@ -42,9 +37,13 @@ export function Fait({ valeur, quoi }: { valeur: FaitEditeur; quoi: string }) {
  * fournie, sinon le formulaire de l'accueil sous son vrai nom. Se lit après
  * « écrivez-nous » : « … à l'adresse x » ou « … depuis le formulaire… ».
  * `objet` : ce qu'il faut préciser, par exemple « données personnelles ».
+ *
+ * 19/10 : `courriel` vient de la page, qui le lit en base (lireEditeur). Le
+ * composant appelait lui-même `courrielDeContact` sans argument : il lisait la
+ * constante du code, nulle à jamais, et renvoyait au formulaire même une fois
+ * l'adresse saisie dans les paramètres.
  */
-export function OuNousEcrire({ objet }: { objet?: string }) {
-  const courriel = courrielDeContact();
+export function OuNousEcrire({ courriel, objet }: { courriel: string | null; objet?: string }) {
   if (courriel) {
     const sujet = objet ? `?subject=${encodeURIComponent(objet)}` : "";
     return (
@@ -71,8 +70,18 @@ export function OuNousEcrire({ objet }: { objet?: string }) {
 /**
  * Les prestataires du service, en un seul tableau (24/09) : mentions légales
  * et confidentialité en tenaient chacune une version, qui divergeaient.
+ *
+ * 19/10 : la page passe la liste fusionnée avec les faits saisis
+ * (`prestatairesAvecFaits`) ; le composant ne lit plus la constante du code.
+ * `coordonnees` ajoute la colonne « Coordonnées » (mentions légales).
  */
-export function TableauPrestataires() {
+export function TableauPrestataires({
+  prestataires,
+  coordonnees = false,
+}: {
+  prestataires: readonly Prestataire[];
+  coordonnees?: boolean;
+}) {
   return (
     <div className="tableau-defilant tableau-fiches">
       <table className="tableau">
@@ -81,16 +90,22 @@ export function TableauPrestataires() {
             <th>Prestataire</th>
             <th>Rôle</th>
             <th>Localisation</th>
+            {coordonnees && <th>Coordonnées</th>}
           </tr>
         </thead>
         <tbody>
-          {PRESTATAIRES.map((p) => (
-            <tr key={p.nom}>
+          {prestataires.map((p) => (
+            <tr key={p.cle}>
               <td>{p.nom}</td>
               <td data-libelle="Rôle">{p.role}</td>
               <td data-libelle="Localisation">
                 <Fait valeur={p.localisation} quoi="localisation" />
               </td>
+              {coordonnees && (
+                <td data-libelle="Coordonnées" className="whitespace-pre-line">
+                  <Fait valeur={p.coordonnees ?? null} quoi="dénomination, adresse et téléphone" />
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -104,12 +119,15 @@ export function CoquilleLegale({
   chapo,
   chemin,
   incomplet,
+  courriel,
   children,
 }: {
   titre: string;
   chapo?: ReactNode;
   /** Le chemin de la page : son lien est marqué dans le pied. */
   chemin: "/mentions-legales" | "/conditions" | "/confidentialite";
+  /** L'adresse de contact saisie par l'éditeur, ou `null` : l'encadré renvoie alors au formulaire de l'accueil. */
+  courriel: string | null;
   /**
    * Vrai s'il reste une réserve sur la page — fait d'éditeur manquant OU
    * réserve propre à la page. Chaque page le calcule (24/09) : l'encadré
@@ -140,7 +158,7 @@ export function CoquilleLegale({
               <b className="font-semibold">Document en cours de finalisation.</b>{" "}
               Certaines informations de ce document restent à préciser ; les
               passages concernés portent ci-dessous la mention « à venir ».
-              Pour toute question sur ce document, écrivez-nous <OuNousEcrire />.
+              Pour toute question sur ce document, écrivez-nous <OuNousEcrire courriel={courriel} />.
             </p>
           </div>
         )}

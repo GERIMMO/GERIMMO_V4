@@ -5,10 +5,10 @@
  *    lignes, fermées à anon, authenticated et service_role (droits de table ET par colonne), RLS actif, commentaire
  *    « Conservée » ; les versions des fichiers ET celles enregistrées en production (supervision) retirées, la sentinelle
  *    gardée ; les fonctions rétablies sont au texte exact des migrations citées (empreinte comparée) ;
- *  — rejeu sans effet ; gardes d'ordre ; garde « en vol » (circuit chez le prestataire) ; garde des doublons de circuits
+ *  — rejeu sans effet ; gardes d'ordre (cause prouvée pour 100243) ; garde « en vol » (circuit chez le prestataire) ; garde des doublons de circuits
  *    actifs ; atomicité ; marche avant après suppression manuelle des objets conservés.
  * Sans base : forme des huit fichiers (transaction externe, aucun `drop table` ni `drop column`, fermeture à anon dès
- * qu'une fonction est touchée, versions retirées) et LISEZ-MOI (chaque fichier cité, chaîne complète dans l'ordre).
+ * qu'une fonction est touchée, versions retirées, `comment on column` gardé par l'existence de la colonne) et LISEZ-MOI (chaque fichier cité, chaîne complète dans l'ordre).
  */
 import { readFileSync } from 'node:fs';
 import { Client } from 'pg';
@@ -72,6 +72,14 @@ describe('les huit retours du lot « supervision et signatures » : forme des fi
     expect([...clauses[0][1].matchAll(/'(\d{14})'/g)].map((m) => m[1]).sort()).toEqual([...versions(f)].sort());
     // Dépôt public : aucune adresse réelle.
     expect(source).not.toMatch(/[\w.+-]+@[\w-]+\.[a-z]{2,}/i);
+  });
+  it.each(CHAINE)('%s : chaque `comment on column` est gardé par l’existence de la colonne, jamais par la seule table', (f) => {
+    // Un `comment on column` sur une colonne absente ferait échouer toute la transaction : la garde cite la colonne dans
+    // information_schema.columns (forme du retour de 20261018061548), pas seulement la table dans to_regclass.
+    const code = sansCommentaires(sql(f, true));
+    for (const [, table, colonne] of code.matchAll(/comment on column public\.(\w+)\.(\w+) is/g)) {
+      expect(code, `${f} : ${table}.${colonne}`).toContain(`table_name = '${table}' and column_name = '${colonne}'`);
+    }
   });
   it('le LISEZ-MOI cite les huit fichiers et donne une seule chaîne complète, dans l’ordre inverse du manifeste', () => {
     const texte = lisezMoi();
@@ -291,6 +299,14 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
     for (const f of prealables) await db.query(sql(f, true));
     const avant = await etat();
     const versions = await versionsPresentes();
+    if (hors_ordre === CHAINE[3]) {
+      // Preuve de la cause (le message de 20261018100243 nomme toujours les trois migrations) : après les retours de 193308 et
+      // 185515, ses deux premières conditions sont déjà fausses ; seule la colonne prestataire encore citée par
+      // archiver_signature_bail (20261018143644) déclenche le refus.
+      expect(await existe('public.reserver_budget_signature(uuid)')).toBe(false);
+      expect(await contrainte('signature_devis_cible')).toBe(false);
+      expect(await def('public.archiver_signature_bail(uuid,uuid,jsonb)')).toContain('v.prestataire');
+    }
     await db.query('savepoint ordre');
     await expect(db.query(sql(hors_ordre, true))).rejects.toThrow(attendu);
     await db.query('rollback to savepoint ordre');

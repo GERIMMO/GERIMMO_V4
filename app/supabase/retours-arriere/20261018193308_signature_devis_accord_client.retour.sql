@@ -120,13 +120,14 @@ drop index if exists public.signature_devis_une_offre;
 drop index if exists public.signature_incident_org;
 alter table if exists public.bail_signature_circuits drop constraint if exists signature_devis_cible;
 
--- (g) Dit en base ce qui est conservé et pourquoi.
+-- (g) Dit en base ce qui est conservé et pourquoi. Gardé par l'existence de la COLONNE (comme le retour de
+-- 20261018061548) : un `comment on column` sur une colonne absente ferait échouer toute la transaction.
 do $conserve$
 begin
-  if to_regclass('public.bail_signature_circuits') is not null then
+  if exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'bail_signature_circuits' and column_name = 'incident_id') then
     execute $c$comment on column public.bail_signature_circuits.incident_id is 'Conservée après le retour de 20261018193308 : dossier d''incident du circuit devis_artisan archivé (preuve) ; plus aucune lecture par l''application.'$c$;
   end if;
-  if to_regclass('public.signature_budget') is not null then
+  if exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'signature_budget' and column_name = 'devis_actif') then
     execute $c$comment on column public.signature_budget.devis_actif is 'Conservée après le retour de 20261018193308 : réglage sans effet, valeur gardée telle quelle.'$c$;
   end if;
 end $conserve$;

@@ -54,7 +54,11 @@ begin
     alter table public.bail_signature_circuits add constraint bail_signature_circuits_external_request_id_key unique (external_request_id);
     raise notice 'bail_signature_circuits_external_request_id_key : unicité de la référence externe rétablie';
   end if;
-  execute $c$comment on column public.bail_signature_circuits.prestataire is 'Conservée après le retour de 20261018100243 : prestataire de chaque circuit archivé (preuve) ; plus aucune lecture par l''application.'$c$;
+  -- Gardé par l'existence de la COLONNE (comme le retour de 20261018061548) : un `comment on column` sur une colonne
+  -- absente ferait échouer toute la transaction.
+  if exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'bail_signature_circuits' and column_name = 'prestataire') then
+    execute $c$comment on column public.bail_signature_circuits.prestataire is 'Conservée après le retour de 20261018100243 : prestataire de chaque circuit archivé (preuve) ; plus aucune lecture par l''application.'$c$;
+  end if;
 end $unicite$;
 
 -- Même transaction externe que le retour : la version n'est plus « appliquée », migrations.yml pourra la rejouer.

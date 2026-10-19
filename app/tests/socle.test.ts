@@ -78,9 +78,15 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
     // privilège compte. Un `anon` qui garde TRUNCATE sur `encaissements` peut
     // vider le journal des encaissements sans qu'aucune politique s'y oppose.
     //
-    // Depuis le 14/10/2026 (X02), l'application n'a plus AUCUNE écriture anonyme :
-    // le formulaire de contact du site vitrine (`demandes_devis`) écrit par l'action
-    // serveur (client de service). Toute survivance est un oubli de révocation.
+    // Depuis le 14/10/2026 (X02), le formulaire de contact du site vitrine
+    // (`demandes_devis`) écrit par l'action serveur (client de service). UNE SEULE
+    // exception subsiste, nommée ici : `liste_attente`, table créée hors dépôt le
+    // 29/09 et intégrée par 20261019120000_liste_attente_bornee.sql (décision du
+    // 19/10 « conserver et borner ») — anon y insère PAR COLONNE (email, biens,
+    // source), et rien d'autre. Un droit par colonne échappe à has_table_privilege :
+    // le balayage regarde aussi has_any_column_privilege, sans quoi l'audit M2 du
+    // 19/10 serait passé inaperçu ici. Toute autre survivance est un oubli de
+    // révocation.
     const { rows } = await db.query(`
       select c.relname as table_en_defaut, p.priv as privilege
       from pg_class c
@@ -90,15 +96,17 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
       ) as p(priv)
       where n.nspname = 'public'
         and c.relkind in ('r', 'p')
-        and has_table_privilege('anon', c.oid, p.priv)
+        and (has_table_privilege('anon', c.oid, p.priv)
+             or (p.priv in ('INSERT','UPDATE','REFERENCES') and has_any_column_privilege('anon', c.oid, p.priv)))
       order by c.relname, p.priv
     `);
     expect(
       rows,
-      "anon garde des droits d'écriture — une migration a créé une table sans " +
-        "révoquer (les privilèges par défaut Supabase les accordent tout seuls) : " +
+      "anon garde des droits d'écriture au-delà de la seule exception liste_attente/INSERT — " +
+        "une migration a créé une table sans révoquer (les privilèges par défaut Supabase " +
+        "les accordent tout seuls) : " +
         rows.map((r) => `${r.table_en_defaut}/${r.privilege}`).join(", ")
-    ).toHaveLength(0);
+    ).toEqual([{ table_en_defaut: "liste_attente", privilege: "INSERT" }]);
   });
 
   it("une agence ne voit jamais les données d'une autre (RM-A1.7)", async () => {

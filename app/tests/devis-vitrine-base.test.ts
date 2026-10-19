@@ -69,14 +69,20 @@ describe.skipIf(!url)('X02 — demandes_devis : plus d\'insertion directe, plafo
       .toEqual(['demandes_devis_select_sa', 'demandes_devis_update_sa']);
   });
 
-  it('invariant : anon n\'a aucune écriture nulle part dans public (aucune exception)', async () => {
+  it('invariant : anon n\'a aucune écriture dans public, table ou colonne, hors la seule exception nommée liste_attente/INSERT', async () => {
+    // Depuis le 19/10 (lot M2, 20261019120000_liste_attente_bornee.sql, décision « conserver et borner »), la table
+    // `liste_attente` — créée hors dépôt le 29/09 — est la seule où anon écrit, PAR COLONNE (email, biens, source) et en
+    // insertion seulement. Un droit par colonne échappe à has_table_privilege : le balayage regarde aussi
+    // has_any_column_privilege, et l'exception est attendue nommément — une seconde table serait une régression.
     const { rows } = await db.query(
       `select c.relname || '/' || p.priv as reste
          from pg_class c join pg_namespace n on n.oid = c.relnamespace
          cross join lateral (values ('INSERT'),('UPDATE'),('DELETE'),('TRUNCATE'),('REFERENCES'),('TRIGGER')) as p(priv)
-        where n.nspname = 'public' and c.relkind in ('r','p') and has_table_privilege('anon', c.oid, p.priv)
+        where n.nspname = 'public' and c.relkind in ('r','p')
+          and (has_table_privilege('anon', c.oid, p.priv)
+               or (p.priv in ('INSERT','UPDATE','REFERENCES') and has_any_column_privilege('anon', c.oid, p.priv)))
         order by 1`);
-    expect(rows).toEqual([]);
+    expect(rows).toEqual([{ reste: 'liste_attente/INSERT' }]);
   });
 
   it('service_role (l\'action serveur) insère ; l\'horodatage et l\'état de traitement restent forcés par la base', async () => {

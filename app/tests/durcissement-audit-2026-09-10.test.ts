@@ -625,7 +625,10 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
   // RM-A4.6, wiki/regles-metier/Socle de sécurité).
   // ------------------------------------------------------------------
   // X02 (14/10/2026) : le formulaire du site vitrine n'est plus une exception — il écrit par l'action serveur
-  // (client de service), anon n'a plus AUCUN droit d'écriture dans `public`.
+  // (client de service). Lot M2 (19/10/2026, 20261019120000_liste_attente_bornee.sql) : UNE exception nommée subsiste,
+  // `liste_attente` (table créée hors dépôt le 29/09, décision du 19/10 « conserver et borner ») — anon y insère PAR
+  // COLONNE (email, biens, source), rien d'autre ; le balayage de catalogue ci-dessous regarde donc aussi les droits par
+  // colonne et attend exactement cette exception.
   it("anon n'écrit plus dans aucune table, formulaire du site vitrine compris", async () => {
     // L'ABUS : un visiteur sans session, avec des identifiants EN DUR — c'est
     // tout ce dont dispose un attaquant muni de la seule clé publiable.
@@ -701,8 +704,12 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     }
     await db.query("reset role");
 
-    // L'invariant de catalogue : dans `public`, anon ne conserve AUCUNE écriture
-    // (depuis X02, l'insertion des demandes de devis passe par l'action serveur).
+    // L'invariant de catalogue : dans `public`, anon ne conserve AUCUNE écriture de
+    // table (depuis X02, l'insertion des demandes de devis passe par l'action
+    // serveur) et UNE SEULE écriture par colonne, nommée : `liste_attente/INSERT`
+    // (lot M2, 20261019120000, décision du 19/10 « conserver et borner »). Un droit
+    // par colonne échappe à has_table_privilege — c'est l'angle mort que l'audit M2
+    // a révélé : has_any_column_privilege le couvre.
     const { rows: restes } = await db.query(
       `select c.relname || '/' || p.priv as reste
          from pg_class c
@@ -711,13 +718,14 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
                                     ('TRUNCATE'),('REFERENCES'),('TRIGGER')) as p(priv)
         where n.nspname = 'public'
           and c.relkind in ('r','p')
-          and has_table_privilege('anon', c.oid, p.priv)
+          and (has_table_privilege('anon', c.oid, p.priv)
+               or (p.priv in ('INSERT','UPDATE','REFERENCES') and has_any_column_privilege('anon', c.oid, p.priv)))
         order by 1`
     );
     expect(
       restes,
-      `anon garde des écritures : ${restes.map((r) => r.reste).join(", ")}`
-    ).toHaveLength(0);
+      `anon garde des écritures au-delà de la seule exception liste_attente/INSERT : ${restes.map((r) => r.reste).join(", ")}`
+    ).toEqual([{ reste: "liste_attente/INSERT" }]);
 
     // L'invariant de DURABILITÉ : le balayage ci-dessus ne vaut que pour les
     // tables du jour. La brèche venait des PRIVILÈGES PAR DÉFAUT du schéma —

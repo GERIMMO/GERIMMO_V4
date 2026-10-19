@@ -7,6 +7,9 @@
 -- rien modifier : la retirer est une décision du dirigeant, pas celle d'un script. Le retrait ne passe pas par le
 -- déclencheur de traçage (supervision_identite_trace) : une session de maintenance n'a pas d'auteur (auth.uid() nul),
 -- que supervision_registre exige ; la révision avance d'un cran pour que l'écran recharge, et modifie_le est posé.
+-- Il REFUSE aussi, sans rien modifier, si les treize faits d'éditeur pèsent à eux seuls 20 000 octets ou plus (admis
+-- depuis la migration, borne 40 000) : la borne d'origine ne pourrait pas être reposée, et les raccourcir est une
+-- décision du dirigeant (relecture du 19/10 : sans cette garde, l'erreur brute de Postgres n'expliquait pas la cause).
 -- Remettre le code d'avant AVANT ce retour : le nouveau formulaire serait refusé dès son premier enregistrement.
 do $identite$
 declare
@@ -20,6 +23,11 @@ begin
     where e.key = any(nouvelles) and jsonb_typeof(e.value) <> 'null'
   ) then
     raise exception 'Retour refusé : des coordonnées ou localisations de prestataires sont enregistrées dans supervision_identite ; décision du dirigeant requise avant de les retirer';
+  end if;
+
+  if exists (select 1 from public.supervision_identite where octet_length((valeurs - nouvelles)::text) >= 20000) then
+    raise exception 'Retour refusé : les treize faits d''éditeur pèsent % octets, au-delà de la borne d''origine (20 000) ; décision du dirigeant requise avant de les raccourcir',
+      (select octet_length((valeurs - nouvelles)::text) from public.supervision_identite where singleton);
   end if;
 
   if exists (select 1 from public.supervision_identite where singleton and valeurs ?| nouvelles) then

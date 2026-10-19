@@ -65,7 +65,8 @@ export default async function PageParametres() {
         <h3 className="mt-5 text-sm font-semibold">Prestataires</h3>
         <p className="text-sm text-[var(--texte-secondaire)]">
           Localisation et coordonnées (dénomination, adresse, téléphone) de chaque prestataire. Les coordonnées sont
-          reprises dans les mentions légales ; une localisation que le code n’établit pas, sur les trois pages.
+          reprises dans les mentions légales ; la localisation à saisir (aujourd’hui celle de la Base Adresse
+          Nationale), sur les trois pages légales.
         </p>
         <ul className="colonne-liste mt-2">
           {prestataires.map((p) => {

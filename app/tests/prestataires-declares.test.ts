@@ -60,9 +60,12 @@ describe("prestataires saisissables (19/10) : clés du formulaire et de la base"
     for (const p of PRESTATAIRES) {
       expect(CHAMPS_EDITEUR).toHaveProperty(cleCoordonnees(p));
       expect((CHAMPS_EDITEUR as Record<string, string>)[cleCoordonnees(p)]).toContain(p.nom);
+      // Un séparateur plutôt qu'une seconde parenthèse : « GitHub (Actions) (dénomination, …) » se lisait mal (relecture du 19/10).
+      expect((CHAMPS_EDITEUR as Record<string, string>)[cleCoordonnees(p)]).toBe(`Coordonnées de ${p.nom} : dénomination, adresse, téléphone`);
       if (p.localisation) expect(CHAMPS_EDITEUR).not.toHaveProperty(cleLocalisation(p));
-      else expect(CHAMPS_EDITEUR).toHaveProperty(cleLocalisation(p));
+      else expect((CHAMPS_EDITEUR as Record<string, string>)[cleLocalisation(p)]).toBe(`Localisation de ${p.nom} : pays ou région des serveurs`);
     }
+    for (const libelle of Object.values(CHAMPS_PRESTATAIRES)) expect(libelle).not.toMatch(/\) \(/);
     expect(Object.keys(CHAMPS_PRESTATAIRES)).toHaveLength(PRESTATAIRES.length + PRESTATAIRES.filter((p) => !p.localisation).length);
     // Les hébergeurs d'abord : l'ordre des champs est celui du tableau des pages légales.
     expect(Object.keys(CHAMPS_PRESTATAIRES).filter((k) => k.startsWith("coordonnees")).slice(0, 2)).toEqual(["coordonneesSupabase", "coordonneesVercel"]);

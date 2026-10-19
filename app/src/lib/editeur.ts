@@ -245,8 +245,9 @@ export const cleLocalisation = (p: Prestataire) => `localisation${majuscule(p.cl
  */
 export const CHAMPS_PRESTATAIRES: Record<string, string> = Object.fromEntries(
   PRESTATAIRES.flatMap((p) => [
-    ...(p.localisation ? [] : [[cleLocalisation(p), `Localisation de ${p.nom} (pays ou région des serveurs)`]]),
-    [cleCoordonnees(p), `Coordonnées de ${p.nom} (dénomination, adresse, téléphone)`],
+    // Un séparateur plutôt qu'une seconde parenthèse : « GitHub (Actions) (dénomination, …) » se lisait mal.
+    ...(p.localisation ? [] : [[cleLocalisation(p), `Localisation de ${p.nom} : pays ou région des serveurs`]]),
+    [cleCoordonnees(p), `Coordonnées de ${p.nom} : dénomination, adresse, téléphone`],
   ])
 );
 

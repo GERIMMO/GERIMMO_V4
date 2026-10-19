@@ -165,6 +165,19 @@ describe.skipIf(!DB_URL)("identité de l'éditeur : clés des prestataires — m
     expect(await ligne()).toEqual(avantLigne);
   });
 
+  it("le retour refuse, en le nommant, de reposer la borne d'origine quand les treize faits d'éditeur pèsent 20 000 octets ou plus", async () => {
+    // Treize champs de 1 000 caractères sur deux octets : admis depuis la migration (borne 40 000), au-delà de la borne
+    // d'origine. Sans garde, le retour échouerait à « add constraint supervision_identite_valeurs_check » avec l'erreur
+    // brute de Postgres ; il doit refuser en nommant le poids et la décision attendue, sans rien modifier.
+    await enregistrer(formulaire(Object.fromEntries(ANCIENNES.map((k) => [k, "é".repeat(1000)]))));
+    const { rows: [{ poids }] } = await db.query("select octet_length((valeurs - $1::text[])::text) as poids from public.supervision_identite where singleton", [NOUVELLES]);
+    expect(poids).toBeGreaterThanOrEqual(20000);
+    const [avantContraintes, avantLigne] = [await contraintes(), await ligne()];
+    await expect(essai(() => db.query(RETOUR))).rejects.toThrow(`Retour refusé : les treize faits d'éditeur pèsent ${poids} octets, au-delà de la borne d'origine (20 000)`);
+    expect(await contraintes()).toEqual(avantContraintes);
+    expect(await ligne()).toEqual(avantLigne);
+  });
+
   it("sur la ligne vide de la production, le retour repose les contraintes d'origine sans toucher la ligne", async () => {
     expect((await ligne()).valeurs).toEqual({});
     await db.query(RETOUR);

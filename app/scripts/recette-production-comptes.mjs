@@ -1,5 +1,7 @@
 // Les cinq identités peuvent être réutilisées ; leurs secrets restent propres au runner.
 // Aucun secret dans workflow_dispatch, les arguments psql, les logs ou les artefacts.
+// Entre deux passages, les cinq comptes fixes sont fermés : sessions révoquées et
+// blocage Auth jusqu'à la préparation suivante, qui les rouvre avec un mot de passe neuf.
 import { randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -55,6 +57,17 @@ async function retirerSupervision() {
   await db.query('select cron.unschedule(jobid) from cron.job where jobname=$1',[`recette-expiration-${suffixe}`]);
 }
 
+async function fermerAcces(emails) {
+  // Sessions d'abord (GoTrue rejette aussitôt un jeton dont la session a disparu ; la
+  // cascade retire les jetons de rafraîchissement et les revendications MFA), puis blocage
+  // Auth sans échéance : plus aucune connexion jusqu'à ce que preparer-comptes.sql le lève.
+  await db.query('delete from auth.sessions where user_id in(select id from auth.users where email=any($1::text[]))',[emails]);
+  await db.query("update auth.users set banned_until='infinity'::timestamptz where email=any($1::text[])",[emails]);
+  const restes=await db.query(`select count(*)::int as n from auth.users u where u.email=any($1::text[])
+    and (u.banned_until is distinct from 'infinity'::timestamptz or exists(select 1 from auth.sessions s where s.user_id=u.id))`,[emails]);
+  if(restes.rows[0].n!==0) throw new Error('Fermeture des accès non confirmée.');
+}
+
 async function nettoyer(cibleSuffixe) {
   const motif=`^delivered\\+[a-z0-9-]+-${cibleSuffixe}@resend\\.dev$`;
   const orgs=(await db.query('select id from public.organizations where name ~ $1',[`(^|[ -])${cibleSuffixe}(-[0-9]+)?$`])).rows.map(r=>r.id);
@@ -97,6 +110,8 @@ try {
       // Le groupe ne peut pas être repris pendant un contrôle encore ouvert.
       if((await db.query('select 1 from cron.job where jobname=$1',[`recette-expiration-${suffixe}`])).rowCount) throw new Error('Contrôle précédent encore ouvert.');
       await retirerSupervision();
+      // Toute session ouverte à la main entre deux passages est fermée avant la remise à zéro.
+      await fermerAcces(emailsFixes);
       await nettoyer(`i${suffixe}`);
       await nettoyer(suffixe);
     }
@@ -119,11 +134,12 @@ try {
     console.log(fixes?'Cinq comptes fixes prêts ; identités conservées, supervision limitée à 61 minutes.':'Cinq comptes de recette préparés ; supervision bornée à 61 minutes, deux espaces isolés.');
   } else {
     await retirerSupervision();
+    if(fixes) await fermerAcces(emailsFixes);
     await nettoyer(fixes?`i${suffixe}`:suffixe);
     if(fixes) {
       const apres=await verifierIdentitesFixes();
       if(apres.length!==5 || JSON.stringify(apres)!==JSON.stringify(identitesAvant)) throw new Error('Conservation des cinq identités non confirmée.');
-      console.log('Clôture vérifiée : cinq comptes fixes conservés ; supervision retirée ; inscriptions ponctuelles nettoyées.');
+      console.log('Clôture vérifiée : cinq comptes fixes conservés ; supervision retirée ; sessions révoquées et comptes bloqués jusqu’au prochain passage ; inscriptions ponctuelles nettoyées.');
     } else console.log('Purge vérifiée : organisations 0, comptes 0, artisans 0, supervision 0 ; fichiers retirés par API.');
   }
 } catch {

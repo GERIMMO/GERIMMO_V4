@@ -29,8 +29,8 @@ import { cliquer, espaceDe, expect, test } from "./outils";
 // qui porte `organization_id`). Aucun fichier n'est déposé, aucun e-mail ne part, aucun paiement n'est demandé.
 //
 // OÙ IL TOURNE. Seulement avec une connexion à la base de la recette (variables PG*) : le chantier « Recette de production
-// avec nettoyage » la fournit ; le chantier manuel « Recette de production » ne la fournit pas et saute ce test. Sur le banc
-// local (RECETTE_URL en localhost), la base doit être une base jetable gerimmo_ci_… de ce poste.
+// avec nettoyage » la fournit (l'ancien chantier manuel, qui ne la fournissait pas, a été retiré du dépôt). Sans elle, ce
+// test est sauté. Sur le banc local (RECETTE_URL en localhost), la base doit être une base jetable gerimmo_ci_… de ce poste.
 //
 // L'ORDRE. Ce test active un bail dans le parc : le parcours de démarrage du propriétaire se referme alors, et le test
 // « se connecte et voit le parcours de démarrage » (proprietaire.spec.ts) échouerait après lui. La configuration le range

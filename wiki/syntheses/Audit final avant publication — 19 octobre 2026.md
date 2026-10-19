@@ -145,7 +145,7 @@ Le dirigeant a demandé le jour même : « Corrige tout ce que tu peux corriger,
 | B3 vente sans garde | Paiement refusé tant que l'identité de l'éditeur est incomplète ou que la version en vigueur des CGV n'est pas acceptée (serveur et écran) | Déployé |
 | B5 devis signés | Un devis signé peut expirer, être annulé ou refusé ; une seule offre signée vivante par dossier ; validité au jour de Paris (`20261019124000`) ; la tâche de nuit du 29/10 ne cassera plus | Déployé ; à vérifier le 29/10 |
 | B7 cautionnement | Interrupteur `ZOHO_SIGN_CAUTIONNEMENT_FERME` (`1` ou `true`) qui ferme le seul acte de cautionnement à l'envoi | Déployé ; variable à poser par le dirigeant |
-| B8 aucune recette | Recette de production avec nettoyage lancée sur `main` après le déploiement (voir [[Recette de production]] et le journal) | Voir journal |
+| B8 aucune recette | Recette de production n° 25 jouée sur `e25c0f7` juste après le déploiement (exécution 39306114779 : 49 réussis, 1 sauté, 0 instable, P1 au premier essai ; comptes de recette bloqués après passage) | **Levé** |
 | M1 comptes de recette | Traces et captures coupées, sessions révoquées et comptes bannis entre deux passages, ancien chantier manuel retiré, 19 artefacts supprimés, organisations de recette à identifiants stables | Déployé ; mot de passe à renouveler (Codex) |
 | M2 `liste_attente` | Table intégrée et bornée, plafond de 30 inscriptions par heure (`20261019120000`) | Déployé ; usage et conservation à décider |
 | M4 retours arrière | Huit scripts pour les migrations du 18/10, gardés par l'ordre de la chaîne | Livrés, non exécutés |

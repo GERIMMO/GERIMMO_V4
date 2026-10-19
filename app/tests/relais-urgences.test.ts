@@ -653,8 +653,9 @@ describe("aucune adresse réelle dans le dépôt", () => {
       "src/app/api/cron/relais/route.ts",
       ...readdirSync("src/app/admin/relais").map((f) => join("src/app/admin/relais", f)),
       "src/app/admin/sante/page.tsx",
-      ...readdirSync("supabase/migrations").filter((f) => f.startsWith("2026101481")).map((f) => join("supabase/migrations", f)),
-      ...readdirSync("supabase/retours-arriere").filter((f) => f.startsWith("2026101481")).map((f) => join("supabase/retours-arriere", f)),
+      // Les trois paliers du relais (2026101481…) et toute migration du relais nommée depuis (`_relais_`, dont M16 du 19/10).
+      ...readdirSync("supabase/migrations").filter((f) => f.startsWith("2026101481") || f.includes("_relais_")).map((f) => join("supabase/migrations", f)),
+      ...readdirSync("supabase/retours-arriere").filter((f) => f.startsWith("2026101481") || f.includes("_relais_")).map((f) => join("supabase/retours-arriere", f)),
       ...readdirSync("tests").filter((f) => f.startsWith("relais-") || f === "cron-relais-route.test.ts").map((f) => join("tests", f)),
       "vercel.json",
     ];

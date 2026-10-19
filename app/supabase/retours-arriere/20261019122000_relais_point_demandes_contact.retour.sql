@@ -9,6 +9,10 @@
 -- la supprime et retire sa seule version d'historique. Rejouable (« if exists »). Aucune donnée à restituer.
 --
 -- Se joue dans une transaction contrôlée, sans COMMIT interne : psql --single-transaction -v ON_ERROR_STOP=1 -f <ce fichier>.
+-- L'attente de verrou est bornée (relecture du 19/10) : un passage de 5 h ou un passage des urgences qui exécuterait la
+-- fonction au même instant ne fait pas attendre le retour indéfiniment ; au-delà de 10 s, le retour échoue et se rejoue.
+
+set local lock_timeout = '10s';
 
 drop function if exists public.demandes_contact_en_attente();
 

@@ -137,11 +137,13 @@ export function pointsDuRelais(c: ConstatRelais): number {
 
 /**
  * Le point, tel que l'e-mail l'écrit (décision du 19/10) : « Demandes de contact du site vitrine — en attente de
- * réponse : N (dont M depuis plus de 48 h) » ; le titre du bloc, puis sa ligne. Des nombres seulement.
+ * réponse : N (dont M depuis plus de 48 h) » ; le titre du bloc, puis sa ligne. Des nombres seulement. La parenthèse
+ * n'est écrite que si au moins une demande attend depuis plus de 48 h (relecture du 19/10 : « dont 0 » n'apprend rien).
  */
 export const TITRE_CONTACTS_EN_ATTENTE = "Demandes de contact du site vitrine";
 export function ligneContactsEnAttente(contacts: ContactsEnAttente): string {
-  return `En attente de réponse : ${contacts.en_attente} (dont ${contacts.depuis_plus_de_48h} depuis plus de 48 h)`;
+  const anciennes = contacts.depuis_plus_de_48h > 0 ? ` (dont ${contacts.depuis_plus_de_48h} depuis plus de 48 h)` : "";
+  return `En attente de réponse : ${contacts.en_attente}${anciennes}`;
 }
 
 /** Le nombre d'urgences des dernières 24 h que l'e-mail de 5 h rappelle (elles suffisent à le faire partir). */

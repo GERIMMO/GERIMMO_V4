@@ -17,6 +17,7 @@ import {
   descriptionRelais,
   estHeureDuRelais,
   htmlAlerteRelais,
+  ligneContactsEnAttente,
   lireAdressesRelais,
   masquerAdresse,
   pointsDuRelais,
@@ -193,6 +194,24 @@ describe("le contenu de l'alerte", () => {
     const sans = htmlAlerteRelais({ ...RIEN, contacts: { en_attente: 0, depuis_plus_de_48h: 0 } }, new Date("2026-10-19T03:00:00Z"), "https://gerimmo.test/admin");
     expect(sans).not.toContain("Demandes de contact du site vitrine");
     expect(sans).toContain("0 point à vérifier");
+  });
+
+  // Relecture du 19/10 : « (dont 0 depuis plus de 48 h) » n'apprend rien ; la parenthèse n'est écrite que si M > 0.
+  it("la parenthèse « dont M depuis plus de 48 h » n'est écrite que si M > 0 : « En attente de réponse : 1 » quand M = 0", () => {
+    expect(ligneContactsEnAttente({ en_attente: 1, depuis_plus_de_48h: 0 })).toBe("En attente de réponse : 1");
+    expect(ligneContactsEnAttente({ en_attente: 3, depuis_plus_de_48h: 0 })).toBe("En attente de réponse : 3");
+    expect(ligneContactsEnAttente({ en_attente: 1, depuis_plus_de_48h: 1 })).toBe("En attente de réponse : 1 (dont 1 depuis plus de 48 h)");
+    expect(ligneContactsEnAttente({ en_attente: 5, depuis_plus_de_48h: 5 })).toBe("En attente de réponse : 5 (dont 5 depuis plus de 48 h)");
+
+    const recente = htmlAlerteRelais({ ...RIEN, contacts: { en_attente: 1, depuis_plus_de_48h: 0 } }, new Date("2026-10-19T03:00:00Z"), "https://gerimmo.test/admin");
+    expect(recente).toContain("1 point à vérifier");
+    expect(recente).toContain("Demandes de contact du site vitrine");
+    expect(recente).toContain("En attente de réponse : 1</li>");
+    expect(recente).not.toContain("dont 0");
+    expect(recente).not.toContain("depuis plus de 48 h");
+
+    const ancienne = htmlAlerteRelais({ ...RIEN, contacts: { en_attente: 1, depuis_plus_de_48h: 1 } }, new Date("2026-10-19T03:00:00Z"), "https://gerimmo.test/admin");
+    expect(ancienne).toContain("En attente de réponse : 1 (dont 1 depuis plus de 48 h)");
   });
 });
 

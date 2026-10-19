@@ -22,6 +22,7 @@ const DB_URL = process.env.SUPABASE_DB_URL;
 verifierBaseDeTest(DB_URL);
 
 const CHEMIN_MIGRATION = "supabase/migrations/20261019122000_relais_point_demandes_contact.sql";
+const CHEMIN_RETOUR = "supabase/retours-arriere/20261019122000_relais_point_demandes_contact.retour.sql";
 const FONCTION = "public.demandes_contact_en_attente()";
 
 let db: Client;
@@ -152,5 +153,33 @@ describe.skipIf(!DB_URL)("M16 — demandes de contact du site vitrine comptées 
     );
     expect(anon).toBe(false);
     expect(svc).toBe(true);
+  });
+
+  // Relecture du 19/10 : le retour borne l'attente de verrou (un passage de 5 h qui exécuterait la fonction au même
+  // instant ne le ferait pas attendre indéfiniment), supprime la fonction, retire sa seule version d'historique, se rejoue.
+  it("le retour arrière borne l'attente de verrou (10 s) avant le drop, supprime la fonction et sa version d'historique, se rejoue, puis la migration se réapplique", async () => {
+    const retour = readFileSync(CHEMIN_RETOUR, "utf8");
+    const code = retour.replace(/^--.*$/gm, "");
+    expect(code).toMatch(/set local lock_timeout = '10s';/);
+    expect(code.indexOf("set local lock_timeout")).toBeLessThan(code.indexOf("drop function if exists public.demandes_contact_en_attente()"));
+    // Sans COMMIT interne : il se joue dans la transaction contrôlée (psql --single-transaction), ici celle du cas.
+    expect(code).not.toMatch(/^\s*(begin|commit)\s*;/im);
+
+    await demande(1, "3 days");
+    await proprietaire();
+    await db.query("create schema if not exists supabase_migrations");
+    await db.query("create table if not exists supabase_migrations.schema_migrations (version text primary key, name text, statements text[])");
+    await db.query("insert into supabase_migrations.schema_migrations (version, name) values ('20261019122000', 'relais_point_demandes_contact'), ('20261018231827', 'abonnement_jour_paris') on conflict do nothing");
+    await db.query(retour);
+    expect((await db.query("select current_setting('lock_timeout') as v")).rows[0].v).toBe("10s");
+    expect((await db.query("select to_regprocedure($1) is null as retiree", [FONCTION])).rows[0].retiree).toBe(true);
+    const versions = async () => (await db.query("select version from supabase_migrations.schema_migrations where version in ('20261019122000','20261018231827') order by 1")).rows.map((r) => r.version);
+    expect(await versions()).toEqual(["20261018231827"]);
+    // Rejouable : rien à faire, aucune erreur.
+    await db.query(retour);
+    expect((await db.query("select to_regprocedure($1) is null as retiree", [FONCTION])).rows[0].retiree).toBe(true);
+    // La migration se réapplique ensuite et compte à nouveau ; la demande n'a pas bougé.
+    await db.query(readFileSync(CHEMIN_MIGRATION, "utf8"));
+    expect(await compter()).toEqual({ en_attente: 1, depuis_plus_de_48h: 1 });
   });
 });

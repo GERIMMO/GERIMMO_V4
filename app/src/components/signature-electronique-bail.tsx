@@ -62,7 +62,7 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
       {c&&<span className={`rounded-full px-3 py-1 text-xs font-semibold ${c.etat==="termine"?"bg-success-soft text-foreground":"bg-primary/10 text-primary"}`}>{ETATS[c.etat]}</span>}
     </header>
     {!vue&&<p role="status" className="text-sm text-muted-foreground">Chargement des signataires…</p>}
-    {vue?.mode==="indisponible"&&<p className="rounded-xl bg-warning-soft p-3 text-sm"><strong>Signature en ligne en préparation.</strong> Vous pouvez vérifier les personnes et préparer le PDF. L’envoi sera disponible après la connexion et les essais du prestataire. Aucun e-mail ne part pendant cette préparation.</p>}
+    {vue?.mode==="indisponible"&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm">{vue.fermeture ?? <><strong>Signature en ligne en préparation.</strong> Vous pouvez vérifier les personnes et préparer le PDF. L’envoi sera disponible après la connexion et les essais du prestataire. Aucun e-mail ne part pendant cette préparation.</>}</p>}
     {vue?.mode==="sandbox"&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm font-medium">Environnement d’essai : documents fictifs uniquement.</p>}
     {vue?.essai&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm font-medium">Essai sans engagement · le document et les invitations sont fictifs. Cet essai ne met aucun logement en location.</p>}
     {!!parties.length&&parties.length<=25&&<p className="text-xs text-muted-foreground">Estimation : {estimationSignature(parties.length).credits.toLocaleString("fr-FR")} crédits Zoho pour cet envoi et un premier SMS par signataire. Les renvois de SMS peuvent s’ajouter.</p>}

@@ -15,14 +15,16 @@ import { fauxFournisseurEmail } from "./fixtures/faux-fournisseur-email";
 import { envoyerRelancesDues } from "../src/lib/relances-paiement";
 import { cleRelanceAbonnement } from "../src/lib/cles-idempotence-courriels";
 import { corpsRelance, type Palier } from "../src/lib/relance-paiement-email";
+import type { Periodicite } from "../src/lib/tarifs";
 
 type Due = {
   organization_id: string; organisation: string; destinataire: string | null; palier: number;
   jours_ecoules: number; jours_restants: number; lecture_seule_le: string; montant_mensuel: number;
+  periodicite: string; montant_periode_cents: number;
 };
 const due = (surcharge: Partial<Due> = {}): Due => ({
   organization_id: "org-1", organisation: "Agence Alpha", destinataire: "gerant@exemple.fr", palier: 0,
-  jours_ecoules: 0, jours_restants: 14, lecture_seule_le: "2026-10-28", montant_mensuel: 49, ...surcharge,
+  jours_ecoules: 0, jours_restants: 14, lecture_seule_le: "2026-10-28", montant_mensuel: 49, periodicite: "mensuel", montant_periode_cents: 4900, ...surcharge,
 });
 
 function banc(lignes: () => Due[], marquage: { erreur: boolean } = { erreur: false }) {
@@ -119,6 +121,35 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
     expect(new Set(fournisseur.cles()).size).toBe(2);
   });
 
+  it("un abonnement mensuel garde exactement la clé d'avant (centimes seuls) ; l'annuel la distingue, comme son courrier", async () => {
+    // Lot mineurs du 19/10 (a) : le courrier dit désormais le montant de la période et sa périodicité. La clé le suit,
+    // sans changer celle des abonnements mensuels : aucun doublon au déploiement.
+    const { supabase } = banc(() => [due(), due({ organization_id: "org-2", periodicite: "annuel", montant_periode_cents: 5990, montant_mensuel: 4.99 })]);
+    const bilan = await envoyerRelancesDues(supabase);
+    expect(bilan).toMatchObject({ envoyees: 2, echecs: [] });
+    const cles = fournisseur.cles();
+    expect(cles[0]).toMatch(/^relance-abonnement\/org-1\/0\/2026-10-28\/4900\//);
+    expect(cles[1]).toMatch(/^relance-abonnement\/org-2\/0\/2026-10-28\/5990an\//);
+  });
+
+  it("sans montant de période lisible (fonction SQL antérieure), la relance est rapportée en échec plutôt qu'envoyée fausse", async () => {
+    const { supabase, marques } = banc(() => [{ ...due(), montant_periode_cents: undefined as unknown as number }]);
+    const bilan = await envoyerRelancesDues(supabase);
+    expect(bilan.envoyees).toBe(0);
+    expect(bilan.echecs[0]).toMatch(/montant du prélèvement illisible/);
+    expect(fournisseur.acceptes).toHaveLength(0);
+    expect(marques).toHaveLength(0);
+  });
+
+  it("un abonnement annuel dont la base ne connaît pas le montant de la période (NULL) : échec rapporté, aucun courrier « par mois »", async () => {
+    // Relecture du 19/10 : la base rend NULL plutôt que le douzième mensuel pour un annuel sans montant de période.
+    const { supabase, marques } = banc(() => [due({ periodicite: "annuel", montant_periode_cents: null as unknown as number, montant_mensuel: 4.99 })]);
+    const bilan = await envoyerRelancesDues(supabase);
+    expect(bilan).toMatchObject({ envoyees: 0, echecs: [expect.stringMatching(/montant du prélèvement illisible/)] });
+    expect(fournisseur.acceptes).toHaveLength(0);
+    expect(marques).toHaveLength(0);
+  });
+
   it("le palier 0 ne dépend pas du jour : sa reprise du lendemain garde la même clé", async () => {
     let ecoules = 0;
     const { supabase } = banc(() => [due({ palier: 0, jours_ecoules: ecoules, jours_restants: 14 - ecoules })], { erreur: true });
@@ -131,16 +162,17 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
 });
 
 describe("la clé de la relance d'abonnement suit exactement ce que le courrier dit", () => {
-  const base = { organisationId: "org-1", palier: 0 as Palier, lectureSeuleLe: "2026-10-28", joursRestants: 14, montantMensuel: 49, destinataire: "gerant@exemple.fr" };
+  const base = { organisationId: "org-1", palier: 0 as Palier, lectureSeuleLe: "2026-10-28", joursRestants: 14, periodicite: "mensuel" as Periodicite, montantPeriodeCents: 4900, destinataire: "gerant@exemple.fr" };
   const courrier = (r: typeof base) =>
-    corpsRelance({ palier: r.palier, organisation: "Agence Alpha", montantMensuel: r.montantMensuel, joursRestants: r.joursRestants, lectureSeuleLe: r.lectureSeuleLe, lien: null });
+    corpsRelance({ palier: r.palier, organisation: "Agence Alpha", periodicite: r.periodicite, montantPeriodeCents: r.montantPeriodeCents, joursRestants: r.joursRestants, lectureSeuleLe: r.lectureSeuleLe, lien: null });
 
   // Si le courrier change quand on varie un champ, la clé doit changer aussi (sinon le service
   // refuse la réutilisation) ; s'il ne change pas, la clé doit rester (sinon le doublon repart).
   for (const palier of [0, 1, 2, 3] as Palier[]) {
     for (const [champ, variante] of [
       ["joursRestants", { joursRestants: 9 }],
-      ["montantMensuel", { montantMensuel: 79 }],
+      ["montantPeriodeCents", { montantPeriodeCents: 7900 }],
+      ["periodicite", { periodicite: "annuel" as Periodicite }],
     ] as const) {
       it(`palier ${palier}, ${champ} : la clé change si et seulement si le courrier change`, () => {
         const a = { ...base, palier };

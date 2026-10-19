@@ -17,7 +17,9 @@ import { envoyerEmail } from "@/lib/email";
 import { corpsRelance, sujetRelance, type Palier } from "@/lib/relance-paiement-email";
 import { adresseDuSite } from "@/lib/site";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
+import type { Periodicite } from "@/lib/tarifs";
 
+/** Une ligne de `abonnements_a_relancer` (migration 20261019120500 : périodicité et montant de la période). */
 type Relance = {
   organization_id: string;
   organisation: string;
@@ -26,7 +28,9 @@ type Relance = {
   jours_ecoules: number;
   jours_restants: number;
   lecture_seule_le: string;
-  montant_mensuel: number;
+  periodicite: string | null;
+  // Entier en centimes, tel que la base le rend : il n'est jamais converti ici.
+  montant_periode_cents: number | null;
 };
 
 export type BilanRelances = {
@@ -77,10 +81,20 @@ export async function envoyerRelancesDues(
       sansAdresse.push(r.organisation);
       continue;
     }
+    // Le montant annoncé est celui du prélèvement (« 59,90 € par an » pour un abonnement annuel, pas un douzième
+    // « par mois »). Il arrive en centimes entiers ; sans lui — fonction SQL antérieure à la migration
+    // 20261019120500, ou abonnement annuel dont la base ne connaît pas le montant de la période —, on ne devine rien :
+    // la relance est rapportée en échec, et l'autre chemin la reprendra.
+    if (typeof r.montant_periode_cents !== "number" || !Number.isInteger(r.montant_periode_cents)) {
+      echecs.push(`${r.organisation} : montant du prélèvement illisible, courrier non envoyé`);
+      continue;
+    }
+    const periodicite: Periodicite = r.periodicite === "annuel" ? "annuel" : "mensuel";
     const relance = {
       palier: Math.min(3, Math.max(0, r.palier)) as Palier,
       organisation: r.organisation,
-      montantMensuel: Number(r.montant_mensuel),
+      periodicite,
+      montantPeriodeCents: r.montant_periode_cents,
       joursRestants: r.jours_restants,
       lectureSeuleLe: r.lecture_seule_le,
       // Pas de lien de secours en dur : dans le courrier qui annonce un
@@ -97,7 +111,8 @@ export async function envoyerRelancesDues(
         palier: relance.palier,
         lectureSeuleLe: relance.lectureSeuleLe,
         joursRestants: relance.joursRestants,
-        montantMensuel: r.montant_mensuel,
+        periodicite,
+        montantPeriodeCents: relance.montantPeriodeCents,
         destinataire: r.destinataire,
       }),
       subject: sujetRelance(relance),

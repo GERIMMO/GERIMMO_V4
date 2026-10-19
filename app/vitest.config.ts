@@ -98,6 +98,11 @@ export const FICHIERS_EN_SERIE = [
   // Même lot : une contrainte posée sur la file et le retour arrière (déclencheur retiré de supervision_alertes_internes,
   // tables supprimées puis recréées) dans la transaction du test, verrous de table tenus pendant tout l'essai.
   "tests/relais-urgences-retour.test.ts",
+  // Lot mineurs du 19/10 (f, i) : rejeu de 20261019121000 et de son retour dans la transaction de l'essai (clé étrangère
+  // reposée sur supervision_prospects, qui verrouille demandes_devis ; droits par colonne sur publications) : blocage
+  // mutuel avec les fixtures des autres fichiers (constaté le 19/10, deux fichiers seuls).
+  "tests/publications-colonnes-anon.test.ts",
+  "tests/supervision-prospects-purge.test.ts",
   // Même lot, passage fréquent des urgences (relecture du 15/10) : deux passages simultanés sur deux sessions, fixture
   // VALIDÉE (un plan ACTIF : tout traiter_vacances d'un autre fichier le traiterait) puis supprimée.
   "tests/relais-urgences-passage-concurrence.test.ts",

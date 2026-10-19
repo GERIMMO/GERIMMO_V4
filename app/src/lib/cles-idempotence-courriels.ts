@@ -33,6 +33,7 @@
 
 import { createHash } from "node:crypto";
 import type { Palier } from "./relance-paiement-email";
+import type { Periodicite } from "./tarifs";
 
 /** La limite du service d'e-mail pour une clé d'idempotence. */
 export const LONGUEUR_MAX_CLE = 256;
@@ -149,10 +150,14 @@ export function cleRelanceAbonnement(p: {
   palier: Palier;
   lectureSeuleLe: string;
   joursRestants: number;
-  montantMensuel: number | string;
+  periodicite: Periodicite;
+  montantPeriodeCents: number;
   destinataire: string;
 }): string {
-  const variable = p.palier === 0 ? centimes(p.montantMensuel) : p.palier === 1 ? `${p.joursRestants}j` : "-";
+  // Palier 0 : le courrier dit le montant du prélèvement et sa périodicité (lot mineurs du 19/10, a). Centimes entiers,
+  // suivis de « an » pour l'annuel : un abonnement mensuel garde exactement la clé d'avant (« 4900 »), aucun doublon
+  // au déploiement ; l'annuel, dont le courrier change (« par an »), change de clé.
+  const variable = p.palier === 0 ? `${p.montantPeriodeCents}${p.periodicite === "annuel" ? "an" : ""}` : p.palier === 1 ? `${p.joursRestants}j` : "-";
   return borner(
     `relance-abonnement/${p.organisationId}/${p.palier}/${p.lectureSeuleLe.slice(0, 10)}/${variable}/${empreinteAdresse(p.destinataire)}`
   );

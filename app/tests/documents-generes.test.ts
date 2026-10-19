@@ -200,7 +200,8 @@ describe("La relance de paiement ne promet pas un clic qu'elle ne peut pas tenir
     const sans = corpsRelance({
       palier: 3,
       organisation: "Cabinet Martin",
-      montantMensuel: 119,
+      periodicite: "mensuel",
+      montantPeriodeCents: 11900,
       joursRestants: 0,
       lectureSeuleLe: "2026-09-01",
       lien: null,
@@ -213,7 +214,8 @@ describe("La relance de paiement ne promet pas un clic qu'elle ne peut pas tenir
     const avec = corpsRelance({
       palier: 1,
       organisation: "Cabinet Martin",
-      montantMensuel: 119,
+      periodicite: "mensuel",
+      montantPeriodeCents: 11900,
       joursRestants: 12,
       lectureSeuleLe: "2026-09-27",
       lien: "https://gerimmo.app/agence/abc/abonnement",

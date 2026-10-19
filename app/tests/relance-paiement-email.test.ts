@@ -8,13 +8,15 @@
  * partir un client, pas la facture.
  */
 import { describe, expect, it } from "vitest";
-import { corpsRelance, sujetRelance, type Palier } from "@/lib/relance-paiement-email";
+import { corpsRelance, sujetRelance, type Palier, type RelancePaiement } from "@/lib/relance-paiement-email";
+import { euros } from "@/lib/tarifs";
 
-function relance(palier: Palier, joursRestants: number) {
+function relance(palier: Palier, joursRestants: number): RelancePaiement {
   return {
     palier,
     organisation: "Cabinet Martin",
-    montantMensuel: 17.97,
+    periodicite: "mensuel",
+    montantPeriodeCents: 1797,
     joursRestants,
     lectureSeuleLe: "2026-09-27",
     lien: "https://gerimmo.app/agence/abc/abonnement",
@@ -79,5 +81,20 @@ describe("Ce qu'aucun courrier ne fait", () => {
   it("le montant est écrit en euros, pas en centimes", () => {
     expect(corpsRelance(relance(0, 15))).toContain("17,97");
     expect(corpsRelance(relance(0, 15))).not.toContain("1797");
+  });
+});
+
+describe("Le montant annoncé est celui que le prélèvement demandait", () => {
+  // Audit du 19/10 (lot mineurs, a) : pour un abonnement annuel, `montant_mensuel` est un douzième calculé ; le
+  // courrier disait « 4,99 € par mois » quand la banque avait refusé 59,90 € pour l'année.
+  it("abonnement mensuel : le montant du mois, « par mois »", () => {
+    expect(corpsRelance(relance(0, 15))).toContain(`${euros(1797)} par mois`);
+  });
+
+  it("abonnement annuel : le montant de l'année, « par an » — jamais un douzième « par mois »", () => {
+    const c = corpsRelance({ ...relance(0, 15), periodicite: "annuel", montantPeriodeCents: 5990 });
+    expect(c).toContain(`${euros(5990)} par an`);
+    expect(c).not.toContain("par mois");
+    expect(c).not.toContain("4,99");
   });
 });

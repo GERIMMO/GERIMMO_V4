@@ -16,7 +16,7 @@ import { OuvrirAlertes } from "./ouvrir-alertes";
 import { DecisionMatin } from "./decision-matin";
 import { PreparerPoint } from "./preparer-point";
 import { dateLongue, lirePoints, type PointLu } from "./lecture";
-import { ArrowRight, CalendarDays, ClipboardCheck, FileText, Users, PenLine, Compass, Building2, Wallet, Wrench, ShieldCheck, Megaphone, Map as Carte, HeartPulse, CheckCheck, History, ChevronDown, Settings2, ArrowUpRight } from "lucide-react";
+import { ArrowRight, CalendarDays, ClipboardCheck, TriangleAlert, FileText, Users, PenLine, Compass, Building2, Wallet, Wrench, ShieldCheck, Megaphone, Map as Carte, HeartPulse, CheckCheck, History, ChevronDown, Settings2, ArrowUpRight } from "lucide-react";
 import styles from "./accueil.module.css";
 
 // Trois vues partageant les mêmes sources et actions de supervision.
@@ -130,8 +130,10 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
                 {decisions.decisions.length > 0 && <p className="eyebrow mb-2 text-[var(--marque-sombre)]">Interventions à examiner</p>}
                 <div className={styles.signalList}>
                   {signaux.map((signal) => {
-                    const classe = styles.signal;
-                    const contenu = <><span className={styles.signalMarker}><ClipboardCheck size={16} aria-hidden="true" />{["sante","bugs","alertes"].includes(signal.cle)?"Incident à examiner":"Demande à traiter"}</span><strong>{signal.titre}</strong><span className={styles.signalDetail}>{signal.detail}</span><span className={styles.signalAction}>{signal.action}<ArrowRight size={15} aria-hidden="true" /></span></>;
+                    const incident = ["sante", "bugs", "alertes"].includes(signal.cle);
+                    const IconeSignal = incident ? TriangleAlert : ClipboardCheck;
+                    const classe = `${styles.signal} ${incident ? styles.signalIncident : ""}`;
+                    const contenu = <><span className={styles.signalMarker}><IconeSignal size={16} aria-hidden="true" />{incident ? "Incident à examiner" : "Demande à traiter"}</span><strong>{signal.titre}</strong><span className={styles.signalDetail}>{signal.detail}</span><span className={styles.signalAction}>{signal.action}<ArrowRight size={15} aria-hidden="true" /></span></>;
                     return signal.href ? <Link key={signal.cle} href={signal.href} className={classe}>{contenu}</Link> : <OuvrirAlertes key={signal.cle} className={classe}>{contenu}</OuvrirAlertes>;
                   })}
                 </div>

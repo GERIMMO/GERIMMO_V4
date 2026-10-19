@@ -41,6 +41,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import pg from 'pg';
 import { exporter, extraire, SCHEMAS, verifier } from './base.mjs';
+import { verifierHistoriqueMigrations } from './historique-migrations.mjs';
 import { verifierSupportInterne } from './restaurer-archive.mjs';
 
 const PRODUCTION = 'rddlxunppddzpsaatdaz';
@@ -66,6 +67,7 @@ function psql(url, sql) {
 // Chaque instantané rend une liste triée de lignes texte : deux bases
 // identiques rendent deux listes identiques.
 const INSTANTANES = {
+  historique_migrations: `select version||' '||md5(row_to_json(m)::text) from supabase_migrations.schema_migrations m order by version`,
   politiques: `select schemaname||'.'||tablename||' '||policyname||' '||cmd||' '||array_to_string(roles,',')
                  from pg_policies where schemaname in (${SCHEMAS.map(s => `'${s}'`).join(',')}) order by 1`,
   rls: `select n.nspname||'.'||c.relname||' '||c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace
@@ -168,6 +170,7 @@ export async function exercer({ source, cible = 'gerimmo_restauration', garder =
     }
     const ouvertesAnon = Number((await lireCible(`select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
       where n.nspname='public' and p.prokind='f' and has_function_privilege('anon',p.oid,'EXECUTE')`))[0]);
+    bilan.historique_migrations = await verifierHistoriqueMigrations(cibleClient, true);
     bilan.support_interne = await verifierSupportInterne(cibleClient, SCHEMAS.includes('support_interne'));
     // D07 : les tâches pg_cron de la source (`cron.job`, hors des schémas sauvegardés) doivent se retrouver dans l'archive.
     const cronPresent = (await lireSource(`select (to_regclass('cron.job') is not null)::text`))[0] === 'true';

@@ -97,6 +97,7 @@ function connecter(adhesions: Ligne[], opts: { niveau?: string | null; connecte?
   const roles = adhesions.filter((l) => l.status === "active" && l.account_id === MOI).map((l) => l.role);
   mocks.client.mockReturnValue({
     from: requete,
+    rpc: async () => ({ data: [{ id: "session-fictive", cree_le: opts.derniereConnexion ?? new Date().toISOString() }], error: null }),
     auth: {
       getUser: async () => ({
         data: { user: opts.connecte === false ? null : { id: MOI, last_sign_in_at: opts.derniereConnexion ?? new Date().toISOString() } },

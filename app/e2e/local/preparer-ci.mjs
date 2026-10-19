@@ -35,6 +35,9 @@ try {
     const sql = (await readFile(new URL('supabase/migrations/' + fichier, app), 'utf8')).replace(/^create extension if not exists pg_cron;/m, '');
     await db.query(sql);
     await db.query('insert into e2e_local.migrations(name) values($1)', [fichier]);
+    // Identifiant local explicite : plusieurs anciens fichiers partagent le même jour.
+    await db.query('insert into supabase_migrations.schema_migrations(version,name,statements) values($1,$2,$3)',
+      [fichier.slice(0, -4), fichier.slice(fichier.indexOf('_') + 1, -4), [sql]]);
   }
   // Modules expérimentaux activés uniquement dans ces bases fictives locales.
   await db.query("update public.artisan_modules_locaux set actif=true");

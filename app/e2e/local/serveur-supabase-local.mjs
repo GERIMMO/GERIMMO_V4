@@ -599,7 +599,11 @@ async function appelerRpc(claims, nom, corps, url, methode, entetes) {
 // `methodes` : la revendication `amr` telle que GoTrue l'écrit (méthode qui a ouvert la session) ; par défaut une
 // connexion par mot de passe. Un lien ou un code vérifié (/auth/v1/verify) donne `email/signup`, `recovery`,
 // `magiclink` ou `otp` : /nouveau-mot-de-passe s'y fie pour n'accepter que les sessions nées d'un lien reçu par e-mail.
-function sessionPour(user, niveau = "aal1", methodes = null) {
+async function sessionPour(user, niveau = "aal1", methodes = null, sessionId = null) {
+  if (sessionId === null) {
+    sessionId = crypto.randomUUID();
+    await admin((c) => c.query("insert into auth.sessions(id,user_id) values($1,$2)", [sessionId, user.id]));
+  }
   const expires_in = 3600;
   const maintenant = Math.floor(Date.now() / 1000);
   const amr = Array.isArray(methodes) && methodes.length
@@ -607,7 +611,7 @@ function sessionPour(user, niveau = "aal1", methodes = null) {
     : [{ method: "password", timestamp: maintenant }, ...(niveau === "aal2" ? [{ method: "totp", timestamp: maintenant }] : [])];
   const claims = {
     sub: user.id, email: user.email, phone: "", role: "authenticated",
-    aud: "authenticated", session_id: crypto.randomUUID(),
+    aud: "authenticated", session_id: sessionId,
     aal: niveau, amr,
     app_metadata: user.raw_app_meta_data ?? {}, user_metadata: user.raw_user_meta_data ?? {},
     iat: maintenant, exp: maintenant + expires_in, iss: `http://127.0.0.1:${PORT}/auth/v1`,
@@ -618,7 +622,7 @@ function sessionPour(user, niveau = "aal1", methodes = null) {
     expires_in,
     expires_at: maintenant + expires_in,
     // Le rafraîchissement conserve la méthode d'origine, comme GoTrue.
-    refresh_token: signer({ sub: user.id, type: "refresh", aal: niveau, amr, iat: maintenant }),
+    refresh_token: signer({ sub: user.id, type: "refresh", session_id: sessionId, aal: niveau, amr, iat: maintenant }),
     user: utilisateurJson(user),
   };
 }
@@ -652,13 +656,20 @@ async function creerUtilisateur(email, motDePasse, meta) {
   return rows[0];
 }
 
+async function sessionLocaleActive(claims) {
+  if (!claims?.session_id || !claims?.sub) return false;
+  const { rows } = await admin((c) => c.query("select 1 from auth.sessions where id=$1 and user_id=$2 and (not_after is null or not_after>now())", [claims.session_id, claims.sub]));
+  return rows.length === 1;
+}
+
 async function routerAuth(methode, chemin, url, corps, claims) {
   if (chemin === 'factors' || chemin.startsWith('factors/')) {
+    if (!await sessionLocaleActive(claims)) return { statut: 401, corps: { msg: 'Session expirée' } };
     const resultat = routerMfaLocal(methode, chemin, corps, claims);
     if (resultat.valide) {
       const u = await utilisateurParId(claims.sub);
       if (!u) return { statut: 401, corps: { msg: 'Utilisateur disparu' } };
-      return { statut: 200, corps: sessionPour(u, 'aal2') };
+      return { statut: 200, corps: await sessionPour(u, 'aal2', [...(claims.amr ?? []), { method: 'totp', timestamp: Math.floor(Date.now() / 1000) }], claims.session_id) };
     }
     return resultat;
   }
@@ -676,21 +687,21 @@ async function routerAuth(methode, chemin, url, corps, claims) {
       // L'aperçu visuel local peut utiliser son compte fictif sans demander
       // un code. Ce drapeau n'existe que dans le banc, jamais dans le produit.
       const niveau = estApercuSuperadminSansMfa(process.env, rows[0].email) ? "aal2" : "aal1";
-      return { statut: 200, corps: sessionPour(rows[0], niveau) };
+      return { statut: 200, corps: await sessionPour(rows[0], niveau) };
     }
     if (grant === "refresh_token") {
       const c2 = verifier(corps.refresh_token ?? "");
-      if (!c2 || c2.type !== "refresh") return { statut: 400, corps: { error: "invalid_grant", msg: "Invalid Refresh Token" } };
+      if (!c2 || c2.type !== "refresh" || !await sessionLocaleActive(c2)) return { statut: 400, corps: { error: "invalid_grant", msg: "Invalid Refresh Token" } };
       const u = await utilisateurParId(c2.sub);
       if (!u) return { statut: 400, corps: { error: "invalid_grant", msg: "Utilisateur disparu" } };
-      return { statut: 200, corps: sessionPour(u, c2.aal === "aal2" ? "aal2" : "aal1", Array.isArray(c2.amr) ? c2.amr : null) };
+      return { statut: 200, corps: await sessionPour(u, c2.aal === "aal2" ? "aal2" : "aal1", Array.isArray(c2.amr) ? c2.amr : null, c2.session_id) };
     }
     return { statut: 400, corps: { error: "unsupported_grant_type" } };
   }
   if (chemin === "signup" && methode === "POST") {
     try {
       const u = await creerUtilisateur(corps.email, corps.password, corps.data ?? {});
-      return { statut: 200, corps: sessionPour(u) };
+      return { statut: 200, corps: await sessionPour(u) };
     } catch (e) {
       if (e.code === "23505") return { statut: 422, corps: { code: "user_already_exists", msg: "User already registered" } };
       throw e;
@@ -735,12 +746,14 @@ async function routerAuth(methode, chemin, url, corps, claims) {
   }
   if (chemin === "user" && methode === "GET") {
     if (!claims?.sub) return { statut: 401, corps: { code: "no_authorization", msg: "Jeton absent ou invalide" } };
+    if (!await sessionLocaleActive(claims)) return { statut: 401, corps: { code: "session_not_found", msg: "Session expirée" } };
     const u = await utilisateurParId(claims.sub);
     if (!u) return { statut: 401, corps: { code: "user_not_found", msg: "Utilisateur introuvable" } };
     return { statut: 200, corps: utilisateurJson(u) };
   }
   if (chemin === "user" && methode === "PUT") {
     if (!claims?.sub) return { statut: 401, corps: { code: "no_authorization", msg: "Jeton absent ou invalide" } };
+    if (!await sessionLocaleActive(claims)) return { statut: 401, corps: { code: "session_not_found", msg: "Session expirée" } };
     if (corps.password) {
       await admin((c) =>
         c.query(
@@ -757,7 +770,14 @@ async function routerAuth(methode, chemin, url, corps, claims) {
     const u = await utilisateurParId(claims.sub);
     return { statut: 200, corps: utilisateurJson(u) };
   }
-  if (chemin === "logout" && methode === "POST") return { statut: 204, corps: null };
+  if (chemin === "logout" && methode === "POST") {
+    if (claims?.sub) {
+      const scope = url.searchParams.get("scope") ?? "global";
+      const filtre = scope === "local" ? " and id=$2" : scope === "others" ? " and id<>$2" : "";
+      await admin((c) => c.query(`delete from auth.sessions where user_id=$1${filtre}`, filtre ? [claims.sub, claims.session_id] : [claims.sub]));
+    }
+    return { statut: 204, corps: null };
+  }
   if (["recover", "otp", "resend", "magiclink"].includes(chemin) && methode === "POST") {
     // Hors ligne : pas d'email sortant. On répond OK pour ne pas casser les
     // parcours ; le lien n'arrivera jamais (limite documentée du mode local).
@@ -780,7 +800,7 @@ async function routerAuth(methode, chemin, url, corps, claims) {
     // Méthode d'authentification telle que GoTrue la consigne pour un lien vérifié (models.AuthenticationMethod).
     const methodeLien = corps.type === "signup" || verifie.token_type === "confirmation_token" ? "email/signup"
       : corps.type === "magiclink" ? "magiclink" : corps.type === "recovery" ? "recovery" : "otp";
-    return { statut: 200, corps: sessionPour(await utilisateurParId(verifie.user_id), "aal1", [{ method: methodeLien, timestamp: Math.floor(Date.now() / 1000) }]) };
+    return { statut: 200, corps: await sessionPour(await utilisateurParId(verifie.user_id), "aal1", [{ method: methodeLien, timestamp: Math.floor(Date.now() / 1000) }]) };
   }
   return { statut: 404, corps: { msg: `auth/${chemin} non géré` } };
 }

@@ -64,13 +64,12 @@ async function origineDeLaRequete(): Promise<string | null> {
 /**
  * Souscrire : ouvrir la page de paiement de Stripe.
  *
- * QUI PEUT L'APPELER. Les trois gardes tiennent en base : `abonnement_client_pose`
- * et `mon_client_stripe` sont réservées au responsable de l'organisation. Cette
- * action ne porte la clé de service que pour deux gestes d'exception, chacun
- * APRÈS qu'une lecture réservée au responsable a prouvé le droit : remplacer
- * un client Stripe supprimé, et quitter la grille historique sans
- * souscription vivante (audit 29/09). Elle touche aussi la clé de Stripe, qui
- * ne donne accès qu'à la facturation.
+ * QUI PEUT L'APPELER. `mon_client_stripe` vérifie les droits du responsable.
+ * L'association au dossier Stripe est ensuite enregistrée par le serveur,
+ * après vérification de son appartenance à l'organisation. Le remplacement
+ * d'un client Stripe supprimé et la sortie de la grille historique exigent
+ * aussi cette vérification des droits (audit 29/09). La clé de Stripe
+ * utilisée ici ne donne accès qu'à la facturation.
  *
  * ELLE MARCHE MÊME SI LE COMPTE EST FERMÉ, et c'est le point délicat : la garde
  * d'écriture des comptes suspendus exclut délibérément les tables d'abonnement
@@ -174,7 +173,8 @@ async function assurerEtEnregistrerClient(
   orgId: string,
   org: { name: string; email_contact: string | null }
 ): Promise<{ ok: true; customer: string } | { ok: false; erreur: string }> {
-  const { data: clientExistant } = await supabase.rpc("mon_client_stripe", { p_org: orgId });
+  const { data: clientExistant, error: erreurLecture } = await supabase.rpc("mon_client_stripe", { p_org: orgId });
+  if (erreurLecture) return { ok: false, erreur: "Impossible de vérifier vos droits sur ce dossier de paiement. Réessayez." };
   const existant = (clientExistant as string | null) ?? null;
   const client = await assurerClientStripe(stripe, {
     orgId,
@@ -204,7 +204,9 @@ async function assurerEtEnregistrerClient(
   // On enregistre le client AVANT d'ouvrir la page de paiement. Dans l'autre
   // ordre, un client qui paie puis ferme son onglet laisserait un webhook
   // portant un identifiant qu'on ne saurait rattacher à personne.
-  const { error: erreurPose } = await supabase.rpc("abonnement_client_pose", {
+  const service = clientDeService();
+  if (!service) return { ok: false, erreur: "Le service de paiement est momentanément indisponible. Réessayez plus tard." };
+  const { error: erreurPose } = await service.rpc("abonnement_client_pose", {
     p_org: orgId,
     p_customer: client.customer,
   });

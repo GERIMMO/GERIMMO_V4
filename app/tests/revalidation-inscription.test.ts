@@ -14,20 +14,23 @@ const form = (values: Record<string, string> = {}) => {
   return f;
 };
 /** La revendication `amr` du jeton : d'où vient la session (audit du 19/10, g). */
-const revendications = (methode: string) => ({ data: { claims: { sub: "u1", amr: [{ method: methode, timestamp: 1 }] } }, error: null });
+const revendications = (methode: string) => ({ data: { claims: { sub: "u1", amr: [{ method: methode, timestamp: Math.floor(Date.now() / 1000) }] } }, error: null });
 let auth: { getUser: ReturnType<typeof vi.fn>; getClaims: ReturnType<typeof vi.fn>; updateUser: ReturnType<typeof vi.fn>; signOut: ReturnType<typeof vi.fn> };
 let rpc: ReturnType<typeof vi.fn>;
+let adhesion: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   vi.clearAllMocks();
   auth = {
-    getUser: vi.fn().mockResolvedValue({ data: { user: { user_metadata: { profil_a_confirmer: { nom: "Initial" } } } } }),
+    getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1", user_metadata: { profil_a_confirmer: { nom: "Initial" } } } } }),
     // Par défaut, la session est née d'un lien de récupération : le cas ordinaire de ce formulaire.
     getClaims: vi.fn().mockResolvedValue(revendications("recovery")),
     updateUser: vi.fn().mockResolvedValue({ error: null }),
     signOut: vi.fn().mockResolvedValue({ error: null }),
   };
   rpc = vi.fn().mockResolvedValue({ error: null });
-  mocks.client.mockResolvedValue({ auth, rpc });
+  adhesion = vi.fn().mockResolvedValue({ data: null, error: null });
+  const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), maybeSingle: adhesion };
+  mocks.client.mockResolvedValue({ auth, rpc, from: vi.fn().mockReturnValue(query) });
   mocks.cookies.mockResolvedValue({ delete: vi.fn() });
 });
 
@@ -56,7 +59,7 @@ it("enregistre les informations validées et garde la suite d’une invitation",
   expect(rpc.mock.invocationCallOrder[0]).toBeLessThan(auth.updateUser.mock.invocationCallOrder[0]);
 });
 it("une récupération ordinaire conserve le profil confirmé", async () => {
-  auth.getUser.mockResolvedValue({ data: { user: { user_metadata: { nom: "Valide", espace: "artisan" } } } });
+  auth.getUser.mockResolvedValue({ data: { user: { id: "u1", user_metadata: { nom: "Valide", espace: "artisan" } } } });
   await expect(definirNouveauMotDePasse({}, form())).rejects.toThrow("REDIRECT");
   expect(auth.updateUser).toHaveBeenCalledExactlyOnceWith({ password: "nouveau-mot-de-passe-1" });
   expect(rpc).not.toHaveBeenCalledWith("accepter_cgu", expect.anything());
@@ -71,7 +74,7 @@ it("connecté par mot de passe : l'action refuse, sans toucher au mot de passe, 
   // connecté ; elle doit refuser elle-même de poser un mot de passe sans l'ancien.
   auth.getClaims.mockResolvedValue(revendications("password"));
   expect((await definirNouveauMotDePasse({}, form())).erreur).toBe(
-    "Ce formulaire est réservé au lien reçu par e-mail. Depuis votre compte, changez votre mot de passe dans « Mon compte », avec le mot de passe actuel."
+    "Ce formulaire est réservé au lien reçu par e-mail, pendant quinze minutes après sa confirmation. Redemandez un lien ou changez votre mot de passe dans « Mon compte », avec le mot de passe actuel."
   );
   expect(auth.updateUser).not.toHaveBeenCalled();
   expect(auth.signOut).not.toHaveBeenCalled();
@@ -82,4 +85,42 @@ it("sans revendication lisible : même refus, rien n'est modifié", async () => 
   expect((await definirNouveauMotDePasse({}, form())).erreur).toContain("réservé au lien reçu par e-mail");
   expect(auth.updateUser).not.toHaveBeenCalled();
   expect(auth.signOut).not.toHaveBeenCalled();
+});
+
+it.each([
+  [{ method: "recovery", timestamp: Math.floor(Date.now() / 1000) - 901 }],
+  [{ method: "recovery", timestamp: 1 }, { method: "totp", timestamp: Math.floor(Date.now() / 1000) }],
+  [{ method: "otp" }], ["recovery"],
+  [{ method: "recovery", timestamp: Math.floor(Date.now() / 1000) + 60 }],
+])("refuse une preuve sans fraîcheur valide (%j), avant toute mutation", async (...entrees) => {
+  auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: entrees, aal: "aal2" } }, error: null });
+  expect((await definirNouveauMotDePasse({}, form())).erreur).toBeTruthy();
+  expect(auth.updateUser).not.toHaveBeenCalled();
+  expect(auth.signOut).not.toHaveBeenCalled();
+  expect(rpc).not.toHaveBeenCalled();
+});
+it("le rôle superviseur exige aussi le second facteur", async () => {
+  adhesion.mockResolvedValue({ data: { id: "superviseur" }, error: null });
+  expect((await definirNouveauMotDePasse({}, form())).erreur).toContain("double authentification");
+  expect(auth.updateUser).not.toHaveBeenCalled();
+  expect(rpc).not.toHaveBeenCalled();
+});
+it("autorise le superviseur avec preuve récente et second facteur", async () => {
+  adhesion.mockResolvedValue({ data: { id: "superviseur" }, error: null });
+  const claims = revendications("recovery");
+  auth.getClaims.mockResolvedValue({ data: { claims: { ...claims.data.claims, aal: "aal2" } }, error: null });
+  await expect(definirNouveauMotDePasse({}, form())).rejects.toThrow("REDIRECT");
+  expect(auth.updateUser).toHaveBeenCalledOnce();
+});
+it("un contrôle des droits indisponible ferme l'action", async () => {
+  adhesion.mockResolvedValue({ data: null, error: { message: "indisponible" } });
+  expect((await definirNouveauMotDePasse({}, form())).erreur).toBeTruthy();
+  expect(auth.updateUser).not.toHaveBeenCalled();
+  expect(rpc).not.toHaveBeenCalled();
+});
+it("refuse des revendications qui ne correspondent pas au compte vérifié", async () => {
+  const claims = revendications("recovery");
+  auth.getClaims.mockResolvedValue({ data: { claims: { ...claims.data.claims, sub: "autre" } }, error: null });
+  expect((await definirNouveauMotDePasse({}, form())).erreur).toBeTruthy();
+  expect(auth.updateUser).not.toHaveBeenCalled();
 });

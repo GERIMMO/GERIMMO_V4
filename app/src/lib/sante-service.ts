@@ -98,6 +98,7 @@ const LIBELLES_BILAN: Record<string, string> = {
   traitees: "actions réalisées",
   traites: "actions réalisées",
   etudiees: "actualités étudiées",
+  rejetees: "études non retenues par le contrôle des sources",
   sources: "sources consultées",
   rapports_prepares: "comptes rendus préparés",
   ignores: "actions sans suite nécessaire",

@@ -5,7 +5,7 @@ import { CoquilleAuth } from "@/components/coquille-auth";
 import { FormulaireNouveauMotDePasse } from "./formulaire-nouveau-mot-de-passe";
 import { MOTIF_CONFIRMATION, MOTIF_INSCRIPTION } from "@/lib/temoin-inscription";
 import { CLE_PROFIL_A_CONFIRMER, informationsAConfirmer } from "@/lib/revalidation-inscription";
-import { sessionIssueDUnLien } from "@/lib/session-lien-email";
+import { autorisationNouveauMotDePasse } from "@/lib/autorisation-nouveau-mot-de-passe";
 
 export const metadata = { title: "Nouveau mot de passe — Gerimmo" };
 
@@ -22,11 +22,14 @@ export default async function PageNouveauMotDePasse({ searchParams }: { searchPa
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion?raison=lien-invalide");
-  // Ce formulaire pose le mot de passe SANS demander l'ancien : il est réservé aux sessions nées d'un lien reçu par
-  // e-mail (récupération, invitation, confirmation), ce que dit la revendication `amr` du jeton. Connecté par mot de
-  // passe, on change son mot de passe depuis « Mon compte », avec le mot de passe actuel (audit du 19/10, g).
-  const { data: revendications } = await supabase.auth.getClaims();
-  if (!sessionIssueDUnLien(revendications?.claims?.amr)) redirect("/compte");
+  const autorisation = await autorisationNouveauMotDePasse(supabase, user.id);
+  if (autorisation === "second_facteur_requis") {
+    const retour = new URLSearchParams({ suite });
+    if (typeof parametres.motif === "string") retour.set("motif", parametres.motif);
+    redirect(`/securite?suite=${encodeURIComponent(`/nouveau-mot-de-passe?${retour}`)}`);
+  }
+  if (autorisation === "indisponible") throw new Error("La vérification du compte est momentanément indisponible.");
+  if (autorisation !== "accordee") redirect("/compte");
   const brutProfil = user.user_metadata?.[CLE_PROFIL_A_CONFIRMER];
   const profilAConfirmer = brutProfil && typeof brutProfil === "object" ? informationsAConfirmer(brutProfil) : undefined;
 

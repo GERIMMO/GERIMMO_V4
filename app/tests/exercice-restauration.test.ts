@@ -54,6 +54,9 @@ describe("exercice de restauration", () => {
       expect(bilan.ecarts_droits).toEqual({});
       expect(bilan.fonctions_ouvertes_a_anon).toBe(0);
       expect(bilan.support_interne).toEqual({ present: true, protections: "validées" });
+      expect(bilan.historique_migrations.present).toBe(true);
+      expect(bilan.historique_migrations.versions).toBeGreaterThan(0);
+      expect(bilan.objets_compares.historique_migrations).toBe(bilan.historique_migrations.versions);
       expect(bilan.reussi).toBe(true);
     },
     180_000

@@ -924,3 +924,9 @@ annule tout), marche avant après suppression manuelle des objets conservés (hu
 l'état intégré d'avant la chaîne) ; essai `psql`
 hors Vitest : les huit retours joués deux fois (second passage : NOTICE seulement). Suite : `tests/retours-oct18-registre.test.ts` (sans base :
 forme des fichiers et LISEZ-MOI). Aucun essai sur la production.
+
+### 20 octobre — dossier de paiement
+
+`20261020010000_abonnement_client_service.retour.sql` restaure la fonction et ses droits antérieurs. À coordonner avec le retour du code de souscription. Aucune association existante n’est supprimée.
+
+`20261020011000_session_origine_verifiee.retour.sql` retire la lecture du début de session. Déployer le proxy précédent avant ce retour. Les comptes et les sessions existantes sont conservés.

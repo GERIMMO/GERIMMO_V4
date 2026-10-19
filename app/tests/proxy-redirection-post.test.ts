@@ -16,7 +16,8 @@ import { proxy } from "../src/proxy";
 const HIER = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
 
 function sansSession() {
-  mocks.client.mockReturnValue({ auth: { getUser: async () => ({ data: { user: null } }) } });
+  mocks.client.mockReturnValue({ rpc: async () => ({ data: [{ id: "session-fictive", cree_le: HIER }], error: null }),
+    auth: { getUser: async () => ({ data: { user: null } }) } });
 }
 function sessionExpiree() {
   const q = {
@@ -27,6 +28,7 @@ function sessionExpiree() {
   const signOut = vi.fn(async () => ({ error: null }));
   mocks.client.mockReturnValue({
     from: () => q,
+    rpc: async () => ({ data: [{ id: "session-fictive", cree_le: HIER }], error: null }),
     auth: { getUser: async () => ({ data: { user: { id: "compte", last_sign_in_at: HIER } } }), signOut },
   });
   return signOut;

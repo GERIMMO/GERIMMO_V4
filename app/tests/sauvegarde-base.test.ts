@@ -60,7 +60,7 @@ describe("exporter / verifier / extraire", () => {
     const bilan = await exporter(archive, cle, CONNEXION, { commande: enrobage, psql: fauxPsql });
     expect(bilan.octets).toBeGreaterThan(200);
     const m = await verifier(archive, cle);
-    expect(m).toMatchObject({ nature: "base", schemas: ["public", "auth", "storage", "support_interne"], taille: bilan.octets, hote: "base.exemple.fr", taches_planifiees: { pg_cron: true, nombre: 0 } });
+    expect(m).toMatchObject({ nature: "base", schemas: ["public", "auth", "storage", "support_interne", "supabase_migrations"], taille: bilan.octets, hote: "base.exemple.fr", taches_planifiees: { pg_cron: true, nombre: 0 } });
     expect(JSON.stringify(m)).not.toMatch(/m0t-de-passe/);
     // Le fichier chiffré ne contient pas le dump en clair.
     const chiffre = await fs.readFile(path.join(archive, "base.dump.gcm"));
@@ -70,6 +70,7 @@ describe("exporter / verifier / extraire", () => {
     await extraire(archive, cle, clair);
     const dump = (await fs.readFile(path.join(clair, "base.dump"))).toString();
     expect(dump).toContain('"--schema","public"');
+    expect(dump).toContain('"--schema","supabase_migrations"');
     expect(dump).toContain('"--schema","support_interne"');
     expect(dump).toContain('"--no-owner"');
     expect(dump).toContain('"--strict-names"');

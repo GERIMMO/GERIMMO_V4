@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 import { entrerDansEspace, sansSyntheseAlertes } from "./aides";
+import { ouvrirCompteDeconnexion } from "./local/compte-deconnexion";
 
 // LE MENU DU COMPTE — demande de l'humain du 12/09 : « en bas à gauche j'ai les
 // paramètres et la déconnexion… j'aimerais que ça soit un menu lorsque je clique
@@ -94,6 +95,7 @@ for (const p of PERSONAS) {
     });
 
     test("se déconnecter depuis le menu sort vraiment de la session", async ({ page }) => {
+      await ouvrirCompteDeconnexion(page, p.etat.replace(".json", ""));
       await entrerDansEspace(page, p.espace);
       await bouton(page).click();
       await page.getByRole("menuitem", { name: "Se déconnecter" }).click();

@@ -50,33 +50,47 @@ describe("sessionIssueDUnLien lit la revendication amr", () => {
 
 describe("la page /nouveau-mot-de-passe", () => {
   const utilisateur = { id: "u1", email: "personne@example.com", user_metadata: {} };
+  let adhesion: ReturnType<typeof vi.fn>;
   let auth: { getUser: ReturnType<typeof vi.fn>; getClaims: ReturnType<typeof vi.fn> };
   const page = (motif?: string) => PageNouveauMotDePasse({ searchParams: Promise.resolve(motif ? { motif } : {}) });
 
   beforeEach(() => {
     mocks.createClient.mockReset();
     auth = { getUser: vi.fn().mockResolvedValue({ data: { user: utilisateur } }), getClaims: vi.fn() };
-    mocks.createClient.mockResolvedValue({ auth });
+    adhesion = vi.fn().mockResolvedValue({ data: null, error: null });
+    const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), maybeSingle: adhesion };
+    mocks.createClient.mockResolvedValue({ auth, from: vi.fn().mockReturnValue(query) });
   });
 
   it("connecté par mot de passe : renvoyé vers « Mon compte », où le mot de passe actuel est demandé", async () => {
-    auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "password", timestamp: 1 }] } }, error: null });
+    auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "password", timestamp: Math.floor(Date.now() / 1000) }] } }, error: null });
     await expect(page()).rejects.toThrow("REDIRECT /compte");
   });
 
   it("session née d'un lien de récupération : la page s'affiche", async () => {
-    auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "recovery", timestamp: 1 }] } }, error: null });
+    auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "recovery", timestamp: Math.floor(Date.now() / 1000) }] } }, error: null });
     await expect(page()).resolves.toBeTruthy();
   });
 
   it("confirmation d'inscription (motif=inscription) : la page s'affiche", async () => {
-    auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "email/signup", timestamp: 1 }] } }, error: null });
+    auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "email/signup", timestamp: Math.floor(Date.now() / 1000) }] } }, error: null });
     await expect(page("inscription")).resolves.toBeTruthy();
   });
 
   it("sans revendication lisible : pas de changement sans l'ancien mot de passe", async () => {
     auth.getClaims.mockResolvedValue({ data: null, error: { message: "jeton illisible" } });
     await expect(page()).rejects.toThrow("REDIRECT /compte");
+  });
+
+  it("une preuve ancienne renvoie au compte", async () => {
+    auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "recovery", timestamp: 1 }] } }, error: null });
+    await expect(page()).rejects.toThrow("REDIRECT /compte");
+  });
+
+  it("un superviseur doit confirmer son second facteur avant le formulaire", async () => {
+    adhesion.mockResolvedValue({ data: { id: "superviseur" }, error: null });
+    auth.getClaims.mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "recovery", timestamp: Math.floor(Date.now() / 1000) }], aal: "aal1" } }, error: null });
+    await expect(page()).rejects.toThrow("REDIRECT /securite?suite=");
   });
 
   it("sans session : vers la connexion, comme avant", async () => {

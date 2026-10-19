@@ -84,6 +84,7 @@ function session(profil: { roles: string[]; niveau: string | null; connecte: boo
       mocks.tables.push(nom);
       return requete();
     },
+    rpc: async () => ({ data: [{ id: "session-fictive", cree_le: new Date().toISOString() }], error: null }),
     auth: {
       getUser: async () => ({ data: { user: profil.connecte ? { id: MOI, last_sign_in_at: new Date().toISOString() } : null } }),
       mfa: { getAuthenticatorAssuranceLevel: async () => ({ data: { currentLevel: profil.niveau }, error: null }) },

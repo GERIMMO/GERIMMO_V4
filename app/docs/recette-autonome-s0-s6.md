@@ -182,7 +182,7 @@ rattrapées à partir de leur propre détail.
   garde-fou (`tests/garde-base.ts`) refuse maintenant de démarrer contre la production ;
   on le lève sciemment avec `GERIMMO_AUTORISER_PROD=1`.
 - **Le test d'isolation dépendait d'un jeu de démo disparu.** Il comparait des noms de
-  fiches en dur (`admin.alpha@gerimmo-demo.fr`, « Dupont », « Martin ») : quatre échecs
+  fiches en dur (le compte fictif de l’agence Alpha, « Dupont », « Martin ») : quatre échecs
   rouges alors que l'étanchéité était intacte. Réécrit pour vérifier la **règle** —
   intersection vide entre les deux agences, écriture transverse refusée — sur n'importe
   quel jeu de données. Comptes paramétrables par `.env.local`. 6/6.
@@ -262,21 +262,15 @@ Les écrans internes n'ont pas été parcourus à vide (voir §12, point d'accè
 
 **Base :** `caalwwgcauvxfbsdpuuu` — branche `recette-s0-s6`, facturée ~0,013 $/heure.
 
-**Comptes.** Mot de passe commun **`Recette-2026!`**. Alias Gmail « + » : tout arrive
-dans votre boîte.
+**Comptes de cette ancienne recette.** Les coordonnées et le mot de passe ne
+sont plus reproduits dans ce document public. Pour les essais actuels, utiliser
+les cinq identités permanentes gérées par le chantier de recette, avec leurs
+accès conservés dans les paramètres sécurisés. Ne pas réutiliser les anciennes
+valeurs de ce compte rendu.
 
-| Rôle | Adresse |
-|---|---|
-| Super admin (hors agence) | `delivered+recette@resend.dev` |
-| Admin agence Alpha | `delivered+recette@resend.dev` |
-| Agent Alpha | `delivered+recette@resend.dev` |
-| Propriétaire mandant | `delivered+recette@resend.dev` |
-| Propriétaire en direct | `delivered+recette@resend.dev` |
-| Locataire | `delivered+recette@resend.dev` |
-| Artisan | `delivered+recette@resend.dev` |
-| Garant | `delivered+recette@resend.dev` |
-| **Double adhésion** Alpha + Beta | `delivered+recette@resend.dev` |
-| Admin agence Beta (témoin) | `delivered+recette@resend.dev` |
+Profils couverts à l'époque : supervision, administration d'agence, agent,
+propriétaire mandant, propriétaire direct, locataire, artisan, garant et
+administration d'une seconde agence pour le contrôle d'isolation.
 
 **Parc.** 5 biens, 7 lots :
 - **Immeuble Voltaire**, 3 lots — **lots 1 et 3 à Bertrand, lot 2 à Nguyen** : deux

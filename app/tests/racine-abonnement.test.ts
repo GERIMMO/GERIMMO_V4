@@ -110,7 +110,7 @@ beforeEach(() => {
   m.appliquerHausse.mockResolvedValue({ ok: true, echeancierLibere: false });
   m.resilier.mockResolvedValue({ ok: true, echeancierLibere: false });
   m.portail.mockResolvedValue({ ok: true, url: "https://billing.stripe.test/session" });
-  m.service = null;
+  m.service = { rpc: vi.fn(async () => ({ data: null, error: null })) };
 });
 
 describe("demarrerAbonnement : les adresses de retour de la page de paiement", () => {

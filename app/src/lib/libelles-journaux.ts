@@ -102,6 +102,7 @@ const EVENEMENTS: Record<string, string> = {
   changement_mot_de_passe: "Changement de mot de passe",
   erreur_ecran: "Problème d’affichage",
   remise_rapport_mensuel: "Envoi d’un compte rendu mensuel",
+  veille_analyse_rejetee: "Étude non retenue par le contrôle des sources",
   veille_analyse_echec: "Étude d’une information de veille à reprendre",
   rendez_vous_fixe: "Rendez-vous d’intervention fixé",
   mission_refusee: "Mission refusée par un artisan",

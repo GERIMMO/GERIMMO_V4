@@ -4,13 +4,17 @@
 // ici est recalculé par l'action serveur avec le même module (lib/tarifs.ts) :
 // un montant qui aurait changé entre l'affichage et la validation est refusé.
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, useTransition } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import Link from "next/link";
 import { Check, LockKeyhole, MessageCircle } from "lucide-react";
 import styles from "./abonnement.module.css";
-import { demarrerAbonnement, type EtatAbonnementAction } from "@/app/actions/abonnement";
+import { accepterConditionsGenerales, demarrerAbonnement, type EtatAbonnementAction } from "@/app/actions/abonnement";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { CONDITIONS_DATE, CONDITIONS_VERSION } from "@/lib/editeur";
+import { ERREUR_ACCEPTATION_CONDITIONS } from "@/lib/garde-souscription";
+import { messageApresEchec } from "@/lib/session-expiree";
+import { AIDE_BOUTON_EN_ATTENTE, useHydrate } from "@/lib/use-hydrate";
 import {
   euros,
   formulesCouvrant,
@@ -76,6 +80,78 @@ export function DetailMontants({ offre, regime }: { offre: Offre; regime: Regime
   );
 }
 
+/**
+ * La case « J’ai lu et j’accepte la version du … des conditions générales »
+ * (lot B3, 19/10/2026). Affichée seulement quand le compte n'a pas
+ * d'acceptation pour la version en vigueur. La cocher enregistre
+ * l'acceptation (accepterConditionsGenerales → RPC `accepter_cgu`, source
+ * 'compte', heure du serveur, ajout seul), puis le bouton de paiement se
+ * débloque ; le serveur revérifie de son côté (demarrerAbonnement).
+ *
+ * Pas de formulaire imbriqué (le récapitulatif vit déjà dans celui du
+ * paiement) : l'action est appelée directement, dans une transition. Comme le
+ * bouton d'envoi (décision D30 B), la case reste inerte tant que la page n'est
+ * pas hydratée : un geste refusé visiblement plutôt qu'avalé en silence.
+ */
+function AcceptationConditions({ estAgence, onAcceptee }: { estAgence: boolean; onAcceptee: () => void }) {
+  const id = useId();
+  const pret = useHydrate();
+  const [enCours, demarrer] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
+  return (
+    <div className={estAgence ? "space-y-2 rounded-lg border border-border p-3 text-sm" : styles.conditionsAAccepter}>
+      <p className={estAgence ? "mesure-lecture text-muted-foreground" : undefined}>
+        La version du {CONDITIONS_DATE} des conditions générales n’a pas encore été acceptée depuis votre compte.
+        Lisez-la, puis acceptez-la pour continuer vers le paiement.
+      </p>
+      <label htmlFor={id} className="flex items-start gap-2 text-sm">
+        <input
+          id={id}
+          type="checkbox"
+          checked={enCours}
+          disabled={!pret || enCours}
+          title={pret ? undefined : AIDE_BOUTON_EN_ATTENTE}
+          onChange={(e) => {
+            if (!e.target.checked) return;
+            setErreur(null);
+            demarrer(async () => {
+              const fd = new FormData();
+              fd.set("cgu", "oui");
+              fd.set("cgu_version", CONDITIONS_VERSION);
+              try {
+                const r = await accepterConditionsGenerales({}, fd);
+                if (r.erreur) setErreur(r.erreur);
+                else onAcceptee();
+              } catch {
+                setErreur(await messageApresEchec(ERREUR_ACCEPTATION_CONDITIONS));
+              }
+            });
+          }}
+          className="mt-1"
+        />
+        <span>
+          J’ai lu et j’accepte la{" "}
+          {/* Nouvel onglet, comme à l'inscription et à l'ouverture d'un espace :
+              dans le même onglet, lire les conditions coûtait la saisie en cours. */}
+          <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
+            version du {CONDITIONS_DATE} des conditions générales
+          </Link>
+        </span>
+      </label>
+      {enCours && (
+        <p role="status" className="text-xs text-muted-foreground">
+          Enregistrement de votre acceptation…
+        </p>
+      )}
+      {erreur && (
+        <p role="alert" className="text-sm text-destructive">
+          {erreur}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function FormulaireSouscription({
   orgId,
   publicTarif,
@@ -84,6 +160,7 @@ export function FormulaireSouscription({
   premierPrelevement,
   ferme,
   motifIndisponible,
+  conditionsAAccepter,
 }: {
   orgId: string;
   publicTarif: "agence" | "proprietaire_direct";
@@ -95,6 +172,8 @@ export function FormulaireSouscription({
   ferme: boolean;
   /** Pourquoi la souscription en ligne n'est pas possible (configuration), sinon null. */
   motifIndisponible: string | null;
+  /** Lot B3 : vrai si le compte n'a pas d'acceptation enregistrée pour la version en vigueur des conditions. */
+  conditionsAAccepter: boolean;
 }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const racine = useRacineEspace();
@@ -103,6 +182,9 @@ export function FormulaireSouscription({
     demarrerAbonnement.bind(null, orgId),
     {}
   );
+  // L'acceptation porte sur le texte des conditions, pas sur le montant : elle
+  // n'est pas remise en cause par un changement de formule ou de périodicité.
+  const [conditionsAcceptees, setConditionsAcceptees] = useState(!conditionsAAccepter);
   const estAgence = publicTarif === "agence";
   const [periodicite, setPeriodicite] = useState<Periodicite>("mensuel");
   const offres = useMemo(() => formulesCouvrant(unites, periodicite), [unites, periodicite]);
@@ -219,6 +301,15 @@ export function FormulaireSouscription({
         </div>
       ) : (
         <>
+          {!conditionsAcceptees && (
+            <AcceptationConditions estAgence={estAgence} onAcceptee={() => setConditionsAcceptees(true)} />
+          )}
+          {conditionsAAccepter && conditionsAcceptees && (
+            <p role="status" className="flex items-start gap-2 text-sm text-muted-foreground">
+              <Check size={17} aria-hidden="true" className="mt-0.5 shrink-0" />
+              <span>Votre acceptation de la version du {CONDITIONS_DATE} des conditions générales est enregistrée.</span>
+            </p>
+          )}
           <input type="hidden" name="montant_attendu_cents" value={choisie.montantCents} />
           <input type="hidden" name="confirmation" value={confirme ? "oui" : "non"} />
           <label htmlFor={idConfirmation} className="flex items-start gap-2 text-sm">
@@ -234,7 +325,11 @@ export function FormulaireSouscription({
               {dateDebit ? ` à partir du ${dateDebit}` : ""}, selon les conditions ci-dessus.
             </span>
           </label>
-          <BoutonEnvoi enCoursTexte="Ouverture du paiement sécurisé…" disabled={!confirme}>
+          <BoutonEnvoi
+            enCoursTexte="Ouverture du paiement sécurisé…"
+            disabled={!confirme || !conditionsAcceptees}
+            title={conditionsAcceptees ? undefined : "Acceptez d’abord la version en vigueur des conditions générales."}
+          >
             Continuer vers le paiement sécurisé
           </BoutonEnvoi>
         </>

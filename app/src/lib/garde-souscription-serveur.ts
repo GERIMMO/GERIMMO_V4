@@ -1,0 +1,60 @@
+import "server-only";
+import type { createClient } from "@/lib/supabase/server";
+import { CONDITIONS_VERSION } from "@/lib/editeur";
+import { lireEditeur } from "@/lib/editeur-serveur";
+import { motifIdentiteEditeur } from "@/lib/garde-souscription";
+
+// Les lectures en base des deux conditions de lib/garde-souscription.ts
+// (lot B3, 19/10/2026), avec la session de la personne connectée :
+//  - `supervision_identite` est lisible de tout compte connecté (politique
+//    `identite_publique`, colonnes singleton/valeurs/revision/modifie_le) ;
+//  - `acceptations_cgu` ne rend au titulaire que ses propres lignes (politique
+//    `acceptations_cgu_lecture`), et toutes à un super-administrateur.
+// Les deux lectures ferment par défaut : un échec vaut « pas de paiement ».
+
+type Client = Awaited<ReturnType<typeof createClient>>;
+
+export type GardeSouscription = {
+  /** Le motif qui ferme le paiement (identité incomplète ou illisible), sinon `null`. */
+  motifIdentite: string | null;
+  /** Vrai si le compte a une acceptation enregistrée pour la version en vigueur des conditions. */
+  conditionsAcceptees: boolean;
+};
+
+/**
+ * L'identité telle que la production la tient : `supervision_identite`
+ * superposée au code (lib/editeur-serveur.ts). Une lecture en échec rend
+ * l'identité du code — vide à ce jour — donc le motif : fermeture par défaut,
+ * et rien n'est prélevé entre-temps.
+ */
+export async function lireMotifIdentiteEditeur(): Promise<string | null> {
+  const { editeur } = await lireEditeur();
+  return motifIdentiteEditeur(editeur);
+}
+
+/**
+ * Le compte a-t-il accepté la version en vigueur ? Lecture bornée au compte
+ * (la RLS limite déjà au titulaire, mais un super-administrateur en traversée
+ * verrait toutes les lignes) et à la version exacte — une version antérieure
+ * ne compte pas. Une lecture en échec vaut « non acceptée » : la case est
+ * redemandée, et une ligne de plus est sans conséquence (ajout seul).
+ */
+export async function conditionsEnVigueurAccepteesPar(supabase: Client, accountId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("acceptations_cgu")
+    .select("id")
+    .eq("account_id", accountId)
+    .eq("version", CONDITIONS_VERSION)
+    .limit(1)
+    .maybeSingle();
+  return !error && data !== null;
+}
+
+/** Les deux lectures en parallèle, pour l'écran « Mon abonnement ». */
+export async function lireGardeSouscription(supabase: Client, accountId: string): Promise<GardeSouscription> {
+  const [motifIdentite, conditionsAcceptees] = await Promise.all([
+    lireMotifIdentiteEditeur(),
+    conditionsEnVigueurAccepteesPar(supabase, accountId),
+  ]);
+  return { motifIdentite, conditionsAcceptees };
+}

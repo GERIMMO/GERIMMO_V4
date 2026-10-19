@@ -12,7 +12,15 @@ import {
   verifierClientDeLOrganisation,
 } from "@/lib/stripe";
 import { origineDeRetour } from "@/lib/site";
-import { REGIME_TVA } from "@/lib/editeur";
+import { CONDITIONS_VERSION, REGIME_TVA } from "@/lib/editeur";
+import {
+  ERREUR_ACCEPTATION_CONDITIONS,
+  ERREUR_CONDITIONS_PERIMEES,
+  MOTIF_CONDITIONS_A_ACCEPTER,
+  estLaVersionEnVigueur,
+} from "@/lib/garde-souscription";
+import { conditionsEnVigueurAccepteesPar, lireMotifIdentiteEditeur } from "@/lib/garde-souscription-serveur";
+import { MESSAGE_SESSION_EXPIREE } from "@/lib/session-expiree";
 import {
   GRILLE,
   apercuChangement,
@@ -28,7 +36,7 @@ import { offreAgence, offreParticulier, type Offre, type Periodicite } from "@/l
 import { baseEspace } from "@/lib/racine-espace";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 
-export type EtatAbonnementAction = { erreur?: string };
+export type EtatAbonnementAction = { erreur?: string; succes?: boolean };
 
 /**
  * L'adresse de retour, prise sur la requête en cours.
@@ -68,6 +76,14 @@ async function origineDeLaRequete(): Promise<string | null> {
  * d'écriture des comptes suspendus exclut délibérément les tables d'abonnement
  * (migration 20260911300000). Sans cette exclusion, le client ne pourrait pas
  * payer parce qu'il n'a pas payé.
+ *
+ * DEUX GARDES DE CONTRAT (lot B3, 19/10/2026 ; lib/garde-souscription.ts),
+ * après les motifs Stripe et TVA et avant tout appel à Stripe : l'identité de
+ * l'éditeur, lue dans `supervision_identite` par-dessus le code (souscription
+ * ET hausse) ; la version en vigueur des conditions générales, acceptée par le
+ * compte qui clique, dans `acceptations_cgu` (souscription seulement). L'écran
+ * dit les mêmes phrases et propose la case qui enregistre l'acceptation
+ * (`accepterConditionsGenerales`).
  */
 type EtatAbonnementLu = {
   statut: string;
@@ -214,6 +230,22 @@ export async function demarrerAbonnement(
   }
   if (!REGIME_TVA) return { erreur: REGIME_ABSENT };
 
+  // Lot B3 (19/10) : deux conditions de contrat, après les motifs Stripe et
+  // TVA (le banc local sans clés garde sa phrase) et AVANT tout appel à Stripe.
+  // 1. L'identité de l'éditeur, lue en base par-dessus le code : sans mentions
+  //    légales complètes, pas de paiement — même phrase qu'à l'écran. Une
+  //    lecture en échec ferme aussi.
+  const motifIdentite = await lireMotifIdentiteEditeur();
+  if (motifIdentite) return { erreur: motifIdentite };
+  // 2. La version en vigueur des conditions, acceptée par LE COMPTE qui clique.
+  //    L'écran propose la case qui l'enregistre (accepterConditionsGenerales) ;
+  //    ici on vérifie seulement : cette action n'enregistre rien.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { erreur: MESSAGE_SESSION_EXPIREE };
+  if (!(await conditionsEnVigueurAccepteesPar(supabase, user.id))) return { erreur: MOTIF_CONDITIONS_A_ACCEPTER };
+
   const estAgence = etat.public_tarif === "agence";
   const periodicite: Periodicite = estAgence ? "mensuel" : (lirePeriodicite(formData.get("periodicite")) ?? "mensuel");
   const unites = etat.unites_a_couvrir ?? 0;
@@ -274,6 +306,11 @@ export async function confirmerHausse(
   const reglages = configurationStripe();
   if (!reglages.pret) return { erreur: "Le paiement en ligne n'est pas ouvert." };
   if (!REGIME_TVA) return { erreur: REGIME_ABSENT };
+  // Lot B3 (19/10) : une hausse est un paiement ; sans l'identité complète de
+  // l'éditeur, elle attend aussi. Les conditions ne sont pas redemandées : le
+  // contrat est déjà formé (arbitrage du 19/10).
+  const motifIdentite = await lireMotifIdentiteEditeur();
+  if (motifIdentite) return { erreur: motifIdentite };
 
   const unites = lireEntier(formData.get("unites"));
   if (unites === null || unites < Math.max(1, etat.unites_a_couvrir ?? 0)) {
@@ -324,6 +361,34 @@ export async function confirmerHausse(
   // la tâche de nuit la reprogrammera, sur la nouvelle offre.
   if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
   redirect(`${baseEspace(orgId, etat.public_tarif === "proprietaire_direct")}/abonnement?changement=ok`);
+}
+
+/**
+ * Accepter la version en vigueur des conditions générales depuis « Mon
+ * abonnement » (lot B3, 19/10). La case du formulaire de souscription
+ * l'appelle quand le compte n'a pas encore d'acceptation pour cette version ;
+ * une fois la ligne écrite, le bouton de paiement se débloque, et
+ * `demarrerAbonnement` retrouve l'acceptation en base.
+ *
+ * La version acceptée est celle que l'écran a AFFICHÉE (champ `cgu_version`) :
+ * si elle n'est plus celle du serveur — page restée ouverte pendant un
+ * déploiement —, on refuse plutôt que d'enregistrer l'accord sur un texte que
+ * la personne n'a pas lu. La RPC `accepter_cgu` écrit à l'heure du serveur,
+ * pour le compte connecté, en ajout seul ; la source est 'compte', la valeur
+ * existante la plus proche (aucune migration ; la RPC y ramène toute autre
+ * valeur). Rien n'est renvoyé que la décision : le client affiche la phrase ou
+ * débloque le bouton.
+ */
+export async function accepterConditionsGenerales(
+  _etat: EtatAbonnementAction,
+  formData: FormData
+): Promise<EtatAbonnementAction> {
+  if (!estLaVersionEnVigueur(formData.get("cgu_version"))) return { erreur: ERREUR_CONDITIONS_PERIMEES };
+  if (formData.get("cgu") !== "oui") return { erreur: MOTIF_CONDITIONS_A_ACCEPTER };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("accepter_cgu", { p_version: CONDITIONS_VERSION, p_source: "compte" });
+  if (error) return { erreur: ERREUR_ACCEPTATION_CONDITIONS };
+  return { succes: true };
 }
 
 /**

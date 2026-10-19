@@ -17,6 +17,7 @@ import {
   descriptionRelais,
   estHeureDuRelais,
   htmlAlerteRelais,
+  ligneContactsEnAttente,
   lireAdressesRelais,
   masquerAdresse,
   pointsDuRelais,
@@ -173,6 +174,45 @@ describe("le contenu de l'alerte", () => {
     expect(html).toContain("ni nom ni montant");
     expect(html).not.toMatch(/€|@/);
   });
+
+  // M16 (audit du 19/10) : les demandes de contact du site vitrine non traitées, en nombre. Décision : UN point au
+  // total dès qu'il en reste au moins une, quel que soit leur nombre (pas un point par demande) ; aucune urgence.
+  it("des demandes de contact en attente : un seul point au total, aucun quand il n'en reste pas", () => {
+    expect(pointsDuRelais({ ...RIEN, contacts: { en_attente: 0, depuis_plus_de_48h: 0 } })).toBe(0);
+    expect(pointsDuRelais({ ...RIEN, contacts: { en_attente: 1, depuis_plus_de_48h: 0 } })).toBe(1);
+    expect(pointsDuRelais({ ...RIEN, contacts: { en_attente: 7, depuis_plus_de_48h: 3 } })).toBe(1);
+    // Il s'ajoute aux autres points, qui restent comptés un à un.
+    expect(pointsDuRelais({ ...RIEN, taches: [{ libelle: "Quittances", etat: "echec" }], contacts: { en_attente: 2, depuis_plus_de_48h: 1 } })).toBe(2);
+  });
+
+  it("le corps dit « En attente de réponse : 2 (dont 1 depuis plus de 48 h) », sans nom ni adresse ; rien quand il n'y en a pas", () => {
+    const html = htmlAlerteRelais({ ...RIEN, contacts: { en_attente: 2, depuis_plus_de_48h: 1 } }, new Date("2026-10-19T03:00:00Z"), "https://gerimmo.test/admin");
+    expect(html).toContain("1 point à vérifier");
+    expect(html).toContain("Demandes de contact du site vitrine");
+    expect(html).toContain("En attente de réponse : 2 (dont 1 depuis plus de 48 h)");
+    expect(html).not.toMatch(/€|@/);
+    const sans = htmlAlerteRelais({ ...RIEN, contacts: { en_attente: 0, depuis_plus_de_48h: 0 } }, new Date("2026-10-19T03:00:00Z"), "https://gerimmo.test/admin");
+    expect(sans).not.toContain("Demandes de contact du site vitrine");
+    expect(sans).toContain("0 point à vérifier");
+  });
+
+  // Relecture du 19/10 : « (dont 0 depuis plus de 48 h) » n'apprend rien ; la parenthèse n'est écrite que si M > 0.
+  it("la parenthèse « dont M depuis plus de 48 h » n'est écrite que si M > 0 : « En attente de réponse : 1 » quand M = 0", () => {
+    expect(ligneContactsEnAttente({ en_attente: 1, depuis_plus_de_48h: 0 })).toBe("En attente de réponse : 1");
+    expect(ligneContactsEnAttente({ en_attente: 3, depuis_plus_de_48h: 0 })).toBe("En attente de réponse : 3");
+    expect(ligneContactsEnAttente({ en_attente: 1, depuis_plus_de_48h: 1 })).toBe("En attente de réponse : 1 (dont 1 depuis plus de 48 h)");
+    expect(ligneContactsEnAttente({ en_attente: 5, depuis_plus_de_48h: 5 })).toBe("En attente de réponse : 5 (dont 5 depuis plus de 48 h)");
+
+    const recente = htmlAlerteRelais({ ...RIEN, contacts: { en_attente: 1, depuis_plus_de_48h: 0 } }, new Date("2026-10-19T03:00:00Z"), "https://gerimmo.test/admin");
+    expect(recente).toContain("1 point à vérifier");
+    expect(recente).toContain("Demandes de contact du site vitrine");
+    expect(recente).toContain("En attente de réponse : 1</li>");
+    expect(recente).not.toContain("dont 0");
+    expect(recente).not.toContain("depuis plus de 48 h");
+
+    const ancienne = htmlAlerteRelais({ ...RIEN, contacts: { en_attente: 1, depuis_plus_de_48h: 1 } }, new Date("2026-10-19T03:00:00Z"), "https://gerimmo.test/admin");
+    expect(ancienne).toContain("En attente de réponse : 1 (dont 1 depuis plus de 48 h)");
+  });
 });
 
 // ── Le passage complet, avec un faux client de base et un faux fournisseur ───
@@ -191,6 +231,8 @@ type Options = {
   leve?: string;
   /** Les urgences des dernières 24 h (`urgences_relais_recentes`). */
   recentes?: Reponse;
+  /** Les demandes de contact du site vitrine non traitées (`demandes_contact_en_attente`, M16). */
+  contacts?: Reponse;
 };
 const MATIN = new Date("2026-10-15T03:05:00Z"); // 5 h 05 à Paris
 const JOUR = "2026-10-15";
@@ -225,6 +267,8 @@ function base(o: Options = {}) {
     // L'e-mail immédiat des urgences (décision du 15/10) : la file est vide, aucune urgence dans les dernières 24 h.
     prendre_urgences_relais: { data: { pris: false, motif: "rien", en_attente: 0 }, error: null },
     urgences_relais_recentes: o.recentes ?? { data: { urgences: [], total: 0 }, error: null },
+    // M16 : aucune demande de contact en attente (une demande traitée n'est pas comptée par la base).
+    demandes_contact_en_attente: o.contacts ?? { data: { en_attente: 0, depuis_plus_de_48h: 0 }, error: null },
   };
   const tables: Record<string, unknown[]> = {
     tech_log: o.journal ?? journalSain(),
@@ -277,8 +321,54 @@ describe("le passage du relais", () => {
     expect(fournisseur.appels).toEqual([]);
     expect(terminaison(b.appels)).toMatchObject({ p_jour: JOUR, p_statut: "rien_a_signaler", p_destinataires: 2, p_envoyes: 0, p_points: 0 });
     // Le relais du mode vacances est actualisé avant la lecture, comme à chaque passage de mission.
-    // Puis la file des urgences est vidée (e-mail immédiat, décision du 15/10) et les urgences des dernières 24 h sont lues.
-    expect(b.appels.map(([n]) => n)).toEqual(["reserver_alerte_relais", "traiter_vacances", "prendre_urgences_relais", "sentinelle_relais", "urgences_relais_recentes", "terminer_alerte_relais"]);
+    // Puis la file des urgences est vidée (e-mail immédiat, décision du 15/10), les urgences des dernières 24 h sont lues,
+    // et les demandes de contact du site vitrine comptées (M16).
+    expect(b.appels.map(([n]) => n)).toEqual(["reserver_alerte_relais", "traiter_vacances", "prendre_urgences_relais", "sentinelle_relais", "urgences_relais_recentes", "demandes_contact_en_attente", "terminer_alerte_relais"]);
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ demandes_contact_en_attente: 0, demandes_contact_48h: 0 });
+  });
+
+  // M16 (audit du 19/10) : les demandes de contact du site vitrine non traitées font partir l'e-mail (un point au total).
+  it("deux demandes de contact non traitées, dont une ancienne : un point, les compteurs les consignent en nombres, le corps dit « 2 (dont 1 depuis plus de 48 h) »", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    const corps: string[] = [];
+    vi.stubGlobal("fetch", async (url: unknown, init: RequestInit = {}) => {
+      corps.push(String(init.body ?? ""));
+      return fournisseur.fetch(url, init);
+    });
+    const b = base({ contacts: { data: { en_attente: 2, depuis_plus_de_48h: 1 }, error: null } });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: lireAdressesRelais("relais@example.com"), site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "envoye", points: 1, envoyes: 1 });
+    expect(fournisseur.acceptes[0].subject).toBe("Gerimmo — relais de 5 h : 1 point à vérifier");
+    expect(terminaison(b.appels)).toMatchObject({
+      p_points: 1,
+      p_compteurs: expect.objectContaining({ demandes_contact_en_attente: 2, demandes_contact_48h: 1, lectures_impossibles: 0 }),
+    });
+    const { html } = JSON.parse(corps[0]) as { html: string };
+    expect(html).toContain("Demandes de contact du site vitrine");
+    expect(html).toContain("En attente de réponse : 2 (dont 1 depuis plus de 48 h)");
+    expect(html).not.toMatch(/€|@/);
+  });
+
+  it("le comptage des demandes de contact illisible, ou d'un type inattendu : contrôle impossible, l'e-mail part et le dit", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    const corps: string[] = [];
+    vi.stubGlobal("fetch", async (url: unknown, init: RequestInit = {}) => {
+      corps.push(String(init.body ?? ""));
+      return fournisseur.fetch(url, init);
+    });
+    const b = base({ contacts: { data: null, error: { message: "fonction absente" } } });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: lireAdressesRelais("relais@example.com"), site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "envoye", points: 1 });
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ lectures_impossibles: 1, demandes_contact_en_attente: 0, demandes_contact_48h: 0 });
+    const { html } = JSON.parse(corps[0]) as { html: string };
+    expect(html).toContain("Les demandes de contact du site vitrine n’ont pas pu être comptées.");
+    expect(html).not.toContain("En attente de réponse");
+
+    // Un nombre rendu en texte n'est jamais lu par Number() : c'est un comptage illisible.
+    const texte = base({ contacts: { data: { en_attente: "3", depuis_plus_de_48h: "1" }, error: null } });
+    const r2 = await passerAlerteRelais({ db: texte.db, maintenant: MATIN, adresses: lireAdressesRelais("relais@example.com"), site: "https://gerimmo.test" });
+    expect(r2).toMatchObject({ points: 1 });
+    expect(terminaison(texte.appels)?.p_compteurs).toMatchObject({ lectures_impossibles: 1, demandes_contact_en_attente: 0 });
   });
 
   it("variable absente : relais non configuré, rien ne part même s'il y a à signaler", async () => {

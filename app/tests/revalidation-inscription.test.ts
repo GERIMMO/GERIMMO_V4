@@ -13,11 +13,19 @@ const form = (values: Record<string, string> = {}) => {
   for (const [key, value] of Object.entries({ mot_de_passe: "nouveau-mot-de-passe-1", confirmation: "nouveau-mot-de-passe-1", espace: "artisan", nom: "Corrigé", cgu: "on", ...values })) f.set(key, value);
   return f;
 };
-let auth: { getUser: ReturnType<typeof vi.fn>; updateUser: ReturnType<typeof vi.fn>; signOut: ReturnType<typeof vi.fn> };
+/** La revendication `amr` du jeton : d'où vient la session (audit du 19/10, g). */
+const revendications = (methode: string) => ({ data: { claims: { sub: "u1", amr: [{ method: methode, timestamp: 1 }] } }, error: null });
+let auth: { getUser: ReturnType<typeof vi.fn>; getClaims: ReturnType<typeof vi.fn>; updateUser: ReturnType<typeof vi.fn>; signOut: ReturnType<typeof vi.fn> };
 let rpc: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   vi.clearAllMocks();
-  auth = { getUser: vi.fn().mockResolvedValue({ data: { user: { user_metadata: { profil_a_confirmer: { nom: "Initial" } } } } }), updateUser: vi.fn().mockResolvedValue({ error: null }), signOut: vi.fn().mockResolvedValue({ error: null }) };
+  auth = {
+    getUser: vi.fn().mockResolvedValue({ data: { user: { user_metadata: { profil_a_confirmer: { nom: "Initial" } } } } }),
+    // Par défaut, la session est née d'un lien de récupération : le cas ordinaire de ce formulaire.
+    getClaims: vi.fn().mockResolvedValue(revendications("recovery")),
+    updateUser: vi.fn().mockResolvedValue({ error: null }),
+    signOut: vi.fn().mockResolvedValue({ error: null }),
+  };
   rpc = vi.fn().mockResolvedValue({ error: null });
   mocks.client.mockResolvedValue({ auth, rpc });
   mocks.cookies.mockResolvedValue({ delete: vi.fn() });
@@ -52,4 +60,26 @@ it("une récupération ordinaire conserve le profil confirmé", async () => {
   await expect(definirNouveauMotDePasse({}, form())).rejects.toThrow("REDIRECT");
   expect(auth.updateUser).toHaveBeenCalledExactlyOnceWith({ password: "nouveau-mot-de-passe-1" });
   expect(rpc).not.toHaveBeenCalledWith("accepter_cgu", expect.anything());
+});
+it("une confirmation d'inscription (amr email/signup) ouvre le formulaire comme un lien de récupération", async () => {
+  auth.getClaims.mockResolvedValue(revendications("email/signup"));
+  await expect(definirNouveauMotDePasse({}, form())).rejects.toThrow("REDIRECT /connexion?raison=mot-de-passe-modifie");
+  expect(auth.updateUser).toHaveBeenCalledOnce();
+});
+it("connecté par mot de passe : l'action refuse, sans toucher au mot de passe, au profil ni aux sessions", async () => {
+  // Audit du 19/10 (g) : la page redirige déjà, mais l'action serveur reste appelable directement par un compte
+  // connecté ; elle doit refuser elle-même de poser un mot de passe sans l'ancien.
+  auth.getClaims.mockResolvedValue(revendications("password"));
+  expect((await definirNouveauMotDePasse({}, form())).erreur).toBe(
+    "Ce formulaire est réservé au lien reçu par e-mail. Depuis votre compte, changez votre mot de passe dans « Mon compte », avec le mot de passe actuel."
+  );
+  expect(auth.updateUser).not.toHaveBeenCalled();
+  expect(auth.signOut).not.toHaveBeenCalled();
+  expect(rpc).not.toHaveBeenCalled();
+});
+it("sans revendication lisible : même refus, rien n'est modifié", async () => {
+  auth.getClaims.mockResolvedValue({ data: null, error: { message: "jeton illisible" } });
+  expect((await definirNouveauMotDePasse({}, form())).erreur).toContain("réservé au lien reçu par e-mail");
+  expect(auth.updateUser).not.toHaveBeenCalled();
+  expect(auth.signOut).not.toHaveBeenCalled();
 });

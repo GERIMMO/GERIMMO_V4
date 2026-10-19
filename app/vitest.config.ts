@@ -23,6 +23,9 @@ import { configDefaults, defineConfig } from "vitest/config";
 export const FICHIERS_EN_SERIE = [
   // Réécriture temporaire des fonctions d’abonnement et du jour de Paris, annulée après chaque cas.
   "tests/abonnement-jour-paris-migration.test.ts",
+  // Audit du 19/10 (B5) : rejeu de 20261019124000 et de son retour (drop/create de l'index signature_devis_une_offre, verrou
+  // exclusif sur bail_signature_circuits) et horloge de Paris figée (réécriture temporaire d'aujourdhui_paris()).
+  "tests/devis-signes-sort-et-jour-de-paris-rejeu.test.ts",
   // Fixtures historiques de signature manuelle : suspension temporaire du garde des nouveaux envois.
   "tests/audit-securite-2026-09-27.test.ts",
   "tests/supprimer-bail-brouillon-base.test.ts",
@@ -98,6 +101,11 @@ export const FICHIERS_EN_SERIE = [
   // Même lot : une contrainte posée sur la file et le retour arrière (déclencheur retiré de supervision_alertes_internes,
   // tables supprimées puis recréées) dans la transaction du test, verrous de table tenus pendant tout l'essai.
   "tests/relais-urgences-retour.test.ts",
+  // Lot mineurs du 19/10 (f, i) : rejeu de 20261019121000 et de son retour dans la transaction de l'essai (clé étrangère
+  // reposée sur supervision_prospects, qui verrouille demandes_devis ; droits par colonne sur publications) : blocage
+  // mutuel avec les fixtures des autres fichiers (constaté le 19/10, deux fichiers seuls).
+  "tests/publications-colonnes-anon.test.ts",
+  "tests/supervision-prospects-purge.test.ts",
   // Même lot, passage fréquent des urgences (relecture du 15/10) : deux passages simultanés sur deux sessions, fixture
   // VALIDÉE (un plan ACTIF : tout traiter_vacances d'un autre fichier le traiterait) puis supprimée.
   "tests/relais-urgences-passage-concurrence.test.ts",
@@ -112,6 +120,14 @@ export const FICHIERS_EN_SERIE = [
   // recréées (dont `aujourdhui_paris()` en cascade, qui retire les valeurs par défaut d'ecritures et de depot_encaissements).
   "tests/jour-de-paris-restitution-migration-rejeu.test.ts",
   "tests/jour-paris-complements-oct16.test.ts",
+  // Identité de l'éditeur, clés des prestataires (19/10) : rejeu de 20261019123000 et de son retour (`alter table` sur
+  // supervision_identite, déclencheur de traçage suspendu le temps du retour) dans la transaction du test.
+  "tests/identite-prestataires-migration-rejeu.test.ts",
+  // Lot « supervision et signatures » (17-18/10) : les huit retours arrière puis les huit migrations rejoués dans la transaction
+  // du test (`drop function`, `drop trigger`, `drop policy`, `revoke`, `drop index`, puis `drop table … cascade` et `create table`
+  // sur bail_signature_circuits, signature_budget, signature_consommations et les cinq tables de supervision) : verrous exclusifs
+  // tenus pendant tout l'essai, croisés avec les fichiers parallèles qui écrivent des circuits de signature.
+  "tests/retours-oct18-registre.test.ts",
 ];
 
 export default defineConfig({

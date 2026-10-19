@@ -3,7 +3,7 @@ import {createClient} from "@/lib/supabase/server";
 import {IdentiteEditeur} from "./identite";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
-import { faitsManquants } from "@/lib/editeur";
+import { faitsManquants, prestatairesAvecFaits, reservesPrestataires } from "@/lib/editeur";
 
 export const metadata = { title: "Paramètres généraux" };
 
@@ -21,6 +21,10 @@ export default async function PageParametres() {
   const exiges = faitsManquants({});
   const manquants = new Set(faitsManquants(editeur));
   const fournis = exiges.length - manquants.size;
+  // 19/10 : les prestataires des pages légales, avec ce que la saisie a fourni (localisation, coordonnées).
+  const prestataires = prestatairesAvecFaits(editeur);
+  const reservesPresta = reservesPrestataires(editeur);
+  const prestatairesFournis = prestataires.filter((p) => p.localisation && p.coordonnees).length;
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-7">
@@ -40,6 +44,9 @@ export default async function PageParametres() {
           <span className={`puce ${manquants.size ? "puce-prep" : "puce-loue"}`}>
             {fournis} / {exiges.length} fournis
           </span>
+          <span className={`puce ${reservesPresta.length ? "puce-prep" : "puce-loue"}`}>
+            {prestatairesFournis} / {prestataires.length} prestataires
+          </span>
         </div>
         <p className="text-sm text-[var(--texte-secondaire)]">
           Les mentions légales, les conditions générales et la politique de confidentialité citent ces faits. Tant
@@ -54,6 +61,25 @@ export default async function PageParametres() {
               </span>
             </li>
           ))}
+        </ul>
+        <h3 className="mt-5 text-sm font-semibold">Prestataires</h3>
+        <p className="text-sm text-[var(--texte-secondaire)]">
+          Localisation et coordonnées (dénomination, adresse, téléphone) de chaque prestataire. Les coordonnées sont
+          reprises dans les mentions légales ; la localisation à saisir (aujourd’hui celle de la Base Adresse
+          Nationale), sur les trois pages légales.
+        </p>
+        <ul className="colonne-liste mt-2">
+          {prestataires.map((p) => {
+            const manque = [...(p.localisation ? [] : ["localisation"]), ...(p.coordonnees ? [] : ["coordonnées"])];
+            return (
+              <li key={p.cle} className="rang">
+                <span>{p.nom}</span>
+                <span className={`puce ml-auto ${manque.length ? "puce-prep" : "puce-loue"}`}>
+                  {manque.length ? `À fournir : ${manque.join(" et ")}` : "Fourni"}
+                </span>
+              </li>
+            );
+          })}
         </ul>
         <div className="mt-5">{indisponible||config.error||!config.data?<p role="alert" className="err">Paramètres indisponibles. Rechargez avant de modifier.</p>:<IdentiteEditeur valeurs={editeur} revision={config.data.revision}/>}</div>
         <Link className="lien-discret mt-4 inline-block" href="/admin/journaux?registre=supervision_identite">Historique des modifications →</Link>

@@ -16,6 +16,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { assemblerSignatureDocument, selectionDuCircuit } from "@/lib/signature-document";
 import { selectionSignatureValide, type SelectionSignature } from "@/lib/politique-signature";
 import { signatureEnEssai } from "@/lib/signature-essai";
+import { fermetureModeleSignature } from "@/lib/signature-interrupteurs";
 import { ERREUR_MENTION_CAUTION } from "@/lib/mention-caution";
 
 export type VueSignatureBail = {
@@ -24,6 +25,8 @@ export type VueSignatureBail = {
   annexes?: AnnexeSignature[];
   versionDepassee?: boolean;
   essai?: boolean;
+  /** Message affiché quand l'envoi de ce seul modèle est fermé par réglage serveur (le PDF reste préparable). */
+  fermeture?: string;
 };
 async function acces(org: string) {
   const g = await verifierGerant(org);
@@ -59,13 +62,17 @@ export async function lireSignatureBail(org: string, bail: string, choix?: Selec
     if (error) throw new Error("Le suivi des signatures n’est pas encore disponible dans cet environnement.");
     const circuit = (data?.[0] ?? null) as CircuitBail | null;
     const fournisseur = circuit?.prestataire ?? (selection.code === "bail" ? prestataireSignature() : "zoho");
-    const mode = (selection.code !== "devis_artisan" || process.env.ZOHO_SIGN_DEVIS_ACTIF === "true" || signatureEnEssai(org)) && (selection.code === "bail" || (fournisseur === "zoho" && (process.env.ZOHO_SIGN_DOCUMENTS_ACTIF === "true" || signatureEnEssai(org)))) ? configurationSignatureBail(process.env,fournisseur,org)?.environnement ?? "indisponible" : "indisponible";
+    // Fermeture ciblée d'un modèle (ZOHO_SIGN_CAUTIONNEMENT_FERME=1 ou true) : l'envoi est indisponible, la préparation du PDF reste possible.
+    // Elle ne vaut que pour un NOUVEL envoi : un circuit déjà envoyé (préparation, en cours, à vérifier) garde le mode d'avant et
+    // ne porte pas le message, dont le « signer hors ligne » serait trompeur alors que les invitations sont parties (relecture du 19/10).
+    const fermeture = circuit && ["preparation", "en_cours", "a_verifier"].includes(circuit.etat) ? undefined : fermetureModeleSignature(selection.code) ?? undefined;
+    const mode = fermeture ? "indisponible" : (selection.code !== "devis_artisan" || process.env.ZOHO_SIGN_DEVIS_ACTIF === "true" || signatureEnEssai(org)) && (selection.code === "bail" || (fournisseur === "zoho" && (process.env.ZOHO_SIGN_DOCUMENTS_ACTIF === "true" || signatureEnEssai(org)))) ? configurationSignatureBail(process.env,fournisseur,org)?.environnement ?? "indisponible" : "indisponible";
     // Un dossier déjà envoyé reste consultable même si ses données courantes ont changé.
-    if (circuit && circuit.etat !== "pret") return { bailId:circuit.bail_id, selection:selectionDuCircuit(circuit), circuit, signataires:circuit.signataires, annexes:circuit.annexes, mode, essai:signatureEnEssai(org) || circuit.essai };
+    if (circuit && circuit.etat !== "pret") return { bailId:circuit.bail_id, selection:selectionDuCircuit(circuit), circuit, signataires:circuit.signataires, annexes:circuit.annexes, mode, essai:signatureEnEssai(org) || circuit.essai, fermeture };
     const preparation = await assemblerSignatureDocument(supabase,org,selection);
     return { bailId:preparation.bailId, selection, circuit, signataires: preparation.signataires, manquants: preparation.manquants, annexes: preparation.annexes,
       versionDepassee: Boolean(circuit && (circuit.empreinte!==preparation.empreinte || (circuit.etat==='pret' && new Date(circuit.expire_le).getTime()<=Date.now()+86_400_000))),
-      mode, essai: signatureEnEssai(org) };
+      mode, essai: signatureEnEssai(org), fermeture };
   } catch(e) { return erreur(e); }
 }
 
@@ -107,6 +114,9 @@ export async function envoyerSignatureBail(org: string, bail: string, id: string
   let appelPrestataire = false;
   try {
     const { supabase, user, circuit } = await circuitAutorise(org,bail,id);
+    // Fermeture ciblée d'un modèle : refus avant toute lecture du dossier, toute réservation et tout appel au prestataire.
+    const fermeture = fermetureModeleSignature(circuit.modele);
+    if (fermeture) throw new Error(fermeture);
     const config = configurationSignatureBail(process.env,circuit.prestataire,org);
     if (circuit.modele && circuit.modele !== "bail" && circuit.prestataire !== "zoho") throw new Error("Ce type de document doit être signé avec Zoho. Préparez un nouveau circuit après la connexion de Zoho.");
     if (circuit.modele === "devis_artisan" && process.env.ZOHO_SIGN_DEVIS_ACTIF !== "true" && !signatureEnEssai(org)) throw new Error("La signature des devis sera disponible après les essais du circuit.");

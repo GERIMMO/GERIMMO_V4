@@ -14,6 +14,8 @@ import { notFound } from "next/navigation";
 import { BoutonPortail, BoutonResiliation, FormulaireHausse, FormulairePeriodicite } from "./boutons-abonnement";
 import { DetailMontants, FormulaireSouscription } from "./formulaire-souscription";
 import { REGIME_TVA } from "@/lib/editeur";
+import { motifIdentiteEditeur } from "@/lib/garde-souscription";
+import { lireGardeSouscription } from "@/lib/garde-souscription-serveur";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate } from "@/lib/ged";
 import { clientStripe, configurationStripe } from "@/lib/stripe";
@@ -85,16 +87,19 @@ function montantLu(o: Offre): string {
 export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonnement">) {
   const { orgId } = await props.params;
   const recherche = await props.searchParams;
-  const { supabase, organisation, role, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, user, organisation, role, estProprietaire } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
   if (!["admin_agence", "proprietaire_direct"].includes(role)) notFound();
   const estAgence = organisation.type === "agence";
   const unite = estAgence ? "lot sous mandat" : "bien";
 
-  const [{ data: etatBrut, error: erreurEtat }, { data: paiementBrut, error: erreurPaiement }] = await Promise.all([
+  const [{ data: etatBrut, error: erreurEtat }, { data: paiementBrut, error: erreurPaiement }, garde] = await Promise.all([
     supabase.rpc("etat_abonnement", { p_org: orgId }),
     supabase.rpc("mon_abonnement", { p_org: orgId }),
+    // Lot B3 (19/10) : l'identité de l'éditeur (supervision_identite) et
+    // l'acceptation, par ce compte, de la version en vigueur des conditions.
+    lireGardeSouscription(supabase, user.id),
   ]);
   const etat = ((etatBrut ?? []) as Etat[])[0] ?? null;
   const paiement = ((paiementBrut ?? []) as Paiement[])[0] ?? null;
@@ -118,11 +123,16 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   const actuelle = offreActuelle(paiement, publicTarif);
   const capacite = paiement.unites_souscrites;
   const reglages = configurationStripe();
+  // Lot B3 : les mentions légales de l'éditeur manquent — même phrase que
+  // l'action (lib/garde-souscription.ts), bouton indisponible, pas de case.
+  // « Votre essai continue » seulement si l'essai court encore : un essai
+  // arrivé à son terme garde le statut « essai » mais ferme l'écriture.
+  const motifIdentite = motifIdentiteEditeur(garde.editeur, { enEssai: enEssai && !ferme });
   const motifIndisponible = !reglages.pret
     ? "Le paiement en ligne n'est pas encore ouvert. Écrivez-nous : nous prolongeons votre essai le temps de l'ouvrir."
     : !REGIME_TVA
       ? "Le paiement en ligne n'est pas encore ouvert : le régime de TVA de l'éditeur doit d'abord être renseigné pour afficher les taxes exactes. Écrivez-nous : nous prolongeons votre essai le temps de l'ouvrir."
-      : null;
+      : motifIdentite;
 
   // ── La hausse à présenter : nécessaire (portefeuille au-delà de la capacité)
   // ou demandée (?capacite= pour une agence, ?formule= pour un particulier).
@@ -149,7 +159,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   }
   let apercu: { immediatCents: number; prorationDate: number; enEssai: boolean } | null = null;
   let erreurApercu: string | null = null;
-  if (cible && reglages.pret && REGIME_TVA) {
+  // Lot B3 : sans l'identité de l'éditeur, la hausse n'est pas présentée à la
+  // confirmation (l'action la refuserait) ; le bloc dit le motif à sa place.
+  if (cible && reglages.pret && REGIME_TVA && !motifIdentite) {
     const { data: souscription } = await supabase.rpc("ma_souscription_stripe", { p_org: orgId });
     if (souscription) {
       const r = await apercuChangement(clientStripe(reglages.config), {
@@ -416,6 +428,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             premierPrelevement={premierPrelevement}
             ferme={ferme}
             motifIndisponible={motifIndisponible}
+            conditionsAAccepter={!garde.conditionsAcceptees}
           />
         </section>
       )}
@@ -451,7 +464,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
                   : `Prorata prélevé aujourd'hui pour la fin de la période en cours : ${euros(apercu.immediatCents)} (calcul de notre prestataire de paiement).`
                 : erreurApercu
                   ? `Le prorata n'a pas pu être calculé (${erreurApercu}) : le changement ne peut pas être confirmé pour l'instant.`
-                  : "Le prorata sera calculé par notre prestataire de paiement avant confirmation."}
+                  : // Lot B3 : quand un motif ferme le paiement, il prend la place de
+                    // la promesse de prorata — pas les deux à la fois.
+                    (motifIndisponible ?? "Le prorata sera calculé par notre prestataire de paiement avant confirmation.")}
             </li>
             <li>
               Puis {montantLu(cible)} à chaque échéance
@@ -470,9 +485,6 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
                 libelleConfirmation={`J'accepte le nouveau montant de ${montantLu(cible)}${apercu.immediatCents > 0 ? ` et le prélèvement immédiat de ${euros(apercu.immediatCents)} au prorata` : ""}.`}
               />
             </div>
-          )}
-          {!apercu && !erreurApercu && motifIndisponible && (
-            <p className="mt-3 text-sm text-muted-foreground">{motifIndisponible}</p>
           )}
         </div>
       )}

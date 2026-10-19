@@ -1,7 +1,7 @@
 import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
 import { Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
-import { documentsIncomplets, prestatairesIncomplets, type FaitEditeur } from "@/lib/editeur";
+import { courrielDeContact, documentsIncomplets, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 export const metadata = metadonneesPubliques({
@@ -15,20 +15,24 @@ export const metadata = metadonneesPubliques({
 // l'édite et qui l'héberge. La page n'existait pas avant le 11/09, sur un site
 // qui vend un abonnement — le manquement est pénalement sanctionné.
 //
-// Les faits d'entreprise viennent tous de lib/editeur.ts : tant qu'ils n'y
-// sont pas, la page le dit en toutes lettres au lieu de rendre du vide.
-
-/** Réserve propre à cette page : les coordonnées de chaque prestataire. */
-const COORDONNEES_PRESTATAIRES: FaitEditeur = null;
+// Les faits d'entreprise viennent tous de lib/editeur.ts, complétés par ce qui a
+// été saisi dans /admin/parametres (lireEditeur) : tant qu'un fait manque, la
+// page le dit en toutes lettres au lieu de rendre du vide.
+//
+// 19/10 : la réserve propre à cette page — les coordonnées de chaque
+// prestataire — n'est plus une constante nulle du code : elles se saisissent
+// prestataire par prestataire et s'affichent dans la colonne « Coordonnées ».
 
 export default async function PageMentionsLegales() {
   const {editeur:EDITEUR,indisponible}=await lireEditeur();
+  const prestataires = prestatairesAvecFaits(EDITEUR);
   return (
     <CoquilleLegale
       titre="Mentions légales"
       chapo="Qui édite ce service, qui l'héberge, et comment nous joindre."
       chemin="/mentions-legales"
-      incomplet={(indisponible || documentsIncomplets(EDITEUR)) || prestatairesIncomplets() || !COORDONNEES_PRESTATAIRES}
+      incomplet={indisponible || documentsIncomplets(EDITEUR) || prestatairesIncomplets(prestataires, true)}
+      courriel={courrielDeContact(EDITEUR)}
     >
       <Article titre="Éditeur">
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr]">
@@ -84,12 +88,10 @@ export default async function PageMentionsLegales() {
           des transferts. Le service s&apos;appuie sur les prestataires
           suivants :
         </p>
-        {/* La même liste que la page confidentialité (lib/editeur.ts). */}
-        <TableauPrestataires />
-        <p className="text-muted-foreground">
-          Coordonnées complètes de chaque prestataire :{" "}
-          <Fait valeur={COORDONNEES_PRESTATAIRES} quoi="raison sociale et adresse de chacun" />.
-        </p>
+        {/* La même liste que la page confidentialité (lib/editeur.ts), avec
+            les coordonnées de chacun (dénomination, adresse, téléphone) telles
+            que saisies dans les paramètres. */}
+        <TableauPrestataires prestataires={prestataires} coordonnees />
       </Article>
 
       <Article titre="Contact">

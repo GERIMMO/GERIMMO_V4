@@ -23,6 +23,9 @@ begin
  select revision into rev from public.supervision_identite where singleton;
  update public.supervision_identite set valeurs='{"denomination":"Identité QA fictive"}',revision=rev+1 where singleton returning revision into rev;
  if not exists(select 1 from public.supervision_registre where objet='supervision_identite') then raise exception 'Identité non tracée';end if;
+ -- 19/10 (migration 20261019123000) : localisation de la Base Adresse Nationale et coordonnées des prestataires admises ; toute autre clé refusée.
+ update public.supervision_identite set valeurs='{"denomination":"Identité QA fictive","localisationBan":"Localisation QA fictive","coordonneesSupabase":"Coordonnées QA fictives"}',revision=rev+1 where singleton returning revision into rev;
+ begin update public.supervision_identite set valeurs='{"cleInconnue":"x"}',revision=rev+1 where singleton;raise exception 'Clé inconnue acceptée';exception when check_violation then null;end;
  if not exists(select 1 from public.supervision_utilisateurs where 'superviseur'=any(roles)) then raise exception 'Superviseur absent de l’annuaire';end if;
 end $$;
 reset role;

@@ -190,11 +190,12 @@ export async function publierPublication(id: string): Promise<EtatPublication> {
     .eq("id", id)
     .maybeSingle();
 
+  const slug = pub?.slug || versSlug(pub?.titre ?? "");
   const { error } = await supabase
     .from("publications")
     .update({
       statut: "publiee",
-      slug: pub?.slug || versSlug(pub?.titre ?? ""),
+      slug,
     })
     .eq("id", id);
   if (error) return { erreur: sansJargon(error.message) };
@@ -205,6 +206,10 @@ export async function publierPublication(id: string): Promise<EtatPublication> {
   revalidatePath("/journal");
   revalidatePath("/agence/[orgId]", "page");
   revalidatePath("/");
+  // La page de l'article et le plan du site sont mis en cache une heure (revalidate = 3600) : un article retiré
+  // puis republié resterait sinon en 404 jusqu'à l'heure suivante (audit du 19/10, lot mineurs, b).
+  if (slug) revalidatePath(`/journal/${slug}`);
+  revalidatePath("/sitemap.xml");
   return { succes: "Article paru — il est en ligne dans le journal." + trace(journal) };
 }
 
@@ -213,6 +218,7 @@ export async function retirerPublication(id: string): Promise<EtatPublication> {
   const { supabase, autorise } = await garderSuperAdmin();
   if (!autorise) return { erreur: "Accès refusé." };
 
+  const { data: actuel } = await supabase.from("publications").select("slug").eq("id", id).maybeSingle();
   const { error } = await supabase
     .from("publications")
     .update({ statut: "archivee" })
@@ -225,6 +231,10 @@ export async function retirerPublication(id: string): Promise<EtatPublication> {
   revalidatePath("/journal");
   revalidatePath("/agence/[orgId]", "page");
   revalidatePath("/");
+  // Sans quoi l'article retiré reste servi (200) jusqu'à une heure par le cache de sa propre page : le 404 que rend
+  // journal/[slug] (`notFound()`) ne vaut qu'une fois la page revalidée. Le plan du site le citait aussi.
+  if (actuel?.slug) revalidatePath(`/journal/${actuel.slug}`);
+  revalidatePath("/sitemap.xml");
   return { succes: "Article retiré du journal — il reste consultable ici." + trace(journal) };
 }
 

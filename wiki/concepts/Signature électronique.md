@@ -3,16 +3,20 @@ type: concept
 tags: [signature, zoho-sign, yousign, demande-de-signature]
 status: in-progress
 created: 2026-07-24
-updated: 2026-10-18
-sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]"]
+updated: 2026-10-19
+sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]", "app/docs/signature-electronique-bail.md (dossier technique Zoho Sign, 18-19/10/2026)", "log.md — entrées « decision » et « deploy » des 18 et 19/10/2026 (Zoho Sign, PR #203 à #210)"]
 ---
 
 # Signature électronique
 
-> [!note] Circuit de bail préparé en local le 18/10/2026 — envoi non activé
-> **Choix du 18/10 : Zoho Sign Europe**. Le titulaire ne possède pas encore de compte Zoho. L’adaptation locale conserve les anciens circuits Youtrust et attend la recette externe. Le nouveau parcours prépare un PDF commun, les annexes et les emplacements de tous les signataires, propriétaires en dernier. La configuration exige un opt-in explicite après recette externe ; les tests locaux ne remplacent pas un essai prestataire. Aucun envoi ni changement de production dans ce chantier. Le circuit manuel demeure disponible.
+> [!info] État au 19/10/2026 — circuit Zoho Sign publié, envois aux clients désactivés
+> **Choix du 18/10 : Zoho Sign Europe.** Compte Zoho Sign Europe créé le 18/10 par le titulaire (essai Enterprise, connexion OAuth européenne autorisée) ; essai externe signé le 18/10 (invitation test à 15 h 19 heure de Paris, deux signatures par code SMS à 15 h 30, PDF et certificat téléchargés et relus) ; offre API payée par le titulaire (500 crédits affichés ; montant non consigné ; conditions de l'offre et droit d'intégration SaaS non confirmés).
 >
-> Périmètre actuel : propriétaire direct et personnes physiques ; bail uniquement. L’acte de cautionnement reste distinct et l’EDL garde son circuit sur place. Voir [le dossier technique et la recette à réaliser](../../app/docs/signature-electronique-bail.md).
+> **En production** : migrations `20261018085521`, `20261018100243`, `20261018143644` (PR #203, `b5f70e6`, application 39149075958, 18/10 à 17 h 20 UTC) et `20261018185515`, `20261018193308` (PR #206, `6cb2468`, application 39161862763, 20 h 07 UTC) ; aucun script de retour pour ces cinq migrations (la section « Arrêt et retour » du dossier technique en tient lieu) ; webhook `/api/zoho-sign/webhook` actif, clé HMAC enregistrée en production ; PR #204 et #205 (diagnostic des refus du webhook, essai avec le compte permanent), #207 à #209 (mention de caution : contrôle serveur, champs uniques, accès téléphone), #210 (textes publics et abonnement décrivant Zoho Sign et les SMS). **Envois aux clients désactivés** : `ZOHO_SIGN_BAIL_ACTIF`, `ZOHO_SIGN_DOCUMENTS_ACTIF`, `ZOHO_SIGN_DEVIS_ACTIF` à faux, plafond mensuel à zéro ; essai réservé au compte permanent via `SIGNATURE_BAIL_ORGS_ESSAI` (marqueur serveur `app_metadata.gerimmo_recette=permanente-v1`). Le nouveau parcours prépare un PDF commun, les annexes et les emplacements de tous les signataires, propriétaires en dernier ; le circuit manuel (papier, dépôt du PDF signé) demeure disponible.
+>
+> **Périmètre** : propriétaire direct et personnes physiques ; bail (PR #203), puis, par la PR #206 : avenant, cautionnement (acte distinct du garant, mention manuscrite non préremplie, contrôle serveur par les PR #207 à #209), états des lieux, accord d'échelonnement, accord de travaux, acceptation de devis artisan. **En base au 19/10** : `bail_signature_circuits` = 5 circuits `zoho` en environnement `production` : 1 `bail` `termine` (`essai=false`, créé le 18/10 à 18 h 25 UTC), 2 `cautionnement` `annule` et 1 `cautionnement` `termine` (`essai=true`), 1 `devis_artisan` `termine` (`essai=true`). Aucune recette de production ne joue le circuit ; la recette humaine fictive (mention de caution, devis) demandée par le dossier avant toute ouverture aux clients n'est pas faite. Voir [le dossier technique](../../app/docs/signature-electronique-bail.md).
+>
+> *Note du 18/10 en journée, conservée pour l'histoire* : « Le titulaire ne possède pas encore de compte Zoho. L'adaptation locale conserve les anciens circuits Youtrust et attend la recette externe. … Aucun envoi ni changement de production dans ce chantier. … Périmètre actuel : propriétaire direct et personnes physiques ; bail uniquement. L'acte de cautionnement reste distinct et l'EDL garde son circuit sur place. »
 
 **Historique du référentiel (Yousign, remplacé par Zoho Sign pour les nouveaux baux le 18/10/2026) :** le circuit de signature des documents engageants (**Yousign**,
 signature **simple** : email + code SMS — RM-13.1.1). Objet : **Demande de
@@ -65,6 +69,12 @@ Bail/avenants, cautionnement, mandat — **pas les [[État des lieux|états des 
 (signature tactile sur place, RM-13.1.6). Signature avancée/qualifiée : hors périmètre
 (« un bail d'habitation ne l'exige pas »).
 
+> [!warning] Points à trancher / contradictions (relevé du 19/10/2026)
+> - **États des lieux** : le référentiel (RM-13.1.6, ci-dessus), le circuit de transition V0 (« jamais un EDL ») et la note du 18/10 en journée (« l'EDL garde son circuit sur place ») excluent l'EDL de la signature électronique ; la PR #206 (18/10) ajoute pourtant « états des lieux » au circuit Zoho (dossier technique, « Extension du 18 octobre 2026 »), alors que le même dossier dit plus bas « Les états des lieux conservent leur signature sur place » (section « Parcours livré »). **Question au dirigeant** : l'EDL doit-il être signable par Zoho Sign ? Aucun EDL n'a été envoyé (envois clients désactivés).
+> - **Avenants et cautionnement** : le dossier technique dit « Mandats et avenants ne sont pas intégrés dans ce circuit » (limites de la première version, PR #203) et « cette extension ajoute avenant, cautionnement » (PR #206) ; le cautionnement, que la note du 18/10 disait distinct, est intégré comme acte distinct du garant. Le mandat de gestion reste hors circuit.
+> - **Offre Zoho** : paiement effectué par le titulaire (500 crédits affichés), montant non consigné ; conditions de l'offre et droit d'intégration SaaS non confirmés.
+> - **Pages publiques** : la PR #210 décrit Zoho Sign et les SMS sur le site alors que les envois aux clients sont désactivés ([[Prêt à démarcher]]).
+
 ## Relations
 
 Consomme les documents générés ([[Document]], module 12 — état « en signature » à
@@ -89,8 +99,8 @@ dernier », pas de relances ni d'expiration — Yousign les apportera. La
 d'émetteur (Famille 3, aucune valeur probante) apposé sur quittances, reçus et
 courriers générés — jamais sur un bail ni un EDL.
 
-> [!warning] Écarts explicites entre la cible métier et la première version locale
+> [!warning] Écarts explicites entre la cible métier et la version publiée (relevé du 18/10, complété le 19/10)
 > - La réception du contrat et des preuves est automatique ; l’activation du bail reste une confirmation du propriétaire, avec les contrôles existants. L’automatisme métier du référentiel ci-dessus n’est donc pas livré.
-> - Les relances J+7/J+21 et l’alerte J+28 restent à développer avant de les annoncer. L’expiration et le rapprochement du statut sont préparés.
-> - Les mandats, avenants, cautionnements électroniques séparés et représentants de personnes morales restent hors de ce premier circuit.
-> - La délivrabilité e-mail/SMS, le rendu de la signature prestataire et ses preuves attendent le compte API et une recette sandbox contrôlée.
+> - Les relances J+7/J+21 et l’alerte J+28 restent à développer avant de les annoncer : **toujours absentes au 19/10** ; les rappels automatiques du prestataire ne sont pas utilisés (les tests contrôlent l'absence de relance automatique). L’expiration (30 jours après préparation) et le rapprochement du statut sont préparés.
+> - Les mandats et les représentants de personnes morales restent hors du circuit. Avenants, cautionnement (acte distinct du garant), états des lieux, accords d'échelonnement et de travaux et acceptation de devis sont ajoutés au circuit par la PR #206 (18/10), envois aux clients désactivés (*au 18/10 en journée : hors de ce premier circuit*).
+> - La délivrabilité e-mail/SMS, le rendu de la signature prestataire et ses preuves ont été vérifiés **une fois**, sur l'essai du titulaire du 18/10 (deux signatures SMS, PDF et certificat relus) ; la recette humaine fictive sur la mention de caution et le devis, demandée par le dossier technique avant ouverture aux clients, n'est pas faite ; aucune recette de production ne joue le circuit (*au 18/10 en journée : attendaient le compte API et une recette sandbox*).

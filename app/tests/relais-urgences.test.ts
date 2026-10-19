@@ -523,6 +523,8 @@ describe("l'e-mail de 5 h et le rappel des urgences", () => {
       urgences_relais_recentes: [recentes],
       prendre_urgences_relais: prendre,
       urgences_relais_au_quotidien: [{ data: 1, error: null }],
+      // M16 : aucune demande de contact du site vitrine en attente.
+      demandes_contact_en_attente: [{ data: { en_attente: 0, depuis_plus_de_48h: 0 }, error: null }],
     });
     // Les tâches de l'écran Santé, toutes passées à l'heure (rien d'autre à signaler).
     const le = new Date(MATIN.getTime() - 2 * 3_600_000).toISOString();
@@ -651,8 +653,9 @@ describe("aucune adresse réelle dans le dépôt", () => {
       "src/app/api/cron/relais/route.ts",
       ...readdirSync("src/app/admin/relais").map((f) => join("src/app/admin/relais", f)),
       "src/app/admin/sante/page.tsx",
-      ...readdirSync("supabase/migrations").filter((f) => f.startsWith("2026101481")).map((f) => join("supabase/migrations", f)),
-      ...readdirSync("supabase/retours-arriere").filter((f) => f.startsWith("2026101481")).map((f) => join("supabase/retours-arriere", f)),
+      // Les trois paliers du relais (2026101481…) et toute migration du relais nommée depuis (`_relais_`, dont M16 du 19/10).
+      ...readdirSync("supabase/migrations").filter((f) => f.startsWith("2026101481") || f.includes("_relais_")).map((f) => join("supabase/migrations", f)),
+      ...readdirSync("supabase/retours-arriere").filter((f) => f.startsWith("2026101481") || f.includes("_relais_")).map((f) => join("supabase/retours-arriere", f)),
       ...readdirSync("tests").filter((f) => f.startsWith("relais-") || f === "cron-relais-route.test.ts").map((f) => join("tests", f)),
       "vercel.json",
     ];

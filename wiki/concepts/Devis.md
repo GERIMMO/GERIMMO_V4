@@ -3,7 +3,7 @@ type: concept
 tags: [devis, incident, artisan]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-16
+updated: 2026-10-19
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-9-devis-et-facturation]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]"]
 ---
 
@@ -66,6 +66,14 @@ PRO2-12), **en production depuis le 15/10/2026** (PR #187, fusion `8a168dd`, mig
   retenu) par demande.
 - **Échéance** : sans réponse, la tâche quotidienne `maintenance-artisans` (04 h 30 UTC)
   clôt la demande (« expirée »), le devis reste « révisé » et le gérant reçoit une alerte.
+- **Validité jugée au jour de Paris (19/10/2026, lot B5, migration `20261019124000`,
+  préparée et non déployée)** : `retenir_devis` compare « valable jusqu'au » au jour de Paris
+  (`public.aujourdhui_paris()`) et non plus au jour de la session (UTC) — un devis valable
+  jusqu'au J le reste toute la journée de Paris et plus après, même entre minuit et 1-2 h.
+  Le périmètre a été élargi le 19/10/2026 à `deposer_devis` : l'échéance par défaut
+  (`validite_jours` de la consultation) et le contrôle « la date de validité doit être à
+  venir » se comptent aussi au jour de Paris, comme le formulaire artisan
+  (`src/lib/saisie-devis-artisan.ts`).
 - Chaque geste est rejouable sans doublon (clé d'envoi) et laisse un événement au fil de
   l'incident (`devis_refuse`, `devis_revision_demandee`, `devis_revise`,
   `devis_revision_expiree`).

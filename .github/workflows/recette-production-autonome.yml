@@ -1,7 +1,11 @@
 # Cinq comptes fixes réutilisés. Les dossiers de scénario sont remis à zéro
-# au début ; les comptes sont conservés à la fin et la supervision révoquée.
+# au début ; les comptes sont conservés à la fin, la supervision révoquée,
+# leurs sessions fermées et les cinq comptes bloqués jusqu'au passage suivant.
 # Aucun paiement réel, aucun message à une personne ; seuls des courriers
 # éventuels vers les boîtes de test Resend peuvent partir.
+# Aucune trace Playwright ni vidéo n'est déposée : le dépôt est public et une
+# trace enregistre les cookies de session. Seuls le rapport HTML et les
+# captures d'écran d'échec (données fictives) sont conservés, trois jours.
 name: Recette de production avec nettoyage
 on:
   workflow_dispatch:
@@ -64,7 +68,7 @@ jobs:
           PGDATABASE: postgres
           PGSSLMODE: require
         run: npx playwright test --config e2e/recette-production/playwright.config.ts
-      - name: Conserver les cinq comptes et retirer la supervision temporaire
+      - name: Conserver les cinq comptes, retirer la supervision et fermer les accès
         if: always()
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -75,7 +79,7 @@ jobs:
           PGDATABASE: postgres
           PGSSLMODE: require
         run: node scripts/recette-production-comptes.mjs purger
-      - name: Conserver le rapport sans les sessions
+      - name: Conserver le rapport (sans trace ni vidéo)
         if: always()
         uses: actions/upload-artifact@v6
         with:
@@ -83,4 +87,4 @@ jobs:
           path: app/e2e/recette-production/.resultats/
           include-hidden-files: true
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 3

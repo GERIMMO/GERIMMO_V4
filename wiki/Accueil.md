@@ -3,7 +3,7 @@ type: synthesis
 tags: [accueil, vue-ensemble]
 status: in-progress
 created: 2026-07-20
-updated: 2026-10-16
+updated: 2026-10-19
 sources: ["[[2026-09-20-cahier-des-charges-maitre-v3]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Dépôt Gerimmo-V3]]"]
 ---
 
@@ -55,9 +55,10 @@ Gerimmo est publiée le 30/09/2026 sur `gerimmo.app`. Ce qui vaut au lancement :
   est nationale ; seul le réseau s'ouvre, **commune × métier**, par le
   [[Super Admin]] ; les artisans du carnet personnel restent sollicitables même en
   commune fermée, pour les biens que couvre leur zone d'intervention.
-- **[[Signature électronique]] non activée** au lancement (masquée, décision du
-  27/09) : circuit de transition V0 — le signataire télécharge, signe et dépose
-  le document signé.
+- **[[Signature électronique]]** : circuit Zoho Sign publié le 18/10/2026 (PR #203 à
+  #210), **envois aux clients désactivés** ; *au lancement du 30/09 : non activée
+  (masquée, décision du 27/09), circuit de transition V0 — le signataire télécharge,
+  signe et dépose le document signé*.
 - **Reste à fournir** : l'identité de l'éditeur (dénomination, siège, SIRET/RCS,
   e-mail, directeur de la publication, médiateur) —
   [[État du projet et décisions ouvertes]].

@@ -111,7 +111,7 @@ describe("relance de loyer", () => {
 });
 
 describe("relance de paiement d'abonnement", () => {
-  const base = { organisationId: "org-1", palier: 0 as 0 | 1 | 2 | 3, lectureSeuleLe: "2026-10-28", joursRestants: 14, montantMensuel: 49, destinataire: "gerant@exemple.fr" };
+  const base = { organisationId: "org-1", palier: 0 as 0 | 1 | 2 | 3, lectureSeuleLe: "2026-10-28", joursRestants: 14, periodicite: "mensuel" as const, montantPeriodeCents: 4900, destinataire: "gerant@exemple.fr" };
   it("est stable d'une passe à l'autre, quelle que soit la casse de l'adresse", () => {
     expect(cleRelanceAbonnement(base)).toBe(cleRelanceAbonnement({ ...base, destinataire: " Gerant@Exemple.fr" }));
   });
@@ -157,7 +157,7 @@ describe("longueur", () => {
       cleQuittance({ quittanceId: long, estQuittance: true, montant: 700, destinataire: "a@b.fr" }),
       cleAvisEcheance({ appelId: long, destinataire: "a@b.fr", resteDu: 750, arriere: 0 }),
       cleRelanceLoyer({ bailId: long, niveau: "relance_2", dateEcheance: "2026-09-05", destinataire: "a@b.fr", role: "caution", reste: 700, totalDu: 700 }),
-      cleRelanceAbonnement({ organisationId: long, palier: 1, lectureSeuleLe: "2026-10-28", joursRestants: 5, montantMensuel: 49, destinataire: "a@b.fr" }),
+      cleRelanceAbonnement({ organisationId: long, palier: 1, lectureSeuleLe: "2026-10-28", joursRestants: 5, periodicite: "mensuel", montantPeriodeCents: 4900, destinataire: "a@b.fr" }),
       cleRappelRendezVous({ interventionId: long, echeance: "j7", destinataire: "artisan", debutPrevu: "2026-10-20T08:00:00Z" }),
       cleRappelGeste(long),
     ]) {

@@ -37,6 +37,27 @@ describe('Garde avant tout envoi du bail',()=>{
  it('un rôle de supervision seul ne permet pas d’envoyer',async()=>{m.rpc.mockResolvedValue({data:false,error:null});expect((await envoyer()).erreur).toContain('propre espace');aucunEnvoi();});
  it('une configuration absente reste sans effet externe',async()=>{m.config.mockReturnValue(null);expect((await envoyer()).erreur).toContain('pas encore activée');aucunEnvoi();});
  it('un acte de caution ne part jamais chez un prestataire sans champ de mention personnelle',async()=>{m.circuit.modele='cautionnement';vi.stubEnv('ZOHO_SIGN_DOCUMENTS_ACTIF','true');expect((await envoyer()).erreur).toContain('signé avec Zoho');aucunEnvoi();});
+ // Lot B7 — ZOHO_SIGN_CAUTIONNEMENT_FERME=1 : fermeture du seul envoi de l’acte de cautionnement.
+ it('la fermeture du cautionnement bloque l’envoi avant toute lecture, réservation et appel, même avec Zoho actif',async()=>{
+  m.circuit.modele='cautionnement';m.circuit.prestataire='zoho';vi.stubEnv('ZOHO_SIGN_DOCUMENTS_ACTIF','true');vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','1');
+  const vue=await envoyer();
+  expect(vue.erreur).toBe('L’envoi en signature électronique de l’acte de cautionnement est suspendu pour le moment. Vous pouvez préparer le document et le faire signer hors ligne.');
+  aucunEnvoi();expect(m.download).not.toHaveBeenCalled();expect(m.stop).not.toHaveBeenCalled();
+ });
+ it('la fermeture du cautionnement s’applique aussi à une organisation d’essai',async()=>{
+  const org='11111111-1111-4111-8111-111111111111';vi.stubEnv('SIGNATURE_BAIL_ORGS_ESSAI',org);vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','1');
+  const g=await m.acces();g.user.app_metadata={gerimmo_recette:'permanente-v1'};m.acces.mockResolvedValue(g);
+  m.circuit.modele='cautionnement';m.circuit.prestataire='zoho';
+  expect((await envoyerSignatureBail(org,'11111111-1111-4111-8111-111111111111','circuit')).erreur).toContain('cautionnement est suspendu');aucunEnvoi();expect(m.download).not.toHaveBeenCalled();
+ });
+ it('la fermeture du cautionnement ne touche pas le bail',async()=>{vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','1');expect((await envoyer()).erreur).toContain('correspond plus au PDF préparé');aucunEnvoi();});
+ it('la fermeture du cautionnement ne ferme pas un autre acte',async()=>{m.circuit.modele='avenant';vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','1');vi.stubEnv('ZOHO_SIGN_DOCUMENTS_ACTIF','true');expect((await envoyer()).erreur).toContain('signé avec Zoho');aucunEnvoi();});
+ it('« true » (décision du 19/10) ferme aussi l’envoi du cautionnement',async()=>{m.circuit.modele='cautionnement';m.circuit.prestataire='zoho';vi.stubEnv('ZOHO_SIGN_DOCUMENTS_ACTIF','true');vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','true');expect((await envoyer()).erreur).toContain('cautionnement est suspendu');aucunEnvoi();expect(m.download).not.toHaveBeenCalled();});
+ it('une valeur autre que « 1 » ou « true » laisse le cautionnement suivre son parcours habituel',async()=>{m.circuit.modele='cautionnement';vi.stubEnv('ZOHO_SIGN_DOCUMENTS_ACTIF','true');vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','oui');expect((await envoyer()).erreur).toContain('signé avec Zoho');aucunEnvoi();});
+ it('un circuit de caution déjà envoyé reste annulable malgré la fermeture',async()=>{
+  m.circuit.modele='cautionnement';m.circuit.etat='en_cours';vi.stubEnv('ZOHO_SIGN_CAUTIONNEMENT_FERME','1');m.lire.mockResolvedValue({id:'req',external_id:'autre',status:'ongoing'});
+  expect((await annulerSignatureBail('org','11111111-1111-4111-8111-111111111111','circuit')).erreur).toContain('correspond pas');expect(m.lire).toHaveBeenCalled();
+ });
  it('une préparation production ne part pas dans une sandbox',async()=>{m.config.mockReturnValue({environnement:'sandbox'});expect((await envoyer()).erreur).toContain('environnement');aucunEnvoi();});
  it('le mode essai exige une organisation explicitement autorisée',async()=>{m.circuit.environnement='sandbox';m.config.mockReturnValue({environnement:'sandbox'});vi.stubEnv('YOUTRUST_ORGS_TEST','autre');expect((await envoyer()).erreur).toContain('pas autorisé');aucunEnvoi();});
  it('un dossier modifié doit être relu avant tout appel prestataire',async()=>{m.assembler.mockResolvedValue({empreinte:'nouvelle',manquants:[]});expect((await envoyer()).erreur).toContain('dossier a changé');aucunEnvoi();});

@@ -28,14 +28,35 @@ vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
     rpc: mocks.rpc,
-    from: () => {
+    auth: { getUser: async () => ({ data: { user: { id: "compte-1" } }, error: null }) },
+    from: (table: string) => {
       const q = {
         select: () => q,
         eq: () => q,
-        maybeSingle: async () => ({ data: { id: "org-1", name: "Org", type: "proprietaire_direct", email_contact: null }, error: null }),
+        order: () => q,
+        limit: () => q,
+        maybeSingle: async () =>
+          table === "acceptations_cgu"
+            // Lot B3 : le compte a accepté la version en vigueur des conditions.
+            ? { data: { id: "acceptation-1" }, error: null }
+            : { data: { id: "org-1", name: "Org", type: "proprietaire_direct", email_contact: null }, error: null },
       };
       return q;
     },
+  }),
+}));
+// Lot B3 (19/10) : la souscription exige l'identité complète de l'éditeur
+// (supervision_identite). Ce fichier ne teste pas cette garde (voir
+// garde-souscription.test.ts) : l'éditeur fictif est complet.
+vi.mock("@/lib/editeur-serveur", () => ({
+  lireEditeur: async () => ({
+    editeur: {
+      denomination: "Éditeur de test", forme: "SAS", capital: null, siege: "1 rue de l'Essai, 75000 Paris",
+      rcs: "RCS Paris 000 000 000", siret: "00000000000000", tvaIntracommunautaire: null,
+      directeurPublication: "Personne de test", email: "contact@example.com", telephone: null,
+      mediateurNom: "Médiateur de test", mediateurAdresse: null, mediateurSite: null,
+    },
+    indisponible: false,
   }),
 }));
 vi.mock("@/lib/supabase/service", () => ({

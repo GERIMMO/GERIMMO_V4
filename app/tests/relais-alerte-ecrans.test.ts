@@ -59,6 +59,8 @@ describe("l'écran de l'alerte e-mail du relais", () => {
     expect(html).toContain("Si ce passage ne fonctionne pas, l’e-mail de 5 h le signale, et les urgences ne sont plus constatées qu’au passage des équipes, chaque matin entre 4 h et 12 h (heure de Paris), ou quand on actualise le relais.");
     expect(html).not.toContain("lendemain matin");
     expect(html).toContain("dont le passage automatique des urgences, s’il n’atteint plus le serveur");
+    // M16 : les demandes de contact du site vitrine, en nombre seulement.
+    expect(html).toContain("les demandes de contact du site vitrine en attente de réponse (leur nombre, jamais leur contenu)");
     expect(html).toContain("Son e-mail immédiat part une seule fois, sans son texte, au plus 6 fois par heure");
     expect(html).toContain("au-delà, ou si l’envoi échoue, les urgences en attente partent groupées au passage suivant ou dans l’e-mail de 5 h, qui rappelle aussi les urgences des dernières 24 h, envoyées ou non.");
     expect(html).toContain("l’arrêt d’urgence ne les coupe pas : ce sont des alertes au dirigeant, sans effet sur les utilisateurs");

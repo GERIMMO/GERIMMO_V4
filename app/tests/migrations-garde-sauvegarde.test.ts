@@ -17,14 +17,19 @@
  *  — `CLAUDE.md` (app/) prescrit ce chantier et plus l'outil MCP `apply_migration`.
  *
  * Partie SANS base : le texte du chantier, lu avec js-yaml (présent dans `package-lock.json` par la chaîne d'ESLint ;
- * aucune dépendance ajoutée). Partie AVEC base (SUPABASE_DB_URL) : le SQL de la garde sur des lignes d'essai,
- * transaction annulée.
+ * aucune dépendance ajoutée), puis les scripts `run` des deux étapes JOUÉS avec bash et un faux `psql` (relecture du
+ * 19/10 : le contrat textuel ne prouve pas le comportement du shell — seuil inclus à 90, refus à 91 et sans sauvegarde,
+ * simulation non bloquante, sortie illisible refusée, refus par empreinte en nommant la version). Partie AVEC base
+ * (SUPABASE_DB_URL) : le SQL de la garde sur des lignes d'essai, transaction annulée.
  */
 import { verifierBaseDeTest } from "./garde-base";
 import { config } from "dotenv";
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { delimiter, dirname, resolve } from "node:path";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -129,6 +134,142 @@ describe("chantier « Migrations Supabase » — gardes (sans base)", () => {
     expect(claude).toContain("« Migrations Supabase »");
     expect(claude).toContain("simulation");
     expect(claude).toMatch(/[Jj]amais par l'outil MCP Supabase `apply_migration`/);
+  });
+});
+
+/** Faux `psql` du banc : aucune connexion ; imprime ce que le test lui dicte et sort avec le code demandé. */
+const FAUX_PSQL = [
+  "#!/usr/bin/env bash",
+  "# Faux psql du banc de test : aucune connexion ; imprime FAUX_PSQL_SORTIE et sort avec FAUX_PSQL_CODE.",
+  'if [ -n "${FAUX_PSQL_SORTIE:-}" ]; then printf \'%s\\n\' "$FAUX_PSQL_SORTIE"; fi',
+  'exit "${FAUX_PSQL_CODE:-0}"',
+  "",
+].join("\n");
+
+/**
+ * Joue le script `run` d'une étape du chantier avec bash, depuis la racine du dépôt, avec le faux `psql` en tête de
+ * PATH : aucune base, aucun réseau. Les variables d'environnement de l'étape sont reprises telles quelles quand elles
+ * sont littérales (REF, REGION, SAUVEGARDE_MAX_MINUTES : le vrai seuil est éprouvé) ; les expressions `${{ … }}`
+ * (secret, entrées) prennent les valeurs du cas. Seule retouche au script : ses fichiers de travail `/tmp/…` sont
+ * déplacés dans un dossier jetable, pour que deux ouvriers Vitest ne s'écrasent pas.
+ */
+function jouerEtape(etape: Etape | undefined, entrees: Record<string, string>, psql: { sortie?: string; code?: number } = {}) {
+  const dossier = mkdtempSync(resolve(tmpdir(), "gerimmo-chantier-migrations-"));
+  try {
+    const bin = resolve(dossier, "bin");
+    mkdirSync(bin);
+    writeFileSync(resolve(bin, "psql"), FAUX_PSQL, { mode: 0o755 });
+    const script = resolve(dossier, "etape.sh");
+    writeFileSync(script, (etape?.run ?? "").replace(/\/tmp\//g, `${dossier}/`));
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      PATH: [bin, dirname(process.execPath), process.env.PATH ?? ""].join(delimiter),
+      FAUX_PSQL_SORTIE: psql.sortie ?? "",
+      FAUX_PSQL_CODE: String(psql.code ?? 0),
+    };
+    for (const [cle, valeur] of Object.entries(etape?.env ?? {})) {
+      env[cle] = valeur.includes("${{") ? (entrees[cle] ?? "") : valeur;
+    }
+    const r = spawnSync("bash", [script], { cwd: RACINE_DEPOT, env, encoding: "utf8" });
+    return { code: r.status, sortie: r.stdout, erreurs: r.stderr };
+  } finally {
+    rmSync(dossier, { recursive: true, force: true });
+  }
+}
+
+const bancShell = ["bash", "md5sum", "awk"].every((outil) => spawnSync(outil, ["--version"]).status === 0);
+
+describe.skipIf(!bancShell)("chantier « Migrations Supabase » — les scripts des gardes joués avec bash et un faux psql (sans base)", () => {
+  const garder = (ligne: string, simulation: "true" | "false", code = 0) =>
+    jouerEtape(garde, { PGPASSWORD: "x", SIMULATION: simulation }, { sortie: ligne, code });
+  const REFUS = "✗ Application refusée : aucune « Sauvegarde quotidienne » réussie depuis 90 min.";
+
+  it("application réelle : refusée à 425 min, acceptée au seuil (90), refusée à 91 et sans sauvegarde consignée (-1|)", () => {
+    const r425 = garder("425|20261019-0600", "false");
+    expect(r425.code).toBe(1);
+    expect(r425.sortie).toContain("dernière sauvegarde réussie : il y a 425 min (préfixe 20261019-0600) ; seuil 90 min");
+    expect(r425.erreurs).toContain(REFUS);
+    expect(r425.erreurs).toContain("« Sauvegarde quotidienne » → Run workflow");
+
+    const r90 = garder("90|x", "false");
+    expect(r90.code, r90.erreurs).toBe(0);
+    expect(r90.erreurs).toBe("");
+
+    const r91 = garder("91|x", "false");
+    expect(r91.code).toBe(1);
+    expect(r91.erreurs).toContain(REFUS);
+
+    const aucune = garder("-1|", "false");
+    expect(aucune.code).toBe(1);
+    expect(aucune.sortie).toContain("aucune sauvegarde réussie consignée dans tech_log");
+    expect(aucune.erreurs).toContain(REFUS);
+  });
+
+  it("simulation : une sauvegarde trop ancienne, ou absente, informe sans bloquer", () => {
+    for (const ligne of ["425|x", "-1|"]) {
+      const r = garder(ligne, "true");
+      expect(r.code, ligne).toBe(0);
+      expect(r.erreurs, ligne).toBe("");
+      expect(r.sortie, ligne).toContain("simulation : rien n'est bloqué ici, mais l'application réelle serait refusée en l'état.");
+    }
+    const recente = garder("5|x", "true");
+    expect(recente.code).toBe(0);
+    expect(recente.sortie).not.toContain("serait refusée");
+  });
+
+  it("une sortie illisible, ou un psql en échec, refuse même en simulation", () => {
+    for (const simulation of ["true", "false"] as const) {
+      for (const ligne of ["", "abc", "12h|x"]) {
+        const r = garder(ligne, simulation);
+        expect(r.code, `${simulation} ${ligne}`).toBe(1);
+        expect(r.erreurs, `${simulation} ${ligne}`).toContain("âge de la dernière sauvegarde illisible");
+      }
+      const panne = garder("5|x", simulation, 2);
+      expect(panne.code, simulation).not.toBe(0);
+    }
+  });
+
+  // Relevé de production du 19/10 : ce fichier a été appliqué le 18/10 hors chantier et enregistré sous 20261018071151
+  // avec le texte du fichier, octet pour octet. L'historique fictif ci-dessous reproduit cette ligne.
+  const FICHIER = "20261017180829_supervision_finances.sql";
+  const EMPREINTE = "a2e6a068598badb2fd6cb9321a849a77";
+  const HISTORIQUE_FICTIF = `20261018071151 ${EMPREINTE}`;
+  const appliquerAvec = (fichiers: string, historique: string) =>
+    jouerEtape(appliquer, { PGPASSWORD: "x", FICHIERS: fichiers, SIMULATION: "true" }, { sortie: historique });
+
+  it("garde par empreinte : un contenu déjà appliqué sous un autre numéro est refusé en nommant fichier et version", () => {
+    expect(createHash("md5").update(readFileSync(resolve(RACINE_APP, "supabase/migrations", FICHIER))).digest("hex")).toBe(EMPREINTE);
+    const r = appliquerAvec(FICHIER, HISTORIQUE_FICTIF);
+    expect(r.code).toBe(1);
+    expect(r.erreurs).toContain(`✗ ${FICHIER} : ce contenu exact (md5 ${EMPREINTE}) est déjà appliqué en base sous la version 20261018071151`);
+    expect(r.sortie).not.toContain("— à appliquer, dans cet ordre :");
+  });
+
+  it("garde par version : une version déjà enregistrée est refusée avant l'empreinte", () => {
+    const r = appliquerAvec(FICHIER, "20261017180829 -");
+    expect(r.code).toBe(1);
+    expect(r.erreurs).toContain(`✗ ${FICHIER} : la version 20261017180829 est déjà enregistrée en base.`);
+    expect(r.erreurs).not.toContain("ce contenu exact");
+  });
+
+  it("sans correspondance en base, le même fichier franchit les gardes et le lot est joué puis annulé en simulation", () => {
+    const r = appliquerAvec(FICHIER, "20261018071200 834f47b8ff85428b3396824b6f760939");
+    expect(r.code, r.erreurs).toBe(0);
+    expect(r.sortie).toContain("— à appliquer, dans cet ordre :");
+    expect(r.sortie).toContain(`· ${FICHIER}`);
+    expect(r.sortie).toContain("SIMULATION : tout a été joué puis annulé.");
+  });
+
+  it("la liste est obligatoire et n'accepte que des noms de fichiers .sql seuls", () => {
+    const vide = appliquerAvec("  ", HISTORIQUE_FICTIF);
+    expect(vide.code).toBe(1);
+    expect(vide.erreurs).toContain("✗ Aucun fichier nommé.");
+    const chemin = appliquerAvec("../retours-arriere/20261017180829_supervision_finances.retour.sql", "");
+    expect(chemin.code).toBe(1);
+    expect(chemin.erreurs).toContain("✗ nom de fichier seul attendu");
+    const autre = appliquerAvec("20261017180829_supervision_finances.txt", "");
+    expect(autre.code).toBe(1);
+    expect(autre.erreurs).toContain("✗ un fichier .sql de app/supabase/migrations attendu");
   });
 });
 

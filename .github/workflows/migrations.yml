@@ -34,7 +34,8 @@
 # ÉQUIVALENCES CONNUES — fichier du dépôt → version enregistrée en base (ne JAMAIS nommer ces fichiers ici ;
 # relevé en lecture seule du 19/10) :
 #   20260911124500_restitution_rearrete_sous_verrou.sql → 20260911014814  (fichier renommé le 11/09 ; son texte a
-#       changé depuis : 6 140 octets au dépôt contre 3 808 enregistrés — seule cette liste le signale)
+#       changé depuis : 6 140 octets au dépôt contre 3 859 enregistrés (3 808 caractères, sans saut de ligne final) —
+#       seule cette liste le signale)
 #   20261017180829_supervision_finances.sql             → 20261018071151  (appliquée HORS chantier le 18/10, outil MCP)
 #   20261018061548_supervision_complete.sql             → 20261018071200  (idem)
 #   20261018071556_supervision_index_relations.sql      → 20261018071811  (idem)

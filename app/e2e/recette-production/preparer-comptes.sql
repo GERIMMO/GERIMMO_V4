@@ -26,15 +26,18 @@
 --   delivered+recette-locataire-<suffixe>@resend.dev
 --
 -- LANCEMENT : uniquement scripts/recette-production-comptes.mjs depuis le
--- chantier autonome. Il génère le mot de passe en mémoire et le transmet sur
--- l'entrée privée de psql, jamais en argument, input manuel ou journal.
--- Les comptes artisan et supervision ne sont pas admis par la recette manuelle.
+-- chantier autonome (.github/workflows/recette-production-autonome.yml). Il
+-- génère le mot de passe en mémoire et le transmet sur l'entrée privée de
+-- psql, jamais en argument, input manuel ou journal.
 -- La supervision expire après 60 minutes, avec une tâche de contrôle par minute.
 --
 -- En mode réutilisable, seuls les cinq comptes portant le marqueur serveur
 -- permanente-v1 et le suffixe fixe sont repris, avec leurs UUID conservés.
--- Le runner remet leurs dossiers à zéro avant ce script. Hors de ce mode,
--- il refuse tout compte déjà présent. Tout se passe dans une transaction.
+-- Le runner remet leurs dossiers à zéro avant ce script ; les deux
+-- organisations (agence et parc) sont recréées avec un identifiant FIXE, le
+-- même d'un passage à l'autre, parce qu'une liste d'essai de la signature
+-- électronique, tenue hors dépôt, les cite. Hors de ce mode, il refuse tout
+-- compte déjà présent. Tout se passe dans une transaction.
 
 \set ON_ERROR_STOP on
 
@@ -87,6 +90,9 @@ declare
   v_compte record;
   v_reutilisables boolean := current_setting('recette.reutilisables') = '1';
   v_existant boolean;
+  -- Identifiants stables des deux organisations du groupe réutilisable (ceux de la production).
+  v_org_agence_fixe constant uuid := '41f03714-c22a-413c-9268-18d4aa5a9ed1';
+  v_org_parc_fixe constant uuid := 'afa35803-36eb-4721-9a92-a7661070742f';
 begin
   if v_suffixe !~ '^[a-z0-9][a-z0-9-]{5,39}$' then
     raise exception 'Suffixe refusé (%) : minuscules, chiffres et tirets, 6 à 40 caractères', v_suffixe;
@@ -123,6 +129,12 @@ begin
   end if;
   if exists (select 1 from public.organizations o where o.name like '%' || v_suffixe || '%') then
     raise exception 'Une organisation porte déjà le suffixe « % » : purgez-la (purger.sql) ou changez de suffixe', v_suffixe;
+  end if;
+  -- Les identifiants fixes doivent être libres : le runner purge les deux
+  -- organisations juste avant ce script ; un identifiant encore occupé
+  -- signale une purge incomplète, jamais une organisation à réutiliser.
+  if v_reutilisables and exists (select 1 from public.organizations o where o.id in (v_org_agence_fixe, v_org_parc_fixe)) then
+    raise exception 'Une organisation occupe encore un identifiant fixe du groupe réutilisable : purgez-la (purger.sql)';
   end if;
 
   -- Les cinq comptes, comme les crée `ouvrir_organisation` — mais avec un
@@ -182,8 +194,10 @@ begin
   end loop;
 
   -- 1. L'agence et son admin (ouvrir_organisation, type agence, essai de 2 mois).
-  insert into public.organizations (name, type, status, essai_fin)
-  values (v_nom_agence || ' ' || v_suffixe, 'agence', 'essai', public.essai_ordinaire_fin())
+  --    En mode réutilisable, l'identifiant est fixe ; sinon il est tiré au sort.
+  insert into public.organizations (id, name, type, status, essai_fin)
+  values (case when v_reutilisables then v_org_agence_fixe else gen_random_uuid() end,
+          v_nom_agence || ' ' || v_suffixe, 'agence', 'essai', public.essai_ordinaire_fin())
   returning id into v_org_agence;
   select id into strict v_uid from public.accounts where lower(email) = v_email_admin;
   insert into public.memberships (account_id, organization_id, role)
@@ -201,9 +215,10 @@ begin
   -- complète : sans eux, la création d'un bien est refusée (« Complétez
   -- d'abord votre identité… », actions/parc.ts) — ils désignent le bailleur
   -- dans les documents.
-  insert into public.organizations (name, type, status, essai_fin,
+  insert into public.organizations (id, name, type, status, essai_fin,
                                     address_line1, postal_code, city, email_contact)
-  values ('Parc de Paul Recette-' || v_suffixe, 'proprietaire_direct', 'essai', current_date + 14,
+  values (case when v_reutilisables then v_org_parc_fixe else gen_random_uuid() end,
+          'Parc de Paul Recette-' || v_suffixe, 'proprietaire_direct', 'essai', current_date + 14,
           '5 rue du Bailleur', '69003', 'Lyon', v_email_proprio)
   returning id into v_org_parc;
   insert into public.memberships (account_id, organization_id, role)

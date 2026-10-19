@@ -26,6 +26,13 @@ describe.skipIf(!disponible)('Cinq identités réutilisables : cycle réel en ba
   const lancer = (action: string) => spawnSync(process.execPath, ['scripts/recette-production-comptes.mjs', action], { env, encoding: 'utf8', timeout: 60_000 });
   const identites = async () => (await db.query("select id from auth.users where raw_app_meta_data->>'gerimmo_recette'='permanente-v1' order by id")).rows.map(r => r.id);
   const supervision = async () => (await db.query("select count(*)::int n from public.memberships where role='super_admin'")).rows[0].n;
+  const bloques = async () => (await db.query("select count(*)::int n from auth.users where raw_app_meta_data->>'gerimmo_recette'='permanente-v1' and banned_until='infinity'::timestamptz")).rows[0].n;
+  // Identifiants des deux organisations de recette, les mêmes qu'en production (preparer-comptes.sql).
+  const ORGANISATIONS_FIXES = { agence: '41f03714-c22a-413c-9268-18d4aa5a9ed1', parc: 'afa35803-36eb-4721-9a92-a7661070742f' };
+  const organisations = async () => {
+    const r = await db.query("select type, id from public.organizations where name ~ $1 order by type", [`(^|[ -])${suffixe}$`]);
+    return { agence: r.rows.find(o => o.type === 'agence')?.id, parc: r.rows.find(o => o.type === 'proprietaire_direct')?.id };
+  };
 
   beforeAll(async () => {
     const url = new URL(source!); url.pathname = '/postgres';
@@ -57,19 +64,32 @@ describe.skipIf(!disponible)('Cinq identités réutilisables : cycle réel en ba
   it('conserve les cinq comptes et leurs dossiers après la clôture, puis reprend les mêmes UUID', async () => {
     expect(lancer('preparer').status).toBe(0);
     ids = await identites(); expect(ids).toHaveLength(5); expect(await supervision()).toBe(1);
+    // Les deux organisations de recette portent un identifiant stable : la liste d'essai de signature (hors dépôt) les cite.
+    expect(await organisations()).toEqual(ORGANISATIONS_FIXES);
     // Aucun second contrôle ne doit réinitialiser un groupe déjà en cours d'utilisation.
     expect(lancer('preparer').status).toBe(1); expect(await identites()).toEqual(ids); expect(await supervision()).toBe(1);
     const avant = (await db.query('select count(*)::int n from public.organizations')).rows[0].n;
     const sup = (await db.query("select id from auth.users where email like 'delivered+recette-superadmin-%'")).rows[0].id;
-    await db.query('insert into auth.sessions(user_id) values($1)', [sup]);
+    // Une session ouverte par persona, comme à la fin d'un passage : la clôture doit toutes les révoquer.
+    await db.query("insert into auth.sessions(user_id) select id from auth.users where raw_app_meta_data->>'gerimmo_recette'='permanente-v1'");
+    expect((await db.query('select count(*)::int n from auth.sessions')).rows[0].n).toBe(5);
     expect(lancer('purger').status).toBe(0);
     expect(await identites()).toEqual(ids); expect(await supervision()).toBe(0);
     expect((await db.query('select count(*)::int n from public.organizations')).rows[0].n).toBe(avant);
     expect((await db.query('select count(*)::int n from auth.sessions')).rows[0].n).toBe(0);
     expect((await db.query("select banned_until='infinity'::timestamptz as bloque from auth.users where id=$1", [sup])).rows[0].bloque).toBe(true);
+    // Les cinq comptes sont bloqués jusqu'au passage suivant : aucune connexion possible entre deux recettes.
+    expect(await bloques()).toBe(5);
+    // Une session ouverte malgré tout entre deux passages est fermée par la reprise, avant la remise à zéro.
+    await db.query('insert into auth.sessions(user_id) values($1)', [ids[0]]);
     expect(lancer('preparer').status).toBe(0);
     expect(await identites()).toEqual(ids); expect(await supervision()).toBe(1);
+    expect((await db.query('select count(*)::int n from auth.users where banned_until is not null')).rows[0].n).toBe(0);
+    expect((await db.query('select count(*)::int n from auth.sessions')).rows[0].n).toBe(0);
+    // Les dossiers ont été remis à zéro, mais les deux organisations reprennent leurs identifiants.
+    expect(await organisations()).toEqual(ORGANISATIONS_FIXES);
     expect(lancer('purger').status).toBe(0); expect(await identites()).toEqual(ids);
+    expect(await bloques()).toBe(5);
   }, 120_000);
 
   it('nettoie le compte ponctuel d’inscription sans supprimer les cinq comptes fixes', async () => {

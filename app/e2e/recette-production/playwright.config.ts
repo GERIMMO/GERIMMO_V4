@@ -13,7 +13,8 @@ import { verifierCible } from "./cible";
 // Lancement :
 //   RECETTE_URL=https://www.gerimmo.app RECETTE_MOT_DE_PASSE=… RECETTE_EMAIL_ADMIN=… \
 //   npx playwright test --config e2e/recette-production/playwright.config.ts
-// (workflow GitHub : .github/workflows/recette-production.yml)
+// (chantier GitHub : .github/workflows/recette-production-autonome.yml, le seul
+// qui reste ; l'ancien chantier manuel a été retiré du dépôt le 19/10/2026)
 //
 // Le garde-fou de la cible s'exécute ICI, au chargement : une URL qui n'est
 // ni la production ni un poste local arrête tout avant le premier test.
@@ -51,15 +52,25 @@ export default defineConfig({
     deviceScaleFactor: 2,
     locale: "fr-FR",
     timezoneId: "Europe/Paris",
+    // AUCUNE TRACE, AUCUNE VIDÉO, pour tous les projets : une trace Playwright
+    // enregistre le réseau (en-têtes Cookie et Set-Cookie, donc les cookies de
+    // session Supabase avec leurs jetons d'accès et de rafraîchissement) et
+    // Playwright n'offre aucune option pour les en retirer ; le rapport HTML
+    // recopie ses pièces jointes dans son dossier, et l'artefact du chantier est
+    // téléchargeable sur un dépôt public. La capture d'écran d'échec (données
+    // fictives, sans cookie) reste le seul élément de diagnostic déposé ; pour
+    // aller plus loin, rejouer le cas sur le banc local.
+    // tests/recette-config-traces.test.ts garde ces réglages.
     screenshot: "only-on-failure",
-    trace: "retain-on-failure",
+    trace: "off",
     video: "off",
   },
-  // Deux projets pour une seule raison : la trace. Les tests étiquetés
-  // @sans-trace tapent le mot de passe (outils.ts, SANS_TRACE) ; leur trace
-  // l'enregistrerait en clair dans l'artefact. L'ordre des projets est sans
-  // conséquence : la session d'un parcours s'ouvre dans son propre processus,
-  // et une déconnexion ne révoque que les sessions déjà ouvertes.
+  // Deux projets pour une seule raison, historique : les tests étiquetés
+  // @sans-trace tapent le mot de passe (outils.ts, SANS_TRACE) ; leur projet
+  // coupe la trace une seconde fois, en défense en profondeur, maintenant
+  // qu'elle est coupée pour tous. L'ordre des projets est sans conséquence :
+  // la session d'un parcours s'ouvre dans son propre processus, et une
+  // déconnexion ne révoque que les sessions déjà ouvertes.
   //
   // Le troisième projet, lui, dépend de l'ordre : les contrôles des montants (@montants, montants-p1.spec.ts) activent un
   // bail dans le parc du propriétaire, ce qui referme son parcours de démarrage, qu'un test de proprietaire.spec.ts vérifie.

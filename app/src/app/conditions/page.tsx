@@ -1,7 +1,14 @@
 import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
 import { Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
-import { CONDITIONS_DATE, REGIME_TVA, documentsIncomplets, type FaitEditeur } from "@/lib/editeur";
+import {
+  CONDITIONS_DATE,
+  REGIME_TVA,
+  courrielDeContact,
+  documentsIncomplets,
+  prestatairesAvecFaits,
+  type FaitEditeur,
+} from "@/lib/editeur";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 export const metadata = metadonneesPubliques({
@@ -81,12 +88,16 @@ const CLAUSES: Record<
 
 export default async function PageConditions() {
   const {editeur:EDITEUR,indisponible}=await lireEditeur();
+  // 19/10 : l'annexe cite la même liste de prestataires que les deux autres
+  // pages, complétée par la saisie ; les clauses, elles, n'en dépendent pas.
+  const prestataires = prestatairesAvecFaits(EDITEUR);
   return (
     <CoquilleLegale
       titre="Conditions générales d'utilisation et de vente"
       chapo={`Version du ${CONDITIONS_DATE}, en vigueur depuis cette date.`}
       chemin="/conditions"
       incomplet={(indisponible || documentsIncomplets(EDITEUR)) || Object.values(CLAUSES).some((c) => !c)}
+      courriel={courrielDeContact(EDITEUR)}
     >
       <Article titre="1. Objet">
         <p>
@@ -618,7 +629,7 @@ export default async function PageConditions() {
             sans frais.
           </li>
         </ul>
-        <TableauPrestataires />
+        <TableauPrestataires prestataires={prestataires} />
         <ul className="ml-4 list-disc space-y-1">
           <li>
             <b className="font-semibold">Droits des personnes.</b>{" "}

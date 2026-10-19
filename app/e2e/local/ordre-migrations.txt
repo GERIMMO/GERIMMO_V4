@@ -387,3 +387,4 @@
 20261018185515_signatures_documents_budget.sql
 20261018193308_signature_devis_accord_client.sql
 20261018231827_abonnement_jour_paris.sql
+20261019123000_identite_editeur_prestataires.sql

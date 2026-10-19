@@ -14,7 +14,18 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { CONDITIONS_VERSION, documentsIncomplets, faitsManquants } from "../src/lib/editeur";
+import {
+  CHAMPS_PRESTATAIRES,
+  CONDITIONS_VERSION,
+  PRESTATAIRES,
+  cleCoordonnees,
+  cleLocalisation,
+  documentsIncomplets,
+  faitsManquants,
+  prestatairesAvecFaits,
+  prestatairesIncomplets,
+  reservesLegales,
+} from "../src/lib/editeur";
 
 const SRC = path.resolve(__dirname, "..", "src");
 const lire = (p: string) => fs.readFileSync(path.join(SRC, p), "utf8");
@@ -184,8 +195,9 @@ describe("conditions générales d'utilisation et de vente (29/09)", () => {
     ]) {
       expect(annexe).toContain(clause);
     }
-    // Les sous-traitants sont ceux des autres pages légales, pas une liste recopiée.
-    expect(annexe).toContain("<TableauPrestataires />");
+    // Les sous-traitants sont ceux des autres pages légales, pas une liste recopiée : la même liste fusionnée
+    // avec les faits saisis (19/10), passée au composant.
+    expect(annexe).toMatch(/<TableauPrestataires prestataires=\{prestataires\} \/>/);
   });
 
   it("« rien n'est supprimé automatiquement » se dit de la même façon partout", () => {
@@ -230,5 +242,112 @@ describe("confidentialité (29/09)", () => {
     const formulaire = lire("app/inscription/formulaire-inscription.tsx");
     const avantBouton = formulaire.slice(0, formulaire.indexOf("<BoutonEnvoi"));
     expect(avantBouton).toContain('href="/confidentialite"');
+  });
+});
+
+// 19/10 : la localisation de la Base Adresse Nationale et les coordonnées de chaque prestataire étaient figées à vide
+// dans le code (`localisation: null`, `COORDONNEES_PRESTATAIRES = null`) : l'encadré « Document en cours de
+// finalisation » restait affiché même une fois les treize faits d'éditeur saisis, et l'encadré renvoyait toujours au
+// formulaire de l'accueil (`courrielDeContact()` sans argument lisait la constante, jamais la base). Ces faits se
+// saisissent désormais dans /admin/parametres, par les mêmes clés JSON que l'identité.
+describe("prestataires saisissables depuis les paramètres (19/10)", () => {
+  const ban = PRESTATAIRES.find((p) => p.cle === "ban")!;
+  const supabase = PRESTATAIRES.find((p) => p.cle === "supabase")!;
+  /** Les treize faits d'éditeur, fournis (valeurs fictives). */
+  const EDITEUR_COMPLET: Record<string, string | null> = {
+    denomination: "Éditeur fictif",
+    forme: "société par actions simplifiée",
+    capital: null,
+    siege: "1 rue Fictive, 75000 Paris",
+    rcs: "Paris 000 000 000",
+    siret: "00000000000000",
+    tvaIntracommunautaire: null,
+    directeurPublication: "Une personne",
+    email: "contact@example.test",
+    telephone: null,
+    mediateurNom: "Un médiateur",
+    mediateurAdresse: null,
+    mediateurSite: null,
+  };
+  /** La localisation de la BAN et les coordonnées des onze prestataires, fournies (valeurs fictives). */
+  const prestatairesComplets = (sauf?: string): Record<string, string | null> => {
+    const v: Record<string, string | null> = { [cleLocalisation(ban)]: "Localisation de test" };
+    for (const p of PRESTATAIRES) v[cleCoordonnees(p)] = p.cle === sauf ? null : `Coordonnées fictives de ${p.nom}`;
+    return v;
+  };
+
+  it("sans saisie, chaque localisation fixée dans le code est gardée et la Base Adresse Nationale reste à venir", () => {
+    const liste = prestatairesAvecFaits({});
+    expect(liste.map((p) => p.nom)).toEqual(PRESTATAIRES.map((p) => p.nom));
+    for (const p of liste) {
+      expect(p.localisation).toBe(PRESTATAIRES.find((q) => q.cle === p.cle)!.localisation);
+      expect(p.coordonnees).toBeNull();
+    }
+    expect(liste.find((p) => p.cle === "ban")!.localisation).toBeNull();
+    expect(prestatairesIncomplets(liste)).toBe(true);
+  });
+
+  it("la saisie fournit la localisation manquante et les coordonnées, prestataire par prestataire", () => {
+    const liste = prestatairesAvecFaits({
+      [cleLocalisation(ban)]: "Localisation de test",
+      [cleCoordonnees(supabase)]: "Coordonnées fictives\nligne 2",
+    });
+    expect(liste.find((p) => p.cle === "ban")!.localisation).toBe("Localisation de test");
+    expect(liste.find((p) => p.cle === "supabase")!.coordonnees).toBe("Coordonnées fictives\nligne 2");
+    for (const p of liste.filter((p) => p.cle !== "supabase")) expect(p.coordonnees).toBeNull();
+    // La page confidentialité n'affiche pas les coordonnées : sa réserve ne porte que sur les localisations.
+    expect(prestatairesIncomplets(liste)).toBe(false);
+    // Les mentions légales les affichent : leur réserve tient tant qu'une coordonnée manque.
+    expect(prestatairesIncomplets(liste, true)).toBe(true);
+  });
+
+  it("la saisie ne peut pas écraser une localisation établie par le code", () => {
+    const liste = prestatairesAvecFaits({ localisationSupabase: "ailleurs" });
+    expect(liste.find((p) => p.cle === "supabase")!.localisation).toBe(supabase.localisation);
+    expect(CHAMPS_PRESTATAIRES).not.toHaveProperty("localisationSupabase");
+    expect(CHAMPS_PRESTATAIRES).toHaveProperty(cleLocalisation(ban));
+  });
+
+  it("la réserve des mentions légales ne se lève qu'avec toutes les coordonnées et la localisation de la BAN", () => {
+    expect(prestatairesIncomplets(prestatairesAvecFaits(prestatairesComplets()), true)).toBe(false);
+    const presque = prestatairesAvecFaits(prestatairesComplets("supabase"));
+    expect(prestatairesIncomplets(presque, true)).toBe(true);
+    expect(prestatairesIncomplets(presque)).toBe(false);
+    const sansBan = prestatairesAvecFaits({ ...prestatairesComplets(), [cleLocalisation(ban)]: null });
+    expect(prestatairesIncomplets(sansBan)).toBe(true);
+  });
+
+  it("les réserves légales se lisent telles quelles : faits d'éditeur, puis prestataires", () => {
+    const reserves = reservesLegales({});
+    expect(reserves.slice(0, 8)).toEqual(faitsManquants({}));
+    expect(reserves.slice(8)).toEqual([
+      `la localisation de ${ban.nom}`,
+      `les coordonnées de ${PRESTATAIRES.length} prestataires sur ${PRESTATAIRES.length} (${PRESTATAIRES.map((p) => p.nom).join(", ")})`,
+    ]);
+    for (const r of reserves) expect(r).toMatch(/^(le |la |l'|les )/);
+    // Une seule coordonnée manquante : nommée, au singulier.
+    expect(reservesLegales({ ...EDITEUR_COMPLET, ...prestatairesComplets("vercel") })).toEqual([
+      `les coordonnées de 1 prestataire sur ${PRESTATAIRES.length} (Vercel)`,
+    ]);
+    expect(reservesLegales({ ...EDITEUR_COMPLET, ...prestatairesComplets() })).toEqual([]);
+  });
+
+  it("les pages lisent l'adresse saisie et passent les prestataires fusionnés à la coquille", () => {
+    const coquille = lire("components/coquille-legale.tsx");
+    // L'encadré ne lit plus la constante : il reçoit l'adresse saisie (ou null) de la page.
+    expect(coquille).not.toContain("courrielDeContact()");
+    expect(coquille).toContain("courriel: string | null");
+    for (const page of ["app/mentions-legales/page.tsx", "app/confidentialite/page.tsx", "app/conditions/page.tsx"]) {
+      const src = lire(page);
+      const ouverture = src.match(/<CoquilleLegale[\s\S]*?\n\s*>/)?.[0] ?? "";
+      expect(ouverture, page).toContain("courriel=");
+      expect(src, page).toContain("prestataires={prestataires}");
+    }
+    const mentions = lire("app/mentions-legales/page.tsx");
+    expect(mentions).not.toContain("COORDONNEES_PRESTATAIRES");
+    expect(mentions).toMatch(/<TableauPrestataires prestataires=\{prestataires\} coordonnees \/>/);
+    expect(mentions).toContain("prestatairesIncomplets(prestataires, true)");
+    // La confidentialité n'affiche pas les coordonnées : réserve sur les seules localisations.
+    expect(lire("app/confidentialite/page.tsx")).toContain("prestatairesIncomplets(prestataires)");
   });
 });

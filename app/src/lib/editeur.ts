@@ -114,7 +114,24 @@ export function courrielDeContact(editeur: Record<string, FaitEditeur> = EDITEUR
 // dans un autre ordre, libellés divergents, Stripe sur une page seulement
 // (relevé du 24/09). `localisation: null` s'affiche en réserve, comme un fait
 // d'éditeur manquant.
-export type Prestataire = { nom: string; role: string; localisation: FaitEditeur };
+//
+// 19/10 : ce que le code ne sait pas, il ne le devine pas — mais il ne le fige
+// plus à vide non plus. La localisation laissée à `null` et les coordonnées de
+// chaque prestataire (dénomination, adresse, téléphone) se saisissent dans
+// /admin/parametres, par les mêmes clés JSON que l'identité
+// (`CHAMPS_PRESTATAIRES`), et `prestatairesAvecFaits` les superpose à cette
+// liste. Une localisation établie par le code ne se laisse pas écraser par la
+// saisie : elle a été vérifiée dans la configuration (vercel.json, lib/*.ts) ;
+// si un prestataire change de région, c'est le code qu'il faut corriger.
+export type Prestataire = {
+  /** Clé courte et stable, qui nomme les champs de saisie : `coordonneesSupabase`, `localisationBan`… */
+  cle: string;
+  nom: string;
+  role: string;
+  localisation: FaitEditeur;
+  /** Dénomination, adresse et téléphone, tels que saisis dans /admin/parametres ; `null` tant qu'ils manquent. */
+  coordonnees?: FaitEditeur;
+};
 
 //
 // Audit 25/09 (C2) : le code envoyait des données à Yousign, OpenAI et Meta
@@ -124,11 +141,13 @@ export type Prestataire = { nom: string; role: string; localisation: FaitEditeur
 // La localisation n'est écrite que lorsqu'elle est certaine ; sinon `null`.
 export const PRESTATAIRES: readonly Prestataire[] = [
   {
+    cle: "supabase",
     nom: "Supabase",
     role: "Base de données, authentification, stockage des fichiers",
     localisation: "Région eu-west-3 (Paris, France)",
   },
   {
+    cle: "vercel",
     nom: "Vercel",
     role: "Hébergement et diffusion de l'application",
     // La région des fonctions est fixée dans vercel.json (`regions: ["cdg1"]`) :
@@ -137,6 +156,7 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     localisation: "Région cdg1 (Paris, France)",
   },
   {
+    cle: "resend",
     nom: "Resend",
     role: "Envoi des courriels du service (quittances, avis, relances, rappels)",
     // Domaine d'envoi gerimmo.app créé en région eu-west-1 (constaté dans le
@@ -144,16 +164,19 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     localisation: "Région eu-west-1 (Irlande)",
   },
   {
+    cle: "stripe",
     nom: "Stripe",
     role: "Encaissement des abonnements",
     localisation: "Irlande",
   },
   {
+    cle: "zohoSign",
     nom: "Zoho Sign",
     role: "Signature électronique des baux, cautionnements et devis : document à signer, nom, adresse électronique et téléphone des signataires ; invitations par courriel, vérification par SMS et conservation des preuves de signature",
     localisation: "Centre de données Union européenne (sign.zoho.eu) ; acheminement des SMS par les prestataires de Zoho",
   },
   {
+    cle: "yousign",
     nom: "Yousign",
     // Adaptateur historique conservé dans le code, non utilisé par le
     // circuit Zoho Sign actuellement activé.
@@ -161,6 +184,7 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     localisation: "France",
   },
   {
+    cle: "openai",
     nom: "OpenAI",
     role: "Assistance rédactionnelle de la supervision (veille, brouillons et illustrations du Journal) et propositions de devis artisans : textes éditoriaux publics, catalogue tarifaire et symptômes techniques sélectionnés ; les propositions de devis excluent les noms, adresses et descriptions libres des occupants",
     localisation: "États-Unis (transfert hors UE)",
@@ -176,11 +200,13 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   // fr-par par défaut et choix du porteur du 25/09), conservée 90 jours ; la
   // clé de chiffrement ne quitte pas les secrets GitHub.
   {
+    cle: "scaleway",
     nom: "Scaleway",
     role: "Stockage de la sauvegarde quotidienne : copie chiffrée (AES-256-GCM) de la base et des fichiers, conservée 90 jours, illisible sans la clé que Scaleway ne détient pas",
     localisation: "Région fr-par (Paris, France)",
   },
   {
+    cle: "github",
     nom: "GitHub (Actions)",
     role: "Exécution de la sauvegarde quotidienne : la base et les fichiers transitent par ses machines le temps d'être chiffrés, puis les copies locales sont effacées ; détient la clé de chiffrement des sauvegardes",
     localisation: "Prestataire établi aux États-Unis (transfert hors UE)",
@@ -189,20 +215,89 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   // le navigateur envoie le texte de l'adresse tapée à l'API de la Base
   // Adresse Nationale, admise dans la CSP (next.config.ts) le 27/09.
   {
+    cle: "ban",
     nom: "Base Adresse Nationale (api-adresse.data.gouv.fr)",
     role: "Autocomplétion des adresses saisies dans la fiche d'un bien : le texte de l'adresse tapée, rien d'autre",
+    // Non établie par le code : à saisir dans /admin/parametres (clé `localisationBan`), jamais devinée ici.
     localisation: null,
   },
   {
+    cle: "meta",
     nom: "Meta (Facebook)",
     role: "Publication des articles du Journal sur la page Facebook de Gerimmo : titre, texte et illustration de l'article, sans donnée personnelle",
     localisation: "Irlande, avec transfert vers les États-Unis",
   },
 ];
 
-/** Vrai tant qu'un prestataire n'a pas sa localisation. */
-export function prestatairesIncomplets(liste: readonly Prestataire[] = PRESTATAIRES): boolean {
-  return liste.some((p) => !p.localisation);
+const majuscule = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** La clé de saisie des coordonnées d'un prestataire : `coordonneesSupabase`. */
+export const cleCoordonnees = (p: Prestataire) => `coordonnees${majuscule(p.cle)}`;
+/** La clé de saisie de la localisation d'un prestataire que le code ne localise pas : `localisationBan`. */
+export const cleLocalisation = (p: Prestataire) => `localisation${majuscule(p.cle)}`;
+
+/**
+ * Les champs de saisie des prestataires (clé → libellé du formulaire de
+ * /admin/parametres), dans l'ordre du tableau des pages légales : l'hébergement
+ * d'abord. Une localisation n'est à saisir que si le code ne l'établit pas.
+ * La base n'admet que ces clés (contrainte `identite_champs_connus`, migration
+ * 20261019123000) : en ajouter une ici demande une migration, appliquée avant
+ * le code.
+ */
+export const CHAMPS_PRESTATAIRES: Record<string, string> = Object.fromEntries(
+  PRESTATAIRES.flatMap((p) => [
+    ...(p.localisation ? [] : [[cleLocalisation(p), `Localisation de ${p.nom} (pays ou région des serveurs)`]]),
+    [cleCoordonnees(p), `Coordonnées de ${p.nom} (dénomination, adresse, téléphone)`],
+  ])
+);
+
+/**
+ * Les prestataires tels que les pages les affichent : la liste du code,
+ * complétée par ce qui a été saisi. La saisie fournit ce que le code laisse à
+ * `null` ; elle n'écrase jamais une localisation que le code établit.
+ */
+export function prestatairesAvecFaits(
+  editeur: Record<string, FaitEditeur> = EDITEUR,
+  liste: readonly Prestataire[] = PRESTATAIRES
+): Prestataire[] {
+  return liste.map((p) => ({
+    ...p,
+    localisation: p.localisation || editeur[cleLocalisation(p)] || null,
+    coordonnees: editeur[cleCoordonnees(p)] || null,
+  }));
+}
+
+/**
+ * Vrai tant qu'un prestataire n'a pas sa localisation — ni, si la page affiche
+ * les coordonnées (mentions légales), ses coordonnées.
+ */
+export function prestatairesIncomplets(liste: readonly Prestataire[] = PRESTATAIRES, avecCoordonnees = false): boolean {
+  return liste.some((p) => !p.localisation || (avecCoordonnees && !p.coordonnees));
+}
+
+/** Ce qu'il manque encore aux prestataires, en français, au style de `faitsManquants`. */
+export function reservesPrestataires(
+  editeur: Record<string, FaitEditeur> = EDITEUR,
+  liste: readonly Prestataire[] = PRESTATAIRES
+): string[] {
+  const prestataires = prestatairesAvecFaits(editeur, liste);
+  const reserves = prestataires.filter((p) => !p.localisation).map((p) => `la localisation de ${p.nom}`);
+  const sansCoordonnees = prestataires.filter((p) => !p.coordonnees);
+  if (sansCoordonnees.length) {
+    const n = sansCoordonnees.length;
+    reserves.push(
+      `les coordonnées de ${n} prestataire${n > 1 ? "s" : ""} sur ${prestataires.length} (${sansCoordonnees.map((p) => p.nom).join(", ")})`
+    );
+  }
+  return reserves;
+}
+
+/**
+ * Tout ce qui reste à compléter pour que les pages légales soient finalisées :
+ * les faits d'éditeur, puis les prestataires. C'est ce que l'écran des
+ * paramètres dit après chaque enregistrement.
+ */
+export function reservesLegales(editeur: Record<string, FaitEditeur> = EDITEUR): string[] {
+  return [...faitsManquants(editeur), ...reservesPrestataires(editeur)];
 }
 
 // ── Version des conditions générales ───────────────────────────────────────

@@ -55,6 +55,8 @@ const MISSION_OCTOBRE = [
   "20261018185515_signatures_documents_budget.sql",
   "20261018193308_signature_devis_accord_client.sql",
   "20261018231827_abonnement_jour_paris.sql",
+  // 19/10, lot « pages légales » : clés des prestataires dans supervision_identite.
+  "20261019123000_identite_editeur_prestataires.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

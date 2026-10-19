@@ -1,4 +1,6 @@
+import { decalerJour } from "./agenda-gestion";
 import { lireLignesDevis } from "./devis-structure";
+import { aujourdhuiParis } from "./ged";
 
 /** L'aperçu et l'envoi valident les mêmes données et recalculent les prix. */
 export function lireSaisieDevisArtisan(formData: FormData) {
@@ -24,14 +26,15 @@ export function lireSaisieDevisArtisan(formData: FormData) {
   if (validite && (!/^\d{4}-\d{2}-\d{2}$/.test(validite) || !Number.isFinite(Date.parse(validite)) || new Date(validite).toISOString().slice(0, 10) !== validite)) {
     throw new Error("Indiquez une date de validité correcte.");
   }
-  if (validite && validite <= new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" })) {
+  // « Aujourd'hui » est le jour de Paris (le serveur tourne en UTC) : une validité au jour même est dépassée, et la
+  // validité par défaut (30 jours, comme la base) se compte depuis ce jour, pas depuis la veille entre minuit et 2 h.
+  const aujourdhui = aujourdhuiParis();
+  if (validite && validite <= aujourdhui) {
     throw new Error("La date de validité du devis est dépassée. Choisissez une date à partir de demain.");
   }
-  const dans30Jours = new Date();
-  dans30Jours.setDate(dans30Jours.getDate() + 30);
   return {
     calcul, diagnostic, delai, duree, contraintes, observations, noteRevision,
     prestations: calcul.lignes.map(l => l.libelle).join(" ; ").slice(0, 6000),
-    valideJusquAu: validite || dans30Jours.toISOString().slice(0, 10),
+    valideJusquAu: validite || decalerJour(aujourdhui, 30),
   };
 }

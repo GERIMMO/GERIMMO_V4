@@ -63,6 +63,8 @@ const MISSION_OCTOBRE = [
   "20261019122000_relais_point_demandes_contact.sql",
   // 19/10, lot « pages légales » : clés des prestataires dans supervision_identite.
   "20261019123000_identite_editeur_prestataires.sql",
+  // Audit du 19/10, lot B5 : sort du devis signé et jour de Paris des devis.
+  "20261019124000_devis_signes_sort_et_jour_de_paris.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

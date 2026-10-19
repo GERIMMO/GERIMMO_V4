@@ -141,6 +141,15 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
     expect(marques).toHaveLength(0);
   });
 
+  it("un abonnement annuel dont la base ne connaît pas le montant de la période (NULL) : échec rapporté, aucun courrier « par mois »", async () => {
+    // Relecture du 19/10 : la base rend NULL plutôt que le douzième mensuel pour un annuel sans montant de période.
+    const { supabase, marques } = banc(() => [due({ periodicite: "annuel", montant_periode_cents: null as unknown as number, montant_mensuel: 4.99 })]);
+    const bilan = await envoyerRelancesDues(supabase);
+    expect(bilan).toMatchObject({ envoyees: 0, echecs: [expect.stringMatching(/montant du prélèvement illisible/)] });
+    expect(fournisseur.acceptes).toHaveLength(0);
+    expect(marques).toHaveLength(0);
+  });
+
   it("le palier 0 ne dépend pas du jour : sa reprise du lendemain garde la même clé", async () => {
     let ecoules = 0;
     const { supabase } = banc(() => [due({ palier: 0, jours_ecoules: ecoules, jours_restants: 14 - ecoules })], { erreur: true });

@@ -1,4 +1,4 @@
--- RETOUR ARRIÈRE de 20261019120000_relance_abonnement_periodicite.sql
+-- RETOUR ARRIÈRE de 20261019120500_relance_abonnement_periodicite.sql
 -- Recrée `abonnements_a_relancer(integer)` avec ses huit colonnes d'origine (texte relevé en production le 19/10, au
 -- jour de Paris : 4 aujourdhui_paris(), 0 current_date), mêmes droits (service_role seul), et retire sa seule ligne
 -- d'historique. Aucune donnée touchée.
@@ -75,7 +75,7 @@ grant execute on function public.abonnements_a_relancer(integer) to service_role
 do $retour_arriere$
 begin
   if to_regclass('supabase_migrations.schema_migrations') is not null then
-    delete from supabase_migrations.schema_migrations where version = '20261019120000';
+    delete from supabase_migrations.schema_migrations where version = '20261019120500';
   end if;
 end $retour_arriere$;
 commit;

@@ -1332,7 +1332,13 @@ describe("le témoin d'inscription", () => {
 describe("/nouveau-mot-de-passe après une confirmation d'inscription", () => {
   it("dit que l'adresse est confirmée et pourquoi le mot de passe est demandé ; garde la destination", async () => {
     const { renderToStaticMarkup } = await import("react-dom/server");
-    mocks.createClient.mockResolvedValue({ auth: { getUser: async () => ({ data: { user: { id: "u1", email: "artisan@entreprise.test" } } }) } });
+    // La session est née du lien de confirmation : la revendication `amr` du jeton le dit (audit du 19/10, g).
+    mocks.createClient.mockResolvedValue({
+      auth: {
+        getUser: async () => ({ data: { user: { id: "u1", email: "artisan@entreprise.test" } } }),
+        getClaims: async () => ({ data: { claims: { sub: "u1", amr: [{ method: "email/signup", timestamp: 1 }] } }, error: null }),
+      },
+    });
     const { default: Page } = await import("../src/app/nouveau-mot-de-passe/page");
     const texte = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").replace(/&#x27;/g, "'");
     const apres = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ motif: "inscription", suite: "/artisan/inscription" }) })));
@@ -1352,6 +1358,24 @@ describe("/nouveau-mot-de-passe après une confirmation d'inscription", () => {
     const ordinaire = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({}) })));
     expect(ordinaire).toContain("Nouveau mot de passe");
     expect(ordinaire).not.toContain("est confirmée");
+  });
+
+  it("connecté par mot de passe (et non par un lien reçu par e-mail) : renvoyé vers « Mon compte », même avec le motif d'inscription", async () => {
+    // Audit du 19/10 (g) : ce formulaire pose le mot de passe sans demander l'ancien ; il n'est pas ouvert à une
+    // session née d'une connexion ordinaire. Le `redirect` réel de Next lève une erreur dont l'empreinte porte l'adresse.
+    mocks.createClient.mockResolvedValue({
+      auth: {
+        getUser: async () => ({ data: { user: { id: "u1", email: "artisan@entreprise.test" } } }),
+        getClaims: async () => ({ data: { claims: { sub: "u1", amr: [{ method: "password", timestamp: 1 }] } }, error: null }),
+      },
+    });
+    const { default: Page } = await import("../src/app/nouveau-mot-de-passe/page");
+    const erreur = await Page({ searchParams: Promise.resolve({ motif: "inscription", suite: "/artisan/inscription" }) }).then(
+      () => undefined,
+      (e: unknown) => e
+    );
+    expect(erreur, "la page doit rediriger, pas s'afficher").toBeDefined();
+    expect(String((erreur as { digest?: string }).digest ?? (erreur as Error).message)).toMatch(/REDIRECT.*\/compte/);
   });
 });
 

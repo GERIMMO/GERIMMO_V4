@@ -55,7 +55,7 @@ const MISSION_OCTOBRE = [
   "20261018185515_signatures_documents_budget.sql",
   "20261018193308_signature_devis_accord_client.sql",
   "20261018231827_abonnement_jour_paris.sql",
-  "20261019120000_relance_abonnement_periodicite.sql",
+  "20261019120500_relance_abonnement_periodicite.sql",
   "20261019121000_droits_anon_contact_articles_et_prospects.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */

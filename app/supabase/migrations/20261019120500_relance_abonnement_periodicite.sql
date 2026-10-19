@@ -10,8 +10,13 @@
 -- (ouverts à anon) — d'où le revoke/grant explicite et `fermer_fonctions_a_anon()` en fin. Corps identique à la
 -- définition relevée en production le 19/10 (4 `public.aujourdhui_paris()`, 0 `current_date` : la migration
 -- 20261018231827 et son retour, qui comptent ces occurrences, restent sans effet et valables), deux colonnes ajoutées.
+-- Le repli sur `montant_mensuel_cents` ne vaut que pour un abonnement mensuel (grille historique, aucun montant de
+-- période enregistré) ; un annuel sans montant de période rend NULL, et le code rapporte la relance en échec
+-- (« montant du prélèvement illisible ») plutôt que d'écrire « par mois » pour un prélèvement annuel (relecture du 19/10).
 -- Aucune donnée touchée. Rejouable.
--- Retour : supabase/retours-arriere/20261019120000_relance_abonnement_periodicite.retour.sql
+-- Retour : supabase/retours-arriere/20261019120500_relance_abonnement_periodicite.retour.sql
+-- Le lot est joué dans une seule transaction (migrations.yml) : l'attente de verrou est bornée pour tout le fichier.
+set local lock_timeout = '10s';
 drop function if exists public.abonnements_a_relancer(integer);
 create function public.abonnements_a_relancer(p_limite integer default 200)
 returns table (
@@ -48,9 +53,11 @@ as $$
     greatest(0, d.j - (public.aujourdhui_paris() - a.paiement_en_defaut_depuis))::integer,
     (a.paiement_en_defaut_depuis + d.j)::date,
     round(a.montant_mensuel_cents / 100.0, 2),
-    -- Grille historique (aucun montant de période enregistré) : c'est le montant mensuel qui est prélevé.
-    case when a.montant_periode_cents is null then 'mensuel' else a.periodicite end,
-    coalesce(a.montant_periode_cents, a.montant_mensuel_cents)
+    -- La périodicité telle qu'enregistrée. Le repli sur le montant mensuel ne vaut que pour un abonnement mensuel (grille
+    -- historique : aucun montant de période enregistré, c'est le montant mensuel qui est prélevé) ; un annuel sans montant
+    -- de période rend NULL, que le code rapporte en échec au lieu d'annoncer un douzième « par mois ».
+    a.periodicite,
+    case when a.periodicite = 'mensuel' then coalesce(a.montant_periode_cents, a.montant_mensuel_cents) else a.montant_periode_cents end
   from public.abonnements a
   join public.organizations o on o.id = a.organization_id
   cross join delai d

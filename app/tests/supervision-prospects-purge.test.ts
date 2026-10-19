@@ -1,12 +1,17 @@
 /**
- * Audit du 19/10 (lot mineurs, i, M18 ; migration 20261019121000) : les prospects ne bloquent plus les suppressions.
+ * Audit du 19/10 (lot mineurs, i, M18 ; migration 20261019121000) : la purge d'une demande de contact ne bloque plus
+ * sur le prospect qui la cite.
  *
- * Constat : les clés étrangères de `supervision_prospects` (demande d'origine, responsable, auteur) et du registre de
- * supervision (auteur) étaient sans action référentielle. La rétention quotidienne (`appliquer_retention`, demandes
- * de contact de plus de 24 mois) échouait entière dès qu'un prospect citait une demande à purger ; la suppression
- * d'un compte référencé échouerait de même. Désormais ON DELETE SET NULL vers `demandes_devis` et `accounts` ; la
- * clé vers `organizations` reste telle quelle. Le déclencheur de traçage laisse passer la mise à jour « système »
- * (aucune session, révision inchangée) et l'écrit au registre sans auteur ; une session garde la règle d'avant.
+ * Constat : la clé `supervision_prospects.demande_id → demandes_devis` était sans action référentielle. La rétention
+ * quotidienne (`appliquer_retention`, demandes de contact de plus de 24 mois, une seule transaction) échouait entière
+ * dès qu'un prospect citait une demande à purger. Désormais ON DELETE SET NULL sur cette seule clé.
+ *
+ * Décision du 19/10 (Q2, retour au plan) : les clés vers les comptes (responsable, auteur ; auteur du registre) ne
+ * changent pas et `auteur` reste obligatoire sur les deux tables. Le déclencheur de traçage reconnaît la mise à jour
+ * « système » — révision inchangée ET (aucune session OU déclencheur imbriqué, ce qu'est l'action référentielle, y compris
+ * sous la session du super admin qui lance la purge à la main) — : il ne contrôle pas la version et n'écrit RIEN au
+ * registre. Une mise à jour directe par une session garde exactement la règle d'avant. Aucune ligne sans auteur n'étant
+ * jamais écrite, le retour arrière reste toujours jouable.
  *
  * Transaction annulée, un point de sauvegarde par cas. Rejoue la migration et son retour (DDL) : fichier en série.
  */
@@ -27,14 +32,16 @@ const retour = readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8"
   .replace(/^begin;$/m, "")
   .replace(/^commit;$/m, "");
 
-const CLES = [
-  ["public.supervision_prospects", "supervision_prospects_demande_id_fkey"],
-  ["public.supervision_prospects", "supervision_prospects_responsable_fkey"],
-  ["public.supervision_prospects", "supervision_prospects_auteur_fkey"],
-  ["public.supervision_registre", "supervision_registre_auteur_fkey"],
+const CLE_DEMANDE = ["public.supervision_prospects", "supervision_prospects_demande_id_fkey"] as const;
+/** Les clés vers les comptes : inchangées (décision Q2 du 19/10). */
+const CLES_COMPTES = [
+  ["public.supervision_prospects", "supervision_prospects_responsable_fkey", "responsable"],
+  ["public.supervision_prospects", "supervision_prospects_auteur_fkey", "auteur"],
+  ["public.supervision_registre", "supervision_registre_auteur_fkey", "auteur"],
 ] as const;
+const AUTEURS_OBLIGATOIRES = "supervision_prospects.auteur:true,supervision_registre.auteur:true";
 
-describe.skipIf(!DB)("Prospects : purge des demandes et suppression de comptes sans blocage", () => {
+describe.skipIf(!DB)("Prospects : la purge des demandes de contact ne bloque plus", () => {
   let db: Client;
   let superviseur: string, responsable: string, demande: string, prospect: string;
 
@@ -45,11 +52,17 @@ describe.skipIf(!DB)("Prospects : purge des demandes et suppression de comptes s
        values('00000000-0000-0000-0000-000000000000',gen_random_uuid(),'authenticated','authenticated',$1,'x',now(),'{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','') returning id`,
       [email]
     );
-  /** `auth.uid()` vaut ce compte (rôle postgres conservé : on éprouve le déclencheur, pas la RLS). */
+  /** `auth.uid()` vaut ce compte, second facteur vérifié (rôle postgres conservé : on éprouve le déclencheur, pas la RLS). */
   const session = async (qui: string) =>
     db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated','aal','aal2')::text,true)", [qui]);
-  /** Aucune session : ce que voit une tâche planifiée ou une action référentielle. */
+  /** Aucune session : ce que voit la tâche planifiée de 03 h. */
   const systeme = async () => db.query("select set_config('request.jwt.claims','',true)");
+  /** Le compte devient super admin (adhésion sans organisation) : ce que `appliquer_retention` exige d'une session. */
+  const superAdmin = async (qui: string) => {
+    await db.query("select public.tache_systeme()");
+    await db.query("insert into public.memberships(account_id,role) values($1,'super_admin')", [qui]);
+    await db.query("select set_config('gerimmo.systeme','',true)");
+  };
   const echec = async (sql: string, params: unknown[] = []) => {
     await db.query("savepoint essai");
     try {
@@ -63,10 +76,13 @@ describe.skipIf(!DB)("Prospects : purge des demandes et suppression de comptes s
     }
   };
   const fiche = async () => (await db.query("select demande_id, responsable, auteur, revision from public.supervision_prospects where id=$1", [prospect])).rows[0];
+  /** Les traces du prospect, la création d'abord (seule ligne sans « avant ») : `cree_le` est le même pour toute la transaction. */
   const traces = async () =>
-    (await db.query("select auteur, apres->>'demande_id' as demande, apres->>'responsable' as responsable from public.supervision_registre where objet='supervision_prospects' and objet_id=$1 order by cree_le, id", [prospect])).rows;
+    (await db.query("select auteur, apres->>'demande_id' as demande, apres->>'responsable' as responsable from public.supervision_registre where objet='supervision_prospects' and objet_id=$1 order by (avant is null) desc, cree_le, id", [prospect])).rows;
+  const demandeExiste = async () => (await db.query("select count(*)::int n from public.demandes_devis where id=$1", [demande])).rows[0].n as number;
   const contrainte = async (table: string, nom: string) =>
     (await db.query("select pg_get_constraintdef(oid) d from pg_constraint where conrelid=$1::regclass and conname=$2", [table, nom])).rows[0]?.d as string | undefined;
+  const declencheur = async () => (await db.query("select pg_get_functiondef('public.supervision_tracer_modification()'::regprocedure) d")).rows[0].d as string;
   const empreinte = async () =>
     (
       await db.query(`select
@@ -110,57 +126,78 @@ describe.skipIf(!DB)("Prospects : purge des demandes et suppression de comptes s
     await db?.end();
   });
 
-  it("les clés vers la demande d'origine et vers les comptes sont ON DELETE SET NULL ; celle vers l'organisation ne change pas", async () => {
-    for (const [table, nom] of CLES) expect(await contrainte(table, nom), nom).toMatch(/ON DELETE SET NULL$/);
+  it("seule la clé vers la demande d'origine est ON DELETE SET NULL ; celles vers les comptes et l'organisation ne changent pas, l'auteur reste obligatoire", async () => {
+    expect(await contrainte(...CLE_DEMANDE)).toBe("FOREIGN KEY (demande_id) REFERENCES demandes_devis(id) ON DELETE SET NULL");
+    for (const [table, nom, colonne] of CLES_COMPTES) expect(await contrainte(table, nom), nom).toBe(`FOREIGN KEY (${colonne}) REFERENCES accounts(id)`);
     expect(await contrainte("public.supervision_prospects", "supervision_prospects_organisation_id_fkey")).toBe("FOREIGN KEY (organisation_id) REFERENCES organizations(id)");
+    expect((await empreinte()).auteurs).toBe(AUTEURS_OBLIGATOIRES);
   });
 
-  it("la rétention quotidienne purge la demande ancienne sans échouer : le prospect reste, sans sa demande, révision inchangée, trace système au registre", async () => {
+  it("la rétention de 03 h (sans session) purge la demande ancienne sans échouer : le prospect reste, sans sa demande, révision inchangée, rien d'écrit au registre", async () => {
     expect(await fiche()).toMatchObject({ demande_id: demande, revision: 0 });
     expect(await echec("select public.appliquer_retention()")).toBe("");
-    expect((await db.query("select count(*)::int n from public.demandes_devis where id=$1", [demande])).rows[0].n).toBe(0);
+    expect(await demandeExiste()).toBe(0);
     expect(await fiche()).toMatchObject({ demande_id: null, responsable, auteur: superviseur, revision: 0 });
-    const t = await traces();
-    expect(t).toHaveLength(2);
-    expect(t[0]).toMatchObject({ auteur: superviseur, demande });
-    expect(t[1]).toMatchObject({ auteur: null, demande: null });
+    // La seule trace est celle de la création ; la mise à jour système n'en laisse aucune (décision Q2 du 19/10).
+    expect(await traces()).toEqual([expect.objectContaining({ auteur: superviseur, demande })]);
   });
 
-  it("la suppression d'un compte référencé passe : responsable puis auteur mis à nul, le registre garde ses lignes sans auteur", async () => {
-    expect(await echec("delete from auth.users where id=$1", [responsable])).toBe("");
-    expect(await fiche()).toMatchObject({ responsable: null, auteur: superviseur, revision: 0 });
-    expect(await echec("delete from auth.users where id=$1", [superviseur])).toBe("");
-    expect(await fiche()).toMatchObject({ responsable: null, auteur: null, revision: 0 });
-    const t = await traces();
-    expect(t.length).toBeGreaterThanOrEqual(3);
-    expect(t.every((l) => l.auteur === null)).toBe(true);
+  it("sous la session d'un super admin (second facteur), supprimer une demande citée passe : l'action référentielle est un déclencheur imbriqué, demande_id devient nul", async () => {
+    await superAdmin(superviseur);
+    await session(superviseur);
+    expect((await db.query("select public.is_super_admin() s")).rows[0].s).toBe(true);
+    expect(await echec("delete from public.demandes_devis where id=$1", [demande])).toBe("");
+    expect(await demandeExiste()).toBe(0);
+    expect(await fiche()).toMatchObject({ demande_id: null, responsable, auteur: superviseur, revision: 0 });
+    expect(await traces()).toHaveLength(1);
   });
 
-  it("une session garde la règle d'avant : révision périmée refusée, révision suivante tracée à son nom", async () => {
+  it("le bouton « lancer la purge » de la console (appliquer_retention sous la session du super admin) purge sans « Version périmée »", async () => {
+    await superAdmin(superviseur);
+    await session(superviseur);
+    expect(await echec("select public.appliquer_retention()")).toBe("");
+    expect(await demandeExiste()).toBe(0);
+    expect(await fiche()).toMatchObject({ demande_id: null, revision: 0 });
+    expect(await traces()).toHaveLength(1);
+  });
+
+  it("une mise à jour directe par une session garde la règle d'avant : révision inchangée ou périmée refusée, révision suivante tracée à son nom", async () => {
     await session(superviseur);
     expect(await echec("update public.supervision_prospects set notes='Relu' where id=$1", [prospect])).toMatch(/Version périmée/);
+    expect(await echec("update public.supervision_prospects set notes='Relu', revision=5 where id=$1", [prospect])).toMatch(/Version périmée/);
     expect(await echec("update public.supervision_prospects set notes='Relu', revision=1 where id=$1", [prospect])).toBe("");
     expect(await fiche()).toMatchObject({ revision: 1 });
-    expect((await traces()).at(-1)).toMatchObject({ auteur: superviseur });
+    const t = await traces();
+    expect(t).toHaveLength(2);
+    expect(t.at(-1)).toMatchObject({ auteur: superviseur });
   });
 
-  it("rejeu sans effet ; retour : clés sans action, auteur obligatoire, déclencheur d'origine ; réapplication identique", async () => {
+  it("les clés vers les comptes restent sans action (décision Q2) : supprimer un compte référencé est toujours refusé, la fiche ne bouge pas", async () => {
+    expect(await echec("delete from auth.users where id=$1", [responsable])).toMatch(/supervision_prospects_responsable_fkey/);
+    expect(await fiche()).toMatchObject({ responsable, auteur: superviseur, revision: 0 });
+  });
+
+  it("rejeu sans effet ; retour : clé sans action, déclencheur d'origine, auteur toujours obligatoire ; réapplication identique", async () => {
     const attendu = await empreinte();
+    expect(attendu.auteurs).toBe(AUTEURS_OBLIGATOIRES);
     await db.query(aller);
     expect(await empreinte()).toEqual(attendu);
     await db.query(retour);
-    for (const [table, nom] of CLES) expect(await contrainte(table, nom), nom).not.toMatch(/ON DELETE/);
-    expect((await empreinte()).auteurs).toBe("supervision_prospects.auteur:true,supervision_registre.auteur:true");
-    expect((await db.query("select pg_get_functiondef('public.supervision_tracer_modification()'::regprocedure) d")).rows[0].d).not.toMatch(/système/);
+    expect(await contrainte(...CLE_DEMANDE)).toBe("FOREIGN KEY (demande_id) REFERENCES demandes_devis(id)");
+    for (const [table, nom, colonne] of CLES_COMPTES) expect(await contrainte(table, nom), nom).toBe(`FOREIGN KEY (${colonne}) REFERENCES accounts(id)`);
+    expect((await empreinte()).auteurs).toBe(AUTEURS_OBLIGATOIRES);
+    expect(await declencheur()).not.toMatch(/pg_trigger_depth/);
     // Sans la migration, la purge échoue de nouveau sur la clé : c'est l'état d'avant, rétabli.
     expect(await echec("delete from public.demandes_devis where id=$1", [demande])).toMatch(/supervision_prospects_demande_id_fkey/);
     await db.query(aller);
     expect(await empreinte()).toEqual(attendu);
+    expect(await declencheur()).toMatch(/pg_trigger_depth/);
   });
 
-  it("le retour refuse, sans rien modifier, tant qu'une trace système (auteur nul) existe", async () => {
+  it("le retour reste jouable après une purge : aucune ligne sans auteur n'est jamais écrite au registre", async () => {
     expect(await echec("select public.appliquer_retention()")).toBe("");
-    expect(await echec(retour)).toMatch(/auteur nul/);
-    for (const [table, nom] of CLES) expect(await contrainte(table, nom), nom).toMatch(/ON DELETE SET NULL$/);
+    expect((await db.query("select count(*)::int n from public.supervision_registre where auteur is null")).rows[0].n).toBe(0);
+    expect(await echec(retour)).toBe("");
+    expect(await contrainte(...CLE_DEMANDE)).toBe("FOREIGN KEY (demande_id) REFERENCES demandes_devis(id)");
   });
 });

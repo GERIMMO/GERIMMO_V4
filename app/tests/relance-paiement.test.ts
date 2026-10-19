@@ -210,6 +210,15 @@ describe("Les quatre courriers, et quand ils partent", () => {
     expect((await dues())[0]).toMatchObject({ periodicite: "annuel", montant_periode_cents: "5990", montant_mensuel: "4.99" });
   });
 
+  it("un abonnement annuel sans montant de période n'est pas dit mensuel : périodicité annuelle, montant nul (le code rapporte l'échec)", async () => {
+    // Relecture du 19/10 : le repli sur le montant mensuel ne vaut que pour un abonnement mensuel. Un annuel dont le
+    // montant de la période manque rendrait sinon « 4,99 € par mois » pour un prélèvement annuel : exactement le défaut
+    // corrigé. Le code (lib/relances-paiement.ts) rapporte alors « montant du prélèvement illisible » au lieu d'écrire faux.
+    await appliquer("past_due");
+    await db.query("update public.abonnements set periodicite='annuel', montant_periode_cents=null, montant_mensuel_cents=499 where organization_id=$1", [org]);
+    expect((await dues())[0]).toMatchObject({ periodicite: "annuel", montant_periode_cents: null, montant_mensuel: "4.99" });
+  });
+
   it("la fonction recréée reste fermée : service_role seul", async () => {
     const { rows: [d] } = await db.query(
       `select has_function_privilege('anon','public.abonnements_a_relancer(integer)','execute') as anon,

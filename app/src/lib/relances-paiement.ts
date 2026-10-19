@@ -19,7 +19,7 @@ import { adresseDuSite } from "@/lib/site";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 import type { Periodicite } from "@/lib/tarifs";
 
-/** Une ligne de `abonnements_a_relancer` (migration 20261019120000 : périodicité et montant de la période). */
+/** Une ligne de `abonnements_a_relancer` (migration 20261019120500 : périodicité et montant de la période). */
 type Relance = {
   organization_id: string;
   organisation: string;
@@ -83,7 +83,8 @@ export async function envoyerRelancesDues(
     }
     // Le montant annoncé est celui du prélèvement (« 59,90 € par an » pour un abonnement annuel, pas un douzième
     // « par mois »). Il arrive en centimes entiers ; sans lui — fonction SQL antérieure à la migration
-    // 20261019120000 —, on ne devine rien : la relance est rapportée en échec, et l'autre chemin la reprendra.
+    // 20261019120500, ou abonnement annuel dont la base ne connaît pas le montant de la période —, on ne devine rien :
+    // la relance est rapportée en échec, et l'autre chemin la reprendra.
     if (typeof r.montant_periode_cents !== "number" || !Number.isInteger(r.montant_periode_cents)) {
       echecs.push(`${r.organisation} : montant du prélèvement illisible, courrier non envoyé`);
       continue;

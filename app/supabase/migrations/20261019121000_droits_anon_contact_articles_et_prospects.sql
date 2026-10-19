@@ -1,6 +1,10 @@
--- Droits du rôle anon sur le formulaire de contact et les articles ; purge et suppressions compatibles avec les prospects.
+-- Droits du rôle anon sur le formulaire de contact et les articles ; purge des demandes de contact compatible avec les prospects.
 -- Audit du 19/10 (lot mineurs, f et i). Aucune donnée touchée. Rejouable.
 -- Retour : supabase/retours-arriere/20261019121000_droits_anon_contact_articles_et_prospects.retour.sql
+-- Le lot est joué dans une seule transaction (migrations.yml) : l'attente de verrou est bornée pour tout le fichier.
+-- La clé reposée ci-dessous prend un verrou SHARE ROW EXCLUSIVE sur `demandes_devis` pendant sa validation ; une
+-- transaction longue ferait attendre la migration sans borne (relecture du 19/10).
+set local lock_timeout = '10s';
 
 -- ── (f) Ce que anon peut lire ───────────────────────────────────────────────────────────────────────────────────────
 -- `anon` lisait la table entière `demandes_devis` (nom, e-mail, téléphone et message des demandes de contact ; aucune
@@ -16,39 +20,29 @@ revoke select on table public.publications from anon;
 grant select (id, slug, titre, chapo, corps, publie_le, updated_at, seo_description, sources, veine, facebook_image_url, statut)
   on table public.publications to anon;
 
--- ── (i) M18 : les prospects ne bloquent plus les suppressions ───────────────────────────────────────────────────────
--- Les clés étrangères de `supervision_prospects` (demande d'origine, responsable, auteur) et du registre de supervision
--- (auteur) étaient sans action référentielle. La rétention quotidienne (`appliquer_retention`, demandes de contact de
--- plus de 24 mois, une seule transaction) échouait entière dès qu'un prospect citait une demande à purger ; la
--- suppression d'un compte référencé échouerait de même. Désormais ON DELETE SET NULL vers `demandes_devis` et
--- `accounts`. La clé vers `organizations` reste telle quelle (un prospect « gagné » exige son espace client).
--- `auteur` devient facultatif sur les deux tables : sans quoi SET NULL ne peut pas s'appliquer.
-alter table public.supervision_prospects alter column auteur drop not null;
-alter table public.supervision_registre alter column auteur drop not null;
-
+-- ── (i) M18 : la purge des demandes de contact ne bloque plus sur les prospects ─────────────────────────────────────
+-- La clé `supervision_prospects.demande_id → demandes_devis` était sans action référentielle : la rétention quotidienne
+-- (`appliquer_retention`, demandes de contact de plus de 24 mois, une seule transaction) échouait entière dès qu'un
+-- prospect citait une demande à purger. Désormais ON DELETE SET NULL sur cette seule clé.
+-- Décision du 19/10 (Q2, retour au plan) : les clés vers `accounts` (responsable, auteur ; auteur du registre) ne
+-- changent pas et `auteur` reste obligatoire sur `supervision_prospects` et `supervision_registre` (les auteurs sont les
+-- superviseurs permanents) ; la clé vers `organizations` non plus (un prospect « gagné » exige son espace client).
 alter table public.supervision_prospects drop constraint if exists supervision_prospects_demande_id_fkey;
 alter table public.supervision_prospects add constraint supervision_prospects_demande_id_fkey
   foreign key (demande_id) references public.demandes_devis(id) on delete set null;
-alter table public.supervision_prospects drop constraint if exists supervision_prospects_responsable_fkey;
-alter table public.supervision_prospects add constraint supervision_prospects_responsable_fkey
-  foreign key (responsable) references public.accounts(id) on delete set null;
-alter table public.supervision_prospects drop constraint if exists supervision_prospects_auteur_fkey;
-alter table public.supervision_prospects add constraint supervision_prospects_auteur_fkey
-  foreign key (auteur) references public.accounts(id) on delete set null;
-alter table public.supervision_registre drop constraint if exists supervision_registre_auteur_fkey;
-alter table public.supervision_registre add constraint supervision_registre_auteur_fkey
-  foreign key (auteur) references public.accounts(id) on delete set null;
 
--- Le déclencheur de traçage voyait l'UPDATE référentiel comme une modification périmée (révision inchangée) et
--- écrivait un auteur nul dans un registre qui l'interdisait : la purge échouait encore. Chemin « système » : sans
--- session (auth.uid() nul : action référentielle, tâche planifiée, clé de service) et révision inchangée, pas de
--- contrôle de version ; la trace est écrite au registre, sans auteur. Une session garde exactement la règle d'avant.
--- Définition de production relevée le 19/10 : identique au dépôt (20261018061548).
+-- Le déclencheur de traçage voyait l'UPDATE référentiel comme une modification périmée (révision inchangée) : la purge
+-- échouait encore, et pas seulement celle de 03 h sans session — aussi celle que le super admin lance depuis la console
+-- (bouton « lancer la purge », `appliquer_retention` sous sa session). Chemin « système » : révision inchangée ET
+-- (aucune session — tâche planifiée, clé de service — OU déclencheur imbriqué, `pg_trigger_depth() > 1`, ce qu'est
+-- l'action référentielle quelle que soit la session) : pas de contrôle de version, RIEN d'écrit au registre (qui exige
+-- un auteur), seule `modifie_le` est datée. Une mise à jour directe par une session reste à la profondeur 1 et garde
+-- exactement la règle d'avant. Définition de production relevée le 19/10 : identique au dépôt (20261018061548).
 create or replace function public.supervision_tracer_modification() returns trigger language plpgsql security invoker set search_path='' as $$
 begin
  if tg_op='UPDATE' then
-  if (select auth.uid()) is null and new.revision=old.revision then
-   null; -- mise à jour système : aucune version à contrôler
+  if new.revision=old.revision and ((select auth.uid()) is null or pg_trigger_depth()>1) then
+   new.modifie_le:=now(); return new; -- mise à jour système (action référentielle, tâche planifiée) : rien au registre
   elsif new.revision<>old.revision+1 then raise exception 'Version périmée : rechargez avant de modifier';end if;
   new.modifie_le:=now();
  end if;

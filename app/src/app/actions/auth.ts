@@ -19,6 +19,7 @@ import { estUuid } from "@/lib/identifiants";
 import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
 import { baseEspace } from "@/lib/racine-espace";
 import { CHAMPS_PROFIL_INSCRIPTION, CLE_PROFIL_A_CONFIRMER } from "@/lib/revalidation-inscription";
+import { sessionIssueDUnLien } from "@/lib/session-lien-email";
 
 // La qualité voyage dans les métadonnées jusqu'à la fiche personne, dont la
 // liste est fermée (audit 29/09) : une valeur hors liste est laissée vide
@@ -97,6 +98,17 @@ export async function definirNouveauMotDePasse(
     return {
       erreur:
         "Session expirée ou lien invalide. Redemandez un e-mail de réinitialisation.",
+    };
+  }
+  // Audit du 19/10 (g) : ce formulaire pose le mot de passe SANS demander l'ancien. L'action le réserve elle-même aux
+  // sessions nées d'un lien reçu par e-mail (revendication `amr` du jeton, lib/session-lien-email.ts) : la page redirige
+  // déjà, mais l'action reste appelable directement par un compte connecté par mot de passe, qui doit passer par
+  // « Mon compte », où le mot de passe actuel est demandé. Rien n'est modifié ni déconnecté.
+  const { data: revendications } = await supabase.auth.getClaims();
+  if (!sessionIssueDUnLien(revendications?.claims?.amr)) {
+    return {
+      erreur:
+        "Ce formulaire est réservé au lien reçu par e-mail. Depuis votre compte, changez votre mot de passe dans « Mon compte », avec le mot de passe actuel.",
     };
   }
 

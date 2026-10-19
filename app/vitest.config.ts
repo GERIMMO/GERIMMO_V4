@@ -112,6 +112,11 @@ export const FICHIERS_EN_SERIE = [
   // recréées (dont `aujourdhui_paris()` en cascade, qui retire les valeurs par défaut d'ecritures et de depot_encaissements).
   "tests/jour-de-paris-restitution-migration-rejeu.test.ts",
   "tests/jour-paris-complements-oct16.test.ts",
+  // Lot « supervision et signatures » (17-18/10) : les huit retours arrière puis les huit migrations rejoués dans la transaction
+  // du test (`drop function`, `drop trigger`, `drop policy`, `revoke`, `drop index`, puis `drop table … cascade` et `create table`
+  // sur bail_signature_circuits, signature_budget, signature_consommations et les cinq tables de supervision) : verrous exclusifs
+  // tenus pendant tout l'essai, croisés avec les fichiers parallèles qui écrivent des circuits de signature.
+  "tests/retours-oct18-registre.test.ts",
 ];
 
 export default defineConfig({

@@ -1,4 +1,4 @@
-# Retours arrière des migrations du 13 au 16 octobre 2026
+# Retours arrière des migrations du 13 au 18 octobre 2026
 
 Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `migrations.yml` se place dans
 `app/supabase/migrations/` et n'applique que les fichiers qu'on lui nomme (aucune occurrence de `retours-arriere` dans
@@ -6,6 +6,15 @@ Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `m
 
 | Fichier | Défait | Objets touchés |
 |---|---|---|
+| `20261018231827_abonnement_jour_paris.retour.sql` | `20261018231827_abonnement_jour_paris.sql` (abonnements au jour de Paris) | **Préparé localement le 19/10, non exécuté en production.** Remet les cinq calculs d'abonnement au jour de session (compte exact de `aujourdhui_paris()` par fonction, refus sur toute autre forme), sans changer les dates enregistrées, les montants ni les droits ; retire sa seule version d'historique ; transaction externe (`psql --single-transaction`). Premier retour de la chaîne complète. Preuve : `tests/abonnement-jour-paris-migration.test.ts` ; procédure : [abonnement-19-octobre.md](abonnement-19-octobre.md). |
+| `20261018193308_signature_devis_accord_client.retour.sql` | `20261018193308_signature_devis_accord_client.sql` (PR #206, accord du client signé sur le devis de l'artisan) | **Préparé localement le 19/10, non exécuté en production.** Retire 4 fonctions (`lire_signature_devis`, `lire_signature_devis_archive`, `garder_devis_en_signature`, `refuser_nouvelle_signature_manuelle`), 2 déclencheurs (`devis_signature_verrou`, `signature_manuelle_fin_nouveaux_envois`), la politique `signature_devis_lecture`, les index `signature_devis_une_offre` et `signature_incident_org`, la contrainte `signature_devis_cible` ; retire par ancre le bloc posé dans `retenir_devis` (bloc exact exigé **1** fois, ancre `update public.incident_devis … set statut = 'retenu'` rétablie) et celui posé dans `reserver_envoi_signature_bail` (bloc devis_artisan exigé **1** fois, `perform public.reserver_budget_signature(p_circuit);` rétabli). **Conserve** la table et ses lignes, la colonne `incident_id` et sa clé étrangère, les contraintes `modele_check` et `signataires_check` élargies (leur forme antérieure violerait la ligne devis_artisan de production), `signature_budget.devis_actif` et sa valeur. Retire sa seule version. Premier retour du lot, après `20261018231827`. Réintroduit : plus d'accord client sur devis ; les demandes manuelles redeviennent possibles côté base ; `retenir_devis` ne vérifie plus la signature. Preuve : `tests/retours-oct18-registre.test.ts`. |
+| `20261018185515_signatures_documents_budget.retour.sql` | `20261018185515_signatures_documents_budget.sql` (PR #206, signature des documents et budget de crédits) | **Préparé localement le 19/10, non exécuté en production.** Refuse tant que `20261018193308` est en place. Retire 5 fonctions (`lire_budget_signatures`, `regler_budget_signature`, `reserver_budget_signature`, `garder_edl_en_signature`, `initialiser_cible_signature`), 5 déclencheurs (`edl_circuit_verrou`, `edl_lignes_circuit_verrou`, `edl_cles_circuit_verrou`, `edl_compteurs_circuit_verrou`, `signature_cible`), les politiques et droits de `signature_budget` et `signature_consommations`, l'index `signature_consommations_mois` ; rétablit `reserver_envoi_signature_bail` (forme de `085521`, texte copié) et `archiver_signature_bail` (forme de `143644`) après vérification des comptes exacts (`perform public.reserver_budget_signature` 1, `v.modele='edl'` 1, `and v.modele='bail'` 1 ; `original.type::text` 1), `activer_bail_signature_electronique` par ancre (**1** fois), l'index unique `bail_signature_un_circuit_actif(bail_id)` (refus s'il existe des doublons de circuits actifs par bail) ; `cible_id` redevient nullable. **Conserve** les deux tables (fermées à anon, authenticated, service_role, RLS sans politique, commentaire posé), leurs lignes et valeurs (plafond, `devis_actif`), les colonnes `modele`, `cible_id`, `options`, `essai`, les EDL signés, l'audit. Retire sa seule version. Réintroduit : plus de signature d'EDL, d'avenant ni de cautionnement ; plus de plafond mensuel ; alerte au libellé « Bail signé par toutes les parties » pour tout document. Preuve : `tests/retours-oct18-registre.test.ts` (empreinte des fonctions rétablies comparée au texte des migrations). |
+| `20261018143644_certificat_commun_zoho.retour.sql` | `20261018143644_certificat_commun_zoho.sql` (PR #203, certificat commun Zoho) | **Préparé localement le 19/10, non exécuté en production.** Refuse tant que `20261018185515` est en place (`v.modele` présent). Rétablit `archiver_signature_bail` dans sa forme de `085521` (texte copié) si `v.prestataire='zoho'` apparaît **4** fois et `gerimmo.systeme` **3** fois ; « rien à faire » si déjà rétablie ou absente ; refus sur toute autre forme. Aucune table, aucune ligne. **Conserve** les certificats communs déjà archivés. Retire sa seule version. Réintroduit : un circuit Zoho terminé après ce retour échoue sur « Archives incomplètes » tant que le code n'est pas revenu ; le classement redevient bloqué par la garde d'abonnement si l'organisation est suspendue. Preuve : `tests/retours-oct18-registre.test.ts`. |
+| `20261018100243_prestataire_signature_bail.retour.sql` | `20261018100243_prestataire_signature_bail.sql` (PR #203, prestataire du circuit) | **Préparé localement le 19/10, non exécuté en production.** Refuse tant que `193308`, `185515` ou `143644` est en place. Retire l'index unique `bail_signature_reference_prestataire` et rétablit la contrainte `bail_signature_circuits_external_request_id_key` (refus s'il existe des références externes partagées). **Conserve** la colonne `prestataire` et ses valeurs (preuve de l'émetteur de chaque certificat). Aucune fonction. Retire sa seule version. Réintroduit : un même identifiant de demande ne peut plus exister chez deux prestataires. Preuve : `tests/retours-oct18-registre.test.ts`. |
+| `20261018085521_circuit_signature_bail.retour.sql` | `20261018085521_circuit_signature_bail.sql` (PR #203, circuit de signature électronique du bail) | **Préparé localement le 19/10, non exécuté en production.** Refuse tant qu'un des quatre retours précédents n'est pas joué, et **refuse tant qu'il existe des circuits `preparation` ou `en_cours`** (0 en production le 19/10 ; décision produit à confirmer). Retire 8 fonctions, 5 déclencheurs (dont `abonnement_bail_signature_circuits` et `traversee_lecture_seule` sur la table), les politiques `signature_bail_lecture`, `signature_bail_serveur` et les politiques restrictives Storage, 6 index ; retire par ancre le bloc « Suivi serveur des signatures déjà engagées (18/10/2026) » de `refuser_ecriture_si_fermee` (bloc exact + ancre exigés **1** fois ; l'exception artisan de `20261014846000` qui suit l'ancre reste intacte). **Conserve** la table `bail_signature_circuits` (toutes colonnes, lignes, PK, clés étrangères, CHECK, unicité rétablie par `100243`), fermée à anon, authenticated, service_role, RLS sans politique, commentaire posé ; ne touche ni `documents`, ni `document_liens`, ni Storage, ni `alerts`, ni `audit_log`, ni `baux.document_signe`. Retire sa seule version. **Code d'abord** : PR #203 (b5f70e6) et #206 (6cb2468), tâche Vercel `/api/cron/equipes?mission=signatures`. Réintroduit : aucun circuit électronique ; les circuits `a_verifier` perdent leur bouton d'activation (activation manuelle du bail). Preuve : `tests/retours-oct18-registre.test.ts` (chaîne, gardes d'ordre, garde en vol, doublons, atomicité, rejeu, marche avant). |
+| `20261018071556_supervision_index_relations.retour.sql` | `20261018071556_supervision_index_relations.sql` (PR #202, index des clés étrangères de supervision) | **Préparé localement le 19/10, non exécuté en production.** Retire les 7 index `*_idx` ; aucune donnée, aucun droit, aucune fonction. Retire **deux** versions : celle du fichier (`20261018071556`) et celle enregistrée en production (`20261018071811`, nom d'avant la fusion de la PR #202). Réintroduit : les avertissements de performance sur ces clés étrangères. Preuve : `tests/retours-oct18-registre.test.ts`. |
+| `20261018061548_supervision_complete.retour.sql` | `20261018061548_supervision_complete.sql` (PR #202, supervision complète) | **Préparé localement le 19/10, non exécuté en production.** Refuse tant que `20261018071556` est en place. Retire `supervision_tracer_modification` et ses 3 déclencheurs, `supervision_total_couts`, la vue `supervision_utilisateurs`, 12 politiques, tous les droits (de table et par colonne) et 5 index. **Conserve** les cinq tables `supervision_couts`, `supervision_registre`, `supervision_executions_decisions`, `supervision_prospects`, `supervision_identite` avec lignes, contraintes et clés étrangères, fermées à anon, authenticated, service_role, RLS sans politique, commentaire posé ; conserve la colonne `development_proposals.preuve_publication`. Retire **deux** versions : `20261018061548` (fichier) et `20261018071200` (production). **Code d'abord** (PR #202, 4466ad4) : les pages /admin et les pages légales publiques (lecture anon de `supervision_identite`) tombent sinon. Réintroduit : plus de console complète. Preuve : `tests/retours-oct18-registre.test.ts` (droits par colonne vérifiés dans `information_schema.column_privileges`). |
+| `20261017180829_supervision_finances.retour.sql` | `20261017180829_supervision_finances.sql` (PR #202, vue financière de la supervision) | **Préparé localement le 19/10, non exécuté en production.** Supprime la fonction `supervision_finances` ; aucune table, aucune donnée. Retire **deux** versions : `20261017180829` (fichier) et `20261018071151` (production). Dernier retour du lot, avant `20261016210000`. Seule migration du lot réapplicable telle quelle (`create or replace`). Réintroduit : la vue financière de /admin tombe tant que le code de la PR #202 n'est pas retiré. Preuve : `tests/retours-oct18-registre.test.ts`. |
 | `20261016210000_retour_adresse_confirmee.retour.sql` | `20261016210000_retour_adresse_confirmee.sql` (T7, compatibilité) | **Préparé localement le 16/10, non exécuté en production.** Retire la RPC de lecture du contexte de changement d'adresse et uniquement sa version d'historique, dans sa propre transaction avec attente de verrou bornée. Aucun compte ni flux Auth modifié. Remettre le code applicatif précédent avant ce retour ; le modèle Supabase reste inchangé. Preuve : `tests/retour-adresse-confirmee-migration.test.ts` (droits, garde, retour et rejeu). |
 | `20261016200000_jour_paris_complements.retour.sql` | `20261016200000_jour_paris_complements.sql` (Q3) | **Préparé et vérifié localement le 16/10, non exécuté en production.** Rétablit le jour de session dans 5 fonctions et les défauts de `factures_honoraires.emise_le`, `appels_charges.date_reception`, `cles_repartition.date_effet` ; aucune date enregistrée ni aucun montant modifié, droits conservés. Retire sa ligne d'historique. À jouer avant `20261014500000`. Preuve : `tests/jour-paris-complements-oct16.test.ts` (4 tests : état, bascule, retour/rejeu/droits, divergence). |
 | `20261016190000_relance_report_reprise_sans_envoi.retour.sql` | `20261016190000_relance_report_reprise_sans_envoi.sql` (T9, reprise) | **Préparé et vérifié localement le 16/10, non exécuté en production.** Retire sa seule version d’historique dans la transaction contrôlée ; réapplication du fichier nommé testée (`tests/retours-oct16-registre.test.ts`). Retire la RPC de restitution d'une réservation de relance et restaure la réservation durable antérieure ; conserve la colonne UUID et les tentatives déjà enregistrées. À jouer avant `20261016110100`, avec le code de relance précédent. Preuves : `tests/devis-rdv-complements-rejeu.test.ts`, `tests/rdv-relance-concurrence-oct16.test.ts` (5 tests : rejeu, retour, droits, concurrence réelle et identifiant périmé). |
@@ -610,7 +619,7 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
-`20261018231827` (abonnements au jour de Paris), `20261016210000` (retour du changement d'adresse), `20261016200000` (compléments Q3 : cinq fonctions et trois défauts), `20261016190000` (reprise de la relance avant envoi), `20261016180000` (sentinelle et rétention du relais), `20261016172453` (traversée et support), `20261016150000` (confirmation Auth), `20261016110100` (relance et prise d'acte RDV), `20261016110000` (PDF et alertes du devis), puis
+`20261018231827` (abonnements au jour de Paris), `20261018193308` (accord client sur devis), `20261018185515` (documents signés et budget de signature), `20261018143644` (certificat commun Zoho), `20261018100243` (prestataire du circuit), `20261018085521` (circuit de signature du bail), `20261018071556` (index de supervision), `20261018061548` (supervision complète), `20261017180829` (finances de supervision), `20261016210000` (retour du changement d'adresse), `20261016200000` (compléments Q3 : cinq fonctions et trois défauts), `20261016190000` (reprise de la relance avant envoi), `20261016180000` (sentinelle et rétention du relais), `20261016172453` (traversée et support), `20261016150000` (confirmation Auth), `20261016110100` (relance et prise d'acte RDV), `20261016110000` (PDF et alertes du devis), puis
 `851000` (restitution du dépôt), `850000` (catalogue de rétention), `812000`, `811000`, `810000` (les trois paliers du relais), `710000` (avoir sur facture externe), `730000` (plafond des appels IA), `830000` (relances d'invitation), `821000`, `820000`, `610000`, `602000`, `601000`, `600000`, `504000` → `501000`, puis `500000`. Le retour de `610000` (règlement de facture, D23) en fait
 partie : `enregistrer_reglement_facture` et `retirer_reglement_facture` citent `aujourdhui_paris()`, et son retour les supprime ; il demande de revenir d'abord au
 code d'avant D23 (voir sa ligne du tableau). `620000` ne cite pas la fonction du jour : il n'entre pas dans cette chaîne. Le test
@@ -620,7 +629,7 @@ Les retours historiques de dates relisent la définition en vigueur, remettent `
 modifier), se rejouent sans effet (« rien à faire »), refusent de se jouer dans un lot, et laissent en place une forme explicite du jour de Paris que la migration
 n'avait pas posée. Revenir au code d'avant (documents) ne demande rien côté base, et inversement.
 
-**Complément du 19 octobre.** Le retour `20261018231827_abonnement_jour_paris.retour.sql` précède toute la chaîne et se joue dans une transaction externe. Il remet les cinq calculs d’abonnement au jour de session sans changer les dates enregistrées, les montants ou les droits. Voir [la procédure détaillée](abonnement-19-octobre.md).
+**Complément du 19 octobre.** Le retour `20261018231827_abonnement_jour_paris.retour.sql` précède toute la chaîne et se joue dans une transaction externe. Il remet les cinq calculs d’abonnement au jour de session sans changer les dates enregistrées, les montants ou les droits. Voir [la procédure détaillée](abonnement-19-octobre.md). Les huit retours du lot « supervision et signatures » (17-18/10, section en fin de fichier) le suivent dans la chaîne ; comme lui, ils n'ont pas de `COMMIT` interne et se jouent dans une transaction externe (`psql --single-transaction -v ON_ERROR_STOP=1 -f <retour>`), un à la fois, dans l'ordre inverse du manifeste ; aucun ne supprime de table ni de colonne.
 
 **Compléments du 16 octobre.** Les versions à quatorze chiffres sont explicites ; les codes historiques à six chiffres ci-dessus désignent les versions préfixées par `20261014`. Cet ordre suit le manifeste en sens inverse. Pour les sept nouveaux retours, revenir d'abord au code compatible et lire la ligne du tableau : `20261016172453` et `20261016150000` gèrent leur propre transaction et refusent un lot ouvert ; les cinq autres n'ont pas de `COMMIT` interne et se jouent dans une transaction contrôlée, par exemple `psql --single-transaction -v ON_ERROR_STOP=1 -f <retour>`. Les retours historiques conservent leur enveloppe propre : ne pas leur ajouter `--single-transaction`. Aucun de ces sept retours n'a été exécuté en production pendant la mission. Chacun retire uniquement sa propre version de `supabase_migrations.schema_migrations`, dans la même transaction que le retour ; la migration nommée redevient donc applicable par le chantier normal après revue. Le retour `20261016110100` refuse de retirer ses RPC tant que le complément `20261016190000` est encore en place. La suite `tests/retours-oct16-registre.test.ts` vérifie cette garde, le maintien des autres versions et la réapplication avec réinscription des quatre versions T8/T9/T12. Les preuves locales de la chaîne complète sont les deux suites de rejeu des dates ; les traces de la mission sont conservées hors dépôt dans `rapports/Revue-T13-et-reprises.md`.
 
@@ -772,3 +781,128 @@ identique à B ; retours `…851000` puis `…850000` → empreinte **identique 
 d'attente, règles désactivées, bascule de minuit, rejeu, ancre absente ou répétée, retour, composition avec `231000`) couvrent le reste.
 Limites : base de banc ; aucun essai sur la production ; l'horloge réelle n'est jamais simulée, c'est le fuseau de la session qui l'est, ou un
 instant fixe substitué à `now()` dans le corps de `aujourdhui_paris()` le temps d'une transaction de test.
+
+## Lot « supervision et signatures » (17-18 octobre 2026) : huit migrations, tables conservées
+
+**Les migrations.** PR #202 (supervision : `20261017180829_supervision_finances`, `20261018061548_supervision_complete`,
+`20261018071556_supervision_index_relations`), PR #203 (signature du bail : `20261018085521_circuit_signature_bail`,
+`20261018100243_prestataire_signature_bail`, `20261018143644_certificat_commun_zoho`) et PR #206 (documents, budget et devis :
+`20261018185515_signatures_documents_budget`, `20261018193308_signature_devis_accord_client`). Toutes appliquées en production le 18/10/2026 ;
+les huit retours ont été préparés le 19/10/2026 et **aucun n'a été exécuté en production**.
+
+**Le principe : les preuves restent, les comportements partent.** Aucun des huit retours ne contient de `drop table` ni de `drop column`. Les
+tables `bail_signature_circuits`, `signature_budget`, `signature_consommations`, `supervision_couts`, `supervision_executions_decisions`,
+`supervision_identite`, `supervision_prospects`, `supervision_registre` et la colonne `development_proposals.preuve_publication` sont des preuves
+(PDF signés et certificats, consommations de crédits, registres, traces d'exécution) ou des réglages : elles gardent colonnes, lignes, clés
+primaires, clés étrangères et contraintes CHECK. Les retours retirent les fonctions, les déclencheurs, les politiques, les droits (de table **et**
+par colonne, pour `anon`, `authenticated` **et** `service_role` : lecture par le propriétaire de la base seulement, choix à confirmer) et les index
+de travail ; RLS reste activé sans politique ; un `comment on table` « Conservée après le retour de … » le dit en base. Les réécritures par
+ancre exigent le compte exact d'occurrences (1) et s'arrêtent, sans rien modifier, sur une définition inattendue ; les textes de fonctions
+rétablis sont copiés tels quels des migrations (`tests/retours-oct18-registre.test.ts` compare leur empreinte à celle d'une fonction créée depuis
+le texte même de la migration). Chaque retour se rejoue sans effet (NOTICE « rien à faire »).
+
+**Ordre inverse exact et gardes.** `20261018193308` → `20261018185515` → `20261018143644` → `20261018100243` → `20261018085521` →
+`20261018071556` → `20261018061548` → `20261017180829`, après le retour de `20261018231827` et avant celui de `20261016210000` (chaîne
+complète dans la section « Lot « fuseau-suite » »). Raisons : `193308` surcouche le bloc `perform public.reserver_budget_signature` de `185515`
+et sa contrainte `signature_devis_cible` cite `modele` (`185515`) et `prestataire` (`100243`) ; `185515` réécrit par ancre
+`archiver_signature_bail` dans sa version `143644` ; `143644` cite `v.prestataire` (`100243`) ; `100243`, `143644`, `185515` et `193308` vivent
+sur la table de `085521` ; `071556` indexe les tables de `061548` ; `085521` pose un déclencheur `traversee_lecture_seule` que le retour de
+`20261016172453`, plus loin dans la chaîne, retire en boucle (il ne le trouve plus). Chaque retour refuse, en nommant la migration à défaire
+d'abord, s'il trouve un objet d'un retour postérieur encore en place (`185515` : fonctions ou contrainte de `193308` ; `143644` : `v.modele` ;
+`100243` : `reserver_budget_signature`, `signature_devis_cible` ou `v.prestataire` ; `085521` : les quatre ; `061548` : les index de `071556`).
+Trois gardes de données : `085521` refuse s'il existe des circuits `preparation` / `en_cours` ; `185515` refuse de rétablir l'index unique par
+bail s'il y a des doublons de circuits actifs ; `100243` refuse de rétablir l'unicité de la référence externe si des références sont partagées.
+Relevé de production du 19/10 (lecture seule) : 5 circuits, 0 en vol, 0 doublon, 0 référence partagée.
+
+**Écart d'historique en production.** Les trois migrations de supervision sont inscrites dans `supabase_migrations.schema_migrations` sous
+d'autres versions que les noms des fichiers du dépôt : `20261018071151` (`supervision_finances`, dépôt `20261017180829`), `20261018071200`
+(`supervision_complete`, dépôt `20261018061548`), `20261018071811` (`supervision_index_relations`, dépôt `20261018071556`). Leurs retours
+retirent **les deux** versions, pour que l'historique ne dise plus « appliquée » sous aucun des deux noms. Conséquence hors lot : la garde
+« version déjà enregistrée » de `migrations.yml` ne protège pas ces trois fichiers aujourd'hui (une réapplication de `061548` échouerait sur
+`create table`, celle de `071556` sur `create index`, celle de `180829` passerait sans bruit) ; réaligner l'historique ou renommer les fichiers
+relève d'une décision séparée.
+
+**Marche avant après retour.** Seules `20261017180829` (`create or replace`), `20261018143644` (`create or replace`, si `085521` est en place)
+et `20261018071556` (index supprimés) se réappliquent telles quelles. `061548`, `085521`, `100243`, `185515` et `193308` échouent sur
+`create table` / `add column` tant que les tables et colonnes conservées existent : réapplication seulement après décision écrite (archiver puis
+supprimer les tables, ou migration corrective `if not exists`). Le test le documente : il supprime à la main les huit tables et la colonne, rejoue
+les huit migrations et retrouve l'empreinte (fonctions, droits, déclencheurs, politiques, index, contraintes) d'avant la chaîne.
+
+**Ce qui n'est pas défait.** `documents` et `document_liens` (PDF signés, certificats), objets Storage du bucket `documents`, `alerts`
+`signature_retournee`, `audit_log`, `baux.document_signe`, états des lieux passés à `signe` / `pdf_signe`, devis retenus, valeurs de
+`signature_budget` (plafond, `devis_actif`), colonnes `prestataire`, `modele`, `cible_id` (redevenue facultative), `options`, `essai`,
+`incident_id`, contraintes `modele_check` et `signataires_check` élargies par `193308` (leur forme antérieure violerait la ligne `devis_artisan`
+de production). Hors base : les demandes et modèles chez Zoho restent chez le prestataire ; la tâche Vercel `/api/cron/equipes?mission=signatures`
+(vercel.json) se retire avec le code ; les données personnelles de `supervision_prospects` et des `signataires` restent en base (sort à décider).
+
+**Code d'abord.** Sans retrait préalable du code des PR #202 (4466ad4), #203 (b5f70e6) et #206 (6cb2468), la console /admin, les pages légales
+publiques (lecture `anon` de `supervision_identite`), le webhook Zoho, le worker et le cron tombent en erreur ; inversement, un code revenu sur
+une base non revenue laisse actifs `signature_manuelle_fin_nouveaux_envois` et `devis_signature_verrou` (plus aucune signature manuelle). Les
+PR #203 et #206 ont été fusionnées en squash, code et migrations ensemble : un retour partiel de base suppose un code intermédiaire qui n'existe
+pas tel quel sur `main`.
+
+**Usage.** Transaction externe, comme `20261018231827` : `psql "$URL" -v ON_ERROR_STOP=1 --single-transaction -f <retour>`, un fichier à la
+fois, dans l'ordre ci-dessus, après la sauvegarde « Sauvegarde quotidienne » à la demande et le retour du code. Un second passage ne produit que
+des NOTICE « rien à faire ».
+
+**Avant d'appliquer en production (lecture seule).** Tout doit valoir ce que le relevé du 19/10 donne : les versions (les trois de supervision
+sous leur nom de production), 0 circuit en vol, 0 doublon, les ancres présentes **1** fois.
+
+```sql
+select version, name from supabase_migrations.schema_migrations where version >= '20261017' order by 1;
+select 'bail_signature_circuits' as objet, count(*) from public.bail_signature_circuits
+union all select 'en_vol', count(*) from public.bail_signature_circuits where etat in ('preparation','en_cours')
+union all select 'doublons_bail_actif', count(*) from (select bail_id from public.bail_signature_circuits where bail_id is not null and etat in ('pret','preparation','en_cours','a_verifier') group by 1 having count(*) > 1) d
+union all select 'doublons_external_request_id', count(*) from (select external_request_id from public.bail_signature_circuits where external_request_id is not null group by 1 having count(*) > 1) e
+union all select 'documents_signature_bail', count(*) from public.documents where storage_path like '%/signature-bail/%'
+union all select 'supervision_couts', count(*) from public.supervision_couts
+union all select 'supervision_registre', count(*) from public.supervision_registre
+union all select 'supervision_prospects', count(*) from public.supervision_prospects
+union all select 'supervision_executions_decisions', count(*) from public.supervision_executions_decisions
+union all select 'preuve_publication_non_vide', count(*) from public.development_proposals where preuve_publication <> '{}'::jsonb;
+select (length(g) - length(replace(g, 'Suivi serveur des signatures déjà engagées (18/10/2026)', ''))) / length('Suivi serveur des signatures déjà engagées (18/10/2026)') as bloc_18_10,
+       (length(g) - length(replace(g, $a$  v_org := case when tg_op = 'DELETE' then old.organization_id else new.organization_id end;$a$, ''))) / length($a$  v_org := case when tg_op = 'DELETE' then old.organization_id else new.organization_id end;$a$) as ancre,
+       position('Relecture du 15/10 (annuler une invitation d''artisan, abonnement suspendu)' in g) > 0 as exception_846000,
+       (length(r) - length(replace(r, 'perform public.reserver_budget_signature(p_circuit);', ''))) / length('perform public.reserver_budget_signature(p_circuit);') as perform_budget,
+       (length(r) - length(replace(r, $x$v.modele='devis_artisan'$x$, ''))) / length($x$v.modele='devis_artisan'$x$) as devis_artisan,
+       (length(a) - length(replace(a, $x$v.prestataire='zoho'$x$, ''))) / length($x$v.prestataire='zoho'$x$) as prestataire_zoho,
+       (length(a) - length(replace(a, 'gerimmo.systeme', ''))) / length('gerimmo.systeme') as gerimmo_systeme,
+       position($x$if v.modele<>'bail' or v.essai or v.etat<>'termine'$x$ in c) > 0 as activer_patch,
+       position('Attendez la fin des signatures avant de confier la mission' in d) > 0 as retenir_patch
+from (select pg_get_functiondef('public.refuser_ecriture_si_fermee()'::regprocedure) g, pg_get_functiondef('public.reserver_envoi_signature_bail(uuid,uuid)'::regprocedure) r,
+             pg_get_functiondef('public.archiver_signature_bail(uuid,uuid,jsonb)'::regprocedure) a, pg_get_functiondef('public.activer_bail_signature_electronique(uuid)'::regprocedure) c,
+             pg_get_functiondef('public.retenir_devis(uuid,uuid)'::regprocedure) d) f;
+```
+
+Attendu le 19/10 : `bloc_18_10` 1, `ancre` 1, `exception_846000` vrai, `perform_budget` 1, `devis_artisan` 1, `prestataire_zoho` 4, `gerimmo_systeme` 3,
+`activer_patch` vrai, `retenir_patch` vrai ; md5 de `pg_get_functiondef` : `refuser_ecriture_si_fermee` 832d25f725ba6e21389b0bdaadd67a63,
+`reserver_envoi_signature_bail` 6a91b1d17a74cefd523227ca6eb71add, `archiver_signature_bail` cbf3e4afbbbbf067bc6e3f2d3ec9d4a6,
+`activer_bail_signature_electronique` 9fbaeb9a4c7d3a330f7dd173b4b513af, `retenir_devis` 997e2f76255094a87765d4900f8bbab6 (identiques sur la base de
+banc construite depuis le manifeste : aucun écart dépôt/production sur ces cinq fonctions).
+
+**Après (lecture seule).** 0 fonction du lot, 0 déclencheur, 0 politique, 0 fonction de `public` ouverte à `anon`, comptes des tables conservées
+inchangés, aucune des 11 versions.
+
+```sql
+select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in
+ ('supervision_finances','supervision_total_couts','supervision_tracer_modification','reserver_envoi_signature_bail','verrouiller_signature_bail','archiver_signature_bail',
+  'proteger_document_en_signature_bail','activer_bail_signature_electronique','garder_bail_en_signature','garder_signature_manuelle_bail','fichier_en_signature_bail',
+  'initialiser_cible_signature','regler_budget_signature','reserver_budget_signature','garder_edl_en_signature','lire_budget_signatures','lire_signature_devis',
+  'garder_devis_en_signature','refuser_nouvelle_signature_manuelle','lire_signature_devis_archive');
+select tgname from pg_trigger where not tgisinternal and tgname in ('abonnement_bail_signature_circuits','signature_cible','bail_signature_garde_suppression','signature_manuelle_bail_garde',
+ 'signature_manuelle_fin_nouveaux_envois','document_signature_bail_verrou','edl_circuit_verrou','edl_lignes_circuit_verrou','edl_cles_circuit_verrou','edl_compteurs_circuit_verrou',
+ 'devis_signature_verrou','supervision_cout_trace','supervision_identite_trace','supervision_prospect_trace');
+select schemaname, tablename, policyname from pg_policies where tablename in ('bail_signature_circuits','signature_budget','signature_consommations','supervision_couts',
+ 'supervision_executions_decisions','supervision_identite','supervision_prospects','supervision_registre') or policyname like 'signature_bail_fichier%';
+select count(*) as ouvertes_anon from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute');
+select version from supabase_migrations.schema_migrations where version in ('20261017180829','20261018071151','20261018061548','20261018071200','20261018071556','20261018071811',
+ '20261018085521','20261018100243','20261018143644','20261018185515','20261018193308');
+```
+
+**Essais du 19/10/2026** (base CI locale PostgreSQL 16 construite depuis le manifeste complet, transaction annulée, jeu de données fictif : un
+circuit archivé, un coût tracé au registre, le budget réglé) : chaîne complète dans l'ordre (objets retirés, 8 tables et lignes conservées, droits
+nuls pour les trois rôles y compris par colonne, RLS actif, versions de fichier et de production retirées, sentinelle gardée, fonctions rétablies
+à l'empreinte du texte des migrations), rejeu sans effet, six gardes d'ordre, garde en vol, garde des doublons, atomicité (`select 1/0` ajouté
+annule tout), marche avant après suppression manuelle des objets conservés (empreinte identique à l'état d'avant la chaîne) ; essai `psql`
+hors Vitest : les huit retours joués deux fois (second passage : NOTICE seulement). Suite : `tests/retours-oct18-registre.test.ts` (sans base :
+forme des fichiers et LISEZ-MOI). Aucun essai sur la production.

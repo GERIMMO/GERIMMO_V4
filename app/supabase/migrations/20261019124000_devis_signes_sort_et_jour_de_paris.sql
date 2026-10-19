@@ -28,7 +28,11 @@
 --  (d) retenir_devis (1 occurrence) et deposer_devis (2 occurrences ; 1 citation du jour de Paris déjà présente depuis
 --      20261014601000) lisent le jour de Paris, public.aujourdhui_paris() (migration 20261014500000) : remplacement à
 --      compte exact d'occurrences, forme déjà convertie acceptée (rejeu sans effet), toute autre forme arrête la migration
---      en nommant la fonction, sans rien modifier.
+--      en nommant la fonction, sans rien modifier. Périmètre élargi à deposer_devis (décision du 19/10/2026 à la relecture
+--      du lot, le plan d'origine ne nommait que retenir_devis) : l'échéance par défaut (validite_jours de la consultation)
+--      et le contrôle « la date de validité doit être à venir » se jugent au jour de Paris, comme le formulaire artisan
+--      (src/lib/saisie-devis-artisan.ts) et la politique « jour de Paris » du dépôt ; la migration entre ainsi dans la
+--      chaîne « Ordre complet » des retours du jour de Paris (son retour l'ouvre).
 -- Ce qu'elle NE fait PAS : aucune annulation automatique chez le prestataire de signature, aucun nouveau type d'événement
 -- d'incident, les circuits d'essai comptent comme aujourd'hui.
 -- Rejouable ; droits inchangés (create or replace et revoke identique) ; fermeture à anon rappelée en fin de fichier.

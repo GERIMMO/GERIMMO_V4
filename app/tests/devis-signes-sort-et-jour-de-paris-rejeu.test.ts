@@ -80,9 +80,11 @@ describe.skipIf(!url)('B5 — devis signé : rejeu, retour arrière, gardes, dro
     await db.query("insert into artisan_metiers values($1,'plomberie')", [a]);
     return { compte, id: a };
   }
-  const circuitTermine = (d: Awaited<ReturnType<typeof dossier>>) =>
-    id("insert into bail_signature_circuits(organization_id,incident_id,modele,cible_id,document_id,created_by,prestataire,environnement,empreinte,pdf_hash,signataires,etat,document_signe) values($1,$2,'devis_artisan',gen_random_uuid(),$3,$4,'zoho','production',repeat('b',64),repeat('a',64),$5,'termine',$3) returning id",
-      [d.org, d.incident, d.doc, d.owner, JSON.stringify([{ qualite: 'Propriétaire', prenom: 'Client', nom: 'Test', email: 'client@example.test', externalId: 's1', statut: 'signed' }])]);
+  /** Un circuit devis_artisan du dossier, 'termine' (avec son archive signée) ou 'pret' (en attente d'envoi, sans archive). */
+  const circuit = (d: Awaited<ReturnType<typeof dossier>>, etat: 'termine' | 'pret') =>
+    id("insert into bail_signature_circuits(organization_id,incident_id,modele,cible_id,document_id,created_by,prestataire,environnement,empreinte,pdf_hash,signataires,etat,document_signe) values($1,$2,'devis_artisan',gen_random_uuid(),$3,$4,'zoho','production',repeat('b',64),repeat('a',64),$5,$6,case when $6::text='termine' then $3::uuid end) returning id",
+      [d.org, d.incident, d.doc, d.owner, JSON.stringify([{ qualite: 'Propriétaire', prenom: 'Client', nom: 'Test', email: 'client@example.test', externalId: 's1', statut: etat === 'termine' ? 'signed' : 'pending' }]), etat]);
+  const circuitTermine = (d: Awaited<ReturnType<typeof dossier>>) => circuit(d, 'termine');
 
   beforeAll(async () => { db = new Client({ connectionString: url }); await db.connect(); await db.query('begin'); });
   afterAll(async () => { await db?.query('rollback'); await db?.end(); });
@@ -141,13 +143,30 @@ describe.skipIf(!url)('B5 — devis signé : rejeu, retour arrière, gardes, dro
     const d = await dossier();
     await circuitTermine(d); await circuitTermine(d);
     const avant = await empreinte();
-    await refuse(RETOUR, new RegExp(`plusieurs circuits de signature terminés : ${d.incident}`));
+    await refuse(RETOUR, new RegExp(`plusieurs circuits de signature terminés ou actifs : ${d.incident}`));
+    expect(await empreinte()).toEqual(avant);
+  });
+
+  it('le retour refuse aussi un circuit terminé et un circuit « pret » sur le même dossier (prédicat exact de l’ancien index), nomme le dossier et ne modifie rien', async () => {
+    const d = await dossier();
+    await circuitTermine(d); await circuit(d, 'pret');
+    // La correction B5 autorise cette coexistence (l'index migré ne retient plus 'termine') ; l'ancien index la refuserait.
+    expect((await db.query("select count(*)::int n from bail_signature_circuits where incident_id=$1 and modele='devis_artisan' and etat in ('pret','termine')", [d.incident])).rows[0].n).toBe(2);
+    const avant = await empreinte();
+    await refuse(RETOUR, new RegExp(`plusieurs circuits de signature terminés ou actifs : ${d.incident}`));
     expect(await empreinte()).toEqual(avant);
   });
 
   it('le retour refuse si le déclencheur a été réécrit autrement (ni marqueur B5, ni texte d’origine)', async () => {
     await db.query("create or replace function public.garder_devis_en_signature() returns trigger language plpgsql security definer set search_path='' as $$ begin if tg_op='DELETE' then return old; end if; return new; end $$");
     await refuse(RETOUR, /garder_devis_en_signature\(\) a une définition inattendue/);
+  });
+
+  it('le retour refuse une réécriture du déclencheur qui ne garde que le message d’origine : seul le corps exact de 20261018193308 vaut « rien à faire »', async () => {
+    await db.query("create or replace function public.garder_devis_en_signature() returns trigger language plpgsql security definer set search_path='' as $$ begin if tg_op='DELETE' then return old; end if; raise exception 'Annulez le circuit en cours avant de modifier le devis. Une offre déjà signée doit être conservée.'; end $$");
+    const avant = await empreinte();
+    await refuse(RETOUR, /garder_devis_en_signature\(\) a une définition inattendue \(ni marqueur B5, ni corps exact de 20261018193308\)/);
+    expect(await empreinte()).toEqual(avant);
   });
 
   it('la migration refuse une définition inattendue de retenir_devis et la nomme', async () => {

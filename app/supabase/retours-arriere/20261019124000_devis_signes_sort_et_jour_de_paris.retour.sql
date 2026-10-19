@@ -5,14 +5,17 @@
 --
 -- Ce qu'il rétablit, sans toucher aux données :
 --  (c) garder_devis_en_signature : texte EXACT de 20261018193308 (le sort d'un devis signé redevient figé : plus
---      d'expiration, d'annulation ni de refus de mission possible sur un devis signé) ; refus si la fonction a été réécrite
---      autrement (ni marqueur B5 ni texte d'origine) ;
+--      d'expiration, d'annulation ni de refus de mission possible sur un devis signé) ; « rien à faire » seulement si le
+--      corps en vigueur est le corps exact d'origine ; refus si la fonction a été réécrite autrement (ni marqueur B5 ni corps
+--      exact d'origine, même si elle garde le message d'origine) ;
 --  (d) reserver_envoi_signature_bail et lire_signature_devis : le bloc « une seule offre signée vivante » est retiré par
 --      texte exact (une occurrence ; zéro = rien à faire) ;
 --  (e) retenir_devis et deposer_devis : la validité se juge de nouveau au jour de la session (current_date), par ancres exactes
 --      sur les trois lignes converties ; la citation du jour de Paris posée par 20261014601000 dans deposer_devis reste ;
---  (f) l'index signature_devis_une_offre reprend les circuits 'termine' ; REFUS (sans rien modifier) si deux circuits
---      'termine' partagent déjà un dossier, ce que la correction permet : les dossiers sont nommés ;
+--  (f) l'index signature_devis_une_offre reprend les circuits 'termine' ; REFUS (sans rien modifier, garde en tête de
+--      script) si un dossier porte déjà plusieurs circuits terminés ou actifs — etat in ('pret','preparation','en_cours',
+--      'a_verifier','termine'), le prédicat EXACT de l'index reposé —, ce que la correction permet (deux circuits terminés,
+--      ou un circuit terminé et un circuit actif) : les dossiers sont nommés ;
 --  (g) la ligne d'historique 20261019124000 est retirée (le chantier pourra rejouer la migration).
 -- Réintroduit les trois défauts B5 : la tâche maintenance-artisans échoue dès qu'un devis signé est périmé ; mission ni
 -- annulable ni refusable sur devis signé ; un seul devis signé par dossier pour toujours.
@@ -21,20 +24,21 @@ do $garde$
 declare v_dossiers text;
 begin
   perform set_config('lock_timeout','10s',true);
+  -- Le prédicat EXACT de l'index reposé en (f) : un circuit terminé et un circuit actif ('pret' par exemple) sur le même
+  -- dossier le violeraient autant que deux circuits terminés ; la garde doit refuser AVANT que (c), (d) et (e) ne s'exécutent.
   select string_agg(incident_id::text, ', ' order by incident_id) into v_dossiers
-  from (select incident_id from public.bail_signature_circuits where modele='devis_artisan' and etat='termine' group by incident_id having count(*)>1) d;
+  from (select incident_id from public.bail_signature_circuits where modele='devis_artisan' and etat in ('pret','preparation','en_cours','a_verifier','termine') group by incident_id having count(*)>1) d;
   if v_dossiers is not null then
-    raise exception 'Retour arrière refusé : l''ancien index signature_devis_une_offre (un seul circuit terminé par dossier) ne peut pas être reposé, ces dossiers portent plusieurs circuits de signature terminés : %. Rien n''est modifié.', v_dossiers;
+    raise exception 'Retour arrière refusé : l''ancien index signature_devis_une_offre (un seul circuit terminé ou actif par dossier) ne peut pas être reposé, ces dossiers portent plusieurs circuits de signature terminés ou actifs : %. Rien n''est modifié.', v_dossiers;
   end if;
 end $garde$;
 
--- (c) Le déclencheur d'origine, texte exact de 20261018193308 (l. 60-70).
+-- (c) Le déclencheur d'origine, texte exact de 20261018193308 (l. 60-70). Le corps est tenu une seule fois : exécuté pour
+-- rétablir la fonction, comparé tel quel (pg_get_functiondef rend le corps entre ses $function$) pour reconnaître l'état
+-- d'avant. Une réécriture qui ne garderait que le message « Une offre déjà signée doit être conservée. » n'est PAS l'origine.
 do $declencheur$
 declare f text;
-begin
-  select pg_get_functiondef('public.garder_devis_en_signature()'::regprocedure) into f;
-  if strpos(f,'B5 (19/10/2026)')>0 then
-    execute $origine$create or replace function public.garder_devis_en_signature() returns trigger language plpgsql security definer set search_path='' as $$
+ corps_origine constant text := $origine$
 begin
  if exists(select 1 from public.bail_signature_circuits c where c.modele='devis_artisan' and c.cible_id=old.id and c.etat in ('preparation','en_cours','a_verifier','termine')) then
    if tg_op='DELETE' then raise exception 'Ce devis est engagé dans un circuit de signature'; end if;
@@ -44,12 +48,16 @@ begin
    raise exception 'Annulez le circuit en cours avant de modifier le devis. Une offre déjà signée doit être conservée.';
  end if;
  if tg_op='DELETE' then return old; end if; return new;
-end $$$origine$;
+end $origine$;
+begin
+  select pg_get_functiondef('public.garder_devis_en_signature()'::regprocedure) into f;
+  if strpos(f,'B5 (19/10/2026)')>0 then
+    execute 'create or replace function public.garder_devis_en_signature() returns trigger language plpgsql security definer set search_path='''' as $$'||corps_origine||'$$';
     revoke all on function public.garder_devis_en_signature() from public,anon,authenticated;
-  elsif strpos(f,'Une offre déjà signée doit être conservée.')>0 then
-    raise notice 'garder_devis_en_signature() : déjà la définition d''avant B5, rien à faire.';
+  elsif strpos(f,corps_origine)>0 then
+    raise notice 'garder_devis_en_signature() : déjà la définition d''avant B5 (corps exact de 20261018193308), rien à faire.';
   else
-    raise exception 'Retour arrière refusé : garder_devis_en_signature() a une définition inattendue (ni marqueur B5, ni texte de 20261018193308). Rien n''est modifié.';
+    raise exception 'Retour arrière refusé : garder_devis_en_signature() a une définition inattendue (ni marqueur B5, ni corps exact de 20261018193308). Rien n''est modifié.';
   end if;
 end $declencheur$;
 

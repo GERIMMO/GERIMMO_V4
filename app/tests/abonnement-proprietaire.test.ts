@@ -84,7 +84,7 @@ async function rendre(recherche: Record<string, string> = {}) {
   return renderToStaticMarkup(await PageAbonnement2026({ params: Promise.resolve({ orgId: "org-test" }), searchParams: Promise.resolve(recherche) }));
 }
 function abonner(changements = {}) {
-  etat = { ...etat, statut: "actif" };
+  etat = { ...etat, statut: "active" };
   paiement = { ...paiement, souscrit: true, paye: true, formule: "bailleur", unites_souscrites: 3, montant_periode_cents: 999, periode_fin: "2099-11-24", ...changements };
 }
 

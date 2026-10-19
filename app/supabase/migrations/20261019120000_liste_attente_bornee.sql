@@ -60,9 +60,9 @@ create table if not exists public.liste_attente (
 alter table public.liste_attente enable row level security;
 
 -- ── 2. Les bornes, posées une seule fois ─────────────────────────────────────────────────────────────────────────────
--- Les échappements \uXXXX sont ceux du moteur d'expressions rationnelles de PostgreSQL (ARE) ; la chaîne SQL les lui
--- transmet tels quels (standard_conforming_strings). Vérifié sur PostgreSQL 16 en C.UTF-8 : U+00A0, U+200B et U+FEFF sont
--- reconnus, et aucun d'eux n'est couvert par [[:space:]].
+-- Les blancs Unicode hors ASCII (U+00A0, U+1680, U+2000 à U+200B, U+2028, U+2029, U+202F, U+205F, U+3000, U+FEFF) sont
+-- écrits en caractères littéraux dans la classe ci-dessous (fichier UTF-8, chaîne standard). Vérifié sur PostgreSQL 16 en
+-- C.UTF-8 : U+00A0, U+200B et U+FEFF sont reconnus, et aucun d'eux n'est couvert par [[:space:]].
 do $bornes$
 begin
   if not exists (select 1 from pg_constraint where conrelid = 'public.liste_attente'::regclass and conname = 'liste_attente_email_borne') then

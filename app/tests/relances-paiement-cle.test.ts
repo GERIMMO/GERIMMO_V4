@@ -20,7 +20,7 @@ import type { Periodicite } from "../src/lib/tarifs";
 type Due = {
   organization_id: string; organisation: string; destinataire: string | null; palier: number;
   jours_ecoules: number; jours_restants: number; lecture_seule_le: string; montant_mensuel: number;
-  periodicite: string; montant_periode_cents: number;
+  periodicite: string; montant_periode_cents: number | null;
 };
 const due = (surcharge: Partial<Due> = {}): Due => ({
   organization_id: "org-1", organisation: "Agence Alpha", destinataire: "gerant@exemple.fr", palier: 0,
@@ -143,7 +143,7 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
 
   it("un abonnement annuel dont la base ne connaît pas le montant de la période (NULL) : échec rapporté, aucun courrier « par mois »", async () => {
     // Relecture du 19/10 : la base rend NULL plutôt que le douzième mensuel pour un annuel sans montant de période.
-    const { supabase, marques } = banc(() => [due({ periodicite: "annuel", montant_periode_cents: null as unknown as number, montant_mensuel: 4.99 })]);
+    const { supabase, marques } = banc(() => [due({ periodicite: "annuel", montant_periode_cents: null, montant_mensuel: 4.99 })]);
     const bilan = await envoyerRelancesDues(supabase);
     expect(bilan).toMatchObject({ envoyees: 0, echecs: [expect.stringMatching(/montant du prélèvement illisible/)] });
     expect(fournisseur.acceptes).toHaveLength(0);

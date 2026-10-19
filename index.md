@@ -28,7 +28,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Restitution du dépôt de garantie]] — délai légal 1/2 mois, imputabilité des écarts d'EDL ; **16/10** : décompte et date d'envoi au jour de Paris (PR #195), interprétation à ratifier.
 - [[Régularisation des charges]] — provisions vs réel, année civile, justificatifs bloquants.
 - [[Relances et mise en demeure]] — impayés à seuils paramétrables, relances = preuve.
-- [[Relais du dirigeant]] — **16/10, brouillon** : D46-B, partie alerte, en production (PR #192) : e-mail quotidien à 5 h (Paris) s'il y a quelque chose à signaler, e-mail immédiat des urgences du mode vacances (passage `pg_cron` toutes les 10 min, au plus 11 min, 6 envois par heure), non coupé par l'arrêt d'urgence ; deux adresses gardées hors du dépôt ; **16/10, PR #195** : passage de 5 h borné sous 60 s (envoi en parallèle, 45 s pour les envois), registres au catalogue de conservation (six mois, purges propres codées en dur), écran des arrêts avec `maintenance-artisans` ; aucun envoi réel encore constaté.
+- [[Relais du dirigeant]] — **16/10, brouillon** : D46-B, partie alerte, en production (PR #192) : e-mail quotidien à 5 h (Paris) s'il y a quelque chose à signaler, e-mail immédiat des urgences du mode vacances (passage `pg_cron` toutes les 10 min, au plus 11 min, 6 envois par heure), non coupé par l'arrêt d'urgence ; deux adresses gardées hors du dépôt ; **16/10, PR #195** : passage de 5 h borné sous 60 s (envoi en parallèle, 45 s pour les envois), registres au catalogue de conservation (six mois, purges propres codées en dur), écran des arrêts avec `maintenance-artisans` ; aucun envoi réel encore constaté. **19/10 (M16, préparé)** : l'e-mail de 5 h comptera les demandes de contact du site vitrine en attente de réponse (dont celles de plus de 48 h), sans leur contenu.
 - [[Onboarding et abonnement]] — création d'agence, invitations, essai sans carte — 2 mois jusqu'au 31/12/2026 (offre de lancement), 1 mois ensuite — puis **gel en lecture seule** jusqu'au paiement ; aucun bien offert (28/09) ; préavis d'un mois et rétractation de 14 jours (CGU).
 - [[Retours utilisateurs]] — suivi privé, contestations, revue mensuelle des idées et conservation des signalements ; réalisation et preuves séparées des fonctionnalités restantes.
 
@@ -57,7 +57,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Fiscalité]] — aide à la déclaration (récap 2044) ; régimes LMNP/SCI à trancher.
 - [[Journal éditorial]] — le journal public et son **moteur de propositions** : huit veines ancrées sur le wiki, un angle et un plan, jamais un chiffre inventé.
 - [[Incident]] — désordre signalé ; l'imputation (qui paie) tranchée par l'agent, **requalifiable** depuis le 23/08 pour répondre à une contestation sans clôturer (contredit RM-7.5.3, à trancher).
-- [[Devis]] — 2 max, validité 30 j, accord du mandant au-delà du seuil.
+- [[Devis]] — 2 max, validité 30 j, accord du mandant au-delà du seuil. **19/10 (B5)** : un devis signé peut encore expirer ou être annulé (archive conservée), une seule offre signée vivante par dossier, validité jugée au jour de Paris (`retenir_devis`, `deposer_devis`).
 - [[Intervention]] — mission de l'artisan ; compte rendu + photo obligatoires.
 - [[Document]] — GED sans arborescence ; le type pilote droits et conservation.
 - [[Période de loyer]] — le loyer attendu du code actuel ; cible : appel/encaissement.
@@ -76,7 +76,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Archivage plutôt que suppression]] — on archive, on ne supprime pas.
 - [[Isolation multi-organisation]] — RLS partout + test d'isolation par table.
 - [[RGPD]] — droits des personnes, durées de conservation, purge encadrée ; **16/10** : durées D13, D14, D48 ; les quatre registres du relais et du compteur IA au catalogue `retention_rules` (six mois, PR #195), purges propres du relais codées en dur ; amorce du registre des traitements de la plateforme.
-- [[Registre des traitements]] — **20/09, brouillon** : les deux volets de l'article 30 (Gerimmo responsable pour la plateforme, sous-traitant pour la gestion locative), traitement par traitement, durées de `retention_rules`, sous-traitants du déploiement ; DPO, AIPD du score artisan et contrat de sous-traitance à trancher ; **16/10** : durées d'octobre à reporter depuis [[RGPD]] (registres du relais et compteur IA au catalogue depuis la PR #195).
+- [[Registre des traitements]] — **20/09, brouillon** : les deux volets de l'article 30 (Gerimmo responsable pour la plateforme, sous-traitant pour la gestion locative), traitement par traitement, durées de `retention_rules`, sous-traitants du déploiement ; DPO, AIPD du score artisan et contrat de sous-traitance à trancher ; **16/10** : durées d'octobre à reporter depuis [[RGPD]] (registres du relais et compteur IA au catalogue depuis la PR #195). **19/10** : ligne P10 « liste d'attente du site » ajoutée (adresses électroniques ; base légale et durée à décider).
 - [[Procédure de notification de violation]] — **20/09, brouillon** : la chaîne A4 rendue opérationnelle (détecter, qualifier en 2 h, confiner en 4 h, informer les organisations, CNIL sous 72 h, personnes si risque élevé, registre des violations), qui fait quoi, gestes disponibles, gabarits de fiche et de messages.
 - [[Notification et valeur probante]] — Gerimmo ne notifie jamais ; trace GED ≠ preuve.
 - [[Machines à états et événements]] — 8 machines, transitions interdites, idempotence.
@@ -156,7 +156,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Charges et fiscalité — jeu de référence et sources officielles (audit du 13 octobre 2026)]] — 74 montants sur 77 égaux au centime avec un calcul indépendant ; règles fiscales **non confrontées à une source officielle** (accès bloqué).
 - [[Sortie de bail — scénario joué le 14 octobre 2026]] — fin de bail, états des lieux, restitution du dépôt, accès après départ, PDF réels ; renouvellement absent de la V1.
 - [[Performances et liens — mesures du 14 octobre 2026]] — 507 chargements mesurés sur 157 écrans, 733 liens internes explorés, 631 accès croisés refusés.
-- [[Cartographie vérifiable de Gerimmo (pages, actions, base, stockage, authentification, intégrations, rôles)]] — cartographie générée par scripts rejouables : pages, actions serveur, base (145 tables, 554 fonctions), stockage, rôles.
+- [[Cartographie vérifiable de Gerimmo (pages, actions, base, stockage, authentification, intégrations, rôles)]] — cartographie générée par scripts rejouables : pages, actions serveur, base (145 tables, 554 fonctions), stockage, rôles. **19/10** : relevé des lectures et écritures `anon` actualisé (seule écriture anonyme restante : `liste_attente`, bornée).
 - [[Matrice fonctions × rôles × droits (RPC SQL et actions serveur)]] — matrice des droits croisée avec les matrices du banc.
 - [[Inventaire de couverture — écrans, actions serveur, RPC]] — ce qui est ouvert, ce qui est exercé, ce qui ne l'est pas.
 - [[Référence des tests — commandes, volumes, durées, dépendances, limites]] — référence des suites de tests et de leurs limites.

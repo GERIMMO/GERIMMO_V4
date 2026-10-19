@@ -596,13 +596,19 @@ async function appelerRpc(claims, nom, corps, url, methode, entetes) {
 }
 
 // ── Auth ───────────────────────────────────────────────────────────────────
-function sessionPour(user, niveau = "aal1") {
+// `methodes` : la revendication `amr` telle que GoTrue l'écrit (méthode qui a ouvert la session) ; par défaut une
+// connexion par mot de passe. Un lien ou un code vérifié (/auth/v1/verify) donne `email/signup`, `recovery`,
+// `magiclink` ou `otp` : /nouveau-mot-de-passe s'y fie pour n'accepter que les sessions nées d'un lien reçu par e-mail.
+function sessionPour(user, niveau = "aal1", methodes = null) {
   const expires_in = 3600;
   const maintenant = Math.floor(Date.now() / 1000);
+  const amr = Array.isArray(methodes) && methodes.length
+    ? methodes
+    : [{ method: "password", timestamp: maintenant }, ...(niveau === "aal2" ? [{ method: "totp", timestamp: maintenant }] : [])];
   const claims = {
     sub: user.id, email: user.email, phone: "", role: "authenticated",
     aud: "authenticated", session_id: crypto.randomUUID(),
-    aal: niveau, amr: [{ method: "password", timestamp: maintenant }, ...(niveau === "aal2" ? [{ method: "totp", timestamp: maintenant }] : [])],
+    aal: niveau, amr,
     app_metadata: user.raw_app_meta_data ?? {}, user_metadata: user.raw_user_meta_data ?? {},
     iat: maintenant, exp: maintenant + expires_in, iss: `http://127.0.0.1:${PORT}/auth/v1`,
   };
@@ -611,7 +617,8 @@ function sessionPour(user, niveau = "aal1") {
     token_type: "bearer",
     expires_in,
     expires_at: maintenant + expires_in,
-    refresh_token: signer({ sub: user.id, type: "refresh", aal: niveau, iat: maintenant }),
+    // Le rafraîchissement conserve la méthode d'origine, comme GoTrue.
+    refresh_token: signer({ sub: user.id, type: "refresh", aal: niveau, amr, iat: maintenant }),
     user: utilisateurJson(user),
   };
 }
@@ -676,7 +683,7 @@ async function routerAuth(methode, chemin, url, corps, claims) {
       if (!c2 || c2.type !== "refresh") return { statut: 400, corps: { error: "invalid_grant", msg: "Invalid Refresh Token" } };
       const u = await utilisateurParId(c2.sub);
       if (!u) return { statut: 400, corps: { error: "invalid_grant", msg: "Utilisateur disparu" } };
-      return { statut: 200, corps: sessionPour(u, c2.aal === "aal2" ? "aal2" : "aal1") };
+      return { statut: 200, corps: sessionPour(u, c2.aal === "aal2" ? "aal2" : "aal1", Array.isArray(c2.amr) ? c2.amr : null) };
     }
     return { statut: 400, corps: { error: "unsupported_grant_type" } };
   }
@@ -759,18 +766,21 @@ async function routerAuth(methode, chemin, url, corps, claims) {
   if (chemin === "verify" && methode === "POST") {
     const types = corps.type === "email" ? ["confirmation_token", "recovery_token"]
       : corps.type === "signup" ? ["confirmation_token"] : corps.type === "recovery" || corps.type === "magiclink" ? ["recovery_token"] : [];
-    const id = await admin(async (c) => {
+    const verifie = await admin(async (c) => {
       const { rows } = await c.query(
         `delete from auth.one_time_tokens where token_hash=$1 and token_type=any($2::text[])
-         and created_at>now()-interval '1 hour' returning user_id`, [corps.token_hash, types]
+         and created_at>now()-interval '1 hour' returning user_id, token_type`, [corps.token_hash, types]
       );
       if (!rows[0]) return null;
       await c.query("update auth.users set email_confirmed_at=coalesce(email_confirmed_at,now()), raw_user_meta_data=raw_user_meta_data || '{\"email_verified\":true}'::jsonb where id=$1", [rows[0].user_id]);
       await c.query("delete from auth.one_time_tokens where user_id=$1", [rows[0].user_id]);
-      return rows[0].user_id;
+      return rows[0];
     });
-    if (!id) return { statut: 403, corps: { code: "otp_expired", msg: "Email link is invalid or has expired" } };
-    return { statut: 200, corps: sessionPour(await utilisateurParId(id)) };
+    if (!verifie) return { statut: 403, corps: { code: "otp_expired", msg: "Email link is invalid or has expired" } };
+    // Méthode d'authentification telle que GoTrue la consigne pour un lien vérifié (models.AuthenticationMethod).
+    const methodeLien = corps.type === "signup" || verifie.token_type === "confirmation_token" ? "email/signup"
+      : corps.type === "magiclink" ? "magiclink" : corps.type === "recovery" ? "recovery" : "otp";
+    return { statut: 200, corps: sessionPour(await utilisateurParId(verifie.user_id), "aal1", [{ method: methodeLien, timestamp: Math.floor(Date.now() / 1000) }]) };
   }
   return { statut: 404, corps: { msg: `auth/${chemin} non géré` } };
 }

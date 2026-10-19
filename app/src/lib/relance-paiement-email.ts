@@ -16,15 +16,19 @@
 // Le taire ferait croire à une perte de données, et c'est la peur qui fait
 // partir un client.
 
-import { eur } from "@/lib/ged";
 import { echapperHtml } from "@/lib/quittance-email";
+import { euros, type Periodicite } from "@/lib/tarifs";
 
 export type Palier = 0 | 1 | 2 | 3;
 
 export type RelancePaiement = {
   palier: Palier;
   organisation: string;
-  montantMensuel: number;
+  // Ce que le prélèvement demandait : le montant de la période, en centimes, et sa périodicité. Pour un abonnement
+  // annuel, l'équivalent mensuel (un douzième) n'est pas la somme que la banque a refusée — la dire « par mois »
+  // serait faux (audit du 19/10, lot mineurs, a).
+  periodicite: Periodicite;
+  montantPeriodeCents: number;
   joursRestants: number;
   lectureSeuleLe: string; // AAAA-MM-JJ
   // Vers « Mon abonnement ». `null` quand l'adresse publique du site n'est
@@ -60,7 +64,7 @@ function message(r: RelancePaiement): string {
   switch (r.palier) {
     case 0:
       return `
-        <p>Le prélèvement de votre abonnement (<strong>${eur(r.montantMensuel)} par mois</strong>)
+        <p>Le prélèvement de votre abonnement (<strong>${euros(r.montantPeriodeCents)} ${r.periodicite === "annuel" ? "par an" : "par mois"}</strong>)
         n'a pas abouti. Cela vient presque toujours d'une carte arrivée à expiration
         ou d'un plafond bancaire — rien d'inquiétant, mais il faut le corriger.</p>
         <p><strong>Votre compte reste entièrement ouvert jusqu'au ${le}.</strong>

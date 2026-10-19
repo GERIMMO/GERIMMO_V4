@@ -172,9 +172,9 @@ export function AppelEssai() {
             Ce calcul, Gerimmo le fait chaque mois pour vous
           </h2>
           <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--sur-marque)]/85">
-            Quittances envoyées d&apos;elles-mêmes, révisions de loyer préparées à la date anniversaire, relances
-            d&apos;impayés, aide à la déclaration : la gestion locative tenue au carré. Essai gratuit de {duree},
-            sans carte bancaire.
+            Quittances établies à chaque encaissement, envoyées au locataire si vous l&apos;activez&nbsp;; révisions
+            de loyer préparées à la date anniversaire, relances d&apos;impayés, aide à la déclaration : la gestion
+            locative tenue au carré. Essai gratuit de {duree}, sans carte bancaire.
           </p>
           <Link
             href="/inscription"

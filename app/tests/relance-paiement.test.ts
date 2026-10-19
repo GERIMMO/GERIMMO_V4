@@ -192,13 +192,32 @@ describe("La date de défaut se pose une fois, pas à chaque tentative", () => {
 });
 
 describe("Les quatre courriers, et quand ils partent", () => {
-  async function dues(): Promise<{ palier: number; jours_restants: number; destinataire: string }[]> {
+  async function dues(): Promise<{ palier: number; jours_restants: number; destinataire: string; periodicite: string; montant_periode_cents: string; montant_mensuel: string }[]> {
     const { rows } = await db.query(
-      "select palier, jours_restants, destinataire from public.abonnements_a_relancer(50) where organization_id=$1",
+      "select palier, jours_restants, destinataire, periodicite, montant_periode_cents, montant_mensuel from public.abonnements_a_relancer(50) where organization_id=$1",
       [org]
     );
     return rows;
   }
+
+  // Lot mineurs du 19/10 (a) : le courrier annonce le montant réellement prélevé. La base dit la périodicité et le
+  // montant de la période ; l'équivalent mensuel reste rendu pour « Mon abonnement ».
+  it("un abonnement annuel est dit annuel, avec le montant de l'année ; la grille historique reste mensuelle", async () => {
+    await appliquer("past_due");
+    // Grille historique : pas de montant de période enregistré → c'est le montant mensuel qui est prélevé.
+    expect((await dues())[0]).toMatchObject({ periodicite: "mensuel", montant_periode_cents: "1797", montant_mensuel: "17.97" });
+    await db.query("update public.abonnements set periodicite='annuel', montant_periode_cents=5990, montant_mensuel_cents=499 where organization_id=$1", [org]);
+    expect((await dues())[0]).toMatchObject({ periodicite: "annuel", montant_periode_cents: "5990", montant_mensuel: "4.99" });
+  });
+
+  it("la fonction recréée reste fermée : service_role seul", async () => {
+    const { rows: [d] } = await db.query(
+      `select has_function_privilege('anon','public.abonnements_a_relancer(integer)','execute') as anon,
+              has_function_privilege('authenticated','public.abonnements_a_relancer(integer)','execute') as authentifie,
+              has_function_privilege('service_role','public.abonnements_a_relancer(integer)','execute') as service`
+    );
+    expect(d).toEqual({ anon: false, authentifie: false, service: true });
+  });
 
   it("l'alerte est due le jour même", async () => {
     await appliquer("past_due");

@@ -156,7 +156,7 @@ describe("relance d'un paiement d'abonnement refusé", () => {
       const db = client(base(p.type), {
         abonnements_a_relancer: [{
           organization_id: ORG, organisation: "Organisation TEST", destinataire: "facturation@example.invalid", palier: 1,
-          jours_ecoules: 3, jours_restants: 12, lecture_seule_le: "2026-10-30", montant_mensuel: "12.00",
+          jours_ecoules: 3, jours_restants: 12, lecture_seule_le: "2026-10-30", montant_mensuel: "12.00", periodicite: "mensuel", montant_periode_cents: 1200,
         }],
       });
       expect(await envoyerRelancesDues(db as never)).toEqual({ envoyees: 1, sans_adresse: [], echecs: [] });

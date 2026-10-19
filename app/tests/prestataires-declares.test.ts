@@ -86,17 +86,27 @@ describe("prestataires saisissables (19/10) : clés du formulaire et de la base"
     for (const k of Object.keys(CHAMPS_PRESTATAIRES)) expect(sql).toContain(`'${k}'`);
     expect(sql).toMatch(/raise exception 'Retour refusé/);
     expect(sql).toContain("delete from supabase_migrations.schema_migrations where version = '20261019123000'");
-    // Il se joue dans une transaction externe, comme 20261018231827, en tête de la chaîne « Ordre complet ».
+    // Il se joue dans une transaction externe, comme 20261018231827, dans la chaîne « Ordre complet » (après 20261019124000,
+    // avant 20261018231827).
     expect(sql).not.toMatch(/^begin;$/m);
     expect(sql).not.toMatch(/^commit;$/m);
   });
 
-  it("la migration est au manifeste une seule fois, après la dernière appliquée en production, et son retour est au LISEZ-MOI", () => {
+  it("la migration est au manifeste une seule fois, après la dernière appliquée en production, et son retour est au LISEZ-MOI, dans la chaîne « Ordre complet » après 20261019124000 et avant 20261018231827", () => {
     const manifeste = lireApp("e2e/local/ordre-migrations.txt").trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${MIGRATION}.sql`)).toHaveLength(1);
     expect(manifeste.indexOf(`${MIGRATION}.sql`)).toBeGreaterThan(manifeste.indexOf("20261018231827_abonnement_jour_paris.sql"));
     const lisezMoi = lireApp("supabase/retours-arriere/LISEZ-MOI.md");
     expect(lisezMoi).toContain(`${MIGRATION}.retour.sql`);
-    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\s*`20261019123000`/);
+    // Ordre relatif, pas « en tête » : la chaîne s'ouvre par le dernier retour intégré (20261019124000 depuis le 19/10).
+    const chaine = lisezMoi.match(/Ordre complet si tout doit être défait :([\s\S]*?)puis `500000`/)?.[1] ?? "";
+    const codes = [...chaine.matchAll(/`(\d{14}|\d{6})`/g)].map((m) => m[1]);
+    const position = (code: string) => {
+      const i = codes.indexOf(code);
+      expect(i, `${code} : absent de la chaîne`).toBeGreaterThanOrEqual(0);
+      return i;
+    };
+    expect(position("20261019123000")).toBeGreaterThan(position("20261019124000"));
+    expect(position("20261019123000")).toBeLessThan(position("20261018231827"));
   });
 });

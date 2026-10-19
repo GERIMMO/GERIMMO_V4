@@ -1,6 +1,11 @@
 /**
  * Lot « supervision et signatures » (17-18/10/2026, mission M4) : les huit retours arrière, joués dans l'ordre inverse du
  * manifeste sur une base CI locale, dans une transaction annulée à la fin.
+ *  — la base est construite depuis le manifeste intégré : trois migrations du 19/10 (20261019121000, 20261019123000,
+ *    20261019124000) ont réécrit des objets du lot ; leurs retours se jouent d'abord, dans l'ordre de la chaîne « Ordre
+ *    complet » du LISEZ-MOI (comme en production), puis les huit ; la marche avant rejoue les huit migrations puis celles
+ *    du 19/10 et retrouve l'empreinte de l'état intégré ; trois gardes d'ordre vers ces retours (refus nommant le retour
+ *    à jouer d'abord, état inchangé) ;
  *  — chaîne complète : fonctions, déclencheurs, politiques, index et droits retirés ; les huit tables conservées avec leurs
  *    lignes, fermées à anon, authenticated et service_role (droits de table ET par colonne), RLS actif, commentaire
  *    « Conservée » ; les versions des fichiers ET celles enregistrées en production (supervision) retirées, la sentinelle
@@ -38,6 +43,30 @@ const versions = (f: string) => [f.slice(0, 14), ...(VERSIONS_PRODUCTION[f.slice
 const TOUTES_VERSIONS = CHAINE.flatMap(versions);
 const sql = (f: string, retour = false) => readFileSync(new URL(`../supabase/${retour ? 'retours-arriere' : 'migrations'}/${f}${retour ? '.retour' : ''}.sql`, import.meta.url), 'utf8');
 const lisezMoi = () => readFileSync(new URL('../supabase/retours-arriere/LISEZ-MOI.md', import.meta.url), 'utf8');
+const manifeste = () => readFileSync(new URL('../e2e/local/ordre-migrations.txt', import.meta.url), 'utf8').trim().split(/\r?\n/);
+
+/**
+ * Les retours du 19/10 qui touchent des objets du lot, dans l'ordre de la chaîne « Ordre complet » du LISEZ-MOI (ils précèdent
+ * 20261018231827, puis les huit) : B5 (garder_devis_en_signature, reserver_envoi_signature_bail, index signature_devis_une_offre,
+ * retenir_devis au jour de Paris), identité (deux contraintes de supervision_identite), droits anon et prospects
+ * (supervision_tracer_modification, clé supervision_prospects.demande_id). Les trois autres retours du 19/10 (122000, 120500,
+ * 120000) ne touchent aucun objet des huit.
+ */
+const RETOURS_1910 = ['20261019124000_devis_signes_sort_et_jour_de_paris', '20261019123000_identite_editeur_prestataires', '20261019121000_droits_anon_contact_articles_et_prospects'];
+/** Les mêmes migrations, dans l'ordre du manifeste (marche avant). */
+const MIGRATIONS_1910 = [...RETOURS_1910].reverse();
+/** Un retour qui gère sa propre transaction (121000) refuse de se jouer dans un lot : seule cette enveloppe lui est retirée (comme tests/supervision-prospects-purge.test.ts). */
+const sansEnveloppe = (script: string) => script
+  .replace(/do \$retour_arriere\$\s*begin\s*if statement_timestamp\(\) <> transaction_timestamp\(\)[\s\S]*?end \$retour_arriere\$;/, '')
+  .replace(/^begin;$/m, '')
+  .replace(/^commit;$/m, '');
+const retour1910 = (f: string) => sansEnveloppe(sql(f, true));
+/** Gardes d'ordre vers les retours du 19/10 : [retour gardé, retour à jouer d'abord, message exact du script, repris au LISEZ-MOI]. */
+const GARDES_1910: [string, string, string][] = [
+  [CHAINE[0], RETOURS_1910[0], "Retour 20261018193308 refusé : garder_devis_en_signature, reserver_envoi_signature_bail ou l'index signature_devis_une_offre portent encore la forme du 19/10 (B5) ; jouer d'abord le retour 20261019124000"],
+  [CHAINE[6], RETOURS_1910[1], "Retour 20261018061548 refusé : les contraintes de supervision_identite admettent encore les clés des prestataires ou la borne de 40 000 octets (19/10) ; jouer d'abord le retour 20261019123000"],
+  [CHAINE[6], RETOURS_1910[2], "Retour 20261018061548 refusé : supervision_tracer_modification porte encore le chemin système du 19/10 (pg_trigger_depth) ou la clé supervision_prospects_demande_id_fkey son action référentielle (on delete set null) ; jouer d'abord le retour 20261019121000"],
+];
 
 const FONCTIONS = ['supervision_finances', 'supervision_total_couts', 'supervision_tracer_modification', 'reserver_envoi_signature_bail', 'verrouiller_signature_bail', 'archiver_signature_bail', 'proteger_document_en_signature_bail', 'activer_bail_signature_electronique', 'garder_bail_en_signature', 'garder_signature_manuelle_bail', 'fichier_en_signature_bail', 'initialiser_cible_signature', 'regler_budget_signature', 'reserver_budget_signature', 'garder_edl_en_signature', 'lire_budget_signatures', 'lire_signature_devis', 'garder_devis_en_signature', 'refuser_nouvelle_signature_manuelle', 'lire_signature_devis_archive'];
 /** Réécrites par ancre : elles survivent au lot et doivent retrouver leur texte exact à la marche avant. */
@@ -81,7 +110,7 @@ describe('les huit retours du lot « supervision et signatures » : forme des fi
       expect(code, `${f} : ${table}.${colonne}`).toContain(`table_name = '${table}' and column_name = '${colonne}'`);
     }
   });
-  it('le LISEZ-MOI cite les huit fichiers et donne une seule chaîne complète, dans l’ordre inverse du manifeste', () => {
+  it('le LISEZ-MOI cite les huit fichiers et donne une seule chaîne complète, dans l’ordre inverse du manifeste : les retours du 19/10, 20261018231827, puis les huit', () => {
     const texte = lisezMoi();
     for (const f of CHAINE) expect(texte).toContain(`${f}.retour.sql`);
     expect(texte).toContain('20261018231827_abonnement_jour_paris.retour.sql');
@@ -94,8 +123,20 @@ describe('les huit retours du lot « supervision et signatures » : forme des fi
     expect(codes.slice(debut, debut + attendu.length)).toEqual(attendu);
     expect(codes[debut - 1]).toBe('20261018231827');
     expect(codes[debut + attendu.length]).toBe('20261016210000');
-    const manifeste = readFileSync(new URL('../e2e/local/ordre-migrations.txt', import.meta.url), 'utf8').trim().split(/\r?\n/);
-    expect(attendu.map((v) => manifeste.findIndex((m) => m.startsWith(`${v}_`)))).toEqual([...Array(attendu.length).keys()].map((i) => manifeste.indexOf('20261018231827_abonnement_jour_paris.sql') - 1 - i));
+    const lignes = manifeste();
+    expect(attendu.map((v) => lignes.findIndex((m) => m.startsWith(`${v}_`)))).toEqual([...Array(attendu.length).keys()].map((i) => lignes.indexOf('20261018231827_abonnement_jour_paris.sql') - 1 - i));
+    // Les retours du 19/10 que ce test joue d'abord : dans la chaîne, avant 20261018231827, dans l'ordre où il les joue ;
+    // leurs migrations suivent 20261018231827 au manifeste, dans l'ordre inverse.
+    const positions = RETOURS_1910.map((f) => codes.indexOf(f.slice(0, 14)));
+    for (const p of positions) { expect(p).toBeGreaterThanOrEqual(0); expect(p).toBeLessThan(debut - 1); }
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    const indices = MIGRATIONS_1910.map((f) => lignes.indexOf(`${f}.sql`));
+    for (const i of indices) expect(i).toBeGreaterThan(lignes.indexOf('20261018231827_abonnement_jour_paris.sql'));
+    expect(indices).toEqual([...indices].sort((a, b) => a - b));
+  });
+  it.each(GARDES_1910)('%s porte une garde d’ordre vers le retour %s : message exact dans le script et dans sa ligne du LISEZ-MOI', (garde, _premier, message) => {
+    expect(sql(garde, true)).toContain(message.replace(/'/g, "''"));
+    expect(lisezMoi()).toContain(message);
   });
 });
 
@@ -140,6 +181,8 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
   async function circuit(etat: string, modele = 'bail', empreinteCircuit = 'c') {
     return id("insert into public.bail_signature_circuits(organization_id,bail_id,document_id,created_by,environnement,empreinte,pdf_hash,signataires,prestataire,etat,modele) values($1,$2,$3,$4,'production',repeat($5,64),repeat('a',64),$6,'zoho',$7,$8) returning id", [org, bail, doc, owner, empreinteCircuit, JSON.stringify(parties), etat, modele]);
   }
+  /** L'état d'où partent les huit retours : les retours du 19/10 joués d'abord, dans l'ordre de la chaîne du LISEZ-MOI. */
+  const defaire1910 = async () => { for (const f of RETOURS_1910) await db.query(retour1910(f)); };
 
   beforeAll(async () => { db = new Client({ connectionString: url }); await db.connect(); await db.query('begin'); });
   afterAll(async () => { await db?.query('rollback'); await db?.end(); });
@@ -169,6 +212,7 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
   afterEach(async () => { await db.query('rollback to savepoint cas'); });
 
   it('la chaîne complète retire comportements et droits, conserve tables et lignes, rétablit les textes exacts et retire ses seules versions', async () => {
+    await defaire1910();
     const avant = await comptes();
     expect(avant).toMatchObject({ bail_signature_circuits: 1, signature_budget: 1, supervision_couts: 1, supervision_registre: 1, supervision_identite: 1 });
     expect(Number((await db.query("select count(*) as n from information_schema.column_privileges where table_schema='public' and table_name = any($1) and grantee = any($2)", [SUPERVISION, ROLES])).rows[0].n)).toBeGreaterThan(0);
@@ -279,6 +323,7 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
   });
 
   it('chaque retour se rejoue sans effet : état et lignes identiques', async () => {
+    await defaire1910();
     for (const f of CHAINE) await db.query(sql(f, true));
     const apres = await etat();
     const lignes = await comptes();
@@ -296,6 +341,7 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
     [[CHAINE[0]], CHAINE[4], /20261018185515/],
     [[], CHAINE[6], /20261018071556/],
   ])('garde d’ordre : après %j, le retour %s refuse en nommant la migration à défaire d’abord', async (prealables, hors_ordre, attendu) => {
+    await defaire1910();
     for (const f of prealables) await db.query(sql(f, true));
     const avant = await etat();
     const versions = await versionsPresentes();
@@ -314,7 +360,33 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
     expect(await versionsPresentes()).toEqual(versions);
   });
 
+  it.each(GARDES_1910)('garde d’ordre du 19/10 : le retour %s refuse tant que le retour %s n’est pas joué, en le nommant, sans rien modifier ; joué, il passe', async (garde, premier, message) => {
+    // Les autres retours du 19/10 sont joués ; `premier` seul manque. Pour 20261018061548, les six retours précédents du lot aussi.
+    for (const f of RETOURS_1910.filter((r) => r !== premier)) await db.query(retour1910(f));
+    for (const f of CHAINE.slice(0, CHAINE.indexOf(garde))) await db.query(sql(f, true));
+    // Cause prouvée : l'objet que `premier` défait est encore sous sa forme du 19/10.
+    if (premier === RETOURS_1910[0]) {
+      expect(await def('public.garder_devis_en_signature()')).toContain('B5 (19/10/2026)');
+      expect((await db.query("select indexdef from pg_indexes where schemaname='public' and indexname='signature_devis_une_offre'")).rows[0].indexdef).not.toContain('termine');
+    } else if (premier === RETOURS_1910[1]) {
+      expect((await db.query("select pg_get_constraintdef(oid) as d from pg_constraint where conrelid='public.supervision_identite'::regclass and conname='identite_champs_connus'")).rows[0].d).toContain("'coordonneesSupabase'");
+    } else {
+      expect(await def('public.supervision_tracer_modification()')).toContain('pg_trigger_depth');
+    }
+    const avant = await etat();
+    const versions = await versionsPresentes();
+    await db.query('savepoint ordre_1910');
+    await expect(db.query(sql(garde, true))).rejects.toThrow(message);
+    await db.query('rollback to savepoint ordre_1910');
+    expect(await etat()).toEqual(avant);
+    expect(await versionsPresentes()).toEqual(versions);
+    await db.query(retour1910(premier));
+    await db.query(sql(garde, true));
+    expect(await versionsPresentes()).not.toContain(garde.slice(0, 14));
+  });
+
   it('garde « en vol » : un circuit en cours chez le prestataire fait refuser le retour de 20261018085521', async () => {
+    await defaire1910();
     await circuit('en_cours', 'bail', 'd');
     for (const f of CHAINE.slice(0, 4)) await db.query(sql(f, true));
     const avant = await etat();
@@ -331,6 +403,7 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
   });
 
   it('garde des doublons : deux circuits actifs sur un même bail font refuser l’index unique par bail de 20261018185515', async () => {
+    await defaire1910();
     await circuit('pret', 'bail', 'd');
     await circuit('pret', 'cautionnement', 'e');
     await db.query(sql(CHAINE[0], true));
@@ -344,6 +417,7 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
   });
 
   it('atomicité : une erreur dans le lot contrôlé annule le retour et son historique ensemble', async () => {
+    await defaire1910();
     const avant = await etat();
     await db.query('savepoint panne');
     await expect(db.query(sql(CHAINE[0], true) + '\nselect 1/0;')).rejects.toThrow(/division by zero/);
@@ -352,8 +426,9 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
     expect(await versionsPresentes()).toContain('20261018193308');
   });
 
-  it('marche avant : après suppression manuelle des objets conservés, les huit migrations redonnent l’état d’avant la chaîne', async () => {
+  it('marche avant : après suppression manuelle des objets conservés, les huit migrations puis celles du 19/10 redonnent l’état intégré d’avant la chaîne', async () => {
     const avant = await etat();
+    await defaire1910();
     for (const f of CHAINE) await db.query(sql(f, true));
     // La préparation que la marche avant exige (décision écrite) : ces tables et cette colonne existent encore.
     await db.query('savepoint sans_preparation');
@@ -365,6 +440,8 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
       await db.query(sql(f));
       for (const v of versions(f)) await db.query('insert into supabase_migrations.schema_migrations(version) values($1) on conflict(version) do nothing', [v]);
     }
+    // Puis les migrations du 19/10 que leurs retours avaient défaites, dans l'ordre du manifeste : l'empreinte est celle du départ.
+    for (const f of MIGRATIONS_1910) await db.query(sql(f));
     expect(await etat()).toEqual(avant);
     expect(await versionsPresentes()).toEqual([...TOUTES_VERSIONS, SENTINELLE].sort());
     expect(await ouvertesAnon()).toBe(0);

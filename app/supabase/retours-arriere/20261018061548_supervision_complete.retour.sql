@@ -9,7 +9,9 @@
 --
 -- Transaction EXTERNE : aucun begin/commit ici, la moindre erreur annule tout. Usage :
 --   psql "$URL" -v ON_ERROR_STOP=1 --single-transaction -f 20261018061548_supervision_complete.retour.sql
--- Ordre : après le retour de 20261018071556 (garde ci-dessous), avant celui de 20261017180829.
+-- Ordre : après le retour de 20261018071556 (garde ci-dessous), avant celui de 20261017180829. Les retours du 19/10 le
+-- précèdent (chaîne « Ordre complet » du LISEZ-MOI) : 20261019123000 a réécrit deux contraintes de supervision_identite,
+-- 20261019121000 la fonction supervision_tracer_modification et la clé supervision_prospects.demande_id (gardes ci-dessous).
 --
 -- CONSERVE (preuves et registres : aucun `drop table`, aucun `drop column`) : les cinq tables supervision_couts
 -- (registre comptable immuable), supervision_registre (journal avant/après), supervision_executions_decisions (trace des
@@ -30,6 +32,22 @@
 -- sont retirées, pour que l'historique ne dise plus « appliquée » sous aucun des deux noms.
 
 set local lock_timeout = '10s';
+
+-- Gardes d'ordre du 19/10, dans l'ordre de la chaîne du LISEZ-MOI (20261019123000 puis 20261019121000) : ce retour
+-- conserve les contraintes de supervision_identite et la clé supervision_prospects.demande_id, et retire
+-- supervision_tracer_modification ; sans ces deux retours, l'état « d'avant le lot » laissé ici ne serait pas celui du 18/10
+-- (clés des prestataires admises, borne de 40 000 octets, action référentielle `on delete set null`).
+do $ordre_1910$
+begin
+  if exists(select 1 from pg_constraint where conrelid = to_regclass('public.supervision_identite') and conname = 'identite_champs_connus' and pg_get_constraintdef(oid) like '%''localisationBan''%')
+     or exists(select 1 from pg_constraint where conrelid = to_regclass('public.supervision_identite') and conname = 'supervision_identite_valeurs_check' and pg_get_constraintdef(oid) like '%< 40000%') then
+    raise exception 'Retour 20261018061548 refusé : les contraintes de supervision_identite admettent encore les clés des prestataires ou la borne de 40 000 octets (19/10) ; jouer d''abord le retour 20261019123000';
+  end if;
+  if coalesce(strpos(pg_get_functiondef(to_regprocedure('public.supervision_tracer_modification()')), 'pg_trigger_depth') > 0, false)
+     or exists(select 1 from pg_constraint where conrelid = to_regclass('public.supervision_prospects') and conname = 'supervision_prospects_demande_id_fkey' and confdeltype = 'n') then
+    raise exception 'Retour 20261018061548 refusé : supervision_tracer_modification porte encore le chemin système du 19/10 (pg_trigger_depth) ou la clé supervision_prospects_demande_id_fkey son action référentielle (on delete set null) ; jouer d''abord le retour 20261019121000';
+  end if;
+end $ordre_1910$;
 
 -- Garde d'ordre : 20261018071556 indexe ces tables.
 do $ordre$

@@ -1,6 +1,6 @@
 -- Retour de 20261019123000 (identité de l'éditeur : clés des prestataires). Repose la contrainte des treize clés
 -- d'origine et la borne de 20 000 octets, puis retire sa version de l'historique. Se joue dans une transaction externe
--- (psql --single-transaction -v ON_ERROR_STOP=1 -f <retour>), en tête de la chaîne « Ordre complet » du LISEZ-MOI.
+-- (psql --single-transaction -v ON_ERROR_STOP=1 -f <retour>), dans la chaîne « Ordre complet » du LISEZ-MOI, après le retour 20261019124000 et avant 20261018231827.
 --
 -- Le formulaire écrit TOUTES ses clés, nulles quand le champ est vide : après un premier enregistrement, les douze clés
 -- nouvelles sont présentes. Le retour les retire si elles sont vides ; si l'une porte une valeur saisie, il REFUSE sans

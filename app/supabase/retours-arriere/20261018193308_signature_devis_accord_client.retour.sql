@@ -7,7 +7,9 @@
 --
 -- Transaction EXTERNE : aucun begin/commit ici, la moindre erreur annule tout. Usage :
 --   psql "$URL" -v ON_ERROR_STOP=1 --single-transaction -f 20261018193308_signature_devis_accord_client.retour.sql
--- Ordre : premier retour du lot, après celui de 20261018231827 et avant celui de 20261018185515.
+-- Ordre : premier retour du lot, après celui de 20261018231827 et avant celui de 20261018185515. Les retours du 19/10 le
+-- précèdent (chaîne « Ordre complet » du LISEZ-MOI) : 20261019124000 (B5) a réécrit garder_devis_en_signature,
+-- reserver_envoi_signature_bail et l'index signature_devis_une_offre (garde d'ordre ci-dessous).
 --
 -- CONSERVE (preuves et réglages : aucun `drop table`, aucun `drop column`) : la table bail_signature_circuits et ses
 -- lignes (dont le circuit devis_artisan archivé), la colonne incident_id et sa clé étrangère signature_incident_org_fk
@@ -26,6 +28,19 @@
 -- Rejouable : chaque retrait vérifie la présence de l'objet et répond « rien à faire » quand il est déjà absent.
 
 set local lock_timeout = '10s';
+
+-- Garde d'ordre : 20261019124000 (B5, 19/10) a réécrit garder_devis_en_signature et reserver_envoi_signature_bail
+-- (marqueur « B5 (19/10/2026) ») et reposé l'index signature_devis_une_offre sur les seuls circuits actifs (sans
+-- 'termine'). Son retour se joue d'abord : il rend à ces trois objets la forme exacte de la présente migration, que les
+-- retraits ci-dessous (bloc exact de reserver_envoi_signature_bail) supposent.
+do $ordre$
+begin
+  if coalesce(strpos(pg_get_functiondef(to_regprocedure('public.garder_devis_en_signature()')), 'B5 (19/10/2026)') > 0, false)
+     or coalesce(strpos(pg_get_functiondef(to_regprocedure('public.reserver_envoi_signature_bail(uuid,uuid)')), 'B5 (19/10/2026)') > 0, false)
+     or exists(select 1 from pg_indexes where schemaname = 'public' and indexname = 'signature_devis_une_offre' and indexdef not like '%termine%') then
+    raise exception 'Retour 20261018193308 refusé : garder_devis_en_signature, reserver_envoi_signature_bail ou l''index signature_devis_une_offre portent encore la forme du 19/10 (B5) ; jouer d''abord le retour 20261019124000';
+  end if;
+end $ordre$;
 
 -- (a) Fin des nouveaux envois manuels : le déclencheur, puis sa fonction.
 drop trigger if exists signature_manuelle_fin_nouveaux_envois on public.demandes_signature;

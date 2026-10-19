@@ -106,7 +106,14 @@ describe.skipIf(!disponible)('Cinq identités réutilisables : cycle réel en ba
     const autre = (await db.query("insert into public.organizations(name,type,status) values('Autre test local protégé','agence','essai') returning id")).rows[0].id;
     await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'admin_agence')", [ids[0], autre]);
     const avant = (await db.query('select count(*)::int n from public.biens')).rows[0].n;
+    // Une session par compte fixe : la reprise doit les fermer AVANT la remise à zéro, que
+    // nettoyer() refuse ici (« Périmètre de purge non isolé »). Sans l'appel fermerAcces()
+    // du début du passage fixe (scripts/recette-production-comptes.mjs), quatre sessions
+    // survivraient : retirerSupervision() ne traite que le superadmin.
+    await db.query("insert into auth.sessions(user_id) select id from auth.users where raw_app_meta_data->>'gerimmo_recette'='permanente-v1'");
     expect(lancer('preparer').status).toBe(1);
+    expect((await db.query('select count(*)::int n from auth.sessions')).rows[0].n).toBe(0);
+    expect(await bloques()).toBe(5);
     expect(await identites()).toEqual(ids);
     expect((await db.query('select count(*)::int n from public.biens')).rows[0].n).toBe(avant);
     // La base dédiée entière est retirée après le test ; ce dossier extérieur reste intact.

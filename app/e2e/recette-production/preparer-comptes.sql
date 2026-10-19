@@ -91,6 +91,9 @@ declare
   v_reutilisables boolean := current_setting('recette.reutilisables') = '1';
   v_existant boolean;
   -- Identifiants stables des deux organisations du groupe réutilisable (ceux de la production).
+  -- Identifiants fixes décidés le 19/10/2026 (option « espace d'essai à UUID
+  -- stable ») pour que la liste d'essai Zoho reste valide d'un passage à
+  -- l'autre ; à faire ratifier par le dirigeant (Q3).
   v_org_agence_fixe constant uuid := '41f03714-c22a-413c-9268-18d4aa5a9ed1';
   v_org_parc_fixe constant uuid := 'afa35803-36eb-4721-9a92-a7661070742f';
 begin

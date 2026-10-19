@@ -65,14 +65,14 @@ export default defineConfig({
     trace: "off",
     video: "off",
   },
-  // Deux projets pour une seule raison, historique : les tests étiquetés
-  // @sans-trace tapent le mot de passe (outils.ts, SANS_TRACE) ; leur projet
+  // Le projet recette-connexion (@sans-trace) n'a plus qu'une raison
+  // historique : ses tests tapent le mot de passe (outils.ts, SANS_TRACE) et il
   // coupe la trace une seconde fois, en défense en profondeur, maintenant
   // qu'elle est coupée pour tous. L'ordre des projets est sans conséquence :
   // la session d'un parcours s'ouvre dans son propre processus, et une
   // déconnexion ne révoque que les sessions déjà ouvertes.
   //
-  // Le troisième projet, lui, dépend de l'ordre : les contrôles des montants (@montants, montants-p1.spec.ts) activent un
+  // Le projet recette-montants, lui, dépend de l'ordre : les contrôles des montants (@montants, montants-p1.spec.ts) activent un
   // bail dans le parc du propriétaire, ce qui referme son parcours de démarrage, qu'un test de proprietaire.spec.ts vérifie.
   // Avec un seul processus, les projets passent dans l'ordre où ils sont déclarés : il est donc déclaré en dernier, sans
   // dépendance (un échec ailleurs ne doit pas le faire sauter).

@@ -3,7 +3,7 @@ type: synthesis
 tags: [passation, codex, déploiement, production, sécurité, pilotage]
 status: stable
 created: 2026-10-16
-updated: 2026-10-16
+updated: 2026-10-19
 sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Prêt à démarcher]]", "[[Relais du dirigeant]]", "[[Le jour de référence est le jour de Paris]]", "[[Plan de reprise d'activité]]", "[[Prompt de passation à Codex — état du 14 octobre 2026]]"]
 ---
 
@@ -313,6 +313,14 @@ Précisions sourcées :
   **ou sur une branche Supabase** (accord du dirigeant : elle peut être facturée).
 - **Production ≠ rejeu du manifeste** : des fonctions de production n'ont pas la mise en forme du dépôt (vague 2,
   ancres sur une ligne ; lot fuseau, forme X13). D'où le relevé en lecture seule avant toute simulation (§ 6).
+- **Trois migrations du 18/10 enregistrées sous d'autres numéros (ajout du 19/10)** : appliquées hors du chantier
+  (outil MCP), elles sont inscrites dans `supabase_migrations.schema_migrations` à l'heure de leur application, pas
+  à celle de leur nom : `20261017180829_supervision_finances.sql` → `20261018071151`,
+  `20261018061548_supervision_complete.sql` → `20261018071200`, `20261018071556_supervision_index_relations.sql` →
+  `20261018071811` (et, depuis le 11/09, `20260911124500_restitution_rearrete_sous_verrou.sql` → `20260911014814`).
+  La garde « version déjà enregistrée » de `migrations.yml` ne les voit pas ; depuis le 19/10, sa garde par empreinte
+  (md5 du fichier, octet pour octet, contre le texte enregistré en base) les refuse en nommant fichier et version, et
+  l'en-tête du chantier liste ces équivalences. Ne jamais les nommer dans l'entrée `fichiers`.
 
 ### 3.6 Accès
 - Claude lisait la production par un outil Supabase (SQL en lecture), un outil Vercel (déploiements, erreurs,
@@ -784,7 +792,9 @@ Pour chacune : ce qui s'applique aujourd'hui (réglage prudent) et la recommanda
 
 5. **Sauvegarde.** « Sauvegarde quotidienne » à la demande sur `main` : succès avant toute migration réelle.
 6. **Application.** « Migrations Supabase », `simulation` = faux, mêmes fichiers, même ordre. **Les migrations passent
-   avant le code** (nouvelles signatures).
+   avant le code** (nouvelles signatures). Le chantier refuse l'étape 6 si l'étape 5 date de plus de 90 min (ajout du
+   19/10) : il lit dans `tech_log` la dernière « Sauvegarde quotidienne » réussie, sans entrée de contournement ; en
+   simulation, il informe sans bloquer.
 7. **Vérification en lecture seule.** Versions enregistrées (`supabase_migrations.schema_migrations`) (les versions du
    lot, une à une ; ne pas comparer le total au nombre de fichiers du dépôt, voir § 3.2), fonctions et
    tables attendues, 10 tâches `pg_cron` (`select jobname, schedule, active from cron.job`), aucune fonction nouvelle

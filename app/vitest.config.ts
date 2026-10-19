@@ -123,6 +123,11 @@ export const FICHIERS_EN_SERIE = [
   // Identité de l'éditeur, clés des prestataires (19/10) : rejeu de 20261019123000 et de son retour (`alter table` sur
   // supervision_identite, déclencheur de traçage suspendu le temps du retour) dans la transaction du test.
   "tests/identite-prestataires-migration-rejeu.test.ts",
+  // Lot « supervision et signatures » (17-18/10) : les huit retours arrière puis les huit migrations rejoués dans la transaction
+  // du test (`drop function`, `drop trigger`, `drop policy`, `revoke`, `drop index`, puis `drop table … cascade` et `create table`
+  // sur bail_signature_circuits, signature_budget, signature_consommations et les cinq tables de supervision) : verrous exclusifs
+  // tenus pendant tout l'essai, croisés avec les fichiers parallèles qui écrivent des circuits de signature.
+  "tests/retours-oct18-registre.test.ts",
 ];
 
 export default defineConfig({

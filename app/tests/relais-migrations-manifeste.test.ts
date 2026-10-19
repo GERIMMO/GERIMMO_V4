@@ -55,6 +55,8 @@ const MISSION_OCTOBRE = [
   "20261018185515_signatures_documents_budget.sql",
   "20261018193308_signature_devis_accord_client.sql",
   "20261018231827_abonnement_jour_paris.sql",
+  // M16 (audit du 19/10) : les demandes de contact du site vitrine comptées dans l'e-mail de 5 h.
+  "20261019122000_relais_point_demandes_contact.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

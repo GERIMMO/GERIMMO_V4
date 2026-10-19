@@ -523,6 +523,8 @@ describe("l'e-mail de 5 h et le rappel des urgences", () => {
       urgences_relais_recentes: [recentes],
       prendre_urgences_relais: prendre,
       urgences_relais_au_quotidien: [{ data: 1, error: null }],
+      // M16 : aucune demande de contact du site vitrine en attente.
+      demandes_contact_en_attente: [{ data: { en_attente: 0, depuis_plus_de_48h: 0 }, error: null }],
     });
     // Les tâches de l'écran Santé, toutes passées à l'heure (rien d'autre à signaler).
     const le = new Date(MATIN.getTime() - 2 * 3_600_000).toISOString();

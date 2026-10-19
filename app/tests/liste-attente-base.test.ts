@@ -114,7 +114,7 @@ describe.skipIf(!url)('lot M2 — public.liste_attente bornée (base)', () => {
   async function empreinte() {
     return {
       colonnes: await lignes("select column_name, data_type, is_nullable, column_default from information_schema.columns where table_schema = 'public' and table_name = 'liste_attente' order by ordinal_position"),
-      contraintes: await lignes("select conname, pg_get_constraintdef(oid) as def, convalidated from pg_constraint where conrelid = 'public.liste_attente'::regclass order by conname"),
+      contraintes: await lignes("select conname, pg_get_constraintdef(oid) as def, convalidated from pg_constraint where conrelid = 'public.liste_attente'::regclass and contype <> 'n' order by conname"),
       index: await lignes("select indexname, indexdef from pg_indexes where schemaname = 'public' and tablename = 'liste_attente' order by indexname"),
       politiques: await lignes("select policyname, permissive, roles::text as roles, cmd, qual, with_check from pg_policies where schemaname = 'public' and tablename = 'liste_attente' order by policyname"),
       classe: await lignes("select relrowsecurity, relforcerowsecurity, relacl::text as droits, obj_description(oid, 'pg_class') as commentaire from pg_class where oid = 'public.liste_attente'::regclass"),

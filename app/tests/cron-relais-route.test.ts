@@ -30,6 +30,8 @@ function brancherBase(arret = true) {
         error: null,
       };
     }
+    // M16 : aucune demande de contact du site vitrine en attente.
+    if (nom === "demandes_contact_en_attente") return { data: { en_attente: 0, depuis_plus_de_48h: 0 }, error: null };
     return { data: null, error: null };
   });
   const from = () => {

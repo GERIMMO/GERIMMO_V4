@@ -3,7 +3,7 @@ type: process
 tags: [supervision, relais, alerte, e-mail, arret-urgence, automatisation]
 status: draft
 created: 2026-10-16
-updated: 2026-10-16
+updated: 2026-10-19
 sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Complément à la page « Décisions groupées » — fiches de la vague 6]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]"]
 ---
 
@@ -99,6 +99,7 @@ chose à signaler, et un e-mail immédiat pour chaque urgence du mode vacances.
 | Les tâches en échec ou absentes sur les dernières 24 h : tâches `pg_cron` (dont le passage des urgences s'il n'atteint plus le serveur depuis 30 minutes), missions planifiées, suivi des dossiers, **sauvegarde quotidienne** | Le titre d'une alerte (texte libre) |
 | Les arrêts d'urgence actifs (clé et date) | Le motif d'un arrêt (texte libre) |
 | Le rappel des urgences des dernières 24 h (nature, heure, sort de leur e-mail immédiat), même déjà envoyées | Une donnée de locataire |
+| Les demandes de contact du site vitrine en attente de réponse : leur nombre, dont celles reçues il y a plus de 48 h (M16, 19/10 ; préparé, non déployé tant que la PR n'est pas fusionnée) | Le contenu d'une demande (nom, e-mail, téléphone, message) |
 | Un lien vers la console | — |
 
 Le message ne porte que des compteurs, des libellés de tâche (constantes de

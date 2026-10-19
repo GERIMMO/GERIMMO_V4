@@ -7,7 +7,9 @@
 //     suite les urgences que cela vient de poser (e-mail immédiat, `envoyerUrgencesRelais`, décision du 15/10), puis
 //     lit la sentinelle (`sentinelle_relais` : alertes non accusées, arrêts actifs, tâches pg_cron), l'état des tâches
 //     de l'écran Santé — missions, suivi des dossiers, sauvegarde quotidienne (la même lecture, `chargerEtatTaches`) —
-//     et les urgences des dernières 24 h (`urgences_relais_recentes`), rappelées même si leur e-mail immédiat est parti ;
+//     les urgences des dernières 24 h (`urgences_relais_recentes`), rappelées même si leur e-mail immédiat est parti,
+//     et les demandes de contact du site vitrine non traitées (`demandes_contact_en_attente`, M16 du 19/10 : deux
+//     nombres, un seul point au total, jamais une donnée de la demande) ;
 //  4. rien à signaler ni à rappeler : aucun e-mail ; sinon un e-mail par adresse du réglage, en parallèle, chacun avec
 //     une clé d'envoi stable pour le jour (une reprise après échec ne fait pas partir un second message chez le
 //     fournisseur), et chaque appel borné pour que le passage finisse avant la coupure de la route (voir plus bas) ;
@@ -51,6 +53,7 @@ import {
   urgencesDuRelais,
   type AdressesRelais,
   type ConstatRelais,
+  type ContactsEnAttente,
   type EtatTacheSignalee,
 } from "./relais-alerte";
 
@@ -78,13 +81,25 @@ function urgencesRecentesLues(v: unknown): { liste: UrgenceRecente[]; total: num
   return { liste, total: Math.max(entier(r.total), liste.length) };
 }
 
+/**
+ * Les demandes de contact du site vitrine non traitées, telles que `demandes_contact_en_attente` les rend (M16) ; null si
+ * illisibles. Des nombres JSON seulement (jamais Number() sur un texte) : un nombre rendu en texte est un comptage illisible.
+ */
+function contactsLus(v: unknown): ContactsEnAttente | null {
+  const r = v as { en_attente?: unknown; depuis_plus_de_48h?: unknown } | null;
+  if (!r || typeof r !== "object" || typeof r.en_attente !== "number" || typeof r.depuis_plus_de_48h !== "number") return null;
+  return { en_attente: entier(r.en_attente), depuis_plus_de_48h: entier(r.depuis_plus_de_48h) };
+}
+
 /** Le constat, à partir de la sentinelle de la base et de l'état des missions. Pur, vérifiable. */
 export function constaterRelais(
   sentinelle: Sentinelle | null,
   missions: { nom: string; etat: string }[] | null,
   relaisNonActualise: boolean,
   /** Le rappel des urgences des dernières 24 h ; null : illisible ; absent : non demandé. */
-  urgences?: { liste: UrgenceRecente[]; total: number } | null
+  urgences?: { liste: UrgenceRecente[]; total: number } | null,
+  /** Les demandes de contact du site vitrine non traitées (M16) ; null : comptage impossible ; absent : non demandé. */
+  contacts?: ContactsEnAttente | null
 ): ConstatRelais {
   const lecturesImpossibles: string[] = [];
   const arrets = sentinelle
@@ -129,7 +144,12 @@ export function constaterRelais(
     }
   }
   if (urgences === null) lecturesImpossibles.push("Les urgences des dernières 24 h n’ont pas pu être lues.");
-  return { arrets, alertes, taches, lecturesImpossibles, relaisNonActualise, ...(urgences !== undefined ? { urgences } : {}) };
+  if (contacts === null) lecturesImpossibles.push("Les demandes de contact du site vitrine n’ont pas pu être comptées.");
+  return {
+    arrets, alertes, taches, lecturesImpossibles, relaisNonActualise,
+    ...(urgences !== undefined ? { urgences } : {}),
+    ...(contacts !== undefined ? { contacts } : {}),
+  };
 }
 
 /** Une clé d'envoi stable pour le jour et l'adresse, sans l'adresse elle-même. */
@@ -223,11 +243,14 @@ export async function passerAlerteRelais(options: {
     const sentinelle = await appeler("sentinelle_relais");
     const missions = await attendreRelais(() => chargerEtatTaches(db, maintenant), finPassage, horloge);
     const recentes = await appeler("urgences_relais_recentes");
+    // M16 : les demandes de contact du site vitrine non traitées, en nombre (fonction « traitement seulement »).
+    const contacts = await appeler("demandes_contact_en_attente");
     const constat = constaterRelais(
       sentinelle.error || !sentinelle.data || typeof sentinelle.data !== "object" ? null : (sentinelle.data as Sentinelle),
       missions,
       Boolean(vacances.error),
-      recentes.error ? null : urgencesRecentesLues(recentes.data)
+      recentes.error ? null : urgencesRecentesLues(recentes.data),
+      contacts.error ? null : contactsLus(contacts.data)
     );
     const points = pointsDuRelais(constat);
     const urgences = urgencesDuRelais(constat);

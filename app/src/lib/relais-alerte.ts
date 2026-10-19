@@ -111,15 +111,39 @@ export type ConstatRelais = {
    * (alors comptée dans `lecturesImpossibles`).
    */
   urgences?: { liste: UrgenceRecente[]; total: number } | null;
+  /**
+   * Les demandes de contact du site vitrine non traitées (M16, audit du 19/10 ; `demandes_contact_en_attente`) : leur
+   * nombre et, parmi elles, celles reçues il y a plus de 48 h. Jamais une donnée de la demande. Absent : non demandé ;
+   * null : comptage impossible (alors compté dans `lecturesImpossibles`).
+   */
+  contacts?: ContactsEnAttente | null;
 };
+
+export type ContactsEnAttente = { en_attente: number; depuis_plus_de_48h: number };
 
 function totalAlertes(c: ConstatRelais): number {
   return c.alertes ? c.alertes.ouvertes + c.alertes.escaladees + c.alertes.non_acheminees : 0;
 }
 
+/** Décision du 19/10 : UN point au total dès qu'il reste au moins une demande de contact non traitée, quel que soit leur nombre. */
+function pointDesContacts(c: ConstatRelais): number {
+  return c.contacts && c.contacts.en_attente > 0 ? 1 : 0;
+}
+
 /** Le nombre de points à vérifier. Zéro : aucun e-mail ne part. */
 export function pointsDuRelais(c: ConstatRelais): number {
-  return c.arrets.length + totalAlertes(c) + c.taches.length + c.lecturesImpossibles.length + (c.relaisNonActualise ? 1 : 0);
+  return c.arrets.length + totalAlertes(c) + c.taches.length + c.lecturesImpossibles.length + (c.relaisNonActualise ? 1 : 0) + pointDesContacts(c);
+}
+
+/**
+ * Le point, tel que l'e-mail l'écrit (décision du 19/10) : « Demandes de contact du site vitrine — en attente de
+ * réponse : N (dont M depuis plus de 48 h) » ; le titre du bloc, puis sa ligne. Des nombres seulement. La parenthèse
+ * n'est écrite que si au moins une demande attend depuis plus de 48 h (relecture du 19/10 : « dont 0 » n'apprend rien).
+ */
+export const TITRE_CONTACTS_EN_ATTENTE = "Demandes de contact du site vitrine";
+export function ligneContactsEnAttente(contacts: ContactsEnAttente): string {
+  const anciennes = contacts.depuis_plus_de_48h > 0 ? ` (dont ${contacts.depuis_plus_de_48h} depuis plus de 48 h)` : "";
+  return `En attente de réponse : ${contacts.en_attente}${anciennes}`;
 }
 
 /** Le nombre d'urgences des dernières 24 h que l'e-mail de 5 h rappelle (elles suffisent à le faire partir). */
@@ -139,6 +163,8 @@ export function compteursDuRelais(c: ConstatRelais, adressesIgnorees = 0): Recor
     lectures_impossibles: c.lecturesImpossibles.length + (c.relaisNonActualise ? 1 : 0),
     adresses_ignorees: adressesIgnorees,
     urgences_24h: urgencesDuRelais(c),
+    demandes_contact_en_attente: c.contacts?.en_attente ?? 0,
+    demandes_contact_48h: c.contacts?.depuis_plus_de_48h ?? 0,
   };
 }
 
@@ -180,6 +206,10 @@ export function htmlAlerteRelais(c: ConstatRelais, maintenant: Date, lienConsole
   }
   if (c.taches.length) {
     blocs.push(`<p style="${titre}">Tâches planifiées, dernières 24 h</p>` + liste(c.taches.map((t) => `${t.libelle} : ${ETAT_TACHE[t.etat]}`)));
+  }
+  // M16 : le nombre des demandes de contact du site vitrine qui attendent une réponse ; jamais leur contenu.
+  if (c.contacts && c.contacts.en_attente > 0) {
+    blocs.push(`<p style="${titre}">${TITRE_CONTACTS_EN_ATTENTE}</p>` + liste([ligneContactsEnAttente(c.contacts)]));
   }
   const rappel = c.urgences && c.urgences.total > 0 ? c.urgences : null;
   if (rappel) {

@@ -1,7 +1,7 @@
 ---
 type: synthesis
 tags: [audit, publication, securite, paiement, signature-electronique, juridique, rgpd, exploitation, octobre-2026]
-status: in-progress
+status: stable
 created: 2026-10-19
 updated: 2026-10-19
 sources: []
@@ -137,7 +137,25 @@ Quatre-vingt-dix points, dont les principaux : réglages Supabase Auth illisible
 
 ## 10. Suites données le 19 octobre
 
-Le dirigeant a demandé le jour même : « Corrige tout ce que tu peux corriger, ce qui t'est impossible doit être sur le prompt Codex ». Les correctifs réalisables sans décision métier ni accès extérieur sont traités par lots dans le dépôt (voir les entrées `deploy` du journal à partir du 19/10 et [[Recette de production]]) ; tout le reste est consigné dans un prompt unique remis au dirigeant pour Codex. Cette section sera complétée avec l'état de chaque lot après déploiement.
+Le dirigeant a demandé le jour même : « Corrige tout ce que tu peux corriger, ce qui t'est impossible doit être sur le prompt Codex ». Dix lots ont été implémentés dans des espaces isolés, relus de façon contradictoire, corrigés puis relus de nouveau, intégrés et **déployés le 19/10 au soir** par la PR #212 (fusion `e25c0f7`, CI 39303242371 verte : 8 739 tests, 199 scénarios navigateur) selon le protocole : sauvegarde 39299137535 → simulation 39300696002 → application 39305241960 (six migrations `20261019120000` à `20261019124000`, 392 versions en production) → vérification par SELECT. Tout le reste est consigné dans un prompt unique remis au dirigeant pour Codex.
+
+| Point de l'audit | Suite au 19/10 | État |
+| --- | --- | --- |
+| B2 pages légales figées | Localisation BAN et coordonnées des prestataires saisissables dans `/admin/parametres` (migration `20261019123000`) | Déployé ; saisie à faire par le dirigeant |
+| B3 vente sans garde | Paiement refusé tant que l'identité de l'éditeur est incomplète ou que la version en vigueur des CGV n'est pas acceptée (serveur et écran) | Déployé |
+| B5 devis signés | Un devis signé peut expirer, être annulé ou refusé ; une seule offre signée vivante par dossier ; validité au jour de Paris (`20261019124000`) ; la tâche de nuit du 29/10 ne cassera plus | Déployé ; à vérifier le 29/10 |
+| B7 cautionnement | Interrupteur `ZOHO_SIGN_CAUTIONNEMENT_FERME` (`1` ou `true`) qui ferme le seul acte de cautionnement à l'envoi | Déployé ; variable à poser par le dirigeant |
+| B8 aucune recette | Recette de production avec nettoyage lancée sur `main` après le déploiement (voir [[Recette de production]] et le journal) | Voir journal |
+| M1 comptes de recette | Traces et captures coupées, sessions révoquées et comptes bannis entre deux passages, ancien chantier manuel retiré, 19 artefacts supprimés, organisations de recette à identifiants stables | Déployé ; mot de passe à renouveler (Codex) |
+| M2 `liste_attente` | Table intégrée et bornée, plafond de 30 inscriptions par heure (`20261019120000`) | Déployé ; usage et conservation à décider |
+| M4 retours arrière | Huit scripts pour les migrations du 18/10, gardés par l'ordre de la chaîne | Livrés, non exécutés |
+| M5 chantier | Garde « sauvegarde réussie depuis moins de 90 min », garde par empreinte des trois fichiers de la PR #202, bloc `permissions`, `app/CLAUDE.md` corrigé | Déployé |
+| M6 restauration | Vérification de restauration rejouée sur la sauvegarde du 19/10 (exécution 39254195845 : 206 tables, 37 628 lignes, 64 fichiers, 0 manquant) | Fait ; bascule complète toujours à jouer |
+| M16 contact | Demandes de contact en attente comptées dans l'e-mail de 5 h (`20261019122000`) | Déployé |
+| M23 journal et wiki | 30 entrées de rattrapage et de bilan, pages de pilotage au 19/10, cette synthèse | Fait |
+| Mineurs a, f, g, i… | Relance annuelle juste, droits anon retirés, purge des prospects réparée, page de nouveau mot de passe réservée aux liens e-mail (serveur compris), article retiré en 404 | Déployé |
+
+Tout ce qui demande un tableau de bord extérieur, une saisie du dirigeant, une décision ou une relecture par un professionnel reste dans le prompt Codex : protection de `main`, Dependabot, réglages Supabase Auth et Storage, Stripe, Vercel Pro et export des journaux, Zoho (contrat, conditions, adresse de réponse), DMARC et boîte de contact, sonde externe, identité de l'éditeur et médiateur, mandats du juriste, du DPO et de l'expert-comptable, et les travaux de code restants (rapprochement Stripe, quota de signature, suppression de compte, prospects, registre, fichiers de plus de 4,5 Mo, CGU).
 
 > [!warning] Points à trancher / contradictions
 > - Le journal du 18/10 dit « aucun achat » chez Zoho ; le dossier technique `app/docs/signature-electronique-bail.md` dit « 500 crédits après le paiement effectué par le titulaire ». Montant et conditions d'offre non consignés.

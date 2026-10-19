@@ -58,12 +58,14 @@ function consigne(l: LigneAgenda): string {
 const JOURS_COURTS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
 
 /** Les sept jours à partir d'aujourd'hui, en clé civile (AAAA-MM-JJ). */
-function semaineAVenir(): Date[] {
-  const depart = new Date();
-  depart.setHours(12, 0, 0, 0);
+function semaineAVenir(aujourdhui: string): Date[] {
+  // La date civile de Paris est déjà connue. Midi UTC sert uniquement à
+  // parcourir le calendrier, indépendamment du fuseau serveur et des 23/25 h
+  // des journées de changement d'heure.
+  const depart = new Date(`${aujourdhui}T12:00:00Z`);
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(depart);
-    d.setDate(depart.getDate() + i);
+    d.setUTCDate(depart.getUTCDate() + i);
     return d;
   });
 }
@@ -88,16 +90,17 @@ export default async function PageAgendaArtisan() {
     else jours.set(cle, [ligne]);
   }
 
-  const aujourdhui = jourCivil(new Date());
+  const maintenant = new Date();
+  const aujourdhui = jourCivil(maintenant);
   // Les journées passées (interventions terminées, ou dont le rendez-vous est
   // derrière) se lisent après celles qui viennent : on regarde devant soi.
   const joursAVenir = [...jours.entries()].filter(([cle]) => cle >= aujourdhui);
   const joursPasses = [...jours.entries()].filter(([cle]) => cle < aujourdhui);
-  const semaine = semaineAVenir();
+  const semaine = semaineAVenir(aujourdhui);
 
   return (
     <div className="space-y-6">
-      <EnteteSousPage rubrique="agenda" titre="Mon agenda" mention={jourLong(new Date().toISOString())} />
+      <EnteteSousPage rubrique="agenda" titre="Mon agenda" mention={jourLong(maintenant.toISOString())} />
       <ChantiersDansAgenda />
 
       {agenda.erreur && (
@@ -122,10 +125,10 @@ export default async function PageAgendaArtisan() {
               const contenu = (
                 <>
                   <span className="text-[0.75rem] uppercase tracking-wide text-[var(--texte-secondaire)]">
-                    {JOURS_COURTS[d.getDay()]}
+                    {JOURS_COURTS[d.getUTCDay()]}
                   </span>
                   <span className="text-[1.0625rem] font-medium tabular-nums text-[var(--encre)]">
-                    {d.getDate()}
+                    {d.getUTCDate()}
                   </span>
                   <span
                     className={`text-[0.8125rem] tabular-nums ${

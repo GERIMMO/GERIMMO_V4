@@ -37,6 +37,7 @@
 .signal { display: grid; gap: 10px; padding: 18px 0 0; border-top: 1px solid #e6d9bd; text-align: left; color: var(--encre); }
 .signal strong { font-size: 19px; line-height: 1.4; font-weight: 600; letter-spacing: -.015em; }
 .signalMarker { display: inline-flex; align-items: center; gap: 7px; color: #8b652e; font-size: 11px; }
+.signalIncident .signalMarker { justify-self: start; padding: 5px 9px; border-radius: 6px; background: var(--destructive-soft); color: var(--destructive-soft-foreground); font-weight: 600; }
 .signalDetail { color: var(--texte-secondaire); font-size: 12px; line-height: 1.6; }
 .signalAction { display: inline-flex; align-items: center; justify-content: space-between; gap: 18px; justify-self: start; background: #203751; color: #fff; border-radius: 7px; padding: 10px 14px; font-size: 12px; margin-top: 4px; }
 .signal:hover .signalAction { background: #304e6e; }

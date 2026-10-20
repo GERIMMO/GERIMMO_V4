@@ -24,7 +24,7 @@ jobs:
     outputs:
       base: ${{ steps.base.outputs.sha }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - id: base
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: main
           persist-credentials: false

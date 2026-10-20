@@ -38,7 +38,7 @@ jobs:
       GERIMMO_ARTISAN_REGLEMENTS_LOCAUX: "1"
       PLANNING_CONFLITS_CONCURRENCE: "1"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: 22

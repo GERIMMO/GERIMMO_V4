@@ -36,7 +36,7 @@ jobs:
     env:
       SUPABASE_DB_URL: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_stripe
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: 22

@@ -27,7 +27,7 @@ jobs:
       RECETTE_SUFFIXE: r20261017000000-1
       RECETTE_COMPTES_FIXES: '1'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: 22

@@ -334,7 +334,7 @@ export async function PaneDocument({
       {doc.mime_type?.startsWith("image/") ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={fichier}
+          src={`${fichier}?apercu=image`}
           alt={`Aperçu — ${titreAffiche(doc.titre) ?? "document"}`}
           className="max-h-96 w-full border border-border bg-[var(--ardoise)] object-contain"
         />

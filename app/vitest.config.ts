@@ -21,6 +21,13 @@ import { configDefaults, defineConfig } from "vitest/config";
  * `npm test` en local. Le test `tests/execution-en-serie.test.ts` garde cette liste cohérente avec les fichiers.
  */
 export const FICHIERS_EN_SERIE = [
+  "tests/retours-atomicite.test.ts",
+  // Rejeu transactionnel des droits Stripe et de la lecture de session (DDL).
+  "tests/audit-oct20-migrations-rejeu.test.ts",
+  "tests/stockage-gabarits-roles.test.ts",
+  "tests/signature-preparation-abandon-base.test.ts",
+  "tests/signature-suivi-base.test.ts",
+  "tests/depot-direct-base.test.ts",
   // Réécriture temporaire des fonctions d’abonnement et du jour de Paris, annulée après chaque cas.
   "tests/abonnement-jour-paris-migration.test.ts",
   // Audit du 19/10 (B5) : rejeu de 20261019124000 et de son retour (drop/create de l'index signature_devis_une_offre, verrou

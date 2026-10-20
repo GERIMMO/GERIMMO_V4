@@ -22,7 +22,9 @@ beforeEach(() => {
   };
   mocks.client.mockReturnValue({
     from: () => q,
-    rpc: mocks.rpc,
+    rpc: (nom: string, args: unknown) => nom === "ma_session_active"
+      ? Promise.resolve({ data: [{ id: "session-fictive", cree_le: new Date().toISOString() }], error: null })
+      : mocks.rpc(nom, args),
     auth: {
       getUser: async () => ({ data: { user: { id: "compte", last_sign_in_at: new Date().toISOString() } } }),
     },

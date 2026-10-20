@@ -210,6 +210,11 @@ export function cheminFicheAlerte(a: Alerte, orgId: string, racine: string = RAC
 
   // Un document signé retourné se contrôle puis se classe sur sa fiche GED
   if (type === "signature_retournee" || type === "signature_a_reprendre") {
+    if(type==="signature_a_reprendre"){
+      const bail=texte(a.details,"bail_id"),incident=texte(a.details,"incident_id");
+      if(bail)return `${base}/baux/${bail}#etape-bail-7`;
+      if(incident)return `${base}/incidents?sel=${incident}`;
+    }
     const document = texte(a.details, "document_id");
     if (document) return `${base}/documents?sel=${document}`;
   }

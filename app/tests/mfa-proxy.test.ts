@@ -7,7 +7,7 @@ beforeEach(()=>vi.clearAllMocks());
 function session(roles=['super_admin'],niveau: string|null='aal1', erreur=false) {
   const q={select:vi.fn(()=>q),eq:vi.fn(()=>q),then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data:roles.map(role=>({role})),error:null}).then(resolve)};
   const mfa={getAuthenticatorAssuranceLevel:vi.fn(async()=>({data:{currentLevel:niveau},error:erreur?{message:'indisponible'}:null}))};
-  mocks.client.mockReturnValue({from:()=>q,auth:{getUser:async()=>({data:{user:{id:'compte',last_sign_in_at:new Date().toISOString()}}}),mfa}});
+  mocks.client.mockReturnValue({from:()=>q,rpc:async()=>({data:[{id:"session-fictive",cree_le:new Date().toISOString()}],error:null}),auth:{getUser:async()=>({data:{user:{id:'compte',last_sign_in_at:new Date().toISOString()}}}),mfa}});
   return mfa;
 }
 describe('Accès web à la supervision',()=>{

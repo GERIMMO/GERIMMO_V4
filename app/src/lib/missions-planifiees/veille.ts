@@ -14,7 +14,7 @@ export async function traiterVeille(request:Request){
   // Ignore duplicates: a daily collection never overwrites an editorial decision.
   if(infos.length){const {data,error}=await db.from('regulatory_watch').upsert(infos,{onConflict:'source_url',ignoreDuplicates:true}).select('id');if(error)throw new Error('Enregistrement indisponible.');preparees+=data?.length??0;}
  }catch{echecs.push(flux.nom);}}));
- let etudiees=0;
+ let etudiees=0, rejetees=0;
  const {data:attente,error:lecture}=await db.from('regulatory_watch').select('id,titre,source_url').eq('statut','a_examiner').is('analyse_le',null).or(`analyse_tentee_le.is.null,analyse_tentee_le.lt.${new Date(Date.now()-86400000).toISOString()}`).order('publie_source_le',{ascending:false,nullsFirst:false}).order('reperage_le').order('id').limit(3);
  if(lecture)echecs.push('Lecture des études à préparer');
  else if(attente?.length){
@@ -24,15 +24,16 @@ export async function traiterVeille(request:Request){
    for(const analyse of analyses){const {error}=await db.rpc('conserver_etude_veille',{p_id:analyse.id,p_analyse:analyse});if(error)echecs.push('Enregistrement d’une étude');else etudiees++;}
    // Une étude refusée ne fait plus tomber les autres (27/09) : elle seule reste
    // à reprendre, avec son motif, au prochain passage.
-   for(const rejet of rejets){echecs.push('Étude d’une source à reprendre');
-    await db.from('tech_log').insert({evenement:'veille_analyse_echec',details:{motif:rejet.motif.slice(0,200),sources:1}});
-    await db.from('regulatory_watch').update({analyse_erreur:'Gerimmo reprendra l’étude de cette information au prochain passage.',analyse_tentee_le:new Date().toISOString()}).eq('id',rejet.id);}}
+   for(const rejet of rejets){
+    const {error:erreurTrace}=await db.from('tech_log').insert({evenement:'veille_analyse_rejetee',details:{motif:rejet.motif.slice(0,200),sources:1}});
+    const {error:erreurReprise}=await db.from('regulatory_watch').update({analyse_erreur:'Étude non retenue par le contrôle des sources. Elle sera reprise au prochain passage.',analyse_tentee_le:new Date().toISOString()}).eq('id',rejet.id);
+    if(erreurTrace||erreurReprise)echecs.push('Enregistrement du contrôle d’une étude');else rejetees++;}}
   catch(e){if(e instanceof ArretSupervision)throw e;echecs.push('Analyse des conséquences à reprendre');
    // Le motif exact, sans aucun contenu de source ni de réponse : c'est ce qui
    // manquait le 25/09 pour comprendre un échec depuis la console.
    await db.from('tech_log').insert({evenement:'veille_analyse_echec',details:{motif:e instanceof Error?e.message.slice(0,200):'inconnu',sources:sources.length}});
    for(const source of sources)await db.from('regulatory_watch').update({analyse_erreur:messageEtudeIA(e),analyse_tentee_le:new Date().toISOString()}).eq('id',source.id);}
  }
- await consignerTache(db,'veille',{preparees,etudiees,echecs,sources:FLUX_VEILLE.length});
- return Response.json({preparees,etudiees,echecs},{status:echecs.length?503:200});
+ await consignerTache(db,'veille',{preparees,etudiees,rejetees,echecs,sources:FLUX_VEILLE.length});
+ return Response.json({preparees,etudiees,rejetees,echecs},{status:echecs.length?503:200});
 }

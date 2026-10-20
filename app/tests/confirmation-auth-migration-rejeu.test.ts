@@ -12,9 +12,9 @@ const RETOUR = readFileSync("supabase/retours-arriere/20261016150000_confirmatio
 const SIGNATURE = "public.autoriser_confirmation_auth(text,text,text,text)";
 
 it("le retour de confirmation gère sa transaction, refuse un lot et retire seulement sa version", () => {
-  expect(RETOUR).toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
-  expect(RETOUR).toMatch(/^begin;$/m);
-  expect(RETOUR).toMatch(/^commit;$/m);
+  expect(RETOUR).not.toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
+  expect(RETOUR).toMatch(/do \$retour_atomique\$/);
+  expect(RETOUR).toMatch(/end \$retour_atomique\$;/);
   expect(RETOUR).toContain("where version = '20261016150000'");
   expect(RETOUR).not.toMatch(/delete from auth\.|drop (?:table|schema).*auth\./i);
 });
@@ -38,10 +38,10 @@ describe.skipIf(!DB_URL)("Confirmation — retour et rejeu sous transaction annu
     return { fonction: fonction.rows, table: table.rows, colonnes: colonnes.rows, index: index.rows };
   }
 
-  it("le retour brut refuse une transaction déjà ouverte sans modifier le catalogue", async () => {
+  it("le retour brut reste annulable sans modifier le catalogue", async () => {
     const avant = await empreinte();
     await db.query("savepoint refus");
-    await expect(db.query(RETOUR)).rejects.toThrow(/Retour arrière refusé/);
+    await db.query(RETOUR);
     await db.query("rollback to savepoint refus");
     expect(await empreinte()).toEqual(avant);
   });

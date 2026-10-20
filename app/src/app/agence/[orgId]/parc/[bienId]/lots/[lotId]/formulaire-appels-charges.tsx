@@ -206,7 +206,7 @@ function FormCreerAppel({
           <Label htmlFor={idDocument} className="text-sm">
             Appel du syndic à joindre
           </Label>
-          <ChampFichier id={idDocument} name="document" accept=".pdf,.jpg,.jpeg,.png" />
+          <ChampFichier depotDirect id={idDocument} name="document" accept=".pdf,.jpg,.jpeg,.png" />
         </div>
         <BoutonEnvoi size="sm" variant="outline" enCoursTexte="…">
           {"Créer l'appel"}

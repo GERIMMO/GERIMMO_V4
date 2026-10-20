@@ -20,7 +20,7 @@ Pour prendre une nouvelle copie avant l'essai : Actions → **Sauvegarde quotidi
 
 ## Programmes et protections
 
-- `scripts/sauvegarde/base.mjs` : export PostgreSQL des schémas public, auth, storage et support_interne, au format custom, sans propriétaires mais **avec les droits et les commentaires**. Il exporte aussi **les tâches planifiées** (`cron.job`, voir plus bas) dans `taches-pg-cron.gcm`, chiffré, avec son empreinte au manifeste. Si la lecture de `cron.job` échoue (droit refusé, connexion), la sauvegarde échoue : une copie qui omettrait les tâches sans le dire ne se déclare pas réussie. Sur un projet sans pg_cron, la liste est vide et le manifeste le note.
+- `scripts/sauvegarde/base.mjs` : export PostgreSQL des schémas public, auth, storage, support_interne et supabase_migrations, au format custom, sans propriétaires mais **avec les droits et les commentaires**. Il exporte aussi **les tâches planifiées** (`cron.job`, voir plus bas) dans `taches-pg-cron.gcm`, chiffré, avec son empreinte au manifeste. Si la lecture de `cron.job` échoue (droit refusé, connexion), la sauvegarde échoue : une copie qui omettrait les tâches sans le dire ne se déclare pas réussie. Sur un projet sans pg_cron, la liste est vide et le manifeste le note.
 - `scripts/sauvegarde/taches-planifiees.mjs` : lecture de `cron.job` (psql, mot de passe dans l'environnement du seul processus), validation de la liste et génération du script `rejouer-pg-cron.sql`.
 - `scripts/sauvegarde/fichiers.mjs` : copie des fichiers, contrôle des tailles et des empreintes SHA-256.
 - `scripts/sauvegarde/restaurer-archive.mjs` : exercice de la copie réelle, déchiffrement, import PostgreSQL, extraction des fichiers et contrôles de cohérence. Il rejoue aussi la liste des tâches sur un planificateur de façade (pg_cron et pg_net n'existent pas dans la base jetable) et le dit dans son bilan.
@@ -85,3 +85,9 @@ L'arrêt d'urgence couvre neuf de ces dix tâches (migration `20261014200000`, t
 L'exercice du 27 septembre prouve la récupération de **la vraie base PostgreSQL et des octets des fichiers**. Il ne prouve pas la bascule des services Supabase Auth et Storage vers un projet de secours, la réimportation dans leur API, ni une remise en service en moins de quatre heures. Cet essai nécessite un projet de secours dédié ; aucun projet tiers existant ne doit être utilisé. Le plan Supabase Pro est visible, mais la restauration de ses sauvegardes natives n'a pas été exercée ici.
 
 Les archives en clair ne doivent jamais être publiées ni jointes au rapport. La clé de chiffrement doit être conservée séparément dans un gestionnaire de secrets : perdre cette clé rend les copies inutilisables.
+
+## Historique des migrations — 20 octobre 2026
+
+Les nouvelles copies incluent `supabase_migrations.schema_migrations` : versions, noms et instructions appliquées. L’exercice local compare aussi l’empreinte de chaque ligne ; des versions identiques avec un contenu différent font échouer le contrôle. Une archive qui annonce ce schéma sans le restaurer est refusée. Les copies antérieures restent lisibles et leur bilan indique explicitement l’absence de cet historique.
+
+Sur un projet de secours déjà initialisé par Supabase, comparer son registre à celui de la copie avant la bascule : ne pas fusionner ni écraser les versions automatiquement. Le contrôle local restaure dans une base vide et ne valide pas cette bascule des services.

@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014812000_relais_urgences_passage_frequent.sql (D46-B, passage fréquent des urgences du relais,
 -- décision du 15/10/2026 « envoi immédiat pour les urgences »)
 --
@@ -33,17 +37,8 @@
 -- posées à la main avec une clé imitée (c'est leur vraie nature) ; les envois déjà clos « abandonné » sans urgence.
 -- PERD : le jeton (il n'a pas à survivre : il ne sert qu'à cette tâche) et les heures du dernier appel et du dernier passage.
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 
-begin;
 set local lock_timeout = '10s';
 
 -- Outil local à cette session (pg_temp) : retire d'une fonction le bloc compris entre deux marques, si et seulement si
@@ -117,7 +112,6 @@ begin
   end if;
 end $retour_arriere$;
 
-commit;
 
 -- Vérification (lecture seule) : « antérieure (A) » attendue après le retour, « migrée (B) » avant.
 select 'tâche pg_cron relais-urgences' as objet,
@@ -130,3 +124,5 @@ union all
 select 'sentinelle_relais attend les tâches hors arrêt',
        case when position('Relais 15/10' in pg_get_functiondef('public.sentinelle_relais()'::regprocedure)) > 0
             then 'migrée (B)' else 'antérieure (A)' end;
+$instructions_retour$;
+end $retour_atomique$;

@@ -407,8 +407,8 @@ describe.skipIf(!url)("Migrations de la clé d'envoi — rejeu et manifeste", ()
   it.each(MIGRATIONS)("%s a son retour arrière, déclaré dans le LISEZ-MOI du dossier", (nom) => {
     const retour = nom.replace(/\.sql$/, ".retour.sql");
     const script = readFileSync(`supabase/retours-arriere/${retour}`, "utf8");
-    expect(script).toMatch(/^-- RETOUR ARRIÈRE de /);
-    expect(script).toMatch(/\bcommit;\s*$/m);
+    expect(script).toMatch(/^-- RETOUR ARRIÈRE de /m);
+    expect(script).toMatch(/end \$retour_atomique\$;/);
     expect(script).toContain(nom.slice(0, 14));
     expect(readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8")).toContain(retour);
   });

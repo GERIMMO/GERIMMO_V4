@@ -81,10 +81,10 @@ describe("Lot avoir-facture-externe — fichiers de migration et de retour arri�
     expect(RETOUR).toContain(CLE_ANNULEE);
   });
 
-  it("le retour refuse de se jouer dans un lot, gère sa transaction, retire sa version, et ferme à anon", () => {
-    expect(RETOUR).toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
-    expect(RETOUR).toMatch(/^begin;$/m);
-    expect(RETOUR).toMatch(/^commit;$/m);
+  it("le retour est atomique sans valider la transaction appelante, retire sa version, et ferme à anon", () => {
+    expect(RETOUR).not.toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
+    expect(RETOUR).toMatch(/do \$retour_atomique\$/);
+    expect(RETOUR).toMatch(/end \$retour_atomique\$;/);
     expect(RETOUR).toContain("where version = '20261014710000'");
     expect(RETOUR).toContain("select public.fermer_fonctions_a_anon();");
   });
@@ -252,7 +252,9 @@ describe.skipIf(!DB_URL)("Lot avoir-facture-externe — rejeu et retour arrière
     expect(await empreinte()).toEqual(avant);
   });
 
-  it("dans un lot (begin; de migrations.yml), le retour refuse de se jouer", async () => {
-    await expect(db.query(RETOUR)).rejects.toThrow(/Retour arrière refusé : ce script gère sa propre transaction/);
+  it("dans un lot, le retour reste annulable", async () => {
+    await db.query("savepoint atomicite");
+    await db.query(RETOUR);
+    await db.query("rollback to savepoint atomicite");
   });
 });

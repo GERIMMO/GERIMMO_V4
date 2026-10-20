@@ -397,8 +397,8 @@ describe.skipIf(!DB_URL)("jour de Paris, la suite — migrations et retours arri
   });
 
   describe("retours arrière", () => {
-    it.each(FAMILLES)("$version : le retour refuse de se jouer dans un lot (migrations.yml, begin;)", async (famille) => {
-      expect(await echoue(retour(famille))).toMatch(/Retour arrière refusé : ce script gère sa propre transaction/);
+    it.each(FAMILLES)("$version : le retour reste annulable dans un lot", async (famille) => {
+      expect(await echoue(retour(famille))).toBe("");
     });
 
     it.each(FAMILLES)("$version : le retour rétablit current_date (nombre exact) et les défauts, puis se rejoue sans effet", async (famille) => {
@@ -512,8 +512,8 @@ describe.skipIf(!DB_URL)("jour de Paris, la suite — migrations et retours arri
 
     it.each(FAMILLES)("$version a son retour arrière, déclaré dans le LISEZ-MOI du dossier", (famille) => {
       const script = retour(famille);
-      expect(script).toMatch(/^-- RETOUR ARRIÈRE de /);
-      expect(script).toMatch(/\bcommit;\s*$/m);
+      expect(script).toMatch(/^-- RETOUR ARRIÈRE de /m);
+      expect(script).toMatch(/end \$retour_atomique\$;/);
       expect(readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8")).toContain(`${famille.version}_${famille.fichier}.retour.sql`);
     });
   });

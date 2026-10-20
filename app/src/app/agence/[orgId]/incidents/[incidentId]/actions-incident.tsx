@@ -319,7 +319,7 @@ export function FormulairePhotoIncident({
         </Label>
         {/* Champ fichier en français (nuit du 25 au 26/09) : le natif rendait
             « Choose Files / No file chosen ». */}
-        <ChampFichier id={idPhotos} name="photos" accept="image/jpeg,image/png" multiple vide="Aucune photo choisie" onChange={(e) => void compresserChampFichiers(e.currentTarget)} required />
+        <ChampFichier depotDirect id={idPhotos} name="photos" accept="image/jpeg,image/png" multiple vide="Aucune photo choisie" onChange={(e) => void compresserChampFichiers(e.currentTarget)} required />
         <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
           Joindre
         </BoutonEnvoi>

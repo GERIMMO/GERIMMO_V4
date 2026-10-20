@@ -215,7 +215,7 @@ export function FormulaireDiagnostic({
           <Label htmlFor={`diag-fichier-${niveau}`}>
             Rapport du diagnostiqueur
           </Label>
-          <ChampFichier id={`diag-fichier-${niveau}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
+          <ChampFichier depotDirect id={`diag-fichier-${niveau}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
           <p className="text-sm text-muted-foreground">
             Rapport requis. PDF, JPEG ou PNG
             (10 Mo maximum), à déposer avec les dates et la classe figurant sur le rapport.

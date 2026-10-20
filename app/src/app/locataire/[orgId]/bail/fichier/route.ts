@@ -1,15 +1,9 @@
 import type { NextRequest } from "next/server";
 import { pageErreurFichier } from "@/lib/page-erreur-fichier";
 import { verifierLocataire } from "@/lib/ged-acces";
-import { EXTENSIONS, type MimeAccepte } from "@/lib/file-type";
+import { servirFichierSigne } from "@/lib/fichier-signe";
 
-// Consultation du bail signé par le locataire (RM-4.7). Même architecture que
-// la route agence : le fichier est servi par cette route, l'URL visible reste
-// une URL Gerimmo stable, le lien signé Supabase ne sort jamais du serveur
-// (RM-A4.10). L'accès est porté par la RPC definer mon_bail_document_locataire
-// (locataire principal ou colocataire du bail, bail actif ou en préavis) et la
-// trace est obligatoire avant tout accès (RM-0b.7.5).
-
+// Droits et trace vérifiés avant la création du lien de lecture temporaire.
 
 export async function GET(
   request: NextRequest,
@@ -81,33 +75,6 @@ export async function GET(
     );
   }
 
-  const { data: fichier, error: erreurFichier } = await supabase.storage
-    .from("documents")
-    .download(doc.storage_path);
-  if (erreurFichier || !fichier) {
-    return pageErreurFichier(502,
-      "Fichier indisponible",
-      "Le fichier n'a pas pu être relu depuis le stockage. Réessayez dans un instant ; si le problème persiste, signalez-le à votre agence.",
-      "depuis votre espace"
-    );
-  }
-
-  // Liste blanche MIME : un type inattendu se sert en octet-stream téléchargé,
-  // jamais rendu inline (revue 26/08 — pas de HTML servi sur notre origine)
-  const mimeSur = doc.mime_type in EXTENSIONS ? (doc.mime_type as MimeAccepte) : null;
-  const extension = mimeSur ? EXTENSIONS[mimeSur] : "bin";
-  const titre = doc.titre ?? "Bail signé";
-  const nomFichier = titre.endsWith(`.${extension}`) ? titre : `${titre}.${extension}`;
-  const nomAscii = nomFichier.replace(/"/g, "'").replace(/[^\x20-\x7E]/g, "_");
-  const disposition =
-    mode === "telechargement" || !mimeSur ? "attachment" : "inline";
-
-  return new Response(fichier, {
-    headers: {
-      "Content-Type": mimeSur ?? "application/octet-stream",
-      "Content-Disposition": `${disposition}; filename="${nomAscii}"; filename*=UTF-8''${encodeURIComponent(nomFichier)}`,
-      "Cache-Control": "private, no-store",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
+  return servirFichierSigne(supabase, { path: doc.storage_path, mime: doc.mime_type,
+    titre: doc.titre, mode, retour: "depuis votre dossier Documents" });
 }

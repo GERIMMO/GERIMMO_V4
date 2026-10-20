@@ -599,7 +599,11 @@ async function appelerRpc(claims, nom, corps, url, methode, entetes) {
 // `methodes` : la revendication `amr` telle que GoTrue l'écrit (méthode qui a ouvert la session) ; par défaut une
 // connexion par mot de passe. Un lien ou un code vérifié (/auth/v1/verify) donne `email/signup`, `recovery`,
 // `magiclink` ou `otp` : /nouveau-mot-de-passe s'y fie pour n'accepter que les sessions nées d'un lien reçu par e-mail.
-function sessionPour(user, niveau = "aal1", methodes = null) {
+async function sessionPour(user, niveau = "aal1", methodes = null, sessionId = null) {
+  if (sessionId === null) {
+    sessionId = crypto.randomUUID();
+    await admin((c) => c.query("insert into auth.sessions(id,user_id) values($1,$2)", [sessionId, user.id]));
+  }
   const expires_in = 3600;
   const maintenant = Math.floor(Date.now() / 1000);
   const amr = Array.isArray(methodes) && methodes.length
@@ -607,7 +611,7 @@ function sessionPour(user, niveau = "aal1", methodes = null) {
     : [{ method: "password", timestamp: maintenant }, ...(niveau === "aal2" ? [{ method: "totp", timestamp: maintenant }] : [])];
   const claims = {
     sub: user.id, email: user.email, phone: "", role: "authenticated",
-    aud: "authenticated", session_id: crypto.randomUUID(),
+    aud: "authenticated", session_id: sessionId,
     aal: niveau, amr,
     app_metadata: user.raw_app_meta_data ?? {}, user_metadata: user.raw_user_meta_data ?? {},
     iat: maintenant, exp: maintenant + expires_in, iss: `http://127.0.0.1:${PORT}/auth/v1`,
@@ -618,7 +622,7 @@ function sessionPour(user, niveau = "aal1", methodes = null) {
     expires_in,
     expires_at: maintenant + expires_in,
     // Le rafraîchissement conserve la méthode d'origine, comme GoTrue.
-    refresh_token: signer({ sub: user.id, type: "refresh", aal: niveau, amr, iat: maintenant }),
+    refresh_token: signer({ sub: user.id, type: "refresh", session_id: sessionId, aal: niveau, amr, iat: maintenant }),
     user: utilisateurJson(user),
   };
 }
@@ -652,13 +656,20 @@ async function creerUtilisateur(email, motDePasse, meta) {
   return rows[0];
 }
 
+async function sessionLocaleActive(claims) {
+  if (!claims?.session_id || !claims?.sub) return false;
+  const { rows } = await admin((c) => c.query("select 1 from auth.sessions where id=$1 and user_id=$2 and (not_after is null or not_after>now())", [claims.session_id, claims.sub]));
+  return rows.length === 1;
+}
+
 async function routerAuth(methode, chemin, url, corps, claims) {
   if (chemin === 'factors' || chemin.startsWith('factors/')) {
+    if (!await sessionLocaleActive(claims)) return { statut: 401, corps: { msg: 'Session expirée' } };
     const resultat = routerMfaLocal(methode, chemin, corps, claims);
     if (resultat.valide) {
       const u = await utilisateurParId(claims.sub);
       if (!u) return { statut: 401, corps: { msg: 'Utilisateur disparu' } };
-      return { statut: 200, corps: sessionPour(u, 'aal2') };
+      return { statut: 200, corps: await sessionPour(u, 'aal2', [...(claims.amr ?? []), { method: 'totp', timestamp: Math.floor(Date.now() / 1000) }], claims.session_id) };
     }
     return resultat;
   }
@@ -676,21 +687,21 @@ async function routerAuth(methode, chemin, url, corps, claims) {
       // L'aperçu visuel local peut utiliser son compte fictif sans demander
       // un code. Ce drapeau n'existe que dans le banc, jamais dans le produit.
       const niveau = estApercuSuperadminSansMfa(process.env, rows[0].email) ? "aal2" : "aal1";
-      return { statut: 200, corps: sessionPour(rows[0], niveau) };
+      return { statut: 200, corps: await sessionPour(rows[0], niveau) };
     }
     if (grant === "refresh_token") {
       const c2 = verifier(corps.refresh_token ?? "");
-      if (!c2 || c2.type !== "refresh") return { statut: 400, corps: { error: "invalid_grant", msg: "Invalid Refresh Token" } };
+      if (!c2 || c2.type !== "refresh" || !await sessionLocaleActive(c2)) return { statut: 400, corps: { error: "invalid_grant", msg: "Invalid Refresh Token" } };
       const u = await utilisateurParId(c2.sub);
       if (!u) return { statut: 400, corps: { error: "invalid_grant", msg: "Utilisateur disparu" } };
-      return { statut: 200, corps: sessionPour(u, c2.aal === "aal2" ? "aal2" : "aal1", Array.isArray(c2.amr) ? c2.amr : null) };
+      return { statut: 200, corps: await sessionPour(u, c2.aal === "aal2" ? "aal2" : "aal1", Array.isArray(c2.amr) ? c2.amr : null, c2.session_id) };
     }
     return { statut: 400, corps: { error: "unsupported_grant_type" } };
   }
   if (chemin === "signup" && methode === "POST") {
     try {
       const u = await creerUtilisateur(corps.email, corps.password, corps.data ?? {});
-      return { statut: 200, corps: sessionPour(u) };
+      return { statut: 200, corps: await sessionPour(u) };
     } catch (e) {
       if (e.code === "23505") return { statut: 422, corps: { code: "user_already_exists", msg: "User already registered" } };
       throw e;
@@ -735,12 +746,14 @@ async function routerAuth(methode, chemin, url, corps, claims) {
   }
   if (chemin === "user" && methode === "GET") {
     if (!claims?.sub) return { statut: 401, corps: { code: "no_authorization", msg: "Jeton absent ou invalide" } };
+    if (!await sessionLocaleActive(claims)) return { statut: 401, corps: { code: "session_not_found", msg: "Session expirée" } };
     const u = await utilisateurParId(claims.sub);
     if (!u) return { statut: 401, corps: { code: "user_not_found", msg: "Utilisateur introuvable" } };
     return { statut: 200, corps: utilisateurJson(u) };
   }
   if (chemin === "user" && methode === "PUT") {
     if (!claims?.sub) return { statut: 401, corps: { code: "no_authorization", msg: "Jeton absent ou invalide" } };
+    if (!await sessionLocaleActive(claims)) return { statut: 401, corps: { code: "session_not_found", msg: "Session expirée" } };
     if (corps.password) {
       await admin((c) =>
         c.query(
@@ -757,7 +770,14 @@ async function routerAuth(methode, chemin, url, corps, claims) {
     const u = await utilisateurParId(claims.sub);
     return { statut: 200, corps: utilisateurJson(u) };
   }
-  if (chemin === "logout" && methode === "POST") return { statut: 204, corps: null };
+  if (chemin === "logout" && methode === "POST") {
+    if (claims?.sub) {
+      const scope = url.searchParams.get("scope") ?? "global";
+      const filtre = scope === "local" ? " and id=$2" : scope === "others" ? " and id<>$2" : "";
+      await admin((c) => c.query(`delete from auth.sessions where user_id=$1${filtre}`, filtre ? [claims.sub, claims.session_id] : [claims.sub]));
+    }
+    return { statut: 204, corps: null };
+  }
   if (["recover", "otp", "resend", "magiclink"].includes(chemin) && methode === "POST") {
     // Hors ligne : pas d'email sortant. On répond OK pour ne pas casser les
     // parcours ; le lien n'arrivera jamais (limite documentée du mode local).
@@ -780,7 +800,7 @@ async function routerAuth(methode, chemin, url, corps, claims) {
     // Méthode d'authentification telle que GoTrue la consigne pour un lien vérifié (models.AuthenticationMethod).
     const methodeLien = corps.type === "signup" || verifie.token_type === "confirmation_token" ? "email/signup"
       : corps.type === "magiclink" ? "magiclink" : corps.type === "recovery" ? "recovery" : "otp";
-    return { statut: 200, corps: sessionPour(await utilisateurParId(verifie.user_id), "aal1", [{ method: methodeLien, timestamp: Math.floor(Date.now() / 1000) }]) };
+    return { statut: 200, corps: await sessionPour(await utilisateurParId(verifie.user_id), "aal1", [{ method: methodeLien, timestamp: Math.floor(Date.now() / 1000) }]) };
   }
   return { statut: 404, corps: { msg: `auth/${chemin} non géré` } };
 }
@@ -796,6 +816,42 @@ async function routerStorage(methode, segments, url, brut, entetes, claims) {
   const [tete, ...reste] = segments;
   if (tete !== "object") return { statut: 404, corps: { message: `storage/${tete} non géré` } };
 
+  if (reste[0] === "upload" && reste[1] === "sign") {
+    const bucket=reste[2], objet=decodeURIComponent(reste.slice(3).join("/"));
+    if(methode === "POST") {
+      await sousIdentite(claims,async client=>{
+        await client.query("savepoint capacite_upload");
+        await client.query("insert into storage.objects(bucket_id,name,owner) values($1,$2,$3)",[bucket,objet,claims?.sub??null]);
+        await client.query("rollback to capacite_upload");
+      });
+      const jeton=signer({operation:"upload",url:`${bucket}/${objet}`,identite:claims,exp:Math.floor(Date.now()/1000)+7200});
+      return {statut:200,corps:{url:`/object/upload/sign/${bucket}/${objet}?token=${jeton}`}};
+    }
+    if(methode === "PUT") {
+      const capacite=verifier(url.searchParams.get("token")??"");
+      if(!capacite || capacite.operation!=="upload" || capacite.url!==`${bucket}/${objet}`)return {statut:401,corps:{message:"Capacité invalide"}};
+      let contenu=brut,mime=entetes["content-type"]??"application/octet-stream";
+      if(mime.startsWith("multipart/form-data")) {
+        const form=await new Request("http://localhost/transfert",{method:"POST",headers:{"content-type":mime},body:brut}).formData();
+        const file=Array.from(form.values()).find(v=>typeof v!=="string");
+        if(!file)return {statut:400,corps:{message:"Fichier absent"}};
+        contenu=Buffer.from(await file.arrayBuffer());mime=file.type;
+      }
+      const limite=await admin(async client=>(await client.query("select file_size_limit,allowed_mime_types from storage.buckets where id=$1",[bucket])).rows[0]);
+      if(!limite || (limite.file_size_limit&&contenu.length>limite.file_size_limit) || (limite.allowed_mime_types&&!limite.allowed_mime_types.includes(mime)))return {statut:413,corps:{message:"Fichier refusé"}};
+      // Comme Storage, la capacité signée reste valable jusqu'à son propre
+      // terme : la RLS a été contrôlée à sa création, pas à nouveau au PUT.
+      // Chemin, opération, signature et expiration du jeton sont vérifiés ci-dessus.
+      return routerStorage("POST",["object",bucket,...objet.split("/")],url,contenu,{...entetes,"content-type":mime,"x-upsert":"false"},{...capacite.identite,role:"service_role"});
+    }
+    return {statut:405,corps:{message:"Méthode refusée"}};
+  }
+  if(reste[0] === "list" && methode === "POST") {
+    const bucket=reste[1], options=JSON.parse(brut.toString()||"{}");
+    const prefixe=String(options.prefix??"").replace(/\/$/,"");
+    const rows=await sousIdentite(claims,async client=>(await client.query("select name,metadata from storage.objects where bucket_id=$1 and starts_with(name,$2)",[bucket,prefixe?prefixe+"/":""])).rows);
+    return {statut:200,corps:rows.map(r=>({...r,name:r.name.slice(prefixe?prefixe.length+1:0)})).filter(r=>!r.name.includes("/")&&(!options.search||r.name.includes(String(options.search)))).slice(0,Math.min(Number(options.limit)||100,1000))};
+  }
   if (reste[0] === "sign" && methode === "POST") {
     const bucket = reste[1];
     const objet = reste.slice(2).join("/");
@@ -811,18 +867,26 @@ async function routerStorage(methode, segments, url, brut, entetes, claims) {
     const bucket = reste[1];
     const objet = decodeURIComponent(reste.slice(2).join("/"));
     const c = verifier(url.searchParams.get("token") ?? "");
-    if (!c || c.url !== `${bucket}/${objet}`) return { statut: 401, corps: { message: "Jeton signé invalide" } };
-    return { statut: 200, fichier: cheminSur(STOCKAGE, bucket, objet) };
+    if (!c || c.operation === "upload" || c.url !== `${bucket}/${objet}`) return { statut: 401, corps: { message: "Jeton signé invalide" } };
+    // La capacité signée autorise la lecture ; le MIME reste celui du dépôt,
+    // comme sur Storage, et un objet supprimé n'est plus servi depuis le disque.
+    const metadata = await admin(async (client) => {
+      const r = await client.query("select metadata from storage.objects where bucket_id = $1 and name = $2", [bucket, objet]);
+      if (!r.rows.length) throw erreurRest(404, "storage", "Object not found");
+      return r.rows[0].metadata;
+    });
+    return { statut: 200, fichier: cheminSur(STOCKAGE, bucket, objet), mime: metadata?.mimetype };
   }
   if ((reste[0] === "authenticated" || reste[0] !== "sign") && methode === "GET") {
     const base = reste[0] === "authenticated" ? reste.slice(1) : reste;
     const bucket = base[0];
     const objet = decodeURIComponent(base.slice(1).join("/"));
-    await sousIdentite(claims, async (client) => {
-      const r = await client.query("select 1 from storage.objects where bucket_id = $1 and name = $2", [bucket, objet]);
+    const metadata = await sousIdentite(claims, async (client) => {
+      const r = await client.query("select metadata from storage.objects where bucket_id = $1 and name = $2", [bucket, objet]);
       if (!r.rows.length) throw erreurRest(404, "storage", "Object not found");
+      return r.rows[0].metadata;
     });
-    return { statut: 200, fichier: cheminSur(STOCKAGE, bucket, objet) };
+    return { statut: 200, fichier: cheminSur(STOCKAGE, bucket, objet), mime: metadata?.mimetype };
   }
   if (methode === "POST" || methode === "PUT") {
     const bucket = reste[0];
@@ -996,7 +1060,11 @@ const serveur = http.createServer(async (req, res) => {
       if (r.fichier) {
         try {
           const contenu = fs.readFileSync(r.fichier);
-          res.writeHead(200, { "Content-Type": "application/octet-stream", ...CORS });
+          const nom = url.searchParams.get("download") || path.basename(r.fichier);
+          const nomEncode = encodeURIComponent(nom).replace(/['()*]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+          res.writeHead(200, { "Content-Type": r.mime || "application/octet-stream", ...CORS,
+            ...(url.searchParams.has("download") ? { "Content-Disposition": `attachment; filename*=UTF-8''${nomEncode}` } : {}),
+          });
           return res.end(contenu);
         } catch {
           return repondreJson(404, { message: "Fichier absent du disque" });

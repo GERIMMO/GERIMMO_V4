@@ -147,8 +147,15 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
+    // Ces routes retournent une visionneuse autonome avec une CSP à nonce.
+    // La CSP générale écrasait celle de la réponse après la réécriture /espace,
+    // et « frame-ancestors none » bloquait l'aperçu dans notre propre dossier.
+    // Aucun écran interactif n'est exclu : seulement les routes fichier nommées.
+    const fichiers = "(?:agence|espace|locataire)/[^/]+/documents/[^/]+/fichier/?$|locataire/[^/]+/bail/fichier/?$|artisan/attestations/[^/]+/fichier/?$|admin/artisans/pieces/[^/]+/fichier/?$|api/artisan-prive/pieces/[^/]+/?$|api/devis/[^/]+/(?:pdf|signature)/?$";
+    const encadrement = new Set(["Content-Security-Policy", "X-Frame-Options"]);
     return [
-      { source: "/(.*)", headers: ENTETES_SECURITE },
+      { source: "/(.*)", headers: ENTETES_SECURITE.filter(e => !encadrement.has(e.key)) },
+      { source: `/((?!${fichiers}).*)`, headers: ENTETES_SECURITE.filter(e => encadrement.has(e.key)) },
       // Audit du 30/09 (M5) : l'adresse des pages /auth/confirm et
       // /auth/confirmer porte le jeton d'un lien reçu par e-mail. Ni le
       // navigateur ni un relais ne doivent en garder copie.
@@ -173,16 +180,10 @@ const nextConfig: NextConfig = {
     // (revalidatePath) invalident tout de suite ce qui a changé.
     staleTimes: { dynamic: 30, static: 180 },
     serverActions: {
-      // 10 Mo par fichier (limite du bucket), et une déclaration d'incident
-      // porte jusqu'à 5 photos (recette 24/08 : deux photos de téléphone
-      // crevaient l'ancienne limite de 11 Mo → « erreur » sèche avant même
-      // notre code) + enrobage multipart.
-      //
-      // Audit 25/09 (S11) : la limite est globale par construction — Next.js
-      // 16 ne l'accepte pas par action (docs serverActions.md). Elle reste
-      // donc à 55 Mo pour toutes les actions ; la ramener demanderait de
-      // sortir les dépôts de fichiers vers une route dédiée.
-      bodySizeLimit: "55mb",
+      // Les nouveaux dépôts sont limités à 4 Mio, avec contrôle avant envoi.
+      // La marge couvre les champs et l'enrobage multipart sous le plafond
+      // de transport de l'hébergeur. Les archives ne passent plus ici.
+      bodySizeLimit: 4_500_000,
     },
   },
 };

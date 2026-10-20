@@ -10,6 +10,7 @@ import { deposerFichierGed } from "@/lib/ged-depot";
 import { appliquerMarqueDocument } from "@/lib/documents/marque";
 import { chargerMarque } from "@/lib/marque-organisation-serveur";
 import { activerDemandeSignature, annulerDemandeSignature, lireDemandeSignature, preparerCircuitSignature, supprimerBrouillonSignature, prestataireSignature } from "@/lib/signature-prestataire";
+import { rapprocherSignatureInterrompue } from "@/lib/signature-suivi";
 import { synchroniserCircuitSignatureBail } from "@/lib/signature-bail-worker";
 import { verifierAvantEffet } from "@/lib/controle-effets";
 import { sansJargon } from "@/lib/erreurs";
@@ -96,7 +97,7 @@ export async function preparerSignatureBail(org: string, bail: string, choix?: S
       if (retire.error) throw new Error("Le circuit vient de changer. Actualisez son suivi.");
     }
     const pdf = await rendrePdf(appliquerMarqueDocument(preparation.document,await chargerMarque(supabase,org)));
-    const depot = await deposerFichierGed(supabase,user,org,new File([Uint8Array.from(pdf).buffer],`${selection.code}-a-signer.pdf`,{type:"application/pdf"}),selection.code === "edl" ? "etat_des_lieux" : ["protocole_apurement","autorisation_travaux","devis_artisan"].includes(selection.code) ? "courrier" : "bail",`${preparation.titreGed} — à signer en ligne`);
+    const depot = await deposerFichierGed(supabase,user,org,new File([Uint8Array.from(pdf).buffer],`${selection.code}-a-signer.pdf`,{type:"application/pdf"}),selection.code === "edl" ? "etat_des_lieux" : ["protocole_apurement","autorisation_travaux","devis_artisan"].includes(selection.code) ? "courrier" : "bail",`${preparation.titreGed} — à signer en ligne`, { genereServeur: true });
     const documentId = depot.documentId ?? depot.doublonId;
     if (!documentId) throw new Error(depot.erreur ?? "Le PDF n’a pas pu être enregistré.");
     const liens = await supabase.from("document_liens").upsert(preparation.liens.map(l=>({ organization_id:org,document_id:documentId,entite:l.entite,entite_id:l.entiteId })),{onConflict:"document_id,entite,entite_id",ignoreDuplicates:true});
@@ -112,8 +113,10 @@ export async function preparerSignatureBail(org: string, bail: string, choix?: S
 export async function envoyerSignatureBail(org: string, bail: string, id: string): Promise<VueSignatureBail> {
   let reserve = false;
   let appelPrestataire = false;
+  let acteur: string | null = null;
   try {
     const { supabase, user, circuit } = await circuitAutorise(org,bail,id);
+    acteur=user.id;
     // Fermeture ciblée d'un modèle : refus avant toute lecture du dossier, toute réservation et tout appel au prestataire.
     const fermeture = fermetureModeleSignature(circuit.modele);
     if (fermeture) throw new Error(fermeture);
@@ -124,7 +127,7 @@ export async function envoyerSignatureBail(org: string, bail: string, id: string
     if (!config) throw new Error("La signature électronique n’est pas encore activée. Le PDF reste disponible et aucun envoi n’a été effectué.");
     if (circuit.environnement !== config.environnement) throw new Error("L’environnement de signature a changé. Annulez cette préparation puis préparez un nouveau PDF.");
     if (new Date(circuit.expire_le).getTime()<=Date.now()+86_400_000) throw new Error(circuit.modele === "devis_artisan" ? "La validité du devis est trop courte pour ouvrir la signature. Demandez à l’artisan une offre valable plus longtemps." : "Cette préparation est trop ancienne. Actualisez le PDF avant de l’envoyer.");
-    if (config.environnement === "sandbox" && !(process.env[config.prestataire === "zoho" ? "ZOHO_SIGN_ORGS_TEST" : "YOUTRUST_ORGS_TEST"] ?? "").split(",").map(x=>x.trim()).includes(org)) throw new Error("Cet espace n’est pas autorisé pour les essais de signature.");
+    if (config.environnement === "sandbox" && !(process.env.ZOHO_SIGN_ORGS_TEST ?? "").split(",").map(x=>x.trim()).includes(org)) throw new Error("Cet espace n’est pas autorisé pour les essais de signature.");
     const service = clientDeService(); if (!service) throw new Error("Le suivi sécurisé est indisponible.");
     const preparation = await assemblerSignatureDocument(supabase,org,selectionDuCircuit(circuit));
     if (preparation.manquants.length || preparation.empreinte !== circuit.empreinte) throw new Error("Le dossier a changé depuis la préparation. Préparez et relisez un nouveau PDF.");
@@ -162,10 +165,9 @@ export async function envoyerSignatureBail(org: string, bail: string, id: string
       }
     }
     const expiration = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(circuit.expire_le));
-    appelPrestataire = true;
     const cree = await preparerCircuitSignature({ config,pdf:contenu,nomFichier:"document-gerimmo.pdf",
       titre:signatureEnEssai(org) ? "GERIMMO — ESSAI DE SIGNATURE SANS ENGAGEMENT" : config.environnement === "sandbox" ? "TEST FICTIF — Document Gerimmo" : preparation.titreGed,referenceExterne:id,expiration,
-      signataires:circuit.signataires,annexes,demandeCreee:async externalId=>{
+      signataires:circuit.signataires,annexes,creationCommencee:()=>{appelPrestataire=true;},demandeCreee:async externalId=>{
         const attache = await service.from("bail_signature_circuits").update({external_request_id:externalId}).eq("id",id).eq("etat","preparation").select("id").single();
         if (attache.error) throw new Error("Le suivi de la demande doit être vérifié avant toute activation.");
       } });
@@ -174,20 +176,17 @@ export async function envoyerSignatureBail(org: string, bail: string, id: string
     if (attache.error) throw new Error("Les signataires n’ont pas pu être rattachés. Aucune activation n’a été demandée.");
     await verifierAvantEffet(service,"signatures");
     await activerDemandeSignature(config,cree.demandeId,{...circuit,external_document_id:cree.documentId,signataires:circuit.signataires.map((s,i)=>({...s,externalId:cree.signataireIds[i]}))});
-    const miseAJour = await service.from("bail_signature_circuits").update({etat:"en_cours",updated_at:new Date().toISOString()}).eq("id",id).eq("etat","preparation");
+    const miseAJour = await service.from("bail_signature_circuits").update({etat:"en_cours",envoye_le:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",id).eq("etat","preparation");
     if (miseAJour.error) throw new Error("L’envoi doit être rapproché du prestataire.");
     rafraichir(org,bail);
     return { ...await lireSignatureBail(org,bail,selectionDuCircuit(circuit)),succes:"Le premier signataire est invité par e-mail. Les suivants seront invités dans l’ordre indiqué." };
   } catch(e) {
     if (reserve && !appelPrestataire) {
-      // La réservation a réussi, mais aucune requête externe n’a commencé.
+      // La réservation a réussi, mais aucune création distante n’a commencé.
       // Une panne de relecture ne doit pas laisser un circuit impossible à annuler.
       const service=clientDeService();
-      const retrait=await service?.from("bail_signature_circuits").update({etat:"annule",erreur:"Préparation interrompue avant tout appel au prestataire. Préparez un nouveau PDF."}).eq("id",id).eq("etat","preparation").is("external_request_id",null).select("id").single();
-      if (retrait && !retrait.error) {
-        await service?.from("signature_consommations").delete().eq("circuit_id",id);
-        reserve=false;
-      }
+      const retrait=await service?.rpc("abandonner_preparation_signature",{p_circuit:id,p_actor:acteur});
+      if (retrait?.data === true && !retrait.error) reserve=false;
     }
     if (reserve) {
       await clientDeService()?.from("bail_signature_circuits").update({etat:"a_verifier",erreur:"L’envoi n’a pas pu être confirmé. Actualisez le suivi avant toute nouvelle demande."}).eq("id",id).in("etat",["preparation","en_cours"]);
@@ -204,6 +203,9 @@ export async function actualiserSignatureBail(org: string,bail: string,id: strin
     if (circuit.external_request_id) {
       if (!config || !service || config.environnement !== circuit.environnement) throw new Error("La connexion au prestataire est indisponible. Le dernier état connu est conservé.");
       await synchroniserCircuitSignatureBail(service,config,circuit.id);
+    } else if (["preparation","a_verifier"].includes(circuit.etat)) {
+      if (!config || !service) throw new Error("La connexion au prestataire est indisponible.");
+      await rapprocherSignatureInterrompue(service,config,circuit.id);
     }
     rafraichir(org,bail);
     return lireSignatureBail(org,bail,selectionDuCircuit(circuit));
@@ -253,8 +255,12 @@ export async function annulerSignatureBail(org: string,bail: string,id: string):
         if (confirmation.id !== circuit.external_request_id || confirmation.external_id !== circuit.id || confirmation.status !== "canceled") throw new Error("L’annulation n’a pas encore été confirmée par le prestataire. Actualisez le suivi.");
       } else if (!["canceled","expired","declined","rejected","deleted"].includes(actuel.status)) throw new Error("Ce circuit doit être vérifié chez le prestataire avant son annulation.");
     }
-    const fin = await service.from("bail_signature_circuits").update({etat:"annule",erreur:null,updated_at:new Date().toISOString()}).eq("id",id).in("etat",["pret","preparation","en_cours","a_verifier"]);
-    if (fin.error) throw new Error("L’arrêt chez le prestataire est confirmé, mais le suivi doit être actualisé.");
+    let retrait = service.from("bail_signature_circuits").update({etat:"annule",erreur:null,updated_at:new Date().toISOString()}).eq("id",id);
+    retrait = circuit.etat === "pret"
+      ? retrait.eq("etat","pret").is("external_request_id",null)
+      : retrait.in("etat",["preparation","en_cours","a_verifier"]).eq("external_request_id",circuit.external_request_id);
+    const fin = await retrait.select("id").single();
+    if (fin.error || !fin.data) throw new Error("Le circuit a changé. Actualisez son suivi avant de demander son arrêt.");
     rafraichir(org,bail);
     return {...await lireSignatureBail(org,bail,selectionDuCircuit(circuit)),succes:"Circuit annulé. Vous pouvez préparer une nouvelle version."};
   } catch(e) { return erreur(e); }

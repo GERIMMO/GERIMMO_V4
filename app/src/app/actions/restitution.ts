@@ -1,4 +1,6 @@
 "use server";
+import { resoudreDepotsFormulaire } from "@/lib/depot-direct";
+
 
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
@@ -88,6 +90,8 @@ export async function ajouterRetenue(
   // fiche naît dans la transaction de la retenue — ou n'existe jamais.
   let piece: FichierPrepareGed | null = null;
   let avertissement: string | undefined;
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichier = formData.get("justificatif");
   if (fichier instanceof File && fichier.size > 0) {
     const prep = await preparerFichierGed(supabase, orgId, fichier);
@@ -151,6 +155,8 @@ export async function justifierRetenue(
 ): Promise<EtatRestit> {
   const { supabase, user } = await verifierGerant(orgId, { geste: "justification_retenue", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichier = formData.get("justificatif");
   if (!(fichier instanceof File) || fichier.size === 0) return { erreur: "Choisissez le devis ou la facture." };
   // Même indivisibilité qu'à l'ajout : « Cette retenue a déjà un justificatif »

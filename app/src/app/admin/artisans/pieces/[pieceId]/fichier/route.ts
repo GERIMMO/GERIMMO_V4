@@ -1,3 +1,4 @@
+import { servirFichierSigne } from "@/lib/fichier-signe";
 import { createClient } from "@/lib/supabase/server";
 import { pageErreurFichier } from "@/lib/page-erreur-fichier";
 import { EXTENSIONS, type MimeAccepte } from "@/lib/file-type";
@@ -17,14 +18,8 @@ export async function GET(_request: Request, ctx: { params: Promise<{ pieceId: s
     sa_details: { artisan_id: piece.artisan_id, piece_id: piece.id },
   });
   if (erreurTrace) return pageErreurFichier(503, "Consultation indisponible", "La consultation ne peut pas être journalisée. Réessayez.", "depuis les inscriptions artisan");
-  const { data: fichier, error: erreurFichier } = await supabase.storage.from("documents").download(piece.storage_path);
-  if (erreurFichier || !fichier) return pageErreurFichier(502, "Fichier indisponible", "Le stockage n’a pas pu fournir le justificatif. Réessayez.", "depuis les inscriptions artisan");
   const extension = piece.storage_path.split(".").pop()?.toLowerCase() ?? "";
   const mime = (Object.entries(EXTENSIONS) as [MimeAccepte, string][]).find(([, ext]) => ext === extension)?.[0];
-  return new Response(fichier, { headers: {
-    "Content-Type": mime ?? "application/octet-stream",
-    "Content-Disposition": `${mime ? "inline" : "attachment"}; filename="${piece.type}.${mime ? EXTENSIONS[mime] : "bin"}"`,
-    "Cache-Control": "private, no-store",
-    "X-Content-Type-Options": "nosniff",
-  } });
+  return servirFichierSigne(supabase,{path:piece.storage_path,mime,titre:piece.type,
+    retour:"depuis les inscriptions artisan"});
 }

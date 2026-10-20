@@ -68,10 +68,10 @@ describe("Lot artisan-externe — fichiers de migration et de retour arrière (s
     expect(R311).toContain(",'exclusion',public.artisan_exclusion_plateforme()");
   });
 
-  it.each([["310000", R310, "20261014310000"], ["311000", R311, "20261014311000"]])("le retour %s refuse de se jouer dans un lot, gère sa transaction et retire sa version", (_n, retour, version) => {
-    expect(retour).toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
-    expect(retour).toMatch(/^begin;$/m);
-    expect(retour).toMatch(/^commit;$/m);
+  it.each([["310000", R310, "20261014310000"], ["311000", R311, "20261014311000"]])("le retour %s est atomique sans valider la transaction appelante et retire sa version", (_n, retour, version) => {
+    expect(retour).not.toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
+    expect(retour).toMatch(/do \$retour_atomique\$/);
+    expect(retour).toMatch(/end \$retour_atomique\$;/);
     expect(retour).toContain(`where version = '${version}'`);
     expect(retour).toContain("select public.fermer_fonctions_a_anon();");
   });

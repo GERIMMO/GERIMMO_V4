@@ -1,4 +1,6 @@
 "use client";
+import {preparerDepotsDirects} from "@/lib/depot-direct-client";
+import {MARQUEUR_DEPOT} from "@/lib/depot-direct-commun";
 
 import Link from "next/link";
 import { RepriseLocale, StatutCopieLocale, useCopieFichiers } from "@/components/reprise-locale";
@@ -70,6 +72,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
   const [etat, formAction, enCours] = useActionState<BilanCreationFiche, FormData>(
     async (precedent, data) => {
       const bilan = await enregistrerFicheAvecJustificatifs(orgId, data, pieces, precedent, {
+        preparer: async (data,pieceId)=>{data.set(MARQUEUR_DEPOT,JSON.stringify({id:`doc-fichier-${pieceId}`,nom:"fichier"}));await preparerDepotsDirects(data);},
         creer: creerPersonne, deposer: deposerPieceDossier, demander: demanderPieceLocataire,
         memoriser: bilan => enregistrer({ ...contenu, bilan }),
       });

@@ -4,6 +4,9 @@
 .shell :global(.admin-nav-lien) > svg { flex-shrink: 0; }
 .shell :global(.admin-menu-mobile) { align-items: center; gap: 7px; }
 .signature { margin-top: 13px; color: #d8c69d; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; }
+@media (max-width: 640px) {
+  .shell :global(.admin-bandeau .marque-gerimmo-tuile) { box-sizing: border-box; width: 64px; min-width: 64px; }
+}
 :global(.gerimmo-prestige) .shell :global(.admin-onglets) { background: var(--carte); }
 :global(.gerimmo-prestige) .shell :global(.admin-onglets-interieur) { gap: 8px; padding: 10px 28px; }
 :global(.gerimmo-prestige) .shell :global(.admin-onglet) { min-height: 36px; padding: 7px 14px; border-radius: 7px; border: 0; font-size: 13px; }

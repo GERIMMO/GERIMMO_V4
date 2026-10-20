@@ -150,7 +150,6 @@ export async function proxy(request: NextRequest) {
     "/api/cron/orchestrateur",
     "/api/cron/relais",
     "/api/stripe/webhook",
-    "/api/youtrust/webhook",
     "/api/zoho-sign/webhook",
     "/api/sante",
   ].includes(request.nextUrl.pathname)) {
@@ -214,7 +213,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Sessions par rôle (RM-A4.5) : la limite la plus stricte des adhésions actives.
-  const { data: memberships } = await supabase
+  const { data: memberships, error: erreurDroitsSession } = await supabase
     .from("memberships")
     .select("role")
     .eq("account_id", user.id)
@@ -222,22 +221,28 @@ export async function proxy(request: NextRequest) {
   const limits = strictestLimits((memberships ?? []).map((m) => m.role));
 
   const now = Date.now();
-  const signedInAt = user.last_sign_in_at
-    ? new Date(user.last_sign_in_at).getTime()
-    : now;
-  // Dernière activité = le plus récent entre le cookie et la connexion :
-  // une reconnexion vaut activité (sinon un vieux cookie déconnecterait en
-  // boucle), et un cookie absent, corrompu ou MAL SIGNÉ (27/09 : il est signé
-  // et lié au compte) retombe sur l'heure de connexion.
+  const { data: sessions, error: erreurSession } = await supabase.rpc("ma_session_active");
+  if (erreurSession || erreurDroitsSession) {
+    if (isPublic && ["GET", "HEAD"].includes(request.method)) return response;
+    const indisponible = new NextResponse("La vérification de votre session est momentanément indisponible. Réessayez dans un instant.", {
+      status: 503, headers: { "Cache-Control": "no-store", "Content-Type": "text/plain; charset=utf-8", "Retry-After": "30" },
+    });
+    response.cookies.getAll().forEach((c) => indisponible.cookies.set(c));
+    return indisponible;
+  }
+  const session = sessions?.[0];
+  const signedInAt = session?.cree_le ? Date.parse(session.cree_le) : NaN;
+  const sessionValide = typeof session?.id === "string" && Number.isFinite(signedInAt) && signedInAt <= now + 30_000;
+  const identiteSession = `${user.id}:${session?.id ?? "absente"}`;
   const secretActivite = secretDActivite();
-  const parsed = await lireActivite(request.cookies.get(ACTIVITY_COOKIE)?.value, user.id, secretActivite);
-  const lastActivity = Math.max(parsed ?? 0, signedInAt);
+  const parsed = await lireActivite(request.cookies.get(ACTIVITY_COOKIE)?.value, identiteSession, secretActivite);
+  const lastActivity = Math.max(Math.min(parsed ?? 0, now), signedInAt);
 
   const absoluteExpired = now - signedInAt > limits.absolute;
   const inactivityExpired = now - lastActivity > limits.inactivity;
 
-  if (absoluteExpired || inactivityExpired) {
-    const { error: erreurDeconnexion } = await supabase.auth.signOut();
+  if (!sessionValide || absoluteExpired || inactivityExpired) {
+    const { error: erreurDeconnexion } = await supabase.auth.signOut({ scope: "local" });
     // Une ancienne session ne doit pas interdire la consultation du site vitrine.
     // Les mutations et les pages privées gardent la redirection de sécurité.
     if (!erreurDeconnexion && isPublic && ["GET", "HEAD"].includes(request.method)) {
@@ -264,7 +269,7 @@ export async function proxy(request: NextRequest) {
     return redirect;
   }
 
-  response.cookies.set(ACTIVITY_COOKIE, await signerActivite(now, user.id, secretActivite), {
+  response.cookies.set(ACTIVITY_COOKIE, await signerActivite(now, identiteSession, secretActivite), {
     httpOnly: true,
     sameSite: "lax",
     path: "/",

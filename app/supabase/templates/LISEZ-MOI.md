@@ -46,3 +46,20 @@ Les anciens courriers ne sont pas réécrits lorsqu’un modèle change. En cas 
 - `RESEND_API_KEY` et `RESEND_EXPEDITEUR` : envoi des courriers par l’application, voir `.env.example`.
 
 Les modèles ne chargent ni image ni style externe. Après installation, vérifier les sujets, le bouton et le retour dans l’application avec des comptes de recette.
+
+## Notifications de sécurité préparées le 20 octobre
+
+Les quatre modèles ci-dessous sont prêts à installer dans **Authentication → Emails → Security**.
+Ils ne sont pas activés par une modification du dépôt : il faut enregistrer chaque modèle et activer sa notification dans Supabase.
+Le relevé du 20 octobre montre les quatre notifications désactivées. Aucun courrier réel n'a été envoyé pour ce contrôle.
+
+| Notification | Fichier | Sujet |
+|---|---|---|
+| Password changed | `password_changed.html` | Votre mot de passe a été modifié — Gerimmo |
+| Email address changed | `email_address_changed.html` | Votre adresse de connexion a été modifiée — Gerimmo |
+| MFA method added | `mfa_method_added.html` | Une méthode de double authentification a été ajoutée — Gerimmo |
+| MFA method removed | `mfa_method_removed.html` | Une méthode de double authentification a été retirée — Gerimmo |
+
+Les boutons ouvrent l'adresse officielle de Gerimmo, sans jeton ni donnée personnelle dans le lien.
+L'activation doit précéder une vérification de remise sur les seuls comptes d'essai autorisés.
+L'identité juridique complète de l'expéditeur reste à compléter après fourniture des faits de l'éditeur.

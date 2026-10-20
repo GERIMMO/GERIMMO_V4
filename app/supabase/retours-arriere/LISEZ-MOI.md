@@ -1,5 +1,8 @@
 # Retours arrière des migrations du 13 au 19 octobre 2026
 
+> **Mise à jour du 20 octobre 2026 — atomicité.** Les 71 retours historiques qui ouvraient puis validaient leur propre transaction utilisent désormais une seule instruction `DO` atomique, comme les quatre retours du 20 octobre. Ils fonctionnent seuls en autocommit et restent intégralement annulables dans une transaction externe ; ils ne la valident jamais. Les anciennes mentions « refuse dans un lot » ci-dessous décrivent les essais antérieurs et sont remplacées par cette règle. Les préconditions métier et l’ordre des retours restent obligatoires. Les scripts de secours ne sont toujours pas des migrations à soumettre au chantier de marche avant. Preuve : `tests/retours-atomicite.test.ts`, fichier exact et erreur forcée dans le même message SQL, ainsi que les essais historiques de retour/rejeu.
+
+
 Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `migrations.yml` se place dans
 `app/supabase/migrations/` et n'applique que les fichiers qu'on lui nomme (aucune occurrence de `retours-arriere` dans
 `.github/workflows/`). Ces scripts se jouent **à la main**, après décision du dirigeant, une fois, et se consignent.
@@ -625,6 +628,7 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261020084651` (dépôts temporaires : ferme les nouveaux dépôts, conserve les objets et l’historique), `20261020083058` (suivi des signatures : restaure aussi l’exception d’abonnement avant les retours historiques), `20261020011556` (abandon de préparation), `20261020030000` (gabarits de dépôt), `20261020020000` (reprises Stripe : refuse les réceptions durables en attente), `20261020011000` (lecture de session), `20261020010000` (association Stripe réservée au serveur), puis
 `20261019124000` (sort du devis signé et jour de Paris des devis, B5), `20261019123000` (identité : clés des prestataires), `20261019122000` (demandes de contact dans l'e-mail du relais), `20261019121000` (droits anon : contact et articles ; clé `demande_id` des prospects), `20261019120500` (relance : périodicité et montant de la période ; recrée `abonnements_a_relancer`, que le retour des abonnements au jour de Paris réécrit ensuite, donc avant lui), `20261019120000` (liste d'attente du site vitrine : bornes, index unique sur `lower(email)`, plafond d'insertion — déclencheur, fonction, index — et commentaire ; indépendant), puis
 `20261018231827` (abonnements au jour de Paris), `20261018193308` (accord client sur devis), `20261018185515` (documents signés et budget de signature), `20261018143644` (certificat commun Zoho), `20261018100243` (prestataire du circuit), `20261018085521` (circuit de signature du bail), `20261018071556` (index de supervision), `20261018061548` (supervision complète), `20261017180829` (finances de supervision), `20261016210000` (retour du changement d'adresse), `20261016200000` (compléments Q3 : cinq fonctions et trois défauts), `20261016190000` (reprise de la relance avant envoi), `20261016180000` (sentinelle et rétention du relais), `20261016172453` (traversée et support), `20261016150000` (confirmation Auth), `20261016110100` (relance et prise d'acte RDV), `20261016110000` (PDF et alertes du devis), puis
 `851000` (restitution du dépôt), `850000` (catalogue de rétention), `812000`, `811000`, `810000` (les trois paliers du relais), `710000` (avoir sur facture externe), `730000` (plafond des appels IA), `830000` (relances d'invitation), `821000`, `820000`, `610000`, `602000`, `601000`, `600000`, `504000` → `501000`, puis `500000`. Le retour de `610000` (règlement de facture, D23) en fait
@@ -924,3 +928,21 @@ annule tout), marche avant après suppression manuelle des objets conservés (hu
 l'état intégré d'avant la chaîne) ; essai `psql`
 hors Vitest : les huit retours joués deux fois (second passage : NOTICE seulement). Suite : `tests/retours-oct18-registre.test.ts` (sans base :
 forme des fichiers et LISEZ-MOI). Aucun essai sur la production.
+
+### 20 octobre — dossier de paiement
+
+`20261020010000_abonnement_client_service.retour.sql` restaure la fonction et ses droits antérieurs. À coordonner avec le retour du code de souscription. Aucune association existante n’est supprimée.
+
+`20261020011000_session_origine_verifiee.retour.sql` retire la lecture du début de session. Déployer le proxy précédent avant ce retour. Les comptes et les sessions existantes sont conservés.
+
+- `20261020020000_stripe_reprises_durables.retour.sql` : remettre le code précédent ; refus tant que des réceptions durables restent en attente. Le journal est conservé.
+
+- `20261020030000_stockage_gabarits_roles.retour.sql` : rétablit les deux politiques précédentes ; aucun objet ni document supprimé.
+
+Les quatre retours du 20 octobre sont des instructions atomiques : ils peuvent être annulés avec une transaction appelante et ne valident jamais ses autres opérations.
+
+- `20261020011556_signature_preparation_abandon.retour.sql` : remettre le code précédent, puis retirer la fonction d’abandon atomique. Historique et consommations conservés.
+
+- `20261020083058_signature_suivi_reprises_relances.retour.sql` : remettre le code précédent, retirer les fonctions de suivi et de rapprochement puis fermer le registre des rappels ; dates et historique conservés. Rétablit par deux ancres exactes l’exception de suivi des signatures sur abonnement fermé. À jouer **avant** le retour `20261018085521`, qui exige son bloc d’origine exact. Le retour refuse une définition inattendue et annule l’ensemble de ses modifications.
+
+- `20261020084651_depots_directs_temporaires.retour.sql` : remettre le code précédent, révoquer la réservation et le dépôt temporaire ; conserve les fichiers et leurs réservations. Les jetons déjà délivrés peuvent rester valables jusqu’à deux heures : ne supprimer aucun objet à l’occasion de ce retour. La purge applicative attend trois heures après la fin de réservation pour couvrir aussi un jeton délivré tardivement.

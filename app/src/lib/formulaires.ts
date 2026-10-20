@@ -8,7 +8,7 @@
 export function valeursDuFormulaire(formData: FormData): Record<string, string> {
   const valeurs: Record<string, string> = {};
   for (const [cle, valeur] of formData.entries()) {
-    if (typeof valeur === "string") valeurs[cle] = valeur;
+    if (typeof valeur === "string" && !cle.startsWith("__gerimmo_depot") && !valeur.startsWith("gerimmo-depot:")) valeurs[cle] = valeur;
   }
   return valeurs;
 }

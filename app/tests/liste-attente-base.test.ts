@@ -65,7 +65,7 @@ describe('lot M2 — liste_attente : les fichiers du lot (sans base)', () => {
   });
 
   it('le retour se joue dans une transaction externe, ne supprime ni la table ni ses lignes, retire le plafond et ne retire que sa version', () => {
-    expect(RETOUR).toMatch(/^-- RETOUR ARRIÈRE de /);
+    expect(RETOUR).toMatch(/^-- RETOUR ARRIÈRE de /m);
     expect(transactionsInterdites(RETOUR)).toEqual([]);
     expect(RETOUR).not.toMatch(/drop table|truncate|delete from public\./i);
     expect(RETOUR).toContain('drop trigger liste_attente_limiter on public.liste_attente;');

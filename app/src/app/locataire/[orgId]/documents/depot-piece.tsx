@@ -46,6 +46,7 @@ export function DepotPiece({ orgId, demande }: { orgId: string; demande: Demande
       </span>
       {/* Champ fichier en français (25/09, D10) */}
       <ChampFichier
+            depotDirect
         id={`piece-${demande.id}`}
         name="fichier"
         accept=".pdf,.jpg,.jpeg,.png"

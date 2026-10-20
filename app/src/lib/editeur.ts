@@ -136,7 +136,7 @@ export type Prestataire = {
 //
 // Audit 25/09 (C2) : le code envoyait des données à Yousign, OpenAI et Meta
 // sans que les pages légales les nomment. Le rôle décrit ce qui leur est
-// transmis, tel que le code l'établit (lib/youtrust.ts, lib/analyse-veille.ts,
+// transmis, tel que le code l'établit (lib/zoho-sign.ts, lib/analyse-veille.ts,
 // lib/visuel-marketing.ts, admin/brief, admin/publications, lib/facebook.ts).
 // La localisation n'est écrite que lorsqu'elle est certaine ; sinon `null`.
 export const PRESTATAIRES: readonly Prestataire[] = [

@@ -56,6 +56,7 @@ export function DepotSignature({
       <form data-saisie-confirmee action={action} className="mt-2 flex flex-wrap items-center gap-2">
         {/* Champ fichier en français (25/09, D10) */}
         <ChampFichier
+            depotDirect
           id={`signature-${demande.id}`}
           name="fichier"
           required

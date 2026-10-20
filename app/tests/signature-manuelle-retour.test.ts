@@ -3,7 +3,6 @@ const m = vi.hoisted(() => ({ acces: vi.fn(), rpc: vi.fn(), notifier: vi.fn(), c
 vi.mock("@/lib/ged-acces", () => ({ verifierGerant: m.acces }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ notifierSignatureDemandee: m.notifier }));
-vi.mock("@/lib/youtrust", () => ({ configurationYoutrust: m.config, creerDemandeYoutrust: m.creer, annulerDemandeYoutrust: vi.fn(), ErreurYoutrust: class extends Error {} }));
 import { envoyerPourSignature } from "@/app/actions/signature";
 beforeEach(() => {
   vi.resetAllMocks();

@@ -572,11 +572,12 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
       await db.query(sansEnveloppe(retour(FONCTION_DU_JOUR.version, FONCTION_DU_JOUR.fichier)));
     }
 
-    it("aucun retour ne peut se jouer dans un lot (migrations.yml, begin;) : la garde l'interdit", async () => {
+    it("chaque retour reste annulable dans un lot", async () => {
       for (const fichier of TOUTES) {
         const version = fichier === FONCTION_DU_JOUR.fichier ? FONCTION_DU_JOUR.version : FAMILLES.find((f) => f.fichier === fichier)!.version;
         const message = await echoue(retour(version, fichier));
-        expect(message, fichier).toMatch(/Retour arrière refusé : ce script gère sa propre transaction/);
+        if(fichier === FONCTION_DU_JOUR.fichier) expect(message).toMatch(/ces fonctions citent encore public\.aujourdhui_paris/);
+        else expect(message, fichier).toBe("");
       }
     });
 

@@ -1,13 +1,21 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { parsePhoneNumberFromString } from "libphonenumber-js/max";
-import type { DemandeYoutrustLue, SignataireYoutrust } from "./youtrust";
+import type { DemandeSignatureLue, SignataireSignature } from "./signature-types";
 import { expressionSaisieMentionCaution, noteMentionCaution } from "./mention-caution";
 
 /** Compte européen uniquement. Le mode test Zoho utilise la même API, avec testing=true. */
 export type ConfigurationZohoSign = {
   prestataire: "zoho"; environnement: "sandbox" | "production";
   clientId: string; clientSecret: string; refreshToken: string;
+  /** Budget de la passe automatique ; jamais une configuration persistée. */
+  echeanceMs?: number;
 };
+function signalAppel(config: ConfigurationZohoSign, signal?: AbortSignal|null) {
+  const duree=Math.min(25_000,(config.echeanceMs ?? Date.now()+25_000)-Date.now());
+  if(duree<=0)throw new Error("Le suivi reprendra au prochain passage.");
+  const limite=AbortSignal.timeout(Math.max(1,Math.floor(duree)));
+  return signal?AbortSignal.any([signal,limite]):limite;
+}
 export function configurationZohoSign(env: Record<string, string | undefined> = process.env): ConfigurationZohoSign | null {
   const clientId = env.ZOHO_SIGN_CLIENT_ID?.trim(), clientSecret = env.ZOHO_SIGN_CLIENT_SECRET?.trim(), refreshToken = env.ZOHO_SIGN_REFRESH_TOKEN?.trim();
   if (!clientId || !clientSecret || !refreshToken || ![undefined, "", "sandbox", "production"].includes(env.ZOHO_SIGN_ENV)) return null;
@@ -24,7 +32,7 @@ async function jeton(config: ConfigurationZohoSign): Promise<string> {
   entree.attente = (async () => {
     const response = await fetch("https://accounts.zoho.eu/oauth/v2/token", {
       method: "POST", body: new URLSearchParams({ grant_type: "refresh_token", client_id: config.clientId, client_secret: config.clientSecret, refresh_token: config.refreshToken }),
-      signal: AbortSignal.timeout(25_000), cache: "no-store", redirect: "error",
+      signal: signalAppel(config), cache: "no-store", redirect: "error",
     });
     const body = await response.json().catch(() => null);
     if (!response.ok || typeof body?.access_token !== "string" || !body.access_token || !Number.isFinite(body.expires_in) || body.expires_in <= 60) {
@@ -36,11 +44,12 @@ async function jeton(config: ConfigurationZohoSign): Promise<string> {
   try { return await entree.attente; } finally { entree.attente = undefined; }
 }
 
-async function appel(config: ConfigurationZohoSign, chemin: string, init: RequestInit = {}) {
+async function appel(config: ConfigurationZohoSign, chemin: string, init: RequestInit = {}, avantAppel?: () => void | Promise<void>) {
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Zoho-oauthtoken ${await jeton(config)}`);
   // Aucune relance automatique d'une mutation : une réponse perdue peut masquer un envoi réussi.
-  const response = await fetch(`${BASE}${chemin}`, { ...init, headers, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(25_000) });
+  await avantAppel?.();
+  const response = await fetch(`${BASE}${chemin}`, { ...init, headers, cache: "no-store", redirect: "error", signal: signalAppel(config,init.signal) });
   if (response.status === 401) cache = undefined;
   if (!response.ok) {
     const erreur = await response.json().catch(() => null);
@@ -56,9 +65,9 @@ function verifierCompteConfirme(code: unknown) {
 type ChampZoho = { field_id?: string; field_name?: string; field_type_name: string; field_value?: unknown; default_value?: unknown; is_mandatory?: boolean; validation?: {validation_type?: string; validation_regex?: string} };
 type Action = { private_notes?: string; action_id: string; action_type: string; recipient_email: string; recipient_name: string; signing_order: number; action_status: string; verify_recipient: boolean; verification_type: string; recipient_countrycode_iso: string; recipient_phonenumber: string; fields?: ChampZoho[] };
 type DocumentZoho = { document_id: string; document_name: string; document_order: string | number; total_pages: number };
-type Demande = { notes?: string; request_id: string; description: string; request_status: string; is_deleted?: boolean; is_sequential: boolean; actions: Action[]; document_ids: DocumentZoho[] };
-async function json(config: ConfigurationZohoSign, chemin: string, init?: RequestInit): Promise<{ requests?: Demande }> {
-  const body = await (await appel(config, chemin, init)).json();
+type Demande = { notes?: string; sign_submitted_time?: number; request_id: string; description: string; request_status: string; is_deleted?: boolean; is_sequential: boolean; actions: Action[]; document_ids: DocumentZoho[] };
+async function json(config: ConfigurationZohoSign, chemin: string, init?: RequestInit, avantAppel?: () => void | Promise<void>): Promise<{ requests?: Demande }> {
+  const body = await (await appel(config, chemin, init, avantAppel)).json();
   verifierCompteConfirme(body?.code);
   if (body?.code !== 0 || body.status === "failure") throw new Error("Zoho Sign a refusé l’opération. Vérifiez la connexion, les crédits et le suivi avant de réessayer.");
   return body;
@@ -87,7 +96,9 @@ export function telephoneZoho(telephone?: string | null) {
 }
 type Preparation = {
   config: ConfigurationZohoSign; pdf: Uint8Array; nomFichier: string; titre: string; referenceExterne: string; expiration: string;
-  signataires: SignataireYoutrust[]; annexes?: { pdf: Uint8Array; nomFichier: string }[]; demandeCreee: (id: string) => Promise<void>;
+  /** Appelé après validation et connexion OAuth, juste avant la création distante. */
+  creationCommencee?: () => void;
+  signataires: SignataireSignature[]; annexes?: { pdf: Uint8Array; nomFichier: string }[]; demandeCreee: (id: string) => Promise<void>;
 };
 export async function preparerCircuitZoho(params: Preparation) {
   if (params.signataires.length < 1 || params.signataires.length > 25) throw new Error("Vérifiez les parties au contrat.");
@@ -100,7 +111,7 @@ export async function preparerCircuitZoho(params: Preparation) {
   const form = formulaire(params.config, { request_name: params.titre.slice(0, 100), description: `gerimmo:circuit:${params.referenceExterne}`, is_sequential: true, expiration_days: jours, email_reminders: false, actions });
   form.append("file", new Blob([Uint8Array.from(params.pdf).buffer], { type: "application/pdf" }), params.nomFichier);
   for (const a of params.annexes ?? []) form.append("file", new Blob([Uint8Array.from(a.pdf).buffer], { type: "application/pdf" }), a.nomFichier);
-  const body = await json(params.config, "/requests", { method: "POST", body: form });
+  const body = await json(params.config, "/requests", { method: "POST", body: form }, params.creationCommencee);
   if (!body.requests?.request_id) throw new Error("La création Zoho Sign doit être rapprochée manuellement avant tout nouvel envoi.");
   const req = body.requests;
   await params.demandeCreee(idValide(req.request_id));
@@ -175,10 +186,12 @@ export async function activerDemandeZoho(config: ConfigurationZohoSign, id: stri
 }
 const ETATS: Record<string, string> = { draft: "draft", inprogress: "ongoing", completed: "done", recalled: "canceled", expired: "expired", declined: "declined", rejected: "rejected" };
 const ETATS_PERSONNES: Record<string, string> = { NOACTION: "initiated", UNOPENED: "notified", VIEWED: "notified", SIGNED: "signed", REJECTED: "declined" };
-export async function lireDemandeZoho(config: ConfigurationZohoSign, id: string): Promise<DemandeYoutrustLue & { signers: { id: string; status: string; email: string; mentions: unknown[] }[] }> {
+export async function lireDemandeZoho(config: ConfigurationZohoSign, id: string): Promise<Omit<DemandeSignatureLue,"signers"> & { envoyeLe?: string; signers: { id: string; status: string; email: string; mentions: unknown[] }[] }> {
   const req = await details(config, id);
   if (!ETATS[req.request_status]) throw new Error("L’état Zoho Sign doit être vérifié avant de poursuivre.");
-  return { id: req.request_id, external_id: req.description?.replace(/^gerimmo:circuit:/, ""), status: req.is_deleted ? "deleted" : ETATS[req.request_status], signers: req.actions.map(a => ({ id: a.action_id, status: ETATS_PERSONNES[a.action_status] ?? "error", email: a.recipient_email, mentions:(a.fields ?? []).filter(f=>f.field_type_name==="Textfield").map(f=>f.field_value) })) };
+  const date = req.sign_submitted_time;
+  const envoyeLe = typeof date === "number" && Number.isSafeInteger(date) && date > 0 && date <= Date.now() ? new Date(date).toISOString() : undefined;
+  return { id: req.request_id, external_id: req.description?.replace(/^gerimmo:circuit:/, ""), status: req.is_deleted ? "deleted" : ETATS[req.request_status], ...(envoyeLe ? {envoyeLe} : {}), signers: req.actions.map(a => ({ id: a.action_id, status: ETATS_PERSONNES[a.action_status] ?? "error", email: a.recipient_email, mentions:(a.fields ?? []).filter(f=>f.field_type_name==="Textfield").map(f=>f.field_value) })) };
 }
 export async function annulerDemandeZoho(config: ConfigurationZohoSign, id: string) {
   await json(config, `/requests/${idValide(id)}/recall`, { method: "POST" });
@@ -188,8 +201,8 @@ export async function supprimerBrouillonZoho(config: ConfigurationZohoSign, id: 
   if (req.request_status !== "draft") throw new Error("Ce dossier Zoho Sign n’est plus un brouillon.");
   await json(config, `/requests/${idValide(id)}/delete`, { method: "PUT" });
 }
-async function pdf(config: ConfigurationZohoSign, chemin: string) {
-  const response = await appel(config, chemin); const limite = 10_485_760;
+async function pdf(config: ConfigurationZohoSign, chemin: string, signal?: AbortSignal) {
+  const response = await appel(config, chemin, {signal}); const limite = 10_485_760;
   if (Number(response.headers.get("content-length")) > limite) throw new Error("Archive trop volumineuse.");
   const reader = response.body?.getReader(); if (!reader) throw new Error("Archive vide.");
   const morceaux: Uint8Array[] = []; let taille = 0;
@@ -201,6 +214,61 @@ async function pdf(config: ConfigurationZohoSign, chemin: string) {
 export const telechargerDocumentSigneZoho = (config: ConfigurationZohoSign, id: string, document: string) => pdf(config, `/requests/${idValide(id)}/documents/${idValide(document)}/pdf`);
 export const telechargerDossierSigneZoho = (config: ConfigurationZohoSign, id: string) => pdf(config, `/requests/${idValide(id)}/pdf?with_coc=true&merge=true`);
 export const telechargerPreuveZoho = (config: ConfigurationZohoSign, id: string) => pdf(config, `/requests/${idValide(id)}/completioncertificate`);
+
+/** Lecture seule, bornée. Un résultat partiel ne prouve ni l'absence ni l'unicité. */
+export async function retrouverBrouillonZoho(config: ConfigurationZohoSign, attendu: {
+  id: string; pdf_hash: string; annexes: {empreinte:string}[];
+  signataires: {prenom:string;nom:string;email:string;telephone:string}[];
+}, signal = AbortSignal.timeout(35_000), avantLecture: () => Promise<void> = async () => {}) {
+  const trouves = new Set<string>(), vus = new Set<string>();
+  let complet = false;
+  for (let page=0;page<5;page++) {
+    await avantLecture(); signal.throwIfAborted();
+    const query = new URLSearchParams({data:JSON.stringify({page_context:{row_count:100,start_index:page*100+1,sort_column:"created_time",sort_order:"DESC"}})});
+    const body = await (await appel(config,`/requests?${query}`,{signal})).json();
+    if (body?.code!==0 || !Array.isArray(body.requests) || typeof body.page_context?.has_more_rows!=="boolean" || body.requests.length>100) throw new Error("La liste Zoho doit être vérifiée manuellement.");
+    for (const r of body.requests) {
+      const id = idValide(r.request_id);
+      if (vus.has(id)) throw new Error("La liste Zoho a changé pendant sa lecture. Le rapprochement sera repris.");
+      vus.add(id);
+      if(r.description===`gerimmo:circuit:${attendu.id}`)trouves.add(id);
+    }
+    if (!body.page_context.has_more_rows) {complet=true;break;}
+    if(body.requests.length!==100)throw new Error("La liste Zoho est incomplète.");
+  }
+  if (!complet || trouves.size!==1) throw new Error("Le circuit doit être rapproché manuellement. Aucun nouvel envoi n’a été créé.");
+  const demandeId=[...trouves][0];
+  await avantLecture(); signal.throwIfAborted();
+  const req=(await json(config,`/requests/${demandeId}`,{signal})).requests;
+  if(!req || req.request_id!==demandeId || req.description!==`gerimmo:circuit:${attendu.id}` || req.is_deleted || req.request_status!=="draft" || !req.is_sequential
+    || !Array.isArray(req.actions) || !Array.isArray(req.document_ids) || req.actions.length!==attendu.signataires.length || req.document_ids.length!==attendu.annexes.length+1) throw new Error("La demande retrouvée doit être examinée avant tout rattachement.");
+  const actions=[...req.actions].sort((a,b)=>a.signing_order-b.signing_order);
+  const ids=new Set<string>();
+  actions.forEach((a,i)=>{
+    const s=attendu.signataires[i],phone=telephoneZoho(s.telephone);
+    if(a.signing_order!==i || a.action_type!=="SIGN" || a.recipient_email?.toLowerCase()!==s.email.toLowerCase()
+      || a.recipient_name!==`${s.prenom} ${s.nom}` || !a.verify_recipient || a.verification_type!=="SMS"
+      || a.recipient_countrycode_iso!==phone.recipient_countrycode_iso || a.recipient_phonenumber!==phone.recipient_phonenumber
+      || !["NOACTION","UNOPENED"].includes(a.action_status))throw new Error("Les parties du brouillon retrouvé ne correspondent pas.");
+    ids.add(idValide(a.action_id));
+  });
+  if(ids.size!==actions.length)throw new Error("Les parties du brouillon retrouvé sont ambiguës.");
+  const documents=[...req.document_ids].sort((a,b)=>Number(a.document_order)-Number(b.document_order));
+  const hashes=[attendu.pdf_hash,...attendu.annexes.map(a=>a.empreinte)],docs=new Set<string>();
+  for(let i=0;i<documents.length;i++){
+    const doc=documents[i];idValide(doc.document_id);
+    if(Number(doc.document_order)!==i || docs.has(doc.document_id) || !/^[a-f0-9]{64}$/.test(hashes[i]))throw new Error("Les documents du brouillon retrouvé sont ambigus.");
+    docs.add(doc.document_id);
+    await avantLecture();signal.throwIfAborted();
+    const octets=await pdf(config,`/requests/${demandeId}/documents/${doc.document_id}/pdf`,signal);
+    if(createHash("sha256").update(octets).digest("hex")!==hashes[i])throw new Error("Un document du brouillon retrouvé ne correspond pas à l’original.");
+  }
+  return {demandeId,documentId:documents[0].document_id,signataireIds:actions.map(a=>a.action_id)};
+}
+
+export async function rappelerDemandeZoho(config: ConfigurationZohoSign, id: string, avantEnvoi: () => Promise<void>) {
+  await json(config,`/requests/${idValide(id)}/remind`,{method:"POST"},avantEnvoi);
+}
 export function webhookZohoValide(corps: string, signature: string | null, secret: string) {
   if (!signature || !secret) return false;
   const recu = Buffer.from(signature, "utf8"), attendu = Buffer.from(createHmac("sha256", secret).update(corps).digest("base64"));

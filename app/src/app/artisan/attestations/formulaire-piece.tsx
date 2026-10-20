@@ -130,6 +130,7 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
           {/* 25/09 (A6) : le champ maison, en français quel que soit le
               navigateur — un champ natif affichait « Choose File ». */}
           <ChampFichier
+            depotDirect
             id={idFichier}
             name="fichier"
             accept="application/pdf,image/jpeg,image/png"

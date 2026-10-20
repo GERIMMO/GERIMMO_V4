@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014600000_devis_refus_motive.sql (décision D18 du 14/10/2026, livraison 1 : refus motivé)
 --
 -- NE PAS PLACER dans app/supabase/migrations/ et NE JAMAIS le passer à migrations.yml : ce fichier
@@ -22,14 +26,7 @@
 
 -- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
 -- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
 
-begin;
 set local lock_timeout = '10s';
 
 -- Refus si la seconde livraison est encore en place : son retour se joue d'abord.
@@ -235,5 +232,5 @@ begin
     delete from supabase_migrations.schema_migrations where version = '20261014600000';
   end if;
 end $retour_arriere$;
-
-commit;
+$instructions_retour$;
+end $retour_atomique$;

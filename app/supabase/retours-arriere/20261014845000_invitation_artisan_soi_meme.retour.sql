@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014845000_invitation_artisan_soi_meme.sql (relecture du 15/10/2026 du lot
 -- « invitation-artisan » : on ne s'invite pas soi-même).
 --
@@ -16,17 +20,8 @@
 -- d'artisan) et accepter sa propre invitation. Ordre indifférent avec le code. À jouer AVANT le retour de
 -- 20261014840000 (qui supprime ces fonctions ; joué après, ce script ne trouve rien à faire et le dit).
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 
-begin;
 set local lock_timeout = '10s';
 
 -- 1. preparer_invitation_artisan
@@ -104,7 +99,6 @@ begin
   end if;
 end $retour_arriere$;
 
-commit;
 
 -- Vérification (lecture seule) : « antérieure (A) » attendue après le retour, « migrée (B) » avant.
 select f.objet,
@@ -116,3 +110,5 @@ from (values
    'Relecture du 15/10 (s''inviter soi-même, à l''envoi)'),
   ('repondre_invitation_artisan', 'public.repondre_invitation_artisan(uuid,boolean)',
    'Relecture du 15/10 (s''inviter soi-même, à l''acceptation)')) as f(objet, signature, marque);
+$instructions_retour$;
+end $retour_atomique$;

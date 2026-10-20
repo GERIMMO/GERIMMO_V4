@@ -4,7 +4,7 @@ vi.mock('next/cache',()=>({revalidatePath:vi.fn()}));
 vi.mock('@/lib/ged-acces',()=>({verifierGerant:m.acces}));
 vi.mock('@/lib/supabase/service',()=>({clientDeService:m.service}));
 vi.mock('@/lib/signature-bail',()=>({assemblerSignatureBail:m.assembler,configurationSignatureBail:m.config,configurationSuiviSignatureBail:m.config}));
-vi.mock('@/lib/youtrust',()=>({preparerCircuitYoutrust:m.preparer,activerDemandeYoutrust:m.activer,lireDemandeYoutrust:m.lire,annulerDemandeYoutrust:m.annuler,supprimerBrouillonYoutrust:vi.fn()}));
+vi.mock('@/lib/signature-prestataire',async(importer)=>({...await importer<typeof import('@/lib/signature-prestataire')>(),preparerCircuitSignature:m.preparer,activerDemandeSignature:m.activer,lireDemandeSignature:m.lire,annulerDemandeSignature:m.annuler,supprimerBrouillonSignature:vi.fn()}));
 vi.mock('@/lib/controle-effets',()=>({verifierAvantEffet:m.stop}));
 import {envoyerSignatureBail,annulerSignatureBail,activerBailApresSignature} from '@/app/actions/signature-bail';
 beforeEach(()=>{
@@ -59,7 +59,7 @@ describe('Garde avant tout envoi du bail',()=>{
   expect((await annulerSignatureBail('org','11111111-1111-4111-8111-111111111111','circuit')).erreur).toContain('correspond pas');expect(m.lire).toHaveBeenCalled();
  });
  it('une préparation production ne part pas dans une sandbox',async()=>{m.config.mockReturnValue({environnement:'sandbox'});expect((await envoyer()).erreur).toContain('environnement');aucunEnvoi();});
- it('le mode essai exige une organisation explicitement autorisée',async()=>{m.circuit.environnement='sandbox';m.config.mockReturnValue({environnement:'sandbox'});vi.stubEnv('YOUTRUST_ORGS_TEST','autre');expect((await envoyer()).erreur).toContain('pas autorisé');aucunEnvoi();});
+ it('le mode essai exige une organisation explicitement autorisée',async()=>{m.circuit.environnement='sandbox';m.config.mockReturnValue({environnement:'sandbox'});vi.stubEnv('ZOHO_SIGN_ORGS_TEST','autre');expect((await envoyer()).erreur).toContain('pas autorisé');aucunEnvoi();});
  it('un dossier modifié doit être relu avant tout appel prestataire',async()=>{m.assembler.mockResolvedValue({empreinte:'nouvelle',manquants:[]});expect((await envoyer()).erreur).toContain('dossier a changé');aucunEnvoi();});
  it('une préparation expirée ne peut pas déclencher d’invitation',async()=>{m.circuit.expire_le=new Date(Date.now()-86400000).toISOString();expect((await envoyer()).erreur).toContain('trop ancienne');aucunEnvoi();});
  it('un remplacement du PDF est détecté même si ses métadonnées semblent valides',async()=>{expect((await envoyer()).erreur).toContain('correspond plus au PDF préparé');aucunEnvoi();});

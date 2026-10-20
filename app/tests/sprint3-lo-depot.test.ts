@@ -77,14 +77,14 @@ describe.skipIf(!DB_URL)("Sprint 3 — dépôt LO (attestation)", () => {
     await simuler(db, compteLo);
     // Dépôt Storage par le locataire d'abord (audit du 27/09).
     await db.query(
-      `insert into storage.objects (bucket_id, name, owner) values ('documents', $1::uuid::text || '/att.pdf', (select auth.uid()))`,
+      `insert into storage.objects (bucket_id, name, owner) values ('documents', $1::uuid::text || '/11111111-1111-4111-8111-111111111111.pdf', (select auth.uid()))`,
       [orgA]
     );
     const {
       rows: [{ doc }],
     } = await db.query(
       `select public.deposer_mon_attestation(
-         $1, $1::uuid::text || '/att.pdf', 'application/pdf', 1234,
+         $1, $1::uuid::text || '/11111111-1111-4111-8111-111111111111.pdf', 'application/pdf', 1234,
          'emp-' || gen_random_uuid(), 'MAIF', current_date + 200) as doc`,
       [orgA]
     );

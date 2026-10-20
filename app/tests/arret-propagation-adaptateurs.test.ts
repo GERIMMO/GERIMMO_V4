@@ -1,13 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type Stripe from "stripe";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { ArretSupervision } from "@/lib/controle-effets";
 import { protegerClientAutomatique } from "@/lib/client-automatique";
 import { crediterClientStripe, synchroniserQuantite } from "@/lib/stripe";
 import { programmerEcheance } from "@/lib/stripe-offres";
 import { offreParticulier } from "@/lib/tarifs";
-import { traiterEvenementSignature } from "@/lib/signature-worker";
-import type { ConfigurationYoutrust } from "@/lib/youtrust";
 
 describe("Un arrêt reste distinct d’une erreur fournisseur", () => {
   it("Stripe : conserve le premier effet et bloque le second en propageant l’arrêt", async () => {
@@ -48,26 +45,4 @@ describe("Un arrêt reste distinct d’une erreur fournisseur", () => {
     await expect(synchroniserQuantite(stripe as unknown as Stripe, { subscription: "sub_test", quantite: 2 })).resolves.toMatchObject({ ok: false, erreur: expect.any(String) });
   });
 
-  function signature() {
-    const updates: unknown[] = [];
-    const rpc = vi.fn(async () => ({ error: null }));
-    const db = { rpc, from: (table: string) => table === "demandes_signature"
-      ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { organization_id: "org_test", signee_le: null, external_document_id: "doc_test", external_signer_id: "sign_test" }, error: null }) }) }) }
-      : { update: (d: unknown) => { updates.push(d); return { eq: async () => ({ error: null }) }; } } };
-    return { db: db as unknown as SupabaseClient, updates, rpc };
-  }
-
-  it.each(["signature_request.done", "signature_request.declined", "signature_request.expired"])("%s : arrêt avant effet, sans classement ni tentative consommée", async (event_name) => {
-    const { db, updates, rpc } = signature();
-    const arret = new ArretSupervision();
-    await expect(traiterEvenementSignature(db, {} as ConfigurationYoutrust, { event_id: "event_test", event_name, request_id: "req_test", tentatives: 2 }, async () => { throw arret; })).rejects.toBe(arret);
-    expect(updates).toEqual([]);
-    expect(rpc).not.toHaveBeenCalled();
-  });
-
-  it("une erreur ordinaire de signature conserve sa tentative et son motif", async () => {
-    const { db, updates } = signature();
-    await expect(traiterEvenementSignature(db, {} as ConfigurationYoutrust, { event_id: "event_test", event_name: "signature_request.done", request_id: "req_test", tentatives: 2 }, async () => { throw new Error("source indisponible"); })).resolves.toEqual({ ok: false, erreur: "source indisponible" });
-    expect(updates).toEqual([{ etat: "echec", erreur: "source indisponible", tentatives: 3 }]);
-  });
 });

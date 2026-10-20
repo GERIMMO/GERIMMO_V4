@@ -84,11 +84,11 @@ describe("Lot finance-dates — fichiers de migration et de retour arrière (san
   });
 
   it.each([[R410, "20261014410000"], [R412, "20261014412000"], [R413, "20261014413000"], [R414, "20261014414000"], [R415, "20261014415000"], [R416, "20261014416000"]])(
-    "le retour %# refuse de se jouer dans un lot, gère sa transaction et retire sa version",
+    "le retour %# est atomique sans valider la transaction appelante et retire sa version",
     (sql, version) => {
-      expect(sql).toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
-      expect(sql).toMatch(/^begin;$/m);
-      expect(sql).toMatch(/^commit;$/m);
+      expect(sql).not.toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
+      expect(sql).toMatch(/do \$retour_atomique\$/);
+      expect(sql).toMatch(/end \$retour_atomique\$;/);
       expect(sql).toContain(`where version = '${version}'`);
     }
   );

@@ -1,4 +1,6 @@
 "use server";
+import { resoudreDepotsFormulaire } from "@/lib/depot-direct";
+
 
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
@@ -227,6 +229,8 @@ export async function regulariserCharges(
   if (reellesLues.montant === null)
     return { erreur: "Indiquez les charges réelles de l'exercice — saisissez 0 si elles sont nulles.", valeurs };
   const reelles = reellesLues.montant;
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichier = formData.get("justificatif");
   if (!(fichier instanceof File) || fichier.size === 0)
     return { erreur: "Le justificatif est obligatoire (décompte remis au locataire).", valeurs };

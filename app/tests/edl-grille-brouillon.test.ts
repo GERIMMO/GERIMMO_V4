@@ -283,7 +283,7 @@ describe("D15 — la grille pendant la saisie", () => {
   });
 
   it("l'envoi réussi efface le brouillon du compte et l'ancienne clé de cet état des lieux", async () => {
-    vi.stubGlobal("FormData", class { get() { return null; } set() { /* sans objet */ } });
+    vi.stubGlobal("FormData", class { get() { return null; } getAll() { return []; } delete() {} set() { /* sans objet */ } });
     vi.stubGlobal("HTMLButtonElement", class { /* jamais un bouton ici */ });
     majGrilleEdl.mockResolvedValue({ succes: true });
     const grille = monterGrille();
@@ -307,7 +307,7 @@ describe("D15 — la grille pendant la saisie", () => {
   });
 
   it("l'envoi qui échoue laisse le brouillon en place", async () => {
-    vi.stubGlobal("FormData", class { get() { return null; } set() { /* sans objet */ } });
+    vi.stubGlobal("FormData", class { get() { return null; } getAll() { return []; } delete() {} set() { /* sans objet */ } });
     vi.stubGlobal("HTMLButtonElement", class { /* jamais un bouton ici */ });
     majGrilleEdl.mockResolvedValue({ erreur: "Refusé" });
     const grille = monterGrille();

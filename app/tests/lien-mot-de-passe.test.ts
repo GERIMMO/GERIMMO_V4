@@ -1333,10 +1333,12 @@ describe("/nouveau-mot-de-passe après une confirmation d'inscription", () => {
   it("dit que l'adresse est confirmée et pourquoi le mot de passe est demandé ; garde la destination", async () => {
     const { renderToStaticMarkup } = await import("react-dom/server");
     // La session est née du lien de confirmation : la revendication `amr` du jeton le dit (audit du 19/10, g).
+    const droits = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), maybeSingle: async () => ({ data: null, error: null }) };
     mocks.createClient.mockResolvedValue({
+      from: () => droits,
       auth: {
         getUser: async () => ({ data: { user: { id: "u1", email: "artisan@entreprise.test" } } }),
-        getClaims: async () => ({ data: { claims: { sub: "u1", amr: [{ method: "email/signup", timestamp: 1 }] } }, error: null }),
+        getClaims: async () => ({ data: { claims: { sub: "u1", amr: [{ method: "email/signup", timestamp: Math.floor(Date.now() / 1000) }] } }, error: null }),
       },
     });
     const { default: Page } = await import("../src/app/nouveau-mot-de-passe/page");

@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014610000_reglement_facture_intervention.sql (lot « reglement-facture », décision D23-A, PRO2-21, CHN-02/X06)
 --
 -- NE PAS PLACER dans app/supabase/migrations/ et NE JAMAIS le passer à migrations.yml : ce fichier
@@ -35,16 +39,7 @@
 --
 -- Usage : psql "$URL" -v ON_ERROR_STOP=1 -f 20261014610000_reglement_facture_intervention.retour.sql
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
-
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 -- Pré-contrôle en lecture seule, avant tout travail : si une AUTRE fonction appelle l'une des quatre fonctions du lot
 -- (écrite après cette migration), la supprimer la casserait. On s'arrête, sans rien modifier.
 do $retour_arriere$
@@ -61,7 +56,7 @@ begin
   end if;
 end $retour_arriere$;
 
-begin;
+
 set local lock_timeout = '10s';
 
 -- Outil local à cette session (pg_temp) : retire d'une fonction le bloc compris entre deux marques, si et seulement si
@@ -131,7 +126,6 @@ begin
   end if;
 end $retour_arriere$;
 
-commit;
 
 -- Vérification (lecture seule) : « antérieure (A) » attendue après le retour, « migrée (B) » avant.
 select 'valider_facture_artisan écrit l''audit (X06)' as objet,
@@ -151,3 +145,5 @@ select 'fonctions du règlement',
 union all
 select 'table intervention_facture_reglements (conservée à dessein)',
        case when to_regclass('public.intervention_facture_reglements') is not null then 'présente (conservée)' else 'absente' end;
+$instructions_retour$;
+end $retour_atomique$;

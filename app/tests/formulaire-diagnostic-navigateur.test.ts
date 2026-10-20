@@ -44,7 +44,10 @@ async function assembler(): Promise<string> {
     input: resolve(RACINE, "tests/fixtures/navigateur/banc-diagnostic-piece.tsx"),
     platform: "browser",
     // Les actions serveur de `parc` n'existent pas dans le navigateur : le formulaire les importe, le banc les remplace.
-    plugins: [{ name: "actions-parc-neutres", resolveId: (id) => (id === "@/app/actions/parc" ? resolve(RACINE, "tests/fixtures/navigateur/actions-parc-neutre.ts") : null) }],
+    plugins: [{ name: "actions-parc-neutres", resolveId: (id) => (
+      id === "@/app/actions/parc" ? resolve(RACINE, "tests/fixtures/navigateur/actions-parc-neutre.ts")
+        : id.endsWith("depot-direct-client") ? "\0transfert-isole" : null),
+      load: id => id === "\0transfert-isole" ? "export async function preparerDepotsDirects() {} export class ErreurDepotDirect extends Error {}" : null }],
     resolve: {
       alias: {
         "@": resolve(RACINE, "src"),

@@ -7,6 +7,7 @@
  *
  * Appels réels sous RLS, scénarios indépendants (point de reprise par cas), transaction finale annulée.
  */
+import { randomUUID } from "node:crypto";
 import { verifierBaseDeTest } from "./garde-base";
 import { config } from "dotenv";
 import { Client } from "pg";
@@ -511,11 +512,14 @@ describe.skipIf(!DB_URL)("Révision de devis et versions (D18, livraison 2)", ()
     // Le serveur dépose le PDF avec le client de l'artisan (envoyerDevisValide) : la sécurité du stockage doit
     // accepter l'emplacement de l'agence tant que la demande attend la version suivante.
     const { s1 } = await enRevision();
+    await enTantQuePostgres();
+    const chemin = `${org}/devis-gerimmo/${randomUUID()}.pdf`;
+    await db.query("insert into artisan_devis_preparations(sollicitation_id,artisan_id,statut,entreprise,pdf_path,pdf_sha,pdf_taille,valide_le) values($1,$2,'valide','{}',$3,$4,10,now()) on conflict(sollicitation_id) do update set statut='valide',entreprise='{}',pdf_path=excluded.pdf_path,pdf_sha=excluded.pdf_sha,pdf_taille=10,valide_le=now()", [s1, artisan, chemin, "a".repeat(64)]);
     await agir(cptArtisan);
-    await essai(`insert into storage.objects (bucket_id, name, owner) values ('documents', $1, $2)`, [`${org}/devis-gerimmo/${s1}-v2.pdf`, cptArtisan]);
+    await essai(`insert into storage.objects (bucket_id, name, owner) values ('documents', $1, $2)`, [chemin, cptArtisan]);
     await db.query(`select public.decliner_sollicitation($1,$2)`, [s1, "Je ne peux pas baisser davantage."]);
     await expect(
-      essai(`insert into storage.objects (bucket_id, name, owner) values ('documents', $1, $2)`, [`${org}/devis-gerimmo/${s1}-v3.pdf`, cptArtisan])
+      essai(`insert into storage.objects (bucket_id, name, owner) values ('documents', $1, $2)`, [`${org}/devis-gerimmo/${randomUUID()}.pdf`, cptArtisan])
     ).rejects.toThrow(/row-level security/);
   });
 

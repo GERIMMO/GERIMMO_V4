@@ -1,5 +1,8 @@
 "use client";
 
+import { MARQUEUR_DEPOT, EVENEMENT_DEPOT, MAX_DEPOT_DIRECT, MAX_FORMULAIRE_DIRECT } from "@/lib/depot-direct-commun";
+import { erreurVolumeDepot } from "@/lib/limite-depot";
+
 import { useEffect, useImperativeHandle, useRef, useState, type ChangeEvent, type Ref } from "react";
 
 // CHAMP FICHIER EN FRANÇAIS (relevé du 25/09, D10). Un `<input type="file">`
@@ -14,6 +17,7 @@ export function ChampFichier({
   name,
   accept,
   multiple = false,
+  depotDirect = false,
   required = false,
   libelle,
   vide = "Aucun fichier choisi",
@@ -27,6 +31,8 @@ export function ChampFichier({
   name: string;
   accept?: string;
   multiple?: boolean;
+  /** Seulement pour les actions qui résolvent le transit privé. */
+  depotDirect?: boolean;
   required?: boolean;
   /** Le mot du bouton ; par défaut selon `multiple`. */
   libelle?: string;
@@ -38,6 +44,8 @@ export function ChampFichier({
   "aria-label"?: string;
 }) {
   const [noms, setNoms] = useState<string[]>([]);
+  const [transfert, setTransfert] = useState<string | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
   const champ = useRef<HTMLInputElement>(null);
   useImperativeHandle(ref, () => champ.current!);
   useEffect(() => {
@@ -46,11 +54,33 @@ export function ChampFichier({
       // Les actions React remettent aussi le formulaire à zéro après un refus.
       // Ne pas afficher un nom de fichier qui n’est plus joint au formulaire.
       queueMicrotask(() => {
-        if (!event.defaultPrevented) setNoms([]);
+        if (!event.defaultPrevented) { setNoms([]); setErreur(null); setTransfert(null); }
       });
     };
+    const verifier = (event: Event) => {
+      if (!formulaire) return;
+      const champs = Array.from(formulaire.querySelectorAll<HTMLInputElement>('input[type="file"]'))
+        .filter(c => c.name && !c.matches(":disabled"));
+      const directs = champs.filter(c => c.dataset.depotDirect === "oui").flatMap(c => Array.from(c.files ?? []));
+      const classiques = champs.filter(c => c.dataset.depotDirect !== "oui" && c.name && !c.disabled).flatMap(c => Array.from(c.files ?? []));
+      const message = directs.some(f => f.size > MAX_DEPOT_DIRECT) ? "Ce fichier dépasse 10 Mo. Réduisez sa taille avant de l’envoyer."
+        : directs.length > 10 || directs.reduce((n,f) => n + f.size, 0) > MAX_FORMULAIRE_DIRECT ? "Déposez au maximum dix fichiers et 50 Mo par envoi." : erreurVolumeDepot(classiques);
+      setErreur(message);
+      if (message) { event.preventDefault(); event.stopImmediatePropagation(); champ.current?.focus(); }
+    };
+    const corriger = () => setErreur(null);
+    const suivre = (event: Event) => setTransfert(String((event as CustomEvent).detail));
+    const element = champ.current;
+    element?.addEventListener(EVENEMENT_DEPOT, suivre);
     formulaire?.addEventListener("reset", effacer);
-    return () => formulaire?.removeEventListener("reset", effacer);
+    formulaire?.addEventListener("submit", verifier, true);
+    formulaire?.addEventListener("change", corriger);
+    return () => {
+      element?.removeEventListener(EVENEMENT_DEPOT, suivre);
+      formulaire?.removeEventListener("reset", effacer);
+      formulaire?.removeEventListener("submit", verifier, true);
+      formulaire?.removeEventListener("change", corriger);
+    };
   }, []);
   const mot = libelle ?? (multiple ? "Choisir des fichiers" : "Choisir un fichier");
   const resume =
@@ -69,18 +99,23 @@ export function ChampFichier({
         id={id}
         name={name}
         type="file"
+        data-depot-direct={depotDirect ? "oui" : undefined}
         accept={accept}
         multiple={multiple}
         required={required}
         aria-label={ariaLabel}
+        aria-invalid={erreur ? true : undefined}
+        aria-describedby={erreur ? `${id}-volume` : undefined}
         className="sr-only"
         onChange={(e) => {
           // Les noms se lisent AVANT tout traitement (compression) : la liste
           // du champ peut être remplacée ensuite, les noms restent les mêmes.
+          setTransfert(null);
           setNoms(Array.from(e.currentTarget.files ?? []).map((f) => f.name));
           onChange?.(e);
         }}
       />
+      {depotDirect && <input type="hidden" name={MARQUEUR_DEPOT} value={JSON.stringify({id,nom:name})} />}
       {/* Un label est le seul élément qui ouvre le sélecteur sans script,
           d'où le bouton dessiné dessus ; `id` est requis pour l'association. */}
       <label htmlFor={id} className="btn-secondaire shrink-0 cursor-pointer">
@@ -89,6 +124,8 @@ export function ChampFichier({
       <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground" aria-live="polite">
         {resume}
       </span>
+      {transfert && <span role="status" aria-label="Transfert du fichier" className="w-full text-sm text-muted-foreground">{transfert}</span>}
+      {erreur && <span id={`${id}-volume`} role="alert" className="w-full text-sm text-destructive">{erreur}</span>}
     </span>
   );
 }

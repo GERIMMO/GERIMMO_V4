@@ -239,7 +239,7 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     const r = await demarrerAbonnement("org-1", {}, souscrire());
     expect(r.erreur).toBeDefined(); // la page de paiement s'arrête (voir le faux Stripe)
     expect(r.erreur).not.toBe(MOTIF_IDENTITE);
-    expect(mocks.rpc).toHaveBeenCalledWith("abonnement_client_pose", { p_org: "org-1", p_customer: "cus_connu" });
+    expect(mocks.serviceRpc).toHaveBeenCalledWith("abonnement_client_pose", { p_org: "org-1", p_customer: "cus_connu" });
   });
 
   it("le motif Stripe garde la priorité (banc local sans clés : e2e/abonnement.spec.ts)", async () => {

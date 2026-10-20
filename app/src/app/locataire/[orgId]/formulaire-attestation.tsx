@@ -42,7 +42,7 @@ export function FormulaireAttestation({
         <div className="space-y-1.5">
           <Label htmlFor="att-fichier">Fichier (PDF/JPG/PNG)</Label>
           {/* Champ fichier en français (25/09, D10) */}
-          <ChampFichier id="att-fichier" name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
+          <ChampFichier depotDirect id="att-fichier" name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="att-expire">Date d&apos;expiration</Label>

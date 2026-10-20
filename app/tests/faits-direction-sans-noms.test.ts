@@ -694,9 +694,10 @@ describe.skipIf(!url)("D13 / D48 — faits de direction sans noms, conservation 
       expect((await definition()).match(/purger_registres_execution/g)).toHaveLength(1);
     });
 
-    it("le script refuse de se jouer dans un lot déjà ouvert (il valide sa propre transaction)", async () => {
-      const message = await failed(readFileSync(RETOUR_RETENTION, "utf8"));
-      expect(message).toMatch(/Retour arrière refusé/);
+    it("le script reste annulable dans la transaction appelante", async () => {
+      await db.query("savepoint retour_atomique");
+      await db.query(readFileSync(RETOUR_RETENTION, "utf8"));
+      await db.query("rollback to savepoint retour_atomique");
       expect(await nombre("select count(*) n from pg_proc where proname='purger_registres_execution'")).toBe(1);
     });
   });

@@ -122,11 +122,11 @@ describe.skipIf(!DB_URL)("Écart avec le rendez-vous écrit à la chronologie (A
   async function photoApres(mission: string) {
     await agir(cptArtisan);
     await db.query(`insert into storage.objects (bucket_id, name, owner) values ('documents', $1, (select auth.uid()))`, [
-      `${org}/incidents/apres-${mission}.jpg`,
+      `${org}/${mission}.jpg`,
     ]);
     await db.query(`select public.deposer_photo_intervention($1,'apres',$2,'image/jpeg',1000,'emp-apres')`, [
       mission,
-      `${org}/incidents/apres-${mission}.jpg`,
+      `${org}/${mission}.jpg`,
     ]);
   }
   async function compteRendu(mission: string) {
@@ -139,7 +139,7 @@ describe.skipIf(!DB_URL)("Écart avec le rendez-vous écrit à la chronologie (A
   }
   async function facture(mission: string) {
     await agir(cptArtisan);
-    const chemin = `${org}/factures-artisan/${mission}/facture.pdf`;
+    const chemin = `${org}/factures-artisan/${mission}/33333333-3333-4333-8333-333333333333.pdf`;
     await db.query(`insert into storage.objects (bucket_id, name, owner) values ('documents', $1, (select auth.uid()))`, [chemin]);
     await db.query(`select public.deposer_facture_artisan($1,'F-2026-14',48000,null,$2,'application/pdf',10,'emp-facture')`, [mission, chemin]);
   }

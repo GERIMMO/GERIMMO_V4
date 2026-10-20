@@ -4,6 +4,7 @@ import { afficherEcheance, dateDeReference } from "@/lib/echeances";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Bell } from "lucide-react";
 import { CRITICITES, ORDRE_CRITICITE } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
@@ -131,7 +132,8 @@ export function SyntheseAlertes({
           onClick={() => setOuverte(true)}
           className="lien-bandeau"
         >
-          Alertes
+          {modeAdmin && <Bell size={18} aria-hidden="true" className="hidden max-[640px]:block" />}
+          <span className={modeAdmin ? "max-[640px]:sr-only" : undefined}>Alertes</span>
           {alertes.length > 0 && (
             <span className={`puce ml-1.5 ${nbCritiques > 0 ? "puce-rouge" : "puce-prep"}`}>
               {alertes.length}

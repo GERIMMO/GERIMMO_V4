@@ -2,6 +2,7 @@ import { lireDecimal } from "@/lib/saisie-montant";
 import { createHash } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { clientDeService } from "@/lib/supabase/service";
+import { servirFichierSigne, TAILLE_MAX_REPONSE_FICHIER } from "@/lib/fichier-signe";
 
 export async function GET(request:Request,{params}:{params:Promise<{sollicitationId:string}>}) {
   const {sollicitationId}=await params;
@@ -22,5 +23,6 @@ export async function GET(request:Request,{params}:{params:Promise<{sollicitatio
   if(fichier.error||!fichier.data) return new Response("Archive momentanément indisponible",{status:503});
   const bytes=Buffer.from(await fichier.data.arrayBuffer());
   if(createHash("sha256").update(bytes).digest("hex")!==hash) return new Response("L’intégrité de l’archive doit être vérifiée",{status:503});
+  if(bytes.byteLength>TAILLE_MAX_REPONSE_FICHIER)return servirFichierSigne(service,{path,mime:"application/pdf",titre:preuve?"preuve-signature.pdf":"devis-accepte.pdf",sha256:hash,retour:"depuis vos devis"});
   return new Response(bytes,{headers:{"Content-Type":"application/pdf","Content-Disposition":`inline; filename="${preuve?"preuve-signature":"devis-accepte"}.pdf"`,"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
 }

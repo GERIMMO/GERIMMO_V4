@@ -107,7 +107,8 @@ describe.skipIf(!DB_URL)("D44 — le proxy et is_super_admin() décident pareil"
         };
         return q;
       },
-      auth: {
+      rpc: async () => ({ data: [{ id: "session-fictive", cree_le: new Date().toISOString() }], error: null }),
+    auth: {
         getUser: async () => ({ data: { user: { id: compte, last_sign_in_at: new Date().toISOString() } } }),
         // supabase-js : currentLevel = revendication `aal` du jeton, sinon null.
         mfa: { getAuthenticatorAssuranceLevel: async () => ({ data: { currentLevel: aal === undefined || aal === "" ? null : aal }, error: null }) },

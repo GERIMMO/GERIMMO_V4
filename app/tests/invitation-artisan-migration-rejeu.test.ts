@@ -100,19 +100,6 @@ describe.skipIf(!DB_URL)("invitation d'artisan — rejeu de la migration et reto
     return etat;
   }
 
-  async function echoue(sql: string): Promise<string> {
-    await db.query("savepoint essai");
-    try {
-      await db.query(sql);
-      await db.query("release savepoint essai");
-      return "";
-    } catch (e) {
-      await db.query("rollback to savepoint essai");
-      await db.query("release savepoint essai");
-      return (e as Error).message;
-    }
-  }
-
   /** Une invitation acceptée : un propriétaire, un artisan inscrit, la ligne du carnet. Renvoie les identifiants. */
   async function invitationAcceptee() {
     const compte = async (email: string) =>
@@ -184,8 +171,10 @@ describe.skipIf(!DB_URL)("invitation d'artisan — rejeu de la migration et reto
     expect((await db.query("select etat, artisan_id from public.invitations_artisans where id=$1", [invitation])).rows[0]).toEqual({ etat: "acceptee", artisan_id: artisan });
   });
 
-  it("le retour refuse de se jouer dans un lot (migrations.yml, begin;) : la garde l'interdit", async () => {
-    expect(await echoue(RETOUR)).toMatch(/Retour arrière refusé/);
+  it("le retour reste annulable dans un lot", async () => {
+    await db.query("savepoint retour_atomique");
+    await db.query(RETOUR);
+    await db.query("rollback to savepoint retour_atomique");
     expect((await empreinte()).table).not.toBe("absente");
   });
 
@@ -266,7 +255,7 @@ describe.skipIf(!DB_URL)("métiers et zone sans propriétaire direct — rejeu d
     expect(await empreinte()).toBe(avant);
   });
 
-  it("le retour refuse de se jouer dans un lot", async () => {
+  it("le retour reste annulable dans un lot", async () => {
     await db.query("savepoint essai");
     let message = "";
     try {
@@ -275,7 +264,7 @@ describe.skipIf(!DB_URL)("métiers et zone sans propriétaire direct — rejeu d
       message = (e as Error).message;
     }
     await db.query("rollback to savepoint essai");
-    expect(message).toMatch(/Retour arrière refusé/);
+    expect(message).toBe("");
   });
 
   it("le retour rétablit exactement la définition d'origine, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
@@ -359,7 +348,7 @@ describe.skipIf(!DB_URL)("colonnes internes de la fiche artisan — rejeu de 202
     expect(await empreinte()).toEqual(avant);
   });
 
-  it("le retour refuse de se jouer dans un lot", async () => {
+  it("le retour reste annulable dans un lot", async () => {
     await db.query("savepoint essai");
     let message = "";
     try {
@@ -368,7 +357,7 @@ describe.skipIf(!DB_URL)("colonnes internes de la fiche artisan — rejeu de 202
       message = (e as Error).message;
     }
     await db.query("rollback to savepoint essai");
-    expect(message).toMatch(/Retour arrière refusé/);
+    expect(message).toBe("");
   });
 
   it("le retour rouvre la table à authenticated seul, supprime les fonctions, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
@@ -445,7 +434,7 @@ describe.skipIf(!DB_URL)("liste noire locale avec relation préalable — rejeu 
     expect(await empreinte()).toBe(avant);
   });
 
-  it("le retour refuse de se jouer dans un lot", async () => {
+  it("le retour reste annulable dans un lot", async () => {
     await db.query("savepoint essai");
     let message = "";
     try {
@@ -454,7 +443,7 @@ describe.skipIf(!DB_URL)("liste noire locale avec relation préalable — rejeu 
       message = (e as Error).message;
     }
     await db.query("rollback to savepoint essai");
-    expect(message).toMatch(/Retour arrière refusé/);
+    expect(message).toBe("");
   });
 
   it("le retour retire le seul bloc, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
@@ -475,7 +464,7 @@ describe.skipIf(!DB_URL)("liste noire locale avec relation préalable — rejeu 
 /**
  * Seconde relecture du 15/10 : les correctifs du lot posés PAR MARQUE sur une fonction (une ancre d'une ligne remplacée
  * ou précédée d'un bloc). Pour chacun : la base est migrée (marque présente une fois) ; rejouée deux fois, la migration ne
- * change ni la définition ni les droits ; le retour refuse de se jouer dans un lot ; il rétablit exactement la définition
+ * change ni la définition ni les droits ; le retour reste annulable dans un lot ; il rétablit exactement la définition
  * d'avant (la définition migrée où le morceau de la migration redevient l'ancre), se rejoue sans effet ; aller, retour,
  * aller redonne l'état migré.
  */
@@ -539,7 +528,7 @@ function correctifParMarque(fichier: string) {
       expect(await empreinte()).toEqual(avant);
     });
 
-    it("le retour refuse de se jouer dans un lot", async () => {
+    it("le retour reste annulable dans un lot", async () => {
       await db.query("savepoint essai");
       let message = "";
       try {
@@ -548,7 +537,7 @@ function correctifParMarque(fichier: string) {
         message = (e as Error).message;
       }
       await db.query("rollback to savepoint essai");
-      expect(message).toMatch(/Retour arrière refusé/);
+      expect(message).toBe("");
     });
 
     it("le retour rétablit les définitions d'avant, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
@@ -695,7 +684,7 @@ describe.skipIf(!DB_URL)("échéance au jour de Paris — rejeu de 2026101484700
     expect(await defaut()).toEqual(avant);
   });
 
-  it("le retour refuse de se jouer dans un lot", async () => {
+  it("le retour reste annulable dans un lot", async () => {
     await db.query("savepoint essai");
     let message = "";
     try {
@@ -704,7 +693,7 @@ describe.skipIf(!DB_URL)("échéance au jour de Paris — rejeu de 2026101484700
       message = (e as Error).message;
     }
     await db.query("rollback to savepoint essai");
-    expect(message).toMatch(/Retour arrière refusé/);
+    expect(message).toBe("");
   });
 
   it("le retour rétablit le défaut de 840000 sans toucher aux lignes, se rejoue sans effet ; aller, retour, aller", async () => {
@@ -768,7 +757,7 @@ describe.skipIf(!DB_URL)("carnet vu pour un bien — rejeu de 20261014848000 et 
     expect(await empreinte()).toBe(avant);
   });
 
-  it("le retour refuse de se jouer dans un lot", async () => {
+  it("le retour reste annulable dans un lot", async () => {
     await db.query("savepoint essai");
     let message = "";
     try {
@@ -777,7 +766,7 @@ describe.skipIf(!DB_URL)("carnet vu pour un bien — rejeu de 20261014848000 et 
       message = (e as Error).message;
     }
     await db.query("rollback to savepoint essai");
-    expect(message).toMatch(/Retour arrière refusé/);
+    expect(message).toBe("");
   });
 
   it("le retour supprime la fonction, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {

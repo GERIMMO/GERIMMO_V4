@@ -123,7 +123,7 @@ test.describe("Propriétaire direct : l'alias /espace", () => {
     const titre=`TEST D27 document ${randomUUID().slice(0,8)}`;
     try {
       const {rows:[lot]}=await db.query("select id,bien_id from public.lots where organization_id=$1 and etat='disponible' order by created_at limit 1",[PD]);
-      const {rows:[personne]}=await db.query("select id from public.persons where organization_id=$1 and email='locataire.pd@gerimmo-demo.fr'",[PD]);
+      const {rows:[personne]}=await db.query("select id from public.persons where organization_id=$1 and email=$2",[PD,["locataire.pd","gerimmo-demo.fr"].join("@")]);
       expect(lot,"Lot fictif disponible requis").toBeDefined();expect(personne,"Locataire fictif requis").toBeDefined();
       bailId=(await db.query("insert into public.baux(organization_id,lot_id,locataire_principal,etat,loyer_hc,charges,date_debut) values($1,$2,$3,'brouillon',700,40,current_date+7) returning id",[PD,lot.id,personne.id])).rows[0].id;
       const depot=await storage.storage.from("documents").upload(stockage,pdf,{contentType:"application/pdf"});
@@ -143,10 +143,44 @@ test.describe("Propriétaire direct : l'alias /espace", () => {
         expect(new URL(page.url()).pathname+new URL(page.url()).search,suite).toBe(`/espace/${PD}${suite}`);
       }
       await expect(page.locator("body")).toContainText(titre);
-      const fichier=await page.request.get(`/espace/${PD}/documents/${documentId}/fichier`);
+      const cheminFichier=`/espace/${PD}/documents/${documentId}/fichier`;
+      const ancienFichier=await sansSuivre(browser,"proprietaire",`/agence/${PD}/documents/${documentId}/fichier`);
+      expect(ancienFichier.statut).toBe(308);
+      expect(new URL(ancienFichier.lieu,"http://adresse.invalide").pathname).toBe(cheminFichier);
+      // L'aperçu reste dans l'espace : seuls les octets viennent directement du stockage.
+      const lectureStockage=page.waitForResponse(r=>new URL(r.url()).origin===new URL(api!).origin
+        && new URL(r.url()).pathname.includes("/storage/v1/object/sign/") && r.request().method()==="GET");
+      const apercu=await page.goto(cheminFichier);
+      expect(apercu?.status()).toBe(200);
+      expect(apercu?.headers()["content-type"]).toContain("text/html");
+      expect(new URL(page.url()).pathname).toBe(cheminFichier);
+      const fichier=await lectureStockage;
       expect(fichier.status()).toBe(200);
       expect(fichier.headers()["content-type"]).toContain("application/pdf");
       expect(await fichier.body()).toEqual(pdf);
+      await expect(page.getByRole("link",{name:"Ouvrir le PDF en plein écran"})).toBeVisible();
+      await expect(page.getByRole("link",{name:"Télécharger",exact:true})).toHaveAttribute("href",/^blob:/);
+      await expect(page.locator("#etat")).toBeHidden();
+      const attenteDownload=page.waitForEvent("download");
+      await page.getByRole("link",{name:"Télécharger",exact:true}).click();
+      const download=await attenteDownload;
+      expect(download.suggestedFilename()).toBe(`${titre}.pdf`);
+      const flux=await download.createReadStream();
+      expect(flux).not.toBeNull();
+      const morceaux:Buffer[]=[];
+      for await(const morceau of flux!)morceaux.push(Buffer.from(morceau));
+      expect(Buffer.concat(morceaux)).toEqual(pdf);
+      // Le téléchargement autorise à nouveau l'accès, puis contourne la limite de taille de l'hébergeur.
+      const telechargement=await page.request.get(`${cheminFichier}?mode=telechargement`,{maxRedirects:0});
+      expect(telechargement.status()).toBe(303);
+      expect(telechargement.headers()["cache-control"]).toBe("private, no-store");
+      const destination=new URL(telechargement.headers()["location"]);
+      expect(destination.origin).toBe(new URL(api!).origin);
+      const contenu=await page.request.get(destination.toString());
+      expect(contenu.status()).toBe(200);
+      expect(contenu.headers()["content-type"]).toContain("application/pdf");
+      expect(contenu.headers()["content-disposition"]).toBe(`attachment; filename*=UTF-8''${encodeURIComponent(`${titre}.pdf`)}`);
+      expect(await contenu.body()).toEqual(pdf);
     } finally {
       await page.close();
       if(documentId){await db.query("delete from public.acces_pieces_log where document_id=$1",[documentId]);await db.query("delete from public.document_liens where document_id=$1",[documentId]);await db.query("delete from public.documents where id=$1",[documentId]);}

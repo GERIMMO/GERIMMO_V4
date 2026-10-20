@@ -1,12 +1,10 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- Remettre le code de confirmation antérieur avant ce retour, hors du lot de
 -- migrations. Seuls les compteurs temporaires sont supprimés, aucun compte Auth.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
-begin;
+
 set local lock_timeout = '10s';
 drop function if exists public.autoriser_confirmation_auth(text, text, text, text);
 drop table if exists public.tentatives_confirmation_auth;
@@ -16,4 +14,5 @@ begin
     delete from supabase_migrations.schema_migrations where version = '20261016150000';
   end if;
 end $retour_arriere$;
-commit;
+$instructions_retour$;
+end $retour_atomique$;

@@ -1,11 +1,13 @@
 "use server";
+import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direct";
+
 
 import { avertissementsCoherenceLoyer, type AvertissementLoyer } from "@/lib/coherence-loyer";
 import { premier } from "@/lib/postgrest";
 import { lireMentionsContrat, verifierHonorairesContrat } from "@/lib/mentions-contrat";
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
-import { detecterMimeReel, TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { detecterMimeReel } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deLEspaceDeGestion } from "@/lib/libelles";
 import { abandonnerPieceGed, deposerFichierGed, preparerFichierGed } from "@/lib/ged-depot";
@@ -422,9 +424,13 @@ async function deposerPieceBail(
   if (!user) return { erreur: "Accès refusé." };
   const racine = racineEspace(role === "proprietaire_direct"); // décision D27
 
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
+
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) return { erreur: "Choisissez le PDF." };
-  if (fichier.size > TAILLE_MAX_OCTETS) return { erreur: "Fichier trop volumineux (10 Mo max)." };
+  if (fichier.size > limiteFichierDepose(fichier)) return { erreur: `Fichier trop volumineux (${limiteFichierDepose(fichier) / 1024 / 1024} Mo max).` };
   // Recette 21/08 : un bail signé est un PDF — une photo de la première page
   // passait la GED (qui accepte les images) et valait document contractuel.
   const mime = detecterMimeReel(new Uint8Array(await fichier.arrayBuffer()));
@@ -644,6 +650,8 @@ export async function enregistrerConge(
   // l'empreinte bloquait ensuite le nouvel essai avec le même fichier. L'octet
   // monte au Storage, la fiche naît dans la transaction du congé.
   let avertissementJustificatif: string | undefined;
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichier = formData.get("justificatif");
   let error: { message: string } | null;
   if (fichier instanceof File && fichier.size > 0) {

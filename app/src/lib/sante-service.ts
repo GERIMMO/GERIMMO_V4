@@ -65,8 +65,7 @@ const PRESTATAIRE_PAR_CLE: Record<string, Prestataire> = {
   ZOHO_SIGN_CLIENT_SECRET: "Zoho Sign",
   ZOHO_SIGN_REFRESH_TOKEN: "Zoho Sign",
   ZOHO_SIGN_WEBHOOK_SECRET: "Zoho Sign",
-  YOUTRUST_API_KEY: "Yousign",
-  YOUTRUST_WEBHOOK_SECRET: "Yousign",
+  SIGNATURE_BAIL_PRESTATAIRE: "Zoho Sign",
   CRON_SECRET: "Vercel",
   SUPABASE_SERVICE_ROLE_KEY: "Supabase",
   NEXT_PUBLIC_SITE_URL: "Vercel",
@@ -81,6 +80,9 @@ const LIBELLES_BILAN: Record<string, string> = {
   rappeles: "rappels envoyés",
   examines: "dossiers examinés",
   alignees: "mises à jour",
+  stripe_repris: "réceptions Stripe reprises",
+  stripe_controles: "dossiers Stripe contrôlés",
+  stripe_ecarts: "dossiers présentant un écart Stripe",
   resiliees: "abonnements terminés",
   avoirs_portes: "avoirs reportés",
   avoirs_en_echec: "avoirs à reprendre",
@@ -98,6 +100,7 @@ const LIBELLES_BILAN: Record<string, string> = {
   traitees: "actions réalisées",
   traites: "actions réalisées",
   etudiees: "actualités étudiées",
+  rejetees: "études non retenues par le contrôle des sources",
   sources: "sources consultées",
   rapports_prepares: "comptes rendus préparés",
   ignores: "actions sans suite nécessaire",
@@ -220,31 +223,13 @@ export function etatConfiguration(env: Env, regimeTva: RegimeTva | null = REGIME
         : `domaine ${domaine} — à vérifier chez Resend (SPF, DKIM)`,
   });
 
-  // L'envoi des baux exige un opt-in après recette, en plus des clés.
-  const cleYoutrust = valeur(env, "YOUTRUST_API_KEY");
-  const signatureDemandee = valeur(env, "YOUTRUST_BAIL_ACTIF") === "true";
-  const youtrustActive = signatureDemandee && valeur(env, "YOUTRUST_ENV") === "production" && Boolean(cleYoutrust) && Boolean(valeur(env,"YOUTRUST_WEBHOOK_SECRET"));
-  verifications.push({
-    cle: "YOUTRUST_API_KEY",
-    usage: "Signature électronique des baux et contrats",
-    etat: signatureDemandee && !youtrustActive ? "attention" : "ok",
-    detail: youtrustActive
-      ? "environnement réel — envoi activé, à distinguer d’une signature effectivement testée"
-      : signatureDemandee ? "activation demandée mais configuration réelle incomplète — vérifier l’environnement et les deux clés"
-      : "envoi désactivé : préparation et signature manuelle disponibles ; compte API et essais nécessaires avant activation",
-  });
-  if (signatureDemandee) {
-    verifications.push({
-      cle: "YOUTRUST_WEBHOOK_SECRET",
-      usage: "Réception sécurisée des signatures terminées",
-      etat: valeur(env, "YOUTRUST_WEBHOOK_SECRET") ? "ok" : "attention",
-      detail: valeur(env, "YOUTRUST_WEBHOOK_SECRET") ? null : "à poser lors de la création du webhook",
-    });
+  if (valeur(env, "SIGNATURE_BAIL_PRESTATAIRE") === "youtrust") {
+    verifications.push({ cle: "SIGNATURE_BAIL_PRESTATAIRE", usage: "Ancien service de signature", etat: "attention",
+      detail: "Ancien prestataire retiré : choisissez Zoho avant tout nouvel envoi. Les archives sont conservées." });
   }
-
   const zohoDemande = valeur(env,"ZOHO_SIGN_BAIL_ACTIF") === "true";
   const zohoCles = ["ZOHO_SIGN_CLIENT_ID","ZOHO_SIGN_CLIENT_SECRET","ZOHO_SIGN_REFRESH_TOKEN","ZOHO_SIGN_WEBHOOK_SECRET"];
-  if (valeur(env,"SIGNATURE_BAIL_PRESTATAIRE") !== "youtrust" || zohoDemande) {
+  {
     const zohoPret = zohoCles.every(c => Boolean(valeur(env,c))) && valeur(env,"ZOHO_SIGN_ENV") === "production";
     verifications.push({cle:"ZOHO_SIGN_CLIENT_ID",usage:"Signature des baux avec Zoho Sign (Europe)",etat:zohoDemande && !zohoPret ? "attention" : "ok",
       detail:zohoDemande ? zohoPret ? "envoi réel activé — la connexion et la recette doivent être vérifiées séparément" : "activation demandée : vérifier l’environnement, l’autorisation Zoho et le retour sécurisé" : "envoi désactivé — compte Zoho européen et recette nécessaires"});

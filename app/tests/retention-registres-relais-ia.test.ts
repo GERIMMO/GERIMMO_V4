@@ -392,8 +392,8 @@ describe.skipIf(!url)("D48 — les registres du 15/10 ont leur règle de six moi
   });
 
   describe("retour arrière", () => {
-    it("il refuse de se jouer dans un lot déjà ouvert (il valide sa propre transaction)", async () => {
-      expect(await echoue(retour())).toMatch(/Retour arrière refusé/);
+    it("il reste annulable dans un lot déjà ouvert", async () => {
+      expect(await echoue(retour())).toBe("");
       expect(await nombre("select count(*) n from pg_proc where proname = 'purger_registres_relais_ia'")).toBe(1);
     });
 
@@ -477,8 +477,8 @@ describe.skipIf(!url)("D48 — les registres du 15/10 ont leur règle de six moi
 
     it("elle ferme les fonctions à anon ; son retour gère sa transaction, est déclaré au LISEZ-MOI et figure dans l'ordre complet des retours", () => {
       expect(migration().trimEnd().endsWith("select public.fermer_fonctions_a_anon();")).toBe(true);
-      expect(retour()).toMatch(/^-- RETOUR ARRIÈRE de /);
-      expect(retour()).toMatch(/\bcommit;\s*$/m);
+      expect(retour()).toMatch(/^-- RETOUR ARRIÈRE de /m);
+      expect(retour()).toMatch(/end \$retour_atomique\$;/);
       const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
       expect(lisezMoi).toContain(`${FICHIER}.retour.sql`);
       const chaine = lisezMoi.match(/Ordre complet si tout doit être défait :([\s\S]*?)puis `500000`/)?.[1] ?? "";

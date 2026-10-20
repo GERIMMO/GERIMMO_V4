@@ -4,7 +4,6 @@ import { chargerContexteBail, type ContexteBail, type PersonneDocument } from "@
 import { MODELES } from "@/lib/documents/modeles";
 import { echapper, type DocumentAssemble } from "@/lib/documents/gabarit";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
-import { configurationYoutrust } from "@/lib/youtrust";
 import { configurationZohoSign } from "@/lib/zoho-sign";
 import { prestataireSignature, type ConfigurationSignature, type PrestataireSignature } from "@/lib/signature-prestataire";
 import { aujourdhuiParis } from "@/lib/ged";
@@ -18,6 +17,7 @@ export type SignataireBail = {
   mentionCaution?: string;
 };
 export type CircuitBail = {
+  created_by?: string; envoye_le?: string | null;
   essai?: boolean; modele?: ModeleSignature; cible_id?: string; options?: Record<string,string>;
   id: string; prestataire: PrestataireSignature; organization_id: string; bail_id: string | null; document_id: string;
   etat: "pret" | "preparation" | "en_cours" | "a_verifier" | "termine" | "annule" | "refuse" | "expire";
@@ -142,10 +142,9 @@ export async function assemblerSignatureBail(db: SupabaseClient, org: string, ba
 
 /** La suspension des nouveaux envois ne doit pas abandonner les dossiers déjà envoyés. */
 export function configurationSuiviSignatureBail(env: Record<string,string|undefined> = process.env, prestataire: PrestataireSignature = prestataireSignature(env)): ConfigurationSignature | null {
-  const yt = prestataire === "youtrust" ? configurationYoutrust(env) : null;
-  const config: ConfigurationSignature | null = prestataire === "zoho" ? configurationZohoSign(env) : yt ? { ...yt, prestataire: "youtrust" } : null;
-  const prefixe = prestataire === "zoho" ? "ZOHO_SIGN" : "YOUTRUST";
-  if (!config || !env[`${prefixe}_WEBHOOK_SECRET`]?.trim()) return null;
+  if (prestataire !== "zoho") return null;
+  const config = configurationZohoSign(env);
+  if (!config || !env.ZOHO_SIGN_WEBHOOK_SECRET?.trim()) return null;
   if (config.environnement === "sandbox") {
     // Les environnements déployés et les bases de production ne peuvent pas envoyer de vrais baux en sandbox.
     const url = env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -157,7 +156,7 @@ export function configurationSuiviSignatureBail(env: Record<string,string|undefi
 
 /** Opt-in distinct : posséder une clé ne permet jamais d'envoyer une invitation. */
 export function configurationSignatureBail(env: Record<string,string|undefined> = process.env, prestataire: PrestataireSignature = prestataireSignature(env), org?: string): ConfigurationSignature | null {
-  const prefixe = prestataire === "zoho" ? "ZOHO_SIGN" : "YOUTRUST";
-  const essai = prestataire === "zoho" && Boolean(org && signatureEnEssai(org, env));
-  return env[`${prefixe}_BAIL_ACTIF`] === "true" || essai ? configurationSuiviSignatureBail(env, prestataire) : null;
+  if (prestataire !== "zoho") return null;
+  const essai = Boolean(org && signatureEnEssai(org, env));
+  return env.ZOHO_SIGN_BAIL_ACTIF === "true" || essai ? configurationSuiviSignatureBail(env, prestataire) : null;
 }

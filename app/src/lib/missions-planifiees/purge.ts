@@ -1,3 +1,4 @@
+import { purgerDepotsTemporaires } from "@/lib/depot-direct-purge";
 import { verifierAvantEffet } from "@/lib/controle-effets";
 // La suppression physique des fichiers purgés — chaque nuit, sans clic.
 //
@@ -88,7 +89,8 @@ export async function traiterPurge(request: Request) {
 
   // `echecs` compte aussi les chemins bloqués : Santé et Équipes lisent ce
   // compteur pour passer la tâche au rouge.
-  const bilan = { traites, echecs: echecs + (bloques ?? 0), bloques: bloques ?? 0, en_attente: lignes.length - traites };
+  const transit = await purgerDepotsTemporaires(db);
+  const bilan = { ...transit, traites, echecs: echecs + (bloques ?? 0) + transit.echecs_transferts + (transit.transferts_bloques ?? 0), bloques: bloques ?? 0, en_attente: lignes.length - traites };
   await consignerTache(db, "purge", bilan);
   return Response.json(bilan);
 }

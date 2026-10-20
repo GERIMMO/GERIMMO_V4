@@ -1,4 +1,5 @@
 "use server";
+import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direct";
 
 import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
@@ -6,7 +7,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
-import { detecterMimeReel, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { detecterMimeReel, EXTENSIONS } from "@/lib/file-type";
 import { categorieIncident, MOTIF_DECISION_DEVIS, MOTIFS_CLOTURE, PIECES_INCIDENT } from "@/lib/incidents";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { joindrePhotosAvecReprise } from "@/lib/photos-incident-reprise";
@@ -97,8 +98,8 @@ async function joindrePhotos(
     await Promise.all(
       fichiers.map(async (fichier): Promise<Prete | null> => {
         if (fichier.size === 0) return null;
-        if (fichier.size > TAILLE_MAX_OCTETS) {
-          echecs.push(`« ${fichier.name} » dépasse 10 Mo`);
+        if (fichier.size > limiteFichierDepose(fichier)) {
+          echecs.push(`« ${fichier.name} » dépasse ${limiteFichierDepose(fichier) / 1024 / 1024} Mo`);
           return null;
         }
         const octets = new Uint8Array(await fichier.arrayBuffer());
@@ -190,6 +191,8 @@ export async function declarerMonIncident(
   // facultative… à condition qu'une photo parle à sa place.
   const champs = lireChampsDeclaration(formData, false);
   if (champs.erreur) return { erreur: champs.erreur, valeurs };
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const photos = lirePhotos(formData);
   if (photos.erreur) return { erreur: photos.erreur, valeurs };
   if (!champs.description && (photos.fichiers?.length ?? 0) === 0) {
@@ -211,8 +214,8 @@ export async function declarerMonIncident(
   const fichiersDistincts: File[] = [];
   let doublonsEcartes = 0;
   for (const fichier of photos.fichiers ?? []) {
-    if (fichier.size > TAILLE_MAX_OCTETS) {
-      return { erreur: `« ${fichier.name} » dépasse 10 Mo.`, valeurs };
+    if (fichier.size > limiteFichierDepose(fichier)) {
+      return { erreur: `« ${fichier.name} » dépasse ${limiteFichierDepose(fichier) / 1024 / 1024} Mo.`, valeurs };
     }
     const octets = new Uint8Array(await fichier.arrayBuffer());
     const mime = detecterMimeReel(octets);
@@ -386,6 +389,8 @@ export async function ouvrirIncident(
   if (!lotId) return { erreur: "Choisissez le lot concerné.", valeurs };
   const champs = lireChampsDeclaration(formData);
   if (champs.erreur) return { erreur: champs.erreur, valeurs };
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const photos = lirePhotos(formData);
   if (photos.erreur) return { erreur: photos.erreur, valeurs };
 
@@ -549,6 +554,8 @@ export async function joindrePhotoIncident(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const photos = lirePhotos(formData);
   if (photos.erreur) return { erreur: photos.erreur };
   if (!photos.fichiers || photos.fichiers.length === 0) {

@@ -65,10 +65,10 @@ describe("Lot reglement-facture — fichiers de migration et de retour arrière 
     for (const signature of NOUVELLES) expect(RETOUR).toContain(`drop function if exists ${signature.replace(/,/g, ", ")}`);
   });
 
-  it("le retour refuse de se jouer dans un lot, gère sa transaction, retire sa version et conserve la table (B.11)", () => {
-    expect(RETOUR).toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
-    expect(RETOUR).toMatch(/^begin;$/m);
-    expect(RETOUR).toMatch(/^commit;$/m);
+  it("le retour est atomique sans valider la transaction appelante, retire sa version et conserve la table (B.11)", () => {
+    expect(RETOUR).not.toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
+    expect(RETOUR).toMatch(/do \$retour_atomique\$/);
+    expect(RETOUR).toMatch(/end \$retour_atomique\$;/);
     expect(RETOUR).toContain("where version = '20261014610000'");
     expect(RETOUR).toContain("select public.fermer_fonctions_a_anon();");
     expect(RETOUR).not.toMatch(/drop table/i);

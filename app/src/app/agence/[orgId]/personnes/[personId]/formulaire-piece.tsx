@@ -73,7 +73,7 @@ export function FormulairePiece({ orgId, personId, demande }: { orgId: string; p
         <Label htmlFor={`${id}-piece-fichier`} className="text-sm">
           Fichier (PDF/JPG/PNG, 10 Mo)
         </Label>
-        <ChampFichier id={`${id}-piece-fichier`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
+        <ChampFichier depotDirect id={`${id}-piece-fichier`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
       </div>
       {/* Sa propre ligne, à droite, de façon voulue : il retombait seul sous
           « Type de pièce », loin du fichier qu'il valide. En contour, comme
@@ -164,7 +164,7 @@ export function FormulaireNouvelleVersion({
         <Label htmlFor={`version-fichier-${remplaceId}`} className="text-sm">
           Fichier (PDF/JPG/PNG, 10 Mo)
         </Label>
-        <ChampFichier id={`version-fichier-${remplaceId}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
+        <ChampFichier depotDirect id={`version-fichier-${remplaceId}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
       </div>
       <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Dépôt…">
         Déposer la nouvelle version

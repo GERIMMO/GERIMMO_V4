@@ -607,7 +607,7 @@ function ChampsRetenue({
         <Label htmlFor={idJustificatif} className="sr-only">
           Justificatif de la retenue
         </Label>
-        <ChampFichier id={idJustificatif} name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required={justificatifObligatoire} />
+        <ChampFichier depotDirect id={idJustificatif} name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required={justificatifObligatoire} />
         <BoutonEnvoi size="sm" variant="outline" disabled={amorti}>
           Ajouter la retenue
         </BoutonEnvoi>
@@ -688,7 +688,7 @@ function FormJustifierRetenue({
   return (
     <form data-saisie-confirmee action={action} className="flex w-full flex-wrap items-center gap-2 pl-1">
       <span className="text-sm text-destructive">Sans justificatif</span>
-      <ChampFichier id={`just-retenue-${retenue.id}`} name="justificatif" accept=".pdf,image/*" required aria-label={`Justificatif pour ${retenue.libelle}`} />
+      <ChampFichier depotDirect id={`just-retenue-${retenue.id}`} name="justificatif" accept=".pdf,image/*" required aria-label={`Justificatif pour ${retenue.libelle}`} />
       <BoutonEnvoi size="sm" variant="outline">
         Joindre le devis / la facture
       </BoutonEnvoi>

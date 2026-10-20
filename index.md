@@ -137,6 +137,8 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[2026-09-08-maquette-espace-agence-v6|Maquette espace agence v6]] — agent + admin d'agence : inventaire, contradictions (fonds mandants vs RM-A6.1), découpage d'intégration.
 
 ## Synthèses
+
+- [[Suites de l'audit — 20 octobre 2026]] — Corrections préparées : accès, sauvegardes, reprises Stripe, retrait Youtrust, dépôts et 17 rubriques de supervision ; preuves, limites et décisions encore ouvertes.
 - [[Choisir son locataire selon les conditions des assurances loyers impayés]] — 16/10/2026, brouillon : conseils masqués dans la version candidate en attendant relecture ; aucune validation juridique annoncée.
 
 - [[Dossier de validation — version candidate du 13 octobre 2026]] — **dossier de livraison** : contenu, migrations, contrôles sur le SHA figé, observation de la production en lecture seule, porte de validation, dix critères de clôture cochés séparément (au 16/10 : « fonctions majeures » partiel, « automatisations » non rempli, « version autorisée déployée » rempli, « production vérifiée » partiel), **mise en production du 14/10/2026** (PR #179, § 5 bis) et **déploiements du 14 au 19/10** (PR #181 à #211 : migrations, sauvegardes, simulations, recettes, § 5 quater ; #195 : sauvegarde 38875875213, simulation 38875594376, application 38879864823, recette n° 18 38880135882 ; #202 : trois migrations appliquées hors chantier ; #203 et #206 : cinq migrations Zoho ; #210 : `20261018231827`) ; mission non terminée (P1 au premier essai aux recettes n° 19, 20 et 24 ; cause de D04 établie le 16/10 au soir ; réglages Supabase faits le 16/10 au soir ; PDF 2044 et chemin confirmé de D38 toujours non joués ; **dix fusions #202 à #211 sans recette**, hors de l'autorisation du 14/10).
@@ -234,3 +236,21 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - **18 octobre 2026 — signature Zoho Sign en production** : PR #203 (`b5f70e6`, migrations `20261018085521`, `20261018100243`, `20261018143644`, application 39149075958), #204 (`2e20241`), #205 (`81d19d8`, essai avec le compte permanent), #206 (`6cb2468`, migrations `20261018185515`, `20261018193308`, application 39161862763), #207 à #209 (mention de caution ; `cce71b6`, `b78f73d`, `a209ba9`) ; compte Zoho Sign Europe ouvert et essai externe signé par le dirigeant ; webhook actif ; **envois aux clients désactivés** ; aucun script de retour ; aucune recette ; détail sur la page de la section Concepts (Signature électronique) et dans [le dossier de signature](app/docs/signature-electronique-bail.md).
 
 - **19 octobre 2026 — abonnement au jour de Paris, contenus publics, calendrier artisan** : PR #210 (`4b3439f`, 01 h 49 Paris, migration `20261018231827` avec script de retour ; simulation 39176221493, application 39178050558 : 386 versions) et PR #211 (`2fffec6`, 02 h 33 Paris, aucune migration) ; CI 39178107816 et 39181284265 ; Vercel `dpl_6iLvRpEu4fdLERWkSH9KQuBCjxag` et `dpl_Fktqsq11AQ6tbmddNHCDaL28jxFp` ; **aucune recette de production depuis la n° 24 du 17/10 : dix fusions (#202 à #211) sans recette**. Pages complétées au 19/10 : [[Prêt à démarcher]], [[Recette de production]], [[Registre des anomalies — audit du 13 octobre 2026]], [[Décisions groupées — version candidate du 13 octobre 2026]], [[Dossier de validation — version candidate du 13 octobre 2026]].
+
+- [Livraison préparée du 20 octobre : accès, sauvegarde, reprises Stripe et signatures](app/docs/livraison-audit-20-octobre.md) — non appliquée en production.
+
+- 20/10 : complément de [[Suites de l'audit — 20 octobre 2026]] — transferts de fichiers et 71 retours historiques atomiques, limites G5 explicitement maintenues.
+
+- **20 octobre — signatures, complément local** : abandon atomique avant création distante et annulation concurrente contrôlée ; cinq migrations préparées au total, aucune publiée. Voir [[Suites de l'audit — 20 octobre 2026]].
+
+- **20 octobre — consultation PDF** : scénario navigateur adapté au transfert Storage direct, 17 vérifications locales réussies ; contrôle CI du dernier lot encore requis. Voir [[Suites de l'audit — 20 octobre 2026]].
+
+- **20 octobre — contrôles complémentaires** : téléchargement PDF effectivement éprouvé et réglages Stripe relevés en lecture seule ; aucune modification financière ni de configuration. Voir [[Suites de l'audit — 20 octobre 2026]].
+
+- [[Suites de l'audit — 20 octobre 2026|Suites de l’audit du 20 octobre]] : conclusion locale CI747 sur le dernier SHA préparé, 200 tests navigateur réussis ; contrôle différé des devis prévu le 29 octobre, sans mise en production.
+
+- **20 octobre — archives volumineuses** : lecture des devis, preuves et pièces privées avec empreinte vérifiée, taille bornée et confirmation de génération légère ; complément testé localement. Voir [[Suites de l'audit — 20 octobre 2026]].
+
+- **20 octobre — validation éditoriale** : accord du dirigeant enregistré à 10 h 17 Paris, les prochaines diffusions attendent sa validation ; article de 9 h déjà diffusé. CI748 : exception de taille HTTP corrigée et 43 tests ciblés réussis, nouvelle CI attendue. Voir [[Suites de l'audit — 20 octobre 2026]].
+
+- **20 octobre — dépôts directs et suivi** : fichiers privés jusqu’à 10 Mio, rapprochement des brouillons et rappels durables préparés mais désactivés ; sept migrations, 9 079 tests locaux réussis et recette de dépôt sur build à deux largeurs. Livraison encore à vérifier. Voir [[Suites de l'audit — 20 octobre 2026]].

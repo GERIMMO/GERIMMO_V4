@@ -342,11 +342,13 @@ describe("le miroir du webhook", () => {
   function base(suivi: { stripe_subscription_id: string | null; stripe_statut?: string | null } = { stripe_subscription_id: "sub_w" }) {
     const vus = new Set<string>();
     transport.rpc.mockImplementation(async (nom: string, p: Record<string, unknown>) => {
-      if (nom === "abonnement_evenement_a_traiter") {
+      if (nom === "stripe_evenement_prendre") {
         const nouveau = !vus.has(p.p_event_id as string);
         vus.add(p.p_event_id as string);
-        return { data: nouveau, error: null };
+        return { data: nouveau ? "pris" : "traite", error: null };
       }
+      if (nom === "stripe_evenement_finir") return { data: true, error: null };
+      if (nom === "stripe_evenement_appliquer") return { data: p.p_action === "abonnement_details" ? null : "org_w", error: null };
       if (nom === "abonnement_par_client") {
         return {
           data: [{ organization_id: "org_w", organisation: "W", public_tarif: "proprietaire_direct", grille: "2026-09-28", destinataire: null, stripe_statut: "active", ...suivi }],
@@ -363,7 +365,7 @@ describe("le miroir du webhook", () => {
     const signature = new Stripe("sk_test_offres").webhooks.generateTestHeaderString({ payload: corps, secret });
     return new Request("https://x/api/stripe/webhook", { method: "POST", body: corps, headers: { "stripe-signature": signature } });
   }
-  const appelsA = (nom: string) => transport.rpc.mock.calls.filter((c) => c[0] === nom);
+  const appelsA = (nom: string) => transport.rpc.mock.calls.map(c => c[0] === "stripe_evenement_appliquer" ? [c[1].p_action, c[1].p_params] : c).filter(c => c[0] === nom);
 
   function souscription() {
     return {
@@ -399,18 +401,19 @@ describe("le miroir du webhook", () => {
     const signer = () => new Stripe("sk_test_offres").webhooks.generateTestHeaderString({ payload: corps, secret });
     const r1 = await POST(new Request("https://x/api/stripe/webhook", { method: "POST", body: corps, headers: { "stripe-signature": signer() } }));
     expect(r1.status).toBe(200);
-    const details = transport.rpc.mock.calls.filter((c) => c[0] === "abonnement_details");
+    const details = appelsA("abonnement_details");
     expect(details).toHaveLength(1);
     expect(details[0][1]).toMatchObject({ p_customer: "cus_w", p_periodicite: "annuel", p_formule: "patrimoine", p_unites: 25, p_montant_periode_cents: 34990 });
     const r2 = await POST(new Request("https://x/api/stripe/webhook", { method: "POST", body: corps, headers: { "stripe-signature": signer() } }));
     expect(await r2.json()).toMatchObject({ deja_traite: "evt_offre" });
-    expect(transport.rpc.mock.calls.filter((c) => c[0] === "abonnement_details")).toHaveLength(1);
+    expect(appelsA("abonnement_details")).toHaveLength(1);
   });
 
-  it("un échec d'enregistrement rend 500 et efface la trace : Stripe rejouera", async () => {
+  it("un échec d'enregistrement rend 500 et conserve la réception pour reprise", async () => {
     chezStripe.souscriptions.set("sub_w", souscription());
-    transport.rpc.mockImplementation(async (nom: string) => {
-      if (nom === "abonnement_evenement_a_traiter") return { data: true, error: null };
+    transport.rpc.mockImplementation(async (nom: string, p: Record<string, unknown>) => {
+      if (nom === "stripe_evenement_prendre") return { data: "pris", error: null };
+      if (nom === "stripe_evenement_appliquer") return p.p_action === "abonnement_details" ? { data: null, error: { message: "indisponible" } } : { data: "org_w", error: null };
       if (nom === "abonnement_par_client") return { data: [{ organization_id: "org_w", stripe_subscription_id: "sub_w" }], error: null };
       if (nom === "abonnement_appliquer") return { data: "org_w", error: null };
       if (nom === "abonnement_details") return { data: null, error: { message: "indisponible" } };
@@ -420,7 +423,7 @@ describe("le miroir du webhook", () => {
     const signature = new Stripe("sk_test_offres").webhooks.generateTestHeaderString({ payload: corps, secret });
     const r = await POST(new Request("https://x/api/stripe/webhook", { method: "POST", body: corps, headers: { "stripe-signature": signature } }));
     expect(r.status).toBe(500);
-    expect(transport.rpc.mock.calls.map((c) => c[0])).toContain("abonnement_evenement_rejouable");
+    expect(appelsA("stripe_evenement_finir")[0][1]).toMatchObject({ p_reussi: false });
   });
 
   it("l'état appliqué est celui RELU chez Stripe, pas celui de l'événement (audit 29/09, point 2)", async () => {
@@ -443,7 +446,7 @@ describe("le miroir du webhook", () => {
     expect(appelsA("abonnement_appliquer")).toHaveLength(0);
     expect(appelsA("abonnement_details")).toHaveLength(0);
     expect(journal.mock.calls.some((c) => String(c[0]).includes("[stripe webhook][double-souscription]"))).toBe(true);
-    expect(appelsA("abonnement_evenement_solde")[0][1]).toMatchObject({ p_erreur: expect.stringContaining("non suivie") });
+    expect(appelsA("stripe_evenement_finir")[0][1]).toMatchObject({ p_motif: expect.stringContaining("non suivie") });
   });
 
   it("la souscription suivie est TERMINÉE : la nouvelle prend sa place (réabonnement)", async () => {

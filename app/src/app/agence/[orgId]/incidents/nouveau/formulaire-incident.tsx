@@ -163,7 +163,7 @@ export function FormulaireIncident({
         <Label htmlFor="photos">Photos — Facultatif (5 max, JPEG ou PNG)</Label>
         {/* Champ fichier habillé en français (25/09, D10) : le natif rendait
             « Choose Files / No file chosen » sur un navigateur en anglais. */}
-        <ChampFichier
+        <ChampFichier depotDirect
           id="photos"
           name="photos"
           accept="image/jpeg,image/png"

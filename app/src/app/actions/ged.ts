@@ -1,8 +1,9 @@
 "use server";
+import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direct";
+
 
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
-import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { TYPES_DEPOSABLES } from "@/lib/ged";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
@@ -24,6 +25,8 @@ export async function deposerDocument(
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichier = formData.get("fichier");
   const type = String(formData.get("type") ?? "");
   const titre = String(formData.get("titre") ?? "").trim();
@@ -35,8 +38,8 @@ export async function deposerDocument(
   if (!(TYPES_DEPOSABLES as readonly string[]).includes(type)) {
     return { erreur: "Type de document invalide.", valeurs };
   }
-  if (fichier.size > TAILLE_MAX_OCTETS) {
-    return { erreur: "Fichier trop volumineux (10 Mo maximum).", valeurs };
+  if (fichier.size > limiteFichierDepose(fichier)) {
+    return { erreur: `Fichier trop volumineux (${limiteFichierDepose(fichier) / 1024 / 1024} Mo maximum).`, valeurs };
   }
 
   const resultat = await deposerFichierGed(supabase, user, orgId, fichier, type, titre);

@@ -28,8 +28,8 @@ import { pathToFileURL } from 'node:url';
 import { chiffrer, dechiffrer, lireCle } from './fichiers.mjs';
 import { exporterTachesPlanifiees, FICHIER_REJEU, FICHIER_TACHES, FICHIER_TACHES_CLAIR, genererRejeu } from './taches-planifiees.mjs';
 
-/** Les schémas qui portent les données de Gerimmo. Les schémas internes de Supabase se recréent avec le projet. */
-export const SCHEMAS = ['public', 'auth', 'storage', 'support_interne'];
+/** Données, droits et historique des migrations, nécessaires à une reprise sans réappliquer les migrations. */
+export const SCHEMAS = ['public', 'auth', 'storage', 'support_interne', 'supabase_migrations'];
 const LIMITE = 4 * 1024 * 1024 * 1024;
 const empreinte = b => createHash('sha256').update(b).digest('hex');
 

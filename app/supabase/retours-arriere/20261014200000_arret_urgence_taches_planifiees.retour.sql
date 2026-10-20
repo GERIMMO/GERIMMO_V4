@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014200000_arret_urgence_taches_planifiees.sql (décision D06 : l'arrêt d'urgence
 -- couvre aussi les 8 tâches pg_cron).
 --
@@ -19,17 +23,8 @@
 -- de loyer, les alertes ni le déclencheur marketing de pg_cron. L'écran continuerait d'afficher « arrêt
 -- actif » pendant que ces tâches tournent. Aucune donnée n'est modifiée par le retour lui-même.
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 
-begin;
 set local lock_timeout = '10s';
 
 -- Outil local à cette session (pg_temp : disparaît à la fin de la connexion, rien n'est créé dans public).
@@ -561,5 +556,5 @@ begin
     delete from supabase_migrations.schema_migrations where version = '20261014200000';
   end if;
 end $retour_arriere$;
-
-commit;
+$instructions_retour$;
+end $retour_atomique$;

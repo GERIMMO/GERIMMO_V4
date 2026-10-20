@@ -117,6 +117,7 @@ export function FormulaireFacture({
           Votre facture
         </label>
         <ChampFichier
+            depotDirect
           id={idFichier}
           name="fichier"
           accept="application/pdf,image/jpeg,image/png"

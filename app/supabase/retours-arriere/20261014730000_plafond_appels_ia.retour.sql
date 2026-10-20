@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014730000_plafond_appels_ia.sql (décision X19, fiche SA-10 : limite quotidienne des appels payants
 -- à l'IA et arrêt d'urgence consulté avant chaque appel payant)
 --
@@ -25,17 +29,8 @@
 --
 -- Usage : psql "$URL" -v ON_ERROR_STOP=1 -f 20261014730000_plafond_appels_ia.retour.sql
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 
-begin;
 set local lock_timeout = '10s';
 
 -- 1/3 Les deux fonctions (nouvelles : rien d'antérieur à rétablir).
@@ -86,7 +81,6 @@ begin
   end if;
 end $retour_arriere$;
 
-commit;
 
 -- Vérification (lecture seule) : « antérieure (A) » attendue après le retour, « migrée (B) » avant.
 select 'fonction reserver_appel_ia' as objet,
@@ -100,3 +94,5 @@ select 'table ia_appels_jour',
 union all
 select 'table ia_plafond_reglage',
        case when to_regclass('public.ia_plafond_reglage') is not null then 'migrée (B)' else 'antérieure (A)' end;
+$instructions_retour$;
+end $retour_atomique$;

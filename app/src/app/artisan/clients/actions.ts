@@ -1,4 +1,5 @@
 "use server";
+import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direct";
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -14,7 +15,7 @@ import { exclusionLue, MESSAGE_ECRITURE_FERMEE } from "@/lib/artisan-prive-exclu
 
 export type ResultatPrive = {erreur?:string;succes?:string;href?:string};
 async function piecePrivee(supabase:SupabaseClient,artisan:string,fichier:File,cle:string) {
-  if (!fichier.size||fichier.size>10*1024*1024) throw Error("Choisissez un fichier entre 1 octet et 10 Mo.");
+  if (!fichier.size||fichier.size>limiteFichierDepose(fichier)) throw Error(`Choisissez un fichier entre 1 octet et ${limiteFichierDepose(fichier)/1024/1024} Mo.`);
   const octets=new Uint8Array(await fichier.arrayBuffer()); const mime=detecterMimeReel(octets);
   if(!mime||!["application/pdf","image/png","image/jpeg"].includes(mime)||(mime==="application/pdf"&&!pdfComplet(octets))) throw Error("Joignez un PDF complet, un JPEG ou un PNG.");
   const path=`${artisan}/${cle}.${EXTENSIONS[mime]}`;
@@ -50,6 +51,7 @@ export async function enregistrerActivitePrivee(form:FormData):Promise<ResultatP
       let pdf:Uint8Array;try{pdf=await rendrePdf(document);}catch(e){throw Error(messageRenduPdfEchoue(e));}
       donnees.piece_id=await piecePrivee(supabase,fiche.artisan_id,new File([new Uint8Array(pdf)],`DEV-${d.id.slice(0,8).toUpperCase()}-v${d.version}.pdf`,{type:"application/pdf"}),cle);
     } else {
+      const refus=await resoudreDepotsFormulaire(supabase,form);if(refus)return {erreur:refus};
       const fichier=form.get("fichier");
       if(fichier instanceof File&&fichier.size)donnees.piece_id=await piecePrivee(supabase,fiche.artisan_id,fichier,cle);
     }

@@ -4,8 +4,8 @@
  * Ce qui est tenu ici :
  *  - un identifiant client Stripe n'est enregistré pour une organisation
  *    qu'après que le SERVEUR l'a relu chez Stripe et y a trouvé l'identifiant
- *    de cette organisation (audit sécurité) ; l'enregistrement passe par la
- *    session de l'utilisateur, jamais par la clé de service ;
+ *    de cette organisation (audit sécurité) ; l'enregistrement passe par le
+ *    service après une lecture autorisée depuis la session de l'utilisateur ;
  *  - une organisation restée sur la grille historique sans souscription
  *    vivante n'est plus renvoyée vers « rien à payer » : elle bascule sur la
  *    grille actuelle (point 10).
@@ -123,13 +123,13 @@ describe("le client Stripe appartient à l'organisation (audit sécurité 29/09)
     expect(mocks.service).not.toHaveBeenCalled();
   });
 
-  it("le client de l'organisation est enregistré par la session de l'utilisateur, pas par la clé de service", async () => {
+  it("le client vérifié est enregistré par le serveur après lecture des droits", async () => {
     etat("2026-09-28");
     mocks.retrieve.mockResolvedValue({ id: "cus_connu", metadata: { organization_id: "org-1" }, invoice_settings: { footer: PIED } });
     const r = await demarrerAbonnement("org-1", {}, souscrire());
     expect(r.erreur).toBeDefined(); // la page de paiement s'arrête (voir le faux Stripe)
-    expect(mocks.rpc).toHaveBeenCalledWith("abonnement_client_pose", { p_org: "org-1", p_customer: "cus_connu" });
-    expect(mocks.service).not.toHaveBeenCalled();
+    expect(mocks.serviceRpc).toHaveBeenCalledWith("abonnement_client_pose", { p_org: "org-1", p_customer: "cus_connu" });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("abonnement_client_pose", expect.anything());
   });
 });
 
@@ -148,4 +148,14 @@ describe("grille historique sans souscription vivante (audit 29/09, point 10)", 
     expect(r.erreur).toMatch(/ancienne grille/);
     expect(mocks.service).not.toHaveBeenCalled();
   });
+});
+
+it("refuse une lecture des droits en erreur avant tout appel Stripe", async () => {
+  etat("2026-09-28");
+  const normale = mocks.rpc.getMockImplementation()!;
+  mocks.rpc.mockImplementation(async (...args: unknown[]) => args[0] === "mon_client_stripe" ? { data: null, error: { message: "refus" } } : normale(...args));
+  const r = await demarrerAbonnement("org-1", {}, souscrire());
+  expect(r.erreur).toContain("droits");
+  expect(mocks.retrieve).not.toHaveBeenCalled();
+  expect(mocks.serviceRpc).not.toHaveBeenCalled();
 });

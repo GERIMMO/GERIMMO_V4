@@ -1,5 +1,6 @@
 "use client";
 
+import { preparerDepotsDirects, ErreurDepotDirect } from "./depot-direct-client";
 import { preparerSoumission, confirmerSoumission, retourConfirme } from "./protection-saisie";
 import { unstable_rethrow } from "next/navigation";
 import { SuiviEnregistrement } from "./suivi-enregistrement";
@@ -26,6 +27,7 @@ export function useActionFormulaire<T extends Retour>(action: (etat: T, donnees:
     setEnCours(true);
     setEtat({} as T);
     try {
+      await preparerDepotsDirects(donnees);
       const retour = await action(etat, donnees);
       setEtat(retour);
       if (retourConfirme(retour)) {
@@ -36,7 +38,7 @@ export function useActionFormulaire<T extends Retour>(action: (etat: T, donnees:
     } catch (erreur) {
       unstable_rethrow(erreur);
       // Session expirée (redirigée par le proxy) ou réponse perdue : le message n'est pas le même (audit du 13/10).
-      setEtat({ erreur: await messageApresEchec("La confirmation n’a pas pu être reçue. Votre saisie est conservée ; rouvrez le dossier pour vérifier le résultat avant de recommencer.") } as T);
+      setEtat({ erreur: erreur instanceof ErreurDepotDirect ? erreur.message : await messageApresEchec("La confirmation n’a pas pu être reçue. Votre saisie est conservée ; rouvrez le dossier pour vérifier le résultat avant de recommencer.") } as T);
     } finally {
       verrou.current = false;
       setEnCours(false);

@@ -6282,3 +6282,96 @@ Table `public.liste_attente` créée en production le 29/09 hors dépôt (versio
 ## [2026-10-19] dev | Dix lots de correctifs de l'audit final intégrés sur la branche de travail, après relecture contradictoire
 
 Chaque lot a été implémenté dans un espace de travail isolé, relu de façon contradictoire, corrigé, puis relu de nouveau pour les quatre lots lourds (verdict « acceptable » partout). Lots et commits intégrés, dans l'ordre des versions de migration : liste d'attente (M2, `767b033`, migration `20261019120000`) ; mineurs a-b-c-f-g-i (`6cb9168`, migrations `20261019120500` relance annuelle et `20261019121000` droits anon et clé des prospects, garde serveur de la page de nouveau mot de passe, purge des prospects compatible avec le bouton de la console, article retiré en 404) ; demandes de contact dans le relais (M16, `6a474ea`, `20261019122000`) ; pages légales saisissables (B2, `309a591`, `20261019123000`) ; sort du devis signé et jour de Paris des devis (B5, `57d2560`, `20261019124000`) ; garde de souscription identité et CGV (B3, `2dc9fd0`) ; interrupteur du cautionnement (B7, `c2e4ead`, variable `ZOHO_SIGN_CAUTIONNEMENT_FERME`, valeurs « 1 » ou « true ») ; recette de production sécurisée (M1 A-C, `907a45c` : traces coupées, sessions révoquées et comptes bannis entre deux passages, ancien chantier manuel retiré, organisations de recette à identifiants stables) ; huit retours arrière du 18/10 (M4, `0a0eef1`) ; gardes du chantier des migrations (M5, `0e630b0`). Fichiers partagés (manifeste, `MISSION_OCTOBRE`, LISEZ-MOI, journal) fusionnés par union puis remis en ordre ; chaîne « Ordre complet » du LISEZ-MOI consolidée. Rien n'est encore poussé ni appliqué en production : batterie locale, PR, simulation, sauvegarde, application et recette suivent.
+
+## [2026-10-20] audit | Suites locales de l'audit final
+
+Lot préparé depuis `e25c0f7`, sans mutation de production : durcissement de /auth/confirm (consigne hors dépôt), résultat local vérifié sur GoTrue réel ; deux migrations et retours testés ; sauvegarde/restauration de l'historique des migrations ; distinction des rejets de veille ; Dependabot et quatre notifications françaises préparés ; registre Zoho actualisé sans validation juridique présumée. Compilation, types, lint et 8 788 tests réussis (38 non exécutés) ; 62 parcours navigateur réussis (un non exécuté). Contre-relecture indépendante : deux P2 corrigés et relus, aucun constat bloquant résiduel identifié ; portée et limites dans [[Suites de l'audit — 20 octobre 2026]].
+
+La souscription doit rester fermée pendant migration et déploiement ; fermeture à revérifier avant application. Aucun paiement, courrier, signature, achat ou réglage de production exécuté dans ce lot. Les comptes de recette permanents restent conservés. Les réglages externes, décisions contractuelles et autres travaux ouverts ne sont pas réputés terminés.
+
+## [2026-10-20] audit | Contrôles du lot après contre-relecture
+
+La suite complète après les deux corrections de relecture réussit : 8 791 tests, 38 non exécutés ; compilation, types et lint réussis. Audit d’affichage : 165 écrans en 390, 768 et 1 440 pixels, soit 495 vérifications réussies. Les 62 contrôles navigateur ciblés ont réussi (un non exécuté). Résultats locaux uniquement ; aucune publication ni activation externe.
+
+
+## [2026-10-20] code | Suite technique locale de l’audit
+
+Préparation complémentaire : réceptions Stripe durables avec contrôle de concurrence, reprises bornées, rapprochement en lecture et bilan Santé ; retrait du connecteur Youtrust sans suppression historique. Tests des interruptions, droits, reprises, retours et arrêt de supervision. Aucun paiement, remboursement ni courrier réel ; aucune configuration ou migration de production modifiée. La livraison et ses limites sont détaillées dans `app/docs/livraison-audit-20-octobre.md`.
+
+## [2026-10-20] code | Dépôts, retours atomiques et recette de supervision
+
+Durcissement de /auth/confirm (consigne hors dépôt). Complément préparé et éprouvé sur bases fictives uniquement : parcours de dépôt conservés, retours du 20 octobre atomiques et annulables, 17 rubriques de supervision en lecture seule, en-tête vérifié à 320, 390 et 1 440 pixels. La relecture a révélé un défaut de composition des retours, corrigé sur les quatre nouveaux scripts ; 71 retours historiques restent à examiner séparément. Deux CI complètes réussies sur les premiers lots (39342825448 et 39345875261). Aucun réglage, migration ou compte de production modifié ; les cinq identités permanentes restent conservées. Voir [[Suites de l'audit — 20 octobre 2026]].
+
+## [2026-10-20] test | Suite complète après dépôts et retours
+
+8 813 tests réussis, 38 non exécutés, 611 fichiers réussis et sept ignorés. Quatre retours intacts éprouvés en autocommit sur une copie de base locale puis migrations rejouées ; comptes et objets conservés. Les transactions externes, y compris un lot SQL unique avec erreur finale, restent annulables. Compilation, types et lint réussis. Aucun essai de production ni nouvelle publication effectué.
+
+
+## [2026-10-20] correction | Fichiers volumineux et atomicité des retours
+
+Préparation locale complémentaire de la PR213 : dépôts bornés à 4 Mio, refus avant envoi avec conservation de la saisie, lecture directe Storage pour cinq routes après contrôle des droits et journalisation. Banc navigateur sur PNG de 6 Mio, miniature, redirection de téléchargement, PDF de deux pages et reprise après panne ; deux parcours de formulaire réussis avec leur préparation. Dépôts directs signés, routes spécifiques à empreinte et Safari iPhone encore ouverts (G5).
+
+Les 71 retours historiques sont convertis en instruction atomique sans changer leur corps métier, vérifié par contre-relecture. Le banc de 75 fichiers exige l’erreur finale 22012 pour 69 retours exécutables et le refus métier précis P0001 pour six dépendances encore présentes ; aucune écriture témoin conservée. Reproduction rouge/verte sur une copie isolée : une écriture conservée avec l’ancien retour, zéro avec le corrigé. Aucun retour appliqué en production. Les comptes permanents restent conservés.
+
+## [2026-10-20] verification | Suite globale après fichiers et retours
+
+8 918 tests réussis, 38 non exécutés selon leurs prérequis ; compilation, types et lint vérifiés. Deux parcours de formulaire mobile et leur préparation réussis. Les trois premières versions de PR213 ont passé la CI ; le complément reste à contrôler sur son SHA. Aucun déploiement ni écriture en production.
+
+## [2026-10-20] correction | Préparation et annulation des signatures
+
+Complément E5 préparé localement : distinction entre échec avant création distante et réponse incertaine, abandon atomique du circuit et du quota, annulation protégée contre une réservation concurrente. Les deux constats de contre-relecture sont corrigés. Migration additive et retour préparés, appliqués seulement aux deux bases fictives. Contrôles ciblés : 92 tests du circuit et 98 tests base/retours/manifeste réussis ; les erreurs de validation et deux entrelacements ont leur reproduction rouge puis verte. Aucun e-mail ni SMS envoyé, aucune configuration de production modifiée. E5 reste partiel pour les rapprochements sans référence, alertes et relances.
+
+## [2026-10-20] verification | Suite complète après préparation des signatures
+
+8 948 tests réussis, 38 non exécutés ; 618 fichiers de tests réussis et sept ignorés. Compilation, types et lint contrôlés après le complément. Contre-relecture finale : les deux P2 du circuit de signature sont corrigés, sans défaut concret résiduel relevé dans ce delta ; le second lecteur n’a pas relancé les tests. La CI des dépôts et retours est distincte du nouveau complément de signature, qui doit encore être contrôlé sur son SHA. Aucune publication ni exécution externe de signature.
+
+
+## [2026-10-20] verification | Consultation PDF et navigation de l’espace
+
+La CI744 a relevé une assertion navigateur devenue incompatible avec la visionneuse HTML : le scénario attendait encore les octets PDF directement sur la route de consultation. Il vérifie désormais la redirection de l’ancien lien, l’adresse stable sous /espace, les octets et le type du PDF obtenu depuis Storage, le lien mobile et le téléchargement par redirection après autorisation. Le banc Storage conserve maintenant le type déclaré au dépôt et refuse un objet supprimé même si une copie reste sur disque. Les 17 scénarios du fichier passent localement ; types et lint réussis. La contre-relecture du scénario ne relève pas de défaut concret. CI complète sur le nouveau SHA encore nécessaire. Aucune modification de production.
+
+
+## [2026-10-20] correction | Téléchargement dans le banc Storage
+
+La contre-relecture a identifié que le banc, après restitution du MIME, ignorait encore le paramètre de téléchargement : le PDF s’affichait au lieu d’être proposé en pièce jointe. Reproduction rouge sur l’en-tête manquant, puis correction de Content-Disposition avec nom encodé. Le parcours vérifie aussi un événement de téléchargement navigateur, le nom et les octets du PDF ; les 17 scénarios repassent, types et lint réussis. Ce complément concerne le banc et sa recette, sans changement de production.
+
+## [2026-10-20] verification | Réglages Stripe en lecture seule
+
+Console de production consultée : un seul webhook actif, les sept événements attendus et la version API 2026-06-24.dahlia. Aucun événement livré sur la période affichée du 14 au 20 octobre ; le taux d’erreur nul ne constitue pas une preuve de réception. Smart Retries actif avec huit tentatives sur deux semaines, puis annulation de l’abonnement ; numérotation des factures séquentielle à l’échelle du compte. Les notifications Stripe de fin d’essai, renouvellement et échecs de paiement sont désactivées. Cohérence avec les conditions contractuelles encore à valider. Aucun paramètre ni paiement modifié. La session Zoho demande une reconnexion : coût réel des essais non relevé.
+
+## [2026-10-20] verification | Conclusion CI747 et contrôle différé des devis
+
+La CI747 (39355647188) réussit sur le SHA 8a5cb884fda68e133c9b052468ddc2aea495a3af : 8 969 tests de logique réussis, 17 non exécutés ; 200 tests navigateur réussis, un non exécuté. Compilation, types et lint réussis. La PR213 reste en brouillon, sans déploiement ni application de migration en production. Les travaux E5 et G5 et les décisions externes restent explicitement ouverts.
+
+Le contrôle de la maintenance des devis du 29 octobre à 04 h 30 UTC est ajouté à la surveillance quotidienne existante, en lecture seule, sans relance manuelle ni recréation de données. Horaire et autres contrôles conservés. Ce relevé final est conservé dans le journal local ; il ne modifie pas le SHA de code contrôlé.
+
+
+## [2026-10-20] correction | Archives de devis et justificatifs volumineux
+
+Trois routes spécialisées conservent les contrôles d’accès et d’empreinte ; au-delà de 4 Mio, la réponse devient une visionneuse légère et le navigateur vérifie à nouveau les octets avant affichage ou téléchargement. Compartiments explicitement bornés, lecture limitée à 50 Mio pendant le flux, refus des archives altérées. Un gros PDF validé reçoit un accusé de réception au lieu de dépasser la limite de réponse alors qu’il est déjà enregistré.
+
+123 tests ciblés, deux essais de navigateur, types et lint réussis en local. Les dépôts directs et générations historiques sans archive restent ouverts. La CI complète doit repasser sur ce complément ; CI747 reste la preuve de la version précédente. Aucun réglage de production changé.
+
+## [2026-10-20] verification | Validation éditoriale activée et contrôle CI748
+
+Après accord explicite du dirigeant, le réglage « Validation obligatoire » a été enregistré en production à 10 h 17 Paris. L’interface confirme « Après votre validation » et « Pilotage marketing mis à jour ». L’article programmé à 9 h était déjà diffusé au moment de la reprise ; aucune suppression ni nouvelle publication effectuée.
+
+La CI748 compte 8 989 tests de logique réussis, 17 non exécutés et un échec : la garde des saisies relève la conversion de Content-Length. Ajout de l’exception exacte pour cet en-tête indicatif, dont la limite de 50 Mio est aussi imposée au flux réel. Les 43 tests ciblés passent après correction. Aucun contrôle des montants désactivé. Les tests navigateur complets ont été ignorés dans ce passage en échec ; une nouvelle CI du complément reste nécessaire. PR213 toujours en brouillon, sans déploiement.
+
+## [2026-10-20] correction | Dépôts directs et suivi durable des signatures
+
+Dépôts documentaires privés jusqu’à 10 Mio, vingt réservations et 100 Mio par compte et par heure ; contrôle des octets avant le circuit métier, saisie conservée après interruption. Purge différée de trois heures après la fin de réservation pour couvrir un jeton tardif, lots bornés et reliquat visible. Rapprochement d’un brouillon Zoho unique, identité et PDF vérifiés ; rappels J+7/J+21 dédupliqués et désactivés, alerte interne J+28, refus et expiration.
+
+La contre-relecture a relevé quatre P2, reproduits et corrigés, dont le suivi sur abonnement suspendu et l’arrêt après renouvellement OAuth ; aucun défaut concret résiduel dans le delta relu. 128 tests ciblés réussis. L’ordre de retour complet inclut les trois nouvelles dépendances et passe ses 45 tests.
+
+Validation locale finale du complément : 9 079 tests réussis, 45 non exécutés (633 fichiers). Compilation, types et lint réussis. Le dépôt de 6 Mio avec interruption/reprise et consultation passe sur le build à 390 et 1 440 pixels ; les douze autres scénarios ciblés de protection de saisie et de refus d’attestation passent également. Ces contrôles ne sont pas des essais Zoho ou Stripe réels.
+
+Précontrôle en lecture seule : sept migrations absentes, souscription toujours fermée par huit faits d’identité manquants, deux ancres exactes du garde d’abonnement présentes. PR213 encore en préparation : aucune migration, aucun rappel et aucun déploiement de ce complément en production à ce stade. Les cinq comptes permanents sont conservés.
+
+### 20 octobre 2026 — CI750 : corrections de la recette navigateur
+
+CI750 : 9 107 tests de logique réussis, 17 ignorés ; trois parcours navigateur en échec, 198 réussis, un ignoré et un repris. Production inchangée. Statut de transfert borné à la soumission ; photos JPEG/PNG vérifiées avant réservation ; coupure simulée ciblant la déclaration et non sa réservation ; invitation vérifiant la bonne attestation et le seul article concerné. 24 tests ciblés réussis. Compilation et recette du nouveau SHA à confirmer. La simulation114 a annulé les sept migrations ; aucune application réelle.
+
+La contre-relecture du delta CI750 a identifié une progression masquée dans les formulaires onSubmit : correction par fin explicite du statut après transfert et réutilisation, indépendante de React. 25 tests ciblés réussissent et la dernière relecture statique ne relève plus de défaut concret. Les autres contrôles restent requis.
+
+Validation du delta CI750 : compilation, types et lint réussis ; 25 tests ciblés et les 10 scénarios navigateur (dont préparation des sessions) réussissent sur le build corrigé. Le parcours artisan va jusqu’à la sollicitation, les deux reprises d’incident conservent l’unicité et les dépôts de 6 Mio passent à 390 et 1 440 pixels. La CI du nouveau SHA reste requise avant livraison.

@@ -1,7 +1,7 @@
 # Sauvegarde quotidienne de Gerimmo vers un stockage objet Scaleway (Paris).
 #
 # CE QUE FAIT CE CHANTIER. Chaque nuit (et à la demande), il
-# exporte la base de production (pg_dump des schémas public, auth, storage,
+# exporte la base de production (pg_dump des schémas public, auth, storage, support_interne et supabase_migrations,
 # DROITS COMPRIS depuis le 27/09 : sans GRANT/REVOKE, une restauration
 # rouvrait toutes les fonctions à anon)
 # (14/10, D07 : avec la liste des tâches planifiées pg_cron, `cron.job`, que pg_dump

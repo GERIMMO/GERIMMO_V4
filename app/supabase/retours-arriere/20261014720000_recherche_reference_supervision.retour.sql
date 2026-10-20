@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014720000_recherche_reference_supervision.sql (décision X18, fiche SA-09)
 --
 -- NE PAS PLACER dans app/supabase/migrations/ et NE JAMAIS le passer à migrations.yml : ce fichier défait une migration, il se
@@ -16,17 +20,8 @@
 -- NE DÉFAIT PAS : les lignes déjà écrites au journal d'audit (`audit_log`, action `recherche_reference`), qui restent lisibles
 -- de la supervision, comme toute trace.
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 
-begin;
 set local lock_timeout = '10s';
 
 -- Ne supprime que la fonction de cette décision : une fonction du même nom sans sa marque n'est pas la nôtre.
@@ -54,5 +49,5 @@ begin
     delete from supabase_migrations.schema_migrations where version = '20261014720000';
   end if;
 end $retour_arriere$;
-
-commit;
+$instructions_retour$;
+end $retour_atomique$;

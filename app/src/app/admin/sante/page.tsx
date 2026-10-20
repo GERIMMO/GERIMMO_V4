@@ -1,3 +1,4 @@
+import { SuiviStripe, type ControleStripe } from "./controle-stripe";
 import { BudgetSignatures, type BudgetSignature } from "./budget-signatures";
 import {lireEditeur} from '@/lib/editeur-serveur';
 import { TitreEcran } from "@/components/titre-ecran";
@@ -76,7 +77,7 @@ const OU_OBTENIR: Record<Prestataire, string> = {
 export default async function PageSante() {
   const supabase = await createClient();
   // Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond.
-  const budgetSignature = await supabase.rpc("lire_budget_signatures");
+  const [budgetSignature, controleStripe] = await Promise.all([supabase.rpc("lire_budget_signatures"), supabase.rpc("supervision_stripe_controles")]);
   const identite=await lireEditeur();
   const manquants = faitsManquants(identite.indisponible?{}:identite.editeur);
   // Les adresses de l'alerte du relais (réglage du serveur), affichées masquées seulement.
@@ -399,6 +400,6 @@ export default async function PageSante() {
           {" "}<Link href="/admin/clients" className="lien-discret">Voir les organisations →</Link>
         </p>
       </section>
-    <BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} actif={process.env.ZOHO_SIGN_BAIL_ACTIF === "true"}/></main>
+    <SuiviStripe controle={controleStripe.error ? null : controleStripe.data as ControleStripe}/><BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} actif={process.env.ZOHO_SIGN_BAIL_ACTIF === "true"}/></main>
   );
 }

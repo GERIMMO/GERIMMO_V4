@@ -68,7 +68,8 @@ export async function genererDocument(
       orgId,
       fichier,
       modele.typeGed,
-      assemblage.titreGed
+      assemblage.titreGed,
+      { genereServeur: true }
     );
     // Un nouvel essai doit aussi réparer les liens si le premier dépôt a
     // enregistré le PDF mais échoué au rattachement au dossier.

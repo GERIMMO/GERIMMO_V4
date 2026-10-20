@@ -1,4 +1,6 @@
 "use server";
+import { resoudreDepotsFormulaire } from "@/lib/depot-direct";
+
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
@@ -13,6 +15,8 @@ export async function deposerAnnexeBail(orgId:string,bailId:string,_etat:EtatBai
  if(!user)return {erreur:"Accès refusé."};
  const {data:bail,error}=await supabase.from("baux").select("id,etat").eq("id",bailId).eq("organization_id",orgId).maybeSingle();
  if(error||bail?.etat!=="brouillon")return {erreur:"Le bail doit être un brouillon accessible."};
+ const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, form);
+ if (erreurDepotDirect) return { erreur: erreurDepotDirect };
  const fichier=form.get("fichier"),titre=String(form.get("titre")??"").trim();
  if(!(fichier instanceof File)||!fichier.size)return {erreur:"Choisissez le justificatif à joindre."};
  if(!titre||titre.length>200)return {erreur:"Indiquez un titre de 200 caractères maximum."};

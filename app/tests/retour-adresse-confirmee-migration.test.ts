@@ -13,9 +13,9 @@ const RETOUR = readFileSync("supabase/retours-arriere/20261016210000_retour_adre
 const SIGNATURE = "public.autoriser_retour_adresse_confirmee(text)";
 
 it("le retour gère sa transaction et retire uniquement sa version", () => {
-  expect(RETOUR).toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
-  expect(RETOUR).toMatch(/^begin;$/m);
-  expect(RETOUR).toMatch(/^commit;$/m);
+  expect(RETOUR).not.toMatch(/statement_timestamp\(\) <> transaction_timestamp\(\)/);
+  expect(RETOUR).toMatch(/do \$retour_atomique\$/);
+  expect(RETOUR).toMatch(/end \$retour_atomique\$;/);
   expect(RETOUR).toContain("where version = '20261016210000'");
   expect(RETOUR).not.toMatch(/delete from auth\.|drop (?:table|schema).*auth\./i);
 });
@@ -37,10 +37,10 @@ describe.skipIf(!DB_URL)("Retour d'adresse — droits, retour et rejeu", () => {
     const { rows } = await db.query("select has_function_privilege('anon',$1,'execute') anon, has_function_privilege('authenticated',$1,'execute') authenticated, has_function_privilege('service_role',$1,'execute') service", [SIGNATURE]);
     expect(rows[0]).toEqual({ anon: false, authenticated: false, service: true });
   });
-  it("le retour brut refuse un lot sans modifier la fonction", async () => {
+  it("le retour brut reste annulable sans modifier la fonction", async () => {
     const avant = await empreinte();
     await db.query("savepoint refus");
-    await expect(db.query(RETOUR)).rejects.toThrow(/Retour arrière refusé/);
+    await db.query(RETOUR);
     await db.query("rollback to savepoint refus");
     expect(await empreinte()).toEqual(avant);
   });

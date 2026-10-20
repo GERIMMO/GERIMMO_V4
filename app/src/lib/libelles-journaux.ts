@@ -3,6 +3,7 @@ import { ACTIONS_SUPERVISION } from "./journal-supervision";
 import { GESTES_TRACE } from "./gestes-trace";
 
 const ACTIONS: Record<string, string> = {
+  signature_preparation_abandonnee: "Préparation de signature interrompue avant envoi",
   consultation_organisation: "Consultation d’une organisation",
   traversee_espace: "Consultation d’un espace client par la supervision",
   // D08 (audit du 13/10, SA-01) : la ligne dit la page, l'objet et la décision d'accès ; elle ne part plus qu'à un geste.
@@ -102,6 +103,7 @@ const EVENEMENTS: Record<string, string> = {
   changement_mot_de_passe: "Changement de mot de passe",
   erreur_ecran: "Problème d’affichage",
   remise_rapport_mensuel: "Envoi d’un compte rendu mensuel",
+  veille_analyse_rejetee: "Étude non retenue par le contrôle des sources",
   veille_analyse_echec: "Étude d’une information de veille à reprendre",
   rendez_vous_fixe: "Rendez-vous d’intervention fixé",
   mission_refusee: "Mission refusée par un artisan",

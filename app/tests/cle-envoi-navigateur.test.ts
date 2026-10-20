@@ -41,6 +41,10 @@ async function assembler(): Promise<string> {
   const paquet = await rolldown({
     input: resolve(RACINE, "tests/fixtures/navigateur/banc-cle-envoi.tsx"),
     platform: "browser",
+    // Ce banc d'encaissement n'a aucun fichier. L'envoi Storage est éprouvé
+    // dans depot-direct.spec.ts ; les actions Next ne sont pas exécutables ici.
+    plugins: [{ name: "transfert-hors-banc", resolveId: id => id.endsWith("depot-direct-client") ? "\0transfert-isole" : null,
+      load: id => id === "\0transfert-isole" ? "export async function preparerDepotsDirects() {} export class ErreurDepotDirect extends Error {}" : null }],
     resolve: {
       alias: {
         "@": resolve(RACINE, "src"),

@@ -19,6 +19,16 @@ end $$;
 grant anon, authenticated, service_role to current_user;
 grant usage on schema public to anon, authenticated, service_role;
 
+-- Registre local de versions pour éprouver les sauvegardes comme en production.
+create schema if not exists supabase_migrations;
+create table if not exists supabase_migrations.schema_migrations (
+  version text primary key,
+  statements text[],
+  name text
+);
+revoke all on schema supabase_migrations from public, anon, authenticated;
+revoke all on supabase_migrations.schema_migrations from public, anon, authenticated;
+
 -- ── Extensions ─────────────────────────────────────────────────────────────
 create schema if not exists extensions;
 create extension if not exists pgcrypto with schema extensions;
@@ -52,6 +62,15 @@ create table if not exists auth.users (
   banned_until timestamptz,
   deleted_at timestamptz
 );
+
+-- Début immuable et échéance de chaque session du banc.
+create table if not exists auth.sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  not_after timestamptz
+);
+revoke all on auth.sessions from anon, authenticated;
 
 -- Sous-ensemble des jetons utilisé par le bouton de confirmation du banc UI.
 create table if not exists auth.one_time_tokens (

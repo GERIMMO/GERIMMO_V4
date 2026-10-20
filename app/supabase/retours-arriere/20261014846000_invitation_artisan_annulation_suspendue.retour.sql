@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014846000_invitation_artisan_annulation_suspendue.sql (relecture du 15/10/2026 du lot
 -- « invitation-artisan » : l'annulation d'une invitation reste possible quand l'abonnement est suspendu).
 --
@@ -16,17 +20,8 @@
 -- RÉINTRODUIT le défaut corrigé : un propriétaire dont l'abonnement est suspendu ne peut plus annuler une invitation en
 -- attente (l'artisan peut toujours l'accepter). Ordre indifférent avec le code et avec le retour de 20261014840000.
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 
-begin;
 set local lock_timeout = '10s';
 
 do $retour_arriere$
@@ -65,10 +60,11 @@ begin
   end if;
 end $retour_arriere$;
 
-commit;
 
 -- Vérification (lecture seule) : « antérieure (A) » attendue après le retour, « migrée (B) » avant.
 select 'refuser_ecriture_si_fermee' as objet,
        case when position('Relecture du 15/10 (annuler une invitation d''artisan, abonnement suspendu)'
                           in pg_get_functiondef('public.refuser_ecriture_si_fermee()'::regprocedure)) > 0
             then 'migrée (B)' else 'antérieure (A)' end as etat;
+$instructions_retour$;
+end $retour_atomique$;

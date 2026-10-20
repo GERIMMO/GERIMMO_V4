@@ -2,6 +2,7 @@
 // Aucune connexion à la base ou au Storage de production ; seul le bilan
 // agrégé est publiable. Les fichiers déchiffrés restent dans le dossier privé
 // du processus et sont retirés dans le finally, y compris en cas d'échec.
+import { verifierHistoriqueMigrations } from './historique-migrations.mjs';
 import { spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
@@ -160,6 +161,7 @@ export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
         where n.nspname='public' and c.contype='f' and not c.convalidated) as contraintes_non_validees`)).rows[0];
     if (Object.values(securite).some(n => Number(n) !== 0)) throw new Error('Les protections de la base restaurée ne sont pas toutes confirmées.');
     const manifesteBase = JSON.parse(await fs.readFile(path.join(travail, 'base/restauration-base.json'), 'utf8'));
+    const historiqueMigrations = await verifierHistoriqueMigrations(cible, manifesteBase.schemas?.includes('supabase_migrations'));
     const supportInterne = await verifierSupportInterne(cible, manifesteBase.schemas?.includes('support_interne'));
     const objets = (await cible.query('select bucket_id,name from storage.objects')).rows;
     const dansArchive = new Set(manifeste.objets.map(f => `${f.bucket}/${f.nom}`));
@@ -176,7 +178,7 @@ export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
     }
     return { reussi: true, date: new Date().toISOString(), sauvegarde: prefixe, date_sauvegarde: infoBase.date,
       tables: tables.length, lignes, fichiers: manifeste.objets.length, fichiers_manquants: manquants,
-      octets_base: infoBase.octets, protections: 'validées', support_interne: supportInterne, taches_planifiees: tachesPlanifiees, duree_secondes: Math.ceil((Date.now() - debut) / 1000),
+      octets_base: infoBase.octets, protections: 'validées', historique_migrations: historiqueMigrations, support_interne: supportInterne, taches_planifiees: tachesPlanifiees, duree_secondes: Math.ceil((Date.now() - debut) / 1000),
       portee: 'Base PostgreSQL et fichiers restaurés localement ; bascule des services Supabase non effectuée. Tâches pg_cron : liste et script de rejeu contrôlés sur un planificateur de façade ; pg_cron et pg_net non activés.' };
   } finally {
     if (cible) await cible.end().catch(() => {});

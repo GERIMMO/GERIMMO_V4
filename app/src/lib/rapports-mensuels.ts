@@ -80,7 +80,7 @@ export async function remettreRapportMensuel(
       pdf = await rendrePdf(appliquerMarqueDocument(assemblage.document, await chargerMarque(db, orgId)));
       const depot = await deposerFichierGed(db, user, orgId,
         new File([pdf as BlobPart], `rapport-${rapport.mois.slice(0,7)}.pdf`, { type: "application/pdf" }),
-        "rapport_gestion", titreArchive);
+        "rapport_gestion", titreArchive, { genereServeur: true });
       if (depot.erreur || !depot.documentId) return { erreur: "Rapport validé, mais l’archivage du PDF a échoué. Aucun e-mail envoyé ; réessayez." };
       documentId = depot.documentId;
     }

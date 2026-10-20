@@ -619,20 +619,20 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
     for (let i = 0; i < 11; i++) {
       // Dépôt Storage par le locataire d'abord (audit du 27/09).
       await db.query(
-        `insert into storage.objects (bucket_id, name, owner) values ('documents', ($1::uuid)::text||'/photo-'||$2||'.jpg', (select auth.uid()))`,
+        `insert into storage.objects (bucket_id, name, owner) values ('documents', ($1::uuid)::text||'/44444444-4444-4444-8444-'||lpad($2,12,'0')||'.jpg', (select auth.uid()))`,
         [orgA, String(i)]
       );
     }
     for (let i = 0; i < 10; i++) {
       await db.query(
-        `select public.joindre_photo_incident($1,$2,($1::uuid)::text||'/photo-'||$3||'.jpg','image/jpeg',100,'empreinte-cap-'||$3)`,
+        `select public.joindre_photo_incident($1,$2,($1::uuid)::text||'/44444444-4444-4444-8444-'||lpad($3,12,'0')||'.jpg','image/jpeg',100,'empreinte-cap-'||$3)`,
         [orgA, incident, String(i)]
       );
     }
     await attendreEchec(
       db,
       /Dix photos au maximum/,
-      `select public.joindre_photo_incident($1,$2,($1::uuid)::text||'/photo-11.jpg','image/jpeg',100,'empreinte-cap-11')`,
+      `select public.joindre_photo_incident($1,$2,($1::uuid)::text||'/44444444-4444-4444-8444-000000000011.jpg','image/jpeg',100,'empreinte-cap-11')`,
       [orgA, incident]
     );
 

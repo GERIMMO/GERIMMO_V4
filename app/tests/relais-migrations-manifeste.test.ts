@@ -65,6 +65,13 @@ const MISSION_OCTOBRE = [
   "20261019123000_identite_editeur_prestataires.sql",
   // Audit du 19/10, lot B5 : sort du devis signé et jour de Paris des devis.
   "20261019124000_devis_signes_sort_et_jour_de_paris.sql",
+  "20261020010000_abonnement_client_service.sql",
+  "20261020011000_session_origine_verifiee.sql",
+  "20261020020000_stripe_reprises_durables.sql",
+  "20261020030000_stockage_gabarits_roles.sql",
+  "20261020011556_signature_preparation_abandon.sql",
+  "20261020083058_signature_suivi_reprises_relances.sql",
+  "20261020084651_depots_directs_temporaires.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

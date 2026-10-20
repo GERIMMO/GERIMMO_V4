@@ -239,8 +239,8 @@ describe.skipIf(!DB_URL)("restitution du dépôt au jour de Paris — migration 
   });
 
   describe("retour arrière", () => {
-    it("il refuse de se jouer dans un lot (migrations.yml, begin;)", async () => {
-      expect(await echoue(retour())).toMatch(/Retour arrière refusé : ce script gère sa propre transaction/);
+    it("il reste annulable dans un lot", async () => {
+      expect(await echoue(retour())).toBe("");
     });
 
     it("il rétablit current_date (nombre exact), puis se rejoue sans effet", async () => {
@@ -303,8 +303,8 @@ describe.skipIf(!DB_URL)("restitution du dépôt au jour de Paris — migration 
     });
 
     it("son retour gère sa transaction, est déclaré au LISEZ-MOI, et figure en tête de l'ordre complet des retours", () => {
-      expect(retour()).toMatch(/^-- RETOUR ARRIÈRE de /);
-      expect(retour()).toMatch(/\bcommit;\s*$/m);
+      expect(retour()).toMatch(/^-- RETOUR ARRIÈRE de /m);
+      expect(retour()).toMatch(/end \$retour_atomique\$;/);
       const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
       expect(lisezMoi).toContain(`${FICHIER}.retour.sql`);
       const chaine = lisezMoi.match(/Ordre complet si tout doit être défait :([\s\S]*?)puis `500000`/)?.[1] ?? "";

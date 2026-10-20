@@ -137,16 +137,18 @@ describe.skipIf(!DB_URL)("D46-B — e-mail immédiat des urgences : file en pann
     expect((await db.query("select alerte_id from public.relais_urgences")).rows).toEqual([{ alerte_id: nouvelle }]);
   });
 
-  it("le retour refuse d'être joué dans un lot déjà ouvert (migrations.yml, begin;)", async () => {
+  it("le retour reste annulable dans un lot déjà ouvert", async () => {
     await proprietaire();
     await db.query("savepoint e");
     let message = "";
     try {
+      await db.query("create or replace function cron.unschedule(job_name text) returns boolean language plpgsql as $stub$ begin delete from cron.job where jobname=job_name; return found; end $stub$");
+      await db.query(RETOUR_812000);
       await db.query(RETOUR);
     } catch (err) {
       message = (err as Error).message;
     }
     await db.query("rollback to savepoint e");
-    expect(message).toMatch(/Retour arrière refusé : ce script gère sa propre transaction/);
+    expect(message).toBe("");
   });
 });

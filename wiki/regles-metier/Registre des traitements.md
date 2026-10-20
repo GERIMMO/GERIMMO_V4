@@ -3,7 +3,7 @@ type: business-rule
 tags: [rgpd, registre, traitements, sous-traitance, conformite]
 status: draft
 created: 2026-09-20
-updated: 2026-10-19
+updated: 2026-10-20
 sources: ["[[RGPD]]", "[[Socle de sécurité]]", "[[Plan de reprise d'activité]]", "[[Modèle de données]]", "[[Modèle de rôles et permissions]]", "[[Grille tarifaire]]", "[[Canaux de communication]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]"]
 ---
 
@@ -82,14 +82,21 @@ répartition des rôles.
 | Alertes traitées | — | Historique opérationnel | **1 an** | Suppression |
 | Courriers et messagerie | Locataires, propriétaires | Courriers émis, échanges | 5 ans après la fin du bail | Suppression |
 | Diagnostics | — | Diagnostics du lot | Gestion du bien + 5 ans | Suppression |
+| Signature électronique via Zoho Sign | Signataires : propriétaires, locataires, garants, artisans selon le document | PDF et annexes du circuit, prénom, nom, coordonnées électroniques et téléphone ; état de signature, document signé et certificat de réalisation récupérés | Durée chez Zoho et articulation avec les durées des actes **à faire valider par le DPO** | Archivage dans Gerimmo ; suppression automatique chez Zoho **non réalisée à ce stade** |
 
 **Sous-traitants ultérieurs** (à déclarer aux organisations, RM-A4.13) :
 Supabase (base, authentification, fichiers — région eu-west-3, Paris) ·
 Vercel (exécution de l'application — région cdg1, Paris, fixée dans
 `vercel.json` le 20/09) · Resend (courriers) · Stripe (abonnement de
-l'organisation, volet 1) · **Yousign** (adaptateur « Youtrust » dans le code,
-branché le 22/09 : le document à signer, le nom, l'adresse électronique et le
-téléphone de chaque signataire — France ; **non activée au lancement**, décision du porteur du 27/09 : tant que `YOUTRUST_ENV` ne vaut pas « production », rien ne lui est transmis et la signature se fait par dépôt du PDF signé). À venir : Meta pour WhatsApp (hors
+l'organisation, volet 1) · **Zoho Sign** pour les circuits configurés avec ce
+prestataire : l'adaptateur `app/src/lib/zoho-sign.ts` utilise les points d'accès
+`sign.zoho.eu` et `accounts.zoho.eu`, transmet les données listées ci-dessus et
+demande une vérification SMS. L'utilisation de ces points d'accès européens
+ne suffit pas à établir les lieux de traitement, les transferts éventuels ni
+les garanties contractuelles : **DPA, entité contractante, sous-traitants et
+durées à obtenir et faire valider**. L'ancien adaptateur Yousign/Youtrust existe
+encore dans le code et dans le format des archives ; son retrait ne doit pas
+supprimer les anciennes preuves. À venir : Meta pour WhatsApp (hors
 UE — consentement explicite et clauses types, [[Canaux de communication]]).
 Pour le volet 1 seulement (aucune donnée de gestion locative d'après le code) :
 **OpenAI** (P8, États-Unis) et **Meta** pour Facebook (P9, Irlande et
@@ -145,6 +152,7 @@ est à lire dans son DPA. Plus tard, **Meta** pour WhatsApp.
 - Le contrat de sous-traitance type reprendra le volet 2 tel quel.
 
 > [!warning] Points à trancher
+> - **Zoho Sign (20/10)** : registre actualisé d'après l'adaptateur en place, sans validation DPO. La purge chez le prestataire, la durée de conservation, le droit d'intégration SaaS pour des tiers et la liste des sous-traitants restent à confirmer. L'état des interrupteurs d'envoi ne constitue pas une validation juridique des actes.
 > - **DPO** : pas d'obligation manifeste pour un éditeur de cette taille sans
 >   suivi à grande échelle de données sensibles ; désigner tout de même un
 >   référent nommé simplifie la relation avec la CNIL. Décision du porteur.

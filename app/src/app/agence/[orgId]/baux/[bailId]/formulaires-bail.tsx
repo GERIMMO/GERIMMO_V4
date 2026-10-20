@@ -46,7 +46,7 @@ function FormulairePieceBail({
             « .pdf », iOS grise les PDF dans le sélecteur de fichiers — le
             dépôt n'a jamais atteint le serveur. Le type MIME, lui, est
             honoré ; le contrôle réel du contenu reste côté serveur. */}
-        <ChampFichier id={id} name="fichier" accept=".pdf,application/pdf" required />
+        <ChampFichier depotDirect id={id} name="fichier" accept=".pdf,application/pdf" required />
       </div>
       <BoutonEnvoi enCours={enCours} enCoursTexte="Dépôt…" size="sm" variant="outline">
         {bouton}
@@ -223,7 +223,7 @@ export function FormulaireConge({
                 <Label htmlFor={idJustificatifPreavis} className="text-sm">
                   Justificatif du préavis réduit{zoneInconnue ? " (facultatif tant que la zone n’est pas vérifiée)" : ""}
                 </Label>
-                <ChampFichier id={idJustificatifPreavis} name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required={!zoneInconnue} />
+                <ChampFichier depotDirect id={idJustificatifPreavis} name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required={!zoneInconnue} />
               </div>
             )}
           </div>

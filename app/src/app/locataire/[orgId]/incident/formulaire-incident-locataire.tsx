@@ -1,4 +1,6 @@
 "use client";
+import {preparerDepotsDirects,ErreurDepotDirect} from "@/lib/depot-direct-client";
+import {MARQUEUR_DEPOT} from "@/lib/depot-direct-commun";
 
 import Link from "next/link";
 import { RepriseLocale, StatutCopieLocale, useCopieFichiers } from "@/components/reprise-locale";
@@ -133,13 +135,17 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
     setSaisie(contenu);
     await enregistrer(contenu);
     try {
-      const resultat = await declarerMonIncident(orgId, precedent, declarationDuBrouillon(contenu));
+      const donnees=declarationDuBrouillon(contenu);
+      donnees.set(MARQUEUR_DEPOT,JSON.stringify({id:"photos-incident",nom:"photos"}));
+      await preparerDepotsDirects(donnees,{imagesSeulement:true});
+      const resultat = await declarerMonIncident(orgId, precedent, donnees);
       const suivant = { ...contenu, envoye: Boolean(resultat.succes), bilan: resultat };
       derniereDeclaration.current = suivant;
       setSaisie(suivant);
       await enregistrer(resultat.succes && !resultat.avertissement ? null : suivant);
       return resultat;
-    } catch {
+    } catch (erreur) {
+      if(erreur instanceof ErreurDepotDirect) { const bilan={...precedent,erreur:erreur.message}; const suivant={...contenu,envoye:false,bilan}; setSaisie(suivant);derniereDeclaration.current=suivant;await enregistrer(suivant);return bilan; }
       // Après réponse perdue, conserver la clé ET le contenu exact, même après
       // fermeture de l'onglet. Une modification serait une autre demande.
       const bilan = { ...precedent, erreur: "La réponse n’est pas arrivée. Réessayez : votre signalement ne sera pas créé une deuxième fois." };
@@ -249,7 +255,7 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
                 pèse 8-15 Mo, le réseau d'un logement rarement autant */}
             {/* Champ fichier en français (25/09, D10) : le natif rendait
                 « Choose Files / No file chosen » selon le navigateur. */}
-            <ChampFichier
+            <ChampFichier depotDirect
               ref={champPhotos}
               id="photos"
               name="photos"

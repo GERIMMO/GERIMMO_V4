@@ -5,6 +5,8 @@
 > contrat de service de chaque agence. Relecture professionnelle recommandée avant
 > premier usage commercial.
 
+> **Actualisation technique du 20/10/2026** : la ligne de signature ci-dessous décrit Zoho Sign, désormais intégré. Le modèle reste à faire relire par le juriste et le DPO, notamment pour couvrir le propriétaire en gestion directe, les durées et l'ensemble des prestataires. Aucun accord de sous-traitance Zoho n'est réputé acquis par cette mise à jour.
+
 ## 1. Parties et objet
 
 Entre **[Raison sociale de l'agence]** (« l'Agence »), responsable de traitement, et
@@ -26,6 +28,7 @@ confidentialité de Gerimmo.
 | Comptabilité et rapports de gestion | Locataires, propriétaires | Écritures, quittances, honoraires |
 | Incidents et interventions | Locataires, artisans | Signalements, photos, comptes rendus |
 | Messagerie | Tous | Contenus des conversations |
+| Signature électronique | Parties aux actes, garants, artisans selon le document | PDF et annexes, nom, prénom, coordonnées électroniques et téléphone ; suivi du circuit, PDF signé et certificat de réalisation |
 
 ## 3. Durée, nature et finalité
 
@@ -91,7 +94,9 @@ documenté ; journalisation des actions sensibles.
 |---|---|---|---|
 | [Hébergeur — Supabase] | Hébergement, base, stockage | Union européenne | Chiffrement, région UE |
 | [Vercel] | Exécution applicative | Union européenne (région configurée) | Chiffrement |
-| Yousign | Signature électronique | France | eIDAS |
+| Zoho Sign | Signature électronique, vérification SMS, récupération du PDF signé et du certificat | Points d'accès européens configurés (`sign.zoho.eu`, `accounts.zoho.eu`) ; lieux de traitement et transferts à confirmer contractuellement | DPA, droit d'intégration pour des tiers, durées et sous-traitants à obtenir et faire valider ; aucune conformité juridique des actes présumée |
 | Stripe | Encaissement des abonnements | Irlande | — |
 | Meta (WhatsApp) | Messagerie optionnelle | **Hors UE** | Clauses contractuelles types ; consentement explicite + repli email |
 | [Service antivirus — à déterminer] | Analyse des fichiers | À déterminer | — |
+
+**Archives de l'ancien prestataire** : la présence d'anciens circuits identifiés « youtrust » doit être traitée avec leurs preuves et leurs durées propres. Le retrait technique de cet adaptateur reste distinct de la conservation de ces archives. La suppression automatique des documents chez Zoho après archivage dans Gerimmo reste à développer après décision du DPO sur les durées.

@@ -69,6 +69,8 @@ while read -r n; do
   psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$f"
   psql -q -d "$DB" -c "insert into e2e_local.migrations (name) values ('$n')"
 done < "$MANIFESTE"
+# Reprend aussi les versions déjà appliquées par un précédent démarrage du banc.
+psql -q -d "$DB" -c "insert into supabase_migrations.schema_migrations(version,name) select regexp_replace(name,'\.sql$',''),regexp_replace(substring(name from position('_' in name)+1),'\.sql$','') from e2e_local.migrations on conflict(version) do nothing"
 
 echo "— seed de démo"
 psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$APP_DIR/supabase/seed.sql"

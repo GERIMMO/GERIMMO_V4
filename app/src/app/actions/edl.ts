@@ -1,4 +1,6 @@
 "use server";
+import { resoudreDepotsFormulaire } from "@/lib/depot-direct";
+
 
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
@@ -184,6 +186,8 @@ export async function majGrilleEdl(
     const mode = String(formData.get("mode_signature") ?? "");
     if (mode !== "pdf_signe" && mode !== "constat_commissaire")
       return { erreur: "Indiquez la preuve de signature : état des lieux signé par les parties, ou constat de commissaire de justice." };
+    const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+    if (erreurDepotDirect) return { erreur: erreurDepotDirect };
     const fichier = formData.get("preuve_signature");
     if (!(fichier instanceof File) || fichier.size === 0)
       return { erreur: "Déposez l’état des lieux signé par les deux parties (ou le constat du commissaire de justice) : sans cette preuve, il ne peut pas être figé." };

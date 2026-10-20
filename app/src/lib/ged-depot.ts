@@ -1,3 +1,4 @@
+import { limiteFichierDepose } from "./depot-direct";
 import { createHash } from "node:crypto";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
@@ -53,10 +54,11 @@ export async function preparerFichierGed(
   supabase: SupabaseClient,
   orgId: string,
   fichier: File,
-  reutiliserReglement = false
+  reutiliserReglement = false,
+  genereServeur = false
 ): Promise<ResultatPreparationGed> {
-  if (fichier.size > TAILLE_MAX_OCTETS) {
-    return { erreur: "Fichier trop volumineux (10 Mo maximum)." };
+  if (fichier.size > (genereServeur ? TAILLE_MAX_OCTETS : limiteFichierDepose(fichier))) {
+    return { erreur: `Fichier trop volumineux (${genereServeur ? 10 : limiteFichierDepose(fichier) / 1024 / 1024} Mo maximum).` };
   }
 
   const octets = new Uint8Array(await fichier.arrayBuffer());
@@ -149,10 +151,10 @@ export async function deposerFichierGed(
   titre: string,
   // La fiche document est immuable (update révoqué en base) : le versionnage
   // (remplace_id) et l'expiration se posent À L'INSERTION, jamais après coup.
-  options?: { remplaceId?: string; expireLe?: string; reutiliserReglement?: boolean }
+  options?: { remplaceId?: string; expireLe?: string; reutiliserReglement?: boolean; genereServeur?: boolean }
 ): Promise<ResultatDepotGed> {
   const prepare = await preparerFichierGed(supabase, orgId, fichier,
-    options?.reutiliserReglement === true && type === "reglement_copropriete" && !options.remplaceId);
+    options?.reutiliserReglement === true && type === "reglement_copropriete" && !options.remplaceId, options?.genereServeur === true);
   if (prepare.documentExistantId) return { documentId: prepare.documentExistantId, avertissement: prepare.avertissement };
   if (prepare.erreur || !prepare.fichier) {
     return { erreur: prepare.erreur ?? "Échec du dépôt du fichier.", doublonId: prepare.doublonId };

@@ -1,7 +1,7 @@
 import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
-import { AFournir, Article, CoquilleLegale, TableauPrestataires } from "@/components/coquille-legale";
-import { courrielDeContact, documentsIncomplets, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";
+import { AFournir, Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
+import { courrielDeContact, confidentialiteIncomplete, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 export const metadata = metadonneesPubliques({
@@ -11,18 +11,7 @@ export const metadata = metadonneesPubliques({
   chemin: "/confidentialite",
 });
 
-// Information de confidentialité. Elle portait son propre en-tête avant le
-// 11/09, comme les deux autres pages légales — chacune le sien, tous
-// différents. Les trois partagent désormais la même coquille.
-//
-// Jusqu'au 20/09, la page renvoyait à « la politique complète » qui n'existait
-// nulle part. Elle dit désormais ce que le produit fait RÉELLEMENT, vérifié
-// dans le code et la base : les sous-traitants sont ceux du déploiement, les
-// durées sont celles de la table `retention_rules` (matrice A2 du
-// référentiel), les mesures de sécurité celles qui sont en place. Ce que le
-// produit ne fait pas — publicité, revente, lecture de comptes bancaires —
-// est dit aussi. Une relecture par un conseil reste prévue avant que
-// l'encadré « en cours de finalisation » ne disparaisse.
+// Description des traitements et durées réellement configurés, revue le 20/10/2026.
 export default async function PageConfidentialite() {
   const {editeur:EDITEUR,indisponible}=await lireEditeur();
   // 29/09 : les droits ne s'exercent plus par le formulaire de devis de
@@ -39,9 +28,22 @@ export default async function PageConfidentialite() {
       titre="Confidentialité"
       chapo="Ce que nous faisons de vos données, et ce que nous n'en faisons pas."
       chemin="/confidentialite"
-      incomplet={indisponible || documentsIncomplets(EDITEUR) || prestatairesIncomplets(prestataires)}
+      incomplet={indisponible || confidentialiteIncomplete(EDITEUR) || prestatairesIncomplets(prestataires)}
       courriel={contact}
     >
+      <p className="text-xs text-muted-foreground">Dernière mise à jour : 20 octobre 2026.</p>
+      <Article titre="Votre interlocuteur">
+        <p>
+          Gerimmo est un service édité par <Fait valeur={EDITEUR.denomination} quoi="nom de l’éditeur" />,
+          {" "}<Fait valeur={EDITEUR.forme} quoi="forme juridique" />,
+          établi au <Fait valeur={EDITEUR.siege} quoi="adresse de l’éditeur" />.
+        </p>
+        <p>
+          Pour toute question relative aux données personnelles :{" "}
+          {contact ? <a href={`mailto:${contact}`} className="lien-texte">{contact}</a> : <AFournir quoi="adresse de contact de l'éditeur" />}.
+          {EDITEUR.telephone && <> Téléphone : {EDITEUR.telephone}.</>}
+        </p>
+      </Article>
       <Article titre="Qui est responsable de quoi">
         <p>
           Gerimmo est un logiciel de gérance immobilière. Deux situations se
@@ -54,8 +56,10 @@ export default async function PageConfidentialite() {
           agence ou de votre propriétaire bailleur</b>, qui en est responsable
           de traitement. Gerimmo n&apos;en est que le sous-traitant : il les
           héberge et les met en forme, il n&apos;en décide pas l&apos;usage.
-          Pour exercer vos droits sur ces données, c&apos;est à votre agence ou
-          à votre propriétaire qu&apos;il faut vous adresser.
+          Pour exercer vos droits sur ces données, adressez-vous à votre agence ou
+          à votre propriétaire. De même, l’artisan détermine les usages de ses
+          dossiers clients, interventions, devis et factures ; Gerimmo les traite
+          pour son compte.
         </p>
         <p>
           <b className="font-semibold">Les données de plateforme</b> — votre
@@ -100,7 +104,7 @@ export default async function PageConfidentialite() {
                 <td data-libelle="Base légale">Intérêt légitime : protéger le service et vos données</td>
               </tr>
               <tr>
-                <td>Réponse aux demandes de devis envoyées depuis le site</td>
+                <td>Réponse aux demandes de contact envoyées depuis le site</td>
                 <td data-libelle="Base légale">Intérêt légitime : répondre à la demande que vous avez faite</td>
               </tr>
               {/* Liste d'attente des agences (page /agences, 20/10/2026) : repère CNIL usuel pour les prospects, durée et
@@ -111,22 +115,20 @@ export default async function PageConfidentialite() {
                 <td data-libelle="Base légale">Intérêt légitime : donner suite à la demande que vous avez faite</td>
               </tr>
               <tr>
-                <td>Annuaire des artisans et évaluations laissées par les agences</td>
+                <td>Annuaire des artisans et suivi des interventions pour les propriétaires et gestionnaires</td>
                 <td data-libelle="Base légale">Exécution du contrat conclu avec l&apos;artisan</td>
               </tr>
               <tr>
                 <td>Journal public et sa diffusion sur la page Facebook de Gerimmo</td>
-                <td data-libelle="Base légale">Intérêt légitime : informer le public ; aucune donnée des lecteurs n&apos;est collectée</td>
+                <td data-libelle="Base légale">Intérêt légitime : informer le public ; des données techniques de consultation sont traitées pour la sécurité et la diffusion</td>
               </tr>
             </tbody>
           </table>
         </div>
         <p>
-          Aucun traitement ne repose aujourd&apos;hui sur votre consentement :
-          ni traceur de mesure d&apos;audience, ni publicité. Si un traitement
-          de ce type venait à être ajouté, il ne serait mis en œuvre
-          qu&apos;avec votre consentement préalable, que vous pourriez retirer
-          à tout moment.
+          Le site n’installe pas de traceur publicitaire ni de mesure d’audience
+          soumis au consentement. L’ajout d’un tel traceur nécessiterait votre
+          accord préalable, retirable à tout moment.
         </p>
         <p>
           Pour les données de gestion locative, la base légale est déterminée
@@ -154,23 +156,22 @@ export default async function PageConfidentialite() {
         </p>
         <p>
           <b className="font-semibold">Votre fiche d&apos;artisan</b>, si vous
-          intervenez pour des agences : raison sociale, SIRET, métiers et zones
+          intervenez pour des propriétaires ou gestionnaires : raison sociale, SIRET, métiers et zones
           d&apos;intervention, justificatifs déposés, comptes rendus
-          d&apos;intervention, évaluations laissées par les agences. Une note
+          d&apos;intervention, évaluations laissées par les clients. Une note
           contestée est réexaminée par une personne, jamais par un calcul seul.
         </p>
         <p>
           <b className="font-semibold">La facturation.</b> Les abonnements sont
           encaissés par Stripe : Gerimmo ne voit ni ne conserve votre numéro de
-          carte, seulement l&apos;état de l&apos;abonnement et l&apos;issue des
-          prélèvements.
+          carte. Il traite les identifiants de paiement, montants, factures,
+          remboursements, frais et états nécessaires au suivi de votre abonnement.
         </p>
         <p>
-          <b className="font-semibold">Le formulaire de demande de devis.</b>{" "}
-          Les informations transmises (nom, adresse électronique, agence,
-          téléphone, taille du portefeuille, message) servent uniquement à vous
-          recontacter au sujet de votre demande. Elles sont supprimées au plus
-          tard 24 mois après leur dépôt.
+          <b className="font-semibold">Le formulaire de contact.</b>{" "}
+          Les coordonnées et le message que vous communiquez servent à traiter
+          votre demande et à y répondre. Les demandes sont conservées au plus
+          24 mois après leur dépôt.
         </p>
         <p>
           <b className="font-semibold">La liste d&apos;attente des agences.</b>{" "}
@@ -190,16 +191,69 @@ export default async function PageConfidentialite() {
           <b className="font-semibold">Ce que Gerimmo ne fait pas.</b> Il ne lit
           aucun compte bancaire, ne revend aucune donnée, n&apos;affiche aucune
           publicité et n&apos;installe aucun traceur de mesure d&apos;audience.
-          Les seuls cookies sont ceux qui tiennent votre session ouverte.
+          Les cookies nécessaires à l’authentification permettent de tenir
+          votre session ouverte. La consultation du site génère aussi des
+          données techniques, notamment l’adresse IP et des journaux d’erreurs.
+        </p>
+      </Article>
+
+      <Article titre="Collecte, destinataires et assistance automatisée">
+        <p>
+          Les données proviennent de vos saisies, des documents déposés et des
+          personnes qui gèrent votre dossier (propriétaire, locataire, garant,
+          artisan ou gestionnaire). Les champs signalés obligatoires sont
+          nécessaires à l’action demandée ; sans eux, elle ne peut pas aboutir.
+          Les autres champs peuvent être laissés vides.
+        </p>
+        <p>
+          Les informations sont accessibles aux personnes habilitées dans
+          chaque dossier, selon leur rôle, ainsi qu’aux prestataires nécessaires
+          au service. Une invitation à signer transmet à Zoho Sign le document,
+          le nom, l’e-mail et le téléphone du signataire ; Zoho assure la
+          vérification par SMS et produit les preuves de signature.
+        </p>
+        <p>
+          Les propositions de devis assistées par intelligence artificielle
+          restent des brouillons que l’artisan examine, modifie et valide.
+          Les traitements décrits ici ne prennent pas seuls de décision
+          d’attribution d’un logement ou d’engagement contractuel.
+        </p>
+        <p>
+          Les interactions sur la page Facebook de Gerimmo relèvent aussi de
+          la politique de Meta, notamment pour les statistiques de page.
+          Stripe traite certaines données pour ses propres obligations de
+          paiement et de lutte contre la fraude. Leurs informations officielles
+          figurent dans le tableau ci-dessous.
+        </p>
+      </Article>
+
+      <Article titre="Brouillons conservés sur votre appareil">
+        <p>
+          Pour éviter de perdre une saisie, certains formulaires conservent
+          une copie locale de leurs champs et fichiers dans votre navigateur
+          (localStorage ou IndexedDB). Les brouillons de lot, fiche personne,
+          incident et devis expirent après sept jours : ils sont effacés au
+          prochain contrôle par l’application ou à la déconnexion effective.
+          Ce stockage local ne constitue pas un enregistrement du dossier sur
+          les serveurs.
+        </p>
+        <p>
+          Les relevés d’état des lieux hors ligne non encore synchronisés sont
+          conservés et signalés pour éviter leur perte ; les copies synchronisées
+          peuvent être effacées à la déconnexion. La mémorisation d’une quittance
+          dans l’outil public dépend de votre choix. Sur un appareil partagé,
+          déconnectez-vous et vérifiez qu’aucune saisie non synchronisée ne reste
+          avant de laisser l’appareil à une autre personne.
         </p>
       </Article>
 
       <Article titre="Où vos données sont hébergées, et qui y accède">
         <p>
-          Les serveurs principaux du service — base de données, fichiers et
-          application — sont situés dans des{" "}
+          La base de données, le stockage principal des fichiers et les fonctions
+          serveur de l’application sont configurés dans des{" "}
           <b className="font-semibold">régions de l&apos;Union européenne</b>{" "}
-          (Paris). Plusieurs prestataires sont toutefois des
+          (Paris). La diffusion du site, l’assistance et certaines opérations des
+          prestataires peuvent intervenir dans d’autres pays. Plusieurs prestataires sont des
           sociétés établies hors de l&apos;Union, notamment aux États-Unis, ou
           rattachées à des sociétés qui le sont. Les sauvegardes quotidiennes
           sont produites et chiffrées par un service d&apos;automatisation
@@ -214,7 +268,11 @@ export default async function PageConfidentialite() {
           des données sont transférées ou accessibles hors de l&apos;Union,
           le transfert est encadré par les clauses contractuelles types de la
           Commission européenne et/ou par la certification du prestataire au
-          Data Privacy Framework UE–États-Unis, selon le prestataire.
+          Data Privacy Framework UE–États-Unis, selon le prestataire et le
+          transfert concerné. Les politiques et accords des prestataires sont
+          accessibles par leurs liens officiels ci-dessous. Vous pouvez nous
+          demander des précisions ou une copie des garanties applicables à
+          l’adresse de contact indiquée en tête de page.
         </p>
         {/* La même liste que les mentions légales (lib/editeur.ts). */}
         <TableauPrestataires prestataires={prestataires} />
@@ -229,9 +287,12 @@ export default async function PageConfidentialite() {
 
       <Article titre="Combien de temps">
         <p>
-          Chaque durée découle d&apos;une finalité écrite ; au terme, la donnée
-          est supprimée, ou anonymisée quand une obligation comptable impose de
-          garder l&apos;écriture sans la personne. Les principales :
+          Le tableau décrit les durées paramétrées dans le service. Au terme,
+          les traitements de conservation prévoient une suppression ou une
+          anonymisation selon la catégorie. Ces durées ne constituent pas une
+          obligation légale de conserver toutes les pièces jusque-là : le
+          responsable du dossier doit limiter la conservation à ce qui est
+          nécessaire et traiter les demandes de suppression justifiées.
         </p>
         <div className="tableau-defilant">
           <table className="tableau">
@@ -315,10 +376,13 @@ export default async function PageConfidentialite() {
           </table>
         </div>
         <p>
-          Les cinq ans correspondent à la prescription des actions nées du bail
-          d&apos;habitation ; les dix ans à l&apos;obligation de conservation
-          comptable. Un contentieux en cours suspend le compte à rebours
-          jusqu&apos;à sa clôture.
+          La conservation comptable obligatoire des factures est de dix ans.
+          Les autres durées dépendent de la finalité et du dossier ; une durée
+          de cinq ans ne correspond pas à une prescription uniforme de tous les
+          baux. Un besoin de preuve ou un contentieux peut justifier un archivage
+          limité des seuls éléments nécessaires. Les sauvegardes techniques
+          chiffrées sont conservées 90 jours avant rotation ; une suppression
+          du dossier courant ne les efface pas immédiatement.
         </p>
         <p>
           <b className="font-semibold">Votre compte.</b> Comme le prévoit
@@ -341,8 +405,7 @@ export default async function PageConfidentialite() {
           <li>Chiffrement en transit et au repos, base, fichiers et sauvegardes compris.</li>
           <li>
             Cloisonnement par organisation appliqué dans la base de données
-            elle-même : une agence ne peut pas lire les données d&apos;une autre,
-            même par erreur de programme.
+            elle-même, afin de limiter chaque compte aux données autorisées.
           </li>
           <li>
             Mot de passe de douze caractères au moins, vérifié contre les fuites
@@ -350,15 +413,20 @@ export default async function PageConfidentialite() {
             pour la supervision.
           </li>
           <li>
-            Aucun fichier n&apos;est accessible par une adresse publique : chaque
-            consultation passe par l&apos;application, sous contrôle des droits,
-            et toute consultation d&apos;une pièce sensible est tracée.
+            Les documents privés sont soumis à un contrôle des droits et leur
+            téléchargement utilise des liens à durée limitée. Les éléments
+            destinés à être publics, tels que les logos ou illustrations du
+            Journal, suivent un accès public. La consultation des pièces
+            sensibles est tracée.
           </li>
         </ul>
         <p>
           En cas de violation de données susceptible de vous concerner, Gerimmo
-          en informe l&apos;organisation responsable sans délai et, lorsque la
-          loi l&apos;exige, la CNIL sous 72 heures et les personnes concernées.
+          en informe l’organisation responsable sans délai indu. Lorsque
+          Gerimmo est responsable du traitement, il notifie la CNIL dans les
+          72 heures après en avoir pris connaissance si la violation présente
+          un risque ; il informe les personnes en cas de risque élevé, dans les
+          conditions prévues par le RGPD.
         </p>
       </Article>
 
@@ -370,14 +438,16 @@ export default async function PageConfidentialite() {
           <b className="font-semibold">limitation</b> de leur traitement, vous{" "}
           <b className="font-semibold">opposer</b> à un traitement, et obtenir
           celles que vous avez fournies dans un format lisible par une machine
-          (<b className="font-semibold">portabilité</b>).
+          (<b className="font-semibold">portabilité</b>), selon les conditions
+          prévues par le RGPD pour chacun de ces droits. Vous pouvez également
+          définir des directives relatives au sort de vos données après votre décès.
         </p>
         <p>
           L&apos;effacement connaît des limites que la loi impose : un bail en
           cours, un impayé non soldé, un contentieux ou une écriture comptable
-          empêchent de supprimer immédiatement ; la donnée est alors gelée, puis
-          anonymisée au terme. Les pièces de votre dossier, elles, peuvent être
-          retirées sur demande même avant ce terme.
+          peuvent justifier de conserver certains éléments nécessaires, avec
+          un accès limité. Chaque demande est examinée selon sa situation ;
+          elle n’entraîne pas automatiquement la suppression de toutes les pièces.
         </p>
         <p>
           <b className="font-semibold">À qui écrire.</b> Pour votre dossier de
@@ -397,15 +467,18 @@ export default async function PageConfidentialite() {
           ) : (
             <AFournir quoi="adresse de contact de l'éditeur" />
           )}
-          . Chaque demande reçoit une réponse dans le mois, après vérification
-          de l&apos;identité du demandeur.
+          . Une réponse est apportée dans un délai d’un mois. En cas de demande
+          complexe ou nombreuse, ce délai peut être prolongé de deux mois ; les
+          raisons vous sont communiquées durant le premier mois. Un justificatif
+          d’identité n’est demandé qu’en cas de doute raisonnable, dans la mesure
+          nécessaire pour confirmer votre identité.
         </p>
         <p>
           Si vous estimez que vos droits ne sont pas respectés, vous pouvez
           saisir la Commission nationale de l&apos;informatique et des libertés
-          (CNIL), 3 place de Fontenoy, 75007 Paris —{" "}
-          <a href="https://www.cnil.fr" className="lien-texte" rel="noreferrer">
-            www.cnil.fr
+          (CNIL), notamment par son service de{" "}
+          <a href="https://www.cnil.fr/fr/plaintes" className="lien-texte" rel="noreferrer">
+            réclamation en ligne
           </a>
           .
         </p>

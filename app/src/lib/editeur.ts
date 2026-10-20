@@ -26,7 +26,7 @@ export const EDITEUR = {
   capital: null as FaitEditeur,
   /** Adresse complète du siège. */
   siege: null as FaitEditeur,
-  /** Ville et numéro d'immatriculation au RCS. */
+  /** Immatriculation RNE ou RCS ; clé historique conservée en base. */
   rcs: null as FaitEditeur,
   siret: null as FaitEditeur,
   tvaIntracommunautaire: null as FaitEditeur,
@@ -43,7 +43,7 @@ export const EDITEUR = {
 
 /**
  * Le régime de TVA de l'éditeur, que le porteur déclare : franchise en base
- * (décision du 28/09/2026).
+ * (décision du 28/09/2026, reconfirmée le 20/10/2026).
  *
  * Il décide de ce que l'on affiche et de ce que l'on facture : un éditeur en
  * franchise en base (art. 293 B du CGI) ne facture aucune TVA, un éditeur
@@ -59,20 +59,22 @@ export const REGIME_TVA: RegimeTva | null = { nature: "franchise" };
  * Les faits SANS LESQUELS la page ne remplit pas son office légal.
  *
  * Le capital ne figure pas dans cette liste (une entreprise individuelle n'en
- * a pas), ni la TVA (toutes les structures n'y sont pas assujetties), ni le
- * téléphone (l'adresse électronique suffit au sens de la LCEN). Le médiateur
- * en fait partie : dès qu'un client est un particulier, son absence est un
- * manquement (art. L. 616-1 du code de la consommation).
+ * a pas), ni le numéro de TVA (selon le régime). Le téléphone professionnel
+ * et les coordonnées complètes du médiateur restent nécessaires pour le
+ * service proposé aux consommateurs. Un nom de médiateur seul ne suffit pas.
  */
 const REQUIS = [
   ["denomination", "la dénomination sociale"],
   ["forme", "la forme juridique"],
   ["siege", "l'adresse du siège"],
-  ["rcs", "l'immatriculation au RCS"],
+  ["rcs", "l'immatriculation (RNE ou RCS)"],
   ["siret", "le SIRET"],
   ["directeurPublication", "le directeur de la publication"],
   ["email", "l'adresse de contact"],
+  ["telephone", "le téléphone de contact"],
   ["mediateurNom", "le médiateur de la consommation"],
+  ["mediateurAdresse", "l'adresse du médiateur"],
+  ["mediateurSite", "le site du médiateur"],
 ] as const satisfies readonly (readonly [keyof typeof EDITEUR, string])[];
 
 /**
@@ -89,6 +91,15 @@ export function faitsManquants(editeur: Record<string, FaitEditeur> = EDITEUR): 
 /** Vrai tant que les documents ne sont pas finalisés. */
 export function documentsIncomplets(editeur: Record<string, FaitEditeur> = EDITEUR): boolean {
   return faitsManquants(editeur).length > 0;
+}
+
+/** La confidentialité doit identifier son responsable ; le médiateur relève des mentions et des CGV. */
+export function confidentialiteIncomplete(editeur: Record<string, FaitEditeur> = EDITEUR): boolean {
+  return ["denomination", "forme", "siege", "email"].some((cle) => !editeur[cle]?.trim());
+}
+
+export function estEntrepreneurIndividuel(editeur: Record<string, FaitEditeur>): boolean {
+  return /^(?:EI|entrepreneur individuel|entreprise individuelle)(?:\s|$)/i.test(editeur.forme?.trim() ?? "");
 }
 
 // ── Où écrire à l'éditeur ──────────────────────────────────────────────────
@@ -131,6 +142,8 @@ export type Prestataire = {
   localisation: FaitEditeur;
   /** Dénomination, adresse et téléphone, tels que saisis dans /admin/parametres ; `null` tant qu'ils manquent. */
   coordonnees?: FaitEditeur;
+  /** Source officielle décrivant le prestataire et ses traitements. */
+  documentation?: string;
 };
 
 //
@@ -145,6 +158,7 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     nom: "Supabase",
     role: "Base de données, authentification, stockage des fichiers",
     localisation: "Région eu-west-3 (Paris, France)",
+    documentation: "https://supabase.com/legal/privacy-resources/data-residency-and-transfers-faq",
   },
   {
     cle: "vercel",
@@ -153,7 +167,8 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     // La région des fonctions est fixée dans vercel.json (`regions: ["cdg1"]`) :
     // sans ce réglage, Vercel exécute le serveur à Washington, et les données
     // transitent hors UE à chaque page.
-    localisation: "Région cdg1 (Paris, France)",
+    localisation: "Fonctions serveur en région cdg1 (Paris, France) ; diffusion et opérations internationales",
+    documentation: "https://vercel.com/legal/privacy-notice",
   },
   {
     cle: "resend",
@@ -162,32 +177,37 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     // Domaine d'envoi gerimmo.app créé en région eu-west-1 (constaté dans le
     // tableau de bord Resend par le porteur, 27/09).
     localisation: "Région eu-west-1 (Irlande)",
+    documentation: "https://resend.com/legal/privacy-policy",
   },
   {
     cle: "stripe",
     nom: "Stripe",
     role: "Encaissement des abonnements",
     localisation: "Irlande",
+    documentation: "https://stripe.com/privacy",
   },
   {
     cle: "zohoSign",
     nom: "Zoho Sign",
     role: "Signature électronique des baux, cautionnements et devis : document à signer, nom, adresse électronique et téléphone des signataires ; invitations par courriel, vérification par SMS et conservation des preuves de signature",
     localisation: "Centre de données Union européenne (sign.zoho.eu) ; acheminement des SMS par les prestataires de Zoho",
+    documentation: "https://www.zoho.com/privacy.html",
   },
   {
     cle: "yousign",
-    nom: "Yousign",
+    nom: "Yousign / Youtrust (inactif)",
     // Adaptateur historique conservé dans le code, non utilisé par le
     // circuit Zoho Sign actuellement activé.
     role: "Ancienne intégration de signature des baux, inactive : aucune transmission par le circuit de signature Zoho Sign actuellement utilisé",
     localisation: "France",
+    documentation: "https://youtrust.com/legal-notice",
   },
   {
     cle: "openai",
     nom: "OpenAI",
     role: "Assistance rédactionnelle de la supervision (veille, brouillons et illustrations du Journal) et propositions de devis artisans : textes éditoriaux publics, catalogue tarifaire et symptômes techniques sélectionnés ; les propositions de devis excluent les noms, adresses et descriptions libres des occupants",
     localisation: "États-Unis (transfert hors UE)",
+    documentation: "https://openai.com/policies/data-processing-addendum/",
   },
   // Audit 27/09 : la sauvegarde quotidienne (.github/workflows/sauvegarde.yml,
   // docs/sauvegarde-et-restauration.md) fait intervenir deux prestataires que
@@ -204,12 +224,14 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     nom: "Scaleway",
     role: "Stockage de la sauvegarde quotidienne : copie chiffrée (AES-256-GCM) de la base et des fichiers, conservée 90 jours, illisible sans la clé que Scaleway ne détient pas",
     localisation: "Région fr-par (Paris, France)",
+    documentation: "https://www.scaleway.com/fr/politique-confidentialite/",
   },
   {
     cle: "github",
     nom: "GitHub (Actions)",
     role: "Exécution de la sauvegarde quotidienne : la base et les fichiers transitent par ses machines le temps d'être chiffrés, puis les copies locales sont effacées ; détient la clé de chiffrement des sauvegardes",
     localisation: "Prestataire établi aux États-Unis (transfert hors UE)",
+    documentation: "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
   },
   // Autocomplétion d'adresse de la fiche d'un bien (parc/formulaire-bien.tsx) :
   // le navigateur envoie le texte de l'adresse tapée à l'API de la Base
@@ -217,15 +239,17 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   {
     cle: "ban",
     nom: "Base Adresse Nationale (api-adresse.data.gouv.fr)",
-    role: "Autocomplétion des adresses saisies dans la fiche d'un bien : le texte de l'adresse tapée, rien d'autre",
+    role: "Autocomplétion des adresses saisies dans la fiche d'un bien : texte de l'adresse et données techniques de la requête, dont l'adresse IP",
     // Non établie par le code : à saisir dans /admin/parametres (clé `localisationBan`), jamais devinée ici.
     localisation: null,
+    documentation: "https://adresse.data.gouv.fr/donnees-personnelles",
   },
   {
     cle: "meta",
     nom: "Meta (Facebook)",
-    role: "Publication des articles du Journal sur la page Facebook de Gerimmo : titre, texte et illustration de l'article, sans donnée personnelle",
+    role: "Publication des articles du Journal sur Facebook : titre, texte et illustration. Meta traite également les interactions et statistiques des visiteurs de la page Facebook selon ses propres règles",
     localisation: "Irlande, avec transfert vers les États-Unis",
+    documentation: "https://www.facebook.com/privacy/policy/",
   },
 ];
 

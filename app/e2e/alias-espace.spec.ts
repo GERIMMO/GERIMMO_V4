@@ -161,6 +161,15 @@ test.describe("Propriétaire direct : l'alias /espace", () => {
       await expect(page.getByRole("link",{name:"Ouvrir le PDF en plein écran"})).toBeVisible();
       await expect(page.getByRole("link",{name:"Télécharger",exact:true})).toHaveAttribute("href",/^blob:/);
       await expect(page.locator("#etat")).toBeHidden();
+      const attenteDownload=page.waitForEvent("download");
+      await page.getByRole("link",{name:"Télécharger",exact:true}).click();
+      const download=await attenteDownload;
+      expect(download.suggestedFilename()).toBe(`${titre}.pdf`);
+      const flux=await download.createReadStream();
+      expect(flux).not.toBeNull();
+      const morceaux:Buffer[]=[];
+      for await(const morceau of flux!)morceaux.push(Buffer.from(morceau));
+      expect(Buffer.concat(morceaux)).toEqual(pdf);
       // Le téléchargement autorise à nouveau l'accès, puis contourne la limite de taille de l'hébergeur.
       const telechargement=await page.request.get(`${cheminFichier}?mode=telechargement`,{maxRedirects:0});
       expect(telechargement.status()).toBe(303);
@@ -170,6 +179,7 @@ test.describe("Propriétaire direct : l'alias /espace", () => {
       const contenu=await page.request.get(destination.toString());
       expect(contenu.status()).toBe(200);
       expect(contenu.headers()["content-type"]).toContain("application/pdf");
+      expect(contenu.headers()["content-disposition"]).toBe(`attachment; filename*=UTF-8''${encodeURIComponent(`${titre}.pdf`)}`);
       expect(await contenu.body()).toEqual(pdf);
     } finally {
       await page.close();

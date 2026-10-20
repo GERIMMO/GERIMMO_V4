@@ -41,7 +41,7 @@ Un défaut de composition des transactions a été corrigé sur les cinq nouveau
 
 Dépôts limités à 4 Mio avec message avant envoi et saisie conservée. Cinq routes de lecture utilisent Storage directement après autorisation et trace. Miniatures et ouverture native des PDF mobiles conservées. Un PNG de 6 Mio, une reprise après erreur, une redirection de téléchargement et un PDF de deux pages passent sur navigateur local. Les dépôts directs signés, les routes spécifiques à empreinte, le CORS réel et Safari iPhone restent à vérifier pour terminer G5.
 
-La CI744 a identifié une attente obsolète dans le test navigateur de consultation. Le scénario contrôle maintenant l’aperçu HTML à adresse stable, le vrai contenu PDF reçu depuis Storage et le téléchargement autorisé. Les 17 scénarios de navigation et d’isolation passent localement après adaptation ; le banc conserve le type du fichier déposé. La CI du dernier SHA reste requise.
+La CI744 a identifié une attente obsolète dans le test navigateur de consultation. Le scénario contrôle maintenant l’aperçu HTML à adresse stable, le vrai contenu PDF reçu depuis Storage et le téléchargement autorisé. Les 17 scénarios de navigation et d’isolation passent localement après adaptation ; le banc conserve le type du fichier déposé. Le téléchargement navigateur, son nom et ses octets sont également éprouvés après correction du banc qui ignorait le paramètre de téléchargement. La CI du dernier SHA reste requise.
 
 ## Préparation des signatures
 
@@ -54,6 +54,8 @@ Le tableau de bord Supabase a été consulté en lecture seule : offre Pro, rég
 Le relevé des fichiers ne retrouve pas le nombre ancien annoncé dans le prompt : 36 objets dans le bucket de documents ; huit sans fiche `documents`, dont quatre référencés par d'autres tables métier. **Quatre candidats sans référence dans les quatre tables de dépôt examinées** restent à qualifier ; aucune suppression effectuée.
 
 Les réglages d'authentification, la protection GitHub, la validation marketing obligatoire et les interrupteurs de signature n'ont pas été modifiés. Les achats, envois réels, choix de conservation et validations juridiques restent distincts de la préparation technique.
+
+La console Stripe confirme un seul webhook actif avec les sept événements attendus. Aucune livraison n’est affichée du 14 au 20 octobre : ce constat n’est pas une recette de réception. Les nouvelles tentatives sont actives, jusqu’à huit sur deux semaines, puis annulation ; numérotation séquentielle du compte. Ces règles et les notifications désactivées restent à aligner avec les choix contractuels. Aucun réglage modifié. Le coût réel des essais Zoho reste inaccessible sans reconnexion.
 
 ## Mise en service
 

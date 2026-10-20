@@ -1024,7 +1024,11 @@ const serveur = http.createServer(async (req, res) => {
       if (r.fichier) {
         try {
           const contenu = fs.readFileSync(r.fichier);
-          res.writeHead(200, { "Content-Type": r.mime || "application/octet-stream", ...CORS });
+          const nom = url.searchParams.get("download") || path.basename(r.fichier);
+          const nomEncode = encodeURIComponent(nom).replace(/['()*]/g, c => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+          res.writeHead(200, { "Content-Type": r.mime || "application/octet-stream", ...CORS,
+            ...(url.searchParams.has("download") ? { "Content-Disposition": `attachment; filename*=UTF-8''${nomEncode}` } : {}),
+          });
           return res.end(contenu);
         } catch {
           return repondreJson(404, { message: "Fichier absent du disque" });

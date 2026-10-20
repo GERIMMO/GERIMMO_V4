@@ -6329,3 +6329,12 @@ Complément E5 préparé localement : distinction entre échec avant création d
 ## [2026-10-20] verification | Consultation PDF et navigation de l’espace
 
 La CI744 a relevé une assertion navigateur devenue incompatible avec la visionneuse HTML : le scénario attendait encore les octets PDF directement sur la route de consultation. Il vérifie désormais la redirection de l’ancien lien, l’adresse stable sous /espace, les octets et le type du PDF obtenu depuis Storage, le lien mobile et le téléchargement par redirection après autorisation. Le banc Storage conserve maintenant le type déclaré au dépôt et refuse un objet supprimé même si une copie reste sur disque. Les 17 scénarios du fichier passent localement ; types et lint réussis. La contre-relecture du scénario ne relève pas de défaut concret. CI complète sur le nouveau SHA encore nécessaire. Aucune modification de production.
+
+
+## [2026-10-20] correction | Téléchargement dans le banc Storage
+
+La contre-relecture a identifié que le banc, après restitution du MIME, ignorait encore le paramètre de téléchargement : le PDF s’affichait au lieu d’être proposé en pièce jointe. Reproduction rouge sur l’en-tête manquant, puis correction de Content-Disposition avec nom encodé. Le parcours vérifie aussi un événement de téléchargement navigateur, le nom et les octets du PDF ; les 17 scénarios repassent, types et lint réussis. Ce complément concerne le banc et sa recette, sans changement de production.
+
+## [2026-10-20] verification | Réglages Stripe en lecture seule
+
+Console de production consultée : un seul webhook actif, les sept événements attendus et la version API 2026-06-24.dahlia. Aucun événement livré sur la période affichée du 14 au 20 octobre ; le taux d’erreur nul ne constitue pas une preuve de réception. Smart Retries actif avec huit tentatives sur deux semaines, puis annulation de l’abonnement ; numérotation des factures séquentielle à l’échelle du compte. Les notifications Stripe de fin d’essai, renouvellement et échecs de paiement sont désactivées. Cohérence avec les conditions contractuelles encore à valider. Aucun paramètre ni paiement modifié. La session Zoho demande une reconnexion : coût réel des essais non relevé.

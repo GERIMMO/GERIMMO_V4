@@ -96,3 +96,5 @@ Une annulation fondée sur l’état « prêt » ne réussit que si cet état es
 ## Vérification de la consultation PDF
 
 Le contrat navigateur de consultation comprend un aperçu HTML et un chargement direct Storage : le test de navigation vérifie les deux réponses, le contenu PDF exact, la stabilité de l’alias et le téléchargement après autorisation. Le banc conserve le type déclaré lors du dépôt ; les 17 scénarios de navigation et d’isolation passent localement. La CI744 a révélé l’ancienne assertion de MIME, corrigée sans retirer le contrôle des octets. La CI complète sur le dernier SHA reste obligatoire avant livraison.
+
+Le banc honore également le paramètre de téléchargement en renvoyant une pièce jointe au nom encodé. Le test contrôle l’en-tête Storage et un téléchargement navigateur réel, son nom et ses octets, après reproduction rouge de l’en-tête absent. Aucun changement de configuration du stockage réel n’en découle.

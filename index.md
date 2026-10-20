@@ -244,3 +244,5 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - **20 octobre — signatures, complément local** : abandon atomique avant création distante et annulation concurrente contrôlée ; cinq migrations préparées au total, aucune publiée. Voir [[Suites de l'audit — 20 octobre 2026]].
 
 - **20 octobre — consultation PDF** : scénario navigateur adapté au transfert Storage direct, 17 vérifications locales réussies ; contrôle CI du dernier lot encore requis. Voir [[Suites de l'audit — 20 octobre 2026]].
+
+- **20 octobre — contrôles complémentaires** : téléchargement PDF effectivement éprouvé et réglages Stripe relevés en lecture seule ; aucune modification financière ni de configuration. Voir [[Suites de l'audit — 20 octobre 2026]].

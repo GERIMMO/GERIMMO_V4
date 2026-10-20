@@ -10,6 +10,8 @@
 - Historique des migrations inclus dans les nouvelles sauvegardes ; restauration vérifiant aussi son contenu. Les anciennes copies restent restaurables et signalent son absence.
 - Rejet d'une analyse de veille par le contrôle des sources distingué d'une panne ; les erreurs d'enregistrement restent des échecs.
 - Réceptions Stripe durables, reprises bornées, contrôle des écarts et supervision ; aucun nouveau paiement ni remboursement créé par le rapprochement.
+- Vérification des dépôts locataire et artisan, sans déplacement ni suppression de pièces.
+- Recette en lecture seule des 17 rubriques superadmin ; en-tête corrigé et vérifié à 320, 390 et 1 440 pixels.
 - Retrait du connecteur et du webhook Youtrust ; types historiques conservés et aucune purge de circuits.
 - Configuration Dependabot hebdomadaire, modèles français de notifications et actualisation technique du registre Zoho.
 
@@ -20,6 +22,7 @@ Les modèles de notifications ne sont pas installés par cette PR. Les options d
 1. `20261020010000_abonnement_client_service.sql`
 2. `20261020011000_session_origine_verifiee.sql`
 3. `20261020020000_stripe_reprises_durables.sql`
+4. `20261020030000_stockage_gabarits_roles.sql`
 
 Relevé préalable : définition de `abonnement_client_pose` et droits examinés en production en lecture seule ; `ma_session_active` est une fonction nouvelle. Rejeu et retours éprouvés sur la base fictive isolée.
 
@@ -31,7 +34,7 @@ Si la souscription a été ouverte entre-temps, **ne pas appliquer ce lot tel qu
 
 ## Livraison
 
-Suivre le § 6 de la passation du 16 octobre : relecture indépendante, CI sur le SHA exact, simulation des trois fichiers dans cet ordre, sauvegarde récente, application, vérification des droits, fusion en squash, déploiement READY et recette avec les comptes permanents conservés. Aucun de ces contrôles locaux ne remplace la recette de production.
+Suivre le § 6 de la passation du 16 octobre : relecture indépendante, CI sur le SHA exact, simulation des quatre fichiers dans cet ordre, sauvegarde récente, application, vérification des droits, fusion en squash, déploiement READY et recette avec les comptes permanents conservés. Aucun de ces contrôles locaux ne remplace la recette de production.
 
 La relecture indépendante a relevé deux P2, corrigés et relus : conservation des cookies sur la réponse temporaire, fidélité de la révocation dans le banc. Aucun constat bloquant résiduel identifié dans cette relecture ; le second lecteur n'a pas exécuté les tests ni interrogé la production.
 
@@ -39,11 +42,12 @@ La relecture indépendante a relevé deux P2, corrigés et relus : conservation 
 
 Garder la souscription fermée. Revenir au code antérieur avant de supprimer `ma_session_active`, puis appliquer les retours dans l'ordre inverse après sauvegarde :
 
-1. `20261020020000_stripe_reprises_durables.retour.sql`
-2. `20261020011000_session_origine_verifiee.retour.sql`
-3. `20261020010000_abonnement_client_service.retour.sql`
+1. `20261020030000_stockage_gabarits_roles.retour.sql`
+2. `20261020020000_stripe_reprises_durables.retour.sql`
+3. `20261020011000_session_origine_verifiee.retour.sql`
+4. `20261020010000_abonnement_client_service.retour.sql`
 
-Le retour Stripe refuse toute réception durable non traitée. Il conserve les reçus et les résultats de rapprochement. Les trois retours refusent une transaction externe ; leurs rejeux sont éprouvés sur la base fictive.
+Le retour Stripe refuse toute réception durable non traitée. Il conserve les reçus et les résultats de rapprochement. Les quatre retours sont chacun une instruction atomique, sans validation de la transaction appelante ; leurs rejeux et leur annulation en cas d’erreur sont éprouvés sur la base fictive.
 
 Ce retour restaure les anciens droits de l'association Stripe. Il ne remet pas en service les notifications, les accès ou les réglages externes.
 
@@ -64,3 +68,7 @@ Relecture indépendante : blocage de file historique, classement incomplet des �
 ## Retrait de Youtrust
 
 Le relevé de production en lecture seule ne trouve aucun circuit ni demande Youtrust. Le code actif n'envoie plus à cet ancien prestataire ; une configuration ancienne est signalée, jamais basculée implicitement vers Zoho. Les lignes et types historiques restent lisibles. Les variables d'hébergement anciennes sont encore à retirer après vérification de la livraison, sans révéler leurs valeurs.
+
+## Complément de vérification
+
+La relecture indépendante des dépôts n’a pas relevé de défaut de compatibilité résiduel. Le défaut de composition des retours a été corrigé par une instruction atomique : essais intacts en autocommit sur copie locale, dans une transaction séparée et avec une erreur dans le même message SQL. Comptes et objets conservés. Les 71 retours historiques utilisant l’ancienne garde temporelle restent à examiner ; ils ne sont pas certifiés par ces quatre essais.

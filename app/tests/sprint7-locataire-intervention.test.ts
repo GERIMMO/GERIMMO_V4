@@ -402,11 +402,11 @@ describe.skipIf(!DB_URL)("Sprint 7 — suivi d'intervention côté locataire", (
     // Dépôt Storage par l'artisan d'abord (audit sécurité du 27/09).
     await db.query(
       `insert into storage.objects (bucket_id, name, owner) values ('documents', $1, (select auth.uid()))`,
-      [`${org}/incidents/apres.jpg`]
+      [`${org}/22222222-2222-4222-8222-222222222222.jpg`]
     );
     await db.query(
       `select public.deposer_photo_intervention($1,'apres',$2,'image/jpeg',1000,'emp-apres')`,
-      [intervention, `${org}/incidents/apres.jpg`]
+      [intervention, `${org}/22222222-2222-4222-8222-222222222222.jpg`]
     );
     // Le diagnostic implique un coût supérieur : l'accord précède le bilan.
     const { rows: [avenant] } = await db.query(
@@ -608,7 +608,10 @@ describe.skipIf(!DB_URL)("Sprint 7 — suivi d'intervention côté locataire", (
       `select public.solliciter_artisan($1,$2,$3) as id`, [org, consultation, artisan]
     );
     await agir(cptArtisan);
-    const chemin = `${org}/devis/${sollicitation}.pdf`;
+    const chemin = `${org}/devis-gerimmo/${sollicitation}.pdf`;
+    await enTantQuePostgres();
+    await db.query("insert into artisan_devis_preparations(sollicitation_id,artisan_id,statut,entreprise,pdf_path,pdf_sha,pdf_taille,valide_le) values($1,$2,'valide','{}',$3,$4,10,now())", [sollicitation, artisan, chemin, "a".repeat(64)]);
+    await agir(cptArtisan);
     // Dépôt Storage par l'artisan d'abord (audit sécurité du 27/09).
     await db.query(
       `insert into storage.objects (bucket_id, name, owner) values ('documents', $1, (select auth.uid()))`,

@@ -6,11 +6,8 @@ const url = process.env.SUPABASE_DB_URL;
 verifierBaseDeTest(url);
 const noms = ["20261020010000_abonnement_client_service", "20261020011000_session_origine_verifiee", "20261020020000_stripe_reprises_durables"];
 const source = (nom: string) => readFileSync(`supabase/migrations/${nom}.sql`, "utf8");
-// Les scripts de retour ouvrent leur propre transaction en exploitation. Les essais
-// restent dans leur transaction jetable pour ne modifier ni données ni droits durables.
-const retour = (nom: string) => readFileSync(`supabase/retours-arriere/${nom}.retour.sql`, "utf8")
-  .replace(/do \$retour_arriere\$[\s\S]*?end \$retour_arriere\$;/, "")
-  .replace(/^begin;|^commit;/gm, "");
+// Le fichier exact est une instruction atomique, sans validation du travail appelant.
+const retour = (nom: string) => readFileSync(`supabase/retours-arriere/${nom}.retour.sql`, "utf8");
 describe.skipIf(!url)("audit octobre : migration, retour et rejeu", () => {
   let db: Client;
   beforeAll(async () => { db = new Client({ connectionString: url }); await db.connect(); });
@@ -61,9 +58,26 @@ describe.skipIf(!url)("audit octobre : migration, retour et rejeu", () => {
     await db.query("insert into public.abonnement_evenements(stripe_event_id,type,charge) values('evt_attente_oct20','invoice.paid','{\"objet\":\"in_retour\",\"client\":\"cus_retour\"}')");
     await expect(db.query(retour(noms[2]))).rejects.toThrow("restent à traiter");
   });
-  it("refuse le script de retour Stripe dans une transaction externe", async () => {
-    await db.query("select 1");
-    const script = readFileSync(`supabase/retours-arriere/${noms[2]}.retour.sql`, "utf8");
-    await expect(db.query(script)).rejects.toThrow("gère sa propre transaction");
+  it("le retour Stripe reste annulable dans la transaction appelante", async () => {
+    await db.query("savepoint retour");
+    await db.query(retour(noms[2]));
+    await db.query("rollback to savepoint retour");
+    expect((await db.query("select to_regprocedure('public.stripe_evenement_prendre(text,text,jsonb,uuid)') as fonction")).rows[0].fonction).not.toBeNull();
+  });
+});
+
+describe.skipIf(!url)("Retours atomiques sans validation implicite", () => {
+  it.each([...noms,"20261020030000_stockage_gabarits_roles"])("%s : une erreur dans le même message annule aussi le retour", async (nom) => {
+    const db = new Client({connectionString:url}); await db.connect();
+    try {
+      await db.query("create temporary table temoin_retour(valeur integer)");
+      await expect(db.query("begin; insert into temoin_retour values(1); " + retour(nom) + "; select 1/0; commit;")).rejects.toThrow(/division by zero/);
+      await db.query("rollback");
+      expect((await db.query("select count(*)::int as n from temoin_retour")).rows[0].n).toBe(0);
+      expect((await db.query("select has_function_privilege('authenticated','public.abonnement_client_pose(uuid,text)','execute') as droit")).rows[0].droit).toBe(false);
+      for (const f of ["public.ma_session_active()", "public.stripe_evenement_prendre(text,text,jsonb,uuid)", "public.ged_depot_artisan_autorise(text)"]) {
+        expect((await db.query("select to_regprocedure($1) as fonction", [f])).rows[0].fonction).not.toBeNull();
+      }
+    } finally { await db.query("rollback"); await db.end(); }
   });
 });

@@ -14,8 +14,12 @@ Le point de départ reste `e25c0f7`, PR212 publiée le 19 octobre. Cette page d�
 ## Préparé
 
 - Durcissement de /auth/confirm (consigne hors dépôt) : résultat local vérifié sur GoTrue réel, avec relecture indépendante.
-- Association Stripe contrôlée côté serveur ; deux migrations rejouables et leurs retours livrés avec une précondition de souscription fermée pendant le déploiement.
+- Association Stripe contrôlée côté serveur ; quatre migrations rejouables et leurs retours livrés avec une précondition de souscription fermée pendant le déploiement.
 - Sauvegarde et restauration de l'historique des migrations, y compris vérification du contenu après restauration ; anciennes sauvegardes acceptées en signalant l'historique absent.
+- Réceptions Stripe conservées et reprises après interruption ; rapprochement limité à 20 dossiers par passage et anomalies visibles dans Santé.
+- Connecteur Youtrust retiré ; anciennes preuves conservées, variables externes encore à retirer.
+- Dépôts de documents vérifiés sur les parcours locataire et artisan ; retours atomiques et annulables.
+- Les 17 rubriques du superadmin sont désormais incluses dans la recette en lecture seule ; test local réussi. En-tête vérifié sur 320, 390 et 1 440 pixels.
 - Distinction entre étude de veille non retenue par le contrôle des sources et panne technique.
 - Dependabot hebdomadaire préparé ; exemples de contacts retirés du guide public de recette. Aucun secret renouvelé par cette opération.
 - Quatre modèles français de notification de sécurité préparés et contrôlés localement, sans envoi ni activation.
@@ -23,11 +27,15 @@ Le point de départ reste `e25c0f7`, PR212 publiée le 19 octobre. Cette page d�
 
 ## Preuves locales
 
-Compilation, types et lint réussis. Suite complète : 8 791 tests réussis et 38 non exécutés, dont des intégrations conditionnées aux accès externes. Parcours navigateur ciblés : 62 réussis et un non exécuté. Les corrections issues de contre-relecture ont leur vérification rouge puis verte ; la restauration et le parcours de récupération ont également été éprouvés avec les services réels locaux.
+Compilation, types et lint réussis. Dernière suite complète : 8 813 tests réussis et 38 non exécutés, dont des intégrations conditionnées aux accès externes. Parcours navigateur ciblés : 62 réussis et un non exécuté. Les corrections issues de contre-relecture ont leur vérification rouge puis verte ; la restauration et le parcours de récupération ont également été éprouvés avec les services réels locaux.
 
 Audit d’affichage : 165 écrans à chacune des largeurs 390, 768 et 1 440 pixels, soit 495 vérifications réussies (pas d’erreur de page ni de débordement détecté). Ce contrôle ne vaut pas preuve de toutes les actions métier de chaque écran.
 
 La contre-relecture a relevé deux P2, corrigés puis relus ; aucun constat bloquant résiduel identifié. Sa portée est le lot de code et ses migrations, sans nouvelle intervention de production.
+
+Les deux premières versions de la PR213 ont passé la CI complète : exécutions 39342825448 et 39345875261. Le complément des dépôts et retours a passé la suite globale ; 75 tests de dépôt et 121 tests ciblés des parcours/retours réussis. Les quatre retours intacts ont également été exécutés en autocommit sur une copie locale, puis les migrations rejouées ; comptes et objets conservés.
+
+Un défaut de composition des transactions a été corrigé sur les quatre nouveaux retours. La relecture l’a aussi repéré sur 71 retours historiques : leur examen reste ouvert et ces scripts ne doivent pas être combinés avec d’autres opérations dans un même lot. Aucun retour n’a été appliqué en production.
 
 ## Contrôles externes et limites
 

@@ -1,11 +1,9 @@
--- Retour de l'association au dossier de paiement. Remettre le code précédent avec ce retour.
-do $retour_arriere$
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
 begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction.';
-  end if;
-end $retour_arriere$;
-begin;
+ execute $instructions_retour$
+-- Retour de l'association au dossier de paiement. Remettre le code précédent avec ce retour.
+
 set local lock_timeout = '10s';
 create or replace function public.abonnement_client_pose(p_org uuid, p_customer text)
 returns void
@@ -36,4 +34,5 @@ revoke execute on function public.abonnement_client_pose(uuid, text) from public
 grant execute on function public.abonnement_client_pose(uuid, text) to authenticated, service_role;
 select public.fermer_fonctions_a_anon();
 delete from supabase_migrations.schema_migrations where version = '20261020010000';
-commit;
+$instructions_retour$;
+end $retour_atomique$;

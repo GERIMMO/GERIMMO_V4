@@ -12,7 +12,7 @@ const LIBELLES: Record<string, string> = {
 export function SuiviStripe({ controle }: { controle: ControleStripe | null }) {
   return <section className="section-ecran" aria-labelledby="controle-stripe">
     <div className="entete-carte mb-3"><h2 id="controle-stripe" className="font-heading text-[length:var(--pas-section)]">Suivi des paiements Stripe</h2>
-      <Link href="/admin/clients" className="lien-texte">Abonnements et finances</Link></div>
+      <Link href="/admin" className="lien-texte">Abonnements et finances</Link></div>
     {!controle ? <p role="status">Le contrôle Stripe est indisponible. Aucun état à jour ne peut être confirmé.</p> : <>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[
         [controle.en_attente, "réceptions en attente"], [controle.a_reprendre, "réceptions à examiner"],

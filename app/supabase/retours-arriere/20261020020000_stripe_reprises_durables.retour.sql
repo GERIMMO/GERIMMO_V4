@@ -1,11 +1,9 @@
--- Revenir au code précédent avant ce retour. Le journal et ses références sont conservés.
-do $retour_arriere$
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
 begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction.';
-  end if;
-end $retour_arriere$;
-begin;
+ execute $instructions_retour$
+-- Revenir au code précédent avant ce retour. Le journal et ses références sont conservés.
+
 set local lock_timeout = '10s';
 do $$ begin
   if exists(select 1 from public.abonnement_evenements where traite_le is null and charge is not null) then
@@ -24,4 +22,5 @@ drop index if exists public.abonnement_evenements_reprise;
 alter table public.abonnement_evenements drop column if exists verrou_jeton,drop column if exists verrou_jusqua,
   drop column if exists tentatives,drop column if exists reprendre_apres,drop column if exists avis_debut_le,drop column if exists avis_a_verifier;
 delete from supabase_migrations.schema_migrations where version='20261020020000';
-commit;
+$instructions_retour$;
+end $retour_atomique$;

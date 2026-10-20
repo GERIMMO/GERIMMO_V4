@@ -13,6 +13,7 @@
  *
  * Tout se joue dans une transaction annulée. Nécessite SUPABASE_DB_URL.
  */
+import { randomUUID } from "node:crypto";
 import { verifierBaseDeTest } from "./garde-base";
 import { config } from "dotenv";
 import { Client } from "pg";
@@ -274,14 +275,15 @@ describe.skipIf(!DB_URL)("Audit du 27/09 — artisan, pages publiques", () => {
 
   // ── 2. Stockage du devis ───────────────────────────────────────────────
   it("le PDF d'un devis se dépose chez une agence où l'artisan n'a qu'une demande de devis", async () => {
+    await enTantQuePostgres();
+    const chemin = `${orgB}/devis-gerimmo/${randomUUID()}.pdf`;
+    await db.query("insert into artisan_devis_preparations(sollicitation_id,artisan_id,statut,entreprise,pdf_path,pdf_sha,pdf_taille,valide_le) values($1,$2,'valide','{}',$3,$4,10,now())", [sollicitationB, artisan, chemin, "a".repeat(64)]);
     await agir(cptArtisan);
-    await essai(`insert into storage.objects (bucket_id, name) values ('documents', $1)`, [
-      `${orgB}/devis-${unique()}.pdf`,
-    ]);
+    await essai(`insert into storage.objects (bucket_id, name) values ('documents', $1)`, [chemin]);
     // …mais pas chez une agence qui ne lui a rien demandé.
     await expect(
       essai(`insert into storage.objects (bucket_id, name) values ('documents', $1)`, [
-        `${orgC}/devis-${unique()}.pdf`,
+        chemin.replace(orgB, orgC),
       ])
     ).rejects.toThrow(/row-level security/);
     // Et plus chez B une fois la demande déclinée.
@@ -290,11 +292,10 @@ describe.skipIf(!DB_URL)("Audit du 27/09 — artisan, pages publiques", () => {
     await db.query(`update public.incident_sollicitations set statut='declinee' where id=$1`, [
       sollicitationB,
     ]);
+    await db.query("delete from storage.objects where name=$1", [chemin]);
     await agir(cptArtisan);
     await expect(
-      essai(`insert into storage.objects (bucket_id, name) values ('documents', $1)`, [
-        `${orgB}/devis-${unique()}.pdf`,
-      ])
+      essai(`insert into storage.objects (bucket_id, name) values ('documents', $1)`, [chemin])
     ).rejects.toThrow(/row-level security/);
     await enTantQuePostgres();
     await db.query("rollback to savepoint decline");
@@ -432,7 +433,7 @@ describe.skipIf(!DB_URL)("Audit du 27/09 — artisan, pages publiques", () => {
           cptArtisan,
         ])
       ).rejects.toThrow();
-      cheminFacture = `${orgA}/factures-artisan/${intervention}/facture-${unique()}.pdf`;
+      cheminFacture = `${orgA}/factures-artisan/${intervention}/${randomUUID()}.pdf`;
       // `owner` : ce que l'API Storage pose au dépôt (le banc n'a pas de défaut).
       await essai(`insert into storage.objects (bucket_id, name, owner) values ('documents', $1, $2)`, [
         cheminFacture,

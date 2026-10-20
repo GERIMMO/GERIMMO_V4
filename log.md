@@ -6294,6 +6294,14 @@ La souscription doit rester fermée pendant migration et déploiement ; fermetur
 La suite complète après les deux corrections de relecture réussit : 8 791 tests, 38 non exécutés ; compilation, types et lint réussis. Audit d’affichage : 165 écrans en 390, 768 et 1 440 pixels, soit 495 vérifications réussies. Les 62 contrôles navigateur ciblés ont réussi (un non exécuté). Résultats locaux uniquement ; aucune publication ni activation externe.
 
 
-### 20 octobre 2026 — suite technique locale de l’audit
+## [2026-10-20] code | Suite technique locale de l’audit
 
 Préparation complémentaire : réceptions Stripe durables avec contrôle de concurrence, reprises bornées, rapprochement en lecture et bilan Santé ; retrait du connecteur Youtrust sans suppression historique. Tests des interruptions, droits, reprises, retours et arrêt de supervision. Aucun paiement, remboursement ni courrier réel ; aucune configuration ou migration de production modifiée. La livraison et ses limites sont détaillées dans `app/docs/livraison-audit-20-octobre.md`.
+
+## [2026-10-20] code | Dépôts, retours atomiques et recette de supervision
+
+Durcissement de /auth/confirm (consigne hors dépôt). Complément préparé et éprouvé sur bases fictives uniquement : parcours de dépôt conservés, retours du 20 octobre atomiques et annulables, 17 rubriques de supervision en lecture seule, en-tête vérifié à 320, 390 et 1 440 pixels. La relecture a révélé un défaut de composition des retours, corrigé sur les quatre nouveaux scripts ; 71 retours historiques restent à examiner séparément. Deux CI complètes réussies sur les premiers lots (39342825448 et 39345875261). Aucun réglage, migration ou compte de production modifié ; les cinq identités permanentes restent conservées. Voir [[Suites de l'audit — 20 octobre 2026]].
+
+## [2026-10-20] test | Suite complète après dépôts et retours
+
+8 813 tests réussis, 38 non exécutés, 611 fichiers réussis et sept ignorés. Quatre retours intacts éprouvés en autocommit sur une copie de base locale puis migrations rejouées ; comptes et objets conservés. Les transactions externes, y compris un lot SQL unique avec erreur finale, restent annulables. Compilation, types et lint réussis. Aucun essai de production ni nouvelle publication effectué.

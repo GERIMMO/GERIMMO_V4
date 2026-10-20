@@ -514,11 +514,11 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
     // Dépôt Storage par l'artisan d'abord (audit sécurité du 27/09).
     await db.query(
       `insert into storage.objects (bucket_id, name, owner) values ('documents', $1, (select auth.uid()))`,
-      [`${orgA}/apres.jpg`]
+      [`${orgA}/22222222-2222-4222-8222-222222222222.jpg`]
     );
     await db.query(
       `select public.deposer_photo_intervention($1,'apres',$2,'image/jpeg',100,'emp-apres')`,
-      [intervention, `${orgA}/apres.jpg`]
+      [intervention, `${orgA}/22222222-2222-4222-8222-222222222222.jpg`]
     );
     // Le diagnostic implique un coût supérieur : l'accord précède le bilan.
     const { rows: [avenant] } = await db.query(
@@ -733,10 +733,10 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
       }
     };
 
-    expect(await depot(`${orgA}/photo.jpg`), "le dossier de son agence de mission").toBe(true);
-    expect(await depot(`artisans/${artisan}/rc-pro.pdf`), "son propre dossier de pièces").toBe(true);
-    expect(await depot(`${orgB}/photo.jpg`), "le dossier d'une agence sans mission").toBe(false);
-    expect(await depot(`artisans/${artisanBis}/vol.pdf`), "le dossier d'un confrère").toBe(false);
+    expect(await depot(`${orgA}/33333333-3333-4333-8333-333333333333.jpg`), "le dossier de son agence de mission").toBe(true);
+    expect(await depot(`artisans/${artisan}/44444444-4444-4444-8444-444444444444.pdf`), "son propre dossier de pièces").toBe(true);
+    expect(await depot(`${orgB}/33333333-3333-4333-8333-333333333333.jpg`), "le dossier d'une agence sans mission").toBe(false);
+    expect(await depot(`artisans/${artisanBis}/77777777-7777-4777-8777-777777777777.pdf`), "le dossier d'un confrère").toBe(false);
 
     // Et ce qu'il a le droit de relire : ses pièces et les fichiers de ses
     // missions, jamais ceux d'un autre.
@@ -750,10 +750,10 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
       `update public.incident_interventions set statut='terminee' where id=$1`, [intervention]
     );
     await agir(cptArtisan);
-    expect(await depot(`${orgA}/photo2.jpg`), "mission finie : il n'écrit plus chez l'agence").toBe(false);
+    expect(await depot(`${orgA}/55555555-5555-4555-8555-555555555555.jpg`), "mission finie : il n'écrit plus chez l'agence").toBe(false);
     // Sauf, tant que la facture manque, dans le seul dossier de cette facture.
     expect(
-      await depot(`${orgA}/factures-artisan/${intervention}/facture.pdf`),
+      await depot(`${orgA}/factures-artisan/${intervention}/66666666-6666-4666-8666-666666666666.pdf`),
       "le dossier de la facture à déposer"
     ).toBe(true);
   });

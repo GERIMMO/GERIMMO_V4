@@ -15,7 +15,7 @@ it("un arrêt pendant la lecture Stripe empêche l’avis de fin d’essai", asy
     limit: async () => ({ data: [{ stripe_event_id: "evt_arret", type: "customer.subscription.trial_will_end", charge: { objet: "sub_arret", client: "cus_arret" } }], error: null }),
     eq: () => q, maybeSingle: async () => ({ data: { type: "proprietaire_direct" }, error: null }) };
   const rpc = vi.fn(async (nom: string) => ({ data: nom === "stripe_evenement_prendre" ? "pris" : nom === "abonnement_par_client"
-    ? [{ organization_id: "org_fictif", organisation: "Essai fictif", stripe_subscription_id: "sub_arret", destinataire: "fictif@example.invalid" }] : true, error: null }));
+    ? [{ organization_id: "org_fictif", organisation: "Essai fictif", stripe_subscription_id: "sub_arret", destinataire: "destinataire-fictif" }] : true, error: null }));
   const db = { rpc, from: () => q } as unknown as SupabaseClient;
   const stripe = { subscriptions: { retrieve: async () => {
     arret = true;

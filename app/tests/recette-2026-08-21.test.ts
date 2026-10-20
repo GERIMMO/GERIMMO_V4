@@ -155,7 +155,7 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
   }
 
   it("le dépôt notifie l'agence, versionne, et la validation solde l'alerte", async () => {
-    const v1 = await deposerAttestation("att-1.pdf", "r21-e1");
+    const v1 = await deposerAttestation("11111111-1111-4111-8111-000000000001.pdf", "r21-e1");
     await db.query("reset role");
     // « Votre agence est notifiée » est vrai : une alerte à vérifier existe
     const {
@@ -169,7 +169,7 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
     expect(alerte1.statut).toBe("ouverte");
 
     // Renouvellement : la v2 remplace la v1 (versionnée, plus indépendante)
-    const v2 = await deposerAttestation("att-2.pdf", "r21-e2");
+    const v2 = await deposerAttestation("11111111-1111-4111-8111-000000000002.pdf", "r21-e2");
     await db.query("reset role");
     const {
       rows: [doc2],
@@ -213,7 +213,7 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
     // Côté agence, le dossier est celui d'une personne du portefeuille de
     // l'agent : le locataire occupe un lot d'un mandat dont il est titulaire.
     await confierLocataireAuPortefeuille();
-    const doc = await deposerAttestation("att-3.pdf", "r21-e3");
+    const doc = await deposerAttestation("11111111-1111-4111-8111-000000000003.pdf", "r21-e3");
 
     await simuler(db, compteLocataire);
     const { rows: miennes } = await db.query(

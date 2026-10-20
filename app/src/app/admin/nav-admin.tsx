@@ -24,7 +24,7 @@ export function MenuSupervisionProvider({ children }: { children: ReactNode }) {
 /** Le bouton du menu, posé dans la barre haute ; visible sous 900 px seulement (classe commune). */
 export function BoutonMenuSupervision() {
   const { ouvert, basculer } = useContext(MenuSupervision);
-  return <button type="button" className="admin-menu-mobile w-auto! shrink-0" aria-label={ouvert ? "Fermer le menu" : "Menu supervision"} aria-expanded={ouvert} aria-controls="menu-supervision" onClick={basculer}>{ouvert ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}{ouvert ? "Fermer" : "Menu"}</button>;
+  return <button type="button" className="admin-menu-mobile w-auto! shrink-0" aria-label={ouvert ? "Fermer le menu" : "Menu supervision"} aria-expanded={ouvert} aria-controls="menu-supervision" onClick={basculer}>{ouvert ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}<span className="max-[360px]:sr-only">{ouvert ? "Fermer" : "Menu"}</span></button>;
 }
 
 /** La colonne latérale : toujours là sur ordinateur ; au téléphone, seulement quand le menu est ouvert (un seul menu dans la page). */

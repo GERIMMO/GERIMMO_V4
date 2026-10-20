@@ -1,12 +1,11 @@
--- Remettre le proxy précédent avant ce retour ; aucune session Auth n'est supprimée.
-do $retour_arriere$
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
 begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction.';
-  end if;
-end $retour_arriere$;
-begin;
+ execute $instructions_retour$
+-- Remettre le proxy précédent avant ce retour ; aucune session Auth n'est supprimée.
+
 set local lock_timeout = '10s';
 drop function if exists public.ma_session_active();
 delete from supabase_migrations.schema_migrations where version = '20261020011000';
-commit;
+$instructions_retour$;
+end $retour_atomique$;

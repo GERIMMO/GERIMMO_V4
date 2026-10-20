@@ -68,6 +68,7 @@ const MISSION_OCTOBRE = [
   "20261020010000_abonnement_client_service.sql",
   "20261020011000_session_origine_verifiee.sql",
   "20261020020000_stripe_reprises_durables.sql",
+  "20261020030000_stockage_gabarits_roles.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

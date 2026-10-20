@@ -37,8 +37,11 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/artisan/inscription"],
-      // Le plus long chemin l'emporte : /artisan/inscription reste ouverte.
+      // /agences (la liste d'attente des agences, 20/10/2026) est publique ; or « /agence », l'espace privé interdit
+      // ci-dessous, en est un PRÉFIXE, et une règle de robots.txt vaut pour tout ce qui commence par elle. La
+      // permission, plus longue, l'emporte — comme /artisan/inscription sur /artisan.
+      allow: ["/", "/artisan/inscription", "/agences"],
+      // Le plus long chemin l'emporte : /artisan/inscription et /agences restent ouvertes.
       disallow: SEGMENTS_PRIVES,
     },
     sitemap: `${site}/sitemap.xml`,

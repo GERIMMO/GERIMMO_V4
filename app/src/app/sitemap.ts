@@ -20,6 +20,8 @@ const PAGES: { chemin: string; frequence: "daily" | "weekly" | "monthly"; priori
   // Les outils gratuits (29/09), depuis leur catalogue.
   { chemin: "/outils", frequence: "monthly", priorite: 0.8 },
   ...OUTILS.map((o) => ({ chemin: o.chemin, frequence: "monthly" as const, priorite: 0.7 })),
+  // La liste d'attente des agences (20/10/2026).
+  { chemin: "/agences", frequence: "monthly", priorite: 0.6 },
   { chemin: "/conditions", frequence: "monthly", priorite: 0.3 },
   { chemin: "/mentions-legales", frequence: "monthly", priorite: 0.3 },
   { chemin: "/confidentialite", frequence: "monthly", priorite: 0.3 },

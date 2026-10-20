@@ -432,6 +432,12 @@
     "dynamic": ""
   },
   {
+    "path": "/agences",
+    "persona": "public",
+    "label": "Agences de gestion — liste d’attente",
+    "dynamic": ""
+  },
+  {
     "path": "/outils",
     "persona": "public",
     "label": "Outils gratuits (index)",

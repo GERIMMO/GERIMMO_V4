@@ -61,7 +61,8 @@ export default async function PageConfidentialite() {
           <b className="font-semibold">Les données de plateforme</b> — votre
           compte et son authentification, la facturation des abonnements,
           l&apos;annuaire des artisans et leurs évaluations, les demandes de
-          devis et les retours envoyés depuis le site — sont traitées{" "}
+          devis, la liste d&apos;attente des agences et les retours envoyés
+          depuis le site — sont traitées{" "}
           <b className="font-semibold">par Gerimmo, en tant que responsable de
           traitement</b>. Pour celles-là, écrivez-nous directement.
         </p>
@@ -101,6 +102,13 @@ export default async function PageConfidentialite() {
               <tr>
                 <td>Réponse aux demandes de devis envoyées depuis le site</td>
                 <td data-libelle="Base légale">Intérêt légitime : répondre à la demande que vous avez faite</td>
+              </tr>
+              {/* Liste d'attente des agences (page /agences, 20/10/2026) : repère CNIL usuel pour les prospects, durée et
+                  base légale à confirmer par le juriste et le DPO (20/10). La base est écrite comme celle des demandes
+                  de devis, par cohérence, pas par décision juridique. */}
+              <tr>
+                <td>Liste d&apos;attente des agences : vous prévenir de l&apos;ouverture de l&apos;offre aux agences, à votre demande</td>
+                <td data-libelle="Base légale">Intérêt légitime : donner suite à la demande que vous avez faite</td>
               </tr>
               <tr>
                 <td>Annuaire des artisans et évaluations laissées par les agences</td>
@@ -163,6 +171,18 @@ export default async function PageConfidentialite() {
           téléphone, taille du portefeuille, message) servent uniquement à vous
           recontacter au sujet de votre demande. Elles sont supprimées au plus
           tard 24 mois après leur dépôt.
+        </p>
+        <p>
+          <b className="font-semibold">La liste d&apos;attente des agences.</b>{" "}
+          Les informations transmises depuis la page « Agences de gestion »
+          — nom de l&apos;agence, nom du contact, adresse électronique,
+          téléphone si vous l&apos;indiquez, code postal de l&apos;agence,
+          tranche du nombre de lots gérés, message si vous en laissez un —, la
+          page du site d&apos;où vient l&apos;inscription et sa date, puis la
+          date à laquelle nous vous avons prévenu, servent uniquement à vous
+          prévenir de l&apos;ouverture de l&apos;offre aux agences. Elles ne
+          servent à aucune autre sollicitation, et vous pouvez en demander la
+          suppression à tout moment.
         </p>
         <p>
           <b className="font-semibold">Ce que Gerimmo ne fait pas.</b> Il ne lit
@@ -265,6 +285,14 @@ export default async function PageConfidentialite() {
                 <td>Demandes de devis reçues depuis le site</td>
                 <td>24 mois, puis suppression</td>
                 <td>Dépôt</td>
+              </tr>
+              {/* Liste d'attente des agences (20/10/2026) : repère CNIL usuel pour les prospects, durée et base légale à
+                  confirmer par le juriste et le DPO (20/10). Aucune règle `retention_rules` ne purge cette table : la
+                  durée est tenue par le dirigeant depuis la console, et ce tableau le dit sans l'automatiser. */}
+              <tr>
+                <td>Liste d&apos;attente des agences</td>
+                <td>Jusqu&apos;à ce que nous vous ayons prévenu de l&apos;ouverture, et au plus tard trois ans après notre dernier échange, ou dès votre demande de suppression</td>
+                <td>Dernier échange</td>
               </tr>
               <tr>
                 <td>Factures d&apos;abonnement émises par Gerimmo</td>

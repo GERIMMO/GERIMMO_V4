@@ -66,6 +66,8 @@
 .public-fonction p, .public-espace p { color: #4b5870; line-height: 1.75; font-size: 14px; }
 .public-parcours { margin-top: 35px; padding: 28px 0 0; border-top: 1px solid #e3e6e8; display: grid; grid-template-columns: 230px 1fr; gap: 32px; }
 .gerimmo-prestige .public-parcours h3 { font-size: 17px; margin-top: 9px; }
+/* Le bloc « Agences de gestion » de l'accueil (20/10) reprend cette grille avec un h2 : à la taille des h2 de section, il déborderait de sa colonne de 230 px. */
+.gerimmo-prestige .public-parcours h2 { font-size: 25px; line-height: 1.25; margin-top: 9px; }
 .public-parcours ol { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
 .public-parcours li { display: flex; gap: 13px; align-items: flex-start; }
 .public-parcours li > span { color: #8a703e; font-family: Georgia, serif; font-size: 25px; line-height: 1; }

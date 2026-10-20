@@ -3,7 +3,7 @@ type: synthesis
 tags: [audit, publication, securite, paiement, signature-electronique, juridique, rgpd, exploitation, octobre-2026]
 status: stable
 created: 2026-10-19
-updated: 2026-10-19
+updated: 2026-10-20
 sources: []
 ---
 
@@ -147,7 +147,7 @@ Le dirigeant a demandé le jour même : « Corrige tout ce que tu peux corriger,
 | B7 cautionnement | Interrupteur `ZOHO_SIGN_CAUTIONNEMENT_FERME` (`1` ou `true`) qui ferme le seul acte de cautionnement à l'envoi | Déployé ; variable à poser par le dirigeant |
 | B8 aucune recette | Recette de production n° 25 jouée sur `e25c0f7` juste après le déploiement (exécution 39306114779 : 49 réussis, 1 sauté, 0 instable, P1 au premier essai ; comptes de recette bloqués après passage) | **Levé** |
 | M1 comptes de recette | Traces et captures coupées, sessions révoquées et comptes bannis entre deux passages, ancien chantier manuel retiré, 19 artefacts supprimés, organisations de recette à identifiants stables | Déployé ; mot de passe à renouveler (Codex) |
-| M2 `liste_attente` | Table intégrée et bornée, plafond de 30 inscriptions par heure (`20261019120000`) | Déployé ; usage et conservation à décider |
+| M2 `liste_attente` | Table intégrée et bornée, plafond de 30 inscriptions par heure (`20261019120000`) | Déployé ; 20/10 : `liste_attente` conservée pour l'instant, usage et conservation à décider ; les agences ont leur propre table `liste_attente_agences` ([[Liste d'attente des agences]], lot préparé, non déployé à cette date) |
 | M4 retours arrière | Huit scripts pour les migrations du 18/10, gardés par l'ordre de la chaîne | Livrés, non exécutés |
 | M5 chantier | Garde « sauvegarde réussie depuis moins de 90 min », garde par empreinte des trois fichiers de la PR #202, bloc `permissions`, `app/CLAUDE.md` corrigé | Déployé |
 | M6 restauration | Vérification de restauration rejouée sur la sauvegarde du 19/10 (exécution 39254195845 : 206 tables, 37 628 lignes, 64 fichiers, 0 manquant) | Fait ; bascule complète toujours à jouer |

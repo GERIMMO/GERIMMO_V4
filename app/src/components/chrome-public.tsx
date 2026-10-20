@@ -34,9 +34,11 @@ function BandeauPublic() {
   );
 }
 
+// « Agences » (20/10/2026) : la liste d'attente des agences, dans le pied seulement — ni dans NAVIGATION ni dans le menu
+// mobile, pour ne pas charger la navigation principale d'une offre qui n'est pas ouverte.
 const GROUPES_PIED = [
   { titre: "Découvrir", liens: [["/#fonctionnalites", "La solution"], ["/tarifs", "Tarifs"], ["/outils", "Outils gratuits"], ["/journal", "Journal"]] },
-  { titre: "Votre espace", liens: [["/inscription", "Créer mon compte"], ["/connexion", "Se connecter"], ["/#contact", "Nous écrire"], ["/artisan/inscription", "Rejoindre le réseau d’artisans"]] },
+  { titre: "Votre espace", liens: [["/inscription", "Créer mon compte"], ["/connexion", "Se connecter"], ["/#contact", "Nous écrire"], ["/artisan/inscription", "Rejoindre le réseau d’artisans"], ["/agences", "Agences"]] },
   { titre: "Informations", liens: [["/mentions-legales", "Mentions légales"], ["/conditions", "Conditions générales"], ["/confidentialite", "Confidentialité"]] },
 ];
 

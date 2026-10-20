@@ -205,8 +205,12 @@ nettoyage réussi) ; n° 22 sur `6614ea7` (39018291225 : expiration de l'attente
 48 réussis, 1 ignoré, 1 échec du test d'inscription, périmé, corrigé par la PR #201) ;
 n° 24 sur `406ad8a` (39022945703, job 117368227992, 17/10 09 h 55-10 h 04 UTC : 49 réussis,
 1 sauté (`/cgu`), 0 instable ; artefact `recette-production-39022945703` conservé 14 jours,
-jusqu'au 31/10). **Aucune recette depuis le 17/10 à 10 h 04 UTC malgré dix fusions (#202 à
-#211)** ; voir « Fusions sans recette » ci-dessous. La configuration rejoue une fois un test
+jusqu'au 31/10) ; **n° 25 sur `e25c0f7`** (39306114779, job 118243529993, 19/10 18 h 52-19 h 01 UTC :
+49 réussis, 1 sauté, 0 instable ; première recette depuis le 17/10, elle couvre les PR #202 à #212 ;
+clôture « cinq comptes fixes conservés ; supervision retirée ; sessions révoquées et comptes bloqués
+jusqu'au prochain passage » ; artefact de 2 fichiers sans trace, 3 jours). Entre les deux : **aucune
+recette du 17/10 10 h 04 UTC au 19/10 18 h 52 UTC malgré dix fusions (#202 à #211)** ; voir
+« Fusions sans recette » ci-dessous. La configuration rejoue une fois un test
 en échec (`retries: 1`, `app/e2e/recette-production/playwright.config.ts`) : un test
 « instable » a échoué au premier essai puis réussi au second.
 
@@ -249,7 +253,7 @@ en échec (`retries: 1`, `app/e2e/recette-production/playwright.config.ts`) : un
   premier essai. Cause de l'échec de D04 établie le 16/10 au soir par la trace de l'artefact
   (journal, entrée « audit | D04 expliqué par la trace conservée de la recette n° 18 » : la
   saisie ne ciblait pas un champ visible ; champ et requête d'action vides ; aucun défaut de
-  calcul ni de lecture de la virgule). Aucune recette depuis la n° 24.
+  calcul ni de lecture de la virgule). Puis n° 25 (19/10 au soir) : D04, D05, D37, D38 au premier essai.
 
 ### Échecs au premier essai : diagnostic du 16/10/2026
 Diagnostic sur le banc local (build de `db0a95f`), sans aucune écriture en production
@@ -328,7 +332,7 @@ Diagnostic sur le banc local (build de `db0a95f`), sans aucune écriture en prod
 >   est un défaut du test, corrigé par `72e1e0b` et **confirmé par la recette n° 19**
 >   (puis n° 20 et n° 24, 0 instable). D04 : **cause établie le 16/10** au soir (trace relue,
 >   voir ci-dessus) ; *au 16/10 en journée : cause non établie, traces à lire avant le 30/10*.
-> - **Dix fusions sans recette** (18-19/10) : voir le paragraphe ci-dessous.
+> - **Dix fusions sans recette** (18-19/10) : voir le paragraphe ci-dessous ; **levé le 19/10 au soir** par la recette n° 25 sur `e25c0f7` (PR #202 à #212 couvertes).
 
 ### Fusions sans recette (18-19/10/2026)
 Depuis la recette n° 24 (17/10, 10 h 04 UTC), aucune exécution de
@@ -343,7 +347,10 @@ Depuis la recette n° 24 (17/10, 10 h 04 UTC), aucune exécution de
 migration) ; #211 (`2fffec6`, 19/10 02 h 33 Paris, calendrier artisan et repères
 d'incident). Les CI de `main` sont vertes pour chacune ; aucune n'a été suivie d'une
 recette de production. Au sens de cette page (« à chaque mise en production qui touche un
-parcours »), ces dix fusions sont donc **non recettées**.
+parcours »), ces dix fusions sont donc restées **non recettées** jusqu'au 19/10 au soir. **Levée** : la
+recette n° 25 (39306114779), jouée sur `e25c0f7` juste après la fusion de la PR #212 (correctifs de
+l'audit final), couvre ces dix fusions et la onzième ; la purge de fin de recette a supprimé les cinq
+circuits Zoho d'essai et le devis de recette de l'organisation fictive, comme consigné au journal.
 
 ## Résultat / sorties
 - Une entrée `## [date] recette | Production` dans `log.md` : ce qui a été

@@ -43,6 +43,10 @@ export const ACTIONS_SUPERVISION = {
   organisation_reactivee: "Organisation réactivée",
   organisation_archivee: "Organisation archivée",
   essai_prolonge: "Essai prolongé",
+  // Liste d'attente des agences (20/10/2026) : le changement de statut d'une inscription et l'export CSV des
+  // coordonnées laissent chacun leur ligne (lib/liste-attente-agences.ts, /admin/liste-attente).
+  liste_attente_statut_modifie: "Statut d’une agence de la liste d’attente modifié",
+  liste_attente_exportee: "Export CSV de la liste d’attente des agences",
   // X20 (SA-11, 14/10) : la ligne `compte_bloque` est posée AVANT l'appel d'administration (un geste sur un compte
   // sans trace n'est pas acceptable) ; elle dit donc une demande, pas un résultat. Le code reste le même : les
   // lignes déjà écrites (elles aussi posées avant l'effet) se lisent désormais exactement ce qu'elles sont.

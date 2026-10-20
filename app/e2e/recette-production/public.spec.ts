@@ -9,7 +9,8 @@ import { debordementHorizontal, expect, jugerEcran, test } from "./outils";
 // Les conditions d'utilisation vivent sous /conditions (lien des formulaires
 // d'inscription) : c'est l'adresse vérifiée ; /cgu est essayée en plus, et
 // n'est exigée que si elle existe. /tarifs existe depuis la grille du
-// 28/09/2026 : elle est recettée comme les autres.
+// 28/09/2026 : elle est recettée comme les autres ; /agences (liste d'attente
+// des agences, 20/10/2026) aussi.
 
 const PAGES = [
   "/",
@@ -17,6 +18,7 @@ const PAGES = [
   "/conditions",
   "/confidentialite",
   "/tarifs",
+  "/agences",
   "/outils",
   "/outils/calcul-irl",
   "/outils/quittance-de-loyer",

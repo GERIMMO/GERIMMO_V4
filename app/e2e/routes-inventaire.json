@@ -60,6 +60,12 @@
     "dynamic": ""
   },
   {
+    "path": "/admin/liste-attente",
+    "persona": "superadmin",
+    "label": "Liste d’attente des agences (inscriptions depuis /agences)",
+    "dynamic": ""
+  },
+  {
     "path": "/admin/organisations/ORG",
     "persona": "superadmin",
     "label": "Détail d'une organisation",
@@ -429,6 +435,12 @@
     "path": "/tarifs",
     "persona": "public",
     "label": "Tarifs",
+    "dynamic": ""
+  },
+  {
+    "path": "/agences",
+    "persona": "public",
+    "label": "Agences de gestion — liste d’attente",
     "dynamic": ""
   },
   {

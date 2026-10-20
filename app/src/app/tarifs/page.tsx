@@ -71,6 +71,15 @@ export default function PageTarifs() {
           </ul>
         </Article>
 
+        {/* La liste d'attente des agences (20/10/2026) : l'offre et sa grille ne sont pas publiées ; aucun prix, aucune
+            date ici, seulement le chemin pour être prévenu (tests/vitrine-agences.test.ts). */}
+        <Article titre="Agences de gestion">
+          <ul className="list-disc space-y-1 pl-5">
+            <li>L&apos;offre pour les agences de gestion locative et sa grille ne sont pas publiées : elles sont en préparation. Cette page ne concerne que les particuliers et les SCI.</li>
+            <li>Pour être prévenu de l&apos;ouverture de l&apos;offre aux agences, <Link href="/agences" className="lien-texte">inscrivez votre agence sur la liste d&apos;attente</Link>. Date d&apos;ouverture et tarifs ne sont pas encore fixés.</li>
+          </ul>
+        </Article>
+
         <EncartOutils
           titre="Avant de vous lancer : nos outils gratuits"
           chapo="Chiffrez votre projet sans créer de compte : rentabilité d'un achat, fiscalité d'une location meublée, garantie des loyers."

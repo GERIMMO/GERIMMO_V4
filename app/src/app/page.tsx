@@ -45,6 +45,12 @@ const faq = (duree: string): [string, string][] => [
     "Puis-je gérer pour quelqu'un d'autre ?",
     "Oui : une SCI, l'indivision familiale, le bien d'un proche. Chaque organisation est séparée, et vous passez de l'une à l'autre depuis le même compte.",
   ],
+  // La liste d'attente des agences (20/10/2026) : l'offre agences est hors du site public depuis le 13/10 ; la question
+  // revient, la réponse renvoie à /agences (section #agences ci-dessous) sans prix ni date.
+  [
+    "Gerimmo est-il ouvert aux agences de gestion ?",
+    "Pas encore : la V1 s'adresse aux propriétaires bailleurs et aux SCI. L'offre pour les agences est en préparation ; inscrivez votre agence sur la liste d'attente et nous vous préviendrons à son ouverture.",
+  ],
 ];
 
 
@@ -117,6 +123,13 @@ export default async function PageVitrine() {
             ].map(({ Icone, titre, texte, lien, action, couleur }) => <article key={titre} className={`public-espace public-ton-${couleur}`}><span className="public-icone"><Icone size={24} aria-hidden /></span><h3>{titre}</h3><p>{texte}</p><Link href={lien} className="public-lien">{action}<ArrowUpRight size={16} aria-hidden /></Link></article>)}
           </div>
           <p className="public-note public-reseau-note">Le réseau d’artisans s’ouvre progressivement, selon la commune du bien et le métier recherché. La gestion locative reste accessible partout en France, indépendamment de ce réseau.</p>
+          {/* La liste d'attente des agences (20/10/2026) : les agences sont hors du site public depuis le 13/10 ; celles qui
+              arrivent ici trouvent le chemin de /agences. En fin de la section des espaces (même bloc que « trois temps »
+              dans la section précédente), pour ne pas rompre l'alternance des fonds. Pas de prix, pas de date. */}
+          <section id="agences" aria-labelledby="agences-titre" className="public-parcours">
+            <div><p className="eyebrow">Agences de gestion</p><h2 id="agences-titre">Vous gérez des biens pour des mandants ?</h2></div>
+            <div><p className="public-description">L’offre Gerimmo pour les agences de gestion locative est en préparation. Inscrivez votre agence sur la liste d’attente : nous vous préviendrons à son ouverture.</p><Link href="/agences" className="btn-secondaire mt-5">Rejoindre la liste d’attente <ArrowRight size={17} aria-hidden /></Link></div>
+          </section>
         </section>
 
         <section className="public-section public-section-blanche">

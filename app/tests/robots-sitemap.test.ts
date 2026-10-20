@@ -41,11 +41,32 @@ describe("robots.txt", () => {
       .filter((nom) => !publics.has(nom) || nom === "artisan");
     for (const nom of prives) expect(interdits).toContain(`/${nom}`);
     // Aucune page publique n'est fermée aux robots.
-    for (const nom of ["conditions", "confidentialite", "mentions-legales", "journal", "tarifs", "outils", "connexion", "inscription"]) {
+    for (const nom of ["conditions", "confidentialite", "mentions-legales", "journal", "tarifs", "outils", "connexion", "inscription", "agences"]) {
       expect(interdits).not.toContain(`/${nom}`);
     }
     // /artisan est privé, sauf son inscription (règle la plus longue).
     expect(permis).toContain("/artisan/inscription");
+  });
+
+  // Liste d'attente des agences (20/10/2026) : /agence (espace privé, interdit) est un PRÉFIXE de /agences (page publique).
+  // Dans robots.txt, une règle vaut pour tout ce qui commence par elle : sans une permission explicite, plus longue,
+  // « Disallow: /agence » fermerait aussi /agences aux moteurs.
+  it("/agences reste ouverte aux robots malgré l'interdiction de /agence (la règle la plus longue l'emporte)", async () => {
+    const r = robots();
+    const regle = Array.isArray(r.rules) ? r.rules[0] : r.rules;
+    const interdits = ([] as string[]).concat(regle.disallow ?? []);
+    const permis = ([] as string[]).concat(regle.allow ?? []);
+    expect(interdits).toContain("/agence");
+    expect(cheminsPublics()).toContain("/agences");
+    expect(permis).toContain("/agences");
+    // Et aucune page du plan du site n'est fermée par un préfixe sans permission plus longue (les liens reçus par
+    // e-mail, /auth/confirm…, sont publics dans le proxy mais volontairement hors du plan et fermés aux robots).
+    process.env.NEXT_PUBLIC_SITE_URL = "https://www.gerimmo.app";
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    for (const chemin of (await sitemap()).map((e) => new URL(e.url).pathname)) {
+      const fermant = interdits.find((i) => chemin.startsWith(i));
+      if (fermant) expect(permis.some((p) => p.length > fermant.length && chemin.startsWith(p)), `${chemin} fermé par ${fermant}`).toBe(true);
+    }
   });
 
   it("désigne le plan du site par une adresse absolue", () => {
@@ -73,6 +94,7 @@ describe("sitemap.xml", () => {
       "https://www.gerimmo.app/outils/comparateur-gli-visale",
       "https://www.gerimmo.app/outils/simulateur-lmnp",
       "https://www.gerimmo.app/outils/rentabilite-locative",
+      "https://www.gerimmo.app/agences",
       "https://www.gerimmo.app/conditions",
       "https://www.gerimmo.app/mentions-legales",
       "https://www.gerimmo.app/confidentialite",

@@ -240,3 +240,5 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - [Livraison préparée du 20 octobre : accès, sauvegarde, reprises Stripe et signatures](app/docs/livraison-audit-20-octobre.md) — non appliquée en production.
 
 - 20/10 : complément de [[Suites de l'audit — 20 octobre 2026]] — transferts de fichiers et 71 retours historiques atomiques, limites G5 explicitement maintenues.
+
+- **20 octobre — signatures, complément local** : abandon atomique avant création distante et annulation concurrente contrôlée ; cinq migrations préparées au total, aucune publiée. Voir [[Suites de l'audit — 20 octobre 2026]].

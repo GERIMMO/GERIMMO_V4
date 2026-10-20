@@ -65,3 +65,16 @@ it("n’annonce pas une archive réussie quand le contrôle demeure incomplet",a
  expect((await action()).erreur).toContain("validé et archivé");
  expect(m.update).not.toHaveBeenCalled();
 });
+
+it.each(['preparation','en_cours'])("une réservation concurrente gagnante (%s) empêche l’annulation locale d’un ancien état prêt",async etat=>{
+ const lu={...m.circuit,etat:'pret',external_request_id:null};
+ const courant:Record<string,unknown>={...lu,etat,external_request_id:etat==='en_cours'?'req':null};
+ const lecture={select:()=>lecture,eq:()=>lecture,single:async()=>({data:lu,error:null}),order:()=>lecture,limit:async()=>({data:[courant],error:null})};
+ m.acces.mockResolvedValue({user:{id:'proprietaire'},supabase:{from:()=>lecture,rpc:async()=>({data:true,error:null})}});
+ const conditions:((row:typeof courant)=>boolean)[]=[];let changement:Record<string,unknown>={};
+ const appliquer=()=>{if(!conditions.every(f=>f(courant)))return {data:null,error:null};Object.assign(courant,changement);return {data:{id:courant.id},error:null};};
+ const ecriture={update:(v:Record<string,unknown>)=>{changement=v;return ecriture;},eq:(k:string,v:unknown)=>{conditions.push(r=>r[k]===v);return ecriture;},is:(k:string,v:unknown)=>{conditions.push(r=>r[k]===v);return ecriture;},in:(k:string,v:unknown[])=>{conditions.push(r=>v.includes(r[k]));return ecriture;},select:()=>ecriture,single:async()=>appliquer(),then:(resolve:(v:unknown)=>void)=>Promise.resolve(appliquer()).then(resolve)};
+ m.service.mockReturnValue({from:()=>ecriture});
+ expect((await action()).erreur).toContain('circuit a changé');expect(courant.etat).toBe(etat);
+ expect(m.rappeler).not.toHaveBeenCalled();expect(m.lire).not.toHaveBeenCalled();
+});

@@ -14,7 +14,7 @@ Le point de départ reste `e25c0f7`, PR212 publiée le 19 octobre. Cette page d�
 ## Préparé
 
 - Durcissement de /auth/confirm (consigne hors dépôt) : résultat local vérifié sur GoTrue réel, avec relecture indépendante.
-- Association Stripe contrôlée côté serveur ; quatre migrations rejouables et leurs retours livrés avec une précondition de souscription fermée pendant le déploiement.
+- Association Stripe contrôlée côté serveur ; cinq migrations rejouables et leurs retours livrés avec une précondition de souscription fermée pendant le déploiement.
 - Sauvegarde et restauration de l'historique des migrations, y compris vérification du contenu après restauration ; anciennes sauvegardes acceptées en signalant l'historique absent.
 - Réceptions Stripe conservées et reprises après interruption ; rapprochement limité à 20 dossiers par passage et anomalies visibles dans Santé.
 - Connecteur Youtrust retiré ; anciennes preuves conservées, variables externes encore à retirer.
@@ -27,7 +27,7 @@ Le point de départ reste `e25c0f7`, PR212 publiée le 19 octobre. Cette page d�
 
 ## Preuves locales
 
-Compilation, types et lint réussis. Dernière suite complète : 8 918 tests réussis et 38 non exécutés, dont des intégrations conditionnées aux accès externes. Parcours navigateur ciblés : 62 réussis et un non exécuté. Les corrections issues de contre-relecture ont leur vérification rouge puis verte ; la restauration et le parcours de récupération ont également été éprouvés avec les services réels locaux.
+Compilation, types et lint réussis. Dernière suite complète : 8 948 tests réussis et 38 non exécutés, dont des intégrations conditionnées aux accès externes. Parcours navigateur ciblés : 62 réussis et un non exécuté. Les corrections issues de contre-relecture ont leur vérification rouge puis verte ; la restauration et le parcours de récupération ont également été éprouvés avec les services réels locaux.
 
 Audit d’affichage : 165 écrans à chacune des largeurs 390, 768 et 1 440 pixels, soit 495 vérifications réussies (pas d’erreur de page ni de débordement détecté). Ce contrôle ne vaut pas preuve de toutes les actions métier de chaque écran.
 
@@ -35,11 +35,15 @@ La contre-relecture a relevé deux P2, corrigés puis relus ; aucun constat bloq
 
 Les trois premières versions de la PR213 ont passé la CI complète : exécutions 39342825448, 39345875261 et 39348431366. Le complément des dépôts et retours a passé la suite globale ; 75 tests de dépôt et 121 tests ciblés des parcours/retours réussis. Les quatre retours intacts ont également été exécutés en autocommit sur une copie locale, puis les migrations rejouées ; comptes et objets conservés.
 
-Un défaut de composition des transactions a été corrigé sur les quatre nouveaux retours. Les 71 retours historiques ont reçu la même enveloppe atomique, sans modification de leur corps métier vérifié par contre-relecture. Le banc distingue 69 retours exécutés jusqu’à l’erreur finale volontaire et six refus de dépendances attendus, tous sans validation des écritures témoins. La reproduction sur une copie séparée conserve une écriture avec l’ancien script, aucune avec le corrigé. Aucun retour n’a été appliqué en production.
+Un défaut de composition des transactions a été corrigé sur les cinq nouveaux retours. Les 71 retours historiques ont reçu la même enveloppe atomique, sans modification de leur corps métier vérifié par contre-relecture. Le banc distingue 70 retours exécutés jusqu’à l’erreur finale volontaire et six refus de dépendances attendus, tous sans validation des écritures témoins. La reproduction sur une copie séparée conserve une écriture avec l’ancien script, aucune avec le corrigé. Aucun retour n’a été appliqué en production.
 
 ## Transferts de fichiers
 
 Dépôts limités à 4 Mio avec message avant envoi et saisie conservée. Cinq routes de lecture utilisent Storage directement après autorisation et trace. Miniatures et ouverture native des PDF mobiles conservées. Un PNG de 6 Mio, une reprise après erreur, une redirection de téléchargement et un PDF de deux pages passent sur navigateur local. Les dépôts directs signés, les routes spécifiques à empreinte, le CORS réel et Safari iPhone restent à vérifier pour terminer G5.
+
+## Préparation des signatures
+
+Le début de création Zoho est distingué de la validation locale et de la connexion OAuth. Un échec certain avant création libère circuit et quota dans une transaction journalisée ; une réponse incertaine conserve le blocage. Une annulation ne peut plus écraser une réservation concurrente. Les deux défauts signalés en contre-relecture sont corrigés, avec essais de pannes sur chaque écriture, droits, rejeu et entrelacements. Le rapprochement des circuits sans référence, les alertes et les relances restent ouverts (E5 partiel).
 
 ## Contrôles externes et limites
 

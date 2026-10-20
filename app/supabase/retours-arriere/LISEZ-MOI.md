@@ -940,3 +940,5 @@ forme des fichiers et LISEZ-MOI). Aucun essai sur la production.
 - `20261020030000_stockage_gabarits_roles.retour.sql` : rétablit les deux politiques précédentes ; aucun objet ni document supprimé.
 
 Les quatre retours du 20 octobre sont des instructions atomiques : ils peuvent être annulés avec une transaction appelante et ne valident jamais ses autres opérations.
+
+- `20261020011556_signature_preparation_abandon.retour.sql` : remettre le code précédent, puis retirer la fonction d’abandon atomique. Historique et consommations conservés.

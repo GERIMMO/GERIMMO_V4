@@ -6316,3 +6316,11 @@ Les 71 retours historiques sont convertis en instruction atomique sans changer l
 ## [2026-10-20] verification | Suite globale après fichiers et retours
 
 8 918 tests réussis, 38 non exécutés selon leurs prérequis ; compilation, types et lint vérifiés. Deux parcours de formulaire mobile et leur préparation réussis. Les trois premières versions de PR213 ont passé la CI ; le complément reste à contrôler sur son SHA. Aucun déploiement ni écriture en production.
+
+## [2026-10-20] correction | Préparation et annulation des signatures
+
+Complément E5 préparé localement : distinction entre échec avant création distante et réponse incertaine, abandon atomique du circuit et du quota, annulation protégée contre une réservation concurrente. Les deux constats de contre-relecture sont corrigés. Migration additive et retour préparés, appliqués seulement aux deux bases fictives. Contrôles ciblés : 92 tests du circuit et 98 tests base/retours/manifeste réussis ; les erreurs de validation et deux entrelacements ont leur reproduction rouge puis verte. Aucun e-mail ni SMS envoyé, aucune configuration de production modifiée. E5 reste partiel pour les rapprochements sans référence, alertes et relances.
+
+## [2026-10-20] verification | Suite complète après préparation des signatures
+
+8 948 tests réussis, 38 non exécutés ; 618 fichiers de tests réussis et sept ignorés. Compilation, types et lint contrôlés après le complément. Contre-relecture finale : les deux P2 du circuit de signature sont corrigés, sans défaut concret résiduel relevé dans ce delta ; le second lecteur n’a pas relancé les tests. La CI des dépôts et retours est distincte du nouveau complément de signature, qui doit encore être contrôlé sur son SHA. Aucune publication ni exécution externe de signature.

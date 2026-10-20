@@ -112,8 +112,10 @@ export async function preparerSignatureBail(org: string, bail: string, choix?: S
 export async function envoyerSignatureBail(org: string, bail: string, id: string): Promise<VueSignatureBail> {
   let reserve = false;
   let appelPrestataire = false;
+  let acteur: string | null = null;
   try {
     const { supabase, user, circuit } = await circuitAutorise(org,bail,id);
+    acteur=user.id;
     // Fermeture ciblée d'un modèle : refus avant toute lecture du dossier, toute réservation et tout appel au prestataire.
     const fermeture = fermetureModeleSignature(circuit.modele);
     if (fermeture) throw new Error(fermeture);
@@ -162,10 +164,9 @@ export async function envoyerSignatureBail(org: string, bail: string, id: string
       }
     }
     const expiration = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(circuit.expire_le));
-    appelPrestataire = true;
     const cree = await preparerCircuitSignature({ config,pdf:contenu,nomFichier:"document-gerimmo.pdf",
       titre:signatureEnEssai(org) ? "GERIMMO — ESSAI DE SIGNATURE SANS ENGAGEMENT" : config.environnement === "sandbox" ? "TEST FICTIF — Document Gerimmo" : preparation.titreGed,referenceExterne:id,expiration,
-      signataires:circuit.signataires,annexes,demandeCreee:async externalId=>{
+      signataires:circuit.signataires,annexes,creationCommencee:()=>{appelPrestataire=true;},demandeCreee:async externalId=>{
         const attache = await service.from("bail_signature_circuits").update({external_request_id:externalId}).eq("id",id).eq("etat","preparation").select("id").single();
         if (attache.error) throw new Error("Le suivi de la demande doit être vérifié avant toute activation.");
       } });
@@ -180,14 +181,11 @@ export async function envoyerSignatureBail(org: string, bail: string, id: string
     return { ...await lireSignatureBail(org,bail,selectionDuCircuit(circuit)),succes:"Le premier signataire est invité par e-mail. Les suivants seront invités dans l’ordre indiqué." };
   } catch(e) {
     if (reserve && !appelPrestataire) {
-      // La réservation a réussi, mais aucune requête externe n’a commencé.
+      // La réservation a réussi, mais aucune création distante n’a commencé.
       // Une panne de relecture ne doit pas laisser un circuit impossible à annuler.
       const service=clientDeService();
-      const retrait=await service?.from("bail_signature_circuits").update({etat:"annule",erreur:"Préparation interrompue avant tout appel au prestataire. Préparez un nouveau PDF."}).eq("id",id).eq("etat","preparation").is("external_request_id",null).select("id").single();
-      if (retrait && !retrait.error) {
-        await service?.from("signature_consommations").delete().eq("circuit_id",id);
-        reserve=false;
-      }
+      const retrait=await service?.rpc("abandonner_preparation_signature",{p_circuit:id,p_actor:acteur});
+      if (retrait?.data === true && !retrait.error) reserve=false;
     }
     if (reserve) {
       await clientDeService()?.from("bail_signature_circuits").update({etat:"a_verifier",erreur:"L’envoi n’a pas pu être confirmé. Actualisez le suivi avant toute nouvelle demande."}).eq("id",id).in("etat",["preparation","en_cours"]);
@@ -253,8 +251,12 @@ export async function annulerSignatureBail(org: string,bail: string,id: string):
         if (confirmation.id !== circuit.external_request_id || confirmation.external_id !== circuit.id || confirmation.status !== "canceled") throw new Error("L’annulation n’a pas encore été confirmée par le prestataire. Actualisez le suivi.");
       } else if (!["canceled","expired","declined","rejected","deleted"].includes(actuel.status)) throw new Error("Ce circuit doit être vérifié chez le prestataire avant son annulation.");
     }
-    const fin = await service.from("bail_signature_circuits").update({etat:"annule",erreur:null,updated_at:new Date().toISOString()}).eq("id",id).in("etat",["pret","preparation","en_cours","a_verifier"]);
-    if (fin.error) throw new Error("L’arrêt chez le prestataire est confirmé, mais le suivi doit être actualisé.");
+    let retrait = service.from("bail_signature_circuits").update({etat:"annule",erreur:null,updated_at:new Date().toISOString()}).eq("id",id);
+    retrait = circuit.etat === "pret"
+      ? retrait.eq("etat","pret").is("external_request_id",null)
+      : retrait.in("etat",["preparation","en_cours","a_verifier"]).eq("external_request_id",circuit.external_request_id);
+    const fin = await retrait.select("id").single();
+    if (fin.error || !fin.data) throw new Error("Le circuit a changé. Actualisez son suivi avant de demander son arrêt.");
     rafraichir(org,bail);
     return {...await lireSignatureBail(org,bail,selectionDuCircuit(circuit)),succes:"Circuit annulé. Vous pouvez préparer une nouvelle version."};
   } catch(e) { return erreur(e); }

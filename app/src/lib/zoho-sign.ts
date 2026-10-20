@@ -36,10 +36,11 @@ async function jeton(config: ConfigurationZohoSign): Promise<string> {
   try { return await entree.attente; } finally { entree.attente = undefined; }
 }
 
-async function appel(config: ConfigurationZohoSign, chemin: string, init: RequestInit = {}) {
+async function appel(config: ConfigurationZohoSign, chemin: string, init: RequestInit = {}, avantAppel?: () => void) {
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Zoho-oauthtoken ${await jeton(config)}`);
   // Aucune relance automatique d'une mutation : une réponse perdue peut masquer un envoi réussi.
+  avantAppel?.();
   const response = await fetch(`${BASE}${chemin}`, { ...init, headers, cache: "no-store", redirect: "error", signal: AbortSignal.timeout(25_000) });
   if (response.status === 401) cache = undefined;
   if (!response.ok) {
@@ -57,8 +58,8 @@ type ChampZoho = { field_id?: string; field_name?: string; field_type_name: stri
 type Action = { private_notes?: string; action_id: string; action_type: string; recipient_email: string; recipient_name: string; signing_order: number; action_status: string; verify_recipient: boolean; verification_type: string; recipient_countrycode_iso: string; recipient_phonenumber: string; fields?: ChampZoho[] };
 type DocumentZoho = { document_id: string; document_name: string; document_order: string | number; total_pages: number };
 type Demande = { notes?: string; request_id: string; description: string; request_status: string; is_deleted?: boolean; is_sequential: boolean; actions: Action[]; document_ids: DocumentZoho[] };
-async function json(config: ConfigurationZohoSign, chemin: string, init?: RequestInit): Promise<{ requests?: Demande }> {
-  const body = await (await appel(config, chemin, init)).json();
+async function json(config: ConfigurationZohoSign, chemin: string, init?: RequestInit, avantAppel?: () => void): Promise<{ requests?: Demande }> {
+  const body = await (await appel(config, chemin, init, avantAppel)).json();
   verifierCompteConfirme(body?.code);
   if (body?.code !== 0 || body.status === "failure") throw new Error("Zoho Sign a refusé l’opération. Vérifiez la connexion, les crédits et le suivi avant de réessayer.");
   return body;
@@ -87,6 +88,8 @@ export function telephoneZoho(telephone?: string | null) {
 }
 type Preparation = {
   config: ConfigurationZohoSign; pdf: Uint8Array; nomFichier: string; titre: string; referenceExterne: string; expiration: string;
+  /** Appelé après validation et connexion OAuth, juste avant la création distante. */
+  creationCommencee?: () => void;
   signataires: SignataireSignature[]; annexes?: { pdf: Uint8Array; nomFichier: string }[]; demandeCreee: (id: string) => Promise<void>;
 };
 export async function preparerCircuitZoho(params: Preparation) {
@@ -100,7 +103,7 @@ export async function preparerCircuitZoho(params: Preparation) {
   const form = formulaire(params.config, { request_name: params.titre.slice(0, 100), description: `gerimmo:circuit:${params.referenceExterne}`, is_sequential: true, expiration_days: jours, email_reminders: false, actions });
   form.append("file", new Blob([Uint8Array.from(params.pdf).buffer], { type: "application/pdf" }), params.nomFichier);
   for (const a of params.annexes ?? []) form.append("file", new Blob([Uint8Array.from(a.pdf).buffer], { type: "application/pdf" }), a.nomFichier);
-  const body = await json(params.config, "/requests", { method: "POST", body: form });
+  const body = await json(params.config, "/requests", { method: "POST", body: form }, params.creationCommencee);
   if (!body.requests?.request_id) throw new Error("La création Zoho Sign doit être rapprochée manuellement avant tout nouvel envoi.");
   const req = body.requests;
   await params.demandeCreee(idValide(req.request_id));

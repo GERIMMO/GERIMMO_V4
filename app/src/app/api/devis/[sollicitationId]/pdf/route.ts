@@ -9,6 +9,7 @@ import { lireSaisieDevisArtisan } from "@/lib/saisie-devis-artisan";
 import { REFERENCES_TRAVAUX } from "@/lib/references-prix-travaux";
 import { abandonnerPdfDepose, COMPARTIMENT_PREPARATIONS, effacerPdfPreparation, pdfRemplace } from "@/lib/devis-pdf-stockage";
 import { demandeAChiffrer } from "@/app/artisan/libelles";
+import { servirFichierSigne, TAILLE_MAX_REPONSE_FICHIER } from "@/lib/fichier-signe";
 export const runtime = "nodejs";
 const entetes = { "Content-Type":"application/pdf", "Cache-Control":"private, no-store", "X-Content-Type-Options":"nosniff" };
 
@@ -69,6 +70,9 @@ export async function POST(request: Request, context: { params: Promise<{sollici
     // La mise à jour a réussi : l'ancien PDF n'est plus référencé par personne.
     cheminDepose=null;
     await effacerPdfPreparation(service,pdfRemplace(preparation,chemin));
+    // Le formulaire attend l’accusé de validation, puis ouvre le PDF enregistré
+    // par GET. Un gros PDF ne doit pas transformer cet enregistrement en erreur.
+    if(pdf.byteLength>TAILLE_MAX_REPONSE_FICHIER)return Response.json({revision:data.revision},{headers:{"Cache-Control":"private, no-store","X-Devis-Revision":String(data.revision)}});
     return new Response(Buffer.from(pdf),{headers:{...entetes,"Content-Disposition":`inline; filename="${doc.reference}.pdf"`,"X-Devis-Revision":String(data.revision)}});
   } catch {
     // Incident après le dépôt : on ne sait pas si la mise à jour a abouti ; le PDF n'est effacé que si la base ne le référence pas.
@@ -108,11 +112,13 @@ export async function GET(request: Request, context: { params: Promise<{sollicit
   const service=clientDeService();
   if(!service) return pageErreurFichier(503,"Document indisponible","La lecture du PDF enregistré est momentanément indisponible.","depuis vos devis");
   if (document?.pdf_path) {
+    if(document.pdf_bucket && !["documents",COMPARTIMENT_PREPARATIONS].includes(document.pdf_bucket)) return pageErreurFichier(503,"Document indisponible","L’archive du devis doit être vérifiée.","depuis vos devis");
     const {data:fichier,error:download}=await service.storage.from(document.pdf_bucket ?? "documents").download(document.pdf_path);
     if (!download && fichier) {
       const octets=Buffer.from(await fichier.arrayBuffer());
       if (document.pdf_sha && createHash("sha256").update(octets).digest("hex") === document.pdf_sha) {
         const reference = (document.reference_id ?? document.id).slice(0,8).toUpperCase();
+        if(octets.byteLength>TAILLE_MAX_REPONSE_FICHIER)return servirFichierSigne(service,{compartiment:document.pdf_bucket===COMPARTIMENT_PREPARATIONS?COMPARTIMENT_PREPARATIONS:"documents",path:document.pdf_path,mime:"application/pdf",titre:`DEV-${reference}${document.version ? `-v${document.version}` : ""}.pdf`,sha256:document.pdf_sha,retour:"depuis vos devis"});
         return new Response(octets,{headers:{...entetes,"Content-Disposition":`inline; filename="DEV-${reference}${document.version ? `-v${document.version}` : ""}.pdf"`}});
       }
     }

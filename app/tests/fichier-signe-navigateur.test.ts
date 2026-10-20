@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { createHash } from "node:crypto";
 import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -44,4 +45,24 @@ describe.skipIf(process.env.GERIMMO_TEST_PDF!=="1")("Document volumineux dans le
 
   } finally{await browser.close();await new Promise<void>(r=>server.close(()=>r()));}
  },30000);
+ it("refuse une archive altérée et un flux trop volumineux avant tout téléchargement",async()=>{
+  const valide=Buffer.from("%PDF-essai-fictif");const sha=createHash("sha256").update(valide).digest("hex");let base="";
+  const server=createServer(async(req,res)=>{
+   if(["/valide","/altere","/excessif","/flux"].includes(req.url||"")){
+    const db={storage:{from:()=>({createSignedUrl:async()=>({data:{signedUrl:base+"/octets"+req.url},error:null})})}} as unknown as SupabaseClient;
+    const r=await servirFichierSigne(db,{path:"archive.pdf",mime:"application/pdf",titre:"Archive contrôlée",retour:"depuis le dossier",sha256:sha,mode:"telechargement"});res.writeHead(r.status,Object.fromEntries(r.headers));res.end(await r.text());return;
+   }
+   if(req.url==="/octets/valide"){res.writeHead(200);res.end(valide);return;}
+   if(req.url==="/octets/altere"){res.writeHead(200);res.end("%PDF-altéré");return;}
+   if(req.url==="/octets/excessif"){res.writeHead(200,{"Content-Length":String(51*1024*1024)});res.end("court");return;}
+   if(req.url==="/octets/flux"){res.writeHead(200);for(let i=0;i<51;i++)res.write(Buffer.alloc(1024*1024));res.end();return;}
+   res.writeHead(404);res.end();
+  });
+  server.listen(0,"127.0.0.1");await once(server,"listening");base=`http://127.0.0.1:${(server.address() as AddressInfo).port}`;vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL",base);
+  const browser=await chromium.launch({headless:true,executablePath:process.env.GERIMMO_CHROME||undefined});
+  try{const page=await browser.newPage();for(const chemin of ["altere","excessif","flux"]){await page.goto(`${base}/${chemin}`);await page.getByRole("status").filter({hasText:"Appuyez sur Actualiser"}).waitFor();expect(await page.getByRole("link",{name:"Télécharger",exact:true}).isVisible()).toBe(false);expect(await page.locator("#apercu iframe").count()).toBe(0);}
+   await page.goto(`${base}/valide`);await page.getByRole("link",{name:"Télécharger",exact:true}).waitFor();const transfert=page.waitForEvent("download");await page.getByRole("link",{name:"Télécharger",exact:true}).click();const flux=await(await transfert).createReadStream();const morceaux=[];for await(const morceau of flux!)morceaux.push(morceau);expect(Buffer.concat(morceaux)).toEqual(valide);
+  }finally{await browser.close();await new Promise<void>(r=>server.close(()=>r()));}
+ },30000);
+
 });

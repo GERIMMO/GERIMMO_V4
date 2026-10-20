@@ -82,7 +82,7 @@ Les nouveaux dépôts sont bornés à 4 Mio par fichier ; les formulaires contr�
 
 Cinq routes de lecture des documents utilisent un lien Storage d’une minute après les contrôles d’accès et la trace existants. La visionneuse reçoit le fichier directement depuis Storage et conserve une URL Gerimmo actualisable ; les téléchargements et miniatures utilisent une redirection. Le titre est échappé, les formats actifs ne sont pas affichés, l’origine du stockage est vérifiée et les réponses sont privées sans cache. Les PDF proposent une ouverture native en plein écran sur téléphone.
 
-Banc navigateur : PNG de 6 Mio, réponse initiale indisponible puis reprise, miniature, téléchargement par redirection et PDF de deux pages. Essai local du formulaire : refus avant tout POST et conservation de la pièce et de la date. **Limites G5 :** les dépôts directs signés restent à implémenter ; les routes spécifiques de devis et pièces privées avec contrôle d’empreinte restent à adapter. Le CORS du stockage réel et Safari iPhone doivent encore être vérifiés avant de clôturer ce point.
+Banc navigateur : PNG de 6 Mio, réponse initiale indisponible puis reprise, miniature, téléchargement par redirection et PDF de deux pages. Essai local du formulaire : refus avant tout POST et conservation de la pièce et de la date. **Limites G5 :** les dépôts directs signés restent à implémenter. Les gros fichiers déjà archivés dans les routes devis, preuve de signature et pièces privées utilisent désormais la même visionneuse après contrôle de leur empreinte. Les anciennes générations sans archive restent hors de ce complément. Le CORS du stockage réel et Safari iPhone doivent encore être vérifiés avant de clôturer ce point.
 
 ## Préparation et annulation des signatures
 
@@ -98,3 +98,12 @@ Une annulation fondée sur l’état « prêt » ne réussit que si cet état es
 Le contrat navigateur de consultation comprend un aperçu HTML et un chargement direct Storage : le test de navigation vérifie les deux réponses, le contenu PDF exact, la stabilité de l’alias et le téléchargement après autorisation. Le banc conserve le type déclaré lors du dépôt ; les 17 scénarios de navigation et d’isolation passent localement. La CI744 a révélé l’ancienne assertion de MIME, corrigée sans retirer le contrôle des octets. La CI complète sur le dernier SHA reste obligatoire avant livraison.
 
 Le banc honore également le paramètre de téléchargement en renvoyant une pièce jointe au nom encodé. Le test contrôle l’en-tête Storage et un téléchargement navigateur réel, son nom et ses octets, après reproduction rouge de l’en-tête absent. Aucun changement de configuration du stockage réel n’en découle.
+
+
+## Complément — archives volumineuses
+
+Les trois routes spécialisées conservent leur réponse PDF/image pour les fichiers de 4 Mio ou moins. Au-delà, après autorisation et vérification SHA-256 côté serveur, elles renvoient une visionneuse légère : transfert direct depuis le compartiment privé autorisé et seconde vérification SHA-256 dans le navigateur avant aperçu ou téléchargement. Une archive remplacée entre les deux lectures est ainsi refusée. Les compartiments autorisés sont explicitement bornés.
+
+Le chargement navigateur est limité à 50 Mio pendant la lecture du flux, avec ou sans Content-Length. Un fichier altéré, vide ou excessif n’ouvre aucun aperçu ni lien de téléchargement. La validation d’un devis de plus de 4 Mio retourne un petit accusé de réception avec sa révision : l’enregistrement ne devient plus une erreur de transport alors que le PDF est déjà conservé. Le formulaire garde son contrôle de révision et de saisie concurrente.
+
+Validation ciblée : 123 tests réussis, deux tests de navigateur réussis (6 Mio, reprise, pièces jointes, PDF mobile, archive altérée, longueur excessive déclarée et flux excessif sans longueur), types et lint réussis. Aucun dépôt direct, envoi externe ou changement en production. La CI du nouveau SHA doit encore confirmer l’ensemble du lot ; CI747 concerne le SHA précédent.

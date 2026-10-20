@@ -6338,3 +6338,16 @@ La contre-relecture a identifié que le banc, après restitution du MIME, ignora
 ## [2026-10-20] verification | Réglages Stripe en lecture seule
 
 Console de production consultée : un seul webhook actif, les sept événements attendus et la version API 2026-06-24.dahlia. Aucun événement livré sur la période affichée du 14 au 20 octobre ; le taux d’erreur nul ne constitue pas une preuve de réception. Smart Retries actif avec huit tentatives sur deux semaines, puis annulation de l’abonnement ; numérotation des factures séquentielle à l’échelle du compte. Les notifications Stripe de fin d’essai, renouvellement et échecs de paiement sont désactivées. Cohérence avec les conditions contractuelles encore à valider. Aucun paramètre ni paiement modifié. La session Zoho demande une reconnexion : coût réel des essais non relevé.
+
+## [2026-10-20] verification | Conclusion CI747 et contrôle différé des devis
+
+La CI747 (39355647188) réussit sur le SHA 8a5cb884fda68e133c9b052468ddc2aea495a3af : 8 969 tests de logique réussis, 17 non exécutés ; 200 tests navigateur réussis, un non exécuté. Compilation, types et lint réussis. La PR213 reste en brouillon, sans déploiement ni application de migration en production. Les travaux E5 et G5 et les décisions externes restent explicitement ouverts.
+
+Le contrôle de la maintenance des devis du 29 octobre à 04 h 30 UTC est ajouté à la surveillance quotidienne existante, en lecture seule, sans relance manuelle ni recréation de données. Horaire et autres contrôles conservés. Ce relevé final est conservé dans le journal local ; il ne modifie pas le SHA de code contrôlé.
+
+
+## [2026-10-20] correction | Archives de devis et justificatifs volumineux
+
+Trois routes spécialisées conservent les contrôles d’accès et d’empreinte ; au-delà de 4 Mio, la réponse devient une visionneuse légère et le navigateur vérifie à nouveau les octets avant affichage ou téléchargement. Compartiments explicitement bornés, lecture limitée à 50 Mio pendant le flux, refus des archives altérées. Un gros PDF validé reçoit un accusé de réception au lieu de dépasser la limite de réponse alors qu’il est déjà enregistré.
+
+123 tests ciblés, deux essais de navigateur, types et lint réussis en local. Les dépôts directs et générations historiques sans archive restent ouverts. La CI complète doit repasser sur ce complément ; CI747 reste la preuve de la version précédente. Aucun réglage de production changé.

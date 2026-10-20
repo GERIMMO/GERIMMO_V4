@@ -246,3 +246,7 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - **20 octobre — consultation PDF** : scénario navigateur adapté au transfert Storage direct, 17 vérifications locales réussies ; contrôle CI du dernier lot encore requis. Voir [[Suites de l'audit — 20 octobre 2026]].
 
 - **20 octobre — contrôles complémentaires** : téléchargement PDF effectivement éprouvé et réglages Stripe relevés en lecture seule ; aucune modification financière ni de configuration. Voir [[Suites de l'audit — 20 octobre 2026]].
+
+- [[Suites de l'audit — 20 octobre 2026|Suites de l’audit du 20 octobre]] : conclusion locale CI747 sur le dernier SHA préparé, 200 tests navigateur réussis ; contrôle différé des devis prévu le 29 octobre, sans mise en production.
+
+- **20 octobre — archives volumineuses** : lecture des devis, preuves et pièces privées avec empreinte vérifiée, taille bornée et confirmation de génération légère ; complément testé localement. Voir [[Suites de l'audit — 20 octobre 2026]].

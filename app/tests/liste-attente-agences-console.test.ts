@@ -5,6 +5,7 @@
  * base (client Supabase simulé) : l'onglet de la rubrique « Développement commercial », la mise en forme CSV, l'action
  * de statut et la route d'export. Le parcours au navigateur est dans e2e/console-liste-attente.spec.ts.
  */
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ createClient: vi.fn(), revalidate: vi.fn() }));
@@ -22,6 +23,7 @@ import {
 } from "../src/lib/liste-attente-agences-csv";
 import { changerStatutAgence } from "../src/app/actions/liste-attente-agences-admin";
 import { GET as exporter } from "../src/app/admin/liste-attente/export/route";
+import PageListeAttenteAgences from "../src/app/admin/liste-attente/page";
 import { GESTES_LISTE_ATTENTE } from "../src/app/admin/liste-attente/boutons-statut";
 import { libelleActionAudit } from "../src/lib/libelles-journaux";
 import { STATUTS_LISTE_ATTENTE } from "../src/lib/liste-attente-agences";
@@ -92,8 +94,9 @@ describe("l'onglet de la console", () => {
     const commercial = RUBRIQUES.find((r) => r.cle === "commercial");
     expect(commercial).toBeDefined();
     const libelles = commercial!.onglets.map((o) => o.libelle);
-    expect(libelles.indexOf("Liste d'attente des agences")).toBe(libelles.indexOf("Demandes de contact") + 1);
-    expect(commercial!.onglets.find((o) => o.libelle === "Liste d'attente des agences")?.href).toBe("/admin/liste-attente");
+    // Apostrophe typographique, comme « Réseau d’artisans » dans le même menu et l'inventaire des écrans.
+    expect(libelles.indexOf("Liste d’attente des agences")).toBe(libelles.indexOf("Demandes de contact") + 1);
+    expect(commercial!.onglets.find((o) => o.libelle === "Liste d’attente des agences")?.href).toBe("/admin/liste-attente");
     expect(rubriqueActive("/admin/liste-attente")?.cle).toBe("commercial");
     expect(ongletActif("/admin/liste-attente")?.href).toBe("/admin/liste-attente");
     expect(ongletActif("/admin/liste-attente/export")?.href).toBe("/admin/liste-attente");
@@ -114,6 +117,9 @@ describe("la mise en forme CSV", () => {
   });
   it("échappe un champ qui contient le séparateur, des guillemets ou un saut de ligne ; un champ nul est vide", () => {
     expect(champCsv('Bonjour ;\nnous gérons "deux" agences.')).toBe('"Bonjour ;\nnous gérons ""deux"" agences."');
+    // Le séparateur SEUL suffit : sans guillemet ni saut de ligne, « Bonjour ; bonsoir » casserait les colonnes du tableur.
+    expect(champCsv("Bonjour ; bonsoir")).toBe('"Bonjour ; bonsoir"');
+    expect(champCsv(";")).toBe('";"');
     expect(champCsv("Agence du Canal")).toBe("Agence du Canal");
     expect(champCsv("ligne\r\nsuivante")).toBe('"ligne\r\nsuivante"');
     expect(champCsv(null)).toBe("");
@@ -127,6 +133,13 @@ describe("la mise en forme CSV", () => {
     // 06:05 UTC le 20/10 : 08:05 à Paris (heure d'été jusqu'au 25/10). « +33… » commence comme une formule : apostrophe en tête (CHF-04).
     expect(lignes[1]).toBe(
       `20/10/2026 08:05;Agence du Canal;Camille Martin;contact@agence-canal.test;'+33 1 23 45 67 89;75011;De 50 à 199 lots;"Bonjour ;\nnous gérons ""deux"" agences.";En attente;`,
+    );
+  });
+  it("un message qui ne contient que le séparateur, sans guillemet ni saut de ligne, reste dans sa colonne", () => {
+    const lignes = csvListeAttenteAgences([{ ...LIGNE, telephone: null, message: "Parc : 120 lots ; 2 agences" }]).split("\r\n");
+    expect(lignes).toHaveLength(3);
+    expect(lignes[1]).toBe(
+      '20/10/2026 08:05;Agence du Canal;Camille Martin;contact@agence-canal.test;;75011;De 50 à 199 lots;"Parc : 120 lots ; 2 agences";En attente;',
     );
   });
   it("une agence contactée porte sa date de contact ; téléphone et message absents laissent des champs vides", () => {
@@ -253,6 +266,44 @@ describe("GET /admin/liste-attente/export", () => {
     expect(r.status).toBe(503);
     expect(r.headers.get("content-type")).toMatch(/^text\/plain/);
     expect(c.journal).toEqual([]);
+  });
+});
+
+describe("la page /admin/liste-attente", () => {
+  const ID_2 = "22222222-2222-4222-8222-222222222222";
+  const ID_3 = "33333333-3333-4333-8333-333333333333";
+  const INSCRIPTION = { id: ID, source: "/agences", ...LIGNE };
+  const page = async () => renderToStaticMarkup(await PageListeAttenteAgences());
+
+  it("compte « en attente » comme les gestes le font : un statut que l'écran ignore encore se traite comme une attente", async () => {
+    client({
+      lignes: { data: [INSCRIPTION, { ...INSCRIPTION, id: ID_2, statut: "statut_futur" }, { ...INSCRIPTION, id: ID_3, statut: "convertie" }] },
+    });
+    const html = await page();
+    expect(html).toContain("2 en attente · 3 inscrites");
+    // Le rang au statut inconnu porte bien la puce et le geste de l'attente.
+    expect(html.split("Marquer comme contactée")).toHaveLength(3);
+  });
+  it("le lien d'export n'a pas l'attribut download : un 403 ou un 503 en texte se lit dans l'onglet, pas en téléchargement échoué", async () => {
+    client({ lignes: { data: [INSCRIPTION] } });
+    const html = await page();
+    expect(html).toContain("1 en attente · 1 inscrite<");
+    expect(html).toContain('<a href="/admin/liste-attente/export" class="btn-secondaire">Exporter en CSV</a>');
+    expect(html).not.toMatch(/\bdownload\b/);
+  });
+  it("le titre porte l'apostrophe typographique, comme l'onglet ; à vide, ni compteur ni export", async () => {
+    client({ lignes: { data: [] } });
+    const html = await page();
+    expect(html).toContain("<h1>Liste d’attente des agences</h1>");
+    expect(html).toContain("Aucune agence inscrite");
+    expect(html).not.toContain("Exporter en CSV");
+  });
+  it("une lecture en échec montre l'écran de repli, jamais une liste vide déguisée", async () => {
+    client({ lignes: { error: { message: "panne" } } });
+    const html = await page();
+    expect(html).toContain("Impossible de charger la page");
+    expect(html).not.toContain("Aucune agence inscrite");
+    expect(html).not.toContain("Exporter en CSV");
   });
 });
 

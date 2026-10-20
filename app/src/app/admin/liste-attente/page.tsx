@@ -5,7 +5,7 @@ import { libelleTranche, STATUTS_LISTE_ATTENTE, type StatutListeAttente } from "
 import { createClient } from "@/lib/supabase/server";
 import { BoutonsStatutAgence } from "./boutons-statut";
 
-export const metadata = { title: "Liste d'attente des agences" };
+export const metadata = { title: "Liste d’attente des agences" };
 
 type Inscription = {
   id: string;
@@ -48,7 +48,7 @@ export default async function PageListeAttenteAgences() {
   if (error) {
     return (
       <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-        <TitreEcran rubrique="entreprise">Liste d&apos;attente des agences</TitreEcran>
+        <TitreEcran rubrique="entreprise">Liste d’attente des agences</TitreEcran>
         <div className="vide mt-4">
           Impossible de charger la page pour l&apos;instant — rechargez dans un instant.
         </div>
@@ -56,21 +56,24 @@ export default async function PageListeAttenteAgences() {
     );
   }
   const inscriptions = (data ?? []) as Inscription[];
-  const enAttente = inscriptions.filter((i) => i.statut === "en_attente").length;
+  // Même lecture que les gestes et la puce : un statut inconnu de l'écran compte comme une attente.
+  const enAttente = inscriptions.filter((i) => statutConnu(i.statut) === "en_attente").length;
   const total = inscriptions.length;
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
-        <TitreEcran rubrique="entreprise">Liste d&apos;attente des agences</TitreEcran>
+        <TitreEcran rubrique="entreprise">Liste d’attente des agences</TitreEcran>
         <div className="flex flex-wrap items-center gap-3">
           <span className="mono-discret">
             {total === 0
               ? "Aucune agence inscrite"
               : `${enAttente} en attente · ${total} inscrite${total > 1 ? "s" : ""}`}
           </span>
+          {/* Sans attribut `download` : la route pose Content-Disposition: attachment pour le fichier, et son refus (403)
+              ou sa panne (503, texte en français) se lisent alors dans l'onglet au lieu d'un téléchargement échoué. */}
           {total > 0 && (
-            <a href="/admin/liste-attente/export" download className="btn-secondaire">
+            <a href="/admin/liste-attente/export" className="btn-secondaire">
               Exporter en CSV
             </a>
           )}

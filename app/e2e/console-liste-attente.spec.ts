@@ -41,7 +41,7 @@ test("la console liste l'agence inscrite, la marque contactée et exporte le CSV
     id = inseree.rows[0].id;
 
     await page.goto("/admin/liste-attente");
-    await expect(page.getByRole("heading", { name: "Liste d'attente des agences", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Liste d’attente des agences", level: 1 })).toBeVisible();
     const rang = page.locator(`#agence-${id}`);
     await expect(rang).toBeVisible();
     await expect(rang).toContainText(agence);

@@ -13,7 +13,7 @@ sources: ["[[Audit final avant publication — 19 octobre 2026]]", "[[Registre d
 coordonnées pour être prévenue de l'ouverture de l'offre « agences » ; rien ne lui est
 envoyé, et c'est le dirigeant qui la recontacte lui-même depuis la console.
 
-> [!info] État au 20/10/2026 : lot préparé, non déployé
+> [!info] État au 20/10/2026 au soir : déployé en production (PR #227, fusion `4ba53f5`, migration `20261020120000` appliquée à 21 h 48 UTC, déploiement Vercel `dpl_FSd8B1L4vbodoQkXpAPUdMZ9BWpR`, recette 39508957256)
 > Cette page décrit la fonctionnalité **telle que le contrat commun du 20/10 la définit**
 > (quatre lots : table, action serveur, console, site) et telle qu'elle est préparée dans
 > le dépôt. Rien de ce qui suit n'est en production à cette date : le déploiement suivra
@@ -180,7 +180,7 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
 | Plafond | 30 par heure glissante | 30 par heure glissante |
 | Lignes | 0 au relevé du 19/10 | table nouvelle |
 | Registre | [[Registre des traitements]] P10 | [[Registre des traitements]] P11 |
-| Sort | **à décider** (décision du 20/10 : conservée pour l'instant) | lot préparé, non déployé |
+| Sort | **à décider** (décision du 20/10 : conservée pour l'instant) | déployé le 20/10 au soir (PR #227, `4ba53f5`) |
 
 ## Règles d'usage pour le dirigeant
 

@@ -14,6 +14,10 @@
  *  5. sans clé de service, le formulaire le dit en français au lieu de planter ;
  *  6. le plafond de trente inscriptions par heure refuse la trente-et-unième, en français.
  *
+ * Forme de l'état rendu (relecture adverse du 20/10) : un succès est EXACTEMENT `{ succes }` ; un refus est `{ erreur, valeurs }`,
+ * `valeurs` étant la saisie soumise, que le formulaire repose dans les champs (convention valeursDuFormulaire du dépôt). Les
+ * refus se comparent donc avec toMatchObject ; tests/liste-attente-agences-action.test.ts fixe cette forme sans base.
+ *
  * Variables (comme les autres tests d'API) : NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
  * SUPABASE_SERVICE_ROLE_KEY (affichée par l'émulateur au démarrage) et SUPALOCAL_DB. Sans elles, le fichier se saute.
  */
@@ -132,15 +136,22 @@ describe.skipIf(!actif)("liste d'attente des agences — l'inscription de bout e
     await connecte.auth.signOut();
   });
 
-  it("7. sans clé de service, le formulaire le dit en français au lieu d'échouer", async () => {
+  it("7. sans clé de service, le formulaire le dit en français au lieu d'échouer, et repose la saisie", async () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
-    expect(await inscrireAgence({}, formulaire({}))).toEqual({ erreur: INDISPONIBLE });
+    const r = await inscrireAgence({}, formulaire({}));
+    expect(r).toMatchObject({ erreur: INDISPONIBLE });
+    expect(r.succes).toBeUndefined();
+    // La saisie refusée revient telle quelle (non normalisée : « 75 011 »), pour être reposée dans les champs.
+    expect(r.valeurs).toMatchObject({ email: `marie${DOMAINE}`, code_postal: "75 011" });
     expect(await lignes(`marie${DOMAINE}`)).toHaveLength(0);
   });
 
   it("8. le plafond : la trentième inscription de l'heure passe, la trente-et-unième est refusée en français", async () => {
     // On remplit le plafond horaire jusqu'à 29 inscriptions en tout (celles déjà en base comptent), par l'API des tests.
     const { rows: [{ n }] } = await sql.query("select count(*)::int n from public.liste_attente_agences where created_at > now() - interval '1 hour'");
+    // Garde : si le banc partagé porte déjà 30 lignes de l'heure (restes d'un autre parcours), la boucle n'insérerait rien et la
+    // « trentième » échouerait sur le plafond sans dire pourquoi.
+    expect(n, "le banc porte déjà 30 inscriptions dans l'heure : nettoyez public.liste_attente_agences avant de rejouer ce cas").toBeLessThanOrEqual(29);
     for (let i = 0; i < 29 - n; i++) {
       await sql.query(
         "insert into public.liste_attente_agences (agence, contact, email, code_postal, nb_lots) values ('Charge', 'Charge', $1, '75001', 'moins_de_50')",
@@ -149,8 +160,9 @@ describe.skipIf(!actif)("liste d'attente des agences — l'inscription de bout e
     }
     expect(await inscrireAgence({}, formulaire({ email: `trentieme${DOMAINE}` }))).toEqual(SUCCES);
     const refus = await inscrireAgence({}, formulaire({ email: `trente-et-unieme${DOMAINE}` }));
-    expect(refus).toEqual({ erreur: REFUS_PLAFOND });
+    expect(refus).toMatchObject({ erreur: REFUS_PLAFOND });
     expect(refus.succes).toBeUndefined();
+    expect(refus.valeurs).toMatchObject({ email: `trente-et-unieme${DOMAINE}` });
     expect(await lignes(`trente-et-unieme${DOMAINE}`)).toHaveLength(0);
   });
 });

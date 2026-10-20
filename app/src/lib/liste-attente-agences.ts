@@ -65,6 +65,9 @@ const CONTROLE = new RegExp(`[${car(0)}-${car(0x1f)}${car(0x7f)}]`);
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const texte = (f: FormData, nom: string) => String(f.get(nom) ?? "").replace(/\r\n?/g, "\n").trim();
+/** Un caractère de contrôle (tabulation collée avec un texte, par exemple) : dit pour ce qu'il est, pas comme une longueur dépassée. */
+const caractereNonAdmis = (champ: string, suite = "retirez-le") =>
+  `${champ} contient un caractère invisible non admis (une tabulation, par exemple) : ${suite}.`;
 
 export function estTranche(code: string): code is TrancheLots {
   return TRANCHES_LOTS.some((t) => t.code === code);
@@ -88,23 +91,29 @@ export function validerInscriptionAgence(f: FormData): { valeurs: InscriptionAge
   const message = texte(f, "message");
 
   if (!agence) return { erreur: "Indiquez le nom de votre agence." };
-  if (agence.length > BORNES_LISTE_ATTENTE.agence || CONTROLE.test(agence)) {
+  if (agence.length > BORNES_LISTE_ATTENTE.agence) {
     return { erreur: `Le nom de l'agence ne doit pas dépasser ${BORNES_LISTE_ATTENTE.agence} caractères.` };
   }
+  if (CONTROLE.test(agence)) return { erreur: caractereNonAdmis("Le nom de l'agence") };
   if (!contact) return { erreur: "Indiquez votre nom." };
-  if (contact.length > BORNES_LISTE_ATTENTE.contact || CONTROLE.test(contact)) {
+  if (contact.length > BORNES_LISTE_ATTENTE.contact) {
     return { erreur: `Votre nom ne doit pas dépasser ${BORNES_LISTE_ATTENTE.contact} caractères.` };
   }
+  if (CONTROLE.test(contact)) return { erreur: caractereNonAdmis("Votre nom") };
   if (!EMAIL.test(email) || email.length > BORNES_LISTE_ATTENTE.email || BLANCS_UNICODE.test(email) || CONTROLE.test(email)) {
     return { erreur: "Indiquez une adresse e-mail valide : c'est là que nous vous écrirons." };
   }
-  if (telephone && (telephone.length > BORNES_LISTE_ATTENTE.telephone || CONTROLE.test(telephone))) {
+  if (telephone && telephone.length > BORNES_LISTE_ATTENTE.telephone) {
     return { erreur: `Le téléphone ne doit pas dépasser ${BORNES_LISTE_ATTENTE.telephone} caractères.` };
   }
+  if (telephone && CONTROLE.test(telephone)) return { erreur: caractereNonAdmis("Le téléphone") };
   if (!/^[0-9]{5}$/.test(codePostal)) return { erreur: "Indiquez le code postal de l'agence : cinq chiffres." };
   if (!estTranche(nbLots)) return { erreur: "Indiquez le nombre de lots que vous gérez." };
-  if (message && (message.length > BORNES_LISTE_ATTENTE.message || CONTROLE_SAUF_SAUT.test(message))) {
+  if (message && message.length > BORNES_LISTE_ATTENTE.message) {
     return { erreur: `Votre message ne doit pas dépasser ${BORNES_LISTE_ATTENTE.message} caractères.` };
+  }
+  if (message && CONTROLE_SAUF_SAUT.test(message)) {
+    return { erreur: caractereNonAdmis("Votre message", "seuls les sauts de ligne sont acceptés") };
   }
 
   return {

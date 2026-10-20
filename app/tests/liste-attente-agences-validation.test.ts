@@ -83,14 +83,14 @@ describe("chaque refus, dans l'ordre des champs du formulaire", () => {
     expect(erreur({ agence: "   " })).toBe("Indiquez le nom de votre agence.");
     expect(valeurs({ agence: "A".repeat(120) }).agence).toHaveLength(120);
     expect(erreur({ agence: "A".repeat(121) })).toBe("Le nom de l'agence ne doit pas dépasser 120 caractères.");
-    expect(erreur({ agence: `Agence${SONNERIE}du Parc` })).toBe("Le nom de l'agence ne doit pas dépasser 120 caractères.");
+    expect(erreur({ agence: `Agence${SONNERIE}du Parc` })).toBe("Le nom de l'agence contient un caractère invisible non admis (une tabulation, par exemple) : retirez-le.");
   });
 
   it("2. le nom du contact : obligatoire, 120 caractères au plus, sans caractère de contrôle", () => {
     expect(erreur({ contact: "" })).toBe("Indiquez votre nom.");
     expect(valeurs({ contact: "B".repeat(120) }).contact).toHaveLength(120);
     expect(erreur({ contact: "B".repeat(121) })).toBe("Votre nom ne doit pas dépasser 120 caractères.");
-    expect(erreur({ contact: `Marie${TABULATION}Durand` })).toBe("Votre nom ne doit pas dépasser 120 caractères.");
+    expect(erreur({ contact: `Marie${TABULATION}Durand` })).toBe("Votre nom contient un caractère invisible non admis (une tabulation, par exemple) : retirez-le.");
   });
 
   it("3. l'adresse e-mail : une arobase, un domaine à deux lettres au moins, 254 caractères au plus, aucun blanc", () => {
@@ -116,7 +116,7 @@ describe("chaque refus, dans l'ordre des champs du formulaire", () => {
     expect(valeurs({ telephone: "+33 1 02 03 04 05" }).telephone).toBe("+33 1 02 03 04 05");
     expect(valeurs({ telephone: "0".repeat(40) }).telephone).toHaveLength(40);
     expect(erreur({ telephone: "0".repeat(41) })).toBe("Le téléphone ne doit pas dépasser 40 caractères.");
-    expect(erreur({ telephone: `01${TABULATION}02` })).toBe("Le téléphone ne doit pas dépasser 40 caractères.");
+    expect(erreur({ telephone: `01${TABULATION}02` })).toBe("Le téléphone contient un caractère invisible non admis (une tabulation, par exemple) : retirez-le.");
   });
 
   it("5. le code postal : cinq chiffres, les espaces retirés (« 75 011 » devient « 75011 »)", () => {
@@ -146,10 +146,11 @@ describe("chaque refus, dans l'ordre des champs du formulaire", () => {
     // Les fins de ligne Windows comptent pour un caractère après normalisation : 998 lettres + CRLF + 1 lettre = 1000.
     expect(valeurs({ message: `${"M".repeat(998)}\r\nM` }).message).toBe(`${"M".repeat(998)}\nM`);
     expect(valeurs({ message: "Première ligne\r\nSeconde ligne\rTroisième" }).message).toBe("Première ligne\nSeconde ligne\nTroisième");
-    // Les autres caractères de contrôle restent refusés, même dans le message (une tabulation en bout de chaîne, elle,
-    // part avec les blancs du trim).
-    expect(erreur({ message: `Bon${TABULATION}jour` })).toBe("Votre message ne doit pas dépasser 1000 caractères.");
-    expect(erreur({ message: `Bon${SONNERIE}jour` })).toBe("Votre message ne doit pas dépasser 1000 caractères.");
+    // Les autres caractères de contrôle restent refusés, même dans le message, avec leur propre motif (relecture du 20/10 :
+    // le message de longueur ne décrivait pas la cause) ; une tabulation en bout de chaîne, elle, part avec les blancs du trim.
+    const REFUS_CONTROLE = "Votre message contient un caractère invisible non admis (une tabulation, par exemple) : seuls les sauts de ligne sont acceptés.";
+    expect(erreur({ message: `Bon${TABULATION}jour` })).toBe(REFUS_CONTROLE);
+    expect(erreur({ message: `Bon${SONNERIE}jour` })).toBe(REFUS_CONTROLE);
     expect(valeurs({ message: `Bonjour${TABULATION}` }).message).toBe("Bonjour");
   });
 

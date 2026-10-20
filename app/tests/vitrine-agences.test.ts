@@ -138,9 +138,11 @@ describe("la page /agences", () => {
     expect(page).toMatch(apostrophe("Date d'ouverture et tarifs ne sont pas encore fixés : les agences inscrites en sont informées en premier."));
     expect(page).toContain("<FormulaireListeAttenteAgences />");
     // Trois à cinq points « en préparation », fondés sur l'espace /agence existant.
-    const puces = page.match(/<li><Check aria-hidden \/>/g) ?? [];
+    const puces = page.match(/<li><Check aria-hidden \/>.*?<\/li>/g) ?? [];
     expect(puces.length).toBeGreaterThanOrEqual(3);
     expect(puces.length).toBeLessThanOrEqual(5);
+    // Chacune est FORMULÉE « en préparation » : aucune promesse ferme d'inclusion (relecture du 20/10, quatrième puce).
+    for (const puce of puces) expect(puce).toContain("(en préparation)");
   });
 
   it("ni la page ni le formulaire ne promettent un prix ou une date d'ouverture", () => {
@@ -194,6 +196,8 @@ describe("le site mène à la page", () => {
     const article = /<Article titre="Agences de gestion">([\s\S]*?)<\/Article>/.exec(tarifs)![1];
     expect(article.match(/<li>/g)).toHaveLength(2);
     expect(article).toContain('href="/agences"');
+    // L'antécédent est dans la phrase (« l'ouverture de l'offre aux agences »), pas dans la puce précédente.
+    expect(article).toMatch(apostrophe("Pour être prévenu de l'ouverture de l'offre aux agences, "));
     expect(sansCommentaires(article)).not.toMatch(/€|\b20[2-9][0-9]\b/);
   });
 
@@ -216,6 +220,25 @@ describe("le site mène à la page", () => {
     expect(inventaire.filter((r) => r.path === "/agences").map((r) => r.persona)).toEqual(["public"]);
   });
 
+  it("la recette de production et l'audit du site publié partent aussi de /agences", () => {
+    // La recette (e2e/recette-production/public.spec.ts) énumère les pages publiques dans PAGES ; sans /agences, la page
+    // n'était recettée que si le robot suivait le lien du pied. L'audit (e2e/perimetre-audit.mjs) : tests/audit-perimetre.test.ts.
+    const recette = lire("e2e/recette-production/public.spec.ts");
+    const pages = recette.slice(recette.indexOf("const PAGES = ["), recette.indexOf("];", recette.indexOf("const PAGES = [")));
+    expect(pages).toContain('"/agences"');
+    expect(pages).toContain('"/tarifs"');
+  });
+
+  it("la règle de lib/supabase/service.ts recense cette porte d'écriture par la clé de service", () => {
+    // Les exceptions « tenues à la main » sont consignées dans l'en-tête de service.ts ; l'action s'en déclare une (X02) :
+    // la règle doit la connaître, comme elle connaît actions/devis.ts.
+    const service = lire("src/lib/supabase/service.ts");
+    const enTete = service.slice(0, service.indexOf('import "server-only"'));
+    expect(enTete).toContain("src/app/actions/devis.ts");
+    expect(enTete).toContain("src/app/actions/liste-attente-agences.ts");
+    expect(enTete).toContain("liste_attente_agences");
+  });
+
   it("/confidentialite : la liste d'attente dans les finalités, les données traitées et les durées, avec le repère à confirmer", () => {
     const confidentialite = lire("src/app/confidentialite/page.tsx");
     expect(confidentialite.match(apostrophe("iste d'attente des agences") as RegExp)).not.toBeNull();
@@ -225,6 +248,9 @@ describe("le site mène à la page", () => {
     for (const donnee of ["nom de l'agence", "nom du contact", "adresse électronique", "téléphone", "code postal", "nombre de lots", "message"]) {
       expect(confidentialite, donnee).toMatch(apostrophe(donnee));
     }
+    // L'état du suivi que la console enregistre sur la ligne (colonne `statut`) est aussi une donnée sur le prospect.
+    expect(confidentialite).toMatch(apostrophe("l'état de notre suivi (en attente, contactée, devenue cliente,"));
+    expect(confidentialite).toContain("retirée à votre demande)");
     expect(confidentialite).toContain("à confirmer par le juriste et le DPO");
   });
 });

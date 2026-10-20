@@ -76,7 +76,7 @@ export default function PageTarifs() {
         <Article titre="Agences de gestion">
           <ul className="list-disc space-y-1 pl-5">
             <li>L&apos;offre pour les agences de gestion locative et sa grille ne sont pas publiées : elles sont en préparation. Cette page ne concerne que les particuliers et les SCI.</li>
-            <li>Pour être prévenu de son ouverture, <Link href="/agences" className="lien-texte">inscrivez votre agence sur la liste d&apos;attente</Link>. Date d&apos;ouverture et tarifs ne sont pas encore fixés.</li>
+            <li>Pour être prévenu de l&apos;ouverture de l&apos;offre aux agences, <Link href="/agences" className="lien-texte">inscrivez votre agence sur la liste d&apos;attente</Link>. Date d&apos;ouverture et tarifs ne sont pas encore fixés.</li>
           </ul>
         </Article>
 

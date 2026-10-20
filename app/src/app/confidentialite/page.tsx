@@ -175,14 +175,16 @@ export default async function PageConfidentialite() {
         <p>
           <b className="font-semibold">La liste d&apos;attente des agences.</b>{" "}
           Les informations transmises depuis la page « Agences de gestion »
-          — nom de l&apos;agence, nom du contact, adresse électronique,
+          (nom de l&apos;agence, nom du contact, adresse électronique,
           téléphone si vous l&apos;indiquez, code postal de l&apos;agence,
-          tranche du nombre de lots gérés, message si vous en laissez un —, la
-          page du site d&apos;où vient l&apos;inscription et sa date, puis la
-          date à laquelle nous vous avons prévenu, servent uniquement à vous
-          prévenir de l&apos;ouverture de l&apos;offre aux agences. Elles ne
-          servent à aucune autre sollicitation, et vous pouvez en demander la
-          suppression à tout moment.
+          tranche du nombre de lots gérés, message si vous en laissez un), la
+          page du site d&apos;où vient l&apos;inscription et sa date,
+          l&apos;état de notre suivi (en attente, contactée, devenue cliente,
+          retirée à votre demande), puis la date à laquelle nous vous avons
+          prévenu, servent uniquement à vous prévenir de l&apos;ouverture de
+          l&apos;offre aux agences. Elles ne servent à aucune autre
+          sollicitation, et vous pouvez en demander la suppression à tout
+          moment.
         </p>
         <p>
           <b className="font-semibold">Ce que Gerimmo ne fait pas.</b> Il ne lit

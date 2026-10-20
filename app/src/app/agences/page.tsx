@@ -39,7 +39,7 @@ export default function PageAgences() {
                 <li><Check aria-hidden /> Un portefeuille de mandants et de lots, avec les mandats et les versements aux mandants (en préparation).</li>
                 <li><Check aria-hidden /> Les rapports de gestion et les écritures qui les accompagnent (en préparation).</li>
                 <li><Check aria-hidden /> Une équipe à plusieurs comptes, avec des rôles distincts pour l’administrateur et les agents (en préparation).</li>
-                <li><Check aria-hidden /> L’espace locataire, le carnet d’artisans et les alertes, tels qu’ils existent déjà pour les propriétaires.</li>
+                <li><Check aria-hidden /> L’espace locataire, le carnet d’artisans et les alertes, repris de l’espace des propriétaires (en préparation).</li>
               </ul>
               <p>Date d’ouverture et tarifs ne sont pas encore fixés : les agences inscrites en sont informées en premier.</p>
             </div>

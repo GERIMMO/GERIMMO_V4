@@ -64,7 +64,7 @@ jobs:
           ref: main
           persist-credentials: false
           sparse-checkout: app/scripts/atelier
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: proposition
           path: correction

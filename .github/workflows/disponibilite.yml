@@ -1,0 +1,36 @@
+name: Disponibilité publique Gerimmo
+
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: disponibilite-publique
+  cancel-in-progress: false
+
+jobs:
+  verifier:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Vérifier le site et sa connexion à la base, sans session
+        env:
+          GERIMMO_BILAN_DISPONIBILITE: ${{ runner.temp }}/disponibilite.json
+        run: node app/scripts/surveillance/disponibilite.mjs
+      - name: Conserver le bilan sans données personnelles
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: disponibilite-publique
+          path: ${{ runner.temp }}/disponibilite.json
+          if-no-files-found: warn
+          retention-days: 7

@@ -117,7 +117,9 @@ describe.skipIf(!cle)("Paiements simulés chez Stripe et application dans Gerimm
     const s = await suivi.stripe!.subscriptions.create({ customer: suivi.client!, default_payment_method: pm.id,
       items: [{ price: suivi.prix!, quantity: 2 }], payment_behavior: "error_if_incomplete" });
     suivi.abonnement = s.id; expect(s.livemode).toBe(false); expect(s.status).toBe("active");
-    const id = `evt_recette_${randomUUID()}`;
+    // Comme les références Stripe, les événements fictifs n'ont pas de tiret.
+    // La garde SQL conserve ainsi son refus des références mal formées.
+    const id = `evt_recette_${randomUUID().replaceAll("-", "")}`;
     const corps = JSON.stringify({ id, object: "event", type: "customer.subscription.created", livemode: false, data: { object: s } });
     const requete = () => new Request("http://localhost:3100/api/stripe/webhook", { method: "POST", body: corps,
       headers: { "stripe-signature": suivi.stripe!.webhooks.generateTestHeaderString({ payload: corps, secret }) } });
@@ -150,7 +152,7 @@ describe.skipIf(!cle)("Paiements simulés chez Stripe et application dans Gerimm
     expect(await synchroniserQuantite(suivi.stripe!, { subscription: suivi.abonnement!, quantite: 3 })).toMatchObject({ ok: true, quantite: 3 });
     expect(await synchroniserQuantite(suivi.stripe!, { subscription: suivi.abonnement!, quantite: 0 })).toMatchObject({ ok: true, resiliee: true });
     const s = await suivi.stripe!.subscriptions.cancel(suivi.abonnement!);
-    const corps = JSON.stringify({ id: `evt_recette_${randomUUID()}`, object: "event", type: "customer.subscription.deleted", livemode: false, data: { object: s } });
+    const corps = JSON.stringify({ id: `evt_recette_${randomUUID().replaceAll("-", "")}`, object: "event", type: "customer.subscription.deleted", livemode: false, data: { object: s } });
     const r = await POST(new Request("http://localhost:3100/api/stripe/webhook", { method: "POST", body: corps,
       headers: { "stripe-signature": suivi.stripe!.webhooks.generateTestHeaderString({ payload: corps, secret }) } }));
     expect(r.status).toBe(200);
@@ -245,7 +247,7 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
   }, 180000);
 
   async function webhook(s: Stripe.Subscription, type = "customer.subscription.updated") {
-    const corps = JSON.stringify({ id: `evt_grille_${randomUUID()}`, object: "event", type, livemode: false, data: { object: s } });
+    const corps = JSON.stringify({ id: `evt_grille_${randomUUID().replaceAll("-", "")}`, object: "event", type, livemode: false, data: { object: s } });
     const r = await POST(new Request("http://localhost:3100/api/stripe/webhook", { method: "POST", body: corps,
       headers: { "stripe-signature": nouvelle.stripe!.webhooks.generateTestHeaderString({ payload: corps, secret }) } }));
     expect(r.status).toBe(200);

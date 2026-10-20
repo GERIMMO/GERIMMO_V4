@@ -45,7 +45,7 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - name: Tester les contrôles de publication sans connexion externe
-        run: node --test scripts/deploiement/controle.test.mjs scripts/atelier/controle.test.mjs scripts/sauvegarde/fichiers.test.mjs
+        run: node --test scripts/deploiement/controle.test.mjs scripts/deploiement/verifier-environnement.test.mjs scripts/surveillance/disponibilite.test.mjs scripts/atelier/controle.test.mjs scripts/sauvegarde/fichiers.test.mjs
       - run: npm ci
       # 03/10 (décision du porteur) : seules les dépendances livrées comptent.
       # Les outils de développement (CLI shadcn, greffon ESLint) tirent des
@@ -94,8 +94,8 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm run typecheck
-      - name: Installer Chromium pour les PDF et les essais interactifs
-        run: npx playwright install --with-deps chromium
+      - name: Installer Chromium et WebKit pour les PDF et les essais interactifs
+        run: npx playwright install --with-deps chromium webkit
       - name: Tester la logique et produire les documents PDF
         run: |
           export GERIMMO_CHROME="$(node -p "require('@playwright/test').chromium.executablePath()")"
@@ -115,6 +115,12 @@ jobs:
           # Même hôte que le site : Chromium accepte les cookies Secure du build local sur localhost.
           E2E_BASE_URL: http://localhost:3100
         run: npm run test:e2e
+      - name: Vérifier les parcours essentiels sur WebKit mobile
+        env:
+          E2E_CI: "1"
+          E2E_USE_BUILD: "1"
+          E2E_BASE_URL: http://localhost:3100
+        run: npm run test:e2e:webkit
       - name: Conserver les résultats du navigateur
         if: always()
         uses: actions/upload-artifact@v6
@@ -122,6 +128,7 @@ jobs:
           name: essais-interactifs
           path: |
             app/e2e/.results
+            app/e2e/.results-webkit
             app/e2e/.audit
             app/tmp/charge
           include-hidden-files: true

@@ -6351,3 +6351,9 @@ Le contrôle de la maintenance des devis du 29 octobre à 04 h 30 UTC est ajout�
 Trois routes spécialisées conservent les contrôles d’accès et d’empreinte ; au-delà de 4 Mio, la réponse devient une visionneuse légère et le navigateur vérifie à nouveau les octets avant affichage ou téléchargement. Compartiments explicitement bornés, lecture limitée à 50 Mio pendant le flux, refus des archives altérées. Un gros PDF validé reçoit un accusé de réception au lieu de dépasser la limite de réponse alors qu’il est déjà enregistré.
 
 123 tests ciblés, deux essais de navigateur, types et lint réussis en local. Les dépôts directs et générations historiques sans archive restent ouverts. La CI complète doit repasser sur ce complément ; CI747 reste la preuve de la version précédente. Aucun réglage de production changé.
+
+## [2026-10-20] verification | Validation éditoriale activée et contrôle CI748
+
+Après accord explicite du dirigeant, le réglage « Validation obligatoire » a été enregistré en production à 10 h 17 Paris. L’interface confirme « Après votre validation » et « Pilotage marketing mis à jour ». L’article programmé à 9 h était déjà diffusé au moment de la reprise ; aucune suppression ni nouvelle publication effectuée.
+
+La CI748 compte 8 989 tests de logique réussis, 17 non exécutés et un échec : la garde des saisies relève la conversion de Content-Length. Ajout de l’exception exacte pour cet en-tête indicatif, dont la limite de 50 Mio est aussi imposée au flux réel. Les 43 tests ciblés passent après correction. Aucun contrôle des montants désactivé. Les tests navigateur complets ont été ignorés dans ce passage en échec ; une nouvelle CI du complément reste nécessaire. PR213 toujours en brouillon, sans déploiement.

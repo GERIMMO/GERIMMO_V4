@@ -53,11 +53,13 @@ Le tableau de bord Supabase a été consulté en lecture seule : offre Pro, rég
 
 Le relevé des fichiers ne retrouve pas le nombre ancien annoncé dans le prompt : 36 objets dans le bucket de documents ; huit sans fiche `documents`, dont quatre référencés par d'autres tables métier. **Quatre candidats sans référence dans les quatre tables de dépôt examinées** restent à qualifier ; aucune suppression effectuée.
 
-Les réglages d'authentification, la protection GitHub, la validation marketing obligatoire et les interrupteurs de signature n'ont pas été modifiés. Les achats, envois réels, choix de conservation et validations juridiques restent distincts de la préparation technique.
+Les réglages d'authentification, la protection GitHub et les interrupteurs de signature n'ont pas été modifiés. Après l’accord explicite du dirigeant, la validation marketing obligatoire a été enregistrée le 20 octobre à 10 h 17 Paris : l’interface confirme « Après votre validation » et « Pilotage marketing mis à jour ». L’article programmé à 9 h était déjà diffusé ; le réglage protège les prochaines diffusions. Les achats, envois réels, choix de conservation et validations juridiques restent distincts de la préparation technique.
 
 La console Stripe confirme un seul webhook actif avec les sept événements attendus. Aucune livraison n’est affichée du 14 au 20 octobre : ce constat n’est pas une recette de réception. Les nouvelles tentatives sont actives, jusqu’à huit sur deux semaines, puis annulation ; numérotation séquentielle du compte. Ces règles et les notifications désactivées restent à aligner avec les choix contractuels. Aucun réglage modifié. Le coût réel des essais Zoho reste inaccessible sans reconnexion.
 
 ## Mise en service
+
+La CI748 a réussi 8 989 tests de logique et échoué sur un seul contrôle syntaxique, qui classait l’en-tête HTTP `Content-Length` de la visionneuse comme une saisie de formulaire. Une exception précise documente la double limite de 50 Mio, à l’en-tête et pendant la lecture effective du flux. Les 43 tests ciblés passent après correction ; les contrôles de saisie des montants restent inchangés. Les tests navigateur complets n’ont pas été exécutés dans la CI748 et la nouvelle version doit encore passer la CI.
 
 Le protocole, l'ordre des migrations, la précondition de souscription fermée et le retour figurent dans `app/docs/livraison-audit-20-octobre.md`. La relecture du code ne remplace ni la simulation du chantier, ni une CI sur le SHA exact, ni la recette de production.
 

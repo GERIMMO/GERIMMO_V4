@@ -250,3 +250,5 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - [[Suites de l'audit — 20 octobre 2026|Suites de l’audit du 20 octobre]] : conclusion locale CI747 sur le dernier SHA préparé, 200 tests navigateur réussis ; contrôle différé des devis prévu le 29 octobre, sans mise en production.
 
 - **20 octobre — archives volumineuses** : lecture des devis, preuves et pièces privées avec empreinte vérifiée, taille bornée et confirmation de génération légère ; complément testé localement. Voir [[Suites de l'audit — 20 octobre 2026]].
+
+- **20 octobre — validation éditoriale** : accord du dirigeant enregistré à 10 h 17 Paris, les prochaines diffusions attendent sa validation ; article de 9 h déjà diffusé. CI748 : exception de taille HTTP corrigée et 43 tests ciblés réussis, nouvelle CI attendue. Voir [[Suites de l'audit — 20 octobre 2026]].

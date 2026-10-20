@@ -3,7 +3,7 @@ type: persona
 tags: [role, agence]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-24
+updated: 2026-10-20
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-17-marque-blanche]]"]
 ---
 
@@ -49,6 +49,15 @@ portail **AGENCE**.
 - `can_manage_organization()` = vrai → renommer l'org, inviter/suspendre/archiver, assigner rôles.
 - Création/modification de patrimoines, résidences, biens ; gestion des loyers (`can_manage_rent`).
 - **Non** : ne valide pas les artisans ([[Super Admin]] uniquement) ; pas de `DELETE` (archivage).
+
+## Hors V1 publique — liste d'attente (20/10/2026)
+Les agences sont **hors de la V1 publique depuis le 13/10/2026** (fiches PUB-01 et PUB-02 de
+l'audit du 13/10 ; code et espace `/agence` conservés) : l'administrateur d'agence ne peut
+pas ouvrir son organisation depuis le site public. Décision du dirigeant du 20/10 : une
+**liste d'attente** lui est ouverte sur le site vitrine (page `/agences` : nom de l'agence,
+contact, adresse, code postal, tranche de lots) pour être prévenu de l'ouverture de l'offre
+aux agences ; aucun e-mail ne lui est envoyé, le dirigeant le recontacte lui-même. Lot
+préparé, non déployé à cette date — [[Liste d'attente des agences]].
 
 ## Relations
 - Encadre les [[Agent immobilier|agents immobiliers]] de son agence.

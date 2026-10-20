@@ -3,7 +3,7 @@ type: synthesis
 tags: [audit, publication, securite, paiement, signature-electronique, juridique, rgpd, exploitation, octobre-2026]
 status: in-progress
 created: 2026-10-19
-updated: 2026-10-19
+updated: 2026-10-20
 sources: []
 ---
 
@@ -138,6 +138,8 @@ Quatre-vingt-dix points, dont les principaux : réglages Supabase Auth illisible
 ## 10. Suites données le 19 octobre
 
 Le dirigeant a demandé le jour même : « Corrige tout ce que tu peux corriger, ce qui t'est impossible doit être sur le prompt Codex ». Les correctifs réalisables sans décision métier ni accès extérieur sont traités par lots dans le dépôt (voir les entrées `deploy` du journal à partir du 19/10 et [[Recette de production]]) ; tout le reste est consigné dans un prompt unique remis au dirigeant pour Codex. Cette section sera complétée avec l'état de chaque lot après déploiement.
+
+- **M2** (table `liste_attente`, § 4) — 20/10 : `liste_attente` conservée pour l'instant ; les agences ont leur propre table `liste_attente_agences` ([[Liste d'attente des agences]], lot préparé, non déployé à cette date).
 
 > [!warning] Points à trancher / contradictions
 > - Le journal du 18/10 dit « aucun achat » chez Zoho ; le dossier technique `app/docs/signature-electronique-bail.md` dit « 500 crédits après le paiement effectué par le titulaire ». Montant et conditions d'offre non consignés.

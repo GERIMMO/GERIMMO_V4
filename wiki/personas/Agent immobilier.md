@@ -3,7 +3,7 @@ type: persona
 tags: [role, agence]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-09
+updated: 2026-10-20
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]"]
 ---
 
@@ -53,6 +53,15 @@ l'agence A, ses mandats sont réaffectés (RM-18.1.4), son adhésion A passe en 
 compte**. **Il n'emporte aucune donnée.** La suppléance entre agents et le transfert de
 portefeuille restent à spécifier (point P1.1, phase B —
 [[État du projet et décisions ouvertes]]).
+
+## Hors V1 publique — liste d'attente (20/10/2026)
+L'agent immobilier appartient à une agence, et les agences sont **hors de la V1 publique
+depuis le 13/10/2026** (fiches PUB-01 et PUB-02 de l'audit du 13/10) : aucun agent ne peut
+être invité depuis une organisation ouverte par le site public. Décision du dirigeant du
+20/10 : son agence peut s'inscrire sur la **liste d'attente** du site vitrine (page
+`/agences`) pour être prévenue de l'ouverture de l'offre aux agences ; aucun e-mail n'est
+envoyé, le dirigeant recontacte lui-même. Lot préparé, non déployé à cette date —
+[[Liste d'attente des agences]].
 
 ## Relations
 - Subordonné à l'[[Administrateur d'agence]], qui **hérite de toutes ses capacités** (« agent ++ »)

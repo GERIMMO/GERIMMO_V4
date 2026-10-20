@@ -116,7 +116,7 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
 | `message` | `text` | null ou ≤ 1 000, non vide, aucun caractère de contrôle sauf le saut de ligne |
 | `source` | `text` | null ou ≤ 80 (page d'origine : `/agences`) |
 | `statut` | `text not null`, défaut `en_attente` | `en_attente`, `contactee`, `convertie`, `retiree` |
-| `contactee_le` | `timestamptz` | date du premier contact du dirigeant |
+| `contactee_le` | `timestamptz` | date du dernier passage à « Contactée » (posée à chaque marquage, conservée lors d'une remise en attente) |
 | `created_at` | `timestamptz not null` | `now()` |
 
 - **Index** : unique sur `lower(email)` (`liste_attente_agences_email_lower_idx` — le doublon
@@ -154,10 +154,16 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
   service.
 - **Statuts** (libellés du module commun) : `en_attente` « En attente » → `contactee`
   « Contactée » → `convertie` « Devenue cliente » ou `retiree` « Retirée à sa demande ».
-- **Actions prévues au contrat du 20/10** : « Marquer comme contactée » (pose
-  `contactee_le`) et « Remettre en attente ». Le passage à `convertie` ou `retiree` est
-  admis par la table mais **aucune action de console n'est prévue dans le contrat** : à
-  préciser (voir le callout).
+- **Gestes** (boutons de la console, un formulaire par agence, sans double clic) :
+  « Marquer comme contactée » (pose `contactee_le`), « Remettre en attente », « Devenue
+  cliente », « Retirée à sa demande ». Depuis « En attente » ou « Contactée », on peut passer
+  à contactée / en attente, devenue cliente ou retirée ; depuis « Devenue cliente » ou
+  « Retirée à sa demande », seul le retour en attente est proposé. L'action serveur
+  (`changerStatutAgence`) n'admet que les quatre statuts du module commun, relit la ligne
+  avant d'écrire et ne tient jamais zéro ligne touchée pour un succès (statut déjà posé,
+  ligne disparue ou geste refusé par la RLS : refus lisible, « rechargez la page »). Chaque
+  changement est tracé au journal de supervision (`liste_attente_statut_modifie`) ; l'export
+  CSV l'est aussi (`liste_attente_exportee`).
 - **Export CSV protégé** (super-administrateur, après second facteur comme toute la
   console).
 
@@ -184,12 +190,14 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
   seulement d'écrire « dès l'ouverture de l'offre aux agences, sans autre sollicitation ».
 - **Pas de relance automatique**, ni de courrier d'attente, ni de lettre d'information : la
   promesse faite au visiteur est un seul courrier à l'ouverture.
-- **Trace** : « Marquer comme contactée » date le premier contact (`contactee_le`) ; la
-  conversion ou le retrait se notent par le statut.
-- **Suppression sur demande** : si une agence demande à être retirée, la marquer `retiree`
-  (« Retirée à sa demande ») ; l'effacement physique de la ligne n'est possible qu'avec la
-  clé de service (aucun écran). Le délai et la forme de la réponse à la personne relèvent de
-  [[RGPD]] — à relire par le juriste.
+- **Trace** : « Marquer comme contactée » pose `contactee_le`, date du dernier passage à
+  « Contactée » (posée à chaque marquage, conservée lors d'une remise en attente) ; la
+  conversion ou le retrait se notent par le statut (« Devenue cliente », « Retirée à sa
+  demande »), et chaque changement de statut est tracé au journal de supervision.
+- **Suppression sur demande** : si une agence demande à être retirée, la marquer « Retirée à
+  sa demande » depuis la console (statut `retiree`) ; l'effacement physique de la ligne
+  n'est possible qu'avec la clé de service (aucun écran). Le délai et la forme de la
+  réponse à la personne relèvent de [[RGPD]] — à relire par le juriste.
 - **Avant le déploiement** : décider la base légale et la durée de conservation (P11), et
   relire le paragraphe de `/confidentialite`.
 
@@ -230,8 +238,6 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
 >   garder, ou fusionner son usage avec la V1 particuliers ?
 > - **E-mail de 5 h du relais** : faut-il y compter les inscriptions d'agences en attente
 >   (comme les demandes de contact depuis le 19/10, M16) ? Hors du lot du 20/10.
-> - **Statuts `convertie` et `retiree`** : admis par la table, sans action de console dans le
->   contrat du 20/10 ; les proposer dans la console, ou les poser à la main ?
 > - **Effacement physique** d'une ligne à la demande d'une agence : aucun écran ; geste par
 >   la clé de service à décrire, ou statut `retiree` suffisant ? À relire par le juriste.
 > - **Paragraphe de `/confidentialite`** et libellés du formulaire : factuels et neutres, à

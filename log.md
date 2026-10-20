@@ -6305,3 +6305,14 @@ Durcissement de /auth/confirm (consigne hors dépôt). Complément préparé et 
 ## [2026-10-20] test | Suite complète après dépôts et retours
 
 8 813 tests réussis, 38 non exécutés, 611 fichiers réussis et sept ignorés. Quatre retours intacts éprouvés en autocommit sur une copie de base locale puis migrations rejouées ; comptes et objets conservés. Les transactions externes, y compris un lot SQL unique avec erreur finale, restent annulables. Compilation, types et lint réussis. Aucun essai de production ni nouvelle publication effectué.
+
+
+## [2026-10-20] correction | Fichiers volumineux et atomicité des retours
+
+Préparation locale complémentaire de la PR213 : dépôts bornés à 4 Mio, refus avant envoi avec conservation de la saisie, lecture directe Storage pour cinq routes après contrôle des droits et journalisation. Banc navigateur sur PNG de 6 Mio, miniature, redirection de téléchargement, PDF de deux pages et reprise après panne ; deux parcours de formulaire réussis avec leur préparation. Dépôts directs signés, routes spécifiques à empreinte et Safari iPhone encore ouverts (G5).
+
+Les 71 retours historiques sont convertis en instruction atomique sans changer leur corps métier, vérifié par contre-relecture. Le banc de 75 fichiers exige l’erreur finale 22012 pour 69 retours exécutables et le refus métier précis P0001 pour six dépendances encore présentes ; aucune écriture témoin conservée. Reproduction rouge/verte sur une copie isolée : une écriture conservée avec l’ancien retour, zéro avec le corrigé. Aucun retour appliqué en production. Les comptes permanents restent conservés.
+
+## [2026-10-20] verification | Suite globale après fichiers et retours
+
+8 918 tests réussis, 38 non exécutés selon leurs prérequis ; compilation, types et lint vérifiés. Deux parcours de formulaire mobile et leur préparation réussis. Les trois premières versions de PR213 ont passé la CI ; le complément reste à contrôler sur son SHA. Aucun déploiement ni écriture en production.

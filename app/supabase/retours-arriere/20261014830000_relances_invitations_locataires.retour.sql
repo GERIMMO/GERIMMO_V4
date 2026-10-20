@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014830000_relances_invitations_locataires.sql (décision X16 du 15/10/2026, fiche REP-05 :
 -- relances automatiques des invitations de locataire à J+3 et J+10)
 --
@@ -22,17 +26,8 @@
 -- Rejouable : sur une base déjà revenue, chaque étape répond « rien à faire ».
 -- Usage : psql "$URL" -v ON_ERROR_STOP=1 -f 20261014830000_relances_invitations_locataires.retour.sql
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 
-begin;
 set local lock_timeout = '10s';
 
 -- 1/4 Les quatre fonctions des relances (aucun autre objet ne les appelle).
@@ -113,7 +108,6 @@ begin
   end if;
 end $retour_arriere$;
 
-commit;
 
 -- Vérification (lecture seule) : « antérieure (A) » attendue après le retour, « migrée (B) » avant.
 select 'table relances_invitations_locataires' as objet,
@@ -133,3 +127,5 @@ union all
 select 'déclencheur premier_envoi_invitation_locataire',
        case when exists (select 1 from pg_trigger where tgname = 'premier_envoi_invitation_locataire' and not tgisinternal)
             then 'migrée (B)' else 'antérieure (A)' end;
+$instructions_retour$;
+end $retour_atomique$;

@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014710000_artisan_avoir_facture_externe.sql (lot « avoir-facture-externe », décision D24-C)
 --
 -- NE PAS PLACER dans app/supabase/migrations/ et NE JAMAIS le passer à migrations.yml : ce fichier
@@ -28,16 +32,7 @@
 -- À jouer AVANT le retour de 20261014500000 (la fonction du jour de Paris), qui refuse tant qu'une fonction la cite.
 -- Indépendant des retours de 20261014310000 et 20261014311000 (blocs différents, dans l'un ou l'autre ordre).
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
-
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 -- Pré-contrôle en lecture seule, avant tout travail : aucun avoir émis, aucune facture annulée, jamais deux factures sur
 -- un même chantier (la contrainte d'origine ne pourrait pas revenir), et aucune AUTRE fonction ne lit la table des avoirs.
 do $retour_arriere$
@@ -65,7 +60,7 @@ begin
   end if;
 end $retour_arriere$;
 
-begin;
+
 set local lock_timeout = '10s';
 
 -- 1/6. artisan_externe_ecrire : la branche « annuler_facture » retirée, la garde du chantier terminé rétablie.
@@ -174,5 +169,5 @@ begin
     delete from supabase_migrations.schema_migrations where version = '20261014710000';
   end if;
 end $retour_arriere$;
-
-commit;
+$instructions_retour$;
+end $retour_atomique$;

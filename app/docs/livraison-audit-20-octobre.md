@@ -71,4 +71,13 @@ Le relevé de production en lecture seule ne trouve aucun circuit ni demande You
 
 ## Complément de vérification
 
-La relecture indépendante des dépôts n’a pas relevé de défaut de compatibilité résiduel. Le défaut de composition des retours a été corrigé par une instruction atomique : essais intacts en autocommit sur copie locale, dans une transaction séparée et avec une erreur dans le même message SQL. Comptes et objets conservés. Les 71 retours historiques utilisant l’ancienne garde temporelle restent à examiner ; ils ne sont pas certifiés par ces quatre essais.
+La relecture indépendante des dépôts n’a pas relevé de défaut de compatibilité résiduel. Le défaut de composition des retours a été corrigé par une instruction atomique : essais intacts en autocommit sur copie locale, dans une transaction séparée et avec une erreur dans le même message SQL. Comptes et objets conservés. Les 71 retours historiques utilisant l’ancienne garde temporelle ont également été convertis sans changement de leur corps métier (comparaison indépendante). Sur les 75 fichiers exacts, 69 atteignent l’erreur finale volontaire et six refusent explicitement leurs dépendances encore présentes ; chaque cas annule les écritures témoins. Les essais historiques vérifient aussi les retours réussis puis leurs réapplications. Cela ne dispense pas du contrôle des préconditions métier avant un retour réel.
+
+
+## Fichiers et taille des transferts
+
+Les nouveaux dépôts sont bornés à 4 Mio par fichier ; les formulaires contrôlent aussi le cumul avant envoi. Les saisies restent présentes en cas de refus. Le transport des actions est borné à 4 500 000 octets avec une marge pour les champs. Les PDF produits côté serveur et les archives existantes conservent leur plafond antérieur de 10 Mio.
+
+Cinq routes de lecture des documents utilisent un lien Storage d’une minute après les contrôles d’accès et la trace existants. La visionneuse reçoit le fichier directement depuis Storage et conserve une URL Gerimmo actualisable ; les téléchargements et miniatures utilisent une redirection. Le titre est échappé, les formats actifs ne sont pas affichés, l’origine du stockage est vérifiée et les réponses sont privées sans cache. Les PDF proposent une ouverture native en plein écran sur téléphone.
+
+Banc navigateur : PNG de 6 Mio, réponse initiale indisponible puis reprise, miniature, téléchargement par redirection et PDF de deux pages. Essai local du formulaire : refus avant tout POST et conservation de la pièce et de la date. **Limites G5 :** les dépôts directs signés restent à implémenter ; les routes spécifiques de devis et pièces privées avec contrôle d’empreinte restent à adapter. Le CORS du stockage réel et Safari iPhone doivent encore être vérifiés avant de clôturer ce point.

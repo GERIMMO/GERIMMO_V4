@@ -96,7 +96,7 @@ export async function preparerSignatureBail(org: string, bail: string, choix?: S
       if (retire.error) throw new Error("Le circuit vient de changer. Actualisez son suivi.");
     }
     const pdf = await rendrePdf(appliquerMarqueDocument(preparation.document,await chargerMarque(supabase,org)));
-    const depot = await deposerFichierGed(supabase,user,org,new File([Uint8Array.from(pdf).buffer],`${selection.code}-a-signer.pdf`,{type:"application/pdf"}),selection.code === "edl" ? "etat_des_lieux" : ["protocole_apurement","autorisation_travaux","devis_artisan"].includes(selection.code) ? "courrier" : "bail",`${preparation.titreGed} — à signer en ligne`);
+    const depot = await deposerFichierGed(supabase,user,org,new File([Uint8Array.from(pdf).buffer],`${selection.code}-a-signer.pdf`,{type:"application/pdf"}),selection.code === "edl" ? "etat_des_lieux" : ["protocole_apurement","autorisation_travaux","devis_artisan"].includes(selection.code) ? "courrier" : "bail",`${preparation.titreGed} — à signer en ligne`, { genereServeur: true });
     const documentId = depot.documentId ?? depot.doublonId;
     if (!documentId) throw new Error(depot.erreur ?? "Le PDF n’a pas pu être enregistré.");
     const liens = await supabase.from("document_liens").upsert(preparation.liens.map(l=>({ organization_id:org,document_id:documentId,entite:l.entite,entite_id:l.entiteId })),{onConflict:"document_id,entite,entite_id",ignoreDuplicates:true});

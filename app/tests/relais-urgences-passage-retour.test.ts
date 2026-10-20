@@ -186,7 +186,7 @@ describe.skipIf(!DB_URL)("D46-B — passage fréquent des urgences : rejeu et re
     expect(sansJeton(await empreinte())).toBe(sansJeton(empreinteMigree));
   });
 
-  it("le retour refuse de se jouer dans un lot déjà ouvert (migrations.yml, begin;)", async () => {
+  it("le retour reste annulable dans un lot déjà ouvert", async () => {
     await db.query("savepoint e");
     let message = "";
     try {
@@ -195,7 +195,7 @@ describe.skipIf(!DB_URL)("D46-B — passage fréquent des urgences : rejeu et re
       message = (err as Error).message;
     }
     await db.query("rollback to savepoint e");
-    expect(message).toMatch(/Retour arrière refusé : ce script gère sa propre transaction/);
+    expect(message).toBe("");
   });
 
   it("tant que 812000 est en place, les retours de 811000 et de 810000 refusent de se jouer et nomment celui à jouer d'abord", async () => {

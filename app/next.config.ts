@@ -173,16 +173,10 @@ const nextConfig: NextConfig = {
     // (revalidatePath) invalident tout de suite ce qui a changé.
     staleTimes: { dynamic: 30, static: 180 },
     serverActions: {
-      // 10 Mo par fichier (limite du bucket), et une déclaration d'incident
-      // porte jusqu'à 5 photos (recette 24/08 : deux photos de téléphone
-      // crevaient l'ancienne limite de 11 Mo → « erreur » sèche avant même
-      // notre code) + enrobage multipart.
-      //
-      // Audit 25/09 (S11) : la limite est globale par construction — Next.js
-      // 16 ne l'accepte pas par action (docs serverActions.md). Elle reste
-      // donc à 55 Mo pour toutes les actions ; la ramener demanderait de
-      // sortir les dépôts de fichiers vers une route dédiée.
-      bodySizeLimit: "55mb",
+      // Les nouveaux dépôts sont limités à 4 Mio, avec contrôle avant envoi.
+      // La marge couvre les champs et l'enrobage multipart sous le plafond
+      // de transport de l'hébergeur. Les archives ne passent plus ici.
+      bodySizeLimit: 4_500_000,
     },
   },
 };

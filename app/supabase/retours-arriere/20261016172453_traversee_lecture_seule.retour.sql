@@ -1,14 +1,12 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- Retour D08-C : restaure les droits de traversée antérieurs. Les preuves
 -- (audit_log et registre privé de support) sont conservées, jamais réécrites.
 -- Hors migrations.yml : ce retour gère sa transaction. Le refuser dans un
 -- lot ouvert évite que son COMMIT ne valide une simulation de migrations.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
-begin;
+
 set local lock_timeout = '10s';
 drop function if exists public.executer_encaissement_support(uuid);
 drop function if exists public.preparer_encaissement_support(uuid,uuid,uuid,numeric,numeric,text);
@@ -87,4 +85,5 @@ begin
     delete from supabase_migrations.schema_migrations where version='20261016172453';
   end if;
 end $retour_arriere$;
-commit;
+$instructions_retour$;
+end $retour_atomique$;

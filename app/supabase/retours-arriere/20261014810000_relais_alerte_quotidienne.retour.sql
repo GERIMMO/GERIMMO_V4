@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014810000_relais_alerte_quotidienne.sql (D46-B, partie « alerte e-mail du relais »)
 --
 -- NE PAS PLACER dans app/supabase/migrations/ et NE JAMAIS le passer à migrations.yml : ce fichier défait une migration, il se
@@ -23,17 +27,8 @@
 -- NE DÉFAIT PAS : les e-mails déjà envoyés. PERD : l'historique des passages (une ligne par jour, des nombres seulement), qui
 -- disparaît avec la table ; il le dit en nombre avant de la supprimer.
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 
-begin;
 set local lock_timeout = '10s';
 
 -- Refus si le passage fréquent des urgences (20261014812000) est encore en place, par son jeton OU par sa tâche pg_cron :
@@ -88,5 +83,5 @@ begin
     delete from supabase_migrations.schema_migrations where version = '20261014810000';
   end if;
 end $retour_arriere$;
-
-commit;
+$instructions_retour$;
+end $retour_atomique$;

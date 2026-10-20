@@ -50,4 +50,3 @@ describe("version du PDF",()=>{
   expect(rendu).toContain("{{s4|signature|190|80}}");expect(rendu).not.toContain("<script>");expect(rendu).toContain("SHA-256 : abc");
  });
 });
-

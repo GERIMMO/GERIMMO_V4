@@ -5,7 +5,7 @@ import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { verifierGerant } from "@/lib/ged-acces";
-import { detecterMimeReel, pdfComplet, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { detecterMimeReel, pdfComplet, EXTENSIONS, TAILLE_MAX_DEPOT_OCTETS } from "@/lib/file-type";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 // 25/09 : le locataire est prévenu par e-mail de la demande et de la relance.
 import { notifierPieceDemandee } from "@/lib/notifications";
@@ -126,7 +126,7 @@ export async function annulerPieceDemandee(
 }
 
 // Dépôt par le locataire — mêmes contrôles de fichier que l'attestation
-// (contenu vérifié, PDF complet, 10 Mo max), puis RPC definer qui crée le
+// (contenu vérifié, PDF complet, 4 Mo max), puis RPC definer qui crée le
 // document, solde la demande et alerte l'agence.
 export async function deposerMaPiece(
   orgId: string,
@@ -143,8 +143,8 @@ export async function deposerMaPiece(
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0)
     return { erreur: "Choisissez le fichier à déposer — une photo lisible suffit." };
-  if (fichier.size > TAILLE_MAX_OCTETS)
-    return { erreur: "Fichier trop volumineux (10 Mo maximum)." };
+  if (fichier.size > TAILLE_MAX_DEPOT_OCTETS)
+    return { erreur: "Fichier trop volumineux (4 Mo maximum)." };
 
   const octets = new Uint8Array(await fichier.arrayBuffer());
   const mime = detecterMimeReel(octets);

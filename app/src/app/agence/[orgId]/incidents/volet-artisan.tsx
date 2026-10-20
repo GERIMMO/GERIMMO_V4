@@ -793,7 +793,7 @@ export async function VoletArtisan({
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={`${base}/documents/${p.document_id}/fichier`}
+                          src={`${base}/documents/${p.document_id}/fichier?apercu=image`}
                           alt={`Chantier — ${MOMENTS_PHOTO[p.moment] ?? p.moment}`}
                           className="h-20 w-20 rounded-[10px] border border-border object-cover"
                         />

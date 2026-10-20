@@ -2,7 +2,7 @@
 
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
-import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { TAILLE_MAX_DEPOT_OCTETS } from "@/lib/file-type";
 import { TYPES_DEPOSABLES } from "@/lib/ged";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
@@ -35,8 +35,8 @@ export async function deposerDocument(
   if (!(TYPES_DEPOSABLES as readonly string[]).includes(type)) {
     return { erreur: "Type de document invalide.", valeurs };
   }
-  if (fichier.size > TAILLE_MAX_OCTETS) {
-    return { erreur: "Fichier trop volumineux (10 Mo maximum).", valeurs };
+  if (fichier.size > TAILLE_MAX_DEPOT_OCTETS) {
+    return { erreur: "Fichier trop volumineux (4 Mo maximum).", valeurs };
   }
 
   const resultat = await deposerFichierGed(supabase, user, orgId, fichier, type, titre);

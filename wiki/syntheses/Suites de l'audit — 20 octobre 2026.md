@@ -27,15 +27,19 @@ Le point de départ reste `e25c0f7`, PR212 publiée le 19 octobre. Cette page d�
 
 ## Preuves locales
 
-Compilation, types et lint réussis. Dernière suite complète : 8 813 tests réussis et 38 non exécutés, dont des intégrations conditionnées aux accès externes. Parcours navigateur ciblés : 62 réussis et un non exécuté. Les corrections issues de contre-relecture ont leur vérification rouge puis verte ; la restauration et le parcours de récupération ont également été éprouvés avec les services réels locaux.
+Compilation, types et lint réussis. Dernière suite complète : 8 918 tests réussis et 38 non exécutés, dont des intégrations conditionnées aux accès externes. Parcours navigateur ciblés : 62 réussis et un non exécuté. Les corrections issues de contre-relecture ont leur vérification rouge puis verte ; la restauration et le parcours de récupération ont également été éprouvés avec les services réels locaux.
 
 Audit d’affichage : 165 écrans à chacune des largeurs 390, 768 et 1 440 pixels, soit 495 vérifications réussies (pas d’erreur de page ni de débordement détecté). Ce contrôle ne vaut pas preuve de toutes les actions métier de chaque écran.
 
 La contre-relecture a relevé deux P2, corrigés puis relus ; aucun constat bloquant résiduel identifié. Sa portée est le lot de code et ses migrations, sans nouvelle intervention de production.
 
-Les deux premières versions de la PR213 ont passé la CI complète : exécutions 39342825448 et 39345875261. Le complément des dépôts et retours a passé la suite globale ; 75 tests de dépôt et 121 tests ciblés des parcours/retours réussis. Les quatre retours intacts ont également été exécutés en autocommit sur une copie locale, puis les migrations rejouées ; comptes et objets conservés.
+Les trois premières versions de la PR213 ont passé la CI complète : exécutions 39342825448, 39345875261 et 39348431366. Le complément des dépôts et retours a passé la suite globale ; 75 tests de dépôt et 121 tests ciblés des parcours/retours réussis. Les quatre retours intacts ont également été exécutés en autocommit sur une copie locale, puis les migrations rejouées ; comptes et objets conservés.
 
-Un défaut de composition des transactions a été corrigé sur les quatre nouveaux retours. La relecture l’a aussi repéré sur 71 retours historiques : leur examen reste ouvert et ces scripts ne doivent pas être combinés avec d’autres opérations dans un même lot. Aucun retour n’a été appliqué en production.
+Un défaut de composition des transactions a été corrigé sur les quatre nouveaux retours. Les 71 retours historiques ont reçu la même enveloppe atomique, sans modification de leur corps métier vérifié par contre-relecture. Le banc distingue 69 retours exécutés jusqu’à l’erreur finale volontaire et six refus de dépendances attendus, tous sans validation des écritures témoins. La reproduction sur une copie séparée conserve une écriture avec l’ancien script, aucune avec le corrigé. Aucun retour n’a été appliqué en production.
+
+## Transferts de fichiers
+
+Dépôts limités à 4 Mio avec message avant envoi et saisie conservée. Cinq routes de lecture utilisent Storage directement après autorisation et trace. Miniatures et ouverture native des PDF mobiles conservées. Un PNG de 6 Mio, une reprise après erreur, une redirection de téléchargement et un PDF de deux pages passent sur navigateur local. Les dépôts directs signés, les routes spécifiques à empreinte, le CORS réel et Safari iPhone restent à vérifier pour terminer G5.
 
 ## Contrôles externes et limites
 

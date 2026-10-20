@@ -90,9 +90,11 @@ describe.skipIf(!url)("D08-C — lecture seule en base et support borné", () =>
     expect((await db.query("select count(*)::int n from public.organizations where id=$1",[org])).rows[0].n).toBe(0);
     expect((await db.query("select count(*)::int n from auth.users where id=$1",[sa])).rows[0].n).toBe(0);
   });
-  it("le fichier brut de retour refuse un lot déjà ouvert",async()=>{
+  it("le fichier brut de retour reste annulable dans un lot",async()=>{
     await db.query("reset role");
-    await expect(essai(readFileSync(new URL('../supabase/retours-arriere/20261016172453_traversee_lecture_seule.retour.sql',import.meta.url),'utf8'))).rejects.toThrow(/Retour arrière refusé/);
+    await db.query('savepoint retour');
+    await db.query(readFileSync(new URL('../supabase/retours-arriere/20261016172453_traversee_lecture_seule.retour.sql',import.meta.url),'utf8'));
+    await db.query('rollback to savepoint retour');
     expect((await db.query("select to_regprocedure('public.est_traversee_organisation(uuid)') is not null ok")).rows[0].ok).toBe(true);
   });
   it("refuse l'encaissement direct et la RPC SECURITY DEFINER sans effet financier",async()=>{

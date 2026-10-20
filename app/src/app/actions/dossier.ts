@@ -2,7 +2,7 @@
 
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
-import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { TAILLE_MAX_DEPOT_OCTETS } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { TYPES_PIECE_DOSSIER } from "@/lib/dossier";
@@ -42,8 +42,8 @@ export async function deposerPieceDossier(
   if (!(type in TYPES_PIECE_DOSSIER)) {
     return { erreur: "Type de pièce invalide.", valeurs };
   }
-  if (fichier.size > TAILLE_MAX_OCTETS) {
-    return { erreur: "Fichier trop volumineux (10 Mo maximum).", valeurs };
+  if (fichier.size > TAILLE_MAX_DEPOT_OCTETS) {
+    return { erreur: "Fichier trop volumineux (4 Mo maximum).", valeurs };
   }
 
   if (demandeId) {

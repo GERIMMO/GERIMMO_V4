@@ -1,3 +1,4 @@
+import { servirFichierSigne } from "@/lib/fichier-signe";
 import { createClient } from "@/lib/supabase/server";
 import { pageErreurFichier } from "@/lib/page-erreur-fichier";
 import { EXTENSIONS, type MimeAccepte } from "@/lib/file-type";
@@ -18,8 +19,8 @@ import type { PieceArtisan } from "@/app/artisan/acces";
  *  · LE CHEMIN NE VIENT JAMAIS DE L'URL. On demande `mes_pieces_artisan()` et
  *    on ne sert que ce qu'elle a rendu. Un identifiant de pièce qui n'est pas
  *    dans cette liste n'existe pas pour cet appelant.
- *  · LE LIEN SIGNÉ NE SORT PAS DU SERVEUR (RM-A4.10) : on télécharge et on
- *    réémet, comme les autres routes.
+ *  · Le lien de lecture est bref et créé après les contrôles ci-dessus.
+ *    Le navigateur charge la pièce directement depuis le stockage sécurisé.
  *
  * La politique storage `ged_select_artisan` referme le tout en base : elle ne
  * laisse relire que `artisans/<son id>/…` et les fichiers de ses propres
@@ -64,18 +65,6 @@ export async function GET(
     );
   }
 
-  const { data: fichier, error: erreurFichier } = await supabase.storage
-    .from("documents")
-    .download(piece.storage_path);
-  if (erreurFichier || !fichier) {
-    return pageErreurFichier(
-      502,
-      "Fichier indisponible",
-      "Le document n'a pas pu être relu depuis le stockage. Réessayez dans un instant.",
-      "depuis « Mes attestations »"
-    );
-  }
-
   // Liste blanche MIME : un type inattendu se sert en octet-stream téléchargé,
   // jamais rendu en ligne sur notre origine. Le type vient de l'extension du
   // chemin, que la RPC de dépôt a posée depuis le type RÉEL des octets.
@@ -83,14 +72,6 @@ export async function GET(
   const mime = (Object.entries(EXTENSIONS) as [MimeAccepte, string][]).find(
     ([, ext]) => ext === extension
   )?.[0];
-  const nomFichier = `${piece.type}.${mime ? EXTENSIONS[mime] : "bin"}`;
-
-  return new Response(fichier, {
-    headers: {
-      "Content-Type": mime ?? "application/octet-stream",
-      "Content-Disposition": `${mime ? "inline" : "attachment"}; filename="${nomFichier}"`,
-      "Cache-Control": "private, no-store",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
+  return servirFichierSigne(supabase, {path:piece.storage_path,mime,titre:piece.type,
+    retour:"depuis Mes attestations"});
 }

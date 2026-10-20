@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { traiterInscriptionArtisan } from "@/app/actions/supervision-artisans";
 import { GET } from "@/app/admin/artisans/pieces/[pieceId]/fichier/route";
 
@@ -13,7 +13,7 @@ function client({ sa = true, traceErreur = false, statut = "en_attente", siret =
       ? { message: decisionErreur }
       : nom === "log_sa_access" && traceErreur ? { message: "trace en panne" } : null,
   }));
-  const download = vi.fn(async () => ({ data: new Blob(["photo"], { type: "image/png" }), error: null }));
+  const createSignedUrl = vi.fn(async () => ({data:{signedUrl:"https://stockage.example.invalid/storage/v1/object/sign/documents/piece?token=fictif"},error:null}));
   const from = vi.fn((table: string) => {
     const q = {
       select: vi.fn(() => q), eq: vi.fn(() => q), is: vi.fn(() => q),
@@ -21,9 +21,9 @@ function client({ sa = true, traceErreur = false, statut = "en_attente", siret =
     };
     return q;
   });
-  const c = { rpc, from, storage: { from: vi.fn(() => ({ download })) } };
+  const c = { rpc, from, storage: { from: vi.fn(() => ({ createSignedUrl })) } };
   mocks.client.mockResolvedValue(c);
-  return { ...c, download };
+  return { ...c, createSignedUrl };
 }
 function donnees(operation: string, champs: Record<string, string> = {}) {
   const fd = new FormData();
@@ -32,7 +32,8 @@ function donnees(operation: string, champs: Record<string, string> = {}) {
   return fd;
 }
 const fichier = () => GET(new Request("http://localhost/fichier"), { params: Promise.resolve({ pieceId: "piece" }) });
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {vi.clearAllMocks();vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL","https://stockage.example.invalid");});
+afterEach(()=>vi.unstubAllEnvs());
 
 describe("décisions de supervision artisan", () => {
   it("refuse un autre rôle avant toute lecture du dossier", async () => {
@@ -111,15 +112,15 @@ describe("justificatifs globaux servis à la supervision", () => {
     const c = client({ sa: false });
     expect((await fichier()).status).toBe(403);
     expect(c.from).not.toHaveBeenCalled();
-    expect(c.download).not.toHaveBeenCalled();
+    expect(c.createSignedUrl).not.toHaveBeenCalled();
   });
   it("refuse une pièce absente et une consultation non journalisable", async () => {
     let c = client({ pieceAbsente: true });
     expect((await fichier()).status).toBe(404);
-    expect(c.download).not.toHaveBeenCalled();
+    expect(c.createSignedUrl).not.toHaveBeenCalled();
     c = client({ traceErreur: true });
     expect((await fichier()).status).toBe(503);
-    expect(c.download).not.toHaveBeenCalled();
+    expect(c.createSignedUrl).not.toHaveBeenCalled();
   });
   it("sert le fichier après la trace, sans cache ni interprétation MIME", async () => {
     const c = client();
@@ -128,6 +129,6 @@ describe("justificatifs globaux servis à la supervision", () => {
     expect(r.headers.get("Cache-Control")).toBe("private, no-store");
     expect(r.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(c.rpc).toHaveBeenCalledWith("log_sa_access", { org: null, sa_action: "consultation_piece_artisan", sa_details: { artisan_id: "artisan", piece_id: "piece" } });
-    expect(c.download).toHaveBeenCalledWith("artisans/artisan/rc_pro.png");
+    expect(c.createSignedUrl).toHaveBeenCalledWith("artisans/artisan/rc_pro.png",60,undefined);
   });
 });

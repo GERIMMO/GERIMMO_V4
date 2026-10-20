@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014311000_artisan_exclusion_ecritures.sql (lot « artisan-externe », décision D25-B)
 --
 -- NE PAS PLACER dans app/supabase/migrations/ et NE JAMAIS le passer à migrations.yml : ce fichier
@@ -20,16 +24,7 @@
 -- Indépendant de 20261014310000_artisan_facture_numero_unique.retour.sql (ils retirent des blocs différents :
 -- dans l'un ou l'autre ordre, le résultat est le même).
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
-
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 -- Pré-contrôle en lecture seule, avant tout travail : si une AUTRE fonction appelle artisan_exclusion_plateforme()
 -- (écrite après cette migration), la supprimer la casserait. On s'arrête, sans rien modifier.
 do $retour_arriere$
@@ -45,7 +40,7 @@ begin
   end if;
 end $retour_arriere$;
 
-begin;
+
 set local lock_timeout = '10s';
 
 -- 1/4. Le bloc de refus, retiré de artisan_externe_ecrire (et d'elle seule).
@@ -108,5 +103,5 @@ begin
     delete from supabase_migrations.schema_migrations where version = '20261014311000';
   end if;
 end $retour_arriere$;
-
-commit;
+$instructions_retour$;
+end $retour_atomique$;

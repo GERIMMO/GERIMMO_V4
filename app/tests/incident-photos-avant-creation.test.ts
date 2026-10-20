@@ -15,7 +15,7 @@ vi.mock("@/lib/notifications", () => ({
   notifierMissionAnnulee: vi.fn(), notifierMissionConfiee: vi.fn(), notifierRendezVousFixe: vi.fn(),
 }));
 import { declarerMonIncident } from "@/app/actions/incidents";
-import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { TAILLE_MAX_DEPOT_OCTETS } from "@/lib/file-type";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -46,9 +46,9 @@ describe("Photos du locataire : valider avant toute création", () => {
     expect(banc.rpc).not.toHaveBeenCalled();
     expect(banc.upload).not.toHaveBeenCalled();
   });
-  it("refuse une photo supérieure à 10 Mo sans créer de signalement", async () => {
-    const r = await declarerMonIncident("org-test", {}, declaration([new File([new Uint8Array(TAILLE_MAX_OCTETS + 1)], "photo.jpg", { type: "image/jpeg" })]));
-    expect(r.erreur).toMatch(/dépasse 10 Mo/);
+  it("refuse une photo supérieure à 4 Mo sans créer de signalement", async () => {
+    const r = await declarerMonIncident("org-test", {}, declaration([new File([new Uint8Array(TAILLE_MAX_DEPOT_OCTETS + 1)], "photo.jpg", { type: "image/jpeg" })]));
+    expect(r.erreur).toMatch(/dépasse 4 Mo/);
     expect(banc.rpc).not.toHaveBeenCalled();
     expect(banc.upload).not.toHaveBeenCalled();
   });

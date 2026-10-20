@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Modale } from "@/components/ui/modale";
+import { erreurVolumeDepot } from "@/lib/limite-depot";
 
 export const ETATS_ELEMENT: Record<string, string> = {
   neuf: "Neuf",
@@ -428,7 +429,11 @@ export function GrilleEdl({
             donnees.set(submitter.name, submitter.value);
           if (donnees.get("signer") === "1") {
             donnees.set("mode_signature", modePreuve);
-            if (preuve) donnees.set("preuve_signature", preuve);
+            if (preuve) {
+              const erreur = erreurVolumeDepot([preuve]);
+              if (erreur) { setEtatMaj({ erreur }); return; }
+              donnees.set("preuve_signature", preuve);
+            }
           }
           const soumis = { etats: { ...etats }, commentaires: { ...commentaires } };
           verrouEnvoi.current = true;

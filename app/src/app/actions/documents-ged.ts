@@ -9,7 +9,7 @@ import {
   detecterMimeReel,
   pdfComplet,
   EXTENSIONS,
-  TAILLE_MAX_OCTETS,
+  TAILLE_MAX_DEPOT_OCTETS,
 } from "@/lib/file-type";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { baseEspace } from "@/lib/racine-espace";
@@ -42,8 +42,8 @@ export async function remplacerDocument(
   if (!(fichier instanceof File) || fichier.size === 0) {
     return { erreur: "Choisissez le fichier de la nouvelle version.", valeurs };
   }
-  if (fichier.size > TAILLE_MAX_OCTETS) {
-    return { erreur: "Fichier trop volumineux (10 Mo maximum).", valeurs };
+  if (fichier.size > TAILLE_MAX_DEPOT_OCTETS) {
+    return { erreur: "Fichier trop volumineux (4 Mo maximum).", valeurs };
   }
 
   const octets = new Uint8Array(await fichier.arrayBuffer());

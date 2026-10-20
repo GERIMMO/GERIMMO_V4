@@ -5,7 +5,7 @@ import { premier } from "@/lib/postgrest";
 import { lireMentionsContrat, verifierHonorairesContrat } from "@/lib/mentions-contrat";
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
-import { detecterMimeReel, TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { detecterMimeReel, TAILLE_MAX_DEPOT_OCTETS } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deLEspaceDeGestion } from "@/lib/libelles";
 import { abandonnerPieceGed, deposerFichierGed, preparerFichierGed } from "@/lib/ged-depot";
@@ -424,7 +424,7 @@ async function deposerPieceBail(
 
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) return { erreur: "Choisissez le PDF." };
-  if (fichier.size > TAILLE_MAX_OCTETS) return { erreur: "Fichier trop volumineux (10 Mo max)." };
+  if (fichier.size > TAILLE_MAX_DEPOT_OCTETS) return { erreur: "Fichier trop volumineux (4 Mo max)." };
   // Recette 21/08 : un bail signé est un PDF — une photo de la première page
   // passait la GED (qui accepte les images) et valait document contractuel.
   const mime = detecterMimeReel(new Uint8Array(await fichier.arrayBuffer()));

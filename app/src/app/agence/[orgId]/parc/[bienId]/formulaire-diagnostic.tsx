@@ -218,7 +218,7 @@ export function FormulaireDiagnostic({
           <ChampFichier id={`diag-fichier-${niveau}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
           <p className="text-sm text-muted-foreground">
             Rapport requis. PDF, JPEG ou PNG
-            (10 Mo maximum), à déposer avec les dates et la classe figurant sur le rapport.
+            (4 Mo maximum), à déposer avec les dates et la classe figurant sur le rapport.
           </p>
         </div>
       </div>

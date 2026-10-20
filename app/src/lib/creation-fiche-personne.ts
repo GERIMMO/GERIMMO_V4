@@ -1,7 +1,7 @@
 import type { EtatPersonne } from "@/app/actions/personnes";
 import type { EtatDossier } from "@/app/actions/dossier";
 import type { EtatPieceDemandee } from "@/app/actions/pieces-demandees";
-import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { TAILLE_MAX_DEPOT_OCTETS } from "@/lib/file-type";
 import { MESSAGE_SESSION_EXPIREE, sessionExpiree } from "@/lib/session-expiree";
 
 export type JustificatifPrepare = {
@@ -30,7 +30,7 @@ export function erreurJustificatif(piece: JustificatifPrepare): string | undefin
   if (piece.titre.trim().length > (piece.mode === "demande" ? 120 : 200)) return "Le nom du document est trop long.";
   if (piece.mode === "depot") {
     if (!piece.fichier?.size) return "Choisissez un fichier ou retirez ce document pour continuer sans lui.";
-    if (piece.fichier.size > TAILLE_MAX_OCTETS) return "Le fichier dépasse 10 Mo.";
+    if (piece.fichier.size > TAILLE_MAX_DEPOT_OCTETS) return "Le fichier dépasse 4 Mo.";
     if (!/\.(pdf|jpe?g|png)$/i.test(piece.fichier.name)) return "Choisissez un fichier PDF, JPG ou PNG.";
   }
 }

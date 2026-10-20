@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014602000_devis_revision_verrous_stockage.sql (décision D18 du 14/10/2026, reprise du 15/10 :
 -- dépôt du PDF pendant une révision, ordre des verrous des décisions sur un devis)
 --
@@ -20,14 +24,7 @@
 
 -- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
 -- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
 
-begin;
 set local lock_timeout = '10s';
 
 -- 1. Le dépôt de PDF de l'artisan ne compte plus que les demandes « envoyée ».
@@ -111,5 +108,5 @@ begin
     delete from supabase_migrations.schema_migrations where version = '20261014602000';
   end if;
 end $retour_arriere$;
-
-commit;
+$instructions_retour$;
+end $retour_atomique$;

@@ -434,7 +434,7 @@ export async function PaneIncident({
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={`${base}/documents/${p.id}/fichier`}
+                        src={`${base}/documents/${p.id}/fichier?apercu=image`}
                         alt={p.titre ?? "Photo de l'incident"}
                         className="h-20 w-20 rounded-[10px] border border-border object-cover"
                       />

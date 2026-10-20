@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
-import { detecterMimeReel, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { detecterMimeReel, EXTENSIONS, TAILLE_MAX_DEPOT_OCTETS } from "@/lib/file-type";
 import { categorieIncident, MOTIF_DECISION_DEVIS, MOTIFS_CLOTURE, PIECES_INCIDENT } from "@/lib/incidents";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { joindrePhotosAvecReprise } from "@/lib/photos-incident-reprise";
@@ -97,8 +97,8 @@ async function joindrePhotos(
     await Promise.all(
       fichiers.map(async (fichier): Promise<Prete | null> => {
         if (fichier.size === 0) return null;
-        if (fichier.size > TAILLE_MAX_OCTETS) {
-          echecs.push(`« ${fichier.name} » dépasse 10 Mo`);
+        if (fichier.size > TAILLE_MAX_DEPOT_OCTETS) {
+          echecs.push(`« ${fichier.name} » dépasse 4 Mo`);
           return null;
         }
         const octets = new Uint8Array(await fichier.arrayBuffer());
@@ -211,8 +211,8 @@ export async function declarerMonIncident(
   const fichiersDistincts: File[] = [];
   let doublonsEcartes = 0;
   for (const fichier of photos.fichiers ?? []) {
-    if (fichier.size > TAILLE_MAX_OCTETS) {
-      return { erreur: `« ${fichier.name} » dépasse 10 Mo.`, valeurs };
+    if (fichier.size > TAILLE_MAX_DEPOT_OCTETS) {
+      return { erreur: `« ${fichier.name} » dépasse 4 Mo.`, valeurs };
     }
     const octets = new Uint8Array(await fichier.arrayBuffer());
     const mime = detecterMimeReel(octets);

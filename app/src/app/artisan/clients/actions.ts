@@ -14,7 +14,7 @@ import { exclusionLue, MESSAGE_ECRITURE_FERMEE } from "@/lib/artisan-prive-exclu
 
 export type ResultatPrive = {erreur?:string;succes?:string;href?:string};
 async function piecePrivee(supabase:SupabaseClient,artisan:string,fichier:File,cle:string) {
-  if (!fichier.size||fichier.size>10*1024*1024) throw Error("Choisissez un fichier entre 1 octet et 10 Mo.");
+  if (!fichier.size||fichier.size>4*1024*1024) throw Error("Choisissez un fichier entre 1 octet et 4 Mo.");
   const octets=new Uint8Array(await fichier.arrayBuffer()); const mime=detecterMimeReel(octets);
   if(!mime||!["application/pdf","image/png","image/jpeg"].includes(mime)||(mime==="application/pdf"&&!pdfComplet(octets))) throw Error("Joignez un PDF complet, un JPEG ou un PNG.");
   const path=`${artisan}/${cle}.${EXTENSIONS[mime]}`;

@@ -17,7 +17,7 @@ import {
   detecterMimeReel,
   pdfComplet,
   EXTENSIONS,
-  TAILLE_MAX_OCTETS,
+  TAILLE_MAX_DEPOT_OCTETS,
   type MimeAccepte,
 } from "@/lib/file-type";
 import { verifierArtisanAction } from "@/app/artisan/acces";
@@ -99,8 +99,8 @@ async function preparerFichierArtisan(
   | { chemin: string; mime: MimeAccepte; taille: number; empreinte: string }
 > {
   if (fichier.size === 0) return { erreur: "Le fichier est vide." };
-  if (fichier.size > TAILLE_MAX_OCTETS) {
-    return { erreur: "Fichier trop volumineux (10 Mo maximum)." };
+  if (fichier.size > TAILLE_MAX_DEPOT_OCTETS) {
+    return { erreur: "Fichier trop volumineux (4 Mo maximum)." };
   }
   const octets = new Uint8Array(await fichier.arrayBuffer());
 

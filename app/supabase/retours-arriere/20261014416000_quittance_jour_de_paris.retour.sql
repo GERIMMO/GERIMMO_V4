@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014416000_quittance_jour_de_paris.sql
 --
 -- NE PAS PLACER dans app/supabase/migrations/ et NE JAMAIS le passer à migrations.yml : ce fichier
@@ -15,18 +19,8 @@
 -- RÉINTRODUIT le défaut corrigé (constat de relecture du 15/10 sur FIN-13) : entre minuit et 2 h à Paris, la quittance émise après « Encaisser »
 -- porte la veille du règlement qu'elle atteste. Aucune quittance n'est redatée : seules les émissions à venir changent de jour.
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 
-
-begin;
 set local lock_timeout = '10s';
 
 -- Outil local à cette session (pg_temp : disparaît à la fin de la connexion, rien n'est créé dans public).
@@ -137,5 +131,5 @@ begin
     delete from supabase_migrations.schema_migrations where version = '20261014416000';
   end if;
 end $retour_arriere$;
-
-commit;
+$instructions_retour$;
+end $retour_atomique$;

@@ -1,5 +1,7 @@
 "use client";
 
+import { erreurVolumeDepot } from "@/lib/limite-depot";
+
 import { useEffect, useImperativeHandle, useRef, useState, type ChangeEvent, type Ref } from "react";
 
 // CHAMP FICHIER EN FRANÇAIS (relevé du 25/09, D10). Un `<input type="file">`
@@ -38,6 +40,7 @@ export function ChampFichier({
   "aria-label"?: string;
 }) {
   const [noms, setNoms] = useState<string[]>([]);
+  const [erreur, setErreur] = useState<string | null>(null);
   const champ = useRef<HTMLInputElement>(null);
   useImperativeHandle(ref, () => champ.current!);
   useEffect(() => {
@@ -46,11 +49,25 @@ export function ChampFichier({
       // Les actions React remettent aussi le formulaire à zéro après un refus.
       // Ne pas afficher un nom de fichier qui n’est plus joint au formulaire.
       queueMicrotask(() => {
-        if (!event.defaultPrevented) setNoms([]);
+        if (!event.defaultPrevented) { setNoms([]); setErreur(null); }
       });
     };
+    const verifier = (event: Event) => {
+      if (!formulaire) return;
+      const fichiers = Array.from(new FormData(formulaire).values()).filter((v): v is File => v instanceof File && v.size > 0);
+      const message = erreurVolumeDepot(fichiers);
+      setErreur(message);
+      if (message) { event.preventDefault(); event.stopImmediatePropagation(); champ.current?.focus(); }
+    };
+    const corriger = () => setErreur(null);
     formulaire?.addEventListener("reset", effacer);
-    return () => formulaire?.removeEventListener("reset", effacer);
+    formulaire?.addEventListener("submit", verifier, true);
+    formulaire?.addEventListener("change", corriger);
+    return () => {
+      formulaire?.removeEventListener("reset", effacer);
+      formulaire?.removeEventListener("submit", verifier, true);
+      formulaire?.removeEventListener("change", corriger);
+    };
   }, []);
   const mot = libelle ?? (multiple ? "Choisir des fichiers" : "Choisir un fichier");
   const resume =
@@ -73,6 +90,8 @@ export function ChampFichier({
         multiple={multiple}
         required={required}
         aria-label={ariaLabel}
+        aria-invalid={erreur ? true : undefined}
+        aria-describedby={erreur ? `${id}-volume` : undefined}
         className="sr-only"
         onChange={(e) => {
           // Les noms se lisent AVANT tout traitement (compression) : la liste
@@ -89,6 +108,7 @@ export function ChampFichier({
       <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground" aria-live="polite">
         {resume}
       </span>
+      {erreur && <span id={`${id}-volume`} role="alert" className="w-full text-sm text-destructive">{erreur}</span>}
     </span>
   );
 }

@@ -71,7 +71,7 @@ export function FormulairePiece({ orgId, personId, demande }: { orgId: string; p
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={`${id}-piece-fichier`} className="text-sm">
-          Fichier (PDF/JPG/PNG, 10 Mo)
+          Fichier (PDF/JPG/PNG, 4 Mo)
         </Label>
         <ChampFichier id={`${id}-piece-fichier`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
       </div>
@@ -162,7 +162,7 @@ export function FormulaireNouvelleVersion({
       )}
       <div className="space-y-1.5">
         <Label htmlFor={`version-fichier-${remplaceId}`} className="text-sm">
-          Fichier (PDF/JPG/PNG, 10 Mo)
+          Fichier (PDF/JPG/PNG, 4 Mo)
         </Label>
         <ChampFichier id={`version-fichier-${remplaceId}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
       </div>

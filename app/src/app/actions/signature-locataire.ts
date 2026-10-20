@@ -4,7 +4,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { detecterMimeReel, pdfComplet, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { detecterMimeReel, pdfComplet, EXTENSIONS, TAILLE_MAX_DEPOT_OCTETS } from "@/lib/file-type";
 
 export type EtatRetourSignature = {
   erreur?: string;
@@ -30,8 +30,8 @@ export async function retournerDocumentSigne(
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0)
     return { erreur: "Choisissez le document signé à déposer." };
-  if (fichier.size > TAILLE_MAX_OCTETS)
-    return { erreur: "Fichier trop volumineux (10 Mo maximum)." };
+  if (fichier.size > TAILLE_MAX_DEPOT_OCTETS)
+    return { erreur: "Fichier trop volumineux (4 Mo maximum)." };
 
   const octets = new Uint8Array(await fichier.arrayBuffer());
   const mime = detecterMimeReel(octets);

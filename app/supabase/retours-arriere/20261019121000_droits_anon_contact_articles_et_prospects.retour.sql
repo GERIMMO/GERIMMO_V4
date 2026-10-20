@@ -1,16 +1,14 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261019121000_droits_anon_contact_articles_et_prospects.sql
 -- Rétablit la lecture de la table entière des articles et des demandes de contact par anon (état antérieur, y compris
 -- le droit sans usage sur demandes_devis), la clé `supervision_prospects.demande_id → demandes_devis` sans action
 -- référentielle et le déclencheur d'origine (20261018061548) ; retire sa seule ligne d'historique. Les clés vers les
 -- comptes et l'obligation d'auteur n'ont pas bougé (décision Q2 du 19/10) et le chemin « système » du déclencheur
 -- n'écrit rien au registre : aucune ligne sans auteur n'existe jamais, ce retour est toujours jouable. Aucune donnée touchée.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
-begin;
+
 set local lock_timeout = '10s';
 
 revoke select (id, slug, titre, chapo, corps, publie_le, updated_at, seo_description, sources, veine, facebook_image_url, statut)
@@ -41,4 +39,5 @@ begin
     delete from supabase_migrations.schema_migrations where version = '20261019121000';
   end if;
 end $retour_arriere$;
-commit;
+$instructions_retour$;
+end $retour_atomique$;

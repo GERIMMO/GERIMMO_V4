@@ -628,9 +628,9 @@ describe.skipIf(!DB_URL)("Relances des invitations de locataire (X16)", () => {
     expect(await empreinte()).toEqual(avant);
     expect((await db.query("select relances_prevues as prevues from public.invitations_locataires where id = $1", [invite])).rows[0].prevues).toBe(prevues);
 
-    // Le retour arrière gère sa propre transaction : on en joue le corps, entre « begin; » et « commit; ».
+    // Le fichier atomique est exécuté tel quel dans la transaction annulée du test.
     const retour = readFileSync(RETOUR, "utf8");
-    const corps = retour.slice(retour.indexOf("\nbegin;") + "\nbegin;".length, retour.lastIndexOf("\ncommit;"));
+    const corps = retour;
     await db.query(corps);
     const { rows: [apres] } = await db.query(`
       select to_regclass('public.relances_invitations_locataires') as t,

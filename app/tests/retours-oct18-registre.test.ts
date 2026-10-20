@@ -94,7 +94,7 @@ describe('les huit retours du lot « supervision et signatures » : forme des fi
     expect(code.trim().startsWith("set local lock_timeout = '10s';")).toBe(true);
     expect(code).not.toMatch(/drop\s+table/i);
     expect(code).not.toMatch(/drop\s+column/i);
-    expect(source).toMatch(/^-- RETOUR ARRIÈRE de /);
+    expect(source).toMatch(/^-- RETOUR ARRIÈRE de /m);
     if (/drop function|create or replace function|execute replace\(/i.test(code)) expect(code).toContain('select public.fermer_fonctions_a_anon();');
     const clauses = [...code.matchAll(/delete from supabase_migrations\.schema_migrations where version in \(([^)]*)\)/g)];
     expect(clauses).toHaveLength(1);

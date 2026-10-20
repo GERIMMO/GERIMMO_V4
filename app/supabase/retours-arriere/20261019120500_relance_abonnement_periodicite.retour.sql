@@ -1,16 +1,14 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261019120500_relance_abonnement_periodicite.sql
 -- Recrée `abonnements_a_relancer(integer)` avec ses huit colonnes d'origine (texte relevé en production le 19/10, au
 -- jour de Paris : 4 aujourdhui_paris(), 0 current_date), mêmes droits (service_role seul), et retire sa seule ligne
 -- d'historique. Aucune donnée touchée.
 -- Remettre le code applicatif précédent avant ce retour (lib/relances-paiement.ts lit periodicite et montant_periode_cents).
 -- À jouer AVANT le retour de 20261018231827, qui réécrit cette fonction par compte exact.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
-begin;
+
 set local lock_timeout = '10s';
 drop function if exists public.abonnements_a_relancer(integer);
 create function public.abonnements_a_relancer(p_limite integer default 200)
@@ -78,4 +76,5 @@ begin
     delete from supabase_migrations.schema_migrations where version = '20261019120500';
   end if;
 end $retour_arriere$;
-commit;
+$instructions_retour$;
+end $retour_atomique$;

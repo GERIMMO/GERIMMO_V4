@@ -54,7 +54,8 @@ export function pdfComplet(octets: Uint8Array): boolean {
   return false;
 }
 
-export const TAILLE_MAX_OCTETS = 10 * 1024 * 1024; // 10 Mo (module 12)
+export const TAILLE_MAX_OCTETS = 10 * 1024 * 1024; // Lecture des archives déjà conservées.
+export const TAILLE_MAX_DEPOT_OCTETS = 4 * 1024 * 1024; // Marge avant le plafond de transport de 4,5 Mo.
 
 export function formaterTaille(octets: number): string {
   if (octets < 1024) return `${octets} o`;

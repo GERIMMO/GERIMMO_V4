@@ -1,5 +1,8 @@
 # Retours arrière des migrations du 13 au 19 octobre 2026
 
+> **Mise à jour du 20 octobre 2026 — atomicité.** Les 71 retours historiques qui ouvraient puis validaient leur propre transaction utilisent désormais une seule instruction `DO` atomique, comme les quatre retours du 20 octobre. Ils fonctionnent seuls en autocommit et restent intégralement annulables dans une transaction externe ; ils ne la valident jamais. Les anciennes mentions « refuse dans un lot » ci-dessous décrivent les essais antérieurs et sont remplacées par cette règle. Les préconditions métier et l’ordre des retours restent obligatoires. Les scripts de secours ne sont toujours pas des migrations à soumettre au chantier de marche avant. Preuve : `tests/retours-atomicite.test.ts`, fichier exact et erreur forcée dans le même message SQL, ainsi que les essais historiques de retour/rejeu.
+
+
 Ce dossier **n'est pas** un dossier de migrations. Aucun chantier ne le lit : `migrations.yml` se place dans
 `app/supabase/migrations/` et n'applique que les fichiers qu'on lui nomme (aucune occurrence de `retours-arriere` dans
 `.github/workflows/`). Ces scripts se jouent **à la main**, après décision du dirigeant, une fois, et se consignent.

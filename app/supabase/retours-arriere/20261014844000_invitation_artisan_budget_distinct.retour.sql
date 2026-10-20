@@ -1,3 +1,7 @@
+-- Instruction atomique ; participe à une transaction externe sans la valider.
+do $retour_atomique$
+begin
+ execute $instructions_retour$
 -- RETOUR ARRIÈRE de 20261014844000_invitation_artisan_budget_distinct.sql (relecture du 15/10/2026 du lot
 -- « invitation-artisan » : le budget horaire des invitations d'artisans est distinct de celui des locataires).
 --
@@ -15,17 +19,8 @@
 -- invitations de locataires de l'organisation. Ordre indifférent avec le code. À jouer AVANT le retour de
 -- 20261014840000 (qui supprime la fonction).
 
--- Garde : ce script ouvre et ferme SA transaction. Placé dans un lot déjà ouvert (begin; … rollback; de
--- migrations.yml), son commit validerait tout le lot et la « simulation » ne simulerait plus rien.
--- Hors transaction, l'instruction démarre à l'instant même de sa transaction ; dans un lot, elle est plus tardive.
-do $retour_arriere$
-begin
-  if statement_timestamp() <> transaction_timestamp() then
-    raise exception 'Retour arrière refusé : ce script gère sa propre transaction et ne doit pas être joué dans un lot (migrations.yml, psql --single-transaction, begin;). Voir LISEZ-MOI.md.';
-  end if;
-end $retour_arriere$;
+-- Enveloppe atomique : la transaction appelante reste maître de sa validation.
 
-begin;
 set local lock_timeout = '10s';
 
 do $retour_arriere$
@@ -65,7 +60,6 @@ begin
   end if;
 end $retour_arriere$;
 
-commit;
 
 -- Vérification (lecture seule) : « antérieure (A) » attendue après le retour, « migrée (B) » avant.
 select 'limiter_envoi_invitation_artisan' as objet,
@@ -73,3 +67,5 @@ select 'limiter_envoi_invitation_artisan' as objet,
             when position('Relecture du 15/10 (budget distinct des locataires)'
                           in pg_get_functiondef('public.limiter_envoi_invitation_artisan(uuid,text)'::regprocedure)) > 0
             then 'migrée (B)' else 'antérieure (A)' end as etat;
+$instructions_retour$;
+end $retour_atomique$;

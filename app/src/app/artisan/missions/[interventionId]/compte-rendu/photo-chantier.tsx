@@ -8,6 +8,7 @@ import {
   type EtatArtisanAction,
 } from "@/app/actions/artisan";
 import { compresserChampFichiers } from "@/lib/compresser-image";
+import { erreurVolumeDepot } from "@/lib/limite-depot";
 import { Avertissement, Erreur, Succes } from "../../../ui";
 
 /**
@@ -65,6 +66,7 @@ export function PhotoChantier({
   const formulaire = useRef<HTMLFormElement>(null);
   const idChamp = useId();
   const [apercu, setApercu] = useState<string | null>(null);
+  const [erreurPhoto, setErreurPhoto] = useState<string | null>(null);
 
   // L'URL d'objet vit le temps de l'aperçu : sans cette libération, chaque
   // reprise de photo laisserait un blob en mémoire du navigateur.
@@ -119,15 +121,18 @@ export function PhotoChantier({
           const champ = e.currentTarget;
           const fichier = champ.files?.[0];
           if (!fichier) return;
+          setErreurPhoto(null);
           setApercu((ancien) => {
             if (ancien) URL.revokeObjectURL(ancien);
             return URL.createObjectURL(fichier);
           });
           // Compression d'abord, envoi ensuite : `requestSubmit` doit partir
           // avec les octets allégés, sinon la compression ne sert à rien.
-          void compresserChampFichiers(champ).then(() =>
-            formulaire.current?.requestSubmit()
-          );
+          void compresserChampFichiers(champ).then(() => {
+            const erreur = erreurVolumeDepot(Array.from(champ.files ?? []));
+            setErreurPhoto(erreur);
+            if (!erreur) formulaire.current?.requestSubmit();
+          }).catch(() => setErreurPhoto("La photo n’a pas pu être préparée. Choisissez une autre image ou réduisez sa taille."));
         }}
       />
 
@@ -143,6 +148,7 @@ export function PhotoChantier({
       )}
 
       <Etat dejaEnvoyee={envoyee} />
+      {erreurPhoto && <Erreur>{erreurPhoto}</Erreur>}
       {etat.succes && <Succes>{etat.succes}</Succes>}
       {etat.avertissement && <Avertissement>{etat.avertissement}</Avertissement>}
       {etat.erreur && <Erreur>{etat.erreur}</Erreur>}

@@ -6375,3 +6375,13 @@ CI750 : 9 107 tests de logique réussis, 17 ignorés ; trois parcours navigateur
 La contre-relecture du delta CI750 a identifié une progression masquée dans les formulaires onSubmit : correction par fin explicite du statut après transfert et réutilisation, indépendante de React. 25 tests ciblés réussissent et la dernière relecture statique ne relève plus de défaut concret. Les autres contrôles restent requis.
 
 Validation du delta CI750 : compilation, types et lint réussis ; 25 tests ciblés et les 10 scénarios navigateur (dont préparation des sessions) réussissent sur le build corrigé. Le parcours artisan va jusqu’à la sollicitation, les deux reprises d’incident conservent l’unicité et les dépôts de 6 Mio passent à 390 et 1 440 pixels. La CI du nouveau SHA reste requise avant livraison.
+
+## [2026-10-20] livraison | PR213 publiée et sauvegarde restaurée
+
+CI751 puis CI752 réussies : 9 111 tests de logique et 202 tests navigateur réussis ; 17 et un non exécutés selon leurs prérequis. Après simulation115 et sauvegarde47 vérifiée, application116 des sept migrations réussie. PR213 fusionnée en 1d19eb85499205628cfc44ff761b17be5126d5f9 ; Vercel READY à 13 h 03 Paris. Droits SQL et compartiment privé vérifiés, rappels Zoho désactivés.
+
+Sauvegarde48, préfixe 20261020-1111, puis restauration isolée5 réussies : 209 tables, 43 fichiers, zéro fichier manquant, 399 versions de migrations et protections du support interne validées. Les tâches sont contrôlées sur un planificateur de façade ; aucune bascule des services Supabase Auth/Storage, pg_cron ou pg_net.
+
+Recette de production26 : 63 tests réussis, un non exécuté, un échec D38. Le faux PDF tronqué de ce test est refusé avant la règle de confirmation métier. Correction de la fixture par un PDF complet et distinct à chaque essai ; aucune validation produit affaiblie. Ajout d’un parcours de dépôt/lecture/téléchargement d’un PDF fictif de 6 Mio avec contrôle des octets. Les deux parcours locaux à 390 et 1 440 pixels et le nouveau téléchargement passent ; nouvelle CI et recette en ligne requises.
+
+Les cinq identités permanentes sont conservées, aucun accès superadmin ni session ne reste actif après recette26. GitHub : squash seul, rangement des branches et alertes/propositions Dependabot activés ; protection main et lecture des collaborateurs attendent la confirmation personnelle du dirigeant. Aucun paiement, rappel ou signature réel envoyé.

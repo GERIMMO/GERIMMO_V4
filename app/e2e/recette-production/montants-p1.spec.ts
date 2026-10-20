@@ -4,6 +4,7 @@ import type { Page } from "@playwright/test";
 import { Client, type ClientConfig } from "pg";
 import { lireComptes, verifierCible } from "./cible";
 import { cliquer, espaceDe, expect, test } from "./outils";
+import { pdfFictif } from "../pdf-fictif";
 
 // RECETTE — LES QUATRE P1 « MONTANT FAUX » (Q3/Q5), sur le compte éphémère du propriétaire direct.
 //
@@ -18,7 +19,8 @@ import { cliquer, espaceDe, expect, test } from "./outils";
 //    déposé dans le stockage de fichiers, que le nettoyage ne garantit pas d'effacer (purger.sql, « FICHIERS »).
 //  · D38 (A), CHF-02 : une régularisation de l'exercice en cours était acceptée sans alerte. Attendu : avertissement
 //    « exercice non terminé : comparaison non homogène » et confirmation explicite exigée ; sans elle, le serveur refuse,
-//    avant tout dépôt de justificatif. Le chemin confirmé n'est PAS joué : il enregistrerait une régularisation qui ne se
+//    avant tout classement du justificatif. Le transfert privé temporaire précède ce refus métier et expire selon sa rétention.
+//    Le chemin confirmé n'est PAS joué : il enregistrerait une régularisation qui ne se
 //    modifie plus et déposerait son justificatif dans le stockage de fichiers.
 //
 // CE QUE LE TEST CRÉE, ET COMMENT C'EST RETIRÉ. Dans le parc éphémère du propriétaire (« Parc de Paul Recette-<suffixe> »),
@@ -26,7 +28,8 @@ import { cliquer, espaceDe, expect, test } from "./outils";
 // un bail actif, un appel de loyer de 840,00 € et une dépense « intérêts d'emprunt » de 2 345,67 €, posés en base par la
 // connexion de la recette ; puis, par les écrans, deux encaissements, la confirmation de l'exercice fiscal du lot et la
 // qualification de la dépense en ligne 250. Tout porte sur l'organisation du suffixe : `purger.sql` le retire (toute table
-// qui porte `organization_id`). Aucun fichier n'est déposé, aucun e-mail ne part, aucun paiement n'est demandé.
+// qui porte `organization_id`). Le PDF fictif transite dans le compartiment temporaire privé, sans document métier créé ;
+// la purge automatique des transferts expirés le retire. Aucun e-mail ne part, aucun paiement n'est demandé.
 //
 // OÙ IL TOURNE. Seulement avec une connexion à la base de la recette (variables PG*) : le chantier « Recette de production
 // avec nettoyage » la fournit (l'ancien chantier manuel, qui ne la fournissait pas, a été retiré du dépôt). Sans elle, ce
@@ -253,7 +256,7 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
     const annee = page.locator("#reg-annee");
     await annee.fill(String(d.annee));
     await page.locator("#reg-reel").fill("640,00");
-    await page.locator('input[name="justificatif"]').setInputFiles({ name: "decompte-recette.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n% recette\n") });
+    await page.locator('input[name="justificatif"]').setInputFiles({ name: "decompte-recette.pdf", mimeType: "application/pdf", buffer: pdfFictif() });
     const formulaire = page.locator("form").filter({ has: annee });
     const avertissement = formulaire.getByRole("alert");
     await expect(avertissement).toContainText(`Exercice ${d.annee} non terminé : comparaison non homogène.`);

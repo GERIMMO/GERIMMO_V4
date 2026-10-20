@@ -28,6 +28,11 @@
 // `demandes_devis`, que la base borne (longueurs, plafond horaire). `anon` et `authenticated` n'ont plus aucun droit
 // d'insertion sur cette table : cette action est la seule porte. La clé ne lit rien dans ce geste.
 //
+// Et, de même, l'inscription d'une agence sur la liste d'attente (src/app/actions/liste-attente-agences.ts, 20/10/2026) :
+// pot de miel puis validation, UNE ligne insérée dans `liste_attente_agences`, que la base borne (longueurs, unicité de
+// l'adresse, plafond horaire) ; `anon` et `authenticated` n'ont aucun droit d'insertion sur cette table. La clé ne lit
+// rien dans ce geste.
+//
 // Ce que le client peut faire est en outre borné côté base : les fonctions que
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées
 // au seul `service_role`, et chacune ne rend que ce dont la tâche a besoin.

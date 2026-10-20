@@ -96,7 +96,7 @@ export const RACINE_PROPRE = {
 
 /** audit-production : les profils explorés, avec leur compte de démonstration et leurs pages de départ. */
 export const PERSONAS = [
-  { nom: "public", departs: ["/", "/connexion", "/inscription", "/journal", "/conditions", "/confidentialite", "/tarifs", "/outils", "/outils/calcul-irl", "/outils/quittance-de-loyer", "/outils/comparateur-gli-visale", "/outils/simulateur-lmnp", "/outils/rentabilite-locative", "/mentions-legales", "/mot-de-passe-oublie"] },
+  { nom: "public", departs: ["/", "/connexion", "/inscription", "/journal", "/conditions", "/confidentialite", "/tarifs", "/agences", "/outils", "/outils/calcul-irl", "/outils/quittance-de-loyer", "/outils/comparateur-gli-visale", "/outils/simulateur-lmnp", "/outils/rentabilite-locative", "/mentions-legales", "/mot-de-passe-oublie"] },
   { nom: "agent", email: "agent.alpha@gerimmo-demo.fr", departs: ["/espaces"], racines: RACINES.agent },
   { nom: "admin", email: "admin.alpha@gerimmo-demo.fr", departs: ["/espaces"], racines: RACINES.admin },
   { nom: "locataire", email: "locataire.alpha@gerimmo-demo.fr", departs: ["/espaces"], racines: RACINES.locataire },

@@ -30,6 +30,10 @@ const PUBLIC_PATHS = [
   "/journal",
   // Les tarifs (28/09/2026) : publics ET traversables connecté.
   "/tarifs",
+  // La liste d'attente des agences (20/10/2026) : la page explique que l'offre agences arrive et prend les coordonnées
+  // d'une agence. Publique ET traversable connecté, comme /tarifs. (« /agence/… », l'espace privé, ne commence pas par
+  // « /agences » : il garde ses gardes.)
+  "/agences",
   // Les outils gratuits (29/09) : calculs faits dans le navigateur, sans
   // compte. Publics ET traversables connecté.
   "/outils",
@@ -72,7 +76,7 @@ const CHEMIN_INVITATION_ARTISAN = /^\/artisan\/invitation\/[0-9a-f]{8}-[0-9a-f]{
 // tient cette liste en phase avec les deux dossiers.
 const SEGMENTS_CONNUS = new Set([
   // src/app
-  "actions", "admin", "agence", "api", "artisan", "assistance", "attestation-loyer",
+  "actions", "admin", "agence", "agences", "api", "artisan", "assistance", "attestation-loyer",
   "auth", "compte", "conditions", "confidentialite", "connexion", "espaces",
   // Décision D27 : l'alias des écrans du propriétaire direct n'est pas un dossier de src/app ; le proxy le réécrit
   // vers /agence/<id> (fin de proxy()). Sans session, il mène à la connexion comme toute adresse privée.

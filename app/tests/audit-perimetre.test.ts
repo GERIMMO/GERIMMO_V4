@@ -65,6 +65,12 @@ describe("audit de production : le propriétaire direct est exploré sous /espac
     expect(admissible(persona("public"), "/tarifs")).toBe(true);
     expect(admissible(persona("public"), "/espaces")).toBe(false);
   });
+
+  it("la page publique /agences (20/10) est un point de départ du profil public, distincte de la racine privée /agence/", () => {
+    expect(persona("public").departs).toContain("/agences");
+    expect(admissible(persona("public"), "/agences")).toBe(true);
+    expect(admissible(persona("public"), `/agence/${ORG}`)).toBe(false);
+  });
 });
 
 describe("audit de lecture : le propriétaire direct est exploré sous /espace", () => {

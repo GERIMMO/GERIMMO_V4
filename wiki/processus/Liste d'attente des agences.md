@@ -31,7 +31,8 @@ envoyé, et c'est le dirigeant qui la recontacte lui-même depuis la console.
   public de la V1 »).
 - **Décision du dirigeant du 20/10/2026** : il commence la publicité dans son entourage ;
   la **sortie officielle est visée le 30 novembre 2026**, et le **premier client particulier
-  doit pouvoir s'inscrire le 30/11 au soir**. D'ici là, les agences doivent pouvoir
+  doit pouvoir s'inscrire le 30/11 au soir** ([[Calendrier de lancement — 30 novembre 2026]] :
+  jalons semaine par semaine). D'ici là, les agences doivent pouvoir
   **s'inscrire sur une liste d'attente** pour être prévenues quand leur offre sera
   disponible (site vitrine et formulaire à mettre à jour).
 - **Ce que la liste d'attente n'est pas** : aucun prix ni aucune date d'ouverture ne sont
@@ -219,8 +220,10 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
 - Personas : [[Administrateur d'agence]], [[Agent immobilier]], [[Super Admin]].
 - Règles : [[Registre des traitements]] (P10, P11), [[RGPD]], [[Grille tarifaire]] (barème
   agences du 28/09, non annoncé sur `/agences`).
-- Synthèses : [[Prêt à démarcher]], [[Audit final avant publication — 19 octobre 2026]]
-  (M2), [[Suites de l'audit — 20 octobre 2026]],
+- Synthèses : [[Calendrier de lancement — 30 novembre 2026]] (livraison du lot visée le
+  23/10 ; § 5 : l'ouverture de l'offre agences est hors de la sortie du 30/11),
+  [[Prêt à démarcher]], [[Audit final avant publication — 19 octobre 2026]] (M2),
+  [[Suites de l'audit — 20 octobre 2026]],
   [[Cartographie vérifiable de Gerimmo (pages, actions, base, stockage, authentification, intégrations, rôles)]]
   (relevé des écritures `anon`, à actualiser après déploiement).
 - Processus : [[Recette de production]] (le déploiement du lot y passe), [[Relais du dirigeant]].

@@ -163,11 +163,12 @@ async function destinataire(supabase: SupabaseClient, orgId: string): Promise<st
 
 /** L'avis de fin d'essai. Rend un motif d'échec, ou `null` si envoyé. */
 export async function envoyerAvisFinEssai(
-  p: { orgId: string; organisation: string; destinataire: string | null; premierPrelevementLe: string; montantCents: number | null; cle: string; base?: string }
+  p: { orgId: string; organisation: string; destinataire: string | null; premierPrelevementLe: string; montantCents: number | null; cle: string; base?: string },
+  avantEffet?: () => Promise<void>
 ): Promise<string | null> {
   if (!p.destinataire) return "sans adresse";
   const c = courrierFinEssai({ ...p, lien: lienAbonnement(p.orgId, p.base) });
-  const { erreur } = await envoyerEmail({ to: p.destinataire, subject: c.sujet, html: c.html, cleIdempotence: p.cle });
+  const { erreur } = await envoyerEmail({ to: p.destinataire, subject: c.sujet, html: c.html, cleIdempotence: p.cle, avantEnvoi: avantEffet });
   return erreur ?? null;
 }
 

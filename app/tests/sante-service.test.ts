@@ -32,9 +32,11 @@ const COMPLET = {
   STRIPE_PRIX_LOT_AGENCE: "price_2",
   RESEND_API_KEY: "re_xxx",
   RESEND_EXPEDITEUR: "Gerimmo <no-reply@gerimmo.app>",
-  YOUTRUST_API_KEY: "yt_xxx",
-  YOUTRUST_ENV: "production",
-  YOUTRUST_WEBHOOK_SECRET: "ytwh_xxx",
+  ZOHO_SIGN_CLIENT_ID: "test",
+  ZOHO_SIGN_CLIENT_SECRET: "test",
+  ZOHO_SIGN_REFRESH_TOKEN: "test",
+  ZOHO_SIGN_ENV: "production",
+  ZOHO_SIGN_WEBHOOK_SECRET: "test",
   CRON_SECRET: "un-secret",
   SUPABASE_SERVICE_ROLE_KEY: "service",
   OPENAI_API_KEY: "sk-xxx",
@@ -69,17 +71,17 @@ describe("les variables de production", () => {
   });
 
   it("la signature électronique désactivée ne déclenche ni envoi ni alerte", () => {
-    const v = etatConfiguration({ ...COMPLET, YOUTRUST_ENV: "sandbox" }, REGIME);
-    expect(v.find((x) => x.cle === "YOUTRUST_API_KEY")).toMatchObject({
+    const v = etatConfiguration({ ...COMPLET, ZOHO_SIGN_ENV: "sandbox" }, REGIME);
+    expect(v.find((x) => x.cle === "ZOHO_SIGN_CLIENT_ID")).toMatchObject({
       etat: "ok",
       detail: expect.stringContaining("envoi désactivé"),
     });
     // Son webhook n'est pas réclamé tant qu'elle est éteinte.
-    expect(v.find((x) => x.cle === "YOUTRUST_WEBHOOK_SECRET")).toBeUndefined();
+    expect(v.find((x) => x.cle === "ZOHO_SIGN_WEBHOOK_SECRET")).toBeUndefined();
     // Activée, la ligne redevient celle de l'environnement réel, webhook compris.
-    const active = etatConfiguration({ ...COMPLET, YOUTRUST_BAIL_ACTIF: "true" }, REGIME);
-    expect(active.find((x) => x.cle === "YOUTRUST_API_KEY")!.detail).toContain("environnement réel");
-    expect(active.find((x) => x.cle === "YOUTRUST_WEBHOOK_SECRET")!.etat).toBe("ok");
+    const active = etatConfiguration({ ...COMPLET, ZOHO_SIGN_BAIL_ACTIF: "true" }, REGIME);
+    expect(active.find((x) => x.cle === "ZOHO_SIGN_CLIENT_ID")!.detail).toContain("envoi réel activé");
+    expect(active.find((x) => x.cle === "ZOHO_SIGN_WEBHOOK_SECRET")!.etat).toBe("ok");
   });
 
   it("distingue une clé Stripe de test d'une clé réelle", () => {

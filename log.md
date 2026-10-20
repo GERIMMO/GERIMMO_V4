@@ -6292,3 +6292,8 @@ La souscription doit rester fermée pendant migration et déploiement ; fermetur
 ## [2026-10-20] audit | Contrôles du lot après contre-relecture
 
 La suite complète après les deux corrections de relecture réussit : 8 791 tests, 38 non exécutés ; compilation, types et lint réussis. Audit d’affichage : 165 écrans en 390, 768 et 1 440 pixels, soit 495 vérifications réussies. Les 62 contrôles navigateur ciblés ont réussi (un non exécuté). Résultats locaux uniquement ; aucune publication ni activation externe.
+
+
+### 20 octobre 2026 — suite technique locale de l’audit
+
+Préparation complémentaire : réceptions Stripe durables avec contrôle de concurrence, reprises bornées, rapprochement en lecture et bilan Santé ; retrait du connecteur Youtrust sans suppression historique. Tests des interruptions, droits, reprises, retours et arrêt de supervision. Aucun paiement, remboursement ni courrier réel ; aucune configuration ou migration de production modifiée. La livraison et ses limites sont détaillées dans `app/docs/livraison-audit-20-octobre.md`.

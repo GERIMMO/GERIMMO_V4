@@ -49,15 +49,15 @@ export function equipeDeLaTache(cle:string):Equipe|null{return estTacheSuivie(cl
 export function missionsDeLEquipe(equipe:Equipe):Mission[]{return (Object.keys(MISSIONS) as Mission[]).filter(m=>MISSIONS[m].equipe===equipe);}
 // Ce que le passage garde de sa réponse : des comptes et des drapeaux, jamais un
 // texte (un message d'erreur peut porter une adresse ou un secret).
-const COMPTES=['envoyees','envoyes','rappeles','traites','preparees','publiees','rapports_prepares','etudiees','rejetees','dossiers','ignores','echecs','echecs_envoi','avoirs_en_echec'] as const;
-const DRAPEAUX=['erreur','erreurFacebook','orchestration_erreur','preparation_erreur'] as const;
+const COMPTES=['envoyees','envoyes','rappeles','traites','preparees','publiees','rapports_prepares','etudiees','rejetees','dossiers','stripe_repris','stripe_controles','stripe_echecs','stripe_ecarts','ignores','echecs','echecs_envoi','avoirs_en_echec'] as const;
+const DRAPEAUX=['erreur','erreurFacebook','orchestration_erreur','preparation_erreur','stripe_incomplet'] as const;
 /** Le journal n’accepte aucun contenu d’e-mail, secret ou détail de dossier. */
 export function bilanMission(b:unknown,status:number){
  const x=b&&typeof b==='object'?b as Record<string,unknown>:{};
  const bilan:Record<string,number|boolean>={};
  for(const k of COMPTES){const v=x[k];if(typeof v==='number'&&Number.isSafeInteger(v)&&v>=0)bilan[k]=v;else if(Array.isArray(v))bilan[k]=v.length;}
  for(const k of DRAPEAUX){if(x[k])bilan[k]=true;}
- const mauvais=DRAPEAUX.some(k=>bilan[k]===true)||['echecs','echecs_envoi','avoirs_en_echec'].some(k=>typeof bilan[k]==='number'&&bilan[k]>0);
+ const mauvais=DRAPEAUX.some(k=>bilan[k]===true)||['echecs','echecs_envoi','avoirs_en_echec','stripe_echecs','stripe_ecarts'].some(k=>typeof bilan[k]==='number'&&bilan[k]>0);
  const compte=['envoyees','envoyes','rappeles','traites','preparees','publiees','rapports_prepares'].reduce((n,k)=>n+(typeof bilan[k]==='number'&&bilan[k]>0?bilan[k]:0),0);
  return {ok:status>=200&&status<300&&!mauvais,compte:Math.min(compte,2147483647),bilan};
 }

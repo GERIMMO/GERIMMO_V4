@@ -1,6 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { parsePhoneNumberFromString } from "libphonenumber-js/max";
-import type { DemandeYoutrustLue, SignataireYoutrust } from "./youtrust";
+import type { DemandeSignatureLue, SignataireSignature } from "./signature-types";
 import { expressionSaisieMentionCaution, noteMentionCaution } from "./mention-caution";
 
 /** Compte européen uniquement. Le mode test Zoho utilise la même API, avec testing=true. */
@@ -87,7 +87,7 @@ export function telephoneZoho(telephone?: string | null) {
 }
 type Preparation = {
   config: ConfigurationZohoSign; pdf: Uint8Array; nomFichier: string; titre: string; referenceExterne: string; expiration: string;
-  signataires: SignataireYoutrust[]; annexes?: { pdf: Uint8Array; nomFichier: string }[]; demandeCreee: (id: string) => Promise<void>;
+  signataires: SignataireSignature[]; annexes?: { pdf: Uint8Array; nomFichier: string }[]; demandeCreee: (id: string) => Promise<void>;
 };
 export async function preparerCircuitZoho(params: Preparation) {
   if (params.signataires.length < 1 || params.signataires.length > 25) throw new Error("Vérifiez les parties au contrat.");
@@ -175,7 +175,7 @@ export async function activerDemandeZoho(config: ConfigurationZohoSign, id: stri
 }
 const ETATS: Record<string, string> = { draft: "draft", inprogress: "ongoing", completed: "done", recalled: "canceled", expired: "expired", declined: "declined", rejected: "rejected" };
 const ETATS_PERSONNES: Record<string, string> = { NOACTION: "initiated", UNOPENED: "notified", VIEWED: "notified", SIGNED: "signed", REJECTED: "declined" };
-export async function lireDemandeZoho(config: ConfigurationZohoSign, id: string): Promise<DemandeYoutrustLue & { signers: { id: string; status: string; email: string; mentions: unknown[] }[] }> {
+export async function lireDemandeZoho(config: ConfigurationZohoSign, id: string): Promise<DemandeSignatureLue & { signers: { id: string; status: string; email: string; mentions: unknown[] }[] }> {
   const req = await details(config, id);
   if (!ETATS[req.request_status]) throw new Error("L’état Zoho Sign doit être vérifié avant de poursuivre.");
   return { id: req.request_id, external_id: req.description?.replace(/^gerimmo:circuit:/, ""), status: req.is_deleted ? "deleted" : ETATS[req.request_status], signers: req.actions.map(a => ({ id: a.action_id, status: ETATS_PERSONNES[a.action_status] ?? "error", email: a.recipient_email, mentions:(a.fields ?? []).filter(f=>f.field_type_name==="Textfield").map(f=>f.field_value) })) };

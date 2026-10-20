@@ -1,10 +1,3 @@
-/**
- * La tâche des signatures, quand Youtrust n'est pas en production (25/09).
- *
- * Elle répondait 503 AVANT de consigner : Santé disait « aucune exécution » à
- * vie et Équipes « À vérifier » chaque nuit, pour une sandbox choisie. La passe
- * consigne désormais qu'elle n'a rien pu traiter, et répond 200.
- */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ consigner: vi.fn(), client: vi.fn() }));
@@ -23,14 +16,14 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("Youtrust absent ou en sandbox", () => {
+describe("Zoho absent ou incomplet", () => {
   it.each([
-    ["absent", "", "youtrust_absent"],
-    ["en sandbox", "yt_test", "youtrust_sandbox"],
-  ])("Youtrust %s : la passe est consignée « non configurée » et répond 200", async (_, cle, motif) => {
+    ["absent", "", "zoho_absent"],
+    ["incomplet", "test", "zoho_absent"],
+  ])("Zoho %s : la passe est consignée « non configurée » et répond 200", async (_, cle, motif) => {
     vi.stubEnv("CRON_SECRET", SECRET);
-    vi.stubEnv("YOUTRUST_API_KEY", cle);
-    vi.stubEnv("YOUTRUST_ENV", "sandbox");
+    vi.stubEnv("ZOHO_SIGN_CLIENT_ID", cle);
+    vi.stubEnv("ZOHO_SIGN_ENV", "sandbox");
     mocks.client.mockReturnValue({});
     const r = await GET(appel());
     expect(r.status).toBe(200);

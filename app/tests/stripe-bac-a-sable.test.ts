@@ -51,9 +51,9 @@ describe.skipIf(!cle)("Paiements simulés chez Stripe et application dans Gerimm
     // Seul le transport Supabase est substitué : les fonctions SQL appelées
     // par la route sont réellement exécutées, avec le rôle service_role.
     const argumentsRpc: Record<string, string[]> = {
-      abonnement_evenement_a_traiter: ["p_event_id", "p_type", "p_charge"],
-      abonnement_evenement_solde: ["p_event_id", "p_erreur"],
-      abonnement_evenement_rejouable: ["p_event_id"],
+      stripe_evenement_prendre: ["p_event_id", "p_type", "p_reference", "p_jeton"],
+      stripe_evenement_finir: ["p_event_id", "p_jeton", "p_reussi", "p_motif"],
+      stripe_evenement_appliquer: ["p_event_id", "p_jeton", "p_action", "p_params"],
       abonnement_appliquer: ["p_customer", "p_subscription", "p_statut", "p_quantite", "p_periode_fin", "p_annulation"],
       abonnement_details: ["p_customer", "p_periodicite", "p_formule", "p_unites", "p_montant_periode_cents", "p_periode_debut"],
       abonnement_par_client: ["p_customer"],
@@ -194,9 +194,9 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     vi.stubEnv("STRIPE_WEBHOOK_SECRET", secret);
     transport.rpc.mockImplementation(async (nom: string, params: Record<string, unknown>) => {
       const noms: Record<string, string[]> = {
-        abonnement_evenement_a_traiter: ["p_event_id", "p_type", "p_charge"],
-        abonnement_evenement_solde: ["p_event_id", "p_erreur"],
-        abonnement_evenement_rejouable: ["p_event_id"],
+        stripe_evenement_prendre: ["p_event_id", "p_type", "p_reference", "p_jeton"],
+        stripe_evenement_finir: ["p_event_id", "p_jeton", "p_reussi", "p_motif"],
+        stripe_evenement_appliquer: ["p_event_id", "p_jeton", "p_action", "p_params"],
         abonnement_appliquer: ["p_customer", "p_subscription", "p_statut", "p_quantite", "p_periode_fin", "p_annulation"],
         abonnement_details: ["p_customer", "p_periodicite", "p_formule", "p_unites", "p_montant_periode_cents", "p_periode_debut"],
         abonnement_par_client: ["p_customer"],

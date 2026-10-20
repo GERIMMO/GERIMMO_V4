@@ -198,7 +198,7 @@ describe("avis de fin d'essai (webhook Stripe « trial_will_end »)", () => {
         subscriptions: { retrieve: async () => souscription },
       };
       sim.service = client(base(p.type), {
-        abonnement_evenement_a_traiter: true,
+        stripe_evenement_prendre: "pris", stripe_evenement_finir: true,
         abonnement_par_client: [{
           organization_id: ORG, organisation: "Organisation TEST", public_tarif: p.type, grille: "2026-09-28",
           stripe_subscription_id: "sub_test", stripe_statut: "trialing", destinataire: "facturation@example.invalid",

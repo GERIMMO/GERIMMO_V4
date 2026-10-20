@@ -1,3 +1,5 @@
+import { reprendreEvenementsStripe } from "@/lib/stripe-file";
+import { rapprocherAbonnementsStripe } from "@/lib/stripe-rapprochement";
 import { ArretSupervision, verifierAvantEffet } from "@/lib/controle-effets";
 import { protegerClientAutomatique } from "@/lib/client-automatique";
 // Tâche planifiée : aligner ce que Stripe facture sur ce que l'agence gère.
@@ -217,6 +219,18 @@ export async function traiterAbonnements(request: Request) {
     avoirsPortes += 1;
   }
 
+  // Rattrape les réceptions interrompues, puis compare les abonnements et factures.
+  // Ce contrôle n'ordonne aucun paiement, remboursement ou nouvelle souscription.
+  let reprises = { repris: 0, echecs: 0, attentes: 0 };
+  let rapprochement = { controles: 0, ecarts: 0, echecs: 0, incomplet: false };
+  try {
+    reprises = await reprendreEvenementsStripe(supabase, stripe, () => verifierAvantEffet(supabase, "abonnements"));
+    rapprochement = await rapprocherAbonnementsStripe(supabase, stripe, () => verifierAvantEffet(supabase, "abonnements"));
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    rapprochement.echecs++;
+  }
+
   // Les échecs sont comptés, pas recopiés : leurs motifs vivent déjà sur
   // chaque organisation (abonnement_synchro_faite), et tech_log n'a pas à
   // porter deux fois le même texte.
@@ -225,7 +239,9 @@ export async function traiterAbonnements(request: Request) {
     examinees: lignes.length,
     alignees: alignes,
     resiliees,
-    echecs: echecs.length,
+    echecs: echecs.length + reprises.echecs + rapprochement.echecs,
+    stripe_repris: reprises.repris, stripe_controles: rapprochement.controles,
+    stripe_ecarts: rapprochement.ecarts, stripe_incomplet: rapprochement.incomplet,
     avoirs_portes: avoirsPortes,
     avoirs_en_echec: avoirsEnEchec.length,
     echeances_examinees: echeances.examinees,
@@ -245,7 +261,9 @@ export async function traiterAbonnements(request: Request) {
     avoirs_portes: avoirsPortes,
     avoirs_en_echec: avoirsEnEchec,
     echeances,
-    reconduction,
+    reconduction, reprises, rapprochement,
+    stripe_repris: reprises.repris, stripe_controles: rapprochement.controles, stripe_ecarts: rapprochement.ecarts,
+    stripe_incomplet: rapprochement.incomplet, stripe_echecs: reprises.echecs + rapprochement.echecs,
   });
 }
 

@@ -124,7 +124,7 @@ export async function envoyerSignatureBail(org: string, bail: string, id: string
     if (!config) throw new Error("La signature électronique n’est pas encore activée. Le PDF reste disponible et aucun envoi n’a été effectué.");
     if (circuit.environnement !== config.environnement) throw new Error("L’environnement de signature a changé. Annulez cette préparation puis préparez un nouveau PDF.");
     if (new Date(circuit.expire_le).getTime()<=Date.now()+86_400_000) throw new Error(circuit.modele === "devis_artisan" ? "La validité du devis est trop courte pour ouvrir la signature. Demandez à l’artisan une offre valable plus longtemps." : "Cette préparation est trop ancienne. Actualisez le PDF avant de l’envoyer.");
-    if (config.environnement === "sandbox" && !(process.env[config.prestataire === "zoho" ? "ZOHO_SIGN_ORGS_TEST" : "YOUTRUST_ORGS_TEST"] ?? "").split(",").map(x=>x.trim()).includes(org)) throw new Error("Cet espace n’est pas autorisé pour les essais de signature.");
+    if (config.environnement === "sandbox" && !(process.env.ZOHO_SIGN_ORGS_TEST ?? "").split(",").map(x=>x.trim()).includes(org)) throw new Error("Cet espace n’est pas autorisé pour les essais de signature.");
     const service = clientDeService(); if (!service) throw new Error("Le suivi sécurisé est indisponible.");
     const preparation = await assemblerSignatureDocument(supabase,org,selectionDuCircuit(circuit));
     if (preparation.manquants.length || preparation.empreinte !== circuit.empreinte) throw new Error("Le dossier a changé depuis la préparation. Préparez et relisez un nouveau PDF.");

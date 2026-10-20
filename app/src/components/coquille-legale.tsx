@@ -109,7 +109,7 @@ export function TableauPrestataires({
                 <Fait valeur={p.localisation} quoi="localisation" />
               </td>
               {coordonnees && (
-                <td data-libelle="Coordonnées" className="whitespace-pre-line">
+                <td data-libelle="Coordonnées" className="whitespace-pre-line [overflow-wrap:anywhere]">
                   <Fait valeur={p.coordonnees ?? null} quoi="dénomination, adresse et téléphone" />
                 </td>
               )}

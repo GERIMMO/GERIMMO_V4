@@ -9,7 +9,7 @@
 -- Décision du 20/10 : le dirigeant veut une liste d'attente des agences, DISTINCTE de liste_attente du 29/09 dont le sort
 -- reste à décider. Une agence s'y inscrit depuis le site vitrine (page /agences) ; rien ne lui est envoyé (aucun e-mail de
 -- confirmation) ; le dirigeant la recontacte lui-même depuis la console (/admin/liste-attente) et note le suivi (statut,
--- date de contact). Aucun prix ni date d'ouverture ne sont annoncés.
+-- date de contact). Aucun prix ni aucune date d'ouverture ne sont annoncés.
 --
 -- Ce qui est posé :
 --   · la table public.liste_attente_agences : id, email, agence (nom de l'agence), contact (nom de la personne), telephone,
@@ -23,7 +23,10 @@
 --     ligne est donc refusé) ; telephone null ou ≤ 40, non vide, sans contrôle ; code_postal : cinq chiffres ; nb_lots dans
 --     les quatre tranches ; message null ou ≤ 1000, non vide une fois les blancs retirés, sans caractère de contrôle SAUF
 --     le saut de ligne (seul champ libre de plusieurs lignes) ; source null ou ≤ 80, non vide, sans contrôle ; statut dans
---     les quatre états ;
+--     les quatre états. « Non vide une fois les blancs retirés » est tenu par btrim et \S, qui ne connaissent que les blancs
+--     ASCII : une valeur faite uniquement de blancs Unicode (U+00A0, U+3000…) n'est pas arrêtée par ces bornes ; l'action
+--     serveur, qui retire ces blancs (trim JavaScript) avant de valider, la refuse en amont — la base n'est ici qu'une défense
+--     en profondeur, comme pour liste_attente_biens_borne (20261019120000) ;
 --   · un index unique sur lower(email) : une agence, une adresse ; le doublon à casse différente est refusé (l'action
 --     serveur répond au doublon par le message de succès : aucune révélation) ; un index (created_at desc) pour le comptage
 --     de l'heure glissante ;
@@ -38,7 +41,9 @@
 --     liste_attente_agences_update_sa (super-administrateur, modèle demandes_devis_select_sa/_update_sa) ; AUCUN droit
 --     d'insertion pour anon ni authenticated : l'insertion passe par l'action serveur et la clé de service, après le pot de
 --     miel et la validation (décision X02, 20261014400000). service_role : lecture, insertion, modification, suppression ;
---   · un commentaire de table qui date l'origine (20/10/2026) ; un bloc de CONTRÔLE qui s'arrête si un droit manque ou dépasse.
+--   · un commentaire de table qui date l'origine (20/10/2026) ; un bloc de CONTRÔLE qui s'arrête si un droit manque ou dépasse,
+--     si une politique, un déclencheur ou un index manque, ou si les dix bornes CHECK ne sont pas toutes posées et validées
+--     (`create table if not exists` ne reposerait pas une borne absente d'une table homonyme préexistante).
 --
 -- Pas de règle retention_rules : la durée de conservation d'une inscription (et le sort des agences contactées ou converties)
 -- est à décider par le dirigeant et le DPO ; la décision sera consignée, pas inventée ici.
@@ -53,8 +58,9 @@ do $verrou$ begin perform set_config('lock_timeout', '10s', true); end $verrou$;
 -- ── 1. La table et ses bornes ────────────────────────────────────────────────────────────────────────────────────────
 -- Les blancs Unicode hors ASCII (U+00A0, U+1680, U+2000 à U+200B, U+2028, U+2029, U+202F, U+205F, U+3000, U+FEFF) sont
 -- écrits en caractères littéraux dans la classe de liste_attente_agences_email_borne (fichier UTF-8, chaîne standard),
--- recopiés de liste_attente_email_borne (20261019120000). La classe des caractères de contrôle admis dans aucun champ sauf
--- le saut de ligne (message) est écrite avec la syntaxe d'échappement E'…' : U+0001–U+0009, U+000B–U+001F, U+007F.
+-- recopiés de liste_attente_email_borne (20261019120000). La classe des caractères de contrôle, refusés dans tous les champs
+-- — le saut de ligne excepté, admis dans message seulement —, est écrite avec la syntaxe d'échappement E'…' : U+0001–U+0009,
+-- U+000B–U+001F, U+007F.
 create table if not exists public.liste_attente_agences (
   id uuid primary key default gen_random_uuid(),
   email text not null,
@@ -216,6 +222,10 @@ begin
      or not exists (select 1 from pg_indexes where schemaname = 'public' and tablename = 'liste_attente_agences'
                       and indexname = 'liste_attente_agences_recent_idx') then
     raise exception 'liste_attente_agences : un index manque (liste_attente_agences_email_lower_idx unique, liste_attente_agences_recent_idx)';
+  end if;
+  -- `create table if not exists` ne reposerait pas une borne manquante sur une table homonyme préexistante : les dix CHECK, validées.
+  if (select count(*) from pg_constraint where conrelid = 'public.liste_attente_agences'::regclass and contype = 'c' and convalidated) <> 10 then
+    raise exception 'liste_attente_agences : dix contraintes CHECK validées attendues';
   end if;
 end $controle$;
 

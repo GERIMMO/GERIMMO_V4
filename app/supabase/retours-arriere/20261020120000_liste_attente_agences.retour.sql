@@ -1,7 +1,8 @@
--- Supprimer la liste d'attente des agences si elle est VIDE ; refuser sans rien modifier dès qu'une agence s'y est inscrite (décision du dirigeant requise).
+-- Instruction atomique ; participe à une transaction externe sans la valider. Supprimer la liste d'attente des agences si elle est VIDE ; refuser sans rien modifier dès qu'une agence s'y est inscrite (décision du dirigeant requise).
 do $retour_atomique$
 declare n bigint;
 begin
+ perform set_config('lock_timeout', '10s', true);
  if to_regclass('public.liste_attente_agences') is not null then
   execute 'select count(*) from public.liste_attente_agences' into n;
   if n > 0 then

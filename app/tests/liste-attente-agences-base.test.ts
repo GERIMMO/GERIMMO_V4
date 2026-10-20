@@ -5,9 +5,10 @@
  *
  * Sans base : la migration est rejouable sans transaction interne et se termine par fermer_fonctions_a_anon ; le plafond suit
  * le modèle exact de liste_attente_limiter (message exact, P0001) ; aucune insertion n'est accordée à anon ni authenticated
- * (décision X02) ; le retour est UNE SEULE instruction `do` atomique, qui refuse si la table contient une ligne ; manifeste
- * (une fois, en dernier), MISSION_OCTOBRE, LISEZ-MOI (ligne du tableau), chaîne « Ordre complet » (en premier, avant
- * 20261020084651).
+ * (décision X02) ; le retour est UNE SEULE instruction `do` atomique, recensée par retours-atomicite.test.ts (première ligne
+ * « -- Instruction atomique ; »), bornée par lock_timeout dès sa garde, qui refuse si la table contient une ligne ; manifeste
+ * (une fois, après 20261020084651), MISSION_OCTOBRE, LISEZ-MOI (ligne du tableau), chaîne « Ordre complet » (avant
+ * 20261020084651 — en tête aujourd'hui ; seul l'ordre relatif est exigé, pour survivre aux migrations suivantes).
  *
  * Sur une vraie base (SUPABASE_DB_URL, transaction annulée) :
  *  · catalogue : colonnes, onze contraintes validées, index unique sur lower(email) et index récent, deux politiques
@@ -21,7 +22,8 @@
  *  · bornes de chaque champ (trop long, vide après btrim, caractère de contrôle, blanc Unicode dans l'e-mail, code postal à
  *    quatre chiffres, tranche et statut inconnus, saut de ligne ADMIS dans message et REFUSÉ dans agence) ; unicité
  *    insensible à la casse ; plafond : 30 inscriptions dans l'heure passent, la 31e reçoit le message exact ;
- *  · rejeu : empreinte identique ; retour : refusé avec une ligne (rien ne change), accepté à vide (déclencheurs, fonction,
+ *  · rejeu : empreinte identique ; le bloc de contrôle s'arrête si l'une des dix bornes CHECK manque ou n'est pas validée
+ *    (table homonyme préexistante à définition divergente, que `create table if not exists` ne reposerait pas) ; retour : refusé avec une ligne (rien ne change), accepté à vide (déclencheurs, fonction,
  *    table et ligne d'historique retirés, la voisine reste), rejoué sans effet, atomique (erreur forcée dans le même message :
  *    rien ne persiste), puis la migration ré-appliquée redonne la même empreinte.
  *
@@ -103,17 +105,25 @@ describe('liste d’attente des agences — les fichiers du lot (sans base)', ()
     // Le saut de ligne n'est admis que dans le message : la classe de contrôle y est écrite en E'…', sans U+000A.
     expect(MIGRATION).toContain("message !~ E'[\\x01-\\x09\\x0B-\\x1F\\x7F]'");
     expect(MIGRATION).toContain("statut text not null default 'en_attente'");
+    // Le bloc de contrôle compte les dix bornes CHECK validées : `create table if not exists` ne reposerait pas une borne manquante
+    // sur une table homonyme préexistante.
+    expect(MIGRATION).toContain("where conrelid = 'public.liste_attente_agences'::regclass and contype = 'c' and convalidated) <> 10 then");
+    expect(MIGRATION).toContain("raise exception 'liste_attente_agences : dix contraintes CHECK validées attendues';");
   });
 
   it("le retour est une seule instruction `do` atomique (forme des retours du 20/10), refuse si la table contient une ligne, retire déclencheurs, fonction, table et sa seule version", () => {
     const [premiere, ...reste] = RETOUR.trimEnd().split('\n');
-    expect(premiere).toMatch(/^-- .*décision du dirigeant/);
+    // Recensé par retours-atomicite.test.ts, qui ne lit que les fichiers ouvrant par « -- Instruction atomique ; » ; la décision du
+    // dirigeant reste nommée en première ligne.
+    expect(premiere).toMatch(/^-- Instruction atomique ; participe à une transaction externe sans la valider\. .*décision du dirigeant/);
     expect(reste.join('\n')).toMatch(/^do \$retour_atomique\$[\s\S]*end \$retour_atomique\$;$/);
     expect(RETOUR.match(/\$retour_atomique\$/g)).toHaveLength(2);
     expect(transactionsInterdites(RETOUR)).toEqual([]);
     expect(RETOUR).toContain("execute 'select count(*) from public.liste_attente_agences' into n;");
     expect(RETOUR).toMatch(/if n > 0 then\s+raise exception 'Retour arrière refusé : public\.liste_attente_agences contient % inscription\(s\) d''agence ; décision du dirigeant requise avant toute suppression\.', n using errcode = 'P0001';/);
     expect(RETOUR).toContain("set local lock_timeout='10s';");
+    // Le verrou est borné dès la garde : le comptage n'attend pas sans limite derrière un verrou exclusif d'une autre session.
+    expect(RETOUR).toMatch(/^begin\s+perform set_config\('lock_timeout', '10s', true\);\s+if to_regclass\('public\.liste_attente_agences'\) is not null then/m);
     expect(RETOUR).toContain(`drop trigger if exists liste_attente_agences_limiter on ${TABLE};`);
     expect(RETOUR).toContain(`drop trigger if exists diagnostic_artisan_lecture on ${TABLE};`);
     expect(RETOUR).toContain(`drop table if exists ${TABLE};`);
@@ -125,11 +135,12 @@ describe('liste d’attente des agences — les fichiers du lot (sans base)', ()
     expect([...RETOUR.matchAll(/public\.(\w+)/g)].map((m) => m[1]).every((o) => o.startsWith('liste_attente_agences'))).toBe(true);
   });
 
-  it('manifeste (une fois, en dernier), MISSION_OCTOBRE, LISEZ-MOI (ligne du tableau) et chaîne « Ordre complet » (en premier, avant 20261020084651)', () => {
+  it('manifeste (une fois, après 20261020084651), MISSION_OCTOBRE, LISEZ-MOI (ligne du tableau) et chaîne « Ordre complet » (avant 20261020084651)', () => {
     const manifeste = readFileSync('e2e/local/ordre-migrations.txt', 'utf8').trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${NOM}.sql`)).toHaveLength(1);
-    expect(manifeste[manifeste.length - 1]).toBe(`${NOM}.sql`);
-    expect(manifeste[manifeste.length - 2]).toBe('20261020084651_depots_directs_temporaires.sql');
+    // Ordre relatif seulement : la prochaine migration du dépôt prendra la fin du manifeste sans que rien ne régresse ici.
+    expect(manifeste).toContain('20261020084651_depots_directs_temporaires.sql');
+    expect(manifeste.indexOf(`${NOM}.sql`)).toBeGreaterThan(manifeste.indexOf('20261020084651_depots_directs_temporaires.sql'));
     expect(readFileSync('tests/relais-migrations-manifeste.test.ts', 'utf8')).toContain(`"${NOM}.sql",`);
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     const lisezMoi = readFileSync('supabase/retours-arriere/LISEZ-MOI.md', 'utf8');
@@ -139,9 +150,10 @@ describe('liste d’attente des agences — les fichiers du lot (sans base)', ()
     const chaines = [...lisezMoi.matchAll(/Ordre complet si tout doit être défait :([\s\S]*?)puis `500000`/g)];
     expect(chaines, 'une seule chaîne complète').toHaveLength(1);
     const codes = [...chaines[0][1].matchAll(/`(\d{14}|\d{6})`/g)].map((m) => m[1]);
-    expect(codes[0]).toBe(VERSION);
-    expect(codes[1]).toBe('20261020084651');
+    // Avant 20261020084651 (en tête aujourd'hui) : l'ordre relatif survit au prochain retour placé en tête de chaîne.
+    expect(codes).toContain('20261020084651');
     expect(codes.filter((c) => c === VERSION)).toHaveLength(1);
+    expect(codes.indexOf(VERSION)).toBeLessThan(codes.indexOf('20261020084651'));
     // La parenthèse qui suit ne cite aucune version (le test du jour de Paris lit tous les codes de la chaîne).
     const parenthese = chaines[0][1].match(/`20261020120000` \(([^)]*)\)/)?.[1] ?? '';
     expect(parenthese).toMatch(/liste d'attente des agences/);
@@ -382,7 +394,8 @@ describe.skipIf(!url)('liste d’attente des agences — public.liste_attente_ag
     await role('postgres');
     expect((await un<{ n: number }>("select count(*)::int as n from public.liste_attente_agences where created_at > now() - interval '1 hour'")).n).toBe(PLAFOND);
     // Une inscription vieille d'une heure et une minute ne compte plus : la fenêtre glisse.
-    await db.query("update public.liste_attente_agences set created_at = now() - interval '61 minutes' where email = 'crue-0@agence-exemple.test'");
+    // La première inscription CRÉÉE PAR CE CAS, pas un nom fixe : la table peut déjà porter des lignes de l'heure.
+    expect((await db.query("update public.liste_attente_agences set created_at = now() - interval '61 minutes' where email = $1", [`crue-${deja}@agence-exemple.test`])).rowCount).toBe(1);
     await role('service_role');
     expect((await inscrire({ email: 'apres-la-crue@agence-exemple.test' })).rowCount).toBe(1);
   });
@@ -469,6 +482,18 @@ describe.skipIf(!url)('liste d’attente des agences — public.liste_attente_ag
     expect(await empreinte()).toEqual(avant);
     await role('service_role');
     await expect(inscrire({ email: 'rejeu@agence-exemple.test', code_postal: '7501' })).rejects.toThrow(refus('liste_attente_agences_code_postal_format'));
+  });
+
+  it("le bloc de contrôle s'arrête si une borne CHECK manque ou n'est pas validée : une table homonyme préexistante à définition divergente ne passe pas (`create table if not exists` ne la reposerait pas)", async () => {
+    await role('postgres');
+    await db.query('alter table public.liste_attente_agences drop constraint liste_attente_agences_code_postal_format');
+    await expect(essayer(sansFermeture(MIGRATION))).rejects.toThrow(/^liste_attente_agences : dix contraintes CHECK validées attendues$/);
+    // Reposée mais non validée : refusée aussi ; validée : la migration passe de nouveau et les dix bornes sont là.
+    await db.query("alter table public.liste_attente_agences add constraint liste_attente_agences_code_postal_format check (code_postal ~ '^[0-9]{5}$') not valid");
+    await expect(essayer(sansFermeture(MIGRATION))).rejects.toThrow(/^liste_attente_agences : dix contraintes CHECK validées attendues$/);
+    await db.query('alter table public.liste_attente_agences validate constraint liste_attente_agences_code_postal_format');
+    await db.query(sansFermeture(MIGRATION));
+    expect((await lignes("select conname from pg_constraint where conrelid = 'public.liste_attente_agences'::regclass and contype = 'c' and convalidated"))).toHaveLength(10);
   });
 
   it("le retour REFUSE, sans rien modifier, tant que la table contient une inscription : message exact (P0001), empreinte, ligne et historique intacts", async () => {

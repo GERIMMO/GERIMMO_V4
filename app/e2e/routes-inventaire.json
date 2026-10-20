@@ -60,6 +60,12 @@
     "dynamic": ""
   },
   {
+    "path": "/admin/liste-attente",
+    "persona": "superadmin",
+    "label": "Liste d’attente des agences (inscriptions depuis /agences)",
+    "dynamic": ""
+  },
+  {
     "path": "/admin/organisations/ORG",
     "persona": "superadmin",
     "label": "Détail d'une organisation",

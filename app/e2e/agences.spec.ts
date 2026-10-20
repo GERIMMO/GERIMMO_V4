@@ -49,7 +49,9 @@ for (const largeur of [390, 1440]) {
       // Un code postal faux : l'erreur attendue, la saisie conservée, rien en base.
       await remplir(page, { email, codePostal: "7501" });
       await page.getByRole("button", { name: BOUTON }).click();
-      await expect(page.getByRole("alert")).toHaveText("Indiquez le code postal de l'agence : cinq chiffres.");
+      // L'alerte DU FORMULAIRE : la page porte aussi une région d'alerte vide (repli hors ligne), que `getByRole` seul
+      // attraperait en plus (mode strict).
+      await expect(page.locator("form[data-saisie-libre]").getByRole("alert")).toHaveText("Indiquez le code postal de l'agence : cinq chiffres.");
       await expect(page.getByLabel(/^Nom de l(?:'|’)agence$/)).toHaveValue("Agence E2E du Parc");
       await expect(page.getByLabel("Nombre de lots gérés", { exact: true })).toHaveValue("200_a_499");
       expect(await compter()).toBe(0);

@@ -28,9 +28,14 @@ export function FormulaireListeAttenteAgences() {
   const champ =
     "h-10 w-full rounded-lg border border-[var(--sur-encre)]/25 bg-[var(--sur-encre)]/5 px-3 text-sm text-[var(--sur-encre)] placeholder:text-[var(--sur-encre)]/40";
   const v = etat.valeurs ?? {};
+  // Après chaque action, React remet le formulaire à ses valeurs de montage (form.reset) PUIS applique les nouvelles
+  // `defaultValue` : un champ texte retrouve la saisie reposée, mais un <select> garde l'option choisie au montage, donc
+  // « Choisir », et la validation native bloque le renvoi. La clé change avec la saisie reposée : le formulaire est
+  // remonté, chaque champ (select compris) part de la valeur que l'agence avait tapée (constaté sur le banc, 20/10).
+  const cle = etat.valeurs ? JSON.stringify(etat.valeurs) : "vierge";
 
   return (
-    <form data-saisie-libre action={action} className="grid gap-3 sm:grid-cols-2">
+    <form key={cle} data-saisie-libre action={action} className="grid gap-3 sm:grid-cols-2">
       {/* Pot de miel anti-robot : invisible, doit rester vide */}
       <input
         type="text"

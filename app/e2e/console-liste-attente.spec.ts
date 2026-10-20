@@ -84,10 +84,16 @@ test("la console liste l'agence inscrite, la marque contactée et exporte le CSV
     expect(csv).toContain(";Contactée;");
 
     // Sans session (contexte vide) : une redirection vers la connexion ou un 403, jamais le fichier.
-    const anonyme = await browser.newContext();
+    // Un contexte VRAIMENT sans session : `browser.newContext()` seul reprend les options du test (donc la session de
+    // supervision) ; l'état vide est explicite, comme dans vitrine.spec.ts.
+    const anonyme = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     try {
-      const refus = await anonyme.request.get(new URL("/admin/liste-attente/export", page.url()).toString(), { maxRedirects: 0 });
-      expect([301, 302, 303, 307, 308, 403]).toContain(refus.status());
+      // Le proxy renvoie le visiteur vers /connexion (307) ; Playwright suit la redirection et rend la page de connexion
+      // (200). On juge donc l'adresse d'arrivée ou un 403, et jamais un CSV ni le nom de l'agence.
+      const refus = await anonyme.request.get(new URL("/admin/liste-attente/export", page.url()).toString());
+      const arrivee = new URL(refus.url());
+      expect(refus.status() === 403 || arrivee.pathname === "/connexion", `arrivée ${refus.status()} ${arrivee.pathname}`).toBe(true);
+      expect(refus.headers()["content-type"] ?? "").not.toMatch(/^text[/]csv/);
       expect(await refus.text()).not.toContain(agence);
     } finally {
       await anonyme.close();

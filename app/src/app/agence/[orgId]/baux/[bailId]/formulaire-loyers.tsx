@@ -774,7 +774,7 @@ export function FormulaireLoyers({
           </div>
           <div className="space-y-1">
             <Label htmlFor="reg-just" className="text-sm">Justificatif</Label>
-            <ChampFichier id="reg-just" name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required />
+            <ChampFichier depotDirect id="reg-just" name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required />
           </div>
           {/* Audit gestion du 29/09 — art. 23 loi 89-462 : une régularisation
               faite après le 31/12 de l'année suivant l'exercice se paie par

@@ -14,7 +14,7 @@ Le point de départ reste `e25c0f7`, PR212 publiée le 19 octobre. Cette page d�
 ## Préparé
 
 - Durcissement de /auth/confirm (consigne hors dépôt) : résultat local vérifié sur GoTrue réel, avec relecture indépendante.
-- Association Stripe contrôlée côté serveur ; cinq migrations rejouables et leurs retours livrés avec une précondition de souscription fermée pendant le déploiement.
+- Association Stripe contrôlée côté serveur ; sept migrations rejouables et leurs retours livrés avec une précondition de souscription fermée pendant le déploiement.
 - Sauvegarde et restauration de l'historique des migrations, y compris vérification du contenu après restauration ; anciennes sauvegardes acceptées en signalant l'historique absent.
 - Réceptions Stripe conservées et reprises après interruption ; rapprochement limité à 20 dossiers par passage et anomalies visibles dans Santé.
 - Connecteur Youtrust retiré ; anciennes preuves conservées, variables externes encore à retirer.
@@ -39,13 +39,13 @@ Un défaut de composition des transactions a été corrigé sur les cinq nouveau
 
 ## Transferts de fichiers
 
-Dépôts limités à 4 Mio avec message avant envoi et saisie conservée. Cinq routes de lecture utilisent Storage directement après autorisation et trace. Miniatures et ouverture native des PDF mobiles conservées. Un PNG de 6 Mio, une reprise après erreur, une redirection de téléchargement et un PDF de deux pages passent sur navigateur local. Les devis archivés, preuves de signature et pièces privées de plus de 4 Mio utilisent également cette lecture après contrôle d’empreinte côté serveur puis dans le navigateur. Le flux est borné avant tout aperçu. 123 tests ciblés et deux essais navigateur réussissent. Les dépôts directs signés, les générations historiques sans archive, le CORS réel et Safari iPhone restent à vérifier pour terminer G5.
+Dépôts documentaires directs privés jusqu’à 10 Mio, dix pièces et 50 Mio par formulaire, avec saisie conservée. Réservation par utilisateur et contrôle serveur des octets avant enregistrement métier. Les autres types de formulaires conservent leurs limites propres. Cinq routes de lecture utilisent Storage directement après autorisation et trace. Miniatures et ouverture native des PDF mobiles conservées. Un PNG de 6 Mio, une reprise après erreur, une redirection de téléchargement et un PDF de deux pages passent sur navigateur local. Les devis archivés, preuves de signature et pièces privées de plus de 4 Mio utilisent également cette lecture après contrôle d’empreinte côté serveur puis dans le navigateur. Le flux est borné avant tout aperçu. 123 tests ciblés et deux essais navigateur réussissent. Les dépôts directs sont testés en local avec interruption et reprise d’un PDF de 6 Mio. Les générations historiques sans archive, le CORS réel et Safari iPhone restent à vérifier pour terminer G5.
 
 La CI744 a identifié une attente obsolète dans le test navigateur de consultation. Le scénario contrôle maintenant l’aperçu HTML à adresse stable, le vrai contenu PDF reçu depuis Storage et le téléchargement autorisé. Les 17 scénarios de navigation et d’isolation passent localement après adaptation ; le banc conserve le type du fichier déposé. Le téléchargement navigateur, son nom et ses octets sont également éprouvés après correction du banc qui ignorait le paramètre de téléchargement. La CI du dernier SHA reste requise.
 
 ## Préparation des signatures
 
-Le début de création Zoho est distingué de la validation locale et de la connexion OAuth. Un échec certain avant création libère circuit et quota dans une transaction journalisée ; une réponse incertaine conserve le blocage. Une annulation ne peut plus écraser une réservation concurrente. Les deux défauts signalés en contre-relecture sont corrigés, avec essais de pannes sur chaque écriture, droits, rejeu et entrelacements. Le rapprochement des circuits sans référence, les alertes et les relances restent ouverts (E5 partiel).
+Le début de création Zoho est distingué de la validation locale et de la connexion OAuth. Un échec certain avant création libère circuit et quota dans une transaction journalisée ; une réponse incertaine conserve le blocage. Une annulation ne peut plus écraser une réservation concurrente. Les deux défauts signalés en contre-relecture sont corrigés, avec essais de pannes sur chaque écriture, droits, rejeu et entrelacements. Le rapprochement d’un brouillon unique vérifie désormais le marqueur, les signataires, leur ordre, les SMS et toutes les empreintes PDF. Les rappels J+7/J+21 ont un registre durable ; J+28, refus, expiration et incertitude produisent des alertes internes dédupliquées. Aucun second envoi en cas de réponse perdue. Les rappels restent désactivés ; la recette externe Zoho reste ouverte (E5 partiel).
 
 ## Contrôles externes et limites
 
@@ -59,9 +59,15 @@ La console Stripe confirme un seul webhook actif avec les sept événements atte
 
 ## Mise en service
 
-La CI748 a réussi 8 989 tests de logique et échoué sur un seul contrôle syntaxique, qui classait l’en-tête HTTP `Content-Length` de la visionneuse comme une saisie de formulaire. Une exception précise documente la double limite de 50 Mio, à l’en-tête et pendant la lecture effective du flux. Les 43 tests ciblés passent après correction ; les contrôles de saisie des montants restent inchangés. Les tests navigateur complets n’ont pas été exécutés dans la CI748 et la nouvelle version doit encore passer la CI.
+La CI748 a réussi 8 989 tests de logique et échoué sur un seul contrôle syntaxique, qui classait l’en-tête HTTP `Content-Length` de la visionneuse comme une saisie de formulaire. Une exception précise documente la double limite de 50 Mio, à l’en-tête et pendant la lecture effective du flux. Les 43 tests ciblés passent après correction ; les contrôles de saisie des montants restent inchangés. La CI749 a ensuite réussi sur 66ce9d6875a0b88604af545265cfe8caf5d59804 : 8 990 tests de logique, 17 non exécutés ; 200 tests navigateur, un non exécuté. Elle précède le complément actuel de dépôt et de suivi : une nouvelle CI est nécessaire.
 
 Le protocole, l'ordre des migrations, la précondition de souscription fermée et le retour figurent dans `app/docs/livraison-audit-20-octobre.md`. La relecture du code ne remplace ni la simulation du chantier, ni une CI sur le SHA exact, ni la recette de production.
 
 > [!warning] Décision d'ouverture non acquise
 > Les faits d'entreprise, la relecture juridique, les choix contractuels et les travaux encore ouverts de l'audit restent nécessaires. Ne pas présenter ce lot comme la clôture de l'audit ou comme une autorisation de démarcher.
+
+## Complément local : transferts et suivi
+
+La dernière contre-relecture a permis de corriger quatre P2 : exception de suivi sur abonnement suspendu, délai de purge couvrant un jeton émis tardivement, traitement du reliquat et arrêt des rappels après OAuth. Les 128 tests ciblés passent ; aucun défaut concret résiduel relevé par le second lecteur sur ce delta. Le chemin documenté de retour complet passe ses 45 tests. Compilation et lint réussissent ; les résultats globaux sont consignés ci-dessous.
+
+Validation locale finale du complément : 9 079 tests réussis, 45 non exécutés (633 fichiers). Compilation, types et lint réussis. Le dépôt de 6 Mio avec interruption/reprise et consultation passe sur le build à 390 et 1 440 pixels ; les douze autres scénarios ciblés de protection de saisie et de refus d’attestation passent également. Ces contrôles ne sont pas des essais Zoho ou Stripe réels.

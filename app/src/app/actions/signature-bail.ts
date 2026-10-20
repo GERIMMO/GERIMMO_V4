@@ -10,6 +10,7 @@ import { deposerFichierGed } from "@/lib/ged-depot";
 import { appliquerMarqueDocument } from "@/lib/documents/marque";
 import { chargerMarque } from "@/lib/marque-organisation-serveur";
 import { activerDemandeSignature, annulerDemandeSignature, lireDemandeSignature, preparerCircuitSignature, supprimerBrouillonSignature, prestataireSignature } from "@/lib/signature-prestataire";
+import { rapprocherSignatureInterrompue } from "@/lib/signature-suivi";
 import { synchroniserCircuitSignatureBail } from "@/lib/signature-bail-worker";
 import { verifierAvantEffet } from "@/lib/controle-effets";
 import { sansJargon } from "@/lib/erreurs";
@@ -175,7 +176,7 @@ export async function envoyerSignatureBail(org: string, bail: string, id: string
     if (attache.error) throw new Error("Les signataires n’ont pas pu être rattachés. Aucune activation n’a été demandée.");
     await verifierAvantEffet(service,"signatures");
     await activerDemandeSignature(config,cree.demandeId,{...circuit,external_document_id:cree.documentId,signataires:circuit.signataires.map((s,i)=>({...s,externalId:cree.signataireIds[i]}))});
-    const miseAJour = await service.from("bail_signature_circuits").update({etat:"en_cours",updated_at:new Date().toISOString()}).eq("id",id).eq("etat","preparation");
+    const miseAJour = await service.from("bail_signature_circuits").update({etat:"en_cours",envoye_le:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",id).eq("etat","preparation");
     if (miseAJour.error) throw new Error("L’envoi doit être rapproché du prestataire.");
     rafraichir(org,bail);
     return { ...await lireSignatureBail(org,bail,selectionDuCircuit(circuit)),succes:"Le premier signataire est invité par e-mail. Les suivants seront invités dans l’ordre indiqué." };
@@ -202,6 +203,9 @@ export async function actualiserSignatureBail(org: string,bail: string,id: strin
     if (circuit.external_request_id) {
       if (!config || !service || config.environnement !== circuit.environnement) throw new Error("La connexion au prestataire est indisponible. Le dernier état connu est conservé.");
       await synchroniserCircuitSignatureBail(service,config,circuit.id);
+    } else if (["preparation","a_verifier"].includes(circuit.etat)) {
+      if (!config || !service) throw new Error("La connexion au prestataire est indisponible.");
+      await rapprocherSignatureInterrompue(service,config,circuit.id);
     }
     rafraichir(org,bail);
     return lireSignatureBail(org,bail,selectionDuCircuit(circuit));

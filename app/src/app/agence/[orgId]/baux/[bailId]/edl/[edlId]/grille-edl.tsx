@@ -20,7 +20,8 @@ import { Button } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Modale } from "@/components/ui/modale";
-import { erreurVolumeDepot } from "@/lib/limite-depot";
+import {MAX_DEPOT_DIRECT,MARQUEUR_DEPOT} from "@/lib/depot-direct-commun";
+import {preparerDepotsDirects,ErreurDepotDirect} from "@/lib/depot-direct-client";
 
 export const ETATS_ELEMENT: Record<string, string> = {
   neuf: "Neuf",
@@ -430,9 +431,10 @@ export function GrilleEdl({
           if (donnees.get("signer") === "1") {
             donnees.set("mode_signature", modePreuve);
             if (preuve) {
-              const erreur = erreurVolumeDepot([preuve]);
+              const erreur = preuve.size>MAX_DEPOT_DIRECT?"La preuve dépasse 10 Mo.":null;
               if (erreur) { setEtatMaj({ erreur }); return; }
               donnees.set("preuve_signature", preuve);
+              donnees.set(MARQUEUR_DEPOT,JSON.stringify({id:"preuve-edl",nom:"preuve_signature"}));
             }
           }
           const soumis = { etats: { ...etats }, commentaires: { ...commentaires } };
@@ -442,6 +444,7 @@ export function GrilleEdl({
           try {
             // La promesse de l'action confirme l'écriture indépendamment du
             // rendu de revalidation : celui-ci peut rester suspendu en Next 16.
+            await preparerDepotsDirects(donnees);
             const retour = await actionMaj({}, donnees);
             setEtatMaj(retour);
             if (retour.succes) {
@@ -451,8 +454,8 @@ export function GrilleEdl({
               // Après signature, relire le dossier figé avant toute autre action.
               if (donnees.get("signer") === "1") window.location.reload();
             }
-          } catch {
-            setEtatMaj({ erreur: "La confirmation de sauvegarde n’a pas pu être reçue. Votre saisie reste sur cet appareil ; rouvrez le dossier pour vérifier ce qui a été enregistré." });
+          } catch (erreur) {
+            setEtatMaj({ erreur: erreur instanceof ErreurDepotDirect?erreur.message: "La confirmation de sauvegarde n’a pas pu être reçue. Votre saisie reste sur cet appareil ; rouvrez le dossier pour vérifier ce qui a été enregistré." });
           } finally {
             verrouEnvoi.current = false;
             setEnCoursMaj(false);

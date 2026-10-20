@@ -17,6 +17,7 @@ export type SignataireBail = {
   mentionCaution?: string;
 };
 export type CircuitBail = {
+  created_by?: string; envoye_le?: string | null;
   essai?: boolean; modele?: ModeleSignature; cible_id?: string; options?: Record<string,string>;
   id: string; prestataire: PrestataireSignature; organization_id: string; bail_id: string | null; document_id: string;
   etat: "pret" | "preparation" | "en_cours" | "a_verifier" | "termine" | "annule" | "refuse" | "expire";

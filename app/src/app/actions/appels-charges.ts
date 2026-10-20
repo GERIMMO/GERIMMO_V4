@@ -1,4 +1,6 @@
 "use server";
+import { resoudreDepotsFormulaire } from "@/lib/depot-direct";
+
 
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
@@ -39,6 +41,8 @@ export async function creerAppelCharges(
 
   let documentId: string | null = null;
   let avertissement: string | undefined;
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichier = formData.get("document");
   if (fichier instanceof File && fichier.size > 0) {
     const dep = await deposerFichierGed(

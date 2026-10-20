@@ -1,10 +1,10 @@
+import { limiteFichierDepose } from "./depot-direct";
 import { createHash } from "node:crypto";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
   detecterMimeReel,
   pdfComplet,
   EXTENSIONS,
-  TAILLE_MAX_DEPOT_OCTETS,
   TAILLE_MAX_OCTETS,
 } from "@/lib/file-type";
 import { sansJargon } from "@/lib/erreurs";
@@ -57,8 +57,8 @@ export async function preparerFichierGed(
   reutiliserReglement = false,
   genereServeur = false
 ): Promise<ResultatPreparationGed> {
-  if (fichier.size > (genereServeur ? TAILLE_MAX_OCTETS : TAILLE_MAX_DEPOT_OCTETS)) {
-    return { erreur: `Fichier trop volumineux (${genereServeur ? 10 : 4} Mo maximum).` };
+  if (fichier.size > (genereServeur ? TAILLE_MAX_OCTETS : limiteFichierDepose(fichier))) {
+    return { erreur: `Fichier trop volumineux (${genereServeur ? 10 : limiteFichierDepose(fichier) / 1024 / 1024} Mo maximum).` };
   }
 
   const octets = new Uint8Array(await fichier.arrayBuffer());

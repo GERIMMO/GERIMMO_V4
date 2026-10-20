@@ -66,6 +66,8 @@ import PageChantier from "@/app/artisan/chantiers/[chantierId]/page";
 class FormDataSimule {
   private champs = new Map<string, unknown>(Object.entries(sim.champs));
   get(nom: string) { return this.champs.get(nom) ?? null; }
+  getAll(nom: string) { return this.champs.has(nom) ? [this.champs.get(nom)] : []; }
+  delete(nom: string) { this.champs.delete(nom); }
   set(nom: string, valeur: unknown) { this.champs.set(nom, valeur); }
 }
 

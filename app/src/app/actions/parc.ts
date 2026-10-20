@@ -1,4 +1,6 @@
 "use server";
+import { resoudreDepotsFormulaire } from "@/lib/depot-direct";
+
 
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
@@ -633,6 +635,8 @@ export async function deposerDiagnostic(
     // PDF du rapport OBLIGATOIRE (arbitrage 2026-08-01) : le diagnostic est annexé
     // au bail, on exige son rapport dès le dépôt. Déposé dans la GED (type réel
     // vérifié, anti-doublon, accès tracés) et lié au diagnostic.
+    const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+    if (erreurDepotDirect) return { erreur: erreurDepotDirect };
     const fichier = formData.get("fichier");
     if (!(fichier instanceof File) || fichier.size === 0) {
       return { erreur: "Le rapport (PDF) du diagnostic est obligatoire : il est annexé au bail.", valeurs };

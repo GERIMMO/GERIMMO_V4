@@ -26,6 +26,8 @@ export const FICHIERS_EN_SERIE = [
   "tests/audit-oct20-migrations-rejeu.test.ts",
   "tests/stockage-gabarits-roles.test.ts",
   "tests/signature-preparation-abandon-base.test.ts",
+  "tests/signature-suivi-base.test.ts",
+  "tests/depot-direct-base.test.ts",
   // Réécriture temporaire des fonctions d’abonnement et du jour de Paris, annulée après chaque cas.
   "tests/abonnement-jour-paris-migration.test.ts",
   // Audit du 19/10 (B5) : rejeu de 20261019124000 et de son retour (drop/create de l'index signature_devis_une_offre, verrou

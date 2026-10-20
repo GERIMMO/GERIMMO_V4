@@ -51,6 +51,7 @@ export async function synchroniserCircuitSignatureBail(db: SupabaseClient, confi
       : distant.status === "declined" || distant.status === "rejected" ? "refuse"
       : distant.status === "ongoing" ? "en_cours" : "a_verifier";
     const miseAJour = await db.from("bail_signature_circuits").update({signataires:parties,etat,
+      ...(!circuit.envoye_le && distant.envoyeLe && Date.parse(distant.envoyeLe)>=Date.parse(circuit.created_at) ? {envoye_le:distant.envoyeLe} : {}),
       erreur:etat === "a_verifier" ? "Ce circuit n’est pas actif chez le prestataire."
         : etat === "refuse" ? `Signature refusée. ${distant.decline_information?.reason?.replace(/[\u0000-\u001f]/g," ").slice(0,500) || "Consultez le motif dans le suivi du prestataire."}`
         : parties.some(s=>s.statut === "error") ? "Une invitation n’a pas pu être délivrée. Vérifiez les coordonnées avant de préparer un nouvel envoi." : null,updated_at:new Date().toISOString()}).eq("id",id).eq("verrou_jeton",jeton);

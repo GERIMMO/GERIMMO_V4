@@ -1,10 +1,12 @@
 "use server";
+import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direct";
+
 
 import { sansJargon } from "@/lib/erreurs";
 import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { detecterMimeReel, pdfComplet, EXTENSIONS, TAILLE_MAX_DEPOT_OCTETS } from "@/lib/file-type";
+import { detecterMimeReel, pdfComplet, EXTENSIONS } from "@/lib/file-type";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { aujourdhuiParis } from "@/lib/ged";
 
@@ -43,6 +45,8 @@ export async function deposerMonAttestation(
   if (!adhesion) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichier = formData.get("fichier");
   const titre = String(formData.get("titre") ?? "").trim();
   const expire = String(formData.get("expire_le") ?? "").trim();
@@ -50,8 +54,8 @@ export async function deposerMonAttestation(
   if (!(fichier instanceof File) || fichier.size === 0) {
     return { erreur: "Choisissez le fichier de votre attestation.", valeurs };
   }
-  if (fichier.size > TAILLE_MAX_DEPOT_OCTETS) {
-    return { erreur: "Fichier trop volumineux (4 Mo maximum).", valeurs };
+  if (fichier.size > limiteFichierDepose(fichier)) {
+    return { erreur: `Fichier trop volumineux (${limiteFichierDepose(fichier) / 1024 / 1024} Mo maximum).`, valeurs };
   }
   if (!expire) {
     return { erreur: "Indiquez la date d'expiration figurant sur l'attestation.", valeurs };

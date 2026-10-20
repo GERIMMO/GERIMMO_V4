@@ -8,7 +8,7 @@ import {
   type EtatArtisanAction,
 } from "@/app/actions/artisan";
 import { compresserChampFichiers } from "@/lib/compresser-image";
-import { erreurVolumeDepot } from "@/lib/limite-depot";
+import {MAX_DEPOT_DIRECT,MARQUEUR_DEPOT} from "@/lib/depot-direct-commun";
 import { Avertissement, Erreur, Succes } from "../../../ui";
 
 /**
@@ -129,13 +129,14 @@ export function PhotoChantier({
           // Compression d'abord, envoi ensuite : `requestSubmit` doit partir
           // avec les octets allégés, sinon la compression ne sert à rien.
           void compresserChampFichiers(champ).then(() => {
-            const erreur = erreurVolumeDepot(Array.from(champ.files ?? []));
+            const erreur = Array.from(champ.files ?? []).some(f=>f.size>MAX_DEPOT_DIRECT)?"La photo dépasse 10 Mo.":null;
             setErreurPhoto(erreur);
             if (!erreur) formulaire.current?.requestSubmit();
           }).catch(() => setErreurPhoto("La photo n’a pas pu être préparée. Choisissez une autre image ou réduisez sa taille."));
         }}
       />
 
+      <input type="hidden" name={MARQUEUR_DEPOT} value={JSON.stringify({id:idChamp,nom:"photo"})} />
       {apercu && (
         // next/image ne sait pas servir une URL d'objet (`blob:`) : l'image
         // n'existe que dans ce navigateur, elle n'a pas d'URL à optimiser.

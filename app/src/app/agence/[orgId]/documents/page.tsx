@@ -513,7 +513,7 @@ export default async function PageDocuments(
                     <CardHeader>
                       <CardTitle className="text-base">Déposer un document</CardTitle>
                       <CardDescription>
-                        PDF, JPEG ou PNG · 4 Mo max · contenu réel vérifié · doublons
+                        PDF, JPEG ou PNG · 10 Mo max · contenu réel vérifié · doublons
                         refusés. Le type pilote seul les droits d&apos;accès et la durée
                         de conservation.
                       </CardDescription>

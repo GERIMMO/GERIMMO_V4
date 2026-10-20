@@ -32,6 +32,7 @@ function faux(file: Ligne[], opts: { supprimes: string[]; presents?: string[]; b
   const db = {
     rpc: async (nom: string) => { expect(nom).toBe("verifier_arret_supervision"); return { data: !opts.arrete, error: opts.panne ? { message: "indisponible" } : null }; },
     from: (table: string) => {
+      if(table === "depots_temporaires") { const q = {select: () => q, lt: () => q, order: () => q, limit: async () => ({data: [], error: null}), then: (resolve: (v: unknown) => void) => Promise.resolve({count: 0, error: null}).then(resolve)}; return q; }
       expect(table).toBe("purge_fichiers");
       const q: Record<string, unknown> = {};
       let compte = false;

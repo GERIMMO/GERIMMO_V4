@@ -147,8 +147,15 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
+    // Ces routes retournent une visionneuse autonome avec une CSP à nonce.
+    // La CSP générale écrasait celle de la réponse après la réécriture /espace,
+    // et « frame-ancestors none » bloquait l'aperçu dans notre propre dossier.
+    // Aucun écran interactif n'est exclu : seulement les routes fichier nommées.
+    const fichiers = "(?:agence|espace|locataire)/[^/]+/documents/[^/]+/fichier/?$|locataire/[^/]+/bail/fichier/?$|artisan/attestations/[^/]+/fichier/?$|admin/artisans/pieces/[^/]+/fichier/?$|api/artisan-prive/pieces/[^/]+/?$|api/devis/[^/]+/(?:pdf|signature)/?$";
+    const encadrement = new Set(["Content-Security-Policy", "X-Frame-Options"]);
     return [
-      { source: "/(.*)", headers: ENTETES_SECURITE },
+      { source: "/(.*)", headers: ENTETES_SECURITE.filter(e => !encadrement.has(e.key)) },
+      { source: `/((?!${fichiers}).*)`, headers: ENTETES_SECURITE.filter(e => encadrement.has(e.key)) },
       // Audit du 30/09 (M5) : l'adresse des pages /auth/confirm et
       // /auth/confirmer porte le jeton d'un lien reçu par e-mail. Ni le
       // navigateur ni un relais ne doivent en garder copie.

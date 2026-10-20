@@ -18,6 +18,7 @@ describe.skipIf(process.env.GERIMMO_TEST_PDF!=="1")("Document volumineux dans le
     const r=await servirFichierSigne(db,{path:'piece.png',mime:req.url==='/pdf'?'application/pdf':'image/png',titre:'Pièce fictive',retour:'depuis le dossier',apercuImage:req.url==='/miniature',mode:req.url==='/telechargement'?'telechargement':'consultation'});const texte=await r.text();tailleReponse=Buffer.byteLength(texte);res.writeHead(r.status,Object.fromEntries(r.headers));res.end(texte);return;
    }
    if(req.url==='/liste'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<img alt=Miniature src=/miniature><a href=/telechargement>Télécharger</a>');return;}
+   if(req.url==='/incorpore'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<iframe title="Dossier" src="/pdf" style="width:500px;height:500px"></iframe>');return;}
    if(req.url?.startsWith('/pdf-octets')){res.writeHead(200,{'Content-Type':'application/pdf'});res.end(pdfOctets);return;}
    if(req.url?.startsWith('/stockage')){lectures++;if(premier){premier=false;res.writeHead(403);res.end('');return;}res.writeHead(200,{'Content-Type':'image/png','Content-Length':fichier.length,...(req.url.includes('download=1')?{'Content-Disposition':'attachment; filename=piece.png'}:{})});res.end(fichier);return;}
    res.writeHead(404);res.end('');
@@ -42,6 +43,9 @@ describe.skipIf(process.env.GERIMMO_TEST_PDF!=="1")("Document volumineux dans le
    expect(await ouvrir.getAttribute('href')).toMatch(/^blob:/);expect(await ouvrir.getAttribute('target')).toBe('_blank');expect(await page.locator('iframe').isVisible()).toBe(false);
    const pdfTelecharge=page.waitForEvent('download');await page.getByRole('link',{name:'Télécharger',exact:true}).click();const pdfFlux=await(await pdfTelecharge).createReadStream();let taillePdf=0;for await(const octets of pdfFlux!)taillePdf+=octets.length;expect(taillePdf).toBe(pdfOctets.length);
    await page.setViewportSize({width:1440,height:900});expect(await page.locator('iframe').isVisible()).toBe(true);
+   await page.goto(`${base}/incorpore`);const cadre=page.frameLocator('iframe[title="Dossier"]');await cadre.getByRole('link',{name:'Ouvrir le PDF en plein écran'}).waitFor();
+   expect(await cadre.locator('#apercu iframe').isVisible()).toBe(true);
+   expect(await cadre.locator('#aide-pdf').isVisible()).toBe(false);
 
   } finally{await browser.close();await new Promise<void>(r=>server.close(()=>r()));}
  },30000);

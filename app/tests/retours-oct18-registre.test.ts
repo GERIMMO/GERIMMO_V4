@@ -182,7 +182,12 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
     return id("insert into public.bail_signature_circuits(organization_id,bail_id,document_id,created_by,environnement,empreinte,pdf_hash,signataires,prestataire,etat,modele) values($1,$2,$3,$4,'production',repeat($5,64),repeat('a',64),$6,'zoho',$7,$8) returning id", [org, bail, doc, owner, empreinteCircuit, JSON.stringify(parties), etat, modele]);
   }
   /** L'état d'où partent les huit retours : les retours du 19/10 joués d'abord, dans l'ordre de la chaîne du LISEZ-MOI. */
-  const defaire1910 = async () => { for (const f of RETOURS_1910) await db.query(retour1910(f)); };
+  const suiviOct20 = '20261020083058_signature_suivi_reprises_relances';
+  const defaire1910 = async () => {
+    // Défaire d'abord le complément postérieur, qui ajoute un index au circuit.
+    await db.query(sql(suiviOct20,true));
+    for (const f of RETOURS_1910) await db.query(retour1910(f));
+  };
 
   beforeAll(async () => { db = new Client({ connectionString: url }); await db.connect(); await db.query('begin'); });
   afterAll(async () => { await db?.query('rollback'); await db?.end(); });
@@ -362,6 +367,7 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
 
   it.each(GARDES_1910)('garde d’ordre du 19/10 : le retour %s refuse tant que le retour %s n’est pas joué, en le nommant, sans rien modifier ; joué, il passe', async (garde, premier, message) => {
     // Les autres retours du 19/10 sont joués ; `premier` seul manque. Pour 20261018061548, les six retours précédents du lot aussi.
+    await db.query(sql(suiviOct20, true));
     for (const f of RETOURS_1910.filter((r) => r !== premier)) await db.query(retour1910(f));
     for (const f of CHAINE.slice(0, CHAINE.indexOf(garde))) await db.query(sql(f, true));
     // Cause prouvée : l'objet que `premier` défait est encore sous sa forme du 19/10.
@@ -442,6 +448,7 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
     }
     // Puis les migrations du 19/10 que leurs retours avaient défaites, dans l'ordre du manifeste : l'empreinte est celle du départ.
     for (const f of MIGRATIONS_1910) await db.query(sql(f));
+    await db.query(sql(suiviOct20));
     expect(await etat()).toEqual(avant);
     expect(await versionsPresentes()).toEqual([...TOUTES_VERSIONS, SENTINELLE].sort());
     expect(await ouvertesAnon()).toBe(0);

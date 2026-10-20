@@ -1,4 +1,6 @@
 "use server";
+import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direct";
+
 
 import { lireLignesDevis, montantEnCentimes } from "@/lib/devis-structure";
 import { envoyerDevisValide } from "@/app/artisan/devis/actions-preparation";
@@ -17,7 +19,6 @@ import {
   detecterMimeReel,
   pdfComplet,
   EXTENSIONS,
-  TAILLE_MAX_DEPOT_OCTETS,
   type MimeAccepte,
 } from "@/lib/file-type";
 import { verifierArtisanAction } from "@/app/artisan/acces";
@@ -99,8 +100,8 @@ async function preparerFichierArtisan(
   | { chemin: string; mime: MimeAccepte; taille: number; empreinte: string }
 > {
   if (fichier.size === 0) return { erreur: "Le fichier est vide." };
-  if (fichier.size > TAILLE_MAX_DEPOT_OCTETS) {
-    return { erreur: "Fichier trop volumineux (4 Mo maximum)." };
+  if (fichier.size > limiteFichierDepose(fichier)) {
+    return { erreur: `Fichier trop volumineux (${limiteFichierDepose(fichier) / 1024 / 1024} Mo maximum).` };
   }
   const octets = new Uint8Array(await fichier.arrayBuffer());
 
@@ -293,6 +294,8 @@ export async function deposerMaPiece(
   const type = String(formData.get("type") ?? "");
   const emiseLe = String(formData.get("emise_le") ?? "").trim();
   const expireLe = String(formData.get("expire_le") ?? "").trim();
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichier = formData.get("fichier");
   const erreurDates = erreurDatesAttestation(emiseLe, expireLe);
   if (erreurDates) return { erreur: erreurDates, valeurs };
@@ -631,6 +634,8 @@ export async function deposerMaFacture(
   const numero = String(formData.get("numero") ?? "").trim();
   const montant = centimes(String(formData.get("montant") ?? ""));
   const justification = String(formData.get("justification") ?? "").trim();
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichier = formData.get("fichier");
 
   if (!numero) return { erreur: "Indiquez le numéro de votre facture.", valeurs };
@@ -708,6 +713,8 @@ export async function deposerPhotoChantier(
   if (!["avant", "pendant", "apres"].includes(moment)) {
     return { erreur: "Moment de la photo inconnu." };
   }
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichiers = formData
     .getAll("photo")
     .filter((p): p is File => p instanceof File && p.size > 0);

@@ -24,6 +24,8 @@ Les modèles de notifications ne sont pas installés par cette PR. Les options d
 3. `20261020020000_stripe_reprises_durables.sql`
 4. `20261020030000_stockage_gabarits_roles.sql`
 5. `20261020011556_signature_preparation_abandon.sql`
+6. `20261020083058_signature_suivi_reprises_relances.sql`
+7. `20261020084651_depots_directs_temporaires.sql`
 
 Relevé préalable : définition de `abonnement_client_pose` et droits examinés en production en lecture seule ; `ma_session_active` est une fonction nouvelle. Rejeu et retours éprouvés sur la base fictive isolée.
 
@@ -35,7 +37,7 @@ Si la souscription a été ouverte entre-temps, **ne pas appliquer ce lot tel qu
 
 ## Livraison
 
-Suivre le § 6 de la passation du 16 octobre : relecture indépendante, CI sur le SHA exact, simulation des cinq fichiers dans cet ordre, sauvegarde récente, application, vérification des droits, fusion en squash, déploiement READY et recette avec les comptes permanents conservés. Aucun de ces contrôles locaux ne remplace la recette de production.
+Suivre le § 6 de la passation du 16 octobre : relecture indépendante, CI sur le SHA exact, simulation des sept fichiers dans cet ordre, sauvegarde récente, application, vérification des droits, fusion en squash, déploiement READY et recette avec les comptes permanents conservés. Aucun de ces contrôles locaux ne remplace la recette de production.
 
 La relecture indépendante a relevé deux P2, corrigés et relus : conservation des cookies sur la réponse temporaire, fidélité de la révocation dans le banc. Aucun constat bloquant résiduel identifié dans cette relecture ; le second lecteur n'a pas exécuté les tests ni interrogé la production.
 
@@ -43,19 +45,21 @@ La relecture indépendante a relevé deux P2, corrigés et relus : conservation 
 
 Garder la souscription fermée. Revenir au code antérieur avant de supprimer `ma_session_active`, puis appliquer les retours dans l'ordre inverse après sauvegarde :
 
-1. `20261020011556_signature_preparation_abandon.retour.sql`
-2. `20261020030000_stockage_gabarits_roles.retour.sql`
-3. `20261020020000_stripe_reprises_durables.retour.sql`
-4. `20261020011000_session_origine_verifiee.retour.sql`
-5. `20261020010000_abonnement_client_service.retour.sql`
+1. `20261020084651_depots_directs_temporaires.retour.sql`
+2. `20261020083058_signature_suivi_reprises_relances.retour.sql`
+3. `20261020011556_signature_preparation_abandon.retour.sql`
+4. `20261020030000_stockage_gabarits_roles.retour.sql`
+5. `20261020020000_stripe_reprises_durables.retour.sql`
+6. `20261020011000_session_origine_verifiee.retour.sql`
+7. `20261020010000_abonnement_client_service.retour.sql`
 
-Le retour Stripe refuse toute réception durable non traitée. Il conserve les reçus et les résultats de rapprochement. Les cinq retours sont chacun une instruction atomique, sans validation de la transaction appelante ; leurs rejeux et leur annulation en cas d’erreur sont éprouvés sur la base fictive.
+Le retour Stripe refuse toute réception durable non traitée. Il conserve les reçus et les résultats de rapprochement. Les sept retours sont chacun une instruction atomique, sans validation de la transaction appelante ; leurs rejeux et leur annulation en cas d’erreur sont éprouvés sur la base fictive.
 
 Ce retour restaure les anciens droits de l'association Stripe. Il ne remet pas en service les notifications, les accès ou les réglages externes.
 
 ## Limites
 
-Ne sont pas clos par ce lot : délais globaux Supabase Auth, réception des notifications, validation marketing obligatoire, fermeture du cautionnement, protections de branche, renouvellement des accès, recette Stripe externe, fichiers volumineux, retrait des anciennes variables Vercel, politique de suppression et de conservation, examen juridique, identité de l'éditeur et bascule complète de secours. Aucun achat, paiement, courrier ou circuit de signature réel n'a été déclenché par ces contrôles.
+Ne sont pas clos par ce lot : délais globaux Supabase Auth, réception des notifications, fermeture du cautionnement, protections de branche, renouvellement des accès, recette Stripe externe, recette Storage réelle et Safari iPhone, retrait des anciennes variables Vercel, politique de suppression et de conservation, examen juridique, identité de l'éditeur et bascule complète de secours. Aucun achat, paiement, courrier ou circuit de signature réel n'a été déclenché par ces contrôles.
 
 ## Reprises et rapprochement Stripe
 
@@ -78,11 +82,11 @@ La relecture indépendante des dépôts n’a pas relevé de défaut de compatib
 
 ## Fichiers et taille des transferts
 
-Les nouveaux dépôts sont bornés à 4 Mio par fichier ; les formulaires contrôlent aussi le cumul avant envoi. Les saisies restent présentes en cas de refus. Le transport des actions est borné à 4 500 000 octets avec une marge pour les champs. Les PDF produits côté serveur et les archives existantes conservent leur plafond antérieur de 10 Mio.
+Les formulaires documentaires activés déposent désormais directement jusqu'à 10 Mio par fichier dans un compartiment privé temporaire (dix fichiers et 50 Mio par formulaire). Les logos, images de signature, CSV et formulaires non activés gardent leurs limites propres. Le transport des actions reste borné à 4 500 000 octets : il reçoit des références de dépôt, pas les octets du document. Les PDF produits côté serveur et les archives existantes conservent leur plafond antérieur.
 
 Cinq routes de lecture des documents utilisent un lien Storage d’une minute après les contrôles d’accès et la trace existants. La visionneuse reçoit le fichier directement depuis Storage et conserve une URL Gerimmo actualisable ; les téléchargements et miniatures utilisent une redirection. Le titre est échappé, les formats actifs ne sont pas affichés, l’origine du stockage est vérifiée et les réponses sont privées sans cache. Les PDF proposent une ouverture native en plein écran sur téléphone.
 
-Banc navigateur : PNG de 6 Mio, réponse initiale indisponible puis reprise, miniature, téléchargement par redirection et PDF de deux pages. Essai local du formulaire : refus avant tout POST et conservation de la pièce et de la date. **Limites G5 :** les dépôts directs signés restent à implémenter. Les gros fichiers déjà archivés dans les routes devis, preuve de signature et pièces privées utilisent désormais la même visionneuse après contrôle de leur empreinte. Les anciennes générations sans archive restent hors de ce complément. Le CORS du stockage réel et Safari iPhone doivent encore être vérifiés avant de clôturer ce point.
+Banc navigateur : PNG de 6 Mio, réponse initiale indisponible puis reprise, miniature, téléchargement par redirection et PDF de deux pages. Essai local du formulaire : refus avant tout POST et conservation de la pièce et de la date. **Complément G5 :** les dépôts directs signés sont désormais implémentés et testés sur la copie locale (section finale). Les gros fichiers déjà archivés dans les routes devis, preuve de signature et pièces privées utilisent désormais la même visionneuse après contrôle de leur empreinte. Les anciennes générations sans archive restent hors de ce complément. Le CORS du stockage réel et Safari iPhone doivent encore être vérifiés avant de clôturer ce point.
 
 ## Préparation et annulation des signatures
 
@@ -90,7 +94,7 @@ Une validation refusée ou une panne OAuth avant toute création distante libèr
 
 Une annulation fondée sur l’état « prêt » ne réussit que si cet état est encore présent sans référence externe : si un envoi a réservé entre-temps, la page demande de relire le suivi. Les autres annulations vérifient aussi la référence distante et une ligne effectivement modifiée. Les deux défauts ont été reproduits puis corrigés ; les pannes, droits, rejeux et entrelacements sont testés localement et relus.
 
-**E5 reste partiel :** rapprochement des circuits sans référence, alertes au propriétaire et relances J+7/J+21/J+28 encore ouverts. Aucun envoi externe de validation n’a été effectué.
+Le complément ci-dessous prépare le rapprochement et le suivi. **E5 reste à éprouver chez le prestataire réel** ; aucun rappel externe n'a été activé ni envoyé pendant cette recette.
 
 
 ## Vérification de la consultation PDF
@@ -109,3 +113,27 @@ Le chargement navigateur est limité à 50 Mio pendant la lecture du flux, avec 
 Validation ciblée : 123 tests réussis, deux tests de navigateur réussis (6 Mio, reprise, pièces jointes, PDF mobile, archive altérée, longueur excessive déclarée et flux excessif sans longueur), types et lint réussis. Aucun dépôt direct, envoi externe ou changement en production. La CI du nouveau SHA doit encore confirmer l’ensemble du lot ; CI747 concerne le SHA précédent.
 
 La CI748 a réussi compilation, types et lint, puis 8 989 tests de logique ; un contrôle syntaxique a classé Content-Length comme une saisie de formulaire. L’exception est maintenant bornée à cet appel exact et documente la limite de 50 Mio vérifiée aussi sur le flux. Les 43 tests ciblés réussissent après correction. Les essais navigateur complets ont été ignorés dans la CI748 : attendre la CI de la version corrigée avant livraison.
+
+## Complément — dépôts directs privés et suivi des signatures
+
+La CI749 du commit `66ce9d6875a0b88604af545265cfe8caf5d59804` a ensuite réussi : 8 990 tests de logique, 17 non exécutés, 200 tests navigateur, un non exécuté, compilation, types et lint. Elle précède le présent complément et ne le valide pas.
+
+Le dépôt direct réserve avec la session de l'utilisateur un chemin immuable et un jeton de deux heures. La base refuse la réservation au nom d'un autre compte, la lecture croisée et le remplacement ; vingt réservations et 100 Mio par compte et par heure. Le serveur relit les octets, leur taille, le format réel et le SHA-256 avant le circuit métier habituel. La sélection et la saisie survivent à une panne ; un transfert confirmé est réutilisé pendant 90 minutes après un refus métier. La purge nocturne attend trois heures après la fin de réservation pour couvrir aussi un jeton délivré tardivement. Elle vérifie le retrait ou l’absence de l’objet avant d’effacer la réservation ; jusqu’à dix lots de 500, avec arrêt du démarrage de nouvelles opérations après vingt secondes. Le reliquat et les réservations en attente depuis plus de 48 heures remontent dans son bilan.
+
+Recette réelle sur copie locale : PDF de 6 Mio enregistré, coupure du transfert puis reprise, confirmation et consultation aux largeurs 390 et 1 440 pixels. Les 13 autres tests de conservation de saisie et de refus d'attestation ont également réussi. Le contrôle de l'aperçu a reproduit une CSP générale écrasant la CSP autonome après réécriture ; les routes fichier nommées conservent maintenant leur CSP à nonce et n'admettent qu'un parent de même origine. Les autres pages restent non encadrables. L'aperçu intégré étroit sur ordinateur n'est plus traité comme un téléphone.
+
+Le rapprochement recherche un brouillon Zoho unique par marqueur de circuit, vérifie la liste complète, les signataires, leur ordre, l'authentification SMS et les empreintes de tous les PDF et annexes. Une absence, ambiguïté ou demande déjà activée reste à examiner ; aucun nouvel envoi n'en découle. Références retrouvées et trace sont écrites dans une même transaction sous verrou.
+
+Les rappels J+7 et J+21 disposent d'un registre durable avant le POST : une réponse perdue interdit tout second envoi et tout rappel suivant jusqu'à examen. J+28 produit une alerte interne, sans troisième rappel externe. Refus, expiration et incertitude sont signalés une fois au créateur. Les états terminaux déjà signalés sortent de la file. Les dates suivent Paris ; la passe est bornée à dix circuits et 50 secondes.
+
+`ZOHO_SIGN_RELANCES_ACTIVES` reste **false**. Avant toute activation : terminer la recette Zoho sur comptes fictifs autorisés et contrôler les destinataires et le coût. Le CORS Storage réel, Safari iPhone et la livraison des sept migrations restent à vérifier. Les comptes permanents et la production n'ont pas été modifiés par ces nouveaux essais locaux.
+
+## Dernière contre-relecture
+
+Quatre défauts concrets ont été reproduits puis corrigés : suivi d’une signature sur abonnement suspendu, jeton de dépôt délivré tardivement, reliquat de nettoyage et arrêt d’un rappel pendant le renouvellement OAuth. Les 128 tests ciblés réussissent ; le second lecteur ne relève plus de défaut concret dans ce delta, sur lecture statique. Le chemin de retour complet du LISEZ-MOI passe également ses 45 tests après ajout des trois dernières dépendances.
+
+Le suivi serveur peut renseigner `envoye_le` et archiver une signature engagée avant la suspension, sans permettre de nouvel envoi. Le contrôle d’arrêt est revérifié après OAuth, immédiatement avant le POST de rappel. Le registre conserve une tentative incertaine et interdit son double envoi.
+
+Précontrôle de production en lecture seule : les sept versions nouvelles sont absentes ; huit faits d’identité de l’éditeur restent manquants et maintiennent la souscription fermée. `refuser_ecriture_si_fermee` porte exactement les deux ancres attendues, empreinte MD5 `832d25f725ba6e21389b0bdaadd67a63`. Ce relevé doit être actualisé si la production change avant livraison.
+
+Validation locale finale du complément : 9 079 tests réussis, 45 non exécutés (633 fichiers). Compilation, types et lint réussis. Le dépôt de 6 Mio avec interruption/reprise et consultation passe sur le build à 390 et 1 440 pixels ; les douze autres scénarios ciblés de protection de saisie et de refus d’attestation passent également. Ces contrôles ne sont pas des essais Zoho ou Stripe réels.

@@ -816,6 +816,42 @@ async function routerStorage(methode, segments, url, brut, entetes, claims) {
   const [tete, ...reste] = segments;
   if (tete !== "object") return { statut: 404, corps: { message: `storage/${tete} non géré` } };
 
+  if (reste[0] === "upload" && reste[1] === "sign") {
+    const bucket=reste[2], objet=decodeURIComponent(reste.slice(3).join("/"));
+    if(methode === "POST") {
+      await sousIdentite(claims,async client=>{
+        await client.query("savepoint capacite_upload");
+        await client.query("insert into storage.objects(bucket_id,name,owner) values($1,$2,$3)",[bucket,objet,claims?.sub??null]);
+        await client.query("rollback to capacite_upload");
+      });
+      const jeton=signer({operation:"upload",url:`${bucket}/${objet}`,identite:claims,exp:Math.floor(Date.now()/1000)+7200});
+      return {statut:200,corps:{url:`/object/upload/sign/${bucket}/${objet}?token=${jeton}`}};
+    }
+    if(methode === "PUT") {
+      const capacite=verifier(url.searchParams.get("token")??"");
+      if(!capacite || capacite.operation!=="upload" || capacite.url!==`${bucket}/${objet}`)return {statut:401,corps:{message:"Capacité invalide"}};
+      let contenu=brut,mime=entetes["content-type"]??"application/octet-stream";
+      if(mime.startsWith("multipart/form-data")) {
+        const form=await new Request("http://localhost/transfert",{method:"POST",headers:{"content-type":mime},body:brut}).formData();
+        const file=Array.from(form.values()).find(v=>typeof v!=="string");
+        if(!file)return {statut:400,corps:{message:"Fichier absent"}};
+        contenu=Buffer.from(await file.arrayBuffer());mime=file.type;
+      }
+      const limite=await admin(async client=>(await client.query("select file_size_limit,allowed_mime_types from storage.buckets where id=$1",[bucket])).rows[0]);
+      if(!limite || (limite.file_size_limit&&contenu.length>limite.file_size_limit) || (limite.allowed_mime_types&&!limite.allowed_mime_types.includes(mime)))return {statut:413,corps:{message:"Fichier refusé"}};
+      // Comme Storage, la capacité signée reste valable jusqu'à son propre
+      // terme : la RLS a été contrôlée à sa création, pas à nouveau au PUT.
+      // Chemin, opération, signature et expiration du jeton sont vérifiés ci-dessus.
+      return routerStorage("POST",["object",bucket,...objet.split("/")],url,contenu,{...entetes,"content-type":mime,"x-upsert":"false"},{...capacite.identite,role:"service_role"});
+    }
+    return {statut:405,corps:{message:"Méthode refusée"}};
+  }
+  if(reste[0] === "list" && methode === "POST") {
+    const bucket=reste[1], options=JSON.parse(brut.toString()||"{}");
+    const prefixe=String(options.prefix??"").replace(/\/$/,"");
+    const rows=await sousIdentite(claims,async client=>(await client.query("select name,metadata from storage.objects where bucket_id=$1 and starts_with(name,$2)",[bucket,prefixe?prefixe+"/":""])).rows);
+    return {statut:200,corps:rows.map(r=>({...r,name:r.name.slice(prefixe?prefixe.length+1:0)})).filter(r=>!r.name.includes("/")&&(!options.search||r.name.includes(String(options.search)))).slice(0,Math.min(Number(options.limit)||100,1000))};
+  }
   if (reste[0] === "sign" && methode === "POST") {
     const bucket = reste[1];
     const objet = reste.slice(2).join("/");
@@ -831,7 +867,7 @@ async function routerStorage(methode, segments, url, brut, entetes, claims) {
     const bucket = reste[1];
     const objet = decodeURIComponent(reste.slice(2).join("/"));
     const c = verifier(url.searchParams.get("token") ?? "");
-    if (!c || c.url !== `${bucket}/${objet}`) return { statut: 401, corps: { message: "Jeton signé invalide" } };
+    if (!c || c.operation === "upload" || c.url !== `${bucket}/${objet}`) return { statut: 401, corps: { message: "Jeton signé invalide" } };
     // La capacité signée autorise la lecture ; le MIME reste celui du dépôt,
     // comme sur Storage, et un objet supprimé n'est plus servi depuis le disque.
     const metadata = await admin(async (client) => {

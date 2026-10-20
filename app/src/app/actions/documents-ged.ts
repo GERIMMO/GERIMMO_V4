@@ -1,4 +1,6 @@
 "use server";
+import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direct";
+
 
 import { createHash } from "node:crypto";
 import { redirect } from "next/navigation";
@@ -9,7 +11,6 @@ import {
   detecterMimeReel,
   pdfComplet,
   EXTENSIONS,
-  TAILLE_MAX_DEPOT_OCTETS,
 } from "@/lib/file-type";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { baseEspace } from "@/lib/racine-espace";
@@ -36,14 +37,16 @@ export async function remplacerDocument(
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
+  const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
+  if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichier = formData.get("fichier");
   const titre = String(formData.get("titre") ?? "").trim();
   const expireLe = String(formData.get("expire_le") ?? "").trim();
   if (!(fichier instanceof File) || fichier.size === 0) {
     return { erreur: "Choisissez le fichier de la nouvelle version.", valeurs };
   }
-  if (fichier.size > TAILLE_MAX_DEPOT_OCTETS) {
-    return { erreur: "Fichier trop volumineux (4 Mo maximum).", valeurs };
+  if (fichier.size > limiteFichierDepose(fichier)) {
+    return { erreur: `Fichier trop volumineux (${limiteFichierDepose(fichier) / 1024 / 1024} Mo maximum).`, valeurs };
   }
 
   const octets = new Uint8Array(await fichier.arrayBuffer());

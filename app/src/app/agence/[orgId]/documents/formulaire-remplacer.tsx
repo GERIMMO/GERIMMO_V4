@@ -45,7 +45,7 @@ export function FormulaireRemplacer({
       </p>
       <div className="space-y-2">
         <Label htmlFor="fichier-remplacement">Nouvelle version</Label>
-        <ChampFichier id="fichier-remplacement" name="fichier" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required />
+        <ChampFichier depotDirect id="fichier-remplacement" name="fichier" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required />
       </div>
       <div className="space-y-2">
         <Label htmlFor="titre-remplacement">Nouveau titre (facultatif)</Label>

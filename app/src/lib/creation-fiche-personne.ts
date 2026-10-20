@@ -1,7 +1,7 @@
 import type { EtatPersonne } from "@/app/actions/personnes";
 import type { EtatDossier } from "@/app/actions/dossier";
 import type { EtatPieceDemandee } from "@/app/actions/pieces-demandees";
-import { TAILLE_MAX_DEPOT_OCTETS } from "@/lib/file-type";
+import { MAX_DEPOT_DIRECT } from "@/lib/depot-direct-commun";
 import { MESSAGE_SESSION_EXPIREE, sessionExpiree } from "@/lib/session-expiree";
 
 export type JustificatifPrepare = {
@@ -19,6 +19,7 @@ export type BilanCreationFiche = EtatPersonne & {
   creationIncertaine?: boolean;
 };
 type Actions = {
+  preparer?: (data:FormData,pieceId:string)=>Promise<void>;
   memoriser?: (bilan: BilanCreationFiche) => Promise<unknown>;
   creer: (org: string, etat: EtatPersonne, data: FormData) => Promise<EtatPersonne>;
   deposer: (org: string, personne: string, etat: EtatDossier, data: FormData) => Promise<EtatDossier>;
@@ -30,7 +31,7 @@ export function erreurJustificatif(piece: JustificatifPrepare): string | undefin
   if (piece.titre.trim().length > (piece.mode === "demande" ? 120 : 200)) return "Le nom du document est trop long.";
   if (piece.mode === "depot") {
     if (!piece.fichier?.size) return "Choisissez un fichier ou retirez ce document pour continuer sans lui.";
-    if (piece.fichier.size > TAILLE_MAX_DEPOT_OCTETS) return "Le fichier dépasse 4 Mo.";
+    if (piece.fichier.size > MAX_DEPOT_DIRECT) return "Le fichier dépasse 10 Mo.";
     if (!/\.(pdf|jpe?g|png)$/i.test(piece.fichier.name)) return "Choisissez un fichier PDF, JPG ou PNG.";
   }
 }
@@ -81,12 +82,15 @@ export async function enregistrerFicheAvecJustificatifs(
     if (resultats[piece.id]?.succes || resultats[piece.id]?.incertain) continue;
     const data = new FormData();
     data.set("type", piece.type);
+    if(piece.mode === "depot") {
+      data.set("titre",piece.titre.trim());data.set("fichier",piece.fichier!);
+      if(piece.expireLe)data.set("expire_le",piece.expireLe);
+      try { await actions.preparer?.(data,piece.id); }
+      catch { resultats[piece.id]={erreur:"Le transfert a échoué. Votre fichier est conservé ; réessayez.",incertain:false};await actions.memoriser?.({...creation,pieces:{...resultats}});continue; }
+    }
     await actions.memoriser?.({ ...creation, pieces: { ...resultats, [piece.id]: { incertain: true, erreur: "Envoi non confirmé. Vérifiez ce document dans la fiche avant de le renvoyer." } } });
     try {
       if (piece.mode === "depot") {
-        data.set("titre", piece.titre.trim());
-        data.set("fichier", piece.fichier!);
-        if (piece.expireLe) data.set("expire_le", piece.expireLe);
         resultats[piece.id] = await actions.deposer(orgId, creation.personneCreee.id, {}, data);
       } else {
         data.set("libelle", piece.titre.trim());

@@ -57,7 +57,16 @@ describe("cache du logo et des illustrations (PRF-05, D45 A)", () => {
 
   it("ne touche ni aux en-têtes de sécurité ni à /auth/*", async () => {
     const toutes = await regles();
-    expect(toutes.find((r) => r.source === "/(.*)")?.headers.some((h) => h.key === "Content-Security-Policy")).toBe(true);
+    const regleCsp=toutes.find(r=>r.headers.some(h=>h.key==="Content-Security-Policy"));
+    expect(regleCsp).toBeDefined();
+    const chemin=new RegExp("^"+regleCsp!.source+"$");
+    for(const page of ["/","/connexion","/auth/confirmer","/admin/brief","/espace/org/documents","/artisan/clients"]){
+      expect(chemin.test(page),page).toBe(true);
+    }
+    // Les seules exceptions servent leur propre CSP à nonce.
+    expect(chemin.test("/espace/org/documents/doc/fichier")).toBe(false);
+    expect(chemin.test("/espace/org/documents/doc/fichier/modifier")).toBe(true);
+    expect(valeur(regleCsp,"X-Frame-Options")).toBe("DENY");
     expect(valeur(toutes.find((r) => r.source === "/auth/:path*"), "Cache-Control")).toBe("no-store");
   });
 });

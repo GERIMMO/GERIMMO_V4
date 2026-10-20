@@ -6357,3 +6357,13 @@ Trois routes spécialisées conservent les contrôles d’accès et d’empreint
 Après accord explicite du dirigeant, le réglage « Validation obligatoire » a été enregistré en production à 10 h 17 Paris. L’interface confirme « Après votre validation » et « Pilotage marketing mis à jour ». L’article programmé à 9 h était déjà diffusé au moment de la reprise ; aucune suppression ni nouvelle publication effectuée.
 
 La CI748 compte 8 989 tests de logique réussis, 17 non exécutés et un échec : la garde des saisies relève la conversion de Content-Length. Ajout de l’exception exacte pour cet en-tête indicatif, dont la limite de 50 Mio est aussi imposée au flux réel. Les 43 tests ciblés passent après correction. Aucun contrôle des montants désactivé. Les tests navigateur complets ont été ignorés dans ce passage en échec ; une nouvelle CI du complément reste nécessaire. PR213 toujours en brouillon, sans déploiement.
+
+## [2026-10-20] correction | Dépôts directs et suivi durable des signatures
+
+Dépôts documentaires privés jusqu’à 10 Mio, vingt réservations et 100 Mio par compte et par heure ; contrôle des octets avant le circuit métier, saisie conservée après interruption. Purge différée de trois heures après la fin de réservation pour couvrir un jeton tardif, lots bornés et reliquat visible. Rapprochement d’un brouillon Zoho unique, identité et PDF vérifiés ; rappels J+7/J+21 dédupliqués et désactivés, alerte interne J+28, refus et expiration.
+
+La contre-relecture a relevé quatre P2, reproduits et corrigés, dont le suivi sur abonnement suspendu et l’arrêt après renouvellement OAuth ; aucun défaut concret résiduel dans le delta relu. 128 tests ciblés réussis. L’ordre de retour complet inclut les trois nouvelles dépendances et passe ses 45 tests.
+
+Validation locale finale du complément : 9 079 tests réussis, 45 non exécutés (633 fichiers). Compilation, types et lint réussis. Le dépôt de 6 Mio avec interruption/reprise et consultation passe sur le build à 390 et 1 440 pixels ; les douze autres scénarios ciblés de protection de saisie et de refus d’attestation passent également. Ces contrôles ne sont pas des essais Zoho ou Stripe réels.
+
+Précontrôle en lecture seule : sept migrations absentes, souscription toujours fermée par huit faits d’identité manquants, deux ancres exactes du garde d’abonnement présentes. PR213 encore en préparation : aucune migration, aucun rappel et aucun déploiement de ce complément en production à ce stade. Les cinq comptes permanents sont conservés.

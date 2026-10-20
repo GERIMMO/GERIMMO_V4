@@ -43,7 +43,9 @@ async function assembler(): Promise<string> {
   const paquet = await rolldown({
     input: resolve(BANC, "banc-decision-devis.tsx"),
     platform: "browser",
-    plugins: [{ name: "actions-serveur-neutres", resolveId: (id) => REMPLACEMENTS[id] ?? null }],
+    plugins: [{ name: "actions-serveur-neutres", resolveId: (id) => REMPLACEMENTS[id] ??
+      (id.endsWith("depot-direct-client") ? "\0transfert-isole" : null),
+      load: id => id === "\0transfert-isole" ? "export async function preparerDepotsDirects() {} export class ErreurDepotDirect extends Error {}" : null }],
     resolve: {
       alias: {
         "@": resolve(RACINE, "src"),

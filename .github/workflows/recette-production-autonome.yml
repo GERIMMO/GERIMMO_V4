@@ -81,7 +81,7 @@ jobs:
         run: node scripts/recette-production-comptes.mjs purger
       - name: Conserver le rapport (sans trace ni vidéo)
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: recette-production-${{ github.run_id }}
           path: app/e2e/recette-production/.resultats/

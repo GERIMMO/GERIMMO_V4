@@ -28,7 +28,7 @@ jobs:
         run: node app/scripts/surveillance/disponibilite.mjs
       - name: Conserver le bilan sans données personnelles
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: disponibilite-publique
           path: ${{ runner.temp }}/disponibilite.json

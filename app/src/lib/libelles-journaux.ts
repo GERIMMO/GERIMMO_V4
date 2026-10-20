@@ -171,6 +171,12 @@ const CLES_LIBELLES: Record<string, string> = {
   // Recherche par référence de la console (X18) : la forme de la saisie, le nombre d'objets trouvés, les identifiants relevés.
   forme: "recherche par", reference: "référence", resultats: "objets trouvés", organisations: "organisations concernées", objets: "identifiants relevés",
 };
+// Liste d'attente des agences (20/10/2026) : les quatre statuts d'une inscription, posés sous « avant » / « apres » par
+// liste_attente_statut_modifie. Aucune autre trace ne met ces codes sous ces clés (états d'organisation : essai, active,
+// suspendue, archivee ; états Stripe) : ceux-là continuent de s'afficher tels quels.
+const STATUTS_LISTE_ATTENTE_TRACE: Record<string, string> = {
+  en_attente: "en attente", contactee: "contactée", convertie: "devenue cliente", retiree: "retirée à sa demande",
+};
 // Les valeurs de ces clés se disent en français ; les autres s'affichent telles quelles (codes courts).
 const VALEURS_LIBELLES: Record<string, Record<string, string>> = {
   resultat: { autorise: "autorisé", refuse: "refusé" },
@@ -178,6 +184,8 @@ const VALEURS_LIBELLES: Record<string, Record<string, string>> = {
   geste: GESTES_TRACE,
   motif: { organisation_introuvable: "organisation introuvable" },
   forme: { identifiant: "identifiant", numero: "numéro d’incident", libelle: "nom ou référence interne" },
+  avant: STATUTS_LISTE_ATTENTE_TRACE,
+  apres: STATUTS_LISTE_ATTENTE_TRACE,
 };
 
 export function detailsExpurges(details: unknown): string | null {

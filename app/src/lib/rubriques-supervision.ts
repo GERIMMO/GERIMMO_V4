@@ -12,7 +12,7 @@ export const RUBRIQUES: Rubrique[] = [
   { cle: "assistance", libelle: "Assistance clients", href: "/admin/retours", onglets: [{ href: "/admin/retours", libelle: "Demandes et suivi" }] },
   { cle: "finances", libelle: "Abonnements et finances", href: "/admin", onglets: [{ href: "/admin", libelle: "Abonnements et finances" }] },
   { cle: "marketing", libelle: "Marketing et contenus", href: "/admin/marketing", onglets: [{ href: "/admin/marketing", libelle: "Communication et résultats" }, { href: "/admin/publications", libelle: "Articles du site" }] },
-  { cle: "commercial", libelle: "Développement commercial", href: "/admin/territoire", onglets: [{ href: "/admin/territoire", libelle: "Développement territorial" }, { href: "/admin/devis", libelle: "Demandes de contact" }] },
+  { cle: "commercial", libelle: "Développement commercial", href: "/admin/territoire", onglets: [{ href: "/admin/territoire", libelle: "Développement territorial" }, { href: "/admin/devis", libelle: "Demandes de contact" }, { href: "/admin/liste-attente", libelle: "Liste d’attente des agences" }] },
   { cle: "automatismes", libelle: "Automatismes et consignes", href: "/admin/equipes", onglets: [{ href: "/admin/equipes", libelle: "Tâches automatiques" }, { href: "/admin/consignes", libelle: "Consignes du dirigeant" }] },
   { cle: "relais", libelle: "Vacances et relais", href: "/admin/relais", onglets: [{ href: "/admin/relais", libelle: "Vacances et relais" }] },
   { cle: "produit", libelle: "Améliorations du produit", href: "/admin/autonomie?vue=ameliorations", onglets: [{ href: "/admin/autonomie?vue=ameliorations", libelle: "Améliorations du produit" }] },

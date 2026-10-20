@@ -97,6 +97,17 @@ describe("libellés des journaux", () => {
     expect(codesConnusJournaux().audit).toContain("consultation_faits_direction");
   });
 
+  // Liste d'attente des agences (20/10/2026) : sur la fiche d'un compte (admin/comptes/[accountId]), la ligne d'audit du
+  // changement de statut se lit en français, pas « état précédent : en_attente · nouvel état : contactee ».
+  it("lit en français le changement de statut d'une agence de la liste d'attente", () => {
+    expect(libelleActionAudit("liste_attente_statut_modifie")).toBe("Statut d’une agence de la liste d’attente modifié");
+    expect(detailsExpurges({ avant: "en_attente", apres: "contactee" })).toBe("état précédent : en attente · nouvel état : contactée");
+    expect(detailsExpurges({ avant: "contactee", apres: "convertie" })).toBe("état précédent : contactée · nouvel état : devenue cliente");
+    expect(detailsExpurges({ avant: "en_attente", apres: "retiree" })).toBe("état précédent : en attente · nouvel état : retirée à sa demande");
+    // Les autres valeurs posées sous ces clés (états d'organisation, d'abonnement) s'affichent toujours telles quelles.
+    expect(detailsExpurges({ avant: "essai", apres: "active" })).toBe("état précédent : essai · nouvel état : active");
+  });
+
   // X18 (SA-09), 14/10/2026 : la recherche d'un dossier par référence se lit en français ; l'identifiant cherché reste à la base.
   it("nomme la recherche par référence de la console, sans identifiant à l'écran", () => {
     expect(libelleActionAudit("recherche_reference")).toBe("Recherche d’un bien, d’un lot ou d’un incident par sa référence");

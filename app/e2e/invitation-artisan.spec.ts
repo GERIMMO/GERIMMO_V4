@@ -157,7 +157,8 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
         buffer: Buffer.from(`%PDF-1.7\n% ATTESTATION FICTIVE ${type} ${marque}\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF`),
       });
       await formulaire.getByRole("button", { name: "Déposer l'attestation", exact: true }).click();
-      await expect(formulaire.getByRole("status")).toBeVisible();
+      await expect(formulaire.getByRole("status").filter({ hasText: type === "decennale" ? "Décennale enregistrée" : "Attestation enregistrée" })).toBeVisible();
+      await expect(formulaire.getByRole("status", { name: "Transfert du fichier" })).toHaveCount(0);
     }
     const { rows: [fiche] } = await db.query("select id, statut_plateforme from public.artisans where siret=$1", [siret]);
     expect(fiche.statut_plateforme).toBe("en_attente");
@@ -188,14 +189,14 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     // est interrompue par elle (ERR_ABORTED). On attend le calme du réseau, puis on réessaie une fois au besoin.
     await s.waitForLoadState("networkidle");
     await s.goto("/admin/artisans").catch(() => s.goto("/admin/artisans"));
-    const examen = s.locator("section").filter({ has: s.getByRole("heading", { name: raisonSociale }) });
+    const examen = s.getByRole("article").filter({ has: s.getByRole("heading", { name: raisonSociale, exact: true }) });
     await expect(examen).toContainText("Invité par Parc de Claire Moreau");
     await s.screenshot({ path: info.outputPath("5-supervision-invite-par.png"), fullPage: true });
     await examen.getByRole("checkbox", { name: /J’ai vérifié l’existence/ }).check();
     await examen.getByRole("button", { name: "Enregistrer le SIRET comme vérifié" }).click();
     await expect.poll(async () => (await db.query("select siret_etat from public.artisans where id=$1", [fiche.id])).rows[0].siret_etat).toBe("verifie");
     await s.reload();
-    const examen2 = s.locator("section").filter({ has: s.getByRole("heading", { name: raisonSociale }) });
+    const examen2 = s.getByRole("article").filter({ has: s.getByRole("heading", { name: raisonSociale, exact: true }) });
     await examen2.getByRole("checkbox", { name: /J’ai relu les justificatifs/ }).check();
     await examen2.getByRole("button", { name: "Valider l’inscription" }).click();
     await expect.poll(async () => (await db.query("select statut_plateforme from public.artisans where id=$1", [fiche.id])).rows[0].statut_plateforme).toBe("valide");

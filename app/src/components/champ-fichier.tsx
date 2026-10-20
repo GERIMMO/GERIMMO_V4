@@ -124,7 +124,7 @@ export function ChampFichier({
       <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground" aria-live="polite">
         {resume}
       </span>
-      {transfert && <span role="status" className="w-full text-sm text-muted-foreground">{transfert}</span>}
+      {transfert && <span role="status" aria-label="Transfert du fichier" className="w-full text-sm text-muted-foreground">{transfert}</span>}
       {erreur && <span id={`${id}-volume`} role="alert" className="w-full text-sm text-destructive">{erreur}</span>}
     </span>
   );

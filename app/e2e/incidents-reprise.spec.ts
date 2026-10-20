@@ -38,7 +38,9 @@ test('LOC003 : réponse perdue après création puis reprise sans double inciden
   await expect(page.getByText('1 photo jointe',{exact:false})).toBeVisible();await page.locator('#description').fill(description);await page.locator('#piece').selectOption('Cuisine');
   let perdue=false;
   await page.route('**/locataire/**/incident',async route=>{
-   if(route.request().method()==='POST'&&route.request().headers()['next-action']&&!perdue){perdue=true;const rep=await route.fetch();expect(rep.ok()).toBe(true);await route.abort('failed');}else await route.continue();
+   // La réservation du transfert est aussi une action Next. Couper seulement
+   // la réponse de la déclaration métier, après sa création effective.
+   if(route.request().method()==='POST'&&route.request().headers()['next-action']&&route.request().postData()?.includes(description)&&!perdue){perdue=true;const rep=await route.fetch();expect(rep.ok()).toBe(true);await route.abort('failed');}else await route.continue();
   });
   await page.getByRole('button',{name:'Envoyer le signalement',exact:true}).click();
   await expect(page.getByRole('alert').filter({hasText:'La réponse n’est pas arrivée'})).toBeVisible();

@@ -71,3 +71,11 @@ Le protocole, l'ordre des migrations, la précondition de souscription fermée e
 La dernière contre-relecture a permis de corriger quatre P2 : exception de suivi sur abonnement suspendu, délai de purge couvrant un jeton émis tardivement, traitement du reliquat et arrêt des rappels après OAuth. Les 128 tests ciblés passent ; aucun défaut concret résiduel relevé par le second lecteur sur ce delta. Le chemin documenté de retour complet passe ses 45 tests. Compilation et lint réussissent ; les résultats globaux sont consignés ci-dessous.
 
 Validation locale finale du complément : 9 079 tests réussis, 45 non exécutés (633 fichiers). Compilation, types et lint réussis. Le dépôt de 6 Mio avec interruption/reprise et consultation passe sur le build à 390 et 1 440 pixels ; les douze autres scénarios ciblés de protection de saisie et de refus d’attestation passent également. Ces contrôles ne sont pas des essais Zoho ou Stripe réels.
+
+## Reprise après CI750
+
+La CI750 (`39405740956`, SHA `9afe86342759bd6c15ba615d7c57e450e5fb852d`) réussit 9 107 tests de logique, 17 non exécutés, mais trois parcours navigateur échouent (198 réussis, un non exécuté et un repris avec succès). Ce SHA n’est pas livré.
+
+Corrections : le message de progression disparaît à la fin du transfert, indépendamment du mode de soumission ; le champ photo du signalement refuse PDF et formats invalides avant réservation, y compris un PDF déjà transféré ; le test de réponse perdue vise la déclaration métier et non la réservation préalable. Le parcours d’invitation attend le succès propre à chaque attestation et cible l’article de l’artisan concerné, même après un essai précédent. Les 25 tests client/serveur ciblés réussissent ; la relecture statique du dernier delta ne relève plus de défaut concret. La compilation, les essais navigateur ciblés et la CI complète du nouveau SHA restent à confirmer avant publication.
+
+Validation du delta CI750 : compilation, types et lint réussis ; 25 tests ciblés et les 10 scénarios navigateur (dont préparation des sessions) réussissent sur le build corrigé. Le parcours artisan va jusqu’à la sollicitation, les deux reprises d’incident conservent l’unicité et les dépôts de 6 Mio passent à 390 et 1 440 pixels. La CI du nouveau SHA reste requise avant livraison.

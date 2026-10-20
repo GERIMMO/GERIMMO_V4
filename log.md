@@ -6367,3 +6367,11 @@ La contre-relecture a relevé quatre P2, reproduits et corrigés, dont le suivi 
 Validation locale finale du complément : 9 079 tests réussis, 45 non exécutés (633 fichiers). Compilation, types et lint réussis. Le dépôt de 6 Mio avec interruption/reprise et consultation passe sur le build à 390 et 1 440 pixels ; les douze autres scénarios ciblés de protection de saisie et de refus d’attestation passent également. Ces contrôles ne sont pas des essais Zoho ou Stripe réels.
 
 Précontrôle en lecture seule : sept migrations absentes, souscription toujours fermée par huit faits d’identité manquants, deux ancres exactes du garde d’abonnement présentes. PR213 encore en préparation : aucune migration, aucun rappel et aucun déploiement de ce complément en production à ce stade. Les cinq comptes permanents sont conservés.
+
+### 20 octobre 2026 — CI750 : corrections de la recette navigateur
+
+CI750 : 9 107 tests de logique réussis, 17 ignorés ; trois parcours navigateur en échec, 198 réussis, un ignoré et un repris. Production inchangée. Statut de transfert borné à la soumission ; photos JPEG/PNG vérifiées avant réservation ; coupure simulée ciblant la déclaration et non sa réservation ; invitation vérifiant la bonne attestation et le seul article concerné. 24 tests ciblés réussis. Compilation et recette du nouveau SHA à confirmer. La simulation114 a annulé les sept migrations ; aucune application réelle.
+
+La contre-relecture du delta CI750 a identifié une progression masquée dans les formulaires onSubmit : correction par fin explicite du statut après transfert et réutilisation, indépendante de React. 25 tests ciblés réussissent et la dernière relecture statique ne relève plus de défaut concret. Les autres contrôles restent requis.
+
+Validation du delta CI750 : compilation, types et lint réussis ; 25 tests ciblés et les 10 scénarios navigateur (dont préparation des sessions) réussissent sur le build corrigé. Le parcours artisan va jusqu’à la sollicitation, les deux reprises d’incident conservent l’unicité et les dépôts de 6 Mio passent à 390 et 1 440 pixels. La CI du nouveau SHA reste requise avant livraison.

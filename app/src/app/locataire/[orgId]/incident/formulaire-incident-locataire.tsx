@@ -137,7 +137,7 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
     try {
       const donnees=declarationDuBrouillon(contenu);
       donnees.set(MARQUEUR_DEPOT,JSON.stringify({id:"photos-incident",nom:"photos"}));
-      await preparerDepotsDirects(donnees);
+      await preparerDepotsDirects(donnees,{imagesSeulement:true});
       const resultat = await declarerMonIncident(orgId, precedent, donnees);
       const suivant = { ...contenu, envoye: Boolean(resultat.succes), bilan: resultat };
       derniereDeclaration.current = suivant;

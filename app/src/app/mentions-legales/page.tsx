@@ -1,7 +1,7 @@
 import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
 import { Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
-import { courrielDeContact, documentsIncomplets, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";
+import { courrielDeContact, documentsIncomplets, estEntrepreneurIndividuel, REGIME_TVA, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 export const metadata = metadonneesPubliques({
@@ -26,6 +26,7 @@ export const metadata = metadonneesPubliques({
 export default async function PageMentionsLegales() {
   const {editeur:EDITEUR,indisponible}=await lireEditeur();
   const prestataires = prestatairesAvecFaits(EDITEUR);
+  const individuel = estEntrepreneurIndividuel(EDITEUR);
   return (
     <CoquilleLegale
       titre="Mentions légales"
@@ -34,19 +35,21 @@ export default async function PageMentionsLegales() {
       incomplet={indisponible || documentsIncomplets(EDITEUR) || prestatairesIncomplets(prestataires, true)}
       courriel={courrielDeContact(EDITEUR)}
     >
+      <p className="text-xs text-muted-foreground">Informations mises à jour le 20 octobre 2026.</p>
       <Article titre="Éditeur">
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr]">
           {[
             ["Dénomination", <Fait key="d" valeur={EDITEUR.denomination} quoi="dénomination sociale" />],
             ["Forme juridique", <Fait key="f" valeur={EDITEUR.forme} quoi="forme juridique" />],
-            ["Capital social", <Fait key="c" valeur={EDITEUR.capital} quoi="capital social, le cas échéant" />],
+            ...(individuel ? [] : [["Capital social", <Fait key="c" valeur={EDITEUR.capital} quoi="capital social" />]]),
             ["Siège social", <Fait key="s" valeur={EDITEUR.siege} quoi="adresse du siège" />],
-            ["RCS", <Fait key="r" valeur={EDITEUR.rcs} quoi="ville et numéro d'immatriculation" />],
+            ["Immatriculation", <Fait key="r" valeur={EDITEUR.rcs} quoi="immatriculation au RNE ou au RCS" />],
             ["SIRET", <Fait key="si" valeur={EDITEUR.siret} quoi="numéro SIRET" />],
-            ["TVA intracommunautaire", <Fait key="t" valeur={EDITEUR.tvaIntracommunautaire} quoi="numéro de TVA, le cas échéant" />],
+            ...(REGIME_TVA?.nature === "franchise" ? [["TVA", "TVA non applicable, article 293 B du CGI"]] : []),
+            ...(EDITEUR.tvaIntracommunautaire || REGIME_TVA?.nature !== "franchise" ? [["TVA intracommunautaire", <Fait key="t" valeur={EDITEUR.tvaIntracommunautaire} quoi="numéro de TVA" />]] : []),
             ["Directeur de la publication", <Fait key="dp" valeur={EDITEUR.directeurPublication} quoi="nom et qualité" />],
             ["Courriel", <Fait key="e" valeur={EDITEUR.email} quoi="adresse de contact" />],
-            ["Téléphone", <Fait key="tel" valeur={EDITEUR.telephone} quoi="numéro, le cas échéant" />],
+            ["Téléphone", <Fait key="tel" valeur={EDITEUR.telephone} quoi="téléphone de contact professionnel" />],
           ].map(([libelle, valeur]) => (
             <div key={String(libelle)} className="contents">
               <dt className="mono-discret sm:text-right">{libelle}</dt>
@@ -79,10 +82,11 @@ export default async function PageMentionsLegales() {
               prestataires américains. Même formulation que la page
               confidentialité (29/09 : serveurs principaux en région UE,
               prestataires parfois établis hors de l'Union). */}
-          Les serveurs principaux du service — base de données, fichiers et
-          application — sont situés dans des{" "}
+          La base de données, le stockage principal des fichiers et les fonctions
+          serveur de l’application sont configurés dans des{" "}
           <b className="font-semibold">régions de l&apos;Union européenne</b>{" "}
-          (Paris). Plusieurs prestataires sont des sociétés établies hors de
+          (Paris). La diffusion du site et certaines opérations techniques peuvent
+          intervenir ailleurs. Plusieurs prestataires sont des sociétés établies hors de
           l&apos;Union, notamment aux États-Unis : la colonne « Localisation »
           le dit pour chacun, et la page confidentialité décrit les garanties
           des transferts. Le service s&apos;appuie sur les prestataires
@@ -107,19 +111,25 @@ export default async function PageMentionsLegales() {
           . S&apos;il s&apos;agit des données de votre dossier de gestion
           locative — bail, pièces, loyers, incidents —{" "}
           <b className="font-semibold">
-            c&apos;est à votre agence qu&apos;il faut vous adresser
+            adressez-vous à votre propriétaire bailleur ou à votre agence
           </b>
-          , et non à Gerimmo : elle en est responsable, nous n&apos;en sommes
-          que le sous-traitant.
+           : ils déterminent l’usage de ces données ; Gerimmo les traite pour leur compte.
         </p>
       </Article>
 
       <Article titre="Médiation de la consommation">
+        {!EDITEUR.mediateurNom && (
+          <p className="font-medium text-[var(--destructive)]">
+            Adhésion à un médiateur de la consommation à venir. Les coordonnées
+            seront publiées après cette adhésion ; aucun organisme n’est désigné à ce jour.
+          </p>
+        )}
         <p>
-          Si vous êtes un particulier et qu&apos;un litige nous oppose, vous
-          pouvez recourir <b className="font-semibold">gratuitement</b> à un
-          médiateur de la consommation, après nous avoir adressé une réclamation
-          écrite restée sans réponse satisfaisante.
+          Si vous êtes un particulier et qu&apos;un litige nous oppose, le droit
+          de la consommation prévoit le recours <b className="font-semibold">gratuit
+          pour le consommateur</b> à un médiateur compétent, après une réclamation
+          écrite restée sans réponse satisfaisante. L’adhésion de Gerimmo doit être
+          finalisée avant la conclusion de contrats avec des consommateurs.
         </p>
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr]">
           <dt className="mono-discret sm:text-right">Médiateur</dt>
@@ -154,8 +164,7 @@ export default async function PageMentionsLegales() {
 
       <Article titre="Signaler un contenu illicite">
         <p>
-          Conformément à l&apos;article 6-I-5 de la LCEN, tout contenu
-          manifestement illicite peut être signalé à{" "}
+          Tout contenu manifestement illicite peut être signalé à{" "}
           <Fait valeur={EDITEUR.email} quoi="adresse de signalement" />, en
           précisant la date du constat, la description des faits,
           l&apos;emplacement précis du contenu et les motifs pour lesquels il

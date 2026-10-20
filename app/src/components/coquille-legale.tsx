@@ -96,7 +96,14 @@ export function TableauPrestataires({
         <tbody>
           {prestataires.map((p) => (
             <tr key={p.cle}>
-              <td>{p.nom}</td>
+              <td>
+                {p.nom}
+                {p.documentation && (
+                  <a className="lien-texte mt-1 block text-xs" href={p.documentation} rel="noreferrer">
+                    Informations officielles
+                  </a>
+                )}
+              </td>
               <td data-libelle="Rôle">{p.role}</td>
               <td data-libelle="Localisation">
                 <Fait valeur={p.localisation} quoi="localisation" />

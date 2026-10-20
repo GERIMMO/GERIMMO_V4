@@ -5,8 +5,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 const EDITEUR_COMPLET: Record<string, string | null> = {
   denomination: "Éditeur de test", forme: "SAS", capital: null, siege: "1 rue de l'Essai, 75000 Paris",
   rcs: "RCS Paris 000 000 000", siret: "00000000000000", tvaIntracommunautaire: null,
-  directeurPublication: "Personne de test", email: "contact@example.com", telephone: null,
-  mediateurNom: "Médiateur de test", mediateurAdresse: null, mediateurSite: null,
+  directeurPublication: "Personne de test", email: "contact@example.com", telephone: "01 00 00 00 00",
+  mediateurNom: "Médiateur de test", mediateurAdresse: "1 rue Exemple, Paris", mediateurSite: "https://example.test/mediateur",
 };
 const EDITEUR_VIDE: Record<string, string | null> = Object.fromEntries(Object.keys(EDITEUR_COMPLET).map((k) => [k, null]));
 /**

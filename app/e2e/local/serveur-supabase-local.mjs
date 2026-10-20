@@ -832,17 +832,25 @@ async function routerStorage(methode, segments, url, brut, entetes, claims) {
     const objet = decodeURIComponent(reste.slice(2).join("/"));
     const c = verifier(url.searchParams.get("token") ?? "");
     if (!c || c.url !== `${bucket}/${objet}`) return { statut: 401, corps: { message: "Jeton signé invalide" } };
-    return { statut: 200, fichier: cheminSur(STOCKAGE, bucket, objet) };
+    // La capacité signée autorise la lecture ; le MIME reste celui du dépôt,
+    // comme sur Storage, et un objet supprimé n'est plus servi depuis le disque.
+    const metadata = await admin(async (client) => {
+      const r = await client.query("select metadata from storage.objects where bucket_id = $1 and name = $2", [bucket, objet]);
+      if (!r.rows.length) throw erreurRest(404, "storage", "Object not found");
+      return r.rows[0].metadata;
+    });
+    return { statut: 200, fichier: cheminSur(STOCKAGE, bucket, objet), mime: metadata?.mimetype };
   }
   if ((reste[0] === "authenticated" || reste[0] !== "sign") && methode === "GET") {
     const base = reste[0] === "authenticated" ? reste.slice(1) : reste;
     const bucket = base[0];
     const objet = decodeURIComponent(base.slice(1).join("/"));
-    await sousIdentite(claims, async (client) => {
-      const r = await client.query("select 1 from storage.objects where bucket_id = $1 and name = $2", [bucket, objet]);
+    const metadata = await sousIdentite(claims, async (client) => {
+      const r = await client.query("select metadata from storage.objects where bucket_id = $1 and name = $2", [bucket, objet]);
       if (!r.rows.length) throw erreurRest(404, "storage", "Object not found");
+      return r.rows[0].metadata;
     });
-    return { statut: 200, fichier: cheminSur(STOCKAGE, bucket, objet) };
+    return { statut: 200, fichier: cheminSur(STOCKAGE, bucket, objet), mime: metadata?.mimetype };
   }
   if (methode === "POST" || methode === "PUT") {
     const bucket = reste[0];
@@ -1016,7 +1024,7 @@ const serveur = http.createServer(async (req, res) => {
       if (r.fichier) {
         try {
           const contenu = fs.readFileSync(r.fichier);
-          res.writeHead(200, { "Content-Type": "application/octet-stream", ...CORS });
+          res.writeHead(200, { "Content-Type": r.mime || "application/octet-stream", ...CORS });
           return res.end(contenu);
         } catch {
           return repondreJson(404, { message: "Fichier absent du disque" });

@@ -6324,3 +6324,8 @@ Complément E5 préparé localement : distinction entre échec avant création d
 ## [2026-10-20] verification | Suite complète après préparation des signatures
 
 8 948 tests réussis, 38 non exécutés ; 618 fichiers de tests réussis et sept ignorés. Compilation, types et lint contrôlés après le complément. Contre-relecture finale : les deux P2 du circuit de signature sont corrigés, sans défaut concret résiduel relevé dans ce delta ; le second lecteur n’a pas relancé les tests. La CI des dépôts et retours est distincte du nouveau complément de signature, qui doit encore être contrôlé sur son SHA. Aucune publication ni exécution externe de signature.
+
+
+## [2026-10-20] verification | Consultation PDF et navigation de l’espace
+
+La CI744 a relevé une assertion navigateur devenue incompatible avec la visionneuse HTML : le scénario attendait encore les octets PDF directement sur la route de consultation. Il vérifie désormais la redirection de l’ancien lien, l’adresse stable sous /espace, les octets et le type du PDF obtenu depuis Storage, le lien mobile et le téléchargement par redirection après autorisation. Le banc Storage conserve maintenant le type déclaré au dépôt et refuse un objet supprimé même si une copie reste sur disque. Les 17 scénarios du fichier passent localement ; types et lint réussis. La contre-relecture du scénario ne relève pas de défaut concret. CI complète sur le nouveau SHA encore nécessaire. Aucune modification de production.

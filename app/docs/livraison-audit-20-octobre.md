@@ -91,3 +91,8 @@ Une validation refusée ou une panne OAuth avant toute création distante libèr
 Une annulation fondée sur l’état « prêt » ne réussit que si cet état est encore présent sans référence externe : si un envoi a réservé entre-temps, la page demande de relire le suivi. Les autres annulations vérifient aussi la référence distante et une ligne effectivement modifiée. Les deux défauts ont été reproduits puis corrigés ; les pannes, droits, rejeux et entrelacements sont testés localement et relus.
 
 **E5 reste partiel :** rapprochement des circuits sans référence, alertes au propriétaire et relances J+7/J+21/J+28 encore ouverts. Aucun envoi externe de validation n’a été effectué.
+
+
+## Vérification de la consultation PDF
+
+Le contrat navigateur de consultation comprend un aperçu HTML et un chargement direct Storage : le test de navigation vérifie les deux réponses, le contenu PDF exact, la stabilité de l’alias et le téléchargement après autorisation. Le banc conserve le type déclaré lors du dépôt ; les 17 scénarios de navigation et d’isolation passent localement. La CI744 a révélé l’ancienne assertion de MIME, corrigée sans retirer le contrôle des octets. La CI complète sur le dernier SHA reste obligatoire avant livraison.

@@ -41,6 +41,8 @@ Un défaut de composition des transactions a été corrigé sur les cinq nouveau
 
 Dépôts limités à 4 Mio avec message avant envoi et saisie conservée. Cinq routes de lecture utilisent Storage directement après autorisation et trace. Miniatures et ouverture native des PDF mobiles conservées. Un PNG de 6 Mio, une reprise après erreur, une redirection de téléchargement et un PDF de deux pages passent sur navigateur local. Les dépôts directs signés, les routes spécifiques à empreinte, le CORS réel et Safari iPhone restent à vérifier pour terminer G5.
 
+La CI744 a identifié une attente obsolète dans le test navigateur de consultation. Le scénario contrôle maintenant l’aperçu HTML à adresse stable, le vrai contenu PDF reçu depuis Storage et le téléchargement autorisé. Les 17 scénarios de navigation et d’isolation passent localement après adaptation ; le banc conserve le type du fichier déposé. La CI du dernier SHA reste requise.
+
 ## Préparation des signatures
 
 Le début de création Zoho est distingué de la validation locale et de la connexion OAuth. Un échec certain avant création libère circuit et quota dans une transaction journalisée ; une réponse incertaine conserve le blocage. Une annulation ne peut plus écraser une réservation concurrente. Les deux défauts signalés en contre-relecture sont corrigés, avec essais de pannes sur chaque écriture, droits, rejeu et entrelacements. Le rapprochement des circuits sans référence, les alertes et les relances restent ouverts (E5 partiel).

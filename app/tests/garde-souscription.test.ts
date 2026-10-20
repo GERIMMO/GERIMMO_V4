@@ -45,10 +45,10 @@ const EDITEUR_COMPLET: Record<string, string | null> = {
   tvaIntracommunautaire: null,
   directeurPublication: "Personne de test",
   email: "contact@example.com",
-  telephone: null,
+  telephone: "01 00 00 00 00",
   mediateurNom: "Médiateur de test",
-  mediateurAdresse: null,
-  mediateurSite: null,
+  mediateurAdresse: "1 rue Exemple, Paris",
+  mediateurSite: "https://example.test/mediateur",
 };
 const EDITEUR_VIDE: Record<string, string | null> = Object.fromEntries(Object.keys(EDITEUR_COMPLET).map((k) => [k, null]));
 
@@ -223,6 +223,14 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     identite({ ...EDITEUR_COMPLET, mediateurNom: null });
     const r = await demarrerAbonnement("org-1", {}, souscrire());
     expect(r.erreur).toBe(MOTIF_IDENTITE);
+  });
+
+  it.each(["telephone", "mediateurAdresse", "mediateurSite"])("refuse une identité dont %s manque avant d’ouvrir Stripe", async (cle) => {
+    etat(GRILLE);
+    identite({ ...EDITEUR_COMPLET, [cle]: null });
+    const r = await demarrerAbonnement("org-1", {}, souscrire());
+    expect(r.erreur).toBe(MOTIF_IDENTITE);
+    expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
   it("essai arrivé à son terme (gelé en lecture seule, statut encore « essai ») : la phrase sans « Votre essai continue »", async () => {

@@ -21,6 +21,8 @@ import {
   cleCoordonnees,
   cleLocalisation,
   documentsIncomplets,
+  confidentialiteIncomplete,
+  estEntrepreneurIndividuel,
   faitsManquants,
   prestatairesAvecFaits,
   prestatairesIncomplets,
@@ -54,10 +56,10 @@ describe("identité de l'éditeur", () => {
       tvaIntracommunautaire: null,
       directeurPublication: "Une personne",
       email: "contact@exemple.fr",
-      telephone: null,
+      telephone: "01 00 00 00 00",
       mediateurNom: "Un médiateur",
-      mediateurAdresse: null,
-      mediateurSite: null,
+      mediateurAdresse: "1 rue Exemple, Paris",
+      mediateurSite: "https://example.test/mediateur",
     };
     expect(faitsManquants(complet)).toEqual([]);
     expect(documentsIncomplets(complet)).toBe(false);
@@ -74,10 +76,10 @@ describe("identité de l'éditeur", () => {
       tvaIntracommunautaire: null,
       directeurPublication: "Une personne",
       email: "contact@exemple.fr",
-      telephone: null,
+      telephone: "01 00 00 00 00",
       mediateurNom: null, // ← obligatoire dès qu'un client est un particulier
-      mediateurAdresse: null,
-      mediateurSite: null,
+      mediateurAdresse: "1 rue Exemple, Paris",
+      mediateurSite: "https://example.test/mediateur",
     };
     expect(documentsIncomplets(presque)).toBe(true);
     expect(faitsManquants(presque)).toEqual(["le médiateur de la consommation"]);
@@ -264,10 +266,10 @@ describe("prestataires saisissables depuis les paramètres (19/10)", () => {
     tvaIntracommunautaire: null,
     directeurPublication: "Une personne",
     email: "contact@example.test",
-    telephone: null,
+    telephone: "01 00 00 00 00",
     mediateurNom: "Un médiateur",
-    mediateurAdresse: null,
-    mediateurSite: null,
+    mediateurAdresse: "1 rue Exemple, Paris",
+    mediateurSite: "https://example.test/mediateur",
   };
   /** La localisation de la BAN et les coordonnées des onze prestataires, fournies (valeurs fictives). */
   const prestatairesComplets = (sauf?: string): Record<string, string | null> => {
@@ -319,8 +321,8 @@ describe("prestataires saisissables depuis les paramètres (19/10)", () => {
 
   it("les réserves légales se lisent telles quelles : faits d'éditeur, puis prestataires", () => {
     const reserves = reservesLegales({});
-    expect(reserves.slice(0, 8)).toEqual(faitsManquants({}));
-    expect(reserves.slice(8)).toEqual([
+    expect(reserves.slice(0, faitsManquants({}).length)).toEqual(faitsManquants({}));
+    expect(reserves.slice(faitsManquants({}).length)).toEqual([
       `la localisation de ${ban.nom}`,
       `les coordonnées de ${PRESTATAIRES.length} prestataires sur ${PRESTATAIRES.length} (${PRESTATAIRES.map((p) => p.nom).join(", ")})`,
     ]);
@@ -349,5 +351,36 @@ describe("prestataires saisissables depuis les paramètres (19/10)", () => {
     expect(mentions).toContain("prestatairesIncomplets(prestataires, true)");
     // La confidentialité n'affiche pas les coordonnées : réserve sur les seules localisations.
     expect(lire("app/confidentialite/page.tsx")).toContain("prestatairesIncomplets(prestataires)");
+  });
+});
+
+
+describe("identité individuelle et réserves propres à chaque document (20/10)", () => {
+  const individuel = { denomination: "Une personne", forme: "Entrepreneur individuel (EI)", siege: "1 rue Exemple", email: "contact@example.test" };
+  it("la confidentialité identifie son responsable même si la médiation n’est pas encore configurée", () => {
+    expect(confidentialiteIncomplete(individuel)).toBe(false);
+    expect(documentsIncomplets(individuel)).toBe(true);
+    for (const cle of ["denomination", "forme", "siege", "email"]) {
+      expect(confidentialiteIncomplete({ ...individuel, [cle]: " " })).toBe(true);
+    }
+  });
+  it("reconnaît une EI sans appliquer cette exception aux sociétés ou à une forme inconnue", () => {
+    for (const forme of ["EI", "entrepreneur individuel (EI)", "Entreprise individuelle"]) expect(estEntrepreneurIndividuel({ forme })).toBe(true);
+    for (const forme of [null, "", "SAS", "EIRL société"]) expect(estEntrepreneurIndividuel({ forme })).toBe(false);
+  });
+  it("garde les coordonnées de médiation et le téléphone dans les réserves", () => {
+    const manquants = faitsManquants({});
+    expect(manquants).toContain("le téléphone de contact");
+    expect(manquants).toContain("l'adresse du médiateur");
+    expect(manquants).toContain("le site du médiateur");
+  });
+  it("décrit les copies locales et ne promet ni confidentialité absolue ni prescription uniforme", () => {
+    const page = lire("app/confidentialite/page.tsx");
+    expect(page).toContain("IndexedDB");
+    expect(page).toContain("non encore synchronisés");
+    expect(page).toContain("doute raisonnable");
+    expect(page).not.toContain("même par erreur de programme");
+    expect(page).not.toContain("Les cinq ans correspondent à la prescription");
+    expect(page).not.toContain("aucune donnée des lecteurs n&apos;est collectée");
   });
 });

@@ -6470,3 +6470,7 @@ PR231 intégrée en fe149d659c975fad985f225b679db43b16e45c81 après CI791 réuss
 ## [2026-10-21] audit | Limite du point d'étape importé de PR229
 
 Le document de PR229 est incorporé au lot consolidé. Son état du matin reste historique. La recette de production lit la page publique /agences mais ne teste pas la console /admin/liste-attente ni son export ; cette partie est couverte localement seulement. Ne pas présenter cette recette comme une validation exhaustive de la liste d'attente en production.
+
+## [2026-10-21] deploy | Effacement initial confirmé et vérifié
+
+Après un second accord explicite au moment de l'effacement, la migration 20261021175930 est appliquée par le chantier 39651969057, après simulation réussie 39650919924 (ROLLBACK intégral) et sauvegarde 39651051766 (52 fichiers, zéro échec, préfixe 20261021-1815). Le SELECT de vérification retrouve un compte, un superadmin actif, zéro espace, artisan, lot ou bail, et 14 publications conservées. Les 43 fichiers recensés sont en cours de retrait via Storage ; les neuf visuels marketing sont exclus. Le nouveau cycle éphémère réussit dans la CI796, ainsi que les huit gardes du nettoyage. Cette CI a 9 295 tests réussis et un unique oubli d'inventaire dans le test des migrations ; cet inventaire est complété et ses trois tests locaux repassent.

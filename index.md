@@ -261,4 +261,4 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 
 - [[Dépendances et formulaires — 21 octobre 2026]] — Versions regroupées, accessibilité, conservation des saisies du bail et preuves locales.
 
-- [[Préparation fonctionnelle — 21 octobre 2026]] — publication PR231, contrôles consolidés et décision de retrait des comptes d'essai ; remise à zéro protégée en préparation.
+- [[Préparation fonctionnelle — 21 octobre 2026]] — publication PR231, contrôles consolidés et décision de retrait des comptes d'essai ; effacement des dix comptes confirmé, superadmin et publications conservés ; contrôle final en cours.

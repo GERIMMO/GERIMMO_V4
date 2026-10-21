@@ -29,11 +29,15 @@ Le nouvel audit d’accessibilité a détecté des noms de commandes qui ne repr
 
 Une saisie des charges du bail pouvait être lue trop tard depuis la cible mutable de l’événement React. La valeur est capturée au moment de la frappe, avant la mise à jour d’état différée. Un test reproduit une cible vidée avant application de la mise à jour et vérifie la conservation du montant. Aucun changement des calculs ou règles du loyer.
 
+Une sauvegarde de frappe encore différée pouvait aussi écraser un résultat serveur déjà enregistré dans la copie locale d’un incident. L’enregistrement immédiat annule maintenant cette ancienne minuterie, tout en autorisant les nouvelles saisies ultérieures. Le test échoue sur l’ancien comportement et réussit après correction ; le cas d’effacement reste protégé contre la réapparition d’une copie.
+
 ## Preuves locales
 
 Lint, compilation webpack, types et suite complète réussis : **9 238 tests réussis, 36 ignorés selon prérequis**, 635 fichiers réussis, cinq ignorés. Les quinze essais navigateur ciblés réussissent, dont le parcours propriétaire avec conservation des saisies et l’audit d’accessibilité. Les jeux et bases sont fictifs, isolés de la production ; aucun message ni paiement réel.
 
 Les premières passes ont révélé un navigateur non installé, les noms accessibles incohérents et un montant de formulaire perdu. Ces écarts ont été corrigés ; seuls les résultats de la passe finale sont retenus ci-dessus. La CI distante et la recette après publication restent requises.
+
+L’audit final couvre 68 écrans : aucune violation axe ni commande sans nom détectée. Après le correctif d’ordre des copies, 46 tests ciblés passent, ainsi que lint, compilation, types et neuf essais navigateur (reprise d’incidents et saisie propriétaire aux formats téléphone et ordinateur). La suite complète précédente précède ce dernier correctif ; la CI vérifie la tête finale.
 
 > [!warning] Portée des preuves
 > Ces résultats prouvent les scénarios testés sur l’environnement local. Ils ne constituent pas une preuve de déploiement ni une vérification de toutes les intégrations externes. La branche de suivi artisans/agences est distincte et devra être rapprochée de cette tête avant publication.

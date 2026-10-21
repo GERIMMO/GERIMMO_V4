@@ -65,8 +65,9 @@ export function useCopieFichiers<T>(cle: string, initiale: CopieFichiers<T> | nu
   const differee = useRef<{ donnees: T; minuterie: ReturnType<typeof setTimeout> } | null>(null);
   const enregistrer = useCallback((donnees: T | null) => {
     if (termine.current) return Promise.resolve(false);
-    // Un effacement (envoi confirmé) l'emporte sur une écriture encore en attente de la fin de frappe.
-    if (donnees === null && differee.current) { clearTimeout(differee.current.minuterie); differee.current = null; }
+    // L'enregistrement immédiat est plus récent que la dernière frappe en attente.
+    // Celle-ci ne doit pas écraser ensuite le résultat serveur (ex. photos à reprendre).
+    if (differee.current) { clearTimeout(differee.current.minuterie); differee.current = null; }
     attente.current++; setStatut("attente");
     const suite = file.current.then(async () => {
       if (termine.current) return false;

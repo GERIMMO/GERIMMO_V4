@@ -6417,3 +6417,7 @@ Protocole suivi. Sauvegarde quotidienne à la demande : exécution 39501178106 (
 Préparation sur main 804a6da : versions React alignées, Supabase épinglé, outils et actions actualisés. Types Node conservés en majeure 22 ; Stripe 23 différé pour son changement d’API. Les noms accessibles des menus/badges correspondent au texte visible. Le formulaire de bail capture immédiatement la valeur saisie pour éviter sa perte lors d’une mise à jour différée.
 
 Lint, compilation, types réussis ; 9 238 tests réussis, 36 non exécutés selon prérequis. Quinze essais navigateur réussis, dont les parcours de saisie et l’audit d’accessibilité. Aucun changement d’intégration ni action réelle. CI et recette de production encore dues. Voir [[Dépendances et formulaires — 21 octobre 2026]].
+
+## [2026-10-21] fix | Une frappe différée ne remplace plus un résultat serveur enregistré
+
+Le scénario de reprise de photos a révélé un risque dans la copie locale : une minuterie ancienne pouvait écraser le résultat serveur enregistré immédiatement. Le hook annule désormais cette minuterie à chaque enregistrement immédiat. Régression reproduite avant correction ; 46 tests ciblés réussis ensuite, lint, compilation et types réussis, neuf parcours navigateur réussis. L’audit d’accessibilité précédent couvre 68 écrans sans violation détectée. Aucune modification en production par ce correctif à ce stade. Voir [[Dépendances et formulaires — 21 octobre 2026]].

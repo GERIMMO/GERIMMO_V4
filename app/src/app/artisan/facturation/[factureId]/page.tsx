@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {notFound} from "next/navigation";
 import {chargerReglementsFactures,verifierAccesArtisan} from "../../acces";
-import {activationArtisanLocale,chargerActivitePrivee,bilanReglements} from "@/lib/artisan-prive";
+import {activationModuleArtisan,chargerActivitePrivee,bilanReglements} from "@/lib/artisan-prive";
 import {phraseEtatPourArtisan} from "@/lib/reglement-facture";
 import {MESSAGE_AVOIR_SANS_PIECE} from "@/lib/artisan-prive-avoir";
 import {Avertissement} from "../../ui";
@@ -13,7 +13,7 @@ import {FormulairePrive} from "../../clients/formulaire";
 import {Champ,Texte,Piece,LienPiece,NavigationPrivee,LectureSeule} from "../../clients/elements";
 export const metadata={title:"Suivi de la facture"};
 export default async function Page({params}:{params:Promise<{factureId:string}>}){
- await verifierAccesArtisan();const {data,erreur}=await chargerActivitePrivee();if(!data)return <Erreur>{erreur}</Erreur>;const {factureId}=await params;const f=data.factures.find(x=>x.id===factureId);if(!f)notFound();const b=bilanReglements(f,data.reglements,data.avoirs);const active=activationArtisanLocale("reglements")&&data.activation.reglements;
+ await verifierAccesArtisan();const {data,erreur}=await chargerActivitePrivee();if(!data)return <Erreur>{erreur}</Erreur>;const {factureId}=await params;const f=data.factures.find(x=>x.id===factureId);if(!f)notFound();const b=bilanReglements(f,data.reglements,data.avoirs);const active=activationModuleArtisan("reglements")&&data.activation.reglements;
  // D23 (critère 9) : ce que le CLIENT a déclaré sur une facture Gerimmo, à côté du registre privé ; l'écart est signalé, jamais corrigé.
  const declarations=f.origine==="gerimmo"?await chargerReglementsFactures():{lignes:[],erreur:false};const declareParClient=declarations.lignes.find(x=>x.facture_id===f.id);
  const clientDitReglee=declareParClient?.etat==="reglee",vousDitesReglee=b.solde===0&&b.declare>0;const ecart=Boolean(declareParClient)&&clientDitReglee!==vousDitesReglee&&(declareParClient!.etat==="reglee"||vousDitesReglee);

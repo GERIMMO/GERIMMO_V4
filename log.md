@@ -6428,3 +6428,13 @@ PR230 fusionnée en 804a6da5fdf8f74baf63d64224fa633f30451ec1 ; CI main 396064063
 Préparation locale : export excluant les retirées par défaut, option explicite tracée ; compteur des agences en attente dans le relais existant, fonction serveur en lecture seule avec retour arrière ; état détaillé des interrupteurs Zoho dans Santé sans identifiants ni secrets ; adresses des jeux locaux déplacées vers un domaine réservé. Migration 20261021133650 appliquée seulement aux bases fictives locales.
 
 Lint, compilation, types réussis ; 9 254 tests réussis, 36 non exécutés selon leurs prérequis ; parcours navigateur de la liste d’attente et préparation des sessions réussis. Quatre dossiers de relecture et décisions préparés hors dépôt, sans envoi. Aucun réglage, compte, paiement ou document de production modifié par ce lot.
+
+## [2026-10-21] dev | Préparer l’ouverture des clients externes et règlements artisans
+
+La demande directe « il faut rien fermer mais tout ouvrir pour que tout soit fonctionnel » est appliquée aux modules métiers artisans : ouverture HTTPS et migration des deux interrupteurs existants. Les contrôles d’identité, de propriété, les exclusions et les preuves de règlement sont conservés. Aucun paiement bancaire exécuté. Deux migrations testées uniquement sur les bases fictives locales, aucun réglage de production changé. Voir [[Préparation fonctionnelle — 21 octobre 2026]].
+
+## [2026-10-21] audit | Parcours artisans et agences, connexion Zoho et ouverture confirmée
+
+Seize essais navigateur locaux réussis, dont un client externe et un devis conservés après rechargement ; captures ordinateur et téléphone relues. La CI790 du premier lot échoue sur cinq scénarios qui recherchaient encore deux anciennes adresses du jeu fictif ; références corrigées. La reprise de photo d’incident n’a réussi qu’au second essai : résultat non présenté comme un succès sans réserve.
+
+Le dirigeant confirme « Oui, lire cet interrupteur et le mettre à false ». Interrupteur de fermeture des cautionnements enregistré ouvert dans Vercel ; redéploiement de la version PR230 lancé sous 2N73v4PcoEmhnFhfUHbvS8H7gKPJ, conclusion encore à relever. Zoho affiche l’offre API, 478 crédits et les alertes actives. Aucun nouvel achat ni envoi de signature. Voir [[Préparation fonctionnelle — 21 octobre 2026]].

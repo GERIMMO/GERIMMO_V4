@@ -45,6 +45,20 @@ describe.skipIf(!url)("Activation artisan — identité réelle et politique Sto
     const r = await db.query("select has_function_privilege('anon','public.artisan_module_actif(text)','execute') anon, has_function_privilege('authenticated','public.artisan_module_actif(text)','execute') connecte");
     expect(r.rows[0]).toEqual({ anon: false, connecte: true });
   });
+  it("ouverture et retour rejouables sans changement de propriétaire ni de droits", async () => {
+    const avant = await db.query("select count(*)::int n from public.artisans");
+    const ouverture = await readFile("supabase/migrations/20261021140836_ouverture_activite_artisan.sql", "utf8");
+    const retour = await readFile("supabase/retours-arriere/20261021140836_ouverture_activite_artisan.retour.sql", "utf8");
+    await db.query("update public.artisan_modules_locaux set actif=false");
+    await db.query(ouverture); await db.query(ouverture);
+    await identite(compteArtisan); expect(await actif()).toBe(true); expect(await actif("reglements")).toBe(true);
+    await identite(sansArtisan); expect(await actif()).toBe(false);
+    await db.query("reset role"); await db.query(retour); await db.query(retour);
+    await identite(compteArtisan); expect(await actif()).toBe(false); expect(await actif("reglements")).toBe(false);
+    await db.query("reset role");
+    expect((await db.query("select count(*)::int n from public.artisans")).rows).toEqual(avant.rows);
+    await db.query(ouverture); await identite(compteArtisan); expect(await actif()).toBe(true);
+  });
   it("une désactivation ferme le prédicat même pour l’artisan réel", async () => {
     await db.query("update public.artisan_modules_locaux set actif=false");
     await identite(compteArtisan); expect(await actif()).toBe(false);

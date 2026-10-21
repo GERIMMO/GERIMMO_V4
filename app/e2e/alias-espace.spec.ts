@@ -123,7 +123,7 @@ test.describe("Propriétaire direct : l'alias /espace", () => {
     const titre=`TEST D27 document ${randomUUID().slice(0,8)}`;
     try {
       const {rows:[lot]}=await db.query("select id,bien_id from public.lots where organization_id=$1 and etat='disponible' order by created_at limit 1",[PD]);
-      const {rows:[personne]}=await db.query("select id from public.persons where organization_id=$1 and email=$2",[PD,["locataire.pd","gerimmo-demo.fr"].join("@")]);
+      const {rows:[personne]}=await db.query("select id from public.persons where organization_id=$1 and email=$2",[PD,["locataire.pd","example.com"].join("@")]);
       expect(lot,"Lot fictif disponible requis").toBeDefined();expect(personne,"Locataire fictif requis").toBeDefined();
       bailId=(await db.query("insert into public.baux(organization_id,lot_id,locataire_principal,etat,loyer_hc,charges,date_debut) values($1,$2,$3,'brouillon',700,40,current_date+7) returning id",[PD,lot.id,personne.id])).rows[0].id;
       const depot=await storage.storage.from("documents").upload(stockage,pdf,{contentType:"application/pdf"});

@@ -116,6 +116,9 @@ test("la console liste l'agence inscrite, la marque contactée et exporte le CSV
 
     expect(await debordementHorizontal(page)).toBe(0);
     await page.screenshot({ path: info.outputPath("console-liste-attente-mobile.png"), fullPage: true });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    expect(await debordementHorizontal(page)).toBe(0);
+    await page.screenshot({ path: info.outputPath("console-liste-attente-bureau.png"), fullPage: true });
   } finally {
     if (id) await db.query("delete from public.liste_attente_agences where id = $1", [id]);
     await db.end();

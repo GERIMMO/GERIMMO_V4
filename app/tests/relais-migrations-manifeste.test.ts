@@ -75,6 +75,7 @@ const MISSION_OCTOBRE = [
   // 20/10, décision du dirigeant : liste d'attente des agences de gestion (distincte de liste_attente du 29/09).
   "20261020120000_liste_attente_agences.sql",
   "20261021133650_relais_point_agences.sql",
+  "20261021140836_ouverture_activite_artisan.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

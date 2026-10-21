@@ -1024,5 +1024,29 @@
     "persona": "superadmin",
     "label": "Annuaire des espaces",
     "dynamic": ""
+  },
+  {
+    "path": "/compte/donnees",
+    "persona": "proprietaire",
+    "label": "Données personnelles et demandes privées — proprietaire",
+    "dynamic": ""
+  },
+  {
+    "path": "/compte/donnees",
+    "persona": "locataire",
+    "label": "Données personnelles et demandes privées — locataire",
+    "dynamic": ""
+  },
+  {
+    "path": "/compte/donnees",
+    "persona": "artisan",
+    "label": "Données personnelles et demandes privées — artisan",
+    "dynamic": ""
+  },
+  {
+    "path": "/admin/donnees",
+    "persona": "superadmin",
+    "label": "Demandes privées de données et procédure de fermeture",
+    "dynamic": ""
   }
 ]

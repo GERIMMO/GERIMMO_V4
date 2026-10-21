@@ -235,7 +235,7 @@ describe("confidentialité (29/09)", () => {
   it("n'envoie plus exercer ses droits par le formulaire de devis", () => {
     const droits = page.slice(page.indexOf('titre="Vos droits"'));
     expect(droits).not.toContain("OuNousEcrire");
-    expect(droits).toContain('href="/assistance"');
+    expect(droits).toContain('href="/compte/donnees"');
     // L'adresse de l'éditeur dès qu'elle est fournie ; sa réserve, sinon.
     expect(droits).toContain("adresse de contact de l'éditeur");
   });

@@ -193,7 +193,7 @@ export default async function PageCompte() {
                 <Link href={`/locataire/${espaceLocataire}/contact`} className="lien-discret">
                   Mon gestionnaire
                 </Link>{" "}
-                : c&apos;est lui qui y répond, sous 30 jours.
+                : c&apos;est lui qui y répond, sous un mois.
               </>
             ) : (
               <>
@@ -206,6 +206,7 @@ export default async function PageCompte() {
               </>
             )}
           </p>
+          <p className="mt-3"><Link href="/compte/donnees" className="btn-secondaire">Gérer mes données et demander la fermeture de mon compte</Link></p>
           <p className="mt-2 text-sm">
             <Link href="/confidentialite" className="lien-discret">
               Lire la politique de confidentialité

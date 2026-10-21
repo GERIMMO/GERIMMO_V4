@@ -32,7 +32,7 @@ export async function deciderRetour(id:string,version:number,_etat:EtatRetour,fd
  if(acces||sa!==true)return{erreur:"Accès réservé à la supervision Gerimmo."};
  const{error}=await c.rpc('traiter_retour',{p_retour:id,p_version:version,p_etat:String(fd.get('etat')??''),p_gravite:String(fd.get('gravite')??''),p_reponse:String(fd.get('reponse')??''),p_reexamen:String(fd.get('reexaminer_le')??'')||null});
  if(error)return{erreur:sansJargon(error.message)};
- revalidatePath('/admin/retours');revalidatePath('/assistance');revalidatePath('/agence/[orgId]/faq','page');revalidatePath('/admin/publications');return{succes:"Décision enregistrée et visible dans le suivi de la demande."};
+ revalidatePath('/admin/retours');revalidatePath('/admin/donnees');revalidatePath('/compte/donnees');revalidatePath('/assistance');revalidatePath('/agence/[orgId]/faq','page');revalidatePath('/admin/publications');return{succes:"Décision enregistrée et visible dans le suivi de la demande."};
 }
 export async function regrouperRetours(id:string,_etat:EtatRetour,fd:FormData):Promise<EtatRetour>{
  const c=await createClient();const{data:sa,error:acces}=await c.rpc('is_super_admin');

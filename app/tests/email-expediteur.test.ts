@@ -103,3 +103,25 @@ it("une adresse vérifiée porte la marque agence sans injection d’en-tête", 
   const mail = await emailAvecMarque({ nom_portail: 'Alpha <faux>\r\n', email_expediteur: "gestion@alpha.fr", email_expediteur_verifie_le: "2026-09-22T10:00:00Z" });
   expect(mail.from).toBe("Alpha faux <gestion@alpha.fr>");
 });
+
+it("les messages plateforme reçoivent une adresse de réponse professionnelle configurée", async () => {
+  vi.stubEnv("RESEND_API_KEY", "test"); vi.stubEnv("RESEND_REPONDRE_A", "contact@gerimmo.app");
+  const fetch=vi.fn().mockResolvedValue(new Response('{"id":"mail"}',{status:200})); vi.stubGlobal("fetch",fetch);
+  const {envoyerEmail}=await chargerEmail(); await envoyerEmail({to:"test@exemple.invalid",subject:"Test",html:"Test"});
+  expect(JSON.parse(fetch.mock.calls[0][1].body).reply_to).toBe("contact@gerimmo.app");
+});
+it("la réponse au gestionnaire reste prioritaire", async () => {
+  vi.stubEnv("RESEND_REPONDRE_A", "contact@gerimmo.app");
+  expect((await emailAvecMarque({name:"Agence",email_contact:"gestion@exemple.invalid"})).reply_to).toBe("gestion@exemple.invalid");
+});
+it("aucune boîte inexistante ni injection n’est choisie par défaut", async () => {
+  const {adresseReponsePlateforme}=await chargerEmail();
+  expect(adresseReponsePlateforme({})).toBeNull();
+  expect(adresseReponsePlateforme({RESEND_REPONDRE_A:"contact@gerimmo.app\r\nBcc: tiers@exemple.invalid"})).toBeNull();
+  expect(adresseReponsePlateforme({RESEND_REPONDRE_A:"invalide"})).toBeNull();
+});
+it("une coupure réseau après le POST est un état incertain, pas une invitation à renvoyer", async () => {
+  vi.stubEnv("RESEND_API_KEY","test"); vi.stubGlobal("fetch",vi.fn().mockRejectedValue(new TypeError("fetch failed")));
+  const {envoyerEmail}=await chargerEmail(); const r=await envoyerEmail({to:"test@exemple.invalid",subject:"Test",html:"Test"});
+  expect(r.incertain).toBe(true); expect(r.erreur).toMatch(/vérifiez avant/);
+});

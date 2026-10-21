@@ -23,6 +23,14 @@ import { emailValide, enteteMarqueHtml, liensMarque, nomMarque } from "./marque-
  */
 const EXPEDITEUR = process.env.RESEND_EXPEDITEUR?.trim() || "Gerimmo <no-reply@gerimmo.app>";
 
+/** Adresse de réponse de la plateforme, distincte de l'expéditeur technique.
+ * Pas de repli vers une boîte non configurée. L'adresse de l'organisation
+ * garde la priorité pour les courriers envoyés au nom d'un gestionnaire. */
+export function adresseReponsePlateforme(env: Record<string, string | undefined> = process.env): string | null {
+  const adresse = env.RESEND_REPONDRE_A?.trim();
+  return adresse && emailValide(adresse) && !/[\r\n]/.test(adresse) ? adresse : null;
+}
+
 /**
  * Le délai maximal d'un appel au service d'e-mail (décision D47, fiche IA-05).
  *
@@ -79,18 +87,20 @@ export async function envoyerEmail(params: {
   delaiMaxMs?: number;
   avantEnvoi?: () => Promise<void>;
   organisation?: { db: SupabaseClient; id: string };
-}): Promise<{ erreur?: string; id?: string; /** Délai dépassé : l'envoi a peut-être eu lieu. */ incertain?: true }> {
+}): Promise<{ erreur?: string; id?: string; /** Délai dépassé ou connexion interrompue : l'envoi a peut-être eu lieu. */ incertain?: true }> {
   const cle = process.env.RESEND_API_KEY;
   if (!cle) return { erreur: "Envoi des e-mails non configuré. Contactez l’administrateur." };
+  let appelCommence = false;
   try {
     const marque = params.organisation ? await chargerMarque(params.organisation.db, params.organisation.id) : null;
     // Verification fields are server-controlled in the database, never accepted from a form.
     const adresseVerifiee = marque?.email_expediteur_verifie_le && marque.email_expediteur && emailValide(marque.email_expediteur) ? marque.email_expediteur : null;
     const nom = marque ? nomMarque(marque).replace(/[<>"\r\n]/g, "").trim() : null;
     const expediteur = adresseVerifiee ? `${nom} <${adresseVerifiee}>` : nom ? EXPEDITEUR.replace(/^[^<]+(?=\s*<)/, nom + " ") : EXPEDITEUR;
-    const repondreA = marque?.email_contact && emailValide(marque.email_contact) ? marque.email_contact : null;
+    const repondreA = marque?.email_contact && emailValide(marque.email_contact) ? marque.email_contact : adresseReponsePlateforme();
     const html = marque ? `${enteteMarqueHtml(marque)}${liensMarque(params.html, marque, adresseDuSite())}` : params.html;
     await params.avantEnvoi?.();
+    appelCommence = true;
     const reponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       // Posé ici, après le contrôle d'arrêt : le délai ne couvre que l'appel au service.
@@ -128,6 +138,7 @@ export async function envoyerEmail(params: {
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
     if (delaiDepasse(e)) return { erreur: ERREUR_DELAI, incertain: true };
+    if (appelCommence) return { erreur: "La connexion au service d’e-mail a été interrompue. L’envoi n’est pas confirmé et a peut-être eu lieu : vérifiez avant de le renvoyer.", incertain: true };
     return { erreur: "L’e-mail n’a pas pu partir car le service est momentanément indisponible. Réessayez dans un instant." };
   }
 }

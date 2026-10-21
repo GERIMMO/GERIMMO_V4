@@ -11,7 +11,7 @@ export const metadata = metadonneesPubliques({
   chemin: "/confidentialite",
 });
 
-// Description des traitements et durées réellement configurés, revue le 20/10/2026.
+// Description des traitements et durées réellement configurés, revue le 21/10/2026.
 export default async function PageConfidentialite() {
   const {editeur:EDITEUR,indisponible}=await lireEditeur();
   // 29/09 : les droits ne s'exercent plus par le formulaire de devis de
@@ -31,7 +31,7 @@ export default async function PageConfidentialite() {
       incomplet={indisponible || confidentialiteIncomplete(EDITEUR) || prestatairesIncomplets(prestataires)}
       courriel={contact}
     >
-      <p className="text-xs text-muted-foreground">Dernière mise à jour : 20 octobre 2026.</p>
+      <p className="text-xs text-muted-foreground">Dernière mise à jour : 21 octobre 2026.</p>
       <Article titre="Votre interlocuteur">
         <p>
           Gerimmo est un service édité par <Fait valeur={EDITEUR.denomination} quoi="nom de l’éditeur" />,
@@ -455,10 +455,10 @@ export default async function PageConfidentialite() {
           depuis la messagerie de votre espace. Pour votre compte, la
           facturation, l&apos;annuaire des artisans ou une demande envoyée
           depuis le site, à Gerimmo : si vous avez un compte, depuis la page{" "}
-          <Link href="/assistance" className="lien-texte">
-            « Aide et retours »
+          <Link href="/compte/donnees" className="lien-texte">
+            « Mes données personnelles »
           </Link>{" "}
-          de votre espace, en précisant « données personnelles » ; dans tous
+          de votre compte, où votre demande et nos réponses restent privées ; dans tous
           les cas, à l&apos;adresse{" "}
           {contact ? (
             <a href={`mailto:${contact}?subject=${encodeURIComponent("Données personnelles")}`} className="lien-texte">

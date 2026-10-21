@@ -22,7 +22,7 @@ export default async function PageDonneesAdmin({ searchParams }: { searchParams:
     .like("titre", PREFIXE_DEMANDE_DONNEES + "%").order("cree_le", { ascending: true });
   q = terminees ? q.eq("etat", "resolu") : q.in("etat", ["nouveau", "en_examen", "en_cours"]);
   const r = await q.range((page-1)*20, page*20-1);
-  const demandes = (r.data ?? []) as RetourUtilisateur[];
+  const demandes = (r.data ?? []) as (RetourUtilisateur & { auteur_id: string })[];
   const ids = demandes.map(d => d.id);
   const historique = ids.length ? await db.from("retours_historique").select("id,retour_id,message,cree_le").in("retour_id", ids).order("cree_le", { ascending: true }) : { data: [], error: null };
   const aujourdHui = new Intl.DateTimeFormat("en-CA", {timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
@@ -36,6 +36,7 @@ export default async function PageDonneesAdmin({ searchParams }: { searchParams:
       {demandes.map(d=>{const limite=echeanceDemandeDonnees(d.cree_le);const retard=!terminees&&!d.reponse&&limite&&limite<aujourdHui;return <article key={d.id} className="loc-carte space-y-3">
         <div className="flex flex-wrap justify-between gap-2"><h2>{d.titre.replace(PREFIXE_DEMANDE_DONNEES,"")}</h2><span className="puce">{ETATS_RETOUR[d.etat]}</span></div>
         <p className={retard?"text-sm text-destructive":"text-sm text-muted-foreground"}>Réf. {d.id.slice(0,8).toUpperCase()} · Reçue le {formaterDateParis(d.cree_le)} · Première réponse avant le {limite?formaterDateParis(limite):"date à vérifier"}{retard?" — échéance initiale dépassée":""}</p>
+        <Link className="lien-discret text-sm" href={`/admin/comptes/${d.auteur_id}`}>Ouvrir le compte demandeur →</Link>
         <p className="whitespace-pre-wrap">{d.description}</p>{d.reponse&&<p className="rounded-lg bg-[var(--creme)] p-3 whitespace-pre-wrap"><strong>Dernière réponse</strong><br/>{d.reponse}</p>}
         <details className="text-sm"><summary className="cursor-pointer">Historique de la demande</summary>{historique.error ? <p role="alert">Historique indisponible.</p> : <ol className="mt-2 space-y-2">{(historique.data ?? []).filter(h => h.retour_id === d.id).map(h => <li key={h.id}><time>{formaterDateParis(h.cree_le)}</time><p className="whitespace-pre-wrap">{h.message}</p></li>)}</ol>}</details>
         <DecisionRetour retour={d} donneesPersonnelles/>

@@ -46,6 +46,16 @@ describe.skipIf(!url)("Retours utilisateurs : droits, traçabilité et idempoten
   const id=await creer();
   for(const [user,visible] of [[collegue,false],[autre,false],[adminA,true],[sa,true],[auteur,true]] as const){await agir(user);expect((await db.query('select id from public.retours_utilisateurs where id=$1',[id])).rows.length).toBe(visible?1:0);}
  });
+ it('garde la demande de données du compte privée, historique compris',async()=>{
+  const cle=randomUUID(); const params=[cle,'question','Données personnelles — Fermer mon compte','Demande fictive de fermeture du compte personnel.',null,'/compte',null];
+  const {rows:[r]}=await db.query(ENVOI,params);
+  expect((await db.query(ENVOI,params)).rows[0].id).toBe(r.id);
+  for(const [user,visible] of [[collegue,false],[adminA,false],[autre,false],[artisan,false],[sa,true],[auteur,true]] as const){
+   await agir(user);
+   expect((await db.query('select id from public.retours_utilisateurs where id=$1',[r.id])).rowCount).toBe(visible?1:0);
+   expect((await db.query('select id from public.retours_historique where retour_id=$1',[r.id])).rowCount).toBe(visible?1:0);
+  }
+ });
  it('réserve les contestations au compte artisan et les cache aux agences',async()=>{
   await refus(ENVOI,[randomUUID(),'contestation','Note contestée','Des faits à réexaminer par la plateforme',null,'/artisan/note',null],/réservée au titulaire/);
   await agir(artisan);const id=await creer('contestation',null);

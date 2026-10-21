@@ -59,6 +59,7 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
   return <main className={shared.page}>
     <header className={shared.header}>
       <div><p className={shared.eyebrow}>À L’ÉCOUTE DES UTILISATEURS</p><TitreEcran rubrique="messages">Assistance clients</TitreEcran><p className={shared.subtitle}>Comprenez la demande, apportez une réponse et gardez le fil jusqu’à sa résolution.</p></div>
+      <Link href="/admin/donnees" className="btn-secondaire">Données personnelles</Link>
       <Link href="/admin/retours?nature=idee" className="btn-or"><Lightbulb size={16} aria-hidden="true" />Revue des idées</Link>
     </header>
     <div className={shared.stats} data-columns="3" aria-label="Résumé des demandes">

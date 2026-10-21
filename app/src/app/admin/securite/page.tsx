@@ -6,6 +6,7 @@ import { ShieldCheck, UsersRound, BookOpenCheck, History, ArrowRight, DatabaseBa
 export const metadata = { title: "Sécurité et conformité" };
 
 const acces = [
+  { titre: "Demandes sur les données", detail: "Accès, rectification, effacement et fermeture de compte : suivre les demandes privées et leur échéance.", href: "/admin/donnees", action: "Traiter les demandes", icone: ShieldCheck },
   { titre: "Sécurité de votre compte", detail: "Mot de passe et double authentification de votre compte de supervision.", href: "/compte", action: "Ouvrir la sécurité du compte", icone: ShieldCheck },
   { titre: "Accès de remplacement", detail: "Désigner un relais, vérifier la durée de son accès et le révoquer.", href: "/admin/relais#continuite", action: "Gérer les accès de relais", icone: UsersRound },
   { titre: "Veille réglementaire", detail: "Examiner les informations collectées et les conséquences proposées avant diffusion.", href: "/admin/veille", action: "Consulter la veille", icone: BookOpenCheck },

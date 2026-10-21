@@ -3,7 +3,7 @@ type: process
 tags: [agences, liste-attente, site-vitrine, console, rgpd, lancement, prospects]
 status: draft
 created: 2026-10-20
-updated: 2026-10-20
+updated: 2026-10-21
 sources: ["[[Audit final avant publication — 19 octobre 2026]]", "[[Registre des traitements]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
 ---
 
@@ -16,9 +16,9 @@ envoyé, et c'est le dirigeant qui la recontacte lui-même depuis la console.
 > [!info] État au 20/10/2026 au soir : déployé en production (PR #227, fusion `4ba53f5`, migration `20261020120000` appliquée à 21 h 48 UTC, déploiement Vercel `dpl_FSd8B1L4vbodoQkXpAPUdMZ9BWpR`, recette 39508957256)
 > Cette page décrit la fonctionnalité **telle que le contrat commun du 20/10 la définit**
 > (quatre lots : table, action serveur, console, site) et telle qu'elle est préparée dans
-> le dépôt. Rien de ce qui suit n'est en production à cette date : le déploiement suivra
-> le protocole habituel (sauvegarde, simulation, application des migrations, fusion,
-> recette — [[Recette de production]]). Les points qui relèvent du droit sont signalés
+> le dépôt. Elle a été déployée le 20/10 au soir par le protocole habituel (sauvegarde
+> 39501178106, simulation 39501366981, application 39503252285, fusion `4ba53f5`, recette
+> 39508957256 — [[Recette de production]]). Les points qui relèvent du droit sont signalés
 > « à relire par le juriste » ; aucun n'est tranché ici.
 
 ## Contexte
@@ -199,8 +199,9 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
   sa demande » depuis la console (statut `retiree`) ; l'effacement physique de la ligne
   n'est possible qu'avec la clé de service (aucun écran). Le délai et la forme de la
   réponse à la personne relèvent de [[RGPD]] — à relire par le juriste.
-- **Avant le déploiement** : décider la base légale et la durée de conservation (P11), et
-  relire le paragraphe de `/confidentialite`.
+- **Après le déploiement (fait le 20/10)** : la base légale et la durée de conservation (P11)
+  restent à décider ; la table est en ligne sans règle `retention_rules` ; le paragraphe de
+  `/confidentialite` reste à relire par le juriste.
 
 ## Entrées / sorties
 - **Entrées :** le formulaire `/agences` (sept champs et le pot de miel).
@@ -220,8 +221,9 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
 - Personas : [[Administrateur d'agence]], [[Agent immobilier]], [[Super Admin]].
 - Règles : [[Registre des traitements]] (P10, P11), [[RGPD]], [[Grille tarifaire]] (barème
   agences du 28/09, non annoncé sur `/agences`).
-- Synthèses : [[Calendrier de lancement — 30 novembre 2026]] (livraison du lot visée le
-  23/10 ; § 5 : l'ouverture de l'offre agences est hors de la sortie du 30/11),
+- Synthèses : [[Calendrier de lancement — 30 novembre 2026]] (livraison du lot faite le
+  20/10, visée le 23/10 ; § 5 : l'ouverture de l'offre agences est hors de la sortie du 30/11),
+  [[Point d'étape — 21 octobre 2026]],
   [[Prêt à démarcher]], [[Audit final avant publication — 19 octobre 2026]] (M2),
   [[Suites de l'audit — 20 octobre 2026]],
   [[Cartographie vérifiable de Gerimmo (pages, actions, base, stockage, authentification, intégrations, rôles)]]

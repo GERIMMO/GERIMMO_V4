@@ -3,11 +3,14 @@ type: synthesis
 tags: [demarchage, lancement, production, v1, pilotage, promesses]
 status: draft
 created: 2026-10-16
-updated: 2026-10-20
+updated: 2026-10-21
 sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Audit d'acquisition du 3 octobre 2026]]", "[[Expansion territoriale autonome]]", "[[Parrainage]]", "[[Choisir son locataire selon les conditions des assurances loyers impayés]]", "[[Recette de production]]", "[[Relais du dirigeant]]", "[[Le jour de référence est le jour de Paris]]"]
 ---
 
 # Prêt à démarcher
+
+> [!info] Point du 21 octobre — identité de l'éditeur et pages légales
+> La PR #226 (Codex, 20/10, `efcee5e`) a adapté les mentions légales à l'entrepreneur individuel (immatriculation RNE/RCS, franchise de TVA) et précisé la confidentialité ; d'après son corps, les coordonnées publiques confirmées par le dirigeant sont enregistrées par l'écran des paramètres. **Reste** : l'adhésion à un médiateur de la consommation et sa saisie, puis la relecture des trois pages en ligne. Les § 1.2 et § 5 ci-dessous, qui disent l'identité « non fournie », datent d'avant cette PR. Vue d'ensemble : [[Point d'étape — 21 octobre 2026]].
 
 > [!info] Point du 20 octobre — liste d'attente des agences et échéance de sortie
 > **20/10** : liste d'attente des agences — lot préparé (site `/agences`, table `liste_attente_agences`, console `/admin/liste-attente`), **déployé le 20/10 au soir** (PR #227, fusion `4ba53f5`, recette 39508957256 ; [[Liste d'attente des agences]]) ; échéance de sortie officielle visée par le dirigeant : **30 novembre 2026** (premier client particulier le 30/11 au soir). L'offre aux agences reste hors du site public (§ 5) ; la liste d'attente n'annonce ni prix ni date.

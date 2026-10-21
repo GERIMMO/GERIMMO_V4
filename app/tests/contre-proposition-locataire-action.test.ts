@@ -6,7 +6,7 @@
  * L'action reste un succès pour le locataire, mais n'envoie pas un second e-mail « le locataire
  * propose d'autres créneaux ».
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const m = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -23,11 +23,8 @@ vi.mock("@/lib/notifications", () => ({
 }));
 
 import { proposerMesCreneaux } from "@/app/actions/incidents-locataire";
+import { dansNJours, HORLOGES_CRENEAUX } from "./fixtures/jours-creneaux-paris";
 
-/** Une date à venir à l'heure de Paris, comme l'action la contrôle. */
-function dansNJours(n: number) {
-  return new Date(Date.now() + n * 86_400_000).toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
-}
 function saisie() {
   const f = new FormData();
   [3, 4, 5].forEach((n, i) => {
@@ -37,19 +34,29 @@ function saisie() {
   return f;
 }
 
-describe("proposerMesCreneaux — notification de l'artisan", () => {
+describe.each(HORLOGES_CRENEAUX)("proposerMesCreneaux — $nom", ({ instant, jours, heuresUtc }) => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(instant));
     m.verifier.mockResolvedValue({ supabase: { rpc: m.rpc }, user: { id: "locataire-test" } });
     m.notifierEnCoulisses.mockResolvedValue(undefined);
   });
 
+  afterEach(() => vi.useRealTimers());
+
   it("un premier envoi enregistre trois créneaux et prévient l'artisan", async () => {
     m.rpc.mockResolvedValue({ data: 3, error: null });
-    const retour = await proposerMesCreneaux("org-test", "intervention-test", {}, saisie());
+    const formulaire = saisie();
+    expect([0, 1, 2].map(i => formulaire.get(`date-${i}`))).toEqual(jours);
+    const retour = await proposerMesCreneaux("org-test", "intervention-test", {}, formulaire);
     expect(retour.succes).toContain("transmises à l'artisan");
     expect(m.rpc).toHaveBeenCalledOnce();
     expect(m.rpc.mock.calls[0][0]).toBe("contre_proposer_creneaux");
+    expect(m.rpc.mock.calls[0][1].p_creneaux).toEqual(jours.map((jour, i) => ({
+      debut: `${jour}T0${heuresUtc[i]}:00:00.000Z`,
+      fin: `${jour}T${heuresUtc[i] + 4}:00:00.000Z`,
+    })));
     expect(m.notifierEnCoulisses).toHaveBeenCalledOnce();
   });
 
@@ -70,7 +77,8 @@ describe("proposerMesCreneaux — notification de l'artisan", () => {
   it("un refus de la base ne prévient personne", async () => {
     m.rpc.mockResolvedValue({ data: null, error: { message: "Cette mission n'attend pas de contre-proposition" } });
     const retour = await proposerMesCreneaux("org-test", "intervention-test", {}, saisie());
-    expect(retour.erreur).toBeTruthy();
+    expect(m.rpc).toHaveBeenCalledOnce();
+    expect(retour.erreur).toContain("Cette mission n'attend pas de contre-proposition");
     expect(m.notifierEnCoulisses).not.toHaveBeenCalled();
   });
 });

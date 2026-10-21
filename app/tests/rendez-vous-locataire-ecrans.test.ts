@@ -12,7 +12,8 @@
  *    l'annulation ; un refus de la base ne prévient personne ; un succès prévient en coulisses.
  */
 import { readFileSync } from "node:fs";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { dansNJours, HORLOGES_CRENEAUX } from "./fixtures/jours-creneaux-paris";
 
 const m = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -161,10 +162,7 @@ describe("les courriers", () => {
   });
 });
 
-describe("les actions du locataire", () => {
-  function dansNJours(n: number) {
-    return new Date(Date.now() + n * 86_400_000).toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
-  }
+describe.each(HORLOGES_CRENEAUX)("les actions du locataire — $nom", ({ instant, jours, heuresUtc }) => {
   function report(sans: string[] = []) {
     const f = new FormData();
     f.set("cle_envoi", CLE);
@@ -176,18 +174,27 @@ describe("les actions du locataire", () => {
   }
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(instant));
     m.verifier.mockResolvedValue({ supabase: { rpc: m.rpc }, user: { id: "locataire-test" } });
     m.notifierEnCoulisses.mockResolvedValue(undefined);
   });
 
+  afterEach(() => vi.useRealTimers());
+
   it("report : la fonction de base reçoit le motif, la précision, trois dates et la clé ; l'artisan est prévenu", async () => {
     m.rpc.mockResolvedValue({ data: "demande-1", error: null });
-    const r = await demanderReportRdv("org-1", "iv-1", {}, report());
+    const formulaire = report();
+    expect([0, 1, 2].map(i => formulaire.get(`date-${i}`))).toEqual(jours);
+    const r = await demanderReportRdv("org-1", "iv-1", {}, formulaire);
     expect(r.succes).toMatch(/reste valable/);
     const [nom, args] = m.rpc.mock.calls[0];
     expect(nom).toBe("demander_report_rdv");
     expect(args).toMatchObject({ p_org: "org-1", p_intervention: "iv-1", p_motif_code: "travail", p_motif_texte: "Réunion imprévue", p_cle: CLE });
-    expect(args.p_creneaux).toHaveLength(3);
+    expect(args.p_creneaux).toEqual(jours.map((jour, i) => ({
+      debut: `${jour}T0${heuresUtc[i]}:00:00.000Z`,
+      fin: `${jour}T${heuresUtc[i] + 4}:00:00.000Z`,
+    })));
     expect(m.notifierEnCoulisses).toHaveBeenCalledOnce();
     expect(m.notifierEnCoulisses.mock.calls[0][1]).toMatchObject({ evenement: "rdv_report_demande", objet: "demande-1" });
   });

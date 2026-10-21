@@ -19,7 +19,7 @@ vi.mock("@/app/artisan/acces", () => ({
   verifierArtisanMutation: async () => ({ supabase: { rpc: sim.rpc, storage: {} }, fiche: { artisan_id: "a1" } }),
 }));
 vi.mock("@/lib/artisan-prive", () => ({
-  activationArtisanLocale: () => true,
+  activationModuleArtisan: () => true,
   chargerActivitePrivee: async () => ({ data: sim.activite }),
 }));
 vi.mock("@/lib/documents/rendu", () => ({ rendrePdf: sim.rendrePdf }));

@@ -124,7 +124,7 @@ describe.skipIf(!actif)("liste d'attente des agences — l'inscription de bout e
 
   it("6. la porte directe est aussi fermée à un compte connecté, qui ne lit pas la liste non plus", async () => {
     const connecte = clePublique();
-    const session = await connecte.auth.signInWithPassword({ email: "admin.alpha@gerimmo-demo.fr", password: "Gerimmo-Demo-2026" });
+    const session = await connecte.auth.signInWithPassword({ email: "admin.alpha@example.com", password: "Gerimmo-Demo-2026" });
     expect(session.error).toBeNull();
     const direct = await connecte.from("liste_attente_agences").insert({ agence: "Compte", contact: "Compte", email: `compte${DOMAINE}`, code_postal: "75001", nb_lots: "moins_de_50" });
     expect(direct.error).not.toBeNull();

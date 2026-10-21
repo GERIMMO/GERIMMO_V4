@@ -36,18 +36,18 @@ begin
 
   for r in
     select * from (values
-      ('superadmin@gerimmo-demo.fr'),
-      ('admin.alpha@gerimmo-demo.fr'),
-      ('agent.alpha@gerimmo-demo.fr'),
-      ('admin.beta@gerimmo-demo.fr'),
-      ('multi@gerimmo-demo.fr'),
-      ('locataire.alpha@gerimmo-demo.fr'),
-      ('proprietaire@gerimmo-demo.fr'),
+      ('superadmin@example.com'),
+      ('admin.alpha@example.com'),
+      ('agent.alpha@example.com'),
+      ('admin.beta@example.com'),
+      ('multi@example.com'),
+      ('locataire.alpha@example.com'),
+      ('proprietaire@example.com'),
       -- Artisan de démo (module 8). Il n'a PAS d'adhésion posée ici : elle est
       -- créée par `solliciter_artisan` au moment où une agence le sollicite —
       -- c'est ainsi que le portail artisan apparaît dans « Mes espaces », et
       -- ainsi que l'artisan n'existe pour une agence qu'après un vrai geste.
-      ('artisan.alpha@gerimmo-demo.fr')
+      ('artisan.alpha@example.com')
     ) as t(email)
   loop
     insert into auth.users (
@@ -63,20 +63,20 @@ begin
     );
   end loop;
 
-  select id into v_uid from public.accounts where email = 'superadmin@gerimmo-demo.fr';
+  select id into v_uid from public.accounts where email = 'superadmin@example.com';
   insert into public.memberships (account_id, organization_id, role) values (v_uid, null, 'super_admin');
 
-  select id into v_uid from public.accounts where email = 'admin.alpha@gerimmo-demo.fr';
+  select id into v_uid from public.accounts where email = 'admin.alpha@example.com';
   insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_alpha, 'admin_agence');
 
-  select id into v_uid from public.accounts where email = 'agent.alpha@gerimmo-demo.fr';
+  select id into v_uid from public.accounts where email = 'agent.alpha@example.com';
   insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_alpha, 'agent');
 
-  select id into v_uid from public.accounts where email = 'admin.beta@gerimmo-demo.fr';
+  select id into v_uid from public.accounts where email = 'admin.beta@example.com';
   insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_beta, 'admin_agence');
 
   -- Double adhésion : fait apparaître le sélecteur d'espaces
-  select id into v_uid from public.accounts where email = 'multi@gerimmo-demo.fr';
+  select id into v_uid from public.accounts where email = 'multi@example.com';
   insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_alpha, 'agent');
   insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_beta, 'admin_agence');
 
@@ -84,16 +84,16 @@ begin
   insert into public.persons (organization_id, nom, prenom) values (v_org_beta, 'Martin', 'Bruno');
 
   -- Locataire de démo (espace LO) : compte + adhésion + fiche rattachée
-  select id into v_uid from public.accounts where email = 'locataire.alpha@gerimmo-demo.fr';
+  select id into v_uid from public.accounts where email = 'locataire.alpha@example.com';
   insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_alpha, 'locataire');
   insert into public.persons (organization_id, account_id, nom, prenom, email)
-  values (v_org_alpha, v_uid, 'Leblanc', 'Julie', 'locataire.alpha@gerimmo-demo.fr');
+  values (v_org_alpha, v_uid, 'Leblanc', 'Julie', 'locataire.alpha@example.com');
 
   -- Propriétaire direct : adhésion + sa propre fiche (elle porte la détention de ses lots)
-  select id into v_uid from public.accounts where email = 'proprietaire@gerimmo-demo.fr';
+  select id into v_uid from public.accounts where email = 'proprietaire@example.com';
   insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_pd, 'proprietaire_direct');
   insert into public.persons (organization_id, account_id, nom, prenom, email)
-  values (v_org_pd, v_uid, 'Moreau', 'Claire', 'proprietaire@gerimmo-demo.fr');
+  values (v_org_pd, v_uid, 'Moreau', 'Claire', 'proprietaire@example.com');
 end $$;
 
 -- Jeu de démo du propriétaire direct (ajouté le 06/09, reflet de la prod) :
@@ -144,7 +144,7 @@ begin
   values (v_org_pd, v_bien, 'Studio du Rhône', 'brouillon');
 
   insert into public.persons (organization_id, nom, prenom, email, telephone)
-  values (v_org_pd, 'Bernard', 'Lucas', 'locataire.pd@gerimmo-demo.fr', '06 12 34 56 78')
+  values (v_org_pd, 'Bernard', 'Lucas', 'locataire.pd@example.com', '06 12 34 56 78')
   returning id into v_person;
 
   insert into auth.users (
@@ -154,11 +154,11 @@ begin
     email_change, email_change_token_new, email_change_token_current
   ) values (
     '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
-    'locataire.pd@gerimmo-demo.fr', extensions.crypt('Gerimmo-Demo-2026', extensions.gen_salt('bf')),
+    'locataire.pd@example.com', extensions.crypt('Gerimmo-Demo-2026', extensions.gen_salt('bf')),
     now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
     now(), now(), '', '', '', '', ''
   );
-  select id into v_uid from public.accounts where email = 'locataire.pd@gerimmo-demo.fr';
+  select id into v_uid from public.accounts where email = 'locataire.pd@example.com';
   update public.persons set account_id = v_uid where id = v_person;
   insert into public.memberships (account_id, organization_id, role, status)
   values (v_uid, v_org_pd, 'locataire', 'active');

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {notFound} from "next/navigation";
 import {verifierAccesArtisan,chargerAgenda} from "../../acces";
-import {activationArtisanLocale,chargerActivitePrivee} from "@/lib/artisan-prive";
+import {activationModuleArtisan,chargerActivitePrivee} from "@/lib/artisan-prive";
 import {exclusionLue} from "@/lib/artisan-prive-exclusion";
 import {LIBELLE_CONFIRMER_ANNULATION,MESSAGE_REGLEMENTS_A_ANNULER,avoirDeLaFacture} from "@/lib/artisan-prive-avoir";
 import {euros,jourCourt} from "../../libelles";
@@ -16,7 +16,7 @@ export const metadata={title:"Fiche du chantier"};
 export default async function Page({params}:{params:Promise<{chantierId:string}>}){
  await verifierAccesArtisan();const {data,erreur}=await chargerActivitePrivee();if(!data)return <Erreur>{erreur}</Erreur>;
  const {chantierId}=await params;const h=data.chantiers.find(x=>x.id===chantierId);if(!h)notFound();const client=data.clients.find(x=>x.id===h.client_id)!;
- const devis=data.devis.filter(x=>x.chantier_id===h.id);const d=devis[0];const rdv=data.rendez_vous.filter(x=>x.chantier_id===h.id);const courant=rdv.find(x=>x.statut==="retenu");const avoirs=data.avoirs??[];const facturesChantier=data.factures.filter(x=>x.origine==="externe"&&x.chantier_id===h.id);const estAnnulee=(x:typeof facturesChantier[number])=>!!x.annulee_le||!!avoirDeLaFacture(x.id,avoirs);const facture=facturesChantier.find(x=>!estAnnulee(x));const annulees=facturesChantier.filter(estAnnulee).map(f=>({f,avoir:avoirDeLaFacture(f.id,avoirs)})).sort((x,y)=>(x.avoir?.rang??0)-(y.avoir?.rang??0));const derniereAnnulee=annulees.at(-1);const reglementsActifs=facture?data.reglements.filter(r=>r.facture_externe_id===facture.id&&!r.annule_le).length:0;const exclusion=exclusionLue(data.activation.exclusion);const active=activationArtisanLocale("clients")&&data.activation.clients&&!exclusion;
+ const devis=data.devis.filter(x=>x.chantier_id===h.id);const d=devis[0];const rdv=data.rendez_vous.filter(x=>x.chantier_id===h.id);const courant=rdv.find(x=>x.statut==="retenu");const avoirs=data.avoirs??[];const facturesChantier=data.factures.filter(x=>x.origine==="externe"&&x.chantier_id===h.id);const estAnnulee=(x:typeof facturesChantier[number])=>!!x.annulee_le||!!avoirDeLaFacture(x.id,avoirs);const facture=facturesChantier.find(x=>!estAnnulee(x));const annulees=facturesChantier.filter(estAnnulee).map(f=>({f,avoir:avoirDeLaFacture(f.id,avoirs)})).sort((x,y)=>(x.avoir?.rang??0)-(y.avoir?.rang??0));const derniereAnnulee=annulees.at(-1);const reglementsActifs=facture?data.reglements.filter(r=>r.facture_externe_id===facture.id&&!r.annule_le).length:0;const exclusion=exclusionLue(data.activation.exclusion);const active=activationModuleArtisan("clients")&&data.activation.clients&&!exclusion;
  const commun={id:h.id,revision:h.revision,desactive:!active};const devisAccepte=devis.find(x=>x.statut==="accepte");
  // Les dates du jour sont celles de Paris : entre minuit et 2 h l'été, toISOString() rendait la veille et le serveur refusait « aujourd'hui » (ARC-10).
  const aujourdHui=aujourdhuiParis();const validite=decalerJour(aujourdHui,30);const agenda=await chargerAgenda();

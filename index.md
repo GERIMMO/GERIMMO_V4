@@ -3,6 +3,7 @@
 Catalogue de tout le wiki : lien + accroche courte. Mis à jour à chaque ingest.
 Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 
+- [[Préparation fonctionnelle — 21 octobre 2026]] — ouverture fonctionnelle demandée, agences conservées en liste d’attente ; PR230 et CI main vérifiées ; export, relais, Santé et jeux locaux préparés et testés ; activation externe encore à vérifier.
 - [[Mission du 16 octobre — suivi vérifié]] — publication du 17 octobre, sauvegarde et huit migrations vérifiées, nettoyage des 31 fichiers fictifs ; recette n°24 réussie (49 scénarios) ; cinq comptes fixes conservés, PR201 publiée.
 - [[Cohérence des loyers de référence]] — contrôle indicatif à la saisie du bail, surface habitable et complément, sans modification automatique des montants.
 

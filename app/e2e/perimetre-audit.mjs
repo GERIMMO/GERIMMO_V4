@@ -97,18 +97,18 @@ export const RACINE_PROPRE = {
 /** audit-production : les profils explorés, avec leur compte de démonstration et leurs pages de départ. */
 export const PERSONAS = [
   { nom: "public", departs: ["/", "/connexion", "/inscription", "/journal", "/conditions", "/confidentialite", "/tarifs", "/agences", "/outils", "/outils/calcul-irl", "/outils/quittance-de-loyer", "/outils/comparateur-gli-visale", "/outils/simulateur-lmnp", "/outils/rentabilite-locative", "/mentions-legales", "/mot-de-passe-oublie"] },
-  { nom: "agent", email: "agent.alpha@gerimmo-demo.fr", departs: ["/espaces"], racines: RACINES.agent },
-  { nom: "admin", email: "admin.alpha@gerimmo-demo.fr", departs: ["/espaces"], racines: RACINES.admin },
-  { nom: "locataire", email: "locataire.alpha@gerimmo-demo.fr", departs: ["/espaces"], racines: RACINES.locataire },
-  { nom: "proprietaire", email: "proprietaire@gerimmo-demo.fr", departs: ["/espaces"], racines: RACINES.proprietaire },
-  { nom: "artisan", email: "artisan.alpha@gerimmo-demo.fr", departs: ["/espaces", "/artisan"], racines: RACINES.artisan },
+  { nom: "agent", email: "agent.alpha@example.com", departs: ["/espaces"], racines: RACINES.agent },
+  { nom: "admin", email: "admin.alpha@example.com", departs: ["/espaces"], racines: RACINES.admin },
+  { nom: "locataire", email: "locataire.alpha@example.com", departs: ["/espaces"], racines: RACINES.locataire },
+  { nom: "proprietaire", email: "proprietaire@example.com", departs: ["/espaces"], racines: RACINES.proprietaire },
+  { nom: "artisan", email: "artisan.alpha@example.com", departs: ["/espaces", "/artisan"], racines: RACINES.artisan },
 ];
 
 /** audit-lecture-live : [profil, e-mail de démonstration, racine que l'exploration peut suivre]. */
 export const COMPTES_LECTURE = [
-  ["agent", "agent.alpha@gerimmo-demo.fr", "/agence/"],
-  ["admin-agence", "admin.alpha@gerimmo-demo.fr", "/agence/"],
-  ["locataire", "locataire.alpha@gerimmo-demo.fr", "/locataire/"],
-  ["artisan", "artisan.alpha@gerimmo-demo.fr", "/artisan"],
-  ["proprietaire", "proprietaire@gerimmo-demo.fr", "/espace/"],
+  ["agent", "agent.alpha@example.com", "/agence/"],
+  ["admin-agence", "admin.alpha@example.com", "/agence/"],
+  ["locataire", "locataire.alpha@example.com", "/locataire/"],
+  ["artisan", "artisan.alpha@example.com", "/artisan"],
+  ["proprietaire", "proprietaire@example.com", "/espace/"],
 ];

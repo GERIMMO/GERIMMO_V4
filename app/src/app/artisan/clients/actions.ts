@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { verifierArtisanMutation } from "@/app/artisan/acces";
-import { activationArtisanLocale, chargerActivitePrivee } from "@/lib/artisan-prive";
+import { activationModuleArtisan, chargerActivitePrivee } from "@/lib/artisan-prive";
 import { detecterMimeReel, pdfComplet, EXTENSIONS } from "@/lib/file-type";
 import { calculerDevis, montantEnCentimes } from "@/lib/devis-structure";
 import { assemblerDevisArtisan } from "@/lib/documents/devis-artisan";
@@ -28,7 +28,7 @@ async function piecePrivee(supabase:SupabaseClient,artisan:string,fichier:File,c
 export async function enregistrerActivitePrivee(form:FormData):Promise<ResultatPrive> {
   try {
     const action=String(form.get("action")??"");const reglement=["reglement","annuler_reglement"].includes(action);
-    if(!activationArtisanLocale(reglement?"reglements":"clients"))throw Error("La saisie de ce module est désactivée. Les dossiers conservés restent consultables.");
+    if(!activationModuleArtisan(reglement?"reglements":"clients"))throw Error("La saisie de ce module est désactivée. Les dossiers conservés restent consultables.");
     const {supabase,fiche,erreur}=await verifierArtisanMutation();if(!fiche)throw Error(erreur??"Connectez-vous avec votre propre compte artisan.");
     // D25-B (ARC-08) : refusé ou sur liste noire, l'artisan n'écrit plus (client, chantier, devis, facture). On le dit AVANT de produire un
     // PDF au gabarit Gerimmo ou de déposer une pièce ; la base refuse de toute façon. Les règlements déclarés restent hors de cette décision.

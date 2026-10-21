@@ -6,7 +6,7 @@ const local = {
   SUPALOCAL_DB: 'postgres://postgres@127.0.0.1:55438/gerimmo_ci_comptes_fixes_api',
   NEXT_PUBLIC_SITE_URL: 'http://localhost:3102', NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54325',
 };
-const email = 'superadmin@gerimmo-demo.fr';
+const email = 'superadmin@example.com';
 describe('Compte fictif de l’aperçu local', () => {
   it('ouvre seulement le compte demandé sur le banc local activé', () => {
     expect(estApercuSuperadminSansMfa(local, email)).toBe(true);
@@ -23,6 +23,6 @@ describe('Compte fictif de l’aperçu local', () => {
   });
   it('ne donne cette exception à aucun autre compte', () => {
     expect(estApercuSuperadminSansMfa(local, 'admin@gerimmo.app')).toBe(false);
-    expect(estApercuSuperadminSansMfa(local, 'proprietaire@gerimmo-demo.fr')).toBe(false);
+    expect(estApercuSuperadminSansMfa(local, 'proprietaire@example.com')).toBe(false);
   });
 });

@@ -83,6 +83,21 @@ test("la console liste l'agence inscrite, la marque contactée et exporte le CSV
     expect(csv).toContain(`;${email};`);
     expect(csv).toContain(";Contactée;");
 
+    // Une inscription retirée ne revient dans l’export qu’après un choix explicite.
+    await db.query("update public.liste_attente_agences set statut = 'retiree' where id = $1", [id]);
+    await page.reload();
+    const inclure = page.getByRole("checkbox", { name: "Inclure les retirées" });
+    await expect(inclure).not.toBeChecked();
+    const courant = await page.request.get("/admin/liste-attente/export");
+    expect(courant.status()).toBe(200);
+    expect(await courant.text()).not.toContain(agence);
+    await inclure.check();
+    const formulaire = page.locator('form[action="/admin/liste-attente/export"]');
+    await expect(formulaire).toHaveAttribute("method", "get");
+    const complet = await page.request.get("/admin/liste-attente/export?inclure_retirees=1");
+    expect(complet.status()).toBe(200);
+    expect(await complet.text()).toContain(agence);
+
     // Sans session (contexte vide) : une redirection vers la connexion ou un 403, jamais le fichier.
     // Un contexte VRAIMENT sans session : `browser.newContext()` seul reprend les options du test (donc la session de
     // supervision) ; l'état vide est explicite, comme dans vitrine.spec.ts.
@@ -101,6 +116,9 @@ test("la console liste l'agence inscrite, la marque contactée et exporte le CSV
 
     expect(await debordementHorizontal(page)).toBe(0);
     await page.screenshot({ path: info.outputPath("console-liste-attente-mobile.png"), fullPage: true });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    expect(await debordementHorizontal(page)).toBe(0);
+    await page.screenshot({ path: info.outputPath("console-liste-attente-bureau.png"), fullPage: true });
   } finally {
     if (id) await db.query("delete from public.liste_attente_agences where id = $1", [id]);
     await db.end();

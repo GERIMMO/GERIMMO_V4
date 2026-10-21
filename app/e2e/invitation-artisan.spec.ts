@@ -82,7 +82,7 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
   const s = await supervision.newPage();
   try {
     // 1. Le propriétaire invite, depuis son carnet.
-    await connecter(p, "proprietaire@gerimmo-demo.fr");
+    await connecter(p, "proprietaire@example.com");
     await p.waitForURL(/\/(espaces|agence|espace)/);
     await p.goto(`/espace/${ORG}/artisans`);
     await p.waitForLoadState("networkidle");
@@ -183,7 +183,7 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await p.screenshot({ path: info.outputPath("4-proprietaire-avant-validation.png"), fullPage: true });
 
     // 6. Le super administrateur valide : la fiche dit d'où vient l'artisan.
-    await connecter(s, "superadmin@gerimmo-demo.fr");
+    await connecter(s, "superadmin@example.com");
     await franchirLeSasMfa(s);
     // Après « Activer et continuer », la redirection vers l'espace peut encore courir : une navigation lancée trop tôt
     // est interrompue par elle (ERR_ABORTED). On attend le calme du réseau, puis on réessaie une fois au besoin.

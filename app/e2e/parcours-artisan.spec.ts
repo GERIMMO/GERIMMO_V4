@@ -19,6 +19,7 @@ const PAGES = [
   ["/artisan/entreprise", "entreprise"],
   ["/artisan/note", "note"],
   ["/artisan/facturation", "facturation"],
+  ["/artisan/clients", "clients externes"],
 ] as const;
 
 test("le portail s'ouvre sans organisation dans l'adresse", async ({ page }) => {
@@ -129,6 +130,35 @@ test("le registre privé se télécharge seulement au clic, depuis la facturatio
     expect(demandesExport.every((url) => url.search === "")).toBe(true);
     expect(new URL(page.url()).pathname).toBe(chemin);
   }
+});
+
+test("un client externe et son devis brouillon restent enregistrés après rechargement", async ({ page }, info) => {
+  const nom = `Client fictif E2E ${Date.now().toString(36)}`;
+  await page.goto("/artisan/clients");
+  await page.getByLabel("Nom ou raison sociale", { exact: true }).fill(nom);
+  await page.getByLabel("Adresse", { exact: true }).fill("Adresse fictive de recette, 75012 Paris");
+  await page.getByRole("button", { name: "Créer le client", exact: true }).click();
+  await page.waitForURL(/\/artisan\/clients\/[a-f\d-]+$/);
+  await expect(page.getByRole("heading", { name: nom, level: 1 })).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Nom", { exact: true })).toHaveValue(nom);
+  await page.getByRole("link", { name: "Créer un chantier et son devis", exact: true }).click();
+  await page.getByLabel("Titre du chantier", { exact: true }).fill("Réparation fictive E2E");
+  await page.getByLabel("Demande du client", { exact: true }).fill("Remplacer un joint pour le scénario de recette.");
+  await page.getByRole("button", { name: "Créer le chantier et préparer le devis", exact: true }).click();
+  await page.waitForURL(/\/artisan\/chantiers\/[a-f\d-]+$/);
+  await page.getByLabel("Libellé", { exact: true }).fill("Remplacement fictif du joint");
+  await page.getByLabel("Prix unitaire HT (€)", { exact: true }).fill("85");
+  await page.getByRole("button", { name: "Enregistrer le brouillon", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Devis — version 1 · Brouillon" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Devis — version 1 · Brouillon" })).toBeVisible();
+  await expect(page.getByText("Total TTC 102,00 €", { exact: true })).toBeVisible();
+  expect(await debordementHorizontal(page)).toBe(0);
+  await page.screenshot({ path: info.outputPath("devis-externe-mobile.png"), fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  expect(await debordementHorizontal(page)).toBe(0);
+  await page.screenshot({ path: info.outputPath("devis-externe-bureau.png"), fullPage: true });
 });
 
 // Audit du 27/09 (bloquant) : « Artisan ? Inscrire mon entreprise » ramenait

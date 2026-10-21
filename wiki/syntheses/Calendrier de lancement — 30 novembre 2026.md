@@ -3,11 +3,15 @@ type: synthesis
 tags: [lancement, calendrier, pilotage, beta, agences, liste-attente]
 status: draft
 created: 2026-10-20
-updated: 2026-10-20
+updated: 2026-10-21
 sources: ["[[Audit final avant publication — 19 octobre 2026]]", "[[Suites de l'audit — 20 octobre 2026]]", "[[Prêt à démarcher]]", "[[Prompt de passation à Codex — état du 16 octobre 2026]]", "[[Registre des traitements]]", "[[Recette de production]]", "[[Grille tarifaire]]", "[[Onboarding et abonnement]]"]
 ---
 
 # Calendrier de lancement — 30 novembre 2026
+
+> [!warning] Orientation du 21 octobre 2026
+> Le dirigeant demande une base entièrement fonctionnelle, puis la finalisation des informations juridiques : les propositions de fermeture préventive ci-dessous sont remplacées par la préparation de l’ouverture des fonctions métier, avec vérification technique et protections normales. Les agences restent uniquement en liste d’attente, conformément à sa clarification. Ce changement d’objectif n’atteste pas l’activation effective des services ni leur validation juridique. Voir [[Préparation fonctionnelle — 21 octobre 2026]].
+
 
 > [!info] Décision du dirigeant du 20 octobre 2026
 > La publicité commence dès maintenant dans son entourage. La **sortie officielle est fixée au lundi 30 novembre 2026** : le premier client particulier doit pouvoir s'inscrire le 30 novembre au soir. Les agences de gestion ne sont pas dans cette sortie : elles s'inscrivent sur une **liste d'attente** depuis le site vitrine ([[Liste d'attente des agences]]), et seront prévenues quand leur offre ouvrira. D'ici là, les tests doivent être terminés.

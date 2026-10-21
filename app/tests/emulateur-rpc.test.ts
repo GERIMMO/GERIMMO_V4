@@ -10,7 +10,7 @@ describe.skipIf(!local)("RPC de l'émulateur — filtres et comptage PostgREST",
   let org: string;
   beforeAll(async () => {
     client = createClient(origine!, "cle-locale", { auth: { persistSession: false } });
-    const { error } = await client.auth.signInWithPassword({ email: "agent.alpha@gerimmo-demo.fr", password: "Gerimmo-Demo-2026" });
+    const { error } = await client.auth.signInWithPassword({ email: "agent.alpha@example.com", password: "Gerimmo-Demo-2026" });
     expect(error).toBeNull();
     const { data, error: erreur } = await client.from("memberships").select("organization_id").eq("role", "agent").eq("account_id", (await client.auth.getUser()).data.user!.id).single();
     expect(erreur).toBeNull();

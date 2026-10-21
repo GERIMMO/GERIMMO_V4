@@ -8,7 +8,7 @@ test.use({ storageState: 'e2e/.auth/artisan.json', actionTimeout: 10000 });
 async function etape(page: Page, n: number) {
   const select = page.getByLabel('Aller à une étape', { exact: true });
   if (await select.isVisible()) await select.selectOption(String(n-1));
-  else await page.getByRole('button', { name: new RegExp(`^Étape ${n} :`) }).click();
+  else await page.getByRole('button', { name: new RegExp(`^Étape ${String(n).padStart(2, '0')} :`) }).click();
 }
 for (const largeur of [390, 1440]) test(`devis : reprise, sauvegarde lente et conflit à ${largeur}px`, async ({ page }, info) => {
   test.setTimeout(90000);

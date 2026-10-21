@@ -5,15 +5,15 @@ import path from "node:path";
 // Ouvre une session par persona via le formulaire de connexion (le vrai flux)
 // et enregistre l'état de session pour les specs. Comptes du seed de démo.
 const COMPTES = [
-  { nom: "agent", email: "agent.alpha@gerimmo-demo.fr" },
-  { nom: "admin", email: "admin.alpha@gerimmo-demo.fr" },
-  { nom: "locataire", email: "locataire.alpha@gerimmo-demo.fr" },
-  { nom: "proprietaire", email: "proprietaire@gerimmo-demo.fr" },
-  { nom: "superadmin", email: "superadmin@gerimmo-demo.fr" },
+  { nom: "agent", email: "agent.alpha@example.com" },
+  { nom: "admin", email: "admin.alpha@example.com" },
+  { nom: "locataire", email: "locataire.alpha@example.com" },
+  { nom: "proprietaire", email: "proprietaire@example.com" },
+  { nom: "superadmin", email: "superadmin@example.com" },
   // L'artisan est le seul persona dont l'adresse ne porte pas d'organisation :
   // son portail les réunit (RM-19.3.3). Il atterrit donc sur /artisan, jamais
   // sur /agence/<id> ni /espace/<id>.
-  { nom: "artisan", email: "artisan.alpha@gerimmo-demo.fr" },
+  { nom: "artisan", email: "artisan.alpha@example.com" },
 ];
 
 const MOT_DE_PASSE = process.env.E2E_MOT_DE_PASSE ?? "Gerimmo-Demo-2026";

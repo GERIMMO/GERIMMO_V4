@@ -51,7 +51,7 @@ Les tests d'intégration SQL profitent aussi de la base locale :
 ## Comptes
 
 Ceux du seed de démo (`supabase/seed.sql`) : `admin.alpha@`, `agent.alpha@`,
-`locataire.alpha@`, `proprietaire@`, `superadmin@` … `@gerimmo-demo.fr`,
+`locataire.alpha@`, `proprietaire@`, `superadmin@` … `@example.com`,
 mot de passe commun du seed. Le dossier E2E (préfixe « E2E ») porte un mandat
 dont **agent.alpha est titulaire** — sans cela, le périmètre « mon
 portefeuille » (migration du 09/09) rend ses écrans invisibles à l'agent.

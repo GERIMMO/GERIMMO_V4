@@ -25,7 +25,7 @@ describe.skipIf(!actif)("Compte rendu — API, RLS, vrai PDF et archivage", () =
     expect(new URL(url!).hostname).toMatch(/^(localhost|127\.0\.0\.1)$/);
     process.env.GERIMMO_CHROME = chrome;
     await sql.connect();
-    const auth = await db.auth.signInWithPassword({ email: "admin.alpha@gerimmo-demo.fr", password: "Gerimmo-Demo-2026" });
+    const auth = await db.auth.signInWithPassword({ email: "admin.alpha@example.com", password: "Gerimmo-Demo-2026" });
     expect(auth.error).toBeNull(); userId = auth.data.user!.id;
     const org = await db.from("memberships").select("organization_id").eq("account_id", userId).eq("role", "admin_agence").limit(1).single();
     expect(org.error).toBeNull(); orgId = org.data!.organization_id;

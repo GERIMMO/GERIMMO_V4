@@ -73,9 +73,13 @@ export default async function PageListeAttenteAgences() {
           {/* Sans attribut `download` : la route pose Content-Disposition: attachment pour le fichier, et son refus (403)
               ou sa panne (503, texte en français) se lisent alors dans l'onglet au lieu d'un téléchargement échoué. */}
           {total > 0 && (
-            <a href="/admin/liste-attente/export" className="btn-secondaire">
-              Exporter en CSV
-            </a>
+            <form action="/admin/liste-attente/export" method="get" className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                <input type="checkbox" name="inclure_retirees" value="1" className="size-4 accent-primary" />
+                Inclure les retirées
+              </label>
+              <button type="submit" className="btn-secondaire">Exporter en CSV</button>
+            </form>
           )}
         </div>
       </div>
@@ -84,7 +88,7 @@ export default async function PageListeAttenteAgences() {
         Les agences de gestion locative qui ont laissé leurs coordonnées sur la page « Agences » du site vitrine, en
         attendant l’ouverture de l’offre qui leur est destinée. Rien ne leur est envoyé automatiquement, ni accusé de
         réception ni relance : à l’ouverture, vous les recontactez vous-même, puis vous notez ici où vous en êtes.
-        L’export CSV est réservé à la supervision et laisse une ligne au journal d’audit.
+        L’export CSV exclut les agences retirées par défaut. Il est réservé à la supervision et laisse une ligne au journal d’audit.
       </p>
 
       {total === 0 ? (

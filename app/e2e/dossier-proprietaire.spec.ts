@@ -7,7 +7,7 @@ const ORG = '3c1d1e95-3570-400b-8012-44530be145b1';
 test.beforeEach(async ({ page }) => {
   await sansSyntheseAlertes(page);
   await page.goto('/connexion');
-  await page.locator('#email').fill('proprietaire@gerimmo-demo.fr');
+  await page.locator('#email').fill('proprietaire@example.com');
   await page.locator('#mot-de-passe').fill(process.env.E2E_MOT_DE_PASSE ?? 'Gerimmo-Demo-2026');
   await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
   await page.waitForURL(/\/(espaces|espace|agence)\//);

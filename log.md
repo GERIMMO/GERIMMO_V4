@@ -6411,3 +6411,20 @@ Décision du dirigeant (message du 20/10) : la publicité commence dans son ento
 ## [2026-10-20] deploy | Liste d'attente des agences : migration `20261020120000` appliquée en production (PR #227), code en cours de fusion
 
 Protocole suivi. Sauvegarde quotidienne à la demande : exécution 39501178106 (21 h 32-21 h 35 UTC, ligne `tech_log` écrite à 21 h 35). Simulation du chantier « Migrations Supabase » sur la branche de la PR : exécution 39501366981 (21 h 34 UTC, 240 lignes jouées puis annulées, bloc de contrôle passé). CI verte sur `e55bd27` : exécution 39501073167 (lint, types, tests, build, 21 h 31-21 h 47). Application réelle : exécution 39503252285 (21 h 48 UTC, COMMIT). Vérification en lecture seule après application : table `liste_attente_agences` présente, 11 contraintes (10 CHECK et la clé primaire), 3 index, 2 politiques (`_select_sa`, `_update_sa`), 2 déclencheurs (`liste_attente_agences_limiter`, `diagnostic_artisan_lecture`), RLS active, `anon` sans aucun droit, `authenticated` lecture et mise à jour de `statut` seulement, `service_role` insertion, fonction de plafond fermée à `anon`, 400 versions enregistrées (dernière `20261020120000`), 0 ligne. Batterie locale sur l'arbre intégré : 9 209 tests réussis (1 échec préexistant, `fichier-signe-navigateur`, identique sur `main` avec le Chromium du banc), 199 parcours navigateur, audits 768/1440 px verts ; un défaut réel du formulaire corrigé (le choix du nombre de lots se vidait après une erreur). `main` a reçu la PR #226 (identité publique et confidentialité) pendant la CI : fusionnée dans la branche sans conflit, tests des pages légales verts (123). Reste : fusion en squash au SHA exact, Vercel, recette de production ; le site public ne montre `/agences` qu'après la fusion. Jusque-là la table existe, vide, sans porte d'écriture publique.
+
+
+## [2026-10-21] decision | Version de base fonctionnelle, agences maintenues en liste d’attente
+
+Message direct du dirigeant : « il faut rien fermer mais tout ouvrir pour que tout soit fonctionnel. L'objectifs c'est d'avoir une version de base totalement fonctionnel puis je mettrai les infos juridique à la fin ».
+
+Clarification directe : « les agences ont possibilité seulement de s'inscrire sur liste d'attente du site vitrine le temps de tout finir ».
+
+Préparer l’ouverture des fonctions métier propriétaire, locataire, artisan et superadmin ; conserver les protections des comptes, les confirmations des opérations et les cinq comptes d’essai. Les propositions de fermeture préventive sont abandonnées ; cette orientation ne constitue pas une preuve d’activation ni une validation juridique. Voir [[Préparation fonctionnelle — 21 octobre 2026]].
+
+## [2026-10-21] dev | Export, relais des agences, visibilité des signatures et jeux fictifs
+
+PR230 fusionnée en 804a6da5fdf8f74baf63d64224fa633f30451ec1 ; CI main 39606406311 réussie après la CI rouge 39505731602. Recette de production encore en attente, PR229 relue mais non fusionnée dans ce relevé.
+
+Préparation locale : export excluant les retirées par défaut, option explicite tracée ; compteur des agences en attente dans le relais existant, fonction serveur en lecture seule avec retour arrière ; état détaillé des interrupteurs Zoho dans Santé sans identifiants ni secrets ; adresses des jeux locaux déplacées vers un domaine réservé. Migration 20261021133650 appliquée seulement aux bases fictives locales.
+
+Lint, compilation, types réussis ; 9 254 tests réussis, 36 non exécutés selon leurs prérequis ; parcours navigateur de la liste d’attente et préparation des sessions réussis. Quatre dossiers de relecture et décisions préparés hors dépôt, sans envoi. Aucun réglage, compte, paiement ou document de production modifié par ce lot.

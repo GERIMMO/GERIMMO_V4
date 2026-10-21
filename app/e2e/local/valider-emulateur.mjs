@@ -16,7 +16,7 @@ function verifie(nom, cond, detail = "") {
 
 // 1. Connexion par mot de passe (compte du seed)
 const { data: conn, error: errConn } = await sb.auth.signInWithPassword({
-  email: "admin.alpha@gerimmo-demo.fr",
+  email: "admin.alpha@example.com",
   password: "Gerimmo-Demo-2026",
 });
 verifie("connexion admin.alpha", !errConn && !!conn?.session?.access_token, JSON.stringify(errConn));
@@ -24,7 +24,7 @@ if (errConn) process.exit(1);
 
 // 2. getUser
 const { data: u } = await sb.auth.getUser();
-verifie("getUser rend l'email", u?.user?.email === "admin.alpha@gerimmo-demo.fr");
+verifie("getUser rend l'email", u?.user?.email === "admin.alpha@example.com");
 
 // 3. RLS : memberships du compte, embed organizations
 const { data: adhesions, error: e3 } = await sb

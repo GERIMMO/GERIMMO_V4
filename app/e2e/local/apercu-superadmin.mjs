@@ -1,7 +1,7 @@
 /** Exception demandée pour l'aperçu visuel, hors application et hors recette. */
 export function estApercuSuperadminSansMfa(env, email) {
   if (env.NODE_ENV !== 'development' || env.SUPALOCAL_APERCU_SUPERADMIN_SANS_MFA !== '1') return false;
-  if (email !== 'superadmin@gerimmo-demo.fr') return false;
+  if (email !== 'superadmin@example.com') return false;
   try {
     const db = new URL(env.SUPALOCAL_DB);
     const site = new URL(env.NEXT_PUBLIC_SITE_URL);

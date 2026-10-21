@@ -53,6 +53,7 @@ type Reponse = { data?: unknown; error?: { message: string } | null };
 function client(options: { estSuperAdmin?: unknown; lecture?: Reponse; miseAJour?: Reponse; journal?: Reponse; lignes?: Reponse } = {}) {
   const miseAJour = vi.fn();
   const filtres: [string, unknown][] = [];
+  const exclusions: [string, unknown][] = [];
   const journal: Record<string, unknown>[] = [];
   const rpc = vi.fn(async (fn: string, args?: Record<string, unknown>) => {
     if (fn === "is_super_admin") return { data: options.estSuperAdmin ?? true, error: null };
@@ -70,10 +71,14 @@ function client(options: { estSuperAdmin?: unknown; lecture?: Reponse; miseAJour
       filtres.push([colonne, valeur]);
       return q;
     };
+    q.neq = (colonne: string, valeur: unknown) => {
+      exclusions.push([colonne, valeur]);
+      return q;
+    };
     q.maybeSingle = async () => ({ data: options.lecture?.data ?? null, error: options.lecture?.error ?? null });
     // La liste entière (export) : la requête est attendue telle quelle.
     q.then = (ok: (r: unknown) => unknown) =>
-      Promise.resolve({ data: options.lignes?.data ?? [], error: options.lignes?.error ?? null }).then(ok);
+      Promise.resolve({ data: Array.isArray(options.lignes?.data) ? options.lignes.data.filter((ligne) => !exclusions.some(([colonne, valeur]) => ligne[colonne] === valeur)) : [], error: options.lignes?.error ?? null }).then(ok);
     q.update = (champs: unknown) => {
       miseAJour(champs);
       q.then = (ok: (r: unknown) => unknown) =>
@@ -83,7 +88,7 @@ function client(options: { estSuperAdmin?: unknown; lecture?: Reponse; miseAJour
     return q;
   });
   mocks.createClient.mockResolvedValue({ rpc, from });
-  return { miseAJour, filtres, journal, rpc, from };
+  return { miseAJour, filtres, exclusions, journal, rpc, from };
 }
 
 beforeEach(() => vi.resetAllMocks());
@@ -231,7 +236,7 @@ describe("changerStatutAgence", () => {
 describe("GET /admin/liste-attente/export", () => {
   it("refuse sans contenu quiconque n'est pas super-administrateur, sans lire la table ni rien journaliser", async () => {
     const c = client({ estSuperAdmin: false });
-    const r = await exporter();
+    const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"));
     expect(r.status).toBe(403);
     expect(await r.text()).toBe("");
     expect(c.from).not.toHaveBeenCalled();
@@ -239,7 +244,7 @@ describe("GET /admin/liste-attente/export", () => {
   });
   it("sert un CSV UTF-8 avec BOM, en pièce jointe datée, sans cache, et trace l'export", async () => {
     const c = client({ lignes: { data: [LIGNE] } });
-    const r = await exporter();
+    const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"));
     expect(r.status).toBe(200);
     expect(r.headers.get("content-type")).toBe("text/csv; charset=utf-8");
     expect(r.headers.get("content-disposition")).toMatch(/^attachment; filename="liste-attente-agences-\d{4}-\d{2}-\d{2}\.csv"$/);
@@ -250,19 +255,34 @@ describe("GET /admin/liste-attente/export", () => {
     const corps = new TextDecoder().decode(octets);
     expect(corps).toContain("Date d'inscription;Agence;Contact");
     expect(corps).toContain("Agence du Canal");
-    expect(c.journal).toEqual([{ p_action: "liste_attente_exportee", p_organisation: null, p_details: { lignes: 1 } }]);
+    expect(c.journal).toEqual([{ p_action: "liste_attente_exportee", p_organisation: null, p_details: { lignes: 1, inclure_retirees: false } }]);
+  });
+  it.each(["", "?inclure_retirees=0", "?inclure_retirees=true"])("exclut les retirées sans option explicite (%s)", async (query) => {
+    const c = client({ lignes: { data: [LIGNE, { ...LIGNE, agence: "Agence retirée", statut: "retiree" }] } });
+    const r = await exporter(new Request(`https://gerimmo.test/admin/liste-attente/export${query}`));
+    const csv = await r.text();
+    expect(csv).toContain("Agence du Canal");
+    expect(csv).not.toContain("Agence retirée");
+    expect(c.exclusions).toEqual([["statut", "retiree"]]);
+  });
+  it("inclut les retirées seulement sur choix explicite et consigne ce choix", async () => {
+    const c = client({ lignes: { data: [LIGNE, { ...LIGNE, agence: "Agence retirée", statut: "retiree" }] } });
+    const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export?inclure_retirees=1"));
+    expect(await r.text()).toContain("Agence retirée");
+    expect(c.exclusions).toEqual([]);
+    expect(c.journal[0].p_details).toEqual({ lignes: 2, inclure_retirees: true });
   });
   it("sans ligne d'audit, pas de fichier", async () => {
     const silence = vi.spyOn(console, "error").mockImplementation(() => {});
     client({ lignes: { data: [LIGNE] }, journal: { error: { message: "panne" } } });
-    const r = await exporter();
+    const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"));
     expect(r.status).toBe(503);
     expect(await r.text()).not.toContain("Agence du Canal");
     silence.mockRestore();
   });
   it("une lecture en échec ne produit pas un fichier vide qui aurait l'air complet", async () => {
     const c = client({ lignes: { error: { message: "panne" } } });
-    const r = await exporter();
+    const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"));
     expect(r.status).toBe(503);
     expect(r.headers.get("content-type")).toMatch(/^text\/plain/);
     expect(c.journal).toEqual([]);
@@ -284,11 +304,14 @@ describe("la page /admin/liste-attente", () => {
     // Le rang au statut inconnu porte bien la puce et le geste de l'attente.
     expect(html.split("Marquer comme contactée")).toHaveLength(3);
   });
-  it("le lien d'export n'a pas l'attribut download : un 403 ou un 503 en texte se lit dans l'onglet, pas en téléchargement échoué", async () => {
+  it("le formulaire GET exporte sans inclure les retirées par défaut et laisse les erreurs lisibles", async () => {
     client({ lignes: { data: [INSCRIPTION] } });
     const html = await page();
     expect(html).toContain("1 en attente · 1 inscrite<");
-    expect(html).toContain('<a href="/admin/liste-attente/export" class="btn-secondaire">Exporter en CSV</a>');
+    expect(html).toContain('action="/admin/liste-attente/export" method="get"');
+    expect(html).toContain('name="inclure_retirees" value="1"');
+    expect(html).toContain("Inclure les retirées");
+    expect(html).not.toContain('checked=""');
     expect(html).not.toMatch(/\bdownload\b/);
   });
   it("le titre porte l'apostrophe typographique, comme l'onglet ; à vide, ni compteur ni export", async () => {

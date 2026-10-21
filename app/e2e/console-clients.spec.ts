@@ -44,7 +44,7 @@ test("les faits de direction se préparent manuellement avec cinq sources datée
       `select s.id, s.jour::text, s.genere_le::text, s.version_regles, s.sources, s.indisponibles
        from public.brief_direction_snapshots s
        join auth.users u on u.id = s.auteur_reel
-       where u.email = 'superadmin@gerimmo-demo.fr'
+       where u.email = 'superadmin@example.com'
        order by s.genere_le desc, s.id desc limit 1`
     )).rows[0];
     await page.goto("/admin/brief");

@@ -19,7 +19,7 @@ const agence = await un("select id from organizations where type = 'agence' orde
 // Le propriétaire de démonstration d'abord : des organisations laissées par d'autres essais ne doivent pas devenir « son » espace.
 const pd = await un("select id from organizations where type <> 'agence' order by (name = 'Parc de Claire Moreau') desc, created_at limit 1");
 const ORG = agence?.id;
-const artisanPrive = await un("select a.id from artisans a join auth.users u on u.id=a.account_id where u.email='artisan.alpha@gerimmo-demo.fr' limit 1");
+const artisanPrive = await un("select a.id from artisans a join auth.users u on u.id=a.account_id where u.email='artisan.alpha@example.com' limit 1");
 // Préférer le dossier E2E (seed-parcours) : il porte un mandat dont l'agent
 // est titulaire, donc ses écrans profonds sont dans le « portefeuille » de
 // l'agent — un bien sans mandat rendrait un 404 légitime sous ce persona.
@@ -27,7 +27,7 @@ const ids = {
   ORG,
   PROSPECT: "nouveau", // Formulaire sans mutation ; historique peuple dans la recette locale.
   ORG_PD: pd?.id,
-  INVITATION: (await un("select i.id from invitations_locataires i join auth.users u on u.id=i.account_id where u.email='locataire.alpha@gerimmo-demo.fr' order by i.cree_le desc limit 1"))?.id,
+  INVITATION: (await un("select i.id from invitations_locataires i join auth.users u on u.id=i.account_id where u.email='locataire.alpha@example.com' order by i.cree_le desc limit 1"))?.id,
   BIEN: (await un("select id from biens where organization_id = $1 order by (nom like 'E2E%') desc, created_at limit 1", [ORG]))?.id,
   // La fiche du locataire du bail le plus récent : elle est dans le
   // périmètre « personnes » de l'agent (locataires des baux de ses lots)

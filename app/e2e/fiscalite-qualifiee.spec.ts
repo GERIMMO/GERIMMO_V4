@@ -13,7 +13,7 @@ test('fiscalité : qualifier copro, terrain et 230, puis retrouver le même expo
   await db.query("insert into biens(id,organization_id,nom,type,address_line1,postal_code,city) values($1,$2,$3,'immeuble','1 rue TEST','75001','Paris')",[bien,ORG,nom]);
   await db.query("insert into lots(id,organization_id,bien_id,nom,etat) values($1,$2,$3,$4,'disponible')",[lot,ORG,bien,nom]);
   await db.query("insert into ecritures(id,organization_id,lot_id,categorie,sens,montant,date_piece) values($1,$2,$3,'Copropriété TEST','depense',1200,'2026-10-12'),($4,$2,$3,'Achat terrain TEST','depense',1000,'2026-10-12')",[copro,ORG,lot,terrain]);
-  await sansSyntheseAlertes(page);await page.goto('/connexion');await page.locator('#email').fill('proprietaire@gerimmo-demo.fr');await page.locator('#mot-de-passe').fill(process.env.E2E_MOT_DE_PASSE??'Gerimmo-Demo-2026');await page.getByRole('button',{name:'Se connecter',exact:true}).click();await page.waitForURL(/\/(espaces|espace|agence)\//);
+  await sansSyntheseAlertes(page);await page.goto('/connexion');await page.locator('#email').fill('proprietaire@example.com');await page.locator('#mot-de-passe').fill(process.env.E2E_MOT_DE_PASSE??'Gerimmo-Demo-2026');await page.getByRole('button',{name:'Se connecter',exact:true}).click();await page.waitForURL(/\/(espaces|espace|agence)\//);
   await page.goto(`/espace/${ORG}/comptabilite/fiscal?annee=2026&bien=${bien}`);
   await expect(page.getByText('À compléter — les totaux portent uniquement sur les montants confirmés.')).toBeVisible();
   const exercice=page.locator('details').filter({has:page.locator('summary').filter({hasText:nom})});await exercice.locator('summary').click();

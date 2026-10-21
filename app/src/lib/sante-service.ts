@@ -1,3 +1,5 @@
+import { fermetureModeleSignature } from "./signature-interrupteurs";
+import { signatureEnEssai } from "./signature-essai";
 import { REGIME_TVA } from "@/lib/editeur";
 import type { RegimeTva } from "@/lib/tarifs";
 // La santé du service, lue d'un seul écran — la logique, sans écran ni réseau.
@@ -66,6 +68,12 @@ const PRESTATAIRE_PAR_CLE: Record<string, Prestataire> = {
   ZOHO_SIGN_REFRESH_TOKEN: "Zoho Sign",
   ZOHO_SIGN_WEBHOOK_SECRET: "Zoho Sign",
   SIGNATURE_BAIL_PRESTATAIRE: "Zoho Sign",
+  ZOHO_SIGN_BAIL_ACTIF: "Zoho Sign",
+  ZOHO_SIGN_DOCUMENTS_ACTIF: "Zoho Sign",
+  ZOHO_SIGN_DEVIS_ACTIF: "Zoho Sign",
+  ZOHO_SIGN_RELANCES_ACTIVES: "Zoho Sign",
+  ZOHO_SIGN_CAUTIONNEMENT_FERME: "Zoho Sign",
+  SIGNATURE_BAIL_ORGS_ESSAI: "Zoho Sign",
   CRON_SECRET: "Vercel",
   SUPABASE_SERVICE_ROLE_KEY: "Supabase",
   NEXT_PUBLIC_SITE_URL: "Vercel",
@@ -227,7 +235,7 @@ export function etatConfiguration(env: Env, regimeTva: RegimeTva | null = REGIME
     verifications.push({ cle: "SIGNATURE_BAIL_PRESTATAIRE", usage: "Ancien service de signature", etat: "attention",
       detail: "Ancien prestataire retiré : choisissez Zoho avant tout nouvel envoi. Les archives sont conservées." });
   }
-  const zohoDemande = valeur(env,"ZOHO_SIGN_BAIL_ACTIF") === "true";
+  const zohoDemande = env.ZOHO_SIGN_BAIL_ACTIF === "true";
   const zohoCles = ["ZOHO_SIGN_CLIENT_ID","ZOHO_SIGN_CLIENT_SECRET","ZOHO_SIGN_REFRESH_TOKEN","ZOHO_SIGN_WEBHOOK_SECRET"];
   {
     const zohoPret = zohoCles.every(c => Boolean(valeur(env,c))) && valeur(env,"ZOHO_SIGN_ENV") === "production";
@@ -235,6 +243,33 @@ export function etatConfiguration(env: Env, regimeTva: RegimeTva | null = REGIME
       detail:zohoDemande ? zohoPret ? "envoi réel activé — la connexion et la recette doivent être vérifiées séparément" : "activation demandée : vérifier l’environnement, l’autorisation Zoho et le retour sécurisé" : "envoi désactivé — compte Zoho européen et recette nécessaires"});
     if (zohoDemande) for (const cle of zohoCles.slice(1)) verifications.push({cle,usage:cle.endsWith("WEBHOOK_SECRET")?"Réception sécurisée Zoho Sign":"Autorisation serveur Zoho Sign",etat:valeur(env,cle)?"ok":"attention",detail:valeur(env,cle)?null:"à renseigner dans la configuration sécurisée"});
   }
+
+  // Lecture des interrupteurs effectifs : mêmes comparaisons strictes que les envois.
+  // Une connexion configurée n'est ni une autorisation d'envoi ni un essai réussi.
+  for (const [cle, usage] of [
+    ["ZOHO_SIGN_BAIL_ACTIF", "Envoi des baux"],
+    ["ZOHO_SIGN_DOCUMENTS_ACTIF", "Envoi des autres actes"],
+    ["ZOHO_SIGN_DEVIS_ACTIF", "Envoi des devis artisans"],
+    ["ZOHO_SIGN_RELANCES_ACTIVES", "Relances automatiques de signature"],
+  ]) {
+    const actif = env[cle] === "true";
+    const attendu = cle === "ZOHO_SIGN_BAIL_ACTIF" ? "le circuit et la recette restent à vérifier" :
+      cle === "ZOHO_SIGN_RELANCES_ACTIVES" ? "les échéances et plafonds restent applicables" :
+      "les autres interrupteurs et contrôles du document restent applicables";
+    verifications.push({ cle, usage, etat: "ok", estConnexion: false,
+      detail: actif ? `interrupteur activé — ${attendu}` : "interrupteur désactivé" });
+  }
+  const cautionFermee = Boolean(fermetureModeleSignature("cautionnement", env));
+  verifications.push({ cle: "ZOHO_SIGN_CAUTIONNEMENT_FERME", usage: "Envoi du cautionnement", estConnexion: false,
+    etat: "ok",
+    detail: cautionFermee ? "suspendu, y compris pour les essais — PDF et suivi existant conservés" :
+      "interrupteur ouvert — la configuration Zoho et les contrôles du document restent applicables" });
+  const essais = (env.SIGNATURE_BAIL_ORGS_ESSAI ?? "").split(",").map(v => v.trim()).filter(Boolean);
+  const essaisValides = essais.length > 0 && signatureEnEssai(essais[0], env);
+  verifications.push({ cle: "SIGNATURE_BAIL_ORGS_ESSAI", usage: "Périmètre des essais de signature", estConnexion: false,
+    etat: essais.length > 0 && !essaisValides ? "attention" : "ok",
+    detail: essaisValides ? "liste explicite configurée — aucun identifiant affiché ; aucun autre compte autorisé par cette liste" :
+      essais.length > 0 ? "liste invalide — les essais sont refusés" : "aucune organisation autorisée par la liste d’essai" });
 
   // ── Tâches planifiées : sans secret, chaque passe répond 503.
   verifications.push({

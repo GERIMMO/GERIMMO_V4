@@ -82,7 +82,7 @@ et garder l'exécution vérifiée pour le Mac.
 ## Comptes de démo
 
 `agent.alpha@` · `admin.alpha@` (clôture comptable) · `locataire.alpha@` · `multi@`
-(deux agences) — tous en `@gerimmo-demo.fr`. Mot de passe commun dans
+(deux agences) — tous en `@example.com`. Mot de passe commun dans
 `app/supabase/seed.sql`. Le propriétaire direct peut aussi s'inscrire seul depuis la
 page publique (essai 14 jours).
 

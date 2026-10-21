@@ -36,7 +36,7 @@ export function NavigationParcours({ etapes, etape, changer, titre = "Préparati
       {etapes.map((e, i) => <li key={e.titre}>
         <button type="button" className={styles.etape} disabled={i >= accessibles} onClick={() => changer(i)}
           aria-current={i === etape ? "step" : undefined}
-          aria-label={`Étape ${i + 1} : ${e.titre} — ${libelleStatut(e)}`}
+          aria-label={`Étape ${String(i + 1).padStart(2, "0")} : ${e.titre} — ${libelleStatut(e)}`}
           title={`${e.titre} · ${e.detail}`} data-statut={e.statut}>
           <span className={styles.numero} aria-hidden="true">
             {e.statut === "complet" && i !== etape ? <Check size={18} strokeWidth={2.5} /> : String(i + 1).padStart(2, "0")}

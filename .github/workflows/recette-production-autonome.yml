@@ -27,8 +27,8 @@ jobs:
       RECETTE_SUFFIXE: r20261017000000-1
       RECETTE_COMPTES_FIXES: '1'
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -81,7 +81,7 @@ jobs:
         run: node scripts/recette-production-comptes.mjs purger
       - name: Conserver le rapport (sans trace ni vidéo)
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: recette-production-${{ github.run_id }}
           path: app/e2e/recette-production/.resultats/

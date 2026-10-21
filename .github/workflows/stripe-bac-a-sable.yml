@@ -36,8 +36,8 @@ jobs:
     env:
       SUPABASE_DB_URL: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_stripe
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: npm ci --ignore-scripts --no-audit --no-fund
@@ -65,7 +65,7 @@ jobs:
           fs.writeFileSync('/tmp/bilan-stripe-test.json',JSON.stringify(b,null,2));
           console.log(JSON.stringify(b));
           NODE
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: bilan-stripe-test

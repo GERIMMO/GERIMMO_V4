@@ -36,7 +36,7 @@ function Badge({ e }: { e: EntreeNav }) {
   const nb = e.badge ?? 0;
   if (nb <= 0) return null;
   return (
-    <span className={`coquille-badge${e.critique ? " critique" : ""}`} aria-hidden="true">
+    <span className={`coquille-badge${e.critique ? " critique" : ""}`}>
       {nb > 99 ? "99+" : nb}
     </span>
   );
@@ -50,12 +50,12 @@ function Entree({ e, active, onClick }: { e: EntreeNav; active: boolean; onClick
       className={active ? "actif" : undefined}
       aria-current={active ? "page" : undefined}
       title={e.libelle}
-      aria-label={nb > 0 ? `${e.libelle}, ${nb} élément${nb > 1 ? "s" : ""} à traiter` : undefined}
       onClick={onClick}
     >
       <Icone nom={e.icone} />
       <span className="lib">{e.libelle}</span>
       <Badge e={e} />
+      {nb > 0 && <span className="sr-only"> — {nb} élément{nb > 1 ? "s" : ""} à traiter</span>}
     </Link>
   );
 }
@@ -100,8 +100,8 @@ export function BarreLaterale({
   return (
     <>
       <div className="coquille-marque">
-        <Link href={`${racine}/${orgId}`} aria-label="Accueil" className="flex min-w-0 max-w-full items-center gap-2.5 overflow-hidden">
-          <MarqueOrganisation marque={{ nom_portail: marque?.nom, logo_url: marque?.logoUrl }} />
+        <Link href={`${racine}/${orgId}`} className="flex min-w-0 max-w-full items-center gap-2.5 overflow-hidden">
+          <MarqueOrganisation marque={{ nom_portail: marque?.nom, logo_url: marque?.logoUrl }} /><span className="sr-only"> — Accueil</span>
         </Link>
       </div>
 
@@ -218,12 +218,11 @@ export function BarreBasse({
             href={e.href}
             className={e === active ? "actif" : undefined}
             aria-current={e === active ? "page" : undefined}
-            // Le mot visible est court ; le nom lu au lecteur d'écran reste entier.
-            aria-label={(e.badge ?? 0) > 0 ? `${e.libelle}, ${e.badge} élément${(e.badge ?? 0) > 1 ? "s" : ""} à traiter` : e.libelle}
           >
             <Icone nom={e.icone} />
-            <span aria-hidden="true">{e.court ?? e.libelle}</span>
+            <span>{e.court ?? e.libelle}</span>
             <Badge e={e} />
+            <span className="sr-only">{e.court && e.court !== e.libelle ? ` — ${e.libelle}` : ""}{(e.badge ?? 0) > 0 ? ` — ${e.badge} élément${e.badge! > 1 ? "s" : ""} à traiter` : ""}</span>
           </Link>
         ))}
         {/* `data-assistance` : sur téléphone, « Menu » est le chemin vers l'aide ;
@@ -235,15 +234,16 @@ export function BarreBasse({
           aria-expanded={ouvert}
           data-assistance
           className={dansMenu ? "actif" : undefined}
-          aria-label={dansMenu ? `Menu, page actuelle : ${active.libelle}` : undefined}
         >
           <Icone nom="menu" />
           <span>Menu</span>
           {resteACompter > 0 && (
-            <span className="coquille-badge" aria-hidden="true">
+            <span className="coquille-badge">
               {resteACompter > 99 ? "99+" : resteACompter}
             </span>
           )}
+          {dansMenu && <span className="sr-only"> — page actuelle : {active.libelle}</span>}
+          {resteACompter > 0 && <span className="sr-only"> — {resteACompter} éléments à traiter</span>}
         </button>
       </nav>
       {ouvert && (

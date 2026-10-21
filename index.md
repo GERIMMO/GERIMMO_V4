@@ -256,3 +256,5 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - **20 octobre — validation éditoriale** : accord du dirigeant enregistré à 10 h 17 Paris, les prochaines diffusions attendent sa validation ; article de 9 h déjà diffusé. CI748 : exception de taille HTTP corrigée et 43 tests ciblés réussis, nouvelle CI attendue. Voir [[Suites de l'audit — 20 octobre 2026]].
 
 - **20 octobre — dépôts directs et suivi** : fichiers privés jusqu’à 10 Mio, rapprochement des brouillons et rappels durables préparés mais désactivés ; sept migrations, 9 079 tests locaux réussis et recette de dépôt sur build à deux largeurs. Livraison encore à vérifier. Voir [[Suites de l'audit — 20 octobre 2026]].
+
+- [[Dépendances et formulaires — 21 octobre 2026]] — Versions regroupées, accessibilité, conservation des saisies du bail et preuves locales.

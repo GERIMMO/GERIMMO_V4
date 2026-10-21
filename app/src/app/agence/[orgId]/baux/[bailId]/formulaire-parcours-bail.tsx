@@ -87,6 +87,9 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
  const parcours=useContext(EtapeComplementsBail);
  const etape=parcours?.etape??"bail";
  const [valeurs,setValeurs]=useState<Record<string,string>>(()=>Object.fromEntries(Object.entries({...defauts,type:defauts.chambre_id?"colocation_individuelle":defauts.type,logement_meuble:meuble,revision_irl:defauts.revision_irl??false,meuble_etudiant:defauts.meuble_etudiant??false,clause_resolutoire_assurance:defauts.clause_resolutoire_assurance??true,clause_resolutoire_troubles:defauts.clause_resolutoire_troubles??true,clause_resolutoire_servitude:defauts.clause_resolutoire_servitude??false}).map(([k,v])=>[k,v==null?"":String(v)])));
+ // Lire la valeur pendant l’événement : une mise à jour différée ne doit pas
+ // relire un champ DOM déjà restauré par React ou par une actualisation.
+ const modifierValeur=(nom:string,valeur:string)=>setValeurs(v=>({...v,[nom]:valeur}));
  const [retourEtape,setRetourEtape]=useState("");
  const [modifie,setModifie]=useState(false);
  const {etat,soumettre,enCours}=useActionFormulaire<EtatBail>(async (ancien,form)=>{
@@ -112,9 +115,9 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
     const opts=c.nom==="chambre_id"?[["","Choisir une chambre"],...chambres.map(ch=>[ch.id,ch.nom])] as [string,string][]:c.options;
     return <div key={c.nom} hidden={!affiche} className={c.type==="textarea"?"space-y-1.5 sm:col-span-2":"space-y-1.5"}>
      <Label htmlFor={id} champ={`bail.${c.nom}`} renseigne={Boolean(valeurs[c.nom]?.trim())}>{c.titre}{c.requis||!/facultati[fv]/i.test(c.titre)?" *":""}</Label>
-     {opts?<select id={id} name={c.nom} value={valeurs[c.nom]??""} required={c.requis&&affiche} disabled={!affiche} onChange={e=>setValeurs(v=>({...v,[c.nom]:e.target.value}))} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{opts.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
-      :c.type==="textarea"?<textarea id={id} name={c.nom} value={valeurs[c.nom]??""} rows={3} maxLength={c.nom==="clauses_particulieres"?4000:2000} onChange={e=>setValeurs(v=>({...v,[c.nom]:e.target.value}))} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"/>
-      :<Input id={id} name={c.nom} type={c.type==="montant"?"text":(c.type??"text")} inputMode={c.type==="montant"?"decimal":undefined} disabled={!affiche} value={valeurs[c.nom]??""} required={c.requis&&affiche} min={c.type==="number"?(c.min??0):undefined} max={c.max} step={c.type==="number"?(c.entier?1:"0.01"):undefined} maxLength={c.nom==="dpe_annees_reference"?100:500} onChange={e=>setValeurs(v=>({...v,[c.nom]:e.target.value}))}/>}
+     {opts?<select id={id} name={c.nom} value={valeurs[c.nom]??""} required={c.requis&&affiche} disabled={!affiche} onChange={e=>modifierValeur(c.nom,e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{opts.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
+      :c.type==="textarea"?<textarea id={id} name={c.nom} value={valeurs[c.nom]??""} rows={3} maxLength={c.nom==="clauses_particulieres"?4000:2000} onChange={e=>modifierValeur(c.nom,e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"/>
+      :<Input id={id} name={c.nom} type={c.type==="montant"?"text":(c.type??"text")} inputMode={c.type==="montant"?"decimal":undefined} disabled={!affiche} value={valeurs[c.nom]??""} required={c.requis&&affiche} min={c.type==="number"?(c.min??0):undefined} max={c.max} step={c.type==="number"?(c.entier?1:"0.01"):undefined} maxLength={c.nom==="dpe_annees_reference"?100:500} onChange={e=>modifierValeur(c.nom,e.target.value)}/>}
      {c.aide&&<p className="text-xs text-muted-foreground">{c.aide}</p>}
     </div>;
    })}</div>

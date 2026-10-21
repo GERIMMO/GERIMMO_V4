@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Vérifier le site et sa connexion à la base, sans session
@@ -28,7 +28,7 @@ jobs:
         run: node app/scripts/surveillance/disponibilite.mjs
       - name: Conserver le bilan sans données personnelles
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: disponibilite-publique
           path: ${{ runner.temp }}/disponibilite.json

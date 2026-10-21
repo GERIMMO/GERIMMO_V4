@@ -951,3 +951,7 @@ Les retours du 20 octobre sont des instructions atomiques : ils peuvent être an
 - `20261020084651_depots_directs_temporaires.retour.sql` : remettre le code précédent, révoquer la réservation et le dépôt temporaire ; conserve les fichiers et leurs réservations. Les jetons déjà délivrés peuvent rester valables jusqu’à deux heures : ne supprimer aucun objet à l’occasion de ce retour. La purge applicative attend trois heures après la fin de réservation pour couvrir aussi un jeton délivré tardivement.
 
 - `20261020120000_liste_attente_agences.retour.sql` : remettre le code précédent (page `/agences`, action serveur, console `/admin/liste-attente`) ; supprime la table de la liste d'attente des agences, ses deux déclencheurs, la fonction de plafond et sa ligne d'historique **seulement si la liste est vide** ; refuse, sans rien modifier, dès qu'une agence s'y est inscrite (décision du dirigeant requise). Première de la chaîne « Ordre complet ».
+
+### Nettoyage initial du 21 octobre 2026
+
+`20261021175930_nettoyage_initial_comptes.sql` est l'effacement ponctuel demandé par le dirigeant. Sa simulation se termine par ROLLBACK. Après application, seul un rétablissement contrôlé à partir de la sauvegarde préalable peut restaurer les données ; aucun fichier `.retour.sql` ne prétend reconstruire les comptes ou pièces effacés. Les objets Storage sont supprimés par l'API Storage, selon l'inventaire privé, jamais par DELETE de leurs métadonnées. Hors de l'identité superadmin et de l'empreinte d'inventaire prévues, la migration est sans effet ou refuse l'opération.

@@ -248,7 +248,7 @@ export function ListeAlertes({
                 variant="ghost"
                 size="sm"
                 className="relative z-10"
-                aria-label="Confier ou clore l'alerte"
+                aria-label="Confier / clore l’alerte"
                 title="Confier ou clore l'alerte"
                 onClick={() => setOuverte(a)}
               >

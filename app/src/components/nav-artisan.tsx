@@ -145,15 +145,6 @@ export function NavArtisan({
               <Link
                 href={e.href}
                 aria-current={actif ? "page" : undefined}
-                // Le badge est décoratif : sans ce nom, un lecteur d'écran
-                // annonce « Devis 2 » sans dire ce que vaut le 2.
-                aria-label={
-                  nb > 0
-                    ? `${e.libelle}, ${nb} en attente`
-                    : e.point
-                      ? `${e.libelle}, attestations à déposer ou à renouveler`
-                      : undefined
-                }
                 className={`relative flex min-h-16 flex-col items-center justify-center gap-1 px-1 py-2 text-center transition-colors ${
                   actif
                     ? "text-[var(--encre)]"
@@ -170,7 +161,6 @@ export function NavArtisan({
                   <Icone nom={e.icone} />
                   {nb > 0 && (
                     <span
-                      aria-hidden
                       className="absolute -top-1.5 -right-2.5 min-w-5 rounded-full bg-[var(--marque)] px-1 text-center text-[11px] leading-5 font-medium text-[var(--sur-marque)]"
                     >
                       {nb > 9 ? "9+" : nb}
@@ -186,6 +176,7 @@ export function NavArtisan({
                 <span className="w-full truncate text-[0.6875rem] leading-tight font-medium">
                   {e.libelle}
                 </span>
+                {nb > 0 ? <span className="sr-only"> — {nb} en attente</span> : e.point ? <span className="sr-only"> — attestations à déposer ou à renouveler</span> : null}
               </Link>
             </li>
           );

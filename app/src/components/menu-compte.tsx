@@ -83,7 +83,7 @@ export function MenuCompte({
           {titre}
           {sousTitre && <span className="menu-compte-role"> · {sousTitre}</span>}
         </span>
-        <span className="loc-avat" aria-hidden>
+        <span className="loc-avat">
           {initiales || "◇"}
         </span>
         <span className="sr-only">Mon compte — ouvrir le menu</span>

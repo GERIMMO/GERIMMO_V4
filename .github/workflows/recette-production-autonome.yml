@@ -1,6 +1,6 @@
-# Cinq comptes fixes réutilisés. Les dossiers de scénario sont remis à zéro
-# au début ; les comptes sont conservés à la fin, la supervision révoquée,
-# leurs sessions fermées et les cinq comptes bloqués jusqu'au passage suivant.
+# Cinq comptes éphémères, propres à chaque passage. Le nettoyage final retire
+# leurs dossiers et identités, ainsi que le privilège de supervision temporaire.
+# Décision du dirigeant le 21/10 : ne plus conserver les comptes d’essai.
 # Aucun paiement réel, aucun message à une personne ; seuls des courriers
 # éventuels vers les boîtes de test Resend peuvent partir.
 # Aucune trace Playwright ni vidéo n'est déposée : le dépôt est public et une
@@ -24,11 +24,10 @@ jobs:
         working-directory: app
     env:
       RECETTE_URL: https://www.gerimmo.app
-      RECETTE_SUFFIXE: r20261017000000-1
-      RECETTE_COMPTES_FIXES: '1'
+      RECETTE_SUFFIXE: r${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -47,7 +46,7 @@ jobs:
             echo "Nettoyage Storage indisponible : le groupe de test ne sera pas préparé."
             exit 1
           fi
-      - name: Préparer ou réutiliser les cinq comptes fixes
+      - name: Préparer les cinq comptes éphémères
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -68,7 +67,7 @@ jobs:
           PGDATABASE: postgres
           PGSSLMODE: require
         run: npx playwright test --config e2e/recette-production/playwright.config.ts
-      - name: Conserver les cinq comptes, retirer la supervision et fermer les accès
+      - name: Supprimer les comptes éphémères, dossiers et supervision
         if: always()
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -81,7 +80,7 @@ jobs:
         run: node scripts/recette-production-comptes.mjs purger
       - name: Conserver le rapport (sans trace ni vidéo)
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: recette-production-${{ github.run_id }}
           path: app/e2e/recette-production/.resultats/

@@ -100,8 +100,8 @@ export default async function LayoutLocataire({
     <div className="loc-app gerimmo-prestige" style={styleMarque(apparence)}>
       <aside className="loc-late">
         <div className="loc-logo min-w-0">
-          <Link href={`/locataire/${orgId}`} aria-label="Accueil de mon espace" className="block min-w-0 max-w-full overflow-hidden">
-            <MarqueOrganisation marque={{ ...apparence, name: organisation.name }} />
+          <Link href={`/locataire/${orgId}`} className="block min-w-0 max-w-full overflow-hidden">
+            <MarqueOrganisation marque={{ ...apparence, name: organisation.name }} /><span className="sr-only"> — Accueil de mon espace</span>
           </Link>
           <span className="loc-logo-texte eyebrow">
             Espace locataire

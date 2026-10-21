@@ -170,6 +170,7 @@ begin
   -- Le runner retire les objets par l'API Storage avant ce SQL. Aucun DELETE
   -- direct ne peut prétendre que les octets sous-jacents ont disparu.
   if exists(select 1 from storage.objects o where split_part(o.name,'/',1)=any(v_orgs::text[])
+    or split_part(o.name,'/',1)=any(v_uids::text[])
     or (split_part(o.name,'/',1)='artisans' and split_part(o.name,'/',2)=any(v_artisans::text[]))
     or split_part(o.name,'/',1)=any(v_artisans::text[])) then
     raise exception 'Purge interrompue : des objets Storage de recette restent à retirer par API';

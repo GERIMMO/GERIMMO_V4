@@ -58,3 +58,11 @@ Comparaison datée du 21 octobre : CM2C, Med Conso Dev et Avenir Conso ; CM2C pr
 - Recette de production après PR230 ; puis PR229 et préparation du déploiement de ce lot.
 - Mises à jour Dependabot regroupées sur une branche séparée ; React et React DOM alignés, défauts de noms accessibles corrigés. Stripe 23 reste séparé : il change la version d’API vers `2026-09-30.endive` et nécessite l’essai du bac à sable.
 - Informations juridiques complétables ultérieurement selon la demande du dirigeant ; relectures professionnelles non réalisées, fonctionnalités et validation juridique suivies séparément.
+
+## Publication et remise à zéro — contrôle du soir
+
+PR231 est publiée (`fe149d6`), ses deux migrations ont été simulées puis appliquées après sauvegarde réussie. La recette29 sur PR230 a passé 66 contrôles (un facultatif ignoré). Le lot consolidé PR232 incorpore aussi le journal de PR229 et les mises à jour de dépendances vérifiées par CI795 (39647148859), puis adapte la recette au changement de décision : plus de comptes d'essai permanents.
+
+Le dirigeant a confirmé le retrait des dix autres comptes et de leurs dossiers. La migration ponctuelle `20261021175930_nettoyage_initial_comptes.sql` vérifie l'empreinte exacte de l'inventaire et conserve le superadmin ainsi que les articles et réglages globaux. Les fichiers sont traités par Storage, jamais par effacement de ses métadonnées SQL. Huit contrôles locaux réussis ; application et recette finale encore à faire au moment de cette entrée.
+
+**Retour après effacement :** restauration contrôlée depuis la sauvegarde immédiatement antérieure. Il n'existe pas de retour SQL reconstruisant les données effacées. La simulation doit réussir et la sauvegarde avoir moins de 90 minutes avant application. Les prochaines recettes créent puis retirent leurs propres identités ; elles ne recréent pas les anciens comptes fixes.

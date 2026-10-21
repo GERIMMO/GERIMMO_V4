@@ -187,7 +187,7 @@ async function parcourir(browser: Browser, persona: string | null, depart: strin
         if (!["serious", "critical"].includes(v.impact ?? "")) continue;
         violations.push({
           chemin, persona: qui, regle: v.id, impact: v.impact ?? "",
-          ou: v.nodes[0]?.target.join(" ") ?? "", nb: v.nodes.length,
+          ou: v.nodes.map(n => n.target.join(" ")).join(" ; "), nb: v.nodes.length,
         });
       }
     }

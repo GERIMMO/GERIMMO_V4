@@ -1,4 +1,5 @@
-// Les cinq identités peuvent être réutilisées ; leurs secrets restent propres au runner.
+// Le chantier de production utilise des identités éphémères depuis le 21/10.
+// Le mode fixe reste disponible pour les anciens bancs locaux ; aucun chantier ne le sélectionne.
 // Aucun secret dans workflow_dispatch, les arguments psql, les logs ou les artefacts.
 // Entre deux passages, les cinq comptes fixes sont fermés : sessions révoquées et
 // blocage Auth jusqu'à la préparation suivante, qui les rouvre avec un mot de passe neuf.
@@ -83,7 +84,8 @@ async function nettoyer(cibleSuffixe) {
       and exists(select 1 from pg_attribute x where x.attrelid=con.conrelid and x.attname='organization_id' and not x.attisdropped)`)).rows;
   for(const lien of liens) if((await db.query(`select 1 from ${lien.tbl} where ${lien.col}=any($1::uuid[]) and organization_id is not null and not(organization_id=any($2::uuid[])) limit 1`,[artisans,orgs])).rowCount) throw new Error('Artisan lié à une organisation extérieure.');
   const fichiers=(await db.query(`select bucket_id,name from storage.objects where split_part(name,'/',1)=any($1::text[])
-    or split_part(name,'/',1)=any($2::text[]) or (split_part(name,'/',1)='artisans' and split_part(name,'/',2)=any($2::text[]))`,[orgs,artisans])).rows;
+    or split_part(name,'/',1)=any($2::text[]) or (split_part(name,'/',1)='artisans' and split_part(name,'/',2)=any($2::text[]))
+    or split_part(name,'/',1)=any($3::text[])`,[orgs,artisans,comptes])).rows;
   if (fichiers.length) {
     const url=production?'https://rddlxunppddzpsaatdaz.supabase.co':process.env.NEXT_PUBLIC_SUPABASE_URL;
     if (!url || !process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('API Storage absente pour le nettoyage.');

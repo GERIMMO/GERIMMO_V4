@@ -3,13 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { LigneDevisCalculee } from "@/lib/devis-structure";
 import { avoirDeLaFacture, type AvoirArtisan } from "@/lib/artisan-prive-avoir";
 
-export function environnementArtisanLocal() {
-  try { return ["localhost", "127.0.0.1"].includes(new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").hostname); }
-  catch { return false; }
-}
-export function activationArtisanLocale(module: "clients" | "reglements") {
-  return environnementArtisanLocal() && process.env[module === "clients" ? "GERIMMO_ARTISAN_CLIENTS_LOCAUX" : "GERIMMO_ARTISAN_REGLEMENTS_LOCAUX"] === "1";
-}
+export { activationModuleArtisan } from "./artisan-activation";
 export type ClientExterne = {id:string;nom:string;type:string;email:string;telephone:string;adresse:string;revision:number;archive_le:string|null};
 export type ChantierExterne = {id:string;client_id:string;titre:string;adresse:string;description:string;statut:string;revision:number;bilan:string|null;photo_id:string|null};
 export type DevisExterne = {id:string;chantier_id:string;version:number;statut:string;description:string;lignes:LigneDevisCalculee[];montant_ht_cents:number;montant_tva_cents:number;montant_ttc_cents:number;entreprise:{nom:string;siret:string;telephone:string|null;email:string|null;adresse:string|null;mentions:string|null};client:ClientExterne;valide_jusqu_au:string;pdf_id:string|null;preuve_acceptation_id:string|null;created_at:string};
@@ -21,7 +15,6 @@ export type PiecePrivee = {id:string;nom:string;storage_path:string;mime:string;
 export type ActiviteArtisanPrivee = {clients:ClientExterne[];chantiers:ChantierExterne[];devis:DevisExterne[];rendez_vous:RendezVousExterne[];factures:FactureArtisanPrivee[];pieces:PiecePrivee[];reglements:ReglementArtisan[];avoirs?:AvoirArtisan[];evenements:{id:string;objet_id:string;action:string;created_at:string;auteur:string;details:Record<string,unknown>}[];activation:{clients:boolean;reglements:boolean;exclusion?:"refuse"|"liste_noire"|null}};
 export async function chargerActivitePrivee() {
   const supabase=await createClient();
-  if (!environnementArtisanLocal()) return {supabase,data:null,erreur:"Cet espace privé est désactivé dans cet environnement."};
   const {data,error}=await supabase.rpc("mon_activite_artisan_privee");
   return {supabase,data:error?null:data as ActiviteArtisanPrivee|null,erreur:error?"Votre activité privée n’a pas pu être lue. Rechargez avant de conclure qu’elle est vide.":undefined};
 }

@@ -13,7 +13,7 @@ const refusMetier:Record<string,RegExp>={
  '20261014811000':/la migration 20261014812000 .*encore appliquée/,
 };
 describe('Retours historiques : atomicité du fichier exact',()=>{
- it('recense les 71 anciens retours et les six nouveaux',()=>{expect(retours).toHaveLength(77);});
+ it('recense les 71 anciens retours et les sept nouveaux',()=>{expect(retours).toHaveLength(78);});
  describe.skipIf(!url)('sur base fictive',()=>{
   it.each(retours.map(r=>({...r,resultat:refusMetier[r.nom.slice(0,14)]?'refus métier attendu, annulation conservée':'retour entièrement exécuté, puis annulation forcée'})))('$nom : $resultat',async({nom,sql})=>{
    const db=new Client({connectionString:url});await db.connect();

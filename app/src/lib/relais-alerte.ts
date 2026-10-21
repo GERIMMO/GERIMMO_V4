@@ -117,6 +117,8 @@ export type ConstatRelais = {
    * null : comptage impossible (alors compté dans `lecturesImpossibles`).
    */
   contacts?: ContactsEnAttente | null;
+  /** Agences non contactées ; null : lecture impossible, absent : non demandé. */
+  agences?: { en_attente: number } | null;
 };
 
 export type ContactsEnAttente = { en_attente: number; depuis_plus_de_48h: number };
@@ -132,7 +134,7 @@ function pointDesContacts(c: ConstatRelais): number {
 
 /** Le nombre de points à vérifier. Zéro : aucun e-mail ne part. */
 export function pointsDuRelais(c: ConstatRelais): number {
-  return c.arrets.length + totalAlertes(c) + c.taches.length + c.lecturesImpossibles.length + (c.relaisNonActualise ? 1 : 0) + pointDesContacts(c);
+  return c.arrets.length + totalAlertes(c) + c.taches.length + c.lecturesImpossibles.length + (c.relaisNonActualise ? 1 : 0) + pointDesContacts(c) + (c.agences && c.agences.en_attente > 0 ? 1 : 0);
 }
 
 /**
@@ -165,6 +167,7 @@ export function compteursDuRelais(c: ConstatRelais, adressesIgnorees = 0): Recor
     urgences_24h: urgencesDuRelais(c),
     demandes_contact_en_attente: c.contacts?.en_attente ?? 0,
     demandes_contact_48h: c.contacts?.depuis_plus_de_48h ?? 0,
+    agences_en_attente: c.agences?.en_attente ?? 0,
   };
 }
 
@@ -208,6 +211,9 @@ export function htmlAlerteRelais(c: ConstatRelais, maintenant: Date, lienConsole
     blocs.push(`<p style="${titre}">Tâches planifiées, dernières 24 h</p>` + liste(c.taches.map((t) => `${t.libelle} : ${ETAT_TACHE[t.etat]}`)));
   }
   // M16 : le nombre des demandes de contact du site vitrine qui attendent une réponse ; jamais leur contenu.
+  if (c.agences && c.agences.en_attente > 0) {
+    blocs.push(`<p style="${titre}">Liste d’attente des agences</p>` + liste([`Agences en attente : ${c.agences.en_attente}`]));
+  }
   if (c.contacts && c.contacts.en_attente > 0) {
     blocs.push(`<p style="${titre}">${TITRE_CONTACTS_EN_ATTENTE}</p>` + liste([ligneContactsEnAttente(c.contacts)]));
   }

@@ -114,7 +114,7 @@ describe.skipIf(!actif)("X02 — formulaire de contact du site vitrine, de bout 
 
   it("8. la porte directe est aussi fermée à un compte connecté", async () => {
     const connecte = clePublique();
-    const session = await connecte.auth.signInWithPassword({ email: "admin.alpha@gerimmo-demo.fr", password: "Gerimmo-Demo-2026" });
+    const session = await connecte.auth.signInWithPassword({ email: "admin.alpha@example.com", password: "Gerimmo-Demo-2026" });
     expect(session.error).toBeNull();
     const direct = await connecte.from("demandes_devis").insert({ nom: "Compte", email: `compte${DOMAINE}`, message: "direct" });
     expect(direct.error).not.toBeNull();

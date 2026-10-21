@@ -51,7 +51,7 @@ vi.mock("@/lib/artisan-prive", async () => {
   return {
     ...reel,
     environnementArtisanLocal: () => true,
-    activationArtisanLocale: () => true,
+    activationModuleArtisan: () => true,
     chargerActivitePrivee: async () => ({ data: sim.activite }),
   };
 });

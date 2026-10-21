@@ -8,7 +8,7 @@ describe.skipIf(!url||!key)("Catalogue — lecture réelle par l’API et les dr
   let db:SupabaseClient,orgId:string;
   beforeAll(async()=>{
     db=createClient(url!,key!,{auth:{persistSession:false,autoRefreshToken:false}});
-    const {data,error}=await db.auth.signInWithPassword({email:process.env.TEST_ADMIN_A??"admin.alpha@gerimmo-demo.fr",password:process.env.TEST_MOT_DE_PASSE??"Gerimmo-Demo-2026"});expect(error).toBeNull();
+    const {data,error}=await db.auth.signInWithPassword({email:process.env.TEST_ADMIN_A??"admin.alpha@example.com",password:process.env.TEST_MOT_DE_PASSE??"Gerimmo-Demo-2026"});expect(error).toBeNull();
     const org=await db.from("memberships").select("organization_id").eq("account_id",data.user!.id).eq("role","admin_agence").eq("status","active").limit(1).single();expect(org.error).toBeNull();orgId=org.data!.organization_id;
   });
   afterAll(async()=>{await db?.auth.signOut();});

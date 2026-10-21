@@ -6421,3 +6421,52 @@ Lint, compilation, types réussis ; 9 238 tests réussis, 36 non exécutés selo
 ## [2026-10-21] fix | Une frappe différée ne remplace plus un résultat serveur enregistré
 
 Le scénario de reprise de photos a révélé un risque dans la copie locale : une minuterie ancienne pouvait écraser le résultat serveur enregistré immédiatement. Le hook annule désormais cette minuterie à chaque enregistrement immédiat. Régression reproduite avant correction ; 46 tests ciblés réussis ensuite, lint, compilation et types réussis, neuf parcours navigateur réussis. L’audit d’accessibilité précédent couvre 68 écrans sans violation détectée. Aucune modification en production par ce correctif à ce stade. Voir [[Dépendances et formulaires — 21 octobre 2026]].
+
+## [2026-10-21] decision | Version de base fonctionnelle, agences maintenues en liste d’attente
+
+Message direct du dirigeant : « il faut rien fermer mais tout ouvrir pour que tout soit fonctionnel. L'objectifs c'est d'avoir une version de base totalement fonctionnel puis je mettrai les infos juridique à la fin ».
+
+Clarification directe : « les agences ont possibilité seulement de s'inscrire sur liste d'attente du site vitrine le temps de tout finir ».
+
+Préparer l’ouverture des fonctions métier propriétaire, locataire, artisan et superadmin ; conserver les protections des comptes, les confirmations des opérations et les cinq comptes d’essai. Les propositions de fermeture préventive sont abandonnées ; cette orientation ne constitue pas une preuve d’activation ni une validation juridique. Voir [[Préparation fonctionnelle — 21 octobre 2026]].
+
+## [2026-10-21] dev | Export, relais des agences, visibilité des signatures et jeux fictifs
+
+PR230 fusionnée en 804a6da5fdf8f74baf63d64224fa633f30451ec1 ; CI main 39606406311 réussie après la CI rouge 39505731602. Recette de production encore en attente, PR229 relue mais non fusionnée dans ce relevé.
+
+Préparation locale : export excluant les retirées par défaut, option explicite tracée ; compteur des agences en attente dans le relais existant, fonction serveur en lecture seule avec retour arrière ; état détaillé des interrupteurs Zoho dans Santé sans identifiants ni secrets ; adresses des jeux locaux déplacées vers un domaine réservé. Migration 20261021133650 appliquée seulement aux bases fictives locales.
+
+Lint, compilation, types réussis ; 9 254 tests réussis, 36 non exécutés selon leurs prérequis ; parcours navigateur de la liste d’attente et préparation des sessions réussis. Quatre dossiers de relecture et décisions préparés hors dépôt, sans envoi. Aucun réglage, compte, paiement ou document de production modifié par ce lot.
+
+## [2026-10-21] dev | Préparer l’ouverture des clients externes et règlements artisans
+
+La demande directe « il faut rien fermer mais tout ouvrir pour que tout soit fonctionnel » est appliquée aux modules métiers artisans : ouverture HTTPS et migration des deux interrupteurs existants. Les contrôles d’identité, de propriété, les exclusions et les preuves de règlement sont conservés. Aucun paiement bancaire exécuté. Deux migrations testées uniquement sur les bases fictives locales, aucun réglage de production changé. Voir [[Préparation fonctionnelle — 21 octobre 2026]].
+
+## [2026-10-21] audit | Parcours artisans et agences, connexion Zoho et ouverture confirmée
+
+Seize essais navigateur locaux réussis, dont un client externe et un devis conservés après rechargement ; captures ordinateur et téléphone relues. La CI790 du premier lot échoue sur cinq scénarios qui recherchaient encore deux anciennes adresses du jeu fictif ; références corrigées. La reprise de photo d’incident n’a réussi qu’au second essai : résultat non présenté comme un succès sans réserve.
+
+Le dirigeant confirme « Oui, lire cet interrupteur et le mettre à false ». Interrupteur de fermeture des cautionnements enregistré ouvert dans Vercel ; redéploiement de la version PR230 lancé sous 2N73v4PcoEmhnFhfUHbvS8H7gKPJ, conclusion encore à relever. Zoho affiche l’offre API, 478 crédits et les alertes actives. Aucun nouvel achat ni envoi de signature. Voir [[Préparation fonctionnelle — 21 octobre 2026]].
+## [2026-10-20] deploy | Liste d'attente des agences en production : fusion `4ba53f5` (PR #227), Vercel `dpl_FSd8B1L4vbodoQkXpAPUdMZ9BWpR`, recette 39508957256
+
+Suite de l'entrée précédente. CI verte sur le dernier SHA de la branche après fusion de `main` (PR #226), fusion en squash au SHA exact, déploiement Vercel `dpl_FSd8B1L4vbodoQkXpAPUdMZ9BWpR` READY, recette de production avec nettoyage : 66 réussis, 1 sauté, 0 échec, 0 instable en 9,9 min ; clôture vérifiée (cinq comptes fixes conservés, supervision retirée, sessions révoquées et comptes bloqués, inscriptions ponctuelles nettoyées) ; 0 inscription d'agence en base, 0 erreur Vercel. Le site public propose désormais `/agences` (section et question fréquente sur l'accueil, article tarifs, lien du pied de page, sitemap) ; la console porte l'onglet « Liste d'attente des agences » (statuts, export CSV journalisé). Décisions laissées au dirigeant (corps de la PR) : indexation immédiate de `/agences`, durée de conservation et base légale (juriste, DPO), sort des lignes « retirées » dans l'export, sort de `liste_attente` du 29/09. Pages mises à jour : [[Liste d'attente des agences]], [[Prêt à démarcher]], [[Registre des traitements]], personas agence, `index.md`.
+
+## [2026-10-21] query  | Point d'étape demandé par le dirigeant : où en sommes-nous, compte rendu vérifiable
+
+Réponse filée dans [[Point d'étape — 21 octobre 2026]] : état de la production au 21/10 à 5 h 24 UTC (`main` `4ba53f5`, Vercel `dpl_FSd8B1L4vbodoQkXpAPUdMZ9BWpR`, 400 versions, recette n° 28 (39508957256) verte ; quatre recettes depuis l'audit, la n° 26 en échec sur une fixture corrigée par la PR #223, sauvegarde 39501178106, restauration 39413640157, disponibilité externe verte, 0 erreur Vercel sur 12 h), six PR livrées depuis l'audit du 19/10 (#212, #213, #223, #224, #226, #227), état des huit bloquants (B3, B5, B8 levés ; B1 et B2 levés côté code et saisie faite d'après la PR #226, médiateur de la consommation restant ; B7 levé côté code, variable à confirmer en production ; B4 et B6 en attente du dirigeant), décisions attendues avec échéances, mode d'emploi de vérification (§ 8) et limites (§ 9 : SQL non rejoué ce matin, formulaire `/agences` non soumis en production, mode Stripe et variables non relevés). PR #229 ouverte pour le journal du déploiement et cette page.
+
+## [2026-10-21] decision | Retirer tous les comptes et dossiers sauf le superadmin
+
+Le dirigeant demande explicitement la publication, la recette finale et la suppression de tous les comptes, y compris les cinq essais auparavant conservés. Il confirme ensuite « Oui, comptes et dossiers associés ». Cette décision remplace celle du 17 octobre sur leur conservation. Le nettoyage ponctuel refuse tout écart à l'inventaire de dix identités, quatre espaces et deux artisans ; il révoque les sessions, conserve le superadmin et vérifie que les publications et réglages protégés n'ont pas changé. Les objets Storage seront retirés par le service Storage, séparément, après sauvegarde et vérification du périmètre privé. Aucun identifiant de connexion ni document utilisateur n'est ajouté au dépôt.
+
+## [2026-10-21] dev | Recette éphémère et nettoyage initial protégé
+
+Le chantier de recette revient à cinq identités propres au numéro d'exécution, supprimées avec leurs dossiers à sa clôture. La garde Storage couvre aussi les dépôts temporaires préfixés par l'identité, auparavant omis. Huit tests locaux du nettoyage intégral réussis sur le schéma complet : refus d'inventaire modifié, nouvel inscrit, autre superadmin, rattachement extérieur, recette ouverte, modification d'article protégé ; conservation finale et absence d'effet hors projet. Un cycle réel préparation/clôture, avec service Storage fictif, vérifie le retrait des cinq identités et du compte d'inscription en CI (client psql requis).
+
+## [2026-10-21] deploy | PR231 et recette sur PR230 vérifiées
+
+PR231 intégrée en fe149d659c975fad985f225b679db43b16e45c81 après CI791 réussie (39618494481). Vercel 71zTF1YbTGpn1yxo1ZnPTExoUoym signale le déploiement réussi. Sauvegarde 39647271883 réussie ; simulation des deux migrations 39647465679 puis application 39648103765 réussies. Recette29 (39646864914), sur le main précédent 804a6da, conclut 66 réussites, un chemin facultatif ignoré, aucun échec. La nouvelle recette a été refusée par le contrôle automatique car elle conserverait les cinq essais : aucun contournement ; adaptation du chantier dans cette PR avant le contrôle final. La suppression initiale et la nouvelle recette ne sont pas encore exécutées à cette entrée.
+
+## [2026-10-21] audit | Limite du point d'étape importé de PR229
+
+Le document de PR229 est incorporé au lot consolidé. Son état du matin reste historique. La recette de production lit la page publique /agences mais ne teste pas la console /admin/liste-attente ni son export ; cette partie est couverte localement seulement. Ne pas présenter cette recette comme une validation exhaustive de la liste d'attente en production.

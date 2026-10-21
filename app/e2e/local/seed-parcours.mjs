@@ -168,14 +168,14 @@ const locataire = createClient(URL_LOCALE, CLE_ANON, { auth: { persistSession: f
 
 const connAdmin = ok(
   "connexion admin.alpha",
-  await admin.auth.signInWithPassword({ email: "admin.alpha@gerimmo-demo.fr", password: MDP })
+  await admin.auth.signInWithPassword({ email: "admin.alpha@example.com", password: MDP })
 );
 const adminId = connAdmin.user.id;
 
 const connLoc = ok(
   "connexion locataire.alpha",
   await locataire.auth.signInWithPassword({
-    email: "locataire.alpha@gerimmo-demo.fr",
+    email: "locataire.alpha@example.com",
     password: MDP,
   })
 );
@@ -286,7 +286,7 @@ if (!ficheLocataire) {
         account_id: locataireUid,
         nom: "Locataire",
         prenom: "E2E",
-        email: "locataire.alpha@gerimmo-demo.fr",
+        email: "locataire.alpha@example.com",
       })
       .select("id, nom, prenom, email")
       .single()
@@ -308,7 +308,7 @@ if (!ficheLocataire) {
 
 // Propriétaire mandant « E2E Mandant », sans compte — personnes.ts /
 // creerPersonne (email obligatoire et unique par agence).
-const EMAIL_MANDANT = "e2e.mandant@gerimmo-demo.fr";
+const EMAIL_MANDANT = "e2e.mandant@example.com";
 let mandant = ok(
   "recherche E2E Mandant",
   await admin
@@ -860,14 +860,14 @@ const superadmin = createClient(URL_LOCALE, CLE_ANON, { auth: { persistSession: 
 ok(
   "connexion artisan.alpha",
   await artisan.auth.signInWithPassword({
-    email: "artisan.alpha@gerimmo-demo.fr",
+    email: "artisan.alpha@example.com",
     password: MDP,
   })
 );
 ok(
   "connexion superadmin",
   await superadmin.auth.signInWithPassword({
-    email: "superadmin@gerimmo-demo.fr",
+    email: "superadmin@example.com",
     password: MDP,
   })
 );
@@ -911,7 +911,7 @@ if (!ficheArtisan) {
       p_raison_sociale: "E2E Plomberie Dubois",
       p_siret: SIRET_ARTISAN,
       p_telephone: "0601020304",
-      p_email: "artisan.alpha@gerimmo-demo.fr",
+      p_email: "artisan.alpha@example.com",
       p_metiers: ["plomberie"],
       p_codes_postaux: ["75012"],
     })
@@ -932,7 +932,7 @@ if (!ficheArtisan.account_id) {
       p_raison_sociale: "E2E Plomberie Dubois",
       p_siret: SIRET_ARTISAN,
       p_telephone: "0601020304",
-      p_email: "artisan.alpha@gerimmo-demo.fr",
+      p_email: "artisan.alpha@example.com",
       p_metiers: ["plomberie"],
       p_codes_postaux: ["75012"],
     })

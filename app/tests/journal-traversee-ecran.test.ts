@@ -37,7 +37,7 @@ vi.mock("@/app/admin/journaux/preuves", () => ({ PreuvesSupervision: () => null 
 import PageJournaux from "../src/app/admin/journaux/page";
 
 const ligne = (action: string, details: Record<string, unknown>) => ({
-  action, details, created_at: "2026-10-14T15:19:00Z", organisation: { name: "Agence Alpha" }, compte: { email: "superadmin@gerimmo-demo.fr" },
+  action, details, created_at: "2026-10-14T15:19:00Z", organisation: { name: "Agence Alpha" }, compte: { email: "superadmin@example.com" },
 });
 async function ecran() {
   return renderToStaticMarkup(createElement("div", null, await PageJournaux({ searchParams: Promise.resolve({}) })));

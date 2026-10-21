@@ -10,7 +10,7 @@ describe.skipIf(!url || !cle)("Recherche étendue par l’API locale", () => {
   afterEach(async () => { for (const c of clients) await c.auth.signOut(); clients.length = 0; });
   it.each(["admin.alpha", "agent.alpha"])("exécute toutes les recherches sans erreur pour %s", async compte => {
     const db = createClient(url!, cle!, { auth: { persistSession: false, autoRefreshToken: false } }); clients.push(db);
-    const auth = await db.auth.signInWithPassword({ email: `${compte}@gerimmo-demo.fr`, password: "Gerimmo-Demo-2026" });
+    const auth = await db.auth.signInWithPassword({ email: `${compte}@example.com`, password: "Gerimmo-Demo-2026" });
     expect(auth.error).toBeNull();
     const role = compte.startsWith("admin") ? "admin_agence" : "agent";
     const org = await db.from("memberships").select("organization_id").eq("account_id", auth.data.user!.id).eq("role", role).limit(1).single();

@@ -60,7 +60,7 @@ depuis le 13/10/2026** (fiches PUB-01 et PUB-02 de l'audit du 13/10) : aucun age
 être invité depuis une organisation ouverte par le site public. Décision du dirigeant du
 20/10 : son agence peut s'inscrire sur la **liste d'attente** du site vitrine (page
 `/agences`) pour être prévenue de l'ouverture de l'offre aux agences ; aucun e-mail n'est
-envoyé, le dirigeant recontacte lui-même. Lot préparé, non déployé à cette date —
+envoyé, le dirigeant recontacte lui-même. Déployé le 20/10 au soir (PR #227) —
 [[Liste d'attente des agences]].
 
 ## Relations

@@ -233,6 +233,7 @@ type Options = {
   recentes?: Reponse;
   /** Les demandes de contact du site vitrine non traitées (`demandes_contact_en_attente`, M16). */
   contacts?: Reponse;
+  agences?: Reponse;
 };
 const MATIN = new Date("2026-10-15T03:05:00Z"); // 5 h 05 à Paris
 const JOUR = "2026-10-15";
@@ -268,6 +269,7 @@ function base(o: Options = {}) {
     prendre_urgences_relais: { data: { pris: false, motif: "rien", en_attente: 0 }, error: null },
     urgences_relais_recentes: o.recentes ?? { data: { urgences: [], total: 0 }, error: null },
     // M16 : aucune demande de contact en attente (une demande traitée n'est pas comptée par la base).
+    agences_en_attente_relais: o.agences ?? { data: { en_attente: 0 }, error: null },
     demandes_contact_en_attente: o.contacts ?? { data: { en_attente: 0, depuis_plus_de_48h: 0 }, error: null },
   };
   const tables: Record<string, unknown[]> = {
@@ -323,8 +325,30 @@ describe("le passage du relais", () => {
     // Le relais du mode vacances est actualisé avant la lecture, comme à chaque passage de mission.
     // Puis la file des urgences est vidée (e-mail immédiat, décision du 15/10), les urgences des dernières 24 h sont lues,
     // et les demandes de contact du site vitrine comptées (M16).
-    expect(b.appels.map(([n]) => n)).toEqual(["reserver_alerte_relais", "traiter_vacances", "prendre_urgences_relais", "sentinelle_relais", "urgences_relais_recentes", "demandes_contact_en_attente", "terminer_alerte_relais"]);
+    expect(b.appels.map(([n]) => n)).toEqual(["reserver_alerte_relais", "traiter_vacances", "prendre_urgences_relais", "sentinelle_relais", "urgences_relais_recentes", "demandes_contact_en_attente", "agences_en_attente_relais", "terminer_alerte_relais"]);
     expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ demandes_contact_en_attente: 0, demandes_contact_48h: 0 });
+  });
+
+  it("les agences en attente ajoutent un seul point, sans exposer leurs coordonnées", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    const corps: string[] = [];
+    vi.stubGlobal("fetch", async (url: unknown, init: RequestInit = {}) => {
+      corps.push(String(init.body ?? ""));
+      return fournisseur.fetch(url, init);
+    });
+    const b = base({ agences: { data: { en_attente: 7, email: "prive@example.com" }, error: null } });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "envoye", points: 1 });
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ agences_en_attente: 7, lectures_impossibles: 0 });
+    expect(JSON.parse(corps[0]).html).toContain("Agences en attente : 7");
+    expect(JSON.parse(corps[0]).html).not.toContain("prive@example.com");
+  });
+
+  it.each([null, { en_attente: "7" }, { en_attente: -1 }, { en_attente: 1.5 }])("un compteur d’agences illisible reste un contrôle impossible (%j)", async data => {
+    const b = base({ agences: { data, error: null } });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ points: 1 });
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ agences_en_attente: 0, lectures_impossibles: 1 });
   });
 
   // M16 (audit du 19/10) : les demandes de contact du site vitrine non traitées font partir l'e-mail (un point au total).

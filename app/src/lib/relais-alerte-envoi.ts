@@ -91,6 +91,12 @@ function contactsLus(v: unknown): ContactsEnAttente | null {
   return { en_attente: entier(r.en_attente), depuis_plus_de_48h: entier(r.depuis_plus_de_48h) };
 }
 
+function agencesLues(v: unknown): { en_attente: number } | null {
+  if (!v || typeof v !== "object" || !("en_attente" in v)) return null;
+  const n = v.en_attente;
+  return typeof n === "number" && Number.isSafeInteger(n) && n >= 0 ? { en_attente: n } : null;
+}
+
 /** Le constat, à partir de la sentinelle de la base et de l'état des missions. Pur, vérifiable. */
 export function constaterRelais(
   sentinelle: Sentinelle | null,
@@ -99,7 +105,8 @@ export function constaterRelais(
   /** Le rappel des urgences des dernières 24 h ; null : illisible ; absent : non demandé. */
   urgences?: { liste: UrgenceRecente[]; total: number } | null,
   /** Les demandes de contact du site vitrine non traitées (M16) ; null : comptage impossible ; absent : non demandé. */
-  contacts?: ContactsEnAttente | null
+  contacts?: ContactsEnAttente | null,
+  agences?: { en_attente: number } | null
 ): ConstatRelais {
   const lecturesImpossibles: string[] = [];
   const arrets = sentinelle
@@ -144,11 +151,13 @@ export function constaterRelais(
     }
   }
   if (urgences === null) lecturesImpossibles.push("Les urgences des dernières 24 h n’ont pas pu être lues.");
+  if (agences === null) lecturesImpossibles.push("Les agences en attente n’ont pas pu être comptées.");
   if (contacts === null) lecturesImpossibles.push("Les demandes de contact du site vitrine n’ont pas pu être comptées.");
   return {
     arrets, alertes, taches, lecturesImpossibles, relaisNonActualise,
     ...(urgences !== undefined ? { urgences } : {}),
     ...(contacts !== undefined ? { contacts } : {}),
+    ...(agences !== undefined ? { agences } : {}),
   };
 }
 
@@ -245,12 +254,14 @@ export async function passerAlerteRelais(options: {
     const recentes = await appeler("urgences_relais_recentes");
     // M16 : les demandes de contact du site vitrine non traitées, en nombre (fonction « traitement seulement »).
     const contacts = await appeler("demandes_contact_en_attente");
+    const agences = await appeler("agences_en_attente_relais");
     const constat = constaterRelais(
       sentinelle.error || !sentinelle.data || typeof sentinelle.data !== "object" ? null : (sentinelle.data as Sentinelle),
       missions,
       Boolean(vacances.error),
       recentes.error ? null : urgencesRecentesLues(recentes.data),
-      contacts.error ? null : contactsLus(contacts.data)
+      contacts.error ? null : contactsLus(contacts.data),
+      agences.error ? null : agencesLues(agences.data)
     );
     const points = pointsDuRelais(constat);
     const urgences = urgencesDuRelais(constat);

@@ -10,7 +10,7 @@ export async function ouvrirCompteDeconnexion(page: Page, persona: string) {
     || !/^http:\/\/(localhost|127\.0\.0\.1):\d{1,5}$/.test(api)) {
     throw new Error("Le compte de déconnexion exige le banc fictif local.");
   }
-  const source = [persona === "proprietaire" ? persona : `${persona}.alpha`, "gerimmo-demo.fr"].join("@");
+  const source = [persona === "proprietaire" ? persona : `${persona}.alpha`, "example.com"].join("@");
   const id = randomUUID();
   const adresse = [`deconnexion-${id}`, "example.invalid"].join("@");
   const motDePasse = randomUUID();

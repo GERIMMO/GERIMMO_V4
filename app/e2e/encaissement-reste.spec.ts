@@ -26,7 +26,7 @@ test('PAY01 : Encaisser le reste transmet sa commande et solde une seule fois le
   await db.query('commit');
   expect((await db.query('select count(*)::int n from encaissements where bail_id=$1',[bail])).rows[0].n).toBe(0);
   await sansSyntheseAlertes(page);await page.goto('/connexion');
-  await page.locator('#email').fill('proprietaire@gerimmo-demo.fr');
+  await page.locator('#email').fill('proprietaire@example.com');
   await page.locator('#mot-de-passe').fill(process.env.E2E_MOT_DE_PASSE??'Gerimmo-Demo-2026');
   await page.getByRole('button',{name:'Se connecter',exact:true}).click();
   await page.waitForURL(/\/(espaces|espace|agence)\//);

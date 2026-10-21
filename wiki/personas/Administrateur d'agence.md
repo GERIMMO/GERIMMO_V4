@@ -56,8 +56,8 @@ l'audit du 13/10 ; code et espace `/agence` conservés) : l'administrateur d'age
 pas ouvrir son organisation depuis le site public. Décision du dirigeant du 20/10 : une
 **liste d'attente** lui est ouverte sur le site vitrine (page `/agences` : nom de l'agence,
 contact, adresse, code postal, tranche de lots) pour être prévenu de l'ouverture de l'offre
-aux agences ; aucun e-mail ne lui est envoyé, le dirigeant le recontacte lui-même. Lot
-préparé, non déployé à cette date — [[Liste d'attente des agences]].
+aux agences ; aucun e-mail ne lui est envoyé, le dirigeant le recontacte lui-même. Déployé
+le 20/10 au soir (PR #227) — [[Liste d'attente des agences]].
 
 ## Relations
 - Encadre les [[Agent immobilier|agents immobiliers]] de son agence.

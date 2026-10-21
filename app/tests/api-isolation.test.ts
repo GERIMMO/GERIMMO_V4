@@ -21,10 +21,10 @@ config({ path: ".env.local" });
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-const ADMIN_A = process.env.TEST_ADMIN_A ?? "admin.alpha@gerimmo-demo.fr";
-const ADMIN_B = process.env.TEST_ADMIN_B ?? "admin.beta@gerimmo-demo.fr";
-const MULTI = process.env.TEST_MULTI ?? "multi@gerimmo-demo.fr";
-const SUPERADMIN = process.env.TEST_SUPERADMIN ?? "superadmin@gerimmo-demo.fr";
+const ADMIN_A = process.env.TEST_ADMIN_A ?? "admin.alpha@example.com";
+const ADMIN_B = process.env.TEST_ADMIN_B ?? "admin.beta@example.com";
+const MULTI = process.env.TEST_MULTI ?? "multi@example.com";
+const SUPERADMIN = process.env.TEST_SUPERADMIN ?? "superadmin@example.com";
 const MOT_DE_PASSE = process.env.TEST_MOT_DE_PASSE ?? "Gerimmo-Demo-2026";
 
 function client(): SupabaseClient {

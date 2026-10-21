@@ -37,6 +37,7 @@ const COMPLET = {
   ZOHO_SIGN_REFRESH_TOKEN: "test",
   ZOHO_SIGN_ENV: "production",
   ZOHO_SIGN_WEBHOOK_SECRET: "test",
+  ZOHO_SIGN_CAUTIONNEMENT_FERME: "1",
   CRON_SECRET: "un-secret",
   SUPABASE_SERVICE_ROLE_KEY: "service",
   OPENAI_API_KEY: "sk-xxx",
@@ -82,6 +83,30 @@ describe("les variables de production", () => {
     const active = etatConfiguration({ ...COMPLET, ZOHO_SIGN_BAIL_ACTIF: "true" }, REGIME);
     expect(active.find((x) => x.cle === "ZOHO_SIGN_CLIENT_ID")!.detail).toContain("envoi réel activé");
     expect(active.find((x) => x.cle === "ZOHO_SIGN_WEBHOOK_SECRET")!.etat).toBe("ok");
+  });
+
+  it("montre les interrupteurs sans divulguer la liste d’essai ni les clés", () => {
+    const org = "10000000-0000-0000-0000-000000000001";
+    const etats = etatConfiguration({ ...COMPLET, SIGNATURE_BAIL_ORGS_ESSAI: org,
+      ZOHO_SIGN_DOCUMENTS_ACTIF: "true", ZOHO_SIGN_DEVIS_ACTIF: "false",
+      ZOHO_SIGN_RELANCES_ACTIVES: " true " }, REGIME);
+    expect(etats.find(v => v.cle === "ZOHO_SIGN_DOCUMENTS_ACTIF")).toMatchObject({ estConnexion: false, detail: expect.stringContaining("interrupteur activé") });
+    expect(etats.find(v => v.cle === "ZOHO_SIGN_DEVIS_ACTIF")?.detail).toBe("interrupteur désactivé");
+    expect(etats.find(v => v.cle === "ZOHO_SIGN_RELANCES_ACTIVES")?.detail).toBe("interrupteur désactivé");
+    expect(etats.find(v => v.cle === "SIGNATURE_BAIL_ORGS_ESSAI")?.detail).toContain("liste explicite configurée");
+    expect(JSON.stringify(etats)).not.toContain(org);
+    expect(JSON.stringify(etats)).not.toContain("sk_live_xxx");
+  });
+
+  it.each(["1", "true", " true "])("rend la fermeture effective du cautionnement pour %s", fermeture => {
+    expect(etatConfiguration({ ...COMPLET, ZOHO_SIGN_CAUTIONNEMENT_FERME: fermeture }, REGIME)
+      .find(v => v.cle === "ZOHO_SIGN_CAUTIONNEMENT_FERME")).toMatchObject({ etat: "ok", detail: expect.stringContaining("suspendu") });
+  });
+
+  it("distingue un cautionnement ouvert d’une liste d’essai invalide", () => {
+    const etats = etatConfiguration({ ...COMPLET, ZOHO_SIGN_CAUTIONNEMENT_FERME: undefined, SIGNATURE_BAIL_ORGS_ESSAI: "*" }, REGIME);
+    expect(etats.find(v => v.cle === "ZOHO_SIGN_CAUTIONNEMENT_FERME")).toMatchObject({ etat: "ok", detail: expect.stringContaining("interrupteur ouvert") });
+    expect(etats.find(v => v.cle === "SIGNATURE_BAIL_ORGS_ESSAI")?.detail).toContain("liste invalide");
   });
 
   it("distingue une clé Stripe de test d'une clé réelle", () => {

@@ -19,7 +19,7 @@ for (const largeur of [390, 1440]) test(`devis : reprise, sauvegarde lente et co
   const preuve: Record<string, unknown> = { largeur, demande, statut: 'en cours' };
   let liberer: (() => void) | undefined;
   try {
-    const { rows: [a] } = await db.query("select a.id, a.account_id from artisans a join auth.users u on u.id=a.account_id where u.email='artisan.alpha@gerimmo-demo.fr'");
+    const { rows: [a] } = await db.query("select a.id, a.account_id from artisans a join auth.users u on u.id=a.account_id where u.email='artisan.alpha@example.com'");
     const { rows: [lot] } = await db.query('select i.organization_id,i.lot_id from incident_sollicitations s join incidents i on i.id=s.incident_id where s.artisan_id=$1 limit 1', [a.id]);
     await db.query("insert into incidents(id,organization_id,lot_id,numero,canal,categorie,description,etat) values($1,$2,$3,$4,'agence','plomberie_canalisation','TEST reprise devis fictif','declare')", [incident, lot.organization_id, lot.lot_id, `TEST-${demande}`]);
     await db.query("insert into incident_consultations(id,organization_id,incident_id,metier,nature_travaux) values($1,$2,$3,'plomberie','entretien_courant')", [consultation, lot.organization_id, incident]);

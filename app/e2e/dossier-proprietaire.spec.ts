@@ -33,6 +33,7 @@ for (const largeur of [390, 1440]) {
     await expect(ouvrir).toHaveAttribute('aria-expanded', 'true');
     expect(await debordementHorizontal(page)).toBe(0);
     await page.goto(page.url().split('#')[0]);
+    await expect(page.getByRole('heading', { name: 'Caractéristiques du logement' })).toBeVisible();
     await page.screenshot({ path: `e2e/.results/dossier-${largeur}.png`, fullPage: true });
   });
 }

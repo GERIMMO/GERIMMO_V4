@@ -8,6 +8,9 @@
  * demande un préavis d'un mois (conditions, article 16). Retirer les passages « agence » avant l'identité,
  * puis retoucher à son arrivée ou après la relecture, rouvrirait deux fois la version.
  *
+ * Le 21/10, le dirigeant demande explicitement de réduire les seules mentions légales.
+ * Cette page est donc exclue du gel ; la version contractuelle et la confidentialité sont conservées.
+ *
  * Retrait : quand l'identité est fournie, `documentsIncomplets()` devient faux et ces tests s'ignorent d'eux-mêmes.
  * Le travail de rédaction déjà fait est conservé dans l'historique git (commits b02ccd9 et 46adcd1) ; il se
  * reprend en annulant le retour arrière qui les écarte.
@@ -31,7 +34,6 @@ describe.runIf(documentsIncomplets())("D32 en attente : l'identité de l'éditeu
 
   it.each([
     ["conditions", "src/app/conditions/page.tsx"],
-    ["mentions légales", "src/app/mentions-legales/page.tsx"],
     ["confidentialité", "src/app/confidentialite/page.tsx"],
   ])("la page « %s » garde la rédaction publiée (les passages « agence » ne sont pas encore retirés)", (_nom, chemin) => {
     expect(/agence/i.test(lire(chemin))).toBe(true);

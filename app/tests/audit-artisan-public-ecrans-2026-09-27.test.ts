@@ -95,10 +95,11 @@ describe("pages légales (mineurs)", () => {
     expect(parNom("Base Adresse Nationale")?.role).toMatch(/adresse/i);
   });
 
-  it("les mentions ne disent plus « hébergées dans l'UE » sans nuance au-dessus de prestataires américains", () => {
+  it("les mentions courtes renvoient aux garanties de confidentialité sans promettre un hébergement exclusivement européen", () => {
     const mentions = lire("app/mentions-legales/page.tsx");
-    const hebergement = mentions.slice(mentions.indexOf('titre="Hébergement"'));
-    expect(hebergement.slice(0, 1200)).toMatch(/hors de[\s\S]{0,20}l&apos;Union/);
+    expect(mentions).not.toMatch(/hébergées dans l&apos;UE/);
+    expect(mentions).toContain('href="/confidentialite"');
+    expect(lire("app/confidentialite/page.tsx")).toMatch(/hors (?:de |de l&apos;)?(?:UE|Union|l&apos;Union)/);
   });
 
   it("le formulaire de la vitrine ne promet plus des données « jamais transmises »", () => {

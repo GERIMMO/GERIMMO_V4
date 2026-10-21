@@ -6478,3 +6478,5 @@ Après un second accord explicite au moment de l'effacement, la migration 202610
 ## [2026-10-21] query | Mentions légales réduites aux informations essentielles
 
 À la demande du dirigeant, la page conserve l’identité complète de l’éditeur, sa forme juridique, sa domiciliation, son immatriculation, sa TVA applicable, son directeur de publication et ses contacts. Le SIRET redondant avec l’immatriculation n’est plus affiché. Les coordonnées des deux hébergeurs sont conservées ; les neuf autres prestataires restent détaillés dans la confidentialité et l’annexe contractuelle. Suppression des développements répétés sur l’activité, la marque blanche, les droits de propriété et le contact. Médiation condensée sans inventer d’organisme ni masquer son absence. Source officielle consultée : https://entreprendre.service-public.gouv.fr/vosdroits/F37351 (mise à jour du 13 octobre 2026).
+
+La CI de cette simplification a identifié deux assertions de rédaction antérieures (paragraphe agences et phrase d’hébergement UE). Elles sont adaptées à la demande explicite du 21 octobre ; la version des conditions, la confidentialité et le contrôle des transferts restent protégés.

@@ -32,6 +32,13 @@ describe("les pages rendent les informations enregistrées", () => {
     expect(html).not.toContain("TVA intracommunautaire");
     expect(html).toContain("aucun organisme n’est désigné");
     expect(html).toContain("Document en cours de finalisation");
+    expect(html).toContain("Vercel");
+    expect(html).toContain("Supabase");
+    expect(html).toContain("Coordonnées fictives");
+    expect(html).not.toContain("OpenAI");
+    expect(html).not.toContain("GitHub");
+    expect(html).not.toContain("Marque blanche");
+    expect(html).toContain('href="/confidentialite"');
   });
   it("conserve la réserve de capital pour une société qui n’en a pas renseigné", async () => {
     lecture.valeurs.forme = "SAS";

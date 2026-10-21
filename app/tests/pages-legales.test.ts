@@ -343,12 +343,12 @@ describe("prestataires saisissables depuis les paramètres (19/10)", () => {
       const src = lire(page);
       const ouverture = src.match(/<CoquilleLegale[\s\S]*?\n\s*>/)?.[0] ?? "";
       expect(ouverture, page).toContain("courriel=");
-      expect(src, page).toContain("prestataires={prestataires}");
+      if (!page.includes("mentions-legales")) expect(src, page).toContain("prestataires={prestataires}");
     }
     const mentions = lire("app/mentions-legales/page.tsx");
     expect(mentions).not.toContain("COORDONNEES_PRESTATAIRES");
-    expect(mentions).toMatch(/<TableauPrestataires prestataires=\{prestataires\} coordonnees \/>/);
-    expect(mentions).toContain("prestatairesIncomplets(prestataires, true)");
+    expect(mentions).toContain("prestatairesAvecFaits(EDITEUR)");
+    expect(mentions).toContain("prestatairesIncomplets(hebergeurs, true)");
     // La confidentialité n'affiche pas les coordonnées : réserve sur les seules localisations.
     expect(lire("app/confidentialite/page.tsx")).toContain("prestatairesIncomplets(prestataires)");
   });

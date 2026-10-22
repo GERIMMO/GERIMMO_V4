@@ -6578,3 +6578,13 @@ production : aucune vulnérabilité ; 92 tests ciblés et build webpack complet
 réussis après mise à jour. Contrôle CI conservé. Le test du premier déploiement
 isolé neutralise explicitement les secrets locaux injectés par la CI.
 Aucun déploiement de la révision vulnérable n'a été relancé en préproduction.
+
+Premier déploiement isolé 214c595 Ready, protection anonyme vérifiée sur
+la connexion, l'alias d'environnement et /api/sante. Les redirections Auth de
+hlkbvmfybxwqathchsdz restent uniquement sur son origine de préproduction.
+Comptages après raccordement : zéro compte, organisation, document, fichier ou
+tâche active. La CI est relancée après un téléchargement système anormalement
+lent ; installation des navigateurs réussie sur le nouvel exécuteur.
+Relecture finale : un certificat correct pouvait masquer l'usage du contrat
+comme certificat d'un autre signataire. Deux cas reproduisent le faux positif,
+puis vérifient son refus avant toute lecture de fichier après correction.

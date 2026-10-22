@@ -24,8 +24,8 @@ export async function verifierArchivesSignature(circuit:CircuitConservation,docu
   const refus=(motif:string):ControleArchives=>({ok:false,fichiers:0,motif});
   if(circuit.etat!=="termine"||!UUID.test(circuit.organization_id)||!circuit.document_signe||!UUID.test(circuit.document_signe))return refus("circuit_non_archive");
   if(!signatairesArchivesValides(circuit.signataires))return refus("certificat_manquant");
+  if(circuit.signataires.some(s=>s.preuveDocumentId===circuit.document_signe))return refus("certificat_distinct_manquant");
   const ids=[...new Set([circuit.document_signe,...circuit.signataires.map(s=>s.preuveDocumentId!)])];
-  if(ids.length<2)return refus("certificat_distinct_manquant");
   let fichiers=0;
   for(const id of ids){
     const matches=documents.filter(d=>d.id===id);

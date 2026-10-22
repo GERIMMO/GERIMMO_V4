@@ -37,6 +37,8 @@ les documents Zoho créés hors Gerimmo ne sont pas inventoriés par ce contrôl
 Le contrôle relit le PDF signé et les certificats, vérifie leur organisation,
 leur présence, leur taille, leur en-tête PDF et leur SHA-256 enregistré.
 Un certificat commun à plusieurs signataires n'est téléchargé qu'une fois.
+Chaque signataire doit référencer un certificat distinct du contrat : le certificat
+valide d'un autre signataire ne masque pas un rattachement erroné au contrat.
 Le résultat navigateur et le journal ne contiennent aucun fichier, chemin,
 nom de signataire ou contenu documentaire.
 
@@ -103,7 +105,7 @@ Les nombres, les versions rejouées et les liens de remédiation sont conservés
 Les migrations ne doivent pas être rejouées à nouveau sur cette branche ni
 fusionnées automatiquement vers la production.
 
-## Raccordement web restant
+## Raccordement web et limites
 
 L'accès normal Vercel est rétabli dans la discussion de reprise autorisée.
 Le dirigeant a validé lui-même le contrôle à deux facteurs GitHub le 22 octobre.
@@ -112,7 +114,23 @@ forfait existant, sans domaine, sans variable importée ni variable partagée li
 Il contient uniquement `GERIMMO_PREPRODUCTION_VALIDEE=1`, l'URL Supabase isolée et
 sa clé publiable. Aucun secret privilégié ou de service externe n'est installé.
 La protection existante « Vercel Authentication / Standard Protection » est active.
-Son efficacité sur l'URL livrée reste à vérifier après déploiement.
+Son efficacité est vérifiée pour le premier déploiement décrit ci-dessous.
+
+Premier raccordement vérifié le 22 octobre : révision `214c595` en état Ready,
+à `https://gerimmo-v4-at2v9iaqt-gerimmo.vercel.app`. Connexion, route de santé
+et alias de l'environnement renvoient le visiteur anonyme vers Vercel SSO.
+Avec l'accès Vercel autorisé, la page Connexion s'affiche et ses adresses canonical
+et Open Graph restent isolées. Le Site URL Supabase et son unique retour
+`/auth/confirm` pointent vers ce déploiement ; les destinations héritées ont été
+retirées uniquement de la branche. Ces adresses sont à actualiser lors du prochain
+déploiement. La santé privilégiée indique la clé de service absente, comme prévu.
+Zéro compte, organisation, document, fichier ou tâche active confirmé après
+raccordement. La branche reste `persistent: false`.
+
+La CI de cette révision a été relancée après plus de vingt minutes de
+téléchargement des bibliothèques système ; leur installation a réussi à la
+deuxième tentative. La relecture finale ajoute ensuite deux cas de non-régression
+sur le certificat de chaque signataire : les deux cas échouaient avant correction.
 
 Étapes de raccordement :
 

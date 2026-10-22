@@ -8,6 +8,12 @@ const document=(id:string):ArchiveConservation=>({id,organization_id:org,storage
 const circuit={id:pdf,organization_id:org,etat:"termine",document_signe:pdf,signataires:[{statut:"signed",preuveDocumentId:preuve},{statut:"signed",preuveDocumentId:preuve}]};
 describe("vérification des archives avant suppression d'une copie",()=>{
   it("relit le contrat et le certificat partagé une seule fois",async()=>{const lire=vi.fn(async()=>new Blob([contenu]));expect(await verifierArchivesSignature(circuit,[document(pdf),document(preuve)],lire)).toMatchObject({ok:true,fichiers:2});expect(lire).toHaveBeenCalledTimes(2);});
+  it.each([0,1])("refuse le contrat comme certificat du signataire %i, même si l'autre certificat existe",async index=>{
+    const signataires=circuit.signataires.map((s,i)=>i===index?{...s,preuveDocumentId:pdf}:s);
+    const lire=vi.fn(async()=>new Blob([contenu]));
+    expect(await verifierArchivesSignature({...circuit,signataires},[document(pdf),document(preuve)],lire)).toMatchObject({ok:false,motif:"certificat_distinct_manquant"});
+    expect(lire).not.toHaveBeenCalled();
+  });
   it.each(["empreinte","taille","absent","purge","organisation","certificat"])("refuse une archive %s invalide",async cas=>{
     const docs=[document(pdf),document(preuve)];
     if(cas==="empreinte")docs[0].empreinte="a".repeat(64);

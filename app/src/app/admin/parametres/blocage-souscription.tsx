@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { reglerBlocageSouscription } from "@/app/actions/reglage-souscription";
 
@@ -28,9 +29,9 @@ export function BlocageSouscription({ actif, revision, manquants }: {
         : <form action={action} data-saisie-confirmee>
           <input type="hidden" name="revision" value={revision} />
           <input type="hidden" name="blocage" value={actif ? "lever" : "activer"} />
-          <button type="submit" className={actif ? "btn-or" : "btn-secondaire"} disabled={pending}>
-            {pending ? "Enregistrement…" : actif ? "Lever le blocage" : "Réactiver le blocage"}
-          </button>
+          <BoutonEnvoi className={actif ? "btn-or" : "btn-secondaire"} enCours={pending} enCoursTexte="Enregistrement…">
+            {actif ? "Lever le blocage" : "Réactiver le blocage"}
+          </BoutonEnvoi>
         </form>}
       {etat.erreur && <p role="alert" className="err">{etat.erreur}</p>}
       {etat.succes && <p role="status">{etat.succes}</p>}

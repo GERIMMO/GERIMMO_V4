@@ -1,5 +1,7 @@
 # Index — Wiki métier Gerimmo
 
+- [Publication du 23 octobre — PR 241](https://github.com/GERIMMO/GERIMMO_V4/pull/241) — bouton de souscription, signatures et conservation ; sauvegarde et deux migrations vérifiées, résultat final de publication consigné dans la PR.
+
 Catalogue de tout le wiki : lien + accroche courte. Mis à jour à chaque ingest.
 Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 

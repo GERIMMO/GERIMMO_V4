@@ -25,7 +25,7 @@ export function BlocageSouscription({ actif, revision, manquants }: {
       <p className="text-sm text-[var(--texte-secondaire)]">Les contrôles Stripe, les montants, la confirmation du client et l’acceptation des conditions restent obligatoires. Aucun paiement n’est déclenché par ce bouton.</p>
       {revision === null
         ? <p role="alert" className="err">Réglage indisponible. Rechargez la page avant de modifier.</p>
-        : <form action={action}>
+        : <form action={action} data-saisie-confirmee>
           <input type="hidden" name="revision" value={revision} />
           <input type="hidden" name="blocage" value={actif ? "lever" : "activer"} />
           <button type="submit" className={actif ? "btn-or" : "btn-secondaire"} disabled={pending}>

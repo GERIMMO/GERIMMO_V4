@@ -1,5 +1,9 @@
 # Signatures, conservation et expéditeur — 22 octobre 2026
 
+## Publication du 23 octobre 2026
+
+Le dirigeant a demandé la publication de l’ensemble. Les deux migrations `20261022210326` et `20261022213731` sont appliquées après sauvegarde, simulation et contrôle en lecture seule. Le blocage reste actif ; les quatre nouvelles purges restent désactivées. Les anciens statuts « local » ci-dessous décrivent la recette du 22 octobre. La validation finale et le déploiement de l’interface sont suivis dans [la PR 241](https://github.com/GERIMMO/GERIMMO_V4/pull/241), sans présumer leur réussite.
+
 ## Périmètre et statut
 
 Travail demandé : points 2 à 5, en autonomie. Essais locaux avec données fictives ; aucune publication, modification de données métier de production, invitation de signature ou dépense dans ce lot. Le bouton de levée du blocage des abonnements préparé auparavant reste distinct et local.

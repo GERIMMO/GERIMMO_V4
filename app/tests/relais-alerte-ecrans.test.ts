@@ -124,6 +124,7 @@ describe("l'écran Santé et l'alerte e-mail du relais", () => {
         const q: Record<string, unknown> = {};
         for (const m of ["select", "like", "in", "is", "gte", "order", "limit", "eq"]) q[m] = () => q;
         q.maybeSingle = () => Promise.resolve({ data: { valeurs: {}, revision: 1 }, error: null });
+        q.single = () => Promise.resolve({ data: null, error: null });
         q.then = (ok: (r: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(ok);
         return q;
       },

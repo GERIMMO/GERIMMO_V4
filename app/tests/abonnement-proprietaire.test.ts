@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => ({
   editeur: { editeur: {} as Record<string, string | null>, indisponible: false },
   /** Vrai si le compte a une acceptation enregistrée pour la version en vigueur des conditions. */
   conditionsAcceptees: true,
+  blocageIdentiteActif: true,
 }));
 vi.mock("@/lib/espace", () => ({
   verifierAccesEspace: async () => ({
@@ -62,6 +63,7 @@ vi.mock("@/lib/stripe", () => ({
   clientStripe: vi.fn(),
 }));
 vi.mock("@/lib/editeur-serveur", () => ({ lireEditeur: async () => mocks.editeur }));
+vi.mock("@/lib/reglage-souscription-serveur", () => ({ lireReglageSouscription: async () => ({ blocageIdentiteActif: mocks.blocageIdentiteActif, revision: 1, indisponible: false }) }));
 vi.mock("@/app/actions/abonnement", () => ({ accepterConditionsGenerales: vi.fn(), demarrerAbonnement: vi.fn(), confirmerHausse: vi.fn(), demanderPeriodicite: vi.fn(), ouvrirPortailAbonnement: vi.fn(), resilierAbonnement: vi.fn() }));
 import { PageAbonnement2026 } from "@/app/agence/[orgId]/abonnement/abonnement-2026";
 
@@ -78,6 +80,7 @@ beforeEach(() => {
   mocks.stripePret = false;
   mocks.editeur = { editeur: EDITEUR_COMPLET, indisponible: false };
   mocks.conditionsAcceptees = true;
+  mocks.blocageIdentiteActif = true;
 });
 afterEach(() => vi.useRealTimers());
 async function rendre(recherche: Record<string, string> = {}) {
@@ -208,5 +211,21 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     expect(html).toContain("Le paiement en ligne n&#x27;est pas encore ouvert. Écrivez-nous");
     expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
+  });
+  it("blocage levé : l’identité incomplète permet le paiement mais les conditions restent requises", async () => {
+    mocks.stripePret = true;
+    mocks.editeur = { editeur: EDITEUR_VIDE, indisponible: false };
+    mocks.blocageIdentiteActif = false;
+    mocks.conditionsAcceptees = false;
+    const html = await rendre();
+    expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
+    expect(html).toContain("Continuer vers le paiement sécurisé");
+    expect(html).toContain(INFOBULLE_CONDITIONS);
+  });
+  it("blocage levé : une configuration Stripe absente ferme toujours le paiement", async () => {
+    mocks.blocageIdentiteActif = false;
+    const html = await rendre();
+    expect(html).not.toContain("Continuer vers le paiement sécurisé");
+    expect(html).toContain("Le paiement en ligne n&#x27;est pas encore ouvert. Écrivez-nous");
   });
 });

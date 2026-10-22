@@ -17,6 +17,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 
 ## Processus
 - [[Demandes sur les données et fermeture de compte]] — demande privée, délai initial, réponses et historique ; procédure contrôlée incluant les copies Zoho ; courriel professionnel et rappels de signature préparés le 21 octobre.
+- [[Courriel de contact Gerimmo]] — transfert de la boîte contact vers le Gmail du dirigeant, pièces jointes et adresse de réponse ; connexion préparée le 22 octobre, activation et réception réelle à confirmer.
 - [[Cycle de vie d'un incident]] — déclaration → qualification → intervention → clôture.
 - [[Demande et sélection de devis]] — mise en concurrence des artisans.
 - [[Invitation d'un artisan par un propriétaire]] — **16/10, brouillon** : en production (PR #194, `f24dfb0`, migrations `20261014840000` à `…849000`) : le propriétaire direct invite par e-mail, l'artisan crée son compte, inscrit son entreprise et accepte, Gerimmo valide, sollicitation même en commune fermée dans la zone de l'artisan ; réglages par défaut (30 jours, plafonds d'envoi, aucune relance) ; « première confirmation » contre la prise de compte par pré-inscription ; **réglages Supabase hors dépôt non faits**, parcours jamais joué en production, recette n° 17 verte (38875612888) ; `invitations_artisans` toujours sans durée de conservation au catalogue (la PR #195 ne la couvre pas).

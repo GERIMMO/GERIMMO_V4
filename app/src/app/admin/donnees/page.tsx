@@ -5,6 +5,7 @@ import { PREFIXE_DEMANDE_DONNEES, echeanceDemandeDonnees } from "@/lib/demandes-
 import { ETATS_RETOUR, pageRetour, type RetourUtilisateur } from "@/lib/retours";
 import { formaterDateParis } from "@/lib/heure-paris";
 import { DecisionRetour } from "../retours/decisions-retour";
+import { ControleArchivesSignatures } from "./archives";
 export const metadata = { title: "Données personnelles et fermeture des comptes" };
 const ETAPES = [
   ["Qualifier la demande", "Vérifier le titulaire connecté, les données concernées et le responsable de traitement. Ne demander une pièce supplémentaire qu’en cas de doute justifié. Répondre sous un mois ; expliquer toute prolongation dans ce délai."],
@@ -31,6 +32,7 @@ export default async function PageDonneesAdmin({ searchParams }: { searchParams:
     <Link className="lien-discret" href="/admin/securite">← Sécurité et conformité</Link>
     <header><p className="eyebrow">Confidentialité et comptes</p><h1>Demandes sur les données</h1><p className="mt-2 text-muted-foreground">Une file privée, de la demande à la réponse. Les opérations d’effacement restent contrôlées et tracées.</p></header>
     <div className="flex flex-wrap gap-3"><Link className="btn-secondaire" href="?etat=ouvert" aria-current={!terminees?"page":undefined}>À traiter</Link><Link className="btn-secondaire" href="?etat=resolu" aria-current={terminees?"page":undefined}>Terminées</Link><Link className="lien-discret" href="/admin/journaux#conservation">Durées et nettoyages</Link><Link className="lien-discret" href="/admin/sante#sauvegarde">Dernière sauvegarde</Link></div>
+    <ControleArchivesSignatures />
     <section aria-label="Demandes privées" className="space-y-4">
       {r.error?<p role="alert" className="err">Lecture indisponible : aucun total ni statut ne peut être confirmé.</p>:<p className="text-sm">{r.count ?? 0} demande{r.count===1?"":"s"} {terminees?"terminée(s)":"à traiter"}.</p>}
       {demandes.map(d=>{const limite=echeanceDemandeDonnees(d.cree_le);const retard=!terminees&&!d.reponse&&limite&&limite<aujourdHui;return <article key={d.id} className="loc-carte space-y-3">

@@ -267,3 +267,5 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - [[Préparation fonctionnelle — 21 octobre 2026]] — publication PR231, contrôles consolidés et décision de retrait des comptes d'essai ; effacement des dix comptes confirmé, superadmin et publications conservés ; contrôle final en cours.
 
 - **21/10 — Mentions légales essentielles** : identification et contacts obligatoires, hébergement, médiation concise ; renvois vers les conditions et la confidentialité. Voir le journal du 21 octobre.
+
+- [[Conservation et exploitation — 22 octobre 2026]] — base séparée reconstruite sans comptes ni dossiers ; contrôles d'archives, de sauvegarde et d'isolation préparés localement. SMTP Resend arrêté sur la branche isolée ; inventaire des 29 règles de conservation et contradictions documentées. Raccordement Vercel, redirections Auth, revue des permissions et validation des durées encore ouverts.

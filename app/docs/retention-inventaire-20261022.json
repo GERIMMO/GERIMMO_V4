@@ -1,0 +1,267 @@
+{
+  "date": "2026-10-22",
+  "source": "Lecture seule de la base isolée reconstruite hlkbvmfybxwqathchsdz ; ne constitue pas une validation juridique ni un relevé en direct de production.",
+  "regles": [
+    {
+      "data_type": "alerte:traitee",
+      "libelle": "Alertes traitées",
+      "finalite": "Historique opérationnel court",
+      "declencheur": "Fermeture de l'alerte",
+      "duree_mois": 12,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "document:attestation_assurance",
+      "libelle": "Attestations d'assurance",
+      "finalite": "Preuve des diligences du gérant",
+      "declencheur": "Fin du bail",
+      "duree_mois": 60,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "document:autre",
+      "libelle": "Autres documents",
+      "finalite": "Gestion courante",
+      "declencheur": "Dépôt",
+      "duree_mois": 60,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "document:bail",
+      "libelle": "Baux",
+      "finalite": "Prescription des actions nées du bail",
+      "declencheur": "Fin du bail",
+      "duree_mois": 60,
+      "sort": "anonymisation",
+      "actif": true
+    },
+    {
+      "data_type": "document:courrier",
+      "libelle": "Courriers",
+      "finalite": "Suivi de la relation locative",
+      "declencheur": "Fin du bail",
+      "duree_mois": 60,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "document:diagnostic",
+      "libelle": "Diagnostics",
+      "finalite": "Gestion du bien (décision 2026-07-25 : gestion + 5 ans)",
+      "declencheur": "Fin de gestion du bien",
+      "duree_mois": 60,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "document:document_test",
+      "libelle": "Documents de test (recette)",
+      "finalite": "Vérification de la mécanique de purge",
+      "declencheur": "Dépôt",
+      "duree_mois": 0,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "document:etat_des_lieux",
+      "libelle": "États des lieux",
+      "finalite": "Prescription des actions nées du bail",
+      "declencheur": "Fin du bail",
+      "duree_mois": 60,
+      "sort": "anonymisation",
+      "actif": true
+    },
+    {
+      "data_type": "document:justificatif",
+      "libelle": "Justificatifs (revenus, imposition)",
+      "finalite": "Constitution du dossier locataire",
+      "declencheur": "Fin du dernier bail",
+      "duree_mois": 60,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "document:mandat",
+      "libelle": "Mandats de gestion",
+      "finalite": "Prescription contractuelle",
+      "declencheur": "Fin du mandat",
+      "duree_mois": 60,
+      "sort": "anonymisation",
+      "actif": true
+    },
+    {
+      "data_type": "document:photo_incident",
+      "libelle": "Photos d'incident",
+      "finalite": "Documentation des interventions",
+      "declencheur": "Clôture de l'incident",
+      "duree_mois": 24,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "document:piece_identite",
+      "libelle": "Pièces d'identité (dossier)",
+      "finalite": "Constitution du dossier locataire",
+      "declencheur": "Fin du dernier bail",
+      "duree_mois": 60,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "document:quittance",
+      "libelle": "Quittances",
+      "finalite": "Obligation comptable",
+      "declencheur": "Émission",
+      "duree_mois": 120,
+      "sort": "anonymisation",
+      "actif": true
+    },
+    {
+      "data_type": "document:rapport_gestion",
+      "libelle": "Rapports de gestion",
+      "finalite": "Obligation comptable",
+      "declencheur": "Émission",
+      "duree_mois": 120,
+      "sort": "anonymisation",
+      "actif": true
+    },
+    {
+      "data_type": "document:reglement_copropriete",
+      "libelle": "Règlements de copropriété (annexe du bail)",
+      "finalite": "Prescription des actions nées du bail",
+      "declencheur": "Fin du bail",
+      "duree_mois": 60,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:acces_pieces",
+      "libelle": "Journal d'accès aux pièces",
+      "finalite": "Contrôle des consultations de pièces sensibles",
+      "declencheur": "Consultation",
+      "duree_mois": 12,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:agent_passages",
+      "libelle": "Passages des équipes IA",
+      "finalite": "Suivre l’exécution des automatismes et diagnostiquer leurs échecs",
+      "declencheur": "Début du passage",
+      "duree_mois": 6,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:audit_log",
+      "libelle": "Journal d'audit",
+      "finalite": "Traçabilité des actions sensibles (recommandation CNIL)",
+      "declencheur": "Action",
+      "duree_mois": 36,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:brief_direction_snapshots",
+      "libelle": "Faits de direction",
+      "finalite": "Réunir à la demande les chiffres et liens de pilotage, sans nom de personne",
+      "declencheur": "Génération des faits",
+      "duree_mois": 6,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:cron_job_run_details",
+      "libelle": "Exécutions du planificateur de la base",
+      "finalite": "Suivre les passages et échecs des tâches planifiées sans conserver indéfiniment leur journal",
+      "declencheur": "Fin du passage",
+      "duree_mois": 6,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:decisions_du_matin",
+      "libelle": "Décisions proposées dans le point du matin",
+      "finalite": "Proposer à la direction les décisions qui l’attendent et garder la trace de sa réponse",
+      "declencheur": "Création de la décision",
+      "duree_mois": 6,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:ia_appels_jour",
+      "libelle": "Compteur quotidien des appels payants à l’IA",
+      "finalite": "Appliquer la limite quotidienne des appels payants à l’IA et en suivre l’usage",
+      "declencheur": "Jour des appels",
+      "duree_mois": 6,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:points_du_matin",
+      "libelle": "Points du matin",
+      "finalite": "Présenter chaque matin à la direction l’état des équipes IA",
+      "declencheur": "Génération du point",
+      "duree_mois": 6,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:relais_alertes_envois",
+      "libelle": "Passages de l’alerte e-mail du relais",
+      "finalite": "Envoyer au plus un e-mail du relais par jour et suivre ses échecs",
+      "declencheur": "Jour du passage",
+      "duree_mois": 6,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:relais_urgences",
+      "libelle": "File des urgences du relais",
+      "finalite": "Envoyer sur le moment les urgences du mode vacances et garder la trace de leur envoi",
+      "declencheur": "Traitement de l’urgence",
+      "duree_mois": 6,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:relais_urgences_envois",
+      "libelle": "E-mails immédiats des urgences du relais",
+      "finalite": "Limiter les envois en rafale et reprendre un envoi interrompu",
+      "declencheur": "Début de l’envoi",
+      "duree_mois": 6,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:supervision_operations",
+      "libelle": "Gestes de la supervision",
+      "finalite": "Retrouver l’historique des consignes, des vacances et des arrêts d’urgence",
+      "declencheur": "Date de l’opération",
+      "duree_mois": 6,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "journal:tech_log",
+      "libelle": "Journal technique",
+      "finalite": "Diagnostic des incidents techniques et sécurité",
+      "declencheur": "Événement",
+      "duree_mois": 6,
+      "sort": "suppression",
+      "actif": true
+    },
+    {
+      "data_type": "support:bug",
+      "libelle": "Signalements de problème",
+      "finalite": "Diagnostiquer les problèmes du site et suivre leur traitement",
+      "declencheur": "Date du signalement",
+      "duree_mois": 6,
+      "sort": "suppression",
+      "actif": true
+    }
+  ]
+}

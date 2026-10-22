@@ -6491,6 +6491,104 @@ Après accords précis : création de `contact@gerimmo.app` dans Resend, un seul
 
 À la demande « Faisons ça, ça me convient », préparation du webhook Resend limité à la boîte contact. Destination administrée, vérification Svix, préservation du MIME, adresse de réponse d'origine, clé d'idempotence et refus de reprise aveugle après 23 h. Aucun nouvel envoi fictif ni donnée métier créée. Activation conditionnée au secret de webhook dans Vercel et au droit de lecture de la clé Resend existante. Voir [[Courriel de contact Gerimmo]] et la procédure technique.
 
+## [2026-10-22] dev | Conservation des signatures et base de préproduction isolée
+
+À la demande « Fais 4 et 5 », puis après autorisation du rejeu des 241 migrations
+dans la seule base preproduction, pause et reprise explicites, reconstruction
+achevée sur hlkbvmfybxwqathchsdz. Zéro compte, espace, bien, bail, document ou
+fichier client ; dix tâches arrêtées. Structure, politiques et droits comparés
+avec la production. Le registre de 469 entrées comprend les lots de reconstruction.
+La branche est ACTIVE_HEALTHY, encore non persistante selon ses métadonnées.
+Aucune écriture dans la base de production ni création fictive.
+
+Code local : contrôle des archives réservé au superadmin, journal agrégé,
+surveillance de la sauvegarde exigeant la relecture distante dans la même
+tentative, garde de la préproduction au build et au démarrage. Pas de suppression
+Zoho. 70 tests Vitest et 12 tests Node réussis, lint, types et compilation webpack
+réussis. Pas de recette authentifiée, de CI distante ou de publication de ce lot.
+
+L'accès Vercel reste bloqué par une préférence navigateur malgré l'accord précis
+du dirigeant ; accès à la page des installations GitHub également refusé.
+Raccordement de l'aperçu et revue des permissions non exécutés. Voir
+[[Conservation et exploitation — 22 octobre 2026]] pour les limites et la reprise.
+
+## [2026-10-22] fix | Contrôles autonomes et reprise des vérifications d'archives
+
+À la demande « Tu peux faire autre chose en autonomie ? », quatre défauts locaux
+reproduits puis corrigés : signataire JSON mal formé, curseur de reprise non
+textuel accepté par conversion implicite, interruption de tout le lot après
+l'erreur d'un dossier, perte du résultat si le journal lève une exception.
+L'écran conserve désormais les résultats et la reprise après un échec.
+Les lectures partagent une limite de 40 secondes, sans cache documentaire.
+78 tests ciblés réussis, dont quatre essais du SDK avec transport mémoire :
+aucun compte ou dossier fictif créé. Lint et types réussis.
+
+Lecture publique le 22 octobre à 11 h 53 Paris : treize pages HTTP 200,
+point de santé et connexion à la base confirmés, aucun formulaire soumis.
+Audit npm des dépendances livrées : zéro vulnérabilité connue.
+Ces contrôles ne remplacent pas une recette privée ou un audit exhaustif.
+Aucun accès aux réglages Vercel/GitHub refusés n'a été retenté, aucune publication.
+
+## [2026-10-22] audit | Préproduction Auth et matrice de conservation
+
+À la demande « faisons ce qu'il reste a faire », lecture des 29 règles de
+retention_rules dans la base isolée et des fonctions de purge, sans exécution.
+Inventaire versionné dans app/docs/retention-inventaire-20261022.json.
+Sources officielles CNIL et Service Public consultées : correction des
+généralisations sur le délai des baux et celui des journaux d'audit dans le wiki.
+Le défaut historique des purges du relais en dur est déjà corrigé par T12 ;
+les suppressions à 24 mois hors catalogue restent à qualifier.
+Aucune nouvelle règle ni purge activée, aucune modification de durée.
+
+Interface Supabase : la branche preproduction avait repris le Site URL public,
+trois redirections et le SMTP Resend actif. SMTP personnalisé désactivé uniquement
+sur hlkbvmfybxwqathchsdz ; état persistant confirmé après rechargement et capture
+enregistrée hors dépôt. Modèles personnalisés réinitialisés selon l'avertissement
+Supabase ; service SMTP interne limité encore possible. Aucun e-mail envoyé.
+Comptage SQL : zéro compte/document/fichier, zéro tâche active.
+Redirections et pérennité de la branche encore à finaliser.
+
+Le dirigeant a demandé de l'aide sur les autorisations navigateur : chemin
+Réglages > Navigateur > Autorisations de l'agent vérifié dans la documentation
+officielle OpenAI. Après « c'est fait », une nouvelle tentative par site retourne
+encore une préférence bloquante pour Vercel et GitHub. Aucun contournement.
+La production reste inchangée, aucune publication.
+
+## 22 octobre 2026 — reprise dans Gerimmo final
+
+Reprise autorisée des trois commits de conservation sur main cc53dd7 dans un
+checkout séparé, sans modifier les autres travaux. Accès Vercel normal disponible ;
+validation à deux facteurs GitHub effectuée directement par le dirigeant.
+Les quatre GitHub Apps et leurs droits sont inventoriés dans
+app/docs/conservation-et-preproduction.md ; aucune extension de permissions acceptée.
+Préproduction Vercel créée dans le quota inclus, avec seulement l'URL et la clé
+publiable de la base isolée et le drapeau de validation. Aucun secret Production
+importé ni domaine public attaché. Correction du premier build : l'adresse du
+déploiement est incorporée après contrôle, sans repli vers le site public.
+92 tests Vitest ciblés et 13 tests Node réussis, ESLint complet sans erreur,
+build webpack réussi avec contrôle TypeScript et 65 pages statiques.
+Le premier contrôle TypeScript avant build manquait des types générés Next ;
+le build les a produits puis validés. Aucun compte ni donnée métier créé.
+Voir [[Conservation et exploitation — 22 octobre 2026]].
+
+Publication préparée dans la PR 239 : le premier passage CI bloque sur des
+vulnérabilités de Next.js 16.3.8. Mise à jour ciblée vers Next.js et
+eslint-config-next 16.4.2, sharp résolu à 0.35.5. Audit des dépendances de
+production : aucune vulnérabilité ; 92 tests ciblés et build webpack complet
+réussis après mise à jour. Contrôle CI conservé. Le test du premier déploiement
+isolé neutralise explicitement les secrets locaux injectés par la CI.
+Aucun déploiement de la révision vulnérable n'a été relancé en préproduction.
+
+Premier déploiement isolé 214c595 Ready, protection anonyme vérifiée sur
+la connexion, l'alias d'environnement et /api/sante. Les redirections Auth de
+hlkbvmfybxwqathchsdz restent uniquement sur son origine de préproduction.
+Comptages après raccordement : zéro compte, organisation, document, fichier ou
+tâche active. La CI est relancée après un téléchargement système anormalement
+lent ; installation des navigateurs réussie sur le nouvel exécuteur.
+Relecture finale : un certificat correct pouvait masquer l'usage du contrat
+comme certificat d'un autre signataire. Deux cas reproduisent le faux positif,
+puis vérifient son refus avant toute lecture de fichier après correction.
+
 ## [2026-10-22] audit | Contrôle indépendant des livraisons de Codex des 21 et 22 octobre (PR #230 à #236)
 
 À la demande du dirigeant du 22/10 (« Fais », puis « fais la PR pour le wiki »), contrôle en lecture seule des six PR de Codex fusionnées depuis `4ba53f5` : #230 `804a6da`, #231 `fe149d6`, #232 `7092eb4`, #234 `e0d366b`, #235 `79d8637`, #236 `cc53dd7`. Huit lecteurs indépendants puis un contradicteur par constat sérieux : 21 examinés, 20 confirmés, 1 réfuté, aucun bloquant. Conforme : fusions au SHA de tête exact, CI verte sur chaque tête et sur `main`, migrations `20261021133650`, `20261021140836` et `20261021175930` passées par le chantier (sauvegardes 39647271883 et 39651051766, simulations 39647465679 et 39650919924, applications 39648103765 et 39651969057, COMMIT), aucune adresse personnelle ni secret ajouté, aucun test affaibli, journal en ajout seul, recette n° 30 (39656877362) verte sur `7092eb4`, Vercel READY pour les six, 0 erreur d'exécution sur 24 h. Écarts importants : aucune recette de production après #234, #235 et #236 ; modules artisans « clients externes » et « règlements » ouverts en production sur un message général sans accord nommant le module ni le SHA ; relances Zoho activées sans citation d'accord ni recette Zoho sur comptes fictifs ; cautionnement rouvert à l'inverse de D2 (décision consignée) ; migration d'effacement appliquée depuis `c63303f` avant CI verte et avant la tête fusionnée `9861f1c` (fichier identique) ; journal sans entrée `deploy` pour les trois dernières fusions, numéros de CI décalés, transfert du courriel de contact actif en production sans journal ; mentions légales : section de signalement retirée sans le dire, bandeau « en cours de finalisation » maintenu, e-mail de l'éditeur personnel alors que `contact@gerimmo.app` existe. Relevé SQL du 22/10 à 12 h 40 UTC : 403 versions (dernière `20261021175930`), 1 compte, 1 super-administrateur, 0 organisation, 0 artisan, 0 agence, `artisan_modules_locaux` à vrai pour `clients` et `reglements`, 10 objets Storage, 15 publications, 10 tâches `pg_cron`, relais de 5 h `envoye` le 22/10. Page [[Contrôle des livraisons de Codex — 22 octobre 2026]] créée ; callouts datés posés sur [[Recette de production]], [[Prêt à démarcher]] et [[Calendrier de lancement — 30 novembre 2026]] (règle des cinq comptes remplacée, modules et interrupteurs ouverts, lignes non passées en « fait ») ; `index.md` mis à jour. Non relevé : valeurs des variables Vercel, tableaux Resend et Zoho.

@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: disponibilite-publique
@@ -33,4 +34,18 @@ jobs:
           name: disponibilite-publique
           path: ${{ runner.temp }}/disponibilite.json
           if-no-files-found: warn
+          retention-days: 7
+      - name: Contrôler la fraîcheur de la sauvegarde indépendamment de Gerimmo
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GERIMMO_BILAN_SAUVEGARDE: ${{ runner.temp }}/sauvegarde.json
+        run: node app/scripts/surveillance/sauvegarde.mjs
+      - name: Conserver le contrôle de sauvegarde
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: controle-sauvegarde
+          path: ${{ runner.temp }}/sauvegarde.json
+          if-no-files-found: error
           retention-days: 7

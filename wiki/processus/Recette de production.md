@@ -3,7 +3,7 @@ type: process
 tags: [recette, production, lancement, personas, qualite]
 status: draft
 created: 2026-09-20
-updated: 2026-10-19
+updated: 2026-10-22
 sources: ["[[Fonctionnalités par persona]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]", "[[Onboarding et abonnement]]", "[[Quittancement des loyers]]", "[[Cycle de vie d'un incident]]", "[[Registre des anomalies — audit du 13 octobre 2026]]"]
 ---
 
@@ -13,6 +13,9 @@ sources: ["[[Fonctionnalités par persona]]", "[[Invitation d'un artisan par un 
 l'on fait **le jour du déploiement** et à chaque mise en production qui touche
 un parcours — pour constater, sur le vrai service et les vrais courriers, que
 ce que le banc a prouvé tient en production.
+
+> [!warning] Règle remplacée le 21 octobre 2026 — cinq comptes fixes retirés
+> Décision du dirigeant du 21/10 (`log.md`, « Retirer tous les comptes et dossiers sauf le superadmin ») : les cinq comptes fixes du 17/10 ont été effacés avec les autres (migration `20261021175930`, application 39651969057) et la recette joue désormais **cinq comptes éphémères par passage**, purgés en fin de passage (PR #232, recette n° 30 39656877362). La section « Règle actuelle — cinq comptes fixes » ci-dessous est l'ancienne règle, conservée comme historique. Constat et preuves : [[Contrôle des livraisons de Codex — 22 octobre 2026]].
 
 ## Règle actuelle — cinq comptes fixes (17 octobre 2026)
 

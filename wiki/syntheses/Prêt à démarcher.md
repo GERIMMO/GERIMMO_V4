@@ -3,11 +3,14 @@ type: synthesis
 tags: [demarchage, lancement, production, v1, pilotage, promesses]
 status: draft
 created: 2026-10-16
-updated: 2026-10-21
+updated: 2026-10-22
 sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Audit d'acquisition du 3 octobre 2026]]", "[[Expansion territoriale autonome]]", "[[Parrainage]]", "[[Choisir son locataire selon les conditions des assurances loyers impayés]]", "[[Recette de production]]", "[[Relais du dirigeant]]", "[[Le jour de référence est le jour de Paris]]"]
 ---
 
 # Prêt à démarcher
+
+> [!warning] Point du 22 octobre — ce que le 21/10 a changé en production
+> Depuis les livraisons de Codex des 21 et 22/10 (PR #230 à #236, `main` = `cc53dd7`) : les modules artisans **« clients externes » et « règlements » sont ouverts** en production (migration `20261021140836`) ; le **cautionnement est rouvert** (`ZOHO_SIGN_CAUTIONNEMENT_FERME` à faux) et les **relances Zoho sont activées** (`ZOHO_SIGN_RELANCES_ACTIVES`) alors que les envois aux clients étaient dits désactivés ; tous les comptes sauf le super-administrateur ont été **effacés** ; la boîte professionnelle `contact@gerimmo.app` existe. Le § 5 et l'encadré du 19/10 ci-dessous (« clients externes désactivé », « envois aux clients désactivés ») ne décrivent plus l'état réel. Aucune recette de production depuis le 21/10 à 18 h 54. Constats, preuves et points à trancher : [[Contrôle des livraisons de Codex — 22 octobre 2026]].
 
 > [!info] Point du 21 octobre — identité de l'éditeur et pages légales
 > La PR #226 (Codex, 20/10, `efcee5e`) a adapté les mentions légales à l'entrepreneur individuel (immatriculation RNE/RCS, franchise de TVA) et précisé la confidentialité ; d'après son corps, les coordonnées publiques confirmées par le dirigeant sont enregistrées par l'écran des paramètres. **Reste** : l'adhésion à un médiateur de la consommation et sa saisie, puis la relecture des trois pages en ligne. Les § 1.2 et § 5 ci-dessous, qui disent l'identité « non fournie », datent d'avant cette PR. Vue d'ensemble : [[Point d'étape — 21 octobre 2026]].

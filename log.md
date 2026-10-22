@@ -6570,3 +6570,11 @@ build webpack réussi avec contrôle TypeScript et 65 pages statiques.
 Le premier contrôle TypeScript avant build manquait des types générés Next ;
 le build les a produits puis validés. Aucun compte ni donnée métier créé.
 Voir [[Conservation et exploitation — 22 octobre 2026]].
+
+Publication préparée dans la PR 239 : le premier passage CI bloque sur des
+vulnérabilités de Next.js 16.3.8. Mise à jour ciblée vers Next.js et
+eslint-config-next 16.4.2, sharp résolu à 0.35.5. Audit des dépendances de
+production : aucune vulnérabilité ; 92 tests ciblés et build webpack complet
+réussis après mise à jour. Contrôle CI conservé. Le test du premier déploiement
+isolé neutralise explicitement les secrets locaux injectés par la CI.
+Aucun déploiement de la révision vulnérable n'a été relancé en préproduction.

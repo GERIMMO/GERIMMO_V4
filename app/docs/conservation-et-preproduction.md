@@ -9,6 +9,23 @@ de validation ; aucun succès de déploiement n'est encore déclaré ici.
 Aucun compte, dossier fictif, envoi ou paiement n'a été créé pendant ce travail.
 La base et les réglages de production n'ont pas été modifiés.
 
+### Correctif de sécurité préalable à la publication
+
+La première CI de la PR [239](https://github.com/GERIMMO/GERIMMO_V4/pull/239)
+a bloqué sur l'audit de Next.js 16.3.8. Les avis
+[GHSA-2464-fhr4-w9xw](https://github.com/advisories/GHSA-2464-fhr4-w9xw),
+[GHSA-p3m5-59mp-jv5r](https://github.com/advisories/GHSA-p3m5-59mp-jv5r) et
+[GHSA-673q-mjm6-r5xr](https://github.com/advisories/GHSA-673q-mjm6-r5xr)
+concernent cette version. Next.js et sa configuration ESLint sont donc fixés
+à 16.4.2, avec sharp 0.35.5 dans le verrou de dépendances. Le contrôle de sécurité
+de la CI reste obligatoire.
+
+Après mise à jour : audit des dépendances de production sans vulnérabilité,
+92 tests ciblés réussis et build webpack complet réussi (TypeScript et 65 pages
+statiques). Les dépendances de développement gardent des alertes distinctes ;
+ce résultat ne constitue pas un audit de sécurité exhaustif de Gerimmo.
+La CI et les déploiements de cette révision restent à confirmer.
+
 ## Conservation des signatures
 
 Le nouveau contrôle manuel de `/admin/donnees#archives` exige

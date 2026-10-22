@@ -32,6 +32,7 @@ describe("X03 — next.config.ts transmet l'environnement de production au navig
   it("préproduction isolée : serveur et navigateur reçoivent l'origine du déploiement, sans domaine de production", async () => {
     vi.resetModules();
     for (const [key, value] of Object.entries({
+      SUPABASE_DB_URL: "", SUPABASE_SERVICE_ROLE_KEY: "",
       GERIMMO_PREPRODUCTION_VALIDEE: "1", VERCEL: "1", VERCEL_ENV: "preview",
       VERCEL_TARGET_ENV: "preproduction", VERCEL_URL: "gerimmo-v4-recette-gerimmo.vercel.app",
       NEXT_PUBLIC_SITE_URL: "", VERCEL_PROJECT_PRODUCTION_URL: "www.gerimmo.app",
@@ -54,7 +55,7 @@ describe("X03 — next.config.ts transmet l'environnement de production au navig
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://hlkbvmfybxwqathchsdz.supabase.co");
     vi.stubEnv("VERCEL_URL", "gerimmo-v4-recette-gerimmo.vercel.app");
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app");
-    await expect(import("../next.config")).rejects.toThrow("Construction suspendue");
+    await expect(import("../next.config")).rejects.toThrow("l'adresse du site");
   });
 
   it("production Vercel à la construction : NEXT_PUBLIC_VERCEL_ENV vaut « production »", async () => {

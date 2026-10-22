@@ -25,6 +25,11 @@ beforeEach(() => {
 });
 
 describe("les routes de tâches et le proxy", () => {
+  it("la réception Resend passe sans session et vérifie sa signature dans la route", async () => {
+    const r = await proxy(new NextRequest("https://gerimmo.test/api/resend/contact"));
+    expect(r.headers.get("x-middleware-next")).toBe("1");
+    expect(mocks.client).not.toHaveBeenCalled();
+  });
   it.each(routes)("%s existe pour être appelée : le proxy la laisse passer sans session", async (path) => {
     const r = await proxy(new NextRequest(`https://gerimmo.test${path}`));
     expect(r.headers.get("location")).toBeNull();

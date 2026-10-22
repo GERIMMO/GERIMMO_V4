@@ -3,7 +3,7 @@ type: business-rule
 tags: [rgpd, conformite, donnees-personnelles]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-16
+updated: 2026-10-22
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Complément à la page « Décisions groupées » — fiches de la vague 6]]"]
 ---
 
@@ -24,12 +24,19 @@ des garde-fous stricts et une traçabilité immuable.
 - **Garde-fous** : l'export ne contient que les données autorisées ; suppression/anonymisation
   exigent l'**approbation d'un [[Super Admin]] ET une sauvegarde préalable**.
 
-## Durées de conservation : la matrice A2 fait foi (tranché 2026-07-25)
+## Durées de conservation : décision A2 historique, revue du 22 octobre
 Les durées historiques du code (`docs/rgpd-production.md` : télémétrie 90 jours,
 audit « à définir avec le DPO »…) sont **supplantées par la matrice A2** ci-dessous
 (journaux : technique 6 mois, audit 3 ans, accès 1 an) — décision humaine du
 2026-07-25 : **en cas de conflit, la cible V3 prime**, et le code devra migrer vers
 `retention_rules` (voir [[Divergences code et référentiel V3]]).
+
+> [!warning] Qualification à reprendre avant toute nouvelle purge
+> La décision de juillet décrit la cible historique ; elle ne valide pas chaque
+> durée pour les usages actuels. La revue du 22 octobre relève 29 règles dans la
+> base isolée et distingue configuration observée et qualification juridique.
+> Voir [[Conservation et exploitation — 22 octobre 2026]] et sa matrice détaillée.
+> Aucune durée ni purge de production n'a été modifiée par cette revue.
 
 ## Le cadre A2 : finalités, sorts finaux, qualification (2026-07-24)
 
@@ -81,8 +88,12 @@ Grandes lignes (détail dans la [[2026-07-24-gerimmo-v3-a2-conservation-rgpd|sou
 | [[Artisan]] plateforme : profil, évaluations (3 ans), blacklist locale 3 ans / **globale 5 ans** | variable | — | Suppression |
 | Conversations (2 ans), consentement WhatsApp (+3 ans), traces d'envoi (+5 ans, anonymisées) | Durée du bail | variable | mixte |
 
-Les 5 ans = **prescription des actions nées du bail d'habitation** ; au-delà, la
-conservation de l'identité perd sa justification.
+**Correction du 22 octobre :** les cinq ans ne sont pas la prescription générale
+du bail d'habitation. Le référentiel CNIL distingue notamment gestion directe
+(trois ans d'archive intermédiaire) et déléguée (cinq ans), après clôture des
+comptes ; la gestion semi-déléguée dépend des tâches.
+Les lignes A2 ci-dessus restent historiques, pas une durée universelle à appliquer.
+[CNIL, § 53–54](https://www.cnil.fr/sites/cnil/files/atoms/files/referentiel_relatif_aux_traitements_de_donnees_personnelles_mis_en_oeuvre_dans_le_cadre_de_la_gestion_locative.pdf).
 
 **Limites au droit à l'effacement** : refusé si bail en cours, impayé non soldé,
 contentieux, écriture comptable (anonymisable au terme) ; **accordé** après
@@ -183,6 +194,21 @@ journalisation (6 mois à 1 an) est citée par la migration sans que la source o
 Autres registres nés depuis :
 - relances d'invitation (`relances_invitations_locataires`, X16) : aucune durée propre, la
   ligne suit l'invitation (suppression en cascade).
+
+**Mise à jour du 22 octobre :** la limite du relais décrite ci-dessus a été corrigée
+par `20261016180000_relais_retention_sentinelle.sql`. La lecture des fonctions
+reconstruites confirme que `reserver_alerte_relais` et `prendre_urgences_relais`
+respectent maintenant la durée, l'activation et le sort du catalogue.
+Les anciens constats du 16 octobre sont conservés comme historique.
+En revanche, d'autres suppressions à 24 mois restent hors catalogue dans
+`appliquer_retention` (demandes de devis, intentions de congé traitées et demandes
+de signature signées). Aucun nettoyage n'a été lancé.
+
+La source CNIL a maintenant été consultée : la recommandation générale est de
+six à douze mois pour les journaux, avec exceptions justifiées. Le libellé du
+catalogue attribuant trois ans à une recommandation générale CNIL est à corriger
+lors de la validation des règles ; aucune baisse automatique n'est décidée ici.
+[CNIL — Tracer les opérations](https://www.cnil.fr/fr/securite-tracer-les-operations).
 
 ## Registre des traitements de la plateforme (amorce)
 

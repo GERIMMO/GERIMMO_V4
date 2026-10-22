@@ -33,6 +33,12 @@
 // l'adresse, plafond horaire) ; `anon` et `authenticated` n'ont aucun droit d'insertion sur cette table. La clé ne lit
 // rien dans ce geste.
 //
+// Et le contrôle manuel des archives (actions/conservation-signatures.ts) :
+// APRÈS is_super_admin() sur la session courante, MFA comprise. Lecture de
+// cinq circuits terminés au maximum et de leurs PDF/certificats, puis journal
+// agrégé. Aucun fichier, chemin ou signataire n'est exposé au navigateur ;
+// aucune écriture métier ni suppression n'est permise par cette action.
+//
 // Ce que le client peut faire est en outre borné côté base : les fonctions que
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées
 // au seul `service_role`, et chacune ne rend que ce dont la tâche a besoin.

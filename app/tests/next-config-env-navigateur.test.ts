@@ -29,6 +29,35 @@ afterEach(() => {
 });
 
 describe("X03 — next.config.ts transmet l'environnement de production au navigateur", () => {
+  it("préproduction isolée : serveur et navigateur reçoivent l'origine du déploiement, sans domaine de production", async () => {
+    vi.resetModules();
+    for (const [key, value] of Object.entries({
+      SUPABASE_DB_URL: "", SUPABASE_SERVICE_ROLE_KEY: "",
+      GERIMMO_PREPRODUCTION_VALIDEE: "1", VERCEL: "1", VERCEL_ENV: "preview",
+      VERCEL_TARGET_ENV: "preproduction", VERCEL_URL: "gerimmo-v4-recette-gerimmo.vercel.app",
+      NEXT_PUBLIC_SITE_URL: "", VERCEL_PROJECT_PRODUCTION_URL: "www.gerimmo.app",
+      NEXT_PUBLIC_SUPABASE_URL: "https://hlkbvmfybxwqathchsdz.supabase.co",
+    })) vi.stubEnv(key, value);
+    const config = (await import("../next.config")).default;
+    expect(config.env?.NEXT_PUBLIC_SITE_URL).toBe("https://gerimmo-v4-recette-gerimmo.vercel.app");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", config.env?.NEXT_PUBLIC_SITE_URL as string);
+    const { adresseDuSite, adresseDeRetour, adresseCanonique } = await import("../src/lib/site");
+    for (const origine of [adresseDuSite(), adresseDeRetour(), adresseCanonique()]) {
+      expect(origine).toBe("https://gerimmo-v4-recette-gerimmo.vercel.app");
+    }
+  });
+
+  it("préproduction : une configuration explicite vers la production bloque aussi next.config", async () => {
+    vi.resetModules();
+    vi.stubEnv("GERIMMO_PREPRODUCTION_VALIDEE", "1");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_TARGET_ENV", "preproduction");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://hlkbvmfybxwqathchsdz.supabase.co");
+    vi.stubEnv("VERCEL_URL", "gerimmo-v4-recette-gerimmo.vercel.app");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app");
+    await expect(import("../next.config")).rejects.toThrow("l'adresse du site");
+  });
+
   it("production Vercel à la construction : NEXT_PUBLIC_VERCEL_ENV vaut « production »", async () => {
     const config = await configurationConstruite({ vercel: "production" });
     expect(config.env?.NEXT_PUBLIC_VERCEL_ENV).toBe("production");

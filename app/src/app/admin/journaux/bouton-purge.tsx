@@ -14,6 +14,10 @@ const JOURNAUX: Record<string, string> = {
   demandes_devis: "demandes de devis",
   intentions_conge: "intentions de congé",
   demandes_signature: "demandes de signature",
+  liste_attente: "contacts propriétaires",
+  liste_attente_agences: "contacts agences",
+  invitations_locataires: "invitations locataires périmées",
+  invitations_artisans: "invitations artisans périmées",
   // D48 (IA-11) : les registres d'exécution des automatismes et du pilotage.
   agent_passages: "passages des équipes IA",
   supervision_operations: "gestes de la supervision",

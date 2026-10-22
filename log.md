@@ -6588,3 +6588,24 @@ lent ; installation des navigateurs réussie sur le nouvel exécuteur.
 Relecture finale : un certificat correct pouvait masquer l'usage du contrat
 comme certificat d'un autre signataire. Deux cas reproduisent le faux positif,
 puis vérifient son refus avant toute lecture de fichier après correction.
+
+
+## [2026-10-22] dev | Levée du blocage des abonnements par le superadmin
+
+Décision explicite du dirigeant : « Fais que cette règle puisse être annulée avec un bouton dans superadmin ». Ajout local dans Paramètres généraux de « Lever le blocage » et « Réactiver le blocage ». Réglage actif par défaut, relu par les actions de souscription et de hausse ; contrôles CGU, prix, confirmation et Stripe inchangés. Modification réservée au superadmin permanent avec MFA, conflit de révision refusé, états avant/après et auteur conservés au registre existant. Mise à jour de [[Abonnement]] et de l’index. Migration et retour conservant la décision préparés, aucune modification de production. Vérifications ciblées : 77 tests de logique, actions et SQL local réussis ; 12 tests de manifeste/classement réussis ; TypeScript et ESLint réussis. La compilation et l’essai d’interface sont consignés dans le rapport technique après leur résultat.
+
+Complément de vérification : compilation réussie ; parcours mobile réussi sur la version compilée (levée, persistance après rechargement, historique, réactivation). Les sessions fictives ont passé le MFA. Capture locale : `outputs/bouton-abonnements-20261022/bouton-superadmin-mobile.png`. La règle a été laissée active sur la base locale après l’essai. Aucun déploiement ni paiement.
+
+## [2026-10-22] dev | Signatures, conservation et expéditeur — points 2 à 5
+
+Demande d’avancer en autonomie sur les points 2 à 5. Lecture production : trois activations Zoho vraies, plafond 400 crédits/mois, devis autorisés ; aucune signature présente dans les deux tables de circuits. Décision utilisateur : conserver l’adresse personnelle pour les signatures, changement professionnel ultérieur. Préparation locale d’un état par document, protection de l’original/signé/annexes/certificats contre les purges indépendantes du contrat, bilan sans suppression réservé au superadmin permanent avec MFA et règles explicites de contacts/invitations (nouvelles catégories inactives). Politique publique et wiki actualisés en distinguant préparation et production. Trois anciens réglages Youtrust recensés ; suppression encore en attente de la confirmation exigée par le navigateur. Aucun envoi, achat, effacement de production ni publication. Voir [le rapport](app/docs/signatures-conservation-22-octobre.md) pour la portée juridique, la migration et les limites externes.
+
+Validation finale locale du lot signatures/conservation : 41 tests ciblés réussis, compilation/TypeScript/ESLint réussis, parcours mobile réussi avec les sessions fictives renouvelées et passage MFA. Les invitations artisans acceptées et les contacts récents restent conservés. Le bilan présente cinq catégories sans suppression et sans débordement horizontal. Aucun essai externe ni déploiement.
+
+## [2026-10-23] config | Retrait des anciens réglages Youtrust
+
+Instruction explicite du dirigeant : « Retire les anciens réglage youtrust », en réponse à la confirmation de suppression. Les trois variables Production `YOUTRUST_API_KEY`, `YOUTRUST_ENV` et `YOUTRUST_WEBHOOK_SECRET` ont été supprimées via Vercel ; recherche YOUTRUST vide, valeurs non révélées. Le redéploiement `5JxVtGocWGQd3pW5GfUt27y6g7uy` reprend exactement le code de production `87ef2d2` (PR #239) avec les réglages actuels. Les travaux locaux ne sont pas publiés. Déploiement confirmé Ready en 1 min 27 s, domaine www.gerimmo.app affecté. La sonde publique /api/sante renvoie ok=true et base=true sur la révision exacte 87ef2d2a9b970006fc1e9d6a78e22b3250038dff. Captures conservées dans outputs/youtrust-retrait-20261023. La suppression des variables ne révoque pas les clés chez Youtrust et ne résilie aucun contrat fournisseur.
+
+## [2026-10-23] config | Révocation des accès Youtrust chez le fournisseur
+
+Demande explicite « Révoque les clés youtrust », suivie de « Confirme » à la confirmation finale regroupant clé et webhook. Clé Sandbox `gerimmo` du 26 septembre révoquée avec succès ; les deux clés de la liste sont désormais révoquées, celle du 22 septembre l’étant déjà. Quota disponible : 200 clés. Les clés Production sont indisponibles sur cette offre d’essai. Webhook `gerimmo` vers `/api/youtrust/webhook` supprimé avec succès ; liste des webhooks vide. Vérifications réalisées dans l’interface fournisseur, sans révéler de secret. Aucun document supprimé, abonnement fournisseur inchangé, aucun nouveau déploiement. Rapport et index actualisés ; captures `cles-revoquees.png` et `webhook-supprime.png` dans `outputs/youtrust-retrait-20261023` de l’espace de travail principal.

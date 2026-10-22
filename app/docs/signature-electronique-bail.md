@@ -1,5 +1,9 @@
 # Signatures des documents Gerimmo
 
+## État vérifié le 22 octobre 2026
+
+Les trois activations clients sont vraies sur Vercel et le plafond est de 400 crédits/mois ; les devis sont autorisés en base. L’adresse personnelle reste celle choisie par le dirigeant. L’état détaillé par document et la protection des preuves sont préparés **localement**. Les paragraphes datés du 18 octobre ci-dessous restent historiques. Voir [le bilan du 22 octobre](signatures-conservation-22-octobre.md) pour les limites et les réglages non vérifiés.
+
 ## Extension du 18 octobre 2026 — état de livraison
 
 Le bail fictif envoyé depuis Gerimmo a été signé par le titulaire avec SMS ; le retour HTTPS, le PDF et le certificat ont été reçus et classés. L'offre API Zoho affiche 500 crédits après le paiement effectué par le titulaire. Les passages historiques ci-dessous décrivent les états successifs, et ne remplacent pas ce point.

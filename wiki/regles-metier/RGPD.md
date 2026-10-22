@@ -147,7 +147,7 @@ Voir [[Architecture du socle V3]].
 
 ## Compléments (2026-09-09)
 
-- `demandes_signature` : purgées avec le document demandé, et au plus 24 mois
+- **Historique corrigé localement le 22/10/2026** — `demandes_signature` : purgées avec le document demandé, et au plus 24 mois
   après le retour du signé (`appliquer_retention`) — la demande est un journal
   de circuit, pas une archive.
 - Image de signature de l'organisation : remplacée ou retirée, l'ancien
@@ -246,3 +246,7 @@ lors de la validation des règles ; aucune baisse automatique n'est décidée ic
 > - **D14** : la décision demande de consigner la durée au registre des traitements ; c'est
 >   l'objet de l'amorce ci-dessus, à reporter dans [[Registre des traitements]] après
 >   validation.
+
+## Correction locale du 22 octobre : preuves et invitations
+
+La limite indépendante de 24 mois sur les demandes signées est retirée. Original, signé, annexes et certificats référencés sont protégés du nettoyage automatique dans la migration préparée ; aucun effacement distant. Un bilan agrégé, réservé au superadmin permanent avec MFA, permet d’examiner les contacts et invitations échus sans supprimer. Les nouvelles règles d’invitations (3 mois) et de listes d’attente (36 mois) restent désactivées ; devis et intentions de congé passent dans le catalogue au lieu de durées codées en dur. L’effacement qualifié des preuves reste à finaliser selon clôture des comptes, gestion directe/déléguée, litiges et obligations comptables. Il ne s’agit pas d’une conservation illimitée décidée. La politique publique locale distingue retrait de fichier et anonymisation irréversible. Aucune de ces modifications n’est encore déployée. [Détail, sources et limites](../../app/docs/signatures-conservation-22-octobre.md).

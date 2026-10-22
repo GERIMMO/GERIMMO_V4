@@ -4,6 +4,22 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+export type BilanConservation = {
+  erreur?: string;
+  categories?: { categorie: string; libelle: string; duree_mois: number; actif: boolean; echus: number }[];
+  preuves_protegees?: number;
+};
+export async function simulerConservation(): Promise<BilanConservation> {
+  const db = await createClient();
+  const droit = await db.rpc("is_permanent_super_admin");
+  if (droit.error || droit.data !== true) return { erreur: "Réservé au superadmin avec vérification de sécurité." };
+  const resultat = await db.rpc("simuler_conservation_contacts");
+  if (resultat.error || !resultat.data || resultat.data.suppressions !== 0 || !Array.isArray(resultat.data.categories)) {
+    return { erreur: "Le bilan est indisponible. Aucun nettoyage n’a été lancé." };
+  }
+  return { categories: resultat.data.categories, preuves_protegees: resultat.data.preuves_protegees };
+}
+
 export type ResultatPurge = {
   erreur?: string;
   journaux?: Record<string, number>;

@@ -127,7 +127,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   // l'action (lib/garde-souscription.ts), bouton indisponible, pas de case.
   // « Votre essai continue » seulement si l'essai court encore : un essai
   // arrivé à son terme garde le statut « essai » mais ferme l'écriture.
-  const motifIdentite = motifIdentiteEditeur(garde.editeur, { enEssai: enEssai && !ferme });
+  const motifIdentite = motifIdentiteEditeur(garde.editeur, { enEssai: enEssai && !ferme, blocageIdentiteActif: garde.blocageIdentiteActif });
   const motifIndisponible = !reglages.pret
     ? "Le paiement en ligne n'est pas encore ouvert. Écrivez-nous : nous prolongeons votre essai le temps de l'ouvrir."
     : !REGIME_TVA

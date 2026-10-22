@@ -45,7 +45,7 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - name: Tester les contrôles de publication sans connexion externe
-        run: node --test scripts/deploiement/controle.test.mjs scripts/deploiement/verifier-environnement.test.mjs scripts/surveillance/disponibilite.test.mjs scripts/atelier/controle.test.mjs scripts/sauvegarde/fichiers.test.mjs
+        run: node --test scripts/deploiement/controle.test.mjs scripts/deploiement/verifier-environnement.test.mjs scripts/surveillance/disponibilite.test.mjs scripts/surveillance/sauvegarde.test.mjs scripts/atelier/controle.test.mjs scripts/sauvegarde/fichiers.test.mjs
       - run: npm ci
       # 03/10 (décision du porteur) : seules les dépendances livrées comptent.
       # Les outils de développement (CLI shadcn, greffon ESLint) tirent des

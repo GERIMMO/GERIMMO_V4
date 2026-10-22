@@ -6490,3 +6490,83 @@ Après accords précis : création de `contact@gerimmo.app` dans Resend, un seul
 ## [2026-10-22] dev | Transfert du courriel de contact vers le dirigeant
 
 À la demande « Faisons ça, ça me convient », préparation du webhook Resend limité à la boîte contact. Destination administrée, vérification Svix, préservation du MIME, adresse de réponse d'origine, clé d'idempotence et refus de reprise aveugle après 23 h. Aucun nouvel envoi fictif ni donnée métier créée. Activation conditionnée au secret de webhook dans Vercel et au droit de lecture de la clé Resend existante. Voir [[Courriel de contact Gerimmo]] et la procédure technique.
+
+## [2026-10-22] dev | Conservation des signatures et base de préproduction isolée
+
+À la demande « Fais 4 et 5 », puis après autorisation du rejeu des 241 migrations
+dans la seule base preproduction, pause et reprise explicites, reconstruction
+achevée sur hlkbvmfybxwqathchsdz. Zéro compte, espace, bien, bail, document ou
+fichier client ; dix tâches arrêtées. Structure, politiques et droits comparés
+avec la production. Le registre de 469 entrées comprend les lots de reconstruction.
+La branche est ACTIVE_HEALTHY, encore non persistante selon ses métadonnées.
+Aucune écriture dans la base de production ni création fictive.
+
+Code local : contrôle des archives réservé au superadmin, journal agrégé,
+surveillance de la sauvegarde exigeant la relecture distante dans la même
+tentative, garde de la préproduction au build et au démarrage. Pas de suppression
+Zoho. 70 tests Vitest et 12 tests Node réussis, lint, types et compilation webpack
+réussis. Pas de recette authentifiée, de CI distante ou de publication de ce lot.
+
+L'accès Vercel reste bloqué par une préférence navigateur malgré l'accord précis
+du dirigeant ; accès à la page des installations GitHub également refusé.
+Raccordement de l'aperçu et revue des permissions non exécutés. Voir
+[[Conservation et exploitation — 22 octobre 2026]] pour les limites et la reprise.
+
+## [2026-10-22] fix | Contrôles autonomes et reprise des vérifications d'archives
+
+À la demande « Tu peux faire autre chose en autonomie ? », quatre défauts locaux
+reproduits puis corrigés : signataire JSON mal formé, curseur de reprise non
+textuel accepté par conversion implicite, interruption de tout le lot après
+l'erreur d'un dossier, perte du résultat si le journal lève une exception.
+L'écran conserve désormais les résultats et la reprise après un échec.
+Les lectures partagent une limite de 40 secondes, sans cache documentaire.
+78 tests ciblés réussis, dont quatre essais du SDK avec transport mémoire :
+aucun compte ou dossier fictif créé. Lint et types réussis.
+
+Lecture publique le 22 octobre à 11 h 53 Paris : treize pages HTTP 200,
+point de santé et connexion à la base confirmés, aucun formulaire soumis.
+Audit npm des dépendances livrées : zéro vulnérabilité connue.
+Ces contrôles ne remplacent pas une recette privée ou un audit exhaustif.
+Aucun accès aux réglages Vercel/GitHub refusés n'a été retenté, aucune publication.
+
+## [2026-10-22] audit | Préproduction Auth et matrice de conservation
+
+À la demande « faisons ce qu'il reste a faire », lecture des 29 règles de
+retention_rules dans la base isolée et des fonctions de purge, sans exécution.
+Inventaire versionné dans app/docs/retention-inventaire-20261022.json.
+Sources officielles CNIL et Service Public consultées : correction des
+généralisations sur le délai des baux et celui des journaux d'audit dans le wiki.
+Le défaut historique des purges du relais en dur est déjà corrigé par T12 ;
+les suppressions à 24 mois hors catalogue restent à qualifier.
+Aucune nouvelle règle ni purge activée, aucune modification de durée.
+
+Interface Supabase : la branche preproduction avait repris le Site URL public,
+trois redirections et le SMTP Resend actif. SMTP personnalisé désactivé uniquement
+sur hlkbvmfybxwqathchsdz ; état persistant confirmé après rechargement et capture
+enregistrée hors dépôt. Modèles personnalisés réinitialisés selon l'avertissement
+Supabase ; service SMTP interne limité encore possible. Aucun e-mail envoyé.
+Comptage SQL : zéro compte/document/fichier, zéro tâche active.
+Redirections et pérennité de la branche encore à finaliser.
+
+Le dirigeant a demandé de l'aide sur les autorisations navigateur : chemin
+Réglages > Navigateur > Autorisations de l'agent vérifié dans la documentation
+officielle OpenAI. Après « c'est fait », une nouvelle tentative par site retourne
+encore une préférence bloquante pour Vercel et GitHub. Aucun contournement.
+La production reste inchangée, aucune publication.
+
+## 22 octobre 2026 — reprise dans Gerimmo final
+
+Reprise autorisée des trois commits de conservation sur main cc53dd7 dans un
+checkout séparé, sans modifier les autres travaux. Accès Vercel normal disponible ;
+validation à deux facteurs GitHub effectuée directement par le dirigeant.
+Les quatre GitHub Apps et leurs droits sont inventoriés dans
+app/docs/conservation-et-preproduction.md ; aucune extension de permissions acceptée.
+Préproduction Vercel créée dans le quota inclus, avec seulement l'URL et la clé
+publiable de la base isolée et le drapeau de validation. Aucun secret Production
+importé ni domaine public attaché. Correction du premier build : l'adresse du
+déploiement est incorporée après contrôle, sans repli vers le site public.
+92 tests Vitest ciblés et 13 tests Node réussis, ESLint complet sans erreur,
+build webpack réussi avec contrôle TypeScript et 65 pages statiques.
+Le premier contrôle TypeScript avant build manquait des types générés Next ;
+le build les a produits puis validés. Aucun compte ni donnée métier créé.
+Voir [[Conservation et exploitation — 22 octobre 2026]].

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { verifierEnvironnement } from "./scripts/deploiement/garde-environnement.mjs";
 
 // ── En-têtes de sécurité HTTP (audit production 25/09, S1) ─────────────────
 //
@@ -137,7 +138,14 @@ export function environnementPourLeNavigateur(env: Record<string, string | undef
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  env: { NEXT_PUBLIC_VERCEL_ENV: environnementPourLeNavigateur() },
+  env: {
+    NEXT_PUBLIC_VERCEL_ENV: environnementPourLeNavigateur(),
+    // Uniquement l'origine publique contrôlée, jamais les secrets de Vercel.
+    // Production et banc local conservent leurs variables existantes.
+    ...(process.env.GERIMMO_PREPRODUCTION_VALIDEE === "1"
+      ? { NEXT_PUBLIC_SITE_URL: verifierEnvironnement() }
+      : {}),
+  },
   // 06/10 : les illustrations des articles viennent du Storage Supabase ; sans
   // domaine déclaré, next/image refuse de les servir. À défaut d'adresse au
   // moment du build, toute origine *.supabase.co.

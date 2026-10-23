@@ -39,6 +39,7 @@ import {
 } from "../src/lib/tarifs";
 import { PARRAINAGE_PROGRAMME } from "../src/lib/parrainage";
 import { CONDITIONS_DATE, CONDITIONS_VERSION } from "../src/lib/editeur";
+import { versionDeclaree } from "../src/lib/conditions-versions";
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
@@ -174,11 +175,14 @@ describe("les écrans annoncent l'essai du jour, et l'offre de lancement", () =>
     expect(mandat).toContain("<b>quatorze jours</b>");
   });
 
-  it("le changement des conditions est daté : V1, date provisoire du 24 octobre 2026", () => {
+  it("le changement des conditions est daté : V1 du 24 octobre 2026, la version du 30 septembre 2026 gardée dans l'historique", () => {
     // L'essai de deux mois (article 8.2) est entré dans la version du 30 septembre 2026 ; la V1 (plan de conformité du
-    // 23/10) le reprend tel quel. Date PROVISOIRE, reposée à la publication réelle (lib/editeur.ts).
+    // 23/10) le reprend tel quel. La version du 30/09 reste déclarée dans l'historique de la garde d'empreinte.
     expect(CONDITIONS_VERSION).toBe("2026-10-24");
     expect(CONDITIONS_DATE).toBe("24 octobre 2026");
+    const v = versionDeclaree("conditions_clients", "2026-09-30");
+    expect(v?.date_effet).toBe("2026-09-30");
+    expect(v?.resume_modifications).toContain("2 mois");
   });
 });
 

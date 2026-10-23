@@ -11,15 +11,16 @@
  * Le 21/10, le dirigeant demande explicitement de réduire les seules mentions légales.
  * Cette page est donc exclue du gel.
  *
- * 24/10 (plan de conformité du 23/10, lot 3) : l'identité est saisie en base et la V1 des conditions regroupe tous
- * les changements en une seule version ; elle réalise D32 pour les conditions (offre aux seuls propriétaires qui
- * gèrent leurs biens, agences retirées). La confidentialité suit son propre lot (lot 4) : son gel reste tant que
- * l'identité du code est incomplète.
+ * 24/10 (plan de conformité du 23/10, lots 3 et 4 ; décision du dirigeant du 23/10, point 11 : « Conditions V1
+ * publiées dès que le code qui les rend vraies est en production ») : l'identité est saisie en base et la V1 des
+ * conditions regroupe tous les changements en une seule version ; elle réalise D32 (offre aux seuls propriétaires qui
+ * gèrent leurs biens, agences retirées) et paraît avec la confidentialité. La garde « confidentialité en attente »
+ * n'a donc plus d'objet ; reste celle du script des comptes de recette, qui doit copier la version en vigueur.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { CONDITIONS_VERSION, documentsIncomplets } from "@/lib/editeur";
+import { CONDITIONS_VERSION } from "@/lib/editeur";
 
 /** La version publiée avant la décision D32. */
 const VERSION_PUBLIEE = "2026-09-30";
@@ -47,11 +48,5 @@ describe("D32 réalisé par la V1 des conditions (24/10)", () => {
   it("le script des comptes de recette copie la même version des conditions", () => {
     const sql = lire("e2e/recette-production/preparer-comptes.sql");
     expect(sql).toContain(`v_version_cgu constant text := '${CONDITIONS_VERSION}';`);
-  });
-});
-
-describe.runIf(documentsIncomplets())("D32 en attente pour la confidentialité (lot 4)", () => {
-  it("la page « confidentialité » garde la rédaction publiée (les passages « agence » ne sont pas encore retirés)", () => {
-    expect(/agence/i.test(lire("src/app/confidentialite/page.tsx"))).toBe(true);
   });
 });

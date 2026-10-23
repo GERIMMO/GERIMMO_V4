@@ -224,9 +224,10 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     cle: "zohoSign",
     sousTraitantClient: true,
     nom: "Zoho Sign",
-    // Décision du dirigeant du 23/10 : le cautionnement et l'état des lieux se signent dans Gerimmo, comme le bail, ses
-    // avenants, les accords et les devis (lib/politique-signature.ts, DOCUMENTS_ZOHO).
-    role: "Signature électronique des baux et de leurs avenants, des actes de cautionnement, des états des lieux, des accords d'échelonnement ou de travaux et des devis : document à signer, nom, adresse électronique et téléphone des signataires ; invitations par courriel, vérification par SMS et conservation des preuves de signature",
+    // Décision du dirigeant du 23/10/2026 (« le cautionnement et l'état des lieux doivent être signés sur Gerimmo
+    // directement ») : l'acte de cautionnement et l'état des lieux restent dans la liste, comme sur /tarifs et
+    // « Mon abonnement » (plan de conformité du 23/10, lot 4).
+    role: "Signature électronique des baux, avenants, accords, devis, actes de cautionnement et états des lieux : document à signer, nom, adresse électronique et téléphone mobile des signataires ; invitations par courriel, code à usage unique par SMS et certificat de réalisation commun à tous les signataires",
     localisation: "Centre de données Union européenne (sign.zoho.eu) ; acheminement des SMS par les prestataires de Zoho",
     documentation: "https://www.zoho.com/privacy.html",
   },
@@ -282,7 +283,8 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   {
     cle: "ban",
     nom: "Base Adresse Nationale (api-adresse.data.gouv.fr)",
-    role: "Autocomplétion des adresses saisies dans la fiche d'un bien : texte de l'adresse et données techniques de la requête, dont l'adresse IP",
+    // Plan de conformité du 23/10 (lot 4) : un service public appelé par le navigateur, pas un sous-traitant de Gerimmo.
+    role: "Service public appelé directement par votre navigateur pour compléter l'adresse d'un bien ; il reçoit le texte tapé et l'adresse IP de votre connexion",
     // Non établie par le code : à saisir dans /admin/parametres (clé `localisationBan`), jamais devinée ici.
     localisation: null,
     documentation: "https://adresse.data.gouv.fr/donnees-personnelles",

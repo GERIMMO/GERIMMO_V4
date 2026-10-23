@@ -9,6 +9,7 @@ import { prestataireSignature, type ConfigurationSignature, type PrestataireSign
 import { aujourdhuiParis } from "@/lib/ged";
 import { marquerDocumentEssai, signatureEnEssai } from "@/lib/signature-essai";
 import type { ModeleSignature } from "./politique-signature";
+import { MENTION_PAGE_SIGNATURE_GARANT } from "./textes-signature-actes";
 
 export type SignataireBail = {
   personId: string; qualite: "Locataire" | "Colocataire" | "Garant" | "Propriétaire";
@@ -104,6 +105,7 @@ export function ajouterPagesSignature(doc: DocumentAssemble, parties: Signataire
     <h1>Signature — ${echapper(titre)}</h1><p>Référence : ${echapper(doc.reference)}</p>
     <p>Cette page fait partie du document qui précède. La signature porte sur l’ensemble de ce document.</p>
     <h2>${i + 1}. ${echapper(p.qualite)}</h2><p>${echapper(`${p.prenom} ${p.nom}`)}</p>
+    ${!caution && p.qualite === "Garant" ? `<p>${echapper(MENTION_PAGE_SIGNATURE_GARANT)}</p>` : ""}
     <p>La date et la preuve de signature sont établies par le prestataire au moment de la signature.</p>
     ${caution && p.qualite === "Garant" ? `<div style="font-size:8.5pt;line-height:1.25;overflow-wrap:anywhere"><strong>Mention personnelle de la caution</strong><p>Sur téléphone, copiez ce paragraphe depuis votre e-mail d’invitation avant d’ouvrir la saisie Zoho, puis collez-le vous-même dans le champ « Mention personnelle ». Il est aussi reproduit ci-dessous.</p><p>${echapper(p.mentionCaution ?? "Mention à préparer à nouveau avant tout envoi.")}</p></div>` : ''}
     <div style="${caution && p.qualite === "Garant" ? "position:absolute;top:656pt" : "margin-top:32pt;min-height:100pt"}"><span style="color:#fff;font:12px Arial;white-space:nowrap">{{s${i + 1}|signature|190|80}}</span></div>

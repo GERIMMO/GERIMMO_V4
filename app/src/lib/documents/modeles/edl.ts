@@ -28,6 +28,7 @@ import {
   liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
+import { RAPPEL_COMPLEMENT_EDL_ENTREE } from "@/lib/textes-signature-actes";
 
 const ETATS: Record<string, string> = { neuf: "Neuf", bon: "Bon", usage: "Usage", mauvais: "Mauvais" };
 
@@ -208,10 +209,12 @@ export function construireEdl(d: DonneesEdl) {
     <p>${f.champ(d.observations, "observations des parties")}</p>
     <p class="mentions">${
       entree
-        ? "Le locataire peut demander à compléter le présent état des lieux dans les dix jours de sa signature (pour tout élément) et pendant le premier mois de la période de chauffe (pour le chauffage)."
+        ? // Décision du 23/10 : rappel au locataire, repris dans l'invitation à signer (à relire par le juriste,
+          // source non ouverte le 23/10/2026 : voir lib/textes-signature-actes.ts).
+          `Rappel au locataire : ${RAPPEL_COMPLEMENT_EDL_ENTREE}`
         : "Le dépôt de garantie est restitué dans un délai maximal d'un mois si le présent état est conforme à l'entrée, de deux mois dans le cas contraire, déduction faite des sommes justifiées restant dues."
     }</p>
-    ${faitA(f, d.exp.ville, d.signeLe ?? d.dateEdl ?? new Date().toISOString(), ", en deux exemplaires.")}
+    ${faitA(f, d.exp.ville, d.signeLe ?? d.dateEdl ?? new Date().toISOString(), ", en autant d'exemplaires que de parties.")}
     <div class="signatures">
       ${cadreSignature("Le bailleur ou son mandataire", d.bailleurNom)}
       ${cadreSignature("Le locataire", d.locatairesNoms)}

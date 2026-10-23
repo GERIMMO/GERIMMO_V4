@@ -128,7 +128,7 @@ describe("acte de cautionnement", () => {
     const ctx = contexte();
     ctx.garants = [{ ...personne({ id: "g1", nom: "Leblanc", prenom: "Marc" }), garant_de: null }];
     vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
-    const doc = await assemblerCautionnement({} as SupabaseClient, "org", "b1", { garant: "g1", montant_max: "15000" });
+    const doc = await assemblerCautionnement({} as SupabaseClient, "org", "b1", { garant: "g1", montant_max: "15000", sans_garantie_cumulee: "oui" });
     expect(html(doc)).toContain(RESILIATION_CAUTION_DUREE_INDETERMINEE);
     expect(RESILIATION_CAUTION_DUREE_INDETERMINEE).toMatch(/^Lorsque le cautionnement d'obligations résultant d'un contrat de location/);
     expect(RESILIATION_CAUTION_DUREE_INDETERMINEE).toMatch(/au cours duquel le bailleur reçoit notification de la résiliation\.$/);
@@ -146,7 +146,7 @@ describe("acte de cautionnement", () => {
     const ctx = contexte();
     ctx.garants = [{ ...personne({ id: "g1", nom: "Leblanc", prenom: "Marc" }), garant_de: null }];
     vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
-    const doc = await assemblerCautionnement({} as SupabaseClient, "org", "b1", { garant: "g1", montant_max: saisie });
+    const doc = await assemblerCautionnement({} as SupabaseClient, "org", "b1", { garant: "g1", montant_max: saisie, sans_garantie_cumulee: "oui" });
     expect(html(doc)).toMatch(attendu);
   });
 
@@ -154,7 +154,7 @@ describe("acte de cautionnement", () => {
     const ctx = contexte();
     ctx.garants = [{ ...personne({ id: "g1", nom: "Leblanc", prenom: "Marc" }), garant_de: null }];
     vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
-    const doc = await assemblerCautionnement({} as SupabaseClient, "org", "b1", { garant: "g1", montant_max: saisie });
+    const doc = await assemblerCautionnement({} as SupabaseClient, "org", "b1", { garant: "g1", montant_max: saisie, sans_garantie_cumulee: "oui" });
     expect(html(doc)).not.toMatch(/10[\s  ]000,00/);
     expect(html(doc)).not.toMatch(/500,00/);
     expect("document" in doc && doc.document.manquants.length).toBeGreaterThan(0);

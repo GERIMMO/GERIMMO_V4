@@ -1,7 +1,10 @@
+import { CERTIFICATION_SANS_GARANTIE_CUMULEE } from "@/lib/textes-signature-actes";
+
 // `montant` : un montant en euros saisi en texte décimal (« 2345,67 »), lu par `lireMontantFacultatif` côté serveur ; jamais `type="number"`,
 // dont la virgule est lue comme un séparateur de milliers par un navigateur non francophone (VER-TS-02).
 // `repli: "detail_enregistre"` : le champ n'est pas obligatoire quand le dossier choisi porte déjà cette information (D39).
-export type ChampCatalogue = { cle: string; libelle: string; type?: "date" | "number" | "month" | "textarea" | "montant"; aide?: string; choix?: {valeur:string;libelle:string}[]; repli?: "detail_enregistre" };
+// `case` : une case à cocher obligatoire ; cochée, l'option vaut « oui » (constat R30 du 23/10, acte de cautionnement).
+export type ChampCatalogue = { cle: string; libelle: string; type?: "date" | "number" | "month" | "textarea" | "montant" | "case"; aide?: string; choix?: {valeur:string;libelle:string}[]; repli?: "detail_enregistre" };
 const conditions: ChampCatalogue = {cle:"conditions",libelle:"Conditions convenues",type:"textarea"};
 const effet: ChampCatalogue = {cle:"date_effet",libelle:"Date d’effet",type:"date"};
 const modifications: ChampCatalogue = {cle:"modifications",libelle:"Modifications convenues",type:"textarea"};
@@ -11,7 +14,7 @@ const consultation: ChampCatalogue = {cle:"consultation",libelle:"Consultation d
 const detailDepenses: ChampCatalogue = {cle:"detail_depenses",libelle:"Détail des dépenses par nature et clé de répartition",type:"textarea",repli:"detail_enregistre",aide:"Chaque nature de charges (eau, chauffage, ascenseur, entretien…) avec son montant et la clé de répartition retenue (tantièmes, surface, consommation…). Ce détail n’est écrit que dans ce document : la régularisation déjà enregistrée n’est pas modifiée."};
 export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
   avenant:[{cle:"objet",libelle:"Objet de l’avenant"},modifications],
-  cautionnement:[{cle:"garant",libelle:"Garant du dossier",aide:"Choisissez un garant déjà rattaché au bail."},{cle:"forme",libelle:"Forme de caution",choix:[{valeur:"solidaire",libelle:"Solidaire"},{valeur:"simple",libelle:"Simple"}]},{cle:"montant_max",libelle:"Plafond de l’engagement (€)",type:"montant"}],
+  cautionnement:[{cle:"garant",libelle:"Garant du dossier",aide:"Choisissez un garant déjà rattaché au bail."},{cle:"forme",libelle:"Forme de caution",choix:[{valeur:"solidaire",libelle:"Solidaire"},{valeur:"simple",libelle:"Simple"}]},{cle:"montant_max",libelle:"Plafond de l’engagement (€)",type:"montant"},{cle:"sans_garantie_cumulee",libelle:CERTIFICATION_SANS_GARANTIE_CUMULEE,type:"case"}],
   conge_bailleur:[{cle:"motif",libelle:"Motif du congé",choix:[{valeur:"reprise",libelle:"Reprise"},{valeur:"vente",libelle:"Vente"},{valeur:"motif_legitime",libelle:"Motif légitime et sérieux"}]},effet,{cle:"beneficiaire_nom",libelle:"Bénéficiaire de la reprise"},{cle:"beneficiaire_lien",libelle:"Lien avec le bailleur"},{cle:"motif_detail",libelle:"Motivation et justificatifs",type:"textarea"}],
   inventaire_entree:[{cle:"date_constat",libelle:"Date du constat",type:"date"}],
   inventaire_sortie:[{cle:"date_constat",libelle:"Date du constat",type:"date"},{cle:"constat",libelle:"Constat du mobilier à la sortie",type:"textarea"}],

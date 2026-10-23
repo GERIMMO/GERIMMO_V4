@@ -5,6 +5,7 @@ import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
+import { CERTIFICATION_SANS_GARANTIE_CUMULEE } from "@/lib/textes-signature-actes";
 
 // Génération de l'acte de cautionnement : un acte par garant du bail, avec
 // les choix du geste (forme solidaire ou simple, plafond garanti en euros).
@@ -49,6 +50,8 @@ function LigneGarant({
   const base = useBaseEspace(orgId);
   const [forme, setForme] = useState<"solidaire" | "simple">("solidaire");
   const [montantMax, setMontantMax] = useState("");
+  // Constat R30 : sans cette case, le serveur refuse de préparer l'acte (assemblerCautionnement).
+  const [sansGarantie, setSansGarantie] = useState(false);
 
   return (
     <div className="space-y-2 py-3">
@@ -81,6 +84,15 @@ function LigneGarant({
             onChange={(e) => setMontantMax(e.target.value)}
           />
         </div>
+        <label className="flex items-start gap-2 text-xs sm:col-span-3">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 shrink-0 accent-primary"
+            checked={sansGarantie}
+            onChange={(e) => setSansGarantie(e.target.checked)}
+          />
+          <span>{CERTIFICATION_SANS_GARANTIE_CUMULEE}</span>
+        </label>
         <div className="pb-0.5">
           <BoutonGenererDocument
             orgId={orgId}
@@ -92,6 +104,7 @@ function LigneGarant({
               garant: garant.id,
               forme,
               ...(montantMax.trim() ? { montant_max: montantMax.trim() } : {}),
+              ...(sansGarantie ? { sans_garantie_cumulee: "oui" } : {}),
             }}
           />
         </div>

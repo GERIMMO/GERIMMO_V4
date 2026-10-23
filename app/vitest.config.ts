@@ -171,6 +171,9 @@ export const FICHIERS_EN_SERIE = [
   // tâche pg_cron), et déclencheurs d'état suspendus (`alter table … disable trigger`) pendant chaque effacement, dans la
   // transaction du fichier.
   "tests/fermeture-comptes-base.test.ts",
+  // Plan de conformité du 24/10 (lot 2, lot 1F) : rejeu de 20261024140000 et de son retour (appliquer_retention réécrite,
+  // colonnes de baux et des prospects, table des oppositions) dans la transaction du fichier.
+  "tests/conservation-prospection-base.test.ts",
 ];
 
 export default defineConfig({

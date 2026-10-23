@@ -209,9 +209,10 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
     expect(d.storage_path).not.toBeNull();
   });
 
-  it("conservation : bail terminé depuis 4 ans conservé ; depuis 5 ans et plus, ANONYMISÉ (la fiche subsiste, sans personne)", async () => {
-    const recent = await bailEtDocument("termine", new Date(Date.now() - 4 * 365 * 86_400_000).toISOString().slice(0, 10));
-    const ancien = await bailEtDocument("termine", new Date(Date.now() - 61 * 30.5 * 86_400_000).toISOString().slice(0, 10));
+  // Plan de conformité du 23/10 (lot 2, migration 20261024140000) : pièces du bail 36 mois après la fin (au lieu de 60).
+  it("conservation : bail terminé depuis 2 ans conservé ; depuis 3 ans et plus, ANONYMISÉ (la fiche subsiste, sans personne)", async () => {
+    const recent = await bailEtDocument("termine", new Date(Date.now() - 2 * 365 * 86_400_000).toISOString().slice(0, 10));
+    const ancien = await bailEtDocument("termine", new Date(Date.now() - 37 * 30.5 * 86_400_000).toISOString().slice(0, 10));
     const chemin = (await un<{ storage_path: string }>(`select storage_path from public.documents where id=$1`, [ancien.doc])).storage_path;
     const r = await un<{ r: { documents_anonymises: number } }>(`select public.appliquer_retention() as r`);
     expect(r.r.documents_anonymises).toBeGreaterThanOrEqual(1);

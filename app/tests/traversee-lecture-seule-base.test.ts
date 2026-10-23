@@ -67,14 +67,16 @@ describe.skipIf(!url)("D08-C — lecture seule en base et support borné", () =>
     expect(await verifierSupportInterne(db, true)).toEqual({ present: true, protections: "validées" });
   });
 
-  it("la rétention du support suit le journal d’audit et conserve une transaction active", async () => {
+  // Plan de conformité du 23/10 (lot 2, migration 20261024140000) : le registre de support suit le contrôle interne
+  // (journal:audit_controle_interne, 36 mois), pas le journal général ramené à 12 mois.
+  it("la rétention du support suit le contrôle interne du journal d’audit et conserve une transaction active", async () => {
     const expire = await preparer(), actif = await preparer(), recent = await preparer();
     await db.query("reset role; select set_config('request.jwt.claims','{}',true)");
     await db.query("update support_interne.gestes_encaissement set cree_le=now()-interval '37 months', expire_le=now()-interval '37 months'+interval '5 minutes' where id=any($1::uuid[])", [[expire, actif]]);
     await db.query("update support_interne.gestes_encaissement set transaction_active=txid_current() where id=$1", [actif]);
-    await db.query("update public.retention_rules set actif=false where data_type='journal:audit_log'");
+    await db.query("update public.retention_rules set actif=false where data_type='journal:audit_controle_interne'");
     expect((await db.query("select support_interne.purger_gestes_support()::int n")).rows[0].n).toBe(0);
-    await db.query("update public.retention_rules set actif=true, duree_mois=36 where data_type='journal:audit_log'");
+    await db.query("update public.retention_rules set actif=true, duree_mois=36 where data_type='journal:audit_controle_interne'");
     expect((await db.query("select support_interne.purger_gestes_support()::int n")).rows[0].n).toBe(1);
     expect((await db.query("select id from support_interne.gestes_encaissement where id=any($1::uuid[]) order by id", [[expire, actif, recent]])).rows.map(r => r.id).sort()).toEqual([actif, recent].sort());
     expect((await db.query("select pg_get_functiondef('public.appliquer_retention()'::regprocedure) d")).rows[0].d).toContain("support_interne.purger_gestes_support()");

@@ -98,6 +98,8 @@ const MISSION_OCTOBRE = [
   "20261024120000_signature_caution_mobile_et_edl_sur_place.sql",
   // 24/10, plan de conformité (lot 1E, R14, R15, R49, R51) : fermeture des comptes, inactivité, export complet.
   "20261024130000_fermeture_comptes.sql",
+  // 24/10, plan de conformité (lot 2, lot 1F, alertes et gel du lot 1E) : conservation et prospection.
+  "20261024140000_conservation_et_prospection.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

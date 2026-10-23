@@ -23,6 +23,9 @@ import { configDefaults, defineConfig } from "vitest/config";
 export const FICHIERS_EN_SERIE = [
   // A01/A02 (23/10) : rejeu et retour de 20261023162446, pose complète des gardes, fixture validée (deux sessions).
   "tests/intention-souscription-base.test.ts",
+  // Réseau d'artisans choisi par l'artisan (23/10) : rejeu de 20261023180000 et de son retour (index sur artisan_zones,
+  // huit fonctions du réseau et artisan_definir_metiers_zones réécrites) dans la transaction du fichier.
+  "tests/reseau-zone-artisan-rejeu.test.ts",
   "tests/conservation-contacts-base.test.ts",
   "tests/reglage-souscription-base.test.ts",
   // Rejeu du compteur réservé au relais et fermeture des droits des fonctions.

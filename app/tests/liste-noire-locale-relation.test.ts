@@ -83,20 +83,18 @@ describe.skipIf(!DB)("Liste noire locale : jamais sans relation préalable", () 
     );
     return id("insert into public.incident_consultations(organization_id,incident_id,metier,nature_travaux) values($1,$2,'plomberie','entretien_courant') returning id", [parc, inc]);
   };
-  /** Un artisan du RÉSEAU de Gerimmo : avec son compte, validé, public, plomberie, zone Paris 11e et Lyon 1er, rattaché à Lyon (ouverte). */
+  /** Un artisan du RÉSEAU de Gerimmo : avec son compte, validé, public, plomberie, zone Lyon 1er seulement. Depuis le
+   * 23/10/2026 (20261023180000), le réseau suit la zone choisie par l'artisan : il est proposé à Lyon 1er, pas à Paris. */
   const artisanDuReseau = async () => {
     await postgres();
     const art = await artisan("Plomberie du réseau");
     // Le réseau n'admet qu'un artisan qui a son compte (reseau_artisan_eligible).
     await db.query("update public.artisans set account_id=$2 where id=$1", [art, await compte()]);
     await db.query("insert into public.artisan_metiers(artisan_id,metier) values($1,'plomberie')", [art]);
-    await db.query("insert into public.artisan_zones(artisan_id,code_postal) values($1,'75011'),($1,'69001')", [art]);
-    await db.query("insert into public.reseau_artisan_communes(artisan_id,metier,commune_code) values($1,'plomberie','69123')", [art]);
-    await db.query("insert into public.reseau_ouvertures(commune_code,metier,ouverte) values('69123','plomberie',true) on conflict (commune_code,metier) do update set ouverte=true");
-    await db.query("delete from public.reseau_ouvertures where commune_code='75056' and metier='plomberie'");
+    await db.query("insert into public.artisan_zones(artisan_id,code_postal) values($1,'69001')", [art]);
     return art;
   };
-  const RESEAU_FERME = /pas encore disponible pour ce métier dans cette zone/;
+  const HORS_ZONE = /plus disponible pour ce métier dans cette commune/;
   const ENTREE_PAR_LISTE_NOIRE = /n’est entré dans votre carnet que par votre liste noire/;
 
   beforeAll(async () => {
@@ -189,12 +187,12 @@ describe.skipIf(!DB)("Liste noire locale : jamais sans relation préalable", () 
   });
 
   // Troisième relecture du 15/10 : le scénario du relecteur, entièrement par les fonctions réelles, session du propriétaire.
-  it("propriétaire direct : sollicitation réseau, liste noire, levée ; l'artisan n'entre pas dans le carnet et la commune fermée reste fermée", async () => {
+  it("propriétaire direct : sollicitation réseau, liste noire, levée ; l'artisan n'entre pas dans le carnet et reste non sollicitable hors de sa zone", async () => {
     const art = await artisanDuReseau();
     const lyon = await consultationDuParc("69001", "Lyon", "69123");
     const paris = await consultationDuParc("75011", "Paris", "75056");
     await devenir(proprietaire);
-    expect(await echec("select public.solliciter_artisan($1,$2,$3)", [parc, paris, art])).toMatch(RESEAU_FERME);
+    expect(await echec("select public.solliciter_artisan($1,$2,$3)", [parc, paris, art])).toMatch(HORS_ZONE);
     await db.query("select public.solliciter_artisan($1,$2,$3)", [parc, lyon, art]);
     await db.query("select public.artisan_blacklist_locale($1,$2,'Retards répétés')", [parc, art]);
     expect(await relations(parc, art)).toEqual([{ statut: "desactive", liste_noire: true }]);
@@ -204,7 +202,7 @@ describe.skipIf(!DB)("Liste noire locale : jamais sans relation préalable", () 
     expect(await relations(parc, art)).toEqual([]);
     await devenir(proprietaire);
     expect((await db.query("select artisan_id from public.carnet_artisans_proprietaire($1)", [parc])).rows.map((l) => l.artisan_id)).not.toContain(art);
-    expect(await echec("select public.solliciter_artisan($1,$2,$3)", [parc, paris, art])).toMatch(RESEAU_FERME);
+    expect(await echec("select public.solliciter_artisan($1,$2,$3)", [parc, paris, art])).toMatch(HORS_ZONE);
     // Ni invitation ni geste de l'artisan : rien d'autre n'a été créé.
     await postgres();
     expect((await db.query("select count(*)::int n from public.invitations_artisans where organization_id=$1", [parc])).rows[0].n).toBe(0);

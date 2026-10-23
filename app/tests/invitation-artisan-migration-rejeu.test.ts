@@ -207,6 +207,12 @@ describe.skipIf(!DB_URL)("invitation d'artisan — rejeu de la migration et reto
 const MIGRATION_ZONES = readFileSync("supabase/migrations/20261014841000_metiers_zones_sans_proprietaire.sql", "utf8");
 const RETOUR_ZONES = readFileSync("supabase/retours-arriere/20261014841000_metiers_zones_sans_proprietaire.retour.sql", "utf8");
 const SIGNATURE_ZONES = "public.artisan_definir_metiers_zones(uuid,public.artisan_metier[],text[])";
+/**
+ * 23/10/2026 : 20261023180000 (réseau choisi par l'artisan) pose depuis trois morceaux marqués dans la même fonction, sans
+ * toucher la ligne de 20261014841000. Les retours se jouent dans l'ordre inverse : le sien d'abord, puis celui de 841000.
+ */
+const MIGRATION_RESEAU = readFileSync("supabase/migrations/20261023180000_reseau_zone_choisie_par_artisan.sql", "utf8");
+const RETOUR_RESEAU = readFileSync("supabase/retours-arriere/20261023180000_reseau_zone_choisie_par_artisan.retour.sql", "utf8");
 /** La définition d'origine, telle que 20260911180000 la crée (rejouable ici en `create or replace`). */
 const ORIGINE_ZONES = (() => {
   const socle = readFileSync("supabase/migrations/20260911180000_module8_artisans_socle.sql", "utf8");
@@ -269,6 +275,9 @@ describe.skipIf(!DB_URL)("métiers et zone sans propriétaire direct — rejeu d
 
   it("le retour rétablit exactement la définition d'origine, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
     const migre = await empreinte();
+    // Ordre inverse des retours : celui de 20261023180000 d'abord (il retire ses propres morceaux, rien d'autre ici).
+    await db.query(RETOUR_RESEAU);
+    const avantReseau = await empreinte();
     await db.query(sansEnveloppe(RETOUR_ZONES));
     const apres = await empreinte();
     expect(apres).not.toBe(migre);
@@ -279,8 +288,10 @@ describe.skipIf(!DB_URL)("métiers et zone sans propriétaire direct — rejeu d
     // Rejouable : déjà défait, rien à faire.
     await db.query(sansEnveloppe(RETOUR_ZONES));
     expect(await empreinte()).toBe(apres);
-    // Aller de nouveau : identique à l'état migré.
+    // Aller de nouveau : identique à l'état migré, puis la migration du 23/10 par-dessus.
     await db.query(MIGRATION_ZONES);
+    expect(await empreinte()).toBe(avantReseau);
+    await db.query(MIGRATION_RESEAU);
     expect(await empreinte()).toBe(migre);
   });
 });

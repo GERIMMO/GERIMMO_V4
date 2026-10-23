@@ -960,3 +960,5 @@ Les retours du 20 octobre sont des instructions atomiques : ils peuvent être an
 ### 22 octobre — conservation des preuves et invitations
 
 `20261022213731_conservation_preuves_et_invitations.retour.sql` est un retour fonctionnel : désactive les quatre nouvelles purges et ferme la simulation aux comptes applicatifs. Les règles, données et protections des preuves sont conservées. Il ne rétablit volontairement pas la suppression des demandes signées après 24 mois. Remettre le code précédent avant ce retour ; la marche avant restaure les droits de simulation sans écraser les durées modifiées. Aucun fichier n’est effacé ou restauré.
+
+- `20261023164629_stripe_inventaire_global.retour.sql` : revenir au code antérieur, puis retirer les quatre fonctions. Les tables privées de contrôle restent conservées pour ne pas perdre les références des écarts. Le rejeu de la migration réinstalle les fonctions sans effacer les résultats.

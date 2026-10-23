@@ -1,4 +1,5 @@
 import { reprendreEvenementsStripe } from "@/lib/stripe-file";
+import { inventorierSouscriptionsStripe } from "@/lib/stripe-inventaire";
 import { rapprocherAbonnementsStripe } from "@/lib/stripe-rapprochement";
 import { ArretSupervision, verifierAvantEffet } from "@/lib/controle-effets";
 import { protegerClientAutomatique } from "@/lib/client-automatique";
@@ -231,6 +232,14 @@ export async function traiterAbonnements(request: Request) {
     rapprochement.echecs++;
   }
 
+  let inventaire = { controles: 0, ecarts: 0, echecs: 0, incomplet: true };
+  try {
+    inventaire = await inventorierSouscriptionsStripe(supabase, stripe, () => verifierAvantEffet(supabase, "abonnements"));
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    inventaire.echecs++;
+  }
+
   // Les échecs sont comptés, pas recopiés : leurs motifs vivent déjà sur
   // chaque organisation (abonnement_synchro_faite), et tech_log n'a pas à
   // porter deux fois le même texte.
@@ -239,9 +248,10 @@ export async function traiterAbonnements(request: Request) {
     examinees: lignes.length,
     alignees: alignes,
     resiliees,
-    echecs: echecs.length + reprises.echecs + rapprochement.echecs,
+    echecs: echecs.length + reprises.echecs + rapprochement.echecs + inventaire.echecs,
     stripe_repris: reprises.repris, stripe_controles: rapprochement.controles,
-    stripe_ecarts: rapprochement.ecarts, stripe_incomplet: rapprochement.incomplet,
+    stripe_ecarts: rapprochement.ecarts + inventaire.ecarts, stripe_incomplet: rapprochement.incomplet || inventaire.incomplet,
+    stripe_inventories: inventaire.controles, stripe_non_suivis: inventaire.ecarts,
     avoirs_portes: avoirsPortes,
     avoirs_en_echec: avoirsEnEchec.length,
     echeances_examinees: echeances.examinees,
@@ -261,9 +271,10 @@ export async function traiterAbonnements(request: Request) {
     avoirs_portes: avoirsPortes,
     avoirs_en_echec: avoirsEnEchec,
     echeances,
-    reconduction, reprises, rapprochement,
-    stripe_repris: reprises.repris, stripe_controles: rapprochement.controles, stripe_ecarts: rapprochement.ecarts,
-    stripe_incomplet: rapprochement.incomplet, stripe_echecs: reprises.echecs + rapprochement.echecs,
+    reconduction, reprises, rapprochement, inventaire,
+    stripe_repris: reprises.repris, stripe_controles: rapprochement.controles, stripe_ecarts: rapprochement.ecarts + inventaire.ecarts,
+    stripe_inventories: inventaire.controles, stripe_non_suivis: inventaire.ecarts,
+    stripe_incomplet: rapprochement.incomplet || inventaire.incomplet, stripe_echecs: reprises.echecs + rapprochement.echecs + inventaire.echecs,
   });
 }
 

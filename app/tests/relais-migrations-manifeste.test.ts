@@ -79,6 +79,7 @@ const MISSION_OCTOBRE = [
   "20261021175930_nettoyage_initial_comptes.sql",
   "20261022210326_reglage_blocage_souscription_identite.sql",
   "20261022213731_conservation_preuves_et_invitations.sql",
+  "20261023164629_stripe_inventaire_global.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

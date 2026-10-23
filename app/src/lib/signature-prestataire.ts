@@ -13,6 +13,6 @@ export const supprimerBrouillonSignature = (c: ConfigurationSignature, id: strin
 export const telechargerDocumentSignature = (c: ConfigurationSignature, id: string, doc: string) => zoho.telechargerDocumentSigneZoho(c, id, doc);
 export const telechargerPreuveSignature = (c: ConfigurationSignature, id: string, _personne: string) => zoho.telechargerPreuveZoho(c, id);
 export const preparerCircuitSignature = (p: Parameters<typeof zoho.preparerCircuitZoho>[0]) => zoho.preparerCircuitZoho(p);
-export async function activerDemandeSignature(c: ConfigurationSignature, id: string, circuit: CircuitBail) {
-  await zoho.activerDemandeZoho(c, id, circuit);
+export async function activerDemandeSignature(c: ConfigurationSignature, id: string, circuit: CircuitBail, message?: string) {
+  await zoho.activerDemandeZoho(c, id, message ? { ...circuit, message } : circuit);
 }

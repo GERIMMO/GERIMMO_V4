@@ -268,7 +268,35 @@ describe("export du journal de gestion : le mandant à la date de l'écriture", 
     }
   });
 
-  it("la date de fin du mandat borne sa ligne : après elle, plus de mandant", async () => {
+  // Relecture adverse du 23/10 (2e passe) : dans les essais ci-dessus, le mandat non résilié commence aussi le plus tard,
+  // et la date de début décidait seule. Ici les deux lignes commencent le même jour (`mandat_lignes.date_debut` vaut le
+  // jour de l'insertion : mandat résilié puis refait le même jour) ; l'identifiant de la ligne résiliée passe devant.
+  it.each([
+    ["la ligne résiliée lue en premier", true],
+    ["la ligne active lue en premier", false],
+  ])("même jour de début : le mandat non résilié l'emporte sur l'identifiant (%s)", async (_cas, resilieDAbord) => {
+    const resiliee = ligneDuLot("ml-a-resilie", "2026-06-01", { etat: "resilie", nom: "TEST" });
+    const active = ligneDuLot("ml-b-actif", "2026-06-01", { etat: "actif", nom: "ACHETEUR" });
+    banc.tables = {
+      ecritures: [ecritureDuLot("loyer-juin", "2026-06-01"), ecritureDuLot("loyer-juillet", "2026-07-15")],
+      mandat_lignes: resilieDAbord ? [resiliee, active] : [active, resiliee],
+    };
+    const { res, donnees } = await exporter();
+    expect(res.status).toBe(200);
+    expect(mandantDe(donnees, "loyer-juin")).toBe("ACHETEUR");
+    expect(mandantDe(donnees, "loyer-juillet")).toBe("ACHETEUR");
+  });
+
+  // Limite assumée (relecture adverse du 23/10, 2e passe) : rien n'enregistre la date d'une résiliation (`mandats.date_fin`
+  // n'est renseignée par aucune action ni fonction SQL, et le mandat résilié est verrouillé). Sans successeur sur le lot,
+  // le dernier mandant reste nommé après la résiliation : restitution du dépôt, régularisation finale lui reviennent.
+  it("un mandat résilié sans successeur continue de nommer son mandant (aucune date de résiliation enregistrée)", async () => {
+    banc.tables = { ecritures: [ecritureDuLot("restitution-depot", "2026-09-30")], mandat_lignes: [ancien] };
+    const { donnees } = await exporter();
+    expect(mandantDe(donnees, "restitution-depot")).toBe("TEST");
+  });
+
+  it("si `mandats.date_fin` est un jour renseignée, elle borne la ligne : après elle, plus de mandant", async () => {
     const borne = ligneDuLot("ml-borne", "2025-01-01", { etat: "resilie", date_fin: "2026-05-31", nom: "TEST" });
     banc.tables = {
       ecritures: [ecritureDuLot("loyer-mai", "2026-05-31"), ecritureDuLot("loyer-juin", "2026-06-01")],

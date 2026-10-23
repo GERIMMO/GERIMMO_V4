@@ -54,8 +54,13 @@ const finLaPlusProche = (a: string | null, b: string | null): string | null =>
  * Relecture adverse du 23/10 : rien ne ferme les lignes d'un mandat résilié (`date_fin` reste vide), et RM-5.1.3 laisse
  * un nouveau mandat ouvrir sa ligne sur le même lot. Deux lignes peuvent donc couvrir le même jour ; la route prenait
  * la première LUE, soit, depuis le tri par identifiant, un tirage entre deux uuid. L'ordre de préférence ne dépend plus
- * de la lecture : d'abord un mandat non résilié (RM-5.1.3 n'en laisse qu'un ouvert par lot), puis la ligne commencée
- * le plus récemment (un mandat qui commence sur le lot succède au précédent), puis l'identifiant.
+ * de la lecture : d'abord un mandat non résilié (RM-5.1.3 n'en laisse qu'un ouvert par lot ; c'est lui qui décide
+ * quand deux lignes commencent le même jour, `date_debut` valant le jour de l'insertion), puis la ligne commencée le
+ * plus récemment (un mandat qui commence sur le lot succède au précédent), puis l'identifiant.
+ *
+ * Limite assumée : rien n'enregistre la date d'une résiliation. `mandats.date_fin` n'est renseignée par aucune action ni
+ * fonction SQL, et un mandat résilié est verrouillé. Sans successeur sur le lot, le dernier mandant reste donc nommé
+ * pour les écritures postérieures à la résiliation (restitution du dépôt, régularisation finale : elles lui reviennent).
  */
 function preferer(a: PeriodeMandant, b: PeriodeMandant): number {
   if (a.resilie !== b.resilie) return a.resilie ? 1 : -1;
@@ -224,7 +229,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
     liste.push({
       id: l.id,
       debut: l.date_debut,
-      // La ligne s'arrête au plus tard à la fin du mandat, quand elle est connue.
+      // La ligne s'arrête au plus tard à la fin du mandat, si elle est un jour renseignée (aucun écran ne la pose
+      // aujourd'hui : voir la limite décrite au-dessus de `preferer`).
       fin: finLaPlusProche(l.date_fin, mandat?.date_fin ?? null),
       resilie: mandat?.etat === "resilie",
       nom: `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}`,

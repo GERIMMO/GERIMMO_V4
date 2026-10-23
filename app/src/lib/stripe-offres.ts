@@ -23,6 +23,7 @@ import type Stripe from "stripe";
 import {
   appliquerPiedDeFacture,
   lireErreurStripe,
+  messageStripePourClient,
   piedDeFacturePour,
   verifierAucuneSouscriptionVivante,
   type Echec,
@@ -267,7 +268,7 @@ export async function creerSessionOffre(
     return { ok: true, url: session.url, session: session.id, premierPrelevement: trialEnd ?? null };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: lireErreurStripe(e) };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 
@@ -348,7 +349,7 @@ export async function apercuChangement(
     return { ok: true, immediatCents: apercu.amount_due, prorationDate, enEssai };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: lireErreurStripe(e) };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 
@@ -391,9 +392,9 @@ export type EtapeHausse = {
 /**
  * Ce qu'une hausse refusée laisse à l'échéancier programmé :
  * - `intouche` : aucun échéancier, ou celui en place n'a pas été retiré ;
- * - `restaure` : il avait été libéré, il est recréé à l'identique ;
- * - `a_reprogrammer` : il a été libéré et n'a pas pu être recréé à l'identique —
- *   l'échéance doit être recalculée par la tâche de nuit.
+ * - `restaure` : NOTRE libération l'avait retiré, il est recréé à l'identique ;
+ * - `a_reprogrammer` : il n'est plus attaché à la souscription (libéré par nous et non recréable, ou retiré
+ *   ailleurs) — l'échéance doit être recalculée par la tâche de nuit, sur l'état réel.
  */
 export type SortEcheancier = "intouche" | "restaure" | "a_reprogrammer";
 
@@ -403,7 +404,21 @@ export type EchecHausse = Echec & {
   hausse: "non_appliquee" | "incertaine";
   echeancier: SortEcheancier;
   etapes: EtapeHausse[];
+  /**
+   * Stripe a refusé NET de libérer l'échéancier (déjà libéré ailleurs, par exemple) : nous n'avons rien retiré, rien
+   * tenté, rien reposé. `erreur` est alors un motif pour le client, en français.
+   */
+  liberationRefusee?: true;
 };
+
+/**
+ * Les erreurs de Stripe qui disent NET que la requête n'a rien fait (refus de carte, requête refusée, clé ou droits
+ * refusés). Toutes les autres laissent un doute : coupure, erreur 500, erreur inconnue — et aussi le débit limité ou la
+ * clé d'idempotence « encore en cours », qui peuvent répondre à une NOUVELLE tentative du SDK alors que la première a
+ * été appliquée sans que sa réponse arrive.
+ */
+const REFUS_NETS = new Set(["StripeCardError", "StripeInvalidRequestError", "StripeAuthenticationError", "StripePermissionError"]);
+const refusNet = (e: unknown): boolean => REFUS_NETS.has(String((e as { type?: unknown } | null)?.type ?? ""));
 
 const idDe = (o: string | { id: string } | null | undefined): string | null =>
   typeof o === "string" ? o : (o?.id ?? null);
@@ -488,6 +503,25 @@ export function phasesARestaurer(
  *   l'échéance par la tâche de nuit ;
  * - chaque appel externe est tracé (`etapes`, et une ligne de journal serveur
  *   par étape, au moment où elle a lieu).
+ *
+ * RELECTURE ADVERSE DU 23/10. Deux onglets confirmaient la même hausse : le
+ * second voyait sa libération refusée (échéancier déjà libéré par le premier),
+ * puis « restaurait » l'ancien échéancier par-dessus la hausse payée par le
+ * premier — et la défaisait. Désormais l'échéancier n'est recréé que si NOTRE
+ * libération l'a retiré :
+ * - libération refusée net par Stripe : rien n'a été retiré par nous, rien
+ *   n'est tenté ni reposé ; plus attaché, l'échéance est `a_reprogrammer` ;
+ * - libération sans réponse (elle a peut-être eu lieu) : pas de hausse ; on ne
+ *   recrée que si la souscription facture EXACTEMENT ce qu'elle facturait ;
+ * - même garde après une mise à jour refusée : une facturation qui a changé
+ *   n'est jamais recouverte par l'ancien échéancier ;
+ * - sans échéancier, une mise à jour restée sans réponse est vérifiée par une
+ *   relecture : `incertaine` si la facturation a changé ou si la relecture
+ *   échoue, jamais « non appliquée » sans preuve.
+ * Les gestes d'une même organisation qui touchent l'échéancier passent en
+ * outre l'un après l'autre (lib/verrou-facturation.ts, côté actions).
+ * L'erreur rendue est TOUJOURS une phrase pour le client, en français ; le
+ * motif d'origine de Stripe reste dans les étapes et au journal.
  * `maintenant` n'existe que pour les tests.
  */
 export async function appliquerHausse(
@@ -503,16 +537,31 @@ export async function appliquerHausse(
   }
 ): Promise<Reussite<{ souscription: Stripe.Subscription; echeancierLibere: boolean; etapes: EtapeHausse[] }> | EchecHausse> {
   const etapes: EtapeHausse[] = [];
+  /** Trace l'étape (motif d'origine, pour le journal) et rend la phrase du client. */
   const noter = (etape: EtapeHausse["etape"], ok: boolean, objet?: string | null, e?: unknown): string | undefined => {
-    const erreur = e === undefined ? undefined : lireErreurStripe(e);
-    const ligne: EtapeHausse = { etape, ok, ...(objet ? { objet } : {}), ...(erreur ? { erreur: erreur.slice(0, 200) } : {}) };
+    const journal = e === undefined ? undefined : lireErreurStripe(e);
+    const ligne: EtapeHausse = { etape, ok, ...(objet ? { objet } : {}), ...(journal ? { erreur: journal.slice(0, 200) } : {}) };
     etapes.push(ligne);
     (ok ? console.info : console.error)("[stripe hausse]", JSON.stringify({ organisation: params.orgId, ...ligne }));
-    return erreur;
+    return e === undefined ? undefined : messageStripePourClient(e);
   };
-  const echec = (erreur: string, hausse: EchecHausse["hausse"], echeancier: SortEcheancier): EchecHausse => ({
-    ok: false, erreur, hausse, echeancier, etapes,
-  });
+  const echec = (
+    erreur: string,
+    hausse: EchecHausse["hausse"],
+    echeancier: SortEcheancier,
+    liberationRefusee = false
+  ): EchecHausse => ({ ok: false, erreur, hausse, echeancier, etapes, ...(liberationRefusee ? { liberationRefusee: true as const } : {}) });
+  const relire = async (): Promise<Stripe.Subscription | null> => {
+    try {
+      const relue = await stripe.subscriptions.retrieve(params.subscription);
+      noter("relecture_souscription", true, relue.id);
+      return relue;
+    } catch (e) {
+      if (e instanceof ArretSupervision) throw e;
+      noter("relecture_souscription", false, params.subscription, e);
+      return null;
+    }
+  };
 
   // 1. Ce qui peut échouer sans rien toucher, avant toute libération.
   let s: Stripe.Subscription;
@@ -544,89 +593,108 @@ export async function appliquerHausse(
       return echec(noter("lecture_echeancier", false, idEcheancier, e)!, "non_appliquee", "intouche");
     }
   }
-  let erreur: string | undefined;
-  let miseAJourTentee = false;
+
+  /**
+   * 5. Échec avec un échéancier libéré, ou peut-être libéré, par NOUS : relire avant de reposer quoi que ce soit.
+   * `siDoute` : ce qu'on peut dire de la hausse quand la relecture ne prouve pas une facturation inchangée.
+   */
+  const revenirSur = async (
+    a: Stripe.SubscriptionSchedule,
+    erreur: string,
+    siDoute: EchecHausse["hausse"]
+  ): Promise<EchecHausse> => {
+    const relue = await relire();
+    if (!relue) return echec(erreur, siDoute, "a_reprogrammer");
+    // La souscription ne facture plus la même chose : la hausse a peut-être eu lieu malgré l'erreur, ou un autre
+    // geste est passé. L'ancien échéancier (calculé sur l'ancienne facturation) n'est pas reposé : la tâche de nuit
+    // recalculera sur l'état réel.
+    if (!memeFacturation(s, relue)) return echec(erreur, siDoute, "a_reprogrammer");
+    const attache = idDe(relue.schedule);
+    if (attache === a.id) return echec(erreur, "non_appliquee", "intouche"); // libération sans effet
+    if (attache) return echec(erreur, "non_appliquee", "a_reprogrammer"); // un autre échéancier a pris la place
+    const maintenant = params.maintenant ?? Math.floor(Date.now() / 1000);
+    const phases = phasesARestaurer(a, maintenant);
+    if (!phases) {
+      noter("recreation_echeancier", false, a.id, new Error("Échéancier non reproductible à l'identique."));
+      return echec(erreur, "non_appliquee", "a_reprogrammer");
+    }
+    let neuf: Stripe.SubscriptionSchedule;
+    try {
+      neuf = await stripe.subscriptionSchedules.create({ from_subscription: params.subscription });
+      noter("recreation_echeancier", true, neuf.id);
+    } catch (e) {
+      if (e instanceof ArretSupervision) throw e;
+      noter("recreation_echeancier", false, a.id, e);
+      return echec(erreur, "non_appliquee", "a_reprogrammer");
+    }
+    // Stripe exige que la première phase commence à la phase en cours du nouvel échéancier.
+    const debut = neuf.current_phase?.start_date ?? neuf.phases?.[0]?.start_date;
+    if (typeof debut !== "number") {
+      noter("reprogrammation_echeancier", false, neuf.id, new Error("Phase en cours introuvable sur l'échéancier recréé."));
+      return echec(erreur, "non_appliquee", "a_reprogrammer");
+    }
+    try {
+      await stripe.subscriptionSchedules.update(neuf.id, {
+        end_behavior: a.end_behavior,
+        proration_behavior: "none",
+        ...(nonVide(a.metadata) ? { metadata: a.metadata } : {}),
+        phases: phases.map((p, i) => (i === 0 ? { start_date: debut, ...p } : p)),
+      });
+      noter("reprogrammation_echeancier", true, neuf.id);
+    } catch (e) {
+      if (e instanceof ArretSupervision) throw e;
+      noter("reprogrammation_echeancier", false, neuf.id, e);
+      return echec(erreur, "non_appliquee", "a_reprogrammer");
+    }
+    return echec(erreur, "non_appliquee", "restaure");
+  };
+
+  // 3. La libération. Seule NOTRE libération autorise, plus loin, à recréer l'échéancier.
+  let libere = false;
   if (ancien) {
     try {
       await stripe.subscriptionSchedules.release(ancien.id);
+      libere = true;
       noter("liberation_echeancier", true, ancien.id);
     } catch (e) {
       if (e instanceof ArretSupervision) throw e;
-      erreur = noter("liberation_echeancier", false, ancien.id, e);
+      const erreur = noter("liberation_echeancier", false, ancien.id, e)!;
+      if (refusNet(e)) {
+        // Stripe a refusé : nous n'avons rien retiré, rien n'est tenté ni reposé. Plus attaché (libéré dans un autre
+        // onglet, au tableau de bord, ou arrivé à son terme) : ce n'était pas à nous de le reposer ; la tâche de nuit
+        // recalcule l'échéance sur l'état réel. Relecture impossible : rien n'a été modifié par nous, et c'est ce qui
+        // est dit.
+        const relue = await relire();
+        const plusAttache = relue !== null && idDe(relue.schedule) !== ancien.id;
+        return echec(erreur, "non_appliquee", plusAttache ? "a_reprogrammer" : "intouche", true);
+      }
+      // Réponse perdue : la libération a peut-être eu lieu. Aucune hausse n'est tentée.
+      return revenirSur(ancien, erreur, "non_appliquee");
     }
   }
-  // 3. La hausse.
-  if (erreur === undefined) {
-    miseAJourTentee = true;
-    try {
-      const enEssai = s.status === "trialing";
-      const maj = await stripe.subscriptions.update(params.subscription, {
-        items: elementsDeMiseAJour(s.items.data, lignes),
-        proration_behavior: enEssai ? "none" : "always_invoice",
-        ...(enEssai ? {} : { proration_date: params.prorationDate, payment_behavior: "error_if_incomplete" as const }),
-        metadata: metadonneesOffre(params.orgId, params.offre, params.choix),
-      });
-      noter("mise_a_jour", true, maj.id);
-      return { ok: true, souscription: maj, echeancierLibere: Boolean(ancien), etapes };
-    } catch (e) {
-      if (e instanceof ArretSupervision) throw e;
-      erreur = noter("mise_a_jour", false, params.subscription, e)!;
-    }
-  }
-  if (!ancien) return echec(erreur!, "non_appliquee", "intouche");
 
-  // 4. Échec avec un échéancier libéré (ou peut-être libéré) : relire avant de reposer quoi que ce soit.
-  let relue: Stripe.Subscription;
+  // 4. La hausse.
   try {
-    relue = await stripe.subscriptions.retrieve(params.subscription);
-    noter("relecture_souscription", true, relue.id);
-  } catch (e) {
-    if (e instanceof ArretSupervision) throw e;
-    noter("relecture_souscription", false, params.subscription, e);
-    return echec(erreur!, miseAJourTentee ? "incertaine" : "non_appliquee", "a_reprogrammer");
-  }
-  // La souscription ne facture plus la même chose : la hausse a peut-être eu
-  // lieu malgré l'erreur. L'ancien échéancier (calculé sur l'ancienne offre)
-  // n'est pas reposé ; la tâche de nuit recalculera sur l'état réel.
-  if (miseAJourTentee && !memeFacturation(s, relue)) return echec(erreur!, "incertaine", "a_reprogrammer");
-  const attache = idDe(relue.schedule);
-  if (attache === ancien.id) return echec(erreur!, "non_appliquee", "intouche"); // libération sans effet
-  if (attache) return echec(erreur!, "non_appliquee", "a_reprogrammer"); // un autre échéancier a pris la place
-  const maintenant = params.maintenant ?? Math.floor(Date.now() / 1000);
-  const phases = phasesARestaurer(ancien, maintenant);
-  if (!phases) {
-    noter("recreation_echeancier", false, ancien.id, new Error("Échéancier non reproductible à l'identique."));
-    return echec(erreur!, "non_appliquee", "a_reprogrammer");
-  }
-  let neuf: Stripe.SubscriptionSchedule;
-  try {
-    neuf = await stripe.subscriptionSchedules.create({ from_subscription: params.subscription });
-    noter("recreation_echeancier", true, neuf.id);
-  } catch (e) {
-    if (e instanceof ArretSupervision) throw e;
-    noter("recreation_echeancier", false, ancien.id, e);
-    return echec(erreur!, "non_appliquee", "a_reprogrammer");
-  }
-  // Stripe exige que la première phase commence à la phase en cours du nouvel échéancier.
-  const debut = neuf.current_phase?.start_date ?? neuf.phases?.[0]?.start_date;
-  if (typeof debut !== "number") {
-    noter("reprogrammation_echeancier", false, neuf.id, new Error("Phase en cours introuvable sur l'échéancier recréé."));
-    return echec(erreur!, "non_appliquee", "a_reprogrammer");
-  }
-  try {
-    await stripe.subscriptionSchedules.update(neuf.id, {
-      end_behavior: ancien.end_behavior,
-      proration_behavior: "none",
-      ...(nonVide(ancien.metadata) ? { metadata: ancien.metadata } : {}),
-      phases: phases.map((p, i) => (i === 0 ? { start_date: debut, ...p } : p)),
+    const enEssai = s.status === "trialing";
+    const maj = await stripe.subscriptions.update(params.subscription, {
+      items: elementsDeMiseAJour(s.items.data, lignes),
+      proration_behavior: enEssai ? "none" : "always_invoice",
+      ...(enEssai ? {} : { proration_date: params.prorationDate, payment_behavior: "error_if_incomplete" as const }),
+      metadata: metadonneesOffre(params.orgId, params.offre, params.choix),
     });
-    noter("reprogrammation_echeancier", true, neuf.id);
+    noter("mise_a_jour", true, maj.id);
+    return { ok: true, souscription: maj, echeancierLibere: libere, etapes };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    noter("reprogrammation_echeancier", false, neuf.id, e);
-    return echec(erreur!, "non_appliquee", "a_reprogrammer");
+    const erreur = noter("mise_a_jour", false, params.subscription, e)!;
+    // Un refus net (carte refusée…) dit que la hausse n'a pas eu lieu ; une réponse perdue laisse un doute.
+    const siDoute: EchecHausse["hausse"] = refusNet(e) ? "non_appliquee" : "incertaine";
+    if (ancien) return revenirSur(ancien, erreur, siDoute);
+    if (siDoute === "non_appliquee") return echec(erreur, "non_appliquee", "intouche");
+    // Sans échéancier, rien à reposer ; mais « non appliquée » se vérifie (relecture adverse du 23/10).
+    const relue = await relire();
+    return echec(erreur, relue && memeFacturation(s, relue) ? "non_appliquee" : "incertaine", "intouche");
   }
-  return echec(erreur!, "non_appliquee", "restaure");
 }
 
 /** Le choix du client a-t-il été explicite (formule plus chère que nécessaire) ? */
@@ -760,7 +828,7 @@ export async function resilierAEcheance(
     return { ok: true, souscription: maj, echeancierLibere };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: lireErreurStripe(e) };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 
@@ -774,7 +842,7 @@ export async function libererEcheancierDe(
     return { ok: true, echeancierLibere: await libererEcheancier(stripe, s) };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: lireErreurStripe(e) };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 

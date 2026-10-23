@@ -72,6 +72,16 @@ function fauxStripe(options: {
   echecRecreation?: boolean;
   /** A02 : la mise à jour échoue sans réponse, mais Stripe l'a appliquée (relecture différente). */
   majAppliqueeMalgreErreur?: boolean;
+  /** Mineur du 23/10 : la mise à jour échoue sans réponse (500) et Stripe ne l'a PAS appliquée (relecture identique). */
+  majSansReponseNonAppliquee?: boolean;
+  /** Relecture du 23/10 : la libération est faite chez Stripe, mais sa réponse se perd (coupure). */
+  liberationSansReponse?: boolean;
+  /** Relecture du 23/10 : Stripe refuse net la libération (échéancier déjà libéré ailleurs, droits…). */
+  liberationRefusee?: "attache" | "detache";
+  /** Un geste d'ailleurs change la facturation juste après la libération (autre onglet, tableau de bord). */
+  facturationChangeeApresLiberation?: boolean;
+  /** La relecture de la souscription après l'échec échoue. */
+  relectureImpossible?: boolean;
 } = {}) {
   const appels: Appels = {};
   const noter = (nom: string, arg: unknown) => ((appels[nom] ??= []).push(arg));
@@ -135,14 +145,26 @@ function fauxStripe(options: {
       update: vi.fn(async (id: string, p: unknown) => { noter("schedules.update", p); return { id }; }),
       release: vi.fn(async (id: string) => {
         noter("schedules.release", id);
+        if (options.liberationRefusee) {
+          if (options.liberationRefusee === "detache") souscription.schedule = null;
+          throw Object.assign(new Error("You cannot release a subscription schedule that is currently in the `released` status."), { type: "StripeInvalidRequestError", statusCode: 400 });
+        }
         if (souscription.schedule === id) souscription.schedule = null;
+        if (options.facturationChangeeApresLiberation) souscription.metadata = { ...souscription.metadata, gerimmo_formule: "patrimoine" };
+        if (options.liberationSansReponse) throw Object.assign(new Error("An error occurred with our connection to Stripe."), { type: "StripeConnectionError" });
         return { id };
       }),
     },
     subscriptions: {
       list: vi.fn(async () => ({ data: options.souscriptionsExistantes ?? [] })),
       // Une copie à chaque lecture, comme Stripe : la relecture voit l'état du moment.
-      retrieve: vi.fn(async () => structuredClone(souscription)),
+      retrieve: vi.fn(async () => {
+        noter("subscriptions.retrieve", null);
+        if (options.relectureImpossible && (appels["subscriptions.retrieve"]?.length ?? 0) > 1) {
+          throw Object.assign(new Error("An error occurred with our connection to Stripe."), { type: "StripeConnectionError" });
+        }
+        return structuredClone(souscription);
+      }),
       update: vi.fn(async (_id: string, p: unknown) => {
         noter("subscriptions.update", p);
         const metadata = (p as { metadata?: Record<string, string> }).metadata ?? {};
@@ -150,6 +172,7 @@ function fauxStripe(options: {
           souscription.metadata = metadata;
           throw Object.assign(new Error("An error occurred with our connection to Stripe."), { type: "StripeConnectionError" });
         }
+        if (options.majSansReponseNonAppliquee) throw Object.assign(new Error("An unknown error occurred"), { type: "StripeAPIError", statusCode: 500 });
         if (options.refusCarte) throw Object.assign(new Error("Your card was declined."), { type: "StripeCardError", code: "card_declined" });
         return { ...structuredClone(souscription), metadata };
       }),
@@ -428,6 +451,81 @@ describe("A02 (audit du 23/10) — une hausse refusée ne laisse pas l'échéanc
     const r = await hausser(stripe);
     expect(r).toMatchObject({ ok: false, hausse: "incertaine", echeancier: "a_reprogrammer" });
     expect(appels["schedules.create"]).toBeUndefined();
+  });
+
+  // ── Relecture adverse du 23/10 : la restauration n'a lieu que si NOTRE libération a eu lieu, sur une facturation inchangée.
+  const etapesDe = (r: unknown) => (r as { etapes: { etape: string; ok: boolean }[] }).etapes.map((e) => [e.etape, e.ok]);
+  const ANGLAIS = /You cannot|release|schedule|error occurred/i;
+
+  it("libération refusée net, échéancier détaché ailleurs : rien n'est reposé, l'échéance est à reprogrammer, motif en français", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", liberationRefusee: "detache" });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "a_reprogrammer", liberationRefusee: true });
+    expect((r as { erreur: string }).erreur).not.toMatch(ANGLAIS);
+    expect(appels["subscriptions.update"]).toBeUndefined();
+    expect(appels["schedules.create"]).toBeUndefined();
+    expect(appels["schedules.update"]).toBeUndefined();
+    // Le journal garde, lui, le motif d'origine de Stripe.
+    expect((r as { etapes: { etape: string; erreur?: string }[] }).etapes.find((e) => e.etape === "liberation_echeancier")?.erreur).toMatch(/You cannot release/);
+  });
+
+  it("libération refusée net, échéancier toujours attaché : rien n'a bougé, rien n'est reposé", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", liberationRefusee: "attache" });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "intouche", liberationRefusee: true });
+    expect((r as { erreur: string }).erreur).toBe("Notre prestataire de paiement a refusé l'opération.");
+    expect(appels["schedules.create"]).toBeUndefined();
+  });
+
+  it("libération refusée net puis relecture impossible : rien n'a été modifié par nous, c'est ce qui est dit", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", liberationRefusee: "detache", relectureImpossible: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "intouche", liberationRefusee: true });
+    expect(appels["subscriptions.update"]).toBeUndefined();
+    expect(appels["schedules.create"]).toBeUndefined();
+  });
+
+  it("libération sans réponse mais faite, facturation inchangée : l'échéancier est recréé (c'était bien le nôtre)", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", liberationSansReponse: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "restaure" });
+    expect(appels["subscriptions.update"]).toBeUndefined();
+    expect(appels["schedules.create"]).toEqual([{ from_subscription: "sub_1" }]);
+  });
+
+  it("libération sans réponse, facturation changée entre-temps : l'ancien échéancier n'est pas reposé sur une autre facturation", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", liberationSansReponse: true, facturationChangeeApresLiberation: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "a_reprogrammer" });
+    expect(appels["schedules.create"]).toBeUndefined();
+  });
+
+  it("carte refusée puis relecture impossible : le refus est net, la hausse n'a pas eu lieu ; l'échéance est à reprogrammer", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", refusCarte: true, relectureImpossible: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "a_reprogrammer", erreur: "Votre carte a été refusée par votre banque." });
+    expect(appels["schedules.create"]).toBeUndefined();
+  });
+
+  it("sans échéancier, mise à jour sans réponse mais appliquée : la relecture la dit « incertaine », pas « non appliquée »", async () => {
+    const { stripe } = fauxStripe({ majAppliqueeMalgreErreur: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "incertaine", echeancier: "intouche" });
+    expect(etapesDe(r)).toContainEqual(["relecture_souscription", true]);
+  });
+
+  it("sans échéancier, mise à jour sans réponse (500) et relecture identique : non appliquée, ce qui est désormais vérifié", async () => {
+    const { stripe } = fauxStripe({ majSansReponseNonAppliquee: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "intouche" });
+    expect(etapesDe(r)).toContainEqual(["relecture_souscription", true]);
+  });
+
+  it("sans échéancier, mise à jour sans réponse et relecture impossible : incertaine", async () => {
+    const { stripe } = fauxStripe({ majSansReponseNonAppliquee: true, relectureImpossible: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "incertaine", echeancier: "intouche" });
+    expect(etapesDe(r)).toContainEqual(["relecture_souscription", false]);
   });
 
   it("sans échéancier : un refus de carte ne touche à rien et le dit", async () => {

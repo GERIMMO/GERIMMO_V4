@@ -124,6 +124,8 @@ beforeEach(() => {
         };
       }
       if (nom === "intention_souscription_poser") return { data: true, error: null };
+      // A02 (relecture du 23/10) : hausse, périodicité et résiliation prennent le verrou des gestes de facturation.
+      if (nom === "verrou_facturation_prendre" || nom === "verrou_facturation_rendre") return { data: true, error: null };
       return { data: null, error: null };
     }),
   };

@@ -404,8 +404,10 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
         -- Le support reste ouvert pour signaler précisément un blocage d'accès.
         -- intentions_souscription (A01, 23/10/2026) : la réservation de la page de
         -- paiement, écrite par la clé de service pour un compte souvent gelé.
+        -- verrous_facturation (A02, 23/10/2026) : le verrou des gestes de facturation
+        -- (hausse, périodicité, résiliation), qu'un compte gelé doit encore pouvoir prendre.
         and c.relname not in ('acces_pieces_log', 'audit_log',
-                              'abonnements', 'abonnement_evenements', 'intentions_souscription',
+                              'abonnements', 'abonnement_evenements', 'intentions_souscription', 'verrous_facturation',
                               'retours_utilisateurs', 'retours_soutiens',
                               'automation_events', 'orchestration_cases', 'orchestration_history')
         and not exists (select 1 from pg_trigger t
@@ -422,13 +424,15 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
     // encaissement, et se lirait comme un problème de Stripe.
     const { rows } = await db.query<{ n: string }>(`
       select count(*)::text as n from pg_trigger t
-      where t.tgname in ('abonnement_abonnements', 'abonnement_abonnement_evenements', 'abonnement_intentions_souscription')`);
+      where t.tgname in ('abonnement_abonnements', 'abonnement_abonnement_evenements', 'abonnement_intentions_souscription',
+                         'abonnement_verrous_facturation')`);
     expect(rows[0].n).toBe("0");
     // Et l'installateur les exclut nommément : une pose future ne la garderait pas.
     const {
       rows: [{ src }],
     } = await db.query<{ src: string }>("select pg_get_functiondef('public.poser_gardes_abonnement()'::regprocedure) as src");
     expect(src).toContain("'intentions_souscription'");
+    expect(src).toContain("'verrous_facturation'");
   });
 
   it("les tables d'abonnement n'accordent rien à anon ni à authenticated", async () => {
@@ -440,7 +444,7 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
       select distinct g.grantee
       from information_schema.role_table_grants g
       where g.table_schema = 'public'
-        and g.table_name in ('abonnements', 'abonnement_evenements', 'intentions_souscription')
+        and g.table_name in ('abonnements', 'abonnement_evenements', 'intentions_souscription', 'verrous_facturation')
         and g.grantee in ('anon', 'authenticated')`);
     expect(rows.map((r) => r.grantee)).toEqual([]);
   });

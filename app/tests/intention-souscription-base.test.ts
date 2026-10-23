@@ -9,11 +9,14 @@
  *  - droits réels : ni anon ni authenticated n'atteignent la table ni les fonctions ; la clé de service, oui ; RLS active ;
  *  - la table reste hors de la garde de lecture seule des comptes gelés (poser_gardes_abonnement rejouée) ;
  *  - la trace d'une hausse refusée (A02) : une ligne d'audit, étapes bornées ;
+ *  - le verrou des gestes de facturation (A02, relecture adverse du 23/10) : un seul détenteur par organisation, rendu
+ *    par son seul jeton, repris après expiration ; deux sessions qui le demandent ensemble : une seule l'obtient ;
  *  - rejouable ; le retour retire les fonctions, rend à poser_gardes_abonnement sa définition d'origine, garde
  *    l'historique ; la réapplication rétablit tout.
  *
  * Base locale jetable seulement. Transaction annulée, sauf la fixture de l'essai de concurrence (validée, puis retirée).
  */
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -33,7 +36,10 @@ const FONCTIONS = [
   ["public.intention_souscription_poser(uuid,uuid,text,text)", "select public.intention_souscription_poser(gen_random_uuid(), gen_random_uuid(), 'cs_test_x', 'https://checkout.stripe.test/x')"],
   ["public.intention_souscription_terminer(uuid,uuid,text)", "select public.intention_souscription_terminer(gen_random_uuid(), gen_random_uuid(), 'echec')"],
   ["public.abonnement_hausse_tracer(uuid,text,jsonb)", "select public.abonnement_hausse_tracer(gen_random_uuid(), 'hausse_incertaine', '[]'::jsonb)"],
+  ["public.verrou_facturation_prendre(uuid,uuid,text,integer)", "select public.verrou_facturation_prendre(gen_random_uuid(), gen_random_uuid(), 'hausse', 120)"],
+  ["public.verrou_facturation_rendre(uuid,uuid)", "select public.verrou_facturation_rendre(gen_random_uuid(), gen_random_uuid())"],
 ] as const;
+const TABLES = ["public.intentions_souscription", "public.verrous_facturation"] as const;
 
 describe.skipIf(!url)("intentions de souscription : une seule en cours, droits réels, rejeu et retour", () => {
   let db: Client;
@@ -58,6 +64,10 @@ describe.skipIf(!url)("intentions de souscription : une seule en cours, droits r
     (await db.query("select public.intention_souscription_terminer($1,$2,$3) as r", [org, intention, motif])).rows[0].r;
   const lignes = async () =>
     (await db.query("select statut, motif from public.intentions_souscription where organization_id=$1 order by cree_le, statut desc", [org])).rows;
+  const prendre = async (jeton: string, operation = "hausse", duree = 120, o = org) =>
+    (await db.query("select public.verrou_facturation_prendre($1,$2,$3,$4) as r", [o, jeton, operation, duree])).rows[0].r;
+  const rendre = async (jeton: string, o = org) =>
+    (await db.query("select public.verrou_facturation_rendre($1,$2) as r", [o, jeton])).rows[0].r;
 
   it("réserve une intention, puis la rend telle quelle à la demande suivante (même identifiant, reprise)", async () => {
     await service();
@@ -157,9 +167,47 @@ describe.skipIf(!url)("intentions de souscription : une seule en cours, droits r
     expect(await lignes()).toEqual([{ statut: "en_cours", motif: null }]);
   });
 
+  it("A02 : un verrou de facturation par organisation — un seul détenteur, rendu par son jeton, repris après expiration", async () => {
+    await service();
+    const [j1, j2, j3] = [randomUUID(), randomUUID(), randomUUID()];
+    expect(await prendre(j1)).toBe(true);
+    expect(await prendre(j2, "periodicite")).toBe(false); // tenu par la hausse
+    expect(await rendre(j2)).toBe(false); // un autre jeton ne le rend pas
+    expect(await rendre(j1)).toBe(true);
+    expect(await rendre(j1)).toBe(false); // déjà rendu
+    expect(await prendre(j2, "resiliation")).toBe(true);
+    // Un détenteur interrompu (fonction coupée) : son bail expire, le suivant le reprend ; l'ancien ne peut plus le rendre.
+    await db.query("reset role");
+    await db.query("update public.verrous_facturation set pris_le=now()-interval '3 minutes', expire_le=now()-interval '1 second' where organization_id=$1", [org]);
+    await service();
+    expect(await prendre(j3)).toBe(true);
+    expect(await rendre(j2)).toBe(false);
+    const tenu = (await db.query("select jeton, operation, extract(epoch from expire_le-pris_le)::int duree from public.verrous_facturation where organization_id=$1", [org])).rows;
+    expect(tenu).toEqual([{ jeton: j3, operation: "hausse", duree: 120 }]);
+    // Une autre organisation n'est pas gênée.
+    await db.query("reset role");
+    const autre = (await db.query("insert into public.organizations(name,type,status) values('Verrou fictive','proprietaire_direct','active') returning id")).rows[0].id;
+    await service();
+    expect(await prendre(j1, "hausse", 120, autre)).toBe(true);
+  });
+
+  it("A02 : le verrou refuse les paramètres hors bornes", async () => {
+    await service();
+    for (const [args, motif] of [
+      [[org, randomUUID(), "autre_chose", 120], /Demande de verrou invalide/],
+      [[org, null, "hausse", 120], /Demande de verrou invalide/],
+      [[org, randomUUID(), "hausse", 5], /Durée de verrou invalide/],
+      [[org, randomUUID(), "hausse", 901], /Durée de verrou invalide/],
+    ] as const) {
+      await db.query("savepoint borne");
+      await expect(db.query("select public.verrou_facturation_prendre($1,$2,$3,$4)", [...args])).rejects.toThrow(motif);
+      await db.query("rollback to savepoint borne");
+    }
+  });
+
   it.each(["anon", "authenticated"])("%s n'atteint ni la table ni les fonctions", async (role) => {
     await db.query(`set local role ${role}`);
-    for (const requete of ["select count(*) from public.intentions_souscription", ...FONCTIONS.map(([, sql]) => sql)]) {
+    for (const requete of [...TABLES.map((t) => `select count(*) from ${t}`), ...FONCTIONS.map(([, sql]) => sql)]) {
       await db.query("savepoint refus");
       await expect(db.query(requete), requete).rejects.toMatchObject({ code: "42501" });
       await db.query("rollback to savepoint refus");
@@ -167,24 +215,30 @@ describe.skipIf(!url)("intentions de souscription : une seule en cours, droits r
   });
 
   it("droits du catalogue : RLS active, aucune politique, clé de service seule à exécuter", async () => {
-    const t = (await db.query(`select c.relrowsecurity rls,
-        (select count(*)::int from pg_policy p where p.polrelid=c.oid) politiques,
-        has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') anon,
-        has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') authentifie,
-        has_table_privilege('service_role',c.oid,'SELECT') service
-      from pg_class c where c.oid='public.intentions_souscription'::regclass`)).rows[0];
-    expect(t).toEqual({ rls: true, politiques: 0, anon: false, authentifie: false, service: true });
+    for (const table of TABLES) {
+      const t = (await db.query(`select c.relrowsecurity rls,
+          (select count(*)::int from pg_policy p where p.polrelid=c.oid) politiques,
+          has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') anon,
+          has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') authentifie,
+          has_table_privilege('service_role',c.oid,'SELECT') service
+        from pg_class c where c.oid=$1::regclass`, [table])).rows[0];
+      expect(t, table).toEqual({ rls: true, politiques: 0, anon: false, authentifie: false, service: true });
+    }
     for (const [f] of FONCTIONS) {
       const d = (await db.query("select has_function_privilege('anon',$1,'EXECUTE') a, has_function_privilege('authenticated',$1,'EXECUTE') b, has_function_privilege('service_role',$1,'EXECUTE') c, (select proconfig from pg_proc where oid=$1::regprocedure) cfg, (select prosecdef from pg_proc where oid=$1::regprocedure) definer", [f])).rows[0];
       expect(d, f).toEqual({ a: false, b: false, c: true, cfg: ['search_path=""'], definer: true });
     }
   });
 
-  it("la table reste hors de la garde de lecture seule, même après une pose complète des gardes", async () => {
+  it("les deux tables restent hors de la garde de lecture seule, même après une pose complète des gardes", async () => {
     await db.query("select public.poser_gardes_abonnement()");
     const gardes = (await db.query("select tgname from pg_trigger where tgrelid='public.intentions_souscription'::regclass and not tgisinternal order by 1")).rows.map((r) => r.tgname);
     expect(gardes).not.toContain("abonnement_intentions_souscription");
     expect(gardes).toContain("diagnostic_artisan_lecture");
+    // Le verrou des gestes de facturation : un compte gelé doit encore pouvoir résilier ou changer de périodicité.
+    const gardesVerrou = (await db.query("select tgname from pg_trigger where tgrelid='public.verrous_facturation'::regclass and not tgisinternal order by 1")).rows.map((r) => r.tgname);
+    expect(gardesVerrou).not.toContain("abonnement_verrous_facturation");
+    expect(gardesVerrou).toContain("diagnostic_artisan_lecture");
     // Une table d'organisation ordinaire, elle, reste gardée par la même pose.
     expect((await db.query("select count(*)::int n from pg_trigger where tgname='abonnement_lots'")).rows[0].n).toBe(1);
   });
@@ -219,11 +273,13 @@ describe.skipIf(!url)("intentions de souscription : une seule en cours, droits r
     const empreinte = async () => (await db.query(`select
         (select string_agg(p.proname||':'||md5(pg_get_functiondef(p.oid))||':'||coalesce(p.proacl::text,''),',' order by p.proname)
            from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-          where n.nspname='public' and (p.proname like 'intention_souscription_%' or p.proname in ('abonnement_hausse_tracer','poser_gardes_abonnement'))) fonctions,
-        (select string_agg(conname||':'||pg_get_constraintdef(oid),',' order by conname) from pg_constraint where conrelid='public.intentions_souscription'::regclass) contraintes,
-        (select string_agg(indexdef,',' order by indexname) from pg_indexes where tablename='intentions_souscription') index,
-        (select relacl::text from pg_class where oid='public.intentions_souscription'::regclass) droits,
-        (select string_agg(tgname,',' order by tgname) from pg_trigger where tgrelid='public.intentions_souscription'::regclass and not tgisinternal) declencheurs`)).rows[0];
+          where n.nspname='public' and (p.proname like 'intention_souscription_%' or p.proname like 'verrou_facturation_%' or p.proname in ('abonnement_hausse_tracer','poser_gardes_abonnement'))) fonctions,
+        (select string_agg(conrelid::regclass::text||'.'||conname||':'||pg_get_constraintdef(oid),',' order by conrelid::regclass::text, conname) from pg_constraint
+          where conrelid in ('public.intentions_souscription'::regclass, to_regclass('public.verrous_facturation'))) contraintes,
+        (select string_agg(indexdef,',' order by indexname) from pg_indexes where tablename in ('intentions_souscription','verrous_facturation')) index,
+        (select string_agg(relname||':'||relacl::text,',' order by relname) from pg_class where oid in ('public.intentions_souscription'::regclass, to_regclass('public.verrous_facturation'))) droits,
+        (select string_agg(tgrelid::regclass::text||'.'||tgname,',' order by tgrelid::regclass::text, tgname) from pg_trigger
+          where tgrelid in ('public.intentions_souscription'::regclass, to_regclass('public.verrous_facturation')) and not tgisinternal) declencheurs`)).rows[0];
     const gardeOrigine = async () => (await db.query("select md5(pg_get_functiondef('public.poser_gardes_abonnement()'::regprocedure)) m")).rows[0].m;
     await service();
     const a = await reserver();
@@ -235,8 +291,11 @@ describe.skipIf(!url)("intentions de souscription : une seule en cours, droits r
     expect(await empreinte()).toEqual(avant);
 
     await db.query(retour);
-    expect((await db.query("select count(*)::int n from pg_proc where proname like 'intention_souscription_%' or proname='abonnement_hausse_tracer'")).rows[0].n).toBe(0);
+    expect((await db.query("select count(*)::int n from pg_proc where proname like 'intention_souscription_%' or proname like 'verrou_facturation_%' or proname='abonnement_hausse_tracer'")).rows[0].n).toBe(0);
     expect((await db.query("select strpos(pg_get_functiondef('public.poser_gardes_abonnement()'::regprocedure), '''intentions_souscription''') p")).rows[0].p).toBe(0);
+    expect((await db.query("select strpos(pg_get_functiondef('public.poser_gardes_abonnement()'::regprocedure), '''verrous_facturation''') p")).rows[0].p).toBe(0);
+    // Le verrou ne garde que des baux de quelques minutes : sa table part avec le retour.
+    expect((await db.query("select to_regclass('public.verrous_facturation') t")).rows[0].t).toBeNull();
     const origine = await gardeOrigine();
     expect(await lignes()).toEqual([{ statut: "terminee", motif: "echec" }]); // historique conservé
     await db.query(retour); // rejoué : rien à faire
@@ -284,5 +343,23 @@ describe.skipIf(!url)("deux onglets en même temps : deux sessions Postgres, une
     expect(seconde).toMatchObject({ intention: premiere.intention, reprise: true });
     const { rows } = await admin.query("select count(*)::int n from public.intentions_souscription where organization_id=$1 and statut='en_cours'", [org]);
     expect(rows[0].n).toBe(1);
+  });
+
+  it("A02 : deux gestes de facturation en même temps — la seconde demande de verrou attend la première, puis est refusée", async () => {
+    const [ja, jb] = [randomUUID(), randomUUID()];
+    await a.query("begin"); await a.query("set local role service_role");
+    await b.query("begin"); await b.query("set local role service_role");
+    const premiere = (await a.query("select public.verrou_facturation_prendre($1,$2,'hausse',120) r", [org, ja])).rows[0].r;
+    let seconde: boolean | undefined;
+    const enAttente = b.query("select public.verrou_facturation_prendre($1,$2,'periodicite',120) r", [org, jb]).then((r) => { seconde = r.rows[0].r; });
+    await new Promise((r) => setTimeout(r, 300));
+    expect(seconde, "la seconde demande doit attendre la première").toBeUndefined();
+    await a.query("commit");
+    await enAttente;
+    await b.query("commit");
+    expect(premiere).toBe(true);
+    expect(seconde).toBe(false);
+    const { rows } = await admin.query("select jeton from public.verrous_facturation where organization_id=$1", [org]);
+    expect(rows).toEqual([{ jeton: ja }]);
   });
 });

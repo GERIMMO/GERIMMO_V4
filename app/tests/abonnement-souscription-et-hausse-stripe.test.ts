@@ -16,6 +16,12 @@
  *        libéré avant la hausse ; si le paiement échoue, il restait retiré et l'écran disait « rien n'a été modifié ».
  *        Attendu : l'échéancier est recréé à l'identique ; si la recréation échoue elle-même, la phrase dit exactement
  *        ce qui s'est passé et l'échéance est marquée à recalculer pour la tâche de nuit.
+ *  Relecture adverse du 23/10 : le faux Stripe suit Stripe sur deux points que la version précédente ignorait —
+ *        il REFUSE de libérer un échéancier qui n'est plus « active » / « not_started », et la mise à jour de la phase EN
+ *        COURS d'un échéancier attaché s'applique à la souscription (prix, métadonnées). Deux confirmations simultanées
+ *        de la même hausse (Promise.all), ou une demande de périodicité / une résiliation pendant la hausse, ne doivent
+ *        plus défaire la hausse payée ; le verrou des gestes de facturation (verrou_facturation_prendre / _rendre) est
+ *        simulé avec la sémantique de la fonction SQL.
  *
  * Aucune adresse réelle : domaine example.invalid.
  */
@@ -96,7 +102,8 @@ vi.mock("@/lib/stripe", async (importer) => ({
   clientStripe: () => m.stripe,
 }));
 
-import { confirmerHausse, demarrerAbonnement } from "@/app/actions/abonnement";
+import { confirmerHausse, demanderPeriodicite, demarrerAbonnement, resilierAbonnement } from "@/app/actions/abonnement";
+import { appliquerHausse } from "@/lib/stripe-offres";
 
 /** Une pause réelle (tâche suivante) : deux actions lancées ensemble s'entrelacent à chaque appel « réseau ». */
 const tour = () => new Promise<void>((r) => setTimeout(r, 0));
@@ -114,9 +121,16 @@ function fauxStripe() {
     souscriptionsVivantes: [] as { id: string; status: string }[],
     refusCarte: false,
     echecRecreation: false,
+    /** La mise à jour est appliquée chez Stripe, mais sa réponse se perd (erreur 500 rejouée par la clé d'idempotence). */
+    majSansReponse: false,
+    /** Joué juste avant une libération d'échéancier : un geste d'ailleurs (tableau de bord Stripe, autre onglet). */
+    avantLiberation: null as null | (() => void),
     majEcheanciers: [] as { id: string; params: Record<string, unknown> }[],
     echeanciersCrees: [] as string[],
     liberations: [] as string[],
+    liberationsRefusees: [] as string[],
+    /** Hausses appliquées chez Stripe (mises à jour des lignes de la souscription). */
+    hausses: 0,
     T0, T1, T2,
   };
   const phase = (debut: number, fin: number, prix: string, metadata: Record<string, string>) => ({
@@ -154,16 +168,42 @@ function fauxStripe() {
     ],
   };
   const echeanciers = new Map<string, Record<string, unknown>>([["sub_sched_1", structuredClone(echeancierInitial)]]);
+  type Ligne = { id: string; quantity: number; price: { id: string; product: string; unit_amount: number; recurring: { interval: string } } };
+  // Les tarifs connus de ce faux Stripe : ceux des phases, et ceux que créent les mises à jour (price_data).
+  const tarifs = new Map<string, Ligne["price"]>([
+    ["price_solo_mensuel", { id: "price_solo_mensuel", product: "gerimmo_formule_solo", unit_amount: 599, recurring: { interval: "month" } }],
+    ["price_solo_annuel", { id: "price_solo_annuel", product: "gerimmo_formule_solo", unit_amount: 5990, recurring: { interval: "year" } }],
+  ]);
   const souscription = {
     id: "sub_1",
     customer: "cus_connu",
     status: "active",
     schedule: "sub_sched_1" as string | null,
-    items: { data: [{ id: "si_formule", quantity: 1, price: { id: "price_solo_mensuel", product: "gerimmo_formule_solo", unit_amount: 599, recurring: { interval: "month" } } }] },
-    metadata: { ...metaSolo },
+    items: { data: [{ id: "si_formule", quantity: 1, price: { ...tarifs.get("price_solo_mensuel")! } }] as Ligne[] },
+    metadata: { ...metaSolo } as Record<string, string>,
     trial_end: null,
+    cancel_at_period_end: false,
   };
   const introuvable = (id: string) => Object.assign(new Error(`No such object: '${id}'`), { code: "resource_missing" });
+  let numero = 0;
+  /** Comme Stripe : modifier la phase EN COURS d'un échéancier attaché change ce que la souscription facture. */
+  function appliquerPhaseEnCours(id: string, phases: { start_date?: number; end_date: number; items: { price: string; quantity?: number }[]; metadata?: Record<string, string> }[]) {
+    if (souscription.schedule !== id) return;
+    const t = Math.floor(Date.now() / 1000);
+    let debut = phases[0]?.start_date ?? T0;
+    for (const p of phases) {
+      if (debut <= t && t < p.end_date) {
+        souscription.items.data = p.items.map((i, k) => ({
+          id: souscription.items.data[k]?.id ?? `si_phase_${++numero}`,
+          quantity: i.quantity ?? 1,
+          price: { ...(tarifs.get(i.price) ?? { id: i.price, product: "inconnu", unit_amount: 0, recurring: { interval: "month" } }) },
+        }));
+        if (p.metadata) souscription.metadata = { ...p.metadata };
+        return;
+      }
+      debut = p.end_date;
+    }
+  }
 
   const stripe = {
     customers: {
@@ -178,7 +218,19 @@ function fauxStripe() {
       update: async (_id: string, p: Record<string, unknown>) => {
         await tour();
         if (etat.refusCarte) throw Object.assign(new Error("Your card was declined."), { type: "StripeCardError", code: "card_declined" });
-        Object.assign(souscription, { metadata: p.metadata });
+        if (Array.isArray(p.items)) {
+          // Les lignes de la hausse : une ligne gardée garde son identifiant, chaque price_data crée un tarif.
+          const elements = p.items as { id?: string; deleted?: boolean; quantity?: number; price_data?: { product: string; unit_amount: number; recurring: { interval: string } } }[];
+          souscription.items.data = elements.filter((e) => !e.deleted).map((e) => {
+            const prix = { id: `price_maj_${++numero}`, product: e.price_data!.product, unit_amount: e.price_data!.unit_amount, recurring: { ...e.price_data!.recurring } };
+            tarifs.set(prix.id, prix);
+            return { id: e.id ?? `si_maj_${++numero}`, quantity: e.quantity ?? 1, price: prix };
+          });
+          etat.hausses += 1;
+        }
+        if (p.metadata) souscription.metadata = { ...(p.metadata as Record<string, string>) };
+        if (typeof p.cancel_at_period_end === "boolean") souscription.cancel_at_period_end = p.cancel_at_period_end;
+        if (etat.majSansReponse) throw Object.assign(new Error("An unknown error occurred"), { type: "StripeAPIError", statusCode: 500 });
         return structuredClone(souscription);
       },
     },
@@ -192,8 +244,14 @@ function fauxStripe() {
       },
       release: async (id: string) => {
         await tour();
+        if (etat.avantLiberation) { const geste = etat.avantLiberation; etat.avantLiberation = null; geste(); }
         const e = echeanciers.get(id);
         if (!e) throw introuvable(id);
+        // Stripe ne libère qu'un échéancier « not_started » ou « active ».
+        if (e.status !== "active" && e.status !== "not_started") {
+          etat.liberationsRefusees.push(id);
+          throw Object.assign(new Error(`You cannot release a subscription schedule that is currently in the \`${String(e.status)}\` status.`), { type: "StripeInvalidRequestError", statusCode: 400 });
+        }
         e.status = "released";
         if (souscription.schedule === id) souscription.schedule = null;
         etat.liberations.push(id);
@@ -203,10 +261,11 @@ function fauxStripe() {
         await tour();
         if (etat.echecRecreation) throw Object.assign(new Error("An error occurred with our connection to Stripe."), { type: "StripeConnectionError" });
         const id = `sub_sched_${echeanciers.size + 1}`;
+        // Comme Stripe : l'échéancier né de la souscription porte ce qu'elle facture À CET INSTANT.
         const neuf = {
           id, status: "active", end_behavior: "release", metadata: {},
           current_phase: { start_date: T0, end_date: T1 },
-          phases: [phase(T0, T1, "price_solo_mensuel", metaSolo)],
+          phases: [phase(T0, T1, souscription.items.data[0].price.id, { ...souscription.metadata })],
           subscription: p.from_subscription,
         };
         echeanciers.set(id, neuf);
@@ -217,6 +276,12 @@ function fauxStripe() {
       update: async (id: string, p: Record<string, unknown>) => {
         await tour();
         etat.majEcheanciers.push({ id, params: structuredClone(p) });
+        const e = echeanciers.get(id);
+        if (!e) throw introuvable(id);
+        if (Array.isArray(p.phases)) {
+          e.phases = structuredClone(p.phases);
+          appliquerPhaseEnCours(id, p.phases as Parameters<typeof appliquerPhaseEnCours>[1]);
+        }
         return { id };
       },
     },
@@ -274,13 +339,22 @@ function fauxStripe() {
       },
     },
   };
-  return { stripe, etat, echeancierInitial, souscription };
+  /** Un geste d'ailleurs (tableau de bord Stripe, fin naturelle de l'échéancier) : l'échéancier n'est plus attaché. */
+  const libererAilleurs = (id: string) => {
+    const e = echeanciers.get(id);
+    if (e) e.status = "released";
+    if (souscription.schedule === id) souscription.schedule = null;
+  };
+  return { stripe, etat, echeancierInitial, souscription, libererAilleurs };
 }
 
 // ── Le faux registre : la sémantique des fonctions SQL de la migration ─────────────────────────────────────────────
 function fauxRegistre() {
   const lignes: Intention[] = [];
   const traces: { p_org: string; p_issue: string; p_etapes: unknown[] }[] = [];
+  /** Le verrou des gestes de facturation (verrou_facturation_prendre / _rendre) : un bail par organisation. */
+  const verrous = new Map<string, { jeton: string; operation: string; expire: number }>();
+  const pannes = { poser: 0 };
   let n = 0;
   const ligne = (i: Intention, reprise: boolean) => ({
     intention: i.id,
@@ -322,6 +396,10 @@ function fauxRegistre() {
       return { data: [ligne(i, false)], error: null };
     }
     if (nom === "intention_souscription_poser") {
+      if (pannes.poser > 0) {
+        pannes.poser -= 1;
+        return { data: null, error: { message: "upstream request timeout" } };
+      }
       const i = lignes.find((x) => x.id === p.p_intention && x.org === p.p_org && x.statut === "en_cours" && x.expire_le > maintenant);
       if (!i || (i.session !== null && i.session !== p.p_session)) return { data: false, error: null };
       Object.assign(i, { session: p.p_session, url: p.p_url });
@@ -337,9 +415,22 @@ function fauxRegistre() {
       traces.push(p as (typeof traces)[number]);
       return { data: null, error: null };
     }
+    if (nom === "verrou_facturation_prendre") {
+      // Corps synchrone : il tient lieu de l'insertion « on conflict » de la fonction SQL.
+      const tenu = verrous.get(p.p_org as string);
+      if (tenu && tenu.expire > maintenant.getTime()) return { data: false, error: null };
+      verrous.set(p.p_org as string, { jeton: p.p_jeton as string, operation: p.p_operation as string, expire: maintenant.getTime() + (p.p_duree_secondes as number) * 1000 });
+      return { data: true, error: null };
+    }
+    if (nom === "verrou_facturation_rendre") {
+      const tenu = verrous.get(p.p_org as string);
+      if (!tenu || tenu.jeton !== p.p_jeton) return { data: false, error: null };
+      verrous.delete(p.p_org as string);
+      return { data: true, error: null };
+    }
     return { data: null, error: { message: `fonction inconnue : ${nom}` } };
   }
-  return { lignes, traces, rpc };
+  return { lignes, traces, verrous, pannes, rpc };
 }
 
 let faux: ReturnType<typeof fauxStripe>;
@@ -531,5 +622,138 @@ describe("A02 — hausse refusée alors qu'un échéancier était programmé", (
     expect(faux.etat.liberations).toEqual(["sub_sched_1"]);
     expect(faux.etat.echeanciersCrees).toEqual([]);
     expect(m.rpc).toHaveBeenCalledWith("abonnement_changements_a_recalculer", { p_org: ORG });
+  });
+});
+
+describe("A01 — une page non enregistrée ne revient pas, expirée, au clic suivant (relecture adverse du 23/10)", () => {
+  it("échec passager de l'enregistrement : le clic suivant reçoit une page NEUVE et ouverte, pas la réponse rejouée", async () => {
+    etatOrganisation(false);
+    registre.pannes.poser = 1;
+    const a = await issue(demarrerAbonnement(ORG, {}, souscrire()));
+    // Pas d'« autre onglet » ici : la page n'a simplement pas pu être enregistrée.
+    expect(a.erreur).toBe("La page de paiement n'a pas pu être enregistrée. Rien n'a été prélevé : réessayez dans un instant.");
+    expect(faux.etat.sessions.map((s) => s.status)).toEqual(["expired"]);
+    const b = await issue(demarrerAbonnement(ORG, {}, souscrire()));
+    expect(b.url).toBe("https://checkout.stripe.test/c/pay/cs_test_2");
+    expect(ouvertes().map((s) => s.url)).toEqual([b.url]);
+    expect(registre.lignes.map((i) => [i.statut, i.motif])).toEqual([["terminee", "echec"], ["en_cours", null]]);
+  });
+});
+
+const formuleHausse = () => offreParticulier(4, "mensuel").formule.code;
+const MODIFICATION_EN_COURS =
+  "Une autre modification de votre abonnement est en cours (autre onglet ?) : rien n'a été modifié. Réessayez dans quelques secondes.";
+/** Aucun motif de Stripe en anglais dans ce que lit le client. */
+const ANGLAIS = /You cannot|release|schedule|subscription|declined|error occurred/i;
+
+describe("A02 — deux gestes en même temps sur l'échéancier (relecture adverse du 23/10)", () => {
+  it("deux onglets confirment la même hausse : une seule s'applique, l'autre ne repose pas l'ancien échéancier", async () => {
+    etatOrganisation(true);
+    const [a, b] = await Promise.all([
+      issue(confirmerHausse(ORG, {}, hausse())),
+      issue(confirmerHausse(ORG, {}, hausse())),
+    ]);
+    const reussies = [a, b].filter((r) => r.url);
+    expect(reussies, JSON.stringify([a, b])).toEqual([{ url: `/espace/${ORG}/abonnement?changement=ok` }]);
+    const refusee = [a, b].find((r) => !r.url)!;
+    expect(refusee.erreur).toBe(MODIFICATION_EN_COURS);
+    expect(refusee.erreur).not.toMatch(ANGLAIS);
+    // La hausse payée reste : une seule mise à jour, la nouvelle formule, aucun échéancier recréé par-dessus.
+    expect(faux.etat.hausses).toBe(1);
+    expect(faux.souscription.metadata.gerimmo_formule).toBe(formuleHausse());
+    expect(faux.souscription.items.data[0].price.id).not.toBe("price_solo_mensuel");
+    expect(faux.etat.echeanciersCrees).toEqual([]);
+    expect(faux.souscription.schedule).toBeNull();
+    expect(registre.traces.map((t) => t.p_issue)).not.toContain("echeancier_restaure");
+    // Le verrou est rendu : le geste suivant passe.
+    expect(registre.verrous.size).toBe(0);
+  });
+
+  it.each([
+    ["une demande de périodicité", () => { const fd = new FormData(); fd.set("periodicite", "annuel"); return demanderPeriodicite(ORG, {}, fd); }],
+    ["une résiliation", () => { const fd = new FormData(); fd.set("resilier", "oui"); return resilierAbonnement(ORG, {}, fd); }],
+  ])("%s dans un autre onglet pendant la hausse : l'échéancier qu'elle retire n'est jamais reposé", async (_nom, geste) => {
+    etatOrganisation(true);
+    // L'autre onglet agit EXACTEMENT entre la lecture de l'échéancier par la hausse et sa libération.
+    let autre: Promise<{ url?: string; erreur?: string }> | null = null;
+    const lire = faux.stripe.subscriptionSchedules.retrieve;
+    faux.stripe.subscriptionSchedules.retrieve = async (id: string) => {
+      const lu = await lire(id);
+      if (!autre) {
+        autre = issue(geste());
+        await autre;
+      }
+      return lu;
+    };
+    const h = await issue(confirmerHausse(ORG, {}, hausse()));
+    const g = await autre!;
+    expect(faux.etat.echeanciersCrees, JSON.stringify([h, g])).toEqual([]);
+    expect(faux.etat.majEcheanciers).toEqual([]);
+    expect(h).toEqual({ url: `/espace/${ORG}/abonnement?changement=ok` });
+    expect(g).toEqual({ erreur: MODIFICATION_EN_COURS });
+    expect(faux.etat.hausses).toBe(1);
+    expect(registre.verrous.size).toBe(0);
+  });
+
+  it("le verrou est rendu même quand la hausse échoue ; un verrou indisponible ne laisse passer aucun appel à Stripe", async () => {
+    etatOrganisation(true);
+    faux.etat.refusCarte = true;
+    await issue(confirmerHausse(ORG, {}, hausse()));
+    expect(registre.verrous.size).toBe(0);
+    expect(m.serviceRpc.mock.calls.map((c) => c[0])).toEqual(expect.arrayContaining(["verrou_facturation_prendre", "verrou_facturation_rendre"]));
+
+    faux = fauxStripe();
+    m.stripe = faux.stripe;
+    const prendre = m.serviceRpc.getMockImplementation()!;
+    m.serviceRpc.mockImplementation(async (nom: string, p: Record<string, unknown>) =>
+      nom === "verrou_facturation_prendre" ? { data: null, error: { message: "upstream request timeout" } } : prendre(nom, p)
+    );
+    const r = await issue(confirmerHausse(ORG, {}, hausse()));
+    expect(r.erreur).toBe("La modification de votre abonnement n'a pas pu être préparée : rien n'a été modifié. Réessayez dans un instant.");
+    expect(faux.etat.liberations).toEqual([]);
+    expect(faux.etat.hausses).toBe(0);
+  });
+
+  it("sans verrou non plus : la hausse dont la libération est refusée n'annule pas celle qui vient d'être payée", async () => {
+    const offre = offreParticulier(4, "mensuel");
+    const params = { subscription: "sub_1", offre, regime: { nature: "franchise" as const }, orgId: ORG, prorationDate: Math.floor(Date.now() / 1000) };
+    const stripe = faux.stripe as unknown as Parameters<typeof appliquerHausse>[0];
+    const [a, b] = await Promise.all([appliquerHausse(stripe, params), appliquerHausse(stripe, params)]);
+    const [ok, ko] = a.ok ? [a, b] : [b, a];
+    expect(ok.ok).toBe(true);
+    expect(ko).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "a_reprogrammer", liberationRefusee: true });
+    expect((ko as { erreur: string }).erreur).not.toMatch(ANGLAIS);
+    expect(faux.etat.liberationsRefusees).toEqual(["sub_sched_1"]);
+    expect(faux.etat.echeanciersCrees).toEqual([]);
+    expect(faux.etat.hausses).toBe(1);
+    expect(faux.souscription.metadata.gerimmo_formule).toBe(offre.formule.code);
+  });
+
+  it("échéancier retiré ailleurs juste avant notre libération : rien n'est reposé, la phrase est en français, l'échéance est recalculée", async () => {
+    etatOrganisation(true);
+    // Le tableau de bord Stripe (ou la fin naturelle de l'échéancier) le libère entre notre lecture et notre libération.
+    faux.etat.avantLiberation = () => faux.libererAilleurs("sub_sched_1");
+    const r = await issue(confirmerHausse(ORG, {}, hausse()));
+    expect(r.erreur).toBe(
+      "La hausse n'a pas été appliquée et rien n'a été prélevé : votre changement programmé pour la prochaine échéance venait d'être retiré ou modifié par ailleurs (autre onglet ?). Ce changement doit être reprogrammé : nous nous en occupons. Rechargez la page avant toute nouvelle tentative."
+    );
+    expect(r.erreur).not.toMatch(ANGLAIS);
+    expect(faux.etat.echeanciersCrees).toEqual([]);
+    expect(faux.etat.hausses).toBe(0);
+    expect(m.rpc).toHaveBeenCalledWith("abonnement_changements_a_recalculer", { p_org: ORG });
+    expect(registre.traces.map((t) => t.p_issue)).toEqual(["echeancier_a_reprogrammer"]);
+  });
+
+  it("sans échéancier, une hausse sans réponse de Stripe mais appliquée est dite incertaine et tracée — jamais « rien n'a été modifié »", async () => {
+    etatOrganisation(true);
+    faux.souscription.schedule = null;
+    faux.etat.majSansReponse = true;
+    const r = await issue(confirmerHausse(ORG, {}, hausse()));
+    expect(r.erreur).toBe(
+      "Notre prestataire de paiement n'a pas confirmé si la hausse a été appliquée. Rechargez la page dans un instant pour voir votre abonnement à jour, avant toute nouvelle tentative."
+    );
+    expect(r.erreur).not.toMatch(/rien n'a été modifié|Rien n'a été prélevé/);
+    expect(registre.traces.map((t) => t.p_issue)).toEqual(["hausse_incertaine"]);
+    expect(appelsUtilisateur()).not.toContain("abonnement_changements_a_recalculer");
   });
 });

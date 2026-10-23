@@ -333,7 +333,9 @@ function fauxStripe() {
             expires_at: expire,
           };
           etat.sessions.push(s);
-          if (cle) etat.cles.set(cle, { corps, session: s });
+          // Comme Stripe : une requête rejouée sous la même clé reçoit la RÉPONSE D'ORIGINE (page « open »), même si la
+          // page a été expirée depuis (seconde relecture adverse du 23/10).
+          if (cle) etat.cles.set(cle, { corps, session: { ...s } });
           return { ...s };
         },
       },
@@ -354,7 +356,7 @@ function fauxRegistre() {
   const traces: { p_org: string; p_issue: string; p_etapes: unknown[] }[] = [];
   /** Le verrou des gestes de facturation (verrou_facturation_prendre / _rendre) : un bail par organisation. */
   const verrous = new Map<string, { jeton: string; operation: string; expire: number }>();
-  const pannes = { poser: 0 };
+  const pannes = { poser: 0, terminer: 0 };
   let n = 0;
   const ligne = (i: Intention, reprise: boolean) => ({
     intention: i.id,
@@ -406,6 +408,10 @@ function fauxRegistre() {
       return { data: true, error: null };
     }
     if (nom === "intention_souscription_terminer") {
+      if (pannes.terminer > 0) {
+        pannes.terminer -= 1;
+        return { data: null, error: { message: "upstream request timeout" } };
+      }
       const i = lignes.find((x) => x.id === p.p_intention && x.org === p.p_org && x.statut === "en_cours");
       if (!i || (p.p_motif === "echec" && i.session !== null)) return { data: false, error: null };
       Object.assign(i, { statut: "terminee", motif: p.p_motif });
@@ -637,6 +643,25 @@ describe("A01 — une page non enregistrée ne revient pas, expirée, au clic su
     expect(b.url).toBe("https://checkout.stripe.test/c/pay/cs_test_2");
     expect(ouvertes().map((s) => s.url)).toEqual([b.url]);
     expect(registre.lignes.map((i) => [i.statut, i.motif])).toEqual([["terminee", "echec"], ["en_cours", null]]);
+  });
+
+  it("seconde relecture : l'enregistrement ET la clôture tombent en panne — le clic suivant reçoit une page neuve, jamais la page expirée rejouée", async () => {
+    etatOrganisation(false);
+    registre.pannes.poser = 1;
+    registre.pannes.terminer = 1;
+    const a = await issue(demarrerAbonnement(ORG, {}, souscrire()));
+    expect(a.erreur).toBe("La page de paiement n'a pas pu être enregistrée. Rien n'a été prélevé : réessayez dans un instant.");
+    // La réservation n'a pas pu être rendue : elle reste en cours, sans page ; la page a été expirée chez Stripe.
+    expect(registre.lignes.map((i) => [i.statut, i.session])).toEqual([["en_cours", null]]);
+    expect(faux.etat.sessions.map((s) => s.status)).toEqual(["expired"]);
+    // Clic suivant, avant la fin du délai de préparation : même intention, même clé — Stripe rejoue cs_test_1 « open ».
+    const b = await issue(demarrerAbonnement(ORG, {}, souscrire()));
+    expect(b.url, JSON.stringify(b)).toBe("https://checkout.stripe.test/c/pay/cs_test_2");
+    expect(ouvertes().map((s) => s.url)).toEqual([b.url]);
+    expect(registre.lignes.map((i) => [i.statut, i.motif, i.session])).toEqual([
+      ["terminee", "expiree", null],
+      ["en_cours", null, "cs_test_2"],
+    ]);
   });
 });
 

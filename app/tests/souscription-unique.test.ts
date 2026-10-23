@@ -262,6 +262,60 @@ describe("ouvrirPageDePaiementUnique", () => {
     expect(r).toMatchObject({ ok: false, erreur: expect.stringMatching(/momentanément injoignable/) });
     expect(reg.terminer).not.toHaveBeenCalled();
   });
+
+  // ── Seconde relecture adverse du 23/10 : la pose ET la clôture tombent en panne ──────────────────────────────────────
+  // La réservation reste alors en cours, sans page. Le clic suivant la reprend (même intention, donc même clé
+  // d'idempotence) et Stripe lui rejoue la réponse d'origine : la page cs_test_1, que le premier clic vient d'expirer.
+  it("réservation reprise sans page : la page rejouée par Stripe est relue ; expirée, elle n'est ni posée ni rendue, une page neuve est ouverte", async () => {
+    const stripe = fauxStripe({ statutPage: "expired" });
+    stripe.checkout.sessions.create.mockResolvedValueOnce({ id: "cs_test_1", url: PAGE_1 });
+    const reg = registre([intention({ reprise: true }), intention({ intention: ID2 })]);
+    const r = await ouvrirPageDePaiementUnique(stripe, reg, demande());
+    expect(r).toEqual({ ok: true, url: PAGE_NEUVE, reprise: false });
+    expect(stripe.checkout.sessions.retrieve).toHaveBeenCalledWith("cs_test_1");
+    expect(reg.poserPage).not.toHaveBeenCalledWith("org-1", ID, "cs_test_1", PAGE_1);
+    expect(reg.poserPage).toHaveBeenCalledWith("org-1", ID2, "cs_test_neuf", PAGE_NEUVE);
+    expect(reg.terminer).toHaveBeenCalledWith("org-1", ID, "expiree");
+  });
+
+  it("réservation reprise sans page, page rejouée encore ouverte (l'autre onglet est en train de la poser) : posée et rendue", async () => {
+    const stripe = fauxStripe();
+    const reg = registre([intention({ reprise: true })]);
+    const r = await ouvrirPageDePaiementUnique(stripe, reg, demande());
+    expect(r).toEqual({ ok: true, url: PAGE_NEUVE, reprise: true });
+    expect(stripe.checkout.sessions.retrieve).toHaveBeenCalledWith("cs_test_neuf");
+    expect(reg.poserPage).toHaveBeenCalledWith("org-1", ID, "cs_test_neuf", PAGE_NEUVE);
+    expect(reg.terminer).not.toHaveBeenCalled();
+  });
+
+  it("réservation reprise sans page, page rejouée déjà payée : rien de plus, la réservation est close comme aboutie", async () => {
+    const stripe = fauxStripe({ statutPage: "complete" });
+    const reg = registre([intention({ reprise: true })]);
+    const r = await ouvrirPageDePaiementUnique(stripe, reg, demande());
+    expect(r).toMatchObject({ ok: false, erreur: expect.stringMatching(/Un paiement vient d'aboutir/) });
+    expect(reg.poserPage).not.toHaveBeenCalled();
+    expect(reg.terminer).toHaveBeenCalledWith("org-1", ID, "aboutie");
+  });
+
+  it("réservation reprise sans page, relecture de la page rejouée impossible : rien n'est posé, la réservation est gardée, message en français", async () => {
+    const stripe = fauxStripe();
+    stripe.checkout.sessions.retrieve.mockRejectedValueOnce(Object.assign(new Error("socket hang up"), { type: "StripeConnectionError" }));
+    const reg = registre([intention({ reprise: true })]);
+    const r = await ouvrirPageDePaiementUnique(stripe, reg, demande());
+    expect(r).toMatchObject({ ok: false, erreur: expect.stringMatching(/momentanément injoignable/) });
+    expect(reg.poserPage).not.toHaveBeenCalled();
+    expect(reg.terminer).not.toHaveBeenCalled();
+  });
+
+  it("base toujours en panne à la clôture : la page expirée rejouée n'est jamais rendue, et le message ne parle pas d'un autre onglet", async () => {
+    const stripe = fauxStripe({ statutPage: "expired" });
+    stripe.checkout.sessions.create.mockResolvedValue({ id: "cs_test_1", url: PAGE_1 });
+    const reg = registre([intention({ reprise: true })]);
+    reg.terminer.mockResolvedValue(false);
+    const r = await ouvrirPageDePaiementUnique(stripe, reg, demande());
+    expect(r).toEqual({ ok: false, erreur: "La page de paiement précédente a expiré et n'a pas pu être remplacée. Rien n'a été prélevé : réessayez dans un instant." });
+    expect(reg.poserPage).not.toHaveBeenCalled();
+  });
 });
 
 describe("le registre adossé à la base", () => {

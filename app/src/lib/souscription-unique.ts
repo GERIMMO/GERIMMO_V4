@@ -158,6 +158,8 @@ const PAGE_DEJA_PAYEE =
   "Un paiement vient d'aboutir pour cette organisation : rechargez la page dans quelques secondes. Rien ne sera prélevé deux fois.";
 const PAGE_NON_ENREGISTREE =
   "La page de paiement n'a pas pu être enregistrée. Rien n'a été prélevé : réessayez dans un instant.";
+const PAGE_PERIMEE_NON_REMPLACEE =
+  "La page de paiement précédente a expiré et n'a pas pu être remplacée. Rien n'a été prélevé : réessayez dans un instant.";
 
 /** Une page ouverte n'est remise au client que s'il lui reste au moins ce temps pour payer (relecture du 23/10). */
 export const MARGE_REUTILISATION_PAGE_MINUTES = 15;
@@ -260,6 +262,34 @@ export async function ouvrirPageDePaiementUnique(
         return { ok: false, erreur: page.erreur };
       }
       return { ok: false, erreur: AUTRE_DEMANDE_EN_COURS };
+    }
+    // Seconde relecture adverse du 23/10. Une réservation REPRISE sans page a la même clé d'idempotence que la demande
+    // qui l'a prise : Stripe rejoue la réponse d'origine (« open »), même si cette page a été expirée depuis — par la
+    // demande dont l'enregistrement a échoué et qui n'a pas pu non plus rendre la réservation (base en panne aux deux
+    // appels). La page rejouée est donc relue chez Stripe avant d'être posée ou remise. Une réservation neuve a une clé
+    // neuve : sa page vient d'être créée, la relire ne servirait à rien.
+    if (r.reprise) {
+      let etat: Stripe.Checkout.Session["status"] | "introuvable";
+      try {
+        etat = (await stripe.checkout.sessions.retrieve(page.session)).status;
+      } catch (e) {
+        if (e instanceof ArretSupervision) throw e;
+        if (!pageIntrouvable(e)) return { ok: false, erreur: messageStripePourClient(e) };
+        console.error("[souscription] page rejouée introuvable chez Stripe :", lireErreurStripe(e).slice(0, 200));
+        etat = "introuvable";
+      }
+      if (etat === "complete") {
+        await registre.terminer(org, r.intention, "aboutie");
+        return { ok: false, erreur: PAGE_DEJA_PAYEE };
+      }
+      if (etat !== "open") {
+        // Expirée (ou introuvable) : elle ne sert plus à personne. La réservation est close ; la suivante aura une clé
+        // neuve, donc une page neuve. Si la base refuse encore de la clore, le tour suivant retombe ici et s'arrête.
+        console.error("[souscription] page rejouée déjà fermée chez Stripe :", page.session, etat);
+        await registre.terminer(org, r.intention, "expiree");
+        if (tour > 0) return { ok: false, erreur: PAGE_PERIMEE_NON_REMPLACEE };
+        continue;
+      }
     }
     if (!(await registre.poserPage(org, r.intention, page.session, page.url))) {
       // La réservation a été reprise ou a expiré entre-temps, ou l'enregistrement a échoué : cette page ne doit servir

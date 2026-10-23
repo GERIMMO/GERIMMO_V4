@@ -22,6 +22,7 @@ test("le superadmin lève puis réactive le blocage, avec persistance et histori
     await expect(regle.getByText("Règle levée", { exact: true })).toBeVisible();
     await page.reload();
     await expect(regle.getByRole("button", { name: "Réactiver le blocage", exact: true })).toBeVisible();
+    await expect(regle.getByRole("button", { name: "Réactiver le blocage", exact: true })).toBeEnabled();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: "e2e/.results/blocage-leve-mobile.png", animations: "disabled" });
     await regle.getByRole("link", { name: "Historique des changements" }).click();

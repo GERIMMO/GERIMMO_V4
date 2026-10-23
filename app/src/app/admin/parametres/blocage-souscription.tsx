@@ -29,7 +29,7 @@ export function BlocageSouscription({ actif, revision, manquants }: {
         : <form action={action} data-saisie-confirmee>
           <input type="hidden" name="revision" value={revision} />
           <input type="hidden" name="blocage" value={actif ? "lever" : "activer"} />
-          <BoutonEnvoi className={actif ? "btn-or" : "btn-secondaire"} enCours={pending} enCoursTexte="Enregistrement…">
+          <BoutonEnvoi variant={actif ? "default" : "outline"} size="lg" enCours={pending} enCoursTexte="Enregistrement…">
             {actif ? "Lever le blocage" : "Réactiver le blocage"}
           </BoutonEnvoi>
         </form>}

@@ -168,12 +168,36 @@ async function lireArtisansEnAttente(db:Lecteur,maintenant:Date):Promise<{data:A
    nb_pieces:siennes.length};
  })};
 }
+/**
+ * Plafond de chaque lecture d'une file de décision. L'équipe qualité reçoit trois files (évolutions, bugs bloquants,
+ * autres retours) : 3 × 30 = 90, sous les 100 décisions admises par `enregistrer_point_du_matin`.
+ */
+const PLAFOND_FILE=30;
+/**
+ * Les retours à soumettre, en DEUX lectures (relecture adverse du 23/10). Une lecture commune, triée par date
+ * décroissante et plafonnée, laissait trente signalements N2 (gravité par défaut de tout signalement) ou idées plus
+ * récents évincer un bug bloquant N1 plus ancien ; `enregistrer_point_du_matin` passait alors sa décision en « sans
+ * objet ». Les N1 ont donc leur propre lecture, du plus ancien (le plus urgent) au plus récent, et viennent en tête ;
+ * les idées et les N2, les plus récents d'abord, ont la leur. Une lecture en échec rend toute la file indisponible.
+ */
+async function lireRetoursATraiter(db:Lecteur):Promise<{data:Attentes['retours']|null;error:unknown}>{
+ const colonnes='id,titre,nature,gravite,etat',etats=['nouveau','en_examen'];
+ const [bloquants,autres]=await Promise.all([
+  db.from('retours_utilisateurs').select(colonnes).in('etat',etats).eq('nature','bug').eq('gravite','N1').order('cree_le',{ascending:true}).limit(PLAFOND_FILE),
+  db.from('retours_utilisateurs').select(colonnes).in('etat',etats).or('nature.eq.idee,and(nature.eq.bug,gravite.eq.N2)').order('cree_le',{ascending:false}).limit(PLAFOND_FILE),
+ ]);
+ const error=bloquants.error??autres.error;
+ if(error)return {data:null,error};
+ // Un retour requalifié entre les deux lectures (parallèles) pourrait figurer dans les deux : une seule décision.
+ const vus=new Set<string>();
+ return {error:null,data:([...(bloquants.data??[]),...(autres.data??[])] as Attentes['retours']).filter(r=>!vus.has(r.id)&&Boolean(vus.add(r.id)))};
+}
 export async function lireAttentes(db:Lecteur,maintenant:Date=new Date()):Promise<{attentes:Attentes;indisponibles:string[]}>{
  const [dev,pub,art,ret,vei]=await Promise.all([
-  db.from('development_proposals').select('id,titre,probleme,risque,statut,revision').eq('statut','autorisation').order('updated_at',{ascending:false}).limit(30),
+  db.from('development_proposals').select('id,titre,probleme,risque,statut,revision').eq('statut','autorisation').order('updated_at',{ascending:false}).limit(PLAFOND_FILE),
   db.from('publications').select('id,titre,statut,corps,programmee_pour,valide_le').in('statut',['proposition','brouillon','programmee']).order('propose_le',{ascending:false}).limit(30),
   lireArtisansEnAttente(db,maintenant),
-  db.from('retours_utilisateurs').select('id,titre,nature,gravite,etat').in('etat',['nouveau','en_examen']).or('nature.eq.idee,and(nature.eq.bug,gravite.in.(N1,N2))').order('cree_le',{ascending:false}).limit(30),
+  lireRetoursATraiter(db),
   db.from('regulatory_watch').select('id,titre,source_nom,etude').eq('statut','a_examiner').not('analyse_le','is',null).order('reperage_le',{ascending:false}).limit(30),
  ]);
  const indisponibles=[[dev,'évolutions'],[pub,'publications'],[art,'artisans'],[ret,'retours'],[vei,'veille']].filter(([r])=>(r as {error:unknown}).error).map(([r,n])=>{
@@ -185,7 +209,7 @@ export async function lireAttentes(db:Lecteur,maintenant:Date=new Date()):Promis
   developpements:(dev.error?[]:dev.data??[]) as Attentes['developpements'],
   publications:(pub.error?[]:pub.data??[]) as Attentes['publications'],
   artisans:(art.error||!art.data?[]:art.data) as Attentes['artisans'],
-  retours:(ret.error?[]:ret.data??[]) as Attentes['retours'],
+  retours:(ret.error||!ret.data?[]:ret.data) as Attentes['retours'],
   veille:(vei.error?[]:vei.data??[]) as Attentes['veille'],
  }};
 }

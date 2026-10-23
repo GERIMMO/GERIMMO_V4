@@ -426,6 +426,18 @@
     "dynamic": ""
   },
   {
+    "path": "/conditions/versions",
+    "persona": "public",
+    "label": "Versions archivées des conditions générales",
+    "dynamic": ""
+  },
+  {
+    "path": "/conditions/versions/DOCUMENT/VERSION",
+    "persona": "public",
+    "label": "Version archivée des conditions générales",
+    "dynamic": "document, version"
+  },
+  {
     "path": "/confidentialite",
     "persona": "public",
     "label": "Politique de confidentialité",

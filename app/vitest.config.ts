@@ -157,6 +157,9 @@ export const FICHIERS_EN_SERIE = [
   // Plan de conformité du 24/10 (lot 1A) : rejeu de 20261024090000 et de son retour (alter table acceptations_cgu, tables
   // versions_conditions et archives_comptes supprimées puis recréées) dans la transaction du fichier.
   "tests/versions-conditions-base.test.ts",
+  // Même lot (acceptation selon l'espace, R10/R19) : rejeu de 20261024100000 et de son retour (réécriture de
+  // artisans_disponibles_bien, fonctions créées puis supprimées) et `artisan_note` d'essai dans la transaction du fichier.
+  "tests/acceptation-conditions-base.test.ts",
 ];
 
 export default defineConfig({

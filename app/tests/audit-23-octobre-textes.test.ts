@@ -18,3 +18,17 @@ describe("tarifs : disponibilité de la signature électronique", () => {
     expect(page).not.toMatch(/signatures? illimitée|SMS illimités|gratuite?s?\b.*signature/i);
   });
 });
+
+// Audit du 23/10 (A07) : un seul point de départ pour la conservation des
+// demandes du formulaire — le dernier traitement, ou le dépôt à défaut —
+// comme le tableau de la page et la règle appliquée.
+describe("confidentialité : un seul point de départ pour les demandes du formulaire", () => {
+  const confidentialite = fs.readFileSync(path.join(__dirname, "../src/app/confidentialite/page.tsx"), "utf8");
+  const formulaire = fs.readFileSync(path.join(__dirname, "../src/app/formulaire-devis-vitrine.tsx"), "utf8");
+  it("ne compte plus depuis le seul dépôt", () => {
+    expect(confidentialite).not.toContain("24 mois après leur dépôt");
+    expect(confidentialite).toMatch(/24 mois\s+après leur dernier traitement/);
+    expect(confidentialite).toContain("Dernier traitement ou dépôt si la demande n’a pas encore été traitée");
+    expect(formulaire).toMatch(/24 mois après\s+le dernier traitement/);
+  });
+});

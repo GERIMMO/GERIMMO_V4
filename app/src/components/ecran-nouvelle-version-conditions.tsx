@@ -12,7 +12,12 @@ import { CLE_REPORT_CONDITIONS } from "@/lib/conditions-acceptation";
  *
  * Un encart en tête de l'espace, jamais une fenêtre qui bloque : la personne peut continuer à travailler, et rien n'est
  * fermé pendant une période payée. « J'accepte la nouvelle version » enregistre l'accord (ajout seul, heure du serveur) ;
- * « Plus tard » masque l'encart jusqu'à la prochaine connexion, dans cet onglet (stockage de session, aucun témoin).
+ * « Plus tard » masque l'encart jusqu'à la prochaine connexion, dans tous les onglets de ce navigateur (stockage local,
+ * aucun témoin ; la valeur porte la version et l'heure de la connexion, qu'une nouvelle connexion change). Relecture
+ * adverse du 24/10 (défaut 6) : gardé dans le stockage de session de l'onglet, il revenait dans chaque nouvel onglet.
+ * Un onglet déjà ouvert le masque aussitôt (événement « storage »). Rendu par le serveur, l'encart reste visible sans
+ * script ; la personne qui a choisi « Plus tard » peut le voir un instant au chargement complet d'une page, avant
+ * l'hydratation : l'éviter demanderait un témoin lu par le serveur, que la politique de confidentialité ne prévoit pas.
  * Le bouton d'acceptation attend la fin du chargement de la page, comme tout bouton d'envoi hors de la liste fermée des
  * formulaires d'authentification (tests/bouton-envoi-hydratation.test.ts).
  */
@@ -29,7 +34,7 @@ function sAbonner(rappel: () => void) {
 }
 function lireReport(): string | null {
   try {
-    return window.sessionStorage.getItem(CLE_REPORT_CONDITIONS);
+    return window.localStorage.getItem(CLE_REPORT_CONDITIONS);
   } catch {
     return null;
   }
@@ -67,7 +72,7 @@ export function EcranNouvelleVersionConditions({
 
   const plusTard = () => {
     try {
-      window.sessionStorage.setItem(CLE_REPORT_CONDITIONS, report);
+      window.localStorage.setItem(CLE_REPORT_CONDITIONS, report);
     } catch {
       // Stockage refusé (navigation privée stricte) : l'encart reste, rien d'autre ne change.
     }

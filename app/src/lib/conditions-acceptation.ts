@@ -136,7 +136,10 @@ export const MESSAGE_CASE_A_REVOIR =
 
 // ── « Plus tard » sur l'écran d'une nouvelle version (R19) ─────────────────────────────────────────────────────────
 
-/** La clé de « Plus tard » dans le stockage de session de l'onglet : aucun témoin, effacée à la fermeture de l'onglet. */
+/**
+ * La clé de « Plus tard » dans le stockage local du navigateur (tous ses onglets ; aucun témoin). Relecture adverse du
+ * 24/10 (défaut 6) : le stockage de session de l'onglet faisait revenir l'encart dans chaque nouvel onglet.
+ */
 export const CLE_REPORT_CONDITIONS = "gerimmo-conditions-plus-tard";
 
 /**

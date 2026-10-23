@@ -11,6 +11,7 @@ import {
   type EtatArtisanAction,
 } from "@/app/actions/artisan";
 import { LISTE_METIERS, METIERS } from "../libelles";
+import { libelleZone } from "@/lib/zone-artisan";
 import {
   Carte,
   CLASSE_BOUTON_SECONDAIRE,
@@ -67,8 +68,8 @@ export function ReglageVisibilite({
       <span className={styles.visibiliteEtat} data-public={publique}>{publique ? <Globe2 size={15} aria-hidden/> : <LockKeyhole size={15} aria-hidden/>}{publique ? "Profil public" : "Profil privé"}</span>
       <p className={styles.descriptionVisibilite}>
         {publique
-          ? "Votre profil est visible des propriétaires et gestionnaires de la plateforme. Ils peuvent vous demander un devis."
-          : "Votre profil est privé : seuls les propriétaires et gestionnaires auxquels vous êtes déjà rattaché peuvent vous solliciter."}
+          ? "Votre profil est public : une fois votre inscription validée, le réseau Gerimmo vous propose aux propriétaires dont le bien est dans votre zone, pour vos métiers. Ils peuvent vous demander un devis."
+          : "Votre profil est privé : le réseau Gerimmo ne vous propose à personne ; seuls les propriétaires et gestionnaires qui vous ont ajouté à leur carnet peuvent vous solliciter."}
       </p>
 
       {etat.succes && (
@@ -158,7 +159,7 @@ export function FormulaireMetiersZones({
         </div>
         <dl className={styles.reperesMetier}>
           <div><dt><Wrench size={14} aria-hidden/>Métiers déclarés</dt><dd className={styles.puces}>{metiers.length ? metiers.map(m => <span key={m}>{METIERS[m] ?? m}</span>) : "Aucun métier déclaré"}</dd></div>
-          <div><dt><MapPin size={14} aria-hidden/>Zone souhaitée</dt><dd className={styles.puces} data-zone>{codesPostaux.length ? codesPostaux.map((cp, i) => <span key={`${cp}-${i}`}>{cp}</span>) : "Aucune zone d’intervention déclarée — vous ne serez proposé nulle part."}</dd></div>
+          <div><dt><MapPin size={14} aria-hidden/>Ma zone d’intervention</dt><dd className={styles.puces} data-zone>{codesPostaux.length ? codesPostaux.map((cp, i) => <span key={`${cp}-${i}`}>{libelleZone(cp)}</span>) : "Aucune zone d’intervention déclarée — vous ne serez proposé nulle part."}</dd></div>
         </dl>
         {etat.succes && (
           <div className="mt-3">
@@ -166,8 +167,9 @@ export function FormulaireMetiersZones({
           </div>
         )}
         <p className={styles.aide}>
-          Vous n&apos;êtes proposé que dans vos métiers, et pour les communes de
-          votre zone.
+          Vous n&apos;êtes proposé que dans vos métiers, et pour les biens situés
+          dans votre zone. C&apos;est vous qui la choisissez : vos clients ne
+          peuvent pas la modifier.
         </p>
         {complement}
       </Carte>
@@ -219,6 +221,8 @@ export function FormulaireMetiersZones({
           <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
             Des codes postaux (91300) ou des départements entiers (91, 94, 77),
             séparés par des virgules. Un département couvre tous ses codes postaux.
+            Le réseau Gerimmo vous propose pour les biens de cette zone ; un métier
+            retiré n&apos;est plus proposé nulle part.
           </p>
           <input
             id={idZones}

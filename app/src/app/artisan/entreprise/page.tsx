@@ -7,6 +7,7 @@ import { chargerNote, chargerPieces, verifierAccesArtisan } from "../acces";
 import { degreEcheance, formaterSiret, formaterTelephone, METIERS } from "../libelles";
 import { Carte, EnteteSousPage, Etiquette, Erreur } from "../ui";
 import { FormulaireMetiersZones, ReglageVisibilite } from "./reglages-entreprise";
+import { PresenceReseau } from "./presence-reseau";
 import styles from "./entreprise.module.css";
 
 export const metadata = { title: "Mon entreprise" };
@@ -51,10 +52,11 @@ export default async function PageEntreprise() {
           {fiche.statut_motif && <p className={styles.commentaire}><strong>{fiche.statut_plateforme === "valide" ? "Commentaire de Gerimmo" : "Motif communiqué par Gerimmo"}</strong>{fiche.statut_motif}</p>}
           <p className={styles.aide}>Une correction de raison sociale ou de SIRET ? <Link href="/assistance?ecran=%2Fartisan%2Fentreprise&action=lien&retour=%2Fartisan%2Fentreprise">Contactez Gerimmo</Link>.</p>
         </Carte>
+        <PresenceReseau fiche={fiche}/>
         <ReglageVisibilite visibilite={fiche.visibilite} siretVerifie={fiche.siret_etat === "verifie"}/>
       </div>
       <div className={styles.colonne}>
-        <FormulaireMetiersZones metiers={(fiche.metiers ?? []).filter(m => m in METIERS)} codesPostaux={fiche.codes_postaux ?? []} complement={<div className={styles.noteZone}><p>Vos codes postaux indiquent votre secteur souhaité. Gerimmo confirme vos communes d’intervention et les métiers ouverts au réseau.</p><Link href="/artisan/regles">Les règles à connaître pour mon activité <ArrowUpRight size={14} aria-hidden/></Link></div>}/>
+        <FormulaireMetiersZones metiers={(fiche.metiers ?? []).filter(m => m in METIERS)} codesPostaux={fiche.codes_postaux ?? []} complement={<div className={styles.noteZone}><p>C’est vous qui choisissez où vous intervenez et pour quels métiers : le réseau Gerimmo vous propose aux propriétaires dont le bien est dans cette zone, dès que votre inscription est validée et que votre profil est public. Les clients qui vous ont ajouté à leur carnet utilisent la même zone.</p><Link href="/artisan/regles">Les règles à connaître pour mon activité <ArrowUpRight size={14} aria-hidden/></Link></div>}/>
         {documents && !documents.error ? <DocumentsEntreprise profil={documents.data ?? { adresse: "", mentions: "", logo_data: null }}/>: <Erreur>Les informations de vos documents ne sont pas disponibles pour le moment. Réessayez avant de valider un devis.</Erreur>}
       </div>
     </div>

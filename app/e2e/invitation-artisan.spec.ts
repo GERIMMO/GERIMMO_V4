@@ -39,7 +39,7 @@ async function franchirLeSasMfa(page: Page) {
   await page.waitForURL(/\/(admin|espaces)/, { timeout: 20_000 });
 }
 
-test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, solliciter en commune fermée", async ({ browser }, info) => {
+test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, solliciter par le carnet (resté privé, hors réseau)", async ({ browser }, info) => {
   test.setTimeout(300_000);
   const url = process.env.SUPALOCAL_DB;
   test.skip(!url || !/^postgres(?:ql)?:\/\/[^@]*@127\.0\.0\.1:[0-9]{1,5}\/gerimmo_ci_[a-z_]+_api$/.test(url), "Base API fictive locale seulement");
@@ -51,7 +51,7 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
   const raisonSociale = `Plomberie Invitée ${marque}`;
   const siret = `7${String(Date.now()).slice(-13)}`;
 
-  // Un bien à Bordeaux (commune confirmée, réseau fermé par défaut) et un incident de plomberie qualifié.
+  // Un bien à Bordeaux (commune confirmée, aucun artisan du réseau pour la plomberie) et un incident de plomberie qualifié.
   const { rows: [{ id: incident }] } = await db.query(
     `with b as (insert into public.biens(organization_id,nom,type,address_line1,postal_code,city,commune_insee)
                 values($1,$2,'appartement','1 cours de l’Intendance','33000','Bordeaux','33063') returning id),
@@ -71,8 +71,9 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
        and artisan_id in (select id from public.artisans where raison_sociale like 'Plomberie Invitée %')`,
     [ORG]
   );
-  // La commune reste FERMÉE au réseau pendant tout le parcours.
-  expect((await db.query("select count(*)::int n from public.reseau_ouvertures where commune_code='33063' and ouverte")).rows[0].n).toBe(0);
+  // Décision du 23/10/2026 (20261023180000) : plus d'ouverture par commune. Aucun artisan du réseau (validé, public, avec
+  // compte, zone couvrant Bordeaux) n'y propose la plomberie au départ ; l'invité restera privé, donc hors réseau.
+  expect((await db.query("select count(*)::int n from public.artisans a where public.reseau_artisan_eligible(a.id,'33063','plomberie')")).rows[0].n).toBe(0);
 
   const proprietaire = await browser.newContext({ ...info.project.use });
   const artisan = await browser.newContext({ ...info.project.use });
@@ -173,7 +174,7 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await p.goto(`/espace/${ORG}/incidents/${incident}`);
     await p.getByLabel("Métier recherché *").selectOption("plomberie");
     await p.getByLabel("Nature des travaux *").selectOption("entretien_courant");
-    await expect(p.getByText("Le réseau d’artisans Gerimmo n’est pas encore disponible pour ce métier dans cette zone.")).toBeVisible();
+    await expect(p.getByText(/^Aucun artisan du réseau n’est actuellement disponible pour ce métier et ces travaux dans cette zone\./)).toBeVisible();
     await expect(p.getByRole("link", { name: "Inviter un artisan" })).toHaveAttribute("href", `/espace/${ORG}/artisans#inviter-un-artisan`);
     await expect(p.getByRole("button", { name: "Ouvrir la mise en concurrence" })).toBeDisabled();
     // Seconde relecture du 15/10 : la fiche dit pourquoi l'artisan du carnet n'est pas proposé pour ce bien.
@@ -201,7 +202,7 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await examen2.getByRole("button", { name: "Valider l’inscription" }).click();
     await expect.poll(async () => (await db.query("select statut_plateforme from public.artisans where id=$1", [fiche.id])).rows[0].statut_plateforme).toBe("valide");
 
-    // 7. Le propriétaire le sollicite, commune fermée, depuis son carnet.
+    // 7. Le propriétaire le sollicite depuis son carnet : l'invité, resté privé, n'est pas proposé par le réseau.
     await p.goto(`/espace/${ORG}/artisans`);
     await p.waitForLoadState("networkidle");
     // « Validé », sans promesse : la zone et la décennale se jugent bien par bien (seconde relecture du 15/10).

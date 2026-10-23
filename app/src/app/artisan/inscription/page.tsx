@@ -63,7 +63,9 @@ export default async function PageInscriptionArtisan(props: PageProps<"/artisan/
           </li>
           <li>
             <b className="font-medium">3.</b> Vous décidez seul de votre
-            visibilité : privée par défaut, publique si vous le voulez.
+            visibilité : privée par défaut, publique si vous le voulez. Public,
+            vous êtes proposé par le réseau Gerimmo aux propriétaires dont le
+            bien est dans votre zone, pour vos métiers.
           </li>
         </ol>
       </Carte>

@@ -27,7 +27,7 @@ import { voieDeSortieAffichee, type DisponibiliteReseau } from "@/lib/reseau";
 const dispo = (partiel: Partial<DisponibiliteReseau>): DisponibiliteReseau => ({
   metier: "plomberie",
   nature: "entretien_courant",
-  etat: "fermee",
+  etat: "sans_artisan",
   commune_code: "75056",
   commune_nom: "Paris",
   nb_artisans: 0,
@@ -37,23 +37,23 @@ const dispo = (partiel: Partial<DisponibiliteReseau>): DisponibiliteReseau => ({
 });
 
 describe("quand la voie de sortie s'affiche", () => {
-  it("pour un propriétaire dont la commune n'est pas ouverte et dont le carnet est vide", () => {
-    expect(voieDeSortieAffichee(dispo({ etat: "fermee" }), true)).toBe(true);
-  });
-  it("pour un propriétaire dont la commune est ouverte mais sans artisan disponible", () => {
+  it("pour un propriétaire sans artisan du réseau dans sa zone (décision du 23/10 : plus de commune « fermée ») et dont le carnet est vide", () => {
     expect(voieDeSortieAffichee(dispo({ etat: "sans_artisan" }), true)).toBe(true);
+  });
+  it("pour un propriétaire dont aucun artisan ne couvre ces travaux (décennale comprise)", () => {
+    expect(voieDeSortieAffichee(dispo({ etat: "sans_artisan", nature: "gros_oeuvre" }), true)).toBe(true);
   });
   it("pas quand le réseau est ouvert", () => {
     expect(voieDeSortieAffichee(dispo({ etat: "ouverte", nb_artisans: 2 }), true)).toBe(false);
   });
   it("pas quand son carnet lui permet de continuer (« Ouvrir avec mon carnet »)", () => {
-    expect(voieDeSortieAffichee(dispo({ etat: "fermee", nb_contacts: 1 }), true)).toBe(false);
+    expect(voieDeSortieAffichee(dispo({ etat: "sans_artisan", nb_contacts: 1 }), true)).toBe(false);
   });
   it("pas quand l'adresse du bien est incomplète : il doit d'abord la compléter", () => {
     expect(voieDeSortieAffichee(dispo({ etat: "adresse_incomplete" }), true)).toBe(false);
   });
   it("pas pour une agence, qui garde son carnet et peut y ajouter un artisan", () => {
-    expect(voieDeSortieAffichee(dispo({ etat: "fermee" }), false)).toBe(false);
+    expect(voieDeSortieAffichee(dispo({ etat: "sans_artisan" }), false)).toBe(false);
   });
 });
 

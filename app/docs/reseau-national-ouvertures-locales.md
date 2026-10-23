@@ -1,37 +1,43 @@
-# Gestion nationale, réseau d’artisans local
+# Gestion nationale, réseau d’artisans choisi par l’artisan
 
 La gestion des biens, baux, documents, finances et incidents est indépendante du réseau. Un propriétaire ou une agence peut gérer des biens dans plusieurs communes et départements. Le réseau est contrôlé pour l’adresse du bien, et non celle du compte ou du siège.
 
-## Ouvrir la première commune
+> **Mise à jour du 23/10/2026 (décision du dirigeant, migration `20261023180000_reseau_zone_choisie_par_artisan.sql`).**
+> Le réseau ne s’ouvre plus commune × métier par le super-administrateur (règle de la PR #132, 28/09/2026). Chaque
+> artisan choisit lui-même sa zone d’intervention (codes postaux ou départements entiers) et ses métiers ; il est
+> proposé dès que Gerimmo a validé son inscription (SIRET vérifié) et que son profil est public. Les écrans
+> « Rattacher un artisan » et « Décider de l’ouverture » sont retirés ; `reseau_regler_ouverture` et
+> `reseau_rattacher_artisan` refusent en disant pourquoi. Les tables `reseau_ouvertures` et `reseau_artisan_communes`
+> sont conservées (historique, retour arrière), ni lues ni écrites.
 
-1. Dans **Utilisateurs → Artisans à valider**, vérifier l’entreprise et ses pièces, puis valider son inscription et son SIRET. L’artisan doit disposer d’un compte et choisir une visibilité publique pour participer au réseau.
-2. Dans **Développement → Réseau d’artisans** (`/admin/couverture`), choisir le département puis le métier et cliquer sur **Afficher la couverture**.
-3. À l’étape 1, rechercher et cocher les communes concernées. La sélection groupée ne décide d’aucune ouverture.
-4. À l’étape 2, choisir l’artisan puis **Rattacher à ces communes** et **Enregistrer le rattachement**. La recherche par nom, plus bas, permet de retrouver une entreprise qui n’apparaît pas parmi les 30 résultats courants.
-5. À l’étape 3, choisir **Ouvrir ce métier**, cocher la confirmation explicite, puis **Ouvrir les communes sélectionnées**. Chaque commune doit avoir au moins un artisan éligible pour ce métier ; sinon, aucune commune de la sélection n’est ouverte.
-6. Cliquer sur le nom d’une commune pour voir ses artisans et leur statut. Répéter séparément pour un autre métier. Ouvrir la plomberie n’ouvre pas l’électricité.
+## Comment un artisan entre dans le réseau
 
-Pour fermer : sélectionner les communes et le métier, choisir **Fermer ce métier**, puis enregistrer. Les nouvelles mises en relation du réseau s’arrêtent ; les devis et interventions déjà engagés restent consultables et peuvent poursuivre leur parcours.
+1. L’artisan s’inscrit (`/artisan/inscription`) : SIRET, mobile, métiers, zone d’intervention (codes postaux comme `91300`, ou départements entiers comme `91`, `2A`, `974`).
+2. Dans **Réseau d’artisans → Inscriptions et validations** (`/admin/artisans`), le super-administrateur vérifie l’entreprise, ses pièces et le SIRET, puis valide l’inscription. L’écran montre la zone déclarée : la validation rend l’artisan proposable dans cette zone.
+3. L’artisan rend son profil public dans **Mon entreprise → Qui peut me solliciter**. La validation ne le fait pas à sa place. La carte « Suis-je proposé dans le réseau ? » lui dit ce qui manque.
+4. Il est alors proposé, pour chacun de ses métiers, aux propriétaires dont le bien a un code postal couvert par sa zone. La décennale (selon la nature des travaux), les listes noires globale et locale et l’adresse confirmée du bien restent contrôlées.
 
-Si le dernier artisan éligible devient privé, non validé, exclu, sans compte ou sans rattachement, les nouvelles demandes sont refusées même si la décision commerciale est restée ouverte. Une assurance peut aussi limiter la disponibilité selon les travaux. Aucun remplacement fictif ni demande sans destinataire n’est créé.
+L’artisan modifie lui-même sa zone et ses métiers dans **Mon entreprise → Mes métiers et ma zone**. Une agence ne peut plus les modifier pour un artisan qui a son compte ; elle garde la main sur une fiche sans compte de son carnet actif, qui n’est jamais proposée au réseau.
+
+Pour écarter un artisan : suspendre son inscription ou l’inscrire en liste noire globale depuis sa fiche (`/admin/clients/artisans/<id>`). Aucun levier par commune n’existe plus.
+
+## Couverture, côté supervision
+
+**Réseau d’artisans → Couverture du réseau** (`/admin/couverture`) : choisir le département et le métier, puis **Afficher la couverture**. Le tableau donne, par commune, les artisans proposés et déclarés, les intérêts et les demandes envoyées. Cliquer sur une commune liste les artisans dont la zone la couvre et ce qui manque à chacun. Rien n’y est à décider.
 
 ## Côté propriétaire ou agence
 
 Depuis la fiche d’un bien, choisir **Vérifier les artisans disponibles pour ce bien**, ou ouvrir **Carnet d’artisans → Vérifier le réseau pour mes biens**. Confirmer la commune officielle correspondant à l’adresse, puis choisir le métier et les travaux.
 
-Un code postal peut correspondre à plusieurs communes : la sélection utilise le code commune INSEE. Une ville incohérente, une adresse vide ou une commune non confirmée empêche de vérifier le réseau ; elle ne ferme pas la gestion locative. Modifier l’adresse invalide la confirmation précédente.
+Un code postal peut correspondre à plusieurs communes : la commune est confirmée par son code INSEE. Une ville incohérente, une adresse vide ou une commune non confirmée empêche de vérifier le réseau ; elle ne ferme pas la gestion locative. Modifier l’adresse invalide la confirmation précédente.
 
-Si le réseau est fermé, **Signaler mon intérêt** enregistre le compte, le bien, la commune et le métier. Répéter le geste ne crée pas de doublon. Aucun artisan n’est contacté, aucune consultation, intervention, date d’ouverture, notification ou campagne n’est créée. Les intérêts et les vraies sollicitations sont comptés séparément dans l’administration. La liste « Où le réseau est attendu » rassemble toute la France, tous métiers confondus, même en dehors du département affiché dans les réglages.
+Si aucun artisan du réseau n’est disponible, **Signaler mon intérêt** enregistre le compte, le bien, la commune et le métier. Répéter le geste ne crée pas de doublon. Aucun artisan n’est contacté, aucune consultation, intervention, date, notification ou campagne n’est créée. La liste « Où le réseau est attendu » rassemble toute la France.
 
-La demande de devis reste dans l’incident, après sa qualification. Le choix du métier et des travaux affiche la disponibilité et laisse utiliser les contacts personnels éligibles même dans une commune fermée. Les vérifications sont refaites dans la base au moment de l’envoi ; une page restée ouverte ne permet pas de les contourner.
+La demande de devis reste dans l’incident, après sa qualification. Les contacts personnels éligibles (carnet) restent utilisables même sans artisan du réseau. Les vérifications sont refaites dans la base au moment de l’envoi ; une page restée ouverte ne permet pas de les contourner. L’e-mail d’un artisan du réseau n’est rendu qu’à une organisation qui l’a dans son carnet.
 
 ## Données, déploiement et maintenance
 
-- Aucun compte, bien, artisan ni historique supprimé. Les anciennes sollicitations conservent l’origine « historique ». Les nouvelles enregistrent « carnet » ou « réseau » et la commune de départ.
-- Aucun département, aucune commune ni aucun métier ouvert par défaut. Le filtre Essonne de l’administration ne vaut pas une ouverture.
-- Référentiel officiel téléchargé le 27/09/2026 : https://geo.api.gouv.fr/communes?fields=code,nom,codeDepartement,codesPostaux&format=json. 34 969 communes ; source et empreinte conservées dans la migration. Aucun appel à un service géographique n’est nécessaire pendant l’utilisation. Les futures évolutions des communes devront faire l’objet d’une mise à jour contrôlée de ce référentiel.
-- Appliquer les deux migrations dans l’ordre : `20260928080000_referentiel_communes_reseau.sql`, puis `20260928081000_ouverture_reseau_par_commune_metier.sql`, avant la mise en ligne du code. Utiliser d’abord le mode simulation du chantier Migrations Supabase.
-- Aucune dépendance payante, aucun service payant ajouté. Les notifications déjà prévues pour une véritable demande de devis restent dans leur parcours existant.
-- Tests dédiés : `tests/reseau-couverture.test.ts` (droits réels, propriétés multiples, demandes et intérêts, fermeture, carnet), `e2e/reseau-couverture.spec.ts` (formulaires, messages, choix et mobile). Les nouveaux écrans font partie de l’inventaire automatique.
-
-Les résultats définitifs de livraison figurent dans la PR #132 et dans le compte rendu de cette tâche. Un test ignoré ou une session de production inaccessible ne constitue pas une validation réussie.
+- Aucun compte, bien, artisan ni historique supprimé. Les sollicitations enregistrent l’origine « carnet » ou « réseau » et la commune de départ.
+- Référentiel officiel téléchargé le 27/09/2026 : https://geo.api.gouv.fr/communes?fields=code,nom,codeDepartement,codesPostaux&format=json. 34 969 communes.
+- Migrations : `20260928080000_referentiel_communes_reseau.sql`, `20260928081000_ouverture_reseau_par_commune_metier.sql`, puis `20261023180000_reseau_zone_choisie_par_artisan.sql` (retour arrière dans `supabase/retours-arriere/`), avant la mise en ligne du code. Simulation d’abord, par le chantier Migrations Supabase.
+- Tests dédiés : `tests/reseau-couverture.test.ts` (droits réels, zone et métiers, filtres, carnet, agences, supervision), `tests/reseau-zone-artisan-rejeu.test.ts` (rejeu et retour arrière), `tests/reseau-presence-artisan.test.ts` (sans base), `e2e/reseau-couverture.spec.ts`.

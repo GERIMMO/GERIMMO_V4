@@ -39,3 +39,18 @@ export function zoneCouvre(zone: string, codePostal: string): boolean {
 export function libelleZone(zone: string): string {
   return /^\d{5}$/.test(zone) ? zone : `tout le ${zone}`;
 }
+
+/**
+ * Les codes de zone qui peuvent couvrir ce code postal : lui-même, son département (hors outre-mer), 2A ou 2B pour la
+ * Corse, 97x pour l'outre-mer. Même règle que `public.zones_couvrant_code_postal` (migration 20261023180000) : sert à
+ * retrouver par index les artisans d'une commune ; `zoneCouvre` garde le dernier mot.
+ */
+export function zonesCouvrant(codePostal: string): string[] {
+  const zones = [codePostal];
+  const departement = codePostal.slice(0, 2);
+  if (/^\d{2}$/.test(departement) && departement !== "97") zones.push(departement);
+  if (/^20[01]/.test(codePostal)) zones.push("2A");
+  else if (/^20[2-6]/.test(codePostal)) zones.push("2B");
+  if (/^97[1-6]/.test(codePostal)) zones.push(codePostal.slice(0, 3));
+  return zones;
+}

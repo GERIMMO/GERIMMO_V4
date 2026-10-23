@@ -15,9 +15,9 @@ export function RetourReseau({ etat }: { etat: EtatReseau }) {
 
 export function InteretReseau({ orgId, bienId, disponibilite: d }: { orgId: string; bienId: string; disponibilite: DisponibiliteReseau }) {
   const [etat, action] = useActionState(signalerInteretReseau.bind(null, orgId, bienId, d.metier, d.nature), {});
-  if (d.etat !== "fermee" && d.etat !== "sans_artisan") return null;
+  if (d.etat !== "sans_artisan") return null;
   return <form data-saisie-confirmee action={action} className="mt-3 space-y-2">
-    {d.interet_enregistre ? <p className="text-sm">Votre intérêt est enregistré pour ce bien et ce métier. Aucune intervention n’a été demandée.</p> : <><BoutonEnvoi variant="outline" enCoursTexte="Enregistrement…">Signaler mon intérêt</BoutonEnvoi><p className="text-xs text-muted-foreground">Ce signalement aide à préparer le réseau. Il ne déclenche aucun contact et ne prévoit aucune date d’ouverture.</p></>}
+    {d.interet_enregistre ? <p className="text-sm">Votre intérêt est enregistré pour ce bien et ce métier. Aucune intervention n’a été demandée.</p> : <><BoutonEnvoi variant="outline" enCoursTexte="Enregistrement…">Signaler mon intérêt</BoutonEnvoi><p className="text-xs text-muted-foreground">Ce signalement aide Gerimmo à recruter des artisans ici. Il ne déclenche aucun contact et ne promet aucune date.</p></>}
     <RetourReseau etat={etat} />
   </form>;
 }
@@ -33,25 +33,27 @@ export function MessageReseau({ orgId, bienId, disponibilite: d }: { orgId: stri
 }
 
 /**
- * Ce qu'un propriétaire peut faire quand le réseau n'est pas ouvert pour sa commune (audit du 13/10, PRO2-01,
- * décision D17, option A). Sans cela, l'écran de sollicitation s'arrêtait sur un bouton grisé : le propriétaire ne
- * savait pas qu'il pouvait clore l'incident ou appeler lui-même un artisan.
+ * Ce qu'un propriétaire peut faire quand aucun artisan du réseau n'intervient pour ce bien et ces travaux (audit du
+ * 13/10, PRO2-01, décision D17, option A). Sans cela, l'écran de sollicitation s'arrêtait sur un bouton grisé : le
+ * propriétaire ne savait pas qu'il pouvait clore l'incident ou appeler lui-même un artisan.
  *
  * Décision du dirigeant du 15/10/2026 : le propriétaire peut désormais INVITER un artisan qu'il connaît. L'artisan
  * s'inscrit lui-même et Gerimmo le valide ; une fois l'invitation acceptée, il est dans le carnet du propriétaire et peut
- * être sollicité ici, même commune fermée, pour les biens situés dans sa zone d'intervention. L'ajout direct d'un
- * artisan par SIRET reste réservé aux agences : ce texte n'en propose aucun.
+ * être sollicité ici, même s'il n'est pas proposé par le réseau (profil privé), pour les biens situés dans sa zone
+ * d'intervention. L'ajout direct d'un artisan par SIRET reste réservé aux agences : ce texte n'en propose aucun.
+ * Décision du 23/10/2026 : plus de commune « fermée » ; le réseau propose les artisans validés et publics dont la zone
+ * couvre le bien.
  */
 export function VoieDeSortieReseau({ orgId, interetEnregistre }: { orgId: string; interetEnregistre: boolean }) {
   return <div className="space-y-2 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4 text-sm">
     <p className="font-medium">Ce que vous pouvez faire dès maintenant</p>
     <ul className="list-disc space-y-1.5 pl-5">
       <li><strong>Clôturer l’incident</strong> s’il est réglé ou s’il relève du syndic : voir <a href="#cloture" className="underline underline-offset-4">la section « Clôturer l’incident »</a>, plus bas sur cette page.</li>
-      <li><strong>Inviter un artisan que vous connaissez</strong> depuis votre carnet : <Link href={cheminCarnetInvitation(orgId)} className="underline underline-offset-4">Inviter un artisan</Link>. Il crée son compte et inscrit son entreprise, puis Gerimmo vérifie son inscription. Vous pourrez ensuite le solliciter ici, même si la commune n’est pas ouverte au réseau, pour les biens situés dans sa zone d’intervention.</li>
+      <li><strong>Inviter un artisan que vous connaissez</strong> depuis votre carnet : <Link href={cheminCarnetInvitation(orgId)} className="underline underline-offset-4">Inviter un artisan</Link>. Il crée son compte et inscrit son entreprise, puis Gerimmo vérifie son inscription. Vous pourrez ensuite le solliciter ici, même s’il n’est pas proposé par le réseau Gerimmo, pour les biens situés dans sa zone d’intervention.</li>
       <li><strong>Appeler vous-même l’artisan de votre choix</strong>, en dehors de Gerimmo. Une fois l’intervention faite, clôturez l’incident avec le motif « Résolu ».</li>
       {interetEnregistre
         ? <li><strong>Votre intérêt est déjà enregistré</strong> pour ce bien et ce métier. Aucune intervention n’a été demandée.</li>
-        : <li><strong>Signaler votre intérêt</strong> avec le bouton ci-dessous : cela aide à préparer le réseau dans cette zone, sans déclencher aucun contact.</li>}
+        : <li><strong>Signaler votre intérêt</strong> avec le bouton ci-dessous : cela aide Gerimmo à recruter des artisans dans cette zone, sans déclencher aucun contact.</li>}
     </ul>
   </div>;
 }
@@ -62,7 +64,7 @@ export function ConfirmerCommunesEvidentes({ orgId, nbSansCommune }: { orgId: st
   if (nbSansCommune === 0 && !etat.succes) return null;
   return <form data-saisie-confirmee action={action} className="space-y-2 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4">
     <p className="text-sm font-medium">{nbSansCommune} bien{nbSansCommune > 1 ? "s" : ""} sans commune confirmée</p>
-    <p className="text-xs text-muted-foreground">Le réseau d’artisans se décide commune par commune. Confirmez en une fois les biens dont le code postal ne dessert qu’une commune (ou une seule au nom de la ville saisie) ; les autres restent à choisir un par un ci-dessous.</p>
+    <p className="text-xs text-muted-foreground">Le réseau d’artisans se vérifie à l’adresse exacte de chaque bien. Confirmez en une fois les biens dont le code postal ne dessert qu’une commune (ou une seule au nom de la ville saisie) ; les autres restent à choisir un par un ci-dessous.</p>
     <BoutonEnvoi variant="outline" enCoursTexte="Confirmation…">Confirmer les communes évidentes</BoutonEnvoi>
     <RetourReseau etat={etat} />
   </form>;

@@ -5,7 +5,8 @@
  *  - cautionnement et état des lieux signés dans Gerimmo : ils restent dans toutes les listes de documents signables ;
  *  - signature comprise sans supplément, essai compris, dans la limite du volume mensuel commun ;
  *  - aucun DPO désigné (référent : le dirigeant) ; violation notifiée « dans les meilleurs délais », sans 48 heures ;
- *  - certification d'OpenAI et de GitHub au cadre UE–États-Unis non vérifiée : la page ne s'en prévaut pas.
+ *  - certification d'OpenAI et de GitHub au cadre UE–États-Unis non vérifiée : la page ne s'en prévaut pas, et cite
+ *    pour eux les seules clauses contractuelles types (relecture du 23/10, sans aveu public de non-vérification).
  *
  * Les pages sont rendues sans base (identité fictive) ou lues telles quelles.
  */
@@ -76,10 +77,13 @@ describe("/confidentialite (lot 4)", () => {
     expect(lire("app/confidentialite/page.tsx")).not.toContain("à confirmer par le juriste et le DPO");
   });
 
-  it("factures de Gerimmo six ans (L. 102 B), jamais dix ; preuve du contrat dix ans après le dernier abonnement payé", async () => {
+  it("factures de Gerimmo six ans au moins (L. 102 B), jamais dix ; preuve du contrat dix ans après le dernier abonnement payé", async () => {
     const page = await confidentialite();
-    expect(page).toContain("6 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B)");
-    expect(page).toContain("les factures d'abonnement, six ans, chez notre prestataire de paiement");
+    expect(page).toContain("Au moins 6 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B), chez notre prestataire de paiement, selon sa propre politique de conservation");
+    // La copie jointe à l'archive d'un compte fermé suit six ans (archives_comptes, migration du socle).
+    expect(page).toContain("la copie jointe à la preuve du contrat d’un compte fermé est supprimée six ans après l’émission");
+    expect(page).toContain("avec la copie de vos factures, six ans après leur émission");
+    expect(page).toContain("les factures d'abonnement, au moins six ans, chez notre prestataire de paiement");
     expect(page).not.toMatch(/factures[^.;]{0,80}dix ans/i);
     expect(page).not.toContain("10 ans (obligation légale)");
     expect(page).not.toContain("conservation comptable obligatoire des factures est de dix ans");
@@ -92,15 +96,52 @@ describe("/confidentialite (lot 4)", () => {
     expect(page).toContain("Fermeture de votre compte.");
     expect(page).toContain("quatorze jours après votre confirmation, avec le remboursement de la part non utilisée");
     expect(page).toContain("en cas de restauration, la fermeture est appliquée de nouveau");
+    // Relecture du 23/10 : les dossiers ne partent que si le compte est le seul membre (lot 1E) ; tout ce qui survit à
+    // la fermeture dans le tableau est dans la liste « Nous conservons seulement ».
+    expect(page).toContain("si vous êtes le seul membre de votre espace, nous effaçons aussi ses dossiers");
+    expect(page).toContain("sinon, seule votre adhésion à cet espace est retirée");
+    for (const reste of [
+      "la preuve d'une éventuelle rétractation, dix ans",
+      "la liste des effacements à rejouer après la restauration d'une sauvegarde, quatre mois",
+      "l'empreinte de votre adresse, trois ans",
+    ]) expect(page).toContain(reste);
+    // L'article 9 n'est cité qu'une fois dans « Votre compte ».
+    const votreCompte = page.slice(page.indexOf("Votre compte. Comme le prévoit"), page.indexOf("Fermeture de votre compte."));
+    expect(votreCompte.match(/article 9/g)).toHaveLength(1);
     expect(page).toContain("rien n'est supprimé du seul fait de l'arrêt");
     expect(page).toContain("après vingt-quatre mois sans connexion ni abonnement, le compte est fermé après deux avertissements");
     expect(page).not.toContain("rien n'est supprimé automatiquement");
+    // Article 9 de la V1 : la plus tardive des deux dates.
+    expect(page).toContain("suppression vingt-quatre mois après la plus tardive de ces deux dates");
+    expect(page).toContain("La plus tardive des deux : dernière connexion d’un utilisateur du compte, fin du dernier abonnement payé");
+  });
+
+  it("préavis : seulement ceux que le code prévoit (J-30 par bail, J-15 par personne sans bail, article 9 de la V1)", async () => {
+    const page = await confidentialite();
+    expect(page).toContain("trente jours avant la suppression des pièces rattachées à un bail, et quinze jours avant celle des pièces d'une personne rattachée à aucun bail");
+    const autres = page.slice(page.indexOf("Autres documents non rattachés à un bail"), page.indexOf("Quittances"));
+    expect(autres).not.toMatch(/prévenu/);
+  });
+
+  it("listes d'attente : aucune purge « à l'ouverture » promise ; la liste des propriétaires a sa base et sa description", async () => {
+    const page = await confidentialite();
+    expect(page).not.toContain("Jusqu’à ce que nous vous ayons prévenu de l’ouverture");
+    expect(page).toContain("Au plus trois ans, puis suppression ; dans le mois de votre demande de retrait ; trois mois après la souscription si votre agence devient cliente");
+    expect(page).toContain("Liste d'attente des propriétaires : vous prévenir de l'ouverture du service, à votre demande");
+    expect(page).toContain("La liste d'attente des propriétaires.");
+  });
+
+  it("suivi commercial : la recommandation est un canal de la demande, pas une demande", async () => {
+    const page = await confidentialite();
+    expect(page).toContain("que vous nous interrogez sur nos offres, par le formulaire de contact, lors d'un échange direct ou après la recommandation d'un tiers");
+    expect(page).not.toContain("échange direct ou recommandation)");
   });
 
   it("transferts hors UE : ne se prévaut d'aucune certification d'OpenAI ni de GitHub", async () => {
     const page = await confidentialite();
     expect(page).toContain("clauses contractuelles types de la Commission européenne");
-    expect(page).toContain("Nous n'avons pas vérifié à ce jour la certification d'OpenAI et de GitHub à ce cadre : nous ne nous en prévalons pas");
+    expect(page).toContain("Pour OpenAI et GitHub, le transfert repose sur les clauses contractuelles types de la Commission européenne, intégrées à leurs accords de traitement des données.");
+    expect(page).not.toMatch(/OpenAI[^.]{0,60}certifi|n'avons pas vérifié/);
     expect(page).not.toContain("Data Privacy Framework UE–États-Unis, selon le prestataire");
   });
 
@@ -115,6 +156,8 @@ describe("/confidentialite (lot 4)", () => {
     expect(page).toContain("actes de cautionnement et états des lieux");
     expect(page).toContain("ce numéro est celui que la caution a saisi elle-même");
     expect(page).toContain("certificat de réalisation, commun à tous les signataires");
+    // Rôle de Zoho Sign : la conservation des documents signés (la fermeture du compte en demande la suppression).
+    expect(page).toContain("conservation des documents signés et de leur certificat jusqu'à leur suppression");
     // La Base Adresse Nationale : service public appelé par le navigateur (plan, lot 4).
     expect(page).toContain("Service public appelé directement par votre navigateur pour compléter l'adresse d'un bien ; il reçoit le texte tapé et l'adresse IP de votre connexion");
   });
@@ -140,6 +183,12 @@ describe("mentions légales (lot 4 : aucun changement de texte)", () => {
 });
 
 describe("pages publiques (lot 4)", () => {
+  it("l'accueil réserve l'offre à vos propres biens (V1, articles 1 et 2)", () => {
+    const t = source("app/page.tsx");
+    expect(t).not.toMatch(/bien d'un proche|gérer pour quelqu'un d'autre/);
+    expect(t).toContain("Oui, pour vos propres biens : en nom propre, en SCI ou en indivision.");
+  });
+
   it("l'accueil et /tarifs disent la suppression après vingt-quatre mois et le renvoi à la confidentialité", () => {
     const attendu = "Le compte est supprimé après vingt-quatre mois sans connexion ni abonnement, après deux avertissements par courriel ; certaines pièces suivent leur propre durée (page";
     for (const fichier of ["app/page.tsx", "app/tarifs/page.tsx"]) {
@@ -165,6 +214,9 @@ describe("pages publiques (lot 4)", () => {
     expect(t).not.toContain("rien n'est supprimé automatiquement");
     expect(t).toContain("<strong>La signature électronique</strong>");
     expect(t).toContain("actes de cautionnement et états des lieux");
+    // Mêmes réserves que /tarifs et l'article 4.7 : essai compris, suspension possible, dans les deux affichages.
+    expect(t.match(/essai compris/g)?.length).toBe(2);
+    expect(t.match(/elle peut être momentanément suspendue/g)?.length).toBe(2);
     // « Services facturés à part ou non inclus » ne parle plus de la signature.
     const precisions = t.slice(t.indexOf("Services facturés à part ou non inclus"), t.indexOf("</details>"));
     expect(precisions).not.toMatch(/Zoho Sign|signature des documents/);

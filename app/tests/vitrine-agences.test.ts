@@ -241,13 +241,15 @@ describe("le site mène à la page", () => {
   });
 
   // Plan de conformité du 23/10 (lot 4, constat R44) : la durée court de l'inscription, le retrait est traité dans le mois,
-  // et la base légale n'est plus « à confirmer » (le commentaire est retiré).
+  // et la base légale n'est plus « à confirmer » (le commentaire est retiré). Relecture du 23/10 : aucune purge « à
+  // l'ouverture » n'existe ; une inscription convertie part trois mois après la conversion (lot 2).
   it("/confidentialite : la liste d'attente dans les finalités, les données traitées et les durées", () => {
     const confidentialite = lire("src/app/confidentialite/page.tsx");
     expect(confidentialite.match(apostrophe("iste d'attente des agences") as RegExp)).not.toBeNull();
     expect((confidentialite.match(new RegExp(apostrophe("iste d'attente des agences").source, "g")) ?? []).length).toBeGreaterThanOrEqual(3);
     expect(confidentialite).toMatch(apostrophe("vous prévenir de l'ouverture de l'offre aux agences, à votre demande"));
-    expect(confidentialite).toMatch(apostrophe("au plus tard trois ans après votre inscription ; dans le mois de votre demande de retrait"));
+    expect(confidentialite).toMatch(apostrophe("Au plus trois ans, puis suppression ; dans le mois de votre demande de retrait ; trois mois après la souscription si votre agence devient cliente"));
+    expect(confidentialite).not.toMatch(apostrophe("Jusqu'à ce que nous vous ayons prévenu de l'ouverture"));
     for (const donnee of ["nom de l'agence", "nom du contact", "adresse électronique", "téléphone", "code postal", "nombre de lots", "message"]) {
       expect(confidentialite, donnee).toMatch(apostrophe(donnee));
     }

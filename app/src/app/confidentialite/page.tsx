@@ -38,8 +38,8 @@ function TableauDurees({ titre, children }: { titre: string; children: ReactNode
 // lieux dans Gerimmo, aucun DPO désigné, violation notifiée « dans les meilleurs délais »). Les sources juridiques
 // (Légifrance, CNIL) n'ont pas pu être ouvertes le 23/10/2026 : rien de cette page n'a été relu par un juriste.
 //
-// Le tableau « Combien de temps » a son miroir machine dans lib/durees-conservation.ts : une ligne ajoutée ou une durée
-// changée ici doit l'être aussi là-bas (tests/durees-conservation.test.ts).
+// Le tableau « Combien de temps » a son miroir machine dans tests/fixtures/durees-conservation.ts : une ligne ajoutée ou
+// une durée changée ici doit l'être aussi là-bas (tests/durees-conservation.test.ts, qui compare aussi la base).
 export default async function PageConfidentialite() {
   const {editeur:EDITEUR,indisponible}=await lireEditeur();
   // 29/09 : les droits ne s'exercent plus par le formulaire de devis de
@@ -50,7 +50,7 @@ export default async function PageConfidentialite() {
   // 19/10 : la liste du code complétée par la saisie (localisation de la BAN).
   // La page n'affiche pas les coordonnées : sa réserve ne porte que sur les
   // localisations.
-  // 24/10 (plan du 23/10, lot 4) : l'ancienne intégration Yousign, inactive (aucun circuit en production), sort de la
+  // 23/10 (plan du 23/10, lot 4) : l'ancienne intégration Yousign, inactive (aucun circuit en production), sort de la
   // liste publique ; elle reste dans PRESTATAIRES, dont dépendent les clés de saisie de /admin/parametres.
   const prestataires = prestatairesAvecFaits(EDITEUR).filter((p) => p.cle !== "yousign");
   const adresseContact = contact ? <a href={`mailto:${contact}`} className="lien-texte">{contact}</a> : <AFournir quoi="adresse de contact de l'éditeur" />;
@@ -187,6 +187,13 @@ export default async function PageConfidentialite() {
                 <td>Liste d&apos;attente des agences : vous prévenir de l&apos;ouverture de l&apos;offre aux agences, à votre demande</td>
                 <td data-libelle="Base légale">Intérêt légitime : donner suite à la demande que vous avez faite</td>
               </tr>
+              {/* Relecture du 23/10 : la liste d'attente des propriétaires (table `liste_attente`, registre P10, sort encore
+                  ouvert : décision 11 du plan) avait une durée sans base ni description. Même base que la liste des
+                  agences, par analogie (plan, lot 4) : qualification à relire par un juriste. */}
+              <tr>
+                <td>Liste d&apos;attente des propriétaires : vous prévenir de l&apos;ouverture du service, à votre demande</td>
+                <td data-libelle="Base légale">Intérêt légitime : donner suite à la demande que vous avez faite</td>
+              </tr>
               <tr>
                 <td>Inscription, validation, note, indicateurs de fiabilité et exclusion des artisans ; annuaire et suivi des interventions pour les propriétaires</td>
                 <td data-libelle="Base légale">Exécution des conditions de l&apos;espace artisan</td>
@@ -199,7 +206,7 @@ export default async function PageConfidentialite() {
           </table>
         </div>
         {/* Plan du 23/10, constat R63 : les témoins nommés un à un. `gerimmo_inscription` n'est plus déposé (seulement
-            effacé chez les anciens visiteurs) : il n'est pas cité. Durées vérifiées le 24/10 dans le code :
+            effacé chez les anciens visiteurs) : il n'est pas cité. Durées vérifiées le 23/10 dans le code :
             @supabase/ssr (maxAge de 400 jours), lib/session-policy.ts et proxy.ts (cookie de session, sans maxAge),
             lib/jeton-confirmation.ts (15 minutes). */}
         <p>
@@ -261,9 +268,10 @@ export default async function PageConfidentialite() {
         </p>
         <p>
           <b className="font-semibold">Le suivi commercial.</b> Si vous êtes un
-          professionnel et que vous nous interrogez sur nos offres (formulaire
-          de contact, échange direct ou recommandation), nous pouvons garder vos
-          coordonnées et l&apos;historique de nos échanges pour y donner suite.
+          professionnel et que vous nous interrogez sur nos offres, par le
+          formulaire de contact, lors d&apos;un échange direct ou après la
+          recommandation d&apos;un tiers, nous pouvons garder vos coordonnées et
+          l&apos;historique de nos échanges pour y donner suite.
           Un particulier n&apos;est suivi ainsi que s&apos;il l&apos;a accepté :
           nous n&apos;adressons aucun courriel commercial à un particulier sans
           son consentement. Chacun de nos messages permet de s&apos;y opposer :
@@ -285,7 +293,16 @@ export default async function PageConfidentialite() {
           l&apos;offre aux agences et à donner suite à vos réponses. Elles ne
           servent à aucune autre sollicitation. Vous pouvez vous y opposer à
           tout moment ; elles sont supprimées trois ans après votre inscription,
-          ou dans le mois de votre demande de retrait.
+          dans le mois de votre demande de retrait, ou trois mois après la
+          souscription si votre agence devient cliente.
+        </p>
+        <p>
+          <b className="font-semibold">La liste d&apos;attente des propriétaires.</b>{" "}
+          L&apos;adresse électronique laissée pour être prévenu de l&apos;ouverture
+          du service, le nombre de vos biens si vous l&apos;avez indiqué, la page
+          d&apos;où vient l&apos;inscription et sa date servent uniquement à vous
+          prévenir de cette ouverture. Vous pouvez vous y opposer à tout moment ;
+          elles sont supprimées trois ans après votre inscription.
         </p>
         <p>
           <b className="font-semibold">Ce que Gerimmo ne fait pas.</b> Il ne lit
@@ -368,7 +385,8 @@ export default async function PageConfidentialite() {
         </p>
         {/* Plan du 23/10 (décision 12, section 5) : la certification d'OpenAI et de GitHub au cadre UE–États-Unis n'a pas
             été vérifiée. La page ne s'en prévaut donc pas ; pour eux, seules les clauses contractuelles types sont
-            citées, comme l'annexe 1 des conditions. */}
+            citées (relecture du 23/10 : sans aveu public de non-vérification). La phrase suppose leurs accords de
+            traitement des données acceptés et conservés (décision 12 du plan). */}
         <p>
           <b className="font-semibold">Garanties des transferts.</b> Lorsque
           des données sont transférées ou accessibles hors de l&apos;Union
@@ -376,11 +394,10 @@ export default async function PageConfidentialite() {
           encadré par une décision d&apos;adéquation de la Commission européenne,
           notamment le cadre de protection des données UE–États-Unis (Data Privacy
           Framework) pour un prestataire certifié, ou par les clauses
-          contractuelles types de la Commission européenne. Nous n&apos;avons pas
-          vérifié à ce jour la certification d&apos;OpenAI et de GitHub à ce
-          cadre : nous ne nous en prévalons pas, et seules les clauses
-          contractuelles types de leurs accords de traitement des données valent
-          pour eux. Les politiques et accords des prestataires sont accessibles
+          contractuelles types de la Commission européenne. Pour OpenAI et
+          GitHub, le transfert repose sur les clauses contractuelles types de la
+          Commission européenne, intégrées à leurs accords de traitement des
+          données. Les politiques et accords des prestataires sont accessibles
           par leurs liens officiels ci-dessous. Vous pouvez nous demander des
           précisions ou une copie des garanties applicables à l’adresse de
           contact indiquée en tête de page.
@@ -410,15 +427,16 @@ export default async function PageConfidentialite() {
           allègement des fiches selon la catégorie. Une fiche qui reste rattachable à un dossier n’est pas considérée comme anonyme. Ces durées ne constituent pas une
           obligation légale de conserver toutes les pièces jusque-là : le
           responsable du dossier doit limiter la conservation à ce qui est
-          nécessaire et traiter les demandes de suppression justifiées. Avant la
-          suppression des pièces d&apos;un bail ou d&apos;une personne, le
-          propriétaire est prévenu dans son espace.
+          nécessaire et traiter les demandes de suppression justifiées. Le
+          propriétaire est prévenu dans son espace trente jours avant la
+          suppression des pièces rattachées à un bail, et quinze jours avant
+          celle des pièces d&apos;une personne rattachée à aucun bail.
         </p>
         <TableauDurees titre="Comptes">
           <tr>
             <td>Compte et données de l’organisation cliente</td>
-            <td>Tant que le compte est utilisé ; suppression vingt-quatre mois après la dernière connexion ou la fin du dernier abonnement payé, après deux avertissements par courriel (deux mois puis quinze jours avant)</td>
-            <td>Dernière connexion ou fin du dernier abonnement payé</td>
+            <td>Tant que le compte est utilisé ; suppression vingt-quatre mois après la plus tardive de ces deux dates, après deux avertissements par courriel (deux mois puis quinze jours avant)</td>
+            <td>La plus tardive des deux : dernière connexion d’un utilisateur du compte, fin du dernier abonnement payé</td>
           </tr>
           <tr>
             <td>Compte de connexion d’un locataire, d’une caution ou d’un artisan</td>
@@ -459,7 +477,7 @@ export default async function PageConfidentialite() {
           </tr>
           <tr>
             <td>Autres documents non rattachés à un bail</td>
-            <td>5 ans, puis suppression ; vous êtes prévenu 30 jours avant</td>
+            <td>5 ans, puis suppression</td>
             <td>Dépôt</td>
           </tr>
           <tr>
@@ -600,7 +618,7 @@ export default async function PageConfidentialite() {
           </tr>
           <tr>
             <td>Liste d’attente des agences</td>
-            <td>Jusqu’à ce que nous vous ayons prévenu de l’ouverture, et au plus tard trois ans après votre inscription ; dans le mois de votre demande de retrait</td>
+            <td>Au plus trois ans, puis suppression ; dans le mois de votre demande de retrait ; trois mois après la souscription si votre agence devient cliente</td>
             <td>Inscription</td>
           </tr>
           <tr>
@@ -632,7 +650,7 @@ export default async function PageConfidentialite() {
           </tr>
           <tr>
             <td>Factures d’abonnement émises par Gerimmo</td>
-            <td>6 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B), chez notre prestataire de paiement</td>
+            <td>Au moins 6 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B), chez notre prestataire de paiement, selon sa propre politique de conservation ; la copie jointe à la preuve du contrat d’un compte fermé est supprimée six ans après l’émission</td>
             <td>Émission</td>
           </tr>
           <tr>
@@ -647,9 +665,9 @@ export default async function PageConfidentialite() {
           </tr>
         </TableauDurees>
         <p>
-          Les factures d&apos;abonnement émises par Gerimmo sont conservées six
-          ans, durée prévue pour les pièces justificatives par le livre des
-          procédures fiscales (art. L. 102 B). Les autres durées dépendent de la
+          Les factures d&apos;abonnement émises par Gerimmo sont conservées au
+          moins six ans, durée prévue pour les pièces justificatives par le livre
+          des procédures fiscales (art. L. 102 B). Les autres durées dépendent de la
           finalité et du dossier. Un besoin de preuve ou un contentieux peut
           justifier un archivage limité des seuls éléments nécessaires : un
           litige signalé depuis la fiche du bail suspend la suppression des
@@ -669,14 +687,17 @@ export default async function PageConfidentialite() {
           consultables et exportables en lecture seule : rien n&apos;est
           supprimé du seul fait de l&apos;arrêt, en dehors des durées propres aux
           pièces listées ci-dessus ; après vingt-quatre mois sans connexion ni
-          abonnement, le compte est fermé après deux avertissements (article 9
-          des conditions générales). Vous pouvez demander la suppression de votre
-          compte à tout moment, après avoir exporté ce que vous souhaitez garder.
+          abonnement, le compte est fermé après deux avertissements. Vous pouvez
+          demander la suppression de votre compte à tout moment, après avoir exporté ce que vous souhaitez garder.
         </p>
         {/* Plan du 23/10, lot 4 (constat R15), adapté à la décision « non commerçant » du 23/10 : factures six ans.
             « demander la fermeture » : le bouton en libre-service vient au lot 5 ; d'ici là, la demande faite depuis
             « Mes données personnelles » est exécutée par la supervision. Pour un compte qui n'a jamais payé, la preuve
-            part avec lui : la phrase sur la preuve vise les seuls abonnés payants. */}
+            part avec lui : la phrase sur la preuve vise les seuls abonnés payants.
+            Relecture du 23/10 : les dossiers ne partent que si le compte est le seul membre de l'espace (lot 1E : sinon,
+            retrait de la seule adhésion) ; la liste « Nous conservons seulement » reprend tout ce qui survit à la
+            fermeture dans le tableau (rétractation, effacements à rejouer, empreinte d'opposition) ; la copie des
+            factures jointe à l'archive suit les six ans (archives_comptes, migration du socle). */}
         <p>
           <b className="font-semibold">Fermeture de votre compte.</b> Vous pouvez
           demander la fermeture de votre compte depuis la page{" "}
@@ -689,15 +710,21 @@ export default async function PageConfidentialite() {
           confirmation, avec le remboursement de la part non utilisée de cette
           période. Sans abonnement en cours, la fermeture intervient quatorze
           jours après votre confirmation. Vous pouvez l&apos;annuler jusque-là.
-          Nous effaçons alors votre compte, vos accès et les dossiers de votre
-          espace, fichiers compris, et nous demandons la suppression des copies
-          conservées par notre prestataire de signature. Nous conservons
-          seulement, avec un accès restreint : si vous avez souscrit un
-          abonnement payant, la preuve de votre contrat (texte et version des
-          conditions acceptées, dates, identifiant de facturation et adresse
-          électronique), dix ans après la fin de votre dernier abonnement payé ;
-          les factures d&apos;abonnement, six ans, chez notre prestataire de
-          paiement ; la trace de votre demande et de son traitement, trois ans ;
+          Nous effaçons alors votre compte et vos accès ; si vous êtes le seul
+          membre de votre espace, nous effaçons aussi ses dossiers, fichiers
+          compris, et nous demandons la suppression des copies conservées par
+          notre prestataire de signature ; sinon, seule votre adhésion à cet
+          espace est retirée. Nous conservons seulement, avec un accès
+          restreint : si vous avez souscrit un abonnement payant, la preuve de
+          votre contrat (texte et version des conditions acceptées, dates,
+          identifiant de facturation et adresse électronique), dix ans après la
+          fin de votre dernier abonnement payé, avec la copie de vos factures,
+          six ans après leur émission ; la preuve d&apos;une éventuelle
+          rétractation, dix ans ; les factures d&apos;abonnement, au moins six
+          ans, chez notre prestataire de paiement ; la trace de votre demande et
+          de son traitement, trois ans ; la liste des effacements à rejouer après
+          la restauration d&apos;une sauvegarde, quatre mois ; si vous vous êtes
+          opposé à la prospection, l&apos;empreinte de votre adresse, trois ans ;
           les journaux de sécurité, jusqu&apos;au terme de leur durée indiquée
           ci-dessus. Les sauvegardes chiffrées disparaissent sous 90 jours ; en
           cas de restauration, la fermeture est appliquée de nouveau. Si vous

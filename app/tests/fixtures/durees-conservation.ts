@@ -2,13 +2,14 @@
 // constats R14, R38 à R47, R61, R62 ; décisions du dirigeant du 23/10, dont « non commerçant » pour les factures).
 //
 // Une ligne par règle et par ligne du tableau « Combien de temps » de /confidentialite. Le texte affiché reste écrit
-// dans la page, en français lisible ; cette liste en est le miroir machine :
+// dans la page, en français lisible ; cette liste en est le miroir machine, réservé aux tests (relecture du 23/10 : elle
+// vivait dans src/lib, qui n'en avait pas l'usage) :
 //   - tests/durees-conservation.test.ts vérifie que la durée AFFICHÉE dans chaque ligne du tableau correspond à
 //     `duree_mois` (et qu'aucune ligne du tableau n'est sans référence) ;
-//   - à l'intégration, le même test sera branché sur la table `retention_rules` : pour chaque `data_type`, la durée
-//     (`duree_mois`) et le déclencheur (`declencheur`, libellé EXACT, que la fonction de conservation compare) doivent
-//     être ceux de la base. Les libellés de déclencheur sont ceux du lot 2 du plan ; les règles existantes que le lot 2
-//     ne cite pas gardent leur libellé actuel (migrations 20260728_sprint1_ged_alertes_retention.sql et suivantes).
+//   - le même test lit la table `retention_rules` d'une base de test (SUPABASE_DB_URL) : les règles existantes que le
+//     lot 2 ne touche pas doivent y avoir la même durée, le même déclencheur (libellé EXACT, que la fonction de
+//     conservation compare) et le même sort ; toute règle active de la base doit être annoncée ; une fois le lot 2
+//     appliqué (règle `archive:preuve_contrat` présente), TOUTES les règles annoncées sont comparées à la base.
 //
 // `data_type: null` : la durée n'est pas tenue par `retention_rules` (purge propre à une table, conservation chez un
 // prestataire, ou absence de durée) ; `tenue_par` dit où elle l'est. `actif_au_deploiement` reprend la colonne du
@@ -33,8 +34,9 @@ export type DureeConservation = {
   /**
    * Lot 2, colonne « actif au déploiement » : « oui » ; « apres_bilan » (activée une à une après le bilan sans
    * suppression : « oui après le bilan », « oui après comptage », « non, puis oui après le bilan ») ; « plus_tard »
-   * (attend du code : lot 1E et V1 en production pour `compte:inactif`, lot 5 avant 2029 pour les fiches, messages,
-   * loyers et incidents). `null` hors `retention_rules`.
+   * (attend du code : lot 1E et V1 en production pour `compte:inactif` ; lot 5 pour les fiches, messages, loyers et
+   * incidents, dont le premier terme possible tombe en novembre 2028 : un incident clos ou un bail fini en novembre
+   * 2026, plus 24 mois — le plan disait « avant 2029 », ce qui est trop tard). `null` hors `retention_rules`.
    */
   actif_au_deploiement: Activation | null;
   /** Où la durée est tenue quand ce n'est pas `retention_rules`. */
@@ -387,6 +389,7 @@ export const DUREES_CONSERVATION: readonly DureeConservation[] = [
     duree_affichee: "1 an",
     actif_au_deploiement: "oui",
   }),
+  // « 3 ans pour les accès de la supervision et les preuves d'effacement » : voir ACTIONS_CONTROLE_INTERNE.
   ligne({
     donnees: "Journal d’audit (actions sensibles)",
     data_type: "journal:audit_controle_interne",
@@ -412,6 +415,16 @@ export const DUREES_CONSERVATION: readonly DureeConservation[] = [
     declencheur: "Inscription",
     duree_affichee: "trois ans",
     actif_au_deploiement: "apres_bilan",
+  }),
+  // Lot 2 : une inscription « convertie » est supprimée trois mois après la conversion, par la même purge.
+  ligne({
+    donnees: "Liste d’attente des agences",
+    data_type: null,
+    duree_mois: 3,
+    declencheur: "Conversion de l'inscription",
+    duree_affichee: "trois mois",
+    actif_au_deploiement: null,
+    tenue_par: "purge des contacts du lot 2 (inscription « convertie »), sous la règle contact:attente_agences",
   }),
   ligne({
     donnees: "Liste d’attente des propriétaires",
@@ -455,9 +468,12 @@ export const DUREES_CONSERVATION: readonly DureeConservation[] = [
     duree_affichee: "10 ans",
     actif_au_deploiement: "oui",
   }),
-  // Décision du dirigeant du 23/10/2026 (« je ne suis pas commerçant ») : six ans (livre des procédures fiscales,
-  // art. L. 102 B, à recomparer sur Légifrance), et non dix (C. com. L. 123-22, propre aux commerçants). Les factures
-  // sont tenues par le prestataire de paiement : aucune table de Gerimmo ne les range.
+  // Décision du dirigeant du 23/10/2026 (« je ne suis pas commerçant ») : au moins six ans (livre des procédures
+  // fiscales, art. L. 102 B, à recomparer sur Légifrance), et non dix (C. com. L. 123-22, propre aux commerçants).
+  // Les factures sont émises et tenues par le prestataire de paiement, selon sa propre politique (le client n'y est
+  // jamais supprimé, plan lot 1E) ; la copie jointe à l'archive d'un compte fermé est retirée six ans après
+  // l'émission (archives_comptes.factures_conservees_jusqu_au, purger_archives_comptes : migration du socle
+  // 20261024090000, à brancher sur une tâche par le lot de conservation).
   ligne({
     donnees: "Factures d’abonnement émises par Gerimmo",
     data_type: null,
@@ -465,7 +481,7 @@ export const DUREES_CONSERVATION: readonly DureeConservation[] = [
     declencheur: "Émission",
     duree_affichee: "6 ans",
     actif_au_deploiement: null,
-    tenue_par: "Stripe (prestataire de paiement)",
+    tenue_par: "Stripe (prestataire de paiement) ; copie dans archives_comptes.factures, retirée six ans après l'émission",
   }),
   ligne({
     donnees: "Coordonnées bancaires (IBAN) du bailleur imprimées sur ses baux",
@@ -485,6 +501,24 @@ export const DUREES_CONSERVATION: readonly DureeConservation[] = [
     actif_au_deploiement: "oui",
   }),
 ];
+
+/**
+ * Les actions du journal d'audit gardées trois ans (`journal:audit_controle_interne`), motifs LIKE. Le lot 2 du plan
+ * cite `traversee%`, `support_%`, `maintenance_%`, `purge_retention` et `compte_ferme` ; la page promet aussi trois
+ * ans pour TOUS les accès de la supervision, et la fiche d'une organisation dans la console le dit
+ * (admin/organisations/[orgId], « y compris l'ouverture de cette fiche »). Or ces ouvertures s'écrivent
+ * `consultation_organisation`, `consultation_piece_artisan` et `consultation_faits_direction` (log_sa_access, que
+ * 20261014220000_traversee_trace_precise.sql traite déjà comme des traversées, RM-A1.11) : relecture du 23/10, le
+ * motif `consultation\_%` est EXIGÉ du lot 2. Le test le vérifie sur la base dès que la règle existe.
+ */
+export const ACTIONS_CONTROLE_INTERNE = [
+  "traversee%",
+  "consultation\\_%",
+  "support\\_%",
+  "maintenance\\_%",
+  "purge_retention",
+  "compte_ferme",
+] as const;
 
 /** Les règles de `retention_rules` que la page annonce, une fois chacune : ce que l'intégration comparera à la base. */
 export function reglesAnnoncees(): { data_type: string; duree_mois: number | null; declencheur: string }[] {

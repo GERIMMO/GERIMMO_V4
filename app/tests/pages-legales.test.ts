@@ -269,8 +269,9 @@ describe("confidentialité (29/09)", () => {
     const aplati = page.replace(/\s+/g, " ");
     expect(aplati).toContain("clauses contractuelles types de la Commission européenne");
     expect(aplati).toContain("Data Privacy Framework) pour un prestataire certifié");
-    // Plan du 23/10 (décision 12, section 5) : la certification d'OpenAI et de GitHub n'est pas vérifiée.
-    expect(aplati).toContain("nous ne nous en prévalons pas");
+    // Plan du 23/10 (décision 12, section 5) : la certification d'OpenAI et de GitHub n'est pas vérifiée ; pour eux, les
+    // seules clauses contractuelles types (relecture du 23/10 : sans aveu public de non-vérification).
+    expect(aplati).toContain("Pour OpenAI et GitHub, le transfert repose sur les clauses contractuelles types de la Commission européenne");
     expect(page).toContain("GitHub Actions");
     expect(page).not.toMatch(/hébergées <b className="font-semibold">dans\s+l&apos;Union/);
   });

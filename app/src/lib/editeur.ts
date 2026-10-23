@@ -227,7 +227,7 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     // Décision du dirigeant du 23/10/2026 (« le cautionnement et l'état des lieux doivent être signés sur Gerimmo
     // directement ») : l'acte de cautionnement et l'état des lieux restent dans la liste, comme sur /tarifs et
     // « Mon abonnement » (plan de conformité du 23/10, lot 4).
-    role: "Signature électronique des baux, avenants, accords, devis, actes de cautionnement et états des lieux : document à signer, nom, adresse électronique et téléphone mobile des signataires ; invitations par courriel, code à usage unique par SMS et certificat de réalisation commun à tous les signataires",
+    role: "Signature électronique des baux, avenants, accords, devis, actes de cautionnement et états des lieux : document à signer, nom, adresse électronique et téléphone mobile des signataires ; invitations par courriel, code à usage unique par SMS, certificat de réalisation commun à tous les signataires ; conservation des documents signés et de leur certificat jusqu'à leur suppression",
     localisation: "Centre de données Union européenne (sign.zoho.eu) ; acheminement des SMS par les prestataires de Zoho",
     documentation: "https://www.zoho.com/privacy.html",
   },

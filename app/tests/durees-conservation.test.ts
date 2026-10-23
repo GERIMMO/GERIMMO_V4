@@ -1,17 +1,24 @@
 /**
- * Plan de conformité du 23/10/2026, lot 4 (constat R47) : le tableau des durées de /confidentialite et sa liste de
- * référence (src/lib/durees-conservation.ts) disent la même chose.
+ * Plan de conformité du 23/10/2026, lot 4 (constat R47) : le tableau des durées de /confidentialite, sa liste de
+ * référence (tests/fixtures/durees-conservation.ts) et la base disent la même chose.
  *
  * La page est RENDUE (identité fictive, sans base) ; chaque ligne des tableaux « Combien de temps » doit avoir sa
  * référence, et la durée écrite dans la cellule « Durée » doit être celle de la référence, en mois.
  *
- * À l'intégration, ce test sera complété par la comparaison avec la table `retention_rules` (durée et libellé exact du
- * déclencheur de chaque `data_type`, `reglesAnnoncees()`). D'ici là, la liste est comparée au tableau du lot 2 du plan
- * (PLAN_LOT_2 ci-dessous), qui fixe les règles nouvelles ou modifiées.
+ * Relecture du 23/10 (la liste ne doit pas seulement se vérifier elle-même) :
+ *  - avec une base de test (SUPABASE_DB_URL, lecture seule), les règles de `retention_rules` que le lot 2 ne touche pas
+ *    sont comparées à la liste (durée, libellé exact du déclencheur, sort lu dans la page, activation) ; toute règle
+ *    active de la base doit être annoncée par la page ; dès que le lot 2 est appliqué, TOUTES les règles annoncées le
+ *    sont, et la purge des trois ans doit couvrir les consultations de la supervision ;
+ *  - sans base, la liste est comparée au tableau du lot 2 du plan (PLAN_LOT_2 ci-dessous), et les accès de la
+ *    supervision écrits par le code (log_sa_access) aux motifs gardés trois ans.
  */
+import { readdirSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { Client } from "pg";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DUREES_CONSERVATION, dureesDuTexte, moisDeLExpression, reglesAnnoncees } from "../src/lib/durees-conservation";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { ACTIONS_CONTROLE_INTERNE, DUREES_CONSERVATION, dureesDuTexte, moisDeLExpression, reglesAnnoncees } from "./fixtures/durees-conservation";
 import { PRESTATAIRES, cleCoordonnees } from "../src/lib/editeur";
 
 const lecture = vi.hoisted(() => ({ valeurs: {} as Record<string, string | null> }));
@@ -61,6 +68,10 @@ async function lignesDuTableau(): Promise<Ligne[]> {
 }
 
 const referencesDe = (l: Ligne) => DUREES_CONSERVATION.filter((d) => l.donnees.startsWith(d.donnees));
+
+/** Le sort que la cellule « Durée » annonce : « puis suppression » ou « puis retrait … » ; `null` si elle n'en dit rien. */
+const sortAnnonce = (duree: string): "suppression" | "anonymisation" | null =>
+  /puis suppression/.test(duree) ? "suppression" : /puis retrait/.test(duree) ? "anonymisation" : null;
 
 describe("le tableau des durées de /confidentialite et sa liste de référence", () => {
   it("chaque ligne du tableau a sa référence, et chaque référence sa ligne", async () => {
@@ -121,8 +132,8 @@ describe("le tableau des durées de /confidentialite et sa liste de référence"
 });
 
 /**
- * Le lot 2 du plan du 23/10 (règles nouvelles ou modifiées), libellés de déclencheur exacts. Remplacé à l'intégration
- * par la lecture de `retention_rules`.
+ * Le lot 2 du plan du 23/10 (règles nouvelles ou modifiées), libellés de déclencheur exacts. Avec une base où le lot 2
+ * est appliqué, la comparaison à `retention_rules` (plus bas) prend le relais.
  */
 const PLAN_LOT_2: [string, number, string][] = [
   ["document:bail", 36, "Fin du bail"],
@@ -180,5 +191,124 @@ describe("la liste de référence reprend le lot 2 du plan du 23/10", () => {
     expect(DUREES_CONSERVATION.find((d) => d.data_type === "contrat:retractation")?.duree_mois).toBe(120);
     // Les rapports de gestion des agences gardent leurs dix ans (C. com. L. 123-22, propre aux agences commerçantes).
     expect(DUREES_CONSERVATION.find((d) => d.data_type === "document:rapport_gestion")?.duree_mois).toBe(120);
+  });
+});
+
+/** Un motif LIKE (`%`, `_`, échappement `\\`) en expression régulière ancrée. */
+const motifLike = (motif: string) =>
+  new RegExp(
+    "^" +
+      motif
+        .replace(/\\(.)|([%_])|([.*+?^${}()|[\]\\])/g, (_m, echappe: string, joker: string, special: string) =>
+          echappe ? echappe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : joker ? (joker === "%" ? ".*" : ".") : `\\${special}`
+        ) +
+      "$"
+  );
+
+/**
+ * Actions de log_sa_access qui ne sont pas un accès aux données d'un espace client : elles suivent la durée commune du
+ * journal (un an). Toute autre action écrite par log_sa_access doit être gardée trois ans.
+ */
+const HORS_ACCES_CLIENT: Record<string, string> = {
+  decision_retour: "décision sur un retour d'utilisateur (données de plateforme)",
+  examen_inscription_artisan: "examen d'une inscription d'artisan (données de plateforme)",
+  regroupement_idees: "regroupement des idées envoyées depuis « Aide et retours »",
+  revue_mensuelle_idees: "revue mensuelle des idées",
+  preparation_faits_direction: "chaque organisation citée est journalisée à part par consultation_faits_direction",
+};
+
+describe("les accès de la supervision sont gardés trois ans (page : « 3 ans pour les accès de la supervision »)", () => {
+  const RACINE = resolve(__dirname, "..");
+  const fichiers = (dossier: string, extension: RegExp): string[] =>
+    readdirSync(resolve(RACINE, dossier), { recursive: true, encoding: "utf8" })
+      .filter((f) => extension.test(f))
+      .map((f) => readFileSync(resolve(RACINE, dossier, f), "utf8"));
+
+  it("les motifs se lisent comme le LIKE de la base", () => {
+    expect(motifLike("consultation\\_%").test("consultation_organisation")).toBe(true);
+    expect(motifLike("consultation\\_%").test("consultationXorganisation")).toBe(false);
+    expect(motifLike("traversee%").test("traversee_espace")).toBe(true);
+    expect(motifLike("compte_ferme").test("compte_ferme")).toBe(true);
+  });
+
+  it("chaque action écrite par log_sa_access est un accès gardé trois ans, ou est nommée hors accès client", () => {
+    const actions = new Set<string>();
+    for (const code of fichiers("src", /\.(ts|tsx)$/)) {
+      for (const [, a] of code.matchAll(/sa_action:\s*["']([a-z_]+)["']/g)) actions.add(a);
+      for (const [, a] of code.matchAll(/["'](traversee_[a-z_]+)["']/g)) actions.add(a);
+    }
+    for (const sql of fichiers("supabase/migrations", /\.sql$/)) {
+      for (const [, a] of sql.matchAll(/log_sa_access\(\s*[^,()]+,\s*'([a-z_]+)'/g)) actions.add(a);
+    }
+    for (const attendue of ["consultation_organisation", "consultation_piece_artisan", "consultation_faits_direction", "traversee_espace", "traversee_action"]) {
+      expect(actions, `action introuvable dans le code : ${attendue}`).toContain(attendue);
+    }
+    const motifs = ACTIONS_CONTROLE_INTERNE.map(motifLike);
+    const nonCouvertes = [...actions].filter((a) => !HORS_ACCES_CLIENT[a] && !motifs.some((m) => m.test(a)));
+    expect(nonCouvertes, "accès de la supervision hors des motifs gardés trois ans").toEqual([]);
+  });
+});
+
+const urlBase = process.env.SUPABASE_DB_URL;
+if (urlBase && (!["localhost", "127.0.0.1", "[::1]"].includes(new URL(urlBase).hostname) || !new URL(urlBase).pathname.includes("ci_"))) {
+  throw Error("Base fictive locale obligatoire");
+}
+
+describe.skipIf(!urlBase)("la page et la base de test disent les mêmes durées (lecture seule de retention_rules)", () => {
+  type Regle = { data_type: string; duree_mois: number; declencheur: string; actif: boolean; sort: string };
+  let db: Client;
+  let base: Map<string, Regle>;
+  beforeAll(async () => {
+    db = new Client({ connectionString: urlBase });
+    await db.connect();
+    const { rows } = await db.query<Regle>("select data_type, duree_mois, declencheur, actif, sort from public.retention_rules");
+    base = new Map(rows.map((r) => [r.data_type, r]));
+  });
+  afterAll(async () => {
+    await db?.end();
+  });
+
+  const lot2 = new Set(PLAN_LOT_2.map(([d]) => d));
+  /** Le lot 2 est appliqué quand sa règle la plus caractéristique existe. */
+  const lot2Applique = () => base.has("archive:preuve_contrat");
+
+  it("chaque règle annoncée que le lot 2 ne touche pas est en base, avec la même durée, le même déclencheur et la même activation", () => {
+    for (const r of reglesAnnoncees()) {
+      if (lot2.has(r.data_type) && !lot2Applique()) continue;
+      const enBase = base.get(r.data_type);
+      expect(enBase, `${r.data_type} absente de retention_rules`).toBeDefined();
+      expect([enBase?.duree_mois, enBase?.declencheur], r.data_type).toEqual([r.duree_mois, r.declencheur]);
+      const ref = DUREES_CONSERVATION.find((d) => d.data_type === r.data_type);
+      if (ref?.actif_au_deploiement === "oui") expect(enBase?.actif, `${r.data_type} : active au déploiement`).toBe(true);
+    }
+  });
+
+  it("le sort écrit dans la page (« puis suppression », « puis retrait ») est celui de la base", async () => {
+    for (const l of await lignesDuTableau()) {
+      const sort = sortAnnonce(l.duree);
+      if (!sort) continue;
+      for (const ref of referencesDe(l)) {
+        if (!ref.data_type || (lot2.has(ref.data_type) && !lot2Applique())) continue;
+        const enBase = base.get(ref.data_type);
+        if (lot2.has(ref.data_type) && sort === "anonymisation" && enBase?.sort !== "suppression") continue; // le lot 2 peut nommer autrement le retrait des informations nominatives
+        expect(enBase?.sort, `« ${l.donnees} » (${ref.data_type})`).toBe(sort);
+      }
+    }
+  });
+
+  it("toute règle active de la base est annoncée par la page", () => {
+    const annoncees = new Set(reglesAnnoncees().map((r) => r.data_type));
+    const internes = new Set(["document:document_test"]);
+    const muettes = [...base.values()].filter((r) => r.actif && !internes.has(r.data_type) && !annoncees.has(r.data_type)).map((r) => r.data_type);
+    expect(muettes, "règles actives absentes du tableau de /confidentialite").toEqual([]);
+  });
+
+  it("dès que la règle des trois ans existe, sa purge couvre les consultations de la supervision", async () => {
+    if (!base.has("journal:audit_controle_interne")) return; // lot 2 pas encore appliqué
+    const { rows } = await db.query<{ def: string }>(
+      "select string_agg(pg_get_functiondef(p.oid), E'\\n') as def from pg_proc p where p.prokind = 'f' and p.prosrc like '%journal:audit_controle_interne%'"
+    );
+    expect(rows[0]?.def ?? "", "aucune fonction ne lit journal:audit_controle_interne").not.toBe("");
+    expect(rows[0].def, "le motif consultation\\_% manque à la purge des trois ans").toMatch(/consultation/);
   });
 });

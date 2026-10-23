@@ -26,6 +26,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DOCUMENTS_PUBLIES,
+  balisageAdmis,
   empreinteDeGarde,
   empreinteDeReference,
   extraireTexteContractuel,
@@ -268,5 +269,41 @@ describe("normalisation, extraction et empreinte (sans page)", () => {
     expect(extraireTexteContractuel(`${marque}<div>a</div>`, "conditions_clients")).toEqual({ ok: false, motif: "non_ferme" });
     expect(extraireTexteContractuel(`${marque}<script>x()</script></div>`, "conditions_clients")).toEqual({ ok: false, motif: "contenu_actif" });
     expect(extraireTexteContractuel(`${marque}<a href="#" onclick="x()">a</a></div>`, "conditions_clients")).toEqual({ ok: false, motif: "contenu_actif" });
+  });
+
+  it("M1 : liste blanche — les contournements du filtre de code actif sont refusés, à l'extraction comme à l'affichage", () => {
+    const marque = '<div data-texte-contractuel="conditions_clients" data-version="v">';
+    for (const piege of [
+      "<img/onerror=alert(1) src=x>",
+      '<img src="x"/onerror="alert(1)">',
+      '<a href="javascript&#58;alert(1)">x</a>',
+      '<a href="jav&#x09;ascript:alert(1)">x</a>',
+      '<svg><a xlink:href="javascript&colon;alert(1)">x</a></svg>',
+      '<meta http-equiv="refresh" content="0;url=https://piege.example">',
+      "<style>body{display:none}</style>",
+      '<p style="background:url(https://piege.example/x)">x</p>',
+      '<a href="//piege.example">x</a>',
+      '<a href="/&#x09;/piege.example">x</a>',
+      '<a href="data:text/html,x">x</a>',
+      '<p id="P:1">x</p>',
+      "<math><mi>x</mi></math>",
+      "<p>texte <!x> suite</p>",
+      "<p onclick='x()'>x</p>",
+      "<button>x</button>",
+    ]) {
+      expect(balisageAdmis(`<p>Texte.</p>${piege}`), piege).toBe(false);
+      expect(extraireTexteContractuel(`${marque}<p>Texte.</p>${piege}</div>`, "conditions_clients"), piege).toMatchObject({ ok: false });
+    }
+    // Ce que les conditions emploient réellement reste admis.
+    expect(balisageAdmis(
+      '<div><h1>T</h1><p class="mt-1">a &amp; b</p></div><section class="loc-carte"><h2>1.</h2><ul class="ml-4"><li><b>x</b></li></ul>' +
+        '<a class="lien-texte" href="/confidentialite">c</a> <a href="https://exemple.example/vie-privee?a=1&amp;b=2" rel="noreferrer">d</a>' +
+        ' <a href="mailto:contact@example.com?subject=donn%C3%A9es">e</a><table class="tableau"><thead><tr><th>P</th></tr></thead>' +
+        '<tbody><tr><td data-libelle="Rôle"><span class="italic">x (à venir)</span></td></tr></tbody></table></section>'
+    )).toBe(true);
+  });
+
+  it("M1 : chaque rendu de la garde passe la liste blanche (une balise nouvelle échoue ici, pas au moment d'archiver)", async () => {
+    for (const r of await rendusDeGarde()) expect(balisageAdmis(r.html), r.variante).toBe(true);
   });
 });

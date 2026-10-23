@@ -70,7 +70,8 @@ const MOTIFS_EXTRACTION: Record<string, string> = {
   non_ferme: "le texte contractuel de la page publiée n'est pas refermé (page tronquée)",
   incomplet:
     "des passages du texte contractuel de la page publiée n'ont pas pu être remis en place (rendu en flux inachevé ou reporté au navigateur) : le texte serait troué",
-  contenu_actif: "le texte contractuel de la page publiée contient du code actif (script, cadre ou gestionnaire d'événement)",
+  contenu_actif:
+    "le texte contractuel de la page publiée contient un balisage non admis (script, cadre, image, style, gestionnaire d'événement ou lien qui n'est pas une adresse web)",
 };
 
 async function lireIdentite(service: SupabaseClient): Promise<{ valeurs: unknown; revision: number } | null> {

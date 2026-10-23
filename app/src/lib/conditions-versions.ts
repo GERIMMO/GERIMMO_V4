@@ -306,6 +306,49 @@ export function empreinteDeGarde(
   return sha256Hex(`${textes}\n--- sous-traitants ---\n${JSON.stringify(sousTraitants)}`);
 }
 
+// ── Liste blanche du balisage archivé ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * Relecture adverse du 24/10 (M1) : une liste de refus se contourne (`<img/onerror=…>`, `javascript&#58;`, `<svg>`,
+ * `<meta http-equiv=refresh>`, `<style>`…), et la politique de sécurité du site admet les scripts en ligne. Le texte
+ * rangé et affiché n'admet donc que ce que React écrit pour les conditions : ces balises, ces attributs entre guillemets
+ * doubles, et des liens vers une page du site, une ancre, une adresse web ou une adresse électronique.
+ */
+const BALISES_ADMISES = new Set([
+  "div", "section", "p", "h1", "h2", "h3", "h4", "b", "strong", "i", "em", "span", "small", "sup", "sub", "br",
+  "a", "ul", "ol", "li", "dl", "dt", "dd", "table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption",
+  "blockquote", "abbr", "code", "hr",
+]);
+const ATTRIBUTS_ADMIS = new Set(["class", "data-libelle", "title", "aria-label", "aria-hidden", "colspan", "rowspan", "scope", "lang", "dir"]);
+/** Un lien : chemin du site (pas `//`), ancre, adresse web ou électronique ; aucune entité autre que `&amp;`, aucun blanc. */
+function lienAdmis(valeur: string): boolean {
+  if (/[\s\\]|[\u0000-\u001f\u007f]|&(?!amp;)/.test(valeur)) return false;
+  return /^(?:https:\/\/|http:\/\/|mailto:|#|\/(?![/\\]))/i.test(valeur);
+}
+
+/** Le texte ne contient-il que le balisage admis (voir BALISES_ADMISES) ? Sert à l'extraction et à l'affichage. */
+export function balisageAdmis(html: string): boolean {
+  const balise = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)((?:\s+[a-zA-Z][a-zA-Z0-9-]*="[^"<>]*")*)\s*(\/?)>/y;
+  for (let i = html.indexOf("<"); i !== -1; ) {
+    balise.lastIndex = i;
+    const m = balise.exec(html);
+    if (!m) return false;
+    const nom = m[2].toLowerCase();
+    if (!BALISES_ADMISES.has(nom)) return false;
+    if (m[1] && (m[3] || m[4])) return false;
+    for (const a of m[3].matchAll(/\s+([a-zA-Z][a-zA-Z0-9-]*)="([^"<>]*)"/g)) {
+      const attribut = a[1].toLowerCase();
+      if (attribut === "href" || attribut === "rel") {
+        if (nom !== "a" || (attribut === "href" && !lienAdmis(a[2]))) return false;
+      } else if (!ATTRIBUTS_ADMIS.has(attribut)) {
+        return false;
+      }
+    }
+    i = html.indexOf("<", m.index + m[0].length);
+  }
+  return true;
+}
+
 // ── Extraction du texte contractuel d'une page ─────────────────────────────────────────────────────────────────
 
 export type Extraction =
@@ -325,8 +368,9 @@ export type Extraction =
  * La page est d'abord reconstituée (`reconstituerFlux`) : le texte est celui qu'un navigateur affiche, pas l'ossature
  * du flux. Un texte qui garde une marque de flux (passage jamais arrivé) est refusé : rien d'incomplet ne s'archive.
  * React échappe `<` dans les textes et les attributs : une balise `div` du flux est une vraie balise, et l'élément se
- * referme au `</div>` qui ramène la profondeur à zéro. Refuse un texte qui porterait du code actif (script, cadre,
- * gestionnaire d'événement) : la page des versions l'afficherait tel quel.
+ * referme au `</div>` qui ramène la profondeur à zéro. Refuse un texte dont le balisage sort de la liste blanche
+ * (`balisageAdmis` : script, cadre, image, style, gestionnaire d'événement, lien qui n'est pas une adresse web…) : la
+ * page des versions l'afficherait tel quel.
  */
 export function extraireTexteContractuel(pagePubliee: string, document: DocumentConditions): Extraction {
   const page = reconstituerFlux(pagePubliee);
@@ -346,7 +390,7 @@ export function extraireTexteContractuel(pagePubliee: string, document: Document
   const brut = page.slice(debut, fin.index);
   if (RESTE_DE_FLUX.test(brut)) return { ok: false, motif: "incomplet" };
   const html = normaliserHtml(brut);
-  if (/<(?:script|iframe|object|embed|form)\b|\son[a-z]+\s*=|javascript:/i.test(html)) return { ok: false, motif: "contenu_actif" };
+  if (!balisageAdmis(html)) return { ok: false, motif: "contenu_actif" };
   return { ok: true, html, version, identiteLue, identiteEmpreinte };
 }
 

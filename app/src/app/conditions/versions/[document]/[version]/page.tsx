@@ -4,6 +4,7 @@ import { CadreLegal } from "@/components/coquille-legale";
 import {
   DOCUMENTS_PUBLIES,
   LIBELLE_DOCUMENT,
+  balisageAdmis,
   dateEnLettres,
   estDocumentConditions,
   lireVersionArchivee,
@@ -15,9 +16,9 @@ import { createClient } from "@/lib/supabase/server";
 // Une version archivée des conditions (24/10/2026, plan de conformité, R12), affichée TELLE QU'ELLE A ÉTÉ RANGÉE :
 // le HTML de la page publiée ce jour-là (titre, chapeau, articles), dans le cadre des pages légales, précédé de sa
 // date d'effet, de sa date d'archivage et de son empreinte. Le texte vient de `versions_conditions`, en ajout seul, où
-// seule l'action serveur du super-administrateur écrit, à partir de la page publiée ; son extraction refuse tout code
-// actif (lib/conditions-versions.ts). Aucune réécriture ici : l'empreinte affichée est celle de ce texte, octet pour
-// octet.
+// seule l'action serveur du super-administrateur écrit, à partir de la page publiée ; son extraction n'admet que le
+// balisage de la liste blanche (lib/conditions-versions.ts, `balisageAdmis`), revérifiée ici avant l'affichage. Aucune
+// réécriture : l'empreinte affichée est celle de ce texte, octet pour octet.
 
 const FORME_VERSION = /^[0-9A-Za-z._-]{1,40}$/;
 
@@ -84,7 +85,19 @@ export default async function PageVersionArchivee({ params }: PageProps<"/condit
           )}
         </p>
       </aside>
-      {archivee && <div className="space-y-4" dangerouslySetInnerHTML={{ __html: archivee.texte_html }} />}
+      {/* Relecture adverse du 24/10 (M1) : le texte rangé ne s'affiche que si son balisage est dans la liste blanche ;
+          sinon la page le dit, et l'empreinte affichée permet toujours de le vérifier. */}
+      {archivee &&
+        (balisageAdmis(archivee.texte_html) ? (
+          <div className="space-y-4" dangerouslySetInnerHTML={{ __html: archivee.texte_html }} />
+        ) : (
+          <section className="loc-carte text-sm">
+            <p role="alert">
+              Le texte de cette version contient un balisage qui ne peut pas être affiché ici en toute sûreté. Il reste
+              conservé tel quel ; son empreinte ci-dessus permet de le vérifier.
+            </p>
+          </section>
+        ))}
     </CadreLegal>
   );
 }

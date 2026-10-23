@@ -74,6 +74,17 @@ describe("I2 : relevé après la date d'effet", () => {
     expect(await pageVersion()).not.toContain("Archivée après sa date d’effet");
   });
 
+  it("M1 : un texte rangé dont le balisage n'est pas admis ne s'affiche pas (l'empreinte reste lisible)", async () => {
+    m.versions = [{ ...version("2026-09-30T08:00:00Z"), texte_html: '<h1>Conditions</h1><img src="x" onerror="alert(1)">' }];
+    const html = await pageVersion();
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("onerror");
+    expect(html).toContain("ne peut pas être affiché ici");
+    expect(html).toContain("a".repeat(64));
+    m.versions = [version("2026-09-30T08:00:00Z")];
+    expect(await pageVersion()).toContain("<h1>Conditions</h1><p>Texte.</p>");
+  });
+
   it("la liste des versions porte la même mention", async () => {
     m.versions = [version("2026-10-25T09:00:00Z")];
     const html = renderToStaticMarkup(await PageVersionsConditions());

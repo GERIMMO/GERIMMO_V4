@@ -65,7 +65,7 @@ export async function confirmerMobileCaution(jeton: string, _etat: EtatConfirmat
     await service.from("bail_signature_circuits").update({ erreur: `La caution a confirmé son mobile, mais l’envoi en signature n’a pas pu partir : ${motif} Relancez l’envoi depuis le suivi de l’acte.`.slice(0, 1000), updated_at: new Date().toISOString() })
       .eq("id", ligne.circuit_id).eq("etat", "pret");
     rafraichir(ligne.organization_id, bail);
-    return { erreur: `${confirme} L’envoi de l’acte n’a pas pu se faire pour le moment. Le bailleur en est informé et pourra le relancer sans vous redemander votre numéro.` };
+    return { erreur: `${confirme} L’envoi de l’acte n’a pas pu se faire pour le moment. Le bailleur le voit dans son espace et pourra le relancer sans vous redemander votre numéro.` };
   }
 }
 

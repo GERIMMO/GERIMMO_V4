@@ -4,7 +4,8 @@
  * PRO-4 — un refus (mot de passe trop court, saisies différentes, refus d'Auth, profil incomplet) vidait le formulaire :
  * les informations corrigées revenaient à leur valeur d'origine et la case des conditions générales se décochait. L'action
  * rend désormais la saisie du profil et de la case (jamais un mot de passe) et nomme le champ fautif ; le formulaire les
- * repose (convention de lib/formulaires.ts) et place l'alerte sous ce champ.
+ * repose (convention de lib/formulaires.ts) et place l'alerte sous ce champ. Les deux listes déroulantes, que React ne
+ * repose pas d'elles-mêmes après une action, sont éprouvées dans un vrai navigateur (premier-mot-de-passe-navigateur.test.ts).
  *
  * PRO-5 — après ce premier choix, la personne était déconnectée et renvoyée vers la connexion (« Mot de passe modifié.
  * Connectez-vous avec votre nouveau mot de passe. ») alors qu'elle venait de prouver son adresse. Elle reste connectée et
@@ -166,7 +167,11 @@ describe("PRO-4 — le formulaire repose la saisie et dit l'erreur au bon champ"
     expect(html).not.toContain('role="alert"');
   });
 
-  it("après un refus : la saisie corrigée et la case cochée reviennent", () => {
+  // Ce rendu est celui du SERVEUR, avec l'état du refus dès le premier affichage : la page qui revient d'un envoi sans
+  // script. Il ne rejoue ni la mise à jour ni la remise à zéro du formulaire par React après une action : c'est là que les
+  // deux listes reprenaient leur valeur d'origine (relecture du 23/10, PRO-4 incomplet). Ce cas-là, et le second envoi,
+  // sont éprouvés dans un vrai navigateur : premier-mot-de-passe-navigateur.test.ts.
+  it("rendu du serveur après un refus (envoi sans script) : la saisie corrigée, les deux listes et la case cochée reviennent", () => {
     const html = rendre(refus);
     expect(champ(html, "nom")).toContain('value="Corrigé"');
     expect(champ(html, "prenom")).toContain('value="Camille"');

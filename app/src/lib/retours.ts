@@ -1,5 +1,7 @@
+// Plan du 23/10 (R05) : « Faire une réclamation » ; sa clôture renvoie au médiateur de la consommation (actions/retours.ts).
+// La rétractation ne passe pas par « Aide et retours » : elle se déclare depuis « Mon abonnement » (R01).
 export const NATURES_RETOUR: Record<string,string> = {
-  bug: "Signaler un problème", question: "Demander une explication", idee: "Proposer une idée", contestation: "Contester mon évaluation",
+  bug: "Signaler un problème", question: "Demander une explication", idee: "Proposer une idée", reclamation: "Faire une réclamation", contestation: "Contester mon évaluation",
 };
 export const ETATS_RETOUR: Record<string,string> = {
   nouveau: "Reçu", en_examen: "En examen", en_cours: "En cours de traitement", resolu: "Résolu",

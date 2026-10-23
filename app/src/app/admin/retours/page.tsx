@@ -1,4 +1,4 @@
-import { ArrowUpRight, Bug, CheckCheck, ChevronDown, ClipboardCheck, History, Info, Lightbulb, MessageCircle, MessagesSquare, Monitor, Scale, TriangleAlert } from "lucide-react";
+import { ArrowUpRight, Bug, CheckCheck, ChevronDown, ClipboardCheck, History, Info, Lightbulb, MessageCircle, MessageSquareWarning, MessagesSquare, Monitor, Scale, TriangleAlert } from "lucide-react";
 import shared from "../repertoires.module.css";
 import styles from "../relation-clients.module.css";
 import { deElide } from "@/lib/elision";
@@ -12,7 +12,7 @@ import { CloreRevue, DecisionRetour, RegrouperIdees } from "./decisions-retour";
 
 // Même nom que l'entrée de la barre (24/09) : les contestations artisan restent une puce de la file.
 export const metadata = { title: "Assistance clients" };
-const NATURES: Record<string, string> = { tous: "Tous", bug: "Problèmes", question: "Questions", idee: "Idées", contestation: "Contestations artisan" };
+const NATURES: Record<string, string> = { tous: "Tous", bug: "Problèmes", question: "Questions", idee: "Idées", reclamation: "Réclamations", contestation: "Contestations artisan" };
 type Ligne = { retour: RetourUtilisateur; organisation: string | null; soutiens: number; organisations: number; premiere: string | null; total: number };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -53,7 +53,7 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
   const nouveaux = lignes.filter(l => l.retour.etat === "nouveau").length;
   const aTraiter = new Set(["nouveau", "en_examen", "en_cours"]);
   const bloquants = lignes.filter(l => l.retour.gravite === "N1" && aTraiter.has(l.retour.etat)).length;
-  const icones: Record<string, typeof MessageCircle> = { bug: Bug, question: MessageCircle, idee: Lightbulb, contestation: Scale };
+  const icones: Record<string, typeof MessageCircle> = { bug: Bug, question: MessageCircle, idee: Lightbulb, reclamation: MessageSquareWarning, contestation: Scale };
   const revueLabel = deElide(new Date(mois + "T12:00:00").toLocaleDateString("fr-FR", { month: "long", year: "numeric" }));
 
   return <main className={shared.page}>

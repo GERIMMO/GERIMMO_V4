@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Bug, CircleHelp, Lightbulb, ShieldCheck, Send } from "lucide-react";
+import { Bug, CircleHelp, Lightbulb, MessageSquareWarning, ShieldCheck, Send } from "lucide-react";
 import styles from "./assistance.module.css";
 import Link from "next/link";
 import { envoyerRetour, soutenirRetour } from "@/app/actions/retours";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const champ="w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
-const ICONES = { bug: Bug, question: CircleHelp, idee: Lightbulb, contestation: ShieldCheck };
+const ICONES = { bug: Bug, question: CircleHelp, idee: Lightbulb, reclamation: MessageSquareWarning, contestation: ShieldCheck };
 // `retour` et `contexte` ne servent qu'aux liens de l'écran de succès : ni
 // l'un ni l'autre n'est envoyé avec la demande (24/09).
 export function FormulaireRetour({ecran,action,cle,organisations,contestation=false,idee=false,retour='',contexte='',cheminAssistance='/assistance'}:{ecran:string;action:string;cle:string;organisations:{id:string;nom:string}[];contestation?:boolean;idee?:boolean;retour?:string;contexte?:string;cheminAssistance?:string}){

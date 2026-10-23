@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
 import { actionSansDonnees, ecranSansDonnees, NATURES_RETOUR } from "@/lib/retours";
 import { journaliserSupervision } from "@/lib/journal-supervision";
+import { lireEditeur } from "@/lib/editeur-serveur";
+import { phraseMediateurReclamation } from "@/lib/courriers-contrat";
 
 export type EtatRetour = { erreur?:string;succes?:string;id?:string };
 export async function envoyerRetour(_etat:EtatRetour,fd:FormData):Promise<EtatRetour>{
@@ -27,10 +29,28 @@ export async function soutenirRetour(id:string,_etat:EtatRetour):Promise<EtatRet
  if(error)return{erreur:sansJargon(error.message)};
  revalidatePath('/assistance');revalidatePath('/agence/[orgId]/faq','page');revalidatePath('/admin/retours');return{succes:"Votre soutien est enregistré."};
 }
+/** Réponse maximale admise par `traiter_retour`. */
+const REPONSE_MAX=6000;
 export async function deciderRetour(id:string,version:number,_etat:EtatRetour,fd:FormData):Promise<EtatRetour>{
  const c=await createClient();const{data:sa,error:acces}=await c.rpc('is_super_admin');
  if(acces||sa!==true)return{erreur:"Accès réservé à la supervision Gerimmo."};
- const{error}=await c.rpc('traiter_retour',{p_retour:id,p_version:version,p_etat:String(fd.get('etat')??''),p_gravite:String(fd.get('gravite')??''),p_reponse:String(fd.get('reponse')??''),p_reexamen:String(fd.get('reexaminer_le')??'')||null});
+ const decision=String(fd.get('etat')??'');
+ let reponse=String(fd.get('reponse')??'');
+ // Plan du 23/10 (R05) : la réponse qui clôt une réclamation renvoie au médiateur de la consommation (ou dit que
+ // l'adhésion est en cours, tant que ses coordonnées ne sont pas saisies). La nature est relue en base.
+ if(decision==='resolu'){
+  const{data:lu,error:lecture}=await c.from('retours_utilisateurs').select('nature').eq('id',id).maybeSingle();
+  if(lecture)return{erreur:"La demande n’a pas pu être relue. Réessayez."};
+  if((lu as {nature?:string}|null)?.nature==='reclamation'){
+   const phrase=phraseMediateurReclamation((await lireEditeur()).editeur);
+   if(!reponse.includes(phrase)){
+    const complete=`${reponse.trim()}\n\n${phrase}`;
+    if(complete.length>REPONSE_MAX)return{erreur:`Raccourcissez la réponse : la phrase sur le médiateur de la consommation y est ajoutée (${REPONSE_MAX} caractères au plus en tout).`};
+    reponse=complete;
+   }
+  }
+ }
+ const{error}=await c.rpc('traiter_retour',{p_retour:id,p_version:version,p_etat:decision,p_gravite:String(fd.get('gravite')??''),p_reponse:reponse,p_reexamen:String(fd.get('reexaminer_le')??'')||null});
  if(error)return{erreur:sansJargon(error.message)};
  revalidatePath('/admin/retours');revalidatePath('/admin/donnees');revalidatePath('/compte/donnees');revalidatePath('/assistance');revalidatePath('/agence/[orgId]/faq','page');revalidatePath('/admin/publications');return{succes:"Décision enregistrée et visible dans le suivi de la demande."};
 }

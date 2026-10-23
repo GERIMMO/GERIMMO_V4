@@ -6,7 +6,7 @@ import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
-import { faitsManquants } from "@/lib/editeur";
+import { faitsACompleter, faitsManquants } from "@/lib/editeur";
 import { EQUIPES } from "@/lib/missions";
 import {
   adoptionAutomatique,
@@ -84,6 +84,8 @@ export default async function PageSante() {
   });
   const identite=await lireEditeur();
   const manquants = faitsManquants(identite.indisponible?{}:identite.editeur);
+  // 23/10 : le médiateur se complète plus tard, sans rien fermer (lib/editeur.ts, A_COMPLETER).
+  const aCompleter = identite.indisponible ? [] : faitsACompleter(identite.editeur);
   // Les adresses de l'alerte du relais (réglage du serveur), affichées masquées seulement.
   const relais = adressesRelaisDuServeur();
   // Le même calcul que /admin et /admin/brief (25/09) : une seule requête du
@@ -125,8 +127,9 @@ export default async function PageSante() {
     nbPause > 0 && `${nbPause} mission${nbPause > 1 ? "s" : ""} en pause`,
   ].filter(Boolean).map((x) => ` · ${x}`).join("");
   // Les huit faits exigés, fournis ou non : `faitsManquants({})` les rend
-  // tous, dans l'ordre de lib/editeur.ts.
+  // tous, dans l'ordre de lib/editeur.ts ; puis ceux à compléter sans blocage.
   const faitsExiges = faitsManquants({});
+  const faitsNonBloquants = faitsACompleter({});
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
@@ -323,11 +326,15 @@ export default async function PageSante() {
           <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
             Documents légaux
           </h2>
-          <span className={`puce ${manquants.length === 0 ? "puce-loue" : "puce-rouge"}`}>
-            {manquants.length === 0 ? "complets" : `${manquants.length} à fournir`}
+          <span className={`puce ${manquants.length > 0 ? "puce-rouge" : aCompleter.length > 0 ? "puce-prep" : "puce-loue"}`}>
+            {manquants.length > 0
+              ? `${manquants.length} à fournir`
+              : aCompleter.length > 0
+                ? `${aCompleter.length} à compléter, non bloquant`
+                : "complets"}
           </span>
         </div>
-        {manquants.length === 0 ? (
+        {manquants.length === 0 && aCompleter.length === 0 ? (
           <p className="text-sm text-[var(--texte-secondaire)]">
             L&apos;identité de l&apos;éditeur est complète : mentions légales,
             conditions et confidentialité sont publiables.
@@ -335,8 +342,9 @@ export default async function PageSante() {
         ) : (
           <div className="loc-carte text-sm">
             <p>
-              Les mentions légales, les conditions et la page confidentialité
-              affichent « à compléter » tant qu&apos;un de ces faits manque.
+              {manquants.length > 0
+                ? "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation » et le paiement en ligne reste fermé."
+                : "L’identité requise est complète : le paiement en ligne n’en dépend plus. Les faits « à compléter » s’affichent « à venir » sur les mentions légales, sans rien fermer."}
             </p>
             <ul className="mt-3 divide-y divide-[var(--filet)]">
               {faitsExiges.map((fait) => {
@@ -350,12 +358,22 @@ export default async function PageSante() {
                   </li>
                 );
               })}
+              {faitsNonBloquants.map((fait) => {
+                const manque = aCompleter.includes(fait);
+                return (
+                  <li key={fait} className="flex items-center justify-between gap-3 py-2.5">
+                    <span>{fait[0].toUpperCase() + fait.slice(1)}</span>
+                    <span className={`puce ${manque ? "puce-prep" : "puce-loue"}`}>
+                      {manque ? "à compléter, non bloquant" : "fourni"}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
-            {/* Pas d'invention (audit C5) : aucun écran ne saisit ces faits. */}
             <p className="mt-4 text-sm text-[var(--encre)]">
-              Aucun écran de Gerimmo ne les saisit : ils sont écrits une seule
-              fois, dans le code, par le responsable technique, puis repris par
-              les trois pages publiques.
+              Ils se saisissent dans les{" "}
+              <Link href="/admin/parametres" className="lien-texte">paramètres généraux</Link>, puis sont repris
+              sans déploiement par les trois pages publiques.
             </p>
             <p className="mt-1.5">
               <Link href="/mentions-legales" className="lien-discret text-sm">

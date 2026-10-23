@@ -31,7 +31,8 @@ describe("les pages rendent les informations enregistrées", () => {
     expect(html).not.toContain("Capital social");
     expect(html).not.toContain("TVA intracommunautaire");
     expect(html).toContain("aucun organisme n’est désigné");
-    expect(html).toContain("Document en cours de finalisation");
+    // 23/10 : le médiateur manquant s'affiche à sa place, sans encadré.
+    expect(html).not.toContain("Document en cours de finalisation");
     expect(html).toContain("Vercel");
     expect(html).toContain("Supabase");
     expect(html).toContain("Coordonnées fictives");

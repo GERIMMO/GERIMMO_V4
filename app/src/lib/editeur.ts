@@ -60,8 +60,7 @@ export const REGIME_TVA: RegimeTva | null = { nature: "franchise" };
  *
  * Le capital ne figure pas dans cette liste (une entreprise individuelle n'en
  * a pas), ni le numéro de TVA (selon le régime). Le téléphone professionnel
- * et les coordonnées complètes du médiateur restent nécessaires pour le
- * service proposé aux consommateurs. Un nom de médiateur seul ne suffit pas.
+ * reste nécessaire pour le service proposé aux consommateurs.
  */
 const REQUIS = [
   ["denomination", "la dénomination sociale"],
@@ -72,13 +71,30 @@ const REQUIS = [
   ["directeurPublication", "le directeur de la publication"],
   ["email", "l'adresse de contact"],
   ["telephone", "le téléphone de contact"],
+] as const satisfies readonly (readonly [keyof typeof EDITEUR, string])[];
+
+/**
+ * Les faits À COMPLÉTER, qui ne ferment rien (décision du dirigeant du
+ * 23/10/2026 : « les infos importantes manquantes seront remplies plus tard
+ * mais ne doivent pas être bloquantes », médiateur cité en exemple).
+ *
+ * Le médiateur de la consommation reste une obligation envers les clients
+ * particuliers (art. L. 616-1 du code de la consommation ; un nom seul ne
+ * suffit pas) : tant qu'il manque, les mentions légales le disent à sa place
+ * (« Adhésion à venir »), la console le rappelle au dirigeant, mais ni le
+ * paiement en ligne ni l'encadré « Document en cours de finalisation » n'en
+ * dépendent plus.
+ */
+const A_COMPLETER = [
   ["mediateurNom", "le médiateur de la consommation"],
   ["mediateurAdresse", "l'adresse du médiateur"],
   ["mediateurSite", "le site du médiateur"],
 ] as const satisfies readonly (readonly [keyof typeof EDITEUR, string])[];
 
 /**
- * Ce qu'il manque encore, en français, pour l'afficher tel quel.
+ * Ce qu'il manque encore des faits REQUIS, en français. Seuls ceux-là ferment
+ * le paiement (lib/garde-souscription.ts) et affichent l'encadré des pages
+ * légales.
  *
  * Le paramètre existe pour que le test puisse vérifier la mécanique sur un
  * éditeur complet — sans lui, il ne pourrait qu'observer l'état du jour et ne
@@ -86,6 +102,11 @@ const REQUIS = [
  */
 export function faitsManquants(editeur: Record<string, FaitEditeur> = EDITEUR): string[] {
   return REQUIS.filter(([cle]) => !editeur[cle]).map(([, libelle]) => libelle);
+}
+
+/** Ce qu'il reste à compléter sans que rien n'en dépende : rappelé au dirigeant seulement. */
+export function faitsACompleter(editeur: Record<string, FaitEditeur> = EDITEUR): string[] {
+  return A_COMPLETER.filter(([cle]) => !editeur[cle]).map(([, libelle]) => libelle);
 }
 
 /** Vrai tant que les documents ne sont pas finalisés. */
@@ -319,10 +340,11 @@ export function reservesPrestataires(
 /**
  * Tout ce qui reste à compléter pour que les pages légales soient finalisées :
  * les faits d'éditeur, puis les prestataires. C'est ce que l'écran des
- * paramètres dit après chaque enregistrement.
+ * paramètres dit après chaque enregistrement. Le médiateur y figure aussi
+ * (23/10) : il ne ferme rien, mais il reste dû.
  */
 export function reservesLegales(editeur: Record<string, FaitEditeur> = EDITEUR): string[] {
-  return [...faitsManquants(editeur), ...reservesPrestataires(editeur)];
+  return [...faitsManquants(editeur), ...faitsACompleter(editeur), ...reservesPrestataires(editeur)];
 }
 
 // ── Version des conditions générales ───────────────────────────────────────

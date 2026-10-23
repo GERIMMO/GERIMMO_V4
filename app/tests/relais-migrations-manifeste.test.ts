@@ -83,6 +83,8 @@ const MISSION_OCTOBRE = [
   "20261023161500_charges_agregats_portefeuille.sql",
   // 23/10, défauts A01 et A02 de la facturation : une intention de souscription par organisation, trace des hausses.
   "20261023162446_souscription_unique_et_trace_hausse.sql",
+  // Relecture adverse du 23/10 : le locataire lit ses annonces au jour de Paris, comme la fiche agence du bien.
+  "20261023184512_annonces_locataire_jour_paris.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

@@ -145,6 +145,9 @@ export const FICHIERS_EN_SERIE = [
   // Audit du 23/10, A03 : rejeu de 20261023161500 et de son retour (`create or replace` de charges_recuperables_exercice et
   // provisions_charges_annee) dans la transaction du fichier, tenue pendant tous ses essais ; regulariser_charges y est appelée.
   "tests/charges-agregats-portefeuille-base.test.ts",
+  // Relecture adverse du 23/10 : rejeu de 20261023184512 et de son retour (`create or replace` de mes_annonces_locataire)
+  // et `aujourdhui_paris()` figée au lendemain, dans la transaction du fichier tenue pendant tous ses essais.
+  "tests/annonces-locataire-jour-paris-base.test.ts",
 ];
 
 export default defineConfig({

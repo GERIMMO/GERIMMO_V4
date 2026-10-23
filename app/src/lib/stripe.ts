@@ -283,9 +283,6 @@ export async function verifierClientDeLOrganisation(
 /** Les statuts d'une souscription qui ne facture plus et ne facturera plus. */
 const SOUSCRIPTION_TERMINEE = new Set(["canceled", "incomplete_expired"]);
 
-const ABONNEMENT_DEJA_OUVERT =
-  "Un abonnement existe déjà pour ce compte chez notre prestataire de paiement : rechargez la page dans quelques secondes. S'il n'apparaît pas, écrivez-nous — rien ne sera prélevé deux fois.";
-
 /**
  * Avant toute page de paiement : aucune souscription vivante chez Stripe.
  *
@@ -294,55 +291,29 @@ const ABONNEMENT_DEJA_OUVERT =
  * page de paiement ouverte à côté d'une souscription vivante, c'est deux
  * prélèvements. Les pages de paiement restées ouvertes pour ce client sont
  * expirées : une ancienne page validée plus tard ferait la même chose.
- *
- * `garder` (défaut A01, audit du 23/10/2026) : l'intention de souscription
- * réservée en base pour cette demande. Sa propre page — reconnue à la
- * métadonnée `gerimmo_intention` — n'est PAS expirée : deux onglets qui
- * partagent la même réservation partagent la même page. Toute autre page
- * ouverte (ancienne intention, page d'avant ce correctif) l'est.
- *
- * `vivante` dit à l'appelant que le refus vient d'une souscription déjà née
- * (la réservation peut alors être close comme aboutie).
  */
 export async function verifierAucuneSouscriptionVivante(
   stripe: Stripe,
-  customer: string,
-  garder?: string
-): Promise<Reussite<object> | (Echec & { vivante?: true })> {
+  customer: string
+): Promise<Reussite<object> | Echec> {
   try {
     const souscriptions = await stripe.subscriptions.list({ customer, status: "all", limit: 100 });
     const vivante = souscriptions.data.find((s) => !SOUSCRIPTION_TERMINEE.has(s.status));
-    if (vivante) return { ok: false, vivante: true, erreur: ABONNEMENT_DEJA_OUVERT };
+    if (vivante) {
+      return {
+        ok: false,
+        erreur:
+          "Un abonnement existe déjà pour ce compte chez notre prestataire de paiement : rechargez la page dans quelques secondes. S'il n'apparaît pas, écrivez-nous — rien ne sera prélevé deux fois.",
+      };
+    }
     const ouvertes = await stripe.checkout.sessions.list({ customer, status: "open", limit: 100 });
     for (const session of ouvertes.data) {
-      if (garder && session.metadata?.gerimmo_intention === garder) continue;
-      if ((await expirerPageDePaiement(stripe, session.id)) === "complete") {
-        // Payée entre la liste et l'expiration : la souscription vient de naître.
-        return { ok: false, vivante: true, erreur: ABONNEMENT_DEJA_OUVERT };
-      }
+      await stripe.checkout.sessions.expire(session.id);
     }
     return { ok: true };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
     return { ok: false, erreur: lireErreurStripe(e) };
-  }
-}
-
-/**
- * Expirer une page de paiement et dire où elle en est. Une page déjà expirée
- * (par Stripe, ou par une demande concurrente) n'est pas une erreur ; une page
- * PAYÉE entre-temps rend « complete » — l'appelant ne doit alors rien ouvrir
- * de plus. Une page restée ouverte malgré l'appel fait remonter l'erreur.
- */
-export async function expirerPageDePaiement(stripe: Stripe, id: string): Promise<"expired" | "complete"> {
-  try {
-    const s = await stripe.checkout.sessions.expire(id);
-    return s?.status === "complete" ? "complete" : "expired";
-  } catch (e) {
-    if (e instanceof ArretSupervision) throw e;
-    const s = await stripe.checkout.sessions.retrieve(id);
-    if (s.status === "open") throw e;
-    return s.status === "complete" ? "complete" : "expired";
   }
 }
 

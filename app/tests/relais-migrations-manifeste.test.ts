@@ -81,8 +81,6 @@ const MISSION_OCTOBRE = [
   "20261022213731_conservation_preuves_et_invitations.sql",
   // Audit du 23/10, A03 : les deux agrégats de charges contrôlent aussi le portefeuille de l'agent restreint.
   "20261023161500_charges_agregats_portefeuille.sql",
-  // 23/10, défauts A01 et A02 de la facturation : une intention de souscription par organisation, trace des hausses.
-  "20261023162446_souscription_unique_et_trace_hausse.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

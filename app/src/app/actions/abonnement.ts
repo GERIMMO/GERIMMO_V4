@@ -25,13 +25,12 @@ import {
   GRILLE,
   apercuChangement,
   appliquerHausse,
+  creerSessionOffre,
   libererEcheancierDe,
   offrePour,
   resilierAEcheance,
   type ChoixOffre,
-  type EchecHausse,
 } from "@/lib/stripe-offres";
-import { ouvrirPageDePaiementUnique, registreDeService } from "@/lib/souscription-unique";
 import { clientDeService } from "@/lib/supabase/service";
 import { offreAgence, offreParticulier, type Offre, type Periodicite } from "@/lib/tarifs";
 import { baseEspace } from "@/lib/racine-espace";
@@ -283,12 +282,7 @@ export async function demarrerAbonnement(
 
   // Décision D27 : au retour du paiement, le propriétaire direct revient sous /espace/<id>.
   const retour = `${origine}${baseEspace(orgId, !estAgence)}/abonnement`;
-  // Défaut A01 (audit du 23/10/2026) : une seule page de paiement par
-  // organisation, réservée en base avant tout appel qui en ouvre une ; deux
-  // onglets reçoivent la même (lib/souscription-unique.ts).
-  const service = clientDeService();
-  if (!service) return { erreur: "Le service de paiement est momentanément indisponible. Réessayez plus tard." };
-  const session = await ouvrirPageDePaiementUnique(stripe, registreDeService(service), {
+  const session = await creerSessionOffre(stripe, {
     offre,
     regime: REGIME_TVA,
     customer: client.customer,
@@ -300,41 +294,6 @@ export async function demarrerAbonnement(
   });
   if (!session.ok) return { erreur: session.erreur };
   redirect(session.url);
-}
-
-/**
- * La phrase d'une hausse refusée (défaut A02, audit du 23/10/2026) : elle dit
- * ce qui est SÛR. « Rien n'a été modifié » seulement si l'échéancier programmé
- * est resté en place ou a été recréé à l'identique ; sinon, la phrase dit
- * qu'il doit être reprogrammé, et par qui.
- */
-function phraseHausseRefusee(r: EchecHausse, signalee: boolean): string {
-  const motif = r.erreur.replace(/[\s.]+$/, "");
-  const reprogrammer = signalee
-    ? "doit être reprogrammé : nous nous en occupons."
-    : "doit être reprogrammé, mais le signalement automatique a échoué : écrivez-nous pour que nous le reprogrammions.";
-  if (r.hausse === "incertaine") {
-    return `Notre prestataire de paiement n'a pas confirmé si la hausse a été appliquée (${motif}). Rechargez la page dans un instant pour voir votre abonnement à jour, avant toute nouvelle tentative. Votre changement programmé pour la prochaine échéance ${reprogrammer}`;
-  }
-  if (r.echeancier === "a_reprogrammer") {
-    return `La hausse n'a pas été appliquée : ${motif}. Votre changement programmé pour la prochaine échéance a été retiré pendant la tentative et ${reprogrammer}`;
-  }
-  return `Le changement n'a pas été appliqué, rien n'a été modifié : ${r.erreur}`;
-}
-
-/**
- * La trace durable d'une hausse refusée qui a touché à l'échéancier :
- * ses étapes externes, dans `audit_log` (`abonnement_hausse_tracer`). Un échec
- * d'écriture ne change pas la réponse au client : il reste au journal serveur.
- */
-async function tracerHausseRefusee(orgId: string, r: EchecHausse): Promise<void> {
-  if (r.echeancier === "intouche" && r.hausse === "non_appliquee") return;
-  const issue = r.hausse === "incertaine" ? "hausse_incertaine" : r.echeancier === "restaure" ? "echeancier_restaure" : "echeancier_a_reprogrammer";
-  const service = clientDeService();
-  const { error } = service
-    ? await service.rpc("abonnement_hausse_tracer", { p_org: orgId, p_issue: issue, p_etapes: r.etapes })
-    : { error: { message: "clé de service absente" } };
-  if (error) console.error("[stripe hausse] trace non écrite :", issue, error.message.slice(0, 200));
 }
 
 /**
@@ -411,19 +370,7 @@ export async function confirmerHausse(
     choix: choixDe(offre, etat.unites_a_couvrir ?? 0),
   });
   if (!r.ok) {
-    // Défaut A02 : un échéancier retiré et non recréé (ou une hausse incertaine)
-    // fait recalculer l'échéance par la tâche de nuit — le même signal que
-    // sur le chemin de réussite ci-dessous, qui était le seul à le poser.
-    let signalee = true;
-    if (r.echeancier === "a_reprogrammer") {
-      const { error } = await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
-      if (error) {
-        signalee = false;
-        console.error("[stripe hausse] échéance non marquée à recalculer :", error.message.slice(0, 200));
-      }
-    }
-    await tracerHausseRefusee(orgId, r);
-    return { erreur: phraseHausseRefusee(r, signalee) };
+    return { erreur: `Le changement n'a pas été appliqué, rien n'a été modifié : ${r.erreur}` };
   }
   // L'échéancier libéré emportait une baisse ou une périodicité programmée :
   // la tâche de nuit la reprogrammera, sur la nouvelle offre.

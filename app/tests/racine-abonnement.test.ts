@@ -106,27 +106,11 @@ function etat(publicTarif: string, souscrit: boolean, grille: string = GRILLE) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  m.creerSession.mockResolvedValue({ ok: true, url: "https://checkout.stripe.test/session", session: "cs_test_racine" });
+  m.creerSession.mockResolvedValue({ ok: true, url: "https://checkout.stripe.test/session" });
   m.appliquerHausse.mockResolvedValue({ ok: true, echeancierLibere: false });
   m.resilier.mockResolvedValue({ ok: true, echeancierLibere: false });
   m.portail.mockResolvedValue({ ok: true, url: "https://billing.stripe.test/session" });
-  // Défaut A01 (23/10) : la page de paiement s'ouvre sous une intention réservée en base (clé de service). Ici, une
-  // réservation neuve, sans page, que la page créée vient remplir (la sémantique est testée ailleurs).
-  m.service = {
-    rpc: vi.fn(async (nom: string, p?: Record<string, unknown>) => {
-      if (nom === "intention_souscription_reserver") {
-        return {
-          data: [{
-            intention: "00000000-0000-4000-8000-000000000001", empreinte: p?.p_empreinte, stripe_session_id: null, url: null,
-            cree_le: new Date().toISOString(), expire_le: new Date(Date.now() + 45 * 60_000).toISOString(), reprise: false,
-          }],
-          error: null,
-        };
-      }
-      if (nom === "intention_souscription_poser") return { data: true, error: null };
-      return { data: null, error: null };
-    }),
-  };
+  m.service = { rpc: vi.fn(async () => ({ data: null, error: null })) };
 });
 
 describe("demarrerAbonnement : les adresses de retour de la page de paiement", () => {

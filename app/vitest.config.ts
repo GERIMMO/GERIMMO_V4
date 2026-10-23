@@ -21,8 +21,6 @@ import { configDefaults, defineConfig } from "vitest/config";
  * `npm test` en local. Le test `tests/execution-en-serie.test.ts` garde cette liste cohérente avec les fichiers.
  */
 export const FICHIERS_EN_SERIE = [
-  // A01/A02 (23/10) : rejeu et retour de 20261023162446, pose complète des gardes, fixture validée (deux sessions).
-  "tests/intention-souscription-base.test.ts",
   "tests/conservation-contacts-base.test.ts",
   "tests/reglage-souscription-base.test.ts",
   // Rejeu du compteur réservé au relais et fermeture des droits des fonctions.

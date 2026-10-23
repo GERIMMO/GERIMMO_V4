@@ -1,13 +1,18 @@
--- Décision du dirigeant du 23/10/2026 (log.md) : « les communes et les métiers à ouvrir seront choisis par l'artisan
--- (même lors du test) ». Le réseau d'artisans Gerimmo ne s'ouvre plus commune × métier par le super-administrateur
--- (20260928081000, PR #132) : un artisan est proposé là où IL a dit intervenir, pour SES métiers, dès que Gerimmo a
--- validé son inscription (statut « valide », SIRET vérifié) et que son profil est public.
+-- Décision du dirigeant du 23/10/2026 (log.md), ses mots exacts : « la communes et les métiers à ouvriers seront choisi par
+-- l'artisan (même lors du test) » (lu : les communes et les métiers à ouvrir). Le réseau d'artisans Gerimmo ne s'ouvre plus
+-- commune × métier par le super-administrateur (20260928081000, PR #132) : un artisan est proposé là où IL a dit
+-- intervenir, pour SES métiers, dès que Gerimmo a validé son inscription (statut « valide », SIRET vérifié) et que son
+-- profil est public.
 --
 -- Ce que « choisir » veut dire ici : la zone d'intervention (codes postaux ou départements entiers) et les métiers que
 -- l'artisan déclare déjà à l'inscription et dans « Mon entreprise » (`artisan_zones`, `artisan_metiers`). Le carnet s'en
 -- sert depuis le 02/10 (`zone_artisan_couvre`) ; le réseau les lit désormais aussi. Une seule zone, une seule saisie :
 -- aucune liste de communes à refaire, aucun plafond à inventer, et l'artisan du carnet et celui du réseau répondent à
 -- la même règle (la fiche d'un incident ne peut plus dire « hors zone » d'un artisan que le réseau propose).
+-- ÉCART À RATIFIER PAR LE DIRIGEANT AVANT LA MISE EN PRODUCTION (relecture produit du 23/10, I-1) : la décision parle de
+-- « communes » ; la zone se choisit par code postal ou département, la même pour tous les métiers. Un code postal partagé
+-- couvre toutes ses communes (51300 en couvre 46) et l'artisan ne peut pas en retenir une seule. Si l'écart est refusé :
+-- ajouter le choix d'une commune (code INSEE) à l'intérieur d'un code postal.
 --
 -- Restent inchangés : décennale selon la nature des travaux, listes noires globale et locale, relation désactivée,
 -- compte artisan obligatoire, visibilité publique, adresse du bien complète et commune confirmée (état
@@ -16,15 +21,21 @@
 -- Corollaire de sécurité (relectures du 23/10, constats D1 et B2) : puisque la zone et les métiers d'un artisan
 -- décident de sa présence nationale, une agence ne peut plus les réécrire pour un artisan qui a son propre compte
 -- (elle pouvait se rattacher à tout profil public par son SIRET, puis retirer ses métiers ou étendre sa zone). Elle garde
--- la main sur les fiches SANS compte de son carnet actif, qui ne sont jamais proposées au réseau.
--- Corollaire de confidentialité (constat D2) : l'e-mail d'un artisan du réseau n'est plus rendu avant toute relation ;
--- l'écran ne l'affichait pas. Le téléphone reste rendu (l'écran l'affiche) : point soumis au dirigeant.
+-- la main sur les fiches SANS compte de son carnet actif, qui ne sont jamais proposées au réseau. Revérifié sous le verrou
+-- de la fiche (relecture sécurité, constat 3) : une fiche réclamée pendant l'appel d'une agence ne lui revient plus.
+-- Corollaire de confidentialité (constat D2, puis relecture sécurité du 23/10, constat 1) : l'e-mail ET le téléphone d'un
+-- artisan du réseau ne sont rendus qu'à une organisation qui l'a dans son carnet. Le réseau devient national : un compte
+-- tout juste créé, en déplaçant l'adresse d'un bien, pouvait lire les numéros de tous les artisans de France. Le
+-- propriétaire les lit une fois sa demande envoyée (`artisan_lisible` : la sollicitation ouvre la fiche).
+-- Traçabilité (relecture sécurité, constat 2) : chaque ajout ou retrait de zone ou de métier est journalisé
+-- (`audit_log`, par déclencheur, quel que soit le chemin), puisque zone et métiers décident seuls de la présence au réseau.
 --
 -- Production au 23/10/2026 (relevé en lecture seule) : 0 ligne dans reseau_ouvertures et reseau_artisan_communes,
 -- 0 artisan : aucune donnée à reprendre. Les deux tables sont CONSERVÉES (historique, retour arrière) mais ne sont plus
 -- lues ni écrites ; les deux fonctions qui les écrivaient refusent désormais, avec un message qui dit pourquoi.
 --
--- Rejouable : index « if not exists », « create or replace » à signature et retour inchangés, commentaires, droits.
+-- Rejouable : index « if not exists », « create or replace » à signature et retour inchangés, déclencheurs recréés à
+-- l'identique, commentaires, droits.
 -- Les définitions remplacées sont celles en vigueur (pg_get_functiondef) après 20261023162446 ; le retour arrière les
 -- rend à l'identique : supabase/retours-arriere/20261023180000_reseau_zone_choisie_par_artisan.retour.sql.
 -- À appliquer par « Migrations Supabase » (simulation d'abord), AVANT le code de l'application qui l'accompagne.
@@ -89,8 +100,10 @@ revoke all on function public.reseau_disponibilite(uuid,uuid,public.artisan_meti
 grant execute on function public.reseau_disponibilite(uuid,uuid,public.artisan_metier,public.nature_travaux) to authenticated;
 
 -- 4. Artisans proposés pour un bien : le carnet (inchangé) et le réseau, retrouvé par sa zone.
--- L'e-mail n'est rendu que pour un contact du carnet (constat D2 du 23/10) : l'écran ne l'affiche pas, et le réseau
--- devient national ; rien ne justifie de le livrer avant toute relation. Signature inchangée.
+-- Téléphone et e-mail ne sont rendus que pour un contact du carnet (constats D2 et sécurité 1 du 23/10) : le réseau
+-- devient national, et l'adresse d'un bien se modifie librement ; un appel par code postal aurait suffi à relever les
+-- numéros de tout le réseau. Une fois la demande envoyée, la fiche de l'artisan est lisible (`artisan_lisible`).
+-- Signature inchangée.
 create or replace function public.artisans_disponibles_bien(p_org uuid,p_bien uuid,p_metier public.artisan_metier,p_nature public.nature_travaux)
 returns table(artisan_id uuid,raison_sociale text,telephone text,email text,rattache boolean,note_publiee numeric,nb_evaluations integer,publiable boolean,decennale_valide boolean)
 language plpgsql stable security definer set search_path='' as $$
@@ -99,7 +112,8 @@ begin
  perform public.reseau_verifier_acces_bien(p_org,p_bien);
  select * into d from public.reseau_disponibilite(p_org,p_bien,p_metier,p_nature);
  select postal_code into cp from public.biens where id=p_bien;
- return query select a.id,a.raison_sociale,a.telephone,
+ return query select a.id,a.raison_sociale,
+  case when public.reseau_contact_personnel(p_org,a.id) then a.telephone end,
   case when public.reseau_contact_personnel(p_org,a.id) then a.email end,
   public.reseau_contact_dans_zone(p_org,a.id,cp),n.note_publiee,n.nb_evaluations,n.publiable,public.artisan_decennale_valide(a.id)
  from public.artisans a cross join lateral public.artisan_note(a.id) n
@@ -177,7 +191,7 @@ create or replace function public.reseau_rattacher_artisan(p_artisan uuid,p_comm
 language plpgsql security definer set search_path='' as $$
 begin
  if not public.is_super_admin() then raise exception 'Accès réservé à la supervision.'; end if;
- raise exception 'Les communes d’un artisan ne se rattachent plus depuis la supervision : il choisit lui-même sa zone et ses métiers dans son espace (décision du 23/10/2026). Pour l’écarter, suspendez son inscription ou inscrivez-le en liste noire.';
+ raise exception 'Les communes d’un artisan ne se rattachent plus depuis la supervision : il choisit lui-même sa zone et ses métiers dans son espace (décision du 23/10/2026). Pour l’écarter du réseau, suspendez la validation de son inscription depuis sa fiche.';
 end $$;
 revoke all on function public.reseau_rattacher_artisan(uuid,text[],public.artisan_metier,boolean) from public,anon;
 grant execute on function public.reseau_rattacher_artisan(uuid,text[],public.artisan_metier,boolean) to authenticated;
@@ -218,8 +232,11 @@ grant execute on function public.reseau_pilotage(text,public.artisan_metier) to 
 -- d'autre que lui (et la supervision) ne les réécrit. Une agence pouvait se rattacher à tout profil public par son seul
 -- SIRET (RM-A1.9), puis lui retirer ses métiers ou étendre sa zone ; une relation désactivée ou en liste noire locale
 -- gardait aussi la main.
+-- Le verrou de la fiche est pris avant d'écrire, et l'accès d'une agence y est revérifié (relecture sécurité du 23/10,
+-- constat 3) : sans cela, une agence entrée pendant que l'artisan réclamait sa fiche écrivait encore sa zone.
 -- Trois morceaux posés par ancre, à compte exact (modèle de 20261014841000, dont la ligne marquée reste intacte) :
--- rejouée, la migration trouve sa marque et ne fait rien ; une ancre absente ou répétée l'arrête en nommant la fonction.
+-- rejouée, la migration trouve sa marque et vérifie que chacun des trois morceaux est présent une fois (relecture du
+-- 23/10, constat 5) ; une ancre ou un morceau absent ou répété l'arrête en nommant la fonction.
 do $correctif$
 declare
   v_def text;
@@ -255,10 +272,21 @@ $ancre$;
   -- RESEAU_ZONE_ARTISAN_20261023 : une sollicitation du réseau en cours (for share sur la fiche) se termine avant ce
   -- changement, ou le voit.
   perform 1 from public.artisans where id = p_artisan for no key update;
+  if not public.is_super_admin() and exists (select 1 from public.artisans x where x.id = p_artisan
+       and x.account_id is not null and x.account_id is distinct from (select auth.uid())) then
+    raise exception 'Les métiers et la zone de cet artisan lui appartiennent : il les met à jour depuis son espace Gerimmo.';
+  end if;
 $nouveau$;
 begin
   select pg_get_functiondef('public.artisan_definir_metiers_zones(uuid,public.artisan_metier[],text[])'::regprocedure) into v_def;
-  if position(c_marque in v_def) > 0 then return; end if;
+  if position(c_marque in v_def) > 0 then
+    if (length(v_def) - length(replace(v_def, c_nouveau_role, ''))) <> length(c_nouveau_role)
+       or (length(v_def) - length(replace(v_def, c_nouveau_refus, ''))) <> length(c_nouveau_refus)
+       or (length(v_def) - length(replace(v_def, c_nouveau_verrou, ''))) <> length(c_nouveau_verrou) then
+      raise exception 'Migration 20261023180000 : définition inattendue de artisan_definir_metiers_zones (morceau marqué absent ou répété)';
+    end if;
+    return;
+  end if;
   if (length(v_def) - length(replace(v_def, c_ancre_role, ''))) <> length(c_ancre_role)
      or (length(v_def) - length(replace(v_def, c_ancre_refus, ''))) <> length(c_ancre_refus)
      or (length(v_def) - length(replace(v_def, c_ancre_verrou, ''))) <> length(c_ancre_verrou) then
@@ -269,7 +297,59 @@ end $correctif$;
 revoke all on function public.artisan_definir_metiers_zones(uuid,public.artisan_metier[],text[]) from public,anon;
 grant execute on function public.artisan_definir_metiers_zones(uuid,public.artisan_metier[],text[]) to authenticated;
 
--- 10. Les tables de l'ouverture explicite restent, vides en production, pour l'historique et le retour arrière.
+-- 10. Traçabilité (relecture sécurité du 23/10, constat 2) : la zone et les métiers d'un artisan décident seuls de sa
+-- présence au réseau, sans décision de la supervision. Chaque instruction qui en ajoute ou en retire, par n'importe quel
+-- chemin (inscription, réclamation de fiche, « Mon entreprise », fiche sans compte d'une agence, supervision), écrit au
+-- journal d'audit une ligne par artisan : l'auteur, ce qui est ajouté ou retiré, la liste avant et après, et l'état de
+-- la fiche à ce moment (statut, SIRET, visibilité). En cas de litige, on retrouve ce qui valait au moment d'une demande.
+-- Rien n'est écrit pour une instruction sans effet (doublon ignoré) ni pour la suppression en cascade d'une fiche.
+create or replace function public.journaliser_metiers_zones_artisan() returns trigger
+language plpgsql security definer set search_path='' as $$
+declare r record; v_apres text[]; v_avant text[];
+begin
+ for r in select x.artisan_id, array_agg(x.valeur order by x.valeur) valeurs
+   from (select l.artisan_id, coalesce(to_jsonb(l)->>'code_postal', to_jsonb(l)->>'metier') valeur from lignes l) x
+   group by x.artisan_id
+ loop
+  continue when not exists (select 1 from public.artisans a where a.id = r.artisan_id);
+  if tg_table_name = 'artisan_zones' then
+   select coalesce(array_agg(z.code_postal order by z.code_postal), array[]::text[]) into v_apres
+    from public.artisan_zones z where z.artisan_id = r.artisan_id;
+  else
+   select coalesce(array_agg(m.metier::text order by m.metier::text), array[]::text[]) into v_apres
+    from public.artisan_metiers m where m.artisan_id = r.artisan_id;
+  end if;
+  if tg_op = 'INSERT' then
+   v_avant := array(select v from unnest(v_apres) v except select v from unnest(r.valeurs) v order by 1);
+  else
+   v_avant := array(select v from unnest(v_apres) v union select v from unnest(r.valeurs) v order by 1);
+  end if;
+  insert into public.audit_log(account_id, action, details)
+  select (select c.id from public.accounts c where c.id = (select auth.uid())),
+   case tg_table_name when 'artisan_zones' then 'artisan_zone_modifiee' else 'artisan_metiers_modifies' end,
+   jsonb_build_object('artisan', a.id, 'auteur', (select auth.uid()),
+    case tg_op when 'INSERT' then 'ajoutes' else 'retires' end, to_jsonb(r.valeurs),
+    'avant', to_jsonb(v_avant), 'apres', to_jsonb(v_apres),
+    'statut_plateforme', a.statut_plateforme, 'siret_etat', a.siret_etat, 'visibilite', a.visibilite)
+  from public.artisans a where a.id = r.artisan_id;
+ end loop;
+ return null;
+end $$;
+revoke all on function public.journaliser_metiers_zones_artisan() from public,anon,authenticated;
+drop trigger if exists artisan_zones_journal_ajout on public.artisan_zones;
+create trigger artisan_zones_journal_ajout after insert on public.artisan_zones
+ referencing new table as lignes for each statement execute function public.journaliser_metiers_zones_artisan();
+drop trigger if exists artisan_zones_journal_retrait on public.artisan_zones;
+create trigger artisan_zones_journal_retrait after delete on public.artisan_zones
+ referencing old table as lignes for each statement execute function public.journaliser_metiers_zones_artisan();
+drop trigger if exists artisan_metiers_journal_ajout on public.artisan_metiers;
+create trigger artisan_metiers_journal_ajout after insert on public.artisan_metiers
+ referencing new table as lignes for each statement execute function public.journaliser_metiers_zones_artisan();
+drop trigger if exists artisan_metiers_journal_retrait on public.artisan_metiers;
+create trigger artisan_metiers_journal_retrait after delete on public.artisan_metiers
+ referencing old table as lignes for each statement execute function public.journaliser_metiers_zones_artisan();
+
+-- 11. Les tables de l'ouverture explicite restent, vides en production, pour l'historique et le retour arrière.
 comment on table public.reseau_ouvertures is 'Historique des ouvertures décidées par le super administrateur (20260928081000). Ni lue ni écrite depuis 20261023180000 : chaque artisan choisit sa zone et ses métiers (décision du dirigeant du 23/10/2026).';
 comment on table public.reseau_artisan_communes is 'Historique des rattachements commune × métier par le super administrateur (20260928081000). Ni lue ni écrite depuis 20261023180000 : le réseau lit la zone et les métiers déclarés par l’artisan.';
 comment on function public.reseau_pilotage(text,public.artisan_metier) is 'Couverture constatée par commune depuis le 23/10/2026 : ouverte = au moins un artisan proposé ; preparee = au moins un artisan avec compte déclaré pour ce métier et cette zone ; artisans = déclarés ; eligibles = proposés.';

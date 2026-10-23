@@ -165,11 +165,21 @@ describe.skipIf(!DB)("Réseau d'artisans — zone et métiers choisis par l'arti
     expect((await db.query("select artisan_id,origine_reseau,commune_reseau from public.incident_sollicitations where id=$1",[s])).rows[0]).toEqual({artisan_id:artisan,origine_reseau:'reseau',commune_reseau:'75056'});
     await devenir(sa); expect((await db.query("select demandes from public.reseau_pilotage('75','plomberie') where commune_code='75056'")).rows[0].demandes).toBe('1');
   });
-  it("l’e-mail d’un artisan du réseau n’est pas rendu avant toute relation ; celui d’un contact du carnet l’est", async () => {
+  it("ni l’e-mail ni le téléphone d’un artisan du réseau ne sont rendus avant toute relation ; ceux d’un contact du carnet le sont", async () => {
     await devenir(owner);
-    expect((await proposes()).find(a=>a.artisan_id===artisan)).toMatchObject({telephone:'0600000000',email:null,rattache:false});
+    expect((await proposes()).find(a=>a.artisan_id===artisan)).toMatchObject({telephone:null,email:null,rattache:false});
+    // Relecture sécurité du 23/10 (constat 1) : un bien dans une autre zone (ou une adresse déplacée) ne livre plus
+    // les numéros des artisans qui y interviennent.
+    await postgres(); await db.query("insert into public.artisan_zones(artisan_id,code_postal) values($1,'69003')",[secondArtisan]);
+    await devenir(owner); expect((await proposes(lyon.bien)).map(a=>[a.artisan_id,a.telephone,a.email])).toEqual([[secondArtisan,null,null]]);
     await postgres(); await db.query("insert into public.artisan_agences(organization_id,artisan_id) values($1,$2)",[org,artisan]);
-    await devenir(owner); expect((await proposes()).find(a=>a.artisan_id===artisan)).toMatchObject({email:'artisan-reseau@example.invalid',rattache:true});
+    await devenir(owner); expect((await proposes()).find(a=>a.artisan_id===artisan)).toMatchObject({telephone:'0600000000',email:'artisan-reseau@example.invalid',rattache:true});
+  });
+  it("une fois la demande envoyée, le propriétaire lit les coordonnées de l’artisan sollicité", async () => {
+    await devenir(owner);
+    expect((await db.query("select telephone from public.artisans where id=$1",[artisan])).rows).toHaveLength(0);
+    const c=await consultation(); await id("select public.solliciter_artisan($1,$2,$3) id",[org,c,artisan]);
+    expect((await db.query("select telephone,email from public.artisans where id=$1",[artisan])).rows).toEqual([{telephone:'0600000000',email:'artisan-reseau@example.invalid'}]);
   });
   it.each(['privee','refuse','en_attente','siret_non_verifie','blacklist','sans_compte','hors_zone','sans_metier'])("si le dernier artisan devient « %s », la zone ne reçoit plus de nouvelle demande", async (cause) => {
     await postgres(); await db.query("delete from public.artisan_zones where artisan_id=$1",[secondArtisan]);
@@ -194,6 +204,35 @@ describe.skipIf(!DB)("Réseau d'artisans — zone et métiers choisis par l'arti
   it("l’assurance obligatoire reste un filtre : aucun destinataire pour des travaux non couverts", async () => {
     await devenir(owner); expect((await dispo(paris.bien,'plomberie','gros_oeuvre')).etat).toBe('sans_artisan');
     await expect(essai("select public.ouvrir_consultation($1,$2,'plomberie','gros_oeuvre')",[org,paris.incident])).rejects.toThrow(/Aucun artisan/);
+  });
+  it("la zone se revérifie à l’envoi sur le code postal du bien : un artisan du 75012 n’est pas sollicitable pour un bien du 75011", async () => {
+    // Relecture « tests et migration » du 23/10 (constat 2) : l'éligibilité par commune accepte n'importe quel code postal
+    // de Paris ; seul le contrôle de zone de solliciter_artisan sur le code postal du BIEN écarte cet artisan.
+    await postgres(); await db.query("delete from public.artisan_zones where artisan_id=$1",[secondArtisan]);
+    await choisir(['plomberie','electricite'],['75012']);
+    await devenir(owner); expect((await dispo()).etat).toBe('sans_artisan'); expect(await proposes()).toHaveLength(0);
+    await devenir(sa); expect((await db.query("select eligibles from public.reseau_pilotage('75','plomberie') where commune_code='75056'")).rows[0].eligibles).toBe('1');
+    await postgres(); const c=await id("insert into public.incident_consultations(organization_id,incident_id,metier,nature_travaux) values($1,$2,'plomberie','entretien_courant') returning id",[org,paris.incident]);
+    await devenir(owner); await expect(essai("select public.solliciter_artisan($1,$2,$3)",[org,c,artisan])).rejects.toThrow(/plus disponible/);
+    expect((await db.query("select id from public.incident_sollicitations where organization_id=$1",[org])).rows).toHaveLength(0);
+  });
+  it("chaque ajout ou retrait de zone ou de métier est journalisé : auteur, avant, après, état de la fiche", async () => {
+    await postgres(); const deja=(await db.query("select coalesce(array_agg(id),'{}') ids from public.audit_log where details->>'artisan'=$1",[artisan])).rows[0].ids;
+    const debut=deja.length;
+    await choisir(['plomberie'],['75011','91']);
+    await postgres();
+    const lignes=(await db.query("select action,account_id,details from public.audit_log where details->>'artisan'=$1 and id<>all($2::uuid[]) order by action",[artisan,deja])).rows;
+    expect(lignes.map(l=>[l.action,l.account_id,l.details.auteur,l.details.avant,l.details.apres,l.details.ajoutes??null,l.details.retires??null,l.details.statut_plateforme,l.details.visibilite])).toEqual([
+      ['artisan_metiers_modifies',artisanCompte,artisanCompte,['electricite','plomberie'],['plomberie'],null,['electricite'],'valide','publique'],
+      ['artisan_zone_modifiee',artisanCompte,artisanCompte,['75011'],['75011','91'],['91'],null,'valide','publique'],
+    ]);
+    // Un appel sans effet (mêmes métiers, même zone) et un appel refusé n'écrivent rien.
+    await choisir(['plomberie'],['75011','91']);
+    await devenir(etranger); await expect(essai("select public.artisan_definir_metiers_zones($1,array['autre']::public.artisan_metier[],array['13'])",[artisan])).rejects.toThrow(/Accès refusé/);
+    await postgres(); expect((await db.query("select count(*)::int n from public.audit_log where details->>'artisan'=$1",[artisan])).rows[0].n).toBe(debut+2);
+    // Le journal n'est lisible que par la supervision.
+    await devenir(artisanCompte); expect((await db.query("select id from public.audit_log where details->>'artisan'=$1",[artisan])).rows).toHaveLength(0);
+    await devenir(sa); expect((await db.query("select id from public.audit_log where details->>'artisan'=$1",[artisan])).rows.length).toBe(debut+2);
   });
   it("un retrait de zone par l’artisan conserve la demande engagée, son accès et son devis, mais bloque les suivantes", async () => {
     await devenir(owner); const c=await consultation();
@@ -233,7 +272,7 @@ describe.skipIf(!DB)("Réseau d'artisans — zone et métiers choisis par l'arti
     await devenir(sa);
     await expect(essai("select public.reseau_regler_ouverture(array['75056'],'plomberie',false,true)")).rejects.toThrow(/ne s’ouvre plus commune par commune/);
     await expect(essai("select public.reseau_regler_ouverture(array['69123'],'plomberie',true,true)")).rejects.toThrow(/choisit sa zone et ses métiers/);
-    await expect(essai("select public.reseau_rattacher_artisan($1,array['75056'],'plomberie',false)",[artisan])).rejects.toThrow(/suspendez son inscription ou inscrivez-le en liste noire/);
+    await expect(essai("select public.reseau_rattacher_artisan($1,array['75056'],'plomberie',false)",[artisan])).rejects.toThrow(/suspendez la validation de son inscription depuis sa fiche/);
     await expect(essai("select public.reseau_rattacher_artisan($1,array['69123'],'plomberie',true)",[artisan])).rejects.toThrow(/choisit lui-même sa zone/);
     await postgres(); expect((await db.query("select (select count(*) from public.reseau_ouvertures)::int o,(select count(*) from public.reseau_artisan_communes)::int r")).rows[0]).toEqual({o:0,r:0});
     await devenir(owner); expect((await dispo()).etat).toBe('ouverte');

@@ -2,8 +2,9 @@
 -- choisis par l'artisan). Rend au réseau l'ouverture explicite commune × métier par le super-administrateur : les huit
 -- fonctions retrouvent leur texte exact d'avant (celui de 20260928081000), la fonction des métiers et de la zone perd
 -- ses trois morceaux marqués RESEAU_ZONE_ARTISAN_20261023 (la ligne de 20261014841000 reste), l'aide
--- `zones_couvrant_code_postal` et l'index `artisan_zones_code_postal_idx` sont retirés, les commentaires d'origine
--- reviennent, la version est retirée de l'historique.
+-- `zones_couvrant_code_postal`, l'index `artisan_zones_code_postal_idx`, les quatre déclencheurs de journal des zones et
+-- des métiers et leur fonction `journaliser_metiers_zones_artisan` sont retirés, les commentaires d'origine reviennent,
+-- la version est retirée de l'historique. Les lignes déjà écrites au journal d'audit restent (historique).
 --
 -- REMETTRE D'ABORD LE CODE PRÉCÉDENT : l'écran de supervision de la livraison ne propose plus d'ouvrir ni de rattacher.
 -- Aucune donnée touchée : zones et métiers des artisans, intérêts, demandes et leur origine restent. Les tables
@@ -12,7 +13,7 @@
 -- RÉINTRODUIT : un artisan validé et public n'est plus proposé tant que le super-administrateur ne l'a pas rattaché
 -- à une commune et n'a pas ouvert le métier ; une agence peut de nouveau réécrire les métiers et la zone d'un artisan
 -- qui a son compte (même par une relation désactivée) ; l'e-mail des artisans du réseau redevient lisible avant toute
--- relation.
+-- relation ; le téléphone aussi ; les changements de zone et de métiers ne sont plus journalisés.
 -- Une seule instruction DO atomique : seule en autocommit, ou intégralement annulable dans une transaction externe,
 -- qu'elle ne valide jamais. Rejouable : une fonction déjà rendue ne change pas ; sans la marque, la fonction des
 -- métiers et de la zone est laissée telle quelle. Une définition inattendue (morceau marqué absent ou répété) arrête
@@ -52,6 +53,10 @@ $ancre$;
   -- RESEAU_ZONE_ARTISAN_20261023 : une sollicitation du réseau en cours (for share sur la fiche) se termine avant ce
   -- changement, ou le voit.
   perform 1 from public.artisans where id = p_artisan for no key update;
+  if not public.is_super_admin() and exists (select 1 from public.artisans x where x.id = p_artisan
+       and x.account_id is not null and x.account_id is distinct from (select auth.uid())) then
+    raise exception 'Les métiers et la zone de cet artisan lui appartiennent : il les met à jour depuis son espace Gerimmo.';
+  end if;
 $nouveau$;
 begin
   perform set_config('lock_timeout', '10s', true);
@@ -241,9 +246,15 @@ begin
  where c.departement=p_departement order by c.nom,c.code;
 end $function$;
 
-  -- 3. L'aide de pré-filtre et l'index de la migration (plus aucune fonction ne les cite).
+  -- 3. L'aide de pré-filtre et l'index de la migration (plus aucune fonction ne les cite), les déclencheurs du journal
+  -- des zones et des métiers, puis leur fonction.
   drop function if exists public.zones_couvrant_code_postal(text);
   drop index if exists public.artisan_zones_code_postal_idx;
+  drop trigger if exists artisan_zones_journal_ajout on public.artisan_zones;
+  drop trigger if exists artisan_zones_journal_retrait on public.artisan_zones;
+  drop trigger if exists artisan_metiers_journal_ajout on public.artisan_metiers;
+  drop trigger if exists artisan_metiers_journal_retrait on public.artisan_metiers;
+  drop function if exists public.journaliser_metiers_zones_artisan();
 
   -- 4. Commentaires d'origine.
   comment on table public.reseau_ouvertures is 'Décisions explicites du super administrateur. Aucune ouverture créée par l’inscription ou la validation d’un artisan.';

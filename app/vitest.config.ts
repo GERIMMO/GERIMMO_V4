@@ -26,6 +26,9 @@ export const FICHIERS_EN_SERIE = [
   // Réseau d'artisans choisi par l'artisan (23/10) : rejeu de 20261023180000 et de son retour (index sur artisan_zones,
   // huit fonctions du réseau et artisan_definir_metiers_zones réécrites) dans la transaction du fichier.
   "tests/reseau-zone-artisan-rejeu.test.ts",
+  // Relectures du 23/10 : verrous entre sollicitation du réseau et changement de zone, accès d'une agence revérifié sous
+  // le verrou de la fiche ; fixture validée (deux sessions), nettoyée à la fin.
+  "tests/reseau-zone-artisan-concurrence.test.ts",
   "tests/conservation-contacts-base.test.ts",
   "tests/reglage-souscription-base.test.ts",
   // Rejeu du compteur réservé au relais et fermeture des droits des fonctions.

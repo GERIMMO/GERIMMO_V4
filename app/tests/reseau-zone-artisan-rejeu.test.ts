@@ -2,13 +2,19 @@
  * Décision du dirigeant du 23/10/2026 — migration 20261023180000 (le réseau d'artisans suit la zone et les métiers choisis
  * par l'artisan) et son retour arrière.
  *
- *  - rejouée deux fois, la migration ne change ni les définitions, ni les droits, ni l'index ;
+ *  - rejouée deux fois, la migration ne change ni les définitions, ni les droits, ni l'index, ni les déclencheurs ;
  *  - le retour rend aux huit fonctions du réseau leur corps EXACT de 20260928081000 (lu dans le fichier), retire les trois
  *    morceaux marqués de `artisan_definir_metiers_zones` (la ligne de 20261014841000 reste), l'aide de pré-filtre,
- *    l'index, les commentaires et la version ; rejoué, il ne fait rien ; l'ancienne règle revient (commune « fermée ») ;
+ *    l'index, les déclencheurs du journal des zones et des métiers et leur fonction, les commentaires et la version ;
+ *    rejoué, il ne fait rien ; l'ancienne règle revient (commune « fermée ») ;
  *  - le retour est atomique : une erreur après lui, dans la même transaction, annule tout ;
- *  - une définition inattendue de `artisan_definir_metiers_zones` arrête la migration en nommant la fonction ;
+ *  - une définition inattendue de `artisan_definir_metiers_zones` arrête la migration en nommant la fonction, y compris
+ *    au rejeu : la marque présente ne suffit pas, chacun des trois morceaux doit y être une fois ;
  *  - aller, retour, aller redonne l'état migré.
+ *
+ * La version est enregistrée au format de la production (« 20261023180000 ») : la CI (e2e/local/preparer-ci.mjs)
+ * l'enregistre sous le nom complet du fichier, que le retour ne retire pas ; le test pose donc lui-même la ligne au
+ * format de la production, sans dépendre de la façon dont la base a été montée.
  *
  * Une seule transaction pour le fichier, annulée à la fin ; la migration et son retour y sont joués (DDL : index, fonctions,
  * commentaires), d'où le classement en série (vitest.config.ts). Nécessite SUPABASE_DB_URL, base migrée.
@@ -62,11 +68,14 @@ describe.skipIf(!url)("20261023180000 — réseau choisi par l'artisan : rejeu e
            obj_description(to_regprocedure('public.' || s), 'pg_proc'))), '{}'::jsonb)
          || jsonb_build_object(
            'index', (select count(*) from pg_indexes where schemaname = 'public' and indexname = 'artisan_zones_code_postal_idx'),
+           'declencheurs', (select coalesce(jsonb_agg(pg_get_triggerdef(t.oid) order by t.tgname), '[]'::jsonb) from pg_trigger t
+             where not t.tgisinternal and t.tgrelid in ('public.artisan_zones'::regclass, 'public.artisan_metiers'::regclass)
+               and t.tgname like '%journal%'),
            'ouvertures', obj_description('public.reseau_ouvertures'::regclass),
            'rattachements', obj_description('public.reseau_artisan_communes'::regclass),
            'version', (select count(*) from supabase_migrations.schema_migrations where version = '20261023180000')) e
        from unnest($1::text[]) s`,
-      [[...RESEAU, ZONES, "zones_couvrant_code_postal(text)"]]
+      [[...RESEAU, ZONES, "zones_couvrant_code_postal(text)", "journaliser_metiers_zones_artisan()"]]
     )).rows[0].e as Record<string, unknown>;
 
   /** Un artisan validé, public, avec compte, plomberie, zone 75011 ; un bailleur et son bien confirmé à Paris 11e. */
@@ -88,6 +97,8 @@ describe.skipIf(!url)("20261023180000 — réseau choisi par l'artisan : rejeu e
     db = new Client({ connectionString: url });
     await db.connect();
     await db.query("begin");
+    // Format de la production ; la CI enregistre le nom complet du fichier (voir l'en-tête).
+    await db.query("insert into supabase_migrations.schema_migrations(version,name) values('20261023180000','reseau_zone_choisie_par_artisan') on conflict do nothing");
     proprietaire = await compte();
     org = (await db.query("insert into public.organizations(name,type,status) values('Rejeu réseau','proprietaire_direct','active') returning id")).rows[0].id;
     await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct')", [proprietaire, org]);
@@ -134,7 +145,8 @@ describe.skipIf(!url)("20261023180000 — réseau choisi par l'artisan : rejeu e
     expect(zones).toContain("m.role in ('admin_agence','agent')) -- Relecture du 15/10 (invitation d'artisan)");
     const apres = await empreinte();
     expect(apres["zones_couvrant_code_postal(text)"]).toEqual([null, null, null]);
-    expect(apres).toMatchObject({ index: 0, rattachements: null, version: 0,
+    expect(apres["journaliser_metiers_zones_artisan()"]).toEqual([null, null, null]);
+    expect(apres).toMatchObject({ index: 0, declencheurs: [], rattachements: null, version: 0,
       ouvertures: "Décisions explicites du super administrateur. Aucune ouverture créée par l’inscription ou la validation d’un artisan." });
     // L'ancienne règle : validé, public, zone couvrante, mais aucune ouverture décidée → fermée.
     expect(await etat()).toEqual({ etat: "fermee", nb_artisans: "0" });
@@ -169,6 +181,11 @@ describe.skipIf(!url)("20261023180000 — réseau choisi par l'artisan : rejeu e
     await db.query(m.replace("and aa.statut = 'actif' and aa.blacklist_le is null", "and aa.statut = 'actif'"));
     await db.query("savepoint essai");
     await expect(db.query(retour)).rejects.toThrow(/définition inattendue de artisan_definir_metiers_zones/);
+    await db.query("rollback to savepoint essai");
+    // Rejouée sur cette forme altérée (marque présente, un morceau amputé), la migration refuse aussi : elle ne se
+    // contente plus de trouver sa marque (relecture du 23/10, constat 5).
+    await db.query("savepoint essai");
+    await expect(db.query(migration)).rejects.toThrow(/définition inattendue de artisan_definir_metiers_zones \(morceau marqué/);
     await db.query("rollback to savepoint essai");
   });
 });

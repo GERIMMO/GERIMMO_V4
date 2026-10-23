@@ -22,6 +22,8 @@ import { masquerAdresse } from "@/lib/relais-alerte";
 import { DELAI_URGENCE_MAX_MINUTES } from "@/lib/relais-urgences";
 import { adressesRelaisDuServeur } from "@/lib/relais-alerte-reglage";
 import { LancerMission } from "./lancer-mission";
+import { ArchiveConditions, type AcceptationsSansArchive } from "./archive-conditions";
+import { listerVersionsArchivees } from "@/lib/conditions-versions";
 
 // Le nom de l'entrée de menu (audit 25/09, C8).
 export const metadata = { title: "Santé et connexions" };
@@ -83,7 +85,14 @@ export default async function PageSante() {
   const ouverture = ouvertureSignatures(process.env, budgetSignature.error || reglageSignature.error || !budgetSignature.data ? null : {
     plafond: budgetSignature.data.plafond, utilise: budgetSignature.data.utilise, devisActif: reglageSignature.data?.devis_actif === true,
   });
-  const [identite, regle] = await Promise.all([lireEditeur(), lireReglageSouscription()]);
+  // 24/10 (plan de conformité, R12) : l'archive des versions des conditions et le contrôle des acceptations.
+  const [identite, regle, versionsArchivees, sansArchive, permanent] = await Promise.all([
+    lireEditeur(),
+    lireReglageSouscription(),
+    listerVersionsArchivees(supabase),
+    supabase.rpc("acceptations_sans_version_archivee"),
+    supabase.rpc("is_permanent_super_admin"),
+  ]);
   const manquants = faitsManquants(identite.indisponible?{}:identite.editeur);
   // 23/10 : le médiateur se complète plus tard, sans rien fermer (lib/editeur.ts, A_COMPLETER).
   // Relecture du 23/10 : lecture en échec, on ne sait rien du médiateur — il est compté non fourni, comme les
@@ -395,6 +404,12 @@ export default async function PageSante() {
           </div>
         )}
       </section>
+
+      <ArchiveConditions
+        versions={versionsArchivees}
+        sansArchive={sansArchive.error ? null : (sansArchive.data ?? []) as AcceptationsSansArchive[]}
+        autorise={!permanent.error && permanent.data === true}
+      />
 
       {/* ── Envois automatiques ───────────────────────────────────────── */}
       <section className="section-ecran">

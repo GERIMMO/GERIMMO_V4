@@ -39,6 +39,11 @@
 // agrégé. Aucun fichier, chemin ou signataire n'est exposé au navigateur ;
 // aucune écriture métier ni suppression n'est permise par cette action.
 //
+// Et l'archivage de la version en vigueur des conditions (actions/conditions-versions.ts, 24/10/2026) : APRÈS
+// is_permanent_super_admin() sur la session courante, second facteur compris. La clé lit l'identité de l'éditeur
+// (déjà publique) et appelle `archiver_version_conditions`, qui n'insère qu'une version manquante et ne réécrit jamais
+// une version archivée (table en ajout seul). Le texte archivé vient de la page publiée, jamais du navigateur.
+//
 // Ce que le client peut faire est en outre borné côté base : les fonctions que
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées
 // au seul `service_role`, et chacune ne rend que ce dont la tâche a besoin.

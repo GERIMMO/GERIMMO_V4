@@ -577,15 +577,27 @@ export default async function PageConditions() {
           s&apos;adresse à{" "}
           <Fait valeur={EDITEUR.email} quoi="adresse de contact" />.
         </p>
+        {/* 23/10 (relecture) : la phrase renvoyait au médiateur « désigné aux
+            mentions légales » alors qu'aucun ne l'est (les mentions disent
+            « Adhésion à venir »). Les coordonnées du médiateur sont des faits
+            d'éditeur lus en base, comme l'adresse de contact ci-dessus : chacune
+            s'affiche « à venir » tant qu'elle manque, et leur saisie ne change
+            pas CONDITIONS_VERSION. */}
         <p>
           À défaut de solution amiable, le{" "}
           <b className="font-semibold">Client consommateur ou
-          non-professionnel</b> peut recourir gratuitement au médiateur de la
-          consommation désigné aux{" "}
+          non-professionnel</b> peut recourir gratuitement, avant toute saisine
+          du juge, au médiateur de la consommation dont les coordonnées suivent ;
+          elles sont reprises aux{" "}
           <Link href="/mentions-legales" className="lien-texte">
             mentions légales
           </Link>
-          , avant toute saisine du juge.
+          .
+        </p>
+        <p className="whitespace-pre-line [overflow-wrap:anywhere]">
+          <Fait valeur={EDITEUR.mediateurNom} quoi="médiateur de la consommation" />{"\n"}
+          <Fait valeur={EDITEUR.mediateurAdresse} quoi="adresse du médiateur" />{"\n"}
+          <Fait valeur={EDITEUR.mediateurSite} quoi="site du médiateur" />
         </p>
       </Article>
       <Article titre="Annexe — Traitement de données pour le compte du Client (article 28 du RGPD)">

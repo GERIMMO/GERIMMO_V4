@@ -10,7 +10,8 @@
 // 2. L'ACCORD EXPRÈS. Pour une version SUBSTANTIELLE (conditions-versions.json), publiée avec la règle de l'accord exprès
 //    (article 16 de la V1, vague « textes »), l'abonnement d'un Client qui n'a pas accepté à la date d'effet n'est pas
 //    reconduit : la tâche quotidienne des abonnements pose `cancel_at_period_end` chez Stripe
-//    (lib/non-reconduction-conditions.ts). La période payée court jusqu'à son terme ; rien n'est bloqué entre-temps.
+//    (lib/non-reconduction-conditions.ts), pas avant un mois plein après l'archivage de la version (préavis). La période
+//    payée court jusqu'à son terme ; rien n'est bloqué entre-temps.
 //    Les versions publiées AVANT cette règle (`VERSIONS_SANS_ACCORD_EXPRES`) n'y donnent jamais lieu : leur article 16
 //    ne prévoit pas la non-reconduction, et le contrat ne peut pas prendre fin pour une raison qu'il ne nomme pas.
 //    À relire par le juriste (source non ouverte le 23/10/2026) : la règle « accord exprès, sinon non-reconduction »

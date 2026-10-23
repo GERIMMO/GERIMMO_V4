@@ -1,9 +1,11 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
 import { ArretSupervision } from "@/lib/controle-effets";
 import { versionDeclaree, type VersionDeclaree } from "@/lib/conditions-versions";
 import { CONDITIONS_VERSION } from "@/lib/editeur";
 import { aujourdhuiParis } from "@/lib/ged";
+import { dateParis } from "@/lib/heure-paris-calcul";
 import { accordExpresRequis } from "@/lib/nouvelle-version-conditions";
 import { resilierAEcheance } from "@/lib/stripe-offres";
 import { prendreVerrouFacturation } from "@/lib/verrou-facturation";
@@ -26,10 +28,16 @@ import { prendreVerrouFacturation } from "@/lib/verrou-facturation";
 // Un Client qui accepte ensuite garde la main : l'accord ne relance pas l'abonnement de lui-même (la confirmation le
 // dit), il le poursuit depuis « Mon abonnement ». S'il le poursuit SANS accepter, la passe suivante le reprogramme.
 // Un espace dont aucun responsable n'a jamais rien accepté n'est pas touché (il n'a pas pu voir l'écran).
+//
+// GARDE DU PRÉAVIS. Rien ne part tant que la version n'est pas ARCHIVÉE (`versions_conditions`, geste du
+// super-administrateur après la mise en ligne : l'archive prouve ce qui a été publié, et quand), ni avant un mois
+// plein après cet archivage, même si la date d'effet déclarée est plus tôt : le Client a eu au moins un mois pour voir
+// l'écran (préavis d'un mois, article 16 en vigueur et plan § 3, lot 3). Un archivage tardif ne fait que retarder la
+// non-reconduction.
 
 export type BilanNonReconduction = {
   /** Pourquoi l'étape n'a rien examiné, le cas échéant. */
-  motif: "sans_accord_expres" | "avant_date_effet" | "version_non_declaree" | null;
+  motif: "sans_accord_expres" | "avant_date_effet" | "version_non_declaree" | "version_non_archivee" | "preavis_en_cours" | null;
   examinees: number;
   posees: number;
   echecs: { organisation: string; motif: string }[];
@@ -37,11 +45,8 @@ export type BilanNonReconduction = {
 
 type Ligne = { organization_id: string; organisation: string; stripe_subscription_id: string; periode_fin: string | null };
 
-type ClientService = {
-  rpc: (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
-};
 
-/** L'étape est-elle due aujourd'hui pour cette version ? `null` si oui, sinon le motif. */
+/** L'étape est-elle due aujourd'hui pour cette version, avant même de lire l'archive ? `null` si oui, sinon le motif. */
 export function motifSansObjet(
   version: string,
   declaree: VersionDeclaree | null,
@@ -53,15 +58,45 @@ export function motifSansObjet(
   return null;
 }
 
+/** Le même jour, un mois plus tard (« 2026-01-31 » → « 2026-02-28 ») ; jours de calendrier, sans fuseau. */
+export function unMoisApres(jour: string): string {
+  const [a, m, j] = jour.split("-").map(Number);
+  const dernier = new Date(Date.UTC(a, m + 1, 0)).getUTCDate(); // dernier jour du mois suivant
+  return new Date(Date.UTC(a, m, Math.min(j, dernier))).toISOString().slice(0, 10);
+}
+
+/** La garde du préavis : `null` si la version est archivée depuis un mois au moins (jour de Paris), sinon le motif. */
+export function motifPreavis(aujourdhui: string, publieeLe: string | null): BilanNonReconduction["motif"] {
+  if (!publieeLe) return "version_non_archivee";
+  const instant = new Date(publieeLe);
+  if (Number.isNaN(instant.getTime())) return "version_non_archivee";
+  return aujourdhui < unMoisApres(dateParis(instant)) ? "preavis_en_cours" : null;
+}
+
 export async function poserNonReconductionsConditions(
-  supabase: ClientService,
+  supabase: SupabaseClient,
   stripe: Stripe,
   options: { version?: string; declaree?: VersionDeclaree | null; aujourdhui?: string } = {}
 ): Promise<BilanNonReconduction> {
   const version = options.version ?? CONDITIONS_VERSION;
   const declaree = options.declaree === undefined ? versionDeclaree("conditions_clients", version) : options.declaree;
+  const aujourdhui = options.aujourdhui ?? aujourdhuiParis();
   const bilan: BilanNonReconduction = { motif: null, examinees: 0, posees: 0, echecs: [] };
-  bilan.motif = motifSansObjet(version, declaree, options.aujourdhui ?? aujourdhuiParis());
+  bilan.motif = motifSansObjet(version, declaree, aujourdhui);
+  if (bilan.motif) return bilan;
+
+  const { data: archive, error: erreurArchive } = await supabase
+    .from("versions_conditions")
+    .select("publiee_le")
+    .eq("document", "conditions_clients")
+    .eq("version", version)
+    .maybeSingle();
+  if (erreurArchive) {
+    bilan.echecs.push({ organisation: "—", motif: "lecture de l'archive des conditions impossible" });
+    return bilan;
+  }
+  const publieeLe = (archive as { publiee_le?: unknown } | null)?.publiee_le;
+  bilan.motif = motifPreavis(aujourdhui, typeof publieeLe === "string" ? publieeLe : null);
   if (bilan.motif) return bilan;
 
   const { data, error } = await supabase.rpc("abonnements_sans_accord_conditions", { p_version: version });

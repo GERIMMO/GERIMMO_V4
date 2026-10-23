@@ -33,7 +33,7 @@ import {
   messageAccordEnregistre,
   nouvelleVersionAAccepter,
 } from "../src/lib/nouvelle-version-conditions";
-import { motifSansObjet, poserNonReconductionsConditions } from "../src/lib/non-reconduction-conditions";
+import { motifPreavis, motifSansObjet, poserNonReconductionsConditions, unMoisApres } from "../src/lib/non-reconduction-conditions";
 import { ArretSupervision } from "../src/lib/controle-effets";
 import { versionDeclaree } from "../src/lib/conditions-versions";
 import { lienVersionAcceptee, texteAcceptation } from "../src/app/compte/conditions-acceptees";
@@ -228,8 +228,21 @@ describe("la non-reconduction faute d'accord (R19)", () => {
   });
 
   type Appel = [string, Record<string, unknown> | undefined];
-  function banc(options: { lignes?: unknown[]; verrouTenu?: boolean; echec?: boolean; libere?: boolean; arret?: boolean } = {}) {
+  function banc(options: { lignes?: unknown[]; verrouTenu?: boolean; echec?: boolean; libere?: boolean; arret?: boolean; archive?: string | null } = {}) {
     const appels: Appel[] = [];
+    // L'archive de la version : publiée le 1er octobre par défaut, donc un mois plein avant le 15 novembre.
+    const archive = options.archive === undefined ? "2026-10-01T10:00:00Z" : options.archive;
+    const lectures: string[] = [];
+    const maybeSingle = vi.fn(async () => ({ data: archive ? { publiee_le: archive } : null, error: null }));
+    const filtre = { eq: vi.fn(), maybeSingle };
+    filtre.eq.mockImplementation((colonne: string, valeur: string) => {
+      lectures.push(`${colonne}=${valeur}`);
+      return filtre;
+    });
+    const from = vi.fn((table: string) => {
+      lectures.push(table);
+      return { select: vi.fn(() => filtre) };
+    });
     const rpc = vi.fn(async (fn: string, args?: Record<string, unknown>) => {
       appels.push([fn, args]);
       if (fn === "verrou_facturation_prendre") return { data: !options.verrouTenu, error: null };
@@ -247,13 +260,35 @@ describe("la non-reconduction faute d'accord (R19)", () => {
     const retrieve = vi.fn(async () => ({ id: "sub_1", schedule: options.libere ? "sub_sched_1" : null }));
     const release = vi.fn(async () => ({}));
     const stripe = { subscriptions: { retrieve, update }, subscriptionSchedules: { release, retrieve: vi.fn(async () => ({ id: "sub_sched_1", status: "active" })) } };
-    return { supabase: { rpc }, stripe: stripe as never, appels, update };
+    return { supabase: { rpc, from } as never, stripe: stripe as never, appels, update, lectures };
   }
 
   it("la version en vigueur ne lit ni n'écrit rien", async () => {
     const b = banc();
     expect(await poserNonReconductionsConditions(b.supabase, b.stripe)).toEqual({ motif: "sans_accord_expres", examinees: 0, posees: 0, echecs: [] });
     expect(b.appels).toEqual([]);
+    expect(b.lectures).toEqual([]);
+  });
+
+  it("garde du préavis : version archivée depuis un mois plein au moins (jour de Paris), sinon rien", async () => {
+    expect(unMoisApres("2026-10-01")).toBe("2026-11-01");
+    expect(unMoisApres("2026-01-31")).toBe("2026-02-28");
+    expect(unMoisApres("2026-12-15")).toBe("2027-01-15");
+    expect(motifPreavis("2026-11-15", null)).toBe("version_non_archivee");
+    expect(motifPreavis("2026-11-15", "2026-10-20T08:00:00Z")).toBe("preavis_en_cours");
+    // Archivée le 15 octobre à 23 h 30 de Paris (21 h 30 UTC) : le préavis court jusqu'au 14 novembre inclus.
+    expect(motifPreavis("2026-11-14", "2026-10-15T21:30:00Z")).toBe("preavis_en_cours");
+    expect(motifPreavis("2026-11-15", "2026-10-15T21:30:00Z")).toBeNull();
+    // Version non archivée : rien n'est lu au-delà de l'archive, rien n'est écrit.
+    const sansArchive = banc({ archive: null });
+    expect(await poserNonReconductionsConditions(sansArchive.supabase, sansArchive.stripe, { version: "2026-11-15", declaree: V1, aujourdhui: "2026-12-01" }))
+      .toEqual({ motif: "version_non_archivee", examinees: 0, posees: 0, echecs: [] });
+    expect(sansArchive.lectures).toEqual(["versions_conditions", "document=conditions_clients", "version=2026-11-15"]);
+    expect(sansArchive.appels).toEqual([]);
+    // Archivée tard (le 10 novembre) : la date d'effet du 15 novembre ne suffit pas, le préavis d'un mois court encore.
+    const tardive = banc({ archive: "2026-11-10T09:00:00Z" });
+    expect((await poserNonReconductionsConditions(tardive.supabase, tardive.stripe, { version: "2026-11-15", declaree: V1, aujourdhui: "2026-11-15" })).motif).toBe("preavis_en_cours");
+    expect(tardive.appels).toEqual([]);
   });
 
   it("à la date d'effet : cancel_at_period_end sous le verrou « resiliation », puis consigné", async () => {

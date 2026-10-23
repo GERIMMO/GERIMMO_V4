@@ -116,7 +116,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
               </label>
               <input type="hidden" name={CHAMP_DOCUMENT_AFFICHE} value={caseCgu.document} />
               <label className="flex min-h-11 items-center gap-3 text-sm">
-                <input key={caseCgu.document} type="checkbox" name="cgu" required className="size-6 shrink-0" defaultChecked={documentCoche === caseCgu.document} {...marque("cgu")} />
+                <input type="checkbox" name="cgu" key={caseCgu.document} required className="size-6 shrink-0" defaultChecked={documentCoche === caseCgu.document} {...marque("cgu")} />
                 <span>{caseCgu.avant}<Link className="underline" href={caseCgu.href} target="_blank" rel="noopener">{caseCgu.lien}</Link>{caseCgu.apres}</span>
               </label>
               {sous("cgu")}

@@ -1,0 +1,115 @@
+import "server-only";
+import type Stripe from "stripe";
+import { ArretSupervision } from "@/lib/controle-effets";
+import { versionDeclaree, type VersionDeclaree } from "@/lib/conditions-versions";
+import { CONDITIONS_VERSION } from "@/lib/editeur";
+import { aujourdhuiParis } from "@/lib/ged";
+import { accordExpresRequis } from "@/lib/nouvelle-version-conditions";
+import { resilierAEcheance } from "@/lib/stripe-offres";
+import { prendreVerrouFacturation } from "@/lib/verrou-facturation";
+
+// SANS ACCORD À LA DATE D'EFFET, PAS DE RECONDUCTION (plan de conformité du 23/10/2026, lot 1A, constat R19).
+//
+// Une étape de la tâche quotidienne des abonnements (lib/missions-planifiees/abonnements.ts), donc sous ses verrous :
+// secret de la tâche, une passe à la fois, arrêt d'urgence « abonnements » vérifié avant chaque écriture chez Stripe
+// (le client Stripe reçu est déjà protégé ; c'est l'équivalent, pour une tâche qui appelle Stripe, du prédicat
+// `tache_planifiee_autorisee()` des tâches SQL de pg_cron, qui ne peuvent pas appeler Stripe).
+//
+// Pour la version en vigueur des conditions clients, si elle exige l'accord exprès (substantielle, publiée avec cette
+// règle : lib/nouvelle-version-conditions.ts) et que sa date d'effet est atteinte (jour de Paris), chaque abonnement
+// vivant dont aucun responsable n'a accepté cette version — alors qu'il en avait accepté une autre — est programmé pour
+// ne pas être reconduit : `cancel_at_period_end` chez Stripe, sous le verrou des gestes de facturation (opération
+// « resiliation »), échéancier éventuel libéré d'abord (il rouvrirait une période refusée). La période payée court
+// jusqu'à son terme : rien n'est bloqué. La base le consigne (`abonnement_non_reconduction_conditions` : miroir et
+// journal d'audit), et la ligne n'est plus listée.
+//
+// Un Client qui accepte ensuite garde la main : l'accord ne relance pas l'abonnement de lui-même (la confirmation le
+// dit), il le poursuit depuis « Mon abonnement ». S'il le poursuit SANS accepter, la passe suivante le reprogramme.
+// Un espace dont aucun responsable n'a jamais rien accepté n'est pas touché (il n'a pas pu voir l'écran).
+
+export type BilanNonReconduction = {
+  /** Pourquoi l'étape n'a rien examiné, le cas échéant. */
+  motif: "sans_accord_expres" | "avant_date_effet" | "version_non_declaree" | null;
+  examinees: number;
+  posees: number;
+  echecs: { organisation: string; motif: string }[];
+};
+
+type Ligne = { organization_id: string; organisation: string; stripe_subscription_id: string; periode_fin: string | null };
+
+type ClientService = {
+  rpc: (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+};
+
+/** L'étape est-elle due aujourd'hui pour cette version ? `null` si oui, sinon le motif. */
+export function motifSansObjet(
+  version: string,
+  declaree: VersionDeclaree | null,
+  aujourdhui: string
+): BilanNonReconduction["motif"] {
+  if (!declaree) return "version_non_declaree";
+  if (!accordExpresRequis(version, declaree)) return "sans_accord_expres";
+  if (aujourdhui < declaree.date_effet) return "avant_date_effet";
+  return null;
+}
+
+export async function poserNonReconductionsConditions(
+  supabase: ClientService,
+  stripe: Stripe,
+  options: { version?: string; declaree?: VersionDeclaree | null; aujourdhui?: string } = {}
+): Promise<BilanNonReconduction> {
+  const version = options.version ?? CONDITIONS_VERSION;
+  const declaree = options.declaree === undefined ? versionDeclaree("conditions_clients", version) : options.declaree;
+  const bilan: BilanNonReconduction = { motif: null, examinees: 0, posees: 0, echecs: [] };
+  bilan.motif = motifSansObjet(version, declaree, options.aujourdhui ?? aujourdhuiParis());
+  if (bilan.motif) return bilan;
+
+  const { data, error } = await supabase.rpc("abonnements_sans_accord_conditions", { p_version: version });
+  if (error) {
+    bilan.echecs.push({ organisation: "—", motif: "lecture des abonnements sans accord impossible" });
+    return bilan;
+  }
+  const lignes = (data ?? []) as Ligne[];
+  bilan.examinees = lignes.length;
+  for (const l of lignes) {
+    const verrou = await prendreVerrouFacturation(supabase, l.organization_id, "resiliation");
+    if (!verrou.ok) {
+      bilan.echecs.push({ organisation: l.organisation, motif: verrou.erreur });
+      continue;
+    }
+    try {
+      const r = await resilierAEcheance(verrou.proteger(stripe), { subscription: l.stripe_subscription_id, resilier: true });
+      if (!r.ok) {
+        // Un échéancier libéré avant l'échec reste retiré : l'échéance redevient « à préparer » (sinon la période
+        // suivante s'ouvrirait sans lui), et la ligne repassera demain (rien n'est consigné comme posé).
+        bilan.echecs.push({ organisation: l.organisation, motif: r.erreur });
+        if (r.echeancierLibere) {
+          await supabase.rpc("abonnement_non_reconduction_conditions", {
+            p_org: l.organization_id,
+            p_subscription: l.stripe_subscription_id,
+            p_version: version,
+            p_echeancier_libere: true,
+            p_posee: false,
+          });
+        }
+        continue;
+      }
+      const { error: trace } = await supabase.rpc("abonnement_non_reconduction_conditions", {
+        p_org: l.organization_id,
+        p_subscription: l.stripe_subscription_id,
+        p_version: version,
+        p_echeancier_libere: r.echeancierLibere,
+        p_posee: true,
+      });
+      // Posée chez Stripe mais non consignée : le webhook de Stripe portera le miroir ; l'échec est compté.
+      if (trace) bilan.echecs.push({ organisation: l.organisation, motif: "non-reconduction posée chez Stripe, non consignée" });
+      else bilan.posees += 1;
+    } catch (e) {
+      if (e instanceof ArretSupervision) throw e;
+      bilan.echecs.push({ organisation: l.organisation, motif: e instanceof Error ? e.message.slice(0, 200) : "erreur inattendue" });
+    } finally {
+      await verrou.rendre();
+    }
+  }
+  return bilan;
+}

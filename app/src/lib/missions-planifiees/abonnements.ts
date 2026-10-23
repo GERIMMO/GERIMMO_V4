@@ -46,6 +46,7 @@ import {
   type Periodicite,
 } from "@/lib/tarifs";
 import { consignerTache } from "@/lib/tache";
+import { poserNonReconductionsConditions, type BilanNonReconduction } from "@/lib/non-reconduction-conditions";
 import { timingSafeEqual } from "node:crypto";
 
 
@@ -196,6 +197,18 @@ export async function traiterAbonnements(request: Request) {
   // du client, sur « Mon abonnement ».
   const echeances = await preparerEcheances(supabase, stripe);
 
+  // ── PLAN DE CONFORMITÉ DU 23/10 (R19) : sans accord exprès à la date d'effet d'une version substantielle des
+  // conditions, l'abonnement n'est pas reconduit (lib/non-reconduction-conditions.ts). Après les échéances : un
+  // échéancier qu'elles viendraient de poser est libéré d'abord ; avant l'avis de reconduction, qui ne part pas pour un
+  // abonnement programmé pour finir.
+  let nonReconduction: BilanNonReconduction;
+  try {
+    nonReconduction = await poserNonReconductionsConditions(supabase, stripe);
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    nonReconduction = { motif: null, examinees: 0, posees: 0, echecs: [{ organisation: "—", motif: e instanceof Error ? e.message.slice(0, 200) : "étape impossible" }] };
+  }
+
   // ── L'AVIS DE RECONDUCTION TACITE (art. L215-1 du code de la consommation,
   // audit 29/09). Un particulier abonné à l'année est prévenu entre trois mois
   // et un mois avant le terme : date, montant, droit de ne pas reconduire.
@@ -277,6 +290,8 @@ export async function traiterAbonnements(request: Request) {
     echeances_en_echec: echeances.echecs.length,
     avis_reconduction: reconduction.envoyes,
     avis_reconduction_en_echec: reconduction.echecs.length + reconduction.sans_adresse.length,
+    non_reconductions_conditions: nonReconduction.posees,
+    non_reconductions_conditions_en_echec: nonReconduction.echecs.length,
   });
   return Response.json({
     relances,
@@ -287,6 +302,7 @@ export async function traiterAbonnements(request: Request) {
     avoirs_portes: avoirsPortes,
     avoirs_en_echec: avoirsEnEchec,
     echeances,
+    non_reconduction: nonReconduction,
     reconduction, reprises, rapprochement,
     stripe_repris: reprises.repris, stripe_controles: rapprochement.controles, stripe_ecarts: rapprochement.ecarts,
     stripe_incomplet: rapprochement.incomplet, stripe_echecs: reprises.echecs + rapprochement.echecs,

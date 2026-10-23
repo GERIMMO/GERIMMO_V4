@@ -60,6 +60,7 @@ const mocks = vi.hoisted(() => ({
   apercu: vi.fn(),
   appliquerHausse: vi.fn(),
   stripePret: true,
+  reglage: { data: { blocage_souscription_identite: true, revision: 0 }, error: null } as { data: unknown; error: unknown },
   /** Les versions des conditions que la base tient pour acceptées par le compte « compte-1 ». */
   versionsAcceptees: [] as string[],
   /** Les lectures d'`acceptations_cgu`, avec leurs filtres, dans l'ordre. */
@@ -87,6 +88,7 @@ vi.mock("@/lib/supabase/server", () => ({
         order: () => q,
         limit: () => q,
         maybeSingle: async () => {
+          if (table === "supervision_identite") return mocks.reglage;
           if (table === "acceptations_cgu") {
             mocks.lecturesCgu.push(filtres);
             const version = filtres.find(([c]) => c === "version")?.[1];
@@ -189,6 +191,7 @@ const appelsRpc = () => mocks.rpc.mock.calls.map((c) => c[0] as string);
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.stripePret = true;
+  mocks.reglage = { data: { blocage_souscription_identite: true, revision: 0 }, error: null };
   mocks.versionsAcceptees = [VERSION_EN_VIGUEUR];
   mocks.lecturesCgu = [];
   identite(EDITEUR_COMPLET);
@@ -266,6 +269,87 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     });
     expect(mocks.serviceRpc).toHaveBeenCalledWith("abonnement_basculer_grille", { p_org: "org-1" });
     expect(mocks.lireEditeur).not.toHaveBeenCalled();
+  });
+});
+
+describe("levée du blocage par le superadmin", () => {
+  function lever() {
+    identite(EDITEUR_VIDE);
+    mocks.reglage = { data: { blocage_souscription_identite: false, revision: 1 }, error: null };
+  }
+
+  it("autorise le parcours de souscription malgré l'identité incomplète", async () => {
+    etat(GRILLE);
+    lever();
+    await demarrerAbonnement("org-1", {}, souscrire());
+    expect(mocks.retrieve).toHaveBeenCalled();
+  });
+
+  it("autorise l'aperçu du prorata d'une hausse confirmée", async () => {
+    etat(GRILLE, true);
+    lever();
+    const r = await confirmerHausse("org-1", {}, hausse());
+    expect(mocks.apercu).toHaveBeenCalledOnce();
+    expect(r.erreur).toBe("arrêt du test");
+  });
+
+  it("exige toujours les conditions générales", async () => {
+    etat(GRILLE);
+    lever();
+    mocks.versionsAcceptees = [];
+    expect((await demarrerAbonnement("org-1", {}, souscrire())).erreur).toBe(MOTIF_CONDITIONS);
+    expect(mocks.retrieve).not.toHaveBeenCalled();
+  });
+
+  it("ne permet ni une souscription sans confirmation ni un montant différent", async () => {
+    etat(GRILLE);
+    lever();
+    const sansConfirmation = souscrire(); sansConfirmation.delete("confirmation");
+    expect((await demarrerAbonnement("org-1", {}, sansConfirmation)).erreur).toBeTruthy();
+    const montantModifie = souscrire(); montantModifie.set("montant_attendu_cents", "1");
+    expect((await demarrerAbonnement("org-1", {}, montantModifie)).erreur).toBeTruthy();
+    expect(mocks.retrieve).not.toHaveBeenCalled();
+  });
+
+  it("conserve le refus lorsque Stripe n'est pas configuré", async () => {
+    etat(GRILLE);
+    lever();
+    mocks.stripePret = false;
+    expect((await demarrerAbonnement("org-1", {}, souscrire())).erreur).toBeTruthy();
+    expect(mocks.retrieve).not.toHaveBeenCalled();
+  });
+
+  it("un champ forgé dans le formulaire ne lève pas la règle", async () => {
+    etat(GRILLE);
+    identite(EDITEUR_VIDE);
+    const form = souscrire(); form.set("blocage_souscription_identite", "false");
+    expect((await demarrerAbonnement("org-1", {}, form)).erreur).toBe(MOTIF_IDENTITE);
+    expect(mocks.retrieve).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { data: null, error: null },
+    { data: { blocage_souscription_identite: false, revision: 1 }, error: { message: "lecture impossible" } },
+    { data: { blocage_souscription_identite: "false", revision: 1 }, error: null },
+    { data: { blocage_souscription_identite: false }, error: null },
+  ])("conserve la règle si le réglage est absent, invalide ou indisponible : %j", async (reglage) => {
+    etat(GRILLE);
+    identite(EDITEUR_VIDE);
+    mocks.reglage = reglage;
+    expect((await demarrerAbonnement("org-1", {}, souscrire())).erreur).toBe(MOTIF_IDENTITE);
+    expect(mocks.retrieve).not.toHaveBeenCalled();
+  });
+
+  it("relit le réglage après sa réactivation, même pour un écran déjà ouvert", async () => {
+    etat(GRILLE);
+    lever();
+    const { lireGardeSouscription } = await import("@/lib/garde-souscription-serveur");
+    const { createClient } = await import("@/lib/supabase/server");
+    const garde = await lireGardeSouscription(await createClient(), "compte-1");
+    const { motifIdentiteEditeur } = await import("@/lib/garde-souscription");
+    expect(motifIdentiteEditeur(garde.editeur, { enEssai: true, blocageIdentiteActif: garde.blocageIdentiteActif })).toBeNull();
+    mocks.reglage = { data: { blocage_souscription_identite: true, revision: 2 }, error: null };
+    expect((await demarrerAbonnement("org-1", {}, souscrire())).erreur).toBe(MOTIF_IDENTITE);
   });
 });
 

@@ -3,6 +3,7 @@ import type { createClient } from "@/lib/supabase/server";
 import { CONDITIONS_VERSION, type FaitEditeur } from "@/lib/editeur";
 import { lireEditeur } from "@/lib/editeur-serveur";
 import { motifIdentiteEditeur, type ContexteGarde } from "@/lib/garde-souscription";
+import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
 
 // Les lectures en base des deux conditions de lib/garde-souscription.ts
 // (lot B3, 19/10/2026), avec la session de la personne connectée :
@@ -24,6 +25,7 @@ export type GardeSouscription = {
   editeur: Record<string, FaitEditeur>;
   /** Vrai si le compte a une acceptation enregistrée pour la version en vigueur des conditions. */
   conditionsAcceptees: boolean;
+  blocageIdentiteActif: boolean;
 };
 
 /**
@@ -33,8 +35,8 @@ export type GardeSouscription = {
  * et rien n'est prélevé entre-temps. `enEssai` : voir ContexteGarde.
  */
 export async function lireMotifIdentiteEditeur(enEssai: boolean): Promise<string | null> {
-  const { editeur } = await lireEditeur();
-  const contexte: ContexteGarde = { enEssai };
+  const [{ editeur }, { blocageIdentiteActif }] = await Promise.all([lireEditeur(), lireReglageSouscription()]);
+  const contexte: ContexteGarde = { enEssai, blocageIdentiteActif };
   return motifIdentiteEditeur(editeur, contexte);
 }
 
@@ -58,9 +60,10 @@ export async function conditionsEnVigueurAccepteesPar(supabase: Client, accountI
 
 /** Les deux lectures en parallèle, pour l'écran « Mon abonnement ». */
 export async function lireGardeSouscription(supabase: Client, accountId: string): Promise<GardeSouscription> {
-  const [{ editeur }, conditionsAcceptees] = await Promise.all([
+  const [{ editeur }, conditionsAcceptees, { blocageIdentiteActif }] = await Promise.all([
     lireEditeur(),
     conditionsEnVigueurAccepteesPar(supabase, accountId),
+    lireReglageSouscription(),
   ]);
-  return { editeur, conditionsAcceptees };
+  return { editeur, conditionsAcceptees, blocageIdentiteActif };
 }

@@ -166,3 +166,7 @@ est à lire dans son DPA. Plus tard, **Meta** pour WhatsApp.
 > - **GitHub Actions** (audit sécurité du 27/09) : fondement du transfert hors
 >   UE à établir, ou exécution de la sauvegarde sur une machine européenne.
 > - **Validation** : ce brouillon attend la relecture d'un conseil spécialisé.
+
+## Préparation locale du 22 octobre — conservation
+
+Le bilan sans suppression et les règles de contacts/invitations sont préparés selon [le dossier technique](../../app/docs/signatures-conservation-22-octobre.md). Les nouvelles purges restent désactivées ; invitations acceptées et comptes exclus. Les preuves de signature sont protégées d’une purge fondée sur le seul âge de la demande. Le calendrier d’effacement qualifié des actes et des copies Zoho reste à finaliser ; aucune modification de production. L’adresse personnelle de l’administrateur reste choisie pour les signatures jusqu’à décision ultérieure.

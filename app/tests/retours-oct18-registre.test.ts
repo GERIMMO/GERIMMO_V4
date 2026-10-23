@@ -449,6 +449,8 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
     // Puis les migrations du 19/10 que leurs retours avaient défaites, dans l'ordre du manifeste : l'empreinte est celle du départ.
     for (const f of MIGRATIONS_1910) await db.query(sql(f));
     await db.query(sql(suiviOct20));
+    // La table d’identité recréée doit aussi retrouver sa colonne et ses droits du 22/10.
+    await db.query(sql('20261022210326_reglage_blocage_souscription_identite'));
     expect(await etat()).toEqual(avant);
     expect(await versionsPresentes()).toEqual([...TOUTES_VERSIONS, SENTINELLE].sort());
     expect(await ouvertesAnon()).toBe(0);

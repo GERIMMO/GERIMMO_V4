@@ -79,7 +79,7 @@ async function origineDeLaRequete(): Promise<string | null> {
  * DEUX GARDES DE CONTRAT (lot B3, 19/10/2026 ; lib/garde-souscription.ts),
  * après les motifs Stripe et TVA et avant tout appel à Stripe : l'identité de
  * l'éditeur, lue dans `supervision_identite` par-dessus le code (souscription
- * ET hausse) ; la version en vigueur des conditions générales, acceptée par le
+ * ET hausse, sauf levée explicite par le superadmin) ; la version en vigueur des conditions générales, acceptée par le
  * compte qui clique, dans `acceptations_cgu` (souscription seulement). L'écran
  * dit les mêmes phrases et propose la case qui enregistre l'acceptation
  * (`accepterConditionsGenerales`).

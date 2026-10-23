@@ -288,8 +288,8 @@ export default async function PageConfidentialite() {
       <Article titre="Combien de temps">
         <p>
           Le tableau décrit les durées paramétrées dans le service. Au terme,
-          les traitements de conservation prévoient une suppression ou une
-          anonymisation selon la catégorie. Ces durées ne constituent pas une
+          les traitements de conservation prévoient une suppression des fichiers et un
+          allègement des fiches selon la catégorie. Une fiche qui reste rattachable à un dossier n’est pas considérée comme anonyme. Ces durées ne constituent pas une
           obligation légale de conserver toutes les pièces jusque-là : le
           responsable du dossier doit limiter la conservation à ce qui est
           nécessaire et traiter les demandes de suppression justifiées.
@@ -310,13 +310,13 @@ export default async function PageConfidentialite() {
                 <td>Fin du dernier bail</td>
               </tr>
               <tr>
-                <td>Baux, états des lieux, mandats de gestion</td>
-                <td>5 ans, puis anonymisation</td>
+                <td>Baux, états des lieux, mandats de gestion hors circuit de signature</td>
+                <td>5 ans, puis retrait du fichier et allègement de la fiche</td>
                 <td>Fin du contrat</td>
               </tr>
               <tr>
                 <td>Quittances et rapports de gestion</td>
-                <td>10 ans, puis anonymisation</td>
+                <td>10 ans, puis retrait du fichier et allègement de la fiche</td>
                 <td>Émission</td>
               </tr>
               <tr>
@@ -345,16 +345,23 @@ export default async function PageConfidentialite() {
                 <td>Événement</td>
               </tr>
               <tr>
+                <td>Documents d’un circuit de signature, annexes et certificats</td>
+                <td>Revue du dossier avant effacement : durée du contrat et des comptes à solder, puis délai adapté à la gestion et aux obligations applicables. Le nettoyage automatique de ces pièces est suspendu.</td>
+                <td>Clôture effective du dossier ; un contentieux ou une obligation comptable peut justifier une conservation distincte</td>
+              </tr>
+              <tr>
+                <td>Invitations locataires et artisans non acceptées</td>
+                <td>Objectif : retrait trois mois après leur fin de validité ou leur refus/annulation. Le traitement automatique reste désactivé jusqu’à la revue des anciennes invitations.</td>
+                <td>La plus tardive des dates d’expiration et de réponse. Les accès acceptés relèvent de la conservation du compte.</td>
+              </tr>
+              <tr>
                 <td>Demandes de devis reçues depuis le site</td>
                 <td>24 mois, puis suppression</td>
-                <td>Dépôt</td>
+                <td>Dernier traitement ou dépôt si la demande n’a pas encore été traitée</td>
               </tr>
-              {/* Liste d'attente des agences (20/10/2026) : repère CNIL usuel pour les prospects, durée et base légale à
-                  confirmer par le juriste et le DPO (20/10). Aucune règle `retention_rules` ne purge cette table : la
-                  durée est tenue par le dirigeant depuis la console, et ce tableau le dit sans l'automatiser. */}
               <tr>
                 <td>Liste d&apos;attente des agences</td>
-                <td>Jusqu&apos;à ce que nous vous ayons prévenu de l&apos;ouverture, et au plus tard trois ans après notre dernier échange, ou dès votre demande de suppression</td>
+                <td>Jusqu&apos;à ce que nous vous ayons prévenu de l&apos;ouverture, et au plus tard trois ans après notre dernier échange, ou dès votre demande de suppression. Le contrôle est préparé ; les retraits restent traités manuellement avant son activation.</td>
                 <td>Dernier échange</td>
               </tr>
               <tr>

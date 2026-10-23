@@ -3,11 +3,15 @@ type: concept
 tags: [signature, zoho-sign, yousign, demande-de-signature]
 status: in-progress
 created: 2026-07-24
-updated: 2026-10-19
+updated: 2026-10-22
 sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]", "app/docs/signature-electronique-bail.md (dossier technique Zoho Sign, 18-19/10/2026)", "log.md — entrées « decision » et « deploy » des 18 et 19/10/2026 (Zoho Sign, PR #203 à #210)"]
 ---
 
 # Signature électronique
+
+## État du 22 octobre — observation de production et préparation locale
+
+Baux, autres documents et devis activés sur Vercel ; plafond mensuel 400 crédits et devis autorisés en base. Le dirigeant conserve son adresse personnelle comme identité de contact des signatures. L’état détaillé par acte et la protection contre la purge prématurée sont préparés localement. Le mandat d’agence et la représentation des personnes morales restent hors circuit ; l’état des lieux peut utiliser le circuit distant déjà présent ou la signature sur place. L’activation des rappels et la fermeture ciblée de la caution n’ont pas été relues après la nouvelle demande de double vérification de Vercel. Aucun nouvel envoi ni achat. Voir [le bilan complet](../../app/docs/signatures-conservation-22-octobre.md). Les observations du 19 octobre suivantes sont historiques.
 
 > [!info] État au 19/10/2026 — circuit Zoho Sign publié, envois aux clients désactivés
 > **Choix du 18/10 : Zoho Sign Europe.** Compte Zoho Sign Europe créé le 18/10 par le titulaire (essai Enterprise, connexion OAuth européenne autorisée) ; essai externe signé le 18/10 (invitation test à 15 h 19 heure de Paris, deux signatures par code SMS à 15 h 30, PDF et certificat téléchargés et relus) ; offre API payée par le titulaire (500 crédits affichés ; montant non consigné ; conditions de l'offre et droit d'intégration SaaS non confirmés).

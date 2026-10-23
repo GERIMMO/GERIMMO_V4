@@ -2,6 +2,14 @@
 
 ## État de livraison
 
+**Décision du dirigeant — 22 octobre 2026 : préproduction abandonnée.**
+Les essais et modifications doivent reprendre en local, avec des données fictives.
+La branche Supabase `hlkbvmfybxwqathchsdz` et ses trois comptes de recette ont été
+supprimés à sa demande. Le raccordement Vercel est retiré. Ne pas recréer cet
+environnement sans nouvelle demande explicite. Les paragraphes de préparation
+ci-dessous sont un historique, pas une configuration à rétablir. Les corrections
+publiées d'archives, de sauvegarde et de dépendances sont conservées.
+
 La reconstruction de la base isolée est terminée. Les trois commits préparés sur
 `codex/conservation-exploitation-20261022` sont repris sans conflit sur le main
 `cc53dd7`, dans `codex/reprise-conservation-20261022`. Leur publication est en cours

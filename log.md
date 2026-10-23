@@ -6667,3 +6667,9 @@ Valeurs retenues (plan de conformité du 23/10, section 4 ; sources juridiques n
 10. Comptes des amis : clients ordinaires ; aucun test sur leurs données réelles (recettes sur comptes fictifs).
 11. Conditions V1 publiées dès que le code qui les rend vraies est en production, au plus tard le 15/11.
 12. Accords de sous-traitance (DPA) acceptés par le dirigeant dans les consoles des prestataires, copie datée gardée.
+
+## [2026-10-23] decision | Statut de l'éditeur : non commerçant
+
+Mots du dirigeant : « je ne suis pas commerçant ».
+
+Conséquence pour la conformité V1 : l'obligation de conservation de dix ans du code de commerce (art. L. 123-22, propre aux commerçants) ne fonde pas la durée de conservation des factures de Gerimmo. Le lot de conservation retient à la place six ans pour les factures et pièces justificatives (livre des procédures fiscales, art. L. 102 B, à recomparer sur Légifrance), et garde dix ans pour la preuve des contrats conclus en ligne d'au moins 120 € (code de la consommation, art. L. 213-1 et D. 213-1), indépendamment du statut de commerçant. Les quittances et documents des bailleurs suivent leurs propres règles (36 mois après la fin du bail, plan du 23/10).

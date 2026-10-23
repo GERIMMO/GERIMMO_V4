@@ -451,6 +451,8 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
     await db.query(sql(suiviOct20));
     // La table d’identité recréée doit aussi retrouver sa colonne et ses droits du 22/10.
     await db.query(sql('20261022210326_reglage_blocage_souscription_identite'));
+    // Le circuit recréé retrouve aussi la confirmation sur place de l'état des lieux et la garde de l'envoi du 24/10.
+    await db.query(sql('20261024120000_signature_caution_mobile_et_edl_sur_place'));
     expect(await etat()).toEqual(avant);
     expect(await versionsPresentes()).toEqual([...TOUTES_VERSIONS, SENTINELLE].sort());
     expect(await ouvertesAnon()).toBe(0);

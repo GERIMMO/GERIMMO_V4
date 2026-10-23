@@ -144,8 +144,9 @@ export async function preparerSignatureBail(org: string, bail: string, choix?: S
 /** « AAAA-MM-JJ » d'une date du calendrier qui existe. */
 function dateVisiteValide(v: string | undefined): v is string {
   if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
-  const d = new Date(`${v}T12:00:00Z`);
-  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+  const [annee, mois, jour] = v.split("-").map(Number);
+  const d = new Date(Date.UTC(annee, mois - 1, jour));
+  return d.getUTCFullYear() === annee && d.getUTCMonth() === mois - 1 && d.getUTCDate() === jour;
 }
 
 /**

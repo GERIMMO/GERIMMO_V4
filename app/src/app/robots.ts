@@ -29,6 +29,8 @@ const SEGMENTS_PRIVES = [
   "/quittance",
   "/relais",
   "/securite",
+  // Le lien de la caution (décision du 23/10/2026) : une page à jeton, à ne jamais indexer.
+  "/signature",
   "/veille",
 ];
 

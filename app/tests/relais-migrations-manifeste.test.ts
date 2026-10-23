@@ -92,6 +92,8 @@ const MISSION_OCTOBRE = [
   // 24/10, plan de conformité (lot 1A, R10 et R19) : artisans classés par note à partir de trois évaluations ;
   // non-reconduction faute d'accord à une version substantielle des conditions.
   "20261024100000_acceptation_conditions_et_classement_artisans.sql",
+  // 24/10, plan de conformité (lots 1B et 1C) : vente au consommateur (rétractation, confirmation, résiliation) et impayé.
+  "20261024110000_vente_et_impaye.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

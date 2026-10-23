@@ -160,6 +160,10 @@ export const FICHIERS_EN_SERIE = [
   // Même lot (acceptation selon l'espace, R10/R19) : rejeu de 20261024100000 et de son retour (réécriture de
   // artisans_disponibles_bien, fonctions créées puis supprimées) et `artisan_note` d'essai dans la transaction du fichier.
   "tests/acceptation-conditions-base.test.ts",
+  // Plan de conformité du 24/10 (lots 1B et 1C) : rejeu de 20261024110000 et de son retour (DROP/CREATE de
+  // abonnements_a_relancer et abonnements_avis_reconduction_dus, contrainte des natures de retours) dans la transaction
+  // du fichier, et `aujourdhui_paris()` figée le temps d'un cas.
+  "tests/vente-impaye-base.test.ts",
 ];
 
 export default defineConfig({

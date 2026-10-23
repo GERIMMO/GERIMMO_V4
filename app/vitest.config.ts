@@ -167,6 +167,10 @@ export const FICHIERS_EN_SERIE = [
   // Plan de conformité du 24/10 (lot 1D, décision du 23/10) : rejeu de 20261024120000 et de son retour (table
   // confirmations_mobile_caution supprimée puis recréée, déclencheur sur bail_signature_circuits) dans la transaction du fichier.
   "tests/signature-caution-edl-base.test.ts",
+  // Plan de conformité du 24/10 (lot 1E) : rejeu de 20261024130000 et de son retour (tables, déclencheur sur accounts,
+  // tâche pg_cron), et déclencheurs d'état suspendus (`alter table … disable trigger`) pendant chaque effacement, dans la
+  // transaction du fichier.
+  "tests/fermeture-comptes-base.test.ts",
 ];
 
 export default defineConfig({

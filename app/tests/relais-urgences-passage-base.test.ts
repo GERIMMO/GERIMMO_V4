@@ -3,7 +3,7 @@
  *
  * Constat des relecteurs : une urgence n'était constatée (`traiter_vacances`) qu'au passage d'une mission, une fois par
  * jour le matin : jusqu'à ~18 h entre l'événement et l'e-mail. Ce que la base garde désormais :
- *  — la TÂCHE pg_cron `relais-urgences`, toutes les 10 minutes, jour et nuit ; dix tâches pg_cron en tout ;
+ *  — la TÂCHE pg_cron `relais-urgences`, toutes les 10 minutes, jour et nuit ; onze tâches pg_cron en tout depuis le 24/10 ;
  *  — le JETON, généré en base (64 hexadécimaux, distinct de celui du marketing), que seul le traitement lit ;
  *  — `declencher_relais_urgences` appelle par pg_net la route ?mode=urgences avec ce jeton, SANS lire l'arrêt
  *    d'urgence (arrêt global et toutes les clés posés : l'appel part) ; sans pg_net ou interrupteur coupé, rien, sans
@@ -180,10 +180,11 @@ describe.skipIf(!DB_URL)("D46-B — passage fréquent des urgences du relais : l
 
   // ── La tâche pg_cron et le jeton ─────────────────────────────────────────
 
-  it("la tâche pg_cron est là : toutes les 10 minutes, jour et nuit, elle appelle le déclencheur ; dix tâches en tout", async () => {
+  it("la tâche pg_cron est là : toutes les 10 minutes, jour et nuit, elle appelle le déclencheur ; onze tâches en tout", async () => {
     await proprietaire();
     const { rows } = await db.query<{ jobname: string; schedule: string; command: string }>("select jobname, schedule, command from cron.job order by jobname");
-    expect(rows).toHaveLength(10);
+    // Onze depuis la fermeture des comptes (20261024130000, lot 1E de conformité du 24/10).
+    expect(rows).toHaveLength(11);
     expect(rows.find((j) => j.jobname === "relais-urgences")).toEqual({
       jobname: "relais-urgences", schedule: "*/10 * * * *", command: "select public.declencher_relais_urgences()",
     });

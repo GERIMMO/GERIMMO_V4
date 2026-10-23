@@ -27,8 +27,9 @@ verifierBaseDeTest(DB_URL);
 const MIGRATION = readFileSync("supabase/migrations/20261014200000_arret_urgence_taches_planifiees.sql", "utf8");
 
 /**
- * Les 10 tâches pg_cron. Neuf sont arrêtées par l'arrêt d'urgence (la 9ᵉ, « maintenance-artisans », vient du lot maintenance
- * des artisans), chacune avec la clé d'arrêt (en plus de « global ») qui l'arrête. La 10ᵉ, « relais-urgences » (passage des
+ * Les 11 tâches pg_cron. Dix sont arrêtées par l'arrêt d'urgence (la 9ᵉ, « maintenance-artisans », vient du lot maintenance
+ * des artisans ; la 10ᵉ, « fermetures-comptes », du lot 1E de conformité du 24/10, sous la clé « purge »), chacune avec la
+ * clé d'arrêt (en plus de « global ») qui l'arrête. La 11ᵉ, « relais-urgences » (passage des
  * urgences du relais toutes les 10 minutes, 20261014812000), n'est arrêtée par aucune clé, à dessein : c'est une alerte au
  * dirigeant, et l'arrêt est l'un de ses sujets. Elle est recensée à part (`supervision_taches_hors_arret`).
  */
@@ -42,6 +43,7 @@ const CORRESPONDANCE: Record<string, string[]> = {
   "propositions-publication-hebdo": ["marketing"],
   "marketing-declencheur": ["marketing"],
   "maintenance-artisans": ["rappels"],
+  "fermetures-comptes": ["purge"],
 };
 const HORS_ARRET = ["relais-urgences"];
 const FONCTIONS: [tache: string, signature: string][] = [
@@ -149,12 +151,12 @@ describe.skipIf(!DB_URL)("arrêt d'urgence et tâches planifiées (D06)", () => 
     await db.query("reset role");
     const { rows: planifiees } = await db.query<{ jobname: string }>(`select jobname from cron.job order by 1`);
     const { rows: table } = await db.query<{ tache: string; cle: string }>(`select tache, cle from public.supervision_taches_arret order by 1, 2`);
-    // Les deux recensements ensemble couvrent exactement pg_cron : dix tâches, aucune dans les deux.
+    // Les deux recensements ensemble couvrent exactement pg_cron : onze tâches, aucune dans les deux.
     const { rows: horsArret } = await db.query<{ tache: string }>(`select tache from public.supervision_taches_hors_arret order by 1`);
     expect(horsArret.map((h) => h.tache)).toEqual(HORS_ARRET);
     expect(Object.keys(TACHES_SQL_HORS_ARRET).sort()).toEqual(HORS_ARRET);
     expect(planifiees.map((j) => j.jobname)).toEqual([...Object.keys(CORRESPONDANCE), ...HORS_ARRET].sort());
-    expect(planifiees).toHaveLength(10);
+    expect(planifiees).toHaveLength(11);
     for (const t of HORS_ARRET) expect(Object.keys(CORRESPONDANCE)).not.toContain(t);
     const lue: Record<string, string[]> = {};
     for (const { tache, cle } of table) (lue[tache] ??= []).push(cle);
@@ -171,7 +173,7 @@ describe.skipIf(!DB_URL)("arrêt d'urgence et tâches planifiées (D06)", () => 
 
   // Tour final du 16/10 (D06 / D42) : l'écran « Relais et arrêts » listait 9 tâches sur 10 ; la caducité des devis
   // (« maintenance-artisans », inscrite sous la clé « rappels » par 20261014211000) manquait au miroir TypeScript.
-  it("le miroir de l'écran (TACHES_SQL ∪ TACHES_SQL_HORS_ARRET) est exactement les deux tables, soit les dix tâches pg_cron", async () => {
+  it("le miroir de l'écran (TACHES_SQL ∪ TACHES_SQL_HORS_ARRET) est exactement les deux tables, soit les onze tâches pg_cron", async () => {
     await db.query("reset role");
     const { rows: table } = await db.query<{ tache: string; cle: string }>(`select tache, cle from public.supervision_taches_arret`);
     const { rows: horsArret } = await db.query<{ tache: string }>(`select tache from public.supervision_taches_hors_arret`);
@@ -184,7 +186,7 @@ describe.skipIf(!DB_URL)("arrêt d'urgence et tâches planifiées (D06)", () => 
     expect(ecran).toEqual(base);
     const tachesEcran = [...Object.keys(TACHES_SQL), ...Object.keys(TACHES_SQL_HORS_ARRET)].sort();
     expect(tachesEcran).toEqual(planifiees.map((j) => j.jobname).sort());
-    expect(tachesEcran).toHaveLength(10);
+    expect(tachesEcran).toHaveLength(11);
     expect(TACHES_SQL["maintenance-artisans"]?.cles).toEqual(["rappels"]);
     expect(TACHES_SQL["maintenance-artisans"]?.libelle).toMatch(/devis/);
   });

@@ -450,6 +450,7 @@ begin
   foreach v_org in array v_orgs loop
     v_par_org := v_par_org || jsonb_build_array(jsonb_build_object(
       'organisation', v_org,
+      'nom', (select name from public.organizations where id = v_org),
       'biens', (select count(*) from public.biens where organization_id = v_org),
       'lots', (select count(*) from public.lots where organization_id = v_org),
       'baux', (select count(*) from public.baux where organization_id = v_org),
@@ -896,6 +897,7 @@ declare
   v_orgs uuid[];
   v_org uuid;
   v_effacees jsonb := '[]'::jsonb;
+  v_noms jsonb := '[]'::jsonb;
   v_hors jsonb := '[]'::jsonb;
   v_zoho jsonb := '[]'::jsonb;
   v_res jsonb;
@@ -935,6 +937,7 @@ begin
   -- 3. Les organisations dont il est le seul gérant.
   select coalesce(array_agg(o), '{}') into v_orgs from public.organisations_du_seul_titulaire(p_account) o;
   foreach v_org in array v_orgs loop
+    v_noms := v_noms || to_jsonb((select name from public.organizations where id = v_org));
     v_res := public.effacer_organisation_fermeture(v_org);
     v_effacees := v_effacees || jsonb_build_array(v_org);
     v_hors := v_hors || coalesce(v_res -> 'fichiers_hors_documents', '[]'::jsonb);
@@ -1059,6 +1062,8 @@ begin
     'blocage', v_blocage,
     'archives', v_archives,
     'organisations_effacees', v_effacees,
+    -- Pour le seul courriel de fin : retiré de la ligne dès qu'il est parti, jamais écrit au journal d'audit.
+    'organisations_noms', v_noms,
     'adhesions_retirees', v_adhesions,
     'dossiers_tiers_detaches', v_dossiers,
     'proprietaires_prevenus', v_alertes,
@@ -1134,7 +1139,8 @@ begin
   on conflict (fermeture_id) do nothing;
   insert into public.audit_log (account_id, organization_id, action, details)
   values (null, null, 'compte_ferme',
-          jsonb_build_object('fermeture_id', f.id, 'compte', f.account_id, 'origine', f.origine, 'bilan', v_bilan));
+          jsonb_build_object('fermeture_id', f.id, 'compte', f.account_id, 'origine', f.origine,
+                             'bilan', v_bilan - 'organisations_noms'));
   perform pg_catalog.set_config('gerimmo.systeme', v_systeme, true);
   return jsonb_build_object('etat', 'executee', 'bilan', v_bilan);
 end $$;
@@ -1385,6 +1391,7 @@ revoke all on function public.reappliquer_effacements(jsonb) from public, anon, 
 
 create or replace function public.fermetures_suites_a_faire(p_limite integer default 20)
 returns table (id uuid, account_id uuid, origine text, choix text, adresse_courriel text, demandee_le date,
+               derniere_activite_le timestamptz,
                executee_le timestamptz, mode_effacement text, bilan_execution jsonb, abonnement jsonb,
                remboursement_prevu_cents bigint, stripe_facture_id text, rembourse_le timestamptz,
                archives jsonb)
@@ -1398,7 +1405,8 @@ begin
     raise exception 'Accès réservé au traitement' using errcode = '42501';
   end if;
   return query
-    select f.id, f.account_id, f.origine, f.choix, f.adresse_courriel, f.demandee_le, f.executee_le, f.mode_effacement,
+    select f.id, f.account_id, f.origine, f.choix, f.adresse_courriel, f.demandee_le, f.derniere_activite_le,
+           f.executee_le, f.mode_effacement,
            f.bilan_execution, f.abonnement, f.remboursement_prevu_cents, f.stripe_facture_id, f.rembourse_le,
            coalesce((select jsonb_agg(jsonb_build_object('preuve_conservee_jusqu_au', a.preuve_conservee_jusqu_au,
                                                          'factures_conservees_jusqu_au', a.factures_conservees_jusqu_au))
@@ -1428,7 +1436,8 @@ begin
          stripe_remboursement_id = coalesce(p_stripe_remboursement_id, stripe_remboursement_id),
          rembourse_le = case when p_remboursement_cents is not null and rembourse_le is null then now() else rembourse_le end,
          courriel_envoye_le = case when p_courriel_envoye then coalesce(courriel_envoye_le, now()) else courriel_envoye_le end,
-         adresse_courriel = case when p_courriel_envoye then null else adresse_courriel end
+         adresse_courriel = case when p_courriel_envoye then null else adresse_courriel end,
+         bilan_execution = case when p_courriel_envoye then bilan_execution - 'organisations_noms' else bilan_execution end
    where id = p_fermeture and statut = 'executee';
   if not found then raise exception 'Fermeture exécutée introuvable' using errcode = 'P0002'; end if;
 end $$;
@@ -1670,6 +1679,27 @@ end $$;
 revoke all on function public.export_complet_donnees(uuid) from public, anon, authenticated;
 grant execute on function public.export_complet_donnees(uuid) to service_role;
 
+-- Les fichiers de l'organisation (compartiment `documents`, sous son dossier) : chemin et taille.
+create or replace function public.export_complet_fichiers(p_org uuid)
+returns table (chemin text, taille bigint)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if (select auth.role()) is distinct from 'service_role' then
+    raise exception 'Accès réservé au traitement' using errcode = '42501';
+  end if;
+  return query
+    select o.name, coalesce((o.metadata ->> 'size')::bigint, 0)
+      from storage.objects o
+     where o.bucket_id = 'documents' and o.name like p_org::text || '/%'
+     order by o.name;
+end $$;
+revoke all on function public.export_complet_fichiers(uuid) from public, anon, authenticated;
+grant execute on function public.export_complet_fichiers(uuid) to service_role;
+
 -- Le compte qui demande l'export : identité, adhésions, acceptations des conditions.
 create or replace function public.export_complet_compte(p_account uuid)
 returns jsonb
@@ -1699,6 +1729,65 @@ begin
 end $$;
 revoke all on function public.export_complet_compte(uuid) from public, anon, authenticated;
 grant execute on function public.export_complet_compte(uuid) to service_role;
+
+-- L'export de l'artisan, étendu aux données de plateforme (R49) : sa fiche et tout ce qui la cite (métiers, zones,
+-- pièces, validations, relations avec les espaces, sollicitations, devis, interventions, comptes rendus, factures,
+-- évaluations reçues, contestations), ses acceptations des conditions. Les registres privés restent rendus par
+-- `mon_activite_artisan_privee`. Jetons, verrous et identifiants des comptes d'autrui ne sortent pas. Chaque export est
+-- inscrit au journal d'audit.
+create or replace function public.export_artisan_plateforme()
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_artisan uuid;
+  v jsonb;
+  v_lignes jsonb;
+  v_masque text := '(jeton|token|secret|verrou|account_id|_par$)';
+  v_prives text[] := array['artisan_clients', 'artisan_chantiers', 'artisan_devis_externes', 'artisan_rendez_vous',
+                           'artisan_factures_externes', 'artisan_evenements_prives', 'artisan_reglements',
+                           'artisan_avoirs_externes', 'artisan_pieces_privees', 'supervision_sessions_artisan'];
+  r record;
+begin
+  if v_uid is null then raise exception 'Connexion requise' using errcode = '42501'; end if;
+  select id into v_artisan from public.artisans where account_id = v_uid;
+  if v_artisan is null then raise exception 'Réservé à un compte d''artisan' using errcode = '42501'; end if;
+  v := jsonb_build_object('fiche', (select to_jsonb(a) from public.artisans a where a.id = v_artisan));
+  for r in
+    select con.conrelid::regclass as tbl, c.relname as nom, att.attname as col
+      from pg_constraint con
+      join pg_class c on c.oid = con.conrelid
+      join pg_attribute att on att.attrelid = con.conrelid and att.attnum = con.conkey[1]
+     where con.contype = 'f' and con.confrelid = 'public.artisans'::regclass and array_length(con.conkey, 1) = 1
+       and not (c.relname = any(v_prives))
+     order by c.relname, att.attname
+  loop
+    execute format('select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text), ''[]'') from %s t where %I = $1', r.tbl, r.col)
+      into v_lignes using v_artisan;
+    if jsonb_array_length(v_lignes) > 0 then
+      v := v || jsonb_build_object(r.nom || case when v ? r.nom then '__' || r.col else '' end, v_lignes);
+    end if;
+  end loop;
+  v := v || jsonb_build_object('acceptations_conditions',
+    (select coalesce(jsonb_agg(jsonb_build_object('document', c.document, 'version', c.version, 'source', c.source,
+                                                  'acceptee_le', c.acceptee_le) order by c.acceptee_le), '[]'::jsonb)
+       from public.acceptations_cgu c where c.account_id = v_uid));
+  insert into public.audit_log (account_id, organization_id, action, details)
+  values (v_uid, null, 'export_artisan', jsonb_build_object('artisan_id', v_artisan));
+  return (select jsonb_object_agg(k,
+            case jsonb_typeof(val)
+              when 'array' then (select coalesce(jsonb_agg(case when jsonb_typeof(l) = 'object'
+                                   then (select coalesce(jsonb_object_agg(ck, cv), '{}'::jsonb) from jsonb_each(l) e(ck, cv) where ck !~* v_masque)
+                                   else l end), '[]'::jsonb) from jsonb_array_elements(val) l)
+              when 'object' then (select coalesce(jsonb_object_agg(ck, cv), '{}'::jsonb) from jsonb_each(val) e(ck, cv) where ck !~* v_masque)
+              else val end)
+            from jsonb_each(v) t(k, val));
+end $$;
+revoke all on function public.export_artisan_plateforme() from public, anon;
+grant execute on function public.export_artisan_plateforme() to authenticated;
 
 -- ── 12. Planification ─────────────────────────────────────────────────────────────────────────────────────────────
 

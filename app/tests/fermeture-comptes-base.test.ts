@@ -544,7 +544,7 @@ describe.skipIf(!url)("fermeture des comptes, inactivité, export complet (avec 
 
   it("suites : la clé de service lit les fermetures exécutées sans courriel, avec les échéances de l'archive, puis les solde", async () => {
     const titulaire = await compte("fc-suites");
-    const org = await espace(titulaire);
+    const org = await espace(titulaire, "Espace des suites");
     await payer(org);
     await sauvegardeDuJour();
     const id = await programmer(titulaire);
@@ -554,11 +554,16 @@ describe.skipIf(!url)("fermeture des comptes, inactivité, export complet (avec 
     expect(rows).toHaveLength(1);
     expect(rows[0].adresse_courriel).toMatch(/^fc-suites-.*@example\.invalid$/);
     expect(rows[0].archives[0].preuve_conservee_jusqu_au).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // Le nom de l'espace sert au seul courriel : jamais au journal d'audit, retiré de la ligne dès l'envoi.
+    expect(rows[0].bilan_execution.organisations_noms).toEqual(["Espace des suites"]);
+    expect(await nombre("select count(*) n from public.audit_log where action = 'compte_ferme' and details::text like '%Espace des suites%'")).toBe(0);
+    await serviceRole();
     await db.query("select public.fermeture_suites_faites($1, null, null, true)", [id]);
     expect((await db.query("select * from public.fermetures_suites_a_faire(10) where id = $1", [id])).rows).toEqual([]);
     expect(await fermeture(id)).toMatchObject({ adresse_courriel: null });
     expect((await fermeture(id)).courriel_envoye_le).not.toBeNull();
-    await session(titulaire === superviseur ? superviseur : superviseur);
+    expect((await fermeture(id)).bilan_execution).not.toHaveProperty("organisations_noms");
+    await session(superviseur);
     expect(await echec("select * from public.fermetures_suites_a_faire(10)")).toMatch(/^42501/);
   });
 
@@ -703,6 +708,30 @@ describe.skipIf(!url)("fermeture des comptes, inactivité, export complet (avec 
     expect((await db.query("select * from public.exports_complets_a_supprimer(10) where id = $1", [id])).rows).toHaveLength(1);
     await db.query("select public.export_complet_supprime($1)", [id]);
     expect(await nombre("select count(*) n from public.exports_complets where id = $1 and statut = 'expire' and chemin is null", [id])).toBe(1);
+  });
+
+  it("export : fichiers de l'espace (chemin, taille) ; export de l'artisan étendu à ses données de plateforme, journalisé", async () => {
+    const titulaire = await compte("fc-fichiers");
+    const org = await espace(titulaire);
+    await garnir(org, titulaire);
+    await serviceRole();
+    expect((await db.query("select * from public.export_complet_fichiers($1)", [org])).rows).toEqual([{ chemin: `${org}/pieces/piece.pdf`, taille: "0" }]);
+    await session(titulaire);
+    expect(await echec("select * from public.export_complet_fichiers($1)", [org])).toMatch(/^42501/);
+    expect(await echec("select public.export_artisan_plateforme()")).toMatch(/^42501 Réservé à un compte d'artisan/);
+    const artisan = await compte("fc-artisan-export");
+    await proprietaire();
+    const { rows: [{ id: fiche }] } = await db.query<{ id: string }>(
+      `insert into public.artisans (account_id, raison_sociale, siret, telephone)
+       values ($1, 'Électricité export', lpad((floor(random() * 1e13))::bigint::text, 14, '3'), '0600000002') returning id`, [artisan]);
+    await db.query("insert into public.artisan_zones (artisan_id, code_postal) values ($1, '75011')", [fiche]);
+    await session(artisan);
+    const { x } = await un<{ x: Record<string, any> }>("select public.export_artisan_plateforme() as x"); // eslint-disable-line @typescript-eslint/no-explicit-any
+    expect(x.fiche).toMatchObject({ id: fiche, raison_sociale: "Électricité export" });
+    expect(x.fiche).not.toHaveProperty("account_id");
+    expect(x.artisan_zones).toEqual([expect.objectContaining({ code_postal: "75011" })]);
+    expect(x.acceptations_conditions).toHaveLength(1);
+    expect(await nombre("select count(*) n from public.audit_log where action = 'export_artisan' and account_id = $1", [artisan])).toBe(1);
   });
 
   // ── Retour arrière ────────────────────────────────────────────────────────────────────────────────────────────

@@ -72,7 +72,9 @@ begin
   drop function if exists public.exports_complets_a_supprimer(integer);
   drop function if exists public.export_complet_supprime(uuid);
   drop function if exists public.export_complet_donnees(uuid);
+  drop function if exists public.export_complet_fichiers(uuid);
   drop function if exists public.export_complet_compte(uuid);
+  drop function if exists public.export_artisan_plateforme();
 
   -- 4. Les tables, seulement vides.
   if to_regclass('public.effacements_a_reappliquer') is not null then

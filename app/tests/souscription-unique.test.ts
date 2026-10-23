@@ -206,6 +206,62 @@ describe("ouvrirPageDePaiementUnique", () => {
     expect(r.ok).toBe(false);
     expect(stripe.checkout.sessions.expire).toHaveBeenCalledWith("cs_test_neuf");
   });
+
+  // ── Relecture adverse du 23/10 (mineurs A01) ─────────────────────────────────────────────────────────────────────
+  const PAGE_1 = "https://checkout.stripe.test/c/pay/cs_test_1";
+  const PAGE_NEUVE = "https://checkout.stripe.test/c/pay/cs_test_neuf";
+
+  it("page non enregistrée (échec passager) : la réservation est rendue (« echec »), le message ne parle pas d'un autre onglet", async () => {
+    const stripe = fauxStripe();
+    const reg = registre([intention()], false);
+    const r = await ouvrirPageDePaiementUnique(stripe, reg, demande());
+    expect(r).toEqual({ ok: false, erreur: "La page de paiement n'a pas pu être enregistrée. Rien n'a été prélevé : réessayez dans un instant." });
+    expect(stripe.checkout.sessions.expire).toHaveBeenCalledWith("cs_test_neuf");
+    // La base garde l'intention si un autre onglet y a déjà posé SA page (motif « echec » refusé dans ce cas).
+    expect(reg.terminer).toHaveBeenCalledWith("org-1", ID, "echec");
+  });
+
+  it("page de la même demande à quelques secondes de son expiration : elle est fermée, une page neuve est ouverte", async () => {
+    const stripe = fauxStripe();
+    const bientot = new Date(Date.now() + 5_000).toISOString();
+    const reg = registre([intention({ stripe_session_id: "cs_test_1", url: PAGE_1, reprise: true, expire_le: bientot }), intention({ intention: ID2 })]);
+    const r = await ouvrirPageDePaiementUnique(stripe, reg, demande());
+    expect(r).toEqual({ ok: true, url: PAGE_NEUVE, reprise: false });
+    expect(stripe.checkout.sessions.expire).toHaveBeenCalledWith("cs_test_1");
+    expect(reg.terminer).toHaveBeenCalledWith("org-1", ID, "remplacee");
+  });
+
+  it("page de la même demande avec une marge suffisante (20 min) : réutilisée", async () => {
+    const stripe = fauxStripe();
+    const marge = new Date(Date.now() + 20 * 60_000).toISOString();
+    const reg = registre([intention({ stripe_session_id: "cs_test_1", url: PAGE_1, reprise: true, expire_le: marge })]);
+    const r = await ouvrirPageDePaiementUnique(stripe, reg, demande());
+    expect(r).toEqual({ ok: true, url: PAGE_1, reprise: true });
+    expect(stripe.checkout.sessions.expire).not.toHaveBeenCalled();
+  });
+
+  it("page enregistrée introuvable chez Stripe (clés passées du test au réel) : la réservation est close, une page neuve est ouverte", async () => {
+    const stripe = fauxStripe();
+    stripe.checkout.sessions.retrieve.mockRejectedValueOnce(
+      Object.assign(new Error("No such checkout.session: 'cs_test_1'; a similar object exists in test mode, but a live mode key was used to make this request."), {
+        type: "StripeInvalidRequestError",
+        code: "resource_missing",
+      })
+    );
+    const reg = registre([intention({ stripe_session_id: "cs_test_1", url: PAGE_1, reprise: true }), intention({ intention: ID2 })]);
+    const r = await ouvrirPageDePaiementUnique(stripe, reg, demande());
+    expect(r).toEqual({ ok: true, url: PAGE_NEUVE, reprise: false });
+    expect(reg.terminer).toHaveBeenCalledWith("org-1", ID, "expiree");
+  });
+
+  it("relecture de la page impossible pour une panne passagère : la réservation est gardée, le message est en français", async () => {
+    const stripe = fauxStripe();
+    stripe.checkout.sessions.retrieve.mockRejectedValueOnce(Object.assign(new Error("socket hang up"), { type: "StripeConnectionError" }));
+    const reg = registre([intention({ stripe_session_id: "cs_test_1", url: PAGE_1, reprise: true })]);
+    const r = await ouvrirPageDePaiementUnique(stripe, reg, demande());
+    expect(r).toMatchObject({ ok: false, erreur: expect.stringMatching(/momentanément injoignable/) });
+    expect(reg.terminer).not.toHaveBeenCalled();
+  });
 });
 
 describe("le registre adossé à la base", () => {

@@ -2,7 +2,14 @@ import "server-only";
 import { createHash } from "node:crypto";
 import type Stripe from "stripe";
 import { ArretSupervision } from "./controle-effets";
-import { expirerPageDePaiement, lireErreurStripe, verifierAucuneSouscriptionVivante, type Echec, type Reussite } from "@/lib/stripe";
+import {
+  expirerPageDePaiement,
+  lireErreurStripe,
+  messageStripePourClient,
+  verifierAucuneSouscriptionVivante,
+  type Echec,
+  type Reussite,
+} from "@/lib/stripe";
 import { creerSessionOffre, GRILLE, type ChoixOffre, type IntentionSouscription } from "@/lib/stripe-offres";
 import type { Offre, RegimeTva } from "@/lib/tarifs";
 
@@ -149,6 +156,17 @@ const AUTRE_DEMANDE_EN_COURS =
   "Une page de paiement est en cours d'ouverture pour cette organisation (autre onglet ?). Rien n'a été prélevé : réessayez dans quelques secondes.";
 const PAGE_DEJA_PAYEE =
   "Un paiement vient d'aboutir pour cette organisation : rechargez la page dans quelques secondes. Rien ne sera prélevé deux fois.";
+const PAGE_NON_ENREGISTREE =
+  "La page de paiement n'a pas pu être enregistrée. Rien n'a été prélevé : réessayez dans un instant.";
+
+/** Une page ouverte n'est remise au client que s'il lui reste au moins ce temps pour payer (relecture du 23/10). */
+export const MARGE_REUTILISATION_PAGE_MINUTES = 15;
+
+/** Stripe ne connaît pas (ou plus) cette page avec ces clés : supprimée, ou créée dans l'autre mode (test / réel). */
+function pageIntrouvable(e: unknown): boolean {
+  const err = e as { code?: unknown; message?: unknown } | null;
+  return err?.code === "resource_missing" || /similar object exists in (test|live) mode/i.test(String(err?.message ?? ""));
+}
 
 /**
  * Ouvrir — ou rouvrir — LA page de paiement de l'organisation pour cette demande.
@@ -168,24 +186,32 @@ export async function ouvrirPageDePaiementUnique(
 
     // ── Une page ouverte existe déjà pour cette réservation : la réutiliser si elle vit encore.
     if (r.stripe_session_id && r.url) {
-      let etat: Stripe.Checkout.Session["status"];
+      let etat: Stripe.Checkout.Session["status"] | "introuvable";
       try {
         etat = (await stripe.checkout.sessions.retrieve(r.stripe_session_id)).status;
       } catch (e) {
         if (e instanceof ArretSupervision) throw e;
-        return { ok: false, erreur: lireErreurStripe(e) };
+        // Relecture adverse du 23/10 : une page que Stripe ne connaît plus avec ces clés (supprimée, ou créée avec la
+        // clé de test avant le passage au réel) ne servira plus à personne. Elle libère la place au lieu de bloquer
+        // la souscription jusqu'à la fin de la réservation. Une panne passagère, elle, garde la réservation.
+        if (!pageIntrouvable(e)) return { ok: false, erreur: messageStripePourClient(e) };
+        console.error("[souscription] page enregistrée introuvable chez Stripe :", lireErreurStripe(e).slice(0, 200));
+        etat = "introuvable";
       }
       if (etat === "complete") {
         await registre.terminer(org, r.intention, "aboutie");
         return { ok: false, erreur: PAGE_DEJA_PAYEE };
       }
       if (etat !== "open") {
-        // Expirée chez Stripe avant la fin de la réservation : la place est libérée, on recommence (une fois).
+        // Expirée (ou introuvable) chez Stripe avant la fin de la réservation : la place est libérée, on recommence (une fois).
         await registre.terminer(org, r.intention, "expiree");
         if (tour > 0) return { ok: false, erreur: AUTRE_DEMANDE_EN_COURS };
         continue;
       }
-      if (r.empreinte === empreinte) {
+      // Relecture adverse du 23/10 : une page qui expire dans quelques secondes n'est plus remise au client (il n'aurait
+      // pas le temps de saisir sa carte) ; elle est fermée et remplacée, comme celle d'une autre demande.
+      const reutilisable = Date.parse(r.expire_le) - Date.now() >= MARGE_REUTILISATION_PAGE_MINUTES * 60_000;
+      if (r.empreinte === empreinte && reutilisable) {
         // Une souscription née entre-temps (webhook pas encore reçu) : pas de page.
         const libre = await verifierAucuneSouscriptionVivante(stripe, demande.customer, r.intention);
         if (!libre.ok) {
@@ -194,15 +220,16 @@ export async function ouvrirPageDePaiementUnique(
         }
         return { ok: true, url: r.url, reprise: true };
       }
-      // Autre demande : fermer d'abord sa page chez Stripe, puis la réservation. Une fois par demande : deux onglets
-      // qui demandent deux formules différentes ne se ferment pas indéfiniment la page l'un de l'autre.
+      // Autre demande (ou page presque expirée) : fermer d'abord sa page chez Stripe, puis la réservation. Une fois par
+      // demande : deux onglets qui demandent deux formules différentes ne se ferment pas indéfiniment la page l'un de
+      // l'autre.
       if (tour > 0) return { ok: false, erreur: AUTRE_DEMANDE_EN_COURS };
       let fin: "expired" | "complete";
       try {
         fin = await expirerPageDePaiement(stripe, r.stripe_session_id);
       } catch (e) {
         if (e instanceof ArretSupervision) throw e;
-        return { ok: false, erreur: lireErreurStripe(e) };
+        return { ok: false, erreur: messageStripePourClient(e) };
       }
       if (fin === "complete") {
         await registre.terminer(org, r.intention, "aboutie");
@@ -235,14 +262,19 @@ export async function ouvrirPageDePaiementUnique(
       return { ok: false, erreur: AUTRE_DEMANDE_EN_COURS };
     }
     if (!(await registre.poserPage(org, r.intention, page.session, page.url))) {
-      // La réservation a été reprise ou a expiré entre-temps : cette page ne doit servir à personne.
+      // La réservation a été reprise ou a expiré entre-temps, ou l'enregistrement a échoué : cette page ne doit servir
+      // à personne.
       try {
         await expirerPageDePaiement(stripe, page.session);
       } catch (e) {
         if (e instanceof ArretSupervision) throw e;
         console.error("[souscription] page orpheline non expirée :", lireErreurStripe(e).slice(0, 200));
       }
-      return { ok: false, erreur: AUTRE_DEMANDE_EN_COURS };
+      // Relecture adverse du 23/10 : la réservation est rendue. Sinon le clic suivant reprenait la même intention, donc
+      // la même clé d'idempotence, et Stripe lui rejouait la réponse d'origine : la page qu'on vient d'expirer. La base
+      // garde l'intention si un autre onglet y a déjà posé SA page (« echec » est alors refusé).
+      await registre.terminer(org, r.intention, "echec");
+      return { ok: false, erreur: PAGE_NON_ENREGISTREE };
     }
     return { ok: true, url: page.url, reprise: r.reprise };
   }

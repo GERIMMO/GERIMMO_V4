@@ -128,6 +128,17 @@ describe("archiverConditionsPubliees", () => {
     expect(envoi.cleIdempotence).toContain(`conditions-divergentes-conditions_clients-${CONDITIONS_VERSION}-`);
   });
 
+  it("M2 : seule la présentation a changé (déploiement visuel) : rien à faire, aucune alerte au relais", async () => {
+    const s = service({ retour: { statut: "presentation_differente", empreinte_sha256: "b".repeat(64), empreinte_publiee: "c".repeat(64) } });
+    const envoyer = vi.fn(async () => ({ id: "envoi-1" }));
+    const [r] = await archiverConditionsPubliees({
+      service: s.client as never, site: "https://site.example.com", lirePage: pagePubliee, envoyer, adressesRelais: ["relais@example.com"],
+    });
+    expect(r.statut).toBe("deja_archivee");
+    expect(r.message).toContain("seule la présentation");
+    expect(envoyer).not.toHaveBeenCalled();
+  });
+
   it("sans relais configuré, le refus le dit : l'écart reste au journal technique", async () => {
     const s = service({ retour: { statut: "empreinte_differente", empreinte_sha256: "b".repeat(64), champs_identite_modifies: [] } });
     const envoyer = vi.fn(async () => ({ id: "envoi-1" }));

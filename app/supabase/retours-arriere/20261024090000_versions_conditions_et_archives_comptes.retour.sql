@@ -6,7 +6,8 @@
 -- Ce qui est défait :
 --  · `accepter_cgu(text, text, text)` redevient `accepter_cgu(text, text)`, texte exact de 20260927148000 (mêmes
 --    droits : authenticated, jamais public ni anon) ;
---  · le contrôle `acceptations_sans_version_archivee()`, la fonction `archiver_version_conditions(…)`, la purge
+--  · le contrôle `acceptations_sans_version_archivee()`, la fonction `archiver_version_conditions(…)` et sa forme sans
+--    présentation `versions_conditions_sans_presentation(text)`, la purge
 --    `purger_archives_comptes()` et le déclencheur qui pose l'empreinte des acceptations ;
 --  · les tables `versions_conditions` et `archives_comptes`, avec leurs déclencheurs et leurs fonctions, SEULEMENT SI
 --    ELLES SONT VIDES. Une table qui porte une version archivée ou l'archive d'un compte est CONSERVÉE telle quelle
@@ -49,6 +50,7 @@ end $fonction$;
   -- 2. Contrôle, archivage, purge, empreinte des acceptations.
   drop function if exists public.acceptations_sans_version_archivee();
   drop function if exists public.archiver_version_conditions(text, text, date, text, text, jsonb, text, text);
+  drop function if exists public.versions_conditions_sans_presentation(text);
   drop function if exists public.purger_archives_comptes();
   drop trigger if exists acceptations_cgu_empreinte_archivee on public.acceptations_cgu;
   drop function if exists public.acceptations_cgu_empreinte();

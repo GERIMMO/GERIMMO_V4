@@ -25,7 +25,8 @@ import { adressesRelaisDuServeur } from "./relais-alerte-reglage";
 //
 // L'écriture passe par `archiver_version_conditions` (clé de service seulement), qui insère la version si elle
 // manque et ne réécrit JAMAIS une version archivée : une même version avec une autre empreinte est refusée, consignée
-// dans tech_log, et le relais est alerté par e-mail (adresses GERIMMO_RELAIS_EMAILS, le canal d'alerte existant).
+// dans tech_log, et le relais est alerté par e-mail (adresses GERIMMO_RELAIS_EMAILS, le canal d'alerte existant) — sauf
+// si seule la présentation diffère (classes, styles : statut `presentation_differente`), qui ne demande rien.
 
 export type StatutArchivage = "archivee" | "deja_archivee" | "empreinte_differente" | "echec";
 
@@ -190,6 +191,16 @@ export async function archiverConditionsPubliees(deps: Dependances): Promise<Res
       resultats.push({ ...base, statut: "archivee", empreinte, message: `${libelle} : archivée. Empreinte SHA-256 : ${empreinte}.` });
     } else if (retour.statut === "deja_archivee") {
       resultats.push({ ...base, statut: "deja_archivee", empreinte, message: `${libelle} : déjà archivée avec le même texte. Rien à faire.` });
+    } else if (retour.statut === "presentation_differente") {
+      // Relecture adverse du 24/10 (M2) : un déploiement purement visuel (classes, styles) ne change pas le contrat.
+      resultats.push({
+        ...base,
+        statut: "deja_archivee",
+        empreinte: retour.empreinte_sha256 ?? empreinte,
+        message:
+          `${libelle} : déjà archivée avec le même texte ; seule la présentation de la page (classes, styles) a changé depuis. ` +
+          "L'archive garde la présentation d'origine. Rien à faire.",
+      });
     } else {
       const archivee = retour.empreinte_sha256 ?? "";
       const champs = Array.isArray(retour.champs_identite_modifies) ? retour.champs_identite_modifies : [];

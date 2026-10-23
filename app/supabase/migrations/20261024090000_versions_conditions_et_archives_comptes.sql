@@ -113,9 +113,25 @@ create trigger versions_conditions_sans_vidage
 comment on table public.versions_conditions is
   'Versions publiées des conditions (HTML de la page publiée, identité de l''éditeur, empreinte SHA-256 du HTML recalculée par la base). Ajout seul (24/10/2026, plan de conformité R12).';
 
+-- Le texte sans sa présentation : les attributs class et style retirés, comme `formeDeReference` côté code
+-- (lib/conditions-versions.ts ; tests/versions-conditions-base.test.ts vérifie l'égalité). React échappe les guillemets
+-- dans les textes : seul un vrai attribut a cette forme.
+create or replace function public.versions_conditions_sans_presentation(p_texte text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select pg_catalog.regexp_replace(p_texte, ' (class|style)="[^"]*"', '', 'g')
+$$;
+revoke all on function public.versions_conditions_sans_presentation(text) from public, anon, authenticated;
+grant execute on function public.versions_conditions_sans_presentation(text) to service_role;
+
 -- L'archivage par l'action serveur (clé de service) : insère la version si elle manque ; si elle existe, compare les
 -- empreintes. Une même version avec une autre empreinte n'est JAMAIS réécrite : elle est refusée et consignée dans
--- tech_log (noms des champs d'identité qui diffèrent, jamais leurs valeurs), et l'action alerte le relais.
+-- tech_log (noms des champs d'identité qui diffèrent, jamais leurs valeurs), et l'action alerte le relais. Sauf si
+-- seule la présentation diffère (relecture adverse du 24/10, M2) : même texte sans ses classes ni ses styles, après un
+-- déploiement purement visuel ; l'archive garde sa présentation d'origine, rien n'est consigné ni alerté.
 create or replace function public.archiver_version_conditions(
   p_document text,
   p_version text,
@@ -159,6 +175,13 @@ begin
   select * into v_archivee from public.versions_conditions v where v.document = p_document and v.version = p_version;
   if v_archivee.empreinte_sha256 = v_calculee then
     return jsonb_build_object('statut', 'deja_archivee', 'empreinte_sha256', v_calculee, 'publiee_le', v_archivee.publiee_le);
+  end if;
+  if public.versions_conditions_sans_presentation(v_archivee.texte_html) = public.versions_conditions_sans_presentation(p_texte_html) then
+    return jsonb_build_object(
+      'statut', 'presentation_differente',
+      'empreinte_sha256', v_archivee.empreinte_sha256,
+      'empreinte_publiee', v_calculee,
+      'publiee_le', v_archivee.publiee_le);
   end if;
 
   select coalesce(array_agg(c.cle order by c.cle), '{}') into v_champs

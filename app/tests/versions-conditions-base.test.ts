@@ -25,7 +25,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { transactionsInterdites } from "../scripts/verifier-transactions-migration.mjs";
-import { sha256Hex } from "../src/lib/conditions-versions";
+import { extraireTexteContractuel, formeDeReference, sha256Hex } from "../src/lib/conditions-versions";
 import { verifierBaseDeTest } from "./garde-base";
 
 const url = process.env.SUPABASE_DB_URL;
@@ -178,6 +178,35 @@ describe.skipIf(!url)("versions des conditions et archives des comptes (avec bas
     );
     expect(journal.details).toMatchObject({ document: "conditions_clients", version: "essai-1", champs_identite_modifies: ["email"] });
     expect(JSON.stringify(journal.details)).not.toContain("example.com");
+  });
+
+  it("M2 : seule la présentation diffère (classes, styles) : pas de divergence, ni journal ni alerte ; un mot changé, si", async () => {
+    await serviceRole();
+    const archive = '<section class="loc-carte space-y-2"><p class="a">Texte A</p></section>';
+    expect(await archiver(archive)).toMatchObject({ statut: "archivee" });
+    const restylee = '<section class="loc-carte space-y-3"><p class="b" style="color:red">Texte A</p></section>';
+    expect(await archiver(restylee)).toMatchObject({
+      statut: "presentation_differente",
+      empreinte_sha256: sha256Hex(archive),
+      empreinte_publiee: sha256Hex(restylee),
+    });
+    const changee = '<section class="loc-carte space-y-3"><p class="b">Texte B</p></section>';
+    expect(await archiver(changee)).toMatchObject({ statut: "empreinte_differente" });
+    await proprietaire();
+    const { rows } = await db.query<{ n: number }>(
+      "select count(*)::int as n from public.tech_log where evenement = 'conditions_version_divergente' and details->>'version' = 'essai-1'"
+    );
+    expect(rows[0].n).toBe(1);
+    expect((await db.query("select texte_html from public.versions_conditions where version = 'essai-1'")).rows).toEqual([{ texte_html: archive }]);
+  });
+
+  it("M2 : la base retire la présentation comme la garde du code (formeDeReference)", async () => {
+    const page = readFileSync("tests/fixtures/conditions-next-start.html", "utf8");
+    const extraction = extraireTexteContractuel(page, "conditions_clients");
+    if (!extraction.ok) throw new Error("texte contractuel introuvable");
+    const { rows: [{ forme }] } = await db.query<{ forme: string }>("select public.versions_conditions_sans_presentation($1) as forme", [extraction.html]);
+    expect(forme).toBe(formeDeReference(extraction.html));
+    expect(forme).not.toContain('class="');
   });
 
   it("versions : une empreinte qui n'est pas celle du texte est refusée, par la fonction comme par l'insertion directe", async () => {

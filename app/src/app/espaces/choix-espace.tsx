@@ -87,7 +87,9 @@ export function ChoixEspace({
               {/* Nouvel onglet (24/09), comme à l'inscription : dans le même
                   onglet, lire les conditions coûtait la saisie en cours, et
                   « ← Retour » ramenait sur la vitrine, pas sur ce formulaire. */}
-              {/* Plan de conformité du 23/10 (R60) : un seul libellé, celui de l'inscription et de « Mon abonnement ». */}
+              {/* Plan de conformité du 23/10 (R60) : le libellé unique de la case des conditions clients, le même qu'au premier
+                  mot de passe (CASE_CONDITIONS_CLIENTS). « Mon abonnement » fait accepter, avant le paiement, une version
+                  précise (« J'ai lu et j'accepte la version du … des conditions générales ») : autre geste, autre libellé. */}
               <span>
                 {CASE_CONDITIONS_CLIENTS.avant}
                 <Link href={CASE_CONDITIONS_CLIENTS.href} target="_blank" rel="noopener" className="underline underline-offset-4">

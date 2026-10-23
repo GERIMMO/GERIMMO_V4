@@ -60,7 +60,10 @@ export default function PageTarifs() {
             <li>Toute augmentation vous est présentée avant d&apos;être appliquée : nouveau montant, date d&apos;effet et prorata. Rien n&apos;est prélevé sans votre confirmation.</li>
             <li>Une baisse s&apos;applique d&apos;elle-même à la prochaine échéance, quand votre parc le permet.</li>
             <li>Souscrire pendant l&apos;essai ne le raccourcit pas : le premier prélèvement part à sa fin, date affichée.</li>
-            <li>À la fin de l&apos;essai ou des droits payés, vos données restent consultables et exportables en lecture seule, tant que le compte existe. Rien n&apos;est supprimé automatiquement du fait de l&apos;arrêt ; vous pouvez demander la suppression après export (article 9 des conditions générales).</li>
+            {/* Plan de conformité du 23/10 (lot 4, constats R14 et R06) : la suppression après vingt-quatre mois sans
+                connexion ni abonnement (article 9 des conditions générales), puis l'impayé (article 15). */}
+            <li>À la fin de l&apos;essai ou des droits payés, vos données restent consultables et exportables, en lecture seule. Le compte est supprimé après vingt-quatre mois sans connexion ni abonnement, après deux avertissements par courriel ; certaines pièces suivent leur propre durée (page <Link href="/confidentialite" className="lien-texte">Confidentialité</Link>). Vous pouvez aussi demander la suppression après export. Aucun frais de sortie.</li>
+            <li>Si un prélèvement échoue, vous êtes prévenu le jour même. Si vous avez déjà réglé une échéance, la saisie reste ouverte quinze jours, puis le compte passe en lecture seule jusqu&apos;au paiement ; s&apos;il s&apos;agit du tout premier prélèvement, à la fin de l&apos;essai, la lecture seule s&apos;applique dès l&apos;échec. Rien n&apos;est supprimé du fait de l&apos;impayé (article 15 des conditions générales).</li>
           </ul>
         </Article>
 
@@ -69,11 +72,14 @@ export default function PageTarifs() {
             prix ni volume promis : la page dit seulement ce qui existe.
             Relecture du 23/10 : la signature n'est pas facturée au client (budget Zoho commun à Gerimmo) ; rangée
             sous « Ce qui n'est pas dans l'abonnement », elle se lisait comme exclue ou payante en sus. Elle est
-            dans l'abonnement, avec les mêmes réserves de volume et de suspension. */}
+            dans l'abonnement, avec les mêmes réserves de volume et de suspension.
+            Décisions du dirigeant du 23/10 (plan de conformité, lot 4) : signature comprise sans supplément, essai
+            compris, dans la limite du volume mensuel commun ; l'acte de cautionnement et l'état des lieux se signent
+            dans Gerimmo et restent dans la liste (article 4.7 des conditions générales). */}
         <Article titre="Ce qui est dans l'abonnement">
           <ul className="list-disc space-y-1 pl-5">
             <li>Toutes les fonctions de gestion et l&apos;espace locataire, quelle que soit votre formule.</li>
-            <li>La signature électronique du bail, de l&apos;acte de cautionnement, de certains documents de la location et de l&apos;acceptation des devis, depuis l&apos;application, avec un code envoyé par SMS à chaque signataire. Elle n&apos;est pas illimitée : elle dépend d&apos;un volume mensuel commun et peut être momentanément suspendue.</li>
+            <li>La signature électronique du bail et de ses avenants, des accords d&apos;échelonnement et de travaux, de l&apos;acceptation des devis, de l&apos;acte de cautionnement et de l&apos;état des lieux, depuis l&apos;application, avec un code envoyé par SMS à chaque signataire. Elle est comprise dans l&apos;abonnement et dans l&apos;essai, sans supplément pour vous ni pour les signataires. Elle n&apos;est pas illimitée : elle dépend d&apos;un volume mensuel commun et peut être momentanément suspendue.</li>
           </ul>
         </Article>
 

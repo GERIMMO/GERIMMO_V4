@@ -114,8 +114,11 @@ export function FormulaireListeAttenteAgences() {
           {enCours ? <><Spinner className="size-3" /> Envoi…</> : "Rejoindre la liste d’attente"}
         </button>
         <p className="mt-2 text-[13px] text-[var(--sur-encre)]/80">
-          Vos coordonnées servent uniquement à vous prévenir de l’ouverture de l’offre aux agences. Vous pouvez en
-          demander la suppression à tout moment (voir notre{" "}
+          {/* Plan de conformité du 23/10 (lot 4, constat R44) : déclencheur « Inscription » et retrait traité dans le mois. */}
+          Vos coordonnées servent uniquement à vous prévenir de l’ouverture de l’offre aux agences et à donner suite à
+          vos réponses. Vous pouvez vous y opposer à tout moment, en répondant à l’un de nos messages ou en nous
+          écrivant ; elles sont supprimées trois ans après votre inscription, ou dans le mois de votre demande de
+          retrait (voir notre{" "}
           <a href="/confidentialite" className="underline underline-offset-2">politique de confidentialité</a>).
         </p>
       </div>

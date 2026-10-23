@@ -8,7 +8,7 @@ import { ConfirmationPaiement } from "./confirmation-paiement";
 // montants viennent de lib/tarifs.ts — le même module que le site et Stripe.
 
 import Link from "next/link";
-import { ArrowRight, Building2, CalendarDays, Check, CreditCard, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, Building2, CalendarDays, Check, CreditCard, PenLine, ShieldCheck, Users } from "lucide-react";
 import styles from "./abonnement.module.css";
 import { notFound } from "next/navigation";
 import { BoutonPortail, BoutonResiliation, FormulaireHausse, FormulairePeriodicite } from "./boutons-abonnement";
@@ -650,8 +650,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
               {paiement.periodicite === "annuel"
                 ? "L'abonnement annuel se renouvelle pour douze mois à sa date anniversaire. Résilié, il prend fin à l'échéance annuelle : l'accès payé reste ouvert jusque-là."
                 : "Sans engagement : résilié, l'abonnement prend fin à la prochaine échéance mensuelle ; l'accès payé reste ouvert jusque-là."}{" "}
-              Ensuite, vos données restent consultables et exportables, en lecture seule — rien n&apos;est supprimé
-              automatiquement.
+              Ensuite, votre compte passe en lecture seule : vos données restent consultables et exportables ; rien
+              n&apos;est supprimé du seul fait de la résiliation (article 9 des conditions générales).
             </p>
             {/* Plan du 23/10 (R04) : un seul chemin de résiliation, la page « Résilier votre contrat » (récapitulatif,
                 date de fin, accusé de réception) ; le portail de paiement ne résilie plus. */}
@@ -682,10 +682,14 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             <div><Building2 size={20} aria-hidden="true" /><strong>Votre gestion au complet</strong><p>Toutes les fonctions disponibles pour votre profil.</p></div>
             <div><Users size={20} aria-hidden="true" /><strong>L’espace de vos locataires</strong><p>Leurs accès sont inclus, sans supplément.</p></div>
             <div><ShieldCheck size={20} aria-hidden="true" /><strong>Aucun frais d’installation</strong><p>Le tarif dépend du nombre de biens et de la périodicité.</p></div>
+            {/* Plan de conformité du 23/10 (lot 4, constat R13) et décisions du dirigeant du 23/10 : la signature passe
+                dans ce qui est compris, sans supplément, essai compris, dans la limite du volume mensuel commun ; l'acte
+                de cautionnement et l'état des lieux se signent dans Gerimmo (article 4.7 des conditions générales). */}
+            <div><PenLine size={20} aria-hidden="true" /><strong>La signature électronique</strong><p>Bail et avenants, accords, devis, actes de cautionnement et états des lieux, avec Zoho Sign et un code par SMS : sans supplément, essai compris, dans la limite d’un volume mensuel commun.</p></div>
           </div>
           <details className={styles.precisions}>
             <summary>Services facturés à part ou non inclus</summary>
-            <p>Les travaux et interventions d’artisans sont sur devis et facturés à part. Le réseau d’artisans dépend de la zone du bien et du métier. La signature des documents éligibles s’effectue avec Zoho Sign et vérification par SMS, selon les conditions et limites affichées avant l’envoi. Aucun service bancaire n’est inclus.</p>
+            <p>Les travaux et interventions d’artisans sont sur devis et facturés à part. Le réseau d’artisans dépend de la zone du bien et du métier. Aucun envoi de SMS en dehors du code de signature, aucun service bancaire n’est inclus.</p>
           </details>
         </section>
       ) : <div className="loc-carte">
@@ -703,9 +707,13 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
               : "Sans supplément : les accès de vos locataires."}
           </li>
           <li>
+            Sans supplément : la signature électronique du bail et de ses avenants, des accords, des devis, des actes de
+            cautionnement et des états des lieux, avec Zoho Sign et un code par SMS, dans la limite d&apos;un volume
+            mensuel commun.
+          </li>
+          <li>
             Non compris : les travaux et interventions d&apos;artisans, toujours sur devis et facturés à part ; le réseau
-            d&apos;artisans dépend de la zone du bien et du métier. La signature des documents éligibles s’effectue avec Zoho Sign et vérification
-            par SMS, selon les conditions et limites affichées avant l’envoi. Aucun service bancaire n’est inclus.
+            d&apos;artisans dépend de la zone du bien et du métier. Aucun service bancaire n’est inclus.
           </li>
           <li>
             Aucun frais d&apos;installation.

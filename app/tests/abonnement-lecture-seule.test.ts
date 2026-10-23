@@ -511,4 +511,16 @@ describe("l'écran « Mon abonnement » ne promet plus ce qui est faux", () => {
     expect(src).not.toMatch(/\*\s*5[.,]99/);
     }
   });
+
+  it("ne promet plus que « rien n'est supprimé automatiquement » (plan de conformité du 23/10, constat R14)", async () => {
+    // Article 9 de la V1 : le compte est supprimé après vingt-quatre mois sans connexion ni abonnement, après deux
+    // avertissements. L'écran dit seulement que la résiliation, à elle seule, ne supprime rien.
+    const fs = await import("node:fs");
+    const src = fs
+      .readFileSync(new URL("../src/app/agence/[orgId]/abonnement/abonnement-2026.tsx", import.meta.url), "utf8")
+      .replace(/&apos;/g, "'")
+      .replace(/\s+/g, " ");
+    expect(src).not.toContain("rien n'est supprimé automatiquement");
+    expect(src).toContain("rien n'est supprimé du seul fait de la résiliation (article 9 des conditions générales)");
+  });
 });

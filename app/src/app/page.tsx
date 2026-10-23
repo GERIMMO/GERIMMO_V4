@@ -39,7 +39,7 @@ const faq = (duree: string): [string, string][] => [
   ],
   [
     "Que se passe-t-il si j'arrête ?",
-    "La résiliation prend effet à la prochaine échéance : l'accès payé reste ouvert jusque-là. Ensuite, vos données restent consultables et exportables, en lecture seule, tant que le compte existe — rien n'est supprimé automatiquement du fait de l'arrêt, et vous pouvez demander la suppression après export. Aucun frais de sortie.",
+    "La résiliation prend effet à la prochaine échéance : l'accès payé reste ouvert jusque-là. Ensuite, vos données restent consultables et exportables, en lecture seule. Le compte est supprimé après vingt-quatre mois sans connexion ni abonnement, après deux avertissements par courriel ; certaines pièces suivent leur propre durée (page Confidentialité). Vous pouvez aussi demander la suppression après export. Aucun frais de sortie.",
   ],
   [
     "Puis-je gérer pour quelqu'un d'autre ?",

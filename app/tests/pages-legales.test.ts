@@ -245,11 +245,13 @@ describe("conditions générales d'utilisation et de vente (29/09)", () => {
     expect(cgu).not.toContain("prestatairesAvecFaits");
   });
 
-  it("« rien n'est supprimé automatiquement » se dit de la même façon partout", () => {
+  // Plan de conformité du 23/10 (lot 4, constat R14) : « rien n'est supprimé automatiquement » devient la règle des
+  // vingt-quatre mois sans connexion ni abonnement (article 9 de la V1), dite de la même façon sur l'accueil et /tarifs.
+  it("la suppression après vingt-quatre mois sans connexion ni abonnement se dit de la même façon partout", () => {
     for (const fichier of ["app/page.tsx", "app/tarifs/page.tsx"]) {
-      const texte = lire(fichier).replace(/&apos;/g, "'");
-      expect(texte).toMatch(/rien n'est supprimé automatiquement du fait de l'arrêt/i);
-      expect(texte).toContain("tant que le compte existe");
+      const texte = lire(fichier).replace(/&apos;/g, "'").replace(/\s+/g, " ");
+      expect(texte).not.toMatch(/rien n'est supprimé automatiquement/i);
+      expect(texte).toContain("Le compte est supprimé après vingt-quatre mois sans connexion ni abonnement, après deux avertissements par courriel");
     }
   });
 });
@@ -264,15 +266,22 @@ describe("confidentialité (29/09)", () => {
   });
 
   it("dit comment les transferts hors UE sont encadrés, sans certifier personne", () => {
-    expect(page).toContain("clauses contractuelles types de la");
-    expect(page).toContain("Data Privacy Framework UE–États-Unis, selon le prestataire");
+    const aplati = page.replace(/\s+/g, " ");
+    expect(aplati).toContain("clauses contractuelles types de la Commission européenne");
+    expect(aplati).toContain("Data Privacy Framework) pour un prestataire certifié");
+    // Plan du 23/10 (décision 12, section 5) : la certification d'OpenAI et de GitHub n'est pas vérifiée.
+    expect(aplati).toContain("nous ne nous en prévalons pas");
     expect(page).toContain("GitHub Actions");
     expect(page).not.toMatch(/hébergées <b className="font-semibold">dans\s+l&apos;Union/);
   });
 
-  it("conserve les factures dix ans et la preuve d'acceptation le temps du contrat plus cinq ans", () => {
-    expect(page).toContain("10 ans (obligation légale)");
-    expect(page).toContain("Durée du contrat, puis 5 ans");
+  // Décision du 23/10 (éditeur non commerçant) : six ans pour les factures (LPF, art. L. 102 B) ; plan du 23/10
+  // (constat R12) : preuve du contrat dix ans après la fin du dernier abonnement payé (C. conso, art. L. 213-1).
+  it("conserve les factures six ans et la preuve du contrat dix ans après le dernier abonnement payé", () => {
+    expect(page).toContain("6 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B)");
+    expect(page).not.toContain("10 ans (obligation légale)");
+    expect(page).not.toContain("Durée du contrat, puis 5 ans");
+    expect(page).toContain("10 ans, puis suppression ; supprimée avec le compte si aucun abonnement payant n’a été souscrit");
   });
 
   it("n'envoie plus exercer ses droits par le formulaire de devis", () => {

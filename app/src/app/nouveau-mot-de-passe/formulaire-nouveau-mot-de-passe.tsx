@@ -14,7 +14,7 @@ import { AlerteFormulaire } from "@/components/alerte-formulaire";
 import Link from "next/link";
 import { LONGUEUR_MAX } from "@/lib/limites-saisie";
 import { QUALITES_BAILLEUR } from "@/lib/qualite-bailleur";
-import { CHAMP_DOCUMENT_AFFICHE, caseConditions } from "@/lib/conditions-acceptation";
+import { CHAMP_DOCUMENT_AFFICHE, caseConditions, documentAffiche } from "@/lib/conditions-acceptation";
 
 const CHAMPS_TEXTE_PROFIL = [
   ["prenom", "Prénom"],
@@ -73,6 +73,14 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
   const [choix, setChoix] = useState<{ pour: EtatNouveauMotDePasse; espace: string } | null>(null);
   const espaceAffiche = choix && choix.pour === etat ? choix.espace : espace;
   const caseCgu = caseConditions(espaceAffiche);
+  // Relecture adverse du 24/10 (défaut 1) : une coche ne vaut que pour le texte sous lequel elle a été donnée. La case est
+  // REMONTÉE quand son document change (clé = document) : avec le script, cochée sous « J'ai pris connaissance des règles
+  // d'utilisation des espaces invités… », elle gardait sa coche sous « J'accepte les conditions générales d'utilisation et
+  // de vente » une fois l'usage changé, et le serveur enregistrait les conditions de vente sur une coche donnée pour une
+  // autre phrase. Une coche revenue d'un refus n'est reposée que sous le texte qu'elle portait à l'envoi (`cgu_document`
+  // de la saisie, lib/revalidation-inscription.ts), avec ou sans script. Un usage qui garde le même texte (artisan et
+  // propriétaire tant que les conditions artisans ne sont pas publiées) garde la coche.
+  const documentCoche = saisie.cgu === "on" ? documentAffiche(saisie[CHAMP_DOCUMENT_AFFICHE] ?? null) : null;
 
   return (
     <Card>
@@ -108,7 +116,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
               </label>
               <input type="hidden" name={CHAMP_DOCUMENT_AFFICHE} value={caseCgu.document} />
               <label className="flex min-h-11 items-center gap-3 text-sm">
-                <input type="checkbox" name="cgu" required className="size-6 shrink-0" defaultChecked={saisie.cgu === "on"} {...marque("cgu")} />
+                <input key={caseCgu.document} type="checkbox" name="cgu" required className="size-6 shrink-0" defaultChecked={documentCoche === caseCgu.document} {...marque("cgu")} />
                 <span>{caseCgu.avant}<Link className="underline" href={caseCgu.href} target="_blank" rel="noopener">{caseCgu.lien}</Link>{caseCgu.apres}</span>
               </label>
               {sous("cgu")}

@@ -121,10 +121,28 @@ describe("premier choix du mot de passe : le document suit l'usage (R10, R60)", 
     expect(auth.updateUser).not.toHaveBeenCalled();
   });
 
+  it("refus venu avant le contrôle du document : la saisie rendue dit sous quel texte la case a été cochée", async () => {
+    // Relecture adverse du 24/10 (défaut 1) : sans cette trace, la page revenait avec la case du nouvel usage cochée.
+    const r = await definirNouveauMotDePasse({}, formulaire({ espace: "proprietaire_direct", cgu_document: "regles_invites", confirmation: "autre-saisie-456" }));
+    expect(r.erreur).toBe("Les deux saisies ne correspondent pas.");
+    expect(r.valeurs).toMatchObject({ espace: "proprietaire_direct", cgu: "on", cgu_document: "regles_invites" });
+    // Page servie avant le 24/10 : elle ne montrait que la case des conditions clients.
+    const ancienne = await definirNouveauMotDePasse({}, formulaire({ espace: "invite", confirmation: "autre-saisie-456" }));
+    expect(ancienne.valeurs).toMatchObject({ cgu: "on", cgu_document: "conditions_clients" });
+    // Valeur inconnue : aucune trace, donc aucune coche reposée ; case non cochée : rien non plus.
+    const inconnu = await definirNouveauMotDePasse({}, formulaire({ espace: "invite", cgu_document: "autre", confirmation: "autre-saisie-456" }));
+    expect(inconnu.valeurs?.cgu_document).toBeUndefined();
+    const decochee = formulaire({ espace: "invite", cgu_document: "regles_invites", confirmation: "autre-saisie-456" });
+    decochee.delete("cgu");
+    expect((await definirNouveauMotDePasse({}, decochee)).valeurs).not.toHaveProperty("cgu_document");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it("usage changé sans que la case suive (envoi sans script) : refus, rien d'enregistré, case décochée", async () => {
     const r = await definirNouveauMotDePasse({}, formulaire({ espace: "invite", cgu_document: "conditions_clients" }));
     expect(r.erreur).toBe(MESSAGE_CASE_A_REVOIR);
     expect(r.valeurs?.cgu).toBeUndefined();
+    expect(r.valeurs?.cgu_document).toBeUndefined();
     expect(rpc).not.toHaveBeenCalled();
     const inconnu = await definirNouveauMotDePasse({}, formulaire({ espace: "proprietaire_direct", cgu_document: "autre" }));
     expect(inconnu.erreur).toBe(MESSAGE_CASE_A_REVOIR);

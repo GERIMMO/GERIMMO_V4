@@ -154,7 +154,7 @@ export async function definirNouveauMotDePasse(
     // La case affichée à l'envoi doit être celle de l'usage choisi : sans script, changer la liste ne change pas son
     // libellé. On n'enregistre jamais l'accord sur un texte que la case ne nommait pas ; elle revient décochée.
     if (documentAffiche(formData.get(CHAMP_DOCUMENT_AFFICHE)) !== caseAcceptee.document) {
-      const sansCase = Object.fromEntries(Object.entries(saisie).filter(([champ]) => champ !== "cgu"));
+      const sansCase = Object.fromEntries(Object.entries(saisie).filter(([champ]) => champ !== "cgu" && champ !== CHAMP_DOCUMENT_AFFICHE));
       return { erreur: MESSAGE_CASE_A_REVOIR, champ: "cgu", ...(Object.keys(sansCase).length > 0 ? { valeurs: sansCase } : {}) };
     }
     const code = champs.code_parrainage ? normaliserCode(champs.code_parrainage) : null;

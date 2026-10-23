@@ -5,8 +5,13 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { reglerBlocageSouscription } from "@/app/actions/reglage-souscription";
 
-export function BlocageSouscription({ actif, revision, manquants }: {
-  actif: boolean; revision: number | null; manquants: string[];
+/**
+ * `manquants` : les faits REQUIS absents, seuls à fermer le paiement ; `aCompleter` : ceux du médiateur, qui ne
+ * ferment rien (lib/editeur.ts, A_COMPLETER). Relecture du 23/10 : sans `aCompleter`, la carte disait « L’identité
+ * est complète » alors que la carte voisine comptait le médiateur « à compléter ».
+ */
+export function BlocageSouscription({ actif, revision, manquants, aCompleter }: {
+  actif: boolean; revision: number | null; manquants: string[]; aCompleter: string[];
 }) {
   const [etat, action, pending] = useActionState(reglerBlocageSouscription, {});
   return (
@@ -22,7 +27,9 @@ export function BlocageSouscription({ actif, revision, manquants }: {
       </p>
       {manquants.length > 0
         ? <p className="text-sm text-[var(--texte-secondaire)]">À compléter : {manquants.join(", ")}. Lever ce blocage ne complète pas les mentions légales.</p>
-        : <p className="text-sm text-[var(--texte-secondaire)]">L’identité est complète : cette règle ne bloque actuellement aucune souscription.</p>}
+        : aCompleter.length > 0
+          ? <p className="text-sm text-[var(--texte-secondaire)]">L’identité requise est complète ; le médiateur reste à compléter et ne bloque rien. Cette règle ne bloque actuellement aucune souscription.</p>
+          : <p className="text-sm text-[var(--texte-secondaire)]">L’identité est complète : cette règle ne bloque actuellement aucune souscription.</p>}
       <p className="text-sm text-[var(--texte-secondaire)]">Les contrôles Stripe, les montants, la confirmation du client et l’acceptation des conditions restent obligatoires. Aucun paiement n’est déclenché par ce bouton.</p>
       {revision === null
         ? <p role="alert" className="err">Réglage indisponible. Rechargez la page avant de modifier.</p>

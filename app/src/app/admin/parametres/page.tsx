@@ -45,7 +45,7 @@ export default async function PageParametres() {
         </div>
       </div>
 
-      <BlocageSouscription actif={regle.blocageIdentiteActif} revision={regle.revision} manquants={[...manquants]} />
+      <BlocageSouscription actif={regle.blocageIdentiteActif} revision={regle.revision} manquants={[...manquants]} aCompleter={[...aCompleter]} />
 
       <section className="loc-carte">
         <div className="entete-carte">

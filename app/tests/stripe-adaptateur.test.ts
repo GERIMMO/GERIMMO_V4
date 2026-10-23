@@ -8,6 +8,7 @@
  * La page de paiement, elle, décide quelque chose depuis le 24/09 (la fin
  * d'essai) : on regarde donc ce qu'elle envoie, sans regarder ce qui revient.
  */
+import Stripe from "stripe";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   assurerClientStripe,
@@ -20,6 +21,7 @@ import {
   finDePeriode,
   finEssaiPourStripe,
   lireErreurStripe,
+  messageStripePourClient,
   prixPour,
   quantiteFacturee,
   variablePrix,
@@ -165,8 +167,53 @@ describe("Les refus de Stripe, dits à un gérant", () => {
     expect(lireErreurStripe(carte("card_declined", "insufficient_funds"))).toBe("Votre carte a été refusée : provision insuffisante.");
     expect(lireErreurStripe(carte("expired_card"))).toBe("Votre carte a expiré.");
     expect(lireErreurStripe(carte("card_declined", "motif_inconnu"))).toBe("Votre carte a été refusée par votre banque.");
-    expect(lireErreurStripe(carte("code_inconnu"))).toBe("Votre carte a été refusée par votre banque.");
+    // Relecture du 23/10 : un code qui n'est pas un refus de carte n'est plus dit « refusée par votre banque ».
+    expect(lireErreurStripe(carte("code_inconnu"))).toBe("Le paiement n'a pas abouti chez notre prestataire de paiement (référence : code_inconnu).");
     expect(lireErreurStripe(carte("card_declined"))).not.toContain("declined");
+  });
+
+  // Relecture adverse du 23/10 : le SDK fabrique un StripeCardError pour TOUT statut 402 (node_modules/stripe/cjs/Error.js).
+  const AUTHENTIFICATION =
+    "Votre banque demande d'authentifier ce paiement, ce que ce changement en ligne ne permet pas : un nouvel essai échouerait de la même façon. Vérifiez votre carte depuis « Carte et factures », ou écrivez-nous pour appliquer le changement.";
+
+  it("authentification forte exigée : la phrase ne promet pas un écran de validation que ce parcours n'a pas", () => {
+    const e = Stripe.errors.StripeError.generate({
+      statusCode: 402, type: "card_error", code: "card_declined", decline_code: "authentication_required",
+      message: "Your card was declined. This transaction requires authentication.",
+    });
+    expect(e.type).toBe("StripeCardError");
+    expect(lireErreurStripe(e)).toBe(AUTHENTIFICATION);
+    expect(lireErreurStripe(e)).not.toMatch(/réessayez/i);
+  });
+
+  it("402 d'action requise sans refus de carte : ni « carte refusée », ni anglais", () => {
+    const e = Stripe.errors.StripeError.generate({
+      statusCode: 402, type: "invalid_request_error", code: "invoice_payment_intent_requires_action",
+      message: "This payment requires additional user action before it can be completed successfully.",
+    });
+    expect(e.type).toBe("StripeCardError");
+    expect(lireErreurStripe(e)).toBe(AUTHENTIFICATION);
+    const autre = Stripe.errors.StripeError.generate({
+      statusCode: 402, type: "invalid_request_error", code: "payment_intent_payment_attempt_failed",
+      message: "The latest payment attempt of this PaymentIntent has failed.",
+    });
+    expect(lireErreurStripe(autre)).toBe("Le paiement n'a pas abouti chez notre prestataire de paiement (référence : payment_intent_payment_attempt_failed).");
+    expect(lireErreurStripe(autre)).not.toMatch(/refusée/);
+  });
+
+  it("pour le client, un motif de Stripe non traduit n'est jamais recopié en anglais ; le journal le garde", () => {
+    const refus = new Stripe.errors.StripeInvalidRequestError({
+      message: "You cannot release a subscription schedule that is currently in the `released` status.", statusCode: 400,
+    });
+    expect(lireErreurStripe(refus)).toBe(refus.message);
+    expect(messageStripePourClient(refus)).toBe("Notre prestataire de paiement a refusé l'opération.");
+    const code = new Stripe.errors.StripeInvalidRequestError({ message: "No such subscription_schedule: 'sub_sched_x'", code: "resource_missing", statusCode: 404 });
+    expect(messageStripePourClient(code)).toBe("Notre prestataire de paiement a refusé l'opération (référence : resource_missing).");
+    // Ce qui est déjà traduit passe tel quel.
+    const carte = Stripe.errors.StripeError.generate({ statusCode: 402, type: "card_error", code: "expired_card", message: "Your card has expired." });
+    expect(messageStripePourClient(carte)).toBe("Votre carte a expiré.");
+    expect(messageStripePourClient(new Error("socket hang up"))).toBe("Le service de paiement n'a pas répondu comme prévu.");
+    expect(messageStripePourClient(undefined)).toContain("n'a pas répondu");
   });
 
   it("un tarif inconnu ne parle pas de « price » mais de la variable à corriger", () => {

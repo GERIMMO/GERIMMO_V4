@@ -117,25 +117,45 @@ export function clientStripe(config: ConfigStripe): Stripe {
  *
  * Le message brut est en anglais, technique, et parle de ressources (« No such
  * price »). Celui qui le lit est un gérant qui vient de cliquer « S'abonner ».
- * Les cas non reconnus gardent le message d'origine : inventer une phrase
- * rassurante sur une erreur qu'on ne comprend pas, c'est empêcher de la
- * comprendre.
+ * Les cas non reconnus gardent le message d'origine AU JOURNAL : inventer une
+ * phrase rassurante sur une erreur qu'on ne comprend pas, c'est empêcher de la
+ * comprendre. Le client, lui, ne lit jamais ce message d'origine en anglais :
+ * `messageStripePourClient` lui donne une phrase neutre et la référence de
+ * Stripe (relecture adverse du 23/10).
  */
 /** Les refus de carte les plus courants, dits en français (codes `decline_code` puis `code` de Stripe). */
 const MOTIFS_CARTE: Record<string, string> = {
   insufficient_funds: "Votre carte a été refusée : provision insuffisante.",
   expired_card: "Votre carte a expiré.",
   incorrect_cvc: "Le code de sécurité de votre carte est incorrect.",
+  invalid_cvc: "Le code de sécurité de votre carte est incorrect.",
   incorrect_number: "Le numéro de votre carte est incorrect.",
-  authentication_required: "Votre banque demande une validation du paiement : réessayez et validez-le depuis l'écran de votre banque.",
+  invalid_number: "Le numéro de votre carte est incorrect.",
+  invalid_expiry_month: "La date d'expiration de votre carte est invalide.",
+  invalid_expiry_year: "La date d'expiration de votre carte est invalide.",
   processing_error: "Une erreur est survenue chez votre banque pendant le paiement. Réessayez dans un instant.",
   lost_card: "Votre carte a été refusée par votre banque.",
   stolen_card: "Votre carte a été refusée par votre banque.",
   card_declined: "Votre carte a été refusée par votre banque.",
 };
 
-export function lireErreurStripe(e: unknown): string {
-  if (!(e instanceof Error)) return "Le service de paiement n'a pas répondu.";
+/**
+ * L'authentification forte (3-D Secure) demandée par la banque. Le seul paiement fait côté serveur est la hausse
+ * (`subscriptions.update`, `error_if_incomplete`) : aucun écran de validation n'est présenté au client, et la mise à
+ * jour est annulée d'un bloc. « Réessayez » échouerait donc à l'identique (relecture adverse du 23/10).
+ */
+const AUTHENTIFICATION_EXIGEE =
+  "Votre banque demande d'authentifier ce paiement, ce que ce changement en ligne ne permet pas : un nouvel essai échouerait de la même façon. Vérifiez votre carte depuis « Carte et factures », ou écrivez-nous pour appliquer le changement.";
+
+const reference = (code: string | undefined | null): string => (code ? ` (référence : ${code})` : "");
+
+/**
+ * La traduction d'un refus de Stripe, ou `null` si ce refus n'est pas reconnu.
+ * Le SDK range TOUT statut 402 parmi les `StripeCardError` (node_modules/stripe/cjs/Error.js), qu'il s'agisse d'un
+ * refus de carte ou d'une action demandée au porteur : seul un refus (`card_declined`, ou un `decline_code`) est dit
+ * « refusée par votre banque » (relecture adverse du 23/10).
+ */
+function traduireErreurStripe(e: Error): string | null {
   const brut = e.message;
   const type = (e as Stripe.errors.StripeError).type;
   if (type === "StripeConnectionError" || type === "StripeAPIError") {
@@ -148,10 +168,18 @@ export function lireErreurStripe(e: unknown): string {
     return "Trop de demandes au service de paiement en même temps. Réessayez dans un instant.";
   }
   // 23/10 : un refus de carte arrivait tel que Stripe l'écrit, en anglais (« Your card was declined. »), au milieu
-  // d'une phrase française. Les motifs courants sont dits en français ; les autres restent un refus de la banque.
+  // d'une phrase française. Les motifs courants sont dits en français.
   if (type === "StripeCardError") {
     const err = e as Stripe.errors.StripeCardError;
-    return MOTIFS_CARTE[err.decline_code ?? ""] ?? MOTIFS_CARTE[err.code ?? ""] ?? "Votre carte a été refusée par votre banque.";
+    const code = err.code ?? "";
+    const refus = err.decline_code ?? "";
+    if (refus === "authentication_required" || code === "authentication_required" || code.endsWith("requires_action")) {
+      return AUTHENTIFICATION_EXIGEE;
+    }
+    const connu = MOTIFS_CARTE[refus] ?? MOTIFS_CARTE[code];
+    if (connu) return connu;
+    if (code === "card_declined" || refus) return "Votre carte a été refusée par votre banque.";
+    return `Le paiement n'a pas abouti chez notre prestataire de paiement${reference(code)}.`;
   }
   if (/no such price/i.test(brut)) {
     return "Le tarif configuré n'existe pas chez Stripe. Vérifiez STRIPE_PRIX_BIEN ou STRIPE_PRIX_LOT_AGENCE — un tarif de test n'existe pas dans le mode réel.";
@@ -162,7 +190,30 @@ export function lireErreurStripe(e: unknown): string {
   if (/similar object exists in (test|live) mode/i.test(brut)) {
     return "Les clés Stripe et les données ne sont pas dans le même mode (test / réel). Vérifiez que les clés et les tarifs viennent du même environnement Stripe.";
   }
-  return brut;
+  return null;
+}
+
+/** Le refus de Stripe, traduit s'il est reconnu, sinon tel quel : pour les JOURNAUX et l'administrateur. */
+export function lireErreurStripe(e: unknown): string {
+  if (!(e instanceof Error)) return "Le service de paiement n'a pas répondu.";
+  return traduireErreurStripe(e) ?? e.message;
+}
+
+/**
+ * Le refus de Stripe tel que le CLIENT le lit : traduit s'il est reconnu, sinon une phrase française neutre avec le
+ * code de Stripe en référence — jamais le motif d'origine, en anglais (relecture adverse du 23/10 : « You cannot
+ * release a subscription schedule… » arrivait tel quel à l'écran). Le motif d'origine reste au journal
+ * (`lireErreurStripe`).
+ */
+export function messageStripePourClient(e: unknown): string {
+  if (!(e instanceof Error)) return "Le service de paiement n'a pas répondu.";
+  const traduit = traduireErreurStripe(e);
+  if (traduit) return traduit;
+  const err = e as Partial<Stripe.errors.StripeError>;
+  if (typeof err.type === "string" && err.type.startsWith("Stripe")) {
+    return `Notre prestataire de paiement a refusé l'opération${reference(err.code)}.`;
+  }
+  return "Le service de paiement n'a pas répondu comme prévu.";
 }
 
 /** La fin de la période en cours, où qu'elle se trouve selon la version d'API. */
@@ -261,7 +312,7 @@ export async function assurerClientStripe(
     return { ok: true, customer: cree.id, remplace: Boolean(params.existant) };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: lireErreurStripe(e) };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 
@@ -295,7 +346,7 @@ export async function verifierClientDeLOrganisation(
     return { ok: true };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: lireErreurStripe(e) };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 
@@ -343,7 +394,7 @@ export async function verifierAucuneSouscriptionVivante(
     return { ok: true };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: lireErreurStripe(e) };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 
@@ -462,7 +513,7 @@ export async function creerSessionPaiement(
     return { ok: true, url: session.url };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: lireErreurStripe(e) };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 
@@ -559,7 +610,7 @@ export async function ouvrirPortailFacturation(
           "L'espace de facturation Stripe n'est pas encore activé. À faire une fois, dans Stripe : Paramètres → Portail client → Activer.",
       };
     }
-    return { ok: false, erreur };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 

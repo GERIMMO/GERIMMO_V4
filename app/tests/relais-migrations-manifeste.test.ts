@@ -94,6 +94,8 @@ const MISSION_OCTOBRE = [
   "20261024100000_acceptation_conditions_et_classement_artisans.sql",
   // 24/10, plan de conformité (lots 1B et 1C) : vente au consommateur (rétractation, confirmation, résiliation) et impayé.
   "20261024110000_vente_et_impaye.sql",
+  // 24/10, plan de conformité (lot 1D, décision du 23/10) : la caution confirme son mobile, l'état des lieux sa visite sur place.
+  "20261024120000_signature_caution_mobile_et_edl_sur_place.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

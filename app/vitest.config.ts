@@ -164,6 +164,9 @@ export const FICHIERS_EN_SERIE = [
   // abonnements_a_relancer et abonnements_avis_reconduction_dus, contrainte des natures de retours) dans la transaction
   // du fichier, et `aujourdhui_paris()` figée le temps d'un cas.
   "tests/vente-impaye-base.test.ts",
+  // Plan de conformité du 24/10 (lot 1D, décision du 23/10) : rejeu de 20261024120000 et de son retour (table
+  // confirmations_mobile_caution supprimée puis recréée, déclencheur sur bail_signature_circuits) dans la transaction du fichier.
+  "tests/signature-caution-edl-base.test.ts",
 ];
 
 export default defineConfig({

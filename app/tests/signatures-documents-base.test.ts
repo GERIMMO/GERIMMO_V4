@@ -87,6 +87,8 @@ describe.skipIf(!url)("Documents signés : plafond, isolement, finalisation",()=
   await db.query("insert into public.edl_lignes(organization_id,edl_id,libelle,etat) values($1,$2,'Porte','bon')",[org,edl]);
   await db.query("update public.documents set type='etat_des_lieux' where id=$1",[doc]);
   await db.query("update public.bail_signature_circuits set modele='edl',cible_id=$2 where id=$1",[circuit,edl]);
+  // Décision du 23/10 (migration 20261024120000) : l'envoi exige la confirmation « établi contradictoirement, sur place ».
+  await db.query("select public.confirmer_edl_sur_place($1,$2,(now() at time zone 'Europe/Paris')::date)",[circuit,owner]);
   return edl;
  }
  it("fige les lignes et les mentions d’un EDL envoyé, et autorise à nouveau l’édition après annulation",async()=>{

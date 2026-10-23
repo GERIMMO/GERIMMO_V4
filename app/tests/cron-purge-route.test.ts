@@ -7,15 +7,19 @@
  * supprimé (ou qui n'existe plus), consigne son bilan sous `tache_purge`, et
  * compte en échec une file qui vieillit.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 
-const mocks = vi.hoisted(() => ({ consigner: vi.fn(), client: vi.fn() }));
+const SUITES_VIDES = { courriels_fermeture: 0, remboursements: 0, avertissements: 0, exports_supprimes: 0, exports_prepares: 0, echecs: 0 };
+const mocks = vi.hoisted(() => ({ consigner: vi.fn(), client: vi.fn(), suites: vi.fn() }));
 vi.mock("@/lib/tache", async (importer) => ({
   ...(await importer<typeof import("@/lib/tache")>()),
   consignerTache: mocks.consigner,
 }));
 vi.mock("@/lib/supabase/service", () => ({ clientDeService: mocks.client }));
+// 24/10 (lot 1E) : les suites des fermetures de comptes passent dans la même mission ; elles ont leurs propres tests
+// (tests/comptes-fermeture.test.ts). Ici, seul leur branchement compte.
+vi.mock("@/lib/comptes-fermeture-serveur", () => ({ traiterSuitesComptes: mocks.suites }));
 import { traiterPurge as GET } from "../src/lib/missions-planifiees/purge";
 import { MISSIONS, TACHES_SUIVIES } from "../src/lib/missions";
 import { TACHES } from "../src/lib/sante-service";
@@ -64,6 +68,9 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.clearAllMocks();
 });
+beforeEach(() => {
+  mocks.suites.mockResolvedValue(SUITES_VIDES);
+});
 
 describe("tâche de suppression physique des fichiers purgés", () => {
   it("refuse sans le secret des tâches", async () => {
@@ -88,6 +95,16 @@ describe("tâche de suppression physique des fichiers purgés", () => {
     const bilan = await r.json();
     expect(bilan).toMatchObject({ traites: 2, echecs: 1, en_attente: 1 });
     expect(mocks.consigner).toHaveBeenCalledWith(f.db, "purge", expect.objectContaining({ traites: 2, echecs: 1 }));
+  });
+
+  it("les suites des fermetures de comptes passent après la purge ; leurs échecs passent la tâche en échec", async () => {
+    vi.stubEnv("CRON_SECRET", SECRET);
+    mocks.suites.mockResolvedValue({ ...SUITES_VIDES, courriels_fermeture: 1, echecs: 2 });
+    const f = faux([], { supprimes: [] });
+    mocks.client.mockReturnValue(f.db);
+    const bilan = await (await GET(appel())).json();
+    expect(mocks.suites).toHaveBeenCalledWith(f.db, expect.objectContaining({ avantEffet: expect.any(Function) }));
+    expect(bilan).toMatchObject({ courriels_fermeture: 1, echecs: 2 });
   });
 
   it("une file qui vieillit au-delà de 48 h passe la tâche en échec", async () => {

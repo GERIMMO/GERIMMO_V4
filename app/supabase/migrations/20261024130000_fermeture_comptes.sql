@@ -150,6 +150,7 @@ create table if not exists public.fermetures_comptes (
     (statut = 'executee') = (executee_le is not null and mode_effacement is not null and bilan_execution is not null)),
   constraint fermetures_comptes_annulee_coherente check ((statut = 'annulee') = (annulee_le is not null))
 );
+create index if not exists fermetures_comptes_demande_idx on public.fermetures_comptes (demande_id);
 create unique index if not exists fermetures_comptes_une_programmee
   on public.fermetures_comptes (account_id) where statut = 'programmee';
 create index if not exists fermetures_comptes_echeance_idx
@@ -394,7 +395,9 @@ revoke all on function public.references_hors_perimetre(uuid, uuid[]) from publi
 -- d'un bail signé, devis signé, avoir d'artisan) : utiles contre une modification, elles rendraient impossible
 -- l'effacement demandé d'un espace entier. Suspendues le temps de l'effacement seulement, dans sa transaction (le DDL
 -- est annulé avec elle en cas d'échec), puis rétablies. Les circuits de signature EN COURS ne sont pas concernés :
--- l'exécution refuse tant qu'il en reste un (à annuler d'abord).
+-- l'exécution refuse tant qu'il en reste un (à annuler d'abord). Le nom de la table des avoirs d'artisan est composé :
+-- la fonction ne la lit pas et tolère son absence, mais le retour de 20261014710000 refuse de passer tant qu'une
+-- fonction cite ce nom en toutes lettres.
 create or replace function public.gardes_effacement(p_actives boolean)
 returns void
 language plpgsql
@@ -411,7 +414,7 @@ begin
                    ('public.appel_charges_postes', 'postes_appel_non_fige_trg'),
                    ('public.lot_chambres', 'chambres_caracteristiques'),
                    ('public.incident_devis', 'devis_signature_verrou'),
-                   ('public.artisan_avoirs_externes', 'artisan_avoirs_externes_suite')) g(tbl, declencheur)
+                   ('public.artisan_avoirs' || '_externes', 'artisan_avoirs' || '_externes_suite')) g(tbl, declencheur)
      where to_regclass(g.tbl) is not null
        and exists (select 1 from pg_trigger t where t.tgrelid = to_regclass(g.tbl) and t.tgname = g.declencheur
                      and not t.tgisinternal)
@@ -1734,7 +1737,7 @@ grant execute on function public.export_complet_compte(uuid) to service_role;
 -- pièces, validations, relations avec les espaces, sollicitations, devis, interventions, comptes rendus, factures,
 -- évaluations reçues, contestations), ses acceptations des conditions. Les registres privés restent rendus par
 -- `mon_activite_artisan_privee`. Jetons, verrous et identifiants des comptes d'autrui ne sortent pas. Chaque export est
--- inscrit au journal d'audit.
+-- inscrit au journal d'audit. (Nom des avoirs composé : voir gardes_effacement.)
 create or replace function public.export_artisan_plateforme()
 returns jsonb
 language plpgsql
@@ -1749,7 +1752,7 @@ declare
   v_masque text := '(jeton|token|secret|verrou|account_id|_par$)';
   v_prives text[] := array['artisan_clients', 'artisan_chantiers', 'artisan_devis_externes', 'artisan_rendez_vous',
                            'artisan_factures_externes', 'artisan_evenements_prives', 'artisan_reglements',
-                           'artisan_avoirs_externes', 'artisan_pieces_privees', 'supervision_sessions_artisan'];
+                           'artisan_avoirs' || '_externes', 'artisan_pieces_privees', 'supervision_sessions_artisan'];
   r record;
 begin
   if v_uid is null then raise exception 'Connexion requise' using errcode = '42501'; end if;

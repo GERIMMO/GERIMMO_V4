@@ -162,10 +162,10 @@ describe.skipIf(!DB_URL)("D46-B — passage fréquent des urgences : rejeu et re
   it("le retour retire la tâche et le jeton, et rend aux trois fonctions exactement leur définition d'avant ; rejoué, sans effet ; la marche avant remet tout", async () => {
     const migre = await definitions();
     const empreinteMigree = await empreinte();
-    expect(await objets()).toEqual({ tache: 1, taches: 10, jeton: 1, recensement: 1, fonctions: 5, marques: 3 });
+    expect(await objets()).toEqual({ tache: 1, taches: 11, jeton: 1, recensement: 1, fonctions: 5, marques: 3 });
 
     await db.query(RETOUR_DANS_LE_TEST);
-    expect(await objets()).toEqual({ tache: 0, taches: 9, jeton: 0, recensement: 0, fonctions: 0, marques: 0 });
+    expect(await objets()).toEqual({ tache: 0, taches: 10, jeton: 0, recensement: 0, fonctions: 0, marques: 0 });
     const defait = await definitions();
     expect(defait).not.toEqual(migre);
 
@@ -180,7 +180,7 @@ describe.skipIf(!DB_URL)("D46-B — passage fréquent des urgences : rejeu et re
 
     // La marche avant : tout revient à l'identique (le jeton est nouveau : il a été retiré avec sa table).
     await db.query(MIGRATION);
-    expect(await objets()).toEqual({ tache: 1, taches: 10, jeton: 1, recensement: 1, fonctions: 5, marques: 3 });
+    expect(await objets()).toEqual({ tache: 1, taches: 11, jeton: 1, recensement: 1, fonctions: 5, marques: 3 });
     expect(await definitions()).toEqual(migre);
     const sansJeton = (e: string) => e.replace(/\| [0-9a-f]{32}https:/, "| JETON https:");
     expect(sansJeton(await empreinte())).toBe(sansJeton(empreinteMigree));

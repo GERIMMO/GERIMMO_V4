@@ -67,6 +67,7 @@ import {
   type Retenue,
 } from "./formulaire-restitution";
 import { FormulaireDepot, type EncaissementDepot } from "./formulaire-depot";
+import { CarteConservationBail } from "./carte-conservation-bail";
 import { EchecLecture, PageEchecLecture } from "../../parc/echec-lecture";
 import { exigerUuids } from "@/lib/identifiants";
 import { baseEspace, racineEspace } from "@/lib/racine-espace";
@@ -1206,6 +1207,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           </CardContent>
         </Card>
       )}
+
+      {/* Conservation des pièces et gel en cas de litige (plan de conformité du 23/10, lots 1E et 2) */}
+      {restitutionActif && <CarteConservationBail supabase={supabase} orgId={orgId} bailId={bailId} base={base} />}
 
       </RubriqueDossier>}
     </main>

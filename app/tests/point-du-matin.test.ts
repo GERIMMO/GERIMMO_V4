@@ -281,21 +281,26 @@ describe('Retours à traiter — un bug bloquant N1 ancien ne sort jamais du poi
   });
   return mode==='or'?l=>parties.some(p=>p(l)):l=>parties.every(p=>p(l));
  }
+ /** Laquelle des deux lectures des retours tombe en panne : celle des N1, ou celle des idées et des N2 (`.or(…)`). */
+ type Lecture='bloquants'|'autres';
  /** Faux client : chaque table est réellement filtrée, triée et plafonnée comme le ferait l'API. */
- function base(tables:Record<string,Record<string,unknown>[]>){
+ function base(tables:Record<string,Record<string,unknown>[]>,enPanne?:Lecture){
   const rpc=vi.fn(async(_nom:string,_arguments?:unknown)=>({data:'point-fictif',error:null}));
   const from=(table:string)=>{
    const filtres:Condition[]=[];const ordres:[string,boolean][]=[];let plafond=Infinity;
+   let lecture:Lecture|undefined;
    const q={
     select:()=>q,
-    eq:(c:string,v:unknown)=>{filtres.push(l=>l[c]===v);return q;},
+    eq:(c:string,v:unknown)=>{if(c==='gravite'&&v==='N1')lecture='bloquants';filtres.push(l=>l[c]===v);return q;},
     in:(c:string,v:unknown[])=>{filtres.push(l=>v.includes(l[c]));return q;},
-    or:(expr:string)=>{filtres.push(condition(expr));return q;},
+    or:(expr:string)=>{lecture='autres';filtres.push(condition(expr));return q;},
     // Lectures des passages, du journal et de la veille : leurs tables restent vides ici.
     not:()=>q,is:()=>q,gte:()=>q,like:()=>q,
     order:(c:string,o?:{ascending?:boolean})=>{ordres.push([c,o?.ascending??true]);return q;},
     limit:(n:number)=>{plafond=n;return q;},
-    then:<R,>(ok:(r:{data:unknown[];error:null})=>R,ko?:(e:unknown)=>R)=>{
+    then:<R,>(ok:(r:{data:unknown[]|null;error:unknown})=>R,ko?:(e:unknown)=>R)=>{
+     if(table==='retours_utilisateurs'&&enPanne&&lecture===enPanne)
+      return Promise.resolve({data:null,error:{message:'Détail fournisseur privé à ne pas exposer',code:'57014'}}).then(ok,ko);
      const lignes=(tables[table]??[]).filter(l=>filtres.every(f=>f(l)));
      lignes.sort((a,b)=>{for(const [c,asc] of ordres){const x=String(a[c]),y=String(b[c]);if(x!==y)return (x<y?-1:1)*(asc?1:-1);}return 0;});
      return Promise.resolve({data:lignes.slice(0,plafond),error:null}).then(ok,ko);
@@ -346,5 +351,28 @@ describe('Retours à traiter — un bug bloquant N1 ancien ne sort jamais du poi
   const cles=await decisionsQualite([...Array.from({length:40},(_,i)=>n1(`n1-${i}`,i)),...Array.from({length:40},(_,i)=>n2(i))],evolutions);
   expect(cles.length).toBeLessThanOrEqual(100);
   expect(cles.filter(c=>c.startsWith('retour:n1-'))).toHaveLength(30);
+ });
+
+ // Relecture adverse du 23/10 (2e passe) : l'essai « retours_utilisateurs indisponible » fait échouer les DEUX lectures à la
+ // fois ; il passait encore si l'erreur de l'une d'elles était ignorée. Une seule lecture en échec doit suffire : sinon le
+ // point s'enregistre sans les N1 (ou sans les idées et N2), et leurs décisions en attente passent en « sans objet ».
+ it.each([
+  ['la lecture des bugs bloquants N1','bloquants' as const],
+  ['la lecture des idées et des N2','autres' as const],
+ ])('seule %s échoue : la file des retours est indisponible et le dernier point est conservé',async(_cas,enPanne)=>{
+  const erreurs=vi.spyOn(console,'error').mockImplementation(()=>{});
+  try{
+   const retours=[n1('n1-ancien',60*24*10),n2(1),idee(2)];
+   const lecture=await lireAttentes(base({retours_utilisateurs:retours},enPanne).db,maintenant);
+   expect(lecture.indisponibles).toEqual(['retours']);
+   expect(lecture.attentes.retours).toEqual([]);
+   const {db,rpc}=base({retours_utilisateurs:retours},enPanne);
+   const resultat=await genererPointsDuMatin(db,maintenant);
+   expect(resultat.enregistres).toBe(0);
+   expect(resultat.erreur).toBe('Le point n’a pas été actualisé : données indisponibles (retours). Le dernier point connu est conservé. Réessayez lorsque les lectures seront rétablies.');
+   expect(rpc.mock.calls.filter(([nom])=>nom==='enregistrer_point_du_matin')).toHaveLength(0);
+   expect(erreurs).toHaveBeenCalledWith('[point du matin] lecture impossible :','retours','57014');
+   expect(JSON.stringify(erreurs.mock.calls)).not.toContain('privé');
+  }finally{erreurs.mockRestore();}
  });
 });

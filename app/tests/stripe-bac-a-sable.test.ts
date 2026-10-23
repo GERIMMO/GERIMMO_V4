@@ -25,7 +25,16 @@ import { POST } from "@/app/api/stripe/webhook/route";
 
 const cle = process.env.GERIMMO_STRIPE_TEST_KEY;
 /** Les RPC qui rendent une table (lues ligne à ligne). */
-const FONCTIONS_TABLE = new Set(["abonnement_par_client"]);
+const FONCTIONS_TABLE = new Set(["abonnement_par_client", "abonnement_contexte_evenement", "abonnement_courrier_contexte"]);
+/** Plan du 23/10 (migration 20261024110000) : les fonctions des courriers du contrat que le webhook appelle aussi. */
+const RPC_COURRIERS: Record<string, string[]> = {
+  abonnement_contexte_evenement: ["p_customer"],
+  abonnement_souscription_datee: ["p_customer", "p_subscription", "p_souscrit_le"],
+  abonnement_courrier_contexte: ["p_org"],
+  abonnement_confirmation_envoyee: ["p_org", "p_subscription", "p_message", "p_piece_jointe"],
+  abonnement_resiliation_accusee: ["p_org", "p_subscription", "p_periode_fin", "p_message", "p_chemin"],
+  abonnement_resiliation_impaye_notifiee: ["p_org", "p_subscription", "p_message", "p_factures_annulees"],
+};
 const secret = `whsec_${randomBytes(24).toString("hex")}`;
 const suivi: { stripe?: Stripe; db?: Client; client?: string; produit?: string; prix?: string; abonnement?: string; session?: string; org?: string } = {};
 
@@ -58,6 +67,7 @@ describe.skipIf(!cle)("Paiements simulés chez Stripe et application dans Gerimm
       abonnement_details: ["p_customer", "p_periodicite", "p_formule", "p_unites", "p_montant_periode_cents", "p_periode_debut"],
       abonnement_par_client: ["p_customer"],
       abonnement_facture_payee: ["p_customer", "p_subscription"],
+      ...RPC_COURRIERS,
     };
     transport.rpc.mockImplementation(async (nom: string, params: Record<string, unknown>) => {
       const noms = argumentsRpc[nom]; if (!noms) throw new Error("Appel hors du périmètre de recette.");
@@ -203,6 +213,7 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
         abonnement_details: ["p_customer", "p_periodicite", "p_formule", "p_unites", "p_montant_periode_cents", "p_periode_debut"],
         abonnement_par_client: ["p_customer"],
         abonnement_facture_payee: ["p_customer", "p_subscription"],
+        ...RPC_COURRIERS,
       };
       const liste = noms[nom];
       if (!liste) throw new Error("Appel hors du périmètre de recette.");
@@ -398,7 +409,7 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     expect(apercu.total).toBe(23280);
   }, 60000);
 
-  it("portail client : résiliation en fin de période, aucun changement de formule, toujours la configuration Gerimmo", async () => {
+  it("portail client : aucune résiliation (plan du 23/10, R04), aucun changement de formule, toujours la configuration Gerimmo", async () => {
     const r = await ouvrirPortailFacturation(nouvelle.stripe!, { customer: nouvelle.client!, retour: "https://www.gerimmo.app/agence/x/abonnement" });
     if (!r.ok) throw new Error(r.erreur);
     expect(r.url).toMatch(/^https:\/\/billing\.stripe\.com\//);
@@ -408,7 +419,8 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     }
     expect(configs).toHaveLength(1); // créée une fois, retrouvée ensuite
     const f = configs[0].features;
-    expect(f.subscription_cancel).toMatchObject({ enabled: true, mode: "at_period_end", proration_behavior: "none" });
+    // Un seul chemin de résiliation : la page « Résilier votre contrat » de Gerimmo.
+    expect(f.subscription_cancel.enabled).toBe(false);
     expect(f.subscription_update.enabled).toBe(false);
     expect(f.invoice_history.enabled).toBe(true);
     expect(f.payment_method_update.enabled).toBe(true);

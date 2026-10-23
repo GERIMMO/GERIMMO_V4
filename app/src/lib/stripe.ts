@@ -543,14 +543,18 @@ export async function creerSessionPaiement(
   }
 }
 
-/** Repère de la configuration du portail tenue par Gerimmo (à changer si les règles changent). */
-export const MARQUE_PORTAIL = "portail-2026-09-28";
+/**
+ * Repère de la configuration du portail tenue par Gerimmo (à changer si les règles changent). 24/10/2026 (plan de
+ * conformité du 23/10, R04) : la résiliation quitte le portail — une nouvelle marque fait créer une nouvelle
+ * configuration au premier passage ; l'ancienne (« portail-2026-09-28 ») n'est plus jamais ouverte par Gerimmo.
+ */
+export const MARQUE_PORTAIL = "portail-2026-10-24";
 
 /**
  * La configuration du portail client, créée une fois puis retrouvée par sa
- * marque. Règles (décision du 28/09/2026) :
- * - résiliation pour la fin de la période payée, sans prorata ni
- *   remboursement — l'accès reste ouvert jusqu'à l'échéance ;
+ * marque. Règles (décision du 28/09/2026, résiliation retirée le 24/10/2026) :
+ * - AUCUNE résiliation dans le portail (plan du 23/10, R04) : un seul chemin, la page « Résilier votre contrat » de
+ *   Gerimmo, qui récapitule le contrat et sa date de fin, et qui accuse réception par courriel ;
  * - AUCUN changement de formule, de quantité ou de périodicité dans le
  *   portail : ils passent par Gerimmo, qui montre montant, date d'effet et
  *   prorata avant toute hausse ;
@@ -584,15 +588,7 @@ export async function assurerConfigurationPortail(stripe: Stripe, site: string):
       customer_update: { enabled: true, allowed_updates: ["email", "address", "name"] },
       invoice_history: { enabled: true },
       payment_method_update: { enabled: true },
-      subscription_cancel: {
-        enabled: true,
-        mode: "at_period_end",
-        proration_behavior: "none",
-        cancellation_reason: {
-          enabled: true,
-          options: ["too_expensive", "missing_features", "switched_service", "unused", "other"],
-        },
-      },
+      subscription_cancel: { enabled: false },
       subscription_update: { enabled: false },
     },
     metadata: { gerimmo: MARQUE_PORTAIL },

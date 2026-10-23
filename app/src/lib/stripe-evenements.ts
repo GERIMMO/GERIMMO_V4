@@ -231,13 +231,19 @@ type ContexteEvenement = {
 };
 
 async function lireContexteEvenement(supabase: Service, customer: string): Promise<ContexteEvenement | null> {
-  const { data, error } = await supabase.rpc("abonnement_contexte_evenement", { p_customer: customer });
-  if (error) {
-    // Sans contexte, aucun courrier de bascule ne part (on ne devine pas l'état d'avant) ; l'état, lui, s'applique.
-    console.error("[stripe webhook][contexte] lecture impossible :", error.message.slice(0, 200));
+  // Sans contexte, aucun courrier de bascule ne part (on ne devine pas l'état d'avant) ; l'état, lui, s'applique.
+  try {
+    const { data, error } = await supabase.rpc("abonnement_contexte_evenement", { p_customer: customer });
+    if (error) {
+      console.error("[stripe webhook][contexte] lecture impossible :", error.message.slice(0, 200));
+      return null;
+    }
+    return ((data ?? []) as ContexteEvenement[])[0] ?? null;
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    console.error("[stripe webhook][contexte] lecture impossible :", e instanceof Error ? e.message.slice(0, 200) : "erreur");
     return null;
   }
-  return ((data ?? []) as ContexteEvenement[])[0] ?? null;
 }
 
 /** Une souscription annulée par une rétractation porte ce commentaire (actions/retractation.ts). */

@@ -6637,3 +6637,15 @@ Relevé en lecture seule (présence des valeurs, aucune recopiée) : identité d
 Mots du dirigeant : « Pour les infos manquantes : capital social sans objet, côté juriste fais de manière logique et selon tes conseil, dpo pareil, quelle décisions je dois prendre ? »
 
 Conséquences retenues : le capital social reste non affiché (entreprise individuelle). Aucun juriste ni DPO humain n'est mandaté avant le lancement ; Claude traite ces sujets par des propositions prudentes, chacune adossée à une source primaire ouverte (Légifrance, CNIL), contre-vérifiée, et marquée comme non relue par un professionnel du droit. Risque assumé par le dirigeant. Recherche lancée en lecture seule (six thèmes : vente au consommateur, impayé, signature et cautionnement, périmètre des CGU, conservation, droits et registre) ; les changements de texte seront regroupés dans une seule nouvelle version des conditions.
+
+## [2026-10-23] decision | Signature ouverte pendant la bêta, vente à la mise en ligne, réseau d'artisans choisi par l'artisan
+
+Mots du dirigeant : « 2 je ne veux pas la couper, ouverture de la vente dés la mise en ligne, 4 la communes et les métiers à ouvriers seront choisi par l'artisan (même lors du test), 5 laisser ouvert, 7 conseils moi un antivirus pas chère, les garder et suppression sur demande (ils seront des clients comme tout le monde mais on pourra s'en servir spour les tests), le reste je veux des explications ».
+
+- **D4 — signature électronique pendant la bêta** : laissée ouverte (aucun arrêt « signatures »). Les dossiers des amis gardent la consigne de ne pas signer ; un envoi fait par un ami serait un acte réel.
+- **Vente** : ouverte dès la mise en ligne du lot de Claude (clé Stripe réelle posée, médiateur non bloquant).
+- **Réseau d'artisans** : les communes et les métiers sont choisis par l'artisan lui-même, y compris pendant la bêta ; l'ouverture explicite par le super-administrateur commune × métier ([[Ouverture du réseau d'artisans]]) est remplacée. La validation de l'artisan par Gerimmo reste.
+- **Modules artisans « clients externes » et « règlements »** : laissés ouverts sans avis d'expert-comptable.
+- **Antivirus** : conseil demandé (service peu coûteux).
+- **Comptes des amis** : gardés après le 1/11, suppression seulement sur demande ; ce sont des clients comme les autres, utilisables aussi pour des tests.
+- Médiateur, offre Vercel, continuité : explications demandées avant décision.

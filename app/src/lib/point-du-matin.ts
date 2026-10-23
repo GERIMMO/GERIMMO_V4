@@ -107,6 +107,8 @@ function decisionsDeLEquipe(equipe:Equipe,a:Attentes):DecisionAssemblee[]{
  * Assemble le point de chaque équipe à partir des passages de la fenêtre
  * (24 h par défaut), des lignes `tache_*` du journal et des files de décision.
  */
+/** Passages détaillés par mission dans un point : au-delà, ils sont seulement comptés. */
+export const PASSAGES_DETAILLES_PAR_MISSION=12;
 export function assemblerPoints(entree:{passages:PassageLu[];journaux:LigneJournal[];attentes:Attentes;maintenant:Date;fenetreHeures?:number}):PointAssemble[]{
  const fenetre=entree.fenetreHeures??24;
  return (Object.keys(EQUIPES) as Equipe[]).map(equipe=>{
@@ -114,7 +116,11 @@ export function assemblerPoints(entree:{passages:PassageLu[];journaux:LigneJourn
   const passages:PassageDuPoint[]=[],realisations:string[]=[],echecs:string[]=[];
   for(const m of missions){
    const recents=entree.passages.filter(p=>p.mission===m&&dansLaFenetre(p.debut,entree.maintenant,fenetre)).sort((a,b)=>b.debut.localeCompare(a.debut));
-   for(const p of recents){
+   // 23/10 : la mission marketing passe toutes les 5 minutes (tâche `marketing-declencheur`) ; ses ~170 passages
+   // quotidiens faisaient dépasser au point la taille admise par `enregistrer_point_du_matin` (20 000 caractères)
+   // vers 15 h, et le point n'était plus enregistré. Seuls les plus récents sont détaillés, les autres comptés.
+   if(recents.length>PASSAGES_DETAILLES_PAR_MISSION)realisations.push(`${MISSIONS[m].nom} : ${recents.length} passages sur ${fenetre} h, les ${PASSAGES_DETAILLES_PAR_MISSION} plus récents détaillés.`);
+   for(const p of recents.slice(0,PASSAGES_DETAILLES_PAR_MISSION)){
     const bilan=bilanDuPassage(p,entree.journaux),texte=resumerBilan(bilan,m);
     passages.push({mission:m,nom:MISSIONS[m].nom,debut:p.debut,fin:p.fin,etat:p.etat,bilan:texte});
    }

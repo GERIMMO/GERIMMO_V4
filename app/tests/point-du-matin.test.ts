@@ -234,3 +234,24 @@ describe('Artisans en attente — lus par le client de service',()=>{
   }finally{erreurs.mockRestore();}
  });
 });
+
+// 23/10/2026, production : la mission marketing passe toutes les 5 minutes de 5 h à 19 h UTC ; vers 14 h 55 le point
+// de l'équipe dépassait les 20 000 caractères admis par enregistrer_point_du_matin (« Point invalide »).
+describe('Le point du matin reste enregistrable quand une mission passe toutes les 5 minutes',()=>{
+ const tous=Array.from({length:168},(_,i)=>passage('marketing',{id:`m-${i}`,debut:new Date(maintenant.getTime()-i*5*60_000).toISOString(),fin:new Date(maintenant.getTime()-i*5*60_000+20_000).toISOString(),compte:1,bilan:{preparees:0,parues:0,ignorees:1,motif:'aucune publication à paraître dans le créneau courant'}}));
+ it('détaille les 12 passages les plus récents et compte les autres',()=>{
+  const p=point('marketing',{passages:tous});
+  expect(p.contenu.passages).toHaveLength(12);
+  expect(p.contenu.passages[0].debut).toBe(tous[0].debut);
+  expect(p.contenu.realisations.join(' ')).toContain('168 passages sur 24 h, les 12 plus récents détaillés');
+ });
+ it('tient sous la limite de taille du point en base (20 000 caractères)',()=>{
+  const p=point('marketing',{passages:tous});
+  expect(JSON.stringify(p.contenu).length).toBeLessThan(20000);
+ });
+ it('une mission peu fréquente garde tous ses passages, sans ligne de compte',()=>{
+  const p=point('marketing',{passages:tous.slice(0,3)});
+  expect(p.contenu.passages).toHaveLength(3);
+  expect(p.contenu.realisations.join(' ')).not.toContain('plus récents détaillés');
+ });
+});

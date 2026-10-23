@@ -19,6 +19,7 @@ import { Toasteur } from "@/components/ui/toast";
 import { baseEspace, racineEspace } from "@/lib/racine-espace";
 import { FournisseurRacineEspace } from "@/components/racine-espace-contexte";
 import { joursJusquaParis } from "@/lib/heure-paris-calcul";
+import { NouvelleVersionConditions } from "@/components/nouvelle-version-conditions";
 
 // Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée.
 //
@@ -282,6 +283,11 @@ export default async function LayoutAgence({
               "votre administrateur doit activer l'abonnement pour que la saisie reprenne."
             )}
           </p>
+        )}
+        {/* Plan de conformité du 23/10 (R19) : « Nos conditions générales évoluent », pour le seul responsable, hors
+            traversée de supervision ; rien ne s'affiche tant que sa dernière acceptation porte la version en vigueur. */}
+        {estResponsable && !traverseeLectureSeule && (
+          <NouvelleVersionConditions supabase={supabase} orgId={orgId} compteId={user.id} derniereConnexion={user.last_sign_in_at ?? null} />
         )}
         {messagesNonLus === null && (
           <p role="alert" className="err mx-4 mt-4">

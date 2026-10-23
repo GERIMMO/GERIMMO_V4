@@ -1,5 +1,41 @@
 # Signatures des documents Gerimmo
 
+## Conformité V1 du 24 octobre 2026 — préparé localement, non déployé
+
+Plan de conformité du 23/10 (lot 1D) et décision du dirigeant du 23/10 « Cautionnement et état des lieux signés dans
+Gerimmo » (qui remplace la fermeture R29/R31 du plan). Migration `20261024120000_signature_caution_mobile_et_edl_sur_place.sql`.
+
+- **Cautionnement : la caution confirme elle-même son mobile.** Le mobile de la fiche du garant (saisi par le bailleur)
+  n'est plus repris dans l'acte. « Envoyer » adresse à la caution un lien à usage unique, valable sept jours au plus
+  (la base n'en garde que l'empreinte). La page publique `/signature/caution/<jeton>` dit qui demande quoi (bailleur,
+  logement, locataire, montant de l'engagement) ; la caution y saisit deux fois son numéro, non prérempli. La demande
+  Zoho est créée à ce moment avec ce numéro, au nom du propriétaire qui a envoyé le lien. Le bailleur voit « En attente
+  de la caution » et peut renvoyer le lien ; une garde en base refuse tout envoi d'un acte de cautionnement dont le
+  téléphone du garant n'est pas celui qu'il a confirmé. La mention reste saisie par la caution dans Zoho.
+  `ZOHO_SIGN_CAUTIONNEMENT_FERME` reste en place et à `false` : posée à `true`, elle bloque aussi l'envoi du lien et sa
+  consommation.
+- **État des lieux : établi ensemble, sur place.** Avant l'envoi, le bailleur saisit la date de la visite et coche
+  « Je confirme que cet état des lieux a été établi contradictoirement, sur place, le {date}, en présence du locataire
+  ou de son représentant. » Refus serveur et refus en base sans cette confirmation (de moins d'une heure). Le texte,
+  la date, l'instant et l'auteur restent sur le circuit (`confirmation_sur_place`) et au journal d'audit. L'état des
+  lieux d'entrée et son invitation rappellent au locataire son droit de le compléter (article 3-2 de la loi du
+  6 juillet 1989, à relire par le juriste).
+- **Message d'invitation (R53)** : « Vos nom, adresse électronique et numéro de mobile sont transmis à notre prestataire
+  de signature Zoho Sign pour ce seul document, à la demande de {bailleur}. Détails : {page confidentialité}. »
+- **R32** : une mention refusée alors que la demande est ouverte fait rappeler la demande chez Zoho ; la date limite des
+  signatures est affichée avant l'envoi.
+- **R28, R30, R58** : modèles d'état des lieux et de cautionnement (exemplaires, date de signature), case « aucune
+  assurance ni autre garantie » avant de générer l'acte, cadre et page de signature du garant dans le bail.
+
+**Reste à faire, hors de portée du banc local :**
+- **Recette à trois signataires (R28)**, en Zoho réel sur un dossier fictif (locataire, garant, propriétaire) : chaque
+  signataire reçoit-il de Zoho le PDF signé ? Consigner le résultat ici. Sinon, envoyer le PDF signé à chaque
+  signataire à l'état « terminé » (`envoyerEmail`) et mémoriser l'envoi.
+- **Recette du parcours de la caution** en Zoho réel : lien reçu, page, confirmation, invitation Zoho au numéro saisi,
+  mention, signature, archive.
+- **Expéditeur générique des invitations (R53)** : l'adresse d'expédition n'est pas un paramètre de l'API de création ;
+  c'est un réglage du compte dans la console Zoho Sign (geste du dirigeant).
+
 ## État vérifié le 22 octobre 2026
 
 Les trois activations clients sont vraies sur Vercel et le plafond est de 400 crédits/mois ; les devis sont autorisés en base. L’adresse personnelle reste celle choisie par le dirigeant. L’état détaillé par document et la protection des preuves sont préparés **localement**. Les paragraphes datés du 18 octobre ci-dessous restent historiques. Voir [le bilan du 22 octobre](signatures-conservation-22-octobre.md) pour les limites et les réglages non vérifiés.

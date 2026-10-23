@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
+import { sansSyntheseAlertes } from "./aides";
 
 test.use({ storageState: "e2e/.auth/superadmin.json" });
+test.beforeEach(async ({ page }) => {
+  // La synthèse d’arrivée a son propre parcours ; ici, on teste les paramètres derrière.
+  await sansSyntheseAlertes(page);
+});
 
 test("le superadmin lève puis réactive le blocage, avec persistance et historique", async ({ page }) => {
   await page.goto("/admin/parametres");

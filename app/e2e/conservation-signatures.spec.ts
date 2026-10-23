@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
+import { sansSyntheseAlertes } from "./aides";
 
 test.use({ storageState: "e2e/.auth/superadmin.json" });
+test.beforeEach(async ({ page }) => {
+  // La synthèse d’arrivée a son propre parcours ; ici, on teste les réglages derrière.
+  await sansSyntheseAlertes(page);
+});
 
 test("le superadmin consulte les limites et simule la conservation sans supprimer", async ({ page }) => {
   await page.goto("/admin/sante");

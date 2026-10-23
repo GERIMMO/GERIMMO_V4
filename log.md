@@ -6673,3 +6673,12 @@ Valeurs retenues (plan de conformité du 23/10, section 4 ; sources juridiques n
 Mots du dirigeant : « je ne suis pas commerçant ».
 
 Conséquence pour la conformité V1 : l'obligation de conservation de dix ans du code de commerce (art. L. 123-22, propre aux commerçants) ne fonde pas la durée de conservation des factures de Gerimmo. Le lot de conservation retient à la place six ans pour les factures et pièces justificatives (livre des procédures fiscales, art. L. 102 B, à recomparer sur Légifrance), et garde dix ans pour la preuve des contrats conclus en ligne d'au moins 120 € (code de la consommation, art. L. 213-1 et D. 213-1), indépendamment du statut de commerçant. Les quittances et documents des bailleurs suivent leurs propres règles (36 mois après la fin du bail, plan du 23/10).
+
+## [2026-10-23] decision | Cautionnement et état des lieux signés dans Gerimmo
+
+Mots du dirigeant : « le cautionnement et l'état des lieux doivent etre signé sur gerimmo directement ! »
+
+Remplace le point 3 de la décision « Conformité V1 » du même jour. `ZOHO_SIGN_CAUTIONNEMENT_FERME` remis à `false` dans Vercel Production (vers 18 h 30 UTC, avant tout déploiement : le cautionnement n'a donc jamais été fermé en ligne). Pour garder ces deux actes solides tout en les signant dans Gerimmo, le lot de conformité prévoit :
+- **cautionnement** : la caution confirme elle-même son numéro de mobile (lien reçu par courriel) avant l'envoi en signature, au lieu du numéro saisi par le bailleur ; elle continue de saisir elle-même sa mention ;
+- **état des lieux** : signé dans Gerimmo, avec la confirmation qu'il a été établi ensemble, sur place, à la date de la visite, et le rappel au locataire de son droit de demander à le compléter.
+Risque résiduel à faire relire par un juriste dès que possible : valeur probante d'une signature par code SMS pour ces deux actes.

@@ -20,7 +20,8 @@ export function informationsAConfirmer(metadonnees: Record<string, unknown> | nu
  * Une case cochée revient avec le document dont elle portait le texte à l'envoi (`cgu_document`, relecture adverse du
  * 24/10) : le formulaire ne la recoche que sous ce même texte. Sans script, changer l'usage dans la liste ne change pas
  * la case ; un refus venu avant le contrôle du document (mot de passe, champ trop long…) renvoyait la page avec la case
- * du nouvel usage, cochée. Une valeur inconnue ne laisse aucune trace : aucune coche n'est reposée.
+ * du nouvel usage, cochée. Une valeur inconnue ne laisse ni trace ni coche : faute de trace, le formulaire croirait à
+ * une page d'avant le 24/10, qui ne montrait que la case des conditions clients.
  */
 export function saisieProfilARetenir(formData: FormData): Record<string, string> {
   const valeurs: Record<string, string> = {};
@@ -29,9 +30,11 @@ export function saisieProfilARetenir(formData: FormData): Record<string, string>
     if (typeof valeur === "string") valeurs[champ] = valeur;
   }
   if (formData.get("cgu")) {
-    valeurs.cgu = "on";
     const document = documentAffiche(formData.get(CHAMP_DOCUMENT_AFFICHE));
-    if (document) valeurs[CHAMP_DOCUMENT_AFFICHE] = document;
+    if (document) {
+      valeurs.cgu = "on";
+      valeurs[CHAMP_DOCUMENT_AFFICHE] = document;
+    }
   }
   return valeursBornees(valeurs);
 }

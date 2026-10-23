@@ -129,9 +129,11 @@ describe("premier choix du mot de passe : le document suit l'usage (R10, R60)", 
     // Page servie avant le 24/10 : elle ne montrait que la case des conditions clients.
     const ancienne = await definirNouveauMotDePasse({}, formulaire({ espace: "invite", confirmation: "autre-saisie-456" }));
     expect(ancienne.valeurs).toMatchObject({ cgu: "on", cgu_document: "conditions_clients" });
-    // Valeur inconnue : aucune trace, donc aucune coche reposée ; case non cochée : rien non plus.
-    const inconnu = await definirNouveauMotDePasse({}, formulaire({ espace: "invite", cgu_document: "autre", confirmation: "autre-saisie-456" }));
+    // Valeur inconnue : ni trace ni coche reposée (le formulaire, faute de trace, croirait à une page d'avant le 24/10,
+    // qui ne montrait que les conditions clients) ; case non cochée : rien non plus.
+    const inconnu = await definirNouveauMotDePasse({}, formulaire({ espace: "proprietaire_direct", cgu_document: "autre", confirmation: "autre-saisie-456" }));
     expect(inconnu.valeurs?.cgu_document).toBeUndefined();
+    expect(inconnu.valeurs?.cgu).toBeUndefined();
     const decochee = formulaire({ espace: "invite", cgu_document: "regles_invites", confirmation: "autre-saisie-456" });
     decochee.delete("cgu");
     expect((await definirNouveauMotDePasse({}, decochee)).valeurs).not.toHaveProperty("cgu_document");

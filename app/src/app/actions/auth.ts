@@ -128,6 +128,8 @@ export async function definirNouveauMotDePasse(
     return refus("Ce formulaire est réservé au lien reçu par e-mail, pendant quinze minutes après sa confirmation. Redemandez un lien ou changez votre mot de passe dans « Mon compte », avec le mot de passe actuel.");
   }
 
+  // Le profil à confirmer n'existe qu'entre la première confirmation de l'adresse et ce premier choix
+  // (lib/lien-mot-de-passe.ts, finirConfirmationInscription) : lu dans le compte, jamais dans l'envoi.
   let profil: Record<string, unknown> | undefined;
   if (Object.hasOwn(user.user_metadata ?? {}, CLE_PROFIL_A_CONFIRMER)) {
     const champs = Object.fromEntries(CHAMPS_PROFIL_INSCRIPTION.map((champ) => [champ, String(formData.get(champ) ?? "").trim()]));
@@ -168,12 +170,23 @@ export async function definirNouveauMotDePasse(
     details: {},
   });
 
-  // On repart d'une connexion propre avec le nouveau mot de passe
-  await supabase.auth.signOut();
-  (await cookies()).delete(ACTIVITY_COOKIE);
   let suite = destinationSure(String(formData.get("suite") ?? ""));
   if (profil?.espace === "proprietaire_direct") suite = "/espaces";
   else if (profil?.espace === "artisan" && suite === "/espaces") suite = "/artisan/inscription";
+
+  // PREMIER CHOIX APRÈS LA CONFIRMATION DE L'ADRESSE : LA SESSION RESTE OUVERTE (relevé du 23/10, PRO-5).
+  // La personne vient de prouver l'accès à sa boîte et de poser son mot de passe : la renvoyer vers la connexion
+  // (« Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe. ») lui faisait ressaisir ce qu'elle venait
+  // de choisir. La session née du lien survit au changement de mot de passe (comme celle de « Mon compte » et le mot de
+  // passe provisoire de finirConfirmationInscription) ; les autres sessions sont fermées ci-dessus ; le proxy applique
+  // la politique de session et le second facteur comme à toute session. Le profil est lu dans le compte : un champ
+  // ajouté à l'envoi ne peut pas éviter la déconnexion d'une récupération.
+  if (profil) redirect(suite);
+
+  // RÉCUPÉRATION D'UN COMPTE EXISTANT (mot de passe oublié), choix d'origine
+  // inchangé : on repart d'une connexion propre avec le nouveau mot de passe.
+  await supabase.auth.signOut();
+  (await cookies()).delete(ACTIVITY_COOKIE);
   redirect(`/connexion?raison=mot-de-passe-modifie${suite !== "/espaces" ? `&suite=${encodeURIComponent(suite)}` : ""}`);
 }
 

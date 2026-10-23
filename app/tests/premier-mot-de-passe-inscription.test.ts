@@ -1,10 +1,14 @@
 /**
- * Le premier mot de passe, choisi juste après la confirmation de l'adresse (relevé du 23/10/2026, PRO-4).
+ * Le premier mot de passe, choisi juste après la confirmation de l'adresse (relevé du 23/10/2026, PRO-4 et PRO-5).
  *
- * Un refus (mot de passe trop court, saisies différentes, refus d'Auth, profil incomplet) vidait le formulaire : les
- * informations corrigées revenaient à leur valeur d'origine et la case des conditions générales se décochait. L'action
+ * PRO-4 — un refus (mot de passe trop court, saisies différentes, refus d'Auth, profil incomplet) vidait le formulaire :
+ * les informations corrigées revenaient à leur valeur d'origine et la case des conditions générales se décochait. L'action
  * rend désormais la saisie du profil et de la case (jamais un mot de passe) et nomme le champ fautif ; le formulaire les
  * repose (convention de lib/formulaires.ts) et place l'alerte sous ce champ.
+ *
+ * PRO-5 — après ce premier choix, la personne était déconnectée et renvoyée vers la connexion (« Mot de passe modifié.
+ * Connectez-vous avec votre nouveau mot de passe. ») alors qu'elle venait de prouver son adresse. Elle reste connectée et
+ * va vers son espace ou l'étape suivante. La récupération d'un compte existant (mot de passe oublié) garde la déconnexion.
  */
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -28,6 +32,7 @@ vi.mock("react", async (importOriginal) => {
 
 import { definirNouveauMotDePasse } from "../src/app/actions/auth";
 import { FormulaireNouveauMotDePasse } from "../src/app/nouveau-mot-de-passe/formulaire-nouveau-mot-de-passe";
+import { ACTIVITY_COOKIE } from "../src/lib/session-policy";
 
 const MOT_DE_PASSE = "recette-premier-choix-1";
 const PROFIL_SAISI = {
@@ -223,5 +228,51 @@ describe("PRO-4 — le formulaire repose la saisie et dit l'erreur au bon champ"
     const html = rendre({ erreur: "Le nom est obligatoire.", champ: "nom" }, undefined);
     expect(html.match(/role="alert"/g)).toHaveLength(1);
     expect(position(html, 'role="alert"')).toBeLessThan(position(html, 'type="submit"'));
+  });
+});
+
+describe("PRO-5 — après le premier choix, la personne reste connectée et va vers son espace", () => {
+  const sortiesGlobales = () => auth.signOut.mock.calls.filter(([options]) => !options || (options as { scope?: string }).scope !== "others");
+
+  it("propriétaire : le mot de passe et le profil sont enregistrés, puis /espaces, sans déconnexion", async () => {
+    await expect(definirNouveauMotDePasse({}, formulaire())).rejects.toThrow(/^REDIRECT \/espaces$/);
+    expect(auth.updateUser).toHaveBeenCalledExactlyOnceWith({ password: MOT_DE_PASSE, data: expect.objectContaining({ nom: "Corrigé", espace: "proprietaire_direct", profil_a_confirmer: null }) });
+    // Les AUTRES sessions tombent toujours ; celle-ci reste ouverte, avec son témoin d'activité.
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: "others" });
+    expect(sortiesGlobales()).toEqual([]);
+    expect(mocks.supprimerCookie).not.toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledWith("log_tech", expect.objectContaining({ evenement: "changement_mot_de_passe" }));
+  });
+
+  it("artisan sans invitation : l'inscription de l'entreprise, étape suivante", async () => {
+    await expect(definirNouveauMotDePasse({}, formulaire({ espace: "artisan" }))).rejects.toThrow(/^REDIRECT \/artisan\/inscription$/);
+    expect(sortiesGlobales()).toEqual([]);
+  });
+
+  it.each([
+    ["artisan venu d'une invitation", "artisan", "/artisan/invitation/11111111-1111-4111-8111-111111111111"],
+    ["personne invitée dans un espace", "invite", "/invitations/22222222-2222-4222-8222-222222222222"],
+  ])("%s : retour direct à la page demandée", async (_cas, espace, suite) => {
+    await expect(definirNouveauMotDePasse({}, formulaire({ espace, suite }))).rejects.toThrow(`REDIRECT ${suite}`);
+    expect(sortiesGlobales()).toEqual([]);
+    expect(mocks.supprimerCookie).not.toHaveBeenCalled();
+  });
+
+  it("une destination externe n'est jamais suivie", async () => {
+    await expect(definirNouveauMotDePasse({}, formulaire({ espace: "invite", suite: "https://exemple.invalid/piege" }))).rejects.toThrow(/^REDIRECT \/espaces$/);
+  });
+
+  it("mot de passe oublié d'un compte existant : la déconnexion et le message de connexion restent", async () => {
+    compteExistant();
+    await expect(definirNouveauMotDePasse({}, formulaireRecuperation())).rejects.toThrow(/^REDIRECT \/connexion\?raison=mot-de-passe-modifie$/);
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: "others" });
+    expect(sortiesGlobales()).toHaveLength(1);
+    expect(mocks.supprimerCookie).toHaveBeenCalledWith(ACTIVITY_COOKIE);
+  });
+
+  it("la décision vient du compte, pas du formulaire : un motif glissé dans l'envoi ne garde pas la session", async () => {
+    compteExistant();
+    await expect(definirNouveauMotDePasse({}, formulaireRecuperation({ motif: "inscription", apresConfirmation: "true" }))).rejects.toThrow("REDIRECT /connexion?raison=mot-de-passe-modifie");
+    expect(sortiesGlobales()).toHaveLength(1);
   });
 });

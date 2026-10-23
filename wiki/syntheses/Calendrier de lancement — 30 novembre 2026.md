@@ -3,7 +3,7 @@ type: synthesis
 tags: [lancement, calendrier, pilotage, beta, agences, liste-attente]
 status: draft
 created: 2026-10-20
-updated: 2026-10-21
+updated: 2026-10-23
 sources: ["[[Audit final avant publication — 19 octobre 2026]]", "[[Suites de l'audit — 20 octobre 2026]]", "[[Prêt à démarcher]]", "[[Prompt de passation à Codex — état du 16 octobre 2026]]", "[[Registre des traitements]]", "[[Recette de production]]", "[[Grille tarifaire]]", "[[Onboarding et abonnement]]"]
 ---
 
@@ -12,6 +12,12 @@ sources: ["[[Audit final avant publication — 19 octobre 2026]]", "[[Suites de 
 > [!warning] Orientation du 21 octobre 2026
 > Le dirigeant demande une base entièrement fonctionnelle, puis la finalisation des informations juridiques : les propositions de fermeture préventive ci-dessous sont remplacées par la préparation de l’ouverture des fonctions métier, avec vérification technique et protections normales. Les agences restent uniquement en liste d’attente, conformément à sa clarification. Ce changement d’objectif n’atteste pas l’activation effective des services ni leur validation juridique. Voir [[Préparation fonctionnelle — 21 octobre 2026]].
 
+
+> [!warning] Contrôle du 22 octobre 2026
+> Les lignes « Dirigeant » de la semaine du 19 au 25/10 ont été confiées à Codex le 21/10. Le [[Contrôle des livraisons de Codex — 22 octobre 2026]] relève : aucune ligne encore passée en « fait (date) » ; la décision D2 attendue au 23/10 (« cautionnement fermé ») a été prise à l'inverse (interrupteur rouvert le 21/10) ; les modules artisans ont été ouverts ; aucune recette de production après les trois dernières fusions. À relire au prochain lundi.
+
+> [!info] Point du 23 octobre 2026
+> Recette de production verte sur `e53298a` (39983680482) et chantier Stripe en clés de test vert (39983684869) : la ligne « recette après les dernières fusions » est faite. Le dirigeant décide que les informations manquantes ne bloquent plus rien : le médiateur (seule information d'identité manquante) ne ferme plus la vente une fois le lot de Claude publié ; la ligne « identité de l'éditeur saisie » du 24/10 se réduit au médiateur, sans butée technique. Ce qui manque encore : [[Informations manquantes — 23 octobre 2026]].
 
 > [!info] Décision du dirigeant du 20 octobre 2026
 > La publicité commence dès maintenant dans son entourage. La **sortie officielle est fixée au lundi 30 novembre 2026** : le premier client particulier doit pouvoir s'inscrire le 30 novembre au soir. Les agences de gestion ne sont pas dans cette sortie : elles s'inscrivent sur une **liste d'attente** depuis le site vitrine ([[Liste d'attente des agences]]), et seront prévenues quand leur offre ouvrira. D'ici là, les tests doivent être terminés.
@@ -127,8 +133,8 @@ Rôles : **Dirigeant** (saisies, décisions, tableaux de bord, carte bancaire), 
 
 Le wiki pose une règle : les particuliers ne sont pas démarchés directement (décision du 19/09, [[Expansion territoriale autonome]]) ; les leviers sont la publicité sur Instagram et Facebook et le [[Parrainage]]. Parler de Gerimmo à son entourage et à des connaissances qui le demandent n'est pas du démarchage : c'est le bouche-à-oreille, et c'est le dirigeant qui parle. Ce qu'on peut dire aujourd'hui, et ce qu'on ne doit pas dire, est dans [[Prêt à démarcher]]. En résumé pour l'entourage :
 
-- **On peut dire** : la gestion locative des propriétaires bailleurs et des SCI, partout en France, avec un espace locataire ; essai gratuit de deux mois sans carte pour toute inscription avant le 31/12/2026 ; les prix de la grille publique ; un réseau d'artisans qui s'ouvre commune par commune ; une sortie officielle le 30 novembre.
-- **On ne promet pas** : la signature électronique (non proposée au public), l'offre agences (liste d'attente seulement), un paiement avant son ouverture, des services bancaires ou des SMS, une date d'ouverture du réseau d'artisans dans une commune donnée.
+- **On peut dire** : la gestion locative des propriétaires bailleurs et des SCI, partout en France, avec un espace locataire ; essai gratuit de deux mois sans carte pour toute inscription avant le 31/12/2026 ; les prix de la grille publique ; un réseau d'artisans où chaque artisan choisit sa zone et ses métiers (décision du 23/10, à mettre en production) ; une sortie officielle le 30 novembre.
+- **On ne promet pas** : la signature électronique (non proposée au public), l'offre agences (liste d'attente seulement), un paiement avant son ouverture, des services bancaires ou des SMS, la présence d'un artisan du réseau dans une commune donnée.
 - **On ne fait pas** : d'inscription à la place de quelqu'un, de compte « pour voir » avec de vraies données d'un tiers, de promesse de prix hors grille.
 
 Les proches qui s'inscrivent avant le 30/11 sont des utilisateurs réels : ils reçoivent de vrais e-mails, voient les vraies pages légales et le paiement tel qu'il est. Tant que l'identité de l'éditeur n'est pas saisie, le bouton de paiement refuse ; c'est voulu.
@@ -160,3 +166,19 @@ Rien à la date du 30 novembre : elle permet seulement de **ne pas perdre** les 
 > - La signature électronique est-elle ouverte au public le 30/11 (non recommandé tant que E1 et E6 ne sont pas tranchés) ?
 > - Qui recontacte les agences de la liste d'attente, et quand.
 > - Les amis gardent-ils leurs comptes après la bêta (décision du 20/10 : oui, en les déconnectant), et sous quelle adresse.
+
+> [!warning] Changement du 23/10/2026 — réseau d'artisans
+> - Décision du dirigeant : les communes et les métiers du réseau sont choisis par l'artisan (sa zone
+>   d'intervention et ses métiers), même pendant la bêta ; l'ouverture commune × métier par le super
+>   administrateur est supplantée. Migration `20261023180000`, non appliquée en production au 23/10 :
+>   voir [[Ouverture du réseau d'artisans]].
+> - L'artisan de test que le dirigeant valide (ligne « Chaque soir ») sera proposé aux vrais propriétaires de sa
+>   zone s'il est public. Réponse du dirigeant du 23/10 (point 7) : les comptes des amis sont gardés, ce sont des
+>   clients comme les autres ; un ami artisan public est donc proposé comme tout artisan. Pour l'éviter pendant la
+>   bêta : le garder privé (passer par l'invitation) ou limiter sa zone à la commune du bien de test.
+> - **Dossier Artisan des amis (grille J1 à J7) à compléter** dans le document « Dossiers de test par persona »
+>   (Claude Docs, hors dépôt), qui ne le dit pas encore : 1) à l'inscription, choisir ses métiers et sa zone (codes
+>   postaux ou départements) ; 2) attendre la validation de Gerimmo (aucun e-mail n'est envoyé à la validation) ;
+>   3) dans « Mon entreprise », lire la carte « Suis-je proposé dans le réseau ? » ; 4) rendre son profil public
+>   seulement si l'ami accepte d'être proposé aux vrais propriétaires de sa zone, sinon rester privé et être
+>   sollicité par invitation ; 5) vérifier que le rappel de « Aujourd'hui » disparaît ou devient informatif.

@@ -31,6 +31,13 @@
 # succès, relancer. Le 18/10, deux des trois applications réelles (3 h 10 et 6 h 51 après la dernière sauvegarde)
 # auraient été refusées.
 #
+# CI VERTE D'ABORD (23/10 ; protocole § 6, étape 4). « simulation » décoché : l'application est REFUSÉE si le
+# DERNIER passage du chantier « CI » (`ci.yml`, « Lint, types, tests, build ») sur la révision exacte lancée
+# (`github.sha`) n'est pas terminé et réussi. Le 22/10, une application réelle est partie de ed97d12 pendant que la
+# CI de ce SHA tournait, puis échouait (audit du 23/10). Lecture par l'API GitHub avec le jeton du chantier
+# (`actions: read`). La simulation reste permise sans CI verte. Limite : GitHub lit ce fichier sur la branche
+# lancée ; une branche qui ne porte pas cette garde ne l'applique pas.
+#
 # ÉQUIVALENCES CONNUES — fichier du dépôt → version enregistrée en base (ne JAMAIS nommer ces fichiers ici ;
 # relevé en lecture seule du 19/10) :
 #   20260911124500_restitution_rearrete_sous_verrou.sql → 20260911014814  (fichier renommé le 11/09 ; son texte a
@@ -59,8 +66,10 @@ on:
         default: true
 
 # Lecture seule du dépôt : actions/checkout n'a besoin de rien d'autre, et la base se joint par son propre secret.
+# `actions: read` : la garde « CI verte » lit les passages du chantier CI sur la révision lancée, rien de plus.
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: migrations-production
@@ -71,6 +80,63 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+
+      # CI VERTE D'ABORD (protocole § 6, étape 4 ; audit du 23/10). Une application réelle n'est acceptée que si le
+      # DERNIER passage du chantier « CI » (`ci.yml`) sur la révision exacte lancée (`github.sha`) est terminé et
+      # réussi : ni en cours, ni en échec, ni annulé, ni absent. Seuls les passages dont `head_sha` est cette révision
+      # comptent. Le plus récent est celui dont la DERNIÈRE TENTATIVE a démarré en dernier (`run_started_at`, à défaut
+      # `created_at`) : une relance (« Re-run jobs ») garde l'identifiant et le `created_at` du passage d'origine, et le
+      # tri par date de création ignorait la relance d'un passage plus ancien (relecture adverse du 23/10). Et un passage
+      # de la révision encore en file ou en cours, quel qu'il soit, refuse : une CI qui tourne n'a encore rien prouvé.
+      # Une API muette ou une réponse illisible refuse aussi. En simulation : affiché, jamais bloquant. Jeton du
+      # chantier (`actions: read`), aucun secret de plus.
+      - name: Garde — CI verte sur la révision exacte
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEPOT: ${{ github.repository }}
+          REVISION: ${{ github.sha }}
+          SIMULATION: ${{ inputs.simulation }}
+        run: |
+          set -euo pipefail
+          ETAT=illisible; DETAIL=""
+          if [[ ! "$REVISION" =~ ^[0-9a-f]{40}$ ]]; then
+            DETAIL="révision illisible"
+          elif ! REPONSE="$(curl -fsS --max-time 20 \
+                -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/${DEPOT}/actions/workflows/ci.yml/runs?head_sha=${REVISION}&per_page=100")"; then
+            DETAIL="l'API GitHub n'a pas répondu"
+          elif ! LIGNE="$(printf '%s' "$REPONSE" | jq -er --arg sha "$REVISION" '
+                [.workflow_runs[] | select(.head_sha == $sha)]
+                | sort_by([(.run_started_at // .created_at), (.run_attempt // 1), .id])
+                | ((map(select(.status != "completed")) | last) // last)
+                | if . == null then "absent|aucun passage de la CI sur cette révision"
+                  else "\(.status)/\(.conclusion // "-")|passage \(.id)\(if (.run_attempt // 1) > 1 then " (tentative \(.run_attempt))" else "" end) du \(.run_started_at // .created_at) : \(.html_url)" end')"; then
+            DETAIL="réponse de l'API GitHub illisible"
+          else
+            ETAT="${LIGNE%%|*}"; DETAIL="${LIGNE#*|}"
+          fi
+          echo "— CI « Lint, types, tests, build » sur ${REVISION} : ${ETAT} (${DETAIL})"
+          if [ "$ETAT" = "completed/success" ]; then exit 0; fi
+          if [ "$SIMULATION" != "true" ]; then
+            echo "::error title=Application refusée::la CI n'est pas verte sur la révision lancée (${ETAT})."
+            case "$ETAT" in
+              completed/*|absent|illisible)
+                echo "✗ Application refusée : le dernier passage de la CI sur ${REVISION} n'est pas réussi (${ETAT})." >&2
+                echo "  Attendre la fin de la CI de cette révision exacte, ou la relancer (Actions → « CI » → Run workflow, même branche) ; relancer ce chantier une fois la CI verte." >&2
+                ;;
+              *)
+                # Le passage en cause n'est pas forcément le dernier, et en lancer un nouveau ne lève pas ce refus tant
+                # qu'il reste en file ou bloqué (relecture adverse du 23/10, 2e passe).
+                echo "✗ Application refusée : un passage de la CI sur ${REVISION} est encore en file ou en cours (${ETAT})." >&2
+                echo "  En cause : ${DETAIL}" >&2
+                echo "  Attendre la fin de ce passage, ou l'annuler s'il reste bloqué (Actions → « CI » → ce passage → Cancel workflow) : un nouveau passage ne lève pas ce refus tant que celui-ci n'est pas terminé. Relancer ce chantier une fois la CI verte." >&2
+                ;;
+            esac
+            exit 1
+          fi
+          echo "  simulation : rien n'est bloqué ici, mais l'application réelle serait refusée en l'état."
 
       - name: Client PostgreSQL
         run: |

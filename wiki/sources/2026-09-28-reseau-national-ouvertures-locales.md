@@ -3,7 +3,7 @@ type: source
 tags: [artisan, reseau, territoire, couverture, super-admin]
 status: stable
 created: 2026-09-29
-updated: 2026-09-29
+updated: 2026-10-23
 sources: []
 source-file: "app/docs/reseau-national-ouvertures-locales.md ; app/supabase/migrations/20260928081000_ouverture_reseau_par_commune_metier.sql (PR #132, pas de document dans raw/)"
 source-type: documentation technique et migration du dépôt
@@ -69,3 +69,8 @@ pour celle du compte ou du siège.
 > - [[Expansion territoriale autonome]] parlait d'« ouvrir un département » : la
 >   gestion n'est jamais fermée par territoire ; seul le réseau s'ouvre, par
 >   commune × métier.
+> - **Supplantée le 23/10/2026** (décision du dirigeant) : l'ouverture explicite commune ×
+>   métier décrite par cette source ne vaut plus pour le réseau ; chaque artisan choisit sa
+>   zone (codes postaux, départements) et ses métiers, et il est proposé une fois validé et
+>   public. Livré par la migration `20261023180000` (non appliquée en production au 23/10).
+>   Voir [[Ouverture du réseau d'artisans]].

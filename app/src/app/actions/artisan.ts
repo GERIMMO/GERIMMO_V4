@@ -246,7 +246,10 @@ export async function mettreAJourMetiersZones(
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath("/artisan/entreprise");
-  return { succes: "Métiers et zone d'intervention enregistrés." };
+  return {
+    succes:
+      "Métiers et zone d'intervention enregistrés. Le réseau Gerimmo vous propose dans cette zone dès que votre inscription est validée et que votre profil est public.",
+  };
 }
 
 /**
@@ -274,8 +277,8 @@ export async function definirMaVisibilite(
   return {
     succes:
       visibilite === "publique"
-        ? "Votre profil est désormais visible de toutes les agences de la plateforme."
-        : "Votre profil n'est plus visible que des agences auxquelles vous êtes déjà rattaché.",
+        ? "Votre profil est public : une fois votre inscription validée, le réseau Gerimmo vous propose aux propriétaires de votre zone, pour vos métiers. Ils voient le nom de votre entreprise, vos métiers et votre note ; vos coordonnées leur sont transmises avec une demande de devis."
+        : "Votre profil est privé : le réseau Gerimmo ne vous propose plus ; seuls les clients qui vous ont ajouté à leur carnet peuvent vous solliciter.",
   };
 }
 

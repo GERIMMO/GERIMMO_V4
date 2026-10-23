@@ -3,7 +3,7 @@ type: process
 tags: [artisan, invitation, proprietaire, carnet, reseau, securite, authentification]
 status: draft
 created: 2026-10-16
-updated: 2026-10-16
+updated: 2026-10-23
 sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Ouverture du réseau d'artisans]]"]
 ---
 
@@ -16,8 +16,17 @@ sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "
 **En une phrase :** le [[Propriétaire bailleur|propriétaire en gestion directe]] invite par
 e-mail un artisan qu'il connaît ; l'artisan crée lui-même son compte, inscrit son entreprise
 et accepte l'invitation ; une fois son inscription validée par Gerimmo, il est dans le carnet
-du propriétaire et peut être sollicité par lui, même dans une commune fermée au réseau, pour
+du propriétaire et peut être sollicité par lui, même s'il n'est pas proposé par le réseau
+(profil resté privé ; avant le 23/10 : « même dans une commune fermée au réseau »), pour
 les biens situés dans sa zone d'intervention.
+
+> [!warning] Décision du 23/10/2026 — réseau choisi par l'artisan
+> Plus de commune « fermée » : le réseau propose les artisans validés et **publics** dont
+> la zone couvre le bien ([[Ouverture du réseau d'artisans]], migration `20261023180000`,
+> non appliquée en production au 23/10). L'invité reste **privé** par défaut : il n'est
+> proposé qu'à ce propriétaire, par le carnet. S'il se rend public, le réseau le propose
+> aussi aux autres propriétaires de sa zone. Une agence ne peut plus modifier sa zone ni
+> ses métiers.
 
 > [!info] Statut au 16/10/2026
 > Décision du dirigeant du 15/10/2026 (journal `log.md`, entrée « decision » du 15/10,
@@ -122,7 +131,7 @@ les biens situés dans sa zone d'intervention.
    pro en cours, décision du 27/09 : [[Artisan]]). La barrière `artisan_affectable` n'est pas
    touchée par le lot.
 9. **Sollicitation.** Depuis la fiche d'un incident, le propriétaire sollicite l'artisan de
-   son carnet (origine « carnet »), **même si la commune du bien est fermée au réseau**, à
+   son carnet (origine « carnet »), **même s'il n'est pas proposé par le réseau** (profil privé ; avant le 23/10 : « même si la commune du bien est fermée au réseau »), à
    condition que : la relation soit active (ni désactivé ni sur sa liste noire),
    l'inscription soit validée (validé, SIRET vérifié, pas d'exclusion de la plateforme),
    l'artisan exerce le métier, sa **zone d'intervention couvre le code postal du bien**, et

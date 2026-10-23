@@ -7,6 +7,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { nomInvitant } from "@/lib/invitations-artisan";
 import { METIERS, PIECES_ARTISAN } from "@/app/artisan/libelles";
+import { libelleZone } from "@/lib/zone-artisan";
 import { DecisionArtisan } from "./decision-artisan";
 import { RetourDecisionsArtisan } from "./retour-decisions";
 
@@ -48,9 +49,16 @@ export default async function InscriptionsArtisan({ searchParams }: {
     // Motifs et dates de décision : fermés à la lecture directe (20261014842000), lus par la fonction de la supervision.
     : await supabase.rpc("decisions_artisans_supervision", { p_debut: debutDecisions, p_nombre: DECISIONS_PAR_PAGE });
   const inscriptions = (file.data ?? []) as Inscription[];
-  const pieces = inscriptions.length > 0
-    ? await supabase.from("artisan_pieces").select("id, artisan_id, type, expire_le").in("artisan_id", inscriptions.map((a) => a.artisan_id)).is("retiree_le", null)
-    : { data: [], error: null };
+  const [pieces, zones] = inscriptions.length > 0
+    ? await Promise.all([
+      supabase.from("artisan_pieces").select("id, artisan_id, type, expire_le").in("artisan_id", inscriptions.map((a) => a.artisan_id)).is("retiree_le", null),
+      // Décision du 23/10/2026 : valider un artisan le rend proposable dans SA zone (dès que son profil est public).
+      // Le validateur voit donc ce qu'il ouvre.
+      supabase.from("artisan_zones").select("artisan_id, code_postal").in("artisan_id", inscriptions.map((a) => a.artisan_id)),
+    ])
+    : [{ data: [], error: null }, { data: [], error: null }];
+  const zonesDe = (artisanId: string) => ((zones.data ?? []) as { artisan_id: string; code_postal: string }[])
+    .filter(z => z.artisan_id === artisanId).map(z => z.code_postal).sort().map(libelleZone);
 
   const siretsAVerifier = inscriptions.filter(a => a.siret_etat !== "verifie").length;
   return <RetourDecisionsArtisan><main className={shared.page}>
@@ -80,7 +88,9 @@ export default async function InscriptionsArtisan({ searchParams }: {
                 <dl className={styles.identityDetails}>
                   <div><dt>SIRET</dt><dd>{artisan.siret}<span className={shared.badge} data-tone={artisan.siret_etat === "verifie" ? "vert" : artisan.siret_etat === "invalide" ? "rouge" : "ambre"}>{ETATS_SIRET[artisan.siret_etat] ?? artisan.siret_etat}</span></dd></div>
                   <div><dt>Contact</dt><dd>{artisan.email || "E-mail non renseigné"}{artisan.telephone && <><br />{artisan.telephone}</>}</dd></div>
+                  <div><dt>Zone d’intervention</dt><dd>{zones.error ? "Zone indisponible" : zonesDe(artisan.artisan_id).join(" · ") || "Aucune zone déclarée"}</dd></div>
                 </dl>
+                <p className={styles.subtle}>Validé, il sera proposé aux propriétaires de cette zone pour ses métiers dès que son profil sera public.</p>
                 {artisan.siret_etat !== "verifie" && <DecisionArtisan artisanId={artisan.artisan_id} operation="verifier_siret" />}
                 <section className={styles.check} aria-label={`Justificatifs de ${artisan.raison_sociale}`}>
                   <h4 className={styles.checkTitle}><FileCheck2 size={16} aria-hidden="true" />2. Les justificatifs <span className={shared.badge}>{artisan.nb_pieces} pièce{artisan.nb_pieces > 1 ? "s" : ""}</span></h4>
@@ -107,10 +117,10 @@ export default async function InscriptionsArtisan({ searchParams }: {
         </section>
       </div>
       <aside className={styles.sidebar} aria-label="Développement du réseau">
-        <section className={styles.networkCard}><MapPinned size={29} aria-hidden="true" /><p className={styles.eyebrow}>LE RÉSEAU SUR LE TERRAIN</p><h2>Chaque zone<br />se prépare.</h2><p>Rattachez les communes des artisans, puis décidez des zones à ouvrir.</p><Link href="/admin/couverture">Voir la couverture <ArrowUpRight size={16} aria-hidden="true" /></Link></section>
+        <section className={styles.networkCard}><MapPinned size={29} aria-hidden="true" /><p className={styles.eyebrow}>LE RÉSEAU SUR LE TERRAIN</p><h2>Chaque artisan<br />choisit sa zone.</h2><p>Il déclare ses métiers et sa zone ; validé et public, il y est proposé. Suivez la couverture qui en résulte.</p><Link href="/admin/couverture">Voir la couverture <ArrowUpRight size={16} aria-hidden="true" /></Link></section>
         <section className={styles.guide}><p className={styles.eyebrow}>VOTRE EXAMEN</p><h2>Trois points de contrôle</h2><ol><li><div><strong>L’identité de l’entreprise</strong><span>Vérifier le SIRET et les coordonnées.</span></div></li><li><div><strong>Les justificatifs</strong><span>Relire les pièces et leurs dates.</span></div></li><li><div><strong>Une décision tracée</strong><span>Valider ou préciser le motif du refus.</span></div></li></ol><Link href="/admin/clients"><Users size={15} aria-hidden="true" />Consulter l’annuaire<ArrowUpRight size={15} aria-hidden="true" /></Link></section>
       </aside>
     </div>
-    <p className={styles.context}><Info size={15} aria-hidden="true" /><span>La validation d’un artisan n’ouvre aucune zone et conserve sa visibilité choisie. Les contrôles d’assurance restent appliqués à chaque intervention.</span></p>
+    <p className={styles.context}><Info size={15} aria-hidden="true" /><span>La validation d’un artisan le rend proposable dans la zone et pour les métiers qu’il a déclarés, dès que son profil est public ; elle conserve sa visibilité choisie. Les contrôles d’assurance restent appliqués à chaque intervention.</span></p>
   </main></RetourDecisionsArtisan>;
 }

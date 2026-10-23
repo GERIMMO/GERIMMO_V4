@@ -32,7 +32,8 @@ test.describe("Couverture du réseau depuis le bien", () => {
       await commune.selectOption("69123");
       await page.getByRole("button", { name: "Confirmer la commune", exact: true }).click();
     }
-    await expect(page.getByText("Le réseau d’artisans Gerimmo n’est pas encore disponible pour ce métier dans cette zone.", { exact: true })).toBeVisible();
+    // Décision du 23/10/2026 : plus de commune « fermée » ; aucun artisan n'a déclaré Lyon 3e pour la plomberie.
+    await expect(page.getByText(/^Aucun artisan du réseau n’est actuellement disponible pour ce métier et ces travaux dans cette zone\./)).toBeVisible();
     await page.getByRole("button", { name: "Signaler mon intérêt" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Aucune demande d’intervention" })).toBeVisible();
     await page.reload();
@@ -48,27 +49,21 @@ test.describe("Couverture du réseau depuis le bien", () => {
   });
 });
 
-test.describe("Administration des ouvertures", () => {
+// Décision du 23/10/2026 (20261023180000) : chaque artisan choisit sa zone et ses métiers ; la supervision constate la
+// couverture et n'ouvre ni ne rattache plus rien.
+test.describe("Couverture du réseau, côté supervision", () => {
   test.use({ storageState: path.join(__dirname, ".auth", "superadmin.json") });
-  test("une sélection groupée ne vaut pas activation, et une zone sans artisan refuse l’ouverture", async ({ page }) => {
+  test("la couverture se lit commune par commune, sans aucune décision d’ouverture ni de rattachement", async ({ page }) => {
     await sansSyntheseAlertes(page);
     await page.goto("/admin/couverture?departement=91&metier=electricite");
     await expect(page.getByRole("heading", { name: "Réseau d’artisans", exact: true })).toBeVisible();
+    await expect(page.getByText(/Aucune ouverture n’est à décider/)).toBeVisible();
     await page.getByLabel("Rechercher une commune").fill("Massy");
-    await page.getByRole("checkbox", { name: "Sélectionner Massy", exact: true }).check();
-    const ouvrir = page.getByRole("button", { name: "Ouvrir les communes sélectionnées" });
-    await expect(ouvrir).toBeDisabled();
-    await page.getByRole("checkbox", { name: /Je valide l’ouverture commerciale/ }).check();
-    await ouvrir.click();
-    await expect(page.getByRole("alert").filter({ hasText: "aucun artisan validé" })).toBeVisible();
-    await expect(page.getByRole("row").filter({ has: page.getByRole("link", { name: "Massy", exact: true }) })).toContainText("Fermée par défaut");
-    await page.getByRole("button", { name: "Tout désélectionner" }).click();
-    await expect(ouvrir).toBeDisabled();
-    await page.getByRole("button", { name: "Sélectionner toutes les communes affichées (1)" }).click();
-    await expect(ouvrir).toBeDisabled();
+    await expect(page.getByRole("row").filter({ has: page.getByRole("link", { name: "Massy", exact: true }) })).toBeVisible();
+    await expect(page.getByRole("checkbox")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Ouvrir les communes|Fermer les communes|Enregistrer le rattachement/ })).toHaveCount(0);
     await page.getByRole("link", { name: "Massy", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Artisans rattachés à Massy" })).toBeVisible();
-    await expect(page.getByText("Aucun artisan rattaché pour ce métier. L’ouverture n’est pas possible.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Artisans qui interviennent à Massy · Électricité" })).toBeVisible();
     expect(await debordementHorizontal(page)).toBe(0);
   });
 });

@@ -21,9 +21,12 @@ export async function lireLignes(requete: PromiseLike<{ data: unknown; error: un
 export function lignesTableau(f: Fusion, lignes: LigneDocument[], colonnes: [string, string, "texte" | "date" | "montant"][]): string {
   return tableau(colonnes.map(([libelle,, type]) => ({ libelle, droite: type === "montant" })), lignes.map(l => colonnes.map(([libelle, cle, type]) => type === "montant" ? f.montant(l[cle] as string | number | null, libelle) : type === "date" ? f.date(texte(l[cle]) || null, libelle) : f.champ(texte(l[cle]) || null, libelle))));
 }
+// L'année par défaut d'un document est celle du jour de PARIS : l'année du serveur (UTC) est encore la précédente le
+// 1er janvier entre minuit et 1 h (audit du 23/10, TST-5).
 export function anneeDocument(options?: Record<string,string>): number {
-  const n = Number(options?.annee ?? new Date().getFullYear());
-  if (!Number.isInteger(n) || n < 1970 || n > new Date().getFullYear() + 1) throw new RefusDocument("Choisissez une année valide.");
+  const anneeParis = Number(aujourdhuiParis().slice(0, 4));
+  const n = Number(options?.annee ?? anneeParis);
+  if (!Number.isInteger(n) || n < 1970 || n > anneeParis + 1) throw new RefusDocument("Choisissez une année valide.");
   return n;
 }
 function dateValide(v: string | undefined): boolean { return Boolean(v && /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().slice(0,10) === v); }

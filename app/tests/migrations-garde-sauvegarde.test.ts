@@ -14,7 +14,14 @@
  *    application réelle au-delà de 90 minutes ;
  *  — une garde par empreinte : le md5 du fichier, octet pour octet, comparé à celui du texte enregistré en base, refuse
  *    de rejouer un contenu déjà appliqué sous un autre numéro ; l'en-tête documente les équivalences connues ;
- *  — `CLAUDE.md` (app/) prescrit ce chantier et plus l'outil MCP `apply_migration`.
+ *  — `CLAUDE.md` (app/) prescrit ce chantier et plus l'outil MCP `apply_migration` ;
+ *  — (audit du 23/10) une étape « Garde — CI verte sur la révision exacte », AVANT les deux autres gardes et
+ *    « Appliquer », qui lit par l'API GitHub (jeton du chantier, `actions: read`) le dernier passage du chantier CI sur
+ *    `github.sha` et refuse une application réelle s'il n'est pas terminé et réussi. Le 22/10, une application réelle
+ *    était partie de ed97d12 pendant que la CI de ce SHA tournait, puis échouait. La simulation reste permise.
+ *    Relecture adverse du 23/10 : le « dernier » passage est celui dont la dernière tentative a démarré en dernier
+ *    (`run_started_at`), pas le dernier créé — une relance garde le `created_at` d'origine —, et tout passage de la
+ *    révision encore en file ou en cours refuse.
  *
  * Partie SANS base : le texte du chantier, lu avec js-yaml (présent dans `package-lock.json` par la chaîne d'ESLint ;
  * aucune dépendance ajoutée), puis les scripts `run` des deux étapes JOUÉS avec bash et un faux `psql` (relecture du
@@ -61,11 +68,12 @@ const chantier = load(texte) as Chantier;
 const etapes = chantier.jobs?.appliquer?.steps ?? [];
 const nomDe = (e: Etape) => e.name ?? e.uses ?? "";
 const garde = etapes.find((e) => e.name === "Garde — une sauvegarde réussie récente");
+const gardeCi = etapes.find((e) => e.name === "Garde — CI verte sur la révision exacte");
 const appliquer = etapes.find((e) => e.name === "Appliquer");
 
 describe("chantier « Migrations Supabase » — gardes (sans base)", () => {
-  it("se lit comme du YAML, n'a que les droits de lecture du dépôt et aucune entrée de contournement", () => {
-    expect(chantier.permissions).toEqual({ contents: "read" });
+  it("se lit comme du YAML, n'a que des droits de lecture (dépôt, passages CI) et aucune entrée de contournement", () => {
+    expect(chantier.permissions).toEqual({ contents: "read", actions: "read" });
     expect(Object.keys(chantier.on?.workflow_dispatch?.inputs ?? {}).sort()).toEqual(["fichiers", "simulation"]);
     expect(Object.keys(chantier.jobs ?? {})).toEqual(["appliquer"]);
   });
@@ -91,6 +99,30 @@ describe("chantier « Migrations Supabase » — gardes (sans base)", () => {
     expect(run).toContain('[ "$SIMULATION" != "true" ]');
     expect(run).toContain('[ "$AGE" -gt "$SAUVEGARDE_MAX_MINUTES" ]');
     expect(run).toContain("✗ Application refusée : aucune « Sauvegarde quotidienne » réussie depuis ${SAUVEGARDE_MAX_MINUTES} min.");
+    expect(run).toContain("exit 1");
+  });
+
+  it("la garde « CI verte sur la révision exacte » précède les autres gardes et « Appliquer », sans contournement", () => {
+    const noms = etapes.map(nomDe);
+    const iCi = noms.indexOf("Garde — CI verte sur la révision exacte");
+    expect(iCi).toBeGreaterThan(-1);
+    expect(noms.indexOf("Garde — une sauvegarde réussie récente")).toBeGreaterThan(iCi);
+    expect(noms.indexOf("Appliquer")).toBeGreaterThan(iCi);
+
+    // Toujours exécutée ; ses seules variables sont le jeton du chantier, le dépôt, la révision lancée et la simulation.
+    expect(gardeCi?.if).toBeUndefined();
+    expect(gardeCi?.env).toEqual({
+      GITHUB_TOKEN: "${{ github.token }}",
+      DEPOT: "${{ github.repository }}",
+      REVISION: "${{ github.sha }}",
+      SIMULATION: "${{ inputs.simulation }}",
+    });
+    const run = gardeCi?.run ?? "";
+    expect(run).toContain("set -euo pipefail");
+    expect(run).toContain("https://api.github.com/repos/${DEPOT}/actions/workflows/ci.yml/runs?head_sha=${REVISION}");
+    expect(run).toContain('[ "$ETAT" = "completed/success" ]');
+    expect(run).toContain('[ "$SIMULATION" != "true" ]');
+    expect(run).toContain("::error title=Application refusée::");
     expect(run).toContain("exit 1");
   });
 
@@ -146,19 +178,37 @@ const FAUX_PSQL = [
   "",
 ].join("\n");
 
+/** Faux `curl` du banc : aucun réseau ; consigne ses arguments, imprime ce que le test lui dicte, sort avec le code demandé. */
+const FAUX_CURL = [
+  "#!/usr/bin/env bash",
+  "# Faux curl du banc de test : aucun réseau ; consigne ses arguments, imprime FAUX_CURL_SORTIE et sort avec FAUX_CURL_CODE.",
+  'printf \'%s\\n\' "$*" >> "$FAUX_CURL_JOURNAL"',
+  'if [ -n "${FAUX_CURL_SORTIE:-}" ]; then printf \'%s\' "$FAUX_CURL_SORTIE"; fi',
+  'exit "${FAUX_CURL_CODE:-0}"',
+  "",
+].join("\n");
+
 /**
- * Joue le script `run` d'une étape du chantier avec bash, depuis la racine du dépôt, avec le faux `psql` en tête de
- * PATH : aucune base, aucun réseau. Les variables d'environnement de l'étape sont reprises telles quelles quand elles
+ * Joue le script `run` d'une étape du chantier avec bash, depuis la racine du dépôt, avec les faux `psql` et `curl` en
+ * tête de PATH : aucune base, aucun réseau. Les variables d'environnement de l'étape sont reprises telles quelles quand elles
  * sont littérales (REF, REGION, SAUVEGARDE_MAX_MINUTES : le vrai seuil est éprouvé) ; les expressions `${{ … }}`
  * (secret, entrées) prennent les valeurs du cas. Seule retouche au script : ses fichiers de travail `/tmp/…` sont
  * déplacés dans un dossier jetable, pour que deux ouvriers Vitest ne s'écrasent pas.
  */
-function jouerEtape(etape: Etape | undefined, entrees: Record<string, string>, psql: { sortie?: string; code?: number } = {}) {
+function jouerEtape(
+  etape: Etape | undefined,
+  entrees: Record<string, string>,
+  psql: { sortie?: string; code?: number } = {},
+  curl: { sortie?: string; code?: number } = {}
+) {
   const dossier = mkdtempSync(resolve(tmpdir(), "gerimmo-chantier-migrations-"));
   try {
     const bin = resolve(dossier, "bin");
     mkdirSync(bin);
     writeFileSync(resolve(bin, "psql"), FAUX_PSQL, { mode: 0o755 });
+    writeFileSync(resolve(bin, "curl"), FAUX_CURL, { mode: 0o755 });
+    const journalCurl = resolve(dossier, "curl.log");
+    writeFileSync(journalCurl, "");
     const script = resolve(dossier, "etape.sh");
     writeFileSync(script, (etape?.run ?? "").replace(/\/tmp\//g, `${dossier}/`));
     const env: NodeJS.ProcessEnv = {
@@ -166,12 +216,16 @@ function jouerEtape(etape: Etape | undefined, entrees: Record<string, string>, p
       PATH: [bin, dirname(process.execPath), process.env.PATH ?? ""].join(delimiter),
       FAUX_PSQL_SORTIE: psql.sortie ?? "",
       FAUX_PSQL_CODE: String(psql.code ?? 0),
+      FAUX_CURL_SORTIE: curl.sortie ?? "",
+      FAUX_CURL_CODE: String(curl.code ?? 0),
+      FAUX_CURL_JOURNAL: journalCurl,
     };
     for (const [cle, valeur] of Object.entries(etape?.env ?? {})) {
       env[cle] = valeur.includes("${{") ? (entrees[cle] ?? "") : valeur;
     }
     const r = spawnSync("bash", [script], { cwd: RACINE_DEPOT, env, encoding: "utf8" });
-    return { code: r.status, sortie: r.stdout, erreurs: r.stderr };
+    const appelsCurl = readFileSync(journalCurl, "utf8").split("\n").filter(Boolean);
+    return { code: r.status, sortie: r.stdout, erreurs: r.stderr, appelsCurl };
   } finally {
     rmSync(dossier, { recursive: true, force: true });
   }
@@ -270,6 +324,135 @@ describe.skipIf(!bancShell)("chantier « Migrations Supabase » — les scripts 
     const autre = appliquerAvec("20261017180829_supervision_finances.txt", "");
     expect(autre.code).toBe(1);
     expect(autre.erreurs).toContain("✗ un fichier .sql de app/supabase/migrations attendu");
+  });
+});
+
+const bancCi = bancShell && spawnSync("jq", ["--version"]).status === 0;
+
+describe.skipIf(!bancCi)("chantier « Migrations Supabase » — la garde « CI verte » jouée avec bash, jq et un faux curl (sans réseau)", () => {
+  // La révision de l'application réelle du 22/10 (ed97d12…), allongée à 40 caractères pour l'essai.
+  const SHA = `ed97d12${"0".repeat(33)}`;
+  const AUTRE = `f0eeb9c${"0".repeat(33)}`;
+  type Passage = {
+    id: number; head_sha: string; status: string; conclusion: string | null; created_at: string; html_url: string;
+    run_attempt?: number; run_started_at?: string;
+  };
+  const passage = (id: number, status: string, conclusion: string | null, created_at: string, head_sha = SHA): Passage =>
+    ({ id, head_sha, status, conclusion, created_at, html_url: `https://github.com/GERIMMO/GERIMMO_V4/actions/runs/${id}` });
+  /**
+   * Relecture adverse du 23/10 : une relance (« Re-run jobs ») garde l'identifiant et le `created_at` du passage d'origine ;
+   * seuls `run_attempt`, `run_started_at`, `status` et `conclusion` changent (passage 39867493421 : tentative 2, créé à
+   * 22:47:44, relancé à 22:58:15).
+   */
+  const relance = (p: Passage, run_attempt: number, run_started_at: string): Passage => ({ ...p, run_attempt, run_started_at });
+  const reponse = (...passages: Passage[]) => JSON.stringify({ total_count: passages.length, workflow_runs: passages });
+  const garderCi = (simulation: "true" | "false", curl: { sortie?: string; code?: number }, revision = SHA) =>
+    jouerEtape(gardeCi, { GITHUB_TOKEN: "jeton-de-test", DEPOT: "GERIMMO/GERIMMO_V4", REVISION: revision, SIMULATION: simulation }, {}, curl);
+  const REFUS = (etat: string) => `✗ Application refusée : le dernier passage de la CI sur ${SHA} n'est pas réussi (${etat}).`;
+  const REFUS_EN_COURS = (etat: string) => `✗ Application refusée : un passage de la CI sur ${SHA} est encore en file ou en cours (${etat}).`;
+
+  it("interroge les passages du chantier CI pour la révision exacte, avec le jeton du chantier", () => {
+    const r = garderCi("false", { sortie: reponse(passage(1, "completed", "success", "2026-10-23T08:30:00Z")) });
+    expect(r.appelsCurl).toHaveLength(1);
+    expect(r.appelsCurl[0]).toContain(`https://api.github.com/repos/GERIMMO/GERIMMO_V4/actions/workflows/ci.yml/runs?head_sha=${SHA}&per_page=100`);
+    expect(r.appelsCurl[0]).toContain("Authorization: Bearer jeton-de-test");
+  });
+
+  it("application réelle : acceptée si le dernier passage sur la révision est terminé et réussi", () => {
+    const r = garderCi("false", { sortie: reponse(passage(1, "completed", "success", "2026-10-23T08:30:00Z")) });
+    expect(r.code, r.erreurs).toBe(0);
+    expect(r.erreurs).toBe("");
+    expect(r.sortie).toContain(`— CI « Lint, types, tests, build » sur ${SHA} : completed/success (passage 1 du 2026-10-23T08:30:00Z`);
+    // Une réussite ancienne suivie d'un nouvel échec ne suffit pas ; l'inverse si (le plus récent compte).
+    const nouveauPassage = garderCi("false", { sortie: reponse(passage(2, "completed", "success", "2026-10-23T08:40:00Z"), passage(1, "completed", "failure", "2026-10-22T22:43:00Z")) });
+    expect(nouveauPassage.code, nouveauPassage.erreurs).toBe(0);
+  });
+
+  it("application réelle : acceptée si la relance d'un passage plus ancien réussit après un échec plus récent", () => {
+    // A (créé à 10 h) relancé à 11 h et réussi ; B (créé à 10 h 30) en échec : la dernière tentative lancée est celle de A.
+    const r = garderCi("false", {
+      sortie: reponse(
+        passage(2, "completed", "failure", "2026-10-23T10:30:00Z"),
+        relance(passage(1, "completed", "success", "2026-10-23T10:00:00Z"), 2, "2026-10-23T11:00:00Z")
+      ),
+    });
+    expect(r.code, r.erreurs).toBe(0);
+    expect(r.sortie).toContain(`— CI « Lint, types, tests, build » sur ${SHA} : completed/success (passage 1 (tentative 2) du 2026-10-23T11:00:00Z`);
+  });
+
+  // Relecture adverse du 23/10 (2e passe) : un passage non terminé n'est pas forcément le dernier, et en lancer un nouveau
+  // ne lève pas le refus tant qu'il reste en file ou bloqué. Le refus nomme ce passage et propose de l'attendre ou de l'annuler.
+  it.each([
+    ["CI en cours (22/10, 22 h 40)", reponse(passage(39865852616, "in_progress", null, "2026-10-22T22:33:43Z")), "in_progress/-", "passage 39865852616 du 2026-10-22T22:33:43Z"],
+    // Relecture adverse du 23/10 : A (créé à 10 h) vert, B (créé à 10 h 30) vert, puis A relancé à 11 h. Le tri par date
+    // de création retenait B et acceptait pendant que la CI de cette révision tournait de nouveau.
+    [
+      "relance en cours d'un passage plus ancien (créé avant une réussite)",
+      reponse(passage(2, "completed", "success", "2026-10-23T10:30:00Z"), relance(passage(1, "in_progress", null, "2026-10-23T10:00:00Z"), 2, "2026-10-23T11:00:00Z")),
+      "in_progress/-",
+      "passage 1 (tentative 2) du 2026-10-23T11:00:00Z",
+    ],
+    [
+      "un autre passage de la révision encore en file, même lancé avant la réussite",
+      reponse(passage(1, "queued", null, "2026-10-23T10:00:00Z"), passage(2, "completed", "success", "2026-10-23T10:30:00Z")),
+      "queued/-",
+      "passage 1 du 2026-10-23T10:00:00Z",
+    ],
+  ])("application réelle refusée, un passage n'est pas terminé : %s", (_cas, sortie, etat, enCause) => {
+    const r = garderCi("false", { sortie });
+    expect(r.code).toBe(1);
+    expect(r.erreurs).toContain(REFUS_EN_COURS(etat));
+    expect(r.erreurs).toContain(`En cause : ${enCause} : https://github.com/GERIMMO/GERIMMO_V4/actions/runs/`);
+    expect(r.erreurs).toContain("ou l'annuler s'il reste bloqué (Actions → « CI » → ce passage → Cancel workflow)");
+    expect(r.erreurs).toContain("un nouveau passage ne lève pas ce refus tant que celui-ci n'est pas terminé");
+    expect(r.erreurs).not.toContain("le dernier passage");
+    expect(r.erreurs).not.toContain("Run workflow");
+    expect(r.sortie).toContain(`::error title=Application refusée::la CI n'est pas verte sur la révision lancée (${etat}).`);
+  });
+
+  it.each([
+    ["CI en échec", reponse(passage(39865852616, "completed", "failure", "2026-10-22T22:33:43Z")), "completed/failure"],
+    ["CI annulée", reponse(passage(3, "completed", "cancelled", "2026-10-22T23:00:00Z")), "completed/cancelled"],
+    ["réussite puis nouvel échec", reponse(passage(1, "completed", "success", "2026-10-22T20:00:00Z"), passage(2, "completed", "failure", "2026-10-22T22:00:00Z")), "completed/failure"],
+    [
+      "relance d'un passage plus ancien terminée en échec",
+      reponse(passage(2, "completed", "success", "2026-10-23T10:30:00Z"), relance(passage(1, "completed", "failure", "2026-10-23T10:00:00Z"), 2, "2026-10-23T11:00:00Z")),
+      "completed/failure",
+    ],
+    ["aucun passage", reponse(), "absent"],
+    ["seulement une autre révision verte", reponse(passage(4, "completed", "success", "2026-10-23T08:41:57Z", AUTRE)), "absent"],
+    ["réponse inattendue", JSON.stringify({ message: "Not Found" }), "illisible"],
+    ["réponse tronquée", "{\"workflow_runs\": [", "illisible"],
+  ])("application réelle refusée : %s", (_cas, sortie, etat) => {
+    const r = garderCi("false", { sortie });
+    expect(r.code).toBe(1);
+    expect(r.erreurs).toContain(REFUS(etat));
+    expect(r.erreurs).toContain("Actions → « CI » → Run workflow");
+    expect(r.erreurs).not.toContain("encore en file ou en cours");
+    expect(r.sortie).toContain(`::error title=Application refusée::la CI n'est pas verte sur la révision lancée (${etat}).`);
+  });
+
+  it("application réelle refusée si l'API ne répond pas (curl en échec) ou si la révision est illisible", () => {
+    const muette = garderCi("false", { code: 22 });
+    expect(muette.code).toBe(1);
+    expect(muette.sortie).toContain("illisible (l'API GitHub n'a pas répondu)");
+    expect(muette.erreurs).toContain(REFUS("illisible"));
+    const illisible = garderCi("false", { sortie: reponse(passage(1, "completed", "success", "2026-10-23T08:30:00Z")) }, "main");
+    expect(illisible.code).toBe(1);
+    expect(illisible.appelsCurl).toEqual([]);
+  });
+
+  it("simulation : une CI absente, en cours, en échec ou illisible informe sans bloquer", () => {
+    for (const curl of [{ sortie: reponse() }, { sortie: reponse(passage(1, "in_progress", null, "2026-10-22T22:33:43Z")) }, { sortie: reponse(passage(1, "completed", "failure", "2026-10-22T22:33:43Z")) }, { code: 22 }]) {
+      const r = garderCi("true", curl);
+      expect(r.code, JSON.stringify(curl)).toBe(0);
+      expect(r.erreurs, JSON.stringify(curl)).toBe("");
+      expect(r.sortie).not.toContain("::error");
+      expect(r.sortie).toContain("simulation : rien n'est bloqué ici, mais l'application réelle serait refusée en l'état.");
+    }
+    const verte = garderCi("true", { sortie: reponse(passage(1, "completed", "success", "2026-10-23T08:30:00Z")) });
+    expect(verte.code).toBe(0);
+    expect(verte.sortie).not.toContain("serait refusée");
   });
 });
 

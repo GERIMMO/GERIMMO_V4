@@ -62,6 +62,33 @@ describe("l'expéditeur", () => {
     expect(r.erreur).not.toMatch(/RESEND_EXPEDITEUR/);
   });
 
+  // Audit du 23/10 (CPL1-2) : un 429 rendait « Vérifiez l’adresse du destinataire », qui accuse le client d’une
+  // limite du prestataire. Corps des refus : forme des erreurs de l'API (name, message), contenu d'essai.
+  it.each([
+    ["limite de débit", { name: "rate_limit_exceeded", message: "Too many requests. Please slow down." }, "Envoi limité temporairement par le prestataire d’e-mail : réessayez dans une minute."],
+    ["corps illisible", null, "Envoi limité temporairement par le prestataire d’e-mail : réessayez dans une minute."],
+    ["quota atteint", { name: "daily_quota_exceeded", message: "You have reached your daily email sending quota." }, "Le quota d’envois du prestataire d’e-mail est atteint : l’e-mail n’est pas parti. Réessayez plus tard ; si le refus persiste, prévenez le responsable Gerimmo."],
+  ])("traduit un refus 429 (%s) sans accuser l’adresse du destinataire", async (_cas, corps, attendu) => {
+    vi.stubEnv("RESEND_API_KEY", "cle-de-test");
+    const fetch = vi.fn(async () => new Response(corps ? JSON.stringify({ statusCode: 429, ...corps }) : "", { status: 429 }));
+    vi.stubGlobal("fetch", fetch);
+    const { envoyerEmail } = await chargerEmail();
+    const r = await envoyerEmail({ to: "a@b.fr", subject: "S", html: "<p>x</p>", cleIdempotence: "quittance/q-1" });
+    expect(r).toEqual({ erreur: attendu });
+    expect(r.erreur).not.toMatch(/adresse du destinataire/);
+    // Un refus, pas un envoi incertain ; et aucun réessai caché dans l'enveloppe : la reprise reste celle de l'appelant.
+    expect(r.incertain).toBeUndefined();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("un autre refus garde le message générique", async () => {
+    vi.stubEnv("RESEND_API_KEY", "cle-de-test");
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ name: "validation_error", message: "Invalid `to` field." }), { status: 422 }));
+    const { envoyerEmail } = await chargerEmail();
+    const r = await envoyerEmail({ to: "a@b.fr", subject: "S", html: "<p>x</p>" });
+    expect(r.erreur).toBe("Le service d’e-mail a refusé l’envoi. Vérifiez l’adresse du destinataire puis réessayez.");
+  });
+
   it("sans clé, ne prétend pas avoir envoyé", async () => {
     vi.stubEnv("RESEND_API_KEY", "");
     const { envoyerEmail } = await chargerEmail();

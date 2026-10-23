@@ -62,11 +62,14 @@ function decisionsDeLEquipe(equipe:Equipe,a:Attentes):DecisionAssemblee[]{
    lien:'/admin/autonomie#ameliorations',source:'developpement',source_id:p.id,validation:Boolean(p.revision),refus:true,...(p.revision?{revision:p.revision}:{})});
  }
  if(EQUIPE_DES_SOURCES.retour===equipe)for(const r of a.retours){
-  const idee=r.nature==='idee',bugN1=r.nature==='bug'&&r.gravite==='N1';
-  if(!(idee&&['nouveau','en_examen'].includes(r.etat))&&!(bugN1&&['nouveau','en_examen'].includes(r.etat)))continue;
-  d.push({cle:`retour:${r.id}`,titre:idee?`Retenir l’idée « ${r.titre} »`:`Prendre en charge le bug bloquant « ${r.titre} »`,
-   pourquoi:idee?'Une idée d’utilisateur attend une réponse : retenue (un article d’annonce est préparé) ou non retenue, avec réexamen dans six mois.':'Un problème classé bloquant attend d’être pris en charge ; l’auteur reçoit votre réponse.',
-   options:idee?['Retenir l’idée','Ne pas retenir (réexamen dans six mois)']:['Prendre en charge'],recommandation:idee?'Relire la description avant de retenir : le motif saisi est envoyé à l’auteur.':'Prendre en charge sans attendre ; le motif saisi est envoyé à l’auteur.',
+  // Audit du 23/10 : un problème signalé reçoit la gravité N2 (« majeur ») par défaut et n'arrivait ni au point ni
+  // aux décisions attendues, qui ne retenaient que N1. Les problèmes N1 et N2 non traités sont désormais soumis ;
+  // N3 (« mineur ») reste une requalification volontaire de la supervision, suivie sur l'écran des retours.
+  const idee=r.nature==='idee',bloquant=r.gravite==='N1',probleme=r.nature==='bug'&&(bloquant||r.gravite==='N2');
+  if(!(idee||probleme)||!['nouveau','en_examen'].includes(r.etat))continue;
+  d.push({cle:`retour:${r.id}`,titre:idee?`Retenir l’idée « ${r.titre} »`:bloquant?`Prendre en charge le bug bloquant « ${r.titre} »`:`Prendre en charge le problème majeur « ${r.titre} »`,
+   pourquoi:idee?'Une idée d’utilisateur attend une réponse : retenue (un article d’annonce est préparé) ou non retenue, avec réexamen dans six mois.':bloquant?'Un problème classé bloquant attend d’être pris en charge ; l’auteur reçoit votre réponse.':'Un problème signalé, de gravité majeure (celle de tout signalement non encore requalifié), attend d’être pris en charge ; l’auteur reçoit votre réponse.',
+   options:idee?['Retenir l’idée','Ne pas retenir (réexamen dans six mois)']:['Prendre en charge'],recommandation:idee?'Relire la description avant de retenir : le motif saisi est envoyé à l’auteur.':bloquant?'Prendre en charge sans attendre ; le motif saisi est envoyé à l’auteur.':'Relire le signalement (requalifier sa gravité sur l’écran des retours si besoin), puis le prendre en charge ; le motif saisi est envoyé à l’auteur.',
    lien:`/admin/retours?nature=${r.nature}`,source:'retour',source_id:r.id,validation:true,refus:idee});
  }
  if(EQUIPE_DES_SOURCES.publication===equipe)for(const p of a.publications){
@@ -104,6 +107,8 @@ function decisionsDeLEquipe(equipe:Equipe,a:Attentes):DecisionAssemblee[]{
  * Assemble le point de chaque équipe à partir des passages de la fenêtre
  * (24 h par défaut), des lignes `tache_*` du journal et des files de décision.
  */
+/** Passages détaillés par mission dans un point : au-delà, ils sont seulement comptés. */
+export const PASSAGES_DETAILLES_PAR_MISSION=12;
 export function assemblerPoints(entree:{passages:PassageLu[];journaux:LigneJournal[];attentes:Attentes;maintenant:Date;fenetreHeures?:number}):PointAssemble[]{
  const fenetre=entree.fenetreHeures??24;
  return (Object.keys(EQUIPES) as Equipe[]).map(equipe=>{
@@ -111,7 +116,11 @@ export function assemblerPoints(entree:{passages:PassageLu[];journaux:LigneJourn
   const passages:PassageDuPoint[]=[],realisations:string[]=[],echecs:string[]=[];
   for(const m of missions){
    const recents=entree.passages.filter(p=>p.mission===m&&dansLaFenetre(p.debut,entree.maintenant,fenetre)).sort((a,b)=>b.debut.localeCompare(a.debut));
-   for(const p of recents){
+   // 23/10 : la mission marketing passe toutes les 5 minutes (tâche `marketing-declencheur`) ; ses ~170 passages
+   // quotidiens faisaient dépasser au point la taille admise par `enregistrer_point_du_matin` (20 000 caractères)
+   // vers 15 h, et le point n'était plus enregistré. Seuls les plus récents sont détaillés, les autres comptés.
+   if(recents.length>PASSAGES_DETAILLES_PAR_MISSION)realisations.push(`${MISSIONS[m].nom} : ${recents.length} passages sur ${fenetre} h, les ${PASSAGES_DETAILLES_PAR_MISSION} plus récents détaillés.`);
+   for(const p of recents.slice(0,PASSAGES_DETAILLES_PAR_MISSION)){
     const bilan=bilanDuPassage(p,entree.journaux),texte=resumerBilan(bilan,m);
     passages.push({mission:m,nom:MISSIONS[m].nom,debut:p.debut,fin:p.fin,etat:p.etat,bilan:texte});
    }
@@ -159,12 +168,36 @@ async function lireArtisansEnAttente(db:Lecteur,maintenant:Date):Promise<{data:A
    nb_pieces:siennes.length};
  })};
 }
+/**
+ * Plafond de chaque lecture d'une file de décision. L'équipe qualité reçoit trois files (évolutions, bugs bloquants,
+ * autres retours) : 3 × 30 = 90, sous les 100 décisions admises par `enregistrer_point_du_matin`.
+ */
+const PLAFOND_FILE=30;
+/**
+ * Les retours à soumettre, en DEUX lectures (relecture adverse du 23/10). Une lecture commune, triée par date
+ * décroissante et plafonnée, laissait trente signalements N2 (gravité par défaut de tout signalement) ou idées plus
+ * récents évincer un bug bloquant N1 plus ancien ; `enregistrer_point_du_matin` passait alors sa décision en « sans
+ * objet ». Les N1 ont donc leur propre lecture, du plus ancien (le plus urgent) au plus récent, et viennent en tête ;
+ * les idées et les N2, les plus récents d'abord, ont la leur. Une lecture en échec rend toute la file indisponible.
+ */
+async function lireRetoursATraiter(db:Lecteur):Promise<{data:Attentes['retours']|null;error:unknown}>{
+ const etats=['nouveau','en_examen'];
+ const [bloquants,autres]=await Promise.all([
+  db.from('retours_utilisateurs').select('id,titre,nature,gravite,etat').in('etat',etats).eq('nature','bug').eq('gravite','N1').order('cree_le',{ascending:true}).limit(PLAFOND_FILE),
+  db.from('retours_utilisateurs').select('id,titre,nature,gravite,etat').in('etat',etats).or('nature.eq.idee,and(nature.eq.bug,gravite.eq.N2)').order('cree_le',{ascending:false}).limit(PLAFOND_FILE),
+ ]);
+ const error=bloquants.error??autres.error;
+ if(error)return {data:null,error};
+ // Un retour requalifié entre les deux lectures (parallèles) pourrait figurer dans les deux : une seule décision.
+ const vus=new Set<string>();
+ return {error:null,data:([...(bloquants.data??[]),...(autres.data??[])] as Attentes['retours']).filter(r=>!vus.has(r.id)&&Boolean(vus.add(r.id)))};
+}
 export async function lireAttentes(db:Lecteur,maintenant:Date=new Date()):Promise<{attentes:Attentes;indisponibles:string[]}>{
  const [dev,pub,art,ret,vei]=await Promise.all([
-  db.from('development_proposals').select('id,titre,probleme,risque,statut,revision').eq('statut','autorisation').order('updated_at',{ascending:false}).limit(30),
+  db.from('development_proposals').select('id,titre,probleme,risque,statut,revision').eq('statut','autorisation').order('updated_at',{ascending:false}).limit(PLAFOND_FILE),
   db.from('publications').select('id,titre,statut,corps,programmee_pour,valide_le').in('statut',['proposition','brouillon','programmee']).order('propose_le',{ascending:false}).limit(30),
   lireArtisansEnAttente(db,maintenant),
-  db.from('retours_utilisateurs').select('id,titre,nature,gravite,etat').in('etat',['nouveau','en_examen']).or('nature.eq.idee,and(nature.eq.bug,gravite.eq.N1)').order('cree_le',{ascending:false}).limit(30),
+  lireRetoursATraiter(db),
   db.from('regulatory_watch').select('id,titre,source_nom,etude').eq('statut','a_examiner').not('analyse_le','is',null).order('reperage_le',{ascending:false}).limit(30),
  ]);
  const indisponibles=[[dev,'évolutions'],[pub,'publications'],[art,'artisans'],[ret,'retours'],[vei,'veille']].filter(([r])=>(r as {error:unknown}).error).map(([r,n])=>{
@@ -176,7 +209,7 @@ export async function lireAttentes(db:Lecteur,maintenant:Date=new Date()):Promis
   developpements:(dev.error?[]:dev.data??[]) as Attentes['developpements'],
   publications:(pub.error?[]:pub.data??[]) as Attentes['publications'],
   artisans:(art.error||!art.data?[]:art.data) as Attentes['artisans'],
-  retours:(ret.error?[]:ret.data??[]) as Attentes['retours'],
+  retours:(ret.error||!ret.data?[]:ret.data) as Attentes['retours'],
   veille:(vei.error?[]:vei.data??[]) as Attentes['veille'],
  }};
 }

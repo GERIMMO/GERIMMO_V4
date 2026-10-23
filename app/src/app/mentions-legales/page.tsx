@@ -1,6 +1,6 @@
 import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
-import { Article, CoquilleLegale, Fait } from "@/components/coquille-legale";
+import { Article, CoordonneesMediateur, CoquilleLegale, Fait } from "@/components/coquille-legale";
 import { courrielDeContact, documentsIncomplets, estEntrepreneurIndividuel, REGIME_TVA, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
@@ -60,12 +60,9 @@ export default async function PageMentionsLegales() {
       </Article>
 
       <Article titre="Médiation de la consommation">
+        {/* Même rendu que l'article 17 des conditions (relecture du 23/10). */}
         {EDITEUR.mediateurNom ? (
-          <p className="whitespace-pre-line [overflow-wrap:anywhere]">
-            {EDITEUR.mediateurNom}{"\n"}
-            <Fait valeur={EDITEUR.mediateurAdresse} quoi="adresse du médiateur" />{"\n"}
-            <Fait valeur={EDITEUR.mediateurSite} quoi="site du médiateur" />
-          </p>
+          <CoordonneesMediateur editeur={EDITEUR} />
         ) : (
           <p>Adhésion à venir : aucun organisme n’est désigné à ce jour.</p>
         )}

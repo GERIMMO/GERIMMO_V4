@@ -68,6 +68,20 @@ function fauxStripe(options: {
   taux?: { id: string; percentage: number; inclusive: boolean; metadata: Record<string, string> }[];
   souscriptionsExistantes?: { id: string; status: string }[];
   echeancier?: string;
+  /** A02 : la recréation de l'échéancier échoue chez Stripe. */
+  echecRecreation?: boolean;
+  /** A02 : la mise à jour échoue sans réponse, mais Stripe l'a appliquée (relecture différente). */
+  majAppliqueeMalgreErreur?: boolean;
+  /** Mineur du 23/10 : la mise à jour échoue sans réponse (500) et Stripe ne l'a PAS appliquée (relecture identique). */
+  majSansReponseNonAppliquee?: boolean;
+  /** Relecture du 23/10 : la libération est faite chez Stripe, mais sa réponse se perd (coupure). */
+  liberationSansReponse?: boolean;
+  /** Relecture du 23/10 : Stripe refuse net la libération (échéancier déjà libéré ailleurs, droits…). */
+  liberationRefusee?: "attache" | "detache";
+  /** Un geste d'ailleurs change la facturation juste après la libération (autre onglet, tableau de bord). */
+  facturationChangeeApresLiberation?: boolean;
+  /** La relecture de la souscription après l'échec échoue. */
+  relectureImpossible?: boolean;
 } = {}) {
   const appels: Appels = {};
   const noter = (nom: string, arg: unknown) => ((appels[nom] ??= []).push(arg));
@@ -81,14 +95,15 @@ function fauxStripe(options: {
     customer: "cus_1",
     status: options.statut ?? "active",
     items: { data: items },
-    metadata: { gerimmo_formule: "bailleur", gerimmo_unites: "3" },
-    schedule: options.echeancier ?? null,
+    metadata: { gerimmo_formule: "bailleur", gerimmo_unites: "3" } as Record<string, string>,
+    schedule: (options.echeancier ?? null) as string | null,
     trial_end: options.statut === "trialing" ? 1_900_000_000 : null,
   };
-  const phase = (debut: number, fin: number) => ({
+  const phase = (debut: number, fin: number, metadata: Record<string, string> = {}) => ({
     start_date: debut,
     end_date: fin,
     items: [{ price: "price_si_formule", quantity: 1, tax_rates: [] }],
+    metadata,
   });
   const stripe = {
     products: {
@@ -105,7 +120,7 @@ function fauxStripe(options: {
       sessions: {
         list: vi.fn(async () => ({ data: [] })),
         expire: vi.fn(),
-        create: vi.fn(async (p: unknown) => { noter("checkout", p); return { url: "https://checkout.stripe.test/s" }; }),
+        create: vi.fn(async (p: unknown, o?: unknown) => { noter("checkout", p); noter("checkout.options", o); return { id: "cs_test_1", url: "https://checkout.stripe.test/s" }; }),
       },
     },
     subscriptionSchedules: {
@@ -114,20 +129,52 @@ function fauxStripe(options: {
       retrieve: vi.fn(async (id: string) => ({
         id,
         status: "active",
+        end_behavior: "release",
         current_phase: { start_date: 1_799_000_000, end_date: 1_801_000_000 },
-        phases: [phase(1_799_000_000, 1_801_000_000), phase(1_801_000_000, 1_803_000_000)],
+        phases: [
+          phase(1_799_000_000, 1_801_000_000, { gerimmo_formule: "bailleur", gerimmo_unites: "3" }),
+          phase(1_801_000_000, 1_803_000_000, { gerimmo_formule: "solo", gerimmo_unites: "1" }),
+        ],
       })),
-      create: vi.fn(async () => ({ id: "sub_sched_neuf", status: "active", current_phase: null, phases: [phase(1_799_000_000, 1_801_000_000)] })),
+      create: vi.fn(async (p: unknown) => {
+        noter("schedules.create", p);
+        if (options.echecRecreation) throw Object.assign(new Error("An error occurred with our connection to Stripe."), { type: "StripeConnectionError" });
+        souscription.schedule = "sub_sched_neuf";
+        return { id: "sub_sched_neuf", status: "active", current_phase: null, phases: [phase(1_799_000_000, 1_801_000_000)] };
+      }),
       update: vi.fn(async (id: string, p: unknown) => { noter("schedules.update", p); return { id }; }),
-      release: vi.fn(async (id: string) => { noter("schedules.release", id); return { id }; }),
+      release: vi.fn(async (id: string) => {
+        noter("schedules.release", id);
+        if (options.liberationRefusee) {
+          if (options.liberationRefusee === "detache") souscription.schedule = null;
+          throw Object.assign(new Error("You cannot release a subscription schedule that is currently in the `released` status."), { type: "StripeInvalidRequestError", statusCode: 400 });
+        }
+        if (souscription.schedule === id) souscription.schedule = null;
+        if (options.facturationChangeeApresLiberation) souscription.metadata = { ...souscription.metadata, gerimmo_formule: "patrimoine" };
+        if (options.liberationSansReponse) throw Object.assign(new Error("An error occurred with our connection to Stripe."), { type: "StripeConnectionError" });
+        return { id };
+      }),
     },
     subscriptions: {
       list: vi.fn(async () => ({ data: options.souscriptionsExistantes ?? [] })),
-      retrieve: vi.fn(async () => souscription),
+      // Une copie à chaque lecture, comme Stripe : la relecture voit l'état du moment.
+      retrieve: vi.fn(async () => {
+        noter("subscriptions.retrieve", null);
+        if (options.relectureImpossible && (appels["subscriptions.retrieve"]?.length ?? 0) > 1) {
+          throw Object.assign(new Error("An error occurred with our connection to Stripe."), { type: "StripeConnectionError" });
+        }
+        return structuredClone(souscription);
+      }),
       update: vi.fn(async (_id: string, p: unknown) => {
         noter("subscriptions.update", p);
+        const metadata = (p as { metadata?: Record<string, string> }).metadata ?? {};
+        if (options.majAppliqueeMalgreErreur) {
+          souscription.metadata = metadata;
+          throw Object.assign(new Error("An error occurred with our connection to Stripe."), { type: "StripeConnectionError" });
+        }
+        if (options.majSansReponseNonAppliquee) throw Object.assign(new Error("An unknown error occurred"), { type: "StripeAPIError", statusCode: 500 });
         if (options.refusCarte) throw Object.assign(new Error("Your card was declined."), { type: "StripeCardError", code: "card_declined" });
-        return { ...souscription, metadata: (p as { metadata?: Record<string, string> }).metadata ?? {} };
+        return { ...structuredClone(souscription), metadata };
       }),
     },
     invoices: {
@@ -139,6 +186,8 @@ function fauxStripe(options: {
 
 const FRANCHISE = { nature: "franchise" } as const;
 const TVA20 = { nature: "assujetti", tauxPourcent: 20 } as const;
+/** L'intention réservée en base (défaut A01) : sans elle, aucune page ne s'ouvre. */
+const INTENTION = { id: "00000000-0000-4000-8000-000000000001", creeLeMs: Date.UTC(2026, 9, 23, 12), expireLeS: Date.UTC(2026, 9, 23, 12, 45) / 1000 };
 
 describe("la page de paiement porte la grille, pas un tarif Stripe", () => {
   it("25 biens en annuel : Patrimoine 299,90 € + 5 × 10 €, sans taux en franchise, mention 293 B", async () => {
@@ -150,6 +199,7 @@ describe("la page de paiement porte la grille, pas un tarif Stripe", () => {
       orgId: "org_1",
       retourOk: "https://x/ok",
       retourAnnule: "https://x/annule",
+      intention: INTENTION,
     });
     expect(r.ok).toBe(true);
     const p = appels.checkout[0] as { line_items: { price_data: { unit_amount: number; recurring: { interval: string }; tax_behavior: string }; quantity: number; tax_rates?: string[] }[]; subscription_data: { metadata: Record<string, string>; trial_end?: number } };
@@ -165,7 +215,7 @@ describe("la page de paiement porte la grille, pas un tarif Stripe", () => {
 
   it("agence assujettie : lignes HT par tranche, TVA 20 % en sus (taux créé une fois)", async () => {
     const { stripe, appels } = fauxStripe();
-    await creerSessionOffre(stripe, { offre: offreAgence(100), regime: TVA20, customer: "cus_1", orgId: "org_1", retourOk: "a", retourAnnule: "b" });
+    await creerSessionOffre(stripe, { offre: offreAgence(100), regime: TVA20, customer: "cus_1", orgId: "org_1", retourOk: "a", retourAnnule: "b", intention: INTENTION });
     const p = appels.checkout[0] as { line_items: { price_data: { unit_amount: number; tax_behavior: string }; quantity: number; tax_rates?: string[] }[] };
     expect(p.line_items.map((l) => [l.price_data.unit_amount, l.quantity])).toEqual([[3900, 1], [200, 40], [150, 50]]);
     expect(p.line_items.every((l) => l.price_data.tax_behavior === "exclusive" && l.tax_rates?.[0] === "txr_nouveau")).toBe(true);
@@ -174,23 +224,57 @@ describe("la page de paiement porte la grille, pas un tarif Stripe", () => {
 
   it("une souscription vivante chez Stripe : pas de seconde page de paiement (audit 29/09, point 1)", async () => {
     const { stripe, appels } = fauxStripe({ souscriptionsExistantes: [{ id: "sub_vieux", status: "canceled" }, { id: "sub_vif", status: "trialing" }] });
-    const r = await creerSessionOffre(stripe, { offre: offreParticulier(1, "mensuel"), regime: FRANCHISE, customer: "cus_1", orgId: "o", retourOk: "a", retourAnnule: "b" });
+    const r = await creerSessionOffre(stripe, { offre: offreParticulier(1, "mensuel"), regime: FRANCHISE, customer: "cus_1", orgId: "o", retourOk: "a", retourAnnule: "b", intention: INTENTION });
     expect(r.ok).toBe(false);
     expect(appels.checkout).toBeUndefined();
   });
 
   it("éditeur assujetti : la mention 293 B est RETIRÉE du client (audit 29/09, point 6)", async () => {
     const { stripe, appels } = fauxStripe();
-    await creerSessionOffre(stripe, { offre: offreParticulier(1, "mensuel"), regime: TVA20, customer: "cus_1", orgId: "o", retourOk: "a", retourAnnule: "b" });
+    await creerSessionOffre(stripe, { offre: offreParticulier(1, "mensuel"), regime: TVA20, customer: "cus_1", orgId: "o", retourOk: "a", retourAnnule: "b", intention: INTENTION });
     expect(appels["customers.update"][0]).toEqual({ invoice_settings: { footer: "" } });
   });
 
   it("un taux existant est réutilisé, pas recréé", async () => {
     const { stripe, appels } = fauxStripe({ taux: [{ id: "txr_existant", percentage: 20, inclusive: true, metadata: { gerimmo: "tva-20-incluse" } }] });
-    await creerSessionOffre(stripe, { offre: offreParticulier(1, "mensuel"), regime: TVA20, customer: "cus_1", orgId: "o", retourOk: "a", retourAnnule: "b" });
+    await creerSessionOffre(stripe, { offre: offreParticulier(1, "mensuel"), regime: TVA20, customer: "cus_1", orgId: "o", retourOk: "a", retourAnnule: "b", intention: INTENTION });
     const p = appels.checkout[0] as { line_items: { tax_rates?: string[] }[] };
     expect(p.line_items[0].tax_rates).toEqual(["txr_existant"]);
     expect(appels["taxRates.create"]).toBeUndefined();
+  });
+
+  it("A01 : la page porte l'expiration de la réservation, sa marque, et une clé d'idempotence qui en dérive", async () => {
+    const { stripe, appels } = fauxStripe();
+    const r = await creerSessionOffre(stripe, { offre: offreParticulier(1, "mensuel"), regime: FRANCHISE, customer: "cus_1", orgId: "o", retourOk: "a", retourAnnule: "b", intention: INTENTION });
+    expect(r).toMatchObject({ ok: true, session: "cs_test_1" });
+    expect(appels.checkout[0]).toMatchObject({ expires_at: INTENTION.expireLeS, metadata: { organization_id: "o", gerimmo_intention: INTENTION.id } });
+    expect(appels["checkout.options"][0]).toEqual({ idempotencyKey: `souscription:${INTENTION.id}` });
+  });
+
+  it("A01 : deux appels pour la même intention envoient la MÊME requête (fin d'essai calculée à l'instant de la réservation)", async () => {
+    const { stripe, appels } = fauxStripe();
+    // Essai qui finit dans moins de 48 h : la fin reportée dépend de « maintenant » — ici, de la réservation.
+    const demande = { offre: offreParticulier(1, "mensuel"), regime: FRANCHISE, customer: "cus_1", orgId: "o", retourOk: "a", retourAnnule: "b", essaiFin: "2026-10-23", intention: INTENTION };
+    await creerSessionOffre(stripe, demande);
+    await new Promise((r) => setTimeout(r, 5));
+    await creerSessionOffre(stripe, demande);
+    expect(appels.checkout).toHaveLength(2);
+    expect(JSON.stringify(appels.checkout[1])).toBe(JSON.stringify(appels.checkout[0]));
+    expect((appels.checkout[0] as { subscription_data: { trial_end: number } }).subscription_data.trial_end).toBe(
+      INTENTION.creeLeMs / 1000 + 48 * 3600 + 600
+    );
+  });
+
+  it("A01 : la page déjà ouverte par la même intention n'est pas expirée ; une page d'une autre intention l'est", async () => {
+    const { stripe } = fauxStripe();
+    const ouvertes = [
+      { id: "cs_meme", metadata: { gerimmo_intention: INTENTION.id } },
+      { id: "cs_autre", metadata: { gerimmo_intention: "00000000-0000-4000-8000-000000000009" } },
+      { id: "cs_ancienne", metadata: {} },
+    ];
+    (stripe.checkout.sessions.list as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ data: ouvertes });
+    await creerSessionOffre(stripe, { offre: offreParticulier(1, "mensuel"), regime: FRANCHISE, customer: "cus_1", orgId: "o", retourOk: "a", retourAnnule: "b", intention: INTENTION });
+    expect((stripe.checkout.sessions.expire as unknown as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0])).toEqual(["cs_autre", "cs_ancienne"]);
   });
 });
 
@@ -319,6 +403,137 @@ describe("changer de formule", () => {
     expect(h).toMatchObject({ ok: true, echeancierLibere: true });
     expect(r2.appels["schedules.release"]).toEqual(["sub_sched_1"]);
     expect(r2.appels["subscriptions.update"][0]).toMatchObject({ metadata: { gerimmo_choix: "explicite" } });
+  });
+});
+
+describe("A02 (audit du 23/10) — une hausse refusée ne laisse pas l'échéancier retiré", () => {
+  const offre = () => offreFormule(FORMULES_PARTICULIER[2], 4, "mensuel")!;
+  const hausser = (stripe: Stripe) =>
+    appliquerHausse(stripe, { subscription: "sub_1", offre: offre(), regime: FRANCHISE, orgId: "o", prorationDate: 1, maintenant: 1_800_000_000 });
+
+  it("carte refusée : l'échéancier lu avant la libération est recréé à l'identique sur la souscription", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", refusCarte: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, erreur: "Votre carte a été refusée par votre banque.", hausse: "non_appliquee", echeancier: "restaure" });
+    expect(appels["schedules.release"]).toEqual(["sub_sched_1"]);
+    expect(appels["schedules.create"]).toEqual([{ from_subscription: "sub_1" }]);
+    expect(appels["schedules.update"]).toHaveLength(1);
+    expect(appels["schedules.update"][0]).toEqual({
+      end_behavior: "release",
+      proration_behavior: "none",
+      phases: [
+        { start_date: 1_799_000_000, end_date: 1_801_000_000, items: [{ price: "price_si_formule", quantity: 1 }], metadata: { gerimmo_formule: "bailleur", gerimmo_unites: "3" } },
+        { end_date: 1_803_000_000, items: [{ price: "price_si_formule", quantity: 1 }], metadata: { gerimmo_formule: "solo", gerimmo_unites: "1" } },
+      ],
+    });
+  });
+
+  it("recréation impossible : l'échec le dit (échéance à reprogrammer) et chaque étape externe est tracée", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", refusCarte: true, echecRecreation: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "a_reprogrammer" });
+    expect(appels["schedules.update"]).toBeUndefined();
+    const etapes = (r as { etapes: { etape: string; ok: boolean; objet?: string }[] }).etapes;
+    expect(etapes.map((e) => [e.etape, e.ok])).toEqual([
+      ["lecture_souscription", true],
+      ["preparation_lignes", true],
+      ["lecture_echeancier", true],
+      ["liberation_echeancier", true],
+      ["mise_a_jour", false],
+      ["relecture_souscription", true],
+      ["recreation_echeancier", false],
+    ]);
+    expect(etapes.find((e) => e.etape === "liberation_echeancier")?.objet).toBe("sub_sched_1");
+  });
+
+  it("mise à jour sans réponse mais appliquée chez Stripe : la hausse est « incertaine », l'ancien échéancier n'est pas reposé", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", majAppliqueeMalgreErreur: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "incertaine", echeancier: "a_reprogrammer" });
+    expect(appels["schedules.create"]).toBeUndefined();
+  });
+
+  // ── Relecture adverse du 23/10 : la restauration n'a lieu que si NOTRE libération a eu lieu, sur une facturation inchangée.
+  const etapesDe = (r: unknown) => (r as { etapes: { etape: string; ok: boolean }[] }).etapes.map((e) => [e.etape, e.ok]);
+  const ANGLAIS = /You cannot|release|schedule|error occurred/i;
+
+  it("libération refusée net, échéancier détaché ailleurs : rien n'est reposé, l'échéance est à reprogrammer, motif en français", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", liberationRefusee: "detache" });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "a_reprogrammer", liberationRefusee: true });
+    expect((r as { erreur: string }).erreur).not.toMatch(ANGLAIS);
+    expect(appels["subscriptions.update"]).toBeUndefined();
+    expect(appels["schedules.create"]).toBeUndefined();
+    expect(appels["schedules.update"]).toBeUndefined();
+    // Le journal garde, lui, le motif d'origine de Stripe.
+    expect((r as { etapes: { etape: string; erreur?: string }[] }).etapes.find((e) => e.etape === "liberation_echeancier")?.erreur).toMatch(/You cannot release/);
+  });
+
+  it("libération refusée net, échéancier toujours attaché : rien n'a bougé, rien n'est reposé", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", liberationRefusee: "attache" });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "intouche", liberationRefusee: true });
+    expect((r as { erreur: string }).erreur).toBe("Notre prestataire de paiement a refusé l'opération.");
+    expect(appels["schedules.create"]).toBeUndefined();
+  });
+
+  it("libération refusée net puis relecture impossible : rien n'a été modifié par nous, c'est ce qui est dit", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", liberationRefusee: "detache", relectureImpossible: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "intouche", liberationRefusee: true });
+    expect(appels["subscriptions.update"]).toBeUndefined();
+    expect(appels["schedules.create"]).toBeUndefined();
+  });
+
+  it("libération sans réponse mais faite, facturation inchangée : l'échéancier est recréé (c'était bien le nôtre)", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", liberationSansReponse: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "restaure" });
+    expect(appels["subscriptions.update"]).toBeUndefined();
+    expect(appels["schedules.create"]).toEqual([{ from_subscription: "sub_1" }]);
+  });
+
+  it("libération sans réponse, facturation changée entre-temps : l'ancien échéancier n'est pas reposé sur une autre facturation", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", liberationSansReponse: true, facturationChangeeApresLiberation: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "a_reprogrammer" });
+    expect(appels["schedules.create"]).toBeUndefined();
+  });
+
+  it("carte refusée puis relecture impossible : le refus est net, la hausse n'a pas eu lieu ; l'échéance est à reprogrammer", async () => {
+    const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", refusCarte: true, relectureImpossible: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "a_reprogrammer", erreur: "Votre carte a été refusée par votre banque." });
+    expect(appels["schedules.create"]).toBeUndefined();
+  });
+
+  it("sans échéancier, mise à jour sans réponse mais appliquée : la relecture la dit « incertaine », pas « non appliquée »", async () => {
+    const { stripe } = fauxStripe({ majAppliqueeMalgreErreur: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "incertaine", echeancier: "intouche" });
+    expect(etapesDe(r)).toContainEqual(["relecture_souscription", true]);
+  });
+
+  it("sans échéancier, mise à jour sans réponse (500) et relecture identique : non appliquée, ce qui est désormais vérifié", async () => {
+    const { stripe } = fauxStripe({ majSansReponseNonAppliquee: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "intouche" });
+    expect(etapesDe(r)).toContainEqual(["relecture_souscription", true]);
+  });
+
+  it("sans échéancier, mise à jour sans réponse et relecture impossible : incertaine", async () => {
+    const { stripe } = fauxStripe({ majSansReponseNonAppliquee: true, relectureImpossible: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "incertaine", echeancier: "intouche" });
+    expect(etapesDe(r)).toContainEqual(["relecture_souscription", false]);
+  });
+
+  it("sans échéancier : un refus de carte ne touche à rien et le dit", async () => {
+    const { stripe, appels } = fauxStripe({ refusCarte: true });
+    const r = await hausser(stripe);
+    expect(r).toMatchObject({ ok: false, hausse: "non_appliquee", echeancier: "intouche" });
+    expect(appels["schedules.release"]).toBeUndefined();
+    expect(appels["schedules.create"]).toBeUndefined();
   });
 });
 

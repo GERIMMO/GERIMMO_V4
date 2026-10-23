@@ -23,6 +23,7 @@ import {
   documentsIncomplets,
   confidentialiteIncomplete,
   estEntrepreneurIndividuel,
+  faitsACompleter,
   faitsManquants,
   prestatairesAvecFaits,
   prestatairesIncomplets,
@@ -77,12 +78,30 @@ describe("identité de l'éditeur", () => {
       directeurPublication: "Une personne",
       email: "contact@exemple.fr",
       telephone: "01 00 00 00 00",
-      mediateurNom: null, // ← obligatoire dès qu'un client est un particulier
+      mediateurNom: "Médiateur Exemple",
       mediateurAdresse: "1 rue Exemple, Paris",
       mediateurSite: "https://example.test/mediateur",
     };
-    expect(documentsIncomplets(presque)).toBe(true);
-    expect(faitsManquants(presque)).toEqual(["le médiateur de la consommation"]);
+    expect(documentsIncomplets(presque)).toBe(false);
+    expect(documentsIncomplets({ ...presque, telephone: null })).toBe(true);
+    expect(faitsManquants({ ...presque, telephone: null })).toEqual(["le téléphone de contact"]);
+  });
+
+  // Décision du dirigeant du 23/10/2026 : le médiateur se complète plus tard,
+  // sans encadré ni blocage ; la console le rappelle (faitsACompleter).
+  it("le médiateur manquant ne rouvre pas l'encadré mais reste à compléter", () => {
+    const sansMediateur = {
+      denomination: "Gerimmo SAS", forme: "SAS", capital: null, siege: "1 rue de la Paix, 75002 Paris",
+      rcs: "Paris 000 000 000", siret: "00000000000000", tvaIntracommunautaire: null,
+      directeurPublication: "Une personne", email: "contact@exemple.fr", telephone: "01 00 00 00 00",
+      mediateurNom: null, mediateurAdresse: null, mediateurSite: null,
+    };
+    expect(documentsIncomplets(sansMediateur)).toBe(false);
+    expect(faitsManquants(sansMediateur)).toEqual([]);
+    expect(faitsACompleter(sansMediateur)).toEqual([
+      "le médiateur de la consommation", "l'adresse du médiateur", "le site du médiateur",
+    ]);
+    expect(faitsACompleter({ ...sansMediateur, mediateurNom: "M", mediateurAdresse: "A", mediateurSite: "S" })).toEqual([]);
   });
 
   it("la version des conditions est datée et comparable", () => {
@@ -319,10 +338,11 @@ describe("prestataires saisissables depuis les paramètres (19/10)", () => {
     expect(prestatairesIncomplets(sansBan)).toBe(true);
   });
 
-  it("les réserves légales se lisent telles quelles : faits d'éditeur, puis prestataires", () => {
+  it("les réserves légales se lisent telles quelles : faits d'éditeur, médiateur à compléter, puis prestataires", () => {
     const reserves = reservesLegales({});
-    expect(reserves.slice(0, faitsManquants({}).length)).toEqual(faitsManquants({}));
-    expect(reserves.slice(faitsManquants({}).length)).toEqual([
+    const faits = [...faitsManquants({}), ...faitsACompleter({})];
+    expect(reserves.slice(0, faits.length)).toEqual(faits);
+    expect(reserves.slice(faits.length)).toEqual([
       `la localisation de ${ban.nom}`,
       `les coordonnées de ${PRESTATAIRES.length} prestataires sur ${PRESTATAIRES.length} (${PRESTATAIRES.map((p) => p.nom).join(", ")})`,
     ]);
@@ -368,11 +388,13 @@ describe("identité individuelle et réserves propres à chaque document (20/10)
     for (const forme of ["EI", "entrepreneur individuel (EI)", "Entreprise individuelle"]) expect(estEntrepreneurIndividuel({ forme })).toBe(true);
     for (const forme of [null, "", "SAS", "EIRL société"]) expect(estEntrepreneurIndividuel({ forme })).toBe(false);
   });
-  it("garde les coordonnées de médiation et le téléphone dans les réserves", () => {
+  it("garde le téléphone dans les réserves et les coordonnées de médiation à compléter", () => {
     const manquants = faitsManquants({});
     expect(manquants).toContain("le téléphone de contact");
-    expect(manquants).toContain("l'adresse du médiateur");
-    expect(manquants).toContain("le site du médiateur");
+    expect(manquants).not.toContain("l'adresse du médiateur");
+    const aCompleter = faitsACompleter({});
+    expect(aCompleter).toContain("l'adresse du médiateur");
+    expect(aCompleter).toContain("le site du médiateur");
   });
   it("décrit les copies locales et ne promet ni confidentialité absolue ni prescription uniforme", () => {
     const page = lire("app/confidentialite/page.tsx");

@@ -3,7 +3,7 @@ type: persona
 tags: [role, proprietaire]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-16
+updated: 2026-10-23
 sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]", "[[Invitation d'un artisan par un propriétaire]]"]
 ---
 
@@ -164,11 +164,20 @@ espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe a
   métier pour mémoire, jamais montrés à l'artisan) ; il suit l'état de chaque invitation,
   la renvoie, l'annule ou la refait. Il ne voit la fiche de l'artisan qu'après son
   acceptation, jamais les motifs des décisions de Gerimmo. Une fois l'inscription validée
-  par Gerimmo, il le sollicite depuis la fiche d'un incident, **même en commune fermée**,
-  pour les biens que couvre la zone de l'artisan ; la fiche de l'incident dit pourquoi un
+  par Gerimmo, il le sollicite depuis la fiche d'un incident, **même si l'artisan n'est pas
+  proposé par le réseau** (profil resté privé), pour les biens que couvre la zone de
+  l'artisan ; la fiche de l'incident dit pourquoi un
   artisan du carnet n'est pas proposé. L'ajout par SIRET reste réservé aux agences (PR #170,
   migration `20261007190000`), et il ne peut pas modifier la zone ni les métiers d'un artisan
   (`20261014841000`). Détail, réglages et limites : [[Invitation d'un artisan par un propriétaire]].
+- **Réseau d'artisans — décision du 23/10/2026** (migration `20261023180000`, non appliquée
+  en production au 23/10) : pour un bien dont la commune est confirmée, il voit les
+  artisans **validés et publics** dont la zone d'intervention (choisie par l'artisan)
+  couvre le code postal du bien, pour le métier demandé ; plus de « commune fermée ». Sans
+  artisan : message « aucun artisan disponible », voie de sortie et « Signaler mon
+  intérêt ». Il voit le nom, les métiers et la note d'un artisan proposé ; son téléphone et
+  son e-mail lui sont transmis avec sa demande (ou d'emblée s'il l'a dans son carnet).
+  Voir [[Ouverture du réseau d'artisans]].
 
 > [!warning] Points à trancher / contradictions (D27-B)
 > - Les liens fabriqués par la base pour la console de supervision pointent encore vers
@@ -185,3 +194,10 @@ espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe a
 > - Réglages par défaut choisis par le lot (validité de 30 jours, plafonds d'envoi, aucune
 >   relance) sans décision écrite du dirigeant : voir
 >   [[Invitation d'un artisan par un propriétaire]].
+
+> [!warning] Changement du 23/10/2026 — réseau d'artisans
+> - Plus de « commune fermée » : le propriétaire voit les artisans validés et publics dont
+>   la zone, choisie par l'artisan, couvre son bien (migration `20261023180000`, non
+>   appliquée en production au 23/10). Choix de prudence à confirmer par le dirigeant : le
+>   téléphone d'un artisan du réseau n'est plus montré avant la demande
+>   ([[Ouverture du réseau d'artisans]]).

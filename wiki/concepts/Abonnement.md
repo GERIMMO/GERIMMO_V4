@@ -3,7 +3,7 @@ type: concept
 tags: [abonnement, saas, stripe, facturation]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-22
+updated: 2026-10-23
 sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
 ---
 
@@ -85,6 +85,15 @@ et, pour l'identité de l'éditeur encore à fournir, [[État du projet et déci
 
 Chaque décision est datée et attribuée dans le registre de supervision. La lecture côté serveur reste obligatoire ; un compte client ne peut ni modifier le réglage ni le fournir dans son formulaire. Lever ce contrôle ne complète pas les mentions légales. **Préparé et testé localement, non publié** ; migration `20261022210326_reglage_blocage_souscription_identite.sql` à appliquer avant publication du code par le circuit habituel.
 
+## Décision du dirigeant du 23 octobre 2026 — le médiateur ne bloque plus
+
+Demande du dirigeant : « Je veux que tout ce qui peut fonctionner fonctionne sans restriction, les infos importantes manquantes seront remplies plus tard mais ne doivent pas être bloquantes. Il me faut une version fonctionnelle même s'il manque certaines infos type médiateur et autres. »
+
+- Les faits **requis** se réduisent à l'identité : dénomination, forme, siège, immatriculation (RNE ou RCS), SIRET, directeur de la publication, e-mail, téléphone. Tous sont saisis en production (relevé du 23/10).
+- Les trois coordonnées du **médiateur de la consommation** deviennent des faits **à compléter** : ils ne ferment plus ni le paiement en ligne ni la hausse de capacité, et ne déclenchent plus l'encadré « Document en cours de finalisation ». Les mentions légales affichent toujours « Adhésion à venir : aucun organisme n'est désigné à ce jour » ; la console (Santé, Paramètres) les montre « à compléter, non bloquant ».
+- Le bouton du 22/10 (« Lever le blocage ») reste en place pour les faits requis ; il est sans effet tant que l'identité est complète. La décision du 22/10 a été publiée par la PR #241 (`e53298a`).
+- Code : `app/src/lib/editeur.ts` (`REQUIS`, `A_COMPLETER`, `faitsACompleter`), branche `claude/compassionate-euler-qpqjp6`.
+
 ## Relations
 - Souscrit par [[Administrateur d'agence]] ou [[Propriétaire bailleur]] ; administré par [[Super Admin]].
 - Cycle de vie automatisé — voir [[Cycle de vie de l'abonnement]], [[Onboarding et abonnement]].
@@ -98,4 +107,9 @@ Chaque décision est datée et attribuée dans le registre de supervision. La le
 >   toute nouvelle souscription.
 > - Identité de l'éditeur encore à fournir (nécessaire au formulaire de
 >   rétractation) — voir [[État du projet et décisions ouvertes]].
+> - **23/10 — vendre sans médiateur désigné** : l'information du consommateur sur le
+>   médiateur est une obligation (art. L. 616-1 du code de la consommation, déjà citée
+>   dans le code) ; ouvrir la vente avant l'adhésion est un choix du dirigeant, dont le
+>   risque est **à relire par le juriste**. L'adhésion puis la saisie des trois
+>   coordonnées dans `/admin/parametres` suffisent, sans déploiement.
 >

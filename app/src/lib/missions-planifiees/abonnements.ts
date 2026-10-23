@@ -35,7 +35,9 @@ import {
 } from "@/lib/stripe";
 import { clientDeService } from "@/lib/supabase/service";
 import { REGIME_TVA } from "@/lib/editeur";
-import { appliquerBaisseAEcheance, choixExplicite, programmerPeriodicite } from "@/lib/stripe-offres";
+import { appliquerBaisseAEcheance, choixExplicite, lireDetails, programmerPeriodicite } from "@/lib/stripe-offres";
+import { prendreVerrouFacturation } from "@/lib/verrou-facturation";
+import type Stripe from "stripe";
 import {
   formuleParCode,
   offreAgence,
@@ -76,6 +78,30 @@ type Avoir = {
   montant_cents: number;
   stripe_customer_id: string | null;
 };
+
+// Seconde relecture adverse du 23/10 (A02) : l'échéance n'est préparée que sous le verrou des gestes de facturation.
+const ECHEANCE_VERROU_TENU =
+  "Une autre modification de l'abonnement était en cours : l'échéance sera préparée au prochain passage.";
+const ECHEANCE_VERROU_INDISPONIBLE =
+  "Le verrou des modifications d'abonnement n'a pas pu être pris : l'échéance sera préparée au prochain passage.";
+const ECHEANCE_ABONNEMENT_CHANGE =
+  "L'abonnement a changé chez Stripe depuis la lecture de l'échéance : elle sera préparée au prochain passage.";
+
+/**
+ * La souscription lue chez Stripe SOUS le verrou facture-t-elle encore la formule et la capacité de la ligne lue en
+ * début de passe ? Le miroir en base (formule, capacité) est écrit par le webhook depuis ces mêmes métadonnées
+ * (lireDetails, puis abonnement_details). Une formule différente, ou une capacité PLUS GRANDE chez Stripe, dit qu'une
+ * hausse est passée entre la lecture de la ligne et le verrou, sans que son webhook soit encore reçu : l'offre calculée
+ * depuis la ligne la déferait à l'échéance. Seul ce qui est connu des deux côtés est comparé, et la capacité dans ce
+ * seul sens : pour une agence, la base garde au moins le socle (abonnement_details, 20260930150000), au-dessus de la
+ * métadonnée d'une petite agence.
+ */
+function ligneAJour(s: Stripe.Subscription, l: Echeance): boolean {
+  const d = lireDetails(s);
+  if (d.formule && l.formule && d.formule !== l.formule) return false;
+  if (d.unites !== null && l.unites_souscrites !== null && d.unites > l.unites_souscrites) return false;
+  return true;
+}
 
 /** Comparaison à temps constant, sans fuir la longueur du secret. */
 function memeSecret(fourni: string, attendu: string): boolean {
@@ -336,34 +362,52 @@ async function preparerEcheances(
     let r: { ok: true } | { ok: false; erreur: string } = { ok: true };
     const baisse = Boolean(actuelle && cible.periodicite === actuelle.periodicite && cible.montantCents < actuelle.montantCents);
     if (changePeriodicite || baisse) {
-      try {
-        const s = await stripe.subscriptions.retrieve(l.stripe_subscription_id);
-        if (choixExplicite(s)) {
-          // Même offre, seule la périodicité demandée change (le cas échéant).
-          const gardee = estAgence ? offreAgence(capacite) : formule ? offreFormule(formule, capacite, periodicite) : null;
-          if (gardee) cible = gardee;
+      // Seconde relecture adverse du 23/10 (A02). La programmation lit la souscription, crée un échéancier, puis réécrit
+      // la phase en cours sans prorata, avec les métadonnées lues : une hausse confirmée entre ces étapes était défaite.
+      // Le verrou des gestes de facturation (« echeance ») couvre désormais la lecture et la programmation ; une hausse,
+      // une demande de périodicité ou une résiliation attendent qu'il soit rendu. Tenu par l'un d'eux, ou indisponible :
+      // l'échéance n'est PAS marquée préparée (erreur posée), elle repasse au passage suivant.
+      const verrou = await prendreVerrouFacturation(supabase, l.organization_id, "echeance");
+      if (!verrou.ok) {
+        r = { ok: false, erreur: verrou.motif === "tenu" ? ECHEANCE_VERROU_TENU : ECHEANCE_VERROU_INDISPONIBLE };
+      } else {
+        try {
+          // Sous le verrou, plus aucune écriture chez Stripe une fois son délai d'écriture passé.
+          const sous = verrou.proteger(stripe);
+          try {
+            const s = await sous.subscriptions.retrieve(l.stripe_subscription_id);
+            if (!ligneAJour(s, l)) {
+              r = { ok: false, erreur: ECHEANCE_ABONNEMENT_CHANGE };
+            } else if (choixExplicite(s)) {
+              // Même offre, seule la périodicité demandée change (le cas échéant).
+              const gardee = estAgence ? offreAgence(capacite) : formule ? offreFormule(formule, capacite, periodicite) : null;
+              if (gardee) cible = gardee;
+            }
+          } catch (e) {
+            if (e instanceof ArretSupervision) throw e;
+            r = { ok: false, erreur: lireErreurStripe(e) };
+          }
+          if (r.ok && changePeriodicite) {
+            r = await programmerPeriodicite(sous, {
+              subscription: l.stripe_subscription_id,
+              offre: cible,
+              regime: REGIME_TVA,
+              orgId: l.organization_id,
+            });
+            if (r.ok) bilan.periodicites += 1;
+          } else if (r.ok && actuelle && cible.periodicite === actuelle.periodicite && cible.montantCents < actuelle.montantCents) {
+            r = await appliquerBaisseAEcheance(sous, {
+              subscription: l.stripe_subscription_id,
+              offre: cible,
+              regime: REGIME_TVA,
+              orgId: l.organization_id,
+            });
+            if (r.ok) bilan.baisses += 1;
+          }
+        } finally {
+          await verrou.rendre();
         }
-      } catch (e) {
-    if (e instanceof ArretSupervision) throw e;
-        r = { ok: false, erreur: lireErreurStripe(e) };
       }
-    }
-    if (r.ok && changePeriodicite) {
-      r = await programmerPeriodicite(stripe, {
-        subscription: l.stripe_subscription_id,
-        offre: cible,
-        regime: REGIME_TVA,
-        orgId: l.organization_id,
-      });
-      if (r.ok) bilan.periodicites += 1;
-    } else if (r.ok && actuelle && cible.periodicite === actuelle.periodicite && cible.montantCents < actuelle.montantCents) {
-      r = await appliquerBaisseAEcheance(stripe, {
-        subscription: l.stripe_subscription_id,
-        offre: cible,
-        regime: REGIME_TVA,
-        orgId: l.organization_id,
-      });
-      if (r.ok) bilan.baisses += 1;
     }
     if (!r.ok) bilan.echecs.push({ organisation: l.organisation, motif: r.erreur });
 

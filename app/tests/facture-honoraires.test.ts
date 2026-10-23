@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { assemblerFactureHonoraires } from "@/lib/documents/modeles/facture-honoraires";
 import { CATALOGUE_DOCUMENTS } from "@/lib/documents/catalogue";
 import { MODELES } from "@/lib/documents/modeles";
 import type { Assemblage } from "@/lib/documents/modeles";
+import { aujourdhuiParis } from "@/lib/ged";
 
 // Le mois facturé doit être révolu : on vise l'avant-dernier mois pour que
 // l'épreuve ne bascule pas le 1er du mois suivant.
@@ -141,7 +142,9 @@ describe("Facture d’honoraires", () => {
     for (const mois of ["", "2026-13", "septembre"]) {
       expect(await erreur(assemblerFactureHonoraires(db, "org", "mandat", { mois }))).toContain("Choisissez le mois");
     }
-    const enCours = new Date().toISOString().slice(0, 7);
+    // Le mois en cours est celui de Paris, comme dans le modèle : le mois UTC serait encore le précédent (donc révolu)
+    // le 1er du mois entre minuit et 2 h à Paris.
+    const enCours = aujourdhuiParis().slice(0, 7);
     expect(await erreur(assemblerFactureHonoraires(db, "org", "mandat", { mois: enCours }))).toContain("n’est pas révolu");
   });
 
@@ -187,6 +190,43 @@ describe("Facture d’honoraires", () => {
     expect(MODELES.facture_honoraires.typeGed).toBe("rapport_gestion");
     // Tout le catalogue est désormais générable : plus aucune entrée orpheline
     expect(CATALOGUE_DOCUMENTS.filter((m) => !Object.hasOwn(MODELES, m.code))).toHaveLength(0);
+  });
+});
+
+// Audit du 23/10 (TST-5) : « aujourd'hui » se lisait en jour UTC (`new Date().toISOString().slice(0, 10)`). Le
+// serveur (Vercel) tourne en UTC : le 1er du mois entre minuit et 2 h à Paris, le jour UTC est encore le dernier du
+// mois précédent. L'horloge de vitest est posée sur un INSTANT UTC ; la machine n'y est pour rien.
+describe("Facture d’honoraires — le jour de Paris décide du mois révolu et de la date d’émission", () => {
+  afterEach(() => vi.useRealTimers());
+  const horloge = (instant: string) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(instant));
+  };
+  /** Le journal de novembre 2026 ; `emise_le` tel que la fonction d'émission le rend (absent : null). */
+  function novembre(emiseLe: string | null = "2026-12-01") {
+    const t = fixture();
+    t.ecritures = t.ecritures.map((e) => ({ ...e, date_imputation: `2026-11-${String(e.date_imputation).slice(8, 10)}` }));
+    t.emettre_facture_honoraires = [{ ...t.emettre_facture_honoraires[0], emise_le: emiseLe }];
+    return mockDb(t).db;
+  }
+  const etabliLe = (html: string) => /Établi le <span class="v">(\d{2}\/\d{2}\/\d{4})<\/span>/.exec(html)?.[1];
+
+  it("le 1er décembre à 0 h 30 à Paris (23 h 30 UTC le 30/11), novembre est révolu : la facture s’émet", async () => {
+    horloge("2026-11-30T23:30:00Z");
+    const r = succes(await assemblerFactureHonoraires(novembre(), "org", "mandat", { mois: "2026-11" }));
+    expect(r.document.reference).toBe("FH-2026-0001");
+    expect(etabliLe(r.document.html)).toBe("01/12/2026");
+  });
+
+  it("sans date d’émission rendue par la base, la facture est datée du jour de Paris (01/12/2026), pas de la veille UTC", async () => {
+    horloge("2026-11-30T23:30:00Z");
+    const r = succes(await assemblerFactureHonoraires(novembre(null), "org", "mandat", { mois: "2026-11" }));
+    expect(etabliLe(r.document.html)).toBe("01/12/2026");
+  });
+
+  it("le 30 novembre à 23 h 30 à Paris (22 h 30 UTC), novembre n’est pas encore révolu", async () => {
+    horloge("2026-11-30T22:30:00Z");
+    expect(await erreur(assemblerFactureHonoraires(novembre(), "org", "mandat", { mois: "2026-11" }))).toContain("n’est pas révolu");
   });
 });
 

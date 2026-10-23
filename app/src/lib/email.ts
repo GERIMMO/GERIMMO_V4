@@ -72,6 +72,18 @@ export const DELAI_MAX_FOURNISSEUR_MS = 15_000;
 const ERREUR_DELAI =
   "Le service d’e-mail n’a pas répondu à temps. L’envoi n’est pas confirmé et a peut-être eu lieu : vérifiez avant de le renvoyer.";
 
+/**
+ * Refus 429 du service (audit du 23/10, CPL1-2). Il ne vient jamais de l'adresse du destinataire, que le message
+ * générique accusait : le service limite le débit (quelques envois par seconde) ou son quota d'envois est atteint.
+ * Dans les deux cas c'est un refus, pas un envoi incertain : rien de neuf ici sur la reprise, qui reste celle de
+ * l'appelant (la personne recommence, ou la passe suivante d'une tâche reprend l'objet non marqué). Le quota se
+ * reconnaît à son corps de réponse (« quota ») : motif lu dans le texte du refus, non rejoué contre le service réel ;
+ * sans ce mot, c'est la limite de débit.
+ */
+export const ERREUR_LIMITE_DEBIT = "Envoi limité temporairement par le prestataire d’e-mail : réessayez dans une minute.";
+export const ERREUR_QUOTA_ATTEINT =
+  "Le quota d’envois du prestataire d’e-mail est atteint : l’e-mail n’est pas parti. Réessayez plus tard ; si le refus persiste, prévenez le responsable Gerimmo.";
+
 function delaiDepasse(e: unknown): boolean {
   return e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
 }
@@ -131,6 +143,7 @@ export async function envoyerEmail(params: {
           erreur: "L’adresse d’envoi doit encore être vérifiée auprès du service d’e-mail. Contactez le responsable Gerimmo pour terminer sa connexion.",
         };
       }
+      if (reponse.status === 429) return { erreur: /quota/i.test(txt) ? ERREUR_QUOTA_ATTEINT : ERREUR_LIMITE_DEBIT };
       return { erreur: "Le service d’e-mail a refusé l’envoi. Vérifiez l’adresse du destinataire puis réessayez." };
     }
     const resultat = await reponse.json().catch(() => null);

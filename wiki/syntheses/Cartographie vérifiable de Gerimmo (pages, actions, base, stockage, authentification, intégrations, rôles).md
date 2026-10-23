@@ -3,7 +3,7 @@ type: synthesis
 tags: [cartographie, audit, architecture, droits, banc-local]
 status: draft
 created: 2026-10-14
-updated: 2026-10-19
+updated: 2026-10-23
 sources: []
 ---
 
@@ -181,7 +181,7 @@ La coquille `app/src/app/agence/[orgId]/layout.tsx` sert **les trois rôles** (c
 | `/admin/clients/artisans/[artisanId]` | Fiche artisan | is_super_admin | superadmin:ouvert | oui |
 | `/admin/comptes/[accountId]` | Fiche de débogage d’un compte (état, rôles, journaux) | is_super_admin | superadmin:ouvert | oui |
 | `/admin/consignes` | Consignes versionnées | is_super_admin | superadmin:ouvert | oui |
-| `/admin/couverture` | Réseau d’artisans : ouvertures par commune et métier | is_super_admin | superadmin:ouvert | oui |
+| `/admin/couverture` | Réseau d’artisans : couverture par commune et métier (lecture seule depuis la décision du 23/10/2026, migration `20261023180000`) | is_super_admin | superadmin:ouvert | oui |
 | `/admin/devis` | Demandes de devis du site vitrine | is_super_admin | superadmin:ouvert | oui |
 | `/admin/equipes` | Travail des équipes | is_super_admin | superadmin:ouvert | oui |
 | `/admin/journaux` | Historique et conservation | is_super_admin | superadmin:ouvert | oui |
@@ -1497,3 +1497,10 @@ Détail complet (préconditions, étapes, attendu, observé, preuve) dans `rappo
 - `pg_cron` : non installé dans la base de schéma ; seule la programmation décrite par les migrations est lisible.
 - Les boutons sans action et les états de chargement/vide/erreur par écran ne sont pas parcourus ici (voir [[Inventaire de couverture]] pour la passe automatique et les rapports du designer).
 
+> [!warning] Changement du 23/10/2026 — réseau d'artisans
+> - Décision du dirigeant : les communes et les métiers du réseau sont choisis par l'artisan (sa zone
+>   d'intervention et ses métiers), même pendant la bêta ; l'ouverture commune × métier par le super
+>   administrateur est supplantée. Migration `20261023180000`, non appliquée en production au 23/10 :
+>   voir [[Ouverture du réseau d'artisans]].
+> - Les actions `reglerOuvertureReseau` et `rattacherArtisanReseau` sont retirées du code (`app/src/app/actions/reseau.ts`) ;
+>   `/admin/couverture` devient une lecture de la couverture (`tableau-couverture.tsx` remplace `reglages-reseau.tsx`).

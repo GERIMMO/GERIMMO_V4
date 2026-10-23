@@ -15,6 +15,6 @@ export async function enregistrerIdentite(_: {erreur?:string;succes?:string;revi
  revalidatePath('/admin/sante');revalidatePath('/admin/brief');
  // 19/10 : dire ce qui manque encore, plutôt qu'un succès qui laisse croire que les pages sont finalisées.
  const reste=reservesLegales(r.valeurs??{});
- const succes=reste.length?`Identité enregistrée et reprise sur les trois pages légales de cet environnement. Il reste à compléter : ${reste.join(', ')}. Tant qu’un élément manque, la page qui le cite l’affiche « (à venir) » et garde l’encadré « Document en cours de finalisation ».`:'Identité enregistrée et reprise sur les trois pages légales de cet environnement ; rien ne reste à compléter.';
+ const succes=reste.length?`Identité enregistrée et reprise sur les trois pages légales de cet environnement. Il reste à compléter : ${reste.join(', ')}. Tant qu’un élément manque, la page qui le cite l’affiche « (à venir) » ; seuls les faits requis (hors médiateur) et les prestataires gardent l’encadré « Document en cours de finalisation ».`:'Identité enregistrée et reprise sur les trois pages légales de cet environnement ; rien ne reste à compléter.';
  return {succes,revision:saved.data.revision as number};
 }

@@ -56,6 +56,8 @@ const ACTIONS: Record<string, string> = {
   inscription_proprietaire: "Inscription d’un propriétaire bailleur",
   organisation_ouverte: "Ouverture d’une organisation",
   abonnement_statut: "Changement de statut d’abonnement",
+  // Défaut A02 (23/10/2026) : une hausse refusée qui a touché à l'échéancier programmé (issue et étapes Stripe).
+  abonnement_hausse_non_appliquee: "Hausse d’abonnement non appliquée : changement programmé vérifié",
   paiement_en_defaut: "Paiement d’abonnement en défaut",
   paiement_regularise: "Paiement d’abonnement régularisé",
   avantage_parrainage: "Avantage de parrainage accordé",
@@ -74,6 +76,9 @@ const ACTIONS: Record<string, string> = {
   effacement_instantanes_faits_direction: "Effacement des anciens faits de direction, qui pouvaient contenir des noms",
   // X18 (SA-09, 14/10) : écrite par `rechercher_reference_supervision` dans sa transaction (jamais le texte d'un nom).
   recherche_reference: "Recherche d’un bien, d’un lot ou d’un incident par sa référence",
+  // Réseau d'artisans choisi par l'artisan (23/10/2026, 20261023180000) : zone et métiers décident seuls de sa présence.
+  artisan_zone_modifiee: "Zone d’intervention d’un artisan modifiée (réseau d’artisans)",
+  artisan_metiers_modifies: "Métiers d’un artisan modifiés (réseau d’artisans)",
   ...ACTIONS_SUPERVISION,
 };
 

@@ -32,17 +32,22 @@ const LIBELLES: Record<ChampIdentite, string> = {
 };
 
 /**
- * Le premier champ qui dépasse sa borne, dit en français ; `null` si tout tient.
+ * Le premier champ qui dépasse sa borne ; `null` si tout tient. C'est celui que
+ * `champTropLong` nomme : un formulaire peut y placer le message (23/10, PRO-4).
  * On compte les caractères réels (un accent ou un émoji pèse un caractère).
  */
-export function champTropLong(champs: Partial<Record<ChampIdentite, string | null | undefined>>): string | null {
+export function premierChampTropLong(champs: Partial<Record<ChampIdentite, string | null | undefined>>): ChampIdentite | null {
   for (const cle of Object.keys(LONGUEUR_MAX) as ChampIdentite[]) {
     const valeur = champs[cle];
-    if (typeof valeur === "string" && [...valeur].length > LONGUEUR_MAX[cle]) {
-      return `${LIBELLES[cle]} : ${LONGUEUR_MAX[cle]} caractères au plus.`;
-    }
+    if (typeof valeur === "string" && [...valeur].length > LONGUEUR_MAX[cle]) return cle;
   }
   return null;
+}
+
+/** Le premier champ qui dépasse sa borne, dit en français ; `null` si tout tient. */
+export function champTropLong(champs: Partial<Record<ChampIdentite, string | null | undefined>>): string | null {
+  const cle = premierChampTropLong(champs);
+  return cle ? `${LIBELLES[cle]} : ${LONGUEUR_MAX[cle]} caractères au plus.` : null;
 }
 
 /**

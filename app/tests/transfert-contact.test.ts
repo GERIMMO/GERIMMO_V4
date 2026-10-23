@@ -125,8 +125,13 @@ it.each(["http://localhost/cle", "https://evil.invalid/mail", "https://resend.co
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
 it("ne transforme pas un refus Resend en succès", async () => {
-  fournisseur({}, MIME, 429);
+  fournisseur({}, MIME, 500);
   expect(await traiterTransfertContact(requete(), ENV, NOW)).toEqual({ statut: 503, etat: "transfert_non_confirme" });
+});
+it("nomme un refus 429 (débit ou quota du prestataire) et laisse le webhook le rejouer (503)", async () => {
+  const { envois } = fournisseur({}, MIME, 429);
+  expect(await traiterTransfertContact(requete(), ENV, NOW)).toEqual({ statut: 503, etat: "transfert_limite_prestataire" });
+  expect(envois).toHaveLength(1);
 });
 it("ne transforme pas une coupure après l'envoi en succès", async () => {
   const { fetchMock } = fournisseur();

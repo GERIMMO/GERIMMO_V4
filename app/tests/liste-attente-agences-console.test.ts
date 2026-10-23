@@ -45,6 +45,9 @@ const LIGNE: LigneListeAttente = {
 
 type Reponse = { data?: unknown; error?: { message: string } | null };
 
+/** Le plafond de lignes par réponse de l'API (réglage « Max rows » de Supabase). */
+const PLAFOND_API = 1000;
+
 /**
  * Un client de session simulé : `rpc` répond à is_super_admin et journaliser_supervision ; `from` rend une requête
  * chaînable dont la lecture (`maybeSingle`), la mise à jour (`update … select`) et la liste entière (export) sont
@@ -76,9 +79,17 @@ function client(options: { estSuperAdmin?: unknown; lecture?: Reponse; miseAJour
       return q;
     };
     q.maybeSingle = async () => ({ data: options.lecture?.data ?? null, error: options.lecture?.error ?? null });
-    // La liste entière (export) : la requête est attendue telle quelle.
-    q.then = (ok: (r: unknown) => unknown) =>
-      Promise.resolve({ data: Array.isArray(options.lignes?.data) ? options.lignes.data.filter((ligne) => !exclusions.some(([colonne, valeur]) => ligne[colonne] === valeur)) : [], error: options.lignes?.error ?? null }).then(ok);
+    // La liste entière : la page la lit d'un bloc ; l'export page par page (`range`), avec le compte exact.
+    let bornes: [number, number] | null = null;
+    q.range = (debut: number, fin: number) => {
+      bornes = [debut, fin];
+      return q;
+    };
+    q.then = (ok: (r: unknown) => unknown) => {
+      const toutes = Array.isArray(options.lignes?.data) ? options.lignes.data.filter((ligne) => !exclusions.some(([colonne, valeur]) => ligne[colonne] === valeur)) : [];
+      const data = bornes ? toutes.slice(bornes[0], Math.min(bornes[1] + 1, bornes[0] + PLAFOND_API)) : toutes.slice(0, PLAFOND_API);
+      return Promise.resolve({ data, count: toutes.length, error: options.lignes?.error ?? null }).then(ok);
+    };
     q.update = (champs: unknown) => {
       miseAJour(champs);
       q.then = (ok: (r: unknown) => unknown) =>
@@ -234,6 +245,8 @@ describe("changerStatutAgence", () => {
 });
 
 describe("GET /admin/liste-attente/export", () => {
+  const AVEC_ID = { ...LIGNE, id: ID };
+  const RETIREE = { ...LIGNE, id: "44444444-4444-4444-8444-444444444444", agence: "Agence retirée", statut: "retiree" };
   it("refuse sans contenu quiconque n'est pas super-administrateur, sans lire la table ni rien journaliser", async () => {
     const c = client({ estSuperAdmin: false });
     const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"));
@@ -243,7 +256,7 @@ describe("GET /admin/liste-attente/export", () => {
     expect(c.journal).toEqual([]);
   });
   it("sert un CSV UTF-8 avec BOM, en pièce jointe datée, sans cache, et trace l'export", async () => {
-    const c = client({ lignes: { data: [LIGNE] } });
+    const c = client({ lignes: { data: [AVEC_ID] } });
     const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"));
     expect(r.status).toBe(200);
     expect(r.headers.get("content-type")).toBe("text/csv; charset=utf-8");
@@ -258,7 +271,7 @@ describe("GET /admin/liste-attente/export", () => {
     expect(c.journal).toEqual([{ p_action: "liste_attente_exportee", p_organisation: null, p_details: { lignes: 1, inclure_retirees: false } }]);
   });
   it.each(["", "?inclure_retirees=0", "?inclure_retirees=true"])("exclut les retirées sans option explicite (%s)", async (query) => {
-    const c = client({ lignes: { data: [LIGNE, { ...LIGNE, agence: "Agence retirée", statut: "retiree" }] } });
+    const c = client({ lignes: { data: [AVEC_ID, RETIREE] } });
     const r = await exporter(new Request(`https://gerimmo.test/admin/liste-attente/export${query}`));
     const csv = await r.text();
     expect(csv).toContain("Agence du Canal");
@@ -266,7 +279,7 @@ describe("GET /admin/liste-attente/export", () => {
     expect(c.exclusions).toEqual([["statut", "retiree"]]);
   });
   it("inclut les retirées seulement sur choix explicite et consigne ce choix", async () => {
-    const c = client({ lignes: { data: [LIGNE, { ...LIGNE, agence: "Agence retirée", statut: "retiree" }] } });
+    const c = client({ lignes: { data: [AVEC_ID, RETIREE] } });
     const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export?inclure_retirees=1"));
     expect(await r.text()).toContain("Agence retirée");
     expect(c.exclusions).toEqual([]);
@@ -274,7 +287,7 @@ describe("GET /admin/liste-attente/export", () => {
   });
   it("sans ligne d'audit, pas de fichier", async () => {
     const silence = vi.spyOn(console, "error").mockImplementation(() => {});
-    client({ lignes: { data: [LIGNE] }, journal: { error: { message: "panne" } } });
+    client({ lignes: { data: [AVEC_ID] }, journal: { error: { message: "panne" } } });
     const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"));
     expect(r.status).toBe(503);
     expect(await r.text()).not.toContain("Agence du Canal");
@@ -285,6 +298,23 @@ describe("GET /admin/liste-attente/export", () => {
     const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"));
     expect(r.status).toBe(503);
     expect(r.headers.get("content-type")).toMatch(/^text\/plain/);
+    expect(c.journal).toEqual([]);
+  });
+  // Audit du 23/10 (A04) : une seule lecture s'arrêtait au plafond de l'API, sans le dire.
+  it("exporte au-delà du plafond de l'API : 1 001 inscriptions, 1 001 lignes", async () => {
+    const lignes = Array.from({ length: 1001 }, (_, i) => ({ ...LIGNE, id: `id-${i}`, agence: `Agence ${i}` }));
+    const c = client({ lignes: { data: lignes } });
+    const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"));
+    expect(r.status).toBe(200);
+    const csv = await r.text();
+    expect(csv).toContain("Agence 1000");
+    expect(c.journal[0].p_details).toEqual({ lignes: 1001, inclure_retirees: false });
+  });
+  it("une ligne relue d'une page à l'autre (données qui bougent) : pas de fichier", async () => {
+    const lignes = Array.from({ length: 1001 }, (_, i) => ({ ...LIGNE, id: i === 1000 ? "id-0" : `id-${i}` }));
+    const c = client({ lignes: { data: lignes } });
+    const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"));
+    expect(r.status).toBe(503);
     expect(c.journal).toEqual([]);
   });
 });

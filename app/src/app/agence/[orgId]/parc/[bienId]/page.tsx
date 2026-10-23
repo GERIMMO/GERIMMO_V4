@@ -12,7 +12,7 @@ import {
   formaterSurface,
 } from "@/lib/parc";
 import { diagnosticsExigibles, diagnosticsManquants } from "@/lib/diagnostics";
-import { formaterDate } from "@/lib/ged";
+import { aujourdhuiParis, formaterDate } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
 import {
   Card,
@@ -114,13 +114,14 @@ export default async function PageBien(
       .eq("organization_id", orgId)
       .eq("lot.bien_id", bienId)
       .is("date_fin", null),
-    // Annonces aux locataires du bien (espace locataire v10)
+    // Annonces aux locataires du bien (espace locataire v10), encore visibles au jour de PARIS : le jour UTC du
+    // serveur gardait affichée, entre minuit et 2 h, une annonce échue la veille (audit du 23/10, TST-5).
     supabase
       .from("annonces")
       .select("id, texte, visible_jusquau")
       .eq("organization_id", orgId)
       .eq("bien_id", bienId)
-      .gte("visible_jusquau", new Date().toISOString().slice(0, 10))
+      .gte("visible_jusquau", aujourdhuiParis())
       .order("visible_jusquau"),
   ]);
   // Lecture refusée : ce n'est pas un bien supprimé (relevé du 11/09).

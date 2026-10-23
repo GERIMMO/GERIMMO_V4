@@ -6602,6 +6602,10 @@ Demande d’avancer en autonomie sur les points 2 à 5. Lecture production : tro
 
 Validation finale locale du lot signatures/conservation : 41 tests ciblés réussis, compilation/TypeScript/ESLint réussis, parcours mobile réussi avec les sessions fictives renouvelées et passage MFA. Les invitations artisans acceptées et les contacts récents restent conservés. Le bilan présente cinq catégories sans suppression et sans débordement horizontal. Aucun essai externe ni déploiement.
 
+## [2026-10-22] audit | Contrôle indépendant des livraisons de Codex des 21 et 22 octobre (PR #230 à #236)
+
+À la demande du dirigeant du 22/10 (« Fais », puis « fais la PR pour le wiki »), contrôle en lecture seule des six PR de Codex fusionnées depuis `4ba53f5` : #230 `804a6da`, #231 `fe149d6`, #232 `7092eb4`, #234 `e0d366b`, #235 `79d8637`, #236 `cc53dd7`. Huit lecteurs indépendants puis un contradicteur par constat sérieux : 21 examinés, 20 confirmés, 1 réfuté, aucun bloquant. Conforme : fusions au SHA de tête exact, CI verte sur chaque tête et sur `main`, migrations `20261021133650`, `20261021140836` et `20261021175930` passées par le chantier (sauvegardes 39647271883 et 39651051766, simulations 39647465679 et 39650919924, applications 39648103765 et 39651969057, COMMIT), aucune adresse personnelle ni secret ajouté, aucun test affaibli, journal en ajout seul, recette n° 30 (39656877362) verte sur `7092eb4`, Vercel READY pour les six, 0 erreur d'exécution sur 24 h. Écarts importants : aucune recette de production après #234, #235 et #236 ; modules artisans « clients externes » et « règlements » ouverts en production sur un message général sans accord nommant le module ni le SHA ; relances Zoho activées sans citation d'accord ni recette Zoho sur comptes fictifs ; cautionnement rouvert à l'inverse de D2 (décision consignée) ; migration d'effacement appliquée depuis `c63303f` avant CI verte et avant la tête fusionnée `9861f1c` (fichier identique) ; journal sans entrée `deploy` pour les trois dernières fusions, numéros de CI décalés, transfert du courriel de contact actif en production sans journal ; mentions légales : section de signalement retirée sans le dire, bandeau « en cours de finalisation » maintenu, e-mail de l'éditeur personnel alors que `contact@gerimmo.app` existe. Relevé SQL du 22/10 à 12 h 40 UTC : 403 versions (dernière `20261021175930`), 1 compte, 1 super-administrateur, 0 organisation, 0 artisan, 0 agence, `artisan_modules_locaux` à vrai pour `clients` et `reglements`, 10 objets Storage, 15 publications, 10 tâches `pg_cron`, relais de 5 h `envoye` le 22/10. Page [[Contrôle des livraisons de Codex — 22 octobre 2026]] créée ; callouts datés posés sur [[Recette de production]], [[Prêt à démarcher]] et [[Calendrier de lancement — 30 novembre 2026]] (règle des cinq comptes remplacée, modules et interrupteurs ouverts, lignes non passées en « fait ») ; `index.md` mis à jour. Non relevé : valeurs des variables Vercel, tableaux Resend et Zoho.
+
 ## [2026-10-23] config | Retrait des anciens réglages Youtrust
 
 Instruction explicite du dirigeant : « Retire les anciens réglage youtrust », en réponse à la confirmation de suppression. Les trois variables Production `YOUTRUST_API_KEY`, `YOUTRUST_ENV` et `YOUTRUST_WEBHOOK_SECRET` ont été supprimées via Vercel ; recherche YOUTRUST vide, valeurs non révélées. Le redéploiement `5JxVtGocWGQd3pW5GfUt27y6g7uy` reprend exactement le code de production `87ef2d2` (PR #239) avec les réglages actuels. Les travaux locaux ne sont pas publiés. Déploiement confirmé Ready en 1 min 27 s, domaine www.gerimmo.app affecté. La sonde publique /api/sante renvoie ok=true et base=true sur la révision exacte 87ef2d2a9b970006fc1e9d6a78e22b3250038dff. Captures conservées dans outputs/youtrust-retrait-20261023. La suppression des variables ne révoque pas les clés chez Youtrust et ne résilie aucun contrat fournisseur.
@@ -6613,3 +6617,99 @@ Demande explicite « Révoque les clés youtrust », suivie de « Confirme » à
 ## [2026-10-23] publication | Abonnements, signatures et conservation — PR 241
 
 Publication de l’ensemble demandée par le dirigeant. Sauvegarde GitHub 39865990553 réussie ; simulation 39866361329 avec ROLLBACK, puis application 39866594767 avec COMMIT des deux migrations 20261022210326 et 20261022213731. Relecture production : blocage conservé actif, nouvelles purges désactivées, preuves protégées, droits clients fermés ; sonde publique saine. La première CI complète 39865852616 a trouvé des doubles de test à adapter, une marche avant de restauration à compléter avec la colonne du 22/10, le marqueur de protection du formulaire et une conversion de révision bornée à documenter. Corrections validées : 68 tests d’interface/gardes et 53 tests PostgreSQL locaux réussis. La nouvelle CI, la fusion et la publication de l’interface sont suivies dans [la PR 241](https://github.com/GERIMMO/GERIMMO_V4/pull/241) ; aucun succès final n’est présumé ici. Aucun paiement, envoi de signature ni purge déclenché.
+
+## [2026-10-23] recette | Recette de production et paiements Stripe en clés de test sur `e53298a`
+
+Lancées par Claude sur `main` (`e53298a`, PR #241) : « Recette de production avec nettoyage » 39983680482 (16 h 04 – 16 h 15 UTC) **réussie** ; « Vérifier les paiements Stripe sans argent réel » 39983684869 **réussie** (le dernier passage sur `main`, le 20/10, avait échoué). Première recette depuis celle du 21/10 (39656877362 sur `7092eb4`) : elle couvre les versions #234, #235, #236, #239 et #241. Nettoyage vérifié en lecture : 1 compte, 0 organisation, 0 artisan. Écran « Mon abonnement » : la recette constate l'un des deux états sans cliquer (paiement fermé tant que le médiateur manque, à cette version).
+
+## [2026-10-23] decision | Informations manquantes non bloquantes (médiateur)
+
+Mots du dirigeant : « Je veux que tout ce qui peux fonctionner fonctionne sans restriction, les infos importantes manquantes seront remplie plus tard mais ne doivent pas être bloquante. Il me faut une version fonctionnelle même s'il manque certaines infos type médiateur et autres. »
+
+Traduction retenue par Claude : le médiateur de la consommation (seule information d'identité manquante en production) sort des faits requis ; il ne ferme plus le paiement en ligne ni ne déclenche l'encadré « Document en cours de finalisation », et reste affiché « Adhésion à venir » sur les mentions légales. Rien n'est inventé ni rempli à sa place. Risque signalé : l'information du consommateur sur le médiateur est une obligation (art. L. 616-1 du code de la consommation), à relire par le juriste. Pages : [[Abonnement]], [[Informations manquantes — 23 octobre 2026]].
+
+## [2026-10-23] query | Informations manquantes et répartition Claude / Codex / dirigeant
+
+Relevé en lecture seule (présence des valeurs, aucune recopiée) : identité de l'éditeur complète sauf les trois coordonnées du médiateur ; capital sans objet (entreprise individuelle) ; toutes les connexions attendues par la page Santé posées dans Vercel. Page créée : [[Informations manquantes — 23 octobre 2026]]. Prompt de Codex rédigé hors dépôt (tableaux de bord Vercel, Supabase Auth, Resend, Stripe, Zoho, GitHub ; gestes avec la session du dirigeant ; code en attente d'avis), avec la liste des fichiers à ne pas toucher pendant le lot de Claude. Le document « Dossiers de test par persona » (Claude Docs) est corrigé sur ses trois affirmations fausses relevées par l'audit du 23/10 : point 6 et étape 11 du dirigeant (signature ouverte à tous depuis le 19/10, liste d'essai inopérante), cautionnement (ouvert depuis le 21/10), étape 12 (retenir un devis lance un circuit réel).
+
+## [2026-10-23] decision | Capital sans objet ; juriste et DPO confiés à Claude
+
+Mots du dirigeant : « Pour les infos manquantes : capital social sans objet, côté juriste fais de manière logique et selon tes conseil, dpo pareil, quelle décisions je dois prendre ? »
+
+Conséquences retenues : le capital social reste non affiché (entreprise individuelle). Aucun juriste ni DPO humain n'est mandaté avant le lancement ; Claude traite ces sujets par des propositions prudentes, chacune adossée à une source primaire ouverte (Légifrance, CNIL), contre-vérifiée, et marquée comme non relue par un professionnel du droit. Risque assumé par le dirigeant. Recherche lancée en lecture seule (six thèmes : vente au consommateur, impayé, signature et cautionnement, périmètre des CGU, conservation, droits et registre) ; les changements de texte seront regroupés dans une seule nouvelle version des conditions.
+
+## [2026-10-23] decision | Signature ouverte pendant la bêta, vente à la mise en ligne, réseau d'artisans choisi par l'artisan
+
+Mots du dirigeant : « 2 je ne veux pas la couper, ouverture de la vente dés la mise en ligne, 4 la communes et les métiers à ouvriers seront choisi par l'artisan (même lors du test), 5 laisser ouvert, 7 conseils moi un antivirus pas chère, les garder et suppression sur demande (ils seront des clients comme tout le monde mais on pourra s'en servir spour les tests), le reste je veux des explications ».
+
+- **D4 — signature électronique pendant la bêta** : laissée ouverte (aucun arrêt « signatures »). Les dossiers des amis gardent la consigne de ne pas signer ; un envoi fait par un ami serait un acte réel.
+- **Vente** : ouverte dès la mise en ligne du lot de Claude (clé Stripe réelle posée, médiateur non bloquant).
+- **Réseau d'artisans** : les communes et les métiers sont choisis par l'artisan lui-même, y compris pendant la bêta ; l'ouverture explicite par le super-administrateur commune × métier ([[Ouverture du réseau d'artisans]]) est remplacée. La validation de l'artisan par Gerimmo reste.
+- **Modules artisans « clients externes » et « règlements »** : laissés ouverts sans avis d'expert-comptable.
+- **Antivirus** : conseil demandé (service peu coûteux).
+- **Comptes des amis** : gardés après le 1/11, suppression seulement sur demande ; ce sont des clients comme les autres, utilisables aussi pour des tests.
+- Médiateur, offre Vercel, continuité : explications demandées avant décision.
+
+## [2026-10-23] decision | Conformité V1 : valeurs par défaut du plan juriste/DPO ; cautionnement et état des lieux hors ligne
+
+Mots du dirigeant : « OK aux valeurs par défaut, 3 conseillé ».
+
+Valeurs retenues (plan de conformité du 23/10, section 4 ; sources juridiques non ouvertes depuis l'environnement, à recomparer sur Légifrance avant publication) :
+1. Médiateur : adhésion avant le 15/11, coordonnées saisies dans `/admin/parametres` (reste non bloquant dans le code, décision du 23/10).
+2. Assurance responsabilité civile professionnelle : vérifier la couverture avant l'ouverture aux particuliers.
+3. **Cautionnement** : envoi électronique fermé (`ZOHO_SIGN_CAUTIONNEMENT_FERME=true` posé dans Vercel Production le 23/10 vers 18 h 26 UTC, effectif au prochain déploiement) ; acte signé hors ligne jusqu'à ce que la caution confirme elle-même son mobile. **État des lieux** : signé sur place, puis déposé ; la signature à distance sera fermée par le lot de conformité. Bail, avenants, accords et devis restent signables en ligne.
+4. Stripe, fin des tentatives : « marquer l'abonnement comme impayé » (réglage du tableau de bord Stripe, geste du dirigeant ou de Codex) ; résiliation manuelle au plus tôt à J+30.
+5. Remboursements protecteurs : oui à tout (rétractation intégrale, fermeture anticipée et refus d'une modification au prorata, etc.).
+6. Signature électronique comprise sans supplément, essai compris, dans la limite du volume mensuel commun.
+7. Espace artisan gratuit et sans commission.
+8. Démarchage : jamais de courriel commercial à un particulier sans consentement ; artisans et agences avec opposition possible dans chaque message.
+9. Violation de données : notification au client sous 48 h si une personne joignable est désignée en l'absence du dirigeant, sinon « dans les meilleurs délais ».
+10. Comptes des amis : clients ordinaires ; aucun test sur leurs données réelles (recettes sur comptes fictifs).
+11. Conditions V1 publiées dès que le code qui les rend vraies est en production, au plus tard le 15/11.
+12. Accords de sous-traitance (DPA) acceptés par le dirigeant dans les consoles des prestataires, copie datée gardée.
+
+## [2026-10-23] decision | Statut de l'éditeur : non commerçant
+
+Mots du dirigeant : « je ne suis pas commerçant ».
+
+Conséquence pour la conformité V1 : l'obligation de conservation de dix ans du code de commerce (art. L. 123-22, propre aux commerçants) ne fonde pas la durée de conservation des factures de Gerimmo. Le lot de conservation retient à la place six ans pour les factures et pièces justificatives (livre des procédures fiscales, art. L. 102 B, à recomparer sur Légifrance), et garde dix ans pour la preuve des contrats conclus en ligne d'au moins 120 € (code de la consommation, art. L. 213-1 et D. 213-1), indépendamment du statut de commerçant. Les quittances et documents des bailleurs suivent leurs propres règles (36 mois après la fin du bail, plan du 23/10).
+
+## [2026-10-23] decision | Cautionnement et état des lieux signés dans Gerimmo
+
+Mots du dirigeant : « le cautionnement et l'état des lieux doivent etre signé sur gerimmo directement ! »
+
+Remplace le point 3 de la décision « Conformité V1 » du même jour. `ZOHO_SIGN_CAUTIONNEMENT_FERME` remis à `false` dans Vercel Production (vers 18 h 30 UTC, avant tout déploiement : le cautionnement n'a donc jamais été fermé en ligne). Pour garder ces deux actes solides tout en les signant dans Gerimmo, le lot de conformité prévoit :
+- **cautionnement** : la caution confirme elle-même son numéro de mobile (lien reçu par courriel) avant l'envoi en signature, au lieu du numéro saisi par le bailleur ; elle continue de saisir elle-même sa mention ;
+- **état des lieux** : signé dans Gerimmo, avec la confirmation qu'il a été établi ensemble, sur place, à la date de la visite, et le rappel au locataire de son droit de demander à le compléter.
+Risque résiduel à faire relire par un juriste dès que possible : valeur probante d'une signature par code SMS pour ces deux actes.
+
+## [2026-10-23] deploy | Première mise en ligne du 23/10 : PR #238 (`b0153b6`)
+
+Décision du dirigeant de publier au fur et à mesure. Contenu : médiateur non bloquant (vente ouverte), audit A03 (portefeuille dans les agrégats de charges), A04 (exports lus en entier, liste d'attente comprise), A06/A07 (textes), inscription PRO-4/PRO-5, jour de Paris, retours N2 au point du matin, message 429, `/admin/donnees` au menu, point du matin limité aux 12 derniers passages par mission (« Point invalide » toutes les 5 min depuis 14 h 55 UTC), garde « CI verte » des migrations, wiki et journal du 23/10. Le lot facturation A01/A02 a été retiré de cette publication (commits `ae9e57b` et `c5dd11e`) après la relecture adverse ; il part dans la publication suivante, corrigé.
+
+Protocole : sauvegarde 40011575512 (19 h 30 UTC, réussie) ; simulation 40011579066 (réussie, tout annulé) ; CI 40011569334 verte sur `c5dd11e` ; application 40014218941 de `20261023161500_charges_agregats_portefeuille.sql` (réussie, version enregistrée, contrôle du portefeuille vérifié en lecture) ; fusion squash au SHA exact `c5dd11e` → `b0153b6` ; Vercel `dpl_H4edQ9eFUMhmgXBemBY2cHbFvBS1` READY sur gerimmo.app (19 h 50 UTC). Recette de production et chantier Stripe en clés de test lancés sur `main` ; leur résultat est consigné à l'entrée suivante.
+
+
+## [2026-10-23] decision | Signatures, réseau, nettoyage Vercel et préparation Node 24
+
+Réponses écrites du dirigeant, conservées mot pour mot :
+
+- « garder ouvert, les communes doivent s'ouvrir au fur et à mesures en fonctions des inscription des artisans »
+- « Je reconnecte le superadmin »
+- « Oui, supprimer ces deux anciens réglages »
+- « Garder les protections actuelles pour l’instant »
+- « Préparer la montée des tests vers Node 24 »
+- « Oui, supprimer ces 16 prévisualisations »
+
+Constat à 20 h 01 (Paris) : signatures maintenues ouvertes, aucun arrêt global/signatures, aucun envoi effectué ; état du réseau constaté avant la seconde publication du soir (aucun artisan alors éligible). Les deux réglages Youtrust Preview et les 16 prévisualisations du 20 octobre sont supprimés ; chacune des 16 pages est vérifiée absente. Le site public reste sain sur e53298a. Protections existantes conservées sans achat. Préparation Node 24 hors dépôt : types 24.19.2, six workflows, droits CI contents:read ; 39 contrôles de scripts réussis sous Node 24.19.0. Intégration après fusion du lot Claude, validation complète non encore effectuée.
+
+## [2026-10-23] audit | Classement des demandes et état exact des retours
+
+Console reconnectée. Deux sollicitations publicitaires classées traitées à 19 h 57, sans réponse. Les deux retours du 30 septembre passent en examen : réponse par e-mail directement dans la page Contact encore absente ; parcours d’invitation à revérifier sur dossier fictif. Aucun retour déclaré résolu sans preuve. Aucune entrée deploy pour ces réglages externes ni pour la PR 242 non encore livrée.
+
+
+## [2026-10-23] decision | Coordination avec le chantier Conformité V1 de Claude
+
+Le dirigeant transmet le compte rendu de Claude et la consigne : « Dire à Codex de sauter le point 3.4.4 de son prompt (conditions V1) : je m'en occupe. » Le point 3.4.4 est donc retiré du périmètre Codex. Les travaux de conformité de Claude sur l'acceptation, la vente, les signatures, les comptes et la conservation ne sont pas modifiés par le lot PAY-5. Celui-ci est raccordé à main 20b3ffa après les PR 238 et 244, avant nouvelle validation et publication séparée.
+
+Les recettes de production 40014683172 et 40019199531 et les essais Stripe sans argent réel 40014686664 et 40019203587 sont vérifiés réussis dans GitHub. Le mécanisme désormais publié pour le réseau suit les zones et métiers choisis par l'artisan validé ; l'ancien passage par une ouverture manuelle de chaque commune n'est plus la règle actuelle. Ces constats ne valent pas publication de la conformité V1 ni du lot PAY-5.

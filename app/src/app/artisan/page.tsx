@@ -116,13 +116,13 @@ export default async function PageArtisanAccueil({
       {rappelReseau?.ton === "avertissement" && (
         <Avertissement>
           {rappelReseau.texte}{" "}
-          <Link href="/artisan/entreprise" className="underline underline-offset-4">Voir le détail</Link>
+          <Link href="/artisan/entreprise" className="inline-flex min-h-11 items-center underline underline-offset-4">Voir le détail</Link>
         </Avertissement>
       )}
       {rappelReseau?.ton === "information" && (
         <Information>
           {rappelReseau.texte}{" "}
-          <Link href="/artisan/entreprise" className="underline underline-offset-4">Mon entreprise</Link>
+          <Link href="/artisan/entreprise" className="inline-flex min-h-11 items-center underline underline-offset-4">Mon entreprise</Link>
         </Information>
       )}
 

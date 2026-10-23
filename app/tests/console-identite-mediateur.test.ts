@@ -3,7 +3,8 @@
  * et du blocage des abonnements, depuis que le médiateur ne bloque plus rien (décision du 23/10).
  *  — /admin/sante : une lecture de l'identité en échec n'affiche plus le médiateur « fourni » ;
  *  — /admin/sante : « le paiement en ligne reste fermé » seulement si la règle de blocage est active ;
- *  — /admin/parametres : « L'identité est complète » ne s'affiche plus quand le médiateur manque.
+ *  — /admin/parametres : « L'identité est complète » ne s'affiche plus quand le médiateur manque ; la carte nomme
+ *    les faits à compléter au lieu d'un « médiateur » écrit en dur (seconde relecture du 23/10).
  * Aucune donnée réelle : des valeurs fictives.
  */
 import { createElement } from "react";
@@ -98,7 +99,9 @@ describe("/admin/parametres : carte « Blocage des abonnements »", () => {
   it("identité requise complète, médiateur absent : ne dit pas l'identité complète", async () => {
     const t = texte(renderToStaticMarkup(await PageParametres()));
     expect(t).not.toContain("L’identité est complète");
-    expect(t).toContain("L’identité requise est complète ; le médiateur reste à compléter et ne bloque rien.");
+    expect(t).toContain(
+      "L’identité requise est complète ; reste à compléter, sans rien bloquer : le médiateur de la consommation, l'adresse du médiateur, le site du médiateur.",
+    );
     expect(t).toContain("8 / 11 fournis");
   });
 
@@ -106,7 +109,19 @@ describe("/admin/parametres : carte « Blocage des abonnements »", () => {
     etat.identite = { editeur: { ...REQUIS, ...MEDIATEUR }, indisponible: false };
     const t = texte(renderToStaticMarkup(await PageParametres()));
     expect(t).toContain("L’identité est complète : cette règle ne bloque actuellement aucune souscription.");
+    expect(t).not.toContain("reste à compléter");
+    // Seconde relecture du 23/10 : la règle active disait « Le médiateur, à compléter, ne bloque rien » même complet.
+    expect(t).not.toContain("Le médiateur, à compléter");
+    expect(t).toContain("Le médiateur de la consommation, même absent, ne bloque rien.");
+  });
+
+  it("seul le site du médiateur manque : la carte le nomme, sans dire le médiateur entier à compléter", () => {
+    const t = texte(renderToStaticMarkup(createElement(BlocageSouscription, {
+      actif: true, revision: 1, manquants: [], aCompleter: ["le site du médiateur"],
+    })));
+    expect(t).toContain("L’identité requise est complète ; reste à compléter, sans rien bloquer : le site du médiateur.");
     expect(t).not.toContain("le médiateur reste à compléter");
+    expect(t).toContain("Le médiateur de la consommation, même absent, ne bloque rien.");
   });
 
   it("un fait requis manque : la liste des faits requis, sans parler d'identité complète", () => {

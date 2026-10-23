@@ -411,7 +411,8 @@ export async function confirmerHausse(
   const verrou = await prendreVerrouFacturation(clientDeService(), orgId, "hausse");
   if (!verrou.ok) return { erreur: verrou.erreur };
   try {
-    const stripe = clientStripe(reglages.config);
+    // Seconde relecture du 23/10 : sous le verrou, plus aucune écriture chez Stripe une fois son délai d'écriture passé.
+    const stripe = verrou.proteger(clientStripe(reglages.config));
     const apercu = await apercuChangement(stripe, {
       subscription: souscription as string,
       offre,
@@ -511,8 +512,8 @@ export async function demanderPeriodicite(
       p_periodicite: periodicite,
     });
     if (error) return { erreur: sansJargon(error.message) };
-    if (reglages.pret && souscription) {
-      const r = await libererEcheancierDe(clientStripe(reglages.config), souscription);
+    if (reglages.pret && souscription && verrou?.ok) {
+      const r = await libererEcheancierDe(verrou.proteger(clientStripe(reglages.config)), souscription);
       if (!r.ok) {
         return {
           erreur: `Votre demande est enregistrée, mais le changement déjà programmé chez notre prestataire de paiement n'a pas pu être retiré (${r.erreur.replace(/[\s.]+$/, "")}). Réessayez dans un instant.`,
@@ -542,14 +543,15 @@ export async function resilierAbonnement(
   const verrou = await prendreVerrouFacturation(clientDeService(), orgId, "resiliation");
   if (!verrou.ok) return { erreur: verrou.erreur };
   try {
-    const r = await resilierAEcheance(clientStripe(reglages.config), {
+    const r = await resilierAEcheance(verrou.proteger(clientStripe(reglages.config)), {
       subscription: souscription as string,
       resilier,
     });
-    if (!r.ok) return { erreur: r.erreur };
     // Un échéancier libéré (audit 29/09, point 5) : si la résiliation est levée,
-    // la tâche de nuit doit pouvoir reprogrammer l'échéance.
+    // la tâche de nuit doit pouvoir reprogrammer l'échéance. Seconde relecture du
+    // 23/10 : aussi quand la résiliation elle-même a échoué après la libération.
     if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
+    if (!r.ok) return { erreur: r.erreur };
   } finally {
     await verrou.rendre();
   }

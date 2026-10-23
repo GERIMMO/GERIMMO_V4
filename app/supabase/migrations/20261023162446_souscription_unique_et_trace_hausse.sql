@@ -35,6 +35,10 @@
 --   · verrou_facturation_rendre : le retire, pour son seul jeton (un détenteur dont le bail a été repris ne rend rien).
 --   Les actions serveur prennent le verrou APRÈS la vérification des droits du responsable (ma_souscription_stripe) et le
 --   rendent dans tous les cas. La table ne garde que des baux de quelques minutes : aucune donnée métier.
+--   Seconde relecture adverse du 23/10 : la tâche de nuit, qui réécrit l'échéancier pour préparer l'échéance (baisse,
+--   changement de périodicité), prend le même verrou (opération « echeance ») ; et le bail demandé par le code (6 min)
+--   dépasse la durée maximale de chacun de ces gestes (src/lib/verrou-facturation.ts). Une base qui porte la version
+--   précédente de cette migration (jamais appliquée en production) reçoit la nouvelle liste d'opérations.
 --
 -- LECTURE SEULE DES COMPTES SUSPENDUS. Comme `abonnements` et `abonnement_evenements`, la nouvelle table est une table
 -- d'abonnement : c'est par elle qu'un compte gelé (essai échu, impayé) se rouvre. La garde `abonnement_<table>` y
@@ -234,11 +238,24 @@ create table if not exists public.verrous_facturation (
   operation text not null,
   pris_le timestamptz not null,
   expire_le timestamptz not null,
-  constraint verrous_facturation_operation_check check (operation in ('hausse', 'periodicite', 'resiliation')),
+  constraint verrous_facturation_operation_check check (operation in ('hausse', 'periodicite', 'resiliation', 'echeance')),
   constraint verrous_facturation_duree check (expire_le > pris_le and expire_le <= pris_le + interval '15 minutes')
 );
 
 alter table public.verrous_facturation enable row level security;
+
+-- Rattrapage de la version précédente (trois opérations) : la contrainte reçoit « echeance ». Rien n'est refait si elle
+-- la porte déjà. Les baux en place ont tous une opération de l'ancienne liste, admise par la nouvelle.
+do $operations$
+begin
+  if not exists (select 1 from pg_constraint
+                  where conrelid = 'public.verrous_facturation'::regclass and conname = 'verrous_facturation_operation_check'
+                    and pg_get_constraintdef(oid) like '%''echeance''%') then
+    alter table public.verrous_facturation drop constraint if exists verrous_facturation_operation_check;
+    alter table public.verrous_facturation add constraint verrous_facturation_operation_check
+      check (operation in ('hausse', 'periodicite', 'resiliation', 'echeance'));
+  end if;
+end $operations$;
 
 drop trigger if exists diagnostic_artisan_lecture on public.verrous_facturation;
 create trigger diagnostic_artisan_lecture before insert or update or delete on public.verrous_facturation
@@ -249,7 +266,7 @@ revoke all on table public.verrous_facturation from public, anon, authenticated;
 grant select, insert, update, delete on table public.verrous_facturation to service_role;
 
 comment on table public.verrous_facturation is
-  'Défaut A02 (relecture du 23/10/2026) : au plus un geste de facturation en cours par organisation (hausse, demande de périodicité, résiliation), le temps d''un bail court. Écrite par verrou_facturation_prendre et _rendre (clé de service). Aucune donnée métier.';
+  'Défaut A02 (relecture du 23/10/2026) : au plus un geste de facturation en cours par organisation (hausse, demande de périodicité, résiliation, préparation de l''échéance par la tâche de nuit), le temps d''un bail court. Écrite par verrou_facturation_prendre et _rendre (clé de service). Aucune donnée métier.';
 
 create or replace function public.verrou_facturation_prendre(
   p_org uuid, p_jeton uuid, p_operation text, p_duree_secondes integer)
@@ -264,7 +281,7 @@ declare
   v_maintenant timestamptz := clock_timestamp();
 begin
   if p_org is null or p_jeton is null or p_operation is null
-     or p_operation not in ('hausse', 'periodicite', 'resiliation') then
+     or p_operation not in ('hausse', 'periodicite', 'resiliation', 'echeance') then
     raise exception 'Demande de verrou invalide';
   end if;
   if p_duree_secondes is null or p_duree_secondes < 10 or p_duree_secondes > 900 then
@@ -389,6 +406,10 @@ begin
   end if;
   if (select count(*) from pg_constraint where conrelid = 'public.verrous_facturation'::regclass and contype = 'c' and convalidated) <> 2 then
     raise exception 'verrous_facturation : deux contraintes CHECK validées attendues';
+  end if;
+  if not exists (select 1 from pg_constraint where conrelid = 'public.verrous_facturation'::regclass
+                  and conname = 'verrous_facturation_operation_check' and pg_get_constraintdef(oid) like '%''echeance''%') then
+    raise exception 'verrous_facturation : l''opération « echeance » (tâche de nuit) doit être admise';
   end if;
   if not exists (select 1 from pg_trigger where tgrelid = 'public.verrous_facturation'::regclass
                   and tgname = 'diagnostic_artisan_lecture' and not tgisinternal) then

@@ -102,14 +102,39 @@ export function prixPour(
 
 let cache: { cle: string; client: Stripe } | null = null;
 
+/**
+ * Délai d'un essai d'appel à Stripe (le SDK attend 80 s par défaut). Seconde relecture adverse du 23/10 : avec deux
+ * nouvelles tentatives, un seul appel pouvait durer environ 240 s, plus que le bail du verrou des gestes de facturation
+ * (lib/verrou-facturation.ts), qui suppose un appel borné. 30 s laissent large une réponse ordinaire de Stripe (quelques
+ * secondes, paiement compris) ; un essai coupé est rejoué par le SDK sous la même clé d'idempotence.
+ */
+export const DELAI_APPEL_STRIPE_MS = 30_000;
+/** Nouvelles tentatives du SDK après une coupure ou une erreur passagère (pause de 5 s au plus entre deux essais). */
+export const NOUVELLES_TENTATIVES_STRIPE = 2;
+
 export function clientStripe(config: ConfigStripe): Stripe {
   // Un client par clé, gardé entre les requêtes : la construction ouvre un
   // agent HTTP, et en refaire un à chaque appel gaspille une poignée de main
   // TLS par paiement.
   if (cache?.cle === config.cle) return cache.client;
-  const client = new Stripe(config.cle, { maxNetworkRetries: 2 });
+  const client = new Stripe(config.cle, { maxNetworkRetries: NOUVELLES_TENTATIVES_STRIPE, timeout: DELAI_APPEL_STRIPE_MS });
   cache = { cle: config.cle, client };
   return client;
+}
+
+const ECRITURE_HORS_DELAI =
+  "Notre prestataire de paiement a répondu trop lentement et l'opération a été interrompue avant d'être transmise.";
+
+/**
+ * Une écriture chez Stripe refusée AVANT d'être envoyée : le geste de facturation qui la demandait a dépassé le délai
+ * d'écriture de son verrou (lib/verrou-facturation.ts). Elle n'a rien fait chez Stripe — c'est un refus net.
+ */
+export class EcritureStripeHorsDelai extends Error {
+  readonly type = "EcritureStripeHorsDelai";
+  constructor() {
+    super(ECRITURE_HORS_DELAI);
+    this.name = "EcritureStripeHorsDelai";
+  }
 }
 
 /**
@@ -156,6 +181,7 @@ const reference = (code: string | undefined | null): string => (code ? ` (réfé
  * « refusée par votre banque » (relecture adverse du 23/10).
  */
 function traduireErreurStripe(e: Error): string | null {
+  if (e instanceof EcritureStripeHorsDelai) return e.message;
   const brut = e.message;
   const type = (e as Stripe.errors.StripeError).type;
   if (type === "StripeConnectionError" || type === "StripeAPIError") {

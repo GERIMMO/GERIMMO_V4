@@ -25,7 +25,7 @@
  *
  * Aucune adresse réelle : domaine example.invalid.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { libelleActionAudit } from "@/lib/libelles-journaux";
 import { offreParticulier } from "@/lib/tarifs";
 
@@ -369,7 +369,8 @@ function fauxRegistre() {
   });
   async function rpc(nom: string, p: Record<string, unknown>) {
     await tour();
-    const maintenant = new Date();
+    // Date.now() (et non `new Date()`) : les essais qui simulent un Stripe très lent avancent l'horloge de Date.now.
+    const maintenant = new Date(Date.now());
     if (nom === "abonnement_client_pose") return { data: null, error: null };
     if (nom === "intention_souscription_reserver") {
       // Corps synchrone : il tient lieu du verrou consultatif par organisation.
@@ -780,5 +781,96 @@ describe("A02 — deux gestes en même temps sur l'échéancier (relecture adver
     expect(r.erreur).not.toMatch(/rien n'a été modifié|Rien n'a été prélevé/);
     expect(registre.traces.map((t) => t.p_issue)).toEqual(["hausse_incertaine"]);
     expect(appelsUtilisateur()).not.toContain("abonnement_changements_a_recalculer");
+  });
+});
+
+describe("A02 — un Stripe très lent ne fait pas survivre une hausse à son verrou (seconde relecture adverse du 23/10)", () => {
+  afterEach(() => {
+    if (vi.isMockFunction(Date.now)) vi.mocked(Date.now).mockRestore();
+  });
+  // La hausse A libère l'échéancier, sa carte est refusée, elle relit une facturation inchangée ; Stripe est si lent que
+  // le temps file (horloge avancée de `secondes`) entre cette relecture et la recréation. Un second onglet confirme alors
+  // la même hausse (B). Avant : le bail de 120 s avait expiré, B le reprenait et payait, puis A recréait l'ancien
+  // échéancier, dont la phase en cours remettait l'ancien prix sans prorata : la hausse payée par B était défaite.
+  it.each([130, 200, 400])("+%i s pendant la hausse A : une hausse payée par B n'est jamais défaite, et A n'écrit plus rien chez Stripe après son délai", async (secondes) => {
+    etatOrganisation(true);
+    faux.etat.refusCarte = true;
+    const reel = Date.now.bind(Date);
+    let decalage = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => reel() + decalage);
+    let b: { url?: string; erreur?: string } | null = null;
+    let arme = false;
+    let enCours = false;
+    const maj = faux.stripe.subscriptions.update;
+    faux.stripe.subscriptions.update = async (id: string, p: Record<string, unknown>) => {
+      try {
+        return await maj(id, p);
+      } catch (e) {
+        if (!enCours) arme = true; // la carte de A est refusée : sa prochaine lecture est la relecture
+        throw e;
+      }
+    };
+    const lire = faux.stripe.subscriptions.retrieve;
+    faux.stripe.subscriptions.retrieve = async () => {
+      const lu = await lire();
+      if (arme && !enCours) {
+        arme = false;
+        enCours = true;
+        decalage += secondes * 1000;
+        faux.etat.refusCarte = false;
+        b = await issue(confirmerHausse(ORG, {}, hausse()));
+      }
+      return lu;
+    };
+    const a = await issue(confirmerHausse(ORG, {}, hausse()));
+    expect(b, JSON.stringify([a, b])).not.toBeNull();
+    if (b!.url) {
+      // B a pu payer : sa hausse reste, rien n'a été reposé par-dessus.
+      expect(faux.etat.hausses).toBe(1);
+      expect(faux.souscription.metadata.gerimmo_formule).toBe(formuleHausse());
+      expect(faux.souscription.items.data[0].price.id).not.toBe("price_solo_mensuel");
+      expect(faux.etat.echeanciersCrees).toEqual([]);
+    } else {
+      expect(b!.erreur).toBe(MODIFICATION_EN_COURS);
+      expect(faux.etat.hausses).toBe(0);
+    }
+    expect(a.erreur).toBeDefined();
+    expect(a.erreur).not.toMatch(ANGLAIS);
+  });
+
+  it("au-delà du délai d'écriture, la hausse n'est pas envoyée : rien n'est prélevé, l'échéancier retiré est à reprogrammer", async () => {
+    etatOrganisation(true);
+    const reel = Date.now.bind(Date);
+    let decalage = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => reel() + decalage);
+    // Stripe met 200 s à libérer l'échéancier : la libération aboutit, mais le délai d'écriture sous verrou est passé.
+    faux.etat.avantLiberation = () => { decalage += 200_000; };
+    const r = await issue(confirmerHausse(ORG, {}, hausse()));
+    expect(faux.etat.liberations).toEqual(["sub_sched_1"]);
+    expect(faux.etat.hausses).toBe(0);
+    expect(faux.etat.echeanciersCrees).toEqual([]);
+    expect(r.erreur).toBe(
+      "La hausse n'a pas été appliquée : Notre prestataire de paiement a répondu trop lentement et l'opération a été interrompue avant d'être transmise. Votre changement programmé pour la prochaine échéance a été retiré pendant la tentative et doit être reprogrammé : nous nous en occupons."
+    );
+    expect(m.rpc).toHaveBeenCalledWith("abonnement_changements_a_recalculer", { p_org: ORG });
+    expect(registre.traces.map((t) => t.p_issue)).toEqual(["echeancier_a_reprogrammer"]);
+    expect(registre.verrous.size).toBe(0);
+  });
+
+  it("résiliation : l'échéancier est libéré, puis la résiliation n'est pas envoyée (délai passé) — l'échéance est marquée à recalculer", async () => {
+    etatOrganisation(true);
+    const reel = Date.now.bind(Date);
+    let decalage = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => reel() + decalage);
+    faux.etat.avantLiberation = () => { decalage += 200_000; };
+    const fd = new FormData();
+    fd.set("resilier", "oui");
+    const r = await issue(resilierAbonnement(ORG, {}, fd));
+    expect(r.erreur).toBe("Notre prestataire de paiement a répondu trop lentement et l'opération a été interrompue avant d'être transmise.");
+    expect(faux.etat.liberations).toEqual(["sub_sched_1"]);
+    expect(faux.souscription.cancel_at_period_end).toBe(false);
+    // L'échéancier retiré emportait une baisse ou une périodicité programmée : la tâche de nuit doit la reprogrammer.
+    expect(m.rpc).toHaveBeenCalledWith("abonnement_changements_a_recalculer", { p_org: ORG });
+    expect(registre.verrous.size).toBe(0);
   });
 });

@@ -1,7 +1,8 @@
 -- Retour de 20261023162446_souscription_unique_et_trace_hausse.sql (défauts A01 et A02, audit du 23/10/2026).
 -- Revenir D'ABORD au code précédent : le code de cette livraison appelle les six fonctions retirées ici ; sans elles,
--- il refuse d'ouvrir une page de paiement (« réservation indisponible ») au lieu d'en ouvrir deux, et refuse les hausses,
--- demandes de périodicité et résiliations (« n'a pas pu être préparée ») au lieu de les laisser se croiser.
+-- il refuse d'ouvrir une page de paiement (« réservation indisponible ») au lieu d'en ouvrir deux, refuse les hausses,
+-- demandes de périodicité et résiliations (« n'a pas pu être préparée ») au lieu de les laisser se croiser, et la tâche
+-- de nuit reporte la préparation des échéances (« verrou … n'a pas pu être pris »).
 -- Instruction atomique : participe à une transaction externe sans la valider.
 -- Conserve la table public.intentions_souscription et son historique (aucune donnée bancaire ni personnelle), et les
 -- lignes d'audit abonnement_hausse_non_appliquee déjà écrites : aucune donnée effacée sans décision. La réapplication

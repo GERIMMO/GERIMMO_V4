@@ -191,6 +191,20 @@ describe.skipIf(!url)("intentions de souscription : une seule en cours, droits r
     expect(await prendre(j1, "hausse", 120, autre)).toBe(true);
   });
 
+  it("A02 (seconde relecture) : la tâche de nuit prend le même verrou (« echeance ») et exclut une hausse ; bail de 6 min accepté", async () => {
+    await service();
+    const [nuit, hausse] = [randomUUID(), randomUUID()];
+    expect(await prendre(nuit, "echeance", 360)).toBe(true);
+    expect(await prendre(hausse, "hausse", 360)).toBe(false);
+    const tenu = (await db.query("select operation, extract(epoch from expire_le-pris_le)::int duree from public.verrous_facturation where organization_id=$1", [org])).rows;
+    expect(tenu).toEqual([{ operation: "echeance", duree: 360 }]);
+    expect(await rendre(nuit)).toBe(true);
+    expect(await prendre(hausse, "hausse", 360)).toBe(true);
+    // La contrainte de la table nomme les quatre opérations (rejouée sur une base qui portait l'ancienne liste).
+    const def = (await db.query("select pg_get_constraintdef(oid) d from pg_constraint where conname='verrous_facturation_operation_check'")).rows[0].d;
+    for (const op of ["hausse", "periodicite", "resiliation", "echeance"]) expect(def).toContain(`'${op}'`);
+  });
+
   it("A02 : le verrou refuse les paramètres hors bornes", async () => {
     await service();
     for (const [args, motif] of [
@@ -361,5 +375,24 @@ describe.skipIf(!url)("deux onglets en même temps : deux sessions Postgres, une
     expect(seconde).toBe(false);
     const { rows } = await admin.query("select jeton from public.verrous_facturation where organization_id=$1", [org]);
     expect(rows).toEqual([{ jeton: ja }]);
+  });
+
+  it("A02 (seconde relecture) : la tâche de nuit et une hausse en même temps — la hausse attend le verrou de la nuit, puis est refusée", async () => {
+    await admin.query("delete from public.verrous_facturation where organization_id=$1", [org]);
+    const [nuit, hausse] = [randomUUID(), randomUUID()];
+    await a.query("begin"); await a.query("set local role service_role");
+    await b.query("begin"); await b.query("set local role service_role");
+    const premiere = (await a.query("select public.verrou_facturation_prendre($1,$2,'echeance',360) r", [org, nuit])).rows[0].r;
+    let seconde: boolean | undefined;
+    const enAttente = b.query("select public.verrou_facturation_prendre($1,$2,'hausse',360) r", [org, hausse]).then((r) => { seconde = r.rows[0].r; });
+    await new Promise((r) => setTimeout(r, 300));
+    expect(seconde, "la seconde demande doit attendre la première").toBeUndefined();
+    await a.query("commit");
+    await enAttente;
+    await b.query("commit");
+    expect(premiere).toBe(true);
+    expect(seconde).toBe(false);
+    const { rows } = await admin.query("select jeton, operation from public.verrous_facturation where organization_id=$1", [org]);
+    expect(rows).toEqual([{ jeton: nuit, operation: "echeance" }]);
   });
 });

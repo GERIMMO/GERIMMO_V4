@@ -22,6 +22,7 @@ import { dateParis } from "./heure-paris-calcul";
 import type Stripe from "stripe";
 import {
   appliquerPiedDeFacture,
+  EcritureStripeHorsDelai,
   lireErreurStripe,
   messageStripePourClient,
   piedDeFacturePour,
@@ -415,10 +416,12 @@ export type EchecHausse = Echec & {
  * Les erreurs de Stripe qui disent NET que la requête n'a rien fait (refus de carte, requête refusée, clé ou droits
  * refusés). Toutes les autres laissent un doute : coupure, erreur 500, erreur inconnue — et aussi le débit limité ou la
  * clé d'idempotence « encore en cours », qui peuvent répondre à une NOUVELLE tentative du SDK alors que la première a
- * été appliquée sans que sa réponse arrive.
+ * été appliquée sans que sa réponse arrive. Une écriture refusée par le délai du verrou de facturation
+ * (`EcritureStripeHorsDelai`, seconde relecture du 23/10) n'est jamais partie : refus net aussi.
  */
 const REFUS_NETS = new Set(["StripeCardError", "StripeInvalidRequestError", "StripeAuthenticationError", "StripePermissionError"]);
-const refusNet = (e: unknown): boolean => REFUS_NETS.has(String((e as { type?: unknown } | null)?.type ?? ""));
+const refusNet = (e: unknown): boolean =>
+  e instanceof EcritureStripeHorsDelai || REFUS_NETS.has(String((e as { type?: unknown } | null)?.type ?? ""));
 
 const idDe = (o: string | { id: string } | null | undefined): string | null =>
   typeof o === "string" ? o : (o?.id ?? null);
@@ -818,17 +821,20 @@ export async function programmerPeriodicite(
 export async function resilierAEcheance(
   stripe: Stripe,
   params: { subscription: string; resilier: boolean }
-): Promise<Reussite<{ souscription: Stripe.Subscription; echeancierLibere: boolean }> | Echec> {
+): Promise<Reussite<{ souscription: Stripe.Subscription; echeancierLibere: boolean }> | (Echec & { echeancierLibere: boolean })> {
+  let echeancierLibere = false;
   try {
     const s = await stripe.subscriptions.retrieve(params.subscription);
-    const echeancierLibere = await libererEcheancier(stripe, s);
+    echeancierLibere = await libererEcheancier(stripe, s);
     const maj = await stripe.subscriptions.update(params.subscription, {
       cancel_at_period_end: params.resilier,
     });
     return { ok: true, souscription: maj, echeancierLibere };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: messageStripePourClient(e) };
+    // Seconde relecture du 23/10 : un échéancier libéré avant un échec de la mise à jour reste retiré ; l'appelant
+    // doit le savoir pour faire reprogrammer l'échéance (il ne le savait que sur le chemin de réussite).
+    return { ok: false, erreur: messageStripePourClient(e), echeancierLibere };
   }
 }
 

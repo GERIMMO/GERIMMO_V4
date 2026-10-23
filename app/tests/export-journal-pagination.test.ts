@@ -225,3 +225,72 @@ describe("export du journal de gestion : au-delà de 1 000 lignes (A04)", () => 
     expect(donnees).toEqual([]);
   });
 });
+
+/**
+ * Relecture adverse du 23/10 — la colonne « mandant » d'une écriture sans mandat se retrouve par les lignes de mandat
+ * du lot. Rien ne ferme ces lignes : à la résiliation, `date_fin` reste vide, et RM-5.1.3 (`mandat_ligne_verifier`)
+ * laisse un nouveau mandat ouvrir sa ligne sur le même lot, puisqu'il ignore les mandats résiliés. Deux lignes ouvertes
+ * coexistent alors, et la route prenait la PREMIÈRE lue : depuis le tri par identifiant (A04), un tirage entre deux uuid.
+ */
+describe("export du journal de gestion : le mandant à la date de l'écriture", () => {
+  const ecritureDuLot = (id: string, jour: string): Ligne => ({
+    ...ecriture(0), id, lot_id: "lot-vendu", date_piece: jour, date_imputation: jour, libelle: id, lot: { nom: "Lot vendu", bien: { nom: "Immeuble" } },
+  });
+  const ligneDuLot = (id: string, debut: string, mandat: { etat: string; date_fin?: string | null; nom: string }, fin: string | null = null): Ligne => ({
+    id, lot_id: "lot-vendu", date_debut: debut, date_fin: fin,
+    mandat: { etat: mandat.etat, date_fin: mandat.date_fin ?? null, person: { nom: mandat.nom, prenom: null } },
+  });
+  // Le lot était sous mandat de TEST depuis 2025 ; résilié, le lot est vendu, ACHETEUR signe un mandat au 01/06/2026.
+  const ancien = ligneDuLot("ml-ancien", "2025-01-01", { etat: "resilie", nom: "TEST" });
+  const nouveau = ligneDuLot("ml-nouveau", "2026-06-01", { etat: "actif", nom: "ACHETEUR" });
+  const mandantDe = (donnees: string[], libelle: string) => donnees.find((l) => l.split(";")[8] === libelle)?.split(";")[4];
+
+  it.each([
+    ["l'ancienne ligne lue en premier", [ancien, nouveau]],
+    ["la nouvelle ligne lue en premier", [nouveau, ancien]],
+  ])("un mandat résilié ne couvre plus le lot quand un nouveau mandat y commence (%s)", async (_cas, lignes) => {
+    banc.tables = {
+      ecritures: [ecritureDuLot("loyer-mars", "2026-03-15"), ecritureDuLot("loyer-juillet", "2026-07-15")],
+      mandat_lignes: lignes,
+    };
+    const { res, donnees } = await exporter();
+    expect(res.status).toBe(200);
+    expect(mandantDe(donnees, "loyer-mars")).toBe("TEST");
+    expect(mandantDe(donnees, "loyer-juillet")).toBe("ACHETEUR");
+  });
+
+  it("deux mandats résiliés à la suite : le plus récent commencé l'emporte, quel que soit l'ordre de lecture", async () => {
+    const second = ligneDuLot("ml-second", "2026-06-01", { etat: "resilie", nom: "ACHETEUR" });
+    for (const lignes of [[ancien, second], [second, ancien]]) {
+      banc.tables = { ecritures: [ecritureDuLot("loyer-juillet", "2026-07-15")], mandat_lignes: lignes };
+      const { donnees } = await exporter();
+      expect(mandantDe(donnees, "loyer-juillet")).toBe("ACHETEUR");
+    }
+  });
+
+  it("la date de fin du mandat borne sa ligne : après elle, plus de mandant", async () => {
+    const borne = ligneDuLot("ml-borne", "2025-01-01", { etat: "resilie", date_fin: "2026-05-31", nom: "TEST" });
+    banc.tables = {
+      ecritures: [ecritureDuLot("loyer-mai", "2026-05-31"), ecritureDuLot("loyer-juin", "2026-06-01")],
+      mandat_lignes: [borne],
+    };
+    const { donnees } = await exporter();
+    expect(mandantDe(donnees, "loyer-mai")).toBe("TEST");
+    expect(mandantDe(donnees, "loyer-juin")).toBe("");
+  });
+
+  it("le mandat porté par l'écriture (honoraires) prime toujours", async () => {
+    banc.tables = {
+      ecritures: [{ ...ecritureDuLot("honoraires-juillet", "2026-07-15"), mandat: { person: { nom: "TEST", prenom: null } } }],
+      mandat_lignes: [ancien, nouveau],
+    };
+    const { donnees } = await exporter();
+    expect(mandantDe(donnees, "honoraires-juillet")).toBe("TEST");
+  });
+
+  it("la lecture des lignes de mandat demande l'état et la date de fin du mandat", async () => {
+    await exporter();
+    const lecture = banc.appels.find((a) => a.table === "mandat_lignes");
+    expect(lecture?.colonnes).toMatch(/mandat:mandats\(\s*etat,\s*date_fin,/);
+  });
+});

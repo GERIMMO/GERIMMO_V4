@@ -370,6 +370,23 @@ export async function lireVersionArchivee(
   return (data as (VersionArchivee & { texte_html: string }) | null) ?? null;
 }
 
+/** Le jour de Paris (AAAA-MM-JJ) d'un instant ; `null` s'il est illisible. */
+export function jourDeParis(instant: string | Date): string | null {
+  const d = instant instanceof Date ? instant : new Date(instant);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+}
+
+/**
+ * Le jour (Paris) où le texte d'une version a été relevé, s'il est POSTÉRIEUR à sa date d'effet ; `null` sinon
+ * (relecture adverse du 24/10, I2). Une version archivée après sa date d'effet range le texte publié le jour du relevé :
+ * sous la même version, des corrections ont pu intervenir entre-temps, et les pages des versions le disent.
+ */
+export function releveApresEffet(v: { date_effet: string; publiee_le: string }): string | null {
+  const jour = jourDeParis(v.publiee_le);
+  return jour && jour > v.date_effet ? jour : null;
+}
+
 const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
 /** « 30 septembre 2026 » pour la date « 2026-09-30 » (jour civil, sans fuseau) ; la valeur telle quelle sinon. */

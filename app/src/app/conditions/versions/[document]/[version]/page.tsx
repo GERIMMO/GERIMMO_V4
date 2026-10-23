@@ -7,6 +7,7 @@ import {
   dateEnLettres,
   estDocumentConditions,
   lireVersionArchivee,
+  releveApresEffet,
 } from "@/lib/conditions-versions";
 import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
 import { createClient } from "@/lib/supabase/server";
@@ -47,6 +48,7 @@ export default async function PageVersionArchivee({ params }: PageProps<"/condit
   if (!lu) notFound();
   const { document, version, archivee } = lu;
   const enVigueur = DOCUMENTS_PUBLIES.find((d) => d.document === document);
+  const releve = archivee ? releveApresEffet(archivee) : null;
   return (
     <CadreLegal chemin="/conditions">
       <aside className="loc-carte space-y-1.5 text-sm" aria-label="Version archivée">
@@ -59,6 +61,14 @@ export default async function PageVersionArchivee({ params }: PageProps<"/condit
               {dateEnLettres(version)}, en vigueur à compter du {dateEnLettres(archivee.date_effet)}. Texte rangé le{" "}
               {formaterDateHeureParis(archivee.publiee_le)}, tel que la page publiée l’affichait.
             </p>
+            {/* Relecture adverse du 24/10 (I2) : relevé après sa date d'effet, le texte est celui du jour du relevé. */}
+            {releve && (
+              <p>
+                <b className="font-semibold">Archivée après sa date d’effet</b> : texte relevé le {dateEnLettres(releve)} ;
+                des corrections ont pu intervenir entre le {dateEnLettres(archivee.date_effet)} et cette date sous la même
+                version.
+              </p>
+            )}
             <p className="text-xs text-[var(--texte-secondaire)] [overflow-wrap:anywhere]">
               Empreinte SHA-256 du texte ci-dessous : <code>{archivee.empreinte_sha256}</code>. {NOTE_FUSEAU}
             </p>

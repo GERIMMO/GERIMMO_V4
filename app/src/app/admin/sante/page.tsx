@@ -23,7 +23,7 @@ import { DELAI_URGENCE_MAX_MINUTES } from "@/lib/relais-urgences";
 import { adressesRelaisDuServeur } from "@/lib/relais-alerte-reglage";
 import { LancerMission } from "./lancer-mission";
 import { ArchiveConditions, type AcceptationsSansArchive } from "./archive-conditions";
-import { listerVersionsArchivees } from "@/lib/conditions-versions";
+import { jourDeParis, listerVersionsArchivees } from "@/lib/conditions-versions";
 
 // Le nom de l'entrée de menu (audit 25/09, C8).
 export const metadata = { title: "Santé et connexions" };
@@ -409,6 +409,7 @@ export default async function PageSante() {
         versions={versionsArchivees}
         sansArchive={sansArchive.error ? null : (sansArchive.data ?? []) as AcceptationsSansArchive[]}
         autorise={!permanent.error && permanent.data === true}
+        aujourdhui={jourDeParis(new Date()) ?? ""}
       />
 
       {/* ── Envois automatiques ───────────────────────────────────────── */}

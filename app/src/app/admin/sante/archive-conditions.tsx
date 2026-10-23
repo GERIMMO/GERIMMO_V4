@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { BoutonArchiverConditions } from "./bouton-archiver-conditions";
-import { DOCUMENTS_PUBLIES, LIBELLE_DOCUMENT, dateEnLettres, estDocumentConditions, type VersionArchivee } from "@/lib/conditions-versions";
+import {
+  DOCUMENTS_PUBLIES,
+  LIBELLE_DOCUMENT,
+  dateEnLettres,
+  estDocumentConditions,
+  versionDeclaree,
+  type VersionArchivee,
+} from "@/lib/conditions-versions";
 import { formaterDateHeureParis } from "@/lib/heure-paris";
 
 /** Une ligne de `acceptations_sans_version_archivee()`. */
@@ -24,15 +31,22 @@ export function ArchiveConditions({
   versions,
   sansArchive,
   autorise,
+  aujourdhui,
 }: {
   versions: VersionArchivee[] | null;
   sansArchive: AcceptationsSansArchive[] | null;
   autorise: boolean;
+  /** Le jour de Paris (AAAA-MM-JJ) : une version pas encore archivée et déjà en vigueur sera relevée en retard. */
+  aujourdhui: string;
 }) {
   const enVigueur = DOCUMENTS_PUBLIES.map((d) => ({
     ...d,
+    dateEffet: versionDeclaree(d.document, d.version)?.date_effet ?? null,
     archivee: versions?.find((v) => v.document === d.document && v.version === d.version) ?? null,
   }));
+  // Relecture adverse du 24/10 (I2) : archiver une version après sa date d'effet range le texte publié AUJOURD'HUI,
+  // corrections faites depuis sous la même version comprises. Les pages publiques le diront ; le dirigeant tranche avant.
+  const enRetard = versions === null ? [] : enVigueur.filter((d) => !d.archivee && d.dateEffet !== null && aujourdhui > d.dateEffet);
   const aJour = versions !== null && sansArchive !== null && sansArchive.length === 0 && enVigueur.every((d) => d.archivee);
   const libelle = (document: string) => (estDocumentConditions(document) ? LIBELLE_DOCUMENT[document] : document);
   return (
@@ -90,6 +104,15 @@ export function ArchiveConditions({
           change sous la même version, l’archivage est refusé et le relais est alerté. À refaire après chaque mise en
           ligne qui change les conditions.
         </p>
+        {enRetard.map((d) => (
+          <p key={d.document} role="note" className="border-l-4 border-l-[var(--destructive)] pl-3">
+            {LIBELLE_DOCUMENT[d.document]}, version du {d.dateAffichee} : en vigueur depuis le {dateEnLettres(d.dateEffet ?? "")}
+            {" "}et pas encore archivée. Le bouton rangera le texte publié relevé aujourd’hui ; sous la même version, des
+            corrections ont pu intervenir depuis la date d’effet, et les pages des versions archivées le diront. Point à
+            trancher par le dirigeant avant le premier archivage : ranger ce texte tel quel, ou publier d’abord une
+            nouvelle version.
+          </p>
+        ))}
         <BoutonArchiverConditions autorise={autorise} />
         <p>
           <Link href="/conditions/versions" className="lien-discret">

@@ -6,6 +6,7 @@ import {
   LIBELLE_DOCUMENT,
   dateEnLettres,
   listerVersionsArchivees,
+  releveApresEffet,
 } from "@/lib/conditions-versions";
 import { formaterDateParis } from "@/lib/heure-paris";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
@@ -59,7 +60,9 @@ export default async function PageVersionsConditions() {
                 <p className="text-[var(--texte-secondaire)]">Aucune version n’est encore archivée.</p>
               ) : (
                 <ul className="divide-y divide-[var(--filet)]">
-                  {archives.map((v) => (
+                  {archives.map((v) => {
+                    const releve = releveApresEffet(v);
+                    return (
                     <li key={v.version} className="space-y-1 py-2.5">
                       <Link href={`/conditions/versions/${v.document}/${encodeURIComponent(v.version)}`} className="lien-texte font-semibold">
                         Version du {dateEnLettres(v.version)}
@@ -67,12 +70,20 @@ export default async function PageVersionsConditions() {
                       <p>
                         En vigueur à compter du {dateEnLettres(v.date_effet)} ; archivée le {formaterDateParis(v.publiee_le)}.
                       </p>
+                      {/* Relecture adverse du 24/10 (I2). */}
+                      {releve && (
+                        <p>
+                          Archivée après sa date d’effet : texte relevé le {dateEnLettres(releve)} ; des corrections ont pu
+                          intervenir entre le {dateEnLettres(v.date_effet)} et cette date sous la même version.
+                        </p>
+                      )}
                       <p className="text-[var(--texte-secondaire)]">{v.resume_modifications}</p>
                       <p className="text-xs text-[var(--texte-secondaire)] [overflow-wrap:anywhere]">
                         Empreinte SHA-256 : <code>{v.empreinte_sha256}</code>
                       </p>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
             </section>

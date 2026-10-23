@@ -254,6 +254,12 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     return r;
   }
 
+  /** Défaut A01 (23/10) : une page ne s'ouvre que sous une intention réservée ; ici, une par page (expiration 45 min). */
+  function intentionDeTest() {
+    const maintenant = Date.now();
+    return { id: randomUUID(), creeLeMs: maintenant, expireLeS: Math.floor(maintenant / 1000) + 45 * 60 };
+  }
+
   async function miroir() {
     return (await nouvelle.db!.query(
       "select o.status, a.periodicite, a.formule, a.unites_souscrites, a.montant_periode_cents::int as montant, a.annulation_demandee from public.abonnements a join public.organizations o on o.id=a.organization_id where a.organization_id=$1",
@@ -266,6 +272,7 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
       offre: offreParticulier(25, "annuel"), regime: FRANCHISE, customer: nouvelle.client!, orgId: nouvelle.org!,
       retourOk: "http://localhost:3100/ok", retourAnnule: "http://localhost:3100/annule",
       essaiFin: new Date(Date.now() + 10 * 86400_000).toISOString().slice(0, 10),
+      intention: intentionDeTest(),
     });
     expect(r.ok).toBe(true);
     const s = (await nouvelle.stripe!.checkout.sessions.list({ customer: nouvelle.client, limit: 1 })).data[0];
@@ -283,6 +290,7 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     const r2 = await creerSessionOffre(nouvelle.stripe!, {
       offre: offreParticulier(25, "annuel"), regime: FRANCHISE, customer: nouvelle.client!, orgId: nouvelle.org!,
       retourOk: "http://localhost:3100/ok", retourAnnule: "http://localhost:3100/annule",
+      intention: intentionDeTest(),
     });
     expect(r2.ok).toBe(true);
     const s2 = (await nouvelle.stripe!.checkout.sessions.list({ customer: nouvelle.client, limit: 1 })).data[0];

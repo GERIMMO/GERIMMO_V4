@@ -56,6 +56,8 @@ const ACTIONS: Record<string, string> = {
   inscription_proprietaire: "Inscription d’un propriétaire bailleur",
   organisation_ouverte: "Ouverture d’une organisation",
   abonnement_statut: "Changement de statut d’abonnement",
+  // Défaut A02 (23/10/2026) : une hausse refusée qui a touché à l'échéancier programmé (issue et étapes Stripe).
+  abonnement_hausse_non_appliquee: "Hausse d’abonnement non appliquée : changement programmé vérifié",
   paiement_en_defaut: "Paiement d’abonnement en défaut",
   paiement_regularise: "Paiement d’abonnement régularisé",
   avantage_parrainage: "Avantage de parrainage accordé",

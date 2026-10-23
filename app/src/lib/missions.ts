@@ -49,7 +49,7 @@ export function equipeDeLaTache(cle:string):Equipe|null{return estTacheSuivie(cl
 export function missionsDeLEquipe(equipe:Equipe):Mission[]{return (Object.keys(MISSIONS) as Mission[]).filter(m=>MISSIONS[m].equipe===equipe);}
 // Ce que le passage garde de sa réponse : des comptes et des drapeaux, jamais un
 // texte (un message d'erreur peut porter une adresse ou un secret).
-const COMPTES=['envoyees','envoyes','rappeles','traites','preparees','publiees','rapports_prepares','etudiees','rejetees','dossiers','stripe_repris','stripe_controles','stripe_echecs','stripe_ecarts','ignores','echecs','echecs_envoi','avoirs_en_echec'] as const;
+const COMPTES=['envoyees','envoyes','rappeles','traites','preparees','publiees','rapports_prepares','etudiees','rejetees','dossiers','stripe_repris','stripe_controles','stripe_inventories','stripe_non_suivis','stripe_echecs','stripe_ecarts','ignores','echecs','echecs_envoi','avoirs_en_echec'] as const;
 const DRAPEAUX=['erreur','erreurFacebook','orchestration_erreur','preparation_erreur','stripe_incomplet'] as const;
 /** Le journal n’accepte aucun contenu d’e-mail, secret ou détail de dossier. */
 export function bilanMission(b:unknown,status:number){

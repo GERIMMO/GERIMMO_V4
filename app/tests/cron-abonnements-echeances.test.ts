@@ -85,6 +85,8 @@ function echeance(l: Ligne) {
   m.rpc.mockImplementation(async (nom: string, p: Record<string, unknown>) => {
     const verrou = await rpcVerrou(nom, p);
     if (verrou) return verrou;
+    if (nom === "verifier_arret_supervision") return { data: true, error: null };
+    if (nom === "stripe_inventaire_prendre") return { data: null, error: null };
     if (nom === "abonnements_echeance_a_preparer") {
       return {
         data: [{

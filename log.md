@@ -6688,3 +6688,42 @@ Risque résiduel à faire relire par un juriste dès que possible : valeur proba
 Décision du dirigeant de publier au fur et à mesure. Contenu : médiateur non bloquant (vente ouverte), audit A03 (portefeuille dans les agrégats de charges), A04 (exports lus en entier, liste d'attente comprise), A06/A07 (textes), inscription PRO-4/PRO-5, jour de Paris, retours N2 au point du matin, message 429, `/admin/donnees` au menu, point du matin limité aux 12 derniers passages par mission (« Point invalide » toutes les 5 min depuis 14 h 55 UTC), garde « CI verte » des migrations, wiki et journal du 23/10. Le lot facturation A01/A02 a été retiré de cette publication (commits `ae9e57b` et `c5dd11e`) après la relecture adverse ; il part dans la publication suivante, corrigé.
 
 Protocole : sauvegarde 40011575512 (19 h 30 UTC, réussie) ; simulation 40011579066 (réussie, tout annulé) ; CI 40011569334 verte sur `c5dd11e` ; application 40014218941 de `20261023161500_charges_agregats_portefeuille.sql` (réussie, version enregistrée, contrôle du portefeuille vérifié en lecture) ; fusion squash au SHA exact `c5dd11e` → `b0153b6` ; Vercel `dpl_H4edQ9eFUMhmgXBemBY2cHbFvBS1` READY sur gerimmo.app (19 h 50 UTC). Recette de production et chantier Stripe en clés de test lancés sur `main` ; leur résultat est consigné à l'entrée suivante.
+
+
+## [2026-10-23] decision | Signatures, réseau, nettoyage Vercel et préparation Node 24
+
+Réponses écrites du dirigeant, conservées mot pour mot :
+
+- « garder ouvert, les communes doivent s'ouvrir au fur et à mesures en fonctions des inscription des artisans »
+- « Je reconnecte le superadmin »
+- « Oui, supprimer ces deux anciens réglages »
+- « Garder les protections actuelles pour l’instant »
+- « Préparer la montée des tests vers Node 24 »
+- « Oui, supprimer ces 16 prévisualisations »
+
+Constat à 20 h 01 (Paris) : signatures maintenues ouvertes, aucun arrêt global/signatures, aucun envoi effectué ; état du réseau constaté avant la seconde publication du soir (aucun artisan alors éligible). Les deux réglages Youtrust Preview et les 16 prévisualisations du 20 octobre sont supprimés ; chacune des 16 pages est vérifiée absente. Le site public reste sain sur e53298a. Protections existantes conservées sans achat. Préparation Node 24 hors dépôt : types 24.19.2, six workflows, droits CI contents:read ; 39 contrôles de scripts réussis sous Node 24.19.0. Intégration après fusion du lot Claude, validation complète non encore effectuée.
+
+## [2026-10-23] audit | Classement des demandes et état exact des retours
+
+Console reconnectée. Deux sollicitations publicitaires classées traitées à 19 h 57, sans réponse. Les deux retours du 30 septembre passent en examen : réponse par e-mail directement dans la page Contact encore absente ; parcours d’invitation à revérifier sur dossier fictif. Aucun retour déclaré résolu sans preuve. Aucune entrée deploy pour ces réglages externes ni pour la PR 242 non encore livrée.
+
+
+## [2026-10-23] decision | Coordination avec le chantier Conformité V1 de Claude
+
+Le dirigeant transmet le compte rendu de Claude et la consigne : « Dire à Codex de sauter le point 3.4.4 de son prompt (conditions V1) : je m'en occupe. » Le point 3.4.4 est donc retiré du périmètre Codex. Les travaux de conformité de Claude sur l'acceptation, la vente, les signatures, les comptes et la conservation ne sont pas modifiés par le lot PAY-5. Celui-ci est raccordé à main 20b3ffa après les PR 238 et 244, avant nouvelle validation et publication séparée.
+
+Les recettes de production 40014683172 et 40019199531 et les essais Stripe sans argent réel 40014686664 et 40019203587 sont vérifiés réussis dans GitHub. Le mécanisme désormais publié pour le réseau suit les zones et métiers choisis par l'artisan validé ; l'ancien passage par une ouverture manuelle de chaque commune n'est plus la règle actuelle. Ces constats ne valent pas publication de la conformité V1 ni du lot PAY-5.
+
+## [2026-10-23] deploy | Troisième mise en ligne : inventaire Stripe et dépendance PDF, PR #242 (`5b7a3c0`)
+
+Publication autorisée par le dirigeant : « Fais les modifications et évolution nécessaires puis publie ». PAY-5 ajoute l'inventaire global paginé des souscriptions Stripe sans dossier Gerimmo, avec reprise, verrou, arrêt de supervision et restitution réservée au superadmin. Aucun effet financier du contrôle. Le correctif Dependabot #243 est repris sans modification : Puppeteer 25.16.0 et Zod 4.6.7 corrigent GHSA-mrhx-c7xc-m3w5 ; audit de production sans vulnérabilité connue. La proposition #243 a été fermée comme doublon après intégration.
+
+Preuves : CI 40024217114 réussie sur la tête exacte `210f3a1f6194d9a149c385a522c93915d789abee` (9 764 tests métier réussis, 17 ignorés ; 209 scénarios Chromium réussis, un ignoré ; 54 scénarios WebKit réussis). Sauvegarde 40024378158 terminée à 21 h 10 UTC, préfixe 20261023-2108 ; simulation 40024939044 (ROLLBACK) puis application 40026422737 du seul fichier `20261023164629_stripe_inventaire_global.sql` (COMMIT à 21 h 23 UTC, garde CI verte et sauvegarde de 13 minutes). Fusion squash au SHA exact vers `5b7a3c0484496f461d351969475265699bbe4326`, arbre identique à celui testé. Vercel `dpl_AN8PnvzbADAapbHZRPFrwEnt8kM5` READY à 21 h 25 UTC ; /api/sante confirme cette révision, ok:true et base:true.
+
+Après publication : recette de production 40026781007 réussie, 66 scénarios réussis et un ignoré, purge vérifiée à 21 h 43 UTC. Lecture indépendante de la base à 21 h 44 UTC : un compte, zéro organisation. Essais Stripe 40026705201 : 14 réussis, zéro ignoré, aucune somme réelle ; API Stripe de test et règles SQL locales, webhook signé simulé, interface de paiement non parcourue par ce chantier. Les PDF ont été générés et des pages de contrôle inspectées localement ; aucune signature réelle envoyée.
+
+Limites : premier inventaire réel encore en attente du passage planifié Abonnements (aucun lancement manuel de la tâche financière). Tables privées et droits des rôles vérifiés en lecture seule. Aucun nouveau paramètre externe pour PAY-5. La conformité V1, notamment les conditions du point 3.4.4, reste chez Claude et n'est pas annoncée publiée.
+
+## [2026-10-23] validation | Préparation Node 24 séparée, PR #245 en brouillon
+
+Choix du dirigeant : « Préparer la montée des tests vers Node 24 ». Six workflows, moteur 24.x et types 24.19.2 alignés ; droits de la CI limités à contents:read. Première validation complète 40024809943 réussie sur `82950102f1cb908f1be4b2db6a51da4dab60ee4e`. La branche est ensuite remise à jour avec la publication #242 ; le contrôle des types passe sur cet ensemble. Une nouvelle CI vérifie l'intégration finale. Aucun changement de configuration Vercel ni publication de cette préparation Node 24 à cette étape.

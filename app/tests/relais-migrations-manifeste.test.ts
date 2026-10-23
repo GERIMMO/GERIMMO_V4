@@ -87,6 +87,7 @@ const MISSION_OCTOBRE = [
   "20261023180000_reseau_zone_choisie_par_artisan.sql",
   // Relecture adverse du 23/10 : le locataire lit ses annonces au jour de Paris, comme la fiche agence du bien.
   "20261023184512_annonces_locataire_jour_paris.sql",
+  "20261023164629_stripe_inventaire_global.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

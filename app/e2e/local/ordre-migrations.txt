@@ -410,3 +410,4 @@
 20261023162446_souscription_unique_et_trace_hausse.sql
 20261023180000_reseau_zone_choisie_par_artisan.sql
 20261023184512_annonces_locataire_jour_paris.sql
+20261023164629_stripe_inventaire_global.sql

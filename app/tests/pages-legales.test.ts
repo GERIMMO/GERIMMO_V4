@@ -146,7 +146,8 @@ describe("le contrat est lisible avant d'être accepté", () => {
 describe("les pages légales ne promettent que ce qui existe", () => {
   it("l'article de réversibilité n'affirme pas les exports absents", () => {
     const cgu = lire("app/conditions/page.tsx");
-    const article = cgu.slice(cgu.indexOf('titre="9. Réversibilité"'), cgu.indexOf('titre="10.'));
+    const article = cgu.slice(cgu.indexOf('titre="9. Réversibilité et conservation"'), cgu.indexOf('titre="10.'));
+    expect(article.length).toBeGreaterThan(0);
     // Le journal s'exporte (route /comptabilite/export) : l'article peut le dire.
     expect(article).toContain("journal de gestion");
     // Les autres exports et l'accès après suspension n'existent pas : aucun
@@ -194,24 +195,32 @@ describe("conditions générales d'utilisation et de vente (29/09)", () => {
 
   it("n'annoncent pas de prix TTC ou HT sous la franchise en base", () => {
     expect(cgu).toContain('{FRANCHISE ? "" : ", prix toutes taxes comprises"}');
-    expect(cgu).toContain('{FRANCHISE ? "" : " hors taxes"}');
+    // V1 (24/10) : plus de tarif « agences » hors taxes ; la branche assujettie dit « toutes taxes comprises ».
+    expect(cgu).not.toContain("hors taxes");
   });
 
   it("arrêtent conservation, disponibilité, plafond et mise en demeure", () => {
     for (const cle of ["conservation", "disponibilite", "plafond", "delaiMiseEnDemeure"]) {
       expect(cgu).not.toMatch(new RegExp(`\\n  ${cle}: null,`));
     }
-    expect(cgu).toContain("jamais supprimées automatiquement");
-    expect(cgu).toContain("dix ans");
+    // V1 (plan de conformité du 23/10, R14) : le compte n'est plus gardé sans limite, et la fin de l'abonnement
+    // n'entraîne pas à elle seule la suppression. Factures six ans (éditeur non commerçant), preuve dix ans.
+    expect(cgu).not.toContain("jamais supprimées automatiquement");
+    expect(cgu).toContain("cette fin n'entraîne pas à elle seule leur suppression");
+    expect(cgu).toContain("supprimés vingt-quatre mois après la plus tardive des dates suivantes");
+    expect(cgu).toContain("les factures qu'il a émises pendant six ans");
+    expect(cgu).toContain("dix ans après la fin du dernier abonnement payé");
     expect(cgu).toContain("douze mois précédant le fait générateur");
     expect(cgu).toContain('delaiMiseEnDemeure: "trente jours"');
     // La réversibilité ne promet plus une suppression au terme d'un délai.
-    const art9 = cgu.slice(cgu.indexOf('titre="9. Réversibilité"'), cgu.indexOf('titre="10.'));
+    const art9 = cgu.slice(cgu.indexOf('titre="9. Réversibilité et conservation"'), cgu.indexOf('titre="10.'));
+    expect(art9.length).toBeGreaterThan(0);
     expect(art9).not.toContain("supprimées ou anonymisées");
   });
 
   it("portent l'annexe « article 28 » avec ses clauses obligatoires", () => {
-    const annexe = cgu.slice(cgu.indexOf("Annexe — Traitement de données pour le compte du Client"));
+    const annexe = cgu.slice(cgu.indexOf("Annexe 1 — Traitement de données pour le compte du Client"), cgu.indexOf("Annexe 2 —"));
+    expect(annexe.length).toBeGreaterThan(0);
     for (const clause of [
       "Instructions documentées",
       "Confidentialité",
@@ -220,14 +229,20 @@ describe("conditions générales d'utilisation et de vente (29/09)", () => {
       "Droits des personnes",
       "analyse d&apos;impact",
       "Violation de données",
-      "Fin du contrat",
+      "Fin du traitement",
       "Information et audit",
+      // V1 (plan du 23/10, R34) : objet, durée, nature et finalité ; obligations du Client ; transferts.
+      "Objet, durée, nature et finalité",
+      "Obligations et droits du Client",
+      "Transferts hors de l&apos;Union",
     ]) {
       expect(annexe).toContain(clause);
     }
-    // Les sous-traitants sont ceux des autres pages légales, pas une liste recopiée : la même liste fusionnée
-    // avec les faits saisis (19/10), passée au composant.
+    // V1 (plan du 23/10, R11) : les sous-traitants de l'annexe sont la liste figée du code (`sousTraitantsClient`),
+    // passée au composant, et non plus la liste du site complétée par la base.
     expect(annexe).toMatch(/<TableauPrestataires prestataires=\{prestataires\} \/>/);
+    expect(cgu).toContain("const prestataires = sousTraitantsClient();");
+    expect(cgu).not.toContain("prestatairesAvecFaits");
   });
 
   it("« rien n'est supprimé automatiquement » se dit de la même façon partout", () => {

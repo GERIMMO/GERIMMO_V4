@@ -20,11 +20,16 @@
  *    relais.
  *
  * Sans base : la lecture de l'identité est remplacée, l'en-tête et le pied du site aussi.
+ *
+ * V1 (plan de conformité du 23/10, R10) : les conditions de l'espace artisan (/conditions/artisans) entrent dans la
+ * même garde, avec leur propre version (CONDITIONS_ARTISANS_VERSION) et leur propre entrée dans le fichier JSON.
  */
 import { existsSync } from "node:fs";
+import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  type DocumentConditions,
   DOCUMENTS_PUBLIES,
   balisageAdmis,
   empreinteDeGarde,
@@ -38,7 +43,7 @@ import {
   versionDeclaree,
   versionsDeclarees,
 } from "../src/lib/conditions-versions";
-import { CONDITIONS_VERSION, PRESTATAIRES, cleCoordonnees } from "../src/lib/editeur";
+import { CONDITIONS_ARTISANS_VERSION, CONDITIONS_VERSION, PRESTATAIRES, cleCoordonnees, sousTraitantsClient } from "../src/lib/editeur";
 
 /** L'identité fictive et figée de la garde : la changer change l'empreinte de référence. */
 const IDENTITE_FIXE: Record<string, string | null> = {
@@ -86,13 +91,19 @@ vi.mock("@/lib/editeur-serveur", async () => {
 });
 vi.mock("@/components/chrome-public", () => ({ EnTetePublic: () => null, PiedPublic: () => null }));
 import Conditions from "../src/app/conditions/page";
+import ConditionsArtisans from "../src/app/conditions/artisans/page";
 
 beforeEach(() => {
   lecture.valeurs = { ...IDENTITE_FIXE };
 });
 
-async function pageRendue(): Promise<string> {
-  return renderToStaticMarkup(await Conditions());
+const PAGES: Record<DocumentConditions, () => Promise<ReactElement>> = {
+  conditions_clients: Conditions,
+  conditions_artisans: ConditionsArtisans,
+};
+
+async function pageRendue(document: DocumentConditions = "conditions_clients"): Promise<string> {
+  return renderToStaticMarkup(await PAGES[document]());
 }
 
 /** Le texte contractuel de /conditions rendu sous chaque variante de l'identité. */
@@ -137,6 +148,29 @@ describe("garde du code : le texte des conditions ne change pas sans nouvelle ve
     if (existsSync(page)) {
       expect(DOCUMENTS_PUBLIES.map((d) => d.document), "ajoutez conditions_artisans à DOCUMENTS_PUBLIES").toContain("conditions_artisans");
     }
+    expect(DOCUMENTS_PUBLIES.find((d) => d.document === "conditions_artisans")?.version).toBe(CONDITIONS_ARTISANS_VERSION);
+  });
+
+  it.each(DOCUMENTS_PUBLIES.map((d) => [d.document, d] as const))(
+    "l'empreinte de référence de %s est celle de conditions-versions.json pour sa version en vigueur",
+    async (document, d) => {
+      const extraction = extraireTexteContractuel(await pageRendue(document), document);
+      expect(extraction.ok).toBe(true);
+      if (!extraction.ok) return;
+      expect(extraction.version).toBe(d.version);
+      const calculee = empreinteDeReference(extraction.html);
+      const declaree = versionDeclaree(document, d.version)?.empreinte_reference;
+      expect(
+        calculee,
+        `Le texte de ${d.chemin} a changé sans nouvelle version (${document} ${d.version}). ` +
+          `Empreinte calculée : ${calculee}. Voir l'en-tête de tests/conditions-empreinte.test.ts.`
+      ).toBe(declaree);
+    }
+  );
+
+  it("la liste figée des sous-traitants est celle des annexes : les seuls sous-traitants des données du Client", () => {
+    expect(listeFigeeSousTraitants().map((p) => p.nom)).toEqual(sousTraitantsClient().map((p) => p.nom));
+    expect(listeFigeeSousTraitants().map((p) => p.cle)).toEqual(["supabase", "vercel", "resend", "zohoSign", "openai", "scaleway", "github"]);
   });
 
   it("l'empreinte de garde de /conditions (toutes les variantes de l'identité) est celle de conditions-versions.json", async () => {
@@ -221,7 +255,20 @@ describe("garde du code : le texte des conditions ne change pas sans nouvelle ve
     // Le titre, le chapeau et les articles sont dans le texte.
     expect(extraction.html).toContain("<h1>Conditions générales d");
     expect(extraction.html).toContain("17. Droit applicable et litiges");
-    expect(extraction.html).toContain("Annexe — Traitement de données pour le compte du Client");
+    expect(extraction.html).toContain("Annexe 1 — Traitement de données pour le compte du Client");
+    expect(extraction.html).toContain("Annexe 2 — Articles L. 215-1 à L. 215-3 et L. 241-3");
+  });
+
+  it("la page des conditions de l'espace artisan porte son texte marqué, hors du lien vers les versions", async () => {
+    const page = await pageRendue("conditions_artisans");
+    const extraction = extraireTexteContractuel(page, "conditions_artisans");
+    if (!extraction.ok) throw new Error("texte contractuel introuvable");
+    expect(extraireTexteContractuel(page, "conditions_clients")).toEqual({ ok: false, motif: "absent" });
+    expect(page).toContain('href="/conditions/versions"');
+    expect(extraction.html).not.toContain("/conditions/versions");
+    expect(extraction.html).toContain("<h1>Conditions de l");
+    expect(extraction.html).toContain("A14. Réclamations et droit applicable");
+    expect(extraction.html).toContain("Annexe — Traitement de données pour le compte de l");
   });
 
   it("l'identité saisie entre dans le texte rendu : la garde la fige, l'archive porte la réelle", async () => {

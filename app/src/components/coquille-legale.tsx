@@ -148,6 +148,9 @@ export function TableauPrestataires({
   );
 }
 
+/** Les pages légales ; « /conditions/artisans » (24/10, plan de conformité R10) n'a pas de lien propre dans le pied. */
+export type CheminLegal = "/mentions-legales" | "/conditions" | "/conditions/artisans" | "/confidentialite";
+
 /**
  * Le cadre des pages légales : en-tête et pied du site public, colonne de lecture. Partagé par la coquille et par les
  * pages des versions archivées des conditions (24/10), qui affichent un texte rangé tel quel.
@@ -157,7 +160,7 @@ export function CadreLegal({
   children,
 }: {
   /** Le chemin de la page : son lien est marqué dans le pied. */
-  chemin: "/mentions-legales" | "/conditions" | "/confidentialite";
+  chemin: CheminLegal;
   children: ReactNode;
 }) {
   return (
@@ -184,7 +187,7 @@ export function CoquilleLegale({
   titre: string;
   chapo?: ReactNode;
   /** Le chemin de la page : son lien est marqué dans le pied. */
-  chemin: "/mentions-legales" | "/conditions" | "/confidentialite";
+  chemin: CheminLegal;
   /** L'adresse de contact saisie par l'éditeur, ou `null` : l'encadré renvoie alors au formulaire de l'accueil. */
   courriel: string | null;
   /**

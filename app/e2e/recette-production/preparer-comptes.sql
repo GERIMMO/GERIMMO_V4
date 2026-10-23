@@ -75,7 +75,7 @@ declare
   v_suffixe text := current_setting('recette.suffixe');
   v_mdp text := current_setting('recette.mot_de_passe');
   v_nom_agence text := btrim(current_setting('recette.nom_agence'));
-  v_version_cgu constant text := '2026-09-30'; -- CONDITIONS_VERSION (src/lib/editeur.ts)
+  v_version_cgu constant text := '2026-10-24'; -- CONDITIONS_VERSION (src/lib/editeur.ts), date provisoire de la V1
   v_email_admin text;
   v_email_proprio text;
   v_email_locataire text;

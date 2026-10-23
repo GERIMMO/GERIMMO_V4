@@ -27,7 +27,14 @@
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import versions from "./conditions-versions.json";
-import { CONDITIONS_DATE, CONDITIONS_VERSION, PRESTATAIRES, type Prestataire } from "./editeur";
+import {
+  CONDITIONS_ARTISANS_DATE,
+  CONDITIONS_ARTISANS_VERSION,
+  CONDITIONS_DATE,
+  CONDITIONS_VERSION,
+  sousTraitantsClient,
+  type Prestataire,
+} from "./editeur";
 
 /** Les documents qui s'archivent. Les règles des espaces invités s'acceptent sans version archivée. */
 export const DOCUMENTS_CONDITIONS = ["conditions_clients", "conditions_artisans"] as const;
@@ -44,8 +51,8 @@ export function estDocumentConditions(valeur: unknown): valeur is DocumentCondit
 
 /**
  * Les documents dont une page est publiée aujourd'hui, la version que le code y affiche et le fichier de la page.
- * Les conditions de l'espace artisan s'ajouteront ici avec leur page (tests/conditions-empreinte.test.ts le réclame
- * dès que src/app/conditions/artisans/page.tsx existe).
+ * Les conditions de l'espace artisan (plan de conformité du 23/10, R10) y entrent dès que leur version est fixée
+ * (CONDITIONS_ARTISANS_VERSION) : la garde du code les empreinte et l'archivage les range comme les conditions clients.
  */
 export const DOCUMENTS_PUBLIES: readonly {
   document: DocumentConditions;
@@ -61,6 +68,17 @@ export const DOCUMENTS_PUBLIES: readonly {
     dateAffichee: CONDITIONS_DATE,
     fichier: "src/app/conditions/page.tsx",
   },
+  ...(CONDITIONS_ARTISANS_VERSION && CONDITIONS_ARTISANS_DATE
+    ? [
+        {
+          document: "conditions_artisans" as const,
+          chemin: "/conditions/artisans",
+          version: CONDITIONS_ARTISANS_VERSION,
+          dateAffichee: CONDITIONS_ARTISANS_DATE,
+          fichier: "src/app/conditions/artisans/page.tsx",
+        },
+      ]
+    : []),
 ];
 
 /** L'attribut qui délimite le texte contractuel dans la page (components/coquille-legale.tsx). */
@@ -132,8 +150,12 @@ export function sha256Hex(texte: string): string {
   return createHash("sha256").update(texte, "utf8").digest("hex");
 }
 
-/** La liste figée des sous-traitants : ce que le code déclare, sans les coordonnées saisies en base. */
-export function listeFigeeSousTraitants(liste: readonly Prestataire[] = PRESTATAIRES) {
+/**
+ * La liste figée des sous-traitants : ce que le code déclare, sans les coordonnées saisies en base. Depuis la V1
+ * (plan de conformité du 23/10, R11), ce sont les seuls sous-traitants ultérieurs des annexes « article 28 »
+ * (`sousTraitantsClient`, rôle propre au Client compris), et non plus tous les prestataires du site.
+ */
+export function listeFigeeSousTraitants(liste: readonly Prestataire[] = sousTraitantsClient()) {
   return liste.map((p) => ({
     cle: p.cle,
     nom: p.nom,

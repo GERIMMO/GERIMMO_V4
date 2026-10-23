@@ -19,11 +19,11 @@ zone d'intervention couvrant ce bien et le **métier** demandé, dès que Gerimm
 leur inscription (SIRET vérifié) et que leur profil est **public**. Plus d'ouverture
 commune × métier par le [[Super Admin]].
 
-**État au 23/10/2026 :** décision prise ; livrée par la migration
-`20261023180000_reseau_zone_choisie_par_artisan` et le code qui l'accompagne, **non
-appliquée en production**. Jusqu'à sa mise en production, c'est la règle du 28/09 (section
-« Règle supplantée ») qui s'applique : production à 0 ouverture, donc aucun propriétaire ne
-peut solliciter un artisan du réseau.
+**État au 23/10/2026 :** décision prise et **en production** : migration
+`20261023180000_reseau_zone_choisie_par_artisan` appliquée par le chantier 40018665758, code
+publié par la PR #244 (`20b3ffa`, Vercel READY vers 20 h 25 UTC). Avant cette mise en
+production, c'était la règle du 28/09 (section « Règle supplantée ») : production à 0
+ouverture, donc aucun propriétaire ne pouvait solliciter un artisan du réseau.
 
 ## Fondement
 - Décision du dirigeant du 23/10/2026 (`log.md`, entrée « decision » du 23/10) : « la
@@ -109,16 +109,16 @@ rien ; une commune non ouverte était « fermée ». Tables `reseau_ouvertures` 
 > [!warning] Changement du 23/10/2026 et points à trancher
 > - **Supplanté le 23/10/2026** : l'ouverture explicite commune × métier par le super
 >   administrateur (PR #132). Le réseau suit désormais la zone et les métiers choisis par
->   l'artisan. Effectif seulement à la mise en production de `20261023180000`.
-> - **Écart à ratifier par le dirigeant avant la mise en production** : la décision dit
+>   l'artisan. Effectif depuis la mise en production de `20261023180000` (23/10/2026).
+> - **Écart ratifié par le dirigeant le 23/10/2026** (« si mets le », après explication) : la décision dit
 >   « communes » ; le lot livre la zone **déjà** choisie par l'artisan, par **code postal ou
 >   département**, la même pour tous ses métiers (la conception d'une seconde liste de
 >   communes INSEE par métier a été écartée : double saisie, plafond de 1 000 communes sans
 >   source, deux notions de zone à l'écran). Conséquences constatées : un artisan qui
 >   choisit `51300` est proposé dans les 46 communes de ce code postal ; il ne peut pas en
 >   retenir une seule ; Paris paraît « couverte » dans la supervision dès qu'un
->   arrondissement l'est (le bien, lui, est contrôlé sur son code postal exact). Si
->   l'écart est refusé : ajouter le choix d'une commune (code INSEE) à l'intérieur d'un code
+>   arrondissement l'est (le bien, lui, est contrôlé sur son code postal exact). Pour
+>   aller plus fin un jour : ajouter le choix d'une commune (code INSEE) à l'intérieur d'un code
 >   postal, voire des communes par métier.
 > - **Téléphone avant sollicitation — choix de prudence du 23/10 (relecture sécurité), à
 >   confirmer** : un compte tout juste créé pouvait, en déplaçant l'adresse d'un bien, lire

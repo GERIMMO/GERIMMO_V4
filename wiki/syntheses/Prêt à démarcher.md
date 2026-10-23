@@ -196,7 +196,7 @@ HTTP du webhook restent à vérifier avant de promettre un parcours de souscript
 > [!warning] Changement du 23/10/2026 — réseau d'artisans
 > - Décision du dirigeant : les communes et les métiers du réseau sont choisis par l'artisan (sa zone
 >   d'intervention et ses métiers), même pendant la bêta ; l'ouverture commune × métier par le super
->   administrateur est supplantée. Migration `20261023180000`, non appliquée en production au 23/10 :
+>   administrateur est supplantée. Migration `20261023180000`, appliquée en production le 23/10 :
 >   voir [[Ouverture du réseau d'artisans]].
 > - « Artisans partout » : avec cette décision, un artisan validé et public est proposé partout où il a déclaré
 >   intervenir ; le discours « le réseau ne s'ouvre que commune par commune » devient faux à la mise en production.

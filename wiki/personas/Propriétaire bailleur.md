@@ -170,8 +170,8 @@ espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe a
   artisan du carnet n'est pas proposé. L'ajout par SIRET reste réservé aux agences (PR #170,
   migration `20261007190000`), et il ne peut pas modifier la zone ni les métiers d'un artisan
   (`20261014841000`). Détail, réglages et limites : [[Invitation d'un artisan par un propriétaire]].
-- **Réseau d'artisans — décision du 23/10/2026** (migration `20261023180000`, non appliquée
-  en production au 23/10) : pour un bien dont la commune est confirmée, il voit les
+- **Réseau d'artisans — décision du 23/10/2026** (migration `20261023180000`, appliquée
+  en production le 23/10) : pour un bien dont la commune est confirmée, il voit les
   artisans **validés et publics** dont la zone d'intervention (choisie par l'artisan)
   couvre le code postal du bien, pour le métier demandé ; plus de « commune fermée ». Sans
   artisan : message « aucun artisan disponible », voie de sortie et « Signaler mon
@@ -197,7 +197,7 @@ espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe a
 
 > [!warning] Changement du 23/10/2026 — réseau d'artisans
 > - Plus de « commune fermée » : le propriétaire voit les artisans validés et publics dont
->   la zone, choisie par l'artisan, couvre son bien (migration `20261023180000`, non
->   appliquée en production au 23/10). Choix de prudence à confirmer par le dirigeant : le
+>   la zone, choisie par l'artisan, couvre son bien (migration `20261023180000`,
+>   appliquée en production le 23/10). Choix de prudence à confirmer par le dirigeant : le
 >   téléphone d'un artisan du réseau n'est plus montré avant la demande
 >   ([[Ouverture du réseau d'artisans]]).

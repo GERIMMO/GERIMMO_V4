@@ -70,8 +70,8 @@ globale. L'écran n'en refait aucun morceau.
 
 > [!warning] Décision du 23/10/2026 — le réseau suit la zone choisie par l'artisan (remplace la note du 28/09)
 > Le dirigeant a décidé que les communes et les métiers sont **choisis par l'artisan**.
-> Livré par la migration `20261023180000` (non appliquée en production au 23/10 ; la note
-> du 28/09 reste vraie jusque-là) : un artisan du réseau est proposable pour un bien quand
+> Livré par la migration `20261023180000` (appliquée en production le 23/10 ; la note
+> du 28/09 était vraie jusque-là) : un artisan du réseau est proposable pour un bien quand
 > sa **zone** (codes postaux ou départements, choisie par lui) couvre le **code postal du
 > bien**, que le métier est le sien, qu'il est **validé** (SIRET vérifié), **public**, avec
 > un compte et sans liste noire, et que la décennale est valide si les travaux l'exigent —

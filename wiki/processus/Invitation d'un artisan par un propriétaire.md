@@ -23,7 +23,7 @@ les biens situés dans sa zone d'intervention.
 > [!warning] Décision du 23/10/2026 — réseau choisi par l'artisan
 > Plus de commune « fermée » : le réseau propose les artisans validés et **publics** dont
 > la zone couvre le bien ([[Ouverture du réseau d'artisans]], migration `20261023180000`,
-> non appliquée en production au 23/10). L'invité reste **privé** par défaut : il n'est
+> appliquée en production le 23/10). L'invité reste **privé** par défaut : il n'est
 > proposé qu'à ce propriétaire, par le carnet. S'il se rend public, le réseau le propose
 > aussi aux autres propriétaires de sa zone. Une agence ne peut plus modifier sa zone ni
 > ses métiers.

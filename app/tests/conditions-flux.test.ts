@@ -6,8 +6,9 @@
  * un texte troué : relevé sur un vrai `next start`, 17 marques vides, dont l'article 8.7 et le délai de la L. 215-1.
  *
  * Ce fichier vérifie, sans base :
- *  - la page réellement servie par `next start` (tests/fixtures/conditions-next-start.html) : texte complet après
- *    reconstitution, aucune marque restante ;
+ *  - la page réellement servie par `next start` (tests/fixtures/conditions-next-start.html, relevée le 24/10/2026 sur
+ *    le build de cette branche, base du banc à l'identité fictive) : 18 marques vides dans la page, texte complet après
+ *    reconstitution, identique au caractère près au rendu d'un seul tenant ;
  *  - un vrai flux de React (renderToReadableStream), passages imbriqués et frontière d'attente compris, sur une page
  *    simple puis sur la page /conditions elle-même, chaque article arrivant en retard : le texte reconstitué est,
  *    au caractère près, celui du rendu d'un seul tenant ;
@@ -24,9 +25,10 @@ import { describe, expect, it, vi } from "vitest";
 import { extraireTexteContractuel, reconstituerFlux } from "../src/lib/conditions-versions";
 
 const lecture = vi.hoisted(() => ({ valeurs: {} as Record<string, string | null> }));
-vi.mock("@/lib/editeur-serveur", () => ({
-  lireEditeur: async () => ({ editeur: lecture.valeurs, indisponible: false }),
-}));
+vi.mock("@/lib/editeur-serveur", async () => {
+  const { identiteDepuisValeurs } = await import("@/lib/identite-editeur");
+  return { lireEditeur: async () => ({ editeur: identiteDepuisValeurs(lecture.valeurs), indisponible: false }) };
+});
 vi.mock("@/components/chrome-public", () => ({ EnTetePublic: () => null, PiedPublic: () => null }));
 // Chaque article de la page attend une promesse propre, résolue à un moment différent : Fizz envoie alors l'article
 // hors de sa place, dans un `<div hidden id="S:n">`, remis en place par `$RS`.
@@ -65,6 +67,18 @@ async function lireFlux(flux: ReadableStream<Uint8Array>): Promise<string> {
   }
 }
 
+/** L'identité saisie dans la base du banc quand tests/fixtures/conditions-next-start.html a été relevée (fictive). */
+const IDENTITE_DU_BANC: Record<string, string> = {
+  denomination: "Éditeur fictif du banc EI",
+  forme: "Entrepreneur individuel (EI)",
+  siege: "1 rue de l'Exemple, 75000 Paris",
+  rcs: "RNE 000 000 000",
+  siret: "00000000000000",
+  directeurPublication: "Personne fictive",
+  email: "contact@example.com",
+  telephone: "01 00 00 00 00",
+};
+
 const MARQUES_DE_FLUX = /<template\b|\bid="[PSB]:[0-9a-zA-Z]+"|<!--\$[?!~]-->/;
 
 describe("B1 : la page servie par next start, reconstituée avant l'extraction", () => {
@@ -93,6 +107,14 @@ describe("B1 : la page servie par next start, reconstituée avant l'extraction",
     }
     // Le texte suit l'ordre de la page : le délai de la L. 215-1 est à sa place dans la phrase.
     expect(extraction.html).toMatch(/par courrier électronique, <b class="font-semibold">au plus tôt trois mois/);
+  });
+
+  it("le texte reconstitué est, au caractère près, celui du rendu d'un seul tenant avec la même identité", async () => {
+    // L'identité fictive de la base du banc qui a servi la page (supervision_identite.valeurs).
+    lecture.valeurs = { ...IDENTITE_DU_BANC };
+    const attendu = extraireTexteContractuel(renderToStaticMarkup(await Conditions()), "conditions_clients");
+    expect(attendu.ok).toBe(true);
+    expect(extraireTexteContractuel(page, "conditions_clients")).toEqual(attendu);
   });
 
   it("la reconstitution ne laisse ni segment caché ni frontière en attente dans la page", () => {

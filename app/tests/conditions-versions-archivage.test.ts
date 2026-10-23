@@ -6,6 +6,7 @@
  * ranger le texte contractuel, l'empreinte de ce texte et l'identité lue en base, et refuser sinon. Sans base : le client
  * de service, la lecture de la page et l'envoi d'e-mail sont remplacés. Aucune adresse réelle.
  */
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { empreinteIdentite, extraireTexteContractuel, sha256Hex } from "../src/lib/conditions-versions";
@@ -42,7 +43,7 @@ import { archiverConditionsEnVigueur } from "../src/app/actions/conditions-versi
 const VALEURS = { denomination: "Éditeur fictif EI", email: "contact@example.com", siege: "1 rue de l'Exemple, Paris" };
 
 /** Un client de service : l'identité (valeurs, révisions successives) et la RPC d'archivage. */
-function service(options: { revisions?: number[]; retour?: unknown; erreur?: unknown } = {}) {
+function service(options: { revisions?: number[]; retour?: unknown; erreur?: unknown; valeurs?: Record<string, string> } = {}) {
   const revisions = [...(options.revisions ?? [3, 3])];
   const rpc = vi.fn(async () => ({ data: options.retour ?? { statut: "archivee" }, error: options.erreur ?? null }));
   const lectures: string[] = [];
@@ -53,7 +54,7 @@ function service(options: { revisions?: number[]; retour?: unknown; erreur?: unk
       const q = {
         select: () => q,
         eq: () => q,
-        maybeSingle: async () => ({ data: { valeurs: VALEURS, revision: revisions.shift() ?? 99 }, error: null }),
+        maybeSingle: async () => ({ data: { valeurs: options.valeurs ?? VALEURS, revision: revisions.shift() ?? 99 }, error: null }),
       };
       return q;
     },
@@ -196,6 +197,31 @@ describe("archiverConditionsPubliees", () => {
     expect(extraction.identiteLue).toBe(true);
     expect(extraction.identiteEmpreinte).toBe(empreinteIdentite(identiteDepuisValeurs(VALEURS)));
     expect(extraction.html).not.toContain("data-identite");
+  });
+
+  it("B1 et I1 sur les pages réellement servies par next start : la page normale s'archive entière, la page dégradée est refusée", async () => {
+    // Pages relevées le 24/10/2026 sur le build de cette branche : base du banc joignable (identité fictive), puis
+    // base coupée (statut 200, mentions « à venir »).
+    const banc = {
+      denomination: "Éditeur fictif du banc EI", forme: "Entrepreneur individuel (EI)", siege: "1 rue de l'Exemple, 75000 Paris",
+      rcs: "RNE 000 000 000", siret: "00000000000000", directeurPublication: "Personne fictive", email: "contact@example.com",
+      telephone: "01 00 00 00 00",
+    };
+    const normale = readFileSync("tests/fixtures/conditions-next-start.html", "utf8");
+    const s = service({ valeurs: banc });
+    const [r] = await archiverConditionsPubliees({ service: s.client as never, site: "https://site.example.com", lirePage: async () => normale });
+    expect(r.statut).toBe("archivee");
+    const { p_texte_html: texte } = (s.rpc.mock.calls[0] as unknown as [string, { p_texte_html: string }])[1];
+    expect(texte).not.toMatch(/<template\b|\bid="[PSB]:/);
+    expect(texte).toContain("au plus tôt trois mois et au plus tard un mois avant le terme");
+
+    const degradee = readFileSync("tests/fixtures/conditions-next-start-degradee.html", "utf8");
+    expect(degradee).toContain("Document en cours de finalisation");
+    const t = service({ valeurs: banc });
+    const [d] = await archiverConditionsPubliees({ service: t.client as never, site: "https://site.example.com", lirePage: async () => degradee });
+    expect(d.statut).toBe("echec");
+    expect(d.message).toContain("n'a pas pu lire l'identité de l'éditeur");
+    expect(t.rpc).not.toHaveBeenCalled();
   });
 
   it("un refus de la base n'est jamais présenté comme un archivage", async () => {

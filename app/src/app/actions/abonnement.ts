@@ -12,7 +12,9 @@ import {
   verifierClientDeLOrganisation,
 } from "@/lib/stripe";
 import { origineDeRetour } from "@/lib/site";
-import { CONDITIONS_VERSION, REGIME_TVA } from "@/lib/editeur";
+import { CONDITIONS_DATE, CONDITIONS_VERSION, REGIME_TVA } from "@/lib/editeur";
+import { aujourdhuiParis } from "@/lib/ged";
+import { messageRepriseSansAccord, repriseExigeAccord } from "@/lib/nouvelle-version-conditions";
 import {
   ERREUR_ACCEPTATION_CONDITIONS,
   ERREUR_CONDITIONS_PERIMEES,
@@ -38,7 +40,12 @@ import { offreAgence, offreParticulier, type Offre, type Periodicite } from "@/l
 import { baseEspace } from "@/lib/racine-espace";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 
-export type EtatAbonnementAction = { erreur?: string; succes?: boolean };
+export type EtatAbonnementAction = {
+  erreur?: string;
+  succes?: boolean;
+  /** « Annuler la résiliation » attend l'accord à cette version des conditions (case posée sous le bouton). */
+  accordConditions?: { version: string; dateVersion: string };
+};
 
 /**
  * L'adresse de retour, prise sur la requête en cours.
@@ -526,6 +533,35 @@ export async function demanderPeriodicite(
   redirect(`${await baseDeLOrganisation(supabase, orgId)}/abonnement?periodicite=programmee`);
 }
 
+/**
+ * La reprise d'un abonnement programmé pour finir, quand la version en vigueur exige l'accord exprès et que sa date
+ * d'effet est atteinte (relecture adverse du 24/10, défaut 3) : sans accord du compte, la tâche quotidienne reposerait
+ * la non-reconduction le lendemain, sans prévenir. `null` : la reprise peut partir. Sinon le refus, qui fait poser la
+ * case « J'ai lu et j'accepte la version du … » sous le bouton ; l'envoi qui la porte (version affichée = version du
+ * serveur) enregistre l'accord, puis la reprise part. Aujourd'hui (2026-09-30), rien n'est lu.
+ */
+async function accordAvantReprise(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData
+): Promise<EtatAbonnementAction | null> {
+  if (!repriseExigeAccord({ aujourdhui: aujourdhuiParis() })) return null;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { erreur: MESSAGE_SESSION_EXPIREE };
+  if (await conditionsEnVigueurAccepteesPar(supabase, user.id)) return null;
+  const accordConditions = { version: CONDITIONS_VERSION, dateVersion: CONDITIONS_DATE };
+  if (formData.get("cgu") !== "oui") return { erreur: messageRepriseSansAccord(CONDITIONS_DATE), accordConditions };
+  if (!estLaVersionEnVigueur(formData.get("cgu_version"))) return { erreur: ERREUR_CONDITIONS_PERIMEES, accordConditions };
+  const { error } = await supabase.rpc("accepter_cgu", {
+    p_version: CONDITIONS_VERSION,
+    p_source: "compte",
+    p_document: "conditions_clients",
+  });
+  if (error) return { erreur: ERREUR_ACCEPTATION_CONDITIONS, accordConditions };
+  return null;
+}
+
 /** Résilier pour la prochaine échéance, ou revenir sur cette résiliation. */
 export async function resilierAbonnement(
   orgId: string,
@@ -539,6 +575,10 @@ export async function resilierAbonnement(
   const { data: souscription, error } = await supabase.rpc("ma_souscription_stripe", { p_org: orgId });
   if (error) return { erreur: sansJargon(error.message) };
   if (!souscription) return { erreur: "Aucun abonnement en cours à résilier." };
+  if (!resilier) {
+    const refus = await accordAvantReprise(supabase, formData);
+    if (refus) return refus;
+  }
   // Relecture adverse du 23/10 (A02) : jamais en même temps qu'une hausse, qui reposerait l'échéancier libéré ici.
   const verrou = await prendreVerrouFacturation(clientDeService(), orgId, "resiliation");
   if (!verrou.ok) return { erreur: verrou.erreur };

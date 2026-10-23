@@ -26,7 +26,9 @@ import { prendreVerrouFacturation } from "@/lib/verrou-facturation";
 // journal d'audit), et la ligne n'est plus listée.
 //
 // Un Client qui accepte ensuite garde la main : l'accord ne relance pas l'abonnement de lui-même (la confirmation le
-// dit), il le poursuit depuis « Mon abonnement ». S'il le poursuit SANS accepter, la passe suivante le reprogramme.
+// dit), il le poursuit depuis « Mon abonnement ». « Annuler la résiliation » demande l'accord dans le même geste dès la
+// date d'effet (relecture adverse du 24/10, défaut 3 : actions/abonnement.ts, accordAvantReprise) ; une reprise passée
+// par un autre chemin (tableau de bord Stripe) sans accord serait reprogrammée à la passe suivante.
 // Un espace dont aucun responsable n'a jamais rien accepté n'est pas touché (il n'a pas pu voir l'écran).
 //
 // GARDE DU PRÉAVIS. Rien ne part tant que la version n'est pas ARCHIVÉE (`versions_conditions`, geste du

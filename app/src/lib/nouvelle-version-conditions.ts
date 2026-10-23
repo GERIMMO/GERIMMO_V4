@@ -34,6 +34,23 @@ export function accordExpresRequis(version: string, declaree: VersionDeclaree | 
   return declaree?.nature === "substantielle" && !VERSIONS_SANS_ACCORD_EXPRES.includes(version);
 }
 
+/**
+ * « Annuler la résiliation » exige-t-il d'abord l'accord à la version en vigueur ? Oui à partir de la date d'effet
+ * (jour de Paris) d'une version qui exige l'accord exprès : sans lui, la tâche quotidienne reposerait la
+ * non-reconduction le lendemain, sans un mot (relecture adverse du 24/10, défaut 3). Jamais pour une version publiée
+ * avant cette règle (2026-09-30), une version technique ou non déclarée.
+ */
+export function repriseExigeAccord(params: { version?: string; declaree?: VersionDeclaree | null; aujourdhui: string }): boolean {
+  const version = params.version ?? CONDITIONS_VERSION;
+  const declaree = params.declaree === undefined ? versionDeclaree("conditions_clients", version) : params.declaree;
+  return Boolean(declaree) && accordExpresRequis(version, declaree) && params.aujourdhui >= declaree!.date_effet;
+}
+
+/** Le refus de la reprise sans accord : la case apparaît sous le bouton, le même geste enregistre l'accord. */
+export function messageRepriseSansAccord(dateVersion: string): string {
+  return `Pour poursuivre votre abonnement, acceptez la version du ${dateVersion} des conditions générales : cochez la case ci-dessous, puis validez de nouveau. Sans cet accord, votre abonnement n’est pas reconduit.`;
+}
+
 /** L'abonnement de l'espace, tel que `mon_abonnement` le rend au responsable ; `null` sans abonnement ou sans lecture. */
 export type AbonnementCourant = { souscrit: boolean; periode_fin: string | null; annulation_demandee: boolean } | null;
 

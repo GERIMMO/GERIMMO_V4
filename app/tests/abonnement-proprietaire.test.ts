@@ -116,7 +116,9 @@ describe("présentation de l’abonnement propriétaire", () => {
     const html = await rendre();
     expect(html).toContain("99,90");
     expect(html).toContain("Facturation annuelle");
-    expect(html).toContain("TTC / an");
+    // Plan du 23/10 (R55) : éditeur en franchise de TVA, ni « TTC » ni « HT » à côté du montant.
+    expect(html).toContain("<small>/ an</small>");
+    expect(html).not.toContain("TTC / an");
   });
   it("ne remplace pas un montant indisponible par zéro", async () => {
     abonner({ montant_periode_cents: null });
@@ -152,7 +154,10 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     expect(html).not.toContain(CASE_CONDITIONS);
     // Le récapitulatif reste : le client lit le montant, même sans bouton.
     expect(html).toContain("Récapitulatif avant paiement");
-    expect(html).toContain("Total à payer TTC");
+    // Plan du 23/10 (R55) : en franchise de TVA, « Total à payer » sans « TTC » ; la mention de franchise suit.
+    expect(html).toContain("Total à payer");
+    expect(html).not.toContain("Total à payer TTC");
+    expect(html).toContain("TVA non applicable, art. 293 B du CGI.");
   });
   it("identité illisible : même motif (fermeture par défaut)", async () => {
     mocks.stripePret = true;
@@ -227,5 +232,33 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     const html = await rendre();
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
     expect(html).toContain("Le paiement en ligne n&#x27;est pas encore ouvert. Écrivez-nous");
+  });
+});
+
+describe("plan du 23/10 (R01, R37) : le droit de rétractation sur « Mon abonnement »", () => {
+  const ligne = {
+    souscrit_le: "2099-10-05T08:00:00Z", abonnement_suivi: true, stripe_statut: "past_due", essai_fin: null, periodicite: "mensuel",
+    periodicite_suivante: null, passage_annuel_demande_le: null, formule: "bailleur", organisation: "Parc de test",
+    destinataire: "titulaire@example.com", retractation_abonnement_le: null as string | null, retractation_passage_le: null,
+  };
+  function avecLigne(l: Record<string, unknown>) {
+    mocks.rpc.mockImplementation(async (nom: string) => ({ data: [nom === "etat_abonnement" ? etat : nom === "ma_retractation" ? l : paiement], error: null }));
+  }
+  it("visible en lecture seule, avec sa date limite (jour de souscription exclu) et « Renoncer au contrat ici »", async () => {
+    abonner({ paye: false, paiement_en_retard: true });
+    etat = { ...etat, ecriture_ouverte: false };
+    avecLigne(ligne);
+    const html = await rendre();
+    expect(html).toContain("Votre compte est en lecture seule");
+    expect(html).toContain("Droit de rétractation — jusqu&#x27;au 19 octobre 2099 inclus");
+    expect(html).toContain("Renoncer au contrat ici");
+    expect(html).toContain("/abonnement/retractation");
+  });
+  it("une déclaration déjà enregistrée, ou un délai échu, retire le bouton", async () => {
+    abonner();
+    avecLigne({ ...ligne, retractation_abonnement_le: "2099-10-06T08:00:00Z" });
+    expect(await rendre()).not.toContain("Renoncer au contrat ici");
+    avecLigne({ ...ligne, souscrit_le: "2099-09-01T08:00:00Z" });
+    expect(await rendre()).not.toContain("Renoncer au contrat ici");
   });
 });

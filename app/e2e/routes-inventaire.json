@@ -132,6 +132,18 @@
     "dynamic": "orgId"
   },
   {
+    "path": "/espace/ORG/abonnement/retractation",
+    "persona": "proprietaire",
+    "label": "Renoncer au contrat (rétractation)",
+    "dynamic": "orgId"
+  },
+  {
+    "path": "/espace/ORG/abonnement/resiliation",
+    "persona": "proprietaire",
+    "label": "Résilier votre contrat",
+    "dynamic": "orgId"
+  },
+  {
     "path": "/agence/ORG/administration",
     "persona": "admin-agence",
     "label": "Administration (équipe, portefeuilles)",

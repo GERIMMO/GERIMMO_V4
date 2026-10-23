@@ -43,7 +43,8 @@ test.describe("Côté propriétaire bailleur", () => {
     await expect(page.getByRole("radio", { name: /Adaptée à votre parc Bailleur/ })).toBeChecked();
     await expect(recap).toContainText("Formule Bailleur");
     await expect(recap).toContainText("9,99");
-    await expect(recap).toContainText("Total à payer TTC");
+    // Plan du 23/10 (R55) : en franchise de TVA, « Total à payer » sans « TTC ».
+    await expect(recap).toContainText("Total à payer");
     await expect(page.locator("main")).not.toContainText("offert, à vie");
   });
 

@@ -62,11 +62,14 @@ function decisionsDeLEquipe(equipe:Equipe,a:Attentes):DecisionAssemblee[]{
    lien:'/admin/autonomie#ameliorations',source:'developpement',source_id:p.id,validation:Boolean(p.revision),refus:true,...(p.revision?{revision:p.revision}:{})});
  }
  if(EQUIPE_DES_SOURCES.retour===equipe)for(const r of a.retours){
-  const idee=r.nature==='idee',bugN1=r.nature==='bug'&&r.gravite==='N1';
-  if(!(idee&&['nouveau','en_examen'].includes(r.etat))&&!(bugN1&&['nouveau','en_examen'].includes(r.etat)))continue;
-  d.push({cle:`retour:${r.id}`,titre:idee?`Retenir l’idée « ${r.titre} »`:`Prendre en charge le bug bloquant « ${r.titre} »`,
-   pourquoi:idee?'Une idée d’utilisateur attend une réponse : retenue (un article d’annonce est préparé) ou non retenue, avec réexamen dans six mois.':'Un problème classé bloquant attend d’être pris en charge ; l’auteur reçoit votre réponse.',
-   options:idee?['Retenir l’idée','Ne pas retenir (réexamen dans six mois)']:['Prendre en charge'],recommandation:idee?'Relire la description avant de retenir : le motif saisi est envoyé à l’auteur.':'Prendre en charge sans attendre ; le motif saisi est envoyé à l’auteur.',
+  // Audit du 23/10 : un problème signalé reçoit la gravité N2 (« majeur ») par défaut et n'arrivait ni au point ni
+  // aux décisions attendues, qui ne retenaient que N1. Les problèmes N1 et N2 non traités sont désormais soumis ;
+  // N3 (« mineur ») reste une requalification volontaire de la supervision, suivie sur l'écran des retours.
+  const idee=r.nature==='idee',bloquant=r.gravite==='N1',probleme=r.nature==='bug'&&(bloquant||r.gravite==='N2');
+  if(!(idee||probleme)||!['nouveau','en_examen'].includes(r.etat))continue;
+  d.push({cle:`retour:${r.id}`,titre:idee?`Retenir l’idée « ${r.titre} »`:bloquant?`Prendre en charge le bug bloquant « ${r.titre} »`:`Prendre en charge le problème majeur « ${r.titre} »`,
+   pourquoi:idee?'Une idée d’utilisateur attend une réponse : retenue (un article d’annonce est préparé) ou non retenue, avec réexamen dans six mois.':bloquant?'Un problème classé bloquant attend d’être pris en charge ; l’auteur reçoit votre réponse.':'Un problème signalé, de gravité majeure (celle de tout signalement non encore requalifié), attend d’être pris en charge ; l’auteur reçoit votre réponse.',
+   options:idee?['Retenir l’idée','Ne pas retenir (réexamen dans six mois)']:['Prendre en charge'],recommandation:idee?'Relire la description avant de retenir : le motif saisi est envoyé à l’auteur.':bloquant?'Prendre en charge sans attendre ; le motif saisi est envoyé à l’auteur.':'Relire le signalement (requalifier sa gravité sur l’écran des retours si besoin), puis le prendre en charge ; le motif saisi est envoyé à l’auteur.',
    lien:`/admin/retours?nature=${r.nature}`,source:'retour',source_id:r.id,validation:true,refus:idee});
  }
  if(EQUIPE_DES_SOURCES.publication===equipe)for(const p of a.publications){
@@ -164,7 +167,7 @@ export async function lireAttentes(db:Lecteur,maintenant:Date=new Date()):Promis
   db.from('development_proposals').select('id,titre,probleme,risque,statut,revision').eq('statut','autorisation').order('updated_at',{ascending:false}).limit(30),
   db.from('publications').select('id,titre,statut,corps,programmee_pour,valide_le').in('statut',['proposition','brouillon','programmee']).order('propose_le',{ascending:false}).limit(30),
   lireArtisansEnAttente(db,maintenant),
-  db.from('retours_utilisateurs').select('id,titre,nature,gravite,etat').in('etat',['nouveau','en_examen']).or('nature.eq.idee,and(nature.eq.bug,gravite.eq.N1)').order('cree_le',{ascending:false}).limit(30),
+  db.from('retours_utilisateurs').select('id,titre,nature,gravite,etat').in('etat',['nouveau','en_examen']).or('nature.eq.idee,and(nature.eq.bug,gravite.in.(N1,N2))').order('cree_le',{ascending:false}).limit(30),
   db.from('regulatory_watch').select('id,titre,source_nom,etude').eq('statut','a_examiner').not('analyse_le','is',null).order('reperage_le',{ascending:false}).limit(30),
  ]);
  const indisponibles=[[dev,'évolutions'],[pub,'publications'],[art,'artisans'],[ret,'retours'],[vei,'veille']].filter(([r])=>(r as {error:unknown}).error).map(([r,n])=>{

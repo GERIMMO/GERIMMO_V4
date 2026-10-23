@@ -6631,3 +6631,9 @@ Traduction retenue par Claude : le médiateur de la consommation (seule informat
 ## [2026-10-23] query | Informations manquantes et répartition Claude / Codex / dirigeant
 
 Relevé en lecture seule (présence des valeurs, aucune recopiée) : identité de l'éditeur complète sauf les trois coordonnées du médiateur ; capital sans objet (entreprise individuelle) ; toutes les connexions attendues par la page Santé posées dans Vercel. Page créée : [[Informations manquantes — 23 octobre 2026]]. Prompt de Codex rédigé hors dépôt (tableaux de bord Vercel, Supabase Auth, Resend, Stripe, Zoho, GitHub ; gestes avec la session du dirigeant ; code en attente d'avis), avec la liste des fichiers à ne pas toucher pendant le lot de Claude. Le document « Dossiers de test par persona » (Claude Docs) est corrigé sur ses trois affirmations fausses relevées par l'audit du 23/10 : point 6 et étape 11 du dirigeant (signature ouverte à tous depuis le 19/10, liste d'essai inopérante), cautionnement (ouvert depuis le 21/10), étape 12 (retenir un devis lance un circuit réel).
+
+## [2026-10-23] decision | Capital sans objet ; juriste et DPO confiés à Claude
+
+Mots du dirigeant : « Pour les infos manquantes : capital social sans objet, côté juriste fais de manière logique et selon tes conseil, dpo pareil, quelle décisions je dois prendre ? »
+
+Conséquences retenues : le capital social reste non affiché (entreprise individuelle). Aucun juriste ni DPO humain n'est mandaté avant le lancement ; Claude traite ces sujets par des propositions prudentes, chacune adossée à une source primaire ouverte (Légifrance, CNIL), contre-vérifiée, et marquée comme non relue par un professionnel du droit. Risque assumé par le dirigeant. Recherche lancée en lecture seule (six thèmes : vente au consommateur, impayé, signature et cautionnement, périmètre des CGU, conservation, droits et registre) ; les changements de texte seront regroupés dans une seule nouvelle version des conditions.

@@ -10,6 +10,10 @@
  * PRO-5 — après ce premier choix, la personne était déconnectée et renvoyée vers la connexion (« Mot de passe modifié.
  * Connectez-vous avec votre nouveau mot de passe. ») alors qu'elle venait de prouver son adresse. Elle reste connectée et
  * va vers son espace ou l'étape suivante. La récupération d'un compte existant (mot de passe oublié) garde la déconnexion.
+ *
+ * PRO-5, suite (relecture adverse du 23/10) — rester connecté ne doit pas garder ouverte la session NÉE DU LIEN : sa preuve
+ * d'e-mail vaut quinze minutes, et pendant ce temps quiconque l'utilisait (bouton Retour, poste partagé) pouvait reposer
+ * le mot de passe sans connaître l'actuel. Le premier choix ouvre donc une session « mot de passe » et ferme celle du lien.
  */
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -34,6 +38,7 @@ vi.mock("react", async (importOriginal) => {
 import { definirNouveauMotDePasse } from "../src/app/actions/auth";
 import { FormulaireNouveauMotDePasse } from "../src/app/nouveau-mot-de-passe/formulaire-nouveau-mot-de-passe";
 import { ACTIVITY_COOKIE } from "../src/lib/session-policy";
+import { autorisationNouveauMotDePasse } from "../src/lib/autorisation-nouveau-mot-de-passe";
 
 const MOT_DE_PASSE = "recette-premier-choix-1";
 const PROFIL_SAISI = {
@@ -62,16 +67,24 @@ function formulaireRecuperation(valeurs: Record<string, string> = {}) {
   return f;
 }
 
-let auth: { getUser: ReturnType<typeof vi.fn>; getClaims: ReturnType<typeof vi.fn>; updateUser: ReturnType<typeof vi.fn>; signOut: ReturnType<typeof vi.fn> };
+const ADRESSE = "camille@example.invalid";
+
+let auth: {
+  getUser: ReturnType<typeof vi.fn>;
+  getClaims: ReturnType<typeof vi.fn>;
+  updateUser: ReturnType<typeof vi.fn>;
+  signInWithPassword: ReturnType<typeof vi.fn>;
+  signOut: ReturnType<typeof vi.fn>;
+};
 let rpc: ReturnType<typeof vi.fn>;
 
 /** Un compte qui vient de confirmer son adresse : le profil saisi à l'inscription attend sa validation. */
 function compteAConfirmer() {
-  auth.getUser.mockResolvedValue({ data: { user: { id: "u1", user_metadata: { profil_a_confirmer: { nom: "Initial", espace: "proprietaire_direct" } } } } });
+  auth.getUser.mockResolvedValue({ data: { user: { id: "u1", email: ADRESSE, user_metadata: { profil_a_confirmer: { nom: "Initial", espace: "proprietaire_direct" } } } } });
 }
 /** Un compte dont l'inscription est finie : la récupération d'un mot de passe oublié. */
 function compteExistant() {
-  auth.getUser.mockResolvedValue({ data: { user: { id: "u1", user_metadata: { nom: "Valide", espace: "proprietaire_direct" } } } });
+  auth.getUser.mockResolvedValue({ data: { user: { id: "u1", email: ADRESSE, user_metadata: { nom: "Valide", espace: "proprietaire_direct" } } } });
 }
 
 beforeEach(() => {
@@ -81,6 +94,7 @@ beforeEach(() => {
     getUser: vi.fn(),
     getClaims: vi.fn().mockResolvedValue({ data: { claims: { sub: "u1", amr: [{ method: "otp", timestamp: Math.floor(Date.now() / 1000) }] } }, error: null }),
     updateUser: vi.fn().mockResolvedValue({ error: null }),
+    signInWithPassword: vi.fn().mockResolvedValue({ data: { session: {}, user: { id: "u1" } }, error: null }),
     signOut: vi.fn().mockResolvedValue({ error: null }),
   };
   rpc = vi.fn().mockResolvedValue({ error: null });
@@ -242,8 +256,11 @@ describe("PRO-5 — après le premier choix, la personne reste connectée et va 
   it("propriétaire : le mot de passe et le profil sont enregistrés, puis /espaces, sans déconnexion", async () => {
     await expect(definirNouveauMotDePasse({}, formulaire())).rejects.toThrow(/^REDIRECT \/espaces$/);
     expect(auth.updateUser).toHaveBeenCalledExactlyOnceWith({ password: MOT_DE_PASSE, data: expect.objectContaining({ nom: "Corrigé", espace: "proprietaire_direct", profil_a_confirmer: null }) });
-    // Les AUTRES sessions tombent toujours ; celle-ci reste ouverte, avec son témoin d'activité.
+    // La personne reste connectée par une session « mot de passe », ouverte avec ce qu'elle vient de choisir…
+    expect(auth.signInWithPassword).toHaveBeenCalledExactlyOnceWith({ email: ADRESSE, password: MOT_DE_PASSE });
+    // … puis toutes les AUTRES sessions tombent, dont celle du lien ; la nouvelle reste ouverte, avec son témoin d'activité.
     expect(auth.signOut).toHaveBeenCalledWith({ scope: "others" });
+    expect(auth.signInWithPassword.mock.invocationCallOrder[0]).toBeLessThan(auth.signOut.mock.invocationCallOrder[0]);
     expect(sortiesGlobales()).toEqual([]);
     expect(mocks.supprimerCookie).not.toHaveBeenCalled();
     expect(rpc).toHaveBeenCalledWith("log_tech", expect.objectContaining({ evenement: "changement_mot_de_passe" }));
@@ -270,6 +287,7 @@ describe("PRO-5 — après le premier choix, la personne reste connectée et va 
   it("mot de passe oublié d'un compte existant : la déconnexion et le message de connexion restent", async () => {
     compteExistant();
     await expect(definirNouveauMotDePasse({}, formulaireRecuperation())).rejects.toThrow(/^REDIRECT \/connexion\?raison=mot-de-passe-modifie$/);
+    expect(auth.signInWithPassword).not.toHaveBeenCalled();
     expect(auth.signOut).toHaveBeenCalledWith({ scope: "others" });
     expect(sortiesGlobales()).toHaveLength(1);
     expect(mocks.supprimerCookie).toHaveBeenCalledWith(ACTIVITY_COOKIE);
@@ -279,5 +297,115 @@ describe("PRO-5 — après le premier choix, la personne reste connectée et va 
     compteExistant();
     await expect(definirNouveauMotDePasse({}, formulaireRecuperation({ motif: "inscription", apresConfirmation: "true" }))).rejects.toThrow("REDIRECT /connexion?raison=mot-de-passe-modifie");
     expect(sortiesGlobales()).toHaveLength(1);
+  });
+});
+
+describe("PRO-5, suite — le premier choix referme la porte du lien : la session née du lien ne sert qu'une fois", () => {
+  /**
+   * Supabase Auth simulé AVEC SES SESSIONS, pour suivre ce que devient celle du lien. `getClaims` rend les revendications
+   * de la session que présente le navigateur ; `updateUser` ne touche ni à la session ni à son `amr` (comme GoTrue) ;
+   * `signInWithPassword` ouvre une session « password » qui devient celle du navigateur (les cookies sont réécrits) ;
+   * `signOut` ferme selon sa portée. Une session fermée ne rend plus de compte (GoTrue : session_not_found).
+   */
+  function authAvecSessions() {
+    const maintenant = () => Math.floor(Date.now() / 1000);
+    const clic = maintenant() - 60;
+    let metadonnees: Record<string, unknown> = { profil_a_confirmer: { nom: "Initial", espace: "proprietaire_direct" } };
+    let motDePasseDuCompte = "provisoire-que-personne-ne-connait";
+    const sessions = new Map<string, { amr: { method: string; timestamp: number }[] }>([["lien", { amr: [{ method: "otp", timestamp: clic }] }]]);
+    let presentee = "lien";
+    auth.getUser.mockImplementation(async () => ({ data: { user: sessions.has(presentee) ? { id: "u1", email: ADRESSE, user_metadata: metadonnees } : null } }));
+    auth.getClaims.mockImplementation(async () => sessions.has(presentee)
+      ? { data: { claims: { sub: "u1", session_id: presentee, aal: "aal1", amr: sessions.get(presentee)!.amr } }, error: null }
+      : { data: null, error: { code: "session_not_found", message: "Session not found" } });
+    auth.updateUser.mockImplementation(async ({ password, data }: { password: string; data?: Record<string, unknown> }) => {
+      if (!sessions.has(presentee)) return { error: { code: "session_not_found", message: "Session not found" } };
+      motDePasseDuCompte = password;
+      if (data) {
+        metadonnees = { ...metadonnees, ...data };
+        for (const [cle, valeur] of Object.entries(data)) if (valeur === null) delete metadonnees[cle];
+      }
+      return { error: null };
+    });
+    auth.signInWithPassword.mockImplementation(async ({ email, password }: { email: string; password: string }) => {
+      if (email !== ADRESSE || password !== motDePasseDuCompte) {
+        return { data: { session: null, user: null }, error: { code: "invalid_credentials", message: "Invalid login credentials" } };
+      }
+      sessions.set("mot-de-passe", { amr: [{ method: "password", timestamp: maintenant() }] });
+      presentee = "mot-de-passe";
+      return { data: { session: { access_token: "jeton" }, user: { id: "u1" } }, error: null };
+    });
+    auth.signOut.mockImplementation(async (options?: { scope?: string }) => {
+      const portee = options?.scope ?? "global";
+      for (const id of [...sessions.keys()]) {
+        if (portee === "global" || (portee === "others" && id !== presentee) || (portee === "local" && id === presentee)) sessions.delete(id);
+      }
+      return { error: null };
+    });
+    return {
+      sessions,
+      /** La session que présente le navigateur (ou une copie du cookie d'une autre). */
+      presenter: (id: string) => { presentee = id; },
+      presentee: () => presentee,
+    };
+  }
+  const client = async () => (await mocks.client()) as Parameters<typeof autorisationNouveauMotDePasse>[0];
+  const RESERVE_AU_LIEN = "Ce formulaire est réservé au lien reçu par e-mail, pendant quinze minutes après sa confirmation. Redemandez un lien ou changez votre mot de passe dans « Mon compte », avec le mot de passe actuel.";
+  const intrus = () => formulaireRecuperation({ mot_de_passe: "mot-de-passe-de-l-intrus", confirmation: "mot-de-passe-de-l-intrus" });
+
+  it("avant le premier choix, la session du lien ouvre le formulaire (témoin)", async () => {
+    authAvecSessions();
+    expect(await autorisationNouveauMotDePasse(await client(), "u1")).toBe("accordee");
+  });
+
+  it("après le premier choix, la session gardée est une session « mot de passe », et celle du lien est fermée", async () => {
+    const banc = authAvecSessions();
+    await expect(definirNouveauMotDePasse({}, formulaire())).rejects.toThrow(/^REDIRECT \/espaces$/);
+    expect(banc.presentee()).toBe("mot-de-passe");
+    expect([...banc.sessions.keys()]).toEqual(["mot-de-passe"]);
+    expect(banc.sessions.get("mot-de-passe")!.amr.map((a) => a.method)).toEqual(["password"]);
+    // Toujours connectée, sans repasser par la connexion.
+    expect(mocks.supprimerCookie).not.toHaveBeenCalled();
+  });
+
+  it("dix minutes plus tard, dans le même navigateur : /nouveau-mot-de-passe exige de nouveau un lien, et l'action refuse sans rien changer", async () => {
+    authAvecSessions();
+    await expect(definirNouveauMotDePasse({}, formulaire())).rejects.toThrow(/^REDIRECT \/espaces$/);
+    vi.useFakeTimers({ toFake: ["Date"], now: Date.now() + 10 * 60_000 });
+    try {
+      expect(await autorisationNouveauMotDePasse(await client(), "u1")).toBe("lien_requis");
+      expect(await definirNouveauMotDePasse({}, intrus())).toEqual({ erreur: RESERVE_AU_LIEN });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(auth.updateUser).toHaveBeenCalledTimes(1);
+    expect(auth.updateUser).not.toHaveBeenCalledWith(expect.objectContaining({ password: "mot-de-passe-de-l-intrus" }));
+  });
+
+  it("une copie du cookie de la session du lien ne rouvre rien : cette session est fermée côté Auth", async () => {
+    const banc = authAvecSessions();
+    await expect(definirNouveauMotDePasse({}, formulaire())).rejects.toThrow(/^REDIRECT \/espaces$/);
+    banc.presenter("lien");
+    expect(await autorisationNouveauMotDePasse(await client(), "u1")).toBe("lien_requis");
+    expect((await definirNouveauMotDePasse({}, intrus())).erreur).toBe("Session expirée ou lien invalide. Redemandez un e-mail de réinitialisation.");
+    expect(auth.updateUser).toHaveBeenCalledTimes(1);
+  });
+
+  it("la connexion par le nouveau mot de passe échoue : on retombe sur le parcours d'avant (tout se ferme, puis la connexion)", async () => {
+    const banc = authAvecSessions();
+    auth.signInWithPassword.mockResolvedValueOnce({ data: { session: null, user: null }, error: { code: "over_request_rate_limit", message: "Request rate limit reached" } });
+    await expect(definirNouveauMotDePasse({}, formulaire({ espace: "artisan" }))).rejects.toThrow(/^REDIRECT \/connexion\?raison=mot-de-passe-modifie&suite=%2Fartisan%2Finscription$/);
+    // Le profil et le mot de passe sont bien enregistrés ; aucune session ne survit, celle du lien comprise.
+    expect(auth.updateUser).toHaveBeenCalledExactlyOnceWith({ password: MOT_DE_PASSE, data: expect.objectContaining({ espace: "artisan", profil_a_confirmer: null }) });
+    expect(banc.sessions.size).toBe(0);
+    expect(mocks.supprimerCookie).toHaveBeenCalledWith(ACTIVITY_COOKIE);
+  });
+
+  it("un compte sans adresse lisible : aucune tentative de connexion, le parcours d'avant", async () => {
+    auth.getUser.mockResolvedValue({ data: { user: { id: "u1", user_metadata: { profil_a_confirmer: { nom: "Initial", espace: "proprietaire_direct" } } } } });
+    await expect(definirNouveauMotDePasse({}, formulaire())).rejects.toThrow(/^REDIRECT \/connexion\?raison=mot-de-passe-modifie$/);
+    expect(auth.signInWithPassword).not.toHaveBeenCalled();
+    expect(auth.signOut).toHaveBeenCalledWith();
+    expect(mocks.supprimerCookie).toHaveBeenCalledWith(ACTIVITY_COOKIE);
   });
 });

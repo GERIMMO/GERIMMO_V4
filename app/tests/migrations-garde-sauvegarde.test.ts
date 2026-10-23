@@ -349,6 +349,7 @@ describe.skipIf(!bancCi)("chantier « Migrations Supabase » — la garde « CI 
   const garderCi = (simulation: "true" | "false", curl: { sortie?: string; code?: number }, revision = SHA) =>
     jouerEtape(gardeCi, { GITHUB_TOKEN: "jeton-de-test", DEPOT: "GERIMMO/GERIMMO_V4", REVISION: revision, SIMULATION: simulation }, {}, curl);
   const REFUS = (etat: string) => `✗ Application refusée : le dernier passage de la CI sur ${SHA} n'est pas réussi (${etat}).`;
+  const REFUS_EN_COURS = (etat: string) => `✗ Application refusée : un passage de la CI sur ${SHA} est encore en file ou en cours (${etat}).`;
 
   it("interroge les passages du chantier CI pour la révision exacte, avec le jeton du chantier", () => {
     const r = garderCi("false", { sortie: reponse(passage(1, "completed", "success", "2026-10-23T08:30:00Z")) });
@@ -379,27 +380,44 @@ describe.skipIf(!bancCi)("chantier « Migrations Supabase » — la garde « CI 
     expect(r.sortie).toContain(`— CI « Lint, types, tests, build » sur ${SHA} : completed/success (passage 1 (tentative 2) du 2026-10-23T11:00:00Z`);
   });
 
+  // Relecture adverse du 23/10 (2e passe) : un passage non terminé n'est pas forcément le dernier, et en lancer un nouveau
+  // ne lève pas le refus tant qu'il reste en file ou bloqué. Le refus nomme ce passage et propose de l'attendre ou de l'annuler.
   it.each([
-    ["CI en cours (22/10, 22 h 40)", reponse(passage(39865852616, "in_progress", null, "2026-10-22T22:33:43Z")), "in_progress/-"],
-    ["CI en échec", reponse(passage(39865852616, "completed", "failure", "2026-10-22T22:33:43Z")), "completed/failure"],
-    ["CI annulée", reponse(passage(3, "completed", "cancelled", "2026-10-22T23:00:00Z")), "completed/cancelled"],
-    ["réussite puis nouvel échec", reponse(passage(1, "completed", "success", "2026-10-22T20:00:00Z"), passage(2, "completed", "failure", "2026-10-22T22:00:00Z")), "completed/failure"],
+    ["CI en cours (22/10, 22 h 40)", reponse(passage(39865852616, "in_progress", null, "2026-10-22T22:33:43Z")), "in_progress/-", "passage 39865852616 du 2026-10-22T22:33:43Z"],
     // Relecture adverse du 23/10 : A (créé à 10 h) vert, B (créé à 10 h 30) vert, puis A relancé à 11 h. Le tri par date
     // de création retenait B et acceptait pendant que la CI de cette révision tournait de nouveau.
     [
       "relance en cours d'un passage plus ancien (créé avant une réussite)",
       reponse(passage(2, "completed", "success", "2026-10-23T10:30:00Z"), relance(passage(1, "in_progress", null, "2026-10-23T10:00:00Z"), 2, "2026-10-23T11:00:00Z")),
       "in_progress/-",
-    ],
-    [
-      "relance d'un passage plus ancien terminée en échec",
-      reponse(passage(2, "completed", "success", "2026-10-23T10:30:00Z"), relance(passage(1, "completed", "failure", "2026-10-23T10:00:00Z"), 2, "2026-10-23T11:00:00Z")),
-      "completed/failure",
+      "passage 1 (tentative 2) du 2026-10-23T11:00:00Z",
     ],
     [
       "un autre passage de la révision encore en file, même lancé avant la réussite",
       reponse(passage(1, "queued", null, "2026-10-23T10:00:00Z"), passage(2, "completed", "success", "2026-10-23T10:30:00Z")),
       "queued/-",
+      "passage 1 du 2026-10-23T10:00:00Z",
+    ],
+  ])("application réelle refusée, un passage n'est pas terminé : %s", (_cas, sortie, etat, enCause) => {
+    const r = garderCi("false", { sortie });
+    expect(r.code).toBe(1);
+    expect(r.erreurs).toContain(REFUS_EN_COURS(etat));
+    expect(r.erreurs).toContain(`En cause : ${enCause} : https://github.com/GERIMMO/GERIMMO_V4/actions/runs/`);
+    expect(r.erreurs).toContain("ou l'annuler s'il reste bloqué (Actions → « CI » → ce passage → Cancel workflow)");
+    expect(r.erreurs).toContain("un nouveau passage ne lève pas ce refus tant que celui-ci n'est pas terminé");
+    expect(r.erreurs).not.toContain("le dernier passage");
+    expect(r.erreurs).not.toContain("Run workflow");
+    expect(r.sortie).toContain(`::error title=Application refusée::la CI n'est pas verte sur la révision lancée (${etat}).`);
+  });
+
+  it.each([
+    ["CI en échec", reponse(passage(39865852616, "completed", "failure", "2026-10-22T22:33:43Z")), "completed/failure"],
+    ["CI annulée", reponse(passage(3, "completed", "cancelled", "2026-10-22T23:00:00Z")), "completed/cancelled"],
+    ["réussite puis nouvel échec", reponse(passage(1, "completed", "success", "2026-10-22T20:00:00Z"), passage(2, "completed", "failure", "2026-10-22T22:00:00Z")), "completed/failure"],
+    [
+      "relance d'un passage plus ancien terminée en échec",
+      reponse(passage(2, "completed", "success", "2026-10-23T10:30:00Z"), relance(passage(1, "completed", "failure", "2026-10-23T10:00:00Z"), 2, "2026-10-23T11:00:00Z")),
+      "completed/failure",
     ],
     ["aucun passage", reponse(), "absent"],
     ["seulement une autre révision verte", reponse(passage(4, "completed", "success", "2026-10-23T08:41:57Z", AUTRE)), "absent"],
@@ -410,6 +428,7 @@ describe.skipIf(!bancCi)("chantier « Migrations Supabase » — la garde « CI 
     expect(r.code).toBe(1);
     expect(r.erreurs).toContain(REFUS(etat));
     expect(r.erreurs).toContain("Actions → « CI » → Run workflow");
+    expect(r.erreurs).not.toContain("encore en file ou en cours");
     expect(r.sortie).toContain(`::error title=Application refusée::la CI n'est pas verte sur la révision lancée (${etat}).`);
   });
 

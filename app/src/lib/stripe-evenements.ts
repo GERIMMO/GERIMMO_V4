@@ -11,6 +11,7 @@ import {
   notifierResiliationImpaye,
   premierPrelevement,
 } from "@/lib/courriers-contrat-envoi";
+import { COMMENTAIRE_RETRACTATION } from "@/lib/retractation-stripe";
 import { envoyerRelancesDues } from "@/lib/relances-paiement";
 import { GRILLE, lireDetails } from "@/lib/stripe-offres";
 import { clientDeService } from "@/lib/supabase/service";
@@ -228,6 +229,8 @@ type ContexteEvenement = {
   confirmation_envoyee_le: string | null;
   resiliation_accusee_pour: string | null;
   resiliation_impaye_notifiee_le: string | null;
+  /** La page « Résilier votre contrat » vient de notifier cette résiliation : c'est elle qui envoie l'accusé. */
+  resiliation_par_la_page?: boolean;
 };
 
 async function lireContexteEvenement(supabase: Service, customer: string): Promise<ContexteEvenement | null> {
@@ -245,9 +248,6 @@ async function lireContexteEvenement(supabase: Service, customer: string): Promi
     return null;
   }
 }
-
-/** Une souscription annulée par une rétractation porte ce commentaire (actions/retractation.ts). */
-export const COMMENTAIRE_RETRACTATION = "gerimmo:retractation";
 
 async function courriersDuContrat(
   supabase: Service,
@@ -277,12 +277,14 @@ async function courriersDuContrat(
 
   // R04 : une résiliation notifiée hors de la page (tableau de bord Stripe, ancien portail encore ouvert) reçoit le
   // même accusé, une fois. Seulement pour la grille du 28/09 : la grille historique pose d'elle-même une résiliation
-  // quand le parc tombe à zéro bien (synchroniserQuantite), ce n'est pas une notification du client.
+  // quand le parc tombe à zéro bien (synchroniserQuantite), ce n'est pas une notification du client. Une résiliation
+  // que la page vient de notifier est accusée par la page elle-même, à l'adresse que le client y a choisie.
   const fin = finDePeriode(s);
   if (
     evenement.type === "customer.subscription.updated" &&
     s.cancel_at_period_end &&
     !avant.annulation_demandee &&
+    !avant.resiliation_par_la_page &&
     !SOUSCRIPTION_TERMINEE.has(s.status) &&
     suivi.grille === GRILLE &&
     fin

@@ -32,6 +32,7 @@ type Avant = {
   resiliation_impaye_notifiee_le: string | null;
   confirmation_envoyee_le?: string | null;
   resiliation_accusee_pour?: string | null;
+  resiliation_par_la_page?: boolean;
 };
 
 function banc(avant: Avant, options: { archivee?: boolean } = {}) {
@@ -183,6 +184,12 @@ describe("R04 — l'accusé d'une résiliation notifiée hors de la page", () =>
     const s = souscription({ cancel_at_period_end: true });
     await traiterEvenementStripe(banc({ ...RIEN, annulation_demandee: true }).supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
     await traiterEvenementStripe(banc({ ...RIEN, resiliation_accusee_pour: "2026-11-26T09:00:00Z" }).supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
+    expect(m.envois).toHaveLength(0);
+  });
+
+  it("notifiée à l'instant par la page « Résilier votre contrat » : la page envoie l'accusé, pas le webhook", async () => {
+    const s = souscription({ cancel_at_period_end: true });
+    await traiterEvenementStripe(banc({ ...RIEN, resiliation_par_la_page: true }).supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
     expect(m.envois).toHaveLength(0);
   });
 });

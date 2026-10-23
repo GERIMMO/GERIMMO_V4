@@ -321,6 +321,11 @@ describe.skipIf(!url)("vente au consommateur et impayé (avec base)", () => {
     const fin = "2026-11-24T00:00:00Z";
     const acc = async (f: string) => (await db.query("select public.abonnement_resiliation_accusee($1, $2, $3, 'msg_r', 'webhook') as r", [o.id, o.subscription, f])).rows[0].r;
     expect([await acc(fin), await acc(fin)]).toEqual([true, false]);
+    // R04 : une notification par la page, dans le quart d'heure, est vue par le webhook (c'est la page qui accuse).
+    const parLaPage = async () => (await db.query("select resiliation_par_la_page as r from public.abonnement_contexte_evenement($1)", [o.customer])).rows[0].r;
+    expect(await parLaPage()).toBe(false);
+    await db.query("select public.abonnement_geste_consigner($1, null, 'abonnement_resiliation_notifiee', jsonb_build_object('souscription', $2::text, 'chemin', 'page'))", [o.id, o.subscription]);
+    expect(await parLaPage()).toBe(true);
     const imp = async () => (await db.query("select public.abonnement_resiliation_impaye_notifiee($1, $2, 'msg_i', '[\"in_1\"]'::jsonb) as r", [o.id, o.subscription])).rows[0].r;
     expect([await imp(), await imp()]).toEqual([true, false]);
     // Une nouvelle souscription (autre conclusion) repart de zéro.

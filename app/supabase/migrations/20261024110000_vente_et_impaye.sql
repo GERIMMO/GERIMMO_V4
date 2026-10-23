@@ -413,12 +413,15 @@ begin
 end;
 $$;
 
--- 9.2 Ce que la base savait AVANT l'événement (le webhook en déduit les bascules).
-create or replace function public.abonnement_contexte_evenement(p_customer text)
+-- 9.2 Ce que la base savait AVANT l'événement (le webhook en déduit les bascules). `resiliation_par_la_page` : la page
+-- « Résilier votre contrat » vient de notifier cette résiliation (moins de quinze minutes) ; c'est elle qui envoie
+-- l'accusé, à l'adresse choisie par le client, et le webhook s'abstient.
+drop function if exists public.abonnement_contexte_evenement(text);
+create function public.abonnement_contexte_evenement(p_customer text)
 returns table (organization_id uuid, stripe_subscription_id text, stripe_statut text, annulation_demandee boolean,
                paiement_en_defaut_depuis date, periode_fin timestamptz, souscrit_le timestamptz,
                confirmation_envoyee_le timestamptz, resiliation_accusee_pour timestamptz,
-               resiliation_impaye_notifiee_le timestamptz)
+               resiliation_impaye_notifiee_le timestamptz, resiliation_par_la_page boolean)
 language sql
 stable
 security definer
@@ -426,7 +429,11 @@ set search_path = ''
 as $$
   select a.organization_id, a.stripe_subscription_id, a.stripe_statut, coalesce(a.annulation_demandee, false),
          a.paiement_en_defaut_depuis, a.periode_fin, a.souscrit_le, a.confirmation_envoyee_le,
-         a.resiliation_accusee_pour, a.resiliation_impaye_notifiee_le
+         a.resiliation_accusee_pour, a.resiliation_impaye_notifiee_le,
+         exists (select 1 from public.audit_log l
+                  where l.organization_id = a.organization_id and l.action = 'abonnement_resiliation_notifiee'
+                    and l.created_at > now() - interval '15 minutes'
+                    and l.details->>'souscription' = a.stripe_subscription_id)
   from public.abonnements a where a.stripe_customer_id = btrim(p_customer);
 $$;
 

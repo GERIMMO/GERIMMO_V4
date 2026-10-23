@@ -427,8 +427,13 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
                   {paiement.periode_fin && !paiement.annulation_demandee
                     ? ` — prochaine échéance le ${formaterDate(paiement.periode_fin)}`
                     : ""}
-                  . Carte, factures et résiliation se règlent chez notre
-                  prestataire de paiement.
+                  . Carte et factures se règlent chez notre prestataire de
+                  paiement ; la résiliation se notifie depuis la page{" "}
+                  {/* Plan du 23/10 (R04) : le portail de paiement ne propose plus la résiliation. */}
+                  <Link href={`${base}/abonnement/resiliation`} className="underline underline-offset-4">
+                    « Résilier votre contrat »
+                  </Link>
+                  .
                 </p>
                 <BoutonPortail orgId={orgId} />
               </>

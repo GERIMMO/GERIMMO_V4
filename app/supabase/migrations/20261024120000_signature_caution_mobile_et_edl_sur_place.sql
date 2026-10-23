@@ -155,6 +155,7 @@ as $$
 declare
   c public.confirmations_mobile_caution;
   v public.bail_signature_circuits;
+  v_circuit uuid;
   v_signataires jsonb;
 begin
   if p_jeton_empreinte is null or p_jeton_empreinte !~ '^[0-9a-f]{64}$' then
@@ -162,6 +163,12 @@ begin
   end if;
   if p_telephone is null or p_telephone !~ '^\+[1-9][0-9]{7,14}$' then
     raise exception 'Saisissez un numéro de mobile valide.' using errcode = '22023';
+  end if;
+  -- Même ordre de verrouillage que demander_confirmation_mobile_caution (le circuit, puis ses liens) : un renvoi du
+  -- lien par le bailleur et la confirmation par la caution, simultanés, s'attendent au lieu de s'interbloquer.
+  select x.circuit_id into v_circuit from public.confirmations_mobile_caution x where x.jeton_empreinte = p_jeton_empreinte;
+  if v_circuit is not null then
+    perform 1 from public.bail_signature_circuits b where b.id = v_circuit for update;
   end if;
   select * into c from public.confirmations_mobile_caution x where x.jeton_empreinte = p_jeton_empreinte for update;
   if not found or c.annulee_le is not null then
@@ -173,7 +180,7 @@ begin
   if c.expire_le <= now() then
     raise exception 'Ce lien a expiré. Demandez au bailleur de vous en envoyer un nouveau.' using errcode = '22023';
   end if;
-  select * into v from public.bail_signature_circuits b where b.id = c.circuit_id for update;
+  select * into v from public.bail_signature_circuits b where b.id = c.circuit_id;
   if not found or v.modele <> 'cautionnement' or v.etat <> 'pret' then
     raise exception 'Ce lien n’est plus valable. Demandez au bailleur de vous en envoyer un nouveau.' using errcode = '22023';
   end if;

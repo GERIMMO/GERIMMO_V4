@@ -48,21 +48,23 @@ export async function confirmerMobileCaution(jeton: string, _etat: EtatConfirmat
   if (conso.error || !ligne) return { erreur: sansJargon(conso.error?.message ?? "Ce lien n’est pas valable.") };
 
   const confirme = `Votre numéro ${mobileLisible(lu.telephone)} est confirmé.`;
+  let bail: string | null = null;
   try {
     const { data, error } = await service.from("bail_signature_circuits").select("*").eq("id", ligne.circuit_id).eq("organization_id", ligne.organization_id).single();
     if (error || !data) throw new Error("L’acte n’est plus disponible.");
     const circuit = data as CircuitBail;
+    bail = circuit.bail_id;
     const controle = await controlerEnvoi({ db: service, org: ligne.organization_id, bail: circuit.bail_id ?? circuit.cible_id ?? "", circuit });
     const envoi = await envoyerApresControle({ db: service, org: ligne.organization_id, circuit, acteur: ligne.demande_par, controle });
     if ("erreur" in envoi) throw new Error(envoi.erreur);
-    rafraichir(ligne.organization_id, circuit.bail_id);
+    rafraichir(ligne.organization_id, bail);
     return { succes: `${confirme} Vous allez recevoir de Zoho Sign l’invitation à signer l’acte de cautionnement. Vous y saisirez vous-même la mention de caution ; le code de signature sera envoyé par SMS à ce numéro.` };
   } catch (e) {
     const motif = e instanceof Error ? sansJargon(e.message) : "L’envoi n’a pas pu être confirmé.";
     // Le propriétaire le lit sur l'acte prêt (l'état « à vérifier » garde son propre motif).
     await service.from("bail_signature_circuits").update({ erreur: `La caution a confirmé son mobile, mais l’envoi en signature n’a pas pu partir : ${motif} Relancez l’envoi depuis le suivi de l’acte.`.slice(0, 1000), updated_at: new Date().toISOString() })
       .eq("id", ligne.circuit_id).eq("etat", "pret");
-    rafraichir(ligne.organization_id, null);
+    rafraichir(ligne.organization_id, bail);
     return { erreur: `${confirme} L’envoi de l’acte n’a pas pu se faire pour le moment. Le bailleur en est informé et pourra le relancer sans vous redemander votre numéro.` };
   }
 }

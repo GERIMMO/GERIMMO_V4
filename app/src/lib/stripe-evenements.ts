@@ -5,6 +5,12 @@ import {
   quantiteFacturee,
 } from "@/lib/stripe";
 import { envoyerAvisFinEssai } from "@/lib/avis-abonnement";
+import {
+  envoyerAccuseResiliation,
+  envoyerConfirmationSouscription,
+  notifierResiliationImpaye,
+  premierPrelevement,
+} from "@/lib/courriers-contrat-envoi";
 import { envoyerRelancesDues } from "@/lib/relances-paiement";
 import { GRILLE, lireDetails } from "@/lib/stripe-offres";
 import { clientDeService } from "@/lib/supabase/service";
@@ -122,6 +128,11 @@ async function traiterSouscription(supabase: Service, stripe: Stripe, evenement:
   // sinon un compte résilié resterait ouvert si Stripe tardait.
   const statut = evenement.type === "customer.subscription.deleted" ? "canceled" : s.status;
 
+  // Plan du 23/10 (R04, R07) : ce que la base savait AVANT cet événement — résiliation déjà demandée, défaut de
+  // paiement en cours, courriers déjà partis. Les bascules (résiliation notifiée hors de la page, résiliation pour
+  // impayé) se lisent par différence avec l'état relu chez Stripe.
+  const avant = await lireContexteEvenement(supabase, customer);
+
   const { data: org, error } = await supabase.rpc("abonnement_appliquer", {
     p_customer: customer,
     p_subscription: s.id,
@@ -152,6 +163,17 @@ async function traiterSouscription(supabase: Service, stripe: Stripe, evenement:
     if (erreurDetails) throw new Error(erreurDetails.message);
   }
 
+  // Plan du 23/10 (R01, R03) : la conclusion du contrat (`start_date`), départ du délai de rétractation. Seule la
+  // souscription suivie est datée ; une autre conclusion remet à zéro les marques des courriers (base).
+  if (org && typeof s.start_date === "number" && !SOUSCRIPTION_TERMINEE.has(s.status)) {
+    const { error: erreurDate } = await supabase.rpc("abonnement_souscription_datee", {
+      p_customer: customer,
+      p_subscription: s.id,
+      p_souscrit_le: new Date(s.start_date * 1000).toISOString(),
+    });
+    if (erreurDate) throw new Error(erreurDate.message);
+  }
+
   // La mention de TVA des factures suit le régime déclaré (audit 29/09,
   // point 6) — posée à la naissance de la souscription, quel que soit le
   // chemin qui l'a créée. Un échec n'empêche pas d'ouvrir le compte : il est
@@ -180,10 +202,116 @@ async function traiterSouscription(supabase: Service, stripe: Stripe, evenement:
       alerte = { echecs: [e instanceof Error ? e.message : "envoi impossible"] };
     }
   }
+
+  // Plan du 23/10 : les courriers du contrat (confirmation, accusé de résiliation, résiliation pour impayé). Comme
+  // l'alerte, aucun ne peut faire échouer le webhook : la confirmation est rattrapée par la tâche de nuit, l'accusé de
+  // résiliation est aussi envoyé par la page, l'échec du courrier d'impayé reste au journal (relance à la main).
+  let courriers: Record<string, unknown> = {};
+  if (effetsExternes && org) {
+    courriers = await courriersDuContrat(supabase, stripe, { evenement, s, suivi, avant, org: org as string });
+  }
   return {
     motif: org ? undefined : "Client Stripe inconnu de Gerimmo",
-    reponse: { organisation: org ?? null, alerte },
+    reponse: { organisation: org ?? null, alerte, ...(Object.keys(courriers).length ? { courriers } : {}) },
   };
+}
+
+/** Ce que `abonnement_contexte_evenement` rend : l'état d'avant l'événement. */
+type ContexteEvenement = {
+  organization_id: string;
+  stripe_subscription_id: string | null;
+  stripe_statut: string | null;
+  annulation_demandee: boolean;
+  paiement_en_defaut_depuis: string | null;
+  periode_fin: string | null;
+  souscrit_le: string | null;
+  confirmation_envoyee_le: string | null;
+  resiliation_accusee_pour: string | null;
+  resiliation_impaye_notifiee_le: string | null;
+};
+
+async function lireContexteEvenement(supabase: Service, customer: string): Promise<ContexteEvenement | null> {
+  const { data, error } = await supabase.rpc("abonnement_contexte_evenement", { p_customer: customer });
+  if (error) {
+    // Sans contexte, aucun courrier de bascule ne part (on ne devine pas l'état d'avant) ; l'état, lui, s'applique.
+    console.error("[stripe webhook][contexte] lecture impossible :", error.message.slice(0, 200));
+    return null;
+  }
+  return ((data ?? []) as ContexteEvenement[])[0] ?? null;
+}
+
+/** Une souscription annulée par une rétractation porte ce commentaire (actions/retractation.ts). */
+export const COMMENTAIRE_RETRACTATION = "gerimmo:retractation";
+
+async function courriersDuContrat(
+  supabase: Service,
+  stripe: Stripe,
+  c: { evenement: Stripe.Event; s: Stripe.Subscription; suivi: Suivi; avant: ContexteEvenement | null; org: string }
+): Promise<Record<string, unknown>> {
+  const { evenement, s, suivi, avant, org } = c;
+  const resultat: Record<string, unknown> = {};
+  const essayer = async (nom: string, geste: () => Promise<{ envoye: boolean; motif?: string }>) => {
+    try {
+      const r = await geste();
+      resultat[nom] = r.envoye ? "envoye" : { motif: r.motif };
+    } catch (e) {
+      if (e instanceof ArretSupervision) throw e;
+      resultat[nom] = { echec: e instanceof Error ? e.message.slice(0, 200) : "envoi impossible" };
+    }
+  };
+
+  // R03 : la confirmation, à la naissance de la souscription (rattrapée la nuit si elle échoue).
+  if (evenement.type === "customer.subscription.created" && ["active", "trialing", "past_due"].includes(s.status)) {
+    await essayer("confirmation", () =>
+      envoyerConfirmationSouscription(supabase, { orgId: org, subscription: s.id, premierPrelevementLe: premierPrelevement(s) })
+    );
+  }
+
+  if (!avant || avant.stripe_subscription_id !== s.id) return resultat;
+
+  // R04 : une résiliation notifiée hors de la page (tableau de bord Stripe, ancien portail encore ouvert) reçoit le
+  // même accusé, une fois. Seulement pour la grille du 28/09 : la grille historique pose d'elle-même une résiliation
+  // quand le parc tombe à zéro bien (synchroniserQuantite), ce n'est pas une notification du client.
+  const fin = finDePeriode(s);
+  if (
+    evenement.type === "customer.subscription.updated" &&
+    s.cancel_at_period_end &&
+    !avant.annulation_demandee &&
+    !SOUSCRIPTION_TERMINEE.has(s.status) &&
+    suivi.grille === GRILLE &&
+    fin
+  ) {
+    await essayer("accuse_resiliation", () =>
+      envoyerAccuseResiliation(supabase, {
+        orgId: org,
+        subscription: s.id,
+        periodeFin: new Date(fin),
+        notifieeLe: new Date(evenement.created * 1000),
+        chemin: "webhook",
+      })
+    );
+  }
+
+  // R07 : la résiliation pour impayé — défaut en cours, aucune résiliation demandée par le client, pas une
+  // rétractation. La facture restée ouverte est annulée, puis le courrier part.
+  if (
+    evenement.type === "customer.subscription.deleted" &&
+    avant.paiement_en_defaut_depuis &&
+    !avant.annulation_demandee &&
+    !avant.resiliation_impaye_notifiee_le &&
+    !(s.cancellation_details?.comment ?? "").startsWith(COMMENTAIRE_RETRACTATION)
+  ) {
+    await essayer("resiliation_impaye", () =>
+      notifierResiliationImpaye(supabase, stripe, {
+        orgId: org,
+        subscription: s.id,
+        resilieLe: typeof s.ended_at === "number" ? new Date(s.ended_at * 1000) : new Date(evenement.created * 1000),
+        destinataire: suivi.destinataire,
+        organisation: suivi.organisation,
+      })
+    );
+  }
+  return resultat;
 }
 
 /**

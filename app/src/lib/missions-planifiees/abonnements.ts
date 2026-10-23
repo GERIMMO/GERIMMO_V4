@@ -25,6 +25,7 @@ import { protegerClientAutomatique } from "@/lib/client-automatique";
 
 import { envoyerAvisCapaciteDepassee, envoyerAvisReconduction } from "@/lib/avis-abonnement";
 import { envoyerRelancesDues } from "@/lib/relances-paiement";
+import { envoyerConfirmationsDues } from "@/lib/courriers-contrat-envoi";
 import {
   clientStripe,
   configurationStripe,
@@ -221,6 +222,17 @@ export async function traiterAbonnements(request: Request) {
     reconduction = { envoyes: 0, sans_adresse: [], echecs: [e instanceof Error ? e.message : "avis impossibles"] };
   }
 
+  // ── LA CONFIRMATION DES SOUSCRIPTIONS (plan du 23/10, R03). Le webhook l'envoie à la naissance de la souscription ;
+  // celle qui n'est pas partie (prestataire d'e-mail indisponible, réception rejouée sans effets externes) l'est ici,
+  // une fois, pendant un mois après la souscription.
+  let confirmations: Awaited<ReturnType<typeof envoyerConfirmationsDues>>;
+  try {
+    confirmations = await envoyerConfirmationsDues(supabase, stripe, () => verifierAvantEffet(supabase, "abonnements"));
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    confirmations = { envoyees: 0, echecs: [e instanceof Error ? e.message : "confirmations impossibles"] };
+  }
+
   // ── LES AVOIRS DE PARRAINAGE, EN DERNIER (19/09). Un mois offert au parrain
   // quand son filleul devient client payant : la base a posé la ligne, ici on
   // la porte au solde Stripe, qui la déduira de la prochaine facture.
@@ -292,9 +304,12 @@ export async function traiterAbonnements(request: Request) {
     avis_reconduction_en_echec: reconduction.echecs.length + reconduction.sans_adresse.length,
     non_reconductions_conditions: nonReconduction.posees,
     non_reconductions_conditions_en_echec: nonReconduction.echecs.length,
+    confirmations: confirmations.envoyees,
+    confirmations_en_echec: confirmations.echecs.length,
   });
   return Response.json({
     relances,
+    confirmations,
     examinees: lignes.length,
     alignees: alignes,
     resiliees,

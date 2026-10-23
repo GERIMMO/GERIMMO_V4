@@ -19,7 +19,7 @@ export function FormulaireGelConservation({ orgId, bailId, base, minimum, maximu
   const [etatLevee, lever, leveeEnCours] = useActionState<EtatGelConservation, FormData>(gelerConservationBail, {});
   return (
     <div className="space-y-4">
-      <form action={action} className="grid gap-3 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
+      <form data-saisie-confirmee action={action} className="grid gap-3 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
         <input type="hidden" name="orgId" value={orgId} />
         <input type="hidden" name="bailId" value={bailId} />
         <input type="hidden" name="base" value={base} />
@@ -41,7 +41,7 @@ export function FormulaireGelConservation({ orgId, bailId, base, minimum, maximu
         {etat.succes && <p role="status" className="text-sm sm:col-span-2">{etat.succes}</p>}
       </form>
       {gelEnCours && (
-        <form action={lever}>
+        <form data-saisie-confirmee action={lever}>
           <input type="hidden" name="orgId" value={orgId} />
           <input type="hidden" name="bailId" value={bailId} />
           <input type="hidden" name="base" value={base} />

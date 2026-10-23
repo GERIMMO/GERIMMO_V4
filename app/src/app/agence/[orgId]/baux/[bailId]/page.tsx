@@ -961,6 +961,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       )}
 
       </RubriqueDossier>);
+  // Conservation des pièces (plan de conformité du 23/10) : lue seulement pour un bail en préavis ou terminé.
+  const conservation = restitutionActif ? await supabase.rpc("lire_conservation_bail", { p_bail: bailId }) : null;
   return (
     <main className={`${styles.page} dossier-bail mx-auto w-full max-w-6xl space-y-[1.125rem] p-4 sm:p-7`}>
       <Link href={lot ? `${base}/parc/${lot.bien_id}/lots/${lot.id}` : `${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {lot?.nom ?? "Mes lots"}</Link>
@@ -1209,7 +1211,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       )}
 
       {/* Conservation des pièces et gel en cas de litige (plan de conformité du 23/10, lots 1E et 2) */}
-      {restitutionActif && <CarteConservationBail supabase={supabase} orgId={orgId} bailId={bailId} base={base} />}
+      {conservation && <CarteConservationBail conservation={conservation.error ? null : conservation.data} orgId={orgId} bailId={bailId} base={base} />}
 
       </RubriqueDossier>}
     </main>

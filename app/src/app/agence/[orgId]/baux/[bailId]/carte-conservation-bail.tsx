@@ -1,9 +1,8 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { aujourdhuiParis, formaterDate } from "@/lib/ged";
 import { FormulaireGelConservation } from "./formulaire-gel-conservation";
 
-type Conservation = {
+export type Conservation = {
   etat: string;
   duree_mois: number | null;
   echeance: string | null;
@@ -27,16 +26,16 @@ function lendemain(jour: string): string {
 /**
  * Conservation des pièces d'un bail (plan de conformité du 23/10/2026, lots 1E et 2) : la date à laquelle les pièces
  * arrivent au terme de leur durée de conservation, et le gel en cas de litige (douze mois au plus, renouvelable).
- * Lecture et geste passent par la base (`lire_conservation_bail`, `geler_conservation_bail`).
+ * Lecture et geste passent par la base (`lire_conservation_bail`, lue par la page ; `geler_conservation_bail`).
  */
-export async function CarteConservationBail({ supabase, orgId, bailId, base }: {
-  supabase: SupabaseClient;
+export function CarteConservationBail({ conservation, orgId, bailId, base }: {
+  /** Le résultat de `lire_conservation_bail`, ou null si la lecture a échoué. */
+  conservation: unknown;
   orgId: string;
   bailId: string;
   base: string;
 }) {
-  const { data, error } = await supabase.rpc("lire_conservation_bail", { p_bail: bailId });
-  const c = (data ?? null) as Conservation | null;
+  const c = (conservation ?? null) as Conservation | null;
   const aujourdHui = aujourdhuiParis();
   const gelEnCours = Boolean(c?.gelee_jusqu_au && c.gelee_jusqu_au >= aujourdHui);
   return (
@@ -49,7 +48,7 @@ export async function CarteConservationBail({ supabase, orgId, bailId, base }: {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error || !c ? (
+        {!c ? (
           <p role="alert" className="err">La durée de conservation de ce bail n&apos;a pas pu être lue. Rechargez la page.</p>
         ) : (
           <>

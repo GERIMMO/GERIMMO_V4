@@ -36,7 +36,8 @@ export async function gelerConservationBail(_: EtatGelConservation, form: FormDa
   if (error) {
     return { erreur: error.code === "42501" ? "Ce bail n’est pas accessible depuis votre compte." : sansJargon(error.message) };
   }
-  if (base === `/agence/${orgId}` || base === `/espace/${orgId}`) revalidatePath(`${base}/baux/${bailId}`);
+  // La base de l'espace (« /agence/<id> » ou « /espace/<id> ») vient de la page : seulement si elle désigne cet espace.
+  if (/^\/(agence|espace)\/[0-9a-f-]{36}$/i.test(base) && base.endsWith(orgId)) revalidatePath(`${base}/baux/${bailId}`);
   return {
     succes: lever
       ? "Gel levé : les pièces suivent de nouveau leur durée de conservation."

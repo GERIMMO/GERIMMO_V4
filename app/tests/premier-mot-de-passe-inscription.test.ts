@@ -37,6 +37,7 @@ vi.mock("react", async (importOriginal) => {
 
 import { definirNouveauMotDePasse } from "../src/app/actions/auth";
 import { FormulaireNouveauMotDePasse } from "../src/app/nouveau-mot-de-passe/formulaire-nouveau-mot-de-passe";
+import PageNouveauMotDePasse from "../src/app/nouveau-mot-de-passe/page";
 import { ACTIVITY_COOKIE } from "../src/lib/session-policy";
 import { autorisationNouveauMotDePasse } from "../src/lib/autorisation-nouveau-mot-de-passe";
 
@@ -303,20 +304,25 @@ describe("PRO-5 — après le premier choix, la personne reste connectée et va 
 describe("PRO-5, suite — le premier choix referme la porte du lien : la session née du lien ne sert qu'une fois", () => {
   /**
    * Supabase Auth simulé AVEC SES SESSIONS, pour suivre ce que devient celle du lien. `getClaims` rend les revendications
-   * de la session que présente le navigateur ; `updateUser` ne touche ni à la session ni à son `amr` (comme GoTrue) ;
-   * `signInWithPassword` ouvre une session « password » qui devient celle du navigateur (les cookies sont réécrits) ;
-   * `signOut` ferme selon sa portée. Une session fermée ne rend plus de compte (GoTrue : session_not_found).
+   * du jeton que présente le navigateur, comme avec les clés asymétriques de la production : le jeton est vérifié sur
+   * place, sans demander à Auth si sa session est encore ouverte (jusqu'à son expiration, il se lit encore). `getUser`,
+   * lui, interroge Auth : une session fermée ne rend plus de compte (GoTrue : session_not_found). `updateUser` ne touche
+   * ni à la session ni à son `amr` (comme GoTrue) ; `signInWithPassword` ouvre une session « password » qui devient celle
+   * du navigateur (les cookies sont réécrits) ; `signOut` ferme selon sa portée.
    */
   function authAvecSessions() {
     const maintenant = () => Math.floor(Date.now() / 1000);
     const clic = maintenant() - 60;
     let metadonnees: Record<string, unknown> = { profil_a_confirmer: { nom: "Initial", espace: "proprietaire_direct" } };
     let motDePasseDuCompte = "provisoire-que-personne-ne-connait";
-    const sessions = new Map<string, { amr: { method: string; timestamp: number }[] }>([["lien", { amr: [{ method: "otp", timestamp: clic }] }]]);
+    type Session = { amr: { method: string; timestamp: number }[] };
+    const sessions = new Map<string, Session>([["lien", { amr: [{ method: "otp", timestamp: clic }] }]]);
+    /** Les jetons remis aux navigateurs : une session fermée côté Auth laisse son jeton lisible jusqu'à son expiration. */
+    const jetons = new Map<string, Session>(sessions);
     let presentee = "lien";
     auth.getUser.mockImplementation(async () => ({ data: { user: sessions.has(presentee) ? { id: "u1", email: ADRESSE, user_metadata: metadonnees } : null } }));
-    auth.getClaims.mockImplementation(async () => sessions.has(presentee)
-      ? { data: { claims: { sub: "u1", session_id: presentee, aal: "aal1", amr: sessions.get(presentee)!.amr } }, error: null }
+    auth.getClaims.mockImplementation(async () => jetons.has(presentee)
+      ? { data: { claims: { sub: "u1", session_id: presentee, aal: "aal1", amr: jetons.get(presentee)!.amr } }, error: null }
       : { data: null, error: { code: "session_not_found", message: "Session not found" } });
     auth.updateUser.mockImplementation(async ({ password, data }: { password: string; data?: Record<string, unknown> }) => {
       if (!sessions.has(presentee)) return { error: { code: "session_not_found", message: "Session not found" } };
@@ -331,7 +337,9 @@ describe("PRO-5, suite — le premier choix referme la porte du lien : la sessio
       if (email !== ADRESSE || password !== motDePasseDuCompte) {
         return { data: { session: null, user: null }, error: { code: "invalid_credentials", message: "Invalid login credentials" } };
       }
-      sessions.set("mot-de-passe", { amr: [{ method: "password", timestamp: maintenant() }] });
+      const session = { amr: [{ method: "password", timestamp: maintenant() }] };
+      sessions.set("mot-de-passe", session);
+      jetons.set("mot-de-passe", session);
       presentee = "mot-de-passe";
       return { data: { session: { access_token: "jeton" }, user: { id: "u1" } }, error: null };
     });
@@ -386,8 +394,12 @@ describe("PRO-5, suite — le premier choix referme la porte du lien : la sessio
     const banc = authAvecSessions();
     await expect(definirNouveauMotDePasse({}, formulaire())).rejects.toThrow(/^REDIRECT \/espaces$/);
     banc.presenter("lien");
-    expect(await autorisationNouveauMotDePasse(await client(), "u1")).toBe("lien_requis");
+    // Ce qui ferme la porte est `getUser()`, qui interroge Auth, et que la page comme l'action appellent avant tout autre
+    // contrôle. `autorisationNouveauMotDePasse` seule ne le prouve pas : son `getClaims` vérifie le jeton sur place (clés
+    // asymétriques) et lirait encore la preuve d'e-mail de la session fermée jusqu'à l'expiration du jeton (relecture du 23/10).
+    expect((await (await client()).auth.getUser()).data.user).toBeNull();
     expect((await definirNouveauMotDePasse({}, intrus())).erreur).toBe("Session expirée ou lien invalide. Redemandez un e-mail de réinitialisation.");
+    await expect(PageNouveauMotDePasse({ searchParams: Promise.resolve({ motif: "inscription" }) })).rejects.toThrow(/^REDIRECT \/connexion\?raison=lien-invalide$/);
     expect(auth.updateUser).toHaveBeenCalledTimes(1);
   });
 

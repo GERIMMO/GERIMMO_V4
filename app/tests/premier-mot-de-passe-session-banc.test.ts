@@ -12,17 +12,28 @@
  * fictif, est créé sur l'émulateur par la fabrique de liens (`generate_link` de type `signup`), comme à l'inscription.
  *
  * Ne s'exécute que sur le banc : SIGNATURE_TEST_API_URL (l'émulateur, en local) et SUPABASE_SERVICE_ROLE_KEY (la clé
- * qu'il affiche au démarrage) ; la CI les pose toutes deux.
+ * qu'il affiche au démarrage) ; la CI les pose toutes deux. Avec SIGNATURE_TEST_DB_URL (la base de l'émulateur, posée
+ * aussi par la CI), le compte fictif est supprimé à la fin.
  */
 import { randomUUID } from "node:crypto";
 import { createClient as clientIsole } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
+import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 const api = process.env.SIGNATURE_TEST_API_URL ?? "";
 const cleService = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const local = /^http:\/\/(localhost|127\.0\.0\.1):\d{1,5}$/.test(api) && cleService !== "";
 const CLE_PUBLIQUE = "cle-locale";
+const baseDuBanc = process.env.SIGNATURE_TEST_DB_URL ?? "";
+const baseLocale = (() => {
+  try {
+    const url = new URL(baseDuBanc);
+    return ["127.0.0.1", "localhost"].includes(url.hostname) && url.pathname.includes("ci_");
+  } catch {
+    return false;
+  }
+})();
 
 type Cookie = { name: string; value: string };
 const bocal = vi.hoisted(() => ({ cookies: new Map<string, { name: string; value: string }>() }));
@@ -43,6 +54,7 @@ vi.mock("next/navigation", () => ({ redirect: (chemin: string) => { throw new Er
 vi.mock("@/lib/lien-mot-de-passe", () => ({ envoyerLienMotDePasse: vi.fn(), inscrireEtEnvoyerConfirmation: vi.fn() }));
 
 import { definirNouveauMotDePasse } from "@/app/actions/auth";
+import PageNouveauMotDePasse from "@/app/nouveau-mot-de-passe/page";
 import { autorisationNouveauMotDePasse } from "@/lib/autorisation-nouveau-mot-de-passe";
 import { methodesDeLaSession } from "@/lib/session-lien-email";
 
@@ -61,12 +73,12 @@ describe.skipIf(!local)("PRO-5, suite — sur l'émulateur : après le premier c
   const intrus = `Intrus-${randomUUID()}`;
   let compteId = "";
   let copieDuLien: Map<string, Cookie>;
+  const service = () => clientIsole(api, cleService, { auth: { persistSession: false, autoRefreshToken: false } });
 
   beforeAll(async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", api);
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", CLE_PUBLIQUE);
-    const service = clientIsole(api, cleService, { auth: { persistSession: false, autoRefreshToken: false } });
-    const lien = await service.auth.admin.generateLink({
+    const lien = await service().auth.admin.generateLink({
       type: "signup",
       email: adresse,
       password: `Provisoire-${randomUUID()}`,
@@ -79,8 +91,19 @@ describe.skipIf(!local)("PRO-5, suite — sur l'émulateur : après le premier c
     expect(verification.error).toBeNull();
     copieDuLien = new Map(bocal.cookies);
   });
-  afterAll(() => {
+  afterAll(async () => {
     vi.unstubAllEnvs();
+    // Le compte fictif ne survit pas au fichier (comme dans recuperation-auth-reelle.test.ts). L'émulateur ne sait pas
+    // supprimer un compte (`auth.admin.deleteUser` y répond 404) : la suppression passe par sa base, quand le banc la nomme
+    // (SIGNATURE_TEST_DB_URL, que la CI pose ; une base locale de CI seulement).
+    if (!compteId || !baseLocale) return;
+    const base = new Client({ connectionString: baseDuBanc });
+    await base.connect();
+    try {
+      expect((await base.query("delete from auth.users where id = $1", [compteId])).rowCount).toBe(1);
+    } finally {
+      await base.end();
+    }
   });
 
   it("avant le premier choix, la session du lien ouvre le formulaire (témoin)", async () => {
@@ -106,9 +129,24 @@ describe.skipIf(!local)("PRO-5, suite — sur l'émulateur : après le premier c
   });
 
   it("une copie des cookies de la session du lien ne rouvre rien : cette session est fermée côté Auth", async () => {
-    const copie = clientDuNavigateur(copieDuLien);
-    expect((await copie.auth.getUser()).data.user).toBeNull();
-    expect(await autorisationNouveauMotDePasse(copie as never, compteId)).toBe("lien_requis");
+    // Ce qui ferme la porte est `getUser()`, qui interroge Auth, et que la page comme l'action appellent avant tout autre
+    // contrôle. `autorisationNouveauMotDePasse` seule ne le prouve pas : sur l'émulateur (jeton HS256), son `getClaims`
+    // repasse par Auth, mais avec les clés asymétriques de la production il vérifie le jeton sur place et lirait encore la
+    // preuve d'e-mail de la session fermée jusqu'à l'expiration du jeton (relecture du 23/10). Le test porte donc sur
+    // `getUser()`, sur la page et sur l'action, chacune présentée avec la copie des cookies du lien.
+    expect((await clientDuNavigateur(new Map(copieDuLien)).auth.getUser()).data.user).toBeNull();
+    const navigateur = bocal.cookies;
+    try {
+      bocal.cookies = new Map(copieDuLien);
+      await expect(PageNouveauMotDePasse({ searchParams: Promise.resolve({ motif: "inscription" }) })).rejects.toThrow(/^REDIRECT \/connexion\?raison=lien-invalide$/);
+      bocal.cookies = new Map(copieDuLien);
+      const envoi = new FormData();
+      for (const [cle, valeur] of Object.entries({ mot_de_passe: intrus, confirmation: intrus, suite: "/espaces" })) envoi.set(cle, valeur);
+      expect((await definirNouveauMotDePasse({}, envoi)).erreur).toBe("Session expirée ou lien invalide. Redemandez un e-mail de réinitialisation.");
+    } finally {
+      bocal.cookies = navigateur;
+    }
+    expect((await sansSession().auth.signInWithPassword({ email: adresse, password: intrus })).error).not.toBeNull();
   });
 
   it("dans le même navigateur, un second envoi est refusé et le mot de passe choisi reste le bon", async () => {

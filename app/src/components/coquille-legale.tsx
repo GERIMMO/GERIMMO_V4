@@ -33,6 +33,25 @@ export function Fait({ valeur, quoi }: { valeur: FaitEditeur; quoi: string }) {
 }
 
 /**
+ * Le médiateur de la consommation, rendu à l'identique par l'article 17 des
+ * conditions et par les mentions légales (relecture du 23/10). Ses
+ * coordonnées ne s'affichent que si son nom est saisi : une adresse ou un site
+ * sans nom ne désigne aucun organisme, et les conditions les montraient alors
+ * que les mentions disaient « aucun organisme n'est désigné ». Sans nom, rien :
+ * chaque page dit l'adhésion à venir dans sa propre phrase.
+ */
+export function CoordonneesMediateur({ editeur }: { editeur: Record<string, FaitEditeur> }) {
+  if (!editeur.mediateurNom) return null;
+  return (
+    <p className="whitespace-pre-line [overflow-wrap:anywhere]">
+      {editeur.mediateurNom}{"\n"}
+      <Fait valeur={editeur.mediateurAdresse} quoi="adresse du médiateur" />{"\n"}
+      <Fait valeur={editeur.mediateurSite} quoi="site du médiateur" />
+    </p>
+  );
+}
+
+/**
  * Où nous écrire, dit tel quel (24/09) : l'adresse de contact dès qu'elle est
  * fournie, sinon le formulaire de l'accueil sous son vrai nom. Se lit après
  * « écrivez-nous » : « … à l'adresse x » ou « … depuis le formulaire… ».

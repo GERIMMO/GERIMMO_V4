@@ -1,6 +1,6 @@
 import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
-import { Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
+import { Article, CoordonneesMediateur, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
 import {
   CONDITIONS_DATE,
   REGIME_TVA,
@@ -579,26 +579,44 @@ export default async function PageConditions() {
         </p>
         {/* 23/10 (relecture) : la phrase renvoyait au médiateur « désigné aux
             mentions légales » alors qu'aucun ne l'est (les mentions disent
-            « Adhésion à venir »). Les coordonnées du médiateur sont des faits
-            d'éditeur lus en base, comme l'adresse de contact ci-dessus : chacune
-            s'affiche « à venir » tant qu'elle manque, et leur saisie ne change
-            pas CONDITIONS_VERSION. */}
-        <p>
-          À défaut de solution amiable, le{" "}
-          <b className="font-semibold">Client consommateur ou
-          non-professionnel</b> peut recourir gratuitement, avant toute saisine
-          du juge, au médiateur de la consommation dont les coordonnées suivent ;
-          elles sont reprises aux{" "}
-          <Link href="/mentions-legales" className="lien-texte">
-            mentions légales
-          </Link>
-          .
-        </p>
-        <p className="whitespace-pre-line [overflow-wrap:anywhere]">
-          <Fait valeur={EDITEUR.mediateurNom} quoi="médiateur de la consommation" />{"\n"}
-          <Fait valeur={EDITEUR.mediateurAdresse} quoi="adresse du médiateur" />{"\n"}
-          <Fait valeur={EDITEUR.mediateurSite} quoi="site du médiateur" />
-        </p>
+            « Adhésion à venir »). Le médiateur est un fait d'éditeur lu en
+            base, comme l'adresse de contact ci-dessus : sa saisie ne change pas
+            CONDITIONS_VERSION.
+            Seconde relecture du 23/10 : sans médiateur, la phrase disait ses
+            coordonnées « reprises aux mentions légales », qui n'en reprennent
+            aucune, et une adresse saisie sans nom s'affichait ici mais pas aux
+            mentions. Les deux pages partagent désormais CoordonneesMediateur,
+            conditionné au nom ; sans nom, la phrase dit l'adhésion à venir.
+            Libellé à valider dans le lot juridique. */}
+        {EDITEUR.mediateurNom ? (
+          <>
+            <p>
+              À défaut de solution amiable, le{" "}
+              <b className="font-semibold">Client consommateur ou
+              non-professionnel</b> peut recourir gratuitement, avant toute
+              saisine du juge, au médiateur de la consommation ci-dessous, dont
+              les coordonnées figurent aussi aux{" "}
+              <Link href="/mentions-legales" className="lien-texte">
+                mentions légales
+              </Link>
+              .
+            </p>
+            <CoordonneesMediateur editeur={EDITEUR} />
+          </>
+        ) : (
+          <p>
+            À défaut de solution amiable, le{" "}
+            <b className="font-semibold">Client consommateur ou
+            non-professionnel</b> peut recourir gratuitement, avant toute
+            saisine du juge, à un médiateur de la consommation. L&apos;Éditeur
+            n&apos;a pas encore adhéré à un dispositif de médiation :
+            l&apos;organisme et ses coordonnées seront indiqués ici et aux{" "}
+            <Link href="/mentions-legales" className="lien-texte">
+              mentions légales
+            </Link>{" "}
+            dès l&apos;adhésion.
+          </p>
+        )}
       </Article>
       <Article titre="Annexe — Traitement de données pour le compte du Client (article 28 du RGPD)">
         <p>

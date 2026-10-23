@@ -6,13 +6,18 @@
  * sous-traitants donnent une empreinte de référence, qui doit être celle que src/lib/conditions-versions.json déclare
  * pour la version en vigueur (CONDITIONS_VERSION).
  *
+ * La page est rendue sous plusieurs identités fictives (VARIANTES : médiateur désigné ou non, coordonnées du médiateur
+ * manquantes, adresse de contact seule, identité vide) : l'empreinte de garde couvre chaque branche du texte qui dépend
+ * de l'identité (relecture adverse du 24/10, I3).
+ *
  * QUAND CE TEST ÉCHOUE, le texte a changé :
  *  - le changement touche le contrat : nouvelle version (CONDITIONS_VERSION et CONDITIONS_DATE dans lib/editeur.ts),
  *    puis une entrée de plus dans conditions-versions.json (date d'effet, nature, résumé, empreinte affichée ici) ;
  *    les entrées des versions passées ne se modifient pas ;
  *  - il ne touche pas le contrat (correction sans effet décidée par le dirigeant) : nouvelle empreinte pour la même
- *    version, avec la décision citée dans « note ». L'archive en ligne, elle, refusera l'archivage d'un texte différent
- *    sous la même version et alertera le relais.
+ *    version ; l'ancienne passe dans « empreintes_precedentes » et « note » dit pourquoi, avec la décision (le test
+ *    l'exige). L'archive en ligne, elle, refusera l'archivage d'un texte différent sous la même version et alertera le
+ *    relais.
  *
  * Sans base : la lecture de l'identité est remplacée, l'en-tête et le pied du site aussi.
  */
@@ -21,6 +26,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DOCUMENTS_PUBLIES,
+  empreinteDeGarde,
   empreinteDeReference,
   extraireTexteContractuel,
   formeDeReference,
@@ -52,10 +58,31 @@ const IDENTITE_FIXE: Record<string, string | null> = {
   ...Object.fromEntries(PRESTATAIRES.map((p) => [cleCoordonnees(p), `Coordonnées fictives de ${p.nom}`])),
 };
 
+/**
+ * Les branches du texte qui dépendent de l'identité (relecture adverse du 24/10, I3) : la garde rend la page sous
+ * chacune, et l'empreinte de garde les couvre toutes. Sans elles, le paragraphe du médiateur désigné (article 17,
+ * `CoordonneesMediateur`) ou l'encadré « en cours de finalisation » pouvaient changer sans faire échouer la CI — alors
+ * que la saisie du médiateur, décision du 23/10, ne change pas la version. Ajouter une variante change l'empreinte.
+ */
+const MEDIATEUR_FICTIF = {
+  mediateurNom: "Médiateur fictif de la consommation",
+  mediateurAdresse: "2 rue Fictive, 75000 Paris",
+  mediateurSite: "https://mediateur.example",
+};
+const VARIANTES: readonly { variante: string; identite: Record<string, string | null> }[] = [
+  { variante: "identite_complete_sans_mediateur", identite: IDENTITE_FIXE },
+  { variante: "identite_complete_avec_mediateur", identite: { ...IDENTITE_FIXE, ...MEDIATEUR_FICTIF } },
+  { variante: "mediateur_sans_coordonnees", identite: { ...IDENTITE_FIXE, mediateurNom: MEDIATEUR_FICTIF.mediateurNom } },
+  { variante: "adresse_de_contact_seule", identite: { email: "contact@example.com" } },
+  { variante: "identite_vide", identite: {} },
+];
+
 const lecture = vi.hoisted(() => ({ valeurs: {} as Record<string, string | null> }));
-vi.mock("@/lib/editeur-serveur", () => ({
-  lireEditeur: async () => ({ editeur: lecture.valeurs, indisponible: false }),
-}));
+// Comme lib/editeur-serveur.ts : l'identité du code recouverte par les valeurs saisies.
+vi.mock("@/lib/editeur-serveur", async () => {
+  const { identiteDepuisValeurs } = await import("@/lib/identite-editeur");
+  return { lireEditeur: async () => ({ editeur: identiteDepuisValeurs(lecture.valeurs), indisponible: false }) };
+});
 vi.mock("@/components/chrome-public", () => ({ EnTetePublic: () => null, PiedPublic: () => null }));
 import Conditions from "../src/app/conditions/page";
 
@@ -65,6 +92,20 @@ beforeEach(() => {
 
 async function pageRendue(): Promise<string> {
   return renderToStaticMarkup(await Conditions());
+}
+
+/** Le texte contractuel de /conditions rendu sous chaque variante de l'identité. */
+async function rendusDeGarde(): Promise<{ variante: string; html: string }[]> {
+  const rendus: { variante: string; html: string }[] = [];
+  for (const { variante, identite } of VARIANTES) {
+    lecture.valeurs = { ...identite };
+    const extraction = extraireTexteContractuel(await pageRendue(), "conditions_clients");
+    if (!extraction.ok) throw new Error(`${variante} : texte contractuel introuvable (${extraction.motif})`);
+    if (extraction.version !== CONDITIONS_VERSION) throw new Error(`${variante} : version ${extraction.version}`);
+    rendus.push({ variante, html: extraction.html });
+  }
+  lecture.valeurs = { ...IDENTITE_FIXE };
+  return rendus;
 }
 
 describe("garde du code : le texte des conditions ne change pas sans nouvelle version", () => {
@@ -97,18 +138,51 @@ describe("garde du code : le texte des conditions ne change pas sans nouvelle ve
     }
   });
 
-  it("l'empreinte de référence de /conditions est celle de conditions-versions.json pour la version en vigueur", async () => {
-    const extraction = extraireTexteContractuel(await pageRendue(), "conditions_clients");
-    expect(extraction.ok).toBe(true);
-    if (!extraction.ok) return;
-    expect(extraction.version).toBe(CONDITIONS_VERSION);
-    const calculee = empreinteDeReference(extraction.html);
+  it("l'empreinte de garde de /conditions (toutes les variantes de l'identité) est celle de conditions-versions.json", async () => {
+    const rendus = await rendusDeGarde();
+    const calculee = empreinteDeGarde(rendus);
     const declaree = versionDeclaree("conditions_clients", CONDITIONS_VERSION)?.empreinte_reference;
     expect(
       calculee,
       `Le texte des conditions a changé sans nouvelle version (CONDITIONS_VERSION = ${CONDITIONS_VERSION}). ` +
         `Empreinte calculée : ${calculee}. Voir l'en-tête de tests/conditions-empreinte.test.ts.`
     ).toBe(declaree);
+  });
+
+  it("I3 : chaque branche de l'identité est rendue — médiateur désigné, coordonnées manquantes, encadré et ses deux renvois", async () => {
+    const rendus = Object.fromEntries((await rendusDeGarde()).map((r) => [r.variante, r.html]));
+    expect(rendus.identite_complete_sans_mediateur).toContain("n&#x27;a pas encore adhéré à un dispositif de médiation");
+    expect(rendus.identite_complete_avec_mediateur).toContain("au médiateur de la consommation ci-dessous");
+    expect(rendus.identite_complete_avec_mediateur).toContain("Médiateur fictif de la consommation");
+    expect(rendus.identite_complete_avec_mediateur).toContain("https://mediateur.example");
+    expect(rendus.mediateur_sans_coordonnees).toContain("adresse du médiateur (à venir)");
+    expect(rendus.adresse_de_contact_seule).toContain("Document en cours de finalisation");
+    expect(rendus.adresse_de_contact_seule).toContain('href="mailto:contact@example.com');
+    expect(rendus.identite_vide).toContain("formulaire de contact de l&#x27;accueil");
+    // Cinq rendus distincts : aucune variante n'est superflue.
+    expect(new Set(Object.values(rendus)).size).toBe(VARIANTES.length);
+  });
+
+  it("I3 : un mot changé dans le paragraphe du médiateur désigné change l'empreinte de garde", async () => {
+    const rendus = await rendusDeGarde();
+    const reference = empreinteDeGarde(rendus);
+    const modifies = rendus.map((r) =>
+      r.variante === "identite_complete_avec_mediateur" ? { ...r, html: r.html.replace("avant toute saisine du juge, au médiateur", "après saisine du juge, au médiateur") } : r
+    );
+    expect(modifies).not.toEqual(rendus);
+    expect(empreinteDeGarde(modifies)).not.toBe(reference);
+    // L'empreinte d'un seul rendu, sans médiateur, ne l'aurait pas vu.
+    const sansMediateur = rendus.find((r) => r.variante === "identite_complete_sans_mediateur")!;
+    expect(modifies.find((r) => r.variante === "identite_complete_sans_mediateur")!.html).toBe(sansMediateur.html);
+  });
+
+  it("I3 : une empreinte relevée de nouveau sous la même version garde les précédentes et dit pourquoi", () => {
+    for (const [document, version, v] of versionsDeclarees()) {
+      const precedentes = v.empreintes_precedentes ?? [];
+      for (const e of precedentes) expect(e, `${document} ${version}`).toMatch(/^[0-9a-f]{64}$/);
+      expect(precedentes, `${document} ${version} : l'empreinte en vigueur ne peut pas être aussi une précédente`).not.toContain(v.empreinte_reference);
+      if (precedentes.length > 0) expect(v.note?.trim().length ?? 0, `${document} ${version} : « note » obligatoire`).toBeGreaterThan(20);
+    }
   });
 
   it("le rendu est déterministe : deux rendus, une seule empreinte", async () => {

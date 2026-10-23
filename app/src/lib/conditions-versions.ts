@@ -9,9 +9,10 @@
 //    empreinte = SHA-256 (hexadécimal) des octets UTF-8 de `texte_html`, tel qu'il est rangé.
 //
 // 2. LA GARDE DU CODE (`conditions-versions.json`, test tests/conditions-empreinte.test.ts). En intégration continue,
-//    la page est rendue avec une identité FICTIVE et FIXE ; l'empreinte de son texte contractuel, débarrassé des
-//    classes et des styles (`formeDeReference`), et de la liste figée des sous-traitants (`listeFigeeSousTraitants`)
-//    doit être celle que le fichier JSON donne pour la version en vigueur. Un mot changé sans nouvelle version fait
+//    la page est rendue sous plusieurs identités FICTIVES et FIXES (une par branche du texte qui dépend de l'identité :
+//    médiateur désigné ou non, coordonnées manquantes, identité vide…) ; l'empreinte de ces textes contractuels,
+//    débarrassés des classes et des styles (`formeDeReference`), et de la liste figée des sous-traitants
+//    (`listeFigeeSousTraitants`) — `empreinteDeGarde` — doit être celle que le fichier JSON donne pour la version. Un mot changé sans nouvelle version fait
 //    échouer le test. Cette empreinte de référence ne vaut que pour le code : elle diffère de celle de l'archive, qui
 //    porte l'identité réelle.
 //
@@ -82,7 +83,12 @@ export type VersionDeclaree = {
   resume_modifications: string;
   /** Empreinte de référence du texte rendu avec l'identité fictive des tests : garde du code, pas l'empreinte archivée. */
   empreinte_reference: string;
-  /** Pourquoi l'empreinte a été relevée de nouveau sans changer de version, avec la décision qui l'autorise. */
+  /** Les empreintes de référence relevées avant celle-ci sous la même version (la plus ancienne d'abord). */
+  empreintes_precedentes?: string[];
+  /**
+   * Pourquoi l'empreinte a été relevée de nouveau sans changer de version, avec la décision qui l'autorise. Obligatoire
+   * dès que `empreintes_precedentes` n'est pas vide (tests/conditions-empreinte.test.ts).
+   */
   note?: string;
 };
 
@@ -283,6 +289,21 @@ export function empreinteIdentite(identite: Record<string, string | null>): stri
     .sort()
     .map((cle) => [cle, identite[cle] ?? null]);
   return sha256Hex(JSON.stringify(paires));
+}
+
+/**
+ * L'empreinte de la garde du code (relecture adverse du 24/10, I3) : le texte contractuel rendu sous CHAQUE variante
+ * fictive de l'identité (médiateur désigné ou non, coordonnées manquantes, adresse de contact seule, identité vide…),
+ * chacun sous la forme de référence et précédé du nom de sa variante, puis la liste figée des sous-traitants. Un seul
+ * rendu laissait hors de la garde les passages qui n'apparaissent qu'avec certaines identités (le paragraphe du
+ * médiateur désigné, que la décision du 23/10 activera sans changer de version).
+ */
+export function empreinteDeGarde(
+  rendus: readonly { variante: string; html: string }[],
+  sousTraitants: ReturnType<typeof listeFigeeSousTraitants> = listeFigeeSousTraitants()
+): string {
+  const textes = rendus.map((r) => `--- ${r.variante} ---\n${formeDeReference(r.html)}`).join("\n");
+  return sha256Hex(`${textes}\n--- sous-traitants ---\n${JSON.stringify(sousTraitants)}`);
 }
 
 // ── Extraction du texte contractuel d'une page ─────────────────────────────────────────────────────────────────

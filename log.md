@@ -6688,3 +6688,28 @@ Risque résiduel à faire relire par un juriste dès que possible : valeur proba
 Décision du dirigeant de publier au fur et à mesure. Contenu : médiateur non bloquant (vente ouverte), audit A03 (portefeuille dans les agrégats de charges), A04 (exports lus en entier, liste d'attente comprise), A06/A07 (textes), inscription PRO-4/PRO-5, jour de Paris, retours N2 au point du matin, message 429, `/admin/donnees` au menu, point du matin limité aux 12 derniers passages par mission (« Point invalide » toutes les 5 min depuis 14 h 55 UTC), garde « CI verte » des migrations, wiki et journal du 23/10. Le lot facturation A01/A02 a été retiré de cette publication (commits `ae9e57b` et `c5dd11e`) après la relecture adverse ; il part dans la publication suivante, corrigé.
 
 Protocole : sauvegarde 40011575512 (19 h 30 UTC, réussie) ; simulation 40011579066 (réussie, tout annulé) ; CI 40011569334 verte sur `c5dd11e` ; application 40014218941 de `20261023161500_charges_agregats_portefeuille.sql` (réussie, version enregistrée, contrôle du portefeuille vérifié en lecture) ; fusion squash au SHA exact `c5dd11e` → `b0153b6` ; Vercel `dpl_H4edQ9eFUMhmgXBemBY2cHbFvBS1` READY sur gerimmo.app (19 h 50 UTC). Recette de production et chantier Stripe en clés de test lancés sur `main` ; leur résultat est consigné à l'entrée suivante.
+
+
+## [2026-10-23] decision | Signatures, réseau, nettoyage Vercel et préparation Node 24
+
+Réponses écrites du dirigeant, conservées mot pour mot :
+
+- « garder ouvert, les communes doivent s'ouvrir au fur et à mesures en fonctions des inscription des artisans »
+- « Je reconnecte le superadmin »
+- « Oui, supprimer ces deux anciens réglages »
+- « Garder les protections actuelles pour l’instant »
+- « Préparer la montée des tests vers Node 24 »
+- « Oui, supprimer ces 16 prévisualisations »
+
+Constat à 20 h 01 (Paris) : signatures maintenues ouvertes, aucun arrêt global/signatures, aucun envoi effectué ; état du réseau constaté avant la seconde publication du soir (aucun artisan alors éligible). Les deux réglages Youtrust Preview et les 16 prévisualisations du 20 octobre sont supprimés ; chacune des 16 pages est vérifiée absente. Le site public reste sain sur e53298a. Protections existantes conservées sans achat. Préparation Node 24 hors dépôt : types 24.19.2, six workflows, droits CI contents:read ; 39 contrôles de scripts réussis sous Node 24.19.0. Intégration après fusion du lot Claude, validation complète non encore effectuée.
+
+## [2026-10-23] audit | Classement des demandes et état exact des retours
+
+Console reconnectée. Deux sollicitations publicitaires classées traitées à 19 h 57, sans réponse. Les deux retours du 30 septembre passent en examen : réponse par e-mail directement dans la page Contact encore absente ; parcours d’invitation à revérifier sur dossier fictif. Aucun retour déclaré résolu sans preuve. Aucune entrée deploy pour ces réglages externes ni pour la PR 242 non encore livrée.
+
+
+## [2026-10-23] decision | Coordination avec le chantier Conformité V1 de Claude
+
+Le dirigeant transmet le compte rendu de Claude et la consigne : « Dire à Codex de sauter le point 3.4.4 de son prompt (conditions V1) : je m'en occupe. » Le point 3.4.4 est donc retiré du périmètre Codex. Les travaux de conformité de Claude sur l'acceptation, la vente, les signatures, les comptes et la conservation ne sont pas modifiés par le lot PAY-5. Celui-ci est raccordé à main 20b3ffa après les PR 238 et 244, avant nouvelle validation et publication séparée.
+
+Les recettes de production 40014683172 et 40019199531 et les essais Stripe sans argent réel 40014686664 et 40019203587 sont vérifiés réussis dans GitHub. Le mécanisme désormais publié pour le réseau suit les zones et métiers choisis par l'artisan validé ; l'ancien passage par une ouverture manuelle de chaque commune n'est plus la règle actuelle. Ces constats ne valent pas publication de la conformité V1 ni du lot PAY-5.

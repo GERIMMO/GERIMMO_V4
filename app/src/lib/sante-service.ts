@@ -90,6 +90,8 @@ const LIBELLES_BILAN: Record<string, string> = {
   alignees: "mises à jour",
   stripe_repris: "réceptions Stripe reprises",
   stripe_controles: "dossiers Stripe contrôlés",
+  stripe_inventories: "souscriptions Stripe inventoriées",
+  stripe_non_suivis: "souscriptions Stripe non rattachées",
   stripe_ecarts: "dossiers présentant un écart Stripe",
   resiliees: "abonnements terminés",
   avoirs_portes: "avoirs reportés",

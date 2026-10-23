@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { InventaireStripe } from "./inventaire-stripe";
 import { formaterDateHeureParis } from "@/lib/heure-paris";
 export type ControleStripe = { en_attente: number; a_reprendre: number; a_controler: number; ecarts: number;
   dossiers: { organization_id: string; name: string; stripe_controle_le: string; stripe_controle_ecarts: string[] }[] };
@@ -25,5 +27,6 @@ export function SuiviStripe({ controle }: { controle: ControleStripe | null }) {
       </li>)}</ul>}
       {controle.ecarts > controle.dossiers.length && <p className="text-sm">Les 50 premiers dossiers sont affichés ; {controle.ecarts} présentent un écart au total.</p>}
     </>}
+    <Suspense fallback={<p className="mt-5 text-sm" role="status">Chargement de l’inventaire Stripe…</p>}><InventaireStripe /></Suspense>
   </section>;
 }

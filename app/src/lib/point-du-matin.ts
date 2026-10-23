@@ -181,10 +181,10 @@ const PLAFOND_FILE=30;
  * les idées et les N2, les plus récents d'abord, ont la leur. Une lecture en échec rend toute la file indisponible.
  */
 async function lireRetoursATraiter(db:Lecteur):Promise<{data:Attentes['retours']|null;error:unknown}>{
- const colonnes='id,titre,nature,gravite,etat',etats=['nouveau','en_examen'];
+ const etats=['nouveau','en_examen'];
  const [bloquants,autres]=await Promise.all([
-  db.from('retours_utilisateurs').select(colonnes).in('etat',etats).eq('nature','bug').eq('gravite','N1').order('cree_le',{ascending:true}).limit(PLAFOND_FILE),
-  db.from('retours_utilisateurs').select(colonnes).in('etat',etats).or('nature.eq.idee,and(nature.eq.bug,gravite.eq.N2)').order('cree_le',{ascending:false}).limit(PLAFOND_FILE),
+  db.from('retours_utilisateurs').select('id,titre,nature,gravite,etat').in('etat',etats).eq('nature','bug').eq('gravite','N1').order('cree_le',{ascending:true}).limit(PLAFOND_FILE),
+  db.from('retours_utilisateurs').select('id,titre,nature,gravite,etat').in('etat',etats).or('nature.eq.idee,and(nature.eq.bug,gravite.eq.N2)').order('cree_le',{ascending:false}).limit(PLAFOND_FILE),
  ]);
  const error=bloquants.error??autres.error;
  if(error)return {data:null,error};

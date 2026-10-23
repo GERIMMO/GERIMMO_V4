@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { FORMULAIRE_ACCUEIL, type FaitEditeur, type Prestataire } from "@/lib/editeur";
+import { ATTRIBUT_TEXTE, ATTRIBUT_VERSION, type DocumentConditions } from "@/lib/conditions-versions";
 
 // Coquille des pages légales : mentions légales, conditions générales,
 // confidentialité. Les trois avaient chacune leur en-tête avant le 11/09 —
@@ -140,12 +141,37 @@ export function TableauPrestataires({
   );
 }
 
+/**
+ * Le cadre des pages légales : en-tête et pied du site public, colonne de lecture. Partagé par la coquille et par les
+ * pages des versions archivées des conditions (24/10), qui affichent un texte rangé tel quel.
+ */
+export function CadreLegal({
+  chemin,
+  children,
+}: {
+  /** Le chemin de la page : son lien est marqué dans le pied. */
+  chemin: "/mentions-legales" | "/conditions" | "/confidentialite";
+  children: ReactNode;
+}) {
+  return (
+    <div className="site-public flex min-h-full flex-1 flex-col bg-[var(--creme)]">
+      <EnTetePublic />
+
+      <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 py-6 sm:px-7 sm:py-10">{children}</main>
+
+      <PiedPublic courant={chemin} />
+    </div>
+  );
+}
+
 export function CoquilleLegale({
   titre,
   chapo,
   chemin,
   incomplet,
   courriel,
+  texteContractuel,
+  apres,
   children,
 }: {
   titre: string;
@@ -162,38 +188,55 @@ export function CoquilleLegale({
    * clauses restaient à rédiger.
    */
   incomplet: boolean;
+  /**
+   * Un document contractuel (24/10) : le titre, le chapeau, l'encadré et les articles sont rangés dans un élément
+   * marqué du document et de sa version. C'est ce texte, et lui seul, que l'archive des versions range et que la
+   * garde du code empreinte (lib/conditions-versions.ts).
+   */
+  texteContractuel?: { document: DocumentConditions; version: string };
+  /** Ce qui suit le texte sans en faire partie : liens de navigation, hors de l'empreinte. */
+  apres?: ReactNode;
   children: ReactNode;
 }) {
-  return (
-    <div className="site-public flex min-h-full flex-1 flex-col bg-[var(--creme)]">
-      <EnTetePublic />
+  const contenu = (
+    <>
+      <div>
+        <h1>{titre}</h1>
+        {chapo && <p className="mt-1 text-sm text-muted-foreground">{chapo}</p>}
+      </div>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 py-6 sm:px-7 sm:py-10">
-        <div>
-          <h1>{titre}</h1>
-          {chapo && <p className="mt-1 text-sm text-muted-foreground">{chapo}</p>}
+      {/* Tant qu'il reste une réserve, le document ne remplit pas son
+          office : on le dit au lecteur plutôt que de le lui laisser croire.
+          Sans compte ni liste (24/09) : la liste des faits d'éditeur
+          envoyait chercher le SIRET sur une page qui n'en parle pas. */}
+      {incomplet && (
+        <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
+          <p className="text-sm">
+            <b className="font-semibold">Document en cours de finalisation.</b>{" "}
+            Certaines informations de ce document restent à préciser ; les
+            passages concernés portent ci-dessous la mention « à venir ».
+            Pour toute question sur ce document, écrivez-nous <OuNousEcrire courriel={courriel} />.
+          </p>
         </div>
+      )}
 
-        {/* Tant qu'il reste une réserve, le document ne remplit pas son
-            office : on le dit au lecteur plutôt que de le lui laisser croire.
-            Sans compte ni liste (24/09) : la liste des faits d'éditeur
-            envoyait chercher le SIRET sur une page qui n'en parle pas. */}
-        {incomplet && (
-          <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
-            <p className="text-sm">
-              <b className="font-semibold">Document en cours de finalisation.</b>{" "}
-              Certaines informations de ce document restent à préciser ; les
-              passages concernés portent ci-dessous la mention « à venir ».
-              Pour toute question sur ce document, écrivez-nous <OuNousEcrire courriel={courriel} />.
-            </p>
-          </div>
-        )}
-
-        {children}
-      </main>
-
-      <PiedPublic courant={chemin} />
-    </div>
+      {children}
+    </>
+  );
+  return (
+    <CadreLegal chemin={chemin}>
+      {texteContractuel ? (
+        <div
+          {...{ [ATTRIBUT_TEXTE]: texteContractuel.document, [ATTRIBUT_VERSION]: texteContractuel.version }}
+          className="space-y-4"
+        >
+          {contenu}
+        </div>
+      ) : (
+        contenu
+      )}
+      {apres}
+    </CadreLegal>
   );
 }
 

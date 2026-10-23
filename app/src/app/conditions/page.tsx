@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Article, CoordonneesMediateur, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
 import {
   CONDITIONS_DATE,
+  CONDITIONS_VERSION,
   REGIME_TVA,
   courrielDeContact,
   documentsIncomplets,
@@ -98,6 +99,17 @@ export default async function PageConditions() {
       chemin="/conditions"
       incomplet={(indisponible || documentsIncomplets(EDITEUR)) || Object.values(CLAUSES).some((c) => !c)}
       courriel={courrielDeContact(EDITEUR)}
+      // 24/10 (plan de conformité, R12) : le texte contractuel est marqué de son document et de sa version ; l'archive
+      // des versions le range tel que publié, la garde du code l'empreinte (lib/conditions-versions.ts). Le lien vers
+      // les versions archivées suit le texte sans en faire partie.
+      texteContractuel={{ document: "conditions_clients", version: CONDITIONS_VERSION }}
+      apres={
+        <nav aria-label="Versions des conditions" className="text-sm text-[var(--texte-secondaire)]">
+          <Link href="/conditions/versions" className="lien-texte">
+            Versions archivées des conditions générales
+          </Link>
+        </nav>
+      }
     >
       <Article titre="1. Objet">
         <p>

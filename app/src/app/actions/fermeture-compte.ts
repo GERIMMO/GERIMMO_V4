@@ -75,6 +75,11 @@ export async function programmerFermetureCompte(_etat: EtatRetour, formulaire: F
   if ("erreur" in droit) return { erreur: droit.erreur };
   const service = clientDeService();
   if (!service) return { erreur: "La clé de service n'est pas configurée sur ce serveur : la fermeture ne peut pas être programmée." };
+  // Déjà programmée (second clic, autre onglet) : refus AVANT tout geste Stripe — défaire l'arrêt d'un second essai
+  // lèverait celui de la fermeture déjà programmée.
+  const existante = await service.from("fermetures_comptes").select("id").eq("account_id", accountId).eq("statut", "programmee").limit(1).maybeSingle();
+  if (existante.error) return { erreur: "Les fermetures programmées sont illisibles : rien n'a été programmé." };
+  if (existante.data) return { erreur: "Une fermeture est déjà programmée pour ce compte." };
 
   const simulation = await service.rpc("simuler_fermeture_compte", { p_account: accountId });
   if (simulation.error || !simulation.data) return { erreur: simulation.error ? sansJargon(simulation.error.message) : "Le bilan est indisponible." };
@@ -106,7 +111,8 @@ export async function programmerFermetureCompte(_etat: EtatRetour, formulaire: F
       p_remboursement: remboursement,
     });
     if (error || !data) {
-      if (annuler) await annuler();
+      // 23505 : une fermeture a été programmée entre-temps ; son arrêt Stripe est le même et doit rester.
+      if (annuler && (error as { code?: string } | null)?.code !== "23505") await annuler();
       return { erreur: error ? sansJargon(error.message) : "La programmation n'est pas confirmée : réessayez." };
     }
     const r = data as { effacement_prevu_le: string };

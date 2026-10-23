@@ -159,6 +159,7 @@ type SuiteAFaire = {
   choix: ChoixFermeture | null;
   adresse_courriel: string | null;
   demandee_le: string;
+  derniere_activite_le: string | null;
   executee_le: string;
   mode_effacement: "suppression" | "neutralisation";
   bilan_execution: BilanFermeture & { fichiers_hors_documents?: { compartiment: string; chemin: string }[] };
@@ -260,7 +261,7 @@ export async function traiterSuitesComptes(db: SupabaseClient, d: DependancesSui
               origine: s.origine,
               executeeLe: s.executee_le,
               demandeeLe: s.demandee_le,
-              derniereActivite: null,
+              derniereActivite: s.derniere_activite_le,
               bilan: { ...s.bilan_execution, mode: s.mode_effacement },
               archives: s.archives ?? [],
               remboursementCents: rembourse,

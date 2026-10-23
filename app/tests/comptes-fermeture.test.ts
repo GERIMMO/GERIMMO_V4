@@ -231,6 +231,15 @@ describe("suites de nuit (doublures de la base, de Stripe et de l'envoi)", () =>
     expect(html).toContain("https://site.example.com/confidentialite");
   });
 
+  it("fermeture pour inactivité : le courriel dit la dernière activité, pas une demande", async () => {
+    const b = fausseBase({ suites: [{ ...suite, origine: "inactivite", choix: null, remboursement_prevu_cents: null, stripe_facture_id: null, derniere_activite_le: "2024-12-21T10:00:00Z" }] });
+    const envoyer = vi.fn(async () => ({ id: "m1" }));
+    expect(await traiterSuitesComptes(b.db, { stripe: null, envoyer, site: null, versionMin: null, exports: false })).toMatchObject({ courriels_fermeture: 1, echecs: 0 });
+    const html = lisible((envoyer.mock.calls[0] as unknown as [{ html: string }])[0].html);
+    expect(html).toContain("faute de connexion depuis le 21 décembre 2024");
+    expect(html).not.toContain("à votre demande");
+  });
+
   it("sans Stripe, ou envoi refusé : rien n'est soldé, la nuit suivante reprend ; panne de lecture comptée", async () => {
     const b = fausseBase({ suites: [suite] });
     expect(await traiterSuitesComptes(b.db, { stripe: null, envoyer: vi.fn(), site: null, versionMin: null, exports: false })).toMatchObject({ echecs: 1, courriels_fermeture: 0 });

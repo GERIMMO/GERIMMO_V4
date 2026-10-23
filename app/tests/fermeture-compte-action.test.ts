@@ -19,6 +19,7 @@ const m = vi.hoisted(() => ({
   rendre: vi.fn(),
   verrou: vi.fn(),
   service: true,
+  existante: null as unknown,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({
@@ -34,6 +35,11 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 vi.mock("@/lib/supabase/service", () => ({
   clientDeService: () => m.service ? {
+    from: () => {
+      const q: Record<string, unknown> = {};
+      Object.assign(q, { select: () => q, eq: () => q, limit: () => q, maybeSingle: async () => ({ data: m.existante, error: null }) });
+      return q;
+    },
     rpc: async (nom: string, args: Record<string, unknown>) => {
       m.serviceRpc(nom, args);
       if (nom === "simuler_fermeture_compte") return { data: m.simulation, error: null };
@@ -67,6 +73,7 @@ beforeEach(() => {
   m.simulation = { abonnement: {} };
   m.programmation = { data: { effacement_prevu_le: "2026-11-07" }, error: null };
   m.service = true;
+  m.existante = null;
   m.preparer.mockResolvedValue({ ok: true, remboursement: null, arret: null });
   m.annuler.mockResolvedValue({ ok: true });
 });
@@ -109,11 +116,23 @@ describe("programmer la fermeture", () => {
 
   it("programmation refusée par la base : l'arrêt posé chez Stripe est défait, le verrou rendu", async () => {
     m.simulation = { abonnement: ABO_PAYE };
-    m.programmation = { data: null, error: { message: "Une fermeture est déjà programmée pour ce compte" } };
+    m.programmation = { data: null, error: { code: "P0002", message: "Compte inconnu ou déjà effacé" } };
     const r = await programmerFermetureCompte({}, formulaire({ account_id: COMPTE, demande_id: DEMANDE, choix: "fin_periode" }));
-    expect(r.erreur).toMatch(/déjà programmée/);
+    expect(r.erreur).toMatch(/Compte inconnu/);
     expect(m.annuler).toHaveBeenCalledWith({ doublure: true }, ABO_PAYE, "fin_periode");
     expect(m.rendre).toHaveBeenCalledTimes(1);
+  });
+
+  it("déjà programmée : refus avant tout geste Stripe ; programmée entre-temps (23505) : l'arrêt Stripe reste", async () => {
+    m.simulation = { abonnement: ABO_PAYE };
+    m.existante = { id: "f-deja" };
+    expect((await programmerFermetureCompte({}, formulaire({ account_id: COMPTE, demande_id: DEMANDE, choix: "fin_periode" }))).erreur).toBe("Une fermeture est déjà programmée pour ce compte.");
+    expect(m.preparer).not.toHaveBeenCalled();
+    m.existante = null;
+    m.programmation = { data: null, error: { code: "23505", message: "Une fermeture est déjà programmée pour ce compte" } };
+    await programmerFermetureCompte({}, formulaire({ account_id: COMPTE, demande_id: DEMANDE, choix: "fin_periode" }));
+    expect(m.preparer).toHaveBeenCalledTimes(1);
+    expect(m.annuler).not.toHaveBeenCalled();
   });
 
   it("Stripe refuse : rien n'est programmé", async () => {

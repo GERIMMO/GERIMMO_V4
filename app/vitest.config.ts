@@ -140,6 +140,9 @@ export const FICHIERS_EN_SERIE = [
   // sur bail_signature_circuits, signature_budget, signature_consommations et les cinq tables de supervision) : verrous exclusifs
   // tenus pendant tout l'essai, croisés avec les fichiers parallèles qui écrivent des circuits de signature.
   "tests/retours-oct18-registre.test.ts",
+  // Audit du 23/10, A03 : rejeu de 20261023161500 et de son retour (`create or replace` de charges_recuperables_exercice et
+  // provisions_charges_annee) dans la transaction du fichier, tenue pendant tous ses essais ; regulariser_charges y est appelée.
+  "tests/charges-agregats-portefeuille-base.test.ts",
 ];
 
 export default defineConfig({

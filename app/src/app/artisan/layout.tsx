@@ -74,7 +74,8 @@ export default async function LayoutArtisan({
 
   // Plan de conformité du 23/10 (R10) : dès que les conditions de l'espace artisan sont publiées
   // (CONDITIONS_ARTISANS_VERSION), le compte qui ne les a pas acceptées voit leur case à la place de la page demandée.
-  // D'ici là, rien n'est exigé ni lu. La garde est de parcours : les données restent protégées en base.
+  // D'ici là, rien n'est exigé ni lu. La garde est de parcours : les données restent protégées en base. Elle se tait
+  // pendant un diagnostic du super-administrateur (lecture seule), comme la coquille agence en traversée.
   const [[agenda, sollicitations, pieces], autresEspaces, conditionsAAccepter] = await Promise.all([
     fiche
       ? Promise.all([chargerAgenda(), chargerSollicitations(), chargerPieces()])

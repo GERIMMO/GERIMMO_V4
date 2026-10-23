@@ -103,21 +103,40 @@ describe("la case des conditions selon l'espace (R10, R60)", () => {
 });
 
 describe("la garde de l'espace artisan (R10)", () => {
-  const db = (accepte: boolean) => {
+  /** `supervise` : ce que rend `artisan_supervise()` (l'artisan d'un diagnostic du super-administrateur, sinon null). */
+  const db = (accepte: boolean, supervise: { data: string | null; error: { message: string } | null } = { data: null, error: null }) => {
     const maybeSingle = vi.fn().mockResolvedValue({ data: accepte ? { id: "a" } : null, error: null });
     const chaine = { select: vi.fn(), eq: vi.fn(), limit: vi.fn(), maybeSingle };
     chaine.select.mockReturnValue(chaine);
     chaine.eq.mockReturnValue(chaine);
     chaine.limit.mockReturnValue(chaine);
     const from = vi.fn().mockReturnValue(chaine);
-    return { client: { from } as never, from, chaine };
+    const rpc = vi.fn().mockResolvedValue(supervise);
+    return { client: { from, rpc } as never, from, rpc, chaine };
   };
 
   it("non publiées : rien n'est exigé, rien n'est lu", async () => {
-    const { client, from } = db(false);
+    const { client, from, rpc } = db(false);
     expect(await conditionsArtisansAAccepter(client, "compte-1", NON_PUBLIEES)).toBeNull();
     expect(await conditionsArtisansAAccepter(client, "compte-1")).toBeNull();
     expect(from).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  // Relecture adverse du 24/10 (défaut 2) : en diagnostic, `mon_artisan_id()` rend l'artisan supervisé, mais le compte
+  // connecté est le super-administrateur. La garde lisait SON acceptation (aucune), posait la case à la place de chaque
+  // page, et le clic échouait (diagnostic en lecture seule) : le diagnostic des espaces artisans devenait impossible.
+  it("diagnostic du super-administrateur (lecture seule) : jamais la garde, aucune acceptation lue", async () => {
+    const { client, from, rpc } = db(false, { data: "artisan-supervise", error: null });
+    expect(await conditionsArtisansAAccepter(client, "super-admin", PUBLIEES)).toBeNull();
+    expect(rpc).toHaveBeenCalledWith("artisan_supervise");
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("contexte de diagnostic illisible : la garde s'applique au compte connecté (jamais ouverte par défaut)", async () => {
+    const { client, chaine } = db(false, { data: null, error: { message: "indisponible" } });
+    expect(await conditionsArtisansAAccepter(client, "compte-1", PUBLIEES)).toEqual({ version: "2026-11-15", date: "15 novembre 2026" });
+    expect(chaine.eq).toHaveBeenCalledWith("account_id", "compte-1");
   });
 
   it("publiées et non acceptées : la version à accepter, lue pour ce compte et ce document", async () => {

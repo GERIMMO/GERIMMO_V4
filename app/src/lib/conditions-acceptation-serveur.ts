@@ -95,6 +95,12 @@ export async function versionAccepteePar(
 /**
  * La garde de l'espace artisan (R10) : les conditions de l'espace artisan que ce compte doit encore accepter, ou
  * `null`. Tant qu'elles ne sont pas publiées (CONDITIONS_ARTISANS_VERSION nulle), rien n'est exigé ni même lu.
+ *
+ * Jamais pendant un diagnostic du super-administrateur (relecture adverse du 24/10, défaut 2) : `artisan_supervise()`
+ * désigne alors l'artisan supervisé, dont l'espace s'affiche, mais le compte connecté est celui du super-administrateur.
+ * La garde lisait SON acceptation (aucune), posait la case à la place de chaque page, et le clic échouait (diagnostic en
+ * lecture seule). Rien n'est lu de l'acceptation de l'artisan : on ne lit que celle du compte connecté. Si le contexte de
+ * diagnostic ne peut pas être lu, la garde s'applique au compte connecté (jamais ouverte par défaut).
  */
 export async function conditionsArtisansAAccepter(
   db: SupabaseClient,
@@ -103,6 +109,8 @@ export async function conditionsArtisansAAccepter(
 ): Promise<{ version: string; date: string | null } | null> {
   const version = versionArtisansPubliee(artisans);
   if (!version) return null;
+  const { data: supervise, error: erreurDiagnostic } = await db.rpc("artisan_supervise");
+  if (!erreurDiagnostic && typeof supervise === "string" && supervise) return null;
   if (await versionAccepteePar(db, accountId, "conditions_artisans", version)) return null;
   return { version, date: artisans.date?.trim() || null };
 }

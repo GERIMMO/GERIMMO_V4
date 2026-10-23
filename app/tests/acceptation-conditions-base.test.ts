@@ -312,6 +312,33 @@ describe.skipIf(!url)("acceptation des conditions et classement des artisans (av
     expect(await echec("select * from public.abonnements_sans_accord_conditions('v-nouvelle')")).toMatch(/^42501 Accès réservé au traitement/);
   });
 
+  // Relecture adverse du 24/10 (défaut 2) : la garde de l'espace artisan (conditionsArtisansAAccepter) se tait quand
+  // `artisan_supervise()` désigne un artisan, c'est-à-dire pendant un diagnostic du super-administrateur. Ce contrat-là :
+  // l'artisan supervisé pour le super-administrateur en diagnostic, rien pour l'artisan lui-même ni une fois la session
+  // fermée ; et en diagnostic, l'acceptation lue pour le compte connecté est bien absente, le clic refusé.
+  it("diagnostic : artisan_supervise() désigne l'artisan au seul super-administrateur en session ouverte", async () => {
+    const superAdmin = await compte("acc-super-admin");
+    await db.query("insert into public.memberships(account_id,organization_id,role) values($1,null,'super_admin')", [superAdmin]);
+    const { rows: [{ account_id: compteArtisan }] } = await db.query("select account_id from public.artisans where id = $1", [artisans.Alpha]);
+    await db.query("insert into public.acceptations_cgu(account_id,version,source,document) values($1,'2026-11-15','compte','conditions_artisans')", [compteArtisan]);
+    const s = await id("insert into public.supervision_sessions_artisan(account_id,artisan_id,expire_le,motif) values($1,$2,now() + interval '1 hour','diagnostic essai') returning id", [superAdmin, artisans.Alpha]);
+
+    await session(superAdmin);
+    expect((await db.query("select public.artisan_supervise() a")).rows[0].a).toBe(artisans.Alpha);
+    expect((await db.query("select public.mon_artisan_id() a")).rows[0].a).toBe(artisans.Alpha);
+    // Ce que l'ancienne garde lisait : l'acceptation du super-administrateur, absente ; et son clic est refusé.
+    expect((await db.query("select count(*)::int n from public.acceptations_cgu where account_id = auth.uid() and document = 'conditions_artisans'")).rows[0].n).toBe(0);
+    expect(await echec("select public.accepter_cgu('2026-11-15','compte','conditions_artisans')")).toMatch(/lecture seule/);
+
+    await session(compteArtisan);
+    expect((await db.query("select public.artisan_supervise() a")).rows[0].a).toBeNull();
+
+    await proprietaire();
+    await db.query("update public.supervision_sessions_artisan set fermee_le = now() where id = $1", [s]);
+    await session(superAdmin);
+    expect((await db.query("select public.artisan_supervise() a")).rows[0].a).toBeNull();
+  });
+
   it("rejouée, la migration ne change ni définitions, ni droits, ni commentaires", async () => {
     const avant = await empreinte();
     await db.query(MIGRATION);

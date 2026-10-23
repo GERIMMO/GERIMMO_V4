@@ -1,22 +1,35 @@
 ---
 type: business-rule
 tags: [artisan, reseau, territoire, couverture, super-admin, devis]
-status: stable
+aliases: ["Réseau d'artisans choisi par l'artisan", "Couverture du réseau d'artisans"]
+status: in-progress
 created: 2026-09-29
-updated: 2026-10-16
-sources: ["[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Invitation d'un artisan par un propriétaire]]"]
+updated: 2026-10-23
+sources: ["[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Informations manquantes — 23 octobre 2026]]"]
 ---
 
 # Ouverture du réseau d'artisans
 
-**Énoncé :** la gestion locative est **nationale** ; seul le **réseau d'artisans
-Gerimmo** s'ouvre, **explicitement**, **commune (code INSEE) × métier**, par le
-[[Super Admin]] — et un artisan n'y est proposé que s'il est validé, public et
-rattaché à la commune pour ce métier.
+> Le titre est gardé pour ne pas casser les liens. Depuis la décision du 23/10/2026, le
+> réseau ne « s'ouvre » plus : il suit ce que chaque artisan choisit.
+
+**Énoncé (décidé le 23/10/2026) :** la gestion locative est **nationale**. Le **réseau
+d'artisans Gerimmo** propose, pour un bien, les artisans qui ont **eux-mêmes choisi** une
+zone d'intervention couvrant ce bien et le **métier** demandé, dès que Gerimmo a **validé**
+leur inscription (SIRET vérifié) et que leur profil est **public**. Plus d'ouverture
+commune × métier par le [[Super Admin]].
+
+**État au 23/10/2026 :** décision prise ; livrée par la migration
+`20261023180000_reseau_zone_choisie_par_artisan` et le code qui l'accompagne, **non
+appliquée en production**. Jusqu'à sa mise en production, c'est la règle du 28/09 (section
+« Règle supplantée ») qui s'applique : production à 0 ouverture, donc aucun propriétaire ne
+peut solliciter un artisan du réseau.
 
 ## Fondement
-- Décision produit livrée par la PR #132 (27–28/09/2026) —
-  [[2026-09-28-reseau-national-ouvertures-locales]].
+- Décision du dirigeant du 23/10/2026 (`log.md`, entrée « decision » du 23/10) : « la
+  communes et les métiers à ouvriers seront choisi par l'artisan (même lors du test) » — en
+  réponse à la question « Réseau d'artisans : aucune commune ouverte ; communes et métiers à
+  choisir pour que la persona Artisan fonctionne » ([[Informations manquantes — 23 octobre 2026]]).
 - Pas de fondement réglementaire propre : règle commerciale et de qualité de service.
 
 ## Portée
@@ -28,70 +41,88 @@ rattaché à la commune pour ce métier.
 - Contrôle fait sur l'**adresse du bien**, jamais sur celle du compte ou du siège.
 
 ## Paramètres / valeurs
-- **Aucune ouverture par défaut** : ni département, ni commune, ni métier. Le
-  **filtre Essonne** de l'administration est un réglage d'affichage, **pas une
-  ouverture**.
-- **Où** : Supervision → Couverture (`/admin/couverture`) : choisir département et
-  métier, cocher les communes, rattacher les artisans, puis « Ouvrir ce métier »
-  avec **confirmation explicite**.
-- **Une ouverture par métier** : ouvrir la plomberie n'ouvre pas l'électricité.
-- **Tout ou rien par sélection** : chaque commune sélectionnée doit avoir au moins
-  un artisan éligible pour le métier, sinon aucune n'est ouverte.
-- **Artisan éligible** : statut plateforme valide, **SIRET vérifié**, **visibilité
-  publique**, un compte, pas de blacklist globale, et **rattaché à la commune pour
-  le métier**. La décennale selon la nature des travaux et les autres filtres de
-  l'[[Artisan]] continuent de s'appliquer.
-- **Adresse du bien** : complète, et **commune confirmée** parmi celles du code
-  postal (un code postal peut couvrir plusieurs communes) ; modifier l'adresse
-  invalide la confirmation.
-- **Référentiel** : communes officielles (geo.api.gouv.fr, 27/09/2026, 34 969
-  communes) embarquées dans la base.
+- **Ce que l'artisan choisit** : sa **zone d'intervention** — des codes postaux (`91300`)
+  ou des départements entiers (`91`, `2A`, `974`) — et ses **métiers** (liste fermée :
+  plomberie, chauffage, électricité, menuiserie, serrurerie, nuisibles, autre). Il les
+  déclare à l'inscription, puis les modifie dans « Mon entreprise → Mes métiers et ma
+  zone ». La zone vaut pour **tous** ses métiers.
+- **Quand il est proposé** : statut plateforme **valide** (validation manuelle de Gerimmo,
+  inchangée), **SIRET vérifié**, **profil public** (l'artisan le décide seul ; la validation
+  ne le rend pas public), un **compte** artisan, pas de **liste noire globale**, le métier
+  sur sa fiche, et une zone qui couvre le **code postal du bien** (un département couvre
+  tous ses codes postaux).
+- **Filtres inchangés** : décennale selon la **nature des travaux**, liste noire locale ou
+  relation désactivée avec l'organisation, adresse du bien complète et **commune
+  confirmée** (état « adresse incomplète » sinon), contrôles refaits en base à l'envoi.
+- **Une seule zone** pour le réseau et pour le carnet personnel (règle du carnet :
+  `reseau_contact_dans_zone`, inchangée).
+- **Qui peut modifier zone et métiers** : l'artisan titulaire du compte, et la supervision
+  (fonction en base, sans écran). **Plus une agence** pour un artisan qui a son compte ;
+  une agence garde la main sur une fiche **sans compte** de son carnet **actif** (jamais
+  proposée au réseau). Un propriétaire direct ne le peut pas (depuis le 15/10).
+- **Supervision** : `/admin/couverture` constate la couverture (artisans proposés et
+  déclarés par commune, intérêts, demandes) ; aucune décision n'y est prise. Pour écarter
+  un artisan : suspension de l'inscription ou liste noire globale.
+- **Coordonnées** : l'e-mail d'un artisan du réseau n'est rendu qu'à une organisation qui
+  l'a dans son carnet ; le téléphone est rendu (l'écran l'affiche).
 
 ## Conséquences si non respectée
-- Commune fermée, artisan inéligible ou adresse non confirmée : la base **refuse**
-  la sollicitation d'un artisan du réseau (message explicite ; aucun
-  professionnel sollicité, aucune demande sans destinataire créée).
-- **Fermeture** d'une commune × métier : plus de nouvelles mises en relation ; les
-  devis et interventions déjà engagés se poursuivent.
-- Si le dernier artisan éligible disparaît (privé, non validé, exclu, sans compte,
-  détaché), les nouvelles demandes sont refusées même si la décision d'ouverture
-  reste active.
+- Artisan inéligible ou hors zone, ou adresse non confirmée : la base **refuse** la
+  sollicitation d'un artisan du réseau (« Cet artisan du réseau n'est plus disponible… »,
+  « Complétez l'adresse… » ; aucun professionnel sollicité, aucune demande sans
+  destinataire créée).
+- Si l'artisan retire le bien de sa zone, retire le métier, se remet en privé, est suspendu
+  ou exclu : plus de nouvelle demande ; les devis et interventions déjà engagés se
+  poursuivent.
 
 ## Implications pour l'application
-- Côté gérant : « Vérifier les artisans disponibles pour ce bien » (fiche du bien
-  ou carnet d'artisans) ; la demande de devis reste **dans l'incident, après
-  qualification**.
-- **Commune fermée** : bouton « **Signaler mon intérêt** » (compte, bien, commune,
-  métier ; sans doublon) — aucun artisan contacté, aucune date promise. Les
-  intérêts sont visibles dans Couverture (« Où le réseau est attendu », toute la
-  France).
-- **Carnet personnel** : les contacts personnels éligibles du gérant restent
-  **toujours sollicitables**, même dans une commune fermée — à condition que la
-  **zone de l'artisan couvre le code postal du bien** (`reseau_contact_dans_zone`).
-  Une agence remplit son carnet par l'ajout par SIRET ; un **propriétaire direct**,
-  depuis le 16/10/2026, **par invitation** : l'artisan accepte, Gerimmo le valide
-  ([[Invitation d'un artisan par un propriétaire]]).
-- Contrôles **refaits en base** au moment de l'envoi (une page restée ouverte ne
-  les contourne pas).
-- Traçabilité : chaque sollicitation porte son origine (`historique`, `carnet`,
-  `reseau`) et la commune de départ ; rien n'est supprimé.
+- Côté gérant : « Vérifier les artisans disponibles pour ce bien » ; la demande de devis
+  reste **dans l'incident, après qualification**. États : `adresse_incomplete`,
+  `sans_artisan`, `ouverte` (plus d'état `fermee`).
+- **Sans artisan** : « Signaler mon intérêt » (compte, bien, commune, métier ; sans
+  doublon) ; voie de sortie du propriétaire (clôturer, inviter, appeler lui-même) ;
+  intérêts visibles dans « Où le réseau est attendu ».
+- **Côté artisan** : carte « Suis-je proposé dans le réseau ? » dans « Mon entreprise » et
+  rappel sur « Aujourd'hui » tant qu'une condition manque.
+- **Côté validation** : `/admin/artisans` montre la zone déclarée de chaque inscription.
+- Traçabilité : chaque sollicitation porte son origine (`carnet`, `reseau`) et la commune
+  du bien.
 
-> [!warning] Points à trancher / contradictions
-> - Supplante, pour le réseau, la « zone par codes postaux » du module 8 V3
->   ([[Artisan]], [[Demande et sélection de devis]]).
-> - [[Expansion territoriale autonome]] (19/09) raisonnait en « départements
->   ouverts » : ne pas confondre avec cette ouverture du réseau ; la gestion n'est
->   jamais fermée par territoire.
->
-> - **Carnet personnel du propriétaire direct (relevé du 16/10/2026)** : depuis la PR #170
->   (migration `20261007190000`), l'ajout d'artisan **par SIRET** reste réservé aux
->   agences. La décision du dirigeant du 15/10/2026 (un propriétaire invite un artisan,
->   l'artisan s'inscrit lui-même ; remplace la question D17-B) est **en production depuis
->   le 16/10** (PR #194, fusion `f24dfb0`, migrations `20261014840000` à `20261014849000`) :
->   une fois l'invitation acceptée et l'inscription validée par Gerimmo, l'artisan est
->   sollicitable par ce propriétaire même en commune fermée, pour les biens de sa zone ;
->   `artisan_affectable` est inchangée. Parcours jamais joué de bout en bout en production ;
->   recette n° 17 sur `f24dfb0` verte (38875612888). Voir
->   [[Invitation d'un artisan par un propriétaire]] et [[Propriétaire bailleur]].
-> - Aucune commune n'étant ouverte par défaut, le réseau est **vide au lancement**
->   tant que le super admin n'a pas validé, rattaché et ouvert.
+## Règle supplantée (28/09/2026 → 23/10/2026)
+PR #132 ([[2026-09-28-reseau-national-ouvertures-locales]]) : aucune ouverture par défaut ;
+le super administrateur **rattachait** les artisans aux communes (code INSEE) métier par
+métier, puis **ouvrait** chaque commune × métier avec une confirmation explicite, tout ou
+rien ; une commune non ouverte était « fermée ». Tables `reseau_ouvertures` et
+`reseau_artisan_communes` conservées (historique, retour arrière), ni lues ni écrites après
+`20261023180000`.
+
+> [!warning] Changement du 23/10/2026 et points à trancher
+> - **Supplanté le 23/10/2026** : l'ouverture explicite commune × métier par le super
+>   administrateur (PR #132). Le réseau suit désormais la zone et les métiers choisis par
+>   l'artisan. Effectif seulement à la mise en production de `20261023180000`.
+> - **Choix de mise en œuvre à faire confirmer** : la conception du 23/10 proposait une
+>   seconde liste de communes INSEE par métier, saisie par l'artisan ; la relecture a relevé
+>   la double saisie (zone déjà déclarée à l'inscription), un plafond inventé (1 000
+>   communes) et deux notions de zone contradictoires à l'écran. Le lot retient la zone
+>   **déjà** choisie par l'artisan (codes postaux, départements). Conséquence : une zone par
+>   artisan, la même pour tous ses métiers. Des communes **par métier** restent possibles
+>   plus tard si le dirigeant le demande.
+> - **Téléphone avant sollicitation** : rendu à tout propriétaire dont le bien est dans la
+>   zone. Un propriétaire peut déplacer un bien vide pour lire les numéros d'une autre zone.
+>   Masquer le téléphone tant que l'artisan n'est pas sollicité, ou limiter les changements
+>   de commune d'un bien : à trancher.
+> - **Aucun levier ciblé de la supervision** (par artisan et par zone, ou suspension d'une
+>   commune × métier) : non livré, la décision ne le prévoit pas. Leviers restants :
+>   suspension, liste noire globale.
+> - **Aucun plafond de zone** : un artisan peut déclarer toute la France. Risque de dilution
+>   du réseau ; pas de chiffre dans une source. À trancher si besoin.
+> - **Artisans de test** (bêta, recette G6) : validés, publics et dotés d'une zone, ils sont
+>   proposés aux vrais propriétaires de cette zone (décision du 23/10 : les comptes des amis
+>   sont « des clients comme les autres »). Les garder privés (et passer par l'invitation)
+>   ou limiter leur zone à la commune du bien de test.
+> - **Carnet du propriétaire direct** (relevé du 16/10/2026, inchangé) : ajout par SIRET
+>   réservé aux agences ; le propriétaire **invite** un artisan
+>   ([[Invitation d'un artisan par un propriétaire]]). L'invité reste privé par défaut : il
+>   n'est pas proposé au réseau des autres propriétaires tant qu'il ne se rend pas public.
+> - [[Expansion territoriale autonome]] (19/09) raisonnait en « départements ouverts » :
+>   empreinte commerciale, sans lien avec le réseau.

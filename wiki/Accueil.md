@@ -3,7 +3,7 @@ type: synthesis
 tags: [accueil, vue-ensemble]
 status: in-progress
 created: 2026-07-20
-updated: 2026-10-19
+updated: 2026-10-23
 sources: ["[[2026-09-20-cahier-des-charges-maitre-v3]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Dépôt Gerimmo-V3]]"]
 ---
 
@@ -52,9 +52,12 @@ Gerimmo est publiée le 30/09/2026 sur `gerimmo.app`. Ce qui vaut au lancement :
   avantage tarifaire. CGU en production (`/conditions`) : préavis d'un mois
   (art. 8.8 et 16), rétractation de 14 jours (art. 8.9).
 - **Réseau d'artisans** — [[Ouverture du réseau d'artisans]] : la gestion locative
-  est nationale ; seul le réseau s'ouvre, **commune × métier**, par le
-  [[Super Admin]] ; les artisans du carnet personnel restent sollicitables même en
-  commune fermée, pour les biens que couvre leur zone d'intervention.
+  est nationale. **Décision du 23/10/2026** (migration `20261023180000`, non appliquée
+  en production au 23/10) : chaque artisan choisit sa zone et ses métiers ; validé par
+  Gerimmo et public, il est proposé aux propriétaires de sa zone. Plus d'ouverture
+  commune × métier par le [[Super Admin]] (règle du 28/09, en vigueur jusqu'à la mise en
+  production). Les artisans du carnet personnel restent sollicitables pour les biens que
+  couvre leur zone d'intervention.
 - **[[Signature électronique]]** : circuit Zoho Sign publié le 18/10/2026 (PR #203 à
   #210), **envois aux clients désactivés** ; *au lancement du 30/09 : non activée
   (masquée, décision du 27/09), circuit de transition V0 — le signataire télécharge,
@@ -83,9 +86,17 @@ points à trancher ; les écarts code ↔ cible sont dans
 ## Prochaines étapes suggérées
 1. **Fournir l'identité de l'éditeur** (mentions légales, formulaire de
    rétractation) — [[État du projet et décisions ouvertes]].
-2. **Ouvrir les premières communes du réseau** (valider, rattacher, ouvrir par
-   métier) — [[Ouverture du réseau d'artisans]].
+2. **Faire entrer les premiers artisans dans le réseau** (décision du 23/10/2026 :
+   ils choisissent leur zone et leurs métiers ; Gerimmo valide l'inscription ; mettre
+   en production la migration `20261023180000`) — [[Ouverture du réseau d'artisans]].
 3. **Valider avec des experts** : doctrine financière A6 (expert-comptable),
    matrices A2/A3 et CGU (conseil juridique).
 4. **Combler la connaissance hors-référentiel** : points de douleur des personas
    (entretiens, surtout [[Locataire]]).
+
+> [!warning] Changement du 23/10/2026 — réseau d'artisans
+> - Décision du dirigeant : les communes et les métiers du réseau sont choisis par l'artisan
+>   (sa zone d'intervention et ses métiers), même pendant la bêta ; l'ouverture commune ×
+>   métier par le super administrateur est supplantée. Livrée par la migration
+>   `20261023180000`, non appliquée en production au 23/10 : voir
+>   [[Ouverture du réseau d'artisans]].

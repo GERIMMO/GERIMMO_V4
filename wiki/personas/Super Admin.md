@@ -3,7 +3,7 @@ type: persona
 tags: [role, plateforme]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-16
+updated: 2026-10-23
 sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Fiches des anomalies P3 — audit du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
 ---
 
@@ -58,9 +58,15 @@ Fonction SQL `is_super_admin()` qui court-circuite quasi toutes les policies RLS
   mois offerts), agences 39 € HT jusqu'à 10 lots puis tranches cumulatives, aucun
   bien offert, essai de 2 mois (depuis le 30/09/2026 ; 14 jours avant) puis gel en lecture seule, franchise en base de TVA —
   voir [[Grille tarifaire]], [[Abonnement]], [[2026-09-28-decision-tarification]].
-- **Réseau d'artisans (depuis le 28/09/2026)** : ouvre et ferme le réseau
-  **commune × métier** dans Supervision → Couverture (`/admin/couverture`), valide les
-  artisans et les rattache aux communes, lit les « intérêts signalés » — voir
+- **Réseau d'artisans** : du 28/09/2026 à la mise en production de la migration
+  `20261023180000`, il ouvre et ferme le réseau **commune × métier** dans Supervision →
+  Couverture (`/admin/couverture`) et rattache les artisans aux communes. **Décision du
+  23/10/2026** (non appliquée en production au 23/10) : il n'ouvre ni ne rattache plus
+  rien ; chaque artisan choisit sa zone et ses métiers, et il est proposé dès que le super
+  admin a **validé son inscription** (SIRET vérifié, justificatifs relus — la zone déclarée
+  s'affiche dans l'écran de validation) et qu'il est public. La Couverture devient une
+  lecture (artisans proposés et déclarés par commune, intérêts signalés, demandes). Pour
+  écarter un artisan : suspension ou liste noire globale — voir
   [[Ouverture du réseau d'artisans]].
 - Met à jour les **seuils légaux** des alertes (RM-14.2.5) et crée les agences (16.1).
 - **Création manuelle de tout profil** *(décision du 2026-08-19)* : au-delà des
@@ -161,3 +167,10 @@ les appels payants à l'IA, l'arrêt avant les prochains effets.
 > - X18 : le code prend pour référence d'un bien son nom complet (sa « référence
 >   interne », migration `20261014720000`) ; ni la fiche SA-09 ni la décision X18 ne disent
 >   ce qu'est la référence d'un bien. À faire confirmer au dirigeant.
+
+> [!warning] Changement du 23/10/2026 — réseau d'artisans
+> - Le super administrateur n'ouvre plus le réseau commune × métier et ne rattache plus
+>   les artisans aux communes : chaque artisan choisit sa zone et ses métiers (décision du
+>   dirigeant). Il garde la validation de l'inscription, la suspension et la liste noire
+>   globale ; aucun levier par commune (à trancher si besoin). Migration `20261023180000`,
+>   non appliquée en production au 23/10 ; [[Ouverture du réseau d'artisans]].

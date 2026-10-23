@@ -3,8 +3,8 @@ type: persona
 tags: [role, artisan, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-16
-sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Invitation d'un artisan par un propriétaire]]"]
+updated: 2026-10-23
+sources: ["[[Ouverture du réseau d'artisans]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Invitation d'un artisan par un propriétaire]]"]
 ---
 
 # Artisan
@@ -109,15 +109,20 @@ l'intervention humaine** (RM-A2.11 — obligation d'information de l'artisan).
   Seuils **J-60/J-30/J-7/J+0**.
 - **Recherche d'affectation** : métier + zone + décennale (filtre non désactivable) +
   exclusion des blacklistés, **triée par score**.
-- **Zone d'intervention — supplanté le 28/09/2026 pour le réseau** : la « zone par
-  codes postaux » ci-dessus ne suffit plus à rendre un artisan proposable par le
-  réseau. Depuis la PR #132, le réseau s'ouvre **commune (code INSEE) × métier** par
-  le [[Super Admin]] ; l'artisan doit être **validé** (statut valide, SIRET vérifié),
-  en **visibilité publique**, et **rattaché aux communes** pour chacun de ses
-  métiers. Un artisan du carnet personnel d'un gérant reste sollicitable même dans une
-  commune fermée, pour les biens que couvre sa zone d'intervention (règle du carnet,
-  `reseau_contact_dans_zone`, migrations `20260928081000` et `20261002100000`, inchangée
-  par la PR #194). Voir [[Ouverture du réseau d'artisans]].
+- **Zone d'intervention et réseau — décision du dirigeant du 23/10/2026** (« les communes
+  et les métiers à ouvrir seront choisis par l'artisan, même lors du test », `log.md`) :
+  c'est **l'artisan qui choisit**, à l'inscription puis dans « Mon entreprise », sa **zone**
+  (codes postaux comme `91300`, ou départements entiers comme `91`) et ses **métiers**.
+  Le réseau Gerimmo le propose aux propriétaires dont le bien a un code postal couvert par
+  sa zone, pour chacun de ses métiers, dès que Gerimmo a **validé** son inscription (SIRET
+  vérifié) et qu'il a rendu son profil **public** (la validation ne le fait pas à sa
+  place ; une carte « Suis-je proposé dans le réseau ? » lui dit ce qui manque). Plus
+  d'ouverture commune × métier par le [[Super Admin]]. Une seule zone sert au réseau et
+  au carnet personnel. Une agence ne peut plus modifier la zone ni les métiers d'un
+  artisan qui a son compte. **Livré par la migration `20261023180000` (non appliquée en
+  production au 23/10)** : jusqu'à sa mise en production, la règle du 28/09 (PR #132 :
+  ouverture commune × métier et rattachement par le super-administrateur) reste celle qui
+  s'applique. Voir [[Ouverture du réseau d'artisans]].
 - **Désactivation** (neutre) ≠ **blacklist** (motivée, conservée) : locale (admin
   agence, n'engage que son agence) vs **globale** (super admin seul, faits objectifs,
   réversible par lui seul). Jamais avec intervention en cours ; devis annulés.
@@ -209,14 +214,31 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
   décisions de Gerimmo). L'acceptation le rattache au carnet de ce propriétaire, sans
   adhésion à l'organisation ni validation ; il dépose ensuite RC pro et décennale et
   Gerimmo valide son inscription comme pour tout artisan. Validé, il est sollicitable par ce
-  propriétaire même en commune fermée, pour les biens de sa zone. L'invitation vaut jusqu'à
+  propriétaire pour les biens de sa zone, même s'il n'est pas proposé par le réseau (profil
+  resté privé, qui est le réglage par défaut). L'invitation vaut jusqu'à
   la fin du 30e jour de Paris. Détail : [[Invitation d'un artisan par un propriétaire]].
 - **Ce qui protège sa fiche** (même PR) : un propriétaire direct ne peut pas modifier sa
   zone ni ses métiers (migration `20261014841000`) ; les colonnes internes de sa fiche
   (motifs de refus et d'exclusion, auteurs et dates des décisions, échéances de purge) ne
   sont plus lisibles par aucune organisation cliente, agences comprises (`20261014842000`) ;
   une liste noire locale exige une relation préalable et sa levée ne le fait jamais entrer
-  dans un carnet (`20261014843000`, `20261014849000`).
+  dans un carnet (`20261014843000`, `20261014849000`). Décision du 23/10/2026 (migration
+  `20261023180000`, non appliquée en production au 23/10) : une agence ne peut plus non plus
+  modifier sa zone ni ses métiers s'il a son compte, et son e-mail n'est plus montré par le
+  réseau avant toute relation (son téléphone, si).
+
+> [!warning] Changement du 23/10/2026 — réseau choisi par l'artisan
+> - **Ce qui change** : le réseau d'artisans ne s'ouvre plus commune × métier par le
+>   [[Super Admin]] (règle du 28/09, PR #132). La zone et les métiers que l'artisan déclare
+>   suffisent ; il est proposé dès qu'il est validé (SIRET vérifié) et public. Plus d'état
+>   « commune fermée » : sans artisan dans la zone, l'écran dit « aucun artisan disponible ».
+> - **Ce qui ne change pas** : validation manuelle par Gerimmo, décennale selon la nature
+>   des travaux, listes noires globale et locale, compte obligatoire, adresse du bien
+>   confirmée, carnet personnel, invitation par un propriétaire.
+> - **À faire trancher** (voir [[Ouverture du réseau d'artisans]]) : téléphone montré avant
+>   sollicitation ; levier par artisan et par zone ; artisans de test validés et publics,
+>   proposés aux vrais propriétaires de leur zone (les comptes des amis sont « des clients
+>   comme les autres », décision du 23/10).
 
 > [!warning] Points à trancher (relevé du 16/10/2026)
 > - **D24-C, avant toute activation, avec l'expert-comptable** (message de fusion de la

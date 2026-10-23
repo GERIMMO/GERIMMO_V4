@@ -3,7 +3,7 @@ type: process
 tags: [devis, incident, artisan]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-16
+updated: 2026-10-23
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
 ---
 
@@ -67,6 +67,19 @@ globale. L'écran n'en refait aucun morceau.
 > intérêt » et **solliciter ses contacts personnels du carnet**. La demande de
 > devis reste dans l'incident, après qualification ; les contrôles sont refaits en
 > base à l'envoi. Voir [[Ouverture du réseau d'artisans]].
+
+> [!warning] Décision du 23/10/2026 — le réseau suit la zone choisie par l'artisan (remplace la note du 28/09)
+> Le dirigeant a décidé que les communes et les métiers sont **choisis par l'artisan**.
+> Livré par la migration `20261023180000` (non appliquée en production au 23/10 ; la note
+> du 28/09 reste vraie jusque-là) : un artisan du réseau est proposable pour un bien quand
+> sa **zone** (codes postaux ou départements, choisie par lui) couvre le **code postal du
+> bien**, que le métier est le sien, qu'il est **validé** (SIRET vérifié), **public**, avec
+> un compte et sans liste noire, et que la décennale est valide si les travaux l'exigent —
+> le filtre « zone par code postal » ci-dessus redevient donc celui du réseau. La commune
+> du bien reste à confirmer. Plus d'ouverture par le [[Super Admin]] ni d'état « commune
+> fermée » : sans artisan, l'écran dit « aucun artisan disponible », propose « Signaler mon
+> intérêt » et le carnet personnel. L'e-mail d'un artisan du réseau n'est plus rendu avant
+> toute relation.
 
 ## Ce que fait le code aujourd'hui : refuser ou faire réviser un devis (depuis le 15/10/2026)
 La sélection n'est plus le seul geste sur un devis reçu (décision D18, PR #187, fusion

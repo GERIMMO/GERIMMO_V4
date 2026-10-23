@@ -102,14 +102,39 @@ export function prixPour(
 
 let cache: { cle: string; client: Stripe } | null = null;
 
+/**
+ * Délai d'un essai d'appel à Stripe (le SDK attend 80 s par défaut). Seconde relecture adverse du 23/10 : avec deux
+ * nouvelles tentatives, un seul appel pouvait durer environ 240 s, plus que le bail du verrou des gestes de facturation
+ * (lib/verrou-facturation.ts), qui suppose un appel borné. 30 s laissent large une réponse ordinaire de Stripe (quelques
+ * secondes, paiement compris) ; un essai coupé est rejoué par le SDK sous la même clé d'idempotence.
+ */
+export const DELAI_APPEL_STRIPE_MS = 30_000;
+/** Nouvelles tentatives du SDK après une coupure ou une erreur passagère (pause de 5 s au plus entre deux essais). */
+export const NOUVELLES_TENTATIVES_STRIPE = 2;
+
 export function clientStripe(config: ConfigStripe): Stripe {
   // Un client par clé, gardé entre les requêtes : la construction ouvre un
   // agent HTTP, et en refaire un à chaque appel gaspille une poignée de main
   // TLS par paiement.
   if (cache?.cle === config.cle) return cache.client;
-  const client = new Stripe(config.cle, { maxNetworkRetries: 2 });
+  const client = new Stripe(config.cle, { maxNetworkRetries: NOUVELLES_TENTATIVES_STRIPE, timeout: DELAI_APPEL_STRIPE_MS });
   cache = { cle: config.cle, client };
   return client;
+}
+
+const ECRITURE_HORS_DELAI =
+  "Notre prestataire de paiement a répondu trop lentement et l'opération a été interrompue avant d'être transmise.";
+
+/**
+ * Une écriture chez Stripe refusée AVANT d'être envoyée : le geste de facturation qui la demandait a dépassé le délai
+ * d'écriture de son verrou (lib/verrou-facturation.ts). Elle n'a rien fait chez Stripe — c'est un refus net.
+ */
+export class EcritureStripeHorsDelai extends Error {
+  readonly type = "EcritureStripeHorsDelai";
+  constructor() {
+    super(ECRITURE_HORS_DELAI);
+    this.name = "EcritureStripeHorsDelai";
+  }
 }
 
 /**
@@ -117,12 +142,46 @@ export function clientStripe(config: ConfigStripe): Stripe {
  *
  * Le message brut est en anglais, technique, et parle de ressources (« No such
  * price »). Celui qui le lit est un gérant qui vient de cliquer « S'abonner ».
- * Les cas non reconnus gardent le message d'origine : inventer une phrase
- * rassurante sur une erreur qu'on ne comprend pas, c'est empêcher de la
- * comprendre.
+ * Les cas non reconnus gardent le message d'origine AU JOURNAL : inventer une
+ * phrase rassurante sur une erreur qu'on ne comprend pas, c'est empêcher de la
+ * comprendre. Le client, lui, ne lit jamais ce message d'origine en anglais :
+ * `messageStripePourClient` lui donne une phrase neutre et la référence de
+ * Stripe (relecture adverse du 23/10).
  */
-export function lireErreurStripe(e: unknown): string {
-  if (!(e instanceof Error)) return "Le service de paiement n'a pas répondu.";
+/** Les refus de carte les plus courants, dits en français (codes `decline_code` puis `code` de Stripe). */
+const MOTIFS_CARTE: Record<string, string> = {
+  insufficient_funds: "Votre carte a été refusée : provision insuffisante.",
+  expired_card: "Votre carte a expiré.",
+  incorrect_cvc: "Le code de sécurité de votre carte est incorrect.",
+  invalid_cvc: "Le code de sécurité de votre carte est incorrect.",
+  incorrect_number: "Le numéro de votre carte est incorrect.",
+  invalid_number: "Le numéro de votre carte est incorrect.",
+  invalid_expiry_month: "La date d'expiration de votre carte est invalide.",
+  invalid_expiry_year: "La date d'expiration de votre carte est invalide.",
+  processing_error: "Une erreur est survenue chez votre banque pendant le paiement. Réessayez dans un instant.",
+  lost_card: "Votre carte a été refusée par votre banque.",
+  stolen_card: "Votre carte a été refusée par votre banque.",
+  card_declined: "Votre carte a été refusée par votre banque.",
+};
+
+/**
+ * L'authentification forte (3-D Secure) demandée par la banque. Le seul paiement fait côté serveur est la hausse
+ * (`subscriptions.update`, `error_if_incomplete`) : aucun écran de validation n'est présenté au client, et la mise à
+ * jour est annulée d'un bloc. « Réessayez » échouerait donc à l'identique (relecture adverse du 23/10).
+ */
+const AUTHENTIFICATION_EXIGEE =
+  "Votre banque demande d'authentifier ce paiement, ce que ce changement en ligne ne permet pas : un nouvel essai échouerait de la même façon. Vérifiez votre carte depuis « Carte et factures », ou écrivez-nous pour appliquer le changement.";
+
+const reference = (code: string | undefined | null): string => (code ? ` (référence : ${code})` : "");
+
+/**
+ * La traduction d'un refus de Stripe, ou `null` si ce refus n'est pas reconnu.
+ * Le SDK range TOUT statut 402 parmi les `StripeCardError` (node_modules/stripe/cjs/Error.js), qu'il s'agisse d'un
+ * refus de carte ou d'une action demandée au porteur : seul un refus (`card_declined`, ou un `decline_code`) est dit
+ * « refusée par votre banque » (relecture adverse du 23/10).
+ */
+function traduireErreurStripe(e: Error): string | null {
+  if (e instanceof EcritureStripeHorsDelai) return e.message;
   const brut = e.message;
   const type = (e as Stripe.errors.StripeError).type;
   if (type === "StripeConnectionError" || type === "StripeAPIError") {
@@ -134,6 +193,20 @@ export function lireErreurStripe(e: unknown): string {
   if (type === "StripeRateLimitError") {
     return "Trop de demandes au service de paiement en même temps. Réessayez dans un instant.";
   }
+  // 23/10 : un refus de carte arrivait tel que Stripe l'écrit, en anglais (« Your card was declined. »), au milieu
+  // d'une phrase française. Les motifs courants sont dits en français.
+  if (type === "StripeCardError") {
+    const err = e as Stripe.errors.StripeCardError;
+    const code = err.code ?? "";
+    const refus = err.decline_code ?? "";
+    if (refus === "authentication_required" || code === "authentication_required" || code.endsWith("requires_action")) {
+      return AUTHENTIFICATION_EXIGEE;
+    }
+    const connu = MOTIFS_CARTE[refus] ?? MOTIFS_CARTE[code];
+    if (connu) return connu;
+    if (code === "card_declined" || refus) return "Votre carte a été refusée par votre banque.";
+    return `Le paiement n'a pas abouti chez notre prestataire de paiement${reference(code)}.`;
+  }
   if (/no such price/i.test(brut)) {
     return "Le tarif configuré n'existe pas chez Stripe. Vérifiez STRIPE_PRIX_BIEN ou STRIPE_PRIX_LOT_AGENCE — un tarif de test n'existe pas dans le mode réel.";
   }
@@ -143,7 +216,30 @@ export function lireErreurStripe(e: unknown): string {
   if (/similar object exists in (test|live) mode/i.test(brut)) {
     return "Les clés Stripe et les données ne sont pas dans le même mode (test / réel). Vérifiez que les clés et les tarifs viennent du même environnement Stripe.";
   }
-  return brut;
+  return null;
+}
+
+/** Le refus de Stripe, traduit s'il est reconnu, sinon tel quel : pour les JOURNAUX et l'administrateur. */
+export function lireErreurStripe(e: unknown): string {
+  if (!(e instanceof Error)) return "Le service de paiement n'a pas répondu.";
+  return traduireErreurStripe(e) ?? e.message;
+}
+
+/**
+ * Le refus de Stripe tel que le CLIENT le lit : traduit s'il est reconnu, sinon une phrase française neutre avec le
+ * code de Stripe en référence — jamais le motif d'origine, en anglais (relecture adverse du 23/10 : « You cannot
+ * release a subscription schedule… » arrivait tel quel à l'écran). Le motif d'origine reste au journal
+ * (`lireErreurStripe`).
+ */
+export function messageStripePourClient(e: unknown): string {
+  if (!(e instanceof Error)) return "Le service de paiement n'a pas répondu.";
+  const traduit = traduireErreurStripe(e);
+  if (traduit) return traduit;
+  const err = e as Partial<Stripe.errors.StripeError>;
+  if (typeof err.type === "string" && err.type.startsWith("Stripe")) {
+    return `Notre prestataire de paiement a refusé l'opération${reference(err.code)}.`;
+  }
+  return "Le service de paiement n'a pas répondu comme prévu.";
 }
 
 /** La fin de la période en cours, où qu'elle se trouve selon la version d'API. */
@@ -242,7 +338,7 @@ export async function assurerClientStripe(
     return { ok: true, customer: cree.id, remplace: Boolean(params.existant) };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: lireErreurStripe(e) };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 
@@ -276,12 +372,15 @@ export async function verifierClientDeLOrganisation(
     return { ok: true };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: lireErreurStripe(e) };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 
 /** Les statuts d'une souscription qui ne facture plus et ne facturera plus. */
 const SOUSCRIPTION_TERMINEE = new Set(["canceled", "incomplete_expired"]);
+
+const ABONNEMENT_DEJA_OUVERT =
+  "Un abonnement existe déjà pour ce compte chez notre prestataire de paiement : rechargez la page dans quelques secondes. S'il n'apparaît pas, écrivez-nous — rien ne sera prélevé deux fois.";
 
 /**
  * Avant toute page de paiement : aucune souscription vivante chez Stripe.
@@ -291,29 +390,55 @@ const SOUSCRIPTION_TERMINEE = new Set(["canceled", "incomplete_expired"]);
  * page de paiement ouverte à côté d'une souscription vivante, c'est deux
  * prélèvements. Les pages de paiement restées ouvertes pour ce client sont
  * expirées : une ancienne page validée plus tard ferait la même chose.
+ *
+ * `garder` (défaut A01, audit du 23/10/2026) : l'intention de souscription
+ * réservée en base pour cette demande. Sa propre page — reconnue à la
+ * métadonnée `gerimmo_intention` — n'est PAS expirée : deux onglets qui
+ * partagent la même réservation partagent la même page. Toute autre page
+ * ouverte (ancienne intention, page d'avant ce correctif) l'est.
+ *
+ * `vivante` dit à l'appelant que le refus vient d'une souscription déjà née
+ * (la réservation peut alors être close comme aboutie).
  */
 export async function verifierAucuneSouscriptionVivante(
   stripe: Stripe,
-  customer: string
-): Promise<Reussite<object> | Echec> {
+  customer: string,
+  garder?: string
+): Promise<Reussite<object> | (Echec & { vivante?: true })> {
   try {
     const souscriptions = await stripe.subscriptions.list({ customer, status: "all", limit: 100 });
     const vivante = souscriptions.data.find((s) => !SOUSCRIPTION_TERMINEE.has(s.status));
-    if (vivante) {
-      return {
-        ok: false,
-        erreur:
-          "Un abonnement existe déjà pour ce compte chez notre prestataire de paiement : rechargez la page dans quelques secondes. S'il n'apparaît pas, écrivez-nous — rien ne sera prélevé deux fois.",
-      };
-    }
+    if (vivante) return { ok: false, vivante: true, erreur: ABONNEMENT_DEJA_OUVERT };
     const ouvertes = await stripe.checkout.sessions.list({ customer, status: "open", limit: 100 });
     for (const session of ouvertes.data) {
-      await stripe.checkout.sessions.expire(session.id);
+      if (garder && session.metadata?.gerimmo_intention === garder) continue;
+      if ((await expirerPageDePaiement(stripe, session.id)) === "complete") {
+        // Payée entre la liste et l'expiration : la souscription vient de naître.
+        return { ok: false, vivante: true, erreur: ABONNEMENT_DEJA_OUVERT };
+      }
     }
     return { ok: true };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: lireErreurStripe(e) };
+    return { ok: false, erreur: messageStripePourClient(e) };
+  }
+}
+
+/**
+ * Expirer une page de paiement et dire où elle en est. Une page déjà expirée
+ * (par Stripe, ou par une demande concurrente) n'est pas une erreur ; une page
+ * PAYÉE entre-temps rend « complete » — l'appelant ne doit alors rien ouvrir
+ * de plus. Une page restée ouverte malgré l'appel fait remonter l'erreur.
+ */
+export async function expirerPageDePaiement(stripe: Stripe, id: string): Promise<"expired" | "complete"> {
+  try {
+    const s = await stripe.checkout.sessions.expire(id);
+    return s?.status === "complete" ? "complete" : "expired";
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    const s = await stripe.checkout.sessions.retrieve(id);
+    if (s.status === "open") throw e;
+    return s.status === "complete" ? "complete" : "expired";
   }
 }
 
@@ -414,7 +539,7 @@ export async function creerSessionPaiement(
     return { ok: true, url: session.url };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { ok: false, erreur: lireErreurStripe(e) };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 
@@ -511,7 +636,7 @@ export async function ouvrirPortailFacturation(
           "L'espace de facturation Stripe n'est pas encore activé. À faire une fois, dans Stripe : Paramètres → Portail client → Activer.",
       };
     }
-    return { ok: false, erreur };
+    return { ok: false, erreur: messageStripePourClient(e) };
   }
 }
 

@@ -3,7 +3,7 @@ type: synthesis
 tags: [demarchage, lancement, production, v1, pilotage, promesses]
 status: draft
 created: 2026-10-16
-updated: 2026-10-22
+updated: 2026-10-23
 sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Audit d'acquisition du 3 octobre 2026]]", "[[Expansion territoriale autonome]]", "[[Parrainage]]", "[[Choisir son locataire selon les conditions des assurances loyers impayés]]", "[[Recette de production]]", "[[Relais du dirigeant]]", "[[Le jour de référence est le jour de Paris]]"]
 ---
 
@@ -192,3 +192,11 @@ HTTP du webhook restent à vérifier avant de promettre un parcours de souscript
 [[Audit d'acquisition du 3 octobre 2026]] · [[Expansion territoriale autonome]] · [[Parrainage]] · [[Grille tarifaire]] ·
 [[Recette de production]] · [[Propriétaire bailleur]] · [[Locataire]] · [[Artisan]] ·
 [[Invitation d'un artisan par un propriétaire]]
+
+> [!warning] Changement du 23/10/2026 — réseau d'artisans
+> - Décision du dirigeant : les communes et les métiers du réseau sont choisis par l'artisan (sa zone
+>   d'intervention et ses métiers), même pendant la bêta ; l'ouverture commune × métier par le super
+>   administrateur est supplantée. Migration `20261023180000`, non appliquée en production au 23/10 :
+>   voir [[Ouverture du réseau d'artisans]].
+> - « Artisans partout » : avec cette décision, un artisan validé et public est proposé partout où il a déclaré
+>   intervenir ; le discours « le réseau ne s'ouvre que commune par commune » devient faux à la mise en production.

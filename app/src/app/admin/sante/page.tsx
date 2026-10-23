@@ -2,6 +2,7 @@ import { SuiviStripe, type ControleStripe } from "./controle-stripe";
 import { BudgetSignatures, type BudgetSignature } from "./budget-signatures";
 import { ouvertureSignatures } from "@/lib/ouverture-signatures";
 import {lireEditeur} from '@/lib/editeur-serveur';
+import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -82,10 +83,12 @@ export default async function PageSante() {
   const ouverture = ouvertureSignatures(process.env, budgetSignature.error || reglageSignature.error || !budgetSignature.data ? null : {
     plafond: budgetSignature.data.plafond, utilise: budgetSignature.data.utilise, devisActif: reglageSignature.data?.devis_actif === true,
   });
-  const identite=await lireEditeur();
+  const [identite, regle] = await Promise.all([lireEditeur(), lireReglageSouscription()]);
   const manquants = faitsManquants(identite.indisponible?{}:identite.editeur);
   // 23/10 : le médiateur se complète plus tard, sans rien fermer (lib/editeur.ts, A_COMPLETER).
-  const aCompleter = identite.indisponible ? [] : faitsACompleter(identite.editeur);
+  // Relecture du 23/10 : lecture en échec, on ne sait rien du médiateur — il est compté non fourni, comme les
+  // faits requis, et non plus « fourni » faute d'entrée dans une liste vide.
+  const aCompleter = faitsACompleter(identite.indisponible ? {} : identite.editeur);
   // Les adresses de l'alerte du relais (réglage du serveur), affichées masquées seulement.
   const relais = adressesRelaisDuServeur();
   // Le même calcul que /admin et /admin/brief (25/09) : une seule requête du
@@ -341,10 +344,19 @@ export default async function PageSante() {
           </p>
         ) : (
           <div className="loc-carte text-sm">
+            {identite.indisponible && (
+              <p role="alert" className="mb-2 font-semibold">
+                L’identité de l’éditeur n’a pas pu être lue : chaque fait est compté comme non fourni.
+              </p>
+            )}
+            {/* Relecture du 23/10 : le paiement n'est dit fermé que si la règle de blocage est active
+                (lib/garde-souscription.ts : un `false` lu en base la lève ; une lecture impossible la garde). */}
             <p>
-              {manquants.length > 0
-                ? "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation » et le paiement en ligne reste fermé."
-                : "L’identité requise est complète : le paiement en ligne n’en dépend plus. Les faits « à compléter » s’affichent « à venir » sur les mentions légales, sans rien fermer."}
+              {manquants.length === 0
+                ? "L’identité requise est complète : le paiement en ligne n’en dépend plus. Les faits « à compléter » s’affichent « à venir » sur les mentions légales, sans rien fermer."
+                : regle.blocageIdentiteActif
+                  ? "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation » et le paiement en ligne reste fermé."
+                  : "Tant qu’un fait « manquant » n’est pas fourni, les pages légales affichent l’encadré « Document en cours de finalisation ». Le blocage des abonnements est levé dans les paramètres : ces manques ne ferment plus le paiement en ligne."}
             </p>
             <ul className="mt-3 divide-y divide-[var(--filet)]">
               {faitsExiges.map((fait) => {

@@ -15,16 +15,18 @@ const form = (values: Record<string, string> = {}) => {
 };
 /** La revendication `amr` du jeton : d'où vient la session (audit du 19/10, g). */
 const revendications = (methode: string) => ({ data: { claims: { sub: "u1", amr: [{ method: methode, timestamp: Math.floor(Date.now() / 1000) }] } }, error: null });
-let auth: { getUser: ReturnType<typeof vi.fn>; getClaims: ReturnType<typeof vi.fn>; updateUser: ReturnType<typeof vi.fn>; signOut: ReturnType<typeof vi.fn> };
+let auth: { getUser: ReturnType<typeof vi.fn>; getClaims: ReturnType<typeof vi.fn>; updateUser: ReturnType<typeof vi.fn>; signInWithPassword: ReturnType<typeof vi.fn>; signOut: ReturnType<typeof vi.fn> };
 let rpc: ReturnType<typeof vi.fn>;
 let adhesion: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   vi.clearAllMocks();
   auth = {
-    getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1", user_metadata: { profil_a_confirmer: { nom: "Initial" } } } } }),
+    getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1", email: "camille@example.invalid", user_metadata: { profil_a_confirmer: { nom: "Initial" } } } } }),
     // Par défaut, la session est née d'un lien de récupération : le cas ordinaire de ce formulaire.
     getClaims: vi.fn().mockResolvedValue(revendications("recovery")),
     updateUser: vi.fn().mockResolvedValue({ error: null }),
+    // Premier choix (PRO-5, suite) : la session du lien est remplacée par une session ouverte avec le mot de passe choisi.
+    signInWithPassword: vi.fn().mockResolvedValue({ data: { session: {}, user: { id: "u1" } }, error: null }),
     signOut: vi.fn().mockResolvedValue({ error: null }),
   };
   rpc = vi.fn().mockResolvedValue({ error: null });
@@ -58,6 +60,7 @@ it("enregistre les informations validées et garde la suite d’une invitation",
   expect(rpc).toHaveBeenCalledWith("accepter_cgu", expect.objectContaining({ p_source: "compte" }));
   expect(auth.updateUser).toHaveBeenCalledWith({ password: "nouveau-mot-de-passe-1", data: expect.objectContaining({ nom: "Corrigé", espace: "artisan", profil_a_confirmer: null }) });
   expect(rpc.mock.invocationCallOrder[0]).toBeLessThan(auth.updateUser.mock.invocationCallOrder[0]);
+  expect(auth.signInWithPassword).toHaveBeenCalledExactlyOnceWith({ email: "camille@example.invalid", password: "nouveau-mot-de-passe-1" });
 });
 it("une récupération ordinaire conserve le profil confirmé", async () => {
   auth.getUser.mockResolvedValue({ data: { user: { id: "u1", user_metadata: { nom: "Valide", espace: "artisan" } } } });

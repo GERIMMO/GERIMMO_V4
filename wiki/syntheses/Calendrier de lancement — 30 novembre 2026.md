@@ -133,8 +133,8 @@ Rôles : **Dirigeant** (saisies, décisions, tableaux de bord, carte bancaire), 
 
 Le wiki pose une règle : les particuliers ne sont pas démarchés directement (décision du 19/09, [[Expansion territoriale autonome]]) ; les leviers sont la publicité sur Instagram et Facebook et le [[Parrainage]]. Parler de Gerimmo à son entourage et à des connaissances qui le demandent n'est pas du démarchage : c'est le bouche-à-oreille, et c'est le dirigeant qui parle. Ce qu'on peut dire aujourd'hui, et ce qu'on ne doit pas dire, est dans [[Prêt à démarcher]]. En résumé pour l'entourage :
 
-- **On peut dire** : la gestion locative des propriétaires bailleurs et des SCI, partout en France, avec un espace locataire ; essai gratuit de deux mois sans carte pour toute inscription avant le 31/12/2026 ; les prix de la grille publique ; un réseau d'artisans qui s'ouvre commune par commune ; une sortie officielle le 30 novembre.
-- **On ne promet pas** : la signature électronique (non proposée au public), l'offre agences (liste d'attente seulement), un paiement avant son ouverture, des services bancaires ou des SMS, une date d'ouverture du réseau d'artisans dans une commune donnée.
+- **On peut dire** : la gestion locative des propriétaires bailleurs et des SCI, partout en France, avec un espace locataire ; essai gratuit de deux mois sans carte pour toute inscription avant le 31/12/2026 ; les prix de la grille publique ; un réseau d'artisans où chaque artisan choisit sa zone et ses métiers (décision du 23/10, à mettre en production) ; une sortie officielle le 30 novembre.
+- **On ne promet pas** : la signature électronique (non proposée au public), l'offre agences (liste d'attente seulement), un paiement avant son ouverture, des services bancaires ou des SMS, la présence d'un artisan du réseau dans une commune donnée.
 - **On ne fait pas** : d'inscription à la place de quelqu'un, de compte « pour voir » avec de vraies données d'un tiers, de promesse de prix hors grille.
 
 Les proches qui s'inscrivent avant le 30/11 sont des utilisateurs réels : ils reçoivent de vrais e-mails, voient les vraies pages légales et le paiement tel qu'il est. Tant que l'identité de l'éditeur n'est pas saisie, le bouton de paiement refuse ; c'est voulu.
@@ -166,3 +166,19 @@ Rien à la date du 30 novembre : elle permet seulement de **ne pas perdre** les 
 > - La signature électronique est-elle ouverte au public le 30/11 (non recommandé tant que E1 et E6 ne sont pas tranchés) ?
 > - Qui recontacte les agences de la liste d'attente, et quand.
 > - Les amis gardent-ils leurs comptes après la bêta (décision du 20/10 : oui, en les déconnectant), et sous quelle adresse.
+
+> [!warning] Changement du 23/10/2026 — réseau d'artisans
+> - Décision du dirigeant : les communes et les métiers du réseau sont choisis par l'artisan (sa zone
+>   d'intervention et ses métiers), même pendant la bêta ; l'ouverture commune × métier par le super
+>   administrateur est supplantée. Migration `20261023180000`, non appliquée en production au 23/10 :
+>   voir [[Ouverture du réseau d'artisans]].
+> - L'artisan de test que le dirigeant valide (ligne « Chaque soir ») sera proposé aux vrais propriétaires de sa
+>   zone s'il est public. Réponse du dirigeant du 23/10 (point 7) : les comptes des amis sont gardés, ce sont des
+>   clients comme les autres ; un ami artisan public est donc proposé comme tout artisan. Pour l'éviter pendant la
+>   bêta : le garder privé (passer par l'invitation) ou limiter sa zone à la commune du bien de test.
+> - **Dossier Artisan des amis (grille J1 à J7) à compléter** dans le document « Dossiers de test par persona »
+>   (Claude Docs, hors dépôt), qui ne le dit pas encore : 1) à l'inscription, choisir ses métiers et sa zone (codes
+>   postaux ou départements) ; 2) attendre la validation de Gerimmo (aucun e-mail n'est envoyé à la validation) ;
+>   3) dans « Mon entreprise », lire la carte « Suis-je proposé dans le réseau ? » ; 4) rendre son profil public
+>   seulement si l'ami accepte d'être proposé aux vrais propriétaires de sa zone, sinon rester privé et être
+>   sollicité par invitation ; 5) vérifier que le rappel de « Aujourd'hui » disparaît ou devient informatif.

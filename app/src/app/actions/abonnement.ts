@@ -25,12 +25,14 @@ import {
   GRILLE,
   apercuChangement,
   appliquerHausse,
-  creerSessionOffre,
   libererEcheancierDe,
   offrePour,
   resilierAEcheance,
   type ChoixOffre,
+  type EchecHausse,
 } from "@/lib/stripe-offres";
+import { ouvrirPageDePaiementUnique, registreDeService } from "@/lib/souscription-unique";
+import { prendreVerrouFacturation } from "@/lib/verrou-facturation";
 import { clientDeService } from "@/lib/supabase/service";
 import { offreAgence, offreParticulier, type Offre, type Periodicite } from "@/lib/tarifs";
 import { baseEspace } from "@/lib/racine-espace";
@@ -282,7 +284,12 @@ export async function demarrerAbonnement(
 
   // Décision D27 : au retour du paiement, le propriétaire direct revient sous /espace/<id>.
   const retour = `${origine}${baseEspace(orgId, !estAgence)}/abonnement`;
-  const session = await creerSessionOffre(stripe, {
+  // Défaut A01 (audit du 23/10/2026) : une seule page de paiement par
+  // organisation, réservée en base avant tout appel qui en ouvre une ; deux
+  // onglets reçoivent la même (lib/souscription-unique.ts).
+  const service = clientDeService();
+  if (!service) return { erreur: "Le service de paiement est momentanément indisponible. Réessayez plus tard." };
+  const session = await ouvrirPageDePaiementUnique(stripe, registreDeService(service), {
     offre,
     regime: REGIME_TVA,
     customer: client.customer,
@@ -294,6 +301,54 @@ export async function demarrerAbonnement(
   });
   if (!session.ok) return { erreur: session.erreur };
   redirect(session.url);
+}
+
+/**
+ * La phrase d'une hausse refusée (défaut A02, audit du 23/10/2026) : elle dit
+ * ce qui est SÛR. « Rien n'a été modifié » seulement si l'échéancier programmé
+ * est resté en place ou a été recréé à l'identique ; sinon, la phrase dit
+ * qu'il doit être reprogrammé, et par qui.
+ *
+ * Relecture adverse du 23/10 : une hausse « incertaine » ne recopie pas un
+ * motif qui affirmerait « Rien n'a été prélevé » ; une hausse sans échéancier
+ * ne parle pas d'un changement programmé qu'il n'y a pas ; un échéancier retiré
+ * AILLEURS (libération refusée par Stripe) est dit comme tel. Le motif est
+ * toujours en français (`messageStripePourClient`).
+ */
+function phraseHausseRefusee(r: EchecHausse, signalee: boolean): string {
+  const motif = r.erreur.replace(/[\s.]+$/, "");
+  const reprogrammer = signalee
+    ? "doit être reprogrammé : nous nous en occupons."
+    : "doit être reprogrammé, mais le signalement automatique a échoué : écrivez-nous pour que nous le reprogrammions.";
+  if (r.hausse === "incertaine") {
+    const incertaine =
+      "Notre prestataire de paiement n'a pas confirmé si la hausse a été appliquée. Rechargez la page dans un instant pour voir votre abonnement à jour, avant toute nouvelle tentative.";
+    return r.echeancier === "a_reprogrammer"
+      ? `${incertaine} Votre changement programmé pour la prochaine échéance ${reprogrammer}`
+      : incertaine;
+  }
+  if (r.echeancier === "a_reprogrammer" && r.liberationRefusee) {
+    return `La hausse n'a pas été appliquée et rien n'a été prélevé : votre changement programmé pour la prochaine échéance venait d'être retiré ou modifié par ailleurs (autre onglet ?). Ce changement ${reprogrammer} Rechargez la page avant toute nouvelle tentative.`;
+  }
+  if (r.echeancier === "a_reprogrammer") {
+    return `La hausse n'a pas été appliquée : ${motif}. Votre changement programmé pour la prochaine échéance a été retiré pendant la tentative et ${reprogrammer}`;
+  }
+  return `Le changement n'a pas été appliqué, rien n'a été modifié : ${r.erreur}`;
+}
+
+/**
+ * La trace durable d'une hausse refusée qui a touché à l'échéancier :
+ * ses étapes externes, dans `audit_log` (`abonnement_hausse_tracer`). Un échec
+ * d'écriture ne change pas la réponse au client : il reste au journal serveur.
+ */
+async function tracerHausseRefusee(orgId: string, r: EchecHausse): Promise<void> {
+  if (r.echeancier === "intouche" && r.hausse === "non_appliquee") return;
+  const issue = r.hausse === "incertaine" ? "hausse_incertaine" : r.echeancier === "restaure" ? "echeancier_restaure" : "echeancier_a_reprogrammer";
+  const service = clientDeService();
+  const { error } = service
+    ? await service.rpc("abonnement_hausse_tracer", { p_org: orgId, p_issue: issue, p_etapes: r.etapes })
+    : { error: { message: "clé de service absente" } };
+  if (error) console.error("[stripe hausse] trace non écrite :", issue, error.message.slice(0, 200));
 }
 
 /**
@@ -350,31 +405,53 @@ export async function confirmerHausse(
 
   const { data: souscription } = await supabase.rpc("ma_souscription_stripe", { p_org: orgId });
   if (!souscription) return { erreur: "Votre souscription n'a pas pu être retrouvée. Rechargez la page." };
-  const stripe = clientStripe(reglages.config);
-  const apercu = await apercuChangement(stripe, {
-    subscription: souscription as string,
-    offre,
-    regime: REGIME_TVA,
-    maintenant: prorationDate,
-  });
-  if (!apercu.ok) return { erreur: apercu.erreur };
-  if (apercu.immediatCents !== lireEntier(formData.get("immediat_attendu_cents"))) {
-    return { erreur: "Le prorata a changé depuis l'affichage : vérifiez le montant mis à jour, puis confirmez à nouveau." };
+  // Relecture adverse du 23/10 (A02) : un geste de facturation à la fois pour l'organisation. Pris APRÈS la
+  // vérification des droits (ma_souscription_stripe ne rend rien à un autre que le responsable) et AVANT l'aperçu :
+  // un second onglet qui passerait après la hausse verrait un prorata différent et serait refusé.
+  const verrou = await prendreVerrouFacturation(clientDeService(), orgId, "hausse");
+  if (!verrou.ok) return { erreur: verrou.erreur };
+  try {
+    // Seconde relecture du 23/10 : sous le verrou, plus aucune écriture chez Stripe une fois son délai d'écriture passé.
+    const stripe = verrou.proteger(clientStripe(reglages.config));
+    const apercu = await apercuChangement(stripe, {
+      subscription: souscription as string,
+      offre,
+      regime: REGIME_TVA,
+      maintenant: prorationDate,
+    });
+    if (!apercu.ok) return { erreur: apercu.erreur };
+    if (apercu.immediatCents !== lireEntier(formData.get("immediat_attendu_cents"))) {
+      return { erreur: "Le prorata a changé depuis l'affichage : vérifiez le montant mis à jour, puis confirmez à nouveau." };
+    }
+    const r = await appliquerHausse(stripe, {
+      subscription: souscription as string,
+      offre,
+      regime: REGIME_TVA,
+      orgId,
+      prorationDate,
+      choix: choixDe(offre, etat.unites_a_couvrir ?? 0),
+    });
+    if (!r.ok) {
+      // Défaut A02 : un échéancier retiré et non recréé (ou une hausse incertaine)
+      // fait recalculer l'échéance par la tâche de nuit — le même signal que
+      // sur le chemin de réussite ci-dessous, qui était le seul à le poser.
+      let signalee = true;
+      if (r.echeancier === "a_reprogrammer") {
+        const { error } = await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
+        if (error) {
+          signalee = false;
+          console.error("[stripe hausse] échéance non marquée à recalculer :", error.message.slice(0, 200));
+        }
+      }
+      await tracerHausseRefusee(orgId, r);
+      return { erreur: phraseHausseRefusee(r, signalee) };
+    }
+    // L'échéancier libéré emportait une baisse ou une périodicité programmée :
+    // la tâche de nuit la reprogrammera, sur la nouvelle offre.
+    if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
+  } finally {
+    await verrou.rendre();
   }
-  const r = await appliquerHausse(stripe, {
-    subscription: souscription as string,
-    offre,
-    regime: REGIME_TVA,
-    orgId,
-    prorationDate,
-    choix: choixDe(offre, etat.unites_a_couvrir ?? 0),
-  });
-  if (!r.ok) {
-    return { erreur: `Le changement n'a pas été appliqué, rien n'a été modifié : ${r.erreur}` };
-  }
-  // L'échéancier libéré emportait une baisse ou une périodicité programmée :
-  // la tâche de nuit la reprogrammera, sur la nouvelle offre.
-  if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
   redirect(`${baseEspace(orgId, etat.public_tarif === "proprietaire_direct")}/abonnement?changement=ok`);
 }
 
@@ -421,22 +498,30 @@ export async function demanderPeriodicite(
   const periodicite = lirePeriodicite(formData.get("periodicite"));
   if (!periodicite) return { erreur: "Choisissez mensuel ou annuel." };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("demander_periodicite_suivante", {
-    p_org: orgId,
-    p_periodicite: periodicite,
-  });
-  if (error) return { erreur: sansJargon(error.message) };
   const reglages = configurationStripe();
-  if (reglages.pret) {
-    const { data: souscription } = await supabase.rpc("ma_souscription_stripe", { p_org: orgId });
-    if (souscription) {
-      const r = await libererEcheancierDe(clientStripe(reglages.config), souscription as string);
+  // Relecture adverse du 23/10 (A02) : la libération de l'échéancier ne se croise plus avec une hausse en cours, qui
+  // le reposerait. Le verrou est pris après la vérification des droits (ma_souscription_stripe), avant la demande.
+  const souscription = reglages.pret
+    ? ((await supabase.rpc("ma_souscription_stripe", { p_org: orgId })).data as string | null)
+    : null;
+  const verrou = souscription ? await prendreVerrouFacturation(clientDeService(), orgId, "periodicite") : null;
+  if (verrou && !verrou.ok) return { erreur: verrou.erreur };
+  try {
+    const { error } = await supabase.rpc("demander_periodicite_suivante", {
+      p_org: orgId,
+      p_periodicite: periodicite,
+    });
+    if (error) return { erreur: sansJargon(error.message) };
+    if (reglages.pret && souscription && verrou?.ok) {
+      const r = await libererEcheancierDe(verrou.proteger(clientStripe(reglages.config)), souscription);
       if (!r.ok) {
         return {
-          erreur: `Votre demande est enregistrée, mais le changement déjà programmé chez notre prestataire de paiement n'a pas pu être retiré (${r.erreur}). Réessayez dans un instant.`,
+          erreur: `Votre demande est enregistrée, mais le changement déjà programmé chez notre prestataire de paiement n'a pas pu être retiré (${r.erreur.replace(/[\s.]+$/, "")}). Réessayez dans un instant.`,
         };
       }
     }
+  } finally {
+    if (verrou?.ok) await verrou.rendre();
   }
   redirect(`${await baseDeLOrganisation(supabase, orgId)}/abonnement?periodicite=programmee`);
 }
@@ -454,14 +539,22 @@ export async function resilierAbonnement(
   const { data: souscription, error } = await supabase.rpc("ma_souscription_stripe", { p_org: orgId });
   if (error) return { erreur: sansJargon(error.message) };
   if (!souscription) return { erreur: "Aucun abonnement en cours à résilier." };
-  const r = await resilierAEcheance(clientStripe(reglages.config), {
-    subscription: souscription as string,
-    resilier,
-  });
-  if (!r.ok) return { erreur: r.erreur };
-  // Un échéancier libéré (audit 29/09, point 5) : si la résiliation est levée,
-  // la tâche de nuit doit pouvoir reprogrammer l'échéance.
-  if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
+  // Relecture adverse du 23/10 (A02) : jamais en même temps qu'une hausse, qui reposerait l'échéancier libéré ici.
+  const verrou = await prendreVerrouFacturation(clientDeService(), orgId, "resiliation");
+  if (!verrou.ok) return { erreur: verrou.erreur };
+  try {
+    const r = await resilierAEcheance(verrou.proteger(clientStripe(reglages.config)), {
+      subscription: souscription as string,
+      resilier,
+    });
+    // Un échéancier libéré (audit 29/09, point 5) : si la résiliation est levée,
+    // la tâche de nuit doit pouvoir reprogrammer l'échéance. Seconde relecture du
+    // 23/10 : aussi quand la résiliation elle-même a échoué après la libération.
+    if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
+    if (!r.ok) return { erreur: r.erreur };
+  } finally {
+    await verrou.rendre();
+  }
   redirect(`${await baseDeLOrganisation(supabase, orgId)}/abonnement?resiliation=${resilier ? "programmee" : "annulee"}`);
 }
 

@@ -56,7 +56,14 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
     const decrit = [aide, champErreur === champ ? ID_ERREUR : undefined].filter(Boolean).join(" ");
     return { "aria-invalid": champErreur === champ ? true : undefined, "aria-describedby": decrit || undefined };
   };
-  const espace = valeur("espace");
+  // Les deux listes déroulantes sont REMONTÉES quand la valeur à reposer change (clé = valeur). React remet le formulaire
+  // à zéro après chaque action (`form.reset()`, refus compris) : un champ de saisie a reçu entre-temps sa nouvelle valeur
+  // par défaut, mais un <select> déjà monté garde l'option par défaut de son PREMIER affichage — React ne réapplique pas
+  // `defaultValue` à une mise à jour. La liste reprenait donc l'usage et la qualité d'origine, et un second envoi les
+  // enregistrait en silence (relecture du 23/10, PRO-4 incomplet). Remontée, la liste part de la valeur envoyée. Sans
+  // script, la page est rendue par le serveur avec cette valeur : la clé n'y change rien.
+  const espace = ["artisan", "proprietaire_direct"].includes(valeur("espace")) ? valeur("espace") : "invite";
+  const qualite = valeur("qualite");
 
   return (
     <Card>
@@ -69,7 +76,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
               <p className="text-sm text-muted-foreground">Ces informations ont été saisies avant la confirmation de votre adresse. Corrigez-les et confirmez votre choix pour terminer l’inscription.</p>
               <label className="block space-y-1 text-sm">
                 <span>Vous utilisez Gerimmo pour</span>
-                <select name="espace" required defaultValue={["artisan", "proprietaire_direct"].includes(espace) ? espace : "invite"} {...marque("espace")} className="w-full rounded-md border bg-background px-3 py-2">
+                <select key={`espace-${espace}`} name="espace" required defaultValue={espace} {...marque("espace")} className="w-full rounded-md border bg-background px-3 py-2">
                   <option value="proprietaire_direct">Gérer mes propres biens</option>
                   <option value="artisan">Mon activité d’artisan</option>
                   <option value="invite">Accéder à un espace auquel je suis invité</option>
@@ -85,7 +92,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
               ))}
               <label className="block space-y-1 text-sm">
                 <span>Qualité du bailleur, si concerné</span>
-                <select name="qualite" defaultValue={valeur("qualite")} className="w-full rounded-md border bg-background px-3 py-2">
+                <select key={`qualite-${qualite}`} name="qualite" defaultValue={qualite} className="w-full rounded-md border bg-background px-3 py-2">
                   <option value="">Non renseignée</option>
                   {QUALITES_BAILLEUR.map((qualite) => <option key={qualite} value={qualite}>{qualite}</option>)}
                 </select>

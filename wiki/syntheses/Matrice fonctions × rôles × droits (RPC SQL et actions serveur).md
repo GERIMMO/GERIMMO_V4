@@ -3,7 +3,7 @@ type: synthesis
 tags: [matrice, droits, roles, rpc, actions-serveur, securite]
 status: draft
 created: 2026-10-14
-updated: 2026-10-14
+updated: 2026-10-23
 sources: []
 ---
 
@@ -1141,3 +1141,13 @@ Les 149 relations de la matrice correspondent exactement aux 149 relations de `p
 - La colonne « admin d'agence / agent / propriétaire » suppose que le corps cite les rôles en littéraux ; une fonction qui reçoit les rôles en paramètre apparaît « P » (gérants supposés).
 - Aucune fonction n'a été exécutée par cette cartographie (lecture du catalogue seulement).
 
+> [!warning] Changement du 23/10/2026 — réseau d'artisans
+> - Décision du dirigeant : les communes et les métiers du réseau sont choisis par l'artisan (sa zone
+>   d'intervention et ses métiers), même pendant la bêta ; l'ouverture commune × métier par le super
+>   administrateur est supplantée. Migration `20261023180000`, non appliquée en production au 23/10 :
+>   voir [[Ouverture du réseau d'artisans]].
+> - Depuis `20261023180000` (non appliquée en production au 23/10) : `reseau_rattacher_artisan` et
+>   `reseau_regler_ouverture` refusent aussi au super administrateur (« le réseau ne s'ouvre plus commune par
+>   commune… ») ; `artisan_definir_metiers_zones` refuse une agence pour un artisan qui a son compte, ou par une
+>   relation désactivée ou en liste noire ; nouvelle fonction interne `zones_couvrant_code_postal` (aucun rôle
+>   client). Lignes du tableau à reprendre à la mise en production.

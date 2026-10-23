@@ -908,7 +908,7 @@
   {
     "path": "/admin/couverture",
     "persona": "superadmin",
-    "label": "Réseau d’artisans : ouvertures par commune et métier",
+    "label": "Réseau d’artisans : couverture par commune et métier",
     "dynamic": ""
   },
   {

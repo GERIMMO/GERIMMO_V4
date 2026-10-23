@@ -117,12 +117,16 @@ describe('Retours à traiter — les problèmes de gravité N2 arrivent au point
   const rpc=vi.fn(async(_nom:string,_arguments?:unknown)=>({data:'point-fictif',error:null}));
   return {db:{from:(source:string)=>requete(source),rpc} as unknown as Parameters<typeof genererPointsDuMatin>[0],rpc,appels};
  }
- it('demande les idées et les problèmes N1 ou N2 nouveaux ou en examen',async()=>{
+ it('demande les idées et les problèmes N1 ou N2 nouveaux ou en examen, les N1 dans une lecture à part',async()=>{
   const {db,appels}=lecteurDeRetours([]);
   await lireAttentes(db,maintenant);
   const surRetours=appels.filter(a=>a.table==='retours_utilisateurs');
-  expect(surRetours.find(a=>a.methode==='in')!.arguments).toEqual(['etat',['nouveau','en_examen']]);
-  expect(surRetours.find(a=>a.methode==='or')!.arguments).toEqual(['nature.eq.idee,and(nature.eq.bug,gravite.in.(N1,N2))']);
+  expect(surRetours.filter(a=>a.methode==='in').map(a=>a.arguments)).toEqual([['etat',['nouveau','en_examen']],['etat',['nouveau','en_examen']]]);
+  // Relecture adverse du 23/10 : les N1, du plus ancien au plus récent ; les idées et les N2, les plus récents d'abord.
+  expect(surRetours.filter(a=>a.methode==='eq').map(a=>a.arguments)).toEqual([['nature','bug'],['gravite','N1']]);
+  expect(surRetours.find(a=>a.methode==='or')!.arguments).toEqual(['nature.eq.idee,and(nature.eq.bug,gravite.eq.N2)']);
+  expect(surRetours.filter(a=>a.methode==='order').map(a=>a.arguments)).toEqual([['cree_le',{ascending:true}],['cree_le',{ascending:false}]]);
+  expect(surRetours.filter(a=>a.methode==='limit').map(a=>a.arguments)).toEqual([[30],[30]]);
  });
  it('enregistre le problème N2 nouveau dans le point de l’équipe qualité, à prendre en charge',async()=>{
   const {db,rpc}=lecteurDeRetours([{id:'r-n2',titre:'Bouton inactif',nature:'bug',gravite:'N2',etat:'nouveau'}]);
@@ -253,5 +257,122 @@ describe('Le point du matin reste enregistrable quand une mission passe toutes l
   const p=point('marketing',{passages:tous.slice(0,3)});
   expect(p.contenu.passages).toHaveLength(3);
   expect(p.contenu.realisations.join(' ')).not.toContain('plus récents détaillés');
+ });
+});
+
+// Relecture adverse du 23/10 : les N2 (gravité par défaut de tout signalement) partageaient avec les idées et les N1 une
+// seule lecture triée par date décroissante et limitée à 30. Trente signalements N2 plus récents qu'un bug bloquant N1
+// non traité le sortaient du point, et `enregistrer_point_du_matin` passait sa décision en « sans objet ».
+describe('Retours à traiter — un bug bloquant N1 ancien ne sort jamais du point',()=>{
+ type Retour={id:string;titre:string;nature:string;gravite:string;etat:string;cree_le:string};
+ type Condition=(l:Record<string,unknown>)=>boolean;
+ /** Évalue la syntaxe PostgREST employée par la lecture : `col.eq.v`, `col.in.(a,b)`, `and(…)`, `or(…)`. */
+ function condition(expr:string,mode:'or'|'and'='or'):Condition{
+  const termes:string[]=[];let prof=0,debut=0;
+  for(let i=0;i<expr.length;i++){const c=expr[i];if(c==='(')prof++;else if(c===')')prof--;else if(c===','&&prof===0){termes.push(expr.slice(debut,i));debut=i+1;}}
+  termes.push(expr.slice(debut));
+  const parties=termes.map((t):Condition=>{
+   const groupe=t.match(/^(and|or)\((.*)\)$/);
+   if(groupe)return condition(groupe[2],groupe[1] as 'or'|'and');
+   const [col,op,...reste]=t.split('.');const val=reste.join('.');
+   if(op==='eq')return l=>String(l[col])===val;
+   if(op==='in')return l=>val.replace(/^\(|\)$/g,'').split(',').includes(String(l[col]));
+   throw new Error(`opérateur non simulé : ${op}`);
+  });
+  return mode==='or'?l=>parties.some(p=>p(l)):l=>parties.every(p=>p(l));
+ }
+ /** Laquelle des deux lectures des retours tombe en panne : celle des N1, ou celle des idées et des N2 (`.or(…)`). */
+ type Lecture='bloquants'|'autres';
+ /** Faux client : chaque table est réellement filtrée, triée et plafonnée comme le ferait l'API. */
+ function base(tables:Record<string,Record<string,unknown>[]>,enPanne?:Lecture){
+  const rpc=vi.fn(async(_nom:string,_arguments?:unknown)=>({data:'point-fictif',error:null}));
+  const from=(table:string)=>{
+   const filtres:Condition[]=[];const ordres:[string,boolean][]=[];let plafond=Infinity;
+   let lecture:Lecture|undefined;
+   const q={
+    select:()=>q,
+    eq:(c:string,v:unknown)=>{if(c==='gravite'&&v==='N1')lecture='bloquants';filtres.push(l=>l[c]===v);return q;},
+    in:(c:string,v:unknown[])=>{filtres.push(l=>v.includes(l[c]));return q;},
+    or:(expr:string)=>{lecture='autres';filtres.push(condition(expr));return q;},
+    // Lectures des passages, du journal et de la veille : leurs tables restent vides ici.
+    not:()=>q,is:()=>q,gte:()=>q,like:()=>q,
+    order:(c:string,o?:{ascending?:boolean})=>{ordres.push([c,o?.ascending??true]);return q;},
+    limit:(n:number)=>{plafond=n;return q;},
+    then:<R,>(ok:(r:{data:unknown[]|null;error:unknown})=>R,ko?:(e:unknown)=>R)=>{
+     if(table==='retours_utilisateurs'&&enPanne&&lecture===enPanne)
+      return Promise.resolve({data:null,error:{message:'Détail fournisseur privé à ne pas exposer',code:'57014'}}).then(ok,ko);
+     const lignes=(tables[table]??[]).filter(l=>filtres.every(f=>f(l)));
+     lignes.sort((a,b)=>{for(const [c,asc] of ordres){const x=String(a[c]),y=String(b[c]);if(x!==y)return (x<y?-1:1)*(asc?1:-1);}return 0;});
+     return Promise.resolve({data:lignes.slice(0,plafond),error:null}).then(ok,ko);
+    },
+   };
+   return q;
+  };
+  return {db:{from,rpc} as unknown as Parameters<typeof genererPointsDuMatin>[0],rpc};
+ }
+ const cree=(minutes:number)=>new Date(maintenant.getTime()-minutes*60_000).toISOString();
+ const n2=(i:number):Retour=>({id:`n2-${i}`,titre:`Signalement ${i}`,nature:'bug',gravite:'N2',etat:'nouveau',cree_le:cree(i)});
+ const idee=(i:number):Retour=>({id:`idee-${i}`,titre:`Idée ${i}`,nature:'idee',gravite:'N2',etat:'nouveau',cree_le:cree(i)});
+ const n1=(id:string,minutes:number,etat='nouveau'):Retour=>({id,titre:`Bloquant ${id}`,nature:'bug',gravite:'N1',etat,cree_le:cree(minutes)});
+ async function decisionsQualite(retours:Retour[],evolutions:Record<string,unknown>[]=[]){
+  const {db,rpc}=base({retours_utilisateurs:retours,development_proposals:evolutions});
+  expect(await genererPointsDuMatin(db,maintenant)).toEqual({enregistres:7,erreur:undefined});
+  const appel=rpc.mock.calls.find(([nom,args])=>nom==='enregistrer_point_du_matin'&&(args as {p_equipe:string}).p_equipe==='qualite');
+  return (appel![1] as {p_decisions:{cle:string;titre:string}[]}).p_decisions.map(d=>d.cle);
+ }
+
+ it('30 signalements N2 plus récents qu’un bug bloquant N1 non traité : le N1 reste au point, en tête des retours',async()=>{
+  const cles=await decisionsQualite([n1('n1-ancien',60*24*10),...Array.from({length:30},(_,i)=>n2(i))]);
+  expect(cles).toContain('retour:n1-ancien');
+  expect(cles[0]).toBe('retour:n1-ancien');
+  // Les N2 gardent leurs 30 places : la lecture des N1 ne les entame pas.
+  expect(cles.filter(c=>c.startsWith('retour:n2-'))).toHaveLength(30);
+ });
+
+ it('même chose face à 30 idées plus récentes, pour un N1 en examen',async()=>{
+  const cles=await decisionsQualite([n1('n1-examen',60*24*30,'en_examen'),...Array.from({length:30},(_,i)=>idee(i))]);
+  expect(cles).toContain('retour:n1-examen');
+  expect(cles.filter(c=>c.startsWith('retour:idee-'))).toHaveLength(30);
+ });
+
+ it('les N1 vont du plus ancien au plus récent : au-delà de leur plafond, le plus ancien (le plus urgent) reste',async()=>{
+  const cles=await decisionsQualite(Array.from({length:31},(_,i)=>n1(`n1-${i}`,i)));
+  expect(cles).toContain('retour:n1-30');
+  expect(cles.filter(c=>c.startsWith('retour:n1-'))).toHaveLength(30);
+ });
+
+ it('un N1 déjà pris en charge, un N3 ou une question ne sont pas soumis',async()=>{
+  const cles=await decisionsQualite([n1('n1-en-cours',5,'en_cours'),{...n2(1),gravite:'N3'},{...n2(2),nature:'question'},n2(3)]);
+  expect(cles).toEqual(['retour:n2-3']);
+ });
+
+ it('les files pleines (30 évolutions, N1 et N2 au-delà des plafonds) restent sous les 100 décisions admises en base',async()=>{
+  const evolutions=Array.from({length:40},(_,i)=>({id:`d-${i}`,titre:`Version ${i}`,probleme:null,risque:'faible',statut:'autorisation',revision:null,updated_at:cree(i)}));
+  const cles=await decisionsQualite([...Array.from({length:40},(_,i)=>n1(`n1-${i}`,i)),...Array.from({length:40},(_,i)=>n2(i))],evolutions);
+  expect(cles.length).toBeLessThanOrEqual(100);
+  expect(cles.filter(c=>c.startsWith('retour:n1-'))).toHaveLength(30);
+ });
+
+ // Relecture adverse du 23/10 (2e passe) : l'essai « retours_utilisateurs indisponible » fait échouer les DEUX lectures à la
+ // fois ; il passait encore si l'erreur de l'une d'elles était ignorée. Une seule lecture en échec doit suffire : sinon le
+ // point s'enregistre sans les N1 (ou sans les idées et N2), et leurs décisions en attente passent en « sans objet ».
+ it.each([
+  ['la lecture des bugs bloquants N1','bloquants' as const],
+  ['la lecture des idées et des N2','autres' as const],
+ ])('seule %s échoue : la file des retours est indisponible et le dernier point est conservé',async(_cas,enPanne)=>{
+  const erreurs=vi.spyOn(console,'error').mockImplementation(()=>{});
+  try{
+   const retours=[n1('n1-ancien',60*24*10),n2(1),idee(2)];
+   const lecture=await lireAttentes(base({retours_utilisateurs:retours},enPanne).db,maintenant);
+   expect(lecture.indisponibles).toEqual(['retours']);
+   expect(lecture.attentes.retours).toEqual([]);
+   const {db,rpc}=base({retours_utilisateurs:retours},enPanne);
+   const resultat=await genererPointsDuMatin(db,maintenant);
+   expect(resultat.enregistres).toBe(0);
+   expect(resultat.erreur).toBe('Le point n’a pas été actualisé : données indisponibles (retours). Le dernier point connu est conservé. Réessayez lorsque les lectures seront rétablies.');
+   expect(rpc.mock.calls.filter(([nom])=>nom==='enregistrer_point_du_matin')).toHaveLength(0);
+   expect(erreurs).toHaveBeenCalledWith('[point du matin] lecture impossible :','retours','57014');
+   expect(JSON.stringify(erreurs.mock.calls)).not.toContain('privé');
+  }finally{erreurs.mockRestore();}
  });
 });

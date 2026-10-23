@@ -160,6 +160,19 @@ export async function definirNouveauMotDePasse(
     return refus(`Changement impossible : ${sansJargon(error.message)}`);
   }
 
+  // PREMIER CHOIX APRÈS LA CONFIRMATION DE L'ADRESSE : UNE SESSION « MOT DE PASSE » REMPLACE CELLE DU LIEN (relecture
+  // adverse du 23/10, PRO-5). Changer le mot de passe ne touche ni la session courante ni sa preuve d'e-mail (`amr`,
+  // valable quinze minutes) : gardée telle quelle, la session née du lien rouvrait /nouveau-mot-de-passe, où quiconque
+  // l'utilisait (bouton Retour, poste partagé) pouvait reposer le mot de passe sans connaître l'actuel. La connexion
+  // avec le mot de passe qui vient d'être choisi ouvre une nouvelle session (`amr` = password, cookies réécrits) ; la
+  // fermeture des « autres » sessions ci-dessous emporte alors celle du lien. Un lien e-mail ne sert qu'à un seul choix,
+  // comme avant PRO-5. Jamais une marque dans les métadonnées du compte : son titulaire peut les écrire lui-même.
+  let sessionParMotDePasse = false;
+  if (profil && user.email) {
+    const { error: erreurConnexion } = await supabase.auth.signInWithPassword({ email: user.email, password: motDePasse });
+    sessionParMotDePasse = !erreurConnexion;
+  }
+
   // Sécurité : toute autre session active est invalidée — si quelqu'un était
   // connecté avec l'ancien mot de passe, il est éjecté
   await supabase.auth.signOut({ scope: "others" });
@@ -174,17 +187,19 @@ export async function definirNouveauMotDePasse(
   if (profil?.espace === "proprietaire_direct") suite = "/espaces";
   else if (profil?.espace === "artisan" && suite === "/espaces") suite = "/artisan/inscription";
 
-  // PREMIER CHOIX APRÈS LA CONFIRMATION DE L'ADRESSE : LA SESSION RESTE OUVERTE (relevé du 23/10, PRO-5).
-  // La personne vient de prouver l'accès à sa boîte et de poser son mot de passe : la renvoyer vers la connexion
+  // PREMIER CHOIX APRÈS LA CONFIRMATION DE L'ADRESSE : LA PERSONNE RESTE CONNECTÉE (relevé du 23/10, PRO-5).
+  // Elle vient de prouver l'accès à sa boîte et de poser son mot de passe : la renvoyer vers la connexion
   // (« Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe. ») lui faisait ressaisir ce qu'elle venait
-  // de choisir. La session née du lien survit au changement de mot de passe (comme celle de « Mon compte » et le mot de
-  // passe provisoire de finirConfirmationInscription) ; les autres sessions sont fermées ci-dessus ; le proxy applique
-  // la politique de session et le second facteur comme à toute session. Le profil est lu dans le compte : un champ
-  // ajouté à l'envoi ne peut pas éviter la déconnexion d'une récupération.
-  if (profil) redirect(suite);
+  // de choisir. Elle continue avec la session « mot de passe » ouverte ci-dessus (celle du lien est fermée) ; le proxy
+  // applique la politique de session et le second facteur comme à toute session. Le profil est lu dans le compte : un
+  // champ ajouté à l'envoi ne peut pas éviter la déconnexion d'une récupération.
+  if (sessionParMotDePasse) redirect(suite);
 
   // RÉCUPÉRATION D'UN COMPTE EXISTANT (mot de passe oublié), choix d'origine
   // inchangé : on repart d'une connexion propre avec le nouveau mot de passe.
+  // C'est aussi le repli du premier choix si la connexion avec le nouveau mot de passe n'a pas abouti (adresse
+  // absente, limite de fréquence, service indisponible) : le mot de passe et le profil sont enregistrés, toutes les
+  // sessions se ferment, celle du lien comprise, et la personne se connecte avec ce qu'elle vient de choisir.
   await supabase.auth.signOut();
   (await cookies()).delete(ACTIVITY_COOKIE);
   redirect(`/connexion?raison=mot-de-passe-modifie${suite !== "/espaces" ? `&suite=${encodeURIComponent(suite)}` : ""}`);

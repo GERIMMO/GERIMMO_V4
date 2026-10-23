@@ -246,6 +246,18 @@ export function Avertissement({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Un repère neutre : rien n'est en défaut, l'artisan a fait un choix (relecture du 23/10, rester privé). */
+export function Information({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      role="status"
+      className="rounded-lg border-l-4 border-[var(--filet)] bg-[var(--marque-clair)] px-3.5 py-3 text-[0.9375rem] text-[var(--corps)]"
+    >
+      {children}
+    </p>
+  );
+}
+
 /** Retour explicite : sur un téléphone, le geste système ne suffit pas toujours. */
 export function Retour({ href, children }: { href: string; children: React.ReactNode }) {
   return (

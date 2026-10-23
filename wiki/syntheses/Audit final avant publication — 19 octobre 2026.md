@@ -3,7 +3,7 @@ type: synthesis
 tags: [audit, publication, securite, paiement, signature-electronique, juridique, rgpd, exploitation, octobre-2026]
 status: stable
 created: 2026-10-19
-updated: 2026-10-20
+updated: 2026-10-23
 sources: []
 ---
 
@@ -162,3 +162,11 @@ Tout ce qui demande un tableau de bord extérieur, une saisie du dirigeant, une 
 > - La PR #206 fait signer l'état des lieux dans le circuit Zoho alors que la règle RM-13.1.6 prévoit une signature tactile sur place : à trancher.
 > - Les pages publiques et l'écran d'abonnement décrivent la signature Zoho, les SMS et l'aide aux devis (PR #210) alors que les envois aux clients étaient fermés : promesse à aligner sur la décision du dirigeant.
 > - Les PR #202 à #211 sortent de l'autorisation écrite du 14/10 (vagues 1 à 4) ; leur publication repose sur une demande orale du 18/10 : à faire confirmer par écrit avec les SHA.
+
+> [!warning] Changement du 23/10/2026 — réseau d'artisans
+> - Décision du dirigeant : les communes et les métiers du réseau sont choisis par l'artisan (sa zone
+>   d'intervention et ses métiers), même pendant la bêta ; l'ouverture commune × métier par le super
+>   administrateur est supplantée. Migration `20261023180000`, non appliquée en production au 23/10 :
+>   voir [[Ouverture du réseau d'artisans]].
+> - Point 14 (« ouvrir une première commune et un métier ») : sans objet après la décision du 23/10 ; il suffit
+>   qu'un artisan validé ait rendu son profil public.

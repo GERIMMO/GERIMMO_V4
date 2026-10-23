@@ -3,7 +3,7 @@ type: synthesis
 tags: [expansion, territoire, croissance, acquisition, publicite, parrainage, france, autonomie]
 status: draft
 created: 2026-09-19
-updated: 2026-09-29
+updated: 2026-10-23
 sources: ["[[2026-09-28-reseau-national-ouvertures-locales]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]"]
 ---
 
@@ -153,3 +153,9 @@ Conditionnée par [[Gerimmo en autonomie]] (santé du produit) · vitrine et
 pour l'accueil · [[Socle de sécurité]] et [[RGPD]] pour Meta et la mesure ·
 [[Proposition de valeur]] et [[Analyse concurrentielle]] pour le message ·
 [[Grille tarifaire agence — proposition]] pour l'offre.
+
+> [!warning] Changement du 23/10/2026 — réseau d'artisans
+> - Décision du dirigeant : les communes et les métiers du réseau sont choisis par l'artisan (sa zone
+>   d'intervention et ses métiers), même pendant la bêta ; l'ouverture commune × métier par le super
+>   administrateur est supplantée. Migration `20261023180000`, non appliquée en production au 23/10 :
+>   voir [[Ouverture du réseau d'artisans]].

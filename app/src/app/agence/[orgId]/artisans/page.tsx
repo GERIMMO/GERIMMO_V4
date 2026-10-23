@@ -184,7 +184,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
         </p>
       </div>
 
-      <p className="mb-4 text-sm"><Link href={`${base}/reseau`} className="btn-secondaire inline-flex">Vérifier le réseau pour mes biens</Link><span className="mt-2 block text-muted-foreground">Le réseau Gerimmo dépend de la commune du bien et du métier ouvert. Votre carnet personnel reste disponible.</span></p>
+      <p className="mb-4 text-sm"><Link href={`${base}/reseau`} className="btn-secondaire inline-flex">Vérifier le réseau pour mes biens</Link><span className="mt-2 block text-muted-foreground">Le réseau Gerimmo propose les artisans validés dont la zone couvre le bien, pour le métier recherché. Votre carnet personnel reste disponible.</span></p>
       <EchecLecture quoi={lecturesManquees} />
 
       <div className={`split${sel ? " detail-actif" : ""}`}>

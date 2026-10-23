@@ -15,11 +15,13 @@ import {
   COULEURS_PLATEFORME,
   COULEURS_SIRET,
   ETATS_SIRET,
+  METIERS_ARTISAN,
   STATUTS_INTERVENTION,
   STATUTS_PLATEFORME,
   VISIBILITES_ARTISAN,
 } from "./referentiel";
 import { baseEspace } from "@/lib/racine-espace";
+import { libelleZone } from "@/lib/zone-artisan";
 
 // La fiche d'un artisan VUE PAR SON AGENCE. Deux moitiés, et la frontière
 // entre elles est la chose importante à ne pas brouiller :
@@ -72,7 +74,7 @@ export async function PaneArtisan({
     supabase
       .from("artisans")
       .select(
-        "id, raison_sociale, siret, siret_etat, telephone, email, visibilite, statut_plateforme, blacklist_globale_le, created_at"
+        "id, account_id, raison_sociale, siret, siret_etat, telephone, email, visibilite, statut_plateforme, blacklist_globale_le, created_at"
       )
       .eq("id", artisanId)
       .maybeSingle(),
@@ -196,22 +198,36 @@ export async function PaneArtisan({
             </CardHeader>
             <CardContent className="space-y-3">
               {/* Métiers et zone sont du PROFIL GLOBAL (RM-A1.8), pas de la
-                  relation d'agence : sur un profil public, ce que vous posez
-                  ici est ce que les autres agences verront. Le dire, plutôt
-                  que de laisser l'agent croire qu'il règle son carnet à lui. */}
-              {profil.visibilite === "publique" && (
-                <p className="border-l-2 border-l-[var(--warning)] bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning-soft-foreground)]">
-                  Ce profil est public : métiers et zone appartiennent à
-                  l&apos;artisan et valent pour toutes les agences avec
-                  lesquelles il travaille. Une correction ici les concerne aussi.
-                </p>
+                  relation d'agence. Décision du 23/10/2026 (20261023180000) :
+                  ils décident aussi de la présence de l'artisan dans le réseau
+                  national. Un artisan qui a son compte les règle seul ; l'agence
+                  ne garde la main que sur une fiche sans compte de son carnet
+                  actif. */}
+              {profil.account_id || desactive || enBlacklist ? (
+                <>
+                  <p className="text-sm">
+                    <b className="font-medium">Métiers :</b>{" "}
+                    {metiers.length ? metiers.map((m) => METIERS_ARTISAN[m] ?? m).join(" · ") : "aucun"}
+                    <br />
+                    <b className="font-medium">Zone :</b>{" "}
+                    {codes.length ? codes.map(libelleZone).join(" · ") : "aucune"}
+                  </p>
+                  <p className="border-l-2 border-l-[var(--warning)] bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning-soft-foreground)]">
+                    {profil.account_id
+                      ? "Les métiers et la zone de cet artisan lui appartiennent : il les met à jour depuis son espace Gerimmo."
+                      : enBlacklist
+                        ? "Cet artisan est sur votre liste noire : levez-la d’abord pour modifier ses métiers et sa zone."
+                        : "Réactivez d’abord cet artisan dans votre carnet pour modifier ses métiers et sa zone."}
+                  </p>
+                </>
+              ) : (
+                <FormulaireMetiersZones
+                  orgId={orgId}
+                  artisanId={artisanId}
+                  metiers={metiers}
+                  codes={codes}
+                />
               )}
-              <FormulaireMetiersZones
-                orgId={orgId}
-                artisanId={artisanId}
-                metiers={metiers}
-                codes={codes}
-              />
             </CardContent>
           </Card>
 

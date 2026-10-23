@@ -21,6 +21,14 @@ import { configDefaults, defineConfig } from "vitest/config";
  * `npm test` en local. Le test `tests/execution-en-serie.test.ts` garde cette liste cohérente avec les fichiers.
  */
 export const FICHIERS_EN_SERIE = [
+  // A01/A02 (23/10) : rejeu et retour de 20261023162446, pose complète des gardes, fixture validée (deux sessions).
+  "tests/intention-souscription-base.test.ts",
+  // Réseau d'artisans choisi par l'artisan (23/10) : rejeu de 20261023180000 et de son retour (index sur artisan_zones,
+  // huit fonctions du réseau et artisan_definir_metiers_zones réécrites) dans la transaction du fichier.
+  "tests/reseau-zone-artisan-rejeu.test.ts",
+  // Relectures du 23/10 : verrous entre sollicitation du réseau et changement de zone, accès d'une agence revérifié sous
+  // le verrou de la fiche ; fixture validée (deux sessions), nettoyée à la fin.
+  "tests/reseau-zone-artisan-concurrence.test.ts",
   "tests/conservation-contacts-base.test.ts",
   "tests/reglage-souscription-base.test.ts",
   // Rejeu du compteur réservé au relais et fermeture des droits des fonctions.
@@ -143,6 +151,9 @@ export const FICHIERS_EN_SERIE = [
   // Audit du 23/10, A03 : rejeu de 20261023161500 et de son retour (`create or replace` de charges_recuperables_exercice et
   // provisions_charges_annee) dans la transaction du fichier, tenue pendant tous ses essais ; regulariser_charges y est appelée.
   "tests/charges-agregats-portefeuille-base.test.ts",
+  // Relecture adverse du 23/10 : rejeu de 20261023184512 et de son retour (`create or replace` de mes_annonces_locataire)
+  // et `aujourdhui_paris()` figée au lendemain, dans la transaction du fichier tenue pendant tous ses essais.
+  "tests/annonces-locataire-jour-paris-base.test.ts",
 ];
 
 export default defineConfig({

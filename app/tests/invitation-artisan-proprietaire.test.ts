@@ -764,7 +764,7 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
     });
   });
 
-  it("parcours complet : invité, inscrit, attestations déposées, PAS sollicitable avant validation, validé par Gerimmo, sollicité en commune fermée", async () => {
+  it("parcours complet : invité, inscrit, attestations déposées, PAS sollicitable avant validation, validé par Gerimmo, sollicité par le carnet (resté privé, il n'est pas au réseau)", async () => {
     const r = await inviter();
     const artisan = await inscrire();
     for (const type of ["rc_pro", "decennale"]) {
@@ -778,10 +778,11 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
     // Avant la validation de Gerimmo : le carnet ne le propose pas, et une sollicitation directe est refusée.
     await devenir(proprietaire);
     const avant = (await db.query("select * from public.reseau_disponibilite($1,$2,'plomberie','entretien_courant')", [org, bienParis])).rows[0];
-    expect(avant.etat).toBe("fermee");
+    // Depuis le 23/10/2026 (20261023180000), plus de commune « fermée » : sans artisan proposé, l'état est « sans_artisan ».
+    expect(avant.etat).toBe("sans_artisan");
     expect(Number(avant.nb_contacts)).toBe(0);
     expect(await echec("select public.ouvrir_consultation($1,$2,'plomberie','entretien_courant',true,30)", [org, incidentParis])).toMatch(
-      /pas encore disponible pour ce métier dans cette zone/
+      /Aucun artisan du réseau/
     );
     await postgres();
     expect((await db.query("select public.artisan_affectable($1,$2,'plomberie','entretien_courant','75011') ok", [artisan, org])).rows[0].ok).toBe(false);
@@ -793,7 +794,9 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
 
     await devenir(proprietaire);
     const apres = (await db.query("select * from public.reseau_disponibilite($1,$2,'plomberie','entretien_courant')", [org, bienParis])).rows[0];
-    expect(apres.etat).toBe("fermee");
+    // Validé mais privé (défaut) : proposé par le carnet du propriétaire, pas par le réseau des autres.
+    expect(apres.etat).toBe("sans_artisan");
+    expect(Number(apres.nb_artisans)).toBe(0);
     expect(Number(apres.nb_contacts)).toBe(1);
     const consultation = await id("select public.ouvrir_consultation($1,$2,'plomberie','entretien_courant',true,30) id", [org, incidentParis]);
     const sollicitation = await id("select public.solliciter_artisan($1,$2,$3) id", [org, consultation, artisan]);
@@ -837,12 +840,15 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
     await db.query("select public.artisan_definir_metiers_zones($1, array['plomberie']::public.artisan_metier[], array['69003','75011'])", [artisan]);
     expect(await profil()).toEqual({ zones: ["69003", "75011"], metiers: ["plomberie"] });
     expect(await contacts()).toBe(1);
-    // Inchangé pour les agences : la fiche d'un artisan de leur carnet reste modifiable (avertissement « profil public »).
+    // Décision du 23/10/2026 (20261023180000) : la zone et les métiers d'un artisan qui a son compte décident de sa présence
+    // dans le réseau national ; une agence de son carnet ne les réécrit plus (elle le pouvait depuis le 15/10).
     await postgres();
     await db.query("insert into public.artisan_agences(organization_id,artisan_id,statut,created_by) values($1,$2,'actif',$3)", [agence, artisan, adminAgence]);
     await devenir(adminAgence);
-    await db.query("select public.artisan_definir_metiers_zones($1, array['plomberie']::public.artisan_metier[], array['69003','75011','75012'])", [artisan]);
-    expect((await profil()).zones).toEqual(["69003", "75011", "75012"]);
+    expect(
+      await echec("select public.artisan_definir_metiers_zones($1, array['plomberie']::public.artisan_metier[], array['69003','75011','75012'])", [artisan])
+    ).toMatch(/lui appartiennent : il les met à jour depuis son espace/);
+    expect((await profil()).zones).toEqual(["69003", "75011"]);
   });
 
   // Seconde relecture du 15/10 (20261014848000) : pour un bien, le carnet dit POURQUOI un artisan ne peut pas être

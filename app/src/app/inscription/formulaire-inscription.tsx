@@ -24,6 +24,12 @@ export function FormulaireInscription({
     {}
   );
 
+  // Relecture du 23/10 (même défaut que PRO-4) : React remet le formulaire à zéro après chaque action, et un <select>
+  // déjà monté ne reprend pas un nouveau `defaultValue`. Après un refus, la liste revenait à « Personne physique » et un
+  // second envoi enregistrait une autre qualité que celle choisie. La clé, égale à la valeur à reposer, remonte la
+  // liste quand cette valeur change : elle part de la qualité envoyée. Sans script, le HTML du serveur la porte déjà.
+  const qualite = etat.valeurs?.qualite ?? "Personne physique";
+
   if (etat.message) {
     return (
       <Card>
@@ -101,9 +107,10 @@ export function FormulaireInscription({
                   le menu faisait 5 px de plus, un autre arrondi, sans anneau
                   de focus. */}
               <select
+                key={`qualite-${qualite}`}
                 id="ins-qualite"
                 name="qualite"
-                defaultValue={etat.valeurs?.qualite ?? "Personne physique"}
+                defaultValue={qualite}
                 className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
               >
                 {/* Liste fermée (audit 29/09) : la durée du bail nu en dépend. */}

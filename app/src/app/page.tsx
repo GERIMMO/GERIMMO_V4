@@ -122,7 +122,7 @@ export default async function PageVitrine() {
               { Icone: Wrench, titre: "Artisans", texte: "Retrouvez les demandes qui vous sont confiées, préparez vos devis et suivez vos rendez-vous et interventions.", lien: "/artisan/inscription", action: "Rejoindre le réseau", couleur: "rose" },
             ].map(({ Icone, titre, texte, lien, action, couleur }) => <article key={titre} className={`public-espace public-ton-${couleur}`}><span className="public-icone"><Icone size={24} aria-hidden /></span><h3>{titre}</h3><p>{texte}</p><Link href={lien} className="public-lien">{action}<ArrowUpRight size={16} aria-hidden /></Link></article>)}
           </div>
-          <p className="public-note public-reseau-note">Le réseau d’artisans s’ouvre progressivement, selon la commune du bien et le métier recherché. La gestion locative reste accessible partout en France, indépendamment de ce réseau.</p>
+          <p className="public-note public-reseau-note">Le réseau d’artisans grandit avec ses inscrits : chaque artisan choisit sa zone et ses métiers, puis Gerimmo vérifie son inscription. La gestion locative reste accessible partout en France, indépendamment de ce réseau.</p>
           {/* La liste d'attente des agences (20/10/2026) : les agences sont hors du site public depuis le 13/10 ; celles qui
               arrivent ici trouvent le chemin de /agences. En fin de la section des espaces (même bloc que « trois temps »
               dans la section précédente), pour ne pas rompre l'alternance des fonds. Pas de prix, pas de date. */}

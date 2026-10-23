@@ -36,8 +36,37 @@ type LigneMandat = {
   lot_id: string;
   date_debut: string;
   date_fin: string | null;
-  mandat: UnOuPlusieurs<{ person: UnOuPlusieurs<{ nom: string; prenom: string | null }> }>;
+  mandat: UnOuPlusieurs<{
+    etat: string | null;
+    date_fin: string | null;
+    person: UnOuPlusieurs<{ nom: string; prenom: string | null }>;
+  }>;
 };
+
+/** Une période pendant laquelle une ligne de mandat nomme le mandant d'un lot. */
+type PeriodeMandant = { id: string; debut: string; fin: string | null; resilie: boolean; nom: string };
+
+/** La plus proche de deux dates de fin connues (AAAA-MM-JJ) ; `null` = sans fin. */
+const finLaPlusProche = (a: string | null, b: string | null): string | null =>
+  a === null ? b : b === null ? a : a < b ? a : b;
+
+/**
+ * Relecture adverse du 23/10 : rien ne ferme les lignes d'un mandat résilié (`date_fin` reste vide), et RM-5.1.3 laisse
+ * un nouveau mandat ouvrir sa ligne sur le même lot. Deux lignes peuvent donc couvrir le même jour ; la route prenait
+ * la première LUE, soit, depuis le tri par identifiant, un tirage entre deux uuid. L'ordre de préférence ne dépend plus
+ * de la lecture : d'abord un mandat non résilié (RM-5.1.3 n'en laisse qu'un ouvert par lot ; c'est lui qui décide
+ * quand deux lignes commencent le même jour, `date_debut` valant le jour de l'insertion), puis la ligne commencée le
+ * plus récemment (un mandat qui commence sur le lot succède au précédent), puis l'identifiant.
+ *
+ * Limite assumée : rien n'enregistre la date d'une résiliation. `mandats.date_fin` n'est renseignée par aucune action ni
+ * fonction SQL, et un mandat résilié est verrouillé. Sans successeur sur le lot, le dernier mandant reste donc nommé
+ * pour les écritures postérieures à la résiliation (restitution du dépôt, régularisation finale : elles lui reviennent).
+ */
+function preferer(a: PeriodeMandant, b: PeriodeMandant): number {
+  if (a.resilie !== b.resilie) return a.resilie ? 1 : -1;
+  if (a.debut !== b.debut) return a.debut < b.debut ? 1 : -1;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
 
 /** Un refus en clair : jamais un fichier qui aurait l'air complet sans l'être. */
 function refus(message: string): Response {
@@ -167,15 +196,16 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   // Seules les écritures d'honoraires portent le mandat. Pour les loyers, le
   // mandant se retrouve par le lot — sans quoi la colonne resterait vide sur la
   // quasi-totalité du journal, et la ventilation par mandant serait impossible.
-  // On garde toutes les lignes, y compris closes : le journal est historique, et
-  // une écriture de mars doit porter le mandant de mars même si le mandat s'est
-  // terminé depuis. Toutes les pages aussi : la 1 001e ligne de mandat nomme un
-  // mandant comme les autres.
+  // On garde toutes les lignes, y compris celles des mandats résiliés : le journal
+  // est historique, et une écriture de mars doit porter le mandant de mars même si
+  // le mandat s'est terminé depuis. Toutes les pages aussi : la 1 001e ligne de
+  // mandat nomme un mandant comme les autres. L'état et la fin du mandat servent à
+  // départager deux lignes qui couvrent le même jour (voir `preferer`).
   const lectureMandats = await lireToutesLesPages<LigneMandat>(
     (debut, fin) =>
       supabase
         .from("mandat_lignes")
-        .select("id, lot_id, date_debut, date_fin, mandat:mandats(person:persons(nom, prenom))", {
+        .select("id, lot_id, date_debut, date_fin, mandat:mandats(etat, date_fin, person:persons(nom, prenom))", {
           count: "exact",
         })
         .eq("organization_id", orgId)
@@ -190,18 +220,24 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   // qu'il lui manque quelque chose. Mieux vaut refuser l'export.
   if (lectureMandats.echec) return refus(pourquoiMandatsIncomplets(lectureMandats.echec));
 
-  const mandatsDuLot = new Map<string, { debut: string; fin: string | null; nom: string }[]>();
+  const mandatsDuLot = new Map<string, PeriodeMandant[]>();
   for (const l of lectureMandats.lignes) {
-    const p = premier(premier(l.mandat)?.person);
+    const mandat = premier(l.mandat);
+    const p = premier(mandat?.person);
     if (!p) continue;
     const liste = mandatsDuLot.get(l.lot_id) ?? [];
     liste.push({
+      id: l.id,
       debut: l.date_debut,
-      fin: l.date_fin,
+      // La ligne s'arrête au plus tard à la fin du mandat, si elle est un jour renseignée (aucun écran ne la pose
+      // aujourd'hui : voir la limite décrite au-dessus de `preferer`).
+      fin: finLaPlusProche(l.date_fin, mandat?.date_fin ?? null),
+      resilie: mandat?.etat === "resilie",
       nom: `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}`,
     });
     mandatsDuLot.set(l.lot_id, liste);
   }
+  for (const liste of mandatsDuLot.values()) liste.sort(preferer);
 
   const mandantAuJour = (lotId: string | null, jour: string): string | undefined =>
     lotId

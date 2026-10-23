@@ -2,8 +2,9 @@
 //
 // « L'artisan doit pouvoir être invité par un propriétaire, ce sera à l'artisan de s'inscrire. » Le propriétaire invite
 // par l'adresse e-mail ; l'artisan crée son compte, inscrit son entreprise, dépose ses attestations ; Gerimmo le valide ;
-// une fois l'invitation acceptée, il est dans le carnet du propriétaire et peut être sollicité par lui, même si la
-// commune du bien n'est pas ouverte au réseau — pour les biens situés dans sa zone d'intervention.
+// une fois l'invitation acceptée, il est dans le carnet du propriétaire et peut être sollicité par lui, même s'il n'est
+// pas proposé par le réseau (profil privé) — pour les biens situés dans sa zone d'intervention. Depuis le 23/10/2026, le
+// réseau suit cette même zone (migration 20261023180000).
 //
 // Ce fichier est PUR (aucun accès à la base, aucun secret) : libellés, lien de l'e-mail, lecture de l'adresse pré-remplie.
 // Les règles sont en base (migration 20261014840000) ; l'écran les nomme.

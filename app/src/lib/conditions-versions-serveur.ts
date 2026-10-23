@@ -65,7 +65,9 @@ async function lirePagePubliee(url: string): Promise<string> {
 const MOTIFS_EXTRACTION: Record<string, string> = {
   absent: "le texte contractuel n'a pas été trouvé dans la page publiée (marque data-texte-contractuel absente : le déploiement en ligne précède-t-il cette fonction ?)",
   plusieurs: "la page publiée porte plusieurs textes contractuels pour ce document",
-  non_ferme: "le texte contractuel de la page publiée est incomplet",
+  non_ferme: "le texte contractuel de la page publiée n'est pas refermé (page tronquée)",
+  incomplet:
+    "des passages du texte contractuel de la page publiée n'ont pas pu être remis en place (rendu en flux inachevé ou reporté au navigateur) : le texte serait troué",
   contenu_actif: "le texte contractuel de la page publiée contient du code actif (script, cadre ou gestionnaire d'événement)",
 };
 

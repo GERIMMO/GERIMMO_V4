@@ -137,19 +137,150 @@ export function empreinteDeReference(
   return sha256Hex(`${formeDeReference(texteContractuel)}\n--- sous-traitants ---\n${JSON.stringify(sousTraitants)}`);
 }
 
+// ── Reconstitution d'une page rendue en flux ───────────────────────────────────────────────────────────────────
+
+/** La balise fermante qui referme l'élément `balise` dont la balise ouvrante finit à `debut` : position et longueur. */
+function fermetureDe(page: string, debut: number, balise = "div"): { index: number; longueur: number } | null {
+  const motif = new RegExp(`<(\\/?)${balise}\\b[^>]*>`, "gi");
+  motif.lastIndex = debut;
+  let profondeur = 1;
+  for (let m = motif.exec(page); m; m = motif.exec(page)) {
+    profondeur += m[1] ? -1 : 1;
+    if (profondeur === 0) return { index: m.index, longueur: m[0].length };
+  }
+  return null;
+}
+
+/**
+ * Le commentaire `<!--/$-->` qui referme la frontière d'attente ouverte juste avant `debut`, compté comme le fait le
+ * script `$RV` de React (frontières imbriquées `$`, `$?`, `$~`, `$!`, activités `&`) ; -1 s'il manque.
+ */
+function finDeFrontiere(page: string, debut: number): number {
+  const commentaires = /<!--([\s\S]*?)-->/g;
+  commentaires.lastIndex = debut;
+  let profondeur = 0;
+  for (let m = commentaires.exec(page); m; m = commentaires.exec(page)) {
+    const marque = m[1];
+    if (marque === "/$" || marque === "/&") {
+      if (profondeur === 0) return m.index;
+      profondeur--;
+    } else if (marque === "$" || marque === "$?" || marque === "$~" || marque === "$!" || marque === "&") {
+      profondeur++;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Les enveloppes d'un segment caché, selon le contexte où React l'insère (`startSegment*` de react-dom/server) :
+ * `<div hidden id="S:n">` dans le corps, `<table hidden id>`, `<table hidden><tbody id>` (lignes d'un tableau, comme
+ * l'annexe des prestataires), `<table hidden><tr id>`, `<table hidden><colgroup id>`, et `<svg|math … id>`.
+ */
+const SEGMENT_CACHE =
+  /<(div|table) hidden(?:="")? id="(S:[0-9a-zA-Z]+)">|<table hidden(?:="")?><(tbody|tr|colgroup) id="(S:[0-9a-zA-Z]+)">|<(svg|math) aria-hidden="true" style="display:none" id="(S:[0-9a-zA-Z]+)">/g;
+const MARQUE_A_REMPLIR = /<template id="(P:[0-9a-zA-Z]+)"><\/template>|<!--\$\?--><template id="(B:[0-9a-zA-Z]+)"><\/template>/g;
+/** Ce qu'une page entièrement reconstituée ne contient plus : marque vide, segment caché, frontière en attente ou en erreur. */
+const RESTE_DE_FLUX = /<template\b|\sid="[PSB]:[0-9a-zA-Z]+"|<!--\$[?!~]-->/;
+
+/**
+ * La page telle qu'un navigateur l'affiche une fois le flux arrivé (relecture adverse du 24/10, B1).
+ *
+ * Next.js envoie la page EN FLUX (React 19, Fizz) : l'ossature d'abord, avec des marques vides
+ * `<template id="P:n"></template>` à la place des passages pas encore prêts et, pour une frontière d'attente
+ * (`loading.tsx`, `<Suspense>`), `<!--$?--><template id="B:n"></template>` suivi du texte d'attente ; puis chaque
+ * passage dans un segment caché (`<div hidden id="S:n">`, ou `<table hidden><tbody id="S:n">` pour des lignes de
+ * tableau, voir SEGMENT_CACHE), que le navigateur remet en place par `$RS("S:n","P:n")` (le passage remplace
+ * la marque) ou `$RC("B:n","S:n")` (le passage remplace le texte d'attente de la frontière). Cette fonction rejoue ces
+ * instructions sur le texte, sans exécuter aucun script : chaque segment n'est remis qu'une fois, à la place que
+ * l'instruction lui donne, et ses propres marques sont remplies à leur tour.
+ *
+ * Ce qui ne peut pas être remis en place (segment ou instruction absents, frontière rendue par le navigateur après une
+ * erreur, `$RX`) reste tel quel : `extraireTexteContractuel` refuse alors le texte (motif « incomplet »).
+ */
+export function reconstituerFlux(page: string): string {
+  const passages = new Map<string, string>();
+  const frontieres = new Map<string, string>();
+  for (const script of page.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
+    for (const m of script[1].matchAll(/\$RS\("(S:[0-9a-zA-Z]+)","(P:[0-9a-zA-Z]+)"\)/g)) passages.set(m[2], m[1]);
+    for (const m of script[1].matchAll(/\$R[CR]\("(B:[0-9a-zA-Z]+)","(S:[0-9a-zA-Z]+)"/g)) frontieres.set(m[1], m[2]);
+  }
+
+  // Les segments cachés, retirés de la page : ils n'y reviennent qu'à la place que leur instruction leur donne.
+  const segments = new Map<string, string>();
+  let ossature = "";
+  let curseur = 0;
+  const motifSegment = new RegExp(SEGMENT_CACHE.source, "g");
+  for (let m = motifSegment.exec(page); m; m = motifSegment.exec(page)) {
+    const balise = (m[1] ?? m[3] ?? m[5]).toLowerCase();
+    const id = m[2] ?? m[4] ?? m[6];
+    const debut = m.index + m[0].length;
+    const fin = fermetureDe(page, debut, balise);
+    if (!fin) break;
+    let apres = fin.index + fin.longueur;
+    // Les lignes et groupes de colonnes sont enveloppés d'un `<table hidden>` qui se referme juste après eux.
+    if (m[3]) {
+      if (!/^<\/table>/i.test(page.slice(apres, apres + 8))) break;
+      apres += "</table>".length;
+    }
+    if (!segments.has(id)) segments.set(id, page.slice(debut, fin.index));
+    ossature += page.slice(curseur, m.index);
+    curseur = apres;
+    motifSegment.lastIndex = curseur;
+  }
+  ossature += page.slice(curseur);
+  if (segments.size === 0) return page;
+
+  const utilises = new Set<string>();
+  const prendre = (segment: string | undefined): string | null => {
+    if (!segment || utilises.has(segment)) return null;
+    const contenu = segments.get(segment);
+    if (contenu === undefined) return null;
+    utilises.add(segment);
+    return contenu;
+  };
+  const remplir = (html: string, profondeur: number): string => {
+    if (profondeur > 256) return html;
+    const motif = new RegExp(MARQUE_A_REMPLIR.source, "g");
+    let sortie = "";
+    let i = 0;
+    for (let m = motif.exec(html); m; m = motif.exec(html)) {
+      if (m[1]) {
+        const contenu = prendre(passages.get(m[1]));
+        if (contenu === null) continue;
+        sortie += html.slice(i, m.index) + remplir(contenu, profondeur + 1);
+        i = m.index + m[0].length;
+      } else {
+        const fin = finDeFrontiere(html, m.index + m[0].length);
+        if (fin < 0) continue;
+        const contenu = prendre(frontieres.get(m[2]));
+        if (contenu === null) continue;
+        // Le texte d'attente disparaît ; la frontière devient une frontière achevée (`<!--$-->…<!--/$-->`).
+        sortie += html.slice(i, m.index) + "<!--$-->" + remplir(contenu, profondeur + 1);
+        i = fin;
+        motif.lastIndex = fin;
+      }
+    }
+    return sortie + html.slice(i);
+  };
+  return remplir(ossature, 0);
+}
+
 // ── Extraction du texte contractuel d'une page ─────────────────────────────────────────────────────────────────
 
 export type Extraction =
   | { ok: true; html: string; version: string | null }
-  | { ok: false; motif: "absent" | "plusieurs" | "non_ferme" | "contenu_actif" };
+  | { ok: false; motif: "absent" | "plusieurs" | "non_ferme" | "incomplet" | "contenu_actif" };
 
 /**
  * Le texte contractuel d'une page HTML : le contenu de l'unique `<div data-texte-contractuel="<document>">`, normalisé.
+ * La page est d'abord reconstituée (`reconstituerFlux`) : le texte est celui qu'un navigateur affiche, pas l'ossature
+ * du flux. Un texte qui garde une marque de flux (passage jamais arrivé) est refusé : rien d'incomplet ne s'archive.
  * React échappe `<` dans les textes et les attributs : une balise `div` du flux est une vraie balise, et l'élément se
  * referme au `</div>` qui ramène la profondeur à zéro. Refuse un texte qui porterait du code actif (script, cadre,
  * gestionnaire d'événement) : la page des versions l'afficherait tel quel.
  */
-export function extraireTexteContractuel(page: string, document: DocumentConditions): Extraction {
+export function extraireTexteContractuel(pagePubliee: string, document: DocumentConditions): Extraction {
+  const page = reconstituerFlux(pagePubliee);
   const ouverture = new RegExp(`<div\\b[^>]*\\b${ATTRIBUT_TEXTE}="${document}"[^>]*>`, "g");
   const trouves = [...page.matchAll(ouverture)];
   if (trouves.length === 0) return { ok: false, motif: "absent" };
@@ -157,18 +288,13 @@ export function extraireTexteContractuel(page: string, document: DocumentConditi
   const [balise] = trouves;
   const debut = (balise.index ?? 0) + balise[0].length;
   const version = new RegExp(`\\b${ATTRIBUT_VERSION}="([^"]*)"`).exec(balise[0])?.[1] ?? null;
-  const divs = /<(\/?)div\b[^>]*>/gi;
-  divs.lastIndex = debut;
-  let profondeur = 1;
-  for (let m = divs.exec(page); m; m = divs.exec(page)) {
-    profondeur += m[1] ? -1 : 1;
-    if (profondeur === 0) {
-      const html = normaliserHtml(page.slice(debut, m.index));
-      if (/<(?:script|iframe|object|embed|form)\b|\son[a-z]+\s*=|javascript:/i.test(html)) return { ok: false, motif: "contenu_actif" };
-      return { ok: true, html, version };
-    }
-  }
-  return { ok: false, motif: "non_ferme" };
+  const fin = fermetureDe(page, debut);
+  if (!fin) return { ok: false, motif: "non_ferme" };
+  const brut = page.slice(debut, fin.index);
+  if (RESTE_DE_FLUX.test(brut)) return { ok: false, motif: "incomplet" };
+  const html = normaliserHtml(brut);
+  if (/<(?:script|iframe|object|embed|form)\b|\son[a-z]+\s*=|javascript:/i.test(html)) return { ok: false, motif: "contenu_actif" };
+  return { ok: true, html, version };
 }
 
 // ── Lecture des versions archivées (lecture publique) ──────────────────────────────────────────────────────────

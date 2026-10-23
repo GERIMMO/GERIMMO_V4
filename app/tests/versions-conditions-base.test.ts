@@ -370,6 +370,36 @@ describe.skipIf(!url)("versions des conditions et archives des comptes (avec bas
     expect(await echec("truncate public.archives_comptes")).toMatch(/^42501 Les archives de comptes ne se vident pas/);
   });
 
+  it("M4 : la date de purge est celle de la base, et ne se touche pas sans retrait de facture", async () => {
+    await serviceRole();
+    const { rows: [a] } = await db.query<{ id: string }>(INSERER_ARCHIVE, [
+      autre, null, "2012-01-01", "2026-10-31", JSON.stringify([{ numero: "F-2012", emise_le: "2012-01-31" }, { numero: "F-2026", emise_le: "2026-10-01" }]),
+    ]);
+    // Sans retrait de facture, la date de purge ne se modifie pas.
+    expect(await echec("update public.archives_comptes set factures_purgees_le = '2000-01-01' where id = $1", [a.id])).toMatch(/^42501/);
+    // Avec un retrait légitime, la date posée par l'appelant est remplacée par l'heure de la base.
+    expect(await echec(
+      "update public.archives_comptes set factures = $2::jsonb, factures_purgees_le = '2000-01-01' where id = $1",
+      [a.id, JSON.stringify([{ numero: "F-2026", emise_le: "2026-10-01" }])]
+    )).toBe("");
+    const { rows: [l] } = await db.query<{ ok: boolean }>("select factures_purgees_le = now() as ok from public.archives_comptes where id = $1", [a.id]);
+    expect(l.ok).toBe(true);
+  });
+
+  it("M4 : une facture en double compte pour deux — ni retrait d'une copie avant terme, ni copie ajoutée", async () => {
+    await serviceRole();
+    const facture = { numero: "F-2026", emise_le: "2026-10-01" };
+    const { rows: [a] } = await db.query<{ id: string }>(INSERER_ARCHIVE, [autre, null, null, "2026-10-31", JSON.stringify([facture, facture])]);
+    expect(await echec("update public.archives_comptes set factures = $2::jsonb where id = $1", [a.id, JSON.stringify([facture])]))
+      .toMatch(/^42501 Seules les factures arrivées au terme/);
+    expect(await echec("update public.archives_comptes set factures = $2::jsonb where id = $1", [a.id, JSON.stringify([facture, facture, facture])]))
+      .toMatch(/^42501 Seules les factures arrivées au terme/);
+    // Une copie échue d'une facture en double se retire, l'autre aussi : chacune à son terme.
+    const vieille = { numero: "F-2012", emise_le: "2012-01-31" };
+    const { rows: [b] } = await db.query<{ id: string }>(INSERER_ARCHIVE, [client, null, null, "2026-10-31", JSON.stringify([vieille, vieille, facture])]);
+    expect(await echec("update public.archives_comptes set factures = $2::jsonb where id = $1", [b.id, JSON.stringify([vieille, facture])])).toBe("");
+  });
+
   it("archives : la purge retire chaque facture à ses six ans, puis la ligne au terme de la preuve ; réservée à la clé de service", async () => {
     await serviceRole();
     // Fin payée en 2014 : preuve jusqu'au 31/01/2024, échue. Une facture de 2012 (échue), une de 2021 (pas encore).

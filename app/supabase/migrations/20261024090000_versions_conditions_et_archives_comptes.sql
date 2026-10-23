@@ -402,12 +402,28 @@ begin
   if (to_jsonb(new) - 'factures' - 'factures_purgees_le') is distinct from (to_jsonb(old) - 'factures' - 'factures_purgees_le') then
     raise exception 'Une archive de compte ne se modifie pas' using errcode = '42501';
   end if;
-  -- Chaque facture gardée l'est à l'identique ; chaque facture retirée est arrivée au terme de ses six ans.
-  if exists (select 1 from jsonb_array_elements(new.factures) n
-              where not exists (select 1 from jsonb_array_elements(old.factures) o where o = n))
-     or exists (select 1 from jsonb_array_elements(old.factures) o
-                 where not exists (select 1 from jsonb_array_elements(new.factures) n where n = o)
-                   and ((o ->> 'emise_le')::date + interval '6 years')::date >= v_jour) then
+  -- La date de purge est celle de la base, posée au retrait d'une facture et à lui seul (relecture adverse du 24/10,
+  -- M4 : elle prenait n'importe quelle valeur).
+  if new.factures is not distinct from old.factures then
+    if new.factures_purgees_le is distinct from old.factures_purgees_le then
+      raise exception 'Une archive de compte ne se modifie pas' using errcode = '42501';
+    end if;
+    return new;
+  end if;
+  new.factures_purgees_le := now();
+  -- Chaque facture gardée l'est à l'identique, sans copie de plus ; chaque facture retirée est arrivée au terme de ses
+  -- six ans. Les factures se comptent (M4) : deux copies identiques sont deux factures, aucune ne part avant son terme.
+  if exists (select 1
+               from (select n.e, count(*) as c from jsonb_array_elements(new.factures) n(e) group by n.e) nouvelles
+               left join (select o.e, count(*) as c from jsonb_array_elements(old.factures) o(e) group by o.e) anciennes
+                 on anciennes.e = nouvelles.e
+              where anciennes.c is null or nouvelles.c > anciennes.c)
+     or exists (select 1
+                  from (select o.e, count(*) as c from jsonb_array_elements(old.factures) o(e) group by o.e) anciennes
+                  left join (select n.e, count(*) as c from jsonb_array_elements(new.factures) n(e) group by n.e) nouvelles
+                    on nouvelles.e = anciennes.e
+                 where coalesce(nouvelles.c, 0) < anciennes.c
+                   and ((anciennes.e ->> 'emise_le')::date + interval '6 years')::date >= v_jour) then
     raise exception 'Seules les factures arrivées au terme de leur conservation se retirent d''une archive' using errcode = '42501';
   end if;
   return new;

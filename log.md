@@ -6649,3 +6649,21 @@ Mots du dirigeant : « 2 je ne veux pas la couper, ouverture de la vente dés la
 - **Antivirus** : conseil demandé (service peu coûteux).
 - **Comptes des amis** : gardés après le 1/11, suppression seulement sur demande ; ce sont des clients comme les autres, utilisables aussi pour des tests.
 - Médiateur, offre Vercel, continuité : explications demandées avant décision.
+
+## [2026-10-23] decision | Conformité V1 : valeurs par défaut du plan juriste/DPO ; cautionnement et état des lieux hors ligne
+
+Mots du dirigeant : « OK aux valeurs par défaut, 3 conseillé ».
+
+Valeurs retenues (plan de conformité du 23/10, section 4 ; sources juridiques non ouvertes depuis l'environnement, à recomparer sur Légifrance avant publication) :
+1. Médiateur : adhésion avant le 15/11, coordonnées saisies dans `/admin/parametres` (reste non bloquant dans le code, décision du 23/10).
+2. Assurance responsabilité civile professionnelle : vérifier la couverture avant l'ouverture aux particuliers.
+3. **Cautionnement** : envoi électronique fermé (`ZOHO_SIGN_CAUTIONNEMENT_FERME=true` posé dans Vercel Production le 23/10 vers 18 h 26 UTC, effectif au prochain déploiement) ; acte signé hors ligne jusqu'à ce que la caution confirme elle-même son mobile. **État des lieux** : signé sur place, puis déposé ; la signature à distance sera fermée par le lot de conformité. Bail, avenants, accords et devis restent signables en ligne.
+4. Stripe, fin des tentatives : « marquer l'abonnement comme impayé » (réglage du tableau de bord Stripe, geste du dirigeant ou de Codex) ; résiliation manuelle au plus tôt à J+30.
+5. Remboursements protecteurs : oui à tout (rétractation intégrale, fermeture anticipée et refus d'une modification au prorata, etc.).
+6. Signature électronique comprise sans supplément, essai compris, dans la limite du volume mensuel commun.
+7. Espace artisan gratuit et sans commission.
+8. Démarchage : jamais de courriel commercial à un particulier sans consentement ; artisans et agences avec opposition possible dans chaque message.
+9. Violation de données : notification au client sous 48 h si une personne joignable est désignée en l'absence du dirigeant, sinon « dans les meilleurs délais ».
+10. Comptes des amis : clients ordinaires ; aucun test sur leurs données réelles (recettes sur comptes fictifs).
+11. Conditions V1 publiées dès que le code qui les rend vraies est en production, au plus tard le 15/11.
+12. Accords de sous-traitance (DPA) acceptés par le dirigeant dans les consoles des prestataires, copie datée gardée.

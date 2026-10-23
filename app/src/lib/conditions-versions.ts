@@ -66,6 +66,14 @@ export const DOCUMENTS_PUBLIES: readonly {
 export const ATTRIBUT_TEXTE = "data-texte-contractuel";
 /** La version affichée par la page, portée par le même élément. */
 export const ATTRIBUT_VERSION = "data-version";
+/**
+ * L'identité de l'éditeur avec laquelle la page a été rendue, portée par le même élément, HORS du texte archivé
+ * (relecture adverse du 24/10, I1) : « 1 » si la page a pu la lire en base, « 0 » si elle a été rendue sans (texte
+ * dégradé : mentions « à venir », encadré « Document en cours de finalisation ») ; et son empreinte
+ * (`empreinteIdentite`). L'action d'archivage compare cette empreinte à celle de l'identité qu'elle lit elle-même.
+ */
+export const ATTRIBUT_IDENTITE_LUE = "data-identite-lue";
+export const ATTRIBUT_IDENTITE_EMPREINTE = "data-identite-empreinte";
 
 /** Une version telle que le code la déclare (conditions-versions.json). */
 export type VersionDeclaree = {
@@ -265,10 +273,30 @@ export function reconstituerFlux(page: string): string {
   return remplir(ossature, 0);
 }
 
+/**
+ * L'empreinte d'une identité d'éditeur telle que les pages l'affichent (`identiteDepuisValeurs`) : SHA-256 de ses
+ * paires clé-valeur, triées par clé. La page la pose sur le texte contractuel ; l'action la recalcule depuis la base.
+ * Une révision ne suffirait pas : anon, qui rend la page publique, ne lit pas la colonne `revision`.
+ */
+export function empreinteIdentite(identite: Record<string, string | null>): string {
+  const paires = Object.keys(identite)
+    .sort()
+    .map((cle) => [cle, identite[cle] ?? null]);
+  return sha256Hex(JSON.stringify(paires));
+}
+
 // ── Extraction du texte contractuel d'une page ─────────────────────────────────────────────────────────────────
 
 export type Extraction =
-  | { ok: true; html: string; version: string | null }
+  | {
+      ok: true;
+      html: string;
+      version: string | null;
+      /** La page a-t-elle pu lire l'identité de l'éditeur en base au moment du rendu ? */
+      identiteLue: boolean;
+      /** L'empreinte de l'identité affichée (`empreinteIdentite`), si la page l'a lue. */
+      identiteEmpreinte: string | null;
+    }
   | { ok: false; motif: "absent" | "plusieurs" | "non_ferme" | "incomplet" | "contenu_actif" };
 
 /**
@@ -287,14 +315,18 @@ export function extraireTexteContractuel(pagePubliee: string, document: Document
   if (trouves.length > 1) return { ok: false, motif: "plusieurs" };
   const [balise] = trouves;
   const debut = (balise.index ?? 0) + balise[0].length;
-  const version = new RegExp(`\\b${ATTRIBUT_VERSION}="([^"]*)"`).exec(balise[0])?.[1] ?? null;
+  const attribut = (nom: string) => new RegExp(`\\s${nom}="([^"]*)"`).exec(balise[0])?.[1] ?? null;
+  const version = attribut(ATTRIBUT_VERSION);
+  const identiteLue = attribut(ATTRIBUT_IDENTITE_LUE) === "1";
+  const empreinte = attribut(ATTRIBUT_IDENTITE_EMPREINTE);
+  const identiteEmpreinte = identiteLue && empreinte && /^[0-9a-f]{64}$/.test(empreinte) ? empreinte : null;
   const fin = fermetureDe(page, debut);
   if (!fin) return { ok: false, motif: "non_ferme" };
   const brut = page.slice(debut, fin.index);
   if (RESTE_DE_FLUX.test(brut)) return { ok: false, motif: "incomplet" };
   const html = normaliserHtml(brut);
   if (/<(?:script|iframe|object|embed|form)\b|\son[a-z]+\s*=|javascript:/i.test(html)) return { ok: false, motif: "contenu_actif" };
-  return { ok: true, html, version };
+  return { ok: true, html, version, identiteLue, identiteEmpreinte };
 }
 
 // ── Lecture des versions archivées (lecture publique) ──────────────────────────────────────────────────────────

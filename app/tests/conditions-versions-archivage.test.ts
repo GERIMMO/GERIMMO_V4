@@ -8,18 +8,27 @@
  */
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { extraireTexteContractuel, sha256Hex } from "../src/lib/conditions-versions";
+import { empreinteIdentite, extraireTexteContractuel, sha256Hex } from "../src/lib/conditions-versions";
+import { identiteDepuisValeurs } from "../src/lib/identite-editeur";
 import { CONDITIONS_VERSION } from "../src/lib/editeur";
 
 const m = vi.hoisted(() => ({
   identitePage: {} as Record<string, string | null>,
+  identiteIndisponible: false,
   droit: { data: true as unknown, error: null as unknown },
   service: null as unknown,
   site: "https://site.example.com" as string | null,
 }));
-vi.mock("@/lib/editeur-serveur", () => ({
-  lireEditeur: async () => ({ editeur: m.identitePage, indisponible: false }),
-}));
+// Comme lib/editeur-serveur.ts : l'identité du code recouverte par les valeurs saisies ; en échec, celle du code seule.
+vi.mock("@/lib/editeur-serveur", async () => {
+  const { identiteDepuisValeurs } = await import("@/lib/identite-editeur");
+  return {
+    lireEditeur: async () => ({
+      editeur: identiteDepuisValeurs(m.identiteIndisponible ? null : m.identitePage),
+      indisponible: m.identiteIndisponible,
+    }),
+  };
+});
 vi.mock("@/components/chrome-public", () => ({ EnTetePublic: () => null, PiedPublic: () => null }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ rpc: async () => m.droit }) }));
@@ -58,6 +67,7 @@ async function pagePubliee(): Promise<string> {
 
 beforeEach(() => {
   m.identitePage = { ...VALEURS };
+  m.identiteIndisponible = false;
   m.droit = { data: true, error: null };
   m.site = "https://site.example.com";
   m.service = null;
@@ -153,6 +163,39 @@ describe("archiverConditionsPubliees", () => {
     });
     expect(c.message).toContain("la page a répondu 503");
     expect(injoignable.rpc).not.toHaveBeenCalled();
+  });
+
+  it("I1 : une page rendue sans pouvoir lire l'identité (texte dégradé, « à venir ») n'est jamais archivée", async () => {
+    m.identiteIndisponible = true;
+    const page = await pagePubliee();
+    // La page dégradée est servie normalement : marque, version et texte, avec ses mentions « à venir ».
+    const extraction = extraireTexteContractuel(page, "conditions_clients");
+    expect(extraction).toMatchObject({ ok: true, version: CONDITIONS_VERSION, identiteLue: false });
+    expect(extraction.ok && extraction.html).toContain("Document en cours de finalisation");
+    const s = service();
+    const [r] = await archiverConditionsPubliees({ service: s.client as never, site: "https://site.example.com", lirePage: async () => page });
+    expect(r.statut).toBe("echec");
+    expect(r.message).toContain("n'a pas pu lire l'identité de l'éditeur");
+    expect(s.rpc).not.toHaveBeenCalled();
+  });
+
+  it("I1 : une page rendue avec une autre identité que celle lue en base (cache, saisie en cours) n'est pas archivée", async () => {
+    m.identitePage = { ...VALEURS, email: "ancienne@example.com" };
+    const page = await pagePubliee();
+    const s = service();
+    const [r] = await archiverConditionsPubliees({ service: s.client as never, site: "https://site.example.com", lirePage: async () => page });
+    expect(r.statut).toBe("echec");
+    expect(r.message).toContain("autre identité de l'éditeur");
+    expect(s.rpc).not.toHaveBeenCalled();
+  });
+
+  it("I1 : l'identité lue par la page est portée par l'élément marqué, hors du texte archivé", async () => {
+    const page = await pagePubliee();
+    const extraction = extraireTexteContractuel(page, "conditions_clients");
+    if (!extraction.ok) throw new Error("texte contractuel introuvable");
+    expect(extraction.identiteLue).toBe(true);
+    expect(extraction.identiteEmpreinte).toBe(empreinteIdentite(identiteDepuisValeurs(VALEURS)));
+    expect(extraction.html).not.toContain("data-identite");
   });
 
   it("un refus de la base n'est jamais présenté comme un archivage", async () => {

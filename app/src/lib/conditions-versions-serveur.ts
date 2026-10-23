@@ -4,6 +4,7 @@ import {
   DOCUMENTS_PUBLIES,
   LIBELLE_DOCUMENT,
   dateEnLettres,
+  empreinteIdentite,
   extraireTexteContractuel,
   sha256Hex,
   versionDeclaree,
@@ -19,7 +20,8 @@ import { adressesRelaisDuServeur } from "./relais-alerte-reglage";
 // session), et non un rendu fabriqué par l'action : l'archive prouve ce que le client a eu sous les yeux. L'identité de
 // l'éditeur est lue avant et après la lecture de la page ; si elle a changé entre-temps, rien n'est archivé (la page et
 // l'identité figée ne correspondraient plus). La page doit porter la version que ce serveur affiche : une page servie
-// par un autre déploiement est refusée.
+// par un autre déploiement est refusée. Elle doit aussi dire, sur l'élément marqué, qu'elle a lu l'identité en base et
+// avec quelle empreinte : une page dégradée (lecture en échec) ou rendue avec une autre identité est refusée (I1).
 //
 // L'écriture passe par `archiver_version_conditions` (clé de service seulement), qui insère la version si elle
 // manque et ne réécrit JAMAIS une version archivée : une même version avec une autre empreinte est refusée, consignée
@@ -151,6 +153,21 @@ export async function archiverConditionsPubliees(deps: Dependances): Promise<Res
       ));
       continue;
     }
+    // Relecture adverse du 24/10 (I1) : la page doit avoir été rendue avec l'identité que l'archive va ranger. Une page
+    // qui n'a pas pu la lire est servie quand même (mentions « à venir ») : son texte n'est pas celui du contrat.
+    if (!extraction.identiteLue) {
+      resultats.push(echec(
+        "Refusé : la page publiée n'a pas pu lire l'identité de l'éditeur au moment du rendu ; elle affiche un texte dégradé (mentions « à venir »). Rien n'est archivé : relancez l'archivage."
+      ));
+      continue;
+    }
+    const identite = identiteDepuisValeurs(avant.valeurs);
+    if (extraction.identiteEmpreinte !== empreinteIdentite(identite)) {
+      resultats.push(echec(
+        "Refusé : la page publiée a été rendue avec une autre identité de l'éditeur que celle lue en base (page en cache ou saisie en cours). Rien n'est archivé : relancez l'archivage."
+      ));
+      continue;
+    }
     const empreinte = sha256Hex(extraction.html);
     const { data, error } = await deps.service.rpc("archiver_version_conditions", {
       p_document: d.document,
@@ -158,7 +175,7 @@ export async function archiverConditionsPubliees(deps: Dependances): Promise<Res
       p_date_effet: declaree.date_effet,
       p_nature: declaree.nature,
       p_texte_html: extraction.html,
-      p_identite_editeur: identiteDepuisValeurs(avant.valeurs),
+      p_identite_editeur: identite,
       p_empreinte_sha256: empreinte,
       p_resume_modifications: declaree.resume_modifications,
     });

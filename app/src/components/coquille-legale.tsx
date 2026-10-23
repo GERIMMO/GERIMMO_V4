@@ -2,7 +2,14 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { FORMULAIRE_ACCUEIL, type FaitEditeur, type Prestataire } from "@/lib/editeur";
-import { ATTRIBUT_TEXTE, ATTRIBUT_VERSION, type DocumentConditions } from "@/lib/conditions-versions";
+import {
+  ATTRIBUT_IDENTITE_EMPREINTE,
+  ATTRIBUT_IDENTITE_LUE,
+  ATTRIBUT_TEXTE,
+  ATTRIBUT_VERSION,
+  empreinteIdentite,
+  type DocumentConditions,
+} from "@/lib/conditions-versions";
 
 // Coquille des pages légales : mentions légales, conditions générales,
 // confidentialité. Les trois avaient chacune leur en-tête avant le 11/09 —
@@ -193,7 +200,16 @@ export function CoquilleLegale({
    * marqué du document et de sa version. C'est ce texte, et lui seul, que l'archive des versions range et que la
    * garde du code empreinte (lib/conditions-versions.ts).
    */
-  texteContractuel?: { document: DocumentConditions; version: string };
+  texteContractuel?: {
+    document: DocumentConditions;
+    version: string;
+    /**
+     * L'identité de l'éditeur que la page affiche, ou `null` si sa lecture a échoué (relecture adverse du 24/10, I1) :
+     * l'élément marqué le dit, hors du texte, pour que l'archive refuse une page dégradée ou rendue avec une autre
+     * identité que celle de la base.
+     */
+    identite: Record<string, FaitEditeur> | null;
+  };
   /** Ce qui suit le texte sans en faire partie : liens de navigation, hors de l'empreinte. */
   apres?: ReactNode;
   children: ReactNode;
@@ -227,7 +243,12 @@ export function CoquilleLegale({
     <CadreLegal chemin={chemin}>
       {texteContractuel ? (
         <div
-          {...{ [ATTRIBUT_TEXTE]: texteContractuel.document, [ATTRIBUT_VERSION]: texteContractuel.version }}
+          {...{
+            [ATTRIBUT_TEXTE]: texteContractuel.document,
+            [ATTRIBUT_VERSION]: texteContractuel.version,
+            [ATTRIBUT_IDENTITE_LUE]: texteContractuel.identite ? "1" : "0",
+            ...(texteContractuel.identite ? { [ATTRIBUT_IDENTITE_EMPREINTE]: empreinteIdentite(texteContractuel.identite) } : {}),
+          }}
           className="space-y-4"
         >
           {contenu}

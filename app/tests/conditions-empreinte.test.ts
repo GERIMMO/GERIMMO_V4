@@ -182,6 +182,8 @@ describe("normalisation, extraction et empreinte (sans page)", () => {
       ok: true,
       html: "<div><h1>Titre</h1></div><section><div><div>art.</div></div></section>",
       version: "2026-09-30",
+      identiteLue: false,
+      identiteEmpreinte: null,
     });
     expect(extraireTexteContractuel(page, "conditions_artisans")).toEqual({ ok: false, motif: "absent" });
   });

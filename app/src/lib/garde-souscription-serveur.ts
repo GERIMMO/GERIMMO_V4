@@ -52,6 +52,9 @@ export async function conditionsEnVigueurAccepteesPar(supabase: Client, accountI
     .from("acceptations_cgu")
     .select("id")
     .eq("account_id", accountId)
+    // 24/10 : une acceptation porte sur un document (conditions clients, conditions de l'espace artisan, règles des
+    // espaces invités) ; seules les conditions clients ouvrent la souscription.
+    .eq("document", "conditions_clients")
     .eq("version", CONDITIONS_VERSION)
     .limit(1)
     .maybeSingle();

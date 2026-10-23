@@ -385,7 +385,9 @@ describe("souscription : la version en vigueur des conditions générales, accep
     etat(GRILLE);
     await demarrerAbonnement("org-1", {}, souscrire());
     expect(mocks.lecturesCgu).toHaveLength(1);
-    expect(mocks.lecturesCgu[0]).toEqual(expect.arrayContaining([["account_id", "compte-1"], ["version", VERSION_EN_VIGUEUR]]));
+    expect(mocks.lecturesCgu[0]).toEqual(
+      expect.arrayContaining([["account_id", "compte-1"], ["document", "conditions_clients"], ["version", VERSION_EN_VIGUEUR]])
+    );
   });
 
   it("l'identité passe avant les conditions", async () => {

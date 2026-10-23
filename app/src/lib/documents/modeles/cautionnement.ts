@@ -37,7 +37,7 @@ import type { Assemblage } from "./index";
 // Le plafond saisi dans la carte (euros, chaîne libre) — un montant illisible
 // ou nul vaut absence : le champ restera en libellé d'épreuve et manquant,
 // car le montant maximal est exigé à peine de nullité (art. 2297).
-function montantMaxDepuisOptions(brut: string | undefined): number | null {
+export function montantMaxDepuisOptions(brut: string | undefined): number | null {
   if (!brut) return null;
   // Lu comme tous les montants (VER-TS-02) : « 12 000,50 » reste admis ; « 1e4 » ne vaut plus 10000.
   const lu = lireMontantAvecEspaces(brut);

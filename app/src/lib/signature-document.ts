@@ -29,7 +29,8 @@ export async function assemblerSignatureDocument(db: SupabaseClient, org: string
   // Les garants ne signent pas tous les documents du ménage : un acte par caution.
   const garant = selection.code === "cautionnement" ? ctx.garants.find(g=>g.id===selection.options?.garant) : undefined;
   if (selection.code === "cautionnement" && !garant) throw new Error("Choisissez un garant rattaché à ce bail.");
-  const parties = partiesSignatureBail({ ...ctx, garants: garant ? [garant] : [] }, selection.code !== "cautionnement");
+  // Décision du 23/10 : pour l'acte de cautionnement, le mobile de la caution vient d'elle, jamais du dossier.
+  const parties = partiesSignatureBail({ ...ctx, garants: garant ? [garant] : [] }, selection.code !== "cautionnement", { telephoneGarantParCaution: selection.code === "cautionnement" });
   const signataires = selection.code === "cautionnement" ? parties.signataires.filter(s=>s.qualite==="Garant"||s.qualite==="Propriétaire") : parties.signataires;
   const modele: Modele = MODELES[selection.code];
   const assemblage = await modele.assembler(db,org,selection.cibleId,selection.options);

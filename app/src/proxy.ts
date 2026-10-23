@@ -67,6 +67,11 @@ const REDIRECT_SI_CONNECTE = ["/connexion", "/inscription", "/mot-de-passe-oubli
 // ajoutée plus tard sous /artisan/invitation… ne deviendrait pas publique sans qu'on le décide.
 const CHEMIN_INVITATION_ARTISAN = /^\/artisan\/invitation\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Le lien envoyé à la caution pour qu'elle confirme elle-même son mobile avant de signer un acte de cautionnement
+// (décision du dirigeant du 23/10/2026) : /signature/caution/<jeton de 43 caractères>. Ce chemin EXACT seulement, sur le
+// modèle de l'invitation d'un artisan : rien d'autre sous /signature n'est public sans qu'on le décide.
+const CHEMIN_CONFIRMATION_CAUTION = /^\/signature\/caution\/[A-Za-z0-9_-]{43}$/;
+
 // LES PREMIERS SEGMENTS QUI EXISTENT (recette de production du 27/09). Sans
 // session, toute adresse privée mène à la connexion — y compris une adresse
 // qui n'existe pas : le visiteur se connectait pour atterrir… sur une 404.
@@ -82,7 +87,7 @@ const SEGMENTS_CONNUS = new Set([
   // vers /agence/<id> (fin de proxy()). Sans session, il mène à la connexion comme toute adresse privée.
   "espace",
   "inscription", "invitations", "journal", "locataire", "mentions-legales", "mot-de-passe-oublie",
-  "nouveau-mot-de-passe", "outils", "polices", "quittance", "relais", "securite", "tarifs", "veille",
+  "nouveau-mot-de-passe", "outils", "polices", "quittance", "relais", "securite", "signature", "tarifs", "veille",
   // public
   "illustrations", "logo", "marketing",
 ]);
@@ -193,7 +198,7 @@ export async function proxy(request: NextRequest) {
   // La racine est le site vitrine : publique pour le visiteur, raccourci vers
   // les espaces pour le connecté.
   const isPublic =
-    pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p)) || CHEMIN_INVITATION_ARTISAN.test(pathname);
+    pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p)) || CHEMIN_INVITATION_ARTISAN.test(pathname) || CHEMIN_CONFIRMATION_CAUTION.test(pathname);
 
   if (!user) {
     if (isPublic) return response;

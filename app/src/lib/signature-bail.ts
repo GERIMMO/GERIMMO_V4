@@ -16,6 +16,8 @@ export type SignataireBail = {
   nom: string; prenom: string; email: string; telephone: string;
   externalId?: string; statut?: string; preuveDocumentId?: string;
   mentionCaution?: string;
+  /** Acte de cautionnement : instant où la caution a confirmé elle-même ce numéro (lien à usage unique, décision du 23/10). */
+  telephoneConfirmeLe?: string;
 };
 export type CircuitBail = {
   created_by?: string; envoye_le?: string | null;
@@ -75,7 +77,12 @@ export function telephoneSignature(v: string | null | undefined): string {
   return /^\+[1-9]\d{7,14}$/.test(normalise) ? normalise : "";
 }
 
-export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locataires"|"garants"> & {organisation:{type:string}}, inclureLocataires = true): { signataires: SignataireBail[]; manquants: string[] } {
+/**
+ * `telephoneGarantParCaution` (acte de cautionnement, décision du 23/10) : le mobile du garant n'est pas pris dans le
+ * dossier, où le bailleur l'a saisi ; la caution le confirme elle-même avant l'envoi. Il reste vide ici, n'entre pas
+ * dans l'empreinte et n'est pas réclamé comme manquant.
+ */
+export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locataires"|"garants"> & {organisation:{type:string}}, inclureLocataires = true, options: { telephoneGarantParCaution?: boolean } = {}): { signataires: SignataireBail[]; manquants: string[] } {
   const manquants: string[] = [];
   if (ctx.organisation.type !== "proprietaire_direct") manquants.push("La signature du mandataire d’agence reste à configurer.");
   if (inclureLocataires && !ctx.locataires.length) manquants.push("Ajoutez un locataire au bail.");
@@ -84,11 +91,12 @@ export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locatai
   function ajouter(p: PersonneDocument, qualite: SignataireBail["qualite"]) {
     if (ids.has(p.id)) { manquants.push(`${p.prenom ?? ""} ${p.nom} apparaît dans plusieurs rôles : vérifiez les parties au bail.`); return; }
     ids.add(p.id);
-    const s: SignataireBail = { personId: p.id, qualite, nom: p.nom.trim(), prenom: p.prenom?.trim() ?? "", email: p.email?.trim() ?? "", telephone: telephoneSignature(p.telephone) };
+    const parCaution = qualite === "Garant" && options.telephoneGarantParCaution === true;
+    const s: SignataireBail = { personId: p.id, qualite, nom: p.nom.trim(), prenom: p.prenom?.trim() ?? "", email: p.email?.trim() ?? "", telephone: parCaution ? "" : telephoneSignature(p.telephone) };
     const libelle = `${s.prenom} ${s.nom}`.trim() || qualite;
     if (!s.nom || !s.prenom) manquants.push(`${libelle} : nom et prénom du signataire à renseigner.`);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email)) manquants.push(`${libelle} : adresse e-mail à renseigner.`);
-    if (!s.telephone) manquants.push(`${libelle} : téléphone pour recevoir le code SMS à renseigner.`);
+    if (!s.telephone && !parCaution) manquants.push(`${libelle} : téléphone pour recevoir le code SMS à renseigner.`);
     if (qualite === "Propriétaire" && p.qualite && /sci|morale|soci[eé]t[eé]/i.test(p.qualite)) manquants.push(`${libelle} : le représentant habilité de la personne morale doit être défini avant la signature électronique.`);
     signataires.push(s);
   }

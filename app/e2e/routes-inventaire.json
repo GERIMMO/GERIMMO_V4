@@ -1008,6 +1008,12 @@
     "dynamic": "invitationId"
   },
   {
+    "path": "/signature/caution/JETON_CAUTION",
+    "persona": "public",
+    "label": "Acte de cautionnement — la caution confirme son mobile",
+    "dynamic": "jeton"
+  },
+  {
     "path": "/artisan/invitation/INVITATION_ARTISAN",
     "persona": "public",
     "label": "Invitation d’un propriétaire — l’artisan crée son compte",

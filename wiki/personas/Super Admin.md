@@ -66,8 +66,10 @@ Fonction SQL `is_super_admin()` qui court-circuite quasi toutes les policies RLS
   admin a **validé son inscription** (SIRET vérifié, justificatifs relus — la zone déclarée
   s'affiche dans l'écran de validation) et qu'il est public. La Couverture devient une
   lecture (artisans proposés et déclarés par commune, intérêts signalés, demandes). Pour
-  écarter un artisan : suspension ou liste noire globale — voir
-  [[Ouverture du réseau d'artisans]].
+  écarter un artisan du réseau : « Suspendre la validation » sur sa fiche (la liste noire
+  globale existe en base, mais aucun écran ne la pose). Les changements de zone et de
+  métiers des artisans se lisent dans le journal d'audit (Historique et sauvegardes) —
+  voir [[Ouverture du réseau d'artisans]].
 - Met à jour les **seuils légaux** des alertes (RM-14.2.5) et crée les agences (16.1).
 - **Création manuelle de tout profil** *(décision du 2026-08-19)* : au-delà des
   agences, il peut créer **n'importe quel profil à la main**, y compris un
@@ -171,6 +173,7 @@ les appels payants à l'IA, l'arrêt avant les prochains effets.
 > [!warning] Changement du 23/10/2026 — réseau d'artisans
 > - Le super administrateur n'ouvre plus le réseau commune × métier et ne rattache plus
 >   les artisans aux communes : chaque artisan choisit sa zone et ses métiers (décision du
->   dirigeant). Il garde la validation de l'inscription, la suspension et la liste noire
->   globale ; aucun levier par commune (à trancher si besoin). Migration `20261023180000`,
+>   dirigeant). Il garde la validation de l'inscription et sa suspension ; la liste noire
+>   globale existe en base sans écran pour la poser ; aucun levier par commune (à trancher
+>   si besoin). Migration `20261023180000`,
 >   non appliquée en production au 23/10 ; [[Ouverture du réseau d'artisans]].

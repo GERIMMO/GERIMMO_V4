@@ -175,8 +175,9 @@ espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe a
   artisans **validés et publics** dont la zone d'intervention (choisie par l'artisan)
   couvre le code postal du bien, pour le métier demandé ; plus de « commune fermée ». Sans
   artisan : message « aucun artisan disponible », voie de sortie et « Signaler mon
-  intérêt ». Il voit le téléphone d'un artisan proposé, pas son e-mail tant qu'il ne l'a
-  pas dans son carnet. Voir [[Ouverture du réseau d'artisans]].
+  intérêt ». Il voit le nom, les métiers et la note d'un artisan proposé ; son téléphone et
+  son e-mail lui sont transmis avec sa demande (ou d'emblée s'il l'a dans son carnet).
+  Voir [[Ouverture du réseau d'artisans]].
 
 > [!warning] Points à trancher / contradictions (D27-B)
 > - Les liens fabriqués par la base pour la console de supervision pointent encore vers
@@ -197,5 +198,6 @@ espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe a
 > [!warning] Changement du 23/10/2026 — réseau d'artisans
 > - Plus de « commune fermée » : le propriétaire voit les artisans validés et publics dont
 >   la zone, choisie par l'artisan, couvre son bien (migration `20261023180000`, non
->   appliquée en production au 23/10). À trancher : son accès au téléphone d'un artisan
->   avant toute sollicitation ([[Ouverture du réseau d'artisans]]).
+>   appliquée en production au 23/10). Choix de prudence à confirmer par le dirigeant : le
+>   téléphone d'un artisan du réseau n'est plus montré avant la demande
+>   ([[Ouverture du réseau d'artisans]]).

@@ -109,8 +109,9 @@ l'intervention humaine** (RM-A2.11 — obligation d'information de l'artisan).
   Seuils **J-60/J-30/J-7/J+0**.
 - **Recherche d'affectation** : métier + zone + décennale (filtre non désactivable) +
   exclusion des blacklistés, **triée par score**.
-- **Zone d'intervention et réseau — décision du dirigeant du 23/10/2026** (« les communes
-  et les métiers à ouvrir seront choisis par l'artisan, même lors du test », `log.md`) :
+- **Zone d'intervention et réseau — décision du dirigeant du 23/10/2026** (ses mots : « la
+  communes et les métiers à ouvriers seront choisi par l'artisan (même lors du test) »,
+  `log.md` ; lu : les communes et les métiers à ouvrir) :
   c'est **l'artisan qui choisit**, à l'inscription puis dans « Mon entreprise », sa **zone**
   (codes postaux comme `91300`, ou départements entiers comme `91`) et ses **métiers**.
   Le réseau Gerimmo le propose aux propriétaires dont le bien a un code postal couvert par
@@ -119,7 +120,11 @@ l'intervention humaine** (RM-A2.11 — obligation d'information de l'artisan).
   place ; une carte « Suis-je proposé dans le réseau ? » lui dit ce qui manque). Plus
   d'ouverture commune × métier par le [[Super Admin]]. Une seule zone sert au réseau et
   au carnet personnel. Une agence ne peut plus modifier la zone ni les métiers d'un
-  artisan qui a son compte. **Livré par la migration `20261023180000` (non appliquée en
+  artisan qui a son compte. Chaque changement de zone ou de métier est inscrit au journal
+  d'audit. Un profil public montre aux propriétaires de la zone le nom de l'entreprise, les
+  métiers et la note ; le téléphone et l'e-mail ne leur sont transmis qu'avec une demande.
+  **Écart à ratifier** : la zone se choisit par code postal ou département, pas commune par
+  commune (voir [[Ouverture du réseau d'artisans]]). **Livré par la migration `20261023180000` (non appliquée en
   production au 23/10)** : jusqu'à sa mise en production, la règle du 28/09 (PR #132 :
   ouverture commune × métier et rattachement par le super-administrateur) reste celle qui
   s'applique. Voir [[Ouverture du réseau d'artisans]].
@@ -224,8 +229,9 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
   une liste noire locale exige une relation préalable et sa levée ne le fait jamais entrer
   dans un carnet (`20261014843000`, `20261014849000`). Décision du 23/10/2026 (migration
   `20261023180000`, non appliquée en production au 23/10) : une agence ne peut plus non plus
-  modifier sa zone ni ses métiers s'il a son compte, et son e-mail n'est plus montré par le
-  réseau avant toute relation (son téléphone, si).
+  modifier sa zone ni ses métiers s'il a son compte, et ni son e-mail ni son téléphone ne
+  sont plus montrés par le réseau avant une demande ou une relation (relecture sécurité du
+  23/10).
 
 > [!warning] Changement du 23/10/2026 — réseau choisi par l'artisan
 > - **Ce qui change** : le réseau d'artisans ne s'ouvre plus commune × métier par le
@@ -236,7 +242,9 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
 >   des travaux, listes noires globale et locale, compte obligatoire, adresse du bien
 >   confirmée, carnet personnel, invitation par un propriétaire.
 > - **À faire trancher** (voir [[Ouverture du réseau d'artisans]]) : téléphone montré avant
->   sollicitation ; levier par artisan et par zone ; artisans de test validés et publics,
+>   sollicitation (masqué par prudence, à confirmer) ; zone par code postal ou département
+>   plutôt que par commune (écart à ratifier) ; levier par artisan et par zone ; zone
+>   héritée d'une agence à la réclamation d'une fiche ; artisans de test validés et publics,
 >   proposés aux vrais propriétaires de leur zone (les comptes des amis sont « des clients
 >   comme les autres », décision du 23/10).
 

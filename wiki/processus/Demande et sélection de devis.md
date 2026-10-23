@@ -78,8 +78,8 @@ globale. L'écran n'en refait aucun morceau.
 > le filtre « zone par code postal » ci-dessus redevient donc celui du réseau. La commune
 > du bien reste à confirmer. Plus d'ouverture par le [[Super Admin]] ni d'état « commune
 > fermée » : sans artisan, l'écran dit « aucun artisan disponible », propose « Signaler mon
-> intérêt » et le carnet personnel. L'e-mail d'un artisan du réseau n'est plus rendu avant
-> toute relation.
+> intérêt » et le carnet personnel. Le téléphone et l'e-mail d'un artisan du réseau ne sont
+> plus rendus avant la demande ou une relation de carnet.
 
 ## Ce que fait le code aujourd'hui : refuser ou faire réviser un devis (depuis le 15/10/2026)
 La sélection n'est plus le seul geste sur un devis reçu (décision D18, PR #187, fusion

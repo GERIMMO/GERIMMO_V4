@@ -3,7 +3,7 @@ type: synthesis
 tags: [couverture, tests, ecrans, audit]
 status: draft
 created: 2026-10-14
-updated: 2026-10-16
+updated: 2026-10-23
 sources: []
 ---
 
@@ -202,7 +202,7 @@ Le relevé « ouvert » vient de la **dernière passe de l'audit des écrans** (
 | proprietaire | `/agence/{id}/artisans` | Carnet d’artisans du bailleur | O | - | - | artisan-ajout-proprietaire.test.ts | - | X |
 | superadmin | `/admin/relais` | Relais en mon absence | O | designer/b,superadmin | equipes.spec.ts,supervision-consignes.spec.ts | - | 1 | X |
 | superadmin | `/admin/parametres` | Paramètres | O | - | - | - | - | - |
-| superadmin | `/admin/couverture` | Réseau d’artisans : ouvertures par commune et m… | O | designer/b | reseau-couverture.spec.ts | - | - | X |
+| superadmin | `/admin/couverture` | Réseau d’artisans : couverture par commune et mé… | O | designer/b | reseau-couverture.spec.ts | - | - | X |
 | admin | `/agence/{id}/reseau` | Réseau disponible pour les biens | O | - | - | - | - | - |
 | proprietaire | `/agence/{id}/journal` | Journal dans l’espace connecté | O | - | - | - | - | - |
 | proprietaire | `/agence/{id}/journal/e2e-gerer-une-location` | Article dans l’espace connecté | O | - | - | - | - | - |

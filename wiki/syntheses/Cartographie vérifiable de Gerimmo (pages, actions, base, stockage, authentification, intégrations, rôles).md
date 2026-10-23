@@ -181,7 +181,7 @@ La coquille `app/src/app/agence/[orgId]/layout.tsx` sert **les trois rôles** (c
 | `/admin/clients/artisans/[artisanId]` | Fiche artisan | is_super_admin | superadmin:ouvert | oui |
 | `/admin/comptes/[accountId]` | Fiche de débogage d’un compte (état, rôles, journaux) | is_super_admin | superadmin:ouvert | oui |
 | `/admin/consignes` | Consignes versionnées | is_super_admin | superadmin:ouvert | oui |
-| `/admin/couverture` | Réseau d’artisans : ouvertures par commune et métier | is_super_admin | superadmin:ouvert | oui |
+| `/admin/couverture` | Réseau d’artisans : couverture par commune et métier (lecture seule depuis la décision du 23/10/2026, migration `20261023180000`) | is_super_admin | superadmin:ouvert | oui |
 | `/admin/devis` | Demandes de devis du site vitrine | is_super_admin | superadmin:ouvert | oui |
 | `/admin/equipes` | Travail des équipes | is_super_admin | superadmin:ouvert | oui |
 | `/admin/journaux` | Historique et conservation | is_super_admin | superadmin:ouvert | oui |

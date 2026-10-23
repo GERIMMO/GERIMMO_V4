@@ -62,9 +62,17 @@ peut solliciter un artisan du réseau.
   proposée au réseau). Un propriétaire direct ne le peut pas (depuis le 15/10).
 - **Supervision** : `/admin/couverture` constate la couverture (artisans proposés et
   déclarés par commune, intérêts, demandes) ; aucune décision n'y est prise. Pour écarter
-  un artisan : suspension de l'inscription ou liste noire globale.
-- **Coordonnées** : l'e-mail d'un artisan du réseau n'est rendu qu'à une organisation qui
-  l'a dans son carnet ; le téléphone est rendu (l'écran l'affiche).
+  un artisan du réseau : « Suspendre la validation » sur sa fiche. La liste noire globale
+  existe en base (`artisan_decider_plateforme`) mais aucun écran ne la pose.
+- **Coordonnées** : le téléphone et l'e-mail d'un artisan du réseau ne sont rendus qu'à
+  une organisation qui l'a dans son carnet. Le propriétaire les lit une fois sa demande
+  envoyée (la sollicitation ouvre la fiche). Avant, il voit le nom de l'entreprise, ses
+  métiers et sa note. Le texte « Profil public » de l'artisan le dit.
+- **Traçabilité** : chaque ajout ou retrait de zone ou de métier, par n'importe quel
+  chemin (inscription, réclamation, « Mon entreprise », fiche sans compte d'une agence,
+  supervision), est inscrit au journal d'audit (`artisan_zone_modifiee`,
+  `artisan_metiers_modifies`) avec l'auteur, la liste avant et après, et l'état de la
+  fiche (statut, SIRET, visibilité).
 
 ## Conséquences si non respectée
 - Artisan inéligible ou hors zone, ou adresse non confirmée : la base **refuse** la
@@ -82,8 +90,10 @@ peut solliciter un artisan du réseau.
 - **Sans artisan** : « Signaler mon intérêt » (compte, bien, commune, métier ; sans
   doublon) ; voie de sortie du propriétaire (clôturer, inviter, appeler lui-même) ;
   intérêts visibles dans « Où le réseau est attendu ».
-- **Côté artisan** : carte « Suis-je proposé dans le réseau ? » dans « Mon entreprise » et
-  rappel sur « Aujourd'hui » tant qu'une condition manque.
+- **Côté artisan** : carte « Suis-je proposé dans le réseau ? » dans « Mon entreprise »
+  (exclusion par Gerimmo comprise) et rappel sur « Aujourd'hui » tant qu'une condition
+  manque : « Il vous manque : … », ou un simple repère quand seul le profil privé
+  l'écarte (rester privé est un choix).
 - **Côté validation** : `/admin/artisans` montre la zone déclarée de chaque inscription.
 - Traçabilité : chaque sollicitation porte son origine (`carnet`, `reseau`) et la commune
   du bien.
@@ -100,26 +110,43 @@ rien ; une commune non ouverte était « fermée ». Tables `reseau_ouvertures` 
 > - **Supplanté le 23/10/2026** : l'ouverture explicite commune × métier par le super
 >   administrateur (PR #132). Le réseau suit désormais la zone et les métiers choisis par
 >   l'artisan. Effectif seulement à la mise en production de `20261023180000`.
-> - **Choix de mise en œuvre à faire confirmer** : la conception du 23/10 proposait une
->   seconde liste de communes INSEE par métier, saisie par l'artisan ; la relecture a relevé
->   la double saisie (zone déjà déclarée à l'inscription), un plafond inventé (1 000
->   communes) et deux notions de zone contradictoires à l'écran. Le lot retient la zone
->   **déjà** choisie par l'artisan (codes postaux, départements). Conséquence : une zone par
->   artisan, la même pour tous ses métiers. Des communes **par métier** restent possibles
->   plus tard si le dirigeant le demande.
-> - **Téléphone avant sollicitation** : rendu à tout propriétaire dont le bien est dans la
->   zone. Un propriétaire peut déplacer un bien vide pour lire les numéros d'une autre zone.
->   Masquer le téléphone tant que l'artisan n'est pas sollicité, ou limiter les changements
->   de commune d'un bien : à trancher.
+> - **Écart à ratifier par le dirigeant avant la mise en production** : la décision dit
+>   « communes » ; le lot livre la zone **déjà** choisie par l'artisan, par **code postal ou
+>   département**, la même pour tous ses métiers (la conception d'une seconde liste de
+>   communes INSEE par métier a été écartée : double saisie, plafond de 1 000 communes sans
+>   source, deux notions de zone à l'écran). Conséquences constatées : un artisan qui
+>   choisit `51300` est proposé dans les 46 communes de ce code postal ; il ne peut pas en
+>   retenir une seule ; Paris paraît « couverte » dans la supervision dès qu'un
+>   arrondissement l'est (le bien, lui, est contrôlé sur son code postal exact). Si
+>   l'écart est refusé : ajouter le choix d'une commune (code INSEE) à l'intérieur d'un code
+>   postal, voire des communes par métier.
+> - **Téléphone avant sollicitation — choix de prudence du 23/10 (relecture sécurité), à
+>   confirmer** : un compte tout juste créé pouvait, en déplaçant l'adresse d'un bien, lire
+>   les numéros de tous les artisans de France. Le téléphone n'est plus rendu qu'après la
+>   demande (ou pour un contact du carnet). Le dirigeant peut demander l'inverse ; une
+>   limite d'appels par organisation n'est pas livrée.
 > - **Aucun levier ciblé de la supervision** (par artisan et par zone, ou suspension d'une
->   commune × métier) : non livré, la décision ne le prévoit pas. Leviers restants :
->   suspension, liste noire globale.
-> - **Aucun plafond de zone** : un artisan peut déclarer toute la France. Risque de dilution
->   du réseau ; pas de chiffre dans une source. À trancher si besoin.
+>   commune × métier) : non livré, la décision ne le prévoit pas. Levier restant à l'écran :
+>   la suspension de la validation ; la liste noire globale n'a pas d'écran.
+> - **Aucun plafond de zone** : un artisan peut déclarer toute la France, et une fiche
+>   (même non validée) peut porter un très grand nombre de lignes de zone. Risque de
+>   dilution du réseau et de volume ; pas de chiffre dans une source. À trancher si besoin
+>   (un plafond technique, par exemple 200 entrées, ne dépend pas de la décision métier).
+> - **Réclamation d'une fiche créée par une agence** : la zone et les métiers que l'agence
+>   avait posés s'**ajoutent** à ceux que l'artisan déclare en réclamant ; il en hérite
+>   sans les avoir choisis. Atténué : la réclamation remet l'inscription en attente
+>   (Gerimmo revoit la zone avant de valider), seul l'artisan rend son profil public, et il
+>   voit sa zone dans « Mon entreprise ». Remplacer au lieu d'additionner : à trancher.
+> - **Aucun message à la validation** : un artisan validé n'est pas prévenu qu'il doit
+>   encore rendre son profil public ; la carte et le rappel de son espace le lui disent.
+>   Un avis (e-mail) à la validation : à décider.
 > - **Artisans de test** (bêta, recette G6) : validés, publics et dotés d'une zone, ils sont
->   proposés aux vrais propriétaires de cette zone (décision du 23/10 : les comptes des amis
->   sont « des clients comme les autres »). Les garder privés (et passer par l'invitation)
->   ou limiter leur zone à la commune du bien de test.
+>   proposés aux vrais propriétaires de cette zone. Réponse du dirigeant du 23/10 (point 7) :
+>   les comptes des amis sont gardés, ce sont « des clients comme les autres » ; c'est donc
+>   le comportement attendu. Pour l'éviter pendant la bêta : les garder privés (et passer
+>   par l'invitation) ou limiter leur zone à la commune du bien de test. Le document
+>   « Dossiers de test par persona » (hors dépôt) reste à compléter pour l'artisan :
+>   voir [[Calendrier de lancement — 30 novembre 2026]].
 > - **Carnet du propriétaire direct** (relevé du 16/10/2026, inchangé) : ajout par SIRET
 >   réservé aux agences ; le propriétaire **invite** un artisan
 >   ([[Invitation d'un artisan par un propriétaire]]). L'invité reste privé par défaut : il

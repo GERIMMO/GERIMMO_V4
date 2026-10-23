@@ -173,4 +173,12 @@ Rien à la date du 30 novembre : elle permet seulement de **ne pas perdre** les 
 >   administrateur est supplantée. Migration `20261023180000`, non appliquée en production au 23/10 :
 >   voir [[Ouverture du réseau d'artisans]].
 > - L'artisan de test que le dirigeant valide (ligne « Chaque soir ») sera proposé aux vrais propriétaires de sa
->   zone s'il est public : le garder privé (passer par l'invitation) ou limiter sa zone à la commune du bien de test.
+>   zone s'il est public. Réponse du dirigeant du 23/10 (point 7) : les comptes des amis sont gardés, ce sont des
+>   clients comme les autres ; un ami artisan public est donc proposé comme tout artisan. Pour l'éviter pendant la
+>   bêta : le garder privé (passer par l'invitation) ou limiter sa zone à la commune du bien de test.
+> - **Dossier Artisan des amis (grille J1 à J7) à compléter** dans le document « Dossiers de test par persona »
+>   (Claude Docs, hors dépôt), qui ne le dit pas encore : 1) à l'inscription, choisir ses métiers et sa zone (codes
+>   postaux ou départements) ; 2) attendre la validation de Gerimmo (aucun e-mail n'est envoyé à la validation) ;
+>   3) dans « Mon entreprise », lire la carte « Suis-je proposé dans le réseau ? » ; 4) rendre son profil public
+>   seulement si l'ami accepte d'être proposé aux vrais propriétaires de sa zone, sinon rester privé et être
+>   sollicité par invitation ; 5) vérifier que le rappel de « Aujourd'hui » disparaît ou devient informatif.

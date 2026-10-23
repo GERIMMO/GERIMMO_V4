@@ -6682,3 +6682,9 @@ Remplace le point 3 de la décision « Conformité V1 » du même jour. `ZOHO_SI
 - **cautionnement** : la caution confirme elle-même son numéro de mobile (lien reçu par courriel) avant l'envoi en signature, au lieu du numéro saisi par le bailleur ; elle continue de saisir elle-même sa mention ;
 - **état des lieux** : signé dans Gerimmo, avec la confirmation qu'il a été établi ensemble, sur place, à la date de la visite, et le rappel au locataire de son droit de demander à le compléter.
 Risque résiduel à faire relire par un juriste dès que possible : valeur probante d'une signature par code SMS pour ces deux actes.
+
+## [2026-10-23] deploy | Première mise en ligne du 23/10 : PR #238 (`b0153b6`)
+
+Décision du dirigeant de publier au fur et à mesure. Contenu : médiateur non bloquant (vente ouverte), audit A03 (portefeuille dans les agrégats de charges), A04 (exports lus en entier, liste d'attente comprise), A06/A07 (textes), inscription PRO-4/PRO-5, jour de Paris, retours N2 au point du matin, message 429, `/admin/donnees` au menu, point du matin limité aux 12 derniers passages par mission (« Point invalide » toutes les 5 min depuis 14 h 55 UTC), garde « CI verte » des migrations, wiki et journal du 23/10. Le lot facturation A01/A02 a été retiré de cette publication (commits `ae9e57b` et `c5dd11e`) après la relecture adverse ; il part dans la publication suivante, corrigé.
+
+Protocole : sauvegarde 40011575512 (19 h 30 UTC, réussie) ; simulation 40011579066 (réussie, tout annulé) ; CI 40011569334 verte sur `c5dd11e` ; application 40014218941 de `20261023161500_charges_agregats_portefeuille.sql` (réussie, version enregistrée, contrôle du portefeuille vérifié en lecture) ; fusion squash au SHA exact `c5dd11e` → `b0153b6` ; Vercel `dpl_H4edQ9eFUMhmgXBemBY2cHbFvBS1` READY sur gerimmo.app (19 h 50 UTC). Recette de production et chantier Stripe en clés de test lancés sur `main` ; leur résultat est consigné à l'entrée suivante.

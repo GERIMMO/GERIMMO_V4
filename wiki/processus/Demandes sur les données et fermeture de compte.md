@@ -47,3 +47,7 @@ Parcours utilisateur local : dépôt, confirmation, persistance après rechargem
 - [Service-Public — conservation des papiers](https://www.service-public.gouv.fr/particuliers/vosdroits/F19134) et [prescription locative](https://www.service-public.gouv.fr/particuliers/vosdroits/F479).
 - [Zoho — rétention des documents](https://help.zoho.com/portal/en/kb/zoho-sign/admin-guide/account-settings/document-retention/articles/document-retention) et [suppression API vers la corbeille](https://www.zoho.com/sign/api/document-managment/delete-document.html).
 - [Resend — DMARC](https://resend.com/docs/dashboard/domains/dmarc).
+
+## Décision du 22 octobre — expéditeur des signatures
+
+Le dirigeant demande de conserver son adresse personnelle pour le moment, puis de la changer plus tard. Cette décision remplace l’objectif d’adresse professionnelle immédiate pour les signatures, sans modifier le courriel de contact général du site. Envoi standard Zoho conservé ; aucun SMTP ajouté. Les changements locaux de conservation sont décrits dans [le bilan du 22 octobre](../../app/docs/signatures-conservation-22-octobre.md).

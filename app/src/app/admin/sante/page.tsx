@@ -1,5 +1,6 @@
 import { SuiviStripe, type ControleStripe } from "./controle-stripe";
 import { BudgetSignatures, type BudgetSignature } from "./budget-signatures";
+import { ouvertureSignatures } from "@/lib/ouverture-signatures";
 import {lireEditeur} from '@/lib/editeur-serveur';
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
@@ -77,7 +78,10 @@ const OU_OBTENIR: Record<Prestataire, string> = {
 export default async function PageSante() {
   const supabase = await createClient();
   // Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond.
-  const [budgetSignature, controleStripe] = await Promise.all([supabase.rpc("lire_budget_signatures"), supabase.rpc("supervision_stripe_controles")]);
+  const [budgetSignature, controleStripe, reglageSignature] = await Promise.all([supabase.rpc("lire_budget_signatures"), supabase.rpc("supervision_stripe_controles"), supabase.from("signature_budget").select("devis_actif").eq("singleton",true).single()]);
+  const ouverture = ouvertureSignatures(process.env, budgetSignature.error || reglageSignature.error || !budgetSignature.data ? null : {
+    plafond: budgetSignature.data.plafond, utilise: budgetSignature.data.utilise, devisActif: reglageSignature.data?.devis_actif === true,
+  });
   const identite=await lireEditeur();
   const manquants = faitsManquants(identite.indisponible?{}:identite.editeur);
   // Les adresses de l'alerte du relais (réglage du serveur), affichées masquées seulement.
@@ -400,6 +404,6 @@ export default async function PageSante() {
           {" "}<Link href="/admin/clients" className="lien-discret">Voir les organisations →</Link>
         </p>
       </section>
-    <SuiviStripe controle={controleStripe.error ? null : controleStripe.data as ControleStripe}/><BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} actif={process.env.ZOHO_SIGN_BAIL_ACTIF === "true"}/></main>
+    <SuiviStripe controle={controleStripe.error ? null : controleStripe.data as ControleStripe}/><BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} ouverture={ouverture}/></main>
   );
 }

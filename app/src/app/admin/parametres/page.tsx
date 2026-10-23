@@ -4,6 +4,8 @@ import {IdentiteEditeur} from "./identite";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { faitsManquants, prestatairesAvecFaits, reservesPrestataires } from "@/lib/editeur";
+import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
+import { BlocageSouscription } from "./blocage-souscription";
 
 export const metadata = { title: "Paramètres généraux" };
 
@@ -16,6 +18,7 @@ export const metadata = { title: "Paramètres généraux" };
  */
 export default async function PageParametres() {
   const {editeur,indisponible}=await lireEditeur();
+  const regle=await lireReglageSouscription();
   const db=await createClient();
   const config=await db.from("supervision_identite").select("revision").eq("singleton",true).maybeSingle();
   const exiges = faitsManquants({});
@@ -37,6 +40,8 @@ export default async function PageParametres() {
           </p>
         </div>
       </div>
+
+      <BlocageSouscription actif={regle.blocageIdentiteActif} revision={regle.revision} manquants={[...manquants]} />
 
       <section className="loc-carte">
         <div className="entete-carte">

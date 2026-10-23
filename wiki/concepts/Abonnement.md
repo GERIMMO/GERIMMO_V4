@@ -3,7 +3,7 @@ type: concept
 tags: [abonnement, saas, stripe, facturation]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-19
+updated: 2026-10-22
 sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
 ---
 
@@ -78,6 +78,12 @@ continue. » ; **gelé en lecture seule** (essai arrivé à son terme, le statut
 « essai ») ou **déjà abonné** (hausse de capacité) : la même phrase sans « Votre essai
 continue. ». Voir [[Conditions generales d'utilisation (projet)|Conditions générales d'utilisation]]
 et, pour l'identité de l'éditeur encore à fournir, [[État du projet et décisions ouvertes]].
+
+## Décision du dirigeant du 22 octobre 2026 — bouton de levée
+
+À la demande explicite « Fais que cette règle puisse être annulée avec un bouton dans superadmin », le contrôle d’identité devient réversible par le superadmin permanent, depuis **Paramètres généraux → Blocage des abonnements**. La règle reste active par défaut. Le bouton « Lever le blocage » autorise le parcours malgré les faits manquants ; « Réactiver le blocage » rétablit le contrôle. L’acceptation des conditions, les prix, le consentement au paiement et les réglages Stripe/TVA restent contrôlés.
+
+Chaque décision est datée et attribuée dans le registre de supervision. La lecture côté serveur reste obligatoire ; un compte client ne peut ni modifier le réglage ni le fournir dans son formulaire. Lever ce contrôle ne complète pas les mentions légales. **Préparé et testé localement, non publié** ; migration `20261022210326_reglage_blocage_souscription_identite.sql` à appliquer avant publication du code par le circuit habituel.
 
 ## Relations
 - Souscrit par [[Administrateur d'agence]] ou [[Propriétaire bailleur]] ; administré par [[Super Admin]].

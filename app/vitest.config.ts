@@ -21,6 +21,8 @@ import { configDefaults, defineConfig } from "vitest/config";
  * `npm test` en local. Le test `tests/execution-en-serie.test.ts` garde cette liste cohérente avec les fichiers.
  */
 export const FICHIERS_EN_SERIE = [
+  "tests/conservation-contacts-base.test.ts",
+  "tests/reglage-souscription-base.test.ts",
   // Rejeu du compteur réservé au relais et fermeture des droits des fonctions.
   "tests/relais-agences-base.test.ts",
   "tests/artisan-activation-securite.test.ts",

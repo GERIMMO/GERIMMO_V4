@@ -41,6 +41,7 @@ function client(tables: Tables, erreurs: Record<string, unknown> = {}) {
       const q: Record<string, unknown> = {};
       for (const m of ["select", "like", "in", "is", "gte", "order", "limit", "eq", "maybeSingle"]) q[m] = (...a: unknown[]) => { appels.push([m, table, ...a]); return q; };
       q.then = (ok: (r: unknown) => unknown) => Promise.resolve({ data: tables[table] ?? [], error: erreurs[table] ?? null }).then(ok);
+      q.single = async () => ({ data: tables[table]?.[0] ?? null, error: erreurs[table] ?? null });
       return q;
     },
   };

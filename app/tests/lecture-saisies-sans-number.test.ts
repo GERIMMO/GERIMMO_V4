@@ -121,6 +121,7 @@ function fichiersSource(dossier: string): string[] {
 type Exception = { fichier: string; argument: string; raison: string };
 
 const EXCEPTIONS: Exception[] = [
+  { fichier: "src/app/actions/reglage-souscription.ts", argument: "revisionBrute", raison: "révision : chiffres seuls, entier sûr entre 0 et 2147483646, comparé atomiquement à la révision enregistrée ; jamais un montant" },
   // Tailles HTTP en octets, jamais des montants saisis. La lecture du flux
   // recompte les octets et impose la limite même sans cet en-tête indicatif.
   { fichier: "src/app/api/zoho-sign/webhook/route.ts", argument: 'request.headers.get("content-length")', raison: "précontrôle HTTP de 1 Mio ; le flux est aussi borné à 1 Mio" },

@@ -4,11 +4,10 @@
 // Deux conditions de contrat, vérifiées par le serveur (actions/abonnement.ts)
 // et dites par l'écran (abonnement-2026.tsx, formulaire-souscription.tsx) avec
 // les MÊMES phrases :
-//  1. l'identité de l'éditeur est complète — les huit faits requis de
+//  1. l'identité de l'éditeur est complète — les faits requis de
 //     lib/editeur.ts, lus dans `supervision_identite` par-dessus le code
-//     (lib/editeur-serveur.ts). Un contrat dont une partie n'est pas nommée
-//     n'engage personne : tant qu'un fait manque, aucun paiement, ni
-//     souscription ni hausse ;
+//     (lib/editeur-serveur.ts). Le superadmin peut lever ce seul contrôle
+//     depuis les paramètres ; le serveur lit cette décision en base.
 //  2. le compte qui clique a accepté LA VERSION EN VIGUEUR des conditions
 //     générales (`acceptations_cgu`, ajout seul). Exigée pour la souscription
 //     initiale seulement (arbitrage du 19/10) : une hausse de capacité porte
@@ -57,15 +56,18 @@ export const ERREUR_ACCEPTATION_CONDITIONS =
  * sans changement de statut) : il n'est plus « en essai » au sens de cette
  * phrase.
  */
-export type ContexteGarde = { enEssai: boolean };
+export type ContexteGarde = { enEssai: boolean; blocageIdentiteActif?: boolean };
 
 /**
- * Le motif qui ferme le paiement, ou `null` si l'identité est complète. Le
+ * Le motif qui ferme le paiement, ou `null` si l'identité est complète ou la règle levée. Le
  * détail des faits manquants n'est pas dit au client : il est déjà affiché au
  * dirigeant (/admin/sante, /admin/parametres). Pendant l'essai, la phrase
  * ajoute « Votre essai continue. » ; gelé ou abonné, elle s'arrête avant.
  */
-export function motifIdentiteEditeur(editeur: Record<string, FaitEditeur>, { enEssai }: ContexteGarde): string | null {
+export function motifIdentiteEditeur(editeur: Record<string, FaitEditeur>, { enEssai, blocageIdentiteActif }: ContexteGarde): string | null {
+  // Seul un false explicite lu par le serveur lève la règle. Une valeur
+  // absente (ancien déploiement, lecture impossible) conserve le contrôle.
+  if (blocageIdentiteActif === false) return null;
   if (faitsManquants(editeur).length === 0) return null;
   return enEssai ? MOTIF_IDENTITE_EDITEUR_ESSAI : MOTIF_IDENTITE_EDITEUR;
 }

@@ -12,13 +12,13 @@ import { normaliserCode } from "@/lib/parrainage";
 import { ACTIVITY_COOKIE } from "@/lib/session-policy";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { classerErreurInscription, MESSAGE_BOITE_MAIL } from "@/lib/inscription";
-import { champTropLong, valeursBornees } from "@/lib/limites-saisie";
+import { champTropLong, premierChampTropLong, valeursBornees } from "@/lib/limites-saisie";
 import { envoyerLienMotDePasse, inscrireEtEnvoyerConfirmation } from "@/lib/lien-mot-de-passe";
 import { estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 import { estUuid } from "@/lib/identifiants";
 import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
 import { baseEspace } from "@/lib/racine-espace";
-import { CHAMPS_PROFIL_INSCRIPTION, CLE_PROFIL_A_CONFIRMER } from "@/lib/revalidation-inscription";
+import { CHAMPS_PROFIL_INSCRIPTION, CLE_PROFIL_A_CONFIRMER, saisieProfilARetenir } from "@/lib/revalidation-inscription";
 import { autorisationNouveauMotDePasse } from "@/lib/autorisation-nouveau-mot-de-passe";
 
 // La qualité voyage dans les métadonnées jusqu'à la fiche personne, dont la
@@ -72,7 +72,20 @@ export async function demanderReinitialisation(
   return { message: MESSAGE_NEUTRE };
 }
 
-export type EtatNouveauMotDePasse = { erreur?: string };
+/** Les champs auxquels un refus peut s'adresser : l'alerte se place sous eux (relevé du 23/10, PRO-4). */
+export type ChampNouveauMotDePasse = "mot_de_passe" | "confirmation" | "cgu" | (typeof CHAMPS_PROFIL_INSCRIPTION)[number];
+
+export type EtatNouveauMotDePasse = {
+  erreur?: string;
+  /** Le champ fautif ; absent pour une erreur qui ne tient à aucun champ (session, service). */
+  champ?: ChampNouveauMotDePasse;
+  /**
+   * Conservation des saisies (lib/formulaires.ts) : React vide le formulaire après chaque action, refus compris. Le
+   * profil et la case des conditions reviennent ici et le formulaire les repose. Jamais un mot de passe : comme
+   * /inscription et « Mon compte », un refus vide les deux champs de mot de passe.
+   */
+  valeurs?: Record<string, string>;
+};
 
 export async function definirNouveauMotDePasse(
   _etat: EtatNouveauMotDePasse,
@@ -80,14 +93,21 @@ export async function definirNouveauMotDePasse(
 ): Promise<EtatNouveauMotDePasse> {
   const motDePasse = String(formData.get("mot_de_passe") ?? "");
   const confirmation = String(formData.get("confirmation") ?? "");
+  // PRO-4 (23/10) : un refus vidait le profil corrigé et décochait la case des conditions — tout était à ressaisir.
+  const saisie = saisieProfilARetenir(formData);
+  const refus = (erreur: string, champ?: ChampNouveauMotDePasse): EtatNouveauMotDePasse => ({
+    erreur,
+    ...(champ ? { champ } : {}),
+    ...(Object.keys(saisie).length > 0 ? { valeurs: saisie } : {}),
+  });
 
   // Politique RM-A4.3 : 12 caractères minimum (la vérification contre les
   // fuites connues est appliquée côté Supabase Auth)
   if (motDePasse.length < 12) {
-    return { erreur: "Le mot de passe doit compter au moins 12 caractères." };
+    return refus("Le mot de passe doit compter au moins 12 caractères.", "mot_de_passe");
   }
   if (motDePasse !== confirmation) {
-    return { erreur: "Les deux saisies ne correspondent pas." };
+    return refus("Les deux saisies ne correspondent pas.", "confirmation");
   }
 
   const supabase = await createClient();
@@ -95,49 +115,47 @@ export async function definirNouveauMotDePasse(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return {
-      erreur:
-        "Session expirée ou lien invalide. Redemandez un e-mail de réinitialisation.",
-    };
+    return refus("Session expirée ou lien invalide. Redemandez un e-mail de réinitialisation.");
   }
   const autorisation = await autorisationNouveauMotDePasse(supabase, user.id);
   if (autorisation === "second_facteur_requis") {
-    return { erreur: "Confirmez votre double authentification dans « Sécurité du compte », puis rouvrez ce formulaire." };
+    return refus("Confirmez votre double authentification dans « Sécurité du compte », puis rouvrez ce formulaire.");
   }
   if (autorisation === "indisponible") {
-    return { erreur: "La vérification du compte est momentanément indisponible. Réessayez dans quelques instants." };
+    return refus("La vérification du compte est momentanément indisponible. Réessayez dans quelques instants.");
   }
   if (autorisation !== "accordee") {
-    return { erreur: "Ce formulaire est réservé au lien reçu par e-mail, pendant quinze minutes après sa confirmation. Redemandez un lien ou changez votre mot de passe dans « Mon compte », avec le mot de passe actuel." };
+    return refus("Ce formulaire est réservé au lien reçu par e-mail, pendant quinze minutes après sa confirmation. Redemandez un lien ou changez votre mot de passe dans « Mon compte », avec le mot de passe actuel.");
   }
 
   let profil: Record<string, unknown> | undefined;
   if (Object.hasOwn(user.user_metadata ?? {}, CLE_PROFIL_A_CONFIRMER)) {
     const champs = Object.fromEntries(CHAMPS_PROFIL_INSCRIPTION.map((champ) => [champ, String(formData.get(champ) ?? "").trim()]));
     const tropLong = champTropLong(champs);
-    if (tropLong) return { erreur: tropLong };
-    if (!["proprietaire_direct", "artisan", "invite"].includes(champs.espace)) return { erreur: "Choisissez l’usage de votre compte." };
-    if (champs.espace === "proprietaire_direct" && !champs.nom) return { erreur: "Le nom est obligatoire." };
-    if (!formData.get("cgu")) return { erreur: "Acceptez les conditions d’utilisation pour continuer." };
+    const champLong = premierChampTropLong(champs);
+    if (tropLong) return refus(tropLong, CHAMPS_PROFIL_INSCRIPTION.find((champ) => champ === champLong));
+    if (!["proprietaire_direct", "artisan", "invite"].includes(champs.espace)) return refus("Choisissez l’usage de votre compte.", "espace");
+    if (champs.espace === "proprietaire_direct" && !champs.nom) return refus("Le nom est obligatoire.", "nom");
+    if (!formData.get("cgu")) return refus("Acceptez les conditions d’utilisation pour continuer.", "cgu");
     const code = champs.code_parrainage ? normaliserCode(champs.code_parrainage) : null;
-    if (champs.code_parrainage && !code) return { erreur: "Le code de parrainage doit compter huit lettres ou chiffres." };
+    if (champs.code_parrainage && !code) return refus("Le code de parrainage doit compter huit lettres ou chiffres.", "code_parrainage");
     const { error: erreurCgu } = await supabase.rpc("accepter_cgu", { p_version: CONDITIONS_VERSION, p_source: "compte" });
-    if (erreurCgu) return { erreur: "L’acceptation des conditions n’a pas pu être enregistrée. Réessayez." };
+    if (erreurCgu) return refus("L’acceptation des conditions n’a pas pu être enregistrée. Réessayez.", "cgu");
     profil = { ...champs, espace: champs.espace === "invite" ? null : champs.espace, qualite: qualiteDeLaListe(formData.get("qualite")), code_parrainage: code, cgu_version: CONDITIONS_VERSION, cgu_acceptee_le: new Date().toISOString(), [CLE_PROFIL_A_CONFIRMER]: null };
   }
 
   const { error } = await supabase.auth.updateUser({ password: motDePasse, ...(profil ? { data: profil } : {}) });
   if (error) {
     if (error.code === "same_password") {
-      return { erreur: "Le nouveau mot de passe doit être différent de l'ancien." };
+      return refus("Le nouveau mot de passe doit être différent de l'ancien.", "mot_de_passe");
     }
     if (error.code === "weak_password") {
-      return {
-        erreur:
-          "Mot de passe refusé : trop faible ou présent dans des fuites de données connues. Choisissez-en un autre.",
-      };
+      return refus(
+        "Mot de passe refusé : trop faible ou présent dans des fuites de données connues. Choisissez-en un autre.",
+        "mot_de_passe"
+      );
     }
-    return { erreur: `Changement impossible : ${sansJargon(error.message)}` };
+    return refus(`Changement impossible : ${sansJargon(error.message)}`);
   }
 
   // Sécurité : toute autre session active est invalidée — si quelqu'un était

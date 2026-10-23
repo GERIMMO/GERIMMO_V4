@@ -12,8 +12,8 @@
       "date_effet": "2026-10-24",
       "nature": "substantielle",
       "resume_modifications": "Offre réservée aux propriétaires qui gèrent leurs propres biens ; les artisans ont leurs propres conditions. Rétractation de 14 jours ouverte à toutes les formules, en ligne avec le bouton « Renoncer au contrat ici », remboursement intégral (article 8.10). Résiliation en ligne avec accusé de réception (article 8.6). Impayé : courrier le jour de l’échec, lecture seule à J+15 (dès l’échec pour le premier prélèvement), résiliation possible au plus tôt à J+30, rien n’est supprimé du fait de l’impayé (article 15). Garanties légales de conformité et des vices cachés (article 14 bis). Signature électronique décrite, cautionnement et état des lieux compris (article 4.7). Compte supprimé après 24 mois sans connexion ni abonnement, après deux avertissements ; factures gardées six ans, preuve du contrat dix ans (article 9). Hausse de prix ou changement essentiel soumis à votre accord exprès (articles 8.9 et 16). Aucun plafond de responsabilité opposé au consommateur (article 14). Annexe sur les données complétée ; articles L. 215-1 à L. 215-3 et L. 241-3 du code de la consommation reproduits (annexe 2).",
-      "empreinte_reference": "6d36c566d528da5ecec1d2b1f8c4186673ac3a7f08940878e3bf04dafcdfea23",
-      "note": "Date de version PROVISOIRE (plan de conformité du 23/10, lot 3) : la clé, la date d’effet et l’empreinte seront reposées à la date réelle de publication de la V1."
+      "empreinte_reference": "9fec87b6138feff410a81759d50307d93018b8c6e8db66f288a6732440ca7ad0",
+      "note": "Date de version PROVISOIRE (plan de conformité du 23/10, lot 3) : la clé, la date d’effet et l’empreinte seront reposées à la date réelle de publication de la V1. Empreinte recalculée après la relecture adverse du lot 3 (texte jamais publié sous cette version)."
     }
   },
   "conditions_artisans": {
@@ -21,8 +21,8 @@
       "date_effet": "2026-10-24",
       "nature": "substantielle",
       "resume_modifications": "Première version des conditions de l’espace artisan, distinctes des conditions des propriétaires : espace gratuit et sans commission, inscription et validation, visibilité, paramètres de classement (note prise en compte à partir de trois évaluations), évaluations et contestation, restriction et exclusion motivées, annexe sur les données des clients externes.",
-      "empreinte_reference": "e0188d7b36dd115152a62ac17d6b5a35efa41eafb6355a9fb287cc8b34765f4c",
-      "note": "Date de version PROVISOIRE (plan de conformité du 23/10, lot 3), publiée le même jour que la V1 des conditions clients."
+      "empreinte_reference": "53e8354d0ccd4116b06fd8255cbed75abd0a997496c2854c0cb60a77c49d94c7",
+      "note": "Date de version PROVISOIRE (plan de conformité du 23/10, lot 3), publiée le même jour que la V1 des conditions clients. Empreinte recalculée après la relecture adverse du lot 3 (texte jamais publié sous cette version)."
     }
   }
 }

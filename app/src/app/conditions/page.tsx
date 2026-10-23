@@ -89,8 +89,12 @@ const CLAUSES: Record<
   // Gerimmo se gardent SIX ans (livre des procédures fiscales, art. L. 102 B — et non dix ans, durée du code de commerce
   // propre aux commerçants) ; la preuve du contrat DIX ans après la fin du dernier abonnement payé (code de la
   // consommation, art. L. 213-1). Sources non ouvertes le 23/10/2026 : à recomparer sur Légifrance avant publication.
+  // « au moins six ans » (relecture du lot 3) : les factures sont émises chez le prestataire de paiement, qui ne
+  // supprime pas une facture finalisée, et le client chez ce prestataire n'est jamais supprimé (plan, lot 1E) ; la
+  // page confidentialité décrit ce que ce prestataire garde. Les préavis de suppression ne visent que les deux
+  // alertes du lot 1E (J-30 par bail, J-15 par personne sans bail) : aucune autre pièce n'est promise d'un préavis.
   conservation:
-    "tant que le compte est utilisé. À la fin de l'essai ou de l'abonnement, elles restent consultables et exportables en lecture seule ; cette fin n'entraîne pas à elle seule leur suppression. Le compte et les données de gestion sont supprimés vingt-quatre mois après la plus tardive des dates suivantes : la dernière connexion d'un utilisateur du compte, la fin du dernier abonnement payé. L'Éditeur prévient le Client par courriel deux mois, puis quinze jours avant cette suppression ; une connexion ou une demande écrite avant l'échéance l'annule. Certaines pièces suivent leur durée de conservation propre, décrite dans la page confidentialité (par exemple les pièces du dossier locataire, supprimées trois ans après la fin du dernier bail et la clôture de ses comptes, sauf litige signalé) ; le Client est prévenu avant leur suppression, trente jours avant pour les pièces rattachées à un bail et quinze jours avant pour celles d'une personne rattachée à aucun bail. Le Client peut demander à tout moment la fermeture de son compte et la suppression de ses données, après avoir exporté ce qu'il souhaite garder ; si un abonnement payé est en cours, il choisit une fermeture à la fin de la période payée ou quatorze jours après sa confirmation, avec le remboursement de la part non utilisée de cette période. Il lui appartient de conserver lui-même les documents qu'il est tenu de garder. L'Éditeur conserve, pour ses seules obligations, les factures qu'il a émises pendant six ans à compter de leur émission, et la preuve de l'acceptation des conditions et de l'abonnement pendant dix ans après la fin du dernier abonnement payé (article 3.3)",
+    "tant que le compte est utilisé. À la fin de l'essai ou de l'abonnement, elles restent consultables et exportables en lecture seule ; cette fin n'entraîne pas à elle seule leur suppression. Le compte et les données de gestion sont supprimés vingt-quatre mois après la plus tardive des dates suivantes : la dernière connexion d'un utilisateur du compte, la fin du dernier abonnement payé. L'Éditeur prévient le Client par courriel deux mois, puis quinze jours avant cette suppression ; une connexion ou une demande écrite avant l'échéance l'annule. Certaines pièces suivent leur durée de conservation propre, décrite dans la page confidentialité (par exemple les pièces du dossier locataire, supprimées trois ans après la fin du dernier bail et la clôture de ses comptes, sauf litige signalé) ; le Client est prévenu trente jours avant la suppression des pièces rattachées à un bail, et quinze jours avant celle des pièces d'une personne rattachée à aucun bail. Le Client peut demander à tout moment la fermeture de son compte et la suppression de ses données, après avoir exporté ce qu'il souhaite garder ; si un abonnement payé est en cours, il choisit une fermeture à la fin de la période payée ou quatorze jours après sa confirmation, avec le remboursement de la part non utilisée de cette période. Il lui appartient de conserver lui-même les documents qu'il est tenu de garder. L'Éditeur conserve, pour ses seules obligations, les factures qu'il a émises pendant au moins six ans à compter de leur émission, et la preuve de l'acceptation des conditions et de l'abonnement pendant dix ans après la fin du dernier abonnement payé (article 3.3)",
   disponibilite:
     "L'Éditeur ne garantit pas une disponibilité ininterrompue. Les opérations de maintenance programmées sont annoncées à l'avance lorsque c'est possible, de préférence en dehors des heures ouvrées. Le support est assuré par écrit depuis la page « Aide et retours » de l'application ; l'Éditeur y répond dans les meilleurs délais.",
   // V1 (plan du 23/10, R08) : aucun plafond n'est opposé au consommateur ni au non-professionnel (art. R. 212-1 du
@@ -241,8 +245,8 @@ export default async function PageConditions() {
           contrat est conclu en français. La{" "}
           <b className="font-semibold">version acceptée</b>, sa date et son
           heure sont enregistrées : c&apos;est le texte de cette version qui lie
-          les parties, même si les présentes conditions évoluent ensuite
-          (article 16). Chaque version des présentes conditions est archivée par
+          les parties, tant qu&apos;une nouvelle version ne s&apos;applique pas
+          dans les conditions de l&apos;article 16. Chaque version des présentes conditions est archivée par
           l&apos;Éditeur sans modification possible et reste consultable sur la
           page des versions archivées des conditions générales, accessible
           depuis la présente page ; la version acceptée par le Client est
@@ -315,7 +319,11 @@ export default async function PageConditions() {
             probante d'une signature par code SMS pour ces deux actes, à faire relire par un juriste.
             Délai de l'état des lieux d'entrée (loi n° 89-462 du 6 juillet 1989, art. 3-2) : « dix jours à compter de son
             établissement » selon la décision du 23/10 ; « établissement » ou « signature » n'a pas été vérifié sur la
-            source (non ouverte le 23/10/2026) : à recomparer sur Légifrance avant publication. */}
+            source (non ouverte le 23/10/2026) : à recomparer sur Légifrance avant publication. Le modèle généré
+            (lib/documents/modeles/edl.ts, mention de l'état des lieux d'entrée) dit encore « dans les dix jours de sa
+            signature » : les deux textes doivent dire le même mot, et, si c'est « établissement », l'expiration du circuit
+            de l'état des lieux (trente jours) laisse le délai s'écouler avant la signature du locataire. Comme le modèle,
+            le texte rattache les deux droits (dix jours, période de chauffe) à l'état des lieux d'entrée. */}
         <p>
           <b className="font-semibold">4.7 — Signature électronique.</b> Le
           Service permet au Client de faire signer en ligne certains documents
@@ -372,11 +380,11 @@ export default async function PageConditions() {
           <b className="font-semibold">État des lieux.</b> Avant l&apos;envoi en
           signature, le Client confirme que l&apos;état des lieux a été établi
           contradictoirement, sur place, à la date de la visite, en présence du
-          locataire ou de son représentant. Le locataire est informé de son
-          droit de demander que l&apos;état des lieux soit complété : dans les
-          dix jours qui suivent son établissement pour un état des lieux
-          d&apos;entrée, et pendant le premier mois de la période de chauffe
-          pour les éléments de chauffage.
+          locataire ou de son représentant. Pour un état des lieux
+          d&apos;entrée, le locataire est informé de son droit de demander
+          qu&apos;il soit complété : dans les dix jours qui suivent son
+          établissement et, pour les éléments de chauffage, pendant le premier
+          mois de la période de chauffe.
         </p>
         <p>
           À la fin du circuit, le Service enregistre dans les Documents du
@@ -384,9 +392,9 @@ export default async function PageConditions() {
           <b className="font-semibold">certificat de réalisation</b> délivré par
           le prestataire, commun à tous les signataires. Ces pièces suivent la
           durée de conservation de l&apos;acte signé, décrite dans la page
-          confidentialité ; le Client est prévenu trente jours avant leur
-          suppression et peut les télécharger à tout moment (article 9). Il
-          appartient au Client d&apos;en garder une copie aussi longtemps que
+          confidentialité ; lorsqu&apos;elles sont rattachées à un bail, le
+          Client est prévenu trente jours avant leur suppression (article 9).
+          Il peut les télécharger à tout moment. Il appartient au Client d&apos;en garder une copie aussi longtemps que
           l&apos;acte peut être invoqué ou contesté, y compris après la fin de
           son abonnement.
         </p>
@@ -530,7 +538,8 @@ export default async function PageConditions() {
           montant, sa date d&apos;effet et l&apos;éventuel prorata ont été
           présentés au Client et confirmés par lui. Une diminution
           s&apos;applique à la prochaine échéance. Une formule annuelle
-          n&apos;est pas convertie en mensuelle en cours de période.
+          n&apos;est pas convertie en mensuelle en cours de période, sauf
+          rétractation du passage à l&apos;abonnement annuel (article 8.10).
         </p>
         <p>
           <b className="font-semibold">8.6 — Résiliation.</b> L&apos;abonnement
@@ -540,8 +549,8 @@ export default async function PageConditions() {
           votre contrat ». La résiliation prend effet à la prochaine échéance,
           mensuelle ou annuelle ; l&apos;accès payé reste ouvert jusqu&apos;à
           cette date, et la période en cours n&apos;est pas remboursée, sauf
-          dans les cas prévus aux articles 8.7, 8.9, 8.10, 9, 15.5 et 16 et à
-          l&apos;annexe 1 (sous-traitants ultérieurs). L&apos;Éditeur accuse
+          dans les cas prévus aux articles 8.7, 8.10, 9, 15.4, 15.5 et 16 et
+          à l&apos;annexe 1 (sous-traitants ultérieurs). L&apos;Éditeur accuse
           réception de la résiliation par courrier électronique, en indiquant
           la date de fin du contrat et ses effets.
         </p>
@@ -567,8 +576,9 @@ export default async function PageConditions() {
         </p>
         <p>
           <b className="font-semibold">8.8 — Artisans et travaux.</b> Le
-          Service permet de solliciter des artisans validés par l&apos;Éditeur
-          ou invités par le Client. Les devis, travaux et factures sont conclus
+          Service permet de solliciter des artisans validés par l&apos;Éditeur,
+          qu&apos;ils soient proposés par le Service ou invités par le Client.
+          Les devis, travaux et factures sont conclus
           et réglés directement entre le Client et l&apos;artisan :
           l&apos;Éditeur n&apos;est pas partie à ces contrats, n&apos;encaisse
           aucune somme et ne garantit ni le prix ni l&apos;exécution des
@@ -582,8 +592,8 @@ export default async function PageConditions() {
           les seules évaluations disponibles quand une seule de ces deux
           catégories a évalué ; viennent ensuite les artisans qui ont moins de
           trois évaluations ; à égalité, l&apos;ordre alphabétique de la raison
-          sociale. Aucun artisan ne paie pour être mieux classé. Aucun frais
-          d&apos;installation n&apos;est facturé pour un démarrage autonome.
+          sociale. Aucun artisan ne paie pour être mieux classé. Aucuns frais
+          d&apos;installation ne sont facturés pour un démarrage autonome.
         </p>
         <p>
           <b className="font-semibold">8.9 — Révision.</b> Toute évolution
@@ -613,9 +623,10 @@ export default async function PageConditions() {
           l&apos;abonnement payant, sans avoir à motiver sa décision (articles
           L. 221-18 et suivants du code de la consommation). Le délai court à
           compter de la conclusion de l&apos;abonnement (article 3.2) ; le jour
-          de la conclusion n&apos;est pas compté, et un délai qui expire un
-          samedi, un dimanche ou un jour férié ou chômé est prolongé
-          jusqu&apos;au premier jour ouvrable suivant, à 23 h 59, heure de Paris.
+          de la conclusion n&apos;est pas compté. Le délai expire le
+          quatorzième jour à 23 h 59, heure de Paris ; s&apos;il expire un
+          samedi, un dimanche ou un jour férié ou chômé, il est prolongé
+          jusqu&apos;au premier jour ouvrable suivant, à la même heure.
           L&apos;Éditeur accorde ce droit, dans les mêmes conditions, à tout
           Client titulaire d&apos;une formule Solo, Bailleur, Investisseur ou
           Patrimoine. Le passage d&apos;un abonnement mensuel à un abonnement
@@ -922,8 +933,8 @@ export default async function PageConditions() {
           la façon de régulariser depuis « Mon abonnement », la date de passage
           en lecture seule et la date à partir de laquelle l&apos;abonnement
           peut être résilié. Il vise l&apos;article 15.4 et vaut mise en
-          demeure au sens de cet article. Aucune pénalité ni aucun frais de
-          relance n&apos;est facturé.
+          demeure au sens de cet article. Aucune pénalité ni aucuns frais de
+          relance ne sont facturés.
         </p>
         <p>
           <b className="font-semibold">15.3 — Lecture seule.</b> Si
@@ -953,7 +964,9 @@ export default async function PageConditions() {
           après une mise en demeure restée sans effet, qui vise le présent
           article. La résiliation est notifiée par courrier électronique. En
           cas de défaut de paiement, la facture restée impayée est alors
-          annulée. Les données restent ensuite consultables et exportables en
+          annulée. En dehors du défaut de paiement, la part du prix payé
+          correspondant à la période restant à courir est remboursée au Client
+          dans les quatorze jours. Les données restent ensuite consultables et exportables en
           lecture seule, dans les conditions de l&apos;article 9.
         </p>
         <p>
@@ -1008,15 +1021,17 @@ export default async function PageConditions() {
           est un fait d'éditeur lu en base (composant Fait), comme l'adresse de contact : ses coordonnées s'affichent dès
           que son nom est saisi. Tant qu'il manque, la phrase dit qu'il sera désigné aux mentions légales dès l'adhésion —
           jamais que la vente est fermée. Saisir le médiateur change le texte publié : l'archive refusera alors la même
-          version, et une version technique sera publiée à l'adhésion (plan, lot 3). */}
+          version, et une version technique sera publiée à l'adhésion (plan, lot 3).
+          Relecture du lot 3 : la parenthèse « Faire une réclamation » du plan n'est pas publiée, car cette nature de
+          retour (lot 1B, R05) n'existe pas dans NATURES_RETOUR (lib/retours.ts) ; elle reviendra avec elle. */}
       <Article titre="17. Droit applicable et litiges">
         <p>
           Les présentes conditions sont soumises au{" "}
           <b className="font-semibold">droit français</b>. En cas de litige, les
           parties recherchent une solution amiable ; la réclamation
           s&apos;adresse à{" "}
-          <Fait valeur={EDITEUR.email} quoi="adresse de contact" /> ou depuis la
-          page « Aide et retours » (« Faire une réclamation »).
+          <Fait valeur={EDITEUR.email} quoi="adresse de contact" /> ou se fait
+          depuis la page « Aide et retours ».
         </p>
         {EDITEUR.mediateurNom ? (
           <p>
@@ -1110,7 +1125,7 @@ export default async function PageConditions() {
             peut s&apos;y opposer par écrit avant cette date. Si l&apos;Éditeur
             maintient le changement, le Client peut résilier sans frais avant sa
             prise d&apos;effet et obtient le remboursement de la part du prix
-            payée pour la période restant à courir. L&apos;Éditeur impose à
+            payé pour la période restant à courir. L&apos;Éditeur impose à
             chaque prestataire, par contrat, des obligations de protection des
             données équivalentes à la présente annexe, et il demeure pleinement
             responsable envers le Client de leur exécution.
@@ -1121,12 +1136,12 @@ export default async function PageConditions() {
           <li>
             <b className="font-semibold">Transferts hors de l&apos;Union.</b>{" "}
             Lorsque des données sont transférées ou accessibles hors de
-            l&apos;Union européenne (prestataires signalés dans la liste), le
-            transfert est encadré par une décision d&apos;adéquation de la
-            Commission européenne, notamment le cadre de protection des données
-            UE–États-Unis pour un prestataire certifié, ou par les clauses
-            contractuelles types de la Commission. Le Client peut en obtenir une
-            copie sur demande.
+            l&apos;Union européenne (voir la localisation de chaque prestataire
+            dans la liste), le transfert est encadré par une décision
+            d&apos;adéquation de la Commission européenne, notamment le cadre de
+            protection des données UE–États-Unis pour un prestataire certifié,
+            ou par les clauses contractuelles types de la Commission. Le Client
+            peut en obtenir une copie sur demande.
           </li>
           <li>
             <b className="font-semibold">Droits des personnes.</b>{" "}
@@ -1153,15 +1168,20 @@ export default async function PageConditions() {
             CNIL.
           </li>
           {/* La durée des sauvegardes Supabase n'a pas été relevée dans la console : pas de « quatre-vingt-dix jours »
-              (plan du 23/10, R34). */}
+              (plan du 23/10, R34). Relecture du lot 3 : tant que l'export complet (R49) n'est pas en production,
+              l'article 9 ne restitue que le journal de gestion et les documents ; le reste des données (fiches,
+              incidents, messages, rendez-vous) est restitué par une copie transmise sur demande (RGPD, art. 28.3 g). */}
           <li>
             <b className="font-semibold">Fin du traitement.</b> Lorsque le
             Client demande la suppression de son compte, ou à la fin du
             contrat, et au choix du Client, l&apos;Éditeur restitue les données
-            (export de l&apos;article 9) puis les supprime, ou les supprime
-            directement, ainsi que les copies existantes, sauf obligation légale
-            de conservation. Les copies de sauvegarde sont effacées au terme de
-            leur cycle de conservation.
+            puis les supprime, ou les supprime directement, ainsi que les copies
+            existantes, sauf obligation légale de conservation. La restitution
+            se fait par les exports et téléchargements de l&apos;article 9 et,
+            pour les données qu&apos;ils ne couvrent pas, par une copie que
+            l&apos;Éditeur transmet sur demande écrite du Client, dans un format
+            lisible par machine. Les copies de sauvegarde sont effacées au terme
+            de leur cycle de conservation.
           </li>
           <li>
             <b className="font-semibold">Information et audit.</b>{" "}
@@ -1176,7 +1196,8 @@ export default async function PageConditions() {
 
       {/* V1 (plan du 23/10, R18 : art. L. 215-4 du code de la consommation). Texte d'une copie non officielle de la base
           LEGI datée du 25/02/2026 : à recomparer mot pour mot sur Légifrance avant publication (source non ouverte le
-          23/10/2026). */}
+          23/10/2026). La date du titre (« version en vigueur au 25 février 2026 ») est celle de cette copie : la
+          reposer à la date de la recomparaison. */}
       <Article titre="Annexe 2 — Articles L. 215-1 à L. 215-3 et L. 241-3 du code de la consommation (version en vigueur au 25 février 2026)">
         <p>
           <b className="font-semibold">Article L. 215-1.</b> Pour les contrats

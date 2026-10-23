@@ -208,7 +208,7 @@ describe("conditions générales d'utilisation et de vente (29/09)", () => {
     expect(cgu).not.toContain("jamais supprimées automatiquement");
     expect(cgu).toContain("cette fin n'entraîne pas à elle seule leur suppression");
     expect(cgu).toContain("supprimés vingt-quatre mois après la plus tardive des dates suivantes");
-    expect(cgu).toContain("les factures qu'il a émises pendant six ans");
+    expect(cgu).toContain("les factures qu'il a émises pendant au moins six ans");
     expect(cgu).toContain("dix ans après la fin du dernier abonnement payé");
     expect(cgu).toContain("douze mois précédant le fait générateur");
     expect(cgu).toContain('delaiMiseEnDemeure: "trente jours"');

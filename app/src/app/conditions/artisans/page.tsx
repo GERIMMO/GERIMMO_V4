@@ -174,11 +174,13 @@ export default async function PageConditionsArtisans() {
         </p>
       </Article>
 
+      {/* Relecture du lot 3 : le plan écrivait « Pour le compte de l'Artisan », qui se lit « au nom de l'Artisan », le
+          sens même de la sous-traitance de l'annexe. Il s'agit du compte de connexion. */}
       <Article titre="A9. Données personnelles">
         <p>
-          Pour le compte de l&apos;Artisan, la validation, la note, les
-          indicateurs et les exclusions, l&apos;Éditeur est responsable de
-          traitement ; la{" "}
+          Pour le compte de connexion de l&apos;Artisan, sa validation, sa
+          note, ses indicateurs et les exclusions, l&apos;Éditeur est
+          responsable de traitement ; la{" "}
           <Link href="/confidentialite" className="lien-texte">
             page confidentialité
           </Link>{" "}
@@ -235,7 +237,8 @@ export default async function PageConditionsArtisans() {
           <Link href="/mentions-legales" className="lien-texte">
             mentions légales
           </Link>{" "}
-          ou depuis « Aide et retours ». Les présentes conditions sont soumises
+          ou se font depuis « Aide et retours ». Les présentes conditions sont
+          soumises
           au <b className="font-semibold">droit français</b>.
         </p>
       </Article>
@@ -309,12 +312,12 @@ export default async function PageConditionsArtisans() {
           <li>
             <b className="font-semibold">Transferts hors de l&apos;Union.</b>{" "}
             Lorsque des données sont transférées ou accessibles hors de
-            l&apos;Union européenne (prestataires signalés dans la liste), le
-            transfert est encadré par une décision d&apos;adéquation de la
-            Commission européenne, notamment le cadre de protection des données
-            UE–États-Unis pour un prestataire certifié, ou par les clauses
-            contractuelles types de la Commission. L&apos;Artisan peut en
-            obtenir une copie sur demande.
+            l&apos;Union européenne (voir la localisation de chaque prestataire
+            dans la liste), le transfert est encadré par une décision
+            d&apos;adéquation de la Commission européenne, notamment le cadre de
+            protection des données UE–États-Unis pour un prestataire certifié,
+            ou par les clauses contractuelles types de la Commission.
+            L&apos;Artisan peut en obtenir une copie sur demande.
           </li>
           <li>
             <b className="font-semibold">Droits des personnes.</b>{" "}
@@ -343,9 +346,12 @@ export default async function PageConditionsArtisans() {
             <b className="font-semibold">Fin du traitement.</b> Lorsque
             l&apos;Artisan demande la suppression de son compte, ou à la fin du
             contrat, et au choix de l&apos;Artisan, l&apos;Éditeur restitue les
-            données (export de l&apos;article A8) puis les supprime, ou les
-            supprime directement, ainsi que les copies existantes, sauf
-            obligation légale de conservation. Les copies de sauvegarde sont
+            données puis les supprime, ou les supprime directement, ainsi que
+            les copies existantes, sauf obligation légale de conservation. La
+            restitution se fait par l&apos;export de l&apos;article A8 et, pour
+            les données qu&apos;il ne couvre pas, par une copie que
+            l&apos;Éditeur transmet sur demande écrite de l&apos;Artisan, dans
+            un format lisible par machine. Les copies de sauvegarde sont
             effacées au terme de leur cycle de conservation.
           </li>
           <li>

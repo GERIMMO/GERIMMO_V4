@@ -153,7 +153,7 @@ describe("V1 des conditions clients : articles clés", () => {
   it("conservation : factures six ans, preuve du contrat dix ans, compte supprimé après vingt-quatre mois et deux avertissements", async () => {
     const page = await conditions();
     const art9 = article(page, "9. Réversibilité et conservation", "10. Disponibilité");
-    expect(art9).toContain("les factures qu'il a émises pendant six ans à compter de leur émission");
+    expect(art9).toContain("les factures qu'il a émises pendant au moins six ans à compter de leur émission");
     expect(art9).toContain("la preuve de l'acceptation des conditions et de l'abonnement pendant dix ans après la fin du dernier abonnement payé");
     expect(art9).toContain("supprimés vingt-quatre mois après la plus tardive des dates suivantes");
     expect(art9).toContain("deux mois, puis quinze jours avant cette suppression");
@@ -185,8 +185,10 @@ describe("V1, article 4.7 : la caution et l'état des lieux signent dans Gerimmo
   it("l'état des lieux : confirmation sur place et contradictoire, droit du locataire de le faire compléter", async () => {
     const art = article(await conditions(), "4.7 — Signature électronique.", "4.8 —");
     expect(art).toContain("établi contradictoirement, sur place, à la date de la visite, en présence du locataire ou de son représentant");
-    expect(art).toContain("dans les dix jours qui suivent son établissement pour un état des lieux d'entrée");
-    expect(art).toContain("pendant le premier mois de la période de chauffe pour les éléments de chauffage");
+    // Les deux droits (dix jours, période de chauffe) visent l'état des lieux d'entrée, comme le modèle généré.
+    expect(art).toContain(
+      "Pour un état des lieux d'entrée, le locataire est informé de son droit de demander qu'il soit complété : dans les dix jours qui suivent son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe."
+    );
   });
 
   it("signature simple, sans présomption de fiabilité, un certificat commun, comprise dans l'abonnement et l'essai", async () => {
@@ -212,7 +214,9 @@ describe("V1, article 17 : le médiateur, non bloquant (décision du 23/10)", ()
   it("sans médiateur saisi : la variante du plan ; la vente n'est jamais dite fermée", async () => {
     const art = article(await conditions(), "17. Droit applicable et litiges", "Annexe 1 —");
     expect(art).toContain("peut recourir gratuitement au médiateur de la consommation, qui sera désigné aux mentions légales dès l'adhésion de l'Éditeur.");
-    expect(art).toContain("« Faire une réclamation »");
+    // La nature de retour « Faire une réclamation » (lot 1B) n'existe pas encore : le texte ne la promet pas.
+    expect(art).toContain("ou se fait depuis la page « Aide et retours ».");
+    expect(art).not.toContain("Faire une réclamation");
     expect(art).not.toMatch(/ferm/i);
   });
 
@@ -253,6 +257,97 @@ describe("V1, annexe 1 : sous-traitants figés, violation dans les meilleurs dé
     expect(annexe).toContain("Fin du traitement.");
     expect(annexe).not.toContain("quatre-vingt-dix jours");
   });
+});
+
+// Relecture adverse du lot 3 : des articles qui se contredisaient, ou qui promettaient ce que le code ne fait pas.
+describe("V1 : cohérence entre les articles (relecture du lot 3)", () => {
+  it("3.3 et 16 : la version acceptée lie les parties tant qu'une nouvelle version ne s'applique pas", async () => {
+    const art3 = article(await conditions(), "3. Acceptation et formation du contrat", "4. Nature du Service");
+    expect(art3).toContain("c'est le texte de cette version qui lie les parties, tant qu'une nouvelle version ne s'applique pas dans les conditions de l'article 16.");
+    expect(art3).not.toContain("même si les présentes conditions évoluent ensuite");
+  });
+
+  it("8.5 et 8.10 : l'annuel n'est converti en mensuel que par la rétractation du passage à l'annuel", async () => {
+    const page = await conditions();
+    expect(article(page, "8.5 — Changements.", "8.6 —")).toContain(
+      "n'est pas convertie en mensuelle en cours de période, sauf rétractation du passage à l'abonnement annuel (article 8.10)."
+    );
+    expect(article(page, "8.10 — Rétractation.", "8.11 —")).toContain("rétablit l'abonnement mensuel");
+  });
+
+  it("8.6 et 15.4 : la résiliation par l'Éditeur hors impayé rembourse la période restant à courir ; 8.9 ne rembourse rien", async () => {
+    const page = await conditions();
+    const art86 = article(page, "8.6 — Résiliation.", "8.7 —");
+    expect(art86).toContain("sauf dans les cas prévus aux articles 8.7, 8.10, 9, 15.4, 15.5 et 16 et à l'annexe 1");
+    expect(art86).not.toContain("8.9,");
+    expect(article(page, "15.4 — Résiliation par l'Éditeur.", "15.5 —")).toContain(
+      "En dehors du défaut de paiement, la part du prix payé correspondant à la période restant à courir est remboursée au Client dans les quatorze jours."
+    );
+  });
+
+  it("8.10 : le délai expire le quatorzième jour à 23 h 59, heure de Paris, même s'il n'est pas prolongé", async () => {
+    const art = article(await conditions(), "8.10 — Rétractation.", "8.11 —");
+    expect(art).toContain("Le délai expire le quatorzième jour à 23 h 59, heure de Paris ;");
+    expect(art).toContain("il est prolongé jusqu'au premier jour ouvrable suivant, à la même heure.");
+  });
+
+  it("8.8 et A3 : un artisan invité est validé par l'Éditeur comme les autres", async () => {
+    expect(article(await conditions(), "8.8 — Artisans et travaux.", "8.9 —")).toContain(
+      "des artisans validés par l'Éditeur, qu'ils soient proposés par le Service ou invités par le Client."
+    );
+    expect(await artisans()).toContain("Aucun propriétaire ne peut solliciter l'Artisan avant cette validation.");
+  });
+
+  it("préavis de suppression : seules les pièces rattachées à un bail (J-30) et celles d'une personne sans bail (J-15)", async () => {
+    const page = await conditions();
+    expect(article(page, "9. Réversibilité et conservation", "10. Disponibilité")).toContain(
+      "le Client est prévenu trente jours avant la suppression des pièces rattachées à un bail, et quinze jours avant celle des pièces d'une personne rattachée à aucun bail."
+    );
+    expect(article(page, "4.7 — Signature électronique.", "4.8 —")).toContain(
+      "lorsqu'elles sont rattachées à un bail, le Client est prévenu trente jours avant leur suppression (article 9)."
+    );
+  });
+
+  it("fin du traitement : l'export ne couvre pas tout, le reste est restitué par une copie sur demande (RGPD, art. 28.3 g)", async () => {
+    const annexe = article(await conditions(), "Annexe 1 —", "Annexe 2 —");
+    expect(annexe).toContain(
+      "La restitution se fait par les exports et téléchargements de l'article 9 et, pour les données qu'ils ne couvrent pas, par une copie que l'Éditeur transmet sur demande écrite du Client, dans un format lisible par machine."
+    );
+    expect(annexe).not.toContain("(export de l'article 9)");
+    const annexeArtisan = article(await artisans(), "Annexe — Traitement de données pour le compte de l'Artisan", "Versions archivées");
+    expect(annexeArtisan).toContain("par une copie que l'Éditeur transmet sur demande écrite de l'Artisan");
+  });
+
+  it("transferts : les annexes renvoient à la localisation de chaque prestataire, sans liste « signalée »", async () => {
+    for (const page of [await conditions(), await artisans()]) {
+      expect(page).toContain("(voir la localisation de chaque prestataire dans la liste)");
+      expect(page).not.toContain("prestataires signalés dans la liste");
+    }
+  });
+
+  it("A9 : le compte de connexion de l'Artisan, et non « pour le compte de l'Artisan »", async () => {
+    const art = article(await artisans(), "A9. Données personnelles", "A10.");
+    expect(art).toContain("Pour le compte de connexion de l'Artisan, sa validation, sa note, ses indicateurs et les exclusions");
+  });
+
+  it("français : « aucuns frais », réclamation qui « se fait » depuis « Aide et retours », « la part du prix payé »", async () => {
+    const page = await conditions();
+    expect(page).toContain("Aucune pénalité ni aucuns frais de relance ne sont facturés.");
+    expect(page).not.toMatch(/aucun frais/i);
+    expect(page).not.toContain("part du prix payée");
+    expect(await artisans()).toContain("ou se font depuis « Aide et retours »");
+  });
+
+  it("état des lieux : le modèle généré rattache aussi les deux droits à l'état des lieux d'entrée", () => {
+    const modele = readFileSync(resolve(__dirname, "../src/lib/documents/modeles/edl.ts"), "utf8");
+    const mention = modele.slice(modele.indexOf("entree\n        ?"), modele.indexOf(": \"Le dépôt de garantie est restitué"));
+    expect(mention).toContain("dans les dix jours");
+    expect(mention).toContain("pendant le premier mois de la période de chauffe");
+  });
+
+  // À trancher après lecture de l'article 3-2 de la loi du 6 juillet 1989 sur Légifrance : la page dit « dix jours qui
+  // suivent son établissement » (décision du 23/10), le modèle « dix jours de sa signature » (lib/documents/modeles/edl.ts).
+  it.todo("état des lieux : un seul mot, « établissement » ou « signature », dans la page et dans le modèle");
 });
 
 describe("conditions de l'espace artisan (R10)", () => {

@@ -9,8 +9,9 @@ import styles from "./entreprise.module.css";
  * son inscription (SIRET vérifié) et que son profil est public. La validation ne rend pas le profil public : sans cette
  * carte, un artisan validé mais privé restait invisible sans que rien ne le lui dise (relecture du 23/10, M3).
  */
-export function PresenceReseau({ fiche }: { fiche: FichePresenceReseau }) {
-  const { propose, conditions } = presenceReseau(fiche);
+export function PresenceReseau({ fiche, exclu }: { fiche: FichePresenceReseau; exclu: boolean }) {
+  // `exclu` : liste noire globale (artisan_exclusion_plateforme), même règle que la base (relecture produit du 23/10, M-2).
+  const { propose, conditions } = presenceReseau(fiche, exclu);
   return (
     <Carte className={styles.bloc}>
       <div className={styles.titreBloc}><span className={styles.icone}><Network size={19} aria-hidden/></span><div><h2>Suis-je proposé dans le réseau ?</h2><p>{propose ? "Oui : les propriétaires de votre zone vous trouvent pour vos métiers." : "Pas encore : voici ce qui manque."}</p></div></div>

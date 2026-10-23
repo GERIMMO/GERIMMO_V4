@@ -8,7 +8,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { messageDisponibilite, presenceReseau, statutCandidat, voieDeSortieAffichee, type FichePresenceReseau } from "@/lib/reseau";
+import { messageDisponibilite, presenceReseau, rappelPresenceReseau, statutCandidat, voieDeSortieAffichee, type FichePresenceReseau } from "@/lib/reseau";
 import { zoneCouvre, zonesCouvrant } from "@/lib/zone-artisan";
 
 const fiche = (partiel: Partial<FichePresenceReseau> = {}): FichePresenceReseau => ({
@@ -51,6 +51,30 @@ describe("Suis-je proposé dans le réseau ?", () => {
   it("un refus renvoie au motif, une attente à la relecture de Gerimmo", () => {
     expect(presenceReseau(fiche({ statut_plateforme: "refuse" })).conditions[0].aide).toContain("refusée");
     expect(presenceReseau(fiche({ statut_plateforme: "en_attente" })).conditions[0].aide).toContain("relit");
+  });
+
+  it("exclu du réseau par Gerimmo (liste noire globale) : pas proposé, même validé et public (relecture du 23/10, M-2)", () => {
+    const p = presenceReseau(fiche(), true);
+    expect(p.propose).toBe(false);
+    expect(p.conditions.filter((c) => !c.remplie).map((c) => c.cle)).toEqual(["exclusion"]);
+    expect(presenceReseau(fiche(), false).conditions.map((c) => c.cle)).not.toContain("exclusion");
+  });
+});
+
+describe("Le rappel de « Aujourd'hui » (relecture du 23/10, M-1)", () => {
+  it("proposé : aucun rappel", () => {
+    expect(rappelPresenceReseau(presenceReseau(fiche()))).toBeNull();
+  });
+  it("seulement privé : un repère informatif, sans reproche (rester privé est un choix)", () => {
+    const r = rappelPresenceReseau(presenceReseau(fiche({ visibilite: "privee" })))!;
+    expect(r.ton).toBe("information");
+    expect(r.texte).toMatch(/^Votre profil est privé : seuls les clients qui vous ont ajouté à leur carnet/);
+  });
+  it("autre manque : « Il vous manque : … », une formule par condition, Gerimmo et SIRET écrits comme il se doit", () => {
+    const r = rappelPresenceReseau(presenceReseau(fiche({ statut_plateforme: "en_attente", siret_etat: "non_verifie", visibilite: "privee" })))!;
+    expect(r.ton).toBe("avertissement");
+    expect(r.texte).toBe("Vous n’êtes pas encore proposé dans le réseau Gerimmo. Il vous manque : la validation de votre inscription par Gerimmo ; la vérification de votre SIRET par Gerimmo ; un profil public.");
+    expect(rappelPresenceReseau(presenceReseau(fiche(), true))!.texte).toContain("la levée de votre exclusion du réseau par Gerimmo");
   });
 });
 
@@ -101,7 +125,7 @@ describe("écrans : plus d'état « fermée », plus de décision d'ouverture", 
   });
 
   it("l'artisan voit dans « Mon entreprise » s'il est proposé, et l'agence ne peut plus modifier la zone d'un artisan qui a son compte", () => {
-    expect(lire("src/app/artisan/entreprise/page.tsx")).toContain("<PresenceReseau fiche={fiche}/>");
+    expect(lire("src/app/artisan/entreprise/page.tsx")).toContain("<PresenceReseau fiche={fiche} exclu={exclu}/>");
     const pane = lire("src/app/agence/[orgId]/artisans/pane-artisan.tsx");
     expect(pane).toMatch(/profil\.account_id \|\| desactive \|\| enBlacklist \? \(/);
     expect(pane).toContain("lui appartiennent : il les met à jour depuis son espace Gerimmo");

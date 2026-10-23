@@ -76,6 +76,9 @@ const ACTIONS: Record<string, string> = {
   effacement_instantanes_faits_direction: "Effacement des anciens faits de direction, qui pouvaient contenir des noms",
   // X18 (SA-09, 14/10) : écrite par `rechercher_reference_supervision` dans sa transaction (jamais le texte d'un nom).
   recherche_reference: "Recherche d’un bien, d’un lot ou d’un incident par sa référence",
+  // Réseau d'artisans choisi par l'artisan (23/10/2026, 20261023180000) : zone et métiers décident seuls de sa présence.
+  artisan_zone_modifiee: "Zone d’intervention d’un artisan modifiée (réseau d’artisans)",
+  artisan_metiers_modifies: "Métiers d’un artisan modifiés (réseau d’artisans)",
   ...ACTIONS_SUPERVISION,
 };
 

@@ -86,30 +86,61 @@ export type FichePresenceReseau = {
   metiers: string[] | null;
   codes_postaux: string[] | null;
 };
-export type ConditionPresence = { cle: "validation" | "siret" | "public" | "metier" | "zone"; libelle: string; remplie: boolean; aide: string };
+export type ConditionPresence = {
+  cle: "validation" | "siret" | "public" | "metier" | "zone" | "exclusion";
+  libelle: string;
+  remplie: boolean;
+  aide: string;
+  /** Ce qui manque, à lire dans « Il vous manque : … » (relecture produit du 23/10, M-1). */
+  manque: string;
+};
 
 /**
  * Les conditions qui dépendent de l'artisan ou de Gerimmo, dans l'ordre où il les remplit. Mêmes règles que la base
- * (`reseau_artisan_eligible`) : inscription validée, SIRET vérifié, profil public, au moins un métier, une zone. Le
- * compte est acquis (l'artisan est connecté) ; la décennale dépend des travaux, et une liste noire est une décision de
- * Gerimmo ou d'un client : l'écran les mentionne à part.
+ * (`reseau_artisan_eligible`) : inscription validée, SIRET vérifié, profil public, au moins un métier, une zone, et pas
+ * d'exclusion du réseau par Gerimmo (liste noire globale, lue par `artisan_exclusion_plateforme` : `exclu`). La
+ * condition d'exclusion ne s'affiche que si elle manque. Le compte est acquis (l'artisan est connecté) ; la décennale
+ * dépend des travaux, et la liste noire d'un client ne regarde que ce client : l'écran les mentionne à part.
  */
-export function presenceReseau(fiche: FichePresenceReseau): { propose: boolean; conditions: ConditionPresence[] } {
+export function presenceReseau(fiche: FichePresenceReseau, exclu = false): { propose: boolean; conditions: ConditionPresence[] } {
   const conditions: ConditionPresence[] = [
     {
       cle: "validation", libelle: "Inscription validée par Gerimmo", remplie: fiche.statut_plateforme === "valide",
       aide: fiche.statut_plateforme === "refuse" ? "Votre inscription a été refusée : le motif figure sur cette page." : "Gerimmo relit votre inscription et vos attestations.",
+      manque: "la validation de votre inscription par Gerimmo",
     },
-    { cle: "siret", libelle: "SIRET vérifié", remplie: fiche.siret_etat === "verifie", aide: "La vérification est faite par Gerimmo." },
+    { cle: "siret", libelle: "SIRET vérifié", remplie: fiche.siret_etat === "verifie", aide: "La vérification est faite par Gerimmo.", manque: "la vérification de votre SIRET par Gerimmo" },
     {
       cle: "public", libelle: "Profil public", remplie: fiche.visibilite === "publique",
       aide: "La validation ne rend pas votre profil public : vous seul le décidez, dans « Qui peut me solliciter ».",
+      manque: "un profil public",
     },
-    { cle: "metier", libelle: "Au moins un métier", remplie: (fiche.metiers ?? []).length > 0, aide: "Dans « Mes métiers et ma zone »." },
+    { cle: "metier", libelle: "Au moins un métier", remplie: (fiche.metiers ?? []).length > 0, aide: "Dans « Mes métiers et ma zone ».", manque: "au moins un métier" },
     {
       cle: "zone", libelle: "Une zone d’intervention", remplie: (fiche.codes_postaux ?? []).length > 0,
       aide: "Des codes postaux ou des départements entiers, dans « Mes métiers et ma zone ».",
+      manque: "une zone d’intervention",
     },
   ];
+  if (exclu) {
+    conditions.push({
+      cle: "exclusion", libelle: "Pas d’exclusion du réseau par Gerimmo", remplie: false,
+      aide: "Gerimmo vous a exclu du réseau : vous n’êtes plus proposé. Pour en parler, écrivez-nous depuis la page Assistance.",
+      manque: "la levée de votre exclusion du réseau par Gerimmo",
+    });
+  }
   return { propose: conditions.every((c) => c.remplie), conditions };
+}
+
+/**
+ * Le rappel de « Aujourd'hui » : rien quand l'artisan est proposé ; un ton informatif quand seule la visibilité manque
+ * (rester privé est un choix, par exemple pour un artisan invité par un propriétaire) ; un avertissement sinon.
+ */
+export function rappelPresenceReseau(p: { propose: boolean; conditions: ConditionPresence[] }): { ton: "information" | "avertissement"; texte: string } | null {
+  if (p.propose) return null;
+  const manquantes = p.conditions.filter((c) => !c.remplie);
+  if (manquantes.length === 1 && manquantes[0].cle === "public") {
+    return { ton: "information", texte: "Votre profil est privé : seuls les clients qui vous ont ajouté à leur carnet peuvent vous solliciter. Pour être proposé aux propriétaires de votre zone, rendez-le public." };
+  }
+  return { ton: "avertissement", texte: `Vous n’êtes pas encore proposé dans le réseau Gerimmo. Il vous manque : ${manquantes.map((c) => c.manque).join(" ; ")}.` };
 }

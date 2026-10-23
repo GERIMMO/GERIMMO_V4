@@ -184,7 +184,9 @@ type Avenant = {
 type Affectable = {
   artisan_id: string;
   raison_sociale: string;
-  telephone: string;
+  // Relecture sécurité du 23/10 (20261023180000) : téléphone et e-mail d'un artisan du réseau ne sont rendus qu'à une
+  // organisation qui l'a dans son carnet ; ils deviennent lisibles une fois la demande envoyée.
+  telephone: string | null;
   email: string | null;
   rattache: boolean;
   note_publiee: number | null;
@@ -1356,7 +1358,11 @@ export function ConsultationOuverte({
                         ? `${a.note_publiee} / 5 · ${a.nb_evaluations} avis`
                         : "Pas encore noté"}
                       {" · "}
-                      <span className="whitespace-nowrap">{formaterTelephone(a.telephone)}</span>
+                      {a.telephone ? (
+                        <span className="whitespace-nowrap">{formaterTelephone(a.telephone)}</span>
+                      ) : (
+                        <span>coordonnées transmises avec votre demande</span>
+                      )}
                     </span>
                   </span>
                   <span className="flex shrink-0 flex-wrap items-center justify-end gap-2">

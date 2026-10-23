@@ -17,9 +17,9 @@ La gestion des biens, baux, documents, finances et incidents est indépendante d
 3. L’artisan rend son profil public dans **Mon entreprise → Qui peut me solliciter**. La validation ne le fait pas à sa place. La carte « Suis-je proposé dans le réseau ? » lui dit ce qui manque.
 4. Il est alors proposé, pour chacun de ses métiers, aux propriétaires dont le bien a un code postal couvert par sa zone. La décennale (selon la nature des travaux), les listes noires globale et locale et l’adresse confirmée du bien restent contrôlées.
 
-L’artisan modifie lui-même sa zone et ses métiers dans **Mon entreprise → Mes métiers et ma zone**. Une agence ne peut plus les modifier pour un artisan qui a son compte ; elle garde la main sur une fiche sans compte de son carnet actif, qui n’est jamais proposée au réseau.
+L’artisan modifie lui-même sa zone et ses métiers dans **Mon entreprise → Mes métiers et ma zone**. Chaque ajout ou retrait est inscrit au journal d’audit (`artisan_zone_modifiee`, `artisan_metiers_modifies` : auteur, avant, après, état de la fiche), visible dans **Historique et sauvegardes**. Une agence ne peut plus les modifier pour un artisan qui a son compte ; elle garde la main sur une fiche sans compte de son carnet actif, qui n’est jamais proposée au réseau.
 
-Pour écarter un artisan : suspendre son inscription ou l’inscrire en liste noire globale depuis sa fiche (`/admin/clients/artisans/<id>`). Aucun levier par commune n’existe plus.
+Pour écarter un artisan du réseau : « Suspendre la validation » de son inscription depuis sa fiche (`/admin/clients/artisans/<id>`). La liste noire globale existe en base (`artisan_decider_plateforme`, décision `blacklist_globale`) mais aucun écran ne la pose. Aucun levier par commune n’existe plus.
 
 ## Couverture, côté supervision
 
@@ -33,7 +33,7 @@ Un code postal peut correspondre à plusieurs communes : la commune est confirm�
 
 Si aucun artisan du réseau n’est disponible, **Signaler mon intérêt** enregistre le compte, le bien, la commune et le métier. Répéter le geste ne crée pas de doublon. Aucun artisan n’est contacté, aucune consultation, intervention, date, notification ou campagne n’est créée. La liste « Où le réseau est attendu » rassemble toute la France.
 
-La demande de devis reste dans l’incident, après sa qualification. Les contacts personnels éligibles (carnet) restent utilisables même sans artisan du réseau. Les vérifications sont refaites dans la base au moment de l’envoi ; une page restée ouverte ne permet pas de les contourner. L’e-mail d’un artisan du réseau n’est rendu qu’à une organisation qui l’a dans son carnet.
+La demande de devis reste dans l’incident, après sa qualification. Les contacts personnels éligibles (carnet) restent utilisables même sans artisan du réseau. Les vérifications sont refaites dans la base au moment de l’envoi ; une page restée ouverte ne permet pas de les contourner. Le téléphone et l’e-mail d’un artisan du réseau ne sont rendus qu’à une organisation qui l’a dans son carnet ; une fois la demande envoyée, le propriétaire lit ses coordonnées dans l’incident.
 
 ## Données, déploiement et maintenance
 

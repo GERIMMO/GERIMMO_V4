@@ -170,8 +170,8 @@ export function FormulaireInscription({ invitationId }: { invitationId?: string 
         <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
           Des codes postaux (91300) ou des départements entiers (91, 94, 77),
           séparés par des virgules. C&apos;est là que le réseau Gerimmo vous
-          proposera, une fois votre inscription validée. Vous pourrez la
-          modifier ensuite dans « Mon entreprise ».
+          proposera, une fois votre inscription validée et votre profil rendu
+          public. Vous pourrez la modifier ensuite dans « Mon entreprise ».
         </p>
         <input
           id={idZones}

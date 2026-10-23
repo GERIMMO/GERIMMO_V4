@@ -10,7 +10,8 @@ import { terminerInscriptionLocale } from "./confirmation-locale";
  *   le propriétaire invite → l'artisan ouvre le lien, crée son compte, inscrit son entreprise, accepte, dépose RC pro
  *   et décennale → AVANT la validation de Gerimmo il n'est PAS sollicitable (voie de sortie « Inviter un artisan ») →
  *   le super administrateur le valide (la fiche dit « Invité par … ») → le propriétaire le sollicite pour un incident
- *   d'un bien situé dans une commune FERMÉE au réseau (origine « carnet »).
+ *   de son bien, depuis son carnet (origine « carnet ») : l'invité reste privé, le réseau ne le propose à personne
+ *   d'autre (décision du 23/10/2026 : le réseau suit la zone et les métiers choisis par l'artisan).
  * Base API fictive locale seulement (SUPALOCAL_DB = …/gerimmo_ci_…_api) : les données du parcours y restent.
  */
 const ORG = "3c1d1e95-3570-400b-8012-44530be145b1"; // « Parc de Claire Moreau », seed de démo

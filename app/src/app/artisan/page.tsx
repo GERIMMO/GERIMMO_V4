@@ -10,8 +10,9 @@ import {
 import { CarteMission } from "./carte-mission";
 import { CarteSollicitation } from "./carte-sollicitation";
 import { degreEcheance, demandeAChiffrer, jourLong, PIECES_ARTISAN, texteEcheance, libelle } from "./libelles";
-import { Avertissement, Carte, CLASSE_BOUTON_SECONDAIRE, Erreur, TitreSection } from "./ui";
-import { presenceReseau } from "@/lib/reseau";
+import { Avertissement, Carte, CLASSE_BOUTON_SECONDAIRE, Erreur, Information, TitreSection } from "./ui";
+import { presenceReseau, rappelPresenceReseau } from "@/lib/reseau";
+import { exclusionLue } from "@/lib/artisan-prive-exclusion";
 
 export const metadata = { title: "Aujourd'hui — Gerimmo" };
 
@@ -30,11 +31,13 @@ export const metadata = { title: "Aujourd'hui — Gerimmo" };
 export default async function PageArtisanAccueil({
   searchParams,
 }: PageProps<"/artisan">) {
-  const { fiche } = await verifierAccesArtisan();
+  const { supabase, fiche } = await verifierAccesArtisan();
   const { refus } = await searchParams;
   // Décision du 23/10/2026 : le réseau propose l'artisan dans sa zone dès qu'il est validé et public. Ce qui manque se
-  // dit dès l'arrivée, plutôt qu'un artisan validé mais privé qui attend des demandes qui ne viendront pas.
-  const reseau = presenceReseau(fiche);
+  // dit dès l'arrivée, plutôt qu'un artisan validé mais privé qui attend des demandes qui ne viendront pas. Rester
+  // privé est un choix : le rappel est alors informatif (relecture produit du 23/10, M-1).
+  const { data: exclusion } = await supabase.rpc("artisan_exclusion_plateforme");
+  const rappelReseau = rappelPresenceReseau(presenceReseau(fiche, exclusionLue(exclusion) === "liste_noire"));
 
   const [agenda, sollicitations, pieces] = await Promise.all([
     chargerAgenda(),
@@ -110,12 +113,17 @@ export default async function PageArtisanAccueil({
         </Avertissement>
       )}
 
-      {!reseau.propose && (
+      {rappelReseau?.ton === "avertissement" && (
         <Avertissement>
-          Vous n&apos;êtes pas encore proposé dans le réseau Gerimmo
-          {" "}({reseau.conditions.filter((c) => !c.remplie).map((c) => c.libelle.toLocaleLowerCase("fr")).join(", ")}).{" "}
-          <Link href="/artisan/entreprise" className="underline underline-offset-4">Voir ce qui manque</Link>
+          {rappelReseau.texte}{" "}
+          <Link href="/artisan/entreprise" className="underline underline-offset-4">Voir le détail</Link>
         </Avertissement>
+      )}
+      {rappelReseau?.ton === "information" && (
+        <Information>
+          {rappelReseau.texte}{" "}
+          <Link href="/artisan/entreprise" className="underline underline-offset-4">Mon entreprise</Link>
+        </Information>
       )}
 
       {lectureIncertaine && (

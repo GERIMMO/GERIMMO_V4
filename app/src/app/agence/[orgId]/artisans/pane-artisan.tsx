@@ -215,7 +215,9 @@ export async function PaneArtisan({
                   <p className="border-l-2 border-l-[var(--warning)] bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning-soft-foreground)]">
                     {profil.account_id
                       ? "Les métiers et la zone de cet artisan lui appartiennent : il les met à jour depuis son espace Gerimmo."
-                      : "Réactivez d’abord cet artisan dans votre carnet pour modifier ses métiers et sa zone."}
+                      : enBlacklist
+                        ? "Cet artisan est sur votre liste noire : levez-la d’abord pour modifier ses métiers et sa zone."
+                        : "Réactivez d’abord cet artisan dans votre carnet pour modifier ses métiers et sa zone."}
                   </p>
                 </>
               ) : (

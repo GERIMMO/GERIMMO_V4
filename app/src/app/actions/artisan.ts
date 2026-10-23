@@ -277,7 +277,7 @@ export async function definirMaVisibilite(
   return {
     succes:
       visibilite === "publique"
-        ? "Votre profil est public : une fois votre inscription validée, le réseau Gerimmo vous propose aux propriétaires de votre zone, pour vos métiers."
+        ? "Votre profil est public : une fois votre inscription validée, le réseau Gerimmo vous propose aux propriétaires de votre zone, pour vos métiers. Ils voient le nom de votre entreprise, vos métiers et votre note ; vos coordonnées leur sont transmises avec une demande de devis."
         : "Votre profil est privé : le réseau Gerimmo ne vous propose plus ; seuls les clients qui vous ont ajouté à leur carnet peuvent vous solliciter.",
   };
 }

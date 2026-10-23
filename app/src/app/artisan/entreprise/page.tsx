@@ -8,6 +8,7 @@ import { degreEcheance, formaterSiret, formaterTelephone, METIERS } from "../lib
 import { Carte, EnteteSousPage, Etiquette, Erreur } from "../ui";
 import { FormulaireMetiersZones, ReglageVisibilite } from "./reglages-entreprise";
 import { PresenceReseau } from "./presence-reseau";
+import { exclusionLue } from "@/lib/artisan-prive-exclusion";
 import styles from "./entreprise.module.css";
 
 export const metadata = { title: "Mon entreprise" };
@@ -15,8 +16,11 @@ const ETATS_SIRET: Record<string, string> = { verifie: "SIRET vérifié", non_ve
 const ETATS_PLATEFORME: Record<string, string> = { en_attente: "Inscription en cours de validation", valide: "Inscription validée", refuse: "Inscription refusée" };
 
 export default async function PageEntreprise() {
-  const { fiche } = await verifierAccesArtisan();
+  const { supabase, fiche } = await verifierAccesArtisan();
   const service = clientDeService();
+  // La liste noire globale écarte du réseau : la carte « Suis-je proposé ? » le dit (relecture produit du 23/10, M-2).
+  const { data: exclusion } = await supabase.rpc("artisan_exclusion_plateforme");
+  const exclu = exclusionLue(exclusion) === "liste_noire";
   const documents = service ? await service.from("artisan_profils_documents").select("adresse,mentions,logo_data").eq("artisan_id", fiche.artisan_id).maybeSingle() : null;
   const [pieces, note] = await Promise.all([chargerPieces(), chargerNote()]);
   const piecesTendues = pieces.lignes.filter(p => ["expiree", "critique", "proche"].includes(degreEcheance(p.jours_avant_echeance, p.expiree))).length;
@@ -52,7 +56,7 @@ export default async function PageEntreprise() {
           {fiche.statut_motif && <p className={styles.commentaire}><strong>{fiche.statut_plateforme === "valide" ? "Commentaire de Gerimmo" : "Motif communiqué par Gerimmo"}</strong>{fiche.statut_motif}</p>}
           <p className={styles.aide}>Une correction de raison sociale ou de SIRET ? <Link href="/assistance?ecran=%2Fartisan%2Fentreprise&action=lien&retour=%2Fartisan%2Fentreprise">Contactez Gerimmo</Link>.</p>
         </Carte>
-        <PresenceReseau fiche={fiche}/>
+        <PresenceReseau fiche={fiche} exclu={exclu}/>
         <ReglageVisibilite visibilite={fiche.visibilite} siretVerifie={fiche.siret_etat === "verifie"}/>
       </div>
       <div className={styles.colonne}>

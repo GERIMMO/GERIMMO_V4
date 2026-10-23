@@ -71,6 +71,11 @@ export function ReglageVisibilite({
           ? "Votre profil est public : une fois votre inscription validée, le réseau Gerimmo vous propose aux propriétaires dont le bien est dans votre zone, pour vos métiers. Ils peuvent vous demander un devis."
           : "Votre profil est privé : le réseau Gerimmo ne vous propose à personne ; seuls les propriétaires et gestionnaires qui vous ont ajouté à leur carnet peuvent vous solliciter."}
       </p>
+      {/* Relecture sécurité du 23/10 : ce qu'un profil public montre, et à qui, se dit avant de le rendre public. */}
+      <p className={styles.aide}>
+        Profil public : les propriétaires dont un bien est dans votre zone voient le nom de votre entreprise, vos
+        métiers et votre note. Votre téléphone et votre e-mail ne leur sont transmis qu&apos;avec une demande de devis.
+      </p>
 
       {etat.succes && (
         <div className="mt-3">

@@ -5,8 +5,9 @@
 -- version substantielle publiée avec la règle de l'accord exprès).
 --
 -- Ce qui est défait :
---  · `artisans_disponibles_bien` retrouve le tri de 20261023180000 (`order by n.note_publiee desc nulls last, …`) :
---    remplacement inverse à compte exact ; forme d'origine déjà présente : rien à faire ; toute autre forme : arrêt
+--  · `artisans_disponibles_bien` retrouve le tri de 20261023180000 (`order by n.note_publiee desc nulls last, …`), et
+--    `artisans_affectables_interne` celui de 20260911180000 : remplacement inverse à compte exact de la forme convertie,
+--    avec ou sans la collation `fr-x-icu` ; forme d'origine déjà présente : rien à faire ; toute autre forme : arrêt
 --    sans rien modifier, en nommant la fonction ;
 --  · `abonnements_sans_accord_conditions(text)` et `abonnement_non_reconduction_conditions(uuid, text, text, boolean,
 --    boolean)` sont supprimées.
@@ -18,28 +19,45 @@
 -- migration ne cite pas `aujourdhui_paris()`). À jouer AVANT le retour de 20261023180000 si celui-ci devait l'être.
 do $retour_atomique$
 declare
+  r record;
   f regprocedure;
   d text;
-  ancien constant text := 'order by n.note_publiee desc nulls last,a.raison_sociale,a.id;';
-  nouveau constant text := 'order by case when n.publiable then n.note_publiee end desc nulls last,a.raison_sociale,a.id;';
+  avec_icu text;
+  sans_icu text;
   n_ancien integer;
-  n_nouveau integer;
+  n_icu integer;
+  n_sans integer;
 begin
   perform set_config('lock_timeout', '10s', true);
 
-  -- 1. Le tri d'origine des artisans proposés.
-  f := to_regprocedure('public.artisans_disponibles_bien(uuid,uuid,public.artisan_metier,public.nature_travaux)');
-  if f is not null then
+  -- 1. Le tri d'origine des artisans proposés et des artisans affectables.
+  for r in
+    select * from (values
+      ('public.artisans_disponibles_bien(uuid,uuid,public.artisan_metier,public.nature_travaux)', 'artisans_disponibles_bien',
+       'order by n.note_publiee desc nulls last,a.raison_sociale,a.id;',
+       'order by case when n.publiable then n.note_publiee end desc nulls last,%s,a.id;'),
+      ('public.artisans_affectables_interne(uuid,public.artisan_metier,public.nature_travaux,text)', 'artisans_affectables_interne',
+       'order by n.note_publiee desc nulls last, a.raison_sociale;',
+       'order by case when n.publiable then n.note_publiee end desc nulls last, %s, a.id;')
+    ) v(signature, nom, ancien, gabarit)
+  loop
+    f := to_regprocedure(r.signature);
+    continue when f is null;
     d := pg_get_functiondef(f);
-    n_ancien := (length(d) - length(replace(d, ancien, ''))) / length(ancien);
-    n_nouveau := (length(d) - length(replace(d, nouveau, ''))) / length(nouveau);
-    if n_nouveau = 1 and n_ancien = 0 then
-      execute replace(d, nouveau, ancien);
-    elsif not (n_nouveau = 0 and n_ancien = 1) then
-      raise exception 'définition inattendue de artisans_disponibles_bien (tri converti : % occurrence(s), tri d''origine : %)',
-        n_nouveau, n_ancien;
+    avec_icu := format(r.gabarit, 'a.raison_sociale collate "fr-x-icu"');
+    sans_icu := format(r.gabarit, 'a.raison_sociale');
+    n_ancien := (length(d) - length(replace(d, r.ancien, ''))) / length(r.ancien);
+    n_icu := (length(d) - length(replace(d, avec_icu, ''))) / length(avec_icu);
+    n_sans := (length(d) - length(replace(d, sans_icu, ''))) / length(sans_icu);
+    if n_icu = 1 and n_sans = 0 and n_ancien = 0 then
+      execute replace(d, avec_icu, r.ancien);
+    elsif n_sans = 1 and n_icu = 0 and n_ancien = 0 then
+      execute replace(d, sans_icu, r.ancien);
+    elsif not (n_ancien = 1 and n_icu = 0 and n_sans = 0) then
+      raise exception 'définition inattendue de % (tri converti : % occurrence(s), tri d''origine : %)',
+        r.nom, n_icu + n_sans, n_ancien;
     end if;
-  end if;
+  end loop;
 
   -- 2. Les deux fonctions de la non-reconduction.
   drop function if exists public.abonnements_sans_accord_conditions(text);

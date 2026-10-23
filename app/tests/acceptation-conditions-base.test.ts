@@ -33,9 +33,12 @@ const NOM = `${VERSION}_acceptation_conditions_et_classement_artisans`;
 const MIGRATION = readFileSync(`supabase/migrations/${NOM}.sql`, "utf8");
 const RETOUR = readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8");
 const RESEAU = readFileSync("supabase/migrations/20261023180000_reseau_zone_choisie_par_artisan.sql", "utf8");
+const SOCLE_ARTISANS = readFileSync("supabase/migrations/20260911180000_module8_artisans_socle.sql", "utf8");
 const ARTISANS = "artisans_disponibles_bien(uuid,uuid,public.artisan_metier,public.nature_travaux)";
+const AFFECTABLES = "artisans_affectables_interne(uuid,public.artisan_metier,public.nature_travaux,text)";
 const FONCTIONS = [
   ARTISANS,
+  AFFECTABLES,
   "abonnements_sans_accord_conditions(text)",
   "abonnement_non_reconduction_conditions(uuid,text,text,boolean,boolean)",
 ];
@@ -54,8 +57,11 @@ describe("acceptation des conditions et classement des artisans — fichiers (sa
     expect(code).toContain("revoke all on function public.abonnement_non_reconduction_conditions(uuid, text, text, boolean, boolean) from public, anon, authenticated;");
   });
 
-  it("l'ancre du tri est celle de 20261023180000, présente une fois", () => {
+  it("les ancres du tri sont celles de 20261023180000 et de 20260911180000, présentes une fois", () => {
     expect(RESEAU.split("order by n.note_publiee desc nulls last,a.raison_sociale,a.id;")).toHaveLength(2);
+    // `artisans_affectables` de 20260911180000, renommée `artisans_affectables_interne` par 20260928081000.
+    expect(SOCLE_ARTISANS.split("order by n.note_publiee desc nulls last, a.raison_sociale;")).toHaveLength(2);
+    expect(MIGRATION).toContain(`'a.raison_sociale collate "fr-x-icu"'`);
   });
 
   it("le retour est une seule instruction DO atomique, qui retire sa version d'historique", () => {
@@ -237,6 +243,41 @@ describe.skipIf(!url)("acceptation des conditions et classement des artisans (av
     expect(await proposes()).toEqual(["Bravo plomberie", "Alpha plomberie", "Charlie plomberie"]);
   });
 
+  // Relecture adverse du 24/10 (défaut 4) : sans note, « l'ordre alphabétique de la raison sociale » (article 8.8, A5).
+  // La collation par défaut de la base (C.UTF-8 en CI) rangeait les capitales avant les minuscules et les lettres
+  // accentuées après « Z » : `Batiplus < Bâti Plus < Zinc SARL < abri jardin < Électricité Martin`.
+  it("sans note : l'ordre alphabétique français (casse et accents), quelle que soit la collation de la base", async () => {
+    const ajoutes: Record<string, string> = { "Zinc SARL": "43456789012345", "abri jardin": "53456789012345", "Électricité Martin": "63456789012345", "Batiplus": "73456789012345", "Bâti Plus": "83456789012345" };
+    for (const [nom, siret] of Object.entries(ajoutes)) {
+      const a = await id(
+        "insert into public.artisans(raison_sociale,siret,telephone,account_id,visibilite,statut_plateforme,siret_etat) values($1,$2,'0600000000',$3,'publique','valide','verifie') returning id",
+        [nom, siret, await compte("acc-artisan-alpha")]
+      );
+      await db.query("insert into public.artisan_metiers(artisan_id,metier) values($1,'plomberie')", [a]);
+      await db.query("insert into public.artisan_zones(artisan_id,code_postal) values($1,'75011')", [a]);
+    }
+    await notes({});
+    expect(await proposes()).toEqual([
+      "abri jardin", "Alpha plomberie", "Bâti Plus", "Batiplus", "Bravo plomberie", "Charlie plomberie", "Électricité Martin", "Zinc SARL",
+    ]);
+  });
+
+  // Relecture adverse du 24/10 (défaut 5) : `artisans_affectables` (contacts personnels de l'espace, exécutable par un
+  // compte connecté) gardait l'ancien tri, la note dès la première évaluation.
+  it("artisans_affectables suit le même classement : la note à partir de trois évaluations, puis l'ordre alphabétique", async () => {
+    for (const nom of ["Alpha", "Bravo", "Charlie"]) {
+      await db.query("insert into public.artisan_agences(organization_id,artisan_id,statut) values($1,$2,'actif')", [org, artisans[nom]]);
+    }
+    await notes({ Alpha: [5, 2], Bravo: [4, 3] });
+    await session(proprietaireBien);
+    const { rows } = await db.query<{ raison_sociale: string }>(
+      "select raison_sociale from public.artisans_affectables($1,'plomberie','entretien_courant','75011')",
+      [org]
+    );
+    await proprietaire();
+    expect(rows.map((r) => r.raison_sociale)).toEqual(["Bravo plomberie", "Alpha plomberie", "Charlie plomberie"]);
+  });
+
   it("sans accord : seuls les abonnements vivants dont aucun responsable n'a accepté la version, après en avoir accepté une autre", async () => {
     const ancien = await espace({ accepte: ["2026-09-30"] });
     const accepte = await espace({ accepte: ["2026-09-30", "v-nouvelle"] });
@@ -348,7 +389,9 @@ describe.skipIf(!url)("acceptation des conditions et classement des artisans (av
 
   it("une définition inattendue de artisans_disponibles_bien arrête la migration et le retour, en nommant la fonction", async () => {
     const { rows: [{ d }] } = await db.query("select pg_get_functiondef(to_regprocedure($1)) d", [`public.${ARTISANS}`]);
-    await db.query((d as string).replace("order by case when n.publiable then n.note_publiee end desc nulls last,a.raison_sociale,a.id;", "order by a.raison_sociale,a.id;"));
+    const converti = 'order by case when n.publiable then n.note_publiee end desc nulls last,a.raison_sociale collate "fr-x-icu",a.id;';
+    expect(d).toContain(converti);
+    await db.query((d as string).replace(converti, "order by a.raison_sociale,a.id;"));
     expect(await echec(MIGRATION)).toMatch(/définition inattendue de artisans_disponibles_bien/);
     expect(await echec(RETOUR)).toMatch(/définition inattendue de artisans_disponibles_bien/);
   });
@@ -360,6 +403,9 @@ describe.skipIf(!url)("acceptation des conditions et classement des artisans (av
     const origine = /create or replace function public\.artisans_disponibles_bien\([\s\S]*?as \$\$([\s\S]*?)\$\$;/.exec(RESEAU)?.[1];
     expect(origine).toBeTruthy();
     expect(await corps(ARTISANS)).toBe(origine);
+    const origineAffectables = /create function public\.artisans_affectables\([\s\S]*?as \$\$([\s\S]*?)\$\$;/.exec(SOCLE_ARTISANS)?.[1];
+    expect(origineAffectables).toBeTruthy();
+    expect(await corps(AFFECTABLES)).toBe(origineAffectables);
     expect(await corps("abonnements_sans_accord_conditions(text)")).toBeUndefined();
     expect(await corps("abonnement_non_reconduction_conditions(uuid,text,text,boolean,boolean)")).toBeUndefined();
     expect((await db.query("select 1 from supabase_migrations.schema_migrations where version = $1", [VERSION])).rows).toHaveLength(0);
@@ -368,6 +414,20 @@ describe.skipIf(!url)("acceptation des conditions et classement des artisans (av
     expect(await empreinte()).toEqual(apres);
     await db.query(MIGRATION);
     expect(await empreinte()).toEqual(migre);
+  });
+
+  it("la forme convertie sans collation (premier état de cette migration) est complétée ; le retour l'accepte aussi", async () => {
+    const migre = await empreinte();
+    const converti = (await corps(ARTISANS))!;
+    const { rows: [{ d }] } = await db.query("select pg_get_functiondef(to_regprocedure($1)) d", [`public.${ARTISANS}`]);
+    await db.query((d as string).replace(' collate "fr-x-icu",a.id;', ",a.id;"));
+    expect(await corps(ARTISANS)).not.toBe(converti);
+    await db.query(MIGRATION);
+    expect(await empreinte()).toEqual(migre);
+    await db.query((d as string).replace(' collate "fr-x-icu",a.id;', ",a.id;"));
+    await db.query(RETOUR);
+    const origine = /create or replace function public\.artisans_disponibles_bien\([\s\S]*?as \$\$([\s\S]*?)\$\$;/.exec(RESEAU)?.[1];
+    expect(await corps(ARTISANS)).toBe(origine);
   });
 
   it("le retour est atomique : une erreur après lui, dans la même transaction, annule tout", async () => {

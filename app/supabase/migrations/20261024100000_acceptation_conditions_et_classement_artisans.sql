@@ -9,6 +9,12 @@
 --    de trois évaluations ; à égalité, la raison sociale, puis l'identifiant. Remplacement à compte exact de l'ancre de
 --    20261023180000 (une seule occurrence) ; la forme déjà convertie est acceptée ; toute autre forme arrête la
 --    migration en nommant la fonction.
+--    Relecture adverse du 24/10 : (a) la raison sociale se trie dans l'ordre alphabétique FRANÇAIS (collation ICU
+--    `fr-x-icu`), quelle que soit la collation de la base — en `C.UTF-8`, les capitales passaient avant les minuscules et
+--    « Électricité » après « Zinc » ; sans ICU sur le serveur, la collation de la base reste (avis NOTICE, rien d'arrêté) ;
+--    (b) `artisans_affectables_interne` (derrière `artisans_affectables`, contacts personnels de l'espace) suit le même
+--    classement : son ancre de 20260911180000 est remplacée de la même façon. La forme convertie sans collation (premier
+--    état de cette migration, bases locales) est acceptée et complétée.
 --
 -- 2. SANS ACCORD À LA DATE D'EFFET, PAS DE RECONDUCTION (R19). Deux fonctions réservées à la clé de service, appelées
 --    par la tâche quotidienne des abonnements (lib/non-reconduction-conditions.ts), qui pose `cancel_at_period_end`
@@ -27,30 +33,55 @@
 -- Retour : supabase/retours-arriere/20261024100000_acceptation_conditions_et_classement_artisans.retour.sql (hors de
 -- la chaîne « Ordre complet » : rien ici ne cite `aujourdhui_paris()`).
 
--- ── 1. Classement des artisans : la note à partir de trois évaluations ──────────────────────────────────────────
+-- ── 1. Classement des artisans : la note à partir de trois évaluations, puis l'ordre alphabétique français ──────
 do $classement$
 declare
-  f regprocedure := to_regprocedure('public.artisans_disponibles_bien(uuid,uuid,public.artisan_metier,public.nature_travaux)');
+  icu constant boolean := exists (select 1 from pg_catalog.pg_collation where collname = 'fr-x-icu');
+  alpha_icu constant text := 'a.raison_sociale collate "fr-x-icu"';
+  alpha_base constant text := 'a.raison_sociale';
+  r record;
+  f regprocedure;
   d text;
-  ancien constant text := 'order by n.note_publiee desc nulls last,a.raison_sociale,a.id;';
-  nouveau constant text := 'order by case when n.publiable then n.note_publiee end desc nulls last,a.raison_sociale,a.id;';
+  cible text;
+  autre text;
   n_ancien integer;
-  n_nouveau integer;
+  n_cible integer;
+  n_autre integer;
 begin
-  if f is null then
-    raise exception 'artisans_disponibles_bien introuvable : migration 20261023180000 attendue avant celle-ci';
+  if not icu then
+    raise notice 'collation fr-x-icu absente : la raison sociale des artisans se trie dans la collation de la base';
   end if;
-  d := pg_get_functiondef(f);
-  n_ancien := (length(d) - length(replace(d, ancien, ''))) / length(ancien);
-  n_nouveau := (length(d) - length(replace(d, nouveau, ''))) / length(nouveau);
-  if n_ancien = 0 and n_nouveau = 1 then
-    return; -- déjà convertie (rejeu)
-  end if;
-  if n_ancien <> 1 or n_nouveau <> 0 then
-    raise exception 'définition inattendue de artisans_disponibles_bien (tri par note : % occurrence(s) de l''ancre de 20261023180000, % de la forme convertie)',
-      n_ancien, n_nouveau;
-  end if;
-  execute replace(d, ancien, nouveau);
+  for r in
+    select * from (values
+      ('public.artisans_disponibles_bien(uuid,uuid,public.artisan_metier,public.nature_travaux)', 'artisans_disponibles_bien', '20261023180000',
+       'order by n.note_publiee desc nulls last,a.raison_sociale,a.id;',
+       'order by case when n.publiable then n.note_publiee end desc nulls last,%s,a.id;'),
+      ('public.artisans_affectables_interne(uuid,public.artisan_metier,public.nature_travaux,text)', 'artisans_affectables_interne', '20260928081000',
+       'order by n.note_publiee desc nulls last, a.raison_sociale;',
+       'order by case when n.publiable then n.note_publiee end desc nulls last, %s, a.id;')
+    ) v(signature, nom, origine, ancien, gabarit)
+  loop
+    f := to_regprocedure(r.signature);
+    if f is null then
+      raise exception '% introuvable : migration % attendue avant celle-ci', r.nom, r.origine;
+    end if;
+    d := pg_get_functiondef(f);
+    cible := format(r.gabarit, case when icu then alpha_icu else alpha_base end);
+    autre := format(r.gabarit, case when icu then alpha_base else alpha_icu end);
+    n_ancien := (length(d) - length(replace(d, r.ancien, ''))) / length(r.ancien);
+    n_cible := (length(d) - length(replace(d, cible, ''))) / length(cible);
+    n_autre := (length(d) - length(replace(d, autre, ''))) / length(autre);
+    if n_cible = 1 and n_ancien = 0 and n_autre = 0 then
+      continue; -- déjà convertie (rejeu)
+    elsif n_ancien = 1 and n_cible = 0 and n_autre = 0 then
+      execute replace(d, r.ancien, cible);
+    elsif n_autre = 1 and n_ancien = 0 and n_cible = 0 then
+      execute replace(d, autre, cible); -- forme convertie avec l'autre collation : complétée
+    else
+      raise exception 'définition inattendue de % (tri par note : % occurrence(s) de l''ancre de %, % de la forme convertie)',
+        r.nom, n_ancien, r.origine, n_cible + n_autre;
+    end if;
+  end loop;
 end $classement$;
 
 -- ── 2. Non-reconduction sans accord exprès (R19) ────────────────────────────────────────────────────────────────

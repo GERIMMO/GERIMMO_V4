@@ -1,3 +1,5 @@
+import { existsSync, readdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { RUBRIQUES, rubriqueActive, ongletActif } from '@/lib/rubriques-supervision';
 
@@ -29,5 +31,21 @@ describe('Destinations de supervision', () => {
     expect(rubriqueActive('/admin/devis')?.cle).toBe('commercial');
     expect(rubriqueActive('/admin/couverture')?.cle).toBe('artisans');
     expect(rubriqueActive('/admin/inexistant')).toBeNull();
+  });
+  it('les demandes sur les données sont un onglet de « Sécurité et conformité » (audit du 23/10, ART-5)', () => {
+    expect(rubriqueActive('/admin/donnees')?.cle).toBe('securite');
+    expect(ongletActif('/admin/donnees')).toEqual({ href: '/admin/donnees', libelle: 'Demandes sur les données' });
+    expect(RUBRIQUES.filter((r) => r.onglets.some((o) => o.href === '/admin/donnees')).map((r) => r.cle)).toEqual(['securite']);
+    // Les onglets voisins gardent leur page.
+    expect(ongletActif('/admin/securite')?.href).toBe('/admin/securite');
+    expect(ongletActif('/admin/veille')?.href).toBe('/admin/veille');
+  });
+  it('chaque écran de premier niveau de la console appartient à une rubrique', () => {
+    const racine = resolve(__dirname, '../src/app/admin');
+    const ecrans = readdirSync(racine, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && existsSync(join(racine, e.name, 'page.tsx')))
+      .map((e) => `/admin/${e.name}`);
+    expect(ecrans.length).toBeGreaterThan(15);
+    expect(ecrans.filter((chemin) => rubriqueActive(chemin) === null)).toEqual([]);
   });
 });

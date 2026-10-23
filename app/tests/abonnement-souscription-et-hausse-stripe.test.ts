@@ -481,7 +481,7 @@ describe("A02 — hausse refusée alors qu'un échéancier était programmé", (
     etatOrganisation(true);
     faux.etat.refusCarte = true;
     const r = await issue(confirmerHausse(ORG, {}, hausse()));
-    expect(r.erreur).toBe("Le changement n'a pas été appliqué, rien n'a été modifié : Votre carte a été refusée par votre banque.");
+    expect(r.erreur).toBe("Le changement n'a pas été appliqué, rien n'a été modifié : Your card was declined.");
     expect(faux.etat.liberations).toEqual(["sub_sched_1"]);
     expect(faux.etat.echeanciersCrees).toEqual(["sub_sched_2"]);
     expect(faux.souscription.schedule).toBe("sub_sched_2");
@@ -505,7 +505,7 @@ describe("A02 — hausse refusée alors qu'un échéancier était programmé", (
     faux.etat.echecRecreation = true;
     const r = await issue(confirmerHausse(ORG, {}, hausse()));
     expect(r.erreur).toBe(
-      "La hausse n'a pas été appliquée : Votre carte a été refusée par votre banque. Votre changement programmé pour la prochaine échéance a été retiré pendant la tentative et doit être reprogrammé : nous nous en occupons."
+      "La hausse n'a pas été appliquée : Your card was declined. Votre changement programmé pour la prochaine échéance a été retiré pendant la tentative et doit être reprogrammé : nous nous en occupons."
     );
     expect(r.erreur).not.toMatch(/rien n'a été modifié/);
     expect(m.rpc).toHaveBeenCalledWith("abonnement_changements_a_recalculer", { p_org: ORG });

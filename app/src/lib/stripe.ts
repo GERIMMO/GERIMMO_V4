@@ -121,19 +121,6 @@ export function clientStripe(config: ConfigStripe): Stripe {
  * rassurante sur une erreur qu'on ne comprend pas, c'est empêcher de la
  * comprendre.
  */
-/** Les refus de carte les plus courants, dits en français (codes `decline_code` puis `code` de Stripe). */
-const MOTIFS_CARTE: Record<string, string> = {
-  insufficient_funds: "Votre carte a été refusée : provision insuffisante.",
-  expired_card: "Votre carte a expiré.",
-  incorrect_cvc: "Le code de sécurité de votre carte est incorrect.",
-  incorrect_number: "Le numéro de votre carte est incorrect.",
-  authentication_required: "Votre banque demande une validation du paiement : réessayez et validez-le depuis l'écran de votre banque.",
-  processing_error: "Une erreur est survenue chez votre banque pendant le paiement. Réessayez dans un instant.",
-  lost_card: "Votre carte a été refusée par votre banque.",
-  stolen_card: "Votre carte a été refusée par votre banque.",
-  card_declined: "Votre carte a été refusée par votre banque.",
-};
-
 export function lireErreurStripe(e: unknown): string {
   if (!(e instanceof Error)) return "Le service de paiement n'a pas répondu.";
   const brut = e.message;
@@ -146,12 +133,6 @@ export function lireErreurStripe(e: unknown): string {
   }
   if (type === "StripeRateLimitError") {
     return "Trop de demandes au service de paiement en même temps. Réessayez dans un instant.";
-  }
-  // 23/10 : un refus de carte arrivait tel que Stripe l'écrit, en anglais (« Your card was declined. »), au milieu
-  // d'une phrase française. Les motifs courants sont dits en français ; les autres restent un refus de la banque.
-  if (type === "StripeCardError") {
-    const err = e as Stripe.errors.StripeCardError;
-    return MOTIFS_CARTE[err.decline_code ?? ""] ?? MOTIFS_CARTE[err.code ?? ""] ?? "Votre carte a été refusée par votre banque.";
   }
   if (/no such price/i.test(brut)) {
     return "Le tarif configuré n'existe pas chez Stripe. Vérifiez STRIPE_PRIX_BIEN ou STRIPE_PRIX_LOT_AGENCE — un tarif de test n'existe pas dans le mode réel.";

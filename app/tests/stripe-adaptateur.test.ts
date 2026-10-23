@@ -154,21 +154,6 @@ describe("Les refus de Stripe, dits à un gérant", () => {
     expect(m).toContain("test");
   });
 
-  // 23/10 : un refus de carte arrivait en anglais au milieu d'une phrase française.
-  it("un refus de carte est dit en français, motif courant compris", () => {
-    const carte = (code: string, decline?: string) => {
-      const e = erreurStripe("StripeCardError", "Your card was declined.") as Error & { code?: string; decline_code?: string };
-      e.code = code;
-      if (decline) e.decline_code = decline;
-      return e;
-    };
-    expect(lireErreurStripe(carte("card_declined", "insufficient_funds"))).toBe("Votre carte a été refusée : provision insuffisante.");
-    expect(lireErreurStripe(carte("expired_card"))).toBe("Votre carte a expiré.");
-    expect(lireErreurStripe(carte("card_declined", "motif_inconnu"))).toBe("Votre carte a été refusée par votre banque.");
-    expect(lireErreurStripe(carte("code_inconnu"))).toBe("Votre carte a été refusée par votre banque.");
-    expect(lireErreurStripe(carte("card_declined"))).not.toContain("declined");
-  });
-
   it("un tarif inconnu ne parle pas de « price » mais de la variable à corriger", () => {
     const m = lireErreurStripe(new Error("No such price: 'price_zzz'"));
     expect(m).toContain("STRIPE_PRIX_BIEN");

@@ -391,7 +391,7 @@ describe("A02 (audit du 23/10) — une hausse refusée ne laisse pas l'échéanc
   it("carte refusée : l'échéancier lu avant la libération est recréé à l'identique sur la souscription", async () => {
     const { stripe, appels } = fauxStripe({ echeancier: "sub_sched_1", refusCarte: true });
     const r = await hausser(stripe);
-    expect(r).toMatchObject({ ok: false, erreur: "Votre carte a été refusée par votre banque.", hausse: "non_appliquee", echeancier: "restaure" });
+    expect(r).toMatchObject({ ok: false, erreur: "Your card was declined.", hausse: "non_appliquee", echeancier: "restaure" });
     expect(appels["schedules.release"]).toEqual(["sub_sched_1"]);
     expect(appels["schedules.create"]).toEqual([{ from_subscription: "sub_1" }]);
     expect(appels["schedules.update"]).toHaveLength(1);

@@ -385,7 +385,9 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
     const { rows } = await db.query(
       `select table_name from information_schema.role_table_grants where grantee='anon' and table_schema='public' and privilege_type='SELECT'`);
     const lisibles = rows.map((r) => r.table_name).sort();
-    expect(lisibles.filter((t) => !["publications", "site_pages", "tarif_tranches", "tarif_formules", "demandes_devis"].includes(t))).toEqual([]);
+    // versions_conditions (24/10/2026, plan de conformité R12) : les versions archivées des conditions sont publiques
+    // (pages /conditions/versions), comme les conditions elles-mêmes ; rien que les pages légales ne publient déjà.
+    expect(lisibles.filter((t) => !["publications", "site_pages", "tarif_tranches", "tarif_formules", "demandes_devis", "versions_conditions"].includes(t))).toEqual([]);
     expect((await un<{ p: boolean }>(`select has_column_privilege('authenticated','public.accounts','mfa_actif','UPDATE') as p`)).p).toBe(false);
   });
 

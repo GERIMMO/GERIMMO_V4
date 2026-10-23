@@ -154,6 +154,9 @@ export const FICHIERS_EN_SERIE = [
   // Relecture adverse du 23/10 : rejeu de 20261023184512 et de son retour (`create or replace` de mes_annonces_locataire)
   // et `aujourdhui_paris()` figée au lendemain, dans la transaction du fichier tenue pendant tous ses essais.
   "tests/annonces-locataire-jour-paris-base.test.ts",
+  // Plan de conformité du 24/10 (lot 1A) : rejeu de 20261024090000 et de son retour (alter table acceptations_cgu, tables
+  // versions_conditions et archives_comptes supprimées puis recréées) dans la transaction du fichier.
+  "tests/versions-conditions-base.test.ts",
 ];
 
 export default defineConfig({

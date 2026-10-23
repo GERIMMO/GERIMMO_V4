@@ -40,6 +40,7 @@ import { FormulaireNouveauMotDePasse } from "../src/app/nouveau-mot-de-passe/for
 import PageNouveauMotDePasse from "../src/app/nouveau-mot-de-passe/page";
 import { ACTIVITY_COOKIE } from "../src/lib/session-policy";
 import { autorisationNouveauMotDePasse } from "../src/lib/autorisation-nouveau-mot-de-passe";
+import { caseConditions } from "../src/lib/conditions-acceptation";
 
 const MOT_DE_PASSE = "recette-premier-choix-1";
 const PROFIL_SAISI = {
@@ -58,6 +59,8 @@ const PROFIL_SAISI = {
 function formulaire(valeurs: Record<string, string | null> = {}) {
   const f = new FormData();
   const tout: Record<string, string | null> = { mot_de_passe: MOT_DE_PASSE, confirmation: MOT_DE_PASSE, suite: "/espaces", ...PROFIL_SAISI, cgu: "on", ...valeurs };
+  // 24/10 (plan de conformité, R60) : le formulaire envoie le document de la case qu'il affiche, celle de l'usage choisi.
+  if (!("cgu_document" in valeurs)) tout.cgu_document = caseConditions(String(tout.espace ?? "")).document;
   for (const [cle, valeur] of Object.entries(tout)) if (valeur !== null) f.set(cle, valeur);
   return f;
 }

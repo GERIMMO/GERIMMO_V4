@@ -14,6 +14,7 @@ import { AlerteFormulaire } from "@/components/alerte-formulaire";
 import Link from "next/link";
 import { LONGUEUR_MAX } from "@/lib/limites-saisie";
 import { QUALITES_BAILLEUR } from "@/lib/qualite-bailleur";
+import { CHAMP_DOCUMENT_AFFICHE, caseConditions } from "@/lib/conditions-acceptation";
 
 const CHAMPS_TEXTE_PROFIL = [
   ["prenom", "Prénom"],
@@ -64,6 +65,14 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
   // script, la page est rendue par le serveur avec cette valeur : la clé n'y change rien.
   const espace = ["artisan", "proprietaire_direct"].includes(valeur("espace")) ? valeur("espace") : "invite";
   const qualite = valeur("qualite");
+  // Plan de conformité du 23/10 (R10, R60) : la case suit l'usage choisi dans la liste — conditions générales pour le
+  // propriétaire, conditions de l'espace artisan dès leur publication, règles des espaces invités pour la personne
+  // invitée. Le choix fait dans la liste vaut pour la réponse en cours (`pour`) ; une nouvelle réponse du serveur repart
+  // de l'usage qu'il renvoie. Le champ caché dit au serveur quelle case était affichée : sans script, le libellé ne
+  // suit pas la liste, et le serveur refuse alors plutôt que d'enregistrer un accord sur un autre texte.
+  const [choix, setChoix] = useState<{ pour: EtatNouveauMotDePasse; espace: string } | null>(null);
+  const espaceAffiche = choix && choix.pour === etat ? choix.espace : espace;
+  const caseCgu = caseConditions(espaceAffiche);
 
   return (
     <Card>
@@ -76,7 +85,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
               <p className="text-sm text-muted-foreground">Ces informations ont été saisies avant la confirmation de votre adresse. Corrigez-les et confirmez votre choix pour terminer l’inscription.</p>
               <label className="block space-y-1 text-sm">
                 <span>Vous utilisez Gerimmo pour</span>
-                <select key={`espace-${espace}`} name="espace" required defaultValue={espace} {...marque("espace")} className="w-full rounded-md border bg-background px-3 py-2">
+                <select key={`espace-${espace}`} name="espace" required defaultValue={espace} onChange={(e) => setChoix({ pour: etat, espace: e.target.value })} {...marque("espace")} className="w-full rounded-md border bg-background px-3 py-2">
                   <option value="proprietaire_direct">Gérer mes propres biens</option>
                   <option value="artisan">Mon activité d’artisan</option>
                   <option value="invite">Accéder à un espace auquel je suis invité</option>
@@ -97,9 +106,10 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
                   {QUALITES_BAILLEUR.map((qualite) => <option key={qualite} value={qualite}>{qualite}</option>)}
                 </select>
               </label>
+              <input type="hidden" name={CHAMP_DOCUMENT_AFFICHE} value={caseCgu.document} />
               <label className="flex min-h-11 items-center gap-3 text-sm">
                 <input type="checkbox" name="cgu" required className="size-6 shrink-0" defaultChecked={saisie.cgu === "on"} {...marque("cgu")} />
-                <span>J’accepte les <Link className="underline" href="/conditions" target="_blank" rel="noopener">conditions générales d&apos;utilisation et de vente</Link>.</span>
+                <span>{caseCgu.avant}<Link className="underline" href={caseCgu.href} target="_blank" rel="noopener">{caseCgu.lien}</Link>{caseCgu.apres}</span>
               </label>
               {sous("cgu")}
             </fieldset>

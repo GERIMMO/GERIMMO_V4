@@ -4,6 +4,14 @@ import { destinationSure } from "@/lib/destination-sure";
 import { RAISON_DECONNEXION } from "@/lib/copies-locales";
 
 import { CONDITIONS_VERSION } from "@/lib/editeur";
+import {
+  CASE_CONDITIONS_CLIENTS,
+  CHAMP_DOCUMENT_AFFICHE,
+  MESSAGE_CASE_A_REVOIR,
+  caseConditions,
+  documentAffiche,
+  estEspaceInscription,
+} from "@/lib/conditions-acceptation";
 import { sansJargon } from "@/lib/erreurs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -136,14 +144,28 @@ export async function definirNouveauMotDePasse(
     const tropLong = champTropLong(champs);
     const champLong = premierChampTropLong(champs);
     if (tropLong) return refus(tropLong, CHAMPS_PROFIL_INSCRIPTION.find((champ) => champ === champLong));
-    if (!["proprietaire_direct", "artisan", "invite"].includes(champs.espace)) return refus("Choisissez l’usage de votre compte.", "espace");
+    if (!estEspaceInscription(champs.espace)) return refus("Choisissez l’usage de votre compte.", "espace");
     if (champs.espace === "proprietaire_direct" && !champs.nom) return refus("Le nom est obligatoire.", "nom");
-    if (!formData.get("cgu")) return refus("Acceptez les conditions d’utilisation pour continuer.", "cgu");
+    // Plan de conformité du 23/10 (R10, R60) : la case et le document accepté suivent l'usage choisi — conditions
+    // clients pour le propriétaire, conditions de l'espace artisan dès leur publication, règles des espaces invités pour
+    // la personne invitée (lib/conditions-acceptation.ts).
+    const caseAcceptee = caseConditions(champs.espace);
+    if (!formData.get("cgu")) return refus(caseAcceptee.refus, "cgu");
+    // La case affichée à l'envoi doit être celle de l'usage choisi : sans script, changer la liste ne change pas son
+    // libellé. On n'enregistre jamais l'accord sur un texte que la case ne nommait pas ; elle revient décochée.
+    if (documentAffiche(formData.get(CHAMP_DOCUMENT_AFFICHE)) !== caseAcceptee.document) {
+      const sansCase = Object.fromEntries(Object.entries(saisie).filter(([champ]) => champ !== "cgu"));
+      return { erreur: MESSAGE_CASE_A_REVOIR, champ: "cgu", ...(Object.keys(sansCase).length > 0 ? { valeurs: sansCase } : {}) };
+    }
     const code = champs.code_parrainage ? normaliserCode(champs.code_parrainage) : null;
     if (champs.code_parrainage && !code) return refus("Le code de parrainage doit compter huit lettres ou chiffres.", "code_parrainage");
-    const { error: erreurCgu } = await supabase.rpc("accepter_cgu", { p_version: CONDITIONS_VERSION, p_source: "compte" });
+    const { error: erreurCgu } = await supabase.rpc("accepter_cgu", {
+      p_version: caseAcceptee.version,
+      p_source: "compte",
+      p_document: caseAcceptee.document,
+    });
     if (erreurCgu) return refus("L’acceptation des conditions n’a pas pu être enregistrée. Réessayez.", "cgu");
-    profil = { ...champs, espace: champs.espace === "invite" ? null : champs.espace, qualite: qualiteDeLaListe(formData.get("qualite")), code_parrainage: code, cgu_version: CONDITIONS_VERSION, cgu_acceptee_le: new Date().toISOString(), [CLE_PROFIL_A_CONFIRMER]: null };
+    profil = { ...champs, espace: champs.espace === "invite" ? null : champs.espace, qualite: qualiteDeLaListe(formData.get("qualite")), code_parrainage: code, cgu_version: caseAcceptee.version, cgu_document: caseAcceptee.document, cgu_acceptee_le: new Date().toISOString(), [CLE_PROFIL_A_CONFIRMER]: null };
   }
 
   const { error } = await supabase.auth.updateUser({ password: motDePasse, ...(profil ? { data: profil } : {}) });
@@ -372,7 +394,7 @@ export async function ouvrirEspaceProprietaire(
   const tropLong = champTropLong({ nom, prenom });
   if (tropLong) return { erreur: tropLong, valeurs: valeursBornees(valeurs) };
   if (!formData.get("cgu")) {
-    return { erreur: "Acceptez les conditions d'utilisation pour continuer.", valeurs };
+    return { erreur: CASE_CONDITIONS_CLIENTS.refus, valeurs };
   }
 
   const supabase = await createClient();

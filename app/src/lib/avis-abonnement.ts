@@ -23,6 +23,9 @@ import { echapperMarque } from "@/lib/marque-organisation";
 import { adresseDuSite } from "@/lib/site";
 import { baseEspace } from "@/lib/racine-espace";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
+import { REGIME_TVA } from "@/lib/editeur";
+import { dateParis } from "@/lib/heure-paris-calcul";
+import { etiquetteTaxes, formuleParCode, offreFormule, type Periodicite } from "@/lib/tarifs";
 
 export type Courrier = { sujet: string; html: string };
 
@@ -110,31 +113,75 @@ export function courrierCapaciteDepassee(p: {
   };
 }
 
+/** La veille d'une échéance, en jour de Paris (AAAA-MM-JJ) : la date limite de non-reconduction (plan du 23/10, R17). */
+export function veilleDeLEcheance(echeance: string): string {
+  const j = dateParis(new Date(echeance));
+  const d = new Date(`${j}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function jourCivil(jourParis: string): string {
+  return jour(`${jourParis}T12:00:00Z`);
+}
+
+/**
+ * LE MONTANT DE LA PÉRIODE SUIVANTE (plan du 23/10, R17), et non celui de la période en cours.
+ *
+ * Sans changement demandé, Stripe reconduit la souscription au même prix : le montant de la période en cours (qui garde
+ * un avantage ou une ancienne condition). Un passage au mensuel demandé pour l'échéance : le prix mensuel de la formule
+ * détenue, pour la capacité payée. Une baisse automatique à l'échéance (portefeuille réduit, choix non explicite) ne
+ * peut que réduire ce montant : l'avis n'annonce jamais moins que ce qui sera prélevé.
+ */
+export function periodeSuivante(a: {
+  formule: string | null;
+  periodicite_suivante: string | null;
+  unites_souscrites: number | null;
+  montant_periode_cents: number | null;
+}): { periodicite: Periodicite; montantCents: number | null } {
+  const periodicite: Periodicite = a.periodicite_suivante === "mensuel" ? "mensuel" : "annuel";
+  const formule = formuleParCode(a.formule);
+  const capacite = a.unites_souscrites ?? formule?.biens ?? null;
+  const tarif = formule && capacite ? (offreFormule(formule, capacite, periodicite)?.montantCents ?? null) : null;
+  if (periodicite === "mensuel") return { periodicite, montantCents: tarif };
+  return { periodicite, montantCents: a.montant_periode_cents ?? tarif };
+}
+
 export function courrierReconduction(p: {
   organisation: string;
   echeance: string;
+  /** Le montant de la PÉRIODE SUIVANTE (`periodeSuivante`). */
   montantCents: number | null;
+  /** La périodicité de la période suivante : « mensuel » si le client a demandé ce passage pour l'échéance. */
+  periodiciteSuivante?: Periodicite;
   formule: string | null;
   lien: string | null;
 }): Courrier {
   const titre = `Votre abonnement annuel Gerimmo sera reconduit le ${jour(p.echeance)}`;
-  const montant =
-    p.montantCents !== null
-      ? `pour une nouvelle année, au prix de <strong>${eur(p.montantCents / 100)} TTC</strong>`
-      : "pour une nouvelle année";
+  const mensuel = p.periodiciteSuivante === "mensuel";
+  // Plan du 23/10 (R55) : « TTC » seulement si l'éditeur facture la TVA ; en franchise, le montant seul.
+  const taxes = etiquetteTaxes("ttc", REGIME_TVA);
+  const prix = p.montantCents !== null ? `<strong>${eur(p.montantCents / 100)}${taxes ? ` ${taxes}` : ""}</strong>` : null;
+  const reconduit = mensuel
+    ? `il se poursuivra ensuite au mois, comme vous l'avez demandé, sans engagement${prix ? `, au prix de ${prix} par mois` : ""}`
+    : `il sera reconduit tacitement pour une nouvelle année${prix ? `, au prix de ${prix}, prélevés à cette date` : ""}`;
   const formule = p.formule ? ` (formule ${echapperMarque(p.formule.charAt(0).toUpperCase() + p.formule.slice(1))})` : "";
+  const limite = jourCivil(veilleDeLEcheance(p.echeance));
+  // Plan du 23/10 (R17) : l'encadré de la date limite, en table HTML (les messageries ignorent souvent les bordures
+  // d'un paragraphe). À relire par le juriste (source non ouverte le 23/10/2026).
+  const encadre = `<table role="presentation" border="1" cellpadding="12" cellspacing="0" style="border-collapse:collapse;border:2px solid #12263f;margin:16px 0"><tr><td><strong>Date limite de non-reconduction : ${limite}</strong><br>Pour ne pas reconduire votre abonnement, résiliez-le depuis « Mon abonnement » au plus tard à cette date.</td></tr></table>`;
   return {
     sujet: titre,
     html: enveloppe(
       titre,
       `<p>Votre abonnement annuel${formule} arrive à échéance le
        <strong>${jour(p.echeance)}</strong>. Sans demande contraire de votre part,
-       il sera reconduit tacitement ${montant}, prélevés à cette date.</p>
+       ${reconduit}.</p>
+       ${encadre}
        <p><strong>Vous pouvez choisir de ne pas le reconduire</strong> : il suffit de
-       le résilier depuis « Mon abonnement » avant le ${jour(p.echeance)}. L'accès
+       le résilier depuis « Mon abonnement » au plus tard le ${limite}. L'accès
        payé reste alors entier jusqu'à l'échéance, puis vos données restent
-       consultables et exportables. Vous pouvez aussi passer au paiement mensuel,
-       sans engagement, à partir de l'échéance.</p>
+       consultables et exportables.${mensuel ? "" : " Vous pouvez aussi passer au paiement mensuel, sans engagement, à partir de l'échéance."}</p>
        <p style="color:#555">Information délivrée en application de l'article
        L215-1 du code de la consommation.</p>`,
       p.lien,
@@ -199,14 +246,19 @@ type AvisReconduction = {
   periode_fin: string;
   montant_periode_cents: number | string | null;
   formule: string | null;
+  periodicite_suivante?: string | null;
+  unites_souscrites?: number | null;
 };
 
 export type BilanReconduction = { envoyes: number; sans_adresse: string[]; echecs: string[] };
 
 /**
  * Les avis de reconduction dus aujourd'hui. On envoie, PUIS on marque : un
- * échec réseau laisse l'avis « dû », il repartira demain (la fenêtre court
- * sur deux mois). La clé d'idempotence empêche un doublon le même jour.
+ * échec réseau laisse l'avis « dû », il repartira demain (plan du 23/10, R54 :
+ * la fenêtre court d'un mois à trois mois avant l'échéance, comptés en mois et
+ * en dates de Paris, migration 20261024110000). La clé d'idempotence empêche
+ * un doublon le même jour. Le montant annoncé est celui de la période suivante
+ * (R17, `periodeSuivante`).
  */
 export async function envoyerAvisReconduction(supabase: SupabaseClient, avantEffet?: () => Promise<void>): Promise<BilanReconduction> {
   const bilan: BilanReconduction = { envoyes: 0, sans_adresse: [], echecs: [] };
@@ -220,10 +272,17 @@ export async function envoyerAvisReconduction(supabase: SupabaseClient, avantEff
       bilan.sans_adresse.push(a.organisation);
       continue;
     }
+    const suivante = periodeSuivante({
+      formule: a.formule,
+      periodicite_suivante: a.periodicite_suivante ?? null,
+      unites_souscrites: a.unites_souscrites ?? null,
+      montant_periode_cents: a.montant_periode_cents === null ? null : Number(a.montant_periode_cents),
+    });
     const c = courrierReconduction({
       organisation: a.organisation,
       echeance: a.periode_fin,
-      montantCents: a.montant_periode_cents === null ? null : Number(a.montant_periode_cents),
+      montantCents: suivante.montantCents,
+      periodiciteSuivante: suivante.periodicite,
       formule: a.formule,
       lien: lienAbonnement(a.organization_id, await baseDeLOrganisation(supabase, a.organization_id)),
     });

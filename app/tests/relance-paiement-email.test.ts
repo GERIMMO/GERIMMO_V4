@@ -8,7 +8,7 @@
  * partir un client, pas la facture.
  */
 import { describe, expect, it } from "vitest";
-import { corpsRelance, sujetRelance, type Palier, type RelancePaiement } from "@/lib/relance-paiement-email";
+import { corpsRelance, courrierResiliationImpaye, sujetRelance, type Palier, type RelancePaiement } from "@/lib/relance-paiement-email";
 import { euros } from "@/lib/tarifs";
 
 function relance(palier: Palier, joursRestants: number): RelancePaiement {
@@ -46,7 +46,55 @@ describe("Chaque palier dit autre chose", () => {
   it("l'avis dit « demain », le constat dit que c'est fait", () => {
     expect(corpsRelance(relance(2, 1))).toContain("Demain");
     expect(corpsRelance(relance(3, 0))).toContain("lecture seule");
-    expect(corpsRelance(relance(3, 0))).toContain("rouvre à la seconde");
+    // Plan du 23/10 (R26) : plus de « tout rouvre à la seconde » ; la réouverture suppose un abonnement non résilié.
+    expect(corpsRelance(relance(3, 0))).toContain("Tout rouvre dès que le paiement est enregistré, tant que l'abonnement n'est pas résilié");
+    expect(corpsRelance(relance(3, 0))).toContain("Rien n'est supprimé du fait de l'impayé.");
+    expect(corpsRelance(relance(3, 0))).not.toContain("à la seconde");
+  });
+});
+
+describe("Plan du 23/10 : mise en demeure, premier prélèvement, envois interrompus (R06, R23, R26)", () => {
+  it("le courrier du jour de l'échec dit la date de résiliation possible et renvoie à l'article 15 des conditions générales", () => {
+    const c = corpsRelance({ ...relance(0, 15), resiliableLe: "2026-10-12" });
+    expect(c).toContain(
+      "Sans règlement au 12 octobre 2026, l'abonnement pourra être résilié en application de l'article 15\n        des conditions générales ; vos données resteront consultables et exportables."
+    );
+    expect(c).not.toMatch(/15\.4|8\.10/);
+    // Les autres paliers ne la répètent pas.
+    expect(corpsRelance({ ...relance(1, 8), resiliableLe: "2026-10-12" })).not.toContain("pourra être résilié");
+  });
+
+  it("le premier prélèvement échoué a son objet et son texte : saisie et envois suspendus depuis l'échec", () => {
+    const r = { ...relance(0, 15), premierPrelevement: true, enDefautDepuis: "2026-09-12", resiliableLe: "2026-10-12" };
+    expect(sujetRelance(r)).toBe("Votre premier prélèvement Gerimmo n'est pas passé");
+    const c = corpsRelance(r);
+    expect(c).toContain(`Le premier prélèvement de votre abonnement (<strong>${euros(1797)} par mois</strong>) n'a pas abouti.`);
+    expect(c).toContain("la saisie de nouvelles données et les envois automatiques à vos locataires sont suspendus depuis le 12 septembre 2026");
+    expect(c).toContain("Dès que le paiement aboutit, la saisie et les envois reprennent pour l'avenir.");
+    expect(c).toContain("Sans règlement au 12 octobre 2026, l'abonnement pourra être résilié en application de l'article 15\n        des conditions générales.");
+    // Jamais « reste ouvert jusqu'au » : ce compte est gelé dès l'échec.
+    expect(c).not.toContain("reste entièrement ouvert");
+  });
+
+  it("l'avis de la veille annonce aussi l'arrêt des envois automatiques", () => {
+    expect(corpsRelance(relance(2, 1))).toContain("Les envois automatiques à vos locataires s'arrêteront aussi.");
+  });
+
+  it("chaque courrier dit que les envois automatiques sont interrompus en lecture seule, sans rattrapage complet", () => {
+    for (const p of [0, 1, 2, 3] as Palier[]) {
+      const c = corpsRelance(relance(p, 3)).replace(/\s+/g, " ");
+      expect(c, `palier ${p}`).toContain("tout reste consultable et exportable, même en lecture seule");
+      expect(c, `palier ${p}`).toContain("les envois automatiques à vos locataires (appels de loyer, quittances, relances) sont interrompus jusqu'au règlement ; ceux de la période d'interruption ne sont pas tous rattrapés.");
+    }
+  });
+
+  it("le courrier de résiliation pour impayé : date, article 15, sort de la facture, données conservées", () => {
+    const annulee = courrierResiliationImpaye({ organisation: "Cabinet Martin", resilieLe: "2026-11-12", factures: "annulees", lien: "https://gerimmo.app/espace/abc/abonnement" });
+    const texte = annulee.html.replace(/\s+/g, " ");
+    expect(texte).toContain("Faute de règlement, votre abonnement Gerimmo est résilié depuis le 12 novembre 2026, en application de l'article 15 des conditions générales. La facture restée impayée est annulée.");
+    expect(texte).toContain("Vos données restent consultables et exportables en lecture seule ; rien n'est supprimé du fait de cette résiliation. Pour reprendre la saisie, souscrivez de nouveau depuis « Mon abonnement ».");
+    expect(courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-12", factures: "aucune", lien: null }).html).not.toContain("facture");
+    expect(courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-12", factures: "a_annuler", lien: null }).html).toContain("sera annulée : vous n'avez rien à régler");
   });
 });
 

@@ -32,7 +32,8 @@ function banc(lignes: () => Due[], marquage: { erreur: boolean } = { erreur: fal
   const supabase = {
     rpc: async (fn: string, args?: { p_org?: string }) => {
       if (fn === "abonnements_a_relancer") return { data: lignes(), error: null };
-      if (fn === "abonnement_relance_envoyee") {
+      // Plan du 23/10 (R06) : le marquage passe par abonnement_relance_consigner (marque et preuve d'audit).
+      if (fn === "abonnement_relance_consigner") {
         if (marquage.erreur) return { data: null, error: { message: "verrou" } };
         marques.push(String(args?.p_org));
         return { data: null, error: null };
@@ -130,6 +131,23 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
     const cles = fournisseur.cles();
     expect(cles[0]).toMatch(/^relance-abonnement\/org-1\/0\/2026-10-28\/4900\//);
     expect(cles[1]).toMatch(/^relance-abonnement\/org-2\/0\/2026-10-28\/5990an\//);
+  });
+
+  it("plan du 23/10 (R23, R06) : le premier prélèvement a son courrier et sa clé ; la preuve est consignée avec l'identifiant du message", async () => {
+    const consignes: Record<string, unknown>[] = [];
+    const supabase = {
+      rpc: async (fn: string, args?: Record<string, unknown>) => {
+        if (fn === "abonnements_a_relancer")
+          return { data: [due({ premier_prelevement: true, en_defaut_depuis: "2026-10-13", resiliable_le: "2026-11-12" } as Partial<Due>)], error: null };
+        if (fn === "abonnement_relance_consigner") consignes.push(args ?? {});
+        return { data: true, error: null };
+      },
+    };
+    const bilan = await envoyerRelancesDues(supabase as never);
+    expect(bilan).toMatchObject({ envoyees: 1, echecs: [] });
+    expect(fournisseur.cles()[0]).toMatch(/^relance-abonnement\/org-1\/0\/2026-10-28\/4900p\//);
+    expect(consignes).toEqual([{ p_org: "org-1", p_palier: 0, p_message: expect.any(String), p_premier_prelevement: true }]);
+    expect(JSON.stringify(consignes)).not.toContain("@");
   });
 
   it("sans montant de période lisible (fonction SQL antérieure), la relance est rapportée en échec plutôt qu'envoyée fausse", async () => {

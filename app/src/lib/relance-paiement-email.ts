@@ -15,6 +15,17 @@
 // close : tout se consulte, tout s'exporte, le journal de gestion compris.
 // Le taire ferait croire à une perte de données, et c'est la peur qui fait
 // partir un client.
+//
+// PLAN DE CONFORMITÉ DU 23/10/2026 (lot 1C).
+//  · R06 : le courrier du jour de l'échec vaut mise en demeure ; il dit la date à partir de laquelle l'abonnement peut
+//    être résilié (trente jours après l'échec), en renvoyant à l'article 15 des conditions générales en vigueur
+//    (« Suspension et résiliation », version du 30/09/2026 : résiliation par l'Éditeur après mise en demeure restée
+//    sans effet trente jours). Les numéros 15.4 et 8.10 du plan sont ceux de la future version : pas cités ici.
+//  · R23 : le PREMIER prélèvement échoué (aucune échéance réglée) a son propre courrier : le compte est gelé dès
+//    l'échec, comme à la fin d'un essai sans souscription.
+//  · R26 : en lecture seule, les envois automatiques aux locataires sont aussi interrompus ; ceux de la période ne sont
+//    pas tous rattrapés. Rien n'est supprimé du fait de l'impayé.
+//  · R07 : le courrier de résiliation pour impayé.
 
 import { echapperHtml } from "@/lib/quittance-email";
 import { euros, type Periodicite } from "@/lib/tarifs";
@@ -34,6 +45,12 @@ export type RelancePaiement = {
   // Vers « Mon abonnement ». `null` quand l'adresse publique du site n'est
   // pas configurée : la lettre dit alors le geste sans promettre un clic.
   lien: string | null;
+  /** R23 : aucune échéance encore réglée (premier prélèvement à la fin de l'essai). */
+  premierPrelevement?: boolean;
+  /** R06 : le jour à partir duquel l'abonnement peut être résilié (AAAA-MM-JJ), donné par la base. */
+  resiliableLe?: string | null;
+  /** Le jour de l'échec (AAAA-MM-JJ). */
+  enDefautDepuis?: string | null;
 };
 
 function jour(iso: string): string {
@@ -45,7 +62,13 @@ function jour(iso: string): string {
   });
 }
 
-export function sujetRelance(r: Pick<RelancePaiement, "palier" | "joursRestants">): string {
+/** « par mois » ou « par an », en toutes lettres. */
+export function parPeriodeEnLettres(p: Periodicite): string {
+  return p === "annuel" ? "par an" : "par mois";
+}
+
+export function sujetRelance(r: Pick<RelancePaiement, "palier" | "joursRestants" | "premierPrelevement">): string {
+  if (r.premierPrelevement && r.palier === 0) return "Votre premier prélèvement Gerimmo n'est pas passé";
   switch (r.palier) {
     case 0:
       return "Votre prélèvement Gerimmo n'est pas passé";
@@ -58,18 +81,37 @@ export function sujetRelance(r: Pick<RelancePaiement, "palier" | "joursRestants"
   }
 }
 
+/** R06 : la phrase de la mise en demeure, quand la base donne la date. */
+function miseEnDemeure(r: RelancePaiement, suite: string): string {
+  return r.resiliableLe
+    ? `<p>Sans règlement au ${jour(r.resiliableLe)}, l'abonnement pourra être résilié en application de l'article 15
+        des conditions générales${suite}</p>`
+    : "";
+}
+
 /** Le paragraphe propre à chaque palier. */
 function message(r: RelancePaiement): string {
   const le = jour(r.lectureSeuleLe);
+  const montant = `<strong>${euros(r.montantPeriodeCents)} ${parPeriodeEnLettres(r.periodicite)}</strong>`;
+  if (r.premierPrelevement && r.palier === 0) {
+    const depuis = r.enDefautDepuis ? ` depuis le ${jour(r.enDefautDepuis)}` : "";
+    return `
+        <p>Le premier prélèvement de votre abonnement (${montant}) n'a pas abouti. Votre essai étant terminé,
+        <strong>la saisie de nouvelles données et les envois automatiques à vos locataires sont suspendus${depuis}</strong>.
+        Vos données restent entières, consultables et exportables.</p>
+        <p>Dès que le paiement aboutit, la saisie et les envois reprennent pour l'avenir.</p>
+        ${miseEnDemeure(r, ".")}`;
+  }
   switch (r.palier) {
     case 0:
       return `
-        <p>Le prélèvement de votre abonnement (<strong>${euros(r.montantPeriodeCents)} ${r.periodicite === "annuel" ? "par an" : "par mois"}</strong>)
+        <p>Le prélèvement de votre abonnement (${montant})
         n'a pas abouti. Cela vient presque toujours d'une carte arrivée à expiration
         ou d'un plafond bancaire — rien d'inquiétant, mais il faut le corriger.</p>
         <p><strong>Votre compte reste entièrement ouvert jusqu'au ${le}.</strong>
         Passé cette date et sans règlement, la saisie de nouvelles données sera
-        suspendue.</p>`;
+        suspendue.</p>
+        ${miseEnDemeure(r, " ; vos données resteront consultables et exportables.")}`;
     case 1:
       return `
         <p>Le prélèvement de votre abonnement n'a toujours pas abouti.
@@ -79,14 +121,14 @@ function message(r: RelancePaiement): string {
     case 2:
       return `
         <p><strong>Demain, ${le}, la saisie de nouvelles données sera suspendue</strong>
-        sur votre compte, faute de règlement.</p>
+        sur votre compte, faute de règlement. Les envois automatiques à vos locataires s'arrêteront aussi.</p>
         <p>Il est encore temps : dès que le paiement passe, tout rouvre immédiatement.</p>`;
     default:
       return `
         <p>Faute de règlement depuis le ${le}, <strong>votre compte est passé en
         lecture seule</strong>.</p>
-        <p>Dès que le paiement aboutit, <strong>tout rouvre à la seconde</strong>,
-        exactement où vous vous étiez arrêté. Rien n'a été supprimé, et rien ne le sera.</p>`;
+        <p><strong>Tout rouvre dès que le paiement est enregistré, tant que l'abonnement n'est pas résilié</strong>,
+        exactement où vous vous étiez arrêté. Rien n'est supprimé du fait de l'impayé.</p>`;
   }
 }
 
@@ -111,9 +153,57 @@ export function corpsRelance(r: RelancePaiement): string {
       <p style="color:#555">
         Quoi qu'il arrive, <strong>vos données restent entières</strong> : baux,
         quittances, états des lieux, journal de gestion — tout reste consultable et
-        exportable, même compte suspendu. Seules les nouvelles saisies attendent le
-        règlement.
+        exportable, même en lecture seule. En lecture seule, les nouvelles saisies et
+        les envois automatiques à vos locataires (appels de loyer, quittances, relances)
+        sont interrompus jusqu'au règlement ; ceux de la période d'interruption ne sont
+        pas tous rattrapés.
       </p>
       <p style="color:#555">— Gerimmo, pour ${echapperHtml(r.organisation)}</p>
     </div>`;
+}
+
+/** R07 : ce que sont devenues les factures restées ouvertes à la résiliation. */
+export type FacturesAnnulees = "annulees" | "aucune" | "a_annuler";
+
+/**
+ * R07 : le courrier de résiliation pour impayé, sur `customer.subscription.deleted`, seulement quand un défaut de
+ * paiement était en cours et qu'aucune résiliation n'avait été demandée par le client.
+ */
+export function courrierResiliationImpaye(p: {
+  organisation: string;
+  resilieLe: string; // AAAA-MM-JJ, jour de Paris
+  factures: FacturesAnnulees;
+  lien: string | null;
+}): { sujet: string; html: string } {
+  const sujet = "Votre abonnement Gerimmo est résilié faute de règlement";
+  const facture =
+    p.factures === "annulees"
+      ? " La facture restée impayée est annulée."
+      : p.factures === "a_annuler"
+        ? " La facture restée impayée sera annulée : vous n'avez rien à régler."
+        : "";
+  const geste = "Souscrire de nouveau";
+  return {
+    sujet,
+    html: `
+    <div style="font-family:sans-serif;font-size:14px;color:#111;line-height:1.5">
+      <h2 style="font-size:17px">${sujet}</h2>
+      <p>Bonjour,</p>
+      <p>Faute de règlement, votre abonnement Gerimmo est résilié depuis le ${jour(p.resilieLe)}, en application de
+      l'article 15 des conditions générales.${facture}</p>
+      <p>Vos données restent consultables et exportables en lecture seule ; rien n'est supprimé du fait de cette
+      résiliation. Pour reprendre la saisie, souscrivez de nouveau depuis « Mon abonnement ».</p>
+      ${
+        p.lien
+          ? `<p style="margin:22px 0">
+        <a href="${echapperHtml(p.lien)}"
+           style="background:#12263f;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;display:inline-block">
+          ${geste}
+        </a>
+      </p>`
+          : ""
+      }
+      <p style="color:#555">— Gerimmo, pour ${echapperHtml(p.organisation)}</p>
+    </div>`,
+  };
 }

@@ -116,6 +116,9 @@ export async function traiterTransfertContact(request: Request, env: Record<stri
       headers: { ...headers, "Content-Type": "application/json", "Idempotency-Key": `contact-transfert-v1/${id}` },
       body: JSON.stringify(preparerTransfert(parsed, config.destination)),
     });
+    // 429 : débit ou quota du prestataire. Le journal le dit (le transfert n'a pas eu lieu, il n'est pas « non
+    // confirmé ») ; le statut reste 503 pour que le webhook soit rejoué, comme pour tout autre refus.
+    if (envoi.status === 429) return { statut: 503, etat: "transfert_limite_prestataire" };
     if (!envoi.ok) return { statut: 503, etat: "transfert_non_confirme" };
     const resultat = await envoi.json();
     if (typeof resultat?.id !== "string" || !resultat.id) return { statut: 503, etat: "transfert_non_confirme" };

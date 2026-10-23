@@ -3,7 +3,7 @@ type: synthesis
 tags: [lancement, calendrier, pilotage, beta, agences, liste-attente]
 status: draft
 created: 2026-10-20
-updated: 2026-10-21
+updated: 2026-10-23
 sources: ["[[Audit final avant publication — 19 octobre 2026]]", "[[Suites de l'audit — 20 octobre 2026]]", "[[Prêt à démarcher]]", "[[Prompt de passation à Codex — état du 16 octobre 2026]]", "[[Registre des traitements]]", "[[Recette de production]]", "[[Grille tarifaire]]", "[[Onboarding et abonnement]]"]
 ---
 
@@ -12,6 +12,12 @@ sources: ["[[Audit final avant publication — 19 octobre 2026]]", "[[Suites de 
 > [!warning] Orientation du 21 octobre 2026
 > Le dirigeant demande une base entièrement fonctionnelle, puis la finalisation des informations juridiques : les propositions de fermeture préventive ci-dessous sont remplacées par la préparation de l’ouverture des fonctions métier, avec vérification technique et protections normales. Les agences restent uniquement en liste d’attente, conformément à sa clarification. Ce changement d’objectif n’atteste pas l’activation effective des services ni leur validation juridique. Voir [[Préparation fonctionnelle — 21 octobre 2026]].
 
+
+> [!warning] Contrôle du 22 octobre 2026
+> Les lignes « Dirigeant » de la semaine du 19 au 25/10 ont été confiées à Codex le 21/10. Le [[Contrôle des livraisons de Codex — 22 octobre 2026]] relève : aucune ligne encore passée en « fait (date) » ; la décision D2 attendue au 23/10 (« cautionnement fermé ») a été prise à l'inverse (interrupteur rouvert le 21/10) ; les modules artisans ont été ouverts ; aucune recette de production après les trois dernières fusions. À relire au prochain lundi.
+
+> [!info] Point du 23 octobre 2026
+> Recette de production verte sur `e53298a` (39983680482) et chantier Stripe en clés de test vert (39983684869) : la ligne « recette après les dernières fusions » est faite. Le dirigeant décide que les informations manquantes ne bloquent plus rien : le médiateur (seule information d'identité manquante) ne ferme plus la vente une fois le lot de Claude publié ; la ligne « identité de l'éditeur saisie » du 24/10 se réduit au médiateur, sans butée technique. Ce qui manque encore : [[Informations manquantes — 23 octobre 2026]].
 
 > [!info] Décision du dirigeant du 20 octobre 2026
 > La publicité commence dès maintenant dans son entourage. La **sortie officielle est fixée au lundi 30 novembre 2026** : le premier client particulier doit pouvoir s'inscrire le 30 novembre au soir. Les agences de gestion ne sont pas dans cette sortie : elles s'inscrivent sur une **liste d'attente** depuis le site vitrine ([[Liste d'attente des agences]]), et seront prévenues quand leur offre ouvrira. D'ici là, les tests doivent être terminés.

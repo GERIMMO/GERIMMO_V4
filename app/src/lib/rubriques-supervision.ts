@@ -17,7 +17,8 @@ export const RUBRIQUES: Rubrique[] = [
   { cle: "relais", libelle: "Vacances et relais", href: "/admin/relais", onglets: [{ href: "/admin/relais", libelle: "Vacances et relais" }] },
   { cle: "produit", libelle: "Améliorations du produit", href: "/admin/autonomie?vue=ameliorations", onglets: [{ href: "/admin/autonomie?vue=ameliorations", libelle: "Améliorations du produit" }] },
   { cle: "sante", libelle: "Santé et connexions", href: "/admin/sante", onglets: [{ href: "/admin/sante", libelle: "Santé et connexions" }] },
-  { cle: "securite", libelle: "Sécurité et conformité", href: "/admin/securite", onglets: [{ href: "/admin/securite", libelle: "Accès et données" }, { href: "/admin/veille", libelle: "Veille réglementaire" }] },
+  // /admin/donnees (file RGPD) n'appartenait à aucune rubrique et ne se joignait que par des liens de page (audit du 23/10, ART-5).
+  { cle: "securite", libelle: "Sécurité et conformité", href: "/admin/securite", onglets: [{ href: "/admin/securite", libelle: "Accès et données" }, { href: "/admin/donnees", libelle: "Demandes sur les données" }, { href: "/admin/veille", libelle: "Veille réglementaire" }] },
   { cle: "historique", libelle: "Historique et sauvegardes", href: "/admin/journaux", onglets: [{ href: "/admin/journaux", libelle: "Historique et sauvegardes" }] },
   { cle: "parametres", libelle: "Paramètres généraux", href: "/admin/parametres", onglets: [{ href: "/admin/parametres", libelle: "Paramètres généraux" }] },
 ];

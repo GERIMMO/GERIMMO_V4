@@ -3,7 +3,7 @@ import {createClient} from "@/lib/supabase/server";
 import {IdentiteEditeur} from "./identite";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
-import { faitsManquants, prestatairesAvecFaits, reservesPrestataires } from "@/lib/editeur";
+import { faitsACompleter, faitsManquants, prestatairesAvecFaits, reservesPrestataires } from "@/lib/editeur";
 import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
 import { BlocageSouscription } from "./blocage-souscription";
 
@@ -21,9 +21,13 @@ export default async function PageParametres() {
   const regle=await lireReglageSouscription();
   const db=await createClient();
   const config=await db.from("supervision_identite").select("revision").eq("singleton",true).maybeSingle();
-  const exiges = faitsManquants({});
+  const requis = faitsManquants({});
   const manquants = new Set(faitsManquants(editeur));
-  const fournis = exiges.length - manquants.size;
+  // 23/10 : le médiateur se complète plus tard, sans fermer le paiement (lib/editeur.ts, A_COMPLETER).
+  const nonBloquants = faitsACompleter({});
+  const aCompleter = new Set(faitsACompleter(editeur));
+  const exiges = [...requis, ...nonBloquants];
+  const fournis = exiges.length - manquants.size - aCompleter.size;
   // 19/10 : les prestataires des pages légales, avec ce que la saisie a fourni (localisation, coordonnées).
   const prestataires = prestatairesAvecFaits(editeur);
   const reservesPresta = reservesPrestataires(editeur);
@@ -46,7 +50,7 @@ export default async function PageParametres() {
       <section className="loc-carte">
         <div className="entete-carte">
           <h2>Identité de l’éditeur</h2>
-          <span className={`puce ${manquants.size ? "puce-prep" : "puce-loue"}`}>
+          <span className={`puce ${manquants.size || aCompleter.size ? "puce-prep" : "puce-loue"}`}>
             {fournis} / {exiges.length} fournis
           </span>
           <span className={`puce ${reservesPresta.length ? "puce-prep" : "puce-loue"}`}>
@@ -55,14 +59,15 @@ export default async function PageParametres() {
         </div>
         <p className="text-sm text-[var(--texte-secondaire)]">
           Les mentions légales, les conditions générales et la politique de confidentialité citent ces faits. Tant
-          qu’un fait manque, la page l’affiche comme « à compléter » plutôt que d’inventer une valeur.
+          qu’un fait manque, la page l’affiche « à venir » plutôt que d’inventer une valeur. Seuls les faits « à
+          fournir » ferment le paiement en ligne ; ceux « à compléter » (le médiateur) ne ferment rien.
         </p>
         <ul className="colonne-liste mt-4">
           {exiges.map((f) => (
             <li key={f} className="rang">
               <span className="first-letter:uppercase">{f}</span>
-              <span className={`puce ml-auto ${manquants.has(f) ? "puce-prep" : "puce-loue"}`}>
-                {manquants.has(f) ? "À fournir" : "Fourni"}
+              <span className={`puce ml-auto ${manquants.has(f) || aCompleter.has(f) ? "puce-prep" : "puce-loue"}`}>
+                {manquants.has(f) ? "À fournir" : aCompleter.has(f) ? "À compléter, non bloquant" : "Fourni"}
               </span>
             </li>
           ))}

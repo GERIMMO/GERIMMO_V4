@@ -34,7 +34,8 @@ flou), le mentionner à l'humain pour déclencher une recherche de source.
   nouvelle variable dans `.env.example`.
 - Schéma de base : fichiers de `supabase/migrations/`, appliqués en production **uniquement** par le chantier
   GitHub « Migrations Supabase » (`.github/workflows/migrations.yml`) : simulation d'abord, puis application avec
-  les mêmes fichiers nommés un à un dans l'ordre. Le chantier refuse d'appliquer sans « Sauvegarde quotidienne »
+  les mêmes fichiers nommés un à un dans l'ordre. Le chantier refuse d'appliquer sans CI « Lint, types, tests, build »
+  verte sur la révision exacte lancée (depuis le 23/10/2026), sans « Sauvegarde quotidienne »
   réussie depuis moins de 90 min, et refuse un contenu déjà appliqué sous un autre numéro (garde par empreinte).
   Jamais par l'outil MCP Supabase `apply_migration`, ni par un outil SQL en écriture, ni par du DDL à la main :
   l'outil MCP sert au SELECT seulement. Protocole et conventions (rejouable, `search_path = ''`,

@@ -221,19 +221,29 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
-  it("un seul fait requis manquant suffit (le médiateur de la consommation)", async () => {
+  it("un seul fait requis manquant suffit (le téléphone de contact)", async () => {
     etat(GRILLE);
-    identite({ ...EDITEUR_COMPLET, mediateurNom: null });
-    const r = await demarrerAbonnement("org-1", {}, souscrire());
-    expect(r.erreur).toBe(MOTIF_IDENTITE);
-  });
-
-  it.each(["telephone", "mediateurAdresse", "mediateurSite"])("refuse une identité dont %s manque avant d’ouvrir Stripe", async (cle) => {
-    etat(GRILLE);
-    identite({ ...EDITEUR_COMPLET, [cle]: null });
+    identite({ ...EDITEUR_COMPLET, telephone: null });
     const r = await demarrerAbonnement("org-1", {}, souscrire());
     expect(r.erreur).toBe(MOTIF_IDENTITE);
     expect(mocks.retrieve).not.toHaveBeenCalled();
+  });
+
+  // Décision du dirigeant du 23/10/2026 : le médiateur se complète plus tard
+  // et ne ferme plus le paiement (lib/editeur.ts, A_COMPLETER), règle active.
+  it.each(["mediateurNom", "mediateurAdresse", "mediateurSite"])("ouvre le parcours Stripe quand seul %s manque, règle active", async (cle) => {
+    etat(GRILLE);
+    identite({ ...EDITEUR_COMPLET, [cle]: null });
+    const r = await demarrerAbonnement("org-1", {}, souscrire());
+    expect(r.erreur).not.toBe(MOTIF_IDENTITE);
+    expect(mocks.retrieve).toHaveBeenCalled();
+  });
+
+  it("ouvre le parcours Stripe sans aucun fait de médiation, règle active", async () => {
+    etat(GRILLE);
+    identite({ ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null });
+    await demarrerAbonnement("org-1", {}, souscrire());
+    expect(mocks.retrieve).toHaveBeenCalled();
   });
 
   it("essai arrivé à son terme (gelé en lecture seule, statut encore « essai ») : la phrase sans « Votre essai continue »", async () => {

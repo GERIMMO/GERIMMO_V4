@@ -67,7 +67,10 @@ export default function PageTarifs() {
         <Article titre="Ce qui n'est pas dans l'abonnement">
           <ul className="list-disc space-y-1 pl-5">
             <li>Les travaux et interventions d&apos;artisans : toujours sur devis, facturés séparément. Le réseau d&apos;artisans dépend de la commune du bien et du métier, après validation ; le prix de l&apos;abonnement n&apos;en dépend pas. La gestion, elle, est ouverte partout en France.</li>
-            <li>La signature électronique n&apos;est pas encore proposée. Aucun envoi de SMS ni service bancaire n&apos;est inclus.</li>
+            {/* 23/10 (audit A06) : les circuits Zoho Sign sont ouverts depuis le 19/10 (bail, documents, devis) et le
+                cautionnement depuis le 21/10, sous un plafond mensuel commun et un arrêt d'urgence (/admin/relais). Ni
+                prix ni volume promis : la page dit seulement ce qui existe. */}
+            <li>La signature électronique du bail, de l&apos;acte de cautionnement, de certains documents de la location et de l&apos;acceptation des devis se fait depuis l&apos;application, avec un code envoyé par SMS à chaque signataire. Elle n&apos;est pas illimitée : elle dépend d&apos;un volume mensuel commun et peut être momentanément suspendue. Hors ce code de signature, aucun envoi de SMS ni service bancaire n&apos;est inclus.</li>
           </ul>
         </Article>
 

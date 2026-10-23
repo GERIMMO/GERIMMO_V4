@@ -89,8 +89,8 @@ export function FormulaireDevisVitrine() {
         </button>
         <p className="mt-2 text-[13px] text-[var(--sur-encre)]/80">
           Ces informations servent uniquement à vous répondre au sujet de
-          votre message — jamais cédées ni revendues, supprimées au plus tard après
-          24 mois.{" "}
+          votre message — jamais cédées ni revendues, supprimées 24 mois après
+          le dernier traitement de votre demande.{" "}
           <a href="/confidentialite" className="underline underline-offset-2">
             En savoir plus
           </a>

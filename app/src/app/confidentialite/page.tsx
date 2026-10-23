@@ -170,8 +170,9 @@ export default async function PageConfidentialite() {
         <p>
           <b className="font-semibold">Le formulaire de contact.</b>{" "}
           Les coordonnées et le message que vous communiquez servent à traiter
-          votre demande et à y répondre. Les demandes sont conservées au plus
-          24 mois après leur dépôt.
+          votre demande et à y répondre. Les demandes sont conservées 24 mois
+          après leur dernier traitement, ou après leur dépôt si elles
+          n&apos;ont pas encore été traitées, puis supprimées.
         </p>
         <p>
           <b className="font-semibold">La liste d&apos;attente des agences.</b>{" "}

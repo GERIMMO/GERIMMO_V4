@@ -17,7 +17,7 @@ export function BlocageSouscription({ actif, revision, manquants }: {
       </div>
       <p className="text-sm">
         {actif
-          ? "Les informations légales manquantes bloquent les nouvelles souscriptions et les augmentations payantes."
+          ? "Les informations légales requises manquantes bloquent les nouvelles souscriptions et les augmentations payantes. Le médiateur, à compléter, ne bloque rien."
           : "Les souscriptions et augmentations payantes peuvent continuer même si des informations légales manquent."}
       </p>
       {manquants.length > 0

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { journaliserSupervision } from "@/lib/journal-supervision";
+import { lireToutesLesPages } from "@/lib/lecture-complete";
 import {
   csvListeAttenteAgences,
   nomFichierExportListeAttente,
@@ -20,15 +21,25 @@ export async function GET(request: Request) {
   const { data: autorise, error: erreurAcces } = await supabase.rpc("is_super_admin");
   if (erreurAcces || autorise !== true) return new Response(null, { status: 403, headers: SANS_CACHE });
   const inclureRetirees = new URL(request.url).searchParams.get("inclure_retirees") === "1";
-  let requete = supabase
-    .from("liste_attente_agences")
-    .select("agence, contact, email, telephone, code_postal, nb_lots, message, statut, contactee_le, created_at")
-    .order("created_at", { ascending: false });
-  if (!inclureRetirees) requete = requete.neq("statut", "retiree");
-  const { data, error } = await requete;
-  // Une lecture en échec ne produit pas un fichier vide qui aurait l'air complet.
-  if (error) return texte("Export impossible pour l’instant : réessayez dans un instant.", 503);
-  const lignes = (data ?? []) as LigneListeAttente[];
+  // 23/10 (audit A04, même défaut que l'export comptable) : une seule lecture s'arrêtait au plafond de l'API, sans le
+  // dire. Lecture page par page, ordre stable terminé par l'identifiant, nombre vérifié contre le compte annoncé.
+  const lecture = await lireToutesLesPages<LigneListeAttente & { id: string }>(
+    (debut, fin) => {
+      let requete = supabase
+        .from("liste_attente_agences")
+        .select("id, agence, contact, email, telephone, code_postal, nb_lots, message, statut, contactee_le, created_at", {
+          count: "exact",
+        })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true });
+      if (!inclureRetirees) requete = requete.neq("statut", "retiree");
+      return requete.range(debut, fin);
+    },
+    (ligne) => ligne.id,
+  );
+  // Une lecture en échec ou incomplète ne produit pas un fichier qui aurait l'air complet.
+  if (lecture.echec) return texte("Export impossible pour l’instant : réessayez dans un instant.", 503);
+  const lignes: LigneListeAttente[] = lecture.lignes;
   const trace = await journaliserSupervision(supabase, "liste_attente_exportee", {
     lignes: lignes.length,
     inclure_retirees: inclureRetirees,

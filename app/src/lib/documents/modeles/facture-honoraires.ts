@@ -34,6 +34,7 @@ import { lireLignes, montant, texte, RefusDocument } from "./catalogue-bail";
 import { referenceCourte } from "./communs";
 import type { Assemblage, LienDocument } from "./index";
 import { deElide } from "@/lib/elision";
+import { aujourdhuiParis } from "@/lib/ged";
 
 // Le taux de droit commun applicable aux prestations de gestion locative.
 export const TAUX_TVA_HONORAIRES = 20;
@@ -220,7 +221,10 @@ export async function assemblerFactureHonoraires(
     const finDate = new Date(`${debut}T12:00:00Z`);
     finDate.setUTCMonth(finDate.getUTCMonth() + 1);
     const fin = finDate.toISOString().slice(0, 10);
-    const aujourdhui = new Date().toISOString().slice(0, 10);
+    // Le jour de PARIS (audit du 23/10, TST-5) : le jour UTC du serveur est encore la veille entre minuit et
+    // 2 h à Paris ; le 1er du mois à 0 h 30, la facture du mois tout juste écoulé était refusée comme « non
+    // révolu », et une facture sans date d'émission en base était datée de la veille.
+    const aujourdhui = aujourdhuiParis();
     // Facturer un mois que les encaissements peuvent encore alimenter
     // figerait un montant faux sous un numéro définitif.
     if (fin > aujourdhui) {

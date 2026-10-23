@@ -1,8 +1,10 @@
 import { verifierAccesEspace } from "@/lib/espace";
-import { lotsDuPortefeuille } from "@/lib/portefeuille";
+import { lotsDuPortefeuille, PortefeuilleIndisponible } from "@/lib/portefeuille";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { formaterDate } from "@/lib/ged";
 import { neutraliserFormule } from "@/lib/csv-sur";
+import { lireToutesLesPages, type EchecLecture, type PageLue } from "@/lib/lecture-complete";
+import { LIMITE_LIGNES_AFFICHEE, LIMITE_LIGNES_API } from "@/lib/lectures-fiscales";
 
 // Export CSV du journal de gestion (pas de FEC) — RM-A6 : mention « journal de gestion ».
 //
@@ -29,6 +31,63 @@ type LigneBrute = {
   mandat: UnOuPlusieurs<{ person: UnOuPlusieurs<{ nom: string; prenom: string | null }> }>;
 };
 
+type LigneMandat = {
+  id: string;
+  lot_id: string;
+  date_debut: string;
+  date_fin: string | null;
+  mandat: UnOuPlusieurs<{ person: UnOuPlusieurs<{ nom: string; prenom: string | null }> }>;
+};
+
+/** Un refus en clair : jamais un fichier qui aurait l'air complet sans l'être. */
+function refus(message: string): Response {
+  return new Response(message, {
+    status: 500,
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
+  });
+}
+
+const nombre = (n: number) => n.toLocaleString("fr-FR");
+
+/**
+ * Audit du 23/10 (A04) : l'API rend au plus 1 000 lignes par requête, sans le dire. Ce qui ne se lit pas EN ENTIER
+ * (voir `lireToutesLesPages`) ne produit pas de fichier, et le refus dit ce qui manque.
+ */
+function pourquoiEcrituresIncompletes(echec: EchecLecture): string {
+  const suite =
+    " Le fichier n'est pas produit : un journal incomplet ne doit pas passer pour complet." +
+    " Réessayez dans un instant ; si le problème persiste, signalez-le depuis Aide et retours.";
+  switch (echec.motif) {
+    case "erreur":
+      return `Export impossible : ${echec.message}`;
+    case "sans-compte":
+      return "Export impossible : le nombre d'écritures du journal n'a pas pu être vérifié." + suite;
+    case "modifiee":
+      return "Export impossible : le journal a été modifié pendant la lecture (écriture ajoutée, déplacée ou supprimée)." + suite;
+    case "incomplete":
+      return (
+        `Export impossible : le journal compte ${nombre(echec.attendues)} écritures,` +
+        ` mais ${nombre(echec.lues)} seulement ont pu être lues.` +
+        suite
+      );
+  }
+}
+
+function pourquoiMandatsIncomplets(echec: EchecLecture): string {
+  const detail =
+    echec.motif === "erreur"
+      ? echec.message
+      : echec.motif === "sans-compte"
+        ? "le nombre de lignes de mandat n'a pas pu être vérifié"
+        : echec.motif === "modifiee"
+          ? "les lignes de mandat ont été modifiées pendant la lecture"
+          : `${nombre(echec.attendues)} lignes de mandat attendues, ${nombre(echec.lues)} lues`;
+  return (
+    `Export impossible : la colonne « mandant » n'a pas pu être reconstituée (${detail}).` +
+    " Le fichier n'est pas produit — un journal sans mandant ne se ventile pas. Réessayez dans un instant."
+  );
+}
+
 /** Montant à la française : deux décimales, virgule décimale, pas de séparateur de milliers. */
 function montantFr(v: number | string): string {
   return Number(v).toFixed(2).replace(".", ",");
@@ -49,70 +108,90 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   // même règle que la page comptabilité (une écriture sans lot reste une
   // affaire d'agence, hors de son périmètre).
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
+  // Un portefeuille illisible est rendu VIDE, pour ne rien ouvrir de trop : sans ce garde, l'agent recevait un journal
+  // sans aucune ligne, avec un statut de succès. Et une liste qui atteint la limite de lecture est peut-être coupée :
+  // l'export filtré sur elle perdrait des lots sans le dire (audit du 23/10, A04).
+  if (portefeuille instanceof PortefeuilleIndisponible) {
+    return refus(
+      "Export impossible : votre portefeuille n'a pas pu être lu. Le fichier n'est pas produit : il serait vide sans le dire." +
+        " Réessayez dans un instant."
+    );
+  }
+  if (portefeuille && portefeuille.size >= LIMITE_LIGNES_API) {
+    return refus(
+      `Export impossible : la lecture de votre portefeuille a atteint la limite de ${LIMITE_LIGNES_AFFICHEE} lots` +
+        " et peut être incomplète. Le fichier n'est pas produit ; signalez-le depuis Aide et retours."
+    );
+  }
 
   // Période facultative : ?du=2026-01-01&au=2026-12-31. Sans elle, tout le journal.
   const url = new URL(req.url);
   const du = url.searchParams.get("du");
   const au = url.searchParams.get("au");
 
-  let requete = supabase
-    .from("ecritures")
-    .select(
-      "id, lot_id, date_piece, date_imputation, categorie, sens, montant, libelle, systeme," +
-        " contre_ecriture_de," +
-        // Deux clés étrangères relient lots à biens (dont une composite qui garde
-        // l'agence cohérente) : il faut nommer celle qu'on suit.
-        " lot:lots!ecritures_lot_id_fkey(nom, bien:biens!lots_bien_id_fkey(nom))," +
-        // Idem pour les mandats depuis l'audit du 29/09 (clé composite).
-        " mandat:mandats!ecritures_mandat_id_fkey(person:persons(nom, prenom))"
-    )
-    .eq("organization_id", orgId)
-    .order("date_imputation")
-    .order("created_at");
-  if (du) requete = requete.gte("date_imputation", du);
-  if (au) requete = requete.lte("date_imputation", au);
-
-  const { data, error } = await requete;
+  // Toutes les pages, avec le compte exact (audit du 23/10, A04) : une seule lecture s'arrêtait à 1 000 écritures, et
+  // le fichier se disait complet. L'identifiant ferme l'ordre : deux écritures du même jour, créées au même instant, ne
+  // changent pas de place d'une page à l'autre.
+  const lectureEcritures = await lireToutesLesPages<LigneBrute>(
+    (debut, fin) => {
+      let requete = supabase
+        .from("ecritures")
+        .select(
+          "id, lot_id, date_piece, date_imputation, categorie, sens, montant, libelle, systeme," +
+            " contre_ecriture_de," +
+            // Deux clés étrangères relient lots à biens (dont une composite qui garde
+            // l'agence cohérente) : il faut nommer celle qu'on suit.
+            " lot:lots!ecritures_lot_id_fkey(nom, bien:biens!lots_bien_id_fkey(nom))," +
+            // Idem pour les mandats depuis l'audit du 29/09 (clé composite).
+            " mandat:mandats!ecritures_mandat_id_fkey(person:persons(nom, prenom))",
+          { count: "exact" }
+        )
+        .eq("organization_id", orgId);
+      if (du) requete = requete.gte("date_imputation", du);
+      if (au) requete = requete.lte("date_imputation", au);
+      // La projection est assemblée en plusieurs morceaux : le client n'en déduit pas le type des lignes.
+      return requete
+        .order("date_imputation")
+        .order("created_at")
+        .order("id")
+        .range(debut, fin) as unknown as PromiseLike<PageLue<LigneBrute>>;
+    },
+    (e) => e.id
+  );
 
   // Sans ce garde-fou, une erreur produisait un fichier vide et silencieux :
-  // l'agent croyait son journal vide alors que la lecture avait échoué.
-  if (error) {
-    return new Response(`Export impossible : ${error.message}`, {
-      status: 500,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
-  }
+  // l'agent croyait son journal vide alors que la lecture avait échoué. Il
+  // refuse aussi, depuis le 23/10, une lecture INCOMPLÈTE.
+  if (lectureEcritures.echec) return refus(pourquoiEcrituresIncompletes(lectureEcritures.echec));
 
   // Seules les écritures d'honoraires portent le mandat. Pour les loyers, le
   // mandant se retrouve par le lot — sans quoi la colonne resterait vide sur la
   // quasi-totalité du journal, et la ventilation par mandant serait impossible.
   // On garde toutes les lignes, y compris closes : le journal est historique, et
   // une écriture de mars doit porter le mandant de mars même si le mandat s'est
-  // terminé depuis.
-  const { data: lignesMandat, error: erreurLignesMandat } = await supabase
-    .from("mandat_lignes")
-    .select("lot_id, date_debut, date_fin, mandat:mandats(person:persons(nom, prenom))")
-    .eq("organization_id", orgId);
+  // terminé depuis. Toutes les pages aussi : la 1 001e ligne de mandat nomme un
+  // mandant comme les autres.
+  const lectureMandats = await lireToutesLesPages<LigneMandat>(
+    (debut, fin) =>
+      supabase
+        .from("mandat_lignes")
+        .select("id, lot_id, date_debut, date_fin, mandat:mandats(person:persons(nom, prenom))", {
+          count: "exact",
+        })
+        .eq("organization_id", orgId)
+        .order("id")
+        .range(debut, fin),
+    (l) => l.id
+  );
 
   // Cette lecture n'était pas contrôlée : en cas d'échec, le fichier sortait
   // complet en apparence, avec une colonne « mandant » VIDE sur la quasi-
   // totalité des lignes — un journal comptable inexploitable qui ne dit pas
   // qu'il lui manque quelque chose. Mieux vaut refuser l'export.
-  if (erreurLignesMandat) {
-    return new Response(
-      `Export impossible : la colonne « mandant » n'a pas pu être reconstituée (${erreurLignesMandat.message}).` +
-        " Le fichier n'est pas produit — un journal sans mandant ne se ventile pas. Réessayez dans un instant.",
-      { status: 500, headers: { "Content-Type": "text/plain; charset=utf-8" } }
-    );
-  }
+  if (lectureMandats.echec) return refus(pourquoiMandatsIncomplets(lectureMandats.echec));
 
   const mandatsDuLot = new Map<string, { debut: string; fin: string | null; nom: string }[]>();
-  for (const l of (lignesMandat ?? []) as unknown as {
-    lot_id: string;
-    date_debut: string;
-    date_fin: string | null;
-    mandat: UnOuPlusieurs<{ person: UnOuPlusieurs<{ nom: string; prenom: string | null }> }>;
-  }[]) {
+  for (const l of lectureMandats.lignes) {
     const p = premier(premier(l.mandat)?.person);
     if (!p) continue;
     const liste = mandatsDuLot.get(l.lot_id) ?? [];
@@ -134,7 +213,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   // La colonne « annule » portait l'identifiant technique de l'écriture reprise :
   // trente-six caractères illisibles pour un comptable. On lui donne de quoi
   // retrouver la ligne d'origine — sa catégorie et sa date.
-  const lignesBrutes = (data ?? []) as unknown as LigneBrute[];
+  const lignesBrutes = lectureEcritures.lignes;
   // Le repère se construit sur tout le journal : une contre-écriture du
   // portefeuille peut annuler une ligne qui n'y est plus.
   const repereParId = new Map(

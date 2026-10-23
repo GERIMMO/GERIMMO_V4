@@ -22,11 +22,8 @@ export async function terminerInscriptionLocale(page: Page, email: string, motDe
   await page.getByLabel("Confirmation", { exact: true }).fill(motDePasse);
   await page.getByRole("checkbox", { name: /accepte les conditions/ }).check();
   await page.getByRole("button", { name: "Changer le mot de passe", exact: true }).click();
-  await expect(page).toHaveURL(/\/connexion\?raison=mot-de-passe-modifie/);
-  // Après le POST natif, attendre le chargement de la nouvelle page et de son formulaire client.
-  await page.waitForLoadState("networkidle");
-  await expect(page.getByText("Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe.")).toBeVisible();
-  await page.getByLabel("Adresse e-mail", { exact: true }).fill(email);
-  await page.getByLabel("Mot de passe", { exact: true }).fill(motDePasse);
-  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+  // Relevé du 23/10 (PRO-5) : le premier choix après la confirmation garde la session ouverte et mène à l'espace ou à
+  // l'étape suivante — plus d'écran de connexion ni de « Mot de passe modifié. Connectez-vous… ». L'appelant attend
+  // ensuite sa propre destination.
+  await page.waitForURL((url) => !/^\/(nouveau-mot-de-passe|connexion)(\/|$)/.test(url.pathname), { timeout: 30_000 });
 }

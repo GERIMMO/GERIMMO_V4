@@ -73,14 +73,17 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
     await page.getByLabel("Confirmation", { exact: true }).fill(c.motDePasse);
     await page.getByRole("checkbox", { name: /accepte les conditions/ }).check();
     await cliquer(page.getByRole("button", { name: "Changer le mot de passe", exact: true }));
-    await expect(page).toHaveURL(/\/connexion\?raison=mot-de-passe-modifie/);
-    await expect(page.getByText("Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe.")).toBeVisible();
+    // Relevé du 23/10 (PRO-5) : le premier choix garde la session ouverte et mène droit à l'espace, sans repasser par
+    // la connexion. Décision D27 : l'espace du propriétaire direct qui vient de s'inscrire est /espace/<id>.
+    await page.waitForURL(/\/espace\/[a-f0-9-]{36}/, { timeout: 30_000 });
+    await expect(page.getByRole("heading", { level: 1, name: /Bonjour/ })).toBeVisible();
+    // Le mot de passe choisi ouvre bien le compte : contexte déconnecté, puis connexion avec lui.
+    await context.clearCookies();
+    await page.goto("/connexion");
     await saisir(page.getByLabel("Adresse e-mail", { exact: true }), email);
     await page.getByLabel("Mot de passe", { exact: true }).fill(c.motDePasse);
     await cliquer(page.getByRole("button", { name: "Se connecter", exact: true }));
-    // Décision D27 : l'espace du propriétaire direct qui vient de s'inscrire est /espace/<id>.
     await page.waitForURL(/\/espace\/[a-f0-9-]{36}/, { timeout: 30_000 });
-    await expect(page.getByRole("heading", { level: 1, name: /Bonjour/ })).toBeVisible();
     const r = await db.query("select email_confirmed_at is not null as confirme from auth.users where email=$1", [email]);
     expect(r.rows[0]?.confirme).toBe(true);
 

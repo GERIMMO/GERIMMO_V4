@@ -49,12 +49,19 @@ describe('Le point du matin',()=>{
    developpements:[{id:'d1',titre:'Corriger le tri',probleme:'Le tri est instable.',risque:'faible',statut:'autorisation',revision:'a'.repeat(40)},{id:'d2',titre:'Sans version',probleme:null,risque:'moyen',statut:'autorisation',revision:null},{id:'d3',titre:'Pas prête',probleme:null,risque:'moyen',statut:'en_test',revision:null}],
    publications:[{id:'p1',titre:'Le dépôt de garantie',statut:'brouillon',corps:'x'.repeat(300)},{id:'p2',titre:'À compléter',statut:'brouillon',corps:'[[à compléter]]'}],
    artisans:[{artisan_id:'a1',raison_sociale:'Plomberie Durand',siret_etat:'verifie',decennale_valide:true,rc_pro_deposee:true,nb_pieces:3},{artisan_id:'a2',raison_sociale:'Élec Martin',siret_etat:'declare',decennale_valide:false,rc_pro_deposee:false,nb_pieces:0}],
-   retours:[{id:'r1',titre:'Exporter en CSV',nature:'idee',gravite:'N2',etat:'nouveau'},{id:'r2',titre:'Écran blanc',nature:'bug',gravite:'N1',etat:'nouveau'},{id:'r3',titre:'Bug mineur',nature:'bug',gravite:'N3',etat:'nouveau'}],
+   // r4 : un problème signalé reçoit N2 par défaut (audit du 23/10) ; r5 est déjà pris en charge, r3 requalifié mineur.
+   retours:[{id:'r1',titre:'Exporter en CSV',nature:'idee',gravite:'N2',etat:'nouveau'},{id:'r2',titre:'Écran blanc',nature:'bug',gravite:'N1',etat:'nouveau'},{id:'r3',titre:'Bug mineur',nature:'bug',gravite:'N3',etat:'nouveau'},
+    {id:'r4',titre:'Quittance illisible',nature:'bug',gravite:'N2',etat:'en_examen'},{id:'r5',titre:'Déjà pris en charge',nature:'bug',gravite:'N2',etat:'en_cours'}],
    veille:[{id:'v1',titre:'Nouveau plafond',source_nom:'Service Public',etude:{resume:'Un résumé suffisamment long pour être diffusé.',action:'Vérifier les baux.',publics:['bailleur']}},{id:'v2',titre:'Sans étude',source_nom:'ANIL',etude:null}],
   };
   const points=assemblerPoints({passages:[],journaux:[],attentes,maintenant});
   const par=(e:string)=>points.find(p=>p.equipe===e)!.decisions;
-  expect(par('qualite').map(d=>[d.cle,d.validation,d.refus])).toEqual([['developpement:d1',true,true],['developpement:d2',false,true],['retour:r1',true,true],['retour:r2',true,false]]);
+  expect(par('qualite').map(d=>[d.cle,d.validation,d.refus])).toEqual([['developpement:d1',true,true],['developpement:d2',false,true],['retour:r1',true,true],['retour:r2',true,false],['retour:r4',true,false]]);
+  const majeur=par('qualite').find(d=>d.cle==='retour:r4')!;
+  expect(majeur.titre).toBe('Prendre en charge le problème majeur « Quittance illisible »');
+  expect(majeur.options).toEqual(['Prendre en charge']);
+  expect(majeur.lien).toBe('/admin/retours?nature=bug');
+  expect(par('qualite').find(d=>d.cle==='retour:r2')!.titre).toBe('Prendre en charge le bug bloquant « Écran blanc »');
   expect(par('marketing').map(d=>[d.cle,d.validation])).toEqual([['publication:p1',true],['publication:p2',false]]);
   expect(par('incidents').map(d=>[d.cle,d.validation,Boolean(d.attestation)])).toEqual([['artisan:a1',true,true],['artisan:a2',false,false]]);
   expect(par('conformite').map(d=>[d.cle,d.validation])).toEqual([['veille:v1',true],['veille:v2',false]]);
@@ -94,6 +101,36 @@ describe('Génération du point — lectures incomplètes',()=>{
   const {db,rpc}=lecteur();
   expect(await genererPointsDuMatin(db,maintenant)).toEqual({enregistres:7,erreur:undefined});
   expect(rpc.mock.calls.filter(([nom])=>nom==='enregistrer_point_du_matin')).toHaveLength(7);
+ });
+});
+
+describe('Retours à traiter — les problèmes de gravité N2 arrivent au point (audit du 23/10)',()=>{
+ // Un problème signalé depuis « Aide et retours » reçoit N2 par défaut : la lecture ne retenait que N1.
+ type Appel={table:string;methode:string;arguments:unknown[]};
+ function lecteurDeRetours(retours:Record<string,unknown>[]){
+  const appels:Appel[]=[];
+  const resultat=(source:string)=>({data:source==='retours_utilisateurs'?retours:[],error:null});
+  const requete=(source:string):unknown=>new Proxy({}, {get:(_cible,propriete)=>{
+   if(propriete==='then')return Promise.resolve(resultat(source)).then.bind(Promise.resolve(resultat(source)));
+   return (...args:unknown[])=>{appels.push({table:source,methode:String(propriete),arguments:args});return requete(source);};
+  }});
+  const rpc=vi.fn(async(_nom:string,_arguments?:unknown)=>({data:'point-fictif',error:null}));
+  return {db:{from:(source:string)=>requete(source),rpc} as unknown as Parameters<typeof genererPointsDuMatin>[0],rpc,appels};
+ }
+ it('demande les idées et les problèmes N1 ou N2 nouveaux ou en examen',async()=>{
+  const {db,appels}=lecteurDeRetours([]);
+  await lireAttentes(db,maintenant);
+  const surRetours=appels.filter(a=>a.table==='retours_utilisateurs');
+  expect(surRetours.find(a=>a.methode==='in')!.arguments).toEqual(['etat',['nouveau','en_examen']]);
+  expect(surRetours.find(a=>a.methode==='or')!.arguments).toEqual(['nature.eq.idee,and(nature.eq.bug,gravite.in.(N1,N2))']);
+ });
+ it('enregistre le problème N2 nouveau dans le point de l’équipe qualité, à prendre en charge',async()=>{
+  const {db,rpc}=lecteurDeRetours([{id:'r-n2',titre:'Bouton inactif',nature:'bug',gravite:'N2',etat:'nouveau'}]);
+  expect(await genererPointsDuMatin(db,maintenant)).toEqual({enregistres:7,erreur:undefined});
+  const appel=rpc.mock.calls.find(([nom,args])=>nom==='enregistrer_point_du_matin'&&(args as {p_equipe:string}).p_equipe==='qualite');
+  const decisions=(appel![1] as {p_decisions:{cle:string;titre:string;source:string;gestes:{validation:boolean;refus:boolean}}[]}).p_decisions;
+  expect(decisions.map(d=>[d.cle,d.source,d.gestes])).toEqual([['retour:r-n2','retour',{validation:true,refus:false}]]);
+  expect(decisions[0].titre).toContain('problème majeur « Bouton inactif »');
  });
 });
 
@@ -195,5 +232,26 @@ describe('Artisans en attente — lus par le client de service',()=>{
    expect(erreurs).toHaveBeenCalledWith('[point du matin] lecture impossible :','artisans','42501');
    expect(JSON.stringify(erreurs.mock.calls)).not.toContain('privé');
   }finally{erreurs.mockRestore();}
+ });
+});
+
+// 23/10/2026, production : la mission marketing passe toutes les 5 minutes de 5 h à 19 h UTC ; vers 14 h 55 le point
+// de l'équipe dépassait les 20 000 caractères admis par enregistrer_point_du_matin (« Point invalide »).
+describe('Le point du matin reste enregistrable quand une mission passe toutes les 5 minutes',()=>{
+ const tous=Array.from({length:168},(_,i)=>passage('marketing',{id:`m-${i}`,debut:new Date(maintenant.getTime()-i*5*60_000).toISOString(),fin:new Date(maintenant.getTime()-i*5*60_000+20_000).toISOString(),compte:1,bilan:{preparees:0,parues:0,ignorees:1,motif:'aucune publication à paraître dans le créneau courant'}}));
+ it('détaille les 12 passages les plus récents et compte les autres',()=>{
+  const p=point('marketing',{passages:tous});
+  expect(p.contenu.passages).toHaveLength(12);
+  expect(p.contenu.passages[0].debut).toBe(tous[0].debut);
+  expect(p.contenu.realisations.join(' ')).toContain('168 passages sur 24 h, les 12 plus récents détaillés');
+ });
+ it('tient sous la limite de taille du point en base (20 000 caractères)',()=>{
+  const p=point('marketing',{passages:tous});
+  expect(JSON.stringify(p.contenu).length).toBeLessThan(20000);
+ });
+ it('une mission peu fréquente garde tous ses passages, sans ligne de compte',()=>{
+  const p=point('marketing',{passages:tous.slice(0,3)});
+  expect(p.contenu.passages).toHaveLength(3);
+  expect(p.contenu.realisations.join(' ')).not.toContain('plus récents détaillés');
  });
 });

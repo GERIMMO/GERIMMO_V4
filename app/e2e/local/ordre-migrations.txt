@@ -406,3 +406,4 @@
 20261021175930_nettoyage_initial_comptes.sql
 20261022210326_reglage_blocage_souscription_identite.sql
 20261022213731_conservation_preuves_et_invitations.sql
+20261023161500_charges_agregats_portefeuille.sql

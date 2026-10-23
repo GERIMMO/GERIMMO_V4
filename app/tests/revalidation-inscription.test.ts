@@ -53,7 +53,8 @@ it("garde le formulaire disponible si l’acceptation ne peut pas être enregist
 });
 it("enregistre les informations validées et garde la suite d’une invitation", async () => {
   const suite = "/artisan/invitation/11111111-1111-4111-8111-111111111111";
-  await expect(definirNouveauMotDePasse({}, form({ suite }))).rejects.toThrow(`REDIRECT /connexion?raison=mot-de-passe-modifie&suite=${encodeURIComponent(suite)}`);
+  // PRO-5 (23/10) : premier choix après la confirmation, la session reste ouverte et mène droit à l'invitation.
+  await expect(definirNouveauMotDePasse({}, form({ suite }))).rejects.toThrow(`REDIRECT ${suite}`);
   expect(rpc).toHaveBeenCalledWith("accepter_cgu", expect.objectContaining({ p_source: "compte" }));
   expect(auth.updateUser).toHaveBeenCalledWith({ password: "nouveau-mot-de-passe-1", data: expect.objectContaining({ nom: "Corrigé", espace: "artisan", profil_a_confirmer: null }) });
   expect(rpc.mock.invocationCallOrder[0]).toBeLessThan(auth.updateUser.mock.invocationCallOrder[0]);
@@ -66,7 +67,8 @@ it("une récupération ordinaire conserve le profil confirmé", async () => {
 });
 it("une confirmation d'inscription (amr email/signup) ouvre le formulaire comme un lien de récupération", async () => {
   auth.getClaims.mockResolvedValue(revendications("email/signup"));
-  await expect(definirNouveauMotDePasse({}, form())).rejects.toThrow("REDIRECT /connexion?raison=mot-de-passe-modifie");
+  // Profil à confirmer (artisan, sans invitation) : la session reste ouverte, étape suivante de l'inscription (PRO-5).
+  await expect(definirNouveauMotDePasse({}, form())).rejects.toThrow("REDIRECT /artisan/inscription");
   expect(auth.updateUser).toHaveBeenCalledOnce();
 });
 it("connecté par mot de passe : l'action refuse, sans toucher au mot de passe, au profil ni aux sessions", async () => {

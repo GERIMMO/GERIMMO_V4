@@ -91,7 +91,7 @@ export function EcranNouvelleVersionConditions({
           Versions archivées
         </Link>
       </p>
-      <form action={action} className="flex flex-wrap items-center gap-3">
+      <form data-saisie-libre action={action} className="flex flex-wrap items-center gap-3">
         <input type="hidden" name="cgu_version" value={version} />
         <BoutonEnvoi enCoursTexte="Enregistrement…">
           J’accepte la nouvelle version

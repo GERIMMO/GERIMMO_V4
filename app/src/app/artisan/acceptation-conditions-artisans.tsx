@@ -33,7 +33,7 @@ export function AcceptationConditionsArtisans({ version, date }: { version: stri
       {etat.succes ? (
         <Succes>{etat.succes}</Succes>
       ) : (
-        <form action={action} className="space-y-4">
+        <form data-saisie-libre action={action} className="space-y-4">
           <input type="hidden" name="cgu_version" value={version} />
           <label className="flex min-h-11 items-center gap-3 text-base text-[var(--corps)]">
             <input type="checkbox" name="cgu" required className="size-6 shrink-0" />

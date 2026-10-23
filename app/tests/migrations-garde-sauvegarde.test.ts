@@ -19,6 +19,9 @@
  *    « Appliquer », qui lit par l'API GitHub (jeton du chantier, `actions: read`) le dernier passage du chantier CI sur
  *    `github.sha` et refuse une application réelle s'il n'est pas terminé et réussi. Le 22/10, une application réelle
  *    était partie de ed97d12 pendant que la CI de ce SHA tournait, puis échouait. La simulation reste permise.
+ *    Relecture adverse du 23/10 : le « dernier » passage est celui dont la dernière tentative a démarré en dernier
+ *    (`run_started_at`), pas le dernier créé — une relance garde le `created_at` d'origine —, et tout passage de la
+ *    révision encore en file ou en cours refuse.
  *
  * Partie SANS base : le texte du chantier, lu avec js-yaml (présent dans `package-lock.json` par la chaîne d'ESLint ;
  * aucune dépendance ajoutée), puis les scripts `run` des deux étapes JOUÉS avec bash et un faux `psql` (relecture du
@@ -330,9 +333,18 @@ describe.skipIf(!bancCi)("chantier « Migrations Supabase » — la garde « CI 
   // La révision de l'application réelle du 22/10 (ed97d12…), allongée à 40 caractères pour l'essai.
   const SHA = `ed97d12${"0".repeat(33)}`;
   const AUTRE = `f0eeb9c${"0".repeat(33)}`;
-  type Passage = { id: number; head_sha: string; status: string; conclusion: string | null; created_at: string; html_url: string };
+  type Passage = {
+    id: number; head_sha: string; status: string; conclusion: string | null; created_at: string; html_url: string;
+    run_attempt?: number; run_started_at?: string;
+  };
   const passage = (id: number, status: string, conclusion: string | null, created_at: string, head_sha = SHA): Passage =>
     ({ id, head_sha, status, conclusion, created_at, html_url: `https://github.com/GERIMMO/GERIMMO_V4/actions/runs/${id}` });
+  /**
+   * Relecture adverse du 23/10 : une relance (« Re-run jobs ») garde l'identifiant et le `created_at` du passage d'origine ;
+   * seuls `run_attempt`, `run_started_at`, `status` et `conclusion` changent (passage 39867493421 : tentative 2, créé à
+   * 22:47:44, relancé à 22:58:15).
+   */
+  const relance = (p: Passage, run_attempt: number, run_started_at: string): Passage => ({ ...p, run_attempt, run_started_at });
   const reponse = (...passages: Passage[]) => JSON.stringify({ total_count: passages.length, workflow_runs: passages });
   const garderCi = (simulation: "true" | "false", curl: { sortie?: string; code?: number }, revision = SHA) =>
     jouerEtape(gardeCi, { GITHUB_TOKEN: "jeton-de-test", DEPOT: "GERIMMO/GERIMMO_V4", REVISION: revision, SIMULATION: simulation }, {}, curl);
@@ -351,8 +363,20 @@ describe.skipIf(!bancCi)("chantier « Migrations Supabase » — la garde « CI 
     expect(r.erreurs).toBe("");
     expect(r.sortie).toContain(`— CI « Lint, types, tests, build » sur ${SHA} : completed/success (passage 1 du 2026-10-23T08:30:00Z`);
     // Une réussite ancienne suivie d'un nouvel échec ne suffit pas ; l'inverse si (le plus récent compte).
-    const relance = garderCi("false", { sortie: reponse(passage(2, "completed", "success", "2026-10-23T08:40:00Z"), passage(1, "completed", "failure", "2026-10-22T22:43:00Z")) });
-    expect(relance.code, relance.erreurs).toBe(0);
+    const nouveauPassage = garderCi("false", { sortie: reponse(passage(2, "completed", "success", "2026-10-23T08:40:00Z"), passage(1, "completed", "failure", "2026-10-22T22:43:00Z")) });
+    expect(nouveauPassage.code, nouveauPassage.erreurs).toBe(0);
+  });
+
+  it("application réelle : acceptée si la relance d'un passage plus ancien réussit après un échec plus récent", () => {
+    // A (créé à 10 h) relancé à 11 h et réussi ; B (créé à 10 h 30) en échec : la dernière tentative lancée est celle de A.
+    const r = garderCi("false", {
+      sortie: reponse(
+        passage(2, "completed", "failure", "2026-10-23T10:30:00Z"),
+        relance(passage(1, "completed", "success", "2026-10-23T10:00:00Z"), 2, "2026-10-23T11:00:00Z")
+      ),
+    });
+    expect(r.code, r.erreurs).toBe(0);
+    expect(r.sortie).toContain(`— CI « Lint, types, tests, build » sur ${SHA} : completed/success (passage 1 (tentative 2) du 2026-10-23T11:00:00Z`);
   });
 
   it.each([
@@ -360,6 +384,23 @@ describe.skipIf(!bancCi)("chantier « Migrations Supabase » — la garde « CI 
     ["CI en échec", reponse(passage(39865852616, "completed", "failure", "2026-10-22T22:33:43Z")), "completed/failure"],
     ["CI annulée", reponse(passage(3, "completed", "cancelled", "2026-10-22T23:00:00Z")), "completed/cancelled"],
     ["réussite puis nouvel échec", reponse(passage(1, "completed", "success", "2026-10-22T20:00:00Z"), passage(2, "completed", "failure", "2026-10-22T22:00:00Z")), "completed/failure"],
+    // Relecture adverse du 23/10 : A (créé à 10 h) vert, B (créé à 10 h 30) vert, puis A relancé à 11 h. Le tri par date
+    // de création retenait B et acceptait pendant que la CI de cette révision tournait de nouveau.
+    [
+      "relance en cours d'un passage plus ancien (créé avant une réussite)",
+      reponse(passage(2, "completed", "success", "2026-10-23T10:30:00Z"), relance(passage(1, "in_progress", null, "2026-10-23T10:00:00Z"), 2, "2026-10-23T11:00:00Z")),
+      "in_progress/-",
+    ],
+    [
+      "relance d'un passage plus ancien terminée en échec",
+      reponse(passage(2, "completed", "success", "2026-10-23T10:30:00Z"), relance(passage(1, "completed", "failure", "2026-10-23T10:00:00Z"), 2, "2026-10-23T11:00:00Z")),
+      "completed/failure",
+    ],
+    [
+      "un autre passage de la révision encore en file, même lancé avant la réussite",
+      reponse(passage(1, "queued", null, "2026-10-23T10:00:00Z"), passage(2, "completed", "success", "2026-10-23T10:30:00Z")),
+      "queued/-",
+    ],
     ["aucun passage", reponse(), "absent"],
     ["seulement une autre révision verte", reponse(passage(4, "completed", "success", "2026-10-23T08:41:57Z", AUTRE)), "absent"],
     ["réponse inattendue", JSON.stringify({ message: "Not Found" }), "illisible"],

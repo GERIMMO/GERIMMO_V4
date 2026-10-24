@@ -3,6 +3,7 @@ import { ACTIONS_SUPERVISION } from "./journal-supervision";
 import { GESTES_TRACE } from "./gestes-trace";
 
 const ACTIONS: Record<string, string> = {
+  conservation_regle_modifiee: "Durée de conservation modifiée",
   signature_preparation_abandonnee: "Préparation de signature interrompue avant envoi",
   consultation_organisation: "Consultation d’une organisation",
   traversee_espace: "Consultation d’un espace client par la supervision",

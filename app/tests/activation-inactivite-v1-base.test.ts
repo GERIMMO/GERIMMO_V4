@@ -94,13 +94,13 @@ describe("activation de l'inactivité — fichiers (sans base)", () => {
   it("manifeste, procédure de retour, chaîne « Ordre complet » et classement en série", () => {
     const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${NOM}.sql`)).toHaveLength(1);
-    expect(manifeste.at(-1)).toBe(`${NOM}.sql`);
+    expect(manifeste).toContain(`${NOM}.sql`);
     expect(manifeste.indexOf(`${NOM}.sql`)).toBeGreaterThan(manifeste.indexOf("20261024140000_conservation_et_prospection.sql"));
     expect(readFileSync("tests/relais-migrations-manifeste.test.ts", "utf8")).toContain(`"${NOM}.sql",`);
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
     expect(lisezMoi).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
-    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\s*`20261024150000`[^`]*`20261024140000`/);
+    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\s*`20261024105901`[^`]*`20261024150000`[^`]*`20261024140000`/);
     expect(RETOUR_CONSERVATION).toContain("left(version, 14) > '20261024140000' and left(version, 14) <= '20261024150000'");
     expect(readFileSync("vitest.config.ts", "utf8")).toContain('"tests/activation-inactivite-v1-base.test.ts"');
   });

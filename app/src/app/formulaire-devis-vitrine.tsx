@@ -92,9 +92,9 @@ export function FormulaireDevisVitrine() {
             « uniquement à vous répondre » n'était donc plus exact pour un professionnel. */}
         <p className="mt-2 text-[13px] text-[var(--sur-encre)]/80">
           Ces informations servent à vous répondre au sujet de votre message —
-          jamais cédées ni revendues. Elles sont conservées 24 mois après
-          le dernier traitement de votre demande ; 3 ans après le dernier
-          contact pour le suivi commercial des professionnels.{" "}
+          jamais cédées ni revendues. Le délai court à partir du dernier traitement de votre demande,
+          ou de votre dernier contact pour le suivi commercial des professionnels.
+          Les durées en vigueur figurent dans notre politique de confidentialité.{" "}
           <a href="/confidentialite" className="underline underline-offset-2">
             En savoir plus
           </a>

@@ -4,6 +4,23 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+export async function modifierDureeConservation(input: { categorie: string; mois: number; revision: number; motif: string; confirme: boolean }): Promise<{ erreur?: string }> {
+  const db = await createClient();
+  const droit = await db.rpc("is_permanent_super_admin");
+  if (droit.error || droit.data !== true) return { erreur: "Réservé au superadmin permanent avec second facteur." };
+  if (!input || input.confirme !== true || typeof input.categorie !== "string" || !/^[a-z_]+:[a-z_]+$/.test(input.categorie)
+      || !Number.isInteger(input.mois) || input.mois < 0 || input.mois > 240
+      || !Number.isSafeInteger(input.revision) || input.revision < 0
+      || typeof input.motif !== "string" || input.motif.trim().length < 10 || input.motif.trim().length > 1000) {
+    return { erreur: "Vérifiez la durée, le motif et la confirmation." };
+  }
+  const r = await db.rpc("modifier_duree_conservation", { p_categorie: input.categorie, p_duree_mois: input.mois, p_revision: input.revision, p_motif: input.motif.trim() });
+  if (r.error) return { erreur: r.error.code === "40001" ? "Cette durée a changé dans une autre session. Rechargez la page." : r.error.code === "22023" ? sansJargon(r.error.message) : "Enregistrement refusé. Aucune durée n’a été modifiée." };
+  if (!r.data || typeof r.data.modifiee !== "boolean") return { erreur: "Enregistrement non confirmé. Rechargez la page avant de réessayer." };
+  for (const path of ["/admin/conservation", "/admin/journaux", "/admin/donnees", "/confidentialite"]) revalidatePath(path);
+  return {};
+}
+
 export type BilanConservation = {
   erreur?: string;
   /** `echus` vaut null pour une catégorie du catalogue dont le nettoyage n'est pas encore écrit (plan du 23/10, lot 2). */

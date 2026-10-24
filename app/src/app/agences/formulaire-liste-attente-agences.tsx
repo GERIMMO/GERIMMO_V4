@@ -117,7 +117,7 @@ export function FormulaireListeAttenteAgences() {
           {/* Plan de conformité du 23/10 (lot 4, constat R44) : déclencheur « Inscription » et retrait traité dans le mois. */}
           Vos coordonnées servent uniquement à vous prévenir de l’ouverture de l’offre aux agences et à donner suite à
           vos réponses. Vous pouvez vous y opposer à tout moment, en répondant à l’un de nos messages ou en nous
-          écrivant ; elles sont supprimées trois ans après votre inscription, ou dans le mois de votre demande de
+          écrivant ; elles sont supprimées au terme du délai indiqué dans notre politique, compté depuis votre inscription, ou dans le mois de votre demande de
           retrait (voir notre{" "}
           <a href="/confidentialite" className="underline underline-offset-2">politique de confidentialité</a>).
         </p>

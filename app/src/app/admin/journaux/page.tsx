@@ -382,6 +382,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <Link href="/admin/conservation" className="lien-discret">Modifier les durées de conservation →</Link>
             <Link href="/admin/donnees" className="lien-discret">Demandes de fermeture, effacement et copies prestataires →</Link>
             <BoutonPurge fichiersEnAttente={enAttente ?? 0} />
             <details>

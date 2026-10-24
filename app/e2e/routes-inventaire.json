@@ -1084,5 +1084,11 @@
     "persona": "superadmin",
     "label": "Demandes privées de données et procédure de fermeture",
     "dynamic": ""
+  },
+  {
+    "path": "/admin/conservation",
+    "persona": "superadmin",
+    "label": "Durées de conservation",
+    "dynamic": ""
   }
 ]

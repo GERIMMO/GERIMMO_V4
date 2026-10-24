@@ -1,9 +1,10 @@
+import { ConsoleSection } from "@/components/console-section";
 import { lireEditeur } from "@/lib/editeur-serveur";
 import {createClient} from "@/lib/supabase/server";
 import {IdentiteEditeur} from "./identite";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
-import { faitsACompleter, faitsManquants, prestatairesAvecFaits, reservesPrestataires } from "@/lib/editeur";
+import { faitsACompleter, faitsManquants } from "@/lib/editeur";
 import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
 import { BlocageSouscription } from "./blocage-souscription";
 
@@ -28,10 +29,6 @@ export default async function PageParametres() {
   const aCompleter = new Set(faitsACompleter(editeur));
   const exiges = [...requis, ...nonBloquants];
   const fournis = exiges.length - manquants.size - aCompleter.size;
-  // 19/10 : les prestataires des pages légales, avec ce que la saisie a fourni (localisation, coordonnées).
-  const prestataires = prestatairesAvecFaits(editeur);
-  const reservesPresta = reservesPrestataires(editeur);
-  const prestatairesFournis = prestataires.filter((p) => p.localisation && p.coordonnees).length;
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-7">
@@ -39,64 +36,25 @@ export default async function PageParametres() {
         <div className="min-w-0 flex-[1_1_20rem]">
           <TitreEcran rubrique="profil">Paramètres généraux</TitreEcran>
           <p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">
-            Ce qui se règle une fois : l’identité de Gerimmo sur les pages légales, la sécurité de votre compte et
-            l’ouverture d’une organisation.
+            Coordonnées publiques, abonnements et conservation des données.
           </p>
         </div>
       </div>
 
-      <BlocageSouscription actif={regle.blocageIdentiteActif} revision={regle.revision} manquants={[...manquants]} aCompleter={[...aCompleter]} />
+      <div className="grid gap-3 sm:grid-cols-3" aria-label="État des paramètres">
+        <a className="loc-carte" href="#identite"><strong className="block">Identité de Gerimmo</strong><span className="text-sm text-muted-foreground">{indisponible ? 'Lecture indisponible' : `${fournis} / ${exiges.length} fournis`}</span></a>
+        <a className="loc-carte" href="#souscriptions"><strong className="block">Abonnements</strong><span className="text-sm text-muted-foreground">Vérifier la règle d’ouverture</span></a>
+        <Link className="loc-carte" href="/admin/conservation"><strong className="block">Conservation</strong><span className="text-sm text-muted-foreground">Régler les durées par catégorie →</span></Link>
+      </div>
 
-      <section className="loc-carte"><h2>Conservation des données</h2><p className="mt-2 text-sm text-muted-foreground">Durées par catégorie et historique de vos modifications.</p><Link className="lien-discret mt-3 inline-block" href="/admin/conservation">Régler les durées de conservation →</Link></section>
-
-      <section className="loc-carte">
-        <div className="entete-carte">
-          <h2>Identité de l’éditeur</h2>
-          <span className={`puce ${manquants.size || aCompleter.size ? "puce-prep" : "puce-loue"}`}>
-            {fournis} / {exiges.length} fournis
-          </span>
-          <span className={`puce ${reservesPresta.length ? "puce-prep" : "puce-loue"}`}>
-            {prestatairesFournis} / {prestataires.length} prestataires
-          </span>
-        </div>
-        <p className="text-sm text-[var(--texte-secondaire)]">
-          Les mentions légales, les conditions générales et la politique de confidentialité citent ces faits. Tant
-          qu’un fait manque, la page l’affiche « à venir » plutôt que d’inventer une valeur. Seuls les faits « à
-          fournir » ferment le paiement en ligne ; ceux « à compléter » (le médiateur) ne ferment rien.
-        </p>
-        <ul className="colonne-liste mt-4">
-          {exiges.map((f) => (
-            <li key={f} className="rang">
-              <span className="first-letter:uppercase">{f}</span>
-              <span className={`puce ml-auto ${manquants.has(f) || aCompleter.has(f) ? "puce-prep" : "puce-loue"}`}>
-                {manquants.has(f) ? "À fournir" : aCompleter.has(f) ? "À compléter, non bloquant" : "Fourni"}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <h3 className="mt-5 text-sm font-semibold">Prestataires</h3>
-        <p className="text-sm text-[var(--texte-secondaire)]">
-          Localisation et coordonnées (dénomination, adresse, téléphone) de chaque prestataire. Les coordonnées sont
-          reprises dans les mentions légales ; la localisation à saisir (aujourd’hui celle de la Base Adresse
-          Nationale), sur les trois pages légales.
-        </p>
-        <ul className="colonne-liste mt-2">
-          {prestataires.map((p) => {
-            const manque = [...(p.localisation ? [] : ["localisation"]), ...(p.coordonnees ? [] : ["coordonnées"])];
-            return (
-              <li key={p.cle} className="rang">
-                <span>{p.nom}</span>
-                <span className={`puce ml-auto ${manque.length ? "puce-prep" : "puce-loue"}`}>
-                  {manque.length ? `À fournir : ${manque.join(" et ")}` : "Fourni"}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-        <div className="mt-5">{indisponible||config.error||!config.data?<p role="alert" className="err">Paramètres indisponibles. Rechargez avant de modifier.</p>:<IdentiteEditeur valeurs={editeur} revision={config.data.revision}/>}</div>
+      <section id="identite" className="scroll-mt-24">
+        {indisponible||config.error||!config.data ? <p role="alert" className="err">Paramètres indisponibles. Rechargez avant de modifier.</p> : <IdentiteEditeur valeurs={editeur} revision={config.data.revision}/>}
         <Link className="lien-discret mt-4 inline-block" href="/admin/journaux?registre=supervision_identite">Historique des modifications →</Link>
-
       </section>
+
+      <ConsoleSection id="souscriptions" titre="Ouverture des abonnements" description="Règle de blocage si l’identité de Gerimmo est incomplète." icone="securite" ton="ambre" statut={indisponible || regle.revision === null ? "Lecture indisponible" : manquants.size ? `${manquants.size} à fournir` : 'Identité requise complète'}>
+        <BlocageSouscription actif={regle.blocageIdentiteActif} revision={regle.revision} manquants={[...manquants]} aCompleter={[...aCompleter]} />
+      </ConsoleSection>
 
       <div className="grid gap-6 md:grid-cols-2">
         <section className="loc-carte">

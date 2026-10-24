@@ -1,3 +1,4 @@
+import { ConsoleSection } from "@/components/console-section";
 import { createClient } from "@/lib/supabase/server";
 import { formaterDateHeureParis } from "@/lib/heure-paris";
 import { euros } from "@/lib/tarifs";
@@ -52,14 +53,12 @@ export async function supervisionPermanente(): Promise<boolean> {
 /** Les fermetures programmées, et celles exécutées ou annulées depuis trente jours. */
 export async function FermeturesComptes() {
   const db = await createClient();
-  const entete = <div><p className="eyebrow">Fermeture des comptes</p><h2 id="titre-fermetures">Fermetures programmées et exécutées</h2></div>;
   // Relecture du 24/10 (R2-9) : sans supervision permanente, la RLS rend une liste vide — ne pas la présenter comme
   // « aucune fermeture », ni proposer des gestes que l'action refuserait.
   if (!(await supervisionPermanente())) {
-    return <section id="fermetures" aria-labelledby="titre-fermetures" className="loc-carte space-y-4">
-      {entete}
+    return <ConsoleSection id="fermetures" titre="Fermetures de comptes" description="Suivre les fermetures programmées et récentes." icone="personnes" ton="ambre" statut="Accès réservé">
       <p role="status" className="text-sm">Réservé à la supervision permanente avec second facteur : les fermetures de comptes ne s’affichent ni ne se programment depuis cette session.</p>
-    </section>;
+    </ConsoleSection>;
   }
   const depuis = ilYaTrenteJours();
   const r = await db.from("fermetures_comptes")
@@ -67,8 +66,10 @@ export async function FermeturesComptes() {
     .or(`statut.eq.programmee,programmee_le.gte.${depuis}`)
     .order("effacement_prevu_le", { ascending: true }).limit(100);
   const liste = (r.data ?? []) as Fermeture[];
-  return <section id="fermetures" aria-labelledby="titre-fermetures" className="loc-carte space-y-4">
-    {entete}
+  const programmees = liste.filter(f => f.statut === "programmee").length;
+  const aVerifier = liste.some(f => f.statut === "programmee" && (f.derniere_erreur || f.gel_motif));
+  return <ConsoleSection id="fermetures" titre="Fermetures de comptes" description="Suivre les fermetures programmées et récentes." icone="personnes" ton="ambre" ouverte={Boolean(r.error || aVerifier)} statut={r.error ? "Lecture indisponible" : aVerifier ? "À vérifier" : `${programmees} programmées dans la liste`}>
+    <div className="space-y-4">
     <p className="text-sm text-muted-foreground">L’effacement s’exécute la nuit de la date d’effet, après la sauvegarde du jour : preuve d’un contrat payé archivée, espace et fichiers effacés (ou la seule adhésion s’il reste d’autres gérants), dossiers d’autres propriétaires détachés et propriétaires prévenus, compte supprimé ou neutralisé. Ce qui appartient à d’autres comptes (demandes au support, registre d’un artisan, parrainage) reste, détaché. Le remboursement d’une fermeture à quatorze jours part dès l’arrêt chez Stripe ; le courriel de fin, la nuit même.</p>
     {r.error ? <p role="alert" className="err">Lecture indisponible : aucune fermeture ne peut être confirmée.</p>
       : liste.length === 0 ? <p className="text-sm">Aucune fermeture programmée ni récente.</p>
@@ -86,7 +87,8 @@ export async function FermeturesComptes() {
         </>}
         {f.statut === "annulee" && <p className="text-muted-foreground">Annulée{f.annulation_motif ? ` : ${f.annulation_motif}` : ""}{f.remboursement_cents ? ` · remboursé ${euros(Number(f.remboursement_cents))} (souscription déjà arrêtée chez Stripe)` : ""}.</p>}
       </li>)}</ul>}
-  </section>;
+    </div>
+  </ConsoleSection>;
 }
 
 /** Les comptes qui ont déjà une fermeture programmée (pour ne pas en proposer une seconde). */

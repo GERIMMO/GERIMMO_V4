@@ -37,17 +37,14 @@ export default async function PageOuvrirOrganisation(
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-7">
       <Link href="/admin/clients" className="lien-discret text-[13px]">
-        ← Tous les clients
+        ← Utilisateurs
       </Link>
       <div className="entete-page mb-6 mt-2">
         <TitreEcran rubrique="entreprise">Ouvrir une organisation</TitreEcran>
       </div>
 
       <p className="mesure-lecture mb-5 text-sm text-muted-foreground">
-        Crée l&apos;organisation, le compte de son premier responsable et
-        l&apos;adhésion qui les relie, puis lui envoie le lien pour définir son
-        mot de passe. Il arrive sur un espace vide, avec le chemin à suivre
-        affiché sur son accueil.
+        Le responsable recevra une invitation pour accéder à son nouvel espace et choisir son mot de passe.
       </p>
 
       {prefill?.demandeId && (

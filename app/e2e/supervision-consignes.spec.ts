@@ -10,7 +10,8 @@ test('une consigne exige une version activée, conserve sa preuve et reste suspe
  const titre=`E2E supervision locale ${Date.now()}`;
  await page.goto('/admin/consignes');
  await expect(page.getByRole('heading',{name:'Consignes du dirigeant'})).toBeVisible();
- const creation=page.locator('main section').filter({has:page.getByRole('heading',{name:'Donner une consigne',exact:true})});
+ const creation=page.locator('main details').filter({has:page.getByRole('heading',{name:'Créer une consigne',exact:true})});
+ await creation.locator(':scope > summary').click();
  await creation.getByLabel('Titre',{exact:true}).fill(titre);
  await creation.getByLabel('Consigne et contexte',{exact:true}).fill('Données fictives : observer uniquement la mission de quittances.');
  await creation.getByRole('combobox',{name:'Responsable déjà habilité',exact:true}).selectOption({index:1});
@@ -68,7 +69,8 @@ for(const format of [{nom:'mobile',width:390,height:844,isMobile:true},{nom:'ord
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
     await page.screenshot({path:testInfo.outputPath(`${ecran.nom}-${format.nom}.png`),fullPage:true,animations:'disabled'});
     await page.screenshot({path:testInfo.outputPath(`${ecran.nom}-${format.nom}-premier-ecran.png`),animations:'disabled'});
-    const carte=page.locator('main section').filter({has:page.getByRole('heading',{name:ecran.nom==='consignes'?'Donner une consigne':'Préparer votre absence',exact:true})});
+    const carte=page.locator('main details').filter({has:page.getByRole('heading',{name:ecran.nom==='consignes'?'Créer une consigne':'Préparer une absence',exact:true})});
+    await carte.locator(':scope > summary').click();
     await carte.screenshot({path:testInfo.outputPath(`${ecran.nom}-${format.nom}-formulaire.png`),animations:'disabled'});
    }
   });

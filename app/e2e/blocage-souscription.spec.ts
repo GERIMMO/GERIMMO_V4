@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("le superadmin lève puis réactive le blocage, avec persistance et historique", async ({ page }) => {
-  await page.goto("/admin/parametres");
+  await page.goto("/admin/parametres#souscriptions");
   const regle = page.getByRole("region", { name: "Blocage des abonnements" });
   await expect(regle).toBeVisible();
   // Tolère la décision laissée par un essai précédent ; termine toujours avec la règle active.
@@ -28,7 +28,7 @@ test("le superadmin lève puis réactive le blocage, avec persistance et histori
     await regle.getByRole("link", { name: "Historique des changements" }).click();
     await expect(page.getByText("Blocage des abonnements pour identité incomplète : levé.", { exact: true }).first()).toBeVisible();
   } finally {
-    await page.goto("/admin/parametres");
+    await page.goto("/admin/parametres#souscriptions");
     await expect(regle).toBeVisible();
     const reactiver = regle.getByRole("button", { name: "Réactiver le blocage", exact: true });
     if (await reactiver.count()) await reactiver.click();

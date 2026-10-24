@@ -8,12 +8,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("le superadmin consulte les limites et simule la conservation sans supprimer", async ({ page }) => {
-  await page.goto("/admin/sante");
+  await page.goto("/admin/sante#budget-signatures");
   await page.getByText("Documents disponibles et limites", { exact: true }).click();
   await expect(page.getByText("Connexion Zoho à configurer", { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/Les mandats d’agence et les personnes morales/)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.goto("/admin/donnees");
+  await page.goto("/admin/donnees#conservation-contacts");
   // Depuis le 24/10 (plan de conformité, lot 2) : toutes les catégories du catalogue, une ligne chacune.
   const bilan = page.getByRole("region", { name: "Durées de conservation et nettoyages" });
   await bilan.getByRole("button", { name: "Afficher le bilan sans supprimer" }).click();

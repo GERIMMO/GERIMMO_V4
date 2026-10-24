@@ -11,7 +11,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Cohérence des loyers de référence]] — contrôle indicatif à la saisie du bail, surface habitable et complément, sans modification automatique des montants.
 
 ## Personas
-- [[Super Admin]] — l'éditeur de la plateforme ; console, modèles, blacklist globale, facturation.
+- [[Super Admin]] — l'éditeur de la plateforme ; console, modèles, blacklist globale, facturation ; **24/10** : simplification des huit rubriques et des fiches liées préparée, publication suivie dans `log.md`.
 - [[Administrateur d'agence]] — « agent ++ » : administration, paramétrages, vue retards ; **20/10** : hors V1 publique depuis le 13/10, son agence s'inscrit sur la liste d'attente du site (`/agences`, déployé le 20/10 au soir (PR #227)) — [[Liste d'attente des agences]].
 - [[Agent immobilier]] — gestion locative quotidienne ; limité à ses mandats (V3) ; **20/10** : agences hors V1 publique, liste d'attente ouverte sur le site (déployé le 20/10 au soir (PR #227)) — [[Liste d'attente des agences]].
 - [[Propriétaire bailleur]] — deux personas V3 : mandant (aucun accès, compte rendu mensuel reçu) vs gestion directe (accès complet) ; **16/10** : le propriétaire direct invite ses artisans par e-mail (PR #194), l'ajout par SIRET restant réservé aux agences.

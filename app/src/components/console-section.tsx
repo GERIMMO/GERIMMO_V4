@@ -27,7 +27,7 @@ export function ConsoleSection({ titre, description, children, id, ouverte = fal
     ouvrirCible();
     window.addEventListener("hashchange", ouvrirCible);
     return () => window.removeEventListener("hashchange", ouvrirCible);
-  }, []);
+  }); // Une navigation interne peut conserver le composant sans émettre hashchange.
   const Icone = ICONES[icone];
   return <details ref={ref} id={id} open={ouverte} className={styles.section} data-tone={ton} onInvalidCapture={event => {
     let element: HTMLElement | null = event.target as HTMLElement;

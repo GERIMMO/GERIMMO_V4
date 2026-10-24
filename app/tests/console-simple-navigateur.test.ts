@@ -46,6 +46,12 @@ describe.skipIf(!chrome)("Console simplifiée : saisies, liens et clavier", () =
     expect(await page.getByLabel("Raison du changement").evaluate(e=>e===document.activeElement)).toBe(true);
     expect(await page.evaluate(()=>(window as unknown as {__envois?:number}).__envois)).toBeUndefined();
   });
+  it("une navigation interne qui conserve les rubriques révèle le journal ciblé",async()=>{
+    await page.goto("http://localhost/");
+    await page.getByRole("button",{name:"Afficher la page suivante du journal"}).click();
+    await expect.poll(()=>page.getByText("Page du journal : 2",{exact:true}).isVisible()).toBe(true);
+    expect(await page.locator("details[open]").count()).toBe(2);
+  });
   it("replier puis enregistrer conserve tous les champs, la révision et les valeurs après refus",async()=>{
     await page.goto("http://localhost/?vue=identite");await page.getByLabel("E-mail de contact").fill("nouveau@example.invalid");
     await page.getByText("Contact et entreprise",{exact:true}).click();

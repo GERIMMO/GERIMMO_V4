@@ -55,6 +55,8 @@ export type ContexteCourrier = {
   resiliation_accusee_pour: string | null;
   cgu_version: string | null;
   cgu_acceptee_le: string | null;
+  /** Les accusés de résiliation déjà envoyés pour cette souscription (relecture adverse du 24/10, I3). */
+  resiliations_accusees?: number | null;
 };
 
 export async function lireContexteCourrier(service: Service, orgId: string): Promise<ContexteCourrier | null> {
@@ -252,9 +254,14 @@ export function premierPrelevement(s: Pick<Stripe.Subscription, "trial_end" | "s
 // ── R04 : l'accusé de la résiliation ──────────────────────────────────────────────────────────────────────────
 
 /**
- * R04 : l'accusé de la résiliation, UN par fin de période, que l'appel vienne de la page (action) ou du webhook. La
+ * R04 : l'accusé de la résiliation, UN par notification, que l'appel vienne de la page (action) ou du webhook. La
  * clé du prestataire (`resiliation-{souscription}-{fin, jour de Paris}`) couvre deux envois presque simultanés ; la
  * marque en base (`resiliation_accusee_pour`) couvre le reste.
+ *
+ * Relecture adverse du 24/10 (I3) : lever la résiliation efface la marque (`abonnement_resiliation_levee`) ; une
+ * nouvelle notification de la même échéance reçoit alors son propre accusé (D. 215-3). Sa clé porte le rang de
+ * l'accusé (« -2 », « -3 »…), lu en base par les deux chemins : le même pour l'action et le webhook d'une même
+ * notification, jamais celui d'un accusé déjà parti (le prestataire le rendrait sans rien envoyer).
  */
 export async function envoyerAccuseResiliation(
   service: Service,
@@ -266,6 +273,8 @@ export async function envoyerAccuseResiliation(
     chemin: "action" | "webhook";
     /** L'adresse choisie sur la page ; à défaut, l'adresse de facturation. */
     destinataire?: string | null;
+    /** Le nom saisi sur la page (M6). */
+    nom?: string | null;
   },
   options: { avantEffet?: () => Promise<void> } = {}
 ): Promise<ResultatEnvoi> {
@@ -282,14 +291,16 @@ export async function envoyerAccuseResiliation(
     estAgence: c.public_tarif === "agence",
     notifieeLe: p.notifieeLe,
     periodeFin: p.periodeFin,
+    nom: p.nom,
   });
+  const rang = Number(c.resiliations_accusees ?? 0);
   await options.avantEffet?.();
   const { erreur, id } = await envoyerEmail({
     avantEnvoi: options.avantEffet,
     to,
     subject: courrier.sujet,
     html: courrier.html,
-    cleIdempotence: `resiliation-${p.subscription}-${dateParis(p.periodeFin)}`,
+    cleIdempotence: `resiliation-${p.subscription}-${dateParis(p.periodeFin)}${rang > 0 ? `-${rang + 1}` : ""}`,
   });
   if (erreur) return { envoye: false, motif: erreur };
   await service.rpc("abonnement_resiliation_accusee", {
@@ -330,27 +341,72 @@ export async function annulerFacturesOuvertes(
   return { sort: echecs.length > 0 ? "a_annuler" : annulees.length > 0 ? "annulees" : "aucune", annulees, echecs };
 }
 
+/** Le jour AAAA-MM-JJ, n jours plus tard (dates civiles). */
+function plusJours(jour: string, n: number): string {
+  const [a, m, j] = jour.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, j + n)).toISOString().slice(0, 10);
+}
+
+/** Délai de la mise en demeure avant une résiliation par l'Éditeur (article 15 des conditions en vigueur : trente jours). */
+export const DELAI_MISE_EN_DEMEURE_JOURS = 30;
+
 /**
  * R07 : sur `customer.subscription.deleted`, seulement quand un défaut de paiement était en cours et que le client
  * n'avait demandé aucune résiliation (lu en base AVANT l'événement) : la facture restée ouverte est annulée, puis le
  * courrier part, une fois.
+ *
+ * Relecture adverse du 24/10 (I1) : l'article 15 n'est cité que si la mise en demeure est restée sans effet trente
+ * jours (résiliation, jour de Paris, au plus tôt à J+30 du défaut). Plus tôt — réglage Stripe qui résilie de lui-même
+ * avant le terme annoncé par la mise en demeure —, le courrier dit les faits sans invoquer l'article, la facture est
+ * annulée de même, et le relais est alerté pour corriger le réglage.
  */
 export async function notifierResiliationImpaye(
   service: Service,
   stripe: Stripe,
-  p: { orgId: string; subscription: string; resilieLe: Date; destinataire: string | null; organisation: string },
+  p: {
+    orgId: string;
+    subscription: string;
+    resilieLe: Date;
+    destinataire: string | null;
+    organisation: string;
+    /** Le jour du défaut (AAAA-MM-JJ), point de départ de la mise en demeure. */
+    enDefautDepuis: string | null;
+  },
   options: { avantEffet?: () => Promise<void> } = {}
 ): Promise<ResultatEnvoi & { factures?: FacturesAnnulees }> {
   const factures = await annulerFacturesOuvertes(stripe, p.subscription);
   if (factures.echecs.length > 0) {
     await tracer(service, "resiliation_impaye_facture_non_annulee", { organisation: p.orgId, souscription: p.subscription, factures: factures.echecs });
   }
+  const resilieLe = dateParis(p.resilieLe);
+  const resiliableLe = p.enDefautDepuis ? plusJours(p.enDefautDepuis, DELAI_MISE_EN_DEMEURE_JOURS) : null;
+  const apresMiseEnDemeure = resiliableLe !== null && resilieLe >= resiliableLe;
+  if (!apresMiseEnDemeure) {
+    await alerterRelaisContrat(
+      service,
+      {
+        evenement: "resiliation_impaye_avant_mise_en_demeure",
+        sujet: "Gerimmo — résiliation pour impayé avant la fin de la mise en demeure",
+        lignes: [
+          `La souscription ${p.subscription} (organisation ${p.orgId}) a été résiliée par Stripe le ${resilieLe}, avant le ${resiliableLe ?? "terme"} annoncé par la mise en demeure (défaut depuis le ${p.enDefautDepuis ?? "?"}).`,
+          "Le courrier envoyé au client ne cite pas l'article 15 et la facture restée ouverte est annulée. Vérifiez le réglage Stripe « statut après échec des relances » (« marquer l'abonnement comme impayé ») et voyez s'il faut proposer au client une nouvelle souscription.",
+        ],
+        cle: `resiliation-impaye-avant-${p.subscription}`,
+        details: { organisation: p.orgId, souscription: p.subscription, resilie_le: resilieLe, resiliable_le: resiliableLe },
+      },
+      { avantEffet: options.avantEffet }
+    ).catch((e: unknown) => {
+      if (e instanceof ArretSupervision) throw e;
+      return 0;
+    });
+  }
   if (!p.destinataire) return { envoye: false, motif: "sans adresse", factures: factures.sort };
   const courrier = courrierResiliationImpaye({
     organisation: p.organisation,
-    resilieLe: dateParis(p.resilieLe),
+    resilieLe,
     factures: factures.sort,
     lien: lienAbonnement(await baseDeLOrganisation(service, p.orgId)),
+    apresMiseEnDemeure,
   });
   await options.avantEffet?.();
   const { erreur, id } = await envoyerEmail({

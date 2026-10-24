@@ -4,8 +4,35 @@ import "server-only";
 // courriel, par la clé de service — APRÈS le contrôle de ce droit par l'appelant.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ArretSupervision } from "@/lib/controle-effets";
 import { lireContexteCourrier } from "@/lib/courriers-contrat-envoi";
 import type { LigneRetractation } from "@/lib/retractation-etat";
+import { clientStripe, configurationStripe } from "@/lib/stripe";
+
+/**
+ * La date de souscription relue chez Stripe quand la base ne la connaît pas encore (souscription antérieure au 24/10,
+ * que le webhook n'a pas encore datée). Relecture adverse du 24/10 (M4) : « Mon abonnement » n'affiche plus le bloc
+ * « Droit de rétractation » d'un délai échu. `null` : rien à relire (pas de souscription suivie, ou déjà datée) ;
+ * `undefined` : Stripe illisible — l'appelant garde alors le bouton (la page de déclaration redira si le délai court).
+ */
+export async function conclusionRelueChezStripe(
+  supabase: SupabaseClient,
+  orgId: string,
+  ligne: LigneRetractation | null | undefined
+): Promise<Date | null | undefined> {
+  if (!ligne?.abonnement_suivi || ligne.souscrit_le) return null;
+  const reglages = configurationStripe();
+  if (!reglages.pret) return undefined;
+  const { data: sub, error } = await supabase.rpc("ma_souscription_stripe", { p_org: orgId });
+  if (error || typeof sub !== "string" || !sub) return undefined;
+  try {
+    const s = await clientStripe(reglages.config).subscriptions.retrieve(sub);
+    return typeof s.start_date === "number" ? new Date(s.start_date * 1000) : undefined;
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    return undefined;
+  }
+}
 
 export async function ligneRetractationDuResponsable(supabase: SupabaseClient, orgId: string): Promise<LigneRetractation | null | undefined> {
   const { data, error } = await supabase.rpc("ma_retractation", { p_org: orgId });

@@ -7,6 +7,11 @@
  *  · R07 : sur `customer.subscription.deleted`, le courrier de résiliation pour impayé et l'annulation de la facture
  *    ouverte, SEULEMENT si un défaut était en cours et qu'aucune résiliation n'avait été demandée (ni rétractation) ;
  *  · aucun courrier ne fait échouer le webhook.
+ *
+ * Relectures adverses du 24/10 : la confirmation part aussi quand la souscription devient active après être née
+ * « incomplete » (I5) ; une résiliation levée hors de la page efface la marque de son accusé (I3) ; le courrier de
+ * résiliation pour impayé ne cite l'article 15 que si trente jours ont passé depuis la mise en demeure, sinon un texte
+ * neutre et une alerte au relais (I1).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type Stripe from "stripe";
@@ -35,7 +40,7 @@ type Avant = {
   resiliation_par_la_page?: boolean;
 };
 
-function banc(avant: Avant, options: { archivee?: boolean } = {}) {
+function banc(avant: Avant, options: { archivee?: boolean; resiliationsAccusees?: number } = {}) {
   const appels: { nom: string; args: Record<string, unknown> }[] = [];
   const traces: Record<string, unknown>[] = [];
   const contexte = {
@@ -58,6 +63,7 @@ function banc(avant: Avant, options: { archivee?: boolean } = {}) {
     resiliation_accusee_pour: avant.resiliation_accusee_pour ?? null,
     cgu_version: "2026-09-30",
     cgu_acceptee_le: "2026-10-26T08:55:00Z",
+    resiliations_accusees: options.resiliationsAccusees ?? (avant.resiliation_accusee_pour ? 1 : 0),
   };
   const requete = (table: string) => {
     const q: Record<string, unknown> = {};
@@ -119,6 +125,8 @@ const evenement = (type: string, s: Stripe.Subscription): Stripe.Event =>
   ({ id: `evt_${type}`, type, created: Date.parse("2026-11-03T13:05:00Z") / 1000, data: { object: s } }) as unknown as Stripe.Event;
 
 const RIEN: Avant = { stripe_subscription_id: "sub_1", annulation_demandee: false, paiement_en_defaut_depuis: null, resiliation_impaye_notifiee_le: null };
+/** Une souscription déjà confirmée (I5 : une mise à jour d'une souscription récente non confirmée enverrait la confirmation). */
+const CONFIRMEE: Avant = { ...RIEN, confirmation_envoyee_le: "2026-10-26T09:01:00Z" };
 
 beforeEach(() => {
   m.envois.length = 0;
@@ -159,6 +167,37 @@ describe("R03 — la confirmation de la souscription", () => {
     expect(traces).toContainEqual(expect.objectContaining({ evenement: "confirmation_sans_pdf" }));
   });
 
+  it("I5 : née « incomplete » (authentification forte), puis active — la confirmation part à la bascule, une fois", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-26T09:10:00Z"), toFake: ["Date"] });
+    try {
+      const incomplete = souscription({ status: "incomplete" });
+      await traiterEvenementStripe(banc(RIEN).supabase as never, stripeFictif(incomplete).stripe, evenement("customer.subscription.created", incomplete));
+      expect(m.envois).toHaveLength(0);
+      const active = souscription({ status: "active" });
+      const { supabase, appels } = banc(RIEN);
+      await traiterEvenementStripe(supabase as never, stripeFictif(active).stripe, evenement("customer.subscription.updated", active));
+      expect(m.envois).toHaveLength(1);
+      expect(m.envois[0]).toMatchObject({ subject: "Confirmation de votre abonnement Gerimmo", cleIdempotence: "souscription-sub_1" });
+      expect(appels.some((a) => a.nom === "abonnement_confirmation_envoyee")).toBe(true);
+      // Déjà confirmée : une mise à jour ne renvoie rien.
+      await traiterEvenementStripe(banc({ ...RIEN, confirmation_envoyee_le: "2026-10-26T09:05:00Z" }).supabase as never, stripeFictif(active).stripe, evenement("customer.subscription.updated", active));
+      expect(m.envois).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("I5 : une souscription ancienne (plus d'un mois) qui n'a jamais été confirmée n'en reçoit pas à sa prochaine mise à jour", async () => {
+    vi.useFakeTimers({ now: new Date("2027-01-15T09:00:00Z"), toFake: ["Date"] });
+    try {
+      const active = souscription({ status: "active" });
+      await traiterEvenementStripe(banc(RIEN).supabase as never, stripeFictif(active).stripe, evenement("customer.subscription.updated", active));
+      expect(m.envois).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("déjà envoyée : rien ne repart ; un envoi en échec ne fait pas échouer le webhook", async () => {
     const s = souscription({});
     await traiterEvenementStripe(banc({ ...RIEN, confirmation_envoyee_le: "2026-10-26T09:01:00Z" }).supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.created", s));
@@ -172,7 +211,7 @@ describe("R03 — la confirmation de la souscription", () => {
 describe("R04 — l'accusé d'une résiliation notifiée hors de la page", () => {
   it("la bascule vers « résiliation demandée » envoie l'accusé, sous la clé partagée avec l'action", async () => {
     const s = souscription({ cancel_at_period_end: true });
-    const { supabase, appels } = banc(RIEN);
+    const { supabase, appels } = banc(CONFIRMEE);
     await traiterEvenementStripe(supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
     expect(m.envois).toHaveLength(1);
     expect(m.envois[0]).toMatchObject({ subject: "Votre résiliation Gerimmo est enregistrée", cleIdempotence: "resiliation-sub_1-2026-11-26" });
@@ -182,14 +221,26 @@ describe("R04 — l'accusé d'une résiliation notifiée hors de la page", () =>
 
   it("déjà demandée avant l'événement, ou déjà accusée pour cette échéance : aucun second accusé", async () => {
     const s = souscription({ cancel_at_period_end: true });
-    await traiterEvenementStripe(banc({ ...RIEN, annulation_demandee: true }).supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
-    await traiterEvenementStripe(banc({ ...RIEN, resiliation_accusee_pour: "2026-11-26T09:00:00Z" }).supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
+    await traiterEvenementStripe(banc({ ...CONFIRMEE, annulation_demandee: true }).supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
+    await traiterEvenementStripe(banc({ ...CONFIRMEE, resiliation_accusee_pour: "2026-11-26T09:00:00Z" }).supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
     expect(m.envois).toHaveLength(0);
+  });
+
+  it("I3 : une résiliation levée (hors de la page) efface la marque de l'accusé ; la suivante est accusée sous une clé de rang", async () => {
+    const levee = souscription({ cancel_at_period_end: false });
+    const { supabase, appels } = banc({ ...CONFIRMEE, annulation_demandee: true, resiliation_accusee_pour: "2026-11-26T09:00:00Z" });
+    await traiterEvenementStripe(supabase as never, stripeFictif(levee).stripe, evenement("customer.subscription.updated", levee));
+    expect(appels.find((a) => a.nom === "abonnement_resiliation_levee")?.args).toEqual({ p_org: "org-1", p_subscription: "sub_1" });
+    expect(m.envois).toHaveLength(0);
+    // La notification suivante : la marque effacée, un accusé déjà envoyé pour cette souscription → clé de rang 2.
+    const s = souscription({ cancel_at_period_end: true });
+    await traiterEvenementStripe(banc(CONFIRMEE, { resiliationsAccusees: 1 }).supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
+    expect(m.envois.map((e) => e.cleIdempotence)).toEqual(["resiliation-sub_1-2026-11-26-2"]);
   });
 
   it("notifiée à l'instant par la page « Résilier votre contrat » : la page envoie l'accusé, pas le webhook", async () => {
     const s = souscription({ cancel_at_period_end: true });
-    await traiterEvenementStripe(banc({ ...RIEN, resiliation_par_la_page: true }).supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
+    await traiterEvenementStripe(banc({ ...CONFIRMEE, resiliation_par_la_page: true }).supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
     expect(m.envois).toHaveLength(0);
   });
 });
@@ -207,6 +258,29 @@ describe("R07 — la résiliation pour impayé", () => {
     expect(m.envois[0]).toMatchObject({ subject: "Votre abonnement Gerimmo est résilié faute de règlement", cleIdempotence: "resiliation-impaye-sub_1" });
     expect(m.envois[0].html).toContain("La facture restée impayée est annulée.");
     expect(appels.find((a) => a.nom === "abonnement_resiliation_impaye_notifiee")?.args).toMatchObject({ p_factures_annulees: ["in_1"] });
+  });
+
+  it("I1 : résiliée AVANT trente jours de mise en demeure (réglage Stripe à corriger) — texte neutre, sans article 15, et alerte au relais", async () => {
+    vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.invalid");
+    const s = souscription({ status: "canceled", ended_at: Date.parse("2026-10-18T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
+    const { stripe, annulees } = stripeFictif(s, ["in_1"]);
+    const { supabase, traces } = banc(ENDEFAUT); // défaut le 4/10, résiliée le 18/10 : J+14
+    await traiterEvenementStripe(supabase as never, stripe, evenement("customer.subscription.deleted", s));
+    expect(annulees).toEqual(["in_1"]);
+    const client = m.envois.find((e) => e.to === "titulaire@example.invalid")!;
+    expect(client.html).not.toContain("article 15");
+    expect(client.html).toContain("Faute de règlement, votre abonnement Gerimmo a été résilié le 18 octobre 2026.");
+    expect(client.html).toContain("La facture restée impayée est annulée.");
+    expect(traces).toContainEqual(expect.objectContaining({ evenement: "resiliation_impaye_avant_mise_en_demeure" }));
+    const alerte = m.envois.find((e) => e.to === "relais@example.invalid")!;
+    expect(alerte.subject).toMatch(/résiliation pour impayé avant/i);
+    expect(alerte.html).not.toContain("titulaire@example.invalid");
+  });
+
+  it("I1 : à J+30 ou après, l'article 15 est cité (la mise en demeure est restée sans effet trente jours)", async () => {
+    const s = souscription({ status: "canceled", ended_at: Date.parse("2026-11-03T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
+    await traiterEvenementStripe(banc(ENDEFAUT).supabase as never, stripeFictif(s, ["in_1"]).stripe, evenement("customer.subscription.deleted", s));
+    expect(m.envois[0].html).toContain("est résilié depuis le 3 novembre 2026, en application de l'article 15 des conditions générales.");
   });
 
   it("seulement dans le cas prévu : pas sans défaut, pas après une résiliation demandée, pas pour une rétractation, pas deux fois", async () => {

@@ -178,6 +178,8 @@ export function courrierAccuseResiliation(r: {
   estAgence: boolean;
   notifieeLe: Date;
   periodeFin: Date | string;
+  /** Le nom saisi sur la page « Résilier votre contrat » (relecture adverse du 24/10, M6) ; absent par le webhook. */
+  nom?: string | null;
 }): Courrier {
   const sujet = "Votre résiliation Gerimmo est enregistrée";
   const fin = jourLong(r.periodeFin);
@@ -189,7 +191,7 @@ export function courrierAccuseResiliation(r: {
     p("Ensuite, votre compte passe en lecture seule ; rien n'est supprimé du seul fait de la résiliation."),
     p(`Vous pouvez annuler cette résiliation depuis « Mon abonnement » jusqu'au ${fin}.`),
   ].join("\n      ");
-  return { sujet, html: enveloppe(sujet, "Bonjour,", corps, r.organisation) };
+  return { sujet, html: enveloppe(sujet, r.nom ? `Bonjour ${r.nom},` : "Bonjour,", corps, r.organisation) };
 }
 
 // ── R01, R37 : la rétractation ────────────────────────────────────────────────────────────────────────────────

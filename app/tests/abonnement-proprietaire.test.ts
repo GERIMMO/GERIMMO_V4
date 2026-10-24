@@ -242,7 +242,11 @@ describe("plan du 23/10 (R01, R37) : le droit de rétractation sur « Mon abonne
     destinataire: "titulaire@example.com", retractation_abonnement_le: null as string | null, retractation_passage_le: null,
   };
   function avecLigne(l: Record<string, unknown>) {
-    mocks.rpc.mockImplementation(async (nom: string) => ({ data: [nom === "etat_abonnement" ? etat : nom === "ma_retractation" ? l : paiement], error: null }));
+    mocks.rpc.mockImplementation(async (nom: string) =>
+      nom === "ma_souscription_stripe"
+        ? { data: "sub_test", error: null }
+        : { data: [nom === "etat_abonnement" ? etat : nom === "ma_retractation" ? l : paiement], error: null }
+    );
   }
   it("visible en lecture seule, avec sa date limite (jour de souscription exclu) et « Renoncer au contrat ici »", async () => {
     abonner({ paye: false, paiement_en_retard: true });
@@ -260,5 +264,35 @@ describe("plan du 23/10 (R01, R37) : le droit de rétractation sur « Mon abonne
     expect(await rendre()).not.toContain("Renoncer au contrat ici");
     avecLigne({ ...ligne, souscrit_le: "2099-09-01T08:00:00Z" });
     expect(await rendre()).not.toContain("Renoncer au contrat ici");
+  });
+  it("relecture adverse du 24/10 (M4) : une souscription que la base n'a pas encore datée prend la date relue chez Stripe", async () => {
+    abonner();
+    mocks.stripePret = true;
+    const retrieve = vi.fn(async () => ({ id: "sub_test", start_date: Date.parse("2099-08-01T08:00:00Z") / 1000 }));
+    const { clientStripe } = await import("@/lib/stripe");
+    vi.mocked(clientStripe).mockReturnValue({ subscriptions: { retrieve } } as never);
+    avecLigne({ ...ligne, souscrit_le: null });
+    expect(await rendre()).not.toContain("Renoncer au contrat ici"); // souscrite le 1er août : délai échu
+    retrieve.mockResolvedValueOnce({ id: "sub_test", start_date: Date.parse("2099-10-05T08:00:00Z") / 1000 });
+    expect(await rendre()).toContain("Droit de rétractation — jusqu&#x27;au 19 octobre 2099 inclus");
+    // Stripe illisible : le bouton reste (la page de déclaration redira si le délai court).
+    retrieve.mockRejectedValueOnce(new Error("indisponible"));
+    expect(await rendre()).toContain("Renoncer au contrat ici");
+  });
+});
+
+describe("relecture adverse du 24/10 (I2) : après une résiliation pour impayé", () => {
+  it("l'écran ne promet plus que « tout rouvre » au paiement : il dit la résiliation et propose de souscrire de nouveau", async () => {
+    etat = { ...etat, statut: "suspendue", ecriture_ouverte: false };
+    paiement = { ...paiement, souscrit: false, paiement_en_retard: true, stripe_statut: "canceled" };
+    const html = await rendre();
+    expect(html).not.toContain("Dès que le paiement aboutit, tout rouvre");
+    expect(html).toContain("Votre abonnement a été résilié faute de règlement");
+    expect(html).toContain("Souscrivez de nouveau ci-dessous pour reprendre la saisie");
+  });
+  it("un abonnement encore en cours garde le texte de l'impayé (tout rouvre au paiement)", async () => {
+    abonner({ paiement_en_retard: true, paye: false });
+    etat = { ...etat, ecriture_ouverte: false };
+    expect(await rendre()).toContain("Dès que le paiement aboutit, tout rouvre");
   });
 });

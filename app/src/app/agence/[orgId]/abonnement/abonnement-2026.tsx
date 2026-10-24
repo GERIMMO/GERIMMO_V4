@@ -23,7 +23,7 @@ import { apercuChangement, datePremierPrelevement } from "@/lib/stripe-offres";
 import { joursJusquaParis } from "@/lib/heure-paris-calcul";
 import { dernierJourRetractation, jourEnLettres } from "@/lib/delai-retractation";
 import { etatRetractation } from "@/lib/retractation-etat";
-import { ligneRetractationDuResponsable } from "@/lib/retractation-serveur";
+import { conclusionRelueChezStripe, ligneRetractationDuResponsable } from "@/lib/retractation-serveur";
 import {
   FORMULES_PARTICULIER,
   etiquetteTaxes,
@@ -118,7 +118,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
     // Plan du 23/10 (R01, R37) : le droit de rétractation, affiché même en lecture seule.
     ligneRetractationDuResponsable(supabase, orgId),
   ]);
-  const retractation = etatRetractation(ligneRetractation ?? null);
+  // Relecture adverse du 24/10 (M4) : une souscription que la base n'a pas encore datée prend sa date chez Stripe.
+  const conclusionStripe = await conclusionRelueChezStripe(supabase, orgId, ligneRetractation);
+  const retractation = etatRetractation(ligneRetractation ?? null, new Date(), conclusionStripe ?? null);
   const etat = ((etatBrut ?? []) as Etat[])[0] ?? null;
   const paiement = ((paiementBrut ?? []) as Paiement[])[0] ?? null;
   if (erreurEtat || erreurPaiement || !etat || !paiement) {
@@ -138,6 +140,11 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   const ferme = !etat.ecriture_ouverte;
   const enEssai = etat.statut === "essai";
   const souscrit = paiement.souscrit;
+  // Relecture adverse du 24/10 (I2) : un défaut de paiement encore inscrit sur une souscription terminée. Résiliée pour
+  // impayé (ni résiliation demandée, ni rétractation), la facture est annulée : « tout rouvre au paiement » serait faux.
+  const alerteRetard = paiement.paiement_en_retard && souscrit;
+  const resilieeImpaye =
+    paiement.paiement_en_retard && !souscrit && !paiement.annulation_demandee && !ligneRetractation?.retractation_abonnement_le;
   const actuelle = offreActuelle(paiement, publicTarif);
   const capacite = paiement.unites_souscrites;
   const reglages = configurationStripe();
@@ -267,7 +274,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             {retour("resiliation") === "programmee"
               ? retour("accuse") === "echec"
                 ? "Résiliation enregistrée pour la prochaine échéance : votre accès payé reste entier jusque-là. L'accusé de réception n'a pas pu partir pour le moment : écrivez-nous si vous ne le recevez pas."
-                : "Résiliation enregistrée pour la prochaine échéance : votre accès payé reste entier jusque-là. Un accusé de réception vous est envoyé par courriel."
+                : retour("accuse") === "deja"
+                  ? "Résiliation enregistrée pour la prochaine échéance : votre accès payé reste entier jusque-là. L'accusé de réception de cette résiliation vous a déjà été envoyé par courriel."
+                  : "Résiliation enregistrée pour la prochaine échéance : votre accès payé reste entier jusque-là. Un accusé de réception vous est envoyé par courriel."
               : "Résiliation annulée : votre abonnement se renouvelle normalement."}
           </p>
         </div>
@@ -285,7 +294,19 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         </div>
       )}
 
-      {paiement.paiement_en_retard && (
+      {resilieeImpaye && (
+        <div role="alert" className="loc-carte border-l-4 border-l-[var(--destructive)]">
+          <p className="mesure-lecture text-sm">
+            <b className="font-semibold">Votre abonnement a été résilié faute de règlement.</b>{" "}
+            <span className="text-muted-foreground">
+              La facture restée impayée est annulée : vous n&apos;avez rien à régler. Rien n&apos;est supprimé : vos
+              données restent consultables et exportables. Souscrivez de nouveau ci-dessous pour reprendre la saisie.
+            </span>
+          </p>
+        </div>
+      )}
+
+      {alerteRetard && (
         <div role="alert" className={`loc-carte border-l-4 ${ferme ? "border-l-[var(--destructive)]" : "border-l-[var(--warning)]"}`}>
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
@@ -301,7 +322,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         </div>
       )}
 
-      {ferme && !paiement.paiement_en_retard && (
+      {ferme && !alerteRetard && !resilieeImpaye && (
         <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">Votre compte est en lecture seule.</b>{" "}
@@ -339,7 +360,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           relit la date chez Stripe et dit si le délai court encore. */}
       {(retractation.abonnement.ouverte ||
         retractation.passage.ouverte ||
-        (ligneRetractation?.abonnement_suivi && !ligneRetractation.souscrit_le && !ligneRetractation.retractation_abonnement_le)) && (
+        (conclusionStripe === undefined && ligneRetractation?.abonnement_suivi && !ligneRetractation.souscrit_le && !ligneRetractation.retractation_abonnement_le)) && (
         <section className="loc-carte space-y-2 border-l-4 border-l-[var(--or)]" aria-labelledby="droit-retractation">
           <h2 id="droit-retractation" className="text-base">
             {retractation.abonnement.ouverte && retractation.abonnement.dernierJour

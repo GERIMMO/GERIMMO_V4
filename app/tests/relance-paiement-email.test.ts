@@ -89,12 +89,18 @@ describe("Plan du 23/10 : mise en demeure, premier prélèvement, envois interro
   });
 
   it("le courrier de résiliation pour impayé : date, article 15, sort de la facture, données conservées", () => {
-    const annulee = courrierResiliationImpaye({ organisation: "Cabinet Martin", resilieLe: "2026-11-12", factures: "annulees", lien: "https://gerimmo.app/espace/abc/abonnement" });
+    const annulee = courrierResiliationImpaye({ organisation: "Cabinet Martin", resilieLe: "2026-11-12", factures: "annulees", lien: "https://gerimmo.app/espace/abc/abonnement", apresMiseEnDemeure: true });
     const texte = annulee.html.replace(/\s+/g, " ");
     expect(texte).toContain("Faute de règlement, votre abonnement Gerimmo est résilié depuis le 12 novembre 2026, en application de l'article 15 des conditions générales. La facture restée impayée est annulée.");
     expect(texte).toContain("Vos données restent consultables et exportables en lecture seule ; rien n'est supprimé du fait de cette résiliation. Pour reprendre la saisie, souscrivez de nouveau depuis « Mon abonnement ».");
-    expect(courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-12", factures: "aucune", lien: null }).html).not.toContain("facture");
-    expect(courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-12", factures: "a_annuler", lien: null }).html).toContain("sera annulée : vous n'avez rien à régler");
+    expect(courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-12", factures: "aucune", lien: null, apresMiseEnDemeure: true }).html).not.toContain("facture");
+    expect(courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-12", factures: "a_annuler", lien: null, apresMiseEnDemeure: true }).html).toContain("sera annulée : vous n'avez rien à régler");
+  });
+
+  it("relecture adverse du 24/10 (I1) : avant trente jours de mise en demeure, les faits sans l'article 15", () => {
+    const t = courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-03", factures: "annulees", lien: null, apresMiseEnDemeure: false }).html.replace(/\s+/g, " ");
+    expect(t).toContain("Faute de règlement, votre abonnement Gerimmo a été résilié le 3 novembre 2026. La facture restée impayée est annulée.");
+    expect(t).not.toContain("article 15");
   });
 });
 

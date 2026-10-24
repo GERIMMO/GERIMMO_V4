@@ -595,6 +595,9 @@ export async function resilierAbonnement(
 ): Promise<EtatAbonnementAction> {
   const resilier = formData.get("resilier") === "oui";
   const adresse = String(formData.get("adresse") ?? "").trim() || null;
+  // Relecture adverse du 24/10 (M6) : le nom saisi fait partie de la notification — consigné (sans arobase : le journal
+  // n'admet aucune coordonnée) et repris dans l'accusé.
+  const nom = String(formData.get("nom") ?? "").replace(/[@\r\n]/g, " ").replace(/\s+/g, " ").trim().slice(0, 200) || null;
   if (adresse && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adresse) || adresse.length > 320)) {
     return { erreur: "Indiquez une adresse électronique valide pour recevoir l'accusé de réception." };
   }
@@ -622,7 +625,7 @@ export async function resilierAbonnement(
       p_org: orgId,
       p_account: user?.id ?? null,
       p_action: resilier ? "abonnement_resiliation_notifiee" : "abonnement_resiliation_levee",
-      p_details: { souscription: souscription as string, chemin: "page", notifiee_le: notifieeLe.toISOString() },
+      p_details: { souscription: souscription as string, chemin: "page", notifiee_le: notifieeLe.toISOString(), ...(resilier && nom ? { nom } : {}) },
     });
     const r = await resilierAEcheance(verrou.proteger(clientStripe(reglages.config)), {
       subscription: souscription as string,
@@ -633,6 +636,12 @@ export async function resilierAbonnement(
     // 23/10 : aussi quand la résiliation elle-même a échoué après la libération.
     if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
     if (!r.ok) return { erreur: r.erreur };
+    // Relecture adverse du 24/10 (I3) : la levée efface la marque de l'accusé ; une nouvelle notification de la même
+    // échéance sera accusée de nouveau. Un échec ne défait pas la levée (le webhook l'efface aussi).
+    if (!resilier && service) {
+      const { error: erreurLevee } = await service.rpc("abonnement_resiliation_levee", { p_org: orgId, p_subscription: souscription as string });
+      if (erreurLevee) console.error("[résiliation] marque de l'accusé non effacée :", erreurLevee.message.slice(0, 200));
+    }
     if (resilier) {
       const fin = r.souscription ? finDePeriode(r.souscription) : null;
       const envoi =
@@ -644,12 +653,15 @@ export async function resilierAbonnement(
               notifieeLe,
               chemin: "action",
               destinataire: adresse,
+              nom,
             }).catch((e: unknown) => {
               if (e instanceof ArretSupervision) throw e;
               return { envoye: false, motif: "envoi impossible" };
             })
           : { envoye: false, motif: "fin de période inconnue" };
-      if (!envoi.envoye && envoi.motif !== "déjà accusée") accuse = "&accuse=echec";
+      // Ne jamais laisser l'écran dire « vous est envoyé » quand rien n'est parti : déjà parti pour cette notification, ou
+      // en échec (relecture adverse du 24/10, I3).
+      if (!envoi.envoye) accuse = envoi.motif === "déjà accusée" ? "&accuse=deja" : "&accuse=echec";
     }
   } finally {
     await verrou.rendre();

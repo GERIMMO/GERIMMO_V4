@@ -168,12 +168,17 @@ export type FacturesAnnulees = "annulees" | "aucune" | "a_annuler";
 /**
  * R07 : le courrier de résiliation pour impayé, sur `customer.subscription.deleted`, seulement quand un défaut de
  * paiement était en cours et qu'aucune résiliation n'avait été demandée par le client.
+ *
+ * `apresMiseEnDemeure` (relecture adverse du 24/10, I1) : la résiliation a lieu trente jours au moins après la mise en
+ * demeure, l'article 15 est cité ; sinon le courrier dit les faits, sans invoquer un article dont la condition n'est
+ * pas remplie (et sans contredire la date annoncée par la mise en demeure).
  */
 export function courrierResiliationImpaye(p: {
   organisation: string;
   resilieLe: string; // AAAA-MM-JJ, jour de Paris
   factures: FacturesAnnulees;
   lien: string | null;
+  apresMiseEnDemeure: boolean;
 }): { sujet: string; html: string } {
   const sujet = "Votre abonnement Gerimmo est résilié faute de règlement";
   const facture =
@@ -189,8 +194,11 @@ export function courrierResiliationImpaye(p: {
     <div style="font-family:sans-serif;font-size:14px;color:#111;line-height:1.5">
       <h2 style="font-size:17px">${sujet}</h2>
       <p>Bonjour,</p>
-      <p>Faute de règlement, votre abonnement Gerimmo est résilié depuis le ${jour(p.resilieLe)}, en application de
-      l'article 15 des conditions générales.${facture}</p>
+      <p>${
+        p.apresMiseEnDemeure
+          ? `Faute de règlement, votre abonnement Gerimmo est résilié depuis le ${jour(p.resilieLe)}, en application de l'article 15 des conditions générales.`
+          : `Faute de règlement, votre abonnement Gerimmo a été résilié le ${jour(p.resilieLe)}.`
+      }${facture}</p>
       <p>Vos données restent consultables et exportables en lecture seule ; rien n'est supprimé du fait de cette
       résiliation. Pour reprendre la saisie, souscrivez de nouveau depuis « Mon abonnement ».</p>
       ${

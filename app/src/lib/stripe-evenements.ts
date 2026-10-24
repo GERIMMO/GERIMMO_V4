@@ -175,6 +175,21 @@ async function traiterSouscription(supabase: Service, stripe: Stripe, evenement:
     if (erreurDate) throw new Error(erreurDate.message);
   }
 
+  // Relecture adverse du 24/10 (I3) : une résiliation levée (page, tableau de bord) efface la marque de son accusé ;
+  // la notification suivante de la même échéance sera accusée de nouveau. Une marque en base, pas un effet externe :
+  // posée même quand la réception est rejouée sans effets. L'état est celui relu chez Stripe, jamais celui de la charge.
+  if (
+    org &&
+    evenement.type === "customer.subscription.updated" &&
+    avant?.stripe_subscription_id === s.id &&
+    avant.resiliation_accusee_pour &&
+    !s.cancel_at_period_end &&
+    !SOUSCRIPTION_TERMINEE.has(s.status)
+  ) {
+    const { error: erreurLevee } = await supabase.rpc("abonnement_resiliation_levee", { p_org: org, p_subscription: s.id });
+    if (erreurLevee) console.error("[stripe webhook][résiliation levée] marque non effacée :", erreurLevee.message.slice(0, 200));
+  }
+
   // La mention de TVA des factures suit le régime déclaré (audit 29/09,
   // point 6) — posée à la naissance de la souscription, quel que soit le
   // chemin qui l'a créée. Un échec n'empêche pas d'ouvrir le compte : il est
@@ -266,8 +281,17 @@ async function courriersDuContrat(
     }
   };
 
-  // R03 : la confirmation, à la naissance de la souscription (rattrapée la nuit si elle échoue).
-  if (evenement.type === "customer.subscription.created" && ["active", "trialing", "past_due"].includes(s.status)) {
+  // R03 : la confirmation, à la naissance de la souscription (rattrapée la nuit si elle échoue). Relecture adverse du
+  // 24/10 (I5) : une souscription née « incomplete » (authentification forte de la carte) devient active par une MISE
+  // À JOUR ; la confirmation part alors à cette bascule, avant le début de l'exécution — pour une souscription du
+  // dernier mois jamais confirmée (comme le rattrapage de nuit), jamais pour une ancienne.
+  const naissance = evenement.type === "customer.subscription.created";
+  const devenueActive =
+    evenement.type === "customer.subscription.updated" &&
+    !avant?.confirmation_envoyee_le &&
+    typeof s.start_date === "number" &&
+    s.start_date * 1000 >= Date.now() - 30 * 86_400_000;
+  if ((naissance || devenueActive) && ["active", "trialing", "past_due"].includes(s.status)) {
     await essayer("confirmation", () =>
       envoyerConfirmationSouscription(supabase, { orgId: org, subscription: s.id, premierPrelevementLe: premierPrelevement(s) })
     );
@@ -316,6 +340,7 @@ async function courriersDuContrat(
         resilieLe: typeof s.ended_at === "number" ? new Date(s.ended_at * 1000) : new Date(evenement.created * 1000),
         destinataire: suivi.destinataire,
         organisation: suivi.organisation,
+        enDefautDepuis: avant.paiement_en_defaut_depuis,
       })
     );
   }

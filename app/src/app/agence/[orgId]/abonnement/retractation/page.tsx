@@ -2,13 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { baseEspace } from "@/lib/racine-espace";
-import { clientStripe, configurationStripe } from "@/lib/stripe";
 import { clientDeService } from "@/lib/supabase/service";
 import { declarationRetractation } from "@/lib/courriers-contrat";
 import { jourEnLettres } from "@/lib/delai-retractation";
 import { dateParis } from "@/lib/heure-paris-calcul";
 import { etatRetractation, type LigneRetractation } from "@/lib/retractation-etat";
-import { ligneRetractationDuResponsable, ligneRetractationParLeService } from "@/lib/retractation-serveur";
+import { conclusionRelueChezStripe, ligneRetractationDuResponsable, ligneRetractationParLeService } from "@/lib/retractation-serveur";
 import { formuleParCode } from "@/lib/tarifs";
 import { EncadreLectureImpossible, EnteteReglages } from "../../profil/famille-reglages";
 import { FormulaireRetractation } from "../formulaires-contrat";
@@ -50,16 +49,8 @@ export default async function PageRetractation(props: PageProps<"/agence/[orgId]
   }
 
   // Une souscription antérieure au 24/10 que le webhook n'a pas encore datée : sa date est relue chez Stripe.
-  let conclusionStripe: Date | null = null;
-  const reglages = configurationStripe();
-  if (ligne?.abonnement_suivi && !ligne.souscrit_le && reglages.pret) {
-    const { data: sub } = await supabase.rpc("ma_souscription_stripe", { p_org: orgId });
-    if (sub) {
-      const s = await clientStripe(reglages.config).subscriptions.retrieve(sub as string).catch(() => null);
-      conclusionStripe = s && typeof s.start_date === "number" ? new Date(s.start_date * 1000) : null;
-    }
-  }
-  const etat = etatRetractation(ligne ?? null, new Date(), conclusionStripe);
+  const conclusionStripe = await conclusionRelueChezStripe(supabase, orgId, ligne);
+  const etat = etatRetractation(ligne ?? null, new Date(), conclusionStripe ?? null);
   const droit = nature === "abonnement" ? etat.abonnement : etat.passage;
   const prenom = typeof user.user_metadata?.prenom === "string" ? user.user_metadata.prenom : "";
   const nomCompte = typeof user.user_metadata?.nom === "string" ? user.user_metadata.nom : "";

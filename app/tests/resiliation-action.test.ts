@@ -7,6 +7,10 @@
  *    par le chemin « action » ; une échéance déjà accusée n'en reçoit pas un second ;
  *  · un accusé qui ne part pas se dit (« &accuse=echec ») sans défaire la résiliation ;
  *  · revenir sur la résiliation est consigné, sans accusé.
+ *
+ * Relecture adverse du 24/10 : lever la résiliation efface la marque de son accusé, et la notification suivante de la
+ * même échéance reçoit son propre accusé, sous une clé de rang (I3) ; une échéance déjà accusée ne fait plus croire à
+ * un envoi (« &accuse=deja ») ; le nom saisi est consigné et repris dans l'accusé (M6).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -70,7 +74,7 @@ beforeEach(() => {
   m.ordre = [];
   m.contexte = {
     organization_id: "org-1", organisation: "Espace fictif", public_tarif: "proprietaire_direct", stripe_subscription_id: "sub_test",
-    formule: "solo", destinataire: "facturation@example.com", resiliation_accusee_pour: null,
+    formule: "solo", destinataire: "facturation@example.com", resiliation_accusee_pour: null, resiliations_accusees: 0,
   };
   m.rpc.mockImplementation(async (nom: string) => (nom === "ma_souscription_stripe" ? { data: "sub_test", error: null } : { data: null, error: null }));
   m.serviceRpc.mockImplementation(async (nom: string) => {
@@ -101,11 +105,53 @@ describe("R04 — notifier la résiliation depuis la page", () => {
     expect(m.serviceRpc).toHaveBeenCalledWith("abonnement_resiliation_accusee", expect.objectContaining({ p_subscription: "sub_test", p_chemin: "action", p_message: "msg_1" }));
   });
 
-  it("une échéance déjà accusée (par le webhook) : aucun second accusé, et pas d'alerte", async () => {
-    m.contexte = { ...m.contexte, resiliation_accusee_pour: new Date(FIN_S * 1000).toISOString() };
+  it("une échéance déjà accusée (par le webhook) : aucun second accusé, et l'écran dit qu'il est déjà parti (I3)", async () => {
+    m.contexte = { ...m.contexte, resiliation_accusee_pour: new Date(FIN_S * 1000).toISOString(), resiliations_accusees: 1 };
     const url = await redirection(resilierAbonnement("org-1", {}, formulaire("oui")));
-    expect(url).toBe("/espace/org-1/abonnement?resiliation=programmee");
+    expect(url).toBe("/espace/org-1/abonnement?resiliation=programmee&accuse=deja");
     expect(m.envoyerEmail).not.toHaveBeenCalled();
+  });
+
+  it("I3 : résilier, lever, résilier de nouveau la même échéance — la levée efface la marque, la seconde notification est accusée sous une clé de rang", async () => {
+    // La base simulée : la marque et le rang des accusés.
+    m.serviceRpc.mockImplementation(async (nom: string, args: Record<string, unknown>) => {
+      m.ordre.push(nom);
+      if (nom === "abonnement_courrier_contexte") return { data: [{ ...m.contexte }], error: null };
+      if (nom === "abonnement_resiliation_accusee") {
+        m.contexte = { ...m.contexte, resiliation_accusee_pour: args.p_periode_fin, resiliations_accusees: Number(m.contexte.resiliations_accusees) + 1 };
+      }
+      if (nom === "abonnement_resiliation_levee") m.contexte = { ...m.contexte, resiliation_accusee_pour: null };
+      return { data: true, error: null };
+    });
+    const urls = [
+      await redirection(resilierAbonnement("org-1", {}, formulaire("oui"))),
+      await redirection(resilierAbonnement("org-1", {}, formulaire("non"))),
+      await redirection(resilierAbonnement("org-1", {}, formulaire("oui", "autre@example.com"))),
+    ];
+    expect(urls).toEqual([
+      "/espace/org-1/abonnement?resiliation=programmee",
+      "/espace/org-1/abonnement?resiliation=annulee",
+      "/espace/org-1/abonnement?resiliation=programmee",
+    ]);
+    expect(m.serviceRpc).toHaveBeenCalledWith("abonnement_resiliation_levee", { p_org: "org-1", p_subscription: "sub_test" });
+    expect(m.envoyerEmail).toHaveBeenCalledTimes(2);
+    expect(m.envoyerEmail.mock.calls.map((c) => [c[0].to, c[0].cleIdempotence])).toEqual([
+      ["choisie@example.com", "resiliation-sub_test-2026-11-24"],
+      ["autre@example.com", "resiliation-sub_test-2026-11-24-2"],
+    ]);
+  });
+
+  it("M6 : le nom saisi est consigné avec la notification (sans adresse) et repris dans l'accusé", async () => {
+    await redirection(resilierAbonnement("org-1", {}, formulaire("oui")));
+    const geste = m.serviceRpc.mock.calls.find((c) => c[0] === "abonnement_geste_consigner")?.[1];
+    expect(geste.p_details).toMatchObject({ nom: "Camille Exemple" });
+    expect(m.envoyerEmail.mock.calls[0][0].html).toContain("Bonjour Camille Exemple,");
+    // Un nom qui porterait une adresse n'en garde pas l'arobase (le journal n'admet aucune coordonnée).
+    vi.clearAllMocks();
+    const f = formulaire("oui");
+    f.set("nom", "Camille x@example.com");
+    await redirection(resilierAbonnement("org-1", {}, f));
+    expect(JSON.stringify(m.serviceRpc.mock.calls.find((c) => c[0] === "abonnement_geste_consigner")?.[1])).not.toContain("@");
   });
 
   it("un accusé qui ne part pas : la résiliation reste enregistrée, l'écran le dit", async () => {

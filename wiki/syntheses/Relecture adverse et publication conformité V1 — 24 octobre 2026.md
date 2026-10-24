@@ -1,7 +1,7 @@
 ---
 type: synthesis
 tags: [conformite, relecture, publication, preuves]
-status: in-progress
+status: stable
 created: 2026-10-24
 updated: 2026-10-24
 sources: ["[[Prompt de passation à Codex — conformité V1, 24 octobre 2026]]", "log.md", "app/CLAUDE.md"]
@@ -11,7 +11,7 @@ sources: ["[[Prompt de passation à Codex — conformité V1, 24 octobre 2026]]"
 
 ## Périmètre et ordre
 
-Reprise de `claude/compassionate-euler-qpqjp6`, tête `9e6e33b` (passation ajoutée après `b3ef106`), descendante de `main` `31377f5`. Travail sur `codex/conformite-v1-20261024`. La date du 24 octobre reste celle de la publication prévue. Aucun autre chantier ni changement de tarification n'est embarqué.
+Reprise de `claude/compassionate-euler-qpqjp6`, tête `9e6e33b` (passation ajoutée après `b3ef106`), descendante de `main` `31377f5`. Travail sur `codex/conformite-v1-20261024`, fusionné dans #248 (`a519f3a`). La publication a eu lieu le 24 octobre ; aucun décalage de date nécessaire. Aucun autre chantier ni changement de tarification n'est embarqué.
 
 Le code des lots 1 à 3 est déjà en production via #246/#247. Cette livraison publie les textes, active leur acceptation distincte et la règle d'inactivité V1 ; les corrections supplémentaires sont celles de la relecture ci-dessous. Une revue technique et documentaire ne constitue pas une certification juridique.
 
@@ -25,7 +25,7 @@ Le code des lots 1 à 3 est déjà en production via #246/#247. Cette livraison 
 | Impayé : trente jours de défaut étaient assimilés à trente jours depuis la mise en demeure | Le courriel impose aussi trente jours après son envoi ; le webhook relit la preuve du premier envoi de cet épisode avant de citer l'article 15.4. Sans preuve, ou trop tôt : texte factuel et alerte au relais | Cas de courrier retardé, absent, illisible ou inaccessible ; cas à trente jours révolus |
 | Wiki rédigé avant la dernière intégration | Compléments ci-dessous et liens depuis les pages concernées ; les constats historiques datés restent identifiables | Relecture des neuf nouvelles pages et des modifications du lot 6 |
 
-Les deux empreintes du 24 octobre, encore inédites, sont recalculées. La déclaration et l'archive de la version publiée du 30 septembre restent intactes. Les pages de référence sont à relever de nouveau sur `next start` après compilation.
+Les deux empreintes du 24 octobre ont été recalculées avant publication. La déclaration et l'archive de la version publiée du 30 septembre restent intactes. Les pages de référence ont été relevées de nouveau sur `next start` après compilation ; les 24 contrôles d'extraction passent.
 
 ## Confrontation des textes au code
 
@@ -37,7 +37,7 @@ Les deux empreintes du 24 octobre, encore inédites, sont recalculées. La décl
 - **Export** : archive CSV et fichiers, documents signés et certificats, dans les droits du demandeur, authentification récente ; limite de volume et échec explicite. L'article 9 des conditions contient déjà cet export : l'ancien point ouvert du wiki est résolu.
 - **Signatures** : mobile confirmé par la caution ou le garant ; mention de caution à saisir ; confirmation de l'établissement contradictoire sur place pour l'EDL, date identique au document. Le délai de complément de l'EDL part de son établissement. Aucun document réel envoyé ni signé pendant cette revue. La remise réelle d'un exemplaire à chacun et les conditions de l'offre Zoho restent à valider avec le prestataire, sans revendiquer une signature qualifiée.
 - **Acceptation** : écran de changement pour les comptes existants ; conditions artisans distinctes ; garde serveur ; V1 au 24/10 dans les comptes de recette. Le changement E2E `41f4270` est conservé : le titre attendu « 8.8 — Artisans et travaux » est bien celui du texte.
-- **Migration 150000** : activation seule et garde des fonctions d'inactivité, contrôle du catalogue attendu, droits fermés, chemin de recherche vide, retour arrière explicite refusé si des fermetures ont déjà été programmées. La simulation sur production reste obligatoire avant application.
+- **Migration 150000** : activation seule et garde des fonctions d'inactivité, contrôle du catalogue attendu, droits fermés, chemin de recherche vide, retour arrière explicite refusé si des fermetures ont déjà été programmées. Simulation puis application réussies, après la sauvegarde entièrement terminée ; preuves ci-dessous.
 
 ## Sources officielles confrontées le 24 octobre
 
@@ -67,3 +67,13 @@ Les pages Légifrance sont parfois rendues par l'index de recherche lorsque l'ou
 ### Complément après les essais mobiles
 
 L’audit agent a détecté un écran sans H1 sur `/artisan/inscription` : les nouvelles conditions artisan remplaçaient toute la page, avec un titre de section H2 seulement. Le titre de cette garde devient un H1 ; la case, la version acceptée et l’enregistrement de la preuve restent identiques. Les 209 autres essais mobiles locaux ont réussi (un essai ignoré). La correction est vérifiée par l’audit existant puis la CI complète du nouveau candidat.
+
+## Publication réalisée le 24 octobre
+
+- [PR #248](https://github.com/GERIMMO/GERIMMO_V4/pull/248), tête `3d22aa299ffe68eb4b2699ca55f89152a4b250d4` ; fusion squash `a519f3a8cc3f9ae7c322133fe6383b57037b3c67`.
+- [CI 40078952523](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/40078952523) entièrement verte : 10 528 tests réussis, 17 ignorés ; 210 parcours Chromium réussis, 1 ignoré ; 54 WebKit réussis. En local : 10 519 réussis, 26 ignorés ; 176 écrans vérifiés à 768 et 1440 px, sans débordement horizontal ni commande sans nom.
+- [Sauvegarde 40080464183](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/40080464183) terminée à 09:06:38 UTC ; [simulation 40080794933](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/40080794933), ROLLBACK à 09:09:08 ; [application 40081174066](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/40081174066), COMMIT à 09:14:59. Même fichier, même tête ; aucun chevauchement. SELECT confirme la règle active, les deux gardes et les droits fermés.
+- [Déploiement Vercel](https://vercel.com/gerimmo/gerimmo-v4/CX4a5SWoj2iNp9TvwSsoKSXrLw37) READY en production ; le domaine sert bien `a519f3a`, santé et base disponibles.
+- Les deux conditions du 24 octobre sont archivées à 09:23:25 UTC, après reconnexion du superadmin permanent avec second facteur. [Archives publiques](https://www.gerimmo.app/conditions/versions) vérifiées, y compris l'ouverture de chaque exemplaire. Empreinte client : `099d51937f5be5a531a8bb3ca3075f4a56e472140f04d4ae08ce59804fd1c545` ; artisan : `fff0df573633e12faf3b7347a83d089cc93c3d0409c31ea495bc4ebfd4f18aac`. L'archive du 30 septembre reste intacte.
+- [Stripe 40081459350](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/40081459350) : 14 réussis, aucun échec ni ignoré. Clés de test et base SQL jetable ; webhook signé simulé, interface Checkout non parcourue, aucun argent réel.
+- [Recette de production 40081401588](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/40081401588) réussie : 67 essais, 1 ignoré, aucun échec ni reprise. Nettoyage vérifié à 09:27:03 UTC, y compris les fichiers et la supervision temporaire. SELECT final : un utilisateur permanent, aucune organisation, aucun artisan, aucune fermeture ni tâche de recette restante. Aucun événement d’erreur depuis le READY jusqu’au relevé de 09:28 UTC ; cette observation ne couvre pas encore une heure entière.

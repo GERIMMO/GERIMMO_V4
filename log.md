@@ -6779,3 +6779,87 @@ Compilation finale réussie, types et lint sans erreur. Pages de référence rel
 ## [2026-10-24] test | PR 248 : essai mobile de l’acceptation artisan corrigé
 
 PR #248 ouverte sur `402424f`, après relecture et archivage préalable. Batterie locale mobile : 209 essais réussis, un ignoré et un échec de l’audit agent. Cause : la garde des nouvelles conditions artisan remplaçait la page entière par une section sans titre principal. Son titre est désormais un H1, visible et accessible ; aucune règle d’acceptation n’est retirée. Le contrôle existant des écrans couvre cette régression. Nouvelle révision soumise à la CI complète avant toute sauvegarde, simulation ou publication.
+
+### 24/10/2026 08:43 UTC — candidat corrigé et relevé préalable
+
+Candidat exact `3d22aa299ffe68eb4b2699ca55f89152a4b250d4`, arbre `78bf602dfe6f9ac140d84fde736fd08934111ecb`, PR #248 ; CI 40078952523 en cours. Build corrigé réussi ; audit agent rejoué : 31 écrans, 229 commandes nommées, aucun débordement, aucun écran en erreur. Dates client/artisan/inactivité et préparation de recette alignées sur le 24/10.
+
+Relevé en production avant simulation (SELECT uniquement) : empreinte MD5 de `comptes_inactifs_a_prevenir` = `25cf318e95e7bc2ffc8fc4fc71092354` ; `fermetures_comptes_programmer_inactifs` = `18469c6b8dfbbd7b949b1045ded6537c`. Les deux fonctions sont SECURITY DEFINER, search_path vide, sans exécution pour anon ni authenticated ; garde V1 absente avant migration, comme attendu. Aucune simulation ni sauvegarde simultanées ; la sauvegarde à la demande attend la CI verte.
+
+### 24/10/2026 08:49 UTC — batterie locale finale et contrôle de sécurité
+
+Vitest complet du candidat final : 715 fichiers réussis, 4 ignorés ; 10 519 tests réussis, 26 ignorés, zéro échec. Audit à 768 px réussi pour les sept profils. La première passe supervision avait été renvoyée à la connexion par les tests MFA simultanés du banc ; elle n’a pas été comptée comme preuve : reprise après ces tests, 37 écrans réels, zéro redirection, 269 commandes nommées, réussite. Audit 1440 px lancé ensuite, sans tests d’authentification simultanés.
+
+Conseiller sécurité Supabase consulté avant migration : 21 tables à RLS sans politique (accès direct fermé), 378 fonctions SECURITY DEFINER exécutables pour authenticated (architecture RPC avec contrôles internes), avertissement pg_net dans public, un avertissement de search_path sur `fermetures_comptes_nuit`. Ce dernier est une procédure invoker, avec COMMIT intermédiaires, noms qualifiés et EXECUTE révoqué à anon, authenticated et service_role (SELECT vérifié) : ce n’est pas une fonction privilégiée ouverte. Aucun changement de droits supplémentaire dans cette livraison. Références des avis : https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable et https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable .
+
+### 24/10/2026 08:55 UTC — audits des affichages terminés
+
+176 écrans examinés à 768 px et les mêmes 176 à 1440 px : zéro débordement horizontal, zéro commande sans nom. L’écran d’acceptation artisan corrigé est aussi relu sur sa capture. Les redirections de la matrice sont distinguées des écrans réels ; la supervision a bien ouvert ses 37 pages après renouvellement du second facteur de test. Aucun changement visuel supplémentaire introduit. Le contrôle Vercel de la branche est « success » mais correspond à une prévisualisation volontairement ignorée par la configuration : ce n’est pas une preuve READY de production. Le READY du déploiement main reste obligatoire après fusion.
+
+### 24/10/2026 09:00 UTC — contrôles GitHub
+
+Premier passage 40078528226 sur `402424f` : logique verte (10 528 tests, 17 ignorés) ; seul échec navigateur, le H1 de l’acceptation artisan, reproduit puis corrigé dans `3d22aa2`. Aucun autre échec dans ses journaux. Le passage final 40078952523 sur `3d22aa2` a terminé avec succès la logique, la compilation, les types et les parcours mobiles ; WebKit reste en cours. Pas de sauvegarde ni migration lancées avant la fin complète.
+
+### 24/10/2026 09:03 UTC — CI finale verte, sauvegarde demandée
+
+CI 40078952523 (« Lint, types, tests, build », job 120828279446) entièrement réussie sur `3d22aa299ffe68eb4b2699ca55f89152a4b250d4`, y compris Chromium et WebKit. Sauvegarde quotidienne demandée ensuite sur main depuis GitHub ; aucune simulation lancée pendant son exécution.
+
+Sauvegarde lancée : 40080464183, main `31377f5`, 24/10 09:03 UTC. Bilan exact de la CI finale : 10 528 tests réussis (17 ignorés, dont les tests Stripe réservés à leur chantier), 210 parcours Chromium réussis (1 ignoré), 54 parcours WebKit réussis. Aucune reprise automatique d’échec (« flaky ») dans ce bilan final.
+
+### 24/10/2026 09:07 UTC — sauvegarde terminée avant simulation
+
+Sauvegarde 40080464183 réussie (job 120832753080), durée totale 2 min 54 s. Export de base, fichiers chiffrés, dépôt Scaleway et consignation dans Gerimmo réussis. Aucune simulation pendant ce passage. La simulation du seul fichier `20261024150000_activation_inactivite_v1.sql` est préparée sur `codex/conformite-v1-20261024`, tête vérifiée `3d22aa2`.
+
+Simulation lancée seule : 40080794933, job 120833749504, tête `3d22aa2`, uniquement `20261024150000_activation_inactivite_v1.sql`, option simulation cochée. Preuve de sauvegarde relue en base : `2026-10-24 09:06:38.758651+00`, zéro échec.
+
+### 24/10/2026 09:09 UTC — simulation réussie
+
+Simulation 40080794933 réussie sur `3d22aa2`, fichier unique 150000 ; journal lu : `ROLLBACK` à 09:09:08 UTC. Préconditions et contrôles de migration réussis. Application réelle du même fichier et du même candidat préparée seulement après ce résultat.
+
+### 24/10/2026 09:16 UTC — application de la migration réussie
+
+Application réelle 40081174066, job 120834879954, sur `3d22aa299ffe68eb4b2699ca55f89152a4b250d4`, seul fichier `20261024150000_activation_inactivite_v1.sql`. Contrôles CI exacte et sauvegarde de huit minutes réussis ; COMMIT à 09:14:59 UTC. Aucun chevauchement sauvegarde/simulation/application. PR 248 relue avant fusion : tête inchangée, base main `31377f5`, fusion possible.
+
+Contrôle SELECT après application : version 150000 présente, règle active à 24 mois, marqueur V1 dans les deux fonctions, search_path vide et EXECUTE fermé à anon/authenticated. Traitement nocturne `fermetures-comptes` actif à 03:20 UTC. Toujours un utilisateur, aucune organisation ni fermeture. La première requête de comptage utilisait le nom français inexistant `organisations` ; corrigée en `organizations`, aucune écriture issue de ce contrôle.
+
+### 24/10/2026 09:17 UTC — fusion réalisée
+
+PR 248 fusionnée par squash avec garde sur la tête exacte `3d22aa2`. Révision main publiée à construire : `a519f3a8cc3f9ae7c322133fe6383b57037b3c67`. La mise en ligne n’est pas encore déclarée terminée : attente du READY Vercel, archivage V1 et recettes.
+
+### 24/10/2026 09:18 UTC — READY confirmé sur le domaine de production
+
+Vercel `CX4a5SWoj2iNp9TvwSsoKSXrLw37` : Ready, Production, domaine www.gerimmo.app, main `a519f3a` (construction 1 min 22 s). `/api/sante` rechargé : ok/base true, révision complète `a519f3a8cc3f9ae7c322133fe6383b57037b3c67`. Recette avec nettoyage lancée ensuite : 40081401588 sur main.
+
+La session permanente de supervision, utilisée à 08:13 pour l'archive du 30 septembre, expire au rechargement après déploiement (`raison=session-expiree`). Reconnexion avec second facteur demandée pour archiver les deux versions V1 ; pas de contournement par SQL/service. Les autres recettes continuent.
+
+Stripe en clés de test lancé après READY : 40081459350, job 120835724014, main `a519f3a`. La recette refuse toute clé réelle ; elle confronte l'API Stripe de test et les règles SQL d'une base jetable, avec webhook signé simulé, sans parcourir l'interface Checkout. Pages publiques `/conditions` et `/conditions/artisans` relues dans le navigateur : version du 24 octobre effectivement servie, corrections de la relecture présentes.
+
+### 24/10/2026 09:21 UTC — recette Stripe réussie
+
+Passage 40081459350, job 120835724014, terminé avec succès sur main `a519f3a` : 14 tests réussis, zéro échec, zéro ignoré. API Stripe de test et application SQL locale ; webhook signé simulé, interface de paiement non parcourue. Aucun argent réel. Les essais de production 40081401588 poursuivent les parcours des cinq espaces.
+
+Contrôle des tâches après migration : onze tâches permanentes actives (la fermeture des comptes s'ajoute aux dix historiques) ; `fermetures-comptes` à 03:20 UTC, `retention-quotidienne` à 03:00 UTC. Les tâches temporaires de recette sont exclues de ce décompte. Aucun réglage de leur horaire dans cette livraison.
+
+### 24/10/2026 09:24 UTC — archives V1 enregistrées après reconnexion
+
+Le dirigeant a reconnecté le superadmin permanent avec son second facteur. Action « Archiver la version en vigueur des conditions » exécutée depuis `/admin/sante` ; les deux textes sont archivés et l'écran confirme que toutes les acceptations renvoient à une version archivée. SELECT de confirmation :
+- conditions clients 2026-09-30 : archive antérieure inchangée, 08:13:43 UTC, empreinte `6160e62a4883d92b4e92203236330df388d382af6b3e69248858a25506fa6799` ;
+- conditions clients 2026-10-24 : 09:23:25.198669 UTC, empreinte `099d51937f5be5a531a8bb3ca3075f4a56e472140f04d4ae08ce59804fd1c545` ;
+- conditions artisans 2026-10-24 : 09:23:25.399417 UTC, empreinte `fff0df573633e12faf3b7347a83d089cc93c3d0409c31ea495bc4ebfd4f18aac`.
+Ces empreintes d'archive incluent l'identité publiée de l'éditeur ; elles se distinguent volontairement des empreintes de référence de code.
+
+## [2026-10-24] deploy | Conformité V1 publiée après relecture adverse — PR #248
+
+Publication du 24 octobre conservée. Source Claude `9e6e33b` relue, corrections regroupées sur `codex/conformite-v1-20261024`, tête finale `3d22aa299ffe68eb4b2699ca55f89152a4b250d4`. CI 40078952523 entièrement verte : 10 528 tests réussis (17 ignorés), 210 Chromium (1 ignoré), 54 WebKit. Local : 10 519 tests réussis (26 ignorés), build/lint/types verts, 176 écrans à 768 et 1440 px, zéro débordement ni commande sans nom. La différence local/CI provient des contrôles d'intégration activés dans la CI.
+
+Ordre respecté : archive clients du 30 septembre à 08:13 UTC ; sauvegarde 40080464183 terminée à 09:06:38 ; simulation 40080794933 et ROLLBACK à 09:09:08 ; application 40081174066 et COMMIT à 09:14:59 du seul fichier `20261024150000_activation_inactivite_v1.sql` ; fusion squash de #248 à 09:15:56, main `a519f3a8cc3f9ae7c322133fe6383b57037b3c67` ; Vercel READY `CX4a5SWoj2iNp9TvwSsoKSXrLw37`, domaine www.gerimmo.app et santé vérifiés ; archives clients/artisans V1 enregistrées à 09:23:25. Aucun chevauchement sauvegarde/simulation. Aucune date contractuelle décalée.
+
+Corrections livrées après la relecture : modèle réglementaire de rétractation exact (page/courriel), formulation sur la portée d'un circuit de signature interrompu, données et préavis artisans, délai de trente jours depuis l'envoi réel de la mise en demeure avant d'invoquer la résiliation contractuelle, titre H1 de l'acceptation artisan. Les textes et le catalogue de conservation sont alignés sur le code ; les anciens engagements et l'offre d'essai sont préservés. Sources et limites : [[Relecture adverse et publication conformité V1 — 24 octobre 2026]].
+
+## [2026-10-24] audit | Recettes et contrôle de production après publication V1
+
+- Recette 40081401588, job 120835554497, main `a519f3a` : 67 essais réussis, 1 ignoré, aucun échec ni reprise d'échec. Nettoyage réussi à 09:27:03 UTC : comptes, organisations, artisans, accès temporaires de supervision et fichiers du passage retirés.
+- Stripe 40081459350, job 120835724014 : 14 réussis, zéro échec/ignoré. Clés de test uniquement ; API Stripe et règles SQL locales, webhook signé simulé, interface Checkout non parcourue. Aucun paiement réel.
+- SELECT après nettoyage : 1 utilisateur permanent, 0 organisation, 0 artisan, 0 fermeture, 0 tâche temporaire de recette, 3 archives contractuelles. Aucun événement `erreur`/`echec` dans tech_log depuis le READY à 09:17 UTC jusqu'au relevé de 09:28 UTC ; cette fenêtre ne vaut pas encore une heure complète de surveillance.
+- `/conditions`, `/conditions/artisans`, `/conditions/versions` et leurs deux exemplaires V1 ouverts dans le navigateur ; version 24 octobre et empreintes conformes. Ancienne archive inchangée. `/api/sante` donne ok/base true et la révision publiée.
+- Non validés par ces essais : signature réelle Zoho et remise finale à chaque signataire ; réglage Stripe de fin de relance (« impayé », sans annulation anticipée) ; médiateur, DPA et RC professionnelle. Un abonnement Stripe orphelin préexistant demeure à traiter séparément, sans changement financier dans cette livraison. Première passe nocturne `fermetures-comptes` à vérifier le 25/10 à 03:20 UTC ; aucune fermeture provoquée aujourd'hui. Aucun PDF de compte rendu produit.

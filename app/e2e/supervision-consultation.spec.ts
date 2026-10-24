@@ -11,14 +11,14 @@ for (const persona of ["superadmin", "proprietaire"]) {
       const supervision = persona === "superadmin";
       await page.goto(`/espace/${ORG}/alertes?traiter=00000000-0000-4000-8000-000000000000`);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(supervision ? "Alertes du client" : "Alertes");
-      const creation = page.getByRole("heading", { name: "Créer une alerte", exact: true });
+      const creation = page.locator("#creer-alerte");
       if (supervision) {
         await expect(creation).toHaveCount(0);
         await expect(page.getByRole("button", { name: /^(Traiter|Confier|Créer l’alerte)/ })).toHaveCount(0);
         await expect(page.getByRole("dialog")).toHaveCount(0);
       } else await expect(creation).toBeVisible();
       await page.goto(`/espace/${ORG}/artisans`);
-      const ajout = page.getByRole("heading", { name: "Enregistrer un artisan", exact: true });
+      const ajout = page.locator("#nouvel-artisan");
       if (supervision) {
         await expect(ajout).toHaveCount(0);
         await expect(page.getByRole("link", { name: /Enregistrer un artisan/ })).toHaveCount(0);

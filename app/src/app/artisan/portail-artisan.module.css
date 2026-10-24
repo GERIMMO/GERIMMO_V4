@@ -113,3 +113,17 @@
   .content :global(.artisan-semaine) > li > :is(a, div) { padding-inline: 0; }
   .content :global(.artisan-semaine) span:last-child { font-size: 11px; white-space: nowrap; }
 }
+
+/* L’action attendue reste visible avant les réglages du profil. */
+.dailyHeader { padding: 18px 20px !important; }
+.networkNote { border: 1px solid var(--filet); border-radius: 12px; padding: 8px 16px; background: var(--ivoire); color: var(--texte-secondaire); font-size: 14px; }
+.networkNote summary { display: list-item; min-height: 44px; padding-block: 12px; cursor: pointer; color: var(--encre); font-weight: 600; }
+.networkNote p { margin-block: 8px; line-height: 1.6; }
+.metric[data-a-faire="true"] { border-color: #b3c9df; background: #f3f7fc; }
+@media (max-width: 699px) {
+  .dailyHeader { padding: 14px 16px !important; }
+  .metric { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; padding: 12px; align-items: start; }
+  .metric .icon { width: 28px; height: 28px; border-radius: 8px; }
+  .metric strong { font-size: 22px; }
+  .metric small { font-size: 12px; line-height: 1.4; }
+}

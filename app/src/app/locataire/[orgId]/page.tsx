@@ -1,9 +1,10 @@
+import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { deElide } from "@/lib/elision";
 import { Banknote, Files, Wrench } from "lucide-react";
 import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
-import { estARenouveler, estExpiree, eur, formaterDate } from "@/lib/ged";
+import { estARenouveler, eur, formaterDate } from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { CarteGestionnaire, type Gestionnaire } from "./cartes-laterales";
@@ -92,7 +93,9 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     .filter((p) => p.type === "attestation_assurance")
     .sort((a, b) => b.depose_le.localeCompare(a.depose_le));
   const derniere = attestations[0];
-  const attestationValide = Boolean(derniere && !estExpiree(derniere.expire_le));
+  const etatAssurance = etatAssuranceLocataire(derniere);
+  const attestationValide = etatAssurance.nonExpiree;
+  const assuranceDateInconnue = Boolean(derniere && !etatAssurance.dateConnue);
   // Même vocabulaire que la page Documents : déposée mais pas encore validée
   // par le gestionnaire = « en cours de vérification », pas « à jour »
   const assuranceEnVerification = attestationValide && !derniere?.verifie_le;
@@ -108,7 +111,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   // attestation VALIDÉE et non expirée, ET une autre qui attend le
   // gestionnaire. On le reprend plutôt que d'en écrire un cinquième.
   const renouvellementDepose =
-    attestations.some((p) => p.verifie_le && !estExpiree(p.expire_le)) &&
+    attestations.some((p) => etatAssuranceLocataire(p).validee) &&
     attestations.some((p) => !p.verifie_le);
   // Même règle que le badge du menu (audit 06/09) : sans bail actif, aucune
   // assurance n'est réclamée — sinon l'accueil s'alarmait quand le menu, lui,
@@ -236,13 +239,16 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   if (adhesionActive && !assuranceAJour) {
     aFaire.push({
       cle: "assurance",
-      titre: derniere
+      titre: assuranceDateInconnue
+        ? "La date de votre assurance est à vérifier"
+        : derniere
         ? "Votre attestation d'assurance a expiré"
         : "Votre attestation d'assurance manque",
-      detail:
-        "L'assurance habitation est obligatoire pendant toute la durée du bail — une photo lisible suffit.",
-      href: `/locataire/${orgId}/documents#assurance`,
-      action: "Déposer",
+      detail: assuranceDateInconnue
+        ? "Votre attestation est déposée, mais sa date d’expiration n’est pas renseignée. Vérifiez-la avec votre gestionnaire."
+        : "L'assurance habitation est obligatoire pendant toute la durée du bail — une photo lisible suffit.",
+      href: assuranceDateInconnue ? `/locataire/${orgId}/contact` : `/locataire/${orgId}/documents#assurance`,
+      action: assuranceDateInconnue ? "Contacter" : "Déposer",
     });
   } else if (assuranceARenouveler && !renouvellementDepose && derniere) {
     // Seul un renouvellement RÉELLEMENT déposé fait taire le rappel : réclamer
@@ -498,6 +504,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 >
                   {nbPiecesDemandees > 0
                     ? `${nbPiecesDemandees} pièce${nbPiecesDemandees > 1 ? "s" : ""} à déposer`
+                    : assuranceDateInconnue
+                    ? "Assurance : date à vérifier"
                     : !bail
                     ? assuranceEnVerification ? "Assurance en cours de vérification" : attestationValide ? "✓ Assurance à jour" : "Documents à votre disposition"
                     : renouvellementDepose

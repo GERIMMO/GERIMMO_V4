@@ -40,7 +40,7 @@ type Avant = {
   resiliation_par_la_page?: boolean;
 };
 
-function banc(avant: Avant, options: { archivee?: boolean; texteArchive?: string; resiliationsAccusees?: number } = {}) {
+function banc(avant: Avant, options: { archivee?: boolean; texteArchive?: string; resiliationsAccusees?: number; miseEnDemeure?: string | null; preuveErreur?: boolean } = {}) {
   const appels: { nom: string; args: Record<string, unknown> }[] = [];
   const traces: Record<string, unknown>[] = [];
   const contexte = {
@@ -70,10 +70,12 @@ function banc(avant: Avant, options: { archivee?: boolean; texteArchive?: string
     const fin = async () =>
       table === "versions_conditions"
         ? { data: options.archivee ? { document: "conditions_clients", version: "2026-09-30", texte_html: options.texteArchive ?? "<p>Texte</p>", publiee_le: "2026-10-24T10:00:00Z", empreinte_sha256: "a".repeat(64), date_effet: "2026-09-30", nature: "substantielle", resume_modifications: "x" } : null, error: null }
+        : table === "audit_log"
+          ? { data: options.miseEnDemeure === null ? null : { details: { envoyee_le: options.miseEnDemeure ?? "2026-10-04T13:00:00Z" } }, error: options.preuveErreur ? { message: "indisponible" } : null }
         : table === "organizations"
           ? { data: { type: "proprietaire_direct" }, error: null }
           : { data: { valeurs: {} }, error: null };
-    Object.assign(q, { select: () => q, eq: () => q, maybeSingle: fin, insert: async (v: Record<string, unknown>) => { traces.push(v); return { error: null }; } });
+    Object.assign(q, { select: () => q, eq: () => q, order: () => q, limit: () => q, maybeSingle: fin, insert: async (v: Record<string, unknown>) => { traces.push(v); return { error: null }; } });
     return q;
   };
   const supabase = {
@@ -287,10 +289,23 @@ describe("R07 — la résiliation pour impayé", () => {
     expect(alerte.html).not.toContain("titulaire@example.invalid");
   });
 
-  it("I1 : à J+30 ou après, l'article 15 est cité (la mise en demeure est restée sans effet trente jours)", async () => {
+  it("I1 : à J+30 ou après, l'article 15.4 est cité (la mise en demeure est restée sans effet trente jours)", async () => {
     const s = souscription({ status: "canceled", ended_at: Date.parse("2026-11-03T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
     await traiterEvenementStripe(banc(ENDEFAUT).supabase as never, stripeFictif(s, ["in_1"]).stripe, evenement("customer.subscription.deleted", s));
-    expect(m.envois[0].html).toContain("est résilié depuis le 3 novembre 2026, en application de l'article 15 des conditions générales.");
+    expect(m.envois[0].html).toContain("est résilié depuis le 3 novembre 2026, en application de l'article 15.4 des conditions générales.");
+  });
+
+  it.each([
+    { miseEnDemeure: "2026-10-06T13:00:00Z" }, // premier courrier retardé de deux jours
+    { miseEnDemeure: null },
+    { miseEnDemeure: "illisible" },
+    { preuveErreur: true },
+  ])("ne confond pas trente jours de défaut et trente jours de mise en demeure : %j", async (preuve) => {
+    const s = souscription({ status: "canceled", ended_at: Date.parse("2026-11-03T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
+    const { supabase, traces } = banc(ENDEFAUT, preuve);
+    await traiterEvenementStripe(supabase as never, stripeFictif(s, ["in_1"]).stripe, evenement("customer.subscription.deleted", s));
+    expect(m.envois.find((e) => e.to === "titulaire@example.invalid")?.html).not.toContain("article 15.4");
+    expect(traces).toContainEqual(expect.objectContaining({ evenement: "resiliation_impaye_avant_mise_en_demeure" }));
   });
 
   it("seulement dans le cas prévu : pas sans défaut, pas après une résiliation demandée, pas pour une rétractation, pas deux fois", async () => {

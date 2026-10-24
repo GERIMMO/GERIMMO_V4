@@ -3,8 +3,8 @@ type: concept
 tags: [abonnement, saas, stripe, facturation]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-23
-sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
+updated: 2026-10-24
+sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]", "[[Cycle de vie de l'abonnement]]", "log.md — entrées « decision » des 23 et 24/10/2026, « deploy » du 24/10/2026 (PR #246, PR #247)"]
 ---
 
 # Abonnement
@@ -52,9 +52,10 @@ Stripe). À **ne pas confondre** avec les [[Période de loyer|loyers]] des locat
   - Pas de cumul avec le [[Parrainage]], sauf depuis le 30/09 le **mois offert au
     parrain** à la conversion de son filleul : avoir de son mensuel courant (annuel
     ÷ 12) porté au solde client Stripe, ou un mois d'essai de plus.
-  - Portail client Stripe imposé par le code : résiliation en fin de période,
-    changement de formule désactivé ; préavis d'au moins un mois avant révision
-    tarifaire (CGU art. 8.9) ; rétractation de 14 jours pour le consommateur (art. 8.10).
+  - Portail client Stripe imposé par le code : changement de formule désactivé ;
+    **résiliation retirée du portail le 24/10** (page « Résilier votre contrat ») ;
+    préavis d'au moins un mois avant révision tarifaire (CGU art. 8.9) ; rétractation
+    de 14 jours (art. 8.10), **en ligne et pour toutes les formules depuis le 24/10**.
 
 ## Conditions d'ouverture du paiement (19/10/2026)
 Garde de souscription (lot B3, entrée du journal `[2026-10-19] dev | Garde de
@@ -94,6 +95,29 @@ Demande du dirigeant : « Je veux que tout ce qui peut fonctionner fonctionne sa
 - Le bouton du 22/10 (« Lever le blocage ») reste en place pour les faits requis ; il est sans effet tant que l'identité est complète. La décision du 22/10 a été publiée par la PR #241 (`e53298a`).
 - Code : `app/src/lib/editeur.ts` (`REQUIS`, `A_COMPLETER`, `faitsACompleter`), branche `claude/compassionate-euler-qpqjp6`.
 
+## Conformité V1 du code — 24 octobre 2026 (PR #246, `f79674c` ; PR #247, `31377f5`)
+Plan juriste/DPO du 23/10 (lots 1 et 2) ; textes contractuels inchangés (version du
+30/09/2026), **publication des conditions V1 prévue le 24/10** ([[Conditions générales]]).
+- **Souscription** : récapitulatif avec le droit de rétractation et le moyen de paiement,
+  case de demande expresse, texte d'obligation de paiement sous le bouton Stripe,
+  **confirmation sur support durable** (une fois, avec les conditions en PDF si leur version
+  est archivée, et le formulaire de rétractation), même sans médiateur —
+  [[Souscription de l'abonnement]]. Colonne `abonnements.souscrit_le`.
+- **Rétractation en ligne** (« Renoncer au contrat ici ») : table `retractations_abonnement`
+  en ajout seul, remboursement intégral, accusé — [[Rétractation en ligne]].
+- **Résiliation** : page unique et accusé unique ; non-reconduction faute d'accord à une
+  version substantielle — [[Résiliation de l'abonnement]].
+- **Impayé** : mise en demeure à J+0, lecture seule à J+15 après courrier, premier
+  prélèvement gelé dès l'échec, résiliation manuelle au plus tôt à J+30 —
+  [[Impayé de l'abonnement]].
+- **Réclamation** : nature « Faire une réclamation » dans « Aide et retours » ; la réponse
+  qui la clôt renvoie au médiateur de la consommation (ou dit que l'adhésion est en cours).
+- **Fermeture** : un compte payant ne se supprime pas sans archive de sa preuve ; fermeture à
+  la fin de la période payée ou à J+14 avec remboursement au prorata —
+  [[Fermeture de compte]].
+- **Arrêt d'urgence « Abonnements »** : il arrête aussi les remboursements et les
+  suppressions de clients Stripe.
+
 ## Relations
 - Souscrit par [[Administrateur d'agence]] ou [[Propriétaire bailleur]] ; administré par [[Super Admin]].
 - Cycle de vie automatisé — voir [[Cycle de vie de l'abonnement]], [[Onboarding et abonnement]].
@@ -105,11 +129,18 @@ Demande du dirigeant : « Je veux que tout ce qui peut fonctionner fonctionne sa
 > - Le schéma hérité (`subscription_plans` à trois tarifs, frais de mise en place)
 >   subsiste dans les tables historiques ; la grille `2026-09-28` le remplace pour
 >   toute nouvelle souscription.
-> - Identité de l'éditeur encore à fournir (nécessaire au formulaire de
->   rétractation) — voir [[État du projet et décisions ouvertes]].
+> - ~~Identité de l'éditeur encore à fournir (nécessaire au formulaire de
+>   rétractation)~~ → saisie en production au relevé du 23/10, sauf le médiateur
+>   ([[Informations manquantes — 23 octobre 2026]]).
+> - **24/10 — règles de vente au consommateur** codées sans juriste (rétractation,
+>   confirmation, résiliation en ligne, impayé) : à confirmer sur Légifrance (source non
+>   ouverte le 23/10/2026) ; détail des articles dans chaque page de processus.
 > - **23/10 — vendre sans médiateur désigné** : l'information du consommateur sur le
 >   médiateur est une obligation (art. L. 616-1 du code de la consommation, déjà citée
 >   dans le code) ; ouvrir la vente avant l'adhésion est un choix du dirigeant, dont le
 >   risque est **à relire par le juriste**. L'adhésion puis la saisie des trois
 >   coordonnées dans `/admin/parametres` suffisent, sans déploiement.
 >
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

@@ -350,7 +350,7 @@ function plusJours(jour: string, n: number): string {
   return new Date(Date.UTC(a, m - 1, j + n)).toISOString().slice(0, 10);
 }
 
-/** Délai de la mise en demeure avant une résiliation par l'Éditeur (article 15 des conditions en vigueur : trente jours). */
+/** Délai de la mise en demeure avant une résiliation par l'Éditeur (article 15.4 des conditions en vigueur : trente jours). */
 export const DELAI_MISE_EN_DEMEURE_JOURS = 30;
 
 /**
@@ -358,8 +358,8 @@ export const DELAI_MISE_EN_DEMEURE_JOURS = 30;
  * n'avait demandé aucune résiliation (lu en base AVANT l'événement) : la facture restée ouverte est annulée, puis le
  * courrier part, une fois.
  *
- * Relecture adverse du 24/10 (I1) : l'article 15 n'est cité que si la mise en demeure est restée sans effet trente
- * jours (résiliation, jour de Paris, au plus tôt à J+30 du défaut). Plus tôt — réglage Stripe qui résilie de lui-même
+ * Relecture adverse du 24/10 (I1) : l'article 15.4 n'est cité que si la mise en demeure est restée sans effet trente
+ * jours depuis l'envoi consigné du courrier, et jamais avant J+30 du défaut. Plus tôt — réglage Stripe qui résilie de lui-même
  * avant le terme annoncé par la mise en demeure —, le courrier dit les faits sans invoquer l'article, la facture est
  * annulée de même, et le relais est alerté pour corriger le réglage.
  */
@@ -372,7 +372,7 @@ export async function notifierResiliationImpaye(
     resilieLe: Date;
     destinataire: string | null;
     organisation: string;
-    /** Le jour du défaut (AAAA-MM-JJ), point de départ de la mise en demeure. */
+    /** Le jour du défaut (AAAA-MM-JJ), qui identifie l'épisode d'impayé. */
     enDefautDepuis: string | null;
   },
   options: { avantEffet?: () => Promise<void> } = {}
@@ -383,7 +383,25 @@ export async function notifierResiliationImpaye(
   }
   const resilieLe = dateParis(p.resilieLe);
   const resiliableLe = p.enDefautDepuis ? plusJours(p.enDefautDepuis, DELAI_MISE_EN_DEMEURE_JOURS) : null;
-  const apresMiseEnDemeure = resiliableLe !== null && resilieLe >= resiliableLe;
+  // Un incident d'e-mail peut retarder le premier courrier : le défaut seul ne prouve pas la mise en demeure.
+  // En l'absence de preuve lisible, le courrier reste factuel et le relais est alerté.
+  let miseEnDemeureEnvoyeeLe: number | null = null;
+  if (p.enDefautDepuis) {
+    try {
+      const { data, error } = await service.from("audit_log").select("details")
+        .eq("organization_id", p.orgId).eq("action", "relance_paiement_envoyee")
+        .eq("details->>palier", "0").eq("details->>en_defaut_depuis", p.enDefautDepuis)
+        .order("created_at", { ascending: true }).limit(1).maybeSingle();
+      const envoyeeLe = data?.details?.envoyee_le;
+      const instant = typeof envoyeeLe === "string" ? Date.parse(envoyeeLe) : NaN;
+      if (!error && Number.isFinite(instant)) miseEnDemeureEnvoyeeLe = instant;
+    } catch {
+      // Une preuve inaccessible n'autorise pas à présenter la résiliation comme contractuellement régulière.
+    }
+  }
+  const apresMiseEnDemeure = resiliableLe !== null && resilieLe >= resiliableLe
+    && miseEnDemeureEnvoyeeLe !== null
+    && p.resilieLe.getTime() >= miseEnDemeureEnvoyeeLe + DELAI_MISE_EN_DEMEURE_JOURS * 86_400_000;
   if (!apresMiseEnDemeure) {
     await alerterRelaisContrat(
       service,
@@ -391,8 +409,8 @@ export async function notifierResiliationImpaye(
         evenement: "resiliation_impaye_avant_mise_en_demeure",
         sujet: "Gerimmo — résiliation pour impayé avant la fin de la mise en demeure",
         lignes: [
-          `La souscription ${p.subscription} (organisation ${p.orgId}) a été résiliée par Stripe le ${resilieLe}, avant le ${resiliableLe ?? "terme"} annoncé par la mise en demeure (défaut depuis le ${p.enDefautDepuis ?? "?"}).`,
-          "Le courrier envoyé au client ne cite pas l'article 15 et la facture restée ouverte est annulée. Vérifiez le réglage Stripe « statut après échec des relances » (« marquer l'abonnement comme impayé ») et voyez s'il faut proposer au client une nouvelle souscription.",
+          `La souscription ${p.subscription} (organisation ${p.orgId}) a été résiliée par Stripe le ${resilieLe} sans preuve de trente jours révolus depuis l'envoi de la mise en demeure (défaut depuis le ${p.enDefautDepuis ?? "?"}, première date annoncée : ${resiliableLe ?? "inconnue"}).`,
+          "Le courrier envoyé au client ne cite pas l'article 15.4 et la facture restée ouverte est annulée. Vérifiez le réglage Stripe « statut après échec des relances » (« marquer l'abonnement comme impayé ») et voyez s'il faut proposer au client une nouvelle souscription.",
         ],
         cle: `resiliation-impaye-avant-${p.subscription}`,
         details: { organisation: p.orgId, souscription: p.subscription, resilie_le: resilieLe, resiliable_le: resiliableLe },

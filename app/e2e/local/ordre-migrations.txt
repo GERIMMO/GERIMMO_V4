@@ -417,3 +417,4 @@
 20261024120000_signature_caution_mobile_et_edl_sur_place.sql
 20261024130000_fermeture_comptes.sql
 20261024140000_conservation_et_prospection.sql
+20261024150000_activation_inactivite_v1.sql

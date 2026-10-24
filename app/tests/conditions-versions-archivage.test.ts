@@ -9,9 +9,9 @@
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { empreinteIdentite, extraireTexteContractuel, sha256Hex } from "../src/lib/conditions-versions";
+import { empreinteIdentite, extraireTexteContractuel, sha256Hex, versionDeclaree } from "../src/lib/conditions-versions";
 import { identiteDepuisValeurs } from "../src/lib/identite-editeur";
-import { CONDITIONS_VERSION } from "../src/lib/editeur";
+import { CONDITIONS_ARTISANS_VERSION, CONDITIONS_VERSION } from "../src/lib/editeur";
 
 const m = vi.hoisted(() => ({
   identitePage: {} as Record<string, string | null>,
@@ -37,6 +37,7 @@ vi.mock("@/lib/supabase/service", () => ({ clientDeService: () => m.service }));
 vi.mock("@/lib/site", async (importer) => ({ ...(await importer<typeof import("@/lib/site")>()), adresseDuSite: () => m.site }));
 vi.mock("@/lib/relais-alerte-reglage", () => ({ adressesRelaisDuServeur: () => ({ valides: [], invalides: 0, configure: false }) }));
 import Conditions from "../src/app/conditions/page";
+import ConditionsArtisans from "../src/app/conditions/artisans/page";
 import { archiverConditionsPubliees } from "../src/lib/conditions-versions-serveur";
 import { archiverConditionsEnVigueur } from "../src/app/actions/conditions-versions";
 
@@ -87,7 +88,7 @@ describe("archiverConditionsPubliees", () => {
     expect(s.rpc).toHaveBeenCalledWith("archiver_version_conditions", expect.objectContaining({
       p_document: "conditions_clients",
       p_version: CONDITIONS_VERSION,
-      p_date_effet: "2026-09-30",
+      p_date_effet: versionDeclaree("conditions_clients", CONDITIONS_VERSION)?.date_effet,
       p_nature: "substantielle",
       p_texte_html: extraction.html,
       p_empreinte_sha256: sha256Hex(extraction.html),
@@ -99,6 +100,27 @@ describe("archiverConditionsPubliees", () => {
     expect(extraction.html).not.toContain("__next_f");
     expect(r).toMatchObject({ statut: "archivee", empreinte: sha256Hex(extraction.html) });
     expect(r.message).toContain("archivée");
+  });
+
+  it("archive aussi les conditions de l'espace artisan (V1, R10), lues à leur propre adresse", async () => {
+    const pages: Record<string, string> = {
+      "https://site.example.com/conditions": await pagePubliee(),
+      "https://site.example.com/conditions/artisans": `<!DOCTYPE html><html><body>${renderToStaticMarkup(await ConditionsArtisans())}</body></html>`,
+    };
+    const s = service({ revisions: [3, 3, 3, 3] });
+    const resultats = await archiverConditionsPubliees({ service: s.client as never, site: "https://site.example.com", lirePage: async (url) => pages[url] });
+    expect(resultats.map((r) => [r.document, r.statut])).toEqual([
+      ["conditions_clients", "archivee"],
+      ["conditions_artisans", "archivee"],
+    ]);
+    const extraction = extraireTexteContractuel(pages["https://site.example.com/conditions/artisans"], "conditions_artisans");
+    if (!extraction.ok) throw new Error("texte contractuel introuvable");
+    expect(s.rpc).toHaveBeenCalledWith("archiver_version_conditions", expect.objectContaining({
+      p_document: "conditions_artisans",
+      p_version: CONDITIONS_ARTISANS_VERSION,
+      p_date_effet: versionDeclaree("conditions_artisans", CONDITIONS_ARTISANS_VERSION ?? "")?.date_effet,
+      p_texte_html: extraction.html,
+    }));
   });
 
   it("une version déjà archivée avec le même texte : rien à faire", async () => {

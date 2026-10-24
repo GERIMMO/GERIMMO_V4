@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { CONDITIONS_DATE } from "@/lib/editeur";
 
 /** Un éditeur fictif complet (les huit faits requis par lib/editeur.ts ; domaine example : jamais une adresse réelle). */
 const EDITEUR_COMPLET: Record<string, string | null> = {
@@ -209,7 +210,7 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     const html = await rendre();
     expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
     expect(html).toContain(CASE_CONDITIONS);
-    expect(html).toContain("version du 30 septembre 2026 des conditions générales");
+    expect(html).toContain(`version du ${CONDITIONS_DATE} des conditions générales`);
     expect(html).toContain('href="/conditions"');
     expect(html).toContain("Continuer vers le paiement sécurisé");
     // Le blocage est prouvé par son infobulle : la prop arrive bien au bouton.

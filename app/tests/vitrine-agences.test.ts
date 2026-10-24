@@ -101,8 +101,9 @@ describe("le formulaire, tel que le serveur le rend", () => {
     const html = rendre();
     const bouton = /<button[^>]*type="submit"[^>]*>([\s\S]*?)<\/button>/.exec(html);
     expect(bouton?.[1]).toMatch(apostrophe("Rejoindre la liste d'attente"));
-    expect(html).toMatch(apostrophe("Vos coordonnées servent uniquement à vous prévenir de l'ouverture de l'offre aux agences."));
-    expect(html).toMatch(apostrophe("Vous pouvez en demander la suppression à tout moment"));
+    // Plan de conformité du 23/10 (lot 4, constat R44) : réponses, opposition, trois ans après l'inscription, retrait dans le mois.
+    expect(html).toMatch(apostrophe("Vos coordonnées servent uniquement à vous prévenir de l'ouverture de l'offre aux agences et à donner suite à vos réponses."));
+    expect(html).toMatch(apostrophe("Vous pouvez vous y opposer à tout moment, en répondant à l'un de nos messages ou en nous écrivant ; elles sont supprimées trois ans après votre inscription, ou dans le mois de votre demande de retrait"));
     expect(html).toMatch(/<a[^>]*href="\/confidentialite"[^>]*>politique de confidentialité<\/a>/);
     expect(html.indexOf("<button")).toBeLessThan(html.indexOf('href="/confidentialite"'));
   });
@@ -239,18 +240,22 @@ describe("le site mène à la page", () => {
     expect(enTete).toContain("liste_attente_agences");
   });
 
-  it("/confidentialite : la liste d'attente dans les finalités, les données traitées et les durées, avec le repère à confirmer", () => {
+  // Plan de conformité du 23/10 (lot 4, constat R44) : la durée court de l'inscription, le retrait est traité dans le mois,
+  // et la base légale n'est plus « à confirmer » (le commentaire est retiré). Relecture du 23/10 : aucune purge « à
+  // l'ouverture » n'existe ; une inscription convertie part trois mois après la conversion (lot 2).
+  it("/confidentialite : la liste d'attente dans les finalités, les données traitées et les durées", () => {
     const confidentialite = lire("src/app/confidentialite/page.tsx");
     expect(confidentialite.match(apostrophe("iste d'attente des agences") as RegExp)).not.toBeNull();
     expect((confidentialite.match(new RegExp(apostrophe("iste d'attente des agences").source, "g")) ?? []).length).toBeGreaterThanOrEqual(3);
     expect(confidentialite).toMatch(apostrophe("vous prévenir de l'ouverture de l'offre aux agences, à votre demande"));
-    expect(confidentialite).toMatch(apostrophe("au plus tard trois ans après notre dernier échange, ou dès votre demande de suppression"));
+    expect(confidentialite).toMatch(apostrophe("Au plus trois ans, puis suppression ; dans le mois de votre demande de retrait ; trois mois après la souscription si votre agence devient cliente"));
+    expect(confidentialite).not.toMatch(apostrophe("Jusqu'à ce que nous vous ayons prévenu de l'ouverture"));
     for (const donnee of ["nom de l'agence", "nom du contact", "adresse électronique", "téléphone", "code postal", "nombre de lots", "message"]) {
       expect(confidentialite, donnee).toMatch(apostrophe(donnee));
     }
     // L'état du suivi que la console enregistre sur la ligne (colonne `statut`) est aussi une donnée sur le prospect.
     expect(confidentialite).toMatch(apostrophe("l'état de notre suivi (en attente, contactée, devenue cliente,"));
     expect(confidentialite).toContain("retirée à votre demande)");
-    expect(confidentialite).toContain("à confirmer par le juriste et le DPO");
+    expect(confidentialite).not.toContain("à confirmer par le juriste et le DPO");
   });
 });

@@ -20,6 +20,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { offreParticulier } from "@/lib/tarifs";
+import { CONDITIONS_VERSION } from "@/lib/editeur";
 
 /** Pendant l'essai : la phrase complète (celle que la recette de production lit, compte en essai). */
 const MOTIF_IDENTITE =
@@ -32,7 +33,8 @@ const ERREUR_CONDITIONS_PERIMEES =
   "Les conditions ont changé depuis l’affichage : rechargez la page, puis acceptez la version en vigueur.";
 const ERREUR_ACCEPTATION_CONDITIONS =
   "L’acceptation des conditions n’a pas pu être enregistrée. Réessayez dans un instant.";
-const VERSION_EN_VIGUEUR = "2026-09-30";
+// La version en vigueur lue dans le code : la V1 (date provisoire, lib/editeur.ts) en change la valeur, pas la règle.
+const VERSION_EN_VIGUEUR = CONDITIONS_VERSION;
 
 /** Un éditeur fictif complet : les huit faits requis par lib/editeur.ts (domaine example : jamais une adresse réelle). */
 const EDITEUR_COMPLET: Record<string, string | null> = {

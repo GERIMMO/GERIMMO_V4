@@ -36,6 +36,8 @@ const VERSION = "20261024140000";
 const NOM = `${VERSION}_conservation_et_prospection`;
 const MIGRATION = readFileSync(`supabase/migrations/${NOM}.sql`, "utf8");
 const RETOUR = readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8");
+/** Le retour de la migration suivante (activation de l'inactivité, intégration des textes du 24/10). */
+const RETOUR_ACTIVATION = readFileSync("supabase/retours-arriere/20261024150000_activation_inactivite_v1.retour.sql", "utf8");
 const CONTACTS_2210 = readFileSync("supabase/migrations/20261022213731_conservation_preuves_et_invitations.sql", "utf8");
 const SOCLE = readFileSync("supabase/migrations/20261024090000_versions_conditions_et_archives_comptes.sql", "utf8");
 const VENTE = readFileSync("supabase/migrations/20261024110000_vente_et_impaye.sql", "utf8");
@@ -247,6 +249,11 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     await db.connect();
     await db.query("begin");
     await db.query(MIGRATION);
+    // Intégration des textes du 24/10 : 20261024150000 (activation de la règle d'inactivité avec la V1) suit cette
+    // migration. Ses effets sont défaits ici, dans la transaction annulée, pour éprouver 20261024140000 seule (catalogue
+    // au déploiement, retour et marche avant identiques) ; son retour l'exige d'ailleurs (« jamais hors de son ordre »).
+    await db.query("delete from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024150000'", [VERSION]);
+    await db.query(RETOUR_ACTIVATION);
     // La recette a pu suspendre les tâches : levée seulement dans cette transaction annulée.
     await db.query("update public.supervision_arrets set arrete = false where cle in ('global', 'purge')");
     gerant = await compte("conservation-gerant");

@@ -175,7 +175,7 @@ describe("PRO-4 — le formulaire repose la saisie et dit l'erreur au bon champ"
   const refus: EtatNouveauMotDePasse = {
     erreur: "Les deux saisies ne correspondent pas.",
     champ: "confirmation",
-    valeurs: { espace: "artisan", prenom: "Camille", nom: "Corrigé", ville: "Lyon", qualite: "SCI", code_parrainage: "ABCD1234", cgu: "on" },
+    valeurs: { espace: "artisan", prenom: "Camille", nom: "Corrigé", ville: "Lyon", qualite: "SCI", code_parrainage: "ABCD1234", cgu: "on", cgu_document: "conditions_artisans" },
   };
 
   it("avant tout envoi : le profil d'origine, la case jamais cochée d'avance", () => {
@@ -213,6 +213,11 @@ describe("PRO-4 — le formulaire repose la saisie et dit l'erreur au bon champ"
     expect(champ(inverse, "cgu")).not.toContain("checked");
     const inconnu = rendre({ ...refus, valeurs: { ...refus.valeurs, espace: "proprietaire_direct", cgu_document: "autre" } });
     expect(champ(inconnu, "cgu")).not.toContain("checked");
+    // V1 (24/10/2026) : l'artisan coche les conditions de l'espace artisan ; une coche posée sous les conditions clients
+    // (page servie avant la publication, ou usage changé sans script) ne revient pas cochée.
+    const artisan = rendre({ ...refus, valeurs: { ...refus.valeurs, espace: "artisan", cgu_document: "conditions_clients" } });
+    expect(artisan).toContain('name="cgu_document" value="conditions_artisans"');
+    expect(champ(artisan, "cgu")).not.toContain("checked");
   });
 
   it("aucun mot de passe n'est jamais reposé, même s'il figurait dans l'état", () => {

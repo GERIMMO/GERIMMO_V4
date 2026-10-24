@@ -39,11 +39,13 @@ const faq = (duree: string): [string, string][] => [
   ],
   [
     "Que se passe-t-il si j'arrête ?",
-    "La résiliation prend effet à la prochaine échéance : l'accès payé reste ouvert jusque-là. Ensuite, vos données restent consultables et exportables, en lecture seule, tant que le compte existe — rien n'est supprimé automatiquement du fait de l'arrêt, et vous pouvez demander la suppression après export. Aucun frais de sortie.",
+    "La résiliation prend effet à la prochaine échéance : l'accès payé reste ouvert jusque-là. Ensuite, vos données restent consultables et exportables, en lecture seule. Le compte est supprimé après vingt-quatre mois sans connexion ni abonnement, après deux avertissements par courriel ; certaines pièces suivent leur propre durée (page Confidentialité). Vous pouvez aussi demander la suppression après export. Aucun frais de sortie.",
   ],
+  // Relecture du 23/10 (plan de conformité, lot 4) : la V1 réserve l'offre aux propriétaires qui gèrent eux-mêmes leurs
+  // biens (conditions générales, articles 1 et 2) ; « le bien d'un proche » en sortait.
   [
-    "Puis-je gérer pour quelqu'un d'autre ?",
-    "Oui : une SCI, l'indivision familiale, le bien d'un proche. Chaque organisation est séparée, et vous passez de l'une à l'autre depuis le même compte.",
+    "Puis-je gérer une SCI ou une indivision ?",
+    "Oui, pour vos propres biens : en nom propre, en SCI ou en indivision. Chaque organisation est séparée, et vous passez de l'une à l'autre depuis le même compte.",
   ],
   // La liste d'attente des agences (20/10/2026) : l'offre agences est hors du site public depuis le 13/10 ; la question
   // revient, la réponse renvoie à /agences (section #agences ci-dessous) sans prix ni date.

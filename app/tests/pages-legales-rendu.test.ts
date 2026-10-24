@@ -64,6 +64,10 @@ describe("les pages rendent les informations enregistrées", () => {
 // Seconde relecture du 23/10 : sans médiateur, la phrase disait ses coordonnées « reprises aux mentions légales »,
 // qui n'en reprennent aucune ; et une adresse ou un site saisis sans nom s'affichaient dans les conditions, pas dans
 // les mentions. Les deux pages partagent désormais le même rendu, conditionné au nom du médiateur.
+// V1 (plan de conformité du 23/10, lot 3 ; décision du dirigeant du 23/10, médiateur NON BLOQUANT et vente ouverte) :
+// tant que le nom manque, la phrase est celle du plan, au futur : le médiateur « sera désigné aux mentions légales
+// dès l'adhésion de l'Éditeur ». Elle ne dit jamais que la vente est fermée. Nom saisi : « dont relève l'Éditeur : »
+// suivi du nom, de l'adresse et du site (composant Fait).
 const sansEntites = (s: string) => s.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'");
 const article17 = (html: string) => {
   const debut = html.indexOf("17. Droit applicable et litiges");
@@ -78,17 +82,19 @@ const mediation = (html: string) => {
 const MEDIATEUR = { mediateurNom: "Médiateur fictif", mediateurAdresse: "2 rue Exemple, Paris", mediateurSite: "https://example.test/mediation" };
 
 describe("article 17 des conditions : le médiateur lu en base", () => {
-  it("sans médiateur : la phrase dit l'adhésion à venir, sans coordonnées « reprises aux mentions légales »", async () => {
+  it("sans médiateur : la variante du plan, au futur, sans coordonnées « reprises aux mentions légales » ni vente fermée", async () => {
     const html = renderToStaticMarkup(await Conditions());
     const texte = article17(html);
-    expect(html).not.toContain("désigné aux");
-    expect(texte).not.toMatch(/désigné/);
+    expect(texte).toContain(
+      "À défaut de solution amiable après une réclamation écrite adressée à l'Éditeur, le Client consommateur ou " +
+        "non-professionnel peut recourir gratuitement au médiateur de la consommation, qui sera désigné aux mentions " +
+        "légales dès l'adhésion de l'Éditeur."
+    );
     expect(texte).not.toContain("reprises aux");
     expect(texte).not.toContain("coordonnées suivent");
-    expect(texte).toContain("L'Éditeur n'a pas encore adhéré à un dispositif de médiation");
-    expect(texte).toContain("seront indiqués ici et aux mentions légales dès l'adhésion");
-    // Le droit du client reste écrit, comme sur les mentions légales.
-    expect(texte).toContain("peut recourir gratuitement, avant toute saisine du juge, à un médiateur de la consommation");
+    expect(texte).not.toContain("dont relève");
+    expect(texte).not.toMatch(/vente[^.]*fermée|fermée[^.]*vente/i);
+    expect(html).not.toMatch(/vente[^.<]*(fermée|n'est pas ouverte)/i);
     expect(texte).not.toContain("(à venir)");
     // Le médiateur ne bloque rien (décision du 23/10) : pas d'encadré pour lui seul.
     expect(html).not.toContain("Document en cours de finalisation");
@@ -100,8 +106,10 @@ describe("article 17 des conditions : le médiateur lu en base", () => {
     expect(texte).toContain("Médiateur fictif");
     expect(texte).toContain("2 rue Exemple, Paris");
     expect(texte).toContain("https://example.test/mediation");
-    expect(texte).toContain("dont les coordonnées figurent aussi aux mentions légales");
-    expect(texte).not.toContain("pas encore adhéré");
+    expect(texte).toContain(
+      "peut recourir gratuitement au médiateur de la consommation dont relève l'Éditeur : Médiateur fictif, 2 rue Exemple, Paris, https://example.test/mediation."
+    );
+    expect(texte).not.toContain("sera désigné");
     expect(texte).not.toContain("(à venir)");
   });
 
@@ -118,7 +126,7 @@ describe("article 17 des conditions : le médiateur lu en base", () => {
     const conditions = article17(renderToStaticMarkup(await Conditions()));
     const mentions = mediation(renderToStaticMarkup(await Mentions()));
     expect(mentions).toContain("aucun organisme n’est désigné");
-    expect(conditions).toContain("n'a pas encore adhéré");
+    expect(conditions).toContain("qui sera désigné aux mentions légales dès l'adhésion de l'Éditeur");
     for (const coordonnee of [MEDIATEUR.mediateurAdresse, MEDIATEUR.mediateurSite]) {
       expect(conditions).not.toContain(coordonnee);
       expect(mentions).not.toContain(coordonnee);
@@ -139,7 +147,7 @@ describe("article 17 des conditions : le médiateur lu en base", () => {
       const conditions = article17(renderToStaticMarkup(await Conditions()));
       const mentions = mediation(renderToStaticMarkup(await Mentions()));
       expect(faits.filter((f) => conditions.includes(f)), nom).toEqual(faits.filter((f) => mentions.includes(f)));
-      expect(conditions.includes("pas encore adhéré"), nom).toBe(mentions.includes("aucun organisme n’est désigné"));
+      expect(conditions.includes("sera désigné aux mentions légales"), nom).toBe(mentions.includes("aucun organisme n’est désigné"));
     }
   });
 });

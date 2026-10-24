@@ -225,8 +225,10 @@ describe.skipIf(!CHROMIUM)("Premier mot de passe : les listes gardent le choix a
     await ouvrir(htmlDuServeur({}));
     await champ("cgu").check();
 
+    // Depuis la V1 (24/10/2026), l'espace artisan a sa propre case : elle revient décochée et se coche sous ce texte-là.
     await liste("espace").selectOption("artisan");
     await liste("qualite").selectOption("SCI");
+    await champ("cgu").check();
     await envoyer("tour-numero-un-1", "tour-numero-un-2");
     expect([await liste("espace").inputValue(), await liste("qualite").inputValue()]).toEqual(["artisan", "SCI"]);
 
@@ -269,6 +271,7 @@ describe.skipIf(!CHROMIUM)("Premier mot de passe : les listes gardent le choix a
   const formulaireValide = () => page.locator("form").evaluate((f: HTMLFormElement) => f.checkValidity());
   const REGLES_INVITES = "J’ai pris connaissance des règles d’utilisation des espaces invités (article 7 des conditions générales).";
   const CONDITIONS_CLIENTS = "J’accepte les conditions générales d’utilisation et de vente.";
+  const CONDITIONS_ARTISANS = "J’accepte les conditions de l’espace artisan.";
 
   it("personne invitée qui coche, puis choisit « Gérer mes propres biens » : la case revient décochée sous son nouveau texte", async () => {
     const invite = { ...PROFIL, espace: "invite" };
@@ -293,11 +296,15 @@ describe.skipIf(!CHROMIUM)("Premier mot de passe : les listes gardent le choix a
     expect(await caseCgu().textContent()).toBe(CONDITIONS_CLIENTS);
     await champ("cgu").check();
 
-    // Même texte (conditions de l'espace artisan non publiées : l'artisan accepte les conditions clients) : la coche reste.
+    // V1 (24/10/2026) : les conditions de l'espace artisan sont publiées, l'artisan a sa propre case. Avant, il acceptait
+    // les conditions clients et la coche restait (même texte) ; désormais les trois usages ont trois textes.
     await liste("espace").selectOption("artisan");
-    expect(await caseCgu().textContent()).toBe(CONDITIONS_CLIENTS);
-    expect(await champ("cgu").isChecked()).toBe(true);
+    expect(await caseCgu().textContent()).toBe(CONDITIONS_ARTISANS);
+    expect(await documentAffiche()).toBe("conditions_artisans");
+    expect(await champ("cgu").isChecked()).toBe(false);
+    expect(await formulaireValide()).toBe(false);
 
+    await champ("cgu").check();
     await liste("espace").selectOption("invite");
     expect(await caseCgu().textContent()).toBe(REGLES_INVITES);
     expect(await champ("cgu").isChecked()).toBe(false);
@@ -352,7 +359,8 @@ describe.skipIf(!CHROMIUM)("Premier mot de passe : les listes gardent le choix a
   it("sans script : la page rendue par le serveur après l'envoi natif affiche le choix refusé, et le renverrait tel quel", async () => {
     // Le vrai refus de l'action (saisies différentes : aucun appel à Supabase), tel que le serveur le rend à la page.
     const envoiNatif = new FormData();
-    const saisie = { mot_de_passe: "premier-choix-123", confirmation: "autre-saisie-456", suite: "/espaces", espace: "artisan", qualite: "SCI", nom: "Corrigé", prenom: "Avant", cgu: "on" };
+    // La page servie avec l'usage « artisan » montrait la case des conditions de l'espace artisan (V1, 24/10/2026).
+    const saisie = { mot_de_passe: "premier-choix-123", confirmation: "autre-saisie-456", suite: "/espaces", espace: "artisan", qualite: "SCI", nom: "Corrigé", prenom: "Avant", cgu: "on", cgu_document: "conditions_artisans" };
     for (const [cle, valeur] of Object.entries(saisie)) envoiNatif.set(cle, valeur);
     const refus = await definirNouveauMotDePasse({}, envoiNatif);
     expect(refus).toMatchObject({ erreur: SAISIES_DIFFERENTES, champ: "confirmation", valeurs: { espace: "artisan", qualite: "SCI" } });
@@ -361,6 +369,7 @@ describe.skipIf(!CHROMIUM)("Premier mot de passe : les listes gardent le choix a
     expect(await liste("espace").inputValue()).toBe("artisan");
     expect(await liste("qualite").inputValue()).toBe("SCI");
     expect(await champ("nom").inputValue()).toBe("Corrigé");
+    expect(await caseCgu().textContent()).toBe(CONDITIONS_ARTISANS);
     expect(await champ("cgu").isChecked()).toBe(true);
     expect(await champ("mot_de_passe").inputValue()).toBe("");
     // Ce que le navigateur enverrait au prochain envoi natif (liste des entrées du formulaire, sans les mots de passe).

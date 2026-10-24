@@ -3,8 +3,8 @@ type: persona
 tags: [role, artisan, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-23
-sources: ["[[Ouverture du réseau d'artisans]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Invitation d'un artisan par un propriétaire]]"]
+updated: 2026-10-24
+sources: ["[[Ouverture du réseau d'artisans]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Conditions générales]]", "log.md — entrée « deploy » du 24/10/2026 (PR #246)"]
 ---
 
 # Artisan
@@ -264,3 +264,42 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
 > - Côté authentification, deux réglages de Supabase hors dépôt (modèles de courrier,
 >   fermeture de « Allow new users to sign up ») restent à faire par le dirigeant au 16/10 :
 >   voir [[Invitation d'un artisan par un propriétaire]].
+
+## Conformité V1 du 24 octobre 2026 (PR #246, en production)
+- **Classement** (migration `20261024100000`) : la note n'est prise en compte **qu'à partir
+  de trois évaluations** (`publiable`) ; viennent ensuite, sans note, les artisans qui en ont
+  moins de trois ; à égalité, l'ordre alphabétique **français** de la raison sociale
+  (collation `fr-x-icu`, présente en production), puis l'identifiant. Même classement pour
+  les artisans proposés sur un bien et pour les contacts personnels de l'espace. Aucun
+  artisan ne paie pour être mieux classé.
+- **Conditions de l'espace artisan** (A1 à A14 et annexe article 28) : rédigées, **non
+  publiées** au 24/10 (`CONDITIONS_ARTISANS_VERSION` nulle) ; d'ici là, l'artisan accepte
+  les conditions clients et la garde de son espace n'exige rien. À leur publication, la case
+  devient « J'accepte les conditions de l'espace artisan » ([[Conditions générales]]).
+- **Export de son activité** étendu à ses données de plateforme, sans le mémo d'invitation
+  d'un propriétaire ni le motif d'une liste noire ([[Export complet des données]]).
+- **Évaluations** : 3 ans après leur dépôt, contestations 3 ans après leur clôture (règles
+  créées le 24/10, inactives jusqu'à leur bilan, [[Durées de conservation]]).
+- **Fermeture** : à la fermeture de son compte, sa fiche est supprimée, ou détachée et
+  retirée du réseau si un propriétaire la cite ; quand c'est l'espace d'un propriétaire qui
+  est effacé, les règlements que l'artisan avait déclarés sur ses factures restent dans son
+  registre, avec la référence de la facture ([[Fermeture de compte]]). Inactivité :
+  24 mois, avertissements J-60 et J-15 avec le lien vers l'export (règle inactive jusqu'à la
+  V1).
+- **Démarchage** : un artisan peut recevoir un message du dirigeant si son adresse vient de
+  lui et pour son métier, avec opposition possible dans chaque message
+  ([[Prospection commerciale]]).
+
+> [!warning] Points à trancher / contradictions (24/10/2026)
+> - **Règlement P2B (2019/1150)** : application probable à l'espace artisan ; article 9
+>   (accès aux données) et plaintes non traités — à confirmer sur EUR-Lex (source non ouverte
+>   le 23/10/2026).
+> - **Brouillons de devis** : ils partent avec la sollicitation effacée d'un propriétaire qui
+>   ferme (choix délégué n° 4 du 24/10) ; une copie chez l'artisan reste une option.
+
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
+
+P2B : les conditions A9/A12 ont été complétées pour l’accès aux données, leur sort après fermeture, les préavis étendus et l’absence de modification rétroactive défavorable.

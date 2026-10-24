@@ -4,8 +4,8 @@
  *    rétractation, date limite, PDF joint ou adresse ;
  *  · R04 : accusé de résiliation ;
  *  · R01, R37 : les quatre variantes de l'accusé de rétractation d'un abonnement, et celles du passage à l'annuel ;
- *  · un numéro d'article seulement s'il existe avec ce sens dans la version en vigueur (2026-09-30) : 8.10 oui
- *    (rétractation et formulaire), 15.4 non (l'article 15 n'a pas de sous-numéro).
+ *  · un numéro d'article seulement s'il existe avec ce sens dans la version en vigueur : 8.10 (rétractation et
+ *    formulaire) ; depuis la V1 du 24/10/2026, le formulaire est celui de la V1 (« Commandé le : »).
  *
  * Relecture adverse du 24/10 (M1) : « lots sous mandat » au pluriel.
  */
@@ -105,7 +105,9 @@ describe("R03 — la confirmation de la souscription", () => {
     const t = texte(courrierConfirmationSouscription(confirmation()).html);
     for (const ligne of formulaireRetractation(EDITEUR)) expect(t).toContain(texte(ligne));
     expect(t).toContain("À l'attention de Prénom Nom EI, 1 rue de l'Exemple, 75000 Paris, contact@example.com :");
-    expect(t).toContain("Souscrit le :");
+    // Intégration des textes du 24/10 : le formulaire de la V1 (article 8.10), et non plus celui du 30/09.
+    expect(t).toContain("Commandé le (*)/reçu le (*) :");
+    expect(t).not.toContain("Souscrit le :");
     expect(t).toContain("Prénom Nom EI — 1 rue de l'Exemple, 75000 Paris — contact@example.com — 01 00 00 00 00");
   });
 

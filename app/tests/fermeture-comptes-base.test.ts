@@ -228,7 +228,7 @@ describe.skipIf(!url)("fermeture des comptes, inactivité, export complet (avec 
    */
   async function sansVersionsPlusRecentes() {
     await proprietaire();
-    await db.query("delete from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024140000'", [VERSION]);
+    await db.query("delete from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024150000'", [VERSION]);
   }
   async function fermeture(id: string) {
     await proprietaire();
@@ -1494,7 +1494,7 @@ describe.skipIf(!url)("fermeture des comptes, inactivité, export complet (avec 
     expect(await echec(RETOUR)).toMatch(/^55000 Retour 20261024130000 refusé : migration\(s\) plus récente\(s\).*20261024140000/);
     await sansVersionsPlusRecentes();
     await db.query("insert into supabase_migrations.schema_migrations (version, name) values ('20261023184512', 'annonces_locataire_jour_paris') on conflict do nothing");
-    expect(await un("select count(*)::int n from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024140000'", [VERSION])).toEqual({ n: 0 });
+    expect(await un("select count(*)::int n from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024150000'", [VERSION])).toEqual({ n: 0 });
   });
 
   it("retour : objets retirés, tables vides supprimées, rejeu sans effet, puis marche avant", async () => {

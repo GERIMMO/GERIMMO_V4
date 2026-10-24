@@ -92,14 +92,24 @@ describe("I2 : relevé après la date d'effet", () => {
   });
 
   it("Santé prévient avant le premier archivage d'une version déjà en vigueur", () => {
+    // V1 (24/10/2026) : les conditions clients et celles de l'espace artisan sont en vigueur depuis le 24 octobre.
     const html = renderToStaticMarkup(ArchiveConditions({ versions: [], sansArchive: [], autorise: true, aujourdhui: "2026-10-25" }));
-    expect(html).toContain("en vigueur depuis le 30 septembre 2026");
+    expect(html).toContain("en vigueur depuis le 24 octobre 2026");
+    expect(html.match(/en vigueur depuis le 24 octobre 2026/g)).toHaveLength(2);
     expect(html).toContain("relevé aujourd’hui");
     expect(html).toContain("à trancher par le dirigeant avant le premier archivage");
-    // Le jour de l'effet, ou une fois archivée, rien à signaler.
-    expect(renderToStaticMarkup(ArchiveConditions({ versions: [], sansArchive: [], autorise: true, aujourdhui: "2026-09-30" })))
+    // Le jour de l'effet, ou une fois archivées, rien à signaler.
+    expect(renderToStaticMarkup(ArchiveConditions({ versions: [], sansArchive: [], autorise: true, aujourdhui: "2026-10-24" })))
       .not.toContain("à trancher par le dirigeant");
-    expect(renderToStaticMarkup(ArchiveConditions({ versions: [version("2026-10-25T09:00:00Z")], sansArchive: [], autorise: true, aujourdhui: "2026-10-26" })))
+    const v1 = (document: "conditions_clients" | "conditions_artisans") => ({
+      ...version("2026-10-25T09:00:00Z", "2026-10-24"),
+      document,
+      version: "2026-10-24",
+    });
+    expect(renderToStaticMarkup(ArchiveConditions({ versions: [v1("conditions_clients"), v1("conditions_artisans")], sansArchive: [], autorise: true, aujourdhui: "2026-10-26" })))
       .not.toContain("à trancher par le dirigeant");
+    // L'archive de la version du 30 septembre ne vaut pas archive de la V1.
+    expect(renderToStaticMarkup(ArchiveConditions({ versions: [version("2026-10-23T09:00:00Z")], sansArchive: [], autorise: true, aujourdhui: "2026-10-26" })))
+      .toContain("à trancher par le dirigeant");
   });
 });

@@ -39,6 +39,7 @@ import {
 } from "../src/lib/tarifs";
 import { PARRAINAGE_PROGRAMME } from "../src/lib/parrainage";
 import { CONDITIONS_DATE, CONDITIONS_VERSION } from "../src/lib/editeur";
+import { versionDeclaree } from "../src/lib/conditions-versions";
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
@@ -166,15 +167,22 @@ describe("les écrans annoncent l'essai du jour, et l'offre de lancement", () =>
 
   it("la rétractation du consommateur reste de quatorze jours", () => {
     const cgu = lire("app/conditions/page.tsx");
-    expect(cgu).toContain("<b className=\"font-semibold\">quatorze jours</b> à compter de la");
+    // V1 (plan de conformité du 23/10, article 8.10) : le délai court à compter de la conclusion de l'abonnement.
+    expect(cgu.replace(/\s+/g, " ")).toContain("<b className=\"font-semibold\">quatorze jours</b> pour se rétracter de l&apos;abonnement payant");
+    expect(cgu.replace(/\s+/g, " ")).toContain("Le délai court à compter de la conclusion de l&apos;abonnement (article 3.2)");
     const mandat = lire("lib/documents/modeles/mandat-gestion.ts");
     expect(mandat).toContain("droit de rétractation de 14 jours");
     expect(mandat).toContain("<b>quatorze jours</b>");
   });
 
-  it("le changement des conditions est daté : version du 30 septembre 2026", () => {
-    expect(CONDITIONS_VERSION).toBe("2026-09-30");
-    expect(CONDITIONS_DATE).toBe("30 septembre 2026");
+  it("le changement des conditions est daté : V1 du 24 octobre 2026, la version du 30 septembre 2026 gardée dans l'historique", () => {
+    // L'essai de deux mois (article 8.2) est entré dans la version du 30 septembre 2026 ; la V1 (plan de conformité du
+    // 23/10) le reprend tel quel. La version du 30/09 reste déclarée dans l'historique de la garde d'empreinte.
+    expect(CONDITIONS_VERSION).toBe("2026-10-24");
+    expect(CONDITIONS_DATE).toBe("24 octobre 2026");
+    const v = versionDeclaree("conditions_clients", "2026-09-30");
+    expect(v?.date_effet).toBe("2026-09-30");
+    expect(v?.resume_modifications).toContain("2 mois");
   });
 });
 

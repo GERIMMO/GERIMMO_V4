@@ -438,6 +438,12 @@
     "dynamic": ""
   },
   {
+    "path": "/conditions/artisans",
+    "persona": "public",
+    "label": "Conditions de l’espace artisan",
+    "dynamic": ""
+  },
+  {
     "path": "/conditions/versions",
     "persona": "public",
     "label": "Versions archivées des conditions générales",

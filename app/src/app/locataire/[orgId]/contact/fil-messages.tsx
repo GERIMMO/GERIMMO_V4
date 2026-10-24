@@ -162,8 +162,8 @@ export function FilMessages({
             cette promesse — ne pas la répéter sous le bouton (24/09). */}
         {messages.length > 0 && (
           <p className="mt-2.5 text-xs text-muted-foreground">
-            Tout le fil est conservé ici — vous retrouverez toujours ce qui a été
-            dit.
+            Tout le fil est conservé ici pendant la location, puis deux ans après
+            sa fin (page Confidentialité).
           </p>
         )}
       </form>

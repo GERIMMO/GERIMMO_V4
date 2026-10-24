@@ -16,6 +16,8 @@ const PAGES = [
   "/",
   "/mentions-legales",
   "/conditions",
+  // Les conditions de l'espace artisan, publiées avec la V1 des conditions clients (24/10/2026).
+  "/conditions/artisans",
   "/confidentialite",
   "/tarifs",
   "/agences",

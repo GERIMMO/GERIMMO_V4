@@ -3,8 +3,8 @@ type: concept
 tags: [edl, etat-des-lieux, bail, depot-de-garantie, mobile]
 status: draft
 created: 2026-07-24
-updated: 2026-09-29
-sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
+updated: 2026-10-24
+sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Notification et valeur probante]]", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégué n° 8), « deploy » du 24/10/2026 (PR #246)", "app/docs/signature-electronique-bail.md", "app/src/lib/textes-signature-actes.ts"]
 ---
 
 # État des lieux
@@ -19,9 +19,13 @@ Source : [[2026-07-24-gerimmo-v3-module-1-bail|Module 1]], parcours 1.12/1.13.
 
 **Décision actée : saisie native, pièce par pièce, sur mobile** — pas un PDF déposé.
 Fonctionne **hors ligne** avec synchronisation au retour du réseau (RM-1.12.4 — module
-19 : « le parcours mobile le plus exigeant »). Signature **tactile sur place** = un
-consentement recueilli en présence, pas une [[Signature électronique|signature électronique]] eIDAS (RM-13.1.6,
-RM-A3.7 — [[Notification et valeur probante]]).
+19 : « le parcours mobile le plus exigeant »). **Signature : depuis le 24/10/2026, dans
+Gerimmo** ([[Signature électronique]], Zoho Sign), avec la confirmation du bailleur que
+l'état des lieux a été **« établi contradictoirement, sur place »** à la date de la visite —
+décision du dirigeant du 23/10, qui remplace la « signature tactile sur place » du
+référentiel (RM-13.1.6, RM-A3.7) et la variante « signé sur place puis déposé » du plan du
+23/10 ; le papier signé sur place puis déposé reste possible
+([[Notification et valeur probante]]).
 
 ## La structure
 
@@ -135,3 +139,51 @@ La pièce naît dans la même transaction que la signature (un refus ne laisse r
 GED), elle est rattachée au bail, et le mode de preuve est conservé avec l'EDL. Une
 écriture directe « signé » sans preuve est refusée. La clôture du bail continue
 d'exiger un EDL de sortie **signé**. Source : [[Audit complet du 29 septembre 2026]].
+
+## Signé dans Gerimmo, établi sur place (en production depuis le 24/10/2026)
+
+Décision du dirigeant du 23/10 (« le cautionnement et l'état des lieux doivent etre signé
+sur gerimmo directement ! ») ; code livré par la PR #246 (migration
+`20261024120000_signature_caution_mobile_et_edl_sur_place.sql`).
+- **Avant l'envoi en signature**, le bailleur coche : « Je confirme que cet état des lieux a
+  été établi contradictoirement, sur place, le {date}, en présence du locataire ou de son
+  représentant. » La date est **celle que porte l'état des lieux** (« Établi le »),
+  préremplie et verrouillée. Sans cette case (ou avec une confirmation de plus d'une heure,
+  ou à une autre date), le serveur et la base refusent l'envoi.
+- Le texte, la date, l'instant et l'auteur de la confirmation restent sur le circuit
+  (`confirmation_sur_place`), s'affichent dans son suivi et sont inscrits au journal d'audit
+  (`signature_edl_confirmation_sur_place`, preuve gardée dix ans).
+- **État des lieux d'entrée** : le PDF (« Rappel au locataire : vous pouvez demander au
+  bailleur de compléter le présent état des lieux dans les dix jours suivant son
+  établissement et, pour les éléments de chauffage, pendant le premier mois de la période de
+  chauffe (article 3-2 de la loi du 6 juillet 1989). ») et l'invitation à signer
+  (« Locataire : vous pouvez demander… ») rappellent son droit de le compléter. La formule
+  « dans les dix jours qui suivent son établissement » est retenue partout (choix délégué
+  n° 8 du 24/10).
+- Le modèle dit désormais « en autant d'exemplaires que de parties » (et non « en deux
+  exemplaires »).
+- Signé, le PDF et le **certificat de fin de signature commun à tous les signataires** sont
+  enregistrés dans les Documents ; ils suivent la durée des pièces du bail (36 mois après la
+  fin du bail, [[Durées de conservation]]).
+- La voie papier reste : l'état des lieux signé sur place (ou le constat d'un commissaire de
+  justice) est déposé en GED comme preuve (règle du 29/09 ci-dessus).
+
+> [!warning] Points à trancher / contradictions
+> - **Délai de complément** : « dans les dix jours qui suivent son établissement » ou « de sa
+>   signature » (loi 89-462, art. 3-2) — à confirmer sur Légifrance (source non ouverte le
+>   23/10/2026). Si c'est l'établissement, l'expiration du circuit de signature de l'état des
+>   lieux (30 jours) serait à raccourcir.
+> - **Valeur d'une signature par code SMS** pour un acte établi « en présence » : risque
+>   résiduel à faire relire par un juriste (décret 2016-382, art. 3 ; C. civ. 1367) — à
+>   confirmer sur Légifrance (source non ouverte le 23/10/2026).
+> - **Recette en Zoho réel** d'un état des lieux d'entrée (confirmation sur place affichée dans
+>   le suivi, notes de l'invitation conservées) : à faire.
+> - Les états des lieux envoyés avant le 24/10 sans confirmation sur place sont à compter en
+>   lecture seule, puis à annuler et renvoyer, ou à consigner par une décision du dirigeant.
+
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
+
+Point vérifié sur l’article 3-2 : les dix jours courent depuis l’établissement, pas depuis une signature tardive. Une signature ultérieure ne suspend pas ce droit.

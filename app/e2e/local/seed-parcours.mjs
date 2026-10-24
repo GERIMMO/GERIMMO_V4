@@ -23,6 +23,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { createHash, randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { totp } from "./mfa-local.mjs";
 
 const URL_LOCALE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
@@ -892,6 +893,21 @@ ok(
     code: totp(inscriptionMfa.totp.secret),
   })
 );
+
+// V1 du 24/10/2026 : les conditions de l'espace artisan sont publiées, et la coquille artisan affiche leur case à
+// la place de la page demandée tant que le compte ne les a pas acceptées (garde R10). Le compte de démonstration les
+// accepte comme à l'inscription (source « compte »), sur la dernière version déclarée.
+{
+  const versionsDeclarees = JSON.parse(readFileSync(new URL("../../src/lib/conditions-versions.json", import.meta.url), "utf8"));
+  const versionArtisans = Object.keys(versionsDeclarees.conditions_artisans ?? {}).sort().at(-1);
+  if (versionArtisans) {
+    ok(
+      "acceptation des conditions de l'espace artisan",
+      await artisan.rpc("accepter_cgu", { p_version: versionArtisans, p_source: "compte", p_document: "conditions_artisans" })
+    );
+    console.log(`· conditions de l'espace artisan acceptées (version ${versionArtisans})`);
+  }
+}
 
 const SIRET_ARTISAN = "48291763500017";
 

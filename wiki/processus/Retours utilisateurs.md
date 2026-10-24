@@ -3,8 +3,8 @@ type: process
 tags: [retours, bugs, idees, support]
 status: in-progress
 created: 2026-07-25
-updated: 2026-09-14
-sources: ["[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[Référentiel vérifiable Gerimmo du 12 septembre 2026]]"]
+updated: 2026-10-24
+sources: ["[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[Référentiel vérifiable Gerimmo du 12 septembre 2026]]", "log.md — entrée « deploy » du 24/10/2026 (PR #246)", "app/src/lib/retours.ts", "app/src/lib/courriers-contrat.ts"]
 ---
 
 # Retours utilisateurs
@@ -73,3 +73,32 @@ Les soutiens sont dédupliqués, le classement est calculé sur tout l'historiqu
 Le support reste utilisable si l'abonnement est suspendu. Cette exception ne modifie aucun droit sur le parc, les baux ou la comptabilité.
 
 Preuves locales : migration `20260914120000_retours_utilisateurs.sql`, 13 scénarios SQL et sept scénarios de serveur et contexte ; suite globale de 927 tests réussis. Interface compilée et contrôlée par lint. La publication de la base et la recette visuelle restent à faire ; le verrouillage du Mac empêche temporairement les essais dans le navigateur. La conservation à six mois est préparée par la migration `20260914130000_retention_signalements_support.sql` : elle supprime les problèmes échus et leurs réponses par lots de 500 via le nettoyage existant, sans supprimer les idées. Trois tests SQL supplémentaires passent ; l’ensemble local atteint 930 tests réussis. Cette migration attend également son application à la base publique. Le raccordement à l’outil de développement reste un chantier distinct, non livré.
+
+## Réclamations et rétractation (24 octobre 2026, PR #246, en production)
+- **Nouvelle nature « Faire une réclamation »** (`reclamation`), à côté de « Signaler un
+  problème », « Demander une explication », « Proposer une idée » et « Contester mon
+  évaluation ». La réponse qui **clôt** une réclamation reçoit, ajoutée par le serveur, la
+  phrase du médiateur : « Si cette réponse ne vous satisfait pas, vous pouvez saisir
+  gratuitement le médiateur de la consommation : {nom, adresse, site}. » — ou, tant que
+  l'adhésion n'est pas saisie : « Médiateur de la consommation : adhésion en cours ; ses
+  coordonnées figureront dans les mentions légales dès qu'elle sera effective. » La réponse
+  est bornée en longueur, phrase comprise.
+- **La rétractation ne passe plus par « Aide et retours »** : elle se déclare depuis « Mon
+  abonnement » ([[Rétractation en ligne]]).
+- **Conservation** (catalogue du 24/10, [[Durées de conservation]]) : signalements 6 mois
+  (actif) ; questions et idées 24 mois après le dernier échange, contestations et demandes
+  sur les données 3 ans après la clôture (inactives jusqu'à leur bilan) ; purge dans l'ordre
+  `groupe_id`, soutiens, historique, retours.
+
+> [!warning] Points à trancher / contradictions (24/10/2026)
+> - **Réclamations** : aucune durée de conservation au catalogue.
+> - **Article 17 des conditions V1** : la mention « Faire une réclamation » avait été retirée
+>   du texte en attendant cette nature ; elle existe depuis le 24/10 et peut être remise avant
+>   la publication de la V1.
+> - **Médiation de la consommation** (C. conso L. 612-1, L. 616-1) : à confirmer sur
+>   Légifrance (source non ouverte le 23/10/2026).
+
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

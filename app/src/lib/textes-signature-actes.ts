@@ -4,12 +4,15 @@
 
 /**
  * Rappel au locataire de son droit de faire compléter l'état des lieux d'entrée : un seul délai, deux formulations.
- * À relire par le juriste (source non ouverte le 23/10/2026) : délai de dix jours « suivant son établissement » (et non
+ * À relire par le juriste (source non ouverte le 23/10/2026) : délai de dix jours « qui suivent son établissement » (et non
  * « de sa signature », décision du dirigeant du 23/10) et premier mois de la période de chauffe, d'après l'article 3-2
  * de la loi n° 89-462 du 6 juillet 1989, non comparé sur Légifrance (plan du 23/10, § 2 et § 5).
+ * Intégration des textes du 24/10 (choix délégué n° 8, journal du 24/10) : la même formule, « dans les dix jours qui
+ * suivent son établissement », dans l'article 4.7 des conditions, le modèle de l'état des lieux, l'invitation à
+ * signer et la notice d'information (tests/conditions-v1-textes.test.ts compare la page et le modèle).
  */
 const DELAI_COMPLEMENT_EDL_ENTREE =
-  "dans les dix jours suivant son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe (article 3-2 de la loi du 6 juillet 1989).";
+  "dans les dix jours qui suivent son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe (article 3-2 de la loi du 6 juillet 1989).";
 /** Dans le PDF de l'état des lieux d'entrée, après « Rappel au locataire : » (relecture du 24/10 : sans redite). */
 export const RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT = `vous pouvez demander au bailleur de compléter le présent état des lieux ${DELAI_COMPLEMENT_EDL_ENTREE}`;
 /**

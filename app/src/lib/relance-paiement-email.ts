@@ -18,9 +18,11 @@
 //
 // PLAN DE CONFORMITÉ DU 23/10/2026 (lot 1C).
 //  · R06 : le courrier du jour de l'échec vaut mise en demeure ; il dit la date à partir de laquelle l'abonnement peut
-//    être résilié (trente jours après l'échec), en renvoyant à l'article 15 des conditions générales en vigueur
-//    (« Suspension et résiliation », version du 30/09/2026 : résiliation par l'Éditeur après mise en demeure restée
-//    sans effet trente jours). Le sous-numéro 15.4 du plan n'existe pas dans cette version : « l'article 15 ».
+//    être résilié (trente jours après l'échec), en renvoyant à l'article 15.4 des conditions générales (V1 du
+//    24/10/2026 : « Résiliation par l'Éditeur », au plus tôt trente jours après une mise en demeure restée sans effet,
+//    qui vise cet article ; l'article 15.2 dit que ce courrier « vise l'article 15.4 et vaut mise en demeure »).
+//    Intégration des textes du 24/10 : « article 15 » tant que la version du 30/09 (sans sous-numéro) était en
+//    vigueur, « article 15.4 » depuis la V1, comme le plan le prévoyait.
 //  · R23 : le PREMIER prélèvement échoué (aucune échéance réglée) a son propre courrier : le compte est gelé dès
 //    l'échec, comme à la fin d'un essai sans souscription.
 //  · R26 : en lecture seule, les envois automatiques aux locataires sont aussi interrompus ; ceux de la période ne sont
@@ -81,7 +83,8 @@ export function sujetRelance(r: Pick<RelancePaiement, "palier" | "joursRestants"
 /** R06 : la phrase de la mise en demeure, quand la base donne la date. */
 function miseEnDemeure(r: RelancePaiement, suite: string): string {
   return r.resiliableLe
-    ? `<p>Sans règlement au ${jour(r.resiliableLe)}, l'abonnement pourra être résilié en application de l'article 15
+    ? `<p>Sans règlement au ${jour(r.resiliableLe)}, et au plus tôt trente jours après l'envoi du présent courrier,
+        l'abonnement pourra être résilié en application de l'article 15.4
         des conditions générales${suite}</p>`
     : "";
 }
@@ -167,7 +170,7 @@ export type FacturesAnnulees = "annulees" | "aucune" | "a_annuler";
  * paiement était en cours et qu'aucune résiliation n'avait été demandée par le client.
  *
  * `apresMiseEnDemeure` (relecture adverse du 24/10, I1) : la résiliation a lieu trente jours au moins après la mise en
- * demeure, l'article 15 est cité ; sinon le courrier dit les faits, sans invoquer un article dont la condition n'est
+ * demeure, l'article 15.4 est cité ; sinon le courrier dit les faits, sans invoquer un article dont la condition n'est
  * pas remplie (et sans contredire la date annoncée par la mise en demeure).
  */
 export function courrierResiliationImpaye(p: {
@@ -193,7 +196,7 @@ export function courrierResiliationImpaye(p: {
       <p>Bonjour,</p>
       <p>${
         p.apresMiseEnDemeure
-          ? `Faute de règlement, votre abonnement Gerimmo est résilié depuis le ${jour(p.resilieLe)}, en application de l'article 15 des conditions générales.`
+          ? `Faute de règlement, votre abonnement Gerimmo est résilié depuis le ${jour(p.resilieLe)}, en application de l'article 15.4 des conditions générales.`
           : `Faute de règlement, votre abonnement Gerimmo a été résilié le ${jour(p.resilieLe)}.`
       }${facture}</p>
       <p>Vos données restent consultables et exportables en lecture seule ; rien n'est supprimé du fait de cette

@@ -3,8 +3,8 @@ type: business-rule
 tags: [preuve, notification, lrar, delai, ged, signature]
 status: draft
 created: 2026-07-24
-updated: 2026-09-09
-sources: ["[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]"]
+updated: 2026-10-24
+sources: ["[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[Signature électronique]]", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégués n° 1 et 8), « deploy » du 24/10/2026 (PR #246)", "app/docs/signature-electronique-bail.md"]
 ---
 
 # Notification et valeur probante
@@ -60,19 +60,38 @@ calculés **depuis la date saisie, jamais depuis l'envoi** (RM-A3.6).
 | Décompte de restitution | LRAR recommandé | **Remise des clés** (RM-2.4.1) |
 | Régularisation de charges ([[Régularisation des charges]]) | Email accepté | Envoi |
 
-**Famille 2 — Documents engageants** ([[Signature électronique]] simple — email + code
-SMS, ordre séquentiel bailleur en dernier, module 13 ; **Yousign porte la preuve**,
-pas Gerimmo) :
+**Famille 2 — Documents engageants** ([[Signature électronique]] chez **Zoho Sign**
+depuis le 18/10/2026 — et non plus Yousign, retiré : invitation par courriel, code à usage
+unique par SMS, ordre séquentiel, propriétaires en dernier ; **Zoho Sign délivre le
+certificat de fin de signature, commun à tous les signataires**, que Gerimmo enregistre
+avec le PDF signé dans les Documents) :
 
 | Document | Canal | Preuve |
 |---|---|---|
-| [[Bail]] et avenants | Yousign | Dossier de preuve Yousign |
-| Acte de cautionnement | Yousign | Dossier de preuve Yousign |
-| Mandat de gestion | Yousign | Dossier de preuve Yousign |
-| **État des lieux** | **Signature tactile sur place** | Document signé en GED |
+| [[Bail]] et avenants | Zoho Sign ; ou papier, puis dépôt du PDF signé | PDF signé et certificat commun ; le garant qui signe le bail confirme lui-même son mobile (choix du 24/10) |
+| Acte de cautionnement | Zoho Sign, **la caution confirme elle-même son numéro de mobile** avant l'envoi et saisit elle-même sa mention ; ou papier | PDF signé et certificat commun ; journal d'audit de la confirmation du mobile (dix ans) |
+| Accord d'échelonnement, accord de travaux, acceptation d'un devis d'artisan | Zoho Sign ; ou papier | PDF signé et certificat commun |
+| **État des lieux** | **Zoho Sign, avec la confirmation du bailleur qu'il a été « établi contradictoirement, sur place, le {date}, en présence du locataire ou de son représentant »** ; ou signé sur place sur papier, puis dépôt du document signé ou du constat d'un commissaire de justice | PDF signé et certificat commun, plus la confirmation sur place (texte, date, instant, auteur) gardée sur le circuit et au journal d'audit ; ou pièce déposée en GED (règle du 29/09) |
+| Mandat de gestion | **Hors circuit de signature** (agences retirées de l'offre) | — |
 
-L'EDL n'est **pas** une signature électronique eIDAS : c'est un **consentement recueilli
-en présence** des deux parties (RM-A3.7) — sa valeur tient à la présence, pas au procédé.
+**Valeur de cette signature.** Ce n'est pas une signature électronique qualifiée au sens
+du règlement eIDAS : elle **ne bénéficie d'aucune présomption de fiabilité** ; en cas de
+contestation, sa fiabilité s'apprécie au vu du PDF signé et du certificat commun. Le code
+SMS atteste que le signataire disposait du téléphone indiqué, pas son identité civile —
+d'où la confirmation du mobile par la caution et le garant eux-mêmes, jamais le numéro
+saisi par le bailleur. L'image de signature apposée sur les documents courants n'est pas
+une signature électronique (Famille 3).
+
+**L'état des lieux.** Le référentiel (RM-A3.7, RM-13.1.6) voulait un « consentement
+recueilli en présence », hors signature électronique. La **décision du dirigeant du
+23/10/2026** (« le cautionnement et l'état des lieux doivent etre signé sur gerimmo
+directement ! ») le fait signer dans Gerimmo ; la présence reste au cœur de sa valeur, par
+la case « établi contradictoirement, sur place » (date de la visite = date portée par
+l'état des lieux, préremplie et verrouillée ; refusée par le serveur et par la base sans
+elle). Cette décision remplace la variante « signé sur place puis déposé » du plan du 23/10.
+Pour un état des lieux d'entrée, le PDF et l'invitation rappellent au locataire son droit
+de demander qu'il soit complété **dans les dix jours qui suivent son établissement** et,
+pour le chauffage, pendant le premier mois de la période de chauffe.
 
 **Famille 3 — Documents courants** (email ou espace personnel, aucune preuve requise,
 RM-A3.8) : quittance, reçu, appel de loyer ([[Quittancement des loyers]]), relance
@@ -119,6 +138,20 @@ d'assurance que s'il prouve avoir réclamé le document ([[Dossier locataire]]).
 >   certains actes — vérification juridique préalable requise.
 > - La trace GED du module 12 (« fonde les délais ») est **à reformuler** dans le
 >   référentiel — voir [[Document]].
+> - **24/10 — valeur probante d'une signature par code SMS** pour l'acte de cautionnement et
+>   l'état des lieux : risque résiduel signalé par le dirigeant lui-même (23/10), à faire relire
+>   par un juriste — à confirmer sur Légifrance (source non ouverte le 23/10/2026) : C. civ.
+>   1366, 1367, 1375, 2297 ; décret 2017-1416 ; loi 89-462 art. 3-2 et 22-1 ; décret 2016-382 ;
+>   règlement (UE) 910/2014 art. 25-26.
+> - **24/10 — « signature simple »** : le référentiel (RM-13.1.1) emploie ce mot ; le plan du
+>   23/10 a retiré « signature simple au sens du règlement », catégorie non sourcée : la page dit
+>   seulement « non qualifiée, sans présomption de fiabilité ».
+> - **24/10 — remise d'un exemplaire signé à chaque partie** (C. civ. 1375 ; loi 89-462 art. 3-2
+>   et 22-1) : la recette Zoho à trois signataires (bailleur, locataire, garant) n'est pas faite ;
+>   si Zoho ne remet pas l'exemplaire, Gerimmo devra l'envoyer lui-même.
+> - **24/10 — délai de complément de l'état des lieux** : « dix jours qui suivent son
+>   établissement » (choix délégué n° 8 du 24/10) ou « de sa signature » — à confirmer sur
+>   Légifrance (source non ouverte le 23/10/2026).
 
 ## Précisions (2026-09-09)
 
@@ -130,3 +163,7 @@ d'assurance que s'il prouve avoir réclamé le document ([[Dossier locataire]]).
 - La **mise à disposition** d'un courrier dans l'espace locataire
   ([[Document]]) n'est **pas** une notification : Gerimmo génère et suit, il ne
   notifie jamais (RM-A3.1) — la LRAR reste le canal des actes.
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

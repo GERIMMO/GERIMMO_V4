@@ -16,12 +16,14 @@ import { euros } from "@/lib/tarifs";
  * comptes qui ont accepté cette version (ou une plus récente, tous documents confondus : conditions clients, de l'espace
  * artisan, règles des invités) reçoivent les avertissements, puis sont supprimés.
  *
- * `null` : la règle est INACTIVE (aucun avertissement, aucune suppression). Elle le reste tant que la V1, qui l'annonce,
- * n'est pas publiée : à poser à la date de version de la V1 (format AAAA-MM-JJ, celui de CONDITIONS_VERSION) dans le
- * même déploiement que sa publication. À relire par le juriste (source non ouverte le 23/10/2026) : durée de 24 mois
- * (référence CNIL des comptes inactifs) et avertissements à deux mois puis quinze jours.
+ * `null` : la règle est INACTIVE (aucun avertissement, aucune suppression). Elle l'est restée jusqu'à la publication de
+ * la V1, qui l'annonce (article 9) : posée le 24/10/2026 à la date de version de la V1 (format AAAA-MM-JJ, celui de
+ * CONDITIONS_VERSION), dans le même déploiement que sa publication, avec la migration 20261024150000 qui active la
+ * règle de conservation `compte:inactif` (sans elle, la base n'avertit ni ne programme rien). Un compte qui n'a accepté
+ * que la version du 30/09/2026 n'est jamais visé. À relire par le juriste (source non ouverte le 23/10/2026) : durée de
+ * 24 mois (référence CNIL des comptes inactifs) et avertissements à deux mois puis quinze jours.
  */
-export const VERSION_MIN_INACTIVITE: string | null = null;
+export const VERSION_MIN_INACTIVITE: string | null = "2026-10-24";
 
 /** Une version de conditions au format attendu (AAAA-MM-JJ), ou null. */
 export function versionInactiviteValide(v: string | null): v is string {

@@ -7,7 +7,8 @@
  *
  * Ce fichier vérifie, sans base :
  *  - la page réellement servie par `next start` (tests/fixtures/conditions-next-start.html, relevée le 24/10/2026 sur
- *    le build de cette branche, base du banc à l'identité fictive) : 18 marques vides dans la page, texte complet après
+ *    le build de cette branche, base du banc à l'identité fictive ; relevée de nouveau le même jour sur la V1 du 24/10,
+ *    25 marques vides) : texte complet après
  *    reconstitution, identique au caractère près au rendu d'un seul tenant ;
  *  - un vrai flux de React (renderToReadableStream), passages imbriqués et frontière d'attente compris, sur une page
  *    simple puis sur la page /conditions elle-même, chaque article arrivant en retard : le texte reconstitué est,
@@ -98,7 +99,7 @@ describe("B1 : la page servie par next start, reconstituée avant l'extraction",
     for (const passage of [
       "8.7 — Reconduction",
       "au plus tôt trois mois et au plus tard un mois avant le terme",
-      "8.8 — Hors abonnement",
+      "8.8 — Artisans et travaux",
       "Droits des personnes.",
       "Formulaire de rétractation",
       "17. Droit applicable et litiges",

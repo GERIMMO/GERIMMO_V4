@@ -4,8 +4,9 @@
 // confidentialité citent toutes les mêmes faits : dénomination, siège,
 // immatriculation, contact. Écrits trois fois, ils divergent au premier
 // changement d'adresse — et une mention légale fausse est pénalement
-// sanctionnée (art. 6-III de la LCEN). Ils vivent donc ici, et nulle part
-// ailleurs.
+// sanctionnée (art. 1-1 de la LCEN, rédaction issue de la loi n° 2024-449 du
+// 21 mai 2024 ; plan de conformité du 23/10, R35 : l'ancienne référence
+// « art. 6-III » était périmée). Ils vivent donc ici, et nulle part ailleurs.
 //
 // `null` veut dire « pas encore fourni » : la page l'affiche alors comme un
 // champ RESTÉ À REMPLIR, en toutes lettres, exactement comme le générateur de
@@ -165,6 +166,15 @@ export type Prestataire = {
   coordonnees?: FaitEditeur;
   /** Source officielle décrivant le prestataire et ses traitements. */
   documentation?: string;
+  /**
+   * Sous-traitant ultérieur des données que l'Éditeur traite pour le compte du Client ou de l'Artisan (annexes
+   * « article 28 » des conditions, plan de conformité du 23/10, R11). Seuls ces prestataires figurent à l'annexe, lus
+   * depuis cette liste et jamais depuis la base : la liste fait partie de la version acceptée, et la changer demande
+   * une nouvelle version des conditions (tests/conditions-empreinte.test.ts).
+   */
+  sousTraitantClient?: true;
+  /** Ce que le prestataire traite pour le Client, quand son rôle général couvre davantage (annexe seulement). */
+  roleClient?: string;
 };
 
 //
@@ -176,6 +186,7 @@ export type Prestataire = {
 export const PRESTATAIRES: readonly Prestataire[] = [
   {
     cle: "supabase",
+    sousTraitantClient: true,
     nom: "Supabase",
     role: "Base de données, authentification, stockage des fichiers",
     localisation: "Région eu-west-3 (Paris, France)",
@@ -183,6 +194,7 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   },
   {
     cle: "vercel",
+    sousTraitantClient: true,
     nom: "Vercel",
     role: "Hébergement et diffusion de l'application",
     // La région des fonctions est fixée dans vercel.json (`regions: ["cdg1"]`) :
@@ -193,6 +205,7 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   },
   {
     cle: "resend",
+    sousTraitantClient: true,
     nom: "Resend",
     role: "Envoi des courriels du service (quittances, avis, relances, rappels)",
     // Domaine d'envoi gerimmo.app créé en région eu-west-1 (constaté dans le
@@ -209,8 +222,12 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   },
   {
     cle: "zohoSign",
+    sousTraitantClient: true,
     nom: "Zoho Sign",
-    role: "Signature électronique des baux, cautionnements et devis : document à signer, nom, adresse électronique et téléphone des signataires ; invitations par courriel, vérification par SMS et conservation des preuves de signature",
+    // Décision du dirigeant du 23/10/2026 (« le cautionnement et l'état des lieux doivent être signés sur Gerimmo
+    // directement ») : l'acte de cautionnement et l'état des lieux restent dans la liste, comme sur /tarifs et
+    // « Mon abonnement » (plan de conformité du 23/10, lot 4).
+    role: "Signature électronique des baux, avenants, accords, devis, actes de cautionnement et états des lieux : document à signer, nom, adresse électronique et téléphone mobile des signataires ; invitations par courriel, code à usage unique par SMS, certificat de réalisation commun à tous les signataires ; conservation des documents signés et de leur certificat jusqu'à leur suppression",
     localisation: "Centre de données Union européenne (sign.zoho.eu) ; acheminement des SMS par les prestataires de Zoho",
     documentation: "https://www.zoho.com/privacy.html",
   },
@@ -225,8 +242,12 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   },
   {
     cle: "openai",
+    sousTraitantClient: true,
     nom: "OpenAI",
     role: "Assistance rédactionnelle de la supervision (veille, brouillons et illustrations du Journal) et propositions de devis artisans : textes éditoriaux publics, catalogue tarifaire et symptômes techniques sélectionnés ; les propositions de devis excluent les noms, adresses et descriptions libres des occupants",
+    // Pour le Client, seules les propositions de devis le concernent : la supervision éditoriale n'est pas un
+    // traitement pour son compte.
+    roleClient: "Propositions de devis artisans : catalogue tarifaire et symptômes techniques sélectionnés, à l'exclusion des noms, adresses et descriptions libres des occupants",
     localisation: "États-Unis (transfert hors UE)",
     documentation: "https://openai.com/policies/data-processing-addendum/",
   },
@@ -242,6 +263,7 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   // clé de chiffrement ne quitte pas les secrets GitHub.
   {
     cle: "scaleway",
+    sousTraitantClient: true,
     nom: "Scaleway",
     role: "Stockage de la sauvegarde quotidienne : copie chiffrée (AES-256-GCM) de la base et des fichiers, conservée 90 jours, illisible sans la clé que Scaleway ne détient pas",
     localisation: "Région fr-par (Paris, France)",
@@ -249,6 +271,7 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   },
   {
     cle: "github",
+    sousTraitantClient: true,
     nom: "GitHub (Actions)",
     role: "Exécution de la sauvegarde quotidienne : la base et les fichiers transitent par ses machines le temps d'être chiffrés, puis les copies locales sont effacées ; détient la clé de chiffrement des sauvegardes",
     localisation: "Prestataire établi aux États-Unis (transfert hors UE)",
@@ -260,7 +283,8 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   {
     cle: "ban",
     nom: "Base Adresse Nationale (api-adresse.data.gouv.fr)",
-    role: "Autocomplétion des adresses saisies dans la fiche d'un bien : texte de l'adresse et données techniques de la requête, dont l'adresse IP",
+    // Plan de conformité du 23/10 (lot 4) : un service public appelé par le navigateur, pas un sous-traitant de Gerimmo.
+    role: "Service public appelé directement par votre navigateur pour compléter l'adresse d'un bien ; il reçoit le texte tapé et l'adresse IP de votre connexion",
     // Non établie par le code : à saisir dans /admin/parametres (clé `localisationBan`), jamais devinée ici.
     localisation: null,
     documentation: "https://adresse.data.gouv.fr/donnees-personnelles",
@@ -273,6 +297,17 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     documentation: "https://www.facebook.com/privacy/policy/",
   },
 ];
+
+/**
+ * Les sous-traitants ultérieurs des annexes « article 28 » des conditions (plan de conformité du 23/10, R11) : liste
+ * figée du code — Supabase, Vercel, Resend, Zoho Sign, Scaleway, GitHub (Actions), OpenAI —, sans la Base Adresse
+ * Nationale (service public appelé par le navigateur, pas un sous-traitant) ni Yousign (inactif, aucune donnée).
+ * Lue depuis les constantes, jamais depuis la base : ni localisation ni coordonnées saisies n'y entrent, si bien que
+ * le texte accepté ne change pas au gré des paramètres. Le rôle affiché est celui qui concerne le Client.
+ */
+export function sousTraitantsClient(liste: readonly Prestataire[] = PRESTATAIRES): Prestataire[] {
+  return liste.filter((p) => p.sousTraitantClient).map((p) => ({ ...p, role: p.roleClient ?? p.role }));
+}
 
 const majuscule = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 /** La clé de saisie des coordonnées d'un prestataire : `coordonneesSupabase`. */
@@ -365,22 +400,35 @@ export function reservesLegales(editeur: Record<string, FaitEditeur> = EDITEUR):
 // « article 28 du RGPD ».
 // 30/09/2026 : essai gratuit porté de 14 jours à 2 mois pour toute inscription
 // jusqu'au 31/12/2026 (offre de lancement), 1 mois ensuite (article 8.2).
-export const CONDITIONS_VERSION = "2026-09-30";
+// 24/10/2026 : V1, publiée le jour où le code qui la rend vraie est en production
+// (PR #246, f79674c, mise en ligne le 24/10 ; plan de conformité du 23/10, lots 3
+// et 4) — offre aux seuls propriétaires gérant leurs biens (agences retirées),
+// rétractation en ligne (8.10), impayé et suspension (15), garanties légales
+// (14 bis), signature électronique du bail, du cautionnement et de l'état des
+// lieux (4.7), conservation, inactivité de 24 mois et archive complète (9),
+// révision et modifications soumises à l'accord exprès (8.9, 16), annexe
+// article 28 complétée, annexe L. 215 ; conditions de l'espace artisan séparées
+// (même date). La règle d'inactivité (VERSION_MIN_INACTIVITE,
+// lib/comptes-fermeture.ts) et la règle de conservation compte:inactif
+// (migration 20261024150000) s'activent avec elle.
+export const CONDITIONS_VERSION = "2026-10-24";
 
 /** Date d'entrée en vigueur affichée en tête des conditions. */
-export const CONDITIONS_DATE = "30 septembre 2026";
+export const CONDITIONS_DATE = "24 octobre 2026";
 
 // ── Version des conditions de l'espace artisan ─────────────────────────────
 //
-// Plan de conformité du 23/10/2026 (constat R10) : les artisans n'ont pas à accepter des conditions écrites pour les
-// propriétaires bailleurs. Leurs conditions propres (page /conditions/artisans) paraîtront avec la vague « textes ».
+// Plan de conformité du 23/10/2026 (constat R10) : les artisans n'acceptent plus les conditions écrites pour les
+// propriétaires bailleurs, mais les « Conditions de l'espace artisan » (/conditions/artisans), versionnées et
+// archivées à part (document « conditions_artisans »).
 // TANT QUE CES DEUX VALEURS SONT NULLES, le mécanisme de l'espace artisan est INACTIF : l'artisan accepte les
 // conditions clients, comme avant (case de l'inscription, document « conditions_clients »), et la garde de
 // l'espace artisan n'exige rien. Il s'active seul dès qu'elles sont renseignées, en même temps que la page publiée :
 // case « J'accepte les conditions de l'espace artisan » (document « conditions_artisans »), garde de
 // src/app/artisan/layout.tsx (lib/conditions-acceptation.ts). Même règle qu'au-dessus : à changer à chaque
 // modification de fond, avec la date affichée.
-export const CONDITIONS_ARTISANS_VERSION: string | null = null;
+// 24/10/2026 : première version, publiée le même jour que la V1 des conditions clients.
+export const CONDITIONS_ARTISANS_VERSION: string | null = "2026-10-24";
 
 /** Date d'entrée en vigueur affichée en tête des conditions de l'espace artisan ; `null` tant qu'elles ne sont pas publiées. */
-export const CONDITIONS_ARTISANS_DATE: string | null = null;
+export const CONDITIONS_ARTISANS_DATE: string | null = "24 octobre 2026";

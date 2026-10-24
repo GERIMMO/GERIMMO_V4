@@ -3,7 +3,7 @@ type: synthesis
 tags: [lancement, recette, supervision]
 status: in-progress
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-24
 sources:
   - "Messages directs du dirigeant du 21 octobre 2026"
   - "PR230 ; CI 39606406311"
@@ -32,7 +32,7 @@ Il précise : « les agences ont possibilité seulement de s'inscrire sur liste 
 
 ## Corrections préparées dans ce lot
 
-1. L’export CSV exclut les inscriptions retirées par défaut ; la case « Inclure les retirées » permet leur inclusion explicite. Le journal indique ce choix, sans données personnelles.
+1. L’export CSV exclut les inscriptions retirées par défaut ; la case « Inclure les retirées » permet leur inclusion explicite. Le journal indique ce choix, sans données personnelles. *Mise à jour du 24/10/2026 (PR #246) : la case « Inclure les retirées » est retirée ; l’export ne contient plus jamais les inscriptions retirées ni les adresses opposées, et une inscription retirée est supprimée, son empreinte gardée comme opposition — voir [[Liste d'attente des agences]] et [[Prospection commerciale]].*
 2. Le relais de 5 h peut compter les agences au statut `en_attente`. La fonction SQL ne rend qu’un nombre, réservé au rôle serveur. Aucun nouveau cron ni destinataire. Une lecture impossible est signalée comme telle.
 3. Santé affiche séparément la connexion Zoho et les interrupteurs d’envoi des baux, autres actes, devis, relances, cautionnements et essais. Aucun secret ni identifiant d’organisation n’est affiché. Un interrupteur ouvert n’est pas une validation de tout le circuit.
 4. Les modules artisans « clients externes » et « règlements manuels » sont préparés pour un hébergement HTTPS. Leur activation en base était encore désactivée lors de la lecture du 21 octobre. La migration ouvre ces deux modules existants sans modifier les droits d’accès ni la propriété des dossiers. Le retour arrière ferme les nouvelles saisies en conservant les données. Les règlements restent des déclarations justifiées : aucun mouvement bancaire déclenché.

@@ -46,16 +46,20 @@ describe("tarifs : la signature électronique est rangée dans l'abonnement", ()
     expect(hors).toContain("Aucun envoi de SMS en dehors du code de signature, aucun service bancaire.");
   });
 
-  it("« Ce qui est dans l'abonnement » la nomme, avec ses réserves, sans promettre ni gratuité ni volume", () => {
+  // Décisions du dirigeant du 23/10 (plan de conformité, lot 4) : la signature est comprise SANS SUPPLÉMENT, essai
+  // compris, dans la limite du volume mensuel commun ; le cautionnement et l'état des lieux se signent dans Gerimmo.
+  // Ni « gratuit » ni volume illimité pour autant.
+  it("« Ce qui est dans l'abonnement » la nomme, avec ses réserves, sans supplément mais sans promettre ni gratuité ni volume", () => {
     const tous = articles();
     const inclus = tous.get("Ce qui est dans l'abonnement");
     expect(inclus).toBeDefined();
-    for (const circuit of ["signature électronique du bail", "acte de cautionnement", "acceptation des devis"]) {
+    for (const circuit of ["signature électronique du bail", "acte de cautionnement", "état des lieux", "acceptation des devis"]) {
       expect(inclus).toContain(circuit);
     }
     expect(inclus).toContain("code envoyé par SMS à chaque signataire");
+    expect(inclus).toContain("sans supplément pour vous ni pour les signataires");
     expect(inclus).toContain("Elle n'est pas illimitée : elle dépend d'un volume mensuel commun et peut être momentanément suspendue.");
-    expect(inclus).not.toMatch(/gratuit|sans supplément|sans frais|illimitées?\s*(?:[.,;]|$)|à volonté/i);
+    expect(inclus).not.toMatch(/gratuit|illimitées?\s*(?:[.,;]|$)|à volonté/i);
     // L'article précède « Ce qui n'est pas dans l'abonnement ».
     const titres = [...tous.keys()];
     expect(titres.indexOf("Ce qui est dans l'abonnement")).toBeLessThan(titres.indexOf("Ce qui n'est pas dans l'abonnement"));

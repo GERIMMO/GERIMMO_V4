@@ -3,8 +3,8 @@ type: process
 tags: [agences, liste-attente, site-vitrine, console, rgpd, lancement, prospects]
 status: draft
 created: 2026-10-20
-updated: 2026-10-21
-sources: ["[[Audit final avant publication — 19 octobre 2026]]", "[[Registre des traitements]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
+updated: 2026-10-24
+sources: ["[[Audit final avant publication — 19 octobre 2026]]", "[[Registre des traitements]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Prospection commerciale]]", "[[Durées de conservation]]", "log.md — entrées « decision » du 23/10/2026 (valeurs par défaut du plan) et « deploy » du 24/10/2026 (PR #246)"]
 ---
 
 # Liste d'attente des agences
@@ -166,7 +166,10 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
   changement est tracé au journal de supervision (`liste_attente_statut_modifie`) ; l'export
   CSV l'est aussi (`liste_attente_exportee`).
 - **Export CSV protégé** (super-administrateur, après second facteur comme toute la
-  console).
+  console). **Depuis le 24/10** : l'export ne contient jamais les inscriptions retirées ni
+  les adresses opposées (l'option « Inclure les retirées » est retirée) ; pour elles, ni lien
+  de courriel ni marquage « contactée » ; si le contrôle des oppositions échoue, rien ne part.
+  L'export est tracé comme un accès de la supervision (journal de contrôle interne, 36 mois).
 
 ## La différence avec `liste_attente` (29/09)
 
@@ -180,7 +183,8 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
 | Plafond | 30 par heure glissante | 30 par heure glissante |
 | Lignes | 0 au relevé du 19/10 | table nouvelle |
 | Registre | [[Registre des traitements]] P10 | [[Registre des traitements]] P11 |
-| Sort | **à décider** (décision du 20/10 : conservée pour l'instant) | déployé le 20/10 au soir (PR #227, `4ba53f5`) |
+| Sort | **à décider** (décision du 20/10 : conservée pour l'instant ; 24/10 : 0 ligne, fermer l'inscription anonyme si aucun site tiers ne l’utilise — question au dirigeant, non bloquante) | déployé le 20/10 au soir (PR #227, `4ba53f5`) |
+| Durée (24/10) | 36 mois depuis l'inscription (`contact:attente`, inactive) | 36 mois depuis l'inscription (`contact:attente_agences`, inactive) |
 
 ## Règles d'usage pour le dirigeant
 
@@ -196,12 +200,17 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
   conversion ou le retrait se notent par le statut (« Devenue cliente », « Retirée à sa
   demande »), et chaque changement de statut est tracé au journal de supervision.
 - **Suppression sur demande** : si une agence demande à être retirée, la marquer « Retirée à
-  sa demande » depuis la console (statut `retiree`) ; l'effacement physique de la ligne
-  n'est possible qu'avec la clé de service (aucun écran). Le délai et la forme de la
-  réponse à la personne relèvent de [[RGPD]] — à relire par le juriste.
-- **Après le déploiement (fait le 20/10)** : la base légale et la durée de conservation (P11)
-  restent à décider ; la table est en ligne sans règle `retention_rules` ; le paragraphe de
-  `/confidentialite` reste à relire par le juriste.
+  sa demande » depuis la console (statut `retiree`). **Depuis le 24/10**, la ligne est alors
+  supprimée et l'empreinte SHA-256 de l'adresse gardée comme opposition (trois ans,
+  [[Prospection commerciale]]), même si la règle de conservation n'est pas encore active.
+  Le délai et la forme de la réponse à la personne relèvent de [[RGPD]] — à relire par le
+  juriste.
+- **Base légale et durée (P11), décidées le 23/10** (plan juriste/DPO, valeurs par défaut
+  acceptées par le dirigeant) : **intérêt légitime** (donner suite à la demande faite) ;
+  **36 mois depuis l'inscription** (règle `contact:attente_agences`, compteur depuis
+  l'inscription depuis le 24/10, **inactive** jusqu'à son bilan) ; inscription « devenue
+  cliente » supprimée trois mois après la conversion. Le texte du formulaire et de la page
+  confidentialité V1 le disent (publication des textes V1 prévue le 24/10).
 
 ## Entrées / sorties
 - **Entrées :** le formulaire `/agences` (sept champs et le pot de miel).
@@ -231,10 +240,9 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
 - Processus : [[Recette de production]] (le déploiement du lot y passe), [[Relais du dirigeant]].
 
 > [!warning] Points à trancher / contradictions
-> - **Base légale et durée de conservation** (P11) : à décider par le dirigeant et le DPO —
->   mesures précontractuelles à la demande de la personne, ou consentement ; repère usuel
->   évoqué pour les fichiers de prospects : trois ans après le dernier contact, **à confirmer
->   par le juriste / DPO** ; aucune règle `retention_rules` tant que ce n'est pas décidé.
+> - ~~**Base légale et durée de conservation** (P11) : à décider par le dirigeant et le DPO~~ →
+>   **tranché le 23/10** : intérêt légitime, 36 mois depuis l'inscription (règle créée,
+>   inactive jusqu'à son bilan) — à confirmer sur Légifrance (source non ouverte le 23/10/2026).
 > - **Date d'ouverture de l'offre agences** : non fixée ; rien n'est annoncé au visiteur.
 > - **Grille tarifaire agences** : le barème du 28/09 ([[Grille tarifaire]], 39 € HT jusqu'à
 >   10 lots puis tranches) n'est pas montré sur `/agences` ; à confirmer ou réviser avant
@@ -247,3 +255,7 @@ Migration `20261020120000_liste_attente_agences.sql` (retour :
 >   la clé de service à décrire, ou statut `retiree` suffisant ? À relire par le juriste.
 > - **Paragraphe de `/confidentialite`** et libellés du formulaire : factuels et neutres, à
 >   relire par le juriste avant déploiement.
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

@@ -28,14 +28,14 @@ begin
   perform set_config('lock_timeout', '10s', true);
 
   -- Finitions du 24/10 (relecture transverse, point 4) : jamais hors de son ordre. Tant qu'une migration plus récente
-  -- du plan de conformité (jusqu'à 20261024140000) est inscrite, son retour passe d'abord ; joué seul, celui-ci
+  -- du plan de conformité (jusqu'à 20261024150000) est inscrite, son retour passe d'abord ; joué seul, celui-ci
   -- réussissait et cassait les purges de nuit, qui citent encore ce qu'il retire.
   if to_regclass('supabase_migrations.schema_migrations') is not null
      and exists (select 1 from supabase_migrations.schema_migrations
-                  where left(version, 14) > '20261024090000' and left(version, 14) <= '20261024140000') then
-    raise exception 'Retour 20261024090000 refusé : migration(s) plus récente(s) du plan de conformité encore inscrite(s) (%) ; jouer d''abord leur retour, dans l''ordre inverse (140000, 130000, 120000, 110000, 100000, 090000)',
+                  where left(version, 14) > '20261024090000' and left(version, 14) <= '20261024150000') then
+    raise exception 'Retour 20261024090000 refusé : migration(s) plus récente(s) du plan de conformité encore inscrite(s) (%) ; jouer d''abord leur retour, dans l''ordre inverse (150000, 140000, 130000, 120000, 110000, 100000, 090000)',
       (select string_agg(version, ', ' order by version) from supabase_migrations.schema_migrations
-        where left(version, 14) > '20261024090000' and left(version, 14) <= '20261024140000') using errcode = '55000';
+        where left(version, 14) > '20261024090000' and left(version, 14) <= '20261024150000') using errcode = '55000';
   end if;
 
   -- 1. accepter_cgu à deux paramètres.

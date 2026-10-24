@@ -60,7 +60,7 @@
 .indisponible a { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 8px 12px; background: var(--carte); border: 1px solid var(--filet); border-radius: 7px; font-size: 11px; font-weight: 550; }
 .conditionsAAccepter { display: grid; gap: 10px; padding: 15px 18px; border: 1px solid var(--filet); border-radius: 10px; background: var(--ardoise); color: var(--encre); font-size: 12px; line-height: 1.6; }
 .inclus { padding-top: 14px; }
-.services { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.services { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .services > div { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-content: start; gap: 8px 10px; padding: 16px; background: var(--carte); border: 1px solid var(--filet); border-radius: 10px; }
 .services svg { grid-row: span 2; color: var(--prestige-champagne-texte); }
 .services strong { font-size: 12px; font-weight: 600; color: var(--encre); }

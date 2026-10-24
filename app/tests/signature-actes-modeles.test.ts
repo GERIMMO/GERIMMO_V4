@@ -58,7 +58,7 @@ describe("état des lieux : exemplaires et rappel au locataire (R28, décision d
     expect(html).toContain(", en autant d'exemplaires que de parties.");
     expect(html).not.toContain("deux exemplaires");
     expect(html).toContain(`Rappel au locataire : ${RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT}`);
-    expect(RAPPEL_COMPLEMENT_EDL_ENTREE).toBe("Locataire : vous pouvez demander au bailleur de compléter cet état des lieux d'entrée dans les dix jours suivant son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe (article 3-2 de la loi du 6 juillet 1989).");
+    expect(RAPPEL_COMPLEMENT_EDL_ENTREE).toBe("Locataire : vous pouvez demander au bailleur de compléter cet état des lieux d'entrée dans les dix jours qui suivent son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe (article 3-2 de la loi du 6 juillet 1989).");
     expect(html).not.toContain("dans les dix jours de sa signature");
   });
 
@@ -138,13 +138,13 @@ describe("le garant qui signe le bail ne s'y engage pas comme caution (R58)", ()
 describe("relecture du 24/10 : formules des actes", () => {
   it("le PDF de l'état des lieux d'entrée s'adresse au locataire sans majuscule ni redite après les deux-points", () => {
     const html = construireEdl(edl("entree")).html;
-    expect(html).toContain("Rappel au locataire : vous pouvez demander au bailleur de compléter le présent état des lieux dans les dix jours suivant son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe (article 3-2 de la loi du 6 juillet 1989).");
+    expect(html).toContain("Rappel au locataire : vous pouvez demander au bailleur de compléter le présent état des lieux dans les dix jours qui suivent son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe (article 3-2 de la loi du 6 juillet 1989).");
     expect(html).not.toContain("Rappel au locataire : Pour");
   });
 
   it("l'invitation adresse le rappel au seul locataire, comme les consignes « Garant : … Propriétaire : … »", () => {
     const message = messageInvitationSignature({ modele: "edl", bailleur: "Claire Moreau", lienConfidentialite: "https://site.example/confidentialite", edlEntree: true });
-    expect(message).toContain("Locataire : vous pouvez demander au bailleur de compléter cet état des lieux d'entrée dans les dix jours suivant son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe (article 3-2 de la loi du 6 juillet 1989).");
+    expect(message).toContain("Locataire : vous pouvez demander au bailleur de compléter cet état des lieux d'entrée dans les dix jours qui suivent son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe (article 3-2 de la loi du 6 juillet 1989).");
   });
 
   it("le cadre « La caution » s'accorde au pluriel quand le bail a plusieurs garants", () => {
@@ -160,7 +160,7 @@ describe("relecture du 24/10 : formules des actes", () => {
 
   it("la notice d'information donne le point de départ du délai de dix jours", () => {
     const notice = readFileSync("src/lib/documents/modeles/notice.ts", "utf8");
-    expect(notice).toContain("dans les dix jours suivant son établissement");
+    expect(notice).toContain("dans les dix jours qui suivent son établissement");
     expect(notice).not.toContain("dans les dix jours pour tout élément");
   });
 });

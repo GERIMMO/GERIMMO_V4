@@ -58,9 +58,10 @@ describe("vente au consommateur et impayé — fichiers (sans base)", () => {
     const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
     expect(lisezMoi).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
     // Intégration du 24/10 : la chaîne s'ouvre sur les retours du plan de conformité, dans l'ordre inverse du manifeste
-    // (140000, 130000, 120000, puis celui-ci, puis 100000 et 090000), avant 20261023184512.
+    // (150000, 140000, 130000, 120000, puis celui-ci, puis 100000 et 090000), avant 20261023184512 ; 150000 (activation
+    // de l'inactivité avec la V1) depuis l'intégration des textes du 24/10.
     expect(lisezMoi).toMatch(
-      /Ordre complet si tout doit être défait :\s*`20261024140000`[^`]*`20261024130000`[^`]*`20261024120000`[^`]*`20261024110000`[^`]*`20261024100000`[^`]*`20261024090000`[^`]*`20261023184512`/
+      /Ordre complet si tout doit être défait :\s*`20261024150000`[^`]*`20261024140000`[^`]*`20261024130000`[^`]*`20261024120000`[^`]*`20261024110000`[^`]*`20261024100000`[^`]*`20261024090000`[^`]*`20261023184512`/
     );
     expect(readFileSync("vitest.config.ts", "utf8")).toContain('"tests/vente-impaye-base.test.ts"');
   });
@@ -155,7 +156,7 @@ describe.skipIf(!url)("vente au consommateur et impayé (avec base)", () => {
     // Finitions du 24/10 (relecture transverse 2, point 4) : le retour refuse tant qu'une migration plus récente du plan
     // de conformité est inscrite (la base de la CI les inscrit toutes). Retirées de l'historique, dans la transaction
     // du fichier, annulée à la fin.
-    await db.query("delete from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024140000'", [VERSION]);
+    await db.query("delete from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024150000'", [VERSION]);
   });
   afterAll(async () => {
     await db?.query("rollback");

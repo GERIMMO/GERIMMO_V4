@@ -18,6 +18,8 @@ export type LigneRetractation = {
   destinataire: string | null;
   retractation_abonnement_le: string | null;
   retractation_passage_le: string | null;
+  /** La déclaration de passage exécutée : le passage était-il déjà effectué ? (null avant l'exécution) */
+  retractation_passage_effectue?: boolean | null;
 };
 
 export type DroitRetractation = {
@@ -54,11 +56,14 @@ export function etatRetractation(l: LigneRetractation | null, maintenant = new D
       }
     : { ...FERME, declareeLe: l.retractation_abonnement_le };
   // Le passage à l'annuel : programmé (mensuel, suivante annuelle) ou effectué (annuel), avec sa demande datée.
+  // Relecture adverse du 24/10 (point 1) : une déclaration déjà enregistrée garde son droit (sa reprise reste possible)
+  // même quand la périodicité a changé depuis — retour au mensuel fait par une première exécution, passage retiré.
+  // « Effectué » vient alors de l'exécution consignée, quand elle l'est.
   const demande = l.passage_annuel_demande_le ? new Date(l.passage_annuel_demande_le) : null;
   const programme = l.periodicite === "mensuel" && l.periodicite_suivante === "annuel";
-  const effectue = l.periodicite === "annuel";
+  const effectue = l.retractation_passage_effectue ?? l.periodicite === "annuel";
   const passage =
-    demande && (programme || effectue) && !l.retractation_abonnement_le
+    demande && (programme || effectue || l.retractation_passage_le) && !l.retractation_abonnement_le
       ? {
           ouverte: !l.retractation_passage_le && retractationOuverte(demande, maintenant),
           conclusion: demande,

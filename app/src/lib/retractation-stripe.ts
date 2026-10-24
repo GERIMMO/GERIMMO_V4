@@ -5,11 +5,20 @@
 //    pas une résiliation pour impayé), la facture restée ouverte est annulée, et CHAQUE paiement de la souscription est
 //    remboursé en entier, sur le moyen de paiement utilisé.
 //  · Passage à l'annuel encore programmé : l'échéancier est libéré ; rien n'est prélevé ni remboursé.
-//  · Passage à l'annuel déjà effectué : retour au prix mensuel (sans prorata, nouveau cycle à compter de ce jour) et
-//    remboursement intégral des échéances annuelles payées depuis la demande.
+//  · Passage à l'annuel déjà effectué : retour au prix mensuel (sans prorata, nouveau cycle à compter de ce jour, donc
+//    une première mensualité prélevée ce jour) et remboursement intégral des échéances annuelles payées depuis la demande.
 //
 // Tout est rejouable : chaque écriture porte une clé d'idempotence dérivée de la déclaration (`retractation-{id}-…`),
 // un remboursement déjà fait est reconnu. Les montants viennent de Stripe, jamais du navigateur.
+//
+// RELECTURE ADVERSE DU 24/10.
+//  · Point 1 : « effectué » ne se lit plus sur l'intervalle courant de la souscription. Un premier passage a pu la
+//    remettre au mois avant que le remboursement échoue ; au rejeu, elle est mensuelle mais l'échéance annuelle reste à
+//    rembourser. Le passage est effectué si la souscription est annuelle OU si une échéance annuelle a été émise depuis
+//    la demande ; les échéances annuelles payées sont alors toujours remboursées, et le retour au mensuel n'est refait
+//    que si la souscription est encore annuelle.
+//  · Point 6 : un remboursement « déjà fait » compte ce que CETTE rétractation a remboursé (métadonnée de ses
+//    remboursements), pas le montant payé : un geste commercial antérieur n'est pas annoncé comme remboursé par elle.
 
 import type Stripe from "stripe";
 import { ArretSupervision } from "@/lib/controle-effets";
@@ -65,8 +74,9 @@ export async function rembourserFactures(stripe: Stripe, factures: Stripe.Invoic
       } catch (e) {
         if (e instanceof ArretSupervision) throw e;
         if ((e as { code?: string }).code === "charge_already_refunded") {
-          refunds.push({ facture: f.id, refund: null, montant_cents: f.amount_paid, deja: true });
-          montantCents += f.amount_paid;
+          const deja = await rembourseParLaRetractation(stripe, p, cle);
+          refunds.push({ facture: f.id, refund: null, montant_cents: deja, deja: true });
+          montantCents += deja;
           continue;
         }
         throw e;
@@ -76,14 +86,22 @@ export async function rembourserFactures(stripe: Stripe, factures: Stripe.Invoic
   return { montantCents, refunds };
 }
 
-async function facturesPayees(stripe: Stripe, subscription: string, depuisS?: number): Promise<Stripe.Invoice[]> {
-  const liste = await stripe.invoices.list({
-    subscription,
-    status: "paid",
-    limit: 100,
-    expand: ["data.payments"],
-    ...(depuisS ? { created: { gte: depuisS } } : {}),
-  });
+/** Ce que les remboursements de CETTE rétractation (métadonnée `gerimmo_retractation`) ont rendu sur ce paiement. */
+async function rembourseParLaRetractation(stripe: Stripe, p: { payment_intent?: string; charge?: string }, cle: string): Promise<number> {
+  const liste = await stripe.refunds.list({ ...p, limit: 100 });
+  return liste.data
+    .filter((r) => r.metadata?.gerimmo_retractation === cle && r.status !== "failed" && r.status !== "canceled")
+    .reduce((total, r) => total + r.amount, 0);
+}
+
+/** Les factures de la souscription émises depuis cet instant, quel que soit leur état (payée, ouverte, annulée). */
+async function facturesDepuis(stripe: Stripe, subscription: string, depuisS: number): Promise<Stripe.Invoice[]> {
+  const liste = await stripe.invoices.list({ subscription, created: { gte: depuisS }, limit: 100, expand: ["data.payments"] });
+  return liste.data;
+}
+
+async function facturesPayees(stripe: Stripe, subscription: string): Promise<Stripe.Invoice[]> {
+  const liste = await stripe.invoices.list({ subscription, status: "paid", limit: 100, expand: ["data.payments"] });
   return liste.data;
 }
 
@@ -113,8 +131,9 @@ export async function retracterSouscription(stripe: Stripe, p: { subscription: s
 }
 
 /**
- * R37 : la rétractation d'un passage à l'annuel. Déjà effectué (souscription facturée à l'année) : retour au mensuel et
- * remboursement des échéances annuelles payées depuis la demande. Encore programmé : l'échéancier est libéré.
+ * R37 : la rétractation d'un passage à l'annuel. Déjà effectué (souscription facturée à l'année, ou échéance annuelle
+ * émise depuis la demande) : retour au mensuel s'il n'est pas déjà fait, et remboursement des échéances annuelles payées
+ * depuis la demande. Encore programmé : l'échéancier est libéré.
  */
 export async function retracterPassageAnnuel(
   stripe: Stripe,
@@ -123,22 +142,27 @@ export async function retracterPassageAnnuel(
   const s = await stripe.subscriptions.retrieve(p.subscription);
   const annuel = s.items?.data?.[0]?.price?.recurring?.interval === "year";
   await libererEcheancier(stripe, s);
-  if (!annuel) return { montantCents: 0, refunds: [], passageEffectue: false };
-  // L'échéance annuelle restée impayée est annulée ; celle qui est payée est remboursée.
-  await annulerFacturesOuvertesDe(stripe, p.subscription, p.cle);
-  const lignes = await lignesStripe(stripe, p.offreMensuelle, p.regime);
-  await stripe.subscriptions.update(
-    p.subscription,
-    {
-      items: elementsDeMiseAJour(s.items.data, lignes) as Stripe.SubscriptionUpdateParams.Item[],
-      proration_behavior: "none",
-      billing_cycle_anchor: "now",
-      metadata: metadonneesOffre(p.orgId, p.offreMensuelle, p.choix),
-    },
-    { idempotencyKey: `${p.cle}-mensuel` }
-  );
   const depuis = Math.floor(p.demandeLe.getTime() / 1000);
-  const annuelles = (await facturesPayees(stripe, p.subscription, depuis)).filter(estFactureAnnuelle);
+  const emisesAvant = (await facturesDepuis(stripe, p.subscription, depuis)).filter(estFactureAnnuelle);
+  if (!annuel && emisesAvant.length === 0) return { montantCents: 0, refunds: [], passageEffectue: false };
+  if (annuel) {
+    // L'échéance annuelle restée impayée est annulée ; celle qui est payée est remboursée.
+    await annulerFacturesOuvertesDe(stripe, p.subscription, p.cle);
+    const lignes = await lignesStripe(stripe, p.offreMensuelle, p.regime);
+    await stripe.subscriptions.update(
+      p.subscription,
+      {
+        items: elementsDeMiseAJour(s.items.data, lignes) as Stripe.SubscriptionUpdateParams.Item[],
+        proration_behavior: "none",
+        billing_cycle_anchor: "now",
+        metadata: metadonneesOffre(p.orgId, p.offreMensuelle, p.choix),
+      },
+      { idempotencyKey: `${p.cle}-mensuel` }
+    );
+  }
+  const annuelles = (annuel ? (await facturesDepuis(stripe, p.subscription, depuis)).filter(estFactureAnnuelle) : emisesAvant).filter(
+    (f) => f.status === "paid"
+  );
   return { ...(await rembourserFactures(stripe, annuelles, p.cle)), passageEffectue: true };
 }
 

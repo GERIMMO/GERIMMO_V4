@@ -24,11 +24,13 @@ export async function ligneRetractationParLeService(service: SupabaseClient, org
   const a = (data ?? {}) as { periodicite_suivante?: "mensuel" | "annuel" | null; passage_annuel_demande_le?: string | null };
   const { data: decl } = await service
     .from("retractations_abonnement")
-    .select("nature, declaree_le, passage_demande_le")
+    .select("nature, declaree_le, passage_demande_le, passage_effectue")
     .eq("organization_id", orgId)
     .eq("subscription_id", c.stripe_subscription_id ?? "");
-  const declarations = (decl ?? []) as { nature: string; declaree_le: string; passage_demande_le: string | null }[];
+  const declarations = (decl ?? []) as { nature: string; declaree_le: string; passage_demande_le: string | null; passage_effectue: boolean | null }[];
+  // Comparées à la milliseconde, comme `ma_retractation` (relecture adverse du 24/10, point 3).
   const demande = a.passage_annuel_demande_le ? new Date(a.passage_annuel_demande_le).getTime() : null;
+  const passage = declarations.find((d) => d.nature === "passage_annuel" && d.passage_demande_le && new Date(d.passage_demande_le).getTime() === demande);
   return {
     souscrit_le: c.souscrit_le,
     abonnement_suivi: Boolean(c.stripe_subscription_id),
@@ -41,8 +43,7 @@ export async function ligneRetractationParLeService(service: SupabaseClient, org
     organisation: c.organisation,
     destinataire: c.destinataire,
     retractation_abonnement_le: declarations.find((d) => d.nature === "abonnement")?.declaree_le ?? null,
-    retractation_passage_le:
-      declarations.find((d) => d.nature === "passage_annuel" && d.passage_demande_le && new Date(d.passage_demande_le).getTime() === demande)
-        ?.declaree_le ?? null,
+    retractation_passage_le: passage?.declaree_le ?? null,
+    retractation_passage_effectue: passage?.passage_effectue ?? null,
   };
 }

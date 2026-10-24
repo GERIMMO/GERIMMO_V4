@@ -27,6 +27,8 @@ import { identiteDepuisValeurs } from "@/lib/identite-editeur";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 import { courrierResiliationImpaye, type FacturesAnnulees } from "@/lib/relance-paiement-email";
 import { adresseDuSite } from "@/lib/site";
+import { adressesRelaisDuServeur } from "@/lib/relais-alerte-reglage";
+import { echapperMarque } from "@/lib/marque-organisation";
 import { formuleParCode, type Periodicite } from "@/lib/tarifs";
 import { dateParis } from "@/lib/heure-paris-calcul";
 
@@ -75,6 +77,39 @@ function lienAbonnement(base: string): string | null {
 async function tracer(service: Service, evenement: string, details: Record<string, unknown>): Promise<void> {
   const { error } = await service.from("tech_log").insert({ evenement, details });
   if (error) console.error(`[${evenement}] trace non écrite :`, error.message.slice(0, 200));
+}
+
+/**
+ * Un incident du contrat qu'un humain doit voir (relectures adverses du 24/10 : rétractation restée en chemin,
+ * résiliation pour impayé avant le délai de la mise en demeure). Trace au journal technique, puis alerte e-mail du
+ * relais (adresses GERIMMO_RELAIS_EMAILS, le canal d'alerte existant ; aucune adresse dans le code). Sans coordonnée
+ * du client dans l'alerte : l'organisation et les références suffisent. Rend le nombre d'alertes parties.
+ */
+export async function alerterRelaisContrat(
+  service: Service,
+  a: { evenement: string; sujet: string; lignes: string[]; cle: string; details: Record<string, unknown> },
+  options: { avantEffet?: () => Promise<void>; adresses?: string[] } = {}
+): Promise<number> {
+  await tracer(service, a.evenement, a.details);
+  const adresses = options.adresses ?? adressesRelaisDuServeur().valides;
+  if (adresses.length === 0) return 0;
+  const html = `
+<div style="font-family:sans-serif;font-size:14px;color:#111;line-height:1.5">
+  <h2 style="font-size:17px">${echapperMarque(a.sujet)}</h2>
+  ${a.lignes.map((l) => `<p>${echapperMarque(l)}</p>`).join("\n  ")}
+</div>`;
+  let envoyees = 0;
+  for (const to of adresses) {
+    await options.avantEffet?.();
+    const r = await envoyerEmail({ avantEnvoi: options.avantEffet, to, subject: a.sujet, html, cleIdempotence: `${a.cle}-${to}` }).catch(
+      (e: unknown) => {
+        if (e instanceof ArretSupervision) throw e;
+        return { erreur: "envoi interrompu" };
+      }
+    );
+    if (!r.erreur) envoyees += 1;
+  }
+  return envoyees;
 }
 
 // ── R03 : la confirmation de la souscription ──────────────────────────────────────────────────────────────────
@@ -337,9 +372,14 @@ export async function notifierResiliationImpaye(
 
 // ── R01, R37 : l'accusé de la rétractation ────────────────────────────────────────────────────────────────────
 
+/**
+ * L'accusé de la rétractation, une fois (clé de la déclaration), marqué en base. `copie` (relecture adverse du 24/10,
+ * M5) : l'accusé déjà parti, renvoyé à la demande du client (« confirmez de nouveau ») — clé propre à la demande, la
+ * marque et la preuve du premier envoi restent celles d'origine.
+ */
 export async function envoyerAccuseRetractation(
   service: Service,
-  p: { retractationId: string; cle: string; destinataire: string } & AccuseRetractation,
+  p: { retractationId: string; cle: string; destinataire: string; copie?: string } & AccuseRetractation,
   options: { avantEffet?: () => Promise<void> } = {}
 ): Promise<ResultatEnvoi> {
   const courrier = courrierAccuseRetractation(p);
@@ -349,9 +389,9 @@ export async function envoyerAccuseRetractation(
     to: p.destinataire,
     subject: courrier.sujet,
     html: courrier.html,
-    cleIdempotence: p.cle,
+    cleIdempotence: p.copie ? `${p.cle}-copie-${p.copie}` : p.cle,
   });
   if (erreur) return { envoye: false, motif: erreur };
-  await service.rpc("retractation_accuse_envoye", { p_id: p.retractationId, p_message: id ?? null });
+  if (!p.copie) await service.rpc("retractation_accuse_envoye", { p_id: p.retractationId, p_message: id ?? null });
   return { envoye: true };
 }

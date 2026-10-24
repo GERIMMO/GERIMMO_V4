@@ -35,6 +35,11 @@
 --    de la rétractation, et `abonnement_geste_consigner` (liste fermée d'actions d'audit) ; `ma_retractation` pour
 --    l'écran du responsable.
 -- 10. Réclamations (R05) : nature « reclamation » admise par `retours_utilisateurs` et `soumettre_retour`.
+-- Relectures adverses du 24/10 : l'exécution d'une rétractation se consigne une fois (montant, références, et pour un
+-- passage à l'annuel s'il était déjà effectué), sans jamais s'écraser ; `ma_retractation` retrouve une déclaration de
+-- passage à la milliseconde ; `retractations_a_terminer` liste celles restées en chemin (reprise de nuit) ; la levée
+-- d'une résiliation efface la marque de son accusé (`abonnement_resiliation_levee`) ; la fenêtre de l'avis de
+-- reconduction se borne sur la date limite de non-reconduction (veille de l'échéance).
 --
 -- Rejouable : IF NOT EXISTS, CREATE OR REPLACE, remplacements qui acceptent la forme déjà convertie et s'arrêtent en
 -- nommant la fonction sinon. `search_path = ''` ; `fermer_fonctions_a_anon()` en fin. Aucune donnée existante réécrite.
@@ -78,6 +83,8 @@ create table if not exists public.retractations_abonnement (
   executee_le timestamptz,
   montant_rembourse_cents bigint not null default 0,
   refunds jsonb not null default '[]'::jsonb,
+  -- Passage à l'annuel : était-il déjà effectué (échéance annuelle prélevée) ? Fixé à l'exécution, une fois.
+  passage_effectue boolean,
   accuse_envoye_le timestamptz,
   constraint retractations_abonnement_nature_check check (nature in ('abonnement', 'passage_annuel')),
   constraint retractations_abonnement_canal_check check (canal in ('en_ligne', 'courriel')),
@@ -90,6 +97,11 @@ create table if not exists public.retractations_abonnement (
   constraint retractations_abonnement_montant check (montant_rembourse_cents >= 0),
   constraint retractations_abonnement_refunds check (jsonb_typeof(refunds) = 'array' and length(refunds::text) <= 8000)
 );
+
+-- Rejeu sur une table déjà créée (ou conservée par le retour) : la colonne ajoutée par la relecture du 24/10.
+alter table public.retractations_abonnement add column if not exists passage_effectue boolean;
+comment on column public.retractations_abonnement.passage_effectue is
+  'Passage à l''annuel : déjà effectué (échéance annuelle prélevée, retour au mensuel et remboursement) ou encore programmé. Décidé une fois, à la première exécution (relecture adverse du 24/10).';
 
 alter table public.retractations_abonnement enable row level security;
 create index if not exists retractations_abonnement_org on public.retractations_abonnement (organization_id, declaree_le desc);
@@ -113,9 +125,15 @@ begin
     if not exists (select 1 from public.organizations o where o.id = old.organization_id) then return old; end if;
     raise exception 'Une déclaration de rétractation ne se supprime pas';
   end if;
-  if (to_jsonb(new) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'accuse_envoye_le'])
-     is distinct from (to_jsonb(old) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'accuse_envoye_le']) then
+  if (to_jsonb(new) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'passage_effectue', 'accuse_envoye_le'])
+     is distinct from (to_jsonb(old) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'passage_effectue', 'accuse_envoye_le']) then
     raise exception 'Une déclaration de rétractation ne se réécrit pas';
+  end if;
+  -- Relecture adverse du 24/10 (point 5) : l'exécution consignée (montant remboursé, références) ne s'écrase pas.
+  if old.executee_le is not null
+     and (new.executee_le, new.montant_rembourse_cents, new.refunds, new.passage_effectue)
+         is distinct from (old.executee_le, old.montant_rembourse_cents, old.refunds, old.passage_effectue) then
+    raise exception 'L''exécution de la rétractation est déjà consignée';
   end if;
   if old.accuse_envoye_le is not null and new.accuse_envoye_le is distinct from old.accuse_envoye_le then
     raise exception 'L''accusé de réception est déjà enregistré';
@@ -346,16 +364,18 @@ as $$
     and not coalesce(a.annulation_demandee, false)
     and a.periodicite = 'annuel'
     and a.periode_fin is not null
-    -- Plan du 23/10 (R54) : entre un mois et trois mois avant l'échéance, en dates de Paris (un mois après le 31 août
-    -- est le 30 septembre). À relire par le juriste (source non ouverte le 23/10/2026).
-    and (a.periode_fin at time zone 'Europe/Paris')::date >= (public.aujourdhui_paris() + interval '1 month')::date
-    and (a.periode_fin at time zone 'Europe/Paris')::date <= (public.aujourdhui_paris() + interval '3 months')::date
+    -- Plan du 23/10 (R54) : entre un mois et trois mois, en dates de Paris (un mois après le 31 août est le 30
+    -- septembre), avant le terme de la période qui autorise le rejet de la reconduction (L. 215-1), c'est-à-dire la
+    -- DATE LIMITE de non-reconduction annoncée par l'avis, veille de l'échéance (relecture adverse du 24/10 : solution
+    -- la plus protectrice, sans coût). À relire par le juriste (source non ouverte le 23/10/2026).
+    and (a.periode_fin at time zone 'Europe/Paris')::date - 1 >= (public.aujourdhui_paris() + interval '1 month')::date
+    and (a.periode_fin at time zone 'Europe/Paris')::date - 1 <= (public.aujourdhui_paris() + interval '3 months')::date
     and a.avis_reconduction_periode_fin is distinct from (a.periode_fin at time zone 'Europe/Paris')::date
   order by a.periode_fin
   limit greatest(1, least(coalesce(p_limite, 200), 500));
 $$;
 comment on function public.abonnements_avis_reconduction_dus(integer) is
-  'Les avis de reconduction tacite dus aujourd''hui (art. L. 215-1 du code de la consommation) : entre un et trois mois avant l''échéance, en dates de Paris (plan du 23/10, R54), avec ce qu''il faut pour annoncer le montant de la période suivante (R17).';
+  'Les avis de reconduction tacite dus aujourd''hui (art. L. 215-1 du code de la consommation) : entre un et trois mois avant la date limite de non-reconduction (veille de l''échéance), en dates de Paris (plan du 23/10, R54 ; relecture du 24/10), avec ce qu''il faut pour annoncer le montant de la période suivante (R17).';
 revoke execute on function public.abonnements_avis_reconduction_dus(integer) from public, anon, authenticated;
 grant execute on function public.abonnements_avis_reconduction_dus(integer) to service_role;
 
@@ -438,12 +458,17 @@ as $$
 $$;
 
 -- 9.3 Ce que disent les courriers contractuels : l'organisation, son titulaire, l'offre, l'acceptation des conditions.
-create or replace function public.abonnement_courrier_contexte(p_org uuid)
+-- `resiliations_accusees` (relecture adverse du 24/10, I3) : les accusés de résiliation déjà envoyés pour cette
+-- souscription. Une résiliation notifiée de nouveau après une levée reçoit son propre accusé : la clé du prestataire
+-- d'e-mail porte ce rang, le même pour l'action et le webhook.
+drop function if exists public.abonnement_courrier_contexte(uuid);
+create function public.abonnement_courrier_contexte(p_org uuid)
 returns table (organization_id uuid, organisation text, public_tarif public.organization_type, grille text,
                destinataire text, nom_titulaire text, stripe_subscription_id text, stripe_statut text,
                souscrit_le timestamptz, periode_fin timestamptz, essai_fin date, formule text, unites_souscrites integer,
                periodicite text, montant_periode_cents bigint, confirmation_envoyee_le timestamptz,
-               resiliation_accusee_pour timestamptz, cgu_version text, cgu_acceptee_le timestamptz)
+               resiliation_accusee_pour timestamptz, cgu_version text, cgu_acceptee_le timestamptz,
+               resiliations_accusees integer)
 language sql
 stable
 security definer
@@ -471,7 +496,10 @@ as $$
          a.stripe_subscription_id, a.stripe_statut, a.souscrit_le, a.periode_fin, o.essai_fin, a.formule,
          a.unites_souscrites, coalesce(a.periodicite, 'mensuel'), a.montant_periode_cents, a.confirmation_envoyee_le,
          a.resiliation_accusee_pour,
-         (select x.version from acceptation x), (select x.acceptee_le from acceptation x)
+         (select x.version from acceptation x), (select x.acceptee_le from acceptation x),
+         (select count(*)::integer from public.audit_log l
+           where l.organization_id = o.id and l.action = 'abonnement_resiliation_accusee'
+             and l.details->>'souscription' = a.stripe_subscription_id)
   from public.organizations o
   left join public.abonnements a on a.organization_id = o.id
   where o.id = p_org;
@@ -556,6 +584,24 @@ begin
 end;
 $$;
 
+-- 9.6 bis La résiliation levée (relecture adverse du 24/10, I3) : la marque de l'accusé s'efface, pour qu'une nouvelle
+-- notification de la même échéance reçoive son propre accusé (D. 215-3). Appelée par l'action et par le webhook.
+create or replace function public.abonnement_resiliation_levee(p_org uuid, p_subscription text)
+returns boolean
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare v_n integer;
+begin
+  update public.abonnements a set resiliation_accusee_pour = null, updated_at = now()
+   where a.organization_id = p_org and a.stripe_subscription_id = p_subscription and a.resiliation_accusee_pour is not null;
+  get diagnostics v_n = row_count;
+  return v_n = 1;
+end;
+$$;
+
 -- 9.7 La résiliation pour impayé notifiée (R07), avec les factures annulées.
 create or replace function public.abonnement_resiliation_impaye_notifiee(
   p_org uuid, p_subscription text, p_message text, p_factures_annulees jsonb)
@@ -610,10 +656,14 @@ $$;
 -- ── 10. La rétractation ─────────────────────────────────────────────────────────────────────────────────────────────
 
 -- 10.1 Ce que l'écran du responsable lit (droits : responsable de l'organisation, comme mon_abonnement).
-create or replace function public.ma_retractation(p_org uuid)
+-- Relecture adverse du 24/10 (point 3) : la demande de passage est datée par now() (microsecondes), la déclaration la
+-- reçoit du navigateur (millisecondes) : les deux se comparent à la milliseconde.
+drop function if exists public.ma_retractation(uuid);
+create function public.ma_retractation(p_org uuid)
 returns table (souscrit_le timestamptz, abonnement_suivi boolean, stripe_statut text, essai_fin date, periodicite text,
                periodicite_suivante text, passage_annuel_demande_le timestamptz, formule text, organisation text,
-               destinataire text, retractation_abonnement_le timestamptz, retractation_passage_le timestamptz)
+               destinataire text, retractation_abonnement_le timestamptz, retractation_passage_le timestamptz,
+               retractation_passage_effectue boolean)
 language sql
 stable
 security definer
@@ -627,7 +677,11 @@ as $$
            limit 1),
          (select r.declaree_le from public.retractations_abonnement r
            where r.organization_id = o.id and r.subscription_id = a.stripe_subscription_id and r.nature = 'passage_annuel'
-             and r.passage_demande_le = a.passage_annuel_demande_le
+             and date_trunc('milliseconds', r.passage_demande_le) = date_trunc('milliseconds', a.passage_annuel_demande_le)
+           limit 1),
+         (select r.passage_effectue from public.retractations_abonnement r
+           where r.organization_id = o.id and r.subscription_id = a.stripe_subscription_id and r.nature = 'passage_annuel'
+             and date_trunc('milliseconds', r.passage_demande_le) = date_trunc('milliseconds', a.passage_annuel_demande_le)
            limit 1)
   from public.organizations o
   left join public.abonnements a on a.organization_id = o.id
@@ -636,12 +690,16 @@ as $$
       array['admin_agence','proprietaire_direct']::public.membership_role[]));
 $$;
 
--- 10.2 Enregistrer la déclaration : une seule par clé ; la première fixe la date (rejouer rend la même ligne).
-create or replace function public.retractation_enregistrer(
+-- 10.2 Enregistrer la déclaration : une seule par clé ; la première fixe la date, le texte et l'adresse de l'accusé
+-- (rejouer rend la même ligne, telle qu'enregistrée, avec son exécution).
+drop function if exists public.retractation_enregistrer(uuid, text, text, text, text, text, uuid, text, timestamptz, timestamptz);
+create function public.retractation_enregistrer(
   p_org uuid, p_subscription text, p_nature text, p_cle text, p_texte text, p_adresse text, p_account uuid,
   p_canal text, p_declaree_le timestamptz default null, p_passage_demande_le timestamptz default null)
-returns table (id uuid, declaree_le timestamptz, executee_le timestamptz, accuse_envoye_le timestamptz,
-               montant_rembourse_cents bigint, refunds jsonb, nouvelle boolean)
+returns table (id uuid, organization_id uuid, subscription_id text, nature text, cle text, passage_demande_le timestamptz,
+               texte_declaration text, declaree_le timestamptz, adresse_accuse text, executee_le timestamptz,
+               montant_rembourse_cents bigint, refunds jsonb, passage_effectue boolean, accuse_envoye_le timestamptz,
+               nouvelle boolean)
 language plpgsql
 volatile
 security definer
@@ -679,28 +737,45 @@ begin
     select * into v from public.retractations_abonnement r where r.cle = p_cle;
     if v.organization_id <> p_org then raise exception 'Déclaration de rétractation incohérente'; end if;
   end if;
-  return query select v.id, v.declaree_le, v.executee_le, v.accuse_envoye_le, v.montant_rembourse_cents, v.refunds, v_nouvelle;
+  return query select v.id, v.organization_id, v.subscription_id, v.nature, v.cle, v.passage_demande_le,
+                      v.texte_declaration, v.declaree_le, v.adresse_accuse, v.executee_le, v.montant_rembourse_cents,
+                      v.refunds, v.passage_effectue, v.accuse_envoye_le, v_nouvelle;
 end;
 $$;
 
--- 10.3 L'exécution : remboursements faits (montant total et références Stripe), une fois.
-create or replace function public.retractation_executee(p_id uuid, p_montant_cents bigint, p_refunds jsonb)
-returns boolean
+-- 10.3 L'exécution : remboursements faits (montant total et références Stripe) et, pour un passage à l'annuel, s'il
+-- était déjà effectué. Consignée UNE fois (relecture adverse du 24/10, point 5) : un second passage (rejeu, double
+-- clic) ne l'écrase pas, il reçoit la ligne déjà consignée (`nouvelle` faux), que l'accusé reprend.
+drop function if exists public.retractation_executee(uuid, bigint, jsonb);
+create or replace function public.retractation_executee(
+  p_id uuid, p_montant_cents bigint, p_refunds jsonb, p_passage_effectue boolean default null)
+returns table (executee_le timestamptz, montant_rembourse_cents bigint, refunds jsonb, passage_effectue boolean,
+               nouvelle boolean)
 language plpgsql
 volatile
 security definer
 set search_path = ''
 as $$
-declare v_n integer;
+#variable_conflict use_column
+declare
+  v public.retractations_abonnement;
+  v_nouvelle boolean := false;
 begin
   if p_montant_cents is null or p_montant_cents < 0 or p_refunds is null or jsonb_typeof(p_refunds) <> 'array' then
     raise exception 'Exécution de rétractation invalide';
   end if;
   update public.retractations_abonnement r
-     set executee_le = coalesce(r.executee_le, clock_timestamp()), montant_rembourse_cents = p_montant_cents, refunds = p_refunds
-   where r.id = p_id;
-  get diagnostics v_n = row_count;
-  return v_n = 1;
+     set executee_le = clock_timestamp(), montant_rembourse_cents = p_montant_cents, refunds = p_refunds,
+         passage_effectue = case when r.nature = 'passage_annuel' then p_passage_effectue end
+   where r.id = p_id and r.executee_le is null
+  returning * into v;
+  if v.id is not null then
+    v_nouvelle := true;
+  else
+    select * into v from public.retractations_abonnement r where r.id = p_id;
+    if v.id is null then raise exception 'Déclaration de rétractation introuvable'; end if;
+  end if;
+  return query select v.executee_le, v.montant_rembourse_cents, v.refunds, v.passage_effectue, v_nouvelle;
 end;
 $$;
 
@@ -747,6 +822,28 @@ begin
 end;
 $$;
 
+-- 10.6 Les rétractations restées en chemin (relecture adverse du 24/10, I4) : enregistrées, mais dont l'exécution
+-- chez Stripe ou l'accusé n'a pas abouti. La tâche de nuit les reprend et alerte le relais de celles qu'elle ne termine
+-- pas. Les dix dernières minutes sont laissées à l'action en cours.
+create or replace function public.retractations_a_terminer(p_limite integer default 20)
+returns table (id uuid, organization_id uuid, subscription_id text, nature text, cle text, passage_demande_le timestamptz,
+               texte_declaration text, declaree_le timestamptz, adresse_accuse text, executee_le timestamptz,
+               montant_rembourse_cents bigint, refunds jsonb, passage_effectue boolean, accuse_envoye_le timestamptz)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select r.id, r.organization_id, r.subscription_id, r.nature, r.cle, r.passage_demande_le, r.texte_declaration,
+         r.declaree_le, r.adresse_accuse, r.executee_le, r.montant_rembourse_cents, r.refunds, r.passage_effectue,
+         r.accuse_envoye_le
+  from public.retractations_abonnement r
+  where (r.executee_le is null or r.accuse_envoye_le is null)
+    and r.declaree_le < now() - interval '10 minutes'
+  order by r.declaree_le
+  limit greatest(1, least(coalesce(p_limite, 20), 200));
+$$;
+
 revoke all on function public.abonnement_relance_consigner(uuid, integer, text, boolean) from public, anon, authenticated;
 revoke all on function public.abonnement_souscription_datee(text, text, timestamptz) from public, anon, authenticated;
 revoke all on function public.abonnement_contexte_evenement(text) from public, anon, authenticated;
@@ -754,10 +851,12 @@ revoke all on function public.abonnement_courrier_contexte(uuid) from public, an
 revoke all on function public.abonnements_confirmation_dues(integer) from public, anon, authenticated;
 revoke all on function public.abonnement_confirmation_envoyee(uuid, text, text, boolean) from public, anon, authenticated;
 revoke all on function public.abonnement_resiliation_accusee(uuid, text, timestamptz, text, text) from public, anon, authenticated;
+revoke all on function public.abonnement_resiliation_levee(uuid, text) from public, anon, authenticated;
 revoke all on function public.abonnement_resiliation_impaye_notifiee(uuid, text, text, jsonb) from public, anon, authenticated;
 revoke all on function public.abonnement_geste_consigner(uuid, uuid, text, jsonb) from public, anon, authenticated;
 revoke all on function public.retractation_enregistrer(uuid, text, text, text, text, text, uuid, text, timestamptz, timestamptz) from public, anon, authenticated;
-revoke all on function public.retractation_executee(uuid, bigint, jsonb) from public, anon, authenticated;
+revoke all on function public.retractation_executee(uuid, bigint, jsonb, boolean) from public, anon, authenticated;
+revoke all on function public.retractations_a_terminer(integer) from public, anon, authenticated;
 revoke all on function public.retractation_accuse_envoye(uuid, text) from public, anon, authenticated;
 revoke all on function public.retractation_passage_annuel_annuler(uuid) from public, anon, authenticated;
 revoke all on function public.retractations_abonnement_ajout_seul() from public, anon, authenticated;
@@ -769,10 +868,12 @@ grant execute on function public.abonnement_courrier_contexte(uuid) to service_r
 grant execute on function public.abonnements_confirmation_dues(integer) to service_role;
 grant execute on function public.abonnement_confirmation_envoyee(uuid, text, text, boolean) to service_role;
 grant execute on function public.abonnement_resiliation_accusee(uuid, text, timestamptz, text, text) to service_role;
+grant execute on function public.abonnement_resiliation_levee(uuid, text) to service_role;
 grant execute on function public.abonnement_resiliation_impaye_notifiee(uuid, text, text, jsonb) to service_role;
 grant execute on function public.abonnement_geste_consigner(uuid, uuid, text, jsonb) to service_role;
 grant execute on function public.retractation_enregistrer(uuid, text, text, text, text, text, uuid, text, timestamptz, timestamptz) to service_role;
-grant execute on function public.retractation_executee(uuid, bigint, jsonb) to service_role;
+grant execute on function public.retractation_executee(uuid, bigint, jsonb, boolean) to service_role;
+grant execute on function public.retractations_a_terminer(integer) to service_role;
 grant execute on function public.retractation_accuse_envoye(uuid, text) to service_role;
 grant execute on function public.retractation_passage_annuel_annuler(uuid) to service_role;
 grant execute on function public.ma_retractation(uuid) to authenticated, service_role;
@@ -844,10 +945,12 @@ begin
                            'public.abonnements_confirmation_dues(integer)',
                            'public.abonnement_confirmation_envoyee(uuid,text,text,boolean)',
                            'public.abonnement_resiliation_accusee(uuid,text,timestamp with time zone,text,text)',
+                           'public.abonnement_resiliation_levee(uuid,text)',
                            'public.abonnement_resiliation_impaye_notifiee(uuid,text,text,jsonb)',
                            'public.abonnement_geste_consigner(uuid,uuid,text,jsonb)',
                            'public.retractation_enregistrer(uuid,text,text,text,text,text,uuid,text,timestamp with time zone,timestamp with time zone)',
-                           'public.retractation_executee(uuid,bigint,jsonb)',
+                           'public.retractation_executee(uuid,bigint,jsonb,boolean)',
+                           'public.retractations_a_terminer(integer)',
                            'public.retractation_accuse_envoye(uuid,text)',
                            'public.retractation_passage_annuel_annuler(uuid)',
                            'public.abonnements_a_relancer(integer)',

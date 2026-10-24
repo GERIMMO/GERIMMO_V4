@@ -237,16 +237,18 @@ describe.skipIf(!url)("vente au consommateur et impayé (avec base)", () => {
       await db.query("update public.abonnements set periode_fin = ($2::date + time '12:00') at time zone 'Europe/Paris', avis_reconduction_periode_fin = null where organization_id = $1", [o.id, echeance]);
       return (await db.query("select 1 from public.abonnements_avis_reconduction_dus(500) where organization_id = $1", [o.id])).rows.length === 1;
     };
-    expect(await du("2026-08-31", "2026-09-29")).toBe(false);
-    expect(await du("2026-08-31", "2026-09-30")).toBe(true);
-    expect(await du("2026-08-31", "2026-11-30")).toBe(true);
-    expect(await du("2026-08-31", "2026-12-01")).toBe(false);
-    expect(await du("2026-05-01", "2026-05-31")).toBe(false);
-    expect(await du("2026-05-01", "2026-06-01")).toBe(true);
-    expect(await du("2026-05-01", "2026-08-01")).toBe(true);
-    expect(await du("2026-05-01", "2026-08-02")).toBe(false);
+    // Relecture adverse du 24/10 (M8) : la fenêtre se borne sur la DATE LIMITE de non-reconduction (veille de
+    // l'échéance), terme de la période qui autorise le rejet (L. 215-1) — solution la plus protectrice, sans coût.
+    expect(await du("2026-08-31", "2026-09-30")).toBe(false); // date limite le 29/09 : moins d'un mois
+    expect(await du("2026-08-31", "2026-10-01")).toBe(true); // date limite le 30/09 : un mois pile
+    expect(await du("2026-08-31", "2026-12-01")).toBe(true); // date limite le 30/11 : trois mois pile
+    expect(await du("2026-08-31", "2026-12-02")).toBe(false);
+    expect(await du("2026-05-01", "2026-06-01")).toBe(false);
+    expect(await du("2026-05-01", "2026-06-02")).toBe(true);
+    expect(await du("2026-05-01", "2026-08-02")).toBe(true);
+    expect(await du("2026-05-01", "2026-08-03")).toBe(false);
     const { rows: [l] } = await db.query("select periodicite_suivante, unites_souscrites, unites_a_couvrir from public.abonnements_avis_reconduction_dus(500) where organization_id = $1", [o.id]);
-    expect(l).toBeUndefined(); // 2026-08-02 : hors fenêtre
+    expect(l).toBeUndefined(); // 2026-08-03 : hors fenêtre
   });
 
   it("R37 : la demande de passage à l'annuel est datée une fois ; y renoncer l'efface", async () => {
@@ -291,7 +293,7 @@ describe.skipIf(!url)("vente au consommateur et impayé (avec base)", () => {
     // La déclaration ne se réécrit pas, ne se supprime pas ; seule l'exécution et l'accusé se complètent, une fois.
     expect(await echec("update public.retractations_abonnement set texte_declaration = 'Autre texte de déclaration fictive.' where id = $1", [a.id])).toMatch(/ne se réécrit pas/);
     expect(await echec("delete from public.retractations_abonnement where id = $1", [a.id])).toMatch(/ne se supprime pas/);
-    expect((await db.query("select public.retractation_executee($1, 599, '[{\"refund\":\"re_1\"}]'::jsonb) as r", [a.id])).rows[0].r).toBe(true);
+    expect((await db.query("select nouvelle from public.retractation_executee($1, 599, '[{\"refund\":\"re_1\"}]'::jsonb)", [a.id])).rows[0].nouvelle).toBe(true);
     expect((await db.query("select public.retractation_accuse_envoye($1, 'msg_retractation') as r", [a.id])).rows[0].r).toBe(true);
     expect((await db.query("select public.retractation_accuse_envoye($1, 'msg_retractation') as r", [a.id])).rows[0].r).toBe(false);
     // Une souscription qui n'est pas celle de l'organisation est refusée.
@@ -308,6 +310,80 @@ describe.skipIf(!url)("vente au consommateur et impayé (avec base)", () => {
     expect((await db.query("select * from public.ma_retractation($1)", [o.id])).rows).toHaveLength(0);
     expect(await echec("select * from public.retractations_abonnement")).toMatch(/permission denied/);
     await proprietaire();
+  });
+
+  it("relecture adverse du 24/10 (point 5) : une exécution consignée ne s'écrase pas ; le second appel rend la première", async () => {
+    const o = await organisation({ paye: true });
+    const { rows: [d] } = await db.query(
+      "select * from public.retractation_enregistrer($1, $2, 'passage_annuel', $3, 'Je renonce au passage de mon abonnement Gerimmo à la formule annuelle.', 'vente@example.invalid', null, 'en_ligne', null, now() - interval '1 day')",
+      [o.id, o.subscription, `retractation-passage-${o.subscription}-1`]
+    );
+    expect(d).toMatchObject({ nature: "passage_annuel", adresse_accuse: "vente@example.invalid", passage_effectue: null, executee_le: null });
+    const premier = (await db.query("select * from public.retractation_executee($1, 5990, '[{\"refund\":\"re_an\"}]'::jsonb, true)", [d.id])).rows[0];
+    const second = (await db.query("select * from public.retractation_executee($1, 0, '[]'::jsonb, false)", [d.id])).rows[0];
+    expect(premier).toMatchObject({ nouvelle: true, montant_rembourse_cents: "5990", passage_effectue: true });
+    expect(second).toMatchObject({ nouvelle: false, montant_rembourse_cents: "5990", passage_effectue: true, refunds: [{ refund: "re_an" }] });
+    const { rows: [l] } = await db.query("select montant_rembourse_cents::int as m, refunds, passage_effectue from public.retractations_abonnement where id = $1", [d.id]);
+    expect(l).toEqual({ m: 5990, refunds: [{ refund: "re_an" }], passage_effectue: true });
+    expect(await echec("update public.retractations_abonnement set montant_rembourse_cents = 0 where id = $1", [d.id])).toMatch(/déjà consignée/);
+    // Relue par l'enregistrement rejoué (même clé) : l'exécution consignée et le texte enregistré.
+    const { rows: [r] } = await db.query(
+      "select * from public.retractation_enregistrer($1, $2, 'passage_annuel', $3, 'Un autre texte, non retenu : la première déclaration fait foi.', 'autre@example.invalid', null, 'en_ligne', null, now())",
+      [o.id, o.subscription, `retractation-passage-${o.subscription}-1`]
+    );
+    expect(r).toMatchObject({ id: d.id, nouvelle: false, passage_effectue: true, adresse_accuse: "vente@example.invalid" });
+    expect(r.texte_declaration).toMatch(/^Je renonce au passage/);
+  });
+
+  it("relecture adverse du 24/10 (point 3) : ma_retractation retrouve la déclaration de passage malgré les microsecondes de la demande", async () => {
+    const titulaire = await compte("vente-passage-micro");
+    const o = await organisation({ paye: true, titulaire });
+    await db.query(
+      "update public.abonnements set periodicite_suivante = 'annuel', passage_annuel_demande_le = '2026-10-20 10:00:00.909501+00' where organization_id = $1",
+      [o.id]
+    );
+    // L'action envoie la demande telle que le navigateur la lit : à la milliseconde.
+    await db.query(
+      "select * from public.retractation_enregistrer($1, $2, 'passage_annuel', $3, 'Je renonce au passage de mon abonnement Gerimmo à la formule annuelle.', 'vente@example.invalid', $4, 'en_ligne', null, '2026-10-20T10:00:00.909Z')",
+      [o.id, o.subscription, `retractation-passage-${o.subscription}-1792490400`, titulaire]
+    );
+    await session(titulaire);
+    const { rows: [l] } = await db.query("select retractation_passage_le, retractation_passage_effectue from public.ma_retractation($1)", [o.id]);
+    await proprietaire();
+    expect(l.retractation_passage_le).not.toBeNull();
+    expect(l.retractation_passage_effectue).toBeNull();
+  });
+
+  it("relecture adverse du 24/10 (I4) : les rétractations restées en chemin sont listées pour la reprise de nuit", async () => {
+    const o = await organisation({ paye: true });
+    const enregistrer = (cle: string, il: string) =>
+      db.query(
+        "select * from public.retractation_enregistrer($1, $2, 'abonnement', $3, 'Je renonce à mon abonnement Gerimmo, formule Solo.', 'vente@example.invalid', null, 'courriel', now() - $4::interval)",
+        [o.id, o.subscription, cle, il]
+      );
+    const a = (await enregistrer(`retractation-abonnement-${o.subscription}`, "1 hour")).rows[0];
+    const recente = (await enregistrer(`retractation-abonnement-${o.subscription}-recente`, "1 minute")).rows[0];
+    const lire = async () => (await db.query("select id from public.retractations_a_terminer(500) where organization_id = $1", [o.id])).rows.map((x) => x.id);
+    expect(await lire()).toEqual([a.id]); // la toute récente est encore entre les mains de l'action
+    await db.query("select * from public.retractation_executee($1, 599, '[]'::jsonb)", [a.id]);
+    expect(await lire()).toEqual([a.id]); // exécutée, accusé non parti
+    await db.query("select public.retractation_accuse_envoye($1, 'msg_a')", [a.id]);
+    expect(await lire()).toEqual([]);
+    expect(recente.id).not.toBe(a.id);
+  });
+
+  it("relecture adverse du 24/10 (I3) : lever la résiliation efface la marque de l'accusé ; la suivante est accusée à nouveau", async () => {
+    const o = await organisation({ paye: true });
+    const fin = "2026-11-24T00:00:00Z";
+    const acc = async () => (await db.query("select public.abonnement_resiliation_accusee($1, $2, $3, 'msg_r', 'action') as r", [o.id, o.subscription, fin])).rows[0].r;
+    const lever = async () => (await db.query("select public.abonnement_resiliation_levee($1, $2) as r", [o.id, o.subscription])).rows[0].r;
+    const compteAccuses = async () => (await db.query("select resiliations_accusees from public.abonnement_courrier_contexte($1)", [o.id])).rows[0].resiliations_accusees;
+    expect(await compteAccuses()).toBe(0);
+    expect(await acc()).toBe(true);
+    expect(await compteAccuses()).toBe(1);
+    expect([await lever(), await lever()]).toEqual([true, false]);
+    expect(await acc()).toBe(true);
+    expect(await compteAccuses()).toBe(2);
   });
 
   it("R03, R04, R07 : confirmation, accusé de résiliation et courrier d'impayé marqués une fois chacun ; une autre souscription les remet à zéro", async () => {
@@ -360,6 +436,8 @@ describe.skipIf(!url)("vente au consommateur et impayé (avec base)", () => {
        where g.table_schema = 'public' and g.table_name = 'retractations_abonnement' and g.grantee in ('anon', 'authenticated')`);
     expect(rows).toEqual([]);
     for (const f of ["public.retractation_enregistrer(uuid,text,text,text,text,text,uuid,text,timestamp with time zone,timestamp with time zone)",
+                     "public.retractation_executee(uuid,bigint,jsonb,boolean)", "public.retractations_a_terminer(integer)",
+                     "public.abonnement_resiliation_levee(uuid,text)",
                      "public.abonnement_courrier_contexte(uuid)", "public.abonnements_a_relancer(integer)"]) {
       const { rows: [d] } = await db.query(
         "select has_function_privilege('anon', $1, 'execute') as anon, has_function_privilege('authenticated', $1, 'execute') as auth, has_function_privilege('service_role', $1, 'execute') as svc",
@@ -380,6 +458,9 @@ describe.skipIf(!url)("vente au consommateur et impayé (avec base)", () => {
     expect((await db.query("select pg_get_functiondef('public.abonnement_appliquer(text,text,text,integer,timestamp with time zone,boolean)'::regprocedure) as d")).rows[0].d).not.toContain("'unpaid' then v_statut_actuel");
     expect((await db.query("select pg_get_functiondef('public.org_ecriture_ouverte(uuid)'::regprocedure) as d")).rows[0].d).not.toContain("relances_paiement");
     expect((await db.query("select to_regclass('public.retractations_abonnement') is null as retiree, to_regprocedure('public.ma_retractation(uuid)') is null as f")).rows[0]).toEqual({ retiree: true, f: true });
+    expect((await db.query(`select to_regprocedure('public.retractations_a_terminer(integer)') is null as a,
+                                   to_regprocedure('public.abonnement_resiliation_levee(uuid,text)') is null as b,
+                                   to_regprocedure('public.retractation_executee(uuid,bigint,jsonb,boolean)') is null as c`)).rows[0]).toEqual({ a: true, b: true, c: true });
     await db.query(MIGRATION);
     expect(await empreinte("public.abonnement_appliquer(text,text,text,integer,timestamp with time zone,boolean)")).toBe(apres);
   });

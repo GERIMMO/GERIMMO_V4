@@ -176,8 +176,14 @@ describe("R01, R37 — l'accusé de la rétractation", () => {
   it("passage à l'annuel déjà effectué : retour au mensuel et remboursement intégral de l'échéance annuelle", () => {
     const decl = declarationRetractation({ nature: "passage_annuel", formule: "solo", estAgence: false, organisation: "Espace de Camille", reference: new Date("2026-10-20T10:00:00Z"), nom: "Camille Exemple" });
     expect(decl).toBe("Je renonce au passage de mon abonnement Gerimmo à la formule annuelle, demandé le 20 octobre 2026, pour l'espace Espace de Camille. Nom : Camille Exemple.");
-    const t = texte(courrierAccuseRetractation({ nature: "passage_annuel", organisation: "Espace de Camille", declaration: decl, declareeLe, montantRembourseCents: 5990, essaiFin: null, passageEffectue: true }).html);
-    expect(t).toContain("Votre abonnement redevient mensuel à compter de ce jour. Nous vous remboursons 59,90 € au plus tard le 13 novembre 2026, sur la carte utilisée, sans frais.");
+    const t = texte(courrierAccuseRetractation({ nature: "passage_annuel", organisation: "Espace de Camille", declaration: decl, declareeLe, montantRembourseCents: 5990, essaiFin: null, passageEffectue: true, mensualiteCents: 599 }).html);
+    expect(t).toContain("Votre abonnement redevient mensuel à compter de ce jour.");
+    // Relecture adverse du 24/10 (M7) : le retour au mensuel ouvre un cycle ce jour-là, la première mensualité est
+    // prélevée aussitôt — l'accusé le dit, avec son montant.
+    expect(t).toContain("Une première mensualité de 5,99 € est prélevée ce jour, puis chaque mois à la même date.");
+    expect(t).toContain("Nous vous remboursons 59,90 € au plus tard le 13 novembre 2026, sur la carte utilisée, sans frais.");
+    const sansMontant = texte(courrierAccuseRetractation({ nature: "passage_annuel", organisation: "E", declaration: decl, declareeLe, montantRembourseCents: 5990, essaiFin: null, passageEffectue: true }).html);
+    expect(sansMontant).toContain("Une première mensualité, au prix mensuel de votre formule, est prélevée ce jour");
   });
 
   it("passage à l'annuel encore programmé : l'abonnement reste mensuel, rien à rembourser", () => {

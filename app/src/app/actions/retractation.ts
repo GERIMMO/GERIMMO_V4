@@ -15,23 +15,25 @@
 //
 // UNE RÉTRACTATION REÇUE PAR COURRIEL est saisie ici par le super-administrateur permanent (second facteur), avec sa
 // date de réception : même délai, même exécution, même accusé.
+//
+// RELECTURES ADVERSES DU 24/10. L'exécution et l'accusé vivent dans lib/retractation-execution.ts, partagé avec la
+// reprise de nuit (I4) ; l'accusé reprend la déclaration ENREGISTRÉE ; une déclaration déjà exécutée et accusée qu'on
+// confirme de nouveau reçoit une copie de son accusé (M5) ; la date saisie par la supervision est lue à l'heure de Paris
+// quel que soit le fuseau du serveur (point 4).
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { clientDeService } from "@/lib/supabase/service";
 import { clientStripe, configurationStripe, messageStripePourClient } from "@/lib/stripe";
-import { REGIME_TVA } from "@/lib/editeur";
 import { MESSAGE_SESSION_EXPIREE } from "@/lib/session-expiree";
 import { envoyerAccuseRetractation, lireContexteCourrier } from "@/lib/courriers-contrat-envoi";
 import { declarationRetractation, heureParis, type NatureRetractation } from "@/lib/courriers-contrat";
 import { etatRetractation, type LigneRetractation } from "@/lib/retractation-etat";
 import { ligneRetractationDuResponsable, ligneRetractationParLeService } from "@/lib/retractation-serveur";
+import { terminerRetractation, type DeclarationRetractation } from "@/lib/retractation-execution";
 import { jourEnLettres, retractationOuverte } from "@/lib/delai-retractation";
-import { retracterPassageAnnuel, retracterSouscription, type ExecutionRetractation } from "@/lib/retractation-stripe";
-import { choixExplicite } from "@/lib/stripe-offres";
-import { prendreVerrouFacturation } from "@/lib/verrou-facturation";
+import { instantParis } from "@/lib/dates-supervision";
 import { dateParis } from "@/lib/heure-paris-calcul";
-import { formuleParCode, offreFormule, offreParticulier } from "@/lib/tarifs";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 import { ArretSupervision } from "@/lib/controle-effets";
 
@@ -41,6 +43,16 @@ const ADRESSE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function lireNature(v: FormDataEntryValue | null): NatureRetractation | null {
   return v === "abonnement" || v === "passage_annuel" ? v : null;
+}
+
+/** Une empreinte courte et stable (FNV-1a, 32 bits) : distingue deux adresses dans une clé d'envoi sans l'y écrire. */
+function empreinteCourte(texte: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < texte.length; i++) {
+    h ^= texte.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(36);
 }
 
 /** La clé stable d'une déclaration : une par souscription, ou par demande de passage à l'annuel. */
@@ -84,9 +96,15 @@ export async function retracterAbonnement(
   if (!ligne) {
     const { data: superviseur } = await supabase.rpc("is_permanent_super_admin");
     if (superviseur !== true) return { erreur: "Réservé au responsable de l'espace." };
-    const recue = new Date(String(formData.get("recue_le") ?? ""));
-    if (!Number.isFinite(recue.getTime()) || recue.getTime() > Date.now()) {
-      return { erreur: "Indiquez la date et l'heure de réception du courriel de rétractation." };
+    // Relecture adverse du 24/10 (point 4) : le champ « date et heure » est saisi à l'heure de Paris ; le serveur
+    // (UTC sur l'hébergeur) ne doit pas le lire à la sienne. Une heure inexistante ou ambiguë (changement d'heure)
+    // n'est jamais devinée.
+    const saisie = instantParis(String(formData.get("recue_le") ?? ""));
+    const recue = saisie ? new Date(saisie) : null;
+    if (!recue || recue.getTime() > Date.now()) {
+      return {
+        erreur: "Indiquez la date et l'heure de réception de la déclaration (heure de Paris), sans date future ni heure ambiguë du changement d'heure.",
+      };
     }
     canal = "courriel";
     declareeLe = recue;
@@ -120,7 +138,7 @@ export async function retracterAbonnement(
     };
   }
 
-  // (2) La déclaration, enregistrée avant tout geste chez Stripe.
+  // (2) La déclaration, enregistrée avant tout geste chez Stripe. Rejouée, elle rend la ligne telle qu'enregistrée.
   const estAgence = contexte.public_tarif === "agence";
   const texte = declarationRetractation({ nature, formule: contexte.formule, estAgence, organisation: contexte.organisation, reference: droit.conclusion, nom });
   const cle = cleRetractation(nature, subscription, nature === "passage_annuel" ? droit.conclusion : null);
@@ -136,87 +154,49 @@ export async function retracterAbonnement(
     p_declaree_le: declareeLe?.toISOString() ?? null,
     p_passage_demande_le: nature === "passage_annuel" ? droit.conclusion.toISOString() : null,
   });
-  const r = ((enregistree ?? []) as {
-    id: string;
-    declaree_le: string;
-    executee_le: string | null;
-    accuse_envoye_le: string | null;
-    montant_rembourse_cents: number | string;
-  }[])[0];
+  const r = ((enregistree ?? []) as DeclarationRetractation[])[0];
   if (erreurEnregistrement || !r) return { erreur: "Votre déclaration n'a pas pu être enregistrée. Réessayez dans un instant, ou écrivez-nous." };
   const recueLe = new Date(r.declaree_le);
   const enregistreeLe = `Votre déclaration est bien enregistrée (le ${jourEnLettres(dateParis(recueLe))} à ${heureParis(recueLe)}, heure de Paris).`;
 
-  // (3) et (4) L'exécution chez Stripe, sous le verrou des gestes de facturation, puis consignée.
-  let montantCents = Number(r.montant_rembourse_cents) || 0;
-  let passageEffectue = etat.passage.effectue;
-  if (!r.executee_le) {
-    const verrou = await prendreVerrouFacturation(service, orgId, nature === "abonnement" ? "resiliation" : "periodicite");
-    if (!verrou.ok) return { erreur: `${enregistreeLe} ${verrou.erreur}` };
-    try {
-      const sous = verrou.proteger(stripe);
-      let execution: ExecutionRetractation & { passageEffectue?: boolean };
-      if (nature === "abonnement") {
-        execution = await retracterSouscription(sous, { subscription, cle });
-      } else {
-        if (!REGIME_TVA) return { erreur: `${enregistreeLe} Le régime de TVA de l'éditeur manque : écrivez-nous, nous terminons la rétractation.` };
-        const s = await sous.subscriptions.retrieve(subscription);
-        const formule = formuleParCode(contexte.formule);
-        const capacite = contexte.unites_souscrites ?? formule?.biens ?? 1;
-        const offreMensuelle = formule ? (offreFormule(formule, capacite, "mensuel") ?? offreParticulier(capacite, "mensuel")) : offreParticulier(capacite, "mensuel");
-        execution = await retracterPassageAnnuel(sous, {
-          subscription,
-          cle,
-          orgId,
-          offreMensuelle,
-          regime: REGIME_TVA,
-          demandeLe: droit.conclusion,
-          choix: choixExplicite(s) ? "explicite" : "auto",
-        });
-        if (!execution.passageEffectue) await service.rpc("retractation_passage_annuel_annuler", { p_org: orgId });
-        passageEffectue = Boolean(execution.passageEffectue);
-      }
-      const { error: erreurExecution } = await service.rpc("retractation_executee", {
-        p_id: r.id,
-        p_montant_cents: execution.montantCents,
-        p_refunds: execution.refunds,
-      });
-      if (erreurExecution) console.error("[rétractation] exécution non consignée :", erreurExecution.message.slice(0, 200));
-      montantCents = execution.montantCents;
-    } catch (e) {
-      if (e instanceof ArretSupervision) throw e;
-      await service.from("tech_log").insert({ evenement: "retractation_a_terminer", details: { organisation: orgId, retractation: r.id, nature } });
-      return {
-        erreur: `${enregistreeLe} Son exécution n'a pas pu être confirmée par notre prestataire de paiement (${messageStripePourClient(e).replace(/[\s.]+$/, "")}) : réessayez dans un instant. À défaut, nous la terminons nous-mêmes dans le délai de remboursement.`,
-      };
-    } finally {
-      await verrou.rendre();
-    }
+  // (3), (4) et (5) L'exécution chez Stripe sous le verrou, consignée une fois, puis l'accusé, une fois — à l'adresse
+  // saisie maintenant par le client.
+  const issue = await terminerRetractation(service, stripe, r, { destinataire: adresse });
+  if (issue.etat === "verrou") return { erreur: `${enregistreeLe} ${issue.erreur}` };
+  if (issue.etat === "execution_impossible") {
+    return {
+      erreur: `${enregistreeLe} Son exécution n'a pas pu être confirmée (${issue.erreur.replace(/[\s.]+$/, "")}) : réessayez dans un instant. À défaut, nous la terminons nous-mêmes dans le délai de remboursement.`,
+    };
   }
-
-  // (5) L'accusé, une fois.
-  if (!r.accuse_envoye_le) {
+  if (issue.etat === "accuse_impossible") {
+    return {
+      erreur: `${enregistreeLe} La rétractation est exécutée, mais l'accusé de réception n'a pas pu partir (${issue.motif}) : réessayez dans un instant pour le recevoir.`,
+    };
+  }
+  // Relecture adverse du 24/10 (M5) : la page invite à confirmer de nouveau si l'accusé n'est pas parvenu. Une
+  // déclaration déjà exécutée et accusée reçoit alors une copie de son accusé (une par adresse et par dizaine de
+  // minutes : un double clic n'en envoie pas deux), à l'adresse saisie maintenant.
+  if (issue.accuseDejaEnvoye && !r.nouvelle) {
     const aujourdhui = dateParis(new Date());
-    const essaiFin = nature === "abonnement" && contexte.essai_fin && contexte.essai_fin >= aujourdhui ? contexte.essai_fin : null;
-    const accuse = await envoyerAccuseRetractation(service, {
+    const copie = await envoyerAccuseRetractation(service, {
       retractationId: r.id,
-      cle,
+      cle: r.cle,
+      copie: `${Math.floor(Date.now() / 600_000)}-${empreinteCourte(adresse.toLowerCase())}`,
       destinataire: adresse,
       nature,
       organisation: contexte.organisation,
-      declaration: texte,
+      declaration: r.texte_declaration,
       declareeLe: recueLe,
-      montantRembourseCents: montantCents,
-      essaiFin,
-      passageEffectue,
+      montantRembourseCents: issue.montantCents,
+      essaiFin: nature === "abonnement" && contexte.essai_fin && contexte.essai_fin >= aujourdhui ? contexte.essai_fin : null,
+      passageEffectue: issue.passageEffectue,
+      mensualiteCents: issue.mensualiteCents,
     }).catch((e: unknown) => {
       if (e instanceof ArretSupervision) throw e;
       return { envoye: false, motif: "envoi impossible" };
     });
-    if (!accuse.envoye) {
-      return {
-        erreur: `${enregistreeLe} La rétractation est exécutée, mais l'accusé de réception n'a pas pu partir (${accuse.motif ?? "envoi impossible"}) : réessayez dans un instant pour le recevoir.`,
-      };
+    if (!copie.envoye) {
+      return { erreur: `${enregistreeLe} La rétractation est exécutée ; la copie de l'accusé de réception n'a pas pu partir (${copie.motif ?? "envoi impossible"}) : réessayez dans un instant.` };
     }
   }
   redirect(`${await baseDeLOrganisation(supabase, orgId)}/abonnement?retractation=${nature === "abonnement" ? "abonnement" : "passage"}`);

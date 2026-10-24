@@ -8,6 +8,11 @@
  *    en entier, une fois (clé d'idempotence, remboursement déjà fait reconnu) ;
  *  · passage à l'annuel : programmé, l'échéancier est libéré sans rien rembourser ; effectué, retour au mensuel sans
  *    prorata et remboursement des seules échéances annuelles payées depuis la demande.
+ *
+ * Relecture adverse du 24/10 : une doublure Stripe À ÉTAT (tests/aide/faux-stripe-retractation.ts, point 8) rejoue
+ * les reprises après un échec partiel — passage effectué dont le remboursement échoue après le retour au mensuel
+ * (point 1), remboursement « déjà fait » après 24 h avec un geste commercial antérieur (point 6) ; une déclaration
+ * enregistrée garde son droit quand la périodicité a changé (point 1).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type Stripe from "stripe";
@@ -35,6 +40,7 @@ import {
   retracterSouscription,
 } from "@/lib/retractation-stripe";
 import { offreParticulier } from "@/lib/tarifs";
+import { FauxStripeRetractation } from "./aide/faux-stripe-retractation";
 
 function ligne(l: Partial<LigneRetractation> = {}): LigneRetractation {
   return {
@@ -102,6 +108,22 @@ describe("l'état du droit de rétractation", () => {
     const retiree = etatRetractation(ligne({ passage_annuel_demande_le: demande }), new Date("2026-11-10T09:00:00Z"));
     expect(retiree.passage.ouverte).toBe(false);
   });
+
+  it("relecture adverse (point 1) : une déclaration de passage enregistrée garde son droit quand l'abonnement est redevenu mensuel", () => {
+    const demande = "2026-11-02T09:00:00Z";
+    // Première exécution : retour au mensuel fait, remboursement échoué ; le webhook a remis la périodicité au mois.
+    const e = etatRetractation(
+      ligne({ souscrit_le: "2026-09-01T08:00:00Z", passage_annuel_demande_le: demande, retractation_passage_le: "2026-11-10T09:00:00Z" }),
+      new Date("2026-12-01T09:00:00Z") // bien après le délai : la reprise reste ouverte
+    );
+    expect(e.passage).toMatchObject({ ouverte: false, conclusion: new Date(demande), declareeLe: "2026-11-10T09:00:00Z" });
+    // Une exécution consignée dit si le passage était effectué, quelle que soit la périodicité d'aujourd'hui.
+    const consignee = etatRetractation(
+      ligne({ souscrit_le: "2026-09-01T08:00:00Z", passage_annuel_demande_le: demande, retractation_passage_le: "2026-11-10T09:00:00Z", retractation_passage_effectue: true }),
+      new Date("2026-12-01T09:00:00Z")
+    );
+    expect(consignee.passage.effectue).toBe(true);
+  });
 });
 
 // ── La doublure Stripe ────────────────────────────────────────────────────────────────────────────────────────────
@@ -111,13 +133,16 @@ type Facture = Partial<Stripe.Invoice> & { id: string; amount_paid: number };
 function facture(id: string, montant: number, pi: string | null, jours = 30): Facture {
   return {
     id,
+    status: "paid",
     amount_paid: montant,
     payments: { data: pi ? [{ status: "paid", payment: { type: "payment_intent", payment_intent: pi } }] : [] } as unknown as Stripe.Invoice["payments"],
     lines: { data: [{ period: { start: 1_790_000_000, end: 1_790_000_000 + jours * 86_400 } }] } as unknown as Stripe.Invoice["lines"],
   };
 }
 
-function doublure(o: { statut?: string; intervalle?: "month" | "year"; payees?: Facture[]; ouvertes?: string[] } = {}) {
+type RemboursementListe = { payment_intent: string; amount: number; status: string; metadata: Record<string, string> };
+
+function doublure(o: { statut?: string; intervalle?: "month" | "year"; payees?: Facture[]; ouvertes?: string[]; remboursements?: RemboursementListe[] } = {}) {
   const deja = new Set<string>();
   const appels = {
     cancel: vi.fn(async () => ({})),
@@ -153,6 +178,7 @@ function doublure(o: { statut?: string; intervalle?: "month" | "year"; payees?: 
         const f = (o.payees ?? []).find((x) => (x.payments?.data?.[0]?.payment as { payment_intent?: string } | undefined)?.payment_intent === cible);
         return { id: `re_${cible}`, amount: f?.amount_paid ?? 0 };
       }),
+      list: vi.fn(async (p: { payment_intent?: string }) => ({ data: (o.remboursements ?? []).filter((r) => r.payment_intent === p.payment_intent) })),
     },
   };
   return { stripe: stripe as unknown as Stripe, appels };
@@ -179,7 +205,11 @@ describe("R01 — la rétractation de l'abonnement chez Stripe", () => {
     const payees = [facture("in_1", 599, "pi_1")];
     const { stripe, appels } = doublure({ payees });
     await retracterSouscription(stripe, { subscription: "sub_1", cle: "k" });
-    const second = doublure({ statut: "canceled", payees });
+    const second = doublure({
+      statut: "canceled",
+      payees,
+      remboursements: [{ payment_intent: "pi_1", amount: 599, status: "succeeded", metadata: { gerimmo_retractation: "k" } }],
+    });
     // Le même remboursement, une seconde fois : Stripe répond « déjà remboursé ».
     (second.stripe.refunds.create as ReturnType<typeof vi.fn>).mockRejectedValueOnce(Object.assign(new Error("x"), { code: "charge_already_refunded" }));
     const r = await retracterSouscription(second.stripe, { subscription: "sub_1", cle: "k" });
@@ -223,7 +253,7 @@ describe("R37 — la rétractation du passage à l'annuel chez Stripe", () => {
       expect.objectContaining({ proration_behavior: "none", billing_cycle_anchor: "now" }),
       { idempotencyKey: `${base.cle}-mensuel` }
     );
-    expect(appels.list).toHaveBeenCalledWith(expect.objectContaining({ status: "paid", created: { gte: Math.floor(base.demandeLe.getTime() / 1000) } }));
+    expect(appels.list).toHaveBeenCalledWith(expect.objectContaining({ subscription: "sub_1", created: { gte: Math.floor(base.demandeLe.getTime() / 1000) } }));
     expect(r).toMatchObject({ montantCents: 5990, passageEffectue: true });
     expect(r.refunds.map((x) => x.facture)).toEqual(["in_an"]);
   });
@@ -231,5 +261,85 @@ describe("R37 — la rétractation du passage à l'annuel chez Stripe", () => {
   it("une facture annuelle se reconnaît à une ligne de plus de 200 jours", () => {
     expect(estFactureAnnuelle(facture("a", 1, null, 365) as Stripe.Invoice)).toBe(true);
     expect(estFactureAnnuelle(facture("m", 1, null, 31) as Stripe.Invoice)).toBe(false);
+  });
+});
+
+// ── Relecture adverse du 24/10 : la doublure à état ──────────────────────────────────────────────────────────────
+
+describe("relecture adverse du 24/10 — reprises chez un Stripe qui garde son état", () => {
+  const DEMANDE = new Date("2026-11-02T09:00:00Z");
+  const passage = {
+    subscription: "sub_1",
+    cle: `retractation-passage-sub_1-${Math.floor(DEMANDE.getTime() / 1000)}`,
+    orgId: "org-1",
+    offreMensuelle: offreParticulier(1, "mensuel"),
+    regime: { nature: "franchise" } as const,
+    demandeLe: DEMANDE,
+    choix: "auto" as const,
+  };
+
+  it("point 1 : passage effectué, remboursement échoué APRÈS le retour au mensuel — le rejeu rembourse l'échéance annuelle, sans refaire le retour", async () => {
+    const s = new FauxStripeRetractation({ intervalle: "year", maintenant: Math.floor(Date.UTC(2026, 10, 10) / 1000) });
+    s.payer({ id: "in_an", created: Math.floor(Date.UTC(2026, 10, 6) / 1000), amount_paid: 5990, pi: "pi_an", jours: 365 });
+    s.echecsRemboursement = 1;
+    await expect(retracterPassageAnnuel(s.client(), passage)).rejects.toThrow(/timed out/);
+    expect(s.intervalle).toBe("month"); // le retour au mensuel est fait, la mensualité prélevée
+    expect(s.rembourseSur("pi_an")).toBe(0);
+    const rejeu = await retracterPassageAnnuel(s.client(), passage);
+    expect(rejeu).toMatchObject({ montantCents: 5990, passageEffectue: true });
+    expect(rejeu.refunds.map((r) => r.facture)).toEqual(["in_an"]);
+    expect(s.rembourseSur("pi_an")).toBe(5990);
+    expect(s.appels.update).toBe(1); // pas de second retour (ni de seconde mensualité)
+    expect(s.rembourseSur("pi_mois_1")).toBe(0); // la mensualité du nouveau cycle n'est pas remboursée
+    // Rejoué encore, après les 24 h de la clé : rien de plus, et le montant annoncé reste celui de la rétractation.
+    s.oublierCles();
+    const encore = await retracterPassageAnnuel(s.client(), passage);
+    expect(encore).toMatchObject({ montantCents: 5990, passageEffectue: true });
+    expect(s.rembourseSur("pi_an")).toBe(5990);
+  });
+
+  it("point 1 : une échéance annuelle restée impayée, annulée par un premier passage, laisse le passage « effectué » au rejeu (rien à rembourser)", async () => {
+    const s = new FauxStripeRetractation({ intervalle: "year", maintenant: Math.floor(Date.UTC(2026, 10, 10) / 1000) });
+    s.payer({ id: "in_an", created: Math.floor(Date.UTC(2026, 10, 6) / 1000), amount_paid: 5990, pi: "pi_an", jours: 365, status: "open" });
+    const premier = await retracterPassageAnnuel(s.client(), passage);
+    expect(premier).toMatchObject({ montantCents: 0, passageEffectue: true });
+    expect(s.factures.find((f) => f.id === "in_an")?.status).toBe("void");
+    const rejeu = await retracterPassageAnnuel(s.client(), passage);
+    expect(rejeu).toMatchObject({ montantCents: 0, passageEffectue: true });
+  });
+
+  it("point 1 : un passage encore programmé (aucune échéance annuelle émise) reste « non effectué »", async () => {
+    const s = new FauxStripeRetractation({ intervalle: "month", maintenant: Math.floor(Date.UTC(2026, 10, 10) / 1000) });
+    s.payer({ id: "in_mois", created: Math.floor(Date.UTC(2026, 10, 5) / 1000), amount_paid: 599, pi: "pi_m", jours: 30 });
+    expect(await retracterPassageAnnuel(s.client(), passage)).toEqual({ montantCents: 0, refunds: [], passageEffectue: false });
+    expect(s.appels.update).toBe(0);
+  });
+
+  it("point 6 : rejeu après 24 h avec un geste commercial antérieur — le montant annoncé est celui que la rétractation a remboursé", async () => {
+    const s = new FauxStripeRetractation({ intervalle: "month", maintenant: 10 });
+    s.payer({ id: "in_1", created: 1, amount_paid: 599, pi: "pi_1", jours: 30 });
+    s.rembourserHors("pi_1", 100);
+    const cle = "retractation-abonnement-sub_1";
+    const r1 = await retracterSouscription(s.client(), { subscription: "sub_1", cle });
+    s.oublierCles();
+    const r2 = await retracterSouscription(s.client(), { subscription: "sub_1", cle });
+    expect([r1.montantCents, r2.montantCents]).toEqual([499, 499]);
+    expect(r2.refunds).toEqual([{ facture: "in_1", refund: null, montant_cents: 499, deja: true }]);
+  });
+
+  it("R01 : échec partiel, rejeu de moins de 24 h, rejeu de plus de 24 h — chaque paiement remboursé une fois", async () => {
+    const s = new FauxStripeRetractation({ intervalle: "month", maintenant: Math.floor(Date.UTC(2026, 10, 10) / 1000) });
+    s.payer({ id: "in_1", created: 1, amount_paid: 599, pi: "pi_1", jours: 30 });
+    s.payer({ id: "in_2", created: 2, amount_paid: 300, pi: "pi_2", jours: 20 });
+    s.echecsRemboursement = 1;
+    const cle = "retractation-abonnement-sub_1";
+    await expect(retracterSouscription(s.client(), { subscription: "sub_1", cle })).rejects.toThrow();
+    const r2 = await retracterSouscription(s.client(), { subscription: "sub_1", cle });
+    const r3 = await retracterSouscription(s.client(), { subscription: "sub_1", cle });
+    s.oublierCles();
+    const r4 = await retracterSouscription(s.client(), { subscription: "sub_1", cle });
+    expect([r2.montantCents, r3.montantCents, r4.montantCents]).toEqual([899, 899, 899]);
+    expect([s.rembourseSur("pi_1"), s.rembourseSur("pi_2")]).toEqual([599, 300]);
+    expect(s.appels.cancel).toBe(1);
   });
 });

@@ -26,6 +26,7 @@ import { protegerClientAutomatique } from "@/lib/client-automatique";
 import { envoyerAvisCapaciteDepassee, envoyerAvisReconduction } from "@/lib/avis-abonnement";
 import { envoyerRelancesDues } from "@/lib/relances-paiement";
 import { envoyerConfirmationsDues } from "@/lib/courriers-contrat-envoi";
+import { reprendreRetractations } from "@/lib/retractation-execution";
 import {
   clientStripe,
   configurationStripe,
@@ -233,6 +234,17 @@ export async function traiterAbonnements(request: Request) {
     confirmations = { envoyees: 0, echecs: [e instanceof Error ? e.message : "confirmations impossibles"] };
   }
 
+  // ── LES RÉTRACTATIONS RESTÉES EN CHEMIN (relecture adverse du 24/10, I4). Une déclaration enregistrée dont
+  // l'exécution chez Stripe ou l'accusé n'a pas abouti (prestataire indisponible, client qui a fermé la page) est
+  // terminée ici, sans rien doubler ; celles qui ne le sont pas restent dues et le relais est alerté.
+  let retractations: Awaited<ReturnType<typeof reprendreRetractations>>;
+  try {
+    retractations = await reprendreRetractations(supabase, stripe, () => verifierAvantEffet(supabase, "abonnements"));
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    retractations = { terminees: 0, echecs: [e instanceof Error ? e.message : "reprise des rétractations impossible"] };
+  }
+
   // ── LES AVOIRS DE PARRAINAGE, EN DERNIER (19/09). Un mois offert au parrain
   // quand son filleul devient client payant : la base a posé la ligne, ici on
   // la porte au solde Stripe, qui la déduira de la prochaine facture.
@@ -306,10 +318,13 @@ export async function traiterAbonnements(request: Request) {
     non_reconductions_conditions_en_echec: nonReconduction.echecs.length,
     confirmations: confirmations.envoyees,
     confirmations_en_echec: confirmations.echecs.length,
+    retractations_terminees: retractations.terminees,
+    retractations_en_echec: retractations.echecs.length,
   });
   return Response.json({
     relances,
     confirmations,
+    retractations,
     examinees: lignes.length,
     alignees: alignes,
     resiliees,

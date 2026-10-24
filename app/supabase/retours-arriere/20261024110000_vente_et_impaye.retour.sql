@@ -217,6 +217,9 @@ $avis$;
   drop function if exists public.ma_retractation(uuid);
   drop function if exists public.retractation_enregistrer(uuid, text, text, text, text, text, uuid, text, timestamptz, timestamptz);
   drop function if exists public.retractation_executee(uuid, bigint, jsonb);
+  drop function if exists public.retractation_executee(uuid, bigint, jsonb, boolean);
+  drop function if exists public.retractations_a_terminer(integer);
+  drop function if exists public.abonnement_resiliation_levee(uuid, text);
   drop function if exists public.retractation_accuse_envoye(uuid, text);
   drop function if exists public.retractation_passage_annuel_annuler(uuid);
 

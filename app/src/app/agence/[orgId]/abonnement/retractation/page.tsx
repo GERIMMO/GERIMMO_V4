@@ -123,7 +123,8 @@ export default async function PageRetractation(props: PageProps<"/agence/[orgId]
             {nature === "abonnement"
               ? "Votre abonnement prend fin aussitôt. Ce que vous avez payé vous est remboursé intégralement, sous 14 jours, sur la carte utilisée, sans frais. Si votre essai gratuit court encore, il continue jusqu'à son terme ; sinon, votre compte passe en lecture seule : vos données restent consultables et exportables, rien n'est supprimé."
               : etat.passage.effectue
-                ? "Votre abonnement redevient mensuel à compter de ce jour, et l'échéance annuelle vous est remboursée intégralement, sous 14 jours, sur la carte utilisée, sans frais."
+                ? // Relecture adverse du 24/10 (M7) : le nouveau cycle mensuel commence ce jour-là, sa première mensualité est prélevée aussitôt.
+                  "Votre abonnement redevient mensuel à compter de ce jour : une première mensualité, au prix mensuel de votre formule, est prélevée ce jour, puis chaque mois à la même date. L'échéance annuelle vous est remboursée intégralement, sous 14 jours, sur la carte utilisée, sans frais."
                 : "Votre abonnement reste mensuel : le passage à la formule annuelle n'aura pas lieu, et rien ne vous sera prélevé à ce titre."}
           </p>
           <FormulaireRetractation orgId={orgId} nature={nature} nom={nom} adresse={adresse} saisieSuperviseur={saisieSuperviseur} />

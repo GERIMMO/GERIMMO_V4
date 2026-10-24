@@ -221,6 +221,11 @@ export type AccuseRetractation = {
   essaiFin: string | null;
   /** Passage à l'annuel : l'abonnement était-il déjà passé à l'annuel (échéance annuelle prélevée) ? */
   passageEffectue?: boolean;
+  /**
+   * Passage à l'annuel effectué : le prix mensuel qui reprend. Le retour au mensuel ouvre un nouveau cycle ce jour-là,
+   * et Stripe prélève aussitôt la première mensualité (relecture adverse du 24/10, M7) : l'accusé le dit.
+   */
+  mensualiteCents?: number | null;
 };
 
 export function courrierAccuseRetractation(a: AccuseRetractation): Courrier {
@@ -238,6 +243,11 @@ export function courrierAccuseRetractation(a: AccuseRetractation): Courrier {
     );
   } else if (a.passageEffectue) {
     lignes.push("Votre abonnement redevient mensuel à compter de ce jour.");
+    lignes.push(
+      a.mensualiteCents
+        ? `Une première mensualité de ${euros(a.mensualiteCents)} est prélevée ce jour, puis chaque mois à la même date.`
+        : "Une première mensualité, au prix mensuel de votre formule, est prélevée ce jour, puis chaque mois à la même date."
+    );
     lignes.push(a.montantRembourseCents > 0 ? remboursement : "Aucun prélèvement annuel n'a eu lieu ; rien ne vous sera prélevé à ce titre.");
   } else {
     lignes.push("Votre abonnement reste mensuel : le passage à la formule annuelle n'aura pas lieu.");

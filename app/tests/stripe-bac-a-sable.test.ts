@@ -285,7 +285,7 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
       essaiFin: new Date(Date.now() + 10 * 86400_000).toISOString().slice(0, 10),
       intention: intentionDeTest(),
     });
-    expect(r.ok).toBe(true);
+    expect(r.ok, r.ok ? "" : r.erreur).toBe(true);
     const s = (await nouvelle.stripe!.checkout.sessions.list({ customer: nouvelle.client, limit: 1 })).data[0];
     nouvelle.sessions.push(s.id);
     expect(s.livemode).toBe(false);

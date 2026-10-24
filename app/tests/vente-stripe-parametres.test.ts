@@ -1,8 +1,8 @@
 /**
  * Plan de conformité du 23/10/2026, contre un faux Stripe :
- *  · R21 : la page de paiement dit « Payer » (`submit_type: "pay"`), en français, avec sous le bouton l'obligation de
- *    paiement, le montant et, avec un essai, la date du premier prélèvement. La recette réelle du bouton (clés de test,
- *    avec et sans essai) reste à faire dans le chantier Stripe ;
+ *  · R21 : la page de paiement est en français, avec sous le bouton l'obligation de paiement, le montant et, avec un
+ *    essai, la date du premier prélèvement. Stripe refuse `submit_type: "pay"` en mode abonnement (constaté en clés de
+ *    test le 24/10) : le libellé du bouton reste celui de Stripe ; le mode « setup » du plan est le recours ;
  *  · R04 : le portail client ne résilie plus (`subscription_cancel` désactivée) ; nouvelle marque de configuration.
  */
 import type Stripe from "stripe";
@@ -20,7 +20,12 @@ function fauxStripe(configurations: Record<string, unknown>[] = []) {
     checkout: {
       sessions: {
         list: vi.fn(async () => ({ data: [] })),
-        create: vi.fn(async (_p: Record<string, unknown>, _o?: unknown) => ({ id: "cs_test_1", url: "https://checkout.stripe.test/c/pay/cs_test_1" })),
+        // Règle de Stripe constatée en clés de test le 24/10 (chantier 40068914528) : « You can not pass
+        // `submit_type: 'pay'` in `subscription` mode. »
+        create: vi.fn(async (p: Record<string, unknown>, _o?: unknown) => {
+          if (p.mode === "subscription" && p.submit_type === "pay") throw Object.assign(new Error("You can not pass `submit_type: 'pay'` in `subscription` mode."), { type: "StripeInvalidRequestError" });
+          return { id: "cs_test_1", url: "https://checkout.stripe.test/c/pay/cs_test_1" };
+        }),
       },
     },
     billingPortal: {
@@ -40,7 +45,7 @@ function fauxStripe(configurations: Record<string, unknown>[] = []) {
 const intention = { id: "00000000-0000-4000-8000-000000000001", creeLeMs: Date.parse("2026-10-24T10:00:00Z"), expireLeS: Date.parse("2026-10-24T10:45:00Z") / 1000 };
 
 describe("R21 — le dernier bouton de la page de paiement", () => {
-  it("sans essai : « Payer », en français, obligation de paiement et montant", async () => {
+  it("sans essai : pas de submit_type (refusé par Stripe en abonnement), en français, obligation de paiement et montant", async () => {
     const stripe = fauxStripe();
     const offre = offreParticulier(1, "mensuel");
     const r = await creerSessionOffre(stripe, {
@@ -49,9 +54,9 @@ describe("R21 — le dernier bouton de la page de paiement", () => {
     });
     expect(r.ok).toBe(true);
     const [params] = stripe.checkout.sessions.create.mock.calls[0];
+    expect(params).not.toHaveProperty("submit_type");
     expect(params).toMatchObject({
       mode: "subscription",
-      submit_type: "pay",
       locale: "fr",
       custom_text: { submit: { message: `En cliquant, vous commandez l'abonnement Gerimmo Solo avec obligation de paiement : ${euros(599)} par mois.` } },
     });

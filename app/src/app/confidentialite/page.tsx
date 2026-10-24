@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { lireDureesPubliques } from "@/lib/conservation-publique";
+import { DureesActuelles, ReferenceConservation } from "@/components/conservation-publique";
 import { lireEditeur } from "@/lib/editeur-serveur";
 import Link from "next/link";
 import { AFournir, Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
@@ -41,6 +43,12 @@ function TableauDurees({ titre, children }: { titre: string; children: ReactNode
 // Le tableau « Combien de temps » a son miroir machine dans tests/fixtures/durees-conservation.ts : une ligne ajoutée ou
 // une durée changée ici doit l'être aussi là-bas (tests/durees-conservation.test.ts, qui compare aussi la base).
 export default async function PageConfidentialite() {
+  const conservation = await lireDureesPubliques();
+  const dureeCourante = (categorie: string, reference: string) => {
+    const r = conservation.regles.find(r => r.data_type === categorie);
+    return r && r.duree_mois !== r.duree_initiale_mois ? `${r.duree_mois} mois` : reference;
+  };
+  const conservationModifiee = conservation.indisponible || conservation.regles.some(r => r.duree_mois !== r.duree_initiale_mois);
   const {editeur:EDITEUR,indisponible}=await lireEditeur();
   // 29/09 : les droits ne s'exercent plus par le formulaire de devis de
   // l'accueil (une demande commerciale) : « Aide et retours » pour qui a un
@@ -262,7 +270,7 @@ export default async function PageConfidentialite() {
         <p>
           <b className="font-semibold">Le formulaire de contact.</b>{" "}
           Les coordonnées et le message que vous communiquez servent à traiter
-          votre demande et à y répondre. Les demandes sont conservées 24 mois
+          votre demande et à y répondre. Les demandes sont conservées {dureeCourante("contact:devis", "24 mois")}
           après leur dernier traitement, ou après leur dépôt si elles
           n&apos;ont pas encore été traitées, puis supprimées.
         </p>
@@ -277,7 +285,7 @@ export default async function PageConfidentialite() {
           son consentement. Chacun de nos messages permet de s&apos;y opposer :
           répondez « Stop », et nous supprimons vos coordonnées dans le mois, en
           ne gardant qu&apos;une empreinte de votre adresse pour ne plus vous
-          écrire. Sans opposition, ces données sont supprimées trois ans après
+          écrire. Sans opposition, ces données sont supprimées {dureeCourante("contact:prospect", "trois ans")} après
           votre dernier contact.
         </p>
         <p>
@@ -292,7 +300,7 @@ export default async function PageConfidentialite() {
           prévenu, servent uniquement à vous prévenir de l&apos;ouverture de
           l&apos;offre aux agences et à donner suite à vos réponses. Elles ne
           servent à aucune autre sollicitation. Vous pouvez vous y opposer à
-          tout moment ; elles sont supprimées trois ans après votre inscription,
+          tout moment ; elles sont supprimées {dureeCourante("contact:attente_agences", "trois ans")} après votre inscription,
           dans le mois de votre demande de retrait, ou trois mois après la
           souscription si votre agence devient cliente.
         </p>
@@ -302,7 +310,7 @@ export default async function PageConfidentialite() {
           du service, le nombre de vos biens si vous l&apos;avez indiqué, la page
           d&apos;où vient l&apos;inscription et sa date servent uniquement à vous
           prévenir de cette ouverture. Vous pouvez vous y opposer à tout moment ;
-          elles sont supprimées trois ans après votre inscription.
+          elles sont supprimées {dureeCourante("contact:attente", "trois ans")} après votre inscription.
         </p>
         <p>
           <b className="font-semibold">Ce que Gerimmo ne fait pas.</b> Il ne lit
@@ -421,6 +429,8 @@ export default async function PageConfidentialite() {
       </Article>
 
       <Article titre="Combien de temps">
+        <DureesActuelles {...conservation} />
+        <ReferenceConservation modifiee={conservationModifiee}>
         <p>
           Les tableaux décrivent les durées paramétrées dans le service. Au terme,
           les traitements de conservation prévoient une suppression des fichiers et un
@@ -742,6 +752,7 @@ export default async function PageConfidentialite() {
           ce dossier restent sous la responsabilité de ce propriétaire, à qui
           nous transmettons votre demande.
         </p>
+        </ReferenceConservation>
       </Article>
 
       <Article titre="Comment vos données sont protégées">

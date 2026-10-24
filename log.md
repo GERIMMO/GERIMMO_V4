@@ -6921,3 +6921,9 @@ Corrections livrées après la relecture : modèle réglementaire de rétractati
 - Formulaires, actions serveur, contrôles de droits, confirmations, valeurs et règles métier conservés. Aucun nouvel accès, aucune migration ni mutation de données métier de production.
 - Contrôles locaux : types et lint ciblé verts ; 89 tests ciblés verts ; quatre scénarios Chromium réels verts (liens profonds, champ obligatoire replié, valeurs et révision préservées après refus, clavier/390 et 1440 px/zéro violation axe sur le formulaire d’identité). Parcours E2E adaptés aux rubriques à ouvrir, sans retirer les assertions métier. Relecture complémentaire : textes du diagnostic artisan et fermetures à vérifier.
 - Publication : en préparation, après CI verte sur la révision exacte. Aucun écran de production n’est annoncé modifié avant vérification du déploiement.
+
+### Contrôle complet avant publication
+
+- Première CI de la PR #252 (`40113272855`) : 10 593 tests réussis, trois échecs dans le banc de propagation de l’arrêt. Son client simulé n’implémentait pas la lecture paginée et sa source « TEST » ne relevait plus du périmètre éditorial. Le banc simule désormais la pagination et un titre de veille sur le loyer ; toutes les assertions d’arrêt, de budget et de journalisation sont conservées.
+- Après correction : 35 tests ciblés réussis, puis 100 réussis et dix ignorés sur neuf fichiers de veille/marketing/arrêt. Aucune modification des protections applicatives pour obtenir ces résultats.
+- Relecture de l’interface : filtres des journaux ouvrant leurs résultats, pagination conservant la bonne rubrique, fermetures en difficulté visibles et diagnostic artisan décrit en lecture seule. Mesure initiale en production à 1280 px : décisions 14 195 px, améliorations 9 218 px, historique 9 034 px ; comparaison après publication prévue au même format.

@@ -15,6 +15,7 @@ import {
   courrierAccuseResiliation,
   courrierAccuseRetractation,
   courrierConfirmationSouscription,
+  courrierReceptionRetractation,
   declarationRetractation,
   formulaireRetractation,
   phraseMediateurReclamation,
@@ -216,5 +217,15 @@ describe("relecture adverse du 24/10 (M1) : le pluriel de la capacité", () => {
     expect(texte(courrierConfirmationSouscription(base).html)).toContain("jusqu'à 12 lots sous mandat");
     expect(texte(courrierConfirmationSouscription({ ...base, biens: 1 }).html)).toContain("jusqu'à 1 lot sous mandat");
     expect(texte(courrierConfirmationSouscription({ ...base, estAgence: false, formule: "bailleur", biens: 3 }).html)).toContain("jusqu'à 3 biens");
+  });
+});
+
+describe("relecture adverse du 24/10 (I4) : l'accusé de réception de la déclaration, sans délai", () => {
+  it("date et heure de Paris, déclaration, remboursement à venir sous quatorze jours, second courriel annoncé", () => {
+    const t = texte(courrierReceptionRetractation({ nature: "abonnement", organisation: "E", declaration: "Je renonce à mon abonnement Gerimmo.", declareeLe: new Date("2026-10-30T15:42:00Z") }).html);
+    expect(t).toContain("Nous avons bien reçu, le 30 octobre 2026 à 16 h 42 (heure de Paris), votre déclaration : « Je renonce à mon abonnement Gerimmo. »");
+    expect(t).toContain("ce que vous avez payé vous sera remboursé intégralement au plus tard le 13 novembre 2026, sur la carte utilisée, sans frais.");
+    expect(t).toContain("Un second courriel vous confirmera l'exécution et le montant remboursé.");
+    expect(t).not.toContain("a pris fin");
   });
 });

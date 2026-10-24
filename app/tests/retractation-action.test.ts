@@ -27,6 +27,7 @@ const m = vi.hoisted(() => ({
   retracterSouscription: vi.fn(),
   retracterPassageAnnuel: vi.fn(),
   envoyerAccuse: vi.fn(),
+  envoyerReception: vi.fn(),
   redirect: vi.fn((url: string) => {
     throw Object.assign(new Error("NEXT_REDIRECT"), { url });
   }),
@@ -70,6 +71,7 @@ vi.mock("@/lib/retractation-stripe", () => ({
 vi.mock("@/lib/courriers-contrat-envoi", () => ({
   lireContexteCourrier: async () => m.contexte,
   envoyerAccuseRetractation: m.envoyerAccuse,
+  envoyerReceptionRetractation: m.envoyerReception,
   alerterRelaisContrat: async () => 0,
 }));
 
@@ -157,6 +159,10 @@ beforeEach(() => {
     m.ordre.push("accuse");
     return { envoye: true };
   });
+  m.envoyerReception.mockImplementation(async () => {
+    m.ordre.push("reception");
+    return { envoye: true };
+  });
 });
 
 describe("R01 — renoncer à l'abonnement en ligne", () => {
@@ -228,7 +234,7 @@ describe("R01 — renoncer à l'abonnement en ligne", () => {
     expect(m.serviceRpc).not.toHaveBeenCalled();
   });
 
-  it("échec chez Stripe : la déclaration reste, une trace « à terminer », pas d'exécution consignée ni d'accusé", async () => {
+  it("échec chez Stripe : la déclaration reste, une trace « à terminer », pas d'exécution consignée ni d'accusé d'exécution", async () => {
     m.retracterSouscription.mockRejectedValueOnce(new Error("réseau"));
     const r = await retracterAbonnement("org-1", {}, formulaire());
     expect(r.erreur).toMatch(/^Votre déclaration est bien enregistrée/);
@@ -236,6 +242,20 @@ describe("R01 — renoncer à l'abonnement en ligne", () => {
     expect(m.insert).toHaveBeenCalledWith({ evenement: "retractation_a_terminer", details: { organisation: "org-1", retractation: "ret-1", nature: "abonnement" } });
     expect(m.ordre).not.toContain("retractation_executee");
     expect(m.envoyerAccuse).not.toHaveBeenCalled();
+  });
+
+  it("I4 : l'exécution échoue — un accusé de RÉCEPTION de la déclaration part sans délai (L. 221-21), avec la déclaration enregistrée", async () => {
+    m.retracterSouscription.mockRejectedValueOnce(new Error("réseau"));
+    const r = await retracterAbonnement("org-1", {}, formulaire());
+    expect(m.envoyerReception).toHaveBeenCalledTimes(1);
+    expect(m.envoyerReception.mock.calls[0][1]).toMatchObject({
+      cle: "retractation-abonnement-sub_1",
+      destinataire: "titulaire@example.com",
+      nature: "abonnement",
+      declaration: expect.stringContaining("Nom : Camille Exemple."),
+    });
+    expect(r.erreur).toMatch(/L'accusé de réception de votre déclaration vous est envoyé par courriel/);
+    // Il ne part pas si un autre geste tient le verrou (l'exécution est alors en cours ailleurs).
   });
 
   it("adresse invalide ou nom absent : refus avant toute lecture", async () => {

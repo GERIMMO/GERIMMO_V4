@@ -232,6 +232,26 @@ export type AccuseRetractation = {
   mensualiteCents?: number | null;
 };
 
+/**
+ * Relecture adverse du 24/10 (I4) : l'accusé de RÉCEPTION de la déclaration, envoyé sans délai (code de la
+ * consommation, L. 221-21) quand son exécution chez le prestataire de paiement n'a pas pu se faire tout de suite.
+ * L'accusé complet (fin de l'abonnement, montant remboursé) suit une fois l'exécution faite — par le client qui
+ * réessaie, ou par la reprise de nuit.
+ */
+export function courrierReceptionRetractation(a: Pick<AccuseRetractation, "nature" | "organisation" | "declaration" | "declareeLe">): Courrier {
+  const sujet = "Accusé de réception de votre rétractation";
+  const echeance = quatorzeJoursApres(a.declareeLe);
+  const lignes = [
+    `Nous avons bien reçu, le ${jourLong(a.declareeLe)} à ${heureParis(a.declareeLe)} (heure de Paris), votre déclaration : « ${a.declaration} »`,
+    "Votre rétractation est enregistrée à cette date.",
+    a.nature === "abonnement"
+      ? `Son exécution auprès de notre prestataire de paiement est en cours : votre abonnement prend fin, et ce que vous avez payé vous sera remboursé intégralement au plus tard le ${echeance}, sur la carte utilisée, sans frais.`
+      : `Son exécution auprès de notre prestataire de paiement est en cours : votre abonnement reste ou redevient mensuel, et toute échéance annuelle payée vous sera remboursée intégralement au plus tard le ${echeance}, sur la carte utilisée, sans frais.`,
+    "Un second courriel vous confirmera l'exécution et le montant remboursé.",
+  ];
+  return { sujet, html: enveloppe(sujet, "Bonjour,", lignes.map(p).join("\n      "), a.organisation) };
+}
+
 export function courrierAccuseRetractation(a: AccuseRetractation): Courrier {
   const sujet = "Accusé de réception de votre rétractation";
   const recu = `Nous avons bien reçu, le ${jourLong(a.declareeLe)} à ${heureParis(a.declareeLe)} (heure de Paris), votre déclaration : « ${a.declaration} »`;

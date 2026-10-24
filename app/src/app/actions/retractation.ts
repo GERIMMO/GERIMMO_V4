@@ -26,7 +26,7 @@ import { createClient } from "@/lib/supabase/server";
 import { clientDeService } from "@/lib/supabase/service";
 import { clientStripe, configurationStripe, messageStripePourClient } from "@/lib/stripe";
 import { MESSAGE_SESSION_EXPIREE } from "@/lib/session-expiree";
-import { envoyerAccuseRetractation, lireContexteCourrier } from "@/lib/courriers-contrat-envoi";
+import { envoyerAccuseRetractation, envoyerReceptionRetractation, lireContexteCourrier } from "@/lib/courriers-contrat-envoi";
 import { declarationRetractation, heureParis, type NatureRetractation } from "@/lib/courriers-contrat";
 import { etatRetractation, type LigneRetractation } from "@/lib/retractation-etat";
 import { ligneRetractationDuResponsable, ligneRetractationParLeService } from "@/lib/retractation-serveur";
@@ -164,8 +164,22 @@ export async function retracterAbonnement(
   const issue = await terminerRetractation(service, stripe, r, { destinataire: adresse });
   if (issue.etat === "verrou") return { erreur: `${enregistreeLe} ${issue.erreur}` };
   if (issue.etat === "execution_impossible") {
+    // Relecture adverse du 24/10 (I4) : l'accusé de réception de la déclaration part sans délai (L. 221-21), même si
+    // son exécution attend ; l'accusé complet suivra (nouvel essai, ou reprise de nuit).
+    const reception = await envoyerReceptionRetractation(service, {
+      retractationId: r.id,
+      cle: r.cle,
+      destinataire: adresse,
+      nature,
+      organisation: contexte.organisation,
+      declaration: r.texte_declaration,
+      declareeLe: recueLe,
+    }).catch((e: unknown) => {
+      if (e instanceof ArretSupervision) throw e;
+      return { envoye: false };
+    });
     return {
-      erreur: `${enregistreeLe} Son exécution n'a pas pu être confirmée (${issue.erreur.replace(/[\s.]+$/, "")}) : réessayez dans un instant. À défaut, nous la terminons nous-mêmes dans le délai de remboursement.`,
+      erreur: `${enregistreeLe}${reception.envoye ? " L'accusé de réception de votre déclaration vous est envoyé par courriel." : ""} Son exécution n'a pas pu être confirmée (${issue.erreur.replace(/[\s.]+$/, "")}) : réessayez dans un instant. À défaut, nous la terminons nous-mêmes dans le délai de remboursement.`,
     };
   }
   if (issue.etat === "accuse_impossible") {

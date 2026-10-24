@@ -19,6 +19,7 @@ import {
   courrierAccuseResiliation,
   courrierAccuseRetractation,
   courrierConfirmationSouscription,
+  courrierReceptionRetractation,
   type AccuseRetractation,
 } from "@/lib/courriers-contrat";
 import { envoyerEmail } from "@/lib/email";
@@ -427,6 +428,29 @@ export async function notifierResiliationImpaye(
 }
 
 // ── R01, R37 : l'accusé de la rétractation ────────────────────────────────────────────────────────────────────
+
+/**
+ * Relecture adverse du 24/10 (I4) : l'accusé de réception de la déclaration, sans délai, quand l'exécution n'a pas pu
+ * se faire tout de suite. Une fois (clé propre, `{clé}-reception`) ; trace au journal technique, sans l'adresse.
+ */
+export async function envoyerReceptionRetractation(
+  service: Service,
+  p: { retractationId: string; cle: string; destinataire: string } & Pick<AccuseRetractation, "nature" | "organisation" | "declaration" | "declareeLe">,
+  options: { avantEffet?: () => Promise<void> } = {}
+): Promise<ResultatEnvoi> {
+  const courrier = courrierReceptionRetractation(p);
+  await options.avantEffet?.();
+  const { erreur, id } = await envoyerEmail({
+    avantEnvoi: options.avantEffet,
+    to: p.destinataire,
+    subject: courrier.sujet,
+    html: courrier.html,
+    cleIdempotence: `${p.cle}-reception`,
+  });
+  if (erreur) return { envoye: false, motif: erreur };
+  await tracer(service, "retractation_reception_envoyee", { retractation: p.retractationId, message: id ?? null });
+  return { envoye: true };
+}
 
 /**
  * L'accusé de la rétractation, une fois (clé de la déclaration), marqué en base. `copie` (relecture adverse du 24/10,

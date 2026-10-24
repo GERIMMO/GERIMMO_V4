@@ -14,12 +14,13 @@ Gerimmo » (qui remplace la fermeture R29/R31 du plan). Migration `2026102412000
   téléphone du garant n'est pas celui qu'il a confirmé. La mention reste saisie par la caution dans Zoho.
   `ZOHO_SIGN_CAUTIONNEMENT_FERME` reste en place et à `false` : posée à `true`, elle bloque aussi l'envoi du lien et sa
   consommation.
-- **État des lieux : établi ensemble, sur place.** Avant l'envoi, le bailleur saisit la date de la visite et coche
-  « Je confirme que cet état des lieux a été établi contradictoirement, sur place, le {date}, en présence du locataire
-  ou de son représentant. » Refus serveur et refus en base sans cette confirmation (de moins d'une heure). Le texte,
-  la date, l'instant et l'auteur restent sur le circuit (`confirmation_sur_place`) et au journal d'audit. L'état des
-  lieux d'entrée et son invitation rappellent au locataire son droit de le compléter (article 3-2 de la loi du
-  6 juillet 1989, à relire par le juriste).
+- **État des lieux : établi ensemble, sur place.** Avant l'envoi, le bailleur coche « Je confirme que cet état des
+  lieux a été établi contradictoirement, sur place, le {date}, en présence du locataire ou de son représentant. » ;
+  la date est celle que porte l'état des lieux (« Établi le »), préremplie et verrouillée. Refus serveur et refus en
+  base sans cette confirmation (de moins d'une heure, à la date de l'état des lieux). Le texte, la date, l'instant et
+  l'auteur restent sur le circuit (`confirmation_sur_place`), affichés dans son suivi, et au journal d'audit. L'état
+  des lieux d'entrée et son invitation (« Locataire : … ») rappellent au locataire son droit de le compléter
+  (article 3-2 de la loi du 6 juillet 1989, à relire par le juriste).
 - **Message d'invitation (R53)** : « Vos nom, adresse électronique et numéro de mobile sont transmis à notre prestataire
   de signature Zoho Sign pour ce seul document, à la demande de {bailleur}. Détails : {page confidentialité}. »
 - **R32** : une mention refusée alors que la demande est ouverte fait rappeler la demande chez Zoho ; la date limite des
@@ -27,12 +28,51 @@ Gerimmo » (qui remplace la fermeture R29/R31 du plan). Migration `2026102412000
 - **R28, R30, R58** : modèles d'état des lieux et de cautionnement (exemplaires, date de signature), case « aucune
   assurance ni autre garantie » avant de générer l'acte, cadre et page de signature du garant dans le bail.
 
+**Relectures adverses du 24/10, corrigées :**
+- le lien ne part jamais à l'adresse d'un autre signataire, d'un détenteur du lot, d'un compte gestionnaire de
+  l'espace ou de l'organisation, et la caution ne peut pas y confirmer leur numéro (refus en base, le lien reste
+  ouvert ; la préparation signale aussi une adresse de caution égale à celle d'un bailleur) ;
+- plus aucun lien après la confirmation de la caution ; cinq liens par caution et par bail en 24 h, toutes
+  préparations confondues ; un acte qui quitte l'état « prêt » clôt son lien encore ouvert ;
+- garde en base complétée : acte de cautionnement ou état des lieux enregistré seulement « prêt », numéro de la
+  caution figé après l'envoi, confirmation sur place sans instant refusée ; l'envoi part avec les signataires de la
+  ligne réservée ;
+- messages de la caution selon l'issue de l'envoi (nouveau lien si le circuit est annulé, vérification après l'appel
+  au prestataire), suspension annoncée dès l'ouverture de la page, formulaire préservé d'une session Gerimmo expirée ;
+- notes Zoho comparées sur le texte et non sur la mise en forme (à confirmer en recette, ci-dessous).
+
+**Gestes humains avant le déploiement :**
+- Compter en lecture seule (outil SQL du support, SELECT seulement) les actes envoyés avant ce lot, qui gardent le
+  numéro de la fiche du garant ou n'ont pas de confirmation sur place :
+
+  ```sql
+  select id, organization_id, modele, etat, envoye_le
+    from public.bail_signature_circuits
+   where modele in ('cautionnement', 'edl') and etat in ('preparation', 'en_cours', 'a_verifier')
+     and environnement = 'production' and not essai;
+  ```
+
+  S'il n'est pas vide : annuler chaque circuit depuis la fiche du bail (« Annuler le circuit ») puis le renvoyer
+  (la caution recevra un lien ; l'état des lieux exigera la confirmation sur place), ou consigner une décision du
+  dirigeant. Consigner le résultat du comptage dans le journal (`log.md`). L'écran signale ces actes de cautionnement.
+
+**À trancher par le dirigeant :** le garant qui signe aussi le **bail** (page « la caution reconnaît avoir reçu un
+exemplaire ») reçoit son code au mobile de sa fiche, saisi par le bailleur. L'impact est faible (la remise du bail est
+aussi prouvée par l'annexe de l'acte de cautionnement, signé avec le numéro confirmé par la caution) ; retirer le garant
+du circuit du bail ou lui appliquer la même confirmation sont les deux options.
+
 **Reste à faire, hors de portée du banc local :**
 - **Recette à trois signataires (R28)**, en Zoho réel sur un dossier fictif (locataire, garant, propriétaire) : chaque
   signataire reçoit-il de Zoho le PDF signé ? Consigner le résultat ici. Sinon, envoyer le PDF signé à chaque
   signataire à l'état « terminé » (`envoyerEmail`) et mémoriser l'envoi.
 - **Recette du parcours de la caution** en Zoho réel : lien reçu, page, confirmation, invitation Zoho au numéro saisi,
-  mention, signature, archive.
+  mention, signature, archive ; la caution reçoit-elle son exemplaire signé, avec la copie du bail en annexe
+  (article 22-1 de la loi du 6 juillet 1989) ?
+- **Recette d'un état des lieux d'entrée** en Zoho réel : rappel « Locataire : … » visible dans l'invitation,
+  confirmation sur place affichée dans le suivi du circuit.
+- **Notes de l'invitation Zoho** (cautionnement) : sur un brouillon sans invitation, comme celui du 18/10, vérifier que
+  Zoho rend le message de trois paragraphes (consignes, transmission à Zoho Sign, lien) sans le tronquer ; la
+  comparaison tolère fins de ligne, espaces et entités HTML, pas un texte différent.
 - **Expéditeur générique des invitations (R53)** : l'adresse d'expédition n'est pas un paramètre de l'API de création ;
   c'est un réglage du compte dans la console Zoho Sign (geste du dirigeant).
 

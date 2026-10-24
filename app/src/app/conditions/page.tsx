@@ -94,7 +94,7 @@ const CLAUSES: Record<
   // page confidentialité décrit ce que ce prestataire garde. Les préavis de suppression ne visent que les deux
   // alertes du lot 1E (J-30 par bail, J-15 par personne sans bail) : aucune autre pièce n'est promise d'un préavis.
   conservation:
-    "tant que le compte est utilisé. À la fin de l'essai ou de l'abonnement, elles restent consultables et exportables en lecture seule ; cette fin n'entraîne pas à elle seule leur suppression. Le compte et les données de gestion sont supprimés vingt-quatre mois après la plus tardive des dates suivantes : la dernière connexion d'un utilisateur du compte, la fin du dernier abonnement payé. L'Éditeur prévient le Client par courriel deux mois, puis quinze jours avant cette suppression ; une connexion ou une demande écrite avant l'échéance l'annule. Certaines pièces suivent leur durée de conservation propre, décrite dans la page confidentialité (par exemple les pièces du dossier locataire, supprimées trois ans après la fin du dernier bail et la clôture de ses comptes, sauf litige signalé) ; le Client est prévenu trente jours avant la suppression des pièces rattachées à un bail, et quinze jours avant celle des pièces d'une personne rattachée à aucun bail. Le Client peut demander à tout moment la fermeture de son compte et la suppression de ses données, après avoir exporté ce qu'il souhaite garder ; si un abonnement payé est en cours, il choisit une fermeture à la fin de la période payée ou quatorze jours après sa confirmation, avec le remboursement de la part non utilisée de cette période. Il lui appartient de conserver lui-même les documents qu'il est tenu de garder. L'Éditeur conserve, pour ses seules obligations, les factures qu'il a émises pendant au moins six ans à compter de leur émission, et la preuve de l'acceptation des conditions et de l'abonnement pendant dix ans après la fin du dernier abonnement payé (article 3.3)",
+    "tant que le compte est utilisé. À la fin de l'essai ou de l'abonnement, elles restent consultables et exportables en lecture seule ; cette fin n'entraîne pas à elle seule leur suppression. Le compte et les données de gestion sont supprimés vingt-quatre mois après la plus tardive des dates suivantes : la dernière connexion d'un utilisateur du compte, la fin du dernier abonnement payé. L'Éditeur prévient le Client par courriel deux mois, puis quinze jours avant cette suppression ; une connexion d'un utilisateur du compte avant l'échéance l'annule. Certaines pièces suivent leur durée de conservation propre, décrite dans la page confidentialité (par exemple les pièces du dossier locataire, supprimées trois ans après la fin du dernier bail et la clôture de ses comptes, sauf litige signalé) ; le Client est prévenu trente jours avant la suppression des pièces rattachées à un bail, et quinze jours avant celle des pièces d'une personne rattachée à aucun bail. Le Client peut demander à tout moment la fermeture de son compte et la suppression de ses données, après avoir exporté ce qu'il souhaite garder ; si un abonnement payé est en cours, il choisit une fermeture à la fin de la période payée ou quatorze jours après sa confirmation, avec le remboursement de la part non utilisée de cette période. Il lui appartient de conserver lui-même les documents qu'il est tenu de garder. L'Éditeur conserve, pour ses seules obligations, les factures qu'il a émises pendant au moins six ans à compter de leur émission, et la preuve de l'acceptation des conditions et de l'abonnement pendant dix ans après la fin du dernier abonnement payé (article 3.3)",
   disponibilite:
     "L'Éditeur ne garantit pas une disponibilité ininterrompue. Les opérations de maintenance programmées sont annoncées à l'avance lorsque c'est possible, de préférence en dehors des heures ouvrées. Le support est assuré par écrit depuis la page « Aide et retours » de l'application ; l'Éditeur y répond dans les meilleurs délais.",
   // V1 (plan du 23/10, R08) : aucun plafond n'est opposé au consommateur ni au non-professionnel (art. R. 212-1 du
@@ -615,8 +615,11 @@ export default async function PageConditions() {
         </p>
         {/* V1 (plan du 23/10, R01, R16, R37) : rétractation ouverte à toutes les formules, bouton en ligne, nouveau délai
             au passage à l'annuel, remboursement intégral même après un début d'exécution demandé. Réforme du 19/06/2026
-            (art. L. 221-21 et D. 221-5 du code de la consommation) connue par des sources secondaires seulement. */}
-        <p id="retractation">
+            (art. L. 221-21 et D. 221-5 du code de la consommation) connue par des sources secondaires seulement.
+            Intégration du 24/10 : pas d'ancre `id` sur ce paragraphe. La liste blanche du balisage archivé (relecture
+            adverse du socle, M1) n'admet pas l'attribut `id` dans le texte contractuel, et aucun lien ne visait
+            « #retractation » (le récapitulatif de souscription mène à /conditions et cite l'article 8.10). */}
+        <p>
           <b className="font-semibold">8.10 — Rétractation.</b> Le Client
           consommateur dispose d&apos;un délai de{" "}
           <b className="font-semibold">quatorze jours</b> pour se rétracter de
@@ -710,8 +713,12 @@ export default async function PageConditions() {
         </p>
       </Article>
 
-      {/* V1 : la phrase de l'« archive complète » (plan du 23/10, R49) n'est publiée que lorsque l'export complet est en
-          production ; il ne l'est pas encore. */}
+      {/* V1 : la phrase de l'« archive complète » (plan du 23/10, R49) paraît avec l'export complet, en production depuis
+          le 24/10 (PR #246) : route /agence/[orgId]/export-complet et section « Archive complète de mes espaces » de
+          « Mes données personnelles » ; réservée au titulaire de l'espace (propriétaire ou administrateur), qui confirme
+          son identité (second facteur, ou mot de passe saisi depuis moins de quinze minutes) ; trois archives par jour et
+          par espace au plus ; lien valable 24 heures, archive supprimée sept jours après sa préparation
+          (lib/export-complet.ts, demander_export_complet). Intégration des textes du 24/10. */}
       <Article titre="9. Réversibilité et conservation">
         <p>
           Le Client peut exporter à tout moment,{" "}
@@ -720,6 +727,16 @@ export default async function PageConditions() {
           écritures de la période choisie, au format CSV, avec le bien et le lot
           en clair. Ses documents restent par ailleurs consultables et
           téléchargeables un par un depuis son espace.
+        </p>
+        <p>
+          Le titulaire de l&apos;espace peut aussi obtenir, sans frais,
+          l&apos;<b className="font-semibold">archive complète</b> de son
+          espace, depuis la page « Mes données personnelles » de son compte :
+          un fichier unique qui réunit toutes les données de l&apos;espace, un
+          tableau au format CSV par catégorie, et tous ses fichiers, documents
+          signés et certificats compris. Pour la préparer, il confirme son
+          identité par son second facteur d&apos;authentification ou par une
+          connexion récente avec son mot de passe.
         </p>
         <p>
           <b className="font-semibold">Conservation.</b> Les données du Client
@@ -1022,8 +1039,9 @@ export default async function PageConditions() {
           que son nom est saisi. Tant qu'il manque, la phrase dit qu'il sera désigné aux mentions légales dès l'adhésion —
           jamais que la vente est fermée. Saisir le médiateur change le texte publié : l'archive refusera alors la même
           version, et une version technique sera publiée à l'adhésion (plan, lot 3).
-          Relecture du lot 3 : la parenthèse « Faire une réclamation » du plan n'est pas publiée, car cette nature de
-          retour (lot 1B, R05) n'existe pas dans NATURES_RETOUR (lib/retours.ts) ; elle reviendra avec elle. */}
+          Intégration des textes du 24/10 : la parenthèse « Faire une réclamation » du plan revient, la nature
+          « reclamation » étant livrée (lib/retours.ts, NATURES_RETOUR ; sa clôture renvoie au médiateur,
+          actions/retours.ts). */}
       <Article titre="17. Droit applicable et litiges">
         <p>
           Les présentes conditions sont soumises au{" "}
@@ -1031,7 +1049,7 @@ export default async function PageConditions() {
           parties recherchent une solution amiable ; la réclamation
           s&apos;adresse à{" "}
           <Fait valeur={EDITEUR.email} quoi="adresse de contact" /> ou se fait
-          depuis la page « Aide et retours ».
+          depuis la page « Aide et retours » (« Faire une réclamation »).
         </p>
         {EDITEUR.mediateurNom ? (
           <p>
@@ -1168,17 +1186,18 @@ export default async function PageConditions() {
             CNIL.
           </li>
           {/* La durée des sauvegardes Supabase n'a pas été relevée dans la console : pas de « quatre-vingt-dix jours »
-              (plan du 23/10, R34). Relecture du lot 3 : tant que l'export complet (R49) n'est pas en production,
-              l'article 9 ne restitue que le journal de gestion et les documents ; le reste des données (fiches,
-              incidents, messages, rendez-vous) est restitué par une copie transmise sur demande (RGPD, art. 28.3 g). */}
+              (plan du 23/10, R34). Intégration des textes du 24/10 : l'export complet (R49) est en production ; la
+              restitution passe par lui, et la copie sur demande reste pour ce qu'un export ne couvrirait pas
+              (RGPD, art. 28.3 g). */}
           <li>
             <b className="font-semibold">Fin du traitement.</b> Lorsque le
             Client demande la suppression de son compte, ou à la fin du
             contrat, et au choix du Client, l&apos;Éditeur restitue les données
             puis les supprime, ou les supprime directement, ainsi que les copies
             existantes, sauf obligation légale de conservation. La restitution
-            se fait par les exports et téléchargements de l&apos;article 9 et,
-            pour les données qu&apos;ils ne couvrent pas, par une copie que
+            se fait par les exports, l&apos;archive complète et les
+            téléchargements de l&apos;article 9 et, pour les données qu&apos;ils
+            ne couvriraient pas, par une copie que
             l&apos;Éditeur transmet sur demande écrite du Client, dans un format
             lisible par machine. Les copies de sauvegarde sont effacées au terme
             de leur cycle de conservation.

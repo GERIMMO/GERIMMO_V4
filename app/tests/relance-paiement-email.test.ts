@@ -54,12 +54,14 @@ describe("Chaque palier dit autre chose", () => {
 });
 
 describe("Plan du 23/10 : mise en demeure, premier prélèvement, envois interrompus (R06, R23, R26)", () => {
-  it("le courrier du jour de l'échec dit la date de résiliation possible et renvoie à l'article 15 des conditions générales", () => {
+  it("le courrier du jour de l'échec dit la date de résiliation possible et renvoie à l'article 15.4 des conditions générales (V1)", () => {
     const c = corpsRelance({ ...relance(0, 15), resiliableLe: "2026-10-12" });
     expect(c).toContain(
-      "Sans règlement au 12 octobre 2026, l'abonnement pourra être résilié en application de l'article 15\n        des conditions générales ; vos données resteront consultables et exportables."
+      "Sans règlement au 12 octobre 2026, l'abonnement pourra être résilié en application de l'article 15.4\n        des conditions générales ; vos données resteront consultables et exportables."
     );
-    expect(c).not.toMatch(/15\.4|8\.10/);
+    // Intégration des textes du 24/10 : la V1 numérote « 15.4 » la résiliation par l'Éditeur ; jamais 8.10 ici.
+    expect(c).toContain("article 15.4");
+    expect(c).not.toMatch(/8\.10/);
     // Les autres paliers ne la répètent pas.
     expect(corpsRelance({ ...relance(1, 8), resiliableLe: "2026-10-12" })).not.toContain("pourra être résilié");
   });
@@ -71,7 +73,7 @@ describe("Plan du 23/10 : mise en demeure, premier prélèvement, envois interro
     expect(c).toContain(`Le premier prélèvement de votre abonnement (<strong>${euros(1797)} par mois</strong>) n'a pas abouti.`);
     expect(c).toContain("la saisie de nouvelles données et les envois automatiques à vos locataires sont suspendus depuis le 12 septembre 2026");
     expect(c).toContain("Dès que le paiement aboutit, la saisie et les envois reprennent pour l'avenir.");
-    expect(c).toContain("Sans règlement au 12 octobre 2026, l'abonnement pourra être résilié en application de l'article 15\n        des conditions générales.");
+    expect(c).toContain("Sans règlement au 12 octobre 2026, l'abonnement pourra être résilié en application de l'article 15.4\n        des conditions générales.");
     // Jamais « reste ouvert jusqu'au » : ce compte est gelé dès l'échec.
     expect(c).not.toContain("reste entièrement ouvert");
   });
@@ -91,7 +93,7 @@ describe("Plan du 23/10 : mise en demeure, premier prélèvement, envois interro
   it("le courrier de résiliation pour impayé : date, article 15, sort de la facture, données conservées", () => {
     const annulee = courrierResiliationImpaye({ organisation: "Cabinet Martin", resilieLe: "2026-11-12", factures: "annulees", lien: "https://gerimmo.app/espace/abc/abonnement", apresMiseEnDemeure: true });
     const texte = annulee.html.replace(/\s+/g, " ");
-    expect(texte).toContain("Faute de règlement, votre abonnement Gerimmo est résilié depuis le 12 novembre 2026, en application de l'article 15 des conditions générales. La facture restée impayée est annulée.");
+    expect(texte).toContain("Faute de règlement, votre abonnement Gerimmo est résilié depuis le 12 novembre 2026, en application de l'article 15.4 des conditions générales. La facture restée impayée est annulée.");
     expect(texte).toContain("Vos données restent consultables et exportables en lecture seule ; rien n'est supprimé du fait de cette résiliation. Pour reprendre la saisie, souscrivez de nouveau depuis « Mon abonnement ».");
     expect(courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-12", factures: "aucune", lien: null, apresMiseEnDemeure: true }).html).not.toContain("facture");
     expect(courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-12", factures: "a_annuler", lien: null, apresMiseEnDemeure: true }).html).toContain("sera annulée : vous n'avez rien à régler");
@@ -102,7 +104,7 @@ describe("Plan du 23/10 : mise en demeure, premier prélèvement, envois interro
     expect(courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-12-01", factures: "aucune", lien: null, apresMiseEnDemeure: true }).html).toContain("1er décembre 2026");
   });
 
-  it("relecture adverse du 24/10 (I1) : avant trente jours de mise en demeure, les faits sans l'article 15", () => {
+  it("relecture adverse du 24/10 (I1) : avant trente jours de mise en demeure, les faits sans l'article 15.4", () => {
     const t = courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-03", factures: "annulees", lien: null, apresMiseEnDemeure: false }).html.replace(/\s+/g, " ");
     expect(t).toContain("Faute de règlement, votre abonnement Gerimmo a été résilié le 3 novembre 2026. La facture restée impayée est annulée.");
     expect(t).not.toContain("article 15");

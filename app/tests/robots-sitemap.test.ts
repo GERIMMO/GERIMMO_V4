@@ -96,6 +96,7 @@ describe("sitemap.xml", () => {
       "https://www.gerimmo.app/outils/rentabilite-locative",
       "https://www.gerimmo.app/agences",
       "https://www.gerimmo.app/conditions",
+      "https://www.gerimmo.app/conditions/artisans",
       "https://www.gerimmo.app/mentions-legales",
       "https://www.gerimmo.app/confidentialite",
     ]);

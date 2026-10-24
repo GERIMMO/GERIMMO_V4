@@ -237,7 +237,7 @@ export default async function PageConditionsArtisans() {
           <Link href="/mentions-legales" className="lien-texte">
             mentions légales
           </Link>{" "}
-          ou se font depuis « Aide et retours ». Les présentes conditions sont
+          ou se font depuis « Aide et retours » (« Faire une réclamation »). Les présentes conditions sont
           soumises
           au <b className="font-semibold">droit français</b>.
         </p>

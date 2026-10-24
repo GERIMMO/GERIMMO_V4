@@ -87,10 +87,14 @@ export function FormulaireDevisVitrine() {
         <button type="submit" disabled={enCours} className="btn-or">
           {enCours ? <><Spinner className="size-3" /> Envoi…</> : "Envoyer mon message"}
         </button>
+        {/* Intégration des textes du 24/10 (finition conservation, M5) : la demande vit 24 mois (contact:devis) ; le
+            suivi commercial d'un professionnel né de sa demande, trois ans après son dernier contact (contact:prospect).
+            « uniquement à vous répondre » n'était donc plus exact pour un professionnel. */}
         <p className="mt-2 text-[13px] text-[var(--sur-encre)]/80">
-          Ces informations servent uniquement à vous répondre au sujet de
-          votre message — jamais cédées ni revendues, supprimées 24 mois après
-          le dernier traitement de votre demande.{" "}
+          Ces informations servent à vous répondre au sujet de votre message —
+          jamais cédées ni revendues. Elles sont conservées 24 mois après
+          le dernier traitement de votre demande ; 3 ans après le dernier
+          contact pour le suivi commercial des professionnels.{" "}
           <a href="/confidentialite" className="underline underline-offset-2">
             En savoir plus
           </a>

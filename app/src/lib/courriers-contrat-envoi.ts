@@ -350,7 +350,7 @@ function plusJours(jour: string, n: number): string {
   return new Date(Date.UTC(a, m - 1, j + n)).toISOString().slice(0, 10);
 }
 
-/** Délai de la mise en demeure avant une résiliation par l'Éditeur (article 15 des conditions en vigueur : trente jours). */
+/** Délai de la mise en demeure avant une résiliation par l'Éditeur (article 15.4 des conditions en vigueur : trente jours). */
 export const DELAI_MISE_EN_DEMEURE_JOURS = 30;
 
 /**
@@ -358,7 +358,7 @@ export const DELAI_MISE_EN_DEMEURE_JOURS = 30;
  * n'avait demandé aucune résiliation (lu en base AVANT l'événement) : la facture restée ouverte est annulée, puis le
  * courrier part, une fois.
  *
- * Relecture adverse du 24/10 (I1) : l'article 15 n'est cité que si la mise en demeure est restée sans effet trente
+ * Relecture adverse du 24/10 (I1) : l'article 15.4 n'est cité que si la mise en demeure est restée sans effet trente
  * jours (résiliation, jour de Paris, au plus tôt à J+30 du défaut). Plus tôt — réglage Stripe qui résilie de lui-même
  * avant le terme annoncé par la mise en demeure —, le courrier dit les faits sans invoquer l'article, la facture est
  * annulée de même, et le relais est alerté pour corriger le réglage.
@@ -392,7 +392,7 @@ export async function notifierResiliationImpaye(
         sujet: "Gerimmo — résiliation pour impayé avant la fin de la mise en demeure",
         lignes: [
           `La souscription ${p.subscription} (organisation ${p.orgId}) a été résiliée par Stripe le ${resilieLe}, avant le ${resiliableLe ?? "terme"} annoncé par la mise en demeure (défaut depuis le ${p.enDefautDepuis ?? "?"}).`,
-          "Le courrier envoyé au client ne cite pas l'article 15 et la facture restée ouverte est annulée. Vérifiez le réglage Stripe « statut après échec des relances » (« marquer l'abonnement comme impayé ») et voyez s'il faut proposer au client une nouvelle souscription.",
+          "Le courrier envoyé au client ne cite pas l'article 15.4 et la facture restée ouverte est annulée. Vérifiez le réglage Stripe « statut après échec des relances » (« marquer l'abonnement comme impayé ») et voyez s'il faut proposer au client une nouvelle souscription.",
         ],
         cle: `resiliation-impaye-avant-${p.subscription}`,
         details: { organisation: p.orgId, souscription: p.subscription, resilie_le: resilieLe, resiliable_le: resiliableLe },

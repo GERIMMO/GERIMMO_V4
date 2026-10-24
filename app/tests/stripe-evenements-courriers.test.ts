@@ -287,10 +287,10 @@ describe("R07 — la résiliation pour impayé", () => {
     expect(alerte.html).not.toContain("titulaire@example.invalid");
   });
 
-  it("I1 : à J+30 ou après, l'article 15 est cité (la mise en demeure est restée sans effet trente jours)", async () => {
+  it("I1 : à J+30 ou après, l'article 15.4 est cité (la mise en demeure est restée sans effet trente jours)", async () => {
     const s = souscription({ status: "canceled", ended_at: Date.parse("2026-11-03T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
     await traiterEvenementStripe(banc(ENDEFAUT).supabase as never, stripeFictif(s, ["in_1"]).stripe, evenement("customer.subscription.deleted", s));
-    expect(m.envois[0].html).toContain("est résilié depuis le 3 novembre 2026, en application de l'article 15 des conditions générales.");
+    expect(m.envois[0].html).toContain("est résilié depuis le 3 novembre 2026, en application de l'article 15.4 des conditions générales.");
   });
 
   it("seulement dans le cas prévu : pas sans défaut, pas après une résiliation demandée, pas pour une rétractation, pas deux fois", async () => {

@@ -21,6 +21,8 @@ import {
   PRESTATAIRES,
   sousTraitantsClient,
 } from "../src/lib/editeur";
+import { NATURES_RETOUR } from "../src/lib/retours";
+import { RAPPEL_COMPLEMENT_EDL_ENTREE, RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT } from "../src/lib/textes-signature-actes";
 
 const lecture = vi.hoisted(() => ({ valeurs: {} as Record<string, string | null> }));
 vi.mock("@/lib/editeur-serveur", () => ({
@@ -65,7 +67,7 @@ const article = (page: string, titre: string, suivant: string) => {
 };
 
 describe("V1 des conditions clients : articles clés", () => {
-  it("version et date provisoires du 24 octobre 2026, affichées en tête et à l'article 16", async () => {
+  it("version et date du 24 octobre 2026, affichées en tête et à l'article 16", async () => {
     expect(CONDITIONS_VERSION).toBe("2026-10-24");
     expect(CONDITIONS_DATE).toBe("24 octobre 2026");
     const page = await conditions();
@@ -93,7 +95,8 @@ describe("V1 des conditions clients : articles clés", () => {
       expect(page, attendu).toContain(attendu);
     }
     expect(page).not.toContain("Souscrit le :");
-    expect(html).toContain('id="retractation"');
+    // Intégration du 24/10 : pas d'ancre `id` dans le texte contractuel (liste blanche du balisage archivé, M1).
+    expect(html).not.toContain('id="retractation"');
   });
 
   it("8.10 : rétractation ouverte à toutes les formules, remboursement intégral, nouveau délai au passage à l'annuel", async () => {
@@ -159,8 +162,12 @@ describe("V1 des conditions clients : articles clés", () => {
     expect(art9).toContain("deux mois, puis quinze jours avant cette suppression");
     expect(page).not.toMatch(/factures[^.,;]*dix ans/);
     expect(page).toContain("L'Éditeur conserve la preuve de l'acceptation et de l'abonnement pendant dix ans après la fin du dernier abonnement payé");
-    // L'archive complète (export R49) n'est pas encore en production : rien ne la promet.
-    expect(art9).not.toContain("archive complète");
+    // Intégration des textes du 24/10 : l'archive complète (export R49) est en production depuis le 24/10 (PR #246) :
+    // l'article 9 la cite, réservée au titulaire qui confirme son identité.
+    expect(art9).toContain("l'archive complète de son espace, depuis la page « Mes données personnelles »");
+    expect(art9).toContain("par son second facteur d'authentification ou par une connexion récente avec son mot de passe");
+    expect(art9).toContain("une connexion d'un utilisateur du compte avant l'échéance l'annule");
+    expect(art9).not.toContain("demande écrite avant l'échéance");
   });
 });
 
@@ -203,7 +210,7 @@ describe("V1, article 4.7 : la caution et l'état des lieux signent dans Gerimmo
 
   it("la liste publique de Zoho Sign et le champ de la mention suivent la décision", () => {
     const zoho = PRESTATAIRES.find((p) => p.cle === "zohoSign");
-    expect(zoho?.role).toContain("des actes de cautionnement, des états des lieux");
+    expect(zoho?.role).toContain("actes de cautionnement et états des lieux");
     const source = readFileSync(resolve(__dirname, "../src/lib/zoho-sign.ts"), "utf8");
     expect(source).toContain('field_label:"Saisissez ou collez le texte du Message privé de votre e-mail"');
     expect(source).not.toContain('field_label:"Collez');
@@ -214,9 +221,9 @@ describe("V1, article 17 : le médiateur, non bloquant (décision du 23/10)", ()
   it("sans médiateur saisi : la variante du plan ; la vente n'est jamais dite fermée", async () => {
     const art = article(await conditions(), "17. Droit applicable et litiges", "Annexe 1 —");
     expect(art).toContain("peut recourir gratuitement au médiateur de la consommation, qui sera désigné aux mentions légales dès l'adhésion de l'Éditeur.");
-    // La nature de retour « Faire une réclamation » (lot 1B) n'existe pas encore : le texte ne la promet pas.
-    expect(art).toContain("ou se fait depuis la page « Aide et retours ».");
-    expect(art).not.toContain("Faire une réclamation");
+    // Intégration du 24/10 : la nature de retour « Faire une réclamation » (lot 1B) est livrée (lib/retours.ts).
+    expect(art).toContain("ou se fait depuis la page « Aide et retours » (« Faire une réclamation »).");
+    expect(NATURES_RETOUR.reclamation).toBe("Faire une réclamation");
     expect(art).not.toMatch(/ferm/i);
   });
 
@@ -308,10 +315,10 @@ describe("V1 : cohérence entre les articles (relecture du lot 3)", () => {
     );
   });
 
-  it("fin du traitement : l'export ne couvre pas tout, le reste est restitué par une copie sur demande (RGPD, art. 28.3 g)", async () => {
+  it("fin du traitement : exports et archive complète, puis copie sur demande pour ce qu'ils ne couvriraient pas (RGPD, art. 28.3 g)", async () => {
     const annexe = article(await conditions(), "Annexe 1 —", "Annexe 2 —");
     expect(annexe).toContain(
-      "La restitution se fait par les exports et téléchargements de l'article 9 et, pour les données qu'ils ne couvrent pas, par une copie que l'Éditeur transmet sur demande écrite du Client, dans un format lisible par machine."
+      "La restitution se fait par les exports, l'archive complète et les téléchargements de l'article 9 et, pour les données qu'ils ne couvriraient pas, par une copie que l'Éditeur transmet sur demande écrite du Client, dans un format lisible par machine."
     );
     expect(annexe).not.toContain("(export de l'article 9)");
     const annexeArtisan = article(await artisans(), "Annexe — Traitement de données pour le compte de l'Artisan", "Versions archivées");
@@ -335,23 +342,37 @@ describe("V1 : cohérence entre les articles (relecture du lot 3)", () => {
     expect(page).toContain("Aucune pénalité ni aucuns frais de relance ne sont facturés.");
     expect(page).not.toMatch(/aucun frais/i);
     expect(page).not.toContain("part du prix payée");
-    expect(await artisans()).toContain("ou se font depuis « Aide et retours »");
+    expect(await artisans()).toContain("ou se font depuis « Aide et retours » (« Faire une réclamation »)");
   });
 
   it("état des lieux : le modèle généré rattache aussi les deux droits à l'état des lieux d'entrée", () => {
     const modele = readFileSync(resolve(__dirname, "../src/lib/documents/modeles/edl.ts"), "utf8");
+    // Le modèle lit la mention dans lib/textes-signature-actes.ts (signature du 24/10), réservée à l'entrée.
     const mention = modele.slice(modele.indexOf("entree\n        ?"), modele.indexOf(": \"Le dépôt de garantie est restitué"));
-    expect(mention).toContain("dans les dix jours");
-    expect(mention).toContain("pendant le premier mois de la période de chauffe");
+    expect(mention).toContain("${RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT}");
+    expect(RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT).toContain("dans les dix jours");
+    expect(RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT).toContain("pendant le premier mois de la période de chauffe");
   });
 
-  // À trancher après lecture de l'article 3-2 de la loi du 6 juillet 1989 sur Légifrance : la page dit « dix jours qui
-  // suivent son établissement » (décision du 23/10), le modèle « dix jours de sa signature » (lib/documents/modeles/edl.ts).
-  it.todo("état des lieux : un seul mot, « établissement » ou « signature », dans la page et dans le modèle");
+  // Choix délégué n° 8 du 24/10 (journal) : « dans les dix jours qui suivent son établissement » partout, à recomparer sur
+  // Légifrance (loi du 6 juillet 1989, art. 3-2 ; source non ouverte le 23/10/2026).
+  it("état des lieux : la même formule dans la page, le modèle, l'invitation à signer et la notice", async () => {
+    const formule = "dans les dix jours qui suivent son établissement";
+    const art = article(await conditions(), "4.7 — Signature électronique.", "4.8 —");
+    expect(art).toContain(formule);
+    expect(RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT).toContain(formule);
+    expect(RAPPEL_COMPLEMENT_EDL_ENTREE).toContain(formule);
+    const notice = readFileSync(resolve(__dirname, "../src/lib/documents/modeles/notice.ts"), "utf8");
+    expect(notice).toContain(formule);
+    for (const source of [art, RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT, RAPPEL_COMPLEMENT_EDL_ENTREE, notice]) {
+      expect(source).not.toContain("suivant son établissement");
+      expect(source).not.toContain("de sa signature");
+    }
+  });
 });
 
 describe("conditions de l'espace artisan (R10)", () => {
-  it("la page s'affiche, datée de la même version provisoire, avec les articles A1 à A14 et son annexe", async () => {
+  it("la page s'affiche, datée de la même version que la V1, avec les articles A1 à A14 et son annexe", async () => {
     expect(CONDITIONS_ARTISANS_VERSION).toBe("2026-10-24");
     expect(CONDITIONS_ARTISANS_DATE).toBe("24 octobre 2026");
     const page = await artisans();

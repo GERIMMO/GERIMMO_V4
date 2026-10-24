@@ -80,9 +80,12 @@ describe("/confidentialite (lot 4)", () => {
   it("factures de Gerimmo six ans au moins (L. 102 B), jamais dix ; preuve du contrat dix ans après le dernier abonnement payé", async () => {
     const page = await confidentialite();
     expect(page).toContain("Au moins 6 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B), chez notre prestataire de paiement, selon sa propre politique de conservation");
-    // La copie jointe à l'archive d'un compte fermé suit six ans (archives_comptes, migration du socle).
-    expect(page).toContain("la copie jointe à la preuve du contrat d’un compte fermé est supprimée six ans après l’émission");
-    expect(page).toContain("avec la copie de vos factures, six ans après leur émission");
+    // La copie jointe à l'archive d'un compte fermé est retirée six ans après la fin de l'exercice de la facture, à
+    // défaut après la fin du dernier abonnement payé (echeance_facture_archivee, migration 20261024140000).
+    expect(page).toContain("la copie jointe à la preuve du contrat d’un compte fermé est supprimée six ans après la fin de l’exercice de la facture");
+    expect(page).toContain("Émission ; pour la copie jointe à la preuve du contrat, fin de l’exercice de la facture (à défaut, fin du dernier abonnement payé)");
+    expect(page).toContain("avec la copie de vos factures, six ans après la fin de leur exercice");
+    expect(page).toContain("où votre fiche de client est supprimée au terme de la conservation de vos factures");
     expect(page).toContain("les factures d'abonnement, au moins six ans, chez notre prestataire de paiement");
     expect(page).not.toMatch(/factures[^.;]{0,80}dix ans/i);
     expect(page).not.toContain("10 ans (obligation légale)");

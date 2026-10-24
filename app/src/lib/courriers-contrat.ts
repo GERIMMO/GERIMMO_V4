@@ -9,10 +9,11 @@
 // elles sont saisies ; sinon la phrase dit exactement « Médiateur de la consommation : adhésion en cours ; ses
 // coordonnées figureront dans les mentions légales dès qu'elle sera effective. »
 //
-// Numéros d'articles : seuls ceux qui existent DÉJÀ avec ce sens dans la version en vigueur des conditions
-// (2026-09-30) sont cités — l'article 8.10 (« Rétractation », avec son formulaire) et l'article 15 (« Suspension et
-// résiliation ») ; un sous-numéro qui n'existe pas encore (15.4) ne l'est pas (relecture adverse du 24/10, M3). Le
-// formulaire de rétractation reproduit est celui de la version en vigueur, acceptée par le client.
+// Numéros d'articles : seuls ceux qui existent avec ce sens dans la version en vigueur des conditions sont cités
+// (relecture adverse du 24/10, M3) — l'article 8.10 (« Rétractation », avec son formulaire) et, depuis la V1 du
+// 24/10/2026, l'article 15.4 (« Résiliation par l'Éditeur », lib/relance-paiement-email.ts). Le formulaire de
+// rétractation reproduit est celui de la version en vigueur : celui de la V1 (« Commandé le : », intégration des
+// textes du 24/10 ; la version du 30/09 écrivait « Souscrit le : »).
 //
 // Module pur (gabarits) : tests/courriers-contrat.test.ts. Les envois vivent dans lib/courriers-contrat-envoi.ts.
 
@@ -57,7 +58,7 @@ export function identiteEditeurEnLigne(editeur: Faits): string {
 }
 
 /**
- * Le formulaire de rétractation des conditions générales en vigueur (version du 30/09/2026), mot pour mot, avec
+ * Le formulaire de rétractation des conditions générales en vigueur (V1 du 24/10/2026, article 8.10), mot pour mot, avec
  * l'identité de l'éditeur. Les faits non saisis restent signalés comme tels, jamais remplacés.
  */
 export function formulaireRetractation(editeur: Faits): string[] {
@@ -66,7 +67,7 @@ export function formulaireRetractation(editeur: Faits): string[] {
     "(Veuillez compléter et renvoyer le présent formulaire uniquement si vous souhaitez vous rétracter du contrat.)",
     `À l'attention de ${fait(editeur.denomination, "dénomination de l'éditeur")}, ${fait(editeur.siege, "adresse du siège")}, ${fait(editeur.email, "adresse de contact")} :`,
     "Je vous notifie par la présente ma rétractation du contrat portant sur la prestation de services ci-dessous : abonnement Gerimmo (formule et organisation concernées).",
-    "Souscrit le :",
+    "Commandé le :",
     "Nom du consommateur :",
     "Adresse du consommateur :",
     "Signature du consommateur (uniquement en cas de notification sur papier) :",

@@ -23,6 +23,8 @@ const PAGES: { chemin: string; frequence: "daily" | "weekly" | "monthly"; priori
   // La liste d'attente des agences (20/10/2026).
   { chemin: "/agences", frequence: "monthly", priorite: 0.6 },
   { chemin: "/conditions", frequence: "monthly", priorite: 0.3 },
+  // Les conditions de l'espace artisan, publiées avec la V1 des conditions clients (24/10/2026).
+  { chemin: "/conditions/artisans", frequence: "monthly", priorite: 0.3 },
   { chemin: "/mentions-legales", frequence: "monthly", priorite: 0.3 },
   { chemin: "/confidentialite", frequence: "monthly", priorite: 0.3 },
 ];

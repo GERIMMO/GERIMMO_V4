@@ -62,8 +62,8 @@ export default async function PageConfidentialite() {
       incomplet={indisponible || confidentialiteIncomplete(EDITEUR) || prestatairesIncomplets(prestataires)}
       courriel={contact}
     >
-      {/* La page paraît avec la V1 des conditions : même date, PROVISOIRE jusqu'à la publication (lib/editeur.ts). À la
-          prochaine version des conditions qui ne touche pas cette page, écrire ici sa propre date en toutes lettres. */}
+      {/* La page paraît avec la V1 des conditions : même date (lib/editeur.ts). À la prochaine version des conditions qui
+          ne touche pas cette page, écrire ici sa propre date en toutes lettres. */}
       <p className="text-xs text-muted-foreground">Dernière mise à jour : {CONDITIONS_DATE}.</p>
       <Article titre="Votre interlocuteur">
         <p>
@@ -606,7 +606,7 @@ export default async function PageConfidentialite() {
           </tr>
           <tr>
             <td>Journal d’audit (actions sensibles)</td>
-            <td>1 an ; 3 ans pour les accès de la supervision et les preuves d’effacement</td>
+            <td>1 an ; 3 ans pour les accès et effacements ; 10 ans pour les preuves du contrat</td>
             <td>Action</td>
           </tr>
         </TableauDurees>
@@ -645,13 +645,13 @@ export default async function PageConfidentialite() {
           </tr>
           <tr>
             <td>Preuve d’une rétractation</td>
-            <td>10 ans, puis suppression</td>
+            <td>10 ans, puis suppression, même après la fermeture du compte</td>
             <td>Date de la rétractation</td>
           </tr>
           <tr>
             <td>Factures d’abonnement émises par Gerimmo</td>
-            <td>Au moins 6 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B), chez notre prestataire de paiement, selon sa propre politique de conservation ; la copie jointe à la preuve du contrat d’un compte fermé est supprimée six ans après l’émission</td>
-            <td>Émission</td>
+            <td>Au moins 6 ans (obligation fiscale : livre des procédures fiscales, art. L. 102 B), chez notre prestataire de paiement, selon sa propre politique de conservation ; la copie jointe à la preuve du contrat d’un compte fermé est supprimée six ans après la fin de l’exercice de la facture, puis suppression</td>
+            <td>Émission ; pour la copie jointe à la preuve du contrat, fin de l’exercice de la facture (à défaut, fin du dernier abonnement payé)</td>
           </tr>
           <tr>
             <td>Coordonnées bancaires (IBAN) du bailleur imprimées sur ses baux</td>
@@ -688,7 +688,9 @@ export default async function PageConfidentialite() {
           supprimé du seul fait de l&apos;arrêt, en dehors des durées propres aux
           pièces listées ci-dessus ; après vingt-quatre mois sans connexion ni
           abonnement, le compte est fermé après deux avertissements. Vous pouvez
-          demander la suppression de votre compte à tout moment, après avoir exporté ce que vous souhaitez garder.
+          demander la suppression de votre compte à tout moment, après avoir exporté ce que vous souhaitez garder
+          (le titulaire d&apos;un espace en obtient l&apos;archive complète depuis la page « Mes données
+          personnelles »).
         </p>
         {/* Plan du 23/10, lot 4 (constat R15), adapté à la décision « non commerçant » du 23/10 : factures six ans.
             « demander la fermeture » : le bouton en libre-service vient au lot 5 ; d'ici là, la demande faite depuis
@@ -697,7 +699,12 @@ export default async function PageConfidentialite() {
             Relecture du 23/10 : les dossiers ne partent que si le compte est le seul membre de l'espace (lot 1E : sinon,
             retrait de la seule adhésion) ; la liste « Nous conservons seulement » reprend tout ce qui survit à la
             fermeture dans le tableau (rétractation, effacements à rejouer, empreinte d'opposition) ; la copie des
-            factures jointe à l'archive suit les six ans (archives_comptes, migration du socle). */}
+            factures jointe à l'archive suit les six ans (archives_comptes, migration du socle).
+            Intégration des textes du 24/10 (code livré, PR #246) : la copie des factures de l'archive est retirée six ans
+            après la fin de l'exercice de la facture, à défaut après la fin du dernier abonnement payé
+            (echeance_facture_archivee, règle archive:facture) ; la déclaration de rétractation survit à la fermeture,
+            détachée de l'espace (retractations_abonnement.organization_id en « set null », règle contrat:retractation) ;
+            le client Stripe est supprimé au terme de ses factures (clients_stripe_au_terme). */}
         <p>
           <b className="font-semibold">Fermeture de votre compte.</b> Vous pouvez
           demander la fermeture de votre compte depuis la page{" "}
@@ -719,9 +726,11 @@ export default async function PageConfidentialite() {
           votre contrat (texte et version des conditions acceptées, dates,
           identifiant de facturation et adresse électronique), dix ans après la
           fin de votre dernier abonnement payé, avec la copie de vos factures,
-          six ans après leur émission ; la preuve d&apos;une éventuelle
-          rétractation, dix ans ; les factures d&apos;abonnement, au moins six
-          ans, chez notre prestataire de paiement ; la trace de votre demande et
+          six ans après la fin de leur exercice ; la preuve d&apos;une
+          éventuelle rétractation, dix ans après la rétractation, même une fois
+          le compte fermé ; les factures d&apos;abonnement, au moins six ans,
+          chez notre prestataire de paiement, où votre fiche de client est
+          supprimée au terme de la conservation de vos factures ; la trace de votre demande et
           de son traitement, trois ans ; la liste des effacements à rejouer après
           la restauration d&apos;une sauvegarde, quatre mois ; si vous vous êtes
           opposé à la prospection, l&apos;empreinte de votre adresse, trois ans ;

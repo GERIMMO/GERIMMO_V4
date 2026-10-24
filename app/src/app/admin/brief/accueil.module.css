@@ -24,7 +24,7 @@
 .teams { grid-column: 1; grid-row: 2; min-width: 0; }
 .workspace[data-vue="decisions"], .workspace[data-vue="equipes"] { grid-template-columns: minmax(0,1fr); }
 .workspace[data-vue="equipes"] .teams { grid-row: 1; }
-.section { padding: 22px 24px; background: linear-gradient(115deg,#fbf6e9,#fffdf8); border: 1px solid #e6d9bb; border-radius: 12px; scroll-margin-top: 100px; }
+.section { padding: 22px 24px; background: #f6f8fb; border: 1px solid #dce3eb; border-radius: 12px; scroll-margin-top: 100px; }
 .section h2, .sectionHeader h2 { font: 26px/1.25 Georgia,serif; letter-spacing: -.025em; }
 .section :global(.entete-carte) { margin-bottom: 0; gap: 10px; flex-wrap: wrap; }
 .sectionDescription { margin-top: 6px; margin-bottom: 18px; color: var(--texte-secondaire); font-size: 12px; line-height: 1.6; }

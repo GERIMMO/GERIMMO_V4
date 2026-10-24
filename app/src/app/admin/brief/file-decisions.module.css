@@ -1,0 +1,46 @@
+.overview, .inbox { display: grid; gap: 18px; min-width: 0; }
+.groups { display: grid; gap: 10px; }
+.group { display: flex; align-items: center; gap: 12px; padding: 16px; border: 1px solid #dce3eb; border-radius: 10px; background: #fff; color: var(--encre); min-width: 0; }
+.group:hover { border-color: #657d96; }
+.group[data-tone="incidents"] { --accent: #9e473b; --tint: #fbede9; }
+.group[data-tone="accords"] { --accent: #366856; --tint: #eaf4ee; }
+.group[data-tone="contenus"] { --accent: #64538e; --tint: #f1eef8; }
+.icon { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; background: var(--tint); color: var(--accent); border-radius: 10px; }
+.groupText { flex: 1; min-width: 0; }
+.groupText strong { display: block; font-size: 14px; }
+.groupText small { display: block; margin-top: 4px; font-size: 12px; color: var(--texte-secondaire); }
+.count { padding: 4px 9px; font-size: 15px; font-weight: 600; border-radius: 6px; color: var(--accent); background: var(--tint); }
+.group > svg, .priorityLink > svg { flex-shrink: 0; }
+.priorities h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.priorities li + li { border-top: 1px solid var(--filet); }
+.priorityLink { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding-block: 13px; text-align: left; font-size: 13px; color: var(--encre); }
+.priorityLink span { min-width: 0; overflow-wrap: anywhere; }
+.priorityLink:hover span { text-decoration: underline; text-underline-offset: 3px; }
+.more { display: inline-flex; align-items: center; gap: 8px; justify-self: start; color: var(--marque); font-size: 13px; min-height: 36px; }
+.more:hover { text-decoration: underline; }
+.calm { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #366856; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filters button { display: flex; gap: 8px; align-items: center; min-height: 44px; padding: 9px 12px; border: 1px solid #dce3eb; border-radius: 8px; background: #fff; color: var(--encre); font-size: 13px; cursor: pointer; }
+.filters button[aria-pressed="true"] { background: #243c55; color: #fff; border-color: #243c55; }
+.filters button span { border-radius: 4px; padding: 1px 5px; background: #7c91a51c; font-size: 12px; }
+.filters button[aria-pressed="true"] span { background: #ffffff25; }
+.search { display: grid; gap: 7px; font-size: 13px; }
+.search input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #bbc7d3; background: white; color: var(--encre); border-radius: 8px; }
+.result { font-size: 12px; color: var(--texte-secondaire); }
+.list { display: grid; gap: 10px; min-width: 0; }
+.list > li { min-width: 0; }
+.row, .signal { border: 1px solid #dce3eb; border-radius: 9px; background: #fff; }
+.row summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; list-style: none; padding: 17px; cursor: pointer; color: var(--encre); font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.row summary::-webkit-details-marker { display: none; }
+.row summary > svg { flex-shrink: 0; }
+.row[open] summary { border-bottom: 1px solid #e5e9ee; }
+.row[open] summary > svg { transform: rotate(180deg); }
+.detail { padding: 16px 17px; font-size: 13px; }
+.detail > p { margin-bottom: 12px; color: var(--texte-secondaire); }
+.signal { padding: 0 17px 15px; }
+.signal p { font-size: 12px; color: var(--texte-secondaire); }
+.pagination { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
+.pagination button { min-height: 44px; padding: 8px 12px; border: 1px solid #c4cfda; border-radius: 7px; background: #fff; cursor: pointer; }
+.pagination button:disabled { opacity: .45; cursor: default; }
+.overview a:focus-visible, .inbox button:focus-visible, .inbox a:focus-visible, .inbox input:focus-visible, .row summary:focus-visible { outline: 3px solid #597da0; outline-offset: 3px; }
+@media(max-width:600px) { .group { padding: 13px 10px; gap: 9px; } .groupText strong { font-size: 13px; } .groupText small { font-size: 11px; } .group > svg { display: none; } .count { font-size: 13px; } .row summary { padding: 14px; } .filters button { padding: 8px 10px; font-size: 12px; } }

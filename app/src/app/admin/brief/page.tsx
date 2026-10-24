@@ -12,15 +12,14 @@ import { EQUIPES, estEquipe, missionsDeLEquipe, type Equipe } from "@/lib/missio
 import { jourDuPoint } from "@/lib/point-du-matin";
 import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
 import { BoutonBriefIA } from "./bouton-ia";
-import { OuvrirAlertes } from "./ouvrir-alertes";
-import { DecisionMatin } from "./decision-matin";
+import { FileDecisions } from "./file-decisions";
 import { PreparerPoint } from "./preparer-point";
 import { dateLongue, lirePoints, type PointLu } from "./lecture";
-import { ArrowRight, CalendarDays, ClipboardCheck, TriangleAlert, FileText, Users, PenLine, Compass, Building2, Wallet, Wrench, ShieldCheck, Megaphone, Map as Carte, HeartPulse, CheckCheck, History, ChevronDown, Settings2, ArrowUpRight } from "lucide-react";
+import { ArrowRight, CalendarDays, ClipboardCheck, FileText, Users, PenLine, Compass, Building2, Wallet, Wrench, ShieldCheck, Megaphone, Map as Carte, HeartPulse, History, ChevronDown, Settings2, ArrowUpRight } from "lucide-react";
 import styles from "./accueil.module.css";
 
 // Trois vues partageant les mêmes sources et actions de supervision.
-export async function generateMetadata({ searchParams }: { searchParams: Promise<{ vue?: string; pageDecisions?:string; etatDecision?:string }> }) {
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ vue?: string; pageDecisions?:string; etatDecision?:string; categorie?:string }> }) {
   const { vue } = await searchParams;
   return { title: vue === "decisions" ? "Décisions à prendre" : vue === "equipes" ? "Équipes et comptes rendus" : "Bureau de direction" };
 }
@@ -33,7 +32,7 @@ const ICONES_EQUIPES = { exploitation: Building2, finance: Wallet, incidents: Wr
 // dernier passage (heure de Paris), ses résultats et ce qu'elle soumet ; puis
 // les jours précédents. La stratégie et les compteurs sans décision n'y sont
 // plus.
-export default async function PageBrief({ searchParams }: { searchParams: Promise<{ jour?: string; equipe?: string; vue?: string; pageDecisions?:string; etatDecision?:string }> }) {
+export default async function PageBrief({ searchParams }: { searchParams: Promise<{ jour?: string; equipe?: string; vue?: string; pageDecisions?:string; etatDecision?:string; categorie?:string }> }) {
   const p = await searchParams;
   const vue = p.vue === "decisions" || p.vue === "equipes" ? p.vue : "bureau";
   const titre = vue === "decisions" ? "Décisions à prendre" : vue === "equipes" ? "Équipes et comptes rendus" : "Bureau de direction";
@@ -62,11 +61,7 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
   // non ; le point d'aujourd'hui fournit les gestes en un clic quand il porte
   // la décision. Le chiffre de la puce est le nombre de rangs listés.
   const duPoint = new Map((estAujourdhui ? points : []).flatMap((pt) => pt.decisions.filter((d) => d.statut === "en_attente").map((d) => [d.cle, d] as const)));
-  const parEquipe = new Map<Equipe, typeof decisions.decisions>();
-  for (const d of decisions.decisions) parEquipe.set(d.equipe as Equipe, [...(parEquipe.get(d.equipe as Equipe) ?? []), d]);
-  const signaux = decisions.signaux;
   const lecturesEnEchec = decisions.indisponibles.length;
-  const rienADecider = decisions.total === 0;
 
   const lienJour = (j: string, e?: Equipe) => `/admin/brief?${new URLSearchParams({ ...(vue !== "bureau" ? { vue } : {}), ...(j !== aujourdhui ? { jour: j } : {}), ...(e ? { equipe: e } : {}) }).toString()}`.replace(/\?$/, "");
   const dernierPassage = (pt: PointLu) => pt.contenu.passages.map((x) => x.debut).sort().at(-1) ?? null;
@@ -77,7 +72,7 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
         <div className={styles.heroIntro}>
           <p className={styles.eyebrow}>Gerimmo / Direction générale</p>
           <TitreEcran rubrique="suivi">{titre}</TitreEcran>
-          <p className={styles.subtitle}>{vue === "decisions" ? "Vos accords à donner, les incidents à examiner et le résultat des actions déjà lancées." : vue === "equipes" ? "Les résultats de chaque équipe, les difficultés rencontrées et les décisions attendues." : "Votre journée, vos équipes, vos décisions."}</p>
+          <p className={styles.subtitle}>{vue === "decisions" ? "Les problèmes d’abord, puis les accords et les contenus." : vue === "equipes" ? "Les résultats de chaque équipe, les difficultés rencontrées et les décisions attendues." : "L’essentiel pour piloter Gerimmo."}</p>
         </div>
         <div className={styles.heroRight}>
           <span className={styles.date}><CalendarDays size={15} aria-hidden="true" />{dateLongue(jour)}</span>
@@ -100,47 +95,12 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
       {/* ── Ce qui attend une décision, en premier ─────────────────────── */}
       <section className={`${styles.section} ${styles.decisions}`} id="a-decider">
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Accords et interventions</h2>
+          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Demandes à examiner</h2>
           <span className={`puce ${decisions.total > 0 || lecturesEnEchec ? "puce-prep" : "puce-grise"}`}>{lecturesEnEchec ? "À vérifier" : decisions.total > 0 ? `${decisions.total} en attente` : "À jour"}</span>
         </div>
-        <p className={styles.sectionDescription}>Or : demande d’accord. Rouge : incident à examiner. Les informations et résultats sont présentés dans les comptes rendus des équipes.</p>
-        {rienADecider ? (
-          <div className={styles.emptyDecision}><CheckCheck size={22} aria-hidden="true" /><p>{lecturesEnEchec ? "La liste des décisions ne peut pas être confirmée." : "Rien n’attend votre décision."}</p></div>
-        ) : (
-          <div className="grid gap-6">
-            {[...parEquipe.entries()].map(([equipe, liste]) => (
-              <div key={equipe}>
-                <p className="eyebrow mb-2 text-[var(--marque-sombre)]">Équipe {EQUIPES[equipe].nom}</p>
-                <ul className="grid gap-4">{liste.map((d) => {
-                  const carte = duPoint.get(d.cle);
-                  return carte ? <DecisionMatin key={d.cle} decision={carte} /> : (
-                    <li key={d.cle} className={`loc-carte ${styles.decisionCard}`}>
-                      <span className={`puce ${d.source==="retour"&&d.lien.includes("nature=bug")?"puce-rouge":"puce-prep"}`}>{d.source==="retour"&&d.lien.includes("nature=bug")?"Panne à examiner":"Demande d’accord"}</span><h4 className="font-semibold text-[var(--encre)]">{d.titre}</h4>
-                      <p className="mt-1 text-sm text-[var(--texte-secondaire)]">{d.pourquoi}</p>
-                      <p className={styles.decisionAction}><Link href={d.lien} className="btn-secondaire">Examiner le dossier <ArrowRight size={15} aria-hidden="true" /></Link>{estAujourdhui && <small>{decisions.pointPrepare ? "Arrivée après la préparation du point." : "Le point n’est pas encore préparé."}</small>}</p>
-                    </li>
-                  );
-                })}</ul>
-              </div>
-            ))}
-            {/* Le rang commun de la console (nuit du 25/09) : tout le carré se
-                clique, comme la liste des clients de l'ancienne vue d'ensemble. */}
-            {signaux.length > 0 && (
-              <div>
-                {decisions.decisions.length > 0 && <p className="eyebrow mb-2 text-[var(--marque-sombre)]">Interventions à examiner</p>}
-                <div className={styles.signalList}>
-                  {signaux.map((signal) => {
-                    const incident = ["sante", "bugs", "alertes"].includes(signal.cle);
-                    const IconeSignal = incident ? TriangleAlert : ClipboardCheck;
-                    const classe = `${styles.signal} ${incident ? styles.signalIncident : ""}`;
-                    const contenu = <><span className={styles.signalMarker}><IconeSignal size={16} aria-hidden="true" />{incident ? "Incident à examiner" : "Demande à traiter"}</span><strong>{signal.titre}</strong><span className={styles.signalDetail}>{signal.detail}</span><span className={styles.signalAction}>{signal.action}<ArrowRight size={15} aria-hidden="true" /></span></>;
-                    return signal.href ? <Link key={signal.cle} href={signal.href} className={classe}>{contenu}</Link> : <OuvrirAlertes key={signal.cle} className={classe}>{contenu}</OuvrirAlertes>;
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <p className={styles.sectionDescription}>{vue === "bureau" ? "Ouvrez une catégorie pour traiter les demandes à votre rythme." : "Ouvrez une demande pour lire le détail et décider."}</p>
+        <FileDecisions key={`${vue}:${p.categorie ?? "tout"}`} decisions={decisions.decisions} signaux={decisions.signaux}
+          cartes={[...duPoint.values()]} vue={vue} categorie={p.categorie} indisponible={lecturesEnEchec > 0} />
       </section>
       {vue === "decisions" && <SuiviDecisions page={p.pageDecisions} etat={p.etatDecision}/>}
       {vue === "bureau" && <aside className={styles.directorTools} aria-label="Commandes du dirigeant">

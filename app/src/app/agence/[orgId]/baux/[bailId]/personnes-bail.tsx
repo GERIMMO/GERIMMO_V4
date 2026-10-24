@@ -48,6 +48,7 @@ function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false,
 }) {
   const id = `personne-bail-${personne?.id ?? "nouvelle"}`;
   const [morale, setMorale] = useState(personne ? !estPersonnePhysique(personne.qualite, personne.prenom) : false);
+  const [qualite, setQualite] = useState(personne?.qualite ?? (morale ? "Personne morale" : "Personne physique"));
   const { etat, enCours, soumettre } = useActionFormulaire<EtatPersonnesBail>(async (precedent, donnees) => {
     const retour = personne ? await modifierPersonneBail(orgId, bailId, personne.id, precedent, donnees) : await creerPersonneBail(orgId, bailId, precedent, donnees);
     const personId = personne?.id ?? retour.personneCreee?.id;
@@ -71,6 +72,10 @@ function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false,
   ];
   return <form data-saisie-confirmee onSubmit={soumettre} className="bail-personne-formulaire space-y-4">
     <p className="font-semibold">{personne ? `Compléter la fiche de ${nom(personne)}` : "Créer une personne"}</p>
+    {personne && proprietaire && <div className="space-y-1.5"><Label htmlFor={`${id}-qualite`} champ="proprietaire.qualite" renseigne={Boolean(personne.qualite)}>Qualité du propriétaire *</Label><select id={`${id}-qualite`} name="qualite" className={selectClasse} required value={qualite} onChange={e => {
+      setQualite(e.target.value);
+      setMorale(!estPersonnePhysique(e.target.value));
+    }}>{QUALITES_BAILLEUR.map(q => <option key={q}>{q}</option>)}</select></div>}
     {!personne && proprietaire && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={morale} onChange={e => setMorale(e.target.checked)} />Il s’agit d’une société</label>}
     {morale && <input type="hidden" name="morale" value="on" />}
     <div className="grid gap-3 sm:grid-cols-2">{champs.map(c => <div key={c.name} className={c.name === "address_line1" ? "space-y-1.5 sm:col-span-2" : "space-y-1.5"}>
@@ -78,7 +83,7 @@ function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false,
       <Input id={`${id}-${c.name}`} name={c.name} required={c.required} type={c.type ?? "text"} maxLength={c.max}
         defaultValue={personne?.[c.name as keyof PersonneBail] ?? ""} />
     </div>)}
-      {personne && proprietaire ? <div className="space-y-1.5"><Label htmlFor={`${id}-qualite`} champ="proprietaire.qualite" renseigne={Boolean(personne.qualite)}>Qualité du propriétaire *</Label><select id={`${id}-qualite`} name="qualite" className={selectClasse} required defaultValue={personne.qualite ?? (morale ? "Personne morale" : "Personne physique")}>{QUALITES_BAILLEUR.map(q => <option key={q}>{q}</option>)}</select></div> : <input type="hidden" name="qualite" value={personne?.qualite ?? (morale ? "Personne morale" : "Personne physique")} />}
+      {!(personne && proprietaire) && <input type="hidden" name="qualite" value={personne?.qualite ?? (morale ? "Personne morale" : "Personne physique")} />}
     </div>
     <p className="text-xs text-muted-foreground">* Informations nécessaires au dossier. La fiche est aussi disponible dans « Locataires & garants ».</p>
     <Retour etat={etat} />
@@ -91,7 +96,7 @@ function ChoisirPersonne({ orgId, bailId, role, personnes, principalId, couvrabl
   enregistrerLocal: (p: PersonneBail) => void; choisir: (p: PersonneBail) => void; fermer: () => void;
 }) {
   const [selection, setSelection] = useState("");
-  const [nouvelle, setNouvelle] = useState(false);
+  const [nouvelle, setNouvelle] = useState(personnes.length === 0);
   const [creee, setCreee] = useState<PersonneBail | null>(null);
   const [avertissement, setAvertissement] = useState<string>();
   const personne = personnes.find(p => p.id === selection) ?? (creee?.id === selection ? creee : null);
@@ -104,7 +109,7 @@ function ChoisirPersonne({ orgId, bailId, role, personnes, principalId, couvrabl
   });
   if (nouvelle) return <EditerPersonne orgId={orgId} bailId={bailId} proprietaire={false} garant={role === "garant"} enregistrer={(p, message) => {
     setAvertissement(message); enregistrerLocal(p); setCreee(p); setSelection(p.id); setNouvelle(false);
-  }} annuler={() => setNouvelle(false)} />;
+  }} annuler={() => personnes.length === 0 ? fermer() : setNouvelle(false)} />;
   const choix = creee && !personnes.some(p => p.id === creee.id) ? [...personnes, creee] : personnes;
   return <form data-saisie-confirmee onSubmit={soumettre} className="bail-personne-formulaire space-y-3">
     <input type="hidden" name="role" value={role} /><input type="hidden" name="principal_attendu" value={principalId ?? ""} />

@@ -4,6 +4,8 @@ import { SectionLot } from "../../../src/app/agence/[orgId]/parc/[bienId]/lots/[
 import { RubriqueDossier } from "../../../src/components/rubrique-dossier";
 function Banc() { return <main><h1>Appartement des Tilleuls</h1>
 <a href="#note">Compléter le logement</a>
+<a href="#note" onClick={e=>{e.preventDefault();history.pushState(history.state,"","#note");}}>Navigation interne vers le logement</a>
+<a href="#preuve" onClick={e=>{e.preventDefault();history.pushState(history.state,"","#preuve");}}>Navigation interne vers la preuve</a>
 <form onSubmit={e=>{e.preventDefault();(window as unknown as {__envois:number}).__envois=1;}}><OngletsDossier rubriques={[
  {id:"resume",titre:"Résumé",contenu:<p>50 m² · Deux pièces</p>},
  {id:"logement",titre:"Logement",contenu:<SectionLot id="caracteristiques" titre="Caractéristiques" resume="Chauffage et eau chaude"><label>Note du logement<input id="note" required defaultValue="Chauffage individuel" /></label></SectionLot>},

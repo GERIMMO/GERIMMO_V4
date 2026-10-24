@@ -68,10 +68,11 @@ export function SectionLot({
       try { cible = document.getElementById(decodeURIComponent(url.hash.slice(1))); } catch { return; }
       if (cible && section.current?.contains(cible)) setOuvert(true);
     };
-    document.addEventListener("click", ouvrirDepuisLien);
+    // Ouvrir avant que le routeur intercepte le lien sans émettre hashchange.
+    document.addEventListener("click", ouvrirDepuisLien, true);
     return () => {
       window.removeEventListener("hashchange", ouvrirSiCible);
-      document.removeEventListener("click", ouvrirDepuisLien);
+      document.removeEventListener("click", ouvrirDepuisLien, true);
     };
   }, [id]);
 

@@ -38,6 +38,16 @@ describe.skipIf(!chrome)("Dossiers mobiles : une rubrique à la fois",()=>{
   await page.keyboard.press("End");expect(await page.getByRole("tab",{name:"Contrats",exact:true}).getAttribute("aria-selected")).toBe("true");
   await page.keyboard.press("Home");expect(await page.getByRole("tab",{name:"Résumé",exact:true}).getAttribute("aria-selected")).toBe("true");
  });
+ it("un lien géré par le routeur ouvre aussi le panneau et les rubriques",async()=>{
+  await page.goto("http://localhost/");
+  await page.getByRole("link",{name:"Navigation interne vers le logement",exact:true}).click();
+  await expect.poll(()=>page.getByLabel("Note du logement").isVisible()).toBe(true);
+  await page.getByRole("link",{name:"Navigation interne vers la preuve",exact:true}).click();
+  await expect.poll(()=>page.getByRole("link",{name:"Rapport original"}).isVisible()).toBe(true);
+  await page.getByText("Rapports",{exact:true}).click();
+  await page.getByRole("link",{name:"Navigation interne vers la preuve",exact:true}).click();
+  await expect.poll(()=>page.getByRole("link",{name:"Rapport original"}).isVisible()).toBe(true);
+ });
  it("une erreur de validation révèle le champ replié sans envoyer le formulaire",async()=>{
   await page.goto("http://localhost/#note");await page.getByLabel("Note du logement").fill("");
   await page.getByRole("button",{name:"Caractéristiques"}).click();await page.getByRole("tab",{name:"Résumé",exact:true}).click();

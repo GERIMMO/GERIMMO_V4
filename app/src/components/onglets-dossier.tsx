@@ -38,8 +38,9 @@ export function OngletsDossier({ rubriques, initiale, libelle = "Rubriques du do
     };
     hashChange();
     window.addEventListener("hashchange", hashChange);
-    document.addEventListener("click", clic);
-    return () => { window.removeEventListener("hashchange", hashChange); document.removeEventListener("click", clic); };
+    // Ouvrir avant que le routeur intercepte le lien sans émettre hashchange.
+    document.addEventListener("click", clic, true);
+    return () => { window.removeEventListener("hashchange", hashChange); document.removeEventListener("click", clic, true); };
   }, [pathname, recherche]);
 
   function choisir(id: string) {

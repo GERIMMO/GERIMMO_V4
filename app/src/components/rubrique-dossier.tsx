@@ -35,8 +35,9 @@ export function RubriqueDossier({ id, titre, resume, ouverte = false, children }
     };
     hashChange();
     window.addEventListener("hashchange", hashChange);
-    document.addEventListener("click", clic);
-    return () => { window.removeEventListener("hashchange", hashChange); document.removeEventListener("click", clic); };
+    // Ouvrir avant que le routeur intercepte le lien sans émettre hashchange.
+    document.addEventListener("click", clic, true);
+    return () => { window.removeEventListener("hashchange", hashChange); document.removeEventListener("click", clic, true); };
   }); // Les navigations internes peuvent conserver le composant.
   if (direct) return <section id={id} className="space-y-4 scroll-mt-24">
     <header><h3 className="font-semibold">{titre}</h3><p className="mt-1 text-sm text-muted-foreground">{resume}</p></header>

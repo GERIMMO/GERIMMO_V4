@@ -6693,11 +6693,34 @@ Protocole : sauvegarde 40011575512 (19 h 30 UTC, réussie) ; simulation 40011579
 
 Lancées par Claude sur `main` (`b0153b6`, PR #238) après le déploiement Vercel READY : « Recette de production avec nettoyage » 40014683172 (19 h 51 – 20 h 00 UTC) **réussie** ; « Vérifier les paiements Stripe sans argent réel » 40014686664 **réussie**. Nettoyage vérifié en lecture : 1 compte, 0 organisation.
 
+## [2026-10-23] decision | Signatures, réseau, nettoyage Vercel et préparation Node 24
+
+Réponses écrites du dirigeant, conservées mot pour mot :
+
+- « garder ouvert, les communes doivent s'ouvrir au fur et à mesures en fonctions des inscription des artisans »
+- « Je reconnecte le superadmin »
+- « Oui, supprimer ces deux anciens réglages »
+- « Garder les protections actuelles pour l’instant »
+- « Préparer la montée des tests vers Node 24 »
+- « Oui, supprimer ces 16 prévisualisations »
+
+Constat à 20 h 01 (Paris) : signatures maintenues ouvertes, aucun arrêt global/signatures, aucun envoi effectué ; état du réseau constaté avant la seconde publication du soir (aucun artisan alors éligible). Les deux réglages Youtrust Preview et les 16 prévisualisations du 20 octobre sont supprimés ; chacune des 16 pages est vérifiée absente. Le site public reste sain sur e53298a. Protections existantes conservées sans achat. Préparation Node 24 hors dépôt : types 24.19.2, six workflows, droits CI contents:read ; 39 contrôles de scripts réussis sous Node 24.19.0. Intégration après fusion du lot Claude, validation complète non encore effectuée.
+
+## [2026-10-23] audit | Classement des demandes et état exact des retours
+
+Console reconnectée. Deux sollicitations publicitaires classées traitées à 19 h 57, sans réponse. Les deux retours du 30 septembre passent en examen : réponse par e-mail directement dans la page Contact encore absente ; parcours d’invitation à revérifier sur dossier fictif. Aucun retour déclaré résolu sans preuve. Aucune entrée deploy pour ces réglages externes ni pour la PR 242 non encore livrée.
+
 ## [2026-10-23] deploy | Seconde mise en ligne du 23/10 : PR #244 (`20b3ffa`)
 
 Contenu : facturation sûre — une seule page de paiement par organisation (A01) ; hausse de formule sérialisée par un verrou en base (`verrous_facturation`), échéancier restauré seulement après notre propre libération (A02) ; messages Stripe traduits — ; corrections de la relecture adverse du 23/10 (inscription PRO-4/PRO-5, pages légales et console, point du matin : les bugs bloquants N1 ont leur propre lecture et ne sont plus évincés, garde « CI verte », annonces au jour de Paris, mandant à la date de l'écriture) ; réseau d'artisans : zone (codes postaux, départements) et métiers choisis par l'artisan, écart ratifié par le dirigeant (« si mets le »).
 
 Protocole : sauvegarde 40011575512 (19 h 30 UTC) ; simulation 40014877067 (réussie, tout annulé) ; contrôle préalable en lecture de `poser_gardes_abonnement()` (ancre présente une fois) ; première CI sur `a9fdae1` **rouge** (contrôle des imbrications : sélection non littérale dans le point du matin, régression de la relecture) → correctif `a4236b4`, échec reproduit puis corrigé en local ; CI 40016261078 verte sur `a4236b4` ; application 40018665758 de `20261023162446_souscription_unique_et_trace_hausse.sql`, `20261023180000_reseau_zone_choisie_par_artisan.sql`, `20261023184512_annonces_locataire_jour_paris.sql` (réussie, versions enregistrées, tables et déclencheurs vérifiés en lecture) ; fusion squash au SHA exact `a4236b4` → `20b3ffa` ; Vercel `dpl_GBvG2tQn6n2ckGxNnvhWNgvYNsR4` READY sur gerimmo.app (20 h 25 UTC). Recette de production 40019199531 **réussie** (20 h 26 – 20 h 35 UTC) ; « Vérifier les paiements Stripe sans argent réel » 40019203587 **réussie**. Nettoyage vérifié en lecture : 1 compte, 0 organisation, 0 artisan, aucune intention de souscription ni verrou de facturation restant.
+
+## [2026-10-23] decision | Coordination avec le chantier Conformité V1 de Claude
+
+Le dirigeant transmet le compte rendu de Claude et la consigne : « Dire à Codex de sauter le point 3.4.4 de son prompt (conditions V1) : je m'en occupe. » Le point 3.4.4 est donc retiré du périmètre Codex. Les travaux de conformité de Claude sur l'acceptation, la vente, les signatures, les comptes et la conservation ne sont pas modifiés par le lot PAY-5. Celui-ci est raccordé à main 20b3ffa après les PR 238 et 244, avant nouvelle validation et publication séparée.
+
+Les recettes de production 40014683172 et 40019199531 et les essais Stripe sans argent réel 40014686664 et 40019203587 sont vérifiés réussis dans GitHub. Le mécanisme désormais publié pour le réseau suit les zones et métiers choisis par l'artisan validé ; l'ancien passage par une ouverture manuelle de chaque commune n'est plus la règle actuelle. Ces constats ne valent pas publication de la conformité V1 ni du lot PAY-5.
 
 ## [2026-10-24] decision | Conformité V1 : choix logiques délégués à Claude pendant le développement
 

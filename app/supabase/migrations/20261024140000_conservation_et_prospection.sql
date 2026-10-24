@@ -255,7 +255,7 @@ begin
   end if;
 end $garde_contact$;
 comment on column public.supervision_prospects.oppose_le is
-  'Opposition à la prospection (« Stop ») : aucun message ; la fiche est supprimée au nettoyage suivant (R45).';
+  'Opposition à la prospection (« Stop ») : aucun message. Depuis le 24/10, le « Stop » supprime aussitôt les fiches de l''adresse (seule l''empreinte reste dans oppositions_prospection) ; une fiche marquée ici part au nettoyage suivant (R45).';
 comment on column public.supervision_prospects.dernier_contact_prospect_le is
   'Dernier contact émanant du prospect (pas de Gerimmo) : point de départ des 36 mois de contact:prospect.';
 comment on column public.supervision_prospects.qualite is
@@ -1297,7 +1297,7 @@ begin
     v_jusqu_au := b.conservation_gelee_jusqu_au;
     v_motif := v_preavis_motif;
     v_preavis := true;
-  else
+  elsif b.conservation_gelee_jusqu_au is not null and b.conservation_gelee_jusqu_au >= v_jour then
     -- Levée : si les pièces partiraient dans moins de trente jours, elles attendent trente jours (préavis), le temps
     -- de l'alerte J-30 et du téléchargement.
     -- (echeance_levee_gel_bail vaut alors aujourd'hui + 30 ; à trente jours pile, le préavis ne change pas la date.)

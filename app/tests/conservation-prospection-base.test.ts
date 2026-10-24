@@ -878,6 +878,14 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     // Une seconde levée ne repousse rien.
     await session(gerant);
     expect((await un<{ r: { echeance: string } }>("select public.geler_conservation_bail($1, null, null) as r", [b])).r.echeance).toBe(dans30);
+    // Sans gel en cours, une « levée » ne crée aucun préavis (pas de délai gagné sans litige écrit).
+    await proprietaire();
+    const sansGel = await bail(35);
+    await brut(() => db.query("update public.baux set date_fin = (current_date - interval '36 months' + interval '5 days')::date, updated_at = current_date - interval '36 months' + interval '5 days' where id = $1", [sansGel]));
+    await session(gerant);
+    expect((await un<{ r: { preavis: boolean } }>("select public.geler_conservation_bail($1, null, null) as r", [sansGel])).r.preavis).toBe(false);
+    await proprietaire();
+    expect(await un("select conservation_gelee_jusqu_au from public.baux where id = $1", [sansGel])).toEqual({ conservation_gelee_jusqu_au: null });
     // Une alerte ouverte que le gel couvre (gel écrit hors du geste) : écartée de la file, fermée à la passe suivante.
     await proprietaire();
     const ouverte = await id("select id from public.alerts where type = 'conservation_echeance' and statut = 'ouverte' and details ->> 'bail_id' = $1", [b]);

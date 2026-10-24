@@ -72,10 +72,13 @@ export function finDuDelaiRetractation(conclusion: Date): Date {
   return new Date(instantParis(dernierJourRetractation(conclusion), 23, 59).getTime() + 59_000);
 }
 
-/** Le délai court-il encore à cet instant ? */
+/**
+ * Le délai court-il encore à cet instant ? Relecture adverse du 24/10 (point 7) : toute la dernière seconde compte
+ * (23 h 59 min 59,4 s est encore dans le délai) — la comparaison se fait à minuit du lendemain, exclu, heure de Paris.
+ */
 export function retractationOuverte(conclusion: Date | null | undefined, maintenant: Date = new Date()): boolean {
   if (!conclusion || !Number.isFinite(conclusion.getTime())) return false;
-  return maintenant.getTime() <= finDuDelaiRetractation(conclusion).getTime();
+  return maintenant.getTime() < instantParis(lendemain(dernierJourRetractation(conclusion)), 0, 0).getTime();
 }
 
 const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];

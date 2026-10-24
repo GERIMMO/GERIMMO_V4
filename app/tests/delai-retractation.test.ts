@@ -65,6 +65,14 @@ describe("la date limite", () => {
     expect(finDuDelaiRetractation(new Date("2026-06-01T09:00:00Z")).toISOString()).toBe("2026-06-15T21:59:59.000Z");
   });
 
+  it("relecture adverse du 24/10 (point 7) : toute la dernière seconde compte, jusqu'à minuit exclu", () => {
+    const conclusion = new Date("2026-10-26T09:00:00Z");
+    expect(retractationOuverte(conclusion, new Date("2026-11-09T22:59:59.400Z"))).toBe(true);
+    expect(retractationOuverte(conclusion, new Date("2026-11-09T22:59:59.999Z"))).toBe(true);
+    expect(retractationOuverte(conclusion, new Date("2026-11-09T23:00:00.000Z"))).toBe(false);
+    expect(retractationOuverte(new Date("2026-06-01T09:00:00Z"), new Date("2026-06-15T21:59:59.700Z"))).toBe(true);
+  });
+
   it("sans date de conclusion, le délai n'est pas ouvert", () => {
     expect(retractationOuverte(null)).toBe(false);
     expect(retractationOuverte(new Date("invalide"))).toBe(false);

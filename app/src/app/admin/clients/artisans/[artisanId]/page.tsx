@@ -173,9 +173,6 @@ export default async function PageFicheArtisan(
         )}
 
         <ConsoleSection titre="Entreprise" description="Coordonnées, métiers et zones d’intervention." icone="personnes" ouverte>
-          <div className="entete-carte">
-
-          </div>
           <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
             <Info libelle="SIRET">
               {artisan.siret ?? "—"} · {LIBELLES_SIRET[artisan.siret_etat] ?? artisan.siret_etat}
@@ -282,9 +279,6 @@ export default async function PageFicheArtisan(
         <ConsoleSection id="statut-inscription" titre="Inscription de l’artisan" description="Examiner les justificatifs puis prendre une décision." icone="securite" ton="ambre" ouverte>
           {/* « Décider » seulement quand une décision est possible (24/09) :
               pour un artisan validé, la carte ne propose aucun geste. */}
-          <div className="entete-carte">
-
-          </div>
           <p className="mesure-lecture mb-4 text-sm text-[var(--texte-secondaire)]">
             La validation appartient à Gerimmo. Elle ne modifie ni la visibilité
             choisie par l&apos;artisan, ni les contrôles d&apos;assurance
@@ -336,9 +330,6 @@ export default async function PageFicheArtisan(
 
         {validations.data && validations.data.length > 0 && (
           <ConsoleSection titre="Historique des décisions" description="Validations, refus et leurs motifs." icone="historique">
-            <div className="entete-carte">
-
-            </div>
             <ul className="space-y-3">
               {validations.data.map((v) => (
                 <li key={v.id} className="border-t border-[var(--filet)] pt-3 text-sm first:border-t-0 first:pt-0">

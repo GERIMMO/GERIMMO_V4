@@ -133,7 +133,6 @@ export default async function PageCompte({ params }: { params: Promise<{ account
       </p>
 
       <ConsoleSection titre="État du compte" description="Connexion, identité et protection du compte." icone="personnes" ouverte>
-        <div className="entete-carte"></div>
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
           {etat.map(([l, v]) => (
             <div key={l}><dt className="libelle-champ">{l}</dt><dd className="text-sm">{v}</dd></div>
@@ -145,7 +144,6 @@ export default async function PageCompte({ params }: { params: Promise<{ account
           du superviseur par l'API d'administration, jamais en se connectant
           comme ce compte ; chacun est confirmé et journalisé. */}
       <ConsoleSection titre="Contrôler l’accès" description="Blocage et second facteur, avec confirmation." icone="securite" ton="ambre" ouverte={Boolean(bloque)}>
-        <div className="entete-carte"></div>
         {dossier.est_super_admin ? (
           <p className="text-sm text-[var(--texte-secondaire)]">Un compte de supervision ne se bloque pas depuis la console : le relais en votre absence règle ce cas.</p>
         ) : (

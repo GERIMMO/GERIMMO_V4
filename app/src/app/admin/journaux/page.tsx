@@ -223,7 +223,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
       />
 
       <div className="space-y-4">
-        <ConsoleSection id="audit" titre="Actions sur les comptes et dossiers" description="Actions sensibles réalisées par les superviseurs et les agences." icone="personnes" ouverte={Boolean(p.p_audit || filtres.org || filtres.type && !filtres.type.startsWith("tache_"))}>
+        <ConsoleSection id="audit" titre="Actions sur les comptes et dossiers" description="Actions sensibles réalisées par les superviseurs et les agences." icone="personnes" ouverte={filtreActif || Boolean(p.p_audit)}>
 
           <div className="space-y-4">
             {audit.length === 0 ? (
@@ -256,7 +256,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
           </div>
         </ConsoleSection>
 
-        <ConsoleSection id="historique-service" titre="Travail automatique et incidents" description="Passages des tâches et difficultés rencontrées." icone="sante" ton="ambre" ouverte={Boolean(p.p_technique || filtres.type?.startsWith("tache_"))}>
+        <ConsoleSection id="historique-service" titre="Travail automatique et incidents" description="Passages des tâches et difficultés rencontrées." icone="sante" ton="ambre" ouverte={filtreActif || Boolean(p.p_technique)}>
 
           <div className="space-y-4">
             {/* Un historique vide n'est pas un bon signe (24/09) : le travail
@@ -309,7 +309,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
           </div>
         </ConsoleSection>
 
-        <ConsoleSection id="acces-documents" titre="Consultations des documents" description="Qui a consulté ou téléchargé une pièce." icone="documents" ouverte={Boolean(p.p_acces)}>
+        <ConsoleSection id="acces-documents" titre="Consultations des documents" description="Qui a consulté ou téléchargé une pièce." icone="documents" ouverte={filtreActif || Boolean(p.p_acces)}>
 
           <div className="space-y-4">
             {acces.length === 0 ? (

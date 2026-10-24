@@ -276,9 +276,6 @@ export default async function PageAdminOrganisation(
       {(lots.error || baux.error || personnes.error || parrainages.error) && <LectureIndisponible sujet="Parc ou parrainage" retour={`/admin/organisations/${orgId}`} />}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <ConsoleSection titre="Parc immobilier" description="Biens et lots de cette organisation." icone="documents" ton="vert" ouverte>
-          <div className="entete-carte">
-
-          </div>
           <dl className="grid gap-3">
             <Info libelle="Lots gérés (base de facturation)">
               {lots.error ? "Indisponible" : (lots.count ?? 0)}
@@ -291,9 +288,6 @@ export default async function PageAdminOrganisation(
         </ConsoleSection>
 
         <ConsoleSection titre="Parrainage" description="Recommandations et avantages associés." icone="personnes" ton="violet">
-          <div className="entete-carte">
-
-          </div>
           <dl className="grid gap-3">
             <Info libelle="Son code">
               <span className="montant tracking-wider">
@@ -352,7 +346,6 @@ export default async function PageAdminOrganisation(
       {/* L'invitation du responsable (audit console 27/09, majeur 7) : le geste
           que le commentaire d'ouverture promettait. */}
       <ConsoleSection id="invitation" titre="Inviter le responsable" description="Suivi de l’invitation et nouvel envoi." icone="personnes">
-        <div className="entete-carte"></div>
         {adhesionsLues.error ? <LectureIndisponible sujet="Responsables et invitations" retour={`/admin/organisations/${orgId}`} /> : responsables.length === 0 ? (
           <p className="text-sm text-[var(--texte-secondaire)]">Aucun responsable rattaché : rien à renvoyer.</p>
         ) : (
@@ -375,7 +368,6 @@ export default async function PageAdminOrganisation(
           « Cycle de vie de l'abonnement » et à « Archivage plutôt que
           suppression » : aucune suppression, chaque geste confirmé et journalisé. */}
       <ConsoleSection titre="Accès à l’espace client" description="Suspendre, réactiver ou archiver l’accès, avec confirmation." icone="securite" ton="ambre">
-        <div className="entete-carte"></div>
         <p className="mesure-lecture mb-3 text-sm text-[var(--texte-secondaire)]">
           Chaque geste est fait à votre nom et inscrit au journal d’audit de cette organisation. Une
           organisation suspendue ou archivée garde ses données ; elle se réactive d’ici. Ces actions modifient les accès Gerimmo. Elles ne résilient pas l’abonnement Stripe et n’arrêtent pas ses prélèvements.

@@ -103,7 +103,7 @@ test("« Utilisateurs » ouvre les personnes et conserve les trois familles d’
   await expect(page.getByRole("heading", { name: "Utilisateurs", level: 1 })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Rôle", exact: true })).toBeVisible();
   await expect(page.locator('a[href^="/admin/comptes/"]').first()).toBeVisible();
-  await page.getByRole("link", { name: "Espaces clients et entreprises" }).click();
+  await page.getByRole("link", { name: "Espaces et entreprises" }).click();
   await page.waitForURL(/vue=espaces/);
   await expect(page.getByRole("heading", { name: "Utilisateurs", level: 1 })).toBeVisible();
   for (const famille of [/^Propriétaires bailleurs/, /^Artisans/, /^Agences/]) {

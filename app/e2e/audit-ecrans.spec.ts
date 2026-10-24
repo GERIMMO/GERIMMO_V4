@@ -99,12 +99,22 @@ for (const persona of PERSONAS) {
           };
         });
         const mesure = await mesurer();
+        const cheminFinal = new URL(page.url()).pathname;
+        // Un titre « Connexion » n'est pas la preuve que le dossier demandé fonctionne.
+        const sessionPerdue = persona !== "public" && /^\/(connexion|securite\/verification)(\/|$)/.test(cheminFinal);
+        const autreEspace =
+          (persona === "proprietaire" && /^\/(admin|agence|artisan|locataire)(\/|$)/.test(cheminFinal)) ||
+          (persona === "locataire" && /^\/(admin|agence|espace|artisan)(\/|$)/.test(cheminFinal)) ||
+          (persona === "artisan" && /^\/(admin|agence|espace|locataire)(\/|$)/.test(cheminFinal)) ||
+          (persona === "superadmin" && ecran.path.startsWith("/admin") && /^\/(agence|espace|artisan|locataire)(\/|$)/.test(cheminFinal));
         await page.screenshot({ path: path.join(dossier, `${slug}.png`), fullPage: true, animations: "disabled" });
         rapport.push({
           ...ecran,
           statut: reponse?.status() ?? 0,
-          cheminFinal: new URL(page.url()).pathname,
-          redirection: new URL(page.url()).pathname !== new URL(ecran.path, page.url()).pathname,
+          cheminFinal,
+          sessionPerdue,
+          autreEspace,
+          redirection: cheminFinal !== new URL(ecran.path, page.url()).pathname,
           ...mesure,
           erreursConsole: erreursConsole.slice(0, 5),
           erreursPage: erreursPage.slice(0, 5),
@@ -142,6 +152,7 @@ for (const persona of PERSONAS) {
       r.statut === "erreur" ||
       (typeof r.statut === "number" && r.statut >= 400) ||
       r.soft404 === true ||
+      r.sessionPerdue === true || r.autreEspace === true ||
       !r.h1 ||
       (Array.isArray(r.erreursPage) && r.erreursPage.length > 0) ||
       (Array.isArray(r.erreursConsole) && r.erreursConsole.length > 0) ||
@@ -149,7 +160,7 @@ for (const persona of PERSONAS) {
       (typeof r.overflowPx === "number" && r.overflowPx > 2)
       // Plus d'exigence de photo par écran (24/09) : le porteur a retiré le
       // bandeau photo des espaces, « en trop ». Le compte reste au rapport.
-    ).map((r) => ({ path: r.path, statut: r.statut, h1: r.h1, boutonsSansNom: r.boutonsSansNom, soft404: r.soft404, overflowPx: r.overflowPx, photos: r.photos, erreur: r.erreur, erreursPage: r.erreursPage, erreursConsole: r.erreursConsole }));
+    ).map((r) => ({ path: r.path, cheminFinal: r.cheminFinal, sessionPerdue: r.sessionPerdue, autreEspace: r.autreEspace, statut: r.statut, h1: r.h1, boutonsSansNom: r.boutonsSansNom, soft404: r.soft404, overflowPx: r.overflowPx, photos: r.photos, erreur: r.erreur, erreursPage: r.erreursPage, erreursConsole: r.erreursConsole }));
     expect(casses, `Écrans ${persona} cassés ou débordants`).toEqual([]);
   });
 }

@@ -109,6 +109,19 @@ beforeEach(() => {
 });
 
 describe("ListeAlertes (écran Alertes) : « Traiter » et les liens de la liste", () => {
+  it("la supervision consulte les dossiers sans se voir confier ni proposer de clore les alertes", () => {
+    const html = renderToStaticMarkup(createElement(ListeAlertes, {
+      orgId: ORG, membres: [], monCompte: "superadmin", estResponsable: true,
+      estProprietaire: true, lectureSeule: true, ouvrirAlerteId: "al-2",
+      alertes: [alerte("al-1", "loyer_impaye", { bail_id: "bail-1" }), alerte("al-2", "manuelle", null)] as never,
+    }));
+    expect(html).toContain("Consulter le dossier");
+    expect(adressesDeGestion(html)).toEqual([`/espace/${ORG}/baux/bail-1#loyers`]);
+    expect(html).toContain("Suivi par le gestionnaire");
+    expect(html).not.toContain("Confier / clore");
+    expect(html).not.toContain(">Traiter<");
+    expect(html).not.toContain("Confiées à d");
+  });
   for (const p of PROFILS) {
     it(`${p.nom} : chaque fiche à traiter sous ${p.attendu}, jamais ${p.interdit}`, () => {
       const html = renderToStaticMarkup(createElement(ListeAlertes, {

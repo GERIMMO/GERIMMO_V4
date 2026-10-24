@@ -50,12 +50,14 @@ export async function PaneArtisan({
   orgId,
   artisanId,
   estResponsable,
+  lectureSeule = false,
   bailleurDirect,
   relation,
 }: {
   orgId: string;
   artisanId: string;
   estResponsable: boolean;
+  lectureSeule?: boolean;
   /** Propriétaire direct : pas d'agence, on lui parle de son parc (24/09). */
   bailleurDirect: boolean;
   relation: Relation | null;
@@ -203,7 +205,7 @@ export async function PaneArtisan({
                   national. Un artisan qui a son compte les règle seul ; l'agence
                   ne garde la main que sur une fiche sans compte de son carnet
                   actif. */}
-              {profil.account_id || desactive || enBlacklist ? (
+              {lectureSeule || profil.account_id || desactive || enBlacklist ? (
                 <>
                   <p className="text-sm">
                     <b className="font-medium">Métiers :</b>{" "}
@@ -213,7 +215,9 @@ export async function PaneArtisan({
                     {codes.length ? codes.map(libelleZone).join(" · ") : "aucune"}
                   </p>
                   <p className="border-l-2 border-l-[var(--warning)] bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning-soft-foreground)]">
-                    {profil.account_id
+                    {lectureSeule
+                      ? "Le carnet de ce client est consultable en supervision ; son gestionnaire et l’artisan mettent les informations à jour."
+                      : profil.account_id
                       ? "Les métiers et la zone de cet artisan lui appartiennent : il les met à jour depuis son espace Gerimmo."
                       : enBlacklist
                         ? "Cet artisan est sur votre liste noire : levez-la d’abord pour modifier ses métiers et sa zone."
@@ -311,7 +315,7 @@ export async function PaneArtisan({
                 consultez pas.
               </p>
 
-              {!estResponsable ? (
+              {lectureSeule || !estResponsable ? (
                 <p className="text-sm text-muted-foreground">
                   Désactivation et liste noire sont réservées au responsable de
                   l&apos;agence.

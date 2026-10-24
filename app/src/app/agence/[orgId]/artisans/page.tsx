@@ -73,13 +73,13 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
   };
   const vue = VUES.some((v) => v.cle === vueBrute) ? vueBrute! : "actifs";
   const sel = typeof selBrut === "string" && selBrut ? selBrut : null;
-  const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, role, estProprietaire, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
   // artisan_statut_local et artisan_blacklist_locale sont réservées à
   // l'admin d'agence et au propriétaire direct : « l'agent simple ne
   // désactive pas ». L'écran le dit au lieu de laisser la base refuser.
-  const estResponsable = ROLES_RESPONSABLES.includes(role);
+  const estResponsable = !traverseeLectureSeule && ROLES_RESPONSABLES.includes(role);
   // Le propriétaire direct n'a pas d'agence (24/09) : l'écran lui parle de
   // son parc, comme le reste de son espace.
   const bailleurDirect = role === "proprietaire_direct";
@@ -173,9 +173,9 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
             {/* L'action principale dans l'en-tête, comme « Ouvrir un incident »
                 (24/09). Sous 900 px le formulaire vient après toute la liste ;
                 une fiche ouverte le masque : le lien referme la fiche. */}
-            <Link href={`${lien(vue, null)}#nouvel-artisan`} className="btn-or">
+            {!traverseeLectureSeule && <Link href={`${lien(vue, null)}#nouvel-artisan`} className="btn-or">
               + Enregistrer un artisan
-            </Link>
+            </Link>}
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -305,13 +305,14 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
               orgId={orgId}
               artisanId={sel}
               estResponsable={estResponsable}
+              lectureSeule={traverseeLectureSeule}
               bailleurDirect={bailleurDirect}
               relation={relations.find((r) => r.artisan_id === sel) ?? null}
             />
           </div>
         ) : (
           <div className="min-w-0 space-y-4">
-            <Card id="nouvel-artisan" className="scroll-mt-20">
+            {!traverseeLectureSeule && <Card id="nouvel-artisan" className="scroll-mt-20">
               <CardHeader>
                 <CardTitle className="text-base">Enregistrer un artisan</CardTitle>
                 <CardDescription>
@@ -322,7 +323,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
               <CardContent>
                 <FormulaireNouvelArtisan orgId={orgId} />
               </CardContent>
-            </Card>
+            </Card>}
             <Card size="sm">
               <CardContent className="space-y-2 text-sm text-muted-foreground">
                 <p>

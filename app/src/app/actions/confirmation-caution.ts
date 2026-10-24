@@ -5,8 +5,8 @@ import { clientDeService } from "@/lib/supabase/service";
 import { sansJargon } from "@/lib/erreurs";
 import { ipDeLaRequete } from "@/lib/lien-mot-de-passe";
 import { fermetureModeleSignature } from "@/lib/signature-interrupteurs";
-import { controlerEnvoi, envoyerApresControle } from "@/lib/signature-envoi";
-import { LIMITE_CONFIRMATIONS_PAR_IP, empreinteJetonCaution, mobileCautionDepuisSaisie, mobileLisible } from "@/lib/confirmation-mobile-caution";
+import { controlerEnvoi, envoyerApresControle, type EtapeEchecEnvoi } from "@/lib/signature-envoi";
+import { LIMITE_CONFIRMATIONS_PAR_IP, MESSAGES_LIEN_CAUTION_CLOS, empreinteJetonCaution, mobileCautionDepuisSaisie, mobileLisible } from "@/lib/confirmation-mobile-caution";
 import type { CircuitBail } from "@/lib/signature-bail";
 
 // LA CAUTION CONFIRME SON MOBILE (page publique /signature/caution/<jeton>, décision du dirigeant du 23/10/2026).
@@ -16,8 +16,11 @@ import type { CircuitBail } from "@/lib/signature-bail";
 // numéro saisi deux fois, le consomme — une fois, sous verrou, en base. Ensuite, la demande de signature est créée avec
 // CE numéro, au nom du propriétaire qui a envoyé le lien (la base revérifie qu'il est toujours propriétaire actif).
 //
-// Si l'envoi échoue après la confirmation, le numéro reste confirmé sur l'acte prêt : le propriétaire relance l'envoi
-// depuis son espace sans redemander quoi que ce soit à la caution.
+// Si l'envoi échoue après la confirmation, le message dit ce qui se passe ensuite (relecture du 24/10) :
+//  · échec avant la réservation : le numéro reste confirmé sur l'acte prêt, le propriétaire relance l'envoi depuis son
+//    espace sans rien redemander à la caution ;
+//  · réservation défaite : le circuit est annulé, une nouvelle préparation enverra un nouveau lien ;
+//  · échec après l'appel au prestataire : l'envoi est à vérifier, l'invitation est peut-être partie.
 
 export type EtatConfirmationCaution = { erreur?: string; succes?: string };
 
@@ -35,7 +38,7 @@ export async function confirmerMobileCaution(jeton: string, _etat: EtatConfirmat
   if ("erreur" in relu || relu.telephone !== lu.telephone) return { erreur: "Les deux numéros saisis ne sont pas identiques." };
   // Le réglage serveur qui suspend le cautionnement électronique ne consomme pas le lien.
   const fermeture = fermetureModeleSignature("cautionnement");
-  if (fermeture) return { erreur: "La signature électronique de cet acte est suspendue pour le moment. Le bailleur vous proposera de le signer autrement." };
+  if (fermeture) return { erreur: MESSAGES_LIEN_CAUTION_CLOS.suspendu };
 
   const service = clientDeService();
   if (!service) return { erreur: INDISPONIBLE };
@@ -49,6 +52,7 @@ export async function confirmerMobileCaution(jeton: string, _etat: EtatConfirmat
 
   const confirme = `Votre numéro ${mobileLisible(lu.telephone)} est confirmé.`;
   let bail: string | null = null;
+  let etape: EtapeEchecEnvoi = "avant_envoi";
   try {
     const { data, error } = await service.from("bail_signature_circuits").select("*").eq("id", ligne.circuit_id).eq("organization_id", ligne.organization_id).single();
     if (error || !data) throw new Error("L’acte n’est plus disponible.");
@@ -56,15 +60,25 @@ export async function confirmerMobileCaution(jeton: string, _etat: EtatConfirmat
     bail = circuit.bail_id;
     const controle = await controlerEnvoi({ db: service, org: ligne.organization_id, bail: circuit.bail_id ?? circuit.cible_id ?? "", circuit });
     const envoi = await envoyerApresControle({ db: service, org: ligne.organization_id, circuit, acteur: ligne.demande_par, controle });
-    if ("erreur" in envoi) throw new Error(envoi.erreur);
+    if ("erreur" in envoi) {
+      etape = envoi.etape;
+      throw new Error(envoi.erreur);
+    }
     rafraichir(ligne.organization_id, bail);
     return { succes: `${confirme} Vous allez recevoir de Zoho Sign l’invitation à signer l’acte de cautionnement. Vous y saisirez vous-même la mention de caution ; le code de signature sera envoyé par SMS à ce numéro.` };
   } catch (e) {
+    rafraichir(ligne.organization_id, bail);
+    if (etape === "abandonne") {
+      // Le circuit est annulé (il garde son propre motif) : une nouvelle préparation repart d'un nouveau lien.
+      return { erreur: `${confirme} L’envoi de l’acte n’a pas pu se faire. Le bailleur le voit dans son espace : il devra préparer de nouveau l’acte, et vous recevrez alors un nouveau lien pour confirmer votre numéro.` };
+    }
+    if (etape === "a_verifier") {
+      return { erreur: `${confirme} L’envoi de l’acte doit être vérifié : l’invitation de Zoho Sign vous parviendra peut-être dans les prochaines minutes. Sinon, le bailleur reprendra l’envoi depuis son espace, et vous recevrez peut-être un nouveau lien.` };
+    }
     const motif = e instanceof Error ? sansJargon(e.message) : "L’envoi n’a pas pu être confirmé.";
-    // Le propriétaire le lit sur l'acte prêt (l'état « à vérifier » garde son propre motif).
+    // Le propriétaire le lit sur l'acte prêt.
     await service.from("bail_signature_circuits").update({ erreur: `La caution a confirmé son mobile, mais l’envoi en signature n’a pas pu partir : ${motif} Relancez l’envoi depuis le suivi de l’acte.`.slice(0, 1000), updated_at: new Date().toISOString() })
       .eq("id", ligne.circuit_id).eq("etat", "pret");
-    rafraichir(ligne.organization_id, bail);
     return { erreur: `${confirme} L’envoi de l’acte n’a pas pu se faire pour le moment. Le bailleur le voit dans son espace et pourra le relancer sans vous redemander votre numéro.` };
   }
 }

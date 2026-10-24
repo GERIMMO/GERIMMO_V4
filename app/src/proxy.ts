@@ -199,6 +199,9 @@ export async function proxy(request: NextRequest) {
   // les espaces pour le connecté.
   const isPublic =
     pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p)) || CHEMIN_INVITATION_ARTISAN.test(pathname) || CHEMIN_CONFIRMATION_CAUTION.test(pathname);
+  // Relecture du 24/10 : le formulaire de la caution (action serveur, POST) n'utilise aucune session Gerimmo. Une session
+  // expirée ou illisible du même navigateur ne doit ni l'interrompre, ni promener son jeton dans `?suite=`.
+  const sansSessionRequise = CHEMIN_CONFIRMATION_CAUTION.test(pathname);
 
   if (!user) {
     if (isPublic) return response;
@@ -233,7 +236,7 @@ export async function proxy(request: NextRequest) {
   const now = Date.now();
   const { data: sessions, error: erreurSession } = await supabase.rpc("ma_session_active");
   if (erreurSession || erreurDroitsSession) {
-    if (isPublic && ["GET", "HEAD"].includes(request.method)) return response;
+    if (isPublic && (["GET", "HEAD"].includes(request.method) || sansSessionRequise)) return response;
     const indisponible = new NextResponse("La vérification de votre session est momentanément indisponible. Réessayez dans un instant.", {
       status: 503, headers: { "Cache-Control": "no-store", "Content-Type": "text/plain; charset=utf-8", "Retry-After": "30" },
     });
@@ -255,7 +258,7 @@ export async function proxy(request: NextRequest) {
     const { error: erreurDeconnexion } = await supabase.auth.signOut({ scope: "local" });
     // Une ancienne session ne doit pas interdire la consultation du site vitrine.
     // Les mutations et les pages privées gardent la redirection de sécurité.
-    if (!erreurDeconnexion && isPublic && ["GET", "HEAD"].includes(request.method)) {
+    if (!erreurDeconnexion && isPublic && (["GET", "HEAD"].includes(request.method) || sansSessionRequise)) {
       response.cookies.delete(ACTIVITY_COOKIE);
       return response;
     }
@@ -266,7 +269,7 @@ export async function proxy(request: NextRequest) {
     // destination : on s'y ferait renvoyer vers /espaces de toute façon.
     const url = request.nextUrl.clone();
     const demandee = pathname + request.nextUrl.search;
-    const aRetenir = pathname !== "/" && !REDIRECT_SI_CONNECTE.some((p) => pathname.startsWith(p));
+    const aRetenir = pathname !== "/" && !REDIRECT_SI_CONNECTE.some((p) => pathname.startsWith(p)) && !sansSessionRequise;
     url.pathname = "/connexion";
     url.search = aRetenir
       ? `?raison=session-expiree&suite=${encodeURIComponent(demandee)}`

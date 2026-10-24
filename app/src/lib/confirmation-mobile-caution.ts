@@ -11,6 +11,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { emailValide } from "@/lib/marque-organisation";
 import { gabaritNotification, type Message } from "@/lib/notifications";
 import { lienConfidentialite } from "@/lib/message-invitation-signature";
+import { fermetureModeleSignature } from "@/lib/signature-interrupteurs";
 import { telephoneSignature, type CircuitBail } from "@/lib/signature-bail";
 import { adresseDuSite } from "@/lib/site";
 import { telephoneZoho } from "@/lib/zoho-sign";
@@ -139,11 +140,22 @@ export function messageConfirmationMobileCaution(p: InfosDemandeCaution & { lien
  * Le bailleur lance la signature d'un acte de cautionnement dont la caution n'a pas encore confirmé son mobile : un
  * nouveau lien part (le précédent, s'il était ouvert, est annulé). Lève une erreur lisible ; rend l'échéance du lien.
  */
+/** Adresse comparable : sans espaces autour, en minuscules. */
+export const adresseComparable = (email: string | null | undefined) => (email ?? "").trim().toLowerCase();
+
+/**
+ * Relecture du 24/10 : le lien ne part jamais à l'adresse d'un autre signataire de l'acte (le bailleur), qui pourrait y
+ * confirmer son propre numéro. La base refuse aussi l'adresse d'un détenteur du lot ou d'un compte de l'espace.
+ */
+export const REFUS_ADRESSE_CAUTION_BAILLEUR =
+  "L’adresse e-mail de la caution est celle d’un bailleur : renseignez sur sa fiche l’adresse personnelle de la caution, puis préparez un nouveau PDF.";
+
 export async function demanderConfirmationMobileCaution(p: { service: SupabaseClient; org: string; circuit: CircuitBail; acteur: string }): Promise<{ expireLe: string; email: string }> {
   const { service, org, circuit, acteur } = p;
   const garant = circuit.signataires.filter((s) => s.qualite === "Garant");
   if (garant.length !== 1) throw new Error("Un acte de caution doit concerner exactement un garant.");
   if (!emailValide(garant[0].email)) throw new Error("Renseignez l’adresse e-mail de la caution : le lien de confirmation lui est envoyé.");
+  if (circuit.signataires.some((s) => s.qualite !== "Garant" && adresseComparable(s.email) === adresseComparable(garant[0].email))) throw new Error(REFUS_ADRESSE_CAUTION_BAILLEUR);
   const origine = adresseDuSite();
   if (!origine) throw new Error("L’adresse du site n’est pas configurée. Contactez l’administrateur.");
   const limite = await service.rpc("autoriser_lien_mot_de_passe_cle", { p_cle: `caution-mobile:organisation:${org}`, p_max: LIMITE_LIENS_CAUTION_PAR_ORGANISATION });
@@ -162,11 +174,26 @@ export async function demanderConfirmationMobileCaution(p: { service: SupabaseCl
 }
 
 export type EtatLienCaution =
-  | { etat: "invalide" | "annule" | "utilise" | "expire" }
+  | { etat: "invalide" | "annule" | "utilise" | "expire" | "suspendu" }
   | ({ etat: "valide"; expireLe: string } & InfosDemandeCaution);
 
-/** La page publique : rien n'est lu en base pour un jeton mal formé ; rien du dossier n'est dit pour un lien clos. */
+/** Ce que lit la caution quand le lien ne sert pas (ou plus) ; rien du dossier. */
+export const MESSAGES_LIEN_CAUTION_CLOS: Record<Exclude<EtatLienCaution["etat"], "valide">, string> = {
+  invalide: "Ce lien n’est pas valable. Vérifiez que vous avez ouvert le lien complet reçu par e-mail.",
+  annule: "Ce lien n’est plus valable : une demande plus récente a pu le remplacer. Demandez au bailleur de vous en envoyer un nouveau.",
+  // Relecture du 24/10 : l'envoi a pu échouer après la confirmation ; rien ne garantit que l'invitation est partie.
+  utilise: "Ce lien a déjà servi : votre numéro est confirmé. L’invitation à signer vous parviendra par e-mail de la part de Zoho Sign dès que l’acte sera envoyé.",
+  expire: "Ce lien a expiré. Demandez au bailleur de vous en envoyer un nouveau.",
+  // Relecture du 24/10 : le réglage serveur qui suspend le cautionnement électronique se dit dès l'ouverture.
+  suspendu: "La signature électronique de cet acte est suspendue pour le moment. Le bailleur vous proposera de le signer autrement.",
+};
+
+/**
+ * La page publique : rien n'est lu en base pour un jeton mal formé ni quand le cautionnement électronique est suspendu ;
+ * rien du dossier n'est dit pour un lien clos.
+ */
 export async function lireLienCaution(service: SupabaseClient, jeton: string): Promise<EtatLienCaution> {
+  if (fermetureModeleSignature("cautionnement")) return { etat: "suspendu" };
   const empreinte = empreinteJetonCaution(jeton);
   if (!empreinte) return { etat: "invalide" };
   const { data: lien, error } = await service.from("confirmations_mobile_caution")

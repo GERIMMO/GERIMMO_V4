@@ -37,6 +37,11 @@ export async function assemblerSignatureDocument(db: SupabaseClient, org: string
   if ("erreur" in assemblage) throw new Error(assemblage.erreur);
   const manquants = [...parties.manquants, ...(refusDocumentIncomplet(assemblage.document)?.manquants ?? [])];
   if (selection.code === "cautionnement") {
+    // Relecture du 24/10 : le lien de confirmation du mobile part à l'adresse de la caution ; celle d'un bailleur le
+    // lui ferait recevoir, et il pourrait y confirmer son propre numéro (la base le refuse aussi).
+    const adresse = (e: string) => e.trim().toLowerCase();
+    const caution = signataires.find(s=>s.qualite==="Garant");
+    if (caution && adresse(caution.email) && signataires.some(s=>s.qualite!=="Garant" && adresse(s.email)===adresse(caution.email))) manquants.push(`${`${caution.prenom} ${caution.nom}`.trim() || "Caution"} : l’adresse e-mail de la caution est celle d’un bailleur. Renseignez l’adresse personnelle de la caution : le lien de confirmation de son mobile lui est envoyé.`);
     if (!assemblage.mentionCaution) manquants.push("Complétez le plafond et la mention personnelle de la caution.");
     else if (assemblage.mentionCaution.length > 1000) manquants.push("La mention de caution dépasse la place disponible pour la signature en ligne. Contactez l’assistance pour adapter cet acte.");
     for (const s of signataires) if (s.qualite === "Garant") s.mentionCaution = assemblage.mentionCaution;

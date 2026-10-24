@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CoquilleAuth } from "@/components/coquille-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { clientDeService } from "@/lib/supabase/service";
-import { echeanceLisible, lireLienCaution, type EtatLienCaution } from "@/lib/confirmation-mobile-caution";
+import { MESSAGES_LIEN_CAUTION_CLOS, echeanceLisible, lireLienCaution, type EtatLienCaution } from "@/lib/confirmation-mobile-caution";
 import { FormulaireMobileCaution } from "./formulaire-mobile-caution";
 
 // LA PAGE DU LIEN REÇU PAR LA CAUTION (décision du dirigeant du 23/10/2026) : elle lit qui lui demande quoi, puis saisit
@@ -10,20 +10,14 @@ import { FormulaireMobileCaution } from "./formulaire-mobile-caution";
 // (les messageries pré-ouvrent les liens) ; seul l'envoi du formulaire le fait.
 //
 // L'adresse porte le jeton : ni indexation, ni référent transmis, ni cache (next.config.ts pose `Cache-Control:
-// no-store` sur /signature/caution/*). Un lien inconnu, annulé, expiré ou déjà utilisé ne dit rien du dossier.
+// no-store` sur /signature/caution/*). Un lien inconnu, annulé, expiré ou déjà utilisé ne dit rien du dossier ; un
+// cautionnement électronique suspendu par réglage serveur le dit dès l'ouverture, sans formulaire.
 export const metadata: Metadata = {
   title: "Acte de cautionnement — confirmer votre mobile",
   robots: { index: false, follow: false },
   referrer: "no-referrer",
 };
 export const dynamic = "force-dynamic";
-
-const MESSAGES_LIEN_CLOS: Record<Exclude<EtatLienCaution["etat"], "valide">, string> = {
-  invalide: "Ce lien n’est pas valable. Vérifiez que vous avez ouvert le lien complet reçu par e-mail.",
-  annule: "Ce lien n’est plus valable : une demande plus récente a pu le remplacer. Demandez au bailleur de vous en envoyer un nouveau.",
-  utilise: "Ce lien a déjà servi. Votre numéro est confirmé : l’invitation à signer vous parvient par e-mail de la part de Zoho Sign.",
-  expire: "Ce lien a expiré. Demandez au bailleur de vous en envoyer un nouveau.",
-};
 
 export default async function PageMobileCaution(props: PageProps<"/signature/caution/[jeton]">) {
   const { jeton } = await props.params;
@@ -48,7 +42,7 @@ export default async function PageMobileCaution(props: PageProps<"/signature/cau
           {indisponible || !lien ? (
             <p role="alert">Le lien n’a pas pu être vérifié. Rechargez la page dans un instant.</p>
           ) : lien.etat !== "valide" ? (
-            <p role="status">{MESSAGES_LIEN_CLOS[lien.etat]}</p>
+            <p role="status">{MESSAGES_LIEN_CAUTION_CLOS[lien.etat]}</p>
           ) : (
             <>
               {lien.essai && <p role="status" className="rounded-xl bg-warning-soft p-3 font-medium">Essai technique sans engagement : l’acte et les invitations sont fictifs.</p>}

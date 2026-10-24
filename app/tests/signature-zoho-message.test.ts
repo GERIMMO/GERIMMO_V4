@@ -57,6 +57,10 @@ describe("message d'invitation Zoho (R53)", () => {
     expect(donnees(fetch.mock.calls[4][1]).notes).toBe(message);
     expect(donnees(fetch.mock.calls[2][1]).actions[0].private_notes).toBe(noteMentionCaution(mention));
     expect(donnees(fetch.mock.calls[2][1]).actions[0].fields[0].field_label).toBe("Saisissez ou collez le texte du Message privé de votre e-mail");
+    // Relecture du 24/10 : des fins de ligne ou des espaces normalisés par Zoho ne bloquent pas l'envoi.
+    fetch = api([{ code: 0, requests: dossier() }, { code: 0 }, { code: 0, requests: controle(`${message.replace(/\n/g, "\r\n").replace(/\. /g, ".  ")} `) }, { code: 0 }]);
+    await activerDemandeZoho(config, id, circuit);
+    expect(fetch.mock.calls.some(([url]) => String(url).endsWith("/submit"))).toBe(true);
     // Message tronqué chez Zoho : aucune invitation.
     fetch = api([{ code: 0, requests: dossier() }, { code: 0 }, { code: 0, requests: controle(message.slice(0, 200)) }]);
     await expect(activerDemandeZoho(config, id, circuit)).rejects.toThrow("texte à copier");

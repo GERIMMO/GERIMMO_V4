@@ -26,9 +26,9 @@ function db() {
 function ctxAvecTelephone(telephone: string | null) {
   const ctx = contexte();
   const p = { ...ctx.locataires[0], email: "personne@example.invalid", telephone: "+33600000001", prenom: "Personne", qualite: "personne physique" };
-  ctx.locataires = [{ ...p, id: "locataire" }];
-  ctx.bailleurs = [{ ...p, id: "proprietaire", quote_part: 100 }];
-  ctx.garants = [{ ...p, id: GARANT, telephone, garant_de: "locataire" }];
+  ctx.locataires = [{ ...p, id: "locataire", email: "locataire@example.invalid" }];
+  ctx.bailleurs = [{ ...p, id: "proprietaire", email: "bailleur@example.invalid", quote_part: 100 }];
+  ctx.garants = [{ ...p, id: GARANT, email: "caution@example.invalid", telephone, garant_de: "locataire" }];
   return ctx;
 }
 beforeEach(() => {
@@ -56,5 +56,15 @@ describe("cautionnement : le mobile du dossier n'est jamais repris", () => {
     const ctx = ctxAvecTelephone("06 00 00 00 09");
     expect(partiesSignatureBail(ctx).signataires.find((s) => s.qualite === "Garant")!.telephone).toBe("+33600000009");
     expect(partiesSignatureBail(ctxAvecTelephone(null)).manquants.join(" ")).toContain("téléphone pour recevoir le code SMS");
+  });
+});
+
+describe("relecture du 24/10 : le lien de la caution ne part jamais chez le bailleur", () => {
+  it("une adresse de caution égale à celle d'un bailleur (casse ignorée) est à corriger avant la préparation", async () => {
+    const ctx = ctxAvecTelephone(null);
+    ctx.garants = [{ ...ctx.garants[0], email: " Bailleur@Example.invalid " }];
+    m.contexte.mockResolvedValue(ctx);
+    const r = await assemblerSignatureDocument(db(), "org", { code: "cautionnement", cibleId: BAIL, options: { garant: GARANT } });
+    expect(r.manquants.join(" ")).toContain("l’adresse e-mail de la caution est celle d’un bailleur");
   });
 });

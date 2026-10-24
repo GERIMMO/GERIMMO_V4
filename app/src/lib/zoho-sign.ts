@@ -165,6 +165,17 @@ function reutiliserChampsZoho(actions: ReturnType<typeof actionsSignatureZoho>, 
     })};
   });
 }
+/**
+ * Relecture du 24/10 : Zoho peut rendre les notes avec d'autres fins de ligne, des espaces regroupés ou des entités HTML.
+ * Le contrôle porte sur le texte (mêmes mots, même ordre), pas sur sa mise en forme : un message de plusieurs paragraphes
+ * ne doit pas faire échouer chaque activation d'un acte de cautionnement. À confirmer en recette (brouillon sans invitation).
+ */
+export function memeTexteZoho(lu: string | null | undefined, attendu: string | null | undefined): boolean {
+  const texte = (v: string | null | undefined) => (v ?? "")
+    .replace(/&#39;|&#x27;|&apos;/gi, "'").replace(/&quot;/gi, '"').replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ").trim();
+  return texte(lu) === texte(attendu);
+}
 export async function activerDemandeZoho(config: ConfigurationZohoSign, id: string, attendu: CircuitAttendu) {
   const req = await details(config, id);
   let actions = actionsSignatureZoho(req, attendu);
@@ -183,7 +194,7 @@ export async function activerDemandeZoho(config: ConfigurationZohoSign, id: stri
       if (champs.length !== 1 || !f.is_mandatory || f.default_value || f.field_value || f.validation?.validation_type!=="CUSTOM" || f.validation.validation_regex!==expressionSaisieMentionCaution(s.mentionCaution ?? "")) throw new Error("Zoho n’a pas confirmé le contrôle de la mention. Aucune invitation n’a été envoyée.");
     }
     const garant = attendu.signataires.find(s => s.qualite === "Garant")!;
-    if (controle.notes !== message || controle.actions.find(a => a.action_id === garant.externalId)?.private_notes !== noteMentionCaution(garant.mentionCaution ?? "")) throw new Error("Zoho n’a pas conservé le texte à copier dans l’invitation. Aucun envoi n’a été demandé.");
+    if (!message || !memeTexteZoho(controle.notes, message) || !memeTexteZoho(controle.actions.find(a => a.action_id === garant.externalId)?.private_notes, noteMentionCaution(garant.mentionCaution ?? ""))) throw new Error("Zoho n’a pas conservé le texte à copier dans l’invitation. Aucun envoi n’a été demandé.");
     // Réutiliser les identifiants reçus après PUT : aucun nouveau champ au submit.
     actions = reutiliserChampsZoho(actions, controle, true);
   }

@@ -151,15 +151,16 @@ function dateVisiteValide(v: string | undefined): v is string {
 
 /**
  * Envoi d'un circuit prêt. Décision du dirigeant du 23/10 (« Cautionnement et état des lieux signés dans Gerimmo ») :
- *  · état des lieux : `confirmation.visiteLe` (date de la visite) accompagne la case cochée « établi contradictoirement,
- *    sur place » ; sans elle, refus avant toute lecture du dossier (et refus en base) ;
+ *  · état des lieux : `confirmation.surPlace` (la case « établi contradictoirement, sur place », cochée) et
+ *    `confirmation.visiteLe` (date de la visite, celle que porte l'état des lieux) ; sans elles, refus avant toute
+ *    lecture du dossier (et refus en base) ;
  *  · acte de cautionnement : tant que la caution n'a pas confirmé elle-même son mobile, l'envoi part vers ELLE (lien à
  *    usage unique) et non chez le prestataire ; une fois confirmé, la demande est créée avec son numéro.
  */
-export async function envoyerSignatureBail(org: string, bail: string, id: string, confirmation?: { visiteLe?: string }): Promise<VueSignatureBail> {
+export async function envoyerSignatureBail(org: string, bail: string, id: string, confirmation?: { visiteLe?: string; surPlace?: boolean }): Promise<VueSignatureBail> {
   try {
     const { supabase, user, circuit } = await circuitAutorise(org,bail,id);
-    if (circuit.modele === "edl" && !dateVisiteValide(confirmation?.visiteLe)) throw new Error(REFUS_CONFIRMATION_EDL);
+    if (circuit.modele === "edl" && (confirmation?.surPlace !== true || !dateVisiteValide(confirmation?.visiteLe))) throw new Error(REFUS_CONFIRMATION_EDL);
     // Contrôles sans effet : fermeture ciblée d'un modèle d'abord (avant toute lecture), puis réglages, dossier, PDF.
     const controle = await controlerEnvoi({ db: supabase, org, bail, circuit });
     if (circuit.modele === "cautionnement" && !telephoneGarantConfirme(circuit.signataires)) {
@@ -167,7 +168,7 @@ export async function envoyerSignatureBail(org: string, bail: string, id: string
       const lien = await demanderConfirmationMobileCaution({ service, org, circuit, acteur: user.id });
       rafraichir(org,bail);
       return { ...await lireSignatureBail(org,bail,selectionDuCircuit(circuit)),
-        succes:`Lien envoyé à la caution (${lien.email}). Elle confirme elle-même son numéro de mobile ; l’acte lui est ensuite envoyé en signature, sans autre geste de votre part. Le lien expire le ${echeanceLisible(lien.expireLe)}.` };
+        succes:`Lien envoyé à la caution (${lien.email}). Elle confirme elle-même son numéro de mobile ; l’acte lui est alors envoyé en signature automatiquement. Vous signerez en dernier, après avoir vérifié sa mention. Le lien expire le ${echeanceLisible(lien.expireLe)}.` };
     }
     const envoi = await envoyerApresControle({ db: supabase, org, circuit, acteur: user.id, controle, visiteLe: confirmation?.visiteLe });
     if ("erreur" in envoi) return { erreur: envoi.erreur };

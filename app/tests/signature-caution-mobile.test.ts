@@ -37,7 +37,7 @@ vi.mock("@/lib/signature-prestataire", async (original) => ({ ...(await original
 import { envoyerSignatureBail } from "@/app/actions/signature-bail";
 import { confirmerMobileCaution } from "@/app/actions/confirmation-caution";
 import { REFUS_CONFIRMATION_EDL, REFUS_MOBILE_CAUTION_NON_CONFIRME, envoyerApresControle, telephoneGarantConfirme } from "@/lib/signature-envoi";
-import { empreinteJetonCaution, lireLienCaution, mobileCautionDepuisSaisie, nouveauJetonCaution } from "@/lib/confirmation-mobile-caution";
+import { MESSAGES_LIEN_CAUTION_CLOS, empreinteJetonCaution, lireLienCaution, mobileCautionDepuisSaisie, nouveauJetonCaution } from "@/lib/confirmation-mobile-caution";
 import { LONGUEUR_MAX_MESSAGE_INVITATION, bailleurDesSignataires, messageInvitationSignature, phraseTransmissionZoho } from "@/lib/message-invitation-signature";
 import { RAPPEL_COMPLEMENT_EDL_ENTREE } from "@/lib/textes-signature-actes";
 import { INSTRUCTIONS_CAUTION_MOBILE } from "@/lib/zoho-sign";
@@ -98,6 +98,8 @@ beforeEach(() => {
       m.circuit.signataires = signataires(MOBILE_CAUTION, true);
       return { data: [{ circuit_id: "circuit", organization_id: ORG, demande_par: "owner" }], error: null };
     }
+    // reserver_envoi_signature_bail rend la ligne réservée (état « préparation »).
+    if (nom === "reserver_envoi_signature_bail") return { data: { ...m.circuit, etat: "preparation" }, error: null };
     return { data: true, error: null };
   });
   m.acces.mockResolvedValue({ supabase: base(), user: { id: "owner" } });
@@ -184,7 +186,7 @@ describe("le bailleur lance la signature d'un acte de cautionnement", () => {
     m.circuit.signataires = signataires(MOBILE_DOSSIER);
     const r = await envoyerApresControle({ db: base() as never, org: ORG, circuit: m.circuit as CircuitBail, acteur: "owner",
       controle: { config: {} as never, titre: "Acte", contenu: PDF, annexes: [] } });
-    expect(r).toEqual({ erreur: REFUS_MOBILE_CAUTION_NON_CONFIRME });
+    expect(r).toEqual({ erreur: REFUS_MOBILE_CAUTION_NON_CONFIRME, etape: "avant_envoi" });
     expect(rpcAppelees()).not.toContain("reserver_envoi_signature_bail");
     expect(m.preparer).not.toHaveBeenCalled();
   });
@@ -269,8 +271,17 @@ describe("état des lieux : établi ensemble, sur place", () => {
     expect(m.preparer).not.toHaveBeenCalled();
   });
 
+  it("la date seule ne suffit pas : la case « établi contradictoirement, sur place » doit être transmise cochée", async () => {
+    for (const surPlace of [undefined, false]) {
+      const vue = await envoyerSignatureBail(ORG, BAIL, "circuit", { visiteLe: "2026-10-01", surPlace });
+      expect(vue.erreur).toBe(REFUS_CONFIRMATION_EDL);
+    }
+    expect(m.assembler).not.toHaveBeenCalled();
+    expect(rpcAppelees()).not.toContain("confirmer_edl_sur_place");
+  });
+
   it("avec la date de la visite : confirmée en base avant la réservation ; l'invitation rappelle le droit de compléter", async () => {
-    const vue = await envoyerSignatureBail(ORG, BAIL, "circuit", { visiteLe: "2026-10-01" });
+    const vue = await envoyerSignatureBail(ORG, BAIL, "circuit", { visiteLe: "2026-10-01", surPlace: true });
     expect(vue.erreur).toBeUndefined();
     expect(m.rpc).toHaveBeenCalledWith("confirmer_edl_sur_place", { p_circuit: "circuit", p_actor: "owner", p_visite_le: "2026-10-01" });
     expect(rpcAppelees().indexOf("confirmer_edl_sur_place")).toBeLessThan(rpcAppelees().indexOf("reserver_envoi_signature_bail"));
@@ -282,7 +293,7 @@ describe("état des lieux : établi ensemble, sur place", () => {
 
   it("une date refusée par la base (postérieure à aujourd'hui) empêche la réservation", async () => {
     m.rpc.mockImplementation(async (nom: string) => nom === "confirmer_edl_sur_place" ? { data: null, error: { message: "La date de la visite ne peut pas être postérieure à aujourd’hui." } } : { data: true, error: null });
-    const vue = await envoyerSignatureBail(ORG, BAIL, "circuit", { visiteLe: "2099-01-01" });
+    const vue = await envoyerSignatureBail(ORG, BAIL, "circuit", { visiteLe: "2099-01-01", surPlace: true });
     expect(vue.erreur).toContain("postérieure");
     expect(rpcAppelees()).not.toContain("reserver_envoi_signature_bail");
   });
@@ -356,5 +367,81 @@ describe("la page publique du lien ne dit rien d'un lien clos", () => {
     expect(r.etat === "valide" && r.montant).toMatch(/15[\s  ]000,00 € \(quinze mille euros\)/);
     m.circuit.etat = "annule";
     expect(await lireLienCaution(service(ouvert).client, "A".repeat(43))).toEqual({ etat: "annule" });
+  });
+});
+
+describe("relectures adverses du 24/10", () => {
+  const formulaire = (mobile = "06 11 22 33 44") => {
+    const f = new FormData();
+    f.set("mobile", mobile); f.set("mobile_confirmation", mobile); f.set("personnel", "oui");
+    return f;
+  };
+  const jeton = "B".repeat(43);
+
+  it("le lien ne part pas quand l'adresse de la caution est celle d'un propriétaire signataire (casse ignorée)", async () => {
+    m.circuit.signataires = signataires().map((s) => (s.qualite === "Garant" ? { ...s, email: "Paule@Example.invalid" } : s));
+    const vue = await envoyerSignatureBail(ORG, BAIL, "circuit");
+    expect(vue.erreur).toMatch(/adresse e-mail de la caution est celle d’un bailleur/);
+    expect(m.email).not.toHaveBeenCalled();
+    expect(rpcAppelees()).not.toContain("demander_confirmation_mobile_caution");
+  });
+
+  it("le message au bailleur ne promet pas un envoi « sans autre geste » : il signera en dernier", async () => {
+    const vue = await envoyerSignatureBail(ORG, BAIL, "circuit");
+    expect(vue.succes).not.toContain("sans autre geste");
+    expect(vue.succes).toContain("Vous signerez en dernier, après avoir vérifié sa mention.");
+  });
+
+  it("la demande part avec les signataires de la ligne réservée en base, pas avec ceux lus avant la réservation", async () => {
+    m.circuit.signataires = signataires(MOBILE_CAUTION, true);
+    const reserve = signataires("+33622334455", true);
+    m.rpc.mockImplementation(async (nom: string) => nom === "reserver_envoi_signature_bail"
+      ? { data: { ...m.circuit, etat: "preparation", signataires: reserve }, error: null } : { data: true, error: null });
+    expect((await envoyerSignatureBail(ORG, BAIL, "circuit")).erreur).toBeUndefined();
+    const params = m.preparer.mock.calls[0][0] as { signataires: { telephone: string; qualite: string }[] };
+    expect(params.signataires.find((s) => s.qualite === "Garant")!.telephone).toBe("+33622334455");
+    const attache = m.mises.find(([t, v]) => t === "bail_signature_circuits" && Array.isArray(v.signataires))![1].signataires as { telephone: string }[];
+    expect(attache[0].telephone).toBe("+33622334455");
+    expect((m.activer.mock.calls[0][2] as { signataires: { telephone: string }[] }).signataires[0].telephone).toBe("+33622334455");
+  });
+
+  it("une réservation sans ligne lisible ne part jamais chez le prestataire", async () => {
+    m.circuit.signataires = signataires(MOBILE_CAUTION, true);
+    m.rpc.mockImplementation(async () => ({ data: true, error: null }));
+    expect((await envoyerSignatureBail(ORG, BAIL, "circuit")).erreur).toBeTruthy();
+    expect(m.preparer).not.toHaveBeenCalled();
+    expect(rpcAppelees()).toContain("abandonner_preparation_signature");
+  });
+
+  it("caution : un échec après la réservation, avant le prestataire, annonce un nouveau lien (le circuit est annulé)", async () => {
+    m.preparer.mockRejectedValue(new Error("Connexion au prestataire indisponible."));
+    const r = await confirmerMobileCaution(jeton, {}, formulaire());
+    expect(rpcAppelees()).toContain("abandonner_preparation_signature");
+    expect(r.erreur).toContain("Votre numéro +33 6 11 22 33 44 est confirmé.");
+    expect(r.erreur).not.toContain("sans vous redemander");
+    expect(r.erreur).toContain("nouveau lien");
+  });
+
+  it("caution : un échec après l'appel au prestataire annonce une vérification, sans promettre l'invitation", async () => {
+    m.preparer.mockImplementation(async (p: { creationCommencee?: () => void }) => { p.creationCommencee?.(); throw new Error("Réponse perdue"); });
+    const r = await confirmerMobileCaution(jeton, {}, formulaire());
+    expect(m.mises.some(([, v]) => v.etat === "a_verifier")).toBe(true);
+    expect(r.erreur).toContain("Votre numéro +33 6 11 22 33 44 est confirmé.");
+    expect(r.erreur).not.toContain("sans vous redemander");
+    expect(r.erreur).toContain("doit être vérifié");
+  });
+
+  it("la page d'un lien déjà utilisé ne promet pas une invitation déjà partie", () => {
+    expect(MESSAGES_LIEN_CAUTION_CLOS.utilise).not.toContain("vous parvient");
+    expect(MESSAGES_LIEN_CAUTION_CLOS.utilise).toContain("dès que l’acte sera envoyé");
+  });
+
+  it("le cautionnement suspendu par réglage s'annonce dès l'ouverture de la page, sans rien lire en base", async () => {
+    vi.stubEnv("ZOHO_SIGN_CAUTIONNEMENT_FERME", "true");
+    const lectures: string[] = [];
+    const client = { from: (t: string) => { lectures.push(t); throw new Error("aucune lecture attendue"); } };
+    expect(await lireLienCaution(client as never, "A".repeat(43))).toEqual({ etat: "suspendu" });
+    expect(lectures).toEqual([]);
+    expect(MESSAGES_LIEN_CAUTION_CLOS.suspendu).toContain("suspendue");
   });
 });

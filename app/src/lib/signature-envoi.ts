@@ -93,7 +93,14 @@ export async function messageInvitationCircuit(db: SupabaseClient, org: string, 
   return messageInvitationSignature({ modele: circuit.modele, bailleur: bailleurDesSignataires(circuit.signataires), lienConfidentialite: lienConfidentialite(), edlEntree });
 }
 
-export type ResultatEnvoi = { envoye: true } | { erreur: string };
+/**
+ * Où l'envoi s'est arrêté (relecture du 24/10), pour dire juste à la caution ce qui se passe ensuite :
+ *  · `avant_envoi` : rien n'a changé, le circuit reste prêt (le numéro confirmé y reste) ;
+ *  · `abandonne` : la réservation a été défaite, le circuit est annulé (une nouvelle préparation, donc un nouveau lien) ;
+ *  · `a_verifier` : le prestataire a peut-être reçu la demande ; le circuit est à vérifier.
+ */
+export type EtapeEchecEnvoi = "avant_envoi" | "abandonne" | "a_verifier";
+export type ResultatEnvoi = { envoye: true } | { erreur: string; etape: EtapeEchecEnvoi };
 
 /**
  * Réservation, création et activation chez le prestataire. `visiteLe` (AAAA-MM-JJ) : la date de la visite saisie par
@@ -103,6 +110,7 @@ export async function envoyerApresControle(p: { db: SupabaseClient; org: string;
   const { db, org, circuit, acteur, controle } = p;
   const id = circuit.id;
   let reserve = false;
+  let abandonne = false;
   let appelPrestataire = false;
   try {
     const service = clientDeService();
@@ -119,6 +127,13 @@ export async function envoyerApresControle(p: { db: SupabaseClient; org: string;
     const reservation = await service.rpc("reserver_envoi_signature_bail", { p_circuit: id, p_actor: acteur });
     if (reservation.error) throw new Error(sansJargon(reservation.error.message));
     reserve = true;
+    // Relecture du 24/10 : les signataires envoyés au prestataire sont ceux de la ligne réservée, que la garde en base
+    // vient de valider (numéro confirmé par la caution, confirmation sur place…), et non ceux lus avant la réservation.
+    const ligne = reservation.data as Partial<CircuitBail> | null;
+    if (!ligne || typeof ligne !== "object" || ligne.id !== id || !Array.isArray(ligne.signataires) || ligne.signataires.length !== circuit.signataires.length) {
+      throw new Error("La réservation de l’envoi n’a pas pu être relue. Aucun appel au prestataire n’a été effectué.");
+    }
+    const signataires = ligne.signataires as SignataireBail[];
     // Après la réservation, les relevés EDL sont verrouillés en base. Une
     // écriture concurrente juste avant ce verrou doit aussi invalider le PDF.
     if (circuit.modele === "edl" || circuit.modele === "devis_artisan") {
@@ -131,15 +146,15 @@ export async function envoyerApresControle(p: { db: SupabaseClient; org: string;
     const expiration = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(circuit.expire_le));
     const cree = await preparerCircuitSignature({ config, pdf: controle.contenu, nomFichier: "document-gerimmo.pdf",
       titre: signatureEnEssai(org) ? "GERIMMO — ESSAI DE SIGNATURE SANS ENGAGEMENT" : config.environnement === "sandbox" ? "TEST FICTIF — Document Gerimmo" : controle.titre, referenceExterne: id, expiration,
-      signataires: circuit.signataires, annexes: controle.annexes, message, creationCommencee: () => { appelPrestataire = true; }, demandeCreee: async (externalId) => {
+      signataires, annexes: controle.annexes, message, creationCommencee: () => { appelPrestataire = true; }, demandeCreee: async (externalId) => {
         const attache = await service.from("bail_signature_circuits").update({ external_request_id: externalId }).eq("id", id).eq("etat", "preparation").select("id").single();
         if (attache.error) throw new Error("Le suivi de la demande doit être vérifié avant toute activation.");
       } });
     const attache = await service.from("bail_signature_circuits").update({ external_document_id: cree.documentId,
-      signataires: circuit.signataires.map((s, i) => ({ ...s, externalId: cree.signataireIds[i], statut: "initiated" })) }).eq("id", id).eq("etat", "preparation").select("id").single();
+      signataires: signataires.map((s, i) => ({ ...s, externalId: cree.signataireIds[i], statut: "initiated" })) }).eq("id", id).eq("etat", "preparation").select("id").single();
     if (attache.error) throw new Error("Les signataires n’ont pas pu être rattachés. Aucune activation n’a été demandée.");
     await verifierAvantEffet(service, "signatures");
-    await activerDemandeSignature(config, cree.demandeId, { ...circuit, external_document_id: cree.documentId, signataires: circuit.signataires.map((s, i) => ({ ...s, externalId: cree.signataireIds[i] })) }, message);
+    await activerDemandeSignature(config, cree.demandeId, { ...circuit, external_document_id: cree.documentId, signataires: signataires.map((s, i) => ({ ...s, externalId: cree.signataireIds[i] })) }, message);
     const miseAJour = await service.from("bail_signature_circuits").update({ etat: "en_cours", envoye_le: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", id).eq("etat", "preparation");
     if (miseAJour.error) throw new Error("L’envoi doit être rapproché du prestataire.");
     return { envoye: true };
@@ -149,12 +164,12 @@ export async function envoyerApresControle(p: { db: SupabaseClient; org: string;
       // Une panne de relecture ne doit pas laisser un circuit impossible à annuler.
       const service = clientDeService();
       const retrait = await service?.rpc("abandonner_preparation_signature", { p_circuit: id, p_actor: acteur });
-      if (retrait?.data === true && !retrait.error) reserve = false;
+      if (retrait?.data === true && !retrait.error) { reserve = false; abandonne = true; }
     }
     if (reserve) {
       await clientDeService()?.from("bail_signature_circuits").update({ etat: "a_verifier", erreur: "L’envoi n’a pas pu être confirmé. Actualisez le suivi avant toute nouvelle demande." }).eq("id", id).in("etat", ["preparation", "en_cours"]);
-      return { erreur: "L’envoi n’a pas pu être confirmé. Actualisez le suivi ; ne créez pas une deuxième demande." };
+      return { erreur: "L’envoi n’a pas pu être confirmé. Actualisez le suivi ; ne créez pas une deuxième demande.", etape: "a_verifier" };
     }
-    return { erreur: e instanceof Error ? sansJargon(e.message) : "Cette opération n’a pas pu être confirmée. Actualisez le suivi avant de réessayer." };
+    return { erreur: e instanceof Error ? sansJargon(e.message) : "Cette opération n’a pas pu être confirmée. Actualisez le suivi avant de réessayer.", etape: abandonne ? "abandonne" : "avant_envoi" };
   }
 }

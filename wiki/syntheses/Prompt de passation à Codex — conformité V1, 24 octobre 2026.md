@@ -56,3 +56,8 @@ Douze commits, non relus en dernière passe :
 > [!warning] Points à trancher / contradictions
 > - Branche non relue en dernière passe : ne rien publier sans la relecture du § 3.2.
 > - Textes de loi reproduits (annexe L. 215, encadré de garantie, formulaire de rétractation) : à recomparer mot pour mot sur Légifrance (source non ouverte le 23/10/2026).
+
+
+## Suite de la passation — 24 octobre, publication par Codex
+
+Relecture achevée et corrections livrées par [#248](https://github.com/GERIMMO/GERIMMO_V4/pull/248), main `a519f3a`. CI verte, sauvegarde entièrement terminée avant simulation, migration 150000 simulée puis appliquée, Vercel READY. Archives du 30 septembre et des deux conditions V1 enregistrées. Recette de production 40081401588 : 67 réussis, 1 ignoré, nettoyage vérifié ; Stripe 40081459350 : 14 réussis, aucun argent réel. Détail des corrections, sources, limites et identifiants : [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] et entrées `deploy`/`audit` de `log.md` du 24 octobre. Les gestes externes du § 5 et le contrôle nocturne du 25/10 restent à confirmer.

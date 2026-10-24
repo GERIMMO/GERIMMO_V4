@@ -14,7 +14,7 @@ Les couleurs accompagnent des libellés explicites : vert pour un rapport à jou
 - Locataires : séparer les transmissions demandées des fichiers disponibles ; assurance déjà déposée sans formulaire ouvert en permanence.
 - Artisans : coordonnées, zone et métiers, personnalisation des devis dans trois rubriques.
 - Tous les espaces privés : titres plus compacts, espacements mobiles et cibles tactiles conservées.
-- Superadmin : simplification des huit rubriques et de leurs détails déjà publiée dans la PR #253.
+- Superadmin : simplification des huit rubriques et de leurs détails déjà publiée dans la PR #253 ; durées de conservation présentées par six catégories avec recherche sur toutes les catégories.
 
 ## Preuves et limites
 

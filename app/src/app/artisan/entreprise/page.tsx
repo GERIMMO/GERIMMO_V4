@@ -43,7 +43,6 @@ export default async function PageEntreprise() {
       </div></div>
       <Link href="#documents" className={styles.boutonDevis}><FilePenLine size={17} aria-hidden/>Personnaliser mes devis</Link>
     </section>
-    <nav aria-label="Services de mon entreprise" className={styles.raccourcis}>{raccourcis.map(r => <Link key={r.href} href={r.href} className={styles.raccourci} data-ton={r.ton} data-attention={r.tendu}><span className={styles.icone}><r.icone size={21} aria-hidden/></span><span><strong>{r.titre}</strong><small>{r.detail}</small></span><ArrowUpRight size={17} aria-hidden/></Link>)}</nav>
     {aucunePiece && <p className={styles.alerteAttestation}><FileCheck2 size={17} aria-hidden/><span>Déposez votre décennale pour être proposé sur les {"travaux qui l'exigent"}. <Link href="/artisan/attestations">Ajouter une attestation <ArrowUpRight size={13} aria-hidden/></Link></span></p>}
     <OngletsDossier libelle="Rubriques de mon entreprise" rubriques={[
       { id: "entreprise-coordonnees", titre: "Coordonnées", contenu: <>
@@ -65,5 +64,6 @@ export default async function PageEntreprise() {
       { id: "entreprise-devis", titre: "Mes devis", contenu: <>
         {documents && !documents.error ? <DocumentsEntreprise profil={documents.data ?? { adresse: "", mentions: "", logo_data: null }}/>: <Erreur>Les informations de vos documents ne sont pas disponibles pour le moment. Réessayez avant de valider un devis.</Erreur>}</> },
     ]} />
+    <nav aria-label="Services de mon entreprise" className={styles.raccourcis}>{raccourcis.map(r => <Link key={r.href} href={r.href} className={styles.raccourci} data-ton={r.ton} data-attention={r.tendu}><span className={styles.icone}><r.icone size={21} aria-hidden/></span><span><strong>{r.titre}</strong><small>{r.detail}</small></span><ArrowUpRight size={17} aria-hidden/></Link>)}</nav>
   </div>;
 }

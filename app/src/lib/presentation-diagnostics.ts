@@ -1,4 +1,4 @@
-import { statutDiagnostic } from "./parc";
+import { jourValide, jourAParis } from "./presentation-document";
 
 type Diagnostic = { type: string; document_id: string | null; date_expiration: string | null };
 export const diagnosticConditionnel = (type: string) => ["gaz", "electricite", "termites"].includes(type);
@@ -10,11 +10,11 @@ export function presentationDiagnostic(type: string, diagnostic: Diagnostic | un
     : attendu ? { etat: "a_ajouter", libelle: "À ajouter", ton: "attente" } as const
     : { etat: "facultatif", libelle: "Facultatif", ton: "neutre" } as const;
   if (!diagnostic.document_id) return { etat: "a_joindre", libelle: "Fichier à joindre", ton: "attente" } as const;
-  if (!diagnostic.date_expiration) return { etat: "disponible", libelle: "Fichier disponible", ton: "neutre" } as const;
-  const statut = statutDiagnostic(diagnostic.date_expiration);
-  if (statut === "expire") return { etat: "expire", libelle: "À renouveler", ton: "attente" } as const;
-  if (statut === "expire_bientot") return { etat: "expire_bientot", libelle: "Expire bientôt", ton: "attente" } as const;
-  return { etat: "valide", libelle: "À jour", ton: "ok" } as const;
+  if (!jourValide(diagnostic.date_expiration)) return { etat: "disponible", libelle: "Validité à vérifier", ton: "neutre" } as const;
+  const jours = (Date.parse(diagnostic.date_expiration) - Date.parse(jourAParis())) / 86_400_000;
+  if (jours < 0) return { etat: "expire", libelle: "Expiré · à renouveler", ton: "attente" } as const;
+  if (jours <= 90) return { etat: "expire_bientot", libelle: "Valide · expire bientôt", ton: "attente" } as const;
+  return { etat: "valide", libelle: "Valide", ton: "ok" } as const;
 }
 
 export function bilanDiagnostics(attendus: string[], diagnostics: Diagnostic[]) {
@@ -24,10 +24,10 @@ export function bilanDiagnostics(attendus: string[], diagnostics: Diagnostic[]) 
   return {
     lignes,
     disponibles: lignes.filter(l => l.diagnostic?.document_id).length,
-    aJour: lignes.filter(l => l.etat === "valide").length,
+    aJour: lignes.filter(l => ["valide", "expire_bientot"].includes(l.etat)).length,
     aVerifier: lignes.filter(l => ["a_confirmer", "disponible"].includes(l.etat)).length,
     aAjouter: lignes.filter(l => ["a_ajouter", "a_joindre"].includes(l.etat)).length,
-    aRenouveler: lignes.filter(l => ["expire", "expire_bientot"].includes(l.etat)).length,
+    aRenouveler: lignes.filter(l => l.etat === "expire").length,
     aConfirmer: lignes.filter(l => l.etat === "a_confirmer").length,
   };
 }

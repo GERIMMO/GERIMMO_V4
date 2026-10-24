@@ -1,4 +1,6 @@
 import { OngletsDossier } from "@/components/onglets-dossier";
+import { lirePresentationSignatures } from "@/lib/lecture-presentation-signatures";
+import { archiveSignee, signatureDuBail } from "@/lib/presentation-signatures";
 import { bilanDiagnostics } from "@/lib/presentation-diagnostics";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
 import { AvertissementsLoyer } from "@/components/avertissements-loyer";
@@ -55,9 +57,10 @@ export default async function PageLot(
   // Conserver le lien direct vers la modification des caractéristiques.
   const { modifier, parcours, etape, retourBail, retourEtape } = ((await props.searchParams) ?? {}) as { modifier?: string; parcours?: string; etape?: string; retourBail?: string; retourEtape?: string };
   exigerUuids(bienId, lotId);
-  const { supabase, role, user, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, role, user, estProprietaire, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
+  if (traverseeLectureSeule && (parcours === "1" || modifier === "1")) redirect(`${base}/parc/${bienId}/lots/${lotId}#logement-lot`);
   if (parcours === "1" && ["bail", "locataires"].includes(etape ?? "")) redirect(`${base}/parc/${bienId}/lots/${lotId}#baux`);
 
   const { data: chambres, error: erreurChambres } = await supabase.from("lot_chambres").select("*").eq("lot_id", lotId).eq("organization_id", orgId).order("nom");
@@ -158,6 +161,9 @@ export default async function PageLot(
       />
     );
   if (!lot || !bien) notFound();
+  const suiviSignatures = await lirePresentationSignatures(orgId, { baux: (baux ?? []).filter(b => b.etat === "brouillon").map(b => b.id) });
+  const archiveBail = (b: { id: string; document_signe: string | null }) => b.document_signe ?? archiveSignee(signatureDuBail(suiviSignatures.circuits, b.id));
+  const libelleEtatBail = (b: { id: string; etat: string; document_signe: string | null }) => b.etat === "brouillon" && archiveBail(b) ? "Bail signé" : b.etat === "brouillon" && suiviSignatures.erreur ? "Signature à vérifier" : ETATS_BAIL[b.etat] ?? b.etat;
 
   // Appels de charges de copropriété (module 0c) — uniquement si le bien est en copropriété
   const { data: appelsRaw, error: erreurAppels } = bien.copropriete
@@ -238,6 +244,7 @@ export default async function PageLot(
   noter("les personnes de l’agence", erreurPersonnes);
   noter("ce qui bloque la mise en location", erreurBlocages);
   noter("les baux", erreurBaux);
+  noter("le suivi des signatures", suiviSignatures.erreur);
   noter("les propriétaires déjà connus de l’agence", erreurProprietaires);
   noter("les pièces du lot", erreurPieces);
   noter("les appels de charges", erreurAppels);
@@ -475,7 +482,7 @@ export default async function PageLot(
               nbBaux === 0
                 ? "Aucun bail"
                 : `${nbBaux > 1 ? `${nbBaux} baux` : "1 bail"} · ${(baux ?? [])
-                    .map((b) => ETATS_BAIL[b.etat] ?? b.etat)
+                    .map(libelleEtatBail)
                     .join(", ")}`
             }
           >
@@ -484,13 +491,14 @@ export default async function PageLot(
                 <ul className={styles.bauxListe}>
                   {(baux ?? []).map((b) => (
                     <li key={b.id} className={styles.bailLigne}>
-                      <span className={COULEURS_ETAT_BAIL[b.etat] ?? "puce puce-grise"}>
-                        {ETATS_BAIL[b.etat] ?? b.etat}
+                      <span className={b.etat === "brouillon" && archiveBail(b) ? "puce puce-loue" : COULEURS_ETAT_BAIL[b.etat] ?? "puce puce-grise"}>
+                        {libelleEtatBail(b)}
                       </span>
                       {/* Recette 21/08 puis 22/08 : la vue macro dit qui
                           habite, pour combien et depuis quand — avant
                           d'ouvrir. */}
                       <div className={styles.bailTexte}>
+                        {b.etat === "brouillon" && archiveBail(b) && <span className={styles.activationAttente}>Location non activée</span>}
                         Bail {b.chambre_id ? `individuel · ${chambres?.find(c => c.id === b.chambre_id)?.nom ?? "chambre"}` : (TYPES_BAIL[b.type] ?? b.type).toLowerCase()}
                         {b.locataire_principal && nomsParId.get(b.locataire_principal)
                           ? ` — ${nomsParId.get(b.locataire_principal)}`
@@ -517,13 +525,13 @@ export default async function PageLot(
                       >
                         Ouvrir
                       </Link>
-                      {b.etat === "brouillon" && !b.document_signe && !b.signe_envoye_le && <SupprimerBailBrouillon orgId={orgId} bailId={b.id} libelle={[lot.nom, TYPES_BAIL[b.type] ?? b.type, b.locataire_principal ? nomsParId.get(b.locataire_principal) : null, b.date_debut ? `Entrée le ${formaterDate(b.date_debut)}` : null].filter(Boolean).join(" · ")} />}
+                      {!traverseeLectureSeule && b.etat === "brouillon" && !archiveBail(b) && !suiviSignatures.erreur && !b.signe_envoye_le && <SupprimerBailBrouillon orgId={orgId} bailId={b.id} libelle={[lot.nom, TYPES_BAIL[b.type] ?? b.type, b.locataire_principal ? nomsParId.get(b.locataire_principal) : null, b.date_debut ? `Entrée le ${formaterDate(b.date_debut)}` : null].filter(Boolean).join(" · ")} />}
                       </div>
                     </li>
                   ))}
                 </ul>
               )}
-              {detentionsActives.length === 0 ? (
+              {traverseeLectureSeule ? <p className="text-sm text-muted-foreground">Les contrats se préparent et s’activent depuis le compte propriétaire.</p> : detentionsActives.length === 0 ? (
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <p>
                     Ajoutez les propriétaires du lot avant de créer un bail. Le locataire sera choisi dans le parcours du bail.
@@ -574,17 +582,18 @@ export default async function PageLot(
   const bauxBrouillons = (baux ?? []).filter(b => b.etat === "brouillon");
   const bailAReprendre = bauxBrouillons[0];
   const bailPrincipal = bailEnCours ?? bailAReprendre;
+  const signeAActiver = !bailEnCours && bailAReprendre ? archiveBail(bailAReprendre) : null;
   const hrefBailPrincipal = bailPrincipal ? `${base}/baux/${bailPrincipal.id}` : "#baux";
-  const libelleBailPrincipal = bailEnCours ? "Ouvrir le bail" : bailAReprendre ? "Reprendre le bail" : "Préparer un bail";
+  const libelleBailPrincipal = bailEnCours ? "Ouvrir le bail" : signeAActiver ? "Consulter le bail signé" : bailAReprendre ? "Reprendre le bail" : "Préparer un bail";
   const valeurLogement = (valeur: string | number | null | undefined) => valeur == null || String(valeur).trim() === "" ? "Non renseigné" : valeur;
 
   const logement = <>    <div className={styles.apercuGrille}>
-      <section className={styles.panneau} aria-label="Le logement">
-        <div id="caracteristiques" className="scroll-mt-24"><RecapLot key={modifier ?? "lecture"} orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} copropriete={bien.copropriete} typeBien={bien.type} modifierInitial={modifier === "1"} /></div>
+      <section className={styles.panneau} data-ton="bleu" aria-label="Le logement">
+        <div id="caracteristiques" className="scroll-mt-24"><RecapLot key={modifier ?? "lecture"} orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} copropriete={bien.copropriete} typeBien={bien.type} modifierInitial={modifier === "1"} lectureSeule={traverseeLectureSeule} /></div>
         <div className="mt-4">{rubriquePieces}{rubriqueEquipements}</div>
       </section>
       <div className={styles.colonneApercu}>
-        <section className={styles.panneau} aria-labelledby="titre-batiment-lot">
+        <section className={styles.panneau} data-ton="vert" aria-labelledby="titre-batiment-lot">
           <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><Building2 size={18} aria-hidden="true" /></span><h2 id="titre-batiment-lot">Le bâtiment</h2></header>
           <dl className={styles.infosApercu}>
             <div><dt>Construction</dt><dd>{valeurLogement(bien.annee_construction)}</dd></div>
@@ -592,46 +601,47 @@ export default async function PageLot(
             <div><dt>Parties communes</dt><dd>{valeurLogement(bien.parties_communes)}</dd></div>
             <div><dt>Internet, téléphone, TV</dt><dd>{valeurLogement(bien.acces_tic)}</dd></div>
           </dl>
-          <div className="mt-4"><SectionLot id="batiment" titre="Modifier l’adresse et le bâtiment" resume={[bien.address_line1, bien.city].filter(Boolean).join(" · ")}><FormulaireBien orgId={orgId} bien={bien} /></SectionLot></div>
+          {!traverseeLectureSeule && <div className="mt-4"><SectionLot id="batiment" titre="Modifier l’adresse et le bâtiment" resume={[bien.address_line1, bien.city].filter(Boolean).join(" · ")}><FormulaireBien orgId={orgId} bien={bien} /></SectionLot></div>}
         </section>
-        <section className={styles.panneau}>{rubriqueDetention}</section>
+        <section className={styles.panneau} data-ton="or">{rubriqueDetention}</section>
       </div>
     </div>
 </>;
   const vueEnsemble = <div className={styles.apercu}>
-    <section className={styles.locationResume} id="location-apercu" aria-labelledby="titre-location-lot">
+    <section className={styles.locationResume} data-signe={Boolean(signeAActiver)} id="location-apercu" aria-labelledby="titre-location-lot">
       <span className={styles.iconeLocation}><FileText size={22} aria-hidden="true" /></span>
       <div className={styles.locationTexte}>
-        <span className={styles.surtitre}>{bailEnCours ? "Location en cours" : bailAReprendre ? "Bail en préparation" : "Votre location"}</span>
-        <h2 id="titre-location-lot">{erreurBaux ? "Les baux sont indisponibles" : bauxEnCours.length > 1 ? `${bauxEnCours.length} contrats en cours` : bailEnCours ? recapLocataire ?? "Bail actif" : bailAReprendre ? "Votre bail vous attend" : lot.etat === "archive" ? "Ce lot est archivé" : "Préparez la prochaine location"}</h2>
+        <span className={styles.surtitre}>{bailEnCours ? "Location en cours" : signeAActiver ? "Bail signé" : bailAReprendre && suiviSignatures.erreur ? "Suivi du bail" : bailAReprendre ? "Bail en préparation" : "Votre location"}</span>
+        <h2 id="titre-location-lot">{erreurBaux ? "Les baux sont indisponibles" : bauxEnCours.length > 1 ? `${bauxEnCours.length} contrats en cours` : bailEnCours ? recapLocataire ?? "Bail actif" : signeAActiver ? "Location non activée" : bailAReprendre && suiviSignatures.erreur ? "Signature à vérifier" : bailAReprendre ? "Votre bail vous attend" : lot.etat === "archive" ? "Ce lot est archivé" : "Préparez la prochaine location"}</h2>
         <p>{erreurBaux ? "Réessayez pour retrouver les contrats de ce lot." : bailPrincipal ? [
           bailAReprendre && !bailEnCours && bailAReprendre.locataire_principal ? nomsParId.get(bailAReprendre.locataire_principal) : null,
           `Bail ${(TYPES_BAIL[bailPrincipal.type] ?? bailPrincipal.type).toLowerCase()}`,
           bailPrincipal.date_debut ? `Entrée ${bailAReprendre && !bailEnCours ? "prévue " : ""}le ${formaterDate(bailPrincipal.date_debut)}` : "Date d’entrée à préciser",
-          bauxBrouillons.length > 1 && !bailEnCours ? `Dernier des ${bauxBrouillons.length} brouillons` : null,
+          bauxBrouillons.length > 1 && !bailEnCours ? `Dernier des ${bauxBrouillons.length} contrats à préparer ou activer` : null,
         ].filter(Boolean).join(" · ") : lot.etat === "archive" ? "Retrouvez les informations et l’historique de ce logement." : "Les informations du logement seront reprises dans le bail."}</p>
+        {signeAActiver && <p>Le contrat signé est archivé. La location attend votre activation.</p>}
         {loyerCc !== null && !erreurBaux && <p><strong>{eur(loyerCc)} / mois</strong> · charges comprises</p>}
       </div>
       {!erreurBaux && <div className={styles.locationActions}>
-        <Link href={lot.etat === "archive" ? "#baux" : hrefBailPrincipal} className="btn-or">{lot.etat === "archive" ? "Consulter les baux" : libelleBailPrincipal}<ArrowRight size={15} aria-hidden="true" /></Link>
+        <Link href={lot.etat === "archive" ? "#baux" : signeAActiver ? `${hrefBailPrincipal}#etape-bail-7` : hrefBailPrincipal} className="btn-or">{lot.etat === "archive" ? "Consulter les baux" : libelleBailPrincipal}<ArrowRight size={15} aria-hidden="true" /></Link>
         {nbBaux > 1 && <a href="#baux">Voir les {nbBaux} baux</a>}
       </div>}
     </section>
-    <div className={styles.apercuGrille}>        <section className={styles.panneau} aria-labelledby="titre-proprietaires-lot">
+    <div className={styles.apercuGrille}>        <section className={styles.panneau} data-ton="or" aria-labelledby="titre-proprietaires-lot">
           <header className={styles.panneauEntete} data-ton="or"><span className={styles.panneauIcone}><Users size={18} aria-hidden="true" /></span><h2 id="titre-proprietaires-lot">Propriétaires</h2></header>
           {erreurDetentions ? <p className={styles.texteVide}>Lecture à réessayer.</p> : detentionsActives.length ? <ul className={styles.proprietaires}>{detentionsActives.map(d => {
             const personne = d.person as unknown as { nom: string; prenom: string | null } | null;
             const nom = nomPersonne(personne);
             return <li key={d.id}><span className={styles.avatar} aria-hidden="true">{personne ? [personne.prenom?.[0], personne.nom[0]].filter(Boolean).join("").toUpperCase() : "—"}</span><div><strong>{nom}</strong><small>Propriétaire du lot</small></div><span className={styles.quotePart}>{Number(d.quote_part)} %</span></li>;
           })}</ul> : <p className={styles.texteVide}>Aucun propriétaire rattaché.</p>}
-          <a href="#detention" className="inline-flex min-h-11 items-center text-sm underline">Gérer les propriétaires</a>
+          <a href="#detention" className="inline-flex min-h-11 items-center text-sm underline">{traverseeLectureSeule ? "Voir les propriétaires" : "Gérer les propriétaires"}</a>
         </section>
-    <section className={styles.panneau} aria-labelledby="etat-documents">
-      <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><FileText size={18} aria-hidden="true" /></span><h2 id="etat-documents">Vos documents</h2></header>
+    <section className={styles.panneau} data-ton="vert" aria-labelledby="etat-documents">
+      <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><FileText size={18} aria-hidden="true" /></span><h2 id="etat-documents">Diagnostics</h2></header>
       {erreurDiagnostics || erreurDiagnosticsBien ? <p>Documents indisponibles. Réessayez pour connaître leur état.</p> : <dl className={styles.etatDocuments}>
-        <div data-ton="vert"><dt>À jour</dt><dd>{bilan.aJour}</dd></div>
-        <div data-ton="ambre"><dt>À ajouter</dt><dd>{bilan.aAjouter}</dd></div>
-        <div data-ton="ambre"><dt>À renouveler</dt><dd>{bilan.aRenouveler}</dd></div>
+        <div data-ton="vert"><dt>Valides</dt><dd>{bilan.aJour}</dd></div>
+        <div data-ton="ambre"><dt>Manquants</dt><dd>{bilan.aAjouter}</dd></div>
+        <div data-ton="ambre"><dt>Expirés</dt><dd>{bilan.aRenouveler}</dd></div>
         <div><dt>À vérifier</dt><dd>{bilan.aVerifier}</dd></div>
       </dl>}
       <a href="#documents-lot" className="inline-flex min-h-11 items-center gap-2 text-sm underline">Voir chaque document <ArrowRight size={14} aria-hidden="true" /></a>
@@ -690,7 +700,7 @@ export default async function PageLot(
       <Link href={`${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {role === "proprietaire_direct" ? "Mes lots" : "Mon portefeuille"}</Link>
       <header className={styles.entete}>
         <div className={styles.identite}><span className={styles.icone}><House size={28} aria-hidden="true" /></span><div className="min-w-0"><p className={styles.surtitre}>Fiche du lot{bien.nom !== lot.nom ? ` · ${bien.nom}` : ""}</p><div className="flex flex-wrap items-center gap-3"><h1>{lot.nom}</h1><span className={COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}>{ETATS_LOT[lot.etat] ?? lot.etat}</span></div><p className={styles.adresse}><MapPin size={15} aria-hidden="true" />{[bien.address_line1, bien.address_line2, [bien.postal_code, bien.city].filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "Adresse à compléter"}</p></div></div>
-        <div className={styles.actions}><Link className="btn-secondaire" href={`${base}/parc/${bienId}/lots/${lotId}?modifier=1#caracteristiques`}><Pencil size={15} aria-hidden="true" /> Modifier le lot</Link></div>
+        {!traverseeLectureSeule && <div className={styles.actions}><Link className="btn-secondaire" href={`${base}/parc/${bienId}/lots/${lotId}?modifier=1#caracteristiques`}><Pencil size={15} aria-hidden="true" /> Modifier le lot</Link></div>}
         <dl className={styles.identiteFaits}>
           <div><dt><Ruler size={14} aria-hidden="true" />Surface</dt><dd>{lot.surface_m2 == null ? "À renseigner" : formaterSurface(lot.surface_m2)}</dd></div>
           <div><dt><DoorOpen size={14} aria-hidden="true" />Pièces</dt><dd>{lot.pieces ?? "À renseigner"}</dd></div>

@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { lirePresentationSignatures } from "@/lib/lecture-presentation-signatures";
+import { etatSignatureDocument } from "@/lib/presentation-signatures";
+import { presentationDocument } from "@/lib/presentation-document";
 import { createClient } from "@/lib/supabase/server";
 import {
   TYPES_DOCUMENT,
   dureeConservation,
-  estARenouveler,
   formaterDate,
   visibiliteDocument,
 } from "@/lib/ged";
@@ -294,7 +296,9 @@ export async function PaneDocument({
   }
 
   const fichier = `${base}/documents/${doc.id}/fichier`;
-  const aRenouveler = estARenouveler(doc.expire_le);
+  const suiviSignature = await lirePresentationSignatures(orgId, { documents: [doc.id] });
+  if (suiviSignature.erreur) lecturesManquees.push("le suivi des signatures");
+  const presentation = presentationDocument(doc, etatSignatureDocument(suiviSignature.circuits, doc.id), Boolean(remplaceePar));
 
   return (
     <div className="space-y-3.5">
@@ -323,12 +327,14 @@ export async function PaneDocument({
           </h2>
         </div>
         <span
-          className={`puce ${aRenouveler ? "puce-rouge" : "puce-grise"}`}
-          title={aRenouveler ? undefined : "Durée de conservation du document"}
+          className={`puce ${presentation.classe}`}
+          title={presentation.detail}
         >
-          {aRenouveler ? "à renouveler" : puceConservation(regle?.duree_mois)}
+          {presentation.libelle}
         </span>
       </div>
+
+      <p className="text-sm text-muted-foreground">{presentation.detail}</p>
 
       {/* Aperçu — servi par la route /fichier : droits revérifiés, accès tracé */}
       {doc.mime_type?.startsWith("image/") ? (

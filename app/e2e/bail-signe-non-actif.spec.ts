@@ -1,0 +1,89 @@
+import { test, expect } from "@playwright/test";
+import { Client } from "pg";
+import { randomUUID } from "node:crypto";
+import path from "node:path";
+import AxeBuilder from "@axe-core/playwright";
+import { sansSyntheseAlertes, debordementHorizontal } from "./aides";
+const ORG = "3c1d1e95-3570-400b-8012-44530be145b1";
+for (const persona of ["proprietaire", "superadmin"]) {
+  test.describe(persona, () => {
+    test.use({ storageState: path.join(__dirname, ".auth", `${persona}.json`) });
+    test("bail signé et documents lisibles sans activation", async ({ page }, info) => {
+      const cible = process.env.SUPALOCAL_DB;
+      test.skip(!cible, "Base API locale fictive obligatoire.");
+      const url = new URL(cible!);
+      if (!["localhost", "127.0.0.1"].includes(url.hostname) || !/^gerimmo_ci_[a-z_]+_api$/.test(url.pathname.slice(1))) throw new Error("Base fictive locale requise");
+      const db = new Client({ connectionString: cible }); await db.connect();
+      const lot = randomUUID(), bail = randomUUID(), original = randomUUID(), signe = randomUUID(), circuit = randomUUID(), dpe = randomUUID(), sansDate = randomUUID();
+      const docs = [original, signe, dpe, sansDate];
+      try {
+        const source = (await db.query("select id,bien_id from public.lots where organization_id=$1 and nom='Appartement T2 — 12 rue des Lilas'", [ORG])).rows[0];
+        expect(source).toBeTruthy();
+        await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots,to_jsonb(l)||jsonb_build_object('id',$1::text,'nom','Bail signé — essai local','etat','disponible'))).* from public.lots l where id=$2`, [lot, source.id]);
+        const owner = (await db.query("select account_id from public.memberships where organization_id=$1 and role='proprietaire_direct' and status='active' limit 1", [ORG])).rows[0].account_id;
+        await db.query("insert into public.baux(id,organization_id,lot_id,etat,type,date_debut,loyer_hc,charges) values($1,$2,$3,'brouillon','nu',current_date+7,750,50)", [bail, ORG, lot]);
+        for (const [id, titre, type, expiration] of [
+          [original, "Bail nu (généré, à faire signer) — à signer en ligne", "bail", null],
+          [signe, "Bail nu (généré, à faire signer) — à signer en ligne — signé", "bail", null],
+          [dpe, "Diagnostic expiré — essai", "diagnostic", "2020-01-01"],
+          [sansDate, "Pièce à vérifier — essai", "autre", null],
+        ]) {
+          await db.query("insert into public.documents(id,organization_id,type,titre,storage_path,mime_type,expire_le) values($1,$2,$3,$4,$5,'application/pdf',$6)", [id, ORG, type, titre, `${ORG}/essai/${id}.pdf`, expiration]);
+          await db.query("insert into public.document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'bail',$3)", [ORG, id, bail]);
+        }
+        await db.query("insert into public.diagnostics(organization_id,lot_id,type,date_realisation,date_expiration,document_id,classe_dpe) values($1,$2,'dpe','2019-01-01','2020-01-01',$3,'B')", [ORG, lot, dpe]);
+        await db.query(`insert into public.bail_signature_circuits(id,organization_id,bail_id,document_id,document_signe,created_by,environnement,empreinte,pdf_hash,signataires,etat,prestataire)
+          values($1,$2,$3,$4,$5,$6,'production',repeat('b',64),repeat('a',64),$7,'termine','zoho')`,
+          [circuit, ORG, bail, original, signe, owner, JSON.stringify(["Locataire", "Propriétaire"].map((qualite, i) => ({ personId: randomUUID(), qualite, prenom: "Essai", nom: qualite, email: `essai${i}@example.test`, telephone: "+33600000001", statut: "signed" })))]);
+        await sansSyntheseAlertes(page);
+        const fiche = `/espace/${ORG}/parc/${source.bien_id}/lots/${lot}`;
+        await page.goto(fiche);
+        await expect(page.locator("#location-apercu")).toContainText("Bail signé");
+        await expect(page.getByRole("heading", { name: "Location non activée", exact: true })).toBeVisible();
+        await expect(page.locator("#etat-documents")).toHaveText("Diagnostics");
+        expect(await debordementHorizontal(page)).toBe(0);
+        await page.screenshot({ path: info.outputPath(`resume-${persona}.png`), fullPage: true });
+        expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+        await page.getByRole("tab", { name: "Logement", exact: true }).click();
+        if (persona === "superadmin") {
+          await expect(page.getByRole("link", { name: "Modifier le lot", exact: true })).toHaveCount(0);
+          await expect(page.locator("#caracteristiques").getByRole("button", { name: "Modifier", exact: true })).toHaveCount(0);
+        } else await expect(page.locator("#caracteristiques").getByRole("button", { name: "Modifier", exact: true })).toBeVisible();
+        await page.screenshot({ path: info.outputPath(`logement-${persona}.png`), fullPage: true });
+        await page.getByRole("tab", { name: "Documents", exact: true }).click();
+        await expect(page.getByText("Expiré · à renouveler", { exact: true })).toBeVisible();
+        await page.getByRole("tab", { name: "Contrats", exact: true }).click();
+        await expect(page.locator("#baux")).toContainText("Bail signé");
+        await expect(page.getByRole("button", { name: "Supprimer le brouillon", exact: true })).toHaveCount(0);
+        await page.goto(`/espace/${ORG}/baux/${bail}#etape-bail-7`);
+        await expect(page.locator("main")).toContainText("Le bail est signé. La location n’est pas encore activée.");
+        await expect(page.locator("#signature")).toContainText("Bail signé · location non activée");
+        await expect(page.getByRole("button", { name: "Générer le PDF du bail", exact: true })).toHaveCount(0);
+        if (persona === "superadmin") await expect(page.locator("main")).not.toContainText("Connectez-vous à votre espace propriétaire");
+        // Le PDF fictif n'est pas chargé : ce test vérifie les états et la navigation.
+        await page.goto(`/espace/${ORG}/documents`);
+        const archive = page.getByRole("link").filter({ hasText: "Bail nu — signé" }).first();
+        await expect(archive).toContainText("Signé");
+        await expect(archive).not.toContainText("à faire signer");
+        await expect(page.getByRole("link").filter({ hasText: "Diagnostic expiré — essai" }).first()).toContainText("Expiré");
+        await expect(page.getByRole("link").filter({ hasText: "Pièce à vérifier — essai" }).first()).toContainText("À vérifier");
+        expect(await debordementHorizontal(page)).toBe(0);
+        if (persona === "superadmin") {
+          await page.goto(`/espace/${ORG}/reseau?bien=${source.bien_id}&metier=plomberie`);
+          await expect(page.locator("main")).toContainText("Consultation superadmin");
+          for (const name of ["Confirmer la commune", "Confirmer les communes évidentes", "Signaler mon intérêt"]) await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0);
+        }
+        const apres = (await db.query("select b.etat,b.document_signe,l.etat as lot_etat from public.baux b join public.lots l on l.id=b.lot_id where b.id=$1", [bail])).rows[0];
+        expect(apres).toEqual({ etat: "brouillon", document_signe: null, lot_etat: "disponible" });
+      } finally {
+        await db.query("delete from public.bail_signature_circuits where id=$1", [circuit]);
+        await db.query("delete from public.diagnostics where lot_id=$1", [lot]);
+        await db.query("delete from public.document_liens where document_id=any($1::uuid[])", [docs]);
+        await db.query("delete from public.documents where id=any($1::uuid[])", [docs]);
+        await db.query("delete from public.baux where id=$1", [bail]);
+        await db.query("delete from public.lots where id=$1", [lot]);
+        await db.end();
+      }
+    });
+  });
+}

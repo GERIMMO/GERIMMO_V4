@@ -57,7 +57,7 @@ export async function CarnetProprietaire({ orgId }: { orgId: string }) {
     <section aria-labelledby="mes-artisans" className="loc-carte space-y-4">
       <div>
         <h2 id="mes-artisans" className="font-heading text-xl">Mes artisans</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Une fois l’invitation acceptée et l’inscription validée par Gerimmo, vous pouvez solliciter l’artisan depuis la fiche d’un incident, même s’il n’est pas proposé par le réseau Gerimmo (profil privé). Il n’est proposé que pour les biens situés dans sa zone d’intervention et, quand les travaux l’exigent, s’il a une garantie décennale valide ; la fiche de l’incident dit pourquoi un artisan n’y est pas proposé. Sa zone et ses attestations, il les met à jour depuis son espace.</p>
+        <details className="mt-1 text-sm text-muted-foreground"><summary className="min-h-11 cursor-pointer content-center">Quand puis-je solliciter un artisan ?</summary><p>Une fois l’invitation acceptée et l’inscription validée par Gerimmo, vous pouvez solliciter l’artisan depuis la fiche d’un incident, même s’il n’est pas proposé par le réseau Gerimmo (profil privé). Il n’est proposé que pour les biens situés dans sa zone d’intervention et, quand les travaux l’exigent, s’il a une garantie décennale valide ; la fiche de l’incident dit pourquoi un artisan n’y est pas proposé. Sa zone et ses attestations, il les met à jour depuis son espace.</p></details>
       </div>
       {/* Les gestes des lignes et leur message : au niveau de la liste, hors des lignes qui changent sous le bouton. */}
       <GestesDuCarnet orgId={orgId}>

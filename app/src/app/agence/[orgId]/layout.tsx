@@ -261,8 +261,8 @@ export default async function LayoutAgence({
             rôles : un agent qui ne peut plus écrire doit savoir pourquoi, et à
             qui s'adresser. Le responsable, lui, a le lien. */}
         {traverseeLectureSeule && (
-          <p role="status" className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-3 text-sm">
-            Consultation de {organisation.name} en lecture seule. Les modifications de gestion sont refusées. Par votre compte de supervision, vous pouvez préparer un geste distinct :{" "}
+          <p role="status" className="flex flex-wrap items-center gap-x-3 border-b border-[var(--trait)] bg-[var(--filet-leger)] px-4 py-2 text-sm">
+            <span><strong>Lecture seule</strong> · {organisation.name}</span>{" "}
             <Link href={`/admin/organisations/${orgId}/support`} className="font-semibold underline">Ouvrir le support</Link>
           </p>
         )}

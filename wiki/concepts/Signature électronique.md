@@ -3,11 +3,54 @@ type: concept
 tags: [signature, zoho-sign, yousign, demande-de-signature]
 status: in-progress
 created: 2026-07-24
-updated: 2026-10-22
-sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]", "app/docs/signature-electronique-bail.md (dossier technique Zoho Sign, 18-19/10/2026)", "log.md — entrées « decision » et « deploy » des 18 et 19/10/2026 (Zoho Sign, PR #203 à #210)"]
+updated: 2026-10-24
+sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]", "app/docs/signature-electronique-bail.md (dossier technique Zoho Sign, 18-19/10/2026, complété le 24/10/2026)", "log.md — entrées « decision » et « deploy » des 18 et 19/10/2026 (Zoho Sign, PR #203 à #210)", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégués n° 1 et 8), « deploy » du 24/10/2026 (PR #246)", "[[Notification et valeur probante]]"]
 ---
 
 # Signature électronique
+
+## Conformité V1 du 24 octobre 2026 — en production (PR #246)
+
+Décision du dirigeant du 23/10 (« le cautionnement et l'état des lieux doivent etre signé
+sur gerimmo directement ! »), qui remplace la fermeture du cautionnement électronique et de
+l'état des lieux à distance prévue par le plan juriste/DPO du 23/10 ; migration
+`20261024120000_signature_caution_mobile_et_edl_sur_place.sql`.
+- **Prestataire : Zoho Sign** (Europe), et non Yousign : aucun circuit Yousign en
+  production, clés et webhook Youtrust révoqués le 23/10 ; l'ancien adaptateur reste dans le
+  code pour lire les anciennes preuves.
+- **Valeur** : signature par code à usage unique (SMS), **non qualifiée** au sens du
+  règlement eIDAS, **sans présomption de fiabilité** ; preuve = PDF signé + **certificat de
+  fin de signature commun à tous les signataires** (et non un certificat par signataire),
+  enregistrés dans les Documents ([[Notification et valeur probante]]).
+- **Acte de cautionnement** : la **caution confirme elle-même son numéro de mobile** par un
+  lien à usage unique (sept jours au plus, empreinte seule en base) reçu à son adresse ; la
+  page publique dit qui demande quoi (bailleur, logement, locataire, montant) ; le numéro
+  n'est jamais prérempli, jamais celui d'une autre partie (bailleur, détenteur du lot,
+  gestionnaire, organisation) ; la demande Zoho part alors avec ce numéro ; la caution saisit
+  elle-même sa mention dans Zoho. Avant de générer l'acte, le bailleur coche « aucune
+  assurance ni autre garantie » ([[Garantie]]). `ZOHO_SIGN_CAUTIONNEMENT_FERME` reste à
+  `false` (posée à `true`, elle bloque aussi l'envoi du lien).
+- **Garant qui signe aussi le bail** (choix délégué n° 1 du 24/10) : aligné sur la caution —
+  il confirme lui-même son mobile, ou le numéro qu'il a confirmé pour l'acte de cautionnement
+  du même bail est repris ; le bail attend « En attente du garant » puis part
+  automatiquement ; sa page de signature dit qu'il reconnaît avoir reçu un exemplaire, sans
+  s'engager comme caution par ce bail.
+- **État des lieux** : signé dans Gerimmo, avec la confirmation « établi contradictoirement,
+  sur place » à la date de la visite ; rappel au locataire de son droit de le compléter
+  « dans les dix jours qui suivent son établissement » ([[État des lieux]]).
+- **Invitation** : « Vos nom, adresse électronique et numéro de mobile sont transmis à notre
+  prestataire de signature Zoho Sign pour ce seul document, à la demande de {bailleur}.
+  Détails : {page confidentialité}. » L'adresse d'expédition reste celle du compte Zoho
+  (adresse personnelle du dirigeant, décision du 22/10).
+- **Mention refusée** alors que la demande est ouverte : la demande est rappelée chez Zoho ;
+  la **date limite des signatures** est affichée avant l'envoi.
+- **Mandat de gestion** : hors circuit (agences retirées de l'offre).
+- **Conservation** : preuves de signature 36 mois après la fin du bail (`preuve:signature`),
+  confirmations du mobile et sur place au journal d'audit dix ans
+  ([[Durées de conservation]]).
+- **Gestes et recettes restants** : comptage en lecture seule des actes envoyés avant le
+  24/10 (à annuler et renvoyer) ; recette Zoho réelle à trois signataires (chacun reçoit-il
+  l'exemplaire signé ?) ; recette d'un bail avec garant.
 
 ## État du 22 octobre — observation de production et préparation locale
 
@@ -71,10 +114,14 @@ préparée ; annulée. **Une seule demande active par document** (RM-13.1.5) ; d
 
 Bail/avenants, cautionnement, mandat — **pas les [[État des lieux|états des lieux]]**
 (signature tactile sur place, RM-13.1.6). Signature avancée/qualifiée : hors périmètre
-(« un bail d'habitation ne l'exige pas »).
+(« un bail d'habitation ne l'exige pas »). *Référentiel historique : depuis le 24/10/2026,
+l'état des lieux se signe dans Gerimmo avec la confirmation « sur place » (RM-13.1.6 fermé,
+voir le callout ci-dessous) ; le mandat est hors circuit.*
 
 > [!warning] Points à trancher / contradictions (relevé du 19/10/2026)
-> - **États des lieux** : le référentiel (RM-13.1.6, ci-dessus), le circuit de transition V0 (« jamais un EDL ») et la note du 18/10 en journée (« l'EDL garde son circuit sur place ») excluent l'EDL de la signature électronique ; la PR #206 (18/10) ajoute pourtant « états des lieux » au circuit Zoho (dossier technique, « Extension du 18 octobre 2026 »), alors que le même dossier dit plus bas « Les états des lieux conservent leur signature sur place » (section « Parcours livré »). **Question au dirigeant** : l'EDL doit-il être signable par Zoho Sign ? Aucun EDL n'a été envoyé (envois clients désactivés).
+> - ~~**États des lieux** : le référentiel (RM-13.1.6, ci-dessus), le circuit de transition V0 (« jamais un EDL ») et la note du 18/10 en journée (« l'EDL garde son circuit sur place ») excluent l'EDL de la signature électronique ; la PR #206 (18/10) ajoute pourtant « états des lieux » au circuit Zoho. **Question au dirigeant** : l'EDL doit-il être signable par Zoho Sign ?~~ → **RM-13.1.6 fermé le 23/10/2026 par la décision du dirigeant** « le cautionnement et l'état des lieux doivent etre signé sur gerimmo directement ! » : l'EDL est signable par Zoho Sign, avec la confirmation « établi contradictoirement, sur place » (code en production le 24/10, PR #246). La phrase « Les états des lieux conservent leur signature sur place » du dossier technique (section « Parcours livré ») est historique.
+> - **24/10 — à confirmer sur Légifrance (source non ouverte le 23/10/2026)** : valeur d'une signature par code SMS pour l'acte de cautionnement et l'état des lieux (C. civ. 1366, 1367, 1175, 2297 ; décret 2017-1416 ; règlement 910/2014 art. 25-26 ; loi 89-462 art. 3-2 et 22-1) ; formule de la mention de caution (« ou l'une des autres cautions », C. civ. 2297 al. 2) ; délai de complément de l'état des lieux.
+> - **24/10 — exemplaire signé remis à chaque partie (R28)** : non vérifié tant que la recette à trois signataires n'est pas faite ; la V1 n'écrit pas « Chaque signataire reçoit un exemplaire ».
 > - **Avenants et cautionnement** : le dossier technique dit « Mandats et avenants ne sont pas intégrés dans ce circuit » (limites de la première version, PR #203) et « cette extension ajoute avenant, cautionnement » (PR #206) ; le cautionnement, que la note du 18/10 disait distinct, est intégré comme acte distinct du garant. Le mandat de gestion reste hors circuit.
 > - **Offre Zoho** : paiement effectué par le titulaire (500 crédits affichés), montant non consigné ; conditions de l'offre et droit d'intégration SaaS non confirmés.
 > - **Pages publiques** : la PR #210 décrit Zoho Sign et les SMS sur le site alors que les envois aux clients sont désactivés ([[Prêt à démarcher]]).

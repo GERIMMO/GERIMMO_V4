@@ -1,6 +1,28 @@
+---
+type: process
+tags: [rgpd, demandes, droits, fermeture, support]
+status: in-progress
+created: 2026-10-21
+updated: 2026-10-24
+sources: ["[[RGPD]]", "[[Fermeture de compte]]", "[[Export complet des données]]", "log.md — entrées « dev » du 21/10/2026, « decision » du 22/10/2026 et « deploy » du 24/10/2026 (PR #246)"]
+---
+
 # Demandes sur les données et fermeture de compte
 
 État au 21 octobre 2026 : réalisation locale vérifiée ; publication suivie dans la PR et le journal de déploiement.
+
+> [!info] Mise à jour du 24 octobre 2026 — ce que la demande déclenche désormais (PR #246)
+> - Une demande « Fermer mon compte » ou « effacement » peut maintenant être **exécutée** : le
+>   super-administrateur permanent (second facteur) affiche le bilan sans effacement puis
+>   programme la fermeture depuis `/admin/donnees` ; l'effacement a lieu la nuit de la date
+>   d'effet. Procédure, gardes, ce qui est conservé : [[Fermeture de compte]]. Le formulaire
+>   lui-même ne supprime toujours rien.
+> - Le titulaire peut télécharger l'**archive complète** de son espace depuis la même page
+>   (second facteur ou mot de passe récent) : [[Export complet des données]].
+> - Le délai de réponse affiché reste **un mois civil** (jour de Paris).
+> - Les « 29 règles de conservation » citées plus bas sont devenues **58** le 24/10 ; les
+>   pièces de la gestion directe passent à **36 mois** après la fin du bail
+>   ([[Durées de conservation]]).
 
 ## Parcours
 
@@ -51,3 +73,12 @@ Parcours utilisateur local : dépôt, confirmation, persistance après rechargem
 ## Décision du 22 octobre — expéditeur des signatures
 
 Le dirigeant demande de conserver son adresse personnelle pour le moment, puis de la changer plus tard. Cette décision remplace l’objectif d’adresse professionnelle immédiate pour les signatures, sans modifier le courriel de contact général du site. Envoi standard Zoho conservé ; aucun SMTP ajouté. Les changements locaux de conservation sont décrits dans [le bilan du 22 octobre](../../app/docs/signatures-conservation-22-octobre.md).
+
+> [!warning] Points à trancher / contradictions
+> - **Demandes de personnes sans compte** : tenue manuelle dans `/admin/donnees` ; la table
+>   dédiée (`demandes_droits_externes`) est prévue au lot 5.
+> - **Conservation des demandes** (3 ans après la clôture, `support:demande_droits`) : règle
+>   créée le 24/10, **inactive** jusqu'à son bilan.
+> - **Délai d'un mois** (RGPD art. 12.3) et réponse d'une seule personne (le dirigeant) : à
+>   confirmer sur Légifrance (source non ouverte le 23/10/2026).
+

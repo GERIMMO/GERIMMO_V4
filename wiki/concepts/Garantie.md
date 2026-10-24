@@ -3,8 +3,8 @@ type: concept
 tags: [garantie, caution, garant, visale, gli, caution-bancaire, bail]
 status: draft
 created: 2026-07-24
-updated: 2026-09-29
-sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
+updated: 2026-10-24
+sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[Signature électronique]]", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégué n° 1), « deploy » du 24/10/2026 (PR #246)", "app/src/lib/textes-signature-actes.ts", "app/docs/signature-electronique-bail.md"]
 ---
 
 # Garantie
@@ -30,15 +30,47 @@ peut couvrir deux locataires sur deux baux : deux engagements séparés.
 | **Caution solidaire** | **Le bailleur peut poursuivre directement le garant** | **Cas majoritaire — type par défaut** (RM-2.2.2) |
 
 **Circuit d'activation** : sélection du garant parmi les personnes → type (simple /
-solidaire) → durée de l'engagement → génération de l'acte de cautionnement (PDF) →
-**signature électronique Yousign via le module 13** (RM-2.2.6, décision actée) →
-**l'acte signé conditionne l'activation de la garantie** (RM-2.2.3). Yousign porte la
-preuve ([[Notification et valeur probante]], famille 2).
-Conforme au droit : **le garant ne signe pas le bail** — il signe un **acte de
-cautionnement distinct, annexé au bail**, reproduisant loyer, révision et durée de
-l'engagement ([[2026-08-05-bailpdf-contrat-de-bail|BailPDF]]).
+solidaire) → durée de l'engagement → **case « aucune autre garantie »** (depuis le 24/10)
+→ génération de l'acte de cautionnement (PDF) → **signature électronique dans Gerimmo,
+chez Zoho Sign** (Yousign dans le référentiel, RM-2.2.6, remplacé le 18/10/2026), **après
+que la caution a confirmé elle-même son numéro de mobile**, ou signature sur papier →
+**l'acte signé conditionne l'activation de la garantie** (RM-2.2.3). Preuve : PDF signé et
+certificat commun de Zoho Sign ([[Notification et valeur probante]], famille 2).
+L'engagement de caution résulte **du seul acte de cautionnement, distinct et annexé au
+bail**, reproduisant loyer, révision et durée de l'engagement
+([[2026-08-05-bailpdf-contrat-de-bail|BailPDF]]). **Dans Gerimmo, le garant signe aussi le
+bail**, mais seulement pour reconnaître en avoir reçu un exemplaire : le cadre « La
+caution » du bail dit « Reconnaît avoir reçu un exemplaire du présent contrat. Son
+engagement de caution résulte du seul acte de cautionnement signé séparément. » (au
+pluriel avec plusieurs garants), et sa page de signature électronique : « En signant cette
+page, la caution reconnaît avoir reçu un exemplaire du présent contrat. Elle ne s'engage
+comme caution que par l'acte de cautionnement signé séparément. »
 
-> [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
+## Signature du cautionnement dans Gerimmo (en production depuis le 24/10/2026)
+Décision du dirigeant du 23/10 (« le cautionnement et l'état des lieux doivent etre signé
+sur gerimmo directement ! ») ; PR #246.
+- **Case avant de générer l'acte** : « Je certifie n'avoir souscrit aucune assurance ni
+  aucune autre garantie couvrant les obligations locatives de ce locataire (par exemple une
+  assurance loyers impayés), ou louer ce logement à un étudiant ou à un apprenti. À défaut,
+  le cautionnement serait nul (article 22-1 de la loi du 6 juillet 1989). » Sans elle :
+  « Confirmez l'absence d'assurance loyers impayés ou d'autre garantie avant de préparer
+  l'acte. »
+- **La caution confirme son mobile** : « Envoyer » adresse à la caution un lien à usage
+  unique (sept jours au plus) ; elle y saisit deux fois son numéro, jamais prérempli ;
+  l'adresse et le numéro d'une autre partie (bailleur, détenteur du lot, gestionnaire,
+  organisation) sont refusés ; cinq liens par caution et par bail en 24 h ; le bailleur voit
+  « En attente de la caution » et peut renvoyer le lien. Une garde en base refuse tout envoi
+  d'un acte dont le téléphone n'est pas celui que la caution a confirmé ; une fois parti, ce
+  numéro ne change plus. La caution saisit elle-même sa mention dans sa session de
+  signature ; le service refuse une mention incomplète ou différente.
+- **Garant du bail aligné le 24/10** (choix délégué n° 1) : le garant qui signe aussi le
+  bail confirme lui-même son mobile par le même chemin ; le numéro confirmé pour l'acte de
+  cautionnement du même bail est repris sans nouvelle demande ; jamais le numéro saisi par
+  le bailleur.
+- **Modèle** : la date de l'acte est « date effective à compléter lors de la signature » ;
+  l'acte est fait « en autant d'exemplaires originaux que de parties ou, en cas de signature
+  électronique, sous forme d'un exemplaire électronique remis à chacune d'elles ; un
+  exemplaire du contrat de location est remis à la caution ».
 
 **En colocation** : chaque garant couvre **un colocataire identifié** (RM-2.2.4 =
 RM-1.3.8), jamais le bail en bloc ; **son engagement s'éteint avec la solidarité du
@@ -95,4 +127,7 @@ bailleur reçoit notification de la résiliation. »
 
 > [!warning] Points à trancher / contradictions (14/10/2026)
 > - **Pluralité des garanties (RM-2.3.2)** : « plusieurs garanties peuvent coexister sur un même bail » contredit, d'après les sources lues, l'article 22-1 de la loi du 6 juillet 1989 (pas de cautionnement quand une assurance ou une autre garantie couvre les obligations locatives, sauf locataire étudiant ou apprenti) et la règle de non-cumul de Visale avec une assurance loyers impayés. Sources et réserves : [[Choisir son locataire selon les conditions des assurances loyers impayés]] (brouillon : textes non relus sur leur version en vigueur).
+>   **24/10 — en partie traité** : l'acte de cautionnement ne se génère plus sans la case « aucune assurance ni aucune autre garantie… ou louer ce logement à un étudiant ou à un apprenti » (option `sans_garantie_cumulee`, refus dans `assemblerCautionnement`) ; l'enregistrement de plusieurs garanties externes sur un même bail reste possible. Règle de l'article 22-1 et nullité : à confirmer sur Légifrance (source non ouverte le 23/10/2026).
+> - **24/10 — cautionnement signé par code SMS** : valeur probante et formule exacte de la mention (C. civ. 2297, « ou l'une des autres cautions » ?) — à confirmer sur Légifrance (source non ouverte le 23/10/2026) ; cautionnement demandé par un bailleur personne morale autre qu'une SCI familiale (loi 89-462 art. 22-1) non vérifié.
+> - **24/10 — remise de l'exemplaire signé à la caution** avec la copie du bail : recette Zoho réelle à faire.
 > - **Visale et dépôt de garantie (RM-2.3.3)** : « Visale peut se substituer au dépôt de garantie » est à nuancer d'après la même synthèse ; à confirmer sur la page officielle de Visale avant toute évolution de l'écran.

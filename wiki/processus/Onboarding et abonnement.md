@@ -3,8 +3,8 @@ type: process
 tags: [onboarding, abonnement, saas]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-16
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[2026-09-28-decision-tarification]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
+updated: 2026-10-24
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[2026-09-28-decision-tarification]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Conditions générales]]", "[[Souscription de l'abonnement]]", "log.md — entrée « deploy » du 24/10/2026 (PR #246)"]
 ---
 
 # Onboarding et abonnement
@@ -145,10 +145,19 @@ l'auto-inscription `createOrganization` du code hérité.
 ## Cycle de vie ensuite
 - Voir [[Cycle de vie de l'abonnement]] (essai → paiement/suspension via Stripe + Vercel Cron).
 - Depuis le 28/09/2026 : fin d'essai → **gel en lecture seule** jusqu'au paiement ;
-  résiliation en fin de période via le portail Stripe (changement de formule
+  ~~résiliation en fin de période via le portail Stripe~~ (changement de formule
   désactivé) ; préavis d'au moins un mois avant toute révision tarifaire (CGU
   art. 8.9) ; droit de rétractation de 14 jours pour le consommateur (CGU art. 8.10).
   Aucun avantage tarifaire lié au [[Parrainage]].
+- **Depuis le 24/10/2026** (PR #246) : à l'inscription, la case des conditions dépend de
+  l'espace choisi — propriétaire : conditions générales d'utilisation et de vente ; artisan :
+  conditions de l'espace artisan dès leur publication ; personne invitée : « J'ai pris
+  connaissance des règles d'utilisation des espaces invités » ([[Conditions générales]]).
+  La souscription passe par un récapitulatif avec le droit de rétractation et se confirme
+  par courriel ([[Souscription de l'abonnement]]) ; la résiliation par la seule page
+  « Résilier votre contrat » ([[Résiliation de l'abonnement]]) ; la rétractation par le
+  bouton « Renoncer au contrat ici » ([[Rétractation en ligne]]) ; l'impayé suit
+  [[Impayé de l'abonnement]].
 
 ## Automatisations
 - Événement `trial.started` → e-mail de bienvenue/essai (Resend). Voir [[Canaux de communication]].

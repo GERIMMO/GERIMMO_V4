@@ -3,11 +3,44 @@ type: synthesis
 tags: [demarchage, lancement, production, v1, pilotage, promesses]
 status: draft
 created: 2026-10-16
-updated: 2026-10-23
-sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Audit d'acquisition du 3 octobre 2026]]", "[[Expansion territoriale autonome]]", "[[Parrainage]]", "[[Choisir son locataire selon les conditions des assurances loyers impayés]]", "[[Recette de production]]", "[[Relais du dirigeant]]", "[[Le jour de référence est le jour de Paris]]"]
+updated: 2026-10-24
+sources: ["[[Prospection commerciale]]", "[[Cycle de vie de l'abonnement]]", "log.md — entrées « decision » des 23 et 24/10/2026, « deploy » du 24/10/2026 (PR #246, PR #247)", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Invitation d'un artisan par un propriétaire]]", "[[Dossier de validation — version candidate du 13 octobre 2026]]", "[[Registre des anomalies — audit du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Audit d'acquisition du 3 octobre 2026]]", "[[Expansion territoriale autonome]]", "[[Parrainage]]", "[[Choisir son locataire selon les conditions des assurances loyers impayés]]", "[[Recette de production]]", "[[Relais du dirigeant]]", "[[Le jour de référence est le jour de Paris]]"]
 ---
 
 # Prêt à démarcher
+
+> [!info] Point du 24 octobre — règles de démarchage et conformité V1 du code
+> **Règles de démarchage (décision 8 du plan juriste/DPO, acceptée par le dirigeant le
+> 23/10 : « OK aux valeurs par défaut »)** — détail : [[Prospection commerciale]] :
+> - **jamais de courriel commercial à un particulier sans son consentement, même pendant
+>   l'essai** ; aucun consentement n'étant enregistré, aucune fiche prospect d'un
+>   particulier hors de sa demande de contact (choix du 24/10) ;
+> - **artisans et agences** : autorisés si **l'adresse vient d'eux**, si l'objet touche
+>   **leur métier**, avec **l'identité de Gerimmo** et une **possibilité d'opposition dans
+>   chaque message** ; une adresse reçue **par recommandation** ne vient pas de la personne :
+>   aucun message ;
+> - Gerimmo **n'envoie aucun message aux prospects** : la console prépare la mention à placer
+>   dans chaque message du dirigeant (« … répondez simplement « Stop » : nous supprimons
+>   alors vos coordonnées dans le mois ») et la refuse après une opposition.
+>
+> **Ce que la production fait depuis le 24/10** (PR #246 `f79674c`, PR #247 `31377f5`,
+> recette de production 40067896560 réussie ; chantier Stripe sans argent réel réussi sur la
+> branche corrigée) : rétractation en ligne remboursée intégralement
+> ([[Rétractation en ligne]]) ; confirmation de souscription sur support durable, même sans
+> médiateur ([[Souscription de l'abonnement]]) ; résiliation par une seule page avec accusé
+> ([[Résiliation de l'abonnement]]) ; impayé avec mise en demeure, lecture seule à J+15 et
+> résiliation au plus tôt à J+30 ([[Impayé de l'abonnement]]) ; cautionnement et état des
+> lieux signés dans Gerimmo ([[Signature électronique]]) ; fermeture de compte par la
+> supervision et export complet ([[Fermeture de compte]], [[Export complet des données]]) ;
+> durées de conservation, gel en cas de litige et alertes ([[Durées de conservation]]).
+>
+> **À ne pas promettre encore** : les **conditions V1** (publication prévue le 24/10 ; en
+> vigueur : version du 30/09) ; un **médiateur désigné** (adhésion à venir) ; la
+> suppression automatique des comptes inactifs (règle inactive jusqu'à la V1) ; la
+> **fermeture en libre-service** (lot 5) ; la **remise d'un exemplaire signé à chaque
+> signataire** (recette Zoho à trois signataires à faire) ; un bouton de paiement libellé
+> « Payer » (Stripe le refuse en mode abonnement : texte d'obligation de paiement sous le
+> bouton) ; les conditions de l'espace artisan (non publiées).
 
 > [!warning] Point du 22 octobre — ce que le 21/10 a changé en production
 > Depuis les livraisons de Codex des 21 et 22/10 (PR #230 à #236, `main` = `cc53dd7`) : les modules artisans **« clients externes » et « règlements » sont ouverts** en production (migration `20261021140836`) ; le **cautionnement est rouvert** (`ZOHO_SIGN_CAUTIONNEMENT_FERME` à faux) et les **relances Zoho sont activées** (`ZOHO_SIGN_RELANCES_ACTIVES`) alors que les envois aux clients étaient dits désactivés ; tous les comptes sauf le super-administrateur ont été **effacés** ; la boîte professionnelle `contact@gerimmo.app` existe. Le § 5 et l'encadré du 19/10 ci-dessous (« clients externes désactivé », « envois aux clients désactivés ») ne décrivent plus l'état réel. Aucune recette de production depuis le 21/10 à 18 h 54. Constats, preuves et points à trancher : [[Contrôle des livraisons de Codex — 22 octobre 2026]].
@@ -37,8 +70,9 @@ vérifié est écrit tel quel. La décision de démarcher appartient au dirigean
 > [[Expansion territoriale autonome]]) ; les leviers autorisés vers eux sont la publicité Instagram et Facebook et le
 > [[Parrainage]]. Les agences sont hors du site public de la V1 (fiches PUB-01, PUB-02 du
 > [[Registre des anomalies — audit du 13 octobre 2026]]). Un « prospect », ici, est donc d'abord une personne qui
-> arrive par la publicité, le journal ou une recommandation. Le démarchage d'artisans n'est pas tranché dans le wiki :
-> **à préciser par le dirigeant**.
+> arrive par la publicité, le journal ou une recommandation. ~~Le démarchage d'artisans n'est pas tranché dans le
+> wiki : **à préciser par le dirigeant**.~~ → **tranché le 23/10** (décision 8) : artisans et agences autorisés si
+> l'adresse vient d'eux, pour leur métier, avec identité et opposition dans chaque message ([[Prospection commerciale]]).
 
 ## 1. Préalables avant le premier prospect
 
@@ -173,8 +207,12 @@ HTTP du webhook restent à vérifier avant de promettre un parcours de souscript
 > - **Dix fusions sans recette** (18-19/10, *levé le 19/10 au soir par la recette n° 25 sur `e25c0f7`*) : les PR #202 à #211 étaient en production sans qu'une recette de production ait
 >   suivi ; la page [[Signature électronique]] est décrite sur le site public (PR #210) alors que les envois aux clients
 >   sont désactivés.
-> - **Démarchage d'artisans** : ni autorisé ni interdit par le wiki ; la règle « jamais de démarchage direct » ne vise
->   explicitement que les particuliers.
+> - ~~**Démarchage d'artisans** : ni autorisé ni interdit par le wiki ; la règle « jamais de démarchage direct » ne vise
+>   explicitement que les particuliers.~~ → **tranché le 23/10** (décision 8, [[Prospection commerciale]]).
+> - **24/10 — prospection par courriel** (CPCE L. 34-5, décision QPC 2026-1210 du 25/06/2026) : à confirmer sur
+>   Légifrance (source non ouverte le 23/10/2026).
+> - **24/10 — vente ouverte sans médiateur désigné** (décision du 23/10) : obligation d'information sur le médiateur
+>   (C. conso L. 616-1) — à confirmer sur Légifrance (source non ouverte le 23/10/2026) ; adhésion visée avant le 15/11.
 > - **Conseils « choisir son locataire »** : en ligne alors que leur page source est un brouillon non relu sur les
 >   sources primaires ; garder, masquer, ou retirer la qualification « règle légale » ?
 > - **Paiement** : clé réelle confirmée, mode conservé. Aucun paiement réel testé ; la disponibilité d'une clé et les

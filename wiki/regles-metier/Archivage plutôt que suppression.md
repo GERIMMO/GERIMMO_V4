@@ -3,8 +3,8 @@ type: business-rule
 tags: [archivage, audit, gouvernance-donnees]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-15
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
+updated: 2026-10-24
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Durées de conservation]]", "[[Fermeture de compte]]", "log.md — entrée « deploy » du 24/10/2026 (PR #246)"]
 ---
 
 # Archivage plutôt que suppression
@@ -48,7 +48,12 @@ supprimées à chaud ; les actions sensibles sont **journalisées**.
     du service gardent leurs droits d'écriture et aucun déclencheur ne bloque la modification
     ou la suppression d'une ligne (le journal n'est donc pas « append-only » par construction).
     Une règle de conservation de 36 mois (`retention_rules`, type `journal:audit_log`) purge
-    les lignes anciennes ([[RGPD]]).
+    les lignes anciennes ([[RGPD]]). **Depuis le 24/10/2026** : **12 mois** en général,
+    36 mois pour le contrôle interne (accès et exports de la supervision, support, purges,
+    fermetures, effacements) et **10 ans** pour les preuves du contrat (commande,
+    confirmation, résiliation, mise en demeure, rétractation, confirmations de signature)
+    — [[Durées de conservation]]. Deux tables nouvelles sont, elles, **en ajout seul par
+    construction** (déclencheurs) : `versions_conditions` et `retractations_abonnement`.
 
 ## Portée
 - Principe visé pour toutes les tables métier ([[Bien]], [[Incident]], [[Document]], [[Organisation]]…) ;
@@ -88,3 +93,7 @@ supprimées à chaud ; les actions sensibles sont **journalisées**.
 > - Le principe « on archive, on ne supprime pas » vaut en pratique pour les seules tables
 >   qui ont une colonne d'archivage ; ailleurs, la suppression existe selon les droits listés
 >   plus haut.
+> - **24/10/2026 — la fin du cycle existe désormais pour les comptes** : fermeture sur demande
+>   et suppression après 24 mois sans connexion ni abonnement (règle inactive jusqu'à la V1
+>   des conditions) ; un compte payant ne se supprime pas sans archive de la preuve de son
+>   contrat ([[Fermeture de compte]]). Une simple résiliation ne supprime rien.

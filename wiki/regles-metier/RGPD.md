@@ -3,8 +3,8 @@ type: business-rule
 tags: [rgpd, conformite, donnees-personnelles]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-22
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Complément à la page « Décisions groupées » — fiches de la vague 6]]"]
+updated: 2026-10-24
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Complément à la page « Décisions groupées » — fiches de la vague 6]]", "[[Durées de conservation]]", "[[Registre des traitements]]", "[[Fermeture de compte]]", "log.md — entrées « decision » des 23 et 24/10/2026, « deploy » du 24/10/2026 (PR #246)"]
 ---
 
 # RGPD
@@ -18,7 +18,8 @@ des garde-fous stricts et une traçabilité immuable.
 ## Règles
 - **Droits traités** : export des données perso ; **anonymisation** quand la suppression heurte
   l'intégrité métier ; suppression après vérification des obligations légales ; révision des durées de conservation.
-- **Contrôles obligatoires** : chaque demande = une **référence**, **échéance de 30 jours**, journal
+- **Contrôles obligatoires** : chaque demande = une **référence**, **échéance d'un mois civil**
+  (jour de Paris ; 24/10 : remplace « 30 jours »), journal
   immuable ; vérification de l'identité du demandeur, de son périmètre organisationnel et des
   obligations de conservation **avant** traitement.
 - **Garde-fous** : l'export ne contient que les données autorisées ; suppression/anonymisation
@@ -127,7 +128,7 @@ mais modèle de données conçu dès la V1 : identifiant de conservation + état
   **Correction A2 de RM-0b.8.7** : la personne n'est plus « jamais supprimée » —
   **anonymisation au terme de l'archivage**.
 - Déclenchable **manuellement** sur demande RGPD du locataire (RM-0b.8.9), qui rejoint
-  le workflow de demandes existant (référence, 30 j, double validation).
+  le workflow de demandes existant (référence, un mois civil, double validation).
 
 ## Cible V3 : la conservation en table (lot 0, 2026-07-24)
 Le [[2026-07-24-gerimmo-v3-architecture-lot-0|socle V3]] traduit le livrable A2 en
@@ -142,7 +143,7 @@ infrastructure :
 Voir [[Architecture du socle V3]].
 
 ## Implications pour l'application
-- Workflow de demande RGPD avec référence, échéance 30 j, double validation, sauvegarde.
+- Workflow de demande RGPD avec référence, échéance d'un mois civil, double validation, sauvegarde.
 - Cohérent avec [[Archivage plutôt que suppression]] et [[Plan de reprise d'activité]].
 
 ## Compléments (2026-09-09)
@@ -246,6 +247,38 @@ lors de la validation des règles ; aucune baisse automatique n'est décidée ic
 > - **D14** : la décision demande de consigner la durée au registre des traitements ; c'est
 >   l'objet de l'amorce ci-dessus, à reporter dans [[Registre des traitements]] après
 >   validation.
+> - **24/10 — délai de réponse d'un mois civil** (RGPD art. 12.3) et durées du catalogue du
+>   24/10 : à confirmer sur Légifrance (source non ouverte le 23/10/2026).
+> - **24/10 — sections historiques** : la matrice A2 (5 ans, 10 ans, audit 3 ans) et la purge
+>   du dossier locataire « 5 ans » ci-dessus sont supplantées par [[Durées de conservation]] ;
+>   elles restent comme historique.
+
+## Conformité V1 du 24 octobre 2026 — en production (PR #246)
+
+Plan de conformité juriste/DPO du 23/10, lots 1E, 1F et 2 ; aucun juriste ni DPO
+mandaté (décision du 23/10) ; sources juridiques non ouvertes le 23/10.
+- **DPO non désigné** ; référent : le dirigeant ([[Registre des traitements]], réécrit
+  le 24/10 : P1 à P16, identité lue en base).
+- **Catalogue de conservation** : 58 règles ; pièces et actes du bail **36 mois** (au lieu
+  de 60) après la fin du bail ; quittances 36 mois après la fin du bail (120 mois après
+  l'émission sans bail) ; journal d'audit **12 mois** (au lieu de 36), contrôle interne
+  36 mois, preuves du contrat 10 ans ; preuve du contrat payé 10 ans et références des
+  factures 6 ans dans `archives_comptes` ; rétractations 10 ans ; prospects et oppositions
+  3 ans. Plusieurs règles restent **inactives** jusqu'à leur bilan. Détail :
+  [[Durées de conservation]] (corrige les durées A2 historiques ci-dessus).
+- **Gel en cas de litige** sur la fiche du bail (douze mois au plus, renouvelable) et
+  **alertes avant suppression** (J-30 pour les pièces d'un bail, J-15 pour une personne
+  sans bail) : RM-A2.7 outillé pour les pièces d'un bail.
+- **Fermeture de compte** exécutable (programmée par la supervision avant le 30/11 ;
+  archive, neutralisation, effacements rejouables après restauration) et **comptes
+  inactifs** supprimés après 24 mois (règle inactive jusqu'à la V1) :
+  [[Fermeture de compte]].
+- **Export complet** des données d'un espace (ZIP, second facteur, lien de 24 h, archive
+  supprimée après sept jours) : [[Export complet des données]].
+- **Prospection** : origine en liste fermée, opposition par empreinte, aucun message
+  commercial à un particulier sans consentement : [[Prospection commerciale]].
+- Les signataires sont informés de la transmission de leurs données à Zoho Sign dans
+  l'invitation à signer ([[Signature électronique]]).
 
 ## Correction locale du 22 octobre : preuves et invitations
 

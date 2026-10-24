@@ -7,7 +7,7 @@ import { formaterDateParis } from "@/lib/heure-paris";
 import { DecisionRetour } from "../retours/decisions-retour";
 import { ControleArchivesSignatures } from "./archives";
 import { BilanConservationContacts } from "./bilan-conservation";
-import { FermeturesComptes, comptesAvecFermetureProgrammee } from "./fermetures";
+import { FermeturesComptes, comptesAvecFermetureProgrammee, supervisionPermanente } from "./fermetures";
 import { ProgrammerFermeture } from "./programmer-fermeture";
 export const metadata = { title: "Données personnelles et fermeture des comptes" };
 const ETAPES = [
@@ -30,6 +30,7 @@ export default async function PageDonneesAdmin({ searchParams }: { searchParams:
   const ids = demandes.map(d => d.id);
   const historique = ids.length ? await db.from("retours_historique").select("id,retour_id,message,cree_le").in("retour_id", ids).order("cree_le", { ascending: true }) : { data: [], error: null };
   const programmees = await comptesAvecFermetureProgrammee();
+  const permanente = await supervisionPermanente();
   const titresFermeture = new Set([PREFIXE_DEMANDE_DONNEES + TYPES_DEMANDE_DONNEES.fermeture, PREFIXE_DEMANDE_DONNEES + TYPES_DEMANDE_DONNEES.effacement]);
   const aujourdHui = new Intl.DateTimeFormat("en-CA", {timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   const adresse = (n: number) => `?etat=${terminees?"resolu":"ouvert"}&page=${n}`;
@@ -48,7 +49,7 @@ export default async function PageDonneesAdmin({ searchParams }: { searchParams:
         <Link className="lien-discret text-sm" href={`/admin/comptes/${d.auteur_id}`}>Ouvrir le compte demandeur →</Link>
         <p className="whitespace-pre-wrap">{d.description}</p>{d.reponse&&<p className="rounded-lg bg-[var(--creme)] p-3 whitespace-pre-wrap"><strong>Dernière réponse</strong><br/>{d.reponse}</p>}
         <details className="text-sm"><summary className="cursor-pointer">Historique de la demande</summary>{historique.error ? <p role="alert">Historique indisponible.</p> : <ol className="mt-2 space-y-2">{(historique.data ?? []).filter(h => h.retour_id === d.id).map(h => <li key={h.id}><time>{formaterDateParis(h.cree_le)}</time><p className="whitespace-pre-wrap">{h.message}</p></li>)}</ol>}</details>
-        {!terminees && titresFermeture.has(d.titre) && !programmees.has(d.auteur_id) && <ProgrammerFermeture accountId={d.auteur_id} demandeId={d.id}/>}
+        {!terminees && permanente && titresFermeture.has(d.titre) && !programmees.has(d.auteur_id) && <ProgrammerFermeture accountId={d.auteur_id} demandeId={d.id}/>}
         <DecisionRetour retour={d} donneesPersonnelles/>
       </article>})}
       {(page>1||(r.count??0)>20)&&<nav aria-label="Pages des demandes de données" className="flex justify-between">{page>1?<Link href={adresse(page-1)}>Précédente</Link>:<span/>}<span>Page {page}</span>{page*20<(r.count??0)&&<Link href={adresse(page+1)}>Suivante</Link>}</nav>}

@@ -75,7 +75,8 @@ export async function construireExportComplet(
     if (lecture || !ligne) return await echec("Demande d'archive illisible.");
     const x = ligne as LigneExport;
     const [donnees, compte, fichiers] = await Promise.all([
-      db.rpc("export_complet_donnees", { p_org: x.organisation_id_export }),
+      // Seulement ce que le demandeur lit lui-même (relecture du 24/10, B2 : RLS et droits rejoués par la base).
+      db.rpc("export_complet_donnees", { p_org: x.organisation_id_export, p_account: x.demande_par }),
       db.rpc("export_complet_compte", { p_account: x.demande_par }),
       db.rpc("export_complet_fichiers", { p_org: x.organisation_id_export }),
     ]);
@@ -119,6 +120,25 @@ export async function construireExportComplet(
     if (e instanceof ArretSupervision) throw e;
     return await echec("La préparation de l'archive a été interrompue ; réessayez plus tard.");
   }
+}
+
+/** Une préparation interrompue (fonction coupée) : passé ce délai, un nouveau clic la reprend sans attendre la nuit. */
+export const DELAI_REPRISE_EXPORT_MINUTES = 15;
+
+/**
+ * L'archive de cet espace, demandée par ce compte, dont la préparation est restée en plan (demandée ou commencée depuis
+ * plus de quinze minutes) : relecture du 24/10 (R2-8), un nouveau clic la reprend au lieu de répondre « déjà en
+ * préparation » jusqu'à la nuit.
+ */
+export async function exportBloque(db: SupabaseClient, orgId: string, accountId: string): Promise<string | null> {
+  const limite = new Date(Date.now() - DELAI_REPRISE_EXPORT_MINUTES * 60_000).toISOString();
+  const { data, error } = await db
+    .from("exports_complets").select("id")
+    .eq("organisation_id_export", orgId).eq("demande_par", accountId)
+    .or(`and(statut.eq.demande,demande_le.lt.${limite}),and(statut.eq.en_cours,commence_le.lt.${limite})`)
+    .order("demande_le", { ascending: false }).limit(1).maybeSingle();
+  if (error || !data) return null;
+  return (data as { id: string }).id;
 }
 
 /** Les demandes en attente (ou dont la préparation s'est interrompue), préparées une à une. */

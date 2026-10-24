@@ -7,12 +7,14 @@
 // GET ?archive=<id> : redirige vers le lien signé (24 h) de l'archive prête, pour celui qui l'a demandée, mêmes
 // conditions d'identité ; chaque téléchargement est inscrit au journal d'audit et, pour chaque pièce sensible
 // contenue, au journal des accès aux pièces.
+// Relectures du 24/10 (R2-7, R2-8) : identité à confirmer, retour à la page avec les gestes pour le faire (jamais une
+// page de texte brut) ; une préparation interrompue depuis plus de quinze minutes reprend au clic suivant.
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { clientDeService } from "@/lib/supabase/service";
 import { sansJargon } from "@/lib/erreurs";
-import { identiteRecenteConfirmee, MESSAGE_IDENTITE_EXPORT } from "@/lib/export-complet";
-import { construireExportComplet, lienExportComplet } from "@/lib/export-complet-serveur";
+import { identiteRecenteConfirmee } from "@/lib/export-complet";
+import { construireExportComplet, exportBloque, lienExportComplet } from "@/lib/export-complet-serveur";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -37,20 +39,28 @@ export async function POST(request: Request, { params }: { params: Promise<{ org
   if (!claims?.sub) return Response.redirect(new URL(`/connexion?suite=${encodeURIComponent("/compte/donnees#archive")}`, request.url), 303);
   if (!identiteRecenteConfirmee(claims)) return retour(request, "identite");
   const { data: id, error } = await supabase.rpc("demander_export_complet", { p_org: orgId });
-  if (error || typeof id !== "string") {
-    const code = (error as { code?: string } | null)?.code;
-    return retour(request, code === "23505" ? "en_cours" : code === "54000" ? "limite" : code === "42501" ? "refusee" : "indisponible");
-  }
   const service = clientDeService();
-  if (service) {
+  const preparer = (exportId: string) => {
+    if (!service) return;
     after(async () => {
       try {
-        await construireExportComplet(service, id);
+        await construireExportComplet(service, exportId);
       } catch (e) {
         console.error("[export complet] préparation interrompue :", sansJargon(e instanceof Error ? e.message : String(e)));
       }
     });
+  };
+  if (error || typeof id !== "string") {
+    const code = (error as { code?: string } | null)?.code;
+    if (code === "23505") {
+      // Déjà demandée (double clic) : la préparation en cours suit son cours ; restée en plan, elle reprend.
+      const bloque = service ? await exportBloque(service, orgId, claims.sub) : null;
+      if (bloque) { preparer(bloque); return retour(request, "relancee"); }
+      return retour(request, "en_cours");
+    }
+    return retour(request, code === "54000" ? "limite" : code === "42501" ? "refusee" : "indisponible");
   }
+  preparer(id);
   return retour(request, "demandee");
 }
 
@@ -60,9 +70,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ orgI
   if (!UUID.test(orgId) || !UUID.test(archive)) return retour(request, "introuvable");
   const { claims } = await identite();
   if (!claims?.sub) return Response.redirect(new URL(`/connexion?suite=${encodeURIComponent("/compte/donnees#archive")}`, request.url), 303);
-  if (!identiteRecenteConfirmee(claims)) {
-    return new Response(MESSAGE_IDENTITE_EXPORT, { status: 403, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "private, no-store" } });
-  }
+  if (!identiteRecenteConfirmee(claims)) return retour(request, "identite");
   const service = clientDeService();
   if (!service) return retour(request, "indisponible");
   const lien = await lienExportComplet(service, { exportId: archive, accountId: claims.sub, orgId });

@@ -88,12 +88,21 @@ describe("programmer la fermeture", () => {
 
   it("sans souscription : ni Stripe ni verrou ; programmée par la clé de service, au nom du superviseur", async () => {
     const r = await programmerFermetureCompte({}, formulaire({ account_id: COMPTE, demande_id: DEMANDE }));
-    expect(r.succes).toContain("7 novembre 2026");
+    expect(r.succes).toContain("dans la nuit du 6 au 7 novembre 2026");
     expect(m.verrou).not.toHaveBeenCalled();
     expect(m.preparer).not.toHaveBeenCalled();
     expect(m.serviceRpc).toHaveBeenCalledWith("programmer_fermeture_compte", {
-      p_account: COMPTE, p_origine: "super_admin", p_choix: null, p_demande_id: DEMANDE, p_par: "superviseur", p_remboursement: null,
+      p_account: COMPTE, p_origine: "super_admin", p_choix: null, p_demande_id: DEMANDE, p_par: "superviseur", p_remboursement: null, p_stripe_avant: null,
     });
+  });
+
+  it("plusieurs souscriptions vivantes, ou une souscription laissée à des gestionnaires restants : refus avant tout geste Stripe (relecture du 24/10)", async () => {
+    m.simulation = { abonnement: { ...ABO_PAYE, souscriptions_vivantes: 2 }, souscriptions_laissees: [] };
+    expect((await programmerFermetureCompte({}, formulaire({ account_id: COMPTE, demande_id: DEMANDE, choix: "fin_periode" }))).erreur).toMatch(/plusieurs souscriptions/);
+    m.simulation = { abonnement: {}, souscriptions_laissees: ["org-2"] };
+    expect((await programmerFermetureCompte({}, formulaire({ account_id: COMPTE, demande_id: DEMANDE }))).erreur).toMatch(/souscription en cours/);
+    expect(m.preparer).not.toHaveBeenCalled();
+    expect(m.serviceRpc).not.toHaveBeenCalledWith("programmer_fermeture_compte", expect.anything());
   });
 
   it("abonnement payé en cours sans choix : refus, rien chez Stripe ni en base", async () => {
@@ -105,11 +114,13 @@ describe("programmer la fermeture", () => {
 
   it("J+14 : Stripe sous le verrou des gestes de facturation, puis programmation avec le remboursement calculé", async () => {
     m.simulation = { abonnement: ABO_PAYE };
-    m.preparer.mockResolvedValue({ ok: true, remboursement: { facture: "in_1", montant_cents: 420 }, arret: "2026-11-06T23:00:00Z" });
+    const avant = { cancel_at_period_end: true, cancel_at: null, schedule: null };
+    m.preparer.mockResolvedValue({ ok: true, remboursement: { montant_cents: 420, factures: [{ facture: "in_1", montant_cents: 420 }] }, arret: "2026-11-06T23:00:00Z", avant });
     const r = await programmerFermetureCompte({}, formulaire({ account_id: COMPTE, demande_id: DEMANDE, choix: "j14_prorata" }));
     expect(m.verrou).toHaveBeenCalledWith(expect.anything(), "org-1", "resiliation");
     expect(m.preparer).toHaveBeenCalledWith({ doublure: true }, ABO_PAYE, "j14_prorata");
-    expect(m.serviceRpc).toHaveBeenCalledWith("programmer_fermeture_compte", expect.objectContaining({ p_choix: "j14_prorata", p_remboursement: { facture: "in_1", montant_cents: 420 } }));
+    expect(m.serviceRpc).toHaveBeenCalledWith("programmer_fermeture_compte", expect.objectContaining({
+      p_choix: "j14_prorata", p_remboursement: { montant_cents: 420, factures: [{ facture: "in_1", montant_cents: 420 }] }, p_stripe_avant: avant }));
     expect(r.succes).toContain("remboursement");
     expect(m.rendre).toHaveBeenCalledTimes(1);
   });
@@ -119,7 +130,7 @@ describe("programmer la fermeture", () => {
     m.programmation = { data: null, error: { code: "P0002", message: "Compte inconnu ou déjà effacé" } };
     const r = await programmerFermetureCompte({}, formulaire({ account_id: COMPTE, demande_id: DEMANDE, choix: "fin_periode" }));
     expect(r.erreur).toMatch(/Compte inconnu/);
-    expect(m.annuler).toHaveBeenCalledWith({ doublure: true }, ABO_PAYE, "fin_periode");
+    expect(m.annuler).toHaveBeenCalledWith({ doublure: true }, ABO_PAYE, "fin_periode", null);
     expect(m.rendre).toHaveBeenCalledTimes(1);
   });
 
@@ -146,11 +157,14 @@ describe("programmer la fermeture", () => {
 
 describe("annuler la fermeture", () => {
   it("annulée en base ; l'arrêt Stripe levé, ou le superviseur prévenu de le lever à la main", async () => {
-    m.annulation = { data: { choix: "fin_periode", abonnement: ABO_PAYE }, error: null };
-    expect((await annulerFermetureCompte({}, formulaire({ fermeture_id: FERMETURE, motif: "Le titulaire renonce" }))).succes).toMatch(/continue chez Stripe/);
-    expect(m.annuler).toHaveBeenCalledWith({ doublure: true }, ABO_PAYE, "fin_periode");
+    const avant = { cancel_at_period_end: true, cancel_at: null, schedule: null };
+    m.annulation = { data: { choix: "fin_periode", abonnement: ABO_PAYE, stripe_avant: avant }, error: null };
+    expect((await annulerFermetureCompte({}, formulaire({ fermeture_id: FERMETURE, motif: "Le titulaire renonce" }))).succes).toMatch(/revient à son état d’avant la fermeture/);
+    expect(m.annuler).toHaveBeenCalledWith({ doublure: true }, ABO_PAYE, "fin_periode", avant);
+    m.annuler.mockResolvedValue({ ok: true, echeancierNonRetabli: true });
+    expect((await annulerFermetureCompte({}, formulaire({ fermeture_id: FERMETURE, motif: "Le titulaire renonce" }))).succes).toMatch(/changement de formule programmé/);
     m.annuler.mockResolvedValue({ ok: false, erreur: "panne" });
-    expect((await annulerFermetureCompte({}, formulaire({ fermeture_id: FERMETURE, motif: "Le titulaire renonce" }))).succes).toMatch(/levez-le dans le tableau de bord Stripe/);
+    expect((await annulerFermetureCompte({}, formulaire({ fermeture_id: FERMETURE, motif: "Le titulaire renonce" }))).succes).toMatch(/remettez-le dans le tableau de bord Stripe/);
     m.annulation = { data: { choix: null, abonnement: {} }, error: null };
     m.annuler.mockClear();
     expect((await annulerFermetureCompte({}, formulaire({ fermeture_id: FERMETURE, motif: "Le titulaire renonce" }))).succes).toBe("Fermeture annulée : rien ne sera effacé.");

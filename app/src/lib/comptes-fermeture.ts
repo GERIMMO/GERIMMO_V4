@@ -63,10 +63,55 @@ export function remboursementProrata(params: { payeCents: number; debut: Date; f
   return Math.min(params.payeCents, Math.round((params.payeCents * Math.min(reste, total)) / total));
 }
 
-/** « 15 décembre 2026 » pour un jour AAAA-MM-JJ (ou un instant ISO). */
+const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+
+/** Le jour d'un mois, « 1er » le premier (usage français). */
+function quantieme(j: number): string {
+  return j === 1 ? "1er" : String(j);
+}
+
+/** « 15 décembre 2026 », « 1er décembre 2026 » pour un jour AAAA-MM-JJ (ou un instant ISO). */
 export function jourEnLettres(valeur: string): string {
   const jour = /^\d{4}-\d{2}-\d{2}$/.test(valeur) ? valeur : jourParis(new Date(valeur));
-  return new Date(`${jour}T00:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const [a, m, j] = jour.split("-").map(Number);
+  return `${quantieme(j)} ${MOIS[m - 1]} ${a}`;
+}
+
+/**
+ * La nuit où l'effacement s'exécute (pg_cron à 3 h 20 UTC le jour de la date d'effet), dite sans ambiguïté :
+ * « nuit du 15 au 16 décembre 2026 », « nuit du 30 novembre au 1er décembre 2026 »,
+ * « nuit du 31 décembre 2026 au 1er janvier 2027 ».
+ */
+export function nuitDu(jour: string): string {
+  const [a, m, j] = jour.split("-").map(Number);
+  const veille = new Date(Date.UTC(a, m - 1, j - 1));
+  const va = veille.getUTCFullYear(), vm = veille.getUTCMonth() + 1, vj = veille.getUTCDate();
+  if (va !== a) return `nuit du ${quantieme(vj)} ${MOIS[vm - 1]} ${va} au ${quantieme(j)} ${MOIS[m - 1]} ${a}`;
+  if (vm !== m) return `nuit du ${quantieme(vj)} ${MOIS[vm - 1]} au ${quantieme(j)} ${MOIS[m - 1]} ${a}`;
+  return `nuit du ${quantieme(vj)} au ${quantieme(j)} ${MOIS[m - 1]} ${a}`;
+}
+
+/** « 1 bail », « 3 baux », « aucun document ». */
+function compte(n: number, singulier: string, pluriel: string, aucun = `aucun ${singulier}`): string {
+  return n <= 0 ? aucun : `${n} ${n > 1 ? pluriel : singulier}`;
+}
+
+/** Une ligne du bilan sans effacement pour un espace effacé (/admin/donnees), pluriels accordés. */
+export function resumeEspaceEfface(o: {
+  nom: string | null; biens: number; lots: number; baux: number; personnes: number; documents: number; fichiers: number;
+  membres_invites: number; demandes_zoho: number;
+}): string {
+  const elements = [
+    compte(o.biens, "bien", "biens"),
+    compte(o.lots, "lot", "lots"),
+    compte(o.baux, "bail", "baux"),
+    compte(o.personnes, "personne", "personnes", "aucune personne"),
+    compte(o.documents, "document", "documents"),
+    compte(o.fichiers, "fichier", "fichiers"),
+  ];
+  if (o.membres_invites > 0) elements.push(`${o.membres_invites} ${o.membres_invites > 1 ? "accès d’invités retirés" : "accès d’invité retiré"}`);
+  if (o.demandes_zoho > 0) elements.push(`${o.demandes_zoho} ${o.demandes_zoho > 1 ? "demandes Zoho à supprimer" : "demande Zoho à supprimer"} chez le prestataire`);
+  return `Espace « ${o.nom ?? "sans nom"} » effacé : ${elements.join(", ")}.`;
 }
 
 function cadre(paragraphes: string[]): string {
@@ -79,12 +124,16 @@ function cadre(paragraphes: string[]): string {
 
 export type AvertissementInactivite = {
   etape: "j60" | "j15";
-  nature: "organisation" | "personnel";
+  nature: "organisation" | "personnel" | "artisan";
   organisation: string | null;
+  /** Titulaire de l'espace (l'archive complète lui est réservée) ; un agent la demande au titulaire. */
+  titulaire?: boolean;
   derniereActivite: string; // instant ISO
   suppressionLe: string; // AAAA-MM-JJ
   /** Vers la page où télécharger l'archive complète ; null si l'adresse du site n'est pas configurée. */
   lienArchive: string | null;
+  /** Vers l'export de l'activité d'un artisan (registres privés et données de plateforme). */
+  lienExportArtisan?: string | null;
 };
 
 export function sujetAvertissementInactivite(a: Pick<AvertissementInactivite, "etape" | "suppressionLe">): string {
@@ -94,22 +143,38 @@ export function sujetAvertissementInactivite(a: Pick<AvertissementInactivite, "e
     : `Votre compte Gerimmo sera supprimé le ${date}`;
 }
 
+/**
+ * Relectures du 24/10 : le document cité est celui que le compte a accepté — « conditions générales » pour le client
+ * d'un espace, « conditions que vous avez acceptées » pour un locataire (règles des invités) ou un artisan (conditions de
+ * l'espace artisan) ; un artisan est renvoyé vers l'export de son activité ; un agent, vers le titulaire de l'espace.
+ */
 export function corpsAvertissementInactivite(a: AvertissementInactivite): string {
   const depuis = jourEnLettres(a.derniereActivite);
   const le = jourEnLettres(a.suppressionLe);
-  const lien = a.lienArchive ? `<a href="${echapperHtml(a.lienArchive)}">${echapperHtml(a.lienArchive)}</a>` : "la page « Mes données personnelles » de votre compte";
-  const paragraphes =
-    a.nature === "organisation"
-      ? [
-          `Personne ne s'est connecté à votre espace Gerimmo ${echapperHtml(a.organisation ?? "")} depuis le ${depuis} et aucun abonnement n'y est en cours. Conformément aux conditions générales, le compte et ses données de gestion seront supprimés le ${le}.`,
-          "Pour les garder, il suffit de vous connecter avant cette date.",
-          `Pour récupérer vos données avant la suppression, connectez-vous et téléchargez l'archive complète depuis ${lien}.`,
-        ]
-      : [
-          `Votre compte Gerimmo n'a pas servi depuis le ${depuis}. Conformément aux conditions générales, ce compte et les données qui y sont attachées seront supprimés le ${le}.`,
-          "Pour le garder, il suffit de vous connecter avant cette date.",
-          "Les documents d'une location ou d'une intervention restent chez le propriétaire ou le gestionnaire concerné, responsable de son dossier.",
-        ];
+  const lienVers = (url: string | null | undefined, repli: string) => (url ? `<a href="${echapperHtml(url)}">${echapperHtml(url)}</a>` : repli);
+  let paragraphes: string[];
+  if (a.nature === "organisation") {
+    paragraphes = [
+      `Personne ne s'est connecté à votre espace Gerimmo ${echapperHtml(a.organisation ?? "")} depuis le ${depuis} et aucun abonnement n'y est en cours. Conformément aux conditions générales, le compte et ses données de gestion seront supprimés le ${le}.`,
+      "Pour les garder, il suffit de vous connecter avant cette date.",
+      a.titulaire === false
+        ? "Pour récupérer les données de l'espace avant la suppression, demandez à son titulaire de télécharger l'archive complète depuis son compte."
+        : `Pour récupérer vos données avant la suppression, connectez-vous et téléchargez l'archive complète depuis ${lienVers(a.lienArchive, "la page « Mes données personnelles » de votre compte")}.`,
+    ];
+  } else if (a.nature === "artisan") {
+    paragraphes = [
+      `Votre compte Gerimmo n'a pas servi depuis le ${depuis}. Conformément aux conditions que vous avez acceptées, ce compte, votre fiche d'artisan et vos registres privés seront supprimés le ${le}.`,
+      "Pour les garder, il suffit de vous connecter avant cette date.",
+      `Pour récupérer vos registres avant la suppression, connectez-vous et téléchargez l'export de votre activité depuis ${lienVers(a.lienExportArtisan, "la page « Mes clients » de votre espace artisan")}.`,
+      "Les devis, interventions et factures déposés dans le dossier d'un propriétaire restent chez lui, responsable de son dossier.",
+    ];
+  } else {
+    paragraphes = [
+      `Votre compte Gerimmo n'a pas servi depuis le ${depuis}. Conformément aux conditions que vous avez acceptées, ce compte et les données qui y sont attachées seront supprimés le ${le}.`,
+      "Pour le garder, il suffit de vous connecter avant cette date.",
+      "Les documents d'une location ou d'une intervention restent chez le propriétaire ou le gestionnaire concerné, responsable de son dossier.",
+    ];
+  }
   if (a.etape === "j60") paragraphes.push("Vous recevrez un dernier rappel quinze jours avant.");
   return cadre(paragraphes);
 }
@@ -133,14 +198,17 @@ export type FermetureExecutee = {
   derniereActivite: string | null;
   bilan: BilanFermeture;
   archives: { preuve_conservee_jusqu_au: string; factures_conservees_jusqu_au: string | null }[];
+  /** Remboursement fait (montant confirmé par Stripe). */
   remboursementCents: number | null;
+  /** Remboursement dû mais pas encore confirmé au moment du courriel (annoncé comme en cours). */
+  remboursementEnCoursCents?: number | null;
 };
 
 export const SUJET_COMPTE_FERME = "Votre compte Gerimmo est fermé";
 
 /** Ce qui a été effacé, en phrases courtes (une par élément), d'après le bilan de l'exécution. */
 export function elementsEffaces(b: BilanFermeture): string[] {
-  const liste = ["votre compte et vos accès"];
+  const liste = ["votre compte de connexion"];
   const noms = (b.organisations_noms ?? []).filter((n): n is string => typeof n === "string" && n.trim() !== "");
   if ((b.organisations_effacees ?? []).length > 0) {
     liste.push(
@@ -149,14 +217,19 @@ export function elementsEffaces(b: BilanFermeture): string[] {
         : "votre espace, avec ses dossiers, ses documents et ses fichiers"
     );
   }
-  if ((b.adhesions_retirees ?? 0) > 0) liste.push("vos accès aux espaces où vous étiez invité");
+  // Relecture du 24/10 : titulaire d'un espace qui garde d'autres gestionnaires, ou invité ; « vos accès » une fois.
+  if ((b.adhesions_retirees ?? 0) > 0) liste.push("vos accès aux autres espaces, qui restent à leurs autres gestionnaires ou à leur propriétaire");
   if (b.artisan?.fiche === "supprimee") liste.push("votre fiche d'artisan, vos zones, vos métiers et vos registres privés");
   if (b.artisan?.fiche === "detachee") liste.push("vos zones, vos métiers et vos registres privés d'artisan");
   return liste;
 }
 
-/** Ce qui est conservé, avec sa date de fin quand elle est connue. */
-export function elementsConserves(f: Pick<FermetureExecutee, "archives" | "bilan">): string[] {
+/**
+ * Ce qui est conservé, avec sa date de fin (relecture du 24/10 : chaque élément a un terme, fidèle au code). La trace
+ * de la fermeture (ligne de fermeture, journal « compte_ferme ») part trois ans après ; le client Stripe est supprimé au
+ * terme des factures (clients_stripe_au_terme, mission « purge »).
+ */
+export function elementsConserves(f: Pick<FermetureExecutee, "archives" | "bilan"> & { origine?: OrigineFermeture }): string[] {
   const liste: string[] = [];
   for (const a of f.archives) {
     liste.push(
@@ -164,14 +237,19 @@ export function elementsConserves(f: Pick<FermetureExecutee, "archives" | "bilan
     );
     if (a.factures_conservees_jusqu_au) {
       liste.push(
-        `les références de vos factures d'abonnement, jusqu'au ${jourEnLettres(a.factures_conservees_jusqu_au)} ; les factures elles-mêmes restent chez notre prestataire de paiement`
+        `les références de vos factures d'abonnement, jusqu'au ${jourEnLettres(a.factures_conservees_jusqu_au)} ; les factures elles-mêmes restent dans notre compte chez notre prestataire de paiement jusqu'à la même date`
       );
     }
   }
-  liste.push("la trace de votre demande et de son traitement");
+  const inactivite = f.origine === "inactivite";
+  liste.push(inactivite
+    ? "la trace de la fermeture de votre compte et des avertissements envoyés, pendant trois ans"
+    : "la trace de votre demande et de son traitement, pendant trois ans");
   liste.push("les journaux de sécurité, jusqu'au terme de leur durée de conservation indiquée dans notre page confidentialité");
   if (f.bilan.mode === "neutralisation") {
-    liste.push("l'identifiant technique de votre compte, sans adresse électronique ni mot de passe, tant que ces journaux ou votre demande y font référence");
+    liste.push(inactivite
+      ? "l'identifiant technique de votre compte, sans adresse électronique ni mot de passe, tant que ces journaux y font référence"
+      : "l'identifiant technique de votre compte, sans adresse électronique ni mot de passe, tant que ces journaux ou votre demande y font référence");
   }
   return liste;
 }
@@ -188,7 +266,9 @@ export function corpsCompteFerme(f: FermetureExecutee, lienConfidentialite: stri
   ];
   if ((f.bilan.dossiers_tiers_detaches ?? 0) > 0) {
     paragraphes.push(
-      "Les dossiers tenus par vos propriétaires ou gestionnaires restent sous leur responsabilité : votre compte n'y est plus relié, et nous les avons prévenus de votre demande."
+      f.origine === "inactivite"
+        ? "Les dossiers tenus par vos propriétaires ou gestionnaires restent sous leur responsabilité : votre compte n'y est plus relié, et nous les avons prévenus de la fermeture de votre compte."
+        : "Les dossiers tenus par vos propriétaires ou gestionnaires restent sous leur responsabilité : votre compte n'y est plus relié, et nous les avons prévenus de votre demande."
     );
   }
   if (f.bilan.artisan?.fiche === "detachee") {
@@ -202,6 +282,10 @@ export function corpsCompteFerme(f: FermetureExecutee, lienConfidentialite: stri
   if (f.remboursementCents && f.remboursementCents > 0) {
     paragraphes.push(
       `Nous vous avons remboursé ${euros(f.remboursementCents)}, pour la part non utilisée de votre période payée, sur le moyen de paiement utilisé.`
+    );
+  } else if (f.remboursementEnCoursCents && f.remboursementEnCoursCents > 0) {
+    paragraphes.push(
+      `Le remboursement de ${euros(f.remboursementEnCoursCents)}, pour la part non utilisée de votre période payée, est en cours sur le moyen de paiement utilisé.`
     );
   }
   paragraphes.push(`Nous conservons seulement, avec un accès restreint : ${elementsConserves(f).map(echapperHtml).join(" ; ")}.`);

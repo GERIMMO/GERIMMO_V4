@@ -16,7 +16,8 @@ test("conditions : le texte extrait de la page servie est celui que le navigateu
   expect(extraction.ok, JSON.stringify(extraction)).toBe(true);
   if (!extraction.ok) return;
   expect(extraction.html).not.toMatch(/<template\b|\bid="[PSB]:/);
-  for (const passage of ["8.7 — Reconduction", "8.8 — Hors abonnement", "Droits des personnes.", "17. Droit applicable et litiges"]) {
+  // V1 du 24/10/2026 : l'article 8.8 porte sur les artisans et les travaux.
+  for (const passage of ["8.7 — Reconduction", "8.8 — Artisans et travaux", "Droits des personnes.", "17. Droit applicable et litiges"]) {
     expect(extraction.html, passage).toContain(passage);
   }
 

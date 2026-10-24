@@ -53,7 +53,7 @@ const PLAFOND_API = 1000;
  * chaînable dont la lecture (`maybeSingle`), la mise à jour (`update … select`) et la liste entière (export) sont
  * réglées par `options`. Les filtres `.eq()` et les champs mis à jour sont relevés.
  */
-function client(options: { estSuperAdmin?: unknown; lecture?: Reponse; miseAJour?: Reponse; journal?: Reponse; lignes?: Reponse } = {}) {
+function client(options: { estSuperAdmin?: unknown; lecture?: Reponse; miseAJour?: Reponse; journal?: Reponse; lignes?: Reponse; opposees?: Reponse } = {}) {
   const miseAJour = vi.fn();
   const filtres: [string, unknown][] = [];
   const exclusions: [string, unknown][] = [];
@@ -64,6 +64,8 @@ function client(options: { estSuperAdmin?: unknown; lecture?: Reponse; miseAJour
       journal.push(args ?? {});
       return { data: null, error: options.journal?.error ?? null };
     }
+    // Relecture du 24/10 : les inscriptions auxquelles rien ne doit être envoyé (retirées ou adresse opposée).
+    if (fn === "inscriptions_agences_opposees") return { data: options.opposees?.data ?? [], error: options.opposees?.error ?? null };
     return { data: null, error: { message: `fonction inconnue ${fn}` } };
   });
   const from = vi.fn(() => {
@@ -206,6 +208,18 @@ describe("changerStatutAgence", () => {
     ]);
     expect(mocks.revalidate).toHaveBeenCalledWith("/admin/liste-attente");
   });
+  it("refuse « contactée » pour une adresse opposée, ou quand le contrôle des oppositions est indisponible", async () => {
+    const opposee = client({ lecture: { data: { id: ID, statut: "en_attente" } }, opposees: { data: [ID] } });
+    expect((await changerStatutAgence(ID, "contactee")).erreur).toMatch(/opposée/);
+    expect(opposee.miseAJour).not.toHaveBeenCalled();
+    const panne = client({ lecture: { data: { id: ID, statut: "en_attente" } }, opposees: { error: { message: "panne" } } });
+    expect((await changerStatutAgence(ID, "contactee")).erreur).toMatch(/contrôle des oppositions/);
+    expect(panne.miseAJour).not.toHaveBeenCalled();
+    // Les autres statuts restent libres (une retirée peut être remise en attente le jour même, par erreur de clic).
+    const autre = client({ lecture: { data: { id: ID, statut: "retiree" } }, opposees: { data: [ID] } });
+    expect((await changerStatutAgence(ID, "en_attente")).succes).toBe("Statut noté : En attente.");
+    expect(autre.miseAJour).toHaveBeenCalledTimes(1);
+  });
   it("« remettre en attente » ne touche pas contactee_le", async () => {
     const c = client({ lecture: { data: { id: ID, statut: "contactee" } } });
     expect(await changerStatutAgence(ID, "en_attente")).toEqual({ succes: "Statut noté : En attente." });
@@ -268,9 +282,9 @@ describe("GET /admin/liste-attente/export", () => {
     const corps = new TextDecoder().decode(octets);
     expect(corps).toContain("Date d'inscription;Agence;Contact");
     expect(corps).toContain("Agence du Canal");
-    expect(c.journal).toEqual([{ p_action: "liste_attente_exportee", p_organisation: null, p_details: { lignes: 1, inclure_retirees: false } }]);
+    expect(c.journal).toEqual([{ p_action: "liste_attente_exportee", p_organisation: null, p_details: { lignes: 1, oppositions_exclues: 0 } }]);
   });
-  it.each(["", "?inclure_retirees=0", "?inclure_retirees=true"])("exclut les retirées sans option explicite (%s)", async (query) => {
+  it.each(["", "?inclure_retirees=0", "?inclure_retirees=true", "?inclure_retirees=1"])("exclut toujours les retirées (%s)", async (query) => {
     const c = client({ lignes: { data: [AVEC_ID, RETIREE] } });
     const r = await exporter(new Request(`https://gerimmo.test/admin/liste-attente/export${query}`));
     const csv = await r.text();
@@ -278,12 +292,22 @@ describe("GET /admin/liste-attente/export", () => {
     expect(csv).not.toContain("Agence retirée");
     expect(c.exclusions).toEqual([["statut", "retiree"]]);
   });
-  it("inclut les retirées seulement sur choix explicite et consigne ce choix", async () => {
-    const c = client({ lignes: { data: [AVEC_ID, RETIREE] } });
-    const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export?inclure_retirees=1"));
-    expect(await r.text()).toContain("Agence retirée");
-    expect(c.exclusions).toEqual([]);
-    expect(c.journal[0].p_details).toEqual({ lignes: 2, inclure_retirees: true });
+  // Relecture du 24/10 : une retirée a, par construction, son empreinte dans les oppositions ; une adresse opposée comme
+  // prospect (« Stop ») ne reçoit rien non plus. Plus d'option pour les exporter.
+  it("écarte les adresses opposées et consigne leur nombre, jamais les adresses", async () => {
+    const OPPOSEE = { ...LIGNE, id: "55555555-5555-4555-8555-555555555555", agence: "Agence opposée", email: "stop@agence-opposee.test" };
+    const c = client({ lignes: { data: [AVEC_ID, OPPOSEE] }, opposees: { data: [OPPOSEE.id, RETIREE.id] } });
+    const csv = await (await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"))).text();
+    expect(csv).toContain("Agence du Canal");
+    expect(csv).not.toContain("Agence opposée");
+    expect(c.journal[0].p_details).toEqual({ lignes: 1, oppositions_exclues: 1 });
+  });
+  it("sans contrôle des oppositions, pas de fichier ni de ligne d'audit", async () => {
+    const c = client({ lignes: { data: [AVEC_ID] }, opposees: { error: { message: "panne" } } });
+    const r = await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"));
+    expect(r.status).toBe(503);
+    expect(await r.text()).toMatch(/oppositions/);
+    expect(c.journal).toEqual([]);
   });
   it("sans ligne d'audit, pas de fichier", async () => {
     const silence = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -308,7 +332,7 @@ describe("GET /admin/liste-attente/export", () => {
     expect(r.status).toBe(200);
     const csv = await r.text();
     expect(csv).toContain("Agence 1000");
-    expect(c.journal[0].p_details).toEqual({ lignes: 1001, inclure_retirees: false });
+    expect(c.journal[0].p_details).toEqual({ lignes: 1001, oppositions_exclues: 0 });
   });
   it("une ligne relue d'une page à l'autre (données qui bougent) : pas de fichier", async () => {
     const lignes = Array.from({ length: 1001 }, (_, i) => ({ ...LIGNE, id: i === 1000 ? "id-0" : `id-${i}` }));
@@ -334,15 +358,29 @@ describe("la page /admin/liste-attente", () => {
     // Le rang au statut inconnu porte bien la puce et le geste de l'attente.
     expect(html.split("Marquer comme contactée")).toHaveLength(3);
   });
-  it("le formulaire GET exporte sans inclure les retirées par défaut et laisse les erreurs lisibles", async () => {
+  it("le formulaire GET exporte sans option pour les retirées et laisse les erreurs lisibles", async () => {
     client({ lignes: { data: [INSCRIPTION] } });
     const html = await page();
     expect(html).toContain("1 en attente · 1 inscrite<");
     expect(html).toContain('action="/admin/liste-attente/export" method="get"');
-    expect(html).toContain('name="inclure_retirees" value="1"');
-    expect(html).toContain("Inclure les retirées");
-    expect(html).not.toContain('checked=""');
+    expect(html).not.toContain("inclure_retirees");
+    expect(html).not.toContain("Inclure les retirées");
     expect(html).not.toMatch(/\bdownload\b/);
+  });
+  it("une inscription opposée (retirée, ou « Stop » comme prospect) : ni lien d'écriture ni « contactée »", async () => {
+    client({ lignes: { data: [INSCRIPTION, { ...INSCRIPTION, id: ID_2, email: "stop@agence.test", agence: "Agence opposée" }] }, opposees: { data: [ID_2] } });
+    const html = await page();
+    expect(html).toContain('href="mailto:contact@agence-canal.test"');
+    expect(html).not.toContain("mailto:stop@agence.test");
+    expect(html).toContain("Opposition enregistrée : ne lui écrivez pas.");
+    expect(html.split("Marquer comme contactée")).toHaveLength(2);
+  });
+  it("sans contrôle des oppositions, aucun lien d'écriture et un avertissement", async () => {
+    client({ lignes: { data: [INSCRIPTION] }, opposees: { error: { message: "panne" } } });
+    const html = await page();
+    expect(html).not.toContain("mailto:");
+    expect(html).toContain("Le contrôle des oppositions est indisponible");
+    expect(html).not.toContain("Marquer comme contactée");
   });
   it("le titre porte l'apostrophe typographique, comme l'onglet ; à vide, ni compteur ni export", async () => {
     client({ lignes: { data: [] } });

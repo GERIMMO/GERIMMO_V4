@@ -83,20 +83,20 @@ test("la console liste l'agence inscrite, la marque contactée et exporte le CSV
     expect(csv).toContain(`;${email};`);
     expect(csv).toContain(";Contactée;");
 
-    // Une inscription retirée ne revient dans l’export qu’après un choix explicite.
+    // Une inscription retirée est une opposition (relecture du 24/10, R45) : plus de lien d'écriture, plus de
+    // « contactée », jamais dans l'export — l'option « Inclure les retirées » n'existe plus.
     await db.query("update public.liste_attente_agences set statut = 'retiree' where id = $1", [id]);
     await page.reload();
-    const inclure = page.getByRole("checkbox", { name: "Inclure les retirées" });
-    await expect(inclure).not.toBeChecked();
-    const courant = await page.request.get("/admin/liste-attente/export");
-    expect(courant.status()).toBe(200);
-    expect(await courant.text()).not.toContain(agence);
-    await inclure.check();
+    await expect(page.getByRole("checkbox", { name: "Inclure les retirées" })).toHaveCount(0);
+    await expect(rang.getByRole("link", { name: email })).toHaveCount(0);
+    await expect(rang).toContainText("Opposition enregistrée : ne lui écrivez pas.");
     const formulaire = page.locator('form[action="/admin/liste-attente/export"]');
     await expect(formulaire).toHaveAttribute("method", "get");
-    const complet = await page.request.get("/admin/liste-attente/export?inclure_retirees=1");
-    expect(complet.status()).toBe(200);
-    expect(await complet.text()).toContain(agence);
+    for (const adresse of ["/admin/liste-attente/export", "/admin/liste-attente/export?inclure_retirees=1"]) {
+      const courant = await page.request.get(adresse);
+      expect(courant.status()).toBe(200);
+      expect(await courant.text()).not.toContain(agence);
+    }
 
     // Sans session (contexte vide) : une redirection vers la connexion ou un 403, jamais le fichier.
     // Un contexte VRAIMENT sans session : `browser.newContext()` seul reprend les options du test (donc la session de

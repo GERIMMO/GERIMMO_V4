@@ -13,11 +13,24 @@ export function lireProspect(f:FormData){const t=(k:string)=>String(f.get(k)??''
  if(champs.echeance&&(!/^\d{4}-\d{2}-\d{2}$/.test(champs.echeance)||!Number.isFinite(Date.parse(champs.echeance))||new Date(champs.echeance).toISOString().slice(0,10)!==champs.echeance))return {erreur:'Date de prochaine action invalide.'};
  for(const v of [champs.responsable,champs.organisation_id])if(v&&!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(v))return {erreur:'Sélectionnez un responsable ou un espace valide.'};
  return {champs};}
+/** La consigne affichée au-dessus de la mention : la possibilité d'opposition figure dans chaque message (décision 8). */
+export const CONSIGNE_MENTION_PROSPECT='Gerimmo n’envoie aucun message aux prospects. Placez cette mention dans chacun de vos messages :';
+/**
+ * Le cadre de la décision 8 du plan du 23/10 (démarchage) : jamais de message commercial à un particulier sans sa
+ * demande ; un professionnel seulement si son adresse vient de lui. Rend la raison du refus, ou null si la mention
+ * peut être préparée. Une adresse reçue par recommandation ne vient pas de la personne ; un particulier sans demande
+ * de contact rattachée ne l'a pas demandé (aucun consentement daté n'est enregistré ailleurs).
+ */
+export function refusMentionProspect(p:{origine:string;qualite:string;demande:boolean}):string|null{
+ if(p.origine==='recommandation')return 'Une adresse reçue par recommandation ne vient pas de la personne : aucun message commercial ne peut lui être envoyé. Attendez qu’elle vous contacte elle-même.';
+ if(p.qualite!=='professionnel'&&!p.demande)return 'Un particulier ne reçoit de message commercial que s’il l’a demandé : sans demande de contact rattachée à sa fiche, aucun message ne peut lui être préparé.';
+ return null;
+}
 /** L'origine telle qu'elle se lit dans la mention du premier message. */
 const ORIGINE_DANS_LA_MENTION:Record<string,string>={formulaire:'formulaire de contact du site','échange direct':'échange direct',recommandation:'recommandation'};
 /**
  * La mention du premier message à un prospect (plan de conformité du 23/10, lot 1F, texte du plan). Gerimmo n'envoie
- * aucun message aux prospects : la console prépare ce texte, à placer dans le premier message, et le refuse après une
+ * aucun message aux prospects : la console prépare ce texte, à placer dans chacun de ses messages, et le refuse après une
  * opposition (`controler_envoi_prospection`). Sans dénomination de l'éditeur saisie, rien n'est préparé.
  */
 export function mentionPremierMessageProspect(p:{denomination:string|null|undefined;origine:string;lienConfidentialite:string}):string|null{

@@ -37,6 +37,15 @@ export async function changerStatutAgence(id: string, statut: string): Promise<E
     revalidatePath(ECRAN);
     return { erreur: `Cette agence est déjà « ${STATUTS_LISTE_ATTENTE[cible]} » : rien n’a changé.` };
   }
+  // Plan de conformité du 23/10 (R45, relecture du 24/10) : une agence retirée, ou dont l'adresse s'est opposée à nos
+  // messages (« Stop » comme prospect), ne peut pas être notée « contactée » ; sans le contrôle, rien n'est noté.
+  if (cible === "contactee") {
+    const { data: opposees, error: controle } = await supabase.rpc("inscriptions_agences_opposees");
+    if (controle) return { erreur: "Le contrôle des oppositions est indisponible : rien n’a été noté. Réessayez dans un instant." };
+    if (Array.isArray(opposees) && (opposees as unknown[]).map(String).includes(id)) {
+      return { erreur: "Cette agence s’est opposée à nos messages (retrait ou « Stop ») : elle ne peut pas être marquée comme contactée." };
+    }
+  }
   // `contactee_le` est posé au passage à « contactée » et conservé ensuite : il date le dernier contact noté.
   const champs = cible === "contactee" ? { statut: cible, contactee_le: new Date().toISOString() } : { statut: cible };
   // La mise à jour vise la ligne ET le statut relu : un changement fait entre-temps depuis un autre écran ne

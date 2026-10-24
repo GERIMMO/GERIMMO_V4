@@ -4,8 +4,12 @@
 // `appliquer_retention`) :
 //   - J-30 : « Les pièces suivantes du bail {bail} seront supprimées le {date}… » (type conservation_echeance) ;
 //   - J-15 : « Les pièces de {personne}, qui n'est rattachée à aucun bail, seront supprimées le {date}… » (type
-//     conservation_sans_bail, seulement quand la règle dossier:sans_bail est active).
-// Le texte de l'alerte est celui du plan ; le courriel le reprend tel quel, avec un seul lien vers la fiche.
+//     conservation_sans_bail, seulement quand la règle dossier:sans_bail est active) ;
+//   - J-30 : « Les documents suivants, qui ne sont rattachés à aucun bail, seront supprimés le {date}… » (type
+//     conservation_documents, une alerte par espace et par date ; relecture du 24/10, la page confidentialité
+//     annonce ce préavis).
+// Le texte de l'alerte est celui du plan (le troisième suit le premier) ; le courriel le reprend tel quel, avec un seul
+// lien vers la fiche.
 //
 // QUI LES ENVOIE. La mission planifiée « rappels » (06:00 UTC), après les relances d'invitation, avec le même contrôle
 // d'arrêt d'urgence. Aucune tâche pg_cron ni aucune entrée Vercel nouvelle.
@@ -26,7 +30,7 @@ import { envoyerEmail } from "./email";
 import { gabaritNotification, type Message } from "./notifications";
 import { adresseDuSite } from "./site";
 
-export type TypeAlerteConservation = "conservation_echeance" | "conservation_sans_bail";
+export type TypeAlerteConservation = "conservation_echeance" | "conservation_sans_bail" | "conservation_documents";
 
 export type AlerteConservation = {
   alerte_id: string;
@@ -45,31 +49,53 @@ export function dateFrancaise(iso: string | undefined | null): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso ?? "");
 }
 
-/** Le lien de la fiche à ouvrir : la fiche du bail (carte « Conservation des pièces ») ou celle de la personne. */
+/**
+ * Le lien de la fiche à ouvrir : la fiche du bail (carte « Conservation des pièces »), les pièces de la personne, ou
+ * les documents de l'espace — mêmes destinations que /alertes (lib/chemin-alerte.ts).
+ */
 export function lienAlerteConservation(a: Pick<AlerteConservation, "organization_id" | "proprietaire_direct" | "type" | "details">, site: string | null): string | null {
   if (!site) return null;
-  const base = `${site}${a.proprietaire_direct ? "/espace" : "/agence"}/${a.organization_id}`;
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuid.test(a.organization_id)) return null;
+  const base = `${site}${a.proprietaire_direct ? "/espace" : "/agence"}/${a.organization_id}`;
   if (a.type === "conservation_echeance" && uuid.test(a.details?.bail_id ?? "")) return `${base}/baux/${a.details!.bail_id}#conservation`;
-  if (a.type === "conservation_sans_bail" && uuid.test(a.details?.person_id ?? "")) return `${base}/personnes/${a.details!.person_id}`;
+  if (a.type === "conservation_sans_bail" && uuid.test(a.details?.person_id ?? "")) return `${base}/personnes/${a.details!.person_id}#pieces`;
+  if (a.type === "conservation_documents") return `${base}/documents`;
   return null;
 }
 
+/** Sujet, titre et bouton de chaque type : le sujet annonce une suppression à venir, sans donnée personnelle. */
+const FORMES: Record<TypeAlerteConservation, { sujet: (date: string) => string; titre: string; bouton: string }> = {
+  conservation_echeance: {
+    sujet: (date) => `Des pièces d’un bail seront supprimées le ${date}`,
+    titre: "Des pièces arrivent au terme de leur conservation",
+    bouton: "Ouvrir la fiche du bail",
+  },
+  conservation_sans_bail: {
+    sujet: (date) => `Des pièces d’une personne sans bail seront supprimées le ${date}`,
+    titre: "Des pièces sans bail arrivent au terme de leur conservation",
+    bouton: "Ouvrir la fiche de la personne",
+  },
+  conservation_documents: {
+    sujet: (date) => `Des documents seront supprimés le ${date}`,
+    titre: "Des documents arrivent au terme de leur conservation",
+    bouton: "Ouvrir les documents de l’espace",
+  },
+};
+
 /** Le courriel d'une alerte : sujet sans donnée personnelle, texte de l'alerte (celui du plan), un seul lien. */
 export function messageAlerteConservation(a: AlerteConservation, site: string | null = adresseDuSite()): Message {
-  const date = dateFrancaise(a.details?.echeance);
-  const lien = lienAlerteConservation(a, site);
-  const surBail = a.type === "conservation_echeance";
+  const forme = FORMES[a.type] ?? FORMES.conservation_echeance;
   return {
-    sujet: surBail ? `Pièces d’un bail supprimées le ${date}` : `Pièces d’une personne sans bail supprimées le ${date}`,
+    sujet: forme.sujet(dateFrancaise(a.details?.echeance)),
     html: gabaritNotification({
-      titre: surBail ? "Des pièces arrivent au terme de leur conservation" : "Des pièces sans bail arrivent au terme de leur conservation",
+      titre: forme.titre,
       emetteur: "L’équipe Gerimmo",
       lignes: [
         ...(a.organisation ? [`Espace : ${a.organisation}.`] : []),
         a.titre,
       ],
-      action: { libelle: surBail ? "Ouvrir la fiche du bail" : "Ouvrir la fiche de la personne", lien },
+      action: { libelle: forme.bouton, lien: lienAlerteConservation(a, site) },
     }),
   };
 }

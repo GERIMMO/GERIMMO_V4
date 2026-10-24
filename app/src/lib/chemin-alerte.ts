@@ -60,6 +60,10 @@ const ANCRES_BAIL = new Map<string, string>([
   // D40 (CHF-06) : le solde d'une régularisation émise en cours de bail n'est pas appelé ; l'alerte (posée par l'action de régularisation,
   // {bail_id, annee, ecart}) mène à la carte des loyers, où la régularisation se lit.
   ["regularisation_non_appelee", "#loyers"],
+  // Plan de conformité du 23/10 (relecture du 24/10) : l'alerte J-30 des pièces d'un bail terminé
+  // (generer_alertes_conservation, 20261024140000 : {bail_id, echeance, pieces}) mène à la carte « Conservation des
+  // pièces », où se suspend la suppression en cas de litige ; les pièces se téléchargent depuis la fiche.
+  ["conservation_echeance", "#conservation"],
 ]);
 
 /**
@@ -133,6 +137,10 @@ const LIBELLES = new Map<string, string>([
   ["restitution_echeance", "Ouvrir la restitution"],
   ["signature_retournee", "Contrôler le document signé"],
   ["signature_a_reprendre", "Reprendre la demande de signature"],
+  // Alertes avant suppression (plan de conformité du 23/10) : le geste est de garder ce qui doit l'être.
+  ["conservation_echeance", "Télécharger les pièces ou suspendre leur suppression"],
+  ["conservation_sans_bail", "Rattacher la personne à un bail ou télécharger ses pièces"],
+  ["conservation_documents", "Télécharger les documents à conserver"],
 ]);
 
 type Alerte = { type?: string; details: Record<string, unknown> | null };
@@ -153,6 +161,15 @@ export function cheminFicheAlerte(a: Alerte, orgId: string, racine: string = RAC
   // Une attestation d'assurance — celle qui manque, ou celle qui vient d'être
   // déposée — vit dans les PIÈCES JUSTIFICATIVES de la personne : c'est là
   // qu'on la dépose et qu'on la contrôle, pas dans la GED générale.
+  // J-15 d'une personne rattachée à aucun bail ({person_id, echeance}) : ses pièces justificatives.
+  if (type === "conservation_sans_bail") {
+    const personne = texte(a.details, "person_id");
+    return personne ? `${base}/personnes/${personne}#pieces` : null;
+  }
+  // J-30 des documents rattachés à aucun bail ({echeance, pieces}, une alerte par espace et par date) : les documents
+  // de l'espace, où ils se téléchargent.
+  if (type === "conservation_documents") return `${base}/documents`;
+
   if (
     type === "message_locataire" ||
     type === "piece_deposee" ||

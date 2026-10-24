@@ -1211,7 +1211,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       )}
 
       {/* Conservation des pièces et gel en cas de litige (plan de conformité du 23/10, lots 1E et 2) */}
-      {conservation && <CarteConservationBail conservation={conservation.error ? null : conservation.data} orgId={orgId} bailId={bailId} base={base} />}
+      {conservation && <CarteConservationBail conservation={conservation.error ? null : conservation.data} erreur={conservation.error ? (conservation.error.code === "42501" ? "acces" : "lecture") : undefined} orgId={orgId} bailId={bailId} base={base} />}
 
       </RubriqueDossier>}
     </main>

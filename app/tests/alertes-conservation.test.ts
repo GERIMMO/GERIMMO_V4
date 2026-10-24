@@ -52,15 +52,25 @@ function base(alertes: AlerteConservation[], reservation = true) {
 describe("alertes de conservation — textes", () => {
   it("le courriel reprend le texte de l'alerte (celui du plan), sans donnée personnelle dans le sujet, avec un seul lien", () => {
     const m = messageAlerteConservation(alerte(), "https://gerimmo.example");
-    expect(m.sujet).toBe("Pièces d’un bail supprimées le 23/11/2026");
+    // Relecture du 24/10 : le sujet annonce une suppression à venir, il ne se lit pas comme un fait accompli.
+    expect(m.sujet).toBe("Des pièces d’un bail seront supprimées le 23/11/2026");
     expect(m.sujet).not.toMatch(/Camille/);
     expect(m.html).toContain("Les pièces suivantes du bail Lot A · Camille Exemple seront supprimées le 23/11/2026");
     expect(m.html).toContain(`https://gerimmo.example/espace/${ORG}/baux/${BAIL}#conservation`);
     expect(m.html).toContain("Ouvrir la fiche du bail");
     const j15 = messageAlerteConservation(alerte({ type: "conservation_sans_bail", titre: TEXTE_J15, details: { person_id: PERSONNE, echeance: "2026-11-08" }, proprietaire_direct: false }), "https://gerimmo.example");
-    expect(j15.sujet).toBe("Pièces d’une personne sans bail supprimées le 08/11/2026");
+    expect(j15.sujet).toBe("Des pièces d’une personne sans bail seront supprimées le 08/11/2026");
     expect(j15.html).toContain("qui n&#39;est rattachée à aucun bail");
-    expect(j15.html).toContain(`https://gerimmo.example/agence/${ORG}/personnes/${PERSONNE}`);
+    expect(j15.html).toContain(`https://gerimmo.example/agence/${ORG}/personnes/${PERSONNE}#pieces`);
+  });
+
+  it("J-30 des documents rattachés à aucun bail : sujet, texte de l'alerte, lien vers les documents de l'espace", () => {
+    const texte = "Les documents suivants, qui ne sont rattachés à aucun bail, seront supprimés le 20/11/2026, au terme de leur durée de conservation (page confidentialité) : Note. Téléchargez ceux que vous devez conserver.";
+    const m = messageAlerteConservation(alerte({ type: "conservation_documents", titre: texte, details: { echeance: "2026-11-20" } }), "https://gerimmo.example");
+    expect(m.sujet).toBe("Des documents seront supprimés le 20/11/2026");
+    expect(m.html).toContain("Les documents suivants, qui ne sont rattachés à aucun bail, seront supprimés le 20/11/2026");
+    expect(m.html).toContain(`https://gerimmo.example/espace/${ORG}/documents`);
+    expect(m.html).toContain("Ouvrir les documents de l’espace");
   });
 
   it("sans adresse du site, aucun lien n'est promis ; un identifiant mal formé ne fabrique pas de lien", () => {

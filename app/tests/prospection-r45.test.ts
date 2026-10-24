@@ -5,7 +5,7 @@
  * La partie base (contrainte, refus après opposition, purge) est dans tests/conservation-prospection-base.test.ts.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { lireProspect, mentionPremierMessageProspect, ORIGINES_PROSPECT, QUALITES_PROSPECT } from "@/lib/prospects-supervision";
+import { CONSIGNE_MENTION_PROSPECT, lireProspect, mentionPremierMessageProspect, ORIGINES_PROSPECT, QUALITES_PROSPECT, refusMentionProspect } from "@/lib/prospects-supervision";
 
 const mock = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => mock }));
@@ -41,6 +41,26 @@ describe("mention du premier message (texte du plan)", () => {
   });
 });
 
+// Relecture du 24/10 — décision 8 du plan : jamais de courriel commercial à un particulier sans sa demande ;
+// professionnels seulement si l'adresse vient d'eux ; possibilité d'opposition dans CHAQUE message.
+describe("cadre de la mention (décision 8)", () => {
+  it("refusée pour une adresse reçue par recommandation (elle ne vient pas de la personne)", () => {
+    expect(refusMentionProspect({ origine: "recommandation", qualite: "professionnel", demande: false })).toMatch(/recommandation/);
+    expect(refusMentionProspect({ origine: "recommandation", qualite: "particulier", demande: true })).toMatch(/recommandation/);
+  });
+  it("refusée pour un particulier sans demande de contact rattachée ; admise s'il l'a demandé", () => {
+    expect(refusMentionProspect({ origine: "échange direct", qualite: "particulier", demande: false })).toMatch(/particulier/);
+    expect(refusMentionProspect({ origine: "formulaire", qualite: "particulier", demande: true })).toBeNull();
+  });
+  it("admise pour un professionnel dont l'adresse vient de lui", () => {
+    expect(refusMentionProspect({ origine: "formulaire", qualite: "professionnel", demande: false })).toBeNull();
+    expect(refusMentionProspect({ origine: "échange direct", qualite: "professionnel", demande: false })).toBeNull();
+  });
+  it("la consigne vise chaque message, pas seulement le premier", () => {
+    expect(CONSIGNE_MENTION_PROSPECT).toContain("chacun de vos messages");
+  });
+});
+
 describe("actions de la fiche prospect", () => {
   const insert = vi.fn();
   const update = vi.fn();
@@ -50,7 +70,7 @@ describe("actions de la fiche prospect", () => {
     insert.mockReturnValue({ select: () => ({ single: async () => ({ data: { id: PROSPECT, revision: 0 }, error: null }) }) });
     update.mockReturnValue({ eq: () => ({ eq: () => ({ select: () => ({ maybeSingle: async () => ({ data: { id: PROSPECT, revision: 1 }, error: null }) }) }) }) });
     mock.from.mockImplementation((table: string) => table === "demandes_devis"
-      ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: DEMANDE }, error: null }) }) }) }
+      ? { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: DEMANDE, created_at: "2026-09-01T10:00:00Z" }, error: null }) }) }) }
       : { insert, update });
   });
 
@@ -61,6 +81,8 @@ describe("actions de la fiche prospect", () => {
     const ok = await enregistrerProspect({}, form({ ...BASE, demande_id: DEMANDE, demande_offre: "1" }));
     expect(ok.succes).toBeTruthy();
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({ demande_id: DEMANDE, origine: "formulaire", qualite: "professionnel" }));
+    // Relecture du 24/10 : le dernier contact émanant du prospect est sa demande, pas la création de la fiche.
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ dernier_contact_prospect_le: "2026-09-01T10:00:00Z" }));
   });
 
   it("le dernier contact émanant du prospect ne bouge que s'il a répondu", async () => {
@@ -75,7 +97,9 @@ describe("actions de la fiche prospect", () => {
     expect((await enregistrerOppositionProspect(PROSPECT)).erreur).toMatch(/supervision permanent/);
     expect(mock.rpc).toHaveBeenCalledTimes(1);
     mock.rpc.mockResolvedValue({ data: true, error: null });
-    expect((await enregistrerOppositionProspect(PROSPECT)).succes).toMatch(/Opposition enregistrée/);
+    const fait = await enregistrerOppositionProspect(PROSPECT);
+    // Relecture du 24/10 : la fiche et son historique partent aussitôt ; l'écran revient à la liste.
+    expect(fait).toEqual({ succes: "Opposition enregistrée : la fiche et son historique sont supprimés. Seule l’empreinte de l’adresse est gardée trois ans, pour qu’aucun message ne lui soit plus envoyé.", supprime: true });
     expect(mock.rpc).toHaveBeenLastCalledWith("enregistrer_opposition_prospection", { p_prospect: PROSPECT });
     expect((await enregistrerOppositionProspect("pas-un-uuid")).erreur).toBeTruthy();
   });

@@ -22,7 +22,8 @@ export const GESTES_LISTE_ATTENTE: Record<StatutListeAttente, Geste[]> = {
 
 // Un seul formulaire pour les gestes d'une agence (modèle : admin/devis/bouton-traite.tsx) : pendant l'envoi, tous ses
 // boutons sont inertes — pas de double clic, pas deux statuts à la fois — et seul le bouton pressé montre la roue.
-export function BoutonsStatutAgence({ id, statut }: { id: string; statut: StatutListeAttente }) {
+/** `contactable` : faux pour une adresse opposée (retrait, « Stop ») ou quand le contrôle des oppositions est indisponible. */
+export function BoutonsStatutAgence({ id, statut, contactable = true }: { id: string; statut: StatutListeAttente; contactable?: boolean }) {
   const [choisi, setChoisi] = useState<StatutListeAttente | null>(null);
   const [etat, action, enCours] = useActionState<EtatListeAttenteAdmin, FormData>(
     (_etat, formData) => changerStatutAgence(id, String(formData.get("statut") ?? "")),
@@ -30,7 +31,7 @@ export function BoutonsStatutAgence({ id, statut }: { id: string; statut: Statut
   );
   return (
     <form data-saisie-confirmee action={action} className="flex flex-wrap items-center gap-2">
-      {GESTES_LISTE_ATTENTE[statut].map((g, i) => (
+      {GESTES_LISTE_ATTENTE[statut].filter((g) => contactable || g.statut !== "contactee").map((g, i) => (
         <BoutonEnvoi
           key={g.statut}
           name="statut"

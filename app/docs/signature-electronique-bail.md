@@ -1,5 +1,127 @@
 # Signatures des documents Gerimmo
 
+## Conformité V1 du 24 octobre 2026 — préparé localement, non déployé
+
+Plan de conformité du 23/10 (lot 1D) et décision du dirigeant du 23/10 « Cautionnement et état des lieux signés dans
+Gerimmo » (qui remplace la fermeture R29/R31 du plan). Migration `20261024120000_signature_caution_mobile_et_edl_sur_place.sql`.
+
+- **Cautionnement : la caution confirme elle-même son mobile.** Le mobile de la fiche du garant (saisi par le bailleur)
+  n'est plus repris dans l'acte. « Envoyer » adresse à la caution un lien à usage unique, valable sept jours au plus
+  (la base n'en garde que l'empreinte). La page publique `/signature/caution/<jeton>` dit qui demande quoi (bailleur,
+  logement, locataire, montant de l'engagement) ; la caution y saisit deux fois son numéro, non prérempli. La demande
+  Zoho est créée à ce moment avec ce numéro, au nom du propriétaire qui a envoyé le lien. Le bailleur voit « En attente
+  de la caution » et peut renvoyer le lien ; une garde en base refuse tout envoi d'un acte de cautionnement dont le
+  téléphone du garant n'est pas celui qu'il a confirmé. La mention reste saisie par la caution dans Zoho.
+  `ZOHO_SIGN_CAUTIONNEMENT_FERME` reste en place et à `false` : posée à `true`, elle bloque aussi l'envoi du lien et sa
+  consommation.
+- **Bail : le garant qui le signe aussi confirme lui-même son mobile (décision du 24/10, ci-dessous).**
+- **État des lieux : établi ensemble, sur place.** Avant l'envoi, le bailleur coche « Je confirme que cet état des
+  lieux a été établi contradictoirement, sur place, le {date}, en présence du locataire ou de son représentant. » ;
+  la date est celle que porte l'état des lieux (« Établi le »), préremplie et verrouillée. Refus serveur et refus en
+  base sans cette confirmation (de moins d'une heure, à la date de l'état des lieux). Le texte, la date, l'instant et
+  l'auteur restent sur le circuit (`confirmation_sur_place`), affichés dans son suivi, et au journal d'audit. L'état
+  des lieux d'entrée et son invitation (« Locataire : … ») rappellent au locataire son droit de le compléter
+  (article 3-2 de la loi du 6 juillet 1989, à relire par le juriste).
+- **Message d'invitation (R53)** : « Vos nom, adresse électronique et numéro de mobile sont transmis à notre prestataire
+  de signature Zoho Sign pour ce seul document, à la demande de {bailleur}. Détails : {page confidentialité}. »
+- **R32** : une mention refusée alors que la demande est ouverte fait rappeler la demande chez Zoho ; la date limite des
+  signatures est affichée avant l'envoi.
+- **R28, R30, R58** : modèles d'état des lieux et de cautionnement (exemplaires, date de signature), case « aucune
+  assurance ni autre garantie » avant de générer l'acte, cadre et page de signature du garant dans le bail.
+
+**Relectures adverses du 24/10, corrigées :**
+- le lien ne part jamais à l'adresse d'un autre signataire, d'un détenteur du lot, d'un compte gestionnaire de
+  l'espace ou de l'organisation, et la caution ne peut pas y confirmer leur numéro (refus en base, le lien reste
+  ouvert ; la préparation signale aussi une adresse de caution égale à celle d'un bailleur) ;
+- plus aucun lien après la confirmation de la caution ; cinq liens par caution et par bail en 24 h, toutes
+  préparations confondues ; un acte qui quitte l'état « prêt » clôt son lien encore ouvert ;
+- garde en base complétée : acte de cautionnement ou état des lieux enregistré seulement « prêt », numéro de la
+  caution figé après l'envoi, confirmation sur place sans instant refusée ; l'envoi part avec les signataires de la
+  ligne réservée ;
+- messages de la caution selon l'issue de l'envoi (nouveau lien si le circuit est annulé, vérification après l'appel
+  au prestataire), suspension annoncée dès l'ouverture de la page, formulaire préservé d'une session Gerimmo expirée ;
+- notes Zoho comparées sur le texte et non sur la mise en forme (à confirmer en recette, ci-dessous).
+
+**Gestes humains avant le déploiement :**
+- Compter en lecture seule (outil SQL du support, SELECT seulement) les actes envoyés avant ce lot, qui gardent le
+  numéro de la fiche du garant ou n'ont pas de confirmation sur place :
+
+  ```sql
+  select id, organization_id, modele, etat, envoye_le
+    from public.bail_signature_circuits
+   where modele in ('cautionnement', 'edl') and etat in ('preparation', 'en_cours', 'a_verifier')
+     and environnement = 'production' and not essai;
+  ```
+
+  S'il n'est pas vide : annuler chaque circuit depuis la fiche du bail (« Annuler le circuit ») puis le renvoyer
+  (la caution recevra un lien ; l'état des lieux exigera la confirmation sur place), ou consigner une décision du
+  dirigeant. Consigner le résultat du comptage dans le journal (`log.md`). L'écran signale ces actes de cautionnement.
+- Même comptage pour les baux envoyés avant la décision du 24/10 dont un garant signe avec le numéro de sa fiche :
+
+  ```sql
+  select id, organization_id, etat, envoye_le
+    from public.bail_signature_circuits
+   where modele = 'bail' and etat in ('preparation', 'en_cours', 'a_verifier')
+     and environnement = 'production' and not essai
+     and signataires @> '[{"qualite": "Garant"}]';
+  ```
+
+  S'il n'est pas vide : annuler puis renvoyer chaque bail (chaque garant recevra un lien, ou son numéro confirmé pour
+  l'acte de cautionnement sera repris), ou consigner une décision du dirigeant (impact faible : la remise du bail est
+  aussi prouvée par l'annexe de l'acte de cautionnement). L'écran signale ces baux.
+
+**Garant qui signe aussi le bail (décision du 24/10, choix logique délégué à Claude, à consigner au journal).** Le
+point que les relectures renvoyaient au dirigeant (mineur 6 de la première, mineur 8 de la seconde) est réglé : le garant
+n'est pas retiré du circuit du bail (sa page « la caution reconnaît avoir reçu un exemplaire du présent contrat », R58,
+reste signée), il y est aligné sur la caution. Pour tout signataire « Garant » d'un circuit de bail (bail nu, meublé,
+colocation, chambre ; l'avenant n'a pas de garant), le numéro transmis à Zoho est celui que le garant a confirmé
+**lui-même** par son propre lien, jamais celui de sa fiche saisi par le bailleur, jamais une coordonnée d'une autre
+partie. Même module (`src/lib/confirmation-mobile-caution.ts`), même table (`confirmations_mobile_caution`), même page
+publique (`/signature/caution/<jeton>`, dont le texte dit alors « signer le bail, en qualité de garant », sans montant).
+- **Préparation** : le mobile des garants n'est plus repris dans le circuit du bail ni réclamé comme manquant ; il sort
+  de l'empreinte (le changer sur la fiche ne périme pas le PDF). Une adresse de garant égale à celle d'une autre personne
+  du bail est à corriger avant la préparation. Un bail prêt préparé avant ce changement demande « Actualiser le PDF ».
+- **Envoi** (« Envoyer ce document pour signature ») : `reprendre_mobiles_garants_bail` pose d'abord, en base, sur chaque
+  garant sans numéro confirmé, le dernier numéro qu'il a confirmé lui-même pour un acte **du même bail** (son acte de
+  cautionnement, ou un bail du même dossier préparé avant), s'il n'est ni le numéro ni l'adresse d'une autre personne du
+  dossier : aucune nouvelle demande. Les garants restants reçoivent chacun un lien (un ouvert au plus par garant) et le
+  bail reste « prêt », affiché « En attente du garant ». Dès que le dernier garant confirme, le bail part en signature
+  automatiquement, au nom du propriétaire qui a envoyé les liens ; sinon le garant lit qu'il attend les autres. Le
+  contrôle de mise en location, qui exige la session du propriétaire, est fait quand il demande l'envoi et refait à
+  l'activation du bail signé.
+- **Relance et expiration** : le bailleur voit, par garant, la date d'envoi et l'échéance du lien (sept jours au plus),
+  puis « expiré » ; « Renvoyer le lien » (ou « Envoyer un nouveau lien ») ne relance que ce garant et annule son lien
+  précédent. Cinq liens par garant et par bail sur vingt-quatre heures, acte de cautionnement et bail confondus. Un bail
+  qui quitte l'état « prêt » clôt les liens encore ouverts.
+- **Garde en base** (`garder_envoi_signature_caution_edl`) : un bail qui a un garant ne s'enregistre que « prêt » et ne
+  part que si le numéro de chaque garant est celui d'un lien utilisé par ce garant pour un acte du même bail, et n'est ni
+  le numéro ni l'adresse d'une autre personne du dossier (`coordonnees_autres_parties_caution`, qui compte aussi les
+  autres garants) ; une fois parti, ce numéro ne change plus. Un bail sans garant n'est pas concerné.
+- **Réglage** : `ZOHO_SIGN_CAUTIONNEMENT_FERME` ne suspend que l'acte de cautionnement ; le lien d'un garant du bail reste
+  utilisable.
+- **Ce qui n'est pas réutilisé** : l'acte de cautionnement continue d'exiger une confirmation par son propre lien (sa page
+  dit le montant de l'engagement), même si le garant a déjà confirmé son numéro pour le bail.
+- **Bail déjà envoyé avant ce changement** : son garant signe avec le numéro de sa fiche ; l'écran le dit. Son activation
+  reconnaît l'ancienne empreinte (qui comprenait ce numéro), seulement si son garant n'a pas de numéro confirmé.
+
+**Reste à faire, hors de portée du banc local :**
+- **Recette à trois signataires (R28)**, en Zoho réel sur un dossier fictif (locataire, garant, propriétaire) : chaque
+  signataire reçoit-il de Zoho le PDF signé ? Consigner le résultat ici. Sinon, envoyer le PDF signé à chaque
+  signataire à l'état « terminé » (`envoyerEmail`) et mémoriser l'envoi.
+- **Recette du parcours de la caution** en Zoho réel : lien reçu, page, confirmation, invitation Zoho au numéro saisi,
+  mention, signature, archive ; la caution reçoit-elle son exemplaire signé, avec la copie du bail en annexe
+  (article 22-1 de la loi du 6 juillet 1989) ?
+- **Recette d'un bail avec garant** en Zoho réel (décision du 24/10) : garant dont le numéro a été confirmé pour l'acte
+  de cautionnement (repris sans lien), puis garant sans confirmation (lien reçu, page « en qualité de garant »,
+  confirmation, envoi automatique du bail) ; le code SMS du garant arrive-t-il au numéro qu'il a confirmé ?
+- **Recette d'un état des lieux d'entrée** en Zoho réel : rappel « Locataire : … » visible dans l'invitation,
+  confirmation sur place affichée dans le suivi du circuit.
+- **Notes de l'invitation Zoho** (cautionnement) : sur un brouillon sans invitation, comme celui du 18/10, vérifier que
+  Zoho rend le message de trois paragraphes (consignes, transmission à Zoho Sign, lien) sans le tronquer ; la
+  comparaison tolère fins de ligne, espaces et entités HTML, pas un texte différent.
+- **Expéditeur générique des invitations (R53)** : l'adresse d'expédition n'est pas un paramètre de l'API de création ;
+  c'est un réglage du compte dans la console Zoho Sign (geste du dirigeant).
+
 ## État vérifié le 22 octobre 2026
 
 Les trois activations clients sont vraies sur Vercel et le plafond est de 400 crédits/mois ; les devis sont autorisés en base. L’adresse personnelle reste celle choisie par le dirigeant. L’état détaillé par document et la protection des preuves sont préparés **localement**. Les paragraphes datés du 18 octobre ci-dessous restent historiques. Voir [le bilan du 22 octobre](signatures-conservation-22-octobre.md) pour les limites et les réglages non vérifiés.
@@ -46,7 +168,7 @@ L’envoi reste désactivé par défaut (`ZOHO_SIGN_BAIL_ACTIF=false`). Une clé
 
 À l’étape 7 d’un bail brouillon, dans l’espace du propriétaire direct :
 
-1. Vérifier toutes les parties (locataires, colocataires, garants, propriétaires) et leurs coordonnées. Tous les propriétaires sont placés en dernier. Téléphone international obligatoire pour le code SMS, sans dégradation silencieuse vers un autre mode.
+1. Vérifier toutes les parties (locataires, colocataires, garants, propriétaires) et leurs coordonnées. Tous les propriétaires sont placés en dernier. Téléphone international obligatoire pour le code SMS, sans dégradation silencieuse vers un autre mode. Depuis le 24/10, le mobile d'un garant n'est jamais celui de sa fiche : il le confirme lui-même (voir « Garant qui signe aussi le bail »).
 2. Préparer le PDF et son circuit. Le document contient une page de signature par personne et l’inventaire des annexes avec leurs empreintes.
 3. Relire le PDF et les annexes, confirmer la relecture, puis demander explicitement l’envoi lorsque le service est activé.
 4. Consulter la progression par personne. Les événements sont authentifiés puis l’état courant est relu auprès du prestataire ; le corps brut reçu n’est pas conservé.

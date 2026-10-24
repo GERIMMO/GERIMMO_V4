@@ -24,7 +24,8 @@ beforeEach(()=>{
  m.config.mockReturnValue({prestataire:'zoho',environnement:'production',clientId:`local-${++compteur}`,clientSecret:'fictif',refreshToken:'fictif'});
  m.assembler.mockResolvedValue({manquants:[],empreinte:'actuelle',titreGed:'Document fictif'});
  abandon=vi.fn(async()=>retraitImpossible?{data:null,error:{message:'indisponible'}}:{data:true,error:null});
- const rpc=vi.fn(async(nom:string)=>nom==='abandonner_preparation_signature'?abandon():{data:true,error:null});
+ // reserver_envoi_signature_bail rend la ligne réservée : ses signataires partent chez le prestataire (relecture du 24/10).
+ const rpc=vi.fn(async(nom:string)=>nom==='abandonner_preparation_signature'?abandon():nom==='reserver_envoi_signature_bail'?{data:{...circuit,etat:'preparation'},error:null}:{data:true,error:null});
  const db={rpc,storage:{from:()=>({download:async()=>({data:new Blob([octets]),error:null})})},from:(table:string)=>{
   let update:Record<string,unknown>|undefined;
   const result=()=>({data:retraitImpossible&&update?.etat==='annule'?null:update?{id:'circuit'}:table==='bail_signature_circuits'?circuit:{storage_path:'org/fictif.pdf',mime_type:'application/pdf'},error:null});

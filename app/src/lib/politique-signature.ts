@@ -22,7 +22,7 @@ export function modeSignatureDocument(code: string): "zoho" | "enregistree" | "o
 export function selectionSignatureValide(value: SelectionSignature): SelectionSignature {
   if (!value || !Object.hasOwn(DOCUMENTS_ZOHO, value.code) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.cibleId)) throw new Error("Document à signer invalide.");
   const autorisees: Record<ModeleSignature, string[]> = {
-    devis_artisan: [], bail: [], avenant: ["objet", "modifications"], cautionnement: ["garant", "forme", "montant_max"],
+    devis_artisan: [], bail: [], avenant: ["objet", "modifications"], cautionnement: ["garant", "forme", "montant_max", "sans_garantie_cumulee"],
     edl: [], protocole_apurement: ["mensualites", "premiere_echeance", "conditions"],
     autorisation_travaux: ["travaux", "intervenant", "periode", "prise_en_charge", "conditions"],
   };

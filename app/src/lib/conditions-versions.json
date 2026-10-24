@@ -1,0 +1,12 @@
+{
+  "conditions_clients": {
+    "2026-09-30": {
+      "date_effet": "2026-09-30",
+      "nature": "substantielle",
+      "resume_modifications": "Essai gratuit porté de 14 jours à 2 mois pour toute inscription jusqu’au 31/12/2026 (offre de lancement), 1 mois ensuite (article 8.2).",
+      "empreinte_reference": "019ebf78116284cd3c919d4711dd909657d9aa548c2937137bbdb0e90d79e253",
+      "empreintes_precedentes": ["1c777ae4671f6b7896dbf40edb61a0d66a2298d5a9fdea030e7272bca67e6ad5"],
+      "note": "24/10/2026, relecture adverse du socle (I3) : la garde rend désormais la page sous cinq identités fictives (médiateur désigné ou non, coordonnées du médiateur manquantes, adresse de contact seule, identité vide) au lieu d’une seule. Le texte n’a pas changé : le rendu sans médiateur garde l’empreinte précédente (1c777ae4…), seule la couverture de la garde s’étend."
+    }
+  }
+}

@@ -25,7 +25,9 @@ export const MISSIONS={
  territoire:{nom:'Étude des départements',equipe:'territoire',heure:'7 h (heure de Paris, 6 h en hiver)',lien:'/admin/territoire'},
  // 27/09 (audit sécurité) : la suppression physique des fichiers purgés ne
  // dépend plus d'un clic dans Journaux ; elle suit la purge nocturne de pg_cron.
- purge:{nom:'Suppression des fichiers purgés',equipe:'conformite',heure:'5 h 40 (heure de Paris, 4 h 40 en hiver)',lien:'/admin/journaux'},
+ // 24/10 (finitions, relecture transverse M1) : la mission porte aussi les suites des fermetures de comptes
+ // (remboursements, courriels de fin, clients Stripe au terme) ; ses gestes Stripe s'arrêtent aussi avec « Abonnements ».
+ purge:{nom:'Suppression des fichiers purgés et suites des fermetures de comptes',equipe:'conformite',heure:'5 h 40 (heure de Paris, 4 h 40 en hiver)',lien:'/admin/journaux'},
 } as const satisfies Record<string,{nom:string;equipe:Equipe;heure:string;lien:string}>;
 export type Mission=keyof typeof MISSIONS;
 export function estMission(cle:string):cle is Mission{return Object.hasOwn(MISSIONS,cle);}

@@ -97,6 +97,14 @@ describe("libellés des journaux", () => {
     expect(codesConnusJournaux().audit).toContain("consultation_faits_direction");
   });
 
+  // Plan de conformité du 23/10 (relecture du 24/10) : le gel de la conservation d'un bail et l'opposition d'un
+  // prospect, écrits par la migration 20261024140000, se lisent en français.
+  it("nomme le gel de la conservation d'un bail et l'opposition d'un prospect", () => {
+    expect(libelleActionAudit("conservation_gel_pose")).toBe("Suppression des pièces d’un bail suspendue (litige)");
+    expect(libelleActionAudit("conservation_gel_leve")).toBe("Suspension de la suppression des pièces d’un bail levée");
+    expect(libelleActionAudit("prospect_opposition_enregistree")).toBe("Opposition d’un prospect enregistrée, fiche supprimée");
+  });
+
   // Liste d'attente des agences (20/10/2026) : sur la fiche d'un compte (admin/comptes/[accountId]), la ligne d'audit du
   // changement de statut se lit en français, pas « état précédent : en_attente · nouvel état : contactee ».
   it("lit en français le changement de statut d'une agence de la liste d'attente", () => {

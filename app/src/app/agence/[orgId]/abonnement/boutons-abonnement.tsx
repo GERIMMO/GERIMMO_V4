@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
@@ -121,9 +122,26 @@ export function FormulairePeriodicite({ orgId, vers, libelle }: { orgId: string;
 /** Résilier pour l'échéance, ou revenir sur la résiliation. */
 export function BoutonResiliation({ orgId, resilier, libelle }: { orgId: string; resilier: boolean; libelle: string }) {
   const [etat, action] = useActionState<EtatAbonnementAction, FormData>(resilierAbonnement.bind(null, orgId), {});
+  // Relecture adverse du 24/10 (défaut 3) : après la date d'effet d'une version qui exige l'accord exprès, la reprise
+  // demande cet accord dans le même geste (la case n'apparaît que si l'action l'a demandé).
+  const accord = !resilier ? etat.accordConditions : undefined;
   return (
     <form data-saisie-confirmee action={action} className="space-y-2">
       <input type="hidden" name="resilier" value={resilier ? "oui" : "non"} />
+      {accord && (
+        <>
+          <input type="hidden" name="cgu_version" value={accord.version} />
+          <label className="flex min-h-11 items-start gap-3 text-sm">
+            <input type="checkbox" name="cgu" value="oui" required className="mt-0.5 size-6 shrink-0" />
+            <span>
+              J’ai lu et j’accepte la{" "}
+              <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
+                version du {accord.dateVersion} des conditions générales
+              </Link>
+            </span>
+          </label>
+        </>
+      )}
       <BoutonEnvoi variant="outline" enCoursTexte="Enregistrement…">
         {libelle}
       </BoutonEnvoi>

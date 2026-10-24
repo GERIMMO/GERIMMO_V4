@@ -31,6 +31,12 @@ type Relance = {
   periodicite: string | null;
   // Entier en centimes, tel que la base le rend : il n'est jamais converti ici.
   montant_periode_cents: number | null;
+  // Plan du 23/10 (migration 20261024110000) : le premier prélèvement échoué (R23), le jour de l'échec et la date à
+  // partir de laquelle l'abonnement peut être résilié (R06). Absents d'une fonction SQL antérieure : le courrier
+  // ordinaire part alors sans la phrase de mise en demeure.
+  premier_prelevement?: boolean | null;
+  en_defaut_depuis?: string | null;
+  resiliable_le?: string | null;
 };
 
 export type BilanRelances = {
@@ -101,9 +107,12 @@ export async function envoyerRelancesDues(
       // prélèvement échoué, un lien qui ne mène nulle part fait plus de mal
       // que pas de lien. La lettre dit alors quoi faire sans promettre un clic.
       lien: site ? `${site}${await baseDeLOrganisation(supabase, r.organization_id)}/abonnement` : null,
+      premierPrelevement: r.premier_prelevement === true,
+      enDefautDepuis: r.en_defaut_depuis ?? null,
+      resiliableLe: r.resiliable_le ?? null,
     };
     await options.avantEffet?.();
-    const { erreur } = await envoyerEmail({
+    const { erreur, id: message } = await envoyerEmail({
       avantEnvoi: options.avantEffet,
       to: r.destinataire,
       cleIdempotence: cleRelanceAbonnement({
@@ -114,6 +123,7 @@ export async function envoyerRelancesDues(
         periodicite,
         montantPeriodeCents: relance.montantPeriodeCents,
         destinataire: r.destinataire,
+        premierPrelevement: relance.premierPrelevement,
       }),
       subject: sujetRelance(relance),
       html: corpsRelance(relance),
@@ -122,7 +132,14 @@ export async function envoyerRelancesDues(
       echecs.push(`${r.organisation} : ${erreur}`);
       continue;
     }
-    await supabase.rpc("abonnement_relance_envoyee", { p_org: r.organization_id });
+    // Plan du 23/10 (R06) : marquer la relance ET inscrire la preuve de la mise en demeure au journal d'audit (palier,
+    // date, identifiant du message ; jamais l'adresse) — `abonnement_relance_consigner` fait les deux, une fois par jour.
+    await supabase.rpc("abonnement_relance_consigner", {
+      p_org: r.organization_id,
+      p_palier: relance.palier,
+      p_message: message ?? null,
+      p_premier_prelevement: relance.premierPrelevement,
+    });
     envoyees += 1;
   }
   return { envoyees, sans_adresse: sansAdresse, echecs };

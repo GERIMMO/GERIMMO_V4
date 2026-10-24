@@ -10,6 +10,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { lireMontantAvecEspaces } from "@/lib/saisie-montant";
 import { texteMentionCaution } from "@/lib/mention-caution";
+import { REFUS_SANS_GARANTIE_CUMULEE } from "@/lib/textes-signature-actes";
 import {
   Fusion,
   assemblerPage,
@@ -17,7 +18,6 @@ import {
   echapper,
   enTete,
   eur,
-  faitA,
   montantEnLettres,
   section,
   titre,
@@ -37,7 +37,7 @@ import type { Assemblage } from "./index";
 // Le plafond saisi dans la carte (euros, chaîne libre) — un montant illisible
 // ou nul vaut absence : le champ restera en libellé d'épreuve et manquant,
 // car le montant maximal est exigé à peine de nullité (art. 2297).
-function montantMaxDepuisOptions(brut: string | undefined): number | null {
+export function montantMaxDepuisOptions(brut: string | undefined): number | null {
   if (!brut) return null;
   // Lu comme tous les montants (VER-TS-02) : « 12 000,50 » reste admis ; « 1e4 » ne vaut plus 10000.
   const lu = lireMontantAvecEspaces(brut);
@@ -68,6 +68,9 @@ export async function assemblerCautionnement(
 
   const garant = ctx.garants.find((g) => g.id === options?.garant);
   if (!garant) return { erreur: "Ce garant n'est pas rattaché au bail." };
+  // Constat R30 : le bailleur certifie l'absence d'assurance ou d'autre garantie des obligations locatives (case de
+  // la carte du bail et du catalogue). À relire par le juriste (source non ouverte le 23/10/2026) : art. 22-1.
+  if (options?.sans_garantie_cumulee !== "oui") return { erreur: REFUS_SANS_GARANTIE_CUMULEE };
 
   const solidaire = options?.forme !== "simple";
   const montantMax = montantMaxDepuisOptions(options?.montant_max);
@@ -183,7 +186,13 @@ export async function assemblerCautionnement(
 
     <div class="bloc-signataires">
     ${section("VIII — Date et signatures")}
-    ${faitA(f, exp.ville, new Date().toISOString(), ", en deux exemplaires originaux, dont un est remis à la caution avec un exemplaire du contrat de location (article 22-1 de la loi du 6 juillet 1989).")}
+    ${/* Constat R28 : la date est celle de la signature, jamais celle de la génération (comme le bail) ; un exemplaire
+         par partie, ou un exemplaire électronique remis à chacune. À relire par le juriste (source non ouverte le
+         23/10/2026) : remise d'un exemplaire du bail à la caution, art. 22-1 de la loi du 6 juillet 1989. */ ""}
+    <p>Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>,
+    en autant d'exemplaires originaux que de parties ou, en cas de signature électronique, sous forme d'un exemplaire
+    électronique remis à chacune d'elles ; un exemplaire du contrat de location est remis à la caution (article 22-1 de
+    la loi du 6 juillet 1989).</p>
     <div class="signatures-mention">
       ${cadreSignature("La caution", `${nomCaution}<br/>Mention apposée par la caution, puis signature`)}
       ${cadreSignature("Le bailleur", nomsBailleurs(f, ctx.bailleurs))}

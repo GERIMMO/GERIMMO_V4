@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CircuitBail } from "./signature-bail";
 import { ERREUR_MENTION_CAUTION, mentionCautionConforme } from "./mention-caution";
 import { verifierAvantEffet } from "./controle-effets";
-import { lireDemandeSignature, telechargerDocumentSignature, telechargerPreuveSignature, type ConfigurationSignature } from "./signature-prestataire";
+import { annulerDemandeSignature, lireDemandeSignature, telechargerDocumentSignature, telechargerPreuveSignature, type ConfigurationSignature } from "./signature-prestataire";
 
 /** Le webhook est un signal : l'état courant est relu auprès du prestataire. */
 export async function synchroniserCircuitSignatureBail(db: SupabaseClient, config: ConfigurationSignature, id: string): Promise<void> {
@@ -42,6 +42,17 @@ export async function synchroniserCircuitSignatureBail(db: SupabaseClient, confi
       if (!mentionValide && !["canceled","deleted","expired","declined","rejected"].includes(distant.status)) {
         const refus = await db.from("bail_signature_circuits").update({signataires:parties,etat:"a_verifier",erreur:ERREUR_MENTION_CAUTION,updated_at:new Date().toISOString()}).eq("id",id).eq("verrou_jeton",jeton);
         if (refus.error) throw new Error("Le contrôle de la mention ne peut pas être enregistré.");
+        // Constat R32 : la demande encore ouverte est rappelée chez le prestataire, pour que le bailleur ne signe pas un
+        // acte dont la mention est refusée. Un échec n'empêche rien : le circuit reste « à vérifier », sans archive, et
+        // la synchronisation suivante rappelle de nouveau la demande.
+        if (distant.status === "ongoing") {
+          try {
+            await verifierAvantEffet(db,"signatures");
+            await annulerDemandeSignature(config,circuit.external_request_id);
+          } catch {
+            console.error("[signature] rappel d’une demande à la mention refusée non confirmé ; nouvelle tentative au prochain suivi");
+          }
+        }
         return; // Pas d'archive validée, même si le prestataire déclare toutes les signatures finies.
       }
     }
@@ -53,6 +64,8 @@ export async function synchroniserCircuitSignatureBail(db: SupabaseClient, confi
     const miseAJour = await db.from("bail_signature_circuits").update({signataires:parties,etat,
       ...(!circuit.envoye_le && distant.envoyeLe && Date.parse(distant.envoyeLe)>=Date.parse(circuit.created_at) ? {envoye_le:distant.envoyeLe} : {}),
       erreur:etat === "a_verifier" ? "Ce circuit n’est pas actif chez le prestataire."
+        // R32 : un acte rappelé pour une mention refusée garde ce motif une fois annulé chez le prestataire.
+        : etat === "annule" && circuit.erreur === ERREUR_MENTION_CAUTION ? ERREUR_MENTION_CAUTION
         : etat === "refuse" ? `Signature refusée. ${distant.decline_information?.reason?.replace(/[\u0000-\u001f]/g," ").slice(0,500) || "Consultez le motif dans le suivi du prestataire."}`
         : parties.some(s=>s.statut === "error") ? "Une invitation n’a pas pu être délivrée. Vérifiez les coordonnées avant de préparer un nouvel envoi." : null,updated_at:new Date().toISOString()}).eq("id",id).eq("verrou_jeton",jeton);
     if (miseAJour.error) throw new Error("La progression n’a pas pu être enregistrée.");

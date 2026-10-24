@@ -30,7 +30,9 @@ import {
   type Echec,
   type Reussite,
 } from "@/lib/stripe";
+import { jourEnLettres } from "@/lib/delai-retractation";
 import {
+  euros,
   formuleParCode,
   offreAgence,
   offreFormule,
@@ -208,6 +210,21 @@ export function cleIdempotenceSouscription(intention: string): string {
   return `souscription:${intention}`;
 }
 
+/**
+ * Plan du 23/10 (R21) : le texte sous le dernier bouton de la page de paiement — « En cliquant, vous commandez
+ * l'abonnement Gerimmo {formule} avec obligation de paiement : {montant} {par mois / par an}{, premier prélèvement le
+ * {date}}. » La date est celle de la fin d'essai transmise à Stripe (jour de Paris).
+ */
+export function messageBoutonPaiement(offre: Offre, finEssaiSecondes: number | null, regime: RegimeTva | null = null): string {
+  const formule = offre.public === "particulier" ? offre.formule.nom : "agence";
+  const periode = offre.periodicite === "annuel" ? "par an" : "par mois";
+  const premier = finEssaiSecondes ? `, premier prélèvement le ${jourEnLettres(dateParis(new Date(finEssaiSecondes * 1000)))}` : "";
+  // Relecture adverse du 24/10 (M11, agences hors V1) : le montant d'une offre agence est hors taxes ; quand la TVA
+  // s'ajoute, il le dit. En franchise, le montant seul (aucune TVA facturée).
+  const taxes = offre.public === "agence" && regime?.nature === "assujetti" ? " HT, TVA en sus," : "";
+  return `En cliquant, vous commandez l'abonnement Gerimmo ${formule} avec obligation de paiement : ${euros(offre.montantCents)}${taxes} ${periode}${premier}.`;
+}
+
 /** La page de paiement hébergée par Stripe, pour une offre de la nouvelle grille. */
 export async function creerSessionOffre(
   stripe: Stripe,
@@ -253,6 +270,13 @@ export async function creerSessionOffre(
       success_url: params.retourOk,
       cancel_url: params.retourAnnule,
       billing_address_collection: "required",
+      // Plan du 23/10 (R21) : la commande se conclut sur la page de Stripe ; son dernier bouton dit « Payer » (et non
+      // « S'abonner »), la page est en français, et le texte sous le bouton dit l'obligation de paiement, le montant
+      // et, avec un essai, la date du premier prélèvement. À vérifier en clés de test, avec et sans essai (recette du
+      // chantier Stripe) ; si le bouton n'affichait pas « Payer », passer la page en mode « setup » (voir le plan).
+      submit_type: "pay",
+      locale: "fr",
+      custom_text: { submit: { message: messageBoutonPaiement(params.offre, trialEnd ?? null, params.regime) } },
       // Le formulaire fait lire au client le montant exact avant validation ;
       // Stripe l'affiche encore, TTC, taxes détaillées, avant la carte.
       subscription_data: {
@@ -820,7 +844,8 @@ export async function programmerPeriodicite(
  */
 export async function resilierAEcheance(
   stripe: Stripe,
-  params: { subscription: string; resilier: boolean }
+  // `metadata` (finitions du 24/10) : la marque de la fermeture d'un compte, posée ou retirée avec la résiliation.
+  params: { subscription: string; resilier: boolean; metadata?: Record<string, string> }
 ): Promise<Reussite<{ souscription: Stripe.Subscription; echeancierLibere: boolean }> | (Echec & { echeancierLibere: boolean })> {
   let echeancierLibere = false;
   try {
@@ -828,6 +853,7 @@ export async function resilierAEcheance(
     echeancierLibere = await libererEcheancier(stripe, s);
     const maj = await stripe.subscriptions.update(params.subscription, {
       cancel_at_period_end: params.resilier,
+      ...(params.metadata ? { metadata: params.metadata } : {}),
     });
     return { ok: true, souscription: maj, echeancierLibere };
   } catch (e) {

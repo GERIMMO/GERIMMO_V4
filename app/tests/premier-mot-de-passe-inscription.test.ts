@@ -40,6 +40,7 @@ import { FormulaireNouveauMotDePasse } from "../src/app/nouveau-mot-de-passe/for
 import PageNouveauMotDePasse from "../src/app/nouveau-mot-de-passe/page";
 import { ACTIVITY_COOKIE } from "../src/lib/session-policy";
 import { autorisationNouveauMotDePasse } from "../src/lib/autorisation-nouveau-mot-de-passe";
+import { caseConditions } from "../src/lib/conditions-acceptation";
 
 const MOT_DE_PASSE = "recette-premier-choix-1";
 const PROFIL_SAISI = {
@@ -58,6 +59,8 @@ const PROFIL_SAISI = {
 function formulaire(valeurs: Record<string, string | null> = {}) {
   const f = new FormData();
   const tout: Record<string, string | null> = { mot_de_passe: MOT_DE_PASSE, confirmation: MOT_DE_PASSE, suite: "/espaces", ...PROFIL_SAISI, cgu: "on", ...valeurs };
+  // 24/10 (plan de conformité, R60) : le formulaire envoie le document de la case qu'il affiche, celle de l'usage choisi.
+  if (!("cgu_document" in valeurs)) tout.cgu_document = caseConditions(String(tout.espace ?? "")).document;
   for (const [cle, valeur] of Object.entries(tout)) if (valeur !== null) f.set(cle, valeur);
   return f;
 }
@@ -105,7 +108,7 @@ beforeEach(() => {
 });
 
 describe("PRO-4 — un refus garde la saisie du profil et la case des conditions, jamais un mot de passe", () => {
-  const SAISIE_RENDUE = { espace: "proprietaire_direct", prenom: "Camille", nom: "Corrigé", telephone: "01 00 00 00 00", adresse: "3 rue du Test", code_postal: "69003", ville: "Lyon", qualite: "SCI", code_parrainage: "", cgu: "on" };
+  const SAISIE_RENDUE = { espace: "proprietaire_direct", prenom: "Camille", nom: "Corrigé", telephone: "01 00 00 00 00", adresse: "3 rue du Test", code_postal: "69003", ville: "Lyon", qualite: "SCI", code_parrainage: "", cgu: "on", cgu_document: "conditions_clients" };
 
   it.each([
     ["mot de passe trop court", { mot_de_passe: "court", confirmation: "court" }, undefined, "mot_de_passe"],
@@ -195,6 +198,21 @@ describe("PRO-4 — le formulaire repose la saisie et dit l'erreur au bon champ"
     expect(html).toMatch(/<option value="artisan" selected="">/);
     expect(html).toMatch(/<option value="SCI" selected="">/);
     expect(champ(html, "cgu")).toMatch(/checked=""/);
+  });
+
+  // Relecture adverse du 24/10 (défaut 1) : la coche revenue d'un refus porte sur le texte que la case affichait à l'envoi
+  // (`cgu_document`). Sans script, changer la liste ne change pas ce texte : la page qui revient avec un autre usage montre
+  // une autre case, qui ne doit jamais revenir cochée.
+  it("rendu du serveur après un refus : la case ne revient cochée que sous le texte qu'elle portait à l'envoi", () => {
+    const meme = rendre({ ...refus, valeurs: { ...refus.valeurs, espace: "proprietaire_direct", cgu_document: "conditions_clients" } });
+    expect(champ(meme, "cgu")).toMatch(/checked=""/);
+    const autre = rendre({ ...refus, valeurs: { ...refus.valeurs, espace: "invite", cgu_document: "conditions_clients" } });
+    expect(autre).toContain('name="cgu_document" value="regles_invites"');
+    expect(champ(autre, "cgu")).not.toContain("checked");
+    const inverse = rendre({ ...refus, valeurs: { ...refus.valeurs, espace: "proprietaire_direct", cgu_document: "regles_invites" } });
+    expect(champ(inverse, "cgu")).not.toContain("checked");
+    const inconnu = rendre({ ...refus, valeurs: { ...refus.valeurs, espace: "proprietaire_direct", cgu_document: "autre" } });
+    expect(champ(inconnu, "cgu")).not.toContain("checked");
   });
 
   it("aucun mot de passe n'est jamais reposé, même s'il figurait dans l'état", () => {

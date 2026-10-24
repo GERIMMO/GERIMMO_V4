@@ -6689,6 +6689,9 @@ Décision du dirigeant de publier au fur et à mesure. Contenu : médiateur non 
 
 Protocole : sauvegarde 40011575512 (19 h 30 UTC, réussie) ; simulation 40011579066 (réussie, tout annulé) ; CI 40011569334 verte sur `c5dd11e` ; application 40014218941 de `20261023161500_charges_agregats_portefeuille.sql` (réussie, version enregistrée, contrôle du portefeuille vérifié en lecture) ; fusion squash au SHA exact `c5dd11e` → `b0153b6` ; Vercel `dpl_H4edQ9eFUMhmgXBemBY2cHbFvBS1` READY sur gerimmo.app (19 h 50 UTC). Recette de production et chantier Stripe en clés de test lancés sur `main` ; leur résultat est consigné à l'entrée suivante.
 
+## [2026-10-23] recette | Recette de production et paiements Stripe en clés de test sur `b0153b6`
+
+Lancées par Claude sur `main` (`b0153b6`, PR #238) après le déploiement Vercel READY : « Recette de production avec nettoyage » 40014683172 (19 h 51 – 20 h 00 UTC) **réussie** ; « Vérifier les paiements Stripe sans argent réel » 40014686664 **réussie**. Nettoyage vérifié en lecture : 1 compte, 0 organisation.
 
 ## [2026-10-23] decision | Signatures, réseau, nettoyage Vercel et préparation Node 24
 
@@ -6707,9 +6710,28 @@ Constat à 20 h 01 (Paris) : signatures maintenues ouvertes, aucun arrêt global
 
 Console reconnectée. Deux sollicitations publicitaires classées traitées à 19 h 57, sans réponse. Les deux retours du 30 septembre passent en examen : réponse par e-mail directement dans la page Contact encore absente ; parcours d’invitation à revérifier sur dossier fictif. Aucun retour déclaré résolu sans preuve. Aucune entrée deploy pour ces réglages externes ni pour la PR 242 non encore livrée.
 
+## [2026-10-23] deploy | Seconde mise en ligne du 23/10 : PR #244 (`20b3ffa`)
+
+Contenu : facturation sûre — une seule page de paiement par organisation (A01) ; hausse de formule sérialisée par un verrou en base (`verrous_facturation`), échéancier restauré seulement après notre propre libération (A02) ; messages Stripe traduits — ; corrections de la relecture adverse du 23/10 (inscription PRO-4/PRO-5, pages légales et console, point du matin : les bugs bloquants N1 ont leur propre lecture et ne sont plus évincés, garde « CI verte », annonces au jour de Paris, mandant à la date de l'écriture) ; réseau d'artisans : zone (codes postaux, départements) et métiers choisis par l'artisan, écart ratifié par le dirigeant (« si mets le »).
+
+Protocole : sauvegarde 40011575512 (19 h 30 UTC) ; simulation 40014877067 (réussie, tout annulé) ; contrôle préalable en lecture de `poser_gardes_abonnement()` (ancre présente une fois) ; première CI sur `a9fdae1` **rouge** (contrôle des imbrications : sélection non littérale dans le point du matin, régression de la relecture) → correctif `a4236b4`, échec reproduit puis corrigé en local ; CI 40016261078 verte sur `a4236b4` ; application 40018665758 de `20261023162446_souscription_unique_et_trace_hausse.sql`, `20261023180000_reseau_zone_choisie_par_artisan.sql`, `20261023184512_annonces_locataire_jour_paris.sql` (réussie, versions enregistrées, tables et déclencheurs vérifiés en lecture) ; fusion squash au SHA exact `a4236b4` → `20b3ffa` ; Vercel `dpl_GBvG2tQn6n2ckGxNnvhWNgvYNsR4` READY sur gerimmo.app (20 h 25 UTC). Recette de production 40019199531 **réussie** (20 h 26 – 20 h 35 UTC) ; « Vérifier les paiements Stripe sans argent réel » 40019203587 **réussie**. Nettoyage vérifié en lecture : 1 compte, 0 organisation, 0 artisan, aucune intention de souscription ni verrou de facturation restant.
 
 ## [2026-10-23] decision | Coordination avec le chantier Conformité V1 de Claude
 
 Le dirigeant transmet le compte rendu de Claude et la consigne : « Dire à Codex de sauter le point 3.4.4 de son prompt (conditions V1) : je m'en occupe. » Le point 3.4.4 est donc retiré du périmètre Codex. Les travaux de conformité de Claude sur l'acceptation, la vente, les signatures, les comptes et la conservation ne sont pas modifiés par le lot PAY-5. Celui-ci est raccordé à main 20b3ffa après les PR 238 et 244, avant nouvelle validation et publication séparée.
 
 Les recettes de production 40014683172 et 40019199531 et les essais Stripe sans argent réel 40014686664 et 40019203587 sont vérifiés réussis dans GitHub. Le mécanisme désormais publié pour le réseau suit les zones et métiers choisis par l'artisan validé ; l'ancien passage par une ouverture manuelle de chaque commune n'est plus la règle actuelle. Ces constats ne valent pas publication de la conformité V1 ni du lot PAY-5.
+
+## [2026-10-24] decision | Conformité V1 : choix logiques délégués à Claude pendant le développement
+
+Cadre : le dirigeant a confié le 23/10 les sujets du juriste et du DPO à Claude (« côté juriste fais de manière logique et selon tes conseil, dpo pareil »). Choix faits pendant le développement du code de conformité, tous réversibles et à relire par un juriste :
+1. **Garant qui signe aussi le bail** : il confirme lui-même son numéro de mobile par son propre lien, comme la caution (le numéro déjà confirmé pour l'acte de cautionnement du même bail est repris) ; jamais le numéro saisi par le bailleur ni une coordonnée d'une autre partie.
+2. **Rétractations à la fermeture d'un compte** : la déclaration est gardée dix ans, détachée de l'espace effacé ; la fermeture attend qu'une rétractation en cours soit remboursée et son accusé envoyé.
+3. **Inactivité** : la connexion de n'importe quel membre actif de l'espace compte (lecture du plan ; protège l'accès des locataires).
+4. **Brouillons de devis d'un artisan** : ils partent avec la sollicitation effacée ; un devis envoyé reste dans le dossier du propriétaire.
+5. **Bail en brouillon** : il vaut bail pour la règle « dossier sans bail » (aucune règle d'abandon inventée).
+6. **Suivi commercial des particuliers** : aucun consentement n'étant enregistré, aucune fiche prospect d'un particulier hors de sa demande (décision 8 du 23/10).
+7. **Version 2026-09-30 des conditions** : archivée après sa date d'effet avec la mention « Archivée après sa date d'effet » (0 acceptation en production au 24/10).
+8. **État des lieux** : « dans les dix jours qui suivent son établissement » partout (à recomparer sur Légifrance).
+
+Relevés en lecture seule en production (24/10) : journal d'authentification Supabase vide (règle de purge laissée inactive) ; listes d'attente des propriétaires et des agences vides ; aucune acceptation des conditions ; collation française `fr-x-icu` présente ; aucun circuit de signature, aucun abonnement, aucun prospect.

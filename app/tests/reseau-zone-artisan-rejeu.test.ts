@@ -30,6 +30,12 @@ const NOM = "20261023180000_reseau_zone_choisie_par_artisan";
 const migration = readFileSync(`supabase/migrations/${NOM}.sql`, "utf8");
 const retour = readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8");
 const origine = readFileSync("supabase/migrations/20260928081000_ouverture_reseau_par_commune_metier.sql", "utf8");
+/**
+ * Les migrations postérieures qui réécrivent une fonction du réseau, rejouées après celle-ci pour que l'état « migré »
+ * reste celui de toute la chaîne : 20261024100000 (plan de conformité du 23/10, R10) ne trie plus par note qu'à partir
+ * de trois évaluations dans `artisans_disponibles_bien`. Rejouable, elle accepte sa forme déjà convertie.
+ */
+const SUITE = [readFileSync("supabase/migrations/20261024100000_acceptation_conditions_et_classement_artisans.sql", "utf8")];
 
 /** Les huit fonctions du réseau rendues par le retour, et leur corps dans 20260928081000. */
 const RESEAU = [
@@ -55,6 +61,11 @@ function corpsOrigine(signature: string): string {
 
 describe.skipIf(!url)("20261023180000 — réseau choisi par l'artisan : rejeu et retour arrière", () => {
   let db: Client;
+  /** Cette migration, puis celles qui la suivent sur les mêmes fonctions (SUITE). */
+  const migrer = async () => {
+    await db.query(migration);
+    for (const suite of SUITE) await db.query(suite);
+  };
   const corps = async (signature: string) =>
     (await db.query("select prosrc from pg_proc where oid = to_regprocedure($1)", [`public.${signature}`])).rows[0]?.prosrc as string | undefined;
   const definition = async (signature: string) =>
@@ -131,8 +142,8 @@ describe.skipIf(!url)("20261023180000 — réseau choisi par l'artisan : rejeu e
 
   it("rejouée deux fois, la migration ne change ni définitions, ni droits, ni index, ni commentaires", async () => {
     const avant = await empreinte();
-    await db.query(migration);
-    await db.query(migration);
+    await migrer();
+    await migrer();
     expect(await empreinte()).toEqual(avant);
   });
 
@@ -153,7 +164,7 @@ describe.skipIf(!url)("20261023180000 — réseau choisi par l'artisan : rejeu e
     await db.query(retour);
     expect(await empreinte()).toEqual(apres);
     await db.query("insert into supabase_migrations.schema_migrations(version,name) values('20261023180000','reseau_zone_choisie_par_artisan')");
-    await db.query(migration);
+    await migrer();
     expect(await empreinte()).toEqual(migre);
     expect(await etat()).toEqual({ etat: "ouverte", nb_artisans: "1" });
   });

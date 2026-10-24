@@ -3,7 +3,10 @@ import { MISSIONS, estMission } from "@/lib/missions";
 /** Le nom, en français, de ce qu'un arrêt d'urgence suspend. */
 export function nomArret(cle: string): string {
   // D06 : la clé « purge » arrête aussi la rétention quotidienne de la base (suppressions de lignes), pas seulement les fichiers.
-  if (cle === "purge") return "Purge des données échues et suppression des fichiers";
+  // Finitions du 24/10 (M1) : elle arrête aussi les fermetures de comptes (pg_cron) et leurs suites (mission « purge »).
+  if (cle === "purge") return "Purge des données échues, suppression des fichiers et fermetures de comptes";
+  // Les remboursements et suppressions de clients Stripe des fermetures s'arrêtent aussi avec cette clé.
+  if (cle === "abonnements") return "Abonnements (y compris les gestes Stripe des fermetures de comptes)";
   if (estMission(cle)) return MISSIONS[cle].nom;
   return ({ global: "Tous les traitements contrôlés", consignes: "Lectures de consignes", orchestrateur: "Suivi des dossiers", sauvegarde: "Sauvegarde" } as Record<string, string>)[cle] ?? "Traitement contrôlé";
 }
@@ -20,8 +23,8 @@ export function arretSansEffet(cle: string): boolean {
 
 /**
  * Les tâches de la base de données (pg_cron) qu'arrête chaque clé, en plus de l'arrêt « global » qui les arrête toutes
- * (D06). Miroir de la table `supervision_taches_arret` (migrations 20261014200000 et, pour la caducité des devis,
- * 20261014211000) : un test compare les deux.
+ * (D06). Miroir de la table `supervision_taches_arret` (migrations 20261014200000, pour la caducité des devis
+ * 20261014211000, pour la fermeture des comptes 20261024130000) : un test compare les deux.
  */
 export const TACHES_SQL: Record<string, { libelle: string; cles: readonly string[] }> = {
   "retention-quotidienne": { libelle: "Purge quotidienne des données dont la durée de conservation est échue", cles: ["purge"] },
@@ -33,6 +36,8 @@ export const TACHES_SQL: Record<string, { libelle: string; cles: readonly string
   "propositions-publication-hebdo": { libelle: "Propositions hebdomadaires de publication", cles: ["marketing"] },
   "marketing-declencheur": { libelle: "Déclenchement des publications programmées", cles: ["marketing"] },
   "maintenance-artisans": { libelle: "Expiration des devis d’artisans dont la durée de validité est dépassée", cles: ["rappels"] },
+  // 24/10/2026, plan de conformité (lot 1E, R14/R15) : migration 20261024130000.
+  "fermetures-comptes": { libelle: "Fermeture des comptes arrivés à leur date d’effacement (demandes et comptes inactifs prévenus)", cles: ["purge"] },
 };
 
 /**

@@ -39,7 +39,7 @@ Leur mandat est une décision du dirigeant (butée du 24/10 au [[Calendrier de l
 
 1. **Médiateur** : choisir l'organisme et adhérer, puis saisir ses trois coordonnées.
 2. **Signature pendant la bêta (D4)** : laisser ouvert en connaissance de cause, ou poser l'arrêt « signatures » dans `/admin/relais`. Cautionnement ouvert sans avis du juriste (D2) : maintenir ou refermer.
-3. **Réseau d'artisans** : aucune commune ouverte ; communes et métiers à choisir pour que la persona Artisan fonctionne. **Tranché le 23/10** : choisis par l'artisan lui-même (sa zone et ses métiers) ; migration `20261023180000` préparée, non appliquée en production ([[Ouverture du réseau d'artisans]]).
+3. **Réseau d'artisans** : aucune commune ouverte ; communes et métiers à choisir pour que la persona Artisan fonctionne. **Tranché le 23/10** : choisis par l'artisan lui-même (sa zone et ses métiers) ; migration `20261023180000` appliquée en production le 23/10 vers 20 h 25 UTC, zone par code postal ou département ratifiée ([[Ouverture du réseau d'artisans]]).
 4. **Impayé** : 15 ou 30 jours.
 5. **Bêta** : canal unique des constats, sort des comptes des amis après le 1/11.
 6. **Antivirus des fichiers déposés** : service à choisir.

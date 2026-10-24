@@ -13,6 +13,8 @@ import {
   chargerSollicitations,
 } from "./acces";
 import { degreEcheance, demandeAChiffrer } from "./libelles";
+import { AcceptationConditionsArtisans } from "./acceptation-conditions-artisans";
+import { conditionsArtisansAAccepter } from "@/lib/conditions-acceptation-serveur";
 
 // Un seul suffixe pour tout l'espace (audit du 13/10, DES-B-07) : les pages ne
 // donnent que le nom de l'écran, le gabarit y ajoute « — Gerimmo ». Il ne
@@ -70,11 +72,16 @@ export default async function LayoutArtisan({
     );
   }
 
-  const [[agenda, sollicitations, pieces], autresEspaces] = await Promise.all([
+  // Plan de conformité du 23/10 (R10) : dès que les conditions de l'espace artisan sont publiées
+  // (CONDITIONS_ARTISANS_VERSION), le compte qui ne les a pas acceptées voit leur case à la place de la page demandée.
+  // D'ici là, rien n'est exigé ni lu. La garde est de parcours : les données restent protégées en base. Elle se tait
+  // pendant un diagnostic du super-administrateur (lecture seule), comme la coquille agence en traversée.
+  const [[agenda, sollicitations, pieces], autresEspaces, conditionsAAccepter] = await Promise.all([
     fiche
       ? Promise.all([chargerAgenda(), chargerSollicitations(), chargerPieces()])
       : Promise.resolve([null, null, null] as const),
     lireAutresEspaces(user.id),
+    conditionsArtisansAAccepter(supabase, user.id),
   ]);
 
   // « Mes espaces » ne s'affiche que s'il mène ailleurs (audit du 27/09) : pour
@@ -182,7 +189,9 @@ export default async function LayoutArtisan({
               {fiche?.statut_motif ? ` Motif : ${fiche.statut_motif}` : ""}
             </p>
           )}
-          <main className={`artisan-corps ${styles.content}`}>{children}</main>
+          <main className={`artisan-corps ${styles.content}`}>
+            {conditionsAAccepter ? <AcceptationConditionsArtisans version={conditionsAAccepter.version} date={conditionsAAccepter.date} /> : children}
+          </main>
         </div>
       </div>
       {fiche && <NavArtisan {...navigation} />}

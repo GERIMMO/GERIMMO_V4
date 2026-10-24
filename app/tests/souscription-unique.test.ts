@@ -98,12 +98,15 @@ describe("ouvrirPageDePaiementUnique", () => {
 
   it("nouvelle réservation : la page est créée, posée, puis rendue", async () => {
     const stripe = fauxStripe();
-    const reg = registre([intention()]);
+    // Finitions du 24/10 (consigne B) : l'intention est construite UNE fois. Recalculée au moment de l'assertion, son
+    // échéance changeait d'une seconde quand une seconde était franchie entre les deux appels (échec intermittent).
+    const reservee = intention();
+    const reg = registre([reservee]);
     const r = await ouvrirPageDePaiementUnique(stripe, reg, demande());
     expect(r).toEqual({ ok: true, url: "https://checkout.stripe.test/c/pay/cs_test_neuf", reprise: false });
     expect(reg.poserPage).toHaveBeenCalledWith("org-1", ID, "cs_test_neuf", "https://checkout.stripe.test/c/pay/cs_test_neuf");
     expect(stripe.checkout.sessions.create).toHaveBeenCalledWith(
-      expect.objectContaining({ expires_at: Math.floor(Date.parse(intention().expire_le) / 1000), metadata: expect.objectContaining({ gerimmo_intention: ID }) }),
+      expect.objectContaining({ expires_at: Math.floor(Date.parse(reservee.expire_le) / 1000), metadata: expect.objectContaining({ gerimmo_intention: ID }) }),
       { idempotencyKey: `souscription:${ID}` }
     );
   });

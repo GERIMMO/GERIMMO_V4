@@ -99,6 +99,8 @@ type Preparation = {
   /** Appelé après validation et connexion OAuth, juste avant la création distante. */
   creationCommencee?: () => void;
   signataires: SignataireSignature[]; annexes?: { pdf: Uint8Array; nomFichier: string }[]; demandeCreee: (id: string) => Promise<void>;
+  /** Message commun de l'invitation (« notes » Zoho) : information sur la transmission des données (R53), consignes. */
+  message?: string;
 };
 export async function preparerCircuitZoho(params: Preparation) {
   if (params.signataires.length < 1 || params.signataires.length > 25) throw new Error("Vérifiez les parties au contrat.");
@@ -108,7 +110,7 @@ export async function preparerCircuitZoho(params: Preparation) {
   });
   const jours = Math.floor((new Date(`${params.expiration}T00:00:00Z`).getTime() - Date.now()) / 86_400_000);
   if (!Number.isFinite(jours) || jours < 1 || jours > 30) throw new Error("La préparation du contrat doit être renouvelée.");
-  const form = formulaire(params.config, { request_name: params.titre.slice(0, 100), description: `gerimmo:circuit:${params.referenceExterne}`, is_sequential: true, expiration_days: jours, email_reminders: false, actions });
+  const form = formulaire(params.config, { request_name: params.titre.slice(0, 100), description: `gerimmo:circuit:${params.referenceExterne}`, is_sequential: true, expiration_days: jours, email_reminders: false, actions, ...(params.message ? { notes: params.message } : {}) });
   form.append("file", new Blob([Uint8Array.from(params.pdf).buffer], { type: "application/pdf" }), params.nomFichier);
   for (const a of params.annexes ?? []) form.append("file", new Blob([Uint8Array.from(a.pdf).buffer], { type: "application/pdf" }), a.nomFichier);
   const body = await json(params.config, "/requests", { method: "POST", body: form }, params.creationCommencee);
@@ -128,7 +130,9 @@ export async function preparerCircuitZoho(params: Preparation) {
 }
 
 export const INSTRUCTIONS_CAUTION_MOBILE = "Garant : avant de commencer sur téléphone, lisez puis copiez le paragraphe du Message privé de cet e-mail. Collez-le vous-même dans le champ Mention personnelle de Zoho. Propriétaire : vous n’avez aucun texte à recopier, vérifiez la mention du garant avant de signer.";
-type CircuitAttendu = { modele?: string; id: string; external_document_id: string | null; signataires: { externalId?: string; email: string; telephone: string; qualite?: string; mentionCaution?: string }[]; annexes: unknown[] };
+type CircuitAttendu = { modele?: string; id: string; external_document_id: string | null; signataires: { externalId?: string; email: string; telephone: string; qualite?: string; mentionCaution?: string }[]; annexes: unknown[];
+  /** Message commun de l'invitation (lib/message-invitation-signature.ts). Absent : consignes seules pour la caution. */
+  message?: string };
 /** Construction commune à l'envoi et à la recette fournisseur sans invitation. */
 export function actionsSignatureZoho(req: Demande, attendu: CircuitAttendu) {
   if (req.description !== `gerimmo:circuit:${attendu.id}` || req.request_status !== "draft" || !req.is_sequential || req.actions.length !== attendu.signataires.length || req.document_ids?.length !== attendu.annexes.length + 1) throw new Error("Le brouillon Zoho Sign a changé. Aucun envoi n’a été demandé.");
@@ -143,7 +147,7 @@ export function actionsSignatureZoho(req: Demande, attendu: CircuitAttendu) {
     // selon les proportions du paraphe. 30 pt garde les deux apparences observées
     // dans la zone de 190 pt, contrairement à la hauteur initiale de 80 pt.
     return { action_id: a.action_id, action_type: "SIGN", recipient_email: a.recipient_email, recipient_name: a.recipient_name, signing_order: i, verify_recipient: true, verification_type: "SMS", ...phone, ...(attendu.modele === "cautionnement" && s.qualite === "Garant" ? {private_notes:noteMentionCaution(s.mentionCaution ?? "")} : {}), fields: [
-      ...(attendu.modele === "cautionnement" && s.qualite === "Garant" ? [{ field_type_name:"Textfield", field_name:`Mention personnelle ${i+1}`, field_label:"Collez le texte du Message privé de votre e-mail", description_tooltip:"Sur téléphone, copiez le paragraphe de votre e-mail, puis collez-le ici vous-même.", is_mandatory:true, document_id:doc.document_id, page_no:doc.total_pages-attendu.signataires.length+i, x_coord:54, y_coord:480, abs_width:480, abs_height:190, text_property:{font:"Arial",font_size:9,font_color:"000000",is_bold:false,is_italic:false,max_field_length:2048}, validation:{validation_type:"CUSTOM",validation_regex:expressionSaisieMentionCaution(s.mentionCaution ?? ""),validation_error_message:"Reprenez toute la mention de votre e-mail, montant compris. OK ne suffit pas."} }] : []),
+      ...(attendu.modele === "cautionnement" && s.qualite === "Garant" ? [{ field_type_name:"Textfield", field_name:`Mention personnelle ${i+1}`, field_label:"Saisissez ou collez le texte du Message privé de votre e-mail", description_tooltip:"Sur téléphone, copiez le paragraphe de votre e-mail, puis collez-le ici vous-même.", is_mandatory:true, document_id:doc.document_id, page_no:doc.total_pages-attendu.signataires.length+i, x_coord:54, y_coord:480, abs_width:480, abs_height:190, text_property:{font:"Arial",font_size:9,font_color:"000000",is_bold:false,is_italic:false,max_field_length:2048}, validation:{validation_type:"CUSTOM",validation_regex:expressionSaisieMentionCaution(s.mentionCaution ?? ""),validation_error_message:"Reprenez toute la mention de votre e-mail, montant compris. OK ne suffit pas."} }] : []),
       { field_type_name: "Signature", field_name: `Signature ${i + 1}`, field_label: "Signature du document", is_mandatory: true, document_id: doc.document_id, page_no: doc.total_pages - attendu.signataires.length + i, x_coord: 54, y_coord: attendu.modele === "cautionnement" && s.qualite === "Garant" ? 700 : 330, abs_width: 190, abs_height: 30 }
     ] };
   });
@@ -161,10 +165,22 @@ function reutiliserChampsZoho(actions: ReturnType<typeof actionsSignatureZoho>, 
     })};
   });
 }
+/**
+ * Relecture du 24/10 : Zoho peut rendre les notes avec d'autres fins de ligne, des espaces regroupés ou des entités HTML.
+ * Le contrôle porte sur le texte (mêmes mots, même ordre), pas sur sa mise en forme : un message de plusieurs paragraphes
+ * ne doit pas faire échouer chaque activation d'un acte de cautionnement. À confirmer en recette (brouillon sans invitation).
+ */
+export function memeTexteZoho(lu: string | null | undefined, attendu: string | null | undefined): boolean {
+  const texte = (v: string | null | undefined) => (v ?? "")
+    .replace(/&#39;|&#x27;|&apos;/gi, "'").replace(/&quot;/gi, '"').replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ").trim();
+  return texte(lu) === texte(attendu);
+}
 export async function activerDemandeZoho(config: ConfigurationZohoSign, id: string, attendu: CircuitAttendu) {
   const req = await details(config, id);
   let actions = actionsSignatureZoho(req, attendu);
-  const notes = attendu.modele === "cautionnement" ? {notes:INSTRUCTIONS_CAUTION_MOBILE} : {};
+  const message = attendu.message ?? (attendu.modele === "cautionnement" ? INSTRUCTIONS_CAUTION_MOBILE : undefined);
+  const notes = message ? {notes:message} : {};
   if (attendu.modele === "cautionnement") {
     if (attendu.signataires.filter(s=>s.qualite === "Garant").length !== 1) throw new Error("Un acte de caution doit concerner exactement un garant.");
     actions = reutiliserChampsZoho(actions, req);
@@ -178,7 +194,7 @@ export async function activerDemandeZoho(config: ConfigurationZohoSign, id: stri
       if (champs.length !== 1 || !f.is_mandatory || f.default_value || f.field_value || f.validation?.validation_type!=="CUSTOM" || f.validation.validation_regex!==expressionSaisieMentionCaution(s.mentionCaution ?? "")) throw new Error("Zoho n’a pas confirmé le contrôle de la mention. Aucune invitation n’a été envoyée.");
     }
     const garant = attendu.signataires.find(s => s.qualite === "Garant")!;
-    if (controle.notes !== INSTRUCTIONS_CAUTION_MOBILE || controle.actions.find(a => a.action_id === garant.externalId)?.private_notes !== noteMentionCaution(garant.mentionCaution ?? "")) throw new Error("Zoho n’a pas conservé le texte à copier dans l’invitation. Aucun envoi n’a été demandé.");
+    if (!message || !memeTexteZoho(controle.notes, message) || !memeTexteZoho(controle.actions.find(a => a.action_id === garant.externalId)?.private_notes, noteMentionCaution(garant.mentionCaution ?? ""))) throw new Error("Zoho n’a pas conservé le texte à copier dans l’invitation. Aucun envoi n’a été demandé.");
     // Réutiliser les identifiants reçus après PUT : aucun nouveau champ au submit.
     actions = reutiliserChampsZoho(actions, controle, true);
   }

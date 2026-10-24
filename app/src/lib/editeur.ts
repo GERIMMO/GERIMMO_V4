@@ -369,3 +369,18 @@ export const CONDITIONS_VERSION = "2026-09-30";
 
 /** Date d'entrée en vigueur affichée en tête des conditions. */
 export const CONDITIONS_DATE = "30 septembre 2026";
+
+// ── Version des conditions de l'espace artisan ─────────────────────────────
+//
+// Plan de conformité du 23/10/2026 (constat R10) : les artisans n'ont pas à accepter des conditions écrites pour les
+// propriétaires bailleurs. Leurs conditions propres (page /conditions/artisans) paraîtront avec la vague « textes ».
+// TANT QUE CES DEUX VALEURS SONT NULLES, le mécanisme de l'espace artisan est INACTIF : l'artisan accepte les
+// conditions clients, comme avant (case de l'inscription, document « conditions_clients »), et la garde de
+// l'espace artisan n'exige rien. Il s'active seul dès qu'elles sont renseignées, en même temps que la page publiée :
+// case « J'accepte les conditions de l'espace artisan » (document « conditions_artisans »), garde de
+// src/app/artisan/layout.tsx (lib/conditions-acceptation.ts). Même règle qu'au-dessus : à changer à chaque
+// modification de fond, avec la date affichée.
+export const CONDITIONS_ARTISANS_VERSION: string | null = null;
+
+/** Date d'entrée en vigueur affichée en tête des conditions de l'espace artisan ; `null` tant qu'elles ne sont pas publiées. */
+export const CONDITIONS_ARTISANS_DATE: string | null = null;

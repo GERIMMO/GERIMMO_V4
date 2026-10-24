@@ -6,6 +6,7 @@ import { useActionStateProtegee as useActionState } from "@/lib/use-action-state
 import { useFormStatus } from "react-dom";
 import { creerCompteArtisan, type EtatInscription } from "@/app/actions/auth";
 import { adresseDepuisAncre, cheminInvitationArtisan } from "@/lib/invitations-artisan";
+import { caseConditions } from "@/lib/conditions-acceptation";
 import { CLASSE_BOUTON_PRINCIPAL, CLASSE_CHAMP, CLASSE_LIBELLE, Erreur } from "../ui";
 
 /**
@@ -39,6 +40,7 @@ export function FormulaireCompteArtisan({ invitationId }: { invitationId?: strin
   const prerempli = invitationId ? adresseDepuisAncre(ancre) : "";
   const suite = invitationId ? cheminInvitationArtisan(invitationId) : "/artisan/inscription";
   const idEmail = useId();
+  const caseArtisan = caseConditions("artisan");
 
   if (etat.message) {
     return (
@@ -73,9 +75,11 @@ export function FormulaireCompteArtisan({ invitationId }: { invitationId?: strin
         </p>
       </div>
 
+      {/* Plan de conformité du 23/10 (R10) : les conditions de l'espace artisan dès leur publication, les conditions
+          générales d'ici là (lib/conditions-acceptation.ts). */}
       <p className="text-sm text-[var(--texte-secondaire)]">
         Vous recevrez un lien pour confirmer votre adresse, choisir votre mot de passe et accepter les{" "}
-        <Link href="/conditions" target="_blank" rel="noopener" className="lien-texte">conditions générales d&apos;utilisation et de vente</Link>.
+        <Link href={caseArtisan.href} target="_blank" rel="noopener" className="lien-texte">{caseArtisan.lien}</Link>.
       </p>
 
       {etat.erreur && <Erreur>{etat.erreur}</Erreur>}

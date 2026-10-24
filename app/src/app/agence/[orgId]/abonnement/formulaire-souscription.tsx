@@ -16,6 +16,7 @@ import { ERREUR_ACCEPTATION_CONDITIONS } from "@/lib/garde-souscription";
 import { messageApresEchec } from "@/lib/session-expiree";
 import { AIDE_BOUTON_EN_ATTENTE, useHydrate } from "@/lib/use-hydrate";
 import {
+  etiquetteTaxes,
   euros,
   formulesCouvrant,
   montantsOffre,
@@ -31,6 +32,9 @@ import { useRacineEspace } from "@/components/racine-espace-contexte";
 export function DetailMontants({ offre, regime }: { offre: Offre; regime: RegimeTva | null }) {
   const m = montantsOffre(offre, regime);
   const periode = parPeriode(offre.periodicite);
+  // Plan du 23/10 (R55) : en franchise de TVA, ni « TTC » ni « HT » (aucune TVA facturée) ; la mention de franchise
+  // s'affiche sous le total.
+  const ttc = etiquetteTaxes("ttc", regime);
   return (
     <div>
       {offre.lignes.map((l) => (
@@ -46,7 +50,14 @@ export function DetailMontants({ offre, regime }: { offre: Offre; regime: Regime
           <span className="montant">{euros(l.totalCents)}</span>
         </div>
       ))}
-      {offre.public === "agence" ? (
+      {offre.public === "agence" && !etiquetteTaxes("ht", regime) ? (
+        // Relecture transverse du 24/10 (M2, agences hors V1) : en franchise, aucune TVA ne s'ajoute ; ni « HT », ni
+        // ligne de TVA à zéro, ni « TTC » : un seul total, comme pour un particulier, la mention de franchise dessous.
+        <div className="ligne-info font-medium">
+          <span className="!text-foreground">Total à payer</span>
+          <span className="montant font-heading text-lg">{euros(offre.montantCents)} {periode}</span>
+        </div>
+      ) : offre.public === "agence" ? (
         <>
           <div className="ligne-info">
             <span>Total HT</span>
@@ -67,7 +78,7 @@ export function DetailMontants({ offre, regime }: { offre: Offre; regime: Regime
         </>
       ) : (
         <div className="ligne-info font-medium">
-          <span className="!text-foreground">Total à payer TTC</span>
+          <span className="!text-foreground">Total à payer{ttc ? ` ${ttc}` : ""}</span>
           <span className="montant font-heading text-lg">{euros(offre.montantCents)} {periode}</span>
         </div>
       )}
@@ -135,6 +146,7 @@ function AcceptationConditions({ estAgence, onAcceptee }: { estAgence: boolean; 
               dans le même onglet, lire les conditions coûtait la saisie en cours. */}
           <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
             version du {CONDITIONS_DATE} des conditions générales
+            <span className="sr-only"> (nouvel onglet)</span>
           </Link>
         </span>
       </label>
@@ -161,6 +173,7 @@ export function FormulaireSouscription({
   ferme,
   motifIndisponible,
   conditionsAAccepter,
+  dateLimiteRetractation,
 }: {
   orgId: string;
   publicTarif: "agence" | "proprietaire_direct";
@@ -174,6 +187,8 @@ export function FormulaireSouscription({
   motifIndisponible: string | null;
   /** Lot B3 : vrai si le compte n'a pas d'acceptation enregistrée pour la version en vigueur des conditions. */
   conditionsAAccepter: boolean;
+  /** Plan du 23/10 (R02) : le dernier jour du délai de rétractation si la souscription a lieu aujourd'hui, en lettres. */
+  dateLimiteRetractation: string;
 }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const racine = useRacineEspace();
@@ -199,12 +214,16 @@ export function FormulaireSouscription({
     : null;
   const montantAffiche =
     estAgence && regime ? montantsOffre(choisie, regime) : null;
+  // Plan du 23/10 (R55) : l'étiquette de taxe seulement s'il y a une taxe (franchise : le montant seul).
+  const ttc = etiquetteTaxes("ttc", regime);
+  const ht = etiquetteTaxes("ht", regime);
   const totalLu =
     estAgence
-      ? montantAffiche?.connu
+      ? montantAffiche?.connu && ttc
         ? `${euros(montantAffiche.ttcCents)} TTC`
-        : `${euros(choisie.montantCents)} HT`
-      : `${euros(choisie.montantCents)} TTC`;
+        : `${euros(choisie.montantCents)}${ht ? " HT" : ""}`
+      : `${euros(choisie.montantCents)}${ttc ? ` ${ttc}` : ""}`;
+  const periodeEnLettres = choisie.periodicite === "annuel" ? "par an" : "par mois";
 
   return (
     <form data-saisie-confirmee action={action} className={estAgence ? "space-y-4" : styles.formulaire}>
@@ -249,7 +268,7 @@ export function FormulaireSouscription({
                   </span>
                   <strong className={styles.nomFormule}>{o.formule.nom}</strong>
                   <span className={styles.capacite}>{o.capacite > 20 ? `${o.capacite} biens` : `Jusqu’à ${o.formule.biens} bien${o.formule.biens > 1 ? "s" : ""}`}</span>
-                  <span className={styles.prix}>{euros(o.montantCents)}<small>TTC {parPeriode(periodicite)}</small></span>
+                  <span className={styles.prix}>{euros(o.montantCents)}<small>{ttc ? `${ttc} ` : ""}{parPeriode(periodicite)}</small></span>
                   <span className={styles.noteFormule}>{i === 0 ? "La formule la plus économique pour votre parc." : `+${euros(surcout)} ${parPeriode(periodicite)} par rapport à la formule adaptée.`}</span>
                   <span className={styles.selectionFormule}>{selectionnee ? <><Check size={15} aria-hidden="true" /> Formule sélectionnée</> : "Choisir cette formule"}</span>
                 </label>
@@ -286,6 +305,21 @@ export function FormulaireSouscription({
               ? "Renouvelé chaque année à la même date pour douze mois, au tarif alors en vigueur. Résiliable à tout moment pour la prochaine échéance annuelle : l'accès payé reste ouvert jusqu'à son terme."
               : "Sans engagement : renouvelé chaque mois, résiliable à tout moment pour la prochaine échéance mensuelle. L'accès payé reste ouvert jusqu'au bout du mois en cours."}
           </li>
+          {/* Plan du 23/10 (R02), texte du plan : le droit de rétractation et le moyen de paiement, rappelés avant de payer.
+              Relecture adverse du 24/10 (M3) : l'article 8.10 (« Rétractation », avec son formulaire) existe avec ce sens
+              dans la version en vigueur ; il est donc cité. L'ancre #retractation n'est pas posée (page des conditions
+              hors de ce lot) : le lien mène aux conditions. */}
+          <li>
+            Droit de rétractation : vous pouvez renoncer à cet abonnement, sans motif, pendant 14 jours après la
+            souscription (jusqu&apos;au {dateLimiteRetractation} inclus si vous validez aujourd&apos;hui), depuis « Mon
+            abonnement » (bouton « Renoncer au contrat ici ») ou avec le formulaire de l&apos;article 8.10 des{" "}
+            <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
+              conditions générales
+              <span className="sr-only"> (nouvel onglet)</span>
+            </Link>
+            . Vous êtes alors remboursé intégralement, sous 14 jours, sur la carte utilisée.
+          </li>
+          <li>Paiement par carte bancaire, sur la page sécurisée de notre prestataire de paiement.</li>
           <li>
             Au-delà de la capacité de votre {estAgence ? "abonnement" : "formule"}, toute augmentation vous sera présentée
             (nouveau montant, date d&apos;effet, prorata) et ne s&apos;appliquera qu&apos;après votre accord.
@@ -320,9 +354,13 @@ export function FormulaireSouscription({
               onChange={(e) => setConfirme(e.target.checked)}
               className="mt-1"
             />
+            {/* Plan du 23/10 (R16), mot pour mot : la case vaut demande expresse d'un abonnement payant qui commence
+                pendant le délai de rétractation ; son horodatage est consigné par l'action serveur. */}
             <span>
-              J&apos;ai vérifié le montant de {totalLu} {parPeriode(choisie.periodicite)} et j&apos;accepte qu&apos;il soit prélevé
-              {dateDebit ? ` à partir du ${dateDebit}` : ""}, selon les conditions ci-dessus.
+              J&apos;ai vérifié le montant de {totalLu} {periodeEnLettres} et j&apos;accepte qu&apos;il soit prélevé
+              {dateDebit ? ` à partir du ${dateDebit}` : " dès la validation du paiement"}, selon les conditions ci-dessus.
+              Je demande que mon abonnement payant commence à cette date, même pendant mon délai de rétractation, que je
+              conserve : si je l&apos;exerce, je suis remboursé intégralement.
             </span>
           </label>
           <BoutonEnvoi
@@ -334,6 +372,13 @@ export function FormulaireSouscription({
           </BoutonEnvoi>
         </>
       )}
+      {/* Plan du 23/10 (R02) : le lien vers la version en vigueur, toujours là, même une fois les conditions acceptées. */}
+      <p className="text-xs text-muted-foreground">
+        <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
+          Conditions générales d&apos;utilisation et de vente, version du {CONDITIONS_DATE}
+          <span className="sr-only"> (nouvel onglet)</span>
+        </Link>
+      </p>
       {etat.erreur && (
         <p role="alert" className="text-sm text-destructive">
           {etat.erreur}

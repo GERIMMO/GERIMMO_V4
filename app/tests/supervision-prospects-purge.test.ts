@@ -111,7 +111,9 @@ describe.skipIf(!DB)("Prospects : la purge des demandes de contact ne bloque plu
     await db.query("update public.demandes_devis set created_at=now()-interval '25 months' where id=$1", [demande]);
     await session(superviseur);
     prospect = await id(
-      "insert into public.supervision_prospects(nom,email,origine,etape,responsable,prochaine_action,echeance,demande_id) values('Prospect fictif QA','prospect-'||$1||'@example.test','Formulaire du site','nouveau',$2,'Rappeler pour une démonstration',current_date+7,$3) returning id",
+      // Depuis 20261024140000 (plan de conformité, R45) : origine en liste fermée ; la fiche d'un PROFESSIONNEL survit à sa
+      // demande (celle d'un particulier part avec elle) — c'est la clé ON DELETE SET NULL qu'on éprouve ici.
+      "insert into public.supervision_prospects(nom,email,origine,qualite,etape,responsable,prochaine_action,echeance,demande_id) values('Prospect fictif QA','prospect-'||$1||'@example.test','formulaire','professionnel','nouveau',$2,'Rappeler pour une démonstration',current_date+7,$3) returning id",
       [s, responsable, demande]
     );
     await systeme();

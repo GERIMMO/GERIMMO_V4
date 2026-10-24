@@ -12,6 +12,10 @@ const ACTIONS: Record<string, string> = {
   consultation_document: "Consultation d’un document",
   telechargement_document: "Téléchargement d’un document",
   purge_retention: "Nettoyage des données arrivées à échéance",
+  // Plan de conformité du 23/10 (migration 20261024140000) : gel en cas de litige et « Stop » d'un prospect.
+  conservation_gel_pose: "Suppression des pièces d’un bail suspendue (litige)",
+  conservation_gel_leve: "Suspension de la suppression des pièces d’un bail levée",
+  prospect_opposition_enregistree: "Opposition d’un prospect enregistrée, fiche supprimée",
   purge_fichier: "Suppression définitive d’un fichier arrivé à échéance",
   connexion: "Connexion à Gerimmo",
   deconnexion: "Déconnexion de Gerimmo",

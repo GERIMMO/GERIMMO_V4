@@ -18,7 +18,7 @@ function db(options:{copie?:boolean;edlSigne?:boolean}={}){
 }
 beforeEach(()=>{queries.length=0;ctx=contexte();ctx.organisation.type='proprietaire_direct';
 const p={...ctx.locataires[0],email:'personne@example.test',telephone:'+33600000001',prenom:'Personne',qualite:'personne physique'};
-ctx.locataires=[{...p,id:'locataire'}];ctx.bailleurs=[{...p,id:'proprietaire',quote_part:100}];ctx.garants=[{...p,id:garant,garant_de:'locataire'},{...p,id:'autre-garant',garant_de:'locataire'}];
+ctx.locataires=[{...p,id:'locataire'}];ctx.bailleurs=[{...p,id:'proprietaire',quote_part:100}];ctx.garants=[{...p,id:garant,email:'caution@example.test',garant_de:'locataire'},{...p,id:'autre-garant',email:'autre-caution@example.test',garant_de:'locataire'}]; // adresses distinctes de celle du bailleur (relecture du 24/10)
 m.contexte.mockResolvedValue(ctx);m.modele.mockReset().mockResolvedValue({document:{html:'<body>Document fictif</body>',reference:'TEST',manquants:[]},titreGed:'Fictif',liens:[],mentionCaution:'Mention fictive attendue'});});
 describe('assemblage des documents à signer',()=>{
  it('ne fait signer que la caution choisie et les propriétaires, avec copie du bail',async()=>{

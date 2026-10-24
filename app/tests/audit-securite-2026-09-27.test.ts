@@ -209,9 +209,10 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
     expect(d.storage_path).not.toBeNull();
   });
 
-  it("conservation : bail terminé depuis 4 ans conservé ; depuis 5 ans et plus, ANONYMISÉ (la fiche subsiste, sans personne)", async () => {
-    const recent = await bailEtDocument("termine", new Date(Date.now() - 4 * 365 * 86_400_000).toISOString().slice(0, 10));
-    const ancien = await bailEtDocument("termine", new Date(Date.now() - 61 * 30.5 * 86_400_000).toISOString().slice(0, 10));
+  // Plan de conformité du 23/10 (lot 2, migration 20261024140000) : pièces du bail 36 mois après la fin (au lieu de 60).
+  it("conservation : bail terminé depuis 2 ans conservé ; depuis 3 ans et plus, ANONYMISÉ (la fiche subsiste, sans personne)", async () => {
+    const recent = await bailEtDocument("termine", new Date(Date.now() - 2 * 365 * 86_400_000).toISOString().slice(0, 10));
+    const ancien = await bailEtDocument("termine", new Date(Date.now() - 37 * 30.5 * 86_400_000).toISOString().slice(0, 10));
     const chemin = (await un<{ storage_path: string }>(`select storage_path from public.documents where id=$1`, [ancien.doc])).storage_path;
     const r = await un<{ r: { documents_anonymises: number } }>(`select public.appliquer_retention() as r`);
     expect(r.r.documents_anonymises).toBeGreaterThanOrEqual(1);
@@ -385,7 +386,9 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
     const { rows } = await db.query(
       `select table_name from information_schema.role_table_grants where grantee='anon' and table_schema='public' and privilege_type='SELECT'`);
     const lisibles = rows.map((r) => r.table_name).sort();
-    expect(lisibles.filter((t) => !["publications", "site_pages", "tarif_tranches", "tarif_formules", "demandes_devis"].includes(t))).toEqual([]);
+    // versions_conditions (24/10/2026, plan de conformité R12) : les versions archivées des conditions sont publiques
+    // (pages /conditions/versions), comme les conditions elles-mêmes ; rien que les pages légales ne publient déjà.
+    expect(lisibles.filter((t) => !["publications", "site_pages", "tarif_tranches", "tarif_formules", "demandes_devis", "versions_conditions"].includes(t))).toEqual([]);
     expect((await un<{ p: boolean }>(`select has_column_privilege('authenticated','public.accounts','mfa_actif','UPDATE') as p`)).p).toBe(false);
   });
 

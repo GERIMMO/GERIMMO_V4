@@ -9,12 +9,20 @@ import { prestataireSignature, type ConfigurationSignature, type PrestataireSign
 import { aujourdhuiParis } from "@/lib/ged";
 import { marquerDocumentEssai, signatureEnEssai } from "@/lib/signature-essai";
 import type { ModeleSignature } from "./politique-signature";
+import { MENTION_PAGE_SIGNATURE_GARANT, mentionCadreCautionBail } from "./textes-signature-actes";
 
 export type SignataireBail = {
   personId: string; qualite: "Locataire" | "Colocataire" | "Garant" | "Propriétaire";
   nom: string; prenom: string; email: string; telephone: string;
   externalId?: string; statut?: string; preuveDocumentId?: string;
   mentionCaution?: string;
+  /**
+   * Garant (acte de cautionnement, décision du 23/10 ; bail, décision du 24/10) : instant où il a confirmé lui-même ce
+   * numéro par un lien à usage unique, posé en base seulement.
+   */
+  telephoneConfirmeLe?: string;
+  /** Le lien (ligne de `confirmations_mobile_caution`) par lequel le garant a confirmé ce numéro. */
+  confirmationMobile?: string;
 };
 export type CircuitBail = {
   created_by?: string; envoye_le?: string | null;
@@ -25,6 +33,8 @@ export type CircuitBail = {
   external_request_id: string | null; external_document_id: string | null;
   annexes: AnnexeSignature[];
   document_signe: string | null; erreur: string | null; created_at: string; expire_le: string;
+  /** État des lieux : confirmation « établi contradictoirement, sur place » posée en base juste avant l'envoi. */
+  confirmation_sur_place?: { texte: string; visite_le: string; confirme_le: string; confirme_par: string } | null;
 };
 export type AnnexeSignature = { id:string; titre:string; storage_path:string; empreinte:string };
 
@@ -74,7 +84,15 @@ export function telephoneSignature(v: string | null | undefined): string {
   return /^\+[1-9]\d{7,14}$/.test(normalise) ? normalise : "";
 }
 
-export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locataires"|"garants"> & {organisation:{type:string}}, inclureLocataires = true): { signataires: SignataireBail[]; manquants: string[] } {
+/**
+ * Le mobile d'un garant n'est jamais pris dans le dossier, où le bailleur l'a saisi : le garant le confirme lui-même
+ * avant l'envoi (acte de cautionnement, décision du 23/10 ; bail qu'il signe aussi, décision du 24/10). Il reste vide
+ * ici, n'entre pas dans l'empreinte et n'est pas réclamé comme manquant.
+ * `telephoneGarantDuDossier` : l'ancien calcul, où le garant du bail signait avec le numéro de sa fiche. Il ne sert qu'à
+ * reconnaître l'empreinte d'un bail préparé avant le 24/10, pour l'activer après sa signature (avec, dans
+ * `documentSignatureBail`, le contrat sans les deux mentions du garant ajoutées ce jour-là).
+ */
+export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locataires"|"garants"> & {organisation:{type:string}}, inclureLocataires = true, options: { telephoneGarantDuDossier?: boolean } = {}): { signataires: SignataireBail[]; manquants: string[] } {
   const manquants: string[] = [];
   if (ctx.organisation.type !== "proprietaire_direct") manquants.push("La signature du mandataire d’agence reste à configurer.");
   if (inclureLocataires && !ctx.locataires.length) manquants.push("Ajoutez un locataire au bail.");
@@ -83,11 +101,12 @@ export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locatai
   function ajouter(p: PersonneDocument, qualite: SignataireBail["qualite"]) {
     if (ids.has(p.id)) { manquants.push(`${p.prenom ?? ""} ${p.nom} apparaît dans plusieurs rôles : vérifiez les parties au bail.`); return; }
     ids.add(p.id);
-    const s: SignataireBail = { personId: p.id, qualite, nom: p.nom.trim(), prenom: p.prenom?.trim() ?? "", email: p.email?.trim() ?? "", telephone: telephoneSignature(p.telephone) };
+    const parCaution = qualite === "Garant" && options.telephoneGarantDuDossier !== true;
+    const s: SignataireBail = { personId: p.id, qualite, nom: p.nom.trim(), prenom: p.prenom?.trim() ?? "", email: p.email?.trim() ?? "", telephone: parCaution ? "" : telephoneSignature(p.telephone) };
     const libelle = `${s.prenom} ${s.nom}`.trim() || qualite;
     if (!s.nom || !s.prenom) manquants.push(`${libelle} : nom et prénom du signataire à renseigner.`);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.email)) manquants.push(`${libelle} : adresse e-mail à renseigner.`);
-    if (!s.telephone) manquants.push(`${libelle} : téléphone pour recevoir le code SMS à renseigner.`);
+    if (!s.telephone && !parCaution) manquants.push(`${libelle} : téléphone pour recevoir le code SMS à renseigner.`);
     if (qualite === "Propriétaire" && p.qualite && /sci|morale|soci[eé]t[eé]/i.test(p.qualite)) manquants.push(`${libelle} : le représentant habilité de la personne morale doit être défini avant la signature électronique.`);
     signataires.push(s);
   }
@@ -98,18 +117,37 @@ export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locatai
   return { signataires, manquants };
 }
 
-/** Une page par personne : aucun chevauchement avec le texte ou une autre signature. */
-export function ajouterPagesSignature(doc: DocumentAssemble, parties: SignataireBail[], annexes: AnnexeSignature[] = [], titre = "contrat de location", caution = false): DocumentAssemble {
+/**
+ * Une page par personne : aucun chevauchement avec le texte ou une autre signature.
+ * `mentionGarant` (finitions du 24/10) : faux pour l'ancien calcul de l'empreinte (bail préparé avant le 24/10). La
+ * mention du garant tient sur la ligne de son nom : absente, la page est octet pour octet celle d'avant (relecture
+ * transverse 3, I1 : un retour à la ligne ajouté changeait l'empreinte de TOUS les circuits, même sans garant).
+ */
+export function ajouterPagesSignature(doc: DocumentAssemble, parties: SignataireBail[], annexes: AnnexeSignature[] = [], titre = "contrat de location", caution = false, mentionGarant = true): DocumentAssemble {
   const pages = parties.map((p,i) => `<section style="break-before:page;break-inside:avoid;${caution && p.qualite === "Garant" ? "position:relative;min-height:680pt;" : ""}background:#fff;color:#17324d">
     <h1>Signature — ${echapper(titre)}</h1><p>Référence : ${echapper(doc.reference)}</p>
     <p>Cette page fait partie du document qui précède. La signature porte sur l’ensemble de ce document.</p>
-    <h2>${i + 1}. ${echapper(p.qualite)}</h2><p>${echapper(`${p.prenom} ${p.nom}`)}</p>
+    <h2>${i + 1}. ${echapper(p.qualite)}</h2><p>${echapper(`${p.prenom} ${p.nom}`)}</p>${mentionGarant && !caution && p.qualite === "Garant" ? `<p>${echapper(MENTION_PAGE_SIGNATURE_GARANT)}</p>` : ""}
     <p>La date et la preuve de signature sont établies par le prestataire au moment de la signature.</p>
     ${caution && p.qualite === "Garant" ? `<div style="font-size:8.5pt;line-height:1.25;overflow-wrap:anywhere"><strong>Mention personnelle de la caution</strong><p>Sur téléphone, copiez ce paragraphe depuis votre e-mail d’invitation avant d’ouvrir la saisie Zoho, puis collez-le vous-même dans le champ « Mention personnelle ». Il est aussi reproduit ci-dessous.</p><p>${echapper(p.mentionCaution ?? "Mention à préparer à nouveau avant tout envoi.")}</p></div>` : ''}
     <div style="${caution && p.qualite === "Garant" ? "position:absolute;top:656pt" : "margin-top:32pt;min-height:100pt"}"><span style="color:#fff;font:12px Arial;white-space:nowrap">{{s${i + 1}|signature|190|80}}</span></div>
   </section>`).join("");
   const inventaire = annexes.length ? `<section style="break-before:page"><h1>Annexes remises avec le contrat</h1><p>Ces pièces accompagnent le document dans le même dossier de signature. Leur empreinte identifie exactement la version remise.</p>${annexes.map(a=>`<div style="break-inside:avoid;margin:14pt 0"><strong>${echapper(a.titre)}</strong><p style="font:8px monospace;overflow-wrap:anywhere">SHA-256 : ${echapper(a.empreinte)}</p></div>`).join("")}</section>` : "";
   return { ...doc, html: doc.html.replace("</body>", `${inventaire}${pages}</body>`) };
+}
+
+/**
+ * Le contrat de bail à signer (pages de signature comprises) et son empreinte, depuis le corps du contrat.
+ * `calculAvant24Octobre` : l'empreinte d'un bail préparé avant le 24/10, recalculée à l'activation après sa signature
+ * (relecture transverse 3, I1) : contrat sans la mention ajoutée au cadre « La caution », page du garant sans sa
+ * mention ; le numéro du garant, celui de sa fiche, vient des signataires (`partiesSignatureBail`, même option).
+ */
+export function documentSignatureBail(corps: DocumentAssemble, signataires: SignataireBail[], annexes: AnnexeSignature[], nombreGarants: number, calculAvant24Octobre = false): { document: DocumentAssemble; empreinte: string } {
+  const base = calculAvant24Octobre && nombreGarants > 0
+    ? { ...corps, html: corps.html.replace(`<br/>${mentionCadreCautionBail(nombreGarants)}`, "") }
+    : corps;
+  const document = ajouterPagesSignature(base, signataires, annexes, undefined, false, !calculAvant24Octobre);
+  return { document, empreinte: empreinteSignatureBail(document.html, signataires) };
 }
 
 export function empreinteSignatureBail(html: string, signataires: SignataireBail[]): string {
@@ -119,7 +157,7 @@ export function empreinteSignatureBail(html: string, signataires: SignataireBail
   return createHash("sha256").update(JSON.stringify({ html: stable, signataires })).digest("hex");
 }
 
-export async function assemblerSignatureBail(db: SupabaseClient, org: string, bail: string) {
+export async function assemblerSignatureBail(db: SupabaseClient, org: string, bail: string, options: { telephoneGarantDuDossier?: boolean } = {}) {
   const ctx = await chargerContexteBail(db, org, bail);
   if ("erreur" in ctx) throw new Error(ctx.erreur);
   if (ctx.bail.etat !== "brouillon") throw new Error("Seul un bail brouillon peut être envoyé pour signature.");
@@ -127,7 +165,15 @@ export async function assemblerSignatureBail(db: SupabaseClient, org: string, ba
   const { data: parties, error } = await db.from("bail_personnes").select("person_id,date_depart").eq("bail_id", bail).eq("organization_id", org);
   if (error) throw new Error("Les parties du bail ne peuvent pas être vérifiées.");
   if ((parties ?? []).some(p => p.date_depart)) throw new Error("Le bail contient une personne sortie : vérifiez ses parties avant de préparer la signature.");
-  const { signataires, manquants } = partiesSignatureBail(ctx);
+  const { signataires, manquants } = partiesSignatureBail(ctx, true, options);
+  // Décision du 24/10 : le lien de confirmation du mobile part à l'adresse de chaque garant ; celle d'une autre personne
+  // du bail la lui ferait recevoir (la base le refuse aussi).
+  const adresse = (e: string) => e.trim().toLowerCase();
+  for (const g of signataires) {
+    if (g.qualite === "Garant" && adresse(g.email) && signataires.some(s => s.personId !== g.personId && adresse(s.email) === adresse(g.email))) {
+      manquants.push(`${`${g.prenom} ${g.nom}`.trim() || "Garant"} : l’adresse e-mail du garant est celle d’une autre personne du bail. Renseignez l’adresse personnelle du garant : le lien de confirmation de son mobile lui est envoyé.`);
+    }
+  }
   const pieces = await annexesSignatureBail(db,org,bail,ctx);
   manquants.push(...pieces.manquants);
   const code = ctx.bail.chambre_id ? "bail_individuel" : ctx.bail.type === "colocation" ? "bail_colocation" : ctx.bail.type === "meuble" ? "bail_meuble" : "bail_nu";
@@ -135,8 +181,7 @@ export async function assemblerSignatureBail(db: SupabaseClient, org: string, ba
   if ("erreur" in modele) throw new Error(modele.erreur);
   const incomplet = refusDocumentIncomplet(modele.document);
   if (incomplet) manquants.push(...incomplet.manquants);
-  const document = ajouterPagesSignature(signatureEnEssai(org) ? marquerDocumentEssai(modele.document) : modele.document, signataires,pieces.annexes);
-  const empreinte = empreinteSignatureBail(document.html, signataires);
+  const { document, empreinte } = documentSignatureBail(signatureEnEssai(org) ? marquerDocumentEssai(modele.document) : modele.document, signataires, pieces.annexes, ctx.garants.length, options.telephoneGarantDuDossier === true);
   return { ...modele, document, empreinte, signataires, manquants,annexes:pieces.annexes };
 }
 

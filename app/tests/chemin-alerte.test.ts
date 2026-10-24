@@ -71,6 +71,29 @@ describe("destination du traitement des alertes", () => {
   });
 });
 
+// Relecture du 24/10 : les alertes de conservation (migration 20261024140000) menaient nulle part dans /alertes, alors
+// que leur texte demande de télécharger les pièces ou de signaler un litige depuis la fiche du bail.
+describe("alertes de conservation", () => {
+  it("J-30 d'un bail : la carte « Conservation des pièces » de la fiche du bail", () => {
+    expect(cheminFicheAlerte({ type: "conservation_echeance", details: { bail_id: "bail" } }, "agence"))
+      .toBe("/agence/agence/baux/bail#conservation");
+    expect(gesteAlerte({ type: "conservation_echeance", details: { bail_id: "bail" } }, "org", "/espace"))
+      .toEqual({ href: "/espace/org/baux/bail#conservation", libelle: "Télécharger les pièces ou suspendre leur suppression", seFermeSeule: false });
+  });
+  it("J-15 d'une personne sans bail : ses pièces justificatives", () => {
+    expect(gesteAlerte({ type: "conservation_sans_bail", details: { person_id: "personne" } }, "agence"))
+      .toEqual({ href: "/agence/agence/personnes/personne#pieces", libelle: "Rattacher la personne à un bail ou télécharger ses pièces", seFermeSeule: false });
+  });
+  it("J-30 des documents rattachés à aucun bail : les documents de l'espace", () => {
+    expect(gesteAlerte({ type: "conservation_documents", details: { echeance: "2026-11-20" } }, "agence"))
+      .toEqual({ href: "/agence/agence/documents", libelle: "Télécharger les documents à conserver", seFermeSeule: false });
+  });
+  it("sans bail ni personne dans la charge utile, aucune destination inventée", () => {
+    expect(cheminFicheAlerte({ type: "conservation_echeance", details: {} }, "agence")).toBeNull();
+    expect(cheminFicheAlerte({ type: "conservation_sans_bail", details: {} }, "agence")).toBeNull();
+  });
+});
+
 describe("le geste qui règle l'alerte", () => {
   it("nomme le geste, pas la destination", () => {
     expect(

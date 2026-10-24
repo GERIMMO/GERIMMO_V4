@@ -43,7 +43,8 @@ test.describe("Côté propriétaire bailleur", () => {
     await expect(page.getByRole("radio", { name: /Adaptée à votre parc Bailleur/ })).toBeChecked();
     await expect(recap).toContainText("Formule Bailleur");
     await expect(recap).toContainText("9,99");
-    await expect(recap).toContainText("Total à payer TTC");
+    // Plan du 23/10 (R55) : en franchise de TVA, « Total à payer » sans « TTC ».
+    await expect(recap).toContainText("Total à payer");
     await expect(page.locator("main")).not.toContainText("offert, à vie");
   });
 
@@ -112,16 +113,20 @@ test.describe("Côté agence", () => {
     );
   });
 
-  test("le barème est montré tranche par tranche, HT, avant paiement", async ({
+  test("le barème est montré tranche par tranche avant paiement, sans HT ni TTC en franchise", async ({
     page,
   }) => {
     // Une facture qu'on ne peut pas recalculer soi-même est une facture qu'on
     // appelle pour contester. Tranches cumulatives : chaque lot au prix de SA
-    // tranche.
+    // tranche. L'éditeur est en franchise de TVA (REGIME_TVA) : plan du 23/10
+    // (R55), aucune TVA facturée, donc ni « HT », ni TVA à zéro, ni « TTC ».
     const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
     await expect(recap).toContainText("Socle — jusqu'à 10 lots inclus");
     await expect(recap).toContainText("Lots du 11ᵉ au 50ᵉ");
-    await expect(recap).toContainText("Total HT");
+    await expect(recap).toContainText("Total à payer");
+    await expect(recap).not.toContainText("Total HT");
+    await expect(recap).not.toContainText("TTC");
+    await expect(recap).toContainText("TVA non applicable, art. 293 B du CGI");
   });
 
   test("aucun identifiant Stripe ne descend jusqu'au navigateur", async ({

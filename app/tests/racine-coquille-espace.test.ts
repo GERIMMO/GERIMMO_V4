@@ -53,6 +53,9 @@ vi.mock("@/components/menu-compte", () => ({
 vi.mock("@/components/bouton-assistance", () => ({ LienAssistance: (p: { destination?: string }) => createElement("a", { "data-aide": p.destination ?? "" }) }));
 vi.mock("@/components/ui/toast", () => ({ Toasteur: () => null }));
 vi.mock("@/components/marque-organisation", () => ({ MarqueOrganisation: () => null }));
+// 24/10 (plan de conformité, R19) : l'écran d'une nouvelle version des conditions est un composant serveur asynchrone,
+// éprouvé par tests/conditions-acceptation.test.ts ; il ne porte aucune adresse de gestion.
+vi.mock("@/components/nouvelle-version-conditions", () => ({ NouvelleVersionConditions: () => null }));
 vi.mock("@/components/parcours-demarrage", () => ({ ParcoursDemarrage: () => null }));
 vi.mock("@/app/agence/[orgId]/articles-accueil", () => ({ ArticlesAccueil: () => null }));
 

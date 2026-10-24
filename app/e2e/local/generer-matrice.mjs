@@ -66,6 +66,13 @@ ids.FACTURE_EXTERNE = (await un("select id from artisan_factures_externes where 
 // Invitation d'un artisan (décision du 15/10/2026) : vue SANS session, la page ne lit rien en base et ne dit rien de
 // l'invitation ; n'importe quel identifiant bien formé montre donc l'écran public (création du compte).
 ids.INVITATION_ARTISAN = "00000000-0000-4000-8000-000000000000";
+// Versions archivées des conditions (24/10/2026) : la dernière version archivée des conditions clients, s'il y en a une ;
+// sans archive dans la base du banc, l'écran est écarté (et dit pourquoi).
+ids.DOCUMENT = "conditions_clients";
+// Lien de la caution (décision du 23/10/2026) : un jeton bien formé mais inconnu montre l'écran public « lien non
+// valable », sans rien lire du dossier.
+ids.JETON_CAUTION = "A".repeat(43);
+ids.VERSION = (await un("select version from versions_conditions where document = 'conditions_clients' order by publiee_le desc limit 1"))?.version;
 
 const inventaire = JSON.parse(fs.readFileSync(path.join(ICI, "..", "routes-inventaire.json"), "utf8"));
 const matrice = [];
@@ -76,7 +83,7 @@ for (const route of inventaire) {
   // /agence/<id> redirige à vie vers /espace/<id> pour lui, un modèle encore écrit « /agence/ORG » est donc ramené à /espace).
   if (route.persona === "proprietaire") chemin = chemin.replace(/^\/(?:agence|espace)\/ORG(?![A-Z_])/, `/espace/${ids.ORG_PD}`);
   let manquant = null;
-  chemin = chemin.replace(/\b(PROSPECT|INVITATION_ARTISAN|INVITATION|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT|CLIENT_EXTERNE|CHANTIER_EXTERNE|FACTURE_EXTERNE)\b/g, (m) => {
+  chemin = chemin.replace(/\b(PROSPECT|INVITATION_ARTISAN|INVITATION|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT|CLIENT_EXTERNE|CHANTIER_EXTERNE|FACTURE_EXTERNE|DOCUMENT|VERSION|JETON_CAUTION)\b/g, (m) => {
     if (!ids[m]) manquant = m;
     return ids[m] ?? m;
   });

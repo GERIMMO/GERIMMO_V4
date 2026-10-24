@@ -26,6 +26,8 @@ import { protegerClientAutomatique } from "@/lib/client-automatique";
 
 import { envoyerAvisCapaciteDepassee, envoyerAvisReconduction } from "@/lib/avis-abonnement";
 import { envoyerRelancesDues } from "@/lib/relances-paiement";
+import { envoyerConfirmationsDues } from "@/lib/courriers-contrat-envoi";
+import { reprendreRetractations } from "@/lib/retractation-execution";
 import {
   clientStripe,
   configurationStripe,
@@ -47,6 +49,7 @@ import {
   type Periodicite,
 } from "@/lib/tarifs";
 import { consignerTache } from "@/lib/tache";
+import { poserNonReconductionsConditions, type BilanNonReconduction } from "@/lib/non-reconduction-conditions";
 import { timingSafeEqual } from "node:crypto";
 
 
@@ -197,6 +200,18 @@ export async function traiterAbonnements(request: Request) {
   // du client, sur « Mon abonnement ».
   const echeances = await preparerEcheances(supabase, stripe);
 
+  // ── PLAN DE CONFORMITÉ DU 23/10 (R19) : sans accord exprès à la date d'effet d'une version substantielle des
+  // conditions, l'abonnement n'est pas reconduit (lib/non-reconduction-conditions.ts). Après les échéances : un
+  // échéancier qu'elles viendraient de poser est libéré d'abord ; avant l'avis de reconduction, qui ne part pas pour un
+  // abonnement programmé pour finir.
+  let nonReconduction: BilanNonReconduction;
+  try {
+    nonReconduction = await poserNonReconductionsConditions(supabase, stripe);
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    nonReconduction = { motif: null, examinees: 0, posees: 0, echecs: [{ organisation: "—", motif: e instanceof Error ? e.message.slice(0, 200) : "étape impossible" }] };
+  }
+
   // ── L'AVIS DE RECONDUCTION TACITE (art. L215-1 du code de la consommation,
   // audit 29/09). Un particulier abonné à l'année est prévenu entre trois mois
   // et un mois avant le terme : date, montant, droit de ne pas reconduire.
@@ -207,6 +222,28 @@ export async function traiterAbonnements(request: Request) {
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
     reconduction = { envoyes: 0, sans_adresse: [], echecs: [e instanceof Error ? e.message : "avis impossibles"] };
+  }
+
+  // ── LA CONFIRMATION DES SOUSCRIPTIONS (plan du 23/10, R03). Le webhook l'envoie à la naissance de la souscription ;
+  // celle qui n'est pas partie (prestataire d'e-mail indisponible, réception rejouée sans effets externes) l'est ici,
+  // une fois, pendant un mois après la souscription.
+  let confirmations: Awaited<ReturnType<typeof envoyerConfirmationsDues>>;
+  try {
+    confirmations = await envoyerConfirmationsDues(supabase, stripe, () => verifierAvantEffet(supabase, "abonnements"));
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    confirmations = { envoyees: 0, echecs: [e instanceof Error ? e.message : "confirmations impossibles"] };
+  }
+
+  // ── LES RÉTRACTATIONS RESTÉES EN CHEMIN (relecture adverse du 24/10, I4). Une déclaration enregistrée dont
+  // l'exécution chez Stripe ou l'accusé n'a pas abouti (prestataire indisponible, client qui a fermé la page) est
+  // terminée ici, sans rien doubler ; celles qui ne le sont pas restent dues et le relais est alerté.
+  let retractations: Awaited<ReturnType<typeof reprendreRetractations>>;
+  try {
+    retractations = await reprendreRetractations(supabase, stripe, () => verifierAvantEffet(supabase, "abonnements"));
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    retractations = { terminees: 0, echecs: [e instanceof Error ? e.message : "reprise des rétractations impossible"] };
   }
 
   // ── LES AVOIRS DE PARRAINAGE, EN DERNIER (19/09). Un mois offert au parrain
@@ -287,9 +324,17 @@ export async function traiterAbonnements(request: Request) {
     echeances_en_echec: echeances.echecs.length,
     avis_reconduction: reconduction.envoyes,
     avis_reconduction_en_echec: reconduction.echecs.length + reconduction.sans_adresse.length,
+    non_reconductions_conditions: nonReconduction.posees,
+    non_reconductions_conditions_en_echec: nonReconduction.echecs.length,
+    confirmations: confirmations.envoyees,
+    confirmations_en_echec: confirmations.echecs.length,
+    retractations_terminees: retractations.terminees,
+    retractations_en_echec: retractations.echecs.length,
   });
   return Response.json({
     relances,
+    confirmations,
+    retractations,
     examinees: lignes.length,
     alignees: alignes,
     resiliees,
@@ -297,6 +342,7 @@ export async function traiterAbonnements(request: Request) {
     avoirs_portes: avoirsPortes,
     avoirs_en_echec: avoirsEnEchec,
     echeances,
+    non_reconduction: nonReconduction,
     reconduction, reprises, rapprochement, inventaire,
     stripe_repris: reprises.repris, stripe_controles: rapprochement.controles, stripe_ecarts: rapprochement.ecarts + inventaire.ecarts,
     stripe_inventories: inventaire.controles, stripe_non_suivis: inventaire.ecarts,

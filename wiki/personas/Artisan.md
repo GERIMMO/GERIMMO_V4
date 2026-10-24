@@ -123,11 +123,10 @@ l'intervention humaine** (RM-A2.11 — obligation d'information de l'artisan).
   artisan qui a son compte. Chaque changement de zone ou de métier est inscrit au journal
   d'audit. Un profil public montre aux propriétaires de la zone le nom de l'entreprise, les
   métiers et la note ; le téléphone et l'e-mail ne leur sont transmis qu'avec une demande.
-  **Écart à ratifier** : la zone se choisit par code postal ou département, pas commune par
-  commune (voir [[Ouverture du réseau d'artisans]]). **Livré par la migration `20261023180000` (non appliquée en
-  production au 23/10)** : jusqu'à sa mise en production, la règle du 28/09 (PR #132 :
-  ouverture commune × métier et rattachement par le super-administrateur) reste celle qui
-  s'applique. Voir [[Ouverture du réseau d'artisans]].
+  **Écart ratifié le 23/10** : la zone se choisit par code postal ou département, pas commune par
+  commune (voir [[Ouverture du réseau d'artisans]]). **Livré par la migration `20261023180000` (appliquée en
+  production le 23/10)** : elle remplace la règle du 28/09 (PR #132 : ouverture commune × métier
+  et rattachement par le super-administrateur). Voir [[Ouverture du réseau d'artisans]].
 - **Désactivation** (neutre) ≠ **blacklist** (motivée, conservée) : locale (admin
   agence, n'engage que son agence) vs **globale** (super admin seul, faits objectifs,
   réversible par lui seul). Jamais avec intervention en cours ; devis annulés.
@@ -228,7 +227,7 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
   sont plus lisibles par aucune organisation cliente, agences comprises (`20261014842000`) ;
   une liste noire locale exige une relation préalable et sa levée ne le fait jamais entrer
   dans un carnet (`20261014843000`, `20261014849000`). Décision du 23/10/2026 (migration
-  `20261023180000`, non appliquée en production au 23/10) : une agence ne peut plus non plus
+  `20261023180000`, appliquée en production le 23/10) : une agence ne peut plus non plus
   modifier sa zone ni ses métiers s'il a son compte, et ni son e-mail ni son téléphone ne
   sont plus montrés par le réseau avant une demande ou une relation (relecture sécurité du
   23/10).

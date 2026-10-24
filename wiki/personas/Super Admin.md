@@ -59,9 +59,9 @@ Fonction SQL `is_super_admin()` qui court-circuite quasi toutes les policies RLS
   bien offert, essai de 2 mois (depuis le 30/09/2026 ; 14 jours avant) puis gel en lecture seule, franchise en base de TVA —
   voir [[Grille tarifaire]], [[Abonnement]], [[2026-09-28-decision-tarification]].
 - **Réseau d'artisans** : du 28/09/2026 à la mise en production de la migration
-  `20261023180000`, il ouvre et ferme le réseau **commune × métier** dans Supervision →
+  `20261023180000` (23/10/2026, vers 20 h 25 UTC), il ouvre et ferme le réseau **commune × métier** dans Supervision →
   Couverture (`/admin/couverture`) et rattache les artisans aux communes. **Décision du
-  23/10/2026** (non appliquée en production au 23/10) : il n'ouvre ni ne rattache plus
+  23/10/2026** (en production depuis le 23/10) : il n'ouvre ni ne rattache plus
   rien ; chaque artisan choisit sa zone et ses métiers, et il est proposé dès que le super
   admin a **validé son inscription** (SIRET vérifié, justificatifs relus — la zone déclarée
   s'affiche dans l'écran de validation) et qu'il est public. La Couverture devient une
@@ -176,4 +176,4 @@ les appels payants à l'IA, l'arrêt avant les prochains effets.
 >   dirigeant). Il garde la validation de l'inscription et sa suspension ; la liste noire
 >   globale existe en base sans écran pour la poser ; aucun levier par commune (à trancher
 >   si besoin). Migration `20261023180000`,
->   non appliquée en production au 23/10 ; [[Ouverture du réseau d'artisans]].
+>   appliquée en production le 23/10 ; [[Ouverture du réseau d'artisans]].

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { TitreEcran } from "@/components/titre-ecran";
 import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
-import { libelleTranche, STATUTS_LISTE_ATTENTE, type StatutListeAttente } from "@/lib/liste-attente-agences";
+import { identifiantsOpposes, libelleTranche, STATUTS_LISTE_ATTENTE, type StatutListeAttente } from "@/lib/liste-attente-agences";
 import { createClient } from "@/lib/supabase/server";
 import { BoutonsStatutAgence } from "./boutons-statut";
 
@@ -56,6 +56,11 @@ export default async function PageListeAttenteAgences() {
     );
   }
   const inscriptions = (data ?? []) as Inscription[];
+  // Plan de conformité du 23/10 (R45, relecture du 24/10) : aucune écriture à une adresse opposée (inscription retirée,
+  // ou « Stop » comme prospect). Sans ce contrôle, aucun lien d'écriture ni « contactée ».
+  const controle = await supabase.rpc("inscriptions_agences_opposees");
+  const controleDisponible = !controle.error;
+  const opposees = identifiantsOpposes(controle.data);
   // Même lecture que les gestes et la puce : un statut inconnu de l'écran compte comme une attente.
   const enAttente = inscriptions.filter((i) => statutConnu(i.statut) === "en_attente").length;
   const total = inscriptions.length;
@@ -74,10 +79,6 @@ export default async function PageListeAttenteAgences() {
               ou sa panne (503, texte en français) se lisent alors dans l'onglet au lieu d'un téléchargement échoué. */}
           {total > 0 && (
             <form action="/admin/liste-attente/export" method="get" className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                <input type="checkbox" name="inclure_retirees" value="1" className="size-4 accent-primary" />
-                Inclure les retirées
-              </label>
               <button type="submit" className="btn-secondaire">Exporter en CSV</button>
             </form>
           )}
@@ -88,8 +89,14 @@ export default async function PageListeAttenteAgences() {
         Les agences de gestion locative qui ont laissé leurs coordonnées sur la page « Agences » du site vitrine, en
         attendant l’ouverture de l’offre qui leur est destinée. Rien ne leur est envoyé automatiquement, ni accusé de
         réception ni relance : à l’ouverture, vous les recontactez vous-même, puis vous notez ici où vous en êtes.
-        L’export CSV exclut les agences retirées par défaut. Il est réservé à la supervision et laisse une ligne au journal d’audit.
+        L’export CSV exclut les agences retirées et les adresses qui se sont opposées à nos messages. Il est réservé à la
+        supervision et laisse une ligne au journal d’audit.
       </p>
+      {!controleDisponible && total > 0 && (
+        <p role="alert" className="err mb-5">
+          Le contrôle des oppositions est indisponible : n’écrivez à aucune agence avant de l’avoir vérifié. Rechargez dans un instant.
+        </p>
+      )}
 
       {total === 0 ? (
         <div className="vide-guide">
@@ -110,6 +117,8 @@ export default async function PageListeAttenteAgences() {
             const statut = statutConnu(i.statut);
             const clos = statut === "convertie" || statut === "retiree";
             const replie = !!i.message && (i.message.length > MESSAGE_REPLIE || i.message.includes("\n"));
+            const opposee = opposees.has(i.id);
+            const ecrire = controleDisponible && !opposee;
             return (
               <div
                 id={`agence-${i.id}`}
@@ -126,9 +135,13 @@ export default async function PageListeAttenteAgences() {
                 </div>
                 <p className="mt-1 text-sm">
                   {i.contact} ·{" "}
-                  <a href={`mailto:${i.email}`} className="lien-discret">
-                    {i.email}
-                  </a>
+                  {ecrire ? (
+                    <a href={`mailto:${i.email}`} className="lien-discret">
+                      {i.email}
+                    </a>
+                  ) : (
+                    <span className="break-all">{i.email}</span>
+                  )}
                   {i.telephone && <span className="text-muted-foreground"> · {i.telephone}</span>}
                   <span className="text-muted-foreground"> · {i.code_postal}</span>
                 </p>
@@ -141,13 +154,16 @@ export default async function PageListeAttenteAgences() {
                   ) : (
                     <p className="mt-1.5 whitespace-pre-wrap text-sm text-muted-foreground">{i.message}</p>
                   ))}
+                {opposee && (
+                  <span role="note" className="mt-1.5 text-xs">Opposition enregistrée : ne lui écrivez pas.</span>
+                )}
                 {i.contactee_le && (
                   <span className="mt-1.5 text-xs text-muted-foreground">
                     Contactée le {formaterDateHeureParis(i.contactee_le)}
                   </span>
                 )}
                 <div className="mt-2">
-                  <BoutonsStatutAgence id={i.id} statut={statut} />
+                  <BoutonsStatutAgence id={i.id} statut={statut} contactable={ecrire} />
                 </div>
               </div>
             );

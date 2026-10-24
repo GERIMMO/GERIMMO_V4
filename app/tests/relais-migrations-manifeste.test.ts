@@ -87,7 +87,22 @@ const MISSION_OCTOBRE = [
   "20261023180000_reseau_zone_choisie_par_artisan.sql",
   // Relecture adverse du 23/10 : le locataire lit ses annonces au jour de Paris, comme la fiche agence du bien.
   "20261023184512_annonces_locataire_jour_paris.sql",
+  // 23/10, PR #242 (Codex) : inventaire global des souscriptions Stripe, appliquée en production APRÈS 184512
+  // (chantier 40026422737, 21 h 23 UTC) : l'ordre du manifeste suit celui de la production, pas l'horodatage.
   "20261023164629_stripe_inventaire_global.sql",
+  // 24/10, plan de conformité (lot 1A, R12) : versions archivées des conditions, document des acceptations, archive des comptes.
+  "20261024090000_versions_conditions_et_archives_comptes.sql",
+  // 24/10, plan de conformité (lot 1A, R10 et R19) : artisans classés par note à partir de trois évaluations ;
+  // non-reconduction faute d'accord à une version substantielle des conditions.
+  "20261024100000_acceptation_conditions_et_classement_artisans.sql",
+  // 24/10, plan de conformité (lots 1B et 1C) : vente au consommateur (rétractation, confirmation, résiliation) et impayé.
+  "20261024110000_vente_et_impaye.sql",
+  // 24/10, plan de conformité (lot 1D, décision du 23/10) : la caution confirme son mobile, l'état des lieux sa visite sur place.
+  "20261024120000_signature_caution_mobile_et_edl_sur_place.sql",
+  // 24/10, plan de conformité (lot 1E, R14, R15, R49, R51) : fermeture des comptes, inactivité, export complet.
+  "20261024130000_fermeture_comptes.sql",
+  // 24/10, plan de conformité (lot 2, lot 1F, alertes et gel du lot 1E) : conservation et prospection.
+  "20261024140000_conservation_et_prospection.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

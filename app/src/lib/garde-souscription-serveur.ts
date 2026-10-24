@@ -48,13 +48,18 @@ export async function lireMotifIdentiteEditeur(enEssai: boolean): Promise<string
  * redemandée, et une ligne de plus est sans conséquence (ajout seul).
  */
 export async function conditionsEnVigueurAccepteesPar(supabase: Client, accountId: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from("acceptations_cgu")
-    .select("id")
-    .eq("account_id", accountId)
-    .eq("version", CONDITIONS_VERSION)
-    .limit(1)
-    .maybeSingle();
+  const lire = (parDocument: boolean) => {
+    let requete = supabase.from("acceptations_cgu").select("id").eq("account_id", accountId);
+    // 24/10 : une acceptation porte sur un document (conditions clients, conditions de l'espace artisan, règles des
+    // espaces invités) ; seules les conditions clients ouvrent la souscription.
+    if (parDocument) requete = requete.eq("document", "conditions_clients");
+    return requete.eq("version", CONDITIONS_VERSION).limit(1).maybeSingle();
+  };
+  let { data, error } = await lire(true);
+  // Relecture adverse du 24/10 (M3) : code déployé avant la migration 20261024090000, la colonne `document` manque
+  // (42703) ; toutes les acceptations sont alors des conditions clients. Sans ce repli, la garde échouait à chaque
+  // essai et plus personne ne pouvait payer. Toute autre erreur ferme par défaut.
+  if (error?.code === "42703") ({ data, error } = await lire(false));
   return !error && data !== null;
 }
 

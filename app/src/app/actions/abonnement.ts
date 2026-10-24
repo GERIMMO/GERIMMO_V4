@@ -8,11 +8,17 @@ import {
   assurerClientStripe,
   clientStripe,
   configurationStripe,
+  finDePeriode,
+  MARQUE_NON_RECONDUCTION_STRIPE,
   ouvrirPortailFacturation,
   verifierClientDeLOrganisation,
 } from "@/lib/stripe";
+import { envoyerAccuseResiliation } from "@/lib/courriers-contrat-envoi";
+import { ArretSupervision } from "@/lib/controle-effets";
 import { origineDeRetour } from "@/lib/site";
-import { CONDITIONS_VERSION, REGIME_TVA } from "@/lib/editeur";
+import { CONDITIONS_DATE, CONDITIONS_VERSION, REGIME_TVA } from "@/lib/editeur";
+import { aujourdhuiParis } from "@/lib/ged";
+import { messageRepriseSansAccord, repriseExigeAccord } from "@/lib/nouvelle-version-conditions";
 import {
   ERREUR_ACCEPTATION_CONDITIONS,
   ERREUR_CONDITIONS_PERIMEES,
@@ -38,7 +44,12 @@ import { offreAgence, offreParticulier, type Offre, type Periodicite } from "@/l
 import { baseEspace } from "@/lib/racine-espace";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 
-export type EtatAbonnementAction = { erreur?: string; succes?: boolean };
+export type EtatAbonnementAction = {
+  erreur?: string;
+  succes?: boolean;
+  /** « Annuler la résiliation » attend l'accord à cette version des conditions (case posée sous le bouton). */
+  accordConditions?: { version: string; dateVersion: string };
+};
 
 /**
  * L'adresse de retour, prise sur la requête en cours.
@@ -274,7 +285,6 @@ export async function demarrerAbonnement(
   if (lireEntier(formData.get("montant_attendu_cents")) !== offre.montantCents) {
     return { erreur: "Le montant a changé depuis l'affichage (votre portefeuille a évolué) : vérifiez le récapitulatif mis à jour, puis confirmez à nouveau." };
   }
-
   const origine = await origineDeLaRequete();
   if (!origine) return { erreur: "L'adresse du site n'a pas pu être déterminée. Rechargez la page." };
 
@@ -289,6 +299,22 @@ export async function demarrerAbonnement(
   // onglets reçoivent la même (lib/souscription-unique.ts).
   const service = clientDeService();
   if (!service) return { erreur: "Le service de paiement est momentanément indisponible. Réessayez plus tard." };
+  // Plan du 23/10 (R16) : la case cochée vaut demande expresse d'un abonnement payant qui commence pendant le délai de
+  // rétractation ; son horodatage entre dans la preuve (journal d'audit, sans coordonnée). Un échec d'écriture ne bloque
+  // pas la souscription : il reste au journal serveur.
+  const { error: erreurCommande } = await service.rpc("abonnement_geste_consigner", {
+    p_org: orgId,
+    p_account: user.id,
+    p_action: "abonnement_commande_confirmee",
+    p_details: {
+      montant_cents: offre.montantCents,
+      periodicite: offre.periodicite,
+      formule: offre.public === "particulier" ? offre.formule.code : "agence",
+      case_confirmation: "2026-10-24",
+      premier_prelevement_differe: etat.statut === "essai" && Boolean(etat.essai_fin),
+    },
+  });
+  if (erreurCommande) console.error("[souscription] case de confirmation non consignée :", erreurCommande.message.slice(0, 200));
   const session = await ouvrirPageDePaiementUnique(stripe, registreDeService(service), {
     offre,
     regime: REGIME_TVA,
@@ -526,36 +552,131 @@ export async function demanderPeriodicite(
   redirect(`${await baseDeLOrganisation(supabase, orgId)}/abonnement?periodicite=programmee`);
 }
 
-/** Résilier pour la prochaine échéance, ou revenir sur cette résiliation. */
+/**
+ * La reprise d'un abonnement programmé pour finir, quand la version en vigueur exige l'accord exprès et que sa date
+ * d'effet est atteinte (relecture adverse du 24/10, défaut 3) : sans accord du compte, la tâche quotidienne reposerait
+ * la non-reconduction le lendemain, sans prévenir. `null` : la reprise peut partir. Sinon le refus, qui fait poser la
+ * case « J'ai lu et j'accepte la version du … » sous le bouton ; l'envoi qui la porte (version affichée = version du
+ * serveur) enregistre l'accord, puis la reprise part. Aujourd'hui (2026-09-30), rien n'est lu.
+ */
+async function accordAvantReprise(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData
+): Promise<EtatAbonnementAction | null> {
+  if (!repriseExigeAccord({ aujourdhui: aujourdhuiParis() })) return null;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { erreur: MESSAGE_SESSION_EXPIREE };
+  if (await conditionsEnVigueurAccepteesPar(supabase, user.id)) return null;
+  const accordConditions = { version: CONDITIONS_VERSION, dateVersion: CONDITIONS_DATE };
+  if (formData.get("cgu") !== "oui") return { erreur: messageRepriseSansAccord(CONDITIONS_DATE), accordConditions };
+  if (!estLaVersionEnVigueur(formData.get("cgu_version"))) return { erreur: ERREUR_CONDITIONS_PERIMEES, accordConditions };
+  const { error } = await supabase.rpc("accepter_cgu", {
+    p_version: CONDITIONS_VERSION,
+    p_source: "compte",
+    p_document: "conditions_clients",
+  });
+  if (error) return { erreur: ERREUR_ACCEPTATION_CONDITIONS, accordConditions };
+  return null;
+}
+
+/**
+ * Résilier pour la prochaine échéance, ou revenir sur cette résiliation.
+ *
+ * Plan du 23/10 (R04) : la résiliation se notifie depuis la page « Résilier votre contrat » (récapitulatif, date de fin,
+ * adresse de l'accusé). Elle est inscrite au journal d'audit AVANT l'écriture chez Stripe (l'instant du clic est
+ * celui de la notification ; le webhook, qui la voit passer, sait alors que la page envoie l'accusé), puis l'accusé
+ * part, une fois (même clé que le webhook : `resiliation-{souscription}-{fin}`), à l'adresse choisie.
+ */
 export async function resilierAbonnement(
   orgId: string,
   _etat: EtatAbonnementAction,
   formData: FormData
 ): Promise<EtatAbonnementAction> {
   const resilier = formData.get("resilier") === "oui";
+  const adresse = String(formData.get("adresse") ?? "").trim() || null;
+  // Relecture adverse du 24/10 (M6) : le nom saisi fait partie de la notification — consigné (sans arobase : le journal
+  // n'admet aucune coordonnée) et repris dans l'accusé.
+  const nom = String(formData.get("nom") ?? "").replace(/[@\r\n]/g, " ").replace(/\s+/g, " ").trim().slice(0, 200) || null;
+  if (adresse && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adresse) || adresse.length > 320)) {
+    return { erreur: "Indiquez une adresse électronique valide pour recevoir l'accusé de réception." };
+  }
   const reglages = configurationStripe();
   if (!reglages.pret) return { erreur: "Le paiement en ligne n'est pas ouvert." };
   const supabase = await createClient();
   const { data: souscription, error } = await supabase.rpc("ma_souscription_stripe", { p_org: orgId });
   if (error) return { erreur: sansJargon(error.message) };
   if (!souscription) return { erreur: "Aucun abonnement en cours à résilier." };
+  // Finitions du 24/10 (relecture transverse, I4) : la fermeture programmée du compte a posé l'arrêt de la souscription ;
+  // ni résilier (accusé trompeur), ni « Annuler la résiliation » (souscription reconduite et facturée, effacement retenu).
+  const { data: fermeture, error: erreurFermeture } = await supabase.rpc("fermeture_programmee_de", { p_org: orgId });
+  if (erreurFermeture) return { erreur: "La fermeture éventuelle de votre compte n'a pas pu être vérifiée : rien n'a changé. Réessayez dans un instant." };
+  if (Array.isArray(fermeture) && fermeture.length > 0) {
+    return { erreur: "La fermeture de votre compte est programmée : l'abonnement s'arrête avec elle. Pour la modifier ou l'annuler, écrivez-nous depuis « Aide »." };
+  }
+  if (!resilier) {
+    const refus = await accordAvantReprise(supabase, formData);
+    if (refus) return refus;
+  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const service = clientDeService();
   // Relecture adverse du 23/10 (A02) : jamais en même temps qu'une hausse, qui reposerait l'échéancier libéré ici.
-  const verrou = await prendreVerrouFacturation(clientDeService(), orgId, "resiliation");
+  const verrou = await prendreVerrouFacturation(service, orgId, "resiliation");
   if (!verrou.ok) return { erreur: verrou.erreur };
+  const notifieeLe = new Date();
+  let accuse = "";
   try {
+    await service?.rpc("abonnement_geste_consigner", {
+      p_org: orgId,
+      p_account: user?.id ?? null,
+      p_action: resilier ? "abonnement_resiliation_notifiee" : "abonnement_resiliation_levee",
+      p_details: { souscription: souscription as string, chemin: "page", notifiee_le: notifieeLe.toISOString(), ...(resilier && nom ? { nom } : {}) },
+    });
     const r = await resilierAEcheance(verrou.proteger(clientStripe(reglages.config)), {
       subscription: souscription as string,
       resilier,
+      // Un geste du client : la marque d'une non-reconduction faute d'accord ne vaut plus (finitions du 24/10, M1).
+      metadata: { [MARQUE_NON_RECONDUCTION_STRIPE]: "" },
     });
     // Un échéancier libéré (audit 29/09, point 5) : si la résiliation est levée,
     // la tâche de nuit doit pouvoir reprogrammer l'échéance. Seconde relecture du
     // 23/10 : aussi quand la résiliation elle-même a échoué après la libération.
     if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
     if (!r.ok) return { erreur: r.erreur };
+    // Relecture adverse du 24/10 (I3) : la levée efface la marque de l'accusé ; une nouvelle notification de la même
+    // échéance sera accusée de nouveau. Un échec ne défait pas la levée (le webhook l'efface aussi).
+    if (!resilier && service) {
+      const { error: erreurLevee } = await service.rpc("abonnement_resiliation_levee", { p_org: orgId, p_subscription: souscription as string });
+      if (erreurLevee) console.error("[résiliation] marque de l'accusé non effacée :", erreurLevee.message.slice(0, 200));
+    }
+    if (resilier) {
+      const fin = r.souscription ? finDePeriode(r.souscription) : null;
+      const envoi =
+        fin && service
+          ? await envoyerAccuseResiliation(service, {
+              orgId,
+              subscription: souscription as string,
+              periodeFin: new Date(fin),
+              notifieeLe,
+              chemin: "action",
+              destinataire: adresse,
+              nom,
+            }).catch((e: unknown) => {
+              if (e instanceof ArretSupervision) throw e;
+              return { envoye: false, motif: "envoi impossible" };
+            })
+          : { envoye: false, motif: "fin de période inconnue" };
+      // Ne jamais laisser l'écran dire « vous est envoyé » quand rien n'est parti : déjà parti pour cette notification, ou
+      // en échec (relecture adverse du 24/10, I3).
+      if (!envoi.envoye) accuse = envoi.motif === "déjà accusée" ? "&accuse=deja" : "&accuse=echec";
+    }
   } finally {
     await verrou.rendre();
   }
-  redirect(`${await baseDeLOrganisation(supabase, orgId)}/abonnement?resiliation=${resilier ? "programmee" : "annulee"}`);
+  redirect(`${await baseDeLOrganisation(supabase, orgId)}/abonnement?resiliation=${resilier ? "programmee" : "annulee"}${accuse}`);
 }
 
 /**
@@ -579,7 +700,7 @@ async function basculerVersGrilleActuelle(
   if (paiement.souscrit) {
     return {
       erreur:
-        "Votre abonnement est en cours sur l'ancienne grille : il n'y a rien à souscrire de nouveau. Carte, factures et résiliation se règlent depuis « Carte et factures ».",
+        "Votre abonnement est en cours sur l'ancienne grille : il n'y a rien à souscrire de nouveau. Carte et factures se règlent depuis « Carte et factures » ; la résiliation, depuis « Résilier votre contrat ».",
     };
   }
   const service = clientDeService();
@@ -592,11 +713,10 @@ async function basculerVersGrilleActuelle(
 }
 
 /**
- * L'espace de facturation : carte, factures, adresse, résiliation.
+ * L'espace de facturation : carte, factures, adresse. Plan du 23/10 (R04) : plus la résiliation, qui se notifie depuis
+ * la page « Résilier votre contrat » (configuration du portail, `lib/stripe.ts`, MARQUE_PORTAIL).
  *
- * Tout y est tenu par Stripe. Le réécrire prendrait des semaines pour un
- * résultat moins fiable — et une résiliation qu'on code soi-même est une
- * résiliation qu'on peut rater.
+ * Carte et factures restent tenues par Stripe : les réécrire prendrait des semaines pour un résultat moins fiable.
  */
 export async function ouvrirPortailAbonnement(
   orgId: string,

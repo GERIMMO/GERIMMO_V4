@@ -30,7 +30,8 @@ describe("DES-A-03 : hiérarchie des titres", () => {
 
   it("les <h2> convertis portent la classe qui leur rend le dessin d'un <h3>", () => {
     const avecClasse = PERIMETRE.flatMap(f => (readFileSync(f, "utf8").match(/<h2[^>]*titre-carte[^>]*>/g) ?? []));
-    expect(avecClasse.length).toBe(37);
+    // 38 depuis le 24/10 : carte « Conditions générales » de « Sécurité du compte » (plan de conformité, lot 1A).
+    expect(avecClasse.length).toBe(38);
   });
 
   it("prestige.css rend leur apparence aux <h2 class=titre-carte> malgré `.gerimmo-prestige h2`", () => {

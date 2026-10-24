@@ -128,3 +128,19 @@ export function validerInscriptionAgence(f: FormData): { valeurs: InscriptionAge
     },
   };
 }
+
+/**
+ * Les identifiants rendus par `inscriptions_agences_opposees` (inscriptions retirées ou adresses opposées). La fonction
+ * rend une table à une colonne `id` ([{"id": …}]) ; une valeur nue est acceptée aussi. Toute autre forme est écartée,
+ * jamais convertie en « [object Object] » (relecture transverse du 24/10 : l'émulateur des parcours rendait des objets,
+ * et aucune opposition n'était reconnue).
+ */
+export function identifiantsOpposes(donnees: unknown): Set<string> {
+  const ids = new Set<string>();
+  if (!Array.isArray(donnees)) return ids;
+  for (const d of donnees) {
+    if (typeof d === "string" && d !== "") ids.add(d);
+    else if (d && typeof d === "object" && typeof (d as { id?: unknown }).id === "string") ids.add((d as { id: string }).id);
+  }
+  return ids;
+}

@@ -90,7 +90,8 @@ test.describe("propriétaire direct", () => {
       // affiché que le paiement soit ouvert ou non.
       const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
       await expect(recap).toBeVisible();
-      await expect(recap).toContainText("Total à payer TTC");
+      // Plan du 23/10 (R55) : en franchise de TVA, « Total à payer » sans « TTC » (forme compatible avec l'ancien libellé).
+      await expect(recap).toContainText("Total à payer");
       await expect(recap).toContainText(/\d.*€/);
       // Lot B3 (19/10) : DEUX ÉTATS, et exactement un des deux est prouvé.
       // L'identité de l'éditeur se renseigne hors dépôt (/admin/parametres) et

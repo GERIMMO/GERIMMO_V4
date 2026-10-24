@@ -18,11 +18,16 @@ import { motifIdentiteEditeur } from "@/lib/garde-souscription";
 import { lireGardeSouscription } from "@/lib/garde-souscription-serveur";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate } from "@/lib/ged";
+import { nuitDu } from "@/lib/comptes-fermeture";
 import { clientStripe, configurationStripe } from "@/lib/stripe";
 import { apercuChangement, datePremierPrelevement } from "@/lib/stripe-offres";
 import { joursJusquaParis } from "@/lib/heure-paris-calcul";
+import { dernierJourRetractation, jourEnLettres } from "@/lib/delai-retractation";
+import { etatRetractation } from "@/lib/retractation-etat";
+import { conclusionRelueChezStripe, ligneRetractationDuResponsable } from "@/lib/retractation-serveur";
 import {
   FORMULES_PARTICULIER,
+  etiquetteTaxes,
   euros,
   formuleParCode,
   montantsOffre,
@@ -76,12 +81,23 @@ function libelleOffre(o: Offre): string {
     : `Formule ${o.formule.nom}`;
 }
 
+// Plan du 23/10 (R55) : un éditeur en franchise de TVA n'écrit ni « TTC » ni « HT » à côté d'un prix (aucune TVA
+// facturée, article 8.4 des conditions) ; l'étiquette vient de `etiquetteTaxes`, comme sur le site public.
+const TTC = etiquetteTaxes("ttc", REGIME_TVA);
+const HT = etiquetteTaxes("ht", REGIME_TVA);
+/** « 5,99 € » suivi de l'étiquette de taxe s'il y en a une. */
+function avecTaxe(montant: string, etiquette: string | null): string {
+  return etiquette ? `${montant} ${etiquette}` : montant;
+}
+
 function montantLu(o: Offre): string {
   const m = montantsOffre(o, REGIME_TVA);
   if (o.public === "agence") {
-    return m.connu ? `${euros(o.montantCents)} HT (${euros(m.ttcCents)} TTC) ${parPeriode(o.periodicite)}` : `${euros(o.montantCents)} HT ${parPeriode(o.periodicite)}`;
+    return m.connu && HT
+      ? `${euros(o.montantCents)} HT (${euros(m.ttcCents)} TTC) ${parPeriode(o.periodicite)}`
+      : `${avecTaxe(euros(o.montantCents), HT)} ${parPeriode(o.periodicite)}`;
   }
-  return `${euros(o.montantCents)} TTC ${parPeriode(o.periodicite)}`;
+  return `${avecTaxe(euros(o.montantCents), TTC)} ${parPeriode(o.periodicite)}`;
 }
 
 export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonnement">) {
@@ -94,13 +110,24 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   const estAgence = organisation.type === "agence";
   const unite = estAgence ? "lot sous mandat" : "bien";
 
-  const [{ data: etatBrut, error: erreurEtat }, { data: paiementBrut, error: erreurPaiement }, garde] = await Promise.all([
+  const [{ data: etatBrut, error: erreurEtat }, { data: paiementBrut, error: erreurPaiement }, garde, ligneRetractation, { data: fermetureBrute }] = await Promise.all([
     supabase.rpc("etat_abonnement", { p_org: orgId }),
     supabase.rpc("mon_abonnement", { p_org: orgId }),
     // Lot B3 (19/10) : l'identité de l'éditeur (supervision_identite) et
     // l'acceptation, par ce compte, de la version en vigueur des conditions.
     lireGardeSouscription(supabase, user.id),
+    // Plan du 23/10 (R01, R37) : le droit de rétractation, affiché même en lecture seule.
+    ligneRetractationDuResponsable(supabase, orgId),
+    // Finitions du 24/10 (relectures transverses I1, I4) : la fermeture programmée de l'espace. Ni « Résilier » ni
+    // « Annuler la résiliation » (l'arrêt posé par la fermeture serait défait) ; la date d'effacement est dite.
+    supabase.rpc("fermeture_programmee_de", { p_org: orgId }),
   ]);
+  const fermeture = (Array.isArray(fermetureBrute) ? (fermetureBrute as { effacement_prevu_le?: unknown; choix?: string | null }[]) : [])
+    .find((f): f is { effacement_prevu_le: string; choix?: string | null } =>
+      typeof f?.effacement_prevu_le === "string" && /^\d{4}-\d{2}-\d{2}$/.test(f.effacement_prevu_le)) ?? null;
+  // Relecture adverse du 24/10 (M4) : une souscription que la base n'a pas encore datée prend sa date chez Stripe.
+  const conclusionStripe = await conclusionRelueChezStripe(supabase, orgId, ligneRetractation);
+  const retractation = etatRetractation(ligneRetractation ?? null, new Date(), conclusionStripe ?? null);
   const etat = ((etatBrut ?? []) as Etat[])[0] ?? null;
   const paiement = ((paiementBrut ?? []) as Paiement[])[0] ?? null;
   if (erreurEtat || erreurPaiement || !etat || !paiement) {
@@ -120,6 +147,11 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   const ferme = !etat.ecriture_ouverte;
   const enEssai = etat.statut === "essai";
   const souscrit = paiement.souscrit;
+  // Relecture adverse du 24/10 (I2) : un défaut de paiement encore inscrit sur une souscription terminée. Résiliée pour
+  // impayé (ni résiliation demandée, ni rétractation), la facture est annulée : « tout rouvre au paiement » serait faux.
+  const alerteRetard = paiement.paiement_en_retard && souscrit;
+  const resilieeImpaye =
+    paiement.paiement_en_retard && !souscrit && !paiement.annulation_demandee && !ligneRetractation?.retractation_abonnement_le;
   const actuelle = offreActuelle(paiement, publicTarif);
   const capacite = paiement.unites_souscrites;
   const reglages = configurationStripe();
@@ -247,13 +279,41 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         <div role="status" className="loc-carte">
           <p className="mesure-lecture text-sm text-muted-foreground">
             {retour("resiliation") === "programmee"
-              ? "Résiliation enregistrée pour la prochaine échéance : votre accès payé reste entier jusque-là."
+              ? retour("accuse") === "echec"
+                ? "Résiliation enregistrée pour la prochaine échéance : votre accès payé reste entier jusque-là. L'accusé de réception n'a pas pu partir pour le moment : écrivez-nous si vous ne le recevez pas."
+                : retour("accuse") === "deja"
+                  ? "Résiliation enregistrée pour la prochaine échéance : votre accès payé reste entier jusque-là. L'accusé de réception de cette résiliation vous a déjà été envoyé par courriel."
+                  : "Résiliation enregistrée pour la prochaine échéance : votre accès payé reste entier jusque-là. Un accusé de réception vous est envoyé par courriel."
               : "Résiliation annulée : votre abonnement se renouvelle normalement."}
           </p>
         </div>
       )}
+      {retour("retractation") && (
+        <div role="status" className="loc-carte border-l-4 border-l-[var(--success)]">
+          <p className="mesure-lecture text-sm">
+            <b className="font-semibold">Rétractation enregistrée.</b>{" "}
+            <span className="text-muted-foreground">
+              {retour("retractation") === "passage"
+                ? "Votre abonnement reste ou redevient mensuel. L'accusé de réception vous est envoyé par courriel."
+                : "Votre abonnement a pris fin ; ce que vous avez payé vous est remboursé intégralement. L'accusé de réception vous est envoyé par courriel."}
+            </span>
+          </p>
+        </div>
+      )}
 
-      {paiement.paiement_en_retard && (
+      {resilieeImpaye && (
+        <div role="alert" className="loc-carte border-l-4 border-l-[var(--destructive)]">
+          <p className="mesure-lecture text-sm">
+            <b className="font-semibold">Votre abonnement a été résilié faute de règlement.</b>{" "}
+            <span className="text-muted-foreground">
+              La facture restée impayée est annulée : vous n&apos;avez rien à régler. Rien n&apos;est supprimé : vos
+              données restent consultables et exportables. Souscrivez de nouveau ci-dessous pour reprendre la saisie.
+            </span>
+          </p>
+        </div>
+      )}
+
+      {alerteRetard && (
         <div role="alert" className={`loc-carte border-l-4 ${ferme ? "border-l-[var(--destructive)]" : "border-l-[var(--warning)]"}`}>
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
@@ -261,14 +321,15 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             </b>{" "}
             <span className="text-muted-foreground">
               {ferme
-                ? "Dès que le paiement aboutit, tout rouvre. Rien n'a été supprimé : vos données restent consultables et exportables."
+                ? // Plan du 23/10 (R26) : ce qui est vrai en lecture seule, envois automatiques compris.
+                  "Dès que le paiement aboutit, tout rouvre. Rien n'est supprimé du fait de l'impayé : vos données restent consultables et exportables. Les envois automatiques à vos locataires (appels de loyer, quittances, relances) sont interrompus jusque-là, sans rattrapage complet."
                 : `Votre compte reste ouvert${paiement.lecture_seule_le ? ` jusqu'au ${formaterDate(paiement.lecture_seule_le)}` : ""}. Mettez votre moyen de paiement à jour ci-dessous.`}
             </span>
           </p>
         </div>
       )}
 
-      {ferme && !paiement.paiement_en_retard && (
+      {ferme && !alerteRetard && !resilieeImpaye && (
         <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">Votre compte est en lecture seule.</b>{" "}
@@ -301,6 +362,36 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         </div>
       )}
 
+      {/* PLAN DU 23/10 (R01, R37) : LE DROIT DE RÉTRACTATION, VISIBLE MÊME EN LECTURE SEULE, PENDANT TOUT LE DÉLAI. Une
+          souscription que la base n'a pas encore datée (antérieure au 24/10) garde le bouton : la page de déclaration
+          relit la date chez Stripe et dit si le délai court encore. */}
+      {(retractation.abonnement.ouverte ||
+        retractation.passage.ouverte ||
+        (conclusionStripe === undefined && ligneRetractation?.abonnement_suivi && !ligneRetractation.souscrit_le && !ligneRetractation.retractation_abonnement_le)) && (
+        <section className="loc-carte space-y-2 border-l-4 border-l-[var(--or)]" aria-labelledby="droit-retractation">
+          <h2 id="droit-retractation" className="text-base">
+            {retractation.abonnement.ouverte && retractation.abonnement.dernierJour
+              ? `Droit de rétractation — jusqu'au ${jourEnLettres(retractation.abonnement.dernierJour)} inclus`
+              : retractation.passage.ouverte && retractation.passage.dernierJour
+                ? `Droit de rétractation du passage à l'annuel — jusqu'au ${jourEnLettres(retractation.passage.dernierJour)} inclus`
+                : "Droit de rétractation"}
+          </h2>
+          <p className="mesure-lecture text-sm text-muted-foreground">
+            {retractation.abonnement.ouverte || !retractation.passage.ouverte
+              ? "Vous pouvez renoncer à votre abonnement, sans motif, pendant quatorze jours après la souscription : il prend fin aussitôt et ce que vous avez payé vous est remboursé intégralement."
+              : retractation.passage.effectue
+                ? "Vous pouvez renoncer au passage à la formule annuelle : votre abonnement redevient mensuel et l'échéance annuelle vous est remboursée intégralement."
+                : "Vous pouvez renoncer au passage à la formule annuelle demandé : votre abonnement reste mensuel."}
+          </p>
+          <Link
+            href={`${base}/abonnement/retractation${!retractation.abonnement.ouverte && retractation.passage.ouverte ? "?nature=passage_annuel" : ""}`}
+            className="btn-secondaire inline-flex"
+          >
+            Renoncer au contrat ici
+          </Link>
+        </section>
+      )}
+
       {/* L'ÉTAT, TOUJOURS VISIBLE. */}
       <div className={estAgence ? "loc-carte" : styles.synthese}>
         {!estAgence ? (
@@ -331,7 +422,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
               <div>
                 <span><CreditCard size={16} aria-hidden="true" /> {souscrit ? "Montant facturé" : "Prélèvement"}</span>
                 <strong>{souscrit ? paiement.montant_periode_cents !== null ? euros(paiement.montant_periode_cents) : "À confirmer" : "Aucun"}</strong>
-                <small>{souscrit ? `TTC ${parPeriode(paiement.periodicite)}` : "Sans souscription, aucun prélèvement"}</small>
+                <small>{souscrit ? (TTC ? `${TTC} ${parPeriode(paiement.periodicite)}` : parPeriode(paiement.periodicite)) : "Sans souscription, aucun prélèvement"}</small>
               </div>
             </div>
             {!ferme && enEssai && !souscrit && (
@@ -369,7 +460,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
               <span>Montant facturé</span>
               <span className="montant font-medium">
                 {paiement.montant_periode_cents !== null
-                  ? `${euros(paiement.montant_periode_cents)} ${estAgence ? "HT" : "TTC"} ${parPeriode(paiement.periodicite)}`
+                  ? `${avecTaxe(euros(paiement.montant_periode_cents), estAgence ? HT : TTC)} ${parPeriode(paiement.periodicite)}`
                   : "—"}
               </span>
             </div>
@@ -392,7 +483,12 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         {souscrit && (
           <div className="mt-3 border-t border-border pt-3">
             <p className="libelle-champ mb-1">Changements programmés</p>
-            {paiement.annulation_demandee ? (
+            {fermeture ? (
+              <p className="text-sm">
+                Fermeture de votre compte programmée : l&apos;abonnement s&apos;arrête sans être renouvelé, puis l&apos;espace et
+                ses données sont effacés dans la {nuitDu(fermeture.effacement_prevu_le)}.
+              </p>
+            ) : paiement.annulation_demandee ? (
               <p className="text-sm">
                 Résiliation au {paiement.periode_fin ? formaterDate(paiement.periode_fin) : "terme de la période"} : l&apos;accès
                 payé reste entier d&apos;ici là, puis le compte passe en lecture seule, données conservées.
@@ -429,6 +525,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             ferme={ferme}
             motifIndisponible={motifIndisponible}
             conditionsAAccepter={!garde.conditionsAcceptees}
+            dateLimiteRetractation={jourEnLettres(dernierJourRetractation(new Date()))}
           />
         </section>
       )}
@@ -503,13 +600,13 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
                   <li key={f.code}>
                     <Link href={`${base}/abonnement?formule=${f.code}`} className="underline">
                       {f.nom} — jusqu&apos;à {f.biens} biens,{" "}
-                      {euros(paiement.periodicite === "annuel" ? f.annuelCents : f.mensuelCents)} TTC {parPeriode(paiement.periodicite)}
+                      {avecTaxe(euros(paiement.periodicite === "annuel" ? f.annuelCents : f.mensuelCents), TTC)} {parPeriode(paiement.periodicite)}
                     </Link>
                   </li>
                 ))}
                 {(capacite ?? 0) >= 20 && (
                   <li className="text-muted-foreground">
-                    Au-delà de 20 biens, chaque bien supplémentaire coûte {paiement.periodicite === "annuel" ? "10 € TTC par an" : "1 € TTC par mois"} ; il vous sera présenté à l&apos;ajout.
+                    Au-delà de 20 biens, chaque bien supplémentaire coûte {paiement.periodicite === "annuel" ? `${avecTaxe("10 €", TTC)} par an` : `${avecTaxe("1 €", TTC)} par mois`} ; il vous sera présenté à l&apos;ajout.
                   </li>
                 )}
               </ul>
@@ -534,8 +631,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
                 <>
                   <p className="text-sm text-muted-foreground">
                     {paiement.periodicite === "mensuel"
-                      ? `En annuel : ${euros(offreParticulier(enGestion, "annuel").montantCents)} TTC prélevés en une fois pour douze mois (deux mois offerts), à partir de la prochaine échéance.`
-                      : `En mensuel : ${euros(offreParticulier(enGestion, "mensuel").montantCents)} TTC par mois, sans engagement, à partir de la fin de l'année payée.`}{" "}
+                      ? `En annuel : ${avecTaxe(euros(offreParticulier(enGestion, "annuel").montantCents), TTC)} prélevés en une fois pour douze mois (deux mois offerts), à partir de la prochaine échéance. La demande de passage à l'annuel ouvre un nouveau délai de rétractation de quatorze jours.`
+                      : `En mensuel : ${avecTaxe(euros(offreParticulier(enGestion, "mensuel").montantCents), TTC)} par mois, sans engagement, à partir de la fin de l'année payée.`}{" "}
                     La période en cours n&apos;est jamais convertie.
                   </p>
                   <FormulairePeriodicite
@@ -556,11 +653,20 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
               Ensuite, vos données restent consultables et exportables, en lecture seule — rien n&apos;est supprimé
               automatiquement.
             </p>
-            <BoutonResiliation
-              orgId={orgId}
-              resilier={!paiement.annulation_demandee}
-              libelle={paiement.annulation_demandee ? "Annuler la résiliation" : "Résilier à la prochaine échéance"}
-            />
+            {/* Plan du 23/10 (R04) : un seul chemin de résiliation, la page « Résilier votre contrat » (récapitulatif,
+                date de fin, accusé de réception) ; le portail de paiement ne résilie plus. */}
+            {fermeture ? (
+              <p className="text-sm">
+                La fermeture de votre compte est programmée : l&apos;abonnement s&apos;arrête avec elle. Pour la modifier ou
+                l&apos;annuler, écrivez-nous depuis « Aide ».
+              </p>
+            ) : paiement.annulation_demandee ? (
+              <BoutonResiliation orgId={orgId} resilier={false} libelle="Annuler la résiliation" />
+            ) : (
+              <Link href={`${base}/abonnement/resiliation`} className="btn-secondaire inline-flex">
+                Résilier votre contrat
+              </Link>
+            )}
           </div>
           <div className="space-y-2">
             <p className="libelle-champ">Carte et factures</p>

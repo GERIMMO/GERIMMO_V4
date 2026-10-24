@@ -12,6 +12,7 @@ import { chargerMarque } from "@/lib/marque-organisation-serveur";
 import { formaterDateHeure } from "@/lib/ged";
 import { FormulaireMotDePasse } from "./formulaire-mot-de-passe";
 import { SecondFacteur } from "./second-facteur";
+import { ConditionsAcceptees } from "./conditions-acceptees";
 
 // LA MARQUE DU LOCATAIRE (25/09, D04). Cet écran est hors de tout espace, et
 // il affichait le logo GERIMMO — au locataire d'une agence en marque blanche,
@@ -171,7 +172,13 @@ export default async function PageCompte() {
           <FormulaireMotDePasse />
         </div>
 
-        <SecondFacteur obligatoire={Boolean(supervision)} />
+        {/* Ancre de l'archive complète (relecture du 24/10) : « Valider mon second facteur » y mène. */}
+        <div id="second-facteur" className="scroll-mt-24">
+          <SecondFacteur obligatoire={Boolean(supervision)} />
+        </div>
+
+        {/* Plan de conformité du 23/10 (lot 1A) : la version acceptée des conditions, et le lien pour la relire. */}
+        <ConditionsAcceptees supabase={supabase} compteId={user.id} />
 
         {/* Mes données personnelles (audit du 27/09) : aucun chemin vers la
             politique de confidentialité ni vers l'exercice des droits depuis

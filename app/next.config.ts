@@ -168,6 +168,8 @@ const nextConfig: NextConfig = {
       // /auth/confirmer porte le jeton d'un lien reçu par e-mail. Ni le
       // navigateur ni un relais ne doivent en garder copie.
       { source: "/auth/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
+      // Décision du 23/10/2026 : le lien de la caution porte son jeton à usage unique, comme ceux de /auth.
+      { source: "/signature/caution/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
       // Audit du 13/10 (PRF-05, D45 A) : durée courte avec revalidation, voir CACHE_IMAGES_DE_MARQUE.
       { source: "/logo/:path*", headers: [{ key: "Cache-Control", value: CACHE_IMAGES_DE_MARQUE }] },
       { source: "/illustrations/:path*", headers: [{ key: "Cache-Control", value: CACHE_IMAGES_DE_MARQUE }] },

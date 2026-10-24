@@ -132,6 +132,18 @@
     "dynamic": "orgId"
   },
   {
+    "path": "/espace/ORG/abonnement/retractation",
+    "persona": "proprietaire",
+    "label": "Renoncer au contrat (rétractation)",
+    "dynamic": "orgId"
+  },
+  {
+    "path": "/espace/ORG/abonnement/resiliation",
+    "persona": "proprietaire",
+    "label": "Résilier votre contrat",
+    "dynamic": "orgId"
+  },
+  {
     "path": "/agence/ORG/administration",
     "persona": "admin-agence",
     "label": "Administration (équipe, portefeuilles)",
@@ -424,6 +436,18 @@
     "persona": "public",
     "label": "Conditions générales d’utilisation et de vente",
     "dynamic": ""
+  },
+  {
+    "path": "/conditions/versions",
+    "persona": "public",
+    "label": "Versions archivées des conditions générales",
+    "dynamic": ""
+  },
+  {
+    "path": "/conditions/versions/DOCUMENT/VERSION",
+    "persona": "public",
+    "label": "Version archivée des conditions générales",
+    "dynamic": "document, version"
   },
   {
     "path": "/confidentialite",
@@ -982,6 +1006,12 @@
     "persona": "locataire",
     "label": "Invitation à l’espace locataire — accepter ou refuser",
     "dynamic": "invitationId"
+  },
+  {
+    "path": "/signature/caution/JETON_CAUTION",
+    "persona": "public",
+    "label": "Acte de cautionnement — la caution confirme son mobile",
+    "dynamic": "jeton"
   },
   {
     "path": "/artisan/invitation/INVITATION_ARTISAN",

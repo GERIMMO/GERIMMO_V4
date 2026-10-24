@@ -36,12 +36,17 @@ async function appliquer(statut: string) {
   ]);
 }
 
-/** Fait comme si le défaut datait de N jours, sans attendre N jours. */
-async function defautDepuis(jours: number) {
+/**
+ * Fait comme si le défaut datait de N jours, sans attendre N jours. Plan du 23/10 (R27) : la lecture seule suppose
+ * qu'un courrier est parti ; le défaut simulé porte donc le courrier du premier jour (`relances_paiement = 1`), sauf
+ * quand le test dit le contraire.
+ */
+async function defautDepuis(jours: number, relances = 1) {
   await db.query(
-    `update public.abonnements set paiement_en_defaut_depuis = public.aujourdhui_paris() - $2::integer
+    `update public.abonnements set paiement_en_defaut_depuis = public.aujourdhui_paris() - $2::integer,
+            relances_paiement = $3
       where organization_id = $1`,
-    [org, jours]
+    [org, jours, relances]
   );
 }
 
@@ -98,6 +103,16 @@ describe("La fermeture tient à la date, pas à une tâche de nuit", () => {
   it("au quinzième jour, la saisie s'arrête", async () => {
     await appliquer("past_due");
     await defautDepuis(DELAI);
+    expect(await ecritureOuverte()).toBe(false);
+  });
+
+  it("plan du 23/10 (R27) : sans aucun courrier parti, le quinzième jour ne ferme rien", async () => {
+    // Le compte ne passe pas en lecture seule d'un client qu'on n'a pas prévenu (adresse absente, envoi en échec).
+    await appliquer("past_due");
+    await defautDepuis(DELAI + 3, 0);
+    expect(await ecritureOuverte()).toBe(true);
+    // Le premier courrier parti, la date reprend ses droits.
+    await db.query("update public.abonnements set relances_paiement = 1 where organization_id = $1", [org]);
     expect(await ecritureOuverte()).toBe(false);
   });
 
@@ -257,14 +272,14 @@ describe("Les quatre courriers, et quand ils partent", () => {
       "update public.abonnements set relances_paiement = 2, derniere_relance_le = public.aujourdhui_paris() - 1 where organization_id=$1",
       [org]
     );
-    await defautDepuis(DELAI - 1);
+    await defautDepuis(DELAI - 1, 2);
     expect((await dues())[0].palier).toBe(2);
 
     await db.query(
       "update public.abonnements set relances_paiement = 3, derniere_relance_le = public.aujourdhui_paris() - 1 where organization_id=$1",
       [org]
     );
-    await defautDepuis(DELAI);
+    await defautDepuis(DELAI, 3);
     const r = await dues();
     expect(r[0].palier).toBe(3);
     expect(r[0].jours_restants).toBe(0);
@@ -276,7 +291,7 @@ describe("Les quatre courriers, et quand ils partent", () => {
       "update public.abonnements set relances_paiement = 4, derniere_relance_le = public.aujourdhui_paris() - 1 where organization_id=$1",
       [org]
     );
-    await defautDepuis(DELAI + 60);
+    await defautDepuis(DELAI + 60, 4);
     expect(await dues()).toHaveLength(0);
   });
 

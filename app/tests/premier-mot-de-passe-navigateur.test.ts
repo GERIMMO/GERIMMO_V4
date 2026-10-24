@@ -91,10 +91,10 @@ const SAISIES_DIFFERENTES = "Les deux saisies ne correspondent pas.";
 const EXPOSE: RefusAuth = { code: "weak_password", message: "Password is known to be weak" };
 
 /** Le HTML que le serveur rend pour la page, avec l'état d'action qu'il a sous la main. */
-function htmlDuServeur(etat: EtatNouveauMotDePasse): string {
+function htmlDuServeur(etat: EtatNouveauMotDePasse, profil: Record<string, string> = PROFIL): string {
   mocks.etat = etat;
   const formulaire = renderToString(
-    createElement(StrictMode, null, createElement(FormulaireNouveauMotDePasse, { suite: "/espaces", profilAConfirmer: PROFIL })),
+    createElement(StrictMode, null, createElement(FormulaireNouveauMotDePasse, { suite: "/espaces", profilAConfirmer: profil })),
   );
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"></head><body><div id="racine">${formulaire}</div><script src="/banc.js"></script></body></html>`;
 }
@@ -115,7 +115,7 @@ describe.skipIf(!CHROMIUM)("Premier mot de passe : les listes gardent le choix a
   });
 
   /** Ouvre la page telle que le serveur l'envoie ; avec le script, attend la fin de l'hydratation. */
-  async function ouvrir(html: string, { script: avecScript = true } = {}) {
+  async function ouvrir(html: string, { script: avecScript = true, profil = PROFIL }: { script?: boolean; profil?: Record<string, string> } = {}) {
     contexte = await navigateur.newContext({ locale: "fr-FR", javaScriptEnabled: avecScript });
     page = await contexte.newPage();
     erreursPage = [];
@@ -126,7 +126,7 @@ describe.skipIf(!CHROMIUM)("Premier mot de passe : les listes gardent le choix a
       return route.fulfill({ contentType: "text/html; charset=utf-8", body: html });
     });
     if (avecScript) {
-      const banc: BancMotDePasse = { profil: PROFIL, envois: [], enregistrements: [], refusAuth: [], erreurs: [], pret: false };
+      const banc: BancMotDePasse = { profil, envois: [], enregistrements: [], refusAuth: [], erreurs: [], pret: false };
       await page.addInitScript((b) => { window.__bancMotDePasse = b; }, banc);
     }
     await page.goto("http://localhost/nouveau-mot-de-passe?motif=inscription");
@@ -230,14 +230,17 @@ describe.skipIf(!CHROMIUM)("Premier mot de passe : les listes gardent le choix a
     await envoyer("tour-numero-un-1", "tour-numero-un-2");
     expect([await liste("espace").inputValue(), await liste("qualite").inputValue()]).toEqual(["artisan", "SCI"]);
 
+    // L'espace invité change le texte de la case : elle revient décochée, et se coche de nouveau sous ce texte-là.
     await liste("espace").selectOption("invite");
     await liste("qualite").selectOption("Personne morale");
+    await champ("cgu").check();
     await envoyer("tour-numero-deux-1", "tour-numero-deux-2");
     expect([await liste("espace").inputValue(), await liste("qualite").inputValue()]).toEqual(["invite", "Personne morale"]);
 
     // Retour à l'usage d'origine et à « Non renseignée » : la liste ne doit pas rester sur le choix du refus précédent.
     await liste("espace").selectOption("proprietaire_direct");
     await liste("qualite").selectOption("");
+    await champ("cgu").check();
     await envoyer("tour-numero-trois-1", "tour-numero-trois-2");
     expect([await liste("espace").inputValue(), await liste("qualite").inputValue()]).toEqual(["proprietaire_direct", ""]);
 
@@ -253,7 +256,98 @@ describe.skipIf(!CHROMIUM)("Premier mot de passe : les listes gardent le choix a
     ]);
   });
 
+  // ───────── la case des conditions suit son texte (relecture adverse du 24/10, défaut 1) ─────────
+  //
+  // La case des conditions change de libellé avec l'usage choisi (R10, R60). Montée une seule fois, elle gardait sa coche
+  // quand son texte changeait : cochée pour « J'ai pris connaissance des règles d'utilisation des espaces invités… », elle
+  // restait cochée sous « J'accepte les conditions générales d'utilisation et de vente », le champ caché passait à
+  // `conditions_clients`, et le serveur enregistrait une acceptation des conditions de vente prouvée par une coche donnée
+  // pour une autre phrase. Une coche ne survit qu'à un changement d'usage qui ne change pas le texte de la case.
+
+  const caseCgu = () => page.locator('label:has(input[name="cgu"])');
+  const documentAffiche = () => page.locator('input[name="cgu_document"]').inputValue();
+  const formulaireValide = () => page.locator("form").evaluate((f: HTMLFormElement) => f.checkValidity());
+  const REGLES_INVITES = "J’ai pris connaissance des règles d’utilisation des espaces invités (article 7 des conditions générales).";
+  const CONDITIONS_CLIENTS = "J’accepte les conditions générales d’utilisation et de vente.";
+
+  it("personne invitée qui coche, puis choisit « Gérer mes propres biens » : la case revient décochée sous son nouveau texte", async () => {
+    const invite = { ...PROFIL, espace: "invite" };
+    await ouvrir(htmlDuServeur({}, invite), { profil: invite });
+    expect(await caseCgu().textContent()).toBe(REGLES_INVITES);
+    await champ("cgu").check();
+
+    await liste("espace").selectOption("proprietaire_direct");
+    expect(await caseCgu().textContent()).toBe(CONDITIONS_CLIENTS);
+    expect(await documentAffiche()).toBe("conditions_clients");
+    expect(await champ("cgu").isChecked()).toBe(false);
+    // La case est requise : le navigateur n'enverra rien tant qu'elle n'est pas cochée sous ce texte-là.
+    expect(await formulaireValide()).toBe(false);
+
+    await champ("cgu").check();
+    await envoyer("premier-choix-123", "autre-saisie-456");
+    expect((await envois())[0]).toMatchObject({ espace: "proprietaire_direct", cgu: "on", cgu_document: "conditions_clients" });
+  });
+
+  it("propriétaire qui coche, puis choisit l'espace invité, puis revient : la coche ne suit jamais un autre texte", async () => {
+    await ouvrir(htmlDuServeur({}));
+    expect(await caseCgu().textContent()).toBe(CONDITIONS_CLIENTS);
+    await champ("cgu").check();
+
+    // Même texte (conditions de l'espace artisan non publiées : l'artisan accepte les conditions clients) : la coche reste.
+    await liste("espace").selectOption("artisan");
+    expect(await caseCgu().textContent()).toBe(CONDITIONS_CLIENTS);
+    expect(await champ("cgu").isChecked()).toBe(true);
+
+    await liste("espace").selectOption("invite");
+    expect(await caseCgu().textContent()).toBe(REGLES_INVITES);
+    expect(await champ("cgu").isChecked()).toBe(false);
+
+    await champ("cgu").check();
+    await liste("espace").selectOption("proprietaire_direct");
+    expect(await champ("cgu").isChecked()).toBe(false);
+    expect(await formulaireValide()).toBe(false);
+  });
+
+  it("après un refus, la case recochée par la réponse se décoche aussi quand l'usage change de texte", async () => {
+    await ouvrir(htmlDuServeur({}));
+    await champ("cgu").check();
+    await envoyer("premier-choix-123", "autre-saisie-456");
+    expect(await champ("cgu").isChecked()).toBe(true);
+
+    await liste("espace").selectOption("invite");
+    expect(await caseCgu().textContent()).toBe(REGLES_INVITES);
+    expect(await champ("cgu").isChecked()).toBe(false);
+
+    // Cochée sous le texte des règles des espaces invités, puis refusée : elle revient cochée sous ce même texte.
+    await champ("cgu").check();
+    await envoyer("deuxieme-choix-1", "deuxieme-choix-2");
+    expect((await envois())[1]).toMatchObject({ espace: "invite", cgu: "on", cgu_document: "regles_invites" });
+    expect(await caseCgu().textContent()).toBe(REGLES_INVITES);
+    expect(await champ("cgu").isChecked()).toBe(true);
+
+    // Retour à « Gérer mes propres biens » : la coche de la réponse portait sur les règles des espaces invités.
+    await liste("espace").selectOption("proprietaire_direct");
+    expect(await caseCgu().textContent()).toBe(CONDITIONS_CLIENTS);
+    expect(await champ("cgu").isChecked()).toBe(false);
+  });
+
   // ───────── sans le script ─────────
+
+  it("sans script : usage changé dans la liste puis refus du mot de passe, la case revient décochée sous son nouveau texte", async () => {
+    // L'envoi natif d'une personne invitée qui a coché les règles des espaces invités, puis choisi « Gérer mes propres
+    // biens » (sans script, la case n'a pas suivi), avec deux saisies différentes : le refus vient avant tout contrôle du
+    // document, et la page revient avec la case des conditions clients.
+    const envoiNatif = new FormData();
+    const saisie = { mot_de_passe: "premier-choix-123", confirmation: "autre-saisie-456", suite: "/espaces", espace: "proprietaire_direct", nom: "Corrigé", cgu: "on", cgu_document: "regles_invites" };
+    for (const [cle, valeur] of Object.entries(saisie)) envoiNatif.set(cle, valeur);
+    const refus = await definirNouveauMotDePasse({}, envoiNatif);
+    expect(refus).toMatchObject({ erreur: SAISIES_DIFFERENTES, valeurs: { espace: "proprietaire_direct" } });
+
+    await ouvrir(htmlDuServeur(refus), { script: false });
+    expect(await caseCgu().textContent()).toBe(CONDITIONS_CLIENTS);
+    expect(await champ("cgu").isChecked()).toBe(false);
+    expect(await formulaireValide()).toBe(false);
+  });
 
   it("sans script : la page rendue par le serveur après l'envoi natif affiche le choix refusé, et le renverrait tel quel", async () => {
     // Le vrai refus de l'action (saisies différentes : aucun appel à Supabase), tel que le serveur le rend à la page.

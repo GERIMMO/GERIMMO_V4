@@ -154,6 +154,26 @@ export const FICHIERS_EN_SERIE = [
   // Relecture adverse du 23/10 : rejeu de 20261023184512 et de son retour (`create or replace` de mes_annonces_locataire)
   // et `aujourdhui_paris()` figée au lendemain, dans la transaction du fichier tenue pendant tous ses essais.
   "tests/annonces-locataire-jour-paris-base.test.ts",
+  // Plan de conformité du 24/10 (lot 1A) : rejeu de 20261024090000 et de son retour (alter table acceptations_cgu, tables
+  // versions_conditions et archives_comptes supprimées puis recréées) dans la transaction du fichier.
+  "tests/versions-conditions-base.test.ts",
+  // Même lot (acceptation selon l'espace, R10/R19) : rejeu de 20261024100000 et de son retour (réécriture de
+  // artisans_disponibles_bien, fonctions créées puis supprimées) et `artisan_note` d'essai dans la transaction du fichier.
+  "tests/acceptation-conditions-base.test.ts",
+  // Plan de conformité du 24/10 (lots 1B et 1C) : rejeu de 20261024110000 et de son retour (DROP/CREATE de
+  // abonnements_a_relancer et abonnements_avis_reconduction_dus, contrainte des natures de retours) dans la transaction
+  // du fichier, et `aujourdhui_paris()` figée le temps d'un cas.
+  "tests/vente-impaye-base.test.ts",
+  // Plan de conformité du 24/10 (lot 1D, décision du 23/10) : rejeu de 20261024120000 et de son retour (table
+  // confirmations_mobile_caution supprimée puis recréée, déclencheur sur bail_signature_circuits) dans la transaction du fichier.
+  "tests/signature-caution-edl-base.test.ts",
+  // Plan de conformité du 24/10 (lot 1E) : rejeu de 20261024130000 et de son retour (tables, déclencheur sur accounts,
+  // tâche pg_cron), et déclencheurs d'état suspendus (`alter table … disable trigger`) pendant chaque effacement, dans la
+  // transaction du fichier.
+  "tests/fermeture-comptes-base.test.ts",
+  // Plan de conformité du 24/10 (lot 2, lot 1F) : rejeu de 20261024140000 et de son retour (appliquer_retention réécrite,
+  // colonnes de baux et des prospects, table des oppositions) dans la transaction du fichier.
+  "tests/conservation-prospection-base.test.ts",
 ];
 
 export default defineConfig({

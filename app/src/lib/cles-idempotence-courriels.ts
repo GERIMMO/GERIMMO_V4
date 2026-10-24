@@ -153,11 +153,18 @@ export function cleRelanceAbonnement(p: {
   periodicite: Periodicite;
   montantPeriodeCents: number;
   destinataire: string;
+  /** Plan du 23/10 (R23) : le courrier du premier prélèvement échoué n'est pas celui du palier 0 ordinaire. */
+  premierPrelevement?: boolean;
 }): string {
   // Palier 0 : le courrier dit le montant du prélèvement et sa périodicité (lot mineurs du 19/10, a). Centimes entiers,
   // suivis de « an » pour l'annuel : un abonnement mensuel garde exactement la clé d'avant (« 4900 »), aucun doublon
-  // au déploiement ; l'annuel, dont le courrier change (« par an »), change de clé.
-  const variable = p.palier === 0 ? `${p.montantPeriodeCents}${p.periodicite === "annuel" ? "an" : ""}` : p.palier === 1 ? `${p.joursRestants}j` : "-";
+  // au déploiement ; l'annuel, dont le courrier change (« par an »), change de clé. Le courrier du premier prélèvement
+  // (R23) ajoute « p » : un autre texte, une autre clé. La date de résiliation possible (R06) suit la date de défaut,
+  // déjà dans la clé par la date de lecture seule.
+  const variable =
+    p.palier === 0
+      ? `${p.montantPeriodeCents}${p.periodicite === "annuel" ? "an" : ""}${p.premierPrelevement ? "p" : ""}`
+      : p.palier === 1 ? `${p.joursRestants}j` : "-";
   return borner(
     `relance-abonnement/${p.organisationId}/${p.palier}/${p.lectureSeuleLe.slice(0, 10)}/${variable}/${empreinteAdresse(p.destinataire)}`
   );

@@ -14,6 +14,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { CASE_CONDITIONS_CLIENTS, caseConditions } from "../src/lib/conditions-acceptation";
 import {
   CHAMPS_PRESTATAIRES,
   CONDITIONS_VERSION,
@@ -117,7 +118,10 @@ describe("le contrat est lisible avant d'être accepté", () => {
     // Le lien vit DANS le libellé de la case : c'est là qu'on lit ce qu'on
     // accepte, pas dans un pied de page.
     const label = src.slice(src.indexOf('name="cgu"'), src.indexOf('name="cgu"') + 1400);
-    expect(label).toContain('href="/conditions"');
+    // 24/10 (plan de conformité, R10/R60) : le lien suit la case de l'usage choisi (lib/conditions-acceptation.ts) ;
+    // pour le propriétaire, c'est toujours /conditions.
+    expect(label).toContain("href={caseCgu.href}");
+    expect(caseConditions("proprietaire_direct").href).toBe("/conditions");
   });
 
   it("les trois pages légales sont ouvertes au public", () => {
@@ -132,7 +136,9 @@ describe("le contrat est lisible avant d'être accepté", () => {
     // Sans cela, l'éditeur ne peut pas prouver le contenu du contrat le jour
     // de sa formation — alors que l'article 16 se réserve de le modifier.
     const auth = lire("app/actions/auth.ts");
-    expect(auth).toContain("cgu_version: CONDITIONS_VERSION");
+    // 24/10 (plan de conformité, R10/R60) : la version et le document de la case de l'usage choisi.
+    expect(auth).toContain("cgu_version: caseAcceptee.version");
+    expect(auth).toContain("cgu_document: caseAcceptee.document");
     expect(auth).toContain("cgu_acceptee_le");
   });
 });
@@ -166,8 +172,11 @@ describe("conditions générales d'utilisation et de vente (29/09)", () => {
   it("portent leur vrai nom, partout où on les nomme", () => {
     expect(cgu).toContain('titre="Conditions générales d\'utilisation et de vente"');
     expect(lire("app/inscription/formulaire-inscription.tsx")).toContain("conditions générales d&apos;utilisation et de vente");
-    expect(lire("app/artisan/inscription/formulaire-compte.tsx")).toContain("conditions générales d&apos;utilisation et de vente");
-    expect(lire("app/nouveau-mot-de-passe/formulaire-nouveau-mot-de-passe.tsx")).toContain("conditions générales d&apos;utilisation et de vente");
+    // 24/10 (plan de conformité, R60) : ces deux formulaires prennent le libellé unique de lib/conditions-acceptation.ts.
+    expect(CASE_CONDITIONS_CLIENTS.lien).toBe("conditions générales d’utilisation et de vente");
+    expect(lire("app/artisan/inscription/formulaire-compte.tsx")).toContain('caseConditions("artisan")');
+    expect(lire("app/nouveau-mot-de-passe/formulaire-nouveau-mot-de-passe.tsx")).toContain("caseConditions(espaceAffiche)");
+    expect(lire("app/espaces/choix-espace.tsx")).toContain("{CASE_CONDITIONS_CLIENTS.lien}");
     expect(lire("components/chrome-public.tsx")).toContain('["/conditions", "Conditions générales"]');
   });
 

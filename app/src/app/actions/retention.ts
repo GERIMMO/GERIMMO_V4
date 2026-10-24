@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export type BilanConservation = {
   erreur?: string;
-  categories?: { categorie: string; libelle: string; duree_mois: number; actif: boolean; echus: number }[];
+  /** `echus` vaut null pour une catégorie du catalogue dont le nettoyage n'est pas encore écrit (plan du 23/10, lot 2). */
+  categories?: { categorie: string; libelle: string; duree_mois: number; actif: boolean; echus: number | null }[];
   preuves_protegees?: number;
 };
 export async function simulerConservation(): Promise<BilanConservation> {

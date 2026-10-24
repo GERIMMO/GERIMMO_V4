@@ -116,7 +116,9 @@ describe("présentation de l’abonnement propriétaire", () => {
     const html = await rendre();
     expect(html).toContain("99,90");
     expect(html).toContain("Facturation annuelle");
-    expect(html).toContain("TTC / an");
+    // Plan du 23/10 (R55) : éditeur en franchise de TVA, ni « TTC » ni « HT » à côté du montant.
+    expect(html).toContain("<small>/ an</small>");
+    expect(html).not.toContain("TTC / an");
   });
   it("ne remplace pas un montant indisponible par zéro", async () => {
     abonner({ montant_periode_cents: null });
@@ -130,6 +132,20 @@ describe("présentation de l’abonnement propriétaire", () => {
     expect(html).toContain("Fin de l’abonnement");
     expect(html).toContain("Résiliation au");
     expect(html).toContain("Annuler la résiliation");
+  });
+  it("finitions du 24/10 (I1, I4) : une fermeture programmée remplace « Résilier » et « Annuler la résiliation » et dit la nuit d'effacement", async () => {
+    abonner({ annulation_demandee: true });
+    mocks.rpc.mockImplementation(async (nom: string) => ({
+      data: nom === "fermeture_programmee_de" ? [{ effacement_prevu_le: "2099-11-08", choix: "j14_prorata" }] : [nom === "etat_abonnement" ? etat : paiement],
+      error: null,
+    }));
+    const html = await rendre();
+    expect(html).toContain("Fermeture de votre compte programmée");
+    expect(html).toContain("nuit du 7 au 8 novembre 2099");
+    expect(html).toContain("La fermeture de votre compte est programmée");
+    expect(html).not.toContain("Annuler la résiliation");
+    expect(html).not.toContain("Résilier votre contrat");
+    expect(html).not.toContain("données conservées");
   });
   it("annonce une erreur de lecture sans proposer une nouvelle souscription", async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { message: "indisponible" } });
@@ -152,7 +168,10 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     expect(html).not.toContain(CASE_CONDITIONS);
     // Le récapitulatif reste : le client lit le montant, même sans bouton.
     expect(html).toContain("Récapitulatif avant paiement");
-    expect(html).toContain("Total à payer TTC");
+    // Plan du 23/10 (R55) : en franchise de TVA, « Total à payer » sans « TTC » ; la mention de franchise suit.
+    expect(html).toContain("Total à payer");
+    expect(html).not.toContain("Total à payer TTC");
+    expect(html).toContain("TVA non applicable, art. 293 B du CGI.");
   });
   it("identité illisible : même motif (fermeture par défaut)", async () => {
     mocks.stripePret = true;
@@ -204,6 +223,15 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     expect(html).toContain("Continuer vers le paiement sécurisé");
     expect(html).not.toContain("Acceptez d’abord");
   });
+  it("relecture adverse du 24/10 (M3, M9) : le récapitulatif renvoie au formulaire de l'article 8.10 ; les nouveaux onglets sont annoncés", async () => {
+    mocks.stripePret = true;
+    const html = await rendre();
+    expect(html).toContain("ou avec le formulaire de l&#x27;article 8.10 des <a");
+    expect(html).toMatch(/article 8\.10 des <a [^>]*href="\/conditions"[^>]*>conditions générales/);
+    const liensNouvelOnglet = html.match(/<a [^>]*target="_blank"[^>]*>[\s\S]*?<\/a>/g) ?? [];
+    expect(liensNouvelOnglet.length).toBeGreaterThan(0);
+    for (const lien of liensNouvelOnglet) expect(lien).toContain("(nouvel onglet)");
+  });
   it("sans clés Stripe, le motif Stripe passe avant celui de l’identité (banc local)", async () => {
     mocks.editeur = { editeur: EDITEUR_VIDE, indisponible: false };
     const html = await rendre();
@@ -227,5 +255,67 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     const html = await rendre();
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
     expect(html).toContain("Le paiement en ligne n&#x27;est pas encore ouvert. Écrivez-nous");
+  });
+});
+
+describe("plan du 23/10 (R01, R37) : le droit de rétractation sur « Mon abonnement »", () => {
+  const ligne = {
+    souscrit_le: "2099-10-05T08:00:00Z", abonnement_suivi: true, stripe_statut: "past_due", essai_fin: null, periodicite: "mensuel",
+    periodicite_suivante: null, passage_annuel_demande_le: null, formule: "bailleur", organisation: "Parc de test",
+    destinataire: "titulaire@example.com", retractation_abonnement_le: null as string | null, retractation_passage_le: null,
+  };
+  function avecLigne(l: Record<string, unknown>) {
+    mocks.rpc.mockImplementation(async (nom: string) =>
+      nom === "ma_souscription_stripe"
+        ? { data: "sub_test", error: null }
+        : { data: [nom === "etat_abonnement" ? etat : nom === "ma_retractation" ? l : paiement], error: null }
+    );
+  }
+  it("visible en lecture seule, avec sa date limite (jour de souscription exclu) et « Renoncer au contrat ici »", async () => {
+    abonner({ paye: false, paiement_en_retard: true });
+    etat = { ...etat, ecriture_ouverte: false };
+    avecLigne(ligne);
+    const html = await rendre();
+    expect(html).toContain("Votre compte est en lecture seule");
+    expect(html).toContain("Droit de rétractation — jusqu&#x27;au 19 octobre 2099 inclus");
+    expect(html).toContain("Renoncer au contrat ici");
+    expect(html).toContain("/abonnement/retractation");
+  });
+  it("une déclaration déjà enregistrée, ou un délai échu, retire le bouton", async () => {
+    abonner();
+    avecLigne({ ...ligne, retractation_abonnement_le: "2099-10-06T08:00:00Z" });
+    expect(await rendre()).not.toContain("Renoncer au contrat ici");
+    avecLigne({ ...ligne, souscrit_le: "2099-09-01T08:00:00Z" });
+    expect(await rendre()).not.toContain("Renoncer au contrat ici");
+  });
+  it("relecture adverse du 24/10 (M4) : une souscription que la base n'a pas encore datée prend la date relue chez Stripe", async () => {
+    abonner();
+    mocks.stripePret = true;
+    const retrieve = vi.fn(async () => ({ id: "sub_test", start_date: Date.parse("2099-08-01T08:00:00Z") / 1000 }));
+    const { clientStripe } = await import("@/lib/stripe");
+    vi.mocked(clientStripe).mockReturnValue({ subscriptions: { retrieve } } as never);
+    avecLigne({ ...ligne, souscrit_le: null });
+    expect(await rendre()).not.toContain("Renoncer au contrat ici"); // souscrite le 1er août : délai échu
+    retrieve.mockResolvedValueOnce({ id: "sub_test", start_date: Date.parse("2099-10-05T08:00:00Z") / 1000 });
+    expect(await rendre()).toContain("Droit de rétractation — jusqu&#x27;au 19 octobre 2099 inclus");
+    // Stripe illisible : le bouton reste (la page de déclaration redira si le délai court).
+    retrieve.mockRejectedValueOnce(new Error("indisponible"));
+    expect(await rendre()).toContain("Renoncer au contrat ici");
+  });
+});
+
+describe("relecture adverse du 24/10 (I2) : après une résiliation pour impayé", () => {
+  it("l'écran ne promet plus que « tout rouvre » au paiement : il dit la résiliation et propose de souscrire de nouveau", async () => {
+    etat = { ...etat, statut: "suspendue", ecriture_ouverte: false };
+    paiement = { ...paiement, souscrit: false, paiement_en_retard: true, stripe_statut: "canceled" };
+    const html = await rendre();
+    expect(html).not.toContain("Dès que le paiement aboutit, tout rouvre");
+    expect(html).toContain("Votre abonnement a été résilié faute de règlement");
+    expect(html).toContain("Souscrivez de nouveau ci-dessous pour reprendre la saisie");
+  });
+  it("un abonnement encore en cours garde le texte de l'impayé (tout rouvre au paiement)", async () => {
+    abonner({ paiement_en_retard: true, paye: false });
+    etat = { ...etat, ecriture_ouverte: false };
+    expect(await rendre()).toContain("Dès que le paiement aboutit, tout rouvre");
   });
 });

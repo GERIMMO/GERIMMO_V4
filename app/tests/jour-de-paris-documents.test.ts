@@ -179,8 +179,9 @@ describe.each(INSTANTS)("documents de contrat produits à %s : « Établi le » 
     const ctx = contexte();
     ctx.garants = [{ ...personne({ id: "g1", nom: "Leblanc", prenom: "Marc" }), garant_de: null }];
     vi.mocked(chargerContexteBail).mockResolvedValue(ctx);
-    const doc = await assemblerCautionnement({} as SupabaseClient, "org", "b1", { garant: "g1", montant_max: "15000" });
-    expect("document" in doc && datesDuDocument(doc.document.html)).toEqual([attendu, attendu]);
+    const doc = await assemblerCautionnement({} as SupabaseClient, "org", "b1", { garant: "g1", montant_max: "15000", sans_garantie_cumulee: "oui" });
+    // Plan du 23/10, R28 : « Fait le » porte la date effective de la signature, à compléter ; seule reste « Établi le ».
+    expect("document" in doc && datesDuDocument(doc.document.html)).toEqual([attendu]);
   });
 
   it("congé du bailleur : sans date de présentation, le terme est calculé au jour de Paris ; « Établi le » et « Fait le » au jour de Paris", async () => {

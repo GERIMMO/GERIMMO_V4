@@ -7,6 +7,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { dureeEssai } from "@/lib/tarifs";
+import { CASE_CONDITIONS_CLIENTS } from "@/lib/conditions-acceptation";
 
 /**
  * « Que voulez-vous faire ? » — l'écran d'un compte connecté sans aucun espace.
@@ -86,12 +87,15 @@ export function ChoixEspace({
               {/* Nouvel onglet (24/09), comme à l'inscription : dans le même
                   onglet, lire les conditions coûtait la saisie en cours, et
                   « ← Retour » ramenait sur la vitrine, pas sur ce formulaire. */}
+              {/* Plan de conformité du 23/10 (R60) : le libellé unique de la case des conditions clients, le même qu'au premier
+                  mot de passe (CASE_CONDITIONS_CLIENTS). « Mon abonnement » fait accepter, avant le paiement, une version
+                  précise (« J'ai lu et j'accepte la version du … des conditions générales ») : autre geste, autre libellé. */}
               <span>
-                J&apos;accepte les{" "}
-                <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
-                  conditions d&apos;utilisation
+                {CASE_CONDITIONS_CLIENTS.avant}
+                <Link href={CASE_CONDITIONS_CLIENTS.href} target="_blank" rel="noopener" className="underline underline-offset-4">
+                  {CASE_CONDITIONS_CLIENTS.lien}
                 </Link>
-                .
+                {CASE_CONDITIONS_CLIENTS.apres}
               </span>
             </label>
             <div className="flex flex-wrap items-center gap-3">

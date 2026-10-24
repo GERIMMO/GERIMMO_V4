@@ -39,6 +39,19 @@
 // agrégé. Aucun fichier, chemin ou signataire n'est exposé au navigateur ;
 // aucune écriture métier ni suppression n'est permise par cette action.
 //
+// Et les gestes du contrat d'abonnement (plan de conformité du 23/10/2026, lots 1B et 1C) : la rétractation
+// (actions/retractation.ts) APRÈS `ma_retractation` (responsable de l'espace) ou is_permanent_super_admin() pour une
+// rétractation reçue par courriel ; la résiliation et la commande confirmée (actions/abonnement.ts) APRÈS
+// `ma_souscription_stripe` ou les lectures réservées de la souscription. La clé n'appelle que des fonctions réservées à
+// `service_role` qui enregistrent une déclaration en ajout seul (`retractation_enregistrer`), consignent un geste d'une
+// liste fermée sans coordonnées (`abonnement_geste_consigner`) ou marquent un courrier parti ; elle lit le contexte du
+// courrier de CETTE organisation (`abonnement_courrier_contexte`). Aucune lecture d'une autre organisation.
+//
+// Et l'archivage de la version en vigueur des conditions (actions/conditions-versions.ts, 24/10/2026) : APRÈS
+// is_permanent_super_admin() sur la session courante, second facteur compris. La clé lit l'identité de l'éditeur
+// (déjà publique) et appelle `archiver_version_conditions`, qui n'insère qu'une version manquante et ne réécrit jamais
+// une version archivée (table en ajout seul). Le texte archivé vient de la page publiée, jamais du navigateur.
+//
 // Ce que le client peut faire est en outre borné côté base : les fonctions que
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées
 // au seul `service_role`, et chacune ne rend que ce dont la tâche a besoin.

@@ -41,6 +41,7 @@ import { envoyerRappelsGestes, type BilanRappelsGestes } from "@/lib/notificatio
 import { corpsRappel, sujetRappel } from "@/lib/rappel-email";
 import { envoyerRelancesReportsRdv } from "@/lib/relances-reports-rdv";
 import { envoyerRelancesInvitations, type BilanRelancesInvitations } from "@/lib/relances-invitations";
+import { envoyerAlertesConservation, type BilanAlertesConservation } from "@/lib/alertes-conservation";
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache } from "@/lib/tache";
 import { timingSafeEqual } from "node:crypto";
@@ -60,6 +61,18 @@ async function relancerInvitations(supabase: SupabaseClient, echeanceMs: number)
   }
 }
 
+// DEPUIS LE 24/10 (plan de conformité, lot 1E), LA MÊME RONDE ENVOIE AUSSI LES COURRIELS DES ALERTES DE CONSERVATION
+// (J-30 : pièces d'un bail ; J-15 : pièces d'une personne sans bail), posées la nuit par la purge
+// (lib/alertes-conservation.ts). Même contrôle d'arrêt ; un incident ne prive pas le reste de la passe.
+async function alerterConservation(supabase: SupabaseClient, echeanceMs: number): Promise<BilanAlertesConservation> {
+  try {
+    return await envoyerAlertesConservation(supabase, { echeanceMs, avantEffet: () => verifierAvantEffet(supabase, "rappels") });
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    console.error("[cron rappels] alertes de conservation :", e instanceof Error ? e.name : "incident");
+    return { envoyees: 0, echecs: 1, incertaines: 0, sans_destinataire: 0, ignorees: 0, restantes: 0, lecture_impossible: true };
+  }
+}
 
 type Ligne = {
   intervention_id: string;
@@ -158,7 +171,8 @@ export async function traiterRappels(request: Request) {
     // Une passe sans rien à faire se consigne aussi : c'est le battement de
     // cœur que la ronde du matin attend à cette heure-là.
     const invitations = await relancerInvitations(supabase, echeanceMs);
-    const bilan = { rappeles: 0, echecs: 0, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations };
+    const alertes_conservation = await alerterConservation(supabase, echeanceMs);
+    const bilan = { rappeles: 0, echecs: 0, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations, alertes_conservation };
     await consignerTache(supabase, "rappels", bilan);
     return Response.json(bilan);
   }
@@ -232,7 +246,8 @@ export async function traiterRappels(request: Request) {
     console.error("[cron rappels] échecs:", [...new Set(echecs)].join(" · "));
   }
   const invitations = await relancerInvitations(supabase, echeanceMs);
-  const bilan = { rappeles, echecs: echecs.length, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations };
+  const alertes_conservation = await alerterConservation(supabase, echeanceMs);
+  const bilan = { rappeles, echecs: echecs.length, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations, alertes_conservation };
   await consignerTache(supabase, "rappels", bilan);
   return Response.json(bilan);
 }

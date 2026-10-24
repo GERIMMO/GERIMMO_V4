@@ -14,7 +14,8 @@ describe('Trésorerie réelle',()=>{
  it.each([['12,34',1234],['-12.30',-1230],['0',null],['1.234',null],['1e5',null],['abc',null],['99999999',null]])('montant %s', (v,n)=>expect(montantEnCentimes(String(v))).toBe(n));
 });
 const form=(values:Record<string,string>)=>{const f=new FormData();Object.entries(values).forEach(([k,v])=>f.set(k,v));return f;};
-const base={nom:'Prospect test',email:'essai@example.test',origine:'Contact',etape:'nouveau',prochaine_action:'Appeler',echeance:'2026-10-20',notes:''};
+// Depuis le 24/10 (plan de conformité, R45) : origine en liste fermée et qualité du prospect.
+const base={nom:'Prospect test',email:'essai@example.test',origine:'formulaire',qualite:'professionnel',etape:'nouveau',prochaine_action:'Appeler',echeance:'2026-10-20',notes:''};
 describe('Suivi commercial',()=>{
  it('exige une prochaine action pour les prospects ouverts',()=>expect(lireProspect(form({...base,prochaine_action:''})).erreur).toBeTruthy());
  it('exige une date réelle',()=>expect(lireProspect(form({...base,echeance:'2026-02-31'})).erreur).toBeTruthy());

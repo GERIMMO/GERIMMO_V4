@@ -67,6 +67,11 @@ const REDIRECT_SI_CONNECTE = ["/connexion", "/inscription", "/mot-de-passe-oubli
 // ajoutée plus tard sous /artisan/invitation… ne deviendrait pas publique sans qu'on le décide.
 const CHEMIN_INVITATION_ARTISAN = /^\/artisan\/invitation\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Le lien envoyé à la caution pour qu'elle confirme elle-même son mobile avant de signer un acte de cautionnement
+// (décision du dirigeant du 23/10/2026) : /signature/caution/<jeton de 43 caractères>. Ce chemin EXACT seulement, sur le
+// modèle de l'invitation d'un artisan : rien d'autre sous /signature n'est public sans qu'on le décide.
+const CHEMIN_CONFIRMATION_CAUTION = /^\/signature\/caution\/[A-Za-z0-9_-]{43}$/;
+
 // LES PREMIERS SEGMENTS QUI EXISTENT (recette de production du 27/09). Sans
 // session, toute adresse privée mène à la connexion — y compris une adresse
 // qui n'existe pas : le visiteur se connectait pour atterrir… sur une 404.
@@ -82,7 +87,7 @@ const SEGMENTS_CONNUS = new Set([
   // vers /agence/<id> (fin de proxy()). Sans session, il mène à la connexion comme toute adresse privée.
   "espace",
   "inscription", "invitations", "journal", "locataire", "mentions-legales", "mot-de-passe-oublie",
-  "nouveau-mot-de-passe", "outils", "polices", "quittance", "relais", "securite", "tarifs", "veille",
+  "nouveau-mot-de-passe", "outils", "polices", "quittance", "relais", "securite", "signature", "tarifs", "veille",
   // public
   "illustrations", "logo", "marketing",
 ]);
@@ -193,7 +198,10 @@ export async function proxy(request: NextRequest) {
   // La racine est le site vitrine : publique pour le visiteur, raccourci vers
   // les espaces pour le connecté.
   const isPublic =
-    pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p)) || CHEMIN_INVITATION_ARTISAN.test(pathname);
+    pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p)) || CHEMIN_INVITATION_ARTISAN.test(pathname) || CHEMIN_CONFIRMATION_CAUTION.test(pathname);
+  // Relecture du 24/10 : le formulaire de la caution (action serveur, POST) n'utilise aucune session Gerimmo. Une session
+  // expirée ou illisible du même navigateur ne doit ni l'interrompre, ni promener son jeton dans `?suite=`.
+  const sansSessionRequise = CHEMIN_CONFIRMATION_CAUTION.test(pathname);
 
   if (!user) {
     if (isPublic) return response;
@@ -228,7 +236,7 @@ export async function proxy(request: NextRequest) {
   const now = Date.now();
   const { data: sessions, error: erreurSession } = await supabase.rpc("ma_session_active");
   if (erreurSession || erreurDroitsSession) {
-    if (isPublic && ["GET", "HEAD"].includes(request.method)) return response;
+    if (isPublic && (["GET", "HEAD"].includes(request.method) || sansSessionRequise)) return response;
     const indisponible = new NextResponse("La vérification de votre session est momentanément indisponible. Réessayez dans un instant.", {
       status: 503, headers: { "Cache-Control": "no-store", "Content-Type": "text/plain; charset=utf-8", "Retry-After": "30" },
     });
@@ -250,7 +258,7 @@ export async function proxy(request: NextRequest) {
     const { error: erreurDeconnexion } = await supabase.auth.signOut({ scope: "local" });
     // Une ancienne session ne doit pas interdire la consultation du site vitrine.
     // Les mutations et les pages privées gardent la redirection de sécurité.
-    if (!erreurDeconnexion && isPublic && ["GET", "HEAD"].includes(request.method)) {
+    if (!erreurDeconnexion && isPublic && (["GET", "HEAD"].includes(request.method) || sansSessionRequise)) {
       response.cookies.delete(ACTIVITY_COOKIE);
       return response;
     }
@@ -261,7 +269,7 @@ export async function proxy(request: NextRequest) {
     // destination : on s'y ferait renvoyer vers /espaces de toute façon.
     const url = request.nextUrl.clone();
     const demandee = pathname + request.nextUrl.search;
-    const aRetenir = pathname !== "/" && !REDIRECT_SI_CONNECTE.some((p) => pathname.startsWith(p));
+    const aRetenir = pathname !== "/" && !REDIRECT_SI_CONNECTE.some((p) => pathname.startsWith(p)) && !sansSessionRequise;
     url.pathname = "/connexion";
     url.search = aRetenir
       ? `?raison=session-expiree&suite=${encodeURIComponent(demandee)}`

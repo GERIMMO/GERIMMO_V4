@@ -108,6 +108,78 @@ describe("la mission « rappels » envoie les relances d'invitation", () => {
   });
 });
 
+// Relecture du 24/10 (domaine conservation) : l'étape des alertes de conservation de la mission n'était exercée par
+// aucun test — ni son bilan consigné, ni la propagation de l'arrêt d'urgence depuis elle.
+describe("la mission « rappels » envoie aussi les courriels des alertes de conservation", () => {
+  const ALERTE = {
+    alerte_id: "44444444-4444-4444-8444-444444444444", organization_id: "11111111-1111-4111-8111-111111111111",
+    organisation: "Espace fictif", proprietaire_direct: true, type: "conservation_echeance",
+    titre: "Les pièces suivantes du bail Lot A seront supprimées le 23/11/2026, au terme de leur durée de conservation (page confidentialité) : Bail. Téléchargez celles que vous devez conserver. Si un litige est en cours, signalez-le depuis la fiche du bail pour suspendre la suppression.",
+    details: { bail_id: "22222222-2222-4222-8222-222222222222", echeance: "2026-11-23" }, destinataires: ["gerant@example.invalid"],
+  };
+  let arretApresFile = false;
+  let consignes: Record<string, unknown>[] = [];
+  let notes: string[] = [];
+  const envoyerEmail = vi.fn(async () => ({ id: "email_test" }));
+  beforeEach(() => {
+    vi.resetModules();
+    vi.stubEnv("CRON_SECRET", "secret_test");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://gerimmo.example");
+    arretApresFile = false;
+    consignes = [];
+    notes = [];
+    envoyerEmail.mockClear();
+    vi.doMock("@/lib/relances-invitations", () => ({
+      envoyerRelancesInvitations: async () => ({ envoyees: 0, echecs: 0, incertaines: 0, limitees: 0, ignorees: 0, non_notees: 0 }),
+    }));
+    vi.doMock("@/lib/notifications", async (original) => ({
+      ...(await original<typeof import("@/lib/notifications")>()),
+      envoyerRappelsGestes: async () => ({ envoyes: 0, echecs: 0, sans_adresse: 0, non_consignes: 0, par_type: {} }),
+    }));
+    vi.doMock("@/lib/email", () => ({ envoyerEmail }));
+    let fileLue = false;
+    const rpc = vi.fn(async (nom: string, args?: Record<string, unknown>) => {
+      if (nom === "verifier_arret_supervision") return { data: !(arretApresFile && fileLue), error: null };
+      if (nom === "rendez_vous_a_rappeler") return { data: [], error: null };
+      if (nom === "alertes_conservation_a_envoyer") { fileLue = true; return { data: [ALERTE], error: null }; }
+      if (nom === "noter_courriel_alerte_conservation") { notes.push(String(args?.p_etat)); return { data: true, error: null }; }
+      if (nom === "log_tech") { consignes.push(args ?? {}); return { data: null, error: null }; }
+      return { data: null, error: null };
+    });
+    m.service.mockReturnValue({ rpc });
+    vi.doMock("@/lib/supabase/service", () => ({ clientDeService: m.service }));
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.doUnmock("@/lib/relances-invitations");
+    vi.doUnmock("@/lib/notifications");
+    vi.doUnmock("@/lib/supabase/service");
+    vi.doUnmock("@/lib/email");
+  });
+  const requete = () => new Request("http://localhost/api/cron/equipes?mission=rappels", { headers: { authorization: "Bearer secret_test" } });
+
+  it("réserve, envoie, note l'alerte ; son bilan figure dans celui des rappels, consigné au journal technique", async () => {
+    const { traiterRappels } = await import("@/lib/missions-planifiees/rappels");
+    const r = await traiterRappels(requete());
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ alertes_conservation: { envoyees: 1, echecs: 0 } });
+    expect(envoyerEmail).toHaveBeenCalledTimes(1);
+    expect(notes).toEqual(["reserve", "envoye"]);
+    expect(consignes).toHaveLength(1);
+    expect(consignes[0]).toMatchObject({ evenement: "tache_rappels", details: { alertes_conservation: { envoyees: 1 } } });
+    expect(JSON.stringify(consignes[0])).not.toContain("@");
+  });
+
+  it("un arrêt d'urgence levé pendant les alertes de conservation interrompt la mission : rien ne part, aucun succès consigné", async () => {
+    arretApresFile = true;
+    const { ArretSupervision: Arret } = await import("@/lib/controle-effets");
+    const { traiterRappels } = await import("@/lib/missions-planifiees/rappels");
+    await expect(traiterRappels(requete())).rejects.toBeInstanceOf(Arret);
+    expect(envoyerEmail).not.toHaveBeenCalled();
+    expect(consignes).toEqual([]);
+  });
+});
+
 describe("l'e-mail de relance : le gabarit et le lien de l'invitation", () => {
   beforeEach(() => {
     vi.resetModules();

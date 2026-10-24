@@ -304,5 +304,5 @@ Borne posée par [[Retours utilisateurs]] (RM-20.3) et
 > [!warning] Changement du 23/10/2026 — réseau d'artisans
 > - Décision du dirigeant : les communes et les métiers du réseau sont choisis par l'artisan (sa zone
 >   d'intervention et ses métiers), même pendant la bêta ; l'ouverture commune × métier par le super
->   administrateur est supplantée. Migration `20261023180000`, non appliquée en production au 23/10 :
+>   administrateur est supplantée. Migration `20261023180000`, appliquée en production le 23/10 :
 >   voir [[Ouverture du réseau d'artisans]].

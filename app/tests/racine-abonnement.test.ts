@@ -184,7 +184,9 @@ describe("resilierAbonnement : retour sur « Mon abonnement » sous la racine du
         f.set("resilier", choix);
         const url = await redirection(resilierAbonnement("org-1", {}, f));
         expect(m.resilier).toHaveBeenCalledOnce();
-        expect(url).toBe(`${p.attendu}/abonnement?resiliation=${issue}`);
+        // Plan du 23/10 (R04) : une résiliation dont l'accusé n'a pas pu partir (ici, aucun contexte de courrier) le dit
+        // par « &accuse=echec » ; la racine du profil reste la même.
+        expect(url).toMatch(new RegExp(`^${p.attendu}/abonnement\\?resiliation=${issue}(&accuse=echec)?$`));
         expect(url).not.toContain(p.interdit);
       });
     }

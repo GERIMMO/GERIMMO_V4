@@ -1,0 +1,14 @@
+.liste { display:grid; gap:12px; }
+.ligne { padding:14px; border:1px solid var(--trait); border-radius:10px; background:var(--surface); min-width:0; }
+.identite { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:14px; }
+.identite strong { flex:1; min-width:130px; font-weight:600; }
+.identite :global(.badge-statut) { border-radius:6px; padding:4px 8px; font-size:12px; text-transform:none; letter-spacing:0; background:var(--filet-leger); }
+.ligne[data-etat="valide"] :global(.badge-statut) { background:#eaf4ef; color:#285943; }
+.ligne:is([data-etat="a_ajouter"],[data-etat="a_joindre"],[data-etat="expire"],[data-etat="expire_bientot"]) :global(.badge-statut) { background:#fff4e3; color:#78501d; }
+.date { font-size:12px; line-height:1.55; color:var(--texte-secondaire); margin:7px 0 10px; }
+.actions { display:flex; flex-wrap:wrap; gap:8px; }
+.details { margin-top:8px; font-size:12px; color:var(--texte-secondaire); }
+.details summary { cursor:pointer; min-height:44px; display:list-item; align-content:center; }
+.details p { margin-bottom:10px; overflow-wrap:anywhere; }
+.depot { margin-top:12px; border-top:1px solid var(--trait); padding-top:12px; }
+.depot[hidden], .details [hidden] { display:none !important; }

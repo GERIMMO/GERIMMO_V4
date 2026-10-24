@@ -1,3 +1,4 @@
+import { OngletsDossier } from "@/components/onglets-dossier";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight, Banknote, Building2, FileCheck2, FilePenLine, Mail, Phone, Star } from "lucide-react";
@@ -33,7 +34,7 @@ export default async function PageEntreprise() {
   ];
 
   return <div className={styles.page}>
-    <EnteteSousPage rubrique="entreprise" titre="Mon entreprise" mention="Votre fiche professionnelle et les informations de vos devis."/>
+    <EnteteSousPage rubrique="entreprise" titre="Mon entreprise" mention=""/>
     <section className={styles.identite} aria-label="Votre entreprise">
       <div className={styles.logo}>{profilDocuments?.logo_data ? <Image src={profilDocuments.logo_data} alt={`Logo de ${fiche.raison_sociale}`} width={72} height={72} unoptimized/> : <Building2 size={32} aria-hidden/>}</div>
       <div className={styles.nomEntreprise}><p className={styles.surtitre}>Votre fiche professionnelle</p><h2>{fiche.raison_sociale}</h2><p>{(fiche.metiers ?? []).map(m => METIERS[m] ?? m).join(" · ") || "Métier à renseigner"}</p><div className={styles.statuts}>
@@ -44,10 +45,10 @@ export default async function PageEntreprise() {
     </section>
     <nav aria-label="Services de mon entreprise" className={styles.raccourcis}>{raccourcis.map(r => <Link key={r.href} href={r.href} className={styles.raccourci} data-ton={r.ton} data-attention={r.tendu}><span className={styles.icone}><r.icone size={21} aria-hidden/></span><span><strong>{r.titre}</strong><small>{r.detail}</small></span><ArrowUpRight size={17} aria-hidden/></Link>)}</nav>
     {aucunePiece && <p className={styles.alerteAttestation}><FileCheck2 size={17} aria-hidden/><span>Déposez votre décennale pour être proposé sur les {"travaux qui l'exigent"}. <Link href="/artisan/attestations">Ajouter une attestation <ArrowUpRight size={13} aria-hidden/></Link></span></p>}
-    <div className={styles.grille}>
-      <div className={styles.colonne}>
+    <OngletsDossier libelle="Rubriques de mon entreprise" rubriques={[
+      { id: "entreprise-coordonnees", titre: "Coordonnées", contenu: <>
         <Carte className={styles.bloc}>
-          <div className={styles.titreBloc}><span className={styles.icone}><Building2 size={19} aria-hidden/></span><div><h2>Identité et coordonnées</h2><p>Les repères de votre entreprise.</p></div></div>
+          <div className={styles.titreBloc}><span className={styles.icone}><Building2 size={19} aria-hidden/></span><div><h2>Identité et coordonnées</h2></div></div>
           <dl className={styles.coordonnees}>
             <div><dt>SIRET</dt><dd className={styles.siret}>{formaterSiret(fiche.siret)}</dd></div>
             <div><dt><Phone size={14} aria-hidden/>Téléphone</dt><dd>{formaterTelephone(fiche.telephone)}</dd></div>
@@ -56,13 +57,13 @@ export default async function PageEntreprise() {
           {fiche.statut_motif && <p className={styles.commentaire}><strong>{fiche.statut_plateforme === "valide" ? "Commentaire de Gerimmo" : "Motif communiqué par Gerimmo"}</strong>{fiche.statut_motif}</p>}
           <p className={styles.aide}>Une correction de raison sociale ou de SIRET ? <Link href="/assistance?ecran=%2Fartisan%2Fentreprise&action=lien&retour=%2Fartisan%2Fentreprise">Contactez Gerimmo</Link>.</p>
         </Carte>
+</> },
+      { id: "entreprise-reseau", titre: "Zone et métiers", contenu: <>
         <PresenceReseau fiche={fiche} exclu={exclu}/>
-        <ReglageVisibilite visibilite={fiche.visibilite} siretVerifie={fiche.siret_etat === "verifie"}/>
-      </div>
-      <div className={styles.colonne}>
-        <FormulaireMetiersZones metiers={(fiche.metiers ?? []).filter(m => m in METIERS)} codesPostaux={fiche.codes_postaux ?? []} complement={<div className={styles.noteZone}><p>C’est vous qui choisissez où vous intervenez et pour quels métiers : le réseau Gerimmo vous propose aux propriétaires dont le bien est dans cette zone, dès que votre inscription est validée et que votre profil est public. Les clients qui vous ont ajouté à leur carnet utilisent la même zone.</p><Link href="/artisan/regles">Les règles à connaître pour mon activité <ArrowUpRight size={14} aria-hidden/></Link></div>}/>
-        {documents && !documents.error ? <DocumentsEntreprise profil={documents.data ?? { adresse: "", mentions: "", logo_data: null }}/>: <Erreur>Les informations de vos documents ne sont pas disponibles pour le moment. Réessayez avant de valider un devis.</Erreur>}
-      </div>
-    </div>
+        <ReglageVisibilite visibilite={fiche.visibilite} siretVerifie={fiche.siret_etat === "verifie"}/>        <FormulaireMetiersZones metiers={(fiche.metiers ?? []).filter(m => m in METIERS)} codesPostaux={fiche.codes_postaux ?? []} complement={<div className={styles.noteZone}><p>Votre zone et vos métiers déterminent les demandes reçues. Le réseau vous propose dès que votre inscription est validée et votre profil public.</p><Link href="/artisan/regles">Les règles à connaître pour mon activité <ArrowUpRight size={14} aria-hidden/></Link></div>}/>
+</> },
+      { id: "entreprise-devis", titre: "Mes devis", contenu: <>
+        {documents && !documents.error ? <DocumentsEntreprise profil={documents.data ?? { adresse: "", mentions: "", logo_data: null }}/>: <Erreur>Les informations de vos documents ne sont pas disponibles pour le moment. Réessayez avant de valider un devis.</Erreur>}</> },
+    ]} />
   </div>;
 }

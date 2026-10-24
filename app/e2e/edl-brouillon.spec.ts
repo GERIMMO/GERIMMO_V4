@@ -28,6 +28,7 @@ function cheminGrille(): string {
 
 async function ouvrirGrille(page: import("@playwright/test").Page) {
   await page.goto(cheminGrille());
+  await page.getByRole("button", { name: /Étape 02 : Les pièces/ }).click();
   await expect(page.getByRole("status")).toBeVisible({ timeout: 20_000 });
   // La synthèse d'alertes peut recouvrir la grille à la connexion : on la ferme
   const fermer = page.getByRole("button", { name: "Fermer" });
@@ -48,6 +49,7 @@ test("saisie → brouillon local → rechargement → la saisie est toujours là
   await page.waitForTimeout(700);
 
   await page.reload();
+  await page.getByRole("button", { name: /Étape 02 : Les pièces/ }).click();
   await expect(page.getByRole("status")).toBeVisible();
   await expect(page.locator('select[name^="etat_"]').first()).toHaveValue("bon");
   await expect(page.locator('input[name^="commentaire_"]').first()).toHaveValue(
@@ -83,6 +85,7 @@ test("hors ligne : l'indicateur l'annonce ; au retour du réseau la grille se sy
 
   // La base a bien la valeur : un rechargement la montre sans brouillon
   await page.reload();
+  await page.getByRole("button", { name: /Étape 02 : Les pièces/ }).click();
   await expect(page.locator('select[name^="etat_"]').nth(1)).toHaveValue("usage");
   await expect(page.getByRole("status")).toContainText(/Synchronisé/);
 });

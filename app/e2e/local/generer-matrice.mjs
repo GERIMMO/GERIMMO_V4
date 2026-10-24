@@ -58,6 +58,12 @@ if (lot) ids.BIEN = lot.bien_id;
 const edl = ids.BAIL ? await un("select id from etats_des_lieux where bail_id = $1 limit 1", [ids.BAIL]) : null;
 ids.EDL = edl?.id;
 
+// Chaque espace propriétaire doit montrer ses propres dossiers, jamais ceux de l'agence.
+const lotProprietaire = await un("select id, bien_id from lots where organization_id=$1 order by created_at limit 1", [ids.ORG_PD]);
+ids.LOT_PD = lotProprietaire?.id;
+ids.BIEN_PD = lotProprietaire?.bien_id;
+ids.BAIL_PD = (await un("select id from baux where organization_id=$1 order by created_at desc limit 1", [ids.ORG_PD]))?.id;
+
 // Les dossiers privés de la matrice appartiennent au même compte artisan du seed E2E.
 // Les missions et sollicitations ci-dessus sont également bornées à ce compte.
 ids.CLIENT_EXTERNE = (await un("select id from artisan_clients where artisan_id=$1 order by created_at limit 1",[artisanPrive?.id]))?.id;
@@ -83,7 +89,7 @@ for (const route of inventaire) {
   // /agence/<id> redirige à vie vers /espace/<id> pour lui, un modèle encore écrit « /agence/ORG » est donc ramené à /espace).
   if (route.persona === "proprietaire") chemin = chemin.replace(/^\/(?:agence|espace)\/ORG(?![A-Z_])/, `/espace/${ids.ORG_PD}`);
   let manquant = null;
-  chemin = chemin.replace(/\b(PROSPECT|INVITATION_ARTISAN|INVITATION|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT|CLIENT_EXTERNE|CHANTIER_EXTERNE|FACTURE_EXTERNE|DOCUMENT|VERSION|JETON_CAUTION)\b/g, (m) => {
+  chemin = chemin.replace(/\b(LOT_PD|BIEN_PD|BAIL_PD|PROSPECT|INVITATION_ARTISAN|INVITATION|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT|CLIENT_EXTERNE|CHANTIER_EXTERNE|FACTURE_EXTERNE|DOCUMENT|VERSION|JETON_CAUTION)\b/g, (m) => {
     if (!ids[m]) manquant = m;
     return ids[m] ?? m;
   });

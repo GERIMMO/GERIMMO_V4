@@ -591,3 +591,12 @@ body.gerimmo-prestige [role="dialog"] > div:last-child :is(a, button) { min-heig
 .gerimmo-prestige .assistant-bail .saisie-repere > span,
 .gerimmo-prestige .assistant-bail #completer-logement > header { display: none; }
 .gerimmo-prestige .assistant-bail .saisie-repere h2 { font-size: 17px; }
+
+/* Dossiers privés : davantage de contenu utile dans le premier écran mobile. */
+@media screen and (max-width:640px) {
+  .gerimmo-prestige :is(.coquille-corps, .loc-corps) h1 { font-size:25px; line-height:1.2; overflow-wrap:anywhere; }
+  .gerimmo-prestige :is(.coquille-corps, .loc-corps) h2 { font-family:var(--font-interface),sans-serif; font-size:18px; line-height:1.35; font-weight:600; letter-spacing:0; }
+  .gerimmo-prestige :is(.coquille-corps, .loc-corps) .entete-page:not(.accueil-bandeau) { padding-bottom:12px; margin-bottom:14px; gap:12px; }
+  .gerimmo-prestige :is(.coquille-corps, .loc-corps) :is(.eyebrow,.dossier-surtitre) { letter-spacing:0; text-transform:none; font-size:12px; }
+  .gerimmo-prestige :is(.loc-carte,.artisan-carte,.dossier-panneau) { padding:16px; }
+}

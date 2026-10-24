@@ -3,11 +3,10 @@
 import { useState } from "react";
 import {
   TYPES_DIAGNOSTIC,
-  COULEURS_STATUT_DIAGNOSTIC,
-  LIBELLES_STATUT_DIAGNOSTIC,
-  statutDiagnostic,
   type NiveauDiagnostic,
 } from "@/lib/parc";
+import { presentationDiagnostic, diagnosticConditionnel } from "@/lib/presentation-diagnostics";
+import styles from "./lignes-diagnostics.module.css";
 import { formaterDate } from "@/lib/ged";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { BadgeStatut } from "@/components/badge-statut";
@@ -48,6 +47,11 @@ export function LignesDiagnostics({
   const base = useBaseEspace(orgId);
   const [classeOuverte, setClasseOuverte] = useState(false);
   const [ouvert, setOuvert] = useState<string | null>(null);
+  const [commences, setCommences] = useState<Set<string>>(() => new Set());
+  function basculerDepot(type: string) {
+    setCommences(types => new Set([...types, type]));
+    setOuvert(o => o === type ? null : type);
+  }
 
   // Les attendus d'abord, puis les diagnostics déposés hors obligation
   const deposesParType = new Map(diagnostics.map((d) => [d.type, d]));
@@ -64,92 +68,38 @@ export function LignesDiagnostics({
     );
   }
 
-  return (
-    <ul className="divide-y divide-border">
-      {lignes.map((type) => {
-        const d = deposesParType.get(type);
-        const statut = d ? statutDiagnostic(d.date_expiration) : null;
-        const manquant = !d;
-        const conditionnel = ["gaz", "electricite", "termites"].includes(type);
-        const obligatoire = attendus.includes(type) && !conditionnel;
-        const enAlerte = (manquant && obligatoire) || statut === "expire";
-
-        return (
-          <li key={type} className="py-2.5">
-            {conditionnel && !d && <p className="text-xs text-muted-foreground">{type === "gaz" ? "À prévoir si le logement possède une installation de gaz de plus de 15 ans. Un chauffage électrique ne suffit pas à exclure une installation de gaz." : type === "electricite" ? "À prévoir pour une installation électrique de plus de 15 ans." : "Vérifiez les obligations locales avant de commander ce diagnostic."}</p>}
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              {/* min-w-[9rem] : sur écran étroit, les badges passent à la ligne
-                  au lieu de compresser le libellé (seule identification) */}
-              <span className="min-w-[9rem] flex-1 font-medium">
-                {TYPES_DIAGNOSTIC[type]?.libelle ?? type}
-                {!obligatoire && !conditionnel && (
-                  <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                    (hors obligation)
-                  </span>
-                )}
-              </span>
-
-              {manquant ? (
-                <BadgeStatut ton={obligatoire ? "retard" : "neutre"}>
-                  {conditionnel ? "Applicabilité à vérifier" : obligatoire ? "Manquant" : "Non déposé"}
-                </BadgeStatut>
-              ) : (
-                <>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {d.date_expiration
-                      ? `expire le ${formaterDate(d.date_expiration)}`
-                      : "validité illimitée"}
-                  </span>
-                  <span
-                    className={`badge-statut shrink-0 ${COULEURS_STATUT_DIAGNOSTIC[statut!]}`}
-                  >
-                    {LIBELLES_STATUT_DIAGNOSTIC[statut!]}
-                  </span>
-                </>
-              )}
-
-              {type === "dpe" && d && lotId && niveau === "lot" && <Button type="button" size="sm" variant="outline" onClick={() => setClasseOuverte(v => !v)}>{d.classe_dpe ? `Classe ${d.classe_dpe} · Modifier` : "Compléter la classe DPE"}</Button>}
-              {d?.document_id && (
-                <a
-                  href={`${base}/documents/${d.document_id}/fichier`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                >
-                  Voir
-                </a>
-              )}
-              <Button
-                type="button"
-                size="sm"
-                variant={enAlerte ? "default" : "outline"}
-                onClick={() => setOuvert((o) => (o === type ? null : type))}
-              >
-                {ouvert === type ? "Annuler" : manquant ? "Déposer" : "Remplacer"}
-              </Button>
-            </div>
-
-            {d?.diagnostiqueur && (
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Réalisé le {formaterDate(d.date_realisation)} — {d.diagnostiqueur}
-              </p>
-            )}
-
-            {type === "dpe" && d && lotId && niveau === "lot" && (!d.classe_dpe || classeOuverte) && <FormulaireClasseDpeLot orgId={orgId} lotId={lotId} diagnosticId={d.id} classe={d.classe_dpe ?? null} />}
-            {ouvert === type && (
-              <div className="mt-2 border border-border p-3">
-                <FormulaireDiagnostic
-                  orgId={orgId}
-                  bienId={bienId}
-                  lotId={lotId}
-                  niveau={niveau}
-                  typeInitial={type}
-                />
-              </div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
+  return <ul className={styles.liste}>
+    {lignes.map(type => {
+      const d = deposesParType.get(type);
+      const presentation = presentationDiagnostic(type, d, attendus.includes(type));
+      const nom = TYPES_DIAGNOSTIC[type]?.libelle ?? type;
+      const renouveler = ["expire", "expire_bientot"].includes(presentation.etat);
+      const aide = type === "gaz" ? "À prévoir si le logement possède une installation de gaz de plus de 15 ans. Un chauffage électrique ne suffit pas à exclure le gaz." : type === "electricite" ? "À prévoir pour une installation électrique de plus de 15 ans." : "Vérifiez les obligations locales avant de commander ce diagnostic.";
+      return <li key={type} className={styles.ligne} data-etat={presentation.etat}>
+        <div className={styles.identite}><strong>{nom}</strong><BadgeStatut ton={presentation.ton}>{presentation.libelle}</BadgeStatut></div>
+        <p className={styles.date}>{d?.date_expiration
+          ? `${presentation.etat === "expire" ? "Échu" : "Échéance"} le ${formaterDate(d.date_expiration)}`
+          : d ? "Aucune échéance renseignée" : diagnosticConditionnel(type) ? aide : "Ajoutez le fichier pour le retrouver ici."}
+          {type === "dpe" && d?.classe_dpe && <> · Classe {d.classe_dpe}</>}
+        </p>
+        <div className={styles.actions}>
+          {d?.document_id && <a href={`${base}/documents/${d.document_id}/fichier`} target="_blank" rel="noreferrer"
+            aria-label={`Voir le document : ${nom}`} className={buttonVariants({ variant: "outline", size: "sm" })}>Voir le document</a>}
+          {(!d?.document_id || renouveler || ouvert === type) && <Button type="button" size="sm" variant="outline" aria-expanded={ouvert === type}
+            onClick={() => basculerDepot(type)}>{ouvert === type ? "Fermer le dépôt" : renouveler ? "Renouveler" : "Ajouter le fichier"}</Button>}
+        </div>
+        {d && <details className={styles.details}>
+          <summary>Détails et modifications</summary>
+          <p>Réalisé le {formaterDate(d.date_realisation)}{d.diagnostiqueur ? ` · ${d.diagnostiqueur}` : ""}</p>
+          <div className={styles.actions}>
+            {d.document_id && !renouveler && <Button type="button" size="sm" variant="outline" onClick={() => basculerDepot(type)}>{ouvert === type ? "Fermer le dépôt" : "Remplacer le fichier"}</Button>}
+            {type === "dpe" && lotId && niveau === "lot" && <Button type="button" size="sm" variant="outline" aria-expanded={classeOuverte} onClick={() => setClasseOuverte(v => !v)}>{d.classe_dpe ? "Modifier la classe DPE" : "Compléter la classe DPE"}</Button>}
+          </div>
+          {type === "dpe" && lotId && niveau === "lot" && <div hidden={!classeOuverte}><FormulaireClasseDpeLot orgId={orgId} lotId={lotId} diagnosticId={d.id} classe={d.classe_dpe ?? null} /></div>}
+        </details>}
+        {/* Ne pas démonter un dépôt commencé en refermant sa rubrique. */}
+        {commences.has(type) && <div hidden={ouvert !== type} className={styles.depot}><FormulaireDiagnostic orgId={orgId} bienId={bienId} lotId={lotId} niveau={niveau} typeInitial={type} /></div>}
+      </li>;
+    })}
+  </ul>;
 }

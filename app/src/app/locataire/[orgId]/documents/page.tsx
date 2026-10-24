@@ -1,3 +1,5 @@
+import { OngletsDossier } from "@/components/onglets-dossier";
+import { RubriqueDossier } from "@/components/rubrique-dossier";
 import { deElide } from "@/lib/elision";
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
@@ -43,7 +45,7 @@ type LigneEcheancier = {
   quittance_id: string | null;
 };
 
-function statutAssurance(expire: string | null): { texte: string; classe: string } {
+function statutAssurance(expire: string | null, verifiee: boolean): { texte: string; classe: string } {
   if (!expire) return { texte: "sans date d'expiration", classe: "text-muted-foreground" };
   // Minuit LOCAL des deux côtés (revue 23/08 : la date seule se parse en UTC,
   // le lendemain de l'expiration affichait encore « expire dans 0 j »), mais
@@ -62,7 +64,7 @@ function statutAssurance(expire: string | null): { texte: string; classe: string
       texte: `expire dans ${jours} j (${formaterDate(expire)})`,
       classe: "text-warning-soft-foreground",
     };
-  return { texte: `valide jusqu'au ${formaterDate(expire)}`, classe: "text-success-soft-foreground" };
+  return { texte: `échéance le ${formaterDate(expire)}`, classe: verifiee ? "text-success-soft-foreground" : "text-muted-foreground" };
 }
 
 // « Mes documents » (maquette v10) : ce qui est conservé pour moi, et mon
@@ -91,7 +93,7 @@ export default async function PageDocumentsLocataire(
     demandee_le: string;
   }[]);
   const demandes = (demandesBrutes ?? []) as DemandePiece[];
-  const pieces = (piecesBrutes ?? []) as Piece[];
+  const pieces = [...new Map(((piecesBrutes ?? []) as Piece[]).map(p => [p.document_id, p])).values()];
   const quittances = ((echeancier ?? []) as LigneEcheancier[]).filter((l) => l.quittance_id);
   const disponibilites = await disponibilitesQuittances(supabase, quittances.map(q => q.quittance_id));
   const total = pieces.length + quittances.filter(q => disponibilites[q.quittance_id!] === "disponible").length;
@@ -103,7 +105,7 @@ export default async function PageDocumentsLocataire(
     .filter((p) => p.type === "attestation_assurance")
     .sort((a, b) => b.depose_le.localeCompare(a.depose_le));
   const assurance = attestations[0];
-  const statut = assurance ? statutAssurance(assurance.expire_le) : null;
+  const statut = assurance ? statutAssurance(assurance.expire_le, Boolean(assurance.verifie_le)) : null;
   const deuxAttestations =
     attestations.some((p) => p.verifie_le && !estExpiree(p.expire_le)) &&
     attestations.some((p) => !p.verifie_le);
@@ -144,6 +146,10 @@ export default async function PageDocumentsLocataire(
         {enPreparation} justificatif{enPreparation > 1 ? "s" : ""} de loyer en préparation ou à vérifier. Les boutons de téléchargement apparaîtront dès que les informations nécessaires seront complètes. <Link href={`/locataire/${orgId}/contact`} className="underline">Contacter mon gestionnaire</Link>
       </p>}
 
+      <OngletsDossier libelle="Rubriques de mes documents"
+        initiale={aSigner.length || demandes.length || (adhesionActive && (!assurance || estExpiree(assurance.expire_le))) ? "documents-a-transmettre" : "documents-disponibles"}
+        rubriques={[
+          { id: "documents-a-transmettre", titre: "À transmettre", contenu: <>
       {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
       {aSigner.length > 0 && adhesionActive && (
         <div className="loc-carte border-l-4 border-l-[var(--or)]">
@@ -218,9 +224,7 @@ export default async function PageDocumentsLocataire(
         ) : (
           adhesionActive ? (
             <p className="text-sm text-destructive-soft-foreground">
-              Aucune attestation déposée. L&apos;assurance habitation est obligatoire
-              pendant toute la durée du bail — déposez la vôtre ci-dessous, une
-              photo lisible suffit.
+              Ajoutez votre assurance habitation : un PDF ou une photo lisible suffit.
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -229,15 +233,17 @@ export default async function PageDocumentsLocataire(
           )
         )}
         {adhesionActive && (
-          <div className="mt-3.5">
+          <RubriqueDossier id="depot-assurance" titre={assurance ? "Déposer une nouvelle attestation" : "Ajouter mon attestation"} resume="PDF ou photo lisible" ouverte={!assurance}>
             <FormulaireAttestation orgId={orgId} renouvellement={Boolean(assurance)} />
-          </div>
+          </RubriqueDossier>
         )}
       </div>
+</> },
+          { id: "documents-disponibles", titre: "Mes fichiers", contenu: <>
 
       <div className="loc-carte">
         <div className="entete-carte">
-          <h2 className="titre-carte text-base font-medium">Conservés pour vous</h2>
+          <h2 className="titre-carte text-base font-medium">Documents disponibles</h2>
         </div>
         {aEchoue(ePieces, eEcheancier) ? (
           <LectureImpossible quoi="les pièces conservées pour vous" />
@@ -360,7 +366,9 @@ export default async function PageDocumentsLocataire(
         <p className="mt-3 text-[13px] text-muted-foreground">
           {CONSERVATION_DOCUMENTS_LOCATAIRE}
         </p>
-      </div>
+      </div></> },
+        ]} />
+
     </div>
   );
 }

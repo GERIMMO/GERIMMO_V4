@@ -57,11 +57,12 @@ test("fiche lot : la location passe avant les caractéristiques", async ({ page 
   ).toBeVisible();
 
   await expect(page.getByRole("navigation", { name: "Rubriques du logement" })).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Le logement", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Résumé", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("region", { name: "Le logement", exact: true })).toBeHidden();
 
   // Le locataire et le loyer se lisent sans rien déplier.
   await expect(page.locator("#location-apercu").getByText("Locataire E2E", { exact: true })).toBeVisible();
-  expect(await hauteur(page, "#location-apercu")).toBeLessThan(await hauteur(page, "#caracteristiques"));
+  await expect(page.getByRole("heading", { name: "Caractéristiques du logement" })).toBeHidden();
   await expect(page.getByRole("link", { name: /Ouvrir le bail/ })).toBeVisible();
 });
 
@@ -80,6 +81,7 @@ test("fiche lot : l'état n'est dit qu'une fois de trop, pas quatre", async ({ p
 
 test("fiche lot : les caractéristiques se consultent avant de modifier", async ({ page }) => {
   await page.goto(CHEMIN_LOT);
+  await page.getByRole("tab", { name: "Logement", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Caractéristiques du logement" })).toBeVisible();
   await expect(page.locator("#caracteristiques").getByRole("button", { name: "Modifier", exact: true })).toHaveAttribute("aria-expanded", "false");
   // Les champs vides portent un libellé explicite plutôt qu’un tiret.
@@ -91,6 +93,7 @@ test("fiche lot : une section se déplie en touchant sa rangée, pas un bouton l
   page,
 }) => {
   await page.goto(CHEMIN_LOT);
+  await page.getByRole("tab", { name: "Documents", exact: true }).click();
   const rangee = page.getByRole("button", { name: /Diagnostics du lot/ });
   await expect(rangee).toHaveAttribute("aria-expanded", "true");
 
@@ -116,26 +119,20 @@ test("fiche bien : les lots passent avant l'administratif", async ({ page }) => 
   expect(lots, "les lots doivent précéder la fiche administrative du bien").toBeLessThan(leBien);
 });
 
-test("fiche bien : ce qui manque est dit en haut, avec le chemin pour le régler", async ({
-  page,
-}) => {
+test("fiche bien : une obligation à confirmer n'est pas annoncée comme manquante", async ({ page }) => {
   await page.goto(CHEMIN_BIEN);
-  const bandeau = page.getByRole("region", { name: "Ce qui attend un geste" });
-  await expect(bandeau).toBeVisible();
-  await expect(bandeau).toContainText("Termites");
-  // Le lien mène à la section concernée, et l'ouvre.
-  await bandeau.getByRole("link", { name: "Régler" }).first().click();
-  await expect(page.getByRole("button", { name: /Diagnostics du bien/ })).toHaveAttribute(
-    "aria-expanded",
-    "true"
-  );
+  await expect(page.locator("main")).not.toContainText("à déposer : Termites");
+  const rubrique = page.getByRole("button", { name: /Diagnostics du bien/ });
+  await rubrique.click();
+  await expect(rubrique).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByText("Obligation à confirmer", { exact:true })).toBeVisible();
 });
 
 test("fiche bien : l'annonce aux locataires ne déploie plus son formulaire", async ({ page }) => {
   await page.goto(CHEMIN_BIEN);
   const rangee = page.getByRole("button", { name: /Annonces aux locataires/ });
   await expect(rangee).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByLabel("Texte de l’annonce")).toHaveCount(0);
+  await expect(page.getByLabel("Texte de l’annonce")).toBeHidden();
 });
 
 test("les deux fiches tiennent dans 390 px", async ({ page }) => {

@@ -57,7 +57,7 @@ for (const persona of PERSONAS) {
         if (await fermerRappel.isVisible().catch(() => false)) {
           await fermerRappel.click();
         }
-        const mesure = await page.evaluate(() => {
+        const mesurer = () => page.evaluate(() => {
           const doc = document.documentElement;
           const larges: string[] = [];
           for (const el of Array.from(document.querySelectorAll("body *"))) {
@@ -85,6 +85,7 @@ for (const persona of PERSONAS) {
             });
           return {
             overflowPx: Math.max(0, doc.scrollWidth - window.innerWidth),
+            hauteurPx: doc.scrollHeight,
             photos,
             boutonsVisibles: commandes.length,
             boutonsSansNom: commandes.filter((el) =>
@@ -97,6 +98,7 @@ for (const persona of PERSONAS) {
             soft404: h1 === "404" || h1 === "Cette page est introuvable" || document.body.innerText.includes("could not be found"),
           };
         });
+        const mesure = await mesurer();
         await page.screenshot({ path: path.join(dossier, `${slug}.png`), fullPage: true });
         rapport.push({
           ...ecran,
@@ -107,6 +109,20 @@ for (const persona of PERSONAS) {
           erreursConsole: erreursConsole.slice(0, 5),
           erreursPage: erreursPage.slice(0, 5),
         });
+        // Une fiche à onglets ne se réduit pas à son résumé : contrôler chaque rubrique.
+        const onglets = page.locator('[data-onglets-dossier] > [role="tablist"] > [role="tab"]');
+        for (let index = 0; index < await onglets.count(); index++) {
+          const onglet = onglets.nth(index);
+          if (await onglet.getAttribute("aria-selected") === "true") continue;
+          const titre = await onglet.innerText();
+          await onglet.click();
+          const panneau = await onglet.getAttribute("aria-controls");
+          await page.locator(`[id="${panneau}"]`).waitFor({ state:"visible" });
+          const sousMesure = await mesurer();
+          await page.screenshot({ path:path.join(dossier, `${slug}--rubrique-${index}.png`), fullPage:true });
+          rapport.push({ ...ecran, path:`${ecran.path}#${panneau}`, label:`${ecran.label} — ${titre}`,
+            statut:reponse?.status() ?? 0, ...sousMesure, erreursConsole:erreursConsole.slice(0,5), erreursPage:erreursPage.slice(0,5) });
+        }
       } catch (err) {
         rapport.push({ ...ecran, statut: "erreur", erreur: String(err).slice(0, 300) });
       }

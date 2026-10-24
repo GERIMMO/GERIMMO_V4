@@ -2,7 +2,7 @@
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { expirationDiagnostic } from "@/lib/documents-bail";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { deposerDiagnostic, type EtatParc } from "@/app/actions/parc";
 import { TYPES_DIAGNOSTIC, type NiveauDiagnostic } from "@/lib/parc";
 import { aujourdhuiParis } from "@/lib/ged";
@@ -34,6 +34,7 @@ export function FormulaireDiagnostic({
   initialiserDate?: boolean;
   actionDepot?: (etat:EtatParc,form:FormData)=>Promise<EtatParc>;
 }) {
+  const identifiant = useId();
   const types = Object.entries(TYPES_DIAGNOSTIC).filter(
     ([, t]) => tousNiveaux || t.niveau === niveau
   );
@@ -126,9 +127,9 @@ export function FormulaireDiagnostic({
           </div>
         ) : (
           <div className="space-y-1.5">
-            <Label htmlFor={`diag-type-${niveau}`}>Type de diagnostic</Label>
+            <Label htmlFor={`diag-type-${niveau}-${identifiant}`}>Type de diagnostic</Label>
             <select
-              id={`diag-type-${niveau}`}
+              id={`diag-type-${niveau}-${identifiant}`}
               name="type"
               value={type}
               onChange={(e) => {
@@ -149,10 +150,10 @@ export function FormulaireDiagnostic({
           </div>
         )}
         <div className="space-y-1.5">
-          <Label htmlFor={`diag-diagnostiqueur-${niveau}`}>Diagnostiqueur</Label>
+          <Label htmlFor={`diag-diagnostiqueur-${niveau}-${identifiant}`}>Diagnostiqueur</Label>
           {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
           <Input
-            id={`diag-diagnostiqueur-${niveau}`}
+            id={`diag-diagnostiqueur-${niveau}-${identifiant}`}
             name="diagnostiqueur"
             maxLength={120}
             placeholder="Cabinet (facultatif)"
@@ -161,9 +162,9 @@ export function FormulaireDiagnostic({
         </div>
         {type === "dpe" && (
           <div className="space-y-1.5">
-            <Label htmlFor={`diag-classe-${niveau}`}>Classe énergétique (DPE)</Label>
+            <Label htmlFor={`diag-classe-${niveau}-${identifiant}`}>Classe énergétique (DPE)</Label>
             <select
-              id={`diag-classe-${niveau}`}
+              id={`diag-classe-${niveau}-${identifiant}`}
               name="classe_dpe"
               required={Boolean(actionDepot)}
               defaultValue={etat.valeurs?.classe_dpe ?? ""}
@@ -182,9 +183,9 @@ export function FormulaireDiagnostic({
           </div>
         )}
         <div className="space-y-1.5">
-          <Label htmlFor={`diag-realisation-${niveau}`}>Réalisé le</Label>
+          <Label htmlFor={`diag-realisation-${niveau}-${identifiant}`}>Réalisé le</Label>
           <Input
-            id={`diag-realisation-${niveau}`}
+            id={`diag-realisation-${niveau}-${identifiant}`}
             name="date_realisation"
             type="date"
             max={aujourdhuiParis()}
@@ -197,9 +198,9 @@ export function FormulaireDiagnostic({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor={`diag-expiration-${niveau}`}>Expire le</Label>
+          <Label htmlFor={`diag-expiration-${niveau}-${identifiant}`}>Expire le</Label>
           <Input
-            id={`diag-expiration-${niveau}`}
+            id={`diag-expiration-${niveau}-${identifiant}`}
             required={TYPES_DIAGNOSTIC[type]?.validite_mois != null}
             name="date_expiration"
             type="date"
@@ -212,10 +213,10 @@ export function FormulaireDiagnostic({
           </p>
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor={`diag-fichier-${niveau}`}>
+          <Label htmlFor={`diag-fichier-${niveau}-${identifiant}`}>
             Rapport du diagnostiqueur
           </Label>
-          <ChampFichier depotDirect id={`diag-fichier-${niveau}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
+          <ChampFichier depotDirect id={`diag-fichier-${niveau}-${identifiant}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
           <p className="text-sm text-muted-foreground">
             Rapport requis. PDF, JPEG ou PNG
             (10 Mo maximum), à déposer avec les dates et la classe figurant sur le rapport.

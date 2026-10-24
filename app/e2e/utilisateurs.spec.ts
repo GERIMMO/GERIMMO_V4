@@ -35,3 +35,17 @@ test("annuaire lisible, filtres cumulés et ouverture du bon compte", async ({ p
   await expect(page).toHaveURL(/\/admin\/clients$/);
   await expect(page.getByRole("list", { name: "Personnes trouvées" }).getByRole("link").first()).toBeVisible();
 });
+
+
+test("les abonnements et la trésorerie restent deux lectures distinctes", async ({ page }) => {
+  await page.goto("/admin");
+  await expect(page.getByRole("tab", { name: "Clients et abonnements", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("heading", { name: "Clients et abonnements", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Encaissements et coûts réels" })).toBeHidden();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("tab", { name: "Encaissements et coûts", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Encaissements et coûts réels" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Clients et abonnements", exact: true })).toBeHidden();
+  expect(await debordementHorizontal(page)).toBe(0);
+  // Aucun relevé Stripe chargé : le test ne contacte pas un prestataire.
+});

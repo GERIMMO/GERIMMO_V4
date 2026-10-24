@@ -167,7 +167,7 @@ describe("chargerSyntheseAlertes : le drapeau propriétaire direct se lit du TYP
       { id: "a3", type: "loyer_impaye", organization_id: "o-x", organization: null },
     ];
     const client = { auth: { getUser: async () => ({ data: { user: { id: "compte" } } }) }, from: () => requete(lignes) } as unknown as SupabaseClient;
-    const alertes = await chargerSyntheseAlertes(client, { toutes: true });
+    const alertes = await chargerSyntheseAlertes(client, { supervision: true });
     expect(Object.fromEntries(alertes.map((a) => [a.id, a.proprietaire_direct]))).toEqual({ a1: true, a2: false, a3: false });
   });
 });

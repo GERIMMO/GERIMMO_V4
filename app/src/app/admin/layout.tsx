@@ -38,7 +38,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
 
   const identite=await lireEditeur();
   const [alertes, decisions, { data: utilisateur }, arrets, relais] = await Promise.all([
-    chargerSyntheseAlertes(supabase, { toutes: true }),
+    chargerSyntheseAlertes(supabase, { supervision: true }),
     chargerDecisionsAttendues(supabase, process.env, faitsManquants(identite.indisponible?{}:identite.editeur).length),
     supabase.auth.getUser(),
     // Audit du 13/10 (SA-04) : un arrêt d'urgence ou un relais en cours se voit sur toute la console. Lecture en échec : pas de bandeau.

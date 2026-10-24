@@ -89,11 +89,11 @@ export function SyntheseAlertes({
   useEffect(() => {
     if (ouvertureExaminee.current) return;
     ouvertureExaminee.current = true;
-    if (alertes.length === 0 || lireSession(CLE_SESSION_ALERTES)) return;
+    if (modeAdmin || alertes.length === 0 || lireSession(CLE_SESSION_ALERTES)) return;
     // Ouverture différée d'un tick : évite un re-rendu en cascade à l'hydratation
     const minuterie = setTimeout(() => setOuverte(true), 0);
     return () => clearTimeout(minuterie);
-  }, [alertes.length]);
+  }, [alertes.length, modeAdmin]);
 
   // Le brief de supervision ouvre cette même synthèse depuis sa priorité
   // « alertes critiques » : un seul détail à maintenir, et un clic utile.
@@ -104,9 +104,9 @@ export function SyntheseAlertes({
   }, []);
 
   const fermer = useCallback(() => {
-    ecrireSession(CLE_SESSION_ALERTES, "1");
+    if (!modeAdmin) ecrireSession(CLE_SESSION_ALERTES, "1");
     setOuverte(false);
-  }, []);
+  }, [modeAdmin]);
 
   const triees = [...alertes].sort((a, b) => {
     const parCriticite =
@@ -133,7 +133,7 @@ export function SyntheseAlertes({
           className="lien-bandeau"
         >
           {modeAdmin && <Bell size={18} aria-hidden="true" className="hidden max-[640px]:block" />}
-          <span className={modeAdmin ? "max-[640px]:sr-only" : undefined}>Alertes</span>
+          <span className={modeAdmin ? "max-[640px]:sr-only" : undefined}>{modeAdmin ? "Alertes critiques des clients" : "Alertes"}</span>
           {alertes.length > 0 && (
             <span className={`puce ml-1.5 ${nbCritiques > 0 ? "puce-rouge" : "puce-prep"}`}>
               {alertes.length}
@@ -147,7 +147,7 @@ export function SyntheseAlertes({
            par le bouton Fermer en pied (revue 08/08), Échap et voile aussi */
         <Modale
           titre={
-            alertes.length === 0
+            modeAdmin ? "Alertes critiques des clients" : alertes.length === 0
               ? "Aucune alerte ne vous attend"
               : `${alertes.length} alerte${alertes.length > 1 ? "s" : ""} à traiter`
           }
@@ -184,16 +184,17 @@ export function SyntheseAlertes({
             </div>
           }
         >
+            {modeAdmin && <p className="mb-4 text-sm text-muted-foreground">Suivi en lecture seule. Le propriétaire ou son gestionnaire reste responsable du traitement de son dossier.</p>}
             <div className="max-h-[55vh] overflow-y-auto">
               {!toutAfficher && alertes.length > 5 && <p className="mb-3 text-sm text-muted-foreground">Les 5 priorités sur {alertes.length} alertes. <button type="button" className="lien-discret" onClick={() => setToutAfficher(true)}>Afficher toutes les alertes</button></p>}
               {alertes.length === 0 ? (
                 <p className="py-4 text-sm text-muted-foreground">
-                  Rien ne vous est confié — tout est traité.
+                  {modeAdmin ? "Aucune alerte critique ouverte chez les clients." : "Rien ne vous est confié — tout est traité."}
                 </p>
               ) : (
                 [...parAgence.entries()].map(([agenceId, groupe]) => (
                   <div key={agenceId} className="colonne-liste mb-2">
-                    {multiAgences && (
+                    {(multiAgences || modeAdmin) && (
                       <div className="tete-groupe">
                         <span className="libelle-champ">{groupe.nom}</span>
                         <span className="libelle-champ">{groupe.liste.length}</span>
@@ -249,7 +250,7 @@ export function SyntheseAlertes({
                                 </span>
                               )}
                               <span className="lien-discret group-hover:underline">
-                                Traiter&nbsp;→
+                                {modeAdmin ? "Voir le client" : "Traiter"}&nbsp;→
                               </span>
                             </span>
                           </>

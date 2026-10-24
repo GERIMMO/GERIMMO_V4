@@ -9,6 +9,7 @@ for (const persona of ["proprietaire", "superadmin"]) {
   test.describe(persona, () => {
     test.use({ storageState: path.join(__dirname, ".auth", `${persona}.json`) });
     test("bail signé et documents lisibles sans activation", async ({ page }, info) => {
+      test.setTimeout(120_000);
       const cible = process.env.SUPALOCAL_DB;
       test.skip(!cible, "Base API locale fictive obligatoire.");
       const url = new URL(cible!);
@@ -16,6 +17,7 @@ for (const persona of ["proprietaire", "superadmin"]) {
       const db = new Client({ connectionString: cible }); await db.connect();
       const lot = randomUUID(), bail = randomUUID(), original = randomUUID(), signe = randomUUID(), circuit = randomUUID(), dpe = randomUUID(), sansDate = randomUUID();
       const docs = [original, signe, dpe, sansDate];
+      const suivi = randomUUID(), alerteSignature = randomUUID(), alerteCritique = randomUUID();
       try {
         const source = (await db.query("select id,bien_id from public.lots where organization_id=$1 and nom='Appartement T2 — 12 rue des Lilas'", [ORG])).rows[0];
         expect(source).toBeTruthy();
@@ -28,16 +30,35 @@ for (const persona of ["proprietaire", "superadmin"]) {
           [dpe, "Diagnostic expiré — essai", "diagnostic", "2020-01-01"],
           [sansDate, "Pièce à vérifier — essai", "autre", null],
         ]) {
-          await db.query("insert into public.documents(id,organization_id,type,titre,storage_path,mime_type,expire_le) values($1,$2,$3,$4,$5,'application/pdf',$6)", [id, ORG, type, titre, `${ORG}/essai/${id}.pdf`, expiration]);
+          await db.query("insert into public.documents(id,organization_id,type,titre,storage_path,mime_type,expire_le,taille_octets,empreinte) values($1,$2,$3,$4,$5,'application/pdf',$6,123,repeat(replace($1::text,'-',''),2))", [id, ORG, type, titre, `${ORG}/essai/${id}.pdf`, expiration]);
           await db.query("insert into public.document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'bail',$3)", [ORG, id, bail]);
         }
         await db.query("insert into public.diagnostics(organization_id,lot_id,type,date_realisation,date_expiration,document_id,classe_dpe) values($1,$2,'dpe','2019-01-01','2020-01-01',$3,'B')", [ORG, lot, dpe]);
         await db.query(`insert into public.bail_signature_circuits(id,organization_id,bail_id,document_id,document_signe,created_by,environnement,empreinte,pdf_hash,signataires,etat,prestataire)
           values($1,$2,$3,$4,$5,$6,'production',repeat('b',64),repeat('a',64),$7,'termine','zoho')`,
           [circuit, ORG, bail, original, signe, owner, JSON.stringify(["Locataire", "Propriétaire"].map((qualite, i) => ({ personId: randomUUID(), qualite, prenom: "Essai", nom: qualite, email: `essai${i}@example.test`, telephone: "+33600000001", statut: "signed" })))]);
-        await sansSyntheseAlertes(page);
+        if (persona === "superadmin") {
+          await db.query("insert into public.orchestration_cases(id,organization_id,dossier_type,dossier_id,etape,prochaine_action,mode,priorite) values($1,$2,'bail',$3,'brouillon','Compléter le bail et réunir les signatures','humaine','urgente')", [suivi, ORG, bail]);
+          await db.query("insert into public.alerts(id,organization_id,type,titre,criticite,assigned_all) values($1,$3,'signature_retournee','Signature client — contrôle des rôles','normale',true),($2,$3,'manuelle','Alerte critique — contrôle des rôles','critique',true)", [alerteSignature, alerteCritique, ORG]);
+          // Aucun contournement de la synthèse : tester la vraie première arrivée.
+          await page.goto("/admin/brief");
+          await page.getByRole("button", { name: /Alertes critiques des clients/ }).click();
+          const synthese = page.getByRole("dialog");
+          await expect(synthese).toContainText("Alerte critique — contrôle des rôles");
+          await expect(synthese).not.toContainText("Signature client — contrôle des rôles");
+          await expect(synthese).not.toContainText("Traiter");
+          await expect(synthese).toContainText("Suivi en lecture seule");
+          await synthese.getByRole("button", { name: "Fermer", exact: true }).click();
+          await page.goto("/admin/autonomie?vue=dossiers&equipe=bail");
+          const dossier = page.locator('#dossiers a').filter({ hasText: "Bail signé · location non activée" });
+          await expect(dossier.first()).toBeVisible();
+        } else await sansSyntheseAlertes(page);
         const fiche = `/espace/${ORG}/parc/${source.bien_id}/lots/${lot}`;
         await page.goto(fiche);
+        if (persona === "superadmin") {
+          await expect(page.getByText("Consultation superadmin · lecture seule", { exact: true })).toBeVisible();
+          await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+        }
         await expect(page.locator("#location-apercu")).toContainText("Bail signé");
         await expect(page.getByRole("heading", { name: "Location non activée", exact: true })).toBeVisible();
         await expect(page.locator("#etat-documents")).toHaveText("Diagnostics");
@@ -73,9 +94,16 @@ for (const persona of ["proprietaire", "superadmin"]) {
           await expect(page.locator("main")).toContainText("Consultation superadmin");
           for (const name of ["Confirmer la commune", "Confirmer les communes évidentes", "Signaler mon intérêt"]) await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0);
         }
+        if (persona === "proprietaire") {
+          await page.goto("/admin/clients");
+          await expect(page).toHaveURL(new RegExp(`/espace/${ORG}(?:[?#]|$)`));
+          await expect(page.getByRole("link", { name: "Ouvrir une organisation", exact: true })).toHaveCount(0);
+        }
         const apres = (await db.query("select b.etat,b.document_signe,l.etat as lot_etat from public.baux b join public.lots l on l.id=b.lot_id where b.id=$1", [bail])).rows[0];
         expect(apres).toEqual({ etat: "brouillon", document_signe: null, lot_etat: "disponible" });
       } finally {
+        await db.query("delete from public.alerts where id=any($1::uuid[])", [[alerteSignature, alerteCritique]]);
+        await db.query("delete from public.orchestration_cases where id=$1", [suivi]);
         await db.query("delete from public.bail_signature_circuits where id=$1", [circuit]);
         await db.query("delete from public.diagnostics where lot_id=$1", [lot]);
         await db.query("delete from public.document_liens where document_id=any($1::uuid[])", [docs]);

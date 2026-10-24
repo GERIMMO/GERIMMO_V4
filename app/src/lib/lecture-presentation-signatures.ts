@@ -26,7 +26,9 @@ export async function lirePresentationSignatures(orgId: string, filtre: { baux: 
     .eq("organization_id", orgId);
   q = "baux" in filtre ? q.eq("modele", "bail").in("bail_id", ids)
     : q.or(`document_id.in.(${ids.join(",")}),document_signe.in.(${ids.join(",")})`);
-  const { data, error } = await q.order("created_at", { ascending: false }).limit(1001);
-  // Un résultat tronqué ne permet pas de déduire un état certain pour tous les baux.
-  return { circuits: !error && (data?.length ?? 0) <= 1000 ? (data ?? []) as SignatureLisible[] : [], erreur: Boolean(error) || (data?.length ?? 0) > 1000 };
+  const { data, error } = await q.order("created_at", { ascending: false }).limit(1000);
+  // Le plafond PostgREST peut tronquer la réponse à 1 000 lignes même si
+  // une limite supérieure est demandée. À cette borne, l'état reste inconnu.
+  const incomplet = Boolean(error) || (data?.length ?? 0) >= 1000;
+  return { circuits: incomplet ? [] : (data ?? []) as SignatureLisible[], erreur: incomplet };
 }

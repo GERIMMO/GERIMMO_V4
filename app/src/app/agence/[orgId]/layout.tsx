@@ -80,7 +80,7 @@ export default async function LayoutAgence({
     actionsDuJour,
     { data: etatAbonnementBrut },
   ] = await Promise.all([
-    chargerSyntheseAlertes(supabase, { orgId }),
+    traverseeLectureSeule ? Promise.resolve([]) : chargerSyntheseAlertes(supabase, { orgId }),
     // Badge maquette : les incidents encore ouverts (tout sauf clos).
     // Les lignes plutôt que le compte : le badge doit compter la MÊME chose
     // que la tuile du tableau de bord, à 200 px de là — c'est-à-dire les
@@ -183,7 +183,7 @@ export default async function LayoutAgence({
       ? "Rien à régler pour l'instant"
       : null;
   const essai =
-    estResponsable && organisation.status === "essai" && organisation.essai_fin
+    !traverseeLectureSeule && estResponsable && organisation.status === "essai" && organisation.essai_fin
       ? {
           jours: joursRestants(organisation.essai_fin),
           href: `${base}/abonnement`,
@@ -192,7 +192,11 @@ export default async function LayoutAgence({
         }
       : null;
 
-  const liensCompte = estProprietaire
+  const liensCompte = traverseeLectureSeule ? [
+    { href: "/admin/brief", libelle: "Revenir au superadmin" },
+    { href: `/admin/organisations/${orgId}`, libelle: "Fiche du client" },
+    { href: "/compte", libelle: "Sécurité de mon compte" },
+  ] : estProprietaire
     ? [
         { href: `${base}/profil`, libelle: "Mon profil" },
         { href: "/compte", libelle: "Sécurité du compte" },
@@ -226,12 +230,12 @@ export default async function LayoutAgence({
             <MarqueOrganisation marque={estProprietaire ? undefined : organisation} tuile />
           </span>
           <RechercheEspace orgId={orgId} racine={racine} />
-          <SyntheseAlertes
+          {!traverseeLectureSeule && <SyntheseAlertes
             alertes={alertes}
             membres={membres}
             estResponsable={estResponsable}
             aujourdhui={aujourdhuiParis()}
-          />
+          />}
           {/* L'aide, dans la barre plutôt qu'en rond flottant sur le contenu
               (24/09) : icône seule sous 1 024 px, et sur téléphone
               (≤ 640 px) elle passe dans le tiroir « Menu » de la barre basse.
@@ -244,12 +248,12 @@ export default async function LayoutAgence({
             // Le propriétaire, c'est une personne (27/09) : ses initiales, pas
             // celle de son « Parc ».
             initiales={
-              (estProprietaire ? initialesDe(await identiteDuCompte(supabase, orgId, user)) : null) ??
+              (traverseeLectureSeule ? "SA" : estProprietaire ? initialesDe(await identiteDuCompte(supabase, orgId, user)) : null) ??
               (organisation.name?.[0] ?? "◇").toUpperCase()
             }
-            titre={estProprietaire ? "Espace propriétaire" : organisation.name}
+            titre={traverseeLectureSeule ? "Superadmin · consultation" : estProprietaire ? "Espace propriétaire" : organisation.name}
             sousTitre={
-              estProprietaire ? undefined : role === "admin_agence" ? "Admin d'agence" : "Agent"
+              traverseeLectureSeule ? undefined : estProprietaire ? undefined : role === "admin_agence" ? "Admin d'agence" : "Agent"
             }
             liens={liensCompte}
             compteId={user.id}
@@ -262,11 +266,12 @@ export default async function LayoutAgence({
             qui s'adresser. Le responsable, lui, a le lien. */}
         {traverseeLectureSeule && (
           <p role="status" className="flex flex-wrap items-center gap-x-3 border-b border-[var(--trait)] bg-[var(--filet-leger)] px-4 py-2 text-sm">
-            <span><strong>Lecture seule</strong> · {organisation.name}</span>{" "}
+            <span><strong>Consultation superadmin · lecture seule</strong> · {organisation.name}</span>{" "}
+            <Link href="/admin/brief" className="font-semibold underline">Revenir au superadmin</Link>
             <Link href={`/admin/organisations/${orgId}/support`} className="font-semibold underline">Ouvrir le support</Link>
           </p>
         )}
-        {ecritureFermee && (
+        {ecritureFermee && !traverseeLectureSeule && (
           <p className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-1.5 text-center text-xs text-[var(--warning-soft-foreground)]">
             {organisation.status === "essai"
               ? "Période d'essai terminée — lecture seule"

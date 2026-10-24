@@ -38,7 +38,7 @@ describe("Lecture minimale des états de signature", () => {
     const db = client(); m.acces.mockResolvedValue({ supabase: db, traverseeLectureSeule: false });
     db.q.limit.mockResolvedValue({ data: [], error: new Error("indisponible") });
     expect((await lirePresentationSignatures(org, { baux: [bail] })).erreur).toBe(true);
-    db.q.limit.mockResolvedValue({ data: Array.from({ length: 1001 }, () => ({})), error: null });
+    db.q.limit.mockResolvedValue({ data: Array.from({ length: 1000 }, () => ({})), error: null });
     expect(await lirePresentationSignatures(org, { baux: [bail] })).toEqual({ circuits: [], erreur: true });
   });
   it("refuse un identifiant qui pourrait détourner le filtre avant toute lecture", async () => {

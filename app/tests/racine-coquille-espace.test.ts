@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 type Ligne = Record<string, unknown>;
 const m = vi.hoisted(() => ({
   acces: vi.fn(),
+  alertes: vi.fn(async () => []),
   compter: vi.fn(),
   charger: vi.fn(),
   client: null as unknown,
@@ -33,7 +34,7 @@ function adresses(v: unknown): string[] {
 vi.mock("next/navigation", () => ({ redirect: m.redirect, usePathname: () => "/", useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/lib/espace", () => ({ verifierAccesEspace: m.acces }));
 vi.mock("@/lib/portefeuille", () => ({ lotsDuPortefeuille: async () => null }));
-vi.mock("@/lib/alertes", () => ({ chargerSyntheseAlertes: async () => [] }));
+vi.mock("@/lib/alertes", () => ({ chargerSyntheseAlertes: m.alertes }));
 vi.mock("@/lib/messagerie", () => ({ totalMessagesNonLus: async () => 0 }));
 vi.mock("@/lib/actions-du-jour", () => ({ compterActionsDuJour: m.compter, chargerActionsDuJour: m.charger }));
 vi.mock("@/lib/identite-compte", () => ({ identiteDuCompte: async () => ({ prenom: "Claire" }), initialesDe: () => "CM" }));
@@ -45,7 +46,7 @@ vi.mock("@/components/barre-laterale", () => ({
     createElement("footer", { "data-barre-basse": p.racine, "data-liens": adresses(p.navigation).join(" ") }),
 }));
 vi.mock("@/components/recherche-espace", () => ({ RechercheEspace: (p: { racine: string }) => createElement("search", { "data-recherche": p.racine }) }));
-vi.mock("@/components/synthese-alertes", () => ({ SyntheseAlertes: () => null }));
+vi.mock("@/components/synthese-alertes", () => ({ SyntheseAlertes: () => createElement("div", { "data-alertes-client": true }) }));
 vi.mock("@/components/menu-compte", () => ({
   MenuCompte: (p: { liens: { href: string; libelle: string }[] }) =>
     createElement("menu", null, ...p.liens.map((l) => createElement("a", { key: l.href, href: l.href }, l.libelle))),
@@ -127,6 +128,19 @@ describe("la coquille de l'espace (layout) : contexte, barres, recherche, menu d
       expect(html).not.toContain(p.interdit);
     });
   }
+});
+
+it("la consultation superadmin ne reçoit pas les alertes ni l'identité du propriétaire", async () => {
+  m.acces.mockResolvedValue({
+    supabase: client(() => []), user: { id: "superviseur" }, role: "proprietaire_direct", estProprietaire: true,
+    traverseeLectureSeule: true, organisation: { id: ORG, name: "Client TEST", status: "essai", essai_fin: "2099-01-01" },
+  });
+  const html = renderToStaticMarkup((await LayoutAgence({ children: null, params: Promise.resolve({ orgId: ORG }) } as never)) as never);
+  expect(m.alertes).not.toHaveBeenCalled();
+  expect(html).not.toContain("data-alertes-client");
+  expect(html).toContain("Consultation superadmin · lecture seule");
+  expect(html).toContain("Revenir au superadmin");
+  expect(html).toContain('data-essai=""');
 });
 
 describe("l'accueil du propriétaire direct (servi au seul propriétaire direct)", () => {

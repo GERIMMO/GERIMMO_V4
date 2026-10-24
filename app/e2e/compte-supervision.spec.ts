@@ -40,7 +40,7 @@ test("depuis une organisation, la fiche d'un compte dit son état, ses rôles et
   await expect(page.getByRole("heading", { name: "Événements techniques" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Contrôler l’accès" })).toBeVisible();
   // L'entrée dans l'espace se fait avec l'identité de la supervision, jamais celle du compte.
-  await expect(page.getByText("avec votre identité")).toBeVisible();
+  await expect(page.getByText("Les consultations et actions réalisées dans les espaces restent enregistrées à votre nom.", { exact: true })).toBeVisible();
   expect(await debordementHorizontal(page)).toBe(0);
 
   const entrer = page.getByRole("link", { name: /Entrer dans son espace|Ouvrir son dossier locataire/ }).first();

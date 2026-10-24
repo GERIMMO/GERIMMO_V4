@@ -50,11 +50,17 @@ export function DetailMontants({ offre, regime }: { offre: Offre; regime: Regime
           <span className="montant">{euros(l.totalCents)}</span>
         </div>
       ))}
-      {offre.public === "agence" ? (
+      {offre.public === "agence" && !etiquetteTaxes("ht", regime) ? (
+        // Relecture transverse du 24/10 (M2, agences hors V1) : en franchise, aucune TVA ne s'ajoute ; ni « HT », ni
+        // ligne de TVA à zéro, ni « TTC » : un seul total, comme pour un particulier, la mention de franchise dessous.
+        <div className="ligne-info font-medium">
+          <span className="!text-foreground">Total à payer</span>
+          <span className="montant font-heading text-lg">{euros(offre.montantCents)} {periode}</span>
+        </div>
+      ) : offre.public === "agence" ? (
         <>
           <div className="ligne-info">
-            {/* Relecture adverse du 24/10 (M11, agences hors V1) : « HT » seulement si une TVA s'ajoute. */}
-            <span>Total{etiquetteTaxes("ht", regime) ? " HT" : ""}</span>
+            <span>Total HT</span>
             <span className="montant">{euros(offre.montantCents)} {periode}</span>
           </div>
           {m.connu ? (

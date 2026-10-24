@@ -9,7 +9,7 @@ import { prestataireSignature, type ConfigurationSignature, type PrestataireSign
 import { aujourdhuiParis } from "@/lib/ged";
 import { marquerDocumentEssai, signatureEnEssai } from "@/lib/signature-essai";
 import type { ModeleSignature } from "./politique-signature";
-import { MENTION_PAGE_SIGNATURE_GARANT } from "./textes-signature-actes";
+import { MENTION_PAGE_SIGNATURE_GARANT, mentionCadreCautionBail } from "./textes-signature-actes";
 
 export type SignataireBail = {
   personId: string; qualite: "Locataire" | "Colocataire" | "Garant" | "Propriétaire";
@@ -89,7 +89,8 @@ export function telephoneSignature(v: string | null | undefined): string {
  * avant l'envoi (acte de cautionnement, décision du 23/10 ; bail qu'il signe aussi, décision du 24/10). Il reste vide
  * ici, n'entre pas dans l'empreinte et n'est pas réclamé comme manquant.
  * `telephoneGarantDuDossier` : l'ancien calcul, où le garant du bail signait avec le numéro de sa fiche. Il ne sert qu'à
- * reconnaître l'empreinte d'un bail préparé avant le 24/10, pour l'activer après sa signature.
+ * reconnaître l'empreinte d'un bail préparé avant le 24/10, pour l'activer après sa signature (avec, dans
+ * `documentSignatureBail`, le contrat sans les deux mentions du garant ajoutées ce jour-là).
  */
 export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locataires"|"garants"> & {organisation:{type:string}}, inclureLocataires = true, options: { telephoneGarantDuDossier?: boolean } = {}): { signataires: SignataireBail[]; manquants: string[] } {
   const manquants: string[] = [];
@@ -116,19 +117,37 @@ export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locatai
   return { signataires, manquants };
 }
 
-/** Une page par personne : aucun chevauchement avec le texte ou une autre signature. */
-export function ajouterPagesSignature(doc: DocumentAssemble, parties: SignataireBail[], annexes: AnnexeSignature[] = [], titre = "contrat de location", caution = false): DocumentAssemble {
+/**
+ * Une page par personne : aucun chevauchement avec le texte ou une autre signature.
+ * `mentionGarant` (finitions du 24/10) : faux pour l'ancien calcul de l'empreinte (bail préparé avant le 24/10). La
+ * mention du garant tient sur la ligne de son nom : absente, la page est octet pour octet celle d'avant (relecture
+ * transverse 3, I1 : un retour à la ligne ajouté changeait l'empreinte de TOUS les circuits, même sans garant).
+ */
+export function ajouterPagesSignature(doc: DocumentAssemble, parties: SignataireBail[], annexes: AnnexeSignature[] = [], titre = "contrat de location", caution = false, mentionGarant = true): DocumentAssemble {
   const pages = parties.map((p,i) => `<section style="break-before:page;break-inside:avoid;${caution && p.qualite === "Garant" ? "position:relative;min-height:680pt;" : ""}background:#fff;color:#17324d">
     <h1>Signature — ${echapper(titre)}</h1><p>Référence : ${echapper(doc.reference)}</p>
     <p>Cette page fait partie du document qui précède. La signature porte sur l’ensemble de ce document.</p>
-    <h2>${i + 1}. ${echapper(p.qualite)}</h2><p>${echapper(`${p.prenom} ${p.nom}`)}</p>
-    ${!caution && p.qualite === "Garant" ? `<p>${echapper(MENTION_PAGE_SIGNATURE_GARANT)}</p>` : ""}
+    <h2>${i + 1}. ${echapper(p.qualite)}</h2><p>${echapper(`${p.prenom} ${p.nom}`)}</p>${mentionGarant && !caution && p.qualite === "Garant" ? `<p>${echapper(MENTION_PAGE_SIGNATURE_GARANT)}</p>` : ""}
     <p>La date et la preuve de signature sont établies par le prestataire au moment de la signature.</p>
     ${caution && p.qualite === "Garant" ? `<div style="font-size:8.5pt;line-height:1.25;overflow-wrap:anywhere"><strong>Mention personnelle de la caution</strong><p>Sur téléphone, copiez ce paragraphe depuis votre e-mail d’invitation avant d’ouvrir la saisie Zoho, puis collez-le vous-même dans le champ « Mention personnelle ». Il est aussi reproduit ci-dessous.</p><p>${echapper(p.mentionCaution ?? "Mention à préparer à nouveau avant tout envoi.")}</p></div>` : ''}
     <div style="${caution && p.qualite === "Garant" ? "position:absolute;top:656pt" : "margin-top:32pt;min-height:100pt"}"><span style="color:#fff;font:12px Arial;white-space:nowrap">{{s${i + 1}|signature|190|80}}</span></div>
   </section>`).join("");
   const inventaire = annexes.length ? `<section style="break-before:page"><h1>Annexes remises avec le contrat</h1><p>Ces pièces accompagnent le document dans le même dossier de signature. Leur empreinte identifie exactement la version remise.</p>${annexes.map(a=>`<div style="break-inside:avoid;margin:14pt 0"><strong>${echapper(a.titre)}</strong><p style="font:8px monospace;overflow-wrap:anywhere">SHA-256 : ${echapper(a.empreinte)}</p></div>`).join("")}</section>` : "";
   return { ...doc, html: doc.html.replace("</body>", `${inventaire}${pages}</body>`) };
+}
+
+/**
+ * Le contrat de bail à signer (pages de signature comprises) et son empreinte, depuis le corps du contrat.
+ * `calculAvant24Octobre` : l'empreinte d'un bail préparé avant le 24/10, recalculée à l'activation après sa signature
+ * (relecture transverse 3, I1) : contrat sans la mention ajoutée au cadre « La caution », page du garant sans sa
+ * mention ; le numéro du garant, celui de sa fiche, vient des signataires (`partiesSignatureBail`, même option).
+ */
+export function documentSignatureBail(corps: DocumentAssemble, signataires: SignataireBail[], annexes: AnnexeSignature[], nombreGarants: number, calculAvant24Octobre = false): { document: DocumentAssemble; empreinte: string } {
+  const base = calculAvant24Octobre && nombreGarants > 0
+    ? { ...corps, html: corps.html.replace(`<br/>${mentionCadreCautionBail(nombreGarants)}`, "") }
+    : corps;
+  const document = ajouterPagesSignature(base, signataires, annexes, undefined, false, !calculAvant24Octobre);
+  return { document, empreinte: empreinteSignatureBail(document.html, signataires) };
 }
 
 export function empreinteSignatureBail(html: string, signataires: SignataireBail[]): string {
@@ -162,8 +181,7 @@ export async function assemblerSignatureBail(db: SupabaseClient, org: string, ba
   if ("erreur" in modele) throw new Error(modele.erreur);
   const incomplet = refusDocumentIncomplet(modele.document);
   if (incomplet) manquants.push(...incomplet.manquants);
-  const document = ajouterPagesSignature(signatureEnEssai(org) ? marquerDocumentEssai(modele.document) : modele.document, signataires,pieces.annexes);
-  const empreinte = empreinteSignatureBail(document.html, signataires);
+  const { document, empreinte } = documentSignatureBail(signatureEnEssai(org) ? marquerDocumentEssai(modele.document) : modele.document, signataires, pieces.annexes, ctx.garants.length, options.telephoneGarantDuDossier === true);
   return { ...modele, document, empreinte, signataires, manquants,annexes:pieces.annexes };
 }
 

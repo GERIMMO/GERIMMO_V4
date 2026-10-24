@@ -47,12 +47,14 @@ function contexte(o:Options={}){
    default:return {data:null,error:{message:`rpc inconnue ${n}`}};
   }});
  const from=vi.fn((table:string)=>{
-  let filtreId:string|null=null,filtreJour:string|null=null,mutation=false,valeurs:Record<string,unknown>|null=null;const filtres:Record<string,unknown>={};
+  let filtreId:string|null=null,filtreJour:string|null=null,mutation=false,compter=false,valeurs:Record<string,unknown>|null=null;const filtres:Record<string,unknown>={};
   const lire=()=>{
    if(table==='marketing_reglages')return {data:regle,error:null};
+   if(table==='regulatory_watch'&&filtreId)return {data:o.source?{titre:o.titreSource??'Trêve hivernale'}:null,error:null};
    if(table==='regulatory_watch')return {data:o.source?[{id:'source',titre:o.titreSource??'Trêve hivernale 2026-2027 : ce que vous devez savoir',source_nom:'Service Public',source_url:'https://www.service-public.gouv.fr/particuliers/actualites/A1',publie_source_le:'2026-10-02',etude:{resume:'Les expulsions sont suspendues.',publics:o.publicsSource??['bailleur','agence','locataire']}}]:[],error:null};
    if(table==='marketing_campagnes')return {data:null,error:o.erreurCampagne?{message:'indisponible'}:null};
    if(table==='publications'){
+    if(compter)return {data:null,error:null,count:[...articles.values()].filter(a=>(filtres.statut as string[]).includes(a.statut as string)).length};
     if(mutation){if(filtreId&&valeurs){const a=articles.get(filtreId);if(a&&Object.entries(filtres).every(([k,v])=>a[k]===v)){Object.assign(a,valeurs);return {data:{...a},error:null};}return {data:null,error:null};}return {data:null,error:null};}
     if(filtreId)return {data:articles.get(filtreId)?{...articles.get(filtreId)}:null,error:null};
     if(filtreJour){const a=[...articles.values()].find(x=>x.marketing_jour===filtreJour);return {data:a?{...a}:null,error:null};}
@@ -61,7 +63,7 @@ function contexte(o:Options={}){
    }
    return {data:null,error:null};
   };
-  const q={select:vi.fn(()=>q),eq:vi.fn((col:string,v:string)=>{if(col==='id')filtreId=v;if(col==='marketing_jour')filtreJour=v;filtres[col]=v;return q;}),not:vi.fn(()=>q),neq:vi.fn(()=>q),gte:vi.fn(()=>q),order:vi.fn(()=>q),limit:vi.fn(async()=>lire()),in:vi.fn((col:string,v:string[])=>{filtres[col]=v;return q;}),single:vi.fn(async()=>lire()),maybeSingle:vi.fn(async()=>lire()),
+  const q={select:vi.fn((_c:string,o?:{head?:boolean})=>{compter=Boolean(o?.head);return q;}),eq:vi.fn((col:string,v:string)=>{if(col==='id')filtreId=v;if(col==='marketing_jour')filtreJour=v;filtres[col]=v;return q;}),not:vi.fn(()=>q),neq:vi.fn(()=>q),gte:vi.fn(()=>q),order:vi.fn(()=>q),limit:vi.fn(async()=>lire()),in:vi.fn((col:string,v:string[])=>{filtres[col]=v;return q;}),single:vi.fn(async()=>lire()),maybeSingle:vi.fn(async()=>lire()),
    insert:vi.fn((v:Record<string,unknown>)=>{insertions.push(v);const a={...v,id:'nouveau',updated_at:'date',image_empreinte:null,image_essais:0,image_en_cours_le:null,facebook_post_id:null,facebook_envoi_demarre_le:null};articles.set('nouveau',a);filtreId='nouveau';return q;}),
    update:vi.fn((v:Record<string,unknown>)=>{modifications.push(v);valeurs=v;mutation=true;return q;}),upsert:vi.fn(()=>q),
    then:(resolve:(v:unknown)=>unknown)=>Promise.resolve(mutation?lire():lire()).then(resolve)};
@@ -83,6 +85,11 @@ describe('mission marketing : diffusion de l’échu',()=>{
   expect(noms.indexOf('publier_article_automatique')).toBeLessThan(noms.indexOf('reserver_diffusion_facebook'));
   expect(mocks.facebook).toHaveBeenCalledTimes(1);
   expect(c.modifications.some(m=>m.facebook_post_id==='page_post')).toBe(true);
+ });
+ it('ne diffuse pas un ancien article de veille hors sujet, même déjà programmé',async()=>{
+  const c=contexte({echus:[{id:'p1',titre:'Un article requalifié logement',veille_source_id:'source'}],source:true,titreSource:'Taxe sur les salaires'});
+  const r=await GET(requete());expect(await r.json()).toMatchObject({publiees:0,en_attente:['p1']});
+  expect(c.rpcs.some(([n])=>n==='publier_article_automatique')).toBe(false);expect(mocks.facebook).not.toHaveBeenCalled();
  });
  it('n’envoie rien quand la base refuse la parution (validation obligatoire, pause, veille écartée)',async()=>{
   contexte({echus:[{id:'p1',titre:'Un post'}],parutionRefusee:true});

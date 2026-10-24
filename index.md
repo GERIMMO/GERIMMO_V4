@@ -291,3 +291,7 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] — corrections adverses, sources officielles et preuves de publication.
 
 - **24 octobre 2026 — réglage des durées par le dirigeant, en validation locale** : [[Durées de conservation#Réglage par le dirigeant — préparation du 24 octobre 2026|écran superadmin, décisions tracées et conservation des échéances déjà constituées]].
+
+- **24 octobre 2026 — bureau de direction simplifié, en validation** : demandes regroupées en trois catégories, problèmes en premier, recherche et six demandes par page ; toutes les décisions restent explicites. Preuves dans `log.md`.
+
+- 24/10/2026 : périmètre logement/bâtiment et plafonds de propositions (5 veilles, 2 articles), anciens hors-sujets en réserve ; [[Guide de ton du journal]]. Suite de la PR #252, publication après CI.

@@ -3,7 +3,7 @@ type: concept
 tags: [journal, marketing, redaction, ton]
 status: stable
 created: 2026-10-07
-updated: 2026-10-07
+updated: 2026-10-24
 sources: []
 ---
 
@@ -60,3 +60,31 @@ règle pour les seize sujets éditoriaux (`src/lib/contenu-marketing.ts`).
 3. Deux ou trois sections courtes, dont une qui part d'un exemple.
 4. Une liste pratique.
 5. Texte Facebook : deux phrases, sans lien (le lien est ajouté par l'envoi).
+
+## Périmètre et volume (décision du dirigeant, 24 octobre 2026)
+
+La veille et ses relais automatiques concernent le logement, la gestion locative
+et les besoins directs des artisans du bâtiment. Un titre officiel doit permettre
+de reconnaître ce lien : un résumé IA, une étiquette « artisan » ou un mot comme
+« factures », « cotisations » ou « allocations » ne suffit pas. AAH, santé,
+fiscalité générale des entreprises et actualités des autres métiers sont hors
+périmètre. Le filtre reste volontairement prudent ; les sources officielles ne
+constituent pas une couverture exhaustive de la réglementation.
+
+Le bureau présente au maximum **5 veilles et 2 articles** en attente. Les autres
+propositions restent accessibles en réserve, avec leur motif, sans accord, rejet
+ni effacement automatique. Les problèmes clients ne sont jamais plafonnés par
+cette règle. Les compteurs du bureau et de la navigation appliquent le même tri.
+
+La collecte attend lorsqu'au moins 5 veilles pertinentes sont encore à examiner ;
+les deux flux officiels partagent les places restantes. Les sources déjà traitées
+ne sont pas rouvertes. Les études existantes utiles peuvent encore se terminer.
+La préparation marketing attend dès que 2 propositions, brouillons, articles
+planifiés ou programmés existent ; aucun nouveau texte ni visuel n'est alors créé.
+Une préparation existante peut reprendre. Une panne de lecture bloque la création.
+Avant diffusion d'un article issu de veille, la source est à nouveau contrôlée :
+un ancien hors-sujet programmé ne passe pas automatiquement.
+
+Ces limites sont appliquées par le code, sous le verrou habituel des missions,
+sans changement de schéma ni des décisions déjà enregistrées. La création manuelle
+et l'examen des anciennes propositions restent disponibles au superviseur.

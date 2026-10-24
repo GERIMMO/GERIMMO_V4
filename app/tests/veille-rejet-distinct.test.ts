@@ -8,10 +8,10 @@ vi.mock("@/lib/analyse-veille", () => ({ lireSourceEtude: async () => "Source fi
 vi.mock("@/lib/supabase/service", () => ({ clientDeService: () => ({ rpc: m.rpc, from: (table: string) => {
   let ecriture = false;
   const q = {
-    select: () => q, eq: () => q, is: () => q, or: () => q, order: () => q, limit: () => q,
+    select: () => q, eq: () => q, is: () => q, or: () => q, order: () => q, limit: () => q, range: () => q,
     insert: (v: unknown) => { m.insert(v); ecriture = true; return q; },
     update: (v: unknown) => { m.update(v); ecriture = true; return q; },
-    then: (f: (v: unknown) => unknown) => Promise.resolve({ data: !ecriture && table === "regulatory_watch" ? [{ id: "source", titre: "Fictive", source_url: "https://example.invalid/source" }] : [], error: ecriture && m.erreurStockage ? { message: "indisponible" } : null }).then(f),
+    then: (f: (v: unknown) => unknown) => Promise.resolve({ data: !ecriture && table === "regulatory_watch" ? [{ id: "source", titre: "DPE des logements", source_url: "https://example.invalid/source" }] : [], error: ecriture && m.erreurStockage ? { message: "indisponible" } : null }).then(f),
   }; return q;
 } }) }));
 import { traiterVeille } from "@/lib/missions-planifiees/veille";

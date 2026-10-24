@@ -20,7 +20,9 @@ test("le dirigeant modifie une durée, retrouve sa trace et la rétablit", async
   await formulaire.getByRole("checkbox").check();
   await formulaire.getByRole("button", { name: "Enregistrer la durée" }).click();
   await expect(formulaire.getByRole("status")).toContainText("Durée enregistrée");
-  await expect(page.getByRole("region", { name: "Historique des durées" })).toContainText("Recette navigateur locale");
+  const historique = page.locator("details").filter({ has: page.getByRole("heading", { name: "Historique des durées", exact: true }) });
+  await historique.locator("summary").click();
+  await expect(historique.getByText("Recette navigateur locale de la durée technique", { exact: true }).first()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: "e2e/.results/durees-enregistrees-mobile.png", fullPage: false });
   await formulaire.getByRole("button", { name: "Fermer" }).click();
@@ -36,5 +38,6 @@ test("le dirigeant modifie une durée, retrouve sa trace et la rétablit", async
   await expect(formulaire.getByRole("status")).toContainText("Durée enregistrée");
   await formulaire.getByRole("button", { name: "Fermer" }).click();
   await page.reload();
-  await expect(page.getByRole("region", { name: "Historique des durées" })).toContainText("Fin de recette");
+  await historique.locator("summary").click();
+  await expect(historique.getByText("Fin de recette : retour à la durée initiale", { exact: true }).first()).toBeVisible();
 });

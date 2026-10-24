@@ -6930,3 +6930,5 @@ Corrections livrées après la relecture : modèle réglementaire de rétractati
 
 - Dernière relecture : une navigation interne par `pushState` conservant les composants pouvait laisser le journal ciblé replié. Échec reproduit dans Chromium, puis correction par réévaluation de la cible après chaque rendu. Les cinq scénarios navigateur passent, ainsi que les types et le lint ciblé.
 - La suite locale générale sans base a été interrompue : certains anciens bancs tentent une connexion même lorsque leurs cas sont ignorés. La validation intégrale reste celle de la CI isolée avec ses bases fictives ; aucun accès de production n’a été utilisé pour ces essais.
+
+- Recette complète CI 40116444277 : 10 600 tests unitaires réussis ; 210 parcours Chromium réussis, un ignoré, un échec limité à l'ancien sélecteur de l'historique des durées. Adaptation de cette recette : ouvrir explicitement la nouvelle rubrique, vérifier que le motif est visible après modification puis après rétablissement. Les contrôles de consentement, de publication de la durée et de restauration restent intacts. Aucun réglage de production modifié.

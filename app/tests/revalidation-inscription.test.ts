@@ -8,9 +8,10 @@ vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Erro
 import { definirNouveauMotDePasse } from "../src/app/actions/auth";
 import { informationsAConfirmer } from "../src/lib/revalidation-inscription";
 
+// Depuis la V1 (24/10/2026), l'artisan coche les conditions de l'espace artisan : la case affichée le dit (champ caché).
 const form = (values: Record<string, string> = {}) => {
   const f = new FormData();
-  for (const [key, value] of Object.entries({ mot_de_passe: "nouveau-mot-de-passe-1", confirmation: "nouveau-mot-de-passe-1", espace: "artisan", nom: "Corrigé", cgu: "on", ...values })) f.set(key, value);
+  for (const [key, value] of Object.entries({ mot_de_passe: "nouveau-mot-de-passe-1", confirmation: "nouveau-mot-de-passe-1", espace: "artisan", nom: "Corrigé", cgu: "on", cgu_document: "conditions_artisans", ...values })) f.set(key, value);
   return f;
 };
 /** La revendication `amr` du jeton : d'où vient la session (audit du 19/10, g). */
@@ -57,7 +58,7 @@ it("enregistre les informations validées et garde la suite d’une invitation",
   const suite = "/artisan/invitation/11111111-1111-4111-8111-111111111111";
   // PRO-5 (23/10) : premier choix après la confirmation, la session reste ouverte et mène droit à l'invitation.
   await expect(definirNouveauMotDePasse({}, form({ suite }))).rejects.toThrow(`REDIRECT ${suite}`);
-  expect(rpc).toHaveBeenCalledWith("accepter_cgu", expect.objectContaining({ p_source: "compte" }));
+  expect(rpc).toHaveBeenCalledWith("accepter_cgu", expect.objectContaining({ p_source: "compte", p_document: "conditions_artisans" }));
   expect(auth.updateUser).toHaveBeenCalledWith({ password: "nouveau-mot-de-passe-1", data: expect.objectContaining({ nom: "Corrigé", espace: "artisan", profil_a_confirmer: null }) });
   expect(rpc.mock.invocationCallOrder[0]).toBeLessThan(auth.updateUser.mock.invocationCallOrder[0]);
   expect(auth.signInWithPassword).toHaveBeenCalledExactlyOnceWith({ email: "camille@example.invalid", password: "nouveau-mot-de-passe-1" });

@@ -3,12 +3,14 @@
  *
  *  - La case des conditions suit l'espace : conditions générales pour le propriétaire, conditions de l'espace artisan
  *    DÈS LEUR PUBLICATION (les deux états sont éprouvés), règles des espaces invités pour la personne invitée.
- *  - L'écran « Nos conditions générales évoluent » : il ne s'affiche pour personne aujourd'hui (dernière acceptation sur
- *    la version en vigueur, ou aucune acceptation) ; ses textes pour une version future ; la phrase de non-reconduction
- *    seulement pour une version substantielle publiée avec la règle de l'accord exprès et un abonnement en cours.
- *  - La non-reconduction : jamais pour la version en vigueur (2026-09-30), jamais avant la date d'effet ; à la date,
- *    `cancel_at_period_end` sous le verrou, consigné ; un arrêt d'urgence interrompt la passe.
- *  - La garde de l'espace artisan : inactive (aucune lecture) tant que les conditions ne sont pas publiées.
+ *  - L'écran « Nos conditions générales évoluent » : il ne s'affiche ni sur la version en vigueur ni sans acceptation ;
+ *    depuis la V1 (24/10/2026), il s'affiche à qui n'a accepté que la version du 30/09, avec la phrase de non-reconduction
+ *    si un abonnement est en cours (version substantielle publiée avec la règle de l'accord exprès).
+ *  - La non-reconduction : jamais pour une version publiée sans la règle (2026-09-30), jamais avant la date d'effet ni
+ *    avant un mois plein après l'archivage ; ensuite, `cancel_at_period_end` sous le verrou, consigné ; un arrêt
+ *    d'urgence interrompt la passe.
+ *  - La garde de l'espace artisan : inactive (aucune lecture) tant que les conditions ne sont pas publiées ; active
+ *    depuis la V1 (intégration des textes du 24/10).
  *  - « Mon compte » : texte et lien de la version acceptée.
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -45,12 +47,14 @@ const NON_PUBLIEES = { version: null, date: null };
 const V1 = { date_effet: "2026-11-15", nature: "substantielle" as const, resume_modifications: "Offre aux seuls propriétaires, rétractation en ligne.", empreinte_reference: "0".repeat(64) };
 
 describe("la case des conditions selon l'espace (R10, R60)", () => {
-  it("aujourd'hui, les conditions de l'espace artisan ne sont pas publiées : tout le mécanisme artisan est inactif", () => {
-    expect(CONDITIONS_ARTISANS_VERSION).toBeNull();
-    expect(CONDITIONS_ARTISANS_DATE).toBeNull();
-    expect(versionArtisansPubliee()).toBeNull();
-    // L'artisan accepte les conditions clients, comme avant.
-    expect(caseConditions("artisan")).toEqual({ ...CASE_CONDITIONS_CLIENTS, version: CONDITIONS_VERSION });
+  it("depuis la V1 (24/10/2026), les conditions de l'espace artisan sont publiées : le mécanisme artisan s'active seul", () => {
+    expect(CONDITIONS_ARTISANS_VERSION).toBe("2026-10-24");
+    expect(CONDITIONS_ARTISANS_DATE).toBe("24 octobre 2026");
+    expect(versionArtisansPubliee()).toBe("2026-10-24");
+    // L'artisan accepte désormais les conditions de l'espace artisan, plus les conditions clients.
+    expect(caseConditions("artisan")).toEqual({ ...CASE_CONDITIONS_ARTISANS, version: "2026-10-24" });
+    // Non publiées (état d'avant la V1, éprouvé en remplaçant la constante) : l'artisan accepte les conditions clients.
+    expect(caseConditions("artisan", NON_PUBLIEES)).toEqual({ ...CASE_CONDITIONS_CLIENTS, version: CONDITIONS_VERSION });
   });
 
   it("le propriétaire accepte les conditions générales d'utilisation et de vente, version en vigueur", () => {
@@ -81,7 +85,8 @@ describe("la case des conditions selon l'espace (R10, R60)", () => {
   it("l'article 7 de la version en vigueur porte bien sur les espaces des personnes invitées", () => {
     const cgu = readFileSync("src/app/conditions/page.tsx", "utf8");
     const article = cgu.slice(cgu.indexOf('<Article titre="7.'), cgu.indexOf('<Article titre="8.'));
-    expect(article).toContain("7. Espaces des locataires et des propriétaires mandants");
+    // V1 : les propriétaires mandants (offre agences) sont retirés ; l'article vise les locataires et les personnes invitées.
+    expect(article).toContain("7. Espaces des locataires et des personnes invitées");
     expect(article).toContain("ouvrir un espace de consultation");
     expect(article).toContain("ne contractent pas");
   });
@@ -118,9 +123,16 @@ describe("la garde de l'espace artisan (R10)", () => {
   it("non publiées : rien n'est exigé, rien n'est lu", async () => {
     const { client, from, rpc } = db(false);
     expect(await conditionsArtisansAAccepter(client, "compte-1", NON_PUBLIEES)).toBeNull();
-    expect(await conditionsArtisansAAccepter(client, "compte-1")).toBeNull();
     expect(from).not.toHaveBeenCalled();
     expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("depuis la V1 : la garde lit l'acceptation des conditions de l'espace artisan en vigueur (24 octobre 2026)", async () => {
+    const nonAcceptees = db(false);
+    expect(await conditionsArtisansAAccepter(nonAcceptees.client, "compte-1")).toEqual({ version: "2026-10-24", date: "24 octobre 2026" });
+    expect(nonAcceptees.chaine.eq).toHaveBeenCalledWith("document", "conditions_artisans");
+    expect(nonAcceptees.chaine.eq).toHaveBeenCalledWith("version", "2026-10-24");
+    expect(await conditionsArtisansAAccepter(db(true).client, "compte-1")).toBeNull();
   });
 
   // Relecture adverse du 24/10 (défaut 2) : en diagnostic, `mon_artisan_id()` rend l'artisan supervisé, mais le compte
@@ -162,24 +174,31 @@ describe("la garde de l'espace artisan (R10)", () => {
 });
 
 describe("l'écran « Nos conditions générales évoluent » (R19)", () => {
-  it("aujourd'hui, il ne s'affiche pour personne : dernière acceptation sur la version en vigueur, ou aucune", () => {
-    expect(CONDITIONS_VERSION).toBe("2026-09-30");
+  it("il ne s'affiche ni sur la version en vigueur (V1 du 24/10/2026) ni sans acceptation", () => {
+    expect(CONDITIONS_VERSION).toBe("2026-10-24");
     expect(nouvelleVersionAAccepter({ derniereVersionAcceptee: CONDITIONS_VERSION })).toBeNull();
     expect(nouvelleVersionAAccepter({ derniereVersionAcceptee: null })).toBeNull();
     expect(nouvelleVersionAAccepter({ derniereVersionAcceptee: CONDITIONS_VERSION, abonnement: { souscrit: true, periode_fin: "2026-12-01T00:00:00Z", annulation_demandee: false } })).toBeNull();
   });
 
-  it("la version en vigueur n'exige pas l'accord exprès : son article 16 ne prévoit pas la non-reconduction", () => {
-    expect(VERSIONS_SANS_ACCORD_EXPRES).toContain(CONDITIONS_VERSION);
-    expect(accordExpresRequis(CONDITIONS_VERSION, versionDeclaree("conditions_clients", CONDITIONS_VERSION))).toBe(false);
-    // Une ancienne acceptation montre l'écran, sans la phrase de non-reconduction.
-    const ecran = nouvelleVersionAAccepter({ derniereVersionAcceptee: "2026-09-29", abonnement: { souscrit: true, periode_fin: "2026-12-01T00:00:00Z", annulation_demandee: false } });
-    expect(ecran?.accordExpres).toBe(false);
-    expect(ecran?.paragraphes).toHaveLength(1);
-    expect(ecran?.paragraphes[0]).toBe(
-      "Une nouvelle version des conditions générales d’utilisation et de vente s’applique à compter du 30 septembre 2026. Résumé des changements : Essai gratuit porté de 14 jours à 2 mois pour toute inscription jusqu’au 31/12/2026 (offre de lancement), 1 mois ensuite (article 8.2)."
+  it("la V1 exige l'accord exprès (son article 16) ; la version du 30/09, publiée avant la règle, jamais", () => {
+    expect(VERSIONS_SANS_ACCORD_EXPRES).toEqual(["2026-09-30"]);
+    expect(accordExpresRequis("2026-09-30", versionDeclaree("conditions_clients", "2026-09-30"))).toBe(false);
+    const v1 = versionDeclaree("conditions_clients", CONDITIONS_VERSION);
+    expect(v1?.nature).toBe("substantielle");
+    expect(accordExpresRequis(CONDITIONS_VERSION, v1)).toBe(true);
+    // Qui n'a accepté que la version du 30/09 voit l'écran ; abonné, avec la phrase de non-reconduction.
+    const sansAbonnement = nouvelleVersionAAccepter({ derniereVersionAcceptee: "2026-09-30" });
+    expect(sansAbonnement?.accordExpres).toBe(true);
+    expect(sansAbonnement?.paragraphes).toEqual([
+      `Une nouvelle version des conditions générales d’utilisation et de vente s’applique à compter du 24 octobre 2026. Résumé des changements : ${v1?.resume_modifications.replace(/[.\s]+$/u, "")}.`,
+    ]);
+    expect(sansAbonnement?.dateVersion).toBe(CONDITIONS_DATE);
+    const abonne = nouvelleVersionAAccepter({ derniereVersionAcceptee: "2026-09-30", abonnement: { souscrit: true, periode_fin: "2026-12-01T00:00:00Z", annulation_demandee: false } });
+    expect(abonne?.paragraphes).toHaveLength(2);
+    expect(abonne?.paragraphes[1]).toBe(
+      "Sans votre accord à cette date, la version précédente continue de s’appliquer jusqu’au 1 décembre 2026, puis votre abonnement n’est pas reconduit ; vos données restent consultables et exportables."
     );
-    expect(ecran?.dateVersion).toBe(CONDITIONS_DATE);
   });
 
   it("une version substantielle future : la phrase de non-reconduction, avec la fin de la période en cours à la date d'effet", () => {
@@ -238,8 +257,11 @@ describe("l'écran « Nos conditions générales évoluent » (R19)", () => {
 });
 
 describe("la non-reconduction faute d'accord (R19)", () => {
-  it("jamais pour la version en vigueur ; jamais avant la date d'effet ; jamais pour une version technique ou non déclarée", () => {
-    expect(motifSansObjet(CONDITIONS_VERSION, versionDeclaree("conditions_clients", CONDITIONS_VERSION), "2027-01-01")).toBe("sans_accord_expres");
+  it("jamais pour une version publiée sans la règle (30/09) ; jamais avant la date d'effet ; jamais pour une version technique ou non déclarée", () => {
+    expect(motifSansObjet("2026-09-30", versionDeclaree("conditions_clients", "2026-09-30"), "2027-01-01")).toBe("sans_accord_expres");
+    // La V1 (24/10/2026) : à partir de sa date d'effet (le préavis d'un mois après l'archivage est vérifié ensuite).
+    expect(motifSansObjet(CONDITIONS_VERSION, versionDeclaree("conditions_clients", CONDITIONS_VERSION), "2026-10-23")).toBe("avant_date_effet");
+    expect(motifSansObjet(CONDITIONS_VERSION, versionDeclaree("conditions_clients", CONDITIONS_VERSION), "2026-10-24")).toBeNull();
     expect(motifSansObjet("2026-11-15", V1, "2026-11-14")).toBe("avant_date_effet");
     expect(motifSansObjet("2026-11-15", V1, "2026-11-15")).toBeNull();
     expect(motifSansObjet("2026-11-15", { ...V1, nature: "technique" }, "2027-01-01")).toBe("sans_accord_expres");
@@ -282,11 +304,21 @@ describe("la non-reconduction faute d'accord (R19)", () => {
     return { supabase: { rpc, from } as never, stripe: stripe as never, appels, update, lectures };
   }
 
-  it("la version en vigueur ne lit ni n'écrit rien", async () => {
-    const b = banc();
-    expect(await poserNonReconductionsConditions(b.supabase, b.stripe)).toEqual({ motif: "sans_accord_expres", examinees: 0, posees: 0, echecs: [] });
-    expect(b.appels).toEqual([]);
-    expect(b.lectures).toEqual([]);
+  it("la version du 30/09 ne lit ni n'écrit rien ; la V1 attend sa date d'effet, puis un mois plein après son archivage", async () => {
+    const ancienne = banc();
+    expect(await poserNonReconductionsConditions(ancienne.supabase, ancienne.stripe, { version: "2026-09-30" })).toEqual({ motif: "sans_accord_expres", examinees: 0, posees: 0, echecs: [] });
+    expect(ancienne.appels).toEqual([]);
+    expect(ancienne.lectures).toEqual([]);
+    // V1 (version par défaut depuis le 24/10/2026) : la veille de sa date d'effet, rien n'est lu.
+    const veille = banc();
+    expect((await poserNonReconductionsConditions(veille.supabase, veille.stripe, { aujourdhui: "2026-10-23" })).motif).toBe("avant_date_effet");
+    expect(veille.lectures).toEqual([]);
+    // Archivée le 24/10 : le préavis d'un mois court jusqu'au 23 novembre inclus ; rien n'est écrit chez Stripe.
+    const preavis = banc({ archive: "2026-10-24T08:00:00Z" });
+    expect((await poserNonReconductionsConditions(preavis.supabase, preavis.stripe, { aujourdhui: "2026-11-23" })).motif).toBe("preavis_en_cours");
+    expect(preavis.lectures).toEqual(["versions_conditions", "document=conditions_clients", "version=2026-10-24"]);
+    expect(preavis.appels).toEqual([]);
+    expect(preavis.update).not.toHaveBeenCalled();
   });
 
   it("garde du préavis : version archivée depuis un mois plein au moins (jour de Paris), sinon rien", async () => {
@@ -389,7 +421,10 @@ describe("« Mon compte » : la version acceptée (lot 1A)", () => {
 
   it("le lien « consulter » : la version archivée, sinon la page en vigueur pour la même version, sinon la liste", () => {
     expect(lienVersionAcceptee(acceptation, new Set(["conditions_clients/2026-09-30"]))).toBe("/conditions/versions/conditions_clients/2026-09-30");
-    expect(lienVersionAcceptee(acceptation, new Set())).toBe("/conditions");
+    // Depuis la V1, la version du 30/09 n'est plus en vigueur : sans archive, la liste des versions.
+    expect(lienVersionAcceptee(acceptation, new Set())).toBe("/conditions/versions");
+    expect(lienVersionAcceptee({ ...acceptation, version: CONDITIONS_VERSION }, new Set())).toBe("/conditions");
+    expect(lienVersionAcceptee({ document: "conditions_artisans", version: "2026-10-24" }, new Set())).toBe("/conditions/artisans");
     expect(lienVersionAcceptee({ ...acceptation, version: "2026-09-24" }, new Set())).toBe("/conditions/versions");
     // Les règles des invités se relisent dans les conditions générales de leur version.
     expect(lienVersionAcceptee({ ...acceptation, document: "regles_invites" }, new Set(["conditions_clients/2026-09-30"]))).toBe("/conditions/versions/conditions_clients/2026-09-30");

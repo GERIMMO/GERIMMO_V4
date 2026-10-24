@@ -75,7 +75,12 @@ declare
   v_suffixe text := current_setting('recette.suffixe');
   v_mdp text := current_setting('recette.mot_de_passe');
   v_nom_agence text := btrim(current_setting('recette.nom_agence'));
-  v_version_cgu constant text := '2026-10-24'; -- CONDITIONS_VERSION (src/lib/editeur.ts), date provisoire de la V1
+  -- La version EN VIGUEUR des conditions (V1 du 24/10/2026) : les comptes de recette l'acceptent, comme une vraie
+  -- inscription d'aujourd'hui (document « conditions_clients », valeur par défaut de acceptations_cgu.document).
+  v_version_cgu constant text := '2026-10-24'; -- CONDITIONS_VERSION (src/lib/editeur.ts)
+  -- Les conditions de l'espace artisan, publiées le même jour : sans leur acceptation, la garde de l'espace artisan
+  -- (src/app/artisan/layout.tsx) remplace chaque page par leur case.
+  v_version_cgu_artisans constant text := '2026-10-24'; -- CONDITIONS_ARTISANS_VERSION (src/lib/editeur.ts)
   v_email_admin text;
   v_email_proprio text;
   v_email_locataire text;
@@ -196,6 +201,15 @@ begin
     end if;
   end loop;
 
+  -- Comptes réutilisés (groupe permanent) : le déclencheur d'inscription ne repasse pas ; la version en vigueur des
+  -- conditions clients est acceptée ici, pour qu'aucun écran « Nos conditions générales évoluent » ne s'interpose.
+  insert into public.acceptations_cgu (account_id, version, document, source)
+  select a.id, v_version_cgu, 'conditions_clients', 'inscription'
+    from public.accounts a
+   where lower(a.email) = any(array[v_email_admin, v_email_proprio, v_email_locataire, v_email_artisan, v_email_superadmin])
+     and not exists (select 1 from public.acceptations_cgu c
+                      where c.account_id = a.id and c.document = 'conditions_clients' and c.version = v_version_cgu);
+
   -- 1. L'agence et son admin (ouvrir_organisation, type agence, essai de 2 mois).
   --    En mode réutilisable, l'identifiant est fixe ; sinon il est tiré au sort.
   insert into public.organizations (id, name, type, status, essai_fin)
@@ -251,6 +265,11 @@ begin
 
   -- 4. Artisan fictif, privé : aucun référencement dans le réseau public.
   select id into strict v_uid from public.accounts where lower(email) = v_email_artisan;
+  -- V1 (24/10/2026) : l'artisan accepte les conditions de l'espace artisan, comme à une inscription d'aujourd'hui.
+  insert into public.acceptations_cgu (account_id, version, document, source)
+  select v_uid, v_version_cgu_artisans, 'conditions_artisans', 'inscription'
+   where not exists (select 1 from public.acceptations_cgu c
+                      where c.account_id = v_uid and c.document = 'conditions_artisans' and c.version = v_version_cgu_artisans);
   insert into public.artisans(account_id,raison_sociale,siret,email,telephone,visibilite,statut_plateforme,siret_etat,cree_par_organization_id)
   values(v_uid,'TEST Artisan recette-' || v_suffixe,
     (10000000000000 + floor(random()*89999999999999))::bigint::text,

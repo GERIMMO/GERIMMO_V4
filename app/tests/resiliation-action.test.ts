@@ -34,7 +34,9 @@ vi.mock("@/lib/supabase/server", () => ({
     rpc: m.rpc,
     auth: { getUser: async () => ({ data: { user: { id: "compte-1" } }, error: null }) },
     from: () => {
-      const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: { id: "org-1", type: "proprietaire_direct" }, error: null }) };
+      // Depuis la V1 (24/10/2026, accord exprès), lever la résiliation lit l'acceptation de la version en vigueur
+      // (acceptations_cgu … limit(1)) : ici, le compte l'a acceptée (le refus est couvert par reprise-abonnement-accord).
+      const q = { select: () => q, eq: () => q, limit: () => q, maybeSingle: async () => ({ data: { id: "org-1", type: "proprietaire_direct" }, error: null }) };
       return q;
     },
   }),

@@ -106,14 +106,19 @@ async function pageRendue(document: DocumentConditions = "conditions_clients"): 
   return renderToStaticMarkup(await PAGES[document]());
 }
 
-/** Le texte contractuel de /conditions rendu sous chaque variante de l'identité. */
-async function rendusDeGarde(): Promise<{ variante: string; html: string }[]> {
+/**
+ * Le texte contractuel d'un document publié (par défaut /conditions) rendu sous chaque variante de l'identité.
+ * Intégration des textes du 24/10 : les conditions de l'espace artisan suivent la même garde (cinq identités), comme le
+ * socle final le fait pour les conditions clients.
+ */
+async function rendusDeGarde(document: DocumentConditions = "conditions_clients"): Promise<{ variante: string; html: string }[]> {
+  const attendue = DOCUMENTS_PUBLIES.find((d) => d.document === document)?.version;
   const rendus: { variante: string; html: string }[] = [];
   for (const { variante, identite } of VARIANTES) {
     lecture.valeurs = { ...identite };
-    const extraction = extraireTexteContractuel(await pageRendue(), "conditions_clients");
+    const extraction = extraireTexteContractuel(await pageRendue(document), document);
     if (!extraction.ok) throw new Error(`${variante} : texte contractuel introuvable (${extraction.motif})`);
-    if (extraction.version !== CONDITIONS_VERSION) throw new Error(`${variante} : version ${extraction.version}`);
+    if (extraction.version !== attendue) throw new Error(`${variante} : version ${extraction.version}`);
     rendus.push({ variante, html: extraction.html });
   }
   lecture.valeurs = { ...IDENTITE_FIXE };
@@ -151,14 +156,12 @@ describe("garde du code : le texte des conditions ne change pas sans nouvelle ve
     expect(DOCUMENTS_PUBLIES.find((d) => d.document === "conditions_artisans")?.version).toBe(CONDITIONS_ARTISANS_VERSION);
   });
 
+  // Intégration des textes du 24/10 : chaque document publié a son empreinte de garde (cinq identités fictives), celle
+  // du socle final ; l'empreinte d'un seul rendu (empreinteDeReference) ne sert plus de référence.
   it.each(DOCUMENTS_PUBLIES.map((d) => [d.document, d] as const))(
-    "l'empreinte de référence de %s est celle de conditions-versions.json pour sa version en vigueur",
+    "l'empreinte de garde de %s (toutes les variantes de l'identité) est celle de conditions-versions.json pour sa version en vigueur",
     async (document, d) => {
-      const extraction = extraireTexteContractuel(await pageRendue(document), document);
-      expect(extraction.ok).toBe(true);
-      if (!extraction.ok) return;
-      expect(extraction.version).toBe(d.version);
-      const calculee = empreinteDeReference(extraction.html);
+      const calculee = empreinteDeGarde(await rendusDeGarde(document));
       const declaree = versionDeclaree(document, d.version)?.empreinte_reference;
       expect(
         calculee,
@@ -186,8 +189,10 @@ describe("garde du code : le texte des conditions ne change pas sans nouvelle ve
 
   it("I3 : chaque branche de l'identité est rendue — médiateur désigné, coordonnées manquantes, encadré et ses deux renvois", async () => {
     const rendus = Object.fromEntries((await rendusDeGarde()).map((r) => [r.variante, r.html]));
-    expect(rendus.identite_complete_sans_mediateur).toContain("n&#x27;a pas encore adhéré à un dispositif de médiation");
-    expect(rendus.identite_complete_avec_mediateur).toContain("au médiateur de la consommation ci-dessous");
+    // V1 (article 17, décision du 23/10) : sans médiateur, il « sera désigné aux mentions légales dès l'adhésion » ;
+    // désigné, ses coordonnées lues en base suivent « dont relève l'Éditeur ».
+    expect(rendus.identite_complete_sans_mediateur).toContain("dès l&#x27;adhésion de l&#x27;Éditeur");
+    expect(rendus.identite_complete_avec_mediateur).toContain("médiateur de la consommation dont relève l&#x27;Éditeur");
     expect(rendus.identite_complete_avec_mediateur).toContain("Médiateur fictif de la consommation");
     expect(rendus.identite_complete_avec_mediateur).toContain("https://mediateur.example");
     expect(rendus.mediateur_sans_coordonnees).toContain("adresse du médiateur (à venir)");
@@ -202,7 +207,7 @@ describe("garde du code : le texte des conditions ne change pas sans nouvelle ve
     const rendus = await rendusDeGarde();
     const reference = empreinteDeGarde(rendus);
     const modifies = rendus.map((r) =>
-      r.variante === "identite_complete_avec_mediateur" ? { ...r, html: r.html.replace("avant toute saisine du juge, au médiateur", "après saisine du juge, au médiateur") } : r
+      r.variante === "identite_complete_avec_mediateur" ? { ...r, html: r.html.replace("dont relève l&#x27;Éditeur", "que choisit l&#x27;Éditeur") } : r
     );
     expect(modifies).not.toEqual(rendus);
     expect(empreinteDeGarde(modifies)).not.toBe(reference);
@@ -351,6 +356,8 @@ describe("normalisation, extraction et empreinte (sans page)", () => {
   });
 
   it("M1 : chaque rendu de la garde passe la liste blanche (une balise nouvelle échoue ici, pas au moment d'archiver)", async () => {
-    for (const r of await rendusDeGarde()) expect(balisageAdmis(r.html), r.variante).toBe(true);
+    for (const d of DOCUMENTS_PUBLIES) {
+      for (const r of await rendusDeGarde(d.document)) expect(balisageAdmis(r.html), `${d.document} ${r.variante}`).toBe(true);
+    }
   });
 });

@@ -33,7 +33,21 @@ vi.mock("@/app/artisan/acces", () => ({
   chargerFicheArtisan: async () => ({
     user: { id: "u1" },
     fiche: { artisan_id: "a1", raison_sociale: "Plomberie Durand", statut_plateforme: "valide", decennale_valide: true },
-    supabase: { from: () => ({ select: () => ({ eq: async () => ({ data: [], error: null }) }) }) },
+    // Depuis la V1 (24/10/2026), la coquille lit l'acceptation des conditions de l'espace artisan (garde R10) :
+    // ce compte les a acceptées (la garde elle-même est couverte par conditions-acceptation.test.ts).
+    supabase: {
+      rpc: async () => ({ data: null, error: null }),
+      from: () => {
+        const q: Record<string, unknown> = {
+          select: () => q,
+          eq: () => q,
+          limit: () => q,
+          maybeSingle: async () => ({ data: { id: "acceptation-v1" }, error: null }),
+          then: (ok: (r: { data: unknown[]; error: null }) => unknown) => ok({ data: [], error: null }),
+        };
+        return q;
+      },
+    },
   }),
   chargerSollicitations: m.sollicitations,
   chargerAgenda: async () => ({ lignes: [] }),

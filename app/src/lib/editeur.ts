@@ -400,21 +400,20 @@ export function reservesLegales(editeur: Record<string, FaitEditeur> = EDITEUR):
 // « article 28 du RGPD ».
 // 30/09/2026 : essai gratuit porté de 14 jours à 2 mois pour toute inscription
 // jusqu'au 31/12/2026 (offre de lancement), 1 mois ensuite (article 8.2).
-// 24/10/2026 (date PROVISOIRE, voir ci-dessous) : V1 — offre aux seuls
-// propriétaires gérant leurs biens (agences retirées), rétractation en ligne
-// (8.10), impayé et suspension (15), garanties légales (14 bis), signature
-// électronique (4.7), conservation (9), révision et modifications (8.9, 16),
-// annexe article 28 complétée, annexe L. 215 ; conditions de l'espace artisan
-// séparées.
-//
-// DATE PROVISOIRE (plan de conformité du 23/10, lot 3) : « 2026-10-24 » tient la
-// place de la date de publication réelle de la V1, qui sera posée le jour de la
-// mise en ligne — en même temps que la clé de conditions-versions.json, la date
-// d'effet qui y figure et CONDITIONS_ARTISANS_VERSION / CONDITIONS_ARTISANS_DATE.
-// La V1 ne paraît qu'une fois en production le code qui la rend vraie.
+// 24/10/2026 : V1, publiée le jour où le code qui la rend vraie est en production
+// (PR #246, f79674c, mise en ligne le 24/10 ; plan de conformité du 23/10, lots 3
+// et 4) — offre aux seuls propriétaires gérant leurs biens (agences retirées),
+// rétractation en ligne (8.10), impayé et suspension (15), garanties légales
+// (14 bis), signature électronique du bail, du cautionnement et de l'état des
+// lieux (4.7), conservation, inactivité de 24 mois et archive complète (9),
+// révision et modifications soumises à l'accord exprès (8.9, 16), annexe
+// article 28 complétée, annexe L. 215 ; conditions de l'espace artisan séparées
+// (même date). La règle d'inactivité (VERSION_MIN_INACTIVITE,
+// lib/comptes-fermeture.ts) et la règle de conservation compte:inactif
+// (migration 20261024150000) s'activent avec elle.
 export const CONDITIONS_VERSION = "2026-10-24";
 
-/** Date d'entrée en vigueur affichée en tête des conditions (PROVISOIRE, voir ci-dessus). */
+/** Date d'entrée en vigueur affichée en tête des conditions. */
 export const CONDITIONS_DATE = "24 octobre 2026";
 
 // ── Version des conditions de l'espace artisan ─────────────────────────────
@@ -427,9 +426,9 @@ export const CONDITIONS_DATE = "24 octobre 2026";
 // l'espace artisan n'exige rien. Il s'active seul dès qu'elles sont renseignées, en même temps que la page publiée :
 // case « J'accepte les conditions de l'espace artisan » (document « conditions_artisans »), garde de
 // src/app/artisan/layout.tsx (lib/conditions-acceptation.ts). Même règle qu'au-dessus : à changer à chaque
-// modification de fond, avec la date affichée. Première version : même date PROVISOIRE que la V1 des conditions
-// clients, publiée le même jour.
+// modification de fond, avec la date affichée.
+// 24/10/2026 : première version, publiée le même jour que la V1 des conditions clients.
 export const CONDITIONS_ARTISANS_VERSION: string | null = "2026-10-24";
 
-/** Date d'entrée en vigueur affichée en tête des conditions de l'espace artisan ; `null` tant qu'elles ne sont pas publiées (PROVISOIRE). */
+/** Date d'entrée en vigueur affichée en tête des conditions de l'espace artisan ; `null` tant qu'elles ne sont pas publiées. */
 export const CONDITIONS_ARTISANS_DATE: string | null = "24 octobre 2026";

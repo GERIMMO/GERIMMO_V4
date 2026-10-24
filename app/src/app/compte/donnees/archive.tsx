@@ -55,7 +55,7 @@ export async function ArchiveComplete({ etat }: { etat?: string }) {
     {message && <MessageArchive erreur={Boolean(message.erreur)}>
       <p>{message.texte}</p>
       {etat === "identite" && <div className="flex flex-wrap gap-2">
-        <form action={seReconnecterPourArchive}><button type="submit" className="btn-secondaire">Se reconnecter avec mon mot de passe</button></form>
+        <form data-saisie-libre action={seReconnecterPourArchive}><button type="submit" className="btn-secondaire">Se reconnecter avec mon mot de passe</button></form>
         <Link className="btn-secondaire" href="/compte#second-facteur">Valider mon second facteur</Link>
       </div>}
     </MessageArchive>}

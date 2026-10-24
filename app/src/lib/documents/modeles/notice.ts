@@ -37,7 +37,7 @@ const RUBRIQUES: [string, string][] = [
   ],
   [
     "5 — L'état des lieux",
-    "Un état des lieux contradictoire est établi à l'entrée et à la sortie, joint au contrat. Le locataire peut demander à le compléter dans les dix jours pour tout élément, et pendant le premier mois de chauffe pour le chauffage. À défaut d'état des lieux, le locataire est présumé avoir reçu le logement en bon état de réparations locatives.",
+    "Un état des lieux contradictoire est établi à l'entrée et à la sortie, joint au contrat. Le locataire peut demander à le compléter dans les dix jours suivant son établissement pour tout élément, et pendant le premier mois de la période de chauffe pour le chauffage. À défaut d'état des lieux, le locataire est présumé avoir reçu le logement en bon état de réparations locatives.",
   ],
   [
     "6 — Les réparations, l'entretien et les travaux",

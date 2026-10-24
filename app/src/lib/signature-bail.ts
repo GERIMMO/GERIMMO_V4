@@ -28,6 +28,8 @@ export type CircuitBail = {
   external_request_id: string | null; external_document_id: string | null;
   annexes: AnnexeSignature[];
   document_signe: string | null; erreur: string | null; created_at: string; expire_le: string;
+  /** État des lieux : confirmation « établi contradictoirement, sur place » posée en base juste avant l'envoi. */
+  confirmation_sur_place?: { texte: string; visite_le: string; confirme_le: string; confirme_par: string } | null;
 };
 export type AnnexeSignature = { id:string; titre:string; storage_path:string; empreinte:string };
 

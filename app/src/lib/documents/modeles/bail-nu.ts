@@ -36,7 +36,7 @@ import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResol
 import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
 import { dureeBailNuAnnees } from "@/lib/qualite-bailleur";
-import { MENTION_CADRE_CAUTION_BAIL } from "@/lib/textes-signature-actes";
+import { mentionCadreCautionBail } from "@/lib/textes-signature-actes";
 
 
 
@@ -269,7 +269,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
         ctx.locataires.map((l) => echapper(nomPersonne(l) ?? "")).join("<br/>") ||
           f.champ(null, "nom et prénom(s) du ou des locataires")
       )}
-      ${ctx.garants.length > 0 ? cadreSignature("La caution", `${ctx.garants.map((g) => echapper(nomPersonne(g) ?? "")).join("<br/>")}<br/>${MENTION_CADRE_CAUTION_BAIL}`) : ""}
+      ${ctx.garants.length > 0 ? cadreSignature("La caution", `${ctx.garants.map((g) => echapper(nomPersonne(g) ?? "")).join("<br/>")}<br/>${mentionCadreCautionBail(ctx.garants.length)}`) : ""}
     </div>
     </div>
   `;

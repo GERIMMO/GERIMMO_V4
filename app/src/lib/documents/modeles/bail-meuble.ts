@@ -37,7 +37,7 @@ import {
 import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
-import { MENTION_CADRE_CAUTION_BAIL } from "@/lib/textes-signature-actes";
+import { mentionCadreCautionBail } from "@/lib/textes-signature-actes";
 
 // Une ligne de l'inventaire du mobilier attaché au bail (table inventaire_lignes)
 export type LigneInventaire = {
@@ -313,7 +313,7 @@ export function construireBailMeuble(
         ctx.locataires.map((l) => echapper(nomPersonne(l) ?? "")).join("<br/>") ||
           f.champ(null, "nom et prénom(s) du ou des locataires")
       )}
-      ${ctx.garants.length > 0 ? cadreSignature("La caution", `${ctx.garants.map((g) => echapper(nomPersonne(g) ?? "")).join("<br/>")}<br/>${MENTION_CADRE_CAUTION_BAIL}`) : ""}
+      ${ctx.garants.length > 0 ? cadreSignature("La caution", `${ctx.garants.map((g) => echapper(nomPersonne(g) ?? "")).join("<br/>")}<br/>${mentionCadreCautionBail(ctx.garants.length)}`) : ""}
     </div>
     </div>
 

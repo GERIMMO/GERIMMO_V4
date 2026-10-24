@@ -56,7 +56,13 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
   // Cautionnement (décision du 23/10) : tant que la caution n'a pas confirmé son mobile, « envoyer » lui adresse le lien.
   const attente = code==="cautionnement" && c?.etat==="pret" ? vue?.attenteCaution : undefined;
   const mobileCautionConfirme = code==="cautionnement" && Boolean(vue?.signataires?.some(p=>p.qualite==="Garant"&&p.telephoneConfirmeLe));
-  const edlConfirme = code!=="edl" || (surPlace && Boolean(dateVisiteFr(visiteLe)) && visiteLe<=aujourdhuiIso());
+  // Relecture du 24/10 : un acte de cautionnement envoyé avant la confirmation du mobile par la caution (circuits ouverts
+  // au déploiement) garde le numéro de la fiche ; l'écran le dit au lieu d'affirmer le contraire.
+  const cautionSansConfirmation = code==="cautionnement" && Boolean(actif) && !c?.signataires.some(p=>p.qualite==="Garant"&&p.telephoneConfirmeLe);
+  // Relecture du 24/10 : la visite confirmée est celle que porte l'état des lieux (« Établi le »), préremplie et
+  // verrouillée ; la saisie libre ne reste que si cette date n'a pas pu être lue (la base la compare de toute façon).
+  const visite = vue?.dateEdl ? vue.dateEdl.slice(0,10) : visiteLe;
+  const edlConfirme = code!=="edl" || (surPlace && Boolean(dateVisiteFr(visite)) && visite<=aujourdhuiIso());
   const parties=c && !["annule","refuse","expire"].includes(c.etat)?c.signataires:vue?.signataires??[];
   const signes=parties.filter(p=>p.statut==="signed").length;
   const annexes=c && !["annule","refuse","expire"].includes(c.etat)?c.annexes:vue?.annexes??[];
@@ -79,7 +85,8 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
     {vue?.mode==="sandbox"&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm font-medium">Environnement d’essai : documents fictifs uniquement.</p>}
     {vue?.essai&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm font-medium">Essai sans engagement · le document et les invitations sont fictifs. Cet essai ne met aucun logement en location.</p>}
     {!!parties.length&&parties.length<=25&&!vue?.fermeture&&<p className="text-xs text-muted-foreground">Estimation : {estimationSignature(parties.length).credits.toLocaleString("fr-FR")} crédits Zoho pour cet envoi et un premier SMS par signataire. Les renvois de SMS peuvent s’ajouter.</p>}
-    {code==="cautionnement"&&<p className="rounded-xl bg-primary/5 p-3 text-sm">Avant l’envoi, la caution confirme elle-même son numéro de mobile, par un lien reçu par e-mail : le numéro de sa fiche n’est pas utilisé. Elle renseigne ensuite elle-même la mention de caution dans Zoho ; le bailleur la vérifie avant de signer à son tour. Une copie du bail est jointe.</p>}
+    {code==="cautionnement"&&!cautionSansConfirmation&&<p className="rounded-xl bg-primary/5 p-3 text-sm">Avant l’envoi, la caution confirme elle-même son numéro de mobile, par un lien reçu par e-mail : le numéro de sa fiche n’est pas utilisé. Elle renseigne ensuite elle-même la mention de caution dans Zoho ; le bailleur la vérifie avant de signer à son tour. Une copie du bail est jointe.</p>}
+    {cautionSansConfirmation&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm">Cet acte a été envoyé avant que la caution confirme elle-même son numéro de mobile : son code de signature part au numéro saisi sur sa fiche. Annulez ce circuit, puis préparez et envoyez de nouveau l’acte : la caution recevra un lien pour confirmer son numéro.</p>}
     {!!parties.length&&<ol className="divide-y divide-border rounded-xl border border-border">
       {parties.map((p,i)=><li key={p.personId} className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 p-3 md:flex md:flex-wrap md:gap-3">
         <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${p.statut==="signed"?"bg-success-soft":"bg-muted"}`}>{p.statut==="signed"?<CheckCircle2 size={18}/>:i+1}</span>
@@ -91,6 +98,7 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
     </ol>}
     {!!vue?.manquants?.length&&!actif&&c?.etat!=="termine"&&<div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm"><strong>À compléter avant l’envoi</strong><ul className="mt-2 list-disc pl-5 space-y-1">{vue.manquants.map((m,i)=><li key={i}>{estBail ? <a className="inline-flex min-h-11 items-center underline underline-offset-4" href={corriger(m)}>{m} →</a> : m}</li>)}</ul></div>}
     {!!annexes.length&&<div className="text-sm"><p className="font-medium">Annexes jointes au contrat · {annexes.length}</p><ul className="mt-1 grid gap-x-4 sm:grid-cols-2">{annexes.map(a=><li key={a.id}><a className="inline-flex min-h-11 items-center underline underline-offset-4" href={`${base}/documents/${a.id}/fichier`} target="_blank" rel="noreferrer">{a.titre}</a></li>)}</ul></div>}
+    {code==="edl"&&c&&c.etat!=="pret"&&c.confirmation_sur_place?.texte&&<div className="rounded-xl border border-border p-3 text-sm"><p className="font-medium">Confirmation du bailleur avant l’envoi</p><p>{c.confirmation_sur_place.texte}</p><p className="text-xs text-muted-foreground">Donnée le {instant(c.confirmation_sur_place.confirme_le)}, depuis l’espace propriétaire. Elle est conservée avec ce circuit de signature.</p></div>}
     {actif&&<div className="space-y-2"><div className="flex justify-between text-sm"><span>Progression</span><span>{signes} / {parties.length} signatures</span></div><progress className="h-2 w-full accent-primary" max={Math.max(1,parties.length)} value={signes} aria-label="Signatures reçues"/><p className="text-xs text-muted-foreground">Le PDF envoyé reste inchangé. Chaque personne reçoit son invitation lorsque vient son tour.</p></div>}
     {c?.etat==="pret"&&<div className="rounded-xl bg-muted/40 p-3 space-y-3">
       {vue?.versionDepassee&&<p role="alert" className="text-sm text-destructive">Le dossier a changé ou la préparation est trop ancienne. Actualisez le PDF et relisez la nouvelle version avant l’envoi.</p>}
@@ -99,15 +107,15 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
       <label className="flex items-start gap-2 text-sm"><input className="mt-1 size-4 accent-primary" type="checkbox" checked={relu} onChange={e=>setVersionRelue(e.target.checked ? versionPdf : null)} disabled={occupe||vue?.versionDepassee}/><span>J’ai relu ce PDF et vérifié l’identité, les coordonnées et l’ordre de tous les signataires.</span></label>
       {code==="edl"&&<div className="space-y-2 rounded-xl border border-border bg-card p-3 text-sm">
         <label className="block space-y-1"><span className="font-medium">Date de la visite</span>
-          <input type="date" className="block h-10 rounded-md border border-input bg-transparent px-2" value={visiteLe} max={aujourdhuiIso()} onChange={e=>{setVisiteLe(e.target.value);setSurPlace(false);}} disabled={occupe}/></label>
-        {vue?.dateEdl&&<p className="text-xs text-muted-foreground">Date portée par l’état des lieux : {formaterDate(vue.dateEdl)}.</p>}
-        <label className="flex items-start gap-2"><input className="mt-1 size-4 accent-primary" type="checkbox" checked={surPlace} onChange={e=>setSurPlace(e.target.checked)} disabled={occupe||!dateVisiteFr(visiteLe)}/><span>{confirmationEdlSurPlace(dateVisiteFr(visiteLe)||"…")}</span></label>
-        <p className="text-xs text-muted-foreground">La date, votre confirmation et son heure sont conservées avec le document signé.</p>
+          <input type="date" className="block h-10 rounded-md border border-input bg-transparent px-2" value={visite} max={aujourdhuiIso()} readOnly={Boolean(vue?.dateEdl)} onChange={e=>{if(!vue?.dateEdl){setVisiteLe(e.target.value);setSurPlace(false);}}} disabled={occupe}/></label>
+        {vue?.dateEdl&&<p className="text-xs text-muted-foreground">C’est la date portée par l’état des lieux ({formaterDate(vue.dateEdl)}). Si elle est inexacte, corrigez l’état des lieux puis préparez un nouveau PDF.</p>}
+        <label className="flex items-start gap-2"><input className="mt-1 size-4 accent-primary" type="checkbox" checked={surPlace} onChange={e=>setSurPlace(e.target.checked)} disabled={occupe||!dateVisiteFr(visite)}/><span>{confirmationEdlSurPlace(dateVisiteFr(visite)||"…")}</span></label>
+        <p className="text-xs text-muted-foreground">La date, votre confirmation, son heure et son auteur sont conservées avec ce circuit de signature et affichées dans le suivi de ce circuit.</p>
       </div>}
       {attente&&!mobileCautionConfirme&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm">{attente.etat==="expire"
         ?<>Le lien envoyé à la caution le {instant(attente.envoyeLe)} a expiré sans confirmation. Envoyez-lui un nouveau lien.</>
         :<><strong>En attente de la caution.</strong> Un lien lui a été envoyé le {instant(attente.envoyeLe)} ; il expire le {instant(attente.expireLe)}. Dès qu’elle aura confirmé son numéro de mobile, l’acte lui sera envoyé en signature.</>}</p>}
-      <Button disabled={occupe||!relu||!edlConfirme||vue?.versionDepassee||vue?.mode==="indisponible"} onClick={()=>agir(()=>envoyerSignatureBail(orgId,contratId,c.id,code==="edl"?{visiteLe}:undefined))}><Mail size={16}/>{occupe?"Traitement…":code==="cautionnement"&&!mobileCautionConfirme?(attente?"2. Renvoyer le lien à la caution":"2. Envoyer le lien de confirmation à la caution"):"2. Envoyer ce document pour signature"}</Button>
+      <Button disabled={occupe||!relu||!edlConfirme||vue?.versionDepassee||vue?.mode==="indisponible"} onClick={()=>agir(()=>envoyerSignatureBail(orgId,contratId,c.id,code==="edl"?{visiteLe:visite,surPlace}:undefined))}><Mail size={16}/>{occupe?"Traitement…":code==="cautionnement"&&!mobileCautionConfirme?(attente?"2. Renvoyer le lien à la caution":"2. Envoyer le lien de confirmation à la caution"):"2. Envoyer ce document pour signature"}</Button>
     </div>}
     {c?.etat==="termine"&&<div className="rounded-xl bg-success-soft p-3 space-y-3"><p className="flex items-center gap-2 font-medium text-sm"><ShieldCheck size={18}/>Document signé et preuves enregistrés dans Documents.</p>
       <a className="block underline text-sm" href={`${base}/documents/${c.document_signe}/fichier`} target="_blank" rel="noreferrer">Télécharger le document signé</a>

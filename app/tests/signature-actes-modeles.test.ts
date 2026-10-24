@@ -18,6 +18,7 @@ import { construireBailMeuble } from "@/lib/documents/modeles/bail-meuble";
 import { assemblerCautionnement } from "@/lib/documents/modeles/cautionnement";
 import { chargerContexteBail } from "@/lib/documents/modeles/communs";
 import { ajouterPagesSignature, type SignataireBail } from "@/lib/signature-bail";
+import { messageInvitationSignature } from "@/lib/message-invitation-signature";
 import { selectionSignatureValide } from "@/lib/politique-signature";
 import { OPTIONS_CATALOGUE } from "@/lib/documents/catalogue-options";
 import {
@@ -25,6 +26,7 @@ import {
   MENTION_CADRE_CAUTION_BAIL,
   MENTION_PAGE_SIGNATURE_GARANT,
   RAPPEL_COMPLEMENT_EDL_ENTREE,
+  RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT,
   REFUS_SANS_GARANTIE_CUMULEE,
   confirmationEdlSurPlace,
   dateVisiteFr,
@@ -55,15 +57,15 @@ describe("état des lieux : exemplaires et rappel au locataire (R28, décision d
     const html = construireEdl(edl("entree")).html;
     expect(html).toContain(", en autant d'exemplaires que de parties.");
     expect(html).not.toContain("deux exemplaires");
-    expect(html).toContain(`Rappel au locataire : ${RAPPEL_COMPLEMENT_EDL_ENTREE}`);
-    expect(RAPPEL_COMPLEMENT_EDL_ENTREE).toBe("Pour un état des lieux d'entrée, vous pouvez demander au bailleur de le compléter dans les dix jours suivant son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe (article 3-2 de la loi du 6 juillet 1989).");
+    expect(html).toContain(`Rappel au locataire : ${RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT}`);
+    expect(RAPPEL_COMPLEMENT_EDL_ENTREE).toBe("Locataire : vous pouvez demander au bailleur de compléter cet état des lieux d'entrée dans les dix jours suivant son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe (article 3-2 de la loi du 6 juillet 1989).");
     expect(html).not.toContain("dans les dix jours de sa signature");
   });
 
   it("la sortie garde le rappel sur le dépôt de garantie, sans le rappel de l'entrée", () => {
     const html = construireEdl(edl("sortie")).html;
     expect(html).toContain(", en autant d'exemplaires que de parties.");
-    expect(html).not.toContain(RAPPEL_COMPLEMENT_EDL_ENTREE);
+    expect(html).not.toContain(RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT);
     expect(html).toContain("Le dépôt de garantie est restitué");
   });
 
@@ -130,5 +132,35 @@ describe("le garant qui signe le bail ne s'y engage pas comme caution (R58)", ()
     expect(bail.split(MENTION_PAGE_SIGNATURE_GARANT)).toHaveLength(2);
     const acte = ajouterPagesSignature(doc, parties.slice(1), [], "Acte de cautionnement", true).html;
     expect(acte).not.toContain(MENTION_PAGE_SIGNATURE_GARANT);
+  });
+});
+
+describe("relecture du 24/10 : formules des actes", () => {
+  it("le PDF de l'état des lieux d'entrée s'adresse au locataire sans majuscule ni redite après les deux-points", () => {
+    const html = construireEdl(edl("entree")).html;
+    expect(html).toContain("Rappel au locataire : vous pouvez demander au bailleur de compléter le présent état des lieux dans les dix jours suivant son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe (article 3-2 de la loi du 6 juillet 1989).");
+    expect(html).not.toContain("Rappel au locataire : Pour");
+  });
+
+  it("l'invitation adresse le rappel au seul locataire, comme les consignes « Garant : … Propriétaire : … »", () => {
+    const message = messageInvitationSignature({ modele: "edl", bailleur: "Claire Moreau", lienConfidentialite: "https://site.example/confidentialite", edlEntree: true });
+    expect(message).toContain("Locataire : vous pouvez demander au bailleur de compléter cet état des lieux d'entrée dans les dix jours suivant son établissement et, pour les éléments de chauffage, pendant le premier mois de la période de chauffe (article 3-2 de la loi du 6 juillet 1989).");
+  });
+
+  it("le cadre « La caution » s'accorde au pluriel quand le bail a plusieurs garants", () => {
+    const deux = contexte({ garants: [
+      { ...personne({ id: "g1", nom: "Leblanc", prenom: "Marc" }), garant_de: null },
+      { ...personne({ id: "g2", nom: "Roux", prenom: "Anne" }), garant_de: null },
+    ] });
+    for (const html of [construireBailNu(deux, { dpeClasse: "D", f: new Fusion() }).html, construireBailMeuble(deux, { dpeClasse: "D", inventaire: [], f: new Fusion() }).html]) {
+      expect(html).toContain("Leblanc Marc<br/>Roux Anne<br/>Reconnaissent avoir reçu un exemplaire du présent contrat. Leur engagement de caution résulte du seul acte de cautionnement signé séparément par chacune.");
+      expect(html).not.toContain("Reconnaît avoir reçu");
+    }
+  });
+
+  it("la notice d'information donne le point de départ du délai de dix jours", () => {
+    const notice = readFileSync("src/lib/documents/modeles/notice.ts", "utf8");
+    expect(notice).toContain("dans les dix jours suivant son établissement");
+    expect(notice).not.toContain("dans les dix jours pour tout élément");
   });
 });

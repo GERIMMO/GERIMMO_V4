@@ -268,7 +268,10 @@ describe.skipIf(!DB_URL)("arrêt d'urgence et tâches planifiées (D06)", () => 
       expect(def, signature).toContain(`public.tache_planifiee_autorisee('${tache}')`);
     }
     const { rows } = await db.query<{ jobname: string; command: string }>(`select jobname, command from cron.job order by 1`);
-    expect(rows.map((r) => r.command).every((c) => /^select public\.[a-z_]+\(\)$/.test(c))).toBe(true);
+    // « fermetures-comptes » appelle une PROCÉDURE (relecture du 24/10, M8 : chaque fermeture validée à part) : un appel
+    // nu à une fonction ou à une procédure de public, sans argument, comme toutes les autres.
+    expect(rows.map((r) => r.command).every((c) => /^(select|call) public\.[a-z_]+\(\)$/.test(c))).toBe(true);
+    expect(rows.find((r) => r.jobname === "fermetures-comptes")?.command).toBe("call public.fermetures_comptes_nuit()");
   });
 
   // ── Les effets : arrêt actif = aucun effet ; arrêt levé = comportement inchangé ──
